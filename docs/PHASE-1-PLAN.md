@@ -129,7 +129,7 @@ Each slice is one branch and one pull request. CI must pass before merge. Branch
 ### Slice 2: tenant resolver and slugs
 - **Branch:** `feat/tenant-resolver`
 - **Depends on:** slice 1, decision D4 and D5.
-- **Delivers:** host normalisation; subdomain lookup; custom domain lookup (structure only); reserved slug list stored as data; slug generation with numeric suffixes; a process-memory lookup cache with a 60-second lifetime and invalidation.
+- **Delivers:** host normalisation; subdomain lookup; custom domain lookup (structure only); reserved slug list stored as data; slug suggestion from the shop name's Latin letters, with format, reserved-name and availability checks on the owner's chosen address (AUTH-11); numeric suffix suggestions; a process-memory lookup cache with a 60-second lifetime and invalidation.
 - **Requirements:** TEN-24, TEN-25, TEN-26, TEN-27, TEN-28, AUTH-11, TEN-19 (slug immutable).
 - **Done when:** an unknown host returns the generic not-found page before any auth code runs; a request with a forged `tenant_id` parameter changes nothing; "Admin" gets `admin-2`; renaming a shop does not change its slug.
 
