@@ -25,3 +25,7 @@ pnpm test
 ```
 
 Local database (requires Docker): `docker compose up -d postgres`.
+
+## Development flow
+
+Work on a branch, open a pull request, merge once CI passes. See docs/ENGINEERING-STANDARDS.md §7.
