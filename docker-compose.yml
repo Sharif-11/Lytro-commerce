@@ -12,6 +12,8 @@ services:
       - '127.0.0.1:5433:5432'
     volumes:
       - pgdata:/var/lib/postgresql/data
+      # Runs once, on a fresh volume: creates the non-superuser application role (see scripts/db/).
+      - ./scripts/db:/docker-entrypoint-initdb.d:ro
 
 volumes:
   pgdata:

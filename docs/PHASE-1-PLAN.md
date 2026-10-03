@@ -65,6 +65,17 @@ Follows `ENGINEERING-STANDARDS.md` §1 (modular monolith): each module owns its 
 
 Steps 1 to 5 live in shared guards and decorators, so no controller repeats them (ENGINEERING §3, decorator pattern).
 
+**Decided 2026-10-04: packages and layers.**
+
+- **`packages/db` (`@lytronix/db`)** holds the database layer: the connection factory, the migration runner, the drizzle-kit configuration and migrations, the schema split by area (`schema/shared.ts`, `schema/control/{platform,identity,tenancy,plans,sessions}.ts`, `schema/tenant/{staff,audit}.ts`), and the database tests. Repositories are **not** in this package.
+- **Repositories live in `packages/db/src/repositories/<module>/`**, grouped by module, the compromise chosen in the discussion. A lint rule stops a module's services from importing another module's repository folder. Repositories return table row types only, so the package never depends on the server.
+- **`packages/validators` (`@lytronix/validators`)** holds the Zod schemas, the single source for every request shape. DTO classes are created with `createZodDto(schema)`, so no shape is written twice. Validation rules use Zod only. Business rules stay in services.
+- **Server module folders** are domain-grouped with layer folders inside each one: `controllers/`, `dto/`, `services/`. No repository folder in the server.
+- **Dependency rules, enforced by lint (`import/no-cycle`):** `validators` and `shared-types` import no internal package. `db` imports only `validators`. The server imports `db`, `validators` and `shared-types`. Apps never import `db` directly.
+- **OpenAPI** is generated from the Zod schemas, not from decorators. API-15 is read accordingly.
+- **Owner password** lives on `control.subscribers.password_hash`. `tenant.users.password_hash` is null for the owner row and set only for staff.
+- **Sessions** are `control.sessions`, in their own file, since they depend on identity and tenancy (no cycle, because nothing imports them).
+
 ---
 
 ## 4. Database work
