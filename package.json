@@ -15,7 +15,9 @@
     "test": "turbo run test",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "prepare": "husky"
+    "prepare": "husky",
+    "dev:infra": "docker compose up -d --wait postgres",
+    "dev": "pnpm dev:infra && turbo run dev"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.5.0",
