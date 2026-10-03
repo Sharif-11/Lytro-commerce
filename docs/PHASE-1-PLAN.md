@@ -142,6 +142,11 @@ Each slice is one branch and one pull request. CI must pass before merge. Branch
 
 Slice 3 comes before any tenant-scoped endpoint is written, so each later endpoint is covered as it's added.
 
+**Decisions (2026-10-04):**
+- **Registry:** a central case registry (`apps/server/test/isolation/registry.ts`) is compared with the routes the application registers. A shop-owned route without a case fails the suite, and so does a case whose route no longer exists.
+- **Status for another shop's ID:** `not_found` everywhere, including writes. `forbidden` is reserved for a shop's own staff lacking a permission, decided in a later slice.
+- **P1-I04 (background jobs):** deferred. Phase 1 has no jobs. The first job's pull request must add its isolation case, and this item is required before any job ships.
+
 ### Slice 4: sign-up by phone
 - **Branch:** `feat/signup-phone`
 - **Depends on:** slices 2 and 3; decisions D3 and D6.

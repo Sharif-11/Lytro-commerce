@@ -15,7 +15,7 @@ import { TenantResolver } from './tenant-resolver.service';
 import { TRUSTED_EDGE_SECRET } from './tokens';
 
 export const EDGE_HEADER = 'x-lytronix-edge-secret';
-const SKIP_TENANT = 'skipTenant';
+export const SKIP_TENANT = 'skipTenant';
 
 /** Marks a route that works without a shop, such as /health (decision R6). */
 export const SkipTenant = (): MethodDecorator & ClassDecorator => SetMetadata(SKIP_TENANT, true);

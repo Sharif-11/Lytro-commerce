@@ -4,10 +4,10 @@ import { APP_GUARD } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
 import { request as httpRequest, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { randomUUID } from 'node:crypto';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { createDatabase, runMigrations, type DatabaseHandle } from '@lytronix/db';
+import { createDatabase, type DatabaseHandle } from '@lytronix/db';
+import { prepareTestDatabase, seedShop } from './support/database';
 import { HealthController } from '../src/health.controller';
 import { DrizzleSlugAvailability, DrizzleTenantDirectory } from '../src/tenancy/tenant-directory';
 import { SlugService } from '../src/tenancy/slug.service';
@@ -26,17 +26,7 @@ import {
 // never shares state with the database package's tests.
 const ADMIN_URL = process.env['DATABASE_TEST_ADMIN_URL'];
 const DB_NAME = 'lytronix_tenancy_test';
-const APP_ROLE = 'lytronix_app';
-const APP_PASSWORD = 'lytronix_app_local_only';
 const SECRET = 'e'.repeat(32);
-
-function withDatabase(url: string, database: string, user?: string, password?: string): string {
-  const parsed = new URL(url);
-  parsed.pathname = `/${database}`;
-  if (user) parsed.username = user;
-  if (password) parsed.password = password;
-  return parsed.toString();
-}
 
 @Controller('probe')
 class ProbeController {
@@ -68,29 +58,6 @@ function send(
 
 const edge = { [EDGE_HEADER]: SECRET };
 
-async function seedTenant(
-  admin: pg.Client,
-  shopName: string,
-  slug: string,
-  state = 'active',
-): Promise<string> {
-  const subscriber = await admin.query<{ id: string }>(
-    'INSERT INTO control.subscribers DEFAULT VALUES RETURNING id',
-  );
-  const subscriberId = subscriber.rows[0]?.id ?? '';
-  const identity = await admin.query<{ id: string }>(
-    `INSERT INTO control.subscriber_identities (subscriber_id, kind, value, verified_at)
-     VALUES ($1, 'phone', $2, now()) RETURNING id`,
-    [subscriberId, `0171${randomUUID().replace(/\D/g, '').slice(0, 7)}`],
-  );
-  const tenant = await admin.query<{ id: string }>(
-    `INSERT INTO control.tenants (owner_identity_id, subscriber_id, shop_name, slug, state)
-     VALUES ($1, $2, $3, $4, $5::control.tenant_state) RETURNING id`,
-    [identity.rows[0]?.id, subscriberId, shopName, slug, state],
-  );
-  return tenant.rows[0]?.id ?? '';
-}
-
 let admin: pg.Client;
 let handle: DatabaseHandle;
 let app: INestApplication;
@@ -104,28 +71,12 @@ const describeIfDatabase = ADMIN_URL ? describe : describe.skip;
 beforeAll(async () => {
   if (!ADMIN_URL) return;
 
-  const maintenance = new pg.Client({ connectionString: ADMIN_URL });
-  await maintenance.connect();
-  try {
-    await maintenance.query(`
-      DO $$ BEGIN
-        IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '${APP_ROLE}') THEN
-          CREATE ROLE ${APP_ROLE} LOGIN PASSWORD '${APP_PASSWORD}' NOSUPERUSER NOBYPASSRLS;
-        END IF;
-      END $$`);
-    await maintenance.query(`DROP DATABASE IF EXISTS ${DB_NAME} WITH (FORCE)`);
-    await maintenance.query(`CREATE DATABASE ${DB_NAME}`);
-  } finally {
-    await maintenance.end();
-  }
-
-  const adminDbUrl = withDatabase(ADMIN_URL, DB_NAME);
-  await runMigrations(adminDbUrl);
+  const { adminDbUrl, appDbUrl } = await prepareTestDatabase(ADMIN_URL, DB_NAME);
 
   admin = new pg.Client({ connectionString: adminDbUrl });
   await admin.connect();
-  shopId = await seedTenant(admin, 'Fashion House', 'fashion-house');
-  archivedId = await seedTenant(admin, 'Old Shop', 'old-shop', 'archived');
+  shopId = await seedShop(admin, 'Fashion House', 'fashion-house');
+  archivedId = await seedShop(admin, 'Old Shop', 'old-shop', 'archived');
   await admin.query(
     `INSERT INTO control.tenant_domains (tenant_id, hostname, status) VALUES
        ($1, 'www.fashionhouse.test', 'active'),
@@ -133,7 +84,7 @@ beforeAll(async () => {
     [shopId],
   );
 
-  handle = createDatabase(withDatabase(ADMIN_URL, DB_NAME, APP_ROLE, APP_PASSWORD));
+  handle = createDatabase(appDbUrl);
   cache = new TenantCache();
   const moduleRef = await Test.createTestingModule({
     controllers: [ProbeController, HealthController],
