@@ -5,7 +5,7 @@ services:
     image: postgres:16
     environment:
       POSTGRES_USER: lytronix
-      POSTGRES_PASSWORD: lytronix_local_only
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env (see .env.example)}
       POSTGRES_DB: lytronix
     ports:
       # Host port 5433: a PostgreSQL 17 Windows service already uses 5432 on this machine.

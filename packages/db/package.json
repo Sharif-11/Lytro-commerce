@@ -14,6 +14,7 @@
     "migrate": "node dist/migrate.js"
   },
   "dependencies": {
+    "dotenv": "^16",
     "drizzle-orm": "^0.36",
     "pg": "^8"
   },

@@ -18,8 +18,10 @@
     "@nestjs/common": "^10",
     "@nestjs/core": "^10",
     "@nestjs/platform-express": "^10",
+    "dotenv": "^16",
     "reflect-metadata": "^0.2",
-    "rxjs": "^7"
+    "rxjs": "^7",
+    "zod": "^3"
   },
   "devDependencies": {
     "@types/node": "^20",
