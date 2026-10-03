@@ -24,6 +24,7 @@
     "zod": "^3"
   },
   "devDependencies": {
+    "@nestjs/testing": "^10",
     "@types/node": "^20",
     "tsx": "^4",
     "vitest": "^2.1.2"
