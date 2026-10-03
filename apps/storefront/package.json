@@ -4,7 +4,7 @@
   "private": true,
   "description": "Shared, tenant-branded shopper storefront (Next.js). See docs/SRS-detailed.md §14.2.",
   "scripts": {
-    "dev": "next dev -p 3001",
+    "dev": "next dev -H 0.0.0.0 -p 3001",
     "build": "next build",
     "start": "next start -p 3001",
     "typecheck": "tsc -p tsconfig.json --noEmit",

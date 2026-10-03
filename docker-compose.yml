@@ -9,7 +9,7 @@ services:
       POSTGRES_DB: lytronix
     ports:
       # Host port 5433: a PostgreSQL 17 Windows service already uses 5432 on this machine.
-      - '5433:5432'
+      - '127.0.0.1:5433:5432'
     volumes:
       - pgdata:/var/lib/postgresql/data
 
