@@ -1,0 +1,58 @@
+name: Deploy
+
+# Pipeline: verify -> staging (automatic) -> production (manual approval).
+# Deploy jobs run only when the repository variable DEPLOY_ENABLED is "true",
+# so this file is safe to merge before servers exist.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release tag to promote to production, e.g. v1.0.0'
+        required: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm test
+      - run: pnpm build
+
+  deploy-staging:
+    needs: verify
+    if: github.event_name == 'push' && vars.DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: ${{ vars.STAGING_URL }}
+    steps:
+      - uses: actions/checkout@v5
+      # TODO(infra): build the server image, run migrations against a fresh backup,
+      # deploy to the staging host, then run the scripted order-and-payment smoke test.
+      # Requires the staging host (Phase 1 infrastructure decision) and its secrets.
+      - run: echo "Staging deploy steps are added when the staging host exists."
+
+  deploy-production:
+    needs: deploy-staging
+    if: github.event_name == 'workflow_dispatch' && vars.DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ vars.PRODUCTION_URL }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.version }}
+      # TODO(infra): promote the exact artifact that passed staging (never rebuild),
+      # run migrations against a fresh backup first, then deploy with a health check.
+      - run: echo "Production deploy steps are added when the production host exists."
