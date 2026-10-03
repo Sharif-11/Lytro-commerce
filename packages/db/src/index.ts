@@ -7,3 +7,4 @@ export {
   findTenantBySlug,
   type TenantLookupRow,
 } from './repositories/tenancy/tenant-lookup';
+export { findUnavailableSlugs } from './repositories/tenancy/slug-availability';
