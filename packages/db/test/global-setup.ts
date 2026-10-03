@@ -1,5 +1,5 @@
 import pg from 'pg';
-import { runMigrations } from '../../src/db/migrate';
+import { runMigrations } from '../src/migrate';
 import { ADMIN_URL, APP_PASSWORD, APP_ROLE, TEST_DB, testDbUrl } from './config';
 
 export default async function setup(): Promise<void> {
