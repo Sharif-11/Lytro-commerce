@@ -8,5 +8,5 @@
     "emitDecoratorMetadata": true,
     "noEmit": true
   },
-  "include": ["src", "test", "drizzle.config.ts"]
+  "include": ["src", "test", "drizzle.config.ts", "vitest.config.ts"]
 }
