@@ -26,6 +26,8 @@
   "devDependencies": {
     "@nestjs/testing": "^10",
     "@types/node": "^20",
+    "@types/pg": "^8",
+    "pg": "^8",
     "tsx": "^4",
     "vitest": "^2.1.2"
   }
