@@ -1,4 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
+import { SkipTenant } from './tenancy/tenant.guard';
 
 export interface HealthReport {
   status: 'ok';
@@ -8,6 +9,7 @@ export interface HealthReport {
 }
 
 @Controller('health')
+@SkipTenant()
 export class HealthController {
   @Get()
   check(): HealthReport {

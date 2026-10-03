@@ -1,0 +1,58 @@
+import { Inject, Injectable } from '@nestjs/common';
+import { classifyHost, normalizeHost } from './host';
+import { TenantCache, type CachedTenant } from './tenant-cache';
+import { PLATFORM_DOMAIN, TENANT_DIRECTORY } from './tokens';
+
+// Where the database lookups come from. The Drizzle implementation lives in tenant-directory.ts,
+// so this service can be tested with a fake.
+export interface TenantDirectory {
+  findBySlug(slug: string): Promise<CachedTenant | null>;
+  findByActiveDomain(hostname: string): Promise<CachedTenant | null>;
+}
+
+export type ResolvedHost =
+  | { outcome: 'tenant'; tenant: CachedTenant }
+  | { outcome: 'closed'; tenant: CachedTenant } // the shop exists but its public side is offline
+  | { outcome: 'not_found' };
+
+// LIF-stage table (docs/SRS.md): the public side is offline in these states. The shop's id is kept
+// so the caller can log it, but no shop data is returned to the visitor.
+export const CLOSED_STATES: ReadonlySet<string> = new Set([
+  'read_only',
+  'locked',
+  'archived',
+  'deleted',
+]);
+
+/** TEN-7a: derives the tenant from the host alone. Nothing the client sends can choose a tenant. */
+@Injectable()
+export class TenantResolver {
+  constructor(
+    @Inject(TENANT_DIRECTORY) private readonly directory: TenantDirectory,
+    @Inject(TenantCache) private readonly cache: TenantCache,
+    @Inject(PLATFORM_DOMAIN) private readonly platformDomain: string,
+  ) {}
+
+  async resolve(rawHost: string | undefined): Promise<ResolvedHost> {
+    const target = classifyHost(rawHost, this.platformDomain);
+    if (target.kind === 'invalid' || target.kind === 'platform') return { outcome: 'not_found' };
+
+    const host = normalizeHost(rawHost);
+    if (host === null) return { outcome: 'not_found' };
+
+    let tenant: CachedTenant | null | undefined = this.cache.get(host);
+    if (!tenant) {
+      tenant =
+        target.kind === 'shop'
+          ? await this.directory.findBySlug(target.slug)
+          : await this.directory.findByActiveDomain(target.hostname);
+      // Misses are not cached, so a shop that appears later is found on the next request.
+      if (!tenant) return { outcome: 'not_found' };
+      this.cache.set(host, tenant);
+    }
+
+    return CLOSED_STATES.has(tenant.state)
+      ? { outcome: 'closed', tenant }
+      : { outcome: 'tenant', tenant };
+  }
+}

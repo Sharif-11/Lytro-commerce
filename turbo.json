@@ -18,7 +18,7 @@
       "dependsOn": ["^build"],
       "cache": false,
       "persistent": true,
-      "env": ["NODE_ENV", "PORT", "HOST", "DATABASE_URL"]
+      "env": ["NODE_ENV", "PORT", "HOST", "DATABASE_URL", "PLATFORM_DOMAIN", "TRUSTED_EDGE_SECRET"]
     }
   }
 }

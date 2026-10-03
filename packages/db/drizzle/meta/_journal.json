@@ -15,6 +15,13 @@
       "when": 1791047953366,
       "tag": "0001_identity_tenancy_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791056322946,
+      "tag": "0002_wonderful_the_anarchist",
+      "breakpoints": true
     }
   ]
 }
