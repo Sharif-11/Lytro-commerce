@@ -113,8 +113,8 @@ Each scenario lists its preconditions, numbered steps, expected result, and the 
 - Covers: AUTH-19, AUTH-20.
 
 **P1-E15 Password rules. [API]**
-- Steps: a seven-character password; an eight-character password; a Google-created account.
-- Expected: seven characters refused; eight accepted; the Google account is not asked for a password.
+- Steps: a seven-character password; an eight-character password; a twenty-character password; a twenty-one-character password; a Google-created account.
+- Expected: seven and twenty-one characters refused; eight and twenty accepted; the Google account is not asked for a password.
 - Covers: AUTH-03, AUTH-24.
 
 **P1-E16 Sign-in by lifecycle state. [INT]**

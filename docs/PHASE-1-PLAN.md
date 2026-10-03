@@ -27,7 +27,7 @@ Items marked **Decision** need your answer before the slice they affect starts. 
 | # | Decision | Proposed | Affects |
 |---|---|---|---|
 | D1 | **Decided:** session model | Server-side sessions stored in Postgres. The browser holds a random session ID in an `HttpOnly`, `Secure` (production), `SameSite=Lax` cookie scoped to the exact host. The session ID is stored hashed, rotated on sign-in, bound to one tenant, and carries a per-session CSRF token. Expiry is fixed at seven days. Revocation is a database change in the same transaction as the cause. | Slices 4, 5 |
-| D2 | **Decided:** password hashing | bcrypt with automatic per-password salt and a cost factor of at least 12. Passwords are limited to 64 characters, so the 72-byte input limit is never reached. | Slice 5 |
+| D2 | **Decided:** password hashing | bcrypt with automatic per-password salt and a cost factor of at least 12. Passwords must be 8 to 20 characters (AUTH-03 minimum, plus the 20-character maximum), so the 72-byte input limit is never reached. | Slice 5 |
 | D3 | Seat and trial limits before Phase 2 | Seed a minimal `control.plans` table with the Trial and Starter rows in Phase 1, with limits stored as data. Phase 2 adds billing on top. | Slices 4, 7 |
 | D4 | Development domain | `*.localhost` (for example `fashion-house.localhost:3001`), which resolves to the local machine in modern browsers, so no DNS setup is needed. | Slices 2, 9 |
 | D5 | Platform domain for production | Undecided, because the brand is not final (`MARKETING-PLAN.md` §14). Build with a configuration value so the domain can change without code changes. | Slice 2 |
