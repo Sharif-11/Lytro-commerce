@@ -69,6 +69,14 @@ export const tenants = control.table(
   ],
 );
 
+// TEN-19, TEN-26: slugs that no shop may take. Data, not code, so the list can change without a deploy (R4).
+// The migration seeds the initial list; the slug service reads it.
+export const reservedSlugs = control.table('reserved_slugs', {
+  slug: varchar('slug', { length: 30 }).primaryKey(),
+  reason: text('reason').notNull(),
+  createdAt: createdAt(),
+});
+
 // DATABASE-SCHEMA §2.2: custom domains. A domain belongs to one tenant platform-wide (TEN-12).
 export const tenantDomains = control.table(
   'tenant_domains',
