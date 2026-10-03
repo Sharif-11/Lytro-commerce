@@ -1,0 +1,26 @@
+{
+  "name": "@lytronix/admin",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Tenant dashboard and operator console (Vite + React). See docs/SRS-detailed.md §4.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 3002",
+    "build": "tsc -p tsconfig.json --noEmit && vite build",
+    "preview": "vite preview --port 3002",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "react": "^19",
+    "react-dom": "^19"
+  },
+  "devDependencies": {
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^4",
+    "vite": "^5",
+    "vitest": "^2.1.2"
+  }
+}

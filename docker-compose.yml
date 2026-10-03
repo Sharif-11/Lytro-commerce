@@ -1,0 +1,17 @@
+# Local development database (Phase 0). Requires Docker.
+# Schemas `control` and `tenant` are created by migrations in Phase 1 (see docs/DATABASE-SCHEMA.md).
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: lytronix
+      POSTGRES_PASSWORD: lytronix_local_only
+      POSTGRES_DB: lytronix
+    ports:
+      # Host port 5433: a PostgreSQL 17 Windows service already uses 5432 on this machine.
+      - '5433:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
