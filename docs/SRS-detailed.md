@@ -128,6 +128,7 @@ Defaults [to confirm]:
 | 409 | `conflict` | Duplicate or state conflict |
 | 429 | `rate_limited` | Per-minute limit; carries `Retry-After` |
 | 429 | `quota_exceeded` | Monthly quota reached |
+| 503 | `service_unavailable` | A required outside service (such as the SMS provider) could not be reached, so the action did not complete. Carries `Retry-After` when a retry time is known. Added 2026-10-04 |
 
 ## 3. Sign-up, sign-in and account security (AUTH)
 

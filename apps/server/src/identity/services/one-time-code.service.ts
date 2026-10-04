@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Transaction } from '@lytronix/db';
 import { ApiError } from '../../common/api-error';
+import { SmsDeliveryError } from '../../common/errors/sms-delivery';
 import { MessagingService } from '../../messaging/services/messaging.service';
 import { codeMatches, generateCode, hashCode } from './one-time-code';
 import { CHALLENGE_STORE, SIGNUP_GATEWAY, SIGNUP_SETTINGS } from '../tokens';
@@ -81,7 +82,20 @@ export class OneTimeCodeService {
         message: queued,
       };
     });
-    await this.messaging.deliverOtp(message);
+    try {
+      await this.messaging.deliverOtp(message);
+    } catch (error) {
+      if (error instanceof SmsDeliveryError) {
+        // The code was not delivered. The cooldown equals this retry hint, so asking again is possible when it ends.
+        throw new ApiError(
+          'service_unavailable',
+          'We could not send your code. Try again in a minute.',
+          {},
+          RESEND_COOLDOWN_MS / 1000,
+        );
+      }
+      throw error;
+    }
     return issued;
   }
 

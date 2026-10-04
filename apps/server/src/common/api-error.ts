@@ -25,4 +25,5 @@ export const HTTP_STATUS: Record<ErrorCode, number> = {
   conflict: 409,
   rate_limited: 429,
   quota_exceeded: 429,
+  service_unavailable: 503,
 };

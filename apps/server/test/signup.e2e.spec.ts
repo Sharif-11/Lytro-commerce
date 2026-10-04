@@ -272,3 +272,25 @@ describeIfDatabase('an SMS outage does not block sign-up (SMS-18)', () => {
     expect(row.rows[0]).toEqual({ status: 'pending', attempts: 1 });
   });
 });
+
+describeIfDatabase('an SMS outage on a code request is reported honestly (AUTH-05)', () => {
+  it('answers 503 service_unavailable with a retry hint, and never claims a code was sent', async () => {
+    const phone = freshPhone();
+    smsDown = true;
+    let response: HttpResult;
+    try {
+      response = await post('/signup/phone/code', { phone });
+    } finally {
+      smsDown = false;
+    }
+
+    expect(response.status).toBe(503);
+    expect(response.headers['retry-after']).toBe('60');
+    expect(response.body).toMatchObject({ error: { code: 'service_unavailable' } });
+    const row = await admin.query<{ status: string; body: string | null }>(
+      "SELECT status, body FROM control.sms_outbox WHERE to_phone = $1 AND kind = 'otp'",
+      [phone],
+    );
+    expect(row.rows[0]).toEqual({ status: 'failed', body: null });
+  });
+});

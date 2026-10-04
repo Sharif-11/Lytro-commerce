@@ -483,7 +483,10 @@ describe('SMS delivery never blocks shop creation (SMS-18)', () => {
     const state = world();
     state.smsFails = true;
     const { signup } = build(state);
-    await expect(signup.requestCode(PHONE)).rejects.toThrow('sms delivery failed');
+    await expect(signup.requestCode(PHONE)).rejects.toMatchObject({
+      code: 'service_unavailable',
+      retryAfterSeconds: 60,
+    });
 
     const otp = state.outbox.find((m) => m.kind === 'otp');
     expect(otp?.body).toBeNull();
