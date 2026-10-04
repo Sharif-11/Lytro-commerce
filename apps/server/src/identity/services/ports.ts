@@ -1,17 +1,10 @@
-import type { Transaction } from '@lytronix/db';
+import type { ChallengeRow, Transaction } from '@lytronix/db';
 
 // The storage and settings the identity services depend on. Each is implemented once, in database/adapters.
-// Services never import Drizzle or @lytronix/db repository functions directly.
+// Services never import Drizzle or the database package's repositories directly.
 
-export interface ChallengeRecord {
-  id: string;
-  codeHash: string;
-  expiresAt: Date;
-  consumedAt: Date | null;
-  lockedUntil: Date | null;
-  attempts: number;
-  createdAt: Date;
-}
+/** A one-time code challenge: exactly the database row, so the shape is defined once. */
+export type ChallengeRecord = ChallengeRow;
 
 export interface ChallengeStore {
   latest(tx: Transaction, phone: string): Promise<ChallengeRecord | null>;

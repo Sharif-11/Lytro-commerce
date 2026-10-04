@@ -151,6 +151,9 @@ importers:
 
   packages/db:
     dependencies:
+      '@lytronix/validators':
+        specifier: workspace:^
+        version: link:../validators
       dotenv:
         specifier: ^16
         version: 16.6.1

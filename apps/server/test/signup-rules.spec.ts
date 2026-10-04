@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { PhoneNumberFormat } from '../src/identity/services/phone-number-format';
-import { CODE_LENGTH, OneTimeCodeHasher } from '../src/identity/services/one-time-code-hasher';
+import { CODE_LENGTH } from '@lytronix/validators';
+import { OneTimeCodeHasher } from '../src/identity/services/one-time-code-hasher';
 
 const phoneFormat = new PhoneNumberFormat();
 

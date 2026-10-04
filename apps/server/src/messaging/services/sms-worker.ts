@@ -1,8 +1,9 @@
 import { Inject, Injectable, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
+import { SECOND_MS } from '../../common/time';
 import { MessagingService } from './messaging.service';
 
 // Sends messages whose retry time has come. Not started under NODE_ENV=test, where tests call runDue directly.
-export const WORKER_INTERVAL_MS = 30_000;
+export const WORKER_INTERVAL_MS = 30 * SECOND_MS;
 
 @Injectable()
 export class SmsWorker implements OnModuleInit, OnModuleDestroy {

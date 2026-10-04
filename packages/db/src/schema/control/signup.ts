@@ -20,6 +20,12 @@ export const verificationChallenges = control.table(
   (t) => [index('verification_challenges_phone_idx').on(t.phone, t.createdAt)],
 );
 
+// The kinds and statuses of an outbox message, defined once. The database check constraint is built from these lists.
+export const SMS_KINDS = ['otp', 'shop_ready'] as const;
+export type SmsKind = (typeof SMS_KINDS)[number];
+export const SMS_STATUSES = ['pending', 'sending', 'sent', 'failed'] as const;
+export type SmsStatus = (typeof SMS_STATUSES)[number];
+
 // SMS-18, D6: messages are recorded here, then sent. Delivery status lets a failed send be retried later without
 // ever failing the request that caused it. Sign-up OTP text is never stored (body stays null), so a copy of this table
 // cannot reveal a live code (AUTH-05).
@@ -28,9 +34,9 @@ export const smsOutbox = control.table(
   {
     id: bigserial('id', { mode: 'number' }).primaryKey(),
     toPhone: text('to_phone').notNull(),
-    kind: text('kind').notNull(), // otp | shop_ready
+    kind: text('kind').$type<SmsKind>().notNull(),
     body: text('body'), // null for otp: the code is held in memory only
-    status: text('status').notNull().default('pending'), // pending | sending | sent | failed
+    status: text('status').$type<SmsStatus>().notNull().default('pending'),
     attempts: integer('attempts').notNull().default(0),
     nextAttemptAt: timestamp('next_attempt_at', { withTimezone: true }).notNull().defaultNow(),
     lastError: text('last_error'),
@@ -40,6 +46,9 @@ export const smsOutbox = control.table(
   (t) => [
     index('sms_outbox_created_idx').on(t.createdAt),
     index('sms_outbox_due_idx').on(t.status, t.nextAttemptAt),
-    check('sms_outbox_status_check', sql`${t.status} in ('pending','sending','sent','failed')`),
+    check(
+      'sms_outbox_status_check',
+      sql`${t.status} in (${sql.raw(SMS_STATUSES.map((s) => `'${s}'`).join(','))})`,
+    ),
   ],
 );

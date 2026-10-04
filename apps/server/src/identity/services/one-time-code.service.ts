@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Transaction } from '@lytronix/db';
 import { ApiError } from '../../common/api-error';
+import { HOUR_MS, MINUTE_MS } from '../../common/time';
 import { SmsDeliveryError } from '../../common/errors/sms-delivery';
 import { MessagingService } from '../../messaging/services/messaging.service';
 import { OneTimeCodeHasher } from './one-time-code-hasher';
@@ -8,12 +9,11 @@ import { CHALLENGE_STORE, SIGNUP_GATEWAY, SIGNUP_SETTINGS } from '../tokens';
 import type { ChallengeRecord, ChallengeStore, SignupGateway, SignupSettings } from './ports';
 
 // AUTH-05 to AUTH-07: the limits on one-time codes, in one place.
-export const CODE_TTL_MS = 5 * 60 * 1000;
-export const RESEND_COOLDOWN_MS = 60 * 1000;
+export const CODE_TTL_MS = 5 * MINUTE_MS;
+export const RESEND_COOLDOWN_MS = MINUTE_MS;
 export const HOURLY_CODE_CAP = 5;
 export const MAX_WRONG_ATTEMPTS = 5;
-export const LOCK_MS = 15 * 60 * 1000;
-const HOUR_MS = 60 * 60 * 1000;
+export const LOCK_MS = 15 * MINUTE_MS;
 
 export interface CodeIssued {
   expiresInSeconds: number;

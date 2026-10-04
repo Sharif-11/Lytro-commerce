@@ -1,11 +1,11 @@
-// R5: a process-memory cache of host-to-shop lookups. Entries live for 60 seconds, and the size is
+import type { TenantLookupRow } from '@lytronix/db';
+import { MINUTE_MS } from '../../common/time';
+
+// R5: a process-memory cache of host-to-shop lookups. Entries live for one minute, and the size is
 // capped so a flood of distinct hosts cannot exhaust memory. Cross-server invalidation comes in Phase 2.
 
-export interface CachedTenant {
-  id: string;
-  slug: string;
-  state: string;
-}
+/** A shop as the resolver needs it. Same shape as the database lookup row, so it is not defined twice. */
+export type CachedTenant = TenantLookupRow;
 
 interface Entry {
   value: CachedTenant;
@@ -16,7 +16,7 @@ export class TenantCache {
   private readonly entries = new Map<string, Entry>();
 
   constructor(
-    private readonly ttlMs = 60_000,
+    private readonly ttlMs = MINUTE_MS,
     private readonly now: () => number = Date.now,
     private readonly maxEntries = 10_000,
   ) {}

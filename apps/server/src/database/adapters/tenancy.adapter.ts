@@ -1,6 +1,7 @@
 import {
   SlugRepository,
   TenantRepository,
+  TRIAL_PLAN_NAME,
   TransactionRunner,
   type Database,
   type Transaction,
@@ -43,7 +44,7 @@ export class DrizzleTenantStore implements TenantStore {
   private readonly transactions = new TransactionRunner();
 
   findTrialPlan(tx: Transaction): Promise<{ id: string; limits: unknown } | null> {
-    return this.tenants.findPlanByName(tx, 'Trial', false);
+    return this.tenants.findPlanByName(tx, TRIAL_PLAN_NAME, false);
   }
 
   async insertTenant(

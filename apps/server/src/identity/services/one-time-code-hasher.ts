@@ -1,10 +1,10 @@
 import { createHmac, randomInt, timingSafeEqual } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
+import { CODE_LENGTH } from '@lytronix/validators';
 import { OTP_SECRET } from '../tokens';
 
-// AUTH-05: six-digit codes, stored only as a keyed hash (HMAC, not bcrypt), bound to the phone number so a code for
-// one number cannot be replayed for another.
-export const CODE_LENGTH = 6;
+// AUTH-05: six-digit codes (length from @lytronix/validators), stored only as a keyed hash (HMAC, not bcrypt),
+// bound to the phone number so a code for one number cannot be replayed for another.
 
 @Injectable()
 export class OneTimeCodeHasher {

@@ -12,19 +12,8 @@ import type { ChallengeRecord, ChallengeStore, SignupGateway } from '../../ident
 export class DrizzleChallengeStore implements ChallengeStore {
   private readonly challenges = new ChallengeRepository();
 
-  async latest(tx: Transaction, phone: string): Promise<ChallengeRecord | null> {
-    const row = await this.challenges.latest(tx, phone);
-    return row
-      ? {
-          id: row.id,
-          codeHash: row.codeHash,
-          expiresAt: row.expiresAt,
-          consumedAt: row.consumedAt,
-          lockedUntil: row.lockedUntil,
-          attempts: row.attempts,
-          createdAt: row.createdAt,
-        }
-      : null;
+  latest(tx: Transaction, phone: string): Promise<ChallengeRecord | null> {
+    return this.challenges.latest(tx, phone);
   }
 
   countSince(tx: Transaction, phone: string, since: Date): Promise<number> {

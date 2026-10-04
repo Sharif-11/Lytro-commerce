@@ -1,12 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Transaction } from '@lytronix/db';
+import { DAY_MS } from '../../common/time';
 import { StaffService } from '../../staff/services/staff.service';
 import { MessagingService, type QueuedMessage } from '../../messaging/services/messaging.service';
 import { CLOCK, TENANT_STORE } from '../tokens';
 
 // D3, TRL-01, TRL-05: a shop starts on the Trial plan for 30 days. The rules are here, not in the repository.
 export const TRIAL_DAYS = 30;
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 export interface TenantStore {
   findTrialPlan(tx: Transaction): Promise<{ id: string; limits: unknown } | null>;

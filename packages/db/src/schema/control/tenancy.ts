@@ -1,4 +1,5 @@
 import { sql } from 'drizzle-orm';
+import { NAME_MAX_LENGTH, SLUG_MAX_LENGTH } from '@lytronix/validators';
 import {
   boolean,
   check,
@@ -26,6 +27,9 @@ export const tenantState = control.enum('tenant_state', [
   'archived',
   'deleted',
 ]);
+// The state names are defined once, here; the server's closed-state list and its types read them.
+export const TENANT_STATES = tenantState.enumValues;
+export type TenantState = (typeof TENANT_STATES)[number];
 
 export const KYC_STATUSES = ['unverified', 'pending', 'verified', 'revoked'] as const;
 export const DOMAIN_STATUSES = ['pending', 'active', 'failed', 'removed'] as const;
@@ -44,8 +48,8 @@ export const tenants = control.table(
       .notNull()
       .references(() => subscribers.id),
     cellId: integer('cell_id').notNull().default(1), // SCL-07: always 1 at launch
-    shopName: varchar('shop_name', { length: 60 }).notNull(), // AUTH-01 cap
-    slug: varchar('slug', { length: 30 }).notNull().unique(), // AUTH-11, immutable after creation
+    shopName: varchar('shop_name', { length: NAME_MAX_LENGTH }).notNull(), // AUTH-01 cap
+    slug: varchar('slug', { length: SLUG_MAX_LENGTH }).notNull().unique(), // AUTH-11, immutable after creation
     state: tenantState('state').notNull().default('trial'),
     planId: uuid('plan_id').references(() => plans.id),
     planSnapshot: jsonb('plan_snapshot'), // PLN-02: frozen limits at purchase (Phase 2 writes it)
@@ -64,7 +68,7 @@ export const tenants = control.table(
     index('tenants_cell_idx').on(t.cellId),
     check(
       'tenants_kyc_status_check',
-      sql`${t.kycStatus} in ('unverified','pending','verified','revoked')`,
+      sql`${t.kycStatus} in (${sql.raw(KYC_STATUSES.map((s) => `'${s}'`).join(','))})`,
     ),
   ],
 );
@@ -72,7 +76,7 @@ export const tenants = control.table(
 // TEN-19, TEN-26: slugs that no shop may take. Data, not code, so the list can change without a deploy (R4).
 // The migration seeds the initial list; the slug service reads it.
 export const reservedSlugs = control.table('reserved_slugs', {
-  slug: varchar('slug', { length: 30 }).primaryKey(),
+  slug: varchar('slug', { length: SLUG_MAX_LENGTH }).primaryKey(),
   reason: text('reason').notNull(),
   createdAt: createdAt(),
 });
@@ -94,7 +98,7 @@ export const tenantDomains = control.table(
     index('tenant_domains_tenant_idx').on(t.tenantId),
     check(
       'tenant_domains_status_check',
-      sql`${t.status} in ('pending','active','failed','removed')`,
+      sql`${t.status} in (${sql.raw(DOMAIN_STATUSES.map((s) => `'${s}'`).join(','))})`,
     ),
   ],
 );

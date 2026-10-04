@@ -100,6 +100,12 @@ Decided: every outbound third-party call (courier adapter, payment gateway, SMS,
 
 - TypeScript strict mode everywhere, no `any` without a comment explaining why.
 - **Classes, not free functions.** Services, controllers, repositories, helpers, rules and the entry point are classes. Dependencies and settings (a secret, a clock, a platform domain) are injected through the constructor, not passed on every call. Module-level constants and type declarations are fine. Two cases stay functions because the language requires it: decorators (`SkipTenant`) and declarative column helpers used by the schema (`createdAt`). Adopted 2026-10-04.
+- **One definition per concept.** A limit, a list of states, a type shape or a constant is defined in one place and imported everywhere else. Each kind has a home:
+  - request and shared limits (name length, slug format, code length): `@lytronix/validators`
+  - stored states and enumerations (tenant states, outbox kinds and statuses, trial plan name) and table row types: the database schema
+  - durations: `apps/server/src/common/time.ts`
+  - business rules and their settings: the owning module's service
+  A shape that matches another (for example a cached shop and a database lookup row) is an alias of the shared type, never a copy. Adopted 2026-10-04.
 - **Explicit injection tokens.** Every class-typed constructor parameter in a Nest class carries an `@Inject(...)` token, so wiring does not depend on decorator metadata emitted by the build tool.
 - ESLint + Prettier, enforced in CI, not just editor config — Husky + lint-staged mirror the same two checks locally at commit time (§7), so feedback arrives in seconds instead of at the next CI run.
 - Conventional commit messages (`feat:`, `fix:`, `refactor:`...) — cheap, and it's what makes a changelog and a bisect useful later. Enforced by a Husky `commit-msg` hook running commitlint, not left to memory or review comments.

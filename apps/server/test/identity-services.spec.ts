@@ -88,6 +88,7 @@ function build(state: World) {
       state.challenges.push({
         id,
         phone: input.phone,
+        purpose: 'signup',
         codeHash: input.codeHash,
         expiresAt: input.expiresAt,
         consumedAt: null,
@@ -159,6 +160,7 @@ function build(state: World) {
         due.map((m) => ({
           id: m.id,
           toPhone: m.toPhone,
+          kind: m.kind,
           body: m.body ?? '',
           attempts: m.attempts,
         })),

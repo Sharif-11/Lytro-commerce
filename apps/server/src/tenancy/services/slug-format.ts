@@ -1,10 +1,7 @@
 import { Injectable } from '@nestjs/common';
+import { SLUG_MAX_LENGTH, SLUG_PATTERN } from '@lytronix/validators';
 
-// AUTH-11: the address is 3 to 30 characters of lowercase letters, digits and hyphens, with no leading or trailing
-// hyphen. Suggestions and suffixes follow the same format.
-export const MIN_SLUG_LENGTH = 3;
-export const MAX_SLUG_LENGTH = 30;
-const SLUG_PATTERN = /^[a-z0-9]([a-z0-9-]{1,28}[a-z0-9])$/;
+// AUTH-11: the address format comes from @lytronix/validators. Suggestions and suffixes follow the same format.
 const SUFFIX_LIMIT = 99;
 
 @Injectable()
@@ -23,7 +20,7 @@ export class SlugFormat {
     if (!/[a-z]/.test(folded)) return null;
 
     const hyphenated = folded.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-    const shortened = this.truncateAtWord(hyphenated, MAX_SLUG_LENGTH);
+    const shortened = this.truncateAtWord(hyphenated, SLUG_MAX_LENGTH);
     return this.isValid(shortened) ? shortened : null;
   }
 
@@ -38,7 +35,7 @@ export class SlugFormat {
     const candidates: string[] = [];
     for (let n = 2; n <= SUFFIX_LIMIT + 1; n += 1) {
       const suffix = `-${String(n)}`;
-      const head = base.slice(0, MAX_SLUG_LENGTH - suffix.length).replace(/-+$/, '');
+      const head = base.slice(0, SLUG_MAX_LENGTH - suffix.length).replace(/-+$/, '');
       candidates.push(`${head}${suffix}`);
     }
     return candidates;

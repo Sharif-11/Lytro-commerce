@@ -1,3 +1,4 @@
-// Single source for every request shape (ENGINEERING-STANDARDS §4). The server builds its DTOs from these schemas,
-// so a shape is written once. Validation rules only; business rules stay in services.
+// Single source for every request shape and every shared limit (ENGINEERING-STANDARDS §4). The server builds its DTOs
+// from these schemas, and the database schema reads the same limits, so each value is written once.
+export * from './limits';
 export * from './identity';

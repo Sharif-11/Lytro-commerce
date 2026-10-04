@@ -1,5 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { Executor, Transaction } from '@lytronix/db';
+import type {
+  ClaimedSmsMessage,
+  Executor,
+  NewSmsMessage,
+  SmsKind,
+  Transaction,
+} from '@lytronix/db';
+import { MINUTE_MS } from '../../common/time';
 import { SmsDeliveryError } from '../../common/errors/sms-delivery';
 import { MESSAGE_STORE, MESSAGING_CLOCK, SMS_PROVIDER } from '../tokens';
 
@@ -7,7 +14,7 @@ import { MESSAGE_STORE, MESSAGING_CLOCK, SMS_PROVIDER } from '../tokens';
 // A shop-ready message that cannot be sent is kept and retried; it never fails the request that created the shop.
 // A one-time code is sent during its request, its text is never stored, and a failure is reported to the caller.
 
-export type MessageKind = 'otp' | 'shop_ready';
+export type MessageKind = SmsKind;
 
 /** A recorded message. For an OTP, the body exists only in memory for the send that follows the request. */
 export interface QueuedMessage {
@@ -16,23 +23,16 @@ export interface QueuedMessage {
   body: string;
 }
 
-export interface ClaimedMessage {
-  id: number;
-  toPhone: string;
-  body: string;
-  attempts: number;
-}
+/** A message claimed for sending. The shape is defined by the database package's outbox. */
+export type ClaimedMessage = ClaimedSmsMessage;
 
 /** Wait after the first, second, third and fourth failed attempt. A fifth failure is final. */
 export const RETRY_WAIT_MINUTES = [1, 5, 15, 60];
 export const MAX_SMS_ATTEMPTS = 5;
-const LEASE_MS = 2 * 60 * 1000;
+const LEASE_MS = 2 * MINUTE_MS;
 
 export interface MessageStore {
-  insert(
-    executor: Executor,
-    message: { toPhone: string; kind: MessageKind; body: string | null },
-  ): Promise<number>;
+  insert(executor: Executor, message: NewSmsMessage): Promise<number>;
   claimDue(input: {
     now: Date;
     leaseUntil: Date;
@@ -130,7 +130,7 @@ export class MessagingService {
       const attempts = message.attempts + 1;
       const final = attempts >= MAX_SMS_ATTEMPTS;
       const wait = RETRY_WAIT_MINUTES[attempts - 1] ?? 60;
-      const nextAttemptAt = final ? null : new Date(this.clock().getTime() + wait * 60_000);
+      const nextAttemptAt = final ? null : new Date(this.clock().getTime() + wait * MINUTE_MS);
       await this.store.markFailed(message.id, {
         error: this.describe(error),
         attempts,

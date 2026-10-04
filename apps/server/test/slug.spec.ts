@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { SlugService, type SlugAvailability } from '../src/tenancy/services/slug.service';
-import { MAX_SLUG_LENGTH, SlugFormat } from '../src/tenancy/services/slug-format';
+import { SlugFormat } from '../src/tenancy/services/slug-format';
+import { SLUG_MAX_LENGTH } from '@lytronix/validators';
 
 const format = new SlugFormat();
 
@@ -47,9 +48,9 @@ describe('suffix candidates (AUTH-11)', () => {
   });
 
   it('keeps the suffixed address within 30 characters', () => {
-    const base = 'a'.repeat(MAX_SLUG_LENGTH);
+    const base = 'a'.repeat(SLUG_MAX_LENGTH);
     for (const candidate of format.suffixCandidates(base)) {
-      expect(candidate.length).toBeLessThanOrEqual(MAX_SLUG_LENGTH);
+      expect(candidate.length).toBeLessThanOrEqual(SLUG_MAX_LENGTH);
     }
   });
 

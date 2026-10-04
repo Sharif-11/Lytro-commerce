@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import type { TenantState } from '@lytronix/db';
 import { HostClassifier } from './host-classifier';
 import { TenantCache, type CachedTenant } from './tenant-cache';
 import { TENANT_DIRECTORY } from '../tokens';
@@ -17,7 +18,7 @@ export type ResolvedHost =
 
 // LIF-stage table (docs/SRS.md): the public side is offline in these states. The shop's id is kept
 // so the caller can log it, but no shop data is returned to the visitor.
-export const CLOSED_STATES: ReadonlySet<string> = new Set([
+export const CLOSED_STATES: ReadonlySet<TenantState> = new Set<TenantState>([
   'read_only',
   'locked',
   'archived',

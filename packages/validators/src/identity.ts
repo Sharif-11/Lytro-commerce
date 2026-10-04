@@ -1,9 +1,5 @@
 import { z } from 'zod';
-
-// AUTH-01: shop name and owner name, up to 60 characters each.
-export const NAME_MAX_LENGTH = 60;
-// AUTH-05: six-digit one-time code.
-export const CODE_PATTERN = /^\d{6}$/;
+import { CODE_PATTERN, NAME_MAX_LENGTH, SLUG_MAX_LENGTH } from './limits';
 
 export const requestCodeSchema = z.object({
   phone: z.string().max(30),
@@ -14,7 +10,7 @@ export const completeSignupSchema = z.object({
   code: z.string().regex(CODE_PATTERN, 'six digits'),
   ownerName: z.string().trim().min(1).max(NAME_MAX_LENGTH),
   shopName: z.string().trim().min(1).max(NAME_MAX_LENGTH),
-  address: z.string().max(60).optional(),
+  address: z.string().max(SLUG_MAX_LENGTH).optional(),
 });
 
 export type RequestCodeInput = z.infer<typeof requestCodeSchema>;

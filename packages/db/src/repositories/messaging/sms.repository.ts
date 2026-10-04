@@ -1,14 +1,14 @@
 import { eq, sql } from 'drizzle-orm';
 import type { Database } from '../../client';
 import type { Executor } from '../../transactions';
-import { smsOutbox } from '../../schema';
+import { smsOutbox, type SmsKind } from '../../schema';
 
 // SMS-18, D6: the outbox. A message is recorded in the same transaction as the change that caused it, then sent.
 // Delivery status lets a failed send be retried without failing the request that caused it.
 
 export interface NewSmsMessage {
   toPhone: string;
-  kind: 'otp' | 'shop_ready';
+  kind: SmsKind;
   /** Null for otp: the code is never stored (AUTH-05). */
   body: string | null;
 }
