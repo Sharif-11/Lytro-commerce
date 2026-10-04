@@ -8,13 +8,18 @@ import { TenancyModule } from '../tenancy/tenancy.module';
 import { PhoneSignupController } from './controllers/phone-signup.controller';
 import { OneTimeCodeService } from './services/one-time-code.service';
 import { PhoneSignupService } from './services/phone-signup.service';
-import { CHALLENGE_STORE, SIGNUP_GATEWAY, SIGNUP_SETTINGS } from './tokens';
+import { PhoneNumberFormat } from './services/phone-number-format';
+import { OneTimeCodeHasher } from './services/one-time-code-hasher';
+import { CHALLENGE_STORE, OTP_SECRET, SIGNUP_GATEWAY, SIGNUP_SETTINGS } from './tokens';
 
 @Module({
   imports: [TenancyModule, MessagingModule],
   controllers: [PhoneSignupController],
   providers: [
     { provide: CHALLENGE_STORE, useFactory: () => new DrizzleChallengeStore() },
+    { provide: OTP_SECRET, inject: [ENV], useFactory: (env: Env) => env.OTP_SECRET },
+    OneTimeCodeHasher,
+    PhoneNumberFormat,
     {
       provide: SIGNUP_GATEWAY,
       inject: [DatabaseService],
@@ -25,7 +30,6 @@ import { CHALLENGE_STORE, SIGNUP_GATEWAY, SIGNUP_SETTINGS } from './tokens';
       inject: [ENV],
       useFactory: (env: Env) => ({
         now: (): Date => new Date(),
-        otpSecret: env.OTP_SECRET,
         shopUrl: (address: string): string =>
           `${env.NODE_ENV === 'production' ? 'https' : 'http'}://${address}.${env.PLATFORM_DOMAIN}`,
       }),

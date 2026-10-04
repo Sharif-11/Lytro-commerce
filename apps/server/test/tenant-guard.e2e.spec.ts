@@ -1,3 +1,6 @@
+import { EdgeSecret } from '../src/common/guards/edge-secret';
+import { HostClassifier } from '../src/tenancy/services/host-classifier';
+import { SlugFormat } from '../src/tenancy/services/slug-format';
 import { Controller, Get, type INestApplication, Req } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
@@ -66,6 +69,9 @@ beforeAll(async () => {
       { provide: TenantCache, useFactory: () => new TenantCache() },
       { provide: PLATFORM_DOMAIN, useValue: 'localhost' },
       { provide: TRUSTED_EDGE_SECRET, useValue: SECRET },
+      SlugFormat,
+      HostClassifier,
+      EdgeSecret,
       TenantResolver,
       { provide: APP_GUARD, useClass: TenantGuard },
     ],

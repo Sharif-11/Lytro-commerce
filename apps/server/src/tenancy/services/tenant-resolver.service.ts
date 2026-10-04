@@ -1,10 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { classifyHost, normalizeHost } from './host';
+import { HostClassifier } from './host-classifier';
 import { TenantCache, type CachedTenant } from './tenant-cache';
-import { PLATFORM_DOMAIN, TENANT_DIRECTORY } from '../tokens';
+import { TENANT_DIRECTORY } from '../tokens';
 
-// Where the database lookups come from. The Drizzle implementation lives in tenant-directory.ts,
-// so this service can be tested with a fake.
+// Where the database lookups come from. The Drizzle implementation lives in database/adapters, so this service
+// can be tested with a fake.
 export interface TenantDirectory {
   findBySlug(slug: string): Promise<CachedTenant | null>;
   findByActiveDomain(hostname: string): Promise<CachedTenant | null>;
@@ -30,14 +30,14 @@ export class TenantResolver {
   constructor(
     @Inject(TENANT_DIRECTORY) private readonly directory: TenantDirectory,
     @Inject(TenantCache) private readonly cache: TenantCache,
-    @Inject(PLATFORM_DOMAIN) private readonly platformDomain: string,
+    @Inject(HostClassifier) private readonly hosts: HostClassifier,
   ) {}
 
   async resolve(rawHost: string | undefined): Promise<ResolvedHost> {
-    const target = classifyHost(rawHost, this.platformDomain);
+    const target = this.hosts.classify(rawHost);
     if (target.kind === 'invalid' || target.kind === 'platform') return { outcome: 'not_found' };
 
-    const host = normalizeHost(rawHost);
+    const host = this.hosts.normalize(rawHost);
     if (host === null) return { outcome: 'not_found' };
 
     let tenant: CachedTenant | null | undefined = this.cache.get(host);

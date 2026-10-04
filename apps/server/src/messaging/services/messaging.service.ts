@@ -77,7 +77,7 @@ export class MessagingService {
       await this.store.markSent(message.id, this.clock());
     } catch (error) {
       await this.store.markFailed(message.id, {
-        error: describe(error),
+        error: this.describe(error),
         attempts: 1,
         nextAttemptAt: null,
       });
@@ -101,7 +101,9 @@ export class MessagingService {
         });
         if (claimed) await this.sendClaimed(claimed);
       } catch (error) {
-        console.error(`[sms] could not dispatch message ${String(message.id)}: ${describe(error)}`);
+        console.error(
+          `[sms] could not dispatch message ${String(message.id)}: ${this.describe(error)}`,
+        );
       }
     }
   }
@@ -129,15 +131,21 @@ export class MessagingService {
       const final = attempts >= MAX_SMS_ATTEMPTS;
       const wait = RETRY_WAIT_MINUTES[attempts - 1] ?? 60;
       const nextAttemptAt = final ? null : new Date(this.clock().getTime() + wait * 60_000);
-      await this.store.markFailed(message.id, { error: describe(error), attempts, nextAttemptAt });
+      await this.store.markFailed(message.id, {
+        error: this.describe(error),
+        attempts,
+        nextAttemptAt,
+      });
       if (final) {
         // Operator alert, as a log line until alerting exists: a message was given up on.
-        console.error(`[sms] message ${String(message.id)} failed permanently: ${describe(error)}`);
+        console.error(
+          `[sms] message ${String(message.id)} failed permanently: ${this.describe(error)}`,
+        );
       }
     }
   }
-}
 
-function describe(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
+  private describe(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
+  }
 }

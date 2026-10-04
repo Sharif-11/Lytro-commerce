@@ -17,7 +17,9 @@ import type {
   SignupGateway,
   SignupSettings,
 } from '../src/identity/services/ports';
-import { hashCode } from '../src/identity/services/one-time-code';
+import { OneTimeCodeHasher } from '../src/identity/services/one-time-code-hasher';
+import { PhoneNumberFormat } from '../src/identity/services/phone-number-format';
+import { SlugFormat } from '../src/tenancy/services/slug-format';
 import {
   MessagingService,
   type MessageStore,
@@ -215,16 +217,29 @@ function build(state: World) {
     findUnavailable: (slugs) =>
       Promise.resolve(new Set(slugs.filter((s) => state.takenAddresses.has(s)))),
   };
-  const slugs = new SlugService(availability);
+  const slugs = new SlugService(availability, new SlugFormat());
 
   const settings: SignupSettings = {
     now: () => state.now,
-    otpSecret: SECRET,
     shopUrl: (address) => `http://${address}.localhost:3000`,
   };
 
-  const codes = new OneTimeCodeService(challenges, gateway, settings, messaging);
-  const signup = new PhoneSignupService(codes, gateway, tenants, slugs, messaging, settings);
+  const codes = new OneTimeCodeService(
+    challenges,
+    gateway,
+    settings,
+    new OneTimeCodeHasher(SECRET),
+    messaging,
+  );
+  const signup = new PhoneSignupService(
+    codes,
+    gateway,
+    tenants,
+    slugs,
+    messaging,
+    settings,
+    new PhoneNumberFormat(),
+  );
   return { codes, signup, messaging };
 }
 
@@ -261,7 +276,7 @@ describe('requesting a code (AUTH-05, AUTH-07)', () => {
     });
     const code = lastCode(state);
     expect(code).toMatch(/^\d{6}$/);
-    expect(state.challenges[0]?.codeHash).toBe(hashCode(code, PHONE, SECRET));
+    expect(state.challenges[0]?.codeHash).toBe(new OneTimeCodeHasher(SECRET).hash(code, PHONE));
     expect(state.sent).toHaveLength(1);
   });
 

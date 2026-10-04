@@ -3,7 +3,7 @@ import type { Transaction } from '@lytronix/db';
 import { ApiError } from '../../common/api-error';
 import { SmsDeliveryError } from '../../common/errors/sms-delivery';
 import { MessagingService } from '../../messaging/services/messaging.service';
-import { codeMatches, generateCode, hashCode } from './one-time-code';
+import { OneTimeCodeHasher } from './one-time-code-hasher';
 import { CHALLENGE_STORE, SIGNUP_GATEWAY, SIGNUP_SETTINGS } from '../tokens';
 import type { ChallengeRecord, ChallengeStore, SignupGateway, SignupSettings } from './ports';
 
@@ -37,6 +37,7 @@ export class OneTimeCodeService {
     @Inject(CHALLENGE_STORE) private readonly challenges: ChallengeStore,
     @Inject(SIGNUP_GATEWAY) private readonly gateway: SignupGateway,
     @Inject(SIGNUP_SETTINGS) private readonly settings: SignupSettings,
+    @Inject(OneTimeCodeHasher) private readonly hasher: OneTimeCodeHasher,
     @Inject(MessagingService) private readonly messaging: MessagingService,
   ) {}
 
@@ -46,7 +47,9 @@ export class OneTimeCodeService {
       const latest = await this.challenges.latest(tx, phone);
 
       if (latest?.lockedUntil && latest.lockedUntil > now) {
-        throw tooManyWrongCodes(Math.ceil((latest.lockedUntil.getTime() - now.getTime()) / 1000));
+        throw this.tooManyWrongCodes(
+          Math.ceil((latest.lockedUntil.getTime() - now.getTime()) / 1000),
+        );
       }
       if (latest && now.getTime() - latest.createdAt.getTime() < RESEND_COOLDOWN_MS) {
         const wait = latest.createdAt.getTime() + RESEND_COOLDOWN_MS - now.getTime();
@@ -67,10 +70,10 @@ export class OneTimeCodeService {
         );
       }
 
-      const code = generateCode();
+      const code = this.hasher.generate();
       await this.challenges.create(tx, {
         phone,
-        codeHash: hashCode(code, phone, this.settings.otpSecret),
+        codeHash: this.hasher.hash(code, phone),
         expiresAt: new Date(now.getTime() + CODE_TTL_MS),
       });
       const queued = await this.messaging.queueOtp(tx, phone, code);
@@ -82,6 +85,7 @@ export class OneTimeCodeService {
         message: queued,
       };
     });
+
     try {
       await this.messaging.deliverOtp(message);
     } catch (error) {
@@ -114,7 +118,7 @@ export class OneTimeCodeService {
           field: 'code',
         });
       case 'locked':
-        throw tooManyWrongCodes(outcome.retryAfterSeconds);
+        throw this.tooManyWrongCodes(outcome.retryAfterSeconds);
       case 'wrong':
         throw new ApiError('validation_error', 'The code is not correct.', {
           field: 'code',
@@ -135,7 +139,7 @@ export class OneTimeCodeService {
     }
     if (challenge.expiresAt <= now) return { kind: 'expired' };
 
-    if (codeMatches(code, phone, this.settings.otpSecret, challenge.codeHash)) {
+    if (this.hasher.matches(code, phone, challenge.codeHash)) {
       return { kind: 'ok', challengeId: challenge.id };
     }
 
@@ -146,13 +150,13 @@ export class OneTimeCodeService {
     }
     return { kind: 'wrong', attemptsLeft: MAX_WRONG_ATTEMPTS - attempts };
   }
-}
 
-function tooManyWrongCodes(retryAfterSeconds: number): ApiError {
-  return new ApiError(
-    'rate_limited',
-    'Too many wrong codes. Wait before trying again.',
-    {},
-    retryAfterSeconds,
-  );
+  private tooManyWrongCodes(retryAfterSeconds: number): ApiError {
+    return new ApiError(
+      'rate_limited',
+      'Too many wrong codes. Wait before trying again.',
+      {},
+      retryAfterSeconds,
+    );
+  }
 }

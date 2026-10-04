@@ -1,6 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { isValidSlug } from './host';
-import { stripNumericSuffix, suffixCandidates, suggestBase } from './slug-rules';
+import { SlugFormat } from './slug-format';
 import { SLUG_AVAILABILITY } from '../tokens';
 
 // Which of a batch of candidate slugs are held by a shop or reserved. Implemented over the database.
@@ -18,28 +17,31 @@ export type AddressCheck =
  */
 @Injectable()
 export class SlugService {
-  constructor(@Inject(SLUG_AVAILABILITY) private readonly availability: SlugAvailability) {}
+  constructor(
+    @Inject(SLUG_AVAILABILITY) private readonly availability: SlugAvailability,
+    @Inject(SlugFormat) private readonly format: SlugFormat,
+  ) {}
 
   /** Pre-fills the address field. Null when the name has no Latin letters, or when no candidate is free. */
   async suggest(shopName: string): Promise<string | null> {
-    const base = suggestBase(shopName);
+    const base = this.format.suggestBase(shopName);
     return base ? this.firstAvailable(base) : null;
   }
 
   /** Checks an address the owner typed or accepted. A taken or reserved address gets the next free suggestion. */
   async checkAddress(address: string): Promise<AddressCheck> {
-    if (!isValidSlug(address)) return { ok: false, reason: 'format', suggestion: null };
+    if (!this.format.isValid(address)) return { ok: false, reason: 'format', suggestion: null };
 
     const unavailable = await this.availability.findUnavailable([address]);
     if (!unavailable.has(address)) return { ok: true, address };
 
-    const suggestion = await this.firstAvailable(stripNumericSuffix(address));
+    const suggestion = await this.firstAvailable(this.format.stripNumericSuffix(address));
     return { ok: false, reason: 'unavailable', suggestion };
   }
 
   /** One batch query for the base and all its suffixes; the first candidate nobody holds wins. */
   private async firstAvailable(base: string): Promise<string | null> {
-    const candidates = [base, ...suffixCandidates(base)];
+    const candidates = [base, ...this.format.suffixCandidates(base)];
     const unavailable = await this.availability.findUnavailable(candidates);
     return candidates.find((candidate) => !unavailable.has(candidate)) ?? null;
   }

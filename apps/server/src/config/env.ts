@@ -34,13 +34,16 @@ const envWithEdgeRule = envSchema.superRefine((value, ctx) => {
 
 export type Env = z.infer<typeof envSchema>;
 
-export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
-  const parsed = envWithEdgeRule.safeParse(source);
-  if (!parsed.success) {
-    const problems = parsed.error.issues.map(
-      (issue) => `${issue.path.join('.')}: ${issue.message}`,
-    );
-    throw new Error(`Invalid environment configuration: ${problems.join('; ')}`);
+/** Reads and validates the settings. Throws, naming each invalid variable, when the configuration is unusable. */
+export class EnvironmentParser {
+  parse(source: NodeJS.ProcessEnv = process.env): Env {
+    const parsed = envWithEdgeRule.safeParse(source);
+    if (!parsed.success) {
+      const problems = parsed.error.issues.map(
+        (issue) => `${issue.path.join('.')}: ${issue.message}`,
+      );
+      throw new Error(`Invalid environment configuration: ${problems.join('; ')}`);
+    }
+    return parsed.data;
   }
-  return parsed.data;
 }

@@ -8,11 +8,10 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { timingSafeEqual } from 'node:crypto';
 import { SKIP_TENANT } from '../decorators/skip-tenant';
 import type { CachedTenant } from '../../tenancy/services/tenant-cache';
 import { TenantResolver } from '../../tenancy/services/tenant-resolver.service';
-import { TRUSTED_EDGE_SECRET } from '../../tenancy/tokens';
+import { EdgeSecret } from './edge-secret';
 
 export const EDGE_HEADER = 'x-lytronix-edge-secret';
 
@@ -20,17 +19,6 @@ export const EDGE_HEADER = 'x-lytronix-edge-secret';
 export interface TenantRequest {
   headers: Record<string, string | string[] | undefined>;
   tenant?: CachedTenant;
-}
-
-/** R3: compares the Cloudflare secret in constant time. Both values must be equal length to compare. */
-export function edgeSecretMatches(
-  received: string | string[] | undefined,
-  expected: string,
-): boolean {
-  if (typeof received !== 'string') return false;
-  const a = Buffer.from(received);
-  const b = Buffer.from(expected);
-  return a.length === b.length && timingSafeEqual(a, b);
 }
 
 /**
@@ -43,7 +31,7 @@ export class TenantGuard implements CanActivate {
   constructor(
     @Inject(TenantResolver) private readonly resolver: TenantResolver,
     @Inject(Reflector) private readonly reflector: Reflector,
-    @Inject(TRUSTED_EDGE_SECRET) private readonly edgeSecret: string | undefined,
+    @Inject(EdgeSecret) private readonly edgeSecret: EdgeSecret,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -55,11 +43,11 @@ export class TenantGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest<TenantRequest>();
 
-    if (this.edgeSecret && !edgeSecretMatches(request.headers[EDGE_HEADER], this.edgeSecret)) {
+    if (this.edgeSecret.isRequired() && !this.edgeSecret.matches(request.headers[EDGE_HEADER])) {
       throw new ForbiddenException('Request not accepted.');
     }
 
-    const result = await this.resolver.resolve(headerValue(request.headers.host));
+    const result = await this.resolver.resolve(this.firstHeader(request.headers.host));
     if (result.outcome === 'not_found') throw new NotFoundException('Page not found.');
     if (result.outcome === 'closed') {
       throw new ServiceUnavailableException('This shop is not available right now.');
@@ -68,8 +56,8 @@ export class TenantGuard implements CanActivate {
     request.tenant = result.tenant;
     return true;
   }
-}
 
-function headerValue(value: string | string[] | undefined): string | undefined {
-  return Array.isArray(value) ? value[0] : value;
+  private firstHeader(value: string | string[] | undefined): string | undefined {
+    return Array.isArray(value) ? value[0] : value;
+  }
 }

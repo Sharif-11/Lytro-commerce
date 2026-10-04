@@ -37,6 +37,5 @@ export interface SignupGateway {
 
 export interface SignupSettings {
   now(): Date;
-  otpSecret: string;
   shopUrl(address: string): string;
 }

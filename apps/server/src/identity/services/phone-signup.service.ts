@@ -5,7 +5,7 @@ import { MessagingService } from '../../messaging/services/messaging.service';
 import { SlugService } from '../../tenancy/services/slug.service';
 import { TenantService } from '../../tenancy/services/tenant.service';
 import type { CompleteSignupInput } from '@lytronix/validators';
-import { normalizeBdPhone } from './phone-number';
+import { PhoneNumberFormat } from './phone-number-format';
 import { OneTimeCodeService, type CodeIssued } from './one-time-code.service';
 import { SIGNUP_GATEWAY, SIGNUP_SETTINGS } from '../tokens';
 import type { SignupGateway, SignupSettings } from './ports';
@@ -30,14 +30,15 @@ export class PhoneSignupService {
     @Inject(SlugService) private readonly slugs: SlugService,
     @Inject(MessagingService) private readonly messaging: MessagingService,
     @Inject(SIGNUP_SETTINGS) private readonly settings: SignupSettings,
+    @Inject(PhoneNumberFormat) private readonly phoneFormat: PhoneNumberFormat,
   ) {}
 
   async requestCode(rawPhone: string): Promise<CodeIssued> {
-    return this.codes.issue(requirePhone(rawPhone));
+    return this.codes.issue(this.requirePhone(rawPhone));
   }
 
   async createShop(input: CompleteSignupInput): Promise<ShopCreated> {
-    const phone = requirePhone(input.phone);
+    const phone = this.requirePhone(input.phone);
     const challengeId = await this.codes.verify(phone, input.code);
     const shopName = input.shopName.trim();
     const ownerName = input.ownerName.trim();
@@ -112,18 +113,16 @@ export class PhoneSignupService {
       suggestion: await this.slugs.suggest(shopName),
     });
   }
-}
 
-function requirePhone(raw: string): string {
-  const phone = normalizeBdPhone(raw);
-  if (!phone) {
-    throw new ApiError(
-      'validation_error',
-      'Enter a Bangladeshi mobile number, such as 017XXXXXXXX.',
-      {
-        field: 'phone',
-      },
-    );
+  private requirePhone(raw: string): string {
+    const phone = this.phoneFormat.normalize(raw);
+    if (!phone) {
+      throw new ApiError(
+        'validation_error',
+        'Enter a Bangladeshi mobile number, such as 017XXXXXXXX.',
+        { field: 'phone' },
+      );
+    }
+    return phone;
   }
-  return phone;
 }

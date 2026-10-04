@@ -1,3 +1,6 @@
+import { EdgeSecret } from '../src/common/guards/edge-secret';
+import { HostClassifier } from '../src/tenancy/services/host-classifier';
+import { SlugFormat } from '../src/tenancy/services/slug-format';
 import 'dotenv/config';
 import { Controller, Get, type INestApplication, Req } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
@@ -97,6 +100,9 @@ beforeAll(async () => {
       { provide: TenantCache, useValue: cache },
       { provide: PLATFORM_DOMAIN, useValue: 'localhost' },
       { provide: TRUSTED_EDGE_SECRET, useValue: SECRET },
+      SlugFormat,
+      HostClassifier,
+      EdgeSecret,
       TenantResolver,
       SlugService,
       { provide: APP_GUARD, useClass: TenantGuard },
@@ -173,17 +179,17 @@ describeIfDatabase('tenant resolution against the database (TEN-7a, TEN-24)', ()
 
 describeIfDatabase('slug suggestions against the database (AUTH-11, TEN-26)', () => {
   it('suggests the next free address when the name is taken', async () => {
-    const slugs = new SlugService(new DrizzleSlugAvailability(handle.db));
+    const slugs = new SlugService(new DrizzleSlugAvailability(handle.db), new SlugFormat());
     expect(await slugs.suggest('Fashion House')).toBe('fashion-house-2');
   });
 
   it('suggests admin-2 for a shop named Admin, since admin is reserved', async () => {
-    const slugs = new SlugService(new DrizzleSlugAvailability(handle.db));
+    const slugs = new SlugService(new DrizzleSlugAvailability(handle.db), new SlugFormat());
     expect(await slugs.suggest('Admin')).toBe('admin-2');
   });
 
   it('accepts a free address and refuses a taken one with a suggestion', async () => {
-    const slugs = new SlugService(new DrizzleSlugAvailability(handle.db));
+    const slugs = new SlugService(new DrizzleSlugAvailability(handle.db), new SlugFormat());
     expect(await slugs.checkAddress('brand-new-shop')).toEqual({
       ok: true,
       address: 'brand-new-shop',
@@ -196,7 +202,7 @@ describeIfDatabase('slug suggestions against the database (AUTH-11, TEN-26)', ()
   });
 
   it('gives no suggestion for a Bangla-only shop name, so the owner types an address', async () => {
-    const slugs = new SlugService(new DrizzleSlugAvailability(handle.db));
+    const slugs = new SlugService(new DrizzleSlugAvailability(handle.db), new SlugFormat());
     expect(await slugs.suggest('ফ্যাশন হাউস')).toBeNull();
   });
 });

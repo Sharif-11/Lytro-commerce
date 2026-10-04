@@ -9,9 +9,12 @@ import {
 } from '../database/adapters/tenancy.adapter';
 import type { Env } from '../config/env';
 import { TenantGuard } from '../common/guards/tenant.guard';
+import { EdgeSecret } from '../common/guards/edge-secret';
 import { MessagingModule } from '../messaging/messaging.module';
 import { StaffModule } from '../staff/staff.module';
 import { TenantCache } from './services/tenant-cache';
+import { HostClassifier } from './services/host-classifier';
+import { SlugFormat } from './services/slug-format';
 import { SlugService } from './services/slug.service';
 import { TenantResolver } from './services/tenant-resolver.service';
 import { TenantService } from './services/tenant.service';
@@ -47,6 +50,9 @@ import {
       inject: [ENV],
       useFactory: (env: Env) => env.TRUSTED_EDGE_SECRET,
     },
+    SlugFormat,
+    HostClassifier,
+    EdgeSecret,
     TenantResolver,
     SlugService,
     TenantService,
