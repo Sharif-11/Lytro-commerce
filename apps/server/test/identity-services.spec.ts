@@ -9,25 +9,25 @@ import {
   MAX_WRONG_ATTEMPTS,
   OneTimeCodeService,
   RESEND_COOLDOWN_MS,
-} from '../src/identity/services/one-time-code.service';
-import { PhoneSignupService } from '../src/identity/services/phone-signup.service';
+} from '../src/modules/identity/services/one-time-code.service';
+import { PhoneSignupService } from '../src/modules/identity/services/phone-signup.service';
 import type {
   ChallengeRecord,
   ChallengeStore,
   SignupGateway,
   SignupSettings,
-} from '../src/identity/services/ports';
-import { OneTimeCodeHasher } from '../src/identity/services/one-time-code-hasher';
-import { PhoneNumberFormat } from '../src/identity/services/phone-number-format';
-import { SlugFormat } from '../src/tenancy/services/slug-format';
+} from '../src/modules/identity/services/ports';
+import { OneTimeCodeHasher } from '../src/modules/identity/services/one-time-code-hasher';
+import { PhoneNumberFormat } from '../src/modules/identity/services/phone-number-format';
+import { SlugFormat } from '../src/modules/tenancy/services/slug-format';
 import {
   MessagingService,
   type MessageStore,
   type SmsProvider,
-} from '../src/messaging/services/messaging.service';
-import { StaffService, type StaffStore } from '../src/staff/services/staff.service';
-import { SlugService, type SlugAvailability } from '../src/tenancy/services/slug.service';
-import { TenantService, type TenantStore } from '../src/tenancy/services/tenant.service';
+} from '../src/modules/shared/messaging/services/messaging.service';
+import { StaffService, type StaffStore } from '../src/modules/staff/services/staff.service';
+import { SlugService, type SlugAvailability } from '../src/modules/tenancy/services/slug.service';
+import { TenantService, type TenantStore } from '../src/modules/tenancy/services/tenant.service';
 
 // AUTH-05 to AUTH-08, AUTH-10, AUTH-11 and TRL-01, tested through the real services with fake ports.
 const SECRET = 's'.repeat(32);

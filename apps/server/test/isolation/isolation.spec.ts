@@ -4,7 +4,7 @@ import { Test } from '@nestjs/testing';
 import { DiscoveryModule } from '@nestjs/core';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { AppModule } from '../../src/app.module';
+import { AppModule } from '../../src/app/app.module';
 import { prepareTestDatabase, seedShop } from '../support/database';
 import { ISOLATION_REGISTRY } from './registry';
 import { compareWithRegistry, listTenantRoutes } from './inventory';

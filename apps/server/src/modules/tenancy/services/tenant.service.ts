@@ -1,9 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Transaction } from '@lytronix/db';
 import type { PlanLimits } from '@lytronix/validators';
-import { DAY_MS } from '../../common/time';
+import { DAY_MS } from '../../../common/time';
 import { StaffService } from '../../staff/services/staff.service';
-import { MessagingService, type QueuedMessage } from '../../messaging/services/messaging.service';
+import {
+  MessagingService,
+  type QueuedMessage,
+} from '../../shared/messaging/services/messaging.service';
 import { CLOCK, TENANT_STORE } from '../tokens';
 
 // D3, TRL-01, TRL-05: a shop starts on the Trial plan for 30 days. The rules are here, not in the repository.

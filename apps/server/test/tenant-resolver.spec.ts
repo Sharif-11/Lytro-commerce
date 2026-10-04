@@ -1,17 +1,17 @@
 import { EdgeSecret } from '../src/common/guards/edge-secret';
-import { HostClassifier } from '../src/tenancy/services/host-classifier';
-import { SlugFormat } from '../src/tenancy/services/slug-format';
+import { HostClassifier } from '../src/modules/tenancy/services/host-classifier';
+import { SlugFormat } from '../src/modules/tenancy/services/slug-format';
 import { ForbiddenException, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import type { ExecutionContext } from '@nestjs/common';
 import type { Reflector } from '@nestjs/core';
 import { TenantState } from '@lytronix/validators';
 import { describe, expect, it } from 'vitest';
-import { TenantCache, type CachedTenant } from '../src/tenancy/services/tenant-cache';
+import { TenantCache, type CachedTenant } from '../src/modules/tenancy/services/tenant-cache';
 import { TenantGuard, EDGE_HEADER, type TenantRequest } from '../src/common/guards/tenant.guard';
 import {
   TenantResolver,
   type TenantDirectory,
-} from '../src/tenancy/services/tenant-resolver.service';
+} from '../src/modules/tenancy/services/tenant-resolver.service';
 
 const SECRET = 'e'.repeat(32);
 

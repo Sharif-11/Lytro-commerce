@@ -9,8 +9,8 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { SKIP_TENANT } from '../decorators/skip-tenant';
-import type { CachedTenant } from '../../tenancy/services/tenant-cache';
-import { TenantResolver } from '../../tenancy/services/tenant-resolver.service';
+import type { CachedTenant } from '../../modules/tenancy/services/tenant-cache';
+import { TenantResolver } from '../../modules/tenancy/services/tenant-resolver.service';
 import { EdgeSecret } from './edge-secret';
 
 export const EDGE_HEADER = 'x-lytronix-edge-secret';

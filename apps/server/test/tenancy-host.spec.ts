@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { HostClassifier } from '../src/tenancy/services/host-classifier';
-import { SlugFormat } from '../src/tenancy/services/slug-format';
+import { HostClassifier } from '../src/modules/tenancy/services/host-classifier';
+import { SlugFormat } from '../src/modules/tenancy/services/slug-format';
 
 const format = new SlugFormat();
 const hosts = new HostClassifier('localhost', format);

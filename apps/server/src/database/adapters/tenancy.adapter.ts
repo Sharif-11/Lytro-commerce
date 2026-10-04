@@ -8,10 +8,10 @@ import {
 } from '@lytronix/db';
 import type { PlanLimits } from '@lytronix/validators';
 import { UniqueViolation } from '../../common/errors/unique-violation';
-import type { CachedTenant } from '../../tenancy/services/tenant-cache';
-import type { TenantDirectory } from '../../tenancy/services/tenant-resolver.service';
-import type { SlugAvailability } from '../../tenancy/services/slug.service';
-import type { TenantStore } from '../../tenancy/services/tenant.service';
+import type { CachedTenant } from '../../modules/tenancy/services/tenant-cache';
+import type { TenantDirectory } from '../../modules/tenancy/services/tenant-resolver.service';
+import type { SlugAvailability } from '../../modules/tenancy/services/slug.service';
+import type { TenantStore } from '../../modules/tenancy/services/tenant.service';
 import { DatabaseService } from '../database.service';
 
 /** Host lookups for the resolver (TEN-7a). */

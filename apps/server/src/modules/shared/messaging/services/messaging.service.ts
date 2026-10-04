@@ -1,8 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { ClaimedSmsMessage, Executor, NewSmsMessage, Transaction } from '@lytronix/db';
 import { SmsKind } from '@lytronix/validators';
-import { MINUTE_MS } from '../../common/time';
-import { SmsDeliveryError } from '../../common/errors/sms-delivery';
+import { MINUTE_MS } from '../../../../common/time';
+import { SmsDeliveryError } from '../../../../common/errors/sms-delivery';
 import { MESSAGE_STORE, MESSAGING_CLOCK, SMS_PROVIDER } from '../tokens';
 
 // SMS-18, D6, AUTH-05. Messages are recorded in the same transaction as the change that caused them.

@@ -1,9 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Transaction } from '@lytronix/db';
-import { ApiError } from '../../common/api-error';
-import { HOUR_MS, MINUTE_MS } from '../../common/time';
-import { SmsDeliveryError } from '../../common/errors/sms-delivery';
-import { MessagingService } from '../../messaging/services/messaging.service';
+import { ApiError } from '../../../common/api-error';
+import { HOUR_MS, MINUTE_MS } from '../../../common/time';
+import { SmsDeliveryError } from '../../../common/errors/sms-delivery';
+import { MessagingService } from '../../shared/messaging/services/messaging.service';
 import { OneTimeCodeHasher } from './one-time-code-hasher';
 import { CHALLENGE_STORE, SIGNUP_GATEWAY, SIGNUP_SETTINGS } from '../tokens';
 import type { ChallengeRecord, ChallengeStore, SignupGateway, SignupSettings } from './ports';

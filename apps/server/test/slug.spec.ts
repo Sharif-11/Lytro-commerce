@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { SlugService, type SlugAvailability } from '../src/tenancy/services/slug.service';
-import { SlugFormat } from '../src/tenancy/services/slug-format';
+import { SlugService, type SlugAvailability } from '../src/modules/tenancy/services/slug.service';
+import { SlugFormat } from '../src/modules/tenancy/services/slug-format';
 import { SLUG_MAX_LENGTH } from '@lytronix/validators';
 
 const format = new SlugFormat();

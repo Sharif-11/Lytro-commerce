@@ -95,28 +95,34 @@ packages/db/
 
 ```
 apps/server/src/
-  main.ts                entry point: an Application class
-  app.module.ts          composition root
-  config/                EnvironmentParser (validated settings) and tokens
-  common/
-    api-error.ts         ApiError and the status map
-    api-error.filter.ts  renders ApiError in the documented shape
-    decorators/          SkipTenant
-    errors/              UniqueViolation, SmsDeliveryError
-    guards/              TenantGuard, EdgeSecret
-    pipes/               ZodValidationPipe
-    time.ts              durations
-  database/
-    database.module.ts   global: connection, repositories and the transaction runner as providers
-    database.service.ts  owns the pool; closes it on shutdown
-    adapters/            <module>.adapter.ts: implements a module's ports with repositories
-  health/                health controller
-  <module>/              identity, tenancy, staff, messaging
-    <module>.module.ts
-    controllers/         HTTP only; calls a service
-    dto/                 request classes built from validators schemas
-    services/            business rules; depends on ports (interfaces), never on the database
-    tokens.ts            injection tokens for the module
+  main.ts                    entry point: an Application class
+  app/app.module.ts          composition root
+  config/env.ts              EnvironmentParser (validated settings) and tokens
+  common/                    cross-cutting code, used by every module
+    api-error.ts             ApiError and the status map
+    api-error.filter.ts      renders ApiError in the documented shape
+    decorators/              SkipTenant
+    errors/                  UniqueViolation, SmsDeliveryError
+    guards/                  TenantGuard, EdgeSecret
+    pipes/                   ZodValidationPipe
+    time.ts                  durations
+  database/                  database providers and adapters
+    database.module.ts       global: connection, repositories and the transaction runner as providers
+    database.service.ts      owns the pool; closes it on shutdown
+    adapters/                <module>.adapter.ts: implements a module's ports with repositories
+  modules/                   every domain module lives here
+    identity/                sign-up by phone
+    tenancy/                 tenant resolution, slugs, trial shops
+    staff/                   staff accounts
+    health/                  health check
+    shared/                  infrastructure shared by modules
+      messaging/             outbox, SMS providers and the retry worker
+    <module>/                each module has the same layout:
+      <module>.module.ts
+      controllers/           HTTP only; calls a service
+      dto/                   request classes built from validators schemas
+      services/              business rules; depends on ports (interfaces), never on the database
+      tokens.ts              injection tokens for the module
 ```
 
 ### Layering

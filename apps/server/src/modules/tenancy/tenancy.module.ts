@@ -1,15 +1,15 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
-import { ENV } from '../config/tokens';
+import { ENV } from '../../config/tokens';
 import {
   DrizzleSlugAvailability,
   DrizzleTenantDirectory,
   DrizzleTenantStore,
-} from '../database/adapters/tenancy.adapter';
-import type { Env } from '../config/env';
-import { TenantGuard } from '../common/guards/tenant.guard';
-import { EdgeSecret } from '../common/guards/edge-secret';
-import { MessagingModule } from '../messaging/messaging.module';
+} from '../../database/adapters/tenancy.adapter';
+import type { Env } from '../../config/env';
+import { TenantGuard } from '../../common/guards/tenant.guard';
+import { EdgeSecret } from '../../common/guards/edge-secret';
+import { MessagingModule } from '../shared/messaging/messaging.module';
 import { StaffModule } from '../staff/staff.module';
 import { TenantCache } from './services/tenant-cache';
 import { HostClassifier } from './services/host-classifier';

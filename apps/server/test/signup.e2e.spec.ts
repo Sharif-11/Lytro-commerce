@@ -6,8 +6,8 @@ import type { AddressInfo } from 'node:net';
 import { randomUUID } from 'node:crypto';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { AppModule } from '../src/app.module';
-import { SMS_PROVIDER } from '../src/messaging/tokens';
+import { AppModule } from '../src/app/app.module';
+import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { prepareTestDatabase } from './support/database';
 
 // Sign-up by phone over real HTTP and the real database (P1-E01 to P1-E04, AUTH-05 to AUTH-11, TRL-01).

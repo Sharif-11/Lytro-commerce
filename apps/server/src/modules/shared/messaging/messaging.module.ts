@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { DrizzleMessageStore } from '../database/adapters/messaging.adapter';
+import { DrizzleMessageStore } from '../../../database/adapters/messaging.adapter';
 import { ConsoleSmsProvider } from './providers/console-sms.provider';
 import { MessagingService } from './services/messaging.service';
 import { SmsWorker } from './services/sms-worker';

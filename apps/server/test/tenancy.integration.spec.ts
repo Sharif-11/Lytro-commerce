@@ -1,6 +1,6 @@
 import { EdgeSecret } from '../src/common/guards/edge-secret';
-import { HostClassifier } from '../src/tenancy/services/host-classifier';
-import { SlugFormat } from '../src/tenancy/services/slug-format';
+import { HostClassifier } from '../src/modules/tenancy/services/host-classifier';
+import { SlugFormat } from '../src/modules/tenancy/services/slug-format';
 import 'dotenv/config';
 import { Controller, Get, type INestApplication, Req } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
@@ -17,21 +17,21 @@ import {
 } from '@lytronix/db';
 import { DatabaseService } from '../src/database/database.service';
 import { prepareTestDatabase, seedShop } from './support/database';
-import { HealthController } from '../src/health/health.controller';
+import { HealthController } from '../src/modules/health/health.controller';
 import {
   DrizzleSlugAvailability,
   DrizzleTenantDirectory,
 } from '../src/database/adapters/tenancy.adapter';
-import { SlugService } from '../src/tenancy/services/slug.service';
-import { TenantCache } from '../src/tenancy/services/tenant-cache';
+import { SlugService } from '../src/modules/tenancy/services/slug.service';
+import { TenantCache } from '../src/modules/tenancy/services/tenant-cache';
 import { EDGE_HEADER, TenantGuard, type TenantRequest } from '../src/common/guards/tenant.guard';
-import { TenantResolver } from '../src/tenancy/services/tenant-resolver.service';
+import { TenantResolver } from '../src/modules/tenancy/services/tenant-resolver.service';
 import {
   PLATFORM_DOMAIN,
   SLUG_AVAILABILITY,
   TENANT_DIRECTORY,
   TRUSTED_EDGE_SECRET,
-} from '../src/tenancy/tokens';
+} from '../src/modules/tenancy/tokens';
 
 // Covers the tenant resolver end to end against a real migrated database (P1-E05, P1-E06, TEN-24).
 // Runs only when DATABASE_TEST_ADMIN_URL is set, which CI always does. It uses its own database so it

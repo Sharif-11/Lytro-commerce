@@ -1,6 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { SmsRepository, type Executor, type NewSmsMessage } from '@lytronix/db';
-import type { ClaimedMessage, MessageStore } from '../../messaging/services/messaging.service';
+import type {
+  ClaimedMessage,
+  MessageStore,
+} from '../../modules/shared/messaging/services/messaging.service';
 import { DatabaseService } from '../database.service';
 
 /** The outbox, through the SMS repository. */

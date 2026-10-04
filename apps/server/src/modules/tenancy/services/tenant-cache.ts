@@ -1,5 +1,5 @@
 import type { TenantLookupRow } from '@lytronix/db';
-import { MINUTE_MS } from '../../common/time';
+import { MINUTE_MS } from '../../../common/time';
 
 // R5: a process-memory cache of host-to-shop lookups. Entries live for one minute, and the size is
 // capped so a flood of distinct hosts cannot exhaust memory. Cross-server invalidation comes in Phase 2.

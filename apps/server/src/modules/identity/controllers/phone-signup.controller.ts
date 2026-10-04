@@ -1,6 +1,6 @@
 import { Body, Controller, HttpCode, Inject, Post } from '@nestjs/common';
-import { SkipTenant } from '../../common/decorators/skip-tenant';
-import { ZodValidationPipe } from '../../common/pipes/validation.pipe';
+import { SkipTenant } from '../../../common/decorators/skip-tenant';
+import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
 import { CompleteSignupDto, RequestCodeDto } from '../dto/phone-signup.dto';
 import { PhoneSignupService, type ShopCreated } from '../services/phone-signup.service';
 import type { CodeIssued } from '../services/one-time-code.service';

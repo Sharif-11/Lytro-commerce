@@ -1,8 +1,11 @@
 import { Module } from '@nestjs/common';
-import { ENV } from '../config/tokens';
-import type { Env } from '../config/env';
-import { DrizzleChallengeStore, DrizzleSignupGateway } from '../database/adapters/identity.adapter';
-import { MessagingModule } from '../messaging/messaging.module';
+import { ENV } from '../../config/tokens';
+import type { Env } from '../../config/env';
+import {
+  DrizzleChallengeStore,
+  DrizzleSignupGateway,
+} from '../../database/adapters/identity.adapter';
+import { MessagingModule } from '../shared/messaging/messaging.module';
 import { TenancyModule } from '../tenancy/tenancy.module';
 import { PhoneSignupController } from './controllers/phone-signup.controller';
 import { OneTimeCodeService } from './services/one-time-code.service';

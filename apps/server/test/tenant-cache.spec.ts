@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { TenantState } from '@lytronix/validators';
-import { TenantCache } from '../src/tenancy/services/tenant-cache';
+import { TenantCache } from '../src/modules/tenancy/services/tenant-cache';
 
 const SHOP = { id: 'shop-1', slug: 'fashion-house', state: TenantState.Active };
 

@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { timingSafeEqual } from 'node:crypto';
-import { TRUSTED_EDGE_SECRET } from '../../tenancy/tokens';
+import { TRUSTED_EDGE_SECRET } from '../../modules/tenancy/tokens';
 
 // R3: the shared secret Cloudflare adds to every forwarded request. Compared in constant time.
 @Injectable()

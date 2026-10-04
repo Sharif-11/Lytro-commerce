@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { ApiError } from '../../common/api-error';
-import { UniqueViolation } from '../../common/errors/unique-violation';
-import { MessagingService } from '../../messaging/services/messaging.service';
+import { ApiError } from '../../../common/api-error';
+import { UniqueViolation } from '../../../common/errors/unique-violation';
+import { MessagingService } from '../../shared/messaging/services/messaging.service';
 import { SlugService } from '../../tenancy/services/slug.service';
 import { TenantService } from '../../tenancy/services/tenant.service';
 import type { CompleteSignupInput } from '@lytronix/validators';
