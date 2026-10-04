@@ -6,7 +6,10 @@ import { SmsDeliveryError } from '../../../common/errors/sms-delivery';
 import { MessagingService } from '../../shared/messaging/services/messaging.service';
 import { OneTimeCodeHasher } from './one-time-code-hasher';
 import { CHALLENGE_STORE, SIGNUP_GATEWAY, SIGNUP_SETTINGS } from '../tokens';
-import type { ChallengeRecord, ChallengeStore, SignupGateway, SignupSettings } from './ports';
+import type { ChallengeRecord, ChallengeStore } from '../ports/challenge-store';
+import type { SignupGateway } from '../ports/signup-gateway';
+import type { SignupSettings } from '../ports/signup-settings';
+import type { CodeIssued } from '../types/code-issued';
 
 // AUTH-05 to AUTH-07: the limits on one-time codes, in one place.
 export const CODE_TTL_MS = 5 * MINUTE_MS;
@@ -14,11 +17,6 @@ export const RESEND_COOLDOWN_MS = MINUTE_MS;
 export const HOURLY_CODE_CAP = 5;
 export const MAX_WRONG_ATTEMPTS = 5;
 export const LOCK_MS = 15 * MINUTE_MS;
-
-export interface CodeIssued {
-  expiresInSeconds: number;
-  resendAfterSeconds: number;
-}
 
 type CheckOutcome =
   | { kind: 'ok'; challengeId: string }

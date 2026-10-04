@@ -1,43 +1,15 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Transaction } from '@lytronix/db';
-import type { PlanLimits } from '@lytronix/validators';
 import { DAY_MS } from '../../../common/time';
 import { StaffService } from '../../staff/services/staff.service';
-import {
-  MessagingService,
-  type QueuedMessage,
-} from '../../shared/messaging/services/messaging.service';
+import { MessagingService } from '../../shared/messaging/services/messaging.service';
+import { type QueuedMessage } from '../../shared/messaging/types/messages';
 import { CLOCK, TENANT_STORE } from '../tokens';
+import type { TenantStore } from '../ports/tenant-store';
+import type { TrialShopRequest } from '../types/trial-shop-request';
 
 // D3, TRL-01, TRL-05: a shop starts on the Trial plan for 30 days. The rules are here, not in the repository.
 export const TRIAL_DAYS = 30;
-
-export interface TenantStore {
-  findTrialPlan(tx: Transaction): Promise<{ id: string; limits: PlanLimits } | null>;
-  insertTenant(
-    tx: Transaction,
-    values: {
-      ownerIdentityId: string;
-      subscriberId: string;
-      shopName: string;
-      slug: string;
-      planId: string;
-      planSnapshot: PlanLimits;
-      periodStart: Date;
-      periodEnd: Date;
-    },
-  ): Promise<string>;
-}
-
-export interface TrialShopRequest {
-  identityId: string;
-  subscriberId: string;
-  shopName: string;
-  slug: string;
-  ownerPhone: string;
-  ownerName: string;
-  liveUrl: string;
-}
 
 /**
  * Creates a shop in the trial state with its owner and the "shop ready" message (AUTH-10). It runs inside the

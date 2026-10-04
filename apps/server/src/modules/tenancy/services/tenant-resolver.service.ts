@@ -1,20 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { TenantState } from '@lytronix/validators';
 import { HostClassifier } from './host-classifier';
-import { TenantCache, type CachedTenant } from './tenant-cache';
+import { TenantCache } from './tenant-cache';
+import { type CachedTenant } from '../types/cached-tenant';
 import { TENANT_DIRECTORY } from '../tokens';
-
-// Where the database lookups come from. The Drizzle implementation lives in database/adapters, so this service
-// can be tested with a fake.
-export interface TenantDirectory {
-  findBySlug(slug: string): Promise<CachedTenant | null>;
-  findByActiveDomain(hostname: string): Promise<CachedTenant | null>;
-}
-
-export type ResolvedHost =
-  | { outcome: 'tenant'; tenant: CachedTenant }
-  | { outcome: 'closed'; tenant: CachedTenant } // the shop exists but its public side is offline
-  | { outcome: 'not_found' };
+import type { TenantDirectory } from '../ports/tenant-directory';
+import type { ResolvedHost } from '../types/resolved-host';
 
 // LIF-stage table (docs/SRS.md): the public side is offline in these states. The shop's id is kept
 // so the caller can log it, but no shop data is returned to the visitor.

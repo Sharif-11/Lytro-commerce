@@ -6,11 +6,8 @@ import {
   type Transaction,
 } from '@lytronix/db';
 import { UniqueViolation } from '../../common/errors/unique-violation';
-import type {
-  ChallengeRecord,
-  ChallengeStore,
-  SignupGateway,
-} from '../../modules/identity/services/ports';
+import type { ChallengeRecord, ChallengeStore } from '../../modules/identity/ports/challenge-store';
+import type { SignupGateway } from '../../modules/identity/ports/signup-gateway';
 import { DatabaseService } from '../database.service';
 
 /** One-time code rows (AUTH-05 to AUTH-07), through the challenge repository. */

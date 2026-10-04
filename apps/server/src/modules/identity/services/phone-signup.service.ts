@@ -6,15 +6,12 @@ import { SlugService } from '../../tenancy/services/slug.service';
 import { TenantService } from '../../tenancy/services/tenant.service';
 import type { CompleteSignupInput } from '@lytronix/validators';
 import { PhoneNumberFormat } from './phone-number-format';
-import { OneTimeCodeService, type CodeIssued } from './one-time-code.service';
+import { OneTimeCodeService } from './one-time-code.service';
+import { type CodeIssued } from '../types/code-issued';
 import { SIGNUP_GATEWAY, SIGNUP_SETTINGS } from '../tokens';
-import type { SignupGateway, SignupSettings } from './ports';
-
-export interface ShopCreated {
-  tenantId: string;
-  address: string;
-  shopUrl: string;
-}
+import type { SignupGateway } from '../ports/signup-gateway';
+import type { SignupSettings } from '../ports/signup-settings';
+import type { ShopCreated } from '../types/shop-created';
 
 /**
  * Sign-up by phone (AUTH-01, AUTH-04 to AUTH-10). It checks the code, picks the address, then creates the

@@ -6,12 +6,11 @@ import type { ExecutionContext } from '@nestjs/common';
 import type { Reflector } from '@nestjs/core';
 import { TenantState } from '@lytronix/validators';
 import { describe, expect, it } from 'vitest';
-import { TenantCache, type CachedTenant } from '../src/modules/tenancy/services/tenant-cache';
+import { TenantCache } from '../src/modules/tenancy/services/tenant-cache';
+import { type CachedTenant } from '../src/modules/tenancy/types/cached-tenant';
 import { TenantGuard, EDGE_HEADER, type TenantRequest } from '../src/common/guards/tenant.guard';
-import {
-  TenantResolver,
-  type TenantDirectory,
-} from '../src/modules/tenancy/services/tenant-resolver.service';
+import { TenantResolver } from '../src/modules/tenancy/services/tenant-resolver.service';
+import { type TenantDirectory } from '../src/modules/tenancy/ports/tenant-directory';
 
 const SECRET = 'e'.repeat(32);
 

@@ -1,15 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { SlugFormat } from './slug-format';
 import { SLUG_AVAILABILITY } from '../tokens';
-
-// Which of a batch of candidate slugs are held by a shop or reserved. Implemented over the database.
-export interface SlugAvailability {
-  findUnavailable(slugs: string[]): Promise<Set<string>>;
-}
-
-export type AddressCheck =
-  | { ok: true; address: string }
-  | { ok: false; reason: 'format' | 'unavailable'; suggestion: string | null };
+import type { SlugAvailability } from '../ports/slug-availability';
+import type { AddressCheck } from '../types/address-check';
 
 /**
  * AUTH-11: suggests and checks shop addresses. The database unique constraint is still the final

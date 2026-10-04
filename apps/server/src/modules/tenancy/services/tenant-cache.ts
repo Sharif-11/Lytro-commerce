@@ -1,11 +1,8 @@
-import type { TenantLookupRow } from '@lytronix/db';
 import { MINUTE_MS } from '../../../common/time';
+import type { CachedTenant } from '../types/cached-tenant';
 
 // R5: a process-memory cache of host-to-shop lookups. Entries live for one minute, and the size is
 // capped so a flood of distinct hosts cannot exhaust memory. Cross-server invalidation comes in Phase 2.
-
-/** A shop as the resolver needs it. Same shape as the database lookup row, so it is not defined twice. */
-export type CachedTenant = TenantLookupRow;
 
 interface Entry {
   value: CachedTenant;

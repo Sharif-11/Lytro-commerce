@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { SKIP_TENANT } from '../decorators/skip-tenant';
-import type { CachedTenant } from '../../modules/tenancy/services/tenant-cache';
+import type { CachedTenant } from '../../modules/tenancy/types/cached-tenant';
 import { TenantResolver } from '../../modules/tenancy/services/tenant-resolver.service';
 import { EdgeSecret } from './edge-secret';
 

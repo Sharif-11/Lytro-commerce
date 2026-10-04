@@ -8,13 +8,12 @@ import { request as httpRequest, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { HealthController } from '../src/modules/health/health.controller';
-import { TenantCache, type CachedTenant } from '../src/modules/tenancy/services/tenant-cache';
+import { TenantCache } from '../src/modules/tenancy/services/tenant-cache';
+import { type CachedTenant } from '../src/modules/tenancy/types/cached-tenant';
 import { TenantState } from '@lytronix/validators';
 import { TenantGuard, EDGE_HEADER, type TenantRequest } from '../src/common/guards/tenant.guard';
-import {
-  TenantResolver,
-  type TenantDirectory,
-} from '../src/modules/tenancy/services/tenant-resolver.service';
+import { TenantResolver } from '../src/modules/tenancy/services/tenant-resolver.service';
+import { type TenantDirectory } from '../src/modules/tenancy/ports/tenant-directory';
 import {
   PLATFORM_DOMAIN,
   TENANT_DIRECTORY,

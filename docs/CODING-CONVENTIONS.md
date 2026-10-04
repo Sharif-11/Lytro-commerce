@@ -23,6 +23,7 @@ Dependency rules (enforced by lint where possible):
 
 - **Classes, not free functions.** Services, controllers, repositories, adapters, helpers, rules and the entry point are classes. Settings (a secret, a clock, a platform domain, a pool size) come through the constructor, not through each call.
 - **Two exceptions** stay functions because the language requires it: decorators (`SkipTenant`) and declarative schema helpers (`createdAt`).
+- Interfaces and result types live in the module's ports/ and types/ folders, not in the service file. A service file holds the class and the constants used only by that class.
 - **Explicit injection tokens.** Every class-typed constructor parameter in a Nest class carries `@Inject(...)`. Wiring must not depend on decorator metadata, which the test runner does not emit.
 - **No `any`, and no unchecked casts.** Narrow with checks, generics or inferred types. A precise cast is allowed only with a one-line reason.
 - **File names are kebab-case.** Classes are PascalCase; the file that holds them is kebab-case.
@@ -128,6 +129,8 @@ apps/server/src/
       controllers/           HTTP only; calls a service
       dto/                   request classes built from validators schemas
       services/              business rules; depends on ports (interfaces), never on the database
+      ports/                 interfaces the services need; one file per contract, implemented in database/adapters
+      types/                 result and input types that services return or accept
       tokens.ts              injection tokens for the module
 ```
 

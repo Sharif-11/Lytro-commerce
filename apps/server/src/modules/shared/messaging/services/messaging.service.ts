@@ -1,49 +1,21 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { ClaimedSmsMessage, Executor, NewSmsMessage, Transaction } from '@lytronix/db';
+import type { Transaction } from '@lytronix/db';
 import { SmsKind } from '@lytronix/validators';
 import { MINUTE_MS } from '../../../../common/time';
 import { SmsDeliveryError } from '../../../../common/errors/sms-delivery';
 import { MESSAGE_STORE, MESSAGING_CLOCK, SMS_PROVIDER } from '../tokens';
+import type { MessageStore } from '../ports/message-store';
+import type { SmsProvider } from '../ports/sms-provider';
+import type { ClaimedMessage, QueuedMessage } from '../types/messages';
 
 // SMS-18, D6, AUTH-05. Messages are recorded in the same transaction as the change that caused them.
 // A shop-ready message that cannot be sent is kept and retried; it never fails the request that created the shop.
 // A one-time code is sent during its request, its text is never stored, and a failure is reported to the caller.
 
-export type MessageKind = SmsKind;
-
-/** A recorded message. For an OTP, the body exists only in memory for the send that follows the request. */
-export interface QueuedMessage {
-  id: number;
-  toPhone: string;
-  body: string;
-}
-
-/** A message claimed for sending. The shape is defined by the database package's outbox. */
-export type ClaimedMessage = ClaimedSmsMessage;
-
 /** Wait after the first, second, third and fourth failed attempt. A fifth failure is final. */
 export const RETRY_WAIT_MINUTES = [1, 5, 15, 60];
 export const MAX_SMS_ATTEMPTS = 5;
 const LEASE_MS = 2 * MINUTE_MS;
-
-export interface MessageStore {
-  insert(executor: Executor, message: NewSmsMessage): Promise<number>;
-  claimDue(input: {
-    now: Date;
-    leaseUntil: Date;
-    limit: number;
-    onlyId?: number;
-  }): Promise<ClaimedMessage[]>;
-  markSent(id: number, at: Date): Promise<void>;
-  markFailed(
-    id: number,
-    input: { error: string; attempts: number; nextAttemptAt: Date | null },
-  ): Promise<void>;
-}
-
-export interface SmsProvider {
-  send(message: { toPhone: string; body: string }): Promise<void>;
-}
 
 @Injectable()
 export class MessagingService {

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { SlugService, type SlugAvailability } from '../src/modules/tenancy/services/slug.service';
+import { SlugService } from '../src/modules/tenancy/services/slug.service';
+import { type SlugAvailability } from '../src/modules/tenancy/ports/slug-availability';
 import { SlugFormat } from '../src/modules/tenancy/services/slug-format';
 import { SLUG_MAX_LENGTH } from '@lytronix/validators';
 

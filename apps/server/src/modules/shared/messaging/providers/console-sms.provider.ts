@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { SmsProvider } from '../services/messaging.service';
+import type { SmsProvider } from '../ports/sms-provider';
 
 // D6: the stub provider. It prints every message so a developer can read the code, and stays silent in tests.
 @Injectable()
