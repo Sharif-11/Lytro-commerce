@@ -28,6 +28,12 @@ Dependency rules (enforced by lint where possible):
 - **File names are kebab-case.** Classes are PascalCase; the file that holds them is kebab-case.
 - **Commit messages** follow conventional commits, with lowercase subjects and lines under 100 characters.
 
+## 2a. Branch names
+
+- A branch that builds on another is named after the branch it builds on: `refactor/signup-phone` is the refactor of `feat/signup-phone`. Its name shows where it came from, so nobody has to read its history to understand it.
+- The prefix states the kind of change: `feat/`, `refactor/`, `docs/`, `test/`, `fix/` or `chore/`.
+- Merge the parent first. Then rebase the child on `main`, so its pull request contains only its own commits.
+
 ## 3. One definition per concept
 
 A limit, an enumeration, a type shape or a constant is defined in exactly one place and imported everywhere else.
