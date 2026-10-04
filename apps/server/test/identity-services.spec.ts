@@ -21,7 +21,6 @@ import { hashCode } from '../src/identity/services/one-time-code';
 import {
   MessagingService,
   type MessageStore,
-  type OutboundMessage,
   type SmsProvider,
 } from '../src/messaging/services/messaging.service';
 import { StaffService, type StaffStore } from '../src/staff/services/staff.service';
@@ -33,11 +32,22 @@ const SECRET = 's'.repeat(32);
 const PHONE = '01711111111';
 const TX = {} as Transaction;
 
+interface StoredMessage {
+  id: number;
+  toPhone: string;
+  kind: string;
+  body: string | null;
+  status: string;
+  attempts: number;
+  nextAt: Date;
+}
+
 interface World {
   now: Date;
   challenges: (ChallengeRecord & { phone: string })[];
-  outbox: OutboundMessage[];
-  sent: OutboundMessage[];
+  outbox: StoredMessage[];
+  sent: { toPhone: string; body: string }[];
+  smsFails: boolean;
   registered: Set<string>;
   takenAddresses: Set<string>;
   owners: { tenantId: string; phone: string; name: string }[];
@@ -51,6 +61,7 @@ function world(options: { registered?: string[]; taken?: string[] } = {}): World
     challenges: [],
     outbox: [],
     sent: [],
+    smsFails: false,
     registered: new Set(options.registered ?? []),
     takenAddresses: new Set(options.taken ?? []),
     owners: [],
@@ -119,17 +130,60 @@ function build(state: World) {
 
   const messageStore: MessageStore = {
     insert: (_executor, message) => {
-      state.outbox.push(message);
+      state.counter += 1;
+      state.outbox.push({
+        id: state.counter,
+        toPhone: message.toPhone,
+        kind: message.kind,
+        body: message.body,
+        status: 'pending',
+        attempts: 0,
+        nextAt: state.now,
+      });
+      return Promise.resolve(state.counter);
+    },
+    claimDue: (input) => {
+      const due = state.outbox
+        .filter(
+          (m) =>
+            m.status === 'pending' &&
+            m.body !== null &&
+            m.nextAt <= input.now &&
+            (input.onlyId === undefined || m.id === input.onlyId),
+        )
+        .slice(0, input.limit);
+      for (const row of due) row.status = 'sending';
+      return Promise.resolve(
+        due.map((m) => ({
+          id: m.id,
+          toPhone: m.toPhone,
+          body: m.body ?? '',
+          attempts: m.attempts,
+        })),
+      );
+    },
+    markSent: (id) => {
+      const row = state.outbox.find((m) => m.id === id);
+      if (row) row.status = 'sent';
+      return Promise.resolve();
+    },
+    markFailed: (id, input) => {
+      const row = state.outbox.find((m) => m.id === id);
+      if (!row) return Promise.resolve();
+      row.attempts = input.attempts;
+      row.status = input.nextAttemptAt ? 'pending' : 'failed';
+      row.nextAt = input.nextAttemptAt ?? state.now;
       return Promise.resolve();
     },
   };
   const provider: SmsProvider = {
     send: (message) => {
+      if (state.smsFails) return Promise.reject(new Error('provider down'));
       state.sent.push(message);
       return Promise.resolve();
     },
   };
-  const messaging = new MessagingService(messageStore, provider);
+  const messaging = new MessagingService(messageStore, provider, () => state.now);
 
   const staffStore: StaffStore = {
     insertOwner: (_tx, values) => {
@@ -171,12 +225,13 @@ function build(state: World) {
 
   const codes = new OneTimeCodeService(challenges, gateway, settings, messaging);
   const signup = new PhoneSignupService(codes, gateway, tenants, slugs, messaging, settings);
-  return { codes, signup };
+  return { codes, signup, messaging };
 }
 
 /** The code most recently texted, read back from the outbox as the owner would see it. */
 function lastCode(state: World): string {
-  const body = state.outbox[state.outbox.length - 1]?.body ?? '';
+  // The text the owner received: the provider log, since the outbox never stores a code.
+  const body = state.sent[state.sent.length - 1]?.body ?? '';
   return /(\d{6})/.exec(body)?.[1] ?? '';
 }
 
@@ -262,7 +317,7 @@ describe('creating the shop (AUTH-04, AUTH-05, AUTH-08, AUTH-10, AUTH-11)', () =
       shopUrl: 'http://fashion-house.localhost:3000',
     });
     expect(state.owners).toEqual([{ tenantId: 't-fashion-house', phone: PHONE, name: 'Rahim' }]);
-    expect(state.sent.map((m) => m.kind)).toEqual(['otp', 'shop_ready']);
+    expect(state.outbox.map((m) => m.kind)).toEqual(['otp', 'shop_ready']);
   });
 
   it('gives a suggestion, not a shop, when the typed address is taken', async () => {
@@ -310,7 +365,7 @@ describe('creating the shop (AUTH-04, AUTH-05, AUTH-08, AUTH-10, AUTH-11)', () =
         shopName: 'Shop',
       }),
     ).rejects.toMatchObject({ code: 'conflict', message: 'Sign in to continue.' });
-    expect(state.sent.map((m) => m.kind)).toEqual(['otp']);
+    expect(state.outbox.map((m) => m.kind)).toEqual(['otp']);
   });
 
   it('refuses a code already used, and an expired code', async () => {
@@ -396,5 +451,63 @@ describe('wrong codes and the lock (AUTH-06)', () => {
       shopName: 'Shop',
     });
     expect(state.shops).toHaveLength(1);
+  });
+});
+
+describe('SMS delivery never blocks shop creation (SMS-18)', () => {
+  it('creates the shop even when the ready message cannot be sent, and keeps the message for retry', async () => {
+    const state = world();
+    const { signup, messaging } = build(state);
+    await signup.requestCode(PHONE);
+    state.smsFails = true;
+
+    const shop = await signup.createShop({
+      phone: PHONE,
+      code: lastCode(state),
+      ownerName: 'Rahim',
+      shopName: 'Fashion House',
+    });
+    expect(shop.tenantId).toBe('t-fashion-house');
+    expect(state.shops).toHaveLength(1);
+
+    const ready = state.outbox.find((m) => m.kind === 'shop_ready');
+    expect(ready).toMatchObject({ status: 'pending', attempts: 1 });
+
+    state.smsFails = false;
+    advance(state, 2 * 60_000);
+    expect(await messaging.runDue()).toBe(1);
+    expect(state.outbox.find((m) => m.kind === 'shop_ready')?.status).toBe('sent');
+  });
+
+  it('reports a failed one-time code send, and never stores the code', async () => {
+    const state = world();
+    state.smsFails = true;
+    const { signup } = build(state);
+    await expect(signup.requestCode(PHONE)).rejects.toThrow('sms delivery failed');
+
+    const otp = state.outbox.find((m) => m.kind === 'otp');
+    expect(otp?.body).toBeNull();
+    expect(otp?.status).toBe('failed');
+  });
+
+  it('gives up after five attempts and marks the message failed', async () => {
+    const state = world();
+    const { signup, messaging } = build(state);
+    await signup.requestCode(PHONE);
+    state.smsFails = true;
+    await signup.createShop({
+      phone: PHONE,
+      code: lastCode(state),
+      ownerName: 'Rahim',
+      shopName: 'Fashion House',
+    });
+    for (let i = 0; i < 4; i += 1) {
+      advance(state, 2 * 60 * 60_000);
+      await messaging.runDue();
+    }
+    expect(state.outbox.find((m) => m.kind === 'shop_ready')).toMatchObject({
+      status: 'failed',
+      attempts: 5,
+    });
   });
 });

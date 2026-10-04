@@ -81,7 +81,7 @@ export class OneTimeCodeService {
         message: queued,
       };
     });
-    await this.messaging.dispatch([message]);
+    await this.messaging.deliverOtp(message);
     return issued;
   }
 

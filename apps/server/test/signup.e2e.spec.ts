@@ -7,6 +7,7 @@ import { randomUUID } from 'node:crypto';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from '../src/app.module';
+import { SMS_PROVIDER } from '../src/messaging/tokens';
 import { prepareTestDatabase } from './support/database';
 
 // Sign-up by phone over real HTTP and the real database (P1-E01 to P1-E04, AUTH-05 to AUTH-11, TRL-01).
@@ -24,6 +25,9 @@ interface HttpResult {
 let app: INestApplication;
 let port: number;
 let admin: pg.Client;
+const sent: { toPhone: string; body: string }[] = [];
+// Switched on by a test to simulate an SMS provider outage.
+let smsDown = false;
 
 function post(path: string, payload: unknown): Promise<HttpResult> {
   const data = JSON.stringify(payload);
@@ -59,12 +63,10 @@ function post(path: string, payload: unknown): Promise<HttpResult> {
 const freshPhone = (): string => `0171${randomUUID().replace(/\D/g, '').slice(0, 7)}`;
 
 /** The code most recently texted to a number, read back from the stub outbox as the owner would see it. */
-async function textedCode(phone: string): Promise<string> {
-  const result = await admin.query<{ body: string }>(
-    "SELECT body FROM control.sms_outbox WHERE to_phone = $1 AND kind = 'otp' ORDER BY id DESC LIMIT 1",
-    [phone],
-  );
-  return /(\d{6})/.exec(result.rows[0]?.body ?? '')?.[1] ?? '';
+/** The code most recently sent to a number, as the owner received it (the provider log). */
+function textedCode(phone: string): Promise<string> {
+  const last = [...sent].reverse().find((m) => m.toPhone === phone);
+  return Promise.resolve(/(\d{6})/.exec(last?.body ?? '')?.[1] ?? '');
 }
 
 const wrong = (code: string): string => (code === '000000' ? '111111' : '000000');
@@ -79,7 +81,16 @@ beforeAll(async () => {
   admin = new pg.Client({ connectionString: adminDbUrl });
   await admin.connect();
 
-  const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
+  const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+    .overrideProvider(SMS_PROVIDER)
+    .useValue({
+      send: (message: { toPhone: string; body: string }) => {
+        if (smsDown) return Promise.reject(new Error('provider down'));
+        sent.push(message);
+        return Promise.resolve();
+      },
+    })
+    .compile();
   app = moduleRef.createNestApplication();
   await app.listen(0, '127.0.0.1');
   port = ((app.getHttpServer() as Server).address() as AddressInfo).port;
@@ -231,5 +242,33 @@ describeIfDatabase('sign-up by phone, end to end', () => {
     expect(response.body).toMatchObject({
       error: { code: 'validation_error', details: { fields: expect.any(Array) as unknown } },
     });
+  });
+});
+
+describeIfDatabase('an SMS outage does not block sign-up (SMS-18)', () => {
+  it('creates the shop and keeps the ready message for retry', async () => {
+    const phone = freshPhone();
+    await post('/signup/phone/code', { phone });
+    const code = await textedCode(phone);
+
+    smsDown = true;
+    let response: HttpResult;
+    try {
+      response = await post('/signup/phone/complete', {
+        phone,
+        code,
+        ownerName: 'Outage',
+        shopName: 'Outage Shop',
+      });
+    } finally {
+      smsDown = false;
+    }
+
+    expect(response.status).toBe(201);
+    const row = await admin.query<{ status: string; attempts: number }>(
+      "SELECT status, attempts FROM control.sms_outbox WHERE to_phone = $1 AND kind = 'shop_ready'",
+      [phone],
+    );
+    expect(row.rows[0]).toEqual({ status: 'pending', attempts: 1 });
   });
 });

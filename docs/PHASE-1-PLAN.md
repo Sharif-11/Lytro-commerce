@@ -74,6 +74,8 @@ Steps 1 to 5 live in shared guards and decorators, so no controller repeats them
 - **Dependency rules, enforced by lint (`import/no-cycle`):** `validators` and `shared-types` import no internal package. `db` imports only `validators`. The server imports `db`, `validators` and `shared-types`. Apps never import `db` directly.
 - **OpenAPI** is generated from the Zod schemas, not from decorators. API-15 is read accordingly.
 - **Owner password** lives on `control.subscribers.password_hash`. `tenant.users.password_hash` is null for the owner row and set only for staff.
+- **SMS delivery never blocks a request (SMS-18).** Messages are recorded in the same transaction as the change that caused them, sent after commit, and retried by a worker with backoff (1, 5, 15, 60 minutes; five attempts; then `failed` and a logged alert). A one-time code is sent during its request, its text is never stored, and a failed send is reported, because no code arrived.
+- **The SMS retry worker is the first background job.** The outbox holds platform-level messages, with no tenant data, so the job reads no tenant tables. P1-I04 becomes binding when a tenant-scoped message joins the outbox; that change must add the isolation case.
 - **Sessions** are `control.sessions`, in their own file, since they depend on identity and tenancy (no cycle, because nothing imports them).
 
 ---

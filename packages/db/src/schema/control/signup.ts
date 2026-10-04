@@ -1,4 +1,5 @@
-import { bigserial, index, integer, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
+import { bigserial, check, index, integer, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { control, createdAt } from '../shared';
 
 // AUTH-05, AUTH-06, AUTH-07: one-time codes. Only a keyed hash is stored, never the code (decision: HMAC).
@@ -19,15 +20,26 @@ export const verificationChallenges = control.table(
   (t) => [index('verification_challenges_phone_idx').on(t.phone, t.createdAt)],
 );
 
-// SMS-18, D6: messages are written here and printed to the console by the stub provider.
+// SMS-18, D6: messages are recorded here, then sent. Delivery status lets a failed send be retried later without
+// ever failing the request that caused it. Sign-up OTP text is never stored (body stays null), so a copy of this table
+// cannot reveal a live code (AUTH-05).
 export const smsOutbox = control.table(
   'sms_outbox',
   {
     id: bigserial('id', { mode: 'number' }).primaryKey(),
     toPhone: text('to_phone').notNull(),
     kind: text('kind').notNull(), // otp | shop_ready
-    body: text('body').notNull(),
+    body: text('body'), // null for otp: the code is held in memory only
+    status: text('status').notNull().default('pending'), // pending | sending | sent | failed
+    attempts: integer('attempts').notNull().default(0),
+    nextAttemptAt: timestamp('next_attempt_at', { withTimezone: true }).notNull().defaultNow(),
+    lastError: text('last_error'),
+    sentAt: timestamp('sent_at', { withTimezone: true }),
     createdAt: createdAt(),
   },
-  (t) => [index('sms_outbox_created_idx').on(t.createdAt)],
+  (t) => [
+    index('sms_outbox_created_idx').on(t.createdAt),
+    index('sms_outbox_due_idx').on(t.status, t.nextAttemptAt),
+    check('sms_outbox_status_check', sql`${t.status} in ('pending','sending','sent','failed')`),
+  ],
 );

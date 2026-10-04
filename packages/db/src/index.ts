@@ -31,4 +31,11 @@ export {
   insertSubscriber,
 } from './repositories/identity/accounts';
 export { insertOwnerUser } from './repositories/staff/users';
-export { insertSmsMessage } from './repositories/messaging/sms';
+export {
+  claimDueMessages,
+  insertSmsMessage,
+  markSmsFailed,
+  markSmsSent,
+  type ClaimedSmsMessage,
+  type NewSmsMessage,
+} from './repositories/messaging/sms';

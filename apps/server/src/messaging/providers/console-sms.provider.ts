@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import type { OutboundMessage, SmsProvider } from '../services/messaging.service';
+import type { SmsProvider } from '../services/messaging.service';
 
 // D6: the stub provider. It prints every message so a developer can read the code, and stays silent in tests.
 @Injectable()
 export class ConsoleSmsProvider implements SmsProvider {
-  send(message: OutboundMessage): Promise<void> {
+  send(message: { toPhone: string; body: string }): Promise<void> {
     if (process.env['NODE_ENV'] !== 'test') {
       console.info(`[sms-stub] to ${message.toPhone}: ${message.body}`);
     }
