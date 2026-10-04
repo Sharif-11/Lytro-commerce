@@ -39,7 +39,7 @@ async function addDomain(hostname: string, status: string): Promise<void> {
 describe('findTenantBySlug (TEN-7a)', () => {
   it('returns the shop id, slug and state for an existing slug', async () => {
     const found = await new TenantRepository().findBySlug(handle.db, slug);
-    expect(found).toEqual({ id: tenant.tenantId, slug, state: 'trial' });
+    expect(found).toEqual({ id: tenant.tenantId, slug, state: 'trial', suspendedAt: null });
   });
 
   it('returns null for an unknown slug or a reserved label', async () => {

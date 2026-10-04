@@ -1,7 +1,7 @@
 import { EdgeSecret } from '../src/common/guards/edge-secret';
 import { HostClassifier } from '../src/modules/tenancy/services/host-classifier';
 import { SlugFormat } from '../src/modules/tenancy/services/slug-format';
-import { ForbiddenException, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import type { ExecutionContext } from '@nestjs/common';
 import type { Reflector } from '@nestjs/core';
 import { TenantState } from '@lytronix/validators';
@@ -15,12 +15,38 @@ import { type TenantDirectory } from '../src/modules/tenancy/ports/tenant-direct
 const SECRET = 'e'.repeat(32);
 
 const shops: Record<string, CachedTenant> = {
-  'fashion-house': { id: 'shop-1', slug: 'fashion-house', state: TenantState.Active },
-  'closed-shop': { id: 'shop-2', slug: 'closed-shop', state: TenantState.Archived },
-  'readonly-shop': { id: 'shop-3', slug: 'readonly-shop', state: TenantState.ReadOnly },
+  'fashion-house': {
+    id: 'shop-1',
+    slug: 'fashion-house',
+    state: TenantState.Active,
+    suspendedAt: null,
+  },
+  'closed-shop': {
+    id: 'shop-2',
+    slug: 'closed-shop',
+    state: TenantState.Archived,
+    suspendedAt: null,
+  },
+  'suspended-shop': {
+    id: 'shop-4',
+    slug: 'suspended-shop',
+    state: TenantState.Active,
+    suspendedAt: new Date(),
+  },
+  'readonly-shop': {
+    id: 'shop-3',
+    slug: 'readonly-shop',
+    state: TenantState.ReadOnly,
+    suspendedAt: null,
+  },
 };
 const customDomains: Record<string, CachedTenant> = {
-  'www.fashionhouse.com': { id: 'shop-1', slug: 'fashion-house', state: TenantState.Active },
+  'www.fashionhouse.com': {
+    id: 'shop-1',
+    slug: 'fashion-house',
+    state: TenantState.Active,
+    suspendedAt: null,
+  },
 };
 
 function fakeDirectory() {
@@ -155,7 +181,7 @@ describe('TenantGuard (TEN-7a, R3, R6)', () => {
     const request: TenantRequest = { headers: { host: 'closed-shop.localhost' } };
     const { reflector, context } = contextFor(request);
     const guard = new TenantGuard(resolver, reflector, new EdgeSecret(undefined));
-    await expect(guard.canActivate(context)).rejects.toBeInstanceOf(ServiceUnavailableException);
+    await expect(guard.canActivate(context)).rejects.toMatchObject({ code: 'tenant_offline' });
     expect(request.tenant).toBeUndefined();
   });
 
@@ -196,5 +222,12 @@ describe('TenantGuard (TEN-7a, R3, R6)', () => {
     const guard = new TenantGuard(resolver, reflector, new EdgeSecret(SECRET));
     expect(await guard.canActivate(context)).toBe(true);
     expect(request.tenant).toBeUndefined();
+  });
+});
+
+describe('suspension closes the public side (LIF-24)', () => {
+  it('reports a suspended shop as closed, even when its state is active', async () => {
+    const { resolver } = resolverWith();
+    expect((await resolver.resolve('suspended-shop.localhost')).outcome).toBe('closed');
   });
 });

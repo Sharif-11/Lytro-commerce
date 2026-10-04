@@ -20,7 +20,7 @@ export const HTTP_STATUS: Record<ErrorCode, number> = {
   forbidden: 403,
   plan_limit_reached: 402,
   plan_feature_unavailable: 402,
-  tenant_offline: 503,
+  tenant_offline: 403,
   not_found: 404,
   conflict: 409,
   rate_limited: 429,

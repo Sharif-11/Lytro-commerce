@@ -43,7 +43,8 @@ export class TenantResolver {
       this.cache.set(host, tenant);
     }
 
-    return CLOSED_STATES.has(tenant.state)
+    // LIF-07 and LIF-24: a suspended shop is closed whatever its state.
+    return CLOSED_STATES.has(tenant.state) || tenant.suspendedAt !== null
       ? { outcome: 'closed', tenant }
       : { outcome: 'tenant', tenant };
   }

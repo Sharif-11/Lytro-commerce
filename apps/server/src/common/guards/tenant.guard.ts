@@ -5,9 +5,9 @@ import {
   Inject,
   Injectable,
   NotFoundException,
-  ServiceUnavailableException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { ApiError } from '../api-error';
 import { SKIP_TENANT } from '../decorators/skip-tenant';
 import type { CachedTenant } from '../../modules/tenancy/types/cached-tenant';
 import { TenantResolver } from '../../modules/tenancy/services/tenant-resolver.service';
@@ -50,7 +50,7 @@ export class TenantGuard implements CanActivate {
     const result = await this.resolver.resolve(this.firstHeader(request.headers.host));
     if (result.outcome === 'not_found') throw new NotFoundException('Page not found.');
     if (result.outcome === 'closed') {
-      throw new ServiceUnavailableException('This shop is not available right now.');
+      throw new ApiError('tenant_offline', 'This shop is not available right now.', {});
     }
 
     request.tenant = result.tenant;

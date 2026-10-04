@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { TenantState } from '@lytronix/validators';
 import { TenantCache } from '../src/modules/tenancy/services/tenant-cache';
 
-const SHOP = { id: 'shop-1', slug: 'fashion-house', state: TenantState.Active };
+const SHOP = { id: 'shop-1', slug: 'fashion-house', state: TenantState.Active, suspendedAt: null };
 
 function clock(start = 0) {
   let current = start;
@@ -35,7 +35,12 @@ describe('TenantCache (R5)', () => {
     const cache = new TenantCache();
     cache.set('fashion-house.localhost', SHOP);
     cache.set('shop.fashionhouse.com', SHOP);
-    cache.set('other.localhost', { id: 'shop-2', slug: 'other', state: TenantState.Active });
+    cache.set('other.localhost', {
+      id: 'shop-2',
+      slug: 'other',
+      state: TenantState.Active,
+      suspendedAt: null,
+    });
     cache.invalidateTenant('shop-1');
     expect(cache.get('fashion-house.localhost')).toBeUndefined();
     expect(cache.get('shop.fashionhouse.com')).toBeUndefined();
