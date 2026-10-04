@@ -8,3 +8,19 @@ export {
   type TenantLookupRow,
 } from './repositories/tenancy/tenant-lookup';
 export { findUnavailableSlugs } from './repositories/tenancy/slug-availability';
+export {
+  countChallengesSince,
+  insertChallenge,
+  insertSmsMessage,
+  latestChallenge,
+  lockChallenge,
+  recordWrongAttempt,
+  type ChallengeRow,
+} from './repositories/signup/verification';
+export {
+  createShopForVerifiedPhone,
+  SignupConflict,
+  type CreateShopInput,
+  type CreatedShop,
+  type SignupConflictReason,
+} from './repositories/signup/create-shop';

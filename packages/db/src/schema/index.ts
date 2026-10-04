@@ -6,5 +6,6 @@ export * from './control/plans';
 export * from './control/identity';
 export * from './control/tenancy';
 export * from './control/sessions';
+export * from './control/signup';
 export * from './tenant/staff';
 export * from './tenant/audit';
