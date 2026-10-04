@@ -1,5 +1,7 @@
 # Engineering standards
 
+The rules that apply day to day (file structure, layering, naming, one definition per concept, checks before a commit) are in `CODING-CONVENTIONS.md`. This document says why.
+
 Status: draft v1, for review. How the code itself will be built — architecture, patterns, and practices — as opposed to `SRS.md`/`SRS-detailed.md` (what it must do) and `DATABASE-SCHEMA.md`/`API-CONTRACT.md` (the concrete shapes). This document is what I'll hold myself to while writing the actual NestJS/Next.js/React code.
 
 **The budget-vs-scale tension, stated plainly.** We're building for 500 tenants in the first few months, on one VPS, with a real ceiling on what infrastructure we can afford today (DAT-19, DAT-54). We also don't want a rewrite at 10,000. Those two goals aren't in conflict — SCL-01 to SCL-14 already prove the *infrastructure* doesn't need to change until real load demands it. What has to be right from day one is the *code's internal seams*: module boundaries, data-access patterns, and interfaces that don't assume a single small server. Get those right now, cheaply, and scaling later is a deployment change, not a rewrite. Get them wrong to save a week now, and scaling later is a rewrite no matter how much money is available. Everything below is in service of that one idea.
