@@ -2,7 +2,7 @@
   "name": "@lytronix/db",
   "version": "0.0.0",
   "private": true,
-  "description": "Database layer: connection, migrations, schema, and database tests. Repositories live in each server module (see docs/PHASE-1-PLAN.md).",
+  "description": "Database layer: connection, migrations, schema, repositories and database tests. Consumed by the server only (see docs/PHASE-1-PLAN.md).",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {

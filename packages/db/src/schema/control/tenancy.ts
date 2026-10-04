@@ -1,13 +1,13 @@
 import { sql } from 'drizzle-orm';
 import {
   DomainStatus,
-  enumTuple,
   KycStatus,
   NAME_MAX_LENGTH,
   SLUG_MAX_LENGTH,
-  TenantState,
   type PlanLimits,
+  TenantState,
 } from '@lytronix/validators';
+import { tenantState } from '../enums';
 import {
   boolean,
   check,
@@ -25,7 +25,6 @@ import { plans } from './plans';
 import { subscriberIdentities, subscribers } from './identity';
 
 // Note: `control.tenant_state` is created by the migration; declared here for the columns that use it.
-export const tenantState = control.enum('tenant_state', enumTuple(Object.values(TenantState)));
 
 // DATABASE-SCHEMA §2.2: a tenant is a shop. Its slug is generated once and never changes (AUTH-11).
 export const tenants = control.table(
@@ -103,3 +102,15 @@ export const tenantDomains = control.table(
     ),
   ],
 );
+
+export type SelectTenant = typeof tenants.$inferSelect;
+export type InsertTenant = typeof tenants.$inferInsert;
+export type UpdateTenant = Partial<InsertTenant>;
+
+export type SelectReservedSlug = typeof reservedSlugs.$inferSelect;
+export type InsertReservedSlug = typeof reservedSlugs.$inferInsert;
+export type UpdateReservedSlug = Partial<InsertReservedSlug>;
+
+export type SelectTenantDomain = typeof tenantDomains.$inferSelect;
+export type InsertTenantDomain = typeof tenantDomains.$inferInsert;
+export type UpdateTenantDomain = Partial<InsertTenantDomain>;

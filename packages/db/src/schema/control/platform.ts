@@ -23,3 +23,11 @@ export const platformAuditLog = control.table('platform_audit_log', {
   summary: jsonb('summary'),
   createdAt: createdAt(),
 });
+
+export type SelectPlatformSetting = typeof platformSettings.$inferSelect;
+export type InsertPlatformSetting = typeof platformSettings.$inferInsert;
+export type UpdatePlatformSetting = Partial<InsertPlatformSetting>;
+
+export type SelectPlatformAuditLog = typeof platformAuditLog.$inferSelect;
+export type InsertPlatformAuditLog = typeof platformAuditLog.$inferInsert;
+export type UpdatePlatformAuditLog = Partial<InsertPlatformAuditLog>;

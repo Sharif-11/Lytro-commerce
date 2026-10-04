@@ -32,3 +32,7 @@ export const sessions = control.table(
     index('sessions_expires_idx').on(t.expiresAt),
   ],
 );
+
+export type SelectSession = typeof sessions.$inferSelect;
+export type InsertSession = typeof sessions.$inferInsert;
+export type UpdateSession = Partial<InsertSession>;

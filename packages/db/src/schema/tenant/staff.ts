@@ -66,3 +66,15 @@ export const userRoles = tenant.table(
     foreignKey({ columns: [t.tenantId, t.roleId], foreignColumns: [roles.tenantId, roles.id] }),
   ],
 );
+
+export type SelectUser = typeof users.$inferSelect;
+export type InsertUser = typeof users.$inferInsert;
+export type UpdateUser = Partial<InsertUser>;
+
+export type SelectRole = typeof roles.$inferSelect;
+export type InsertRole = typeof roles.$inferInsert;
+export type UpdateRole = Partial<InsertRole>;
+
+export type SelectUserRole = typeof userRoles.$inferSelect;
+export type InsertUserRole = typeof userRoles.$inferInsert;
+export type UpdateUserRole = Partial<InsertUserRole>;

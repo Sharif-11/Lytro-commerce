@@ -53,3 +53,11 @@ export const smsOutbox = control.table(
     ),
   ],
 );
+
+export type SelectVerificationChallenge = typeof verificationChallenges.$inferSelect;
+export type InsertVerificationChallenge = typeof verificationChallenges.$inferInsert;
+export type UpdateVerificationChallenge = Partial<InsertVerificationChallenge>;
+
+export type SelectSmsOutbox = typeof smsOutbox.$inferSelect;
+export type InsertSmsOutbox = typeof smsOutbox.$inferInsert;
+export type UpdateSmsOutbox = Partial<InsertSmsOutbox>;

@@ -27,3 +27,7 @@ export const plans = control.table(
       .where(sql`${t.forSale}`),
   ],
 );
+
+export type SelectPlan = typeof plans.$inferSelect;
+export type InsertPlan = typeof plans.$inferInsert;
+export type UpdatePlan = Partial<InsertPlan>;

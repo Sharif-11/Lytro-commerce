@@ -18,3 +18,7 @@ export const activityLog = tenant.table(
   },
   (t) => [index('activity_log_tenant_created_idx').on(t.tenantId, t.createdAt)],
 );
+
+export type SelectActivityLog = typeof activityLog.$inferSelect;
+export type InsertActivityLog = typeof activityLog.$inferInsert;
+export type UpdateActivityLog = Partial<InsertActivityLog>;

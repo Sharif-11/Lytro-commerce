@@ -1,3 +1,4 @@
+import { IdentityKind } from '@lytronix/validators';
 import { and, eq } from 'drizzle-orm';
 import type { Executor } from '../../transactions';
 import { subscriberIdentities, subscribers } from '../../schema';
@@ -19,7 +20,7 @@ export class AccountRepository {
       .insert(subscriberIdentities)
       .values({
         subscriberId: values.subscriberId,
-        kind: 'phone',
+        kind: IdentityKind.Phone,
         value: values.phone,
         verifiedAt: values.verifiedAt,
       })
@@ -35,7 +36,12 @@ export class AccountRepository {
     const rows = await db
       .select({ id: subscriberIdentities.id, subscriberId: subscriberIdentities.subscriberId })
       .from(subscriberIdentities)
-      .where(and(eq(subscriberIdentities.kind, 'phone'), eq(subscriberIdentities.value, phone)))
+      .where(
+        and(
+          eq(subscriberIdentities.kind, IdentityKind.Phone),
+          eq(subscriberIdentities.value, phone),
+        ),
+      )
       .limit(1);
     return rows[0] ?? null;
   }

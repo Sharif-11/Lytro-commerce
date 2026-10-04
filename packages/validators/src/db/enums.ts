@@ -26,6 +26,12 @@ export enum DomainStatus {
   Removed = 'removed',
 }
 
+export enum IdentityKind {
+  Phone = 'phone',
+  Email = 'email',
+  Facebook = 'facebook',
+}
+
 export enum SmsKind {
   Otp = 'otp',
   ShopReady = 'shop_ready',
