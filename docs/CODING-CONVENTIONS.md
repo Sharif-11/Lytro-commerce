@@ -35,6 +35,13 @@ Dependency rules (enforced by lint where possible):
 - The prefix states the kind of change: `feat/`, `refactor/`, `docs/`, `test/`, `fix/` or `chore/`.
 - Merge the parent first. Then rebase the child on `main`, so its pull request contains only its own commits.
 
+## 2b. Injection tokens
+
+- Each module has a `tokens.ts`. A token is a `Symbol` named in UPPER_SNAKE_CASE after what it provides: `CHALLENGE_STORE` provides the `ChallengeStore` port, and `OTP_SECRET` provides the secret setting.
+- A class that is its own provider uses the class as its token, with no entry in `tokens.ts`. Repositories and the transaction runner work this way (`AccountRepository`), and an adapter injects them with `@Inject(AccountRepository)`.
+- The module that registers a provider owns its token. A token needed by two modules moves to the module that provides it, and the other module imports it.
+- Infrastructure tokens that every module uses (`ENV`, `DatabaseService`) live in `config/` and `database/`, and their modules are global.
+
 ## 3. One definition per concept
 
 A limit, an enumeration, a type shape or a constant is defined in exactly one place and imported everywhere else.
