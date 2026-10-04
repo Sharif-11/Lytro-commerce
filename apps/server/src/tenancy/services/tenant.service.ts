@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Transaction } from '@lytronix/db';
+import type { PlanLimits } from '@lytronix/validators';
 import { DAY_MS } from '../../common/time';
 import { StaffService } from '../../staff/services/staff.service';
 import { MessagingService, type QueuedMessage } from '../../messaging/services/messaging.service';
@@ -9,7 +10,7 @@ import { CLOCK, TENANT_STORE } from '../tokens';
 export const TRIAL_DAYS = 30;
 
 export interface TenantStore {
-  findTrialPlan(tx: Transaction): Promise<{ id: string; limits: unknown } | null>;
+  findTrialPlan(tx: Transaction): Promise<{ id: string; limits: PlanLimits } | null>;
   insertTenant(
     tx: Transaction,
     values: {
@@ -18,7 +19,7 @@ export interface TenantStore {
       shopName: string;
       slug: string;
       planId: string;
-      planSnapshot: unknown;
+      planSnapshot: PlanLimits;
       periodStart: Date;
       periodEnd: Date;
     },

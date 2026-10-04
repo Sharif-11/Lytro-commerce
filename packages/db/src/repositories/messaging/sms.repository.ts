@@ -1,7 +1,8 @@
 import { eq, sql } from 'drizzle-orm';
 import type { Database } from '../../client';
 import type { Executor } from '../../transactions';
-import { smsOutbox, type SmsKind } from '../../schema';
+import { smsOutbox } from '../../schema';
+import { SmsKind, SmsStatus } from '@lytronix/validators';
 
 // SMS-18, D6: the outbox. A message is recorded in the same transaction as the change that caused it, then sent.
 // Delivery status lets a failed send be retried without failing the request that caused it.
@@ -71,7 +72,7 @@ export class SmsRepository {
   async markSent(db: Executor, id: number, at: Date): Promise<void> {
     await db
       .update(smsOutbox)
-      .set({ status: 'sent', sentAt: at, lastError: null })
+      .set({ status: SmsStatus.Sent, sentAt: at, lastError: null })
       .where(eq(smsOutbox.id, id));
   }
 
@@ -84,7 +85,7 @@ export class SmsRepository {
     await db
       .update(smsOutbox)
       .set({
-        status: input.nextAttemptAt ? 'pending' : 'failed',
+        status: input.nextAttemptAt ? SmsStatus.Pending : SmsStatus.Failed,
         attempts: input.attempts,
         lastError: input.error.slice(0, 500),
         nextAttemptAt: input.nextAttemptAt ?? new Date(),

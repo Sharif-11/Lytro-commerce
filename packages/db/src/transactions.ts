@@ -21,10 +21,13 @@ export class TransactionRunner {
    * (two sign-ups with the same phone or address) into a clear answer rather than a 500.
    */
   isUniqueViolation(error: unknown, constraintFragment: string): boolean {
-    const cause = (error instanceof Error && error.cause ? error.cause : error) as {
-      code?: string;
-      constraint?: string;
-    };
-    return cause.code === '23505' && (cause.constraint ?? '').includes(constraintFragment);
+    // The driver may wrap the Postgres error in `cause`; read whichever object carries the fields, without a cast.
+    const source = error instanceof Error && error.cause ? error.cause : error;
+    if (typeof source !== 'object' || source === null) return false;
+    const code = 'code' in source ? source.code : undefined;
+    const constraint = 'constraint' in source ? source.constraint : undefined;
+    return (
+      code === '23505' && typeof constraint === 'string' && constraint.includes(constraintFragment)
+    );
   }
 }

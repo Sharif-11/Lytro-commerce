@@ -4,6 +4,7 @@ import { SlugFormat } from '../src/tenancy/services/slug-format';
 import { ForbiddenException, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import type { ExecutionContext } from '@nestjs/common';
 import type { Reflector } from '@nestjs/core';
+import { TenantState } from '@lytronix/validators';
 import { describe, expect, it } from 'vitest';
 import { TenantCache, type CachedTenant } from '../src/tenancy/services/tenant-cache';
 import { TenantGuard, EDGE_HEADER, type TenantRequest } from '../src/common/guards/tenant.guard';
@@ -15,12 +16,12 @@ import {
 const SECRET = 'e'.repeat(32);
 
 const shops: Record<string, CachedTenant> = {
-  'fashion-house': { id: 'shop-1', slug: 'fashion-house', state: 'active' },
-  'closed-shop': { id: 'shop-2', slug: 'closed-shop', state: 'archived' },
-  'readonly-shop': { id: 'shop-3', slug: 'readonly-shop', state: 'read_only' },
+  'fashion-house': { id: 'shop-1', slug: 'fashion-house', state: TenantState.Active },
+  'closed-shop': { id: 'shop-2', slug: 'closed-shop', state: TenantState.Archived },
+  'readonly-shop': { id: 'shop-3', slug: 'readonly-shop', state: TenantState.ReadOnly },
 };
 const customDomains: Record<string, CachedTenant> = {
-  'www.fashionhouse.com': { id: 'shop-1', slug: 'fashion-house', state: 'active' },
+  'www.fashionhouse.com': { id: 'shop-1', slug: 'fashion-house', state: TenantState.Active },
 };
 
 function fakeDirectory() {

@@ -1,5 +1,13 @@
 import { sql } from 'drizzle-orm';
-import { NAME_MAX_LENGTH, SLUG_MAX_LENGTH } from '@lytronix/validators';
+import {
+  DomainStatus,
+  enumTuple,
+  KycStatus,
+  NAME_MAX_LENGTH,
+  SLUG_MAX_LENGTH,
+  TenantState,
+  type PlanLimits,
+} from '@lytronix/validators';
 import {
   boolean,
   check,
@@ -17,22 +25,7 @@ import { plans } from './plans';
 import { subscriberIdentities, subscribers } from './identity';
 
 // Note: `control.tenant_state` is created by the migration; declared here for the columns that use it.
-export const tenantState = control.enum('tenant_state', [
-  'trial',
-  'pay_as_you_go',
-  'active',
-  'grace',
-  'read_only',
-  'locked',
-  'archived',
-  'deleted',
-]);
-// The state names are defined once, here; the server's closed-state list and its types read them.
-export const TENANT_STATES = tenantState.enumValues;
-export type TenantState = (typeof TENANT_STATES)[number];
-
-export const KYC_STATUSES = ['unverified', 'pending', 'verified', 'revoked'] as const;
-export const DOMAIN_STATUSES = ['pending', 'active', 'failed', 'removed'] as const;
+export const tenantState = control.enum('tenant_state', enumTuple(Object.values(TenantState)));
 
 // DATABASE-SCHEMA §2.2: a tenant is a shop. Its slug is generated once and never changes (AUTH-11).
 export const tenants = control.table(
@@ -50,9 +43,9 @@ export const tenants = control.table(
     cellId: integer('cell_id').notNull().default(1), // SCL-07: always 1 at launch
     shopName: varchar('shop_name', { length: NAME_MAX_LENGTH }).notNull(), // AUTH-01 cap
     slug: varchar('slug', { length: SLUG_MAX_LENGTH }).notNull().unique(), // AUTH-11, immutable after creation
-    state: tenantState('state').notNull().default('trial'),
+    state: tenantState('state').$type<TenantState>().notNull().default(TenantState.Trial),
     planId: uuid('plan_id').references(() => plans.id),
-    planSnapshot: jsonb('plan_snapshot'), // PLN-02: frozen limits at purchase (Phase 2 writes it)
+    planSnapshot: jsonb('plan_snapshot').$type<PlanLimits>(), // PLN-02: frozen limits at purchase (Phase 2 writes it)
     periodStart: timestamp('period_start', { withTimezone: true }),
     periodEnd: timestamp('period_end', { withTimezone: true }),
     balanceAmount: numeric('balance_amount', { precision: 12, scale: 2 }).notNull().default('0'),
@@ -60,7 +53,7 @@ export const tenants = control.table(
     createdAt: createdAt(),
     suspendedAt: timestamp('suspended_at', { withTimezone: true }),
     suspendedReason: text('suspended_reason'),
-    kycStatus: text('kyc_status').notNull().default('unverified'), // KYC-16
+    kycStatus: text('kyc_status').notNull().default(KycStatus.Unverified), // KYC-16
   },
   (t) => [
     index('tenants_subscriber_idx').on(t.subscriberId),
@@ -68,7 +61,11 @@ export const tenants = control.table(
     index('tenants_cell_idx').on(t.cellId),
     check(
       'tenants_kyc_status_check',
-      sql`${t.kycStatus} in (${sql.raw(KYC_STATUSES.map((s) => `'${s}'`).join(','))})`,
+      sql`${t.kycStatus} in (${sql.raw(
+        Object.values(KycStatus)
+          .map((s) => `'${s}'`)
+          .join(','),
+      )})`,
     ),
   ],
 );
@@ -90,7 +87,7 @@ export const tenantDomains = control.table(
       .notNull()
       .references(() => tenants.id),
     hostname: text('hostname').notNull().unique(),
-    status: text('status').notNull().default('pending'),
+    status: text('status').$type<DomainStatus>().notNull().default(DomainStatus.Pending),
     verifiedAt: timestamp('verified_at', { withTimezone: true }),
     createdAt: createdAt(),
   },
@@ -98,7 +95,11 @@ export const tenantDomains = control.table(
     index('tenant_domains_tenant_idx').on(t.tenantId),
     check(
       'tenant_domains_status_check',
-      sql`${t.status} in (${sql.raw(DOMAIN_STATUSES.map((s) => `'${s}'`).join(','))})`,
+      sql`${t.status} in (${sql.raw(
+        Object.values(DomainStatus)
+          .map((s) => `'${s}'`)
+          .join(','),
+      )})`,
     ),
   ],
 );

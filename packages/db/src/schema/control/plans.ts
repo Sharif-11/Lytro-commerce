@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { boolean, integer, jsonb, text, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import type { PlanLimits } from '@lytronix/validators';
 import { control, createdAt } from '../shared';
 
 // The name of the free trial plan. Seeded by migration 0003; the tenancy repository finds it by this name.
@@ -15,7 +16,7 @@ export const plans = control.table(
     rank: integer('rank').notNull(),
     forSale: boolean('for_sale').notNull().default(true),
     version: integer('version').notNull().default(1),
-    limits: jsonb('limits').notNull(),
+    limits: jsonb('limits').$type<PlanLimits>().notNull(),
     features: jsonb('features').notNull().default({}),
     createdAt: createdAt(),
   },

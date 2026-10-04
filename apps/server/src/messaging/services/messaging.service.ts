@@ -1,11 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type {
-  ClaimedSmsMessage,
-  Executor,
-  NewSmsMessage,
-  SmsKind,
-  Transaction,
-} from '@lytronix/db';
+import type { ClaimedSmsMessage, Executor, NewSmsMessage, Transaction } from '@lytronix/db';
+import { SmsKind } from '@lytronix/validators';
 import { MINUTE_MS } from '../../common/time';
 import { SmsDeliveryError } from '../../common/errors/sms-delivery';
 import { MESSAGE_STORE, MESSAGING_CLOCK, SMS_PROVIDER } from '../tokens';
@@ -60,13 +55,13 @@ export class MessagingService {
 
   async queueOtp(tx: Transaction, phone: string, code: string): Promise<QueuedMessage> {
     const body = `Your verification code is ${code}. It expires in 5 minutes. Do not share it.`;
-    const id = await this.store.insert(tx, { toPhone: phone, kind: 'otp', body: null });
+    const id = await this.store.insert(tx, { toPhone: phone, kind: SmsKind.Otp, body: null });
     return { id, toPhone: phone, body };
   }
 
   async queueShopReady(tx: Transaction, phone: string, liveUrl: string): Promise<QueuedMessage> {
     const body = `Your shop is ready: ${liveUrl}`;
-    const id = await this.store.insert(tx, { toPhone: phone, kind: 'shop_ready', body });
+    const id = await this.store.insert(tx, { toPhone: phone, kind: SmsKind.ShopReady, body });
     return { id, toPhone: phone, body };
   }
 

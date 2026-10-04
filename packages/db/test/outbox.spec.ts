@@ -1,3 +1,4 @@
+import { SmsKind } from '@lytronix/validators';
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type pg from 'pg';
@@ -27,7 +28,7 @@ describe('outbox claiming (SMS-18)', () => {
   it('a message is claimed once; a second sender finds nothing', async () => {
     const id = await new SmsRepository().insert(handle.db, {
       toPhone: phone(),
-      kind: 'shop_ready',
+      kind: SmsKind.ShopReady,
       body: 'Your shop is ready',
     });
     const now = new Date();
@@ -51,7 +52,7 @@ describe('outbox claiming (SMS-18)', () => {
   it('a leased message is reclaimed only after its lease expires', async () => {
     const id = await new SmsRepository().insert(handle.db, {
       toPhone: phone(),
-      kind: 'shop_ready',
+      kind: SmsKind.ShopReady,
       body: 'Ready',
     });
     const now = new Date();
@@ -80,7 +81,7 @@ describe('outbox claiming (SMS-18)', () => {
   it('never claims an OTP, whose text is not stored', async () => {
     const id = await new SmsRepository().insert(handle.db, {
       toPhone: phone(),
-      kind: 'otp',
+      kind: SmsKind.Otp,
       body: null,
     });
     const claimed = await new SmsRepository().claimDue(handle.db, {
@@ -97,7 +98,7 @@ describe('outbox status (SMS-18)', () => {
   it('a failed attempt waits for its retry time, then is claimable again', async () => {
     const id = await new SmsRepository().insert(handle.db, {
       toPhone: phone(),
-      kind: 'shop_ready',
+      kind: SmsKind.ShopReady,
       body: 'R',
     });
     const retryAt = new Date(Date.now() + 60_000);
@@ -126,7 +127,7 @@ describe('outbox status (SMS-18)', () => {
   it('a final failure is recorded as failed and never claimed again', async () => {
     const id = await new SmsRepository().insert(handle.db, {
       toPhone: phone(),
-      kind: 'shop_ready',
+      kind: SmsKind.ShopReady,
       body: 'R',
     });
     await new SmsRepository().markFailed(handle.db, id, {
@@ -151,7 +152,7 @@ describe('outbox status (SMS-18)', () => {
   it('a sent message records when it was sent', async () => {
     const id = await new SmsRepository().insert(handle.db, {
       toPhone: phone(),
-      kind: 'shop_ready',
+      kind: SmsKind.ShopReady,
       body: 'R',
     });
     const at = new Date();

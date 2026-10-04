@@ -102,7 +102,8 @@ Decided: every outbound third-party call (courier adapter, payment gateway, SMS,
 - **Classes, not free functions.** Services, controllers, repositories, helpers, rules and the entry point are classes. Dependencies and settings (a secret, a clock, a platform domain) are injected through the constructor, not passed on every call. Module-level constants and type declarations are fine. Two cases stay functions because the language requires it: decorators (`SkipTenant`) and declarative column helpers used by the schema (`createdAt`). Adopted 2026-10-04.
 - **One definition per concept.** A limit, a list of states, a type shape or a constant is defined in one place and imported everywhere else. Each kind has a home:
   - request and shared limits (name length, slug format, code length): `@lytronix/validators`
-  - stored states and enumerations (tenant states, outbox kinds and statuses, trial plan name) and table row types: the database schema
+  - enumerations (tenant states, KYC and domain statuses, outbox kinds and statuses): TypeScript enums in `@lytronix/validators`. The database schema builds its Postgres enums from them and never redefines the values. JSON column shapes (for example plan limits) are types from validators, applied with `$type`
+  - table row types and the trial plan name: the database schema
   - durations: `apps/server/src/common/time.ts`
   - business rules and their settings: the owning module's service
   A shape that matches another (for example a cached shop and a database lookup row) is an alias of the shared type, never a copy. Adopted 2026-10-04.

@@ -6,6 +6,7 @@ import {
   type Database,
   type Transaction,
 } from '@lytronix/db';
+import type { PlanLimits } from '@lytronix/validators';
 import { UniqueViolation } from '../../common/errors/unique-violation';
 import type { CachedTenant } from '../../tenancy/services/tenant-cache';
 import type { TenantDirectory } from '../../tenancy/services/tenant-resolver.service';
@@ -43,7 +44,7 @@ export class DrizzleTenantStore implements TenantStore {
   private readonly tenants = new TenantRepository();
   private readonly transactions = new TransactionRunner();
 
-  findTrialPlan(tx: Transaction): Promise<{ id: string; limits: unknown } | null> {
+  findTrialPlan(tx: Transaction): Promise<{ id: string; limits: PlanLimits } | null> {
     return this.tenants.findPlanByName(tx, TRIAL_PLAN_NAME, false);
   }
 

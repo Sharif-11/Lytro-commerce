@@ -2,6 +2,7 @@ import { and, eq } from 'drizzle-orm';
 import type { Database } from '../../client';
 import type { Executor } from '../../transactions';
 import { plans, tenantDomains, tenants } from '../../schema';
+import { DomainStatus, type PlanLimits } from '@lytronix/validators';
 
 // Shop rows and their lookups. The trial period and plan choice are decided by the tenancy service.
 export interface TenantLookupRow {
@@ -27,7 +28,9 @@ export class TenantRepository {
       .select({ id: tenants.id, slug: tenants.slug, state: tenants.state })
       .from(tenantDomains)
       .innerJoin(tenants, eq(tenants.id, tenantDomains.tenantId))
-      .where(and(eq(tenantDomains.hostname, hostname), eq(tenantDomains.status, 'active')))
+      .where(
+        and(eq(tenantDomains.hostname, hostname), eq(tenantDomains.status, DomainStatus.Active)),
+      )
       .limit(1);
     return rows[0] ?? null;
   }
@@ -40,7 +43,7 @@ export class TenantRepository {
       shopName: string;
       slug: string;
       planId: string;
-      planSnapshot: unknown;
+      planSnapshot: PlanLimits;
       periodStart: Date;
       periodEnd: Date;
     },
@@ -55,7 +58,7 @@ export class TenantRepository {
     db: Executor,
     name: string,
     forSale: boolean,
-  ): Promise<{ id: string; limits: unknown } | null> {
+  ): Promise<{ id: string; limits: PlanLimits } | null> {
     const rows = await db
       .select({ id: plans.id, limits: plans.limits })
       .from(plans)

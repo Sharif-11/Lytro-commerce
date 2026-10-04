@@ -9,6 +9,7 @@ import type { AddressInfo } from 'node:net';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { HealthController } from '../src/health/health.controller';
 import { TenantCache, type CachedTenant } from '../src/tenancy/services/tenant-cache';
+import { TenantState } from '@lytronix/validators';
 import { TenantGuard, EDGE_HEADER, type TenantRequest } from '../src/common/guards/tenant.guard';
 import {
   TenantResolver,
@@ -21,8 +22,8 @@ import { PLATFORM_DOMAIN, TENANT_DIRECTORY, TRUSTED_EDGE_SECRET } from '../src/t
 const SECRET = 'e'.repeat(32);
 
 const shops: Record<string, CachedTenant> = {
-  'fashion-house': { id: 'shop-1', slug: 'fashion-house', state: 'active' },
-  'closed-shop': { id: 'shop-2', slug: 'closed-shop', state: 'archived' },
+  'fashion-house': { id: 'shop-1', slug: 'fashion-house', state: TenantState.Active },
+  'closed-shop': { id: 'shop-2', slug: 'closed-shop', state: TenantState.Archived },
 };
 
 const directory: TenantDirectory = {
