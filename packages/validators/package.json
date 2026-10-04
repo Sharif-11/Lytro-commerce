@@ -16,5 +16,23 @@
   "devDependencies": {
     "@types/node": "^20",
     "vitest": "^2.1.2"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./common": {
+      "types": "./dist/common/index.d.ts",
+      "default": "./dist/common/index.js"
+    },
+    "./enums": {
+      "types": "./dist/db/enums.d.ts",
+      "default": "./dist/db/enums.js"
+    },
+    "./plans": {
+      "types": "./dist/db/plans/plan-limits.d.ts",
+      "default": "./dist/db/plans/plan-limits.js"
+    }
   }
 }

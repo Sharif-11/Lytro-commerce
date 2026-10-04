@@ -1,5 +1,5 @@
-// Shared enumerations for the platform (ENGINEERING-STANDARDS §4). The database schema builds its Postgres enums
-// from these, and the server and any frontend read the same values. Keep this file free of runtime dependencies.
+// Shared enumerations for the platform (ENGINEERING-STANDARDS §4). The database schema builds its Postgres enums from
+// these, and the server and any frontend read the same values. Keep this file free of runtime dependencies.
 
 export enum TenantState {
   Trial = 'trial',

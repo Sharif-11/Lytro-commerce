@@ -1,7 +1,7 @@
-// Single source for every request shape, shared limit, enumeration and plan shape (ENGINEERING-STANDARDS §4).
-// The server builds its DTOs from these schemas, and the database schema reads the same values, so each value is
-// written once.
-export * from './enums';
-export * from './limits';
-export * from './identity';
-export * from './plans';
+// Barrel for the whole package. Consumers may also import a subpath (for example @lytronix/validators/enums),
+// as declared in package.json "exports".
+export * from './common';
+export * from './db/enums';
+export * from './db/plans/plan-limits';
+export * from './api/identity/phone-signup/phone-signup-common';
+export * from './api/identity/phone-signup/phone-signup-create';

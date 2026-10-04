@@ -107,6 +107,7 @@ Decided: every outbound third-party call (courier adapter, payment gateway, SMS,
   - durations: `apps/server/src/common/time.ts`
   - business rules and their settings: the owning module's service
   A shape that matches another (for example a cached shop and a database lookup row) is an alias of the shared type, never a copy. Adopted 2026-10-04.
+- **Validators layout.** `packages/validators/src/` is organised as: `common/` (shared limits), `db/` (enumerations and database-shaped types, such as `db/enums.ts` and `db/plans/plan-limits.ts`), and `api/<domain>/<resource>/` (request shapes, with the suffixes `-common`, `-create`, `-update`, `-details` and `-list`). Subpaths are exported from `package.json` (for example `@lytronix/validators/enums`). Adopted 2026-10-04.
 - **Explicit injection tokens.** Every class-typed constructor parameter in a Nest class carries an `@Inject(...)` token, so wiring does not depend on decorator metadata emitted by the build tool.
 - ESLint + Prettier, enforced in CI, not just editor config — Husky + lint-staged mirror the same two checks locally at commit time (§7), so feedback arrives in seconds instead of at the next CI run.
 - Conventional commit messages (`feat:`, `fix:`, `refactor:`...) — cheap, and it's what makes a changelog and a bisect useful later. Enforced by a Husky `commit-msg` hook running commitlint, not left to memory or review comments.
