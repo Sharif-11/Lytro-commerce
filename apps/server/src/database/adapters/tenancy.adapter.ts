@@ -1,9 +1,9 @@
+import { Inject, Injectable } from '@nestjs/common';
 import {
   SlugRepository,
   TenantRepository,
   TRIAL_PLAN_NAME,
   TransactionRunner,
-  type Database,
   type Transaction,
 } from '@lytronix/db';
 import type { PlanLimits } from '@lytronix/validators';
@@ -12,37 +12,45 @@ import type { CachedTenant } from '../../tenancy/services/tenant-cache';
 import type { TenantDirectory } from '../../tenancy/services/tenant-resolver.service';
 import type { SlugAvailability } from '../../tenancy/services/slug.service';
 import type { TenantStore } from '../../tenancy/services/tenant.service';
+import { DatabaseService } from '../database.service';
 
 /** Host lookups for the resolver (TEN-7a). */
+@Injectable()
 export class DrizzleTenantDirectory implements TenantDirectory {
-  private readonly tenants = new TenantRepository();
-
-  constructor(private readonly db: Database) {}
+  constructor(
+    @Inject(DatabaseService) private readonly database: Pick<DatabaseService, 'handle'>,
+    @Inject(TenantRepository) private readonly tenants: TenantRepository,
+  ) {}
 
   findBySlug(slug: string): Promise<CachedTenant | null> {
-    return this.tenants.findBySlug(this.db, slug);
+    return this.tenants.findBySlug(this.database.handle.db, slug);
   }
 
   findByActiveDomain(hostname: string): Promise<CachedTenant | null> {
-    return this.tenants.findByActiveDomain(this.db, hostname);
+    return this.tenants.findByActiveDomain(this.database.handle.db, hostname);
   }
 }
 
 /** Slug availability: taken by a shop, or reserved (AUTH-11, TEN-26). */
+@Injectable()
 export class DrizzleSlugAvailability implements SlugAvailability {
-  private readonly slugs = new SlugRepository();
-
-  constructor(private readonly db: Database) {}
+  constructor(
+    @Inject(DatabaseService) private readonly database: Pick<DatabaseService, 'handle'>,
+    @Inject(SlugRepository) private readonly slugs: SlugRepository,
+  ) {}
 
   findUnavailable(slugs: string[]): Promise<Set<string>> {
-    return this.slugs.findUnavailable(this.db, slugs);
+    return this.slugs.findUnavailable(this.database.handle.db, slugs);
   }
 }
 
 /** Shop rows, written inside the caller's transaction. A duplicate address becomes UniqueViolation('address'). */
+@Injectable()
 export class DrizzleTenantStore implements TenantStore {
-  private readonly tenants = new TenantRepository();
-  private readonly transactions = new TransactionRunner();
+  constructor(
+    @Inject(TenantRepository) private readonly tenants: TenantRepository,
+    @Inject(TransactionRunner) private readonly transactions: TransactionRunner,
+  ) {}
 
   findTrialPlan(tx: Transaction): Promise<{ id: string; limits: PlanLimits } | null> {
     return this.tenants.findPlanByName(tx, TRIAL_PLAN_NAME, false);

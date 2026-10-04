@@ -9,7 +9,13 @@ import { request as httpRequest, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { DatabaseConnector, type DatabaseHandle } from '@lytronix/db';
+import {
+  DatabaseConnector,
+  SlugRepository,
+  TenantRepository,
+  type DatabaseHandle,
+} from '@lytronix/db';
+import { DatabaseService } from '../src/database/database.service';
 import { prepareTestDatabase, seedShop } from './support/database';
 import { HealthController } from '../src/health/health.controller';
 import {
@@ -66,6 +72,7 @@ const edge = { [EDGE_HEADER]: SECRET };
 
 let admin: pg.Client;
 let handle: DatabaseHandle;
+let database: Pick<DatabaseService, 'handle'>;
 let app: INestApplication;
 let port: number;
 let cache: TenantCache;
@@ -91,12 +98,16 @@ beforeAll(async () => {
   );
 
   handle = new DatabaseConnector().connect(appDbUrl);
+  database = { handle };
   cache = new TenantCache();
   const moduleRef = await Test.createTestingModule({
     controllers: [ProbeController, HealthController],
     providers: [
-      { provide: TENANT_DIRECTORY, useValue: new DrizzleTenantDirectory(handle.db) },
-      { provide: SLUG_AVAILABILITY, useValue: new DrizzleSlugAvailability(handle.db) },
+      { provide: DatabaseService, useValue: database },
+      { provide: TenantRepository, useValue: new TenantRepository() },
+      { provide: SlugRepository, useValue: new SlugRepository() },
+      { provide: TENANT_DIRECTORY, useClass: DrizzleTenantDirectory },
+      { provide: SLUG_AVAILABILITY, useClass: DrizzleSlugAvailability },
       { provide: TenantCache, useValue: cache },
       { provide: PLATFORM_DOMAIN, useValue: 'localhost' },
       { provide: TRUSTED_EDGE_SECRET, useValue: SECRET },
@@ -179,17 +190,26 @@ describeIfDatabase('tenant resolution against the database (TEN-7a, TEN-24)', ()
 
 describeIfDatabase('slug suggestions against the database (AUTH-11, TEN-26)', () => {
   it('suggests the next free address when the name is taken', async () => {
-    const slugs = new SlugService(new DrizzleSlugAvailability(handle.db), new SlugFormat());
+    const slugs = new SlugService(
+      new DrizzleSlugAvailability(database, new SlugRepository()),
+      new SlugFormat(),
+    );
     expect(await slugs.suggest('Fashion House')).toBe('fashion-house-2');
   });
 
   it('suggests admin-2 for a shop named Admin, since admin is reserved', async () => {
-    const slugs = new SlugService(new DrizzleSlugAvailability(handle.db), new SlugFormat());
+    const slugs = new SlugService(
+      new DrizzleSlugAvailability(database, new SlugRepository()),
+      new SlugFormat(),
+    );
     expect(await slugs.suggest('Admin')).toBe('admin-2');
   });
 
   it('accepts a free address and refuses a taken one with a suggestion', async () => {
-    const slugs = new SlugService(new DrizzleSlugAvailability(handle.db), new SlugFormat());
+    const slugs = new SlugService(
+      new DrizzleSlugAvailability(database, new SlugRepository()),
+      new SlugFormat(),
+    );
     expect(await slugs.checkAddress('brand-new-shop')).toEqual({
       ok: true,
       address: 'brand-new-shop',
@@ -202,7 +222,10 @@ describeIfDatabase('slug suggestions against the database (AUTH-11, TEN-26)', ()
   });
 
   it('gives no suggestion for a Bangla-only shop name, so the owner types an address', async () => {
-    const slugs = new SlugService(new DrizzleSlugAvailability(handle.db), new SlugFormat());
+    const slugs = new SlugService(
+      new DrizzleSlugAvailability(database, new SlugRepository()),
+      new SlugFormat(),
+    );
     expect(await slugs.suggest('ফ্যাশন হাউস')).toBeNull();
   });
 });

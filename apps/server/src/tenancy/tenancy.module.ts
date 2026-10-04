@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ENV } from '../config/tokens';
-import { DatabaseService } from '../database/database.service';
 import {
   DrizzleSlugAvailability,
   DrizzleTenantDirectory,
@@ -32,17 +31,9 @@ import {
   imports: [StaffModule, MessagingModule],
   providers: [
     { provide: TenantCache, useFactory: () => new TenantCache() },
-    {
-      provide: TENANT_DIRECTORY,
-      inject: [DatabaseService],
-      useFactory: (database: DatabaseService) => new DrizzleTenantDirectory(database.handle.db),
-    },
-    {
-      provide: SLUG_AVAILABILITY,
-      inject: [DatabaseService],
-      useFactory: (database: DatabaseService) => new DrizzleSlugAvailability(database.handle.db),
-    },
-    { provide: TENANT_STORE, useFactory: () => new DrizzleTenantStore() },
+    { provide: TENANT_DIRECTORY, useClass: DrizzleTenantDirectory },
+    { provide: SLUG_AVAILABILITY, useClass: DrizzleSlugAvailability },
+    { provide: TENANT_STORE, useClass: DrizzleTenantStore },
     { provide: CLOCK, useValue: (): Date => new Date() },
     { provide: PLATFORM_DOMAIN, inject: [ENV], useFactory: (env: Env) => env.PLATFORM_DOMAIN },
     {

@@ -1,11 +1,15 @@
-import { SmsRepository, type Database, type Executor, type NewSmsMessage } from '@lytronix/db';
+import { Inject, Injectable } from '@nestjs/common';
+import { SmsRepository, type Executor, type NewSmsMessage } from '@lytronix/db';
 import type { ClaimedMessage, MessageStore } from '../../messaging/services/messaging.service';
+import { DatabaseService } from '../database.service';
 
 /** The outbox, through the SMS repository. */
+@Injectable()
 export class DrizzleMessageStore implements MessageStore {
-  private readonly sms = new SmsRepository();
-
-  constructor(private readonly db: Database) {}
+  constructor(
+    @Inject(SmsRepository) private readonly sms: SmsRepository,
+    @Inject(DatabaseService) private readonly database: Pick<DatabaseService, 'handle'>,
+  ) {}
 
   insert(executor: Executor, message: NewSmsMessage): Promise<number> {
     return this.sms.insert(executor, message);
@@ -17,17 +21,17 @@ export class DrizzleMessageStore implements MessageStore {
     limit: number;
     onlyId?: number;
   }): Promise<ClaimedMessage[]> {
-    return this.sms.claimDue(this.db, input);
+    return this.sms.claimDue(this.database.handle.db, input);
   }
 
   markSent(id: number, at: Date): Promise<void> {
-    return this.sms.markSent(this.db, id, at);
+    return this.sms.markSent(this.database.handle.db, id, at);
   }
 
   markFailed(
     id: number,
     input: { error: string; attempts: number; nextAttemptAt: Date | null },
   ): Promise<void> {
-    return this.sms.markFailed(this.db, id, input);
+    return this.sms.markFailed(this.database.handle.db, id, input);
   }
 }

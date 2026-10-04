@@ -1,16 +1,18 @@
+import { Inject, Injectable } from '@nestjs/common';
 import {
   AccountRepository,
   ChallengeRepository,
   TransactionRunner,
-  type Database,
   type Transaction,
 } from '@lytronix/db';
 import { UniqueViolation } from '../../common/errors/unique-violation';
 import type { ChallengeRecord, ChallengeStore, SignupGateway } from '../../identity/services/ports';
+import { DatabaseService } from '../database.service';
 
 /** One-time code rows (AUTH-05 to AUTH-07), through the challenge repository. */
+@Injectable()
 export class DrizzleChallengeStore implements ChallengeStore {
-  private readonly challenges = new ChallengeRepository();
+  constructor(@Inject(ChallengeRepository) private readonly challenges: ChallengeRepository) {}
 
   latest(tx: Transaction, phone: string): Promise<ChallengeRecord | null> {
     return this.challenges.latest(tx, phone);
@@ -38,15 +40,17 @@ export class DrizzleChallengeStore implements ChallengeStore {
 }
 
 /** Transactions and account rows for sign-up. A duplicate phone becomes UniqueViolation('phone'). */
+@Injectable()
 export class DrizzleSignupGateway implements SignupGateway {
-  private readonly accounts = new AccountRepository();
-  private readonly challenges = new ChallengeRepository();
-  private readonly transactions = new TransactionRunner();
-
-  constructor(private readonly db: Database) {}
+  constructor(
+    @Inject(DatabaseService) private readonly database: Pick<DatabaseService, 'handle'>,
+    @Inject(TransactionRunner) private readonly transactions: TransactionRunner,
+    @Inject(AccountRepository) private readonly accounts: AccountRepository,
+    @Inject(ChallengeRepository) private readonly challenges: ChallengeRepository,
+  ) {}
 
   run<T>(work: (tx: Transaction) => Promise<T>): Promise<T> {
-    return this.transactions.run(this.db, work);
+    return this.transactions.run(this.database.handle.db, work);
   }
 
   consumeChallenge(tx: Transaction, challengeId: string, at: Date): Promise<boolean> {

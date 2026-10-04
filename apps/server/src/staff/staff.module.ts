@@ -4,13 +4,7 @@ import { StaffService } from './services/staff.service';
 import { STAFF_STORE } from './tokens';
 
 @Module({
-  providers: [
-    {
-      provide: STAFF_STORE,
-      useFactory: () => new DrizzleStaffStore(),
-    },
-    StaffService,
-  ],
+  providers: [{ provide: STAFF_STORE, useClass: DrizzleStaffStore }, StaffService],
   exports: [StaffService],
 })
 export class StaffModule {}

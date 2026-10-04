@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ENV } from '../config/tokens';
 import type { Env } from '../config/env';
-import { DatabaseService } from '../database/database.service';
 import { DrizzleChallengeStore, DrizzleSignupGateway } from '../database/adapters/identity.adapter';
 import { MessagingModule } from '../messaging/messaging.module';
 import { TenancyModule } from '../tenancy/tenancy.module';
@@ -16,15 +15,11 @@ import { CHALLENGE_STORE, OTP_SECRET, SIGNUP_GATEWAY, SIGNUP_SETTINGS } from './
   imports: [TenancyModule, MessagingModule],
   controllers: [PhoneSignupController],
   providers: [
-    { provide: CHALLENGE_STORE, useFactory: () => new DrizzleChallengeStore() },
+    { provide: CHALLENGE_STORE, useClass: DrizzleChallengeStore },
     { provide: OTP_SECRET, inject: [ENV], useFactory: (env: Env) => env.OTP_SECRET },
     OneTimeCodeHasher,
     PhoneNumberFormat,
-    {
-      provide: SIGNUP_GATEWAY,
-      inject: [DatabaseService],
-      useFactory: (database: DatabaseService) => new DrizzleSignupGateway(database.handle.db),
-    },
+    { provide: SIGNUP_GATEWAY, useClass: DrizzleSignupGateway },
     {
       provide: SIGNUP_SETTINGS,
       inject: [ENV],

@@ -1,9 +1,11 @@
-import { TransactionRunner, UserRepository, type Transaction } from '@lytronix/db';
+import { Inject, Injectable } from '@nestjs/common';
+import { UserRepository, type Transaction } from '@lytronix/db';
 import type { StaffStore } from '../../staff/services/staff.service';
 
 /** Database-backed staff store. Runs only inside a transaction, which carries the tenant context. */
+@Injectable()
 export class DrizzleStaffStore implements StaffStore {
-  private readonly users = new UserRepository(new TransactionRunner());
+  constructor(@Inject(UserRepository) private readonly users: UserRepository) {}
 
   insertOwner(
     tx: Transaction,
