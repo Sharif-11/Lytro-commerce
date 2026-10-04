@@ -2,22 +2,15 @@ import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type pg from 'pg';
 import {
-  consumeChallenge,
+  AccountRepository,
+  ChallengeRepository,
   createDatabase,
-  findPlanByName,
-  insertChallenge,
-  insertOwnerUser,
-  insertPhoneIdentity,
-  insertSubscriber,
-  insertTenant,
-  isUniqueViolation,
-  latestChallenge,
-  lockChallenge,
-  recordWrongAttempt,
-  runInTransaction,
-  countChallengesSince,
   type DatabaseHandle,
+  TenantRepository,
+  TransactionRunner,
+  UserRepository,
 } from '../src/index';
+
 import { ADMIN_URL, appDbUrl, testDbUrl } from './config';
 import { connect } from './helpers';
 
@@ -30,7 +23,7 @@ const newPhone = (): string => `0171${randomUUID().replace(/\D/g, '').slice(0, 7
 const newSlug = (): string => `s-${randomUUID().slice(0, 8)}`;
 
 async function newChallenge(phone: string): Promise<string> {
-  const row = await insertChallenge(handle.db, {
+  const row = await new ChallengeRepository().insert(handle.db, {
     phone,
     codeHash: 'h'.repeat(64),
     expiresAt: new Date(Date.now() + 5 * 60 * 1000),
@@ -50,7 +43,7 @@ afterAll(async () => {
 
 describe('seeded plans (D3, TRL-01)', () => {
   it('finds the Trial plan, which is off sale, with the trial limits', async () => {
-    const trial = await findPlanByName(handle.db, 'Trial', false);
+    const trial = await new TenantRepository().findPlanByName(handle.db, 'Trial', false);
     expect(trial?.limits).toMatchObject({ essential_sms_total: 8, products: 20 });
   });
 });
@@ -60,16 +53,18 @@ describe('one-time code rows (AUTH-05, AUTH-06, AUTH-07)', () => {
     const phone = newPhone();
     await newChallenge(phone);
     const second = await newChallenge(phone);
-    expect((await latestChallenge(handle.db, phone))?.id).toBe(second);
-    expect(await countChallengesSince(handle.db, phone, new Date(Date.now() - 3600_000))).toBe(2);
+    expect((await new ChallengeRepository().latest(handle.db, phone))?.id).toBe(second);
+    expect(
+      await new ChallengeRepository().countSince(handle.db, phone, new Date(Date.now() - 3600_000)),
+    ).toBe(2);
   });
 
   it('counts wrong attempts atomically', async () => {
     const challengeId = await newChallenge(newPhone());
     const totals = await Promise.all([
-      recordWrongAttempt(handle.db, challengeId),
-      recordWrongAttempt(handle.db, challengeId),
-      recordWrongAttempt(handle.db, challengeId),
+      new ChallengeRepository().recordWrongAttempt(handle.db, challengeId),
+      new ChallengeRepository().recordWrongAttempt(handle.db, challengeId),
+      new ChallengeRepository().recordWrongAttempt(handle.db, challengeId),
     ]);
     expect([...totals].sort()).toEqual([1, 2, 3]);
   });
@@ -78,41 +73,53 @@ describe('one-time code rows (AUTH-05, AUTH-06, AUTH-07)', () => {
     const phone = newPhone();
     const challengeId = await newChallenge(phone);
     const until = new Date(Date.now() + 15 * 60 * 1000);
-    await lockChallenge(handle.db, challengeId, until);
-    expect((await latestChallenge(handle.db, phone))?.lockedUntil?.getTime()).toBe(until.getTime());
+    await new ChallengeRepository().lock(handle.db, challengeId, until);
+    expect((await new ChallengeRepository().latest(handle.db, phone))?.lockedUntil?.getTime()).toBe(
+      until.getTime(),
+    );
   });
 
   it('consumes a challenge once; the second consumption finds it already used', async () => {
     const challengeId = await newChallenge(newPhone());
     const now = new Date();
-    expect(await runInTransaction(handle.db, (tx) => consumeChallenge(tx, challengeId, now))).toBe(
-      true,
-    );
-    expect(await runInTransaction(handle.db, (tx) => consumeChallenge(tx, challengeId, now))).toBe(
-      false,
-    );
+    expect(
+      await new TransactionRunner().run(handle.db, (tx) =>
+        new ChallengeRepository().consume(tx, challengeId, now),
+      ),
+    ).toBe(true);
+    expect(
+      await new TransactionRunner().run(handle.db, (tx) =>
+        new ChallengeRepository().consume(tx, challengeId, now),
+      ),
+    ).toBe(false);
   });
 });
 
 describe('unique constraints surface as recognisable errors (AUTH-08, AUTH-11)', () => {
   it('reports a duplicate phone identity', async () => {
     const phone = newPhone();
-    const subscriberId = await insertSubscriber(handle.db);
-    await insertPhoneIdentity(handle.db, { subscriberId, phone, verifiedAt: new Date() });
-    const again = await insertSubscriber(handle.db);
-    const failure = await insertPhoneIdentity(handle.db, {
-      subscriberId: again,
+    const subscriberId = await new AccountRepository().insertSubscriber(handle.db);
+    await new AccountRepository().insertPhoneIdentity(handle.db, {
+      subscriberId,
       phone,
       verifiedAt: new Date(),
-    }).catch((error: unknown) => error);
-    expect(isUniqueViolation(failure, 'kind_value')).toBe(true);
+    });
+    const again = await new AccountRepository().insertSubscriber(handle.db);
+    const failure = await new AccountRepository()
+      .insertPhoneIdentity(handle.db, {
+        subscriberId: again,
+        phone,
+        verifiedAt: new Date(),
+      })
+      .catch((error: unknown) => error);
+    expect(new TransactionRunner().isUniqueViolation(failure, 'kind_value')).toBe(true);
   });
 
   it('reports a duplicate tenant address', async () => {
     const slug = newSlug();
-    const plan = await findPlanByName(handle.db, 'Trial', false);
-    const subscriberId = await insertSubscriber(handle.db);
-    const identity = await insertPhoneIdentity(handle.db, {
+    const plan = await new TenantRepository().findPlanByName(handle.db, 'Trial', false);
+    const subscriberId = await new AccountRepository().insertSubscriber(handle.db);
+    const identity = await new AccountRepository().insertPhoneIdentity(handle.db, {
       subscriberId,
       phone: newPhone(),
       verifiedAt: new Date(),
@@ -127,20 +134,22 @@ describe('unique constraints surface as recognisable errors (AUTH-08, AUTH-11)',
       periodStart: new Date(),
       periodEnd: new Date(),
     };
-    await insertTenant(handle.db, values);
+    await new TenantRepository().insert(handle.db, values);
 
-    const otherSubscriber = await insertSubscriber(handle.db);
-    const otherIdentity = await insertPhoneIdentity(handle.db, {
+    const otherSubscriber = await new AccountRepository().insertSubscriber(handle.db);
+    const otherIdentity = await new AccountRepository().insertPhoneIdentity(handle.db, {
       subscriberId: otherSubscriber,
       phone: newPhone(),
       verifiedAt: new Date(),
     });
-    const failure = await insertTenant(handle.db, {
-      ...values,
-      ownerIdentityId: otherIdentity,
-      subscriberId: otherSubscriber,
-    }).catch((error: unknown) => error);
-    expect(isUniqueViolation(failure, 'tenants_slug')).toBe(true);
+    const failure = await new TenantRepository()
+      .insert(handle.db, {
+        ...values,
+        ownerIdentityId: otherIdentity,
+        subscriberId: otherSubscriber,
+      })
+      .catch((error: unknown) => error);
+    expect(new TransactionRunner().isUniqueViolation(failure, 'tenants_slug')).toBe(true);
   });
 });
 
@@ -151,9 +160,9 @@ describe('one unit of work (AUTH-10)', () => {
     const before = await admin.query('SELECT count(*)::int AS n FROM control.subscribers');
 
     await expect(
-      runInTransaction(handle.db, async (tx) => {
-        expect(await consumeChallenge(tx, challengeId, new Date())).toBe(true);
-        await insertSubscriber(tx);
+      new TransactionRunner().run(handle.db, async (tx) => {
+        expect(await new ChallengeRepository().consume(tx, challengeId, new Date())).toBe(true);
+        await new AccountRepository().insertSubscriber(tx);
         throw new Error('a later step failed');
       }),
     ).rejects.toThrow('a later step failed');
@@ -161,21 +170,23 @@ describe('one unit of work (AUTH-10)', () => {
     const after = await admin.query('SELECT count(*)::int AS n FROM control.subscribers');
     expect(after.rows[0]).toEqual(before.rows[0]);
     expect(
-      await runInTransaction(handle.db, (tx) => consumeChallenge(tx, challengeId, new Date())),
+      await new TransactionRunner().run(handle.db, (tx) =>
+        new ChallengeRepository().consume(tx, challengeId, new Date()),
+      ),
     ).toBe(true);
   });
 
   it('writes the owner user inside the tenant context, visible only to that tenant (DAT-03)', async () => {
-    const plan = await findPlanByName(handle.db, 'Trial', false);
+    const plan = await new TenantRepository().findPlanByName(handle.db, 'Trial', false);
     const phone = newPhone();
-    const subscriberId = await insertSubscriber(handle.db);
-    const identity = await insertPhoneIdentity(handle.db, {
+    const subscriberId = await new AccountRepository().insertSubscriber(handle.db);
+    const identity = await new AccountRepository().insertPhoneIdentity(handle.db, {
       subscriberId,
       phone,
       verifiedAt: new Date(),
     });
-    const tenantId = await runInTransaction(handle.db, async (tx) => {
-      const id = await insertTenant(tx, {
+    const tenantId = await new TransactionRunner().run(handle.db, async (tx) => {
+      const id = await new TenantRepository().insert(tx, {
         ownerIdentityId: identity,
         subscriberId,
         shopName: 'Owner Shop',
@@ -185,7 +196,11 @@ describe('one unit of work (AUTH-10)', () => {
         periodStart: new Date(),
         periodEnd: new Date(),
       });
-      await insertOwnerUser(tx, { tenantId: id, phone, name: 'Owner' });
+      await new UserRepository(new TransactionRunner()).insertOwner(tx, {
+        tenantId: id,
+        phone,
+        name: 'Owner',
+      });
       return id;
     });
 

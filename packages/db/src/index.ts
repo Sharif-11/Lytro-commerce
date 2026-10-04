@@ -2,40 +2,17 @@
 export * from './schema';
 export { createDatabase, type Database, type DatabaseHandle } from './client';
 export { runMigrations } from './migrate';
+export { TransactionRunner, type Executor, type Transaction } from './transactions';
+export { TenantRepository, type TenantLookupRow } from './repositories/tenancy/tenant.repository';
+export { SlugRepository } from './repositories/tenancy/slug.repository';
 export {
-  isUniqueViolation,
-  runInTransaction,
-  setTenantContext,
-  type Executor,
-  type Transaction,
-} from './transactions';
-export {
-  findTenantByActiveDomain,
-  findTenantBySlug,
-  type TenantLookupRow,
-} from './repositories/tenancy/tenant-lookup';
-export { findUnavailableSlugs } from './repositories/tenancy/slug-availability';
-export { findPlanByName, insertTenant } from './repositories/tenancy/tenants';
-export {
-  countChallengesSince,
-  consumeChallenge,
-  insertChallenge,
-  latestChallenge,
-  lockChallenge,
-  recordWrongAttempt,
+  ChallengeRepository,
   type ChallengeRow,
-} from './repositories/identity/challenges';
+} from './repositories/identity/challenge.repository';
+export { AccountRepository } from './repositories/identity/account.repository';
+export { UserRepository } from './repositories/staff/user.repository';
 export {
-  findPhoneIdentity,
-  insertPhoneIdentity,
-  insertSubscriber,
-} from './repositories/identity/accounts';
-export { insertOwnerUser } from './repositories/staff/users';
-export {
-  claimDueMessages,
-  insertSmsMessage,
-  markSmsFailed,
-  markSmsSent,
+  SmsRepository,
   type ClaimedSmsMessage,
   type NewSmsMessage,
-} from './repositories/messaging/sms';
+} from './repositories/messaging/sms.repository';

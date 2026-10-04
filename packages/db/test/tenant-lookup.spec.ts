@@ -1,11 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type pg from 'pg';
-import { createDatabase, type DatabaseHandle } from '../src/client';
-import {
-  findTenantByActiveDomain,
-  findTenantBySlug,
-} from '../src/repositories/tenancy/tenant-lookup';
+import { createDatabase, type DatabaseHandle, TenantRepository } from '../src/index';
+
 import { ADMIN_URL, appDbUrl, testDbUrl } from './config';
 import { connect, createTenant, type TenantFixture } from './helpers';
 
@@ -41,13 +38,13 @@ async function addDomain(hostname: string, status: string): Promise<void> {
 
 describe('findTenantBySlug (TEN-7a)', () => {
   it('returns the shop id, slug and state for an existing slug', async () => {
-    const found = await findTenantBySlug(handle.db, slug);
+    const found = await new TenantRepository().findBySlug(handle.db, slug);
     expect(found).toEqual({ id: tenant.tenantId, slug, state: 'trial' });
   });
 
   it('returns null for an unknown slug or a reserved label', async () => {
-    expect(await findTenantBySlug(handle.db, 'no-such-shop-xyz')).toBeNull();
-    expect(await findTenantBySlug(handle.db, 'www')).toBeNull();
+    expect(await new TenantRepository().findBySlug(handle.db, 'no-such-shop-xyz')).toBeNull();
+    expect(await new TenantRepository().findBySlug(handle.db, 'www')).toBeNull();
   });
 });
 
@@ -65,17 +62,19 @@ describe('findTenantByActiveDomain (TEN-12)', () => {
   });
 
   it('returns the owning shop for a verified, active domain', async () => {
-    const found = await findTenantByActiveDomain(handle.db, active);
+    const found = await new TenantRepository().findByActiveDomain(handle.db, active);
     expect(found?.id).toBe(tenant.tenantId);
   });
 
   it('returns null for pending, failed and removed domains', async () => {
-    expect(await findTenantByActiveDomain(handle.db, pending)).toBeNull();
-    expect(await findTenantByActiveDomain(handle.db, failed)).toBeNull();
-    expect(await findTenantByActiveDomain(handle.db, removed)).toBeNull();
+    expect(await new TenantRepository().findByActiveDomain(handle.db, pending)).toBeNull();
+    expect(await new TenantRepository().findByActiveDomain(handle.db, failed)).toBeNull();
+    expect(await new TenantRepository().findByActiveDomain(handle.db, removed)).toBeNull();
   });
 
   it('returns null for a domain that was never registered', async () => {
-    expect(await findTenantByActiveDomain(handle.db, 'unknown.example.test')).toBeNull();
+    expect(
+      await new TenantRepository().findByActiveDomain(handle.db, 'unknown.example.test'),
+    ).toBeNull();
   });
 });

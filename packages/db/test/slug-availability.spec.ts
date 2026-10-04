@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type pg from 'pg';
-import { createDatabase, type DatabaseHandle } from '../src/client';
-import { findUnavailableSlugs } from '../src/repositories/tenancy/slug-availability';
+import { createDatabase, type DatabaseHandle, SlugRepository } from '../src/index';
+
 import { ADMIN_URL, appDbUrl, testDbUrl } from './config';
 import { connect, createTenant, type TenantFixture } from './helpers';
 
@@ -29,17 +29,24 @@ afterAll(async () => {
 
 describe('findUnavailableSlugs (AUTH-11, TEN-26)', () => {
   it('reports a slug held by a shop', async () => {
-    const unavailable = await findUnavailableSlugs(handle.db, [takenSlug, 'free-slug-xyz']);
+    const unavailable = await new SlugRepository().findUnavailable(handle.db, [
+      takenSlug,
+      'free-slug-xyz',
+    ]);
     expect(unavailable.has(takenSlug)).toBe(true);
     expect(unavailable.has('free-slug-xyz')).toBe(false);
   });
 
   it('reports reserved labels as unavailable', async () => {
-    const unavailable = await findUnavailableSlugs(handle.db, ['admin', 'www', 'free-slug-xyz']);
+    const unavailable = await new SlugRepository().findUnavailable(handle.db, [
+      'admin',
+      'www',
+      'free-slug-xyz',
+    ]);
     expect([...unavailable].sort()).toEqual(['admin', 'www']);
   });
 
   it('answers an empty batch without a query', async () => {
-    expect((await findUnavailableSlugs(handle.db, [])).size).toBe(0);
+    expect((await new SlugRepository().findUnavailable(handle.db, [])).size).toBe(0);
   });
 });
