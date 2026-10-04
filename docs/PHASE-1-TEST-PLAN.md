@@ -103,13 +103,13 @@ Each scenario lists its preconditions, numbered steps, expected result, and the 
 - Expected: the replayed session after sign-out returns `unauthenticated`; the session after seven days returns `unauthenticated`.
 - Covers: AUTH-15, AUTH-16.
 
-**P1-E13 A forgotten password is recovered by code sign-in. [E2E]**
+**P1-E13 Forgot-password flow. [E2E]**
 - Preconditions: an owner with a password and a second open session.
-- Steps: sign in by code; set a new password without the current one; sign in with the old password; advance the clock eleven minutes after a fresh code sign-in and try to change the password without the current one; then with a wrong current password; then with the right one.
-- Expected: the new password is set straight after the code sign-in; the old password fails; after ten minutes a change without the current password is refused, and so is a wrong current password; each successful change ends the other sessions.
-- Covers: AUTH-17, AUTH-20.
+- Steps: on Screen 2B click "Forgot password?"; submit an existing phone and an unknown phone — compare responses; submit the existing phone a second time within 2 minutes; enter the reset code; check the dashboard is blocked; enter a wrong current password on the password screen; save a new password.
+- Expected: the two responses are identical; the second request within 2 minutes is accepted with no second SMS; the dashboard returns `forbidden` until the password is saved; a wrong current password is rejected; the new password is accepted; other sessions return `unauthenticated`; the old password stops working.
+- Covers: AUTH-17, AUTH-18, AUTH-19, AUTH-20.
 
-**P1-E14 A staff password set by the owner forces a change. [E2E]** (slice 7)
+**P1-E14 A staff password set by the owner forces a change. [E2E]** (slice 7, AUTH-19 staff case)
 - Steps: the owner resets a staff member's password; the staff member signs in with it; tries to open the staff page and the sign-out route; changes the password.
 - Expected: every route except change-password is refused until the change; afterwards the dashboard works.
 - Covers: AUTH-19, STF-13.
@@ -281,8 +281,8 @@ Every `M` requirement in Phase 1 must appear in at least one scenario. The matri
 | AUTH-12, 13 | P1-E10 |
 | AUTH-14 | P1-E11 |
 | AUTH-15, 16 | P1-E12 |
-| AUTH-17, 20 | P1-E13 |
-| AUTH-19 | P1-E14 (slice 7) |
+| AUTH-17, 18 | P1-E13 |
+| AUTH-19, 20 | P1-E13, P1-E14 (staff case slice 7) |
 | AUTH-22, 23 | P1-E16 (partial; full lifecycle in Phase 2) |
 | AUTH-27 | P1-E19 |
 | TEN-01 to 03 | P1-I01, I02 |
@@ -320,7 +320,7 @@ Every `M` requirement in Phase 1 must appear in at least one scenario. The matri
 | LOG-02 | P1-N02 |
 | SUP-08, SMS-11 | P1-N01 |
 
-**Requirements deliberately not tested in Phase 1:** those that depend on plans, billing, orders or the storefront. They're listed in the Phase 2 onwards test plans. Withdrawn requirements are checked for absence: for AUTH-25 a test confirms the Facebook email is not enforced; for AUTH-18 there is no forgot-password endpoint.
+**Requirements deliberately not tested in Phase 1:** those that depend on plans, billing, orders or the storefront. They're listed in the Phase 2 onwards test plans. Withdrawn requirements are checked for absence: for AUTH-25 a test confirms the Facebook email is not enforced; AUTH-18 is restored; both AUTH-17 and AUTH-18 have passing tests.
 
 ---
 

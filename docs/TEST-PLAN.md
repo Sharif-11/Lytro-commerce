@@ -31,10 +31,10 @@ Steps: 1) Sign in by phone and code — session issued; set a password and sign 
 Expected: code sign-in works before and after a password is set; the three failure responses are identical; 6th attempt is `rate_limited` even with the right password or code; a signed-out session returns `unauthenticated` on reuse.
 Covers: `AUTH-12`, `AUTH-13`, `AUTH-14`, `AUTH-15`, `AUTH-16`.
 
-**S01-05 Password recovery and forced reset.**
-Steps: 1) An owner who forgot the password signs in by code and sets a new one without the current password. 2) After 10 minutes, try to change it without the current password, then with a wrong one, then with the right one. 3) The owner resets a staff member's password; the staff member signs in with it and tries any route besides change-password.
-Expected: the new password is set straight after the code sign-in and the old one stops working; after 10 minutes the current password is required; every successful change ends other sessions; the staff member gets `forbidden` on every route except change-password until changed. (AUTH-18 is withdrawn: there is no forgot-password endpoint.)
-Covers: `AUTH-17`, `AUTH-19`, `AUTH-20`, `STF-13`.
+**S01-05 Forgot-password flow and forced reset.**
+Steps: 1) On the password sign-in screen click "Forgot password?"; submit a known and an unknown phone — compare responses; submit the known phone again within 2 minutes. 2) Enter the reset code; verify the dashboard is blocked; save a new password; verify the old one stops working and other sessions end. 3) Try to change the password without the current one after the 10-minute window; then with the current one. 4) The owner resets a staff member's password; the staff member signs in with it and tries any route besides change-password.
+Expected: the two forgot-password responses are identical; second request within 2 minutes sends nothing; dashboard is blocked until new password saved; old password fails; after 10 minutes the current password is required; staff member blocked until password changed.
+Covers: `AUTH-17`, `AUTH-18`, `AUTH-19`, `AUTH-20`, `STF-13`.
 
 **S01-06 OAuth sign-up and repeat sign-in (Google/Facebook).**
 Steps: 1) Sign up via Google OAuth — no password prompted. 2) Sign out, sign in again via the same Google account. 3) Separately, sign up via Facebook where Facebook reports an email already used by an existing email-verified tenant.

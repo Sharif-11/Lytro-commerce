@@ -31,7 +31,9 @@ Status: draft v1, for review before implementation. Companion to `DATABASE-SCHEM
 | GET | `/api/v1/auth/oauth/{provider}/callback` | none | Completes OAuth; new identity → same as `auth/phone/verify` for a new number; existing identity → signs in. |
 | POST | `/api/v1/auth/signin` | none | `{ identifier, password }` — identifier is phone or email; only for accounts that have set a password (AUTH-12). The same generic error for an unknown identifier, an account with no password and a wrong password (AUTH-13). |
 | POST | `/api/v1/auth/signout` | session | Ends the session (AUTH-16). |
-| POST | `/api/v1/auth/password` | session | `{ currentPassword?, newPassword }`. Sets or changes the password. `currentPassword` may be left out within 10 minutes of a code sign-in; ends other sessions (AUTH-20). There is no forgot-password endpoint: a forgotten password is recovered by signing in with a code (AUTH-17). |
+| POST | `/api/v1/auth/forgot-password` | none | `{ phone }`. Sends a dedicated reset code by SMS. Always returns 200; the SMS is sent only if the account exists (AUTH-17, AUTH-18). Rate-limited to one per 2 minutes per account. |
+| POST | `/api/v1/auth/forgot-password/verify` | none | `{ phone, code }`. Verifies the reset code. On success creates a session flagged `must_set_password`; the response carries a handoff token for the shop host identical to the normal sign-in handoff (D13). The dashboard is blocked until the password endpoint is called (AUTH-19). |
+| POST | `/api/v1/auth/password` | session | `{ currentPassword?, newPassword }`. Sets or changes the password. `currentPassword` may be omitted when the session carries `must_set_password` or a sign-in code was verified within the last 10 minutes (AUTH-20). Always ends other sessions. |
 | GET | `/api/v1/me` | session | Current user + tenant summary (state, plan, balance). |
 | POST | `/api/v1/me/identities` | session | Add a second/third verified identity to this account (AUTH-26). |
 | DELETE | `/api/v1/me/identities/:id` | session | Refused if it's the last remaining identity. |
