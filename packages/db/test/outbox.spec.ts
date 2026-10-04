@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type pg from 'pg';
-import { createDatabase, type DatabaseHandle, SmsRepository } from '../src/index';
+import { DatabaseConnector, type DatabaseHandle, SmsRepository } from '../src/index';
 
 import { ADMIN_URL, appDbUrl, testDbUrl } from './config';
 import { connect } from './helpers';
@@ -15,7 +15,7 @@ const LATER = new Date(Date.now() + 60 * 60 * 1000);
 
 beforeAll(async () => {
   admin = await connect(testDbUrl(ADMIN_URL));
-  handle = createDatabase(appDbUrl(ADMIN_URL));
+  handle = new DatabaseConnector().connect(appDbUrl(ADMIN_URL));
 });
 
 afterAll(async () => {

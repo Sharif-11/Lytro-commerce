@@ -1,5 +1,5 @@
 import pg from 'pg';
-import { runMigrations } from '../src/migrate';
+import { MigrationRunner } from '../src/migrate';
 import { ADMIN_URL, APP_PASSWORD, APP_ROLE, TEST_DB, testDbUrl } from './config';
 
 export default async function setup(): Promise<void> {
@@ -18,5 +18,5 @@ export default async function setup(): Promise<void> {
   } finally {
     await admin.end();
   }
-  await runMigrations(testDbUrl(ADMIN_URL));
+  await new MigrationRunner().run(testDbUrl(ADMIN_URL));
 }

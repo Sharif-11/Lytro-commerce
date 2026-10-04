@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type pg from 'pg';
-import { createDatabase, type DatabaseHandle, TenantRepository } from '../src/index';
+import { DatabaseConnector, type DatabaseHandle, TenantRepository } from '../src/index';
 
 import { ADMIN_URL, appDbUrl, testDbUrl } from './config';
 import { connect, createTenant, type TenantFixture } from './helpers';
@@ -15,7 +15,7 @@ let slug: string;
 
 beforeAll(async () => {
   admin = await connect(testDbUrl(ADMIN_URL));
-  handle = createDatabase(appDbUrl(ADMIN_URL));
+  handle = new DatabaseConnector().connect(appDbUrl(ADMIN_URL));
   tenant = await createTenant(admin, 'Lookup');
   const row = await admin.query<{ slug: string }>(
     'SELECT slug FROM control.tenants WHERE id = $1',

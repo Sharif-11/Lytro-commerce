@@ -4,7 +4,7 @@ import type pg from 'pg';
 import {
   AccountRepository,
   ChallengeRepository,
-  createDatabase,
+  DatabaseConnector,
   type DatabaseHandle,
   TenantRepository,
   TransactionRunner,
@@ -33,7 +33,7 @@ async function newChallenge(phone: string): Promise<string> {
 
 beforeAll(async () => {
   admin = await connect(testDbUrl(ADMIN_URL));
-  handle = createDatabase(appDbUrl(ADMIN_URL));
+  handle = new DatabaseConnector().connect(appDbUrl(ADMIN_URL));
 });
 
 afterAll(async () => {

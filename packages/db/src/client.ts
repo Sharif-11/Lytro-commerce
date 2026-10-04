@@ -9,11 +9,13 @@ export interface DatabaseHandle {
   close: () => Promise<void>;
 }
 
-/** Creates the connection pool. The application role must not have BYPASSRLS (DATABASE-SCHEMA §3). */
-export function createDatabase(connectionString: string): DatabaseHandle {
-  const pool = new pg.Pool({ connectionString, max: 5 });
-  return {
-    db: drizzle(pool, { schema }),
-    close: () => pool.end(),
-  };
+/** Creates connection pools. The application role must not have BYPASSRLS (DATABASE-SCHEMA §3). */
+export class DatabaseConnector {
+  connect(connectionString: string): DatabaseHandle {
+    const pool = new pg.Pool({ connectionString, max: 5 });
+    return {
+      db: drizzle(pool, { schema }),
+      close: () => pool.end(),
+    };
+  }
 }

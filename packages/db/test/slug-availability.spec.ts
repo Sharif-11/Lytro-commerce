@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type pg from 'pg';
-import { createDatabase, type DatabaseHandle, SlugRepository } from '../src/index';
+import { DatabaseConnector, type DatabaseHandle, SlugRepository } from '../src/index';
 
 import { ADMIN_URL, appDbUrl, testDbUrl } from './config';
 import { connect, createTenant, type TenantFixture } from './helpers';
@@ -13,7 +13,7 @@ let takenSlug: string;
 
 beforeAll(async () => {
   admin = await connect(testDbUrl(ADMIN_URL));
-  handle = createDatabase(appDbUrl(ADMIN_URL));
+  handle = new DatabaseConnector().connect(appDbUrl(ADMIN_URL));
   tenant = await createTenant(admin, 'Availability');
   const row = await admin.query<{ slug: string }>(
     'SELECT slug FROM control.tenants WHERE id = $1',

@@ -9,7 +9,7 @@ import { request as httpRequest, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { createDatabase, type DatabaseHandle } from '@lytronix/db';
+import { DatabaseConnector, type DatabaseHandle } from '@lytronix/db';
 import { prepareTestDatabase, seedShop } from './support/database';
 import { HealthController } from '../src/health/health.controller';
 import {
@@ -90,7 +90,7 @@ beforeAll(async () => {
     [shopId],
   );
 
-  handle = createDatabase(appDbUrl);
+  handle = new DatabaseConnector().connect(appDbUrl);
   cache = new TenantCache();
   const moduleRef = await Test.createTestingModule({
     controllers: [ProbeController, HealthController],
