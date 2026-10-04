@@ -23,14 +23,15 @@ Status: draft v1, for review before implementation. Companion to `DATABASE-SCHEM
 
 | Method | Path | Auth | Notes |
 | --- | --- | --- | --- |
-| POST | `/api/v1/signup` | none | `{ shopName, ownerName, verifier: { kind: "phone"\|"email"\|"google"\|"facebook", ... }, password? }`. Returns a verification challenge, not a session yet (AUTH-01/04). |
-| POST | `/api/v1/signup/verify` | none | `{ verificationId, code }` for phone/email; OAuth callback handled by `/auth/oauth/{provider}/callback` instead. On success: creates subscriber + tenant + owner user, returns a session (AUTH-10). |
+| POST | `/api/v1/auth/phone/code` | none | `{ phone }`. Sends a sign-in code. Same reply for every valid number, whether or not an account exists (AUTH-12, AUTH-13). Sign-up and sign-in share this step (PHASE-1-PLAN D12). |
+| POST | `/api/v1/auth/phone/verify` | none | `{ phone, code }`. Creates the account for a new number, or signs in a known one. On the platform host returns an account session and `next`: `create-shop` when the account has no shop, else a handoff to the shop. On a shop's host returns a shop session for that shop's owner or staff (D13). |
+| POST | `/api/v1/shops` | account session | `{ shopName, ownerName, address? }`. The create-shop step: creates the owner user, the trial tenant and the subdomain, and sends the shop-ready SMS (AUTH-10, AUTH-11). Refused with `conflict` if this identity already has a shop (TEN-15). Returns a handoff to the new shop, with `next: set-password` (AUTH-28). |
+| POST | `/api/v1/auth/handoff` | none | `{ token }`, on the shop host. Exchanges a single-use handoff token (60 seconds) for a shop session and ends the account session (D13). |
 | POST | `/api/v1/auth/oauth/{provider}/start` | none | `provider` = google \| facebook. Redirects into the provider's OAuth flow (AUTH-24). |
-| GET | `/api/v1/auth/oauth/{provider}/callback` | none | Completes OAuth; new identity → same as signup/verify; existing identity → signs in. |
-| POST | `/api/v1/auth/signin` | none | `{ identifier, password }` — identifier is phone or email (AUTH-12). |
+| GET | `/api/v1/auth/oauth/{provider}/callback` | none | Completes OAuth; new identity → same as `auth/phone/verify` for a new number; existing identity → signs in. |
+| POST | `/api/v1/auth/signin` | none | `{ identifier, password }` — identifier is phone or email; only for accounts that have set a password (AUTH-12). The same generic error for an unknown identifier, an account with no password and a wrong password (AUTH-13). |
 | POST | `/api/v1/auth/signout` | session | Ends the session (AUTH-16). |
-| POST | `/api/v1/auth/forgot-password` | none | `{ identifier }`. Always returns the same generic message (AUTH-17). |
-| POST | `/api/v1/auth/change-password` | session | `{ currentPassword, newPassword }`; ends other sessions (AUTH-20). |
+| POST | `/api/v1/auth/password` | session | `{ currentPassword?, newPassword }`. Sets or changes the password. `currentPassword` may be left out within 10 minutes of a code sign-in; ends other sessions (AUTH-20). There is no forgot-password endpoint: a forgotten password is recovered by signing in with a code (AUTH-17). |
 | GET | `/api/v1/me` | session | Current user + tenant summary (state, plan, balance). |
 | POST | `/api/v1/me/identities` | session | Add a second/third verified identity to this account (AUTH-26). |
 | DELETE | `/api/v1/me/identities/:id` | session | Refused if it's the last remaining identity. |

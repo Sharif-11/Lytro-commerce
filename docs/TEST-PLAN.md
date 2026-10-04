@@ -12,9 +12,9 @@ Status: draft v1, 2026-10-02. Builds on `SRS-detailed.md` §26's suite skeleton 
 
 **S01-01 Sign-up by phone, full trial provisioning.**
 Preconditions: none (fresh phone number).
-Steps: 1) Submit sign-up with a new Bangladeshi phone number. 2) Receive and enter the 6-digit OTP within 5 minutes. 3) Land on the dashboard.
-Expected: subscriber, owner user, tenant in `trial`, unique subdomain created; dashboard shows 30-day trial limits (40 orders, 20 products, 200 MB storage, 5 GB bandwidth, 8 essential SMS) and a setup checklist; the "shop ready" SMS arrives at the phone containing the shop's live URL; essential-SMS counter reads 2 of 8 (sign-up code + shop-ready).
-Covers: `AUTH-04`, `AUTH-05`, `AUTH-10`, `TRL-01`, `TRL-03`, `SMS-18`, `SMS-01`.
+Steps: 1) Continue with a new Bangladeshi phone number. 2) Receive and enter the 6-digit OTP within 5 minutes. 3) In the create-shop step enter the shop name, owner name and address. 4) Skip the set-password offer. 5) Land on the dashboard.
+Expected: the account exists after step 2 with no tenant; after step 3 the owner user, tenant in `trial` and unique subdomain exist; dashboard shows 30-day trial limits (40 orders, 20 products, 200 MB storage, 5 GB bandwidth, 8 essential SMS) and a setup checklist; the "shop ready" SMS arrives at the phone containing the shop's live URL; essential-SMS counter reads 1 of 8 (shop-ready only; the code is platform cost, AUTH-21).
+Covers: `AUTH-04`, `AUTH-05`, `AUTH-10`, `AUTH-21`, `AUTH-28`, `TRL-01`, `TRL-03`, `SMS-18`, `SMS-01`.
 
 **S01-02 Sign-up abuse limits.**
 Steps: 1) Complete sign-up and let the trial run. 2) Attempt a third trial sign-up from the same verified phone, same device, and same IP (three sub-cases) within 30 days.
@@ -27,14 +27,14 @@ Expected: 6th attempt returns `rate_limited` for 15 minutes even with the right 
 Covers: `AUTH-05`, `AUTH-06`, `AUTH-07`.
 
 **S01-04 Sign-in, lockout, sign-out.**
-Steps: 1) Sign in with correct credentials — session issued. 2) Attempt sign-in with an unknown phone and a wrong password separately — compare response body and timing. 3) Fail 5 times in 15 minutes on one real account from one IP; attempt a 6th, even correct. 4) Sign out; replay the old session credential.
-Expected: unknown-account and wrong-password responses are identical; 6th attempt is `rate_limited` even with the right password; a signed-out session returns `unauthenticated` on reuse.
+Steps: 1) Sign in by phone and code — session issued; set a password and sign in with it; sign in by code again. 2) Attempt password sign-in with an unknown phone, an account with no password and a wrong password — compare response body and timing. 3) Fail 5 times in 15 minutes on one real account from one IP, mixing wrong codes and wrong passwords; attempt a 6th, even correct. 4) Sign out; replay the old session credential.
+Expected: code sign-in works before and after a password is set; the three failure responses are identical; 6th attempt is `rate_limited` even with the right password or code; a signed-out session returns `unauthenticated` on reuse.
 Covers: `AUTH-12`, `AUTH-13`, `AUTH-14`, `AUTH-15`, `AUTH-16`.
 
-**S01-05 Forgot password and forced reset.**
-Steps: 1) Request a reset for an existing phone — compare response to a non-existent phone (should be identical). 2) Request a second reset within 2 minutes. 3) Sign in with the temporary password; attempt to open any route besides change-password. 4) Change password with the wrong current password, then the right one.
-Expected: identical forgot-password response either way; second request within 2 minutes is silently accepted with no second SMS; every route except change-password returns `forbidden` until changed; wrong current password rejected; successful change ends other sessions.
-Covers: `AUTH-17`, `AUTH-18`, `AUTH-19`, `AUTH-20`.
+**S01-05 Password recovery and forced reset.**
+Steps: 1) An owner who forgot the password signs in by code and sets a new one without the current password. 2) After 10 minutes, try to change it without the current password, then with a wrong one, then with the right one. 3) The owner resets a staff member's password; the staff member signs in with it and tries any route besides change-password.
+Expected: the new password is set straight after the code sign-in and the old one stops working; after 10 minutes the current password is required; every successful change ends other sessions; the staff member gets `forbidden` on every route except change-password until changed. (AUTH-18 is withdrawn: there is no forgot-password endpoint.)
+Covers: `AUTH-17`, `AUTH-19`, `AUTH-20`, `STF-13`.
 
 **S01-06 OAuth sign-up and repeat sign-in (Google/Facebook).**
 Steps: 1) Sign up via Google OAuth — no password prompted. 2) Sign out, sign in again via the same Google account. 3) Separately, sign up via Facebook where Facebook reports an email already used by an existing email-verified tenant.

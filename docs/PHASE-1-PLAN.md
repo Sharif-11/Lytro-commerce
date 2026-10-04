@@ -36,6 +36,8 @@ Items marked **Decision** need your answer before the slice they affect starts. 
 | D8 | Operator console login (ADM-01, ADM-18) | Build in Phase 1, as the implementation plan says, so the console is protected from its first screen. | Slice 10 |
 | D9 | Staff phone numbers unique platform-wide (STF-06) | Yes, as an assumption already marked in the SRS. | Slice 7 |
 | D10 | Language storage | Staff choice saved on the account; shopper choice saved on the device (I18N-02). | Slices 9 |
+| D12 | **Decided 2026-10-04:** stepped onboarding | The entry screen shows a phone number input, a "Continue with Google" button and a "Continue with Facebook" button. Sign-up and sign-in share this screen: each path verifies the identity first, creates an account if new, and signs the person in (AUTH-01, AUTH-12). The shop is created in the next step, which starts the trial (AUTH-10). Straight after, the owner is offered once to set a password and may skip it (AUTH-28). A person who verified their identity but never created a shop is routed to the create-shop step on every return. Code sign-in stays available after a password is set, so a forgotten password is recovered by signing in with a code and setting a new one (AUTH-17, AUTH-20). Sign-up and sign-in codes are platform cost (AUTH-21). The temporary-password flow applies only to staff passwords set by the owner (AUTH-19, STF-13). | Slices 4, 5, 9 |
+| D13 | **Decided 2026-10-04:** where sessions live | The SRS puts the dashboard at `/admin` on the shop's host, but steps 1 and 2 of D12 run before any shop host exists. So there are two kinds of session in `control.sessions`, which makes `tenant_id` nullable. An **account session** lives on the platform host, has no tenant, and covers the create-shop step and an account whose shop data was deleted (AUTH-23). A **shop session** lives on the shop host and is bound to that tenant, exactly as D1 says. Moving from one to the other uses a single-use handoff token (stored hashed, valid 60 seconds) carried in a redirect to the shop's `/admin`, which exchanges it for a shop session and ends the account session. Signing in directly at a shop's `/admin` with phone and code gives a shop session straight away. | Slices 5, 9 |
 | D11 | **Decided 2026-10-04:** closed shop response | A shop whose public side is offline answers 403 `tenant_offline` (SRS-detailed error table), with no shop data. Closed states are the lifecycle table states `read_only`, `locked`, `archived`, `deleted` (LIF-07), plus any suspended shop (LIF-24). The guard refuses with the standard error body. | Slice 2 |
 
 ---
@@ -110,7 +112,7 @@ Migrations are generated from the Drizzle schema and reviewed before they run (D
 
 From `API-CONTRACT.md`:
 
-- **Auth and onboarding (§2):** `signup`, `signup/verify`, `auth/oauth/*` (slice 6), `auth/signin`, `auth/signout`, `auth/forgot-password`, `auth/change-password`, `me`, `me/identities` (add, remove).
+- **Auth and onboarding (§2):** `auth/phone/code`, `auth/phone/verify` (one step for sign-up and sign-in, D12), `auth/signin` (password), `auth/handoff`, `shops` (create-shop step), `auth/oauth/*` (slice 6), `auth/signout`, `auth/password`, `me`, `me/identities` (add, remove). There is no forgot-password endpoint (AUTH-17, AUTH-18 withdrawn).
 - **Staff and roles (§3):** `staff` (list, create, update), `roles` (list, create, delete).
 - **Operator (§9, partial):** operator sign-in and TOTP enrolment only. Tenant management endpoints come in Phase 8.
 - **Shared rules:** every error uses the standard body (SRS §2.6); every write accepts `Idempotency-Key` where it creates something (API-11); every response carries `X-Request-Id` (API-27).
@@ -163,14 +165,15 @@ Slice 3 comes before any tenant-scoped endpoint is written, so each later endpoi
 - **No device or IP trial limit** in this slice. One trial per verified phone is enforced by the unique phone identity (AUTH-08).
 - **Sign-up asks for no password.** The owner sets one later from account settings (AUTH-01, AUTH-03 amended). Until then sign-in is by one-time code (slice 5).
 - **After sign-up** the owner sees the "shop ready" message and is sent to sign in; sessions belong to slice 5.
+- **Superseded by D12 in slice 5:** the single `signup/phone/complete` request that verifies the code and creates the shop together is split into a verify-phone step and a separate create-shop step, and the create-shop step can be reached after any sign-in method.
 - **Lock belongs to the number:** a locked number cannot request a new code until the lock ends, so a lock cannot be reset by asking for a fresh code.
 
-### Slice 5: sign-in, sessions and recovery
+### Slice 5: phone sign-in, sessions and stepped onboarding
 - **Branch:** `feat/signin-sessions`
-- **Depends on:** slice 4; decisions D1 and D2.
-- **Delivers:** password sign-in with identical errors for unknown accounts and wrong passwords; lockout after five failures in fifteen minutes per account and IP; session creation, expiry at seven days, sign-out, and revocation on password change or deactivation; forgot-password with identical responses and one request per two minutes; temporary passwords that force a change before any other route; change-password that ends other sessions.
-- **Requirements:** AUTH-03, AUTH-12 to AUTH-20, AUTH-22, AUTH-23, SEC-07, SEC-14 (CSRF token on every state-changing request).
-- **Done when:** the sign-in response is byte-identical for an unknown phone and a wrong password; the sixth attempt is throttled even with the right password; a signed-out session is refused; a temporary password blocks every route except change-password.
+- **Depends on:** slice 4; decisions D1, D2, D12 and D13.
+- **Delivers:** the single "continue with phone" step that creates an account for a new number and signs in a known one; the create-shop step for a signed-in account with no shop, reshaped from slice 4's sign-up; the one-time set-password offer after the shop is created; account and shop sessions (D13) with the handoff token; optional password sign-in with identical errors for an unknown phone, an account with no password and a wrong password; lockout after five failures in fifteen minutes per account and IP, counting wrong codes and wrong passwords together; expiry at seven days, sign-out, and revocation on password change or deactivation; set or change password with the current password or a code verified in the last ten minutes, ending other sessions; a CSRF token on every state-changing request; sign-in by lifecycle state.
+- **Requirements:** AUTH-01, AUTH-03, AUTH-10, AUTH-12 to AUTH-17, AUTH-20 to AUTH-23, AUTH-28, SEC-07, SEC-14. AUTH-19 moves to slice 7 with STF-13.
+- **Done when:** a new number reaches the dashboard through the three steps and a known number signs in with a code; a person who stopped after step 1 sees the create-shop step next time; code sign-in works after a password is set; the password sign-in response is byte-identical for an unknown phone, an account with no password and a wrong password; the sixth failed attempt is throttled even with the right code or password; a signed-out session is refused; a handoff token works once; a shop session is refused on another shop's host; a staff sign-in in `locked` returns `tenant_offline`.
 
 ### Slice 6: email, Google and Facebook sign-up, multiple identities
 - **Branch:** `feat/identities-oauth`
@@ -183,8 +186,8 @@ Slice 3 comes before any tenant-scoped endpoint is written, so each later endpoi
 ### Slice 7: staff and roles
 - **Branch:** `feat/staff-roles`
 - **Depends on:** slice 5, decision D3 and D9.
-- **Delivers:** staff creation by the owner with a phone and password; roles built from the permission list; permission checks on every endpoint; seat limit counting the owner plus active staff; deactivation that ends sessions at once; reactivation that re-checks the seat limit; the owner role that can never be changed or removed; owner password reset for staff.
-- **Requirements:** STF-01 to STF-14.
+- **Delivers:** staff creation by the owner with a phone and password; roles built from the permission list; permission checks on every endpoint; seat limit counting the owner plus active staff; deactivation that ends sessions at once; reactivation that re-checks the seat limit; the owner role that can never be changed or removed; owner password reset for staff, which forces a change at next sign-in.
+- **Requirements:** STF-01 to STF-14, AUTH-19.
 - **Done when:** the Trial's second staff member is refused with `plan_limit_reached`; a permission removed mid-session applies on the next request; a role in use cannot be deleted; a deactivated user's session ends immediately.
 
 ### Slice 8: activity log
@@ -246,6 +249,8 @@ Slice 3 comes before any tenant-scoped endpoint is written, so each later endpoi
 | Brand or domain changes (D5) | Subdomain logic affected | Domain is configuration, not code |
 | Row-level security misconfigured | Cross-tenant leak | Isolation suite (slice 3) before any tenant endpoint exists |
 | Cookie scoping mistakes | Session shared between tenants | Test with two `*.localhost` hosts (S01-08) |
+| Code sign-in after a password is set (D12) | Whoever holds the phone, for example after a SIM swap, can sign in | Same exposure as sign-up already has; revisit with a second factor when paying tenants exist |
+| Codes are platform cost (AUTH-21) | Each code sign-in is an SMS the platform pays for | Seven-day sessions keep sign-ins rare; the hourly cap (AUTH-07) bounds abuse; watch the SMS spend |
 | Single-person review | Mistakes pass unnoticed | Pull request checklist, CI, and the isolation suite as an automatic reviewer |
 
 ---

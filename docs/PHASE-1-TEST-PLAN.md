@@ -24,7 +24,7 @@ Status: draft for discussion, 2026-10-03. Companion to `PHASE-1-PLAN.md`. The sc
 - **Database:** the Docker Postgres from `docker-compose.yml` (port 5433). Each test run creates its own database, applies migrations, and drops it afterwards, so tests never share state.
 - **Hosts:** two tenants at `alpha.localhost` and `beta.localhost` (per D4), each on its own port through the dev server. In CI, the same names are mapped to `127.0.0.1` through the runner's hosts file.
 - **Providers:** the SMS and email stub (per D6) records every message in a test-visible store. Tests read the OTP from that store, never from a real phone.
-- **Clock:** a controllable clock for expiry tests (OTP 5 minutes, sessions 7 days, lockouts 15 minutes, forgot-password 2 minutes). The clock is available only in test and development builds.
+- **Clock:** a controllable clock for expiry tests (OTP 5 minutes, sessions 7 days, lockouts 15 minutes, the 10-minute window for setting a password after a code sign-in). The clock is available only in test and development builds.
 - **Fixtures:** two tenants seeded with overlapping data: the same staff phone numbers excluded (they must be unique), but identical shop names, identical role names, and identical order-style IDs where they exist.
 
 ---
@@ -35,18 +35,19 @@ Each scenario lists its preconditions, numbered steps, expected result, and the 
 
 ### A. Sign-up and tenancy
 
-**P1-E01 Phone sign-up creates a working trial. [E2E]**
+**P1-E01 Stepped phone onboarding creates a working trial. [E2E]**
 - Preconditions: a phone number not registered; the stub store is empty.
 - Steps:
-  1. Open the sign-up page on a new host (`gamma.localhost`).
-  2. Enter a shop name, owner name and phone `01711111111`. Submit.
-  3. Read the OTP from the stub store. Enter it within five minutes.
-  4. Land on the dashboard.
-- Expected: subscriber, owner user and tenant in `trial` exist; the subdomain is `gamma`; the dashboard shows trial limits (40 handled orders, 20 products, 1 seat, 200 MB, 5 GB, 8 essential SMS) and a setup checklist; the stub store holds one "shop ready" message with the live URL; the essential counter reads 2 of 8.
-- Covers: AUTH-01, AUTH-04, AUTH-05, AUTH-10, TRL-01, TRL-03, SMS-18, TRL-08.
+  1. Open "continue with phone" on the platform host. Enter phone `01711111111`. Submit.
+  2. Read the OTP from the stub store. Enter it within five minutes. The create-shop step opens.
+  3. Enter a shop name, owner name and the address `gamma`. Submit.
+  4. The set-password offer opens. Skip it.
+  5. Land on the dashboard at `gamma.localhost/admin`.
+- Expected: after step 2 a subscriber and a verified phone exist, with no tenant; after step 3 the owner user and the tenant in `trial` exist with the subdomain `gamma`; the dashboard shows trial limits (40 handled orders, 20 products, 1 seat, 200 MB, 5 GB, 8 essential SMS) and a setup checklist; the stub store holds one "shop ready" message with the live URL; the essential counter reads 1 of 8, because the code is platform cost; the account has no password.
+- Covers: AUTH-01, AUTH-04, AUTH-05, AUTH-10, AUTH-12, AUTH-21, AUTH-28, TRL-01, TRL-03, SMS-18, TRL-08.
 
 **P1-E02 Phone format and required fields are validated. [API]**
-- Steps: submit `+8801711111111`, `0171111`, `02123456789`, a 60-character-plus shop name, and an empty owner name.
+- Steps: at the code step submit `+8801711111111`, `0171111` and `02123456789`; at the create-shop step submit a 60-character-plus shop name and an empty owner name.
 - Expected: `+88…` is stored as `01711111111`; the other phone numbers and the empty owner name are refused with `validation_error` and field details; nothing is created.
 - Covers: AUTH-01, AUTH-02.
 
@@ -56,8 +57,8 @@ Each scenario lists its preconditions, numbered steps, expected result, and the 
 - Covers: AUTH-05, AUTH-06, AUTH-07, SMS-11.
 
 **P1-E04 Identity uniqueness and channel independence. [API]**
-- Steps: register a phone; register the same phone again; create a tenant with an email; create a tenant with a Facebook account; try to create a second tenant from the first phone.
-- Expected: the duplicate phone returns `conflict` and reveals no account details; the three channels each create a separate tenant; the second tenant on the same phone is refused.
+- Steps: register a phone; verify the same phone again; create a tenant with an email; create a tenant with a Facebook account; try the create-shop step a second time from the first phone.
+- Expected: verifying the same phone again signs in to the same subscriber and creates no second one, and the reply reveals nothing a new number would not get; the three channels each create a separate tenant; the second create-shop from the same phone is refused with `conflict`.
 - Covers: AUTH-08, TEN-15, OD-53.
 
 **P1-E05 Subdomain assignment and reserved names. [API]**
@@ -88,13 +89,13 @@ Each scenario lists its preconditions, numbered steps, expected result, and the 
 ### B. Sign-in, sessions and recovery
 
 **P1-E10 Sign-in and identical errors. [API]**
-- Steps: sign in with the right password; sign in with an unknown phone; sign in with a wrong password; compare the two failed responses, including timing.
-- Expected: the right password returns a session; the two failures are byte-identical in body and status, with timing in the same band.
+- Steps: request a code for a known and an unknown phone and compare the replies; sign in a known phone by code; set a password; sign in with it; sign in by code again; try password sign-in with an unknown phone, with an account that has no password, and with a wrong password; compare the three failed responses, including timing.
+- Expected: the two code replies are identical; code sign-in works before and after the password is set; the right password returns a session; the three failures are byte-identical in body and status, with timing in the same band.
 - Covers: AUTH-12, AUTH-13.
 
 **P1-E11 Lockout. [API]**
-- Steps: fail five times in fifteen minutes on one account from one IP; attempt a sixth with the correct password; wait for the lock to pass; attempt again.
-- Expected: the sixth attempt returns `rate_limited`, even with the right password; after the window, the correct password works.
+- Steps: fail five times in fifteen minutes on one account from one IP, mixing wrong passwords and wrong codes; attempt a sixth with the correct password, then with a correct code; wait for the lock to pass; attempt again.
+- Expected: the sixth attempt returns `rate_limited`, even with the right password or code; after the window, the correct password works.
 - Covers: AUTH-14.
 
 **P1-E12 Session lifetime and sign-out. [API]**
@@ -102,15 +103,16 @@ Each scenario lists its preconditions, numbered steps, expected result, and the 
 - Expected: the replayed session after sign-out returns `unauthenticated`; the session after seven days returns `unauthenticated`.
 - Covers: AUTH-15, AUTH-16.
 
-**P1-E13 Forgot password does not reveal accounts. [API]**
-- Steps: request a reset for an existing phone; for an unknown phone; request a second reset for the existing phone within two minutes.
-- Expected: the first two responses are identical; the second request within two minutes is accepted silently with no second message in the stub store; only the existing account receives a message.
-- Covers: AUTH-17, AUTH-18.
+**P1-E13 A forgotten password is recovered by code sign-in. [E2E]**
+- Preconditions: an owner with a password and a second open session.
+- Steps: sign in by code; set a new password without the current one; sign in with the old password; advance the clock eleven minutes after a fresh code sign-in and try to change the password without the current one; then with a wrong current password; then with the right one.
+- Expected: the new password is set straight after the code sign-in; the old password fails; after ten minutes a change without the current password is refused, and so is a wrong current password; each successful change ends the other sessions.
+- Covers: AUTH-17, AUTH-20.
 
-**P1-E14 Temporary password forces a change. [E2E]**
-- Steps: sign in with the temporary password; try to open the staff page; try to open the sign-out route; change the password with a wrong current password, then with the right one.
-- Expected: every route except change-password is refused until the change; the wrong current password is rejected; success ends the other sessions.
-- Covers: AUTH-19, AUTH-20.
+**P1-E14 A staff password set by the owner forces a change. [E2E]** (slice 7)
+- Steps: the owner resets a staff member's password; the staff member signs in with it; tries to open the staff page and the sign-out route; changes the password.
+- Expected: every route except change-password is refused until the change; afterwards the dashboard works.
+- Covers: AUTH-19, STF-13.
 
 **P1-E15 Password rules. [API]**
 - Steps: a seven-character password; an eight-character password; a twenty-character password; a twenty-one-character password; a Google-created account.
@@ -122,6 +124,11 @@ Each scenario lists its preconditions, numbered steps, expected result, and the 
 - Steps: staff and owner sign in under each state.
 - Expected: staff and owner can sign in during `active`, `grace`. Staff in a later state receives `tenant_offline`.
 - Covers: AUTH-22, partially. The full lifecycle set is covered in Phase 2.
+
+**P1-E33 Onboarding resumes and hands off once. [API]**
+- Steps: verify a new phone and stop before the create-shop step; sign in again by code; create the shop; use the returned handoff token on the shop host; use it again; use a fresh token after 61 seconds; send the shop session to another shop's host; sign in by code again after the set-password offer was seen.
+- Expected: the second sign-in returns `next: create-shop`; the first handoff gives a shop session and ends the account session; the reused and the expired token are refused with `unauthenticated`; the shop session is refused on the other host; the set-password offer is not shown again.
+- Covers: AUTH-10, AUTH-28, TEN-28, D13.
 
 ### C. Other identities
 
@@ -267,15 +274,15 @@ Every `M` requirement in Phase 1 must appear in at least one scenario. The matri
 
 | Requirement group | Scenarios |
 |---|---|
-| AUTH-01, 02, 04–07, 09, 10, 21 | P1-E01, E02, E03, E04 |
+| AUTH-01, 02, 04–07, 09, 10, 21, 28 | P1-E01, E02, E03, E04, E33 |
 | AUTH-03, 24 | P1-E15, E17 |
 | AUTH-08, 26 | P1-E04, E18 |
 | AUTH-11 | P1-E05 |
 | AUTH-12, 13 | P1-E10 |
 | AUTH-14 | P1-E11 |
 | AUTH-15, 16 | P1-E12 |
-| AUTH-17, 18 | P1-E13 |
-| AUTH-19, 20 | P1-E14 |
+| AUTH-17, 20 | P1-E13 |
+| AUTH-19 | P1-E14 (slice 7) |
 | AUTH-22, 23 | P1-E16 (partial; full lifecycle in Phase 2) |
 | AUTH-27 | P1-E19 |
 | TEN-01 to 03 | P1-I01, I02 |
@@ -313,7 +320,7 @@ Every `M` requirement in Phase 1 must appear in at least one scenario. The matri
 | LOG-02 | P1-N02 |
 | SUP-08, SMS-11 | P1-N01 |
 
-**Requirements deliberately not tested in Phase 1:** those that depend on plans, billing, orders or the storefront. They're listed in the Phase 2 onwards test plans. Withdrawn requirements (AUTH-25) are checked for absence: a test confirms the Facebook email is not enforced.
+**Requirements deliberately not tested in Phase 1:** those that depend on plans, billing, orders or the storefront. They're listed in the Phase 2 onwards test plans. Withdrawn requirements are checked for absence: for AUTH-25 a test confirms the Facebook email is not enforced; for AUTH-18 there is no forgot-password endpoint.
 
 ---
 
