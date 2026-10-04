@@ -9,7 +9,11 @@ const MIGRATIONS_FOLDER = path.resolve(__dirname, '..', 'drizzle');
 /** Applies pending migrations. Run as its own pipeline step before the new code deploys (ENGINEERING-STANDARDS §7). */
 export class MigrationRunner {
   async run(connectionString: string): Promise<void> {
-    const handle = new DatabaseConnector().connect(connectionString);
+    const handle = new DatabaseConnector().connect(connectionString, {
+      max: 1,
+      statementTimeoutMillis: 0,
+      applicationName: 'lytronix-migrations',
+    });
     try {
       await migrate(handle.db, { migrationsFolder: MIGRATIONS_FOLDER });
     } finally {

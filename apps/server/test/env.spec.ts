@@ -50,3 +50,26 @@ describe('loadEnv platform settings', () => {
     );
   });
 });
+
+describe('database pool settings', () => {
+  it('defaults to five connections, a 5 second wait and a 10 second statement limit', () => {
+    const env = new EnvironmentParser().parse(BASE);
+    expect(env.DATABASE_POOL_MAX).toBe(5);
+    expect(env.DATABASE_CONNECT_TIMEOUT_MS).toBe(5000);
+    expect(env.DATABASE_STATEMENT_TIMEOUT_MS).toBe(10000);
+  });
+
+  it('reads the pool size from the environment', () => {
+    const env = new EnvironmentParser().parse({ ...BASE, DATABASE_POOL_MAX: '12' });
+    expect(env.DATABASE_POOL_MAX).toBe(12);
+  });
+
+  it('refuses a pool size outside 1 to 100, naming the variable', () => {
+    expect(() => new EnvironmentParser().parse({ ...BASE, DATABASE_POOL_MAX: '0' })).toThrow(
+      /DATABASE_POOL_MAX/,
+    );
+    expect(() => new EnvironmentParser().parse({ ...BASE, DATABASE_POOL_MAX: '101' })).toThrow(
+      /DATABASE_POOL_MAX/,
+    );
+  });
+});

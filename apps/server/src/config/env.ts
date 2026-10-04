@@ -20,6 +20,10 @@ const envSchema = z.object({
   TRUSTED_EDGE_SECRET: z.string().min(32).optional(),
   // Key for the keyed hash of one-time codes (AUTH-05). A stolen database alone cannot reveal codes.
   OTP_SECRET: z.string().min(32, 'OTP_SECRET is required; at least 32 characters'),
+  // Connection pool (ENGINEERING-STANDARDS §5). Defaults suit one server; size the total for each deployment.
+  DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(100).default(5),
+  DATABASE_CONNECT_TIMEOUT_MS: z.coerce.number().int().positive().default(5000),
+  DATABASE_STATEMENT_TIMEOUT_MS: z.coerce.number().int().positive().default(10000),
 });
 
 const envWithEdgeRule = envSchema.superRefine((value, ctx) => {

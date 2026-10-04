@@ -1,6 +1,6 @@
 // Public entry point of the database package. Consumers import from '@lytronix/db' only.
 export * from './schema';
-export { DatabaseConnector, type Database, type DatabaseHandle } from './client';
+export { DatabaseConnector, type Database, type DatabaseHandle, type PoolSettings } from './client';
 export { MigrationRunner } from './migrate';
 export { TransactionRunner, type Executor, type Transaction } from './transactions';
 export { TenantRepository, type TenantLookupRow } from './repositories/tenancy/tenant.repository';
