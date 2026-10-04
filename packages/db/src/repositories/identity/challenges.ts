@@ -1,14 +1,14 @@
-import { and, count, desc, eq, gt, sql } from 'drizzle-orm';
-import type { Database } from '../../client';
-import { smsOutbox, verificationChallenges } from '../../schema';
+import { and, count, desc, eq, gt, isNull, sql } from 'drizzle-orm';
+import type { Executor } from '../../transactions';
+import { verificationChallenges } from '../../schema';
 
-// AUTH-05 to AUTH-07: the queries behind one-time codes. Limits are enforced by the service; this file only
-// reads and writes rows, so each rule can be tested with the database alone.
+// AUTH-05 to AUTH-07: rows behind one-time codes. Rules (limits, lock, expiry) live in the service; this file
+// only reads and writes rows.
 
 export type ChallengeRow = typeof verificationChallenges.$inferSelect;
 
 export async function insertChallenge(
-  db: Database,
+  db: Executor,
   values: { phone: string; codeHash: string; expiresAt: Date },
 ): Promise<ChallengeRow> {
   const rows = await db.insert(verificationChallenges).values(values).returning();
@@ -17,8 +17,8 @@ export async function insertChallenge(
   return row;
 }
 
-/** The most recent sign-up challenge for a number, used by the cooldown and by verification. */
-export async function latestChallenge(db: Database, phone: string): Promise<ChallengeRow | null> {
+/** The most recent sign-up challenge for a number. */
+export async function latestChallenge(db: Executor, phone: string): Promise<ChallengeRow | null> {
   const rows = await db
     .select()
     .from(verificationChallenges)
@@ -30,9 +30,8 @@ export async function latestChallenge(db: Database, phone: string): Promise<Chal
   return rows[0] ?? null;
 }
 
-/** Codes issued for a number since a moment, for the hourly cap (AUTH-07). */
 export async function countChallengesSince(
-  db: Database,
+  db: Executor,
   phone: string,
   since: Date,
 ): Promise<number> {
@@ -49,11 +48,8 @@ export async function countChallengesSince(
   return rows[0]?.total ?? 0;
 }
 
-/**
- * Counts one wrong attempt atomically and returns the new total, so two parallel wrong guesses
- * cannot both read the same count and miss the lock.
- */
-export async function recordWrongAttempt(db: Database, challengeId: string): Promise<number> {
+/** Counts one wrong attempt atomically and returns the new total, so parallel guesses cannot miss the lock. */
+export async function recordWrongAttempt(db: Executor, challengeId: string): Promise<number> {
   const rows = await db
     .update(verificationChallenges)
     .set({ attempts: sql`${verificationChallenges.attempts} + 1` })
@@ -62,16 +58,25 @@ export async function recordWrongAttempt(db: Database, challengeId: string): Pro
   return rows[0]?.attempts ?? 0;
 }
 
-export async function lockChallenge(db: Database, challengeId: string, until: Date): Promise<void> {
+export async function lockChallenge(db: Executor, challengeId: string, until: Date): Promise<void> {
   await db
     .update(verificationChallenges)
     .set({ lockedUntil: until })
     .where(eq(verificationChallenges.id, challengeId));
 }
 
-export async function insertSmsMessage(
-  db: Database,
-  message: { toPhone: string; kind: string; body: string },
-): Promise<void> {
-  await db.insert(smsOutbox).values(message);
+/** Marks a challenge used only if it was not used before. Returns false when another request got there first. */
+export async function consumeChallenge(
+  db: Executor,
+  challengeId: string,
+  at: Date,
+): Promise<boolean> {
+  const rows = await db
+    .update(verificationChallenges)
+    .set({ consumedAt: at })
+    .where(
+      and(eq(verificationChallenges.id, challengeId), isNull(verificationChallenges.consumedAt)),
+    )
+    .returning({ id: verificationChallenges.id });
+  return rows.length === 1;
 }

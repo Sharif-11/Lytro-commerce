@@ -6,19 +6,15 @@ import {
   Injectable,
   NotFoundException,
   ServiceUnavailableException,
-  SetMetadata,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { timingSafeEqual } from 'node:crypto';
-import type { CachedTenant } from './tenant-cache';
-import { TenantResolver } from './tenant-resolver.service';
-import { TRUSTED_EDGE_SECRET } from './tokens';
+import { SKIP_TENANT } from '../decorators/skip-tenant';
+import type { CachedTenant } from '../../tenancy/services/tenant-cache';
+import { TenantResolver } from '../../tenancy/services/tenant-resolver.service';
+import { TRUSTED_EDGE_SECRET } from '../../tenancy/tokens';
 
 export const EDGE_HEADER = 'x-lytronix-edge-secret';
-export const SKIP_TENANT = 'skipTenant';
-
-/** Marks a route that works without a shop, such as /health (decision R6). */
-export const SkipTenant = (): MethodDecorator & ClassDecorator => SetMetadata(SKIP_TENANT, true);
 
 // The subset of the HTTP request the guard reads and writes. Kept loose so this file does not depend on Express types.
 export interface TenantRequest {
@@ -38,9 +34,9 @@ export function edgeSecretMatches(
 }
 
 /**
- * Runs before authentication on every route. Refuses requests that did not pass through the trusted
- * edge (when a secret is configured), resolves the shop from the host, and attaches it to the request.
- * The error messages are generic: they never say whether a host exists or why a shop is closed.
+ * Runs before authentication on every route. Refuses requests that did not pass through the trusted edge
+ * (when a secret is configured), resolves the shop from the host, and attaches it to the request.
+ * Error messages are generic: they never say whether a host exists or why a shop is closed.
  */
 @Injectable()
 export class TenantGuard implements CanActivate {
@@ -63,7 +59,7 @@ export class TenantGuard implements CanActivate {
       throw new ForbiddenException('Request not accepted.');
     }
 
-    const result = await this.resolver.resolve(headerValue(request.headers['host']));
+    const result = await this.resolver.resolve(headerValue(request.headers.host));
     if (result.outcome === 'not_found') throw new NotFoundException('Page not found.');
     if (result.outcome === 'closed') {
       throw new ServiceUnavailableException('This shop is not available right now.');

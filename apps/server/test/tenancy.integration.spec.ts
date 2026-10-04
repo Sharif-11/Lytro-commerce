@@ -8,12 +8,15 @@ import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createDatabase, type DatabaseHandle } from '@lytronix/db';
 import { prepareTestDatabase, seedShop } from './support/database';
-import { HealthController } from '../src/health.controller';
-import { DrizzleSlugAvailability, DrizzleTenantDirectory } from '../src/tenancy/tenant-directory';
-import { SlugService } from '../src/tenancy/slug.service';
-import { TenantCache } from '../src/tenancy/tenant-cache';
-import { EDGE_HEADER, TenantGuard, type TenantRequest } from '../src/tenancy/tenant.guard';
-import { TenantResolver } from '../src/tenancy/tenant-resolver.service';
+import { HealthController } from '../src/health/health.controller';
+import {
+  DrizzleSlugAvailability,
+  DrizzleTenantDirectory,
+} from '../src/database/adapters/tenancy.adapter';
+import { SlugService } from '../src/tenancy/services/slug.service';
+import { TenantCache } from '../src/tenancy/services/tenant-cache';
+import { EDGE_HEADER, TenantGuard, type TenantRequest } from '../src/common/guards/tenant.guard';
+import { TenantResolver } from '../src/tenancy/services/tenant-resolver.service';
 import {
   PLATFORM_DOMAIN,
   SLUG_AVAILABILITY,

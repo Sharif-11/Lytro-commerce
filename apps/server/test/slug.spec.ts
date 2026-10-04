@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { SlugService, type SlugAvailability } from '../src/tenancy/slug.service';
+import { SlugService, type SlugAvailability } from '../src/tenancy/services/slug.service';
 import {
   MAX_SLUG_LENGTH,
   stripNumericSuffix,
   suffixCandidates,
   suggestBase,
-} from '../src/tenancy/slug-rules';
+} from '../src/tenancy/services/slug-rules';
 
 describe('suggestBase (AUTH-11)', () => {
   it('turns the Latin letters of a name into a slug', () => {

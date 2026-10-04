@@ -4,10 +4,13 @@ import { Test } from '@nestjs/testing';
 import { request as httpRequest, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { HealthController } from '../src/health.controller';
-import { TenantCache, type CachedTenant } from '../src/tenancy/tenant-cache';
-import { TenantGuard, EDGE_HEADER, type TenantRequest } from '../src/tenancy/tenant.guard';
-import { TenantResolver, type TenantDirectory } from '../src/tenancy/tenant-resolver.service';
+import { HealthController } from '../src/health/health.controller';
+import { TenantCache, type CachedTenant } from '../src/tenancy/services/tenant-cache';
+import { TenantGuard, EDGE_HEADER, type TenantRequest } from '../src/common/guards/tenant.guard';
+import {
+  TenantResolver,
+  type TenantDirectory,
+} from '../src/tenancy/services/tenant-resolver.service';
 import { PLATFORM_DOMAIN, TENANT_DIRECTORY, TRUSTED_EDGE_SECRET } from '../src/tenancy/tokens';
 
 // Runs the real Nest pipeline over HTTP: guard, resolver and routes. Unit tests cover the rules;

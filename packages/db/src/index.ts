@@ -3,24 +3,32 @@ export * from './schema';
 export { createDatabase, type Database, type DatabaseHandle } from './client';
 export { runMigrations } from './migrate';
 export {
+  isUniqueViolation,
+  runInTransaction,
+  setTenantContext,
+  type Executor,
+  type Transaction,
+} from './transactions';
+export {
   findTenantByActiveDomain,
   findTenantBySlug,
   type TenantLookupRow,
 } from './repositories/tenancy/tenant-lookup';
 export { findUnavailableSlugs } from './repositories/tenancy/slug-availability';
+export { findPlanByName, insertTenant } from './repositories/tenancy/tenants';
 export {
   countChallengesSince,
+  consumeChallenge,
   insertChallenge,
-  insertSmsMessage,
   latestChallenge,
   lockChallenge,
   recordWrongAttempt,
   type ChallengeRow,
-} from './repositories/signup/verification';
+} from './repositories/identity/challenges';
 export {
-  createShopForVerifiedPhone,
-  SignupConflict,
-  type CreateShopInput,
-  type CreatedShop,
-  type SignupConflictReason,
-} from './repositories/signup/create-shop';
+  findPhoneIdentity,
+  insertPhoneIdentity,
+  insertSubscriber,
+} from './repositories/identity/accounts';
+export { insertOwnerUser } from './repositories/staff/users';
+export { insertSmsMessage } from './repositories/messaging/sms';

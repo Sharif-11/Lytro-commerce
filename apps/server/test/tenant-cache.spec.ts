@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { TenantCache } from '../src/tenancy/tenant-cache';
+import { TenantCache } from '../src/tenancy/services/tenant-cache';
 
 const SHOP = { id: 'shop-1', slug: 'fashion-house', state: 'active' };
 

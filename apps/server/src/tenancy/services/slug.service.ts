@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { isValidSlug } from './host';
 import { stripNumericSuffix, suffixCandidates, suggestBase } from './slug-rules';
-import { SLUG_AVAILABILITY } from './tokens';
+import { SLUG_AVAILABILITY } from '../tokens';
 
 // Which of a batch of candidate slugs are held by a shop or reserved. Implemented over the database.
 export interface SlugAvailability {

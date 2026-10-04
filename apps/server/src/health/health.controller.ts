@@ -1,5 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
-import { SkipTenant } from './tenancy/tenant.guard';
+import { SkipTenant } from '../common/decorators/skip-tenant';
 
 export interface HealthReport {
   status: 'ok';

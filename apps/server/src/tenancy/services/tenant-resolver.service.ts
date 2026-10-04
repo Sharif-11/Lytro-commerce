@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { classifyHost, normalizeHost } from './host';
 import { TenantCache, type CachedTenant } from './tenant-cache';
-import { PLATFORM_DOMAIN, TENANT_DIRECTORY } from './tokens';
+import { PLATFORM_DOMAIN, TENANT_DIRECTORY } from '../tokens';
 
 // Where the database lookups come from. The Drizzle implementation lives in tenant-directory.ts,
 // so this service can be tested with a fake.

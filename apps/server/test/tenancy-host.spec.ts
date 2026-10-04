@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { classifyHost, isValidSlug, normalizeHost } from '../src/tenancy/host';
+import { classifyHost, isValidSlug, normalizeHost } from '../src/tenancy/services/host';
 
 describe('normalizeHost (TEN-7a)', () => {
   it('lowercases and drops the port', () => {

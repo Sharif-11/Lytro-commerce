@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeBdPhone } from '../src/signup/phone';
-import { CODE_LENGTH, codeMatches, generateCode, hashCode } from '../src/signup/otp';
+import { normalizeBdPhone } from '../src/identity/services/phone-number';
+import {
+  CODE_LENGTH,
+  codeMatches,
+  generateCode,
+  hashCode,
+} from '../src/identity/services/one-time-code';
 
 const SECRET = 'o'.repeat(32);
 

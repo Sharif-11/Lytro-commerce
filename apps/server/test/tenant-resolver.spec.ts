@@ -2,14 +2,17 @@ import { ForbiddenException, NotFoundException, ServiceUnavailableException } fr
 import type { ExecutionContext } from '@nestjs/common';
 import type { Reflector } from '@nestjs/core';
 import { describe, expect, it } from 'vitest';
-import { TenantCache, type CachedTenant } from '../src/tenancy/tenant-cache';
+import { TenantCache, type CachedTenant } from '../src/tenancy/services/tenant-cache';
 import {
   TenantGuard,
   EDGE_HEADER,
   edgeSecretMatches,
   type TenantRequest,
-} from '../src/tenancy/tenant.guard';
-import { TenantResolver, type TenantDirectory } from '../src/tenancy/tenant-resolver.service';
+} from '../src/common/guards/tenant.guard';
+import {
+  TenantResolver,
+  type TenantDirectory,
+} from '../src/tenancy/services/tenant-resolver.service';
 
 const SECRET = 'e'.repeat(32);
 
