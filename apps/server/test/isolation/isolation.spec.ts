@@ -4,7 +4,7 @@ import { Test } from '@nestjs/testing';
 import { DiscoveryModule } from '@nestjs/core';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { AppModule } from '../../src/app.module';
+import { AppModule } from '../../src/app/app.module';
 import { prepareTestDatabase, seedShop } from '../support/database';
 import { ISOLATION_REGISTRY } from './registry';
 import { compareWithRegistry, listTenantRoutes } from './inventory';
@@ -78,6 +78,7 @@ beforeAll(async () => {
   if (!ADMIN_URL) return;
   const { adminDbUrl, appDbUrl } = await prepareTestDatabase(ADMIN_URL, DB_NAME);
   process.env['DATABASE_URL'] = appDbUrl;
+  process.env['OTP_SECRET'] ??= 'test-only-otp-secret-0123456789abcdef';
 
   admin = new pg.Client({ connectionString: adminDbUrl });
   await admin.connect();

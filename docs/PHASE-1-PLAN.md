@@ -74,6 +74,8 @@ Steps 1 to 5 live in shared guards and decorators, so no controller repeats them
 - **Dependency rules, enforced by lint (`import/no-cycle`):** `validators` and `shared-types` import no internal package. `db` imports only `validators`. The server imports `db`, `validators` and `shared-types`. Apps never import `db` directly.
 - **OpenAPI** is generated from the Zod schemas, not from decorators. API-15 is read accordingly.
 - **Owner password** lives on `control.subscribers.password_hash`. `tenant.users.password_hash` is null for the owner row and set only for staff.
+- **SMS delivery never blocks a request (SMS-18).** Messages are recorded in the same transaction as the change that caused them, sent after commit, and retried by a worker with backoff (1, 5, 15, 60 minutes; five attempts; then `failed` and a logged alert). A one-time code is sent during its request, its text is never stored, and a failed send is reported, because no code arrived.
+- **The SMS retry worker is the first background job.** The outbox holds platform-level messages, with no tenant data, so the job reads no tenant tables. P1-I04 becomes binding when a tenant-scoped message joins the outbox; that change must add the isolation case.
 - **Sessions** are `control.sessions`, in their own file, since they depend on identity and tenancy (no cycle, because nothing imports them).
 
 ---
@@ -153,6 +155,14 @@ Slice 3 comes before any tenant-scoped endpoint is written, so each later endpoi
 - **Delivers:** Bangladeshi phone validation with normalisation; OTP generation, storage as a hash, expiry, single use; the wrong-code lock; resend cooldown and hourly cap; subscriber, owner user and trial tenant created in one transaction; the trial plan from the seeded `control.plans`; the "shop ready" message through the stub.
 - **Requirements:** AUTH-01, AUTH-02, AUTH-04, AUTH-05, AUTH-06, AUTH-07, AUTH-09, AUTH-10, AUTH-21, SMS-18, TRL-01, TRL-02, TRL-05 (counter starts), TEN-15.
 - **Done when:** a new phone signs up end to end; a sixth wrong code is refused even when correct; a second resend within 60 seconds is refused with a retry hint; the trial is created with the trial limits; the shop-ready stub message contains the live URL.
+
+**Decisions (2026-10-04):**
+- **Phone only** in this slice. Email and Google/Facebook follow in a later slice.
+- **Codes are stored as a keyed hash** (HMAC-SHA256 with `OTP_SECRET`, bound to the phone number), not bcrypt.
+- **No device or IP trial limit** in this slice. One trial per verified phone is enforced by the unique phone identity (AUTH-08).
+- **Sign-up asks for no password.** The owner sets one later from account settings (AUTH-01, AUTH-03 amended). Until then sign-in is by one-time code (slice 5).
+- **After sign-up** the owner sees the "shop ready" message and is sent to sign in; sessions belong to slice 5.
+- **Lock belongs to the number:** a locked number cannot request a new code until the lock ends, so a lock cannot be reset by asking for a fresh code.
 
 ### Slice 5: sign-in, sessions and recovery
 - **Branch:** `feat/signin-sessions`

@@ -1,3 +1,6 @@
+import { EdgeSecret } from '../src/common/guards/edge-secret';
+import { HostClassifier } from '../src/modules/tenancy/services/host-classifier';
+import { SlugFormat } from '../src/modules/tenancy/services/slug-format';
 import 'dotenv/config';
 import { Controller, Get, type INestApplication, Req } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
@@ -6,20 +9,29 @@ import { request as httpRequest, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { createDatabase, type DatabaseHandle } from '@lytronix/db';
+import {
+  DatabaseConnector,
+  SlugRepository,
+  TenantRepository,
+  type DatabaseHandle,
+} from '@lytronix/db';
+import { DatabaseService } from '../src/database/database.service';
 import { prepareTestDatabase, seedShop } from './support/database';
-import { HealthController } from '../src/health.controller';
-import { DrizzleSlugAvailability, DrizzleTenantDirectory } from '../src/tenancy/tenant-directory';
-import { SlugService } from '../src/tenancy/slug.service';
-import { TenantCache } from '../src/tenancy/tenant-cache';
-import { EDGE_HEADER, TenantGuard, type TenantRequest } from '../src/tenancy/tenant.guard';
-import { TenantResolver } from '../src/tenancy/tenant-resolver.service';
+import { HealthController } from '../src/modules/health/health.controller';
+import {
+  DrizzleSlugAvailability,
+  DrizzleTenantDirectory,
+} from '../src/database/adapters/tenancy.adapter';
+import { SlugService } from '../src/modules/tenancy/services/slug.service';
+import { TenantCache } from '../src/modules/tenancy/services/tenant-cache';
+import { EDGE_HEADER, TenantGuard, type TenantRequest } from '../src/common/guards/tenant.guard';
+import { TenantResolver } from '../src/modules/tenancy/services/tenant-resolver.service';
 import {
   PLATFORM_DOMAIN,
   SLUG_AVAILABILITY,
   TENANT_DIRECTORY,
   TRUSTED_EDGE_SECRET,
-} from '../src/tenancy/tokens';
+} from '../src/modules/tenancy/tokens';
 
 // Covers the tenant resolver end to end against a real migrated database (P1-E05, P1-E06, TEN-24).
 // Runs only when DATABASE_TEST_ADMIN_URL is set, which CI always does. It uses its own database so it
@@ -60,6 +72,7 @@ const edge = { [EDGE_HEADER]: SECRET };
 
 let admin: pg.Client;
 let handle: DatabaseHandle;
+let database: Pick<DatabaseService, 'handle'>;
 let app: INestApplication;
 let port: number;
 let cache: TenantCache;
@@ -84,16 +97,23 @@ beforeAll(async () => {
     [shopId],
   );
 
-  handle = createDatabase(appDbUrl);
+  handle = new DatabaseConnector().connect(appDbUrl);
+  database = { handle };
   cache = new TenantCache();
   const moduleRef = await Test.createTestingModule({
     controllers: [ProbeController, HealthController],
     providers: [
-      { provide: TENANT_DIRECTORY, useValue: new DrizzleTenantDirectory(handle.db) },
-      { provide: SLUG_AVAILABILITY, useValue: new DrizzleSlugAvailability(handle.db) },
+      { provide: DatabaseService, useValue: database },
+      { provide: TenantRepository, useValue: new TenantRepository() },
+      { provide: SlugRepository, useValue: new SlugRepository() },
+      { provide: TENANT_DIRECTORY, useClass: DrizzleTenantDirectory },
+      { provide: SLUG_AVAILABILITY, useClass: DrizzleSlugAvailability },
       { provide: TenantCache, useValue: cache },
       { provide: PLATFORM_DOMAIN, useValue: 'localhost' },
       { provide: TRUSTED_EDGE_SECRET, useValue: SECRET },
+      SlugFormat,
+      HostClassifier,
+      EdgeSecret,
       TenantResolver,
       SlugService,
       { provide: APP_GUARD, useClass: TenantGuard },
@@ -170,17 +190,26 @@ describeIfDatabase('tenant resolution against the database (TEN-7a, TEN-24)', ()
 
 describeIfDatabase('slug suggestions against the database (AUTH-11, TEN-26)', () => {
   it('suggests the next free address when the name is taken', async () => {
-    const slugs = new SlugService(new DrizzleSlugAvailability(handle.db));
+    const slugs = new SlugService(
+      new DrizzleSlugAvailability(database, new SlugRepository()),
+      new SlugFormat(),
+    );
     expect(await slugs.suggest('Fashion House')).toBe('fashion-house-2');
   });
 
   it('suggests admin-2 for a shop named Admin, since admin is reserved', async () => {
-    const slugs = new SlugService(new DrizzleSlugAvailability(handle.db));
+    const slugs = new SlugService(
+      new DrizzleSlugAvailability(database, new SlugRepository()),
+      new SlugFormat(),
+    );
     expect(await slugs.suggest('Admin')).toBe('admin-2');
   });
 
   it('accepts a free address and refuses a taken one with a suggestion', async () => {
-    const slugs = new SlugService(new DrizzleSlugAvailability(handle.db));
+    const slugs = new SlugService(
+      new DrizzleSlugAvailability(database, new SlugRepository()),
+      new SlugFormat(),
+    );
     expect(await slugs.checkAddress('brand-new-shop')).toEqual({
       ok: true,
       address: 'brand-new-shop',
@@ -193,7 +222,10 @@ describeIfDatabase('slug suggestions against the database (AUTH-11, TEN-26)', ()
   });
 
   it('gives no suggestion for a Bangla-only shop name, so the owner types an address', async () => {
-    const slugs = new SlugService(new DrizzleSlugAvailability(handle.db));
+    const slugs = new SlugService(
+      new DrizzleSlugAvailability(database, new SlugRepository()),
+      new SlugFormat(),
+    );
     expect(await slugs.suggest('ফ্যাশন হাউস')).toBeNull();
   });
 });

@@ -1,5 +1,14 @@
 import { sql } from 'drizzle-orm';
 import {
+  DomainStatus,
+  KycStatus,
+  NAME_MAX_LENGTH,
+  SLUG_MAX_LENGTH,
+  type PlanLimits,
+  TenantState,
+} from '@lytronix/validators';
+import { tenantState } from '../enums';
+import {
   boolean,
   check,
   index,
@@ -16,19 +25,6 @@ import { plans } from './plans';
 import { subscriberIdentities, subscribers } from './identity';
 
 // Note: `control.tenant_state` is created by the migration; declared here for the columns that use it.
-export const tenantState = control.enum('tenant_state', [
-  'trial',
-  'pay_as_you_go',
-  'active',
-  'grace',
-  'read_only',
-  'locked',
-  'archived',
-  'deleted',
-]);
-
-export const KYC_STATUSES = ['unverified', 'pending', 'verified', 'revoked'] as const;
-export const DOMAIN_STATUSES = ['pending', 'active', 'failed', 'removed'] as const;
 
 // DATABASE-SCHEMA §2.2: a tenant is a shop. Its slug is generated once and never changes (AUTH-11).
 export const tenants = control.table(
@@ -44,11 +40,11 @@ export const tenants = control.table(
       .notNull()
       .references(() => subscribers.id),
     cellId: integer('cell_id').notNull().default(1), // SCL-07: always 1 at launch
-    shopName: varchar('shop_name', { length: 60 }).notNull(), // AUTH-01 cap
-    slug: varchar('slug', { length: 30 }).notNull().unique(), // AUTH-11, immutable after creation
-    state: tenantState('state').notNull().default('trial'),
+    shopName: varchar('shop_name', { length: NAME_MAX_LENGTH }).notNull(), // AUTH-01 cap
+    slug: varchar('slug', { length: SLUG_MAX_LENGTH }).notNull().unique(), // AUTH-11, immutable after creation
+    state: tenantState('state').$type<TenantState>().notNull().default(TenantState.Trial),
     planId: uuid('plan_id').references(() => plans.id),
-    planSnapshot: jsonb('plan_snapshot'), // PLN-02: frozen limits at purchase (Phase 2 writes it)
+    planSnapshot: jsonb('plan_snapshot').$type<PlanLimits>(), // PLN-02: frozen limits at purchase (Phase 2 writes it)
     periodStart: timestamp('period_start', { withTimezone: true }),
     periodEnd: timestamp('period_end', { withTimezone: true }),
     balanceAmount: numeric('balance_amount', { precision: 12, scale: 2 }).notNull().default('0'),
@@ -56,7 +52,7 @@ export const tenants = control.table(
     createdAt: createdAt(),
     suspendedAt: timestamp('suspended_at', { withTimezone: true }),
     suspendedReason: text('suspended_reason'),
-    kycStatus: text('kyc_status').notNull().default('unverified'), // KYC-16
+    kycStatus: text('kyc_status').notNull().default(KycStatus.Unverified), // KYC-16
   },
   (t) => [
     index('tenants_subscriber_idx').on(t.subscriberId),
@@ -64,7 +60,11 @@ export const tenants = control.table(
     index('tenants_cell_idx').on(t.cellId),
     check(
       'tenants_kyc_status_check',
-      sql`${t.kycStatus} in ('unverified','pending','verified','revoked')`,
+      sql`${t.kycStatus} in (${sql.raw(
+        Object.values(KycStatus)
+          .map((s) => `'${s}'`)
+          .join(','),
+      )})`,
     ),
   ],
 );
@@ -72,7 +72,7 @@ export const tenants = control.table(
 // TEN-19, TEN-26: slugs that no shop may take. Data, not code, so the list can change without a deploy (R4).
 // The migration seeds the initial list; the slug service reads it.
 export const reservedSlugs = control.table('reserved_slugs', {
-  slug: varchar('slug', { length: 30 }).primaryKey(),
+  slug: varchar('slug', { length: SLUG_MAX_LENGTH }).primaryKey(),
   reason: text('reason').notNull(),
   createdAt: createdAt(),
 });
@@ -86,7 +86,7 @@ export const tenantDomains = control.table(
       .notNull()
       .references(() => tenants.id),
     hostname: text('hostname').notNull().unique(),
-    status: text('status').notNull().default('pending'),
+    status: text('status').$type<DomainStatus>().notNull().default(DomainStatus.Pending),
     verifiedAt: timestamp('verified_at', { withTimezone: true }),
     createdAt: createdAt(),
   },
@@ -94,7 +94,23 @@ export const tenantDomains = control.table(
     index('tenant_domains_tenant_idx').on(t.tenantId),
     check(
       'tenant_domains_status_check',
-      sql`${t.status} in ('pending','active','failed','removed')`,
+      sql`${t.status} in (${sql.raw(
+        Object.values(DomainStatus)
+          .map((s) => `'${s}'`)
+          .join(','),
+      )})`,
     ),
   ],
 );
+
+export type SelectTenant = typeof tenants.$inferSelect;
+export type InsertTenant = typeof tenants.$inferInsert;
+export type UpdateTenant = Partial<InsertTenant>;
+
+export type SelectReservedSlug = typeof reservedSlugs.$inferSelect;
+export type InsertReservedSlug = typeof reservedSlugs.$inferInsert;
+export type UpdateReservedSlug = Partial<InsertReservedSlug>;
+
+export type SelectTenantDomain = typeof tenantDomains.$inferSelect;
+export type InsertTenantDomain = typeof tenantDomains.$inferInsert;
+export type UpdateTenantDomain = Partial<InsertTenantDomain>;

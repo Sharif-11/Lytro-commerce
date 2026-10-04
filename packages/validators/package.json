@@ -1,0 +1,38 @@
+{
+  "name": "@lytronix/validators",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint src",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "zod": "^3"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "vitest": "^2.1.2"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./common": {
+      "types": "./dist/common/index.d.ts",
+      "default": "./dist/common/index.js"
+    },
+    "./enums": {
+      "types": "./dist/db/enums.d.ts",
+      "default": "./dist/db/enums.js"
+    },
+    "./plans": {
+      "types": "./dist/db/plans/plan-limits.d.ts",
+      "default": "./dist/db/plans/plan-limits.js"
+    }
+  }
+}

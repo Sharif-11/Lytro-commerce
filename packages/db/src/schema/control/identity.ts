@@ -1,8 +1,8 @@
+import { identityKind } from '../enums';
 import { text, timestamp, uniqueIndex, uuid, index } from 'drizzle-orm/pg-core';
 import { control, createdAt } from '../shared';
 
 // Note: `control.identity_kind` is created by the migration; the enum is declared here so columns can use it.
-export const identityKind = control.enum('identity_kind', ['phone', 'email', 'facebook']);
 
 // DATABASE-SCHEMA §2.1: the account holder. The owner's password lives here, not on tenant.users.
 export const subscribers = control.table('subscribers', {
@@ -32,3 +32,11 @@ export const subscriberIdentities = control.table(
     index('subscriber_identities_subscriber_idx').on(t.subscriberId),
   ],
 );
+
+export type SelectSubscriber = typeof subscribers.$inferSelect;
+export type InsertSubscriber = typeof subscribers.$inferInsert;
+export type UpdateSubscriber = Partial<InsertSubscriber>;
+
+export type SelectSubscriberIdentity = typeof subscriberIdentities.$inferSelect;
+export type InsertSubscriberIdentity = typeof subscriberIdentities.$inferInsert;
+export type UpdateSubscriberIdentity = Partial<InsertSubscriberIdentity>;

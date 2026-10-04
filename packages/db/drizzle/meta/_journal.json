@@ -22,6 +22,20 @@
       "when": 1791056322946,
       "tag": "0002_wonderful_the_anarchist",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791104504929,
+      "tag": "0003_broken_quicksilver",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791106323351,
+      "tag": "0004_freezing_supreme_intelligence",
+      "breakpoints": true
     }
   ]
 }

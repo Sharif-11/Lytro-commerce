@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { TenantCache } from '../src/tenancy/tenant-cache';
+import { TenantState } from '@lytronix/validators';
+import { TenantCache } from '../src/modules/tenancy/services/tenant-cache';
 
-const SHOP = { id: 'shop-1', slug: 'fashion-house', state: 'active' };
+const SHOP = { id: 'shop-1', slug: 'fashion-house', state: TenantState.Active };
 
 function clock(start = 0) {
   let current = start;
@@ -34,7 +35,7 @@ describe('TenantCache (R5)', () => {
     const cache = new TenantCache();
     cache.set('fashion-house.localhost', SHOP);
     cache.set('shop.fashionhouse.com', SHOP);
-    cache.set('other.localhost', { id: 'shop-2', slug: 'other', state: 'active' });
+    cache.set('other.localhost', { id: 'shop-2', slug: 'other', state: TenantState.Active });
     cache.invalidateTenant('shop-1');
     expect(cache.get('fashion-house.localhost')).toBeUndefined();
     expect(cache.get('shop.fashionhouse.com')).toBeUndefined();

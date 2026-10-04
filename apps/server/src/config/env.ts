@@ -18,6 +18,12 @@ const envSchema = z.object({
   // Shared secret that Cloudflare adds to every forwarded request (decision R3).
   // Required in production; empty in development, where the check is switched off.
   TRUSTED_EDGE_SECRET: z.string().min(32).optional(),
+  // Key for the keyed hash of one-time codes (AUTH-05). A stolen database alone cannot reveal codes.
+  OTP_SECRET: z.string().min(32, 'OTP_SECRET is required; at least 32 characters'),
+  // Connection pool (ENGINEERING-STANDARDS §5). Defaults suit one server; size the total for each deployment.
+  DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(100).default(5),
+  DATABASE_CONNECT_TIMEOUT_MS: z.coerce.number().int().positive().default(5000),
+  DATABASE_STATEMENT_TIMEOUT_MS: z.coerce.number().int().positive().default(10000),
 });
 
 const envWithEdgeRule = envSchema.superRefine((value, ctx) => {
@@ -32,13 +38,16 @@ const envWithEdgeRule = envSchema.superRefine((value, ctx) => {
 
 export type Env = z.infer<typeof envSchema>;
 
-export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
-  const parsed = envWithEdgeRule.safeParse(source);
-  if (!parsed.success) {
-    const problems = parsed.error.issues.map(
-      (issue) => `${issue.path.join('.')}: ${issue.message}`,
-    );
-    throw new Error(`Invalid environment configuration: ${problems.join('; ')}`);
+/** Reads and validates the settings. Throws, naming each invalid variable, when the configuration is unusable. */
+export class EnvironmentParser {
+  parse(source: NodeJS.ProcessEnv = process.env): Env {
+    const parsed = envWithEdgeRule.safeParse(source);
+    if (!parsed.success) {
+      const problems = parsed.error.issues.map(
+        (issue) => `${issue.path.join('.')}: ${issue.message}`,
+      );
+      throw new Error(`Invalid environment configuration: ${problems.join('; ')}`);
+    }
+    return parsed.data;
   }
-  return parsed.data;
 }

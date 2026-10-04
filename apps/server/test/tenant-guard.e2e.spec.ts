@@ -1,22 +1,32 @@
+import { EdgeSecret } from '../src/common/guards/edge-secret';
+import { HostClassifier } from '../src/modules/tenancy/services/host-classifier';
+import { SlugFormat } from '../src/modules/tenancy/services/slug-format';
 import { Controller, Get, type INestApplication, Req } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
 import { request as httpRequest, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { HealthController } from '../src/health.controller';
-import { TenantCache, type CachedTenant } from '../src/tenancy/tenant-cache';
-import { TenantGuard, EDGE_HEADER, type TenantRequest } from '../src/tenancy/tenant.guard';
-import { TenantResolver, type TenantDirectory } from '../src/tenancy/tenant-resolver.service';
-import { PLATFORM_DOMAIN, TENANT_DIRECTORY, TRUSTED_EDGE_SECRET } from '../src/tenancy/tokens';
+import { HealthController } from '../src/modules/health/health.controller';
+import { TenantCache } from '../src/modules/tenancy/services/tenant-cache';
+import { type CachedTenant } from '../src/modules/tenancy/types/cached-tenant';
+import { TenantState } from '@lytronix/validators';
+import { TenantGuard, EDGE_HEADER, type TenantRequest } from '../src/common/guards/tenant.guard';
+import { TenantResolver } from '../src/modules/tenancy/services/tenant-resolver.service';
+import { type TenantDirectory } from '../src/modules/tenancy/ports/tenant-directory';
+import {
+  PLATFORM_DOMAIN,
+  TENANT_DIRECTORY,
+  TRUSTED_EDGE_SECRET,
+} from '../src/modules/tenancy/tokens';
 
 // Runs the real Nest pipeline over HTTP: guard, resolver and routes. Unit tests cover the rules;
 // this covers that the guard is actually applied to a route.
 const SECRET = 'e'.repeat(32);
 
 const shops: Record<string, CachedTenant> = {
-  'fashion-house': { id: 'shop-1', slug: 'fashion-house', state: 'active' },
-  'closed-shop': { id: 'shop-2', slug: 'closed-shop', state: 'archived' },
+  'fashion-house': { id: 'shop-1', slug: 'fashion-house', state: TenantState.Active },
+  'closed-shop': { id: 'shop-2', slug: 'closed-shop', state: TenantState.Archived },
 };
 
 const directory: TenantDirectory = {
@@ -63,6 +73,9 @@ beforeAll(async () => {
       { provide: TenantCache, useFactory: () => new TenantCache() },
       { provide: PLATFORM_DOMAIN, useValue: 'localhost' },
       { provide: TRUSTED_EDGE_SECRET, useValue: SECRET },
+      SlugFormat,
+      HostClassifier,
+      EdgeSecret,
       TenantResolver,
       { provide: APP_GUARD, useClass: TenantGuard },
     ],

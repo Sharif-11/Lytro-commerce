@@ -1,25 +1,26 @@
+import { EdgeSecret } from '../src/common/guards/edge-secret';
+import { HostClassifier } from '../src/modules/tenancy/services/host-classifier';
+import { SlugFormat } from '../src/modules/tenancy/services/slug-format';
 import { ForbiddenException, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import type { ExecutionContext } from '@nestjs/common';
 import type { Reflector } from '@nestjs/core';
+import { TenantState } from '@lytronix/validators';
 import { describe, expect, it } from 'vitest';
-import { TenantCache, type CachedTenant } from '../src/tenancy/tenant-cache';
-import {
-  TenantGuard,
-  EDGE_HEADER,
-  edgeSecretMatches,
-  type TenantRequest,
-} from '../src/tenancy/tenant.guard';
-import { TenantResolver, type TenantDirectory } from '../src/tenancy/tenant-resolver.service';
+import { TenantCache } from '../src/modules/tenancy/services/tenant-cache';
+import { type CachedTenant } from '../src/modules/tenancy/types/cached-tenant';
+import { TenantGuard, EDGE_HEADER, type TenantRequest } from '../src/common/guards/tenant.guard';
+import { TenantResolver } from '../src/modules/tenancy/services/tenant-resolver.service';
+import { type TenantDirectory } from '../src/modules/tenancy/ports/tenant-directory';
 
 const SECRET = 'e'.repeat(32);
 
 const shops: Record<string, CachedTenant> = {
-  'fashion-house': { id: 'shop-1', slug: 'fashion-house', state: 'active' },
-  'closed-shop': { id: 'shop-2', slug: 'closed-shop', state: 'archived' },
-  'readonly-shop': { id: 'shop-3', slug: 'readonly-shop', state: 'read_only' },
+  'fashion-house': { id: 'shop-1', slug: 'fashion-house', state: TenantState.Active },
+  'closed-shop': { id: 'shop-2', slug: 'closed-shop', state: TenantState.Archived },
+  'readonly-shop': { id: 'shop-3', slug: 'readonly-shop', state: TenantState.ReadOnly },
 };
 const customDomains: Record<string, CachedTenant> = {
-  'www.fashionhouse.com': { id: 'shop-1', slug: 'fashion-house', state: 'active' },
+  'www.fashionhouse.com': { id: 'shop-1', slug: 'fashion-house', state: TenantState.Active },
 };
 
 function fakeDirectory() {
@@ -40,7 +41,15 @@ function fakeDirectory() {
 function resolverWith(now = () => 0) {
   const { directory, calls } = fakeDirectory();
   const cache = new TenantCache(60_000, now);
-  return { resolver: new TenantResolver(directory, cache, 'localhost'), calls, cache };
+  return {
+    resolver: new TenantResolver(
+      directory,
+      cache,
+      new HostClassifier('localhost', new SlugFormat()),
+    ),
+    calls,
+    cache,
+  };
 }
 
 describe('TenantResolver (TEN-7a, TEN-24)', () => {
@@ -103,12 +112,12 @@ describe('TenantResolver (TEN-7a, TEN-24)', () => {
   });
 });
 
-describe('edgeSecretMatches (R3)', () => {
+describe('EdgeSecret.matches (R3)', () => {
   it('accepts the exact secret and refuses anything else', () => {
-    expect(edgeSecretMatches(SECRET, SECRET)).toBe(true);
-    expect(edgeSecretMatches(`${SECRET}x`, SECRET)).toBe(false);
-    expect(edgeSecretMatches(undefined, SECRET)).toBe(false);
-    expect(edgeSecretMatches(['a', 'b'], SECRET)).toBe(false);
+    expect(new EdgeSecret(SECRET).matches(SECRET)).toBe(true);
+    expect(new EdgeSecret(SECRET).matches(`${SECRET}x`)).toBe(false);
+    expect(new EdgeSecret(SECRET).matches(undefined)).toBe(false);
+    expect(new EdgeSecret(SECRET).matches(['a', 'b'])).toBe(false);
   });
 });
 
@@ -127,7 +136,7 @@ describe('TenantGuard (TEN-7a, R3, R6)', () => {
     const { resolver } = resolverWith();
     const request: TenantRequest = { headers: { host: 'fashion-house.localhost' } };
     const { reflector, context } = contextFor(request);
-    const guard = new TenantGuard(resolver, reflector, undefined);
+    const guard = new TenantGuard(resolver, reflector, new EdgeSecret(undefined));
     expect(await guard.canActivate(context)).toBe(true);
     expect(request.tenant).toEqual(shops['fashion-house']);
   });
@@ -136,7 +145,7 @@ describe('TenantGuard (TEN-7a, R3, R6)', () => {
     const { resolver } = resolverWith();
     const request: TenantRequest = { headers: { host: 'nobody.localhost' } };
     const { reflector, context } = contextFor(request);
-    const guard = new TenantGuard(resolver, reflector, undefined);
+    const guard = new TenantGuard(resolver, reflector, new EdgeSecret(undefined));
     await expect(guard.canActivate(context)).rejects.toBeInstanceOf(NotFoundException);
     expect(request.tenant).toBeUndefined();
   });
@@ -145,7 +154,7 @@ describe('TenantGuard (TEN-7a, R3, R6)', () => {
     const { resolver } = resolverWith();
     const request: TenantRequest = { headers: { host: 'closed-shop.localhost' } };
     const { reflector, context } = contextFor(request);
-    const guard = new TenantGuard(resolver, reflector, undefined);
+    const guard = new TenantGuard(resolver, reflector, new EdgeSecret(undefined));
     await expect(guard.canActivate(context)).rejects.toBeInstanceOf(ServiceUnavailableException);
     expect(request.tenant).toBeUndefined();
   });
@@ -157,7 +166,7 @@ describe('TenantGuard (TEN-7a, R3, R6)', () => {
       body: { tenant_id: 'shop-2' },
     } as TenantRequest;
     const { reflector, context } = contextFor(request);
-    const guard = new TenantGuard(resolver, reflector, undefined);
+    const guard = new TenantGuard(resolver, reflector, new EdgeSecret(undefined));
     await guard.canActivate(context);
     expect(request.tenant?.id).toBe('shop-1');
   });
@@ -166,7 +175,7 @@ describe('TenantGuard (TEN-7a, R3, R6)', () => {
     const { resolver } = resolverWith();
     const request: TenantRequest = { headers: { host: 'fashion-house.localhost' } };
     const { reflector, context } = contextFor(request);
-    const guard = new TenantGuard(resolver, reflector, SECRET);
+    const guard = new TenantGuard(resolver, reflector, new EdgeSecret(SECRET));
     await expect(guard.canActivate(context)).rejects.toBeInstanceOf(ForbiddenException);
   });
 
@@ -176,7 +185,7 @@ describe('TenantGuard (TEN-7a, R3, R6)', () => {
       headers: { host: 'fashion-house.localhost', [EDGE_HEADER]: SECRET },
     };
     const { reflector, context } = contextFor(request);
-    const guard = new TenantGuard(resolver, reflector, SECRET);
+    const guard = new TenantGuard(resolver, reflector, new EdgeSecret(SECRET));
     expect(await guard.canActivate(context)).toBe(true);
   });
 
@@ -184,7 +193,7 @@ describe('TenantGuard (TEN-7a, R3, R6)', () => {
     const { resolver } = resolverWith();
     const request: TenantRequest = { headers: {} };
     const { reflector, context } = contextFor(request, true);
-    const guard = new TenantGuard(resolver, reflector, SECRET);
+    const guard = new TenantGuard(resolver, reflector, new EdgeSecret(SECRET));
     expect(await guard.canActivate(context)).toBe(true);
     expect(request.tenant).toBeUndefined();
   });

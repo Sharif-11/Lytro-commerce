@@ -128,14 +128,15 @@ Defaults [to confirm]:
 | 409 | `conflict` | Duplicate or state conflict |
 | 429 | `rate_limited` | Per-minute limit; carries `Retry-After` |
 | 429 | `quota_exceeded` | Monthly quota reached |
+| 503 | `service_unavailable` | A required outside service (such as the SMS provider) could not be reached, so the action did not complete. Carries `Retry-After` when a retry time is known. Added 2026-10-04 |
 
 ## 3. Sign-up, sign-in and account security (AUTH)
 
 | ID | Requirement | Pass criteria | Pri | Ver |
 | --- | --- | --- | --- | --- |
-| AUTH-01 | The sign-up form shall collect shop name (required, up to [60] characters) and owner name, and shall verify the subscriber through exactly one of: a phone number (by SMS one-time code), an email address (by a one-time code or link), or Google/Facebook sign-in (by the provider's own OAuth flow); a password is additionally required unless the account was created through Google or Facebook (AUTH-24). | A missing shop name, or one over 60 characters, returns a field-level error and creates nothing; sign-up succeeds with any one verified identity. | M | E2E |
+| AUTH-01 | The sign-up form shall collect shop name (required, up to [60] characters) and owner name, and shall verify the subscriber through exactly one of: a phone number (by SMS one-time code), an email address (by a one-time code or link), or Google/Facebook sign-in (by the provider's own OAuth flow); a password is additionally required unless the account was created through Google or Facebook (AUTH-24) or through a phone one-time code. A phone sign-up asks for no password: the owner may set one later from account settings, after which sign-in may use the password instead of a one-time code. | A missing shop name, or one over 60 characters, returns a field-level error and creates nothing; sign-up succeeds with any one verified identity. | M | E2E |
 | AUTH-02 | Where a phone number is provided (as the chosen verifier, or added later to an account verified another way), it shall be a Bangladeshi mobile number (`01[3-9]` followed by 8 digits); a leading +88 or 88 is normalised. | `+8801711111111` is stored as `01711111111`; `0171111` and `02123456789` are rejected with `validation_error`. | M | API |
-| AUTH-03 | Where a password is required (AUTH-01), it shall be at least [8] characters. | A 7-character password is rejected; 8 is accepted; an account created through Google or Facebook is not asked for one. | M | API |
+| AUTH-03 | Where a password is required or set later (AUTH-01), it shall be at least [8] characters and at most [20]. | A 7-character password is rejected; 8 is accepted; an account created through Google or Facebook is not asked for one. | M | API |
 | AUTH-04 | Sign-up shall verify whichever identity was chosen (AUTH-01) before the tenant is created: a phone or email by its one-time code, or Google/Facebook by completing the provider's OAuth flow. | No tenant exists until the chosen identity is verified. | M | E2E |
 | AUTH-05 | A phone or email one-time code shall be [6] digits, valid for [5] minutes, single-use. | Expired or reused code is rejected; a correct code inside the window succeeds once, for either a phone or an email verification. | M | API |
 | AUTH-06 | After [5] wrong codes (phone or email) the verification shall lock for [15] minutes. | The sixth attempt returns `rate_limited` even with the correct code until the lock ends. | M | API |

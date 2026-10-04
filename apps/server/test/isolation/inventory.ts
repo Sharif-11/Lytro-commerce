@@ -2,7 +2,7 @@ import 'reflect-metadata';
 import { RequestMethod, type INestApplication } from '@nestjs/common';
 import { METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants';
 import { DiscoveryService, MetadataScanner } from '@nestjs/core';
-import { SKIP_TENANT } from '../../src/tenancy/tenant.guard';
+import { SKIP_TENANT } from '../../src/common/decorators/skip-tenant';
 
 // SEC-02: lists every route the running application registers that is scoped to a shop.
 // Routes marked SkipTenant (health, and later any platform-level route) are not shop-owned and are left out.

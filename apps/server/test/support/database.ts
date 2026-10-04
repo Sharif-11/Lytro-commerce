@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import pg from 'pg';
-import { runMigrations } from '@lytronix/db';
+import { MigrationRunner } from '@lytronix/db';
 
 // Shared setup for server tests that need a migrated database. Each suite names its own database,
 // so suites running in parallel under Turbo never drop each other's data.
@@ -44,7 +44,7 @@ export async function prepareTestDatabase(
   }
 
   const adminDbUrl = withDatabase(adminUrl, database);
-  await runMigrations(adminDbUrl);
+  await new MigrationRunner().run(adminDbUrl);
   return {
     adminDbUrl,
     appDbUrl: withDatabase(adminUrl, database, APP_ROLE, APP_PASSWORD),

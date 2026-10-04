@@ -18,7 +18,18 @@
       "dependsOn": ["^build"],
       "cache": false,
       "persistent": true,
-      "env": ["NODE_ENV", "PORT", "HOST", "DATABASE_URL", "PLATFORM_DOMAIN", "TRUSTED_EDGE_SECRET"]
+      "env": [
+        "NODE_ENV",
+        "PORT",
+        "HOST",
+        "DATABASE_URL",
+        "DATABASE_POOL_MAX",
+        "DATABASE_CONNECT_TIMEOUT_MS",
+        "DATABASE_STATEMENT_TIMEOUT_MS",
+        "PLATFORM_DOMAIN",
+        "TRUSTED_EDGE_SECRET",
+        "OTP_SECRET"
+      ]
     }
   }
 }

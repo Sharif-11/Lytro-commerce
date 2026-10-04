@@ -15,10 +15,13 @@
   },
   "dependencies": {
     "@lytronix/db": "workspace:^",
+    "@lytronix/shared-types": "workspace:^",
+    "@lytronix/validators": "workspace:^",
     "@nestjs/common": "^10",
     "@nestjs/core": "^10",
     "@nestjs/platform-express": "^10",
     "dotenv": "^16",
+    "nestjs-zod": "^3",
     "reflect-metadata": "^0.2",
     "rxjs": "^7",
     "zod": "^3"

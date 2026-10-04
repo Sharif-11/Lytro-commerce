@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { HealthController } from '../src/health.controller';
+import { HealthController } from '../src/modules/health/health.controller';
 
 describe('HealthController', () => {
   it('reports ok with database not yet configured', () => {
