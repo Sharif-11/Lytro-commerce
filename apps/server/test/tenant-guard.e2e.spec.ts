@@ -1,3 +1,5 @@
+import { APP_FILTER } from '@nestjs/core';
+import { ApiErrorFilter } from '../src/common/api-error.filter';
 import { EdgeSecret } from '../src/common/guards/edge-secret';
 import { HostClassifier } from '../src/modules/tenancy/services/host-classifier';
 import { SlugFormat } from '../src/modules/tenancy/services/slug-format';
@@ -25,8 +27,18 @@ import {
 const SECRET = 'e'.repeat(32);
 
 const shops: Record<string, CachedTenant> = {
-  'fashion-house': { id: 'shop-1', slug: 'fashion-house', state: TenantState.Active },
-  'closed-shop': { id: 'shop-2', slug: 'closed-shop', state: TenantState.Archived },
+  'fashion-house': {
+    id: 'shop-1',
+    slug: 'fashion-house',
+    state: TenantState.Active,
+    suspendedAt: null,
+  },
+  'closed-shop': {
+    id: 'shop-2',
+    slug: 'closed-shop',
+    state: TenantState.Archived,
+    suspendedAt: null,
+  },
 };
 
 const directory: TenantDirectory = {
@@ -78,6 +90,7 @@ beforeAll(async () => {
       EdgeSecret,
       TenantResolver,
       { provide: APP_GUARD, useClass: TenantGuard },
+      { provide: APP_FILTER, useClass: ApiErrorFilter },
     ],
   }).compile();
 
@@ -106,9 +119,10 @@ describe('tenant guard over HTTP (TEN-7a, R3, R6)', () => {
     expect(response.body).not.toContain('shop-');
   });
 
-  it('answers a closed shop with 503 and no shop data', async () => {
+  it('answers a closed shop with 403 tenant_offline and no shop data', async () => {
     const response = await send(port, '/probe', { ...edge, host: 'closed-shop.localhost' });
-    expect(response.status).toBe(503);
+    expect(response.status).toBe(403);
+    expect(response.body).toContain('tenant_offline');
     expect(response.body).not.toContain('shop-2');
   });
 

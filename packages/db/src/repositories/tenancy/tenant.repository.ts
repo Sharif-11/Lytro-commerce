@@ -6,6 +6,7 @@ import { DomainStatus, type PlanLimits } from '@lytronix/validators';
 
 // Shop rows and their lookups. The trial period and plan choice are decided by the tenancy service.
 export interface TenantLookupRow {
+  suspendedAt: Date | null;
   id: string;
   slug: string;
   state: (typeof tenants.$inferSelect)['state'];
@@ -15,7 +16,12 @@ export class TenantRepository {
   /** Finds a shop by its address label, e.g. `fashion-house` for fashion-house.<platform domain>. */
   async findBySlug(db: Database, slug: string): Promise<TenantLookupRow | null> {
     const rows = await db
-      .select({ id: tenants.id, slug: tenants.slug, state: tenants.state })
+      .select({
+        id: tenants.id,
+        slug: tenants.slug,
+        state: tenants.state,
+        suspendedAt: tenants.suspendedAt,
+      })
       .from(tenants)
       .where(eq(tenants.slug, slug))
       .limit(1);
@@ -25,7 +31,12 @@ export class TenantRepository {
   /** The shop that owns a verified, active custom domain. Pending, failed and removed domains never match (TEN-12). */
   async findByActiveDomain(db: Database, hostname: string): Promise<TenantLookupRow | null> {
     const rows = await db
-      .select({ id: tenants.id, slug: tenants.slug, state: tenants.state })
+      .select({
+        id: tenants.id,
+        slug: tenants.slug,
+        state: tenants.state,
+        suspendedAt: tenants.suspendedAt,
+      })
       .from(tenantDomains)
       .innerJoin(tenants, eq(tenants.id, tenantDomains.tenantId))
       .where(

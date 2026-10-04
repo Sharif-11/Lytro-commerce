@@ -36,6 +36,7 @@ Items marked **Decision** need your answer before the slice they affect starts. 
 | D8 | Operator console login (ADM-01, ADM-18) | Build in Phase 1, as the implementation plan says, so the console is protected from its first screen. | Slice 10 |
 | D9 | Staff phone numbers unique platform-wide (STF-06) | Yes, as an assumption already marked in the SRS. | Slice 7 |
 | D10 | Language storage | Staff choice saved on the account; shopper choice saved on the device (I18N-02). | Slices 9 |
+| D11 | **Decided 2026-10-04:** closed shop response | A shop whose public side is offline answers 403 `tenant_offline` (SRS-detailed error table), with no shop data. Closed states are the lifecycle table states `read_only`, `locked`, `archived`, `deleted` (LIF-07), plus any suspended shop (LIF-24). The guard refuses with the standard error body. | Slice 2 |
 
 ---
 

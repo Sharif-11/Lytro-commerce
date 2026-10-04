@@ -1,3 +1,5 @@
+import { APP_FILTER } from '@nestjs/core';
+import { ApiErrorFilter } from '../src/common/api-error.filter';
 import { EdgeSecret } from '../src/common/guards/edge-secret';
 import { HostClassifier } from '../src/modules/tenancy/services/host-classifier';
 import { SlugFormat } from '../src/modules/tenancy/services/slug-format';
@@ -117,6 +119,7 @@ beforeAll(async () => {
       TenantResolver,
       SlugService,
       { provide: APP_GUARD, useClass: TenantGuard },
+      { provide: APP_FILTER, useClass: ApiErrorFilter },
     ],
   }).compile();
 
@@ -154,9 +157,9 @@ describeIfDatabase('tenant resolution against the database (TEN-7a, TEN-24)', ()
     expect((await send(port, '/probe', { ...edge, host: 'www.localhost' })).status).toBe(404);
   });
 
-  it('answers an archived shop with 503 and no shop id', async () => {
+  it('answers an archived shop with 403 tenant_offline and no shop id', async () => {
     const response = await send(port, '/probe', { ...edge, host: 'old-shop.localhost' });
-    expect(response.status).toBe(503);
+    expect(response.status).toBe(403);
     expect(response.body).not.toContain(archivedId);
   });
 
@@ -181,7 +184,7 @@ describeIfDatabase('tenant resolution against the database (TEN-7a, TEN-24)', ()
       ...edge,
       host: 'fashion-house.localhost',
     });
-    expect(afterInvalidate.status).toBe(503);
+    expect(afterInvalidate.status).toBe(403);
 
     await admin.query("UPDATE control.tenants SET state = 'active' WHERE id = $1", [shopId]);
     cache.invalidateTenant(shopId);
