@@ -18,6 +18,8 @@ const envSchema = z.object({
   // Shared secret that Cloudflare adds to every forwarded request (decision R3).
   // Required in production; empty in development, where the check is switched off.
   TRUSTED_EDGE_SECRET: z.string().min(32).optional(),
+  // Key for the keyed hash of one-time codes (AUTH-05). A stolen database alone cannot reveal codes.
+  OTP_SECRET: z.string().min(32, 'OTP_SECRET is required; at least 32 characters'),
 });
 
 const envWithEdgeRule = envSchema.superRefine((value, ctx) => {

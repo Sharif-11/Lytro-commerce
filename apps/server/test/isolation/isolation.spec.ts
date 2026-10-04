@@ -78,6 +78,7 @@ beforeAll(async () => {
   if (!ADMIN_URL) return;
   const { adminDbUrl, appDbUrl } = await prepareTestDatabase(ADMIN_URL, DB_NAME);
   process.env['DATABASE_URL'] = appDbUrl;
+  process.env['OTP_SECRET'] ??= 'test-only-otp-secret-0123456789abcdef';
 
   admin = new pg.Client({ connectionString: adminDbUrl });
   await admin.connect();
