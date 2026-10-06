@@ -73,3 +73,32 @@ describe('database pool settings', () => {
     );
   });
 });
+
+describe('edge settings (D14)', () => {
+  it('defaults the client address to the last entry of X-Forwarded-For, one trusted hop', () => {
+    const env = new EnvironmentParser().parse(BASE);
+    expect(env).toMatchObject({
+      CLIENT_IP_HEADER: 'x-forwarded-for',
+      CLIENT_IP_FORMAT: 'list',
+      TRUSTED_PROXY_HOPS: 1,
+    });
+  });
+
+  it('accepts a rotation secret only together with the current secret', () => {
+    expect(() =>
+      new EnvironmentParser().parse({ ...BASE, TRUSTED_EDGE_SECRET_NEXT: SECRET }),
+    ).toThrow(/TRUSTED_EDGE_SECRET_NEXT/);
+    const env = new EnvironmentParser().parse({
+      ...BASE,
+      TRUSTED_EDGE_SECRET: SECRET,
+      TRUSTED_EDGE_SECRET_NEXT: `${SECRET}-next`,
+    });
+    expect(env.TRUSTED_EDGE_SECRET_NEXT).toBe(`${SECRET}-next`);
+  });
+
+  it('refuses an unknown client address format', () => {
+    expect(() => new EnvironmentParser().parse({ ...BASE, CLIENT_IP_FORMAT: 'csv' })).toThrow(
+      /CLIENT_IP_FORMAT/,
+    );
+  });
+});
