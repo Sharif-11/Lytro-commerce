@@ -164,3 +164,35 @@ describeIfDatabase('an owner enrolled by email only (AUTH-10, AUTH-27)', () => {
     expect(notice?.body).toContain('http://email-only-shop.localhost');
   });
 });
+
+describeIfDatabase('resetting a password by emailed code (AUTH-27)', () => {
+  it('gives the same reply for a known and an unknown address, and sends a reset code only to the known one', async () => {
+    const email = freshEmail();
+    await post('/auth/email/code', { email });
+    await verify(email, mail.codeFor(email));
+
+    const known = await post('/auth/forgot-password/email', { email });
+    const unknown = await post('/auth/forgot-password/email', { email: freshEmail() });
+    expect(known.status).toBe(200);
+    expect(unknown.body).toEqual(known.body);
+    expect(mail.sent.some((m) => m.to === email && m.subject === 'Your password reset code')).toBe(
+      true,
+    );
+  });
+
+  it('opens a session that must set a password, after a correct emailed reset code', async () => {
+    const email = freshEmail();
+    await post('/auth/email/code', { email });
+    await verify(email, mail.codeFor(email));
+
+    await passCooldown(email);
+    await post('/auth/forgot-password/email', { email });
+    const reset = await post('/auth/forgot-password/email/verify', {
+      email,
+      code: mail.codeFor(email),
+    });
+    expect(reset.status).toBe(200);
+    expect(reset.body).toMatchObject({ next: 'set-password' });
+    expect(cookieFrom(reset)).toContain('lytronix_session=');
+  });
+});

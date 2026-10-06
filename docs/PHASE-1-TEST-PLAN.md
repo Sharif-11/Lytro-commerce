@@ -141,6 +141,16 @@ Each scenario lists its preconditions, numbered steps, expected result, and the 
 - Automated: `test/edge.e2e.spec.ts` (recorded addresses) and `test/client-ip.spec.ts` (ignored without the secret).
 - Covers: D14, AUTH-14.
 
+**P1-E36 Google and Facebook sign-in against fake providers. [API]**
+- Steps: list the providers; start a Google sign-in and return with a fresh code; repeat it with the same account; replay the state; start with one provider and return to the other; sign in with a Facebook account that shares no email.
+- Expected: the list shows both providers when switched on; a new account has no password and reaches create-shop; the same account signs back into the same subscriber; a replayed or foreign state is refused with 400; the Facebook account without email gets `recovery: facebook-only` once.
+- Covers: AUTH-24, AUTH-27, D19.
+
+**P1-E37 Sign-in methods on an account. [E2E]**
+- Steps: sign up by email; list identities; try to remove the only one; add a verified phone by code; try a number another account holds; remove the phone again.
+- Expected: the last identity cannot be removed (409); a held number is refused (409); a wrong code shows the attempts left; removal of another account's identity answers 404.
+- Covers: AUTH-08, AUTH-26.
+
 ### C. Other identities
 
 **P1-E17 Google sign-up and repeat sign-in. [E2E]**

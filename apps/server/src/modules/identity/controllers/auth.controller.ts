@@ -20,6 +20,7 @@ import { ForgotPasswordService } from '../services/forgot-password.service';
 import { PasswordSigninService } from '../services/password-signin.service';
 import { PasswordService } from '../services/password.service';
 import { EmailSigninService } from '../services/email-signin.service';
+import { ForgotPasswordEmailDto, VerifyForgotPasswordEmailDto } from '../dto/forgot-email.dto';
 import { SigninService } from '../services/signin.service';
 import type { NextStep } from '../types/signed-in';
 import { SessionService } from '../services/session.service';
@@ -115,6 +116,31 @@ export class AuthController {
     @Body(new ZodValidationPipe(ForgotPasswordDto.schema)) body: ForgotPasswordDto,
   ): Promise<CodeIssued> {
     return this.forgot.request(body.phone);
+  }
+
+  @Post('forgot-password/email')
+  @HttpCode(200)
+  requestResetByEmail(
+    @Body(new ZodValidationPipe(ForgotPasswordEmailDto.schema)) body: ForgotPasswordEmailDto,
+  ): Promise<CodeIssued> {
+    return this.forgot.requestByEmail(body.email);
+  }
+
+  @Post('forgot-password/email/verify')
+  @HttpCode(200)
+  async verifyResetByEmail(
+    @Body(new ZodValidationPipe(VerifyForgotPasswordEmailDto.schema))
+    body: VerifyForgotPasswordEmailDto,
+    @Req() request: HttpRequest,
+    @Res({ passthrough: true }) response: HttpResponse,
+  ): Promise<SignedInBody> {
+    const result = await this.forgot.verifyByEmail(
+      body.email,
+      body.code,
+      this.clientIp.context(request),
+    );
+    response.setHeader('Set-Cookie', result.cookie);
+    return { next: result.next, tenantId: result.tenantId, csrfToken: result.csrfToken };
   }
 
   @Post('forgot-password/verify')

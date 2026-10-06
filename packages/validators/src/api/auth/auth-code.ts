@@ -49,3 +49,16 @@ export const oauthCallbackSchema = z.object({
   state: z.string().min(1).max(128),
 });
 export type OauthCallbackInput = z.infer<typeof oauthCallbackSchema>;
+
+// POST auth/forgot-password/email — a reset code to a verified email (AUTH-27).
+export const forgotPasswordEmailSchema = z.object({
+  email: emailField,
+});
+export type ForgotPasswordEmailInput = z.infer<typeof forgotPasswordEmailSchema>;
+
+// POST auth/forgot-password/email/verify — verify the emailed reset code (AUTH-27).
+export const verifyForgotPasswordEmailSchema = z.object({
+  email: emailField,
+  code: codeField,
+});
+export type VerifyForgotPasswordEmailInput = z.infer<typeof verifyForgotPasswordEmailSchema>;

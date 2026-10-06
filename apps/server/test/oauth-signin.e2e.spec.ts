@@ -16,7 +16,7 @@ import {
 import { MAIL_PROVIDER } from '../src/modules/shared/mail/tokens';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { prepareTestDatabase } from './support/database';
-import { getJson, postJson, type HttpResult } from './support/http';
+import { cookieFrom, getJson, postJson, type HttpResult } from './support/http';
 import { MailCapture } from './support/mail-capture';
 import { SmsCapture } from './support/sms-capture';
 
@@ -171,5 +171,32 @@ describeIfDatabase('Google and Facebook sign-in (AUTH-24, AUTH-27)', () => {
     expect((await postJson(port, '/auth/email/code', { email: 'erin@example.com' })).status).toBe(
       200,
     );
+  });
+});
+
+describeIfDatabase('adding Google to a signed-in account (AUTH-26)', () => {
+  it('attaches a Google account to the signed-in account through the provider flow', async () => {
+    const email = `attach.${Math.random().toString(36).slice(2, 10)}@example.com`;
+    await postJson(port, '/auth/email/code', { email });
+    const signed = await postJson(port, '/auth/email/verify', { email, code: mail.codeFor(email) });
+    const cookie = cookieFrom(signed);
+    const csrfToken = (signed.body as { csrfToken: string }).csrfToken;
+
+    const started = await postJson(
+      port,
+      '/me/identities/oauth/google/start',
+      {},
+      { host: 'localhost', cookie, 'x-csrf-token': csrfToken },
+    );
+    expect(started.status).toBe(200);
+    const state = new URL((started.body as { url: string }).url).searchParams.get('state') ?? '';
+
+    const attached = await getJson(port, `/auth/oauth/google/callback?code=ok-zed&state=${state}`);
+    expect(attached.body).toEqual({ attached: 'google' });
+
+    const listed = await getJson(port, '/me/identities', { host: 'localhost', cookie });
+    expect(
+      (listed.body as { identities: { kind: string }[] }).identities.map((i) => i.kind).sort(),
+    ).toEqual(['email', 'google']);
   });
 });

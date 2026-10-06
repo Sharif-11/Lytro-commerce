@@ -47,7 +47,7 @@ CREATE TABLE control.subscribers (
     last_sign_in_at timestamptz
 );
 
-CREATE TYPE control.identity_kind AS ENUM ('phone', 'email', 'facebook');
+CREATE TYPE control.identity_kind AS ENUM ('phone', 'email', 'google', 'facebook');
 
 CREATE TABLE control.subscriber_identities (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -106,6 +106,23 @@ CREATE INDEX ON control.sign_in_failures (subscriber_id, created_at);
 ```
 
 AUTH-14: five failures for one account in fifteen minutes lock it. The count is taken over a sliding window from `sign_in_failures`, so old failures age out and nothing needs resetting.
+
+### 2.1b OAuth sign-in states
+
+```sql
+CREATE TABLE control.oauth_states (
+    id                      uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    state                   text NOT NULL UNIQUE,         -- single use (AUTH-24)
+    provider                text NOT NULL,                -- google | facebook
+    code_verifier           text NOT NULL,                -- PKCE verifier, never sent to the browser
+    attach_to_subscriber_id uuid REFERENCES control.subscribers(id),  -- set when adding a provider to a signed-in account (AUTH-26)
+    expires_at              timestamptz NOT NULL,         -- ten minutes
+    consumed_at             timestamptz,
+    created_at              timestamptz NOT NULL DEFAULT now()
+);
+```
+
+The owner of a shop may be enrolled by phone, by email, or by a provider account. The owner's staff row (`tenant.users`) holds the phone or the email, whichever exists; its phone is nullable and its email is unique per shop (migration 0011).
 
 ### 2.2 Tenants
 
