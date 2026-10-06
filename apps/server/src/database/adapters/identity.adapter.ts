@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { ChallengeChannel, ChallengeKind } from '@lytronix/validators';
+import { IdentityKind, type ChallengeChannel, type ChallengeKind } from '@lytronix/validators';
 import {
   AccountRepository,
   ChallengeRepository,
@@ -80,7 +80,7 @@ export class DrizzleSignupGateway implements SignupGateway {
     tx: Transaction,
     phone: string,
   ): Promise<{ subscriberId: string; passwordHash: string | null } | null> {
-    return this.accounts.findSubscriberByPhone(tx, phone);
+    return this.accounts.findSubscriberByIdentity(tx, IdentityKind.Phone, phone);
   }
 
   findSubscriberById(
@@ -98,6 +98,32 @@ export class DrizzleSignupGateway implements SignupGateway {
     return this.accounts.setPasswordHash(tx, subscriberId, passwordHash);
   }
 
+  findSubscriberByEmail(
+    tx: Transaction,
+    email: string,
+  ): Promise<{ subscriberId: string; passwordHash: string | null } | null> {
+    return this.accounts.findSubscriberByIdentity(tx, IdentityKind.Email, email);
+  }
+
+  async insertEmailIdentity(
+    tx: Transaction,
+    values: { subscriberId: string; email: string; verifiedAt: Date },
+  ): Promise<string> {
+    try {
+      return await this.accounts.insertIdentity(tx, {
+        subscriberId: values.subscriberId,
+        kind: IdentityKind.Email,
+        value: values.email,
+        verifiedAt: values.verifiedAt,
+      });
+    } catch (error) {
+      if (this.transactions.isUniqueViolation(error, 'kind_value')) {
+        throw new UniqueViolation('email');
+      }
+      throw error;
+    }
+  }
+
   insertSubscriber(tx: Transaction): Promise<string> {
     return this.accounts.insertSubscriber(tx);
   }
@@ -107,7 +133,12 @@ export class DrizzleSignupGateway implements SignupGateway {
     values: { subscriberId: string; phone: string; verifiedAt: Date },
   ): Promise<string> {
     try {
-      return await this.accounts.insertPhoneIdentity(tx, values);
+      return await this.accounts.insertIdentity(tx, {
+        subscriberId: values.subscriberId,
+        kind: IdentityKind.Phone,
+        value: values.phone,
+        verifiedAt: values.verifiedAt,
+      });
     } catch (error) {
       if (this.transactions.isUniqueViolation(error, 'kind_value')) {
         throw new UniqueViolation('phone');
@@ -120,10 +151,11 @@ export class DrizzleSignupGateway implements SignupGateway {
     return this.accounts.findOwnedTenant(tx, subscriberId);
   }
 
-  findPhoneIdentityOf(
+  async findPhoneIdentityOf(
     tx: Transaction,
     subscriberId: string,
   ): Promise<{ id: string; phone: string } | null> {
-    return this.accounts.findPhoneIdentityOf(tx, subscriberId);
+    const identity = await this.accounts.findIdentityOf(tx, subscriberId, IdentityKind.Phone);
+    return identity === null ? null : { id: identity.id, phone: identity.value };
   }
 }

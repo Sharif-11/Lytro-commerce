@@ -2,9 +2,11 @@ import {
   createShopSchema,
   forgotPasswordSchema,
   passwordSigninSchema,
+  requestEmailCodeSchema,
   requestSigninCodeSchema,
   setPasswordSchema,
   verifyForgotPasswordSchema,
+  verifyEmailCodeSchema,
   verifySigninCodeSchema,
 } from '@lytronix/validators';
 import { createZodDto } from 'nestjs-zod';
@@ -16,4 +18,6 @@ export class PasswordSigninDto extends createZodDto(passwordSigninSchema) {}
 export class ForgotPasswordDto extends createZodDto(forgotPasswordSchema) {}
 export class VerifyForgotPasswordDto extends createZodDto(verifyForgotPasswordSchema) {}
 export class SetPasswordDto extends createZodDto(setPasswordSchema) {}
+export class RequestEmailCodeDto extends createZodDto(requestEmailCodeSchema) {}
+export class VerifyEmailCodeDto extends createZodDto(verifyEmailCodeSchema) {}
 export class CreateShopDto extends createZodDto(createShopSchema) {}

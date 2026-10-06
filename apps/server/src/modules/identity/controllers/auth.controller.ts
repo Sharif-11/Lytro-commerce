@@ -6,6 +6,8 @@ import { type HttpRequest, type HttpResponse, headerValue } from '../../../commo
 import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
 import {
   ForgotPasswordDto,
+  RequestEmailCodeDto,
+  VerifyEmailCodeDto,
   PasswordSigninDto,
   RequestSigninCodeDto,
   SetPasswordDto,
@@ -17,6 +19,7 @@ import type { SessionRecord } from '../ports/session-store';
 import { ForgotPasswordService } from '../services/forgot-password.service';
 import { PasswordSigninService } from '../services/password-signin.service';
 import { PasswordService } from '../services/password.service';
+import { EmailSigninService } from '../services/email-signin.service';
 import { SigninService } from '../services/signin.service';
 import type { NextStep } from '../types/signed-in';
 import { SessionService } from '../services/session.service';
@@ -35,6 +38,7 @@ interface SignedInBody {
 export class AuthController {
   constructor(
     @Inject(SigninService) private readonly signin: SigninService,
+    @Inject(EmailSigninService) private readonly emailSignin: EmailSigninService,
     @Inject(PasswordSigninService) private readonly passwordSignin: PasswordSigninService,
     @Inject(ForgotPasswordService) private readonly forgot: ForgotPasswordService,
     @Inject(PasswordService) private readonly passwords: PasswordService,
@@ -59,6 +63,30 @@ export class AuthController {
   ): Promise<SignedInBody> {
     const result = await this.signin.verifyCode(
       body.phone,
+      body.code,
+      this.sessionContext(request),
+    );
+    response.setHeader('Set-Cookie', result.cookie);
+    return { next: result.next, tenantId: result.tenantId, csrfToken: result.csrfToken };
+  }
+
+  @Post('email/code')
+  @HttpCode(200)
+  requestEmailCode(
+    @Body(new ZodValidationPipe(RequestEmailCodeDto.schema)) body: RequestEmailCodeDto,
+  ): Promise<CodeIssued> {
+    return this.emailSignin.requestCode(body.email);
+  }
+
+  @Post('email/verify')
+  @HttpCode(200)
+  async verifyEmailCode(
+    @Body(new ZodValidationPipe(VerifyEmailCodeDto.schema)) body: VerifyEmailCodeDto,
+    @Req() request: HttpRequest,
+    @Res({ passthrough: true }) response: HttpResponse,
+  ): Promise<SignedInBody> {
+    const result = await this.emailSignin.verifyCode(
+      body.email,
       body.code,
       this.sessionContext(request),
     );

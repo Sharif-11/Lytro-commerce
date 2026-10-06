@@ -32,4 +32,12 @@ export interface SignupGateway {
     tx: Transaction,
     subscriberId: string,
   ): Promise<{ id: string; phone: string } | null>;
+  findSubscriberByEmail(
+    tx: Transaction,
+    email: string,
+  ): Promise<{ subscriberId: string; passwordHash: string | null } | null>;
+  insertEmailIdentity(
+    tx: Transaction,
+    values: { subscriberId: string; email: string; verifiedAt: Date },
+  ): Promise<string>;
 }

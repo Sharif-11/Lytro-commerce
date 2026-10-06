@@ -28,6 +28,8 @@ import { SignedInSession } from './services/signed-in-session';
 import { SessionService } from './services/session.service';
 import type { SessionSettings } from './types/session';
 import { ShopCreationService } from './services/shop-creation.service';
+import { EmailFormat } from './services/email-format';
+import { EmailSigninService } from './services/email-signin.service';
 import { SigninService } from './services/signin.service';
 import {
   CHALLENGE_STORE,
@@ -79,6 +81,8 @@ import {
     ForgotPasswordService,
     PasswordService,
     ShopCreationService,
+    EmailFormat,
+    EmailSigninService,
   ],
 })
 export class IdentityModule {}
