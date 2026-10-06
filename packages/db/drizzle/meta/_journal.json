@@ -99,48 +99,6 @@
       "when": 1791300766721,
       "tag": "0013_oauth_state_attach",
       "breakpoints": true
-    },
-    {
-      "idx": 8,
-      "version": "7",
-      "when": 1791298642868,
-      "tag": "0008_lush_silvermane",
-      "breakpoints": true
-    },
-    {
-      "idx": 9,
-      "version": "7",
-      "when": 1791298846103,
-      "tag": "0009_early_professor_monster",
-      "breakpoints": true
-    },
-    {
-      "idx": 10,
-      "version": "7",
-      "when": 1791298852777,
-      "tag": "0010_strong_pete_wisdom",
-      "breakpoints": true
-    },
-    {
-      "idx": 11,
-      "version": "7",
-      "when": 1791299798925,
-      "tag": "0011_eminent_zaladane",
-      "breakpoints": true
-    },
-    {
-      "idx": 12,
-      "version": "7",
-      "when": 1791300289172,
-      "tag": "0012_lame_sister_grimm",
-      "breakpoints": true
-    },
-    {
-      "idx": 13,
-      "version": "7",
-      "when": 1791300766721,
-      "tag": "0013_optimal_wilson_fisk",
-      "breakpoints": true
     }
   ]
 }
