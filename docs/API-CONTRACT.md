@@ -23,14 +23,16 @@ Status: draft v1, for review before implementation. Companion to `DATABASE-SCHEM
 
 | Method | Path | Auth | Notes |
 | --- | --- | --- | --- |
-| POST | `/api/v1/signup` | none | `{ shopName, ownerName, verifier: { kind: "phone"\|"email"\|"google"\|"facebook", ... }, password? }`. Returns a verification challenge, not a session yet (AUTH-01/04). |
-| POST | `/api/v1/signup/verify` | none | `{ verificationId, code }` for phone/email; OAuth callback handled by `/auth/oauth/{provider}/callback` instead. On success: creates subscriber + tenant + owner user, returns a session (AUTH-10). |
+| POST | `/api/v1/auth/phone/code` | none | `{ phone }`. Sends a sign-in code. Same reply for every valid number, whether or not an account exists (AUTH-12, AUTH-13). Sign-up and sign-in share this step (PHASE-1-PLAN D12). |
+| POST | `/api/v1/auth/phone/verify` | none | `{ phone, code }`. Creates the account for a new number, or signs in a known one. Returns a session on the current host (D13). Response includes `next`: `create-shop` when the account has no shop yet, else `dashboard`. |
+| POST | `/api/v1/shops` | session (no tenant yet) | `{ shopName, ownerName, address? }`. The create-shop step: creates the owner user, the trial tenant and the subdomain, sends the shop-ready SMS, and sets `tenant_id` on the session (AUTH-10, AUTH-11, D13). Refused with `conflict` if this identity already has a shop (TEN-15). Response includes `next: set-password` on first creation (AUTH-28). |
 | POST | `/api/v1/auth/oauth/{provider}/start` | none | `provider` = google \| facebook. Redirects into the provider's OAuth flow (AUTH-24). |
-| GET | `/api/v1/auth/oauth/{provider}/callback` | none | Completes OAuth; new identity → same as signup/verify; existing identity → signs in. |
-| POST | `/api/v1/auth/signin` | none | `{ identifier, password }` — identifier is phone or email (AUTH-12). |
+| GET | `/api/v1/auth/oauth/{provider}/callback` | none | Completes OAuth; new identity → same as `auth/phone/verify` for a new number; existing identity → signs in. |
+| POST | `/api/v1/auth/signin` | none | `{ identifier, password }` — identifier is phone or email; only for accounts that have set a password (AUTH-12). The same generic error for an unknown identifier, an account with no password and a wrong password (AUTH-13). |
 | POST | `/api/v1/auth/signout` | session | Ends the session (AUTH-16). |
-| POST | `/api/v1/auth/forgot-password` | none | `{ identifier }`. Always returns the same generic message (AUTH-17). |
-| POST | `/api/v1/auth/change-password` | session | `{ currentPassword, newPassword }`; ends other sessions (AUTH-20). |
+| POST | `/api/v1/auth/forgot-password` | none | `{ phone }`. Sends a dedicated reset code by SMS. Always returns 200; the SMS is sent only if the account exists (AUTH-17, AUTH-18). Rate-limited to one per 2 minutes per account. |
+| POST | `/api/v1/auth/forgot-password/verify` | none | `{ phone, code }`. Verifies the reset code. On success creates a session flagged `must_set_password` on the current host. The dashboard is blocked until the password endpoint is called (AUTH-19). |
+| POST | `/api/v1/auth/password` | session | `{ currentPassword?, newPassword }`. Sets or changes the password. `currentPassword` may be omitted when the session carries `must_set_password` or a sign-in code was verified within the last 10 minutes (AUTH-20). Always ends other sessions. |
 | GET | `/api/v1/me` | session | Current user + tenant summary (state, plan, balance). |
 | POST | `/api/v1/me/identities` | session | Add a second/third verified identity to this account (AUTH-26). |
 | DELETE | `/api/v1/me/identities/:id` | session | Refused if it's the last remaining identity. |
