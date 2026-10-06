@@ -1,0 +1,1 @@
+ALTER TABLE "control"."sessions" ADD COLUMN "sign_in_method" text DEFAULT 'code' NOT NULL;

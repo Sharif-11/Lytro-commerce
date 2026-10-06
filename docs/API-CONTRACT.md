@@ -5,7 +5,7 @@ Status: draft v1, for review before implementation. Companion to `DATABASE-SCHEM
 ## 1. Conventions (apply to every endpoint below)
 
 - **Base path and versioning (API-14):** `/api/v1/...`. A breaking change ships as `/api/v2/...` alongside v1, which keeps working with `Deprecation`/`Sunset` headers and at least 90 days' notice.
-- **Tenant resolution (TEN-24):** for storefront/public traffic, the tenant comes from the request's hostname alone — never from a body field, header or query parameter. For dashboard/operator traffic, the tenant comes from the session. A request that tries to set `tenantId` anywhere in its payload has that field silently ignored (TEN-02).
+- **Tenant resolution (TEN-24):** for storefront/public traffic, the tenant comes from the request's hostname alone — never from a body field, header or query parameter. For dashboard/operator traffic, the tenant comes from the session. On a shop host, a dashboard request must match the session's shop; otherwise it is `forbidden` (TEN-28). A request that tries to set `tenantId` anywhere in its payload has that field silently ignored (TEN-02).
 - **Auth, three kinds:**
   - **Dashboard session** — cookie-based, scoped to the exact hostname (TEN-29), used by the admin dashboard and native app.
   - **Public API key** — `Authorization: Bearer pk_...`, sent from browser code, restricted to the allow-listed action set (API-07): read catalogue/categories, read courier locations, create an order, read an order by tracking ID, create a payment session, shopper OTP sign-in, shopper-token endpoints, send chat messages.
@@ -16,6 +16,7 @@ Status: draft v1, for review before implementation. Companion to `DATABASE-SCHEM
 - **Idempotency (API-11):** every POST with a cost or side effect accepts `Idempotency-Key`; same key + same body within 24h replays the original response with `Idempotent-Replay: true`; same key + different body is `422 idempotency_conflict`.
 - **Rate-limit headers (RTE-02):** every response carries `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`; a limited response adds `Retry-After`.
 - **Request id (API-27):** every response carries `X-Request-Id`, echoed in logs.
+- **Trusted edge (R3, D14):** every route except `/health` refuses a request that lacks the edge header `x-lytronix-edge-secret` (403), including the sign-in routes. The client address is read from `CF-Connecting-IP` only when that header is valid (D14).
 
 ---
 
@@ -24,16 +25,16 @@ Status: draft v1, for review before implementation. Companion to `DATABASE-SCHEM
 | Method | Path | Auth | Notes |
 | --- | --- | --- | --- |
 | POST | `/api/v1/auth/phone/code` | none | `{ phone }`. Sends a sign-in code. Same reply for every valid number, whether or not an account exists (AUTH-12, AUTH-13). Sign-up and sign-in share this step (PHASE-1-PLAN D12). |
-| POST | `/api/v1/auth/phone/verify` | none | `{ phone, code }`. Creates the account for a new number, or signs in a known one. Returns a session on the current host (D13). Response includes `next`: `create-shop` when the account has no shop yet, else `dashboard`. |
+| POST | `/api/v1/auth/phone/verify` | none | `{ phone, code }`. Creates the account for a new number, or signs in a known one. Returns a session on the current host (D13). Sets the session cookie. Response includes `next`: `create-shop` (no shop yet), `set-password` (must set a password first), `renewal` (shop locked or archived), `purchase` (shop deleted), `unavailable` (shop suspended), or `dashboard`; and `tenantId`. The `unavailable` screen reads "This shop is not available right now." with a support contact and no reason. |
 | POST | `/api/v1/shops` | session (no tenant yet) | `{ shopName, ownerName, address? }`. The create-shop step: creates the owner user, the trial tenant and the subdomain, sends the shop-ready SMS, and sets `tenant_id` on the session (AUTH-10, AUTH-11, D13). Refused with `conflict` if this identity already has a shop (TEN-15). Response includes `next: set-password` on first creation (AUTH-28). |
 | POST | `/api/v1/auth/oauth/{provider}/start` | none | `provider` = google \| facebook. Redirects into the provider's OAuth flow (AUTH-24). |
 | GET | `/api/v1/auth/oauth/{provider}/callback` | none | Completes OAuth; new identity → same as `auth/phone/verify` for a new number; existing identity → signs in. |
-| POST | `/api/v1/auth/signin` | none | `{ identifier, password }` — identifier is phone or email; only for accounts that have set a password (AUTH-12). The same generic error for an unknown identifier, an account with no password and a wrong password (AUTH-13). |
+| POST | `/api/v1/auth/signin` | none | `{ phone, password }`. Phone only until slice 6 adds email. Only for accounts that have set a password (AUTH-12). Returns the same `next` values as `auth/phone/verify`. The same generic `unauthenticated` error for an unknown number, an account with no password and a wrong password (AUTH-13). Counts toward the account's lockout (AUTH-14). |
 | POST | `/api/v1/auth/signout` | session | Ends the session (AUTH-16). |
 | POST | `/api/v1/auth/forgot-password` | none | `{ phone }`. Sends a dedicated reset code by SMS. Always returns 200; the SMS is sent only if the account exists (AUTH-17, AUTH-18). Rate-limited to one per 2 minutes per account. |
 | POST | `/api/v1/auth/forgot-password/verify` | none | `{ phone, code }`. Verifies the reset code. On success creates a session flagged `must_set_password` on the current host. The dashboard is blocked until the password endpoint is called (AUTH-19). |
 | POST | `/api/v1/auth/password` | session | `{ currentPassword?, newPassword }`. Sets or changes the password. `currentPassword` may be omitted when the session carries `must_set_password` or a sign-in code was verified within the last 10 minutes (AUTH-20). Always ends other sessions. |
-| GET | `/api/v1/me` | session | Current user + tenant summary (state, plan, balance). |
+| GET | `/api/v1/me` | session | Account summary: subscriber id, and the shop summary (slug, shop name, state, plan name, period end) or `null` when the session has no shop yet. Works on the platform host and on the shop's own host. Owners can call it in `locked`, `archived` and `deleted` so the renewal and purchase screens load. Balance is added once the balance tables exist. |
 | POST | `/api/v1/me/identities` | session | Add a second/third verified identity to this account (AUTH-26). |
 | DELETE | `/api/v1/me/identities/:id` | session | Refused if it's the last remaining identity. |
 

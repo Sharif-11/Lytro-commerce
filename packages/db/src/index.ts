@@ -3,13 +3,26 @@ export * from './schema';
 export { DatabaseConnector, type Database, type DatabaseHandle, type PoolSettings } from './client';
 export { MigrationRunner } from './migrate';
 export { TransactionRunner, type Executor, type Transaction } from './transactions';
-export { TenantRepository, type TenantLookupRow } from './repositories/tenancy/tenant.repository';
+export {
+  TenantRepository,
+  type TenantLookupRow,
+  type TenantSummaryRow,
+} from './repositories/tenancy/tenant.repository';
 export { SlugRepository } from './repositories/tenancy/slug.repository';
 export {
   ChallengeRepository,
   type ChallengeRow,
 } from './repositories/identity/challenge.repository';
 export { AccountRepository } from './repositories/identity/account.repository';
+export {
+  SignInFailureRepository,
+  type FailureScope,
+} from './repositories/identity/sign-in-failure.repository';
+export {
+  SessionRepository,
+  type SessionRow,
+  type NewSession,
+} from './repositories/identity/session.repository';
 export { UserRepository } from './repositories/staff/user.repository';
 export {
   SmsRepository,

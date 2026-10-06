@@ -32,6 +32,17 @@ export enum IdentityKind {
   Facebook = 'facebook',
 }
 
+export enum SignInMethod {
+  Code = 'code',
+  Password = 'password',
+  Reset = 'reset',
+}
+
+export enum ChallengeKind {
+  Signin = 'signin',
+  Reset = 'reset',
+}
+
 export enum SmsKind {
   Otp = 'otp',
   ShopReady = 'shop_ready',

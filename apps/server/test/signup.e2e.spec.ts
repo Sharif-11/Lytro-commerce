@@ -1,25 +1,27 @@
 import 'dotenv/config';
 import { type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { request as httpRequest, type Server } from 'node:http';
+import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { randomUUID } from 'node:crypto';
 import pg from 'pg';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { AppModule } from '../src/app/app.module';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { prepareTestDatabase } from './support/database';
+import { cookieFrom, type HttpResult, postJson } from './support/http';
 
-// Sign-up by phone over real HTTP and the real database (P1-E01 to P1-E04, AUTH-05 to AUTH-11, TRL-01).
+// Sign-up by phone over real HTTP and the real database (P1-E01 to P1-E04, AUTH-05 to AUTH-11, AUTH-28, TRL-01).
 // Runs only when DATABASE_TEST_ADMIN_URL is set, which CI always does.
 const ADMIN_URL = process.env['DATABASE_TEST_ADMIN_URL'];
 const DB_NAME = 'lytronix_signup_test';
 const describeIfDatabase = ADMIN_URL ? describe : describe.skip;
 
-interface HttpResult {
-  status: number;
-  headers: Record<string, string | string[] | undefined>;
-  body: unknown;
+interface Entered {
+  cookie: string;
+  csrfToken: string;
+  next: string;
+  tenantId: string | null;
 }
 
 let app: INestApplication;
@@ -29,40 +31,12 @@ const sent: { toPhone: string; body: string }[] = [];
 // Switched on by a test to simulate an SMS provider outage.
 let smsDown = false;
 
-function post(path: string, payload: unknown): Promise<HttpResult> {
-  const data = JSON.stringify(payload);
-  return new Promise((resolve, reject) => {
-    const req = httpRequest(
-      {
-        host: '127.0.0.1',
-        port,
-        path,
-        method: 'POST',
-        headers: { 'content-type': 'application/json', 'content-length': Buffer.byteLength(data) },
-      },
-      (res) => {
-        let text = '';
-        res.on('data', (chunk: Buffer) => {
-          text += chunk.toString();
-        });
-        res.on('end', () => {
-          resolve({
-            status: res.statusCode ?? 0,
-            headers: res.headers,
-            body: text ? (JSON.parse(text) as unknown) : undefined,
-          });
-        });
-      },
-    );
-    req.on('error', reject);
-    req.end(data);
-  });
-}
+const post = (path: string, payload: unknown, headers: Record<string, string> = {}) =>
+  postJson(port, path, payload, headers);
 
 /** A fresh Bangladeshi number, so runs never collide. */
 const freshPhone = (): string => `0171${randomUUID().replace(/\D/g, '').slice(0, 7)}`;
 
-/** The code most recently texted to a number, read back from the stub outbox as the owner would see it. */
 /** The code most recently sent to a number, as the owner received it (the provider log). */
 function textedCode(phone: string): Promise<string> {
   const last = [...sent].reverse().find((m) => m.toPhone === phone);
@@ -70,6 +44,19 @@ function textedCode(phone: string): Promise<string> {
 }
 
 const wrong = (code: string): string => (code === '000000' ? '111111' : '000000');
+
+/** Requests a code, reads it from the provider log and verifies it. Returns the session the reply opens. */
+async function enter(phone: string): Promise<Entered> {
+  await post('/auth/phone/code', { phone });
+  const response = await post('/auth/phone/verify', { phone, code: await textedCode(phone) });
+  expect(response.status).toBe(200);
+  const body = response.body as { next: string; tenantId: string | null; csrfToken: string };
+  return { cookie: cookieFrom(response), ...body };
+}
+
+function createShop(entered: Entered, payload: Record<string, unknown>): Promise<HttpResult> {
+  return post('/shops', payload, { cookie: entered.cookie, 'x-csrf-token': entered.csrfToken });
+}
 
 beforeAll(async () => {
   if (!ADMIN_URL) return;
@@ -96,6 +83,12 @@ beforeAll(async () => {
   port = ((app.getHttpServer() as Server).address() as AddressInfo).port;
 });
 
+// Every request comes from 127.0.0.1, so failures from one test must not lock the next (AUTH-14).
+beforeEach(async () => {
+  if (!ADMIN_URL) return;
+  await admin.query('DELETE FROM control.sign_in_failures');
+});
+
 afterAll(async () => {
   if (!ADMIN_URL) return;
   await app.close();
@@ -105,7 +98,7 @@ afterAll(async () => {
 describeIfDatabase('sign-up by phone, end to end', () => {
   it('sends a six-digit code to a valid number (AUTH-05)', async () => {
     const phone = freshPhone();
-    const response = await post('/signup/phone/code', { phone });
+    const response = await post('/auth/phone/code', { phone });
     expect(response.status).toBe(200);
     expect(response.body).toEqual({ expiresInSeconds: 300, resendAfterSeconds: 60 });
     expect(await textedCode(phone)).toMatch(/^\d{6}$/);
@@ -113,27 +106,39 @@ describeIfDatabase('sign-up by phone, end to end', () => {
 
   it('refuses a resend within 60 seconds, with a Retry-After header (AUTH-07)', async () => {
     const phone = freshPhone();
-    await post('/signup/phone/code', { phone });
-    const response = await post('/signup/phone/code', { phone });
+    await post('/auth/phone/code', { phone });
+    const response = await post('/auth/phone/code', { phone });
     expect(response.status).toBe(429);
     expect(response.headers['retry-after']).toBeDefined();
     expect(response.body).toMatchObject({ error: { code: 'rate_limited' } });
   });
 
   it('refuses a number that is not Bangladeshi, with the field named (AUTH-02)', async () => {
-    const response = await post('/signup/phone/code', { phone: '+14155550100' });
+    const response = await post('/auth/phone/code', { phone: '+14155550100' });
     expect(response.status).toBe(400);
     expect(response.body).toMatchObject({
       error: { code: 'validation_error', details: { field: 'phone' } },
     });
   });
 
-  it('creates a trial shop from a correct code, and texts the live address (AUTH-10, TRL-01)', async () => {
+  it('verifies a new number into a session that goes to create-shop, as an HttpOnly cookie (AUTH-12, D1)', async () => {
     const phone = freshPhone();
-    await post('/signup/phone/code', { phone });
-    const response = await post('/signup/phone/complete', {
-      phone,
-      code: await textedCode(phone),
+    await post('/auth/phone/code', { phone });
+    const response = await post('/auth/phone/verify', { phone, code: await textedCode(phone) });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({ next: 'create-shop', tenantId: null });
+    expect(response.body).toHaveProperty('csrfToken');
+    const setCookie = String(response.headers['set-cookie']);
+    expect(setCookie).toContain('lytronix_session=');
+    expect(setCookie).toContain('HttpOnly');
+    expect(setCookie).toContain('SameSite=Lax');
+  });
+
+  it('creates a trial shop from the session, and texts the live address (AUTH-10, AUTH-28, TRL-01)', async () => {
+    const phone = freshPhone();
+    const entered = await enter(phone);
+    const response = await createShop(entered, {
       ownerName: 'Rahim',
       shopName: 'Fashion House',
     });
@@ -142,6 +147,7 @@ describeIfDatabase('sign-up by phone, end to end', () => {
     expect(response.body).toMatchObject({
       address: 'fashion-house',
       shopUrl: 'http://fashion-house.localhost',
+      next: 'set-password',
     });
 
     const shop = await admin.query<{ state: string; plan: string }>(
@@ -158,54 +164,37 @@ describeIfDatabase('sign-up by phone, end to end', () => {
     expect(sms.rows[0]?.body).toContain('http://fashion-house.localhost');
   });
 
-  it('refuses a second shop for the same number, without saying which numbers exist (AUTH-08)', async () => {
+  it('routes a returning number with a shop to the dashboard, and refuses a second shop (AUTH-08, TEN-15)', async () => {
     const phone = freshPhone();
-    await post('/signup/phone/code', { phone });
-    await post('/signup/phone/complete', {
-      phone,
-      code: await textedCode(phone),
-      ownerName: 'Karim',
-      shopName: 'First Shop',
-    });
+    const first = await enter(phone);
+    await createShop(first, { ownerName: 'Karim', shopName: 'First Shop' });
 
-    // The same number asks again; the earlier shop already holds it.
     await admin.query(
       "UPDATE control.verification_challenges SET created_at = now() - interval '2 minutes' WHERE phone = $1",
       [phone],
     );
-    await post('/signup/phone/code', { phone });
-    const response = await post('/signup/phone/complete', {
-      phone,
-      code: await textedCode(phone),
-      ownerName: 'Karim',
-      shopName: 'Second Shop',
-    });
+    const returning = await enter(phone);
+    expect(returning).toMatchObject({ next: 'dashboard' });
+    expect(returning.tenantId).not.toBeNull();
+
+    const response = await createShop(returning, { ownerName: 'Karim', shopName: 'Second Shop' });
     expect(response.status).toBe(409);
     expect(response.body).toEqual({
-      error: { code: 'conflict', message: 'Sign in to continue.', details: {} },
+      error: { code: 'conflict', message: 'This account already has a shop.', details: {} },
     });
   });
 
   it('suggests the next free address when the name is taken (AUTH-11)', async () => {
     // "fashion-house" is held by the earlier test, so the same name gets a suffix.
-    const phone = freshPhone();
-    await post('/signup/phone/code', { phone });
-    const response = await post('/signup/phone/complete', {
-      phone,
-      code: await textedCode(phone),
-      ownerName: 'Amina',
-      shopName: 'Fashion House',
-    });
+    const entered = await enter(freshPhone());
+    const response = await createShop(entered, { ownerName: 'Amina', shopName: 'Fashion House' });
     expect(response.status).toBe(201);
     expect(response.body).toMatchObject({ address: 'fashion-house-2' });
   });
 
   it('refuses a typed address that is taken, and offers the next free one', async () => {
-    const phone = freshPhone();
-    await post('/signup/phone/code', { phone });
-    const response = await post('/signup/phone/complete', {
-      phone,
-      code: await textedCode(phone),
+    const entered = await enter(freshPhone());
+    const response = await createShop(entered, {
       ownerName: 'Amina',
       shopName: 'Other Name',
       address: 'fashion-house',
@@ -216,28 +205,43 @@ describeIfDatabase('sign-up by phone, end to end', () => {
     });
   });
 
+  it('refuses shop creation without a session, and without the CSRF token (SEC-14)', async () => {
+    const none = await post('/shops', { ownerName: 'Anon', shopName: 'Anon Shop' });
+    expect(none.status).toBe(401);
+    expect(none.body).toMatchObject({ error: { code: 'unauthenticated' } });
+
+    const entered = await enter(freshPhone());
+    const noCsrf = await post(
+      '/shops',
+      { ownerName: 'Anon', shopName: 'Anon Shop' },
+      { cookie: entered.cookie },
+    );
+    expect(noCsrf.status).toBe(403);
+    expect(noCsrf.body).toMatchObject({ error: { code: 'forbidden' } });
+  });
+
   it('locks the code after five wrong codes, even when the sixth is correct (AUTH-06)', async () => {
     const phone = freshPhone();
-    await post('/signup/phone/code', { phone });
+    await post('/auth/phone/code', { phone });
     const correct = await textedCode(phone);
 
-    const bodyFor = (code: string) => ({ phone, code, ownerName: 'Lock', shopName: 'Lock Shop' });
+    const verifyWith = (code: string) => post('/auth/phone/verify', { phone, code });
     for (let i = 0; i < 4; i += 1) {
-      const response = await post('/signup/phone/complete', bodyFor(wrong(correct)));
+      const response = await verifyWith(wrong(correct));
       expect(response.status).toBe(400);
     }
-    const fifth = await post('/signup/phone/complete', bodyFor(wrong(correct)));
+    const fifth = await verifyWith(wrong(correct));
     expect(fifth.status).toBe(429);
 
-    const sixth = await post('/signup/phone/complete', bodyFor(correct));
+    const sixth = await verifyWith(correct);
     expect(sixth.status).toBe(429);
 
-    const newCode = await post('/signup/phone/code', { phone });
+    const newCode = await post('/auth/phone/code', { phone });
     expect(newCode.status).toBe(429);
   });
 
-  it('answers a malformed sign-up body with the fields named, not a crash', async () => {
-    const response = await post('/signup/phone/complete', { phone: freshPhone(), code: 'abc' });
+  it('answers a malformed verify body with the fields named, not a crash', async () => {
+    const response = await post('/auth/phone/verify', { phone: freshPhone(), code: 'abc' });
     expect(response.status).toBe(400);
     expect(response.body).toMatchObject({
       error: { code: 'validation_error', details: { fields: expect.any(Array) as unknown } },
@@ -248,18 +252,12 @@ describeIfDatabase('sign-up by phone, end to end', () => {
 describeIfDatabase('an SMS outage does not block sign-up (SMS-18)', () => {
   it('creates the shop and keeps the ready message for retry', async () => {
     const phone = freshPhone();
-    await post('/signup/phone/code', { phone });
-    const code = await textedCode(phone);
+    const entered = await enter(phone);
 
     smsDown = true;
     let response: HttpResult;
     try {
-      response = await post('/signup/phone/complete', {
-        phone,
-        code,
-        ownerName: 'Outage',
-        shopName: 'Outage Shop',
-      });
+      response = await createShop(entered, { ownerName: 'Outage', shopName: 'Outage Shop' });
     } finally {
       smsDown = false;
     }
@@ -279,7 +277,7 @@ describeIfDatabase('an SMS outage on a code request is reported honestly (AUTH-0
     smsDown = true;
     let response: HttpResult;
     try {
-      response = await post('/signup/phone/code', { phone });
+      response = await post('/auth/phone/code', { phone });
     } finally {
       smsDown = false;
     }

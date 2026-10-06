@@ -1,5 +1,5 @@
 import { identityKind } from '../enums';
-import { text, timestamp, uniqueIndex, uuid, index } from 'drizzle-orm/pg-core';
+import { inet, text, timestamp, uniqueIndex, uuid, index } from 'drizzle-orm/pg-core';
 import { control, createdAt } from '../shared';
 
 // Note: `control.identity_kind` is created by the migration; the enum is declared here so columns can use it.
@@ -30,6 +30,22 @@ export const subscriberIdentities = control.table(
     // AUTH-08: each kind is unique platform-wide and never cross-checked against another kind.
     uniqueIndex('subscriber_identities_kind_value_idx').on(t.kind, t.value),
     index('subscriber_identities_subscriber_idx').on(t.subscriberId),
+  ],
+);
+
+// AUTH-14: every failed sign-in is recorded with the account (when one exists) and the client IP. A lock is
+// five failures inside fifteen minutes, counted from this table, so old failures age out without any reset.
+export const signInFailures = control.table(
+  'sign_in_failures',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    subscriberId: uuid('subscriber_id').references(() => subscribers.id),
+    ip: inet('ip'),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index('sign_in_failures_subscriber_idx').on(t.subscriberId, t.createdAt),
+    index('sign_in_failures_ip_idx').on(t.ip, t.createdAt),
   ],
 );
 

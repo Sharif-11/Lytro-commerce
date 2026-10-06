@@ -132,9 +132,9 @@ async function queryAsShop(
 }
 
 describeIfDatabase('route inventory against the application (SEC-02)', () => {
-  it('lists no shop-owned routes yet, and the registry agrees', () => {
+  it('lists the shop-owned routes, and the registry agrees', () => {
     const routes = listTenantRoutes(app);
-    expect(routes).toEqual([]);
+    expect(routes).toEqual(['GET /me']);
     expect(compareWithRegistry(routes, ISOLATION_REGISTRY)).toEqual({ uncovered: [], stale: [] });
   });
 });

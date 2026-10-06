@@ -27,7 +27,7 @@ Expected: 6th attempt returns `rate_limited` for 15 minutes even with the right 
 Covers: `AUTH-05`, `AUTH-06`, `AUTH-07`.
 
 **S01-04 Sign-in, lockout, sign-out.**
-Steps: 1) Sign in by phone and code — session issued; set a password and sign in with it; sign in by code again. 2) Attempt password sign-in with an unknown phone, an account with no password and a wrong password — compare response body and timing. 3) Fail 5 times in 15 minutes on one real account from one IP, mixing wrong codes and wrong passwords; attempt a 6th, even correct. 4) Sign out; replay the old session credential.
+Steps: 1) Sign in by phone and code — session issued; set a password and sign in with it; sign in by code again. 2) Attempt password sign-in with an unknown phone, an account with no password and a wrong password — compare response body and timing. 3) Fail 5 times in 15 minutes on one real account, mixing wrong codes and wrong passwords; attempt a 6th, even correct. 4) Sign out; replay the old session credential.
 Expected: code sign-in works before and after a password is set; the three failure responses are identical; 6th attempt is `rate_limited` even with the right password or code; a signed-out session returns `unauthenticated` on reuse.
 Covers: `AUTH-12`, `AUTH-13`, `AUTH-14`, `AUTH-15`, `AUTH-16`.
 

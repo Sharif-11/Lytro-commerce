@@ -64,6 +64,49 @@ CREATE INDEX ON control.subscriber_identities (subscriber_id);
 
 Why identities are their own table rather than three nullable columns on `subscribers`: AUTH-26 lets a subscriber add a second or third identity to the *same* account later (for recovery redundancy), which is a different thing from TEN-15's "one tenant per channel" rule below — modelling identities as rows lets both coexist without special-casing.
 
+### 2.1a Sessions, one-time codes and sign-in failures
+
+```sql
+CREATE TABLE control.sessions (
+    id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    token_hash          text NOT NULL UNIQUE,            -- SHA-256 of the cookie value, never the value (SEC-07)
+    csrf_hash           text NOT NULL,                   -- SHA-256 of the per-session CSRF token (SEC-14)
+    subscriber_id       uuid NOT NULL REFERENCES control.subscribers(id),
+    tenant_id           uuid REFERENCES control.tenants(id),  -- null only between identity verification and shop creation (D13)
+    user_id             uuid,                            -- staff user; null for the owner
+    must_set_password   boolean NOT NULL DEFAULT false,  -- AUTH-19: blocks the dashboard until a password is saved
+    sign_in_method      text NOT NULL DEFAULT 'code',    -- code | password | reset (AUTH-20)
+    created_at          timestamptz NOT NULL DEFAULT now(),
+    last_seen_at        timestamptz NOT NULL DEFAULT now(),
+    expires_at          timestamptz NOT NULL,            -- seven days after sign-in (D1)
+    revoked_at          timestamptz,
+    user_agent          text,
+    ip                  inet                             -- the client address behind the edge (D14)
+);
+
+CREATE TABLE control.verification_challenges (
+    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    phone           text NOT NULL,
+    kind            text NOT NULL DEFAULT 'signin',      -- signin | reset (AUTH-17)
+    code_hash       text NOT NULL,                       -- keyed hash, never the code (AUTH-05)
+    attempts        integer NOT NULL DEFAULT 0,          -- AUTH-06: five wrong codes lock the challenge
+    locked_until    timestamptz,
+    expires_at      timestamptz NOT NULL,                -- five minutes (AUTH-05)
+    consumed_at     timestamptz,                         -- single use
+    created_at      timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE control.sign_in_failures (
+    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    subscriber_id   uuid REFERENCES control.subscribers(id),  -- null when the number has no account
+    ip              inet,                                     -- the client address (D14); stored, not used for the lock
+    created_at      timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX ON control.sign_in_failures (subscriber_id, created_at);
+```
+
+AUTH-14: five failures for one account in fifteen minutes lock it. The count is taken over a sliding window from `sign_in_failures`, so old failures age out and nothing needs resetting.
+
 ### 2.2 Tenants
 
 ```sql
