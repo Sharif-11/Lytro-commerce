@@ -151,6 +151,28 @@ export class DrizzleSignupGateway implements SignupGateway {
     return this.accounts.findOwnedTenant(tx, subscriberId);
   }
 
+  findSubscriberByIdentity(
+    tx: Transaction,
+    kind: IdentityKind,
+    value: string,
+  ): Promise<{ subscriberId: string; passwordHash: string | null } | null> {
+    return this.accounts.findSubscriberByIdentity(tx, kind, value);
+  }
+
+  async insertOauthIdentity(
+    tx: Transaction,
+    values: { subscriberId: string; kind: IdentityKind; value: string; verifiedAt: Date },
+  ): Promise<string> {
+    try {
+      return await this.accounts.insertIdentity(tx, values);
+    } catch (error) {
+      if (this.transactions.isUniqueViolation(error, 'kind_value')) {
+        throw new UniqueViolation('address');
+      }
+      throw error;
+    }
+  }
+
   async findEmailIdentityOf(
     tx: Transaction,
     subscriberId: string,

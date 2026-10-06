@@ -34,6 +34,21 @@ const envSchema = z.object({
   DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(100).default(5),
   DATABASE_CONNECT_TIMEOUT_MS: z.coerce.number().int().positive().default(5000),
   DATABASE_STATEMENT_TIMEOUT_MS: z.coerce.number().int().positive().default(10000),
+  // Google and Facebook sign-in (AUTH-24). Off until the provider is registered; the flow stays tested either way.
+  GOOGLE_SIGN_IN_ENABLED: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((v) => v === 'true'),
+  GOOGLE_CLIENT_ID: z.string().min(1).optional(),
+  GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
+  FACEBOOK_SIGN_IN_ENABLED: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((v) => v === 'true'),
+  FACEBOOK_APP_ID: z.string().min(1).optional(),
+  FACEBOOK_APP_SECRET: z.string().min(1).optional(),
+  // Where the provider sends the browser back to; the callback address is this base plus the provider route.
+  OAUTH_CALLBACK_BASE: z.string().min(1).default('http://localhost:3000'),
 });
 
 const envWithEdgeRule = envSchema.superRefine((value, ctx) => {
@@ -42,6 +57,20 @@ const envWithEdgeRule = envSchema.superRefine((value, ctx) => {
       code: z.ZodIssueCode.custom,
       path: ['TRUSTED_EDGE_SECRET'],
       message: 'required in production; at least 32 characters',
+    });
+  }
+  if (value.GOOGLE_SIGN_IN_ENABLED && (!value.GOOGLE_CLIENT_ID || !value.GOOGLE_CLIENT_SECRET)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['GOOGLE_CLIENT_ID'],
+      message: 'required when GOOGLE_SIGN_IN_ENABLED is true',
+    });
+  }
+  if (value.FACEBOOK_SIGN_IN_ENABLED && (!value.FACEBOOK_APP_ID || !value.FACEBOOK_APP_SECRET)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['FACEBOOK_APP_ID'],
+      message: 'required when FACEBOOK_SIGN_IN_ENABLED is true',
     });
   }
   if (value.TRUSTED_EDGE_SECRET_NEXT && !value.TRUSTED_EDGE_SECRET) {

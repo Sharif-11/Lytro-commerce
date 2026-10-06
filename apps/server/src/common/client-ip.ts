@@ -33,6 +33,14 @@ export class ClientIp {
     return this.validIp(entries[index] ?? '');
   }
 
+  /** The user agent and the client address, recorded with each session and sign-in failure. */
+  context(request: HttpRequest): { userAgent: string | null; ip: string | null } {
+    return {
+      userAgent: headerValue(request.headers['user-agent']) ?? null,
+      ip: this.resolve(request),
+    };
+  }
+
   private validIp(candidate: string): string | null {
     return candidate !== '' && isIP(candidate) !== 0 ? candidate : null;
   }

@@ -1,3 +1,4 @@
+import type { OauthProvider } from '@lytronix/validators';
 import { identityKind } from '../enums';
 import { inet, text, timestamp, uniqueIndex, uuid, index } from 'drizzle-orm/pg-core';
 import { control, createdAt } from '../shared';
@@ -48,6 +49,17 @@ export const signInFailures = control.table(
     index('sign_in_failures_ip_idx').on(t.ip, t.createdAt),
   ],
 );
+
+// AUTH-24: one row per Google or Facebook sign-in attempt. The state and the PKCE verifier are single use and expire.
+export const oauthStates = control.table('oauth_states', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  state: text('state').notNull().unique(),
+  provider: text('provider').$type<OauthProvider>().notNull(),
+  codeVerifier: text('code_verifier').notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  consumedAt: timestamp('consumed_at', { withTimezone: true }),
+  createdAt: createdAt(),
+});
 
 export type SelectSubscriber = typeof subscribers.$inferSelect;
 export type InsertSubscriber = typeof subscribers.$inferInsert;

@@ -14,6 +14,7 @@ export {
   type ChallengeRow,
 } from './repositories/identity/challenge.repository';
 export { AccountRepository } from './repositories/identity/account.repository';
+export { OauthStateRepository } from './repositories/identity/oauth-state.repository';
 export {
   SignInFailureRepository,
   type FailureScope,

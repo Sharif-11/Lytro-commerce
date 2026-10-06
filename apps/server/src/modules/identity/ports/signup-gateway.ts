@@ -1,4 +1,5 @@
 import type { Transaction } from '@lytronix/db';
+import type { IdentityKind } from '@lytronix/validators';
 import type { TenantState } from '@lytronix/validators';
 
 /** The shop a subscriber owns, as sign-in needs it to choose the next screen. */
@@ -32,6 +33,15 @@ export interface SignupGateway {
     tx: Transaction,
     subscriberId: string,
   ): Promise<{ id: string; email: string } | null>;
+  findSubscriberByIdentity(
+    tx: Transaction,
+    kind: IdentityKind,
+    value: string,
+  ): Promise<{ subscriberId: string; passwordHash: string | null } | null>;
+  insertOauthIdentity(
+    tx: Transaction,
+    values: { subscriberId: string; kind: IdentityKind; value: string; verifiedAt: Date },
+  ): Promise<string>;
   findPhoneIdentityOf(
     tx: Transaction,
     subscriberId: string,

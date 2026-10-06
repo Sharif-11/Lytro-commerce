@@ -42,3 +42,10 @@ export const verifyEmailCodeSchema = z.object({
   code: codeField,
 });
 export type VerifyEmailCodeInput = z.infer<typeof verifyEmailCodeSchema>;
+
+// GET auth/oauth/:provider/callback — the code and state the provider returns (AUTH-24).
+export const oauthCallbackSchema = z.object({
+  code: z.string().min(1).max(2048),
+  state: z.string().min(1).max(128),
+});
+export type OauthCallbackInput = z.infer<typeof oauthCallbackSchema>;

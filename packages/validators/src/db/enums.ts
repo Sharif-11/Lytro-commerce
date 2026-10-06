@@ -37,6 +37,12 @@ export enum SignInMethod {
   Code = 'code',
   Password = 'password',
   Reset = 'reset',
+  Oauth = 'oauth',
+}
+
+export enum OauthProvider {
+  Google = 'google',
+  Facebook = 'facebook',
 }
 
 export enum ChallengeChannel {

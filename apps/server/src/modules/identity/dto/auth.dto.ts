@@ -6,6 +6,7 @@ import {
   requestSigninCodeSchema,
   setPasswordSchema,
   verifyForgotPasswordSchema,
+  oauthCallbackSchema,
   verifyEmailCodeSchema,
   verifySigninCodeSchema,
 } from '@lytronix/validators';
@@ -21,3 +22,4 @@ export class SetPasswordDto extends createZodDto(setPasswordSchema) {}
 export class RequestEmailCodeDto extends createZodDto(requestEmailCodeSchema) {}
 export class VerifyEmailCodeDto extends createZodDto(verifyEmailCodeSchema) {}
 export class CreateShopDto extends createZodDto(createShopSchema) {}
+export class OauthCallbackDto extends createZodDto(oauthCallbackSchema) {}
