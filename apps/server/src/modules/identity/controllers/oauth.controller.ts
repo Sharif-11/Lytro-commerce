@@ -5,7 +5,8 @@ import { ClientIp } from '../../../common/client-ip';
 import { type HttpRequest, type HttpResponse } from '../../../common/http';
 import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
 import { OauthCallbackDto } from '../dto/auth.dto';
-import { OauthService, type OauthAttached, type OauthSignedIn } from '../services/oauth.service';
+import { OauthService } from '../services/oauth.service';
+import type { OauthAttached, OauthSignedIn } from '../types/oauth';
 
 // Google and Facebook sign-in routes (AUTH-24). A provider that is switched off has no routes: it answers 404.
 @Controller('auth')
@@ -39,7 +40,7 @@ export class OauthController {
       query.state,
       this.clientIp.context(request),
     );
-    if (isAttached(result)) return result;
+    if (this.isAttached(result)) return result;
     response.setHeader('Set-Cookie', result.cookie);
     return {
       next: result.next,
@@ -48,8 +49,8 @@ export class OauthController {
       recovery: result.recovery,
     };
   }
-}
 
-function isAttached(result: OauthSignedIn | OauthAttached): result is OauthAttached {
-  return 'attached' in result;
+  private isAttached(result: OauthSignedIn | OauthAttached): result is OauthAttached {
+    return 'attached' in result;
+  }
 }

@@ -5,18 +5,14 @@ import { ApiError } from '../../../common/api-error';
 import { UniqueViolation } from '../../../common/errors/unique-violation';
 import { EmailFormat } from './email-format';
 import { OneTimeCodeService } from './one-time-code.service';
-import { OauthService, type OauthAttached } from './oauth.service';
+import { OauthService } from './oauth.service';
+import type { OauthAttached } from '../types/oauth';
 import { PhoneNumberFormat } from './phone-number-format';
 import { SignInLockout } from './sign-in-lockout';
 import { SIGNUP_GATEWAY } from '../tokens';
 import type { SignupGateway } from '../ports/signup-gateway';
 import type { CodeIssued } from '../types/code-issued';
-
-export interface Destination {
-  destination: string;
-  channel: ChallengeChannel;
-  identityKind: IdentityKind;
-}
+import type { IdentityDestination as Destination } from '../types/identity-destination';
 
 /** The identities of a signed-in account: list, add and remove them (AUTH-08, AUTH-26). */
 @Injectable()

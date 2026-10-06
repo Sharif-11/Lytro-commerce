@@ -10,7 +10,7 @@ import { MINUTE_MS } from '../../../common/time';
 import { UniqueViolation } from '../../../common/errors/unique-violation';
 import { SignedInSession } from './signed-in-session';
 import type { SessionContext } from '../types/session';
-import type { SignedIn } from '../types/signed-in';
+import type { OauthAttached, OauthSignedIn } from '../types/oauth';
 import { OAUTH_PROVIDERS, OAUTH_STATE_STORE, SIGNUP_GATEWAY, SIGNUP_SETTINGS } from '../tokens';
 import type { OauthProviderPort } from '../ports/oauth-provider';
 import type { OauthStateStore } from '../ports/oauth-state-store';
@@ -19,16 +19,6 @@ import type { SignupSettings } from '../ports/signup-settings';
 
 // AUTH-24: a provider sign-in must come back with the state it started with, within this window.
 export const OAUTH_STATE_TTL_MS = 10 * MINUTE_MS;
-
-export interface OauthSignedIn extends SignedIn {
-  // AUTH-27: an account created from Facebook with no email has no recovery path except Facebook itself.
-  recovery: 'facebook-only' | null;
-}
-
-// AUTH-26: a provider account added to a signed-in account.
-export interface OauthAttached {
-  attached: IdentityKind;
-}
 
 /** Google and Facebook sign-in, and adding them to an account (AUTH-24, AUTH-26, AUTH-27). Only enabled providers are offered. */
 @Injectable()
