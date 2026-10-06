@@ -9,6 +9,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { AppModule } from '../src/app/app.module';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { prepareTestDatabase } from './support/database';
+import { SmsCapture } from './support/sms-capture';
 import { cookieFrom, type HttpResult, postJson } from './support/http';
 
 // Passwords, reset and sign-in lockout over real HTTP and the real database
@@ -30,17 +31,10 @@ interface Session {
 let app: INestApplication;
 let port: number;
 let admin: pg.Client;
-const sent: { toPhone: string; body: string }[] = [];
+const texts = new SmsCapture();
 
 const post = (path: string, payload: unknown, headers: Record<string, string> = {}) =>
   postJson(port, path, payload, headers);
-
-const freshPhone = (): string => `0171${randomUUID().replace(/\D/g, '').slice(0, 7)}`;
-
-function textedCode(phone: string): string {
-  const last = [...sent].reverse().find((m) => m.toPhone === phone);
-  return /(\d{6})/.exec(last?.body ?? '')?.[1] ?? '';
-}
 
 /** Lets the next code be requested now, as a real owner would wait it out. */
 async function passCooldown(phone: string): Promise<void> {
@@ -58,14 +52,14 @@ function toSession(result: HttpResult): Session {
 /** Signs in by code, which opens a session that may set a password without the current one. */
 async function enterByCode(phone: string): Promise<Session> {
   await post('/auth/phone/code', { phone });
-  const response = await post('/auth/phone/verify', { phone, code: textedCode(phone) });
+  const response = await post('/auth/phone/verify', { phone, code: texts.codeFor(phone) });
   expect(response.status).toBe(200);
   return toSession(response);
 }
 
 /** A number with an owner, a shop and a password, ready to sign in by password. */
 async function ownerWithPassword(): Promise<string> {
-  const phone = freshPhone();
+  const phone = texts.freshPhone();
   const entered = await enterByCode(phone);
   const shop = await post(
     '/shops',
@@ -106,12 +100,7 @@ beforeAll(async () => {
 
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(SMS_PROVIDER)
-    .useValue({
-      send: (message: { toPhone: string; body: string }) => {
-        sent.push(message);
-        return Promise.resolve();
-      },
-    })
+    .useValue(texts.provider)
     .compile();
   app = moduleRef.createNestApplication();
   await app.listen(0, '127.0.0.1');
@@ -145,11 +134,11 @@ describeIfDatabase('signing in with a password (AUTH-12, AUTH-13)', () => {
   });
 
   it('gives one identical reply for an unknown number, a number with no password and a wrong password', async () => {
-    const withoutPassword = freshPhone();
+    const withoutPassword = texts.freshPhone();
     await enterByCode(withoutPassword);
     const phone = await ownerWithPassword();
 
-    const unknown = await signInWith(freshPhone(), PASSWORD);
+    const unknown = await signInWith(texts.freshPhone(), PASSWORD);
     const noPassword = await signInWith(withoutPassword, PASSWORD);
     const wrong = await signInWith(phone, 'not-the-password');
 
@@ -191,7 +180,7 @@ describeIfDatabase('signing in with a password (AUTH-12, AUTH-13)', () => {
     }
     await passCooldown(phone);
     await post('/auth/phone/code', { phone });
-    const code = textedCode(phone);
+    const code = texts.codeFor(phone);
     const wrongCode = code === '000000' ? '111111' : '000000';
     await post('/auth/phone/verify', { phone, code: wrongCode });
     await post('/auth/phone/verify', { phone, code: wrongCode });
@@ -203,21 +192,21 @@ describeIfDatabase('resetting a forgotten password (AUTH-17, AUTH-18, AUTH-19)',
   it('gives the same reply for a known and an unknown number, and sends a reset code only to the known one', async () => {
     const phone = await ownerWithPassword();
     const known = await post('/auth/forgot-password', { phone });
-    const unknown = await post('/auth/forgot-password', { phone: freshPhone() });
+    const unknown = await post('/auth/forgot-password', { phone: texts.freshPhone() });
 
     expect(known.status).toBe(200);
     expect(unknown.body).toEqual(known.body);
-    expect(sent.filter((m) => m.toPhone === phone).length).toBeGreaterThan(0);
+    expect(texts.countFor(phone)).toBeGreaterThan(0);
   });
 
   it('allows one reset request per two minutes per account, with the same reply (AUTH-18)', async () => {
     const phone = await ownerWithPassword();
-    const before = sent.filter((m) => m.toPhone === phone).length;
+    const before = texts.countFor(phone);
     const first = await post('/auth/forgot-password', { phone });
     const second = await post('/auth/forgot-password', { phone });
     expect(second.status).toBe(200);
     expect(second.body).toEqual(first.body);
-    expect(sent.filter((m) => m.toPhone === phone).length).toBe(before + 1);
+    expect(texts.countFor(phone)).toBe(before + 1);
   });
 
   it('opens a session that must set a password before anything else, then sets it and ends the old sessions', async () => {
@@ -225,7 +214,7 @@ describeIfDatabase('resetting a forgotten password (AUTH-17, AUTH-18, AUTH-19)',
     const old = await signInWith(phone, PASSWORD).then(toSession);
 
     await post('/auth/forgot-password', { phone });
-    const reset = await post('/auth/forgot-password/verify', { phone, code: textedCode(phone) });
+    const reset = await post('/auth/forgot-password/verify', { phone, code: texts.codeFor(phone) });
     expect(reset.status).toBe(200);
     const pending = toSession(reset);
     expect(pending).toMatchObject({ next: 'set-password' });
@@ -262,7 +251,7 @@ describeIfDatabase('resetting a forgotten password (AUTH-17, AUTH-18, AUTH-19)',
     const phone = await ownerWithPassword();
     await post('/auth/forgot-password', { phone });
     const pending = toSession(
-      await post('/auth/forgot-password/verify', { phone, code: textedCode(phone) }),
+      await post('/auth/forgot-password/verify', { phone, code: texts.codeFor(phone) }),
     );
     const response = await post(
       '/auth/signout',

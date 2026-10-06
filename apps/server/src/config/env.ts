@@ -1,7 +1,6 @@
 import { z } from 'zod';
 
 // Every setting the server reads, validated once at startup (ENGINEERING-STANDARDS §2).
-// A missing or malformed value stops the process with a message naming the variable.
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().default(3000),
@@ -16,7 +15,6 @@ const envSchema = z.object({
     .default('localhost')
     .transform((value) => value.toLowerCase()),
   // The edge (any proxy in front of the server) adds this secret to every request it forwards (decision R3).
-  // Required in production; unset in development, where the check is switched off.
   TRUSTED_EDGE_SECRET: z.string().min(32).optional(),
   // A second accepted secret, set only while the edge's secret is being rotated (no downtime).
   TRUSTED_EDGE_SECRET_NEXT: z.string().min(32).optional(),

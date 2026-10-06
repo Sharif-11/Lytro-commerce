@@ -17,8 +17,10 @@ import type { SessionRecord } from '../ports/session-store';
 import { ForgotPasswordService } from '../services/forgot-password.service';
 import { PasswordSigninService } from '../services/password-signin.service';
 import { PasswordService } from '../services/password.service';
-import { type NextStep, SigninService } from '../services/signin.service';
-import { type SessionContext, SessionService } from '../services/session.service';
+import { SigninService } from '../services/signin.service';
+import type { NextStep } from '../types/signed-in';
+import { SessionService } from '../services/session.service';
+import type { SessionContext } from '../types/session';
 import type { CodeIssued } from '../types/code-issued';
 
 interface SignedInBody {

@@ -6,17 +6,13 @@ import { UniqueViolation } from '../../../common/errors/unique-violation';
 import { OneTimeCodeService } from './one-time-code.service';
 import { PhoneNumberFormat } from './phone-number-format';
 import { SignInLockout } from './sign-in-lockout';
-import { type SignedIn, SignedInSession } from './signed-in-session';
-import type { SessionContext } from './session.service';
+import { SignedInSession } from './signed-in-session';
+import type { SessionContext } from '../types/session';
+import type { SignedIn } from '../types/signed-in';
 import { SIGNUP_GATEWAY } from '../tokens';
 import type { SignupGateway } from '../ports/signup-gateway';
 
-export type { SignedIn, NextStep } from './signed-in-session';
-
-/**
- * Sign-in and sign-up by one-time code (AUTH-01, AUTH-04, AUTH-08, AUTH-12). A verified number opens a session on
- * the current host. A new number creates the subscriber in the same unit of work.
- */
+/** Sign-in and sign-up by one-time code (AUTH-01, AUTH-04, AUTH-08, AUTH-12). */
 @Injectable()
 export class SigninService {
   constructor(

@@ -2,8 +2,7 @@ import { Inject, Injectable, Optional } from '@nestjs/common';
 import { timingSafeEqual } from 'node:crypto';
 import { TRUSTED_EDGE_SECRET, TRUSTED_EDGE_SECRET_NEXT } from '../../modules/tenancy/tokens';
 
-// R3: the shared secret the edge adds to every forwarded request. Compared in constant time. During a rotation a
-// second secret is also accepted, so the edge can switch over without downtime.
+// R3: the shared secret the edge adds to every forwarded request.
 @Injectable()
 export class EdgeSecret {
   constructor(
@@ -22,13 +21,13 @@ export class EdgeSecret {
     if (!this.isRequired()) return true;
     if (typeof received !== 'string') return false;
     return [this.expected, this.next].some(
-      (secret) => secret !== undefined && sameSecret(received, secret),
+      (secret) => secret !== undefined && this.sameSecret(received, secret),
     );
   }
-}
 
-function sameSecret(received: string, secret: string): boolean {
-  const a = Buffer.from(received);
-  const b = Buffer.from(secret);
-  return a.length === b.length && timingSafeEqual(a, b);
+  private sameSecret(received: string, secret: string): boolean {
+    const a = Buffer.from(received);
+    const b = Buffer.from(secret);
+    return a.length === b.length && timingSafeEqual(a, b);
+  }
 }

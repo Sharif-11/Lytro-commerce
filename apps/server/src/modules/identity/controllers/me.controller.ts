@@ -16,8 +16,7 @@ export interface MeResponse {
   } | null;
 }
 
-// The dashboard shell's account summary. Owners reach it in every lifecycle state, so the purchase and renewal
-// screens can load (AUTH-22, AUTH-23).
+// The dashboard shell's account summary.
 @Controller('me')
 @Dashboard({ lapsed: true, withoutShop: true })
 @UseGuards(SessionGuard, DashboardGuard)

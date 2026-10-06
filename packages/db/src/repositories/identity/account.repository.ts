@@ -98,21 +98,4 @@ export class AccountRepository {
       .limit(1);
     return rows[0] ?? null;
   }
-
-  async findPhoneIdentity(
-    db: Executor,
-    phone: string,
-  ): Promise<{ id: string; subscriberId: string } | null> {
-    const rows = await db
-      .select({ id: subscriberIdentities.id, subscriberId: subscriberIdentities.subscriberId })
-      .from(subscriberIdentities)
-      .where(
-        and(
-          eq(subscriberIdentities.kind, IdentityKind.Phone),
-          eq(subscriberIdentities.value, phone),
-        ),
-      )
-      .limit(1);
-    return rows[0] ?? null;
-  }
 }
