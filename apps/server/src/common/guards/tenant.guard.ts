@@ -9,6 +9,8 @@ import {
 import { Reflector } from '@nestjs/core';
 import { ApiError } from '../api-error';
 import { SKIP_TENANT } from '../decorators/skip-tenant';
+import { SKIP_EDGE } from '../decorators/skip-edge';
+import { DASHBOARD, type DashboardOptions } from '../decorators/dashboard';
 import type { CachedTenant } from '../../modules/tenancy/types/cached-tenant';
 import { TenantResolver } from '../../modules/tenancy/services/tenant-resolver.service';
 import { EdgeSecret } from './edge-secret';
@@ -35,17 +37,28 @@ export class TenantGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    const skipEdge = this.reflector.getAllAndOverride<boolean | undefined>(SKIP_EDGE, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
     const skip = this.reflector.getAllAndOverride<boolean | undefined>(SKIP_TENANT, [
       context.getHandler(),
       context.getClass(),
     ]);
-    if (skip) return true;
-
+    const dashboard = this.reflector.getAllAndOverride<DashboardOptions | undefined>(DASHBOARD, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
     const request = context.switchToHttp().getRequest<TenantRequest>();
 
-    if (this.edgeSecret.isRequired() && !this.edgeSecret.matches(request.headers[EDGE_HEADER])) {
+    if (
+      !skipEdge &&
+      this.edgeSecret.isRequired() &&
+      !this.edgeSecret.matches(request.headers[EDGE_HEADER])
+    ) {
       throw new ForbiddenException('Request not accepted.');
     }
+    if (skip || dashboard) return true;
 
     const result = await this.resolver.resolve(this.firstHeader(request.headers.host));
     if (result.outcome === 'not_found') throw new NotFoundException('Page not found.');

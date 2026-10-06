@@ -13,3 +13,7 @@ export const SLUG_PATTERN = /^[a-z0-9]([a-z0-9-]{1,28}[a-z0-9])$/;
 // AUTH-05: one-time codes are six digits.
 export const CODE_LENGTH = 6;
 export const CODE_PATTERN = new RegExp(`^\\d{${String(CODE_LENGTH)}}$`);
+
+// D2: passwords are 8–20 characters.
+export const PASSWORD_MIN_LENGTH = 8;
+export const PASSWORD_MAX_LENGTH = 20;

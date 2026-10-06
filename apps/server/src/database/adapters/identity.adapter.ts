@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { ChallengeKind } from '@lytronix/validators';
 import {
   AccountRepository,
   ChallengeRepository,
@@ -7,7 +8,7 @@ import {
 } from '@lytronix/db';
 import { UniqueViolation } from '../../common/errors/unique-violation';
 import type { ChallengeRecord, ChallengeStore } from '../../modules/identity/ports/challenge-store';
-import type { SignupGateway } from '../../modules/identity/ports/signup-gateway';
+import type { OwnedTenant, SignupGateway } from '../../modules/identity/ports/signup-gateway';
 import { DatabaseService } from '../database.service';
 
 /** One-time code rows (AUTH-05 to AUTH-07), through the challenge repository. */
@@ -15,17 +16,17 @@ import { DatabaseService } from '../database.service';
 export class DrizzleChallengeStore implements ChallengeStore {
   constructor(@Inject(ChallengeRepository) private readonly challenges: ChallengeRepository) {}
 
-  latest(tx: Transaction, phone: string): Promise<ChallengeRecord | null> {
-    return this.challenges.latest(tx, phone);
+  latest(tx: Transaction, phone: string, kind: ChallengeKind): Promise<ChallengeRecord | null> {
+    return this.challenges.latest(tx, phone, kind);
   }
 
-  countSince(tx: Transaction, phone: string, since: Date): Promise<number> {
-    return this.challenges.countSince(tx, phone, since);
+  countSince(tx: Transaction, phone: string, kind: ChallengeKind, since: Date): Promise<number> {
+    return this.challenges.countSince(tx, phone, kind, since);
   }
 
   async create(
     tx: Transaction,
-    input: { phone: string; codeHash: string; expiresAt: Date },
+    input: { phone: string; kind: ChallengeKind; codeHash: string; expiresAt: Date },
   ): Promise<{ id: string; createdAt: Date }> {
     const row = await this.challenges.insert(tx, input);
     return { id: row.id, createdAt: row.createdAt };
@@ -40,7 +41,7 @@ export class DrizzleChallengeStore implements ChallengeStore {
   }
 }
 
-/** Transactions and account rows for sign-up. A duplicate phone becomes UniqueViolation('phone'). */
+/** Transactions and account rows for sign-in and sign-up. A duplicate phone becomes UniqueViolation('phone'). */
 @Injectable()
 export class DrizzleSignupGateway implements SignupGateway {
   constructor(
@@ -56,6 +57,28 @@ export class DrizzleSignupGateway implements SignupGateway {
 
   consumeChallenge(tx: Transaction, challengeId: string, at: Date): Promise<boolean> {
     return this.challenges.consume(tx, challengeId, at);
+  }
+
+  findSubscriberByPhone(
+    tx: Transaction,
+    phone: string,
+  ): Promise<{ subscriberId: string; passwordHash: string | null } | null> {
+    return this.accounts.findSubscriberByPhone(tx, phone);
+  }
+
+  findSubscriberById(
+    tx: Transaction,
+    subscriberId: string,
+  ): Promise<{ passwordHash: string | null } | null> {
+    return this.accounts.findSubscriberById(tx, subscriberId);
+  }
+
+  markSignedIn(tx: Transaction, subscriberId: string, at: Date): Promise<void> {
+    return this.accounts.markSignedIn(tx, subscriberId, at);
+  }
+
+  setPasswordHash(tx: Transaction, subscriberId: string, passwordHash: string): Promise<void> {
+    return this.accounts.setPasswordHash(tx, subscriberId, passwordHash);
   }
 
   insertSubscriber(tx: Transaction): Promise<string> {
@@ -74,5 +97,16 @@ export class DrizzleSignupGateway implements SignupGateway {
       }
       throw error;
     }
+  }
+
+  findOwnedTenant(tx: Transaction, subscriberId: string): Promise<OwnedTenant | null> {
+    return this.accounts.findOwnedTenant(tx, subscriberId);
+  }
+
+  findPhoneIdentityOf(
+    tx: Transaction,
+    subscriberId: string,
+  ): Promise<{ id: string; phone: string } | null> {
+    return this.accounts.findPhoneIdentityOf(tx, subscriberId);
   }
 }

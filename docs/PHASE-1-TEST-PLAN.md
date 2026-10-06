@@ -94,7 +94,7 @@ Each scenario lists its preconditions, numbered steps, expected result, and the 
 - Covers: AUTH-12, AUTH-13.
 
 **P1-E11 Lockout. [API]**
-- Steps: fail five times in fifteen minutes on one account from one IP, mixing wrong passwords and wrong codes; attempt a sixth with the correct password, then with a correct code; wait for the lock to pass; attempt again.
+- Steps: fail five times in fifteen minutes on one account, mixing wrong passwords and wrong codes; attempt a sixth with the correct password, then with a correct code; wait for the lock to pass; attempt again.
 - Expected: the sixth attempt returns `rate_limited`, even with the right password or code; after the window, the correct password works.
 - Covers: AUTH-14.
 
@@ -122,13 +122,23 @@ Each scenario lists its preconditions, numbered steps, expected result, and the 
 **P1-E16 Sign-in by lifecycle state. [INT]**
 - Preconditions: tenants in `trial`, `active` and `grace` (simulated by setting the state directly in the test database).
 - Steps: staff and owner sign in under each state.
-- Expected: staff and owner can sign in during `active`, `grace`. Staff in a later state receives `tenant_offline`.
+- Expected: staff and owner can sign in during `active`, `grace`. Staff in a later state receives `tenant_offline`. An owner of a `locked` or `archived` shop gets `next: renewal`; a `deleted` shop gets `next: purchase`; a suspended shop gets `next: unavailable`. The owner can still call `/me` in those states.
 - Covers: AUTH-22, partially. The full lifecycle set is covered in Phase 2.
 
 **P1-E33 Three-host dashboard access and onboarding resume. [API]**
 - Steps: verify a new phone on the platform host and stop; sign in again — check `next`; create the shop on the platform host; confirm the dashboard loads there; sign in directly on the shop subdomain and confirm the same dashboard; send the platform-host session to the shop subdomain and vice versa; sign in again after the set-password offer was seen.
-- Expected: the second sign-in on the platform host returns `next: create-shop`; the dashboard loads on the platform host after shop creation; signing in on the subdomain also gives the dashboard; a session from one host is refused on any other host with `unauthenticated`; the set-password offer is not shown again.
+- Expected: the second sign-in on the platform host returns `next: create-shop`; the dashboard loads on the platform host after shop creation; signing in on the subdomain also gives the dashboard; a session from one host is refused on any other host with `forbidden`; the set-password offer is not shown again.
 - Covers: AUTH-10, AUTH-28, TEN-28, TEN-29, D13.
+
+**P1-E34 The trusted edge guards every route except health. [API]**
+- Steps: with the edge secret configured, call a sign-in route with no edge header; call it again with the header; call `/health` with no header.
+- Expected: the first call returns 403 `forbidden`; the second succeeds; `/health` answers 200.
+- Covers: R3, R6, D14.
+
+**P1-E35 The client address comes from the edge header only with the edge secret. [API]**
+- Steps: with the edge secret configured, sign in with a `CF-Connecting-IP` value and the edge header, then fail a sign-in with the same header but no edge header.
+- Expected: the recorded address for the first request is the forwarded one; without the edge header the forwarded value is ignored and the socket address is recorded.
+- Covers: D14, AUTH-14.
 
 ### C. Other identities
 
@@ -263,7 +273,7 @@ Each scenario lists its preconditions, numbered steps, expected result, and the 
 
 **P1-N04 Password and token storage. [INT]**
 - Steps: read the database directly after sign-up and sign-in.
-- Expected: passwords are argon2id hashes, not plain text; session tokens and OTPs are stored only as hashes.
+- Expected: passwords are bcrypt hashes at cost 12 or more, not plain text (D2); session tokens and OTPs are stored only as hashes.
 - Covers: SEC-01, SEC-07.
 
 ---

@@ -1,4 +1,5 @@
 import { and, count, desc, eq, gt, isNull, sql } from 'drizzle-orm';
+import { ChallengeKind } from '@lytronix/validators';
 import type { Executor } from '../../transactions';
 import { verificationChallenges } from '../../schema';
 
@@ -10,7 +11,7 @@ export type ChallengeRow = typeof verificationChallenges.$inferSelect;
 export class ChallengeRepository {
   async insert(
     db: Executor,
-    values: { phone: string; codeHash: string; expiresAt: Date },
+    values: { phone: string; kind: ChallengeKind; codeHash: string; expiresAt: Date },
   ): Promise<ChallengeRow> {
     const rows = await db.insert(verificationChallenges).values(values).returning();
     const row = rows[0];
@@ -18,27 +19,25 @@ export class ChallengeRepository {
     return row;
   }
 
-  /** The most recent sign-up challenge for a number. */
-  async latest(db: Executor, phone: string): Promise<ChallengeRow | null> {
+  /** The most recent challenge of a given kind for a phone number. */
+  async latest(db: Executor, phone: string, kind: ChallengeKind): Promise<ChallengeRow | null> {
     const rows = await db
       .select()
       .from(verificationChallenges)
-      .where(
-        and(eq(verificationChallenges.phone, phone), eq(verificationChallenges.purpose, 'signup')),
-      )
+      .where(and(eq(verificationChallenges.phone, phone), eq(verificationChallenges.kind, kind)))
       .orderBy(desc(verificationChallenges.createdAt))
       .limit(1);
     return rows[0] ?? null;
   }
 
-  async countSince(db: Executor, phone: string, since: Date): Promise<number> {
+  async countSince(db: Executor, phone: string, kind: ChallengeKind, since: Date): Promise<number> {
     const rows = await db
       .select({ total: count() })
       .from(verificationChallenges)
       .where(
         and(
           eq(verificationChallenges.phone, phone),
-          eq(verificationChallenges.purpose, 'signup'),
+          eq(verificationChallenges.kind, kind),
           gt(verificationChallenges.createdAt, since),
         ),
       );

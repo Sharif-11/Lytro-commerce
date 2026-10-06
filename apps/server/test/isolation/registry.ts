@@ -7,5 +7,8 @@
 // Key: "METHOD /path", exactly as the route is registered (for example "GET /orders/:id").
 // Value: what the case checks. Every case expects `not_found` for another shop's ID (TEN-03).
 //
-// Empty until the first shop-owned endpoint arrives (slice 4 sign-up, slice 5 sign-in and staff).
-export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {};
+// GET /me: a session of one shop is refused on another shop's host (TEN-28), and the summary shows only its own shop.
+// Checked over HTTP in test/dashboard.e2e.spec.ts.
+export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
+  'GET /me': 'session of shop A on shop B host is refused; summary shows only the session shop',
+};

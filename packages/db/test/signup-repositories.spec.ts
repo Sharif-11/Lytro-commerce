@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type pg from 'pg';
+import { ChallengeKind } from '@lytronix/validators';
 import {
   AccountRepository,
   ChallengeRepository,
@@ -25,6 +26,7 @@ const newSlug = (): string => `s-${randomUUID().slice(0, 8)}`;
 async function newChallenge(phone: string): Promise<string> {
   const row = await new ChallengeRepository().insert(handle.db, {
     phone,
+    kind: ChallengeKind.Signin,
     codeHash: 'h'.repeat(64),
     expiresAt: new Date(Date.now() + 5 * 60 * 1000),
   });
@@ -53,9 +55,16 @@ describe('one-time code rows (AUTH-05, AUTH-06, AUTH-07)', () => {
     const phone = newPhone();
     await newChallenge(phone);
     const second = await newChallenge(phone);
-    expect((await new ChallengeRepository().latest(handle.db, phone))?.id).toBe(second);
     expect(
-      await new ChallengeRepository().countSince(handle.db, phone, new Date(Date.now() - 3600_000)),
+      (await new ChallengeRepository().latest(handle.db, phone, ChallengeKind.Signin))?.id,
+    ).toBe(second);
+    expect(
+      await new ChallengeRepository().countSince(
+        handle.db,
+        phone,
+        ChallengeKind.Signin,
+        new Date(Date.now() - 3600_000),
+      ),
     ).toBe(2);
   });
 
@@ -74,9 +83,11 @@ describe('one-time code rows (AUTH-05, AUTH-06, AUTH-07)', () => {
     const challengeId = await newChallenge(phone);
     const until = new Date(Date.now() + 15 * 60 * 1000);
     await new ChallengeRepository().lock(handle.db, challengeId, until);
-    expect((await new ChallengeRepository().latest(handle.db, phone))?.lockedUntil?.getTime()).toBe(
-      until.getTime(),
-    );
+    expect(
+      (
+        await new ChallengeRepository().latest(handle.db, phone, ChallengeKind.Signin)
+      )?.lockedUntil?.getTime(),
+    ).toBe(until.getTime());
   });
 
   it('consumes a challenge once; the second consumption finds it already used', async () => {

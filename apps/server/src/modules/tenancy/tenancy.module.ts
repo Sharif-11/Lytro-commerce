@@ -5,6 +5,7 @@ import {
   DrizzleSlugAvailability,
   DrizzleTenantDirectory,
   DrizzleTenantStore,
+  DrizzleTenantSummaryStore,
 } from '../../database/adapters/tenancy.adapter';
 import type { Env } from '../../config/env';
 import { TenantGuard } from '../../common/guards/tenant.guard';
@@ -23,8 +24,10 @@ import {
   SLUG_AVAILABILITY,
   TENANT_DIRECTORY,
   TENANT_STORE,
+  TENANT_SUMMARY_STORE,
   TRUSTED_EDGE_SECRET,
 } from './tokens';
+import { TenantSummaries } from './services/tenant-summaries.service';
 
 // TEN-7a: the tenant guard runs on every route, before any authentication code (APP_GUARD).
 @Module({
@@ -34,6 +37,8 @@ import {
     { provide: TENANT_DIRECTORY, useClass: DrizzleTenantDirectory },
     { provide: SLUG_AVAILABILITY, useClass: DrizzleSlugAvailability },
     { provide: TENANT_STORE, useClass: DrizzleTenantStore },
+    { provide: TENANT_SUMMARY_STORE, useClass: DrizzleTenantSummaryStore },
+    TenantSummaries,
     { provide: CLOCK, useValue: (): Date => new Date() },
     { provide: PLATFORM_DOMAIN, inject: [ENV], useFactory: (env: Env) => env.PLATFORM_DOMAIN },
     {
@@ -49,6 +54,13 @@ import {
     TenantService,
     { provide: APP_GUARD, useClass: TenantGuard },
   ],
-  exports: [TenantResolver, SlugService, TenantService],
+  exports: [
+    TenantResolver,
+    HostClassifier,
+    SlugService,
+    TenantService,
+    TenantSummaries,
+    EdgeSecret,
+  ],
 })
 export class TenancyModule {}

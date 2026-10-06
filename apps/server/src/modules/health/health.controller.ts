@@ -1,4 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
+import { SkipEdge } from '../../common/decorators/skip-edge';
 import { SkipTenant } from '../../common/decorators/skip-tenant';
 
 export interface HealthReport {
@@ -10,6 +11,7 @@ export interface HealthReport {
 
 @Controller('health')
 @SkipTenant()
+@SkipEdge()
 export class HealthController {
   @Get()
   check(): HealthReport {

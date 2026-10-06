@@ -156,7 +156,7 @@ apps/server/src/
 
 ### Validation
 
-- Request bodies are validated by `ZodValidationPipe`, with the schema named on each route, for example `@Body(new ZodValidationPipe(CompleteSignupDto.schema))`.
+- Request bodies are validated by `ZodValidationPipe`, with the schema named on each route, for example `@Body(new ZodValidationPipe(CreateShopDto.schema))`.
 - Rules that need data (uniqueness, reserved names, phone normalisation against the rules) stay in services.
 
 ### Configuration

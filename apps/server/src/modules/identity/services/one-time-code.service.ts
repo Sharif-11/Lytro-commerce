@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import type { ChallengeKind } from '@lytronix/validators';
 import type { Transaction } from '@lytronix/db';
 import { ApiError } from '../../../common/api-error';
 import { HOUR_MS, MINUTE_MS } from '../../../common/time';
@@ -14,6 +15,8 @@ import type { CodeIssued } from '../types/code-issued';
 // AUTH-05 to AUTH-07: the limits on one-time codes, in one place.
 export const CODE_TTL_MS = 5 * MINUTE_MS;
 export const RESEND_COOLDOWN_MS = MINUTE_MS;
+// AUTH-18: a reset code may be requested once per two minutes per account.
+export const RESET_COOLDOWN_MS = 2 * MINUTE_MS;
 export const HOURLY_CODE_CAP = 5;
 export const MAX_WRONG_ATTEMPTS = 5;
 export const LOCK_MS = 15 * MINUTE_MS;
@@ -33,24 +36,28 @@ type CheckOutcome =
 export class OneTimeCodeService {
   constructor(
     @Inject(CHALLENGE_STORE) private readonly challenges: ChallengeStore,
-    @Inject(SIGNUP_GATEWAY) private readonly gateway: SignupGateway,
+    @Inject(SIGNUP_GATEWAY) private readonly gateway: Pick<SignupGateway, 'run'>,
     @Inject(SIGNUP_SETTINGS) private readonly settings: SignupSettings,
     @Inject(OneTimeCodeHasher) private readonly hasher: OneTimeCodeHasher,
     @Inject(MessagingService) private readonly messaging: MessagingService,
   ) {}
 
-  async issue(phone: string): Promise<CodeIssued> {
+  async issue(
+    phone: string,
+    kind: ChallengeKind,
+    cooldownMs: number = RESEND_COOLDOWN_MS,
+  ): Promise<CodeIssued> {
     const { issued, message } = await this.gateway.run(async (tx) => {
       const now = this.settings.now();
-      const latest = await this.challenges.latest(tx, phone);
+      const latest = await this.challenges.latest(tx, phone, kind);
 
       if (latest?.lockedUntil && latest.lockedUntil > now) {
         throw this.tooManyWrongCodes(
           Math.ceil((latest.lockedUntil.getTime() - now.getTime()) / 1000),
         );
       }
-      if (latest && now.getTime() - latest.createdAt.getTime() < RESEND_COOLDOWN_MS) {
-        const wait = latest.createdAt.getTime() + RESEND_COOLDOWN_MS - now.getTime();
+      if (latest && now.getTime() - latest.createdAt.getTime() < cooldownMs) {
+        const wait = latest.createdAt.getTime() + cooldownMs - now.getTime();
         throw new ApiError(
           'rate_limited',
           'A code was sent a moment ago. Wait before asking for another.',
@@ -58,7 +65,12 @@ export class OneTimeCodeService {
           Math.ceil(wait / 1000),
         );
       }
-      const sent = await this.challenges.countSince(tx, phone, new Date(now.getTime() - HOUR_MS));
+      const sent = await this.challenges.countSince(
+        tx,
+        phone,
+        kind,
+        new Date(now.getTime() - HOUR_MS),
+      );
       if (sent >= HOURLY_CODE_CAP) {
         throw new ApiError(
           'rate_limited',
@@ -71,6 +83,7 @@ export class OneTimeCodeService {
       const code = this.hasher.generate();
       await this.challenges.create(tx, {
         phone,
+        kind,
         codeHash: this.hasher.hash(code, phone),
         expiresAt: new Date(now.getTime() + CODE_TTL_MS),
       });
@@ -78,7 +91,7 @@ export class OneTimeCodeService {
       return {
         issued: {
           expiresInSeconds: CODE_TTL_MS / 1000,
-          resendAfterSeconds: RESEND_COOLDOWN_MS / 1000,
+          resendAfterSeconds: cooldownMs / 1000,
         },
         message: queued,
       };
@@ -93,7 +106,7 @@ export class OneTimeCodeService {
           'service_unavailable',
           'We could not send your code. Try again in a minute.',
           {},
-          RESEND_COOLDOWN_MS / 1000,
+          cooldownMs / 1000,
         );
       }
       throw error;
@@ -102,8 +115,8 @@ export class OneTimeCodeService {
   }
 
   /** Returns the challenge the code was checked against, or throws the matching error. */
-  async verify(phone: string, code: string): Promise<string> {
-    const outcome = await this.gateway.run((tx) => this.check(tx, phone, code));
+  async verify(phone: string, code: string, kind: ChallengeKind): Promise<string> {
+    const outcome = await this.gateway.run((tx) => this.check(tx, phone, code, kind));
     switch (outcome.kind) {
       case 'ok':
         return outcome.challengeId;
@@ -125,9 +138,14 @@ export class OneTimeCodeService {
     }
   }
 
-  private async check(tx: Transaction, phone: string, code: string): Promise<CheckOutcome> {
+  private async check(
+    tx: Transaction,
+    phone: string,
+    code: string,
+    kind: ChallengeKind,
+  ): Promise<CheckOutcome> {
     const now = this.settings.now();
-    const challenge: ChallengeRecord | null = await this.challenges.latest(tx, phone);
+    const challenge: ChallengeRecord | null = await this.challenges.latest(tx, phone, kind);
     if (!challenge || challenge.consumedAt) return { kind: 'missing' };
     if (challenge.lockedUntil && challenge.lockedUntil > now) {
       return {

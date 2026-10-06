@@ -1,4 +1,5 @@
-import { index, inet, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { SignInMethod } from '@lytronix/validators';
+import { boolean, index, inet, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { control, createdAt } from '../shared';
 import { subscribers } from './identity';
 import { tenants } from './tenancy';
@@ -15,10 +16,13 @@ export const sessions = control.table(
     subscriberId: uuid('subscriber_id')
       .notNull()
       .references(() => subscribers.id),
-    tenantId: uuid('tenant_id')
-      .notNull()
-      .references(() => tenants.id), // TEN-28: must equal the host's tenant on every request
+    // Null during the brief window between identity verification and shop creation (D13, AUTH-28).
+    tenantId: uuid('tenant_id').references(() => tenants.id),
     userId: uuid('user_id'), // staff user; null for the owner's own session. Points into tenant schema by value.
+    // AUTH-19: blocks all dashboard routes until POST auth/password is called.
+    mustSetPassword: boolean('must_set_password').notNull().default(false),
+    // How the session was opened. AUTH-20 allows a password change without the current one within 10 minutes of a code.
+    signInMethod: text('sign_in_method').$type<SignInMethod>().notNull().default(SignInMethod.Code),
     createdAt: createdAt(),
     lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).notNull().defaultNow(),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),

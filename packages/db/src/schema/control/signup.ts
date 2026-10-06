@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { bigserial, check, index, integer, text, timestamp, uuid } from 'drizzle-orm/pg-core';
-import { SmsKind, SmsStatus } from '@lytronix/validators';
+import { ChallengeKind, SmsKind, SmsStatus } from '@lytronix/validators';
 import { control, createdAt } from '../shared';
 
 // AUTH-05, AUTH-06, AUTH-07: one-time codes. Only a keyed hash is stored, never the code (decision: HMAC).
@@ -10,7 +10,8 @@ export const verificationChallenges = control.table(
   {
     id: uuid('id').primaryKey().defaultRandom(),
     phone: text('phone').notNull(),
-    purpose: text('purpose').notNull().default('signup'),
+    // 'signin' for the entry-screen OTP; 'reset' for the forgot-password flow (AUTH-17, AUTH-21).
+    kind: text('kind').$type<ChallengeKind>().notNull().default(ChallengeKind.Signin),
     codeHash: text('code_hash').notNull(),
     attempts: integer('attempts').notNull().default(0), // AUTH-06: five wrong codes lock the challenge
     lockedUntil: timestamp('locked_until', { withTimezone: true }),

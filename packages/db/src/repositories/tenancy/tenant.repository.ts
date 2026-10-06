@@ -12,7 +12,36 @@ export interface TenantLookupRow {
   state: (typeof tenants.$inferSelect)['state'];
 }
 
+/** What the dashboard shell and the lifecycle gate need about a shop. */
+export interface TenantSummaryRow {
+  id: string;
+  slug: string;
+  shopName: string;
+  state: TenantLookupRow['state'];
+  suspendedAt: Date | null;
+  planName: string | null;
+  periodEnd: Date | null;
+}
+
 export class TenantRepository {
+  async findSummaryById(db: Database, id: string): Promise<TenantSummaryRow | null> {
+    const rows = await db
+      .select({
+        id: tenants.id,
+        slug: tenants.slug,
+        shopName: tenants.shopName,
+        state: tenants.state,
+        suspendedAt: tenants.suspendedAt,
+        planName: plans.name,
+        periodEnd: tenants.periodEnd,
+      })
+      .from(tenants)
+      .leftJoin(plans, eq(plans.id, tenants.planId))
+      .where(eq(tenants.id, id))
+      .limit(1);
+    return rows[0] ?? null;
+  }
+
   /** Finds a shop by its address label, e.g. `fashion-house` for fashion-house.<platform domain>. */
   async findBySlug(db: Database, slug: string): Promise<TenantLookupRow | null> {
     const rows = await db

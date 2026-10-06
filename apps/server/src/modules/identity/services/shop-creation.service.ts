@@ -1,73 +1,62 @@
 import { Inject, Injectable } from '@nestjs/common';
+import type { CreateShopInput } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import { UniqueViolation } from '../../../common/errors/unique-violation';
 import { MessagingService } from '../../shared/messaging/services/messaging.service';
 import { SlugService } from '../../tenancy/services/slug.service';
 import { TenantService } from '../../tenancy/services/tenant.service';
-import type { CompleteSignupInput } from '@lytronix/validators';
-import { PhoneNumberFormat } from './phone-number-format';
-import { OneTimeCodeService } from './one-time-code.service';
-import { type CodeIssued } from '../types/code-issued';
+import { SessionService } from './session.service';
 import { SIGNUP_GATEWAY, SIGNUP_SETTINGS } from '../tokens';
+import type { SessionRecord } from '../ports/session-store';
 import type { SignupGateway } from '../ports/signup-gateway';
 import type { SignupSettings } from '../ports/signup-settings';
 import type { ShopCreated } from '../types/shop-created';
 
 /**
- * Sign-up by phone (AUTH-01, AUTH-04 to AUTH-10). It checks the code, picks the address, then creates the
- * subscriber, the verified phone, the trial shop and its owner in one unit of work, and sends the messages only
- * after that unit commits.
+ * The create-shop step (AUTH-10, AUTH-11, AUTH-28, D13). It runs on a session that has no shop yet. The shop, its
+ * owner, the trial and the session's tenant link are written together; the "shop ready" text goes out after commit.
  */
 @Injectable()
-export class PhoneSignupService {
+export class ShopCreationService {
   constructor(
-    @Inject(OneTimeCodeService) private readonly codes: OneTimeCodeService,
     @Inject(SIGNUP_GATEWAY) private readonly gateway: SignupGateway,
+    @Inject(SIGNUP_SETTINGS) private readonly settings: SignupSettings,
     @Inject(TenantService) private readonly tenants: TenantService,
     @Inject(SlugService) private readonly slugs: SlugService,
     @Inject(MessagingService) private readonly messaging: MessagingService,
-    @Inject(SIGNUP_SETTINGS) private readonly settings: SignupSettings,
-    @Inject(PhoneNumberFormat) private readonly phoneFormat: PhoneNumberFormat,
+    @Inject(SessionService) private readonly sessions: SessionService,
   ) {}
 
-  async requestCode(rawPhone: string): Promise<CodeIssued> {
-    return this.codes.issue(this.requirePhone(rawPhone));
-  }
-
-  async createShop(input: CompleteSignupInput): Promise<ShopCreated> {
-    const phone = this.requirePhone(input.phone);
-    const challengeId = await this.codes.verify(phone, input.code);
+  async createShop(session: SessionRecord, input: CreateShopInput): Promise<ShopCreated> {
     const shopName = input.shopName.trim();
     const ownerName = input.ownerName.trim();
     const address = await this.chooseAddress(shopName, input.address);
 
     try {
       const { tenantId, messages } = await this.gateway.run(async (tx) => {
-        const consumed = await this.gateway.consumeChallenge(tx, challengeId, this.settings.now());
-        if (!consumed) {
-          throw new ApiError('validation_error', 'This code has already been used.', {
-            field: 'code',
-          });
+        const existing = await this.gateway.findOwnedTenant(tx, session.subscriberId);
+        if (existing !== null) {
+          throw new ApiError('conflict', 'This account already has a shop.', {});
         }
-        const subscriberId = await this.gateway.insertSubscriber(tx);
-        const identityId = await this.gateway.insertPhoneIdentity(tx, {
-          subscriberId,
-          phone,
-          verifiedAt: this.settings.now(),
-        });
-        return this.tenants.createTrialShop(tx, {
-          identityId,
-          subscriberId,
+        const identity = await this.gateway.findPhoneIdentityOf(tx, session.subscriberId);
+        if (!identity) {
+          throw new ApiError('unauthenticated', 'Sign in to continue.', {});
+        }
+        const created = await this.tenants.createTrialShop(tx, {
+          identityId: identity.id,
+          subscriberId: session.subscriberId,
           shopName,
           slug: address,
-          ownerPhone: phone,
+          ownerPhone: identity.phone,
           ownerName,
           liveUrl: this.settings.shopUrl(address),
         });
+        await this.sessions.attachTenant(tx, session.id, created.tenantId);
+        return created;
       });
 
       await this.messaging.dispatch(messages);
-      return { tenantId, address, shopUrl: this.settings.shopUrl(address) };
+      return { tenantId, address, shopUrl: this.settings.shopUrl(address), next: 'set-password' };
     } catch (error) {
       if (error instanceof UniqueViolation) throw await this.conflictFor(error, shopName);
       throw error;
@@ -100,26 +89,14 @@ export class PhoneSignupService {
     return suggestion;
   }
 
-  /** Turns a race that lost on a unique constraint into an answer. The phone reply is deliberately vague. */
+  /** Turns a race that lost on the address constraint into an answer. */
   private async conflictFor(error: UniqueViolation, shopName: string): Promise<ApiError> {
     if (error.target === 'phone') {
-      return new ApiError('conflict', 'Sign in to continue.', {});
+      return new ApiError('conflict', 'This account already has a shop.', {});
     }
     return new ApiError('conflict', 'That address is taken.', {
       field: 'address',
       suggestion: await this.slugs.suggest(shopName),
     });
-  }
-
-  private requirePhone(raw: string): string {
-    const phone = this.phoneFormat.normalize(raw);
-    if (!phone) {
-      throw new ApiError(
-        'validation_error',
-        'Enter a Bangladeshi mobile number, such as 017XXXXXXXX.',
-        { field: 'phone' },
-      );
-    }
-    return phone;
   }
 }
