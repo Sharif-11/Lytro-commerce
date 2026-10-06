@@ -14,8 +14,7 @@ import { EnvironmentParser } from '../config/env';
 import { ENV } from '../config/tokens';
 import { DatabaseService } from './database.service';
 
-// Repositories and the transaction runner are providers, with their class as the token. Adapters receive them
-// through their constructors, so each dependency is declared where it is used and can be replaced in a test.
+// Repositories and the transaction runner are providers, with their class as the token.
 @Global()
 @Module({
   providers: [

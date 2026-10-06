@@ -4,14 +4,11 @@ import { ApiError } from '../../../common/api-error';
 import { PasswordHasher } from './password-hasher';
 import { PhoneNumberFormat } from './phone-number-format';
 import { SignInLockout } from './sign-in-lockout';
-import { type SignedIn, SignedInSession } from './signed-in-session';
-import type { SessionContext } from './session.service';
+import { SignedInSession } from './signed-in-session';
+import type { SessionContext } from '../types/session';
+import type { SignedIn } from '../types/signed-in';
 import { SIGNUP_GATEWAY } from '../tokens';
 import type { SignupGateway } from '../ports/signup-gateway';
-
-// AUTH-13: one reply for an unknown number, an account with no password and a wrong password.
-const INVALID = (): ApiError =>
-  new ApiError('unauthenticated', 'That phone number and password do not match.', {});
 
 /** Sign-in with phone and password (AUTH-12, AUTH-13, AUTH-14). */
 @Injectable()
@@ -38,7 +35,7 @@ export class PasswordSigninService {
         : await this.hasher.verifyAbsent(password);
     if (!account || !matches) {
       await this.lockout.recordFailure(subscriberId, context.ip);
-      throw INVALID();
+      throw this.invalidCredentials();
     }
 
     return this.gateway.run((tx) =>
@@ -49,5 +46,10 @@ export class PasswordSigninService {
         context,
       }),
     );
+  }
+
+  /** One reply for an unknown number, an account with no password and a wrong password (AUTH-13). */
+  private invalidCredentials(): ApiError {
+    return new ApiError('unauthenticated', 'That phone number and password do not match.', {});
   }
 }

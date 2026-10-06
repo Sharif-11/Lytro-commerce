@@ -47,10 +47,6 @@ export class SessionRepository {
     return rows[0] ?? null;
   }
 
-  async touch(db: Executor, sessionId: string, at: Date): Promise<void> {
-    await db.update(sessions).set({ lastSeenAt: at }).where(eq(sessions.id, sessionId));
-  }
-
   async attachTenant(db: Executor, sessionId: string, tenantId: string): Promise<void> {
     await db.update(sessions).set({ tenantId }).where(eq(sessions.id, sessionId));
   }

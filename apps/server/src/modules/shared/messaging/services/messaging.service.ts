@@ -8,9 +8,7 @@ import type { MessageStore } from '../ports/message-store';
 import type { SmsProvider } from '../ports/sms-provider';
 import type { ClaimedMessage, QueuedMessage } from '../types/messages';
 
-// SMS-18, D6, AUTH-05. Messages are recorded in the same transaction as the change that caused them.
-// A shop-ready message that cannot be sent is kept and retried; it never fails the request that created the shop.
-// A one-time code is sent during its request, its text is never stored, and a failure is reported to the caller.
+// SMS-18, D6, AUTH-05.
 
 /** Wait after the first, second, third and fourth failed attempt. A fifth failure is final. */
 export const RETRY_WAIT_MINUTES = [1, 5, 15, 60];
@@ -60,10 +58,7 @@ export class MessagingService {
     }
   }
 
-  /**
-   * Tries to send messages whose transaction has committed. Never throws: a failure stays in the outbox for the
-   * retry worker, so the request that caused the message still succeeds.
-   */
+  /** Tries to send messages whose transaction has committed. */
   async dispatch(messages: readonly QueuedMessage[]): Promise<void> {
     for (const message of messages) {
       try {

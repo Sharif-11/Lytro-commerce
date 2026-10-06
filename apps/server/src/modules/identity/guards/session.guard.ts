@@ -16,11 +16,7 @@ export interface SessionRequest {
   session?: SessionRecord;
 }
 
-/**
- * Requires a live session cookie (D1). State-changing requests must also carry the session's CSRF token (SEC-14).
- * A session that still owes a password (AUTH-19) reaches only the routes marked AllowPendingPassword.
- * Attaches the session row to the request for the handler.
- */
+/** Requires a live session cookie (D1). */
 @Injectable()
 export class SessionGuard implements CanActivate {
   constructor(

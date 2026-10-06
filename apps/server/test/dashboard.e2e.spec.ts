@@ -9,6 +9,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from '../src/app/app.module';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { prepareTestDatabase } from './support/database';
+import { SmsCapture } from './support/sms-capture';
 import { cookieFrom, getJson, type HttpResult, postJson } from './support/http';
 
 // The dashboard's host rules and lifecycle gate, over real HTTP and the real database
@@ -30,30 +31,24 @@ interface Owner {
 let app: INestApplication;
 let port: number;
 let admin: pg.Client;
-const sent: { toPhone: string; body: string }[] = [];
+const texts = new SmsCapture();
 
 const post = (path: string, payload: unknown, headers: Record<string, string> = {}) =>
   postJson(port, path, payload, headers);
 const get = (path: string, headers: Record<string, string> = {}) => getJson(port, path, headers);
 
-const freshPhone = (): string => `0171${randomUUID().replace(/\D/g, '').slice(0, 7)}`;
 const freshSlug = (): string => `d${randomUUID().replace(/-/g, '').slice(0, 10)}`;
-
-function textedCode(phone: string): string {
-  const last = [...sent].reverse().find((m) => m.toPhone === phone);
-  return /(\d{6})/.exec(last?.body ?? '')?.[1] ?? '';
-}
 
 async function enterByCode(phone: string): Promise<{ cookie: string; csrfToken: string }> {
   await post('/auth/phone/code', { phone });
-  const response = await post('/auth/phone/verify', { phone, code: textedCode(phone) });
+  const response = await post('/auth/phone/verify', { phone, code: texts.codeFor(phone) });
   const body = response.body as { csrfToken: string };
   return { cookie: cookieFrom(response), csrfToken: body.csrfToken };
 }
 
 /** An owner with a shop on the given address and a password, signed in by code. */
 async function owner(): Promise<Owner> {
-  const phone = freshPhone();
+  const phone = texts.freshPhone();
   const slug = freshSlug();
   const entered = await enterByCode(phone);
   const shop = await post(
@@ -99,12 +94,7 @@ beforeAll(async () => {
 
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(SMS_PROVIDER)
-    .useValue({
-      send: (message: { toPhone: string; body: string }) => {
-        sent.push(message);
-        return Promise.resolve();
-      },
-    })
+    .useValue(texts.provider)
     .compile();
   app = moduleRef.createNestApplication();
   await app.listen(0, '127.0.0.1');
@@ -129,7 +119,7 @@ describeIfDatabase('the dashboard on each host kind (TEN-28, TEN-29)', () => {
   });
 
   it('gives a session with no shop yet a null tenant on the platform host', async () => {
-    const entered = await enterByCode(freshPhone());
+    const entered = await enterByCode(texts.freshPhone());
     const response = await get('/me', withSession(entered, PLATFORM.host));
     expect(response.status).toBe(200);
     expect(response.body).toMatchObject({ tenant: null });
@@ -161,7 +151,7 @@ describeIfDatabase('the dashboard on each host kind (TEN-28, TEN-29)', () => {
     await post('/auth/forgot-password', { phone: who.phone });
     const reset = await post('/auth/forgot-password/verify', {
       phone: who.phone,
-      code: textedCode(who.phone),
+      code: texts.codeFor(who.phone),
     });
     const pending = { cookie: cookieFrom(reset) };
     const response = await get('/me', withSession(pending, PLATFORM.host));

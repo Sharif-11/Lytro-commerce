@@ -29,11 +29,7 @@ export interface DashboardRequest {
   tenant?: TenantSummary | null;
 }
 
-/**
- * The dashboard's tenant rules (TEN-28, AUTH-22, AUTH-23, LIF-24). The shop comes from the host on a shop subdomain
- * or custom domain, and from the session on the platform host. The session must belong to the same shop as the host.
- * Runs after the SessionGuard, which has already attached the session.
- */
+/** The dashboard's tenant rules (TEN-28, AUTH-22, AUTH-23, LIF-24). */
 @Injectable()
 export class DashboardGuard implements CanActivate {
   constructor(

@@ -3,12 +3,12 @@ import { type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { randomUUID } from 'node:crypto';
 import pg from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { AppModule } from '../src/app/app.module';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { prepareTestDatabase } from './support/database';
+import { SmsCapture } from './support/sms-capture';
 import { cookieFrom, type HttpResult, postJson } from './support/http';
 
 // Sign-up by phone over real HTTP and the real database (P1-E01 to P1-E04, AUTH-05 to AUTH-11, AUTH-28, TRL-01).
@@ -27,28 +27,17 @@ interface Entered {
 let app: INestApplication;
 let port: number;
 let admin: pg.Client;
-const sent: { toPhone: string; body: string }[] = [];
-// Switched on by a test to simulate an SMS provider outage.
-let smsDown = false;
+const texts = new SmsCapture();
 
 const post = (path: string, payload: unknown, headers: Record<string, string> = {}) =>
   postJson(port, path, payload, headers);
-
-/** A fresh Bangladeshi number, so runs never collide. */
-const freshPhone = (): string => `0171${randomUUID().replace(/\D/g, '').slice(0, 7)}`;
-
-/** The code most recently sent to a number, as the owner received it (the provider log). */
-function textedCode(phone: string): Promise<string> {
-  const last = [...sent].reverse().find((m) => m.toPhone === phone);
-  return Promise.resolve(/(\d{6})/.exec(last?.body ?? '')?.[1] ?? '');
-}
 
 const wrong = (code: string): string => (code === '000000' ? '111111' : '000000');
 
 /** Requests a code, reads it from the provider log and verifies it. Returns the session the reply opens. */
 async function enter(phone: string): Promise<Entered> {
   await post('/auth/phone/code', { phone });
-  const response = await post('/auth/phone/verify', { phone, code: await textedCode(phone) });
+  const response = await post('/auth/phone/verify', { phone, code: texts.codeFor(phone) });
   expect(response.status).toBe(200);
   const body = response.body as { next: string; tenantId: string | null; csrfToken: string };
   return { cookie: cookieFrom(response), ...body };
@@ -70,13 +59,7 @@ beforeAll(async () => {
 
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(SMS_PROVIDER)
-    .useValue({
-      send: (message: { toPhone: string; body: string }) => {
-        if (smsDown) return Promise.reject(new Error('provider down'));
-        sent.push(message);
-        return Promise.resolve();
-      },
-    })
+    .useValue(texts.provider)
     .compile();
   app = moduleRef.createNestApplication();
   await app.listen(0, '127.0.0.1');
@@ -97,15 +80,15 @@ afterAll(async () => {
 
 describeIfDatabase('sign-up by phone, end to end', () => {
   it('sends a six-digit code to a valid number (AUTH-05)', async () => {
-    const phone = freshPhone();
+    const phone = texts.freshPhone();
     const response = await post('/auth/phone/code', { phone });
     expect(response.status).toBe(200);
     expect(response.body).toEqual({ expiresInSeconds: 300, resendAfterSeconds: 60 });
-    expect(await textedCode(phone)).toMatch(/^\d{6}$/);
+    expect(texts.codeFor(phone)).toMatch(/^\d{6}$/);
   });
 
   it('refuses a resend within 60 seconds, with a Retry-After header (AUTH-07)', async () => {
-    const phone = freshPhone();
+    const phone = texts.freshPhone();
     await post('/auth/phone/code', { phone });
     const response = await post('/auth/phone/code', { phone });
     expect(response.status).toBe(429);
@@ -122,9 +105,9 @@ describeIfDatabase('sign-up by phone, end to end', () => {
   });
 
   it('verifies a new number into a session that goes to create-shop, as an HttpOnly cookie (AUTH-12, D1)', async () => {
-    const phone = freshPhone();
+    const phone = texts.freshPhone();
     await post('/auth/phone/code', { phone });
-    const response = await post('/auth/phone/verify', { phone, code: await textedCode(phone) });
+    const response = await post('/auth/phone/verify', { phone, code: texts.codeFor(phone) });
 
     expect(response.status).toBe(200);
     expect(response.body).toMatchObject({ next: 'create-shop', tenantId: null });
@@ -136,7 +119,7 @@ describeIfDatabase('sign-up by phone, end to end', () => {
   });
 
   it('creates a trial shop from the session, and texts the live address (AUTH-10, AUTH-28, TRL-01)', async () => {
-    const phone = freshPhone();
+    const phone = texts.freshPhone();
     const entered = await enter(phone);
     const response = await createShop(entered, {
       ownerName: 'Rahim',
@@ -165,7 +148,7 @@ describeIfDatabase('sign-up by phone, end to end', () => {
   });
 
   it('routes a returning number with a shop to the dashboard, and refuses a second shop (AUTH-08, TEN-15)', async () => {
-    const phone = freshPhone();
+    const phone = texts.freshPhone();
     const first = await enter(phone);
     await createShop(first, { ownerName: 'Karim', shopName: 'First Shop' });
 
@@ -186,14 +169,14 @@ describeIfDatabase('sign-up by phone, end to end', () => {
 
   it('suggests the next free address when the name is taken (AUTH-11)', async () => {
     // "fashion-house" is held by the earlier test, so the same name gets a suffix.
-    const entered = await enter(freshPhone());
+    const entered = await enter(texts.freshPhone());
     const response = await createShop(entered, { ownerName: 'Amina', shopName: 'Fashion House' });
     expect(response.status).toBe(201);
     expect(response.body).toMatchObject({ address: 'fashion-house-2' });
   });
 
   it('refuses a typed address that is taken, and offers the next free one', async () => {
-    const entered = await enter(freshPhone());
+    const entered = await enter(texts.freshPhone());
     const response = await createShop(entered, {
       ownerName: 'Amina',
       shopName: 'Other Name',
@@ -210,7 +193,7 @@ describeIfDatabase('sign-up by phone, end to end', () => {
     expect(none.status).toBe(401);
     expect(none.body).toMatchObject({ error: { code: 'unauthenticated' } });
 
-    const entered = await enter(freshPhone());
+    const entered = await enter(texts.freshPhone());
     const noCsrf = await post(
       '/shops',
       { ownerName: 'Anon', shopName: 'Anon Shop' },
@@ -221,9 +204,9 @@ describeIfDatabase('sign-up by phone, end to end', () => {
   });
 
   it('locks the code after five wrong codes, even when the sixth is correct (AUTH-06)', async () => {
-    const phone = freshPhone();
+    const phone = texts.freshPhone();
     await post('/auth/phone/code', { phone });
-    const correct = await textedCode(phone);
+    const correct = texts.codeFor(phone);
 
     const verifyWith = (code: string) => post('/auth/phone/verify', { phone, code });
     for (let i = 0; i < 4; i += 1) {
@@ -241,7 +224,7 @@ describeIfDatabase('sign-up by phone, end to end', () => {
   });
 
   it('answers a malformed verify body with the fields named, not a crash', async () => {
-    const response = await post('/auth/phone/verify', { phone: freshPhone(), code: 'abc' });
+    const response = await post('/auth/phone/verify', { phone: texts.freshPhone(), code: 'abc' });
     expect(response.status).toBe(400);
     expect(response.body).toMatchObject({
       error: { code: 'validation_error', details: { fields: expect.any(Array) as unknown } },
@@ -251,15 +234,15 @@ describeIfDatabase('sign-up by phone, end to end', () => {
 
 describeIfDatabase('an SMS outage does not block sign-up (SMS-18)', () => {
   it('creates the shop and keeps the ready message for retry', async () => {
-    const phone = freshPhone();
+    const phone = texts.freshPhone();
     const entered = await enter(phone);
 
-    smsDown = true;
+    texts.down = true;
     let response: HttpResult;
     try {
       response = await createShop(entered, { ownerName: 'Outage', shopName: 'Outage Shop' });
     } finally {
-      smsDown = false;
+      texts.down = false;
     }
 
     expect(response.status).toBe(201);
@@ -273,13 +256,13 @@ describeIfDatabase('an SMS outage does not block sign-up (SMS-18)', () => {
 
 describeIfDatabase('an SMS outage on a code request is reported honestly (AUTH-05)', () => {
   it('answers 503 service_unavailable with a retry hint, and never claims a code was sent', async () => {
-    const phone = freshPhone();
-    smsDown = true;
+    const phone = texts.freshPhone();
+    texts.down = true;
     let response: HttpResult;
     try {
       response = await post('/auth/phone/code', { phone });
     } finally {
-      smsDown = false;
+      texts.down = false;
     }
 
     expect(response.status).toBe(503);

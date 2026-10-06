@@ -12,10 +12,7 @@ import type { SignupGateway } from '../ports/signup-gateway';
 import type { SignupSettings } from '../ports/signup-settings';
 import type { ShopCreated } from '../types/shop-created';
 
-/**
- * The create-shop step (AUTH-10, AUTH-11, AUTH-28, D13). It runs on a session that has no shop yet. The shop, its
- * owner, the trial and the session's tenant link are written together; the "shop ready" text goes out after commit.
- */
+/** The create-shop step (AUTH-10, AUTH-11, AUTH-28, D13). */
 @Injectable()
 export class ShopCreationService {
   constructor(

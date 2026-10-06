@@ -4,20 +4,14 @@ import { ApiError } from '../../../common/api-error';
 import { OneTimeCodeService, CODE_TTL_MS, RESET_COOLDOWN_MS } from './one-time-code.service';
 import { PhoneNumberFormat } from './phone-number-format';
 import { SignInLockout } from './sign-in-lockout';
-import { type SignedIn, SignedInSession } from './signed-in-session';
-import type { SessionContext } from './session.service';
+import { SignedInSession } from './signed-in-session';
+import type { SessionContext } from '../types/session';
+import type { SignedIn } from '../types/signed-in';
 import { SIGNUP_GATEWAY } from '../tokens';
 import type { SignupGateway } from '../ports/signup-gateway';
 import type { CodeIssued } from '../types/code-issued';
 
-// AUTH-17: the reply is the same whether or not the number has an account, so it reveals nothing.
-const invalidCode = (): ApiError =>
-  new ApiError('validation_error', 'This code is not valid. Request a new one.', { field: 'code' });
-
-/**
- * Forgot-password by reset code (AUTH-17, AUTH-18, AUTH-19). A reset code is sent only to an existing account, and
- * a correct code opens a session that must set a new password before the dashboard opens.
- */
+/** Forgot-password by reset code (AUTH-17, AUTH-18, AUTH-19). */
 @Injectable()
 export class ForgotPasswordService {
   constructor(
@@ -53,7 +47,7 @@ export class ForgotPasswordService {
     await this.lockout.refuseIfLocked(subscriberId);
     if (!phone || !account) {
       await this.lockout.recordFailure(null, context.ip);
-      throw invalidCode();
+      throw this.invalidCode();
     }
 
     let challengeId: string;
@@ -68,13 +62,20 @@ export class ForgotPasswordService {
 
     return this.gateway.run(async (tx) => {
       const consumed = await this.gateway.consumeChallenge(tx, challengeId, new Date());
-      if (!consumed) throw invalidCode();
+      if (!consumed) throw this.invalidCode();
       return this.signedIn.open(tx, {
         subscriberId: account.subscriberId,
         signInMethod: SignInMethod.Reset,
         mustSetPassword: true,
         context,
       });
+    });
+  }
+
+  /** The same reply for a wrong, expired or unknown code (AUTH-17). */
+  private invalidCode(): ApiError {
+    return new ApiError('validation_error', 'This code is not valid. Request a new one.', {
+      field: 'code',
     });
   }
 }

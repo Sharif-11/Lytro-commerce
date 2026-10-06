@@ -10,6 +10,7 @@ import { AppModule } from '../src/app/app.module';
 import { EDGE_HEADER } from '../src/common/guards/tenant.guard';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { prepareTestDatabase } from './support/database';
+import { SmsCapture } from './support/sms-capture';
 import { getJson, postJson } from './support/http';
 
 // Every route except health refuses requests that did not come through the edge (R3), including sign-in routes.
@@ -22,12 +23,7 @@ const describeIfDatabase = ADMIN_URL ? describe : describe.skip;
 let app: INestApplication;
 let port: number;
 let admin: pg.Client;
-const sent: { toPhone: string; body: string }[] = [];
-
-function textedCode(phone: string): string {
-  const last = [...sent].reverse().find((m) => m.toPhone === phone);
-  return /(\d{6})/.exec(last?.body ?? '')?.[1] ?? '';
-}
+const texts = new SmsCapture();
 
 beforeAll(async () => {
   if (!ADMIN_URL) return;
@@ -43,12 +39,7 @@ beforeAll(async () => {
 
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(SMS_PROVIDER)
-    .useValue({
-      send: (message: { toPhone: string; body: string }) => {
-        sent.push(message);
-        return Promise.resolve();
-      },
-    })
+    .useValue(texts.provider)
     .compile();
   app = moduleRef.createNestApplication();
   await app.listen(0, '127.0.0.1');
@@ -82,7 +73,7 @@ describeIfDatabase('the trusted edge on every route (R3, R6)', () => {
     const headers = { [EDGE_HEADER]: EDGE_SECRET, 'x-forwarded-for': '203.0.113.7' };
     const requested = await postJson(port, '/auth/phone/code', { phone }, headers);
     expect(requested.status).toBe(200);
-    const code = textedCode(phone);
+    const code = texts.codeFor(phone);
     const wrong = code === '000000' ? '111111' : '000000';
     expect(
       (await postJson(port, '/auth/phone/verify', { phone, code: wrong }, headers)).status,

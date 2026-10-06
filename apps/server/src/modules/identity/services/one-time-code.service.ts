@@ -28,10 +28,7 @@ type CheckOutcome =
   | { kind: 'expired' }
   | { kind: 'wrong'; attemptsLeft: number };
 
-/**
- * Issues and checks one-time codes. Each operation is its own unit of work. A wrong code is counted in a
- * committed transaction and only then reported as an error, so the count survives the failed request.
- */
+/** Issues and checks one-time codes. */
 @Injectable()
 export class OneTimeCodeService {
   constructor(
