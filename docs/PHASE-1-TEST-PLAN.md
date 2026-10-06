@@ -125,10 +125,10 @@ Each scenario lists its preconditions, numbered steps, expected result, and the 
 - Expected: staff and owner can sign in during `active`, `grace`. Staff in a later state receives `tenant_offline`.
 - Covers: AUTH-22, partially. The full lifecycle set is covered in Phase 2.
 
-**P1-E33 Onboarding resumes and hands off once. [API]**
-- Steps: verify a new phone and stop before the create-shop step; sign in again by code; create the shop; use the returned handoff token on the shop host; use it again; use a fresh token after 61 seconds; send the shop session to another shop's host; sign in by code again after the set-password offer was seen.
-- Expected: the second sign-in returns `next: create-shop`; the first handoff gives a shop session and ends the account session; the reused and the expired token are refused with `unauthenticated`; the shop session is refused on the other host; the set-password offer is not shown again.
-- Covers: AUTH-10, AUTH-28, TEN-28, D13.
+**P1-E33 Three-host dashboard access and onboarding resume. [API]**
+- Steps: verify a new phone on the platform host and stop; sign in again — check `next`; create the shop on the platform host; confirm the dashboard loads there; sign in directly on the shop subdomain and confirm the same dashboard; send the platform-host session to the shop subdomain and vice versa; sign in again after the set-password offer was seen.
+- Expected: the second sign-in on the platform host returns `next: create-shop`; the dashboard loads on the platform host after shop creation; signing in on the subdomain also gives the dashboard; a session from one host is refused on any other host with `unauthenticated`; the set-password offer is not shown again.
+- Covers: AUTH-10, AUTH-28, TEN-28, TEN-29, D13.
 
 ### C. Other identities
 
