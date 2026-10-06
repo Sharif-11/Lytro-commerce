@@ -151,6 +151,14 @@ export class DrizzleSignupGateway implements SignupGateway {
     return this.accounts.findOwnedTenant(tx, subscriberId);
   }
 
+  async findEmailIdentityOf(
+    tx: Transaction,
+    subscriberId: string,
+  ): Promise<{ id: string; email: string } | null> {
+    const identity = await this.accounts.findIdentityOf(tx, subscriberId, IdentityKind.Email);
+    return identity === null ? null : { id: identity.id, email: identity.value };
+  }
+
   async findPhoneIdentityOf(
     tx: Transaction,
     subscriberId: string,

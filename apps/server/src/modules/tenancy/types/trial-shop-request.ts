@@ -3,7 +3,8 @@ export interface TrialShopRequest {
   subscriberId: string;
   shopName: string;
   slug: string;
-  ownerPhone: string;
+  ownerPhone: string | null;
+  ownerEmail: string | null;
   ownerName: string;
   liveUrl: string;
 }

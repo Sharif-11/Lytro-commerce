@@ -9,6 +9,18 @@ import type { MailProvider } from '../ports/mail-provider';
 export class MailService {
   constructor(@Inject(MAIL_PROVIDER) private readonly provider: MailProvider) {}
 
+  async deliverShopReady(to: string, liveUrl: string): Promise<void> {
+    try {
+      await this.provider.send({
+        to,
+        subject: 'Your shop is ready',
+        body: `Your shop is ready: ${liveUrl}`,
+      });
+    } catch {
+      throw new MailDeliveryError();
+    }
+  }
+
   async deliverCode(to: string, code: string, purpose: ChallengeKind): Promise<void> {
     const subject =
       purpose === ChallengeKind.Reset ? 'Your password reset code' : 'Your sign-in code';

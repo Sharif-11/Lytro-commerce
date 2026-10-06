@@ -28,6 +28,10 @@ export interface SignupGateway {
     values: { subscriberId: string; phone: string; verifiedAt: Date },
   ): Promise<string>;
   findOwnedTenant(tx: Transaction, subscriberId: string): Promise<OwnedTenant | null>;
+  findEmailIdentityOf(
+    tx: Transaction,
+    subscriberId: string,
+  ): Promise<{ id: string; email: string } | null>;
   findPhoneIdentityOf(
     tx: Transaction,
     subscriberId: string,

@@ -9,7 +9,7 @@ export class DrizzleStaffStore implements StaffStore {
 
   insertOwner(
     tx: Transaction,
-    values: { tenantId: string; phone: string; name: string },
+    values: { tenantId: string; phone: string | null; email: string | null; name: string },
   ): Promise<void> {
     return this.users.insertOwner(tx, values);
   }

@@ -5,7 +5,7 @@ import { STAFF_STORE } from '../tokens';
 export interface StaffStore {
   insertOwner(
     tx: Transaction,
-    values: { tenantId: string; phone: string; name: string },
+    values: { tenantId: string; phone: string | null; email: string | null; name: string },
   ): Promise<void>;
 }
 
@@ -16,7 +16,7 @@ export class StaffService {
 
   createOwner(
     tx: Transaction,
-    values: { tenantId: string; phone: string; name: string },
+    values: { tenantId: string; phone: string | null; email: string | null; name: string },
   ): Promise<void> {
     return this.store.insertOwner(tx, values);
   }

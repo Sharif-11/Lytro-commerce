@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { CreateShopInput } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import { UniqueViolation } from '../../../common/errors/unique-violation';
+import { MailService } from '../../shared/mail/services/mail.service';
 import { MessagingService } from '../../shared/messaging/services/messaging.service';
 import { SlugService } from '../../tenancy/services/slug.service';
 import { TenantService } from '../../tenancy/services/tenant.service';
@@ -21,6 +22,7 @@ export class ShopCreationService {
     @Inject(TenantService) private readonly tenants: TenantService,
     @Inject(SlugService) private readonly slugs: SlugService,
     @Inject(MessagingService) private readonly messaging: MessagingService,
+    @Inject(MailService) private readonly mail: MailService,
     @Inject(SessionService) private readonly sessions: SessionService,
   ) {}
 
@@ -30,33 +32,51 @@ export class ShopCreationService {
     const address = await this.chooseAddress(shopName, input.address);
 
     try {
-      const { tenantId, messages } = await this.gateway.run(async (tx) => {
+      const { tenantId, messages, emailNotice } = await this.gateway.run(async (tx) => {
         const existing = await this.gateway.findOwnedTenant(tx, session.subscriberId);
         if (existing !== null) {
           throw new ApiError('conflict', 'This account already has a shop.', {});
         }
-        const identity = await this.gateway.findPhoneIdentityOf(tx, session.subscriberId);
-        if (!identity) {
+        const phone = await this.gateway.findPhoneIdentityOf(tx, session.subscriberId);
+        const email = await this.gateway.findEmailIdentityOf(tx, session.subscriberId);
+        const owner = phone ?? email;
+        if (owner === null) {
           throw new ApiError('unauthenticated', 'Sign in to continue.', {});
         }
         const created = await this.tenants.createTrialShop(tx, {
-          identityId: identity.id,
+          identityId: owner.id,
           subscriberId: session.subscriberId,
           shopName,
           slug: address,
-          ownerPhone: identity.phone,
+          ownerPhone: phone?.phone ?? null,
+          ownerEmail: email?.email ?? null,
           ownerName,
           liveUrl: this.settings.shopUrl(address),
         });
         await this.sessions.attachTenant(tx, session.id, created.tenantId);
-        return created;
+        // The shop-ready text goes to the phone; an owner with no phone is told by email (AUTH-27).
+        const emailNotice = phone === null && email !== null ? email.email : null;
+        return { tenantId: created.tenantId, messages: created.messages, emailNotice };
       });
 
       await this.messaging.dispatch(messages);
+      if (emailNotice !== null)
+        await this.notifyByEmail(emailNotice, this.settings.shopUrl(address));
       return { tenantId, address, shopUrl: this.settings.shopUrl(address), next: 'set-password' };
     } catch (error) {
       if (error instanceof UniqueViolation) throw await this.conflictFor(error, shopName);
       throw error;
+    }
+  }
+
+  /** A failed email never fails the shop: it is logged, as a failed text is (SMS-18). */
+  private async notifyByEmail(to: string, liveUrl: string): Promise<void> {
+    try {
+      await this.mail.deliverShopReady(to, liveUrl);
+    } catch (error) {
+      console.error(
+        `[mail] shop-ready email not sent: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 

@@ -137,3 +137,30 @@ describeIfDatabase('sign-in by emailed code (AUTH-08, AUTH-12)', () => {
     expect(mail.codeFor(email)).toBe('');
   });
 });
+
+describeIfDatabase('an owner enrolled by email only (AUTH-10, AUTH-27)', () => {
+  it('creates a shop with no phone, stores the owner email, and sends the shop-ready notice by email', async () => {
+    const email = freshEmail();
+    await post('/auth/email/code', { email });
+    const signedIn = await verify(email, mail.codeFor(email));
+    const session = signedIn.body as { csrfToken: string };
+    const cookie = cookieFrom(signedIn);
+
+    const shop = await post(
+      '/shops',
+      { ownerName: 'Email Owner', shopName: 'Email Only Shop' },
+      { cookie, 'x-csrf-token': session.csrfToken },
+    );
+    expect(shop.status).toBe(201);
+    expect(shop.body).toMatchObject({ address: 'email-only-shop', next: 'set-password' });
+
+    const owner = await admin.query<{ phone: string | null; email: string | null }>(
+      'SELECT phone, email FROM tenant.users WHERE is_owner AND email = $1',
+      [email],
+    );
+    expect(owner.rows[0]).toEqual({ phone: null, email });
+
+    const notice = mail.sent.find((m) => m.to === email && m.subject === 'Your shop is ready');
+    expect(notice?.body).toContain('http://email-only-shop.localhost');
+  });
+});
