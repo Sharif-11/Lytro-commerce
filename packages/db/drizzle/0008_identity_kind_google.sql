@@ -1,1 +1,1 @@
-ALTER TYPE "control"."identity_kind" ADD VALUE 'google' BEFORE 'facebook';
+ALTER TYPE "control"."identity_kind" ADD VALUE IF NOT EXISTS 'google' BEFORE 'facebook';
