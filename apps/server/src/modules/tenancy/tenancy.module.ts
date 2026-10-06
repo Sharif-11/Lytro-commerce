@@ -26,6 +26,7 @@ import {
   TENANT_STORE,
   TENANT_SUMMARY_STORE,
   TRUSTED_EDGE_SECRET,
+  TRUSTED_EDGE_SECRET_NEXT,
 } from './tokens';
 import { TenantSummaries } from './services/tenant-summaries.service';
 
@@ -45,6 +46,11 @@ import { TenantSummaries } from './services/tenant-summaries.service';
       provide: TRUSTED_EDGE_SECRET,
       inject: [ENV],
       useFactory: (env: Env) => env.TRUSTED_EDGE_SECRET,
+    },
+    {
+      provide: TRUSTED_EDGE_SECRET_NEXT,
+      inject: [ENV],
+      useFactory: (env: Env) => env.TRUSTED_EDGE_SECRET_NEXT,
     },
     SlugFormat,
     HostClassifier,
