@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { ChallengeKind, SignInMethod } from '@lytronix/validators';
+import { ChallengeChannel, ChallengeKind, SignInMethod } from '@lytronix/validators';
 import type { Transaction } from '@lytronix/db';
 import { ApiError } from '../../../common/api-error';
 import { UniqueViolation } from '../../../common/errors/unique-violation';
@@ -24,7 +24,11 @@ export class SigninService {
   ) {}
 
   async requestCode(rawPhone: string) {
-    return this.codes.issue(this.requirePhone(rawPhone), ChallengeKind.Signin);
+    return this.codes.issue(
+      this.requirePhone(rawPhone),
+      ChallengeChannel.Sms,
+      ChallengeKind.Signin,
+    );
   }
 
   async verifyCode(rawPhone: string, code: string, context: SessionContext): Promise<SignedIn> {
@@ -34,7 +38,12 @@ export class SigninService {
 
     let challengeId: string;
     try {
-      challengeId = await this.codes.verify(phone, code, ChallengeKind.Signin);
+      challengeId = await this.codes.verify(
+        phone,
+        ChallengeChannel.Sms,
+        code,
+        ChallengeKind.Signin,
+      );
     } catch (error) {
       if (error instanceof ApiError && error.code === 'validation_error') {
         await this.lockout.recordFailure(existing?.subscriberId ?? null, context.ip);

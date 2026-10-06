@@ -39,7 +39,7 @@ const post = (path: string, payload: unknown, headers: Record<string, string> = 
 /** Lets the next code be requested now, as a real owner would wait it out. */
 async function passCooldown(phone: string): Promise<void> {
   await admin.query(
-    "UPDATE control.verification_challenges SET created_at = now() - interval '5 minutes' WHERE phone = $1",
+    "UPDATE control.verification_challenges SET created_at = now() - interval '5 minutes' WHERE destination = $1",
     [phone],
   );
 }

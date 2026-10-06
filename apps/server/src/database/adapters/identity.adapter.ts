@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { ChallengeKind } from '@lytronix/validators';
+import type { ChallengeChannel, ChallengeKind } from '@lytronix/validators';
 import {
   AccountRepository,
   ChallengeRepository,
@@ -16,17 +16,34 @@ import { DatabaseService } from '../database.service';
 export class DrizzleChallengeStore implements ChallengeStore {
   constructor(@Inject(ChallengeRepository) private readonly challenges: ChallengeRepository) {}
 
-  latest(tx: Transaction, phone: string, kind: ChallengeKind): Promise<ChallengeRecord | null> {
-    return this.challenges.latest(tx, phone, kind);
+  latest(
+    tx: Transaction,
+    destination: string,
+    channel: ChallengeChannel,
+    kind: ChallengeKind,
+  ): Promise<ChallengeRecord | null> {
+    return this.challenges.latest(tx, destination, channel, kind);
   }
 
-  countSince(tx: Transaction, phone: string, kind: ChallengeKind, since: Date): Promise<number> {
-    return this.challenges.countSince(tx, phone, kind, since);
+  countSince(
+    tx: Transaction,
+    destination: string,
+    channel: ChallengeChannel,
+    kind: ChallengeKind,
+    since: Date,
+  ): Promise<number> {
+    return this.challenges.countSince(tx, destination, channel, kind, since);
   }
 
   async create(
     tx: Transaction,
-    input: { phone: string; kind: ChallengeKind; codeHash: string; expiresAt: Date },
+    input: {
+      destination: string;
+      channel: ChallengeChannel;
+      kind: ChallengeKind;
+      codeHash: string;
+      expiresAt: Date;
+    },
   ): Promise<{ id: string; createdAt: Date }> {
     const row = await this.challenges.insert(tx, input);
     return { id: row.id, createdAt: row.createdAt };

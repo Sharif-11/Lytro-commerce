@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ChallengeKind } from '@lytronix/validators';
+import { ChallengeChannel, ChallengeKind } from '@lytronix/validators';
 import type { Transaction } from '@lytronix/db';
 import { ApiError } from '../src/common/api-error';
 import {
@@ -19,6 +19,7 @@ import { OneTimeCodeHasher } from '../src/modules/identity/services/one-time-cod
 import { type MessageStore } from '../src/modules/shared/messaging/ports/message-store';
 import { type SmsProvider } from '../src/modules/shared/messaging/ports/sms-provider';
 import { MessagingService } from '../src/modules/shared/messaging/services/messaging.service';
+import { MailService } from '../src/modules/shared/mail/services/mail.service';
 
 // AUTH-05 to AUTH-07, tested through the real service with fake ports. Codes of every kind share these rules.
 const SECRET = 's'.repeat(32);
@@ -27,7 +28,7 @@ const TX = {} as Transaction;
 
 interface World {
   now: Date;
-  challenges: (ChallengeRecord & { phone: string })[];
+  challenges: ChallengeRecord[];
   outbox: { id: number; kind: string; body: string | null; status: string }[];
   sent: { toPhone: string; body: string }[];
   smsFails: boolean;
@@ -47,21 +48,29 @@ function world(): World {
 
 function build(state: World) {
   const challenges: ChallengeStore = {
-    latest: (_tx, phone, kind) => {
-      const rows = state.challenges.filter((c) => c.phone === phone && c.kind === kind);
+    latest: (_tx, destination, channel, kind) => {
+      const rows = state.challenges.filter(
+        (c) => c.destination === destination && c.channel === channel && c.kind === kind,
+      );
       return Promise.resolve(rows[rows.length - 1] ?? null);
     },
-    countSince: (_tx, phone, kind, since) =>
+    countSince: (_tx, destination, channel, kind, since) =>
       Promise.resolve(
-        state.challenges.filter((c) => c.phone === phone && c.kind === kind && c.createdAt > since)
-          .length,
+        state.challenges.filter(
+          (c) =>
+            c.destination === destination &&
+            c.channel === channel &&
+            c.kind === kind &&
+            c.createdAt > since,
+        ).length,
       ),
     create: (_tx, input) => {
       state.counter += 1;
       const id = `c${String(state.counter)}`;
       state.challenges.push({
         id,
-        phone: input.phone,
+        destination: input.destination,
+        channel: input.channel,
         kind: input.kind,
         codeHash: input.codeHash,
         expiresAt: input.expiresAt,
@@ -125,6 +134,7 @@ function build(state: World) {
     settings,
     new OneTimeCodeHasher(SECRET),
     messaging,
+    new MailService({ send: () => Promise.resolve() }),
   );
   return { codes, messaging, challenges };
 }
@@ -149,7 +159,7 @@ describe('requesting a code (AUTH-05, AUTH-07)', () => {
   it('sends a six-digit code and stores only a keyed hash of it', async () => {
     const state = world();
     const { codes } = build(state);
-    expect(await codes.issue(PHONE, SIGNIN)).toEqual({
+    expect(await codes.issue(PHONE, ChallengeChannel.Sms, SIGNIN)).toEqual({
       expiresInSeconds: CODE_TTL_MS / 1000,
       resendAfterSeconds: RESEND_COOLDOWN_MS / 1000,
     });
@@ -162,9 +172,9 @@ describe('requesting a code (AUTH-05, AUTH-07)', () => {
   it('refuses a resend within 60 seconds, with a retry hint', async () => {
     const state = world();
     const { codes } = build(state);
-    await codes.issue(PHONE, SIGNIN);
+    await codes.issue(PHONE, ChallengeChannel.Sms, SIGNIN);
     advance(state, 30_000);
-    await expect(codes.issue(PHONE, SIGNIN)).rejects.toMatchObject({
+    await expect(codes.issue(PHONE, ChallengeChannel.Sms, SIGNIN)).rejects.toMatchObject({
       code: 'rate_limited',
       retryAfterSeconds: 30,
     });
@@ -174,9 +184,9 @@ describe('requesting a code (AUTH-05, AUTH-07)', () => {
   it('allows a request after the cooldown', async () => {
     const state = world();
     const { codes } = build(state);
-    await codes.issue(PHONE, SIGNIN);
+    await codes.issue(PHONE, ChallengeChannel.Sms, SIGNIN);
     advance(state, RESEND_COOLDOWN_MS);
-    await codes.issue(PHONE, SIGNIN);
+    await codes.issue(PHONE, ChallengeChannel.Sms, SIGNIN);
     expect(state.sent).toHaveLength(2);
   });
 
@@ -184,10 +194,10 @@ describe('requesting a code (AUTH-05, AUTH-07)', () => {
     const state = world();
     const { codes } = build(state);
     for (let i = 0; i < HOURLY_CODE_CAP; i += 1) {
-      await codes.issue(PHONE, SIGNIN);
+      await codes.issue(PHONE, ChallengeChannel.Sms, SIGNIN);
       advance(state, RESEND_COOLDOWN_MS);
     }
-    await expect(codes.issue(PHONE, SIGNIN)).rejects.toMatchObject({
+    await expect(codes.issue(PHONE, ChallengeChannel.Sms, SIGNIN)).rejects.toMatchObject({
       code: 'rate_limited',
       retryAfterSeconds: 3600,
     });
@@ -196,9 +206,9 @@ describe('requesting a code (AUTH-05, AUTH-07)', () => {
   it('keeps reset codes and sign-in codes apart (AUTH-17)', async () => {
     const state = world();
     const { codes } = build(state);
-    await codes.issue(PHONE, SIGNIN);
+    await codes.issue(PHONE, ChallengeChannel.Sms, SIGNIN);
     advance(state, RESEND_COOLDOWN_MS);
-    await codes.issue(PHONE, ChallengeKind.Reset);
+    await codes.issue(PHONE, ChallengeChannel.Sms, ChallengeKind.Reset);
     expect(state.sent.at(-1)?.body).toContain('password reset code');
     const signinCode = state.challenges.filter((c) => c.kind === SIGNIN);
     const resetCode = state.challenges.filter((c) => c.kind === ChallengeKind.Reset);
@@ -211,35 +221,39 @@ describe('checking a code (AUTH-05, AUTH-06)', () => {
   it('accepts the correct code once', async () => {
     const state = world();
     const { codes } = build(state);
-    await codes.issue(PHONE, SIGNIN);
-    const id = await codes.verify(PHONE, lastCode(state), SIGNIN);
+    await codes.issue(PHONE, ChallengeChannel.Sms, SIGNIN);
+    const id = await codes.verify(PHONE, ChallengeChannel.Sms, lastCode(state), SIGNIN);
     expect(id).toBe(state.challenges[0]?.id);
   });
 
   it('reports the attempts left after a wrong code', async () => {
     const state = world();
     const { codes } = build(state);
-    await codes.issue(PHONE, SIGNIN);
-    await expect(codes.verify(PHONE, '000000', SIGNIN)).rejects.toMatchObject({
-      code: 'validation_error',
-      details: { attemptsLeft: MAX_WRONG_ATTEMPTS - 1 },
-    });
+    await codes.issue(PHONE, ChallengeChannel.Sms, SIGNIN);
+    await expect(codes.verify(PHONE, ChallengeChannel.Sms, '000000', SIGNIN)).rejects.toMatchObject(
+      {
+        code: 'validation_error',
+        details: { attemptsLeft: MAX_WRONG_ATTEMPTS - 1 },
+      },
+    );
   });
 
   it('locks after five wrong codes, even when the sixth is correct', async () => {
     const state = world();
     const { codes } = build(state);
-    await codes.issue(PHONE, SIGNIN);
+    await codes.issue(PHONE, ChallengeChannel.Sms, SIGNIN);
     const correct = lastCode(state);
     for (let i = 0; i < MAX_WRONG_ATTEMPTS - 1; i += 1) {
-      await expect(codes.verify(PHONE, wrongCode(correct), SIGNIN)).rejects.toBeInstanceOf(
-        ApiError,
-      );
+      await expect(
+        codes.verify(PHONE, ChallengeChannel.Sms, wrongCode(correct), SIGNIN),
+      ).rejects.toBeInstanceOf(ApiError);
     }
-    await expect(codes.verify(PHONE, wrongCode(correct), SIGNIN)).rejects.toMatchObject({
+    await expect(
+      codes.verify(PHONE, ChallengeChannel.Sms, wrongCode(correct), SIGNIN),
+    ).rejects.toMatchObject({
       code: 'rate_limited',
     });
-    await expect(codes.verify(PHONE, correct, SIGNIN)).rejects.toMatchObject({
+    await expect(codes.verify(PHONE, ChallengeChannel.Sms, correct, SIGNIN)).rejects.toMatchObject({
       code: 'rate_limited',
       retryAfterSeconds: LOCK_MS / 1000,
     });
@@ -248,16 +262,18 @@ describe('checking a code (AUTH-05, AUTH-06)', () => {
   it('refuses a code already used, and an expired code', async () => {
     const state = world();
     const { codes } = build(state);
-    await codes.issue(PHONE, SIGNIN);
+    await codes.issue(PHONE, ChallengeChannel.Sms, SIGNIN);
     const code = lastCode(state);
-    await codes.verify(PHONE, code, SIGNIN);
+    await codes.verify(PHONE, ChallengeChannel.Sms, code, SIGNIN);
     expect(state.challenges[0]?.consumedAt).toBeNull();
 
     const late = world();
     const other = build(late);
-    await other.codes.issue('01811111111', SIGNIN);
+    await other.codes.issue('01811111111', ChallengeChannel.Sms, SIGNIN);
     advance(late, CODE_TTL_MS + 1000);
-    await expect(other.codes.verify('01811111111', lastCode(late), SIGNIN)).rejects.toMatchObject({
+    await expect(
+      other.codes.verify('01811111111', ChallengeChannel.Sms, lastCode(late), SIGNIN),
+    ).rejects.toMatchObject({
       code: 'validation_error',
     });
   });
@@ -268,7 +284,7 @@ describe('SMS delivery failures (SMS-18)', () => {
     const state = world();
     state.smsFails = true;
     const { codes } = build(state);
-    await expect(codes.issue(PHONE, SIGNIN)).rejects.toMatchObject({
+    await expect(codes.issue(PHONE, ChallengeChannel.Sms, SIGNIN)).rejects.toMatchObject({
       code: 'service_unavailable',
       retryAfterSeconds: 60,
     });

@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { ChallengeKind, SignInMethod } from '@lytronix/validators';
+import { ChallengeChannel, ChallengeKind, SignInMethod } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import { OneTimeCodeService, CODE_TTL_MS, RESET_COOLDOWN_MS } from './one-time-code.service';
 import { PhoneNumberFormat } from './phone-number-format';
@@ -29,7 +29,7 @@ export class ForgotPasswordService {
       : null;
     if (phone && account) {
       try {
-        await this.codes.issue(phone, ChallengeKind.Reset, RESET_COOLDOWN_MS);
+        await this.codes.issue(phone, ChallengeChannel.Sms, ChallengeKind.Reset, RESET_COOLDOWN_MS);
       } catch (error) {
         // A refused or undelivered reset code gets the same reply as success, so the caller learns nothing.
         if (!(error instanceof ApiError)) throw error;
@@ -52,7 +52,7 @@ export class ForgotPasswordService {
 
     let challengeId: string;
     try {
-      challengeId = await this.codes.verify(phone, code, ChallengeKind.Reset);
+      challengeId = await this.codes.verify(phone, ChallengeChannel.Sms, code, ChallengeKind.Reset);
     } catch (error) {
       if (error instanceof ApiError && error.code === 'validation_error') {
         await this.lockout.recordFailure(account.subscriberId, context.ip);

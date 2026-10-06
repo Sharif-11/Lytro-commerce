@@ -39,6 +39,11 @@ export enum SignInMethod {
   Reset = 'reset',
 }
 
+export enum ChallengeChannel {
+  Sms = 'sms',
+  Email = 'email',
+}
+
 export enum ChallengeKind {
   Signin = 'signin',
   Reset = 'reset',
