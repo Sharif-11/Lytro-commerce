@@ -7,10 +7,11 @@ export interface OauthStateStore {
     provider: OauthProvider;
     codeVerifier: string;
     expiresAt: Date;
+    attachToSubscriberId: string | null;
   }): Promise<void>;
   consume(
     state: string,
     provider: OauthProvider,
     now: Date,
-  ): Promise<{ codeVerifier: string } | null>;
+  ): Promise<{ codeVerifier: string; attachToSubscriberId: string | null } | null>;
 }

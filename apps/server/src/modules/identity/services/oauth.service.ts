@@ -25,7 +25,12 @@ export interface OauthSignedIn extends SignedIn {
   recovery: 'facebook-only' | null;
 }
 
-/** Google and Facebook sign-in (AUTH-24, AUTH-27). Only providers enabled by configuration are offered. */
+// AUTH-26: a provider account added to a signed-in account.
+export interface OauthAttached {
+  attached: IdentityKind;
+}
+
+/** Google and Facebook sign-in, and adding them to an account (AUTH-24, AUTH-26, AUTH-27). Only enabled providers are offered. */
 @Injectable()
 export class OauthService {
   constructor(
@@ -41,7 +46,7 @@ export class OauthService {
     return this.providers.map((p) => p.provider);
   }
 
-  async start(name: string): Promise<{ url: string }> {
+  async start(name: string, attachToSubscriberId: string | null = null): Promise<{ url: string }> {
     const provider = this.find(name);
     const state = randomBytes(32).toString('base64url');
     const codeVerifier = randomBytes(32).toString('base64url');
@@ -51,6 +56,7 @@ export class OauthService {
       provider: provider.provider,
       codeVerifier,
       expiresAt: new Date(this.settings.now().getTime() + OAUTH_STATE_TTL_MS),
+      attachToSubscriberId,
     });
     return {
       url: provider.authorizeUrl({
@@ -66,7 +72,7 @@ export class OauthService {
     code: string,
     state: string,
     context: SessionContext,
-  ): Promise<OauthSignedIn> {
+  ): Promise<OauthSignedIn | OauthAttached> {
     const provider = this.find(name);
     const attempt = await this.states.consume(state, provider.provider, this.settings.now());
     if (attempt === null) {
@@ -81,6 +87,10 @@ export class OauthService {
     });
     const kind =
       provider.provider === OauthProvider.Google ? IdentityKind.Google : IdentityKind.Facebook;
+
+    if (attempt.attachToSubscriberId !== null) {
+      return this.attach(attempt.attachToSubscriberId, kind, profile.accountId);
+    }
 
     try {
       return await this.gateway.run(async (tx) => {
@@ -105,13 +115,41 @@ export class OauthService {
     }
   }
 
+  /** Adds a provider account to a signed-in subscriber. An account already held by someone else is refused (AUTH-08). */
+  private async attach(
+    subscriberId: string,
+    kind: IdentityKind,
+    accountId: string,
+  ): Promise<OauthAttached> {
+    try {
+      await this.gateway.run(async (tx) => {
+        const holder = await this.gateway.findSubscriberByIdentity(tx, kind, accountId);
+        if (holder !== null) {
+          throw new ApiError('conflict', 'This account cannot be added. Try another.', {});
+        }
+        await this.gateway.insertIdentity(tx, {
+          subscriberId,
+          kind,
+          value: accountId,
+          verifiedAt: new Date(),
+        });
+      });
+    } catch (error) {
+      if (error instanceof UniqueViolation) {
+        throw new ApiError('conflict', 'This account cannot be added. Try another.', {});
+      }
+      throw error;
+    }
+    return { attached: kind };
+  }
+
   private async createAccount(
     tx: Transaction,
     kind: IdentityKind,
     accountId: string,
   ): Promise<string> {
     const subscriberId = await this.gateway.insertSubscriber(tx);
-    await this.gateway.insertOauthIdentity(tx, {
+    await this.gateway.insertIdentity(tx, {
       subscriberId,
       kind,
       value: accountId,

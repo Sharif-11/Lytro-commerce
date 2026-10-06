@@ -7,18 +7,24 @@ import { oauthStates } from '../../schema';
 export class OauthStateRepository {
   async insert(
     db: Executor,
-    values: { state: string; provider: OauthProvider; codeVerifier: string; expiresAt: Date },
+    values: {
+      state: string;
+      provider: OauthProvider;
+      codeVerifier: string;
+      expiresAt: Date;
+      attachToSubscriberId: string | null;
+    },
   ): Promise<void> {
     await db.insert(oauthStates).values(values);
   }
 
-  /** Marks the state used and returns its verifier; null when it is unknown, used, expired, or for another provider. */
+  /** Marks the state used and returns its verifier and target; null when it is unknown, used, expired, or for another provider. */
   async consume(
     db: Executor,
     state: string,
     provider: OauthProvider,
     now: Date,
-  ): Promise<{ codeVerifier: string } | null> {
+  ): Promise<{ codeVerifier: string; attachToSubscriberId: string | null } | null> {
     const rows = await db
       .update(oauthStates)
       .set({ consumedAt: now })
@@ -30,7 +36,10 @@ export class OauthStateRepository {
           gt(oauthStates.expiresAt, now),
         ),
       )
-      .returning({ codeVerifier: oauthStates.codeVerifier });
+      .returning({
+        codeVerifier: oauthStates.codeVerifier,
+        attachToSubscriberId: oauthStates.attachToSubscriberId,
+      });
     return rows[0] ?? null;
   }
 }

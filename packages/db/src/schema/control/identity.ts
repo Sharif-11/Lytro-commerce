@@ -55,6 +55,8 @@ export const oauthStates = control.table('oauth_states', {
   id: uuid('id').primaryKey().defaultRandom(),
   state: text('state').notNull().unique(),
   provider: text('provider').$type<OauthProvider>().notNull(),
+  // Set when a signed-in person is adding this provider to their account (AUTH-26); null for a sign-in.
+  attachToSubscriberId: uuid('attach_to_subscriber_id').references(() => subscribers.id),
   codeVerifier: text('code_verifier').notNull(),
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
   consumedAt: timestamp('consumed_at', { withTimezone: true }),

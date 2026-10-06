@@ -134,7 +134,14 @@ async function queryAsShop(
 describeIfDatabase('route inventory against the application (SEC-02)', () => {
   it('lists the shop-owned routes, and the registry agrees', () => {
     const routes = listTenantRoutes(app);
-    expect(routes).toEqual(['GET /me']);
+    expect(routes).toEqual([
+      'DELETE /me/identities/:id',
+      'GET /me',
+      'GET /me/identities',
+      'POST /me/identities/code',
+      'POST /me/identities/oauth/:provider/start',
+      'POST /me/identities/verify',
+    ]);
     expect(compareWithRegistry(routes, ISOLATION_REGISTRY)).toEqual({ uncovered: [], stale: [] });
   });
 });

@@ -11,7 +11,9 @@ import { MailModule } from '../shared/mail/mail.module';
 import { MessagingModule } from '../shared/messaging/messaging.module';
 import { TenancyModule } from '../tenancy/tenancy.module';
 import { AuthController } from './controllers/auth.controller';
+import { IdentitiesController } from './controllers/identities.controller';
 import { OauthController } from './controllers/oauth.controller';
+import { IdentitiesService } from './services/identities.service';
 import { DrizzleOauthStateStore } from '../../database/adapters/oauth-state.adapter';
 import { FacebookOauthProvider } from './providers/facebook-oauth.provider';
 import { GoogleOauthProvider } from './providers/google-oauth.provider';
@@ -52,7 +54,13 @@ import {
 
 @Module({
   imports: [TenancyModule, MessagingModule, MailModule],
-  controllers: [AuthController, ShopsController, MeController, OauthController],
+  controllers: [
+    AuthController,
+    ShopsController,
+    MeController,
+    OauthController,
+    IdentitiesController,
+  ],
   providers: [
     { provide: CHALLENGE_STORE, useClass: DrizzleChallengeStore },
     { provide: SESSION_STORE, useClass: DrizzleSessionStore },
@@ -78,6 +86,7 @@ import {
     },
     { provide: OAUTH_STATE_STORE, useClass: DrizzleOauthStateStore },
     OauthService,
+    IdentitiesService,
     { provide: SIGN_IN_FAILURE_STORE, useClass: DrizzleSignInFailureStore },
     { provide: OTP_SECRET, inject: [ENV], useFactory: (env: Env) => env.OTP_SECRET },
     {

@@ -159,7 +159,7 @@ export class DrizzleSignupGateway implements SignupGateway {
     return this.accounts.findSubscriberByIdentity(tx, kind, value);
   }
 
-  async insertOauthIdentity(
+  async insertIdentity(
     tx: Transaction,
     values: { subscriberId: string; kind: IdentityKind; value: string; verifiedAt: Date },
   ): Promise<string> {
@@ -171,6 +171,21 @@ export class DrizzleSignupGateway implements SignupGateway {
       }
       throw error;
     }
+  }
+
+  listIdentities(
+    tx: Transaction,
+    subscriberId: string,
+  ): Promise<{ id: string; kind: IdentityKind; value: string }[]> {
+    return this.accounts.listIdentities(tx, subscriberId);
+  }
+
+  deleteIdentity(
+    tx: Transaction,
+    subscriberId: string,
+    identityId: string,
+  ): Promise<'deleted' | 'not_found' | 'owns_shop'> {
+    return this.accounts.deleteIdentity(tx, subscriberId, identityId);
   }
 
   async findEmailIdentityOf(

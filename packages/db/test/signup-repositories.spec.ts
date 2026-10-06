@@ -229,6 +229,7 @@ describe('one unit of work (AUTH-10)', () => {
       await new UserRepository(new TransactionRunner()).insertOwner(tx, {
         tenantId: id,
         phone,
+        email: null,
         name: 'Owner',
       });
       return id;

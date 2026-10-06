@@ -95,4 +95,52 @@ export class AccountRepository {
       .limit(1);
     return rows[0] ?? null;
   }
+
+  async listIdentities(
+    db: Executor,
+    subscriberId: string,
+  ): Promise<{ id: string; kind: IdentityKind; value: string }[]> {
+    return db
+      .select({
+        id: subscriberIdentities.id,
+        kind: subscriberIdentities.kind,
+        value: subscriberIdentities.value,
+      })
+      .from(subscriberIdentities)
+      .where(eq(subscriberIdentities.subscriberId, subscriberId));
+  }
+
+  /** Removes one identity of a subscriber. Refused when it is the identity that owns a shop (TEN-15). */
+  async deleteIdentity(
+    db: Executor,
+    subscriberId: string,
+    identityId: string,
+  ): Promise<'deleted' | 'not_found' | 'owns_shop'> {
+    const owned = await db
+      .select({ id: subscriberIdentities.id })
+      .from(subscriberIdentities)
+      .where(
+        and(
+          eq(subscriberIdentities.id, identityId),
+          eq(subscriberIdentities.subscriberId, subscriberId),
+        ),
+      )
+      .limit(1);
+    if (owned.length === 0) return 'not_found';
+    const shops = await db
+      .select({ id: tenants.id })
+      .from(tenants)
+      .where(eq(tenants.ownerIdentityId, identityId))
+      .limit(1);
+    if (shops.length > 0) return 'owns_shop';
+    await db
+      .delete(subscriberIdentities)
+      .where(
+        and(
+          eq(subscriberIdentities.id, identityId),
+          eq(subscriberIdentities.subscriberId, subscriberId),
+        ),
+      );
+    return 'deleted';
+  }
 }

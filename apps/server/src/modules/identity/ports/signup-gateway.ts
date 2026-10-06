@@ -38,10 +38,19 @@ export interface SignupGateway {
     kind: IdentityKind,
     value: string,
   ): Promise<{ subscriberId: string; passwordHash: string | null } | null>;
-  insertOauthIdentity(
+  insertIdentity(
     tx: Transaction,
     values: { subscriberId: string; kind: IdentityKind; value: string; verifiedAt: Date },
   ): Promise<string>;
+  listIdentities(
+    tx: Transaction,
+    subscriberId: string,
+  ): Promise<{ id: string; kind: IdentityKind; value: string }[]>;
+  deleteIdentity(
+    tx: Transaction,
+    subscriberId: string,
+    identityId: string,
+  ): Promise<'deleted' | 'not_found' | 'owns_shop'>;
   findPhoneIdentityOf(
     tx: Transaction,
     subscriberId: string,

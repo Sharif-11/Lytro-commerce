@@ -17,6 +17,7 @@ export class DrizzleOauthStateStore implements OauthStateStore {
     provider: OauthProvider;
     codeVerifier: string;
     expiresAt: Date;
+    attachToSubscriberId: string | null;
   }): Promise<void> {
     return this.states.insert(this.database.handle.db, values);
   }
@@ -25,7 +26,7 @@ export class DrizzleOauthStateStore implements OauthStateStore {
     state: string,
     provider: OauthProvider,
     now: Date,
-  ): Promise<{ codeVerifier: string } | null> {
+  ): Promise<{ codeVerifier: string; attachToSubscriberId: string | null } | null> {
     return this.states.consume(this.database.handle.db, state, provider, now);
   }
 }
