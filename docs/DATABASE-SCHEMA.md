@@ -1055,3 +1055,19 @@ CREATE UNIQUE INDEX identity_verifications_one_open
 - Deletion order: delete the R2 image objects first, then the row. If the row is deleted first and an object delete fails, the object is orphaned with no row left to find it. If the job stops after the objects are gone, a retry finds the objects already missing and simply removes the row. The job is idempotent and retries until both are gone.
 - Upload path (KYC-15): the owner uploads each image to a temporary prefix in the KYC bucket through a signed URL. On a validated submission the object moves to its permanent key, which is what `front_object_key` and `back_object_key` record. Failed or abandoned temporary objects are deleted by a job after [24] hours.
 - No backup of the KYC bucket (KYC-14). A lost or unreadable image is recovered by an operator requesting a re-upload, which starts a new submission row, so earlier submissions stay in history.
+
+## Migration index (slices 5 and 6)
+
+Migrations are named by number and purpose. Drizzle tracks what has run by content hash and timestamp, so a rename never changes what has been applied. Keep the number order.
+
+| File | Slice | Purpose |
+| --- | --- | --- |
+| `0005_signin_foundation` | 5 | Renames the challenge purpose to kind; makes the session tenant nullable; adds must_set_password and the lockout columns |
+| `0006_session_sign_in_method` | 5 | Records how each session was opened |
+| `0007_sign_in_failures` | 5 | Adds the failed sign-in table for the sliding-window lock; drops the per-account lock columns |
+| `0008_identity_kind_google` | 6 | Adds the google identity kind |
+| `0009_challenge_destination` | 6 | Renames the challenge phone to destination |
+| `0010_challenge_channel` | 6 | Adds the sms or email channel to challenges |
+| `0011_staff_owner_email` | 6 | Owner staff row: phone becomes nullable; adds email, unique per shop |
+| `0012_oauth_states` | 6 | Adds the Google and Facebook sign-in state table |
+| `0013_oauth_state_attach` | 6 | Lets a state attach a provider to a signed-in account |
