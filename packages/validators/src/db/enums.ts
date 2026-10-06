@@ -29,6 +29,7 @@ export enum DomainStatus {
 export enum IdentityKind {
   Phone = 'phone',
   Email = 'email',
+  Google = 'google',
   Facebook = 'facebook',
 }
 

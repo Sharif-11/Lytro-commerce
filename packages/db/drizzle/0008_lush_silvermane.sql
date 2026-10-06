@@ -1,0 +1,1 @@
+ALTER TYPE "control"."identity_kind" ADD VALUE 'google' BEFORE 'facebook';
