@@ -18,6 +18,12 @@ const envSchema = z.object({
   // Shared secret that Cloudflare adds to every forwarded request (decision R3).
   // Required in production; empty in development, where the check is switched off.
   TRUSTED_EDGE_SECRET: z.string().min(32).optional(),
+  // The header the edge uses for the client's address. Cloudflare sends CF-Connecting-IP; other proxies send X-Forwarded-For.
+  CLIENT_IP_HEADER: z
+    .string()
+    .min(1)
+    .default('cf-connecting-ip')
+    .transform((value) => value.toLowerCase()),
   // Key for the keyed hash of one-time codes (AUTH-05). A stolen database alone cannot reveal codes.
   OTP_SECRET: z.string().min(32, 'OTP_SECRET is required; at least 32 characters'),
   // Connection pool (ENGINEERING-STANDARDS §5). Defaults suit one server; size the total for each deployment.
