@@ -41,63 +41,63 @@
       "idx": 5,
       "version": "7",
       "when": 1791291652312,
-      "tag": "0005_good_violations",
+      "tag": "0005_signin_foundation",
       "breakpoints": true
     },
     {
       "idx": 6,
       "version": "7",
       "when": 1791292415256,
-      "tag": "0006_breezy_morph",
+      "tag": "0006_session_sign_in_method",
       "breakpoints": true
     },
     {
       "idx": 7,
       "version": "7",
       "when": 1791292913836,
-      "tag": "0007_illegal_donald_blake",
+      "tag": "0007_sign_in_failures",
       "breakpoints": true
     },
     {
       "idx": 8,
       "version": "7",
       "when": 1791298642868,
-      "tag": "0008_lush_silvermane",
+      "tag": "0008_identity_kind_google",
       "breakpoints": true
     },
     {
       "idx": 9,
       "version": "7",
       "when": 1791298846103,
-      "tag": "0009_early_professor_monster",
+      "tag": "0009_challenge_destination",
       "breakpoints": true
     },
     {
       "idx": 10,
       "version": "7",
       "when": 1791298852777,
-      "tag": "0010_strong_pete_wisdom",
+      "tag": "0010_challenge_channel",
       "breakpoints": true
     },
     {
       "idx": 11,
       "version": "7",
       "when": 1791299798925,
-      "tag": "0011_eminent_zaladane",
+      "tag": "0011_staff_owner_email",
       "breakpoints": true
     },
     {
       "idx": 12,
       "version": "7",
       "when": 1791300289172,
-      "tag": "0012_lame_sister_grimm",
+      "tag": "0012_oauth_states",
       "breakpoints": true
     },
     {
       "idx": 13,
       "version": "7",
       "when": 1791300766721,
-      "tag": "0013_optimal_wilson_fisk",
+      "tag": "0013_oauth_state_attach",
       "breakpoints": true
     }
   ]
