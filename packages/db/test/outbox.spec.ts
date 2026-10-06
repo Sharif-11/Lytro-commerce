@@ -55,7 +55,9 @@ describe('outbox claiming (SMS-18)', () => {
       kind: SmsKind.ShopReady,
       body: 'Ready',
     });
-    const now = new Date();
+    // The row's first time comes from the database clock, so the claims use the same clock.
+    const { rows } = await admin.query<{ now: Date }>('SELECT now() AS now');
+    const now = rows[0]?.now ?? new Date();
     await new SmsRepository().claimDue(handle.db, {
       now,
       leaseUntil: new Date(now.getTime() + 120_000),
