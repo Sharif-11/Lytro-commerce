@@ -6,3 +6,4 @@ export const SLUG_AVAILABILITY = Symbol('SLUG_AVAILABILITY');
 export const TENANT_STORE = Symbol('TENANT_STORE');
 export const CLOCK = Symbol('CLOCK');
 export const TENANT_SUMMARY_STORE = Symbol('TENANT_SUMMARY_STORE');
+export const TRUSTED_EDGE_SECRET_NEXT = Symbol('TRUSTED_EDGE_SECRET_NEXT');

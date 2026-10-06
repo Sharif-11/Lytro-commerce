@@ -16,7 +16,7 @@ Status: draft v1, for review before implementation. Companion to `DATABASE-SCHEM
 - **Idempotency (API-11):** every POST with a cost or side effect accepts `Idempotency-Key`; same key + same body within 24h replays the original response with `Idempotent-Replay: true`; same key + different body is `422 idempotency_conflict`.
 - **Rate-limit headers (RTE-02):** every response carries `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`; a limited response adds `Retry-After`.
 - **Request id (API-27):** every response carries `X-Request-Id`, echoed in logs.
-- **Trusted edge (R3, D14):** every route except `/health` refuses a request that lacks the edge header `x-lytronix-edge-secret` (403), including the sign-in routes. The client address is read from the header named by `CLIENT_IP_HEADER` (default `cf-connecting-ip`, set by Cloudflare) only when the edge secret is present (D14).
+- **Trusted edge (R3, D14):** the server is reached only through an edge (any reverse proxy or load balancer). The edge adds the header `x-lytronix-edge-secret` to every request. Every route except `/health` refuses a request without a current or rotation secret with 403, including sign-in and reset. The client address comes from the header named by `CLIENT_IP_HEADER`, read only with a valid edge secret: a list header (default `x-forwarded-for`) takes the entry `TRUSTED_PROXY_HOPS` places from the end; a single-value header is read as one address.
 
 ---
 

@@ -16,6 +16,7 @@ import { getJson, postJson } from './support/http';
 const ADMIN_URL = process.env['DATABASE_TEST_ADMIN_URL'];
 const DB_NAME = 'lytronix_edge_test';
 const EDGE_SECRET = 'edge-e2e-secret-0123456789abcdef0123';
+const NEXT_SECRET = 'edge-e2e-next-secret-0123456789abcdef';
 const describeIfDatabase = ADMIN_URL ? describe : describe.skip;
 
 let app: INestApplication;
@@ -37,6 +38,7 @@ beforeAll(async () => {
   process.env['OTP_SECRET'] = 'edge-e2e-otp-secret-0123456789abcdef';
   process.env['PLATFORM_DOMAIN'] = 'localhost';
   process.env['TRUSTED_EDGE_SECRET'] = EDGE_SECRET;
+  process.env['TRUSTED_EDGE_SECRET_NEXT'] = NEXT_SECRET;
   process.env['NODE_ENV'] = 'production';
 
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
@@ -77,7 +79,7 @@ describeIfDatabase('the trusted edge on every route (R3, R6)', () => {
 
   it('records the forwarded client address on a failed sign-in and on the new session (D14)', async () => {
     const phone = `0171${randomUUID().replace(/\D/g, '').slice(0, 7)}`;
-    const headers = { [EDGE_HEADER]: EDGE_SECRET, 'cf-connecting-ip': '203.0.113.7' };
+    const headers = { [EDGE_HEADER]: EDGE_SECRET, 'x-forwarded-for': '203.0.113.7' };
     const requested = await postJson(port, '/auth/phone/code', { phone }, headers);
     expect(requested.status).toBe(200);
     const code = textedCode(phone);
@@ -100,6 +102,20 @@ describeIfDatabase('the trusted edge on every route (R3, R6)', () => {
       [phone],
     );
     expect(session.rows[0]?.ip).toBe('203.0.113.7');
+  });
+
+  it('accepts the next secret during a rotation, and refuses an unknown one', async () => {
+    const body = { phone: '01722222222' };
+    expect(
+      (await postJson(port, '/auth/phone/code', body, { [EDGE_HEADER]: NEXT_SECRET })).status,
+    ).toBe(200);
+    expect(
+      (
+        await postJson(port, '/auth/phone/code', body, {
+          [EDGE_HEADER]: 'not-a-known-secret-0123456789abcdef',
+        })
+      ).status,
+    ).toBe(403);
   });
 
   it('keeps health open for load balancers without the edge secret', async () => {

@@ -15,15 +15,21 @@ const envSchema = z.object({
     .min(1)
     .default('localhost')
     .transform((value) => value.toLowerCase()),
-  // Shared secret that Cloudflare adds to every forwarded request (decision R3).
-  // Required in production; empty in development, where the check is switched off.
+  // The edge (any proxy in front of the server) adds this secret to every request it forwards (decision R3).
+  // Required in production; unset in development, where the check is switched off.
   TRUSTED_EDGE_SECRET: z.string().min(32).optional(),
-  // The header the edge uses for the client's address. Cloudflare sends CF-Connecting-IP; other proxies send X-Forwarded-For.
+  // A second accepted secret, set only while the edge's secret is being rotated (no downtime).
+  TRUSTED_EDGE_SECRET_NEXT: z.string().min(32).optional(),
+  // The request header that carries the client's address, set by the edge (D14).
   CLIENT_IP_HEADER: z
     .string()
     .min(1)
-    .default('cf-connecting-ip')
+    .default('x-forwarded-for')
     .transform((value) => value.toLowerCase()),
+  // 'list': the header is a comma-separated chain (X-Forwarded-For). 'single': one address (for example X-Real-IP).
+  CLIENT_IP_FORMAT: z.enum(['list', 'single']).default('list'),
+  // How many trusted proxies append to a list. The client's address is the entry this many places from the end.
+  TRUSTED_PROXY_HOPS: z.coerce.number().int().min(1).max(10).default(1),
   // Key for the keyed hash of one-time codes (AUTH-05). A stolen database alone cannot reveal codes.
   OTP_SECRET: z.string().min(32, 'OTP_SECRET is required; at least 32 characters'),
   // Connection pool (ENGINEERING-STANDARDS §5). Defaults suit one server; size the total for each deployment.
@@ -38,6 +44,13 @@ const envWithEdgeRule = envSchema.superRefine((value, ctx) => {
       code: z.ZodIssueCode.custom,
       path: ['TRUSTED_EDGE_SECRET'],
       message: 'required in production; at least 32 characters',
+    });
+  }
+  if (value.TRUSTED_EDGE_SECRET_NEXT && !value.TRUSTED_EDGE_SECRET) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['TRUSTED_EDGE_SECRET_NEXT'],
+      message: 'can only be set together with TRUSTED_EDGE_SECRET',
     });
   }
 });

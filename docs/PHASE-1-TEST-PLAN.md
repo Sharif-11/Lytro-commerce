@@ -136,7 +136,7 @@ Each scenario lists its preconditions, numbered steps, expected result, and the 
 - Covers: R3, R6, D14.
 
 **P1-E35 The client address comes from the edge header only with the edge secret. [API]**
-- Steps: with the edge secret configured, send a sign-in with a `CF-Connecting-IP` value and the edge header; fail one verification and then sign in correctly.
+- Steps: with the edge secret configured, send a sign-in with an `X-Forwarded-For` value through a single trusted proxy (one hop) and the edge header; fail one verification and then sign in correctly.
 - Expected: the failed attempt is recorded with the forwarded address, and so is the new session. A sign-in request without the edge header is refused with 403, so it never reaches the address logic; the forwarded value is ignored without a valid secret (unit test).
 - Automated: `test/edge.e2e.spec.ts` (recorded addresses) and `test/client-ip.spec.ts` (ignored without the secret).
 - Covers: D14, AUTH-14.

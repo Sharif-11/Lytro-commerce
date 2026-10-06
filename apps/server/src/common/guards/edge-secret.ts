@@ -1,22 +1,34 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { timingSafeEqual } from 'node:crypto';
-import { TRUSTED_EDGE_SECRET } from '../../modules/tenancy/tokens';
+import { TRUSTED_EDGE_SECRET, TRUSTED_EDGE_SECRET_NEXT } from '../../modules/tenancy/tokens';
 
-// R3: the shared secret Cloudflare adds to every forwarded request. Compared in constant time.
+// R3: the shared secret the edge adds to every forwarded request. Compared in constant time. During a rotation a
+// second secret is also accepted, so the edge can switch over without downtime.
 @Injectable()
 export class EdgeSecret {
-  constructor(@Inject(TRUSTED_EDGE_SECRET) private readonly expected: string | undefined) {}
+  constructor(
+    @Inject(TRUSTED_EDGE_SECRET) private readonly expected: string | undefined,
+    @Optional()
+    @Inject(TRUSTED_EDGE_SECRET_NEXT)
+    private readonly next?: string,
+  ) {}
 
-  /** True when the edge check is off (no secret configured) or the received value equals the secret. */
+  /** True when the edge check is on (a secret is configured). */
   isRequired(): boolean {
     return this.expected !== undefined;
   }
 
   matches(received: string | string[] | undefined): boolean {
-    if (this.expected === undefined) return true;
+    if (!this.isRequired()) return true;
     if (typeof received !== 'string') return false;
-    const a = Buffer.from(received);
-    const b = Buffer.from(this.expected);
-    return a.length === b.length && timingSafeEqual(a, b);
+    return [this.expected, this.next].some(
+      (secret) => secret !== undefined && sameSecret(received, secret),
+    );
   }
+}
+
+function sameSecret(received: string, secret: string): boolean {
+  const a = Buffer.from(received);
+  const b = Buffer.from(secret);
+  return a.length === b.length && timingSafeEqual(a, b);
 }
