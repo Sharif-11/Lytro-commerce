@@ -21,7 +21,9 @@ export const users = tenant.table(
   {
     id: uuid('id').primaryKey().defaultRandom(),
     tenantId: uuid('tenant_id').notNull(),
-    phone: varchar('phone', { length: 15 }).notNull(),
+    // Null for an owner who enrolled by email only; every owner has at least one of phone or email (AUTH-10).
+    phone: varchar('phone', { length: 15 }),
+    email: varchar('email', { length: 254 }),
     passwordHash: text('password_hash'),
     name: text('name'),
     isOwner: boolean('is_owner').notNull().default(false),
@@ -30,6 +32,7 @@ export const users = tenant.table(
   },
   (t) => [
     uniqueIndex('users_tenant_phone_idx').on(t.tenantId, t.phone),
+    uniqueIndex('users_tenant_email_idx').on(t.tenantId, t.email),
     // Composite unique constraint, so user_roles can prove a role and a user belong to the same tenant (DAT-02).
     // It must be a constraint, not an index: Postgres requires one to target it from a foreign key.
     unique('users_tenant_id_key').on(t.tenantId, t.id),

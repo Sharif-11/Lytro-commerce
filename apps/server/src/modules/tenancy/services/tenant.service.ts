@@ -46,8 +46,10 @@ export class TenantService {
     await this.staff.createOwner(tx, {
       tenantId,
       phone: request.ownerPhone,
+      email: request.ownerEmail,
       name: request.ownerName,
     });
+    if (request.ownerPhone === null) return { tenantId, messages: [] };
     const ready = await this.messaging.queueShopReady(tx, request.ownerPhone, request.liveUrl);
     return { tenantId, messages: [ready] };
   }

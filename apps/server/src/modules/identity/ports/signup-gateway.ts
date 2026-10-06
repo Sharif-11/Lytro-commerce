@@ -1,4 +1,5 @@
 import type { Transaction } from '@lytronix/db';
+import type { IdentityKind } from '@lytronix/validators';
 import type { TenantState } from '@lytronix/validators';
 
 /** The shop a subscriber owns, as sign-in needs it to choose the next screen. */
@@ -28,8 +29,38 @@ export interface SignupGateway {
     values: { subscriberId: string; phone: string; verifiedAt: Date },
   ): Promise<string>;
   findOwnedTenant(tx: Transaction, subscriberId: string): Promise<OwnedTenant | null>;
+  findEmailIdentityOf(
+    tx: Transaction,
+    subscriberId: string,
+  ): Promise<{ id: string; email: string } | null>;
+  findSubscriberByIdentity(
+    tx: Transaction,
+    kind: IdentityKind,
+    value: string,
+  ): Promise<{ subscriberId: string; passwordHash: string | null } | null>;
+  insertIdentity(
+    tx: Transaction,
+    values: { subscriberId: string; kind: IdentityKind; value: string; verifiedAt: Date },
+  ): Promise<string>;
+  listIdentities(
+    tx: Transaction,
+    subscriberId: string,
+  ): Promise<{ id: string; kind: IdentityKind; value: string }[]>;
+  deleteIdentity(
+    tx: Transaction,
+    subscriberId: string,
+    identityId: string,
+  ): Promise<'deleted' | 'not_found' | 'owns_shop'>;
   findPhoneIdentityOf(
     tx: Transaction,
     subscriberId: string,
   ): Promise<{ id: string; phone: string } | null>;
+  findSubscriberByEmail(
+    tx: Transaction,
+    email: string,
+  ): Promise<{ subscriberId: string; passwordHash: string | null } | null>;
+  insertEmailIdentity(
+    tx: Transaction,
+    values: { subscriberId: string; email: string; verifiedAt: Date },
+  ): Promise<string>;
 }

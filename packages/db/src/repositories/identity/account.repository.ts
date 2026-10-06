@@ -3,12 +3,13 @@ import { and, eq } from 'drizzle-orm';
 import type { Executor } from '../../transactions';
 import { subscriberIdentities, subscribers, tenants } from '../../schema';
 
-// AUTH-08: a phone belongs to at most one subscriber. The unique index on (kind, value) enforces it; a violation
-// surfaces as a unique-violation error, which the server maps to a clear answer.
+// AUTH-08: a value belongs to at most one subscriber per kind. The unique index on (kind, value) enforces it; a
+// violation surfaces as a unique-violation error, which the server maps to a clear answer.
 export class AccountRepository {
-  async findSubscriberByPhone(
+  async findSubscriberByIdentity(
     db: Executor,
-    phone: string,
+    kind: IdentityKind,
+    value: string,
   ): Promise<{ subscriberId: string; passwordHash: string | null } | null> {
     const rows = await db
       .select({
@@ -17,12 +18,7 @@ export class AccountRepository {
       })
       .from(subscriberIdentities)
       .innerJoin(subscribers, eq(subscribers.id, subscriberIdentities.subscriberId))
-      .where(
-        and(
-          eq(subscriberIdentities.kind, IdentityKind.Phone),
-          eq(subscriberIdentities.value, phone),
-        ),
-      )
+      .where(and(eq(subscriberIdentities.kind, kind), eq(subscriberIdentities.value, value)))
       .limit(1);
     return rows[0] ?? null;
   }
@@ -53,16 +49,16 @@ export class AccountRepository {
     return row.id;
   }
 
-  async insertPhoneIdentity(
+  async insertIdentity(
     db: Executor,
-    values: { subscriberId: string; phone: string; verifiedAt: Date },
+    values: { subscriberId: string; kind: IdentityKind; value: string; verifiedAt: Date },
   ): Promise<string> {
     const [row] = await db
       .insert(subscriberIdentities)
       .values({
         subscriberId: values.subscriberId,
-        kind: IdentityKind.Phone,
-        value: values.phone,
+        kind: values.kind,
+        value: values.value,
         verifiedAt: values.verifiedAt,
       })
       .returning({ id: subscriberIdentities.id });
@@ -70,17 +66,18 @@ export class AccountRepository {
     return row.id;
   }
 
-  async findPhoneIdentityOf(
+  async findIdentityOf(
     db: Executor,
     subscriberId: string,
-  ): Promise<{ id: string; phone: string } | null> {
+    kind: IdentityKind,
+  ): Promise<{ id: string; value: string } | null> {
     const rows = await db
-      .select({ id: subscriberIdentities.id, phone: subscriberIdentities.value })
+      .select({ id: subscriberIdentities.id, value: subscriberIdentities.value })
       .from(subscriberIdentities)
       .where(
         and(
           eq(subscriberIdentities.subscriberId, subscriberId),
-          eq(subscriberIdentities.kind, IdentityKind.Phone),
+          eq(subscriberIdentities.kind, kind),
         ),
       )
       .limit(1);
@@ -97,5 +94,53 @@ export class AccountRepository {
       .where(eq(tenants.subscriberId, subscriberId))
       .limit(1);
     return rows[0] ?? null;
+  }
+
+  async listIdentities(
+    db: Executor,
+    subscriberId: string,
+  ): Promise<{ id: string; kind: IdentityKind; value: string }[]> {
+    return db
+      .select({
+        id: subscriberIdentities.id,
+        kind: subscriberIdentities.kind,
+        value: subscriberIdentities.value,
+      })
+      .from(subscriberIdentities)
+      .where(eq(subscriberIdentities.subscriberId, subscriberId));
+  }
+
+  /** Removes one identity of a subscriber. Refused when it is the identity that owns a shop (TEN-15). */
+  async deleteIdentity(
+    db: Executor,
+    subscriberId: string,
+    identityId: string,
+  ): Promise<'deleted' | 'not_found' | 'owns_shop'> {
+    const owned = await db
+      .select({ id: subscriberIdentities.id })
+      .from(subscriberIdentities)
+      .where(
+        and(
+          eq(subscriberIdentities.id, identityId),
+          eq(subscriberIdentities.subscriberId, subscriberId),
+        ),
+      )
+      .limit(1);
+    if (owned.length === 0) return 'not_found';
+    const shops = await db
+      .select({ id: tenants.id })
+      .from(tenants)
+      .where(eq(tenants.ownerIdentityId, identityId))
+      .limit(1);
+    if (shops.length > 0) return 'owns_shop';
+    await db
+      .delete(subscriberIdentities)
+      .where(
+        and(
+          eq(subscriberIdentities.id, identityId),
+          eq(subscriberIdentities.subscriberId, subscriberId),
+        ),
+      );
+    return 'deleted';
   }
 }

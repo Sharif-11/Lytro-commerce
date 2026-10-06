@@ -8,12 +8,13 @@ export class UserRepository {
 
   async insertOwner(
     tx: Transaction,
-    values: { tenantId: string; phone: string; name: string },
+    values: { tenantId: string; phone: string | null; email: string | null; name: string },
   ): Promise<void> {
     await this.transactions.setTenantContext(tx, values.tenantId);
     await tx.insert(users).values({
       tenantId: values.tenantId,
       phone: values.phone,
+      email: values.email,
       name: values.name,
       isOwner: true,
     });

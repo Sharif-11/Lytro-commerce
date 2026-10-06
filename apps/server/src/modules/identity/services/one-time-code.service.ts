@@ -1,9 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { ChallengeKind } from '@lytronix/validators';
+import { ChallengeChannel, type ChallengeKind } from '@lytronix/validators';
 import type { Transaction } from '@lytronix/db';
 import { ApiError } from '../../../common/api-error';
 import { HOUR_MS, MINUTE_MS } from '../../../common/time';
+import { MailDeliveryError } from '../../../common/errors/mail-delivery';
 import { SmsDeliveryError } from '../../../common/errors/sms-delivery';
+import { MailService } from '../../shared/mail/services/mail.service';
 import { MessagingService } from '../../shared/messaging/services/messaging.service';
 import { OneTimeCodeHasher } from './one-time-code-hasher';
 import { CHALLENGE_STORE, SIGNUP_GATEWAY, SIGNUP_SETTINGS } from '../tokens';
@@ -28,7 +30,11 @@ type CheckOutcome =
   | { kind: 'expired' }
   | { kind: 'wrong'; attemptsLeft: number };
 
-/** Issues and checks one-time codes. */
+type Delivery =
+  | { channel: ChallengeChannel.Sms; message: Awaited<ReturnType<MessagingService['queueOtp']>> }
+  | { channel: ChallengeChannel.Email; to: string; code: string; purpose: ChallengeKind };
+
+/** Issues and checks one-time codes by SMS or email. The same limits apply to both channels. */
 @Injectable()
 export class OneTimeCodeService {
   constructor(
@@ -37,16 +43,18 @@ export class OneTimeCodeService {
     @Inject(SIGNUP_SETTINGS) private readonly settings: SignupSettings,
     @Inject(OneTimeCodeHasher) private readonly hasher: OneTimeCodeHasher,
     @Inject(MessagingService) private readonly messaging: MessagingService,
+    @Inject(MailService) private readonly mail: MailService,
   ) {}
 
   async issue(
-    phone: string,
+    destination: string,
+    channel: ChallengeChannel,
     kind: ChallengeKind,
     cooldownMs: number = RESEND_COOLDOWN_MS,
   ): Promise<CodeIssued> {
-    const { issued, message } = await this.gateway.run(async (tx) => {
+    const { issued, delivery } = await this.gateway.run(async (tx) => {
       const now = this.settings.now();
-      const latest = await this.challenges.latest(tx, phone, kind);
+      const latest = await this.challenges.latest(tx, destination, channel, kind);
 
       if (latest?.lockedUntil && latest.lockedUntil > now) {
         throw this.tooManyWrongCodes(
@@ -64,14 +72,15 @@ export class OneTimeCodeService {
       }
       const sent = await this.challenges.countSince(
         tx,
-        phone,
+        destination,
+        channel,
         kind,
         new Date(now.getTime() - HOUR_MS),
       );
       if (sent >= HOURLY_CODE_CAP) {
         throw new ApiError(
           'rate_limited',
-          'Too many codes were requested for this number. Try again later.',
+          'Too many codes were requested for this destination. Try again later.',
           {},
           HOUR_MS / 1000,
         );
@@ -79,25 +88,33 @@ export class OneTimeCodeService {
 
       const code = this.hasher.generate();
       await this.challenges.create(tx, {
-        phone,
+        destination,
+        channel,
         kind,
-        codeHash: this.hasher.hash(code, phone),
+        codeHash: this.hasher.hash(code, destination),
         expiresAt: new Date(now.getTime() + CODE_TTL_MS),
       });
-      const queued = await this.messaging.queueOtp(tx, phone, code, kind);
+      const delivery: Delivery =
+        channel === ChallengeChannel.Sms
+          ? { channel, message: await this.messaging.queueOtp(tx, destination, code, kind) }
+          : { channel, to: destination, code, purpose: kind };
       return {
         issued: {
           expiresInSeconds: CODE_TTL_MS / 1000,
           resendAfterSeconds: cooldownMs / 1000,
         },
-        message: queued,
+        delivery,
       };
     });
 
     try {
-      await this.messaging.deliverOtp(message);
+      if (delivery.channel === ChallengeChannel.Sms) {
+        await this.messaging.deliverOtp(delivery.message);
+      } else {
+        await this.mail.deliverCode(delivery.to, delivery.code, delivery.purpose);
+      }
     } catch (error) {
-      if (error instanceof SmsDeliveryError) {
+      if (error instanceof SmsDeliveryError || error instanceof MailDeliveryError) {
         // The code was not delivered. The cooldown equals this retry hint, so asking again is possible when it ends.
         throw new ApiError(
           'service_unavailable',
@@ -112,8 +129,15 @@ export class OneTimeCodeService {
   }
 
   /** Returns the challenge the code was checked against, or throws the matching error. */
-  async verify(phone: string, code: string, kind: ChallengeKind): Promise<string> {
-    const outcome = await this.gateway.run((tx) => this.check(tx, phone, code, kind));
+  async verify(
+    destination: string,
+    channel: ChallengeChannel,
+    code: string,
+    kind: ChallengeKind,
+  ): Promise<string> {
+    const outcome = await this.gateway.run((tx) =>
+      this.check(tx, destination, channel, code, kind),
+    );
     switch (outcome.kind) {
       case 'ok':
         return outcome.challengeId;
@@ -137,12 +161,18 @@ export class OneTimeCodeService {
 
   private async check(
     tx: Transaction,
-    phone: string,
+    destination: string,
+    channel: ChallengeChannel,
     code: string,
     kind: ChallengeKind,
   ): Promise<CheckOutcome> {
     const now = this.settings.now();
-    const challenge: ChallengeRecord | null = await this.challenges.latest(tx, phone, kind);
+    const challenge: ChallengeRecord | null = await this.challenges.latest(
+      tx,
+      destination,
+      channel,
+      kind,
+    );
     if (!challenge || challenge.consumedAt) return { kind: 'missing' };
     if (challenge.lockedUntil && challenge.lockedUntil > now) {
       return {
@@ -152,7 +182,7 @@ export class OneTimeCodeService {
     }
     if (challenge.expiresAt <= now) return { kind: 'expired' };
 
-    if (this.hasher.matches(code, phone, challenge.codeHash)) {
+    if (this.hasher.matches(code, destination, challenge.codeHash)) {
       return { kind: 'ok', challengeId: challenge.id };
     }
 

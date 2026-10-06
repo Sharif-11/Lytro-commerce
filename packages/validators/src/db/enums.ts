@@ -29,6 +29,7 @@ export enum DomainStatus {
 export enum IdentityKind {
   Phone = 'phone',
   Email = 'email',
+  Google = 'google',
   Facebook = 'facebook',
 }
 
@@ -36,6 +37,17 @@ export enum SignInMethod {
   Code = 'code',
   Password = 'password',
   Reset = 'reset',
+  Oauth = 'oauth',
+}
+
+export enum OauthProvider {
+  Google = 'google',
+  Facebook = 'facebook',
+}
+
+export enum ChallengeChannel {
+  Sms = 'sms',
+  Email = 'email',
 }
 
 export enum ChallengeKind {

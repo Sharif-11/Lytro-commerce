@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { ChallengeKind } from '@lytronix/validators';
+import { IdentityKind, type ChallengeChannel, type ChallengeKind } from '@lytronix/validators';
 import {
   AccountRepository,
   ChallengeRepository,
@@ -16,17 +16,34 @@ import { DatabaseService } from '../database.service';
 export class DrizzleChallengeStore implements ChallengeStore {
   constructor(@Inject(ChallengeRepository) private readonly challenges: ChallengeRepository) {}
 
-  latest(tx: Transaction, phone: string, kind: ChallengeKind): Promise<ChallengeRecord | null> {
-    return this.challenges.latest(tx, phone, kind);
+  latest(
+    tx: Transaction,
+    destination: string,
+    channel: ChallengeChannel,
+    kind: ChallengeKind,
+  ): Promise<ChallengeRecord | null> {
+    return this.challenges.latest(tx, destination, channel, kind);
   }
 
-  countSince(tx: Transaction, phone: string, kind: ChallengeKind, since: Date): Promise<number> {
-    return this.challenges.countSince(tx, phone, kind, since);
+  countSince(
+    tx: Transaction,
+    destination: string,
+    channel: ChallengeChannel,
+    kind: ChallengeKind,
+    since: Date,
+  ): Promise<number> {
+    return this.challenges.countSince(tx, destination, channel, kind, since);
   }
 
   async create(
     tx: Transaction,
-    input: { phone: string; kind: ChallengeKind; codeHash: string; expiresAt: Date },
+    input: {
+      destination: string;
+      channel: ChallengeChannel;
+      kind: ChallengeKind;
+      codeHash: string;
+      expiresAt: Date;
+    },
   ): Promise<{ id: string; createdAt: Date }> {
     const row = await this.challenges.insert(tx, input);
     return { id: row.id, createdAt: row.createdAt };
@@ -63,7 +80,7 @@ export class DrizzleSignupGateway implements SignupGateway {
     tx: Transaction,
     phone: string,
   ): Promise<{ subscriberId: string; passwordHash: string | null } | null> {
-    return this.accounts.findSubscriberByPhone(tx, phone);
+    return this.accounts.findSubscriberByIdentity(tx, IdentityKind.Phone, phone);
   }
 
   findSubscriberById(
@@ -81,6 +98,32 @@ export class DrizzleSignupGateway implements SignupGateway {
     return this.accounts.setPasswordHash(tx, subscriberId, passwordHash);
   }
 
+  findSubscriberByEmail(
+    tx: Transaction,
+    email: string,
+  ): Promise<{ subscriberId: string; passwordHash: string | null } | null> {
+    return this.accounts.findSubscriberByIdentity(tx, IdentityKind.Email, email);
+  }
+
+  async insertEmailIdentity(
+    tx: Transaction,
+    values: { subscriberId: string; email: string; verifiedAt: Date },
+  ): Promise<string> {
+    try {
+      return await this.accounts.insertIdentity(tx, {
+        subscriberId: values.subscriberId,
+        kind: IdentityKind.Email,
+        value: values.email,
+        verifiedAt: values.verifiedAt,
+      });
+    } catch (error) {
+      if (this.transactions.isUniqueViolation(error, 'kind_value')) {
+        throw new UniqueViolation('email');
+      }
+      throw error;
+    }
+  }
+
   insertSubscriber(tx: Transaction): Promise<string> {
     return this.accounts.insertSubscriber(tx);
   }
@@ -90,7 +133,12 @@ export class DrizzleSignupGateway implements SignupGateway {
     values: { subscriberId: string; phone: string; verifiedAt: Date },
   ): Promise<string> {
     try {
-      return await this.accounts.insertPhoneIdentity(tx, values);
+      return await this.accounts.insertIdentity(tx, {
+        subscriberId: values.subscriberId,
+        kind: IdentityKind.Phone,
+        value: values.phone,
+        verifiedAt: values.verifiedAt,
+      });
     } catch (error) {
       if (this.transactions.isUniqueViolation(error, 'kind_value')) {
         throw new UniqueViolation('phone');
@@ -103,10 +151,56 @@ export class DrizzleSignupGateway implements SignupGateway {
     return this.accounts.findOwnedTenant(tx, subscriberId);
   }
 
-  findPhoneIdentityOf(
+  findSubscriberByIdentity(
+    tx: Transaction,
+    kind: IdentityKind,
+    value: string,
+  ): Promise<{ subscriberId: string; passwordHash: string | null } | null> {
+    return this.accounts.findSubscriberByIdentity(tx, kind, value);
+  }
+
+  async insertIdentity(
+    tx: Transaction,
+    values: { subscriberId: string; kind: IdentityKind; value: string; verifiedAt: Date },
+  ): Promise<string> {
+    try {
+      return await this.accounts.insertIdentity(tx, values);
+    } catch (error) {
+      if (this.transactions.isUniqueViolation(error, 'kind_value')) {
+        throw new UniqueViolation('address');
+      }
+      throw error;
+    }
+  }
+
+  listIdentities(
+    tx: Transaction,
+    subscriberId: string,
+  ): Promise<{ id: string; kind: IdentityKind; value: string }[]> {
+    return this.accounts.listIdentities(tx, subscriberId);
+  }
+
+  deleteIdentity(
+    tx: Transaction,
+    subscriberId: string,
+    identityId: string,
+  ): Promise<'deleted' | 'not_found' | 'owns_shop'> {
+    return this.accounts.deleteIdentity(tx, subscriberId, identityId);
+  }
+
+  async findEmailIdentityOf(
+    tx: Transaction,
+    subscriberId: string,
+  ): Promise<{ id: string; email: string } | null> {
+    const identity = await this.accounts.findIdentityOf(tx, subscriberId, IdentityKind.Email);
+    return identity === null ? null : { id: identity.id, email: identity.value };
+  }
+
+  async findPhoneIdentityOf(
     tx: Transaction,
     subscriberId: string,
   ): Promise<{ id: string; phone: string } | null> {
-    return this.accounts.findPhoneIdentityOf(tx, subscriberId);
+    const identity = await this.accounts.findIdentityOf(tx, subscriberId, IdentityKind.Phone);
+    return identity === null ? null : { id: identity.id, phone: identity.value };
   }
 }

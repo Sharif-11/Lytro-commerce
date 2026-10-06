@@ -35,8 +35,18 @@ Status: draft v1, for review before implementation. Companion to `DATABASE-SCHEM
 | POST | `/api/v1/auth/forgot-password/verify` | none | `{ phone, code }`. Verifies the reset code. On success creates a session flagged `must_set_password` on the current host. The dashboard is blocked until the password endpoint is called (AUTH-19). |
 | POST | `/api/v1/auth/password` | session | `{ currentPassword?, newPassword }`. Sets or changes the password. `currentPassword` may be omitted when the session carries `must_set_password` or a sign-in code was verified within the last 10 minutes (AUTH-20). Always ends other sessions. |
 | GET | `/api/v1/me` | session | Account summary: subscriber id, and the shop summary (slug, shop name, state, plan name, period end) or `null` when the session has no shop yet. Works on the platform host and on the shop's own host. Owners can call it in `locked`, `archived` and `deleted` so the renewal and purchase screens load. Balance is added once the balance tables exist. |
-| POST | `/api/v1/me/identities` | session | Add a second/third verified identity to this account (AUTH-26). |
-| DELETE | `/api/v1/me/identities/:id` | session | Refused if it's the last remaining identity. |
+| POST | `/api/v1/auth/email/code` | none | `{ email }`. Sends a sign-in code by email. Same reply for every valid address (AUTH-08). |
+| POST | `/api/v1/auth/email/verify` | none | `{ email, code }`. Signs in a known address, or creates an account with no password for a new one. Returns `next` and `tenantId` and sets the session cookie. |
+| POST | `/api/v1/auth/forgot-password/email` | none | `{ email }`. Sends a reset code by email when the address has an account; the same reply either way (AUTH-27). |
+| POST | `/api/v1/auth/forgot-password/email/verify` | none | `{ email, code }`. Opens a session flagged `must_set_password` (AUTH-19, AUTH-27). |
+| GET | `/api/v1/auth/providers` | none | `{ providers }`: the Google and Facebook sign-in methods switched on by configuration (AUTH-24). Empty when both are off. |
+| GET | `/api/v1/auth/oauth/{provider}/start` | none | `provider` = google or facebook. Returns `{ url }` for the provider sign-in. A provider switched off answers 404. |
+| GET | `/api/v1/auth/oauth/{provider}/callback` | none | `?code&state`. Checks the single-use state, signs the account in (creating it with no password when new), and returns `next`, `tenantId` and `recovery`. `recovery: facebook-only` is returned once, when a Facebook account is created with no email (AUTH-27). |
+| GET | `/api/v1/me/identities` | session | Lists the sign-in methods on the account (AUTH-26). |
+| POST | `/api/v1/me/identities/code` | session | `{ kind: phone or email, value }`. Sends a code to the number or address being added. |
+| POST | `/api/v1/me/identities/verify` | session | `{ kind, value, code }`. Adds the verified identity. A value held by another account is refused with `conflict`. |
+| POST | `/api/v1/me/identities/oauth/{provider}/start` | session | Returns `{ url }` to add a Google or Facebook account to this account. Its callback returns `{ attached }` instead of signing in. |
+| DELETE | `/api/v1/me/identities/:id` | session | Removes one identity. Refused with `conflict` when it is the last remaining identity, or when it owns a shop. Another account's identity answers 404 (AUTH-26). |
 
 ---
 

@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { bigserial, check, index, integer, text, timestamp, uuid } from 'drizzle-orm/pg-core';
-import { ChallengeKind, SmsKind, SmsStatus } from '@lytronix/validators';
+import { ChallengeChannel, ChallengeKind, SmsKind, SmsStatus } from '@lytronix/validators';
 import { control, createdAt } from '../shared';
 
 // AUTH-05, AUTH-06, AUTH-07: one-time codes. Only a keyed hash is stored, never the code (decision: HMAC).
@@ -9,7 +9,9 @@ export const verificationChallenges = control.table(
   'verification_challenges',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    phone: text('phone').notNull(),
+    // The phone number or the email address the code was sent to, normalised (AUTH-02).
+    destination: text('destination').notNull(),
+    channel: text('channel').$type<ChallengeChannel>().notNull().default(ChallengeChannel.Sms),
     // 'signin' for the entry-screen OTP; 'reset' for the forgot-password flow (AUTH-17, AUTH-21).
     kind: text('kind').$type<ChallengeKind>().notNull().default(ChallengeKind.Signin),
     codeHash: text('code_hash').notNull(),
@@ -19,7 +21,9 @@ export const verificationChallenges = control.table(
     consumedAt: timestamp('consumed_at', { withTimezone: true }), // single use
     createdAt: createdAt(),
   },
-  (t) => [index('verification_challenges_phone_idx').on(t.phone, t.createdAt)],
+  (t) => [
+    index('verification_challenges_destination_idx').on(t.destination, t.channel, t.createdAt),
+  ],
 );
 
 // The kinds and statuses of an outbox message, defined once. The database check constraint is built from these lists.

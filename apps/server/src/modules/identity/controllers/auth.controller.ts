@@ -2,10 +2,12 @@ import { Body, Controller, HttpCode, Inject, Post, Req, Res, UseGuards } from '@
 import { ClientIp } from '../../../common/client-ip';
 import { SkipTenant } from '../../../common/decorators/skip-tenant';
 import { AllowPendingPassword } from '../../../common/decorators/allow-pending-password';
-import { type HttpRequest, type HttpResponse, headerValue } from '../../../common/http';
+import { type HttpRequest, type HttpResponse } from '../../../common/http';
 import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
 import {
   ForgotPasswordDto,
+  RequestEmailCodeDto,
+  VerifyEmailCodeDto,
   PasswordSigninDto,
   RequestSigninCodeDto,
   SetPasswordDto,
@@ -17,10 +19,11 @@ import type { SessionRecord } from '../ports/session-store';
 import { ForgotPasswordService } from '../services/forgot-password.service';
 import { PasswordSigninService } from '../services/password-signin.service';
 import { PasswordService } from '../services/password.service';
+import { EmailSigninService } from '../services/email-signin.service';
+import { ForgotPasswordEmailDto, VerifyForgotPasswordEmailDto } from '../dto/forgot-email.dto';
 import { SigninService } from '../services/signin.service';
 import type { NextStep } from '../types/signed-in';
 import { SessionService } from '../services/session.service';
-import type { SessionContext } from '../types/session';
 import type { CodeIssued } from '../types/code-issued';
 
 interface SignedInBody {
@@ -35,6 +38,7 @@ interface SignedInBody {
 export class AuthController {
   constructor(
     @Inject(SigninService) private readonly signin: SigninService,
+    @Inject(EmailSigninService) private readonly emailSignin: EmailSigninService,
     @Inject(PasswordSigninService) private readonly passwordSignin: PasswordSigninService,
     @Inject(ForgotPasswordService) private readonly forgot: ForgotPasswordService,
     @Inject(PasswordService) private readonly passwords: PasswordService,
@@ -60,7 +64,31 @@ export class AuthController {
     const result = await this.signin.verifyCode(
       body.phone,
       body.code,
-      this.sessionContext(request),
+      this.clientIp.context(request),
+    );
+    response.setHeader('Set-Cookie', result.cookie);
+    return { next: result.next, tenantId: result.tenantId, csrfToken: result.csrfToken };
+  }
+
+  @Post('email/code')
+  @HttpCode(200)
+  requestEmailCode(
+    @Body(new ZodValidationPipe(RequestEmailCodeDto.schema)) body: RequestEmailCodeDto,
+  ): Promise<CodeIssued> {
+    return this.emailSignin.requestCode(body.email);
+  }
+
+  @Post('email/verify')
+  @HttpCode(200)
+  async verifyEmailCode(
+    @Body(new ZodValidationPipe(VerifyEmailCodeDto.schema)) body: VerifyEmailCodeDto,
+    @Req() request: HttpRequest,
+    @Res({ passthrough: true }) response: HttpResponse,
+  ): Promise<SignedInBody> {
+    const result = await this.emailSignin.verifyCode(
+      body.email,
+      body.code,
+      this.clientIp.context(request),
     );
     response.setHeader('Set-Cookie', result.cookie);
     return { next: result.next, tenantId: result.tenantId, csrfToken: result.csrfToken };
@@ -76,7 +104,7 @@ export class AuthController {
     const result = await this.passwordSignin.signIn(
       body.phone,
       body.password,
-      this.sessionContext(request),
+      this.clientIp.context(request),
     );
     response.setHeader('Set-Cookie', result.cookie);
     return { next: result.next, tenantId: result.tenantId, csrfToken: result.csrfToken };
@@ -90,6 +118,31 @@ export class AuthController {
     return this.forgot.request(body.phone);
   }
 
+  @Post('forgot-password/email')
+  @HttpCode(200)
+  requestResetByEmail(
+    @Body(new ZodValidationPipe(ForgotPasswordEmailDto.schema)) body: ForgotPasswordEmailDto,
+  ): Promise<CodeIssued> {
+    return this.forgot.requestByEmail(body.email);
+  }
+
+  @Post('forgot-password/email/verify')
+  @HttpCode(200)
+  async verifyResetByEmail(
+    @Body(new ZodValidationPipe(VerifyForgotPasswordEmailDto.schema))
+    body: VerifyForgotPasswordEmailDto,
+    @Req() request: HttpRequest,
+    @Res({ passthrough: true }) response: HttpResponse,
+  ): Promise<SignedInBody> {
+    const result = await this.forgot.verifyByEmail(
+      body.email,
+      body.code,
+      this.clientIp.context(request),
+    );
+    response.setHeader('Set-Cookie', result.cookie);
+    return { next: result.next, tenantId: result.tenantId, csrfToken: result.csrfToken };
+  }
+
   @Post('forgot-password/verify')
   @HttpCode(200)
   async verifyReset(
@@ -97,7 +150,7 @@ export class AuthController {
     @Req() request: HttpRequest,
     @Res({ passthrough: true }) response: HttpResponse,
   ): Promise<SignedInBody> {
-    const result = await this.forgot.verify(body.phone, body.code, this.sessionContext(request));
+    const result = await this.forgot.verify(body.phone, body.code, this.clientIp.context(request));
     response.setHeader('Set-Cookie', result.cookie);
     return { next: result.next, tenantId: result.tenantId, csrfToken: result.csrfToken };
   }
@@ -125,12 +178,5 @@ export class AuthController {
     await this.sessions.revoke(request.session);
     response.setHeader('Set-Cookie', this.sessions.clearCookie());
     return { ok: true };
-  }
-
-  private sessionContext(request: HttpRequest): SessionContext {
-    return {
-      userAgent: headerValue(request.headers['user-agent']) ?? null,
-      ip: this.clientIp.resolve(request),
-    };
   }
 }

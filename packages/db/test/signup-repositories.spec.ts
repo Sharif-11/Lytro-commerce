@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type pg from 'pg';
-import { ChallengeKind } from '@lytronix/validators';
+import { ChallengeChannel, ChallengeKind, IdentityKind } from '@lytronix/validators';
 import {
   AccountRepository,
   ChallengeRepository,
@@ -25,7 +25,8 @@ const newSlug = (): string => `s-${randomUUID().slice(0, 8)}`;
 
 async function newChallenge(phone: string): Promise<string> {
   const row = await new ChallengeRepository().insert(handle.db, {
-    phone,
+    destination: phone,
+    channel: ChallengeChannel.Sms,
     kind: ChallengeKind.Signin,
     codeHash: 'h'.repeat(64),
     expiresAt: new Date(Date.now() + 5 * 60 * 1000),
@@ -56,12 +57,20 @@ describe('one-time code rows (AUTH-05, AUTH-06, AUTH-07)', () => {
     await newChallenge(phone);
     const second = await newChallenge(phone);
     expect(
-      (await new ChallengeRepository().latest(handle.db, phone, ChallengeKind.Signin))?.id,
+      (
+        await new ChallengeRepository().latest(
+          handle.db,
+          phone,
+          ChallengeChannel.Sms,
+          ChallengeKind.Signin,
+        )
+      )?.id,
     ).toBe(second);
     expect(
       await new ChallengeRepository().countSince(
         handle.db,
         phone,
+        ChallengeChannel.Sms,
         ChallengeKind.Signin,
         new Date(Date.now() - 3600_000),
       ),
@@ -85,7 +94,12 @@ describe('one-time code rows (AUTH-05, AUTH-06, AUTH-07)', () => {
     await new ChallengeRepository().lock(handle.db, challengeId, until);
     expect(
       (
-        await new ChallengeRepository().latest(handle.db, phone, ChallengeKind.Signin)
+        await new ChallengeRepository().latest(
+          handle.db,
+          phone,
+          ChallengeChannel.Sms,
+          ChallengeKind.Signin,
+        )
       )?.lockedUntil?.getTime(),
     ).toBe(until.getTime());
   });
@@ -110,16 +124,18 @@ describe('unique constraints surface as recognisable errors (AUTH-08, AUTH-11)',
   it('reports a duplicate phone identity', async () => {
     const phone = newPhone();
     const subscriberId = await new AccountRepository().insertSubscriber(handle.db);
-    await new AccountRepository().insertPhoneIdentity(handle.db, {
+    await new AccountRepository().insertIdentity(handle.db, {
       subscriberId,
-      phone,
+      value: phone,
+      kind: IdentityKind.Phone,
       verifiedAt: new Date(),
     });
     const again = await new AccountRepository().insertSubscriber(handle.db);
     const failure = await new AccountRepository()
-      .insertPhoneIdentity(handle.db, {
+      .insertIdentity(handle.db, {
         subscriberId: again,
-        phone,
+        value: phone,
+        kind: IdentityKind.Phone,
         verifiedAt: new Date(),
       })
       .catch((error: unknown) => error);
@@ -130,9 +146,10 @@ describe('unique constraints surface as recognisable errors (AUTH-08, AUTH-11)',
     const slug = newSlug();
     const plan = await new TenantRepository().findPlanByName(handle.db, 'Trial', false);
     const subscriberId = await new AccountRepository().insertSubscriber(handle.db);
-    const identity = await new AccountRepository().insertPhoneIdentity(handle.db, {
+    const identity = await new AccountRepository().insertIdentity(handle.db, {
       subscriberId,
-      phone: newPhone(),
+      kind: IdentityKind.Phone,
+      value: newPhone(),
       verifiedAt: new Date(),
     });
     const values = {
@@ -148,9 +165,10 @@ describe('unique constraints surface as recognisable errors (AUTH-08, AUTH-11)',
     await new TenantRepository().insert(handle.db, values);
 
     const otherSubscriber = await new AccountRepository().insertSubscriber(handle.db);
-    const otherIdentity = await new AccountRepository().insertPhoneIdentity(handle.db, {
+    const otherIdentity = await new AccountRepository().insertIdentity(handle.db, {
       subscriberId: otherSubscriber,
-      phone: newPhone(),
+      kind: IdentityKind.Phone,
+      value: newPhone(),
       verifiedAt: new Date(),
     });
     const failure = await new TenantRepository()
@@ -191,9 +209,10 @@ describe('one unit of work (AUTH-10)', () => {
     const plan = await new TenantRepository().findPlanByName(handle.db, 'Trial', false);
     const phone = newPhone();
     const subscriberId = await new AccountRepository().insertSubscriber(handle.db);
-    const identity = await new AccountRepository().insertPhoneIdentity(handle.db, {
+    const identity = await new AccountRepository().insertIdentity(handle.db, {
       subscriberId,
-      phone,
+      value: phone,
+      kind: IdentityKind.Phone,
       verifiedAt: new Date(),
     });
     const tenantId = await new TransactionRunner().run(handle.db, async (tx) => {
@@ -210,6 +229,7 @@ describe('one unit of work (AUTH-10)', () => {
       await new UserRepository(new TransactionRunner()).insertOwner(tx, {
         tenantId: id,
         phone,
+        email: null,
         name: 'Owner',
       });
       return id;

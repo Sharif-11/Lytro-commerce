@@ -153,7 +153,7 @@ describeIfDatabase('sign-up by phone, end to end', () => {
     await createShop(first, { ownerName: 'Karim', shopName: 'First Shop' });
 
     await admin.query(
-      "UPDATE control.verification_challenges SET created_at = now() - interval '2 minutes' WHERE phone = $1",
+      "UPDATE control.verification_challenges SET created_at = now() - interval '2 minutes' WHERE destination = $1",
       [phone],
     );
     const returning = await enter(phone);
