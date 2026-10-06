@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Transaction } from '@lytronix/db';
-import { SmsKind } from '@lytronix/validators';
+import { ChallengeKind, SmsKind } from '@lytronix/validators';
 import { MINUTE_MS } from '../../../../common/time';
 import { SmsDeliveryError } from '../../../../common/errors/sms-delivery';
 import { MESSAGE_STORE, MESSAGING_CLOCK, SMS_PROVIDER } from '../tokens';
@@ -25,8 +25,16 @@ export class MessagingService {
     @Inject(MESSAGING_CLOCK) private readonly clock: () => Date,
   ) {}
 
-  async queueOtp(tx: Transaction, phone: string, code: string): Promise<QueuedMessage> {
-    const body = `Your verification code is ${code}. It expires in 5 minutes. Do not share it.`;
+  async queueOtp(
+    tx: Transaction,
+    phone: string,
+    code: string,
+    purpose: ChallengeKind,
+  ): Promise<QueuedMessage> {
+    const body =
+      purpose === ChallengeKind.Reset
+        ? `Your password reset code is ${code}. It expires in 5 minutes. Do not share it.`
+        : `Your verification code is ${code}. It expires in 5 minutes. Do not share it.`;
     const id = await this.store.insert(tx, { toPhone: phone, kind: SmsKind.Otp, body: null });
     return { id, toPhone: phone, body };
   }

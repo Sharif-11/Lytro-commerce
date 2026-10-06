@@ -87,7 +87,7 @@ export class OneTimeCodeService {
         codeHash: this.hasher.hash(code, phone),
         expiresAt: new Date(now.getTime() + CODE_TTL_MS),
       });
-      const queued = await this.messaging.queueOtp(tx, phone, code);
+      const queued = await this.messaging.queueOtp(tx, phone, code, kind);
       return {
         issued: {
           expiresInSeconds: CODE_TTL_MS / 1000,
