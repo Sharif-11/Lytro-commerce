@@ -199,6 +199,7 @@ describe('requesting a code (AUTH-05, AUTH-07)', () => {
     await codes.issue(PHONE, SIGNIN);
     advance(state, RESEND_COOLDOWN_MS);
     await codes.issue(PHONE, ChallengeKind.Reset);
+    expect(state.sent.at(-1)?.body).toContain('password reset code');
     const signinCode = state.challenges.filter((c) => c.kind === SIGNIN);
     const resetCode = state.challenges.filter((c) => c.kind === ChallengeKind.Reset);
     expect(signinCode).toHaveLength(1);
