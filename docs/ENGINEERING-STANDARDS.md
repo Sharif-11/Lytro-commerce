@@ -28,7 +28,7 @@ One deployable NestJS application (SCL-09), not a services-per-module split — 
 
 | Pattern | Where | Why here specifically |
 | --- | --- | --- |
-| **Adapter** | Couriers (CRR-01), payment gateways (WAL-19) | Third-party APIs vary; the app's core logic shouldn't know or care which one it's talking to. |
+| **Adapter** | Couriers (CRR-01), payment gateways (WAL-19), the job queue (SCL-08, D25: pg-boss behind this codebase's own queue interface) | Third-party APIs vary; the app's core logic shouldn't know or care which one it's talking to. For the queue specifically, SCL-08 requires this: no caller may read or write pg-boss's own tables directly, so a message broker can replace it later without touching callers. |
 | **Strategy** | Delivery-charge modes (ORD-06a), verification levels (manual/listener/gateway, 19.3) | Several interchangeable algorithms for the same job, chosen at runtime by data, not by branching logic scattered through the codebase. |
 | **Repository** | Every module's data-access layer | Isolates SQL/query-builder code from business logic; the thing that makes SOLID's dependency inversion actually testable. |
 | **Factory** | Resolving a courier/payment adapter instance by its `key` | The registration-by-key pattern already decided (CRR-01, WAL-19) *is* a factory; formalizing it as one keeps adapter instantiation in exactly one place. |

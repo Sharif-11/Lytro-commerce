@@ -1021,7 +1021,7 @@ Metrics, error tracking, log shipping and uptime checks (MON/OBS sections) are e
 
 - Cell-aware connection routing (SCL-07's column exists now; the routing logic that reads it is code).
 - Rate-limit enforcement and the catalogue micro-cache (RED/CCH) — in-process/Redis, not tables.
-- The job queue itself (SCL-08: one PostgreSQL-backed interface) — a small `control.jobs` table (id, type, payload, run_at, locked_by, locked_until, status) is implied but is an implementation detail of whichever job library is chosen; not spelled out here since it doesn't affect any other table's design.
+- The job queue itself (SCL-08: one PostgreSQL-backed interface), **decided 2026-10-07 (D25): pg-boss**, not a hand-rolled `control.jobs` table. pg-boss manages its own schema and tables; this codebase reaches it only through its own queue interface (per SCL-08), never pg-boss's API directly from a caller, so the library stays swappable. Not spelled out further here since it doesn't affect any other table's design. Replaces the hand-rolled `SmsOutbox` table and `SmsWorker` (`packages/db`/`apps/server`, messaging; not otherwise documented in this file); email's outbox is built on the same library from the start.
 
 ## 14. Open questions — resolved 2026-10-02
 
