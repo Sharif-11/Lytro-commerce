@@ -34,6 +34,7 @@ Dependency rules (enforced by lint where possible):
 - A branch that builds on another is named after the branch it builds on: `refactor/signup-phone` is the refactor of `feat/signup-phone`. Its name shows where it came from, so nobody has to read its history to understand it.
 - The prefix states the kind of change: `feat/`, `refactor/`, `docs/`, `test/`, `fix/` or `chore/`.
 - Merge the parent first. Then rebase the child on `main`, so its pull request contains only its own commits.
+- A branch for a reusable or infrastructure piece (a queue, a cache, a client library) ships that piece alone, proven by its own test, with no business feature wired to it yet. Wiring a consumer onto it is a separate branch, built after this one merges. Adopted 2026-10-07, from the job queue (`feat/job-queue`): the branch built the queue mechanism and stopped there; migrating SMS and building mail's outbox onto it are follow-up branches.
 
 ## 2b. Injection tokens
 
