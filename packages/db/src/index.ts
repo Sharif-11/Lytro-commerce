@@ -38,3 +38,8 @@ export {
   type ClaimedSmsMessage,
   type NewSmsMessage,
 } from './repositories/messaging/sms.repository';
+export {
+  MailRepository,
+  type ClaimedMailMessage,
+  type NewMailMessage,
+} from './repositories/messaging/mail.repository';

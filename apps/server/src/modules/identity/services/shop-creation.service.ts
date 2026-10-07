@@ -32,7 +32,7 @@ export class ShopCreationService {
     const address = await this.chooseAddress(shopName, input.address);
 
     try {
-      const { tenantId, messages, emailNotice } = await this.gateway.run(async (tx) => {
+      const { tenantId, messages, emailMessage } = await this.gateway.run(async (tx) => {
         const existing = await this.gateway.findOwnedTenant(tx, session.subscriberId);
         if (existing !== null) {
           throw new ApiError('conflict', 'This account already has a shop.', {});
@@ -54,29 +54,21 @@ export class ShopCreationService {
           liveUrl: this.settings.shopUrl(address),
         });
         await this.sessions.attachTenant(tx, session.id, created.tenantId);
-        // The shop-ready text goes to the phone; an owner with no phone is told by email (AUTH-27).
-        const emailNotice = phone === null && email !== null ? email.email : null;
-        return { tenantId: created.tenantId, messages: created.messages, emailNotice };
+        // The shop-ready text goes to the phone; an owner with no phone is told by email (AUTH-27). Queued in
+        // this same transaction, same as the text, so a flaky mail provider gets the same outbox retry (D28).
+        const emailMessage =
+          phone === null && email !== null
+            ? await this.mail.queueShopReady(tx, email.email, this.settings.shopUrl(address))
+            : null;
+        return { tenantId: created.tenantId, messages: created.messages, emailMessage };
       });
 
       await this.messaging.dispatch(messages);
-      if (emailNotice !== null)
-        await this.notifyByEmail(emailNotice, this.settings.shopUrl(address));
+      if (emailMessage !== null) await this.mail.dispatch([emailMessage]);
       return { tenantId, address, shopUrl: this.settings.shopUrl(address), next: 'set-password' };
     } catch (error) {
       if (error instanceof UniqueViolation) throw await this.conflictFor(error, shopName);
       throw error;
-    }
-  }
-
-  /** A failed email never fails the shop: it is logged, as a failed text is (SMS-18). */
-  private async notifyByEmail(to: string, liveUrl: string): Promise<void> {
-    try {
-      await this.mail.deliverShopReady(to, liveUrl);
-    } catch (error) {
-      console.error(
-        `[mail] shop-ready email not sent: ${error instanceof Error ? error.message : String(error)}`,
-      );
     }
   }
 

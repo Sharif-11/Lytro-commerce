@@ -162,6 +162,13 @@
       "when": 1791388132707,
       "tag": "0022_job_outbox_send_options",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1791390004117,
+      "tag": "0023_mail_outbox",
+      "breakpoints": true
     }
   ]
 }

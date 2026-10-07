@@ -7,6 +7,7 @@ import {
   OauthStateRepository,
   SignInFailureRepository,
   SmsRepository,
+  MailRepository,
   TenantRepository,
   TransactionRunner,
   ActivityLogRepository,
@@ -32,6 +33,7 @@ import { DatabaseService } from './database.service';
     { provide: OauthStateRepository, useFactory: () => new OauthStateRepository() },
     { provide: SlugRepository, useFactory: () => new SlugRepository() },
     { provide: SmsRepository, useFactory: () => new SmsRepository() },
+    { provide: MailRepository, useFactory: () => new MailRepository() },
     { provide: TenantRepository, useFactory: () => new TenantRepository() },
     {
       provide: JobOutboxRepository,
@@ -67,6 +69,7 @@ import { DatabaseService } from './database.service';
     OauthStateRepository,
     SlugRepository,
     SmsRepository,
+    MailRepository,
     TenantRepository,
     UserRepository,
   ],
