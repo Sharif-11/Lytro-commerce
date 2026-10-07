@@ -32,7 +32,7 @@ type CheckOutcome =
 
 type Delivery =
   | { channel: ChallengeChannel.Sms; message: Awaited<ReturnType<MessagingService['queueOtp']>> }
-  | { channel: ChallengeChannel.Email; to: string; code: string; purpose: ChallengeKind };
+  | { channel: ChallengeChannel.Email; message: Awaited<ReturnType<MailService['queueOtp']>> };
 
 /** Issues and checks one-time codes by SMS or email. The same limits apply to both channels. */
 @Injectable()
@@ -98,7 +98,7 @@ export class OneTimeCodeService {
       const delivery: Delivery =
         channel === ChallengeChannel.Sms
           ? { channel, message: await this.messaging.queueOtp(tx, destination, code, kind) }
-          : { channel, to: destination, code, purpose: kind };
+          : { channel, message: await this.mail.queueOtp(tx, destination, code, kind) };
       return {
         issued: {
           expiresInSeconds: CODE_TTL_MS / 1000,
@@ -113,7 +113,7 @@ export class OneTimeCodeService {
       if (delivery.channel === ChallengeChannel.Sms) {
         await this.messaging.deliverOtp(delivery.message);
       } else {
-        await this.mail.deliverCode(delivery.to, delivery.code, delivery.purpose);
+        await this.mail.deliverOtp(delivery.message);
       }
     } catch (error) {
       if (error instanceof SmsDeliveryError && delivery.channel === ChallengeChannel.Sms) {

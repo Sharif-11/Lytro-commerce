@@ -162,6 +162,13 @@ describeIfDatabase('an owner enrolled by email only (AUTH-10, AUTH-27)', () => {
 
     const notice = mail.sent.find((m) => m.to === email && m.subject === 'Your shop is ready');
     expect(notice?.body).toContain('http://email-only-shop.localhost');
+
+    // D28: the notice goes through mail's own outbox now, not a direct fire-and-forget send.
+    const row = await admin.query<{ status: string }>(
+      "SELECT status FROM control.mail_outbox WHERE to_email = $1 AND kind = 'shop_ready'",
+      [email],
+    );
+    expect(row.rows[0]).toMatchObject({ status: 'sent' });
   });
 });
 

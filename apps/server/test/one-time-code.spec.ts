@@ -19,6 +19,8 @@ import { OneTimeCodeHasher } from '../src/modules/identity/services/one-time-cod
 import { type MessageStore } from '../src/modules/shared/messaging/ports/message-store';
 import { type SmsProvider } from '../src/modules/shared/messaging/ports/sms-provider';
 import { MessagingService } from '../src/modules/shared/messaging/services/messaging.service';
+import { type MailStore } from '../src/modules/shared/mail/ports/mail-store';
+import { type MailProvider } from '../src/modules/shared/mail/ports/mail-provider';
 import { MailService } from '../src/modules/shared/mail/services/mail.service';
 import type { JobQueue } from '../src/modules/shared/queue/ports/job-queue';
 
@@ -32,6 +34,8 @@ interface World {
   challenges: ChallengeRecord[];
   outbox: { id: number; kind: string; body: string | null; status: string }[];
   sent: { toPhone: string; body: string }[];
+  mailOutbox: { id: number; kind: string; body: string | null; status: string }[];
+  mailSent: { to: string; subject: string; body: string }[];
   smsFails: boolean;
   mailFails: boolean;
   counter: number;
@@ -44,6 +48,8 @@ function world(): World {
     challenges: [],
     outbox: [],
     sent: [],
+    mailOutbox: [],
+    mailSent: [],
     smsFails: false,
     mailFails: false,
     counter: 0,
@@ -133,6 +139,34 @@ function build(state: World) {
   };
   const messaging = new MessagingService(messageStore, provider, () => state.now, jobQueue);
 
+  const mailStore: MailStore = {
+    insert: (_executor, message) => {
+      state.counter += 1;
+      state.mailOutbox.push({
+        id: state.counter,
+        kind: message.kind,
+        body: message.body,
+        status: 'pending',
+      });
+      return Promise.resolve(state.counter);
+    },
+    claimDue: () => Promise.resolve([]),
+    markSent: () => Promise.resolve(),
+    markFailed: (id, input) => {
+      const row = state.mailOutbox.find((m) => m.id === id);
+      if (row) row.status = input.nextAttemptAt ? 'pending' : 'failed';
+      return Promise.resolve();
+    },
+  };
+  const mailProvider: MailProvider = {
+    send: (message) => {
+      if (state.mailFails) return Promise.reject(new Error('provider down'));
+      state.mailSent.push(message);
+      return Promise.resolve();
+    },
+  };
+  const mail = new MailService(mailStore, mailProvider, () => state.now);
+
   const settings: SignupSettings = {
     now: () => state.now,
     shopUrl: (address) => `http://${address}.localhost:3000`,
@@ -145,12 +179,9 @@ function build(state: World) {
     settings,
     new OneTimeCodeHasher(SECRET),
     messaging,
-    new MailService({
-      send: () =>
-        state.mailFails ? Promise.reject(new Error('provider down')) : Promise.resolve(),
-    }),
+    mail,
   );
-  return { codes, messaging, challenges };
+  return { codes, messaging, mail, challenges };
 }
 
 /** The code most recently texted, read back from the provider log, since the outbox never stores a code. */
@@ -319,7 +350,7 @@ describe('SMS delivery failures (SMS-18)', () => {
     expect(state.queued[0]?.payload).toMatchObject({ toPhone: PHONE });
   });
 
-  it('never queues a retry for an email delivery failure', async () => {
+  it('never queues a retry for an email delivery failure, and never stores the code', async () => {
     const state = world();
     state.mailFails = true;
     const { codes } = build(state);
@@ -327,5 +358,8 @@ describe('SMS delivery failures (SMS-18)', () => {
       codes.issue('a@example.com', ChallengeChannel.Email, SIGNIN),
     ).rejects.toMatchObject({ code: 'service_unavailable' });
     expect(state.queued).toHaveLength(0);
+    const otp = state.mailOutbox.find((m) => m.kind === 'otp');
+    expect(otp?.body).toBeNull();
+    expect(otp?.status).toBe('failed');
   });
 });

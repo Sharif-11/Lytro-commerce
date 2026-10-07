@@ -67,6 +67,19 @@ export enum SmsStatus {
   Failed = 'failed',
 }
 
+// D28: mail's own outbox, mirroring SMS's (SMS-18, D6) exactly.
+export enum MailKind {
+  Otp = 'otp',
+  ShopReady = 'shop_ready',
+}
+
+export enum MailStatus {
+  Pending = 'pending',
+  Sending = 'sending',
+  Sent = 'sent',
+  Failed = 'failed',
+}
+
 // The permission names a role can hold. Dashboard users and API key scopes use the same names (TEN-5, API-06).
 // Add a name here before any route checks it; the docs list the areas each one guards.
 export enum Permission {
