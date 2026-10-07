@@ -1,17 +1,22 @@
 import {
   Body,
   Controller,
+  ForbiddenException,
   HttpCode,
   Inject,
   NotFoundException,
   Post,
   Req,
   Res,
+  UseGuards,
 } from '@nestjs/common';
+import { AllowPendingPassword } from '../../../common/decorators/allow-pending-password';
 import { ClientIp } from '../../../common/client-ip';
 import { headerValue, type HttpRequest, type HttpResponse } from '../../../common/http';
 import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
 import { PasswordSigninDto } from '../../identity/dto/auth.dto';
+import { SessionGuard, type SessionRequest } from '../../identity/guards/session.guard';
+import { ChangeStaffPasswordDto } from '../dto/staff.dto';
 import { TenantResolver } from '../../tenancy/services/tenant-resolver.service';
 import { TenantSummaries } from '../../tenancy/services/tenant-summaries.service';
 import { StaffSigninService } from '../services/staff-signin.service';
@@ -45,5 +50,22 @@ export class StaffAuthController {
     );
     response.setHeader('Set-Cookie', result.cookie);
     return { next: result.next, tenantId: result.tenantId, csrfToken: result.csrfToken };
+  }
+
+  // A staff member changes their own password. The route stays open while the owner's forced change is pending (STF-13).
+  @Post('password')
+  @HttpCode(200)
+  @AllowPendingPassword()
+  @UseGuards(SessionGuard)
+  async changePassword(
+    @Body(new ZodValidationPipe(ChangeStaffPasswordDto.schema)) body: ChangeStaffPasswordDto,
+    @Req() request: SessionRequest & HttpRequest,
+  ): Promise<{ ok: true }> {
+    const session = request.session;
+    if (!session || session.userId === null || session.tenantId === null) {
+      throw new ForbiddenException('Only a staff member changes a staff password here.');
+    }
+    await this.signin.changeOwnPassword(session, body);
+    return { ok: true };
   }
 }

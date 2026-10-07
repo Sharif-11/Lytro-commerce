@@ -96,6 +96,21 @@ export class UserRepository {
     return row;
   }
 
+  /** Sets a staff member's password hash, and whether they must choose a new one at the next sign-in (STF-13). */
+  async setPassword(
+    tx: Transaction,
+    tenantId: string,
+    userId: string,
+    passwordHash: string,
+    mustSetPassword: boolean,
+  ): Promise<void> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    await tx
+      .update(users)
+      .set({ passwordHash, mustSetPassword })
+      .where(and(eq(users.tenantId, tenantId), eq(users.id, userId)));
+  }
+
   async setActive(
     tx: Transaction,
     tenantId: string,

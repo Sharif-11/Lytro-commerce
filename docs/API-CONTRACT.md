@@ -62,6 +62,8 @@ Status: draft v1, for review before implementation. Companion to `DATABASE-SCHEM
 | PATCH | `/api/v1/roles/:id` | session, `staff:manage` | `{ name?, permissions? }` (STF-07). |
 | DELETE | `/api/v1/roles/:id` | session, `staff:manage` | 409 `conflict` with `holders` if a user still holds it (STF-09). |
 | POST | `/auth/staff/signin` | none, on the shop host | `{ phone, password }` with the staff password the owner set. Refused with 401 on the platform host or for another shop's phone; 403 `tenant_offline` when the shop is locked or suspended. |
+| POST | `/api/v1/staff/:id/password` | session, `staff:manage` | `{ newPassword }`: the owner sets a new password; the member's sessions end and they must choose their own at the next sign-in (STF-13). |
+| POST | `/auth/staff/password` | session of a staff member, open while a change is pending | `{ currentPassword?, newPassword }`; the current password is needed unless the owner asked for a change (AUTH-19, AUTH-20). |
 
 ---
 

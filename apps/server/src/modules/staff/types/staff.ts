@@ -20,6 +20,7 @@ export interface StaffCredentials {
   active: boolean;
   subscriberId: string | null;
   passwordHash: string | null;
+  mustSetPassword: boolean;
 }
 
 /** Seats in use (active users, the owner included) against the plan's seats (STF-02). */

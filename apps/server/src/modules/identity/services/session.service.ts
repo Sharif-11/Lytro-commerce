@@ -66,6 +66,11 @@ export class SessionService {
   }
 
   /** After a password is set: the session may use the dashboard, and every other session ends (AUTH-20). */
+  /** Clears the forced-change block on one session only. A staff member's other sessions are not touched. */
+  clearMustSetPassword(tx: Transaction, session: SessionRecord): Promise<void> {
+    return this.store.clearMustSetPassword(tx, session.id);
+  }
+
   async completePasswordChange(tx: Transaction, session: SessionRecord): Promise<void> {
     const now = this.clock.now();
     await this.store.clearMustSetPassword(tx, session.id);

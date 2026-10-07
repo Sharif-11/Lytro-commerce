@@ -28,6 +28,8 @@ export const users = tenant.table(
     // The platform account behind a staff member (AUTH-10 for staff). Null for the owner's row. One subscriber is staff in
     // at most one shop, so the unique constraint below spans the platform (STF-06).
     subscriberId: uuid('subscriber_id'),
+    // Set when the owner resets the password: the staff member must choose a new one at the next sign-in (STF-13, AUTH-19).
+    mustSetPassword: boolean('must_set_password').notNull().default(false),
     name: text('name'),
     isOwner: boolean('is_owner').notNull().default(false),
     active: boolean('active').notNull().default(true),

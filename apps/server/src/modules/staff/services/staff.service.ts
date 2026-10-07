@@ -142,6 +142,57 @@ export class StaffService {
     });
   }
 
+  /** The owner sets a new password for a staff member. They must choose their own at the next sign-in (STF-13). */
+  resetPassword(
+    tenant: StaffTenant,
+    userId: string,
+    newPassword: string,
+    now: Date,
+  ): Promise<void> {
+    return this.hasher.hash(newPassword).then((passwordHash) =>
+      this.store.run(tenant.id, async (tx) => {
+        const member = await this.store.findStaff(tx, tenant.id, userId);
+        if (!member) throw new ApiError('not_found', 'Staff member not found.', {});
+        if (member.isOwner) throw new ApiError('forbidden', 'The owner cannot be changed.', {});
+        await this.store.setPassword(tx, tenant.id, userId, passwordHash, true);
+        // The old sessions end, so the next sign-in is the one that sets the new password.
+        await this.store.revokeSessionsOf(tx, userId, now);
+      }),
+    );
+  }
+
+  /**
+   * A staff member changes their own password. A pending change (set by the owner) needs no current password; any
+   * other change needs the current one (AUTH-20).
+   */
+  async changePassword(
+    tenantId: string,
+    userId: string,
+    input: { currentPassword?: string; newPassword: string },
+    pending: boolean,
+  ): Promise<void> {
+    const passwordHash = await this.hasher.hash(input.newPassword);
+    return this.store.run(tenantId, async (tx) => {
+      const creds = await this.store.findCredentialsById(tx, tenantId, userId);
+      if (!creds || !creds.active || creds.isOwner) {
+        throw new ApiError('not_found', 'Staff member not found.', {});
+      }
+      if (!pending) {
+        const current = input.currentPassword;
+        const matches =
+          current !== undefined && creds.passwordHash !== null
+            ? await this.hasher.verify(current, creds.passwordHash)
+            : false;
+        if (!matches) {
+          throw new ApiError('validation_error', 'Your current password is not right.', {
+            field: 'currentPassword',
+          });
+        }
+      }
+      await this.store.setPassword(tx, tenantId, userId, passwordHash, false);
+    });
+  }
+
   /** Every role id must be a role of this shop. */
   private async requireRoles(tx: Transaction, tenantId: string, roleIds: string[]): Promise<void> {
     if (roleIds.length === 0) return;

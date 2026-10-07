@@ -16,6 +16,17 @@ const PHONE_INDEX = 'users_tenant_phone_idx';
 // The unique link to a platform account: the phone is already staff in another shop (STF-06).
 const SUBSCRIBER_INDEX = 'users_subscriber_key';
 
+function toCredentials(row: SelectUser): StaffCredentials {
+  return {
+    userId: row.id,
+    isOwner: row.isOwner,
+    active: row.active,
+    subscriberId: row.subscriberId,
+    passwordHash: row.passwordHash,
+    mustSetPassword: row.mustSetPassword,
+  };
+}
+
 function toRecord(row: SelectUser): StaffRecord {
   return {
     id: row.id,
@@ -97,20 +108,32 @@ export class DrizzleStaffStore implements StaffStore {
     return row ? toRecord(row) : null;
   }
 
+  async findCredentialsById(
+    tx: Transaction,
+    tenantId: string,
+    userId: string,
+  ): Promise<StaffCredentials | null> {
+    const row = await this.users.findUser(tx, tenantId, userId);
+    return row ? toCredentials(row) : null;
+  }
+
+  setPassword(
+    tx: Transaction,
+    tenantId: string,
+    userId: string,
+    passwordHash: string,
+    mustSetPassword: boolean,
+  ): Promise<void> {
+    return this.users.setPassword(tx, tenantId, userId, passwordHash, mustSetPassword);
+  }
+
   async findCredentialsByPhone(
     tx: Transaction,
     tenantId: string,
     phone: string,
   ): Promise<StaffCredentials | null> {
     const row = await this.users.findUserByPhone(tx, tenantId, phone);
-    if (!row) return null;
-    return {
-      userId: row.id,
-      isOwner: row.isOwner,
-      active: row.active,
-      subscriberId: row.subscriberId,
-      passwordHash: row.passwordHash,
-    };
+    return row ? toCredentials(row) : null;
   }
 
   revokeSessionsOf(tx: Transaction, userId: string, at: Date): Promise<void> {

@@ -4,6 +4,7 @@ import { ApiError } from '../../../common/api-error';
 import { LAPSED } from '../../identity/guards/dashboard.guard';
 import type { SessionContext } from '../../identity/types/session';
 import type { SignedIn } from '../../identity/types/signed-in';
+import type { SessionRecord } from '../../identity/ports/session-store';
 import { PasswordHasher } from '../../identity/services/password-hasher';
 import { PhoneNumberFormat } from '../../identity/services/phone-number-format';
 import { SessionService } from '../../identity/services/session.service';
@@ -54,16 +55,29 @@ export class StaffSigninService {
         subscriberId,
         tenantId: shop.id,
         userId: member.userId,
-        mustSetPassword: false,
+        mustSetPassword: member.mustSetPassword,
         signInMethod: SignInMethod.Password,
         context,
       }),
     );
     return {
-      next: 'dashboard',
+      next: member.mustSetPassword ? 'set-password' : 'dashboard',
       tenantId: shop.id,
       cookie: opened.cookie,
       csrfToken: opened.csrfToken,
     };
+  }
+
+  /** A staff member changes their own password, then their current session stops being forced to change it. */
+  async changeOwnPassword(
+    session: SessionRecord,
+    input: { currentPassword?: string; newPassword: string },
+  ): Promise<void> {
+    if (session.userId === null || session.tenantId === null) {
+      throw new ApiError('forbidden', 'Request not accepted.', {});
+    }
+    const shop = { id: session.tenantId, planLimits: null };
+    await this.staff.changePassword(shop.id, session.userId, input, session.mustSetPassword);
+    await this.staff.inShop(shop, (tx) => this.sessions.clearMustSetPassword(tx, session));
   }
 }

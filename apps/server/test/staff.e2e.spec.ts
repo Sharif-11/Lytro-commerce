@@ -600,3 +600,126 @@ describeIfDatabase('permissions checked on each request (STF-10, STF-11)', () =>
     expect(response.status).toBe(401);
   });
 });
+
+describeIfDatabase('staff passwords (STF-13, AUTH-19, AUTH-20)', () => {
+  it('ends the old sessions on reset, and holds the staff member to a new password before the dashboard', async () => {
+    const who = await owner();
+    await moveToPlan(who.slug, 'Starter');
+    const phone = texts.freshPhone();
+    const hired = await addStaffWithPassword(who, phone, STAFF_PASSWORD);
+    const staffId = (hired.body as StaffBody).id;
+    const before = await staffSignIn(who.slug, phone, STAFF_PASSWORD);
+    const oldCall = {
+      cookie: cookieFrom(before),
+      'x-csrf-token': (before.body as { csrfToken: string }).csrfToken,
+      host: `${who.slug}.localhost`,
+    };
+
+    const reset = await post(
+      `/staff/${staffId}/password`,
+      { newPassword: 'reset-pass-1357' },
+      shopCall(who),
+    );
+    expect(reset.status).toBe(200);
+    expect((await get('/staff', oldCall)).status).toBe(401);
+    expect((await staffSignIn(who.slug, phone, STAFF_PASSWORD)).status).toBe(401);
+
+    const again = await staffSignIn(who.slug, phone, 'reset-pass-1357');
+    expect(again.status).toBe(200);
+    expect(again.body).toMatchObject({ next: 'set-password' });
+    const pending = {
+      cookie: cookieFrom(again),
+      'x-csrf-token': (again.body as { csrfToken: string }).csrfToken,
+      host: `${who.slug}.localhost`,
+    };
+    const blocked = await get('/staff', pending);
+    expect(blocked.status).toBe(403);
+    expect(errorOf(blocked)).toMatchObject({ details: { next: 'set-password' } });
+
+    const chosen = await post('/auth/staff/password', { newPassword: 'chosen-pass-2468' }, pending);
+    expect(chosen.status).toBe(200);
+    // The block is gone: the next answer is the permission check, since this member holds no role yet.
+    const after = await get('/staff', pending);
+    expect(after.status).toBe(403);
+    expect(errorOf(after)).toMatchObject({ details: { permission: 'staff:read' } });
+  });
+
+  it('needs the current password for a normal change, and refuses a wrong one', async () => {
+    const who = await owner();
+    await moveToPlan(who.slug, 'Starter');
+    const phone = texts.freshPhone();
+    expect((await addStaffWithPassword(who, phone, STAFF_PASSWORD)).status).toBe(201);
+    const signed = await staffSignIn(who.slug, phone, STAFF_PASSWORD);
+    const call = {
+      cookie: cookieFrom(signed),
+      'x-csrf-token': (signed.body as { csrfToken: string }).csrfToken,
+      host: `${who.slug}.localhost`,
+    };
+
+    const missing = await post('/auth/staff/password', { newPassword: 'another-pass-1' }, call);
+    expect(missing.status).toBe(400);
+    expect(errorOf(missing)).toMatchObject({ details: { field: 'currentPassword' } });
+
+    const wrong = await post(
+      '/auth/staff/password',
+      { currentPassword: 'not-it-12345', newPassword: 'another-pass-1' },
+      call,
+    );
+    expect(wrong.status).toBe(400);
+
+    const right = await post(
+      '/auth/staff/password',
+      { currentPassword: STAFF_PASSWORD, newPassword: 'another-pass-1' },
+      call,
+    );
+    expect(right.status).toBe(200);
+    expect((await staffSignIn(who.slug, phone, 'another-pass-1')).status).toBe(200);
+  });
+
+  it('lets only a holder of staff:manage reset a password', async () => {
+    const who = await owner();
+    await moveToPlan(who.slug, 'Starter');
+    const role = (await createRole(who, `Reader ${randomUUID().slice(0, 6)}`, ['staff:read']))
+      .body as { id: string };
+    const readerPhone = texts.freshPhone();
+    expect(
+      (
+        await post(
+          '/staff',
+          { phone: readerPhone, password: STAFF_PASSWORD, roleIds: [role.id] },
+          shopCall(who),
+        )
+      ).status,
+    ).toBe(201);
+    const reader = await staffSignIn(who.slug, readerPhone, STAFF_PASSWORD);
+    const readerCall = {
+      cookie: cookieFrom(reader),
+      'x-csrf-token': (reader.body as { csrfToken: string }).csrfToken,
+      host: `${who.slug}.localhost`,
+    };
+    const target = (await addStaffWithPassword(who, texts.freshPhone(), STAFF_PASSWORD))
+      .body as StaffBody;
+    const denied = await post(
+      `/staff/${target.id}/password`,
+      { newPassword: 'nope-pass-1234' },
+      readerCall,
+    );
+    expect(denied.status).toBe(403);
+    expect(errorOf(denied)).toMatchObject({ details: { permission: 'staff:manage' } });
+  });
+});
+
+describeIfDatabase('staff passwords of another shop (TEN-03)', () => {
+  it('answers not_found when another shop resets a staff password', async () => {
+    const ours = await owner();
+    const theirs = await owner();
+    await moveToPlan(ours.slug, 'Starter');
+    const created = await addStaffWithPassword(ours, texts.freshPhone(), STAFF_PASSWORD);
+    const response = await post(
+      `/staff/${(created.body as StaffBody).id}/password`,
+      { newPassword: 'taken-pass-1234' },
+      shopCall(theirs),
+    );
+    expect(response.status).toBe(404);
+  });
+});

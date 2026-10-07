@@ -13,6 +13,18 @@ export interface StaffStore {
   listStaff(tx: Transaction, tenantId: string): Promise<StaffRecord[]>;
   countActive(tx: Transaction, tenantId: string): Promise<number>;
   findStaff(tx: Transaction, tenantId: string, userId: string): Promise<StaffRecord | null>;
+  findCredentialsById(
+    tx: Transaction,
+    tenantId: string,
+    userId: string,
+  ): Promise<StaffCredentials | null>;
+  setPassword(
+    tx: Transaction,
+    tenantId: string,
+    userId: string,
+    passwordHash: string,
+    mustSetPassword: boolean,
+  ): Promise<void>;
   /** The sign-in details of the shop's staff member with this phone, or null. */
   findCredentialsByPhone(
     tx: Transaction,
