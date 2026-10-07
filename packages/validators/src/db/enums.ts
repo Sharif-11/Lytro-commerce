@@ -121,6 +121,12 @@ export enum AuditAction {
   RoleDeleted = 'role_deleted',
 }
 
+// The pg-boss queues this codebase uses (SCL-08, D25). Add a name here before any code enqueues to it.
+export enum QueueName {
+  Sms = 'sms',
+  Mail = 'mail',
+}
+
 // Who performed the action (AUD-02). `system` is the platform itself (a scheduled job); `platform_support` is an
 // operator acting on a tenant, shown to the tenant as "Platform support" (AUD-08).
 export enum ActorType {
