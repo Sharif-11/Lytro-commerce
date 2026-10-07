@@ -99,6 +99,13 @@
       "when": 1791300766721,
       "tag": "0013_oauth_state_attach",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1791344809977,
+      "tag": "0014_starter_staff_seats",
+      "breakpoints": true
     }
   ]
 }
