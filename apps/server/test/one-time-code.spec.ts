@@ -165,7 +165,7 @@ function build(state: World) {
       return Promise.resolve();
     },
   };
-  const mail = new MailService(mailStore, mailProvider, () => state.now);
+  const mail = new MailService(mailStore, mailProvider, () => state.now, jobQueue);
 
   const settings: SignupSettings = {
     now: () => state.now,
@@ -349,17 +349,45 @@ describe('SMS delivery failures (SMS-18)', () => {
     expect(state.queued[0]?.queueName).toBe('otp_retry');
     expect(state.queued[0]?.payload).toMatchObject({ toPhone: PHONE });
   });
+});
 
-  it('never queues a retry for an email delivery failure, and never stores the code', async () => {
+describe('mail delivery failures (SMS-18, D28)', () => {
+  const EMAIL = 'a@example.com';
+
+  it('reports a failed one-time code send, and never stores the code', async () => {
     const state = world();
     state.mailFails = true;
     const { codes } = build(state);
-    await expect(
-      codes.issue('a@example.com', ChallengeChannel.Email, SIGNIN),
-    ).rejects.toMatchObject({ code: 'service_unavailable' });
-    expect(state.queued).toHaveLength(0);
+    await expect(codes.issue(EMAIL, ChallengeChannel.Email, SIGNIN)).rejects.toMatchObject({
+      code: 'service_unavailable',
+      retryAfterSeconds: 60,
+    });
     const otp = state.mailOutbox.find((m) => m.kind === 'otp');
     expect(otp?.body).toBeNull();
     expect(otp?.status).toBe('failed');
+  });
+
+  it('queues a bounded retry carrying the code, while it is still valid (D29)', async () => {
+    const state = world();
+    state.mailFails = true;
+    const { codes } = build(state);
+    await expect(codes.issue(EMAIL, ChallengeChannel.Email, SIGNIN)).rejects.toMatchObject({
+      code: 'service_unavailable',
+    });
+    expect(state.queued).toHaveLength(1);
+    expect(state.queued[0]?.queueName).toBe('mail_otp_retry');
+    expect(state.queued[0]?.payload).toMatchObject({ toEmail: EMAIL });
+  });
+
+  it('keeps the two channels on separate retry queues (D27, D29)', async () => {
+    const state = world();
+    state.smsFails = true;
+    state.mailFails = true;
+    const { codes } = build(state);
+    await expect(codes.issue(PHONE, ChallengeChannel.Sms, SIGNIN)).rejects.toBeInstanceOf(ApiError);
+    await expect(codes.issue(EMAIL, ChallengeChannel.Email, SIGNIN)).rejects.toBeInstanceOf(
+      ApiError,
+    );
+    expect(state.queued.map((q) => q.queueName).sort()).toEqual(['mail_otp_retry', 'otp_retry']);
   });
 });

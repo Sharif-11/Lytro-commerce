@@ -141,6 +141,9 @@ export enum QueueName {
   // D27: a bounded retry for an OTP's failed synchronous send, kept apart from `Sms` since its jobs carry a
   // plaintext code and expire with that code, unlike whatever `Sms` ends up carrying later.
   OtpRetry = 'otp_retry',
+  // D29: the same bounded retry, for mail's OTP instead of SMS's — a separate queue so the two channels' jobs,
+  // retry policies and dead letters are never mixed together.
+  MailOtpRetry = 'mail_otp_retry',
 }
 
 // Who performed the action (AUD-02). `system` is the platform itself (a scheduled job); `platform_support` is an

@@ -1,12 +1,14 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Transaction } from '@lytronix/db';
-import { ChallengeKind, MailKind } from '@lytronix/validators';
+import { ChallengeKind, MailKind, QueueName } from '@lytronix/validators';
 import { MINUTE_MS } from '../../../../common/time';
 import { MailDeliveryError } from '../../../../common/errors/mail-delivery';
+import type { JobQueue } from '../../queue/ports/job-queue';
+import { JOB_QUEUE } from '../../queue/tokens';
 import { MAIL_CLOCK, MAIL_PROVIDER, MAIL_STORE } from '../tokens';
 import type { MailStore } from '../ports/mail-store';
 import type { MailProvider } from '../ports/mail-provider';
-import type { ClaimedMailMessage, QueuedMailMessage } from '../types/messages';
+import type { ClaimedMailMessage, MailRetryPayload, QueuedMailMessage } from '../types/messages';
 
 // SMS-18, D6, D28: mail's own outbox, mirroring MessagingService exactly.
 
@@ -15,12 +17,17 @@ export const RETRY_WAIT_MINUTES = [1, 5, 15, 60];
 export const MAX_MAIL_ATTEMPTS = 5;
 const LEASE_MS = 2 * MINUTE_MS;
 
+// D29: a bounded pg-boss retry for an OTP email's failed synchronous send, mirroring D27's SMS retry exactly.
+export const OTP_RETRY_LIMIT = 2;
+export const OTP_RETRY_DELAY_SECONDS = 20;
+
 @Injectable()
 export class MailService {
   constructor(
     @Inject(MAIL_STORE) private readonly store: MailStore,
     @Inject(MAIL_PROVIDER) private readonly provider: MailProvider,
     @Inject(MAIL_CLOCK) private readonly clock: () => Date,
+    @Inject(JOB_QUEUE) private readonly jobQueue: JobQueue,
   ) {}
 
   async queueOtp(
@@ -70,6 +77,35 @@ export class MailService {
       });
       throw new MailDeliveryError();
     }
+  }
+
+  /**
+   * Queues a bounded retry for an OTP email's failed synchronous send, while the code can still be used (D29).
+   * `expiresAt` is the code's own expiry; the job is bounded to whatever is left of it, so pg-boss drops it
+   * once that window passes rather than resending a code that no longer works.
+   */
+  async queueOtpRetry(tx: Transaction, message: QueuedMailMessage, expiresAt: Date): Promise<void> {
+    const expireInSeconds = Math.max(
+      1,
+      Math.floor((expiresAt.getTime() - this.clock().getTime()) / 1000),
+    );
+    const payload: MailRetryPayload = {
+      messageId: message.id,
+      toEmail: message.toEmail,
+      subject: message.subject,
+      body: message.body,
+    };
+    await this.jobQueue.enqueue(tx, QueueName.MailOtpRetry, payload, {
+      expireInSeconds,
+      retryLimit: OTP_RETRY_LIMIT,
+      retryDelay: OTP_RETRY_DELAY_SECONDS,
+    });
+  }
+
+  /** Resends a message the queue worker is retrying, and records success. A thrown error lets pg-boss retry it. */
+  async retrySend(payload: MailRetryPayload): Promise<void> {
+    await this.provider.send({ to: payload.toEmail, subject: payload.subject, body: payload.body });
+    await this.store.markSent(payload.messageId, this.clock());
   }
 
   /** Tries to send messages whose transaction has committed. */
