@@ -13,6 +13,8 @@ export const planLimitsSchema = z.object({
   bandwidth_gb: z.number().int().nonnegative().optional(),
   essential_sms_total: z.number().int().nonnegative().optional(),
   essential_sms_monthly: z.number().int().nonnegative().optional(),
+  // How many days an activity log entry is kept before the retention job purges it (AUD-06).
+  activity_retention_days: z.number().int().positive().optional(),
 });
 
 export type PlanLimits = z.infer<typeof planLimitsSchema>;
