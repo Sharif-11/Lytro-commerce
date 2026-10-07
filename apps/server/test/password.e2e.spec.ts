@@ -18,6 +18,8 @@ const ADMIN_URL = process.env['DATABASE_TEST_ADMIN_URL'];
 const DB_NAME = 'lytronix_password_test';
 const describeIfDatabase = ADMIN_URL ? describe : describe.skip;
 
+// Each sign-in runs bcrypt at the production cost, so a lockout test makes slow requests under parallel load.
+const LOCKOUT_TIMEOUT_MS = 30_000;
 const PASSWORD = 'correct-horse-9';
 const NEW_PASSWORD = 'new-passphrase-7';
 
@@ -150,42 +152,54 @@ describeIfDatabase('signing in with a password (AUTH-12, AUTH-13)', () => {
     expect(wrong.body).toMatchObject({ error: { code: 'unauthenticated' } });
   });
 
-  it('locks sign-in after five failures, and refuses the correct password during the lock (AUTH-14)', async () => {
-    const phone = await ownerWithPassword();
-    for (let i = 0; i < 5; i += 1) {
-      expect((await signInWith(phone, 'wrong-guess-1')).status).toBe(401);
-    }
-    const sixth = await signInWith(phone, PASSWORD);
-    expect(sixth.status).toBe(429);
-    expect(sixth.headers['retry-after']).toBeDefined();
-  });
+  it(
+    'locks sign-in after five failures, and refuses the correct password during the lock (AUTH-14)',
+    async () => {
+      const phone = await ownerWithPassword();
+      for (let i = 0; i < 5; i += 1) {
+        expect((await signInWith(phone, 'wrong-guess-1')).status).toBe(401);
+      }
+      const sixth = await signInWith(phone, PASSWORD);
+      expect(sixth.status).toBe(429);
+      expect(sixth.headers['retry-after']).toBeDefined();
+    },
+    LOCKOUT_TIMEOUT_MS,
+  );
 
-  it('lets failures age out after fifteen minutes (AUTH-14)', async () => {
-    const phone = await ownerWithPassword();
-    for (let i = 0; i < 5; i += 1) {
-      await signInWith(phone, 'wrong-guess-1');
-    }
-    expect((await signInWith(phone, PASSWORD)).status).toBe(429);
+  it(
+    'lets failures age out after fifteen minutes (AUTH-14)',
+    async () => {
+      const phone = await ownerWithPassword();
+      for (let i = 0; i < 5; i += 1) {
+        await signInWith(phone, 'wrong-guess-1');
+      }
+      expect((await signInWith(phone, PASSWORD)).status).toBe(429);
 
-    await admin.query(
-      "UPDATE control.sign_in_failures SET created_at = now() - interval '16 minutes'",
-    );
-    expect((await signInWith(phone, PASSWORD)).status).toBe(200);
-  });
+      await admin.query(
+        "UPDATE control.sign_in_failures SET created_at = now() - interval '16 minutes'",
+      );
+      expect((await signInWith(phone, PASSWORD)).status).toBe(200);
+    },
+    LOCKOUT_TIMEOUT_MS,
+  );
 
-  it('counts wrong codes toward the same lock as wrong passwords (AUTH-14)', async () => {
-    const phone = await ownerWithPassword();
-    for (let i = 0; i < 3; i += 1) {
-      await signInWith(phone, 'wrong-guess-1');
-    }
-    await passCooldown(phone);
-    await post('/auth/phone/code', { phone });
-    const code = texts.codeFor(phone);
-    const wrongCode = code === '000000' ? '111111' : '000000';
-    await post('/auth/phone/verify', { phone, code: wrongCode });
-    await post('/auth/phone/verify', { phone, code: wrongCode });
-    expect((await signInWith(phone, PASSWORD)).status).toBe(429);
-  });
+  it(
+    'counts wrong codes toward the same lock as wrong passwords (AUTH-14)',
+    async () => {
+      const phone = await ownerWithPassword();
+      for (let i = 0; i < 3; i += 1) {
+        await signInWith(phone, 'wrong-guess-1');
+      }
+      await passCooldown(phone);
+      await post('/auth/phone/code', { phone });
+      const code = texts.codeFor(phone);
+      const wrongCode = code === '000000' ? '111111' : '000000';
+      await post('/auth/phone/verify', { phone, code: wrongCode });
+      await post('/auth/phone/verify', { phone, code: wrongCode });
+      expect((await signInWith(phone, PASSWORD)).status).toBe(429);
+    },
+    LOCKOUT_TIMEOUT_MS,
+  );
 });
 
 describeIfDatabase('resetting a forgotten password (AUTH-17, AUTH-18, AUTH-19)', () => {

@@ -13,6 +13,8 @@ export interface NewSession {
   csrfHash: string;
   subscriberId: string;
   tenantId: string | null;
+  // The staff user of a shop session; null for the owner.
+  userId: string | null;
   mustSetPassword: boolean;
   signInMethod: SignInMethod;
   expiresAt: Date;
@@ -60,6 +62,14 @@ export class SessionRepository {
       .update(sessions)
       .set({ revokedAt: at })
       .where(and(eq(sessions.id, sessionId), isNull(sessions.revokedAt)));
+  }
+
+  /** Ends every live session of a staff user at once (STF-05). */
+  async revokeAllForUser(db: Executor, userId: string, at: Date): Promise<void> {
+    await db
+      .update(sessions)
+      .set({ revokedAt: at })
+      .where(and(eq(sessions.userId, userId), isNull(sessions.revokedAt)));
   }
 
   /** Ends every other live session of a subscriber (password change, forgot-password). */

@@ -99,6 +99,34 @@
       "when": 1791300766721,
       "tag": "0013_oauth_state_attach",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1791344809977,
+      "tag": "0014_starter_staff_seats",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1791346373314,
+      "tag": "0015_staff_subscriber_link",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1791346483405,
+      "tag": "0016_identity_pending_verification",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1791347931731,
+      "tag": "0017_staff_must_set_password",
+      "breakpoints": true
     }
   ]
 }

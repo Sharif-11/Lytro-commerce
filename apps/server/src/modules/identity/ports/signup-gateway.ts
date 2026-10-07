@@ -28,6 +28,11 @@ export interface SignupGateway {
     tx: Transaction,
     values: { subscriberId: string; phone: string; verifiedAt: Date },
   ): Promise<string>;
+  /** A code sign-in proves a pending phone identity (staff onboarding); a verified one is left alone. */
+  markPhoneVerified(
+    tx: Transaction,
+    values: { subscriberId: string; phone: string; at: Date },
+  ): Promise<void>;
   findOwnedTenant(tx: Transaction, subscriberId: string): Promise<OwnedTenant | null>;
   findEmailIdentityOf(
     tx: Transaction,

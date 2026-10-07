@@ -1,23 +1,237 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Transaction } from '@lytronix/db';
-import { STAFF_STORE } from '../tokens';
+import type { PlanLimits } from '@lytronix/validators';
+import { ApiError } from '../../../common/api-error';
+import { UniqueViolation } from '../../../common/errors/unique-violation';
+import type { RoleStore } from '../ports/role-store';
+import type { StaffPasswordHasher } from '../ports/staff-password-hasher';
+import type { StaffStore } from '../ports/staff-store';
+import type { StaffAccounts } from '../ports/staff-accounts';
+import { ROLE_STORE, STAFF_ACCOUNTS, STAFF_PASSWORD_HASHER, STAFF_STORE } from '../tokens';
+import type { StaffCredentials, StaffList, StaffMember, StaffRecord } from '../types/staff';
 
-export interface StaffStore {
-  insertOwner(
-    tx: Transaction,
-    values: { tenantId: string; phone: string | null; email: string | null; name: string },
-  ): Promise<void>;
+// STF-02: a plan without a staff limit has one seat, the owner's own.
+export const DEFAULT_SEATS = 1;
+
+/** The shop a staff action applies to: its id and the plan's limits. */
+export interface StaffTenant {
+  id: string;
+  planLimits: PlanLimits | null;
 }
 
-/** Staff accounts. The owner is the first user of a shop; more staff come with the staff slice. */
+/** Staff accounts: the owner's row, seats, creating, listing and deactivating staff (STF-01 to STF-05). */
 @Injectable()
 export class StaffService {
-  constructor(@Inject(STAFF_STORE) private readonly store: StaffStore) {}
+  constructor(
+    @Inject(STAFF_STORE) private readonly store: StaffStore,
+    @Inject(STAFF_PASSWORD_HASHER) private readonly hasher: StaffPasswordHasher,
+    @Inject(ROLE_STORE) private readonly roles: RoleStore,
+    @Inject(STAFF_ACCOUNTS) private readonly accounts: StaffAccounts,
+  ) {}
+
+  /** Runs work in a transaction with the shop's tenant context set. */
+  inShop<T>(tenant: StaffTenant, work: (tx: Transaction) => Promise<T>): Promise<T> {
+    return this.store.run(tenant.id, work);
+  }
+
+  /** The permissions a staff member holds right now, or null when the member is missing or inactive (STF-05, STF-10). */
+  permissionsOf(tenant: StaffTenant, userId: string): Promise<string[] | null> {
+    return this.store.run(tenant.id, async (tx) => {
+      const member = await this.store.findStaff(tx, tenant.id, userId);
+      if (!member || !member.active) return null;
+      return this.roles.permissionsOf(tx, tenant.id, userId);
+    });
+  }
+
+  /** The sign-in details of the shop's staff member with this phone, or null. */
+  credentialsByPhone(tenant: StaffTenant, phone: string): Promise<StaffCredentials | null> {
+    return this.store.run(tenant.id, (tx) =>
+      this.store.findCredentialsByPhone(tx, tenant.id, phone),
+    );
+  }
 
   createOwner(
     tx: Transaction,
     values: { tenantId: string; phone: string | null; email: string | null; name: string },
   ): Promise<void> {
     return this.store.insertOwner(tx, values);
+  }
+
+  list(tenant: StaffTenant): Promise<StaffList> {
+    return this.store.run(tenant.id, async (tx) => ({
+      seats: {
+        used: await this.store.countActive(tx, tenant.id),
+        total: this.seatsOf(tenant),
+      },
+      staff: await this.withRoles(tx, tenant.id, await this.store.listStaff(tx, tenant.id)),
+    }));
+  }
+
+  async create(
+    tenant: StaffTenant,
+    input: { phone: string; password: string; name?: string; roleIds: string[] },
+  ): Promise<StaffMember> {
+    // Hashing is slow, so it runs before the seat lock is taken.
+    const passwordHash = await this.hasher.hash(input.password);
+    const roleIds = [...new Set(input.roleIds)];
+    return this.store.run(tenant.id, async (tx) => {
+      await this.requireRoles(tx, tenant.id, roleIds);
+      await this.requireSeat(tx, tenant);
+      const subscriberId = await this.accounts.reservePhone(tx, input.phone);
+      if (subscriberId === null) {
+        throw new ApiError('conflict', 'That phone number belongs to a shop owner.', {
+          field: 'phone',
+        });
+      }
+      let created: StaffRecord;
+      try {
+        created = await this.store.insertStaff(tx, {
+          tenantId: tenant.id,
+          subscriberId,
+          phone: input.phone,
+          name: input.name ?? null,
+          passwordHash,
+        });
+      } catch (error) {
+        if (error instanceof UniqueViolation) {
+          throw new ApiError('conflict', 'That phone number is already in use.', {
+            field: 'phone',
+          });
+        }
+        throw error;
+      }
+      for (const roleId of roleIds) {
+        await this.roles.assign(tx, tenant.id, created.id, roleId);
+      }
+      return { ...created, roleIds };
+    });
+  }
+
+  /** Changes a staff member's status and/or roles. The owner row cannot change (STF-12). */
+  update(
+    tenant: StaffTenant,
+    userId: string,
+    input: { active?: boolean; roleIds?: string[] },
+    now: Date,
+  ): Promise<StaffMember> {
+    return this.store.run(tenant.id, async (tx) => {
+      const member = await this.store.findStaff(tx, tenant.id, userId);
+      if (!member) throw new ApiError('not_found', 'Staff member not found.', {});
+      if (member.isOwner) throw new ApiError('forbidden', 'The owner cannot be changed.', {});
+
+      const roleIds = input.roleIds === undefined ? undefined : [...new Set(input.roleIds)];
+      if (roleIds !== undefined) {
+        await this.requireRoles(tx, tenant.id, roleIds);
+        await this.roles.replaceFor(tx, tenant.id, userId, roleIds);
+      }
+
+      const active = input.active;
+      if (active !== undefined && member.active !== active) {
+        if (active) await this.requireSeat(tx, tenant);
+        const updated = await this.store.setActive(tx, tenant.id, userId, active);
+        if (!updated) throw new ApiError('not_found', 'Staff member not found.', {});
+        // STF-05: deactivation ends the member's sessions at once, not at the next sign-in.
+        if (!active) await this.store.revokeSessionsOf(tx, userId, now);
+      }
+
+      const current = await this.store.findStaff(tx, tenant.id, userId);
+      if (!current) throw new ApiError('not_found', 'Staff member not found.', {});
+      const [changed] = await this.withRoles(tx, tenant.id, [current]);
+      if (!changed) throw new Error('withRoles returned no member');
+      return changed;
+    });
+  }
+
+  /** The owner sets a new password for a staff member. They must choose their own at the next sign-in (STF-13). */
+  resetPassword(
+    tenant: StaffTenant,
+    userId: string,
+    newPassword: string,
+    now: Date,
+  ): Promise<void> {
+    return this.hasher.hash(newPassword).then((passwordHash) =>
+      this.store.run(tenant.id, async (tx) => {
+        const member = await this.store.findStaff(tx, tenant.id, userId);
+        if (!member) throw new ApiError('not_found', 'Staff member not found.', {});
+        if (member.isOwner) throw new ApiError('forbidden', 'The owner cannot be changed.', {});
+        await this.store.setPassword(tx, tenant.id, userId, passwordHash, true);
+        // The old sessions end, so the next sign-in is the one that sets the new password.
+        await this.store.revokeSessionsOf(tx, userId, now);
+      }),
+    );
+  }
+
+  /**
+   * A staff member changes their own password. A pending change (set by the owner) needs no current password; any
+   * other change needs the current one (AUTH-20).
+   */
+  async changePassword(
+    tenantId: string,
+    userId: string,
+    input: { currentPassword?: string; newPassword: string },
+    pending: boolean,
+  ): Promise<void> {
+    const passwordHash = await this.hasher.hash(input.newPassword);
+    return this.store.run(tenantId, async (tx) => {
+      const creds = await this.store.findCredentialsById(tx, tenantId, userId);
+      if (!creds || !creds.active || creds.isOwner) {
+        throw new ApiError('not_found', 'Staff member not found.', {});
+      }
+      if (!pending) {
+        const current = input.currentPassword;
+        const matches =
+          current !== undefined && creds.passwordHash !== null
+            ? await this.hasher.verify(current, creds.passwordHash)
+            : false;
+        if (!matches) {
+          throw new ApiError('validation_error', 'Your current password is not right.', {
+            field: 'currentPassword',
+          });
+        }
+      }
+      await this.store.setPassword(tx, tenantId, userId, passwordHash, false);
+    });
+  }
+
+  /** Every role id must be a role of this shop. */
+  private async requireRoles(tx: Transaction, tenantId: string, roleIds: string[]): Promise<void> {
+    if (roleIds.length === 0) return;
+    const found = await this.roles.findByIds(tx, tenantId, roleIds);
+    if (found.length !== roleIds.length) {
+      throw new ApiError('validation_error', 'One of the roles does not exist in this shop.', {
+        field: 'roleIds',
+      });
+    }
+  }
+
+  /** Adds each member's role ids, read in one query for the whole list. */
+  private async withRoles(
+    tx: Transaction,
+    tenantId: string,
+    members: StaffRecord[],
+  ): Promise<StaffMember[]> {
+    const assignments = await this.roles.assignments(tx, tenantId);
+    return members.map((member) => ({
+      ...member,
+      roleIds: assignments.filter((a) => a.userId === member.id).map((a) => a.roleId),
+    }));
+  }
+
+  /** Refuses when the shop has no free seat. Takes the seat lock first, so the count is not raced. */
+  private async requireSeat(tx: Transaction, tenant: StaffTenant): Promise<void> {
+    await this.store.lockSeats(tx, tenant.id);
+    const used = await this.store.countActive(tx, tenant.id);
+    const total = this.seatsOf(tenant);
+    if (used >= total) {
+      throw new ApiError(
+        'plan_limit_reached',
+        `Your plan includes ${String(total)} seat${total === 1 ? '' : 's'}. Upgrade to add more staff.`,
+        { seats: total },
+      );
+    }
+  }
+
+  private seatsOf(tenant: StaffTenant): number {
+    return tenant.planLimits?.staff ?? DEFAULT_SEATS;
   }
 }

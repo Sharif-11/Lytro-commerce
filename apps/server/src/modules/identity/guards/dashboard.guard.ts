@@ -17,7 +17,7 @@ import { TenantSummaries } from '../../tenancy/services/tenant-summaries.service
 import type { SessionRecord } from '../ports/session-store';
 
 // LIF-06, LIF-11, AUTH-22: after the paid period the owner may reach lapsed routes only; staff reach nothing once locked.
-const LAPSED: ReadonlySet<TenantState> = new Set([
+export const LAPSED: ReadonlySet<TenantState> = new Set([
   TenantState.Locked,
   TenantState.Archived,
   TenantState.Deleted,
@@ -52,6 +52,11 @@ export class DashboardGuard implements CanActivate {
     const rawHost = headerValue(request.headers.host);
     const target = this.hosts.classify(rawHost);
     if (target.kind === 'invalid') throw new NotFoundException('Page not found.');
+
+    // Staff work on their own shop's host only. The platform host is for the account owner.
+    if (target.kind === 'platform' && session.userId !== null) {
+      throw new ApiError('forbidden', 'Request not accepted.', {});
+    }
 
     if (target.kind !== 'platform') {
       const resolved = await this.resolver.resolve(rawHost);

@@ -26,6 +26,8 @@ export class SessionService {
     values: {
       subscriberId: string;
       tenantId: string | null;
+      // The staff user this session belongs to, for a session opened on a shop host by staff (null for the owner).
+      userId?: string | null;
       mustSetPassword: boolean;
       signInMethod: SignInMethod;
       context: SessionContext;
@@ -38,6 +40,7 @@ export class SessionService {
       csrfHash: this.digest(csrfToken),
       subscriberId: values.subscriberId,
       tenantId: values.tenantId,
+      userId: values.userId ?? null,
       mustSetPassword: values.mustSetPassword,
       signInMethod: values.signInMethod,
       expiresAt: new Date(this.clock.now().getTime() + SESSION_TTL_MS),
@@ -63,6 +66,11 @@ export class SessionService {
   }
 
   /** After a password is set: the session may use the dashboard, and every other session ends (AUTH-20). */
+  /** Clears the forced-change block on one session only. A staff member's other sessions are not touched. */
+  clearMustSetPassword(tx: Transaction, session: SessionRecord): Promise<void> {
+    return this.store.clearMustSetPassword(tx, session.id);
+  }
+
   async completePasswordChange(tx: Transaction, session: SessionRecord): Promise<void> {
     const now = this.clock.now();
     await this.store.clearMustSetPassword(tx, session.id);

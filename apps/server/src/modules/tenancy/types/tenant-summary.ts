@@ -1,4 +1,4 @@
-import type { TenantState } from '@lytronix/validators';
+import type { PlanLimits, TenantState } from '@lytronix/validators';
 
 /** A shop as the dashboard and the lifecycle gate see it (AUTH-22, AUTH-23). */
 export interface TenantSummary {
@@ -8,5 +8,6 @@ export interface TenantSummary {
   state: TenantState;
   suspendedAt: Date | null;
   planName: string | null;
+  planLimits: PlanLimits | null;
   periodEnd: Date | null;
 }

@@ -6,6 +6,7 @@ export const planLimitsSchema = z.object({
   products: z.number().int().nonnegative().optional(),
   orders_total: z.number().int().nonnegative().optional(),
   orders_handled_monthly: z.number().int().nonnegative().optional(),
+  // Seats, counting the owner: Trial 1 (owner only), Starter 2 (owner plus one staff member). STF-02.
   staff: z.number().int().nonnegative().optional(),
   paired_devices: z.number().int().nonnegative().optional(),
   storage_mb: z.number().int().nonnegative().optional(),

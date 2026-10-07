@@ -136,11 +136,21 @@ describeIfDatabase('route inventory against the application (SEC-02)', () => {
     const routes = listTenantRoutes(app);
     expect(routes).toEqual([
       'DELETE /me/identities/:id',
+      'DELETE /roles/:id',
       'GET /me',
       'GET /me/identities',
+      'GET /roles',
+      'GET /staff',
+      'PATCH /roles/:id',
+      'PATCH /staff/:id',
+      'POST /auth/staff/password',
+      'POST /auth/staff/signin',
       'POST /me/identities/code',
       'POST /me/identities/oauth/:provider/start',
       'POST /me/identities/verify',
+      'POST /roles',
+      'POST /staff',
+      'POST /staff/:id/password',
     ]);
     expect(compareWithRegistry(routes, ISOLATION_REGISTRY)).toEqual({ uncovered: [], stale: [] });
   });

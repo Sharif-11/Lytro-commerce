@@ -25,6 +25,11 @@ export const users = tenant.table(
     phone: varchar('phone', { length: 15 }),
     email: varchar('email', { length: 254 }),
     passwordHash: text('password_hash'),
+    // The platform account behind a staff member (AUTH-10 for staff). Null for the owner's row. One subscriber is staff in
+    // at most one shop, so the unique constraint below spans the platform (STF-06).
+    subscriberId: uuid('subscriber_id'),
+    // Set when the owner resets the password: the staff member must choose a new one at the next sign-in (STF-13, AUTH-19).
+    mustSetPassword: boolean('must_set_password').notNull().default(false),
     name: text('name'),
     isOwner: boolean('is_owner').notNull().default(false),
     active: boolean('active').notNull().default(true),
@@ -36,6 +41,7 @@ export const users = tenant.table(
     // Composite unique constraint, so user_roles can prove a role and a user belong to the same tenant (DAT-02).
     // It must be a constraint, not an index: Postgres requires one to target it from a foreign key.
     unique('users_tenant_id_key').on(t.tenantId, t.id),
+    unique('users_subscriber_key').on(t.subscriberId),
   ],
 );
 

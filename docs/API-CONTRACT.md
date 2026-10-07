@@ -55,11 +55,15 @@ Status: draft v1, for review before implementation. Companion to `DATABASE-SCHEM
 | Method | Path | Auth | Notes |
 | --- | --- | --- | --- |
 | GET | `/api/v1/staff` | session, `staff:read` | List staff, seat usage. |
-| POST | `/api/v1/staff` | session, `staff:manage` | `{ phone, password, name?, roleIds[] }`; 403 `plan_limit_reached` above seat limit. |
-| PATCH | `/api/v1/staff/:id` | session, `staff:manage` | Edit, deactivate/reactivate (STF-03/04). |
-| GET | `/api/v1/roles` | session, `staff:read` | |
-| POST | `/api/v1/roles` | session, `staff:manage` | `{ name, permissions[] }`. |
-| DELETE | `/api/v1/roles/:id` | session, `staff:manage` | 409 `conflict` if a user still holds it (STF-09). |
+| POST | `/api/v1/staff` | session, `staff:manage` | `{ phone, password, name?, roleIds[] }`; 402 `plan_limit_reached` above seat limit; 409 `conflict` for a phone already used in the shop. |
+| PATCH | `/api/v1/staff/:id` | session, `staff:manage` | `{ active?, roleIds? }`: deactivate/reactivate (STF-03/04) and change roles (STF-07). The owner row cannot change (403). |
+| GET | `/api/v1/roles` | session, `staff:read` | Roles with the number of holders (STF-09). |
+| POST | `/api/v1/roles` | session, `staff:manage` | `{ name, permissions[] }`; permissions come from the platform list; 409 `conflict` for a name already used. |
+| PATCH | `/api/v1/roles/:id` | session, `staff:manage` | `{ name?, permissions? }` (STF-07). |
+| DELETE | `/api/v1/roles/:id` | session, `staff:manage` | 409 `conflict` with `holders` if a user still holds it (STF-09). |
+| POST | `/auth/staff/signin` | none, on the shop host | `{ phone, password }` with the staff password the owner set. Refused with 401 on the platform host or for another shop's phone; 403 `tenant_offline` when the shop is locked or suspended. |
+| POST | `/api/v1/staff/:id/password` | session, `staff:manage` | `{ newPassword }`: the owner sets a new password; the member's sessions end and they must choose their own at the next sign-in (STF-13). |
+| POST | `/auth/staff/password` | session of a staff member, open while a change is pending | `{ currentPassword?, newPassword }`; the current password is needed unless the owner asked for a change (AUTH-19, AUTH-20). |
 
 ---
 

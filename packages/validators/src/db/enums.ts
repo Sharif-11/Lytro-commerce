@@ -67,6 +67,43 @@ export enum SmsStatus {
   Failed = 'failed',
 }
 
+// The permission names a role can hold. Dashboard users and API key scopes use the same names (TEN-5, API-06).
+// Add a name here before any route checks it; the docs list the areas each one guards.
+export enum Permission {
+  AuditRead = 'audit:read',
+  BalanceRead = 'balance:read',
+  BalanceManage = 'balance:manage',
+  ChatRead = 'chat:read',
+  ChatReply = 'chat:reply',
+  ChatManage = 'chat:manage',
+  CouriersManage = 'couriers:manage',
+  CustomersRead = 'customers:read',
+  CustomersManage = 'customers:manage',
+  FraudRead = 'fraud:read',
+  FraudManage = 'fraud:manage',
+  KeysManage = 'keys:manage',
+  ListenerRead = 'listener:read',
+  ListenerManage = 'listener:manage',
+  NoticesRead = 'notices:read',
+  OrdersRead = 'orders:read',
+  OrdersManage = 'orders:manage',
+  OrdersDelete = 'orders:delete',
+  PaymentsRead = 'payments:read',
+  PaymentsManage = 'payments:manage',
+  PaymentsVerify = 'payments:verify',
+  ProductsRead = 'products:read',
+  ProductsManage = 'products:manage',
+  SettingsManage = 'settings:manage',
+  SmsRead = 'sms:read',
+  SmsManage = 'sms:manage',
+  StaffRead = 'staff:read',
+  StaffManage = 'staff:manage',
+  WalletsRead = 'wallets:read',
+  WalletsManage = 'wallets:manage',
+  WebhooksRead = 'webhooks:read',
+  WebhooksManage = 'webhooks:manage',
+}
+
 /**
  * The values of a string enum as the non-empty tuple that Drizzle's `pgEnum` expects. Throws on an empty enum,
  * which cannot happen for the enums above; the check keeps the type honest without a cast.

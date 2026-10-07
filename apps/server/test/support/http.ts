@@ -24,6 +24,15 @@ export function deleteJson(
   return send(port, 'DELETE', path, undefined, headers);
 }
 
+export function patchJson(
+  port: number,
+  path: string,
+  payload: unknown,
+  headers: Record<string, string> = {},
+): Promise<HttpResult> {
+  return send(port, 'PATCH', path, payload, headers);
+}
+
 export function getJson(
   port: number,
   path: string,
@@ -34,7 +43,7 @@ export function getJson(
 
 function send(
   port: number,
-  method: 'GET' | 'POST' | 'DELETE',
+  method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
   path: string,
   payload: unknown,
   headers: Record<string, string>,

@@ -20,4 +20,18 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'POST /me/identities/oauth/:provider/start':
     'attaches the provider account to the session account only',
   'DELETE /me/identities/:id': 'another account identity answers 404; the last identity is refused',
+  // The staff routes: a shop lists, adds and changes only its own staff. Checked in test/staff.e2e.spec.ts.
+  'GET /staff': 'lists only the session shop staff and seats',
+  'POST /staff': 'creates staff in the session shop only; seats are counted in that shop',
+  'PATCH /staff/:id': 'another shop staff member answers 404',
+  // Checked in test/staff.e2e.spec.ts: a staff phone of one shop is refused on another shop's host.
+  'POST /auth/staff/signin': 'a staff phone of shop A is refused on shop B host',
+  // Checked in test/staff.e2e.spec.ts: another shop cannot reset a staff password; a staff member changes only their own.
+  'POST /auth/staff/password': 'changes only the session staff member password',
+  'POST /staff/:id/password': 'another shop staff member answers 404',
+  // Checked in test/staff.e2e.spec.ts: roles are the shop's own, and a held role cannot be deleted.
+  'GET /roles': 'lists only the session shop roles and holder counts',
+  'POST /roles': 'creates a role in the session shop only',
+  'PATCH /roles/:id': 'another shop role answers 404',
+  'DELETE /roles/:id': 'another shop role answers 404; a held role is refused',
 };

@@ -9,6 +9,7 @@ import {
   SmsRepository,
   TenantRepository,
   TransactionRunner,
+  RoleRepository,
   UserRepository,
 } from '@lytronix/db';
 import { EnvironmentParser } from '../config/env';
@@ -31,6 +32,11 @@ import { DatabaseService } from './database.service';
     { provide: SmsRepository, useFactory: () => new SmsRepository() },
     { provide: TenantRepository, useFactory: () => new TenantRepository() },
     {
+      provide: RoleRepository,
+      inject: [TransactionRunner],
+      useFactory: (transactions: TransactionRunner) => new RoleRepository(transactions),
+    },
+    {
       provide: UserRepository,
       inject: [TransactionRunner],
       useFactory: (transactions: TransactionRunner) => new UserRepository(transactions),
@@ -40,6 +46,7 @@ import { DatabaseService } from './database.service';
     ENV,
     DatabaseService,
     TransactionRunner,
+    RoleRepository,
     AccountRepository,
     ChallengeRepository,
     SessionRepository,
