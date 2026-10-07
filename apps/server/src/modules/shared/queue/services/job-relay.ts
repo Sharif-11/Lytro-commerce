@@ -1,4 +1,5 @@
 import { Inject, Injectable, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
+import type { SendOptions } from 'pg-boss';
 import { SECOND_MS } from '../../../../common/time';
 import type { OutboxStore } from '../ports/outbox-store';
 import { OUTBOX_STORE } from '../tokens';
@@ -44,10 +45,15 @@ export class JobRelay implements OnModuleInit, OnModuleDestroy {
     const now = new Date();
     const claimed = await this.outbox.claimDue(now, new Date(now.getTime() + LEASE_MS), limit);
     for (const row of claimed) {
+      const options: SendOptions = {};
+      if (row.singletonKey) options.singletonKey = row.singletonKey;
+      if (row.expireInSeconds != null) options.expireInSeconds = row.expireInSeconds;
+      if (row.retryLimit != null) options.retryLimit = row.retryLimit;
+      if (row.retryDelay != null) options.retryDelay = row.retryDelay;
       const jobId = await this.pgBoss.boss.send(
         row.queueName,
         row.payload as object,
-        row.singletonKey ? { singletonKey: row.singletonKey } : undefined,
+        Object.keys(options).length > 0 ? options : undefined,
       );
       await this.outbox.markSent(row.id, jobId);
     }

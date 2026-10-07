@@ -20,6 +20,7 @@ import { type MessageStore } from '../src/modules/shared/messaging/ports/message
 import { type SmsProvider } from '../src/modules/shared/messaging/ports/sms-provider';
 import { MessagingService } from '../src/modules/shared/messaging/services/messaging.service';
 import { MailService } from '../src/modules/shared/mail/services/mail.service';
+import type { JobQueue } from '../src/modules/shared/queue/ports/job-queue';
 
 // AUTH-05 to AUTH-07, tested through the real service with fake ports. Codes of every kind share these rules.
 const SECRET = 's'.repeat(32);
@@ -32,7 +33,9 @@ interface World {
   outbox: { id: number; kind: string; body: string | null; status: string }[];
   sent: { toPhone: string; body: string }[];
   smsFails: boolean;
+  mailFails: boolean;
   counter: number;
+  queued: { queueName: string; payload: unknown }[];
 }
 
 function world(): World {
@@ -42,7 +45,9 @@ function world(): World {
     outbox: [],
     sent: [],
     smsFails: false,
+    mailFails: false,
     counter: 0,
+    queued: [],
   };
 }
 
@@ -120,7 +125,13 @@ function build(state: World) {
       return Promise.resolve();
     },
   };
-  const messaging = new MessagingService(messageStore, provider, () => state.now);
+  const jobQueue: JobQueue = {
+    enqueue: (_tx, queueName, payload) => {
+      state.queued.push({ queueName, payload });
+      return Promise.resolve();
+    },
+  };
+  const messaging = new MessagingService(messageStore, provider, () => state.now, jobQueue);
 
   const settings: SignupSettings = {
     now: () => state.now,
@@ -134,7 +145,10 @@ function build(state: World) {
     settings,
     new OneTimeCodeHasher(SECRET),
     messaging,
-    new MailService({ send: () => Promise.resolve() }),
+    new MailService({
+      send: () =>
+        state.mailFails ? Promise.reject(new Error('provider down')) : Promise.resolve(),
+    }),
   );
   return { codes, messaging, challenges };
 }
@@ -291,5 +305,27 @@ describe('SMS delivery failures (SMS-18)', () => {
     const otp = state.outbox.find((m) => m.kind === 'otp');
     expect(otp?.body).toBeNull();
     expect(otp?.status).toBe('failed');
+  });
+
+  it('queues a bounded retry carrying the code, while it is still valid (D27)', async () => {
+    const state = world();
+    state.smsFails = true;
+    const { codes } = build(state);
+    await expect(codes.issue(PHONE, ChallengeChannel.Sms, SIGNIN)).rejects.toMatchObject({
+      code: 'service_unavailable',
+    });
+    expect(state.queued).toHaveLength(1);
+    expect(state.queued[0]?.queueName).toBe('otp_retry');
+    expect(state.queued[0]?.payload).toMatchObject({ toPhone: PHONE });
+  });
+
+  it('never queues a retry for an email delivery failure', async () => {
+    const state = world();
+    state.mailFails = true;
+    const { codes } = build(state);
+    await expect(
+      codes.issue('a@example.com', ChallengeChannel.Email, SIGNIN),
+    ).rejects.toMatchObject({ code: 'service_unavailable' });
+    expect(state.queued).toHaveLength(0);
   });
 });

@@ -1,12 +1,14 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Transaction } from '@lytronix/db';
-import { ChallengeKind, SmsKind } from '@lytronix/validators';
+import { ChallengeKind, QueueName, SmsKind } from '@lytronix/validators';
 import { MINUTE_MS } from '../../../../common/time';
 import { SmsDeliveryError } from '../../../../common/errors/sms-delivery';
+import type { JobQueue } from '../../queue/ports/job-queue';
+import { JOB_QUEUE } from '../../queue/tokens';
 import { MESSAGE_STORE, MESSAGING_CLOCK, SMS_PROVIDER } from '../tokens';
 import type { MessageStore } from '../ports/message-store';
 import type { SmsProvider } from '../ports/sms-provider';
-import type { ClaimedMessage, QueuedMessage } from '../types/messages';
+import type { ClaimedMessage, QueuedMessage, SmsRetryPayload } from '../types/messages';
 
 // SMS-18, D6, AUTH-05.
 
@@ -15,12 +17,17 @@ export const RETRY_WAIT_MINUTES = [1, 5, 15, 60];
 export const MAX_SMS_ATTEMPTS = 5;
 const LEASE_MS = 2 * MINUTE_MS;
 
+// D27: a bounded pg-boss retry for an OTP's failed synchronous send, while the code is still usable.
+export const OTP_RETRY_LIMIT = 2;
+export const OTP_RETRY_DELAY_SECONDS = 20;
+
 @Injectable()
 export class MessagingService {
   constructor(
     @Inject(MESSAGE_STORE) private readonly store: MessageStore,
     @Inject(SMS_PROVIDER) private readonly provider: SmsProvider,
     @Inject(MESSAGING_CLOCK) private readonly clock: () => Date,
+    @Inject(JOB_QUEUE) private readonly jobQueue: JobQueue,
   ) {}
 
   async queueOtp(
@@ -56,6 +63,34 @@ export class MessagingService {
       });
       throw new SmsDeliveryError();
     }
+  }
+
+  /**
+   * Queues a bounded retry for an OTP's failed synchronous send, while the code can still be used (D27).
+   * `expiresAt` is the code's own expiry; the job is bounded to whatever is left of it, so pg-boss drops it
+   * once that window passes rather than resending a code that no longer works.
+   */
+  async queueOtpRetry(tx: Transaction, message: QueuedMessage, expiresAt: Date): Promise<void> {
+    const expireInSeconds = Math.max(
+      1,
+      Math.floor((expiresAt.getTime() - this.clock().getTime()) / 1000),
+    );
+    const payload: SmsRetryPayload = {
+      messageId: message.id,
+      toPhone: message.toPhone,
+      body: message.body,
+    };
+    await this.jobQueue.enqueue(tx, QueueName.OtpRetry, payload, {
+      expireInSeconds,
+      retryLimit: OTP_RETRY_LIMIT,
+      retryDelay: OTP_RETRY_DELAY_SECONDS,
+    });
+  }
+
+  /** Resends a message the queue worker is retrying, and records success. A thrown error lets pg-boss retry it. */
+  async retrySend(payload: SmsRetryPayload): Promise<void> {
+    await this.provider.send({ toPhone: payload.toPhone, body: payload.body });
+    await this.store.markSent(payload.messageId, this.clock());
   }
 
   /** Tries to send messages whose transaction has committed. */

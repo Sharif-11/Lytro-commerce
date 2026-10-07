@@ -1,4 +1,4 @@
-import { bigserial, jsonb, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { bigserial, integer, jsonb, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { control, createdAt } from '../shared';
 
 /**
@@ -14,6 +14,11 @@ export const jobOutbox = control.table('job_outbox', {
   payload: jsonb('payload').notNull(),
   // De-dupes a relay retry against pg-boss's own singletonKey; null when the job allows duplicates.
   singletonKey: uuid('singleton_key'),
+  // Per-job pg-boss send() options the relay forwards as-is; null keeps pg-boss's own queue-level defaults
+  // (D27: an OTP retry bounds expireInSeconds to what's left of the code's TTL, which varies per job).
+  expireInSeconds: integer('expire_in_seconds'),
+  retryLimit: integer('retry_limit'),
+  retryDelay: integer('retry_delay'),
   status: text('status').notNull().default('pending'), // pending | sending | sent
   // Set when a relay claims the row, so a crashed relay's claim is reclaimed once the lease passes.
   leaseUntil: timestamp('lease_until', { withTimezone: true }),
