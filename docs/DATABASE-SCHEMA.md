@@ -54,7 +54,7 @@ CREATE TABLE control.subscriber_identities (
     subscriber_id   uuid NOT NULL REFERENCES control.subscribers(id),
     kind            control.identity_kind NOT NULL,
     value           text NOT NULL,        -- normalised phone (AUTH-02), lowercased email, or Facebook account id
-    verified_at     timestamptz NOT NULL,
+    verified_at     timestamptz,          -- null while a staff phone waits for its owner's first code sign-in (D22)
     created_at      timestamptz NOT NULL DEFAULT now(),
     -- AUTH-08: each kind is independently unique platform-wide, never cross-checked against the other kinds
     UNIQUE (kind, value)
@@ -182,6 +182,8 @@ CREATE TABLE control.plans (
     for_sale        boolean NOT NULL DEFAULT true, -- PLN-10: not-for-sale plans never returned to tenants
     version         integer NOT NULL DEFAULT 1,
     limits          jsonb NOT NULL,             -- seats, products, storage, bandwidth, order-handling, etc (2.1)
+                                                 -- `staff` counts the owner: Trial 1 (owner only), Starter 2 (D21);
+                                                 -- a plan with no `staff` key gets 1 seat
     features        jsonb NOT NULL DEFAULT '{}',
     created_at      timestamptz NOT NULL DEFAULT now()
 );
@@ -319,31 +321,43 @@ CREATE POLICY tenant_isolation ON tenant.orders
 
 ```sql
 CREATE TABLE tenant.users (
-    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id       uuid NOT NULL,
-    phone           varchar(15) NOT NULL,
-    password_hash   text NOT NULL,
-    name            text,
-    is_owner        boolean NOT NULL DEFAULT false,
-    active          boolean NOT NULL DEFAULT true,
-    created_at      timestamptz NOT NULL DEFAULT now(),
-    UNIQUE (tenant_id, phone)
+    id                 uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id          uuid NOT NULL,
+    phone              varchar(15),             -- null for an owner who enrolled by email only (AUTH-10)
+    email              varchar(254),            -- unique per shop (migration 0011)
+    password_hash      text,                    -- null for the owner until a password is set
+    name               text,
+    is_owner           boolean NOT NULL DEFAULT false,
+    active             boolean NOT NULL DEFAULT true,
+    subscriber_id      uuid,                    -- the platform account behind a staff member; null for the owner (D22)
+    must_set_password  boolean NOT NULL DEFAULT false,  -- STF-13: owner reset forces a change at the next sign-in
+    created_at         timestamptz NOT NULL DEFAULT now(),
+    UNIQUE (tenant_id, phone),
+    UNIQUE (tenant_id, email),
+    UNIQUE (tenant_id, id),                     -- lets user_roles prove a role and a user share a tenant
+    UNIQUE (subscriber_id)                      -- STF-06: one subscriber is staff in at most one shop, platform-wide
 );
 
 CREATE TABLE tenant.roles (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id       uuid NOT NULL,
     name            text NOT NULL,
-    permissions     text[] NOT NULL DEFAULT '{}',  -- e.g. {orders:manage, payments:verify}
-    UNIQUE (tenant_id, name)
+    permissions     text[] NOT NULL DEFAULT '{}',  -- from the platform's permission list (validators' Permission enum)
+    UNIQUE (tenant_id, name),
+    UNIQUE (tenant_id, id)
 );
 
 CREATE TABLE tenant.user_roles (
-    user_id uuid NOT NULL,
-    role_id uuid NOT NULL,
-    PRIMARY KEY (user_id, role_id)
+    tenant_id uuid NOT NULL,
+    user_id   uuid NOT NULL,
+    role_id   uuid NOT NULL,
+    PRIMARY KEY (tenant_id, user_id, role_id),
+    FOREIGN KEY (tenant_id, user_id) REFERENCES tenant.users(tenant_id, id),
+    FOREIGN KEY (tenant_id, role_id) REFERENCES tenant.roles(tenant_id, id)
 );
 ```
+
+A staff member's phone is reserved as a platform identity when they are added, and the subscriber link is what makes the platform-wide STF-06 check possible: the unique constraint on `subscriber_id` spans every shop. The phone identity starts pending (`verified_at` null in `control.subscriber_identities`) and is proven by the person's first code sign-in (D22). Staff sign in separately from the owner, at `POST /auth/staff/signin` on the shop's own host, with the password on this table, never the account password (D23).
 
 ### 3.2 Catalogue
 
@@ -1056,7 +1070,7 @@ CREATE UNIQUE INDEX identity_verifications_one_open
 - Upload path (KYC-15): the owner uploads each image to a temporary prefix in the KYC bucket through a signed URL. On a validated submission the object moves to its permanent key, which is what `front_object_key` and `back_object_key` record. Failed or abandoned temporary objects are deleted by a job after [24] hours.
 - No backup of the KYC bucket (KYC-14). A lost or unreadable image is recovered by an operator requesting a re-upload, which starts a new submission row, so earlier submissions stay in history.
 
-## Migration index (slices 5 and 6)
+## Migration index (slices 5 to 7)
 
 Migrations are named by number and purpose. Drizzle tracks what has run by content hash and timestamp, so a rename never changes what has been applied. Keep the number order.
 
@@ -1071,3 +1085,7 @@ Migrations are named by number and purpose. Drizzle tracks what has run by conte
 | `0011_staff_owner_email` | 6 | Owner staff row: phone becomes nullable; adds email, unique per shop |
 | `0012_oauth_states` | 6 | Adds the Google and Facebook sign-in state table |
 | `0013_oauth_state_attach` | 6 | Lets a state attach a provider to a signed-in account |
+| `0014_starter_staff_seats` | 7 | Sets Starter's `staff` plan limit to 2, counting the owner (D21) |
+| `0015_staff_subscriber_link` | 7 | Adds `tenant.users.subscriber_id`, unique platform-wide (STF-06, D22) |
+| `0016_identity_pending_verification` | 7 | Makes `subscriber_identities.verified_at` optional, for a staff phone pending its first code sign-in |
+| `0017_staff_must_set_password` | 7 | Adds `tenant.users.must_set_password`, forcing a change after an owner reset (STF-13) |
