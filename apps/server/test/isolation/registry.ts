@@ -20,4 +20,8 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'POST /me/identities/oauth/:provider/start':
     'attaches the provider account to the session account only',
   'DELETE /me/identities/:id': 'another account identity answers 404; the last identity is refused',
+  // The staff routes: a shop lists, adds and changes only its own staff. Checked in test/staff.e2e.spec.ts.
+  'GET /staff': 'lists only the session shop staff and seats',
+  'POST /staff': 'creates staff in the session shop only; seats are counted in that shop',
+  'PATCH /staff/:id': 'another shop staff member answers 404',
 };

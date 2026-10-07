@@ -62,6 +62,14 @@ export class SessionRepository {
       .where(and(eq(sessions.id, sessionId), isNull(sessions.revokedAt)));
   }
 
+  /** Ends every live session of a staff user at once (STF-05). */
+  async revokeAllForUser(db: Executor, userId: string, at: Date): Promise<void> {
+    await db
+      .update(sessions)
+      .set({ revokedAt: at })
+      .where(and(eq(sessions.userId, userId), isNull(sessions.revokedAt)));
+  }
+
   /** Ends every other live session of a subscriber (password change, forgot-password). */
   /** Ends every live session of a subscriber except the one kept (password change, AUTH-20). */
   async revokeAllForSubscriberExcept(

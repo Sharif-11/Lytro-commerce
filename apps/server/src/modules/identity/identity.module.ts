@@ -125,6 +125,6 @@ import {
     EmailSigninService,
   ],
   // The session and dashboard gates, shared with the team routes (staff) so those routes apply the same rules.
-  exports: [SessionService, SessionGuard, DashboardGuard],
+  exports: [SessionService, SessionGuard, DashboardGuard, PhoneNumberFormat],
 })
 export class IdentityModule {}

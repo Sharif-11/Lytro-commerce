@@ -20,6 +20,7 @@ export interface TenantSummaryRow {
   state: TenantLookupRow['state'];
   suspendedAt: Date | null;
   planName: string | null;
+  planLimits: PlanLimits | null;
   periodEnd: Date | null;
 }
 
@@ -33,6 +34,7 @@ export class TenantRepository {
         state: tenants.state,
         suspendedAt: tenants.suspendedAt,
         planName: plans.name,
+        planLimits: plans.limits,
         periodEnd: tenants.periodEnd,
       })
       .from(tenants)

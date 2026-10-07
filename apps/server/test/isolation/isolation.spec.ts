@@ -138,9 +138,12 @@ describeIfDatabase('route inventory against the application (SEC-02)', () => {
       'DELETE /me/identities/:id',
       'GET /me',
       'GET /me/identities',
+      'GET /staff',
+      'PATCH /staff/:id',
       'POST /me/identities/code',
       'POST /me/identities/oauth/:provider/start',
       'POST /me/identities/verify',
+      'POST /staff',
     ]);
     expect(compareWithRegistry(routes, ISOLATION_REGISTRY)).toEqual({ uncovered: [], stale: [] });
   });

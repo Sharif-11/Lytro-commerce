@@ -8,3 +8,4 @@ export * from './api/auth/auth-code';
 export * from './api/auth/auth-password';
 export * from './api/auth/auth-identities';
 export * from './api/shops/shops-create';
+export * from './api/staff/staff/staff-create';
