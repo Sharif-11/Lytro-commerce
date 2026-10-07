@@ -1,5 +1,5 @@
 import { IdentityKind, type TenantState } from '@lytronix/validators';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import type { Executor } from '../../transactions';
 import { subscriberIdentities, subscribers, tenants } from '../../schema';
 
@@ -51,7 +51,7 @@ export class AccountRepository {
 
   async insertIdentity(
     db: Executor,
-    values: { subscriberId: string; kind: IdentityKind; value: string; verifiedAt: Date },
+    values: { subscriberId: string; kind: IdentityKind; value: string; verifiedAt: Date | null },
   ): Promise<string> {
     const [row] = await db
       .insert(subscriberIdentities)
@@ -64,6 +64,24 @@ export class AccountRepository {
       .returning({ id: subscriberIdentities.id });
     if (!row) throw new Error('insert returned no identity');
     return row.id;
+  }
+
+  /** Proves a pending identity (staff onboarding) by a code sign-in. Already verified identities are left alone. */
+  async markIdentityVerified(
+    db: Executor,
+    values: { subscriberId: string; kind: IdentityKind; value: string; at: Date },
+  ): Promise<void> {
+    await db
+      .update(subscriberIdentities)
+      .set({ verifiedAt: values.at })
+      .where(
+        and(
+          eq(subscriberIdentities.subscriberId, values.subscriberId),
+          eq(subscriberIdentities.kind, values.kind),
+          eq(subscriberIdentities.value, values.value),
+          isNull(subscriberIdentities.verifiedAt),
+        ),
+      );
   }
 
   async findIdentityOf(

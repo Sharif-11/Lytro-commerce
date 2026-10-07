@@ -24,7 +24,8 @@ export const subscriberIdentities = control.table(
     kind: identityKind('kind').notNull(),
     // Normalised phone (AUTH-02), lowercased email, or Facebook account id.
     value: text('value').notNull(),
-    verifiedAt: timestamp('verified_at', { withTimezone: true }).notNull(),
+    // Null while a staff phone waits for its owner to sign in by code (staff onboarding). Set when the code is proven.
+    verifiedAt: timestamp('verified_at', { withTimezone: true }),
     createdAt: createdAt(),
   },
   (t) => [

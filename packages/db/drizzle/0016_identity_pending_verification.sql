@@ -1,0 +1,1 @@
+ALTER TABLE "control"."subscriber_identities" ALTER COLUMN "verified_at" DROP NOT NULL;
