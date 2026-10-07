@@ -8,7 +8,7 @@ import {
 } from '@lytronix/db';
 import { UniqueViolation } from '../../common/errors/unique-violation';
 import type { StaffStore } from '../../modules/staff/ports/staff-store';
-import type { StaffRecord } from '../../modules/staff/types/staff';
+import type { StaffCredentials, StaffRecord } from '../../modules/staff/types/staff';
 import { DatabaseService } from '../database.service';
 
 // The unique index on a shop's staff phones (STF-06 within one shop).
@@ -95,6 +95,22 @@ export class DrizzleStaffStore implements StaffStore {
   ): Promise<StaffRecord | null> {
     const row = await this.users.setActive(tx, tenantId, userId, active);
     return row ? toRecord(row) : null;
+  }
+
+  async findCredentialsByPhone(
+    tx: Transaction,
+    tenantId: string,
+    phone: string,
+  ): Promise<StaffCredentials | null> {
+    const row = await this.users.findUserByPhone(tx, tenantId, phone);
+    if (!row) return null;
+    return {
+      userId: row.id,
+      isOwner: row.isOwner,
+      active: row.active,
+      subscriberId: row.subscriberId,
+      passwordHash: row.passwordHash,
+    };
   }
 
   revokeSessionsOf(tx: Transaction, userId: string, at: Date): Promise<void> {

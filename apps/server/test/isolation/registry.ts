@@ -24,6 +24,8 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'GET /staff': 'lists only the session shop staff and seats',
   'POST /staff': 'creates staff in the session shop only; seats are counted in that shop',
   'PATCH /staff/:id': 'another shop staff member answers 404',
+  // Checked in test/staff.e2e.spec.ts: a staff phone of one shop is refused on another shop's host.
+  'POST /auth/staff/signin': 'a staff phone of shop A is refused on shop B host',
   // Checked in test/staff.e2e.spec.ts: roles are the shop's own, and a held role cannot be deleted.
   'GET /roles': 'lists only the session shop roles and holder counts',
   'POST /roles': 'creates a role in the session shop only',

@@ -1,5 +1,5 @@
 import type { Transaction } from '@lytronix/db';
-import type { StaffRecord } from '../types/staff';
+import type { StaffCredentials, StaffRecord } from '../types/staff';
 
 /** Staff rows of one shop. Every method runs inside the caller's transaction, which carries the tenant context. */
 export interface StaffStore {
@@ -13,6 +13,12 @@ export interface StaffStore {
   listStaff(tx: Transaction, tenantId: string): Promise<StaffRecord[]>;
   countActive(tx: Transaction, tenantId: string): Promise<number>;
   findStaff(tx: Transaction, tenantId: string, userId: string): Promise<StaffRecord | null>;
+  /** The sign-in details of the shop's staff member with this phone, or null. */
+  findCredentialsByPhone(
+    tx: Transaction,
+    tenantId: string,
+    phone: string,
+  ): Promise<StaffCredentials | null>;
   /** A phone already used in this shop comes back as UniqueViolation('phone'). */
   insertStaff(
     tx: Transaction,

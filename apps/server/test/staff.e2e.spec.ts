@@ -436,3 +436,88 @@ describeIfDatabase('a staff phone is proven by its first code sign-in', () => {
     expect(identity.rows[0]?.verified_at).toEqual(expect.any(Date));
   });
 });
+
+const STAFF_PASSWORD = 'staff-pass-2468';
+
+async function addStaffWithPassword(
+  who: Owner,
+  phone: string,
+  password: string,
+): Promise<HttpResult> {
+  return post('/staff', { phone, password, name: 'Staff' }, shopCall(who));
+}
+
+async function staffSignIn(slug: string, phone: string, password: string): Promise<HttpResult> {
+  return post('/auth/staff/signin', { phone, password }, { host: `${slug}.localhost` });
+}
+
+describeIfDatabase('staff sign-in on the shop host (AUTH-12, AUTH-13, STF-05)', () => {
+  it('signs a staff member in with their own password, and only on their shop', async () => {
+    const who = await owner();
+    await moveToPlan(who.slug, 'Starter');
+    const phone = texts.freshPhone();
+    expect((await addStaffWithPassword(who, phone, STAFF_PASSWORD)).status).toBe(201);
+
+    const signedIn = await staffSignIn(who.slug, phone, STAFF_PASSWORD);
+    expect(signedIn.status).toBe(200);
+    expect(signedIn.body).toMatchObject({ next: 'dashboard' });
+    const cookie = cookieFrom(signedIn);
+    const me = await get('/me', { cookie, host: `${who.slug}.localhost` });
+    expect(me.status).toBe(200);
+
+    const otherHost = await get('/me', { cookie, host: 'localhost' });
+    expect(otherHost.status).not.toBe(200);
+  });
+
+  it('refuses the owner account password, a wrong password, and sign-in on the platform host', async () => {
+    const who = await owner();
+    await moveToPlan(who.slug, 'Starter');
+    const phone = texts.freshPhone();
+    expect((await addStaffWithPassword(who, phone, STAFF_PASSWORD)).status).toBe(201);
+
+    const ownerPassword = await staffSignIn(who.slug, phone, PASSWORD);
+    expect(ownerPassword.status).toBe(401);
+    expect(errorOf(ownerPassword)).toMatchObject({ code: 'unauthenticated' });
+
+    const wrong = await staffSignIn(who.slug, phone, 'not-the-password');
+    expect(wrong.status).toBe(401);
+
+    const platform = await post(
+      '/auth/staff/signin',
+      { phone, password: STAFF_PASSWORD },
+      PLATFORM,
+    );
+    expect(platform.status).toBe(404);
+  });
+
+  it('refuses a deactivated staff member, and a shop that is locked', async () => {
+    const who = await owner();
+    await moveToPlan(who.slug, 'Starter');
+    const phone = texts.freshPhone();
+    const created = await addStaffWithPassword(who, phone, STAFF_PASSWORD);
+    await setActive(who, (created.body as StaffBody).id, false);
+    const deactivated = await staffSignIn(who.slug, phone, STAFF_PASSWORD);
+    expect(deactivated.status).toBe(401);
+
+    const other = await owner();
+    await moveToPlan(other.slug, 'Starter');
+    const otherPhone = texts.freshPhone();
+    expect((await addStaffWithPassword(other, otherPhone, STAFF_PASSWORD)).status).toBe(201);
+    await admin.query(`UPDATE control.tenants SET state = 'locked' WHERE slug = $1`, [other.slug]);
+    const locked = await staffSignIn(other.slug, otherPhone, STAFF_PASSWORD);
+    expect(locked.status).toBe(403);
+    expect(errorOf(locked)).toMatchObject({ code: 'tenant_offline' });
+  });
+});
+
+describeIfDatabase('staff sign-in across shops (TEN-03)', () => {
+  it('refuses a staff phone of one shop on another shop host', async () => {
+    const ours = await owner();
+    const theirs = await owner();
+    await moveToPlan(ours.slug, 'Starter');
+    const phone = texts.freshPhone();
+    expect((await addStaffWithPassword(ours, phone, STAFF_PASSWORD)).status).toBe(201);
+    const response = await staffSignIn(theirs.slug, phone, STAFF_PASSWORD);
+    expect(response.status).toBe(401);
+  });
+});

@@ -143,6 +143,7 @@ describeIfDatabase('route inventory against the application (SEC-02)', () => {
       'GET /staff',
       'PATCH /roles/:id',
       'PATCH /staff/:id',
+      'POST /auth/staff/signin',
       'POST /me/identities/code',
       'POST /me/identities/oauth/:provider/start',
       'POST /me/identities/verify',

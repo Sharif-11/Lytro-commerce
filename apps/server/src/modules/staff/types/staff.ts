@@ -13,6 +13,15 @@ export interface StaffMember extends StaffRecord {
   roleIds: string[];
 }
 
+/** What a sign-in needs about a staff member. The password hash never leaves the server. */
+export interface StaffCredentials {
+  userId: string;
+  isOwner: boolean;
+  active: boolean;
+  subscriberId: string | null;
+  passwordHash: string | null;
+}
+
 /** Seats in use (active users, the owner included) against the plan's seats (STF-02). */
 export interface SeatUsage {
   used: number;

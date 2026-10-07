@@ -8,7 +8,7 @@ import type { StaffPasswordHasher } from '../ports/staff-password-hasher';
 import type { StaffStore } from '../ports/staff-store';
 import type { StaffAccounts } from '../ports/staff-accounts';
 import { ROLE_STORE, STAFF_ACCOUNTS, STAFF_PASSWORD_HASHER, STAFF_STORE } from '../tokens';
-import type { StaffList, StaffMember, StaffRecord } from '../types/staff';
+import type { StaffCredentials, StaffList, StaffMember, StaffRecord } from '../types/staff';
 
 // STF-02: a plan without a staff limit has one seat, the owner's own.
 export const DEFAULT_SEATS = 1;
@@ -28,6 +28,18 @@ export class StaffService {
     @Inject(ROLE_STORE) private readonly roles: RoleStore,
     @Inject(STAFF_ACCOUNTS) private readonly accounts: StaffAccounts,
   ) {}
+
+  /** Runs work in a transaction with the shop's tenant context set. */
+  inShop<T>(tenant: StaffTenant, work: (tx: Transaction) => Promise<T>): Promise<T> {
+    return this.store.run(tenant.id, work);
+  }
+
+  /** The sign-in details of the shop's staff member with this phone, or null. */
+  credentialsByPhone(tenant: StaffTenant, phone: string): Promise<StaffCredentials | null> {
+    return this.store.run(tenant.id, (tx) =>
+      this.store.findCredentialsByPhone(tx, tenant.id, phone),
+    );
+  }
 
   createOwner(
     tx: Transaction,

@@ -61,6 +61,7 @@ Status: draft v1, for review before implementation. Companion to `DATABASE-SCHEM
 | POST | `/api/v1/roles` | session, `staff:manage` | `{ name, permissions[] }`; permissions come from the platform list; 409 `conflict` for a name already used. |
 | PATCH | `/api/v1/roles/:id` | session, `staff:manage` | `{ name?, permissions? }` (STF-07). |
 | DELETE | `/api/v1/roles/:id` | session, `staff:manage` | 409 `conflict` with `holders` if a user still holds it (STF-09). |
+| POST | `/auth/staff/signin` | none, on the shop host | `{ phone, password }` with the staff password the owner set. Refused with 401 on the platform host or for another shop's phone; 403 `tenant_offline` when the shop is locked or suspended. |
 
 ---
 

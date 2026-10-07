@@ -13,6 +13,8 @@ export interface NewSession {
   csrfHash: string;
   subscriberId: string;
   tenantId: string | null;
+  // The staff user of a shop session; null for the owner.
+  userId: string | null;
   mustSetPassword: boolean;
   signInMethod: SignInMethod;
   expiresAt: Date;

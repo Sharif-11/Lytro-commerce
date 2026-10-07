@@ -54,6 +54,21 @@ export class UserRepository {
     return rows[0] ?? null;
   }
 
+  /** Finds a shop's staff member by the phone they sign in with (STF-01). */
+  async findUserByPhone(
+    tx: Transaction,
+    tenantId: string,
+    phone: string,
+  ): Promise<SelectUser | null> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const rows = await tx
+      .select()
+      .from(users)
+      .where(and(eq(users.tenantId, tenantId), eq(users.phone, phone)))
+      .limit(1);
+    return rows[0] ?? null;
+  }
+
   async insertStaff(
     tx: Transaction,
     values: {

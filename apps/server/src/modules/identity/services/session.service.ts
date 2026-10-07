@@ -26,6 +26,8 @@ export class SessionService {
     values: {
       subscriberId: string;
       tenantId: string | null;
+      // The staff user this session belongs to, for a session opened on a shop host by staff (null for the owner).
+      userId?: string | null;
       mustSetPassword: boolean;
       signInMethod: SignInMethod;
       context: SessionContext;
@@ -38,6 +40,7 @@ export class SessionService {
       csrfHash: this.digest(csrfToken),
       subscriberId: values.subscriberId,
       tenantId: values.tenantId,
+      userId: values.userId ?? null,
       mustSetPassword: values.mustSetPassword,
       signInMethod: values.signInMethod,
       expiresAt: new Date(this.clock.now().getTime() + SESSION_TTL_MS),
