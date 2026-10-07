@@ -13,6 +13,7 @@ export interface StaffStore {
   listStaff(tx: Transaction, tenantId: string): Promise<StaffRecord[]>;
   countActive(tx: Transaction, tenantId: string): Promise<number>;
   findStaff(tx: Transaction, tenantId: string, userId: string): Promise<StaffRecord | null>;
+  findOwner(tx: Transaction, tenantId: string): Promise<StaffRecord | null>;
   findCredentialsById(
     tx: Transaction,
     tenantId: string,

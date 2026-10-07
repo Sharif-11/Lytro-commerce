@@ -29,6 +29,14 @@ export class StaffService {
     @Inject(STAFF_ACCOUNTS) private readonly accounts: StaffAccounts,
   ) {}
 
+  /** The owner's own staff row id, for an audit entry the owner performs (AUD-02). */
+  ownerId(tenantId: string): Promise<string | null> {
+    return this.store.run(
+      tenantId,
+      async (tx) => (await this.store.findOwner(tx, tenantId))?.id ?? null,
+    );
+  }
+
   /** Runs work in a transaction with the shop's tenant context set. */
   inShop<T>(tenant: StaffTenant, work: (tx: Transaction) => Promise<T>): Promise<T> {
     return this.store.run(tenant.id, work);

@@ -9,6 +9,7 @@ import { DrizzleSessionStore } from '../../database/adapters/session.adapter';
 import { DrizzleSignInFailureStore } from '../../database/adapters/sign-in-failure.adapter';
 import { MailModule } from '../shared/mail/mail.module';
 import { MessagingModule } from '../shared/messaging/messaging.module';
+import { AuditModule } from '../audit/audit.module';
 import { TenancyModule } from '../tenancy/tenancy.module';
 import { AuthController } from './controllers/auth.controller';
 import { IdentitiesController } from './controllers/identities.controller';
@@ -53,7 +54,7 @@ import {
 } from './tokens';
 
 @Module({
-  imports: [TenancyModule, MessagingModule, MailModule],
+  imports: [TenancyModule, MessagingModule, MailModule, AuditModule],
   controllers: [
     AuthController,
     ShopsController,

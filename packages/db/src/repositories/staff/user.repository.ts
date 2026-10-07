@@ -69,6 +69,17 @@ export class UserRepository {
     return rows[0] ?? null;
   }
 
+  /** The owner row of the shop, if any (every shop has exactly one once created). */
+  async findOwner(tx: Transaction, tenantId: string): Promise<SelectUser | null> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const rows = await tx
+      .select()
+      .from(users)
+      .where(and(eq(users.tenantId, tenantId), eq(users.isOwner, true)))
+      .limit(1);
+    return rows[0] ?? null;
+  }
+
   async insertStaff(
     tx: Transaction,
     values: {
