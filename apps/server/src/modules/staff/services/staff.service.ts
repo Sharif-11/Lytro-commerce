@@ -1,8 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Transaction } from '@lytronix/db';
-import type { PlanLimits } from '@lytronix/validators';
+import { ActorType, AuditAction, AuditResult, type PlanLimits } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import { UniqueViolation } from '../../../common/errors/unique-violation';
+import { AuditService } from '../../audit/services/audit.service';
 import type { RoleStore } from '../ports/role-store';
 import type { StaffPasswordHasher } from '../ports/staff-password-hasher';
 import type { StaffStore } from '../ports/staff-store';
@@ -27,6 +28,7 @@ export class StaffService {
     @Inject(STAFF_PASSWORD_HASHER) private readonly hasher: StaffPasswordHasher,
     @Inject(ROLE_STORE) private readonly roles: RoleStore,
     @Inject(STAFF_ACCOUNTS) private readonly accounts: StaffAccounts,
+    @Inject(AuditService) private readonly audit: AuditService,
   ) {}
 
   /** The owner's own staff row id, for an audit entry the owner performs (AUD-02). */
@@ -78,11 +80,12 @@ export class StaffService {
   async create(
     tenant: StaffTenant,
     input: { phone: string; password: string; name?: string; roleIds: string[] },
+    actingUserId: string | null,
   ): Promise<StaffMember> {
     // Hashing is slow, so it runs before the seat lock is taken.
     const passwordHash = await this.hasher.hash(input.password);
     const roleIds = [...new Set(input.roleIds)];
-    return this.store.run(tenant.id, async (tx) => {
+    const created = await this.store.run(tenant.id, async (tx) => {
       await this.requireRoles(tx, tenant.id, roleIds);
       await this.requireSeat(tx, tenant);
       const subscriberId = await this.accounts.reservePhone(tx, input.phone);
@@ -113,24 +116,32 @@ export class StaffService {
       }
       return { ...created, roleIds };
     });
+    await this.writeActivity(tenant.id, actingUserId, AuditAction.StaffCreated, created.id, {
+      phone: created.phone,
+      roleIds,
+    });
+    return created;
   }
 
   /** Changes a staff member's status and/or roles. The owner row cannot change (STF-12). */
-  update(
+  async update(
     tenant: StaffTenant,
     userId: string,
     input: { active?: boolean; roleIds?: string[] },
     now: Date,
+    actingUserId: string | null,
   ): Promise<StaffMember> {
-    return this.store.run(tenant.id, async (tx) => {
+    const { member: changed, activityAction } = await this.store.run(tenant.id, async (tx) => {
       const member = await this.store.findStaff(tx, tenant.id, userId);
       if (!member) throw new ApiError('not_found', 'Staff member not found.', {});
       if (member.isOwner) throw new ApiError('forbidden', 'The owner cannot be changed.', {});
 
+      let activityAction: AuditAction | null = null;
       const roleIds = input.roleIds === undefined ? undefined : [...new Set(input.roleIds)];
       if (roleIds !== undefined) {
         await this.requireRoles(tx, tenant.id, roleIds);
         await this.roles.replaceFor(tx, tenant.id, userId, roleIds);
+        activityAction = AuditAction.StaffUpdated;
       }
 
       const active = input.active;
@@ -140,33 +151,40 @@ export class StaffService {
         if (!updated) throw new ApiError('not_found', 'Staff member not found.', {});
         // STF-05: deactivation ends the member's sessions at once, not at the next sign-in.
         if (!active) await this.store.revokeSessionsOf(tx, userId, now);
+        // A status change is reported as itself, even alongside a role change in the same call.
+        activityAction = active ? AuditAction.StaffReactivated : AuditAction.StaffDeactivated;
       }
 
       const current = await this.store.findStaff(tx, tenant.id, userId);
       if (!current) throw new ApiError('not_found', 'Staff member not found.', {});
-      const [changed] = await this.withRoles(tx, tenant.id, [current]);
-      if (!changed) throw new Error('withRoles returned no member');
-      return changed;
+      const [withRoles] = await this.withRoles(tx, tenant.id, [current]);
+      if (!withRoles) throw new Error('withRoles returned no member');
+      return { member: withRoles, activityAction };
     });
+    if (activityAction) {
+      await this.writeActivity(tenant.id, actingUserId, activityAction, userId, input);
+    }
+    return changed;
   }
 
   /** The owner sets a new password for a staff member. They must choose their own at the next sign-in (STF-13). */
-  resetPassword(
+  async resetPassword(
     tenant: StaffTenant,
     userId: string,
     newPassword: string,
     now: Date,
+    actingUserId: string | null,
   ): Promise<void> {
-    return this.hasher.hash(newPassword).then((passwordHash) =>
-      this.store.run(tenant.id, async (tx) => {
-        const member = await this.store.findStaff(tx, tenant.id, userId);
-        if (!member) throw new ApiError('not_found', 'Staff member not found.', {});
-        if (member.isOwner) throw new ApiError('forbidden', 'The owner cannot be changed.', {});
-        await this.store.setPassword(tx, tenant.id, userId, passwordHash, true);
-        // The old sessions end, so the next sign-in is the one that sets the new password.
-        await this.store.revokeSessionsOf(tx, userId, now);
-      }),
-    );
+    const passwordHash = await this.hasher.hash(newPassword);
+    await this.store.run(tenant.id, async (tx) => {
+      const member = await this.store.findStaff(tx, tenant.id, userId);
+      if (!member) throw new ApiError('not_found', 'Staff member not found.', {});
+      if (member.isOwner) throw new ApiError('forbidden', 'The owner cannot be changed.', {});
+      await this.store.setPassword(tx, tenant.id, userId, passwordHash, true);
+      // The old sessions end, so the next sign-in is the one that sets the new password.
+      await this.store.revokeSessionsOf(tx, userId, now);
+    });
+    await this.writeActivity(tenant.id, actingUserId, AuditAction.PasswordReset, userId);
   }
 
   /**
@@ -199,6 +217,8 @@ export class StaffService {
       }
       await this.store.setPassword(tx, tenantId, userId, passwordHash, false);
     });
+    // A self-change is always by the member it changes.
+    await this.writeActivity(tenantId, userId, AuditAction.PasswordChanged, userId);
   }
 
   /** Every role id must be a role of this shop. */
@@ -241,5 +261,29 @@ export class StaffService {
 
   private seatsOf(tenant: StaffTenant): number {
     return tenant.planLimits?.staff ?? DEFAULT_SEATS;
+  }
+
+  /**
+   * Writes an activity log entry for a staff action (AUD-01). `actingUserId` is the session's own staff id, or null
+   * for the owner's own session, in which case the owner's row is looked up to name as the actor.
+   */
+  private async writeActivity(
+    tenantId: string,
+    actingUserId: string | null,
+    action: AuditAction,
+    targetId: string | null,
+    summary?: unknown,
+  ): Promise<void> {
+    const actorId = actingUserId ?? (await this.ownerId(tenantId));
+    await this.audit.recordStandalone({
+      tenantId,
+      actorType: ActorType.User,
+      actorId,
+      action,
+      targetType: 'staff',
+      targetId,
+      result: AuditResult.Success,
+      summary,
+    });
   }
 }

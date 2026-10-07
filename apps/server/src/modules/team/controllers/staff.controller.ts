@@ -50,12 +50,16 @@ export class StaffController {
     if (phone === null) {
       throw new ApiError('validation_error', 'Enter a valid mobile number.', { field: 'phone' });
     }
-    return this.staff.create(this.shopOf(request), {
-      phone,
-      password: body.password,
-      name: body.name,
-      roleIds: body.roleIds,
-    });
+    return this.staff.create(
+      this.shopOf(request),
+      {
+        phone,
+        password: body.password,
+        name: body.name,
+        roleIds: body.roleIds,
+      },
+      this.actorOf(request),
+    );
   }
 
   @Patch(':id')
@@ -67,7 +71,13 @@ export class StaffController {
   ): Promise<StaffRecord> {
     const parsed = staffIdSchema.safeParse(id);
     if (!parsed.success) throw new ApiError('not_found', 'Staff member not found.', {});
-    return this.staff.update(this.shopOf(request), parsed.data, body, new Date());
+    return this.staff.update(
+      this.shopOf(request),
+      parsed.data,
+      body,
+      new Date(),
+      this.actorOf(request),
+    );
   }
 
   // The owner sets a new password for a staff member; they choose their own at the next sign-in (STF-13).
@@ -81,7 +91,13 @@ export class StaffController {
   ): Promise<{ ok: true }> {
     const parsed = staffIdSchema.safeParse(id);
     if (!parsed.success) throw new ApiError('not_found', 'Staff member not found.', {});
-    await this.staff.resetPassword(this.shopOf(request), parsed.data, body.newPassword, new Date());
+    await this.staff.resetPassword(
+      this.shopOf(request),
+      parsed.data,
+      body.newPassword,
+      new Date(),
+      this.actorOf(request),
+    );
     return { ok: true };
   }
 
@@ -90,5 +106,10 @@ export class StaffController {
     if (!tenant)
       throw new ApiError('forbidden', 'Create your shop to continue.', { next: 'create-shop' });
     return { id: tenant.id, planLimits: tenant.planLimits };
+  }
+
+  /** The acting staff member, or null for the owner's own session (AUD-02). */
+  private actorOf(request: DashboardRequest): string | null {
+    return request.session?.userId ?? null;
   }
 }

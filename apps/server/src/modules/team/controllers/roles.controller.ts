@@ -42,7 +42,7 @@ export class RolesController {
     @Body(new ZodValidationPipe(CreateRoleDto.schema)) body: CreateRoleDto,
     @Req() request: DashboardRequest,
   ): Promise<RoleRecord> {
-    return this.roles.create(this.shopOf(request), body);
+    return this.roles.create(this.shopOf(request), body, this.actorOf(request));
   }
 
   @Patch(':id')
@@ -52,13 +52,13 @@ export class RolesController {
     @Body(new ZodValidationPipe(UpdateRoleDto.schema)) body: UpdateRoleDto,
     @Req() request: DashboardRequest,
   ): Promise<RoleRecord> {
-    return this.roles.update(this.shopOf(request), this.roleId(id), body);
+    return this.roles.update(this.shopOf(request), this.roleId(id), body, this.actorOf(request));
   }
 
   @Delete(':id')
   @RequirePermission(Permission.StaffManage)
   async remove(@Param('id') id: string, @Req() request: DashboardRequest): Promise<{ ok: true }> {
-    await this.roles.remove(this.shopOf(request), this.roleId(id));
+    await this.roles.remove(this.shopOf(request), this.roleId(id), this.actorOf(request));
     return { ok: true };
   }
 
@@ -73,5 +73,10 @@ export class RolesController {
     if (!tenant)
       throw new ApiError('forbidden', 'Create your shop to continue.', { next: 'create-shop' });
     return { id: tenant.id };
+  }
+
+  /** The acting staff member, or null for the owner's own session (AUD-02). */
+  private actorOf(request: DashboardRequest): string | null {
+    return request.session?.userId ?? null;
   }
 }

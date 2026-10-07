@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AuditModule } from '../audit/audit.module';
 import { IdentityModule } from '../identity/identity.module';
 import { StaffModule } from '../staff/staff.module';
 import { TenancyModule } from '../tenancy/tenancy.module';
@@ -11,7 +12,7 @@ import { StaffController } from './controllers/staff.controller';
 // The team's HTTP routes. They sit outside the staff module because they need the identity and tenancy gates,
 // and tenancy already imports the staff module.
 @Module({
-  imports: [IdentityModule, TenancyModule, StaffModule],
+  imports: [IdentityModule, TenancyModule, StaffModule, AuditModule],
   controllers: [StaffController, RolesController, StaffAuthController],
   providers: [StaffSigninService, ClientIp],
 })
