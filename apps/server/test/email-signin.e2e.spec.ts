@@ -187,6 +187,40 @@ describeIfDatabase('resetting a password by emailed code (AUTH-27)', () => {
     );
   });
 
+  it('allows one reset request per two minutes per account, with the same reply (AUTH-18)', async () => {
+    const email = freshEmail();
+    await post('/auth/email/code', { email });
+    await verify(email, mail.codeFor(email));
+
+    const resetsTo = (): number =>
+      mail.sent.filter((m) => m.to === email && m.subject === 'Your password reset code').length;
+    const before = resetsTo();
+    const first = await post('/auth/forgot-password/email', { email });
+    const second = await post('/auth/forgot-password/email', { email });
+    expect(second.status).toBe(200);
+    expect(second.body).toEqual(first.body);
+    expect(resetsTo()).toBe(before + 1);
+  });
+
+  it('locks after five wrong reset codes, even when the sixth is correct (AUTH-14)', async () => {
+    const email = freshEmail();
+    await post('/auth/email/code', { email });
+    await verify(email, mail.codeFor(email));
+
+    await passCooldown(email);
+    await post('/auth/forgot-password/email', { email });
+    const correct = mail.codeFor(email);
+    const wrong = correct === '000000' ? '111111' : '000000';
+
+    for (let i = 0; i < 4; i += 1) {
+      await post('/auth/forgot-password/email/verify', { email, code: wrong });
+    }
+    const fifth = await post('/auth/forgot-password/email/verify', { email, code: wrong });
+    expect(fifth.status).toBe(429);
+    const sixth = await post('/auth/forgot-password/email/verify', { email, code: correct });
+    expect(sixth.status).toBe(429);
+  });
+
   it('opens a session that must set a password, after a correct emailed reset code', async () => {
     const email = freshEmail();
     await post('/auth/email/code', { email });
