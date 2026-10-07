@@ -60,6 +60,8 @@ export class SigninService {
           });
         }
         const subscriberId = existing?.subscriberId ?? (await this.createAccount(tx, phone));
+        // The code proves the number, so a pending staff phone becomes verified here (AUTH-08).
+        await this.gateway.markPhoneVerified(tx, { subscriberId, phone, at: new Date() });
         return this.signedIn.open(tx, {
           subscriberId,
           signInMethod: SignInMethod.Code,

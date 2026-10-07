@@ -128,6 +128,18 @@ export class DrizzleSignupGateway implements SignupGateway {
     return this.accounts.insertSubscriber(tx);
   }
 
+  markPhoneVerified(
+    tx: Transaction,
+    values: { subscriberId: string; phone: string; at: Date },
+  ): Promise<void> {
+    return this.accounts.markIdentityVerified(tx, {
+      subscriberId: values.subscriberId,
+      kind: IdentityKind.Phone,
+      value: values.phone,
+      at: values.at,
+    });
+  }
+
   async insertPhoneIdentity(
     tx: Transaction,
     values: { subscriberId: string; phone: string; verifiedAt: Date },

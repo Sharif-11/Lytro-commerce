@@ -413,3 +413,26 @@ describeIfDatabase('staff accounts and phones across the platform (STF-06, AUTH-
     expect(linked.rows[0]?.subscriber_id).toEqual(expect.any(String));
   });
 });
+
+describeIfDatabase('a staff phone is proven by its first code sign-in', () => {
+  it('marks the pending phone verified when the staff member signs in by code', async () => {
+    const who = await owner();
+    await moveToPlan(who.slug, 'Starter');
+    const phone = texts.freshPhone();
+    expect((await addStaff(who, phone)).status).toBe(201);
+
+    await post('/auth/phone/code', { phone });
+    const signedIn = await post(
+      '/auth/phone/verify',
+      { phone, code: texts.codeFor(phone) },
+      PLATFORM,
+    );
+    expect(signedIn.status).toBe(200);
+
+    const identity = await admin.query<{ verified_at: Date | null }>(
+      `SELECT verified_at FROM control.subscriber_identities WHERE kind = 'phone' AND value = $1`,
+      [phone],
+    );
+    expect(identity.rows[0]?.verified_at).toEqual(expect.any(Date));
+  });
+});
