@@ -15,6 +15,13 @@ export class OutboxJobQueue implements JobQueue {
     payload: unknown,
     options?: EnqueueOptions,
   ): Promise<void> {
-    return this.outbox.insert(tx, { queueName, payload, singletonKey: options?.singletonKey });
+    return this.outbox.insert(tx, {
+      queueName,
+      payload,
+      singletonKey: options?.singletonKey,
+      expireInSeconds: options?.expireInSeconds,
+      retryLimit: options?.retryLimit,
+      retryDelay: options?.retryDelay,
+    });
   }
 }

@@ -52,7 +52,7 @@ export class OneTimeCodeService {
     kind: ChallengeKind,
     cooldownMs: number = RESEND_COOLDOWN_MS,
   ): Promise<CodeIssued> {
-    const { issued, delivery } = await this.gateway.run(async (tx) => {
+    const { issued, delivery, expiresAt } = await this.gateway.run(async (tx) => {
       const now = this.settings.now();
       const latest = await this.challenges.latest(tx, destination, channel, kind);
 
@@ -87,12 +87,13 @@ export class OneTimeCodeService {
       }
 
       const code = this.hasher.generate();
+      const expiresAt = new Date(now.getTime() + CODE_TTL_MS);
       await this.challenges.create(tx, {
         destination,
         channel,
         kind,
         codeHash: this.hasher.hash(code, destination),
-        expiresAt: new Date(now.getTime() + CODE_TTL_MS),
+        expiresAt,
       });
       const delivery: Delivery =
         channel === ChallengeChannel.Sms
@@ -104,6 +105,7 @@ export class OneTimeCodeService {
           resendAfterSeconds: cooldownMs / 1000,
         },
         delivery,
+        expiresAt,
       };
     });
 
@@ -114,6 +116,11 @@ export class OneTimeCodeService {
         await this.mail.deliverCode(delivery.to, delivery.code, delivery.purpose);
       }
     } catch (error) {
+      if (error instanceof SmsDeliveryError && delivery.channel === ChallengeChannel.Sms) {
+        // D27: the code is still valid for a few minutes, so a bounded background retry gets a second chance at
+        // delivering it. Best-effort: a failure to queue it never hides the error the caller is about to see.
+        await this.queueRetry(delivery.message, expiresAt);
+      }
       if (error instanceof SmsDeliveryError || error instanceof MailDeliveryError) {
         // The code was not delivered. The cooldown equals this retry hint, so asking again is possible when it ends.
         throw new ApiError(
@@ -126,6 +133,22 @@ export class OneTimeCodeService {
       throw error;
     }
     return issued;
+  }
+
+  /** Best-effort: a failure here is logged, never thrown, so it can't mask the delivery error the caller sees. */
+  private async queueRetry(
+    message: Awaited<ReturnType<MessagingService['queueOtp']>>,
+    expiresAt: Date,
+  ): Promise<void> {
+    try {
+      await this.gateway.run((tx) => this.messaging.queueOtpRetry(tx, message, expiresAt));
+    } catch (retryError) {
+      console.error(
+        `[otp] could not queue a retry for message ${String(message.id)}: ${
+          retryError instanceof Error ? retryError.message : String(retryError)
+        }`,
+      );
+    }
   }
 
   /** Returns the challenge the code was checked against, or throws the matching error. */

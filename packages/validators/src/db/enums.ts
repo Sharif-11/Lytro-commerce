@@ -125,6 +125,9 @@ export enum AuditAction {
 export enum QueueName {
   Sms = 'sms',
   Mail = 'mail',
+  // D27: a bounded retry for an OTP's failed synchronous send, kept apart from `Sms` since its jobs carry a
+  // plaintext code and expire with that code, unlike whatever `Sms` ends up carrying later.
+  OtpRetry = 'otp_retry',
 }
 
 // Who performed the action (AUD-02). `system` is the platform itself (a scheduled job); `platform_support` is an

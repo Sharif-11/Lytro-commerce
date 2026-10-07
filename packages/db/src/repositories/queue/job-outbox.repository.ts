@@ -8,6 +8,9 @@ export interface ClaimedOutboxRow {
   queueName: string;
   payload: unknown;
   singletonKey: string | null;
+  expireInSeconds: number | null;
+  retryLimit: number | null;
+  retryDelay: number | null;
 }
 
 // SCL-08, D25: the enqueue step's own atomicity boundary (see schema/control/queue.ts). A separate relay reads
@@ -15,12 +18,22 @@ export interface ClaimedOutboxRow {
 export class JobOutboxRepository {
   async insert(
     tx: Transaction,
-    values: { queueName: string; payload: unknown; singletonKey?: string },
+    values: {
+      queueName: string;
+      payload: unknown;
+      singletonKey?: string;
+      expireInSeconds?: number;
+      retryLimit?: number;
+      retryDelay?: number;
+    },
   ): Promise<void> {
     await tx.insert(jobOutbox).values({
       queueName: values.queueName,
       payload: values.payload,
       singletonKey: values.singletonKey,
+      expireInSeconds: values.expireInSeconds,
+      retryLimit: values.retryLimit,
+      retryDelay: values.retryDelay,
     });
   }
 
@@ -39,6 +52,9 @@ export class JobOutboxRepository {
       queue_name: string;
       payload: unknown;
       singleton_key: string | null;
+      expire_in_seconds: number | null;
+      retry_limit: number | null;
+      retry_delay: number | null;
     }>(sql`
       UPDATE control.job_outbox
       SET status = 'sending', lease_until = ${input.leaseUntil}
@@ -50,13 +66,16 @@ export class JobOutboxRepository {
         LIMIT ${input.limit}
         FOR UPDATE SKIP LOCKED
       )
-      RETURNING id, queue_name, payload, singleton_key
+      RETURNING id, queue_name, payload, singleton_key, expire_in_seconds, retry_limit, retry_delay
     `);
     return result.rows.map((row) => ({
       id: Number(row.id),
       queueName: row.queue_name,
       payload: row.payload,
       singletonKey: row.singleton_key,
+      expireInSeconds: row.expire_in_seconds,
+      retryLimit: row.retry_limit,
+      retryDelay: row.retry_delay,
     }));
   }
 

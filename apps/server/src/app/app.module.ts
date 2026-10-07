@@ -5,12 +5,21 @@ import { DatabaseModule } from '../database/database.module';
 import { HealthController } from '../modules/health/health.controller';
 import { AuditModule } from '../modules/audit/audit.module';
 import { QueueModule } from '../modules/shared/queue/queue.module';
+import { QueueWorkersModule } from '../modules/shared/queue-workers/queue-workers.module';
 import { TeamModule } from '../modules/team/team.module';
 import { IdentityModule } from '../modules/identity/identity.module';
 import { TenancyModule } from '../modules/tenancy/tenancy.module';
 
 @Module({
-  imports: [DatabaseModule, TenancyModule, IdentityModule, TeamModule, AuditModule, QueueModule],
+  imports: [
+    DatabaseModule,
+    TenancyModule,
+    IdentityModule,
+    TeamModule,
+    AuditModule,
+    QueueModule,
+    QueueWorkersModule,
+  ],
   controllers: [HealthController],
   providers: [{ provide: APP_FILTER, useClass: ApiErrorFilter }],
 })
