@@ -13,6 +13,8 @@ import { DatabaseService } from '../database.service';
 
 // The unique index on a shop's staff phones (STF-06 within one shop).
 const PHONE_INDEX = 'users_tenant_phone_idx';
+// The unique link to a platform account: the phone is already staff in another shop (STF-06).
+const SUBSCRIBER_INDEX = 'users_subscriber_key';
 
 function toRecord(row: SelectUser): StaffRecord {
   return {
@@ -65,12 +67,21 @@ export class DrizzleStaffStore implements StaffStore {
 
   async insertStaff(
     tx: Transaction,
-    values: { tenantId: string; phone: string; name: string | null; passwordHash: string },
+    values: {
+      tenantId: string;
+      subscriberId: string;
+      phone: string;
+      name: string | null;
+      passwordHash: string;
+    },
   ): Promise<StaffRecord> {
     try {
       return toRecord(await this.users.insertStaff(tx, values));
     } catch (error) {
-      if (this.transactions.isUniqueViolation(error, PHONE_INDEX))
+      if (
+        this.transactions.isUniqueViolation(error, PHONE_INDEX) ||
+        this.transactions.isUniqueViolation(error, SUBSCRIBER_INDEX)
+      )
         throw new UniqueViolation('phone');
       throw error;
     }

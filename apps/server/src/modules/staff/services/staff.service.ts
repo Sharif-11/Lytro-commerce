@@ -6,7 +6,8 @@ import { UniqueViolation } from '../../../common/errors/unique-violation';
 import type { RoleStore } from '../ports/role-store';
 import type { StaffPasswordHasher } from '../ports/staff-password-hasher';
 import type { StaffStore } from '../ports/staff-store';
-import { ROLE_STORE, STAFF_PASSWORD_HASHER, STAFF_STORE } from '../tokens';
+import type { StaffAccounts } from '../ports/staff-accounts';
+import { ROLE_STORE, STAFF_ACCOUNTS, STAFF_PASSWORD_HASHER, STAFF_STORE } from '../tokens';
 import type { StaffList, StaffMember, StaffRecord } from '../types/staff';
 
 // STF-02: a plan without a staff limit has one seat, the owner's own.
@@ -25,6 +26,7 @@ export class StaffService {
     @Inject(STAFF_STORE) private readonly store: StaffStore,
     @Inject(STAFF_PASSWORD_HASHER) private readonly hasher: StaffPasswordHasher,
     @Inject(ROLE_STORE) private readonly roles: RoleStore,
+    @Inject(STAFF_ACCOUNTS) private readonly accounts: StaffAccounts,
   ) {}
 
   createOwner(
@@ -54,17 +56,24 @@ export class StaffService {
     return this.store.run(tenant.id, async (tx) => {
       await this.requireRoles(tx, tenant.id, roleIds);
       await this.requireSeat(tx, tenant);
+      const subscriberId = await this.accounts.reservePhone(tx, input.phone);
+      if (subscriberId === null) {
+        throw new ApiError('conflict', 'That phone number belongs to a shop owner.', {
+          field: 'phone',
+        });
+      }
       let created: StaffRecord;
       try {
         created = await this.store.insertStaff(tx, {
           tenantId: tenant.id,
+          subscriberId,
           phone: input.phone,
           name: input.name ?? null,
           passwordHash,
         });
       } catch (error) {
         if (error instanceof UniqueViolation) {
-          throw new ApiError('conflict', 'That phone number already has a staff account here.', {
+          throw new ApiError('conflict', 'That phone number is already in use.', {
             field: 'phone',
           });
         }

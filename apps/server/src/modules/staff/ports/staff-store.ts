@@ -16,7 +16,13 @@ export interface StaffStore {
   /** A phone already used in this shop comes back as UniqueViolation('phone'). */
   insertStaff(
     tx: Transaction,
-    values: { tenantId: string; phone: string; name: string | null; passwordHash: string },
+    values: {
+      tenantId: string;
+      subscriberId: string;
+      phone: string;
+      name: string | null;
+      passwordHash: string;
+    },
   ): Promise<StaffRecord>;
   setActive(
     tx: Transaction,

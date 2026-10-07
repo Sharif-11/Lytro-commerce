@@ -40,6 +40,7 @@ const del = (path: string, headers: Record<string, string> = {}) => deleteJson(p
 const freshSlug = (): string => `s${randomUUID().replace(/-/g, '').slice(0, 10)}`;
 
 interface Owner {
+  phone: string;
   slug: string;
   cookie: string;
   csrfToken: string;
@@ -64,7 +65,7 @@ async function owner(): Promise<Owner> {
   expect(shop.status).toBe(201);
   const set = await post('/auth/password', { newPassword: PASSWORD }, headers);
   expect(set.status).toBe(200);
-  return { slug, ...session };
+  return { phone, slug, ...session };
 }
 
 /** Shop routes are called on the shop's own host, so the dashboard guard matches the session's shop. */
@@ -368,5 +369,47 @@ describeIfDatabase('roles of another shop (TEN-03)', () => {
     expect(deleted.status).toBe(404);
     const list = await get('/roles', shopCall(ours));
     expect(list.body).toEqual([expect.objectContaining({ name: 'Ours' })]);
+  });
+});
+
+describeIfDatabase('staff accounts and phones across the platform (STF-06, AUTH-08)', () => {
+  it('refuses a staff phone that belongs to a shop owner', async () => {
+    const ours = await owner();
+    const theirs = await owner();
+    await moveToPlan(theirs.slug, 'Starter');
+    const response = await addStaff(theirs, ours.phone);
+    expect(response.status).toBe(409);
+    expect(errorOf(response)).toMatchObject({ code: 'conflict', details: { field: 'phone' } });
+  });
+
+  it('refuses a phone that is already staff in another shop', async () => {
+    const first = await owner();
+    const second = await owner();
+    await moveToPlan(first.slug, 'Starter');
+    await moveToPlan(second.slug, 'Starter');
+    const phone = texts.freshPhone();
+    expect((await addStaff(first, phone)).status).toBe(201);
+    const again = await addStaff(second, phone);
+    expect(again.status).toBe(409);
+    expect(errorOf(again)).toMatchObject({ code: 'conflict' });
+  });
+
+  it('creates a pending platform account for a new staff phone, linked to the staff row', async () => {
+    const who = await owner();
+    await moveToPlan(who.slug, 'Starter');
+    const phone = texts.freshPhone();
+    const created = await addStaff(who, phone);
+    expect(created.status).toBe(201);
+
+    const identity = await admin.query(
+      `SELECT verified_at FROM control.subscriber_identities WHERE kind = 'phone' AND value = $1`,
+      [phone],
+    );
+    expect(identity.rows).toEqual([{ verified_at: null }]);
+    const linked = await admin.query<{ subscriber_id: string | null }>(
+      `SELECT subscriber_id FROM tenant.users WHERE id = $1`,
+      [(created.body as StaffBody).id],
+    );
+    expect(linked.rows[0]?.subscriber_id).toEqual(expect.any(String));
   });
 });

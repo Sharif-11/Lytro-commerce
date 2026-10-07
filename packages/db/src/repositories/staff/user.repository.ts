@@ -56,13 +56,20 @@ export class UserRepository {
 
   async insertStaff(
     tx: Transaction,
-    values: { tenantId: string; phone: string; name: string | null; passwordHash: string },
+    values: {
+      tenantId: string;
+      subscriberId: string;
+      phone: string;
+      name: string | null;
+      passwordHash: string;
+    },
   ): Promise<SelectUser> {
     await this.transactions.setTenantContext(tx, values.tenantId);
     const rows = await tx
       .insert(users)
       .values({
         tenantId: values.tenantId,
+        subscriberId: values.subscriberId,
         phone: values.phone,
         name: values.name,
         passwordHash: values.passwordHash,
