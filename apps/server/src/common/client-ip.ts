@@ -8,7 +8,15 @@ import { type HttpRequest, headerValue } from './http';
 
 type ClientIpSettings = Pick<Env, 'CLIENT_IP_HEADER' | 'CLIENT_IP_FORMAT' | 'TRUSTED_PROXY_HOPS'>;
 
-/** The client's real address (D14). */
+/**
+ * The client's real address (D14). Behind the edge the socket address is the proxy's, so the forwarded address
+ * counts only when the request carries the edge secret. Without a valid secret the header is ignored, since any
+ * client could send it.
+ *
+ * A list header (X-Forwarded-For) is a chain that each trusted proxy appends to. The client is the entry the
+ * nearest trusted proxy added, which is TRUSTED_PROXY_HOPS places from the end. Entries before it were sent by the
+ * client and are not trusted.
+ */
 @Injectable()
 export class ClientIp {
   constructor(
