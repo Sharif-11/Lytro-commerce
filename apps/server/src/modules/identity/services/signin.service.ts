@@ -1,10 +1,17 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { ChallengeChannel, ChallengeKind, SignInMethod } from '@lytronix/validators';
+import {
+  AuditAction,
+  AuditResult,
+  ChallengeChannel,
+  ChallengeKind,
+  SignInMethod,
+} from '@lytronix/validators';
 import type { Transaction } from '@lytronix/db';
 import { ApiError } from '../../../common/api-error';
 import { UniqueViolation } from '../../../common/errors/unique-violation';
 import { OneTimeCodeService } from './one-time-code.service';
 import { PhoneNumberFormat } from './phone-number-format';
+import { SignInAudit } from './sign-in-audit';
 import { SignInLockout } from './sign-in-lockout';
 import { SignedInSession } from './signed-in-session';
 import type { SessionContext } from '../types/session';
@@ -21,6 +28,7 @@ export class SigninService {
     @Inject(SignedInSession) private readonly signedIn: SignedInSession,
     @Inject(SignInLockout) private readonly lockout: SignInLockout,
     @Inject(PhoneNumberFormat) private readonly phoneFormat: PhoneNumberFormat,
+    @Inject(SignInAudit) private readonly signInAudit: SignInAudit,
   ) {}
 
   async requestCode(rawPhone: string) {
@@ -52,7 +60,7 @@ export class SigninService {
     }
 
     try {
-      return await this.gateway.run(async (tx) => {
+      const opened = await this.gateway.run(async (tx) => {
         const consumed = await this.gateway.consumeChallenge(tx, challengeId, new Date());
         if (!consumed) {
           throw new ApiError('validation_error', 'This code has already been used.', {
@@ -69,6 +77,8 @@ export class SigninService {
           context,
         });
       });
+      await this.signInAudit.log(opened.tenantId, null, AuditAction.SignIn, AuditResult.Success);
+      return opened;
     } catch (error) {
       if (error instanceof UniqueViolation) {
         throw new ApiError('conflict', 'Please try again.', {});

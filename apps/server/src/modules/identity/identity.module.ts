@@ -33,6 +33,7 @@ import { PasswordSigninService } from './services/password-signin.service';
 import { PhoneNumberFormat } from './services/phone-number-format';
 import { SignInLockout } from './services/sign-in-lockout';
 import { SignedInSession } from './services/signed-in-session';
+import { SignInAudit } from './services/sign-in-audit';
 import { SessionService } from './services/session.service';
 import type { SessionSettings } from './types/session';
 import { ShopCreationService } from './services/shop-creation.service';
@@ -117,6 +118,7 @@ import {
     ClientIp,
     SignInLockout,
     SignedInSession,
+    SignInAudit,
     SigninService,
     PasswordSigninService,
     ForgotPasswordService,

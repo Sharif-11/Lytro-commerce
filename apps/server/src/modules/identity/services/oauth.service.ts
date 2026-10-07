@@ -1,7 +1,13 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { createHash, randomBytes } from 'node:crypto';
 import { z } from 'zod';
-import { IdentityKind, OauthProvider, SignInMethod } from '@lytronix/validators';
+import {
+  AuditAction,
+  AuditResult,
+  IdentityKind,
+  OauthProvider,
+  SignInMethod,
+} from '@lytronix/validators';
 import type { Transaction } from '@lytronix/db';
 import { ApiError } from '../../../common/api-error';
 import { ENV } from '../../../config/tokens';
@@ -9,6 +15,7 @@ import type { Env } from '../../../config/env';
 import { MINUTE_MS } from '../../../common/time';
 import { UniqueViolation } from '../../../common/errors/unique-violation';
 import { SignedInSession } from './signed-in-session';
+import { SignInAudit } from './sign-in-audit';
 import type { SessionContext } from '../types/session';
 import type { OauthAttached, OauthSignedIn } from '../types/oauth';
 import { OAUTH_PROVIDERS, OAUTH_STATE_STORE, SIGNUP_GATEWAY, SIGNUP_SETTINGS } from '../tokens';
@@ -30,6 +37,7 @@ export class OauthService {
     @Inject(SIGNUP_SETTINGS) private readonly settings: SignupSettings,
     @Inject(SignedInSession) private readonly signedIn: SignedInSession,
     @Inject(ENV) private readonly env: Pick<Env, 'OAUTH_CALLBACK_BASE'>,
+    @Inject(SignInAudit) private readonly signInAudit: SignInAudit,
   ) {}
 
   enabledProviders(): OauthProvider[] {
@@ -83,7 +91,7 @@ export class OauthService {
     }
 
     try {
-      return await this.gateway.run(async (tx) => {
+      const result = await this.gateway.run(async (tx): Promise<OauthSignedIn> => {
         const existing = await this.gateway.findSubscriberByIdentity(tx, kind, profile.accountId);
         const subscriberId =
           existing?.subscriberId ?? (await this.createAccount(tx, kind, profile.accountId));
@@ -99,6 +107,8 @@ export class OauthService {
             : null;
         return { ...opened, recovery };
       });
+      await this.signInAudit.log(result.tenantId, null, AuditAction.SignIn, AuditResult.Success);
+      return result;
     } catch (error) {
       if (error instanceof UniqueViolation) throw new ApiError('conflict', 'Please try again.', {});
       throw error;

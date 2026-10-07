@@ -1,8 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { SignInMethod } from '@lytronix/validators';
+import { AuditAction, AuditResult, SignInMethod } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import { PasswordHasher } from './password-hasher';
 import { PhoneNumberFormat } from './phone-number-format';
+import { SignInAudit } from './sign-in-audit';
 import { SignInLockout } from './sign-in-lockout';
 import { SignedInSession } from './signed-in-session';
 import type { SessionContext } from '../types/session';
@@ -19,6 +20,7 @@ export class PasswordSigninService {
     @Inject(SignInLockout) private readonly lockout: SignInLockout,
     @Inject(PasswordHasher) private readonly hasher: PasswordHasher,
     @Inject(PhoneNumberFormat) private readonly phoneFormat: PhoneNumberFormat,
+    @Inject(SignInAudit) private readonly signInAudit: SignInAudit,
   ) {}
 
   async signIn(rawPhone: string, password: string, context: SessionContext): Promise<SignedIn> {
@@ -35,10 +37,21 @@ export class PasswordSigninService {
         : await this.hasher.verifyAbsent(password);
     if (!account || !matches) {
       await this.lockout.recordFailure(subscriberId, context.ip);
+      if (subscriberId !== null) {
+        const owned = await this.gateway.run((tx) =>
+          this.gateway.findOwnedTenant(tx, subscriberId),
+        );
+        await this.signInAudit.log(
+          owned?.id ?? null,
+          null,
+          AuditAction.SignInFailed,
+          AuditResult.Failure,
+        );
+      }
       throw this.invalidCredentials();
     }
 
-    return this.gateway.run((tx) =>
+    const opened = await this.gateway.run((tx) =>
       this.signedIn.open(tx, {
         subscriberId: account.subscriberId,
         signInMethod: SignInMethod.Password,
@@ -46,6 +59,8 @@ export class PasswordSigninService {
         context,
       }),
     );
+    await this.signInAudit.log(opened.tenantId, null, AuditAction.SignIn, AuditResult.Success);
+    return opened;
   }
 
   /** One reply for an unknown number, an account with no password and a wrong password (AUTH-13). */
