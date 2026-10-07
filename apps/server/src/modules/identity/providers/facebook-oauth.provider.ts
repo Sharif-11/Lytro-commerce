@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { ApiError } from '../../../common/api-error';
 import type { OauthProfile, OauthProviderPort } from '../ports/oauth-provider';
 
+const DIALOG = 'https://www.facebook.com/v19.0';
 const API = 'https://graph.facebook.com/v19.0';
 
 const tokenReply = z.object({ access_token: z.string().min(1) });
@@ -18,7 +19,7 @@ export class FacebookOauthProvider implements OauthProviderPort {
   ) {}
 
   authorizeUrl(input: { state: string; codeChallenge: string; redirectUri: string }): string {
-    const url = new URL(`${API}/dialog/oauth`);
+    const url = new URL(`${DIALOG}/dialog/oauth`);
     url.searchParams.set('client_id', this.appId);
     url.searchParams.set('redirect_uri', input.redirectUri);
     url.searchParams.set('state', input.state);
