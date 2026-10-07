@@ -8,6 +8,11 @@ export interface StaffRecord {
   createdAt: Date;
 }
 
+/** A staff account with the roles it holds. */
+export interface StaffMember extends StaffRecord {
+  roleIds: string[];
+}
+
 /** Seats in use (active users, the owner included) against the plan's seats (STF-02). */
 export interface SeatUsage {
   used: number;
@@ -16,5 +21,5 @@ export interface SeatUsage {
 
 export interface StaffList {
   seats: SeatUsage;
-  staff: StaffRecord[];
+  staff: StaffMember[];
 }

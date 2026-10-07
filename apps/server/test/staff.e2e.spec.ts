@@ -10,7 +10,14 @@ import { AppModule } from '../src/app/app.module';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { prepareTestDatabase } from './support/database';
 import { SmsCapture } from './support/sms-capture';
-import { cookieFrom, getJson, type HttpResult, patchJson, postJson } from './support/http';
+import {
+  cookieFrom,
+  deleteJson,
+  getJson,
+  type HttpResult,
+  patchJson,
+  postJson,
+} from './support/http';
 
 // Staff accounts and seats over real HTTP and the real database (STF-01 to STF-05, STF-12, AUTH-19 staff case
 // is not covered here). Runs only when DATABASE_TEST_ADMIN_URL is set.
@@ -28,6 +35,7 @@ const texts = new SmsCapture();
 const post = (path: string, payload: unknown, headers: Record<string, string> = {}) =>
   postJson(port, path, payload, headers);
 const get = (path: string, headers: Record<string, string> = {}) => getJson(port, path, headers);
+const del = (path: string, headers: Record<string, string> = {}) => deleteJson(port, path, headers);
 
 const freshSlug = (): string => `s${randomUUID().replace(/-/g, '').slice(0, 10)}`;
 
@@ -233,5 +241,132 @@ describeIfDatabase('owner row and unknown staff (STF-12, not_found)', () => {
     expect(response.status).toBe(401);
     const platform = await post('/staff', { phone: '01712345678', password: PASSWORD }, PLATFORM);
     expect(platform.status).toBe(401);
+  });
+});
+
+async function createRole(who: Owner, name: string, permissions: string[]): Promise<HttpResult> {
+  return post('/roles', { name, permissions }, shopCall(who));
+}
+
+describeIfDatabase('roles built from the permission list (STF-07, STF-08, STF-09)', () => {
+  it('creates a role from listed permissions and shows it with no holders', async () => {
+    const who = await owner();
+    const created = await createRole(who, 'Sales', ['orders:read', 'orders:manage']);
+    expect(created.status).toBe(201);
+    expect(created.body).toMatchObject({
+      name: 'Sales',
+      permissions: ['orders:read', 'orders:manage'],
+    });
+
+    const list = await get('/roles', shopCall(who));
+    expect(list.status).toBe(200);
+    expect(list.body).toEqual([expect.objectContaining({ name: 'Sales', holders: 0 })]);
+  });
+
+  it('refuses a permission outside the platform list', async () => {
+    const who = await owner();
+    const response = await createRole(who, 'Launch', ['orders:launch']);
+    expect(response.status).toBe(400);
+    expect(errorOf(response)).toMatchObject({ code: 'validation_error' });
+  });
+
+  it('refuses a second role with the same name in the shop', async () => {
+    const who = await owner();
+    expect((await createRole(who, 'Cashier', ['orders:read'])).status).toBe(201);
+    const again = await createRole(who, 'Cashier', ['payments:read']);
+    expect(again.status).toBe(409);
+    expect(errorOf(again)).toMatchObject({ code: 'conflict', details: { field: 'name' } });
+  });
+
+  it('edits a role and keeps the change', async () => {
+    const who = await owner();
+    const role = (await createRole(who, 'Support', ['chat:read'])).body as { id: string };
+    const edited = await patchJson(
+      port,
+      `/roles/${role.id}`,
+      { permissions: ['chat:read', 'chat:reply'] },
+      shopCall(who),
+    );
+    expect(edited.status).toBe(200);
+    expect(edited.body).toMatchObject({ id: role.id, permissions: ['chat:read', 'chat:reply'] });
+  });
+
+  it('has no cap on the number of roles', async () => {
+    const who = await owner();
+    for (let i = 0; i < 50; i += 1) {
+      const response = await createRole(who, `Role ${String(i)}`, ['orders:read']);
+      expect(response.status).toBe(201);
+    }
+    const list = await get('/roles', shopCall(who));
+    expect((list.body as unknown[]).length).toBe(50);
+  });
+
+  it('refuses to delete a role someone holds, and deletes it once they no longer hold it', async () => {
+    const who = await owner();
+    await moveToPlan(who.slug, 'Starter');
+    const role = (await createRole(who, 'Stock', ['products:manage'])).body as { id: string };
+    const hired = await post(
+      '/staff',
+      { phone: texts.freshPhone(), password: PASSWORD, name: 'Karim', roleIds: [role.id] },
+      shopCall(who),
+    );
+    expect(hired.status).toBe(201);
+    expect(hired.body).toMatchObject({ roleIds: [role.id] });
+    const staffId = (hired.body as StaffBody).id;
+
+    const held = await del(`/roles/${role.id}`, shopCall(who));
+    expect(held.status).toBe(409);
+    expect(errorOf(held)).toMatchObject({ code: 'conflict', details: { holders: 1 } });
+
+    const moved = await patchJson(port, `/staff/${staffId}`, { roleIds: [] }, shopCall(who));
+    expect(moved.status).toBe(200);
+    expect(moved.body).toMatchObject({ roleIds: [] });
+
+    const removed = await del(`/roles/${role.id}`, shopCall(who));
+    expect(removed.status).toBe(200);
+    const list = await get('/roles', shopCall(who));
+    expect(list.body).toEqual([]);
+  });
+
+  it('refuses a staff member with a role that is not in this shop', async () => {
+    const who = await owner();
+    await moveToPlan(who.slug, 'Starter');
+    const response = await post(
+      '/staff',
+      { phone: texts.freshPhone(), password: PASSWORD, roleIds: [randomUUID()] },
+      shopCall(who),
+    );
+    expect(response.status).toBe(400);
+    expect(errorOf(response)).toMatchObject({
+      code: 'validation_error',
+      details: { field: 'roleIds' },
+    });
+  });
+
+  it('answers not_found for an unknown or malformed role id', async () => {
+    const who = await owner();
+    const patched = await patchJson(
+      port,
+      `/roles/${randomUUID()}`,
+      { name: 'Ghost' },
+      shopCall(who),
+    );
+    expect(patched.status).toBe(404);
+    const deleted = await del('/roles/not-an-id', shopCall(who));
+    expect(deleted.status).toBe(404);
+  });
+});
+
+describeIfDatabase('roles of another shop (TEN-03)', () => {
+  it('answers not_found when another shop changes or deletes a role', async () => {
+    const ours = await owner();
+    const theirs = await owner();
+    const role = (await createRole(ours, 'Ours', ['orders:read'])).body as { id: string };
+    const patched = await patchJson(port, `/roles/${role.id}`, { name: 'Taken' }, shopCall(theirs));
+    expect(patched.status).toBe(404);
+    const deleted = await del(`/roles/${role.id}`, shopCall(theirs));
+    expect(deleted.status).toBe(404);
+    const list = await get('/roles', shopCall(ours));
+    expect(list.body).toEqual([expect.objectContaining({ name: 'Ours' })]);
   });
 });

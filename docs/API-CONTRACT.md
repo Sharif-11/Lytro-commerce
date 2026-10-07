@@ -55,11 +55,12 @@ Status: draft v1, for review before implementation. Companion to `DATABASE-SCHEM
 | Method | Path | Auth | Notes |
 | --- | --- | --- | --- |
 | GET | `/api/v1/staff` | session, `staff:read` | List staff, seat usage. |
-| POST | `/api/v1/staff` | session, `staff:manage` | `{ phone, password, name?, roleIds[] }`; 403 `plan_limit_reached` above seat limit. |
-| PATCH | `/api/v1/staff/:id` | session, `staff:manage` | Edit, deactivate/reactivate (STF-03/04). |
-| GET | `/api/v1/roles` | session, `staff:read` | |
-| POST | `/api/v1/roles` | session, `staff:manage` | `{ name, permissions[] }`. |
-| DELETE | `/api/v1/roles/:id` | session, `staff:manage` | 409 `conflict` if a user still holds it (STF-09). |
+| POST | `/api/v1/staff` | session, `staff:manage` | `{ phone, password, name?, roleIds[] }`; 402 `plan_limit_reached` above seat limit; 409 `conflict` for a phone already used in the shop. |
+| PATCH | `/api/v1/staff/:id` | session, `staff:manage` | `{ active?, roleIds? }`: deactivate/reactivate (STF-03/04) and change roles (STF-07). The owner row cannot change (403). |
+| GET | `/api/v1/roles` | session, `staff:read` | Roles with the number of holders (STF-09). |
+| POST | `/api/v1/roles` | session, `staff:manage` | `{ name, permissions[] }`; permissions come from the platform list; 409 `conflict` for a name already used. |
+| PATCH | `/api/v1/roles/:id` | session, `staff:manage` | `{ name?, permissions? }` (STF-07). |
+| DELETE | `/api/v1/roles/:id` | session, `staff:manage` | 409 `conflict` with `holders` if a user still holds it (STF-09). |
 
 ---
 

@@ -39,11 +39,12 @@ export class StaffController {
       phone,
       password: body.password,
       name: body.name,
+      roleIds: body.roleIds,
     });
   }
 
   @Patch(':id')
-  setActive(
+  update(
     @Param('id') id: string,
     @Body(new ZodValidationPipe(UpdateStaffDto.schema)) body: UpdateStaffDto,
     @Req() request: DashboardRequest,
@@ -51,7 +52,7 @@ export class StaffController {
     this.requireOwner(request);
     const parsed = staffIdSchema.safeParse(id);
     if (!parsed.success) throw new ApiError('not_found', 'Staff member not found.', {});
-    return this.staff.setActive(this.shopOf(request), parsed.data, body.active, new Date());
+    return this.staff.update(this.shopOf(request), parsed.data, body, new Date());
   }
 
   private shopOf(request: DashboardRequest): StaffTenant {
