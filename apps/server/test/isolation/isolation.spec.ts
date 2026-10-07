@@ -137,6 +137,7 @@ describeIfDatabase('route inventory against the application (SEC-02)', () => {
     expect(routes).toEqual([
       'DELETE /me/identities/:id',
       'DELETE /roles/:id',
+      'GET /activity',
       'GET /me',
       'GET /me/identities',
       'GET /roles',

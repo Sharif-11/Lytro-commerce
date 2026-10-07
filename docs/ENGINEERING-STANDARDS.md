@@ -83,6 +83,7 @@ Not yet specified anywhere else — new content.
 3. Manual promotion to production (not automatic — a person approves, given real money moves through this system); the thing promoted is the exact artifact that passed staging's smoke test, never a rebuild.
 4. Production deploy follows the already-decided sequence (AVL-05): standby first, health check, then primary, zero-downtime reload. At launch (phase 1, one server) this collapses to a single health-checked reload; the pipeline step doesn't change when phase 2 adds the standby — only which servers it targets does.
 5. Migrations run as their own pipeline step, before the new code deploys, against a fresh backup (DAT-04) — never bundled invisibly into the app's own startup.
+6. The activity log's retention purge (AUD-06) runs the same way: its own scheduled step, with its own privileged connection, never inside the app. The app's own credential cannot delete from that table at all — a trigger rejects it outright (AUD-03, D24) — so there is no "fallback" path for the app to use if the scheduled step is missed; a missed run just means the next one deletes a larger backlog.
 
 **Rollback.** The previous container image stays available and redeployable in one step; expand-then-contract migrations (§5) mean the previous release keeps working against the new schema, so a code rollback is never blocked on a database rollback.
 

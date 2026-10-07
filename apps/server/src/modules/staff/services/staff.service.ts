@@ -31,6 +31,14 @@ export class StaffService {
     @Inject(AuditService) private readonly audit: AuditService,
   ) {}
 
+  /** The names of several staff rows at once, keyed by id (no N+1 per audit entry). */
+  namesOf(tenant: StaffTenant, userIds: string[]): Promise<Map<string, string | null>> {
+    return this.store.run(tenant.id, async (tx) => {
+      const rows = await this.store.findByIds(tx, tenant.id, userIds);
+      return new Map(rows.map((row) => [row.id, row.name]));
+    });
+  }
+
   /** The owner's own staff row id, for an audit entry the owner performs (AUD-02). */
   ownerId(tenantId: string): Promise<string | null> {
     return this.store.run(

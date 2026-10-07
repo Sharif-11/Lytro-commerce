@@ -113,6 +113,10 @@ export class DrizzleStaffStore implements StaffStore {
     return row ? toRecord(row) : null;
   }
 
+  async findByIds(tx: Transaction, tenantId: string, userIds: string[]): Promise<StaffRecord[]> {
+    return (await this.users.findByIds(tx, tenantId, userIds)).map(toRecord);
+  }
+
   async findCredentialsById(
     tx: Transaction,
     tenantId: string,

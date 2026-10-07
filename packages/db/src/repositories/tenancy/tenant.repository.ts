@@ -1,14 +1,8 @@
-import { and, eq, ne } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import type { Database } from '../../client';
 import type { Executor } from '../../transactions';
 import { plans, tenantDomains, tenants } from '../../schema';
-import { DomainStatus, TenantState, type PlanLimits } from '@lytronix/validators';
-
-/** A shop and its plan's activity retention, for the purge job (AUD-06). */
-export interface RetentionRow {
-  tenantId: string;
-  retentionDays: PlanLimits['activity_retention_days'];
-}
+import { DomainStatus, type PlanLimits } from '@lytronix/validators';
 
 // Shop rows and their lookups. The trial period and plan choice are decided by the tenancy service.
 export interface TenantLookupRow {
@@ -113,18 +107,5 @@ export class TenantRepository {
       .where(and(eq(plans.name, name), eq(plans.forSale, forSale)))
       .limit(1);
     return rows[0] ?? null;
-  }
-
-  /** Every shop that still exists, with its plan's retention setting (AUD-06). Deleted shops have no log to purge. */
-  async listActiveWithRetention(db: Database): Promise<RetentionRow[]> {
-    const rows = await db
-      .select({ tenantId: tenants.id, limits: plans.limits })
-      .from(tenants)
-      .leftJoin(plans, eq(plans.id, tenants.planId))
-      .where(ne(tenants.state, TenantState.Deleted));
-    return rows.map((row) => ({
-      tenantId: row.tenantId,
-      retentionDays: row.limits?.activity_retention_days,
-    }));
   }
 }

@@ -17,6 +17,4 @@ export interface AuditStore {
     cursor: ActivityCursor | null,
     limit: number,
   ): Promise<ActivityRecord[]>;
-  /** Deletes entries older than the cutoff. Returns how many were removed (AUD-06). */
-  purgeOlderThan(tx: Transaction, tenantId: string, cutoff: Date): Promise<number>;
 }

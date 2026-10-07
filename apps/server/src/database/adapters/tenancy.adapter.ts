@@ -12,7 +12,6 @@ import type { CachedTenant } from '../../modules/tenancy/types/cached-tenant';
 import type { TenantDirectory } from '../../modules/tenancy/ports/tenant-directory';
 import type { SlugAvailability } from '../../modules/tenancy/ports/slug-availability';
 import type { TenantSummaryStore } from '../../modules/tenancy/ports/tenant-summary-store';
-import type { RetentionTarget } from '../../modules/tenancy/types/retention-target';
 import type { TenantSummary } from '../../modules/tenancy/types/tenant-summary';
 import type { TenantStore } from '../../modules/tenancy/ports/tenant-store';
 import { DatabaseService } from '../database.service';
@@ -84,13 +83,5 @@ export class DrizzleTenantSummaryStore implements TenantSummaryStore {
 
   findSummary(tenantId: string): Promise<TenantSummary | null> {
     return this.tenants.findSummaryById(this.database.handle.db, tenantId);
-  }
-
-  async listForRetentionPurge(): Promise<RetentionTarget[]> {
-    const rows = await this.tenants.listActiveWithRetention(this.database.handle.db);
-    return rows.map((row) => ({
-      tenantId: row.tenantId,
-      retentionDays: row.retentionDays ?? null,
-    }));
   }
 }

@@ -14,6 +14,7 @@ export interface StaffStore {
   countActive(tx: Transaction, tenantId: string): Promise<number>;
   findStaff(tx: Transaction, tenantId: string, userId: string): Promise<StaffRecord | null>;
   findOwner(tx: Transaction, tenantId: string): Promise<StaffRecord | null>;
+  findByIds(tx: Transaction, tenantId: string, userIds: string[]): Promise<StaffRecord[]>;
   findCredentialsById(
     tx: Transaction,
     tenantId: string,

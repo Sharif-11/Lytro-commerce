@@ -54,14 +54,4 @@ export class ActivityLogRepository {
       .orderBy(desc(activityLog.createdAt), desc(activityLog.id))
       .limit(limit);
   }
-
-  /** Deletes entries older than the cutoff for one shop (AUD-06). Returns how many were removed. */
-  async purgeOlderThan(tx: Transaction, tenantId: string, cutoff: Date): Promise<number> {
-    await this.transactions.setTenantContext(tx, tenantId);
-    const rows = await tx
-      .delete(activityLog)
-      .where(and(eq(activityLog.tenantId, tenantId), lt(activityLog.createdAt, cutoff)))
-      .returning({ id: activityLog.id });
-    return rows.length;
-  }
 }

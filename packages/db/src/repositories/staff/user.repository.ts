@@ -1,4 +1,4 @@
-import { and, asc, count, eq, sql } from 'drizzle-orm';
+import { and, asc, count, eq, inArray, sql } from 'drizzle-orm';
 import { users, type SelectUser } from '../../schema';
 import type { Transaction, TransactionRunner } from '../../transactions';
 
@@ -42,6 +42,16 @@ export class UserRepository {
       .from(users)
       .where(and(eq(users.tenantId, tenantId), eq(users.active, true)));
     return rows[0]?.total ?? 0;
+  }
+
+  /** The named users of a shop, by id, in one query (no N+1). */
+  async findByIds(tx: Transaction, tenantId: string, userIds: string[]): Promise<SelectUser[]> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    if (userIds.length === 0) return [];
+    return tx
+      .select()
+      .from(users)
+      .where(and(eq(users.tenantId, tenantId), inArray(users.id, userIds)));
   }
 
   async findUser(tx: Transaction, tenantId: string, userId: string): Promise<SelectUser | null> {

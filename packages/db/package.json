@@ -11,7 +11,8 @@
     "lint": "eslint src test",
     "test": "vitest run",
     "generate": "drizzle-kit generate",
-    "migrate": "node dist/migrate.js"
+    "migrate": "node dist/migrate.js",
+    "purge:activity-log": "node dist/purge-activity-log.js"
   },
   "dependencies": {
     "@lytronix/validators": "workspace:^",

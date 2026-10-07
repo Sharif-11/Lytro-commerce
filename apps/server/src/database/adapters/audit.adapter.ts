@@ -44,8 +44,4 @@ export class DrizzleAuditStore implements AuditStore {
   ): Promise<ActivityRecord[]> {
     return this.log.list(tx, tenantId, filters, cursor, limit);
   }
-
-  purgeOlderThan(tx: Transaction, tenantId: string, cutoff: Date): Promise<number> {
-    return this.log.purgeOlderThan(tx, tenantId, cutoff);
-  }
 }

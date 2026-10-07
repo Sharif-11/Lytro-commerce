@@ -38,9 +38,4 @@ export class AuditService {
     const nextCursor = hasMore && last ? { createdAt: last.createdAt, id: last.id } : null;
     return { entries, nextCursor };
   }
-
-  /** Deletes entries past the given shop's retention cutoff (AUD-06). Returns how many were removed. */
-  purgeForTenant(tenantId: string, cutoff: Date): Promise<number> {
-    return this.store.run(tenantId, (tx) => this.store.purgeOlderThan(tx, tenantId, cutoff));
-  }
 }
