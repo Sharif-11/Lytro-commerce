@@ -9,6 +9,7 @@ import { DrizzleSessionStore } from '../../database/adapters/session.adapter';
 import { DrizzleSignInFailureStore } from '../../database/adapters/sign-in-failure.adapter';
 import { MailModule } from '../shared/mail/mail.module';
 import { MessagingModule } from '../shared/messaging/messaging.module';
+import { AuditModule } from '../audit/audit.module';
 import { TenancyModule } from '../tenancy/tenancy.module';
 import { AuthController } from './controllers/auth.controller';
 import { IdentitiesController } from './controllers/identities.controller';
@@ -32,6 +33,7 @@ import { PasswordSigninService } from './services/password-signin.service';
 import { PhoneNumberFormat } from './services/phone-number-format';
 import { SignInLockout } from './services/sign-in-lockout';
 import { SignedInSession } from './services/signed-in-session';
+import { SignInAudit } from './services/sign-in-audit';
 import { SessionService } from './services/session.service';
 import type { SessionSettings } from './types/session';
 import { ShopCreationService } from './services/shop-creation.service';
@@ -53,7 +55,7 @@ import {
 } from './tokens';
 
 @Module({
-  imports: [TenancyModule, MessagingModule, MailModule],
+  imports: [TenancyModule, MessagingModule, MailModule, AuditModule],
   controllers: [
     AuthController,
     ShopsController,
@@ -116,6 +118,7 @@ import {
     ClientIp,
     SignInLockout,
     SignedInSession,
+    SignInAudit,
     SigninService,
     PasswordSigninService,
     ForgotPasswordService,

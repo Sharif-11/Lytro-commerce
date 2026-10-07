@@ -10,5 +10,6 @@ export * from './api/auth/auth-identities';
 export * from './api/shops/shops-create';
 export * from './api/staff/staff/staff-create';
 export * from './api/staff/staff/staff-password';
+export * from './api/audit/activity/activity-list';
 export * from './api/staff/role/role-create';
 export * from './api/staff/role/role-update';

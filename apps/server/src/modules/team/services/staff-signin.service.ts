@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { SignInMethod } from '@lytronix/validators';
+import { ActorType, AuditAction, AuditResult, SignInMethod } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
+import { AuditService } from '../../audit/services/audit.service';
 import { LAPSED } from '../../identity/guards/dashboard.guard';
 import type { SessionContext } from '../../identity/types/session';
 import type { SignedIn } from '../../identity/types/signed-in';
@@ -24,6 +25,7 @@ export class StaffSigninService {
     @Inject(SignInLockout) private readonly lockout: SignInLockout,
     @Inject(PasswordHasher) private readonly hasher: PasswordHasher,
     @Inject(PhoneNumberFormat) private readonly phones: PhoneNumberFormat,
+    @Inject(AuditService) private readonly audit: AuditService,
   ) {}
 
   async signIn(
@@ -44,6 +46,13 @@ export class StaffSigninService {
         : await this.hasher.verify(password, hash);
     if (member === null || subscriberId === null || member.isOwner || !member.active || !matches) {
       await this.lockout.recordFailure(subscriberId, context.ip);
+      await this.audit.recordStandalone({
+        tenantId: shop.id,
+        actorType: ActorType.User,
+        actorId: member?.userId ?? null,
+        action: AuditAction.SignInFailed,
+        result: AuditResult.Failure,
+      });
       throw new ApiError('unauthenticated', 'That phone number and password do not match.', {});
     }
     if (shop.suspendedAt !== null || LAPSED.has(shop.state)) {
@@ -60,6 +69,13 @@ export class StaffSigninService {
         context,
       }),
     );
+    await this.audit.recordStandalone({
+      tenantId: shop.id,
+      actorType: ActorType.User,
+      actorId: member.userId,
+      action: AuditAction.SignIn,
+      result: AuditResult.Success,
+    });
     return {
       next: member.mustSetPassword ? 'set-password' : 'dashboard',
       tenantId: shop.id,

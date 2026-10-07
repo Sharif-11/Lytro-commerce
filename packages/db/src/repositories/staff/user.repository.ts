@@ -1,4 +1,4 @@
-import { and, asc, count, eq, sql } from 'drizzle-orm';
+import { and, asc, count, eq, inArray, sql } from 'drizzle-orm';
 import { users, type SelectUser } from '../../schema';
 import type { Transaction, TransactionRunner } from '../../transactions';
 
@@ -44,6 +44,16 @@ export class UserRepository {
     return rows[0]?.total ?? 0;
   }
 
+  /** The named users of a shop, by id, in one query (no N+1). */
+  async findByIds(tx: Transaction, tenantId: string, userIds: string[]): Promise<SelectUser[]> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    if (userIds.length === 0) return [];
+    return tx
+      .select()
+      .from(users)
+      .where(and(eq(users.tenantId, tenantId), inArray(users.id, userIds)));
+  }
+
   async findUser(tx: Transaction, tenantId: string, userId: string): Promise<SelectUser | null> {
     await this.transactions.setTenantContext(tx, tenantId);
     const rows = await tx
@@ -65,6 +75,17 @@ export class UserRepository {
       .select()
       .from(users)
       .where(and(eq(users.tenantId, tenantId), eq(users.phone, phone)))
+      .limit(1);
+    return rows[0] ?? null;
+  }
+
+  /** The owner row of the shop, if any (every shop has exactly one once created). */
+  async findOwner(tx: Transaction, tenantId: string): Promise<SelectUser | null> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const rows = await tx
+      .select()
+      .from(users)
+      .where(and(eq(users.tenantId, tenantId), eq(users.isOwner, true)))
       .limit(1);
     return rows[0] ?? null;
   }

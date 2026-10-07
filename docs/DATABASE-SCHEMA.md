@@ -642,6 +642,8 @@ CREATE TABLE tenant.activity_log (
 
 Database roles: `app_write` (no RLS bypass, used for the write pool), `app_read` (SELECT-only, read-only transactions by default, used for the read pool — DAT-41/DAT-45). Both have the audit/ledger/activity tables as INSERT-only, no UPDATE/DELETE grant at all (DAT-10, BAL-02, AUD-03).
 
+**Retention purge (AUD-06), decided 2026-10-07 (D24).** `tenant.activity_log`'s insert-only trigger rejects UPDATE and DELETE from every role unconditionally — the app never holds a credential that could remove a row, full stop. Deleting entries past a plan's retention therefore cannot run through the app at all. It runs as its own privileged pipeline step, `packages/db/src/purge-activity-log.ts` (`pnpm --filter @lytronix/db purge:activity-log`), using the same schema-owner connection as migrations, never the app's. Inside one transaction it disables the trigger, deletes the expired rows across every shop (joining each shop's plan for its `activity_retention_days`, 30 by default), and re-enables the trigger before committing — so a crash mid-run rolls back the disable too, and the guarantee holds for every connection except this one deliberate, auditable step. Run it on a schedule (cron, a systemd timer, or the ops platform's own scheduler), same category as a migration, never bundled into the server's own startup or request handling.
+
 ---
 
 ## 4. Plans depth: add-ons, pay-as-you-go, not-for-sale

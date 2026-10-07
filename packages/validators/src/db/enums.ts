@@ -104,6 +104,38 @@ export enum Permission {
   WebhooksManage = 'webhooks:manage',
 }
 
+// The actions the activity log records (AUD-01). Add a name here before any code writes it; the action codes are
+// never translated. Each slice that adds an audited action extends this list, never a second one.
+export enum AuditAction {
+  SignIn = 'sign_in',
+  SignInFailed = 'sign_in_failed',
+  SignOut = 'sign_out',
+  PasswordChanged = 'password_changed',
+  PasswordReset = 'password_reset',
+  StaffCreated = 'staff_created',
+  StaffUpdated = 'staff_updated',
+  StaffDeactivated = 'staff_deactivated',
+  StaffReactivated = 'staff_reactivated',
+  RoleCreated = 'role_created',
+  RoleUpdated = 'role_updated',
+  RoleDeleted = 'role_deleted',
+}
+
+// Who performed the action (AUD-02). `system` is the platform itself (a scheduled job); `platform_support` is an
+// operator acting on a tenant, shown to the tenant as "Platform support" (AUD-08).
+export enum ActorType {
+  User = 'user',
+  ApiKey = 'api_key',
+  System = 'system',
+  PlatformSupport = 'platform_support',
+}
+
+// Whether the audited action succeeded (AUD-02).
+export enum AuditResult {
+  Success = 'success',
+  Failure = 'failure',
+}
+
 /**
  * The values of a string enum as the non-empty tuple that Drizzle's `pgEnum` expects. Throws on an empty enum,
  * which cannot happen for the enums above; the check keeps the type honest without a cast.

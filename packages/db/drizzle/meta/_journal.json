@@ -127,6 +127,13 @@
       "when": 1791347931731,
       "tag": "0017_staff_must_set_password",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1791350020476,
+      "tag": "0018_plan_activity_retention",
+      "breakpoints": true
     }
   ]
 }

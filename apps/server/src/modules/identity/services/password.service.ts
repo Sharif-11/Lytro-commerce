@@ -1,9 +1,15 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { SignInMethod, type SetPasswordInput } from '@lytronix/validators';
+import {
+  AuditAction,
+  AuditResult,
+  SignInMethod,
+  type SetPasswordInput,
+} from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import { MINUTE_MS } from '../../../common/time';
 import { PasswordHasher } from './password-hasher';
 import { SessionService } from './session.service';
+import { SignInAudit } from './sign-in-audit';
 import { SignInLockout } from './sign-in-lockout';
 import { SIGNUP_GATEWAY, SIGNUP_SETTINGS } from '../tokens';
 import type { SessionRecord } from '../ports/session-store';
@@ -22,6 +28,7 @@ export class PasswordService {
     @Inject(PasswordHasher) private readonly hasher: PasswordHasher,
     @Inject(SessionService) private readonly sessions: SessionService,
     @Inject(SignInLockout) private readonly lockout: SignInLockout,
+    @Inject(SignInAudit) private readonly signInAudit: SignInAudit,
   ) {}
 
   async set(session: SessionRecord, input: SetPasswordInput): Promise<void> {
@@ -39,6 +46,12 @@ export class PasswordService {
       await this.gateway.setPasswordHash(tx, session.subscriberId, passwordHash);
       await this.sessions.completePasswordChange(tx, session);
     });
+    await this.signInAudit.log(
+      session.tenantId,
+      null,
+      AuditAction.PasswordChanged,
+      AuditResult.Success,
+    );
   }
 
   private currentNotNeeded(session: SessionRecord): boolean {

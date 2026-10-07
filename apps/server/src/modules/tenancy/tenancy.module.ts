@@ -67,6 +67,8 @@ import { TenantSummaries } from './services/tenant-summaries.service';
     TenantService,
     TenantSummaries,
     EdgeSecret,
+    // Re-exported so a module that only imports tenancy (such as identity) can still resolve a shop's owner.
+    StaffModule,
   ],
 })
 export class TenancyModule {}

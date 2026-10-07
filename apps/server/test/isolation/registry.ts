@@ -34,4 +34,6 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'POST /roles': 'creates a role in the session shop only',
   'PATCH /roles/:id': 'another shop role answers 404',
   'DELETE /roles/:id': 'another shop role answers 404; a held role is refused',
+  // Checked in test/activity.e2e.spec.ts: a shop sees only its own activity log entries.
+  'GET /activity': 'lists only the session shop activity log',
 };

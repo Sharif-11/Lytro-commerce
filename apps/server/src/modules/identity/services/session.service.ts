@@ -1,9 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
-import type { SignInMethod } from '@lytronix/validators';
+import { AuditAction, AuditResult, type SignInMethod } from '@lytronix/validators';
 import type { Transaction } from '@lytronix/db';
 import { DAY_MS } from '../../../common/time';
 import { SESSION_SETTINGS, SESSION_STORE, SIGNUP_SETTINGS } from '../tokens';
+import { SignInAudit } from './sign-in-audit';
 import type { SessionRecord, SessionStore } from '../ports/session-store';
 import type { SignupSettings } from '../ports/signup-settings';
 import type { OpenedSession, SessionContext, SessionSettings } from '../types/session';
@@ -18,6 +19,7 @@ export class SessionService {
     @Inject(SESSION_STORE) private readonly store: SessionStore,
     @Inject(SIGNUP_SETTINGS) private readonly clock: SignupSettings,
     @Inject(SESSION_SETTINGS) private readonly settings: SessionSettings,
+    @Inject(SignInAudit) private readonly signInAudit: SignInAudit,
   ) {}
 
   /** Creates a session in the caller's unit of work and returns the cookie value and CSRF token to send back. */
@@ -59,6 +61,12 @@ export class SessionService {
 
   async revoke(session: SessionRecord): Promise<void> {
     await this.store.revoke(session.id, this.clock.now());
+    await this.signInAudit.log(
+      session.tenantId,
+      session.userId,
+      AuditAction.SignOut,
+      AuditResult.Success,
+    );
   }
 
   attachTenant(tx: Transaction, sessionId: string, tenantId: string): Promise<void> {

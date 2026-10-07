@@ -2,6 +2,7 @@
 export * from './schema';
 export { DatabaseConnector, type Database, type DatabaseHandle, type PoolSettings } from './client';
 export { MigrationRunner } from './migrate';
+export { ActivityLogPurger } from './purge-activity-log';
 export { TransactionRunner, type Executor, type Transaction } from './transactions';
 export {
   TenantRepository,
@@ -24,6 +25,7 @@ export {
   type SessionRow,
   type NewSession,
 } from './repositories/identity/session.repository';
+export { ActivityLogRepository } from './repositories/audit/activity-log.repository';
 export { RoleRepository } from './repositories/staff/role.repository';
 export { UserRepository } from './repositories/staff/user.repository';
 export {

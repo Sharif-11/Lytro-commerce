@@ -1,10 +1,17 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { ChallengeChannel, ChallengeKind, SignInMethod } from '@lytronix/validators';
+import {
+  AuditAction,
+  AuditResult,
+  ChallengeChannel,
+  ChallengeKind,
+  SignInMethod,
+} from '@lytronix/validators';
 import type { Transaction } from '@lytronix/db';
 import { ApiError } from '../../../common/api-error';
 import { OneTimeCodeService, CODE_TTL_MS, RESET_COOLDOWN_MS } from './one-time-code.service';
 import { EmailFormat } from './email-format';
 import { PhoneNumberFormat } from './phone-number-format';
+import { SignInAudit } from './sign-in-audit';
 import { SignInLockout } from './sign-in-lockout';
 import { SignedInSession } from './signed-in-session';
 import type { SessionContext } from '../types/session';
@@ -25,6 +32,7 @@ export class ForgotPasswordService {
     @Inject(SignedInSession) private readonly signedIn: SignedInSession,
     @Inject(PhoneNumberFormat) private readonly phoneFormat: PhoneNumberFormat,
     @Inject(EmailFormat) private readonly emailFormat: EmailFormat,
+    @Inject(SignInAudit) private readonly signInAudit: SignInAudit,
   ) {}
 
   request(rawPhone: string): Promise<CodeIssued> {
@@ -104,7 +112,7 @@ export class ForgotPasswordService {
       throw error;
     }
 
-    return this.gateway.run(async (tx) => {
+    const opened = await this.gateway.run(async (tx) => {
       const consumed = await this.gateway.consumeChallenge(tx, challengeId, new Date());
       if (!consumed) throw this.invalidCode();
       return this.signedIn.open(tx, {
@@ -114,6 +122,13 @@ export class ForgotPasswordService {
         context,
       });
     });
+    await this.signInAudit.log(
+      opened.tenantId,
+      null,
+      AuditAction.PasswordReset,
+      AuditResult.Success,
+    );
+    return opened;
   }
 
   /** The same reply for a wrong, expired or unknown code (AUTH-17). */
