@@ -93,6 +93,17 @@ export class RoleRepository {
     for (const roleId of roleIds) await this.assign(tx, tenantId, userId, roleId);
   }
 
+  /** The permissions a user holds through their roles. */
+  async permissionsOf(tx: Transaction, tenantId: string, userId: string): Promise<string[]> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const rows = await tx
+      .select({ permissions: roles.permissions })
+      .from(userRoles)
+      .innerJoin(roles, and(eq(roles.tenantId, userRoles.tenantId), eq(roles.id, userRoles.roleId)))
+      .where(and(eq(userRoles.tenantId, tenantId), eq(userRoles.userId, userId)));
+    return rows.flatMap((row) => row.permissions);
+  }
+
   /** Gives a user a role. Giving the same role twice changes nothing. */
   async assign(tx: Transaction, tenantId: string, userId: string, roleId: string): Promise<void> {
     await this.transactions.setTenantContext(tx, tenantId);

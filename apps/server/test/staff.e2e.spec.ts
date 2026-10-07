@@ -521,3 +521,82 @@ describeIfDatabase('staff sign-in across shops (TEN-03)', () => {
     expect(response.status).toBe(401);
   });
 });
+
+describeIfDatabase('permissions checked on each request (STF-10, STF-11)', () => {
+  /** A staff member holding one viewing role, signed in on the shop host. */
+  async function viewerSession(
+    who: Owner,
+    permissions: string[],
+  ): Promise<{ call: Record<string, string>; roleId: string; staffId: string }> {
+    const role = (await createRole(who, `Viewer ${randomUUID().slice(0, 6)}`, permissions))
+      .body as { id: string };
+    const phone = texts.freshPhone();
+    const hired = await post(
+      '/staff',
+      { phone, password: STAFF_PASSWORD, roleIds: [role.id] },
+      shopCall(who),
+    );
+    expect(hired.status).toBe(201);
+    const signed = await staffSignIn(who.slug, phone, STAFF_PASSWORD);
+    expect(signed.status).toBe(200);
+    return {
+      call: {
+        cookie: cookieFrom(signed),
+        'x-csrf-token': (signed.body as { csrfToken: string }).csrfToken,
+        host: `${who.slug}.localhost`,
+      },
+      roleId: role.id,
+      staffId: (hired.body as StaffBody).id,
+    };
+  }
+
+  it('allows what the role grants and refuses the rest with the permission named', async () => {
+    const who = await owner();
+    await moveToPlan(who.slug, 'Starter');
+    const viewer = await viewerSession(who, ['staff:read']);
+
+    expect((await get('/staff', viewer.call)).status).toBe(200);
+    expect((await get('/roles', viewer.call)).status).toBe(200);
+
+    const denied = await post(
+      '/staff',
+      { phone: texts.freshPhone(), password: STAFF_PASSWORD },
+      viewer.call,
+    );
+    expect(denied.status).toBe(403);
+    expect(errorOf(denied)).toMatchObject({
+      code: 'forbidden',
+      details: { permission: 'staff:manage' },
+    });
+    const deniedRole = await post('/roles', { name: 'Nope', permissions: [] }, viewer.call);
+    expect(deniedRole.status).toBe(403);
+  });
+
+  it('applies a change to the role on the next request, without a new sign-in', async () => {
+    const who = await owner();
+    await moveToPlan(who.slug, 'Starter');
+    const viewer = await viewerSession(who, ['staff:read']);
+    expect((await get('/staff', viewer.call)).status).toBe(200);
+
+    const edited = await patchJson(
+      port,
+      `/roles/${viewer.roleId}`,
+      { permissions: [] },
+      shopCall(who),
+    );
+    expect(edited.status).toBe(200);
+
+    const after = await get('/staff', viewer.call);
+    expect(after.status).toBe(403);
+    expect(errorOf(after)).toMatchObject({ details: { permission: 'staff:read' } });
+  });
+
+  it("ends a deactivated staff member's session at once", async () => {
+    const who = await owner();
+    await moveToPlan(who.slug, 'Starter');
+    const viewer = await viewerSession(who, ['staff:read']);
+    expect((await setActive(who, viewer.staffId, false)).status).toBe(200);
+    const response = await get('/staff', viewer.call);
+    expect(response.status).toBe(401);
+  });
+});

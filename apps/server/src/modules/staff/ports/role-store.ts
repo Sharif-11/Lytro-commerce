@@ -24,6 +24,8 @@ export interface RoleStore {
   assign(tx: Transaction, tenantId: string, userId: string, roleId: string): Promise<void>;
   /** Replaces the roles a user holds with exactly these. */
   replaceFor(tx: Transaction, tenantId: string, userId: string, roleIds: string[]): Promise<void>;
+  /** The permissions a user holds through their roles, read on each call (STF-10). */
+  permissionsOf(tx: Transaction, tenantId: string, userId: string): Promise<string[]>;
   /** Every user's role ids in the shop, as (user, role) pairs. */
   assignments(tx: Transaction, tenantId: string): Promise<{ userId: string; roleId: string }[]>;
 }

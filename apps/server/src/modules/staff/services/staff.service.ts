@@ -34,6 +34,15 @@ export class StaffService {
     return this.store.run(tenant.id, work);
   }
 
+  /** The permissions a staff member holds right now, or null when the member is missing or inactive (STF-05, STF-10). */
+  permissionsOf(tenant: StaffTenant, userId: string): Promise<string[] | null> {
+    return this.store.run(tenant.id, async (tx) => {
+      const member = await this.store.findStaff(tx, tenant.id, userId);
+      if (!member || !member.active) return null;
+      return this.roles.permissionsOf(tx, tenant.id, userId);
+    });
+  }
+
   /** The sign-in details of the shop's staff member with this phone, or null. */
   credentialsByPhone(tenant: StaffTenant, phone: string): Promise<StaffCredentials | null> {
     return this.store.run(tenant.id, (tx) =>
