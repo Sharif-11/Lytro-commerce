@@ -12,13 +12,15 @@
     "test": "vitest run",
     "generate": "drizzle-kit generate",
     "migrate": "node dist/migrate.js",
+    "bootstrap-queue": "node dist/bootstrap-queue.js",
     "purge:activity-log": "node dist/purge-activity-log.js"
   },
   "dependencies": {
     "@lytronix/validators": "workspace:^",
     "dotenv": "^16",
     "drizzle-orm": "^0.36",
-    "pg": "^8"
+    "pg": "^8",
+    "pg-boss": "^12"
   },
   "devDependencies": {
     "@types/node": "^20",

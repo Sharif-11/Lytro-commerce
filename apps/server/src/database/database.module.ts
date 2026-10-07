@@ -10,6 +10,7 @@ import {
   TenantRepository,
   TransactionRunner,
   ActivityLogRepository,
+  JobOutboxRepository,
   RoleRepository,
   UserRepository,
 } from '@lytronix/db';
@@ -33,6 +34,10 @@ import { DatabaseService } from './database.service';
     { provide: SmsRepository, useFactory: () => new SmsRepository() },
     { provide: TenantRepository, useFactory: () => new TenantRepository() },
     {
+      provide: JobOutboxRepository,
+      useFactory: () => new JobOutboxRepository(),
+    },
+    {
       provide: ActivityLogRepository,
       inject: [TransactionRunner],
       useFactory: (transactions: TransactionRunner) => new ActivityLogRepository(transactions),
@@ -53,6 +58,7 @@ import { DatabaseService } from './database.service';
     DatabaseService,
     TransactionRunner,
     ActivityLogRepository,
+    JobOutboxRepository,
     RoleRepository,
     AccountRepository,
     ChallengeRepository,

@@ -3,6 +3,7 @@ export * from './schema';
 export { DatabaseConnector, type Database, type DatabaseHandle, type PoolSettings } from './client';
 export { MigrationRunner } from './migrate';
 export { ActivityLogPurger } from './purge-activity-log';
+export { QueueBootstrapper } from './bootstrap-queue';
 export { TransactionRunner, type Executor, type Transaction } from './transactions';
 export {
   TenantRepository,
@@ -26,6 +27,10 @@ export {
   type NewSession,
 } from './repositories/identity/session.repository';
 export { ActivityLogRepository } from './repositories/audit/activity-log.repository';
+export {
+  JobOutboxRepository,
+  type ClaimedOutboxRow,
+} from './repositories/queue/job-outbox.repository';
 export { RoleRepository } from './repositories/staff/role.repository';
 export { UserRepository } from './repositories/staff/user.repository';
 export {

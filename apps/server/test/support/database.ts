@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import pg from 'pg';
-import { MigrationRunner } from '@lytronix/db';
+import { MigrationRunner, QueueBootstrapper } from '@lytronix/db';
 
 // Shared setup for server tests that need a migrated database. Each suite names its own database,
 // so suites running in parallel under Turbo never drop each other's data.
@@ -45,6 +45,8 @@ export async function prepareTestDatabase(
 
   const adminDbUrl = withDatabase(adminUrl, database);
   await new MigrationRunner().run(adminDbUrl);
+  // Mirrors production: pg-boss's schema is installed by the schema-owner credential, never the app role (D25).
+  await new QueueBootstrapper().run(adminDbUrl);
   return {
     adminDbUrl,
     appDbUrl: withDatabase(adminUrl, database, APP_ROLE, APP_PASSWORD),
