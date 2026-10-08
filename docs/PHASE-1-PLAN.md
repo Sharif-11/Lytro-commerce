@@ -231,6 +231,13 @@ Slice 3 comes before any tenant-scoped endpoint is written, so each later endpoi
 - **Requirements:** ADM-01, ADM-18, SEC-10 (break-glass part), SEC-14 for the operator session.
 - **Done when:** a tenant credential cannot sign in to the console; an unconfirmed operator cannot use the account; a backup code works once.
 
+### Slice 11: marketing landing page
+- **Branch:** `feat/marketing-landing`
+- **Depends on:** nothing — no API calls beyond linking to slice 9's sign-up route, which only needs to exist as a URL, not be deployed first. Runs in parallel with slice 9, not after it.
+- **Requirements:** none from the SRS — this slice has no requirement ID anywhere in `SRS-detailed.md`, because a public marketing site for Lytro itself was never speced; it surfaced only while planning slice 9's UI (see `docs/DEPLOYMENT.md` for the hosting/routing decisions it depends on). Added here so it has the same tracked, scoped shape as every other piece of work, not because an existing requirement demanded it.
+- **Delivers:** `apps/website` (Next.js, new app — see `docs/DEPLOYMENT.md` §7/§8 for why Next.js and how it's hosted): a mobile-first, content-populated landing page — hero, features, pricing information (descriptive only; no live plan data, since the purchase flow itself is Phase 2, D3) — a "Create your shop" call to action linking to the tenant sign-up route, aimed specifically at a manual seller (someone currently selling without a storefront) deciding whether to sign up at all, not at an existing tenant.
+- **Done when:** every page renders correctly at a phone viewport width with no horizontal scroll; the call to action reaches the sign-up route; no plan price or figure is hard-coded as if purchasable today.
+
 ---
 
 ## 7. Order and parallel work
@@ -242,10 +249,13 @@ Slice 3 comes before any tenant-scoped endpoint is written, so each later endpoi
 1 schema ───────────────────────────────────────────────────────────────┴──► 10 operator login
                                                                                   
                                                                        5,7,8 ──► 9 dashboard shell
+
+11 marketing landing (no dependency — runs in parallel with everything above)
 ```
 
 - Slices 6, 7 and 10 can run in parallel once their dependencies are merged.
 - Slice 9 waits until the APIs it calls exist, so it comes after 7 and 8.
+- Slice 11 depends on nothing in this list and can start, or finish, at any point.
 - If time is short, the first milestone is slices 1 to 5 plus 9. That gives sign-up and sign-in with a usable dashboard.
 
 ---
