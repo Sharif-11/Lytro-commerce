@@ -57,22 +57,38 @@ maintainer separately sells paid support contracts; the server itself is not pai
 
 ## 5. Routing rules
 
-One `Caddyfile`, three host blocks:
+**Correction, 2026-10-09:** the first draft of this section routed `/auth*` to `apps/admin`'s static build on
+every host. That's wrong — the backend's own API routes live at that same prefix (`/auth/phone/code`,
+`/auth/operator/signin`, ...), and the admin SPA calls them as same-origin, relative fetches (`/auth/...`).
+The rule as first written would have swallowed every one of those calls into "serve `index.html`" instead of
+reaching the backend at all. Fixed below by giving the backend its own reserved prefix, checked first, on
+every host.
+
+One `Caddyfile`, with a rule checked before anything else, on **every** host block:
+
+- **`/api/*`** → strip the `/api` prefix, reverse-proxy to `server`, with `x-lytronix-edge-secret` added (§6).
+  This is how the admin SPA (and anything else running client-side) reaches the backend: same-origin, relative
+  fetches to `/api/...`, on whichever host the SPA happens to be running on. The backend's own route paths
+  (`/auth/phone/code`, `/me`, ...) are unchanged — only Caddy's incoming path is prefixed, stripped before the
+  request reaches `server`.
+
+Then, per host:
 
 - **`lytro.com`, `www.lytro.com`**
-  - `/sign-up*`, `/sign-in*`, `/dashboard*`, `/auth*` → serve `apps/admin`'s static build, with a fallback to
-    `index.html` for any unmatched path (client-side router takes over from there)
+  - `/sign-up*`, `/sign-in*`, `/forgot-password*`, `/auth/callback`, `/dashboard*` → serve `apps/admin`'s
+    static build, with a fallback to `index.html` for any unmatched path (client-side router takes over)
   - everything else → reverse-proxy to `website`
-- **`admin.lytro.com`**: everything → serve `apps/admin`'s static build directly. Same files as above — the
-  SPA's own router shows the operator route tree instead of the tenant one purely because of which host it's
-  running on (`window.location.hostname`), not a different build.
+- **`admin.lytro.com`**: everything (other than `/api/*` above) → serve `apps/admin`'s static build directly.
+  Same files as the tenant-facing host — the SPA's own router shows the operator route tree instead of the
+  tenant one purely because of which host it's running on (`window.location.hostname`), not a different build.
 - **`*.lytro.com`** (any other single-label host — a shop's own subdomain)
-  - `/dashboard*`, `/sign-in*`, `/auth*` → serve `apps/admin`'s static build (staff sign-in and dashboard)
+  - `/sign-in*`, `/dashboard*` → serve `apps/admin`'s static build (staff sign-in and dashboard)
   - everything else → reverse-proxy to `storefront`, which reads `Host` itself to resolve which tenant to
     render (SFT-01)
 
 A worked example of this whole path, host by host, is in `docs/PHASE-1-PLAN.md`'s slice 9 planning discussion;
-nothing here repeats it — this document is the infrastructure, not the walkthrough.
+nothing here repeats it — this document is the infrastructure, not the walkthrough. (That walkthrough predates
+this correction and still describes page paths correctly; only the `/auth*` API-routing detail was wrong.)
 
 ## 6. The edge secret (already built, on the backend side)
 
