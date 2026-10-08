@@ -946,7 +946,24 @@ CREATE TABLE control.operator_backup_codes (        -- ADM-01, ADM-18
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     operator_id     uuid NOT NULL REFERENCES control.operator_accounts(id),
     code_hash       text NOT NULL,                  -- hashed, same discipline as password_hash
-    used_at         timestamptz                     -- NULL = still valid; set once on use, never reused
+    used_at         timestamptz,                    -- NULL = still valid; set once on use, never reused
+    created_at      timestamptz NOT NULL DEFAULT now()
+);
+
+-- Added 2026-10-09 (D30): mirrors control.sessions' shape, kept as its own table rather than reusing it —
+-- sessions.subscriber_id is NOT NULL, tied to tenant sign-in, so an operator session can never share that
+-- table (ADM-01's own "separate account space", applied to sessions too, not only accounts).
+CREATE TABLE control.operator_sessions (
+    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    token_hash      text NOT NULL UNIQUE,            -- SHA-256 of the cookie value, never the value (SEC-07)
+    csrf_hash       text NOT NULL,                   -- SHA-256 of the per-session CSRF token (SEC-14)
+    operator_id     uuid NOT NULL REFERENCES control.operator_accounts(id),
+    created_at      timestamptz NOT NULL DEFAULT now(),
+    last_seen_at    timestamptz NOT NULL DEFAULT now(),
+    expires_at      timestamptz NOT NULL,            -- D30: 12 hours, deliberately shorter than sessions' 7 days
+    revoked_at      timestamptz,
+    user_agent      text,
+    ip              inet
 );
 
 CREATE TABLE control.manual_payment_entries (             -- ADM-14/15

@@ -13,16 +13,20 @@
     "generate": "drizzle-kit generate",
     "migrate": "node dist/migrate.js",
     "bootstrap-queue": "node dist/bootstrap-queue.js",
-    "purge:activity-log": "node dist/purge-activity-log.js"
+    "purge:activity-log": "node dist/purge-activity-log.js",
+    "create-operator": "node dist/create-operator.js",
+    "reset-operator-2fa": "node dist/reset-operator-2fa.js"
   },
   "dependencies": {
     "@lytronix/validators": "workspace:^",
+    "bcryptjs": "^3.0.3",
     "dotenv": "^16",
     "drizzle-orm": "^0.36",
     "pg": "^8",
     "pg-boss": "^12"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^3.0.0",
     "@types/node": "^20",
     "@types/pg": "^8",
     "drizzle-kit": "^0.28",

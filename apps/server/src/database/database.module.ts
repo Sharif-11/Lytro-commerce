@@ -14,6 +14,10 @@ import {
   JobOutboxRepository,
   RoleRepository,
   UserRepository,
+  OperatorAccountRepository,
+  OperatorBackupCodeRepository,
+  OperatorSessionRepository,
+  PlatformAuditLogRepository,
 } from '@lytronix/db';
 import { EnvironmentParser } from '../config/env';
 import { ENV } from '../config/tokens';
@@ -54,6 +58,13 @@ import { DatabaseService } from './database.service';
       inject: [TransactionRunner],
       useFactory: (transactions: TransactionRunner) => new UserRepository(transactions),
     },
+    { provide: OperatorAccountRepository, useFactory: () => new OperatorAccountRepository() },
+    {
+      provide: OperatorBackupCodeRepository,
+      useFactory: () => new OperatorBackupCodeRepository(),
+    },
+    { provide: OperatorSessionRepository, useFactory: () => new OperatorSessionRepository() },
+    { provide: PlatformAuditLogRepository, useFactory: () => new PlatformAuditLogRepository() },
   ],
   exports: [
     ENV,
@@ -72,6 +83,10 @@ import { DatabaseService } from './database.service';
     MailRepository,
     TenantRepository,
     UserRepository,
+    OperatorAccountRepository,
+    OperatorBackupCodeRepository,
+    OperatorSessionRepository,
+    PlatformAuditLogRepository,
   ],
 })
 export class DatabaseModule {}

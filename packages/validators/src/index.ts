@@ -13,3 +13,4 @@ export * from './api/staff/staff/staff-password';
 export * from './api/audit/activity/activity-list';
 export * from './api/staff/role/role-create';
 export * from './api/staff/role/role-update';
+export * from './api/operator/operator-auth';

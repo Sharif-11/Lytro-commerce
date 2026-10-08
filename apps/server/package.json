@@ -23,6 +23,7 @@
     "bcryptjs": "^3.0.3",
     "dotenv": "^16",
     "nestjs-zod": "^3",
+    "otplib": "^13",
     "pg-boss": "^12",
     "reflect-metadata": "^0.2",
     "rxjs": "^7",

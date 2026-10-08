@@ -158,6 +158,20 @@ export enum AuditResult {
   Failure = 'failure',
 }
 
+// Who performed a platform-level action (ADM-08), a separate, smaller list from ActorType above: the platform
+// audit log only ever sees the operator console itself or a scheduled job, never a tenant-side actor.
+export enum PlatformActorType {
+  Operator = 'operator',
+  System = 'system',
+}
+
+// The actions this codebase writes to control.platform_audit_log (ADM-08). Add a name here before any code
+// writes it, same discipline as AuditAction for the tenant log.
+export enum PlatformAuditAction {
+  // ADM-18: break-glass recovery after an operator loses both their TOTP device and backup codes.
+  BreakGlass2faReset = 'break_glass_2fa_reset',
+}
+
 /**
  * The values of a string enum as the non-empty tuple that Drizzle's `pgEnum` expects. Throws on an empty enum,
  * which cannot happen for the enums above; the check keeps the type honest without a cast.
