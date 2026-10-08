@@ -12,3 +12,4 @@ export * from './control/queue';
 export * from './tenant/staff';
 export * from './tenant/audit';
 export * from './control/mail';
+export * from './control/operator';

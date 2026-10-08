@@ -1,0 +1,2 @@
+export const OPERATOR_GATEWAY = Symbol('OPERATOR_GATEWAY');
+export const OPERATOR_SETTINGS = Symbol('OPERATOR_SETTINGS');

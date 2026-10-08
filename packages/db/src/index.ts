@@ -4,6 +4,8 @@ export { DatabaseConnector, type Database, type DatabaseHandle, type PoolSetting
 export { MigrationRunner } from './migrate';
 export { ActivityLogPurger } from './purge-activity-log';
 export { QueueBootstrapper } from './bootstrap-queue';
+export { OperatorCreator } from './create-operator';
+export { OperatorTwoFactorReset } from './reset-operator-2fa';
 export { TransactionRunner, type Executor, type Transaction } from './transactions';
 export {
   TenantRepository,
@@ -43,3 +45,21 @@ export {
   type ClaimedMailMessage,
   type NewMailMessage,
 } from './repositories/messaging/mail.repository';
+export {
+  OperatorAccountRepository,
+  type OperatorAccountRow,
+  type NewOperatorAccount,
+} from './repositories/operator/operator-account.repository';
+export {
+  OperatorBackupCodeRepository,
+  type OperatorBackupCodeRow,
+} from './repositories/operator/operator-backup-code.repository';
+export {
+  OperatorSessionRepository,
+  type OperatorSessionRow,
+  type NewOperatorSession,
+} from './repositories/operator/operator-session.repository';
+export {
+  PlatformAuditLogRepository,
+  type NewPlatformAuditEntry,
+} from './repositories/platform/platform-audit-log.repository';

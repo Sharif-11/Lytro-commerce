@@ -169,6 +169,13 @@
       "when": 1791390004117,
       "tag": "0023_mail_outbox",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1791480838637,
+      "tag": "0024_operator_login",
+      "breakpoints": true
     }
   ]
 }

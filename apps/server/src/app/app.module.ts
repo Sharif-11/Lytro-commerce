@@ -8,6 +8,7 @@ import { QueueModule } from '../modules/shared/queue/queue.module';
 import { QueueWorkersModule } from '../modules/shared/queue-workers/queue-workers.module';
 import { TeamModule } from '../modules/team/team.module';
 import { IdentityModule } from '../modules/identity/identity.module';
+import { OperatorModule } from '../modules/operator/operator.module';
 import { TenancyModule } from '../modules/tenancy/tenancy.module';
 
 @Module({
@@ -15,6 +16,7 @@ import { TenancyModule } from '../modules/tenancy/tenancy.module';
     DatabaseModule,
     TenancyModule,
     IdentityModule,
+    OperatorModule,
     TeamModule,
     AuditModule,
     QueueModule,
