@@ -165,6 +165,58 @@ apps/server/src/
 - The server reads settings only through `EnvironmentParser`. Nothing else reads `process.env` except the entry point's bootstrap and the test setup.
 - Every variable a turbo task reads is listed in that task's `env` in `turbo.json`.
 
+## 6a. Admin app (apps/admin)
+
+Decided 2026-10-09, while planning slice 9. One Vite + React build, deployed to two hosts (see
+`docs/DEPLOYMENT.md`): the tenant-facing domain (sign-up, sign-in, dashboard, staff) and `admin.<platform
+domain>` (the operator console). The router picks which route tree to mount by `window.location.hostname` at
+boot — one codebase, not two.
+
+```
+apps/admin/src/
+  main.tsx                 entry point
+  router.tsx                TanStack Router setup; host-branches into the tenant or operator route tree
+  routes/                   thin: one file per route. Sets metadata and renders a view. No business logic.
+    (tenant)/                sign-up, sign-in, forgot-password, create-shop
+    _dashboard/              layout route (session guard + shell), then staff, roles, settings
+    operator/                sign-in, enroll, verify
+  views/<route>/
+    index.tsx                 the real page
+    components/                view-local components, used only by this view
+  components/
+    ui/                       shared primitives (buttons, inputs, dialogs — not view-specific)
+    layout/                   nav, the "Powered by" mark, the language toggle
+  api/
+    client.ts                  the typed fetch wrapper: attaches the CSRF header on mutating requests, parses
+                                the error envelope from @lytronix/shared-types
+    <domain>/                  query/mutation hooks (TanStack Query) for one backend module each, mirroring
+                                the server's own module names (auth, staff, roles, operator-auth, ...)
+  i18n/                       react-i18next setup; bn.json and en.json dictionaries
+  session/
+    tenant-session.ts          holds the CSRF token and the last /me result; the auth-init gate protected
+                                queries wait on
+    operator-session.ts        holds the CSRF token; no gate (no protected operator screens exist yet)
+  types/
+```
+
+- **React components stay functions.** This is the one place §2's "classes, not free functions" rule does not
+  apply — React's own model (hooks) requires function components. The rule still applies to everything in this
+  tree that is *not* a component: `client.ts`, the two session holders above, are classes with injected
+  config, the same shape the server's own services use.
+- Stack: TanStack Router (file-based) and TanStack Query (server state) — not React Router or Redux Toolkit.
+  Chosen over RTK Query specifically to avoid adopting Redux as the app's state layer for an app that has no
+  cross-cutting client state that needs it (see the comparison in the slice 9 planning discussion for the
+  fuller reasoning).
+- The language choice (Bangla default, English toggle, I18N-01) persists per device via `localStorage`, not
+  per account (D31) — no backend call needed for this.
+- A component mirrors the one-view-one-folder shape above rather than growing into a grab-bag file. No fixed
+  line-count cap is adopted (the 150-line rule from a sibling project's own convention was considered and not
+  carried over without evidence it's needed here yet) — split a component when it's doing two things, the same
+  single-responsibility judgement call §2's layering already asks for everywhere else.
+- `apps/admin` may import `@lytronix/validators` and `@lytronix/shared-types` directly (confirmed neither has
+  a Node-only dependency) — reusing a zod schema or an enum from there is preferred over redefining it
+  client-side, the same "one definition per concept" rule §3 states for the server.
+
 ## 7. Database connection
 
 - The pool is built by `DatabaseConnector.connect(url, settings)` with the settings from validated configuration: maximum connections (default 5), connection wait (5 seconds), statement limit (10 seconds), and the application name `lytronix-server`.
