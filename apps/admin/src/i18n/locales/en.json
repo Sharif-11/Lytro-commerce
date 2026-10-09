@@ -64,6 +64,13 @@
     "placeholder": {
       "title": "You're signed in",
       "subtitle": "The full dashboard is coming soon."
+    },
+    "logout": "Log out",
+    "fields": {
+      "subscriberId": "Account ID",
+      "shopUrl": "Shop URL",
+      "state": "Status",
+      "plan": "Plan"
     }
   },
   "errors": {

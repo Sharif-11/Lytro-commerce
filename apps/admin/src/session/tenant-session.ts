@@ -55,6 +55,17 @@ export class TenantSession {
   }
 
   /**
+   * Fetches a fresh /me and caches it. Unlike init(), a failure here is not treated as "not signed in" and
+   * does not clear the session — by the time anything calls this, the caller already knows there's a live
+   * session (e.g. the dashboard, right after a route guard let it through); a transient /me failure should
+   * surface as a query error, not silently sign the tenant out.
+   */
+  async refreshMe(): Promise<MeResponse> {
+    this.me = await this.client.get<MeResponse>('/me');
+    return this.me;
+  }
+
+  /**
    * Whether a session cookie was established — true right after verify/signin, before any /me call has run.
    * Checks the CSRF token (set synchronously in setSignedIn/the constructor), not `me`, which only becomes
    * non-null once /me has actually resolved — those two go out of sync in the gap right after sign-in.
