@@ -14,6 +14,12 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['logo.svg'],
+      devOptions: {
+        // Off by default — without this, the manifest/service worker only exist in a production build, so
+        // installing (and seeing a splash screen) from `pnpm dev` silently doesn't work at all.
+        enabled: true,
+        type: 'module',
+      },
       manifest: {
         name: 'Lytro',
         short_name: 'Lytro',

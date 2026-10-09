@@ -5,15 +5,15 @@ import { PhoneIcon, ShopIcon } from '@/components/icons';
     tile, so every screen reads as the same brand language rather than one-off art. */
 function IllustrationFrame({ children }: { children: ReactNode }): React.JSX.Element {
   return (
-    <div className="relative flex aspect-square w-full max-w-65 items-center justify-center">
-      <div className="absolute h-40 w-40 rotate-6 rounded-4xl bg-white/15" />
-      <div className="absolute h-40 w-40 -rotate-6 rounded-4xl bg-white/10" />
-      <div className="relative flex h-28 w-28 items-center justify-center rounded-3xl bg-white text-brand-600 shadow-xl shadow-black/10">
+    <div className="relative flex aspect-square w-full max-w-36 items-center justify-center sm:max-w-65">
+      <div className="absolute h-24 w-24 rotate-6 rounded-3xl bg-white/15 sm:h-40 sm:w-40 sm:rounded-4xl" />
+      <div className="absolute h-24 w-24 -rotate-6 rounded-3xl bg-white/10 sm:h-40 sm:w-40 sm:rounded-4xl" />
+      <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-white text-brand-600 shadow-xl shadow-black/10 sm:h-28 sm:w-28 sm:rounded-3xl">
         {children}
       </div>
-      <span className="absolute top-2 right-8 h-5 w-5 rounded-full bg-accent-300" />
-      <span className="absolute bottom-6 left-4 h-3 w-3 rounded-full bg-white/70" />
-      <span className="absolute top-10 left-2 h-2 w-2 rounded-full bg-white/50" />
+      <span className="absolute top-1 right-5 h-3 w-3 rounded-full bg-accent-300 sm:top-2 sm:right-8 sm:h-5 sm:w-5" />
+      <span className="absolute bottom-3 left-2 h-2 w-2 rounded-full bg-white/70 sm:bottom-6 sm:left-4 sm:h-3 sm:w-3" />
+      <span className="absolute top-6 left-1 h-1.5 w-1.5 rounded-full bg-white/50 sm:top-10 sm:left-2 sm:h-2 sm:w-2" />
     </div>
   );
 }
@@ -21,7 +21,7 @@ function IllustrationFrame({ children }: { children: ReactNode }): React.JSX.Ele
 export function SignInIllustration(): React.JSX.Element {
   return (
     <IllustrationFrame>
-      <PhoneIcon className="h-14 w-14" />
+      <PhoneIcon className="h-8 w-8 sm:h-14 sm:w-14" />
     </IllustrationFrame>
   );
 }
@@ -30,7 +30,7 @@ export function VerifyIllustration(): React.JSX.Element {
   return (
     <IllustrationFrame>
       <svg
-        className="h-14 w-14"
+        className="h-8 w-8 sm:h-14 sm:w-14"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
@@ -52,7 +52,7 @@ export function VerifyIllustration(): React.JSX.Element {
 export function CreateShopIllustration(): React.JSX.Element {
   return (
     <IllustrationFrame>
-      <ShopIcon className="h-14 w-14" />
+      <ShopIcon className="h-8 w-8 sm:h-14 sm:w-14" />
     </IllustrationFrame>
   );
 }
@@ -61,7 +61,7 @@ export function DashboardIllustration(): React.JSX.Element {
   return (
     <IllustrationFrame>
       <svg
-        className="h-14 w-14"
+        className="h-8 w-8 sm:h-14 sm:w-14"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"

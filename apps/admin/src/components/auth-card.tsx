@@ -84,9 +84,9 @@ export function AuthCard({
     <main className="relative isolate min-h-screen bg-white sm:flex sm:items-center sm:justify-center sm:bg-slate-50 sm:px-4 sm:py-10">
       <BackgroundBlobs />
       <div className="relative z-10 flex min-h-screen w-full flex-col sm:min-h-0 sm:max-w-4xl sm:flex-row sm:overflow-hidden sm:rounded-4xl sm:bg-white/95 sm:shadow-2xl sm:shadow-slate-900/10 sm:ring-1 sm:ring-slate-900/5 sm:backdrop-blur-sm md:min-h-128">
-        <div className="relative flex shrink-0 items-center justify-center overflow-hidden bg-linear-to-br from-brand-500 to-brand-700 px-6 py-10 sm:w-5/12 sm:p-10">
-          <div className="absolute -top-8 -right-8 h-32 w-32 rounded-full bg-white/10" />
-          <div className="absolute -bottom-10 -left-10 h-36 w-36 rounded-full bg-accent-400/20 blur-2xl" />
+        <div className="relative flex shrink-0 items-center justify-center overflow-hidden bg-linear-to-br from-brand-500 to-brand-700 px-6 py-6 sm:w-5/12 sm:p-10">
+          <div className="absolute -top-6 -right-6 h-20 w-20 rounded-full bg-white/10 sm:-top-8 sm:-right-8 sm:h-32 sm:w-32" />
+          <div className="absolute -bottom-8 -left-8 h-24 w-24 rounded-full bg-accent-400/20 blur-2xl sm:-bottom-10 sm:-left-10 sm:h-36 sm:w-36" />
           {illustration}
         </div>
         <div className="flex w-full flex-1 flex-col justify-center px-5 pt-8 pb-8 sm:p-8 md:p-10">
