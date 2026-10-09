@@ -14,12 +14,11 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['logo.svg'],
-      devOptions: {
-        // Off by default — without this, the manifest/service worker only exist in a production build, so
-        // installing (and seeing a splash screen) from `pnpm dev` silently doesn't work at all.
-        enabled: true,
-        type: 'module',
-      },
+      // devOptions.enabled is deliberately NOT set: vite-plugin-pwa's dev-mode service worker is known to
+      // be flaky with Vite's own module reloading — it can keep serving a stale cached build after a code
+      // change instead of the current one, which is far worse during active development than just not
+      // having a splash screen preview in dev. Test installability/splash screen with a real production
+      // build instead: `pnpm build && pnpm preview`.
       manifest: {
         name: 'Lytro',
         short_name: 'Lytro',
