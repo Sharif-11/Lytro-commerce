@@ -24,6 +24,11 @@ export default defineConfig({
       include: [/node_modules/, /packages[\\/]validators[\\/]/],
     },
   },
+  optimizeDeps: {
+    // Same CJS/symlink mismatch as build.commonjsOptions above, but for the dev server: esbuild only
+    // prebundles (and CJS→ESM-converts) deps it discovers under node_modules/**.
+    include: ['@lytronix/validators'],
+  },
   test: {
     // jsdom, not Node: host.ts and the session holders read window.location/sessionStorage/localStorage.
     environment: 'jsdom',
