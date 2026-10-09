@@ -39,12 +39,20 @@ export class ShopCreationService {
         }
         const phone = await this.gateway.findPhoneIdentityOf(tx, session.subscriberId);
         const email = await this.gateway.findEmailIdentityOf(tx, session.subscriberId);
-        const owner = phone ?? email;
-        if (owner === null) {
+        // A Google/Facebook-only sign-up (AUTH-24) has neither — it creates only an oauth-kind identity,
+        // never a separate phone/email row (AUTH-08's channels stay independent). Fall back to any identity
+        // the subscriber has rather than requiring phone/email specifically; ownerPhone/ownerEmail staying
+        // null for that case is already handled downstream (no SMS/email queued, just no contact channel yet).
+        const ownerIdentityId =
+          phone?.id ??
+          email?.id ??
+          (await this.gateway.listIdentities(tx, session.subscriberId))[0]?.id ??
+          null;
+        if (ownerIdentityId === null) {
           throw new ApiError('unauthenticated', 'Sign in to continue.', {});
         }
         const created = await this.tenants.createTrialShop(tx, {
-          identityId: owner.id,
+          identityId: ownerIdentityId,
           subscriberId: session.subscriberId,
           shopName,
           slug: address,

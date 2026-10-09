@@ -8,5 +8,91 @@
   "language": {
     "bn": "বাংলা",
     "en": "English"
+  },
+  "auth": {
+    "signIn": {
+      "title": "Welcome to Lytro",
+      "subtitle": "Enter your phone number to continue",
+      "phoneLabel": "Phone number",
+      "phonePlaceholder": "01XXXXXXXXX",
+      "passwordLabel": "Password",
+      "continue": "Continue",
+      "signInWithPassword": "Sign in",
+      "usePasswordInstead": "Sign in with password instead",
+      "useCodeInstead": "Use a code instead",
+      "forgotPassword": "Forgot your password?",
+      "invalidPhone": "Enter a valid Bangladeshi mobile number",
+      "continueWithGoogle": "Continue with Google",
+      "continueWithFacebook": "Continue with Facebook",
+      "orDivider": "or"
+    },
+    "verify": {
+      "title": "Verify your number",
+      "subtitle": "We sent a 6-digit code to {{phone}}",
+      "codeLabel": "Verification code",
+      "submit": "Verify",
+      "resend": "Resend code",
+      "resendIn": "Resend in {{seconds}}s",
+      "expiresIn": "Code expires in {{seconds}}s",
+      "expired": "This code has expired. Request a new one.",
+      "invalidCode": "Enter the 6-digit code",
+      "changeNumber": "Use a different number"
+    },
+    "createShop": {
+      "title": "Create your shop",
+      "subtitle": "Tell us about your shop",
+      "ownerNameLabel": "Your name",
+      "shopNameLabel": "Shop name",
+      "addressLabel": "Shop address (subdomain)",
+      "addressHint": "Your shop will be available at {{preview}}.lytro.com",
+      "submit": "Create shop"
+    },
+    "setPassword": {
+      "title": "Set a password",
+      "subtitle": "Optional — you can always sign in with a code instead",
+      "newPasswordLabel": "New password",
+      "currentPasswordLabel": "Current password",
+      "submit": "Save password",
+      "skip": "Skip for now"
+    },
+    "forgotPassword": {
+      "title": "Reset your password",
+      "subtitle": "Enter your phone number and we'll send a reset code",
+      "submit": "Send reset code",
+      "backToSignIn": "Back to sign in"
+    },
+    "unavailable": {
+      "title": "Not available yet",
+      "subtitle": "This part of your account isn't ready yet. Please check back soon.",
+      "backToSignIn": "Back to sign in"
+    },
+    "oauthCallback": {
+      "title": "Signing you in...",
+      "subtitle": "Please wait a moment"
+    }
+  },
+  "dashboard": {
+    "placeholder": {
+      "title": "You're signed in",
+      "subtitle": "The full dashboard is coming soon."
+    },
+    "logout": "Log out",
+    "fields": {
+      "subscriberId": "Account ID",
+      "shopUrl": "Shop URL",
+      "state": "Status",
+      "plan": "Plan"
+    }
+  },
+  "errors": {
+    "rateLimited": "Too many attempts. Please try again later.",
+    "rateLimitedSeconds": "Too many attempts. Try again in {{seconds}}s.",
+    "rateLimitedMinutes": "Too many attempts. Try again in {{minutes}} min.",
+    "conflict": "That's already taken. Try something else.",
+    "validation": "Please check the information you entered.",
+    "unauthenticated": "Please sign in again.",
+    "tenantOffline": "This shop is temporarily unavailable.",
+    "notFound": "We couldn't find that.",
+    "planLimited": "This isn't available on your current plan."
   }
 }

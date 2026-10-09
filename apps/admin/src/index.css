@@ -1,0 +1,28 @@
+@import 'tailwindcss';
+
+/* Lytro commerce's own identity — deliberately not Lytronix's palette/typeface. A warm teal primary
+   paired with a sunset-amber accent for depth (the background blobs), against deep slate, with Noto
+   Sans Bengali for bn and Inter for en/digits. */
+@theme {
+  --font-sans: 'Inter', 'Noto Sans Bengali', ui-sans-serif, system-ui, sans-serif;
+
+  --color-brand-50: #ecfdf5;
+  --color-brand-100: #d1fae5;
+  --color-brand-200: #a7f3d0;
+  --color-brand-300: #6ee7b7;
+  --color-brand-400: #34d399;
+  --color-brand-500: #10b981;
+  --color-brand-600: #0d9488;
+  --color-brand-700: #0f766e;
+  --color-brand-800: #115e59;
+  --color-brand-900: #134e4a;
+
+  --color-accent-300: #fdba74;
+  --color-accent-400: #fb923c;
+  --color-accent-500: #f97316;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: #ffffff;
+}

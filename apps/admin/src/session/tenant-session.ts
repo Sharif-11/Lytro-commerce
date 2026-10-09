@@ -27,12 +27,21 @@ export class TenantSession {
     });
   }
 
-  /** Call once at boot. Resolves `whenReady` either way — a failed check must never hang a public page. */
+  /**
+   * Call once at boot. Resolves `whenReady` either way — a failed check must never hang a public page.
+   *
+   * On the OAuth callback page specifically, this races the OAuth exchange itself: both fire on the same
+   * fresh page load (Google's redirect is a real navigation, not a client-side route change, so main.tsx
+   * runs again from scratch). If this /me call's 401 resolves after setSignedIn() has already run, it must
+   * not clobber that fresh session — hence the csrfToken snapshot-and-compare instead of an unconditional
+   * clear(). Every other flow stays client-side-only after the first boot, so this never races there.
+   */
   async init(): Promise<void> {
+    const csrfAtStart = this.csrfToken;
     try {
       this.me = await this.client.get<MeResponse>('/me');
     } catch {
-      this.clear();
+      if (this.csrfToken === csrfAtStart) this.clear();
     } finally {
       this.resolveReady();
     }
@@ -54,8 +63,24 @@ export class TenantSession {
     return this.me;
   }
 
+  /**
+   * Fetches a fresh /me and caches it. Unlike init(), a failure here is not treated as "not signed in" and
+   * does not clear the session — by the time anything calls this, the caller already knows there's a live
+   * session (e.g. the dashboard, right after a route guard let it through); a transient /me failure should
+   * surface as a query error, not silently sign the tenant out.
+   */
+  async refreshMe(): Promise<MeResponse> {
+    this.me = await this.client.get<MeResponse>('/me');
+    return this.me;
+  }
+
+  /**
+   * Whether a session cookie was established — true right after verify/signin, before any /me call has run.
+   * Checks the CSRF token (set synchronously in setSignedIn/the constructor), not `me`, which only becomes
+   * non-null once /me has actually resolved — those two go out of sync in the gap right after sign-in.
+   */
   isSignedIn(): boolean {
-    return this.me !== null;
+    return this.csrfToken !== null;
   }
 
   clear(): void {

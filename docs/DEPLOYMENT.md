@@ -75,9 +75,21 @@ One `Caddyfile`, with a rule checked before anything else, on **every** host blo
 Then, per host:
 
 - **`lytro.com`, `www.lytro.com`**
-  - `/sign-up*`, `/sign-in*`, `/forgot-password*`, `/auth/callback`, `/dashboard*` → serve `apps/admin`'s
-    static build, with a fallback to `index.html` for any unmatched path (client-side router takes over)
+  - `/sign-up*`, `/sign-in*`, `/verify-code*`, `/forgot-password*`, `/auth/oauth/*/callback`, `/create-shop*`,
+    `/set-password*`, `/unavailable*`, `/dashboard*` → serve `apps/admin`'s static build, with a fallback to
+    `index.html` for any unmatched path (client-side router takes over)
   - everything else → reverse-proxy to `website`
+
+  **Correction, 2026-10-09:** this list was missing `/verify-code*`, `/create-shop*`, `/set-password*` and
+  `/unavailable*` outright (added as those screens were built, docs never caught up), and had a wrong entry
+  for the OAuth callback (`/auth/callback`, singular, no provider segment — doesn't match the real path).
+  `/auth/oauth/*/callback` replaces it: Google/Facebook redirect the browser back to `OAUTH_CALLBACK_BASE` +
+  `/auth/oauth/:provider/callback` (`OauthService.redirectUri`, `apps/server`), which must resolve to
+  `apps/admin`'s static build, not the backend directly. The backend's own callback controller
+  (`GET auth/oauth/:provider/callback`) returns raw JSON with a `Set-Cookie` header; it doesn't redirect
+  anywhere itself. The SPA route at that same path reads `code`/`state` off its own URL and makes the actual
+  `/api/auth/oauth/:provider/callback` call itself, the same way every other screen in this flow talks to the
+  backend, then routes on the response's `next` like a normal sign-in.
 - **`admin.lytro.com`**: everything (other than `/api/*` above) → serve `apps/admin`'s static build directly.
   Same files as the tenant-facing host — the SPA's own router shows the operator route tree instead of the
   tenant one purely because of which host it's running on (`window.location.hostname`), not a different build.
