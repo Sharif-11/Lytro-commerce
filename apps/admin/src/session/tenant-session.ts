@@ -27,12 +27,21 @@ export class TenantSession {
     });
   }
 
-  /** Call once at boot. Resolves `whenReady` either way — a failed check must never hang a public page. */
+  /**
+   * Call once at boot. Resolves `whenReady` either way — a failed check must never hang a public page.
+   *
+   * On the OAuth callback page specifically, this races the OAuth exchange itself: both fire on the same
+   * fresh page load (Google's redirect is a real navigation, not a client-side route change, so main.tsx
+   * runs again from scratch). If this /me call's 401 resolves after setSignedIn() has already run, it must
+   * not clobber that fresh session — hence the csrfToken snapshot-and-compare instead of an unconditional
+   * clear(). Every other flow stays client-side-only after the first boot, so this never races there.
+   */
   async init(): Promise<void> {
+    const csrfAtStart = this.csrfToken;
     try {
       this.me = await this.client.get<MeResponse>('/me');
     } catch {
-      this.clear();
+      if (this.csrfToken === csrfAtStart) this.clear();
     } finally {
       this.resolveReady();
     }
