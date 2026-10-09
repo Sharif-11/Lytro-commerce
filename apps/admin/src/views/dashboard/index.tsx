@@ -6,6 +6,7 @@ import { Button } from '@/components/button';
 import { ErrorBanner } from '@/components/error-banner';
 import { errorMessage } from '@/api/error-message';
 import { tenantSession } from '@/session/tenant-session';
+import { DashboardIllustration } from '@/components/illustrations';
 
 // Proves this auth slice's routing and session end to end with real /me data and a working sign-out. The
 // real dashboard shell (nav, full branding, language toggle) is the next slice, not this one.
@@ -34,6 +35,7 @@ export function DashboardPlaceholder(): React.JSX.Element {
     <AuthCard
       title={tenant?.shopName ?? t('dashboard.placeholder.title')}
       subtitle={t('dashboard.placeholder.subtitle')}
+      illustration={<DashboardIllustration />}
       footer={
         <Button
           variant="ghost"

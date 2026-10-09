@@ -11,6 +11,7 @@ import { useCountdown } from '@/components/use-countdown';
 import { errorMessage } from '@/api/error-message';
 import { tenantSession } from '@/session/tenant-session';
 import { navigateForNextStep } from '@/session/next-step';
+import { VerifyIllustration } from '@/components/illustrations';
 import type { CodeIssued, SignedInBody } from '@/types/auth';
 
 export function VerifyCode(): React.JSX.Element {
@@ -63,6 +64,7 @@ export function VerifyCode(): React.JSX.Element {
     <AuthCard
       title={t('auth.verify.title')}
       subtitle={t('auth.verify.subtitle', { phone: search.phone })}
+      illustration={<VerifyIllustration />}
       footer={
         <Link to="/sign-in" className="text-brand-700 hover:underline">
           {t('auth.verify.changeNumber')}

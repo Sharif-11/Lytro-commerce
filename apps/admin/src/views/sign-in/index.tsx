@@ -13,6 +13,7 @@ import { tenantSession } from '@/session/tenant-session';
 import { navigateForNextStep } from '@/session/next-step';
 import { GoogleIcon, FacebookIcon } from '@/components/oauth-icons';
 import { LockIcon, PhoneIcon } from '@/components/icons';
+import { SignInIllustration } from '@/components/illustrations';
 import type { CodeIssued, SignedInBody } from '@/types/auth';
 
 const OAUTH_LABEL_KEY: Record<OauthProvider, string> = {
@@ -101,6 +102,7 @@ export function SignIn(): React.JSX.Element {
     <AuthCard
       title={t('auth.signIn.title')}
       subtitle={t('auth.signIn.subtitle')}
+      illustration={<SignInIllustration />}
       footer={
         <Link to="/forgot-password" className="text-brand-700 hover:underline">
           {t('auth.signIn.forgotPassword')}

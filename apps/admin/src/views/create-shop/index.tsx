@@ -10,6 +10,7 @@ import { ErrorBanner } from '@/components/error-banner';
 import { errorMessage } from '@/api/error-message';
 import { tenantSession } from '@/session/tenant-session';
 import { LinkIcon, ShopIcon, UserIcon } from '@/components/icons';
+import { CreateShopIllustration } from '@/components/illustrations';
 import type { ShopCreated } from '@/types/auth';
 
 // AUTH-10/11/28: owner name + shop name + an editable, auto-derived subdomain ("address" server-side).
@@ -53,7 +54,11 @@ export function CreateShop(): React.JSX.Element {
   }
 
   return (
-    <AuthCard title={t('auth.createShop.title')} subtitle={t('auth.createShop.subtitle')}>
+    <AuthCard
+      title={t('auth.createShop.title')}
+      subtitle={t('auth.createShop.subtitle')}
+      illustration={<CreateShopIllustration />}
+    >
       <form className="space-y-5" onSubmit={handleSubmit}>
         <TextField
           label={t('auth.createShop.ownerNameLabel')}
