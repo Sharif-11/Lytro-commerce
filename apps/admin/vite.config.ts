@@ -29,6 +29,18 @@ export default defineConfig({
     // prebundles (and CJS→ESM-converts) deps it discovers under node_modules/**.
     include: ['@lytronix/validators'],
   },
+  server: {
+    proxy: {
+      // Mirrors Caddy's production rule (docs/DEPLOYMENT.md §5): strip /api, forward to the backend. Without
+      // this, ApiClient's same-origin '/api/...' fetches hit the Vite dev server itself and get its SPA
+      // fallback HTML back, not the backend's JSON.
+      '/api': {
+        target: process.env.VITE_API_PROXY_TARGET ?? 'http://localhost:3000',
+        changeOrigin: true,
+        rewrite: (requestPath) => requestPath.replace(/^\/api/, ''),
+      },
+    },
+  },
   test: {
     // jsdom, not Node: host.ts and the session holders read window.location/sessionStorage/localStorage.
     environment: 'jsdom',
