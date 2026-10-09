@@ -15,9 +15,16 @@
       "subtitle": "চালিয়ে যেতে আপনার ফোন নম্বর দিন",
       "phoneLabel": "ফোন নম্বর",
       "phonePlaceholder": "01XXXXXXXXX",
+      "passwordLabel": "পাসওয়ার্ড",
       "continue": "এগিয়ে যান",
+      "signInWithPassword": "সাইন ইন করুন",
+      "usePasswordInstead": "পাসওয়ার্ড দিয়ে সাইন ইন করুন",
+      "useCodeInstead": "কোড ব্যবহার করুন",
       "forgotPassword": "পাসওয়ার্ড ভুলে গেছেন?",
-      "invalidPhone": "সঠিক বাংলাদেশী মোবাইল নম্বর দিন"
+      "invalidPhone": "সঠিক বাংলাদেশী মোবাইল নম্বর দিন",
+      "continueWithGoogle": "গুগল দিয়ে চালিয়ে যান",
+      "continueWithFacebook": "ফেসবুক দিয়ে চালিয়ে যান",
+      "orDivider": "অথবা"
     },
     "verify": {
       "title": "আপনার নম্বর যাচাই করুন",
@@ -58,6 +65,10 @@
       "title": "এখনও উপলব্ধ নয়",
       "subtitle": "আপনার অ্যাকাউন্টের এই অংশটি এখনও প্রস্তুত নয়। অনুগ্রহ করে পরে আবার চেষ্টা করুন।",
       "backToSignIn": "সাইন ইনে ফিরে যান"
+    },
+    "oauthCallback": {
+      "title": "সাইন ইন করা হচ্ছে...",
+      "subtitle": "একটু অপেক্ষা করুন"
     }
   },
   "dashboard": {

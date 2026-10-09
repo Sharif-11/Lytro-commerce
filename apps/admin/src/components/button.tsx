@@ -2,7 +2,7 @@ import type { ButtonHTMLAttributes } from 'react';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   loading?: boolean;
-  variant?: 'primary' | 'ghost';
+  variant?: 'primary' | 'ghost' | 'outline';
 }
 
 export function Button({
@@ -18,6 +18,7 @@ export function Button({
   const variants = {
     primary: 'bg-brand-600 text-white shadow-sm hover:bg-brand-700',
     ghost: 'bg-transparent text-brand-700 hover:bg-brand-50',
+    outline: 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50',
   };
   return (
     <button

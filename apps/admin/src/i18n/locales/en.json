@@ -15,9 +15,16 @@
       "subtitle": "Enter your phone number to continue",
       "phoneLabel": "Phone number",
       "phonePlaceholder": "01XXXXXXXXX",
+      "passwordLabel": "Password",
       "continue": "Continue",
+      "signInWithPassword": "Sign in",
+      "usePasswordInstead": "Sign in with password instead",
+      "useCodeInstead": "Use a code instead",
       "forgotPassword": "Forgot your password?",
-      "invalidPhone": "Enter a valid Bangladeshi mobile number"
+      "invalidPhone": "Enter a valid Bangladeshi mobile number",
+      "continueWithGoogle": "Continue with Google",
+      "continueWithFacebook": "Continue with Facebook",
+      "orDivider": "or"
     },
     "verify": {
       "title": "Verify your number",
@@ -58,6 +65,10 @@
       "title": "Not available yet",
       "subtitle": "This part of your account isn't ready yet. Please check back soon.",
       "backToSignIn": "Back to sign in"
+    },
+    "oauthCallback": {
+      "title": "Signing you in...",
+      "subtitle": "Please wait a moment"
     }
   },
   "dashboard": {

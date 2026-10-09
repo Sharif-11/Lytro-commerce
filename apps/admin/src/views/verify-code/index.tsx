@@ -10,6 +10,7 @@ import { ErrorBanner } from '@/components/error-banner';
 import { useCountdown } from '@/components/use-countdown';
 import { errorMessage } from '@/api/error-message';
 import { tenantSession } from '@/session/tenant-session';
+import { navigateForNextStep } from '@/session/next-step';
 import type { CodeIssued, SignedInBody } from '@/types/auth';
 
 export function VerifyCode(): React.JSX.Element {
@@ -32,24 +33,7 @@ export function VerifyCode(): React.JSX.Element {
       ),
     onSuccess: (data) => {
       tenantSession.setSignedIn(data.csrfToken);
-      // Exhaustive, no default: a new NextStep value added in the backend without a case added here is a
-      // compile error (every branch must call navigate), not a silently-ignored destination.
-      switch (data.next) {
-        case 'create-shop':
-          void navigate({ to: '/create-shop' });
-          break;
-        case 'set-password':
-          void navigate({ to: '/set-password', search: { required: false } });
-          break;
-        case 'dashboard':
-          void navigate({ to: '/dashboard' });
-          break;
-        case 'renewal':
-        case 'purchase':
-        case 'unavailable':
-          void navigate({ to: '/unavailable' });
-          break;
-      }
+      navigateForNextStep(navigate, data.next);
     },
   });
 

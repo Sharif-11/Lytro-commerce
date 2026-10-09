@@ -24,3 +24,9 @@ export interface ShopCreated {
   shopUrl: string;
   next: 'set-password';
 }
+
+/** GET auth/oauth/:provider/callback's response for the sign-in case (the other case, OauthAttached, only
+    happens from the account-settings "add a provider" flow, which this app doesn't build yet). */
+export interface OauthSignedIn extends SignedInBody {
+  recovery: 'facebook-only' | null;
+}
