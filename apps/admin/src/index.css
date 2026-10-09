@@ -24,33 +24,5 @@
 
 body {
   font-family: var(--font-sans);
-  background-color: #f8fafc;
-}
-
-/* The soft, blurred color fields behind every auth card — fixed so they don't scroll with the page. */
-.auth-background-blobs::before,
-.auth-background-blobs::after {
-  content: '';
-  position: fixed;
-  border-radius: 9999px;
-  filter: blur(80px);
-  opacity: 0.35;
-  z-index: 0;
-  pointer-events: none;
-}
-
-.auth-background-blobs::before {
-  top: -10%;
-  left: -10%;
-  width: 28rem;
-  height: 28rem;
-  background: var(--color-brand-300);
-}
-
-.auth-background-blobs::after {
-  bottom: -15%;
-  right: -10%;
-  width: 24rem;
-  height: 24rem;
-  background: var(--color-accent-300);
+  background-color: #ffffff;
 }
