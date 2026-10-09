@@ -10,6 +10,7 @@ import { ErrorBanner } from '@/components/error-banner';
 import { errorMessage } from '@/api/error-message';
 import { isValidBdPhone } from '@/api/phone';
 import { tenantSession } from '@/session/tenant-session';
+import { PhoneIcon } from '@/components/icons';
 import type { CodeIssued } from '@/types/auth';
 
 // AUTH-17: phone-only, and the success reply is identical whether or not the phone has an account — don't
@@ -58,7 +59,7 @@ export function ForgotPassword(): React.JSX.Element {
         </Link>
       }
     >
-      <form className="space-y-4" onSubmit={handleSubmit}>
+      <form className="space-y-5" onSubmit={handleSubmit}>
         <TextField
           label={t('auth.signIn.phoneLabel')}
           name="phone"
@@ -66,6 +67,7 @@ export function ForgotPassword(): React.JSX.Element {
           inputMode="tel"
           autoComplete="tel"
           placeholder={t('auth.signIn.phonePlaceholder')}
+          icon={<PhoneIcon />}
           value={phone}
           onChange={(event) => {
             setPhone(event.target.value);

@@ -1,7 +1,8 @@
 @import 'tailwindcss';
 
-/* Lytro commerce's own identity — deliberately not Lytronix's palette/typeface. A warm teal
-   primary against deep slate, paired with Noto Sans Bengali for bn and Inter for en/digits. */
+/* Lytro commerce's own identity — deliberately not Lytronix's palette/typeface. A warm teal primary
+   paired with a sunset-amber accent for depth (the background blobs), against deep slate, with Noto
+   Sans Bengali for bn and Inter for en/digits. */
 @theme {
   --font-sans: 'Inter', 'Noto Sans Bengali', ui-sans-serif, system-ui, sans-serif;
 
@@ -15,8 +16,41 @@
   --color-brand-700: #0f766e;
   --color-brand-800: #115e59;
   --color-brand-900: #134e4a;
+
+  --color-accent-300: #fdba74;
+  --color-accent-400: #fb923c;
+  --color-accent-500: #f97316;
 }
 
 body {
   font-family: var(--font-sans);
+  background-color: #f8fafc;
+}
+
+/* The soft, blurred color fields behind every auth card — fixed so they don't scroll with the page. */
+.auth-background-blobs::before,
+.auth-background-blobs::after {
+  content: '';
+  position: fixed;
+  border-radius: 9999px;
+  filter: blur(80px);
+  opacity: 0.35;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.auth-background-blobs::before {
+  top: -10%;
+  left: -10%;
+  width: 28rem;
+  height: 28rem;
+  background: var(--color-brand-300);
+}
+
+.auth-background-blobs::after {
+  bottom: -15%;
+  right: -10%;
+  width: 24rem;
+  height: 24rem;
+  background: var(--color-accent-300);
 }

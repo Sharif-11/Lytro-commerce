@@ -11,11 +11,18 @@ import { errorMessage } from '@/api/error-message';
 import { isValidBdPhone } from '@/api/phone';
 import { tenantSession } from '@/session/tenant-session';
 import { navigateForNextStep } from '@/session/next-step';
+import { GoogleIcon, FacebookIcon } from '@/components/oauth-icons';
+import { LockIcon, PhoneIcon } from '@/components/icons';
 import type { CodeIssued, SignedInBody } from '@/types/auth';
 
 const OAUTH_LABEL_KEY: Record<OauthProvider, string> = {
   [OauthProvider.Google]: 'auth.signIn.continueWithGoogle',
   [OauthProvider.Facebook]: 'auth.signIn.continueWithFacebook',
+};
+
+const OAUTH_ICON: Record<OauthProvider, React.JSX.Element> = {
+  [OauthProvider.Google]: <GoogleIcon />,
+  [OauthProvider.Facebook]: <FacebookIcon />,
 };
 
 // AUTH-12: sign-up and sign-in share this one entry point — a verified new phone creates the account, a
@@ -100,7 +107,7 @@ export function SignIn(): React.JSX.Element {
         </Link>
       }
     >
-      <div className="space-y-4">
+      <div className="space-y-5">
         {providers.data && providers.data.providers.length > 0 ? (
           <>
             <div className="space-y-3">
@@ -115,6 +122,7 @@ export function SignIn(): React.JSX.Element {
                     startOauth.mutate(provider);
                   }}
                 >
+                  {OAUTH_ICON[provider]}
                   {t(OAUTH_LABEL_KEY[provider])}
                 </Button>
               ))}
@@ -135,6 +143,7 @@ export function SignIn(): React.JSX.Element {
             inputMode="tel"
             autoComplete="tel"
             placeholder={t('auth.signIn.phonePlaceholder')}
+            icon={<PhoneIcon />}
             value={phone}
             onChange={(event) => {
               setPhone(event.target.value);
@@ -147,6 +156,7 @@ export function SignIn(): React.JSX.Element {
               name="password"
               type="password"
               autoComplete="current-password"
+              icon={<LockIcon />}
               value={password}
               onChange={(event) => {
                 setPassword(event.target.value);

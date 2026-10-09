@@ -9,6 +9,7 @@ import { TextField } from '@/components/text-field';
 import { ErrorBanner } from '@/components/error-banner';
 import { errorMessage } from '@/api/error-message';
 import { tenantSession } from '@/session/tenant-session';
+import { LockIcon } from '@/components/icons';
 
 // currentPassword is deliberately never sent: every path that reaches this screen in this slice is a fresh
 // sign-up (create-shop just finished) or a forgot-password reset (must_set_password) — AUTH-20's two
@@ -60,12 +61,13 @@ export function SetPassword(): React.JSX.Element {
         )
       }
     >
-      <form className="space-y-4" onSubmit={handleSubmit}>
+      <form className="space-y-5" onSubmit={handleSubmit}>
         <TextField
           label={t('auth.setPassword.newPasswordLabel')}
           name="newPassword"
           type="password"
           autoComplete="new-password"
+          icon={<LockIcon />}
           value={newPassword}
           onChange={(event) => {
             setNewPassword(event.target.value);

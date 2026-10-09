@@ -9,6 +9,7 @@ import { TextField } from '@/components/text-field';
 import { ErrorBanner } from '@/components/error-banner';
 import { errorMessage } from '@/api/error-message';
 import { tenantSession } from '@/session/tenant-session';
+import { LinkIcon, ShopIcon, UserIcon } from '@/components/icons';
 import type { ShopCreated } from '@/types/auth';
 
 // AUTH-10/11/28: owner name + shop name + an editable, auto-derived subdomain ("address" server-side).
@@ -53,11 +54,12 @@ export function CreateShop(): React.JSX.Element {
 
   return (
     <AuthCard title={t('auth.createShop.title')} subtitle={t('auth.createShop.subtitle')}>
-      <form className="space-y-4" onSubmit={handleSubmit}>
+      <form className="space-y-5" onSubmit={handleSubmit}>
         <TextField
           label={t('auth.createShop.ownerNameLabel')}
           name="ownerName"
           autoComplete="name"
+          icon={<UserIcon />}
           value={ownerName}
           onChange={(event) => {
             setOwnerName(event.target.value);
@@ -66,6 +68,7 @@ export function CreateShop(): React.JSX.Element {
         <TextField
           label={t('auth.createShop.shopNameLabel')}
           name="shopName"
+          icon={<ShopIcon />}
           value={shopName}
           onChange={(event) => {
             setShopName(event.target.value);
@@ -75,6 +78,7 @@ export function CreateShop(): React.JSX.Element {
           <TextField
             label={t('auth.createShop.addressLabel')}
             name="address"
+            icon={<LinkIcon />}
             value={address}
             onChange={(event) => {
               setAddress(event.target.value.toLowerCase());

@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { forgotPasswordSchema, verifyForgotPasswordSchema } from '@lytronix/validators';
 import { AuthCard } from '@/components/auth-card';
 import { Button } from '@/components/button';
-import { TextField } from '@/components/text-field';
+import { OtpInput } from '@/components/otp-input';
 import { ErrorBanner } from '@/components/error-banner';
 import { useCountdown } from '@/components/use-countdown';
 import { errorMessage } from '@/api/error-message';
@@ -65,18 +65,11 @@ export function ForgotPasswordVerify(): React.JSX.Element {
       title={t('auth.verify.title')}
       subtitle={t('auth.verify.subtitle', { phone: search.phone })}
     >
-      <form className="space-y-4" onSubmit={handleSubmit}>
-        <TextField
-          label={t('auth.verify.codeLabel')}
-          name="code"
-          inputMode="numeric"
-          autoComplete="one-time-code"
-          maxLength={6}
-          className="text-center text-2xl tracking-widest"
+      <form className="space-y-5" onSubmit={handleSubmit}>
+        <OtpInput
           value={code}
-          onChange={(event) => {
-            setCode(event.target.value.replace(/\D/g, ''));
-          }}
+          onChange={setCode}
+          disabled={verify.isPending}
           error={formError ?? (expiresIn === 0 ? t('auth.verify.expired') : undefined)}
         />
         {expiresIn > 0 ? (

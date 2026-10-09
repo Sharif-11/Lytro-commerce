@@ -51,23 +51,23 @@ export function DashboardPlaceholder(): React.JSX.Element {
       ) : null}
       {me.isError ? <ErrorBanner message={errorMessage(me.error, t)} /> : null}
       {me.data ? (
-        <dl className="space-y-3 text-sm">
-          <div className="flex justify-between gap-4">
+        <dl className="space-y-2 text-sm">
+          <div className="flex items-center justify-between gap-4 rounded-xl bg-slate-50 px-4 py-3">
             <dt className="text-slate-500">{t('dashboard.fields.subscriberId')}</dt>
             <dd className="truncate font-medium text-slate-900">{me.data.subscriber.id}</dd>
           </div>
           {tenant ? (
             <>
-              <div className="flex justify-between gap-4">
+              <div className="flex items-center justify-between gap-4 rounded-xl bg-slate-50 px-4 py-3">
                 <dt className="text-slate-500">{t('dashboard.fields.shopUrl')}</dt>
                 <dd className="truncate font-medium text-slate-900">{tenant.slug}.lytro.com</dd>
               </div>
-              <div className="flex justify-between gap-4">
+              <div className="flex items-center justify-between gap-4 rounded-xl bg-slate-50 px-4 py-3">
                 <dt className="text-slate-500">{t('dashboard.fields.state')}</dt>
-                <dd className="font-medium text-slate-900">{tenant.state}</dd>
+                <dd className="font-medium text-slate-900 capitalize">{tenant.state}</dd>
               </div>
               {tenant.planName ? (
-                <div className="flex justify-between gap-4">
+                <div className="flex items-center justify-between gap-4 rounded-xl bg-slate-50 px-4 py-3">
                   <dt className="text-slate-500">{t('dashboard.fields.plan')}</dt>
                   <dd className="font-medium text-slate-900">{tenant.planName}</dd>
                 </div>
