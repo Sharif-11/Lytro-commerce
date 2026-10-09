@@ -13,13 +13,24 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@lytronix/shared-types": "workspace:^",
+    "@lytronix/validators": "workspace:^",
+    "@tanstack/react-query": "^5",
+    "@tanstack/react-router": "^1",
+    "i18next": "^24",
     "react": "^19",
-    "react-dom": "^19"
+    "react-dom": "^19",
+    "react-i18next": "^15",
+    "zod": "^3"
   },
   "devDependencies": {
+    "@tanstack/react-query-devtools": "^5",
+    "@tanstack/router-devtools": "^1",
+    "@tanstack/router-plugin": "^1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^4",
+    "jsdom": "^25",
     "vite": "^5",
     "vitest": "^2.1.2"
   }

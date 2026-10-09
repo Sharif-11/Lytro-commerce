@@ -1,6 +1,8 @@
 // @ts-check
 import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
+import reactHooks from 'eslint-plugin-react-hooks';
+import reactRefresh from 'eslint-plugin-react-refresh';
 
 // Module boundaries (ENGINEERING-STANDARDS §1, PHASE-1-PLAN "packages and layers"). Each rule names the
 // structure it protects, so a violation explains itself.
@@ -17,6 +19,7 @@ export default tseslint.config(
       '**/node_modules/**',
       '**/coverage/**',
       '**/next-env.d.ts',
+      '**/routeTree.gen.ts',
       'docs/**',
     ],
   },
@@ -150,5 +153,37 @@ export default tseslint.config(
   {
     files: ['**/*.{js,mjs,cjs}'],
     ...tseslint.configs.disableTypeChecked,
+  },
+  {
+    // CODING-CONVENTIONS.md §1: applications never import the database package except through the server.
+    files: ['apps/admin/src/**/*.{ts,tsx}'],
+    plugins: {
+      'react-hooks': reactHooks,
+      'react-refresh': reactRefresh,
+    },
+    rules: {
+      ...reactHooks.configs.recommended.rules,
+      'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@lytronix/db', '@lytronix/db/*'],
+              message:
+                'Applications never import the database package directly (CODING-CONVENTIONS §1).',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // TanStack Router's own documented pattern (`throw redirect(...)`, `throw notFound()`) throws a plain
+    // object, not an Error — the library's control-flow mechanism, not a mistake to flag here.
+    files: ['apps/admin/src/routes/**/*.{ts,tsx}'],
+    rules: {
+      '@typescript-eslint/only-throw-error': 'off',
+    },
   },
 );

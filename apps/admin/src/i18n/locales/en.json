@@ -1,0 +1,12 @@
+{
+  "common": {
+    "appName": "Lytro",
+    "poweredBy": "Powered by Lytronix",
+    "loading": "Loading...",
+    "somethingWentWrong": "Something went wrong. Please try again."
+  },
+  "language": {
+    "bn": "বাংলা",
+    "en": "English"
+  }
+}

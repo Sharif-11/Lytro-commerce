@@ -1,0 +1,12 @@
+{
+  "common": {
+    "appName": "লাইট্রো",
+    "poweredBy": "লাইট্রোনিক্স দ্বারা পরিচালিত",
+    "loading": "লোড হচ্ছে...",
+    "somethingWentWrong": "কিছু ভুল হয়েছে। আবার চেষ্টা করুন।"
+  },
+  "language": {
+    "bn": "বাংলা",
+    "en": "English"
+  }
+}
