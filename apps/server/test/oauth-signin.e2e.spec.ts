@@ -172,6 +172,26 @@ describeIfDatabase('Google and Facebook sign-in (AUTH-24, AUTH-27)', () => {
       200,
     );
   });
+
+  // Regression: a Google-only account has neither a phone nor an email identity (only a google-kind row),
+  // and create-shop used to require one of those specifically, failing with a misleading "sign in to
+  // continue" instead of creating the shop.
+  it('creates a shop for an account that signed up through Google only, with no phone or email', async () => {
+    const state = await startFlow('google');
+    const signed = await callback('google', 'ok-shopowner', state);
+    const cookie = cookieFrom(signed);
+    const csrfToken = (signed.body as { csrfToken: string }).csrfToken;
+
+    const response = await postJson(
+      port,
+      '/shops',
+      { ownerName: 'Shop Owner', shopName: 'OAuth Shop' },
+      { cookie, 'x-csrf-token': csrfToken },
+    );
+
+    expect(response.status).toBe(201);
+    expect(response.body).toMatchObject({ next: 'set-password' });
+  });
 });
 
 describeIfDatabase('adding Google to a signed-in account (AUTH-26)', () => {
