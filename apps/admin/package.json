@@ -6,11 +6,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 3002",
-    "build": "tsc -p tsconfig.json --noEmit && vite build",
+    "generate-routes": "tsr generate",
+    "build": "pnpm generate-routes && tsc -p tsconfig.json --noEmit && vite build",
     "preview": "vite preview --port 3002",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
-    "lint": "eslint .",
-    "test": "vitest run --passWithNoTests"
+    "typecheck": "pnpm generate-routes && tsc -p tsconfig.json --noEmit",
+    "lint": "pnpm generate-routes && eslint .",
+    "test": "pnpm generate-routes && vitest run --passWithNoTests"
   },
   "dependencies": {
     "@lytronix/shared-types": "workspace:^",
@@ -25,6 +26,7 @@
   },
   "devDependencies": {
     "@tanstack/react-query-devtools": "^5",
+    "@tanstack/router-cli": "^1.167.40",
     "@tanstack/router-devtools": "^1",
     "@tanstack/router-plugin": "^1",
     "@types/react": "^19",
