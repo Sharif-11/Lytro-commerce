@@ -25,6 +25,7 @@
     "zod": "^3"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
     "@tanstack/react-query-devtools": "^5",
     "@tanstack/router-cli": "^1.167.40",
     "@tanstack/router-devtools": "^1",
@@ -33,6 +34,7 @@
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^4",
     "jsdom": "^25",
+    "tailwindcss": "^4.3.3",
     "vite": "^5",
     "vitest": "^2.1.2"
   }

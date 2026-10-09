@@ -2,7 +2,7 @@ import { useState, type SyntheticEvent } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
-import { requestSigninCodeSchema } from '@lytronix/validators';
+import { forgotPasswordSchema } from '@lytronix/validators';
 import { AuthCard } from '@/components/auth-card';
 import { Button } from '@/components/button';
 import { TextField } from '@/components/text-field';
@@ -12,9 +12,9 @@ import { isValidBdPhone } from '@/api/phone';
 import { tenantSession } from '@/session/tenant-session';
 import type { CodeIssued } from '@/types/auth';
 
-// AUTH-12: sign-up and sign-in share this one entry point — a verified new phone creates the account, a
-// verified existing phone signs in. There is no separate "create account" screen.
-export function SignIn(): React.JSX.Element {
+// AUTH-17: phone-only, and the success reply is identical whether or not the phone has an account — don't
+// leak account existence through a different message or a different response shape.
+export function ForgotPassword(): React.JSX.Element {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [phone, setPhone] = useState('');
@@ -23,12 +23,12 @@ export function SignIn(): React.JSX.Element {
   const mutation = useMutation({
     mutationFn: (value: string) =>
       tenantSession.client.post<CodeIssued>(
-        '/auth/phone/code',
-        requestSigninCodeSchema.parse({ phone: value }),
+        '/auth/forgot-password',
+        forgotPasswordSchema.parse({ phone: value }),
       ),
     onSuccess: (data) => {
       void navigate({
-        to: '/verify-code',
+        to: '/forgot-password/verify',
         search: {
           phone,
           expiresInSeconds: data.expiresInSeconds,
@@ -50,11 +50,11 @@ export function SignIn(): React.JSX.Element {
 
   return (
     <AuthCard
-      title={t('auth.signIn.title')}
-      subtitle={t('auth.signIn.subtitle')}
+      title={t('auth.forgotPassword.title')}
+      subtitle={t('auth.forgotPassword.subtitle')}
       footer={
-        <Link to="/forgot-password" className="text-brand-700 hover:underline">
-          {t('auth.signIn.forgotPassword')}
+        <Link to="/sign-in" className="text-brand-700 hover:underline">
+          {t('auth.forgotPassword.backToSignIn')}
         </Link>
       }
     >
@@ -74,7 +74,7 @@ export function SignIn(): React.JSX.Element {
         />
         {mutation.isError ? <ErrorBanner message={errorMessage(mutation.error, t)} /> : null}
         <Button type="submit" loading={mutation.isPending}>
-          {t('auth.signIn.continue')}
+          {t('auth.forgotPassword.submit')}
         </Button>
       </form>
     </AuthCard>

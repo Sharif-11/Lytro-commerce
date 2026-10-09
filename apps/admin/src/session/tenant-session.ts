@@ -54,8 +54,13 @@ export class TenantSession {
     return this.me;
   }
 
+  /**
+   * Whether a session cookie was established — true right after verify/signin, before any /me call has run.
+   * Checks the CSRF token (set synchronously in setSignedIn/the constructor), not `me`, which only becomes
+   * non-null once /me has actually resolved — those two go out of sync in the gap right after sign-in.
+   */
   isSignedIn(): boolean {
-    return this.me !== null;
+    return this.csrfToken !== null;
   }
 
   clear(): void {
