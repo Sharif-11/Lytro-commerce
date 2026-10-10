@@ -35,7 +35,13 @@
       "invalidPhone": "Enter a valid Bangladeshi mobile number",
       "continueWithGoogle": "Continue with Google",
       "continueWithFacebook": "Continue with Facebook",
-      "orDivider": "or"
+      "orDivider": "or",
+      "staffSignInLink": "Staff member? Sign in here"
+    },
+    "staffSignIn": {
+      "title": "Staff sign-in",
+      "subtitle": "Sign in with the phone and password your shop owner gave you",
+      "backToOwnerSignIn": "Not staff? Owner sign-in"
     },
     "verify": {
       "title": "Verify your number",
@@ -64,6 +70,9 @@
       "currentPasswordLabel": "Current password",
       "submit": "Save password",
       "skip": "Skip for now"
+    },
+    "staffSetPassword": {
+      "subtitle": "Your shop owner set a temporary password for you. Choose a new one to continue."
     },
     "forgotPassword": {
       "title": "Reset your password",
