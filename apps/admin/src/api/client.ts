@@ -67,6 +67,13 @@ export class ApiClient {
     });
   }
 
+  patch<T>(path: string, data?: unknown): Promise<T> {
+    return this.request<T>(path, {
+      method: 'PATCH',
+      body: data === undefined ? undefined : JSON.stringify(data),
+    });
+  }
+
   private toError(response: Response, body: unknown): ApiClientError {
     const envelope = body as Partial<ApiErrorBody> | null;
     const retryAfter = response.headers.get('Retry-After');

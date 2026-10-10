@@ -5,7 +5,11 @@
     "loading": "Loading...",
     "somethingWentWrong": "Something went wrong. Please try again.",
     "close": "Close",
-    "language": "Language"
+    "language": "Language",
+    "edit": "Edit",
+    "active": "Active",
+    "disabled": "Disabled",
+    "cancel": "Cancel"
   },
   "language": {
     "bn": "বাংলা",
@@ -81,6 +85,31 @@
     "roles": "Roles",
     "activity": "Activity",
     "account": "Account"
+  },
+  "staff": {
+    "title": "Staff Accounts",
+    "count": "{{count}} account(s)",
+    "seats": "{{used}}/{{total}} seats used",
+    "addStaff": "+ Add staff",
+    "addAccount": "Add staff account",
+    "editAccount": "Edit staff account",
+    "requiredNote": "Phone and password are required — used for sign-in and the \"forgot password\" SMS. Name is optional.",
+    "phoneRequired": "Phone (required)",
+    "nameOptional": "Full name (optional)",
+    "role": "Role",
+    "selectRole": "Select role(s)",
+    "noRoles": "No roles assigned",
+    "password": "Password",
+    "passwordOptional": "New password (optional)",
+    "saveChanges": "Save changes",
+    "createAccount": "Create account",
+    "noneYet": "No staff accounts yet.",
+    "name": "Name",
+    "phone": "Phone",
+    "status": "Status",
+    "owner": "Owner",
+    "activate": "Activate",
+    "deactivate": "Deactivate"
   },
   "dashboard": {
     "placeholder": {

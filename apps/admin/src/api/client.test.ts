@@ -60,6 +60,18 @@ describe('ApiClient', () => {
     expect((init.headers as Headers).has('x-csrf-token')).toBe(false);
   });
 
+  it('sends PATCH with a JSON body and the CSRF header', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ ok: true }));
+    const client = new ApiClient({ baseUrl: '/api', getCsrfToken: () => 'csrf-123' });
+
+    await client.patch('/staff/1', { active: false });
+
+    const init = lastRequestInit(fetchMock);
+    expect(init.method).toBe('PATCH');
+    expect((init.headers as Headers).get('x-csrf-token')).toBe('csrf-123');
+    expect(init.body).toBe(JSON.stringify({ active: false }));
+  });
+
   it('returns undefined for a 204 response without reading the body', async () => {
     fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
     const client = new ApiClient({ baseUrl: '/api', getCsrfToken: () => null });
