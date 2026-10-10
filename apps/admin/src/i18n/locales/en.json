@@ -3,11 +3,16 @@
     "appName": "Lytro",
     "poweredBy": "Powered by Lytronix",
     "loading": "Loading...",
-    "somethingWentWrong": "Something went wrong. Please try again."
+    "somethingWentWrong": "Something went wrong. Please try again.",
+    "close": "Close",
+    "language": "Language"
   },
   "language": {
     "bn": "বাংলা",
-    "en": "English"
+    "switchTo": {
+      "bn": "বাংলায় দেখুন",
+      "en": "Switch to English"
+    }
   },
   "auth": {
     "signIn": {
@@ -74,7 +79,8 @@
     "dashboard": "Dashboard",
     "staff": "Staff",
     "roles": "Roles",
-    "activity": "Activity"
+    "activity": "Activity",
+    "account": "Account"
   },
   "dashboard": {
     "placeholder": {

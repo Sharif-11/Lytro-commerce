@@ -2,11 +2,16 @@ import { useTranslation } from 'react-i18next';
 
 interface BrandMarkProps {
   compact?: boolean;
+  /** For placement on a dark surface (the sidebar) — wordmark goes white instead of slate-900. */
+  inverted?: boolean;
 }
 
-/** Lytro commerce's own identity (not Lytronix's) — used by AuthCard and the dashboard shell alike, so it
-    stays one definition instead of drifting into two copies as more screens need it. */
-export function BrandMark({ compact = false }: BrandMarkProps): React.JSX.Element {
+/** Lytro commerce's own identity — used by AuthCard and the dashboard shell alike, so it stays one
+    definition instead of drifting into two copies as more screens need it. */
+export function BrandMark({
+  compact = false,
+  inverted = false,
+}: BrandMarkProps): React.JSX.Element {
   const { t } = useTranslation();
   return (
     <div className="flex items-center gap-2">
@@ -18,7 +23,7 @@ export function BrandMark({ compact = false }: BrandMarkProps): React.JSX.Elemen
         L
       </span>
       <span
-        className={`font-bold tracking-tight text-slate-900 ${compact ? 'text-base' : 'text-lg'}`}
+        className={`font-bold tracking-tight ${inverted ? 'text-white' : 'text-slate-900'} ${compact ? 'text-base' : 'text-lg'}`}
       >
         {t('common.appName')}
       </span>

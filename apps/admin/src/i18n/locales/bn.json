@@ -3,11 +3,16 @@
     "appName": "Lytro",
     "poweredBy": "Powered by Lytronix",
     "loading": "লোড হচ্ছে...",
-    "somethingWentWrong": "কিছু একটা সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।"
+    "somethingWentWrong": "কিছু একটা সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।",
+    "close": "বন্ধ করুন",
+    "language": "ভাষা"
   },
   "language": {
     "bn": "বাংলা",
-    "en": "English"
+    "switchTo": {
+      "bn": "বাংলায় দেখুন",
+      "en": "Switch to English"
+    }
   },
   "auth": {
     "signIn": {
@@ -74,7 +79,8 @@
     "dashboard": "ড্যাশবোর্ড",
     "staff": "কর্মী",
     "roles": "ভূমিকা",
-    "activity": "কার্যক্রম"
+    "activity": "কার্যক্রম",
+    "account": "অ্যাকাউন্ট"
   },
   "dashboard": {
     "placeholder": {

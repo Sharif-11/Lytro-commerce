@@ -42,7 +42,7 @@ export function VerifyIllustration(): React.JSX.Element {
           strokeLinecap="round"
           strokeLinejoin="round"
           d="m9 15 1.8 1.8L15 13"
-          stroke="#f97316"
+          stroke="#d97706"
         />
       </svg>
     </IllustrationFrame>

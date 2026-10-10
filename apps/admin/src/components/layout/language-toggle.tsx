@@ -1,30 +1,51 @@
 import { useTranslation } from 'react-i18next';
 import { setLanguage, type Language } from '@/i18n';
+import { LanguageIcon } from '@/components/icons';
 
-const OPTIONS: Language[] = ['bn', 'en'];
+interface LanguageToggleProps {
+  /** For placement on a dark surface (the sidebar) — borders and dimmed label invert too. */
+  inverted?: boolean;
+}
 
-/** I18N-01's toggle — switches every visible label (react-i18next re-renders every useTranslation() caller
-    on i18n.changeLanguage(), so reading i18n.language here is enough to stay in sync, no local state). */
-export function LanguageToggle(): React.JSX.Element {
+/** I18N-01's toggle — a single pill that flips the language on click, not two selectable segments, matching
+    the reference dashboard's own LanguageToggle (an icon plus "EN / বাংলা" with the active one bold). Reads
+    i18n.language directly (react-i18next re-renders every useTranslation() caller on changeLanguage(), so
+    no local state is needed to stay in sync). */
+export function LanguageToggle({ inverted = false }: LanguageToggleProps): React.JSX.Element {
   const { t, i18n } = useTranslation();
-  const current = i18n.language;
+  const current = i18n.language as Language;
+  const other: Language = current === 'en' ? 'bn' : 'en';
 
   return (
-    <div className="flex items-center gap-1 rounded-full bg-slate-100 p-1">
-      {OPTIONS.map((language) => (
-        <button
-          key={language}
-          type="button"
-          onClick={() => {
-            setLanguage(language);
-          }}
-          className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
-            current === language ? 'bg-white text-brand-700 shadow-sm' : 'text-slate-500'
-          }`}
-        >
-          {t(`language.${language}`)}
-        </button>
-      ))}
-    </div>
+    <button
+      type="button"
+      onClick={() => {
+        setLanguage(other);
+      }}
+      title={t(`language.switchTo.${other}`)}
+      aria-label={t('common.language')}
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-xs font-medium transition ${
+        inverted
+          ? 'border-sidebar-line bg-sidebar-alt text-white/50 hover:bg-white/5'
+          : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50'
+      }`}
+    >
+      <LanguageIcon className="h-3.5 w-3.5 shrink-0 text-brand-500" />
+      <span
+        className={
+          current === 'en' ? `font-semibold ${inverted ? 'text-white' : 'text-slate-800'}` : ''
+        }
+      >
+        EN
+      </span>
+      <span className={inverted ? 'text-white/30' : 'text-slate-300'}>/</span>
+      <span
+        className={
+          current === 'bn' ? `font-semibold ${inverted ? 'text-white' : 'text-slate-800'}` : ''
+        }
+      >
+        {t('language.bn')}
+      </span>
+    </button>
   );
 }

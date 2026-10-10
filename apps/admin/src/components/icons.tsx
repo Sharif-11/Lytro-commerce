@@ -154,6 +154,62 @@ export function ClockIcon({ className = DEFAULT_CLASS }: IconProps): React.JSX.E
   );
 }
 
+export function LogoutIcon({ className = DEFAULT_CLASS }: IconProps): React.JSX.Element {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      aria-hidden="true"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M15.5 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h7.5a2 2 0 0 0 2-2v-2"
+      />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h11.5m0 0-3-3m3 3-3 3" />
+    </svg>
+  );
+}
+
+export function AccountIcon({ className = DEFAULT_CLASS }: IconProps): React.JSX.Element {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="8" r="3.5" />
+      <path strokeLinecap="round" d="M4.5 20a7.5 7.5 0 0 1 15 0" />
+    </svg>
+  );
+}
+
+export function LanguageIcon({ className = DEFAULT_CLASS }: IconProps): React.JSX.Element {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="8.5" />
+      <path strokeLinecap="round" d="M3.5 12h17" />
+      <path
+        strokeLinecap="round"
+        d="M12 3.5c2.2 2.2 3.3 5.2 3.3 8.5s-1.1 6.3-3.3 8.5c-2.2-2.2-3.3-5.2-3.3-8.5S9.8 5.7 12 3.5Z"
+      />
+    </svg>
+  );
+}
+
 export function LinkIcon({ className = DEFAULT_CLASS }: IconProps): React.JSX.Element {
   return (
     <svg
