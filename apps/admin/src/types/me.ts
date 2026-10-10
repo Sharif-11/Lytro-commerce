@@ -8,6 +8,11 @@ import type { TenantState } from '@lytronix/validators';
  */
 export interface MeResponse {
   subscriber: { id: string };
+  /** The owner implicitly holds every permission — treat this as "show everything" rather than checking
+      `permissions` at all (D32). */
+  isOwner: boolean;
+  /** Only meaningful when `isOwner` is false. Always `[]` for the owner. */
+  permissions: string[];
   tenant: {
     id: string;
     slug: string;
