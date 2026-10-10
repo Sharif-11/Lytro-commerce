@@ -70,12 +70,19 @@
       "subtitle": "Please wait a moment"
     }
   },
+  "nav": {
+    "dashboard": "Dashboard",
+    "staff": "Staff",
+    "roles": "Roles",
+    "activity": "Activity"
+  },
   "dashboard": {
     "placeholder": {
-      "title": "You're signed in",
-      "subtitle": "The full dashboard is coming soon."
+      "title": "Your shop",
+      "subtitle": "Here's an overview of your shop."
     },
     "logout": "Log out",
+    "comingSoon": "This section is coming soon.",
     "fields": {
       "subscriberId": "Account ID",
       "shopUrl": "Shop URL",

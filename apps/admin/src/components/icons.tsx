@@ -80,6 +80,80 @@ export function ShopIcon({ className = DEFAULT_CLASS }: IconProps): React.JSX.El
   );
 }
 
+export function HomeIcon({ className = DEFAULT_CLASS }: IconProps): React.JSX.Element {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      aria-hidden="true"
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 10.5 12 4l8 6.5" />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M5.5 9.5V19a1 1 0 0 0 1 1H9a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1h2.5a1 1 0 0 0 1-1V9.5"
+      />
+    </svg>
+  );
+}
+
+export function UsersIcon({ className = DEFAULT_CLASS }: IconProps): React.JSX.Element {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      aria-hidden="true"
+    >
+      <circle cx="9" cy="8" r="3" />
+      <path strokeLinecap="round" d="M3 19a6 6 0 0 1 12 0" />
+      <path strokeLinecap="round" d="M15.5 6a3 3 0 0 1 0 5.6" />
+      <path strokeLinecap="round" d="M17 13.3a6 6 0 0 1 4 5.7" />
+    </svg>
+  );
+}
+
+export function ShieldIcon({ className = DEFAULT_CLASS }: IconProps): React.JSX.Element {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      aria-hidden="true"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M12 3.5 19 6v5.5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-2.5Z"
+      />
+      <path strokeLinecap="round" strokeLinejoin="round" d="m9 12 2 2 4-4.5" />
+    </svg>
+  );
+}
+
+export function ClockIcon({ className = DEFAULT_CLASS }: IconProps): React.JSX.Element {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="8.5" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 7.5V12l3 2" />
+    </svg>
+  );
+}
+
 export function LinkIcon({ className = DEFAULT_CLASS }: IconProps): React.JSX.Element {
   return (
     <svg

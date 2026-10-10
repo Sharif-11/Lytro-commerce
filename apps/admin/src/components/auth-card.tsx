@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { useTranslation } from 'react-i18next';
+import { BrandMark } from '@/components/layout/brand-mark';
 
 interface AuthCardProps {
   title: string;
@@ -9,26 +9,6 @@ interface AuthCardProps {
   illustration?: ReactNode;
   children: ReactNode;
   footer?: ReactNode;
-}
-
-function BrandMark({ compact = false }: { compact?: boolean }): React.JSX.Element {
-  const { t } = useTranslation();
-  return (
-    <div className="flex items-center gap-2">
-      <span
-        className={`flex items-center justify-center rounded-xl bg-linear-to-br from-brand-500 to-brand-700 font-bold text-white shadow-md shadow-brand-600/30 ${
-          compact ? 'h-8 w-8 text-sm' : 'h-9 w-9 text-base'
-        }`}
-      >
-        L
-      </span>
-      <span
-        className={`font-bold tracking-tight text-slate-900 ${compact ? 'text-base' : 'text-lg'}`}
-      >
-        {t('common.appName')}
-      </span>
-    </div>
-  );
 }
 
 /** Decorative color fields, desktop/tablet only (sm+) — on a phone they'd just be background showing

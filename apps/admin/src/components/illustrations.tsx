@@ -56,20 +56,3 @@ export function CreateShopIllustration(): React.JSX.Element {
     </IllustrationFrame>
   );
 }
-
-export function DashboardIllustration(): React.JSX.Element {
-  return (
-    <IllustrationFrame>
-      <svg
-        className="h-8 w-8 sm:h-14 sm:w-14"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-      >
-        <circle cx="12" cy="12" r="9" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="m8 12.5 2.8 2.8L16 9.5" />
-      </svg>
-    </IllustrationFrame>
-  );
-}
