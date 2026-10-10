@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { ComingSoon } from '@/components/coming-soon';
+import { Staff } from '@/views/staff';
 
 export const Route = createFileRoute('/dashboard/staff')({
-  component: () => <ComingSoon titleKey="nav.staff" />,
+  component: Staff,
 });
