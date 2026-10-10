@@ -24,7 +24,27 @@ One deployable NestJS application (SCL-09), not a services-per-module split — 
 - **Interface segregation.** Don't give every adapter a fat interface with methods most implementations don't need. A courier without a public API (CRR-16, manual tracking-link only) shouldn't be forced to implement `book()` — split the interface (e.g., `TrackableCourier` vs. `BookableCourier`) so a manual courier only implements what it actually does.
 - **Dependency inversion.** Services depend on interfaces (a repository interface, an adapter interface), injected by NestJS's container — never on a concrete Postgres client or a specific HTTP library directly. This is what makes unit-testing a pricing calculation possible without a database at all: inject a fake repository that returns fixed data.
 
-## 3. Design patterns, and exactly where each one is used
+## 2a. SOLID, applied to the frontend (`apps/admin`) — added 2026-10-10, while planning the dashboard shell
+
+§2's principles translate directly; the vocabulary changes (classes → components and hooks), the reasoning doesn't:
+
+- **Single responsibility.** A component either fetches/holds state or renders — not both in the same place. `DashboardShell` is a thin **container**: it calls `useMe()` and `useDocumentTitle()` and composes presentational children (`TopBar`, `BottomNav`, `BrandMark`, `PoweredByMark`); none of those children fetch anything themselves, they just render the props they're given. The same split CODING-CONVENTIONS §6a's `routes/` (thin) vs `views/` (real UI) rule already draws for pages applies one level deeper, inside a page, to its sub-components.
+- **Open/closed.** Nav destinations are data (`components/layout/nav-items.ts`, one array), not JSX hardcoded into each nav component — adding a future section is one array entry, not an edit to every component that renders a nav. When permission-gated nav (D32) eventually has a real permissions field to read, it's a filter function applied to that same array, not a rewrite of `TopBar`/`BottomNav`.
+- **Liskov substitution.** Every hook in `api/<domain>/` returns the same TanStack Query result shape (`data`/`isLoading`/`isError`/`error`). A component written against that shape works against any hook in that layer, interchangeably — swapping `useMe()` for `useStaffList()` at a call site changes only the data, never the consuming code's structure.
+- **Interface segregation.** `TopBar` and `BottomNav` each take only the props their own layout needs. They are deliberately *not* unified into one polymorphic `NavBar` with a `variant` prop — their actual markup (vertical icon-over-label tabs vs. a horizontal icon-beside-label bar) differs enough that a shared component would just relocate the branching inside itself instead of removing it. See §4's DRY boundary below — this is that line, applied here.
+- **Dependency inversion.** Views depend on hooks (`useMe()`, `useStaffList()`), never on `ApiClient` or `fetch` directly — the frontend's version of "services depend on ports, injected." The `api/<domain>/` layer (§6a of `CODING-CONVENTIONS.md`) is that abstraction boundary; `ApiClient` itself is the one concrete thing every hook is built on, the same way every backend adapter sits on one database client.
+
+## 3a. Frontend design patterns (mirrors §3's table, same idea applied to `apps/admin`)
+
+| Pattern | Where | Why here specifically |
+| --- | --- | --- |
+| **Facade** | `api/<domain>/*` hook files (`useMe`, `useStaffList`, ...) | Gives a view one named call instead of wiring its own `useQuery` + queryKey + queryFn inline — the same reason a backend service hides a repository behind a method. |
+| **Container / Presentational** | `DashboardShell` (container) vs. `TopBar`/`BottomNav`/`BrandMark`/`PoweredByMark` (presentational) | Data-fetching and side effects stay in exactly one place per screen; everything downstream is a pure function of props, so it's trivially reasoned about (and testable) without a network. |
+| **Custom hook as the unit of reuse** | `useMe`, `useSignOut`, `useDocumentTitle` | React's equivalent of "extract a method" — the primary mechanism this layer uses to avoid repeating a decision (§4), the same role a shared service method plays on the backend. |
+| **Adapter** | `ApiClient` (`api/client.ts`) | Isolates fetch, the CSRF header, and the server's error-envelope shape from every hook built on top of it — swappable or mockable in one place. |
+| **Strategy** | `errorMessage()` (error code → copy), `navigateForNextStep()` (`NextStep` → route) | Exhaustive dispatch over a fixed set of cases, each written once, not an `if/else` re-derived at every call site — and both are written with no `default` case, so the compiler catches a new `NextStep`/`ErrorCode` value that isn't handled yet, rather than silently falling through. |
+
+
 
 | Pattern | Where | Why here specifically |
 | --- | --- | --- |
@@ -43,6 +63,7 @@ One deployable NestJS application (SCL-09), not a services-per-module split — 
 - **One validation path.** The same DTO/validation class is used whether a request comes from the dashboard, a secret key, or a public key (API-18's "the same action through the API and the dashboard produce the same metering and charges" already demands this outcome; sharing the validation code is how it's guaranteed rather than hoped for).
 - **One limit-check.** Every plan-limit check reads the tenant's snapshot and overrides through one shared guard (RTE-10, already decided), never a hard-coded number re-typed per feature.
 - **The line to not cross.** DRY stops being a virtue when it forces two genuinely different concerns to share code just because they look similar today — e.g., the canonical zilla/thana list (CUS-08) and a courier's own zone list are superficially similar (both "location data") but are kept as two separate tables (CUS-08 vs. CUS-10) on purpose, because they change independently and for different reasons. Shared structure, not shared meaning, is not a reason to merge two concepts.
+- **The same two rules hold in `apps/admin`.** One shared decision, every caller: the session-guard check lives in exactly one layout route (`routes/dashboard/route.tsx`), not copy-pasted `beforeLoad` checks per screen; nav destinations live in one array (`nav-items.ts`), read by every component that renders a nav. And the same line not to cross: `TopBar` and `BottomNav` share that one data source but stay two separate components rather than one forced into a `variant` prop (§2a) — their markup is a different concern from "which routes exist," even though both happen to be "navigation."
 
 ## 5. Database query practices
 
