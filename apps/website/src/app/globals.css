@@ -1,0 +1,30 @@
+@import 'tailwindcss';
+
+/* Lytro's identity, matching apps/admin's own (D34) — these two apps share no build tooling, so the token
+   values are kept in sync by hand across apps/admin/src/index.css and this file, not imported. */
+@theme {
+  --font-sans: var(--font-inter), var(--font-noto-bengali), ui-sans-serif, system-ui, sans-serif;
+
+  --color-brand-50: #f0f7e8;
+  --color-brand-100: #dcedc5;
+  --color-brand-200: #bfe099;
+  --color-brand-300: #9dce6a;
+  --color-brand-400: #87c14c;
+  --color-brand-500: #76c043;
+  --color-brand-600: #4a7d1e;
+  --color-brand-700: #3a6216;
+  --color-brand-800: #2c4b10;
+  --color-brand-900: #1f360a;
+
+  --color-accent-300: #f3c77a;
+  --color-accent-400: #e2a33d;
+  --color-accent-500: #d97706;
+
+  --color-ink: #0f172a;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: #ffffff;
+  color: var(--color-ink);
+}
