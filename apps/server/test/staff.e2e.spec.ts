@@ -510,6 +510,38 @@ describeIfDatabase('staff sign-in on the shop host (AUTH-12, AUTH-13, STF-05)', 
   });
 });
 
+describeIfDatabase("/me reflects who is signed in (D32's permission-gated nav)", () => {
+  it('gives the owner isOwner: true and an empty permissions list, regardless of roles', async () => {
+    const who = await owner();
+    const me = await get('/me', shopCall(who));
+    expect(me.status).toBe(200);
+    expect(me.body).toMatchObject({ isOwner: true, permissions: [] });
+  });
+
+  it('gives a staff member isOwner: false and the permissions of the role(s) they hold', async () => {
+    const who = await owner();
+    await moveToPlan(who.slug, 'Starter');
+    const role = (await createRole(who, 'Analyst', ['orders:read', 'payments:read'])).body as {
+      id: string;
+    };
+    const phone = texts.freshPhone();
+    const hired = await post(
+      '/staff',
+      { phone, password: STAFF_PASSWORD, roleIds: [role.id] },
+      shopCall(who),
+    );
+    expect(hired.status).toBe(201);
+
+    const signedIn = await staffSignIn(who.slug, phone, STAFF_PASSWORD);
+    const me = await get('/me', { cookie: cookieFrom(signedIn), host: `${who.slug}.localhost` });
+    expect(me.status).toBe(200);
+    expect(me.body).toMatchObject({
+      isOwner: false,
+      permissions: expect.arrayContaining(['orders:read', 'payments:read']) as unknown,
+    });
+  });
+});
+
 describeIfDatabase('staff sign-in across shops (TEN-03)', () => {
   it('refuses a staff phone of one shop on another shop host', async () => {
     const ours = await owner();

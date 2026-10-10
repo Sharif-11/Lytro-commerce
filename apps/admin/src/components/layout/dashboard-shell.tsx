@@ -4,6 +4,7 @@ import { useMe, useSignOut } from '@/api/auth';
 import { useDocumentTitle } from '@/hooks/use-document-title';
 import { BottomNav } from '@/components/layout/bottom-nav';
 import { MobileHeader } from '@/components/layout/mobile-header';
+import { visibleNavItems } from '@/components/layout/nav-items';
 import { PoweredByMark } from '@/components/layout/powered-by-mark';
 import { Sidebar } from '@/components/layout/sidebar';
 
@@ -21,6 +22,7 @@ export function DashboardShell({ children }: DashboardShellProps): React.JSX.Ele
   const me = useMe();
   const signOut = useSignOut();
   const shopName = me.data?.tenant?.shopName ?? null;
+  const items = visibleNavItems(me.data);
 
   // TEN-16: the shop name in the tab title. Falls back to the app name until /me resolves.
   useDocumentTitle(shopName ?? t('common.appName'));
@@ -31,7 +33,12 @@ export function DashboardShell({ children }: DashboardShellProps): React.JSX.Ele
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <Sidebar shopName={shopName} onSignOut={handleSignOut} signOutPending={signOut.isPending} />
+      <Sidebar
+        shopName={shopName}
+        items={items}
+        onSignOut={handleSignOut}
+        signOutPending={signOut.isPending}
+      />
       <MobileHeader shopName={shopName} />
 
       <main className="pb-20 sm:pb-10 sm:pl-64">
@@ -47,7 +54,12 @@ export function DashboardShell({ children }: DashboardShellProps): React.JSX.Ele
       <div className="fixed inset-x-0 bottom-16 z-20 border-t border-slate-100 bg-white py-1.5 sm:hidden">
         <PoweredByMark />
       </div>
-      <BottomNav shopName={shopName} onSignOut={handleSignOut} signOutPending={signOut.isPending} />
+      <BottomNav
+        items={items}
+        shopName={shopName}
+        onSignOut={handleSignOut}
+        signOutPending={signOut.isPending}
+      />
     </div>
   );
 }

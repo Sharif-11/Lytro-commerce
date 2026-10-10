@@ -10,6 +10,7 @@ import { DrizzleSignInFailureStore } from '../../database/adapters/sign-in-failu
 import { MailModule } from '../shared/mail/mail.module';
 import { MessagingModule } from '../shared/messaging/messaging.module';
 import { AuditModule } from '../audit/audit.module';
+import { StaffModule } from '../staff/staff.module';
 import { TenancyModule } from '../tenancy/tenancy.module';
 import { AuthController } from './controllers/auth.controller';
 import { IdentitiesController } from './controllers/identities.controller';
@@ -55,7 +56,9 @@ import {
 } from './tokens';
 
 @Module({
-  imports: [TenancyModule, MessagingModule, MailModule, AuditModule],
+  // StaffModule's only here for MeController's permissions lookup (D32) — no cycle: StaffModule only imports
+  // the leaf AuditModule, never IdentityModule back.
+  imports: [TenancyModule, MessagingModule, MailModule, AuditModule, StaffModule],
   controllers: [
     AuthController,
     ShopsController,

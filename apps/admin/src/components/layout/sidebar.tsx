@@ -2,11 +2,12 @@ import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { BrandMark } from '@/components/layout/brand-mark';
 import { LanguageToggle } from '@/components/layout/language-toggle';
-import { navItems } from '@/components/layout/nav-items';
+import type { NavItem } from '@/components/layout/nav-items';
 import { LogoutIcon } from '@/components/icons';
 
 interface SidebarProps {
   shopName: string | null;
+  items: NavItem[];
   onSignOut: () => void;
   signOutPending: boolean;
 }
@@ -18,7 +19,12 @@ interface SidebarProps {
  * bottom. See BottomNav for the mobile equivalent; the two stay separate components on purpose
  * (ENGINEERING-STANDARDS.md §2a/§4), since their layouts differ too much to share.
  */
-export function Sidebar({ shopName, onSignOut, signOutPending }: SidebarProps): React.JSX.Element {
+export function Sidebar({
+  shopName,
+  items,
+  onSignOut,
+  signOutPending,
+}: SidebarProps): React.JSX.Element {
   const { t } = useTranslation();
   const initial = (shopName ?? t('common.appName')).trim().charAt(0).toUpperCase();
 
@@ -29,7 +35,7 @@ export function Sidebar({ shopName, onSignOut, signOutPending }: SidebarProps): 
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-        {navItems.map((item) => (
+        {items.map((item) => (
           <Link
             key={item.to}
             to={item.to}
