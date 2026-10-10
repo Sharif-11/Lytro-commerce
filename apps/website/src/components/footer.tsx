@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { adminUrl } from '@/lib/admin-url';
 
 /** Deliberately minimal — no links to a Privacy Policy, Terms of Service or blog, since none of those pages
     exist yet in Phase 1. A footer link to a page that doesn't exist is a worse first impression than no
@@ -17,9 +17,12 @@ export function Footer(): React.JSX.Element {
           বাংলাদেশি অনলাইন সেলারদের জন্য তৈরি, একটি প্ল্যাটফর্মে অর্ডার, পেমেন্ট আর কুরিয়ার ম্যানেজ
           করার সহজ উপায়।
         </p>
-        <Link href="/sign-in" className="text-sm font-medium text-brand-700 hover:underline">
+        <a
+          href={adminUrl('/sign-in')}
+          className="text-sm font-medium text-brand-700 hover:underline"
+        >
           দোকান শুরু করুন
-        </Link>
+        </a>
         <p className="mt-4 text-xs text-slate-400">© {new Date().getFullYear()} Lytro</p>
       </div>
     </footer>

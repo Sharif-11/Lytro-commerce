@@ -1,8 +1,9 @@
-import Link from 'next/link';
+import { adminUrl } from '@/lib/admin-url';
 
 /** The positioning statement from docs/MARKETING-PLAN.md §3, as the headline — "the fastest, simplest way
     for a Bangladeshi seller to run a real online shop, with orders, payments, couriers and fraud checks
-    already connected, in Bangla, with no monthly fee to start." */
+    already connected, in Bangla, with no monthly fee to start." The CTA uses adminUrl() (see nav.tsx's own
+    note) since /sign-in is served by apps/admin, a different app from this one. */
 export function Hero(): React.JSX.Element {
   return (
     <section className="relative overflow-hidden bg-linear-to-b from-brand-50 to-white">
@@ -15,12 +16,12 @@ export function Hero(): React.JSX.Element {
           লিখে রাখার দিন শেষ।
         </p>
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <Link
-            href="/sign-in"
+          <a
+            href={adminUrl('/sign-in')}
             className="w-full rounded-xl bg-linear-to-br from-brand-500 to-brand-600 px-6 py-3.5 text-base font-semibold text-white shadow-lg shadow-brand-600/25 sm:w-auto"
           >
             বিনামূল্যে শুরু করুন
-          </Link>
+          </a>
           <span className="text-sm text-slate-500">কোনো মাসিক ফি ছাড়াই আজই শুরু করুন</span>
         </div>
       </div>
