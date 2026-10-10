@@ -134,6 +134,42 @@
       "auditRead": "অ্যাক্টিভিটি দেখুন"
     }
   },
+  "activity": {
+    "title": "অ্যাক্টিভিটি লগ",
+    "noneYet": "এখনো কোনো অ্যাক্টিভিটি নেই।",
+    "loadMore": "আরও দেখুন",
+    "filters": {
+      "dateFrom": "শুরুর তারিখ",
+      "dateTo": "শেষ তারিখ",
+      "actor": "স্টাফ",
+      "allActors": "সবাই",
+      "action": "অ্যাকশন",
+      "allActions": "সব অ্যাকশন"
+    },
+    "actorFallback": {
+      "system": "সিস্টেম",
+      "platformSupport": "প্ল্যাটফর্ম সাপোর্ট",
+      "unknown": "অজানা"
+    },
+    "result": {
+      "success": "সাকসেস",
+      "failure": "ফেইলড"
+    },
+    "action": {
+      "signIn": "লগইন করেছেন",
+      "signInFailed": "লগইন ফেইলড",
+      "signOut": "লগআউট করেছেন",
+      "passwordChanged": "পাসওয়ার্ড চেঞ্জ হয়েছে",
+      "passwordReset": "পাসওয়ার্ড রিসেট হয়েছে",
+      "staffCreated": "স্টাফ অ্যাকাউন্ট তৈরি হয়েছে",
+      "staffUpdated": "স্টাফ অ্যাকাউন্ট আপডেট হয়েছে",
+      "staffDeactivated": "স্টাফ অ্যাকাউন্ট ডিজেবল হয়েছে",
+      "staffReactivated": "স্টাফ অ্যাকাউন্ট অ্যাক্টিভ হয়েছে",
+      "roleCreated": "রোল তৈরি হয়েছে",
+      "roleUpdated": "রোল আপডেট হয়েছে",
+      "roleDeleted": "রোল ডিলিট হয়েছে"
+    }
+  },
   "dashboard": {
     "placeholder": {
       "title": "আপনার দোকান",

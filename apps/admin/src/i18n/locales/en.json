@@ -134,6 +134,42 @@
       "auditRead": "View activity"
     }
   },
+  "activity": {
+    "title": "Activity Log",
+    "noneYet": "No activity yet.",
+    "loadMore": "Load more",
+    "filters": {
+      "dateFrom": "From",
+      "dateTo": "To",
+      "actor": "Staff member",
+      "allActors": "Everyone",
+      "action": "Action",
+      "allActions": "All actions"
+    },
+    "actorFallback": {
+      "system": "System",
+      "platformSupport": "Platform support",
+      "unknown": "Unknown"
+    },
+    "result": {
+      "success": "Success",
+      "failure": "Failed"
+    },
+    "action": {
+      "signIn": "Signed in",
+      "signInFailed": "Sign-in failed",
+      "signOut": "Signed out",
+      "passwordChanged": "Password changed",
+      "passwordReset": "Password reset",
+      "staffCreated": "Staff account created",
+      "staffUpdated": "Staff account updated",
+      "staffDeactivated": "Staff account deactivated",
+      "staffReactivated": "Staff account reactivated",
+      "roleCreated": "Role created",
+      "roleUpdated": "Role updated",
+      "roleDeleted": "Role deleted"
+    }
+  },
   "dashboard": {
     "placeholder": {
       "title": "Your shop",
