@@ -11,7 +11,11 @@
     "disabled": "Disabled",
     "cancel": "Cancel",
     "save": "Save changes",
-    "delete": "Delete"
+    "delete": "Delete",
+    "email": "Email",
+    "copy": "Copy",
+    "copied": "Copied",
+    "download": "Download"
   },
   "language": {
     "bn": "বাংলা",
@@ -88,6 +92,36 @@
     "oauthCallback": {
       "title": "Signing you in...",
       "subtitle": "Please wait a moment"
+    }
+  },
+  "operator": {
+    "signIn": {
+      "title": "Operator sign-in",
+      "subtitle": "The platform operator console — separate from the tenant dashboard",
+      "submit": "Continue"
+    },
+    "enroll": {
+      "title": "Set up two-factor authentication",
+      "subtitle": "Scan this QR code with an authenticator app, then enter the 6-digit code it shows",
+      "secretLabel": "Can't scan? Enter this code manually",
+      "codeLabel": "6-digit code",
+      "submit": "Confirm and enable"
+    },
+    "backupCodes": {
+      "title": "Save your backup codes",
+      "subtitle": "Each code works once, if you ever lose access to your authenticator app. They're shown only this one time.",
+      "continue": "I've saved these — continue"
+    },
+    "verify": {
+      "title": "Enter your code",
+      "subtitle": "Enter the 6-digit code from your authenticator app, or a backup code",
+      "codeLabel": "Code",
+      "submit": "Sign in"
+    },
+    "console": {
+      "title": "Signed in",
+      "subtitle": "The operator console itself isn't built yet — this confirms two-factor sign-in is working.",
+      "signOut": "Sign out"
     }
   },
   "nav": {
