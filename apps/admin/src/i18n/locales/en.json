@@ -43,8 +43,7 @@
       "subtitle": "Tell us about your shop",
       "ownerNameLabel": "Your name",
       "shopNameLabel": "Shop name",
-      "addressLabel": "Shop address (subdomain)",
-      "addressHint": "Your shop will be available at {{preview}}.lytro.com",
+      "addressLabel": "Shop URL",
       "submit": "Create shop"
     },
     "setPassword": {

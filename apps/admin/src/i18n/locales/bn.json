@@ -43,8 +43,7 @@
       "subtitle": "আপনার দোকান সম্পর্কে জানান",
       "ownerNameLabel": "আপনার নাম",
       "shopNameLabel": "দোকানের নাম",
-      "addressLabel": "দোকানের ঠিকানা (সাবডোমেইন)",
-      "addressHint": "আপনার দোকান পাওয়া যাবে {{preview}}.lytro.com এ",
+      "addressLabel": "দোকানের লিংক",
       "submit": "দোকান তৈরি করুন"
     },
     "setPassword": {
