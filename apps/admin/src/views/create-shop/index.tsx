@@ -8,6 +8,7 @@ import { Button } from '@/components/button';
 import { TextField } from '@/components/text-field';
 import { ErrorBanner } from '@/components/error-banner';
 import { errorMessage } from '@/api/error-message';
+import { suggestSlug } from '@/api/slug';
 import { tenantSession } from '@/session/tenant-session';
 import { LinkIcon, ShopIcon, UserIcon } from '@/components/icons';
 import { CreateShopIllustration } from '@/components/illustrations';
@@ -21,6 +22,8 @@ export function CreateShop(): React.JSX.Element {
   const [ownerName, setOwnerName] = useState('');
   const [shopName, setShopName] = useState('');
   const [address, setAddress] = useState('');
+  // Once the owner edits the URL themselves, their name's live suggestion stops overwriting it.
+  const [addressTouched, setAddressTouched] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
   const mutation = useMutation({
@@ -76,25 +79,23 @@ export function CreateShop(): React.JSX.Element {
           icon={<ShopIcon />}
           value={shopName}
           onChange={(event) => {
-            setShopName(event.target.value);
+            const value = event.target.value;
+            setShopName(value);
+            if (!addressTouched) setAddress(suggestSlug(value));
           }}
         />
-        <div>
-          <TextField
-            label={t('auth.createShop.addressLabel')}
-            name="address"
-            icon={<LinkIcon />}
-            value={address}
-            onChange={(event) => {
-              setAddress(event.target.value.toLowerCase());
-            }}
-          />
-          {address !== '' ? (
-            <p className="mt-1.5 text-sm text-slate-500">
-              {t('auth.createShop.addressHint', { preview: address })}
-            </p>
-          ) : null}
-        </div>
+        <TextField
+          label={t('auth.createShop.addressLabel')}
+          name="address"
+          icon={<LinkIcon />}
+          suffix=".lytro.com"
+          placeholder="your-shop"
+          value={address}
+          onChange={(event) => {
+            setAddressTouched(true);
+            setAddress(event.target.value.toLowerCase());
+          }}
+        />
         {formError ? <ErrorBanner message={formError} /> : null}
         {mutation.isError ? <ErrorBanner message={errorMessage(mutation.error, t)} /> : null}
         <Button type="submit" loading={mutation.isPending}>
