@@ -2,11 +2,12 @@ import { useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { AccountSheet } from '@/components/layout/account-sheet';
-import { navItems } from '@/components/layout/nav-items';
+import type { NavItem } from '@/components/layout/nav-items';
 import { AccountIcon } from '@/components/icons';
 
 interface BottomNavProps {
   shopName: string | null;
+  items: NavItem[];
   onSignOut: () => void;
   signOutPending: boolean;
 }
@@ -19,6 +20,7 @@ interface BottomNavProps {
     just the icon, not the whole tab. */
 export function BottomNav({
   shopName,
+  items,
   onSignOut,
   signOutPending,
 }: BottomNavProps): React.JSX.Element {
@@ -28,7 +30,7 @@ export function BottomNav({
   return (
     <>
       <nav className="fixed inset-x-0 bottom-0 z-20 flex h-16 border-t border-slate-100 bg-white sm:hidden">
-        {navItems.map((item) => (
+        {items.map((item) => (
           <Link
             key={item.to}
             to={item.to}
