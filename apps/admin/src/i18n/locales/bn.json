@@ -9,7 +9,9 @@
     "edit": "এডিট",
     "active": "অ্যাক্টিভ",
     "disabled": "ডিজেবলড",
-    "cancel": "ক্যানসেল"
+    "cancel": "ক্যানসেল",
+    "save": "সেভ করুন",
+    "delete": "ডিলিট"
   },
   "language": {
     "bn": "বাংলা",
@@ -110,6 +112,27 @@
     "owner": "মালিক",
     "activate": "অ্যাক্টিভ করুন",
     "deactivate": "ডিজেবল করুন"
+  },
+  "roles": {
+    "title": "রোল ও পারমিশন",
+    "count": "{{count}}টি রোল",
+    "addRole": "+ রোল যোগ করুন",
+    "addRoleTitle": "রোল যোগ করুন",
+    "editRole": "\"{{name}}\" এডিট",
+    "roleName": "রোল নেম",
+    "permissions": "পারমিশন",
+    "createRole": "রোল ক্রিয়েট করুন",
+    "noPermissions": "কোনো পারমিশন অ্যাসাইন করা হয়নি",
+    "userCount": "{{count}} জন ইউজার",
+    "noneYet": "এখনো কোনো রোল নেই।",
+    "deleteTitle": "এই রোলটি ডিলিট করবেন?",
+    "deleteHeldBy_one": "এই রোলটি {{count}} জন ব্যবহার করছেন। প্রথমে তাদের থেকে এটি সরিয়ে নিন।",
+    "deleteHeldBy_other": "এই রোলটি {{count}} জন ব্যবহার করছেন। প্রথমে তাদের থেকে এটি সরিয়ে নিন।",
+    "permission": {
+      "staffRead": "স্টাফ দেখুন",
+      "staffManage": "স্টাফ ম্যানেজ করুন",
+      "auditRead": "অ্যাক্টিভিটি দেখুন"
+    }
   },
   "dashboard": {
     "placeholder": {

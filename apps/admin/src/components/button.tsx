@@ -2,7 +2,7 @@ import type { ButtonHTMLAttributes } from 'react';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   loading?: boolean;
-  variant?: 'primary' | 'ghost' | 'outline';
+  variant?: 'primary' | 'ghost' | 'outline' | 'danger';
 }
 
 function Spinner(): React.JSX.Element {
@@ -34,6 +34,8 @@ export function Button({
     ghost: 'bg-transparent text-brand-700 hover:bg-brand-50',
     outline:
       'border border-slate-200 bg-white text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50',
+    danger:
+      'bg-linear-to-br from-red-500 to-red-600 text-white shadow-md shadow-red-600/25 hover:shadow-lg hover:shadow-red-600/30 hover:-translate-y-0.5',
   };
   return (
     <button
