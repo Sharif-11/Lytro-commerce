@@ -55,6 +55,22 @@ export function UserIcon({ className = DEFAULT_CLASS }: IconProps): React.JSX.El
   );
 }
 
+export function MailIcon({ className = DEFAULT_CLASS }: IconProps): React.JSX.Element {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      aria-hidden="true"
+    >
+      <rect x="3" y="5" width="18" height="14" rx="2.5" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="m4 7 7 5.5a1.5 1.5 0 0 0 2 0L20 7" />
+    </svg>
+  );
+}
+
 export function ShopIcon({ className = DEFAULT_CLASS }: IconProps): React.JSX.Element {
   return (
     <svg
