@@ -177,20 +177,43 @@ apps/admin/src/
   main.tsx                 entry point
   router.tsx                TanStack Router setup; host-branches into the tenant or operator route tree
   routes/                   thin: one file per route. Sets metadata and renders a view. No business logic.
-    (tenant)/                sign-up, sign-in, forgot-password, create-shop
-    _dashboard/              layout route (session guard + shell), then staff, roles, settings
+    sign-in.tsx, verify-code.tsx, create-shop.tsx, set-password.tsx, forgot-password/
+                             transitional auth-flow screens — outside the dashboard layout on purpose
+                             (create-shop in particular has no tenant yet to show a dashboard shell for)
+    dashboard/
+      route.tsx               the layout route: the one session guard, renders the shell around an Outlet
+      index.tsx                the dashboard home page
+      staff.tsx, roles.tsx, activity.tsx
+                               nested under the same layout, same one guard (D32, 2026-10-10 — a regular
+                               `dashboard/` directory with a `route.tsx`, not a pathless `_dashboard/` group:
+                               the latter collides with the root route's own path)
     operator/                sign-in, enroll, verify
   views/<route>/
     index.tsx                 the real page
     components/                view-local components, used only by this view
   components/
     ui/                       shared primitives (buttons, inputs, dialogs — not view-specific)
-    layout/                   nav, the "Powered by" mark, the language toggle
+    layout/                   the dashboard shell, split by ENGINEERING-STANDARDS.md §2a's
+                               container/presentational line:
+      dashboard-shell.tsx        container — calls useMe()/useDocumentTitle(), composes the rest
+      top-bar.tsx, bottom-nav.tsx presentational — read nav-items.ts, render their own markup (not unified
+                                   into one polymorphic component; see §2a/§4 for why)
+      nav-items.ts                the one array both nav components read — adding a destination is one
+                                   entry here, not an edit to both components (open/closed, §2a)
+      brand-mark.tsx, powered-by-mark.tsx
+                                   presentational; brand-mark is also used by AuthCard, so it lives here
+                                   rather than as a second copy duplicated into auth-card.tsx
+      language-toggle.tsx         presentational control over i18n/index.ts's setLanguage/getLanguage
+  hooks/                     generic, non-API-specific reusable hooks — distinct from api/<domain>/ the
+                             same way the server's ports/ are distinct from its services/
+    use-document-title.ts     sets document.title, restores the previous one on unmount; not shop-specific
   api/
     client.ts                  the typed fetch wrapper: attaches the CSRF header on mutating requests, parses
                                 the error envelope from @lytronix/shared-types
     <domain>/                  query/mutation hooks (TanStack Query) for one backend module each, mirroring
-                                the server's own module names (auth, staff, roles, operator-auth, ...)
+                                the server's own module names (auth, staff, roles, operator-auth, ...) — a
+                                view calls useMe() or useStaffList(), never the client directly (dependency
+                                inversion, §2a)
   i18n/                       react-i18next setup; bn.json and en.json dictionaries
   session/
     tenant-session.ts          holds the CSRF token and the last /me result; the auth-init gate protected
@@ -216,6 +239,10 @@ apps/admin/src/
 - `apps/admin` may import `@lytronix/validators` and `@lytronix/shared-types` directly (confirmed neither has
   a Node-only dependency) — reusing a zod schema or an enum from there is preferred over redefining it
   client-side, the same "one definition per concept" rule §3 states for the server.
+- SOLID and the frontend design patterns this tree is built around (container/presentational, the `api/`
+  layer as a facade, a custom hook as the unit of reuse) are written up in full in
+  `ENGINEERING-STANDARDS.md` §2a and §3a — this section is the file tree those principles produce, not a
+  restatement of the reasoning behind it.
 
 ## 7. Database connection
 
