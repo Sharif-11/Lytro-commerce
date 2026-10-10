@@ -104,9 +104,14 @@ export function SignIn(): React.JSX.Element {
       subtitle={t('auth.signIn.subtitle')}
       illustration={<SignInIllustration />}
       footer={
-        <Link to="/forgot-password" className="text-brand-700 hover:underline">
-          {t('auth.signIn.forgotPassword')}
-        </Link>
+        <div className="space-y-2">
+          <Link to="/forgot-password" className="block text-brand-700 hover:underline">
+            {t('auth.signIn.forgotPassword')}
+          </Link>
+          <Link to="/staff-sign-in" className="block text-slate-500 hover:underline">
+            {t('auth.signIn.staffSignInLink')}
+          </Link>
+        </div>
       }
     >
       <div className="space-y-5">

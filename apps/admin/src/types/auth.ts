@@ -30,3 +30,13 @@ export interface ShopCreated {
 export interface OauthSignedIn extends SignedInBody {
   recovery: 'facebook-only' | null;
 }
+
+/** POST auth/staff/signin's response (StaffAuthController) — its own, narrower NextStep than the owner's
+    SignedInBody: a staff member can never reach create-shop/renewal/purchase/unavailable, only a forced
+    password change (the owner set their password; StaffSigninService.signIn's own `next` logic) or straight
+    to the dashboard. */
+export interface StaffSignedInBody {
+  next: 'set-password' | 'dashboard';
+  tenantId: string | null;
+  csrfToken: string;
+}
