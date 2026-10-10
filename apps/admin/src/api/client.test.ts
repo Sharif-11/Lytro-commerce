@@ -72,6 +72,18 @@ describe('ApiClient', () => {
     expect(init.body).toBe(JSON.stringify({ active: false }));
   });
 
+  it('sends DELETE with the CSRF header and no body', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ ok: true }));
+    const client = new ApiClient({ baseUrl: '/api', getCsrfToken: () => 'csrf-123' });
+
+    await client.delete('/roles/1');
+
+    const init = lastRequestInit(fetchMock);
+    expect(init.method).toBe('DELETE');
+    expect((init.headers as Headers).get('x-csrf-token')).toBe('csrf-123');
+    expect(init.body).toBeUndefined();
+  });
+
   it('returns undefined for a 204 response without reading the body', async () => {
     fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
     const client = new ApiClient({ baseUrl: '/api', getCsrfToken: () => null });

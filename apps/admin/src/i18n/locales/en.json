@@ -9,7 +9,9 @@
     "edit": "Edit",
     "active": "Active",
     "disabled": "Disabled",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "save": "Save changes",
+    "delete": "Delete"
   },
   "language": {
     "bn": "বাংলা",
@@ -110,6 +112,27 @@
     "owner": "Owner",
     "activate": "Activate",
     "deactivate": "Deactivate"
+  },
+  "roles": {
+    "title": "Roles & Permissions",
+    "count": "{{count}} role(s)",
+    "addRole": "+ Add role",
+    "addRoleTitle": "Add role",
+    "editRole": "Edit \"{{name}}\"",
+    "roleName": "Role name",
+    "permissions": "Permissions",
+    "createRole": "Create role",
+    "noPermissions": "No permissions assigned",
+    "userCount": "{{count}} user(s)",
+    "noneYet": "No roles yet.",
+    "deleteTitle": "Delete this role?",
+    "deleteHeldBy_one": "This role is held by {{count}} person. Remove it from them first.",
+    "deleteHeldBy_other": "This role is held by {{count}} people. Remove it from them first.",
+    "permission": {
+      "staffRead": "View staff",
+      "staffManage": "Manage staff",
+      "auditRead": "View activity"
+    }
   },
   "dashboard": {
     "placeholder": {

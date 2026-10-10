@@ -74,6 +74,10 @@ export class ApiClient {
     });
   }
 
+  delete<T>(path: string): Promise<T> {
+    return this.request<T>(path, { method: 'DELETE' });
+  }
+
   private toError(response: Response, body: unknown): ApiClientError {
     const envelope = body as Partial<ApiErrorBody> | null;
     const retryAfter = response.headers.get('Retry-After');
