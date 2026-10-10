@@ -31,7 +31,10 @@ void i18n.use(initReactI18next).init({
 export function setLanguage(language: Language): void {
   localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
   void i18n.changeLanguage(language);
+  document.documentElement.lang = language;
 }
+
+document.documentElement.lang = storedLanguage();
 
 export function getLanguage(): Language {
   return storedLanguage();

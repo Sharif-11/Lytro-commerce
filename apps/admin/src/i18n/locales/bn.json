@@ -3,11 +3,16 @@
     "appName": "Lytro",
     "poweredBy": "Powered by Lytronix",
     "loading": "লোড হচ্ছে...",
-    "somethingWentWrong": "কিছু একটা সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।"
+    "somethingWentWrong": "কিছু একটা সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।",
+    "close": "ক্লোজ",
+    "language": "ভাষা"
   },
   "language": {
     "bn": "বাংলা",
-    "en": "English"
+    "switchTo": {
+      "bn": "বাংলায় দেখুন",
+      "en": "Switch to English"
+    }
   },
   "auth": {
     "signIn": {
@@ -17,8 +22,8 @@
       "phonePlaceholder": "01XXXXXXXXX",
       "passwordLabel": "পাসওয়ার্ড",
       "continue": "এগিয়ে যান",
-      "signInWithPassword": "সাইন ইন করুন",
-      "usePasswordInstead": "পাসওয়ার্ড দিয়ে সাইন ইন করুন",
+      "signInWithPassword": "লগইন করুন",
+      "usePasswordInstead": "পাসওয়ার্ড দিয়ে লগইন করুন",
       "useCodeInstead": "কোড ব্যবহার করুন",
       "forgotPassword": "পাসওয়ার্ড ভুলে গেছেন?",
       "invalidPhone": "সঠিক বাংলাদেশী মোবাইল নম্বর দিন",
@@ -27,10 +32,10 @@
       "orDivider": "অথবা"
     },
     "verify": {
-      "title": "আপনার নম্বর যাচাই করুন",
+      "title": "আপনার নম্বর ভেরিফাই করুন",
       "subtitle": "{{phone}} নম্বরে ৬ সংখ্যার একটি কোড পাঠানো হয়েছে",
-      "codeLabel": "যাচাই কোড",
-      "submit": "যাচাই করুন",
+      "codeLabel": "ভেরিফিকেশন কোড",
+      "submit": "ভেরিফাই করুন",
       "resend": "আবার কোড পাঠান",
       "resendIn": "{{seconds}} সেকেন্ড পর আবার পাঠানো যাবে",
       "expiresIn": "কোডের মেয়াদ শেষ হবে {{seconds}} সেকেন্ডে",
@@ -48,38 +53,46 @@
     },
     "setPassword": {
       "title": "পাসওয়ার্ড সেট করুন",
-      "subtitle": "ঐচ্ছিক — আপনি সবসময় কোড দিয়েও সাইন ইন করতে পারবেন",
-      "newPasswordLabel": "নতুন পাসওয়ার্ড",
-      "currentPasswordLabel": "বর্তমান পাসওয়ার্ড",
-      "submit": "পাসওয়ার্ড সংরক্ষণ করুন",
+      "subtitle": "অপশনাল — আপনি সবসময় কোড দিয়েও লগইন করতে পারবেন",
+      "newPasswordLabel": "নিউ পাসওয়ার্ড",
+      "currentPasswordLabel": "কারেন্ট পাসওয়ার্ড",
+      "submit": "পাসওয়ার্ড সেভ করুন",
       "skip": "এখন বাদ দিন"
     },
     "forgotPassword": {
       "title": "পাসওয়ার্ড রিসেট করুন",
       "subtitle": "আপনার ফোন নম্বর দিন, আমরা একটি রিসেট কোড পাঠাব",
       "submit": "রিসেট কোড পাঠান",
-      "backToSignIn": "সাইন ইনে ফিরে যান"
+      "backToSignIn": "লগইনে ফিরে যান"
     },
     "unavailable": {
       "title": "এখনও উপলব্ধ নয়",
       "subtitle": "আপনার অ্যাকাউন্টের এই অংশটি এখনও প্রস্তুত নয়। অনুগ্রহ করে পরে আবার চেষ্টা করুন।",
-      "backToSignIn": "সাইন ইনে ফিরে যান"
+      "backToSignIn": "লগইনে ফিরে যান"
     },
     "oauthCallback": {
-      "title": "সাইন ইন করা হচ্ছে...",
+      "title": "লগইন হচ্ছে...",
       "subtitle": "একটু অপেক্ষা করুন"
     }
   },
+  "nav": {
+    "dashboard": "ড্যাশবোর্ড",
+    "staff": "স্টাফ",
+    "roles": "রোল",
+    "activity": "অ্যাক্টিভিটি",
+    "account": "অ্যাকাউন্ট"
+  },
   "dashboard": {
     "placeholder": {
-      "title": "আপনি সাইন ইন করেছেন",
-      "subtitle": "সম্পূর্ণ ড্যাশবোর্ড শীঘ্রই আসছে।"
+      "title": "আপনার দোকান",
+      "subtitle": "আপনার দোকানের একটি সংক্ষিপ্ত বিবরণ।"
     },
-    "logout": "লগ আউট",
+    "logout": "লগআউট",
+    "comingSoon": "এই অংশটি শীঘ্রই আসছে।",
     "fields": {
       "subscriberId": "অ্যাকাউন্ট আইডি",
       "shopUrl": "দোকানের ঠিকানা",
-      "state": "অবস্থা",
+      "state": "স্ট্যাটাস",
       "plan": "প্ল্যান"
     }
   },
@@ -89,7 +102,7 @@
     "rateLimitedMinutes": "অনেকবার চেষ্টা করা হয়েছে। {{minutes}} মিনিট পর আবার চেষ্টা করুন।",
     "conflict": "এটি ইতিমধ্যে ব্যবহৃত হয়েছে। অন্য কিছু ব্যবহার করুন।",
     "validation": "অনুগ্রহ করে দেওয়া তথ্য পরীক্ষা করুন।",
-    "unauthenticated": "অনুগ্রহ করে আবার সাইন ইন করুন।",
+    "unauthenticated": "অনুগ্রহ করে আবার লগইন করুন।",
     "tenantOffline": "এই দোকানটি সাময়িকভাবে অনুপলব্ধ।",
     "notFound": "আমরা এটি খুঁজে পাইনি।",
     "planLimited": "এটি আপনার বর্তমান প্ল্যানে উপলব্ধ নয়।"

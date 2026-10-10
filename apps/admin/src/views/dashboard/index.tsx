@@ -1,75 +1,49 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
-import { useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
-import { AuthCard } from '@/components/auth-card';
-import { Button } from '@/components/button';
+import { useMe } from '@/api/auth';
 import { ErrorBanner } from '@/components/error-banner';
 import { errorMessage } from '@/api/error-message';
-import { tenantSession } from '@/session/tenant-session';
-import { DashboardIllustration } from '@/components/illustrations';
 
-// Proves this auth slice's routing and session end to end with real /me data and a working sign-out. The
-// real dashboard shell (nav, full branding, language toggle) is the next slice, not this one.
-export function DashboardPlaceholder(): React.JSX.Element {
+// Branding, nav and sign-out now live in DashboardShell (the layout route wraps every screen in it) — this
+// view is just its own content: the shop identity card. Real dashboard content (orders, products, ...) has
+// no backend yet in Phase 1 (see D32's planning note); this stays modest on purpose.
+export function DashboardHome(): React.JSX.Element {
   const { t } = useTranslation();
-  const navigate = useNavigate();
-
-  const me = useQuery({
-    queryKey: ['me'],
-    queryFn: () => tenantSession.refreshMe(),
-  });
-
-  const signOut = useMutation({
-    mutationFn: () => tenantSession.client.post<{ ok: true }>('/auth/signout'),
-    // Clear local state and leave either way — a failed signout call shouldn't trap the tenant on a screen
-    // they explicitly asked to leave.
-    onSettled: () => {
-      tenantSession.clear();
-      void navigate({ to: '/sign-in' });
-    },
-  });
-
+  const me = useMe();
   const tenant = me.data?.tenant ?? null;
 
   return (
-    <AuthCard
-      title={tenant?.shopName ?? t('dashboard.placeholder.title')}
-      subtitle={t('dashboard.placeholder.subtitle')}
-      illustration={<DashboardIllustration />}
-      footer={
-        <Button
-          variant="ghost"
-          loading={signOut.isPending}
-          onClick={() => {
-            signOut.mutate();
-          }}
-        >
-          {t('dashboard.logout')}
-        </Button>
-      }
-    >
+    <div className="mx-auto w-full max-w-5xl px-5 py-6 sm:px-6 sm:py-8">
+      <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">
+        {tenant?.shopName ?? t('dashboard.placeholder.title')}
+      </h1>
+      <p className="mt-1 text-sm text-slate-500">{t('dashboard.placeholder.subtitle')}</p>
+
       {me.isLoading ? (
-        <p className="text-center text-sm text-slate-500">{t('common.loading')}</p>
+        <p className="mt-6 text-center text-sm text-slate-500">{t('common.loading')}</p>
       ) : null}
-      {me.isError ? <ErrorBanner message={errorMessage(me.error, t)} /> : null}
+      {me.isError ? (
+        <div className="mt-6">
+          <ErrorBanner message={errorMessage(me.error, t)} />
+        </div>
+      ) : null}
       {me.data ? (
-        <dl className="space-y-2 text-sm">
-          <div className="flex items-center justify-between gap-4 rounded-xl bg-slate-50 px-4 py-3">
+        <dl className="mt-6 space-y-2 text-sm">
+          <div className="flex items-center justify-between gap-4 rounded-xl bg-white px-4 py-3 shadow-sm">
             <dt className="text-slate-500">{t('dashboard.fields.subscriberId')}</dt>
             <dd className="truncate font-medium text-slate-900">{me.data.subscriber.id}</dd>
           </div>
           {tenant ? (
             <>
-              <div className="flex items-center justify-between gap-4 rounded-xl bg-slate-50 px-4 py-3">
+              <div className="flex items-center justify-between gap-4 rounded-xl bg-white px-4 py-3 shadow-sm">
                 <dt className="text-slate-500">{t('dashboard.fields.shopUrl')}</dt>
                 <dd className="truncate font-medium text-slate-900">{tenant.slug}.lytro.com</dd>
               </div>
-              <div className="flex items-center justify-between gap-4 rounded-xl bg-slate-50 px-4 py-3">
+              <div className="flex items-center justify-between gap-4 rounded-xl bg-white px-4 py-3 shadow-sm">
                 <dt className="text-slate-500">{t('dashboard.fields.state')}</dt>
                 <dd className="font-medium text-slate-900 capitalize">{tenant.state}</dd>
               </div>
               {tenant.planName ? (
-                <div className="flex items-center justify-between gap-4 rounded-xl bg-slate-50 px-4 py-3">
+                <div className="flex items-center justify-between gap-4 rounded-xl bg-white px-4 py-3 shadow-sm">
                   <dt className="text-slate-500">{t('dashboard.fields.plan')}</dt>
                   <dd className="font-medium text-slate-900">{tenant.planName}</dd>
                 </div>
@@ -78,6 +52,6 @@ export function DashboardPlaceholder(): React.JSX.Element {
           ) : null}
         </dl>
       ) : null}
-    </AuthCard>
+    </div>
   );
 }

@@ -1,5 +1,6 @@
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router';
 import { tenantSession } from '@/session/tenant-session';
+import { DashboardShell } from '@/components/layout/dashboard-shell';
 
 // D32: one layout route does the session guard for every real dashboard destination (this route, plus
 // staff/roles/activity nested under it) — replacing what used to be a separate beforeLoad check copy-pasted
@@ -14,5 +15,9 @@ export const Route = createFileRoute('/dashboard')({
 });
 
 function DashboardLayout(): React.JSX.Element {
-  return <Outlet />;
+  return (
+    <DashboardShell>
+      <Outlet />
+    </DashboardShell>
+  );
 }

@@ -3,11 +3,16 @@
     "appName": "Lytro",
     "poweredBy": "Powered by Lytronix",
     "loading": "Loading...",
-    "somethingWentWrong": "Something went wrong. Please try again."
+    "somethingWentWrong": "Something went wrong. Please try again.",
+    "close": "Close",
+    "language": "Language"
   },
   "language": {
     "bn": "বাংলা",
-    "en": "English"
+    "switchTo": {
+      "bn": "বাংলায় দেখুন",
+      "en": "Switch to English"
+    }
   },
   "auth": {
     "signIn": {
@@ -70,12 +75,20 @@
       "subtitle": "Please wait a moment"
     }
   },
+  "nav": {
+    "dashboard": "Dashboard",
+    "staff": "Staff",
+    "roles": "Roles",
+    "activity": "Activity",
+    "account": "Account"
+  },
   "dashboard": {
     "placeholder": {
-      "title": "You're signed in",
-      "subtitle": "The full dashboard is coming soon."
+      "title": "Your shop",
+      "subtitle": "Here's an overview of your shop."
     },
     "logout": "Log out",
+    "comingSoon": "This section is coming soon.",
     "fields": {
       "subscriberId": "Account ID",
       "shopUrl": "Shop URL",

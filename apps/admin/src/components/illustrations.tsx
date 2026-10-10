@@ -39,10 +39,11 @@ export function VerifyIllustration(): React.JSX.Element {
         <rect x="3" y="5" width="18" height="14" rx="2.5" />
         <path strokeLinecap="round" strokeLinejoin="round" d="m4 7 7 5.5a1.5 1.5 0 0 0 2 0L20 7" />
         <path
+          className="text-accent-500"
           strokeLinecap="round"
           strokeLinejoin="round"
           d="m9 15 1.8 1.8L15 13"
-          stroke="#f97316"
+          stroke="currentColor"
         />
       </svg>
     </IllustrationFrame>
@@ -53,23 +54,6 @@ export function CreateShopIllustration(): React.JSX.Element {
   return (
     <IllustrationFrame>
       <ShopIcon className="h-8 w-8 sm:h-14 sm:w-14" />
-    </IllustrationFrame>
-  );
-}
-
-export function DashboardIllustration(): React.JSX.Element {
-  return (
-    <IllustrationFrame>
-      <svg
-        className="h-8 w-8 sm:h-14 sm:w-14"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-      >
-        <circle cx="12" cy="12" r="9" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="m8 12.5 2.8 2.8L16 9.5" />
-      </svg>
     </IllustrationFrame>
   );
 }

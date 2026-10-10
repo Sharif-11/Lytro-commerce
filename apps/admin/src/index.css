@@ -1,25 +1,30 @@
 @import 'tailwindcss';
 
-/* Lytro commerce's own identity — deliberately not Lytronix's palette/typeface. A warm teal primary
-   paired with a sunset-amber accent for depth (the background blobs), against deep slate, with Noto
-   Sans Bengali for bn and Inter for en/digits. */
+/* Lytro commerce's identity, adopted from Lytronix's real shipped palette (explicit decision — Lytronix's
+   green/gold reads as a credible commerce-dashboard brand, confirmed by the user against their own product).
+   Noto Sans Bengali for bn, Inter for en/digits. */
 @theme {
   --font-sans: 'Inter', 'Noto Sans Bengali', ui-sans-serif, system-ui, sans-serif;
 
-  --color-brand-50: #ecfdf5;
-  --color-brand-100: #d1fae5;
-  --color-brand-200: #a7f3d0;
-  --color-brand-300: #6ee7b7;
-  --color-brand-400: #34d399;
-  --color-brand-500: #10b981;
-  --color-brand-600: #0d9488;
-  --color-brand-700: #0f766e;
-  --color-brand-800: #115e59;
-  --color-brand-900: #134e4a;
+  --color-brand-50: #f0f7e8;
+  --color-brand-100: #dcedc5;
+  --color-brand-200: #bfe099;
+  --color-brand-300: #9dce6a;
+  --color-brand-400: #87c14c;
+  --color-brand-500: #76c043;
+  --color-brand-600: #4a7d1e;
+  --color-brand-700: #3a6216;
+  --color-brand-800: #2c4b10;
+  --color-brand-900: #1f360a;
 
-  --color-accent-300: #fdba74;
-  --color-accent-400: #fb923c;
-  --color-accent-500: #f97316;
+  --color-accent-300: #f3c77a;
+  --color-accent-400: #e2a33d;
+  --color-accent-500: #d97706;
+
+  /* Dark sidebar surface, matching the reference dashboard's own desktop nav treatment. */
+  --color-sidebar: #0a0b08;
+  --color-sidebar-alt: #16180f;
+  --color-sidebar-line: rgba(255, 255, 255, 0.08);
 }
 
 body {
