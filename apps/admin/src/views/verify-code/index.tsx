@@ -1,22 +1,17 @@
 import { useState, type SyntheticEvent } from 'react';
-import { useMutation } from '@tanstack/react-query';
-import { Link, useNavigate, useSearch } from '@tanstack/react-router';
+import { Link, useSearch } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
-import { requestSigninCodeSchema, verifySigninCodeSchema } from '@lytronix/validators';
 import { AuthCard } from '@/components/auth-card';
 import { Button } from '@/components/button';
 import { OtpInput } from '@/components/otp-input';
 import { ErrorBanner } from '@/components/error-banner';
 import { useCountdown } from '@/components/use-countdown';
 import { errorMessage } from '@/api/error-message';
-import { tenantSession } from '@/session/tenant-session';
-import { navigateForNextStep } from '@/session/next-step';
+import { useRequestSigninCode, useVerifyCode } from '@/api/auth';
 import { VerifyIllustration } from '@/components/illustrations';
-import type { CodeIssued, SignedInBody } from '@/types/auth';
 
 export function VerifyCode(): React.JSX.Element {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const search = useSearch({ from: '/verify-code' });
   const [expiresInSeconds, setExpiresInSeconds] = useState(search.expiresInSeconds);
   const [resendAfterSeconds, setResendAfterSeconds] = useState(search.resendAfterSeconds);
@@ -26,29 +21,8 @@ export function VerifyCode(): React.JSX.Element {
   const expiresIn = useCountdown(expiresInSeconds);
   const resendIn = useCountdown(resendAfterSeconds);
 
-  const verify = useMutation({
-    mutationFn: () =>
-      tenantSession.client.post<SignedInBody>(
-        '/auth/phone/verify',
-        verifySigninCodeSchema.parse({ phone: search.phone, code }),
-      ),
-    onSuccess: (data) => {
-      tenantSession.setSignedIn(data.csrfToken);
-      navigateForNextStep(navigate, data.next);
-    },
-  });
-
-  const resend = useMutation({
-    mutationFn: () =>
-      tenantSession.client.post<CodeIssued>(
-        '/auth/phone/code',
-        requestSigninCodeSchema.parse({ phone: search.phone }),
-      ),
-    onSuccess: (data) => {
-      setExpiresInSeconds(data.expiresInSeconds);
-      setResendAfterSeconds(data.resendAfterSeconds);
-    },
-  });
+  const verify = useVerifyCode();
+  const resend = useRequestSigninCode();
 
   function handleSubmit(event: SyntheticEvent<HTMLFormElement>): void {
     event.preventDefault();
@@ -57,7 +31,7 @@ export function VerifyCode(): React.JSX.Element {
       return;
     }
     setFormError(null);
-    verify.mutate();
+    verify.mutate({ phone: search.phone, code });
   }
 
   return (
@@ -92,7 +66,12 @@ export function VerifyCode(): React.JSX.Element {
           variant="ghost"
           disabled={resendIn > 0 || resend.isPending}
           onClick={() => {
-            resend.mutate();
+            resend.mutate(search.phone, {
+              onSuccess: (data) => {
+                setExpiresInSeconds(data.expiresInSeconds);
+                setResendAfterSeconds(data.resendAfterSeconds);
+              },
+            });
           }}
         >
           {resendIn > 0

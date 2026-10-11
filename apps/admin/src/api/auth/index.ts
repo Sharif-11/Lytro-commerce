@@ -1,6 +1,24 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
+import {
+  createShopSchema,
+  forgotPasswordSchema,
+  OauthProvider,
+  passwordSigninSchema,
+  requestSigninCodeSchema,
+  setPasswordSchema,
+  verifyForgotPasswordSchema,
+  verifySigninCodeSchema,
+} from '@lytronix/validators';
 import { tenantSession } from '@/session/tenant-session';
+import { navigateForNextStep } from '@/session/next-step';
+import type {
+  CodeIssued,
+  OauthSignedIn,
+  ShopCreated,
+  SignedInBody,
+  StaffSignedInBody,
+} from '@/types/auth';
 
 export const ME_QUERY_KEY = ['me'] as const;
 
@@ -22,6 +40,181 @@ export function useSignOut() {
     onSettled: () => {
       tenantSession.clear();
       void navigate({ to: '/sign-in' });
+    },
+  });
+}
+
+// --- OAuth (AUTH-24) ---
+
+export function useOauthProviders() {
+  return useQuery({
+    queryKey: ['oauth-providers'],
+    queryFn: () => tenantSession.client.get<{ providers: OauthProvider[] }>('/auth/providers'),
+  });
+}
+
+/** Redirects the browser away immediately on success — there's nothing for the caller to do afterwards. */
+export function useStartOauth() {
+  return useMutation({
+    mutationFn: (provider: OauthProvider) =>
+      tenantSession.client.get<{ url: string }>(`/auth/oauth/${provider}/start`),
+    onSuccess: (data) => {
+      window.location.href = data.url;
+    },
+  });
+}
+
+/** One call site (oauth-callback), which owns its own once-per-`state` guard (StrictMode double-mount, see
+    that view's own note) — this hook only wraps the request itself and the fixed success behavior. */
+export function useOauthCallback() {
+  const navigate = useNavigate();
+  return useMutation({
+    mutationFn: ({ provider, code, state }: { provider: string; code: string; state: string }) =>
+      tenantSession.client.get<OauthSignedIn>(
+        `/auth/oauth/${provider}/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`,
+      ),
+    onSuccess: (data) => {
+      tenantSession.setSignedIn(data.csrfToken);
+      navigateForNextStep(navigate, data.next);
+    },
+  });
+}
+
+// --- Phone sign-in (AUTH-01 to AUTH-12) ---
+
+/** No onSuccess baked in — sign-in and verify-code's resend button do different things with the result
+    (navigate to /verify-code vs. just reset the on-screen countdown), so each caller supplies its own via
+    mutate(phone, { onSuccess }). */
+export function useRequestSigninCode() {
+  return useMutation({
+    mutationFn: (phone: string) =>
+      tenantSession.client.post<CodeIssued>(
+        '/auth/phone/code',
+        requestSigninCodeSchema.parse({ phone }),
+      ),
+  });
+}
+
+export function useVerifyCode() {
+  const navigate = useNavigate();
+  return useMutation({
+    mutationFn: ({ phone, code }: { phone: string; code: string }) =>
+      tenantSession.client.post<SignedInBody>(
+        '/auth/phone/verify',
+        verifySigninCodeSchema.parse({ phone, code }),
+      ),
+    onSuccess: (data) => {
+      tenantSession.setSignedIn(data.csrfToken);
+      navigateForNextStep(navigate, data.next);
+    },
+  });
+}
+
+export function useSignInWithPassword() {
+  const navigate = useNavigate();
+  return useMutation({
+    mutationFn: ({ phone, password }: { phone: string; password: string }) =>
+      tenantSession.client.post<SignedInBody>(
+        '/auth/signin',
+        passwordSigninSchema.parse({ phone, password }),
+      ),
+    onSuccess: (data) => {
+      tenantSession.setSignedIn(data.csrfToken);
+      navigateForNextStep(navigate, data.next);
+    },
+  });
+}
+
+// --- Shop creation and password (AUTH-28) ---
+
+export function useCreateShop() {
+  const navigate = useNavigate();
+  return useMutation({
+    mutationFn: (input: { ownerName: string; shopName: string; address?: string }) =>
+      tenantSession.client.post<ShopCreated>('/shops', createShopSchema.parse(input)),
+    onSuccess: () => {
+      void navigate({ to: '/set-password', search: { required: false } });
+    },
+  });
+}
+
+export function useSetPassword() {
+  const navigate = useNavigate();
+  return useMutation({
+    mutationFn: (newPassword: string) =>
+      tenantSession.client.post<{ ok: true }>(
+        '/auth/password',
+        setPasswordSchema.parse({ newPassword }),
+      ),
+    onSuccess: () => {
+      void navigate({ to: '/dashboard' });
+    },
+  });
+}
+
+// --- Forgot password (AUTH-17 to AUTH-19) ---
+
+/** No onSuccess baked in, same reasoning as useRequestSigninCode — used for both the initial request
+    (navigates to the verify screen) and that screen's own resend button (just resets the countdown). */
+export function useRequestPasswordReset() {
+  return useMutation({
+    mutationFn: (phone: string) =>
+      tenantSession.client.post<CodeIssued>(
+        '/auth/forgot-password',
+        forgotPasswordSchema.parse({ phone }),
+      ),
+  });
+}
+
+export function useVerifyForgotPassword() {
+  const navigate = useNavigate();
+  return useMutation({
+    mutationFn: ({ phone, code }: { phone: string; code: string }) =>
+      tenantSession.client.post<SignedInBody>(
+        '/auth/forgot-password/verify',
+        verifyForgotPasswordSchema.parse({ phone, code }),
+      ),
+    onSuccess: (data) => {
+      tenantSession.setSignedIn(data.csrfToken);
+      // Always a must_set_password session (AUTH-19) — the one destination, required, unlike the owner's
+      // other sign-in paths which branch through navigateForNextStep.
+      void navigate({ to: '/set-password', search: { required: true } });
+    },
+  });
+}
+
+// --- Staff sign-in (AUTH-12, AUTH-13, STF-05) ---
+
+export function useStaffSignIn() {
+  const navigate = useNavigate();
+  return useMutation({
+    mutationFn: ({ phone, password }: { phone: string; password: string }) =>
+      tenantSession.client.post<StaffSignedInBody>(
+        '/auth/staff/signin',
+        passwordSigninSchema.parse({ phone, password }),
+      ),
+    onSuccess: (data) => {
+      tenantSession.setSignedIn(data.csrfToken);
+      // StaffSignedInBody's own narrower NextStep (never navigateForNextStep — see staff-sign-in's note).
+      if (data.next === 'set-password') {
+        void navigate({ to: '/staff-set-password' });
+      } else {
+        void navigate({ to: '/dashboard' });
+      }
+    },
+  });
+}
+
+export function useStaffSetPassword() {
+  const navigate = useNavigate();
+  return useMutation({
+    mutationFn: (newPassword: string) =>
+      tenantSession.client.post<{ ok: true }>(
+        '/auth/staff/password',
+        setPasswordSchema.parse({ newPassword }),
+      ),
+    onSuccess: () => {
+      void navigate({ to: '/dashboard' });
     },
   });
 }

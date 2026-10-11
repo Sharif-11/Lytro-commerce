@@ -1,22 +1,18 @@
 import { useState, type SyntheticEvent } from 'react';
-import { useMutation } from '@tanstack/react-query';
-import { useNavigate, useSearch } from '@tanstack/react-router';
+import { useSearch } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
-import { forgotPasswordSchema, verifyForgotPasswordSchema } from '@lytronix/validators';
 import { AuthCard } from '@/components/auth-card';
 import { Button } from '@/components/button';
 import { OtpInput } from '@/components/otp-input';
 import { ErrorBanner } from '@/components/error-banner';
 import { useCountdown } from '@/components/use-countdown';
 import { errorMessage } from '@/api/error-message';
-import { tenantSession } from '@/session/tenant-session';
-import type { CodeIssued, SignedInBody } from '@/types/auth';
+import { useRequestPasswordReset, useVerifyForgotPassword } from '@/api/auth';
 
 // AUTH-19: this always lands in a must_set_password session — unlike the sign-up/sign-in verify screen,
 // there's only one destination (/set-password, required), so no NextStep switch is needed here.
 export function ForgotPasswordVerify(): React.JSX.Element {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const search = useSearch({ from: '/forgot-password/verify' });
   const [expiresInSeconds, setExpiresInSeconds] = useState(search.expiresInSeconds);
   const [resendAfterSeconds, setResendAfterSeconds] = useState(search.resendAfterSeconds);
@@ -26,29 +22,8 @@ export function ForgotPasswordVerify(): React.JSX.Element {
   const expiresIn = useCountdown(expiresInSeconds);
   const resendIn = useCountdown(resendAfterSeconds);
 
-  const verify = useMutation({
-    mutationFn: () =>
-      tenantSession.client.post<SignedInBody>(
-        '/auth/forgot-password/verify',
-        verifyForgotPasswordSchema.parse({ phone: search.phone, code }),
-      ),
-    onSuccess: (data) => {
-      tenantSession.setSignedIn(data.csrfToken);
-      void navigate({ to: '/set-password', search: { required: true } });
-    },
-  });
-
-  const resend = useMutation({
-    mutationFn: () =>
-      tenantSession.client.post<CodeIssued>(
-        '/auth/forgot-password',
-        forgotPasswordSchema.parse({ phone: search.phone }),
-      ),
-    onSuccess: (data) => {
-      setExpiresInSeconds(data.expiresInSeconds);
-      setResendAfterSeconds(data.resendAfterSeconds);
-    },
-  });
+  const verify = useVerifyForgotPassword();
+  const resend = useRequestPasswordReset();
 
   function handleSubmit(event: SyntheticEvent<HTMLFormElement>): void {
     event.preventDefault();
@@ -57,7 +32,7 @@ export function ForgotPasswordVerify(): React.JSX.Element {
       return;
     }
     setFormError(null);
-    verify.mutate();
+    verify.mutate({ phone: search.phone, code });
   }
 
   return (
@@ -86,7 +61,12 @@ export function ForgotPasswordVerify(): React.JSX.Element {
           variant="ghost"
           disabled={resendIn > 0 || resend.isPending}
           onClick={() => {
-            resend.mutate();
+            resend.mutate(search.phone, {
+              onSuccess: (data) => {
+                setExpiresInSeconds(data.expiresInSeconds);
+                setResendAfterSeconds(data.resendAfterSeconds);
+              },
+            });
           }}
         >
           {resendIn > 0

@@ -1,20 +1,22 @@
 import { useState, type SyntheticEvent } from 'react';
-import { useMutation, useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
-import { OauthProvider, passwordSigninSchema, requestSigninCodeSchema } from '@lytronix/validators';
+import { OauthProvider } from '@lytronix/validators';
 import { AuthCard } from '@/components/auth-card';
 import { Button } from '@/components/button';
 import { TextField } from '@/components/text-field';
 import { ErrorBanner } from '@/components/error-banner';
 import { errorMessage } from '@/api/error-message';
 import { isValidBdPhone } from '@/api/phone';
-import { tenantSession } from '@/session/tenant-session';
-import { navigateForNextStep } from '@/session/next-step';
+import {
+  useOauthProviders,
+  useRequestSigninCode,
+  useSignInWithPassword,
+  useStartOauth,
+} from '@/api/auth';
 import { GoogleIcon, FacebookIcon } from '@/components/oauth-icons';
 import { LockIcon, PhoneIcon } from '@/components/icons';
 import { SignInIllustration } from '@/components/illustrations';
-import type { CodeIssued, SignedInBody } from '@/types/auth';
 
 const OAUTH_LABEL_KEY: Record<OauthProvider, string> = {
   [OauthProvider.Google]: 'auth.signIn.continueWithGoogle',
@@ -37,48 +39,11 @@ export function SignIn(): React.JSX.Element {
   const [password, setPassword] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
 
-  const providers = useQuery({
-    queryKey: ['oauth-providers'],
-    queryFn: () => tenantSession.client.get<{ providers: OauthProvider[] }>('/auth/providers'),
-  });
+  const providers = useOauthProviders();
+  const startOauth = useStartOauth();
 
-  const startOauth = useMutation({
-    mutationFn: (provider: OauthProvider) =>
-      tenantSession.client.get<{ url: string }>(`/auth/oauth/${provider}/start`),
-    onSuccess: (data) => {
-      window.location.href = data.url;
-    },
-  });
-
-  const requestCode = useMutation({
-    mutationFn: (value: string) =>
-      tenantSession.client.post<CodeIssued>(
-        '/auth/phone/code',
-        requestSigninCodeSchema.parse({ phone: value }),
-      ),
-    onSuccess: (data) => {
-      void navigate({
-        to: '/verify-code',
-        search: {
-          phone,
-          expiresInSeconds: data.expiresInSeconds,
-          resendAfterSeconds: data.resendAfterSeconds,
-        },
-      });
-    },
-  });
-
-  const signInWithPassword = useMutation({
-    mutationFn: () =>
-      tenantSession.client.post<SignedInBody>(
-        '/auth/signin',
-        passwordSigninSchema.parse({ phone, password }),
-      ),
-    onSuccess: (data) => {
-      tenantSession.setSignedIn(data.csrfToken);
-      navigateForNextStep(navigate, data.next);
-    },
-  });
+  const requestCode = useRequestSigninCode();
+  const signInWithPassword = useSignInWithPassword();
 
   function handleSubmit(event: SyntheticEvent<HTMLFormElement>): void {
     event.preventDefault();
@@ -88,9 +53,20 @@ export function SignIn(): React.JSX.Element {
     }
     setFormError(null);
     if (mode === 'password') {
-      signInWithPassword.mutate();
+      signInWithPassword.mutate({ phone, password });
     } else {
-      requestCode.mutate(phone);
+      requestCode.mutate(phone, {
+        onSuccess: (data) => {
+          void navigate({
+            to: '/verify-code',
+            search: {
+              phone,
+              expiresInSeconds: data.expiresInSeconds,
+              resendAfterSeconds: data.resendAfterSeconds,
+            },
+          });
+        },
+      });
     }
   }
 
