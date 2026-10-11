@@ -1,13 +1,10 @@
 import { useEffect } from 'react';
-import { useMutation } from '@tanstack/react-query';
-import { useNavigate, useParams, useSearch } from '@tanstack/react-router';
+import { useParams, useSearch } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { AuthCard } from '@/components/auth-card';
 import { ErrorBanner } from '@/components/error-banner';
 import { errorMessage } from '@/api/error-message';
-import { tenantSession } from '@/session/tenant-session';
-import { navigateForNextStep } from '@/session/next-step';
-import type { OauthSignedIn } from '@/types/auth';
+import { useOauthCallback } from '@/api/auth';
 
 // A per-instance ref doesn't survive this: React 18 StrictMode (main.tsx) deliberately mounts every
 // component twice in dev, and the second mount gets a fresh ref, not the first one's — so a ref guard alone
@@ -20,26 +17,16 @@ const consumedStates = new Set<string>();
 
 export function OauthCallback(): React.JSX.Element {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const { provider } = useParams({ from: '/auth/oauth/$provider/callback' });
   const search = useSearch({ from: '/auth/oauth/$provider/callback' });
 
-  const callback = useMutation({
-    mutationFn: () =>
-      tenantSession.client.get<OauthSignedIn>(
-        `/auth/oauth/${provider}/callback?code=${encodeURIComponent(search.code)}&state=${encodeURIComponent(search.state)}`,
-      ),
-    onSuccess: (data) => {
-      tenantSession.setSignedIn(data.csrfToken);
-      navigateForNextStep(navigate, data.next);
-    },
-  });
+  const callback = useOauthCallback();
 
   useEffect(() => {
     if (consumedStates.has(search.state)) return;
     consumedStates.add(search.state);
-    callback.mutate();
-  }, [callback, search.state]);
+    callback.mutate({ provider, code: search.code, state: search.state });
+  }, [callback, provider, search.code, search.state]);
 
   return (
     <AuthCard title={t('auth.oauthCallback.title')} subtitle={t('auth.oauthCallback.subtitle')}>

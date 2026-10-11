@@ -1,24 +1,20 @@
 import { useState, type SyntheticEvent } from 'react';
-import { useMutation } from '@tanstack/react-query';
-import { useNavigate } from '@tanstack/react-router';
-import { useTranslation } from 'react-i18next';
 import { createShopSchema } from '@lytronix/validators';
+import { useTranslation } from 'react-i18next';
 import { AuthCard } from '@/components/auth-card';
 import { Button } from '@/components/button';
 import { TextField } from '@/components/text-field';
 import { ErrorBanner } from '@/components/error-banner';
 import { errorMessage } from '@/api/error-message';
 import { suggestSlug } from '@/api/slug';
-import { tenantSession } from '@/session/tenant-session';
+import { useCreateShop } from '@/api/auth';
 import { LinkIcon, ShopIcon, UserIcon } from '@/components/icons';
 import { CreateShopIllustration } from '@/components/illustrations';
-import type { ShopCreated } from '@/types/auth';
 
 // AUTH-10/11/28: owner name + shop name + an editable, auto-derived subdomain ("address" server-side).
 // ShopCreated.next is always 'set-password' (AUTH-28's step 3) — no branching needed here.
 export function CreateShop(): React.JSX.Element {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const [ownerName, setOwnerName] = useState('');
   const [shopName, setShopName] = useState('');
   const [address, setAddress] = useState('');
@@ -26,20 +22,7 @@ export function CreateShop(): React.JSX.Element {
   const [addressTouched, setAddressTouched] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  const mutation = useMutation({
-    mutationFn: () =>
-      tenantSession.client.post<ShopCreated>(
-        '/shops',
-        createShopSchema.parse({
-          ownerName,
-          shopName,
-          address: address === '' ? undefined : address,
-        }),
-      ),
-    onSuccess: () => {
-      void navigate({ to: '/set-password', search: { required: false } });
-    },
-  });
+  const mutation = useCreateShop();
 
   function handleSubmit(event: SyntheticEvent<HTMLFormElement>): void {
     event.preventDefault();
@@ -53,7 +36,7 @@ export function CreateShop(): React.JSX.Element {
       return;
     }
     setFormError(null);
-    mutation.mutate();
+    mutation.mutate({ ownerName, shopName, address: address === '' ? undefined : address });
   }
 
   return (

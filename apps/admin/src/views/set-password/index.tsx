@@ -1,5 +1,4 @@
 import { useState, type SyntheticEvent } from 'react';
-import { useMutation } from '@tanstack/react-query';
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { setPasswordSchema } from '@lytronix/validators';
@@ -8,7 +7,7 @@ import { Button } from '@/components/button';
 import { TextField } from '@/components/text-field';
 import { ErrorBanner } from '@/components/error-banner';
 import { errorMessage } from '@/api/error-message';
-import { tenantSession } from '@/session/tenant-session';
+import { useSetPassword } from '@/api/auth';
 import { LockIcon } from '@/components/icons';
 
 // currentPassword is deliberately never sent: every path that reaches this screen in this slice is a fresh
@@ -21,16 +20,7 @@ export function SetPassword(): React.JSX.Element {
   const [newPassword, setNewPassword] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
 
-  const mutation = useMutation({
-    mutationFn: () =>
-      tenantSession.client.post<{ ok: true }>(
-        '/auth/password',
-        setPasswordSchema.parse({ newPassword }),
-      ),
-    onSuccess: () => {
-      void navigate({ to: '/dashboard' });
-    },
-  });
+  const mutation = useSetPassword();
 
   function handleSubmit(event: SyntheticEvent<HTMLFormElement>): void {
     event.preventDefault();
@@ -40,7 +30,7 @@ export function SetPassword(): React.JSX.Element {
       return;
     }
     setFormError(null);
-    mutation.mutate();
+    mutation.mutate(newPassword);
   }
 
   return (

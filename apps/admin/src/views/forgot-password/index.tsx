@@ -1,17 +1,14 @@
 import { useState, type SyntheticEvent } from 'react';
-import { useMutation } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
-import { forgotPasswordSchema } from '@lytronix/validators';
 import { AuthCard } from '@/components/auth-card';
 import { Button } from '@/components/button';
 import { TextField } from '@/components/text-field';
 import { ErrorBanner } from '@/components/error-banner';
 import { errorMessage } from '@/api/error-message';
 import { isValidBdPhone } from '@/api/phone';
-import { tenantSession } from '@/session/tenant-session';
+import { useRequestPasswordReset } from '@/api/auth';
 import { PhoneIcon } from '@/components/icons';
-import type { CodeIssued } from '@/types/auth';
 
 // AUTH-17: phone-only, and the success reply is identical whether or not the phone has an account — don't
 // leak account existence through a different message or a different response shape.
@@ -21,23 +18,7 @@ export function ForgotPassword(): React.JSX.Element {
   const [phone, setPhone] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
 
-  const mutation = useMutation({
-    mutationFn: (value: string) =>
-      tenantSession.client.post<CodeIssued>(
-        '/auth/forgot-password',
-        forgotPasswordSchema.parse({ phone: value }),
-      ),
-    onSuccess: (data) => {
-      void navigate({
-        to: '/forgot-password/verify',
-        search: {
-          phone,
-          expiresInSeconds: data.expiresInSeconds,
-          resendAfterSeconds: data.resendAfterSeconds,
-        },
-      });
-    },
-  });
+  const mutation = useRequestPasswordReset();
 
   function handleSubmit(event: SyntheticEvent<HTMLFormElement>): void {
     event.preventDefault();
@@ -46,7 +27,18 @@ export function ForgotPassword(): React.JSX.Element {
       return;
     }
     setFormError(null);
-    mutation.mutate(phone);
+    mutation.mutate(phone, {
+      onSuccess: (data) => {
+        void navigate({
+          to: '/forgot-password/verify',
+          search: {
+            phone,
+            expiresInSeconds: data.expiresInSeconds,
+            resendAfterSeconds: data.resendAfterSeconds,
+          },
+        });
+      },
+    });
   }
 
   return (

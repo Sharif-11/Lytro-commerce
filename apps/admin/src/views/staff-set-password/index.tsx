@@ -1,14 +1,12 @@
 import { useState, type SyntheticEvent } from 'react';
-import { useMutation } from '@tanstack/react-query';
-import { useNavigate } from '@tanstack/react-router';
-import { useTranslation } from 'react-i18next';
 import { setPasswordSchema } from '@lytronix/validators';
+import { useTranslation } from 'react-i18next';
 import { AuthCard } from '@/components/auth-card';
 import { Button } from '@/components/button';
 import { TextField } from '@/components/text-field';
 import { ErrorBanner } from '@/components/error-banner';
 import { errorMessage } from '@/api/error-message';
-import { tenantSession } from '@/session/tenant-session';
+import { useStaffSetPassword } from '@/api/auth';
 import { LockIcon } from '@/components/icons';
 
 /**
@@ -22,20 +20,10 @@ import { LockIcon } from '@/components/icons';
  */
 export function StaffSetPassword(): React.JSX.Element {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const [newPassword, setNewPassword] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
 
-  const mutation = useMutation({
-    mutationFn: () =>
-      tenantSession.client.post<{ ok: true }>(
-        '/auth/staff/password',
-        setPasswordSchema.parse({ newPassword }),
-      ),
-    onSuccess: () => {
-      void navigate({ to: '/dashboard' });
-    },
-  });
+  const mutation = useStaffSetPassword();
 
   function handleSubmit(event: SyntheticEvent<HTMLFormElement>): void {
     event.preventDefault();
@@ -45,7 +33,7 @@ export function StaffSetPassword(): React.JSX.Element {
       return;
     }
     setFormError(null);
-    mutation.mutate();
+    mutation.mutate(newPassword);
   }
 
   return (
