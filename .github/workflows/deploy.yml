@@ -13,20 +13,11 @@ on:
         required: true
 
 jobs:
+  # Runs ci.yml itself (checkout, Postgres service, typecheck/lint/format/test/build, the admin E2E suite)
+  # rather than keeping a second, separately-maintained copy of those same steps — that duplication is
+  # exactly how this job drifted out of sync with ci.yml's own Postgres service and E2E steps before.
   verify:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm typecheck
-      - run: pnpm lint
-      - run: pnpm test
-      - run: pnpm build
+    uses: ./.github/workflows/ci.yml
 
   deploy-staging:
     needs: verify

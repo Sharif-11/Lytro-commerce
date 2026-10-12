@@ -4,6 +4,10 @@ on:
   push:
     branches: [main]
   pull_request:
+  # Lets deploy.yml call this workflow directly for its own verify step, instead of keeping a second,
+  # separately-maintained copy of these same steps — the drift that let the Postgres service and the E2E
+  # steps below get added to this file without deploy.yml ever following along was exactly this problem.
+  workflow_call:
 
 jobs:
   verify:
