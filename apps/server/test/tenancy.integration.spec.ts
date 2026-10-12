@@ -172,6 +172,19 @@ describeIfDatabase('tenant resolution against the database (TEN-7a, TEN-24)', ()
     expect(JSON.parse(response.body)).toEqual({ tenantId: shopId });
   });
 
+  it('ignores a forged tenant id, in a header or a query string, on an unknown host (P1-E06)', async () => {
+    // Nothing in HostClassifier/TenantGuard ever reads a query parameter for tenant resolution — Host is the
+    // only input — so this is really two separate forgery attempts on the same unknown host, both refused
+    // identically to a plain unknown host, with no hint that shopId exists.
+    const response = await send(port, `/probe?tenant_id=${shopId}`, {
+      ...edge,
+      host: 'nobody.localhost',
+      'x-tenant-id': shopId,
+    });
+    expect(response.status).toBe(404);
+    expect(response.body).not.toContain(shopId);
+  });
+
   it('keeps a suspended shop open for up to the cache lifetime, then closes it once invalidated (R5)', async () => {
     await send(port, '/probe', { ...edge, host: 'fashion-house.localhost' });
     await admin.query("UPDATE control.tenants SET state = 'locked' WHERE id = $1", [shopId]);

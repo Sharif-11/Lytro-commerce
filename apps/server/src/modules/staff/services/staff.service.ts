@@ -14,6 +14,12 @@ import type { StaffCredentials, StaffList, StaffMember, StaffRecord } from '../t
 // STF-02: a plan without a staff limit has one seat, the owner's own.
 export const DEFAULT_SEATS = 1;
 
+// LOG-02, AUD-02: a phone number never appears whole in a log or an activity entry, even to someone with
+// audit:read on this shop — only enough to tell entries apart at a glance.
+function maskPhone(phone: string | null): string | null {
+  return phone === null ? null : `***${phone.slice(-4)}`;
+}
+
 /** The shop a staff action applies to: its id and the plan's limits. */
 export interface StaffTenant {
   id: string;
@@ -125,7 +131,7 @@ export class StaffService {
       return { ...created, roleIds };
     });
     await this.writeActivity(tenant.id, actingUserId, AuditAction.StaffCreated, created.id, {
-      phone: created.phone,
+      phone: maskPhone(created.phone),
       roleIds,
     });
     return created;

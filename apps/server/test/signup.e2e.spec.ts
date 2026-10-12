@@ -145,6 +145,13 @@ describeIfDatabase('sign-up by phone, end to end', () => {
       [phone],
     );
     expect(sms.rows[0]?.body).toContain('http://fashion-house.localhost');
+
+    // Skipping the set-password offer (P1-E01) leaves the account exactly as code sign-up made it: no password.
+    const account = await admin.query<{ password_hash: string | null }>(
+      'SELECT s.password_hash FROM control.subscribers s JOIN control.subscriber_identities i ON i.subscriber_id = s.id WHERE i.value = $1',
+      [phone],
+    );
+    expect(account.rows[0]?.password_hash).toBeNull();
   });
 
   it('routes a returning number with a shop to the dashboard, and refuses a second shop (AUTH-08, TEN-15)', async () => {
