@@ -27,7 +27,6 @@
     "zod": "^3"
   },
   "devDependencies": {
-    "@lytronix/db": "workspace:^",
     "@playwright/test": "^1.64.0",
     "@tailwindcss/vite": "^4.3.3",
     "@tanstack/react-query-devtools": "^5",

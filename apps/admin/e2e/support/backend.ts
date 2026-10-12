@@ -4,15 +4,45 @@ import { openSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
-import { MigrationRunner, QueueBootstrapper } from '@lytronix/db';
 
 // Mirrors apps/server/test/support/database.ts's prepareTestDatabase — duplicated rather than imported,
 // since apps/admin and apps/server are separate packages and this is the one place the E2E harness needs
 // it. Keep the two in sync if the app role or bootstrap step changes.
+//
+// Migration and queue bootstrap run as separate `node` processes (their own built CLI entrypoints,
+// packages/db/dist/{migrate,bootstrap-queue}.js) rather than importing MigrationRunner/QueueBootstrapper
+// from @lytronix/db directly. Importing that package here crashed in CI only (not locally): Playwright
+// loads this config-adjacent file through Node's native ESM loader (apps/admin's package.json is
+// "type": "module"), and requiring @lytronix/db's CJS output through that loader's synchronous interop
+// path hit a real Node bug around lazily-required node: builtins ("request for 'node:assert' is not in
+// cache", ERR_VM_MODULE_LINK_FAILURE) on the CI runner's exact Node 20.20.2 build. Spawning a plain child
+// process sidesteps the whole interop path.
 const APP_ROLE = 'lytronix_app';
 const APP_PASSWORD = 'lytronix_app_local_only';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const SERVER_DIR = path.resolve(HERE, '../../../server');
+const DB_DIR = path.resolve(HERE, '../../../../packages/db');
+
+function runDbCli(script: string, databaseUrl: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, [path.join(DB_DIR, 'dist', script)], {
+      cwd: DB_DIR,
+      stdio: 'pipe',
+      env: { ...process.env, DATABASE_URL: databaseUrl },
+    });
+    let output = '';
+    child.stdout.on('data', (chunk: Buffer) => {
+      output += chunk.toString();
+    });
+    child.stderr.on('data', (chunk: Buffer) => {
+      output += chunk.toString();
+    });
+    child.on('exit', (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(`${script} exited with code ${String(code)}:\n${output}`));
+    });
+  });
+}
 
 function withDatabase(url: string, database: string, user?: string, password?: string): string {
   const parsed = new URL(url);
@@ -42,8 +72,8 @@ export async function prepareE2eDatabase(
   }
 
   const adminDbUrl = withDatabase(adminUrl, database);
-  await new MigrationRunner().run(adminDbUrl);
-  await new QueueBootstrapper().run(adminDbUrl);
+  await runDbCli('migrate.js', adminDbUrl);
+  await runDbCli('bootstrap-queue.js', adminDbUrl);
   return { adminDbUrl, appDbUrl: withDatabase(adminUrl, database, APP_ROLE, APP_PASSWORD) };
 }
 
