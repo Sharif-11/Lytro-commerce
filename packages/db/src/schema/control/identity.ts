@@ -64,6 +64,18 @@ export const oauthStates = control.table('oauth_states', {
   createdAt: createdAt(),
 });
 
+// SUP-08: every sign-up code request is recorded by client IP, capped at 10 per hour — old attempts age out
+// of the window the same way sign_in_failures does, with no reset to track or clear.
+export const signupAttempts = control.table(
+  'signup_attempts',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    ip: inet('ip').notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index('signup_attempts_ip_idx').on(t.ip, t.createdAt)],
+);
+
 export type SelectSubscriber = typeof subscribers.$inferSelect;
 export type InsertSubscriber = typeof subscribers.$inferInsert;
 export type UpdateSubscriber = Partial<InsertSubscriber>;

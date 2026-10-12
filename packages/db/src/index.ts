@@ -23,6 +23,7 @@ export {
   SignInFailureRepository,
   type FailureScope,
 } from './repositories/identity/sign-in-failure.repository';
+export { SignupAttemptRepository } from './repositories/identity/signup-attempt.repository';
 export {
   SessionRepository,
   type SessionRow,

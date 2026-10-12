@@ -176,6 +176,13 @@
       "when": 1791480838637,
       "tag": "0024_operator_login",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1791826701450,
+      "tag": "0025_signup_attempts",
+      "breakpoints": true
     }
   ]
 }

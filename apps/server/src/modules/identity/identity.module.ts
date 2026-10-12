@@ -7,6 +7,7 @@ import {
 } from '../../database/adapters/identity.adapter';
 import { DrizzleSessionStore } from '../../database/adapters/session.adapter';
 import { DrizzleSignInFailureStore } from '../../database/adapters/sign-in-failure.adapter';
+import { DrizzleSignupAttemptStore } from '../../database/adapters/signup-attempt.adapter';
 import { MailModule } from '../shared/mail/mail.module';
 import { MessagingModule } from '../shared/messaging/messaging.module';
 import { AuditModule } from '../audit/audit.module';
@@ -33,6 +34,7 @@ import { PasswordService } from './services/password.service';
 import { PasswordSigninService } from './services/password-signin.service';
 import { PhoneNumberFormat } from './services/phone-number-format';
 import { SignInLockout } from './services/sign-in-lockout';
+import { SignupRateLimiter } from './services/signup-rate-limiter';
 import { SignedInSession } from './services/signed-in-session';
 import { SignInAudit } from './services/sign-in-audit';
 import { SessionService } from './services/session.service';
@@ -50,6 +52,8 @@ import {
   OTP_SECRET,
   SESSION_SETTINGS,
   SIGN_IN_FAILURE_STORE,
+  SIGNUP_ATTEMPT_STORE,
+  SIGNUP_RATE_LIMIT_PER_IP,
   SESSION_STORE,
   SIGNUP_GATEWAY,
   SIGNUP_SETTINGS,
@@ -93,6 +97,14 @@ import {
     OauthService,
     IdentitiesService,
     { provide: SIGN_IN_FAILURE_STORE, useClass: DrizzleSignInFailureStore },
+    { provide: SIGNUP_ATTEMPT_STORE, useClass: DrizzleSignupAttemptStore },
+    {
+      provide: SIGNUP_RATE_LIMIT_PER_IP,
+      inject: [ENV],
+      useFactory: (env: Env): number =>
+        env.SIGNUP_RATE_LIMIT_PER_IP ?? (env.NODE_ENV === 'production' ? 10 : 1000),
+    },
+    SignupRateLimiter,
     { provide: OTP_SECRET, inject: [ENV], useFactory: (env: Env) => env.OTP_SECRET },
     {
       provide: SESSION_SETTINGS,

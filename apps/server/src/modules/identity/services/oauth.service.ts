@@ -16,6 +16,7 @@ import { MINUTE_MS } from '../../../common/time';
 import { UniqueViolation } from '../../../common/errors/unique-violation';
 import { SignedInSession } from './signed-in-session';
 import { SignInAudit } from './sign-in-audit';
+import { SignupRateLimiter } from './signup-rate-limiter';
 import type { SessionContext } from '../types/session';
 import type { OauthAttached, OauthSignedIn } from '../types/oauth';
 import { OAUTH_PROVIDERS, OAUTH_STATE_STORE, SIGNUP_GATEWAY, SIGNUP_SETTINGS } from '../tokens';
@@ -38,6 +39,7 @@ export class OauthService {
     @Inject(SignedInSession) private readonly signedIn: SignedInSession,
     @Inject(ENV) private readonly env: Pick<Env, 'OAUTH_CALLBACK_BASE'>,
     @Inject(SignInAudit) private readonly signInAudit: SignInAudit,
+    @Inject(SignupRateLimiter) private readonly signupLimit: SignupRateLimiter,
   ) {}
 
   enabledProviders(): OauthProvider[] {
@@ -90,9 +92,16 @@ export class OauthService {
       return this.attach(attempt.attachToSubscriberId, kind, profile.accountId);
     }
 
+    const existing = await this.gateway.run((tx) =>
+      this.gateway.findSubscriberByIdentity(tx, kind, profile.accountId),
+    );
+    // SUP-08 only caps sign-up — a known provider account is a returning sign-in, never counted or refused.
+    if (!existing) {
+      await this.signupLimit.refuseIfTooMany(context.ip);
+    }
+
     try {
       const result = await this.gateway.run(async (tx): Promise<OauthSignedIn> => {
-        const existing = await this.gateway.findSubscriberByIdentity(tx, kind, profile.accountId);
         const subscriberId =
           existing?.subscriberId ?? (await this.createAccount(tx, kind, profile.accountId));
         const opened = await this.signedIn.open(tx, {
@@ -108,6 +117,9 @@ export class OauthService {
         return { ...opened, recovery };
       });
       await this.signInAudit.log(result.tenantId, null, AuditAction.SignIn, AuditResult.Success);
+      if (!existing) {
+        await this.signupLimit.record(context.ip);
+      }
       return result;
     } catch (error) {
       if (error instanceof UniqueViolation) throw new ApiError('conflict', 'Please try again.', {});

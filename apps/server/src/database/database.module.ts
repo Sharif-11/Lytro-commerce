@@ -18,6 +18,7 @@ import {
   OperatorBackupCodeRepository,
   OperatorSessionRepository,
   PlatformAuditLogRepository,
+  SignupAttemptRepository,
 } from '@lytronix/db';
 import { EnvironmentParser } from '../config/env';
 import { ENV } from '../config/tokens';
@@ -34,6 +35,7 @@ import { DatabaseService } from './database.service';
     { provide: ChallengeRepository, useFactory: () => new ChallengeRepository() },
     { provide: SessionRepository, useFactory: () => new SessionRepository() },
     { provide: SignInFailureRepository, useFactory: () => new SignInFailureRepository() },
+    { provide: SignupAttemptRepository, useFactory: () => new SignupAttemptRepository() },
     { provide: OauthStateRepository, useFactory: () => new OauthStateRepository() },
     { provide: SlugRepository, useFactory: () => new SlugRepository() },
     { provide: SmsRepository, useFactory: () => new SmsRepository() },
@@ -77,6 +79,7 @@ import { DatabaseService } from './database.service';
     ChallengeRepository,
     SessionRepository,
     SignInFailureRepository,
+    SignupAttemptRepository,
     OauthStateRepository,
     SlugRepository,
     SmsRepository,
