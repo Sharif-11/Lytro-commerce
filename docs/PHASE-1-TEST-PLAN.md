@@ -225,15 +225,19 @@ Each scenario lists its preconditions, numbered steps, expected result, and the 
 - Steps: open the sign-in page in a new browser; check the language; switch to English; check every visible label, button and message; reload.
 - Expected: Bangla by default; the toggle changes every label, not some; the choice holds after reload for the signed-in staff member.
 - Covers: I18N-01, I18N-02.
+- Automated (default language and the toggle changing `i18n.language`): `apps/admin/src/i18n/index.test.ts`. Not automated: a visual check that every rendered label actually changed, which needs a real render of each screen — tracked as a manual check alongside §5's Bangla visual review.
 
-**P1-E30 Language follows the account, not the device. [E2E]**
-- Steps: a staff member chooses English; signs out; signs in from a different browser.
-- Expected: English on the new browser.
+**P1-E30 Language choice is per device, and survives sign-out on that device. [E2E]**
+- **Correction, 2026-10-12:** the original wording ("language follows the account, not the device... English on the new browser") described the pre-D31 design. D31 revised language storage to per-device, client-side (`localStorage`), for both staff and shopper — `docs/PHASE-1-PLAN.md`'s D10/D31 — specifically so no backend call is needed. Steps and expectation below match the decision as shipped.
+- Steps: a staff member chooses English; signs out; signs in again on the same browser; then opens the dashboard on a different browser with no stored choice.
+- Expected: English holds after sign-out/sign-in on the same browser; the different browser (empty storage) shows Bangla, the default — the choice never crossed to the account or to the new device.
 - Covers: I18N-02.
+- Automated: `apps/admin/src/i18n/index.test.ts`.
 
 **P1-E31 Tenant branding stays separate in one browser. [E2E]**
 - Steps: open alpha's dashboard, then beta's dashboard in another tab of the same browser; check the navigation name and tab title; switch back.
 - Expected: each tab shows its own shop name and placeholder logo; no hard refresh needed; the "Powered by" mark is present on both.
+- Note (2026-10-12): remains a genuine E2E-only gap — no Playwright suite exists in this repo yet. Not a code risk in the meantime: `alpha.lytro.com` and `beta.lytro.com` are different browser origins, so `sessionStorage` (`tenant-session.ts`), in-memory module state, and React Query's cache are all isolated per tab by the browser itself, with no shared global the app could leak through. The only thing this scenario can actually catch that unit tests can't is a visual/DOM regression (wrong title, wrong logo render) — left as a manual check until Playwright exists.
 - Covers: TEN-16, TEN-18.
 
 ### G. Operator login

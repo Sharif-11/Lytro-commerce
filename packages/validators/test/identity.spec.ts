@@ -26,6 +26,12 @@ describe('create-shop request shape (AUTH-01, AUTH-10)', () => {
     expect(createShopSchema.safeParse({ ...base, shopName: 'a'.repeat(60) }).success).toBe(true);
   });
 
+  it('refuses a blank owner name', () => {
+    expect(createShopSchema.safeParse({ ...base, shopName: 'Shop', ownerName: '' }).success).toBe(
+      false,
+    );
+  });
+
   it('does not take a phone or code, since the session already proves the identity', () => {
     const parsed = createShopSchema.parse({ ...base, shopName: 'Shop', phone: '01711111111' });
     expect(parsed).not.toHaveProperty('phone');

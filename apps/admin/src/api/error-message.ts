@@ -35,6 +35,7 @@ export function errorMessage(error: unknown, t: TFunction): string {
     case 'quota_exceeded':
       return t('errors.planLimited');
     case 'service_unavailable':
+    case 'internal_error':
       return t('common.somethingWentWrong');
   }
 }
