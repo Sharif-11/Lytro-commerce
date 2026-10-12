@@ -13,6 +13,7 @@ export const ERROR_CODES = [
   'rate_limited',
   'quota_exceeded',
   'service_unavailable',
+  'internal_error',
 ] as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[number];

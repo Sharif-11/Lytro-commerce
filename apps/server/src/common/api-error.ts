@@ -26,4 +26,5 @@ export const HTTP_STATUS: Record<ErrorCode, number> = {
   rate_limited: 429,
   quota_exceeded: 429,
   service_unavailable: 503,
+  internal_error: 500,
 };
