@@ -135,6 +135,21 @@ describeIfDatabase('signing in with a password (AUTH-12, AUTH-13)', () => {
     expect(signedAt.rows[0]?.last_sign_in_at).not.toBeNull();
   });
 
+  it('gives one identical reply to a code request for a known and an unknown phone (P1-E10)', async () => {
+    const known = await ownerWithPassword();
+    const unknown = texts.freshPhone();
+    // ownerWithPassword() just requested a code for `known` moments ago — clear its resend cooldown so this
+    // comparison isn't skewed by one phone having a recent request and the other not.
+    await passCooldown(known);
+
+    const knownReply = await post('/auth/phone/code', { phone: known });
+    const unknownReply = await post('/auth/phone/code', { phone: unknown });
+
+    expect(knownReply.status).toBe(200);
+    expect(unknownReply.status).toBe(200);
+    expect(knownReply.body).toEqual(unknownReply.body);
+  });
+
   it('gives one identical reply for an unknown number, a number with no password and a wrong password', async () => {
     const withoutPassword = texts.freshPhone();
     await enterByCode(withoutPassword);
@@ -302,3 +317,45 @@ describeIfDatabase('changing a password (AUTH-20)', () => {
     expect((await signInWith(phone, NEW_PASSWORD)).status).toBe(200);
   });
 });
+
+describeIfDatabase(
+  'password and token storage, read directly from the database (P1-N04, SEC-01, SEC-07, D2)',
+  () => {
+    it('stores the password as a bcrypt hash at cost 12 or more, never in the clear', async () => {
+      const phone = await ownerWithPassword();
+      const row = await admin.query<{ password_hash: string }>(
+        'SELECT s.password_hash FROM control.subscribers s JOIN control.subscriber_identities i ON i.subscriber_id = s.id WHERE i.value = $1',
+        [phone],
+      );
+      const stored = row.rows[0]?.password_hash ?? '';
+      expect(stored).not.toContain(PASSWORD);
+      // bcrypt's own encoding: $2<variant>$<cost>$<22-char salt><31-char hash>.
+      const match = /^\$2[aby]\$(\d{2})\$/.exec(stored);
+      expect(match).not.toBeNull();
+      expect(Number(match?.[1])).toBeGreaterThanOrEqual(12);
+    });
+
+    it("stores the session's cookie and CSRF token only as hashes, never the value a browser holds", async () => {
+      const phone = await ownerWithPassword();
+      const signedIn = await signInWith(phone, PASSWORD);
+      const cookie = cookieFrom(signedIn);
+      const rawToken = cookie.split('lytronix_session=')[1] ?? '';
+      const csrfToken = (signedIn.body as { csrfToken: string }).csrfToken;
+      expect(rawToken).not.toBe('');
+
+      const row = await admin.query<{ token_hash: string; csrf_hash: string }>(
+        `SELECT s.token_hash, s.csrf_hash FROM control.sessions s
+       JOIN control.subscriber_identities i ON i.subscriber_id = s.subscriber_id
+       WHERE i.value = $1 ORDER BY s.created_at DESC LIMIT 1`,
+        [phone],
+      );
+      const stored = row.rows[0];
+      expect(stored).toBeDefined();
+      // SHA-256 hex: neither stored hash is the raw value a browser was handed, and both look like a digest.
+      expect(stored?.token_hash).not.toBe(rawToken);
+      expect(stored?.csrf_hash).not.toBe(csrfToken);
+      expect(stored?.token_hash).toMatch(/^[a-f0-9]{64}$/);
+      expect(stored?.csrf_hash).toMatch(/^[a-f0-9]{64}$/);
+    });
+  },
+);
