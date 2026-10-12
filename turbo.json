@@ -14,6 +14,11 @@
       "env": ["DATABASE_TEST_ADMIN_URL"],
       "cache": false
     },
+    "test:e2e": {
+      "dependsOn": ["^build", "build"],
+      "env": ["DATABASE_TEST_ADMIN_URL"],
+      "cache": false
+    },
     "dev": {
       "dependsOn": ["^build"],
       "cache": false,

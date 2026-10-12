@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { defineConfig } from 'vitest/config';
+import { configDefaults, defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
@@ -79,5 +79,8 @@ export default defineConfig({
   test: {
     // jsdom, not Node: host.ts and the session holders read window.location/sessionStorage/localStorage.
     environment: 'jsdom',
+    // e2e/ is Playwright's own suite (its tests call @playwright/test's test(), not Vitest's) — excluded
+    // here or Vitest's default *.spec.ts glob would try to run them as unit tests and fail immediately.
+    exclude: [...configDefaults.exclude, 'e2e/**'],
   },
 });
