@@ -89,6 +89,10 @@ Each scenario lists its preconditions, numbered steps, expected result, and the 
 - Steps: sign in on `alpha.localhost`; inspect the cookie's domain; open `beta.localhost` in the same browser.
 - Expected: the cookie's domain is `alpha.localhost` exactly, with no parent domain; the request to `beta.localhost` carries no cookie; `beta.localhost` shows the sign-in page.
 - Covers: TEN-29, SEC-14.
+- Automated (2026-10-13): a real Playwright browser, a real backend, a real Postgres —
+  `apps/admin/e2e/tests/e07-cookie-scope.spec.ts`. First of the suite closing the "no Playwright anywhere in
+  the repo" standing gap flagged in the Phase-1 coverage audit; see `apps/admin/e2e/README` (global-setup.ts)
+  for how the harness runs a real multi-host browser session without Caddy.
 
 **P1-E08 A session from one tenant is refused on another tenant's host. [API]**
 - Steps: obtain a session on tenant alpha; send it to tenant beta's API host.
@@ -260,19 +264,29 @@ Each scenario lists its preconditions, numbered steps, expected result, and the 
 - Steps: open the sign-in page in a new browser; check the language; switch to English; check every visible label, button and message; reload.
 - Expected: Bangla by default; the toggle changes every label, not some; the choice holds after reload for the signed-in staff member.
 - Covers: I18N-01, I18N-02.
-- Automated (default language and the toggle changing `i18n.language`): `apps/admin/src/i18n/index.test.ts`. Not automated: a visual check that every rendered label actually changed, which needs a real render of each screen — tracked as a manual check alongside §5's Bangla visual review.
+- Automated (default language and the toggle changing `i18n.language`): `apps/admin/src/i18n/index.test.ts`.
+  Automated (2026-10-13), in a real browser against a signed-in dashboard, including the reload-persists
+  case: `apps/admin/e2e/tests/e29-e30-language.spec.ts`. Still not automated: a visual check that every
+  rendered label actually changed — tracked as a manual check alongside §5's Bangla visual review.
 
 **P1-E30 Language choice is per device, and survives sign-out on that device. [E2E]**
 - **Correction, 2026-10-12:** the original wording ("language follows the account, not the device... English on the new browser") described the pre-D31 design. D31 revised language storage to per-device, client-side (`localStorage`), for both staff and shopper — `docs/PHASE-1-PLAN.md`'s D10/D31 — specifically so no backend call is needed. Steps and expectation below match the decision as shipped.
 - Steps: a staff member chooses English; signs out; signs in again on the same browser; then opens the dashboard on a different browser with no stored choice.
 - Expected: English holds after sign-out/sign-in on the same browser; the different browser (empty storage) shows Bangla, the default — the choice never crossed to the account or to the new device.
 - Covers: I18N-02.
-- Automated: `apps/admin/src/i18n/index.test.ts`.
+- Automated: `apps/admin/src/i18n/index.test.ts`. Automated (2026-10-13), the same-browser/different-device
+  split, in a real browser with two separate contexts standing in for two devices:
+  `apps/admin/e2e/tests/e29-e30-language.spec.ts`.
 
 **P1-E31 Tenant branding stays separate in one browser. [E2E]**
 - Steps: open alpha's dashboard, then beta's dashboard in another tab of the same browser; check the navigation name and tab title; switch back.
 - Expected: each tab shows its own shop name and placeholder logo; no hard refresh needed; the "Powered by" mark is present on both.
-- Note (2026-10-12): remains a genuine E2E-only gap — no Playwright suite exists in this repo yet. Not a code risk in the meantime: `alpha.lytro.com` and `beta.lytro.com` are different browser origins, so `sessionStorage` (`tenant-session.ts`), in-memory module state, and React Query's cache are all isolated per tab by the browser itself, with no shared global the app could leak through. The only thing this scenario can actually catch that unit tests can't is a visual/DOM regression (wrong title, wrong logo render) — left as a manual check until Playwright exists.
+- Automated (2026-10-13): two real tabs, two real tenants, two real signed-in sessions — document title per
+  tab asserted directly, including switching focus back to the first tab with no reload —
+  `apps/admin/e2e/tests/e31-branding.spec.ts`. The earlier note here (architecturally safe because
+  subdomains are different browser origins) is still the reason this was low-risk even before a test
+  existed; now it's proven directly too. The placeholder-logo half isn't asserted (no visual/screenshot
+  comparison yet) — left with the Bangla visual review in §5.
 - Covers: TEN-16, TEN-18.
 
 ### G. Operator login

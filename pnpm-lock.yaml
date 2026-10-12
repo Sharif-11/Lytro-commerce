@@ -84,6 +84,9 @@ importers:
         specifier: ^3
         version: 3.25.76
     devDependencies:
+      '@playwright/test':
+        specifier: ^1.64.0
+        version: 1.64.0
       '@tailwindcss/vite':
         specifier: ^4.3.3
         version: 4.3.3(vite@5.4.21(@types/node@20.19.43)(lightningcss@1.32.0)(terser@5.51.2))
@@ -99,6 +102,12 @@ importers:
       '@tanstack/router-plugin':
         specifier: ^1
         version: 1.168.42(@tanstack/react-router@1.170.41(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(esbuild@0.28.2)(rollup@4.64.0)(vite@5.4.21(@types/node@20.19.43)(lightningcss@1.32.0)(terser@5.51.2))
+      '@types/node':
+        specifier: ^20
+        version: 20.19.43
+      '@types/pg':
+        specifier: ^8
+        version: 8.23.1
       '@types/qrcode':
         specifier: 1.5.6
         version: 1.5.6
@@ -117,6 +126,9 @@ importers:
       jsdom:
         specifier: ^25
         version: 25.0.1
+      pg:
+        specifier: ^8
+        version: 8.23.1
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
@@ -201,7 +213,7 @@ importers:
     dependencies:
       next:
         specifier: ^15
-        version: 15.5.27(@opentelemetry/api@1.9.1)(@types/node@20.19.43)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+        version: 15.5.27(@opentelemetry/api@1.9.1)(@playwright/test@1.64.0)(@types/node@20.19.43)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       react:
         specifier: ^19
         version: 19.3.0
@@ -223,7 +235,7 @@ importers:
     dependencies:
       next:
         specifier: ^15
-        version: 15.5.27(@opentelemetry/api@1.9.1)(@types/node@20.19.43)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+        version: 15.5.27(@opentelemetry/api@1.9.1)(@playwright/test@1.64.0)(@types/node@20.19.43)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       react:
         specifier: ^19
         version: 19.3.0
@@ -1908,6 +1920,11 @@ packages:
 
   '@otplib/uri@13.5.0':
     resolution: {integrity: sha512-LsL1hqTEgJHY40U2eb/Qp6OR1tKkNGwHQTrqqjIuJj0cawGWkLEmeUFK1MHzWBQ4bgy5IdeB5Et7gIDSAH/CRw==}
+
+  '@playwright/test@1.64.0':
+    resolution: {integrity: sha512-oTN9FNYuN6bqQMwiho6jJKLCG2/QOYCixGXuCjRmzOq23eODeukuY2XiAVoVpAECbuezMt1MHQjAiQxK8F+Y+g==}
+    engines: {node: '>=20'}
+    hasBin: true
 
   '@quansync/fs@1.1.0':
     resolution: {integrity: sha512-qAPG/t3HqML1TlN7sY/pTbEjzFVAKsMjNNMGheyDosro+kT4iw2KCUoHcVdmliwWjorm4elZbgNQyU2eD97eDg==}
@@ -4397,6 +4414,16 @@ packages:
   pidtree@0.6.1:
     resolution: {integrity: sha512-e0F9AOF1JMrCfBsyJOwU9lNvQ0WtXTq0j/4jk0BQ5JSI9VAybPXmDpPRw/2FQ3e5d3ZFN1mLh7jW99m/jjaptw==}
     engines: {node: '>=0.10'}
+    hasBin: true
+
+  playwright-core@1.64.0:
+    resolution: {integrity: sha512-T9r+MZkTECl2+oUcZ26YgZzTrYidTsIhYYkJix+6iDOymOb1FB2RLLSOxRGnZGv5DStt+aduIVbt+E8WygXYpg==}
+    engines: {node: '>=20'}
+    hasBin: true
+
+  playwright@1.64.0:
+    resolution: {integrity: sha512-kVzTnYFYEyQ9RGzBjNCd2+yEqWmVbxl3AHPynv3qQ6JTjv4a+kwRcnqQwIpuP3NnrnIrE/Q6wWAIAvMfIE2/Yg==}
+    engines: {node: '>=20'}
     hasBin: true
 
   pngjs@5.0.0:
@@ -6898,6 +6925,10 @@ snapshots:
     dependencies:
       '@otplib/core': 13.5.0
 
+  '@playwright/test@1.64.0':
+    dependencies:
+      playwright: 1.64.0
+
   '@quansync/fs@1.1.0':
     dependencies:
       quansync: 1.0.0
@@ -9211,7 +9242,7 @@ snapshots:
       '@nestjs/common': 10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2)
       '@nestjs/core': 10.4.22(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/platform-express@10.4.22)(reflect-metadata@0.2.2)(rxjs@7.8.2)
 
-  next@15.5.27(@opentelemetry/api@1.9.1)(@types/node@20.19.43)(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
+  next@15.5.27(@opentelemetry/api@1.9.1)(@playwright/test@1.64.0)(@types/node@20.19.43)(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
     dependencies:
       '@next/env': 15.5.27
       '@swc/helpers': 0.5.15
@@ -9230,6 +9261,7 @@ snapshots:
       '@next/swc-win32-arm64-msvc': 15.5.27
       '@next/swc-win32-x64-msvc': 15.5.27
       '@opentelemetry/api': 1.9.1
+      '@playwright/test': 1.64.0
       sharp: 0.35.5(@types/node@20.19.43)
     transitivePeerDependencies:
       - '@babel/core'
@@ -9424,6 +9456,12 @@ snapshots:
   picomatch@4.0.7: {}
 
   pidtree@0.6.1: {}
+
+  playwright-core@1.64.0: {}
+
+  playwright@1.64.0:
+    dependencies:
+      playwright-core: 1.64.0
 
   pngjs@5.0.0: {}
 
