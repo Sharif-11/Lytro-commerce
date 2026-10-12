@@ -45,6 +45,13 @@ Each scenario lists its preconditions, numbered steps, expected result, and the 
   5. Land on the dashboard at `gamma.localhost/admin`.
 - Expected: after step 2 a subscriber and a verified phone exist, with no tenant; after step 3 the owner user and the tenant in `trial` exist with the subdomain `gamma`; the dashboard shows trial limits (40 handled orders, 20 products, 1 seat, 200 MB, 5 GB, 8 essential SMS) and a setup checklist; the stub store holds one "shop ready" message with the live URL; the essential counter reads 1 of 8, because the code is platform cost; the account has no password.
 - Covers: AUTH-01, AUTH-04, AUTH-05, AUTH-10, AUTH-12, AUTH-21, AUTH-28, TRL-01, TRL-03, SMS-18, TRL-08.
+- Note (2026-10-13): the trial subscriber/tenant creation, the shop-ready SMS and "no password after skipping
+  the offer" are automated (`test/signup.e2e.spec.ts`). The limit values/setup-checklist/essential-counter
+  display is a genuine, deliberate gap, not a missing test: `MeController`'s `/me` response (the dashboard's
+  only account-summary endpoint right now) carries no plan-limit or usage-counter fields at all, and
+  `apps/admin`'s dashboard view has no checklist or limits widget to show them — that UI doesn't exist yet.
+  Revisit once a quota-display slice is actually built (it depends on order/product/storage features this
+  phase doesn't have).
 
 **P1-E02 Phone format and required fields are validated. [API]**
 - Steps: at the code step submit `+8801711111111`, `0171111` and `02123456789`; at the create-shop step submit a 60-character-plus shop name and an empty owner name.
@@ -65,11 +72,18 @@ Each scenario lists its preconditions, numbered steps, expected result, and the 
 - Steps: sign up shops named "Fashion House" twice and "Admin" once; check the subdomains shown before sign-up completes; try to claim `www` and `api` directly.
 - Expected: `fashion-house` and `fashion-house-2`; "Admin" gets `admin-2`; `www` and `api` are never issued; the slug never changes when the shop is renamed.
 - Covers: AUTH-11, TEN-19, TEN-26.
+- Note (2026-10-13): slug/reserved-name assignment is automated (`test/slug.spec.ts`,
+  `test/tenancy.integration.spec.ts`). "The slug never changes when the shop is renamed" is a genuine gap,
+  not a missing test — there is no rename-shop endpoint anywhere in `apps/server` yet (`ShopsController` only
+  has `create`). Revisit once shop settings/renaming is built.
 
 **P1-E06 Unknown and reserved hosts resolve to nothing. [API]**
 - Steps: request `unknown.localhost`; request an unknown host with a forged `tenant_id` query parameter pointing at a real tenant; request a host with a forged `X-Tenant` header.
 - Expected: each returns the generic not-found page; no tenant data; no fallback to a default tenant.
 - Covers: TEN-24, TEN-25.
+- Automated (2026-10-13): both forgery attempts together, on an unknown host — `test/tenancy.integration.spec.ts`.
+  The query-parameter case is actually architectural: no code anywhere (`HostClassifier`/`TenantGuard`) ever
+  reads a query parameter for tenant resolution, Host is the only input, so there's no path for it to matter.
 
 **P1-E07 Session cookie is scoped to its exact host. [E2E]**
 - Steps: sign in on `alpha.localhost`; inspect the cookie's domain; open `beta.localhost` in the same browser.
@@ -220,11 +234,20 @@ Each scenario lists its preconditions, numbered steps, expected result, and the 
 - Steps: perform each action in the list: sign-in success and failure, sign-out, password change, staff created, edited, deactivated, reactivated, role changed, owner password reset. Read the activity log.
 - Expected: each action appears exactly once; no entry contains a password, OTP, session token or phone number beyond the last four digits.
 - Covers: AUD-01, AUD-02.
+- Automated (2026-10-13): all ten actions in one sequential scenario, each asserted to appear exactly once,
+  plus a sweep for the password, both staff passwords and the staff phone's full digits —
+  `test/activity.e2e.spec.ts`. Caught a real leak doing this: `StaffService.create` logged a new staff
+  member's full phone number into the entry's summary, visible to anyone with `audit:read` on the shop — not
+  masked to the last four digits as `LOG-02`/this scenario require. Fixed (`maskPhone` in `staff.service.ts`)
+  as part of writing the test, not left for later.
 
 **P1-E27 Activity log is append-only and tenant-scoped. [INT]**
 - Steps: try to update and delete an activity log row through the application role; read another tenant's log as the first tenant.
 - Expected: update and delete are refused by the database; the other tenant's entries never appear.
 - Covers: AUD-03, AUD-05, DAT-10.
+- Automated (2026-10-13): a real UPDATE and a real DELETE attempt against the trigger, confirmed to throw
+  and leave the row untouched (the earlier purge test's comment described this; nothing had exercised it
+  directly until now) — `test/activity.e2e.spec.ts`.
 
 **P1-E28 Activity filters and permission. [E2E]**
 - Steps: the owner filters by date range, actor and action; a staff member without `audit:read` opens the Activity page.
@@ -280,6 +303,9 @@ Each scenario lists its preconditions, numbered steps, expected result, and the 
 - Steps: run the activity log retention purge over two tenants with entries of different ages.
 - Expected: each tenant's entries are purged by its own retention; no entry from one tenant is affected by the other's setting.
 - Covers: TEN-07, AUD-06.
+- Automated (2026-10-13): two tenants, one moved to a plan row with a 7-day retention, the other left on the
+  default (30 days) — a 10-day-old entry on each proves the purge decides per tenant, not globally
+  (`test/activity.e2e.spec.ts`).
 
 ### I. Non-functional checks for this phase
 
@@ -298,6 +324,11 @@ Each scenario lists its preconditions, numbered steps, expected result, and the 
 - Steps: run every scenario above with a log capture; search the logs and every response body for passwords, OTP codes and session tokens.
 - Expected: no matches.
 - Covers: LOG-02, SEC-01, AUD-02.
+- Automated (2026-10-13): a real capture — `process.stdout`/`process.stderr` hooked for the duration of a
+  sign-up, shop creation, password set and a failed sign-in, then swept for the OTP code, the session
+  cookie's value, the CSRF token and both the right and wrong password (`test/log-secrets.e2e.spec.ts`). Not
+  every scenario in the plan individually, but the same mechanism (every server-side log line, from Nest's
+  `Logger` or a plain `console.error`, exits through these two streams) would catch a leak from any of them.
 
 **P1-N03 Errors carry no internal detail. [API]**
 - Steps: force an unhandled exception through a test-only route in a production-like configuration, and send a request claiming to be a developer.
