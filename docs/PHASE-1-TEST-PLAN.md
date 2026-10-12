@@ -92,6 +92,7 @@ Each scenario lists its preconditions, numbered steps, expected result, and the 
 - Steps: request a code for a known and an unknown phone and compare the replies; sign in a known phone by code; set a password; sign in with it; sign in by code again; try password sign-in with an unknown phone, with an account that has no password, and with a wrong password; compare the three failed responses, including timing.
 - Expected: the two code replies are identical; code sign-in works before and after the password is set; the right password returns a session; the three failures are byte-identical in body and status, with timing in the same band.
 - Covers: AUTH-12, AUTH-13.
+- Automated (2026-10-12): the code-request comparison was the missing half — added to `test/password.e2e.spec.ts`.
 
 **P1-E11 Lockout. [API]**
 - Steps: fail five times in fifteen minutes on one account, mixing wrong passwords and wrong codes; attempt a sixth with the correct password, then with a correct code; wait for the lock to pass; attempt again.
@@ -102,6 +103,8 @@ Each scenario lists its preconditions, numbered steps, expected result, and the 
 - Steps: sign in; sign out; replay the old session; sign in again; advance the clock seven days; replay the session.
 - Expected: the replayed session after sign-out returns `unauthenticated`; the session after seven days returns `unauthenticated`.
 - Covers: AUTH-15, AUTH-16.
+- Automated (2026-10-12): the plain sign-out-then-replay case (distinct from the password-reset session
+  invalidation already covered) — `test/dashboard.e2e.spec.ts`.
 
 **P1-E13 Forgot-password flow. [E2E]**
 - Preconditions: an owner with a password and a second open session.
@@ -124,11 +127,18 @@ Each scenario lists its preconditions, numbered steps, expected result, and the 
 - Steps: staff and owner sign in under each state.
 - Expected: staff and owner can sign in during `active`, `grace`. Staff in a later state receives `tenant_offline`. An owner of a `locked` or `archived` shop gets `next: renewal`; a `deleted` shop gets `next: purchase`; a suspended shop gets `next: unavailable`. The owner can still call `/me` in those states.
 - Covers: AUTH-22, partially. The full lifecycle set is covered in Phase 2.
+- Automated (2026-10-12): staff sign-in under `grace` (allowed) and `archived`/`deleted` (refused with
+  `tenant_offline`) — `test/staff.e2e.spec.ts`. `locked` was already covered; `suspended` is owner-only per
+  the dashboard lifecycle test and not a staff sign-in case.
 
 **P1-E33 Three-host dashboard access and onboarding resume. [API]**
 - Steps: verify a new phone on the platform host and stop; sign in again — check `next`; create the shop on the platform host; confirm the dashboard loads there; sign in directly on the shop subdomain and confirm the same dashboard; send the platform-host session to the shop subdomain and vice versa; sign in again after the set-password offer was seen.
 - Expected: the second sign-in on the platform host returns `next: create-shop`; the dashboard loads on the platform host after shop creation; signing in on the subdomain also gives the dashboard; a session from one host is refused on any other host with `forbidden`; the set-password offer is not shown again.
 - Covers: AUTH-10, AUTH-28, TEN-28, TEN-29, D13.
+- Note (2026-10-12): "the set-password offer is not shown again" was already proven by the existing
+  `test/signup.e2e.spec.ts` assertion that a returning phone gets `next: 'dashboard'`, not `'set-password'` —
+  tied explicitly to this scenario now. True by construction: create-shop (and the offer with it) can only
+  run once per subscriber (AUTH-08's conflict-on-second-shop rule), so there is no path back to it.
 
 **P1-E34 The trusted edge guards every route except health. [API]**
 - Steps: with the edge secret configured, call a sign-in route with no edge header; call it again with the header; call `/health` with no header.
@@ -196,6 +206,8 @@ Each scenario lists its preconditions, numbered steps, expected result, and the 
 - Steps: delete a role assigned to a staff member; try to deactivate the owner; try to change the owner's role; the owner resets a staff member's password.
 - Expected: deletion returns `conflict` and names the count of users; owner changes return `forbidden`; the reset forces a change at next sign-in.
 - Covers: STF-09, STF-12, STF-13.
+- Automated (2026-10-12): the owner's role (not just status) cannot be changed either — same `forbidden`
+  guard, same code path (`StaffService.update`) — `test/staff.e2e.spec.ts`.
 
 **P1-E25 Staff phone is unique across the platform. [API]**
 - Steps: create a staff member with a phone already used by another subscriber in another tenant.
@@ -275,6 +287,12 @@ Each scenario lists its preconditions, numbered steps, expected result, and the 
 - Steps: exceed the sign-up limit per IP per hour; exceed the OTP limit per IP.
 - Expected: the eleventh sign-up in an hour is limited; OTP limits are enforced on their own axis.
 - Covers: SUP-08, SMS-11.
+- Note (2026-10-12): SUP-08 had no implementation at all until now — only per-destination OTP limits
+  existed. Added `control.signup_attempts` and `SignupRateLimiter`, checked at new-account creation (phone,
+  email, OAuth), never at the shared code-request step those channels also use for returning sign-in — a
+  known identity is never counted or refused, no matter how many times it signs back in from the same IP.
+  Automated: `apps/server/test/signup-rate-limit.e2e.spec.ts` (threshold lowered via
+  `SIGNUP_RATE_LIMIT_PER_IP` to stay practical to exercise; production defaults to the SRS's 10).
 
 **P1-N02 No secrets in logs or responses. [INT]**
 - Steps: run every scenario above with a log capture; search the logs and every response body for passwords, OTP codes and session tokens.
@@ -290,6 +308,10 @@ Each scenario lists its preconditions, numbered steps, expected result, and the 
 - Steps: read the database directly after sign-up and sign-in.
 - Expected: passwords are bcrypt hashes at cost 12 or more, not plain text (D2); session tokens and OTPs are stored only as hashes.
 - Covers: SEC-01, SEC-07.
+- Automated (2026-10-12): direct reads of `control.subscribers.password_hash` (bcrypt, cost parsed from the
+  hash itself and asserted ≥12) and `control.sessions.token_hash`/`csrf_hash` (SHA-256 hex, never equal to
+  the value the client was handed) — `test/password.e2e.spec.ts`. OTP hash storage was already covered by
+  `test/one-time-code.spec.ts`.
 
 ---
 

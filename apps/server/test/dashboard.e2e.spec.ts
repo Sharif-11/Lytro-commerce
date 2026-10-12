@@ -220,4 +220,20 @@ describeIfDatabase('session expiry (D1, SEC-07)', () => {
     expect(response.status).toBe(401);
     expect(response.body).toMatchObject({ error: { code: 'unauthenticated' } });
   });
+
+  it('refuses a replayed session right after sign-out (P1-E12)', async () => {
+    const who = await owner();
+    expect((await get('/me', withSession(who, PLATFORM.host))).status).toBe(200);
+
+    const signedOut = await post(
+      '/auth/signout',
+      {},
+      { ...withSession(who, PLATFORM.host), 'x-csrf-token': who.csrfToken },
+    );
+    expect(signedOut.status).toBe(200);
+
+    const replayed = await get('/me', withSession(who, PLATFORM.host));
+    expect(replayed.status).toBe(401);
+    expect(replayed.body).toMatchObject({ error: { code: 'unauthenticated' } });
+  });
 });

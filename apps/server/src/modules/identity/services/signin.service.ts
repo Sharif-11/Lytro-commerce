@@ -13,6 +13,7 @@ import { OneTimeCodeService } from './one-time-code.service';
 import { PhoneNumberFormat } from './phone-number-format';
 import { SignInAudit } from './sign-in-audit';
 import { SignInLockout } from './sign-in-lockout';
+import { SignupRateLimiter } from './signup-rate-limiter';
 import { SignedInSession } from './signed-in-session';
 import type { SessionContext } from '../types/session';
 import type { SignedIn } from '../types/signed-in';
@@ -29,6 +30,7 @@ export class SigninService {
     @Inject(SignInLockout) private readonly lockout: SignInLockout,
     @Inject(PhoneNumberFormat) private readonly phoneFormat: PhoneNumberFormat,
     @Inject(SignInAudit) private readonly signInAudit: SignInAudit,
+    @Inject(SignupRateLimiter) private readonly signupLimit: SignupRateLimiter,
   ) {}
 
   async requestCode(rawPhone: string) {
@@ -43,6 +45,11 @@ export class SigninService {
     const phone = this.requirePhone(rawPhone);
     const existing = await this.gateway.run((tx) => this.gateway.findSubscriberByPhone(tx, phone));
     await this.lockout.refuseIfLocked(existing?.subscriberId ?? null);
+    // SUP-08 only caps sign-up — a known phone is a returning sign-in and never counted or refused here,
+    // however often this IP's own staff or owner sign in.
+    if (!existing) {
+      await this.signupLimit.refuseIfTooMany(context.ip);
+    }
 
     let challengeId: string;
     try {
@@ -78,6 +85,9 @@ export class SigninService {
         });
       });
       await this.signInAudit.log(opened.tenantId, null, AuditAction.SignIn, AuditResult.Success);
+      if (!existing) {
+        await this.signupLimit.record(context.ip);
+      }
       return opened;
     } catch (error) {
       if (error instanceof UniqueViolation) {

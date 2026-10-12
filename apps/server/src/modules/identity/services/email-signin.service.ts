@@ -13,6 +13,7 @@ import { EmailFormat } from './email-format';
 import { OneTimeCodeService } from './one-time-code.service';
 import { SignInAudit } from './sign-in-audit';
 import { SignInLockout } from './sign-in-lockout';
+import { SignupRateLimiter } from './signup-rate-limiter';
 import { SignedInSession } from './signed-in-session';
 import type { SessionContext } from '../types/session';
 import type { SignedIn } from '../types/signed-in';
@@ -29,6 +30,7 @@ export class EmailSigninService {
     @Inject(SignInLockout) private readonly lockout: SignInLockout,
     @Inject(EmailFormat) private readonly emailFormat: EmailFormat,
     @Inject(SignInAudit) private readonly signInAudit: SignInAudit,
+    @Inject(SignupRateLimiter) private readonly signupLimit: SignupRateLimiter,
   ) {}
 
   requestCode(rawEmail: string) {
@@ -44,6 +46,10 @@ export class EmailSigninService {
     const existing = await this.gateway.run((tx) => this.gateway.findSubscriberByEmail(tx, email));
     const subscriberId = existing?.subscriberId ?? null;
     await this.lockout.refuseIfLocked(subscriberId);
+    // SUP-08 only caps sign-up — a known email is a returning sign-in and never counted or refused here.
+    if (!existing) {
+      await this.signupLimit.refuseIfTooMany(context.ip);
+    }
 
     let challengeId: string;
     try {
@@ -77,6 +83,9 @@ export class EmailSigninService {
         });
       });
       await this.signInAudit.log(opened.tenantId, null, AuditAction.SignIn, AuditResult.Success);
+      if (!existing) {
+        await this.signupLimit.record(context.ip);
+      }
       return opened;
     } catch (error) {
       if (error instanceof UniqueViolation) throw new ApiError('conflict', 'Please try again.', {});

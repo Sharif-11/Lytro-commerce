@@ -217,6 +217,24 @@ describeIfDatabase('owner row and unknown staff (STF-12, not_found)', () => {
     expect(errorOf(response)).toMatchObject({ code: 'forbidden' });
   });
 
+  it("will not change the owner row's roles either (P1-E24)", async () => {
+    const who = await owner();
+    await moveToPlan(who.slug, 'Starter');
+    const role = (await createRole(who, 'Stock', ['products:manage'])).body as { id: string };
+    const list = await listStaff(who);
+    const ownerRow = (list.body as { staff: StaffBody[] }).staff.find((s) => s.isOwner);
+    expect(ownerRow).toBeDefined();
+
+    const response = await patchJson(
+      port,
+      `/staff/${ownerRow?.id ?? ''}`,
+      { roleIds: [role.id] },
+      shopCall(who),
+    );
+    expect(response.status).toBe(403);
+    expect(errorOf(response)).toMatchObject({ code: 'forbidden' });
+  });
+
   it('answers not_found for an id that is not a staff member of the shop', async () => {
     const who = await owner();
     const unknown = await setActive(who, randomUUID(), false);
@@ -507,6 +525,27 @@ describeIfDatabase('staff sign-in on the shop host (AUTH-12, AUTH-13, STF-05)', 
     const locked = await staffSignIn(other.slug, otherPhone, STAFF_PASSWORD);
     expect(locked.status).toBe(403);
     expect(errorOf(locked)).toMatchObject({ code: 'tenant_offline' });
+  });
+
+  it('lets a staff member sign in during grace, and refuses them once archived or deleted (P1-E16)', async () => {
+    const who = await owner();
+    await moveToPlan(who.slug, 'Starter');
+    const phone = texts.freshPhone();
+    expect((await addStaffWithPassword(who, phone, STAFF_PASSWORD)).status).toBe(201);
+
+    await admin.query(`UPDATE control.tenants SET state = 'grace' WHERE slug = $1`, [who.slug]);
+    const duringGrace = await staffSignIn(who.slug, phone, STAFF_PASSWORD);
+    expect(duringGrace.status).toBe(200);
+
+    await admin.query(`UPDATE control.tenants SET state = 'archived' WHERE slug = $1`, [who.slug]);
+    const archived = await staffSignIn(who.slug, phone, STAFF_PASSWORD);
+    expect(archived.status).toBe(403);
+    expect(errorOf(archived)).toMatchObject({ code: 'tenant_offline' });
+
+    await admin.query(`UPDATE control.tenants SET state = 'deleted' WHERE slug = $1`, [who.slug]);
+    const deleted = await staffSignIn(who.slug, phone, STAFF_PASSWORD);
+    expect(deleted.status).toBe(403);
+    expect(errorOf(deleted)).toMatchObject({ code: 'tenant_offline' });
   });
 });
 

@@ -157,6 +157,8 @@ describeIfDatabase('sign-up by phone, end to end', () => {
       [phone],
     );
     const returning = await enter(phone);
+    // next: 'dashboard', not 'set-password' — the one-time offer right after shop creation is never repeated
+    // on a later sign-in (P1-E33), since create-shop itself can only run once per subscriber (AUTH-08 below).
     expect(returning).toMatchObject({ next: 'dashboard' });
     expect(returning.tenantId).not.toBeNull();
 

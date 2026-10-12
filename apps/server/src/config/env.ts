@@ -30,6 +30,10 @@ const envSchema = z.object({
   TRUSTED_PROXY_HOPS: z.coerce.number().int().min(1).max(10).default(1),
   // Key for the keyed hash of one-time codes (AUTH-05). A stolen database alone cannot reveal codes.
   OTP_SECRET: z.string().min(32, 'OTP_SECRET is required; at least 32 characters'),
+  // SUP-08: new accounts per client IP per hour. The SRS value (10) is tight for a shared test or dev
+  // machine that creates many tenants from one address in a single run, so only production defaults to it;
+  // the limiter itself is identical in every environment — this only changes the threshold.
+  SIGNUP_RATE_LIMIT_PER_IP: z.coerce.number().int().positive().optional(),
   // Connection pool (ENGINEERING-STANDARDS §5). Defaults suit one server; size the total for each deployment.
   DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(100).default(5),
   DATABASE_CONNECT_TIMEOUT_MS: z.coerce.number().int().positive().default(5000),
