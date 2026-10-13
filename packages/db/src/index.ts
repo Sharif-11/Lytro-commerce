@@ -72,3 +72,16 @@ export {
 } from './repositories/balance/balance-ledger.repository';
 export { RatesRepository } from './repositories/balance/rates.repository';
 export { ShopSettingsRepository } from './repositories/balance/shop-settings.repository';
+export {
+  PlansRepository,
+  type NewPlan,
+  type PlanEdit,
+} from './repositories/billing/plans.repository';
+export {
+  BillingTermsRepository,
+  PlanPricesRepository,
+  type NewBillingTerm,
+  type BillingTermEdit,
+} from './repositories/billing/billing-terms.repository';
+export { PlanAssignmentsRepository } from './repositories/billing/plan-assignments.repository';
+export { PlanLimitOverridesRepository } from './repositories/billing/plan-limit-overrides.repository';

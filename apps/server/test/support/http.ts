@@ -33,6 +33,15 @@ export function patchJson(
   return send(port, 'PATCH', path, payload, headers);
 }
 
+export function putJson(
+  port: number,
+  path: string,
+  payload: unknown,
+  headers: Record<string, string> = {},
+): Promise<HttpResult> {
+  return send(port, 'PUT', path, payload, headers);
+}
+
 export function getJson(
   port: number,
   path: string,
@@ -43,7 +52,7 @@ export function getJson(
 
 function send(
   port: number,
-  method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
+  method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE',
   path: string,
   payload: unknown,
   headers: Record<string, string>,

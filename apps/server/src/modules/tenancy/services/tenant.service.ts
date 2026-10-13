@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { BalanceRow, Transaction } from '@lytronix/db';
+import type { PlanLimits } from '@lytronix/validators';
 import { DAY_MS } from '../../../common/time';
 import { StaffService } from '../../staff/services/staff.service';
 import { MessagingService } from '../../shared/messaging/services/messaging.service';
@@ -75,5 +76,19 @@ export class TenantService {
     options?: { frozen?: boolean; touchActivityAt?: Date },
   ): Promise<void> {
     return this.store.applyBalanceChange(tx, tenantId, amount, options);
+  }
+
+  /** Opens a transaction for a caller that doesn't have one yet (control.tenants has no RLS/tenant context). */
+  runStandalone<T>(work: (tx: Transaction) => Promise<T>): Promise<T> {
+    return this.store.run(work);
+  }
+
+  /** PLN-17: activates a not-for-sale plan assignment with a normal snapshot, exactly as a purchase would. */
+  applyPlanAssignment(
+    tx: Transaction,
+    tenantId: string,
+    values: { planId: string; planSnapshot: PlanLimits; periodStart: Date; periodEnd: Date | null },
+  ): Promise<void> {
+    return this.store.applyPlanAssignment(tx, tenantId, values);
   }
 }

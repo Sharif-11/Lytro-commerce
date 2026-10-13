@@ -51,9 +51,14 @@ export class DrizzleSlugAvailability implements SlugAvailability {
 @Injectable()
 export class DrizzleTenantStore implements TenantStore {
   constructor(
+    @Inject(DatabaseService) private readonly database: Pick<DatabaseService, 'handle'>,
     @Inject(TenantRepository) private readonly tenants: TenantRepository,
     @Inject(TransactionRunner) private readonly transactions: TransactionRunner,
   ) {}
+
+  run<T>(work: (tx: Transaction) => Promise<T>): Promise<T> {
+    return this.transactions.run(this.database.handle.db, work);
+  }
 
   findTrialPlan(tx: Transaction): Promise<{ id: string; limits: PlanLimits } | null> {
     return this.tenants.findPlanByName(tx, TRIAL_PLAN_NAME, false);
@@ -79,6 +84,14 @@ export class DrizzleTenantStore implements TenantStore {
 
   setBalanceFrozen(tx: Transaction, tenantId: string, frozen: boolean): Promise<void> {
     return this.tenants.setBalanceFrozen(tx, tenantId, frozen);
+  }
+
+  applyPlanAssignment(
+    tx: Transaction,
+    tenantId: string,
+    values: Parameters<TenantStore['applyPlanAssignment']>[2],
+  ): Promise<void> {
+    return this.tenants.applyPlanAssignment(tx, tenantId, values);
   }
 
   applyBalanceChange(

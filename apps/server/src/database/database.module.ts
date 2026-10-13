@@ -22,6 +22,11 @@ import {
   BalanceLedgerRepository,
   RatesRepository,
   ShopSettingsRepository,
+  PlansRepository,
+  BillingTermsRepository,
+  PlanPricesRepository,
+  PlanAssignmentsRepository,
+  PlanLimitOverridesRepository,
 } from '@lytronix/db';
 import { EnvironmentParser } from '../config/env';
 import { ENV } from '../config/tokens';
@@ -81,6 +86,11 @@ import { DatabaseService } from './database.service';
       inject: [TransactionRunner],
       useFactory: (transactions: TransactionRunner) => new ShopSettingsRepository(transactions),
     },
+    { provide: PlansRepository, useFactory: () => new PlansRepository() },
+    { provide: BillingTermsRepository, useFactory: () => new BillingTermsRepository() },
+    { provide: PlanPricesRepository, useFactory: () => new PlanPricesRepository() },
+    { provide: PlanAssignmentsRepository, useFactory: () => new PlanAssignmentsRepository() },
+    { provide: PlanLimitOverridesRepository, useFactory: () => new PlanLimitOverridesRepository() },
   ],
   exports: [
     ENV,
@@ -107,6 +117,11 @@ import { DatabaseService } from './database.service';
     BalanceLedgerRepository,
     RatesRepository,
     ShopSettingsRepository,
+    PlansRepository,
+    BillingTermsRepository,
+    PlanPricesRepository,
+    PlanAssignmentsRepository,
+    PlanLimitOverridesRepository,
   ],
 })
 export class DatabaseModule {}
