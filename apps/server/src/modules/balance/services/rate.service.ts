@@ -19,10 +19,13 @@ import type { RateHistoryEntry, RateValue } from '../types/rate';
  */
 @Injectable()
 export class RateService {
+  // Not a constructor parameter: a bare default-valued parameter reflects as design type `Object`, which Nest
+  // tries (and fails) to resolve as a provider token. A plain field needs no DI token at all.
+  private readonly cache = new RateCache();
+
   constructor(
     @Inject(RATE_STORE) private readonly store: RateStore,
     @Inject(PlatformAuditService) private readonly platformAudit: PlatformAuditService,
-    private readonly cache = new RateCache(),
   ) {}
 
   /** RAT-06: the "current rates" page, and the value a charge should use right now. */
