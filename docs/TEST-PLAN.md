@@ -166,9 +166,14 @@ Expected: matches the full state table in §26.2 exactly — e.g. at `read_only`
 Covers: `LIF-01` to `LIF-26`, `LIF-07`.
 
 **S03-08 Pay-as-you-go specifics.**
-Steps: 1) Create a product on PAYG — balance charged per-creation (10 TK), ceiling still 25 (below Starter's 100). 2) Attempt the 26th product with ample balance. 3) Fulfill an order — order fee (20 TK min or 1.5%, whichever greater) charged only at fulfillment. 4) Leave the tenant untouched for a year.
-Expected: 26th product refused regardless of balance; order creation itself never charged; tenant remains fully active indefinitely with no forced state change.
+Steps: 1) Create a product on PAYG — balance charged per-creation (10 TK), ceiling still 25 (below Starter's 100). 2) Attempt the 26th product with ample balance. 3) Fulfill an order — order fee (20 TK min or 1.5%, whichever greater) charged only at fulfillment. 4) Leave the tenant active with regular order/product activity for a year.
+Expected: 26th product refused regardless of balance; order creation itself never charged; a tenant with ongoing qualifying activity (order fees, product fees, top-ups) remains fully active indefinitely with no forced state change, regardless of order *volume* — `PYG-08` only rules out a *volume*-triggered lapse; a genuinely idle tenant is a separate case (S03-08a).
 Covers: `PYG-01`, `PYG-02`, `PYG-08`, `PYG-16`, `PYG-17`, `PYG-20`.
+
+**S03-08a Pay-as-you-go auto-archive after inactivity. (Added 2026-10-13, reverses S03-08's pre-revision claim.)**
+Steps: 1) Create a PAYG tenant and let it sit with no order fee, product fee or top-up. 2) Advance the clock to day 23 — check for the warning. 3) Advance to day 30 with still no qualifying activity. 4) Separately, repeat with a top-up on day 25 before the 30-day mark.
+Expected: a day-23 warning (in-app, push, email — never SMS) sent exactly once; at day 30 with no activity the tenant is `archived` directly, no grace or read-only stage; business-data deletion follows at day 60 from that point (`LIF-19`), same as any other archived tenant; the day-25 top-up resets the clock, cancelling the pending warning/archival.
+Covers: `PYG-21`.
 
 **S03-09 Balance concurrency and atomicity.**
 Steps: with a 50 TK balance, fire 100 simultaneous 1-TK charge requests.

@@ -152,6 +152,17 @@ CREATE TABLE control.tenants (
     created_at            timestamptz NOT NULL DEFAULT now(),
     suspended_at           timestamptz,
     suspended_reason       text,
+    -- D2-11 (added 2026-10-13): cached, updated whenever an order-fee, product-fee or top-up
+    -- ledger entry is written (the same denormalized pattern as balance_amount above). Read by
+    -- the pay-as-you-go inactivity job (PYG-21) instead of scanning tenant.balance_ledger on
+    -- every run. Null for a tenant that was never pay-as-you-go.
+    last_activity_at      timestamptz,
+    -- LIF-20/21/22: set once by the day-60 deletion job (LIF-19), never before. The row and its
+    -- state ('deleted') persist after this is set -- deletion removes only the business data
+    -- listed in LIF-19, not the tenant row itself (LIF-20 keeps the subscriber link, plan/payment
+    -- history, balance and invoices reachable). Anchors the 30-day subdomain-reservation window
+    -- (LIF-21) and the 30-day backup-retention window (LIF-22).
+    deleted_at            timestamptz,
     kyc_status             text NOT NULL DEFAULT 'unverified'   -- KYC-16: unverified | pending | verified | revoked
                            CHECK (kyc_status IN ('unverified', 'pending', 'verified', 'revoked'))
 );
@@ -178,6 +189,7 @@ CREATE INDEX ON control.tenant_domains (tenant_id);
 CREATE TABLE control.plans (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     name            text NOT NULL,
+    description     text,                       -- PLN-01
     rank            integer NOT NULL,           -- PLN-16: unique among for-sale plans
     for_sale        boolean NOT NULL DEFAULT true, -- PLN-10: not-for-sale plans never returned to tenants
     version         integer NOT NULL DEFAULT 1,
@@ -187,14 +199,21 @@ CREATE TABLE control.plans (
     features        jsonb NOT NULL DEFAULT '{}',
     created_at      timestamptz NOT NULL DEFAULT now()
 );
+CREATE UNIQUE INDEX ON control.plans (rank) WHERE for_sale = true; -- PLN-16
 
 CREATE TABLE control.billing_terms (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    label           text NOT NULL,
+    label_bn        text NOT NULL,              -- TRM-01
+    label_en        text NOT NULL,
     months          integer NOT NULL CHECK (months BETWEEN 1 AND 60),
     visible         boolean NOT NULL DEFAULT true,
+    display_order   integer NOT NULL DEFAULT 0, -- TRM-01
     default_discount_pct numeric(5,2),
-    retired_at      timestamptz
+    -- TRM-14: null = platform-wide (the normal case); set = visible to exactly one tenant,
+    -- enforced by filtering on this column wherever terms are listed for purchase.
+    tenant_id       uuid REFERENCES control.tenants(id),
+    retired_at      timestamptz,
+    created_at      timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE TABLE control.plan_prices (
@@ -217,10 +236,21 @@ CREATE TABLE control.rate_history (
     old_value       numeric(12,4),
     new_value       numeric(12,4) NOT NULL,
     changed_by      uuid,                        -- operator account id
+    notice_id       uuid REFERENCES control.notices(id), -- RAT-09: null = no notice was published for this change
     changed_at      timestamptz NOT NULL DEFAULT now()
 );
 -- RAT-01..14: a charge always reads control.rates at the moment it's recorded; rate_history
 -- is append-only and never consulted for billing, only for the "current rates" / audit screen.
+-- RAT-09's notice_id is set after the fact if the operator publishes the prefilled notice
+-- (control.notices, section 10), so it is a nullable FK rather than a column on control.notices.
+
+-- RAT-14: unlike every other rate above, this one is per-tenant, not platform-wide, so it
+-- cannot live in control.rates. One row per tenant that has ever set it; a tenant with no row
+-- uses the default of 0.
+CREATE TABLE tenant.shop_settings (
+    tenant_id                       uuid PRIMARY KEY,
+    extra_delivery_charge_per_kg    numeric(10,2) NOT NULL DEFAULT 0
+);
 ```
 
 ### 2.4 Invoices and platform audit
@@ -230,8 +260,10 @@ CREATE TABLE control.invoices (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id       uuid NOT NULL REFERENCES control.tenants(id),
     number          bigint NOT NULL UNIQUE,      -- gap-free, from a locked counter row, not a sequence (DAT-07)
+    kind            text NOT NULL DEFAULT 'purchase', -- purchase | renewal | upgrade (BIL-12)
     plan_snapshot   jsonb NOT NULL,
     amount          numeric(10,2) NOT NULL,
+    credit_amount   numeric(10,2) NOT NULL DEFAULT 0, -- UPG-03/UPG-15: the credit line shown on an upgrade invoice
     billing_term_label text NOT NULL,
     issued_at       timestamptz NOT NULL DEFAULT now()
 );
@@ -649,6 +681,65 @@ Database roles: `app_write` (no RLS bypass, used for the write pool), `app_read`
 ## 4. Plans depth: add-ons, pay-as-you-go, not-for-sale
 
 ```sql
+-- D2-3 (added 2026-10-13): a frozen copy of the control.plans row, inserted immediately before
+-- every update (PLN-02) -- not reconstructed from platform_audit_log's free-form summary field,
+-- since the plan editor needs to actually render a past version, not just diff two JSON blobs.
+CREATE TABLE control.plan_versions (
+    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    plan_id         uuid NOT NULL REFERENCES control.plans(id),
+    version         integer NOT NULL,              -- the version number this snapshot WAS, before the edit
+    name            text NOT NULL,
+    description     text,
+    rank            integer NOT NULL,
+    for_sale        boolean NOT NULL,
+    limits          jsonb NOT NULL,
+    features        jsonb NOT NULL,
+    recorded_at     timestamptz NOT NULL DEFAULT now(),
+    UNIQUE (plan_id, version)
+);
+
+-- PLN-11: a per-tenant override of one limit key, with a required reason. Applied over the
+-- tenant's plan_snapshot when the app reads a limit; removing the row restores the snapshot value.
+CREATE TABLE control.plan_limit_overrides (
+    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id       uuid NOT NULL REFERENCES control.tenants(id),
+    limit_key       text NOT NULL,                 -- a key from the plan's `limits` jsonb, e.g. 'free_essential_sms'
+    value           jsonb NOT NULL,
+    reason          text NOT NULL,
+    set_by          uuid NOT NULL,                 -- operator account id
+    set_at          timestamptz NOT NULL DEFAULT now(),
+    UNIQUE (tenant_id, limit_key)
+);
+
+-- D2-1 (added 2026-10-13): a plan purchase, renewal, upgrade or balance top-up's confirmation
+-- row. Deliberately control-schema, not the tenant-schema `tenant.payment_sessions`/`payments`
+-- (section 3.4) -- those are Phase 5's *shopper* order-payment mechanism, built against
+-- tenant.orders, which doesn't exist yet and can't be depended on by this phase. A plan payment
+-- is the tenant itself paying the platform, conceptually closer to control.invoices than to a
+-- shopper's checkout. Today's `verified`/`rejected` transition is an operator action (API-CONTRACT.md
+-- §9's /operator/payment-queue) standing in for Phase 5's real hosted-page/gateway verification;
+-- only the confirmation trigger changes once Phase 5 ships, not this table's shape.
+CREATE TABLE control.plan_payments (
+    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id       uuid NOT NULL REFERENCES control.tenants(id),
+    kind            text NOT NULL,                  -- purchase | renewal | upgrade | top_up
+    plan_id         uuid REFERENCES control.plans(id),       -- null for a top_up
+    billing_term_id uuid REFERENCES control.billing_terms(id), -- null for a top_up
+    amount          numeric(10,2) NOT NULL,         -- the amount due/quoted (BIL-09's 30-minute hold window)
+    credit_amount   numeric(10,2) NOT NULL DEFAULT 0, -- UPG-03, for kind = 'upgrade'
+    quoted_at       timestamptz NOT NULL DEFAULT now(),
+    status          text NOT NULL DEFAULT 'pending', -- pending | needs_review | verified | rejected | expired
+    sender_number   text,
+    transaction_id  text,
+    verified_by     uuid,                           -- operator account id
+    verified_at     timestamptz,
+    created_at      timestamptz NOT NULL DEFAULT now()
+);
+-- BIL-07/PAY-16: the transaction_id uniqueness guarantee is platform-wide via
+-- control.used_transaction_ids (section 2.4/3.4), the same registry tenant.payments shares,
+-- so a plan payment and a shopper payment can never collide on the same transaction ID either.
+CREATE UNIQUE INDEX ON control.plan_payments (transaction_id) WHERE transaction_id IS NOT NULL;
+
 -- PLN-10/17/18: not-for-sale plans are ordinary rows in control.plans with for_sale = false,
 -- filtered server-side in every tenant-facing query; this table just records why/how one was assigned.
 CREATE TABLE control.plan_assignments (
