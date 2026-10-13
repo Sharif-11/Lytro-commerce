@@ -2,7 +2,7 @@ import { and, eq } from 'drizzle-orm';
 import type { Database } from '../../client';
 import type { Executor } from '../../transactions';
 import { plans, tenantDomains, tenants } from '../../schema';
-import { DomainStatus, type PlanLimits } from '@lytronix/validators';
+import { DomainStatus, TenantState, type PlanLimits } from '@lytronix/validators';
 
 // Shop rows and their lookups. The trial period and plan choice are decided by the tenancy service.
 export interface TenantLookupRow {
@@ -144,6 +144,28 @@ export class TenantRepository {
         balanceAmount: amount,
         ...(options.frozen !== undefined ? { balanceFrozen: options.frozen } : {}),
         ...(options.touchActivityAt ? { lastActivityAt: options.touchActivityAt } : {}),
+      })
+      .where(eq(tenants.id, tenantId));
+  }
+
+  /**
+   * PLN-17: activates a not-for-sale plan assignment, storing a normal snapshot exactly as a purchase would.
+   * `periodEnd: null` means no expiry (PLN-18) -- the lifecycle job (slice 7) must treat a not-for-sale plan
+   * with no period end as never lapsing, the same way it already will for an expiring one that hasn't lapsed.
+   */
+  async applyPlanAssignment(
+    tx: Executor,
+    tenantId: string,
+    values: { planId: string; planSnapshot: PlanLimits; periodStart: Date; periodEnd: Date | null },
+  ): Promise<void> {
+    await tx
+      .update(tenants)
+      .set({
+        planId: values.planId,
+        planSnapshot: values.planSnapshot,
+        periodStart: values.periodStart,
+        periodEnd: values.periodEnd,
+        state: TenantState.Active,
       })
       .where(eq(tenants.id, tenantId));
   }

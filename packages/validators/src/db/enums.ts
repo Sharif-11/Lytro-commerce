@@ -132,6 +132,9 @@ export enum AuditAction {
   RoleCreated = 'role_created',
   RoleUpdated = 'role_updated',
   RoleDeleted = 'role_deleted',
+  // PLN-17: an operator's not-for-sale plan assignment is operator-caused but changes the tenant's own plan, so
+  // it writes both this log (D2-5) and PlatformAuditAction.PlanAssigned below.
+  PlanAssigned = 'plan_assigned',
 }
 
 // The pg-boss queues this codebase uses (SCL-08, D25). Add a name here before any code enqueues to it.
@@ -174,6 +177,19 @@ export enum PlatformAuditAction {
   RateChanged = 'rate_changed',
   // BAL-17: an operator's balance adjustment, never a tenant-initiated change.
   BalanceAdjusted = 'balance_adjusted',
+  // PLN-02/D2-3: a plan edit, each one preceded by its own version snapshot.
+  PlanCreated = 'plan_created',
+  PlanUpdated = 'plan_updated',
+  PlanRetired = 'plan_retired',
+  // PLN-17: mirrors AuditAction.PlanAssigned above, written to this log too (D2-5).
+  PlanAssigned = 'plan_assigned',
+  // PLN-11: a per-tenant limit override, set or removed.
+  PlanLimitOverrideSet = 'plan_limit_override_set',
+  PlanLimitOverrideRemoved = 'plan_limit_override_removed',
+  // TRM-16: every billing-term change.
+  BillingTermCreated = 'billing_term_created',
+  BillingTermUpdated = 'billing_term_updated',
+  BillingTermRetired = 'billing_term_retired',
 }
 
 // BAL-02: what a balance-ledger entry is for. One list, shared by every module that ever charges or credits a

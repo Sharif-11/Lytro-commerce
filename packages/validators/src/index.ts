@@ -17,3 +17,8 @@ export * from './api/operator/operator-auth';
 export * from './api/balance/balance-list';
 export * from './api/balance/balance-adjust';
 export * from './api/balance/rate-update';
+export * from './api/billing/plan-create';
+export * from './api/billing/billing-term-create';
+export * from './api/billing/plan-price-set';
+export * from './api/billing/plan-assign';
+export * from './api/billing/plan-limit-override-set';
