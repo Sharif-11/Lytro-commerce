@@ -170,6 +170,37 @@ export enum PlatformActorType {
 export enum PlatformAuditAction {
   // ADM-18: break-glass recovery after an operator loses both their TOTP device and backup codes.
   BreakGlass2faReset = 'break_glass_2fa_reset',
+  // RAT-05: every rate change, by the operator who made it.
+  RateChanged = 'rate_changed',
+  // BAL-17: an operator's balance adjustment, never a tenant-initiated change.
+  BalanceAdjusted = 'balance_adjusted',
+}
+
+// BAL-02: what a balance-ledger entry is for. One list, shared by every module that ever charges or credits a
+// tenant's balance — add a value here before any code writes a new kind of entry, never a second enum for it.
+export enum LedgerEntryType {
+  TopUp = 'top_up',
+  Sms = 'sms',
+  Ai = 'ai',
+  Extraction = 'extraction',
+  FraudCheck = 'fraud_check',
+  OrderFee = 'order_fee',
+  ProductFee = 'product_fee',
+  PlanPayment = 'plan_payment',
+  Adjustment = 'adjustment',
+  Reversal = 'reversal',
+}
+
+// RAT-01: the platform-wide, per-use rates control.rates holds. Add a key here before any code reads or writes
+// it — the single list of what "a rate" means on this platform.
+export enum RateKey {
+  SmsPerUnit = 'sms_per_unit',
+  AiReply = 'ai_reply',
+  FraudCheck = 'fraud_check',
+  PaygOrderFeeMin = 'payg_order_fee_min',
+  PaygOrderFeePct = 'payg_order_fee_pct',
+  PaygProductFee = 'payg_product_fee',
+  SmsUnitSizeChars = 'sms_unit_size_chars',
 }
 
 /**

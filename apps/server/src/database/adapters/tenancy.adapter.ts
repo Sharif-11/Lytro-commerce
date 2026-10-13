@@ -4,6 +4,7 @@ import {
   TenantRepository,
   TRIAL_PLAN_NAME,
   TransactionRunner,
+  type BalanceRow,
   type Transaction,
 } from '@lytronix/db';
 import type { PlanLimits } from '@lytronix/validators';
@@ -70,6 +71,23 @@ export class DrizzleTenantStore implements TenantStore {
       }
       throw error;
     }
+  }
+
+  lockBalanceForUpdate(tx: Transaction, tenantId: string): Promise<BalanceRow | null> {
+    return this.tenants.lockBalanceForUpdate(tx, tenantId);
+  }
+
+  setBalanceFrozen(tx: Transaction, tenantId: string, frozen: boolean): Promise<void> {
+    return this.tenants.setBalanceFrozen(tx, tenantId, frozen);
+  }
+
+  applyBalanceChange(
+    tx: Transaction,
+    tenantId: string,
+    amount: string,
+    options?: { frozen?: boolean; touchActivityAt?: Date },
+  ): Promise<void> {
+    return this.tenants.applyBalanceChange(tx, tenantId, amount, options);
   }
 }
 

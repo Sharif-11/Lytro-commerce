@@ -11,6 +11,7 @@ export {
   TenantRepository,
   type TenantLookupRow,
   type TenantSummaryRow,
+  type BalanceRow,
 } from './repositories/tenancy/tenant.repository';
 export { SlugRepository } from './repositories/tenancy/slug.repository';
 export {
@@ -64,3 +65,10 @@ export {
   PlatformAuditLogRepository,
   type NewPlatformAuditEntry,
 } from './repositories/platform/platform-audit-log.repository';
+export {
+  BalanceLedgerRepository,
+  type LedgerFilters,
+  type LedgerCursor,
+} from './repositories/balance/balance-ledger.repository';
+export { RatesRepository } from './repositories/balance/rates.repository';
+export { ShopSettingsRepository } from './repositories/balance/shop-settings.repository';

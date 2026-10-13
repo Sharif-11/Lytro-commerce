@@ -36,4 +36,11 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'DELETE /roles/:id': 'another shop role answers 404; a held role is refused',
   // Checked in test/activity.e2e.spec.ts: a shop sees only its own activity log entries.
   'GET /activity': 'lists only the session shop activity log',
+  // Checked in test/balance-ledger.e2e.spec.ts: a shop's balance and ledger are its own (BAL-01, tenant.balance_ledger's RLS).
+  'GET /balance': "shows only the session shop's own balance and frozen flag",
+  'GET /balance/ledger': "lists only the session shop's own ledger entries",
+  // Platform-wide data (control.rates), not tenant-owned: every shop sees the same values, so there is nothing
+  // to isolate between tenants — included here only because the route is shop-reachable, not SkipTenant.
+  'GET /balance/current-rates':
+    'returns the same platform-wide rates regardless of which shop calls it',
 };

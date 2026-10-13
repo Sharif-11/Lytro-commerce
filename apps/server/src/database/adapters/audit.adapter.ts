@@ -1,6 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { ActivityLogRepository, TransactionRunner, type Transaction } from '@lytronix/db';
+import {
+  ActivityLogRepository,
+  PlatformAuditLogRepository,
+  TransactionRunner,
+  type NewPlatformAuditEntry,
+  type Transaction,
+} from '@lytronix/db';
 import type { AuditStore } from '../../modules/audit/ports/audit-store';
+import type { PlatformAuditStore } from '../../modules/audit/ports/platform-audit-store';
 import type {
   ActivityCursor,
   ActivityFilters,
@@ -43,5 +50,18 @@ export class DrizzleAuditStore implements AuditStore {
     limit: number,
   ): Promise<ActivityRecord[]> {
     return this.log.list(tx, tenantId, filters, cursor, limit);
+  }
+}
+
+/** Database-backed platform audit log (control.platform_audit_log, ADM-08). No tenant context. */
+@Injectable()
+export class DrizzlePlatformAuditStore implements PlatformAuditStore {
+  constructor(
+    @Inject(DatabaseService) private readonly database: Pick<DatabaseService, 'handle'>,
+    @Inject(PlatformAuditLogRepository) private readonly log: PlatformAuditLogRepository,
+  ) {}
+
+  insert(entry: NewPlatformAuditEntry): Promise<void> {
+    return this.log.insert(this.database.handle.db, entry);
   }
 }
