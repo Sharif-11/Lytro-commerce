@@ -6,7 +6,7 @@ import { RequirePermission } from '../../../common/decorators/require-permission
 import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
 import { DashboardGuard, type DashboardRequest } from '../../identity/guards/dashboard.guard';
 import { SessionGuard } from '../../identity/guards/session.guard';
-import { PermissionGuard } from '../../team/guards/permission.guard';
+import { PermissionGuard } from '../guards/permission.guard';
 import { BalanceService } from '../../balance/services/balance.service';
 import { RateService } from '../../balance/services/rate.service';
 import type { BalanceSnapshot, LedgerPage } from '../../balance/types/ledger-entry';

@@ -11,7 +11,6 @@ import { TeamModule } from '../modules/team/team.module';
 import { IdentityModule } from '../modules/identity/identity.module';
 import { OperatorModule } from '../modules/operator/operator.module';
 import { TenancyModule } from '../modules/tenancy/tenancy.module';
-import { BillingModule } from '../modules/billing/billing.module';
 
 @Module({
   imports: [
@@ -20,7 +19,6 @@ import { BillingModule } from '../modules/billing/billing.module';
     IdentityModule,
     OperatorModule,
     TeamModule,
-    BillingModule,
     AuditModule,
     QueueModule,
     QueueWorkersModule,
