@@ -236,13 +236,15 @@ CREATE TABLE control.rate_history (
     old_value       numeric(12,4),
     new_value       numeric(12,4) NOT NULL,
     changed_by      uuid,                        -- operator account id
-    notice_id       uuid REFERENCES control.notices(id), -- RAT-09: null = no notice was published for this change
+    -- RAT-09: null = no notice was published for this change. Deliberately NOT a foreign key
+    -- (decided 2026-10-13): control.notices (section 10) is Phase 1-deferred NTC scope and
+    -- doesn't exist in code yet when this slice ships; a plain uuid, unconstrained until it does.
+    notice_id       uuid,
     changed_at      timestamptz NOT NULL DEFAULT now()
 );
 -- RAT-01..14: a charge always reads control.rates at the moment it's recorded; rate_history
 -- is append-only and never consulted for billing, only for the "current rates" / audit screen.
--- RAT-09's notice_id is set after the fact if the operator publishes the prefilled notice
--- (control.notices, section 10), so it is a nullable FK rather than a column on control.notices.
+-- RAT-09's notice_id is set after the fact if the operator publishes the prefilled notice.
 
 -- RAT-14: unlike every other rate above, this one is per-tenant, not platform-wide, so it
 -- cannot live in control.rates. One row per tenant that has ever set it; a tenant with no row

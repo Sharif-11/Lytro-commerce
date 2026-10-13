@@ -111,8 +111,9 @@ Each slice is one branch and one pull request. CI must pass before merge. Slices
 ### Slice 1: balance ledger and rates
 - **Branch:** `feat/balance-ledger`
 - **Depends on:** nothing new — extends Phase 1's `control.tenants.balance_amount`/`balance_frozen`. Decisions D2-2, D2-5, D2-7.
-- **Delivers:** `tenant.balance_ledger` (append-only, RLS); `control.rates`/`rate_history` (`RAT-09`'s `notice_id`); `tenant.shop_settings` (`RAT-14`'s per-tenant delivery rate); the `balance` module — atomic charge/credit with the balance-after invariant (`BAL-11`), freeze/unfreeze on lifecycle events, low-balance notice job, the rate-read cache (5s TTL); `control.tenants.last_activity_at`, written alongside any order-fee, product-fee or top-up ledger entry (D2-11 — the column exists here even though the job that reads it is slice 7, since every write that should update it lives in this slice).
-- **Requirements:** BAL-01 to BAL-18, RAT-01 to RAT-14, PYG-21 (the column and write-hook half).
+- **Scope note (decided 2026-10-13):** this is the ledger/rate engine only — no `balance/top-up` endpoint. A top-up's whole point is creating a `control.plan_payments` row (D2-1), which doesn't exist until slice 4; `BAL-03/04/05/06` (the top-up flow itself) move to slice 4, which is the first real caller of the ledger this slice builds. Everything else in BAL/RAT that doesn't depend on `plan_payments` stays here.
+- **Delivers:** `tenant.balance_ledger` (append-only, RLS); `control.rates`/`rate_history` (`RAT-09`'s `notice_id`, shipped as a plain `uuid` column with no FK constraint — `control.notices` doesn't exist in code yet, so this is deliberately unconstrained until it does); `tenant.shop_settings` (`RAT-14`'s per-tenant delivery rate); the `balance` module — atomic charge/credit with the balance-after invariant (`BAL-11`), freeze/unfreeze on lifecycle events, statement query (`BAL-14`), low-balance notice job (`BAL-13`), the rate-read cache (5s TTL); `control.tenants.last_activity_at`, written alongside any order-fee or product-fee ledger entry (D2-11 — top-up's contribution to this column moves to slice 4 along with the rest of the top-up flow).
+- **Requirements:** BAL-01, BAL-02, BAL-07 to BAL-18 (BAL-03 to BAL-06 move to slice 4); RAT-01 to RAT-14; PYG-21 (the column and write-hook half, for order-fee/product-fee only here).
 - **Done when:** 100 simultaneous 1-TK charges against a 50 TK balance succeed exactly 50 times with 50 ledger rows; an UPDATE/DELETE attempt on the ledger is refused by the database; a rate change takes effect on the very next charge and never alters a past entry.
 
 ### Slice 2: plans and billing terms
@@ -129,12 +130,12 @@ Each slice is one branch and one pull request. CI must pass before merge. Slices
 - **Requirements:** TRL-01 to TRL-08, PYG-01 to PYG-20.
 - **Done when:** a trial at day 30 with no purchase becomes pay-as-you-go with every product/order/customer intact and its tighter limits widened immediately; a pay-as-you-go tenant with recent activity is never force-transitioned regardless of volume.
 
-### Slice 4: plan purchase and invoices
+### Slice 4: plan purchase, top-up and invoices
 - **Branch:** `feat/plan-purchase`
 - **Depends on:** slices 1 and 2. **Decision D2-1 must be confirmed before this slice starts** — it decides this slice's entire payment-confirmation shape.
-- **Delivers:** `control.invoices`/`invoice_counters` (gap-free numbering from a locked row, `DAT-07`); `control.plan_payments` (D2-1's stand-in); the purchase quote/confirm flow, snapshot activation, invoice issuance, renewal (on-time and after-lapse), renewal reminders (`BIL-14`, D2-6's scheduled job).
-- **Requirements:** BIL-01 to BIL-18.
-- **Done when:** a 1-taka price mismatch produces `needs_review` and never activates the plan; a transaction ID is usable for exactly one payment platform-wide; renewing 10 days early extends from the old end date, not from today.
+- **Delivers:** `control.invoices`/`invoice_counters` (gap-free numbering from a locked row, `DAT-07`); `control.plan_payments` (D2-1's stand-in); the purchase quote/confirm flow, snapshot activation, invoice issuance, renewal (on-time and after-lapse), renewal reminders (`BIL-14`, D2-6's scheduled job); the `balance/top-up` endpoint and flow (`BAL-03` to `BAL-06`, moved from slice 1 since both ride on `plan_payments`), including `last_activity_at`'s top-up-triggered write (D2-11).
+- **Requirements:** BIL-01 to BIL-18, BAL-03 to BAL-06.
+- **Done when:** a 1-taka price mismatch produces `needs_review` and never activates the plan; a transaction ID is usable for exactly one payment platform-wide; renewing 10 days early extends from the old end date, not from today; a top-up below [100] TK or above [50,000] TK is rejected and a verified one credits the balance exactly once.
 
 ### Slice 5: upgrade
 - **Branch:** `feat/plan-upgrade`
