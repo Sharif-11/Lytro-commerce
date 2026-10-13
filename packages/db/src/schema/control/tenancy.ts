@@ -52,6 +52,9 @@ export const tenants = control.table(
     createdAt: createdAt(),
     suspendedAt: timestamp('suspended_at', { withTimezone: true }),
     suspendedReason: text('suspended_reason'),
+    // D2-11: cached, updated whenever an order-fee, product-fee or top-up ledger entry is written. Read by the
+    // pay-as-you-go inactivity job (PYG-21). Null for a tenant that was never pay-as-you-go.
+    lastActivityAt: timestamp('last_activity_at', { withTimezone: true }),
     kycStatus: text('kyc_status').notNull().default(KycStatus.Unverified), // KYC-16
   },
   (t) => [

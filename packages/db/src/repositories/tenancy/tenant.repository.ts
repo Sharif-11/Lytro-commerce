@@ -108,4 +108,49 @@ export class TenantRepository {
       .limit(1);
     return rows[0] ?? null;
   }
+
+  /**
+   * Locks the tenant's row for the rest of the transaction (BAL-11) and returns its current balance. Must run
+   * inside a transaction that commits or rolls back promptly — the lock holds until then.
+   */
+  async lockBalanceForUpdate(tx: Executor, tenantId: string): Promise<BalanceRow | null> {
+    const rows = await tx
+      .select({
+        amount: tenants.balanceAmount,
+        frozen: tenants.balanceFrozen,
+        state: tenants.state,
+      })
+      .from(tenants)
+      .where(eq(tenants.id, tenantId))
+      .for('update');
+    return rows[0] ?? null;
+  }
+
+  /** BAL-07/08/09: freezes or unfreezes the balance without touching its amount. */
+  async setBalanceFrozen(tx: Executor, tenantId: string, frozen: boolean): Promise<void> {
+    await tx.update(tenants).set({ balanceFrozen: frozen }).where(eq(tenants.id, tenantId));
+  }
+
+  /** Writes the new balance (and, for pay-as-you-go activity, the cached last-activity timestamp, D2-11). */
+  async applyBalanceChange(
+    tx: Executor,
+    tenantId: string,
+    amount: string,
+    options: { frozen?: boolean; touchActivityAt?: Date } = {},
+  ): Promise<void> {
+    await tx
+      .update(tenants)
+      .set({
+        balanceAmount: amount,
+        ...(options.frozen !== undefined ? { balanceFrozen: options.frozen } : {}),
+        ...(options.touchActivityAt ? { lastActivityAt: options.touchActivityAt } : {}),
+      })
+      .where(eq(tenants.id, tenantId));
+  }
+}
+
+export interface BalanceRow {
+  amount: string;
+  frozen: boolean;
+  state: (typeof tenants.$inferSelect)['state'];
 }

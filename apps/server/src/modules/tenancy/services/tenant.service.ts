@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { Transaction } from '@lytronix/db';
+import type { BalanceRow, Transaction } from '@lytronix/db';
 import { DAY_MS } from '../../../common/time';
 import { StaffService } from '../../staff/services/staff.service';
 import { MessagingService } from '../../shared/messaging/services/messaging.service';
@@ -52,5 +52,28 @@ export class TenantService {
     if (request.ownerPhone === null) return { tenantId, messages: [] };
     const ready = await this.messaging.queueShopReady(tx, request.ownerPhone, request.liveUrl);
     return { tenantId, messages: [ready] };
+  }
+
+  /**
+   * Locks a tenant's balance row for the rest of the transaction (BAL-11) — every concurrent charge against the
+   * same tenant serializes here, so no two charges can read the same stale balance.
+   */
+  lockBalanceForUpdate(tx: Transaction, tenantId: string): Promise<BalanceRow | null> {
+    return this.store.lockBalanceForUpdate(tx, tenantId);
+  }
+
+  /** BAL-07/08/09: freezes or unfreezes the balance without touching its amount. */
+  setBalanceFrozen(tx: Transaction, tenantId: string, frozen: boolean): Promise<void> {
+    return this.store.setBalanceFrozen(tx, tenantId, frozen);
+  }
+
+  /** Writes the new balance (and, optionally, the frozen flag and/or D2-11's last-activity timestamp). */
+  applyBalanceChange(
+    tx: Transaction,
+    tenantId: string,
+    amount: string,
+    options?: { frozen?: boolean; touchActivityAt?: Date },
+  ): Promise<void> {
+    return this.store.applyBalanceChange(tx, tenantId, amount, options);
   }
 }

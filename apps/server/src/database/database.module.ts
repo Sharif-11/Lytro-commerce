@@ -19,6 +19,9 @@ import {
   OperatorSessionRepository,
   PlatformAuditLogRepository,
   SignupAttemptRepository,
+  BalanceLedgerRepository,
+  RatesRepository,
+  ShopSettingsRepository,
 } from '@lytronix/db';
 import { EnvironmentParser } from '../config/env';
 import { ENV } from '../config/tokens';
@@ -67,6 +70,17 @@ import { DatabaseService } from './database.service';
     },
     { provide: OperatorSessionRepository, useFactory: () => new OperatorSessionRepository() },
     { provide: PlatformAuditLogRepository, useFactory: () => new PlatformAuditLogRepository() },
+    {
+      provide: BalanceLedgerRepository,
+      inject: [TransactionRunner],
+      useFactory: (transactions: TransactionRunner) => new BalanceLedgerRepository(transactions),
+    },
+    { provide: RatesRepository, useFactory: () => new RatesRepository() },
+    {
+      provide: ShopSettingsRepository,
+      inject: [TransactionRunner],
+      useFactory: (transactions: TransactionRunner) => new ShopSettingsRepository(transactions),
+    },
   ],
   exports: [
     ENV,
@@ -90,6 +104,9 @@ import { DatabaseService } from './database.service';
     OperatorBackupCodeRepository,
     OperatorSessionRepository,
     PlatformAuditLogRepository,
+    BalanceLedgerRepository,
+    RatesRepository,
+    ShopSettingsRepository,
   ],
 })
 export class DatabaseModule {}
