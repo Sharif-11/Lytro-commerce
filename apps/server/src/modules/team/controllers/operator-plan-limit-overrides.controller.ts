@@ -48,14 +48,15 @@ export class OperatorPlanLimitOverridesController {
   }
 
   @Delete(':limitKey')
-  @HttpCode(204)
+  @HttpCode(200)
   async remove(
     @Param('tenantId') tenantId: string,
     @Param('limitKey') limitKey: string,
     @Req() request: OperatorSessionRequest,
-  ): Promise<void> {
+  ): Promise<{ ok: true }> {
     const session = request.operatorSession;
     if (!session) throw new ApiError('unauthenticated', 'Sign in to continue.', {});
     await this.overrides.remove(tenantId, limitKey, session.operatorId);
+    return { ok: true };
   }
 }

@@ -1,11 +1,10 @@
 import 'dotenv/config';
 import { type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import type { Server } from 'node:http';
-import type { AddressInfo } from 'node:net';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from '../src/app/app.module';
 import { EDGE_HEADER } from '../src/common/guards/tenant.guard';
+import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase } from './support/database';
 import { getJson } from './support/http';
 
@@ -30,9 +29,7 @@ beforeAll(async () => {
   process.env['NODE_ENV'] = 'production';
 
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
-  app = moduleRef.createNestApplication();
-  await app.listen(0, '127.0.0.1');
-  port = ((app.getHttpServer() as Server).address() as AddressInfo).port;
+  ({ app, port } = await listenOn(moduleRef));
 });
 
 afterAll(async () => {

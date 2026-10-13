@@ -1,8 +1,6 @@
 import 'dotenv/config';
 import { type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import type { Server } from 'node:http';
-import type { AddressInfo } from 'node:net';
 import { randomUUID } from 'node:crypto';
 import { hash } from 'bcryptjs';
 import { generate } from 'otplib';
@@ -14,6 +12,7 @@ import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { BalanceService } from '../src/modules/balance/services/balance.service';
 import { RateService } from '../src/modules/balance/services/rate.service';
 import { ApiError } from '../src/common/api-error';
+import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase, seedShop } from './support/database';
 import { SmsCapture } from './support/sms-capture';
 import { cookieFrom, getJson, patchJson, postJson, type HttpResult } from './support/http';
@@ -113,9 +112,7 @@ beforeAll(async () => {
     .overrideProvider(SMS_PROVIDER)
     .useValue(texts.provider)
     .compile();
-  app = moduleRef.createNestApplication();
-  await app.listen(0, '127.0.0.1');
-  port = ((app.getHttpServer() as Server).address() as AddressInfo).port;
+  ({ app, port } = await listenOn(moduleRef));
   balance = app.get(BalanceService);
   rates = app.get(RateService);
 }, BCRYPT_TIMEOUT_MS);

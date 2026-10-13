@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
-import { APP_FILTER } from '@nestjs/core';
+import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { ApiErrorFilter } from '../common/api-error.filter';
+import { ResponseEnvelopeInterceptor } from '../common/interceptors/response-envelope.interceptor';
 import { DatabaseModule } from '../database/database.module';
 import { HealthController } from '../modules/health/health.controller';
 import { ThrowTestController } from '../modules/health/throw-test.controller';
@@ -27,6 +28,9 @@ import { TenancyModule } from '../modules/tenancy/tenancy.module';
     process.env['NODE_ENV'] === 'test'
       ? [HealthController, ThrowTestController]
       : [HealthController],
-  providers: [{ provide: APP_FILTER, useClass: ApiErrorFilter }],
+  providers: [
+    { provide: APP_FILTER, useClass: ApiErrorFilter },
+    { provide: APP_INTERCEPTOR, useClass: ResponseEnvelopeInterceptor },
+  ],
 })
 export class AppModule {}

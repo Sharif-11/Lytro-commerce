@@ -10,6 +10,7 @@ import { request as httpRequest, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { HealthController } from '../src/modules/health/health.controller';
+import { UNVERSIONED_ROUTES } from '../src/common/unversioned-routes';
 import { TenantCache } from '../src/modules/tenancy/services/tenant-cache';
 import { type CachedTenant } from '../src/modules/tenancy/types/cached-tenant';
 import { TenantState } from '@lytronix/validators';
@@ -59,16 +60,20 @@ function send(
   path: string,
   headers: Record<string, string>,
 ): Promise<{ status: number; body: string }> {
+  const fullPath = path === '/health' ? path : `/api/v1${path}`;
   return new Promise((resolve, reject) => {
-    const req = httpRequest({ host: '127.0.0.1', port, path, method: 'GET', headers }, (res) => {
-      let body = '';
-      res.on('data', (chunk: Buffer) => {
-        body += chunk.toString();
-      });
-      res.on('end', () => {
-        resolve({ status: res.statusCode ?? 0, body });
-      });
-    });
+    const req = httpRequest(
+      { host: '127.0.0.1', port, path: fullPath, method: 'GET', headers },
+      (res) => {
+        let body = '';
+        res.on('data', (chunk: Buffer) => {
+          body += chunk.toString();
+        });
+        res.on('end', () => {
+          resolve({ status: res.statusCode ?? 0, body });
+        });
+      },
+    );
     req.on('error', reject);
     req.end();
   });
@@ -95,6 +100,7 @@ beforeAll(async () => {
   }).compile();
 
   app = moduleRef.createNestApplication();
+  app.setGlobalPrefix('api/v1', { exclude: UNVERSIONED_ROUTES });
   await app.listen(0, '127.0.0.1');
   const server = app.getHttpServer() as Server;
   port = (server.address() as AddressInfo).port;

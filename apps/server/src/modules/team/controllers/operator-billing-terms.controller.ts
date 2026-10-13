@@ -61,9 +61,10 @@ export class OperatorBillingTermsController {
   }
 
   @Delete(':id')
-  @HttpCode(204)
-  async delete(@Param('id') id: string): Promise<void> {
+  @HttpCode(200)
+  async delete(@Param('id') id: string): Promise<{ ok: true }> {
     await this.terms.delete(id);
+    return { ok: true };
   }
 }
 
@@ -91,11 +92,12 @@ export class OperatorPlanPricesController {
   }
 
   @Delete(':billingTermId')
-  @HttpCode(204)
+  @HttpCode(200)
   async remove(
     @Param('planId') planId: string,
     @Param('billingTermId') billingTermId: string,
-  ): Promise<void> {
+  ): Promise<{ ok: true }> {
     await this.terms.removePrice(planId, billingTermId);
+    return { ok: true };
   }
 }

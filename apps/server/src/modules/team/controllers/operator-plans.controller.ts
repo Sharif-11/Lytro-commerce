@@ -73,9 +73,10 @@ export class OperatorPlansController {
   }
 
   @Delete(':id')
-  @HttpCode(204)
-  async delete(@Param('id') id: string): Promise<void> {
+  @HttpCode(200)
+  async delete(@Param('id') id: string): Promise<{ ok: true }> {
     await this.plans.delete(id);
+    return { ok: true };
   }
 
   @Post(':id/assign')

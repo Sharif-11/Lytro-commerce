@@ -1,14 +1,13 @@
 import 'dotenv/config';
 import { type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import type { Server } from 'node:http';
-import type { AddressInfo } from 'node:net';
 import { randomUUID } from 'node:crypto';
 import { hash } from 'bcryptjs';
 import { generate } from 'otplib';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from '../src/app/app.module';
+import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase, seedShop } from './support/database';
 import {
   cookieFrom,
@@ -90,9 +89,7 @@ beforeAll(async () => {
   await admin.connect();
 
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
-  app = moduleRef.createNestApplication();
-  await app.listen(0, '127.0.0.1');
-  port = ((app.getHttpServer() as Server).address() as AddressInfo).port;
+  ({ app, port } = await listenOn(moduleRef));
 }, BCRYPT_TIMEOUT_MS);
 
 afterAll(async () => {
@@ -374,7 +371,7 @@ describeIfDatabase('per-tenant limit overrides (PLN-11)', () => {
         `/operator/tenants/${tenantId}/limit-overrides/essential_sms_total`,
         headers,
       );
-      expect(removed.status).toBe(204);
+      expect(removed.status).toBe(200);
 
       const afterRemoval = await get(`/operator/tenants/${tenantId}/limit-overrides`, headers);
       expect(afterRemoval.body).toEqual([]);

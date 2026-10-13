@@ -1,8 +1,6 @@
 import 'dotenv/config';
 import { type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import type { Server } from 'node:http';
-import type { AddressInfo } from 'node:net';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { OauthProvider } from '@lytronix/validators';
@@ -15,6 +13,7 @@ import {
 } from '../src/modules/identity/tokens';
 import { MAIL_PROVIDER } from '../src/modules/shared/mail/tokens';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
+import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase } from './support/database';
 import { cookieFrom, getJson, postJson, type HttpResult } from './support/http';
 import { MailCapture } from './support/mail-capture';
@@ -90,9 +89,7 @@ beforeAll(async () => {
     .overrideProvider(SMS_PROVIDER)
     .useValue(sms.provider)
     .compile();
-  app = moduleRef.createNestApplication();
-  await app.listen(0, '127.0.0.1');
-  port = ((app.getHttpServer() as Server).address() as AddressInfo).port;
+  ({ app, port } = await listenOn(moduleRef));
 });
 
 afterAll(async () => {
