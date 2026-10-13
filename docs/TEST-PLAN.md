@@ -633,7 +633,7 @@ Expected: the sign-in-code SMS and both deletion warnings are sent successfully;
 Covers: `LIF-10`, `LIF-18`, `SMS-04`.
 
 **S08-04 Balance exhaustion behavior, essential vs. optional.**
-Steps: drain balance to the overdraft floor (−50 TK) with essential SMS flowing; attempt one more.
+Steps: drain balance to the overdraft floor (−5 TK) with essential SMS flowing; attempt one more.
 Expected: optional SMS already stopped before the floor; the essential SMS past the floor is refused with `quota_exceeded` and the tenant warned.
 Covers: `SMS-06`.
 
