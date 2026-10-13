@@ -260,12 +260,12 @@ describeIfDatabase('rates (RAT-01 to RAT-14)', () => {
     await rates.change(RateKey.SmsPerUnit, '0.70', operatorId, null);
 
     const after = await rates.current(RateKey.SmsPerUnit);
-    expect(after?.value).toBe('0.70');
+    expect(after?.value).toBe('0.7000');
 
     const history = await rates.history(RateKey.SmsPerUnit);
     expect(history[0]).toMatchObject({
       oldValue: '0.5500',
-      newValue: '0.70',
+      newValue: '0.7000',
       changedBy: operatorId,
     });
 
@@ -292,35 +292,69 @@ describeIfDatabase('balance and rates over HTTP (controller wiring)', () => {
     expect((ratesResponse.body as unknown[]).length).toBeGreaterThan(0);
   });
 
-  it('lets an operator read and change a rate, and adjust a balance', async () => {
-    const email = `operator.${randomUUID().slice(0, 8)}@lytronix.internal`;
-    await createOperator(email);
-    const session = await enrollOperator(email);
-    const headers = { cookie: session.cookie, 'x-csrf-token': session.csrfToken };
-
-    const list = await get('/operator/rates', headers);
-    expect(list.status).toBe(200);
-
-    const changed = await patch('/operator/rates/fraud_check', { value: 2 }, headers);
-    expect(changed.status).toBe(200);
-
-    const tenantId = await freshTenant();
-    const adjusted = await post(
-      `/operator/tenants/${tenantId}/balance-adjust`,
-      { amount: 15, reason: 'promotional credit' },
-      headers,
+  it("shows a shop only its own balance and ledger, never another shop's (BAL-01, RLS)", async () => {
+    const shopA = await owner();
+    const shopB = await owner();
+    const idRow = await admin.query<{ id: string }>(
+      'SELECT id FROM control.tenants WHERE slug = $1',
+      [shopB.slug],
     );
-    expect(adjusted.status).toBe(200);
-    expect(adjusted.body).toMatchObject({ amount: '15.00' });
+    const shopBId = idRow.rows[0]?.id;
+    expect(shopBId).toBeDefined();
+    await balance.adjustStandalone({
+      tenantId: shopBId ?? '',
+      amount: '42.00',
+      reason: 'isolation test fixture',
+      operatorId: randomUUID(),
+    });
+
+    const balanceA = await get('/balance', shopCall(shopA));
+    expect(balanceA.body).toMatchObject({ amount: '0.00' });
+
+    const ledgerA = await get('/balance/ledger', shopCall(shopA));
+    expect(ledgerA.body).toMatchObject({ entries: [] });
+
+    const balanceB = await get('/balance', shopCall(shopB));
+    expect(balanceB.body).toMatchObject({ amount: '42.00' });
   });
 
-  it('refuses an unknown rate key with not_found', async () => {
-    const email = `operator.${randomUUID().slice(0, 8)}@lytronix.internal`;
-    await createOperator(email);
-    const session = await enrollOperator(email);
-    const headers = { cookie: session.cookie, 'x-csrf-token': session.csrfToken };
-    const response = await patch('/operator/rates/not_a_real_key', { value: 1 }, headers);
-    expect(response.status).toBe(404);
-    expect(errorOf(response)).toMatchObject({ code: 'not_found' });
-  });
+  it(
+    'lets an operator read and change a rate, and adjust a balance',
+    async () => {
+      const email = `operator.${randomUUID().slice(0, 8)}@lytronix.internal`;
+      await createOperator(email);
+      const session = await enrollOperator(email);
+      const headers = { cookie: session.cookie, 'x-csrf-token': session.csrfToken };
+
+      const list = await get('/operator/rates', headers);
+      expect(list.status).toBe(200);
+
+      const changed = await patch('/operator/rates/fraud_check', { value: 2 }, headers);
+      expect(changed.status).toBe(200);
+
+      const tenantId = await freshTenant();
+      const adjusted = await post(
+        `/operator/tenants/${tenantId}/balance-adjust`,
+        { amount: 15, reason: 'promotional credit' },
+        headers,
+      );
+      expect(adjusted.status).toBe(200);
+      expect(adjusted.body).toMatchObject({ amount: '15.00' });
+    },
+    BCRYPT_TIMEOUT_MS,
+  );
+
+  it(
+    'refuses an unknown rate key with not_found',
+    async () => {
+      const email = `operator.${randomUUID().slice(0, 8)}@lytronix.internal`;
+      await createOperator(email);
+      const session = await enrollOperator(email);
+      const headers = { cookie: session.cookie, 'x-csrf-token': session.csrfToken };
+      const response = await patch('/operator/rates/not_a_real_key', { value: 1 }, headers);
+      expect(response.status).toBe(404);
+      expect(errorOf(response)).toMatchObject({ code: 'not_found' });
+    },
+    BCRYPT_TIMEOUT_MS,
+  );
 });
