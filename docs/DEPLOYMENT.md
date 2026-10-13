@@ -66,11 +66,12 @@ every host.
 
 One `Caddyfile`, with a rule checked before anything else, on **every** host block:
 
-- **`/api/*`** → strip the `/api` prefix, reverse-proxy to `server`, with `x-lytronix-edge-secret` added (§6).
-  This is how the admin SPA (and anything else running client-side) reaches the backend: same-origin, relative
-  fetches to `/api/...`, on whichever host the SPA happens to be running on. The backend's own route paths
-  (`/auth/phone/code`, `/me`, ...) are unchanged — only Caddy's incoming path is prefixed, stripped before the
-  request reaches `server`.
+- **`/api/*`** → reverse-proxy to `server` unchanged, with `x-lytronix-edge-secret` added (§6). This is how
+  the admin SPA (and anything else running client-side) reaches the backend: same-origin, relative fetches to
+  `/api/v1/...`, on whichever host the SPA happens to be running on. **Updated 2026-10-14 (API-14):** the
+  backend itself now serves every route under `/api/v1/...` (the exact prefix the SPA already calls), so
+  Caddy no longer strips anything — a plain `handle`, not `handle_path`. Before this, the backend had no
+  prefix at all and Caddy's incoming `/api/...` was stripped before reaching `server`; that's no longer true.
 
 Then, per host:
 
@@ -88,8 +89,8 @@ Then, per host:
   `apps/admin`'s static build, not the backend directly. The backend's own callback controller
   (`GET auth/oauth/:provider/callback`) returns raw JSON with a `Set-Cookie` header; it doesn't redirect
   anywhere itself. The SPA route at that same path reads `code`/`state` off its own URL and makes the actual
-  `/api/auth/oauth/:provider/callback` call itself, the same way every other screen in this flow talks to the
-  backend, then routes on the response's `next` like a normal sign-in.
+  `/api/v1/auth/oauth/:provider/callback` call itself, the same way every other screen in this flow talks to
+  the backend, then routes on the response's `next` like a normal sign-in.
 - **`admin.lytro.com`**: everything (other than `/api/*` above) → serve `apps/admin`'s static build directly.
   Same files as the tenant-facing host — the SPA's own router shows the operator route tree instead of the
   tenant one purely because of which host it's running on (`window.location.hostname`), not a different build.

@@ -727,8 +727,8 @@ Expected: CI build fails; every real route otherwise appears in `/api/v1/openapi
 Covers: `API-15`.
 
 **S09-07 Error contract — code vs. message vs. stack trace.**
-Steps: 1) Trigger a validation error; inspect `code`/`message`/`details`. 2) Repeat with `Accept-Language: bn` and `en`. 3) Force an unhandled exception in a production-configured environment; inspect the full response body and headers for any stack trace, file path, or internal error text — try sending headers claiming "debug mode." 4) Repeat the forced exception in a non-production environment.
-Expected: `code` is identical regardless of language; `message` localizes correctly; production response contains no stack trace/path under any client-supplied header; non-production may include `debug.stack`; the full detail is present in the log/error-tracking record either way.
+Steps: 1) Trigger a validation error; inspect the envelope's `success`, `statusCode`, `message`, and `errors.code`/`errors.details` (§2.6, updated 2026-10-14 for the uniform envelope — `code`/`details` now sit under `errors`, `message` moved to the envelope's own top level). 2) Repeat with `Accept-Language: bn` and `en`. 3) Force an unhandled exception in a production-configured environment; inspect the full response body and headers for any stack trace, file path, or internal error text — try sending headers claiming "debug mode." 4) Repeat the forced exception in a non-production environment.
+Expected: `errors.code` is identical regardless of language; `message` localizes correctly; production response contains no stack trace/path under any client-supplied header; non-production may include `debug.stack`; the full detail is present in the log/error-tracking record either way.
 Covers: `SEC-16`, §2.6's error contract.
 
 **S09-08 Pagination caps.**
