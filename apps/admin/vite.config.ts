@@ -66,13 +66,13 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      // Mirrors Caddy's production rule (docs/DEPLOYMENT.md §5): strip /api, forward to the backend. Without
-      // this, ApiClient's same-origin '/api/...' fetches hit the Vite dev server itself and get its SPA
-      // fallback HTML back, not the backend's JSON.
+      // Mirrors Caddy's production rule (docs/DEPLOYMENT.md §5): forward to the backend unchanged. Without
+      // this, ApiClient's same-origin '/api/v1/...' fetches hit the Vite dev server itself and get its SPA
+      // fallback HTML back, not the backend's JSON. No path rewrite needed (API-14): the backend itself now
+      // serves everything under /api/v1, the exact same prefix ApiClient already calls.
       '/api': {
         target: process.env.VITE_API_PROXY_TARGET ?? 'http://localhost:3000',
         changeOrigin: true,
-        rewrite: (requestPath) => requestPath.replace(/^\/api/, ''),
       },
     },
   },

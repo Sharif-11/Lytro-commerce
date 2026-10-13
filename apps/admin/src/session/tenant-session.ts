@@ -19,7 +19,7 @@ export class TenantSession {
   private ready: Promise<void>;
   private resolveReady!: () => void;
 
-  constructor(baseUrl = '/api') {
+  constructor(baseUrl = '/api/v1') {
     this.csrfToken = sessionStorage.getItem(CSRF_STORAGE_KEY);
     this.client = new ApiClient({ baseUrl, getCsrfToken: () => this.csrfToken });
     this.ready = new Promise((resolve) => {

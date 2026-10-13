@@ -13,7 +13,7 @@ export class OperatorSession {
   readonly client: ApiClient;
   private csrfToken: string | null;
 
-  constructor(baseUrl = '/api') {
+  constructor(baseUrl = '/api/v1') {
     this.csrfToken = sessionStorage.getItem(CSRF_STORAGE_KEY);
     this.client = new ApiClient({ baseUrl, getCsrfToken: () => this.csrfToken });
   }
