@@ -74,3 +74,38 @@ export const planLimitOverrideSchema = z.object({
 });
 export class PlanLimitOverrideDto extends createZodDto(planLimitOverrideSchema) {}
 export class PlanLimitOverrideListDto extends createZodDto(planLimitOverrideSchema.array()) {}
+
+// D2-1: control.plan_payments -- a purchase/renewal/upgrade/top-up quote or submission.
+export const planPaymentSchema = z.object({
+  id: z.string(),
+  tenantId: z.string(),
+  kind: z.string(),
+  planId: z.string().nullable(),
+  billingTermId: z.string().nullable(),
+  amount: z.string(),
+  creditAmount: z.string(),
+  quotedAt: z.date(),
+  status: z.string(),
+  senderNumber: z.string().nullable(),
+  transactionId: z.string().nullable(),
+  verifiedBy: z.string().nullable(),
+  verifiedAt: z.date().nullable(),
+  createdAt: z.date(),
+});
+export class PlanPaymentDto extends createZodDto(planPaymentSchema) {}
+export class PlanPaymentListDto extends createZodDto(planPaymentSchema.array()) {}
+
+// BIL-12: control.invoices.
+export const invoiceSchema = z.object({
+  id: z.string(),
+  tenantId: z.string(),
+  number: z.number(),
+  kind: z.string(),
+  planSnapshot: planLimitsSchema,
+  amount: z.string(),
+  creditAmount: z.string(),
+  billingTermLabel: z.string(),
+  issuedAt: z.date(),
+});
+export class InvoiceDto extends createZodDto(invoiceSchema) {}
+export class InvoiceListDto extends createZodDto(invoiceSchema.array()) {}

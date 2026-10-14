@@ -38,6 +38,14 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     bn: 'এই সেটিংয়ের জন্য মানটি সঠিক নয়।',
   },
   PleaseTryAgain: { en: 'Please try again.', bn: 'অনুগ্রহ করে আবার চেষ্টা করুন।' },
+  IdempotencyKeyConflict: {
+    en: 'This request key was already used with different data.',
+    bn: 'এই রিকোয়েস্ট কী ইতিমধ্যে ভিন্ন ডেটার সাথে ব্যবহৃত হয়েছে।',
+  },
+  IdempotencyRequestInProgress: {
+    en: 'The original request with this key is still being processed.',
+    bn: 'এই কী দিয়ে মূল রিকোয়েস্টটি এখনও প্রসেস হচ্ছে।',
+  },
 
   BalanceFrozen: { en: 'The balance is frozen.', bn: 'ব্যালেন্স ফ্রিজ করা আছে।' },
   InsufficientBalance: { en: 'Insufficient balance.', bn: 'পর্যাপ্ত ব্যালেন্স নেই।' },
@@ -58,6 +66,36 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   PlanInUse: {
     en: 'This plan is in use. Retire it instead of deleting it.',
     bn: 'এই প্ল্যানটি ব্যবহৃত হচ্ছে। ডিলিট না করে রিটায়ার করুন।',
+  },
+  PriceNotFound: {
+    en: 'No price is set for this plan and billing term.',
+    bn: 'এই প্ল্যান এবং বিলিং মেয়াদের জন্য কোনো দাম নির্ধারিত নেই।',
+  },
+  InvoiceNotFound: { en: 'Invoice not found.', bn: 'ইনভয়েস পাওয়া যায়নি।' },
+  PlanPaymentNotFound: { en: 'Payment not found.', bn: 'পেমেন্ট পাওয়া যায়নি।' },
+  PlanPaymentNotPending: {
+    en: 'This payment has already been reviewed.',
+    bn: 'এই পেমেন্টটি ইতিমধ্যে পর্যালোচনা করা হয়েছে।',
+  },
+  TransactionIdAlreadyUsed: {
+    en: 'This transaction ID has already been used.',
+    bn: 'এই ট্রানজ্যাকশন আইডি ইতিমধ্যে ব্যবহৃত হয়েছে।',
+  },
+  TransactionIdRequired: {
+    en: 'A transaction ID is required to approve this payment.',
+    bn: 'এই পেমেন্ট অনুমোদনের জন্য একটি ট্রানজ্যাকশন আইডি প্রয়োজন।',
+  },
+  QuoteExpired: {
+    en: 'This quote has expired. Please request a new one.',
+    bn: 'এই কোটের মেয়াদ শেষ হয়ে গেছে। অনুগ্রহ করে নতুন একটি চান।',
+  },
+  AmountOutOfRange: {
+    en: 'This amount is outside the allowed range.',
+    bn: 'এই পরিমাণ অনুমোদিত সীমার বাইরে।',
+  },
+  TopUpNotAvailable: {
+    en: 'Top-up is not available in the shop’s current state.',
+    bn: 'শপের বর্তমান অবস্থায় টপ-আপ উপলব্ধ নয়।',
   },
 
   FacebookSignInNotConfirmed: {
@@ -274,6 +312,16 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   RateUpdated: { en: 'Rate updated.', bn: 'রেট আপডেট হয়েছে।' },
   SettingsListed: { en: 'Settings retrieved.', bn: 'সেটিংসগুলো পাওয়া গেছে।' },
   SettingUpdated: { en: 'Setting updated.', bn: 'সেটিং আপডেট হয়েছে।' },
+
+  QuoteCreated: { en: 'Quote created.', bn: 'কোট তৈরি হয়েছে।' },
+  PurchaseConfirmed: { en: 'Purchase confirmed.', bn: 'কেনা নিশ্চিত হয়েছে।' },
+  TopUpQuoted: { en: 'Top-up quote created.', bn: 'টপ-আপ কোট তৈরি হয়েছে।' },
+  TopUpConfirmed: { en: 'Top-up confirmed.', bn: 'টপ-আপ নিশ্চিত হয়েছে।' },
+  InvoicesListed: { en: 'Invoices retrieved.', bn: 'ইনভয়েসগুলো পাওয়া গেছে।' },
+  InvoiceRetrieved: { en: 'Invoice retrieved.', bn: 'ইনভয়েস পাওয়া গেছে।' },
+  PaymentQueueListed: { en: 'Payment queue retrieved.', bn: 'পেমেন্ট কিউ পাওয়া গেছে।' },
+  PaymentApproved: { en: 'Payment approved.', bn: 'পেমেন্ট অনুমোদিত হয়েছে।' },
+  PaymentRejected: { en: 'Payment rejected.', bn: 'পেমেন্ট বাতিল হয়েছে।' },
 
   RolesListed: { en: 'Roles retrieved.', bn: 'রোলগুলো পাওয়া গেছে।' },
   RoleCreated: { en: 'Role created.', bn: 'রোল তৈরি হয়েছে।' },

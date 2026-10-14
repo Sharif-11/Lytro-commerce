@@ -19,6 +19,7 @@ export interface TenantSummaryRow {
   shopName: string;
   state: TenantLookupRow['state'];
   suspendedAt: Date | null;
+  planId: string | null;
   planName: string | null;
   planLimits: PlanLimits | null;
   periodEnd: Date | null;
@@ -33,6 +34,7 @@ export class TenantRepository {
         shopName: tenants.shopName,
         state: tenants.state,
         suspendedAt: tenants.suspendedAt,
+        planId: tenants.planId,
         planName: plans.name,
         planLimits: plans.limits,
         periodEnd: tenants.periodEnd,
@@ -187,6 +189,23 @@ export class TenantRepository {
       .where(and(eq(tenants.state, TenantState.Trial), lte(tenants.periodEnd, now)));
     return rows.map((row) => row.id);
   }
+
+  /** BIL-10/11: a transaction-scoped read of exactly what a purchase/renewal confirmation needs to decide
+   * whether to extend the running period or start a fresh one. */
+  async findBillingInfo(tx: Executor, id: string): Promise<BillingInfoRow | null> {
+    const rows = await tx
+      .select({ state: tenants.state, planId: tenants.planId, periodEnd: tenants.periodEnd })
+      .from(tenants)
+      .where(eq(tenants.id, id))
+      .limit(1);
+    return rows[0] ?? null;
+  }
+}
+
+export interface BillingInfoRow {
+  state: TenantState;
+  planId: string | null;
+  periodEnd: Date | null;
 }
 
 export interface BalanceRow {

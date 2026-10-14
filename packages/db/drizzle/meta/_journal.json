@@ -204,6 +204,13 @@
       "when": 1791978320066,
       "tag": "0028_trial_and_payg_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1791981129686,
+      "tag": "0029_plan_purchase_and_invoices",
+      "breakpoints": true
     }
   ]
 }

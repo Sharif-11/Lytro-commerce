@@ -6,11 +6,15 @@ import {
   DrizzlePlansStore,
 } from '../../database/adapters/billing.adapter';
 import { AuditModule } from '../audit/audit.module';
+import { BalanceModule } from '../balance/balance.module';
+import { PaymentsModule } from '../payments/payments.module';
 import { TenancyModule } from '../tenancy/tenancy.module';
 import { PlansService } from './services/plans.service';
 import { BillingTermsService } from './services/billing-terms.service';
 import { PlanAssignmentService } from './services/plan-assignment.service';
 import { PlanLimitOverridesService } from './services/plan-limit-overrides.service';
+import { PaymentQueueService } from './services/payment-queue.service';
+import { PurchaseService } from './services/purchase.service';
 import { TrialLifecycleService } from './services/trial-lifecycle.service';
 import {
   BILLING_TERMS_STORE,
@@ -24,7 +28,7 @@ import {
 // (PLN-01 to PLN-12, PLN-16 to PLN-18, TRM-01 to TRM-16). API-only this slice (D2-9's resolution): no screens,
 // no shell -- every UI piece is slice 8.
 @Module({
-  imports: [TenancyModule, AuditModule],
+  imports: [TenancyModule, AuditModule, BalanceModule, PaymentsModule],
   providers: [
     { provide: PLANS_STORE, useClass: DrizzlePlansStore },
     { provide: BILLING_TERMS_STORE, useClass: DrizzleBillingTermsStore },
@@ -36,6 +40,8 @@ import {
     PlanAssignmentService,
     PlanLimitOverridesService,
     TrialLifecycleService,
+    PurchaseService,
+    PaymentQueueService,
   ],
   exports: [
     PlansService,
@@ -43,6 +49,8 @@ import {
     PlanAssignmentService,
     PlanLimitOverridesService,
     TrialLifecycleService,
+    PurchaseService,
+    PaymentQueueService,
   ],
 })
 export class BillingModule {}

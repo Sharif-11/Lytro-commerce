@@ -139,6 +139,12 @@ export enum AuditAction {
   // cascade too) -- D2-5 puts these on the tenant's own log only, so the owner sees why, with no platform
   // audit mirror (an operator can already see tenant state directly).
   LifecycleStateChanged = 'lifecycle_state_changed',
+  // BIL-05: a confirmed purchase/renewal/upgrade activates the plan -- tenant-caused (the owner paid), so it
+  // writes here; the operator's confirmation action itself is PlatformAuditAction.PlanPaymentVerified below.
+  PlanPurchased = 'plan_purchased',
+  PlanRenewed = 'plan_renewed',
+  // BAL-03/BAL-05: a verified top-up credits the balance -- tenant-caused.
+  BalanceToppedUp = 'balance_topped_up',
 }
 
 // The pg-boss queues this codebase uses (SCL-08, D25). Add a name here before any code enqueues to it.
@@ -196,6 +202,10 @@ export enum PlatformAuditAction {
   BillingTermRetired = 'billing_term_retired',
   // LIF-26: a platform-wide setting change (e.g. trial length), by the operator who made it.
   SettingsChanged = 'settings_changed',
+  // D2-1/ADM-06: an operator reviewing a control.plan_payments row -- the manual stand-in for Phase 5's real
+  // hosted-page/gateway verification. Approving activates the plan or credits the balance (BIL-05/BAL-03).
+  PlanPaymentVerified = 'plan_payment_verified',
+  PlanPaymentRejected = 'plan_payment_rejected',
 }
 
 // BAL-02: what a balance-ledger entry is for. One list, shared by every module that ever charges or credits a
@@ -230,6 +240,35 @@ export enum RateKey {
 // locked stage lengths to this same list.
 export enum PlatformSettingKey {
   TrialDays = 'trial_days',
+  // BAL-04: top-up amount bounds, in TK, editable by the operator and effective for the next top-up attempted,
+  // never retroactive to a quote already created (slice 4 reads these at quote time, not at confirm time).
+  TopUpMinAmount = 'top_up_min_amount',
+  TopUpMaxAmount = 'top_up_max_amount',
+}
+
+// D2-1: what a control.plan_payments row is for -- a purchase, a renewal, an upgrade, or a balance top-up.
+export enum PlanPaymentKind {
+  Purchase = 'purchase',
+  Renewal = 'renewal',
+  Upgrade = 'upgrade',
+  TopUp = 'top_up',
+}
+
+// D2-1: BIL-04/BIL-06's pending -> needs_review/verified/rejected state machine; `expired` is BIL-15's
+// 24-hour pending-purchase timeout (the sweep itself is slice 7's job, this value is just the resting state).
+export enum PlanPaymentStatus {
+  Pending = 'pending',
+  NeedsReview = 'needs_review',
+  Verified = 'verified',
+  Rejected = 'rejected',
+  Expired = 'expired',
+}
+
+// BIL-12: what produced an invoice.
+export enum InvoiceKind {
+  Purchase = 'purchase',
+  Renewal = 'renewal',
+  Upgrade = 'upgrade',
 }
 
 /**

@@ -1,4 +1,4 @@
-import type { BalanceRow, Transaction } from '@lytronix/db';
+import type { BalanceRow, BillingInfoRow, Transaction } from '@lytronix/db';
 import type { PlanLimits, TenantState } from '@lytronix/validators';
 
 // Shop rows and the Trial/Pay-as-you-go plans, written inside the caller's transaction. Implemented in
@@ -12,6 +12,8 @@ export interface TenantStore {
   findPayAsYouGoPlan(tx: Transaction): Promise<{ id: string; limits: PlanLimits } | null>;
   /** TRL-07: trials whose period has ended with no purchase. */
   findExpiredTrialIds(tx: Transaction, now: Date): Promise<string[]>;
+  /** BIL-10/11: a transaction-scoped read for a purchase/renewal confirmation's extend-vs-restart decision. */
+  findBillingInfo(tx: Transaction, tenantId: string): Promise<BillingInfoRow | null>;
   insertTenant(
     tx: Transaction,
     values: {

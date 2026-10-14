@@ -31,4 +31,5 @@ export const HTTP_STATUS: Record<ErrorCode, number> = {
   quota_exceeded: 429,
   service_unavailable: 503,
   internal_error: 500,
+  idempotency_conflict: 422,
 };

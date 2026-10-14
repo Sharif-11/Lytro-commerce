@@ -29,6 +29,18 @@ export class BillingTermsService {
     return this.store.run((tx) => this.store.listAll(tx));
   }
 
+  async findById(id: string): Promise<BillingTermRecord> {
+    const term = await this.store.run((tx) => this.store.findById(tx, id));
+    if (!term) throw new ApiError('not_found', 'BillingTermNotFound', {});
+    return term;
+  }
+
+  /** BIL-01: the price for one plan+term pair, or null if the operator never set one. */
+  async findPrice(planId: string, billingTermId: string): Promise<string | null> {
+    const prices = await this.listPricesForPlan(planId);
+    return prices.find((p) => p.billingTermId === billingTermId)?.price ?? null;
+  }
+
   /** TRM-11: affects future purchases only; an existing snapshot keeps the term as bought (unaffected here). */
   async update(id: string, edit: BillingTermEditValues): Promise<BillingTermRecord> {
     const updated = await this.store.run((tx) => this.store.update(tx, id, edit));
