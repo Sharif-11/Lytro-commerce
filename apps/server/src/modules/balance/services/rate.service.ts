@@ -54,7 +54,7 @@ export class RateService {
   ): Promise<void> {
     const numeric = Number(newValue);
     if (!Number.isFinite(numeric) || numeric < 0) {
-      throw new ApiError('validation_error', 'A rate cannot be negative.', { field: 'value' });
+      throw new ApiError('validation_error', 'RateCannotBeNegative', { field: 'value' });
     }
     const current = await this.store.get(key);
     await this.store.set(key, current?.value ?? null, newValue, operatorId, noticeId);

@@ -61,16 +61,16 @@ export class OperatorAuthService {
   ): Promise<OperatorEnrolled> {
     const account = await this.authenticate(email, password);
     if (account.twoFactorConfirmedAt !== null) {
-      throw new ApiError('conflict', 'This account is already enrolled.', {});
+      throw new ApiError('conflict', 'TwoFactorAlreadyEnrolled', {});
     }
     if (account.twoFactorSecret === null) {
-      throw new ApiError('validation_error', 'Sign in again to get a new code to scan.', {});
+      throw new ApiError('validation_error', 'TwoFactorNeedsNewCode', {});
     }
     if (
       !TOTP_CODE_PATTERN.test(code) ||
       !(await this.totp.verifyCode(account.twoFactorSecret, code))
     ) {
-      throw new ApiError('validation_error', 'That code is not correct.', { field: 'code' });
+      throw new ApiError('validation_error', 'CodeIncorrect', { field: 'code' });
     }
 
     const backupCodes = this.generateBackupCodes();
@@ -95,7 +95,7 @@ export class OperatorAuthService {
   ): Promise<OpenedOperatorSession> {
     const account = await this.authenticate(email, password);
     if (account.twoFactorConfirmedAt === null || account.twoFactorSecret === null) {
-      throw new ApiError('forbidden', 'Finish 2FA enrollment first.', { next: 'enroll-2fa' });
+      throw new ApiError('forbidden', 'TwoFactorIncomplete', { next: 'enroll-2fa' });
     }
 
     if (TOTP_CODE_PATTERN.test(code)) {
@@ -148,7 +148,7 @@ export class OperatorAuthService {
       ? await this.passwords.verify(password, account.passwordHash)
       : await this.passwords.verifyAbsent(password);
     if (!account || !ok) {
-      throw new ApiError('unauthenticated', 'Incorrect email or password.', {});
+      throw new ApiError('unauthenticated', 'OperatorCredentialsWrong', {});
     }
     return account;
   }
@@ -200,6 +200,6 @@ export class OperatorAuthService {
   }
 
   private invalidCode(): ApiError {
-    return new ApiError('unauthenticated', 'That code is not valid.', {});
+    return new ApiError('unauthenticated', 'BackupCodeInvalid', {});
   }
 }

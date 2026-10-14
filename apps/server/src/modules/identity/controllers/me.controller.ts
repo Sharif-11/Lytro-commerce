@@ -1,5 +1,9 @@
 import { Controller, Get, Inject, Req, UseGuards } from '@nestjs/common';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ZodResponse } from 'nestjs-zod';
 import { Dashboard } from '../../../common/decorators/dashboard';
+import { ResponseMessage } from '../../../common/decorators/response-message';
+import { MeResponseDto } from '../dto/me-response.dto';
 import { DashboardGuard, type DashboardRequest } from '../guards/dashboard.guard';
 import { SessionGuard } from '../guards/session.guard';
 import { StaffService } from '../../staff/services/staff.service';
@@ -24,6 +28,7 @@ export interface MeResponse {
 }
 
 // The dashboard shell's account summary.
+@ApiTags('Me')
 @Controller('me')
 @Dashboard({ lapsed: true, withoutShop: true })
 @UseGuards(SessionGuard, DashboardGuard)
@@ -31,6 +36,9 @@ export class MeController {
   constructor(@Inject(StaffService) private readonly staff: StaffService) {}
 
   @Get()
+  @ResponseMessage('ProfileRetrieved')
+  @ApiOperation({ summary: 'Get the signed-in account and tenant summary' })
+  @ZodResponse({ type: MeResponseDto })
   async get(@Req() request: DashboardRequest): Promise<MeResponse> {
     const tenant = request.tenant ?? null;
     const userId = request.session?.userId ?? null;

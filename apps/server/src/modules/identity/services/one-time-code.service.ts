@@ -63,12 +63,7 @@ export class OneTimeCodeService {
       }
       if (latest && now.getTime() - latest.createdAt.getTime() < cooldownMs) {
         const wait = latest.createdAt.getTime() + cooldownMs - now.getTime();
-        throw new ApiError(
-          'rate_limited',
-          'A code was sent a moment ago. Wait before asking for another.',
-          {},
-          Math.ceil(wait / 1000),
-        );
+        throw new ApiError('rate_limited', 'CodeSentRecently', {}, Math.ceil(wait / 1000));
       }
       const sent = await this.challenges.countSince(
         tx,
@@ -78,12 +73,7 @@ export class OneTimeCodeService {
         new Date(now.getTime() - HOUR_MS),
       );
       if (sent >= HOURLY_CODE_CAP) {
-        throw new ApiError(
-          'rate_limited',
-          'Too many codes were requested for this destination. Try again later.',
-          {},
-          HOUR_MS / 1000,
-        );
+        throw new ApiError('rate_limited', 'TooManyCodesRequested', {}, HOUR_MS / 1000);
       }
 
       const code = this.hasher.generate();
@@ -123,12 +113,7 @@ export class OneTimeCodeService {
       }
       if (error instanceof SmsDeliveryError || error instanceof MailDeliveryError) {
         // The code was not delivered. The cooldown equals this retry hint, so asking again is possible when it ends.
-        throw new ApiError(
-          'service_unavailable',
-          'We could not send your code. Try again in a minute.',
-          {},
-          cooldownMs / 1000,
-        );
+        throw new ApiError('service_unavailable', 'CodeSendFailed', {}, cooldownMs / 1000);
       }
       throw error;
     }
@@ -165,17 +150,17 @@ export class OneTimeCodeService {
       case 'ok':
         return outcome.challengeId;
       case 'missing':
-        throw new ApiError('validation_error', 'This code is not valid. Request a new one.', {
+        throw new ApiError('validation_error', 'CodeInvalid', {
           field: 'code',
         });
       case 'expired':
-        throw new ApiError('validation_error', 'This code has expired. Request a new one.', {
+        throw new ApiError('validation_error', 'CodeExpired', {
           field: 'code',
         });
       case 'locked':
         throw this.tooManyWrongCodes(outcome.retryAfterSeconds);
       case 'wrong':
-        throw new ApiError('validation_error', 'The code is not correct.', {
+        throw new ApiError('validation_error', 'CodeIncorrect', {
           field: 'code',
           attemptsLeft: outcome.attemptsLeft,
         });
@@ -218,11 +203,6 @@ export class OneTimeCodeService {
   }
 
   private tooManyWrongCodes(retryAfterSeconds: number): ApiError {
-    return new ApiError(
-      'rate_limited',
-      'Too many wrong codes. Wait before trying again.',
-      {},
-      retryAfterSeconds,
-    );
+    return new ApiError('rate_limited', 'TooManyWrongCodes', {}, retryAfterSeconds);
   }
 }

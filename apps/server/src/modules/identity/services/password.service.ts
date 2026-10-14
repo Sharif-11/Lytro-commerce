@@ -66,13 +66,13 @@ export class PasswordService {
     typed: string | undefined,
   ): Promise<void> {
     if (typed === undefined || typed === '') {
-      throw new ApiError('validation_error', 'Enter your current password.', {
+      throw new ApiError('validation_error', 'CurrentPasswordRequired', {
         field: 'currentPassword',
       });
     }
     if (await this.hasher.verify(typed, current)) return;
     await this.lockout.recordFailure(session.subscriberId, session.ip);
-    throw new ApiError('validation_error', 'Your current password is not correct.', {
+    throw new ApiError('validation_error', 'CurrentPasswordWrong', {
       field: 'currentPassword',
     });
   }

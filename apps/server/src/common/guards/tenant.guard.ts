@@ -1,11 +1,4 @@
-import {
-  CanActivate,
-  ExecutionContext,
-  ForbiddenException,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { CanActivate, ExecutionContext, Inject, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ApiError } from '../api-error';
 import { headerValue } from '../http';
@@ -53,14 +46,14 @@ export class TenantGuard implements CanActivate {
       this.edgeSecret.isRequired() &&
       !this.edgeSecret.matches(request.headers[EDGE_HEADER])
     ) {
-      throw new ForbiddenException('Request not accepted.');
+      throw new ApiError('forbidden', 'RequestNotAccepted');
     }
     if (skip || dashboard) return true;
 
     const result = await this.resolver.resolve(headerValue(request.headers.host));
-    if (result.outcome === 'not_found') throw new NotFoundException('Page not found.');
+    if (result.outcome === 'not_found') throw new ApiError('not_found', 'PageNotFound');
     if (result.outcome === 'closed') {
-      throw new ApiError('tenant_offline', 'This shop is not available right now.', {});
+      throw new ApiError('tenant_offline', 'ShopUnavailable');
     }
 
     request.tenant = result.tenant;

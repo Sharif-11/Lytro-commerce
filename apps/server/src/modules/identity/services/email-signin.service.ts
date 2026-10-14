@@ -70,7 +70,7 @@ export class EmailSigninService {
       const opened = await this.gateway.run(async (tx) => {
         const consumed = await this.gateway.consumeChallenge(tx, challengeId, new Date());
         if (!consumed) {
-          throw new ApiError('validation_error', 'This code has already been used.', {
+          throw new ApiError('validation_error', 'CodeAlreadyUsed', {
             field: 'code',
           });
         }
@@ -88,7 +88,7 @@ export class EmailSigninService {
       }
       return opened;
     } catch (error) {
-      if (error instanceof UniqueViolation) throw new ApiError('conflict', 'Please try again.', {});
+      if (error instanceof UniqueViolation) throw new ApiError('conflict', 'PleaseTryAgain', {});
       throw error;
     }
   }
@@ -102,7 +102,7 @@ export class EmailSigninService {
   private requireEmail(raw: string): string {
     const email = this.emailFormat.normalize(raw);
     if (!email) {
-      throw new ApiError('validation_error', 'Enter a valid email address.', { field: 'email' });
+      throw new ApiError('validation_error', 'EmailInvalid', { field: 'email' });
     }
     return email;
   }

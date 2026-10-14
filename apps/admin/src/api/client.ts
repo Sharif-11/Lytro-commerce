@@ -1,4 +1,4 @@
-import type { ApiErrorBody, ErrorCode } from '@lytronix/shared-types';
+import type { ApiErrorBody, ApiSuccessBody, ErrorCode } from '@lytronix/shared-types';
 
 const MUTATING_METHODS: ReadonlySet<string> = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 const CSRF_HEADER = 'x-csrf-token';
@@ -53,7 +53,9 @@ export class ApiClient {
     if (!response.ok) {
       throw this.toError(response, body);
     }
-    return body as T;
+    // Every success response is wrapped in { success, statusCode, message, data } (SRS-detailed §2.6); this
+    // is the one place that unwraps it, so every call site keeps getting exactly the data it asked for.
+    return (body as Partial<ApiSuccessBody<T>> | null)?.data as T;
   }
 
   get<T>(path: string): Promise<T> {
@@ -82,9 +84,11 @@ export class ApiClient {
     const envelope = body as Partial<ApiErrorBody> | null;
     const retryAfter = response.headers.get('Retry-After');
     return new ApiClientError(
-      envelope?.error?.code ?? 'service_unavailable',
-      envelope?.error?.message ?? 'Something went wrong. Please try again.',
-      envelope?.error?.details ?? {},
+      envelope?.errors?.code ?? 'service_unavailable',
+      // '' (not an English default) when the body didn't parse -- errorMessage() falls back to its own
+      // localized copy in that case, rather than showing untranslated English regardless of locale.
+      envelope?.message ?? '',
+      envelope?.errors?.details ?? {},
       response.status,
       retryAfter === null ? undefined : Number(retryAfter),
     );

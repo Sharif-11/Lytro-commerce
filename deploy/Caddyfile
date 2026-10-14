@@ -20,13 +20,13 @@
 
 # --- Shared pieces (DEPLOYMENT.md §5, §6), imported into every site block below instead of repeated ---
 
-# /api/* -> strip the prefix, reverse-proxy to the backend, with the edge secret attached (§6). Checked
-# first, on every host: this is how the admin SPA (and anything else running client-side) reaches
-# apps/server — same-origin, relative fetches to /api/..., on whichever host the SPA happens to be running
-# on. The backend's own route paths (/auth/phone/code, /me, ...) are unchanged; only Caddy's incoming path is
-# prefixed, stripped before the request reaches `server`.
+# /api/* -> reverse-proxy to the backend unchanged, with the edge secret attached (§6). Checked first, on
+# every host: this is how the admin SPA (and anything else running client-side) reaches apps/server —
+# same-origin, relative fetches to /api/v1/..., on whichever host the SPA happens to be running on. No path
+# rewrite (API-14): the backend itself serves everything under /api/v1, the exact prefix the SPA already
+# calls, so `handle` (not `handle_path`) passes the request through with nothing stripped.
 (api_proxy) {
-	handle_path /api/* {
+	handle /api/* {
 		reverse_proxy {$SERVER_UPSTREAM:server:3000} {
 			header_up x-lytronix-edge-secret {$TRUSTED_EDGE_SECRET}
 		}

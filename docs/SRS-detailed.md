@@ -107,11 +107,19 @@ Warnings at 50%, 80%, 95% of a limit; refusal at 100%. Applies to storage, bandw
 
 ### 2.6 Error contract
 
-Every API error is JSON `{ "error": { "code": "...", "message": "...", "details": {} } }`. Added 2026-10-02 — the three fields have deliberately different rules:
+**Updated 2026-10-14 (API-14): every API response, success or failure, is one of two JSON envelopes**, so a
+client can branch on `success` without first inspecting the HTTP status code:
 
-- **`code`** is a stable, machine-readable identifier (e.g. `validation_error`) and is never translated or reworded, in any environment — API integrators write code against this string, so it follows the same never-break-a-version discipline as API-14; only `message` changes with language.
-- **`message`** is a short, non-technical sentence meant for a human to read (a tenant's staff member, or an end user of a tenant's own integration) — never a raw exception message, a library error, or anything implying internal implementation. It is localized per I18N-01's platform-wide rule: Bangla by default, English when the request's `Accept-Language` header requests it. Field-level validation specifics belong in `details`, not prose stuffed into `message`.
-- **`details`** carries structured, field-level data (which field, what was wrong) — never a stack trace, never an internal file path, never a raw database or third-party-provider error string.
+- Success: `{ "success": true, "statusCode": ..., "message": "...", "data": {...} }`.
+- Failure: `{ "success": false, "statusCode": ..., "message": "...", "errors": { "code": "...", "details": {} } }`.
+
+The fields that carry the actual error information keep the same rules as before this envelope existed (added
+2026-10-02), just relocated — `code` and `details` moved from a nested `error` object into `errors`, and
+`message` moved up to the envelope's own top level, shared with the success shape:
+
+- **`errors.code`** is a stable, machine-readable identifier (e.g. `validation_error`) and is never translated or reworded, in any environment — API integrators write code against this string, so it follows the same never-break-a-version discipline as API-14; only `message` changes with language.
+- **`message`** is a short, non-technical sentence meant for a human to read (a tenant's staff member, or an end user of a tenant's own integration) — never a raw exception message, a library error, or anything implying internal implementation. It is localized per I18N-01's platform-wide rule: Bangla by default, English when the request's `Accept-Language` header requests it. Field-level validation specifics belong in `errors.details`, not prose stuffed into `message`. On a success response, `message` is a short confirmation (e.g. "Created") rather than an error description.
+- **`errors.details`** carries structured, field-level data (which field, what was wrong) — never a stack trace, never an internal file path, never a raw database or third-party-provider error string.
 - **Stack traces and internal exception detail are never part of any API response outside a non-production environment** (SEC-16 makes this a formal, security-relevant requirement, not just a style note).
 
 Defaults [to confirm]:

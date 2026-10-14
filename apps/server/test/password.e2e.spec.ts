@@ -1,13 +1,12 @@
 import 'dotenv/config';
 import { type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import type { Server } from 'node:http';
-import type { AddressInfo } from 'node:net';
 import { randomUUID } from 'node:crypto';
 import pg from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { AppModule } from '../src/app/app.module';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
+import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase } from './support/database';
 import { SmsCapture } from './support/sms-capture';
 import { cookieFrom, type HttpResult, postJson } from './support/http';
@@ -104,9 +103,7 @@ beforeAll(async () => {
     .overrideProvider(SMS_PROVIDER)
     .useValue(texts.provider)
     .compile();
-  app = moduleRef.createNestApplication();
-  await app.listen(0, '127.0.0.1');
-  port = ((app.getHttpServer() as Server).address() as AddressInfo).port;
+  ({ app, port } = await listenOn(moduleRef));
 });
 
 // Every request comes from 127.0.0.1, so failures from one test must not lock the next (AUTH-14).

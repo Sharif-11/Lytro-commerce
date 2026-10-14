@@ -83,11 +83,7 @@ export class RoleService {
       if (!(await this.store.find(tx, tenant.id, roleId))) throw this.notFound();
       const holders = await this.store.countHolders(tx, tenant.id, roleId);
       if (holders > 0) {
-        throw new ApiError(
-          'conflict',
-          `This role is held by ${String(holders)} ${holders === 1 ? 'person' : 'people'}. Remove it from them first.`,
-          { holders },
-        );
+        throw new ApiError('conflict', 'RoleHeldByMembers', { holders }, undefined, { holders });
       }
       await this.store.remove(tx, tenant.id, roleId);
     });
@@ -95,11 +91,11 @@ export class RoleService {
   }
 
   private nameTaken(): ApiError {
-    return new ApiError('conflict', 'A role with this name already exists.', { field: 'name' });
+    return new ApiError('conflict', 'RoleNameTaken', { field: 'name' });
   }
 
   private notFound(): ApiError {
-    return new ApiError('not_found', 'Role not found.', {});
+    return new ApiError('not_found', 'RoleNotFound', {});
   }
 
   /** Writes an activity log entry for a role action (AUD-01), named the same way StaffService names its own. */

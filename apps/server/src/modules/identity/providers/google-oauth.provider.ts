@@ -54,14 +54,14 @@ export class GoogleOauthProvider implements OauthProviderPort {
     });
     const tokenBody = tokenReply.safeParse(await token.json().catch(() => null));
     if (!token.ok || !tokenBody.success)
-      throw new ApiError('unauthenticated', 'Google did not confirm your sign-in.', {});
+      throw new ApiError('unauthenticated', 'GoogleSignInNotConfirmed', {});
 
     const info = await fetch(USERINFO_URL, {
       headers: { authorization: `Bearer ${tokenBody.data.access_token}` },
     });
     const profile = profileReply.safeParse(await info.json().catch(() => null));
     if (!info.ok || !profile.success)
-      throw new ApiError('unauthenticated', 'Google did not confirm your sign-in.', {});
+      throw new ApiError('unauthenticated', 'GoogleSignInNotConfirmed', {});
 
     return {
       accountId: profile.data.sub,

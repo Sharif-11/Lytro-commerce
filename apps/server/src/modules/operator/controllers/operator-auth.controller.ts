@@ -1,6 +1,10 @@
 import { Body, Controller, HttpCode, Inject, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ZodResponse } from 'nestjs-zod';
 import { ClientIp } from '../../../common/client-ip';
 import { SkipTenant } from '../../../common/decorators/skip-tenant';
+import { ResponseMessage } from '../../../common/decorators/response-message';
+import { OkDto } from '../../../common/dto/ok.dto';
 import { type HttpRequest, type HttpResponse } from '../../../common/http';
 import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
 import {
@@ -9,6 +13,7 @@ import {
   operatorVerifySchema,
 } from '@lytronix/validators';
 import { OperatorEnrollDto, OperatorSigninDto, OperatorVerifyDto } from '../dto/operator-auth.dto';
+import { OperatorEnrolledDto, OperatorSignedInDto } from '../dto/operator-auth-response.dto';
 import { OperatorSessionGuard } from '../guards/operator-session.guard';
 import { OperatorAuthService } from '../services/operator-auth.service';
 import type { OperatorSessionRecord } from '../ports/operator-gateway';
@@ -20,6 +25,7 @@ interface OperatorSignedInBody {
 
 // ADM-01, D8: the operator console's own sign-in, separate from the tenant dashboard's (/auth). A tenant
 // credential has no account here and vice versa.
+@ApiTags('Operator Auth')
 @Controller('auth/operator')
 @SkipTenant()
 export class OperatorAuthController {
@@ -30,6 +36,14 @@ export class OperatorAuthController {
 
   @Post('signin')
   @HttpCode(200)
+  @ResponseMessage('OperatorCredentialsAccepted')
+  @ApiOperation({
+    summary: 'Operator sign-in, first factor (email and password)',
+    description:
+      "Returns { next: 'enroll-2fa', secret, uri } the first time, to show a QR code, or " +
+      "{ next: 'verify-2fa' } once enrolled, to prompt for a TOTP or backup code.",
+  })
+  @ApiBody({ type: OperatorSigninDto })
   signin(
     @Body(new ZodValidationPipe(operatorSigninSchema)) body: OperatorSigninDto,
   ): Promise<OperatorSigninResult> {
@@ -38,6 +52,10 @@ export class OperatorAuthController {
 
   @Post('enroll')
   @HttpCode(200)
+  @ResponseMessage('TwoFactorEnrolled')
+  @ApiOperation({ summary: 'Confirm 2FA enrollment with the first TOTP code' })
+  @ApiBody({ type: OperatorEnrollDto })
+  @ZodResponse({ type: OperatorEnrolledDto })
   async enroll(
     @Body(new ZodValidationPipe(operatorEnrollSchema)) body: OperatorEnrollDto,
     @Req() request: HttpRequest,
@@ -55,6 +73,10 @@ export class OperatorAuthController {
 
   @Post('verify')
   @HttpCode(200)
+  @ResponseMessage('OperatorVerified')
+  @ApiOperation({ summary: 'Operator sign-in, second factor (TOTP or backup code)' })
+  @ApiBody({ type: OperatorVerifyDto })
+  @ZodResponse({ type: OperatorSignedInDto })
   async verify(
     @Body(new ZodValidationPipe(operatorVerifySchema)) body: OperatorVerifyDto,
     @Req() request: HttpRequest,
@@ -73,6 +95,9 @@ export class OperatorAuthController {
   @Post('signout')
   @HttpCode(200)
   @UseGuards(OperatorSessionGuard)
+  @ResponseMessage('SignedOut')
+  @ApiOperation({ summary: 'Sign out of the operator console' })
+  @ZodResponse({ type: OkDto })
   async signout(
     @Req() request: HttpRequest & { operatorSession: OperatorSessionRecord },
     @Res({ passthrough: true }) response: HttpResponse,

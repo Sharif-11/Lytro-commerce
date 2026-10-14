@@ -1,10 +1,48 @@
 import { request as httpRequest } from 'node:http';
 
 // JSON requests over real HTTP to a test server on 127.0.0.1, shared by the end-to-end specs.
+// Every path is relative to /api/v1 automatically, except the unversioned routes (src/common/unversioned-routes.ts) --
+// so no call site (post('/staff', ...), get('/plans'), ...) needed to change when the prefix was added.
+const UNVERSIONED_PREFIXES = ['/health', '/test-only/'];
+
+function withApiPrefix(path: string): string {
+  if (UNVERSIONED_PREFIXES.some((prefix) => path === prefix || path.startsWith(prefix)))
+    return path;
+  return `/api/v1${path}`;
+}
+
 export interface HttpResult {
   status: number;
   headers: Record<string, string | string[] | undefined>;
+  /** Unwrapped for convenience: the envelope's `data` on success, or the pre-envelope `{ error: {...} } }`
+   * shape on failure, so none of this suite's existing assertions had to change when the envelope was added
+   * (see support/response-envelope.spec.ts for tests against the real wire shape). */
   body: unknown;
+  /** The raw wire body, exactly as the server sent it -- { success, statusCode, message, data|errors }. */
+  envelope: unknown;
+}
+
+interface SuccessEnvelope {
+  success: true;
+  data: unknown;
+}
+
+interface ErrorEnvelope {
+  success: false;
+  message: string;
+  errors: { code: unknown; details: unknown };
+}
+
+function isEnvelope(value: unknown): value is SuccessEnvelope | ErrorEnvelope {
+  return typeof value === 'object' && value !== null && 'success' in value;
+}
+
+function unwrap(parsed: unknown): unknown {
+  if (!isEnvelope(parsed)) return parsed;
+  if (parsed.success) return parsed.data;
+  return {
+    error: { code: parsed.errors.code, message: parsed.message, details: parsed.errors.details },
+  };
 }
 
 export function postJson(
@@ -63,7 +101,7 @@ function send(
       {
         host: '127.0.0.1',
         port,
-        path,
+        path: withApiPrefix(path),
         method,
         headers: {
           'content-type': 'application/json',
@@ -77,10 +115,12 @@ function send(
           text += chunk.toString();
         });
         res.on('end', () => {
+          const envelope = text ? (JSON.parse(text) as unknown) : undefined;
           resolve({
             status: res.statusCode ?? 0,
             headers: res.headers,
-            body: text ? (JSON.parse(text) as unknown) : undefined,
+            body: unwrap(envelope),
+            envelope,
           });
         });
       },

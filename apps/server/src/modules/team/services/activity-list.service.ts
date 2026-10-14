@@ -82,6 +82,6 @@ export class ActivityListService {
     } catch {
       // Falls through to the same refusal as a structurally wrong cursor.
     }
-    throw new ApiError('validation_error', 'This page link is not valid.', { field: 'cursor' });
+    throw new ApiError('validation_error', 'PageLinkInvalid', { field: 'cursor' });
   }
 }

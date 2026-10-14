@@ -1,6 +1,14 @@
 import { randomUUID } from 'node:crypto';
+import type { ApiSuccessBody } from '@lytronix/shared-types';
 import { codeFor } from './sms-log';
 import { PROXY_PORT } from './ports';
+
+/** Every response is wrapped { success, statusCode, message, data } (SRS-detailed §2.6); this file talks to
+ * the real API directly (not through ApiClient), so it unwraps it itself. */
+async function data<T>(response: Response): Promise<T> {
+  const body = (await response.json()) as ApiSuccessBody<T>;
+  return body.data;
+}
 
 /** A fresh Bangladeshi-shaped phone number, distinct across tests, matching apps/server's own test helper. */
 export function freshPhone(): string {
@@ -25,25 +33,25 @@ export async function signUpShop(
   shopName: string,
 ): Promise<{ phone: string; slug: string } & Session> {
   const phone = freshPhone();
-  await fetch(`${baseUrl(platformHost)}/api/auth/phone/code`, {
+  await fetch(`${baseUrl(platformHost)}/api/v1/auth/phone/code`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ phone }),
   });
   const code = await codeFor(smsLogFile, phone);
-  const verified = await fetch(`${baseUrl(platformHost)}/api/auth/phone/verify`, {
+  const verified = await fetch(`${baseUrl(platformHost)}/api/v1/auth/phone/verify`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ phone, code }),
   });
   const cookie = (verified.headers.get('set-cookie') ?? '').split(';')[0] ?? '';
-  const verifiedBody = (await verified.json()) as { next: string; csrfToken: string };
+  const verifiedBody = await data<{ next: string; csrfToken: string }>(verified);
   if (verifiedBody.next !== 'create-shop') {
     throw new Error(`expected create-shop, got ${verifiedBody.next}`);
   }
   const session: Session = { cookie, csrfToken: verifiedBody.csrfToken };
 
-  const created = await fetch(`${baseUrl(platformHost)}/api/shops`, {
+  const created = await fetch(`${baseUrl(platformHost)}/api/v1/shops`, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
@@ -55,9 +63,9 @@ export async function signUpShop(
   if (created.status !== 201) {
     throw new Error(`create-shop failed: ${String(created.status)} ${await created.text()}`);
   }
-  const body = (await created.json()) as { address: string };
+  const body = await data<{ address: string }>(created);
 
-  const setPassword = await fetch(`${baseUrl(platformHost)}/api/auth/password`, {
+  const setPassword = await fetch(`${baseUrl(platformHost)}/api/v1/auth/password`, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',

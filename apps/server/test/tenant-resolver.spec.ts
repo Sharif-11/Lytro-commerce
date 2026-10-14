@@ -1,7 +1,6 @@
 import { EdgeSecret } from '../src/common/guards/edge-secret';
 import { HostClassifier } from '../src/modules/tenancy/services/host-classifier';
 import { SlugFormat } from '../src/modules/tenancy/services/slug-format';
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import type { ExecutionContext } from '@nestjs/common';
 import type { Reflector } from '@nestjs/core';
 import { TenantState } from '@lytronix/validators';
@@ -172,7 +171,7 @@ describe('TenantGuard (TEN-7a, R3, R6)', () => {
     const request: TenantRequest = { headers: { host: 'nobody.localhost' } };
     const { reflector, context } = contextFor(request);
     const guard = new TenantGuard(resolver, reflector, new EdgeSecret(undefined));
-    await expect(guard.canActivate(context)).rejects.toBeInstanceOf(NotFoundException);
+    await expect(guard.canActivate(context)).rejects.toMatchObject({ code: 'not_found' });
     expect(request.tenant).toBeUndefined();
   });
 
@@ -202,7 +201,7 @@ describe('TenantGuard (TEN-7a, R3, R6)', () => {
     const request: TenantRequest = { headers: { host: 'fashion-house.localhost' } };
     const { reflector, context } = contextFor(request);
     const guard = new TenantGuard(resolver, reflector, new EdgeSecret(SECRET));
-    await expect(guard.canActivate(context)).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(guard.canActivate(context)).rejects.toMatchObject({ code: 'forbidden' });
   });
 
   it('accepts a request carrying the edge secret', async () => {

@@ -7,8 +7,7 @@ import 'dotenv/config';
 import { Controller, Get, type INestApplication, Req } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
-import { request as httpRequest, type Server } from 'node:http';
-import type { AddressInfo } from 'node:net';
+import { request as httpRequest } from 'node:http';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
@@ -18,6 +17,7 @@ import {
   type DatabaseHandle,
 } from '@lytronix/db';
 import { DatabaseService } from '../src/database/database.service';
+import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase, seedShop } from './support/database';
 import { HealthController } from '../src/modules/health/health.controller';
 import {
@@ -56,15 +56,18 @@ function send(
   headers: Record<string, string>,
 ): Promise<{ status: number; body: string }> {
   return new Promise((resolve, reject) => {
-    const req = httpRequest({ host: '127.0.0.1', port, path, method: 'GET', headers }, (res) => {
-      let body = '';
-      res.on('data', (chunk: Buffer) => {
-        body += chunk.toString();
-      });
-      res.on('end', () => {
-        resolve({ status: res.statusCode ?? 0, body });
-      });
-    });
+    const req = httpRequest(
+      { host: '127.0.0.1', port, path: `/api/v1${path}`, method: 'GET', headers },
+      (res) => {
+        let body = '';
+        res.on('data', (chunk: Buffer) => {
+          body += chunk.toString();
+        });
+        res.on('end', () => {
+          resolve({ status: res.statusCode ?? 0, body });
+        });
+      },
+    );
     req.on('error', reject);
     req.end();
   });
@@ -123,9 +126,7 @@ beforeAll(async () => {
     ],
   }).compile();
 
-  app = moduleRef.createNestApplication();
-  await app.listen(0, '127.0.0.1');
-  port = ((app.getHttpServer() as Server).address() as AddressInfo).port;
+  ({ app, port } = await listenOn(moduleRef));
 });
 
 afterAll(async () => {

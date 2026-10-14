@@ -53,10 +53,10 @@ export class StaffSigninService {
         action: AuditAction.SignInFailed,
         result: AuditResult.Failure,
       });
-      throw new ApiError('unauthenticated', 'That phone number and password do not match.', {});
+      throw new ApiError('unauthenticated', 'PhoneOrPasswordWrong', {});
     }
     if (shop.suspendedAt !== null || LAPSED.has(shop.state)) {
-      throw new ApiError('tenant_offline', 'This shop is not available right now.', {});
+      throw new ApiError('tenant_offline', 'ShopUnavailable', {});
     }
 
     const opened = await this.staff.inShop(shop, (tx) =>
@@ -90,7 +90,7 @@ export class StaffSigninService {
     input: { currentPassword?: string; newPassword: string },
   ): Promise<void> {
     if (session.userId === null || session.tenantId === null) {
-      throw new ApiError('forbidden', 'Request not accepted.', {});
+      throw new ApiError('forbidden', 'RequestNotAccepted', {});
     }
     const shop = { id: session.tenantId, planLimits: null };
     await this.staff.changePassword(shop.id, session.userId, input, session.mustSetPassword);

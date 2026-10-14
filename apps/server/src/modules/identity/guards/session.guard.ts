@@ -27,11 +27,11 @@ export class SessionGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<SessionRequest>();
     const session = await this.sessions.resolve(headerValue(request.headers.cookie));
-    if (!session) throw new ApiError('unauthenticated', 'Sign in to continue.', {});
+    if (!session) throw new ApiError('unauthenticated', 'SignInToContinue', {});
 
     const csrf = headerValue(request.headers[CSRF_HEADER]);
     if (MUTATING_METHODS.has(request.method) && !this.sessions.csrfMatches(session, csrf)) {
-      throw new ApiError('forbidden', 'Request not accepted.', {});
+      throw new ApiError('forbidden', 'RequestNotAccepted', {});
     }
 
     const allowedWhilePending = this.reflector.getAllAndOverride<boolean | undefined>(
@@ -39,7 +39,7 @@ export class SessionGuard implements CanActivate {
       [context.getHandler(), context.getClass()],
     );
     if (session.mustSetPassword && !allowedWhilePending) {
-      throw new ApiError('forbidden', 'Set a password to continue.', { next: 'set-password' });
+      throw new ApiError('forbidden', 'SetPasswordToContinue', { next: 'set-password' });
     }
 
     request.session = session;

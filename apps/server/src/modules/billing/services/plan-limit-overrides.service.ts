@@ -22,7 +22,7 @@ export class PlanLimitOverridesService {
     operatorId: string,
   ): Promise<PlanLimitOverrideRecord> {
     if (reason.trim().length === 0) {
-      throw new ApiError('validation_error', 'A reason is required.', { field: 'reason' });
+      throw new ApiError('validation_error', 'ReasonRequired', { field: 'reason' });
     }
     const row = await this.store.run((tx) =>
       this.store.set(tx, { tenantId, limitKey, value, reason, setBy: operatorId }),

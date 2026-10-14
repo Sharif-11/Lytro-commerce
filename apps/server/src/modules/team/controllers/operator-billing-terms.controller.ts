@@ -11,14 +11,20 @@ import {
   Put,
   UseGuards,
 } from '@nestjs/common';
+import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ZodResponse } from 'nestjs-zod';
 import { SkipTenant } from '../../../common/decorators/skip-tenant';
+import { ResponseMessage } from '../../../common/decorators/response-message';
+import { OkDto } from '../../../common/dto/ok.dto';
 import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
 import { OperatorSessionGuard } from '../../operator/guards/operator-session.guard';
 import { BillingTermsService } from '../../billing/services/billing-terms.service';
 import type { BillingTermRecord, PlanPriceRecord } from '../../billing/types/billing-term';
 import { CreateBillingTermDto, SetPlanPriceDto, UpdateBillingTermDto } from '../dto/billing.dto';
+import { BillingTermDto, BillingTermListDto, PlanPriceListDto } from '../dto/billing-response.dto';
 
 // TRM-01 to TRM-16: the operator's billing-term editor, plus per-plan pricing (TRM-03).
+@ApiTags('Operator Billing Terms')
 @Controller('operator/billing-terms')
 @SkipTenant()
 @UseGuards(OperatorSessionGuard)
@@ -26,11 +32,18 @@ export class OperatorBillingTermsController {
   constructor(@Inject(BillingTermsService) private readonly terms: BillingTermsService) {}
 
   @Get()
+  @ResponseMessage('BillingTermsListed')
+  @ApiOperation({ summary: 'List every billing term, including hidden and retired ones' })
+  @ZodResponse({ type: BillingTermListDto })
   list(): Promise<BillingTermRecord[]> {
     return this.terms.listAll(); // includes hidden/retired terms, unlike the public route
   }
 
   @Post()
+  @ResponseMessage('BillingTermCreated')
+  @ApiOperation({ summary: 'Create a billing term' })
+  @ApiBody({ type: CreateBillingTermDto })
+  @ZodResponse({ type: BillingTermDto })
   create(
     @Body(new ZodValidationPipe(CreateBillingTermDto.schema)) body: CreateBillingTermDto,
   ): Promise<BillingTermRecord> {
@@ -46,6 +59,10 @@ export class OperatorBillingTermsController {
   }
 
   @Patch(':id')
+  @ResponseMessage('BillingTermUpdated')
+  @ApiOperation({ summary: 'Update a billing term' })
+  @ApiBody({ type: UpdateBillingTermDto })
+  @ZodResponse({ type: BillingTermDto })
   update(
     @Param('id') id: string,
     @Body(new ZodValidationPipe(UpdateBillingTermDto.schema)) body: UpdateBillingTermDto,
@@ -61,13 +78,18 @@ export class OperatorBillingTermsController {
   }
 
   @Delete(':id')
-  @HttpCode(204)
-  async delete(@Param('id') id: string): Promise<void> {
+  @HttpCode(200)
+  @ResponseMessage('BillingTermDeleted')
+  @ApiOperation({ summary: 'Delete a billing term (only if unreferenced)' })
+  @ZodResponse({ type: OkDto })
+  async delete(@Param('id') id: string): Promise<{ ok: true }> {
     await this.terms.delete(id);
+    return { ok: true };
   }
 }
 
 // TRM-03: a plan's price for a term. Nested under the plan, not the term, since a price is a (plan, term) pair.
+@ApiTags('Operator Plan Prices')
 @Controller('operator/plans/:planId/prices')
 @SkipTenant()
 @UseGuards(OperatorSessionGuard)
@@ -75,12 +97,19 @@ export class OperatorPlanPricesController {
   constructor(@Inject(BillingTermsService) private readonly terms: BillingTermsService) {}
 
   @Get()
+  @ResponseMessage('PlanPricesListed')
+  @ApiOperation({ summary: "List a plan's prices across billing terms" })
+  @ZodResponse({ type: PlanPriceListDto })
   list(@Param('planId') planId: string): Promise<PlanPriceRecord[]> {
     return this.terms.listPricesForPlan(planId);
   }
 
   @Put(':billingTermId')
   @HttpCode(200)
+  @ResponseMessage('PlanPriceSet')
+  @ApiOperation({ summary: "Set a plan's price for a billing term" })
+  @ApiBody({ type: SetPlanPriceDto })
+  @ZodResponse({ type: OkDto })
   async set(
     @Param('planId') planId: string,
     @Param('billingTermId') billingTermId: string,
@@ -91,11 +120,15 @@ export class OperatorPlanPricesController {
   }
 
   @Delete(':billingTermId')
-  @HttpCode(204)
+  @HttpCode(200)
+  @ResponseMessage('PlanPriceRemoved')
+  @ApiOperation({ summary: "Remove a plan's price for a billing term" })
+  @ZodResponse({ type: OkDto })
   async remove(
     @Param('planId') planId: string,
     @Param('billingTermId') billingTermId: string,
-  ): Promise<void> {
+  ): Promise<{ ok: true }> {
     await this.terms.removePrice(planId, billingTermId);
+    return { ok: true };
   }
 }

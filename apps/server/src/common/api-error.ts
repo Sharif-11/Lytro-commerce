@@ -1,15 +1,19 @@
 import type { ErrorCode } from '@lytronix/shared-types';
+import type { MessageKey } from './i18n/message-key';
+import { translate, type MessageParams } from './i18n/messages';
 
-// SRS-detailed §2.6: every failure has a stable code, a human message, and optional details.
-// The message is never a raw library error, and codes are never translated.
+// SRS-detailed §2.6/I18N-01: every failure has a stable code and a message key, resolved to bn/en text per
+// request by ApiErrorFilter -- never a raw string. `message` (from Error) carries the English text, for logs
+// and stack traces only; it is never what a client sees.
 export class ApiError extends Error {
   constructor(
     readonly code: ErrorCode,
-    message: string,
+    readonly messageKey: MessageKey,
     readonly details: Record<string, unknown> = {},
     readonly retryAfterSeconds?: number,
+    readonly params: MessageParams = {},
   ) {
-    super(message);
+    super(translate(messageKey, 'en', params));
     this.name = 'ApiError';
   }
 }

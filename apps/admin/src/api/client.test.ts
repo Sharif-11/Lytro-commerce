@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ApiErrorBody, ApiSuccessBody } from '@lytronix/shared-types';
 import { ApiClient, ApiClientError } from './client';
 
 function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
@@ -7,6 +8,11 @@ function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
     headers: { 'Content-Type': 'application/json' },
     ...init,
   });
+}
+
+/** The server's success envelope (SRS-detailed §2.6), for a mock that doesn't care about the exact wrapper. */
+function successBody<T>(data: T): ApiSuccessBody<T> {
+  return { success: true, statusCode: 200, message: 'Success', data };
 }
 
 function lastRequestInit(fetchMock: ReturnType<typeof vi.fn<typeof fetch>>): RequestInit {
@@ -28,20 +34,20 @@ describe('ApiClient', () => {
   });
 
   it('sends cookies and skips the CSRF header on GET', async () => {
-    fetchMock.mockResolvedValue(jsonResponse({ ok: true }));
-    const client = new ApiClient({ baseUrl: '/api', getCsrfToken: () => 'csrf-123' });
+    fetchMock.mockResolvedValue(jsonResponse(successBody({ ok: true })));
+    const client = new ApiClient({ baseUrl: '/api/v1', getCsrfToken: () => 'csrf-123' });
 
     await client.get('/me');
 
     const init = lastRequestInit(fetchMock);
-    expect(fetchMock.mock.calls.at(-1)?.[0]).toBe('/api/me');
+    expect(fetchMock.mock.calls.at(-1)?.[0]).toBe('/api/v1/me');
     expect(init.credentials).toBe('include');
     expect((init.headers as Headers).has('x-csrf-token')).toBe(false);
   });
 
   it('attaches the CSRF header on POST when a token is available', async () => {
-    fetchMock.mockResolvedValue(jsonResponse({ ok: true }));
-    const client = new ApiClient({ baseUrl: '/api', getCsrfToken: () => 'csrf-123' });
+    fetchMock.mockResolvedValue(jsonResponse(successBody({ ok: true })));
+    const client = new ApiClient({ baseUrl: '/api/v1', getCsrfToken: () => 'csrf-123' });
 
     await client.post('/sign-in', { phone: '+8801...' });
 
@@ -51,8 +57,8 @@ describe('ApiClient', () => {
   });
 
   it('omits the CSRF header on POST when no token is set yet', async () => {
-    fetchMock.mockResolvedValue(jsonResponse({ ok: true }));
-    const client = new ApiClient({ baseUrl: '/api', getCsrfToken: () => null });
+    fetchMock.mockResolvedValue(jsonResponse(successBody({ ok: true })));
+    const client = new ApiClient({ baseUrl: '/api/v1', getCsrfToken: () => null });
 
     await client.post('/sign-in', {});
 
@@ -61,8 +67,8 @@ describe('ApiClient', () => {
   });
 
   it('sends PATCH with a JSON body and the CSRF header', async () => {
-    fetchMock.mockResolvedValue(jsonResponse({ ok: true }));
-    const client = new ApiClient({ baseUrl: '/api', getCsrfToken: () => 'csrf-123' });
+    fetchMock.mockResolvedValue(jsonResponse(successBody({ ok: true })));
+    const client = new ApiClient({ baseUrl: '/api/v1', getCsrfToken: () => 'csrf-123' });
 
     await client.patch('/staff/1', { active: false });
 
@@ -73,8 +79,8 @@ describe('ApiClient', () => {
   });
 
   it('sends DELETE with the CSRF header and no body', async () => {
-    fetchMock.mockResolvedValue(jsonResponse({ ok: true }));
-    const client = new ApiClient({ baseUrl: '/api', getCsrfToken: () => 'csrf-123' });
+    fetchMock.mockResolvedValue(jsonResponse(successBody({ ok: true })));
+    const client = new ApiClient({ baseUrl: '/api/v1', getCsrfToken: () => 'csrf-123' });
 
     await client.delete('/roles/1');
 
@@ -84,27 +90,34 @@ describe('ApiClient', () => {
     expect(init.body).toBeUndefined();
   });
 
+  it('unwraps the envelope, returning only `data` to the caller', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(successBody({ id: '1', name: 'Fashion House' })));
+    const client = new ApiClient({ baseUrl: '/api/v1', getCsrfToken: () => null });
+
+    await expect(client.get('/me')).resolves.toEqual({ id: '1', name: 'Fashion House' });
+  });
+
   it('returns undefined for a 204 response without reading the body', async () => {
     fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
-    const client = new ApiClient({ baseUrl: '/api', getCsrfToken: () => null });
+    const client = new ApiClient({ baseUrl: '/api/v1', getCsrfToken: () => null });
 
     await expect(client.post('/sign-out')).resolves.toBeUndefined();
   });
 
   it('throws an ApiClientError built from the server error envelope', async () => {
+    const errorBody: ApiErrorBody = {
+      success: false,
+      statusCode: 429,
+      message: 'Too many attempts',
+      errors: { code: 'rate_limited', details: { retryInSeconds: 30 } },
+    };
     fetchMock.mockResolvedValue(
-      jsonResponse(
-        {
-          error: {
-            code: 'rate_limited',
-            message: 'Too many attempts',
-            details: { retryInSeconds: 30 },
-          },
-        },
-        { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': '30' } },
-      ),
+      jsonResponse(errorBody, {
+        status: 429,
+        headers: { 'Content-Type': 'application/json', 'Retry-After': '30' },
+      }),
     );
-    const client = new ApiClient({ baseUrl: '/api', getCsrfToken: () => null });
+    const client = new ApiClient({ baseUrl: '/api/v1', getCsrfToken: () => null });
 
     await expect(client.get('/me')).rejects.toSatisfy((error: unknown) => {
       expect(error).toBeInstanceOf(ApiClientError);
@@ -119,7 +132,7 @@ describe('ApiClient', () => {
 
   it('falls back to a generic error when the response body is not JSON', async () => {
     fetchMock.mockResolvedValue(new Response('not json', { status: 503 }));
-    const client = new ApiClient({ baseUrl: '/api', getCsrfToken: () => null });
+    const client = new ApiClient({ baseUrl: '/api/v1', getCsrfToken: () => null });
 
     await expect(client.get('/me')).rejects.toSatisfy((error: unknown) => {
       expect(error).toBeInstanceOf(ApiClientError);
