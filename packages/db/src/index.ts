@@ -13,6 +13,8 @@ export {
   type TenantSummaryRow,
   type BalanceRow,
   type BillingInfoRow,
+  type LapsingCandidateRow,
+  type PaygCandidateRow,
 } from './repositories/tenancy/tenant.repository';
 export { SlugRepository } from './repositories/tenancy/slug.repository';
 export {

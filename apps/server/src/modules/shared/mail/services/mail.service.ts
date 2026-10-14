@@ -53,6 +53,22 @@ export class MailService {
     return { id, toEmail: to, subject, body };
   }
 
+  /** LIF-18, PYG-21: a platform-sent notice, never billed to the tenant (LIF-10's carve-out). */
+  async queueLifecycleNotice(
+    tx: Transaction,
+    to: string,
+    subject: string,
+    body: string,
+  ): Promise<QueuedMailMessage> {
+    const id = await this.store.insert(tx, {
+      toEmail: to,
+      kind: MailKind.LifecycleNotice,
+      subject,
+      body,
+    });
+    return { id, toEmail: to, subject, body };
+  }
+
   /** Sends a one-time code during its request. A failure is recorded, then reported, since no code arrived. */
   async deliverOtp(message: QueuedMailMessage): Promise<void> {
     try {

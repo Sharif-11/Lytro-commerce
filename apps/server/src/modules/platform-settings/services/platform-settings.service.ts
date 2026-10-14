@@ -21,6 +21,13 @@ const DESCRIPTIONS: Record<PlatformSettingKey, string> = {
     'The smallest amount a tenant may top up in one payment, in TK (BAL-04).',
   [PlatformSettingKey.TopUpMaxAmount]:
     'The largest amount a tenant may top up in one payment, in TK (BAL-04).',
+  [PlatformSettingKey.GraceDays]: 'How many days of grace a lapsed tenant gets (LIF-26, 2.3).',
+  [PlatformSettingKey.ReadOnlyDays]:
+    'How many days after grace a lapsed tenant stays read-only (LIF-26, 2.3).',
+  [PlatformSettingKey.LockedDays]:
+    'How many days after read-only a lapsed tenant stays locked (LIF-26, 2.3).',
+  [PlatformSettingKey.ArchivedDays]:
+    'How many days after locked a lapsed tenant stays archived before deletion (LIF-26, 2.3).',
 };
 
 // A positive-int check, the only shape any key needs today; slice 7 extends this map, not a switch, as more
@@ -32,6 +39,10 @@ const VALIDATORS: Record<PlatformSettingKey, (value: unknown) => boolean> = {
   [PlatformSettingKey.TrialDays]: isPositiveInt,
   [PlatformSettingKey.TopUpMinAmount]: isPositiveInt,
   [PlatformSettingKey.TopUpMaxAmount]: isPositiveInt,
+  [PlatformSettingKey.GraceDays]: isPositiveInt,
+  [PlatformSettingKey.ReadOnlyDays]: isPositiveInt,
+  [PlatformSettingKey.LockedDays]: isPositiveInt,
+  [PlatformSettingKey.ArchivedDays]: isPositiveInt,
 };
 
 function validate(key: PlatformSettingKey, value: unknown): void {

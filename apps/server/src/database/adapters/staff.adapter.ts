@@ -148,4 +148,15 @@ export class DrizzleStaffStore implements StaffStore {
   revokeSessionsOf(tx: Transaction, userId: string, at: Date): Promise<void> {
     return this.sessions.revokeAllForUser(tx, userId, at);
   }
+
+  deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void> {
+    return this.users.deleteAllForTenant(tx, tenantId);
+  }
+
+  findOwnerContact(
+    tx: Transaction,
+    tenantId: string,
+  ): Promise<{ phone: string | null; email: string | null } | null> {
+    return this.users.findOwnerContact(tx, tenantId);
+  }
 }

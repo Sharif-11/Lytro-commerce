@@ -357,6 +357,16 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   DowngradeCancelled: { en: 'Downgrade cancelled.', bn: 'ডাউনগ্রেড বাতিল হয়েছে।' },
   DowngradePreviewed: { en: 'Downgrade preview retrieved.', bn: 'ডাউনগ্রেড প্রিভিউ পাওয়া গেছে।' },
   DowngradeRetrieved: { en: 'Scheduled change retrieved.', bn: 'নির্ধারিত পরিবর্তন পাওয়া গেছে।' },
+  SubscriptionCancelled: {
+    en: 'Subscription cancelled, effective at period end.',
+    bn: 'সাবস্ক্রিপশন বাতিল হয়েছে, মেয়াদ শেষে কার্যকর হবে।',
+  },
+  SubscriptionCancellationUndone: {
+    en: 'Cancellation undone.',
+    bn: 'বাতিল প্রত্যাহার করা হয়েছে।',
+  },
+  TenantSuspended: { en: 'Shop suspended.', bn: 'শপ সাসপেন্ড হয়েছে।' },
+  TenantRestored: { en: 'Shop restored.', bn: 'শপ পুনরুদ্ধার হয়েছে।' },
 
   RolesListed: { en: 'Roles retrieved.', bn: 'রোলগুলো পাওয়া গেছে।' },
   RoleCreated: { en: 'Role created.', bn: 'রোল তৈরি হয়েছে।' },

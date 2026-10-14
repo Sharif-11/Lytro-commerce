@@ -109,4 +109,12 @@ export class RoleRepository {
     await this.transactions.setTenantContext(tx, tenantId);
     await tx.insert(userRoles).values({ tenantId, userId, roleId }).onConflictDoNothing();
   }
+
+  /** LIF-19: deletes every role assignment and role of the shop. Must run before UserRepository.deleteAllForTenant
+   * (user_roles' foreign keys reference users with no cascade). */
+  async deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    await tx.delete(userRoles).where(eq(userRoles.tenantId, tenantId));
+    await tx.delete(roles).where(eq(roles.tenantId, tenantId));
+  }
 }

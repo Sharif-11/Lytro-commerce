@@ -7,9 +7,11 @@ import {
   TransactionRunner,
   type BalanceRow,
   type BillingInfoRow,
+  type LapsingCandidateRow,
+  type PaygCandidateRow,
   type Transaction,
 } from '@lytronix/db';
-import type { PlanLimits } from '@lytronix/validators';
+import type { PlanLimits, TenantState } from '@lytronix/validators';
 import { UniqueViolation } from '../../common/errors/unique-violation';
 import type { CachedTenant } from '../../modules/tenancy/types/cached-tenant';
 import type { TenantDirectory } from '../../modules/tenancy/ports/tenant-directory';
@@ -115,6 +117,38 @@ export class DrizzleTenantStore implements TenantStore {
     options?: { frozen?: boolean; touchActivityAt?: Date },
   ): Promise<void> {
     return this.tenants.applyBalanceChange(tx, tenantId, amount, options);
+  }
+
+  setLifecycleState(tx: Transaction, tenantId: string, state: TenantState): Promise<void> {
+    return this.tenants.setLifecycleState(tx, tenantId, state);
+  }
+
+  setSuspension(tx: Transaction, tenantId: string, reason: string, at: Date): Promise<void> {
+    return this.tenants.setSuspension(tx, tenantId, reason, at);
+  }
+
+  clearSuspension(tx: Transaction, tenantId: string): Promise<void> {
+    return this.tenants.clearSuspension(tx, tenantId);
+  }
+
+  setCancellation(tx: Transaction, tenantId: string, cancelledAt: Date | null): Promise<void> {
+    return this.tenants.setCancellation(tx, tenantId, cancelledAt);
+  }
+
+  markDeleted(tx: Transaction, tenantId: string, at: Date): Promise<void> {
+    return this.tenants.markDeleted(tx, tenantId, at);
+  }
+
+  findLapsingCandidates(tx: Transaction, now: Date): Promise<LapsingCandidateRow[]> {
+    return this.tenants.findLapsingCandidates(tx, now);
+  }
+
+  findPaygInactiveCandidates(tx: Transaction): Promise<PaygCandidateRow[]> {
+    return this.tenants.findPaygInactiveCandidates(tx);
+  }
+
+  findPaygArchivedCandidates(tx: Transaction): Promise<PaygCandidateRow[]> {
+    return this.tenants.findPaygArchivedCandidates(tx);
   }
 }
 

@@ -58,6 +58,9 @@ export enum ChallengeKind {
 export enum SmsKind {
   Otp = 'otp',
   ShopReady = 'shop_ready',
+  // LIF-18, PYG-21: a platform-sent notice (deletion warning, inactivity warning) -- never charged to the
+  // tenant and never counted toward its essential-SMS allowance (the same carve-out as LIF-10).
+  LifecycleNotice = 'lifecycle_notice',
 }
 
 export enum SmsStatus {
@@ -71,6 +74,8 @@ export enum SmsStatus {
 export enum MailKind {
   Otp = 'otp',
   ShopReady = 'shop_ready',
+  // LIF-18, PYG-21: mirrors SmsKind.LifecycleNotice above.
+  LifecycleNotice = 'lifecycle_notice',
 }
 
 export enum MailStatus {
@@ -153,6 +158,16 @@ export enum AuditAction {
   // DWN-06/08/17: the system applying an already-scheduled downgrade at its effective date -- D2-5 puts
   // this on the tenant's own log only, the same split TRL-07's trial-conversion job already established.
   DowngradeApplied = 'downgrade_applied',
+  // LIF-01: the owner's own cancellation intent, set and cleared before period end.
+  SubscriptionCancelled = 'subscription_cancelled',
+  SubscriptionCancellationUndone = 'subscription_cancellation_undone',
+  // LIF-18: a day-45/57 deletion warning. System-caused, tenant's own log (same split as LifecycleStateChanged).
+  DeletionWarningSent = 'deletion_warning_sent',
+  // LIF-19: the day-60 business-data deletion itself.
+  TenantDeleted = 'tenant_deleted',
+  // LIF-24: an operator's suspend/restore, mirrored to the platform log (PlatformAuditAction below).
+  TenantSuspended = 'tenant_suspended',
+  TenantRestored = 'tenant_restored',
 }
 
 // The pg-boss queues this codebase uses (SCL-08, D25). Add a name here before any code enqueues to it.
@@ -162,6 +177,10 @@ export enum QueueName {
   // D27: a bounded retry for an OTP's failed synchronous send, kept apart from `Sms` since its jobs carry a
   // plaintext code and expire with that code, unlike whatever `Sms` ends up carrying later.
   OtpRetry = 'otp_retry',
+  // D2-6: the recurring lifecycle tick (LIF-03). The first queue in this codebase driven by pg-boss's own
+  // `schedule()` (a cron), not the transactional outbox -- there is no single business transaction to anchor
+  // a periodic scan to.
+  LifecycleTick = 'lifecycle_tick',
 }
 
 // Who performed the action (AUD-02). `system` is the platform itself (a scheduled job); `platform_support` is an
@@ -214,6 +233,9 @@ export enum PlatformAuditAction {
   // hosted-page/gateway verification. Approving activates the plan or credits the balance (BIL-05/BAL-03).
   PlanPaymentVerified = 'plan_payment_verified',
   PlanPaymentRejected = 'plan_payment_rejected',
+  // LIF-24: mirrors AuditAction.TenantSuspended/TenantRestored above (D2-5).
+  TenantSuspended = 'tenant_suspended',
+  TenantRestored = 'tenant_restored',
 }
 
 // BAL-02: what a balance-ledger entry is for. One list, shared by every module that ever charges or credits a
@@ -252,6 +274,12 @@ export enum PlatformSettingKey {
   // never retroactive to a quote already created (slice 4 reads these at quote time, not at confirm time).
   TopUpMinAmount = 'top_up_min_amount',
   TopUpMaxAmount = 'top_up_max_amount',
+  // LIF-26, §2.3: the lifecycle stage lengths, each a day-count from the *start* of that stage (not
+  // cumulative from period end) -- grace 0-3, read_only 3-7, locked 7-15, archived 15-60 by default.
+  GraceDays = 'grace_days',
+  ReadOnlyDays = 'read_only_days',
+  LockedDays = 'locked_days',
+  ArchivedDays = 'archived_days',
 }
 
 // D2-1: what a control.plan_payments row is for -- a purchase, a renewal, an upgrade, or a balance top-up.

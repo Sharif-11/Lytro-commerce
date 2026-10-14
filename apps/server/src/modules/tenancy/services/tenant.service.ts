@@ -120,4 +120,51 @@ export class TenantService {
   findBillingInfo(tx: Transaction, tenantId: string): Promise<BillingInfoRow | null> {
     return this.store.findBillingInfo(tx, tenantId);
   }
+
+  /** LIF-03/04/23: the lifecycle job's own state write -- plan, period and balance are untouched. */
+  setLifecycleState(tx: Transaction, tenantId: string, state: TenantState): Promise<void> {
+    return this.store.setLifecycleState(tx, tenantId, state);
+  }
+
+  /** LIF-24: an operator closing the public/dashboard side for cause, independent of `state`. */
+  setSuspension(tx: Transaction, tenantId: string, reason: string, at: Date): Promise<void> {
+    return this.store.setSuspension(tx, tenantId, reason, at);
+  }
+
+  /** LIF-15/24: lifts a suspension -- restore (any plan activation) and operator restore both call this. */
+  clearSuspension(tx: Transaction, tenantId: string): Promise<void> {
+    return this.store.clearSuspension(tx, tenantId);
+  }
+
+  /** LIF-01: sets or clears the owner's own non-renewal intent. */
+  setCancellation(tx: Transaction, tenantId: string, cancelledAt: Date | null): Promise<void> {
+    return this.store.setCancellation(tx, tenantId, cancelledAt);
+  }
+
+  /** LIF-19: the day-60 deletion job's own state/marker write. */
+  markDeleted(tx: Transaction, tenantId: string, at: Date): Promise<void> {
+    return this.store.markDeleted(tx, tenantId, at);
+  }
+
+  /** LIF-03/04: every tenant whose lifecycle state is derived from a running period, not yet deleted. */
+  findLapsingCandidates(
+    tx: Transaction,
+    now: Date,
+  ): Promise<Awaited<ReturnType<TenantStore['findLapsingCandidates']>>> {
+    return this.store.findLapsingCandidates(tx, now);
+  }
+
+  /** PYG-21: every pay-as-you-go tenant, not yet deleted. */
+  findPaygInactiveCandidates(
+    tx: Transaction,
+  ): Promise<Awaited<ReturnType<TenantStore['findPaygInactiveCandidates']>>> {
+    return this.store.findPaygInactiveCandidates(tx);
+  }
+
+  /** PYG-21/LIF-19: tenants already archived by the inactivity pass, awaiting their own day-60 deletion. */
+  findPaygArchivedCandidates(
+    tx: Transaction,
+  ): Promise<Awaited<ReturnType<TenantStore['findPaygArchivedCandidates']>>> {
+    return this.store.findPaygArchivedCandidates(tx);
+  }
 }

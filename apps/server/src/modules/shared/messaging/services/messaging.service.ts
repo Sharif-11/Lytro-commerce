@@ -50,6 +50,16 @@ export class MessagingService {
     return { id, toPhone: phone, body };
   }
 
+  /** LIF-18, PYG-21: a platform-sent notice, never billed to the tenant (LIF-10's carve-out). */
+  async queueLifecycleNotice(tx: Transaction, phone: string, body: string): Promise<QueuedMessage> {
+    const id = await this.store.insert(tx, {
+      toPhone: phone,
+      kind: SmsKind.LifecycleNotice,
+      body,
+    });
+    return { id, toPhone: phone, body };
+  }
+
   /** Sends a one-time code during its request. A failure is recorded, then reported, since no code arrived. */
   async deliverOtp(message: QueuedMessage): Promise<void> {
     try {

@@ -21,6 +21,7 @@ import type { PlanPaymentRecord } from '../../payments/types/plan-payment';
 import { TenantService } from '../../tenancy/services/tenant.service';
 import { CLOCK } from '../tokens';
 import { BillingTermsService } from './billing-terms.service';
+import { DowngradeService } from './downgrade.service';
 import { PlansService } from './plans.service';
 
 // BIL-09: a quote's price is held for 30 minutes.
@@ -50,6 +51,7 @@ export class PurchaseService {
     @Inject(TenantService) private readonly tenants: TenantService,
     @Inject(BalanceService) private readonly balance: BalanceService,
     @Inject(AuditService) private readonly audit: AuditService,
+    @Inject(DowngradeService) private readonly downgrade: DowngradeService,
     @Inject(CLOCK) private readonly clock: () => Date,
   ) {}
 
@@ -102,6 +104,9 @@ export class PurchaseService {
         throw new ApiError('conflict', 'QuoteExpired', {});
       }
 
+      // LIF-15: a lapsed tenant's balance is frozen, which would otherwise block the very charge that pays
+      // to restore it -- unfreeze first, so a locked/archived tenant can still buy a plan from balance.
+      await this.balance.unfreeze(tx, tenantId);
       await this.balance.charge(tx, {
         tenantId,
         type: LedgerEntryType.PlanPayment,
@@ -146,6 +151,14 @@ export class PurchaseService {
       periodEnd,
       state: TenantState.Active,
     });
+    // LIF-15: a purchase/renewal at any time before deletion restores the tenant exactly as it was. An
+    // operator's own suspension (LIF-24) is deliberately not cleared here -- that is an operator-only
+    // action (`restore`), not something a tenant can buy its way out of. Known simplification: `frozen` is
+    // one flag shared by both reasons (lifecycle lapse and operator suspension), so a purchase unfreezes it
+    // even if an operator-imposed suspension is still logically in force; the dashboard itself stays blocked
+    // regardless (DashboardGuard/TenantResolver check `suspendedAt` directly, not the frozen flag).
+    await this.balance.unfreeze(tx, payment.tenantId);
+    await this.downgrade.cancelIfScheduled(tx, payment.tenantId);
 
     const invoice = await this.invoices.issue(tx, {
       tenantId: payment.tenantId,

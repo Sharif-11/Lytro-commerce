@@ -28,4 +28,6 @@ export interface RoleStore {
   permissionsOf(tx: Transaction, tenantId: string, userId: string): Promise<string[]>;
   /** Every user's role ids in the shop, as (user, role) pairs. */
   assignments(tx: Transaction, tenantId: string): Promise<{ userId: string; roleId: string }[]>;
+  /** LIF-19: deletes every role assignment and role of the shop. Call before StaffStore.deleteAllForTenant. */
+  deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void>;
 }
