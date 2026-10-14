@@ -17,13 +17,21 @@ import type { PlatformSettingValue } from '../types/platform-setting';
 // scattered across callers.
 const DESCRIPTIONS: Record<PlatformSettingKey, string> = {
   [PlatformSettingKey.TrialDays]: 'How many days a new shop stays on the Trial plan (TRL-01).',
+  [PlatformSettingKey.TopUpMinAmount]:
+    'The smallest amount a tenant may top up in one payment, in TK (BAL-04).',
+  [PlatformSettingKey.TopUpMaxAmount]:
+    'The largest amount a tenant may top up in one payment, in TK (BAL-04).',
 };
 
 // A positive-int check, the only shape any key needs today; slice 7 extends this map, not a switch, as more
 // keys with different value shapes arrive (avoids an exhaustive switch with only one real case for now).
+const isPositiveInt = (value: unknown): boolean =>
+  typeof value === 'number' && Number.isInteger(value) && value > 0;
+
 const VALIDATORS: Record<PlatformSettingKey, (value: unknown) => boolean> = {
-  [PlatformSettingKey.TrialDays]: (value) =>
-    typeof value === 'number' && Number.isInteger(value) && value > 0,
+  [PlatformSettingKey.TrialDays]: isPositiveInt,
+  [PlatformSettingKey.TopUpMinAmount]: isPositiveInt,
+  [PlatformSettingKey.TopUpMaxAmount]: isPositiveInt,
 };
 
 function validate(key: PlatformSettingKey, value: unknown): void {

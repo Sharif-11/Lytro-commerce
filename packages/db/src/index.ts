@@ -12,6 +12,7 @@ export {
   type TenantLookupRow,
   type TenantSummaryRow,
   type BalanceRow,
+  type BillingInfoRow,
 } from './repositories/tenancy/tenant.repository';
 export { SlugRepository } from './repositories/tenancy/slug.repository';
 export {
@@ -86,3 +87,14 @@ export {
 } from './repositories/billing/billing-terms.repository';
 export { PlanAssignmentsRepository } from './repositories/billing/plan-assignments.repository';
 export { PlanLimitOverridesRepository } from './repositories/billing/plan-limit-overrides.repository';
+export {
+  InvoiceCountersRepository,
+  InvoicesRepository,
+  type NewInvoice,
+} from './repositories/billing/invoices.repository';
+export {
+  PlanPaymentsRepository,
+  UsedTransactionIdsRepository,
+  type NewPlanPayment,
+} from './repositories/billing/plan-payments.repository';
+export { IdempotencyKeysRepository } from './repositories/platform/idempotency-keys.repository';

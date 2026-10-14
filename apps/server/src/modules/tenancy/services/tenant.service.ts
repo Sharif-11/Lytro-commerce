@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { BalanceRow, Transaction } from '@lytronix/db';
+import type { BalanceRow, BillingInfoRow, Transaction } from '@lytronix/db';
 import { PlatformSettingKey, type PlanLimits, type TenantState } from '@lytronix/validators';
 import { DAY_MS } from '../../../common/time';
 import { StaffService } from '../../staff/services/staff.service';
@@ -114,5 +114,10 @@ export class TenantService {
   /** TRL-07: trials whose period has ended with no purchase -- the trial-end job's candidate list. */
   findExpiredTrialIds(tx: Transaction, now: Date): Promise<string[]> {
     return this.store.findExpiredTrialIds(tx, now);
+  }
+
+  /** BIL-10/11: what a purchase/renewal confirmation needs to decide extend-vs-restart, read in its own tx. */
+  findBillingInfo(tx: Transaction, tenantId: string): Promise<BillingInfoRow | null> {
+    return this.store.findBillingInfo(tx, tenantId);
   }
 }

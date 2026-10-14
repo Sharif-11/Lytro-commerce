@@ -6,6 +6,7 @@ import {
   TRIAL_PLAN_NAME,
   TransactionRunner,
   type BalanceRow,
+  type BillingInfoRow,
   type Transaction,
 } from '@lytronix/db';
 import type { PlanLimits } from '@lytronix/validators';
@@ -71,6 +72,10 @@ export class DrizzleTenantStore implements TenantStore {
 
   findExpiredTrialIds(tx: Transaction, now: Date): Promise<string[]> {
     return this.tenants.findExpiredTrialIds(tx, now);
+  }
+
+  findBillingInfo(tx: Transaction, tenantId: string): Promise<BillingInfoRow | null> {
+    return this.tenants.findBillingInfo(tx, tenantId);
   }
 
   async insertTenant(

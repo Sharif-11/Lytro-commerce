@@ -1,5 +1,16 @@
-import { Controller, Get, Inject, Query, Req, UseGuards } from '@nestjs/common';
-import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Get,
+  Inject,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
+import { ApiBody, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { IdempotencyInterceptor } from '../../../common/idempotency/idempotency.interceptor';
 import { ZodResponse } from 'nestjs-zod';
 import { LedgerEntryType, Permission } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
@@ -12,10 +23,13 @@ import { SessionGuard } from '../../identity/guards/session.guard';
 import { PermissionGuard } from '../guards/permission.guard';
 import { BalanceService } from '../../balance/services/balance.service';
 import { RateService } from '../../balance/services/rate.service';
+import { TopUpService } from '../../balance/services/top-up.service';
 import type { BalanceSnapshot, LedgerPage } from '../../balance/types/ledger-entry';
 import type { RateValue } from '../../balance/types/rate';
-import { ListLedgerDto } from '../dto/balance.dto';
+import type { PlanPaymentRecord } from '../../payments/types/plan-payment';
+import { ConfirmTopUpDto, ListLedgerDto, QuoteTopUpDto } from '../dto/balance.dto';
 import { BalanceSnapshotDto, LedgerPageDto, RateValueDto } from '../dto/balance-response.dto';
+import { PlanPaymentDto } from '../dto/billing-response.dto';
 
 // BAL-01, BAL-08, BAL-14, RAT-06: a tenant's own balance, statement and current rates.
 @ApiTags('Balance')
@@ -26,6 +40,7 @@ export class BalanceController {
   constructor(
     @Inject(BalanceService) private readonly balance: BalanceService,
     @Inject(RateService) private readonly rates: RateService,
+    @Inject(TopUpService) private readonly topUp: TopUpService,
   ) {}
 
   @Get()
@@ -66,6 +81,37 @@ export class BalanceController {
   @ZodResponse({ type: [RateValueDto] })
   currentRates(): Promise<RateValue[]> {
     return this.rates.list();
+  }
+
+  @Post('top-up/quote')
+  @RequirePermission(Permission.BalanceManage)
+  @ResponseMessage('TopUpQuoted')
+  @ApiOperation({ summary: 'Quote a balance top-up' })
+  @ApiBody({ type: QuoteTopUpDto })
+  @ZodResponse({ type: PlanPaymentDto })
+  quoteTopUp(
+    @Body(new ZodValidationPipe(QuoteTopUpDto.schema)) body: QuoteTopUpDto,
+    @Req() request: DashboardRequest,
+  ): Promise<PlanPaymentRecord> {
+    return this.topUp.quote(this.tenantIdOf(request), body.amount.toFixed(2));
+  }
+
+  @Post('top-up/confirm')
+  @UseInterceptors(IdempotencyInterceptor)
+  @RequirePermission(Permission.BalanceManage)
+  @ResponseMessage('TopUpConfirmed')
+  @ApiOperation({ summary: 'Submit a wallet payment for a top-up' })
+  @ApiBody({ type: ConfirmTopUpDto })
+  @ZodResponse({ type: PlanPaymentDto })
+  confirmTopUp(
+    @Body(new ZodValidationPipe(ConfirmTopUpDto.schema)) body: ConfirmTopUpDto,
+    @Req() request: DashboardRequest,
+  ): Promise<PlanPaymentRecord> {
+    return this.topUp.submit(body.paymentId, this.tenantIdOf(request), {
+      transactionId: body.transactionId,
+      senderNumber: body.senderNumber,
+      amountPaid: body.amountPaid.toFixed(2),
+    });
   }
 
   private tenantIdOf(request: DashboardRequest): string {

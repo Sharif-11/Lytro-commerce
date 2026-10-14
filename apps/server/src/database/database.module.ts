@@ -28,6 +28,11 @@ import {
   PlanAssignmentsRepository,
   PlanLimitOverridesRepository,
   PlatformSettingsRepository,
+  InvoiceCountersRepository,
+  InvoicesRepository,
+  PlanPaymentsRepository,
+  UsedTransactionIdsRepository,
+  IdempotencyKeysRepository,
 } from '@lytronix/db';
 import { EnvironmentParser } from '../config/env';
 import { ENV } from '../config/tokens';
@@ -93,6 +98,11 @@ import { DatabaseService } from './database.service';
     { provide: PlanAssignmentsRepository, useFactory: () => new PlanAssignmentsRepository() },
     { provide: PlanLimitOverridesRepository, useFactory: () => new PlanLimitOverridesRepository() },
     { provide: PlatformSettingsRepository, useFactory: () => new PlatformSettingsRepository() },
+    { provide: InvoiceCountersRepository, useFactory: () => new InvoiceCountersRepository() },
+    { provide: InvoicesRepository, useFactory: () => new InvoicesRepository() },
+    { provide: PlanPaymentsRepository, useFactory: () => new PlanPaymentsRepository() },
+    { provide: UsedTransactionIdsRepository, useFactory: () => new UsedTransactionIdsRepository() },
+    { provide: IdempotencyKeysRepository, useFactory: () => new IdempotencyKeysRepository() },
   ],
   exports: [
     ENV,
@@ -125,6 +135,11 @@ import { DatabaseService } from './database.service';
     PlanAssignmentsRepository,
     PlanLimitOverridesRepository,
     PlatformSettingsRepository,
+    InvoiceCountersRepository,
+    InvoicesRepository,
+    PlanPaymentsRepository,
+    UsedTransactionIdsRepository,
+    IdempotencyKeysRepository,
   ],
 })
 export class DatabaseModule {}

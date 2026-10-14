@@ -7,6 +7,7 @@ export interface TenantSummary {
   shopName: string;
   state: TenantState;
   suspendedAt: Date | null;
+  planId: string | null;
   planName: string | null;
   planLimits: PlanLimits | null;
   periodEnd: Date | null;

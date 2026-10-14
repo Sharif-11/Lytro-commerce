@@ -6,8 +6,10 @@ import { TenancyModule } from '../tenancy/tenancy.module';
 import { OperatorModule } from '../operator/operator.module';
 import { BalanceModule } from '../balance/balance.module';
 import { BillingModule } from '../billing/billing.module';
+import { PaymentsModule } from '../payments/payments.module';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
 import { ClientIp } from '../../common/client-ip';
+import { IdempotencyModule } from '../../common/idempotency/idempotency.module';
 import { ActivityController } from './controllers/activity.controller';
 import { RolesController } from './controllers/roles.controller';
 import { StaffAuthController } from './controllers/staff-auth.controller';
@@ -22,6 +24,8 @@ import {
 } from './controllers/operator-billing-terms.controller';
 import { OperatorPlanLimitOverridesController } from './controllers/operator-plan-limit-overrides.controller';
 import { OperatorSettingsController } from './controllers/operator-settings.controller';
+import { BillingController } from './controllers/billing.controller';
+import { OperatorPaymentQueueController } from './controllers/operator-payment-queue.controller';
 import { ActivityListService } from './services/activity-list.service';
 import { StaffSigninService } from './services/staff-signin.service';
 import { StaffController } from './controllers/staff.controller';
@@ -39,7 +43,9 @@ import { StaffController } from './controllers/staff.controller';
     OperatorModule,
     BalanceModule,
     BillingModule,
+    PaymentsModule,
     PlatformSettingsModule,
+    IdempotencyModule,
   ],
   controllers: [
     StaffController,
@@ -55,6 +61,8 @@ import { StaffController } from './controllers/staff.controller';
     OperatorPlanPricesController,
     OperatorPlanLimitOverridesController,
     OperatorSettingsController,
+    BillingController,
+    OperatorPaymentQueueController,
   ],
   providers: [StaffSigninService, ActivityListService, ClientIp],
 })

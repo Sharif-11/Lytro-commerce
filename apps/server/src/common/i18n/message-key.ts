@@ -19,6 +19,8 @@ export const MESSAGE_KEYS = [
   'ReasonRequired',
   'SettingValueInvalid',
   'PleaseTryAgain',
+  'IdempotencyKeyConflict',
+  'IdempotencyRequestInProgress',
 
   // Balance / rates
   'BalanceFrozen',
@@ -33,6 +35,15 @@ export const MESSAGE_KEYS = [
   'PlanNotFound',
   'PlanRankTaken',
   'PlanInUse',
+  'PriceNotFound',
+  'InvoiceNotFound',
+  'PlanPaymentNotFound',
+  'PlanPaymentNotPending',
+  'TransactionIdAlreadyUsed',
+  'TransactionIdRequired',
+  'QuoteExpired',
+  'AmountOutOfRange',
+  'TopUpNotAvailable',
 
   // Identity / sign-in / codes
   'FacebookSignInNotConfirmed',
@@ -132,6 +143,17 @@ export const MESSAGE_KEYS = [
   'RateUpdated',
   'SettingsListed',
   'SettingUpdated',
+
+  // Success -- purchase / top-up / invoices / payment queue
+  'QuoteCreated',
+  'PurchaseConfirmed',
+  'TopUpQuoted',
+  'TopUpConfirmed',
+  'InvoicesListed',
+  'InvoiceRetrieved',
+  'PaymentQueueListed',
+  'PaymentApproved',
+  'PaymentRejected',
 
   // Success -- roles / staff
   'RolesListed',

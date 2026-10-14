@@ -14,6 +14,8 @@ export const ERROR_CODES = [
   'quota_exceeded',
   'service_unavailable',
   'internal_error',
+  // API-11: a replayed Idempotency-Key whose body doesn't match the original request.
+  'idempotency_conflict',
 ] as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[number];
