@@ -22,6 +22,7 @@ export function errorMessage(error: unknown, t: TFunction): string {
         ? t('errors.rateLimited')
         : formatRetryAfter(error.retryAfterSeconds, t);
     case 'conflict':
+    case 'idempotency_conflict':
       return t('errors.conflict');
     case 'validation_error':
       return t('errors.validation');
