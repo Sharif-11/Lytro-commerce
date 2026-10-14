@@ -46,6 +46,26 @@ export class PlanPaymentsRepository {
     return tx.select().from(planPayments).where(conditions).orderBy(desc(planPayments.quotedAt));
   }
 
+  /** UPG-08: any not-yet-decided row of this kind for this tenant, submitted or not -- the one-pending check. */
+  async findActiveForTenant(
+    tx: Executor,
+    tenantId: string,
+    kind: PlanPaymentKind,
+  ): Promise<SelectPlanPayment | null> {
+    const rows = await tx
+      .select()
+      .from(planPayments)
+      .where(
+        and(
+          eq(planPayments.tenantId, tenantId),
+          eq(planPayments.kind, kind),
+          inArray(planPayments.status, [PlanPaymentStatus.Pending, PlanPaymentStatus.NeedsReview]),
+        ),
+      )
+      .limit(1);
+    return rows[0] ?? null;
+  }
+
   async setStatus(
     tx: Executor,
     id: string,

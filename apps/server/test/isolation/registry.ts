@@ -50,4 +50,6 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'POST /billing/purchase': "another shop's payment id answers not_found",
   'GET /billing/invoices': "lists only the session shop's own invoices",
   'GET /billing/invoices/:id': "another shop's invoice id answers not_found",
+  'POST /billing/upgrade/quote': 'creates an upgrade quote scoped to the session shop only',
+  'POST /billing/upgrade/confirm': "another shop's payment id answers not_found",
 };

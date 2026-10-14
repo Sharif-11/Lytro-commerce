@@ -49,6 +49,39 @@ export class PlanPaymentsService {
     return this.store.run((tx) => this.store.listPending(tx, kind));
   }
 
+  /** UPG-08: whether this tenant already has an undecided row of this kind, submitted or not. */
+  findActiveForTenant(tenantId: string, kind: PlanPaymentKind): Promise<PlanPaymentRecord | null> {
+    return this.store.run((tx) => this.store.findActiveForTenant(tx, tenantId, kind));
+  }
+
+  /**
+   * The shared "I have paid" wallet step every kind of payment uses: verifies the payment belongs to this
+   * tenant, then records the submission (BIL-02/BAL-03). Nothing activates until an operator later approves it.
+   */
+  async submitWalletPayment(
+    paymentId: string,
+    tenantId: string,
+    input: { transactionId: string; senderNumber: string; amountPaid: string },
+    expectedKind?: PlanPaymentKind,
+  ): Promise<PlanPaymentRecord> {
+    await this.store.run(async (tx) => {
+      const payment = await this.store.findByIdForUpdate(tx, paymentId);
+      if (
+        !payment ||
+        payment.tenantId !== tenantId ||
+        (expectedKind !== undefined && payment.kind !== expectedKind)
+      ) {
+        throw new ApiError('not_found', 'PlanPaymentNotFound', {});
+      }
+      await this.recordSubmission(tx, paymentId, {
+        transactionId: input.transactionId,
+        senderNumber: input.senderNumber,
+        matchesQuoted: input.amountPaid === payment.amount,
+      });
+    });
+    return this.find(paymentId);
+  }
+
   /**
    * BIL-02/BAL-03: a wallet payment's "I have paid" step. `matchesQuoted` decides which bucket it lands in
    * (BIL-06) -- either way nothing activates until an operator later calls `approve`. Refuses a row that was

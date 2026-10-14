@@ -10,3 +10,13 @@ export function addMonths(date: Date, months: number): Date {
   result.setUTCMonth(result.getUTCMonth() + months);
   return result;
 }
+
+/** UPG-03: the actual days between two stored dates (a period's own real length, never an assumed 30/365). */
+export function daysBetween(from: Date, to: Date): number {
+  return Math.round((to.getTime() - from.getTime()) / DAY_MS);
+}
+
+/** UPG-03: whole days remaining until `to`, rounded up -- a part-day still counts as a full day owed. */
+export function daysUntil(now: Date, to: Date): number {
+  return Math.ceil((to.getTime() - now.getTime()) / DAY_MS);
+}

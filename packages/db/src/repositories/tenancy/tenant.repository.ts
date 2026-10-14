@@ -190,11 +190,16 @@ export class TenantRepository {
     return rows.map((row) => row.id);
   }
 
-  /** BIL-10/11: a transaction-scoped read of exactly what a purchase/renewal confirmation needs to decide
-   * whether to extend the running period or start a fresh one. */
+  /** BIL-10/11/UPG-03: a transaction-scoped read of what a purchase/renewal/upgrade confirmation needs to
+   * decide whether to extend, restart, or prorate the running period. */
   async findBillingInfo(tx: Executor, id: string): Promise<BillingInfoRow | null> {
     const rows = await tx
-      .select({ state: tenants.state, planId: tenants.planId, periodEnd: tenants.periodEnd })
+      .select({
+        state: tenants.state,
+        planId: tenants.planId,
+        periodStart: tenants.periodStart,
+        periodEnd: tenants.periodEnd,
+      })
       .from(tenants)
       .where(eq(tenants.id, id))
       .limit(1);
@@ -205,6 +210,7 @@ export class TenantRepository {
 export interface BillingInfoRow {
   state: TenantState;
   planId: string | null;
+  periodStart: Date | null;
   periodEnd: Date | null;
 }
 

@@ -155,6 +155,8 @@ describeIfDatabase('route inventory against the application (SEC-02)', () => {
       'POST /balance/top-up/quote',
       'POST /billing/purchase',
       'POST /billing/quote',
+      'POST /billing/upgrade/confirm',
+      'POST /billing/upgrade/quote',
       'POST /me/identities/code',
       'POST /me/identities/oauth/:provider/start',
       'POST /me/identities/verify',

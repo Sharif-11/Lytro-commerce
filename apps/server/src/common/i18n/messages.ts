@@ -97,6 +97,22 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'Top-up is not available in the shop’s current state.',
     bn: 'শপের বর্তমান অবস্থায় টপ-আপ উপলব্ধ নয়।',
   },
+  UpgradeNotAvailable: {
+    en: 'Upgrade is only available while your plan is active.',
+    bn: 'আপগ্রেড শুধুমাত্র প্ল্যান চালু থাকলে উপলব্ধ।',
+  },
+  UpgradeMustBeHigherRank: {
+    en: 'You can only upgrade to a higher plan.',
+    bn: 'আপনি শুধুমাত্র উচ্চতর প্ল্যানে আপগ্রেড করতে পারবেন।',
+  },
+  UpgradePending: {
+    en: 'An upgrade is already pending for this shop.',
+    bn: 'এই শপের জন্য একটি আপগ্রেড ইতিমধ্যে পেন্ডিং আছে।',
+  },
+  UpgradeNotWorthwhile: {
+    en: 'The credit for your remaining days covers this plan and term. Please choose a longer term.',
+    bn: 'আপনার বাকি দিনের ক্রেডিট এই প্ল্যান ও মেয়াদের দাম কভার করে। অনুগ্রহ করে দীর্ঘ মেয়াদ বেছে নিন।',
+  },
 
   FacebookSignInNotConfirmed: {
     en: 'Facebook did not confirm your sign-in.',
@@ -322,6 +338,9 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   PaymentQueueListed: { en: 'Payment queue retrieved.', bn: 'পেমেন্ট কিউ পাওয়া গেছে।' },
   PaymentApproved: { en: 'Payment approved.', bn: 'পেমেন্ট অনুমোদিত হয়েছে।' },
   PaymentRejected: { en: 'Payment rejected.', bn: 'পেমেন্ট বাতিল হয়েছে।' },
+  UpgradeQuoted: { en: 'Upgrade quote created.', bn: 'আপগ্রেড কোট তৈরি হয়েছে।' },
+  UpgradeSubmitted: { en: 'Upgrade payment submitted.', bn: 'আপগ্রেড পেমেন্ট জমা দেওয়া হয়েছে।' },
+  UpgradeConfirmed: { en: 'Upgrade confirmed.', bn: 'আপগ্রেড নিশ্চিত হয়েছে।' },
 
   RolesListed: { en: 'Roles retrieved.', bn: 'রোলগুলো পাওয়া গেছে।' },
   RoleCreated: { en: 'Role created.', bn: 'রোল তৈরি হয়েছে।' },
