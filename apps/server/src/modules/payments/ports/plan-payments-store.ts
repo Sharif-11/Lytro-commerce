@@ -27,6 +27,12 @@ export interface PlanPaymentsStore {
   /** Locks the row for the rest of the transaction -- a confirm/reject reads-then-writes it atomically. */
   findByIdForUpdate(tx: Transaction, id: string): Promise<PlanPaymentRecord | null>;
   listPending(tx: Transaction, kind?: PlanPaymentKind): Promise<PlanPaymentRecord[]>;
+  /** UPG-08: any not-yet-decided row of this kind for this tenant, submitted or not. */
+  findActiveForTenant(
+    tx: Transaction,
+    tenantId: string,
+    kind: PlanPaymentKind,
+  ): Promise<PlanPaymentRecord | null>;
   setStatus(tx: Transaction, id: string, values: PlanPaymentStatusValues): Promise<void>;
   /** BIL-07/BAL-05: true if this transaction ID has ever been used, by any tenant, including deleted ones. */
   transactionIdUsed(tx: Transaction, transactionId: string): Promise<boolean>;

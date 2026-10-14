@@ -22,10 +22,16 @@ import { DashboardGuard, type DashboardRequest } from '../../identity/guards/das
 import { SessionGuard } from '../../identity/guards/session.guard';
 import { PermissionGuard } from '../guards/permission.guard';
 import { PurchaseService } from '../../billing/services/purchase.service';
+import { UpgradeService } from '../../billing/services/upgrade.service';
 import { InvoicesService } from '../../payments/services/invoices.service';
 import type { InvoiceRecord } from '../../payments/types/invoice';
 import type { PlanPaymentRecord } from '../../payments/types/plan-payment';
-import { ConfirmPurchaseDto, QuotePurchaseDto } from '../dto/billing.dto';
+import {
+  ConfirmPurchaseDto,
+  ConfirmUpgradeDto,
+  QuotePurchaseDto,
+  QuoteUpgradeDto,
+} from '../dto/billing.dto';
 import { InvoiceDto, InvoiceListDto, PlanPaymentDto } from '../dto/billing-response.dto';
 
 // BIL-01 to BIL-13: a tenant's own purchase/renewal flow and invoices.
@@ -36,6 +42,7 @@ import { InvoiceDto, InvoiceListDto, PlanPaymentDto } from '../dto/billing-respo
 export class BillingController {
   constructor(
     @Inject(PurchaseService) private readonly purchase: PurchaseService,
+    @Inject(UpgradeService) private readonly upgrade: UpgradeService,
     @Inject(InvoicesService) private readonly invoices: InvoicesService,
   ) {}
 
@@ -71,6 +78,42 @@ export class BillingController {
       throw new ApiError('validation_error', 'TransactionIdRequired', {});
     }
     return this.purchase.submitWalletPayment(body.paymentId, tenantId, {
+      transactionId: body.transactionId,
+      senderNumber: body.senderNumber,
+      amountPaid: body.amountPaid.toFixed(2),
+    });
+  }
+
+  @Post('upgrade/quote')
+  @RequirePermission(Permission.PaymentsManage)
+  @ResponseMessage('UpgradeQuoted')
+  @ApiOperation({ summary: 'Quote an upgrade to a higher-ranked plan' })
+  @ZodResponse({ type: PlanPaymentDto })
+  quoteUpgrade(
+    @Body(new ZodValidationPipe(QuoteUpgradeDto.schema)) body: QuoteUpgradeDto,
+    @Req() request: DashboardRequest,
+  ): Promise<PlanPaymentRecord> {
+    return this.upgrade.quote(this.tenantIdOf(request), body.planId, body.billingTermId);
+  }
+
+  @Post('upgrade/confirm')
+  @UseInterceptors(IdempotencyInterceptor)
+  @RequirePermission(Permission.PaymentsManage)
+  @ResponseMessage('UpgradeConfirmed')
+  @ApiOperation({ summary: 'Confirm an upgrade (from balance, or submit a wallet payment)' })
+  @ZodResponse({ type: PlanPaymentDto })
+  confirmUpgrade(
+    @Body(new ZodValidationPipe(ConfirmUpgradeDto.schema)) body: ConfirmUpgradeDto,
+    @Req() request: DashboardRequest,
+  ): Promise<PlanPaymentRecord> {
+    const tenantId = this.tenantIdOf(request);
+    if (body.method === 'balance') {
+      return this.upgrade.confirmFromBalance(body.paymentId, tenantId).then((r) => r.payment);
+    }
+    if (!body.transactionId || !body.senderNumber || body.amountPaid === undefined) {
+      throw new ApiError('validation_error', 'TransactionIdRequired', {});
+    }
+    return this.upgrade.submitWalletPayment(body.paymentId, tenantId, {
       transactionId: body.transactionId,
       senderNumber: body.senderNumber,
       amountPaid: body.amountPaid.toFixed(2),

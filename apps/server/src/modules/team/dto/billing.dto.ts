@@ -1,9 +1,11 @@
 import {
   assignPlanSchema,
   confirmPurchaseSchema,
+  confirmUpgradeSchema,
   createBillingTermSchema,
   createPlanSchema,
   quotePurchaseSchema,
+  quoteUpgradeSchema,
   rejectPaymentSchema,
   setPlanLimitOverrideSchema,
   setPlanPriceSchema,
@@ -23,3 +25,5 @@ export class SetPlanLimitOverrideDto extends createZodDto(setPlanLimitOverrideSc
 export class QuotePurchaseDto extends createZodDto(quotePurchaseSchema) {}
 export class ConfirmPurchaseDto extends createZodDto(confirmPurchaseSchema) {}
 export class RejectPaymentDto extends createZodDto(rejectPaymentSchema) {}
+export class QuoteUpgradeDto extends createZodDto(quoteUpgradeSchema) {}
+export class ConfirmUpgradeDto extends createZodDto(confirmUpgradeSchema) {}

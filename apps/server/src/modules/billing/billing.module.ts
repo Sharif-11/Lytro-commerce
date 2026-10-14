@@ -16,6 +16,7 @@ import { PlanLimitOverridesService } from './services/plan-limit-overrides.servi
 import { PaymentQueueService } from './services/payment-queue.service';
 import { PurchaseService } from './services/purchase.service';
 import { TrialLifecycleService } from './services/trial-lifecycle.service';
+import { UpgradeService } from './services/upgrade.service';
 import {
   BILLING_TERMS_STORE,
   CLOCK,
@@ -41,6 +42,7 @@ import {
     PlanLimitOverridesService,
     TrialLifecycleService,
     PurchaseService,
+    UpgradeService,
     PaymentQueueService,
   ],
   exports: [
@@ -50,6 +52,7 @@ import {
     PlanLimitOverridesService,
     TrialLifecycleService,
     PurchaseService,
+    UpgradeService,
     PaymentQueueService,
   ],
 })

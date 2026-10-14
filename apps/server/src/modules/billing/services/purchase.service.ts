@@ -79,23 +79,12 @@ export class PurchaseService {
   }
 
   /** BIL-02/16: the tenant's "I have paid" wallet submission -- enters the queue, nothing activates yet. */
-  async submitWalletPayment(
+  submitWalletPayment(
     paymentId: string,
     tenantId: string,
     input: { transactionId: string; senderNumber: string; amountPaid: string },
   ): Promise<PlanPaymentRecord> {
-    await this.tenants.runStandalone(async (tx) => {
-      const payment = await this.payments.findForUpdate(tx, paymentId);
-      if (!payment || payment.tenantId !== tenantId) {
-        throw new ApiError('not_found', 'PlanPaymentNotFound', {});
-      }
-      await this.payments.recordSubmission(tx, paymentId, {
-        transactionId: input.transactionId,
-        senderNumber: input.senderNumber,
-        matchesQuoted: input.amountPaid === payment.amount,
-      });
-    });
-    return this.payments.find(paymentId);
+    return this.payments.submitWalletPayment(paymentId, tenantId, input);
   }
 
   /** BIL-08: pay from balance -- atomic, instant, no transaction ID, no operator. */

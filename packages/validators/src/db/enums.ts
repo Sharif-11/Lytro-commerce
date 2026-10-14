@@ -143,6 +143,8 @@ export enum AuditAction {
   // writes here; the operator's confirmation action itself is PlatformAuditAction.PlanPaymentVerified below.
   PlanPurchased = 'plan_purchased',
   PlanRenewed = 'plan_renewed',
+  // UPG-15: a confirmed upgrade -- tenant-caused, records old plan, new plan and both amounts.
+  PlanUpgraded = 'plan_upgraded',
   // BAL-03/BAL-05: a verified top-up credits the balance -- tenant-caused.
   BalanceToppedUp = 'balance_topped_up',
 }

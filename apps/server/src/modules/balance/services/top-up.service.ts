@@ -67,22 +67,11 @@ export class TopUpService {
   }
 
   /** BAL-03/16: the tenant's "I have paid" wallet submission -- enters the queue, credits nothing yet. */
-  async submit(
+  submit(
     paymentId: string,
     tenantId: string,
     input: { transactionId: string; senderNumber: string; amountPaid: string },
   ): Promise<PlanPaymentRecord> {
-    await this.tenants.runStandalone(async (tx) => {
-      const payment = await this.payments.findForUpdate(tx, paymentId);
-      if (!payment || payment.tenantId !== tenantId || payment.kind !== PlanPaymentKind.TopUp) {
-        throw new ApiError('not_found', 'PlanPaymentNotFound', {});
-      }
-      await this.payments.recordSubmission(tx, paymentId, {
-        transactionId: input.transactionId,
-        senderNumber: input.senderNumber,
-        matchesQuoted: input.amountPaid === payment.amount,
-      });
-    });
-    return this.payments.find(paymentId);
+    return this.payments.submitWalletPayment(paymentId, tenantId, input, PlanPaymentKind.TopUp);
   }
 }

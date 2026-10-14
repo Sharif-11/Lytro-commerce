@@ -44,6 +44,10 @@ export const MESSAGE_KEYS = [
   'QuoteExpired',
   'AmountOutOfRange',
   'TopUpNotAvailable',
+  'UpgradeNotAvailable',
+  'UpgradeMustBeHigherRank',
+  'UpgradePending',
+  'UpgradeNotWorthwhile',
 
   // Identity / sign-in / codes
   'FacebookSignInNotConfirmed',
@@ -154,6 +158,9 @@ export const MESSAGE_KEYS = [
   'PaymentQueueListed',
   'PaymentApproved',
   'PaymentRejected',
+  'UpgradeQuoted',
+  'UpgradeSubmitted',
+  'UpgradeConfirmed',
 
   // Success -- roles / staff
   'RolesListed',

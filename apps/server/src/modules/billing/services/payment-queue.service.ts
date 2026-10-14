@@ -16,6 +16,7 @@ import type { PlanPaymentRecord } from '../../payments/types/plan-payment';
 import { TenantService } from '../../tenancy/services/tenant.service';
 import { CLOCK } from '../tokens';
 import { PurchaseService } from './purchase.service';
+import { UpgradeService } from './upgrade.service';
 
 /**
  * D2-1/ADM-06: the operator's one queue for every pending plan_payments row. Approving a top-up credits the
@@ -28,6 +29,7 @@ export class PaymentQueueService {
   constructor(
     @Inject(PlanPaymentsService) private readonly payments: PlanPaymentsService,
     @Inject(PurchaseService) private readonly purchase: PurchaseService,
+    @Inject(UpgradeService) private readonly upgrade: UpgradeService,
     @Inject(BalanceService) private readonly balance: BalanceService,
     @Inject(TenantService) private readonly tenants: TenantService,
     @Inject(AuditService) private readonly audit: AuditService,
@@ -61,6 +63,8 @@ export class PaymentQueueService {
           result: AuditResult.Success,
           summary: { amount: payment.amount },
         });
+      } else if (payment.kind === PlanPaymentKind.Upgrade) {
+        await this.upgrade.activate(tx, payment, now);
       } else {
         await this.purchase.activate(tx, payment, now);
       }
