@@ -1,7 +1,11 @@
 import { Body, Controller, HttpCode, Inject, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ZodResponse } from 'nestjs-zod';
 import { ClientIp } from '../../../common/client-ip';
 import { SkipTenant } from '../../../common/decorators/skip-tenant';
 import { AllowPendingPassword } from '../../../common/decorators/allow-pending-password';
+import { ResponseMessage } from '../../../common/decorators/response-message';
+import { OkDto } from '../../../common/dto/ok.dto';
 import { type HttpRequest, type HttpResponse } from '../../../common/http';
 import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
 import {
@@ -14,6 +18,7 @@ import {
   VerifyForgotPasswordDto,
   VerifySigninCodeDto,
 } from '../dto/auth.dto';
+import { CodeIssuedDto, SignedInBodyDto } from '../dto/auth-response.dto';
 import { SessionGuard } from '../guards/session.guard';
 import type { SessionRecord } from '../ports/session-store';
 import { ForgotPasswordService } from '../services/forgot-password.service';
@@ -33,6 +38,7 @@ interface SignedInBody {
 }
 
 // Sign-in runs before any shop exists on the platform host, so these routes skip the tenant check (TEN-7a).
+@ApiTags('Auth')
 @Controller('auth')
 @SkipTenant()
 export class AuthController {
@@ -48,6 +54,10 @@ export class AuthController {
 
   @Post('phone/code')
   @HttpCode(200)
+  @ResponseMessage('CodeSent')
+  @ApiOperation({ summary: 'Request a sign-in code by SMS' })
+  @ApiBody({ type: RequestSigninCodeDto })
+  @ZodResponse({ type: CodeIssuedDto })
   requestCode(
     @Body(new ZodValidationPipe(RequestSigninCodeDto.schema)) body: RequestSigninCodeDto,
   ): Promise<CodeIssued> {
@@ -56,6 +66,10 @@ export class AuthController {
 
   @Post('phone/verify')
   @HttpCode(200)
+  @ResponseMessage('SignedIn')
+  @ApiOperation({ summary: 'Verify a phone sign-in code' })
+  @ApiBody({ type: VerifySigninCodeDto })
+  @ZodResponse({ type: SignedInBodyDto })
   async verifyCode(
     @Body(new ZodValidationPipe(VerifySigninCodeDto.schema)) body: VerifySigninCodeDto,
     @Req() request: HttpRequest,
@@ -72,6 +86,10 @@ export class AuthController {
 
   @Post('email/code')
   @HttpCode(200)
+  @ResponseMessage('CodeSent')
+  @ApiOperation({ summary: 'Request a sign-in code by email' })
+  @ApiBody({ type: RequestEmailCodeDto })
+  @ZodResponse({ type: CodeIssuedDto })
   requestEmailCode(
     @Body(new ZodValidationPipe(RequestEmailCodeDto.schema)) body: RequestEmailCodeDto,
   ): Promise<CodeIssued> {
@@ -80,6 +98,10 @@ export class AuthController {
 
   @Post('email/verify')
   @HttpCode(200)
+  @ResponseMessage('SignedIn')
+  @ApiOperation({ summary: 'Verify an email sign-in code' })
+  @ApiBody({ type: VerifyEmailCodeDto })
+  @ZodResponse({ type: SignedInBodyDto })
   async verifyEmailCode(
     @Body(new ZodValidationPipe(VerifyEmailCodeDto.schema)) body: VerifyEmailCodeDto,
     @Req() request: HttpRequest,
@@ -96,6 +118,10 @@ export class AuthController {
 
   @Post('signin')
   @HttpCode(200)
+  @ResponseMessage('SignedIn')
+  @ApiOperation({ summary: 'Sign in with a phone number and password' })
+  @ApiBody({ type: PasswordSigninDto })
+  @ZodResponse({ type: SignedInBodyDto })
   async signInWithPassword(
     @Body(new ZodValidationPipe(PasswordSigninDto.schema)) body: PasswordSigninDto,
     @Req() request: HttpRequest,
@@ -112,6 +138,10 @@ export class AuthController {
 
   @Post('forgot-password')
   @HttpCode(200)
+  @ResponseMessage('CodeSent')
+  @ApiOperation({ summary: 'Request a password-reset code by SMS' })
+  @ApiBody({ type: ForgotPasswordDto })
+  @ZodResponse({ type: CodeIssuedDto })
   requestReset(
     @Body(new ZodValidationPipe(ForgotPasswordDto.schema)) body: ForgotPasswordDto,
   ): Promise<CodeIssued> {
@@ -120,6 +150,10 @@ export class AuthController {
 
   @Post('forgot-password/email')
   @HttpCode(200)
+  @ResponseMessage('CodeSent')
+  @ApiOperation({ summary: 'Request a password-reset code by email' })
+  @ApiBody({ type: ForgotPasswordEmailDto })
+  @ZodResponse({ type: CodeIssuedDto })
   requestResetByEmail(
     @Body(new ZodValidationPipe(ForgotPasswordEmailDto.schema)) body: ForgotPasswordEmailDto,
   ): Promise<CodeIssued> {
@@ -128,6 +162,10 @@ export class AuthController {
 
   @Post('forgot-password/email/verify')
   @HttpCode(200)
+  @ResponseMessage('CodeVerified')
+  @ApiOperation({ summary: 'Verify an email password-reset code' })
+  @ApiBody({ type: VerifyForgotPasswordEmailDto })
+  @ZodResponse({ type: SignedInBodyDto })
   async verifyResetByEmail(
     @Body(new ZodValidationPipe(VerifyForgotPasswordEmailDto.schema))
     body: VerifyForgotPasswordEmailDto,
@@ -145,6 +183,10 @@ export class AuthController {
 
   @Post('forgot-password/verify')
   @HttpCode(200)
+  @ResponseMessage('CodeVerified')
+  @ApiOperation({ summary: 'Verify a phone password-reset code' })
+  @ApiBody({ type: VerifyForgotPasswordDto })
+  @ZodResponse({ type: SignedInBodyDto })
   async verifyReset(
     @Body(new ZodValidationPipe(VerifyForgotPasswordDto.schema)) body: VerifyForgotPasswordDto,
     @Req() request: HttpRequest,
@@ -159,6 +201,10 @@ export class AuthController {
   @HttpCode(200)
   @AllowPendingPassword()
   @UseGuards(SessionGuard)
+  @ResponseMessage('PasswordSet')
+  @ApiOperation({ summary: 'Set a password for the signed-in account' })
+  @ApiBody({ type: SetPasswordDto })
+  @ZodResponse({ type: OkDto })
   async setPassword(
     @Body(new ZodValidationPipe(SetPasswordDto.schema)) body: SetPasswordDto,
     @Req() request: HttpRequest & { session: SessionRecord },
@@ -171,6 +217,9 @@ export class AuthController {
   @HttpCode(200)
   @AllowPendingPassword()
   @UseGuards(SessionGuard)
+  @ResponseMessage('SignedOut')
+  @ApiOperation({ summary: 'Sign out of the current session' })
+  @ZodResponse({ type: OkDto })
   async signout(
     @Req() request: HttpRequest & { session: SessionRecord },
     @Res({ passthrough: true }) response: HttpResponse,

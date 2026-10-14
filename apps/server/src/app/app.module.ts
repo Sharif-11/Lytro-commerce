@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
+import { ZodSerializerInterceptor } from 'nestjs-zod';
 import { ApiErrorFilter } from '../common/api-error.filter';
 import { ResponseEnvelopeInterceptor } from '../common/interceptors/response-envelope.interceptor';
 import { DatabaseModule } from '../database/database.module';
@@ -30,7 +31,10 @@ import { TenancyModule } from '../modules/tenancy/tenancy.module';
       : [HealthController],
   providers: [
     { provide: APP_FILTER, useClass: ApiErrorFilter },
+    // Order matters: ResponseEnvelopeInterceptor must wrap the already-validated value, so
+    // ZodSerializerInterceptor (registered second, innermost) runs on the raw controller return first.
     { provide: APP_INTERCEPTOR, useClass: ResponseEnvelopeInterceptor },
+    { provide: APP_INTERCEPTOR, useClass: ZodSerializerInterceptor },
   ],
 })
 export class AppModule {}

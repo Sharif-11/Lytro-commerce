@@ -12,9 +12,13 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { roleIdSchema } from '@lytronix/validators';
+import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ZodResponse } from 'nestjs-zod';
 import { ApiError } from '../../../common/api-error';
 import { Dashboard } from '../../../common/decorators/dashboard';
 import { RequirePermission } from '../../../common/decorators/require-permission';
+import { ResponseMessage } from '../../../common/decorators/response-message';
+import { OkDto } from '../../../common/dto/ok.dto';
 import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
 import { DashboardGuard, type DashboardRequest } from '../../identity/guards/dashboard.guard';
 import { SessionGuard } from '../../identity/guards/session.guard';
@@ -22,8 +26,10 @@ import { PermissionGuard } from '../guards/permission.guard';
 import { RoleService } from '../../staff/services/role.service';
 import type { RoleRecord, RoleSummary } from '../../staff/types/role';
 import { CreateRoleDto, UpdateRoleDto } from '../dto/role.dto';
+import { RoleDto, RoleSummaryListDto } from '../dto/role-response.dto';
 
 // STF-07 to STF-09 over HTTP. Each route declares the permission it needs (STF-11).
+@ApiTags('Roles')
 @Controller('roles')
 @Dashboard({})
 @UseGuards(SessionGuard, DashboardGuard, PermissionGuard)
@@ -32,12 +38,19 @@ export class RolesController {
 
   @Get()
   @RequirePermission(Permission.StaffRead)
+  @ResponseMessage('RolesListed')
+  @ApiOperation({ summary: "List the shop's roles" })
+  @ZodResponse({ type: RoleSummaryListDto })
   list(@Req() request: DashboardRequest): Promise<RoleSummary[]> {
     return this.roles.list(this.shopOf(request));
   }
 
   @Post()
   @RequirePermission(Permission.StaffManage)
+  @ResponseMessage('RoleCreated')
+  @ApiOperation({ summary: 'Create a role' })
+  @ApiBody({ type: CreateRoleDto })
+  @ZodResponse({ type: RoleDto })
   create(
     @Body(new ZodValidationPipe(CreateRoleDto.schema)) body: CreateRoleDto,
     @Req() request: DashboardRequest,
@@ -47,6 +60,10 @@ export class RolesController {
 
   @Patch(':id')
   @RequirePermission(Permission.StaffManage)
+  @ResponseMessage('RoleUpdated')
+  @ApiOperation({ summary: 'Update a role' })
+  @ApiBody({ type: UpdateRoleDto })
+  @ZodResponse({ type: RoleDto })
   update(
     @Param('id') id: string,
     @Body(new ZodValidationPipe(UpdateRoleDto.schema)) body: UpdateRoleDto,
@@ -57,6 +74,9 @@ export class RolesController {
 
   @Delete(':id')
   @RequirePermission(Permission.StaffManage)
+  @ResponseMessage('RoleDeleted')
+  @ApiOperation({ summary: 'Delete a role (only if unheld)' })
+  @ZodResponse({ type: OkDto })
   async remove(@Param('id') id: string, @Req() request: DashboardRequest): Promise<{ ok: true }> {
     await this.roles.remove(this.shopOf(request), this.roleId(id), this.actorOf(request));
     return { ok: true };
@@ -64,14 +84,13 @@ export class RolesController {
 
   private roleId(id: string): string {
     const parsed = roleIdSchema.safeParse(id);
-    if (!parsed.success) throw new ApiError('not_found', 'Role not found.', {});
+    if (!parsed.success) throw new ApiError('not_found', 'RoleNotFound', {});
     return parsed.data;
   }
 
   private shopOf(request: DashboardRequest): { id: string } {
     const tenant = request.tenant;
-    if (!tenant)
-      throw new ApiError('forbidden', 'Create your shop to continue.', { next: 'create-shop' });
+    if (!tenant) throw new ApiError('forbidden', 'CreateShopToContinue', { next: 'create-shop' });
     return { id: tenant.id };
   }
 
