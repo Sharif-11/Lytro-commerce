@@ -21,8 +21,11 @@ import { IdempotencyInterceptor } from '../../../common/idempotency/idempotency.
 import { DashboardGuard, type DashboardRequest } from '../../identity/guards/dashboard.guard';
 import { SessionGuard } from '../../identity/guards/session.guard';
 import { PermissionGuard } from '../guards/permission.guard';
+import { OkDto } from '../../../common/dto/ok.dto';
+import { DowngradeService, type OverLimitItem } from '../../billing/services/downgrade.service';
 import { PurchaseService } from '../../billing/services/purchase.service';
 import { UpgradeService } from '../../billing/services/upgrade.service';
+import type { ScheduledPlanChangeRecord } from '../../billing/types/scheduled-plan-change';
 import { InvoicesService } from '../../payments/services/invoices.service';
 import type { InvoiceRecord } from '../../payments/types/invoice';
 import type { PlanPaymentRecord } from '../../payments/types/plan-payment';
@@ -31,8 +34,15 @@ import {
   ConfirmUpgradeDto,
   QuotePurchaseDto,
   QuoteUpgradeDto,
+  TargetDowngradePlanDto,
 } from '../dto/billing.dto';
-import { InvoiceDto, InvoiceListDto, PlanPaymentDto } from '../dto/billing-response.dto';
+import {
+  InvoiceDto,
+  InvoiceListDto,
+  OverLimitItemListDto,
+  PlanPaymentDto,
+  ScheduledPlanChangeDto,
+} from '../dto/billing-response.dto';
 
 // BIL-01 to BIL-13: a tenant's own purchase/renewal flow and invoices.
 @ApiTags('Billing')
@@ -43,6 +53,7 @@ export class BillingController {
   constructor(
     @Inject(PurchaseService) private readonly purchase: PurchaseService,
     @Inject(UpgradeService) private readonly upgrade: UpgradeService,
+    @Inject(DowngradeService) private readonly downgrade: DowngradeService,
     @Inject(InvoicesService) private readonly invoices: InvoicesService,
   ) {}
 
@@ -118,6 +129,51 @@ export class BillingController {
       senderNumber: body.senderNumber,
       amountPaid: body.amountPaid.toFixed(2),
     });
+  }
+
+  @Post('downgrade/preview')
+  @RequirePermission(Permission.PaymentsManage)
+  @ResponseMessage('DowngradePreviewed')
+  @ApiOperation({ summary: 'Preview the limits a downgrade would put the shop over' })
+  @ZodResponse({ type: OverLimitItemListDto })
+  previewDowngrade(
+    @Body(new ZodValidationPipe(TargetDowngradePlanDto.schema)) body: TargetDowngradePlanDto,
+    @Req() request: DashboardRequest,
+  ): Promise<OverLimitItem[]> {
+    return this.downgrade.preview(this.tenantIdOf(request), body.planId);
+  }
+
+  @Post('downgrade/schedule')
+  @RequirePermission(Permission.PaymentsManage)
+  @ResponseMessage('DowngradeScheduled')
+  @ApiOperation({ summary: 'Schedule a downgrade, effective at the end of the current period' })
+  @ZodResponse({ type: ScheduledPlanChangeDto })
+  scheduleDowngrade(
+    @Body(new ZodValidationPipe(TargetDowngradePlanDto.schema)) body: TargetDowngradePlanDto,
+    @Req() request: DashboardRequest,
+  ): Promise<ScheduledPlanChangeRecord> {
+    return this.downgrade.schedule(this.tenantIdOf(request), body.planId);
+  }
+
+  @Post('downgrade/cancel')
+  @ResponseMessage('DowngradeCancelled')
+  @RequirePermission(Permission.PaymentsManage)
+  @ApiOperation({ summary: 'Cancel a scheduled downgrade before it takes effect' })
+  @ZodResponse({ type: OkDto })
+  async cancelDowngrade(@Req() request: DashboardRequest): Promise<{ ok: true }> {
+    await this.downgrade.cancel(this.tenantIdOf(request));
+    return { ok: true };
+  }
+
+  @Get('downgrade')
+  @RequirePermission(Permission.PaymentsRead)
+  @ResponseMessage('DowngradeRetrieved')
+  @ApiOperation({ summary: 'Get the scheduled downgrade, if any (null when nothing is scheduled)' })
+  @ZodResponse({ type: ScheduledPlanChangeDto })
+  getScheduledDowngrade(
+    @Req() request: DashboardRequest,
+  ): Promise<ScheduledPlanChangeRecord | null> {
+    return this.downgrade.getScheduled(this.tenantIdOf(request));
   }
 
   @Get('invoices')

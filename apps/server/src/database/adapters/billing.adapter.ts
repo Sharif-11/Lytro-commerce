@@ -5,6 +5,7 @@ import {
   PlanLimitOverridesRepository,
   PlanPricesRepository,
   PlansRepository,
+  ScheduledPlanChangesRepository,
   TransactionRunner,
   type Transaction,
 } from '@lytronix/db';
@@ -21,6 +22,10 @@ import type {
   PlanEditValues,
   PlansStore,
 } from '../../modules/billing/ports/plans-store';
+import type {
+  NewScheduledPlanChangeValues,
+  ScheduledPlanChangesStore,
+} from '../../modules/billing/ports/scheduled-plan-changes-store';
 import { DatabaseService } from '../database.service';
 
 const PLAN_RANK_INDEX = 'plans_rank_for_sale_idx';
@@ -183,5 +188,32 @@ export class DrizzlePlanLimitOverridesStore implements PlanLimitOverridesStore {
 
   remove(tx: Transaction, tenantId: string, limitKey: string) {
     return this.overrides.remove(tx, tenantId, limitKey);
+  }
+}
+
+/** control.scheduled_plan_changes (DWN-01/04, UPG-13). */
+@Injectable()
+export class DrizzleScheduledPlanChangesStore implements ScheduledPlanChangesStore {
+  constructor(
+    @Inject(DatabaseService) private readonly database: Pick<DatabaseService, 'handle'>,
+    @Inject(TransactionRunner) private readonly transactions: TransactionRunner,
+    @Inject(ScheduledPlanChangesRepository)
+    private readonly changes: ScheduledPlanChangesRepository,
+  ) {}
+
+  run<T>(work: (tx: Transaction) => Promise<T>): Promise<T> {
+    return this.transactions.run(this.database.handle.db, work);
+  }
+
+  upsert(tx: Transaction, values: NewScheduledPlanChangeValues) {
+    return this.changes.upsert(tx, values);
+  }
+
+  findByTenant(tx: Transaction, tenantId: string) {
+    return this.changes.findByTenant(tx, tenantId);
+  }
+
+  delete(tx: Transaction, tenantId: string) {
+    return this.changes.delete(tx, tenantId);
   }
 }

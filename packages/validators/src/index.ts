@@ -25,5 +25,6 @@ export * from './api/billing/plan-assign';
 export * from './api/billing/plan-limit-override-set';
 export * from './api/billing/purchase';
 export * from './api/billing/upgrade';
+export * from './api/billing/downgrade';
 export * from './api/billing/payment-queue';
 export * from './api/platform/settings-update';

@@ -113,6 +113,18 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'The credit for your remaining days covers this plan and term. Please choose a longer term.',
     bn: 'আপনার বাকি দিনের ক্রেডিট এই প্ল্যান ও মেয়াদের দাম কভার করে। অনুগ্রহ করে দীর্ঘ মেয়াদ বেছে নিন।',
   },
+  DowngradeNotAvailable: {
+    en: 'Downgrade is only available while your plan is active.',
+    bn: 'ডাউনগ্রেড শুধুমাত্র প্ল্যান চালু থাকলে উপলব্ধ।',
+  },
+  DowngradeMustBeLowerRank: {
+    en: 'You can only downgrade to a lower plan.',
+    bn: 'আপনি শুধুমাত্র নিম্নতর প্ল্যানে ডাউনগ্রেড করতে পারবেন।',
+  },
+  ScheduledChangeNotFound: {
+    en: 'No scheduled change was found for this shop.',
+    bn: 'এই শপের জন্য কোনো নির্ধারিত পরিবর্তন পাওয়া যায়নি।',
+  },
 
   FacebookSignInNotConfirmed: {
     en: 'Facebook did not confirm your sign-in.',
@@ -341,6 +353,10 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   UpgradeQuoted: { en: 'Upgrade quote created.', bn: 'আপগ্রেড কোট তৈরি হয়েছে।' },
   UpgradeSubmitted: { en: 'Upgrade payment submitted.', bn: 'আপগ্রেড পেমেন্ট জমা দেওয়া হয়েছে।' },
   UpgradeConfirmed: { en: 'Upgrade confirmed.', bn: 'আপগ্রেড নিশ্চিত হয়েছে।' },
+  DowngradeScheduled: { en: 'Downgrade scheduled.', bn: 'ডাউনগ্রেড নির্ধারিত হয়েছে।' },
+  DowngradeCancelled: { en: 'Downgrade cancelled.', bn: 'ডাউনগ্রেড বাতিল হয়েছে।' },
+  DowngradePreviewed: { en: 'Downgrade preview retrieved.', bn: 'ডাউনগ্রেড প্রিভিউ পাওয়া গেছে।' },
+  DowngradeRetrieved: { en: 'Scheduled change retrieved.', bn: 'নির্ধারিত পরিবর্তন পাওয়া গেছে।' },
 
   RolesListed: { en: 'Roles retrieved.', bn: 'রোলগুলো পাওয়া গেছে।' },
   RoleCreated: { en: 'Role created.', bn: 'রোল তৈরি হয়েছে।' },
