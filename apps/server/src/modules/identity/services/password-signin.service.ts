@@ -65,6 +65,6 @@ export class PasswordSigninService {
 
   /** One reply for an unknown number, an account with no password and a wrong password (AUTH-13). */
   private invalidCredentials(): ApiError {
-    return new ApiError('unauthenticated', 'That phone number and password do not match.', {});
+    return new ApiError('unauthenticated', 'PhoneOrPasswordWrong', {});
   }
 }

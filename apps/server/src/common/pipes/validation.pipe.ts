@@ -12,7 +12,7 @@ export class ZodValidationPipe implements PipeTransform {
   transform(value: unknown): unknown {
     const result = this.schema.safeParse(value);
     if (!result.success) {
-      throw new ApiError('validation_error', 'Check the highlighted fields.', {
+      throw new ApiError('validation_error', 'CheckHighlightedFields', {
         fields: result.error.issues.map((issue) => issue.path.join('.')),
       });
     }

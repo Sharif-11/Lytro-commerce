@@ -32,7 +32,7 @@ export class BillingTermsService {
   /** TRM-11: affects future purchases only; an existing snapshot keeps the term as bought (unaffected here). */
   async update(id: string, edit: BillingTermEditValues): Promise<BillingTermRecord> {
     const updated = await this.store.run((tx) => this.store.update(tx, id, edit));
-    if (!updated) throw new ApiError('not_found', 'Billing term not found.', {});
+    if (!updated) throw new ApiError('not_found', 'BillingTermNotFound', {});
     return updated;
   }
 
@@ -45,9 +45,9 @@ export class BillingTermsService {
   async delete(id: string): Promise<void> {
     await this.store.run(async (tx) => {
       const term = await this.store.findById(tx, id);
-      if (!term) throw new ApiError('not_found', 'Billing term not found.', {});
+      if (!term) throw new ApiError('not_found', 'BillingTermNotFound', {});
       if (await this.store.isUsed(tx, id)) {
-        throw new ApiError('conflict', 'This term is priced for a plan. Retire it instead.', {});
+        throw new ApiError('conflict', 'BillingTermInUse', {});
       }
       await this.store.delete(tx, id);
     });

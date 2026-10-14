@@ -35,7 +35,7 @@ export class ShopCreationService {
       const { tenantId, messages, emailMessage } = await this.gateway.run(async (tx) => {
         const existing = await this.gateway.findOwnedTenant(tx, session.subscriberId);
         if (existing !== null) {
-          throw new ApiError('conflict', 'This account already has a shop.', {});
+          throw new ApiError('conflict', 'ShopAlreadyExists', {});
         }
         const phone = await this.gateway.findPhoneIdentityOf(tx, session.subscriberId);
         const email = await this.gateway.findEmailIdentityOf(tx, session.subscriberId);
@@ -49,7 +49,7 @@ export class ShopCreationService {
           (await this.gateway.listIdentities(tx, session.subscriberId))[0]?.id ??
           null;
         if (ownerIdentityId === null) {
-          throw new ApiError('unauthenticated', 'Sign in to continue.', {});
+          throw new ApiError('unauthenticated', 'SignInToContinue', {});
         }
         const created = await this.tenants.createTrialShop(tx, {
           identityId: ownerIdentityId,
@@ -86,20 +86,16 @@ export class ShopCreationService {
       const check = await this.slugs.checkAddress(typed.trim());
       if (check.ok) return check.address;
       if (check.reason === 'format') {
-        throw new ApiError(
-          'validation_error',
-          'Use 3 to 30 lowercase letters, digits or hyphens for the address.',
-          { field: 'address' },
-        );
+        throw new ApiError('validation_error', 'AddressFormatInvalid', { field: 'address' });
       }
-      throw new ApiError('conflict', 'That address is taken.', {
+      throw new ApiError('conflict', 'AddressTaken', {
         field: 'address',
         suggestion: check.suggestion,
       });
     }
     const suggestion = await this.slugs.suggest(shopName);
     if (!suggestion) {
-      throw new ApiError('validation_error', 'Choose an address for your shop.', {
+      throw new ApiError('validation_error', 'AddressRequired', {
         field: 'address',
       });
     }
@@ -109,9 +105,9 @@ export class ShopCreationService {
   /** Turns a race that lost on the address constraint into an answer. */
   private async conflictFor(error: UniqueViolation, shopName: string): Promise<ApiError> {
     if (error.target === 'phone') {
-      return new ApiError('conflict', 'This account already has a shop.', {});
+      return new ApiError('conflict', 'ShopAlreadyExists', {});
     }
-    return new ApiError('conflict', 'That address is taken.', {
+    return new ApiError('conflict', 'AddressTaken', {
       field: 'address',
       suggestion: await this.slugs.suggest(shopName),
     });

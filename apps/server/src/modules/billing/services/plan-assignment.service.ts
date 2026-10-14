@@ -41,11 +41,11 @@ export class PlanAssignmentService {
 
   async assign(input: AssignPlanInput): Promise<PlanAssignmentRecord> {
     if (input.reason.trim().length === 0) {
-      throw new ApiError('validation_error', 'A reason is required.', { field: 'reason' });
+      throw new ApiError('validation_error', 'ReasonRequired', { field: 'reason' });
     }
 
     const plan = await this.plans.run((tx: Transaction) => this.plans.findById(tx, input.planId));
-    if (!plan) throw new ApiError('not_found', 'Plan not found.', {});
+    if (!plan) throw new ApiError('not_found', 'PlanNotFound', {});
 
     const assignment = await this.assignments.run((tx) => {
       return this.assignments.insert(tx, {

@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { createHash, randomBytes } from 'node:crypto';
 import { z } from 'zod';
 import {
@@ -76,7 +76,7 @@ export class OauthService {
     const provider = this.find(name);
     const attempt = await this.states.consume(state, provider.provider, this.settings.now());
     if (attempt === null) {
-      throw new ApiError('validation_error', 'This sign-in link is not valid. Start again.', {
+      throw new ApiError('validation_error', 'SignInLinkInvalid', {
         field: 'state',
       });
     }
@@ -122,7 +122,7 @@ export class OauthService {
       }
       return result;
     } catch (error) {
-      if (error instanceof UniqueViolation) throw new ApiError('conflict', 'Please try again.', {});
+      if (error instanceof UniqueViolation) throw new ApiError('conflict', 'PleaseTryAgain', {});
       throw error;
     }
   }
@@ -137,7 +137,7 @@ export class OauthService {
       await this.gateway.run(async (tx) => {
         const holder = await this.gateway.findSubscriberByIdentity(tx, kind, accountId);
         if (holder !== null) {
-          throw new ApiError('conflict', 'This account cannot be added. Try another.', {});
+          throw new ApiError('conflict', 'AccountCannotBeAdded', {});
         }
         await this.gateway.insertIdentity(tx, {
           subscriberId,
@@ -148,7 +148,7 @@ export class OauthService {
       });
     } catch (error) {
       if (error instanceof UniqueViolation) {
-        throw new ApiError('conflict', 'This account cannot be added. Try another.', {});
+        throw new ApiError('conflict', 'AccountCannotBeAdded', {});
       }
       throw error;
     }
@@ -175,7 +175,7 @@ export class OauthService {
     const provider = parsed.success
       ? this.providers.find((p) => p.provider === parsed.data)
       : undefined;
-    if (!provider) throw new NotFoundException('Page not found.');
+    if (!provider) throw new ApiError('not_found', 'PageNotFound', {});
     return provider;
   }
 

@@ -1,6 +1,9 @@
 import { ArgumentsHost, Catch, HttpException, Logger, type ExceptionFilter } from '@nestjs/common';
 import type { ApiErrorBody, ErrorCode } from '@lytronix/shared-types';
 import { ApiError, HTTP_STATUS } from './api-error';
+import { headerValue, type HttpRequest } from './http';
+import { resolveLanguage } from './i18n/accept-language';
+import { translate } from './i18n/messages';
 
 // The subset of the HTTP response this filter uses, so the file does not depend on Express types.
 interface HttpResponse {
@@ -38,26 +41,32 @@ function messageOf(body: unknown): string {
  * message, errors: { code, details } }, with Retry-After when a retry hint exists. Catches every exception
  * (SEC-16, P1-N03) — never lets a raw error message, stack trace or path reach a response body; the real
  * error goes to the server log instead, where a developer can read it without a client ever seeing it.
+ * `message` is resolved per request (I18N-01, bn default) from the exception's MessageKey -- an ApiError
+ * never carries a raw string across this boundary.
  */
 @Catch()
 export class ApiErrorFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost): void {
     const response = host.switchToHttp().getResponse<HttpResponse>();
+    const request = host.switchToHttp().getRequest<HttpRequest>();
+    const lang = resolveLanguage(headerValue(request.headers['accept-language']));
 
     if (exception instanceof ApiError) {
       if (exception.retryAfterSeconds !== undefined) {
         response.setHeader('Retry-After', String(exception.retryAfterSeconds));
       }
       const statusCode = HTTP_STATUS[exception.code];
+      const message = translate(exception.messageKey, lang, exception.params);
       response
         .status(statusCode)
-        .json(this.body(statusCode, exception.message, exception.code, exception.details));
+        .json(this.body(statusCode, message, exception.code, exception.details));
       return;
     }
 
-    // A guard's own HttpException (ForbiddenException, NotFoundException, ...) — not this app's ErrorCode
-    // system, but still a deliberate, known rejection, not an unhandled failure. Its status and message carry
-    // nothing a stack trace or internal path would, so both pass through; only the envelope shape is added.
+    // A guard's own HttpException (ForbiddenException, NotFoundException, ...) that isn't this app's
+    // ApiError/MessageKey system -- a truly unexpected framework-level rejection (e.g. malformed JSON body),
+    // not a deliberate, keyed one. Its message can't be localized since this app doesn't own the text; both
+    // status and message pass through as-is, only the envelope shape is added.
     if (exception instanceof HttpException) {
       const statusCode = exception.getStatus();
       response
@@ -79,7 +88,7 @@ export class ApiErrorFilter implements ExceptionFilter {
       .json(
         this.body(
           HTTP_STATUS.internal_error,
-          'Something went wrong. Please try again.',
+          translate('SomethingWentWrong', lang),
           'internal_error',
           {},
         ),

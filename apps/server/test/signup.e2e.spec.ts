@@ -169,7 +169,7 @@ describeIfDatabase('sign-up by phone, end to end', () => {
     const response = await createShop(returning, { ownerName: 'Karim', shopName: 'Second Shop' });
     expect(response.status).toBe(409);
     expect(response.body).toEqual({
-      error: { code: 'conflict', message: 'This account already has a shop.', details: {} },
+      error: { code: 'conflict', message: 'এই অ্যাকাউন্টের শপ আগে থেকেই আছে।', details: {} },
     });
   });
 

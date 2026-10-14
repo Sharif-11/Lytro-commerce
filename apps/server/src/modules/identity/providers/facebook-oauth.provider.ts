@@ -41,7 +41,7 @@ export class FacebookOauthProvider implements OauthProviderPort {
     const token = await fetch(tokenUrl);
     const tokenBody = tokenReply.safeParse(await token.json().catch(() => null));
     if (!token.ok || !tokenBody.success)
-      throw new ApiError('unauthenticated', 'Facebook did not confirm your sign-in.', {});
+      throw new ApiError('unauthenticated', 'FacebookSignInNotConfirmed', {});
 
     const meUrl = new URL(`${API}/me`);
     meUrl.searchParams.set('fields', 'id,email');
@@ -49,7 +49,7 @@ export class FacebookOauthProvider implements OauthProviderPort {
     const me = await fetch(meUrl);
     const profile = profileReply.safeParse(await me.json().catch(() => null));
     if (!me.ok || !profile.success)
-      throw new ApiError('unauthenticated', 'Facebook did not confirm your sign-in.', {});
+      throw new ApiError('unauthenticated', 'FacebookSignInNotConfirmed', {});
 
     return { accountId: profile.data.id, email: profile.data.email ?? null, emailVerified: false };
   }

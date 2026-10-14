@@ -104,7 +104,7 @@ export class StaffService {
       await this.requireSeat(tx, tenant);
       const subscriberId = await this.accounts.reservePhone(tx, input.phone);
       if (subscriberId === null) {
-        throw new ApiError('conflict', 'That phone number belongs to a shop owner.', {
+        throw new ApiError('conflict', 'StaffPhoneBelongsToOwner', {
           field: 'phone',
         });
       }
@@ -119,7 +119,7 @@ export class StaffService {
         });
       } catch (error) {
         if (error instanceof UniqueViolation) {
-          throw new ApiError('conflict', 'That phone number is already in use.', {
+          throw new ApiError('conflict', 'StaffPhoneInUse', {
             field: 'phone',
           });
         }
@@ -147,8 +147,8 @@ export class StaffService {
   ): Promise<StaffMember> {
     const { member: changed, activityAction } = await this.store.run(tenant.id, async (tx) => {
       const member = await this.store.findStaff(tx, tenant.id, userId);
-      if (!member) throw new ApiError('not_found', 'Staff member not found.', {});
-      if (member.isOwner) throw new ApiError('forbidden', 'The owner cannot be changed.', {});
+      if (!member) throw new ApiError('not_found', 'StaffNotFound', {});
+      if (member.isOwner) throw new ApiError('forbidden', 'OwnerCannotBeChanged', {});
 
       let activityAction: AuditAction | null = null;
       const roleIds = input.roleIds === undefined ? undefined : [...new Set(input.roleIds)];
@@ -162,7 +162,7 @@ export class StaffService {
       if (active !== undefined && member.active !== active) {
         if (active) await this.requireSeat(tx, tenant);
         const updated = await this.store.setActive(tx, tenant.id, userId, active);
-        if (!updated) throw new ApiError('not_found', 'Staff member not found.', {});
+        if (!updated) throw new ApiError('not_found', 'StaffNotFound', {});
         // STF-05: deactivation ends the member's sessions at once, not at the next sign-in.
         if (!active) await this.store.revokeSessionsOf(tx, userId, now);
         // A status change is reported as itself, even alongside a role change in the same call.
@@ -170,7 +170,7 @@ export class StaffService {
       }
 
       const current = await this.store.findStaff(tx, tenant.id, userId);
-      if (!current) throw new ApiError('not_found', 'Staff member not found.', {});
+      if (!current) throw new ApiError('not_found', 'StaffNotFound', {});
       const [withRoles] = await this.withRoles(tx, tenant.id, [current]);
       if (!withRoles) throw new Error('withRoles returned no member');
       return { member: withRoles, activityAction };
@@ -192,8 +192,8 @@ export class StaffService {
     const passwordHash = await this.hasher.hash(newPassword);
     await this.store.run(tenant.id, async (tx) => {
       const member = await this.store.findStaff(tx, tenant.id, userId);
-      if (!member) throw new ApiError('not_found', 'Staff member not found.', {});
-      if (member.isOwner) throw new ApiError('forbidden', 'The owner cannot be changed.', {});
+      if (!member) throw new ApiError('not_found', 'StaffNotFound', {});
+      if (member.isOwner) throw new ApiError('forbidden', 'OwnerCannotBeChanged', {});
       await this.store.setPassword(tx, tenant.id, userId, passwordHash, true);
       // The old sessions end, so the next sign-in is the one that sets the new password.
       await this.store.revokeSessionsOf(tx, userId, now);
@@ -215,7 +215,7 @@ export class StaffService {
     return this.store.run(tenantId, async (tx) => {
       const creds = await this.store.findCredentialsById(tx, tenantId, userId);
       if (!creds || !creds.active || creds.isOwner) {
-        throw new ApiError('not_found', 'Staff member not found.', {});
+        throw new ApiError('not_found', 'StaffNotFound', {});
       }
       if (!pending) {
         const current = input.currentPassword;
@@ -224,7 +224,7 @@ export class StaffService {
             ? await this.hasher.verify(current, creds.passwordHash)
             : false;
         if (!matches) {
-          throw new ApiError('validation_error', 'Your current password is not right.', {
+          throw new ApiError('validation_error', 'CurrentPasswordWrong', {
             field: 'currentPassword',
           });
         }
@@ -240,7 +240,7 @@ export class StaffService {
     if (roleIds.length === 0) return;
     const found = await this.roles.findByIds(tx, tenantId, roleIds);
     if (found.length !== roleIds.length) {
-      throw new ApiError('validation_error', 'One of the roles does not exist in this shop.', {
+      throw new ApiError('validation_error', 'RoleNotInShop', {
         field: 'roleIds',
       });
     }
@@ -265,11 +265,9 @@ export class StaffService {
     const used = await this.store.countActive(tx, tenant.id);
     const total = this.seatsOf(tenant);
     if (used >= total) {
-      throw new ApiError(
-        'plan_limit_reached',
-        `Your plan includes ${String(total)} seat${total === 1 ? '' : 's'}. Upgrade to add more staff.`,
-        { seats: total },
-      );
+      throw new ApiError('plan_limit_reached', 'SeatLimitReached', { seats: total }, undefined, {
+        seats: total,
+      });
     }
   }
 

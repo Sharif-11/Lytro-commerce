@@ -15,7 +15,7 @@ export class PlansService {
       return await this.store.run((tx) => this.store.create(tx, values));
     } catch (error) {
       if (error instanceof UniqueViolation && error.target === 'rank') {
-        throw new ApiError('validation_error', 'That rank is already used by a for-sale plan.', {
+        throw new ApiError('validation_error', 'PlanRankTaken', {
           field: 'rank',
         });
       }
@@ -35,7 +35,7 @@ export class PlansService {
 
   async findById(id: string): Promise<PlanRecord> {
     const plan = await this.store.run((tx) => this.store.findById(tx, id));
-    if (!plan) throw new ApiError('not_found', 'Plan not found.', {});
+    if (!plan) throw new ApiError('not_found', 'PlanNotFound', {});
     return plan;
   }
 
@@ -43,11 +43,11 @@ export class PlansService {
   async update(id: string, edit: PlanEditValues): Promise<PlanRecord> {
     try {
       const updated = await this.store.run((tx) => this.store.update(tx, id, edit));
-      if (!updated) throw new ApiError('not_found', 'Plan not found.', {});
+      if (!updated) throw new ApiError('not_found', 'PlanNotFound', {});
       return updated;
     } catch (error) {
       if (error instanceof UniqueViolation && error.target === 'rank') {
-        throw new ApiError('validation_error', 'That rank is already used by a for-sale plan.', {
+        throw new ApiError('validation_error', 'PlanRankTaken', {
           field: 'rank',
         });
       }
@@ -68,13 +68,9 @@ export class PlansService {
   async delete(id: string): Promise<void> {
     await this.store.run(async (tx) => {
       const plan = await this.store.findById(tx, id);
-      if (!plan) throw new ApiError('not_found', 'Plan not found.', {});
+      if (!plan) throw new ApiError('not_found', 'PlanNotFound', {});
       if (await this.store.isReferenced(tx, id)) {
-        throw new ApiError(
-          'conflict',
-          'This plan is in use. Retire it instead of deleting it.',
-          {},
-        );
+        throw new ApiError('conflict', 'PlanInUse', {});
       }
       await this.store.delete(tx, id);
     });

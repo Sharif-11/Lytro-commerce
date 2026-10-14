@@ -21,11 +21,11 @@ export class OperatorSessionGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<OperatorSessionRequest>();
     const session = await this.operators.resolve(headerValue(request.headers.cookie));
-    if (!session) throw new ApiError('unauthenticated', 'Sign in to continue.', {});
+    if (!session) throw new ApiError('unauthenticated', 'SignInToContinue', {});
 
     const csrf = headerValue(request.headers[CSRF_HEADER]);
     if (MUTATING_METHODS.has(request.method) && !this.operators.csrfMatches(session, csrf)) {
-      throw new ApiError('forbidden', 'Request not accepted.', {});
+      throw new ApiError('forbidden', 'RequestNotAccepted', {});
     }
 
     request.operatorSession = session;

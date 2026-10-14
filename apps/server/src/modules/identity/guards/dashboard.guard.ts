@@ -1,10 +1,4 @@
-import {
-  CanActivate,
-  ExecutionContext,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { CanActivate, ExecutionContext, Inject, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { TenantState } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
@@ -47,22 +41,22 @@ export class DashboardGuard implements CanActivate {
       ]) ?? {};
     const request = context.switchToHttp().getRequest<DashboardRequest>();
     const session = request.session;
-    if (!session) throw new ApiError('unauthenticated', 'Sign in to continue.', {});
+    if (!session) throw new ApiError('unauthenticated', 'SignInToContinue', {});
 
     const rawHost = headerValue(request.headers.host);
     const target = this.hosts.classify(rawHost);
-    if (target.kind === 'invalid') throw new NotFoundException('Page not found.');
+    if (target.kind === 'invalid') throw new ApiError('not_found', 'PageNotFound', {});
 
     // Staff work on their own shop's host only. The platform host is for the account owner.
     if (target.kind === 'platform' && session.userId !== null) {
-      throw new ApiError('forbidden', 'Request not accepted.', {});
+      throw new ApiError('forbidden', 'RequestNotAccepted', {});
     }
 
     if (target.kind !== 'platform') {
       const resolved = await this.resolver.resolve(rawHost);
-      if (resolved.outcome === 'not_found') throw new NotFoundException('Page not found.');
+      if (resolved.outcome === 'not_found') throw new ApiError('not_found', 'PageNotFound', {});
       if (session.tenantId !== resolved.tenant.id) {
-        throw new ApiError('forbidden', 'Request not accepted.', {});
+        throw new ApiError('forbidden', 'RequestNotAccepted', {});
       }
     }
 
@@ -71,17 +65,17 @@ export class DashboardGuard implements CanActivate {
         request.tenant = null;
         return true;
       }
-      throw new ApiError('forbidden', 'Create your shop to continue.', { next: 'create-shop' });
+      throw new ApiError('forbidden', 'CreateShopToContinue', { next: 'create-shop' });
     }
 
     const tenant = await this.summaries.findById(session.tenantId);
-    if (!tenant) throw new NotFoundException('Page not found.');
+    if (!tenant) throw new ApiError('not_found', 'PageNotFound', {});
     if (tenant.suspendedAt !== null) {
-      throw new ApiError('tenant_offline', 'This shop is not available right now.', {});
+      throw new ApiError('tenant_offline', 'ShopUnavailable', {});
     }
     const ownerSession = session.userId === null;
     if (LAPSED.has(tenant.state) && !(options.lapsed === true && ownerSession)) {
-      throw new ApiError('tenant_offline', 'This shop is not available right now.', {});
+      throw new ApiError('tenant_offline', 'ShopUnavailable', {});
     }
 
     request.tenant = tenant;

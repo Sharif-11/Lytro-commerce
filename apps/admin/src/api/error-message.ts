@@ -7,12 +7,14 @@ function formatRetryAfter(seconds: number, t: TFunction): string {
 }
 
 /**
- * Maps an ApiClientError's code to translated copy. Exhaustive over ErrorCode (no default) so a new code
- * added to @lytronix/shared-types without a translation here is a compile error, not a silent "something
- * went wrong" for a case that deserved better copy.
+ * The server already sends a descriptive, localized message (bn/en per Accept-Language, I18N-01) for every
+ * route -- that's the primary copy. The switch below is a fallback for the rare case the server couldn't
+ * supply one (body didn't parse, e.g.), kept exhaustive over ErrorCode (no default) so a new code added to
+ * @lytronix/shared-types without a translation here is a compile error, not a silent "something went wrong".
  */
 export function errorMessage(error: unknown, t: TFunction): string {
   if (!(error instanceof ApiClientError)) return t('common.somethingWentWrong');
+  if (error.message.length > 0) return error.message;
 
   switch (error.code) {
     case 'rate_limited':

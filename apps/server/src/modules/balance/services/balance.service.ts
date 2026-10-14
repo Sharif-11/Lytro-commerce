@@ -106,7 +106,7 @@ export class BalanceService {
     operatorId: string;
   }): Promise<LedgerEntry> {
     if (input.reason.trim().length === 0) {
-      throw new ApiError('validation_error', 'A reason is required.', { field: 'reason' });
+      throw new ApiError('validation_error', 'ReasonRequired', { field: 'reason' });
     }
     const entry = await this.runStandalone(input.tenantId, (tx) =>
       this.applyDelta(tx, input.tenantId, {
@@ -198,13 +198,13 @@ export class BalanceService {
     const balance = await this.tenants.lockBalanceForUpdate(tx, tenantId);
     if (!balance) throw new Error('tenant not found');
     if (balance.frozen) {
-      throw new ApiError('tenant_offline', 'The balance is frozen.', {});
+      throw new ApiError('tenant_offline', 'BalanceFrozen', {});
     }
     const beforePaisa = toPaisa(balance.amount);
     const deltaPaisa = toPaisa(input.signedAmount);
     const afterPaisa = beforePaisa + deltaPaisa;
     if (input.overdraftFloor !== undefined && afterPaisa < toPaisa(input.overdraftFloor)) {
-      throw new ApiError('quota_exceeded', 'Insufficient balance.', { balance: balance.amount });
+      throw new ApiError('quota_exceeded', 'InsufficientBalance', { balance: balance.amount });
     }
     const afterAmount = fromPaisa(afterPaisa);
     const entry = await this.ledger.insert(tx, {

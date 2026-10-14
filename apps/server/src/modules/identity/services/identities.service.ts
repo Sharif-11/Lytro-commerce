@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { z } from 'zod';
 import { ChallengeChannel, ChallengeKind, IdentityKind } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
@@ -63,7 +63,7 @@ export class IdentitiesService {
       await this.gateway.run(async (tx) => {
         const consumed = await this.gateway.consumeChallenge(tx, challengeId, new Date());
         if (!consumed) {
-          throw new ApiError('validation_error', 'This code has already been used.', {
+          throw new ApiError('validation_error', 'CodeAlreadyUsed', {
             field: 'code',
           });
         }
@@ -93,7 +93,7 @@ export class IdentitiesService {
 
   async remove(subscriberId: string, identityId: string): Promise<void> {
     if (!z.string().uuid().safeParse(identityId).success)
-      throw new NotFoundException('Page not found.');
+      throw new ApiError('not_found', 'PageNotFound', {});
     const outcome = await this.gateway.run(async (tx) => {
       const identities = await this.gateway.listIdentities(tx, subscriberId);
       if (!identities.some((identity) => identity.id === identityId)) return 'not_found' as const;
@@ -101,12 +101,12 @@ export class IdentitiesService {
       if (identities.length <= 1) return 'last' as const;
       return this.gateway.deleteIdentity(tx, subscriberId, identityId);
     });
-    if (outcome === 'not_found') throw new NotFoundException('Page not found.');
+    if (outcome === 'not_found') throw new ApiError('not_found', 'PageNotFound', {});
     if (outcome === 'last') {
-      throw new ApiError('conflict', 'Keep at least one way to sign in.', {});
+      throw new ApiError('conflict', 'IdentityKeepOneSignIn', {});
     }
     if (outcome === 'owns_shop') {
-      throw new ApiError('conflict', 'This identity owns your shop, so it cannot be removed.', {});
+      throw new ApiError('conflict', 'IdentityOwnsShop', {});
     }
   }
 
@@ -114,13 +114,7 @@ export class IdentitiesService {
     if (kind === 'phone') {
       const phone = this.phoneFormat.normalize(value);
       if (!phone) {
-        throw new ApiError(
-          'validation_error',
-          'Enter a Bangladeshi mobile number, such as 017XXXXXXXX.',
-          {
-            field: 'value',
-          },
-        );
+        throw new ApiError('validation_error', 'PhoneInvalid', { field: 'value' });
       }
       return {
         destination: phone,
@@ -130,7 +124,7 @@ export class IdentitiesService {
     }
     const email = this.emailFormat.normalize(value);
     if (!email) {
-      throw new ApiError('validation_error', 'Enter a valid email address.', { field: 'value' });
+      throw new ApiError('validation_error', 'EmailInvalid', { field: 'value' });
     }
     return {
       destination: email,
@@ -140,6 +134,6 @@ export class IdentitiesService {
   }
 
   private cannotAdd(): ApiError {
-    return new ApiError('conflict', 'This cannot be added. Try another.', {});
+    return new ApiError('conflict', 'AccountCannotBeAdded', {});
   }
 }

@@ -85,7 +85,9 @@ export class ApiClient {
     const retryAfter = response.headers.get('Retry-After');
     return new ApiClientError(
       envelope?.errors?.code ?? 'service_unavailable',
-      envelope?.message ?? 'Something went wrong. Please try again.',
+      // '' (not an English default) when the body didn't parse -- errorMessage() falls back to its own
+      // localized copy in that case, rather than showing untranslated English regardless of locale.
+      envelope?.message ?? '',
       envelope?.errors?.details ?? {},
       response.status,
       retryAfter === null ? undefined : Number(retryAfter),

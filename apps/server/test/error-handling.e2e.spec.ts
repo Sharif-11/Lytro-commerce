@@ -44,7 +44,7 @@ describeIfDatabase('an unhandled exception (SEC-16, P1-N03)', () => {
     expect(response.body).toEqual({
       error: {
         code: 'internal_error',
-        message: 'Something went wrong. Please try again.',
+        message: 'কিছু একটা সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।',
         details: {},
       },
     });
@@ -64,7 +64,7 @@ describeIfDatabase('an unhandled exception (SEC-16, P1-N03)', () => {
     expect(response.body).toEqual({
       error: {
         code: 'internal_error',
-        message: 'Something went wrong. Please try again.',
+        message: 'কিছু একটা সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।',
         details: {},
       },
     });

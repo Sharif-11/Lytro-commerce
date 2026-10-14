@@ -1,0 +1,143 @@
+/**
+ * Every descriptive message the API can send, success or error (SRS-detailed §2.6, I18N-01). A raw string is
+ * never passed to ApiError or @ResponseMessage() -- always one of these, resolved to bn/en text at response
+ * time by `messages.ts`, per request (Accept-Language), never at the throw/return site.
+ */
+export const MESSAGE_KEYS = [
+  // Generic / shared across many routes
+  'Success',
+  'Created',
+  'CheckHighlightedFields',
+  'SignInToContinue',
+  'RequestNotAccepted',
+  'CreateShopToContinue',
+  'SetPasswordToContinue',
+  'ShopUnavailable',
+  'PermissionDenied',
+  'PageNotFound',
+  'SomethingWentWrong',
+  'ReasonRequired',
+  'PleaseTryAgain',
+
+  // Balance / rates
+  'BalanceFrozen',
+  'InsufficientBalance',
+  'RateCannotBeNegative',
+  'UnknownRate',
+
+  // Billing / plans
+  'BillingTermNotFound',
+  'BillingTermInUse',
+  'PlanNotFound',
+  'PlanRankTaken',
+  'PlanInUse',
+
+  // Identity / sign-in / codes
+  'FacebookSignInNotConfirmed',
+  'GoogleSignInNotConfirmed',
+  'CodeAlreadyUsed',
+  'EmailInvalid',
+  'CodeInvalid',
+  'CodeExpired',
+  'CodeIncorrect',
+  'TooManyWrongCodes',
+  'IdentityKeepOneSignIn',
+  'IdentityOwnsShop',
+  'PhoneInvalid',
+  'AccountCannotBeAdded',
+  'SignInLinkInvalid',
+  'CodeSentRecently',
+  'TooManyCodesRequested',
+  'CodeSendFailed',
+  'PhoneOrPasswordWrong',
+  'CurrentPasswordRequired',
+  'CurrentPasswordWrong',
+  'ShopAlreadyExists',
+  'AddressFormatInvalid',
+  'AddressTaken',
+  'AddressRequired',
+  'TooManyFailedSignins',
+  'TooManySignups',
+
+  // Operator / 2FA
+  'TwoFactorAlreadyEnrolled',
+  'TwoFactorNeedsNewCode',
+  'TwoFactorIncomplete',
+  'OperatorCredentialsWrong',
+  'BackupCodeInvalid',
+
+  // Staff / roles
+  'RoleHeldByMembers',
+  'RoleNameTaken',
+  'RoleNotFound',
+  'StaffPhoneBelongsToOwner',
+  'StaffPhoneInUse',
+  'StaffNotFound',
+  'OwnerCannotBeChanged',
+  'RoleNotInShop',
+  'SeatLimitReached',
+  'PageLinkInvalid',
+  'StaffPasswordChangeWrongPath',
+
+  // Success -- auth
+  'CodeSent',
+  'SignedIn',
+  'CodeVerified',
+  'PasswordSet',
+  'PasswordChanged',
+  'SignedOut',
+
+  // Success -- identities / shop
+  'IdentitiesListed',
+  'IdentityAdded',
+  'OauthRedirectReady',
+  'IdentityRemoved',
+  'ProfileRetrieved',
+  'OauthProvidersListed',
+  'ShopCreated',
+
+  // Success -- operator auth
+  'OperatorCredentialsAccepted',
+  'TwoFactorEnrolled',
+  'OperatorVerified',
+
+  // Success -- team / activity / balance
+  'ActivityListed',
+  'BalanceRetrieved',
+  'LedgerRetrieved',
+  'RatesRetrieved',
+  'BalanceAdjusted',
+
+  // Success -- operator billing/plans/rates
+  'BillingTermsListed',
+  'BillingTermCreated',
+  'BillingTermUpdated',
+  'BillingTermDeleted',
+  'PlanPricesListed',
+  'PlanPriceSet',
+  'PlanPriceRemoved',
+  'LimitOverridesListed',
+  'LimitOverrideSet',
+  'LimitOverrideRemoved',
+  'PlansListed',
+  'PlanCreated',
+  'PlanVersionsRetrieved',
+  'PlanUpdated',
+  'PlanDeleted',
+  'PlanAssigned',
+  'RatesListed',
+  'RateHistoryRetrieved',
+  'RateUpdated',
+
+  // Success -- roles / staff
+  'RolesListed',
+  'RoleCreated',
+  'RoleUpdated',
+  'RoleDeleted',
+  'StaffListed',
+  'StaffCreated',
+  'StaffUpdated',
+  'StaffPasswordReset',
+] as const;
+
+export type MessageKey = (typeof MESSAGE_KEYS)[number];

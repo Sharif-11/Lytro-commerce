@@ -17,12 +17,7 @@ export class SignInLockout {
     if (subscriberId === null) return;
     const since = new Date(Date.now() - SIGNIN_WINDOW_MS);
     if ((await this.failures.countSince({ subscriberId }, since)) >= SIGNIN_MAX_FAILURES) {
-      throw new ApiError(
-        'rate_limited',
-        'Too many failed sign-ins. Wait before trying again.',
-        {},
-        SIGNIN_WINDOW_MS / 1000,
-      );
+      throw new ApiError('rate_limited', 'TooManyFailedSignins', {}, SIGNIN_WINDOW_MS / 1000);
     }
   }
 

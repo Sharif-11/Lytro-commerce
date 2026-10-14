@@ -70,7 +70,7 @@ export class SigninService {
       const opened = await this.gateway.run(async (tx) => {
         const consumed = await this.gateway.consumeChallenge(tx, challengeId, new Date());
         if (!consumed) {
-          throw new ApiError('validation_error', 'This code has already been used.', {
+          throw new ApiError('validation_error', 'CodeAlreadyUsed', {
             field: 'code',
           });
         }
@@ -91,7 +91,7 @@ export class SigninService {
       return opened;
     } catch (error) {
       if (error instanceof UniqueViolation) {
-        throw new ApiError('conflict', 'Please try again.', {});
+        throw new ApiError('conflict', 'PleaseTryAgain', {});
       }
       throw error;
     }
@@ -106,11 +106,7 @@ export class SigninService {
   private requirePhone(raw: string): string {
     const phone = this.phoneFormat.normalize(raw);
     if (!phone) {
-      throw new ApiError(
-        'validation_error',
-        'Enter a Bangladeshi mobile number, such as 017XXXXXXXX.',
-        { field: 'phone' },
-      );
+      throw new ApiError('validation_error', 'PhoneInvalid', { field: 'phone' });
     }
     return phone;
   }

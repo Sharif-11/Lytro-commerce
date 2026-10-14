@@ -21,12 +21,7 @@ export class SignupRateLimiter {
     if (ip === null) return;
     const since = new Date(Date.now() - SIGNUP_IP_WINDOW_MS);
     if ((await this.attempts.countSince(ip, since)) >= this.cap) {
-      throw new ApiError(
-        'rate_limited',
-        'Too many sign-ups from this address. Try again later.',
-        {},
-        SIGNUP_IP_WINDOW_MS / 1000,
-      );
+      throw new ApiError('rate_limited', 'TooManySignups', {}, SIGNUP_IP_WINDOW_MS / 1000);
     }
   }
 

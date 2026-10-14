@@ -133,7 +133,7 @@ export class ForgotPasswordService {
 
   /** The same reply for a wrong, expired or unknown code (AUTH-17). */
   private invalidCode(): ApiError {
-    return new ApiError('validation_error', 'This code is not valid. Request a new one.', {
+    return new ApiError('validation_error', 'CodeInvalid', {
       field: 'code',
     });
   }
