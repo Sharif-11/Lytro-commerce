@@ -17,6 +17,7 @@ export const MESSAGE_KEYS = [
   'PageNotFound',
   'SomethingWentWrong',
   'ReasonRequired',
+  'SettingValueInvalid',
   'PleaseTryAgain',
 
   // Balance / rates
@@ -24,6 +25,7 @@ export const MESSAGE_KEYS = [
   'InsufficientBalance',
   'RateCannotBeNegative',
   'UnknownRate',
+  'UnknownSetting',
 
   // Billing / plans
   'BillingTermNotFound',
@@ -128,6 +130,8 @@ export const MESSAGE_KEYS = [
   'RatesListed',
   'RateHistoryRetrieved',
   'RateUpdated',
+  'SettingsListed',
+  'SettingUpdated',
 
   // Success -- roles / staff
   'RolesListed',

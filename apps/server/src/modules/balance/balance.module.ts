@@ -8,6 +8,7 @@ import { AuditModule } from '../audit/audit.module';
 import { TenancyModule } from '../tenancy/tenancy.module';
 import { ConsoleLowBalanceNotifier } from './services/console-low-balance-notifier';
 import { BalanceService } from './services/balance.service';
+import { PayAsYouGoBillingService } from './services/payg-billing.service';
 import { RateService } from './services/rate.service';
 import {
   BALANCE_LEDGER_STORE,
@@ -29,7 +30,8 @@ import {
     { provide: CLOCK, useValue: (): Date => new Date() },
     BalanceService,
     RateService,
+    PayAsYouGoBillingService,
   ],
-  exports: [BalanceService, RateService],
+  exports: [BalanceService, RateService, PayAsYouGoBillingService],
 })
 export class BalanceModule {}

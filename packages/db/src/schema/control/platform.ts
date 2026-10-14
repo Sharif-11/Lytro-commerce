@@ -6,7 +6,8 @@ export const platformSettings = control.table('platform_settings', {
   key: text('key').primaryKey(),
   value: jsonb('value').notNull(),
   description: text('description').notNull(),
-  updatedBy: uuid('updated_by').notNull(),
+  // Nullable: a system-seeded default (the migration that first sets a key) has no operator to attribute it to.
+  updatedBy: uuid('updated_by'),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 

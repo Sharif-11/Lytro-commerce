@@ -135,6 +135,10 @@ export enum AuditAction {
   // PLN-17: an operator's not-for-sale plan assignment is operator-caused but changes the tenant's own plan, so
   // it writes both this log (D2-5) and PlatformAuditAction.PlanAssigned below.
   PlanAssigned = 'plan_assigned',
+  // TRL-07: a system-caused lifecycle transition (the trial-end job, later the grace/read-only/locked
+  // cascade too) -- D2-5 puts these on the tenant's own log only, so the owner sees why, with no platform
+  // audit mirror (an operator can already see tenant state directly).
+  LifecycleStateChanged = 'lifecycle_state_changed',
 }
 
 // The pg-boss queues this codebase uses (SCL-08, D25). Add a name here before any code enqueues to it.
@@ -190,6 +194,8 @@ export enum PlatformAuditAction {
   BillingTermCreated = 'billing_term_created',
   BillingTermUpdated = 'billing_term_updated',
   BillingTermRetired = 'billing_term_retired',
+  // LIF-26: a platform-wide setting change (e.g. trial length), by the operator who made it.
+  SettingsChanged = 'settings_changed',
 }
 
 // BAL-02: what a balance-ledger entry is for. One list, shared by every module that ever charges or credits a
@@ -217,6 +223,13 @@ export enum RateKey {
   PaygOrderFeePct = 'payg_order_fee_pct',
   PaygProductFee = 'payg_product_fee',
   SmsUnitSizeChars = 'sms_unit_size_chars',
+}
+
+// LIF-26: every platform-wide editable value that isn't a per-use rate (those are RateKey above). Add a key
+// here before any code reads or writes it. Trial length is the first; slice 7 adds the grace/read-only/
+// locked stage lengths to this same list.
+export enum PlatformSettingKey {
+  TrialDays = 'trial_days',
 }
 
 /**

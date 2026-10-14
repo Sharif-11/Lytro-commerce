@@ -15,6 +15,11 @@ import { control, createdAt } from '../shared';
 // The name of the free trial plan. Seeded by migration 0003; the tenancy repository finds it by this name.
 export const TRIAL_PLAN_NAME = 'Trial';
 
+// TRL-07/PYG-01: the plan a trial converts to at day 30 with no purchase. Not for sale (an operator never
+// assigns it as a PLN-17 override; a tenant only ever reaches it via the trial-end conversion) -- found by
+// this name the same way the Trial plan is.
+export const PAYG_PLAN_NAME = 'Pay-as-you-go';
+
 // DATABASE-SCHEMA §2.3. Prices and billing terms are slice 2's own tables (plan-prices.ts, billing-terms.ts).
 // Limits are data, never code.
 export const plans = control.table(

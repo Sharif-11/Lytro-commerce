@@ -11,6 +11,7 @@ import type { Env } from '../../config/env';
 import { TenantGuard } from '../../common/guards/tenant.guard';
 import { EdgeSecret } from '../../common/guards/edge-secret';
 import { MessagingModule } from '../shared/messaging/messaging.module';
+import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
 import { StaffModule } from '../staff/staff.module';
 import { TenantCache } from './services/tenant-cache';
 import { HostClassifier } from './services/host-classifier';
@@ -32,7 +33,7 @@ import { TenantSummaries } from './services/tenant-summaries.service';
 
 // TEN-7a: the tenant guard runs on every route, before any authentication code (APP_GUARD).
 @Module({
-  imports: [StaffModule, MessagingModule],
+  imports: [StaffModule, MessagingModule, PlatformSettingsModule],
   providers: [
     { provide: TenantCache, useFactory: () => new TenantCache() },
     { provide: TENANT_DIRECTORY, useClass: DrizzleTenantDirectory },

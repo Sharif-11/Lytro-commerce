@@ -6,6 +6,7 @@ import { TenancyModule } from '../tenancy/tenancy.module';
 import { OperatorModule } from '../operator/operator.module';
 import { BalanceModule } from '../balance/balance.module';
 import { BillingModule } from '../billing/billing.module';
+import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
 import { ClientIp } from '../../common/client-ip';
 import { ActivityController } from './controllers/activity.controller';
 import { RolesController } from './controllers/roles.controller';
@@ -20,6 +21,7 @@ import {
   OperatorPlanPricesController,
 } from './controllers/operator-billing-terms.controller';
 import { OperatorPlanLimitOverridesController } from './controllers/operator-plan-limit-overrides.controller';
+import { OperatorSettingsController } from './controllers/operator-settings.controller';
 import { ActivityListService } from './services/activity-list.service';
 import { StaffSigninService } from './services/staff-signin.service';
 import { StaffController } from './controllers/staff.controller';
@@ -37,6 +39,7 @@ import { StaffController } from './controllers/staff.controller';
     OperatorModule,
     BalanceModule,
     BillingModule,
+    PlatformSettingsModule,
   ],
   controllers: [
     StaffController,
@@ -51,6 +54,7 @@ import { StaffController } from './controllers/staff.controller';
     OperatorBillingTermsController,
     OperatorPlanPricesController,
     OperatorPlanLimitOverridesController,
+    OperatorSettingsController,
   ],
   providers: [StaffSigninService, ActivityListService, ClientIp],
 })

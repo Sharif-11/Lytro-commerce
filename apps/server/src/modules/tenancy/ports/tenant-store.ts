@@ -1,12 +1,17 @@
 import type { BalanceRow, Transaction } from '@lytronix/db';
-import type { PlanLimits } from '@lytronix/validators';
+import type { PlanLimits, TenantState } from '@lytronix/validators';
 
-// Shop rows and the Trial plan, written inside the caller's transaction. Implemented in database/adapters.
+// Shop rows and the Trial/Pay-as-you-go plans, written inside the caller's transaction. Implemented in
+// database/adapters.
 export interface TenantStore {
   /** Opens a transaction for a caller that doesn't have one yet. control.tenants has no RLS, so no tenant
    * context to set -- this is a plain transaction, unlike balance's tenant-scoped `run`. */
   run<T>(work: (tx: Transaction) => Promise<T>): Promise<T>;
   findTrialPlan(tx: Transaction): Promise<{ id: string; limits: PlanLimits } | null>;
+  /** TRL-07: the plan a trial converts to at day 30 with no purchase. */
+  findPayAsYouGoPlan(tx: Transaction): Promise<{ id: string; limits: PlanLimits } | null>;
+  /** TRL-07: trials whose period has ended with no purchase. */
+  findExpiredTrialIds(tx: Transaction, now: Date): Promise<string[]>;
   insertTenant(
     tx: Transaction,
     values: {
@@ -24,11 +29,17 @@ export interface TenantStore {
   lockBalanceForUpdate(tx: Transaction, tenantId: string): Promise<BalanceRow | null>;
   /** BAL-07/08/09: freezes or unfreezes the balance without touching its amount. */
   setBalanceFrozen(tx: Transaction, tenantId: string, frozen: boolean): Promise<void>;
-  /** PLN-17: activates a not-for-sale plan assignment with a normal snapshot. */
+  /** PLN-17/TRL-07: activates a plan assignment with a normal snapshot; `state` is the caller's to decide. */
   applyPlanAssignment(
     tx: Transaction,
     tenantId: string,
-    values: { planId: string; planSnapshot: PlanLimits; periodStart: Date; periodEnd: Date | null },
+    values: {
+      planId: string;
+      planSnapshot: PlanLimits;
+      periodStart: Date;
+      periodEnd: Date | null;
+      state: TenantState;
+    },
   ): Promise<void>;
   /** Writes the new balance, and optionally the frozen flag and/or the cached last-activity timestamp (D2-11). */
   applyBalanceChange(

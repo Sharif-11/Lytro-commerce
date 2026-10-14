@@ -27,6 +27,7 @@ import {
   PlanPricesRepository,
   PlanAssignmentsRepository,
   PlanLimitOverridesRepository,
+  PlatformSettingsRepository,
 } from '@lytronix/db';
 import { EnvironmentParser } from '../config/env';
 import { ENV } from '../config/tokens';
@@ -91,6 +92,7 @@ import { DatabaseService } from './database.service';
     { provide: PlanPricesRepository, useFactory: () => new PlanPricesRepository() },
     { provide: PlanAssignmentsRepository, useFactory: () => new PlanAssignmentsRepository() },
     { provide: PlanLimitOverridesRepository, useFactory: () => new PlanLimitOverridesRepository() },
+    { provide: PlatformSettingsRepository, useFactory: () => new PlatformSettingsRepository() },
   ],
   exports: [
     ENV,
@@ -122,6 +124,7 @@ import { DatabaseService } from './database.service';
     PlanPricesRepository,
     PlanAssignmentsRepository,
     PlanLimitOverridesRepository,
+    PlatformSettingsRepository,
   ],
 })
 export class DatabaseModule {}

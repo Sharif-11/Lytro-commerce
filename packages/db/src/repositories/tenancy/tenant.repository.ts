@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, lte } from 'drizzle-orm';
 import type { Database } from '../../client';
 import type { Executor } from '../../transactions';
 import { plans, tenantDomains, tenants } from '../../schema';
@@ -149,14 +149,23 @@ export class TenantRepository {
   }
 
   /**
-   * PLN-17: activates a not-for-sale plan assignment, storing a normal snapshot exactly as a purchase would.
-   * `periodEnd: null` means no expiry (PLN-18) -- the lifecycle job (slice 7) must treat a not-for-sale plan
-   * with no period end as never lapsing, the same way it already will for an expiring one that hasn't lapsed.
+   * PLN-17/TRL-07: activates a plan assignment (not-for-sale operator override, or the trial-end conversion
+   * to pay-as-you-go), storing a normal snapshot exactly as a purchase would. `periodEnd: null` means no
+   * expiry (PLN-18, PYG-08) -- the lifecycle job (slice 7) must treat a plan with no period end as never
+   * lapsing, the same way it already will for an expiring one that hasn't lapsed. `state` is the caller's to
+   * decide (Active for an operator override, PayAsYouGo for the trial-end conversion) -- this method only
+   * writes, it never infers it.
    */
   async applyPlanAssignment(
     tx: Executor,
     tenantId: string,
-    values: { planId: string; planSnapshot: PlanLimits; periodStart: Date; periodEnd: Date | null },
+    values: {
+      planId: string;
+      planSnapshot: PlanLimits;
+      periodStart: Date;
+      periodEnd: Date | null;
+      state: TenantState;
+    },
   ): Promise<void> {
     await tx
       .update(tenants)
@@ -165,9 +174,18 @@ export class TenantRepository {
         planSnapshot: values.planSnapshot,
         periodStart: values.periodStart,
         periodEnd: values.periodEnd,
-        state: TenantState.Active,
+        state: values.state,
       })
       .where(eq(tenants.id, tenantId));
+  }
+
+  /** TRL-07: trials whose period has ended with no purchase -- the trial-end job's own candidate list. */
+  async findExpiredTrialIds(tx: Executor, now: Date): Promise<string[]> {
+    const rows = await tx
+      .select({ id: tenants.id })
+      .from(tenants)
+      .where(and(eq(tenants.state, TenantState.Trial), lte(tenants.periodEnd, now)));
+    return rows.map((row) => row.id);
   }
 }
 

@@ -6,6 +6,7 @@ import {
   AuditResult,
   PlatformActorType,
   PlatformAuditAction,
+  TenantState,
 } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import { AuditService } from '../../audit/services/audit.service';
@@ -64,6 +65,7 @@ export class PlanAssignmentService {
         planSnapshot: plan.limits,
         periodStart: now,
         periodEnd: input.expiry,
+        state: TenantState.Active,
       }),
     );
 
