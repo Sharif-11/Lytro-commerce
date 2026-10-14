@@ -353,7 +353,7 @@ Rule: the new plan starts at confirmation, the tenant gets credit for the unused
 
 | ID | Requirement | Pass criteria | Pri | Ver |
 | --- | --- | --- | --- | --- |
-| UPG-01 | An upgrade shall be available to an `active` tenant with an unexpired paid period. | In `trial`, `grace` and later states the screen offers a normal purchase (TRL-06, BIL-11) instead. | M | E2E |
+| UPG-01 | An upgrade shall be available to an `active` tenant with an unexpired paid period, paid by the same methods as a purchase (BIL-02): the platform's active wallet numbers, or the tenant's balance. | In `trial`, `grace` and later states the screen offers a normal purchase (TRL-06, BIL-11) instead. | M | E2E |
 | UPG-02 | An upgrade target shall be a plan with a higher rank than the current plan. | Choosing an equal or lower rank is not offered as an upgrade. | M | E2E |
 | UPG-03 | Credit shall equal price paid × remaining days ÷ total days of the period, rounded to whole taka (half up); total days are the days between the snapshot's stored start and end dates, and remaining days are whole days to the period end, rounded up. | Examples A and B produce 299 and 3,442. | M | API |
 | UPG-04 | Amount due shall equal the full price of the chosen new plan and period minus the credit. | Examples A and B produce 400 and 3,939. | M | API |
@@ -368,7 +368,7 @@ Rule: the new plan starts at confirmation, the tenant gets credit for the unused
 | UPG-13 | A scheduled downgrade or cancellation shall be cancelled by an upgrade. | The banner disappears; audit shows the cancellation. | M | E2E |
 | UPG-14 | Add-ons and packs bought earlier shall remain until their own end. | An add-on bought for the old period still shows with its end date. | S | E2E |
 | UPG-15 | The invoice shall show the credit line, and an audit entry shall record old plan, new plan and amounts. | Both exist and agree. | M | API |
-| UPG-16 | The balance and its usability shall be unchanged by an upgrade. | Balance before equals after. | M | API |
+| UPG-16 | Paying from balance shall require a usable balance at least equal to the amount due and shall deduct it atomically (BIL-08); paying by wallet shall leave the balance unchanged until an operator confirms it (D2-1). | Paying from balance with insufficient funds is refused; with enough, it succeeds and deducts exactly once. Paying by wallet leaves the balance identical before and after, until confirmed. | M | API |
 | UPG-17 | If payment is not confirmed, the tenant shall remain on the old plan with nothing changed. | Limits and dates are unchanged. | M | E2E |
 
 ## 10. Downgrade — end of paid period (DWN)

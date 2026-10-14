@@ -171,10 +171,10 @@ Each scenario lists its preconditions, numbered steps, expected result, and the 
 - Expected: new limits are usable at once (a 3rd user can be created right after Starter→Growth); the renewal date is confirmation time plus the new period's length; every per-period counter reads zero immediately after; every non-period counter is exactly what it was before.
 - Covers: UPG-09, UPG-10, UPG-11, UPG-12.
 
-**P2-E27 Upgrade's side effects: cancels a scheduled downgrade, credits the invoice, leaves the balance and a failed attempt unaffected. [E2E]**
-- Steps: with a downgrade already scheduled, upgrade instead; inspect the resulting invoice; check the balance immediately before and after; start an upgrade payment and let it fail or time out.
-- Expected: the scheduled downgrade is cancelled, audited; the invoice shows the credit line; the balance is byte-for-byte unchanged by the upgrade transaction itself; an unconfirmed/failed payment leaves the tenant on the old plan with nothing changed.
-- Covers: UPG-13, UPG-15, UPG-16, UPG-17.
+**P2-E27 Upgrade's side effects: cancels a scheduled downgrade, credits the invoice, both payment methods behave correctly, a failed attempt is unaffected. [E2E]**
+- Steps: with a downgrade already scheduled, upgrade instead; inspect the resulting invoice; pay one upgrade from balance and check the balance immediately before and after; pay a separate upgrade by wallet and check the balance immediately before and after (unchanged until confirmed); start an upgrade payment and let it fail or time out.
+- Expected: the scheduled downgrade is cancelled, audited; the invoice shows the credit line; paying from balance deducts the amount due exactly once, refused if the balance can't cover it; paying by wallet leaves the balance byte-for-byte unchanged until an operator confirms it; an unconfirmed/failed payment leaves the tenant on the old plan with nothing changed.
+- Covers: UPG-01, UPG-13, UPG-15, UPG-16, UPG-17.
 
 ### E. Downgrade
 

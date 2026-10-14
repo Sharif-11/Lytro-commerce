@@ -131,7 +131,7 @@ Upgrades start immediately and restart the billing cycle, downgrades wait for th
 
 ### 5.1 Upgrade (cycle restarts)
 
-- **UPG-1** The new plan starts as soon as payment is confirmed.
+- **UPG-1** The new plan starts as soon as payment is confirmed, paid by bKash, Nagad or balance (PLN-4) — the same choice of methods as any other plan payment.
 - **UPG-2** The tenant gets credit for the unused part of the current plan, prorated by the day and rounded to whole taka. They pay the new plan's full price for the chosen period minus that credit. The billing cycle restarts on the upgrade day and the renewal date moves.
 - **UPG-3** Usage counters (orders, free essential SMS, bandwidth, requests) reset with the new cycle.
 - **UPG-4** Add-ons and extra packs bought earlier stay until their own end.
