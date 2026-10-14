@@ -65,6 +65,7 @@ export {
   PlatformAuditLogRepository,
   type NewPlatformAuditEntry,
 } from './repositories/platform/platform-audit-log.repository';
+export { PlatformSettingsRepository } from './repositories/platform/platform-settings.repository';
 export {
   BalanceLedgerRepository,
   type LedgerFilters,

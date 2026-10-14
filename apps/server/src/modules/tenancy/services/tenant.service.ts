@@ -1,16 +1,19 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { BalanceRow, Transaction } from '@lytronix/db';
-import type { PlanLimits } from '@lytronix/validators';
+import { PlatformSettingKey, type PlanLimits, type TenantState } from '@lytronix/validators';
 import { DAY_MS } from '../../../common/time';
 import { StaffService } from '../../staff/services/staff.service';
 import { MessagingService } from '../../shared/messaging/services/messaging.service';
 import { type QueuedMessage } from '../../shared/messaging/types/messages';
+import { PlatformSettingsService } from '../../platform-settings/services/platform-settings.service';
 import { CLOCK, TENANT_STORE } from '../tokens';
 import type { TenantStore } from '../ports/tenant-store';
 import type { TrialShopRequest } from '../types/trial-shop-request';
 
-// D3, TRL-01, TRL-05: a shop starts on the Trial plan for 30 days. The rules are here, not in the repository.
-export const TRIAL_DAYS = 30;
+// D3, TRL-01, TRL-05: a shop starts on the Trial plan. Fallback only -- the real value is the
+// `trial_days` platform setting (LIF-26), configurable by an operator; this is used only if that row is
+// somehow missing (seeded by migration, so it never should be in practice).
+export const DEFAULT_TRIAL_DAYS = 30;
 
 /**
  * Creates a shop in the trial state with its owner and the "shop ready" message (AUTH-10). It runs inside the
@@ -23,6 +26,7 @@ export class TenantService {
     @Inject(CLOCK) private readonly clock: () => Date,
     @Inject(StaffService) private readonly staff: StaffService,
     @Inject(MessagingService) private readonly messaging: MessagingService,
+    @Inject(PlatformSettingsService) private readonly settings: PlatformSettingsService,
   ) {}
 
   async createTrialShop(
@@ -31,6 +35,10 @@ export class TenantService {
   ): Promise<{ tenantId: string; messages: QueuedMessage[] }> {
     const plan = await this.store.findTrialPlan(tx);
     if (!plan) throw new Error('the Trial plan is not seeded');
+
+    const trialDaysSetting = await this.settings.current(PlatformSettingKey.TrialDays);
+    const trialDays =
+      typeof trialDaysSetting?.value === 'number' ? trialDaysSetting.value : DEFAULT_TRIAL_DAYS;
 
     const now = this.clock();
     const tenantId = await this.store.insertTenant(tx, {
@@ -41,7 +49,7 @@ export class TenantService {
       planId: plan.id,
       planSnapshot: plan.limits,
       periodStart: now,
-      periodEnd: new Date(now.getTime() + TRIAL_DAYS * DAY_MS),
+      periodEnd: new Date(now.getTime() + trialDays * DAY_MS),
     });
 
     await this.staff.createOwner(tx, {
@@ -83,12 +91,28 @@ export class TenantService {
     return this.store.run(work);
   }
 
-  /** PLN-17: activates a not-for-sale plan assignment with a normal snapshot, exactly as a purchase would. */
+  /** PLN-17/TRL-07: activates a plan assignment with a normal snapshot; `state` is the caller's to decide. */
   applyPlanAssignment(
     tx: Transaction,
     tenantId: string,
-    values: { planId: string; planSnapshot: PlanLimits; periodStart: Date; periodEnd: Date | null },
+    values: {
+      planId: string;
+      planSnapshot: PlanLimits;
+      periodStart: Date;
+      periodEnd: Date | null;
+      state: TenantState;
+    },
   ): Promise<void> {
     return this.store.applyPlanAssignment(tx, tenantId, values);
+  }
+
+  /** TRL-07: the plan a trial converts to at day 30 with no purchase. */
+  findPayAsYouGoPlan(tx: Transaction): Promise<{ id: string; limits: PlanLimits } | null> {
+    return this.store.findPayAsYouGoPlan(tx);
+  }
+
+  /** TRL-07: trials whose period has ended with no purchase -- the trial-end job's candidate list. */
+  findExpiredTrialIds(tx: Transaction, now: Date): Promise<string[]> {
+    return this.store.findExpiredTrialIds(tx, now);
   }
 }

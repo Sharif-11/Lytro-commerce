@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
+  PAYG_PLAN_NAME,
   SlugRepository,
   TenantRepository,
   TRIAL_PLAN_NAME,
@@ -62,6 +63,14 @@ export class DrizzleTenantStore implements TenantStore {
 
   findTrialPlan(tx: Transaction): Promise<{ id: string; limits: PlanLimits } | null> {
     return this.tenants.findPlanByName(tx, TRIAL_PLAN_NAME, false);
+  }
+
+  findPayAsYouGoPlan(tx: Transaction): Promise<{ id: string; limits: PlanLimits } | null> {
+    return this.tenants.findPlanByName(tx, PAYG_PLAN_NAME, false);
+  }
+
+  findExpiredTrialIds(tx: Transaction, now: Date): Promise<string[]> {
+    return this.tenants.findExpiredTrialIds(tx, now);
   }
 
   async insertTenant(

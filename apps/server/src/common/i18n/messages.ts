@@ -33,12 +33,17 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     bn: 'কিছু একটা সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।',
   },
   ReasonRequired: { en: 'A reason is required.', bn: 'একটি কারণ উল্লেখ করা আবশ্যক।' },
+  SettingValueInvalid: {
+    en: 'This value is not valid for this setting.',
+    bn: 'এই সেটিংয়ের জন্য মানটি সঠিক নয়।',
+  },
   PleaseTryAgain: { en: 'Please try again.', bn: 'অনুগ্রহ করে আবার চেষ্টা করুন।' },
 
   BalanceFrozen: { en: 'The balance is frozen.', bn: 'ব্যালেন্স ফ্রিজ করা আছে।' },
   InsufficientBalance: { en: 'Insufficient balance.', bn: 'পর্যাপ্ত ব্যালেন্স নেই।' },
   RateCannotBeNegative: { en: 'A rate cannot be negative.', bn: 'রেট নেগেটিভ হতে পারে না।' },
   UnknownRate: { en: 'Unknown rate.', bn: 'অজানা রেট।' },
+  UnknownSetting: { en: 'Unknown setting.', bn: 'অজানা সেটিং।' },
 
   BillingTermNotFound: { en: 'Billing term not found.', bn: 'বিলিং টার্মটি খুঁজে পাওয়া যায়নি।' },
   BillingTermInUse: {
@@ -267,6 +272,8 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   RatesListed: { en: 'Rates retrieved.', bn: 'রেট পাওয়া গেছে।' },
   RateHistoryRetrieved: { en: 'Rate history retrieved.', bn: 'রেটের হিস্টরি পাওয়া গেছে।' },
   RateUpdated: { en: 'Rate updated.', bn: 'রেট আপডেট হয়েছে।' },
+  SettingsListed: { en: 'Settings retrieved.', bn: 'সেটিংসগুলো পাওয়া গেছে।' },
+  SettingUpdated: { en: 'Setting updated.', bn: 'সেটিং আপডেট হয়েছে।' },
 
   RolesListed: { en: 'Roles retrieved.', bn: 'রোলগুলো পাওয়া গেছে।' },
   RoleCreated: { en: 'Role created.', bn: 'রোল তৈরি হয়েছে।' },

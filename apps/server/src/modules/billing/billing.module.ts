@@ -11,6 +11,7 @@ import { PlansService } from './services/plans.service';
 import { BillingTermsService } from './services/billing-terms.service';
 import { PlanAssignmentService } from './services/plan-assignment.service';
 import { PlanLimitOverridesService } from './services/plan-limit-overrides.service';
+import { TrialLifecycleService } from './services/trial-lifecycle.service';
 import {
   BILLING_TERMS_STORE,
   CLOCK,
@@ -34,7 +35,14 @@ import {
     BillingTermsService,
     PlanAssignmentService,
     PlanLimitOverridesService,
+    TrialLifecycleService,
   ],
-  exports: [PlansService, BillingTermsService, PlanAssignmentService, PlanLimitOverridesService],
+  exports: [
+    PlansService,
+    BillingTermsService,
+    PlanAssignmentService,
+    PlanLimitOverridesService,
+    TrialLifecycleService,
+  ],
 })
 export class BillingModule {}
