@@ -3,6 +3,7 @@ import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { apiReference } from '@scalar/nestjs-api-reference';
+import { setupGracefulShutdown } from '@tygra/nestjs-graceful-shutdown';
 import { cleanupOpenApiDoc } from 'nestjs-zod';
 import { AppModule } from './app/app.module';
 import { EnvironmentParser } from './config/env';
@@ -29,6 +30,13 @@ class Application {
     // server instead, so /swagger keeps working with no outbound network call -- a CDN-independent
     // fallback to isolate a rendering problem from a spec-generation one.
     SwaggerModule.setup('swagger', app, cleanedDocument);
+
+    // On SIGTERM/SIGINT (every container stop/restart/deploy): stop accepting new requests, let
+    // in-flight ones finish, run every onModuleDestroy hook (DatabaseService's pool, PgBossClient,
+    // the mail/SMS workers), then force-close any still-open keep-alive socket after 10s so a stuck
+    // shutdown never blocks a deploy. GracefulShutdownModule (app.module.ts) enables the shutdown
+    // hooks itself -- calling enableShutdownHooks() here too would double-register them.
+    setupGracefulShutdown({ app });
 
     await app.listen(env.PORT, env.HOST);
   }
