@@ -2,9 +2,13 @@ import 'dotenv/config';
 import { type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { request as httpRequest } from 'node:http';
+import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from '../src/app/app.module';
+import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { listenOn } from './support/bootstrap';
+import { prepareTestDatabase } from './support/database';
+import { SmsCapture } from './support/sms-capture';
 import { getJson, postJson } from './support/http';
 
 /** Bypasses support/http.ts's automatic /api/v1 prefix, to prove the server itself enforces it. */
@@ -25,20 +29,41 @@ function rawGet(port: number, path: string): Promise<{ status: number }> {
 
 // Proves the real wire shape every other e2e spec's `.body`/`errorOf()` helpers quietly unwrap (support/http.ts):
 // { success, statusCode, message, data } on success, { success, statusCode, message, errors: { code, details } }
-// on failure (SRS-detailed §2.6). No database needed -- /health and a validation error exercise both paths.
+// on failure (SRS-detailed §2.6). The last test below exercises a real sign-in-code request, so this needs a
+// database like every other e2e spec -- runs only when DATABASE_TEST_ADMIN_URL is set, which CI always does.
+const ADMIN_URL = process.env['DATABASE_TEST_ADMIN_URL'];
+const DB_NAME = 'lytronix_response_envelope_test';
+const describeIfDatabase = ADMIN_URL ? describe : describe.skip;
+
 let app: INestApplication;
 let port: number;
+let admin: pg.Client;
+const texts = new SmsCapture();
 
 beforeAll(async () => {
-  const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
+  if (!ADMIN_URL) return;
+  const { adminDbUrl, appDbUrl } = await prepareTestDatabase(ADMIN_URL, DB_NAME);
+  process.env['DATABASE_URL'] = appDbUrl;
+  process.env['OTP_SECRET'] = 'response-envelope-e2e-otp-secret-0123456789ab';
+  process.env['PLATFORM_DOMAIN'] = 'localhost';
+
+  admin = new pg.Client({ connectionString: adminDbUrl });
+  await admin.connect();
+
+  const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+    .overrideProvider(SMS_PROVIDER)
+    .useValue(texts.provider)
+    .compile();
   ({ app, port } = await listenOn(moduleRef));
 });
 
 afterAll(async () => {
+  if (!ADMIN_URL) return;
   await app.close();
+  await admin.end();
 });
 
-describe('the response envelope (API-14, SRS-detailed §2.6)', () => {
+describeIfDatabase('the response envelope (API-14, SRS-detailed §2.6)', () => {
   it('wraps a success response in { success: true, statusCode, message, data }', async () => {
     const response = await getJson(port, '/health');
     expect(response.status).toBe(200);
