@@ -52,4 +52,11 @@ export interface StaffStore {
   ): Promise<StaffRecord | null>;
   /** Ends every live session of the staff member (STF-05). */
   revokeSessionsOf(tx: Transaction, userId: string, at: Date): Promise<void>;
+  /** LIF-19: deletes every staff row of the shop. Call after RoleStore.deleteAllForTenant (FK order). */
+  deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void>;
+  /** LIF-18/24, PYG-21: the owner's own contact, for a platform-sent notice (never a staff member's). */
+  findOwnerContact(
+    tx: Transaction,
+    tenantId: string,
+  ): Promise<{ phone: string | null; email: string | null } | null>;
 }

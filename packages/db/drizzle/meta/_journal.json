@@ -218,6 +218,13 @@
       "when": 1791997018414,
       "tag": "0030_scheduled_plan_changes",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1792001823487,
+      "tag": "0031_lifecycle_cancellation",
+      "breakpoints": true
     }
   ]
 }

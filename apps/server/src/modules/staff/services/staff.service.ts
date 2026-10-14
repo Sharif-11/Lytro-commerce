@@ -53,6 +53,11 @@ export class StaffService {
     );
   }
 
+  /** LIF-18/24, PYG-21: the owner's own contact, for a platform-sent notice. */
+  ownerContact(tenantId: string): Promise<{ phone: string | null; email: string | null } | null> {
+    return this.store.run(tenantId, (tx) => this.store.findOwnerContact(tx, tenantId));
+  }
+
   /** Runs work in a transaction with the shop's tenant context set. */
   inShop<T>(tenant: StaffTenant, work: (tx: Transaction) => Promise<T>): Promise<T> {
     return this.store.run(tenant.id, work);
@@ -295,6 +300,14 @@ export class StaffService {
       });
     }
     return deactivated;
+  }
+
+  /** LIF-19: the day-60 deletion job's staff/roles step -- deletes every role assignment, role and staff row. */
+  async deleteAllForTenant(tenant: StaffTenant): Promise<void> {
+    await this.store.run(tenant.id, async (tx) => {
+      await this.roles.deleteAllForTenant(tx, tenant.id);
+      await this.store.deleteAllForTenant(tx, tenant.id);
+    });
   }
 
   /** Refuses when the shop has no free seat. Takes the seat lock first, so the count is not raced. */

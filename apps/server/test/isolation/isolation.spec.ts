@@ -154,6 +154,8 @@ describeIfDatabase('route inventory against the application (SEC-02)', () => {
       'POST /auth/staff/signin',
       'POST /balance/top-up/confirm',
       'POST /balance/top-up/quote',
+      'POST /billing/cancel',
+      'POST /billing/cancel/undo',
       'POST /billing/downgrade/cancel',
       'POST /billing/downgrade/preview',
       'POST /billing/downgrade/schedule',

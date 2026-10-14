@@ -23,6 +23,7 @@ import { SessionGuard } from '../../identity/guards/session.guard';
 import { PermissionGuard } from '../guards/permission.guard';
 import { OkDto } from '../../../common/dto/ok.dto';
 import { DowngradeService, type OverLimitItem } from '../../billing/services/downgrade.service';
+import { LifecycleService } from '../../billing/services/lifecycle.service';
 import { PurchaseService } from '../../billing/services/purchase.service';
 import { UpgradeService } from '../../billing/services/upgrade.service';
 import type { ScheduledPlanChangeRecord } from '../../billing/types/scheduled-plan-change';
@@ -54,6 +55,7 @@ export class BillingController {
     @Inject(PurchaseService) private readonly purchase: PurchaseService,
     @Inject(UpgradeService) private readonly upgrade: UpgradeService,
     @Inject(DowngradeService) private readonly downgrade: DowngradeService,
+    @Inject(LifecycleService) private readonly lifecycle: LifecycleService,
     @Inject(InvoicesService) private readonly invoices: InvoicesService,
   ) {}
 
@@ -70,6 +72,7 @@ export class BillingController {
   }
 
   @Post('purchase')
+  @Dashboard({ readOnlyWrite: true })
   @UseInterceptors(IdempotencyInterceptor)
   @RequirePermission(Permission.PaymentsManage)
   @ResponseMessage('PurchaseConfirmed')
@@ -108,6 +111,7 @@ export class BillingController {
   }
 
   @Post('upgrade/confirm')
+  @Dashboard({ readOnlyWrite: true })
   @UseInterceptors(IdempotencyInterceptor)
   @RequirePermission(Permission.PaymentsManage)
   @ResponseMessage('UpgradeConfirmed')
@@ -174,6 +178,26 @@ export class BillingController {
     @Req() request: DashboardRequest,
   ): Promise<ScheduledPlanChangeRecord | null> {
     return this.downgrade.getScheduled(this.tenantIdOf(request));
+  }
+
+  @Post('cancel')
+  @ResponseMessage('SubscriptionCancelled')
+  @RequirePermission(Permission.PaymentsManage)
+  @ApiOperation({ summary: 'Cancel, effective at the end of the current paid period (LIF-01)' })
+  @ZodResponse({ type: OkDto })
+  async cancelSubscription(@Req() request: DashboardRequest): Promise<{ ok: true }> {
+    await this.lifecycle.cancelSubscription(this.tenantIdOf(request));
+    return { ok: true };
+  }
+
+  @Post('cancel/undo')
+  @ResponseMessage('SubscriptionCancellationUndone')
+  @RequirePermission(Permission.PaymentsManage)
+  @ApiOperation({ summary: 'Undo a cancellation before the current period ends (LIF-01)' })
+  @ZodResponse({ type: OkDto })
+  async undoCancellation(@Req() request: DashboardRequest): Promise<{ ok: true }> {
+    await this.lifecycle.undoCancellation(this.tenantIdOf(request));
+    return { ok: true };
   }
 
   @Get('invoices')

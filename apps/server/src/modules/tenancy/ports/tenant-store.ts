@@ -1,4 +1,10 @@
-import type { BalanceRow, BillingInfoRow, Transaction } from '@lytronix/db';
+import type {
+  BalanceRow,
+  BillingInfoRow,
+  LapsingCandidateRow,
+  PaygCandidateRow,
+  Transaction,
+} from '@lytronix/db';
 import type { PlanLimits, TenantState } from '@lytronix/validators';
 
 // Shop rows and the Trial/Pay-as-you-go plans, written inside the caller's transaction. Implemented in
@@ -50,4 +56,20 @@ export interface TenantStore {
     amount: string,
     options?: { frozen?: boolean; touchActivityAt?: Date },
   ): Promise<void>;
+  /** LIF-03/04/23: the lifecycle job's own state write -- plan, period and balance are untouched. */
+  setLifecycleState(tx: Transaction, tenantId: string, state: TenantState): Promise<void>;
+  /** LIF-24: an operator closing the public/dashboard side for cause, independent of `state` (checked directly). */
+  setSuspension(tx: Transaction, tenantId: string, reason: string, at: Date): Promise<void>;
+  /** LIF-15/24: lifts a suspension -- restore (any plan activation) and operator restore both call this. */
+  clearSuspension(tx: Transaction, tenantId: string): Promise<void>;
+  /** LIF-01: sets or clears the owner's own non-renewal intent; the state machine never reads this. */
+  setCancellation(tx: Transaction, tenantId: string, cancelledAt: Date | null): Promise<void>;
+  /** LIF-19: the day-60 deletion job's own state/marker write, after the business-data deletion step. */
+  markDeleted(tx: Transaction, tenantId: string, at: Date): Promise<void>;
+  /** LIF-03/04: every tenant whose lifecycle state is derived from a running period, not yet deleted. */
+  findLapsingCandidates(tx: Transaction, now: Date): Promise<LapsingCandidateRow[]>;
+  /** PYG-21: every pay-as-you-go tenant, not yet deleted -- the 23/30-day thresholds are the service's job. */
+  findPaygInactiveCandidates(tx: Transaction): Promise<PaygCandidateRow[]>;
+  /** PYG-21/LIF-19: tenants already archived by the inactivity pass, awaiting their own day-60 deletion. */
+  findPaygArchivedCandidates(tx: Transaction): Promise<PaygCandidateRow[]>;
 }

@@ -146,4 +146,24 @@ export class UserRepository {
       .returning();
     return rows[0] ?? null;
   }
+
+  /** LIF-19: deletes every staff row of the shop (business-data deletion). */
+  async deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    await tx.delete(users).where(eq(users.tenantId, tenantId));
+  }
+
+  /** LIF-18/24, PYG-21: the owner's own contact, for a platform-sent notice (never a staff member's). */
+  async findOwnerContact(
+    tx: Transaction,
+    tenantId: string,
+  ): Promise<{ phone: string | null; email: string | null } | null> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const rows = await tx
+      .select({ phone: users.phone, email: users.email })
+      .from(users)
+      .where(and(eq(users.tenantId, tenantId), eq(users.isOwner, true)))
+      .limit(1);
+    return rows[0] ?? null;
+  }
 }

@@ -3,6 +3,7 @@ import {
   confirmTopUpSchema,
   listLedgerSchema,
   quoteTopUpSchema,
+  suspendTenantSchema,
   updateRateSchema,
 } from '@lytronix/validators';
 import { createZodDto } from 'nestjs-zod';
@@ -13,3 +14,4 @@ export class AdjustBalanceDto extends createZodDto(adjustBalanceSchema) {}
 export class UpdateRateDto extends createZodDto(updateRateSchema) {}
 export class QuoteTopUpDto extends createZodDto(quoteTopUpSchema) {}
 export class ConfirmTopUpDto extends createZodDto(confirmTopUpSchema) {}
+export class SuspendTenantDto extends createZodDto(suspendTenantSchema) {}

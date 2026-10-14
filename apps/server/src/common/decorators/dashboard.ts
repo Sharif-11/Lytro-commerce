@@ -7,6 +7,9 @@ export interface DashboardOptions {
   lapsed?: boolean;
   /** The route also answers a session that has no shop yet, on the platform host (the account summary). */
   withoutShop?: boolean;
+  /** LIF-06: a write route still allowed in `read_only` (purchase/renewal/upgrade confirm, password change,
+   * sign-out). Every other write is refused `tenant_offline`; every GET is already allowed regardless. */
+  readOnlyWrite?: boolean;
 }
 
 /** Marks a dashboard route. The DashboardGuard picks the shop from the host and the session, not from the global tenant guard. */

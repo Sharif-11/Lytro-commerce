@@ -19,6 +19,7 @@ export const LAPSED: ReadonlySet<TenantState> = new Set([
 
 export interface DashboardRequest {
   headers: Record<string, string | string[] | undefined>;
+  method?: string;
   session?: SessionRecord;
   tenant?: TenantSummary | null;
 }
@@ -76,6 +77,13 @@ export class DashboardGuard implements CanActivate {
     const ownerSession = session.userId === null;
     if (LAPSED.has(tenant.state) && !(options.lapsed === true && ownerSession)) {
       throw new ApiError('tenant_offline', 'ShopUnavailable', {});
+    }
+    // LIF-06: read_only allows view/export/buy-a-plan/password-change/sign-out, refuses every other write.
+    if (tenant.state === TenantState.ReadOnly && options.readOnlyWrite !== true) {
+      const method = (request.method ?? 'GET').toUpperCase();
+      if (method !== 'GET' && method !== 'HEAD') {
+        throw new ApiError('tenant_offline', 'ShopUnavailable', {});
+      }
     }
 
     request.tenant = tenant;

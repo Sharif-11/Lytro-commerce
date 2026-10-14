@@ -16,6 +16,7 @@ import { StaffAuthController } from './controllers/staff-auth.controller';
 import { BalanceController } from './controllers/balance.controller';
 import { OperatorRatesController } from './controllers/operator-rates.controller';
 import { OperatorBalanceController } from './controllers/operator-balance.controller';
+import { OperatorTenantLifecycleController } from './controllers/operator-tenant-lifecycle.controller';
 import { PlansController } from './controllers/plans.controller';
 import { OperatorPlansController } from './controllers/operator-plans.controller';
 import {
@@ -55,6 +56,7 @@ import { StaffController } from './controllers/staff.controller';
     BalanceController,
     OperatorRatesController,
     OperatorBalanceController,
+    OperatorTenantLifecycleController,
     PlansController,
     OperatorPlansController,
     OperatorBillingTermsController,

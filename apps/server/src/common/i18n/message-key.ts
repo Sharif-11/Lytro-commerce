@@ -168,6 +168,10 @@ export const MESSAGE_KEYS = [
   'DowngradeCancelled',
   'DowngradePreviewed',
   'DowngradeRetrieved',
+  'SubscriptionCancelled',
+  'SubscriptionCancellationUndone',
+  'TenantSuspended',
+  'TenantRestored',
 
   // Success -- roles / staff
   'RolesListed',

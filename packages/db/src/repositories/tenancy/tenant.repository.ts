@@ -1,4 +1,4 @@
-import { and, eq, lte } from 'drizzle-orm';
+import { and, eq, inArray, isNotNull, isNull, lte } from 'drizzle-orm';
 import type { Database } from '../../client';
 import type { Executor } from '../../transactions';
 import { plans, tenantDomains, tenants } from '../../schema';
@@ -190,6 +190,102 @@ export class TenantRepository {
     return rows.map((row) => row.id);
   }
 
+  /** LIF-24: an operator closing the public/dashboard side for cause, independent of `state`. */
+  async setSuspension(tx: Executor, tenantId: string, reason: string, at: Date): Promise<void> {
+    await tx
+      .update(tenants)
+      .set({ suspendedAt: at, suspendedReason: reason })
+      .where(eq(tenants.id, tenantId));
+  }
+
+  /** LIF-15/24: lifts a suspension -- restore and operator restore both call this. */
+  async clearSuspension(tx: Executor, tenantId: string): Promise<void> {
+    await tx
+      .update(tenants)
+      .set({ suspendedAt: null, suspendedReason: null })
+      .where(eq(tenants.id, tenantId));
+  }
+
+  /** LIF-01: sets or clears the owner's own non-renewal intent. */
+  async setCancellation(tx: Executor, tenantId: string, cancelledAt: Date | null): Promise<void> {
+    await tx.update(tenants).set({ cancelledAt }).where(eq(tenants.id, tenantId));
+  }
+
+  /** LIF-03/04/23: the lifecycle job's own state write -- plan, period and balance are untouched. */
+  async setLifecycleState(tx: Executor, tenantId: string, state: TenantState): Promise<void> {
+    await tx.update(tenants).set({ state }).where(eq(tenants.id, tenantId));
+  }
+
+  /** LIF-19: the day-60 deletion job's own state/marker write. */
+  async markDeleted(tx: Executor, tenantId: string, at: Date): Promise<void> {
+    await tx
+      .update(tenants)
+      .set({ deletedAt: at, state: TenantState.Deleted })
+      .where(eq(tenants.id, tenantId));
+  }
+
+  /** LIF-03/04: every tenant whose lifecycle state is derived from a running period, not yet deleted. */
+  async findLapsingCandidates(tx: Executor, now: Date): Promise<LapsingCandidateRow[]> {
+    const lapsingStates: TenantState[] = [
+      TenantState.Active,
+      TenantState.Grace,
+      TenantState.ReadOnly,
+      TenantState.Locked,
+      TenantState.Archived,
+    ];
+    const rows = await tx
+      .select({
+        id: tenants.id,
+        state: tenants.state,
+        periodEnd: tenants.periodEnd,
+        suspendedAt: tenants.suspendedAt,
+      })
+      .from(tenants)
+      .where(
+        and(
+          inArray(tenants.state, lapsingStates),
+          isNotNull(tenants.periodEnd),
+          isNull(tenants.deletedAt),
+          lte(tenants.periodEnd, now),
+        ),
+      );
+    return rows
+      .filter((row): row is typeof row & { periodEnd: Date } => row.periodEnd !== null)
+      .map((row) => ({ ...row, periodEnd: row.periodEnd }));
+  }
+
+  /** PYG-21: every pay-as-you-go tenant, not yet deleted -- the 23/30-day thresholds are the service's job. */
+  async findPaygInactiveCandidates(tx: Executor): Promise<PaygCandidateRow[]> {
+    return tx
+      .select({
+        id: tenants.id,
+        lastActivityAt: tenants.lastActivityAt,
+        createdAt: tenants.createdAt,
+      })
+      .from(tenants)
+      .where(and(eq(tenants.state, TenantState.PayAsYouGo), isNull(tenants.deletedAt)));
+  }
+
+  /** PYG-21/LIF-19: tenants already archived by the inactivity pass (never had a billing period, so
+   * `period_end` stays null even in `archived` -- unlike a subscription tenant, which always has one). The
+   * day-60-after-archival deletion clock for these is tracked the same way, from `last_activity_at`. */
+  async findPaygArchivedCandidates(tx: Executor): Promise<PaygCandidateRow[]> {
+    return tx
+      .select({
+        id: tenants.id,
+        lastActivityAt: tenants.lastActivityAt,
+        createdAt: tenants.createdAt,
+      })
+      .from(tenants)
+      .where(
+        and(
+          eq(tenants.state, TenantState.Archived),
+          isNull(tenants.periodEnd),
+          isNull(tenants.deletedAt),
+        ),
+      );
+  }
+
   /** BIL-10/11/UPG-03: a transaction-scoped read of what a purchase/renewal/upgrade confirmation needs to
    * decide whether to extend, restart, or prorate the running period. */
   async findBillingInfo(tx: Executor, id: string): Promise<BillingInfoRow | null> {
@@ -218,4 +314,17 @@ export interface BalanceRow {
   amount: string;
   frozen: boolean;
   state: (typeof tenants.$inferSelect)['state'];
+}
+
+export interface LapsingCandidateRow {
+  id: string;
+  state: TenantState;
+  periodEnd: Date;
+  suspendedAt: Date | null;
+}
+
+export interface PaygCandidateRow {
+  id: string;
+  lastActivityAt: Date | null;
+  createdAt: Date;
 }

@@ -89,4 +89,8 @@ export class DrizzleRoleStore implements RoleStore {
   assignments(tx: Transaction, tenantId: string): Promise<{ userId: string; roleId: string }[]> {
     return this.roles.listAssignments(tx, tenantId);
   }
+
+  deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void> {
+    return this.roles.deleteAllForTenant(tx, tenantId);
+  }
 }

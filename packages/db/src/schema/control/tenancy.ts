@@ -55,6 +55,13 @@ export const tenants = control.table(
     // D2-11: cached, updated whenever an order-fee, product-fee or top-up ledger entry is written. Read by the
     // pay-as-you-go inactivity job (PYG-21). Null for a tenant that was never pay-as-you-go.
     lastActivityAt: timestamp('last_activity_at', { withTimezone: true }),
+    // LIF-01: the owner's own intent to not renew, settable and clearable until period end. The state machine
+    // never reads this -- not renewing (LIF-02) already reaches `grace` at period end with no flag involved;
+    // it exists only so the dashboard can show "cancelled, effective <date>" and offer "Undo".
+    cancelledAt: timestamp('cancelled_at', { withTimezone: true }),
+    // LIF-20/21/22: set once by the day-60 deletion job (LIF-19), never before. The row and its state
+    // ('deleted') persist after this is set -- deletion removes only the business data listed in LIF-19.
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
     kycStatus: text('kyc_status').notNull().default(KycStatus.Unverified), // KYC-16
   },
   (t) => [

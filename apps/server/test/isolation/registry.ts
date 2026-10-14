@@ -57,4 +57,7 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'POST /billing/downgrade/schedule': 'schedules a downgrade scoped to the session shop only',
   'POST /billing/downgrade/cancel': "cancels only the session shop's own scheduled downgrade",
   'GET /billing/downgrade': "returns only the session shop's own scheduled downgrade",
+  // Checked in test/lifecycle.e2e.spec.ts: a shop cancels/undoes only its own subscription.
+  'POST /billing/cancel': "cancels only the session shop's own subscription",
+  'POST /billing/cancel/undo': "undoes only the session shop's own cancellation",
 };
