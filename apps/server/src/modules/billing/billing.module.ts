@@ -4,6 +4,7 @@ import {
   DrizzlePlanAssignmentsStore,
   DrizzlePlanLimitOverridesStore,
   DrizzlePlansStore,
+  DrizzleScheduledPlanChangesStore,
 } from '../../database/adapters/billing.adapter';
 import { AuditModule } from '../audit/audit.module';
 import { BalanceModule } from '../balance/balance.module';
@@ -11,6 +12,7 @@ import { PaymentsModule } from '../payments/payments.module';
 import { TenancyModule } from '../tenancy/tenancy.module';
 import { PlansService } from './services/plans.service';
 import { BillingTermsService } from './services/billing-terms.service';
+import { DowngradeService } from './services/downgrade.service';
 import { PlanAssignmentService } from './services/plan-assignment.service';
 import { PlanLimitOverridesService } from './services/plan-limit-overrides.service';
 import { PaymentQueueService } from './services/payment-queue.service';
@@ -23,6 +25,7 @@ import {
   PLAN_ASSIGNMENTS_STORE,
   PLAN_LIMIT_OVERRIDES_STORE,
   PLANS_STORE,
+  SCHEDULED_PLAN_CHANGES_STORE,
 } from './tokens';
 
 // D2-8: the billing module -- plan/term CRUD, versioning, not-for-sale assignment, per-tenant limit overrides
@@ -35,6 +38,7 @@ import {
     { provide: BILLING_TERMS_STORE, useClass: DrizzleBillingTermsStore },
     { provide: PLAN_ASSIGNMENTS_STORE, useClass: DrizzlePlanAssignmentsStore },
     { provide: PLAN_LIMIT_OVERRIDES_STORE, useClass: DrizzlePlanLimitOverridesStore },
+    { provide: SCHEDULED_PLAN_CHANGES_STORE, useClass: DrizzleScheduledPlanChangesStore },
     { provide: CLOCK, useValue: (): Date => new Date() },
     PlansService,
     BillingTermsService,
@@ -43,6 +47,7 @@ import {
     TrialLifecycleService,
     PurchaseService,
     UpgradeService,
+    DowngradeService,
     PaymentQueueService,
   ],
   exports: [
@@ -53,6 +58,7 @@ import {
     TrialLifecycleService,
     PurchaseService,
     UpgradeService,
+    DowngradeService,
     PaymentQueueService,
   ],
 })

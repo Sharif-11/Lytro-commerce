@@ -98,3 +98,7 @@ export {
   type NewPlanPayment,
 } from './repositories/billing/plan-payments.repository';
 export { IdempotencyKeysRepository } from './repositories/platform/idempotency-keys.repository';
+export {
+  ScheduledPlanChangesRepository,
+  type NewScheduledPlanChange,
+} from './repositories/billing/scheduled-plan-changes.repository';

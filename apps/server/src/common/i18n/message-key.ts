@@ -48,6 +48,9 @@ export const MESSAGE_KEYS = [
   'UpgradeMustBeHigherRank',
   'UpgradePending',
   'UpgradeNotWorthwhile',
+  'DowngradeNotAvailable',
+  'DowngradeMustBeLowerRank',
+  'ScheduledChangeNotFound',
 
   // Identity / sign-in / codes
   'FacebookSignInNotConfirmed',
@@ -161,6 +164,10 @@ export const MESSAGE_KEYS = [
   'UpgradeQuoted',
   'UpgradeSubmitted',
   'UpgradeConfirmed',
+  'DowngradeScheduled',
+  'DowngradeCancelled',
+  'DowngradePreviewed',
+  'DowngradeRetrieved',
 
   // Success -- roles / staff
   'RolesListed',

@@ -21,6 +21,7 @@ import type { PlanPaymentRecord } from '../../payments/types/plan-payment';
 import { TenantService } from '../../tenancy/services/tenant.service';
 import { CLOCK } from '../tokens';
 import { BillingTermsService } from './billing-terms.service';
+import { DowngradeService } from './downgrade.service';
 import { PlansService } from './plans.service';
 
 // UPG-07: a quote's price is held for 15 minutes (shorter than a purchase's 30, S-priority but the same
@@ -48,6 +49,7 @@ export class UpgradeService {
     @Inject(TenantService) private readonly tenants: TenantService,
     @Inject(BalanceService) private readonly balance: BalanceService,
     @Inject(AuditService) private readonly audit: AuditService,
+    @Inject(DowngradeService) private readonly downgrade: DowngradeService,
     @Inject(CLOCK) private readonly clock: () => Date,
   ) {}
 
@@ -145,8 +147,8 @@ export class UpgradeService {
    * `PlanPaymentsService.approve` marks a wallet payment verified). The cycle restarts at confirmation time
    * -- unlike a renewal's extend, an upgrade never continues the old plan's period.
    *
-   * UPG-13 (cancelling a scheduled downgrade) hooks in here once slice 6 builds
-   * `control.scheduled_plan_changes` -- that table doesn't exist yet, so there is nothing to cancel today.
+   * UPG-13: an upgrade supersedes any pending downgrade/pay-as-you-go-switch, cancelled in this same
+   * transaction (both control-schema, no RLS concern).
    */
   async activate(tx: Transaction, payment: PlanPaymentRecord, now: Date): Promise<InvoiceRecord> {
     if (!payment.planId || !payment.billingTermId) {
@@ -168,6 +170,7 @@ export class UpgradeService {
       periodEnd,
       state: TenantState.Active,
     });
+    await this.downgrade.cancelIfScheduled(tx, payment.tenantId);
 
     const invoice = await this.invoices.issue(tx, {
       tenantId: payment.tenantId,

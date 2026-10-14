@@ -109,3 +109,22 @@ export const invoiceSchema = z.object({
 });
 export class InvoiceDto extends createZodDto(invoiceSchema) {}
 export class InvoiceListDto extends createZodDto(invoiceSchema.array()) {}
+
+// DWN-01/02: control.scheduled_plan_changes -- the owner's own banner data.
+export const scheduledPlanChangeSchema = z.object({
+  id: z.string(),
+  tenantId: z.string(),
+  kind: z.string(),
+  targetPlanId: z.string().nullable(),
+  effectiveAt: z.date(),
+  createdAt: z.date(),
+});
+export class ScheduledPlanChangeDto extends createZodDto(scheduledPlanChangeSchema) {}
+
+// DWN-03: one over-limit item in the downgrade preview.
+export const overLimitItemSchema = z.object({
+  key: z.string(),
+  used: z.number(),
+  limit: z.number(),
+});
+export class OverLimitItemListDto extends createZodDto(overLimitItemSchema.array()) {}

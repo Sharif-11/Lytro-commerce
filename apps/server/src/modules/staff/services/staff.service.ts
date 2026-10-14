@@ -259,6 +259,44 @@ export class StaffService {
     }));
   }
 
+  /**
+   * DWN-08: resolves seat overage against a plan limit -- the owner and the earliest-created active staff
+   * stay active, up to `limit`; the rest are deactivated (not deleted), their sessions ended at once. A
+   * system-caused transition (D2-5): the owner already authorized this when they scheduled the downgrade.
+   */
+  async enforceSeatLimit(tenant: StaffTenant, limit: number, now: Date): Promise<string[]> {
+    const deactivated = await this.store.run(tenant.id, async (tx) => {
+      const staff = await this.store.listStaff(tx, tenant.id);
+      const active = staff.filter((member) => member.active);
+      if (active.length <= limit) return [];
+      const owner = active.find((member) => member.isOwner);
+      const others = active
+        .filter((member) => !member.isOwner)
+        .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+      const keepSlots = Math.max(owner ? limit - 1 : limit, 0);
+      const keep = new Set(others.slice(0, keepSlots).map((member) => member.id));
+      const excess = others.filter((member) => !keep.has(member.id));
+      for (const member of excess) {
+        await this.store.setActive(tx, tenant.id, member.id, false);
+        await this.store.revokeSessionsOf(tx, member.id, now);
+      }
+      return excess.map((member) => member.id);
+    });
+    for (const userId of deactivated) {
+      await this.audit.recordStandalone({
+        tenantId: tenant.id,
+        actorType: ActorType.System,
+        actorId: null,
+        action: AuditAction.StaffDeactivated,
+        targetType: 'staff',
+        targetId: userId,
+        result: AuditResult.Success,
+        summary: { reason: 'downgrade_seat_limit', limit },
+      });
+    }
+    return deactivated;
+  }
+
   /** Refuses when the shop has no free seat. Takes the seat lock first, so the count is not raced. */
   private async requireSeat(tx: Transaction, tenant: StaffTenant): Promise<void> {
     await this.store.lockSeats(tx, tenant.id);

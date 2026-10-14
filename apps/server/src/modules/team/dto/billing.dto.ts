@@ -9,6 +9,7 @@ import {
   rejectPaymentSchema,
   setPlanLimitOverrideSchema,
   setPlanPriceSchema,
+  targetDowngradePlanSchema,
   updateBillingTermSchema,
   updatePlanSchema,
 } from '@lytronix/validators';
@@ -27,3 +28,4 @@ export class ConfirmPurchaseDto extends createZodDto(confirmPurchaseSchema) {}
 export class RejectPaymentDto extends createZodDto(rejectPaymentSchema) {}
 export class QuoteUpgradeDto extends createZodDto(quoteUpgradeSchema) {}
 export class ConfirmUpgradeDto extends createZodDto(confirmUpgradeSchema) {}
+export class TargetDowngradePlanDto extends createZodDto(targetDowngradePlanSchema) {}

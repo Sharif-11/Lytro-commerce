@@ -22,3 +22,4 @@ export * from './control/plan-limit-overrides';
 export * from './control/invoices';
 export * from './control/plan-payments';
 export * from './control/idempotency';
+export * from './control/scheduled-plan-changes';

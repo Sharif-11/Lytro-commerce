@@ -147,6 +147,12 @@ export enum AuditAction {
   PlanUpgraded = 'plan_upgraded',
   // BAL-03/BAL-05: a verified top-up credits the balance -- tenant-caused.
   BalanceToppedUp = 'balance_topped_up',
+  // DWN-01/04/17: the owner's own scheduling actions.
+  DowngradeScheduled = 'downgrade_scheduled',
+  DowngradeCancelled = 'downgrade_cancelled',
+  // DWN-06/08/17: the system applying an already-scheduled downgrade at its effective date -- D2-5 puts
+  // this on the tenant's own log only, the same split TRL-07's trial-conversion job already established.
+  DowngradeApplied = 'downgrade_applied',
 }
 
 // The pg-boss queues this codebase uses (SCL-08, D25). Add a name here before any code enqueues to it.
@@ -271,6 +277,13 @@ export enum InvoiceKind {
   Purchase = 'purchase',
   Renewal = 'renewal',
   Upgrade = 'upgrade',
+}
+
+// DWN-01: what control.scheduled_plan_changes row is for -- a downgrade today; PYG-10 reuses the same table
+// and timing rule for a subscription-to-pay-as-you-go switch later, which is why this isn't a bare string.
+export enum ScheduledPlanChangeKind {
+  Downgrade = 'downgrade',
+  PayAsYouGoSwitch = 'pay_as_you_go_switch',
 }
 
 /**
