@@ -1,6 +1,15 @@
 import { eq, sql } from 'drizzle-orm';
 import type { PlanLimits } from '@lytronix/validators';
-import { planAssignments, planVersions, plans, tenants, type SelectPlan } from '../../schema';
+import {
+  planAssignments,
+  planPayments,
+  planPrices,
+  planVersions,
+  plans,
+  scheduledPlanChanges,
+  tenants,
+  type SelectPlan,
+} from '../../schema';
 import type { Executor } from '../../transactions';
 
 export interface NewPlan {
@@ -70,19 +79,44 @@ export class PlansRepository {
   }
 
   /** PLN-08: a plan referenced by any snapshot (tenant currently on it, or assigned to it) isn't deletable. */
+  /**
+   * PLN-08: every table with a foreign key to `plans.id` -- not just the two a casual reading of "referenced
+   * by a snapshot or assignment" suggests. A plan that was ever priced, paid for, edited (plan_versions), or
+   * has a pending scheduled change targeting it is just as un-deletable at the database level; checking only
+   * assignments/tenants and missing these left DELETE crashing on a raw FK violation instead of PLN-08's own
+   * clean `conflict`.
+   */
   async isReferenced(db: Executor, id: string): Promise<boolean> {
-    const assignments = await db
-      .select({ id: planAssignments.id })
-      .from(planAssignments)
-      .where(eq(planAssignments.planId, id))
-      .limit(1);
-    if (assignments.length > 0) return true;
-    const tenancy = await db
-      .select({ id: tenants.id })
-      .from(tenants)
-      .where(eq(tenants.planId, id))
-      .limit(1);
-    return tenancy.length > 0;
+    const checks = [
+      db
+        .select({ id: planAssignments.id })
+        .from(planAssignments)
+        .where(eq(planAssignments.planId, id))
+        .limit(1),
+      db.select({ id: tenants.id }).from(tenants).where(eq(tenants.planId, id)).limit(1),
+      db
+        .select({ planId: planPrices.planId })
+        .from(planPrices)
+        .where(eq(planPrices.planId, id))
+        .limit(1),
+      db
+        .select({ id: planPayments.id })
+        .from(planPayments)
+        .where(eq(planPayments.planId, id))
+        .limit(1),
+      db
+        .select({ id: planVersions.id })
+        .from(planVersions)
+        .where(eq(planVersions.planId, id))
+        .limit(1),
+      db
+        .select({ id: scheduledPlanChanges.id })
+        .from(scheduledPlanChanges)
+        .where(eq(scheduledPlanChanges.targetPlanId, id))
+        .limit(1),
+    ];
+    const results = await Promise.all(checks);
+    return results.some((rows) => rows.length > 0);
   }
 
   /** Throws nothing -- the caller checks isReferenced first; this only runs when it's safe. */

@@ -173,7 +173,10 @@ export class BillingController {
   @RequirePermission(Permission.PaymentsRead)
   @ResponseMessage('DowngradeRetrieved')
   @ApiOperation({ summary: 'Get the scheduled downgrade, if any (null when nothing is scheduled)' })
-  @ZodResponse({ type: ScheduledPlanChangeDto })
+  // No @ZodResponse here, deliberately: this is the one route that can return null (DWN-02), and
+  // nestjs-zod's ZodDto typing has no clean way to express "this object, or null" as a response type.
+  // Omitting the decorator just skips response validation for this route; ZodSerializerInterceptor
+  // no-ops when no schema is attached, so `null` passes through untouched instead of crashing.
   getScheduledDowngrade(
     @Req() request: DashboardRequest,
   ): Promise<ScheduledPlanChangeRecord | null> {

@@ -1,9 +1,14 @@
 import { z } from 'zod';
+import { MONEY_AMOUNT_MAX } from '../../common/limits';
 
 // POST /operator/tenants/:id/balance-adjust: an operator's manual correction (BAL-17). Signed amount; a reason
-// is required so an empty one is rejected before it ever reaches the service.
+// is required so an empty one is rejected before it ever reaches the service. Bounded to what `numeric(12,2)`
+// can actually hold -- past that it's a raw Postgres overflow, not a clean validation error.
 export const adjustBalanceSchema = z.object({
-  amount: z.coerce.number().refine((value) => value !== 0, 'Enter a non-zero amount.'),
+  amount: z.coerce
+    .number()
+    .refine((value) => value !== 0, 'Enter a non-zero amount.')
+    .refine((value) => Math.abs(value) <= MONEY_AMOUNT_MAX, 'Enter a smaller amount.'),
   reason: z.string().trim().min(1, 'A reason is required.'),
 });
 export type AdjustBalanceInput = z.infer<typeof adjustBalanceSchema>;
