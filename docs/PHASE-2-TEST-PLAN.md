@@ -76,10 +76,10 @@ Each scenario lists its preconditions, numbered steps, expected result, and the 
 - Expected: (a) snapshot stored, state → `active`, counters reset, all trial-era data (products, orders, media) carried over; (b) state → `pay-as-you-go` directly, never `grace` (that lifecycle applies only to a lapsed *paid* commitment, not an unpaid trial), all data intact, limits widen immediately to pay-as-you-go's own (looser) figures; (c) choosing it skips the billing-term selector entirely and converts at once, with no payment step — the same destination as (b), just reached by the owner's own choice instead of the clock.
 - Covers: TRL-06, TRL-07, PYG-01.
 
-**P2-E09 Trial restrictions: no payment method, no balance activity. [API]**
-- Steps: complete sign-up and use the trial without ever being asked for a payment method; attempt a balance top-up and an optional-SMS/chat-AI spend during the trial.
-- Expected: no payment method is requested anywhere in the trial flow; top-up and every paid-feature spend attempt return `plan_feature_unavailable` with a message to buy a plan.
-- Covers: TRL-02, TRL-04.
+**P2-E09 Trial restrictions: no payment method at sign-up; top-up, SMS and extraction allowed; chat AI and fraud checks still refused. [API]**
+- Steps: complete sign-up and use the trial without ever being asked for a payment method; attempt a balance top-up, an optional SMS send, an order-extraction call, a chat-AI reply, and a paid fraud check during the trial, both with and without enough balance.
+- Expected: no payment method is requested anywhere in the trial flow; a top-up quote/submission succeeds the same way it would on an active tenant (amended 2026-10-15, TRL-04/BAL-06); a funded optional SMS send and order-extraction call both succeed and charge the balance at the normal rate (amended 2026-10-15, SMS-15/ORD-34), refused only for frozen/insufficient balance, never `plan_feature_unavailable`; chat AI and paid fraud checks are still refused with `plan_feature_unavailable` and a message to buy a plan, independent of the balance (AI-11 unchanged — chat AI is a Growth/Pro plan feature, not available on trial, pay-as-you-go or Starter either).
+- Covers: TRL-02, TRL-04, SMS-15, ORD-34.
 
 **P2-E10 Pay-as-you-go order-fee charging: only at fulfillment, never refunded after the fact. [API]**
 - Steps: create an order with zero balance (confirm creation succeeds regardless); book a courier for a ৳200 order and a ৳5,000 order; attempt to book with insufficient balance; force a booking failure; cancel an order that was never booked; cancel one already successfully booked.
@@ -240,7 +240,7 @@ Each scenario lists its preconditions, numbered steps, expected result, and the 
 
 **P2-E39 Usable vs. frozen by state, and atomic, never-negative deductions. [JOB]**
 - Steps: attempt top-up in `trial` and in a lapsed state; spend at 2 days into grace and again one second past it; check the frozen balance's display and that nothing can touch it while frozen; buy a plan to reactivate; fire 100 simultaneous 1-TK charges against a 50 TK balance; attempt a single charge larger than the current balance.
-- Expected: `trial` top-up returns `plan_feature_unavailable`, a lapsed one `tenant_offline`; the day-2 spend succeeds, the one-second-past-grace spend fails with `tenant_offline`; the frozen balance shows its amount with a "frozen" label and produces no ledger entry for any attempted change; reactivation makes it spendable again with no expiry; exactly 50 of the 100 simultaneous charges succeed, balance ends at 0, and 50 ledger rows exist; the oversized charge is refused outright.
+- Expected: `trial` top-up succeeds the same way an active tenant's does (amended 2026-10-15, TRL-04/BAL-06), a lapsed one still returns `tenant_offline`; the day-2 spend succeeds, the one-second-past-grace spend fails with `tenant_offline`; the frozen balance shows its amount with a "frozen" label and produces no ledger entry for any attempted change; reactivation makes it spendable again with no expiry; exactly 50 of the 100 simultaneous charges succeed, balance ends at 0, and 50 ledger rows exist; the oversized charge is refused outright.
 - Covers: BAL-06, BAL-07, BAL-08, BAL-09, BAL-10, BAL-11.
 
 **P2-E40 Charge only on success, low-balance notices, and the statement. [JOB]**

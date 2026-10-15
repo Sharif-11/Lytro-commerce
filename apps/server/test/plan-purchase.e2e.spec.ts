@@ -276,11 +276,10 @@ describeIfDatabase('balance top-up (BAL-03 to BAL-06)', () => {
     });
   });
 
-  it('BAL-06: refuses a top-up on a trial tenant', async () => {
+  it('BAL-06 (amended): a trial tenant may top up too', async () => {
     const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
-    await expect(topUp.quote(tenantId, '500.00')).rejects.toMatchObject({
-      code: 'plan_feature_unavailable',
-    });
+    const quote = await topUp.quote(tenantId, '500.00');
+    expect(quote.amount).toBe('500.00');
   });
 
   it('BAL-03/05: a verified top-up credits the balance exactly once', async () => {

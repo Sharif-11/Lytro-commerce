@@ -9,9 +9,11 @@ import { TenantService } from '../../tenancy/services/tenant.service';
 const DEFAULT_MIN_AMOUNT = 100;
 const DEFAULT_MAX_AMOUNT = 50000;
 
-// BAL-06: active and grace (and, pragmatically, pay-as-you-go -- that's how a PYG tenant funds its own
-// per-use fees). Trial and every lapsed state are refused below.
+// BAL-06 (amended): top-up is available to every plan type, trial included -- the owner may fund the
+// balance ahead of buying a plan, e.g. to try a paid feature during the trial. Every lapsed state is still
+// refused below (the balance is frozen then, independent of plan type).
 const TOP_UP_ALLOWED_STATES: ReadonlySet<TenantState> = new Set([
+  TenantState.Trial,
   TenantState.Active,
   TenantState.Grace,
   TenantState.PayAsYouGo,
@@ -35,9 +37,6 @@ export class TopUpService {
       this.tenants.findBillingInfo(tx, tenantId),
     );
     if (!info) throw new ApiError('not_found', 'PlanPaymentNotFound', {});
-    if (info.state === TenantState.Trial) {
-      throw new ApiError('plan_feature_unavailable', 'TopUpNotAvailable', {});
-    }
     if (!TOP_UP_ALLOWED_STATES.has(info.state)) {
       throw new ApiError('tenant_offline', 'TopUpNotAvailable', {});
     }

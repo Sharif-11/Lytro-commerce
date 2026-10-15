@@ -281,7 +281,7 @@ Guard: `RequirePermission(BalanceRead)`.
 - **AuthN**: missing `balance:read` → `403`.
 - **Resource/state**: tenant with `frozen: true` (`read_only`/`locked`/`archived`) → balance still readable (viewing is always allowed, `LIF-06`), only spending is blocked.
 - **Isolation**: shop A's ledger never includes shop B's entries (`TEN-07`, checked against `tenant.balance_ledger`'s own RLS).
-- **Business-rule (`BAL-06`, the three-way state branch)**: `POST /balance/top-up/quote` on a `trial` tenant → `403 plan_feature_unavailable`; on an `active`/`grace` tenant → succeeds; on a `read_only`/`locked`/`archived` tenant → `403 tenant_offline` — all three branches asserted in one test so a future refactor can't collapse them into the same wrong code.
+- **Business-rule (`BAL-06`, amended 2026-10-15)**: `POST /balance/top-up/quote` on a `trial` tenant → succeeds the same way it would on an `active`/`grace`/`pay_as_you_go` tenant (verified live: trial top-up used to `403 plan_feature_unavailable`, now intentionally does not); on a `read_only`/`locked`/`archived` tenant → still `403 tenant_offline`, independent of plan type. Both branches asserted in one test so a future refactor can't collapse them into the same wrong code.
 
 ### `POST /balance/top-up/quote`, `POST /balance/top-up/confirm`
 
@@ -578,7 +578,7 @@ Built by reading `docs/SRS-detailed.md` sections 3–12.1 in full (every `AUTH`,
 | TRL-01 | ✅ | `POST /shops` (trial state created); day-30 edge is a `JOB` test, see §8 |
 | TRL-02 | ✅ | implied — no payment-method field exists anywhere in `POST /shops`'s schema |
 | TRL-03 | ⛔ | most of the eight limits (orders, products, storage, bandwidth) need catalogue/media endpoints that don't exist yet; only the seat limit (1) is actually testable today, via `STF-02` |
-| TRL-04 | ✅ | `/balance/top-up/quote` business-rule (`plan_feature_unavailable` on trial) |
+| TRL-04 | ✅ | `/balance/top-up/quote` business-rule (amended 2026-10-15: trial top-up now succeeds; spend remains unavailable, but no spend endpoint exists yet to test that half) |
 | TRL-05 | ⚠ added | folded into the `LIF-10`/`AUTH-21` note — essential-SMS counter, not independently HTTP-testable beyond that |
 | TRL-06 | ✅ | `POST /billing/purchase` from a trial tenant, §6 |
 | TRL-07 | ✅ | §8, lifecycle job (trial→pay-as-you-go) |
