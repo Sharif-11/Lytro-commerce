@@ -5,9 +5,9 @@ import { ApiClient } from '../api/client';
 const CSRF_STORAGE_KEY = 'lytronix.operator.csrf';
 
 /**
- * Holds the operator session's CSRF token. No auth-init gate and no `/me` equivalent, deliberately — this
- * slice has no protected operator screens beyond the auth flow itself (sign-in, enroll, verify), so there is
- * nothing yet that needs to wait on a confirmed-active session before firing.
+ * Holds the operator session's CSRF token. Still no auth-init gate or `/me` equivalent — unlike the tenant
+ * session, nothing here depends on a fetched profile, just on a cookie having been established, which
+ * isSignedIn() below answers synchronously from the CSRF token alone.
  */
 export class OperatorSession {
   readonly client: ApiClient;
@@ -22,6 +22,12 @@ export class OperatorSession {
   setSignedIn(csrfToken: string): void {
     this.csrfToken = csrfToken;
     sessionStorage.setItem(CSRF_STORAGE_KEY, csrfToken);
+  }
+
+  /** Same reasoning as TenantSession.isSignedIn() — a cheap, synchronous check the `/operator` layout route's
+      beforeLoad guard can use now that there's a protected subtree behind it (plans/billing-terms/rates). */
+  isSignedIn(): boolean {
+    return this.csrfToken !== null;
   }
 
   clear(): void {

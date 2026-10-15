@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useMe, useSignOut } from '@/api/auth';
 import { useDocumentTitle } from '@/hooks/use-document-title';
 import { BottomNav } from '@/components/layout/bottom-nav';
+import { LifecycleBanner } from '@/components/layout/lifecycle-banner';
 import { MobileHeader } from '@/components/layout/mobile-header';
 import { visibleNavItems } from '@/components/layout/nav-items';
 import { PoweredByMark } from '@/components/layout/powered-by-mark';
@@ -42,6 +43,7 @@ export function DashboardShell({ children }: DashboardShellProps): React.JSX.Ele
       <MobileHeader shopName={shopName} />
 
       <main className="pb-20 sm:pb-10 sm:pl-64">
+        <LifecycleBanner tenant={me.data?.tenant ?? null} />
         {children}
         {/* Desktop: an ordinary footer line, in the page's normal flow. */}
         <div className="hidden py-6 sm:block">

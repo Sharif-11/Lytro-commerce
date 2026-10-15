@@ -24,10 +24,32 @@ describe('visibleNavItems', () => {
     ]);
   });
 
-  it('shows every item once every permission is held', () => {
+  it('hides Balance from a staff member without balance:read', () => {
     const visible = visibleNavItems({
       isOwner: false,
       permissions: [Permission.StaffRead, Permission.AuditRead],
+    });
+    expect(visible.map((item) => item.to)).not.toContain('/dashboard/balance');
+  });
+
+  it('hides Billing and Invoices from a staff member without payments:read', () => {
+    const visible = visibleNavItems({
+      isOwner: false,
+      permissions: [Permission.StaffRead, Permission.AuditRead, Permission.BalanceRead],
+    });
+    expect(visible.map((item) => item.to)).not.toContain('/dashboard/billing');
+    expect(visible.map((item) => item.to)).not.toContain('/dashboard/invoices');
+  });
+
+  it('shows every item once every permission is held', () => {
+    const visible = visibleNavItems({
+      isOwner: false,
+      permissions: [
+        Permission.StaffRead,
+        Permission.AuditRead,
+        Permission.BalanceRead,
+        Permission.PaymentsRead,
+      ],
     });
     expect(visible).toEqual(navItems);
   });
