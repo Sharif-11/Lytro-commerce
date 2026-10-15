@@ -75,7 +75,11 @@ export const planLimitOverrideSchema = z.object({
 export class PlanLimitOverrideDto extends createZodDto(planLimitOverrideSchema) {}
 export class PlanLimitOverrideListDto extends createZodDto(planLimitOverrideSchema.array()) {}
 
-// D2-1: control.plan_payments -- a purchase/renewal/upgrade/top-up quote or submission.
+// D2-1: control.plan_payments -- a purchase/renewal/upgrade/top-up quote or submission. `/billing/purchase`,
+// `/upgrade/confirm` and `/balance/top-up/confirm` all carry `IdempotencyInterceptor`, which replays a cached
+// response by round-tripping it through `control.idempotency_keys`' jsonb column -- a Date instance comes back
+// out as a plain ISO string, not a Date, so every date field here must coerce (accept both) or a replayed
+// response fails this schema's own validation and 500s on exactly the case idempotency exists to handle.
 export const planPaymentSchema = z.object({
   id: z.string(),
   tenantId: z.string(),
@@ -84,13 +88,13 @@ export const planPaymentSchema = z.object({
   billingTermId: z.string().nullable(),
   amount: z.string(),
   creditAmount: z.string(),
-  quotedAt: z.date(),
+  quotedAt: z.coerce.date(),
   status: z.string(),
   senderNumber: z.string().nullable(),
   transactionId: z.string().nullable(),
   verifiedBy: z.string().nullable(),
-  verifiedAt: z.date().nullable(),
-  createdAt: z.date(),
+  verifiedAt: z.coerce.date().nullable(),
+  createdAt: z.coerce.date(),
 });
 export class PlanPaymentDto extends createZodDto(planPaymentSchema) {}
 export class PlanPaymentListDto extends createZodDto(planPaymentSchema.array()) {}

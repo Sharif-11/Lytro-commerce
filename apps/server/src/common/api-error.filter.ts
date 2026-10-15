@@ -26,6 +26,19 @@ const STATUS_TO_CODE: Record<number, ErrorCode> = {
   503: 'service_unavailable',
 };
 
+// Postgres 22P02 (invalid_text_representation) -- a malformed UUID (or any other type Postgres can't parse)
+// in a path/query value reaches the driver as a raw, unhandled error otherwise, crashing with a generic 500
+// instead of the clean `not_found` every route already gives a well-formed but nonexistent id. Treating the
+// two identically is correct, not just convenient: a malformed id can never match a real row either, and
+// doing anything else would tell a caller "that at least looks like a valid id" -- a shape of information
+// leak this app already avoids elsewhere (TEN-03's not_found-not-forbidden rule, the same reasoning).
+function isInvalidInputSyntax(exception: unknown): boolean {
+  const source = exception instanceof Error && exception.cause ? exception.cause : exception;
+  if (typeof source !== 'object' || source === null) return false;
+  const code = 'code' in source ? source.code : undefined;
+  return code === '22P02';
+}
+
 function messageOf(body: unknown): string {
   if (typeof body === 'string') return body;
   if (typeof body === 'object' && body !== null && 'message' in body) {
@@ -79,6 +92,13 @@ export class ApiErrorFilter implements ExceptionFilter {
             {},
           ),
         );
+      return;
+    }
+
+    if (isInvalidInputSyntax(exception)) {
+      response
+        .status(HTTP_STATUS.not_found)
+        .json(this.body(HTTP_STATUS.not_found, translate('PageNotFound', lang), 'not_found', {}));
       return;
     }
 

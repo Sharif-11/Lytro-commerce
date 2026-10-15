@@ -17,3 +17,9 @@ export const CODE_PATTERN = new RegExp(`^\\d{${String(CODE_LENGTH)}}$`);
 // D2: passwords are 8–20 characters.
 export const PASSWORD_MIN_LENGTH = 8;
 export const PASSWORD_MAX_LENGTH = 20;
+
+// BAL-17 and every other money amount stored in a `numeric(12,2)` column: 10 integer digits is the column's
+// own ceiling (DATABASE-SCHEMA's convention throughout). An amount past this overflows the column with a raw,
+// unhandled Postgres error instead of a clean validation message -- the bound belongs in the schema, at the
+// one place every such amount is defined, not rediscovered per field.
+export const MONEY_AMOUNT_MAX = 9_999_999_999.99;
