@@ -376,6 +376,16 @@ export class LifecycleService {
     });
   }
 
+  /** LIF-01: null means no cancellation is currently scheduled -- the dashboard's own "cancelled, effective
+   * <periodEnd>"-vs-"Undo" decision, read back from the same flag `cancelSubscription`/`undoCancellation`
+   * write. The state machine itself never reads this (see the comment on `cancelSubscription` above). */
+  async getCancellation(tenantId: string): Promise<{ cancelledAt: Date | null }> {
+    const info = await this.tenants.runStandalone((tx) =>
+      this.tenants.findBillingInfo(tx, tenantId),
+    );
+    return { cancelledAt: info?.cancelledAt ?? null };
+  }
+
   /** BIL-17: the owner's own "renew automatically from balance" toggle, off by default. Read by `runTick`
    * (via `tryAutoRenew`) at the owner's own next period end -- never retroactive, never itself a charge. */
   async setAutoRenew(tenantId: string, enabled: boolean): Promise<void> {

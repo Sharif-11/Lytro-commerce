@@ -39,6 +39,7 @@ import {
   TargetDowngradePlanDto,
 } from '../dto/billing.dto';
 import {
+  CancellationStatusDto,
   InvoiceDto,
   InvoiceListDto,
   OverLimitItemListDto,
@@ -209,6 +210,15 @@ export class BillingController {
   async undoCancellation(@Req() request: DashboardRequest): Promise<{ ok: true }> {
     await this.lifecycle.undoCancellation(this.tenantIdOf(request));
     return { ok: true };
+  }
+
+  @Get('cancellation')
+  @RequirePermission(Permission.PaymentsRead)
+  @ResponseMessage('CancellationRetrieved')
+  @ApiOperation({ summary: 'Get whether a cancellation is currently scheduled (LIF-01)' })
+  @ZodResponse({ type: CancellationStatusDto })
+  getCancellation(@Req() request: DashboardRequest): Promise<{ cancelledAt: Date | null }> {
+    return this.lifecycle.getCancellation(this.tenantIdOf(request));
   }
 
   @Post('auto-renew')

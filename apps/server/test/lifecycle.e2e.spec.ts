@@ -274,6 +274,18 @@ describeIfDatabase('LIF-01: cancel and undo', () => {
     expect(actions).toContain(AuditAction.SubscriptionCancelled);
     expect(actions).toContain(AuditAction.SubscriptionCancellationUndone);
   });
+
+  it('getCancellation reads back the same flag cancel/undo write', async () => {
+    const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
+
+    expect((await lifecycle.getCancellation(tenantId)).cancelledAt).toBeNull();
+
+    await lifecycle.cancelSubscription(tenantId);
+    expect((await lifecycle.getCancellation(tenantId)).cancelledAt).not.toBeNull();
+
+    await lifecycle.undoCancellation(tenantId);
+    expect((await lifecycle.getCancellation(tenantId)).cancelledAt).toBeNull();
+  });
 });
 
 describeIfDatabase('BIL-17: renew automatically from balance', () => {

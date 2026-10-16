@@ -38,15 +38,19 @@ raise explicitly, not something to fold into this bug fix. Upgrade/downgrade/can
 untouched for the reason already given above. Covered by four new e2e tests in `dashboard.e2e.spec.ts`
 (locked/archived/deleted owner reading invoices and balance; suspended owner still fully refused).
 
-## 2. No read endpoint for "is a cancellation currently scheduled" (LIF-01)
+## 2. No read endpoint for "is a cancellation currently scheduled" (LIF-01) — found and fixed 2026-10-16
 
-`billing/cancel` and `billing/cancel/undo` are write-only — nothing exposes `control.tenants.cancelled_at`
-(or an equivalent) to the client. The UI (`apps/admin/src/views/billing/index.tsx`) currently shows both
-actions as fire-and-forget with a one-line success message instead of a persisted toggle, because there's
-nothing to read back after a page refresh.
+`billing/cancel` and `billing/cancel/undo` were write-only — nothing exposed `control.tenants.cancelled_at`
+(or an equivalent) to the client. The UI (`apps/admin/src/views/billing/index.tsx`) showed both actions as
+fire-and-forget with a one-line success message instead of a persisted toggle, because there was nothing to
+read back after a page refresh.
 
-**Fix shape:** either add `cancelledAt` to `/me`'s tenant summary (cheapest, matches how `periodEnd`/`state`
-are already exposed) or a small dedicated read on `BillingController`.
+**Fixed:** a small dedicated read, `GET /billing/cancellation` → `{ cancelledAt: Date | null }`
+(`LifecycleService.getCancellation`, reading the same `BillingInfoRow.cancelledAt` `BIL-17` already added),
+`Permission.PaymentsRead`. Not added to `/me`'s tenant summary -- kept as its own small route, the same shape
+as `GET /billing/downgrade`'s own banner-data read, rather than growing the summary's scope. Proven by a new
+case in `apps/server/test/lifecycle.e2e.spec.ts`. The admin UI wiring (replacing the fire-and-forget banner
+with a real persisted read) is separate frontend work, not done in this pass.
 
 ## 3. Mobile bottom nav built assuming 4 items, now has 6
 
