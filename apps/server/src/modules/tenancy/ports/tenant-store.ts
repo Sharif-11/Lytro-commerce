@@ -1,6 +1,7 @@
 import type {
   BalanceRow,
   BillingInfoRow,
+  ContactDetailsRow,
   LapsingCandidateRow,
   PaygCandidateRow,
   Transaction,
@@ -72,4 +73,12 @@ export interface TenantStore {
   findPaygInactiveCandidates(tx: Transaction): Promise<PaygCandidateRow[]>;
   /** PYG-21/LIF-19: tenants already archived by the inactivity pass, awaiting their own day-60 deletion. */
   findPaygArchivedCandidates(tx: Transaction): Promise<PaygCandidateRow[]>;
+  /** TEN-30: the owner's own contact phone/email/business address. */
+  findContactDetails(tx: Transaction, tenantId: string): Promise<ContactDetailsRow | null>;
+  /** TEN-30: updates whichever fields the caller sent; an omitted key leaves its current value untouched. */
+  updateContactDetails(
+    tx: Transaction,
+    tenantId: string,
+    values: Partial<ContactDetailsRow>,
+  ): Promise<void>;
 }

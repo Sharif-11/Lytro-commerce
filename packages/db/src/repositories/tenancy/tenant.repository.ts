@@ -339,6 +339,31 @@ export class TenantRepository {
       );
   }
 
+  /** TEN-30: the owner's own contact phone/email/business address, read for the shop-settings screen. */
+  async findContactDetails(tx: Executor, tenantId: string): Promise<ContactDetailsRow | null> {
+    const rows = await tx
+      .select({
+        contactPhone: tenants.contactPhone,
+        contactEmail: tenants.contactEmail,
+        businessAddress: tenants.businessAddress,
+      })
+      .from(tenants)
+      .where(eq(tenants.id, tenantId))
+      .limit(1);
+    return rows[0] ?? null;
+  }
+
+  /** TEN-30: updates whichever of the three contact fields the caller sent; an omitted key leaves its
+   * current value untouched (the caller builds this object from only the keys present in the request). */
+  async updateContactDetails(
+    tx: Executor,
+    tenantId: string,
+    values: Partial<ContactDetailsRow>,
+  ): Promise<void> {
+    if (Object.keys(values).length === 0) return;
+    await tx.update(tenants).set(values).where(eq(tenants.id, tenantId));
+  }
+
   /** BIL-10/11/UPG-03: a transaction-scoped read of what a purchase/renewal/upgrade confirmation needs to
    * decide whether to extend, restart, or prorate the running period. */
   async findBillingInfo(tx: Executor, id: string): Promise<BillingInfoRow | null> {
@@ -380,4 +405,11 @@ export interface PaygCandidateRow {
   id: string;
   lastActivityAt: Date | null;
   createdAt: Date;
+}
+
+/** TEN-30. Each field is independently nullable: null means "not set/cleared". */
+export interface ContactDetailsRow {
+  contactPhone: string | null;
+  contactEmail: string | null;
+  businessAddress: string | null;
 }

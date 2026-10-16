@@ -18,6 +18,9 @@ export const CODE_PATTERN = new RegExp(`^\\d{${String(CODE_LENGTH)}}$`);
 export const PASSWORD_MIN_LENGTH = 8;
 export const PASSWORD_MAX_LENGTH = 20;
 
+// TEN-30: a free-text shop/business street address, shown on the storefront footer (SFT-21).
+export const BUSINESS_ADDRESS_MAX_LENGTH = 300;
+
 // BAL-17 and every other money amount stored in a `numeric(12,2)` column: 10 integer digits is the column's
 // own ceiling (DATABASE-SCHEMA's convention throughout). An amount past this overflows the column with a raw,
 // unhandled Postgres error instead of a clean validation message -- the bound belongs in the schema, at the

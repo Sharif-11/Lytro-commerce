@@ -27,8 +27,10 @@ import { OperatorPlanLimitOverridesController } from './controllers/operator-pla
 import { OperatorSettingsController } from './controllers/operator-settings.controller';
 import { BillingController } from './controllers/billing.controller';
 import { OperatorPaymentQueueController } from './controllers/operator-payment-queue.controller';
+import { ShopSettingsController } from './controllers/shop-settings.controller';
 import { ActivityListService } from './services/activity-list.service';
 import { StaffSigninService } from './services/staff-signin.service';
+import { ShopSettingsService } from './services/shop-settings.service';
 import { StaffController } from './controllers/staff.controller';
 
 // The team's HTTP routes. They sit outside the staff module because they need the identity and tenancy gates,
@@ -65,7 +67,8 @@ import { StaffController } from './controllers/staff.controller';
     OperatorSettingsController,
     BillingController,
     OperatorPaymentQueueController,
+    ShopSettingsController,
   ],
-  providers: [StaffSigninService, ActivityListService, ClientIp],
+  providers: [StaffSigninService, ActivityListService, ClientIp, ShopSettingsService],
 })
 export class TeamModule {}

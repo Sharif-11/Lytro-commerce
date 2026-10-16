@@ -168,6 +168,8 @@ export enum AuditAction {
   // LIF-24: an operator's suspend/restore, mirrored to the platform log (PlatformAuditAction below).
   TenantSuspended = 'tenant_suspended',
   TenantRestored = 'tenant_restored',
+  // TEN-30: the owner (or a holder of settings:manage) updating contact phone/email/business address.
+  ShopSettingsUpdated = 'shop_settings_updated',
 }
 
 // The pg-boss queues this codebase uses (SCL-08, D25). Add a name here before any code enqueues to it.

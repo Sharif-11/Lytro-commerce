@@ -340,6 +340,8 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   RateUpdated: { en: 'Rate updated.', bn: 'রেট আপডেট হয়েছে।' },
   SettingsListed: { en: 'Settings retrieved.', bn: 'সেটিংসগুলো পাওয়া গেছে।' },
   SettingUpdated: { en: 'Setting updated.', bn: 'সেটিং আপডেট হয়েছে।' },
+  ShopSettingsRetrieved: { en: 'Shop settings retrieved.', bn: 'শপ সেটিংস পাওয়া গেছে।' },
+  ShopSettingsUpdated: { en: 'Shop settings updated.', bn: 'শপ সেটিংস আপডেট হয়েছে।' },
 
   QuoteCreated: { en: 'Quote created.', bn: 'কোট তৈরি হয়েছে।' },
   PurchaseConfirmed: { en: 'Purchase confirmed.', bn: 'কেনা নিশ্চিত হয়েছে।' },

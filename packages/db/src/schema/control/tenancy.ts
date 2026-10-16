@@ -63,6 +63,12 @@ export const tenants = control.table(
     // ('deleted') persist after this is set -- deletion removes only the business data listed in LIF-19.
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
     kycStatus: text('kyc_status').notNull().default(KycStatus.Unverified), // KYC-16
+    // TEN-30: contact details the owner sets from dashboard settings, any time after onboarding -- never a
+    // field at shop creation. Each is independent and nullable; no relation to `slug`'s own "address"
+    // naming (AUTH-11, the subdomain candidate), which this is deliberately not called to avoid confusion.
+    contactPhone: varchar('contact_phone', { length: 30 }),
+    contactEmail: varchar('contact_email', { length: 254 }),
+    businessAddress: text('business_address'),
   },
   (t) => [
     index('tenants_subscriber_idx').on(t.subscriberId),

@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { BalanceRow, BillingInfoRow, Transaction } from '@lytronix/db';
+import type { BalanceRow, BillingInfoRow, ContactDetailsRow, Transaction } from '@lytronix/db';
 import { PlatformSettingKey, type PlanLimits, type TenantState } from '@lytronix/validators';
 import { DAY_MS } from '../../../common/time';
 import { StaffService } from '../../staff/services/staff.service';
@@ -166,5 +166,19 @@ export class TenantService {
     tx: Transaction,
   ): Promise<Awaited<ReturnType<TenantStore['findPaygArchivedCandidates']>>> {
     return this.store.findPaygArchivedCandidates(tx);
+  }
+
+  /** TEN-30: the owner's own contact phone/email/business address. */
+  findContactDetails(tx: Transaction, tenantId: string): Promise<ContactDetailsRow | null> {
+    return this.store.findContactDetails(tx, tenantId);
+  }
+
+  /** TEN-30: updates whichever fields the caller sent; an omitted key leaves its current value untouched. */
+  updateContactDetails(
+    tx: Transaction,
+    tenantId: string,
+    values: Partial<ContactDetailsRow>,
+  ): Promise<void> {
+    return this.store.updateContactDetails(tx, tenantId, values);
   }
 }

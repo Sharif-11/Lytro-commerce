@@ -150,6 +150,8 @@ export const MESSAGE_KEYS = [
   'RateUpdated',
   'SettingsListed',
   'SettingUpdated',
+  'ShopSettingsRetrieved',
+  'ShopSettingsUpdated',
 
   // Success -- purchase / top-up / invoices / payment queue
   'QuoteCreated',

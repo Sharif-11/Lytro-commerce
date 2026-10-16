@@ -7,6 +7,7 @@ import {
   TransactionRunner,
   type BalanceRow,
   type BillingInfoRow,
+  type ContactDetailsRow,
   type LapsingCandidateRow,
   type PaygCandidateRow,
   type Transaction,
@@ -153,6 +154,18 @@ export class DrizzleTenantStore implements TenantStore {
 
   findPaygArchivedCandidates(tx: Transaction): Promise<PaygCandidateRow[]> {
     return this.tenants.findPaygArchivedCandidates(tx);
+  }
+
+  findContactDetails(tx: Transaction, tenantId: string): Promise<ContactDetailsRow | null> {
+    return this.tenants.findContactDetails(tx, tenantId);
+  }
+
+  updateContactDetails(
+    tx: Transaction,
+    tenantId: string,
+    values: Partial<ContactDetailsRow>,
+  ): Promise<void> {
+    return this.tenants.updateContactDetails(tx, tenantId, values);
   }
 }
 
