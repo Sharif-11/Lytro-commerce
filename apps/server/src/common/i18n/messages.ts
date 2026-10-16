@@ -319,6 +319,7 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   BillingTermsListed: { en: 'Billing terms retrieved.', bn: 'বিলিং টার্মগুলো পাওয়া গেছে।' },
   BillingTermCreated: { en: 'Billing term created.', bn: 'বিলিং টার্ম তৈরি হয়েছে।' },
   BillingTermUpdated: { en: 'Billing term updated.', bn: 'বিলিং টার্ম আপডেট হয়েছে।' },
+  BillingTermRetired: { en: 'Billing term retired.', bn: 'বিলিং টার্ম রিটায়ার হয়েছে।' },
   BillingTermDeleted: { en: 'Billing term deleted.', bn: 'বিলিং টার্ম ডিলিট হয়েছে।' },
   PlanPricesListed: { en: 'Plan prices retrieved.', bn: 'প্ল্যানের দাম পাওয়া গেছে।' },
   PlanPriceSet: { en: 'Plan price set.', bn: 'প্ল্যানের দাম সেট হয়েছে।' },

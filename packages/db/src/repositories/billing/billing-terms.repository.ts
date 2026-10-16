@@ -32,7 +32,11 @@ export class BillingTermsRepository {
     return rows[0] ?? null;
   }
 
-  /** TRM-14: platform-wide terms, plus any term scoped to this one tenant. Includes retired for the operator view. */
+  /**
+   * TRM-04/14: what a tenant may actually choose for a new purchase or renewal -- platform-wide terms, plus
+   * any term scoped to this one tenant, excluding anything retired. The operator's own view (`listAll`) is
+   * the one that includes retired terms, not this one.
+   */
   async listVisibleFor(db: Executor, tenantId: string | null): Promise<SelectBillingTerm[]> {
     const scope = tenantId
       ? or(isNull(billingTerms.tenantId), eq(billingTerms.tenantId, tenantId))
@@ -40,7 +44,7 @@ export class BillingTermsRepository {
     return db
       .select()
       .from(billingTerms)
-      .where(and(eq(billingTerms.visible, true), scope));
+      .where(and(eq(billingTerms.visible, true), isNull(billingTerms.retiredAt), scope));
   }
 
   async listAll(db: Executor): Promise<SelectBillingTerm[]> {
@@ -57,8 +61,13 @@ export class BillingTermsRepository {
     return row ?? null;
   }
 
-  async retire(db: Executor, id: string, at: Date): Promise<void> {
-    await db.update(billingTerms).set({ retiredAt: at }).where(eq(billingTerms.id, id));
+  async retire(db: Executor, id: string, at: Date): Promise<SelectBillingTerm | null> {
+    const [row] = await db
+      .update(billingTerms)
+      .set({ retiredAt: at })
+      .where(eq(billingTerms.id, id))
+      .returning();
+    return row ?? null;
   }
 
   /** TRM-05: a term priced for any plan isn't deletable. */

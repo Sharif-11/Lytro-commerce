@@ -59,7 +59,11 @@ export class PurchaseService {
   async quote(tenantId: string, planId: string, billingTermId: string): Promise<PlanPaymentRecord> {
     const plan = await this.plans.findById(planId);
     if (!plan.forSale) throw new ApiError('not_found', 'PlanNotFound', {});
-    await this.terms.findById(billingTermId);
+    const term = await this.terms.findById(billingTermId);
+    // TRM-04: a retired term is no longer offered for a new purchase or renewal. `tryAutoRenew` already
+    // treats this `ApiError` as an expected renewal failure and falls through to the normal lapse ladder --
+    // it doesn't need its own exemption from this check.
+    if (term.retiredAt) throw new ApiError('not_found', 'BillingTermNotFound', {});
     const price = await this.terms.findPrice(planId, billingTermId);
     if (price === null) throw new ApiError('not_found', 'PriceNotFound', {});
 

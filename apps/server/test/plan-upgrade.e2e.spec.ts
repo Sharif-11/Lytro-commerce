@@ -203,6 +203,16 @@ describeIfDatabase('upgrade proration math, literally (UPG-02 to UPG-05)', () =>
       code: 'plan_feature_unavailable',
     });
   });
+
+  it('TRM-04: a retired term is refused as an upgrade target, same as a new purchase', async () => {
+    const { tenantId, growthId, growthTermId } = await seedExampleA();
+    await admin.query('UPDATE control.billing_terms SET retired_at = now() WHERE id = $1', [
+      growthTermId,
+    ]);
+    await expect(upgrade.quote(tenantId, growthId, growthTermId)).rejects.toMatchObject({
+      code: 'not_found',
+    });
+  });
 });
 
 describeIfDatabase('confirming an upgrade (UPG-09, UPG-12, UPG-15 to UPG-17)', () => {

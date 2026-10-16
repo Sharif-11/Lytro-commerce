@@ -159,6 +159,57 @@ describeIfDatabase('plan purchase from balance (BIL-01, BIL-05, BIL-08, BIL-12)'
   });
 });
 
+describeIfDatabase('TRM-04: retiring a billing term', () => {
+  it('refuses a new purchase or renewal quote against a retired term', async () => {
+    const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
+    await balance.creditStandalone({ tenantId, amount: '1000.00', type: LedgerEntryType.TopUp });
+    const { planId, termId } = await seedPlanAndTerm(1, '449.00');
+
+    await admin.query('UPDATE control.billing_terms SET retired_at = now() WHERE id = $1', [
+      termId,
+    ]);
+
+    await expect(purchase.quote(tenantId, planId, termId)).rejects.toMatchObject({
+      code: 'not_found',
+    });
+  });
+
+  it('changes nothing for a subscription already on it -- limits, dates and price all survive', async () => {
+    const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
+    await balance.creditStandalone({ tenantId, amount: '1000.00', type: LedgerEntryType.TopUp });
+    const { planId, termId } = await seedPlanAndTerm(1, '449.00');
+
+    const quote = await purchase.quote(tenantId, planId, termId);
+    const result = await purchase.confirmFromBalance(quote.id, tenantId);
+    const before = await admin.query<{
+      plan_snapshot: unknown;
+      period_start: Date;
+      period_end: Date;
+    }>('SELECT plan_snapshot, period_start, period_end FROM control.tenants WHERE id = $1', [
+      tenantId,
+    ]);
+
+    await admin.query('UPDATE control.billing_terms SET retired_at = now() WHERE id = $1', [
+      termId,
+    ]);
+
+    const after = await admin.query<{
+      plan_snapshot: unknown;
+      period_start: Date;
+      period_end: Date;
+    }>('SELECT plan_snapshot, period_start, period_end FROM control.tenants WHERE id = $1', [
+      tenantId,
+    ]);
+    expect(after.rows[0]).toEqual(before.rows[0]);
+
+    const invoice = await admin.query<{ amount: string }>(
+      'SELECT amount FROM control.invoices WHERE id = $1',
+      [result.invoice?.id],
+    );
+    expect(invoice.rows[0]?.amount).toBe('449.00');
+  });
+});
+
 describeIfDatabase(
   'plan purchase and renewal by wallet (BIL-02, BIL-06, BIL-07, BIL-10, BIL-11)',
   () => {

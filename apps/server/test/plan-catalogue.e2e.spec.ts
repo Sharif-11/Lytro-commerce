@@ -387,6 +387,76 @@ describeIfDatabase('billing terms (TRM-01 to TRM-16)', () => {
     },
     BCRYPT_TIMEOUT_MS,
   );
+
+  it(
+    "TRM-04: retiring removes a term from the public list, not from the operator's own list",
+    async () => {
+      const headers = await operatorHeaders();
+      const created = await post(
+        '/operator/billing-terms',
+        { labelBn: 'ছয় মাস', labelEn: 'Six months', months: 6 },
+        headers,
+      );
+      const term = created.body as { id: string };
+
+      const beforeRetire = await get('/billing-terms');
+      expect((beforeRetire.body as { id: string }[]).map((t) => t.id)).toContain(term.id);
+
+      const retired = await post(`/operator/billing-terms/${term.id}/retire`, {}, headers);
+      expect(retired.status).toBe(200);
+      expect((retired.body as { retiredAt: string | null }).retiredAt).not.toBeNull();
+
+      const afterRetire = await get('/billing-terms');
+      expect((afterRetire.body as { id: string }[]).map((t) => t.id)).not.toContain(term.id);
+
+      const operatorList = await get('/operator/billing-terms', headers);
+      expect((operatorList.body as { id: string }[]).map((t) => t.id)).toContain(term.id);
+    },
+    BCRYPT_TIMEOUT_MS,
+  );
+
+  it(
+    'TRM-16: create, update and retire are each audited with old and new values',
+    async () => {
+      const headers = await operatorHeaders();
+      const created = await post(
+        '/operator/billing-terms',
+        { labelBn: 'চার মাস', labelEn: 'Four months', months: 4 },
+        headers,
+      );
+      const term = created.body as { id: string };
+
+      const updated = await patch(
+        `/operator/billing-terms/${term.id}`,
+        { labelEn: 'Four-month plan' },
+        headers,
+      );
+      expect(updated.status).toBe(200);
+      const retired = await post(`/operator/billing-terms/${term.id}/retire`, {}, headers);
+      expect(retired.status).toBe(200);
+
+      const rows = await admin.query<{
+        action: string;
+        summary: { oldValue: Record<string, unknown> | null; newValue: Record<string, unknown> };
+      }>(
+        `SELECT action, summary FROM control.platform_audit_log WHERE target_id = $1 ORDER BY id`,
+        [term.id],
+      );
+      expect(rows.rows.map((r) => r.action)).toEqual([
+        'billing_term_created',
+        'billing_term_updated',
+        'billing_term_retired',
+      ]);
+      expect(rows.rows[0]?.summary.oldValue).toBeNull();
+      expect(rows.rows[1]?.summary).toMatchObject({
+        oldValue: { labelEn: 'Four months' },
+        newValue: { labelEn: 'Four-month plan' },
+      });
+      expect(rows.rows[2]?.summary.oldValue).toMatchObject({ retiredAt: null });
+      expect(rows.rows[2]?.summary.newValue['retiredAt']).not.toBeNull();
+    },
+    BCRYPT_TIMEOUT_MS,
+  );
 });
 
 describeIfDatabase('per-tenant limit overrides (PLN-11)', () => {
