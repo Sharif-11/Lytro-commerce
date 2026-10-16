@@ -19,6 +19,7 @@ import { MailService } from '../../shared/mail/services/mail.service';
 import { MessagingService } from '../../shared/messaging/services/messaging.service';
 import { PlatformSettingsService } from '../../platform-settings/services/platform-settings.service';
 import { StaffService } from '../../staff/services/staff.service';
+import { TenantCache } from '../../tenancy/services/tenant-cache';
 import { TenantService } from '../../tenancy/services/tenant.service';
 import { CLOCK } from '../tokens';
 import { PurchaseService } from './purchase.service';
@@ -57,6 +58,7 @@ export interface LifecycleTickResult {
 export class LifecycleService {
   constructor(
     @Inject(TenantService) private readonly tenants: TenantService,
+    @Inject(TenantCache) private readonly tenantCache: TenantCache,
     @Inject(StaffService) private readonly staff: StaffService,
     @Inject(BalanceService) private readonly balance: BalanceService,
     @Inject(DataExportService) private readonly dataExports: DataExportService,
@@ -216,6 +218,8 @@ export class LifecycleService {
         summary: { from, to },
       });
     });
+    // TEN-27: invalidated within 5 seconds of a tenant being archived, not left to the cache's own 60s TTL.
+    if (to === TenantState.Archived) this.tenantCache.invalidateTenant(tenantId);
   }
 
   /** LIF-19: the day-60 business-data deletion. Guarded by `deletedAt IS NULL` (findLapsingCandidates already
@@ -307,6 +311,8 @@ export class LifecycleService {
             },
           });
         });
+        // TEN-27: this pass's own archival, same invalidation `transition()` gives the normal lapse ladder.
+        this.tenantCache.invalidateTenant(candidate.id);
         transitioned += 1;
         continue;
       }
@@ -471,6 +477,7 @@ export class LifecycleService {
       ip: ip ?? null,
       summary: { reason },
     });
+    this.tenantCache.invalidateTenant(tenantId); // TEN-27: within 5s, not the cache's own 60s TTL.
   }
 
   /**
@@ -509,5 +516,6 @@ export class LifecycleService {
       ip: ip ?? null,
       summary: {},
     });
+    this.tenantCache.invalidateTenant(tenantId); // TEN-27: within 5s, not the cache's own 60s TTL.
   }
 }
