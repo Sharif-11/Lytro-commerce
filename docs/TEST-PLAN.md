@@ -251,8 +251,8 @@ Expected: the job flags the mismatch for operator review rather than silently ac
 Covers: `DAT-52`.
 
 **S03-24 Balance ledger core behavior.**
-Steps: 1) Inspect a new subscriber's balance (0.00) and its precision. 2) Perform a top-up via the hosted page; confirm credit only after verification. 3) Replay the same transaction ID. 4) Let the tenant lapse past grace — confirm the balance freezes, shown with a "frozen" label, no spend/add/expiry/delete possible. 5) Buy a plan to reactivate; confirm no expiry dates exist. 6) Pull a statement filtered by type/date, export CSV; attempt top-up without `balance:manage`.
-Expected: precise 0.01 TK balance; credit only post-verification; replayed transaction ID credits nothing (`conflict`); frozen balance behaves exactly as specified and is clearly labeled; reactivation restores normal spend with no expiry; statement/export match ledger entries; permission-less top-up attempt is 403.
+Steps: 1) Inspect a new subscriber's balance (0.00) and its precision. 2) Perform a top-up via the hosted page; confirm credit only after verification. 3) Replay the same transaction ID. 4) Let the tenant lapse past grace — confirm the balance freezes, shown with a "frozen" label, no spend/add/expiry/delete possible. 5) Buy a plan to reactivate; confirm no expiry dates exist. 6) Pull a statement filtered by type/date; attempt top-up without `balance:manage`.
+Expected: precise 0.01 TK balance; credit only post-verification; replayed transaction ID credits nothing (`conflict`); frozen balance behaves exactly as specified and is clearly labeled; reactivation restores normal spend with no expiry; statement matches ledger entries; permission-less top-up attempt is 403. **Correction, added 2026-10-16: no CSV export exists anywhere in the codebase** — `GET balance/ledger` is JSON-only (paginated by cursor/type/date); dropped "export CSV" from step 6 and the expected result, since this step can't currently pass against the real server. Same gap exists at `BAL-14` in `SRS-detailed.md`.
 Covers: `BAL-01`, `BAL-02`, `BAL-03`, `BAL-05` to `BAL-10`, `BAL-12`, `BAL-14`, `BAL-16` to `BAL-18`.
 
 ---

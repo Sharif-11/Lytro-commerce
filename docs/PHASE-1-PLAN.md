@@ -75,9 +75,10 @@ Follows `ENGINEERING-STANDARDS.md` §1 (modular monolith): each module owns its 
 | `identity` | `control.subscribers`, `control.subscriber_identities` | Sign-up verification, identities, sign-in, sessions, passwords, OTP |
 | `tenancy` | `control.tenants`, `control.tenant_domains`, slug rules | Tenant creation, slug generation, host resolution, reserved names |
 | `staff` | `tenant.users`, `tenant.roles`, `tenant.user_roles` | Staff accounts, roles, permission checks, seat limit |
-| `audit` | `tenant.activity_log`, `control.platform_audit_log` (already exists) | Writing and reading audit entries |
+| `audit` | `tenant.activity_log`, `control.platform_audit_log` (already exists) | Writing and reading audit entries. **Note, added 2026-10-16:** no HTTP layer of its own — `ActivityController` (`/activity`) lives in `apps/server/src/modules/team/controllers/`, same as `staff`/`billing`/`balance`'s controllers (see `team` below). |
 | `operator` | `control.operator_accounts`, `control.operator_backup_codes` | Operator login with TOTP |
-| `messaging` (stub) | `tenant.sms_log` | Records sent messages; real providers plug in behind the same interface |
+| `shared/messaging` (stub) | `control.sms_outbox`, `control.mail_outbox` | Records sent messages; real providers plug in behind the same interface. **Corrected 2026-10-16**: neither table is `tenant.sms_log` — that table doesn't exist. Both outboxes are `control`-schema (platform-level, no tenant data, matching this section's own prose two lines below), and the module itself lives at `apps/server/src/modules/shared/messaging/`, not as a top-level `modules/messaging/` directory. |
+| `team` | — (no tables of its own) | **Added 2026-10-16, not originally in this table:** the shared HTTP-controller layer for `staff`/`audit`/`tenancy`/(later, Phase 2) `billing`/`balance`/`operator` — `StaffController`, `RolesController`, `ActivityController` and the rest of `apps/server/src/modules/team/controllers/` call into each domain module's own service; those domain modules have no `controllers/` of their own. |
 
 **Request pipeline for every tenant-scoped endpoint, in order:**
 
@@ -137,7 +138,7 @@ From `API-CONTRACT.md`:
 - **Auth and onboarding (§2):** `auth/phone/code`, `auth/phone/verify` (sign-up and sign-in, D12), `auth/signin` (password), `shops` (create-shop step), `auth/forgot-password`, `auth/forgot-password/verify`, `auth/oauth/*` (slice 6), `auth/signout`, `auth/password`, `me`, `me/identities` (add, remove).
 - **Staff and roles (§3):** `staff` (list, create, update), `roles` (list, create, delete).
 - **Operator (§9, partial):** operator sign-in and TOTP enrolment only. Tenant management endpoints come in Phase 8.
-- **Shared rules:** every error uses the standard body (SRS §2.6); every write accepts `Idempotency-Key` where it creates something (API-11); every response carries `X-Request-Id` (API-27).
+- **Shared rules:** every error uses the standard body (SRS §2.6); every write accepts `Idempotency-Key` where it creates something (API-11); every response carries `X-Request-Id` (API-27). **Correction, added 2026-10-16: neither is actually implemented for any Phase 1 endpoint.** `X-Request-Id` has no middleware/interceptor setting it anywhere in `apps/server/src`. `IdempotencyInterceptor` exists and is real, but is only wired via `@UseInterceptors(IdempotencyInterceptor)` on Phase 2 routes (`balance.controller.ts`, `billing.controller.ts`) — Phase 1's own create endpoints (`POST /shops`, `POST /staff`, `POST /roles`) have no idempotency support at all.
 
 Endpoints that depend on later phases (billing, orders, storefront) are not built in Phase 1.
 

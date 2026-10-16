@@ -157,6 +157,11 @@ CREATE TABLE control.tenants (
     -- the pay-as-you-go inactivity job (PYG-21) instead of scanning tenant.balance_ledger on
     -- every run. Null for a tenant that was never pay-as-you-go.
     last_activity_at      timestamptz,
+    -- LIF-01: the owner's own intent to not renew, set/cleared by POST billing/cancel and
+    -- .../cancel/undo. The state machine never reads this (LIF-02 already reaches `grace` at
+    -- period end regardless) -- it exists only so the dashboard can show "cancelled, effective
+    -- <date>" and offer "Undo". Added by migration 0031_lifecycle_cancellation.sql.
+    cancelled_at           timestamptz,
     -- LIF-20/21/22: set once by the day-60 deletion job (LIF-19), never before. The row and its
     -- state ('deleted') persist after this is set -- deletion removes only the business data
     -- listed in LIF-19, not the tenant row itself (LIF-20 keeps the subscriber link, plan/payment
@@ -262,7 +267,7 @@ CREATE TABLE control.invoices (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id       uuid NOT NULL REFERENCES control.tenants(id),
     number          bigint NOT NULL UNIQUE,      -- gap-free, from a locked counter row, not a sequence (DAT-07)
-    kind            text NOT NULL DEFAULT 'purchase', -- purchase | renewal | upgrade (BIL-12)
+    kind            text NOT NULL, -- purchase | renewal | upgrade (BIL-12) -- no default: every insert supplies it explicitly
     plan_snapshot   jsonb NOT NULL,
     amount          numeric(10,2) NOT NULL,
     credit_amount   numeric(10,2) NOT NULL DEFAULT 0, -- UPG-03/UPG-15: the credit line shown on an upgrade invoice
@@ -272,7 +277,9 @@ CREATE TABLE control.invoices (
 
 CREATE TABLE control.invoice_counters (
     id  smallint PRIMARY KEY DEFAULT 1,
-    next_number bigint NOT NULL DEFAULT 1
+    next_number bigint NOT NULL -- no column default (drizzle-kit can't serialize a bigint default);
+                                -- the single seed row (id=1, next_number=1) is inserted by hand-written
+                                -- SQL in the migration itself, not defaulted per-insert
 );
 -- BIL-12/DAT-07: invoice number is taken from this single locked row inside the same
 -- transaction as the insert, never a native sequence.
