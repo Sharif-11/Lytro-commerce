@@ -504,6 +504,64 @@ all four `invalidateTenant` call sites, confirmed all three tests failed with th
 
 (Code: PR #103.)
 
+## 32. `TRM-04`/`TRM-16`: a billing term's retirement was unreachable and unenforced, and no term change was audited — found and fixed 2026-10-17
+
+Found while scoping a fix for these two requirements directly (not from the full re-audit). Two independent
+gaps in the same area:
+
+**`TRM-04`** ("retiring stops new purchases and renewals, changes nothing for subscriptions already on
+it") was effectively 0% built, even though the pieces looked present. `BillingTermsService.retire()`
+existed, set `retiredAt` correctly, and even carried a doc comment claiming TRM-04 compliance — but no
+controller route called it (`OperatorBillingTermsController` had only `GET`/`POST`/`PATCH`/`DELETE`), so it
+was dead code. Worse, even if it had been reachable, nothing read `retiredAt` back: `listVisibleFor` (the
+list `GET /billing-terms` actually serves, the one a tenant picks a term from) filtered only on `visible`,
+and `PurchaseService.quote`/`UpgradeService.quote` called `BillingTermsService.findById` only to confirm
+the term existed, never inspecting whether it was retired. A retired term, had it ever been reachable,
+would have stayed fully purchasable and renewable forever. The "changes nothing for subscriptions already
+on it" half was already correct, not by any retiredAt-aware guard, but because a subscription's
+`planSnapshot`/`periodStart`/`periodEnd` are written once at purchase/activation time
+(`PurchaseService.activate`) and never re-read from the term row afterward; the price paid is likewise
+captured once in `invoices.amount`, with no live re-read either.
+
+**`TRM-16`** ("every term change is audited... shows old and new values") had zero implementation across
+all three writes (create, update, retire) — `PlatformAuditAction.BillingTermCreated`/`BillingTermUpdated`/
+`BillingTermRetired` were declared, explicitly commented `// TRM-16: every billing-term change`, and never
+referenced anywhere. The "within [1] minute" clause was never at risk — billing terms have no cache in
+front of them (unlike `RateCache`/`PlatformSettingsCache`), so a write is visible on the very next read
+today, with nothing to invalidate.
+
+**Fixed:**
+- `POST /operator/billing-terms/:id/retire` — a new, dedicated route (mirroring the operator
+  suspend/restore shape, not folded into the general `PATCH`, since `retiredAt` is a timestamp set once,
+  not a toggle), returning the updated term.
+- `billing_terms.repository.ts`'s `listVisibleFor` now excludes `retiredAt IS NOT NULL` — the stale comment
+  claiming it "includes retired for the operator view" was simply wrong; the operator's own view is
+  `listAll`, a different method entirely.
+- `PurchaseService.quote` and `UpgradeService.quote` both now refuse a retired term with `not_found`,
+  covering a new purchase, a manual renewal, and an upgrade's own term choice alike. `activate()` (the
+  confirm-time path, for both the balance and wallet flows) deliberately keeps no such check, the same way
+  it already doesn't re-check a plan's `forSale` — an already-quoted or already-queued payment must still
+  activate even if the term is retired in the interim.
+- `tryAutoRenew` needed no change at all: it already treats any `ApiError` from `quote()` as an expected
+  renewal failure and falls through to the normal lapse ladder, so a tenant whose own term gets retired
+  simply stops auto-renewing (the same outcome as insufficient balance) instead of erroring.
+- `BillingTermsService.create`/`update`/`retire` each now call `PlatformAuditService.record`, with the
+  operator id and real client IP threaded from the controller (`ClientIp`, the same AUD-02 retrofit
+  pattern); `update`'s summary holds `oldValue`/`newValue` for only the fields actually changed (Zod fills
+  every untouched optional field in as an explicit `undefined`, which would otherwise read as "changed").
+
+Proven by new/extended cases across four files: `plan-catalogue.e2e.spec.ts` (retiring removes a term from
+the public list but not the operator's own list; create/update/retire each write an audit row with the
+right old/new values), `plan-purchase.e2e.spec.ts` (a retired term refuses a new quote; an existing
+subscriber's snapshot/dates/invoice amount survive a later retirement untouched),
+`plan-upgrade.e2e.spec.ts` (a retired term is refused as an upgrade target too), and
+`lifecycle.e2e.spec.ts` (auto-renew falls through to the normal lapse when the tenant's own term is
+retired, same as insufficient balance). Verified these would actually fail without the fix — temporarily
+disabled all three guard/filter points plus all three audit calls, confirmed exactly five tests failed with
+the expected symptom (`promise resolved instead of rejecting`, the retired term still listed, zero audit
+rows) and nothing else broke, then restored and confirmed all 60 relevant tests green again before
+committing.
+
 ## Not a bug, just noting it so it isn't mistaken for one later
 
 The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data

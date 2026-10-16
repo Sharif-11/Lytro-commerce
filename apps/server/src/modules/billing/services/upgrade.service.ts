@@ -78,7 +78,9 @@ export class UpgradeService {
     if (!targetPlan.forSale || targetPlan.rank <= currentPlan.rank) {
       throw new ApiError('validation_error', 'UpgradeMustBeHigherRank', {});
     }
-    await this.terms.findById(billingTermId);
+    const term = await this.terms.findById(billingTermId);
+    // TRM-04: a retired term is no longer offered, including for an upgrade's own term choice.
+    if (term.retiredAt) throw new ApiError('not_found', 'BillingTermNotFound', {});
     const newPrice = await this.terms.findPrice(planId, billingTermId);
     if (newPrice === null) throw new ApiError('not_found', 'PriceNotFound', {});
 

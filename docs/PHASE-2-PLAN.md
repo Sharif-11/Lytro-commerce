@@ -65,6 +65,13 @@ itself before any of the above landed.)
 11. **`PLN-03`** (found during the full audit): `setPlanPriceSchema` accepted fractional taka (e.g. 449.50)
     despite the requirement's own "positive whole taka" wording — the limits half was already correct.
     Added `.int()`. `KNOWN-GAPS.md` #30 is closed.
+12. **`TRM-04`/`TRM-16`** (scoped and fixed directly, not from the full audit): retiring a term was
+    unreachable (no route called it) and unenforced (nothing read `retiredAt` back, in the public term
+    list or either quote path); no billing-term change was audited at all. Built: a dedicated
+    `POST /operator/billing-terms/:id/retire` route; `listVisibleFor` and
+    `PurchaseService`/`UpgradeService.quote` now honor `retiredAt`; `create`/`update`/`retire` each write a
+    `platform_audit_log` entry with the real operator, IP and old/new values. `KNOWN-GAPS.md` #32 is
+    closed.
 
 1. Every `M` requirement in PLN, TRL, TRM, PYG, BIL, UPG, DWN, LIF, BAL and RAT has a passing automated test.
 2. The lifecycle scheduled job transitions a tenant through every state boundary (grace, read-only, locked, archived, deleted) within its 15-minute SLA (LIF-03), derived purely from stored dates (LIF-04) so a test clock can simulate any date, and is idempotent under a doubled or missed run (LIF-23).
@@ -178,7 +185,7 @@ Each slice is one branch and one pull request. CI must pass before merge. Slices
 ### Slice 2: plans and billing terms
 - **Branch:** `feat/plan-catalogue`
 - **Depends on:** slice 1 (rates pattern, for consistency — not a hard dependency). Decision D2-3.
-- **Delivers:** `control.billing_terms`, `control.plan_prices`, `control.plan_versions`, `control.plan_limit_overrides` (`PLN-11`), `control.plan_assignments`; the `billing` module's plan/term CRUD, versioning-on-write, not-for-sale filtering enforced server-side (`PLN-10`), not-for-sale direct assignment (`PLN-17`/`PLN-18`). API-only, per D2-9's resolution — no operator-console shell or screens here; those are slice 8.
+- **Delivers:** `control.billing_terms`, `control.plan_prices`, `control.plan_versions`, `control.plan_limit_overrides` (`PLN-11`), `control.plan_assignments`; the `billing` module's plan/term CRUD, versioning-on-write, not-for-sale filtering enforced server-side (`PLN-10`), not-for-sale direct assignment (`PLN-17`/`PLN-18`). API-only, per D2-9's resolution — no operator-console shell or screens here; those are slice 8. **Correction, 2026-10-17:** `TRM-04`'s own retire action was never actually reachable or enforced, and `TRM-16`'s audit never fired — both were fixed afterward, independent of this slice's own branch; see `KNOWN-GAPS.md` #32.
 - **Requirements:** PLN-01 to PLN-12, PLN-16 to PLN-18, TRM-01 to TRM-16.
 - **Done when:** editing a plan increments its version and the previous version is still retrievable; a tenant-facing plans call never returns a not-for-sale row, even with a crafted request; a not-for-sale plan assigned with no expiry never prompts that tenant to renew.
 

@@ -25,7 +25,7 @@ export interface BillingTermsStore {
   run<T>(work: (tx: Transaction) => Promise<T>): Promise<T>;
   create(tx: Transaction, values: NewBillingTermValues): Promise<BillingTermRecord>;
   findById(tx: Transaction, id: string): Promise<BillingTermRecord | null>;
-  /** TRM-14: platform-wide terms plus, when given, the one tenant's own scoped terms. Visible only. */
+  /** TRM-04/14: platform-wide terms plus, when given, the one tenant's own scoped terms. Visible, non-retired only. */
   listVisibleFor(tx: Transaction, tenantId: string | null): Promise<BillingTermRecord[]>;
   listAll(tx: Transaction): Promise<BillingTermRecord[]>;
   update(
@@ -33,7 +33,7 @@ export interface BillingTermsStore {
     id: string,
     edit: BillingTermEditValues,
   ): Promise<BillingTermRecord | null>;
-  retire(tx: Transaction, id: string, at: Date): Promise<void>;
+  retire(tx: Transaction, id: string, at: Date): Promise<BillingTermRecord | null>;
   isUsed(tx: Transaction, id: string): Promise<boolean>;
   delete(tx: Transaction, id: string): Promise<void>;
   setPrice(tx: Transaction, planId: string, billingTermId: string, price: string): Promise<void>;

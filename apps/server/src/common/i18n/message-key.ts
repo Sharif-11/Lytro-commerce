@@ -132,6 +132,7 @@ export const MESSAGE_KEYS = [
   'BillingTermsListed',
   'BillingTermCreated',
   'BillingTermUpdated',
+  'BillingTermRetired',
   'BillingTermDeleted',
   'PlanPricesListed',
   'PlanPriceSet',

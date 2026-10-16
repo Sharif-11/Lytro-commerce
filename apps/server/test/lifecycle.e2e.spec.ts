@@ -380,6 +380,26 @@ describeIfDatabase('BIL-17: renew automatically from balance', () => {
     expect(actions).not.toContain(AuditAction.PlanRenewed);
   });
 
+  it('TRM-04: with the toggle on but the term now retired, falls through to the normal lapse', async () => {
+    const planId = await seedPlan((nextRank += 1));
+    const termId = await seedTermAndPrice(planId, '199.00');
+    const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
+    await activateTenant(tenantId, planId, TenantState.Active, new Date(Date.now() - DAY_MS));
+    await setAutoRenewFields(tenantId, termId, true);
+    await balance.creditStandalone({ tenantId, amount: '500.00', type: LedgerEntryType.TopUp });
+    await admin.query('UPDATE control.billing_terms SET retired_at = now() WHERE id = $1', [
+      termId,
+    ]);
+
+    const result = await lifecycle.runTick(new Date());
+    expect(result.renewed).toBe(0);
+
+    const tenant = await tenantRow(tenantId);
+    expect(tenant?.state).toBe(TenantState.Grace);
+    const actions = await auditActions(tenantId);
+    expect(actions).not.toContain(AuditAction.PlanRenewed);
+  });
+
   it('with the toggle off, no charge is attempted even with sufficient balance', async () => {
     const planId = await seedPlan((nextRank += 1));
     const termId = await seedTermAndPrice(planId, '199.00');

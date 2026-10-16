@@ -9,15 +9,21 @@ import {
   Patch,
   Post,
   Put,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
+import { ApiError } from '../../../common/api-error';
+import { ClientIp } from '../../../common/client-ip';
 import { SkipTenant } from '../../../common/decorators/skip-tenant';
 import { ResponseMessage } from '../../../common/decorators/response-message';
 import { OkDto } from '../../../common/dto/ok.dto';
 import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
-import { OperatorSessionGuard } from '../../operator/guards/operator-session.guard';
+import {
+  OperatorSessionGuard,
+  type OperatorSessionRequest,
+} from '../../operator/guards/operator-session.guard';
 import { BillingTermsService } from '../../billing/services/billing-terms.service';
 import type { BillingTermRecord, PlanPriceRecord } from '../../billing/types/billing-term';
 import { CreateBillingTermDto, SetPlanPriceDto, UpdateBillingTermDto } from '../dto/billing.dto';
@@ -29,7 +35,10 @@ import { BillingTermDto, BillingTermListDto, PlanPriceListDto } from '../dto/bil
 @SkipTenant()
 @UseGuards(OperatorSessionGuard)
 export class OperatorBillingTermsController {
-  constructor(@Inject(BillingTermsService) private readonly terms: BillingTermsService) {}
+  constructor(
+    @Inject(BillingTermsService) private readonly terms: BillingTermsService,
+    @Inject(ClientIp) private readonly clientIp: ClientIp,
+  ) {}
 
   @Get()
   @ResponseMessage('BillingTermsListed')
@@ -46,16 +55,23 @@ export class OperatorBillingTermsController {
   @ZodResponse({ type: BillingTermDto })
   create(
     @Body(new ZodValidationPipe(CreateBillingTermDto.schema)) body: CreateBillingTermDto,
+    @Req() request: OperatorSessionRequest,
   ): Promise<BillingTermRecord> {
-    return this.terms.create({
-      labelBn: body.labelBn,
-      labelEn: body.labelEn,
-      months: body.months,
-      visible: body.visible,
-      displayOrder: body.displayOrder,
-      defaultDiscountPct: body.defaultDiscountPct?.toFixed(2) ?? null,
-      tenantId: body.tenantId ?? null,
-    });
+    const session = request.operatorSession;
+    if (!session) throw new ApiError('unauthenticated', 'SignInToContinue', {});
+    return this.terms.create(
+      {
+        labelBn: body.labelBn,
+        labelEn: body.labelEn,
+        months: body.months,
+        visible: body.visible,
+        displayOrder: body.displayOrder,
+        defaultDiscountPct: body.defaultDiscountPct?.toFixed(2) ?? null,
+        tenantId: body.tenantId ?? null,
+      },
+      session.operatorId,
+      this.clientIp.resolve(request),
+    );
   }
 
   @Patch(':id')
@@ -66,15 +82,39 @@ export class OperatorBillingTermsController {
   update(
     @Param('id') id: string,
     @Body(new ZodValidationPipe(UpdateBillingTermDto.schema)) body: UpdateBillingTermDto,
+    @Req() request: OperatorSessionRequest,
   ): Promise<BillingTermRecord> {
-    return this.terms.update(id, {
-      labelBn: body.labelBn,
-      labelEn: body.labelEn,
-      months: body.months,
-      visible: body.visible,
-      displayOrder: body.displayOrder,
-      defaultDiscountPct: body.defaultDiscountPct?.toFixed(2),
-    });
+    const session = request.operatorSession;
+    if (!session) throw new ApiError('unauthenticated', 'SignInToContinue', {});
+    return this.terms.update(
+      id,
+      {
+        labelBn: body.labelBn,
+        labelEn: body.labelEn,
+        months: body.months,
+        visible: body.visible,
+        displayOrder: body.displayOrder,
+        defaultDiscountPct: body.defaultDiscountPct?.toFixed(2),
+      },
+      session.operatorId,
+      this.clientIp.resolve(request),
+    );
+  }
+
+  @Post(':id/retire')
+  @HttpCode(200)
+  @ResponseMessage('BillingTermRetired')
+  @ApiOperation({
+    summary: 'Retire a billing term: stops new purchases/renewals, keeps existing ones unaffected',
+  })
+  @ZodResponse({ type: BillingTermDto })
+  retire(
+    @Param('id') id: string,
+    @Req() request: OperatorSessionRequest,
+  ): Promise<BillingTermRecord> {
+    const session = request.operatorSession;
+    if (!session) throw new ApiError('unauthenticated', 'SignInToContinue', {});
+    return this.terms.retire(id, session.operatorId, this.clientIp.resolve(request));
   }
 
   @Delete(':id')
