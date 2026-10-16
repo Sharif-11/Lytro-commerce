@@ -367,7 +367,24 @@ ever shortening a promise already made. Proven by three new cases in `apps/serve
 only, the one retention-governed data category that exists today (orders/products have no module yet, same
 boundary `LIF-16` hit).
 
-## 27. `LIF-21`: the old subdomain was reserved permanently, not for 30 days — found and fixed 2026-10-16
+## 27. `BAL-14`: the statement's CSV-export half had zero implementation — found and fixed 2026-10-16
+
+Found during the same full Phase 1/Phase 2 SRS-vs-code audit. `GET /balance/ledger` was JSON-only,
+keyset-paginated; no export route or CSV-generation code existed anywhere in the codebase for the ledger
+(`LIF-16`'s data-export module has its own, separate CSV generation for payments/activity, not reusable
+as-is for the balance statement).
+
+**Fixed:** `GET /balance/ledger/export` (same `type`/`dateFrom`/`dateTo` filters as `ledger`, minus
+`cursor`/`limit` -- a CSV covers the whole filtered range, not one page), returning `text/csv` via a raw
+`@Res()` response, the same shape `data-export.controller.ts`'s own download route already uses.
+`BalanceService.statementAll` reuses the existing `BalanceLedgerStore.list` read with no cursor and a
+10,000-row cap, rather than adding a new unpaginated repository method. `toCsv`/`csvEscape` (previously
+private to `data-export.service.ts`) extracted into a shared `apps/server/src/common/csv.ts`, one
+definition now used by both exports instead of two copies. Proven by a new case in
+`apps/server/test/balance-ledger.e2e.spec.ts`: the CSV's header and rows match a credited entry, and a
+different shop's export is empty (same RLS scoping every other route already gets).
+
+## 28. `LIF-21`: the old subdomain was reserved permanently, not for 30 days — found and fixed 2026-10-16
 
 Found during the same full Phase 1/Phase 2 SRS-vs-code audit, then confirmed a real (if safe-direction) gap
 during the `DWN-11`/`LIF-21`/`LIF-22` investigation. `LIF-19`'s day-60 job deletes a tenant's business data

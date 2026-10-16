@@ -25,6 +25,10 @@ const ACTIVITY_TYPES: ReadonlySet<LedgerEntryType> = new Set([
 // BAL-13: low-balance thresholds, in paisa, checked as a downward crossing (never repeated while already past).
 const LOW_BALANCE_THRESHOLDS_PAISA: readonly bigint[] = [5000n, 0n];
 
+// BAL-14: a CSV covers the whole filtered range, not one page -- capped so one tenant's statement can't
+// produce an unbounded response.
+const EXPORT_ROW_CAP = 10000;
+
 export interface ChargeInput {
   tenantId: string;
   type: LedgerEntryType;
@@ -163,6 +167,14 @@ export class BalanceService {
     const entries = hasMore ? rows.slice(0, limit) : rows;
     const last = entries[entries.length - 1];
     return { entries, nextCursor: hasMore && last ? last.id : null };
+  }
+
+  /** BAL-14: the whole filtered range for a CSV export, not one page -- reuses `statement`'s own store read,
+   * just with no cursor and a cap generous enough to never silently truncate a real tenant's statement. */
+  statementAll(tenantId: string, filters: LedgerFilters): Promise<LedgerEntry[]> {
+    return this.runStandalone(tenantId, (tx) =>
+      this.ledger.list(tx, tenantId, filters, null, EXPORT_ROW_CAP),
+    );
   }
 
   private amountOf(input: ChargeInput): string {

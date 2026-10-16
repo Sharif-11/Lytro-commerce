@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { randomUUID } from 'node:crypto';
+import { request as httpRequest } from 'node:http';
 import { hash } from 'bcryptjs';
 import { generate } from 'otplib';
 import pg from 'pg';
@@ -41,10 +42,46 @@ const get = (path: string, headers: Record<string, string> = {}) => getJson(port
 const patch = (path: string, payload: unknown, headers: Record<string, string> = {}) =>
   patchJson(port, path, payload, headers);
 
+// BAL-14: the CSV export route returns raw text, which support/http.ts's shared getJson would fail trying
+// to JSON.parse -- a small local helper, the same fix data-export.e2e.spec.ts already needed for its own
+// non-JSON download route, kept local rather than touching the shared JSON-only helper.
+interface TextResult {
+  status: number;
+  headers: Record<string, string | string[] | undefined>;
+  body: string;
+}
+function getText(path: string, headers: Record<string, string>): Promise<TextResult> {
+  return new Promise((resolve, reject) => {
+    const req = httpRequest(
+      { host: '127.0.0.1', port, path: `/api/v1${path}`, method: 'GET', headers },
+      (res) => {
+        let text = '';
+        res.on('data', (chunk: Buffer) => {
+          text += chunk.toString();
+        });
+        res.on('end', () => {
+          resolve({ status: res.statusCode ?? 0, headers: res.headers, body: text });
+        });
+      },
+    );
+    req.on('error', reject);
+    req.end();
+  });
+}
+
 const freshSlug = (): string => `b${randomUUID().replace(/-/g, '').slice(0, 10)}`;
 
 async function freshTenant(): Promise<string> {
   return seedShop(admin, `Shop ${freshSlug()}`, freshSlug());
+}
+
+async function tenantIdOf(slug: string): Promise<string> {
+  const row = await admin.query<{ id: string }>('SELECT id FROM control.tenants WHERE slug = $1', [
+    slug,
+  ]);
+  const id = row.rows[0]?.id;
+  if (!id) throw new Error(`no tenant for slug ${slug}`);
+  return id;
 }
 
 function errorOf(result: HttpResult): unknown {
@@ -313,6 +350,30 @@ describeIfDatabase('balance and rates over HTTP (controller wiring)', () => {
 
     const balanceB = await get('/balance', shopCall(shopB));
     expect(balanceB.body).toMatchObject({ amount: '42.00' });
+  });
+
+  it('BAL-14: exports the filtered statement as CSV, scoped to the session shop only', async () => {
+    const who = await owner();
+    await balance.creditStandalone({
+      tenantId: await tenantIdOf(who.slug),
+      amount: '42.00',
+      type: LedgerEntryType.TopUp,
+    });
+
+    const response = await getText('/balance/ledger/export', shopCall(who));
+    expect(response.status).toBe(200);
+    expect(response.headers['content-type']).toContain('text/csv');
+    expect(response.headers['content-disposition']).toContain('attachment');
+    const lines = response.body.trim().split('\n');
+    expect(lines[0]).toBe('id,type,amount,units,rateUsed,balanceAfter,createdAt');
+    expect(lines.length).toBe(2); // header + the one credit above
+    expect(lines[1]).toContain('top_up');
+    expect(lines[1]).toContain('42.00');
+
+    // Scoped to the session shop only -- a different shop's export is empty.
+    const other = await owner();
+    const otherResponse = await getText('/balance/ledger/export', shopCall(other));
+    expect(otherResponse.body.trim().split('\n').length).toBe(1); // header only
   });
 
   it(
