@@ -204,6 +204,17 @@ dev DB's `GET /plans` only returns Starter and Growth — looks like incomplete 
 deliberate drop of the tier (no seed script was found under `packages/db` to check directly). Worth a look
 before relying on "Pro" being purchasable in any further live testing against this same dev DB.
 
+## 22. `TEN-30`/`SFT-21` (added 2026-10-16) — tenant contact details and storefront footer/contact-us — not built
+
+New requirement, not a drift: a tenant has no way today to set a support phone, support email or shop address
+(no field for any of the three exists on `control.tenants` or in the dashboard settings screens built so
+far — only shop name and logo, `TEN-16`), and the storefront has no footer or contact-us section at all
+(`SFT-13` covers branding only). `TEN-30` adds the three settings fields; `SFT-21` adds the storefront
+section that reads them. `TEN-30` falls in Phase 1's own requirement range, but Phase 1 already shipped —
+`IMPLEMENTATION-PLAN.md` now flags it as a small follow-up slice there rather than waiting for a later phase,
+since it has no dependency on anything Phase 2+ builds. `SFT-21` lands normally in Phase 3 alongside the rest
+of `SFT-*`, which hasn't shipped yet.
+
 ## Not a bug, just noting it so it isn't mistaken for one later
 
 The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data

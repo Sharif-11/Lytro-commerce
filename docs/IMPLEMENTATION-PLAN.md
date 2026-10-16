@@ -37,6 +37,7 @@ This is the build order for the **new** NestJS/Next.js/Vite multi-tenant platfor
 
 - `AUTH-01` to `AUTH-27` — sign-up (phone/email/Google/Facebook), OTP, sessions, password reset, the multi-identity policy (`OD-53`).
 - `TEN-01` to `TEN-29` — subdomain resolution, tenant isolation (tested per `SEC-02`'s cross-tenant-ID suite from day one, not bolted on later), session cookie scoping.
+  - `TEN-30` (added 2026-10-16, after this phase shipped) — dashboard-settings contact phone/email/shop address — is **not** built; it's a small, dependency-free CRUD addition to this phase's own settings screen, so it lands as a follow-up slice here rather than waiting for a later phase. See `KNOWN-GAPS.md`.
 - `STF-*` — staff accounts, roles, permissions.
 - `AUD-*` — the activity log (every later module writes to this, so it needs to exist first).
 - `I18N-01`/`I18N-02` — Bangla-default/English-toggle, at the dashboard-shell level, before there's much UI to translate (far cheaper than retrofitting i18n into finished screens).
@@ -83,7 +84,7 @@ done; both are fast follow-ups once decided.
 - `STO-*`, `BND-*`, `RTE-*`, `QTA-*` — the metered-limit enforcement machinery (now has real plan data from Phase 2 to read against).
 - `PRD-*`, `ATR-*` — products, variants, flexible attributes.
 - `MED-*` — R2 presigned uploads, the validation/resize/variant-generation job, the `control.used_transaction_ids`-style permanence pattern applied to media where relevant.
-- `SFT-*` — the shared storefront, served at subdomain root.
+- `SFT-*` — the shared storefront, served at subdomain root, including the footer/contact-us section (`SFT-21`, added 2026-10-16, reads `TEN-30`'s contact fields).
 - `CCH-*` — the layered cache (device → edge → process memory → Postgres), built in from the start since retrofitting caching into a storefront already in production is a much riskier change than building it in.
 - `I18N-01`/`I18N-02` extended to the storefront specifically (device-persisted toggle).
 
