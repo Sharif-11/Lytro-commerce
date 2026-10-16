@@ -3,6 +3,7 @@ import {
   CalendarIcon,
   ClockIcon,
   HomeIcon,
+  SettingsIcon,
   ShieldIcon,
   TagIcon,
   UsersIcon,
@@ -18,7 +19,8 @@ export interface NavItem {
     | '/dashboard/activity'
     | '/dashboard/balance'
     | '/dashboard/billing'
-    | '/dashboard/invoices';
+    | '/dashboard/invoices'
+    | '/dashboard/shop-settings';
   labelKey: string;
   icon: typeof HomeIcon;
   /** The permission this destination needs — matched against `/me`'s `permissions` (D32). No field means
@@ -66,6 +68,12 @@ export const navItems: NavItem[] = [
     labelKey: 'nav.invoices',
     icon: CalendarIcon,
     permission: Permission.PaymentsRead,
+  },
+  {
+    to: '/dashboard/shop-settings',
+    labelKey: 'nav.shopSettings',
+    icon: SettingsIcon,
+    permission: Permission.SettingsManage,
   },
 ];
 

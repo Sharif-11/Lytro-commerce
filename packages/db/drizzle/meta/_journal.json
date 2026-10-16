@@ -225,6 +225,13 @@
       "when": 1792001823487,
       "tag": "0031_lifecycle_cancellation",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1792156799927,
+      "tag": "0032_shop_contact_details",
+      "breakpoints": true
     }
   ]
 }

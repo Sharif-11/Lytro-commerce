@@ -41,6 +41,14 @@ describe('visibleNavItems', () => {
     expect(visible.map((item) => item.to)).not.toContain('/dashboard/invoices');
   });
 
+  it('hides Shop settings from a staff member without settings:manage (TEN-30)', () => {
+    const visible = visibleNavItems({
+      isOwner: false,
+      permissions: [Permission.StaffRead, Permission.AuditRead, Permission.BalanceRead],
+    });
+    expect(visible.map((item) => item.to)).not.toContain('/dashboard/shop-settings');
+  });
+
   it('shows every item once every permission is held', () => {
     const visible = visibleNavItems({
       isOwner: false,
@@ -49,6 +57,7 @@ describe('visibleNavItems', () => {
         Permission.AuditRead,
         Permission.BalanceRead,
         Permission.PaymentsRead,
+        Permission.SettingsManage,
       ],
     });
     expect(visible).toEqual(navItems);

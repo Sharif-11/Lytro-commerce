@@ -211,6 +211,7 @@
     "balance": "Balance",
     "billing": "Billing",
     "invoices": "Invoices",
+    "shopSettings": "Shop settings",
     "account": "Account"
   },
   "staff": {
@@ -405,6 +406,14 @@
     "creditAmount": "Credit",
     "view": "View",
     "planSnapshot": "Plan at the time"
+  },
+  "shopSettings": {
+    "title": "Shop settings",
+    "subtitle": "Contact details shown on your storefront's footer and contact page.",
+    "contactPhone": "Support phone (optional)",
+    "contactEmail": "Support email (optional)",
+    "businessAddress": "Shop/business address (optional)",
+    "saved": "Saved."
   },
   "lifecycle": {
     "trialDaysLeft_one": "{{count}} day left in your trial.",

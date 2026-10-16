@@ -17,6 +17,7 @@ export {
   type BillingInfoRow,
   type LapsingCandidateRow,
   type PaygCandidateRow,
+  type ContactDetailsRow,
 } from './repositories/tenancy/tenant.repository';
 export { SlugRepository } from './repositories/tenancy/slug.repository';
 export {

@@ -211,6 +211,7 @@
     "balance": "ব্যালেন্স",
     "billing": "বিলিং",
     "invoices": "ইনভয়েস",
+    "shopSettings": "শপ সেটিংস",
     "account": "অ্যাকাউন্ট"
   },
   "staff": {
@@ -405,6 +406,14 @@
     "creditAmount": "ক্রেডিট",
     "view": "দেখুন",
     "planSnapshot": "তখনকার প্ল্যান"
+  },
+  "shopSettings": {
+    "title": "শপ সেটিংস",
+    "subtitle": "আপনার স্টোরফ্রন্টের ফুটার ও কন্টাক্ট পেজে দেখানো কন্টাক্ট ডিটেইলস।",
+    "contactPhone": "সাপোর্ট ফোন (ঐচ্ছিক)",
+    "contactEmail": "সাপোর্ট ইমেইল (ঐচ্ছিক)",
+    "businessAddress": "শপ/বিজনেস অ্যাড্রেস (ঐচ্ছিক)",
+    "saved": "সেভ হয়েছে।"
   },
   "lifecycle": {
     "trialDaysLeft_one": "আপনার ট্রায়ালে {{count}} দিন বাকি।",
