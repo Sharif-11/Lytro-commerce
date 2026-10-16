@@ -43,6 +43,7 @@ export class RoleService {
     tenant: RoleTenant,
     input: CreateRoleInput,
     actingUserId: string | null,
+    ip?: string | null,
   ): Promise<RoleRecord> {
     const created = await this.store.run(tenant.id, async (tx) => {
       try {
@@ -52,7 +53,14 @@ export class RoleService {
         throw error;
       }
     });
-    await this.writeActivity(tenant.id, actingUserId, AuditAction.RoleCreated, created.id, input);
+    await this.writeActivity(
+      tenant.id,
+      actingUserId,
+      AuditAction.RoleCreated,
+      created.id,
+      input,
+      ip,
+    );
     return created;
   }
 
@@ -61,6 +69,7 @@ export class RoleService {
     roleId: string,
     input: UpdateRoleInput,
     actingUserId: string | null,
+    ip?: string | null,
   ): Promise<RoleRecord> {
     const updated = await this.store.run(tenant.id, async (tx) => {
       if (!(await this.store.find(tx, tenant.id, roleId))) throw this.notFound();
@@ -73,12 +82,17 @@ export class RoleService {
         throw error;
       }
     });
-    await this.writeActivity(tenant.id, actingUserId, AuditAction.RoleUpdated, roleId, input);
+    await this.writeActivity(tenant.id, actingUserId, AuditAction.RoleUpdated, roleId, input, ip);
     return updated;
   }
 
   /** A role still held by someone cannot be deleted; the answer names how many hold it (STF-09). */
-  async remove(tenant: RoleTenant, roleId: string, actingUserId: string | null): Promise<void> {
+  async remove(
+    tenant: RoleTenant,
+    roleId: string,
+    actingUserId: string | null,
+    ip?: string | null,
+  ): Promise<void> {
     await this.store.run(tenant.id, async (tx) => {
       if (!(await this.store.find(tx, tenant.id, roleId))) throw this.notFound();
       const holders = await this.store.countHolders(tx, tenant.id, roleId);
@@ -87,7 +101,14 @@ export class RoleService {
       }
       await this.store.remove(tx, tenant.id, roleId);
     });
-    await this.writeActivity(tenant.id, actingUserId, AuditAction.RoleDeleted, roleId);
+    await this.writeActivity(
+      tenant.id,
+      actingUserId,
+      AuditAction.RoleDeleted,
+      roleId,
+      undefined,
+      ip,
+    );
   }
 
   private nameTaken(): ApiError {
@@ -105,6 +126,7 @@ export class RoleService {
     action: AuditAction,
     targetId: string,
     summary?: unknown,
+    ip?: string | null,
   ): Promise<void> {
     const actorId = actingUserId ?? (await this.staff.ownerId(tenantId));
     await this.audit.recordStandalone({
@@ -112,6 +134,7 @@ export class RoleService {
       actorType: ActorType.User,
       actorId,
       action,
+      ip: ip ?? null,
       targetType: 'role',
       targetId,
       result: AuditResult.Success,

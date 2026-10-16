@@ -70,7 +70,7 @@ export class StaffAuthController {
     if (!session || session.userId === null || session.tenantId === null) {
       throw new ApiError('forbidden', 'StaffPasswordChangeWrongPath', {});
     }
-    await this.signin.changeOwnPassword(session, body);
+    await this.signin.changeOwnPassword(session, body, this.clientIp.resolve(request));
     return { ok: true };
   }
 }

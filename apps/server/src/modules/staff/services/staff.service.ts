@@ -100,6 +100,7 @@ export class StaffService {
     tenant: StaffTenant,
     input: { phone: string; password: string; name?: string; roleIds: string[] },
     actingUserId: string | null,
+    ip?: string | null,
   ): Promise<StaffMember> {
     // Hashing is slow, so it runs before the seat lock is taken.
     const passwordHash = await this.hasher.hash(input.password);
@@ -135,10 +136,14 @@ export class StaffService {
       }
       return { ...created, roleIds };
     });
-    await this.writeActivity(tenant.id, actingUserId, AuditAction.StaffCreated, created.id, {
-      phone: maskPhone(created.phone),
-      roleIds,
-    });
+    await this.writeActivity(
+      tenant.id,
+      actingUserId,
+      AuditAction.StaffCreated,
+      created.id,
+      { phone: maskPhone(created.phone), roleIds },
+      ip,
+    );
     return created;
   }
 
@@ -149,6 +154,7 @@ export class StaffService {
     input: { active?: boolean; roleIds?: string[] },
     now: Date,
     actingUserId: string | null,
+    ip?: string | null,
   ): Promise<StaffMember> {
     const { member: changed, activityAction } = await this.store.run(tenant.id, async (tx) => {
       const member = await this.store.findStaff(tx, tenant.id, userId);
@@ -181,7 +187,7 @@ export class StaffService {
       return { member: withRoles, activityAction };
     });
     if (activityAction) {
-      await this.writeActivity(tenant.id, actingUserId, activityAction, userId, input);
+      await this.writeActivity(tenant.id, actingUserId, activityAction, userId, input, ip);
     }
     return changed;
   }
@@ -193,6 +199,7 @@ export class StaffService {
     newPassword: string,
     now: Date,
     actingUserId: string | null,
+    ip?: string | null,
   ): Promise<void> {
     const passwordHash = await this.hasher.hash(newPassword);
     await this.store.run(tenant.id, async (tx) => {
@@ -203,7 +210,14 @@ export class StaffService {
       // The old sessions end, so the next sign-in is the one that sets the new password.
       await this.store.revokeSessionsOf(tx, userId, now);
     });
-    await this.writeActivity(tenant.id, actingUserId, AuditAction.PasswordReset, userId);
+    await this.writeActivity(
+      tenant.id,
+      actingUserId,
+      AuditAction.PasswordReset,
+      userId,
+      undefined,
+      ip,
+    );
   }
 
   /**
@@ -215,9 +229,10 @@ export class StaffService {
     userId: string,
     input: { currentPassword?: string; newPassword: string },
     pending: boolean,
+    ip?: string | null,
   ): Promise<void> {
     const passwordHash = await this.hasher.hash(input.newPassword);
-    return this.store.run(tenantId, async (tx) => {
+    await this.store.run(tenantId, async (tx) => {
       const creds = await this.store.findCredentialsById(tx, tenantId, userId);
       if (!creds || !creds.active || creds.isOwner) {
         throw new ApiError('not_found', 'StaffNotFound', {});
@@ -237,7 +252,7 @@ export class StaffService {
       await this.store.setPassword(tx, tenantId, userId, passwordHash, false);
     });
     // A self-change is always by the member it changes.
-    await this.writeActivity(tenantId, userId, AuditAction.PasswordChanged, userId);
+    await this.writeActivity(tenantId, userId, AuditAction.PasswordChanged, userId, undefined, ip);
   }
 
   /** Every role id must be a role of this shop. */
@@ -340,6 +355,7 @@ export class StaffService {
     action: AuditAction,
     targetId: string | null,
     summary?: unknown,
+    ip?: string | null,
   ): Promise<void> {
     const actorId = actingUserId ?? (await this.ownerId(tenantId));
     await this.audit.recordStandalone({
@@ -347,6 +363,7 @@ export class StaffService {
       actorType: ActorType.User,
       actorId,
       action,
+      ip: ip ?? null,
       targetType: 'staff',
       targetId,
       result: AuditResult.Success,

@@ -2,6 +2,7 @@ import { Controller, Get, Inject, Param, Post, Req, Res, UseGuards } from '@nest
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
 import { ApiError } from '../../../common/api-error';
+import { ClientIp } from '../../../common/client-ip';
 import { Dashboard } from '../../../common/decorators/dashboard';
 import { ResponseMessage } from '../../../common/decorators/response-message';
 import { DashboardGuard, type DashboardRequest } from '../../identity/guards/dashboard.guard';
@@ -31,7 +32,10 @@ interface RawResponse {
 @Dashboard({ lapsed: true })
 @UseGuards(SessionGuard, DashboardGuard)
 export class DataExportController {
-  constructor(@Inject(DataExportService) private readonly exports: DataExportService) {}
+  constructor(
+    @Inject(DataExportService) private readonly exports: DataExportService,
+    @Inject(ClientIp) private readonly clientIp: ClientIp,
+  ) {}
 
   @Post()
   @Dashboard({ lapsed: true, readOnlyWrite: true })
@@ -39,7 +43,7 @@ export class DataExportController {
   @ApiOperation({ summary: "Request an export of the shop's own data" })
   @ZodResponse({ type: DataExportDto })
   request(@Req() request: DashboardRequest): Promise<DataExportRecord> {
-    return this.exports.request(this.ownerTenantIdOf(request));
+    return this.exports.request(this.ownerTenantIdOf(request), this.clientIp.resolve(request));
   }
 
   @Get()
@@ -58,7 +62,7 @@ export class DataExportController {
     @Res() response: RawResponse,
   ): Promise<void> {
     const tenantId = this.ownerTenantIdOf(request);
-    const file = await this.exports.download(tenantId, id);
+    const file = await this.exports.download(tenantId, id, this.clientIp.resolve(request));
     response
       .status(200)
       .set({

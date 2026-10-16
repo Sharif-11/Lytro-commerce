@@ -13,6 +13,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
 import { Permission } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
+import { ClientIp } from '../../../common/client-ip';
 import { Dashboard } from '../../../common/decorators/dashboard';
 import { RequirePermission } from '../../../common/decorators/require-permission';
 import { ResponseMessage } from '../../../common/decorators/response-message';
@@ -65,6 +66,7 @@ export class BillingController {
     @Inject(DowngradeService) private readonly downgrade: DowngradeService,
     @Inject(LifecycleService) private readonly lifecycle: LifecycleService,
     @Inject(InvoicesService) private readonly invoices: InvoicesService,
+    @Inject(ClientIp) private readonly clientIp: ClientIp,
   ) {}
 
   @Post('quote')
@@ -95,7 +97,9 @@ export class BillingController {
   ): Promise<PlanPaymentRecord> {
     const tenantId = this.tenantIdOf(request);
     if (body.method === 'balance') {
-      return this.purchase.confirmFromBalance(body.paymentId, tenantId).then((r) => r.payment);
+      return this.purchase
+        .confirmFromBalance(body.paymentId, tenantId, this.clientIp.resolve(request))
+        .then((r) => r.payment);
     }
     if (!body.transactionId || !body.senderNumber || body.amountPaid === undefined) {
       throw new ApiError('validation_error', 'TransactionIdRequired', {});
@@ -132,7 +136,9 @@ export class BillingController {
   ): Promise<PlanPaymentRecord> {
     const tenantId = this.tenantIdOf(request);
     if (body.method === 'balance') {
-      return this.upgrade.confirmFromBalance(body.paymentId, tenantId).then((r) => r.payment);
+      return this.upgrade
+        .confirmFromBalance(body.paymentId, tenantId, this.clientIp.resolve(request))
+        .then((r) => r.payment);
     }
     if (!body.transactionId || !body.senderNumber || body.amountPaid === undefined) {
       throw new ApiError('validation_error', 'TransactionIdRequired', {});
@@ -165,7 +171,11 @@ export class BillingController {
     @Body(new ZodValidationPipe(TargetDowngradePlanDto.schema)) body: TargetDowngradePlanDto,
     @Req() request: DashboardRequest,
   ): Promise<ScheduledPlanChangeRecord> {
-    return this.downgrade.schedule(this.tenantIdOf(request), body.planId);
+    return this.downgrade.schedule(
+      this.tenantIdOf(request),
+      body.planId,
+      this.clientIp.resolve(request),
+    );
   }
 
   @Post('downgrade/cancel')
@@ -174,7 +184,7 @@ export class BillingController {
   @ApiOperation({ summary: 'Cancel a scheduled downgrade before it takes effect' })
   @ZodResponse({ type: OkDto })
   async cancelDowngrade(@Req() request: DashboardRequest): Promise<{ ok: true }> {
-    await this.downgrade.cancel(this.tenantIdOf(request));
+    await this.downgrade.cancel(this.tenantIdOf(request), this.clientIp.resolve(request));
     return { ok: true };
   }
 
@@ -198,7 +208,10 @@ export class BillingController {
   @ApiOperation({ summary: 'Cancel, effective at the end of the current paid period (LIF-01)' })
   @ZodResponse({ type: OkDto })
   async cancelSubscription(@Req() request: DashboardRequest): Promise<{ ok: true }> {
-    await this.lifecycle.cancelSubscription(this.tenantIdOf(request));
+    await this.lifecycle.cancelSubscription(
+      this.tenantIdOf(request),
+      this.clientIp.resolve(request),
+    );
     return { ok: true };
   }
 
@@ -208,7 +221,7 @@ export class BillingController {
   @ApiOperation({ summary: 'Undo a cancellation before the current period ends (LIF-01)' })
   @ZodResponse({ type: OkDto })
   async undoCancellation(@Req() request: DashboardRequest): Promise<{ ok: true }> {
-    await this.lifecycle.undoCancellation(this.tenantIdOf(request));
+    await this.lifecycle.undoCancellation(this.tenantIdOf(request), this.clientIp.resolve(request));
     return { ok: true };
   }
 
@@ -232,7 +245,11 @@ export class BillingController {
     @Body(new ZodValidationPipe(SetAutoRenewDto.schema)) body: SetAutoRenewDto,
     @Req() request: DashboardRequest,
   ): Promise<{ ok: true }> {
-    await this.lifecycle.setAutoRenew(this.tenantIdOf(request), body.enabled);
+    await this.lifecycle.setAutoRenew(
+      this.tenantIdOf(request),
+      body.enabled,
+      this.clientIp.resolve(request),
+    );
     return { ok: true };
   }
 

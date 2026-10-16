@@ -3,6 +3,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
 import { Permission, type ShopSettings } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
+import { ClientIp } from '../../../common/client-ip';
 import { Dashboard } from '../../../common/decorators/dashboard';
 import { RequirePermission } from '../../../common/decorators/require-permission';
 import { ResponseMessage } from '../../../common/decorators/response-message';
@@ -22,7 +23,10 @@ import { ShopSettingsDto, UpdateShopSettingsDto } from '../dto/shop-settings.dto
 @Dashboard({})
 @UseGuards(SessionGuard, DashboardGuard, PermissionGuard)
 export class ShopSettingsController {
-  constructor(@Inject(ShopSettingsService) private readonly settings: ShopSettingsService) {}
+  constructor(
+    @Inject(ShopSettingsService) private readonly settings: ShopSettingsService,
+    @Inject(ClientIp) private readonly clientIp: ClientIp,
+  ) {}
 
   @Get()
   @RequirePermission(Permission.SettingsManage)
@@ -42,7 +46,12 @@ export class ShopSettingsController {
     @Body(new ZodValidationPipe(UpdateShopSettingsDto.schema)) body: UpdateShopSettingsDto,
     @Req() request: DashboardRequest,
   ): Promise<ShopSettings> {
-    return this.settings.update(this.tenantIdOf(request), request.session?.userId ?? null, body);
+    return this.settings.update(
+      this.tenantIdOf(request),
+      request.session?.userId ?? null,
+      body,
+      this.clientIp.resolve(request),
+    );
   }
 
   private tenantIdOf(request: DashboardRequest): string {

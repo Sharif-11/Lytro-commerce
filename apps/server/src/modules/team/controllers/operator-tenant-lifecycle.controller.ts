@@ -13,6 +13,7 @@ import {
 import { ApiBody, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
 import { ApiError } from '../../../common/api-error';
+import { ClientIp } from '../../../common/client-ip';
 import { SkipTenant } from '../../../common/decorators/skip-tenant';
 import { ResponseMessage } from '../../../common/decorators/response-message';
 import { OkDto } from '../../../common/dto/ok.dto';
@@ -39,6 +40,7 @@ export class OperatorTenantLifecycleController {
   constructor(
     @Inject(LifecycleService) private readonly lifecycle: LifecycleService,
     @Inject(TenantSummaries) private readonly tenants: TenantSummaries,
+    @Inject(ClientIp) private readonly clientIp: ClientIp,
   ) {}
 
   @Get()
@@ -97,7 +99,12 @@ export class OperatorTenantLifecycleController {
   ): Promise<{ ok: true }> {
     const session = request.operatorSession;
     if (!session) throw new ApiError('unauthenticated', 'SignInToContinue', {});
-    await this.lifecycle.suspend(tenantId, body.reason, session.operatorId);
+    await this.lifecycle.suspend(
+      tenantId,
+      body.reason,
+      session.operatorId,
+      this.clientIp.resolve(request),
+    );
     return { ok: true };
   }
 
@@ -112,7 +119,7 @@ export class OperatorTenantLifecycleController {
   ): Promise<{ ok: true }> {
     const session = request.operatorSession;
     if (!session) throw new ApiError('unauthenticated', 'SignInToContinue', {});
-    await this.lifecycle.restore(tenantId, session.operatorId);
+    await this.lifecycle.restore(tenantId, session.operatorId, this.clientIp.resolve(request));
     return { ok: true };
   }
 }

@@ -90,7 +90,11 @@ export class PurchaseService {
   }
 
   /** BIL-08: pay from balance -- atomic, instant, no transaction ID, no operator. */
-  async confirmFromBalance(paymentId: string, tenantId: string): Promise<ConfirmPurchaseResult> {
+  async confirmFromBalance(
+    paymentId: string,
+    tenantId: string,
+    ip?: string | null,
+  ): Promise<ConfirmPurchaseResult> {
     const now = this.clock();
     return this.tenants.runStandalone(async (tx) => {
       const payment = await this.payments.findForUpdate(tx, paymentId);
@@ -114,7 +118,7 @@ export class PurchaseService {
         reference: { planPaymentId: payment.id },
       });
       await this.payments.markVerifiedDirect(tx, payment.id, now);
-      const invoice = await this.activate(tx, payment, now);
+      const invoice = await this.activate(tx, payment, now, ip);
       return {
         payment: { ...payment, status: PlanPaymentStatus.Verified, verifiedAt: now },
         invoice,
@@ -127,7 +131,12 @@ export class PurchaseService {
    * verified -- this is the half that's specific to a purchase/renewal (as opposed to a top-up): activating
    * the plan and issuing the invoice, in the same transaction as the approval.
    */
-  async activate(tx: Transaction, payment: PlanPaymentRecord, now: Date): Promise<InvoiceRecord> {
+  async activate(
+    tx: Transaction,
+    payment: PlanPaymentRecord,
+    now: Date,
+    ip?: string | null,
+  ): Promise<InvoiceRecord> {
     if (!payment.planId || !payment.billingTermId) {
       throw new Error('a purchase/renewal payment is missing its plan or billing term');
     }
@@ -178,6 +187,7 @@ export class PurchaseService {
         payment.kind === PlanPaymentKind.Renewal
           ? AuditAction.PlanRenewed
           : AuditAction.PlanPurchased,
+      ip: ip ?? null,
       targetType: 'plan_payment',
       targetId: payment.id,
       result: AuditResult.Success,

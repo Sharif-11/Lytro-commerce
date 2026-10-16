@@ -303,6 +303,32 @@ a request-scoped IP through — each of those controllers would need its own `Cl
 added. That's separate, larger work affecting many more files; this pass only closed the specific,
 already-discovered "the IP was sitting right there, unused" gap at the sign-in layer.
 
+**Follow-up, 2026-10-17 — the deferred retrofit, done:** a fresh SRS re-audit re-checked this row against
+the current code rather than trusting the "fixed" note above, and correctly downgraded it back to PARTIAL
+(staff/role writes had no `ip` field at all, not even `null`). Fixed properly this time, across every
+HTTP-triggered writer in the codebase: `staff.service.ts` (create/update/resetPassword/changePassword),
+`role.service.ts` (create/update/remove), `shop-settings.service.ts` (TEN-30), `downgrade.service.ts`
+(schedule/cancel), `lifecycle.service.ts` (cancelSubscription/undoCancellation/setAutoRenew, and
+suspend/restore which already had an explicit `ip: null` — now the operator's real one),
+`payment-queue.service.ts` (approve/reject, same `ip: null` → real fix), `plan-assignment.service.ts`
+(assign, same fix), `purchase.service.ts`/`upgrade.service.ts` (`activate`, called from either the owner's
+own `confirmFromBalance` or an operator's payment-queue approval — threaded from whichever actually called
+it), `data-export.service.ts` (request/download), and `staff-signin.service.ts` (sign-in/sign-in-failed,
+which already had `context.ip` sitting unused in hand — the exact "IP was sitting right there" pattern this
+gap is named for, just at a second call site nobody had re-checked). Every controller in `TeamModule`
+already had `ClientIp` available (team.module.ts's own provider list), so no module wiring was needed, only
+constructor injection and threading through each method's own call chain. Jobs/ticks with no real request
+(lifecycle's own scheduled transitions, trial conversion, a downgrade's own due-date `apply`) correctly keep
+`ip: null` — there is no caller to attribute. A genuine, unrelated bug surfaced while editing
+`staff.service.ts`'s own `changePassword`: dead code after an early `return` meant a staff member's own
+password change was never audited at all; fixed in the same pass (now reachable, now also carries `ip`).
+Proven by: `activity.e2e.spec.ts`'s existing "writes exactly one entry for every auditable action" test,
+extended to assert `ip` is populated on every one of the 8 HTTP-triggered actions it already exercises;
+`staff.e2e.spec.ts`'s existing self-password-change test, extended to query the activity log directly and
+confirm the entry now exists at all (not just that the password itself changed) and carries a real `ip`;
+`lifecycle.e2e.spec.ts`'s existing cancel/undo and suspend/restore tests, each extended to pass a literal IP
+through the service call and assert it round-trips into the audit row.
+
 ## 24. `AUD-07`: no money-entry retention floor on the purge job — found and fixed 2026-10-16
 
 Also found during the same audit. `ActivityLogPurger`'s delete query had one unconditional
@@ -313,11 +339,20 @@ entries existed to even support the exception.
 **Fixed:** added `MONEY_RELATED_AUDIT_ACTIONS` (`packages/validators/src/db/enums.ts`) — a deliberately
 named list (`PasswordChanged`, `PasswordReset`, `PlanAssigned`, `PlanPurchased`, `PlanRenewed`,
 `PlanUpgraded`, `BalanceToppedUp`, `DowngradeScheduled`, `DowngradeCancelled`, `DowngradeApplied`,
-`SubscriptionCancelled`, `SubscriptionCancellationUndone`) covering AUD-07's four named categories —
+`SubscriptionCancelled`, `SubscriptionCancellationUndone`) covering AUD-07's named categories —
 and widened the purge SQL to keep any entry in that list until it's itself past 24 months, independent of
 the plan's own shorter retention. Proven by a new test in `apps/server/test/activity.e2e.spec.ts`: a
 money-related entry past plan retention but under 24 months survives a purge run; an ordinary entry the
 same age is purged as before; a money-related entry past 24 months is purged too (the floor isn't infinite).
+
+**Scope correction, 2026-10-17:** a fresh re-audit flagged the line above as overclaiming — it says "four
+named categories" (payment, wallet, credential, plan, balance) but `MONEY_RELATED_AUDIT_ACTIONS` only has
+entries for two of them. Re-checked directly: every `AuditAction` value that represents an actual money
+movement today (plan purchase/renewal/upgrade/assignment, balance top-up, downgrade schedule/cancel/apply,
+subscription cancel/undo) is already in the list — nothing is missing from what exists. `wallet` and
+`credential` simply have no corresponding `AuditAction` values at all, because that module (`WAL-*`,
+gateway/wallet integration) is Phase 5 scope and isn't built yet — there is nothing to tag, not an
+oversight. Not a gap to fix now; revisit when `WAL-*` lands and gains its own audit actions.
 
 ## 25. `BIL-17`: "renew automatically from balance" had zero implementation — found and fixed 2026-10-16
 

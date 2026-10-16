@@ -50,7 +50,11 @@ export class DowngradeService {
   ) {}
 
   /** DWN-01: schedules a downgrade; re-scheduling replaces any existing one (the row is upserted). */
-  async schedule(tenantId: string, planId: string): Promise<ScheduledPlanChangeRecord> {
+  async schedule(
+    tenantId: string,
+    planId: string,
+    ip?: string | null,
+  ): Promise<ScheduledPlanChangeRecord> {
     const info = await this.tenants.runStandalone((tx) =>
       this.tenants.findBillingInfo(tx, tenantId),
     );
@@ -78,6 +82,7 @@ export class DowngradeService {
       actorType: ActorType.User,
       actorId: null,
       action: AuditAction.DowngradeScheduled,
+      ip: ip ?? null,
       targetType: 'plan',
       targetId: planId,
       result: AuditResult.Success,
@@ -107,7 +112,7 @@ export class DowngradeService {
   }
 
   /** DWN-04: cancels a scheduled downgrade before it takes effect. */
-  async cancel(tenantId: string): Promise<void> {
+  async cancel(tenantId: string, ip?: string | null): Promise<void> {
     const existing = await this.getScheduled(tenantId);
     if (!existing) throw new ApiError('not_found', 'ScheduledChangeNotFound', {});
     await this.store.run((tx) => this.store.delete(tx, tenantId));
@@ -116,6 +121,7 @@ export class DowngradeService {
       actorType: ActorType.User,
       actorId: null,
       action: AuditAction.DowngradeCancelled,
+      ip: ip ?? null,
       targetType: 'plan',
       targetId: existing.targetPlanId,
       result: AuditResult.Success,

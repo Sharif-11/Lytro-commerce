@@ -113,7 +113,11 @@ export class UpgradeService {
   }
 
   /** UPG-16's balance path: atomic, instant, no operator -- the same shape as a purchase's. */
-  async confirmFromBalance(paymentId: string, tenantId: string): Promise<ConfirmUpgradeResult> {
+  async confirmFromBalance(
+    paymentId: string,
+    tenantId: string,
+    ip?: string | null,
+  ): Promise<ConfirmUpgradeResult> {
     const now = this.clock();
     return this.tenants.runStandalone(async (tx) => {
       const payment = await this.payments.findForUpdate(tx, paymentId);
@@ -134,7 +138,7 @@ export class UpgradeService {
         reference: { planPaymentId: payment.id },
       });
       await this.payments.markVerifiedDirect(tx, payment.id, now);
-      const invoice = await this.activate(tx, payment, now);
+      const invoice = await this.activate(tx, payment, now, ip);
       return {
         payment: { ...payment, status: PlanPaymentStatus.Verified, verifiedAt: now },
         invoice,
@@ -150,7 +154,12 @@ export class UpgradeService {
    * UPG-13: an upgrade supersedes any pending downgrade/pay-as-you-go-switch, cancelled in this same
    * transaction (both control-schema, no RLS concern).
    */
-  async activate(tx: Transaction, payment: PlanPaymentRecord, now: Date): Promise<InvoiceRecord> {
+  async activate(
+    tx: Transaction,
+    payment: PlanPaymentRecord,
+    now: Date,
+    ip?: string | null,
+  ): Promise<InvoiceRecord> {
     if (!payment.planId || !payment.billingTermId) {
       throw new Error('an upgrade payment is missing its plan or billing term');
     }
@@ -187,6 +196,7 @@ export class UpgradeService {
       actorType: ActorType.User,
       actorId: null,
       action: AuditAction.PlanUpgraded,
+      ip: ip ?? null,
       targetType: 'plan_payment',
       targetId: payment.id,
       result: AuditResult.Success,

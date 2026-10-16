@@ -135,6 +135,8 @@ describeIfDatabase('the activity log (AUD-01, AUD-02, AUD-04)', () => {
     expect(signInEntries.length).toBe(1);
     // AUD-02: the sign-in's own source IP, not left null even though it was sitting right there unused.
     expect(signInEntries[0]?.ip).toBeTruthy();
+    // AUD-02's own broader retrofit: role/staff CRUD now threads the real client IP too, not just sign-in.
+    expect(roleEntries[0]?.ip).toBeTruthy();
 
     expect(JSON.stringify(entries)).not.toContain(PASSWORD);
   });
@@ -194,8 +196,8 @@ describeIfDatabase('the activity log (AUD-01, AUD-02, AUD-04)', () => {
 
     // Read straight from the table: the session that did everything above just signed itself out, and
     // signing in again to read the log would add one more sign_in entry, skewing the very count being checked.
-    const rows = await admin.query<{ action: string; summary: unknown }>(
-      `SELECT action, summary FROM tenant.activity_log WHERE tenant_id = (SELECT id FROM control.tenants WHERE slug = $1)`,
+    const rows = await admin.query<{ action: string; summary: unknown; ip: string | null }>(
+      `SELECT action, summary, ip FROM tenant.activity_log WHERE tenant_id = (SELECT id FROM control.tenants WHERE slug = $1)`,
       [who.slug],
     );
     const entries = rows.rows;
@@ -216,6 +218,22 @@ describeIfDatabase('the activity log (AUD-01, AUD-02, AUD-04)', () => {
       'password_reset',
     ]) {
       expect(actionCounts.get(action)).toBe(1);
+    }
+
+    // AUD-02's broader retrofit: every one of these is a real HTTP-triggered write, so every one now carries
+    // the real client IP too, not just sign-in. Only the deliberately system-caused ones (none here) stay null.
+    for (const action of [
+      'sign_in',
+      'sign_out',
+      'staff_created',
+      'staff_updated',
+      'staff_deactivated',
+      'staff_reactivated',
+      'role_updated',
+      'password_reset',
+    ]) {
+      const entry = entries.find((e) => e.action === action);
+      expect(entry?.ip, `expected ${action} to carry a real ip`).toBeTruthy();
     }
 
     const raw = JSON.stringify(entries);

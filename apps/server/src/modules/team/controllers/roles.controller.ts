@@ -15,6 +15,7 @@ import { roleIdSchema } from '@lytronix/validators';
 import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
 import { ApiError } from '../../../common/api-error';
+import { ClientIp } from '../../../common/client-ip';
 import { Dashboard } from '../../../common/decorators/dashboard';
 import { RequirePermission } from '../../../common/decorators/require-permission';
 import { ResponseMessage } from '../../../common/decorators/response-message';
@@ -34,7 +35,10 @@ import { RoleDto, RoleSummaryListDto } from '../dto/role-response.dto';
 @Dashboard({})
 @UseGuards(SessionGuard, DashboardGuard, PermissionGuard)
 export class RolesController {
-  constructor(@Inject(RoleService) private readonly roles: RoleService) {}
+  constructor(
+    @Inject(RoleService) private readonly roles: RoleService,
+    @Inject(ClientIp) private readonly clientIp: ClientIp,
+  ) {}
 
   @Get()
   @RequirePermission(Permission.StaffRead)
@@ -55,7 +59,12 @@ export class RolesController {
     @Body(new ZodValidationPipe(CreateRoleDto.schema)) body: CreateRoleDto,
     @Req() request: DashboardRequest,
   ): Promise<RoleRecord> {
-    return this.roles.create(this.shopOf(request), body, this.actorOf(request));
+    return this.roles.create(
+      this.shopOf(request),
+      body,
+      this.actorOf(request),
+      this.clientIp.resolve(request),
+    );
   }
 
   @Patch(':id')
@@ -69,7 +78,13 @@ export class RolesController {
     @Body(new ZodValidationPipe(UpdateRoleDto.schema)) body: UpdateRoleDto,
     @Req() request: DashboardRequest,
   ): Promise<RoleRecord> {
-    return this.roles.update(this.shopOf(request), this.roleId(id), body, this.actorOf(request));
+    return this.roles.update(
+      this.shopOf(request),
+      this.roleId(id),
+      body,
+      this.actorOf(request),
+      this.clientIp.resolve(request),
+    );
   }
 
   @Delete(':id')
@@ -78,7 +93,12 @@ export class RolesController {
   @ApiOperation({ summary: 'Delete a role (only if unheld)' })
   @ZodResponse({ type: OkDto })
   async remove(@Param('id') id: string, @Req() request: DashboardRequest): Promise<{ ok: true }> {
-    await this.roles.remove(this.shopOf(request), this.roleId(id), this.actorOf(request));
+    await this.roles.remove(
+      this.shopOf(request),
+      this.roleId(id),
+      this.actorOf(request),
+      this.clientIp.resolve(request),
+    );
     return { ok: true };
   }
 

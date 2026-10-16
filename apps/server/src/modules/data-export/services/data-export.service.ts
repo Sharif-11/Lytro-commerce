@@ -38,7 +38,7 @@ export class DataExportService {
     @Inject(MailService) private readonly mail: MailService,
   ) {}
 
-  async request(tenantId: string): Promise<DataExportRecord> {
+  async request(tenantId: string, ip?: string | null): Promise<DataExportRecord> {
     const record = await this.store.run(tenantId, async (tx) => {
       const created = await this.store.insert(tx, tenantId);
       await this.jobQueue.enqueue(tx, QueueName.DataExport, { exportId: created.id, tenantId });
@@ -50,6 +50,7 @@ export class DataExportService {
       actorType: ActorType.User,
       actorId,
       action: AuditAction.DataExportRequested,
+      ip: ip ?? null,
       targetType: 'data_export',
       targetId: record.id,
       result: AuditResult.Success,
@@ -62,7 +63,7 @@ export class DataExportService {
     return this.store.run(tenantId, (tx) => this.store.listForTenant(tx, tenantId));
   }
 
-  async download(tenantId: string, id: string): Promise<DownloadedFile> {
+  async download(tenantId: string, id: string, ip?: string | null): Promise<DownloadedFile> {
     const record = await this.store.run(tenantId, (tx) => this.store.findById(tx, tenantId, id));
     if (!record) throw new ApiError('not_found', 'ExportNotFound', {});
     if (record.status !== 'ready' || !record.fileContent) {
@@ -78,6 +79,7 @@ export class DataExportService {
       actorType: ActorType.User,
       actorId,
       action: AuditAction.DataExportDownloaded,
+      ip: ip ?? null,
       targetType: 'data_export',
       targetId: id,
       result: AuditResult.Success,
