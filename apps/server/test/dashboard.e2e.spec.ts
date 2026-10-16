@@ -204,6 +204,50 @@ describeIfDatabase('the lifecycle gate at sign-in and on the dashboard (AUTH-22,
   });
 });
 
+describeIfDatabase(
+  'lapsed-owner access to billing and balance (BIL-13, LIF-11, LIF-12, BAL-18)',
+  () => {
+    it('lets a locked owner read invoices and the frozen balance instead of tenant_offline', async () => {
+      const who = await owner();
+      await setState(who.slug, 'locked');
+      const invoices = await get('/billing/invoices', withSession(who, PLATFORM.host));
+      expect(invoices.status).toBe(200);
+      const balance = await get('/balance', withSession(who, PLATFORM.host));
+      expect(balance.status).toBe(200);
+    });
+
+    it('lets an archived owner read invoices and the frozen balance', async () => {
+      const who = await owner();
+      await setState(who.slug, 'archived');
+      const invoices = await get('/billing/invoices', withSession(who, PLATFORM.host));
+      expect(invoices.status).toBe(200);
+      const balance = await get('/balance', withSession(who, PLATFORM.host));
+      expect(balance.status).toBe(200);
+    });
+
+    it('lets a deleted owner still read invoices and the frozen balance (BIL-13, BAL-18)', async () => {
+      const who = await owner();
+      await setState(who.slug, 'deleted');
+      const invoices = await get('/billing/invoices', withSession(who, PLATFORM.host));
+      expect(invoices.status).toBe(200);
+      const balance = await get('/balance', withSession(who, PLATFORM.host));
+      expect(balance.status).toBe(200);
+    });
+
+    it('still refuses a suspended owner everywhere, including billing and balance (LIF-24)', async () => {
+      const who = await owner();
+      await admin.query('UPDATE control.tenants SET suspended_at = now() WHERE slug = $1', [
+        who.slug,
+      ]);
+      const invoices = await get('/billing/invoices', withSession(who, PLATFORM.host));
+      expect(invoices.status).toBe(403);
+      expect(invoices.body).toMatchObject({ error: { code: 'tenant_offline' } });
+      const balance = await get('/balance', withSession(who, PLATFORM.host));
+      expect(balance.status).toBe(403);
+    });
+  },
+);
+
 describeIfDatabase('session expiry (D1, SEC-07)', () => {
   it('refuses a session after its expiry time', async () => {
     const who = await owner();

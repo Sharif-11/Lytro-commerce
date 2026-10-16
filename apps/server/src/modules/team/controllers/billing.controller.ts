@@ -46,6 +46,9 @@ import {
 } from '../dto/billing-response.dto';
 
 // BIL-01 to BIL-13: a tenant's own purchase/renewal flow and invoices.
+// LIF-11/LIF-12: `quote`, `purchase` and both invoice routes carry `lapsed: true` so a locked/archived/deleted
+// owner can still renew and read invoices; DashboardGuard's own lapsed carve-out already restricts this to the
+// owner session, never staff.
 @ApiTags('Billing')
 @Controller('billing')
 @Dashboard({})
@@ -60,6 +63,7 @@ export class BillingController {
   ) {}
 
   @Post('quote')
+  @Dashboard({ lapsed: true })
   @RequirePermission(Permission.PaymentsManage)
   @ResponseMessage('QuoteCreated')
   @ApiOperation({ summary: 'Quote a plan purchase or renewal' })
@@ -72,7 +76,7 @@ export class BillingController {
   }
 
   @Post('purchase')
-  @Dashboard({ readOnlyWrite: true })
+  @Dashboard({ lapsed: true, readOnlyWrite: true })
   @UseInterceptors(IdempotencyInterceptor)
   @RequirePermission(Permission.PaymentsManage)
   @ResponseMessage('PurchaseConfirmed')
@@ -204,6 +208,7 @@ export class BillingController {
   }
 
   @Get('invoices')
+  @Dashboard({ lapsed: true })
   @RequirePermission(Permission.PaymentsRead)
   @ResponseMessage('InvoicesListed')
   @ApiOperation({ summary: "List the shop's invoices" })
@@ -213,6 +218,7 @@ export class BillingController {
   }
 
   @Get('invoices/:id')
+  @Dashboard({ lapsed: true })
   @RequirePermission(Permission.PaymentsRead)
   @ResponseMessage('InvoiceRetrieved')
   @ApiOperation({ summary: 'Get one invoice' })
