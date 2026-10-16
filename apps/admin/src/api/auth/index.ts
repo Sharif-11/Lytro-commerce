@@ -12,6 +12,7 @@ import {
 } from '@lytronix/validators';
 import { tenantSession } from '@/session/tenant-session';
 import { navigateForNextStep } from '@/session/next-step';
+import { clearPlanIntent, getPlanIntent } from '@/session/plan-intent';
 import type {
   CodeIssued,
   OauthSignedIn,
@@ -133,6 +134,18 @@ export function useCreateShop() {
     mutationFn: (input: { ownerName: string; shopName: string; address?: string }) =>
       tenantSession.client.post<ShopCreated>('/shops', createShopSchema.parse(input)),
     onSuccess: () => {
+      // D2-12: a guest who arrived with a plan already chosen skips the (optional, "or alongside") set-
+      // password offer and lands straight on a pre-filled purchase screen instead — consumed once, so it
+      // never resurfaces on a later, unrelated sign-in.
+      const intent = getPlanIntent();
+      if (intent) {
+        clearPlanIntent();
+        void navigate({
+          to: '/dashboard/billing',
+          search: { planId: intent.planId, termId: intent.termId },
+        });
+        return;
+      }
       void navigate({ to: '/set-password', search: { required: false } });
     },
   });

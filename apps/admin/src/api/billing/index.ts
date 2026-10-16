@@ -8,12 +8,13 @@ import type {
 } from '@lytronix/validators';
 import { tenantSession } from '@/session/tenant-session';
 import { ME_QUERY_KEY } from '@/api/auth';
-import type { Plan, BillingTerm } from '@/types/billing-admin';
+import type { Plan, BillingTerm, PlanPrice } from '@/types/billing-admin';
 import type { Invoice, OverLimitItem, ScheduledPlanChange } from '@/types/billing';
 import type { PlanPayment } from '@/types/plan-payment';
 
 export const PUBLIC_PLANS_QUERY_KEY = ['plans'] as const;
 export const PUBLIC_BILLING_TERMS_QUERY_KEY = ['billing-terms'] as const;
+export const publicPlanPricesKey = (planId: string) => ['plans', planId, 'prices'] as const;
 export const SCHEDULED_DOWNGRADE_QUERY_KEY = ['billing', 'downgrade'] as const;
 export const INVOICES_QUERY_KEY = ['billing', 'invoices'] as const;
 export const invoiceKey = (id: string) => ['billing', 'invoices', id] as const;
@@ -31,6 +32,16 @@ export function usePublicBillingTerms() {
   return useQuery({
     queryKey: PUBLIC_BILLING_TERMS_QUERY_KEY,
     queryFn: () => tenantSession.client.get<BillingTerm[]>('/billing-terms'),
+  });
+}
+
+/** D2-12: the real price for a (for-sale plan, any term) pair -- without this the comparison grid can only
+    show limits/features, never a figure, which is the gap D2-12 names explicitly. */
+export function usePublicPlanPrices(planId: string | null) {
+  return useQuery({
+    queryKey: publicPlanPricesKey(planId ?? ''),
+    queryFn: () => tenantSession.client.get<PlanPrice[]>(`/plans/${planId ?? ''}/prices`),
+    enabled: planId !== null,
   });
 }
 

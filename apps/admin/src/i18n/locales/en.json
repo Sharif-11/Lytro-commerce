@@ -358,6 +358,8 @@
     },
     "billingTerm": "Billing term",
     "currentPlan": "Current plan",
+    "priceUnavailable": "Price unavailable for this term",
+    "upsellSeats": "You're using {{used}} of {{total}} staff seats. Upgrade to {{plan}} for more.",
     "choosePlan": "Choose",
     "renew": "Renew",
     "upgrade": "Upgrade",

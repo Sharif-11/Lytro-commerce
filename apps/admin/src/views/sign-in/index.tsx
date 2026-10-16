@@ -1,7 +1,8 @@
-import { useState, type SyntheticEvent } from 'react';
-import { Link, useNavigate } from '@tanstack/react-router';
+import { useEffect, useState, type SyntheticEvent } from 'react';
+import { Link, useNavigate, useSearch } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { OauthProvider } from '@lytronix/validators';
+import { setPlanIntent } from '@/session/plan-intent';
 import { AuthCard } from '@/components/auth-card';
 import { Button } from '@/components/button';
 import { TextField } from '@/components/text-field';
@@ -34,10 +35,20 @@ const OAUTH_ICON: Record<OauthProvider, React.JSX.Element> = {
 export function SignIn(): React.JSX.Element {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const search = useSearch({ from: '/sign-in' });
   const [mode, setMode] = useState<'code' | 'password'>('code');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
+
+  // D2-12: captured once, here — the one entry point every sign-up path (code, password, OAuth) shares —
+  // then read back after create-shop succeeds, since a plan intent can't ride every intermediate screen's
+  // own distinct search params.
+  useEffect(() => {
+    if (search.planId && search.termId) {
+      setPlanIntent({ planId: search.planId, termId: search.termId });
+    }
+  }, [search.planId, search.termId]);
 
   const providers = useOauthProviders();
   const startOauth = useStartOauth();
