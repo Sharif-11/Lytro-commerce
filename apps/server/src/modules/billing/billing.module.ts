@@ -8,6 +8,7 @@ import {
 } from '../../database/adapters/billing.adapter';
 import { AuditModule } from '../audit/audit.module';
 import { BalanceModule } from '../balance/balance.module';
+import { DataExportModule } from '../data-export/data-export.module';
 import { MailModule } from '../shared/mail/mail.module';
 import { MessagingModule } from '../shared/messaging/messaging.module';
 import { PaymentsModule } from '../payments/payments.module';
@@ -40,6 +41,7 @@ import {
     TenancyModule,
     AuditModule,
     BalanceModule,
+    DataExportModule,
     PaymentsModule,
     MessagingModule,
     MailModule,

@@ -28,6 +28,8 @@ import { OperatorSettingsController } from './controllers/operator-settings.cont
 import { BillingController } from './controllers/billing.controller';
 import { OperatorPaymentQueueController } from './controllers/operator-payment-queue.controller';
 import { ShopSettingsController } from './controllers/shop-settings.controller';
+import { DataExportController } from './controllers/data-export.controller';
+import { DataExportModule } from '../data-export/data-export.module';
 import { ActivityListService } from './services/activity-list.service';
 import { StaffSigninService } from './services/staff-signin.service';
 import { ShopSettingsService } from './services/shop-settings.service';
@@ -49,6 +51,7 @@ import { StaffController } from './controllers/staff.controller';
     PaymentsModule,
     PlatformSettingsModule,
     IdempotencyModule,
+    DataExportModule,
   ],
   controllers: [
     StaffController,
@@ -68,6 +71,7 @@ import { StaffController } from './controllers/staff.controller';
     BillingController,
     OperatorPaymentQueueController,
     ShopSettingsController,
+    DataExportController,
   ],
   providers: [StaffSigninService, ActivityListService, ClientIp, ShopSettingsService],
 })

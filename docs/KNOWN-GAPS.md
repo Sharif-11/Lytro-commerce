@@ -155,10 +155,22 @@ No store, service, controller, DTO or test references an add-on concept anywhere
 Phase 2's exit criteria by `PHASE-2-PLAN.md` D2-4 — this is just making that explicit on the SRS requirement
 rows themselves, which are tagged with concrete `API`/`E2E` verification types as if checkable now.
 
-## 13. Data export (LIF-16/LIF-17) has zero implementation
+## 13. Data export (LIF-16/LIF-17) — built 2026-10-16
 
-No export endpoint exists anywhere — consistent with there being no orders/customers/products modules yet
-to export from, but the SRS rows give no signal that it's unbuilt. Noted inline.
+Was zero implementation; closed the same day it was planned. `POST /exports` inserts a `pending` row
+(`tenant.data_exports`, migration `0033_data_exports`) and enqueues a job (`QueueName.DataExport`) in the
+same transaction; `DataExportWorker` (registered alongside `LifecycleTickWorker`'s other siblings) builds a
+zip of payments (invoices) and the activity log — CSV and JSON per category — and stores it directly in
+Postgres (no object storage exists in this codebase yet, that's `MED-*`'s Phase 3 scope, so building one
+early for this alone was rejected). `GET /exports`/`GET /exports/:id/download` are owner-only throughout
+(`LIF-16`'s own wording names the owner, not a staff permission); the download route writes raw bytes
+directly via Express's response object (`@Res()`), the first route in this codebase to bypass the JSON
+envelope, since a zip isn't JSON. Orders/customers/products are not exported — no module exists yet to read
+them from; a third category is a data-fetcher addition to the existing worker once one exists, not an
+architecture change. Available in every non-offline state including `archived` (an explicit widening beyond
+`LIF-16`'s own literal `read_only`/`locked` wording — see that row), never while suspended. Proven by
+`apps/server/test/data-export.e2e.spec.ts` (4 tests: generation producing a real zip, 24-hour expiry,
+owner-only gating, cross-tenant isolation) plus the isolation registry entries CI checks.
 
 ## 14. Per-category monthly spend caps (BAL-15) not implemented
 

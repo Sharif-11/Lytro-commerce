@@ -69,6 +69,21 @@ export class MailService {
     return { id, toEmail: to, subject, body };
   }
 
+  /** LIF-16: the owner's export finished -- email only, deliberately never SMS (sidesteps whether a
+   * self-requested export should count against the essential-SMS allowance by not using that channel). */
+  async queueDataExportReady(tx: Transaction, to: string): Promise<QueuedMailMessage> {
+    const subject = 'Your data export is ready';
+    const body =
+      'Your requested data export is ready. Download it from your dashboard within 24 hours.';
+    const id = await this.store.insert(tx, {
+      toEmail: to,
+      kind: MailKind.DataExportReady,
+      subject,
+      body,
+    });
+    return { id, toEmail: to, subject, body };
+  }
+
   /** Sends a one-time code during its request. A failure is recorded, then reported, since no code arrived. */
   async deliverOtp(message: QueuedMailMessage): Promise<void> {
     try {

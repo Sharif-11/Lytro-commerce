@@ -107,3 +107,4 @@ export {
   ScheduledPlanChangesRepository,
   type NewScheduledPlanChange,
 } from './repositories/billing/scheduled-plan-changes.repository';
+export { DataExportsRepository } from './repositories/tenancy/data-exports.repository';
