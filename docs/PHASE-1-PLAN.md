@@ -19,7 +19,11 @@ prefix — the same "new requirement lands in an already-closed phase" situation
 named `AUD` prefix) missing its own source-IP field entirely, despite every sign-in call site already
 having the IP in hand — fixed the same day for the sign-in path, with the broader per-writer retrofit
 (staff/role CRUD, billing/balance, every other HTTP-triggered writer) completed the next day once a fresh
-re-audit caught that the first pass had left it PARTIAL (`KNOWN-GAPS.md` #23). No exit-criteria gap remains.
+re-audit caught that the first pass had left it PARTIAL (`KNOWN-GAPS.md` #23). A second re-audit the next
+day (2026-10-17) found one more `M`-priority, named-prefix gap: `TEN-27`'s `TenantCache.invalidateTenant()`
+was dead code, never called from suspend/restore/archive, so a lifecycle change could take up to the
+cache's own 60s TTL to actually close a tenant's public side instead of the required 5s — fixed by wiring
+it into `LifecycleService` at those three events (`KNOWN-GAPS.md` #31). No exit-criteria gap remains.
 
 1. Every `M` requirement in AUTH, TEN, STF, AUD, I18N-01/02 and ADM-01/18 has a passing automated test (see the test plan).
 2. The isolation suite (SEC-02) passes on every endpoint that takes a resource ID, with two tenants holding overlapping data.

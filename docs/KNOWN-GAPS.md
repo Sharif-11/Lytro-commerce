@@ -479,6 +479,31 @@ rejection.
 taka`): a fractional price, a zero price and a negative price are each refused with `validation_error`, a
 whole-number price is accepted.
 
+## 31. `TEN-27`: the host-to-tenant cache was never invalidated — found and fixed 2026-10-17
+
+Found during the full Phase 1/Phase 2 SRS-vs-code re-audit. `TenantCache.invalidateTenant()`
+(`apps/server/src/modules/tenancy/services/tenant-cache.ts`) was real, correct code — but dead code: grepping
+the whole server tree turned up zero call sites. `TenantResolver`'s 60-second in-process cache means a
+tenant's host kept resolving against whatever `state`/`suspendedAt` it had cached at the moment of suspend,
+restore or entering `archived`, for up to that full 60s, not the required 5s.
+
+**Fixed:** exported `TenantCache` from `TenancyModule` (previously internal, used only by `TenantResolver`
+itself) and injected it into `LifecycleService`, calling `invalidateTenant(tenantId)` at exactly the three
+events the requirement names: `suspend()`, `restore()`, and a tenant reaching `archived` — both the normal
+lapse ladder's own `transition()` and PYG-21's separate inactivity-archival pass, which doesn't go through
+`transition()` and needed its own call. The requirement's fourth named trigger, custom-domain
+add/verify/remove, is correctly left unwired — no custom-domain module exists yet (`TEN-09–14`, deferred to
+a later phase) — there is nothing to invalidate for.
+
+Proven by three new cases in `apps/server/test/lifecycle.e2e.spec.ts` (`TEN-27: the host-to-tenant cache is
+invalidated, not left to its own 60s TTL`): each resolves a host once to warm the cache, makes the state
+change, then resolves the same host again immediately (well inside the 60s TTL) and asserts the outcome
+already reflects the new state. Verified these would actually fail without the fix — temporarily disabled
+all four `invalidateTenant` call sites, confirmed all three tests failed with the exact stale-cache symptom
+(`expected 'tenant' to be 'closed'`), then restored the fix and confirmed green again before committing.
+
+(Code: PR #103.)
+
 ## Not a bug, just noting it so it isn't mistaken for one later
 
 The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data
