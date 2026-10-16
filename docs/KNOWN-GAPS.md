@@ -239,6 +239,14 @@ section that reads them. `TEN-30` falls in Phase 1's own requirement range, but 
 since it has no dependency on anything Phase 2+ builds. `SFT-21` lands normally in Phase 3 alongside the rest
 of `SFT-*`, which hasn't shipped yet.
 
+**Naming collision to watch when this is built:** `POST /shops` already takes a field called `address`
+(`createShopSchema`, AUTH-11) — that one is a desired subdomain-slug candidate, capped to slug length,
+consumed once at onboarding and never shown to a shopper. `TEN-30`'s "shop/business address" is a different,
+free-text street address set later from dashboard settings and shown on the storefront. Don't name the new
+column/field `address` on whatever settings DTO this becomes — `businessAddress` or `shopAddress` avoids the
+collision; `control.tenants` likewise has no existing `address`-named column this would clash with today, so
+there's no migration conflict, only a naming one to avoid going forward.
+
 ## Not a bug, just noting it so it isn't mistaken for one later
 
 The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data
