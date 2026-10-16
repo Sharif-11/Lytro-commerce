@@ -177,6 +177,24 @@ export enum AuditAction {
   DataExportDownloaded = 'data_export_downloaded',
 }
 
+// AUD-07: these action kinds (payment, wallet, credential, plan, balance) are kept 24 months regardless of
+// plan, overriding AUD-06's own plan-based retention -- the one list the purge job reads, so a new
+// money-related action is added here deliberately, the same discipline AuditAction's own comment asks for.
+export const MONEY_RELATED_AUDIT_ACTIONS: ReadonlySet<AuditAction> = new Set([
+  AuditAction.PasswordChanged,
+  AuditAction.PasswordReset,
+  AuditAction.PlanAssigned,
+  AuditAction.PlanPurchased,
+  AuditAction.PlanRenewed,
+  AuditAction.PlanUpgraded,
+  AuditAction.BalanceToppedUp,
+  AuditAction.DowngradeScheduled,
+  AuditAction.DowngradeCancelled,
+  AuditAction.DowngradeApplied,
+  AuditAction.SubscriptionCancelled,
+  AuditAction.SubscriptionCancellationUndone,
+]);
+
 // The pg-boss queues this codebase uses (SCL-08, D25). Add a name here before any code enqueues to it.
 export enum QueueName {
   Sms = 'sms',

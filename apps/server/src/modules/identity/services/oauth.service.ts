@@ -116,7 +116,14 @@ export class OauthService {
             : null;
         return { ...opened, recovery };
       });
-      await this.signInAudit.log(result.tenantId, null, AuditAction.SignIn, AuditResult.Success);
+      await this.signInAudit.log(
+        result.tenantId,
+        null,
+        AuditAction.SignIn,
+        AuditResult.Success,
+        undefined,
+        context.ip,
+      );
       if (!existing) {
         await this.signupLimit.record(context.ip);
       }

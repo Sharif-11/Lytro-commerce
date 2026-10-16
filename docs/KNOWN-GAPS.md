@@ -279,6 +279,42 @@ column/field `address` on whatever settings DTO this becomes — `businessAddres
 collision; `control.tenants` likewise has no existing `address`-named column this would clash with today, so
 there's no migration conflict, only a naming one to avoid going forward.
 
+## 23. `AUD-02`: activity log had no source-IP column — found and fixed 2026-10-16
+
+Found during a full Phase 1/Phase 2 SRS-vs-code audit, not previously tracked. `tenant.activity_log` had no
+`ip` column, and `AuditEntry` had no `ip` field, despite every sign-in call site (`signin.service.ts`,
+`password-signin.service.ts`, `email-signin.service.ts`, `oauth.service.ts`, `forgot-password.service.ts`,
+`password.service.ts`, `session.service.ts`) already having the client IP in hand — used right next to the
+audit call for rate-limiting/lockout, just never passed to `SignInAudit.log`.
+
+**Fixed:** added a nullable `ip` text column (migration `0034_activity_log_ip`), added `ip` to `AuditEntry`
+and threaded it through every `SignInAudit.log` call site (sign-in, sign-in-failed, sign-out, password
+change, password reset) via `SessionContext.ip`/`SessionRecord.ip`, both of which already existed and were
+already being read for other purposes. Exposed on `GET /activity`'s response (`ActivityEntryView`,
+`activityPageSchema`). Proven by a new assertion in `apps/server/test/activity.e2e.spec.ts` ("logs exactly
+one entry for a sign-in...") checking the sign-in entry's own `ip` is populated.
+
+**Not done in this pass:** staff/role CRUD, billing/balance and every other audit writer still don't thread
+a request-scoped IP through — each of those controllers would need its own `ClientIp`-to-service-call wiring
+added. That's separate, larger work affecting many more files; this pass only closed the specific,
+already-discovered "the IP was sitting right there, unused" gap at the sign-in layer.
+
+## 24. `AUD-07`: no money-entry retention floor on the purge job — found and fixed 2026-10-16
+
+Also found during the same audit. `ActivityLogPurger`'s delete query had one unconditional
+`WHERE created_at < plan_retention`, with no exception whatsoever for money-related entries (payment,
+wallet, credential, plan, balance) that should survive 24 months regardless of plan. No category tagging of
+entries existed to even support the exception.
+
+**Fixed:** added `MONEY_RELATED_AUDIT_ACTIONS` (`packages/validators/src/db/enums.ts`) — a deliberately
+named list (`PasswordChanged`, `PasswordReset`, `PlanAssigned`, `PlanPurchased`, `PlanRenewed`,
+`PlanUpgraded`, `BalanceToppedUp`, `DowngradeScheduled`, `DowngradeCancelled`, `DowngradeApplied`,
+`SubscriptionCancelled`, `SubscriptionCancellationUndone`) covering AUD-07's four named categories —
+and widened the purge SQL to keep any entry in that list until it's itself past 24 months, independent of
+the plan's own shorter retention. Proven by a new test in `apps/server/test/activity.e2e.spec.ts`: a
+money-related entry past plan retention but under 24 months survives a purge run; an ordinary entry the
+same age is purged as before; a money-related entry past 24 months is purged too (the floor isn't infinite).
+
 ## Not a bug, just noting it so it isn't mistaken for one later
 
 The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data

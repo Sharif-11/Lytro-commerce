@@ -1,0 +1,1 @@
+ALTER TABLE "tenant"."activity_log" ADD COLUMN "ip" text;

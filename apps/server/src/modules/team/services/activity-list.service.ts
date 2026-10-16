@@ -54,6 +54,7 @@ export class ActivityListService {
         targetId: entry.targetId,
         result: entry.result,
         summary: entry.summary,
+        ip: entry.ip,
         createdAt: entry.createdAt.toISOString(),
       })),
       nextCursor: page.nextCursor ? this.encodeCursor(page.nextCursor) : null,

@@ -14,6 +14,9 @@ export const activityLog = tenant.table(
     targetId: uuid('target_id'),
     result: text('result').notNull(),
     summary: jsonb('summary'),
+    // AUD-02: the request's own client address, where the action came from an HTTP request at all (null for a
+    // system-caused entry, e.g. a scheduled lifecycle transition -- there is no "source IP" for a cron job).
+    ip: text('ip'),
     createdAt: createdAt(),
   },
   (t) => [index('activity_log_tenant_created_idx').on(t.tenantId, t.createdAt)],

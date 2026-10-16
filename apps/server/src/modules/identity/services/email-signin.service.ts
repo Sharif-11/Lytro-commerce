@@ -82,7 +82,14 @@ export class EmailSigninService {
           context,
         });
       });
-      await this.signInAudit.log(opened.tenantId, null, AuditAction.SignIn, AuditResult.Success);
+      await this.signInAudit.log(
+        opened.tenantId,
+        null,
+        AuditAction.SignIn,
+        AuditResult.Success,
+        undefined,
+        context.ip,
+      );
       if (!existing) {
         await this.signupLimit.record(context.ip);
       }

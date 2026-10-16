@@ -51,6 +51,8 @@ export class PasswordService {
       null,
       AuditAction.PasswordChanged,
       AuditResult.Success,
+      undefined,
+      session.ip,
     );
   }
 

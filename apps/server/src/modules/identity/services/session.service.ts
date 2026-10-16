@@ -66,6 +66,8 @@ export class SessionService {
       session.userId,
       AuditAction.SignOut,
       AuditResult.Success,
+      undefined,
+      session.ip,
     );
   }
 
