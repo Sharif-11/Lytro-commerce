@@ -1,9 +1,24 @@
 import { Permission } from '@lytronix/validators';
-import { ClockIcon, HomeIcon, ShieldIcon, UsersIcon } from '@/components/icons';
+import {
+  CalendarIcon,
+  ClockIcon,
+  HomeIcon,
+  ShieldIcon,
+  TagIcon,
+  UsersIcon,
+  WalletIcon,
+} from '@/components/icons';
 import type { MeResponse } from '@/types/me';
 
 export interface NavItem {
-  to: '/dashboard' | '/dashboard/staff' | '/dashboard/roles' | '/dashboard/activity';
+  to:
+    | '/dashboard'
+    | '/dashboard/staff'
+    | '/dashboard/roles'
+    | '/dashboard/activity'
+    | '/dashboard/balance'
+    | '/dashboard/billing'
+    | '/dashboard/invoices';
   labelKey: string;
   icon: typeof HomeIcon;
   /** The permission this destination needs — matched against `/me`'s `permissions` (D32). No field means
@@ -33,6 +48,24 @@ export const navItems: NavItem[] = [
     labelKey: 'nav.activity',
     icon: ClockIcon,
     permission: Permission.AuditRead,
+  },
+  {
+    to: '/dashboard/balance',
+    labelKey: 'nav.balance',
+    icon: WalletIcon,
+    permission: Permission.BalanceRead,
+  },
+  {
+    to: '/dashboard/billing',
+    labelKey: 'nav.billing',
+    icon: TagIcon,
+    permission: Permission.PaymentsRead,
+  },
+  {
+    to: '/dashboard/invoices',
+    labelKey: 'nav.invoices',
+    icon: CalendarIcon,
+    permission: Permission.PaymentsRead,
   },
 ];
 

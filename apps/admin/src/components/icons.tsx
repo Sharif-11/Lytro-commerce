@@ -226,6 +226,76 @@ export function LanguageIcon({ className = DEFAULT_CLASS }: IconProps): React.JS
   );
 }
 
+export function WalletIcon({ className = DEFAULT_CLASS }: IconProps): React.JSX.Element {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      aria-hidden="true"
+    >
+      <rect x="3" y="6.5" width="18" height="13" rx="2.5" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 10.5h18" />
+      <circle cx="16.5" cy="14.5" r="1.2" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+export function TagIcon({ className = DEFAULT_CLASS }: IconProps): React.JSX.Element {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      aria-hidden="true"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M11.5 3.5h4a1 1 0 0 1 .7.3l4 4a1 1 0 0 1 0 1.4l-8 8a1 1 0 0 1-1.4 0l-4-4a1 1 0 0 1 0-1.4l4-4a1 1 0 0 1 .7-.3Z"
+      />
+      <circle cx="15" cy="9" r="1.2" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+export function CalendarIcon({ className = DEFAULT_CLASS }: IconProps): React.JSX.Element {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      aria-hidden="true"
+    >
+      <rect x="3.5" y="5" width="17" height="15" rx="2" />
+      <path strokeLinecap="round" d="M3.5 9.5h17M8 3v3.5M16 3v3.5" />
+    </svg>
+  );
+}
+
+export function GaugeIcon({ className = DEFAULT_CLASS }: IconProps): React.JSX.Element {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      aria-hidden="true"
+    >
+      <path strokeLinecap="round" d="M4 15.5a8 8 0 1 1 16 0" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 15.5 15.5 10" />
+      <circle cx="12" cy="15.5" r="1.2" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
 export function LinkIcon({ className = DEFAULT_CLASS }: IconProps): React.JSX.Element {
   return (
     <svg

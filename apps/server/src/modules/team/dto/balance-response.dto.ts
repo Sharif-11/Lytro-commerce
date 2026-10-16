@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
-import { LedgerEntryType, RateKey } from '@lytronix/validators';
+import { LedgerEntryType, RateKey, TenantState } from '@lytronix/validators';
 
 export const balanceSnapshotSchema = z.object({
   amount: z.string(),
@@ -43,3 +43,23 @@ export const rateHistoryEntrySchema = z.object({
   changedAt: z.date(),
 });
 export class RateHistoryEntryDto extends createZodDto(rateHistoryEntrySchema) {}
+
+// LIF-24: the operator's own tenant search result -- a leaner cut of TenantSummary (no planLimits, not
+// needed by this list screen).
+export const tenantSummarySchema = z.object({
+  id: z.string(),
+  slug: z.string(),
+  shopName: z.string(),
+  state: z.nativeEnum(TenantState),
+  suspendedAt: z.date().nullable(),
+  planId: z.string().nullable(),
+  planName: z.string().nullable(),
+  periodEnd: z.date().nullable(),
+});
+export class TenantSummaryDto extends createZodDto(tenantSummarySchema) {}
+
+export const tenantSummaryPageSchema = z.object({
+  entries: z.array(tenantSummarySchema),
+  nextCursor: z.string().nullable(),
+});
+export class TenantSummaryPageDto extends createZodDto(tenantSummaryPageSchema) {}

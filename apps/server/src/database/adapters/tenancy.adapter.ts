@@ -16,7 +16,11 @@ import { UniqueViolation } from '../../common/errors/unique-violation';
 import type { CachedTenant } from '../../modules/tenancy/types/cached-tenant';
 import type { TenantDirectory } from '../../modules/tenancy/ports/tenant-directory';
 import type { SlugAvailability } from '../../modules/tenancy/ports/slug-availability';
-import type { TenantSummaryStore } from '../../modules/tenancy/ports/tenant-summary-store';
+import type {
+  TenantSearchCursor,
+  TenantSearchPage,
+  TenantSummaryStore,
+} from '../../modules/tenancy/ports/tenant-summary-store';
 import type { TenantSummary } from '../../modules/tenancy/types/tenant-summary';
 import type { TenantStore } from '../../modules/tenancy/ports/tenant-store';
 import { DatabaseService } from '../database.service';
@@ -152,7 +156,7 @@ export class DrizzleTenantStore implements TenantStore {
   }
 }
 
-/** Shop summaries for the dashboard (AUTH-22, AUTH-23). */
+/** Shop summaries for the dashboard (AUTH-22, AUTH-23), plus the operator's own search (LIF-24). */
 @Injectable()
 export class DrizzleTenantSummaryStore implements TenantSummaryStore {
   constructor(
@@ -162,5 +166,20 @@ export class DrizzleTenantSummaryStore implements TenantSummaryStore {
 
   findSummary(tenantId: string): Promise<TenantSummary | null> {
     return this.tenants.findSummaryById(this.database.handle.db, tenantId);
+  }
+
+  async search(
+    query: string | null,
+    cursor: TenantSearchCursor | null,
+    limit: number,
+  ): Promise<TenantSearchPage> {
+    // One extra row decides whether a next page exists, without a second round trip (never OFFSET) --
+    // the same trick AuditService.list uses for the activity log.
+    const rows = await this.tenants.search(this.database.handle.db, { query }, cursor, limit + 1);
+    const hasMore = rows.length > limit;
+    const entries = hasMore ? rows.slice(0, limit) : rows;
+    const last = entries[entries.length - 1];
+    const nextCursor = hasMore && last ? { createdAt: last.createdAt, id: last.id } : null;
+    return { entries, nextCursor };
   }
 }
