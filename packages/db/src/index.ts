@@ -11,6 +11,8 @@ export {
   TenantRepository,
   type TenantLookupRow,
   type TenantSummaryRow,
+  type TenantSearchCursor,
+  type TenantSearchRow,
   type BalanceRow,
   type BillingInfoRow,
   type LapsingCandidateRow,

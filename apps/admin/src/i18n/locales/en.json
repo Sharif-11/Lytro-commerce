@@ -129,14 +129,13 @@
     },
     "tenants": {
       "title": "Tenants",
-      "tenantId": "Tenant ID",
-      "reason": "Reason",
-      "suspendTitle": "Suspend a tenant",
+      "searchPlaceholder": "Search by shop name or address",
+      "noneFound": "No tenants found.",
+      "suspended": "Suspended",
+      "reason": "Reason for suspension",
       "suspend": "Suspend",
-      "suspendSuccess": "Tenant suspended.",
-      "restoreTitle": "Restore a tenant",
-      "restore": "Restore",
-      "restoreSuccess": "Tenant restored."
+      "confirmSuspend": "Confirm suspend",
+      "restore": "Restore"
     },
     "plans": {
       "title": "Plans",

@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNotNull, isNull, lte } from 'drizzle-orm';
+import { and, desc, eq, ilike, inArray, isNotNull, isNull, lt, or, lte } from 'drizzle-orm';
 import type { Database } from '../../client';
 import type { Executor } from '../../transactions';
 import { plans, tenantDomains, tenants } from '../../schema';
@@ -25,6 +25,17 @@ export interface TenantSummaryRow {
   periodEnd: Date | null;
 }
 
+// LIF-24: the operator's own keyset cursor for search() -- the latest-created tenant the caller has already
+// seen, the same (createdAt, id) tie-break shape as the audit log's own cursor.
+export interface TenantSearchCursor {
+  createdAt: Date;
+  id: string;
+}
+
+export interface TenantSearchRow extends TenantSummaryRow {
+  createdAt: Date;
+}
+
 export class TenantRepository {
   async findSummaryById(db: Database, id: string): Promise<TenantSummaryRow | null> {
     const rows = await db
@@ -44,6 +55,48 @@ export class TenantRepository {
       .where(eq(tenants.id, id))
       .limit(1);
     return rows[0] ?? null;
+  }
+
+  /** LIF-24: the operator's tenant search, by shop name or slug substring -- never OFFSET, the same
+   * keyset discipline the audit log's own list() uses. Pass `limit + 1` to learn whether another page
+   * exists (AuditService.list's own trick). */
+  async search(
+    db: Database,
+    filters: { query: string | null },
+    cursor: TenantSearchCursor | null,
+    limit: number,
+  ): Promise<TenantSearchRow[]> {
+    const conditions = [];
+    if (filters.query) {
+      const pattern = `%${filters.query}%`;
+      conditions.push(or(ilike(tenants.shopName, pattern), ilike(tenants.slug, pattern)));
+    }
+    if (cursor) {
+      conditions.push(
+        or(
+          lt(tenants.createdAt, cursor.createdAt),
+          and(eq(tenants.createdAt, cursor.createdAt), lt(tenants.id, cursor.id)),
+        ),
+      );
+    }
+    return db
+      .select({
+        id: tenants.id,
+        slug: tenants.slug,
+        shopName: tenants.shopName,
+        state: tenants.state,
+        suspendedAt: tenants.suspendedAt,
+        planId: tenants.planId,
+        planName: plans.name,
+        planLimits: plans.limits,
+        periodEnd: tenants.periodEnd,
+        createdAt: tenants.createdAt,
+      })
+      .from(tenants)
+      .leftJoin(plans, eq(plans.id, tenants.planId))
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(desc(tenants.createdAt), desc(tenants.id))
+      .limit(limit);
   }
 
   /** Finds a shop by its address label, e.g. `fashion-house` for fashion-house.<platform domain>. */

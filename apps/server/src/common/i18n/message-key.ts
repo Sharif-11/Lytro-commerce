@@ -170,6 +170,7 @@ export const MESSAGE_KEYS = [
   'DowngradeRetrieved',
   'SubscriptionCancelled',
   'SubscriptionCancellationUndone',
+  'TenantsListed',
   'TenantSuspended',
   'TenantRestored',
 

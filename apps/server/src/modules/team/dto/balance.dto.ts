@@ -3,6 +3,7 @@ import {
   confirmTopUpSchema,
   listLedgerSchema,
   quoteTopUpSchema,
+  searchTenantsSchema,
   suspendTenantSchema,
   updateRateSchema,
 } from '@lytronix/validators';
@@ -15,3 +16,4 @@ export class UpdateRateDto extends createZodDto(updateRateSchema) {}
 export class QuoteTopUpDto extends createZodDto(quoteTopUpSchema) {}
 export class ConfirmTopUpDto extends createZodDto(confirmTopUpSchema) {}
 export class SuspendTenantDto extends createZodDto(suspendTenantSchema) {}
+export class SearchTenantsDto extends createZodDto(searchTenantsSchema) {}

@@ -365,6 +365,7 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'Cancellation undone.',
     bn: 'বাতিল প্রত্যাহার করা হয়েছে।',
   },
+  TenantsListed: { en: 'Tenants retrieved.', bn: 'টেন্যান্টগুলো পাওয়া গেছে।' },
   TenantSuspended: { en: 'Shop suspended.', bn: 'শপ সাসপেন্ড হয়েছে।' },
   TenantRestored: { en: 'Shop restored.', bn: 'শপ পুনরুদ্ধার হয়েছে।' },
 
