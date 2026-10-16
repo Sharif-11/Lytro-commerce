@@ -445,7 +445,27 @@ by two new cases in `apps/server/test/lifecycle.e2e.spec.ts` (`LIF-21: the old s
 days after deletion`): the full revocation plus a genuine re-insert of a new tenant with the freed slug
 string (which would fail at the database if the fix didn't actually work), and idempotency across two ticks.
 
-## 29. `PLN-03`: a plan's price schema accepted fractional taka — found and fixed 2026-10-17
+## 29. `TRM-09`: `addMonths` neither clamped end-of-month nor accounted for Asia/Dhaka — found and fixed 2026-10-17
+
+Found during the full Phase 1/Phase 2 SRS-vs-code re-audit. `addMonths` (`apps/server/src/common/time.ts`,
+the shared helper every billing-term period calculation uses — `PurchaseService.activate`,
+`UpgradeService.activate`) called `Date.setUTCMonth` with no clamp at all: 31 Jan + 1 month landed on 3 Mar
+(JS's own date-overflow rollover), not 28 Feb as the requirement's own example demands. Separately, the
+requirement says "in Asia/Dhaka," which the implementation ignored entirely — UTC and Dhaka (a fixed UTC+6,
+no DST) disagree on which calendar day an instant falls on for the last 6 hours of every UTC day, so a
+purely UTC-based calculation is wrong for any purchase/renewal/upgrade confirmed in that window, not just
+an end-of-month edge case. Zero test coverage existed for either half.
+
+**Fixed:** rewrote `addMonths` to shift the instant forward by a fixed 6 hours to read the Dhaka wall-clock
+day (the same trick a real fixed-offset zone lookup would do, without needing one — Bangladesh has run no
+DST since a one-off 2009-2010 experiment, so hardcoding the offset is safe), add the month delta on that
+day, clamp to the last day of the target month, then shift back. Proven by seven new cases in
+`apps/server/test/time.spec.ts`: both of the SRS's own literal examples, a leap-year Feb-29 case, the exact
+previously-broken overflow-into-March case, a case specifically chosen where the UTC day and the Dhaka day
+disagree (showing the old UTC-only-clamped answer would still have been three days wrong), and two
+sanity checks that a non-clamped, non-boundary addition is unaffected.
+
+## 30. `PLN-03`: a plan's price schema accepted fractional taka — found and fixed 2026-10-17
 
 Found during the full Phase 1/Phase 2 SRS-vs-code re-audit. The limits half of this requirement was already
 correct (`unlimitedInt()` in `packages/validators/src/db/plans/plan-limits.ts` already required `.int()`),
