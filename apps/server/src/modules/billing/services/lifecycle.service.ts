@@ -8,6 +8,7 @@ import {
   PlatformSettingKey,
   TenantState,
 } from '@lytronix/validators';
+import { ApiError } from '../../../common/api-error';
 import { daysBetween } from '../../../common/time';
 import { AuditService } from '../../audit/services/audit.service';
 import { PlatformAuditService } from '../../audit/services/platform-audit.service';
@@ -19,6 +20,7 @@ import { PlatformSettingsService } from '../../platform-settings/services/platfo
 import { StaffService } from '../../staff/services/staff.service';
 import { TenantService } from '../../tenancy/services/tenant.service';
 import { CLOCK } from '../tokens';
+import { PurchaseService } from './purchase.service';
 
 // LIF-26, 2.3: defaults, each a day-count *within* that stage, not cumulative from period end.
 const DEFAULT_STAGE_DAYS = { grace: 3, readOnly: 4, locked: 8, archived: 45 };
@@ -41,6 +43,7 @@ export interface LifecycleTickResult {
   transitioned: number;
   warningsSent: number;
   deleted: number;
+  renewed: number;
 }
 
 /**
@@ -55,6 +58,7 @@ export class LifecycleService {
     @Inject(StaffService) private readonly staff: StaffService,
     @Inject(BalanceService) private readonly balance: BalanceService,
     @Inject(DataExportService) private readonly dataExports: DataExportService,
+    @Inject(PurchaseService) private readonly purchase: PurchaseService,
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(PlatformAuditService) private readonly platformAudit: PlatformAuditService,
     @Inject(MessagingService) private readonly sms: MessagingService,
@@ -104,6 +108,7 @@ export class LifecycleService {
     let transitioned = 0;
     let warningsSent = 0;
     let deleted = 0;
+    let renewed = 0;
 
     for (const candidate of candidates) {
       const daysLapsed = daysBetween(candidate.periodEnd, now);
@@ -111,6 +116,14 @@ export class LifecycleService {
       if (daysLapsed >= deletionDay) {
         if (await this.deleteIfDue(candidate.id, now)) deleted += 1;
         continue; // a deleted tenant needs no further transition or warning this tick
+      }
+
+      // BIL-17: still `active` means this is the first tick since period end -- the one chance to renew
+      // from balance before the lapse ladder (Grace/ReadOnly/Locked) starts. Already past Active (a later
+      // tick, or an operator/owner action moved it) means the window closed; no retry here.
+      if (candidate.state === TenantState.Active && (await this.tryAutoRenew(candidate.id))) {
+        renewed += 1;
+        continue;
       }
 
       const target = this.deriveState(daysLapsed, stages);
@@ -128,7 +141,34 @@ export class LifecycleService {
       transitioned: transitioned + payg.transitioned,
       warningsSent: warningsSent + payg.warningsSent,
       deleted: deleted + payg.deleted,
+      renewed,
     };
+  }
+
+  /**
+   * BIL-17: attempts a renewal from balance for a tenant whose period just ended, reusing the same
+   * quote-then-confirm-from-balance path a manual renewal uses (`PurchaseService`) rather than duplicating
+   * its pricing/extend logic. Returns false (never throws for an expected business reason) whenever renewal
+   * isn't applicable or doesn't go through, so the caller falls through to the normal lapse ladder: the
+   * toggle is off, there's no plan/term to renew into, LIF-01's cancellation intent is set (the owner's
+   * explicit "don't renew" always wins over the toggle), the plan/price changed under it, or the balance is
+   * insufficient (`ApiError` from `BalanceService.charge`/`PurchaseService`).
+   */
+  private async tryAutoRenew(tenantId: string): Promise<boolean> {
+    const info = await this.tenants.runStandalone((tx) =>
+      this.tenants.findBillingInfo(tx, tenantId),
+    );
+    if (!info?.autoRenewEnabled || !info.planId || !info.billingTermId || info.cancelledAt) {
+      return false;
+    }
+    try {
+      const payment = await this.purchase.quote(tenantId, info.planId, info.billingTermId);
+      await this.purchase.confirmFromBalance(payment.id, tenantId);
+      return true;
+    } catch (error) {
+      if (error instanceof ApiError) return false; // expected: price gone, insufficient balance, etc.
+      throw error;
+    }
   }
 
   /** LIF-25: one audit entry per transition; LIF-09 freezes the balance the moment a tenant is no longer Grace. */
@@ -274,7 +314,7 @@ export class LifecycleService {
       }
     }
 
-    return { transitioned, warningsSent, deleted };
+    return { transitioned, warningsSent, deleted, renewed: 0 }; // PYG-21 has no billing period to renew
   }
 
   /** LIF-18/PYG-21: platform-sent, never charged -- SMS + email only (no push channel exists, see slice plan). */
@@ -332,6 +372,24 @@ export class LifecycleService {
         targetId: tenantId,
         result: AuditResult.Success,
         summary: {},
+      });
+    });
+  }
+
+  /** BIL-17: the owner's own "renew automatically from balance" toggle, off by default. Read by `runTick`
+   * (via `tryAutoRenew`) at the owner's own next period end -- never retroactive, never itself a charge. */
+  async setAutoRenew(tenantId: string, enabled: boolean): Promise<void> {
+    await this.tenants.runStandalone(async (tx) => {
+      await this.tenants.setAutoRenew(tx, tenantId, enabled);
+      await this.audit.record(tx, {
+        tenantId,
+        actorType: ActorType.User,
+        actorId: null,
+        action: AuditAction.AutoRenewToggled,
+        targetType: 'tenant',
+        targetId: tenantId,
+        result: AuditResult.Success,
+        summary: { enabled },
       });
     });
   }

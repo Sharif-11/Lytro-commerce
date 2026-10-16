@@ -47,6 +47,7 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'POST /balance/top-up/quote': 'creates a top-up quote scoped to the session shop only',
   'POST /balance/top-up/confirm': "another shop's top-up payment id answers not_found",
   'POST /billing/quote': 'creates a purchase quote scoped to the session shop only',
+  'POST /billing/auto-renew': "toggles only the session shop's own auto-renew setting",
   'POST /billing/purchase': "another shop's payment id answers not_found",
   'GET /billing/invoices': "lists only the session shop's own invoices",
   'GET /billing/invoices/:id': "another shop's invoice id answers not_found",

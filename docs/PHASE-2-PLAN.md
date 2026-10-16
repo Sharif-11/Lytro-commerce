@@ -33,6 +33,12 @@ Items marked **Decision** need your answer before the slice they affect starts. 
 existed on the still-open PR #84 — but #84 merged into `main` at 12:01 that day, so that one resolved
 itself before any of the above landed.)
 
+5. **`BIL-17`** (found during the full Phase 1/Phase 2 SRS audit later the same day): "renew automatically
+   from balance" had zero implementation — no column, no toggle, no renewal attempt in `runTick`. Built:
+   `control.tenants.auto_renew_enabled`/`billing_term_id`, `POST /billing/auto-renew`, and a `tryAutoRenew`
+   step in `LifecycleService.runTick` that reuses `PurchaseService.quote`/`confirmFromBalance` for any
+   still-`active` lapsing candidate. `KNOWN-GAPS.md` #25 is closed.
+
 1. Every `M` requirement in PLN, TRL, TRM, PYG, BIL, UPG, DWN, LIF, BAL and RAT has a passing automated test.
 2. The lifecycle scheduled job transitions a tenant through every state boundary (grace, read-only, locked, archived, deleted) within its 15-minute SLA (LIF-03), derived purely from stored dates (LIF-04) so a test clock can simulate any date, and is idempotent under a doubled or missed run (LIF-23).
 3. The balance ledger is append-only (a database trigger refuses UPDATE/DELETE, the same pattern as `tenant.activity_log`), and `control.tenants.balance_amount` is always re-derivable as the sum of its own tenant's ledger rows.

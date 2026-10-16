@@ -115,6 +115,10 @@ export class DrizzleTenantStore implements TenantStore {
     return this.tenants.applyPlanAssignment(tx, tenantId, values);
   }
 
+  setAutoRenew(tx: Transaction, tenantId: string, enabled: boolean): Promise<void> {
+    return this.tenants.setAutoRenew(tx, tenantId, enabled);
+  }
+
   applyBalanceChange(
     tx: Transaction,
     tenantId: string,

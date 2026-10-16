@@ -220,6 +220,9 @@ export class TenantRepository {
       periodStart: Date;
       periodEnd: Date | null;
       state: TenantState;
+      // BIL-17: omitted (not just `undefined`) leaves the tenant's currently-stored term untouched -- a
+      // downgrade doesn't change the billing term, only a purchase/renewal/upgrade picks one.
+      billingTermId?: string | null;
     },
   ): Promise<void> {
     await tx
@@ -230,6 +233,7 @@ export class TenantRepository {
         periodStart: values.periodStart,
         periodEnd: values.periodEnd,
         state: values.state,
+        ...(values.billingTermId !== undefined ? { billingTermId: values.billingTermId } : {}),
       })
       .where(eq(tenants.id, tenantId));
   }
@@ -373,11 +377,19 @@ export class TenantRepository {
         planId: tenants.planId,
         periodStart: tenants.periodStart,
         periodEnd: tenants.periodEnd,
+        billingTermId: tenants.billingTermId,
+        autoRenewEnabled: tenants.autoRenewEnabled,
+        cancelledAt: tenants.cancelledAt,
       })
       .from(tenants)
       .where(eq(tenants.id, id))
       .limit(1);
     return rows[0] ?? null;
+  }
+
+  /** BIL-17: toggles the owner's own "renew automatically from balance" setting. */
+  async setAutoRenew(tx: Executor, tenantId: string, enabled: boolean): Promise<void> {
+    await tx.update(tenants).set({ autoRenewEnabled: enabled }).where(eq(tenants.id, tenantId));
   }
 }
 
@@ -386,6 +398,9 @@ export interface BillingInfoRow {
   planId: string | null;
   periodStart: Date | null;
   periodEnd: Date | null;
+  billingTermId: string | null;
+  autoRenewEnabled: boolean;
+  cancelledAt: Date | null;
 }
 
 export interface BalanceRow {

@@ -246,6 +246,13 @@
       "when": 1792163744414,
       "tag": "0034_activity_log_ip",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1792165306451,
+      "tag": "0035_auto_renew",
+      "breakpoints": true
     }
   ]
 }

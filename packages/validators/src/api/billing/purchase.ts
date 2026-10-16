@@ -28,3 +28,9 @@ export const confirmPurchaseSchema = z
     { message: 'transactionId, senderNumber and amountPaid are required for a wallet payment.' },
   );
 export type ConfirmPurchaseInput = z.infer<typeof confirmPurchaseSchema>;
+
+// POST /billing/auto-renew (BIL-17): the owner's own "renew automatically from balance" toggle.
+export const setAutoRenewSchema = z.object({
+  enabled: z.boolean(),
+});
+export type SetAutoRenewInput = z.infer<typeof setAutoRenewSchema>;

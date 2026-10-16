@@ -35,6 +35,7 @@ import {
   ConfirmUpgradeDto,
   QuotePurchaseDto,
   QuoteUpgradeDto,
+  SetAutoRenewDto,
   TargetDowngradePlanDto,
 } from '../dto/billing.dto';
 import {
@@ -207,6 +208,21 @@ export class BillingController {
   @ZodResponse({ type: OkDto })
   async undoCancellation(@Req() request: DashboardRequest): Promise<{ ok: true }> {
     await this.lifecycle.undoCancellation(this.tenantIdOf(request));
+    return { ok: true };
+  }
+
+  @Post('auto-renew')
+  @ResponseMessage('AutoRenewUpdated')
+  @RequirePermission(Permission.PaymentsManage)
+  @ApiOperation({
+    summary: "Toggle the owner's own renew-automatically-from-balance setting (BIL-17)",
+  })
+  @ZodResponse({ type: OkDto })
+  async setAutoRenew(
+    @Body(new ZodValidationPipe(SetAutoRenewDto.schema)) body: SetAutoRenewDto,
+    @Req() request: DashboardRequest,
+  ): Promise<{ ok: true }> {
+    await this.lifecycle.setAutoRenew(this.tenantIdOf(request), body.enabled);
     return { ok: true };
   }
 

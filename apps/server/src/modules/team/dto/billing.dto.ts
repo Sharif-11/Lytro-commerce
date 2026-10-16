@@ -7,6 +7,7 @@ import {
   quotePurchaseSchema,
   quoteUpgradeSchema,
   rejectPaymentSchema,
+  setAutoRenewSchema,
   setPlanLimitOverrideSchema,
   setPlanPriceSchema,
   targetDowngradePlanSchema,
@@ -29,3 +30,4 @@ export class RejectPaymentDto extends createZodDto(rejectPaymentSchema) {}
 export class QuoteUpgradeDto extends createZodDto(quoteUpgradeSchema) {}
 export class ConfirmUpgradeDto extends createZodDto(confirmUpgradeSchema) {}
 export class TargetDowngradePlanDto extends createZodDto(targetDowngradePlanSchema) {}
+export class SetAutoRenewDto extends createZodDto(setAutoRenewSchema) {}

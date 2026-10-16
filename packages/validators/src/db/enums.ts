@@ -163,6 +163,9 @@ export enum AuditAction {
   // LIF-01: the owner's own cancellation intent, set and cleared before period end.
   SubscriptionCancelled = 'subscription_cancelled',
   SubscriptionCancellationUndone = 'subscription_cancellation_undone',
+  // BIL-17: the owner's own "renew automatically from balance" toggle. The renewal itself, once triggered,
+  // reuses PlanRenewed (PurchaseService.activate already writes it) -- no separate action needed for that.
+  AutoRenewToggled = 'auto_renew_toggled',
   // LIF-18: a day-45/57 deletion warning. System-caused, tenant's own log (same split as LifecycleStateChanged).
   DeletionWarningSent = 'deletion_warning_sent',
   // LIF-19: the day-60 business-data deletion itself.
