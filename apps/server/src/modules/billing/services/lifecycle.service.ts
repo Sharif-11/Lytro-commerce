@@ -6,6 +6,7 @@ import {
   PlatformActorType,
   PlatformAuditAction,
   PlatformSettingKey,
+  SLUG_MAX_LENGTH,
   TenantState,
 } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
@@ -44,6 +45,7 @@ export interface LifecycleTickResult {
   warningsSent: number;
   deleted: number;
   renewed: number;
+  slugsReleased: number;
 }
 
 /**
@@ -137,12 +139,39 @@ export class LifecycleService {
     }
 
     const payg = await this.runPaygInactivityPass(now);
+    const slugsReleased = await this.releaseExpiredSlugs(now);
     return {
       transitioned: transitioned + payg.transitioned,
       warningsSent: warningsSent + payg.warningsSent,
       deleted: deleted + payg.deleted,
       renewed,
+      slugsReleased,
     };
+  }
+
+  /**
+   * LIF-21: deleted tenants whose 30-day subdomain reservation has lapsed get revoked -- the slug mangled
+   * (freeing the literal string for a different subscriber) and the rest of the shop's identity/contact
+   * fields cleared (`TenantRepository.revokeExpiredTenant`), an independent pass like PYG-21's since
+   * candidates are governed purely by `deletedAt`, not by anything `findLapsingCandidates` already scans.
+   * The mangled slug is deterministic from the tenant's own id, truncated to fit `SLUG_MAX_LENGTH`, and
+   * contains the `-revoked-` marker the repository's own candidate query excludes -- that marker is the only
+   * idempotency check needed (the same "the write proves it happened" pattern `DWN-11`'s floor columns use).
+   * The database trigger permitting this one slug write (migration 0037) is what actually makes it legal;
+   * this method doesn't special-case it.
+   */
+  private async releaseExpiredSlugs(now: Date): Promise<number> {
+    const candidates = await this.tenants.runStandalone((tx) =>
+      this.tenants.findRevocationCandidates(tx, now),
+    );
+    for (const candidate of candidates) {
+      const marker = `-revoked-${candidate.id.replace(/-/g, '').slice(0, 8)}`;
+      const mangled = `${candidate.slug.slice(0, SLUG_MAX_LENGTH - marker.length)}${marker}`;
+      await this.tenants.runStandalone((tx) =>
+        this.tenants.revokeExpiredTenant(tx, candidate.id, mangled),
+      );
+    }
+    return candidates.length;
   }
 
   /**
@@ -314,7 +343,9 @@ export class LifecycleService {
       }
     }
 
-    return { transitioned, warningsSent, deleted, renewed: 0 }; // PYG-21 has no billing period to renew
+    // PYG-21 has no billing period to renew; slug release is its own independent pass, computed once in
+    // runTick, not per PAYG candidate.
+    return { transitioned, warningsSent, deleted, renewed: 0, slugsReleased: 0 };
   }
 
   /** LIF-18/PYG-21: platform-sent, never charged -- SMS + email only (no push channel exists, see slice plan). */

@@ -260,6 +260,13 @@
       "when": 1792167025111,
       "tag": "0036_retention_floor",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1792168000000,
+      "tag": "0037_revoke_expired_slug",
+      "breakpoints": true
     }
   ]
 }

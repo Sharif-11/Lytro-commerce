@@ -1,5 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { BalanceRow, BillingInfoRow, ContactDetailsRow, Transaction } from '@lytronix/db';
+import type {
+  BalanceRow,
+  BillingInfoRow,
+  ContactDetailsRow,
+  RevocationCandidateRow,
+  Transaction,
+} from '@lytronix/db';
 import { PlatformSettingKey, type PlanLimits, type TenantState } from '@lytronix/validators';
 import { DAY_MS } from '../../../common/time';
 import { StaffService } from '../../staff/services/staff.service';
@@ -159,6 +165,16 @@ export class TenantService {
   /** LIF-19: the day-60 deletion job's own state/marker write. */
   markDeleted(tx: Transaction, tenantId: string, at: Date): Promise<void> {
     return this.store.markDeleted(tx, tenantId, at);
+  }
+
+  /** LIF-21: deleted tenants whose 30-day subdomain reservation has lapsed and whose slug isn't already revoked. */
+  findRevocationCandidates(tx: Transaction, now: Date): Promise<RevocationCandidateRow[]> {
+    return this.store.findRevocationCandidates(tx, now);
+  }
+
+  /** LIF-21: frees the literal slug string and clears the rest of the shop's identity/contact fields. */
+  revokeExpiredTenant(tx: Transaction, tenantId: string, mangledSlug: string): Promise<void> {
+    return this.store.revokeExpiredTenant(tx, tenantId, mangledSlug);
   }
 
   /** LIF-03/04: every tenant whose lifecycle state is derived from a running period, not yet deleted. */

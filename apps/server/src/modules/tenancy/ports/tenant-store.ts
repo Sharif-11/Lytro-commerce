@@ -4,6 +4,7 @@ import type {
   ContactDetailsRow,
   LapsingCandidateRow,
   PaygCandidateRow,
+  RevocationCandidateRow,
   Transaction,
 } from '@lytronix/db';
 import type { PlanLimits, TenantState } from '@lytronix/validators';
@@ -76,6 +77,11 @@ export interface TenantStore {
   setCancellation(tx: Transaction, tenantId: string, cancelledAt: Date | null): Promise<void>;
   /** LIF-19: the day-60 deletion job's own state/marker write, after the business-data deletion step. */
   markDeleted(tx: Transaction, tenantId: string, at: Date): Promise<void>;
+  /** LIF-21: deleted tenants whose 30-day subdomain reservation has lapsed and whose slug isn't already revoked. */
+  findRevocationCandidates(tx: Transaction, now: Date): Promise<RevocationCandidateRow[]>;
+  /** LIF-21: frees the literal slug string for reuse and clears the rest of the shop's identity/contact
+   * fields -- everything LIF-20's survivor list (plan, payment history, invoices, balance) doesn't depend on. */
+  revokeExpiredTenant(tx: Transaction, tenantId: string, mangledSlug: string): Promise<void>;
   /** LIF-03/04: every tenant whose lifecycle state is derived from a running period, not yet deleted. */
   findLapsingCandidates(tx: Transaction, now: Date): Promise<LapsingCandidateRow[]>;
   /** PYG-21: every pay-as-you-go tenant, not yet deleted -- the 23/30-day thresholds are the service's job. */

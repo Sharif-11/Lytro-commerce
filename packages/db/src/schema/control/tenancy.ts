@@ -40,8 +40,16 @@ export const tenants = control.table(
       .notNull()
       .references(() => subscribers.id),
     cellId: integer('cell_id').notNull().default(1), // SCL-07: always 1 at launch
-    shopName: varchar('shop_name', { length: NAME_MAX_LENGTH }).notNull(), // AUTH-01 cap
-    slug: varchar('slug', { length: SLUG_MAX_LENGTH }).notNull().unique(), // AUTH-11, immutable after creation
+    // AUTH-01 cap. LIF-21's day-90 (deletedAt + 30 days) revocation job also mangles this on a deleted
+    // tenant, alongside the slug below -- the old shop's identity is no longer meaningful that long after
+    // deletion, and nothing in LIF-20's own survivor list (plan, payment history, invoices, balance) depends
+    // on it.
+    shopName: varchar('shop_name', { length: NAME_MAX_LENGTH }).notNull(),
+    // AUTH-11: immutable after creation, enforced by a database trigger (migration 0002) for every live
+    // tenant unconditionally -- TEN-19's own guarantee. The one deliberate exception (migration 0037):
+    // LIF-21's day-90 revocation job mangles a deleted tenant's own slug, once deletedAt is 30+ days old, to
+    // release the literal string for a different subscriber.
+    slug: varchar('slug', { length: SLUG_MAX_LENGTH }).notNull().unique(),
     state: tenantState('state').$type<TenantState>().notNull().default(TenantState.Trial),
     planId: uuid('plan_id').references(() => plans.id),
     planSnapshot: jsonb('plan_snapshot').$type<PlanLimits>(), // PLN-02: frozen limits at purchase (Phase 2 writes it)
@@ -61,6 +69,7 @@ export const tenants = control.table(
     cancelledAt: timestamp('cancelled_at', { withTimezone: true }),
     // LIF-20/21/22: set once by the day-60 deletion job (LIF-19), never before. The row and its state
     // ('deleted') persist after this is set -- deletion removes only the business data listed in LIF-19.
+    // LIF-21's own day-90 revocation job (deletedAt + 30 days) reads this to find its candidates.
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
     kycStatus: text('kyc_status').notNull().default(KycStatus.Unverified), // KYC-16
     // TEN-30: contact details the owner sets from dashboard settings, any time after onboarding -- never a

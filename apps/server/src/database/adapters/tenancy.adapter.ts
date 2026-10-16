@@ -10,6 +10,7 @@ import {
   type ContactDetailsRow,
   type LapsingCandidateRow,
   type PaygCandidateRow,
+  type RevocationCandidateRow,
   type Transaction,
 } from '@lytronix/db';
 import type { PlanLimits, TenantState } from '@lytronix/validators';
@@ -154,6 +155,14 @@ export class DrizzleTenantStore implements TenantStore {
 
   markDeleted(tx: Transaction, tenantId: string, at: Date): Promise<void> {
     return this.tenants.markDeleted(tx, tenantId, at);
+  }
+
+  findRevocationCandidates(tx: Transaction, now: Date): Promise<RevocationCandidateRow[]> {
+    return this.tenants.findRevocationCandidates(tx, now);
+  }
+
+  revokeExpiredTenant(tx: Transaction, tenantId: string, mangledSlug: string): Promise<void> {
+    return this.tenants.revokeExpiredTenant(tx, tenantId, mangledSlug);
   }
 
   findLapsingCandidates(tx: Transaction, now: Date): Promise<LapsingCandidateRow[]> {

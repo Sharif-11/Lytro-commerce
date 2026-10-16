@@ -384,6 +384,32 @@ definition now used by both exports instead of two copies. Proven by a new case 
 `apps/server/test/balance-ledger.e2e.spec.ts`: the CSV's header and rows match a credited entry, and a
 different shop's export is empty (same RLS scoping every other route already gets).
 
+## 28. `LIF-21`: the old subdomain was reserved permanently, not for 30 days — found and fixed 2026-10-16
+
+Found during the same full Phase 1/Phase 2 SRS-vs-code audit, then confirmed a real (if safe-direction) gap
+during the `DWN-11`/`LIF-21`/`LIF-22` investigation. `LIF-19`'s day-60 job deletes a tenant's business data
+but deliberately keeps the `control.tenants` row (`LIF-20` requires it, for plan/payment history/balance to
+keep surviving) — including its `slug`, which is unique-constrained and, discovered only while building this
+fix, protected by a hard database trigger (`tenants_slug_immutable`, migration `0002`, `TEN-19`'s own
+guarantee) that unconditionally rejects any update to it, for every role. Nothing ever released it, so the
+subdomain was blocked forever, not for 30 days as the row's own pass criterion implies.
+
+**Fixed, after confirming the approach first (the trigger is a previously-absolute guarantee, not something
+to loosen unilaterally):** migration `0037` narrows the trigger's `WHEN` clause to still block 100% of slug
+changes for any live tenant (`deleted_at IS NULL` — `TEN-19` stays exactly as absolute as it is today for
+every existing shop) and only permits a change once `deleted_at` is 30+ days old. `LifecycleService` gained a
+new independent pass, `releaseExpiredSlugs` (called from `runTick`, alongside the day-60 `deleteIfDue` scan),
+which finds those candidates (`TenantRepository.findRevocationCandidates`) and calls the broader
+`revokeExpiredTenant`: the slug is mangled (deterministic from the tenant's own id, truncated to fit
+`SLUG_MAX_LENGTH`, carrying a `-revoked-` marker that is itself the idempotency check — the repository's own
+candidate query excludes it), and, per an explicit decision on scope, `shop_name`, `contact_phone`,
+`contact_email`, `business_address`, `suspended_reason` and `kyc_status` are cleared too — the old shop's
+identity is no longer meaningful this long after deletion, and none of it is in `LIF-20`'s own survivor list
+(`plan_id`, `plan_snapshot`, `balance_amount`, period dates, `subscriber_id`), which stays untouched. Proven
+by two new cases in `apps/server/test/lifecycle.e2e.spec.ts` (`LIF-21: the old shop identity is revoked 30
+days after deletion`): the full revocation plus a genuine re-insert of a new tenant with the freed slug
+string (which would fail at the database if the fix didn't actually work), and idempotency across two ticks.
+
 ## Not a bug, just noting it so it isn't mistaken for one later
 
 The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data
