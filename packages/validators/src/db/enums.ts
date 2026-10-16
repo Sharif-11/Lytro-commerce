@@ -160,6 +160,9 @@ export enum AuditAction {
   // DWN-06/08/17: the system applying an already-scheduled downgrade at its effective date -- D2-5 puts
   // this on the tenant's own log only, the same split TRL-07's trial-conversion job already established.
   DowngradeApplied = 'downgrade_applied',
+  // DWN-11: a downgrade that shortens activity-log retention -- sent once, at apply time, 14 days before the
+  // shorter retention actually takes effect. System-caused, tenant's own log.
+  RetentionShortenedNoticeSent = 'retention_shortened_notice_sent',
   // LIF-01: the owner's own cancellation intent, set and cleared before period end.
   SubscriptionCancelled = 'subscription_cancelled',
   SubscriptionCancellationUndone = 'subscription_cancellation_undone',

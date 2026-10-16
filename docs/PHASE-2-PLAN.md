@@ -38,6 +38,12 @@ itself before any of the above landed.)
    `control.tenants.auto_renew_enabled`/`billing_term_id`, `POST /billing/auto-renew`, and a `tryAutoRenew`
    step in `LifecycleService.runTick` that reuses `PurchaseService.quote`/`confirmFromBalance` for any
    still-`active` lapsing candidate. `KNOWN-GAPS.md` #25 is closed.
+6. **`DWN-11`** (also found during that audit, then confirmed a real gap alongside the `LIF-21`/`LIF-22`
+   investigation): a downgrade's shorter activity-log retention applied immediately, with no 14-day delay
+   and no notice. Built: `control.tenants.retention_floor_days`/`retention_floor_until`, written by
+   `DowngradeService.apply` whenever the new plan's retention is shorter than what's currently owed;
+   `ActivityLogPurger` now honors an active floor; a notice (audited as `RetentionShortenedNoticeSent`)
+   names a real trimmed-entry count via a new `AuditService.countInRange`. `KNOWN-GAPS.md` #26 is closed.
 
 1. Every `M` requirement in PLN, TRL, TRM, PYG, BIL, UPG, DWN, LIF, BAL and RAT has a passing automated test.
 2. The lifecycle scheduled job transitions a tenant through every state boundary (grace, read-only, locked, archived, deleted) within its 15-minute SLA (LIF-03), derived purely from stored dates (LIF-04) so a test clock can simulate any date, and is idempotent under a doubled or missed run (LIF-23).

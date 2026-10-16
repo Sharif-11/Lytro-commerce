@@ -391,6 +391,52 @@ describeIfDatabase('the activity log (AUD-01, AUD-02, AUD-04)', () => {
     expect(markers).not.toContain('purged-too-old');
   });
 
+  it('DWN-11: an active retention floor protects an entry the new, shorter plan would otherwise purge', async () => {
+    const who = await owner();
+    const tenantRow = await admin.query<{ id: string }>(
+      'SELECT id FROM control.tenants WHERE slug = $1',
+      [who.slug],
+    );
+    const tenantId = tenantRow.rows[0]?.id;
+
+    // The tenant's live plan already says 7 days (as if a downgrade just applied), but a still-active
+    // 90-day floor (DowngradeService.apply's own write) is what should actually decide this.
+    const plan = await admin.query<{ id: string }>(
+      `INSERT INTO control.plans (name, rank, for_sale, limits)
+       VALUES ('Test Post-Downgrade Plan', 999, false, '{"activity_retention_days": 7}')
+       RETURNING id`,
+    );
+    await admin.query(
+      `UPDATE control.tenants SET plan_id = $1, retention_floor_days = 90,
+         retention_floor_until = now() + interval '10 days' WHERE id = $2`,
+      [plan.rows[0]?.id, tenantId],
+    );
+    await admin.query(
+      `INSERT INTO tenant.activity_log (tenant_id, actor_type, actor_id, action, result, summary, created_at)
+       VALUES ($1, 'user', NULL, 'role_created', 'success', '{"marker":"protected-by-floor"}', now() - interval '31 days')`,
+      [tenantId],
+    );
+
+    await new ActivityLogPurger().run(activityAdminUrl);
+    const whileActive = await admin.query<{ summary: { marker?: string } | null }>(
+      'SELECT summary FROM tenant.activity_log WHERE tenant_id = $1',
+      [tenantId],
+    );
+    expect(whileActive.rows.map((r) => r.summary?.marker)).toContain('protected-by-floor');
+
+    // The floor has now lapsed (as it would 10 days later) -- the live plan's own 7-day retention applies.
+    await admin.query(
+      `UPDATE control.tenants SET retention_floor_until = now() - interval '1 day' WHERE id = $1`,
+      [tenantId],
+    );
+    await new ActivityLogPurger().run(activityAdminUrl);
+    const afterExpiry = await admin.query<{ summary: { marker?: string } | null }>(
+      'SELECT summary FROM tenant.activity_log WHERE tenant_id = $1',
+      [tenantId],
+    );
+    expect(afterExpiry.rows.map((r) => r.summary?.marker)).not.toContain('protected-by-floor');
+  });
+
   it('refuses an UPDATE or DELETE on the activity log, even on the admin connection (AUD-03, P1-E27)', async () => {
     const who = await owner();
     await post('/roles', { name: 'Marked', permissions: [] }, shopCall(who));

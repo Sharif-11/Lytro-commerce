@@ -380,6 +380,9 @@ export class TenantRepository {
         billingTermId: tenants.billingTermId,
         autoRenewEnabled: tenants.autoRenewEnabled,
         cancelledAt: tenants.cancelledAt,
+        planSnapshot: tenants.planSnapshot,
+        retentionFloorDays: tenants.retentionFloorDays,
+        retentionFloorUntil: tenants.retentionFloorUntil,
       })
       .from(tenants)
       .where(eq(tenants.id, id))
@@ -391,6 +394,19 @@ export class TenantRepository {
   async setAutoRenew(tx: Executor, tenantId: string, enabled: boolean): Promise<void> {
     await tx.update(tenants).set({ autoRenewEnabled: enabled }).where(eq(tenants.id, tenantId));
   }
+
+  /** DWN-11: protects the tenant's pre-downgrade retention until `until` -- written atomically with the
+   * notice that explains it, so the column's own presence is proof a notice already went out. */
+  async setRetentionFloor(
+    tx: Executor,
+    tenantId: string,
+    floor: { days: number; until: Date },
+  ): Promise<void> {
+    await tx
+      .update(tenants)
+      .set({ retentionFloorDays: floor.days, retentionFloorUntil: floor.until })
+      .where(eq(tenants.id, tenantId));
+  }
 }
 
 export interface BillingInfoRow {
@@ -401,6 +417,9 @@ export interface BillingInfoRow {
   billingTermId: string | null;
   autoRenewEnabled: boolean;
   cancelledAt: Date | null;
+  planSnapshot: PlanLimits | null;
+  retentionFloorDays: number | null;
+  retentionFloorUntil: Date | null;
 }
 
 export interface BalanceRow {

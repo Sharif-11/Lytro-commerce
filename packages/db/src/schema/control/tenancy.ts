@@ -75,6 +75,12 @@ export const tenants = control.table(
     billingTermId: uuid('billing_term_id'),
     // BIL-17: "renew automatically from balance", off by default (an assumption the row itself names).
     autoRenewEnabled: boolean('auto_renew_enabled').notNull().default(false),
+    // DWN-11: a downgrade that shortens activity-log retention doesn't take effect until 14 days after the
+    // owner was notified -- until then the purge job must still honor the longer, pre-downgrade retention.
+    // `retentionFloorUntil` non-null (and in the future) is itself the proof a notice already went out, so
+    // no separate "notice sent at" column is needed.
+    retentionFloorDays: integer('retention_floor_days'),
+    retentionFloorUntil: timestamp('retention_floor_until', { withTimezone: true }),
   },
   (t) => [
     index('tenants_subscriber_idx').on(t.subscriberId),

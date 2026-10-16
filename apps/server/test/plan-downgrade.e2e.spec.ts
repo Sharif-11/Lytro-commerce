@@ -45,6 +45,19 @@ async function seedPlan(rank: number, staffLimit: number): Promise<string> {
   return plan.rows[0]?.id ?? '';
 }
 
+async function seedPlanWithRetention(rank: number, activityRetentionDays: number): Promise<string> {
+  const plan = await admin.query<{ id: string }>(
+    `INSERT INTO control.plans (name, rank, for_sale, version, limits, features)
+     VALUES ($1, $2, true, 1, $3, '{}') RETURNING id`,
+    [
+      `Test Plan ${freshSlug()}`,
+      rank,
+      JSON.stringify({ staff: 10, activity_retention_days: activityRetentionDays }),
+    ],
+  );
+  return plan.rows[0]?.id ?? '';
+}
+
 async function tenantRow(tenantId: string) {
   const row = await admin.query<{
     state: string;
@@ -66,21 +79,45 @@ async function activateTenant(
   periodStart: Date,
   periodEnd: Date,
 ): Promise<void> {
+  // plan_snapshot is kept in sync with plan_id here too (sourced straight from the plan row), the same
+  // invariant every real assignment path (`applyPlanAssignment`) already keeps -- DWN-11's floor math reads
+  // the pre-downgrade snapshot, so a test that skips this would silently read a stale (trial) snapshot.
   await admin.query(
-    `UPDATE control.tenants SET state = 'active', plan_id = $1, period_start = $2, period_end = $3
+    `UPDATE control.tenants SET state = 'active', plan_id = $1, period_start = $2, period_end = $3,
+       plan_snapshot = (SELECT limits FROM control.plans WHERE id = $1)
      WHERE id = $4`,
     [planId, periodStart, periodEnd, tenantId],
   );
 }
 
+async function retentionRow(tenantId: string) {
+  const row = await admin.query<{
+    retention_floor_days: number | null;
+    retention_floor_until: Date | null;
+  }>('SELECT retention_floor_days, retention_floor_until FROM control.tenants WHERE id = $1', [
+    tenantId,
+  ]);
+  return row.rows[0];
+}
+
+async function auditActions(tenantId: string): Promise<string[]> {
+  const log = await admin.query<{ action: string }>(
+    'SELECT action FROM tenant.activity_log WHERE tenant_id = $1 ORDER BY created_at ASC',
+    [tenantId],
+  );
+  return log.rows.map((row) => row.action);
+}
+
 // seedShop (the raw-SQL fixture every e2e spec shares) never inserts a tenant.users owner row -- that
 // normally only happens through the real create-shop flow (TenantService.createTrialShop -> StaffService.
 // createOwner). DWN-08's seat math needs a real owner row to count, so tests that exercise it seed one here.
-async function seedOwner(tenantId: string): Promise<void> {
+async function seedOwner(tenantId: string): Promise<string> {
+  const phone = freshPhone();
   await admin.query(
     `INSERT INTO tenant.users (tenant_id, phone, name, is_owner, active) VALUES ($1, $2, 'Owner', true, true)`,
-    [tenantId, freshPhone()],
+    [tenantId, phone],
   );
+  return phone;
 }
 
 async function addStaff(tenantId: string, count: number): Promise<void> {
@@ -327,5 +364,109 @@ describeIfDatabase('UPG-13: an upgrade cancels a pending downgrade', () => {
     expect(result.invoice).not.toBeNull();
 
     expect(await downgrade.getScheduled(tenantId)).toBeNull();
+  });
+});
+
+describeIfDatabase('DWN-11: shorter retention is delayed 14 days, with a notice', () => {
+  it('sets a 14-day floor at the old (longer) retention and sends a notice naming a real count', async () => {
+    const rank = (nextRank += 10); // wide gap: the neighboring UPG-13 block above also uses rank+1
+    const highPlanId = await seedPlanWithRetention(rank, 90);
+    const lowPlanId = await seedPlanWithRetention(rank - 1, 30);
+    const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
+    const phone = await seedOwner(tenantId);
+    await activateTenant(
+      tenantId,
+      highPlanId,
+      new Date(Date.now() - 20 * 24 * 60 * 60 * 1000),
+      new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
+    );
+    // One entry that would survive the old 90-day retention but not the new 30-day one (45 days old) --
+    // the exact gap the floor is supposed to protect, and the notice's count should include it.
+    await admin.query(
+      `INSERT INTO tenant.activity_log (tenant_id, actor_type, action, result, created_at)
+       VALUES ($1, 'system', 'shop_settings_updated', 'success', now() - interval '45 days')`,
+      [tenantId],
+    );
+
+    const change = await downgrade.schedule(tenantId, lowPlanId);
+    const now = new Date();
+    await downgrade.apply(change, now);
+
+    const retention = await retentionRow(tenantId);
+    expect(retention?.retention_floor_days).toBe(90);
+    const until = retention?.retention_floor_until;
+    expect(until).not.toBeNull();
+    const daysUntilFloorLifts = Math.round(
+      ((until as Date).getTime() - now.getTime()) / (24 * 60 * 60 * 1000),
+    );
+    expect(daysUntilFloorLifts).toBe(14);
+
+    const actions = await auditActions(tenantId);
+    expect(actions).toContain(AuditAction.RetentionShortenedNoticeSent);
+
+    const sms = await admin.query<{ body: string }>(
+      `SELECT body FROM control.sms_outbox WHERE to_phone = $1 ORDER BY created_at DESC LIMIT 1`,
+      [phone],
+    );
+    expect(sms.rows[0]?.body).toContain('1 older entry');
+  });
+
+  it('a downgrade to an equal or longer retention sets no floor and sends no notice', async () => {
+    const rank = (nextRank += 2);
+    const highPlanId = await seedPlanWithRetention(rank, 30);
+    const lowPlanId = await seedPlanWithRetention(rank - 1, 30);
+    const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
+    await seedOwner(tenantId);
+    await activateTenant(
+      tenantId,
+      highPlanId,
+      new Date(Date.now() - 20 * 24 * 60 * 60 * 1000),
+      new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
+    );
+
+    const change = await downgrade.schedule(tenantId, lowPlanId);
+    await downgrade.apply(change, new Date());
+
+    const retention = await retentionRow(tenantId);
+    expect(retention?.retention_floor_days).toBeNull();
+    expect(retention?.retention_floor_until).toBeNull();
+    const actions = await auditActions(tenantId);
+    expect(actions).not.toContain(AuditAction.RetentionShortenedNoticeSent);
+  });
+
+  it('a second downgrade during an active floor never shortens the protection already owed', async () => {
+    const rank = (nextRank += 3);
+    const highPlanId = await seedPlanWithRetention(rank, 90);
+    const midPlanId = await seedPlanWithRetention(rank - 1, 30);
+    const lowPlanId = await seedPlanWithRetention(rank - 2, 10);
+    const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
+    await seedOwner(tenantId);
+    await activateTenant(
+      tenantId,
+      highPlanId,
+      new Date(Date.now() - 20 * 24 * 60 * 60 * 1000),
+      new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
+    );
+
+    const firstChange = await downgrade.schedule(tenantId, midPlanId);
+    await downgrade.apply(firstChange, new Date());
+    const afterFirst = await retentionRow(tenantId);
+    expect(afterFirst?.retention_floor_days).toBe(90); // the old plan's own retention, protected
+
+    // DWN-06: apply swaps the plan only -- state stays `active` and the period's own dates are untouched,
+    // so a second downgrade can be scheduled straight off the result of the first.
+    const secondChange = await downgrade.schedule(tenantId, lowPlanId);
+    const secondNow = new Date();
+    await downgrade.apply(secondChange, secondNow);
+
+    const afterSecond = await retentionRow(tenantId);
+    // Still 90, not 30 -- the still-active floor from the first downgrade, not the live (mid) plan's own
+    // retention, is what the comparison is owed against.
+    expect(afterSecond?.retention_floor_days).toBe(90);
+    const until = afterSecond?.retention_floor_until as Date;
+    const daysUntilFloorLifts = Math.round(
+      (until.getTime() - secondNow.getTime()) / (24 * 60 * 60 * 1000),
+    );
+    expect(daysUntilFloorLifts).toBe(14); // the clock refreshed from the second downgrade's own notice
   });
 });
