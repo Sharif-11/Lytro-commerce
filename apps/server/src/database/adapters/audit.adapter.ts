@@ -39,6 +39,7 @@ export class DrizzleAuditStore implements AuditStore {
       targetId: entry.targetId ?? null,
       result: entry.result,
       summary: entry.summary ?? null,
+      ip: entry.ip ?? null,
     });
   }
 

@@ -20,6 +20,7 @@ export class SignInAudit {
     action: AuditAction,
     result: AuditResult,
     summary?: unknown,
+    ip?: string | null,
   ): Promise<void> {
     if (tenantId === null) return;
     const actorId = userId ?? (await this.staff.ownerId(tenantId));
@@ -30,6 +31,7 @@ export class SignInAudit {
       action,
       result,
       summary,
+      ip: ip ?? null,
     });
   }
 }

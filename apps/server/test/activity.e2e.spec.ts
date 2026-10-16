@@ -79,6 +79,7 @@ interface ActivityEntry {
   action: string;
   actorId: string | null;
   summary: unknown;
+  ip: string | null;
   createdAt: string;
 }
 
@@ -132,6 +133,8 @@ describeIfDatabase('the activity log (AUD-01, AUD-02, AUD-04)', () => {
     expect(roleEntries.length).toBe(1);
     const signInEntries = entries.filter((e) => e.action === 'sign_in');
     expect(signInEntries.length).toBe(1);
+    // AUD-02: the sign-in's own source IP, not left null even though it was sitting right there unused.
+    expect(signInEntries[0]?.ip).toBeTruthy();
 
     expect(JSON.stringify(entries)).not.toContain(PASSWORD);
   });
@@ -347,6 +350,45 @@ describeIfDatabase('the activity log (AUD-01, AUD-02, AUD-04)', () => {
     );
     expect(summaries.join(' ')).not.toContain('"Old"');
     expect(summaries.join(' ')).toContain('"New"');
+  });
+
+  it('keeps a money-related entry past plan retention, but purges it past 24 months (AUD-07)', async () => {
+    const who = await owner();
+    const tenantRow = await admin.query<{ id: string }>(
+      'SELECT id FROM control.tenants WHERE slug = $1',
+      [who.slug],
+    );
+    const tenantId = tenantRow.rows[0]?.id;
+
+    // Past the default 30-day plan retention, but well under 24 months -- AUD-07's own floor keeps this one.
+    await admin.query(
+      `INSERT INTO tenant.activity_log (tenant_id, actor_type, actor_id, action, result, summary, created_at)
+       VALUES ($1, 'user', NULL, 'balance_topped_up', 'success', '{"marker":"kept"}', now() - interval '31 days')`,
+      [tenantId],
+    );
+    // A non-money entry the same age is purged exactly as AUD-06 already requires.
+    await admin.query(
+      `INSERT INTO tenant.activity_log (tenant_id, actor_type, actor_id, action, result, summary, created_at)
+       VALUES ($1, 'user', NULL, 'role_created', 'success', '{"marker":"purged-ordinary"}', now() - interval '31 days')`,
+      [tenantId],
+    );
+    // Even a money-related entry is purged once it's past the 24-month floor itself.
+    await admin.query(
+      `INSERT INTO tenant.activity_log (tenant_id, actor_type, actor_id, action, result, summary, created_at)
+       VALUES ($1, 'user', NULL, 'balance_topped_up', 'success', '{"marker":"purged-too-old"}', now() - interval '25 months')`,
+      [tenantId],
+    );
+
+    await new ActivityLogPurger().run(activityAdminUrl);
+
+    const remaining = await admin.query<{ summary: { marker?: string } | null }>(
+      'SELECT summary FROM tenant.activity_log WHERE tenant_id = $1',
+      [tenantId],
+    );
+    const markers = remaining.rows.map((row) => row.summary?.marker).filter(Boolean);
+    expect(markers).toContain('kept');
+    expect(markers).not.toContain('purged-ordinary');
+    expect(markers).not.toContain('purged-too-old');
   });
 
   it('refuses an UPDATE or DELETE on the activity log, even on the admin connection (AUD-03, P1-E27)', async () => {

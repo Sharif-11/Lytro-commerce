@@ -15,7 +15,9 @@ Items marked **Decision** need your answer before the slice they affect starts. 
 **Status, re-checked 2026-10-16:** `TEN-30` (contact phone/email/business address, added 2026-10-16 after
 this phase was already marked complete) is `M`-priority and falls under this criterion's own named `TEN`
 prefix — the same "new requirement lands in an already-closed phase" situation Phase 2 hit with `PLN-19`.
-**Shipped as Slice 12** (`D35`): no exit-criteria gap remains.
+**Shipped as Slice 12** (`D35`). A full SRS-vs-code audit the same day also found `AUD-02` (`M`-priority,
+named `AUD` prefix) missing its own source-IP field entirely, despite every sign-in call site already
+having the IP in hand — fixed the same day (`KNOWN-GAPS.md` #23). No exit-criteria gap remains.
 
 1. Every `M` requirement in AUTH, TEN, STF, AUD, I18N-01/02 and ADM-01/18 has a passing automated test (see the test plan).
 2. The isolation suite (SEC-02) passes on every endpoint that takes a resource ID, with two tenants holding overlapping data.

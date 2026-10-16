@@ -32,4 +32,7 @@ export interface AuditEntry {
   targetId?: string | null;
   result: string;
   summary?: unknown;
+  // AUD-02: the request's own client address, where the caller has one. null (the default) for a
+  // system-caused entry, which has no source IP at all.
+  ip?: string | null;
 }

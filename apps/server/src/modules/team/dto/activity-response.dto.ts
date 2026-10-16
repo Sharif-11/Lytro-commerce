@@ -14,6 +14,7 @@ export const activityPageSchema = z.object({
       targetId: z.string().nullable(),
       result: z.string(),
       summary: z.unknown(),
+      ip: z.string().nullable(),
       createdAt: z.string(),
     }),
   ),

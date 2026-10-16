@@ -11,6 +11,7 @@ export interface ActivityEntryView {
   targetId: string | null;
   result: string;
   summary: unknown;
+  ip: string | null;
   createdAt: string;
 }
 

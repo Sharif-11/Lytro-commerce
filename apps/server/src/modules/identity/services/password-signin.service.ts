@@ -46,6 +46,8 @@ export class PasswordSigninService {
           null,
           AuditAction.SignInFailed,
           AuditResult.Failure,
+          undefined,
+          context.ip,
         );
       }
       throw this.invalidCredentials();
@@ -59,7 +61,14 @@ export class PasswordSigninService {
         context,
       }),
     );
-    await this.signInAudit.log(opened.tenantId, null, AuditAction.SignIn, AuditResult.Success);
+    await this.signInAudit.log(
+      opened.tenantId,
+      null,
+      AuditAction.SignIn,
+      AuditResult.Success,
+      undefined,
+      context.ip,
+    );
     return opened;
   }
 

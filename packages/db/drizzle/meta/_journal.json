@@ -239,6 +239,13 @@
       "when": 1792161197486,
       "tag": "0033_data_exports",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1792163744414,
+      "tag": "0034_activity_log_ip",
+      "breakpoints": true
     }
   ]
 }

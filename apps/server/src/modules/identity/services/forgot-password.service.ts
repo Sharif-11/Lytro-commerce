@@ -127,6 +127,8 @@ export class ForgotPasswordService {
       null,
       AuditAction.PasswordReset,
       AuditResult.Success,
+      undefined,
+      context.ip,
     );
     return opened;
   }
