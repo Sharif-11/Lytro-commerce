@@ -32,6 +32,8 @@ import { BalanceSnapshotDto, LedgerPageDto, RateValueDto } from '../dto/balance-
 import { PlanPaymentDto } from '../dto/billing-response.dto';
 
 // BAL-01, BAL-08, BAL-14, RAT-06: a tenant's own balance, statement and current rates.
+// BAL-18: `current` carries `lapsed: true` so the frozen balance is still shown to the owner after lapse or
+// deletion; DashboardGuard's own lapsed carve-out already restricts this to the owner session, never staff.
 @ApiTags('Balance')
 @Controller('balance')
 @Dashboard({})
@@ -44,6 +46,7 @@ export class BalanceController {
   ) {}
 
   @Get()
+  @Dashboard({ lapsed: true })
   @RequirePermission(Permission.BalanceRead)
   @ResponseMessage('BalanceRetrieved')
   @ApiOperation({ summary: "Get the shop's current balance" })
