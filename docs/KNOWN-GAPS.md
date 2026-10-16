@@ -89,15 +89,28 @@ All 15 docs checked and fixed inline (dated 2026-10-16 throughout): `API-CONTRAC
 `CODING-CONVENTIONS.md`, `DEPLOYMENT.md`/`MARKETING-PLAN.md`/`IMPLEMENTATION-PLAN.md` (no drift found in
 any of these three). New findings beyond the 8 items above are #16-20 below.
 
-## 9. LIF-24: suspension is a full outage, not `read_only` as the requirement says
+## 9. LIF-24: suspension severity — decided and fixed 2026-10-16
 
-`DashboardGuard` checks `suspendedAt` unconditionally, *before* the lapsed-owner carve-out that even
-`archived`/`locked` get — so a suspended tenant is fully offline for everyone including the owner, stricter
-than `archived` (LIF-12's own purchase-screen exception). `apps/server/test/dashboard.e2e.spec.ts`'s
-suspension test asserts exactly this stricter behavior. **This needs a product decision, not just a doc
-edit**: either the requirement's wording should describe the real "fully offline" behavior (plausible —
-suspension is operator-initiated, for cause), or `DashboardGuard` should move the check if `read_only`-style
-access was actually intended. Noted inline at `SRS-detailed.md`'s LIF-24 row; not resolved either way yet.
+`DashboardGuard` checked `suspendedAt` unconditionally, *before* the lapsed-owner carve-out that even
+`archived`/`locked` get — so a suspended tenant was fully offline for everyone including the owner, stricter
+than `archived` (LIF-12's own purchase-screen exception) and not the `read_only` the requirement claimed.
+
+**Decided:** neither "fully offline" nor plain `read_only` — a third, narrower tier. The public side and
+staff stay exactly as strict as before (fully offline, refused entirely); the owner gets *less* than
+`read_only`'s full view/export set, limited to the routes that resolve the suspension: view balance, top up,
+quote/confirm a renewal or purchase. Reading/exporting data and invoices stay refused.
+
+**Fixed:** added a `suspendedOwner` option to `DashboardOptions`/`DashboardGuard`, independent of `lapsed`
+(suspension is a separate axis from lifecycle state — a tenant can be suspended in any state). Applied to
+`billing/quote`, `billing/purchase`, `balance` (current), `balance/top-up/quote`, `balance/top-up/confirm`,
+and `/me` (so the owner can even see they're suspended). `/me` now also returns `tenant.suspended: boolean`.
+`DashboardShell` renders a dedicated narrow `Suspended` view (`apps/admin/src/views/suspended/index.tsx`,
+reusing the existing `TopUpForm`) instead of the old dead-end card. **Not built in this pass:** a renewal UI
+for the suspended owner — `billing/quote`/`billing/purchase` are reachable, but there's no plan/term picker
+wired up for this specific screen yet (the existing one lives in the full billing view, itself not
+suspended-owner-safe since it also calls invoices/downgrade/etc.). Top-up is the one complete, self-contained
+action shipped today. Covered by e2e tests in `dashboard.e2e.spec.ts` (owner reaches `/me`/balance/quote
+while suspended, not ledger/current-rates) and `staff.e2e.spec.ts` (staff still fully refused).
 
 ## 10. TRL-01/TRL-07: trial→pay-as-you-go conversion is built but never scheduled
 

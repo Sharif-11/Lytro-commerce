@@ -22,15 +22,18 @@ export interface MeResponse {
     slug: string;
     shopName: string;
     state: TenantSummary['state'];
+    suspended: boolean;
     planName: string | null;
     periodEnd: string | null;
   } | null;
 }
 
 // The dashboard shell's account summary.
+// LIF-24 (decided 2026-10-16): also carries `suspendedOwner: true` -- the owner needs /me to succeed while
+// suspended so the dashboard shell can render the narrow suspended view instead of a dead end.
 @ApiTags('Me')
 @Controller('me')
-@Dashboard({ lapsed: true, withoutShop: true })
+@Dashboard({ lapsed: true, suspendedOwner: true, withoutShop: true })
 @UseGuards(SessionGuard, DashboardGuard)
 export class MeController {
   constructor(@Inject(StaffService) private readonly staff: StaffService) {}
@@ -57,6 +60,7 @@ export class MeController {
               slug: tenant.slug,
               shopName: tenant.shopName,
               state: tenant.state,
+              suspended: tenant.suspendedAt !== null,
               planName: tenant.planName,
               periodEnd: tenant.periodEnd?.toISOString() ?? null,
             },

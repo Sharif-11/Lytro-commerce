@@ -49,6 +49,9 @@ import {
 // LIF-11/LIF-12: `quote`, `purchase` and both invoice routes carry `lapsed: true` so a locked/archived/deleted
 // owner can still renew and read invoices; DashboardGuard's own lapsed carve-out already restricts this to the
 // owner session, never staff.
+// LIF-24 (decided 2026-10-16): `quote` and `purchase` also carry `suspendedOwner: true`, since renewing/paying
+// off a suspended tenant is exactly the "activity that benefits the operator side" a suspended owner is meant
+// to still reach -- the invoice routes deliberately do not, since reading/exporting past invoices is not.
 @ApiTags('Billing')
 @Controller('billing')
 @Dashboard({})
@@ -63,7 +66,7 @@ export class BillingController {
   ) {}
 
   @Post('quote')
-  @Dashboard({ lapsed: true })
+  @Dashboard({ lapsed: true, suspendedOwner: true })
   @RequirePermission(Permission.PaymentsManage)
   @ResponseMessage('QuoteCreated')
   @ApiOperation({ summary: 'Quote a plan purchase or renewal' })
@@ -76,7 +79,7 @@ export class BillingController {
   }
 
   @Post('purchase')
-  @Dashboard({ lapsed: true, readOnlyWrite: true })
+  @Dashboard({ lapsed: true, suspendedOwner: true, readOnlyWrite: true })
   @UseInterceptors(IdempotencyInterceptor)
   @RequirePermission(Permission.PaymentsManage)
   @ResponseMessage('PurchaseConfirmed')

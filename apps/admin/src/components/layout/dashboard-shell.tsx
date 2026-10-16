@@ -11,6 +11,7 @@ import { MobileHeader } from '@/components/layout/mobile-header';
 import { visibleNavItems } from '@/components/layout/nav-items';
 import { PoweredByMark } from '@/components/layout/powered-by-mark';
 import { Sidebar } from '@/components/layout/sidebar';
+import { Suspended } from '@/views/suspended';
 
 interface DashboardShellProps {
   children: ReactNode;
@@ -35,10 +36,10 @@ export function DashboardShell({ children }: DashboardShellProps): React.JSX.Ele
     signOut.mutate();
   };
 
-  // LIF-24/LIF-11: a suspended tenant (any state) or a staff session on a locked/archived shop gets
-  // `tenant_offline` straight from /me (DashboardGuard throws before the route handler ever runs) — there's
-  // no successful tenant to read a state off, so the normal shell (which needs one for nav/shopName) can't
-  // render at all. This is the one screen for that, instead of a blank page or scattered per-widget errors.
+  // LIF-11: a staff session on a locked/archived shop gets `tenant_offline` straight from /me
+  // (DashboardGuard throws before the route handler ever runs) — there's no successful tenant to read a
+  // state off, so the normal shell (which needs one for nav/shopName) can't render at all. This is the one
+  // screen for that, instead of a blank page or scattered per-widget errors.
   if (me.isError && me.error instanceof ApiClientError && me.error.code === 'tenant_offline') {
     return (
       <AuthCard
@@ -50,6 +51,13 @@ export function DashboardShell({ children }: DashboardShellProps): React.JSX.Ele
         </Button>
       </AuthCard>
     );
+  }
+
+  // LIF-24 (decided 2026-10-16): a suspended owner reaches /me successfully (DashboardGuard's own
+  // suspendedOwner carve-out), but only for the narrow set of routes that help resolve the suspension —
+  // never the full dashboard. Shown instead of the normal shell, not alongside it.
+  if (me.data?.isOwner && me.data.tenant?.suspended) {
+    return <Suspended onSignOut={handleSignOut} signOutPending={signOut.isPending} />;
   }
 
   return (
