@@ -554,6 +554,19 @@ describeIfDatabase('staff sign-in on the shop host (AUTH-12, AUTH-13, STF-05)', 
     expect(errorOf(locked)).toMatchObject({ code: 'tenant_offline' });
   });
 
+  it('refuses staff entirely on a suspended shop, unlike the owner’s narrow access (LIF-24)', async () => {
+    const who = await owner();
+    await moveToPlan(who.slug, 'Starter');
+    const phone = texts.freshPhone();
+    expect((await addStaffWithPassword(who, phone, STAFF_PASSWORD)).status).toBe(201);
+    await admin.query('UPDATE control.tenants SET suspended_at = now() WHERE slug = $1', [
+      who.slug,
+    ]);
+    const suspended = await staffSignIn(who.slug, phone, STAFF_PASSWORD);
+    expect(suspended.status).toBe(403);
+    expect(errorOf(suspended)).toMatchObject({ code: 'tenant_offline' });
+  });
+
   it('lets a staff member sign in during grace, and refuses them once archived or deleted (P1-E16)', async () => {
     const who = await owner();
     await moveToPlan(who.slug, 'Starter');

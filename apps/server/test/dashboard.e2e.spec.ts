@@ -191,7 +191,7 @@ describeIfDatabase('the lifecycle gate at sign-in and on the dashboard (AUTH-22,
     expect(summary.body).toMatchObject({ tenant: { state: 'deleted' } });
   });
 
-  it('refuses a suspended shop to the dashboard, and sends the owner to the unavailable screen (LIF-24)', async () => {
+  it('sends a suspended owner to the "unavailable" next step, but still lets them reach /me (LIF-24)', async () => {
     const who = await owner();
     await admin.query('UPDATE control.tenants SET suspended_at = now() WHERE slug = $1', [
       who.slug,
@@ -199,8 +199,8 @@ describeIfDatabase('the lifecycle gate at sign-in and on the dashboard (AUTH-22,
     const signedIn = await signInWithPassword(who.phone);
     expect(signedIn.body).toMatchObject({ next: 'unavailable' });
     const summary = await get('/me', withSession({ cookie: cookieFrom(signedIn) }, PLATFORM.host));
-    expect(summary.status).toBe(403);
-    expect(summary.body).toMatchObject({ error: { code: 'tenant_offline' } });
+    expect(summary.status).toBe(200);
+    expect(summary.body).toMatchObject({ tenant: { suspended: true } });
   });
 });
 
@@ -234,7 +234,7 @@ describeIfDatabase(
       expect(balance.status).toBe(200);
     });
 
-    it('still refuses a suspended owner everywhere, including billing and balance (LIF-24)', async () => {
+    it('refuses a suspended owner invoices (view/export), but still lets them renew and see balance (LIF-24)', async () => {
       const who = await owner();
       await admin.query('UPDATE control.tenants SET suspended_at = now() WHERE slug = $1', [
         who.slug,
@@ -243,7 +243,23 @@ describeIfDatabase(
       expect(invoices.status).toBe(403);
       expect(invoices.body).toMatchObject({ error: { code: 'tenant_offline' } });
       const balance = await get('/balance', withSession(who, PLATFORM.host));
-      expect(balance.status).toBe(403);
+      expect(balance.status).toBe(200);
+      // No real plan/term id to quote against here -- the point is only that the guard lets the request
+      // reach the route handler at all (never tenant_offline), not that the quote itself succeeds.
+      const quote = await post('/billing/quote', {}, withSession(who, PLATFORM.host));
+      const quoteError = quote.body as { error?: { code?: string } };
+      expect(quoteError.error?.code).not.toBe('tenant_offline');
+    });
+
+    it('still refuses a suspended owner’s ledger and current-rates (view/export, not payment)', async () => {
+      const who = await owner();
+      await admin.query('UPDATE control.tenants SET suspended_at = now() WHERE slug = $1', [
+        who.slug,
+      ]);
+      const ledger = await get('/balance/ledger', withSession(who, PLATFORM.host));
+      expect(ledger.status).toBe(403);
+      const rates = await get('/balance/current-rates', withSession(who, PLATFORM.host));
+      expect(rates.status).toBe(403);
     });
   },
 );

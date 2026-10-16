@@ -18,6 +18,7 @@ export interface MeResponse {
     slug: string;
     shopName: string;
     state: TenantState;
+    suspended: boolean;
     planName: string | null;
     periodEnd: string | null;
   } | null;

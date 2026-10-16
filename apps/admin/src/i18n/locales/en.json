@@ -428,6 +428,10 @@
       "title": "Shop unavailable",
       "subtitle": "This shop is temporarily unavailable. Contact support if you believe this is a mistake."
     },
+    "suspended": {
+      "title": "Shop suspended",
+      "subtitle": "Your shop has been suspended by the operator. You can view your balance and top it up below; contact support for details."
+    },
     "logout": "Log out",
     "comingSoon": "This section is coming soon.",
     "fields": {

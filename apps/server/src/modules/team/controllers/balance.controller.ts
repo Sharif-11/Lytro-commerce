@@ -34,6 +34,10 @@ import { PlanPaymentDto } from '../dto/billing-response.dto';
 // BAL-01, BAL-08, BAL-14, RAT-06: a tenant's own balance, statement and current rates.
 // BAL-18: `current` carries `lapsed: true` so the frozen balance is still shown to the owner after lapse or
 // deletion; DashboardGuard's own lapsed carve-out already restricts this to the owner session, never staff.
+// LIF-24 (decided 2026-10-16): `current` and both top-up routes also carry `suspendedOwner: true`, since
+// topping up to pay off a suspension is exactly the "activity that benefits the operator side" a suspended
+// owner is meant to still reach -- `ledger` and `current-rates` deliberately do not, since viewing past
+// transactions or platform rates is not.
 @ApiTags('Balance')
 @Controller('balance')
 @Dashboard({})
@@ -46,7 +50,7 @@ export class BalanceController {
   ) {}
 
   @Get()
-  @Dashboard({ lapsed: true })
+  @Dashboard({ lapsed: true, suspendedOwner: true })
   @RequirePermission(Permission.BalanceRead)
   @ResponseMessage('BalanceRetrieved')
   @ApiOperation({ summary: "Get the shop's current balance" })
@@ -87,6 +91,7 @@ export class BalanceController {
   }
 
   @Post('top-up/quote')
+  @Dashboard({ suspendedOwner: true })
   @RequirePermission(Permission.BalanceManage)
   @ResponseMessage('TopUpQuoted')
   @ApiOperation({ summary: 'Quote a balance top-up' })
@@ -100,6 +105,7 @@ export class BalanceController {
   }
 
   @Post('top-up/confirm')
+  @Dashboard({ suspendedOwner: true })
   @UseInterceptors(IdempotencyInterceptor)
   @RequirePermission(Permission.BalanceManage)
   @ResponseMessage('TopUpConfirmed')

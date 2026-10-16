@@ -71,10 +71,17 @@ export class DashboardGuard implements CanActivate {
 
     const tenant = await this.summaries.findById(session.tenantId);
     if (!tenant) throw new ApiError('not_found', 'PageNotFound', {});
-    if (tenant.suspendedAt !== null) {
-      throw new ApiError('tenant_offline', 'ShopUnavailable', {});
-    }
     const ownerSession = session.userId === null;
+    if (tenant.suspendedAt !== null) {
+      // LIF-24 (decided 2026-10-16): suspension is a separate axis from lifecycle state, stricter than any
+      // lapsed state for everyone except the owner, who gets only the narrow set of routes that help
+      // resolve it (view balance, top up, renew/buy a plan) -- never the broader read_only set, never staff.
+      if (!(options.suspendedOwner === true && ownerSession)) {
+        throw new ApiError('tenant_offline', 'ShopUnavailable', {});
+      }
+      request.tenant = tenant;
+      return true;
+    }
     if (LAPSED.has(tenant.state) && !(options.lapsed === true && ownerSession)) {
       throw new ApiError('tenant_offline', 'ShopUnavailable', {});
     }
