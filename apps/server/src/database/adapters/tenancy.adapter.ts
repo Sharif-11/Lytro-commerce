@@ -119,6 +119,14 @@ export class DrizzleTenantStore implements TenantStore {
     return this.tenants.setAutoRenew(tx, tenantId, enabled);
   }
 
+  setRetentionFloor(
+    tx: Transaction,
+    tenantId: string,
+    floor: { days: number; until: Date },
+  ): Promise<void> {
+    return this.tenants.setRetentionFloor(tx, tenantId, floor);
+  }
+
   applyBalanceChange(
     tx: Transaction,
     tenantId: string,

@@ -337,6 +337,32 @@ toggle. Proven by five new cases in `apps/server/test/lifecycle.e2e.spec.ts` (`B
 from balance`): toggle + audit entries, successful renewal with sufficient balance, insufficient-balance
 fallthrough, toggle-off no-charge, and the LIF-01 cancellation override.
 
+## 26. `DWN-11`: a downgrade's shorter retention applied immediately, with no notice — found and fixed 2026-10-16
+
+Found during the same audit, then investigated and settled as a real, total gap (not `LIF-21`/`LIF-22`'s
+kind of ambiguity). `ActivityLogPurger` computed a tenant's retention straight from its *current* plan, live,
+on every run — the first purge after a downgrade applied its new, shorter window immediately, with no 14-day
+delay and no notice of what would be trimmed.
+
+**Fixed:** `control.tenants` gained `retention_floor_days`/`retention_floor_until` (both nullable) —
+written by `DowngradeService.apply` whenever the new plan's `activity_retention_days` is shorter than what
+the tenant is currently owed (the live plan's own, or an already-active floor's, whichever is longer), set to
+that longer value for 14 days (`RETENTION_NOTICE_DAYS`). The purge job's SQL now takes
+`GREATEST(floor_days, plan_days)` while the floor hasn't expired, `plan_days` after. The notice (SMS + email,
+audited as `AuditAction.RetentionShortenedNoticeSent`) names a real count of what will be trimmed, via a new
+`ActivityLogRepository.countInRange`/`AuditService.countInRange` (entries strictly between the old and new
+retention windows, excluding money-related actions — `AUD-07`'s own floor already protects those
+independently, so counting them would overstate what this notice is actually about). A second downgrade
+during an already-active floor extends it to the longer of the two, resetting the 14-day clock, rather than
+ever shortening a promise already made. Proven by three new cases in `apps/server/test/plan-downgrade.e2e.spec.ts`
+(`DWN-11: shorter retention is delayed 14 days, with a notice`) and one in `apps/server/test/activity.e2e.spec.ts`
+(the floor actually protecting, then releasing, an entry through a real purge run).
+
+**Not done in this pass:** the notice is a one-time count snapshot at downgrade time, not live-updating
+(matches `LIF-18`'s deletion-warning precedent); scope is `activity_retention_days`/`tenant.activity_log`
+only, the one retention-governed data category that exists today (orders/products have no module yet, same
+boundary `LIF-16` hit).
+
 ## Not a bug, just noting it so it isn't mistaken for one later
 
 The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data

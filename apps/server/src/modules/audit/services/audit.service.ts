@@ -38,4 +38,12 @@ export class AuditService {
     const nextCursor = hasMore && last ? { createdAt: last.createdAt, id: last.id } : null;
     return { entries, nextCursor };
   }
+
+  /** DWN-11: the "what will be trimmed" count for the retention-shrink notice. */
+  countInRange(
+    tenantId: string,
+    range: { after: Date; before: Date; excludeActions: string[] },
+  ): Promise<number> {
+    return this.store.run(tenantId, (tx) => this.store.countInRange(tx, tenantId, range));
+  }
 }

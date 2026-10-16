@@ -17,4 +17,10 @@ export interface AuditStore {
     cursor: ActivityCursor | null,
     limit: number,
   ): Promise<ActivityRecord[]>;
+  /** DWN-11: the "what will be trimmed" count for the retention-shrink notice. */
+  countInRange(
+    tx: Transaction,
+    tenantId: string,
+    range: { after: Date; before: Date; excludeActions: string[] },
+  ): Promise<number>;
 }

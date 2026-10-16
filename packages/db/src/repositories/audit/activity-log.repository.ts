@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, lt, lte, or } from 'drizzle-orm';
+import { and, count, desc, eq, gte, lt, lte, notInArray, or } from 'drizzle-orm';
 import { activityLog, type InsertActivityLog, type SelectActivityLog } from '../../schema';
 import type { Transaction, TransactionRunner } from '../../transactions';
 
@@ -53,5 +53,28 @@ export class ActivityLogRepository {
       .where(and(...conditions))
       .orderBy(desc(activityLog.createdAt), desc(activityLog.id))
       .limit(limit);
+  }
+
+  /** DWN-11: how many entries (excluding money-related ones, which survive independently -- AUD-07) fall
+   * strictly between `after` and `before` -- the "what will be trimmed" count for the retention-shrink notice. */
+  async countInRange(
+    tx: Transaction,
+    tenantId: string,
+    range: { after: Date; before: Date; excludeActions: string[] },
+  ): Promise<number> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const conditions = [
+      eq(activityLog.tenantId, tenantId),
+      gte(activityLog.createdAt, range.after),
+      lt(activityLog.createdAt, range.before),
+    ];
+    if (range.excludeActions.length > 0) {
+      conditions.push(notInArray(activityLog.action, range.excludeActions));
+    }
+    const rows = await tx
+      .select({ value: count() })
+      .from(activityLog)
+      .where(and(...conditions));
+    return rows[0]?.value ?? 0;
   }
 }

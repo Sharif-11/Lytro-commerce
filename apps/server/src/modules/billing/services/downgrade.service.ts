@@ -4,11 +4,15 @@ import {
   ActorType,
   AuditAction,
   AuditResult,
+  MONEY_RELATED_AUDIT_ACTIONS,
   ScheduledPlanChangeKind,
   TenantState,
 } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
+import { DAY_MS } from '../../../common/time';
 import { AuditService } from '../../audit/services/audit.service';
+import { MailService } from '../../shared/mail/services/mail.service';
+import { MessagingService } from '../../shared/messaging/services/messaging.service';
 import { DEFAULT_SEATS, StaffService } from '../../staff/services/staff.service';
 import { TenantService } from '../../tenancy/services/tenant.service';
 import type { ScheduledPlanChangesStore } from '../ports/scheduled-plan-changes-store';
@@ -21,6 +25,12 @@ export interface OverLimitItem {
   used: number;
   limit: number;
 }
+
+// LIF-26 2.3, AUD-06: the purge job's own fallback when a plan sets no `activity_retention_days`.
+const DEFAULT_ACTIVITY_RETENTION_DAYS = 30;
+
+// DWN-11: the shorter retention a downgrade brings never applies sooner than this many days after notice.
+const RETENTION_NOTICE_DAYS = 14;
 
 /**
  * DWN-01 to DWN-18: scheduling a downgrade to a lower-ranked plan, effective at the current period's end,
@@ -35,6 +45,8 @@ export class DowngradeService {
     @Inject(TenantService) private readonly tenants: TenantService,
     @Inject(StaffService) private readonly staff: StaffService,
     @Inject(AuditService) private readonly audit: AuditService,
+    @Inject(MessagingService) private readonly sms: MessagingService,
+    @Inject(MailService) private readonly mail: MailService,
   ) {}
 
   /** DWN-01: schedules a downgrade; re-scheduling replaces any existing one (the row is upserted). */
@@ -128,11 +140,22 @@ export class DowngradeService {
     if (!change.targetPlanId) throw new Error('a downgrade change is missing its target plan');
     const plan = await this.plans.findById(change.targetPlanId);
 
-    await this.tenants.runStandalone(async (tx) => {
+    const retentionShrink = await this.tenants.runStandalone(async (tx) => {
       const info = await this.tenants.findBillingInfo(tx, change.tenantId);
       if (!info || !info.periodStart || !info.periodEnd) {
         throw new Error('a downgrading tenant is missing its running period');
       }
+
+      // DWN-11: the best (longest) retention still owed -- either what the current plan already grants, or
+      // a still-active floor from an earlier downgrade, whichever is longer. Never the floor if it already
+      // expired; an expired floor offers no protection.
+      const floorActive = info.retentionFloorUntil !== null && info.retentionFloorUntil > now;
+      const oldDays = Math.max(
+        info.planSnapshot?.activity_retention_days ?? DEFAULT_ACTIVITY_RETENTION_DAYS,
+        floorActive ? (info.retentionFloorDays ?? 0) : 0,
+      );
+      const newDays = plan.limits.activity_retention_days ?? DEFAULT_ACTIVITY_RETENTION_DAYS;
+
       await this.tenants.applyPlanAssignment(tx, change.tenantId, {
         planId: plan.id,
         planSnapshot: plan.limits,
@@ -151,7 +174,21 @@ export class DowngradeService {
         result: AuditResult.Success,
         summary: { newPlanId: plan.id },
       });
+
+      if (newDays < oldDays) {
+        const floorUntil = new Date(now.getTime() + RETENTION_NOTICE_DAYS * DAY_MS);
+        await this.tenants.setRetentionFloor(tx, change.tenantId, {
+          days: oldDays,
+          until: floorUntil,
+        });
+        return { oldDays, newDays, floorUntil };
+      }
+      return null;
     });
+
+    if (retentionShrink) {
+      await this.sendRetentionShrinkNotice(change.tenantId, now, retentionShrink);
+    }
 
     const planStaffLimit = plan.limits.staff;
     // PLN-19: null means unlimited seats on the plan being applied, nothing to enforce.
@@ -161,6 +198,57 @@ export class DowngradeService {
       seatLimit,
       now,
     );
+  }
+
+  /**
+   * DWN-11: sent once, at the moment a downgrade shortens retention -- 14 days before the shorter retention
+   * actually takes effect (`retentionFloorUntil`, just written by the caller). Counts the non-money entries
+   * that sit strictly between the old and new retention windows -- exactly the ones that survive today but
+   * would not once the floor lifts -- so the notice names a real number, not just the two day-counts.
+   */
+  private async sendRetentionShrinkNotice(
+    tenantId: string,
+    now: Date,
+    shrink: { oldDays: number; newDays: number; floorUntil: Date },
+  ): Promise<void> {
+    const trimmedCount = await this.audit.countInRange(tenantId, {
+      after: new Date(now.getTime() - shrink.oldDays * DAY_MS),
+      before: new Date(now.getTime() - shrink.newDays * DAY_MS),
+      excludeActions: [...MONEY_RELATED_AUDIT_ACTIONS],
+    });
+    const effectiveDate = shrink.floorUntil.toDateString();
+    const body =
+      `Your shop's activity log retention is shortening from ${String(shrink.oldDays)} to ` +
+      `${String(shrink.newDays)} days. ${String(trimmedCount)} older entr${trimmedCount === 1 ? 'y' : 'ies'} ` +
+      `will be permanently removed starting ${effectiveDate}.`;
+
+    const contact = await this.staff.ownerContact(tenantId);
+    await this.tenants.runStandalone(async (tx) => {
+      if (contact?.phone) await this.sms.queueLifecycleNotice(tx, contact.phone, body);
+      if (contact?.email) {
+        await this.mail.queueLifecycleNotice(
+          tx,
+          contact.email,
+          'Your data retention is changing',
+          body,
+        );
+      }
+      await this.audit.record(tx, {
+        tenantId,
+        actorType: ActorType.System,
+        actorId: null,
+        action: AuditAction.RetentionShortenedNoticeSent,
+        targetType: 'tenant',
+        targetId: tenantId,
+        result: AuditResult.Success,
+        summary: {
+          oldDays: shrink.oldDays,
+          newDays: shrink.newDays,
+          floorUntil: shrink.floorUntil,
+          trimmedCount,
+        },
+      });
+    });
   }
 
   /**

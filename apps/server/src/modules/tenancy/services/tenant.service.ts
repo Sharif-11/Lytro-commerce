@@ -112,6 +112,15 @@ export class TenantService {
     return this.store.setAutoRenew(tx, tenantId, enabled);
   }
 
+  /** DWN-11: protects the tenant's pre-downgrade retention until `until`. */
+  setRetentionFloor(
+    tx: Transaction,
+    tenantId: string,
+    floor: { days: number; until: Date },
+  ): Promise<void> {
+    return this.store.setRetentionFloor(tx, tenantId, floor);
+  }
+
   /** TRL-07: the plan a trial converts to at day 30 with no purchase. */
   findPayAsYouGoPlan(tx: Transaction): Promise<{ id: string; limits: PlanLimits } | null> {
     return this.store.findPayAsYouGoPlan(tx);

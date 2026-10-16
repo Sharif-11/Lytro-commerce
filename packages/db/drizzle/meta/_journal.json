@@ -253,6 +253,13 @@
       "when": 1792165306451,
       "tag": "0035_auto_renew",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1792167025111,
+      "tag": "0036_retention_floor",
+      "breakpoints": true
     }
   ]
 }

@@ -52,6 +52,14 @@ export class DrizzleAuditStore implements AuditStore {
   ): Promise<ActivityRecord[]> {
     return this.log.list(tx, tenantId, filters, cursor, limit);
   }
+
+  countInRange(
+    tx: Transaction,
+    tenantId: string,
+    range: { after: Date; before: Date; excludeActions: string[] },
+  ): Promise<number> {
+    return this.log.countInRange(tx, tenantId, range);
+  }
 }
 
 /** Database-backed platform audit log (control.platform_audit_log, ADM-08). No tenant context. */
