@@ -251,6 +251,45 @@ describeIfDatabase('applying a downgrade (DWN-06, DWN-08, DWN-16, DWN-17)', () =
   });
 });
 
+describeIfDatabase('the recurring tick’s own entry point (DWN-06/08/15/17)', () => {
+  it('applies only the scheduled change whose effective date has already passed', async () => {
+    const rank = (nextRank += 2);
+    const highPlanId = await seedPlan(rank, 10);
+    const lowPlanId = await seedPlan(rank - 1, 10);
+
+    // Due: its period (and so its scheduled effective_at) ended yesterday.
+    const dueTenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
+    await activateTenant(
+      dueTenantId,
+      highPlanId,
+      new Date(Date.now() - 31 * 24 * 60 * 60 * 1000),
+      new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+    );
+    await downgrade.schedule(dueTenantId, lowPlanId);
+
+    // Not due: its period still has ten days left.
+    const notDueTenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
+    await activateTenant(
+      notDueTenantId,
+      highPlanId,
+      new Date(Date.now() - 20 * 24 * 60 * 60 * 1000),
+      new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
+    );
+    await downgrade.schedule(notDueTenantId, lowPlanId);
+
+    const applied = await downgrade.applyDueChanges(new Date());
+    expect(applied).toBe(1);
+
+    const dueTenant = await tenantRow(dueTenantId);
+    expect(dueTenant?.plan_id).toBe(lowPlanId);
+    expect(await downgrade.getScheduled(dueTenantId)).toBeNull();
+
+    const notDueTenant = await tenantRow(notDueTenantId);
+    expect(notDueTenant?.plan_id).toBe(highPlanId);
+    expect(await downgrade.getScheduled(notDueTenantId)).not.toBeNull();
+  });
+});
+
 describeIfDatabase('UPG-13: an upgrade cancels a pending downgrade', () => {
   it('leaves no scheduled_plan_changes row behind', async () => {
     const rank = (nextRank += 2);

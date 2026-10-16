@@ -15,4 +15,6 @@ export interface ScheduledPlanChangesStore {
   upsert(tx: Transaction, values: NewScheduledPlanChangeValues): Promise<ScheduledPlanChangeRecord>;
   findByTenant(tx: Transaction, tenantId: string): Promise<ScheduledPlanChangeRecord | null>;
   delete(tx: Transaction, tenantId: string): Promise<void>;
+  /** DWN-06/08/17: every scheduled change due to apply now -- the recurring tick's own candidate list. */
+  findDue(tx: Transaction, now: Date): Promise<ScheduledPlanChangeRecord[]>;
 }

@@ -216,4 +216,8 @@ export class DrizzleScheduledPlanChangesStore implements ScheduledPlanChangesSto
   delete(tx: Transaction, tenantId: string) {
     return this.changes.delete(tx, tenantId);
   }
+
+  findDue(tx: Transaction, now: Date) {
+    return this.changes.findDue(tx, now);
+  }
 }

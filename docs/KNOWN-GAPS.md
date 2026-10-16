@@ -122,12 +122,25 @@ suspended-owner-safe since it also calls invoices/downgrade/etc.). Top-up is the
 action shipped today. Covered by e2e tests in `dashboard.e2e.spec.ts` (owner reaches `/me`/balance/quote
 while suspended, not ledger/current-rates) and `staff.e2e.spec.ts` (staff still fully refused).
 
-## 10. TRL-01/TRL-07: trial→pay-as-you-go conversion is built but never scheduled
+## 10. TRL-01/TRL-07/DWN-06: three services built correctly, none ever scheduled — fixed 2026-10-16
 
-`TrialLifecycleService.convertExpiredTrials()` implements the day-30 conversion correctly, but — unlike
-`LifecycleService.runTick` (a real 5-minute pg-boss schedule via `LifecycleTickWorker`) — nothing calls it.
-A real trial reaching day 30 today stays `trial` forever. **Fix shape:** add a `TrialConversionWorker`
-analogous to `LifecycleTickWorker`.
+`TrialLifecycleService.convertExpiredTrials()` and `DowngradeService.apply()` (an already-due scheduled
+downgrade) were each logically correct but had no production caller at all — only their own direct e2e
+tests invoked them. `DowngradeService.apply()`'s gap was undiscovered until traced while explaining this
+exact scheduling architecture in conversation; it's the same bug as `TRL-01/07`'s, not a separate one.
+There was also no repository query yet for "which scheduled downgrades are due"
+(`ScheduledPlanChangesRepository` had `upsert`/`findByTenant`/`delete`, no `findDue`).
+
+**Fixed:** no new worker needed — `LifecycleTickWorker` already runs every 5 minutes (`D2-6`) for exactly
+this purpose. Added `ScheduledPlanChangesRepository.findDue`/the matching port method (`WHERE effective_at
+<= now`, the same shape `findLapsingCandidates`/`findExpiredTrialIds` already use), a new
+`DowngradeService.applyDueChanges(now)` that calls it and applies each due `Downgrade`-kind row (skipping
+`PayAsYouGoSwitch`, which nothing schedules yet — `PYG-10` isn't built), and wired both
+`trials.convertExpiredTrials()` and `downgrade.applyDueChanges(now)` into the tick alongside the existing
+`lifecycle.runTick(now)` call. Covered by a new `test/lifecycle-tick-worker.spec.ts` (proves the worker
+itself calls all three on every fire, with a fake pg-boss client — the exact layer whose absence let this
+bug exist) and a new e2e case in `plan-downgrade.e2e.spec.ts` (two tenants, one past due one not, only the
+due one changes plan).
 
 ## 11. PYG order-fee/product-fee charging (PYG-02/03/04/14/16/17/18) is correct but entirely unreachable
 

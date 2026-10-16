@@ -24,9 +24,8 @@ export interface OverLimitItem {
 
 /**
  * DWN-01 to DWN-18: scheduling a downgrade to a lower-ranked plan, effective at the current period's end,
- * with nothing changing before then (DWN-02). `apply()` is a plain injectable method, callable directly --
- * slice 7's recurring lifecycle job (D2-6) is what actually calls it once `effective_at` passes; nothing here
- * runs on a cron yet, the same deferred-trigger shape every other time-based mechanism in this plan uses.
+ * with nothing changing before then (DWN-02). `applyDueChanges` is called from `LifecycleTickWorker`
+ * alongside the lifecycle job's own `runTick`, the same recurring 5-minute cadence (D2-6).
  */
 @Injectable()
 export class DowngradeService {
@@ -162,5 +161,23 @@ export class DowngradeService {
       seatLimit,
       now,
     );
+  }
+
+  /**
+   * DWN-06/08/15/17: the recurring tick's own entry point -- every scheduled change whose `effective_at` has
+   * passed, applied one at a time so one tenant's failure doesn't block the rest. `PayAsYouGoSwitch` rows are
+   * skipped: `kind` already anticipates that reuse (PYG-10), but nothing schedules that kind yet, and `apply`
+   * itself only knows how to activate a plan, not switch to pay-as-you-go -- skipping rather than mishandling
+   * a kind that can't occur today.
+   */
+  async applyDueChanges(now: Date): Promise<number> {
+    const due = await this.store.run((tx) => this.store.findDue(tx, now));
+    let applied = 0;
+    for (const change of due) {
+      if (change.kind !== ScheduledPlanChangeKind.Downgrade) continue;
+      await this.apply(change, now);
+      applied += 1;
+    }
+    return applied;
   }
 }
