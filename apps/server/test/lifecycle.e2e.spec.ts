@@ -276,6 +276,119 @@ describeIfDatabase('LIF-01: cancel and undo', () => {
   });
 });
 
+describeIfDatabase('BIL-17: renew automatically from balance', () => {
+  async function seedTermAndPrice(planId: string, price: string): Promise<string> {
+    const termId = (
+      await admin.query<{ id: string }>(
+        `INSERT INTO control.billing_terms (label_bn, label_en, months, visible, display_order)
+         VALUES ('মাস', '1-month', 1, true, 0) RETURNING id`,
+      )
+    ).rows[0]?.id as string;
+    await admin.query(
+      'INSERT INTO control.plan_prices (plan_id, billing_term_id, price) VALUES ($1, $2, $3)',
+      [planId, termId, price],
+    );
+    return termId;
+  }
+
+  async function setAutoRenewFields(
+    tenantId: string,
+    termId: string,
+    enabled: boolean,
+  ): Promise<void> {
+    await admin.query(
+      'UPDATE control.tenants SET billing_term_id = $1, auto_renew_enabled = $2 WHERE id = $3',
+      [termId, enabled, tenantId],
+    );
+  }
+
+  it('toggling writes the flag and an audit entry', async () => {
+    const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
+
+    await lifecycle.setAutoRenew(tenantId, true);
+    let row = await admin.query<{ auto_renew_enabled: boolean }>(
+      'SELECT auto_renew_enabled FROM control.tenants WHERE id = $1',
+      [tenantId],
+    );
+    expect(row.rows[0]?.auto_renew_enabled).toBe(true);
+
+    await lifecycle.setAutoRenew(tenantId, false);
+    row = await admin.query<{ auto_renew_enabled: boolean }>(
+      'SELECT auto_renew_enabled FROM control.tenants WHERE id = $1',
+      [tenantId],
+    );
+    expect(row.rows[0]?.auto_renew_enabled).toBe(false);
+
+    const actions = await auditActions(tenantId);
+    expect(actions.filter((a) => a === AuditAction.AutoRenewToggled).length).toBe(2);
+  });
+
+  it('with the toggle on and enough balance, renews from balance instead of lapsing', async () => {
+    const planId = await seedPlan((nextRank += 1));
+    const termId = await seedTermAndPrice(planId, '199.00');
+    const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
+    await activateTenant(tenantId, planId, TenantState.Active, new Date(Date.now() - DAY_MS));
+    await setAutoRenewFields(tenantId, termId, true);
+    await balance.creditStandalone({ tenantId, amount: '500.00', type: LedgerEntryType.TopUp });
+
+    const result = await lifecycle.runTick(new Date());
+    expect(result.renewed).toBe(1);
+
+    const tenant = await tenantRow(tenantId);
+    expect(tenant?.state).toBe(TenantState.Active);
+    const actions = await auditActions(tenantId);
+    expect(actions).toContain(AuditAction.PlanRenewed);
+    expect(actions).not.toContain(AuditAction.LifecycleStateChanged);
+  });
+
+  it('with the toggle on but insufficient balance, falls through to the normal lapse', async () => {
+    const planId = await seedPlan((nextRank += 1));
+    const termId = await seedTermAndPrice(planId, '199.00');
+    const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
+    await activateTenant(tenantId, planId, TenantState.Active, new Date(Date.now() - DAY_MS));
+    await setAutoRenewFields(tenantId, termId, true);
+
+    const result = await lifecycle.runTick(new Date());
+    expect(result.renewed).toBe(0);
+
+    const tenant = await tenantRow(tenantId);
+    expect(tenant?.state).toBe(TenantState.Grace);
+    const actions = await auditActions(tenantId);
+    expect(actions).not.toContain(AuditAction.PlanRenewed);
+  });
+
+  it('with the toggle off, no charge is attempted even with sufficient balance', async () => {
+    const planId = await seedPlan((nextRank += 1));
+    const termId = await seedTermAndPrice(planId, '199.00');
+    const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
+    await activateTenant(tenantId, planId, TenantState.Active, new Date(Date.now() - DAY_MS));
+    await setAutoRenewFields(tenantId, termId, false);
+    await balance.creditStandalone({ tenantId, amount: '500.00', type: LedgerEntryType.TopUp });
+
+    const result = await lifecycle.runTick(new Date());
+    expect(result.renewed).toBe(0);
+
+    const tenant = await tenantRow(tenantId);
+    expect(tenant?.state).toBe(TenantState.Grace);
+  });
+
+  it('LIF-01: a cancelled subscription never auto-renews even with the toggle on', async () => {
+    const planId = await seedPlan((nextRank += 1));
+    const termId = await seedTermAndPrice(planId, '199.00');
+    const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
+    await activateTenant(tenantId, planId, TenantState.Active, new Date(Date.now() - DAY_MS));
+    await setAutoRenewFields(tenantId, termId, true);
+    await balance.creditStandalone({ tenantId, amount: '500.00', type: LedgerEntryType.TopUp });
+    await lifecycle.cancelSubscription(tenantId);
+
+    const result = await lifecycle.runTick(new Date());
+    expect(result.renewed).toBe(0);
+
+    const tenant = await tenantRow(tenantId);
+    expect(tenant?.state).toBe(TenantState.Grace);
+  });
+});
+
 describeIfDatabase('LIF-24: operator suspend and restore', () => {
   it('freezes on suspend and unfreezes on restore when not independently lapsed', async () => {
     const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');

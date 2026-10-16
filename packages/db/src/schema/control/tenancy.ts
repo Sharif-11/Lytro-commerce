@@ -69,6 +69,12 @@ export const tenants = control.table(
     contactPhone: varchar('contact_phone', { length: 30 }),
     contactEmail: varchar('contact_email', { length: 254 }),
     businessAddress: text('business_address'),
+    // BIL-17: the billing term the tenant's current period was bought/renewed for -- a plain uuid, not a
+    // Drizzle `.references()`, since `billing-terms.ts` already imports this table (tenant-scoped terms,
+    // TRM-14), and the reverse import would be circular. Null for trial/pay-as-you-go, which have no term.
+    billingTermId: uuid('billing_term_id'),
+    // BIL-17: "renew automatically from balance", off by default (an assumption the row itself names).
+    autoRenewEnabled: boolean('auto_renew_enabled').notNull().default(false),
   },
   (t) => [
     index('tenants_subscriber_idx').on(t.subscriberId),

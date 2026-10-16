@@ -101,9 +101,15 @@ export class TenantService {
       periodStart: Date;
       periodEnd: Date | null;
       state: TenantState;
+      billingTermId?: string | null;
     },
   ): Promise<void> {
     return this.store.applyPlanAssignment(tx, tenantId, values);
+  }
+
+  /** BIL-17: toggles the owner's own "renew automatically from balance" setting. */
+  setAutoRenew(tx: Transaction, tenantId: string, enabled: boolean): Promise<void> {
+    return this.store.setAutoRenew(tx, tenantId, enabled);
   }
 
   /** TRL-07: the plan a trial converts to at day 30 with no purchase. */

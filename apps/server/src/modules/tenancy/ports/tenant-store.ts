@@ -48,8 +48,11 @@ export interface TenantStore {
       periodStart: Date;
       periodEnd: Date | null;
       state: TenantState;
+      billingTermId?: string | null;
     },
   ): Promise<void>;
+  /** BIL-17: toggles the owner's own "renew automatically from balance" setting. */
+  setAutoRenew(tx: Transaction, tenantId: string, enabled: boolean): Promise<void>;
   /** Writes the new balance, and optionally the frozen flag and/or the cached last-activity timestamp (D2-11). */
   applyBalanceChange(
     tx: Transaction,

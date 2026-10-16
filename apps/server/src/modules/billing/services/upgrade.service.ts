@@ -169,6 +169,7 @@ export class UpgradeService {
       periodStart,
       periodEnd,
       state: TenantState.Active,
+      billingTermId: term.id, // BIL-17: the term auto-renewal will reuse at the next period end.
     });
     await this.downgrade.cancelIfScheduled(tx, payment.tenantId);
 

@@ -150,6 +150,7 @@ export class PurchaseService {
       periodStart,
       periodEnd,
       state: TenantState.Active,
+      billingTermId: term.id, // BIL-17: the term auto-renewal will reuse at the next period end.
     });
     // LIF-15: a purchase/renewal at any time before deletion restores the tenant exactly as it was. An
     // operator's own suspension (LIF-24) is deliberately not cleared here -- that is an operator-only

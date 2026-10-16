@@ -315,6 +315,28 @@ the plan's own shorter retention. Proven by a new test in `apps/server/test/acti
 money-related entry past plan retention but under 24 months survives a purge run; an ordinary entry the
 same age is purged as before; a money-related entry past 24 months is purged too (the floor isn't infinite).
 
+## 25. `BIL-17`: "renew automatically from balance" had zero implementation — found and fixed 2026-10-16
+
+Found during the same full Phase 1/Phase 2 SRS-vs-code audit. No column, no toggle route, and no renewal
+attempt anywhere in `LifecycleService.runTick` — a lapsing tenant always went straight down the Grace ladder,
+even one that had a working balance and would have wanted this option.
+
+**Fixed:** `control.tenants` gained `auto_renew_enabled` (boolean, default `false`) and `billing_term_id`
+(nullable uuid, not a Drizzle `.references()` to avoid a circular import with `billing-terms.ts`) — the
+latter written by `PurchaseService.activate`/`UpgradeService.activate` whenever a plan assignment carries a
+real term, and deliberately left untouched by `DowngradeService.apply` (a downgrade doesn't change the term).
+`POST /billing/auto-renew` (owner-only, `PaymentsManage`) toggles the flag via
+`LifecycleService.setAutoRenew`, audited as `AutoRenewToggled`. `LifecycleService.runTick` now calls a new
+private `tryAutoRenew` for any lapsing candidate still in the `active` state (the one tick where the period
+just ended but no lapse transition has happened yet) — it reuses `PurchaseService.quote`/
+`confirmFromBalance` rather than duplicating the pricing/extend logic, so a successful renewal is
+indistinguishable from a manual one (same `PlanRenewed` audit entry, same invoice). Falls through to the
+normal lapse ladder on insufficient balance, a plan pulled from sale, a removed price (any `ApiError`), or
+when LIF-01's own `cancelled_at` is set — the owner's explicit non-renewal intent always wins over the
+toggle. Proven by five new cases in `apps/server/test/lifecycle.e2e.spec.ts` (`BIL-17: renew automatically
+from balance`): toggle + audit entries, successful renewal with sufficient balance, insufficient-balance
+fallthrough, toggle-off no-charge, and the LIF-01 cancellation override.
+
 ## Not a bug, just noting it so it isn't mistaken for one later
 
 The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data
