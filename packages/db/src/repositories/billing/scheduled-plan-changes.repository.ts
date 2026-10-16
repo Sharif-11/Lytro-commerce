@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { eq, lte } from 'drizzle-orm';
 import { scheduledPlanChanges, type SelectScheduledPlanChange } from '../../schema';
 import type { ScheduledPlanChangeKind } from '@lytronix/validators';
 import type { Executor } from '../../transactions';
@@ -36,6 +36,12 @@ export class ScheduledPlanChangesRepository {
       .where(eq(scheduledPlanChanges.tenantId, tenantId))
       .limit(1);
     return rows[0] ?? null;
+  }
+
+  /** DWN-06/08/17: every scheduled change whose effective date has arrived -- the recurring tick's own
+   * candidate list, the same `WHERE ... <= now` shape `findLapsingCandidates`/`findExpiredTrialIds` use. */
+  async findDue(tx: Executor, now: Date): Promise<SelectScheduledPlanChange[]> {
+    return tx.select().from(scheduledPlanChanges).where(lte(scheduledPlanChanges.effectiveAt, now));
   }
 
   async delete(tx: Executor, tenantId: string): Promise<void> {

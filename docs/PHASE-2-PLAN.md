@@ -12,17 +12,22 @@ Items marked **Decision** need your answer before the slice they affect starts. 
 
 **Phase 2 is complete when all of these hold:**
 
-**Status, closed out 2026-10-16:** both blockers found in the byte-by-byte re-read are resolved.
+**Status, closed out 2026-10-16:** every blocker found this day, across two separate passes, is resolved.
 1. **`BIL-13`/`LIF-12`/`BAL-18`**: `BillingController`/`BalanceController` now carry `lapsed: true` on the
    renewal quote/confirm, invoice and current-balance routes (PR #87), with e2e coverage for a locked,
    archived and deleted owner. `KNOWN-GAPS.md` #1 is closed.
 2. **`PLN-19`/`RAT-15`** (added 2026-10-16, after every slice above shipped): `D2-13` decided — `PLN-19`
    built now as Slice 9 (schema + plan editor + every existing `?? DEFAULT` consumer fixed), `RAT-15`
    deferred to Phase 5 alongside its only real consumer, `WAL-20`. See `D2-13` and Slice 9 below.
+3. **`TRL-01`/`TRL-07`/`DWN-06`** (found later the same day, while explaining this phase's own scheduling
+   architecture): `TrialLifecycleService.convertExpiredTrials()` and `DowngradeService.apply()` were each
+   correct in isolation but had no production caller at all. Now both run from `LifecycleTickWorker`
+   alongside `LifecycleService.runTick`, on the same 5-minute cycle. `KNOWN-GAPS.md` #10 is closed. See
+   Slice 7's own note below.
 
-(Criterion 4 was a third blocker as of the morning of 2026-10-16 — the public prices endpoint only existed
-on the still-open PR #84 — but #84 merged into `main` at 12:01 that day, so that one resolved itself before
-either of the above landed.)
+(Criterion 4 was a fourth near-miss as of the morning of 2026-10-16 — the public prices endpoint only
+existed on the still-open PR #84 — but #84 merged into `main` at 12:01 that day, so that one resolved
+itself before any of the above landed.)
 
 1. Every `M` requirement in PLN, TRL, TRM, PYG, BIL, UPG, DWN, LIF, BAL and RAT has a passing automated test.
 2. The lifecycle scheduled job transitions a tenant through every state boundary (grace, read-only, locked, archived, deleted) within its 15-minute SLA (LIF-03), derived purely from stored dates (LIF-04) so a test clock can simulate any date, and is idempotent under a doubled or missed run (LIF-23).
@@ -174,6 +179,7 @@ Each slice is one branch and one pull request. CI must pass before merge. Slices
 - **Delivers:** the recurring lifecycle job (grace → read-only → locked → archived → deleted, derived from stored dates, idempotent) — including the pay-as-you-go inactivity scan (`PYG-21`, D2-11: `last_activity_at` older than 23 days → warning, older than 30 → `archived`) as a second pass of the same recurring job, not a separate mechanism; the `tenant_offline` gate at each stage; data export (`LIF-16`); the two deletion warnings and the day-60 deletion job itself (`LIF-19`, keeping balance/invoices/payment history per `LIF-20`); restore-at-any-point (`LIF-15`, which for a pay-as-you-go tenant just means a qualifying action before day 30, or buying/topping-up before day 60); operator suspend/restore (`LIF-24`).
 - **Requirements:** LIF-01 to LIF-26, PYG-21.
 - **Done when:** a test clock set to day 4 yields `read_only` with no manual change; running the day-60 job twice produces one deletion and one notification, not two; buying a plan on day 20 restores everything — data, public side, balance — within the stated time; a pay-as-you-go tenant idle since day 0 gets its warning at day 23 and is `archived` at day 30, exactly once each; a top-up on day 28 cancels both.
+- **Gap found and fixed 2026-10-16** (`KNOWN-GAPS.md` #10): this slice's own `LifecycleTickWorker` never called `TrialLifecycleService.convertExpiredTrials()` (`TRL-01/07`) or applied a due scheduled downgrade (`DowngradeService.apply()`, `DWN-06/08/15/17`) — both services were correct, tested in isolation, and simply never invoked in production. Now called from the same tick, alongside `LifecycleService.runTick`.
 
 ### Slice 8: dashboard and operator-console UI
 - **Branch:** `feat/billing-ui` (plus a second for the operator-editor screens if it grows too large for one PR — split the same way Phase 1's slice 9 did)

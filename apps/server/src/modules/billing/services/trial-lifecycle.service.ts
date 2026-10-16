@@ -10,8 +10,8 @@ import { CLOCK } from '../tokens';
  * columns. Filtering by `state = Trial` is what excludes a tenant who already bought a plan during their
  * trial (TRL-06): a purchase moves state to Active before this ever runs, so there is nothing else to check.
  *
- * Callable directly (the SRS's own "JOB" verification type) -- the actual recurring schedule is slice 7's
- * `D2-6` mechanism, not built here.
+ * Called from `LifecycleTickWorker` on the same recurring 5-minute tick as `LifecycleService.runTick`
+ * (D2-6) -- also callable directly, the SRS's own "JOB" verification type.
  */
 @Injectable()
 export class TrialLifecycleService {
