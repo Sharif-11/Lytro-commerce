@@ -159,12 +159,61 @@ Not code drift (no session-limit enforcement exists yet to check either way) —
 order limit," §6's own table says a flat number "independent of the order-handling limit." Needs
 reconciling to one source of truth before this is ever implemented.
 
-## 20. Dev-seed gap: no "Pro" plan in the local dev database
+## 20. New requirements added 2026-10-16 — not yet planned into any phase
+
+User-requested, specified as formal SRS rows the same day, not yet scoped into a phase plan:
+
+- **`STA-01` to `STA-04`** (new §15.3): tenant-facing order/revenue stats, hot-selling products, and
+  per-product selling trends, bucketed weekly/monthly/quarterly/yearly. Blocked on the same missing
+  orders/products modules as gap #11 — genuinely unbuildable until Phase 3/4 ships, not just unplanned.
+- **`ADM-03` amended**: the operator's tenant-detail view now also specifies a business summary (the same
+  figures `STA-01` gives the tenant) and summarized order stats. Same orders-module dependency.
+- **`ADM-09` amended**: operator SaaS-level reporting now explicitly means weekly/monthly/quarterly/yearly
+  buckets and per-plan tenant counts including pay-as-you-go as its own designation. The subscription/top-up
+  revenue half of this is buildable today (the ledger already has it); the automated-gateway-commission half
+  waits on `WAL-20`.
+- **`WAL-20`/`WAL-21`** (new): a configurable percentage commission on automated-gateway (level 3,
+  bKash/Nagad API) verified orders, charged to the tenant's balance, applying to every tenant regardless of
+  plan; insufficient balance falls back to listener/manual verification rather than blocking the order.
+  Confirmed via `AskUserQuestion` 2026-10-16: pure percentage (no flat floor, unlike `PYG-02`'s order fee),
+  applies broadly, fallback not refusal. Blocked on `WAL-19`'s own gateway plugins, which aren't built
+  either — this is new scope on top of unbuilt scope.
+- **`RAT-15`** (new): the commission rate itself, following the existing `RAT-*` rate-settings pattern.
+- **`PLN-19`** (new): the operator shall be able to set any individual plan limit to **unlimited** instead
+  of a number, independently per limit (a plan can be unlimited on storage while still capped on seats).
+  Generalizes two special cases already hard-coded unconditionally today (order *creation*, `QTA-07`, and
+  courier connections) into an operator-configurable property of any limit on any plan. **Implementation
+  shape, recorded now while the design choice is fresh, not mandated by the SRS row itself:** the cleanest
+  fit for `packages/validators/src/db/plans/plan-limits.ts`'s existing `z.number().int().nonnegative().
+  optional()` fields is adding `.nullable()` to each — `null` = unlimited, `undefined` = not set (existing
+  fallback-to-default behavior, e.g. `plan.limits.staff ?? DEFAULT_SEATS`), a number = capped. Every real
+  consumption site that currently reads a limit with a `?? DEFAULT` fallback (seat enforcement in
+  `staff.service.ts`, `DowngradeService.preview`, the `STA`-adjacent near-limit upsell banner this session
+  built) needs an explicit `null`-means-no-cap branch added, not just the schema change — a blanket `??`
+  fallback would silently treat `null` as "use the default," the opposite of unlimited. Most other
+  consumers (order/product/storage/bandwidth enforcement) don't exist yet, same orders/products-module
+  dependency as the rest of this list.
+
+Confirmed already-specified, not new: automated verification via the SMS listener (level 2) staying free
+regardless of plan or trial state was already `LSN-07`/`PYG-15` — nothing changed there.
+
+## 21. Dev-seed gap: no "Pro" plan in the local dev database
 
 `MARKETING-PLAN.md`/`SRS.md`/`SRS-detailed.md` all describe three plans (Starter/Growth/Pro). The live local
 dev DB's `GET /plans` only returns Starter and Growth — looks like incomplete local seed data, not a
 deliberate drop of the tier (no seed script was found under `packages/db` to check directly). Worth a look
 before relying on "Pro" being purchasable in any further live testing against this same dev DB.
+
+## 22. `TEN-30`/`SFT-21` (added 2026-10-16) — tenant contact details and storefront footer/contact-us — not built
+
+New requirement, not a drift: a tenant has no way today to set a support phone, support email or shop address
+(no field for any of the three exists on `control.tenants` or in the dashboard settings screens built so
+far — only shop name and logo, `TEN-16`), and the storefront has no footer or contact-us section at all
+(`SFT-13` covers branding only). `TEN-30` adds the three settings fields; `SFT-21` adds the storefront
+section that reads them. `TEN-30` falls in Phase 1's own requirement range, but Phase 1 already shipped —
+`IMPLEMENTATION-PLAN.md` now flags it as a small follow-up slice there rather than waiting for a later phase,
+since it has no dependency on anything Phase 2+ builds. `SFT-21` lands normally in Phase 3 alongside the rest
+of `SFT-*`, which hasn't shipped yet.
 
 ## Not a bug, just noting it so it isn't mistaken for one later
 

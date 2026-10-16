@@ -1,12 +1,21 @@
 # Implementation plan
 
-Status: draft v1, 2026-10-02. How to actually build the system `SRS.md`/`SRS-detailed.md` specify, `DATABASE-SCHEMA.md` and `API-CONTRACT.md` shape, and `ENGINEERING-STANDARDS.md` governs — in dependency order, not alphabetical or by document section. Each phase lists what it delivers, which requirement IDs it closes, why it sits where it does, and what would break if built out of order. Durations are rough, solo-operator-paced estimates, not commitments — re-estimate once Phase 0 is real and you know your own velocity.
+Status: draft v1, 2026-10-02; **progress updated 2026-10-16** — Phases 0 and 1 complete; Phase 2 nearly
+done (backend slices 1–7 and the UI pass, slice 8, both merged; one UI follow-up still open, see that
+phase's own note). How to actually build the system `SRS.md`/`SRS-detailed.md` specify, `DATABASE-SCHEMA.md` and `API-CONTRACT.md` shape, and `ENGINEERING-STANDARDS.md` governs — in dependency order, not alphabetical or by document section. Each phase lists what it delivers, which requirement IDs it closes, why it sits where it does, and what would break if built out of order. Durations are rough, solo-operator-paced estimates, not commitments — re-estimate once Phase 0 is real and you know your own velocity.
+
+New Phase 2 requirements added 2026-10-16 (`STA-*`, `PLN-19`, `WAL-20`/`WAL-21`, `RAT-15`, the `ADM-03`/
+`ADM-09` amendments — see `SRS-detailed.md` and `KNOWN-GAPS.md` #20 for the full detail) are slotted into
+the phases below where their real dependencies put them, not all crammed into Phase 2 just because that's
+when they were specified — most of them need Phase 3/4/5's own data and modules to mean anything.
 
 This is the build order for the **new** NestJS/Next.js/Vite multi-tenant platform, not a continuation of the existing single-tenant Express/MongoDB app at `Lytronix/lytronix` — that app is the data source for the one-time migration in Phase 10, and nothing else.
 
 ---
 
 ## Phase 0 — Tooling and skeleton (no product code yet)
+
+**Status: ✅ Complete.**
 
 **Delivers:** a repo that can run CI green on an empty app, before a single feature exists.
 
@@ -22,10 +31,13 @@ This is the build order for the **new** NestJS/Next.js/Vite multi-tenant platfor
 
 ## Phase 1 — Identity and tenancy core
 
+**Status: ✅ Complete.**
+
 **Delivers:** a person can sign up, a tenant exists, staff can sign in, every request is tenant-scoped.
 
 - `AUTH-01` to `AUTH-27` — sign-up (phone/email/Google/Facebook), OTP, sessions, password reset, the multi-identity policy (`OD-53`).
 - `TEN-01` to `TEN-29` — subdomain resolution, tenant isolation (tested per `SEC-02`'s cross-tenant-ID suite from day one, not bolted on later), session cookie scoping.
+  - `TEN-30` (added 2026-10-16, after this phase shipped) — dashboard-settings contact phone/email/shop address — is **not** built; it's a small, dependency-free CRUD addition to this phase's own settings screen, so it lands as a follow-up slice here rather than waiting for a later phase. See `KNOWN-GAPS.md`.
 - `STF-*` — staff accounts, roles, permissions.
 - `AUD-*` — the activity log (every later module writes to this, so it needs to exist first).
 - `I18N-01`/`I18N-02` — Bangla-default/English-toggle, at the dashboard-shell level, before there's much UI to translate (far cheaper than retrofitting i18n into finished screens).
@@ -37,9 +49,22 @@ This is the build order for the **new** NestJS/Next.js/Vite multi-tenant platfor
 
 ## Phase 2 — Plans, billing, lifecycle, balance
 
+**Status: 🔶 Nearly done, 2026-10-16.** Backend slices 1–7 (`PHASE-2-PLAN.md` §6) are merged. The one
+consolidated UI pass (slice 8, D2-10) is merged for everything it names except D2-12's marketing-site/
+upsell pair, which is built and open for review but not yet merged (`KNOWN-GAPS.md` tracks the branch/PR).
+Two real bugs surfaced building and auditing this phase, not yet fixed — `KNOWN-GAPS.md` #1
+(`BillingController`/`BalanceController` missing `lapsed: true`, so a lapsed owner's purchase/invoice
+routes 403 instead of working per `LIF-12`/`BIL-13`) and #9 (`LIF-24` suspension is a full outage, not
+`read_only` as written — needs a product decision, not just a code fix). Neither blocks calling this phase
+done; both are fast follow-ups once decided.
+
 **Delivers:** a tenant can trial, buy a plan, upgrade/downgrade, lapse, renew, delete — the entire subscription skeleton, with real money logic, before any product/order code exists.
 
 - `PLN-*`, `TRL-*`, `TRM-*`, `PYG-*` — plans as data, the one-month trial, billing terms, pay-as-you-go.
+- `PLN-19` (added 2026-10-16) — per-limit "unlimited" on a plan, independent of any specific limit's
+  number. Buildable now at the schema/plan-editor level (it only touches `control.plans`/the plan editor,
+  both already built); most of its *effects* land later, since most limit enforcement it would need to
+  respect (storage, bandwidth, order handling) doesn't exist until Phases 3/4.
 - `BIL-*` — purchase flow, invoices, the no-refund policy.
 - `UPG-*`, `DWN-*` — upgrade proration (the worked examples we recalculated), downgrade grace handling.
 - `LIF-*` — the full lifecycle state machine (grace → read-only → locked → archived → deleted) as scheduled jobs.
@@ -59,7 +84,7 @@ This is the build order for the **new** NestJS/Next.js/Vite multi-tenant platfor
 - `STO-*`, `BND-*`, `RTE-*`, `QTA-*` — the metered-limit enforcement machinery (now has real plan data from Phase 2 to read against).
 - `PRD-*`, `ATR-*` — products, variants, flexible attributes.
 - `MED-*` — R2 presigned uploads, the validation/resize/variant-generation job, the `control.used_transaction_ids`-style permanence pattern applied to media where relevant.
-- `SFT-*` — the shared storefront, served at subdomain root.
+- `SFT-*` — the shared storefront, served at subdomain root, including the footer/contact-us section (`SFT-21`, added 2026-10-16, reads `TEN-30`'s contact fields).
 - `CCH-*` — the layered cache (device → edge → process memory → Postgres), built in from the start since retrofitting caching into a storefront already in production is a much riskier change than building it in.
 - `I18N-01`/`I18N-02` extended to the storefront specifically (device-persisted toggle).
 
@@ -76,6 +101,11 @@ This is the build order for the **new** NestJS/Next.js/Vite multi-tenant platfor
 - `ORD-01` to `ORD-47` — order creation, the `payment_status`/`fulfillment_status` two-axis model, extraction from text (`AI`-adjacent, see Phase 7 for the AI provider itself).
 - `CUS-*` — customer records, addresses, the canonical zilla/thana list.
 - `API-11`'s mandatory `Idempotency-Key` for order creation, built in from this phase's first endpoint, not added after a double-order incident.
+- `STA-01` to `STA-04` (added 2026-10-16) — the tenant's own business statistics: order/revenue stats
+  bucketed weekly/monthly/quarterly/yearly, hot-selling products, per-product selling trends. Belongs here,
+  not Phase 2 where it was first specified, because every figure reads real `tenant.orders` rows (and
+  `STA-02`/`STA-03` also need Phase 3's products) — it's a reporting layer *over* this phase's own data,
+  not buildable before it. Natural last slice of this phase, once orders themselves are stable.
 
 **Why here:** orders need products (Phase 3) and the plan/limit machinery (Phase 2) to exist first; couriers and payments (next two phases) both *attach to* an existing order, so the order model needs to be stable before either.
 
@@ -88,6 +118,11 @@ This is the build order for the **new** NestJS/Next.js/Vite multi-tenant platfor
 - `WAL-*` — wallet/bank accounts, the plugin registry pattern (`WAL-6`).
 - `PAY-*` — hosted payment sessions, the `created → awaiting_payment → checking → verified` state machine.
 - `VER-*` — the three verification tiers (manual, listener, gateway), including the SIM-swap-aware cooldown added earlier (`SEC-14`'s sibling consideration) if you chose to build it.
+- `WAL-20`/`WAL-21`, `RAT-15` (added 2026-10-16) — the per-order commission on level-3 (automated gateway)
+  verification, charged to the tenant's balance regardless of plan, falling back to listener/manual
+  verification rather than blocking the order when the balance can't cover it. Build this alongside
+  `WAL-19`'s gateway plugins themselves, not after — the commission is part of what "level 3" means, not a
+  bolt-on; confirming the listener (level 2) stays commission-free either way (`LSN-07`/`PYG-15`, unchanged).
 - `LSN-*` — the SMS listener app's pairing/upload/matching pipeline, `tenant.listener_messages` with its 90-day redaction job.
 - `TVR-*` — tenant verification before the hosted page goes live, abuse controls.
 - `SEC-16` (stack traces never in production) should already be true everywhere by now, but re-verify specifically on payment error paths — this is the surface most likely to leak a provider's raw error text if someone's in a hurry.
@@ -130,7 +165,7 @@ This is the build order for the **new** NestJS/Next.js/Vite multi-tenant platfor
 
 **Delivers:** the operator can actually run the business, and external integrators have a real API surface.
 
-- `ADM-02` to `ADM-17` — full tenant management, the payment-review queue, manual entry tooling, platform settings UI (now has `control.platform_settings` from Phase 0 to manage).
+- `ADM-02` to `ADM-17` — full tenant management, the payment-review queue, manual entry tooling, platform settings UI (now has `control.platform_settings` from Phase 0 to manage). `ADM-03`'s tenant-detail business-summary/order-stats drill-down and `ADM-09`'s period-bucketed SaaS revenue/tenant-count reports (both amended 2026-10-16) read `STA-01`'s own aggregates (Phase 4) and `WAL-20`'s commission revenue (Phase 5) — sequence this after those two land, not before, or the figures would have nothing real to show. Note the tenant-list/search and suspend/restore slice of `ADM-02`/`ADM-04` already shipped early, in Phase 2's own UI pass (slice 8) — built ahead of this phase because `LIF-24` needed it and nothing else in `ADM-*` was ready to ride along yet; the rest of this range is still genuinely Phase 8 work.
 - `SUP-*` — the onboarding checklist, self-service support.
 - `API-01` to `API-23` — versioning, the generated OpenAPI spec (`API-15`, from NestJS decorators per the earlier decision), webhooks out, scopes.
 - `SMS-18` (shop-ready SMS) technically could land in Phase 1 alongside sign-up, but is listed here as a reminder to verify it still fires correctly once the full SMS/balance machinery from Phase 7 exists around it.
