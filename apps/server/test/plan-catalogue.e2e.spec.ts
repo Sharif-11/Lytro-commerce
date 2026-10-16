@@ -324,6 +324,52 @@ describeIfDatabase('billing terms (TRM-01 to TRM-16)', () => {
   );
 
   it(
+    'PLN-03: a plan price must be a positive whole number of taka',
+    async () => {
+      const headers = await operatorHeaders();
+      const plan = (
+        await post(
+          '/operator/plans',
+          { name: `PricePlan ${freshSlug()}`, rank: 9401, forSale: true, limits: LIMITS },
+          headers,
+        )
+      ).body as PlanBody;
+      const term = (
+        await post(
+          '/operator/billing-terms',
+          { labelBn: 'এক মাস', labelEn: 'One month', months: 1 },
+          headers,
+        )
+      ).body as { id: string };
+
+      const fractional = await put(
+        `/operator/plans/${plan.id}/prices/${term.id}`,
+        { price: 449.5 },
+        headers,
+      );
+      expect(fractional.status).toBe(400);
+
+      const zero = await put(`/operator/plans/${plan.id}/prices/${term.id}`, { price: 0 }, headers);
+      expect(zero.status).toBe(400);
+
+      const negative = await put(
+        `/operator/plans/${plan.id}/prices/${term.id}`,
+        { price: -449 },
+        headers,
+      );
+      expect(negative.status).toBe(400);
+
+      const whole = await put(
+        `/operator/plans/${plan.id}/prices/${term.id}`,
+        { price: 449 },
+        headers,
+      );
+      expect(whole.status).toBe(200);
+    },
+    BCRYPT_TIMEOUT_MS,
+  );
+
+  it(
     'TRM-14: a tenant-scoped term never appears on the public, no-auth route',
     async () => {
       const headers = await operatorHeaders();

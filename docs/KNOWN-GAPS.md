@@ -465,6 +465,20 @@ previously-broken overflow-into-March case, a case specifically chosen where the
 disagree (showing the old UTC-only-clamped answer would still have been three days wrong), and two
 sanity checks that a non-clamped, non-boundary addition is unaffected.
 
+## 30. `PLN-03`: a plan's price schema accepted fractional taka — found and fixed 2026-10-17
+
+Found during the full Phase 1/Phase 2 SRS-vs-code re-audit. The limits half of this requirement was already
+correct (`unlimitedInt()` in `packages/validators/src/db/plans/plan-limits.ts` already required `.int()`),
+but `setPlanPriceSchema` (`packages/validators/src/api/billing/plan-price-set.ts`) was only
+`z.coerce.number().positive()` — a price of `449.50` passed validation, violating "prices are positive
+whole taka." Zero test coverage existed for either the fractional case or the already-working zero/negative
+rejection.
+
+**Fixed:** added `.int()` to `setPlanPriceSchema`. Proven by a new case in
+`apps/server/test/plan-catalogue.e2e.spec.ts` (`PLN-03: a plan price must be a positive whole number of
+taka`): a fractional price, a zero price and a negative price are each refused with `validation_error`, a
+whole-number price is accepted.
+
 ## Not a bug, just noting it so it isn't mistaken for one later
 
 The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data
