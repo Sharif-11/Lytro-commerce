@@ -60,4 +60,7 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   // Checked in test/lifecycle.e2e.spec.ts: a shop cancels/undoes only its own subscription.
   'POST /billing/cancel': "cancels only the session shop's own subscription",
   'POST /billing/cancel/undo': "undoes only the session shop's own cancellation",
+  // Checked in test/shop-settings.e2e.spec.ts: a shop's own contact details only (TEN-30).
+  'GET /shop-settings': "reads only the session shop's own contact details",
+  'PATCH /shop-settings': "a session of shop A on shop B's host is refused, never updates shop B",
 };

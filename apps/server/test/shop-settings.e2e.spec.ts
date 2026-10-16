@@ -224,13 +224,19 @@ describeIfDatabase('shop contact settings (TEN-30)', () => {
     expect(allowed.status).toBe(200);
   });
 
-  it('refuses a session carried over to another shop’s host (TEN-28)', async () => {
+  it('refuses a session carried over to another shop’s host, for both GET and PATCH (TEN-28)', async () => {
     const mine = await owner();
     const theirs = await owner();
-    const response = await get('/shop-settings', {
-      cookie: mine.cookie,
-      host: `${theirs.slug}.localhost`,
-    });
-    expect(response.status).toBe(403);
+    const crossHost = { cookie: mine.cookie, host: `${theirs.slug}.localhost` };
+
+    const read = await get('/shop-settings', crossHost);
+    expect(read.status).toBe(403);
+
+    const write = await patch(
+      '/shop-settings',
+      { contactPhone: '+8801711111111' },
+      { ...crossHost, 'x-csrf-token': mine.csrfToken },
+    );
+    expect(write.status).toBe(403);
   });
 });
