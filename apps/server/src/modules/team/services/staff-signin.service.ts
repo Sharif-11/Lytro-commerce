@@ -52,6 +52,7 @@ export class StaffSigninService {
         actorId: member?.userId ?? null,
         action: AuditAction.SignInFailed,
         result: AuditResult.Failure,
+        ip: context.ip,
       });
       throw new ApiError('unauthenticated', 'PhoneOrPasswordWrong', {});
     }
@@ -75,6 +76,7 @@ export class StaffSigninService {
       actorId: member.userId,
       action: AuditAction.SignIn,
       result: AuditResult.Success,
+      ip: context.ip,
     });
     return {
       next: member.mustSetPassword ? 'set-password' : 'dashboard',
@@ -88,12 +90,13 @@ export class StaffSigninService {
   async changeOwnPassword(
     session: SessionRecord,
     input: { currentPassword?: string; newPassword: string },
+    ip?: string | null,
   ): Promise<void> {
     if (session.userId === null || session.tenantId === null) {
       throw new ApiError('forbidden', 'RequestNotAccepted', {});
     }
     const shop = { id: session.tenantId, planLimits: null };
-    await this.staff.changePassword(shop.id, session.userId, input, session.mustSetPassword);
+    await this.staff.changePassword(shop.id, session.userId, input, session.mustSetPassword, ip);
     await this.staff.inShop(shop, (tx) => this.sessions.clearMustSetPassword(tx, session));
   }
 }

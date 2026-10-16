@@ -785,6 +785,17 @@ describeIfDatabase('staff passwords (STF-13, AUTH-19, AUTH-20)', () => {
     );
     expect(right.status).toBe(200);
     expect((await staffSignIn(who.slug, phone, 'another-pass-1')).status).toBe(200);
+
+    // AUD-01/AUD-02: a staff member's own password change is itself auditable, with a real source IP -- this
+    // write used to be dead code (unreachable after an early `return`), so this also guards against that bug.
+    const entries = await admin.query<{ ip: string | null }>(
+      `SELECT ip FROM tenant.activity_log
+       WHERE tenant_id = (SELECT id FROM control.tenants WHERE slug = $1) AND action = 'password_changed'
+       ORDER BY created_at DESC LIMIT 1`,
+      [who.slug],
+    );
+    expect(entries.rowCount).toBe(1);
+    expect(entries.rows[0]?.ip).toBeTruthy();
   });
 
   it('lets only a holder of staff:manage reset a password', async () => {

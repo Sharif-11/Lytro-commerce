@@ -23,6 +23,7 @@ export interface AssignPlanInput {
   expiry: Date | null;
   reason: string;
   operatorId: string;
+  ip?: string | null;
 }
 
 /**
@@ -74,6 +75,7 @@ export class PlanAssignmentService {
       actorType: ActorType.PlatformSupport,
       actorId: null,
       action: AuditAction.PlanAssigned,
+      ip: input.ip ?? null,
       targetType: 'plan',
       targetId: input.planId,
       result: AuditResult.Success,
@@ -86,7 +88,7 @@ export class PlanAssignmentService {
       targetType: 'tenant',
       targetId: input.tenantId,
       result: AuditResult.Success,
-      ip: null,
+      ip: input.ip ?? null,
       summary: { planId: input.planId, reason: input.reason, expiry: input.expiry },
     });
 

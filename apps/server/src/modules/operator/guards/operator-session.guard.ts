@@ -10,6 +10,7 @@ const MUTATING_METHODS: ReadonlySet<string> = new Set(['POST', 'PUT', 'PATCH', '
 export interface OperatorSessionRequest {
   method: string;
   headers: Record<string, string | string[] | undefined>;
+  ip?: string;
   operatorSession?: OperatorSessionRecord;
 }
 

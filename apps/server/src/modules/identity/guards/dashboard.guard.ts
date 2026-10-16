@@ -20,6 +20,7 @@ export const LAPSED: ReadonlySet<TenantState> = new Set([
 export interface DashboardRequest {
   headers: Record<string, string | string[] | undefined>;
   method?: string;
+  ip?: string;
   session?: SessionRecord;
   tenant?: TenantSummary | null;
 }

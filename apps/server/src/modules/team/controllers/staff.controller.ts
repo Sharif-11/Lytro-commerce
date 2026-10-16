@@ -15,6 +15,7 @@ import { staffIdSchema } from '@lytronix/validators';
 import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
 import { ApiError } from '../../../common/api-error';
+import { ClientIp } from '../../../common/client-ip';
 import { Dashboard } from '../../../common/decorators/dashboard';
 import { RequirePermission } from '../../../common/decorators/require-permission';
 import { ResponseMessage } from '../../../common/decorators/response-message';
@@ -38,6 +39,7 @@ export class StaffController {
   constructor(
     @Inject(StaffService) private readonly staff: StaffService,
     @Inject(PhoneNumberFormat) private readonly phones: PhoneNumberFormat,
+    @Inject(ClientIp) private readonly clientIp: ClientIp,
   ) {}
 
   @Get()
@@ -72,6 +74,7 @@ export class StaffController {
         roleIds: body.roleIds,
       },
       this.actorOf(request),
+      this.clientIp.resolve(request),
     );
   }
 
@@ -94,6 +97,7 @@ export class StaffController {
       body,
       new Date(),
       this.actorOf(request),
+      this.clientIp.resolve(request),
     );
   }
 
@@ -118,6 +122,7 @@ export class StaffController {
       body.newPassword,
       new Date(),
       this.actorOf(request),
+      this.clientIp.resolve(request),
     );
     return { ok: true };
   }

@@ -41,7 +41,11 @@ export class PaymentQueueService {
     return this.payments.listPending(kind);
   }
 
-  async approve(paymentId: string, operatorId: string): Promise<PlanPaymentRecord> {
+  async approve(
+    paymentId: string,
+    operatorId: string,
+    ip?: string | null,
+  ): Promise<PlanPaymentRecord> {
     const now = this.clock();
     return this.tenants.runStandalone(async (tx) => {
       const payment = await this.payments.approve(tx, paymentId, operatorId, now);
@@ -58,15 +62,16 @@ export class PaymentQueueService {
           actorType: ActorType.User,
           actorId: null,
           action: AuditAction.BalanceToppedUp,
+          ip: ip ?? null,
           targetType: 'plan_payment',
           targetId: payment.id,
           result: AuditResult.Success,
           summary: { amount: payment.amount },
         });
       } else if (payment.kind === PlanPaymentKind.Upgrade) {
-        await this.upgrade.activate(tx, payment, now);
+        await this.upgrade.activate(tx, payment, now, ip);
       } else {
-        await this.purchase.activate(tx, payment, now);
+        await this.purchase.activate(tx, payment, now, ip);
       }
 
       await this.platformAudit.record({
@@ -76,7 +81,7 @@ export class PaymentQueueService {
         targetType: 'plan_payment',
         targetId: payment.id,
         result: AuditResult.Success,
-        ip: null,
+        ip: ip ?? null,
         summary: { kind: payment.kind, amount: payment.amount, tenantId: payment.tenantId },
       });
 
@@ -84,7 +89,12 @@ export class PaymentQueueService {
     });
   }
 
-  async reject(paymentId: string, operatorId: string, note: string): Promise<PlanPaymentRecord> {
+  async reject(
+    paymentId: string,
+    operatorId: string,
+    note: string,
+    ip?: string | null,
+  ): Promise<PlanPaymentRecord> {
     const now = this.clock();
     return this.tenants.runStandalone(async (tx) => {
       const payment = await this.payments.reject(tx, paymentId, operatorId, now);
@@ -95,7 +105,7 @@ export class PaymentQueueService {
         targetType: 'plan_payment',
         targetId: payment.id,
         result: AuditResult.Success,
-        ip: null,
+        ip: ip ?? null,
         summary: { kind: payment.kind, tenantId: payment.tenantId, note },
       });
       return payment;

@@ -14,6 +14,7 @@ import {
 import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
 import { ApiError } from '../../../common/api-error';
+import { ClientIp } from '../../../common/client-ip';
 import { SkipTenant } from '../../../common/decorators/skip-tenant';
 import { ResponseMessage } from '../../../common/decorators/response-message';
 import { OkDto } from '../../../common/dto/ok.dto';
@@ -49,6 +50,7 @@ export class OperatorPlansController {
   constructor(
     @Inject(PlansService) private readonly plans: PlansService,
     @Inject(PlanAssignmentService) private readonly assignments: PlanAssignmentService,
+    @Inject(ClientIp) private readonly clientIp: ClientIp,
   ) {}
 
   @Get()
@@ -124,6 +126,7 @@ export class OperatorPlansController {
       expiry: body.expiry ?? null,
       reason: body.reason,
       operatorId: operatorIdOf(request),
+      ip: this.clientIp.resolve(request),
     });
   }
 }

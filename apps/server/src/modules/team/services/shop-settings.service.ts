@@ -31,6 +31,7 @@ export class ShopSettingsService {
     tenantId: string,
     actingUserId: string | null,
     input: UpdateShopSettingsInput,
+    ip?: string | null,
   ): Promise<ShopSettings> {
     const values: Partial<ContactDetailsRow> = {};
     if ('contactPhone' in input) values.contactPhone = input.contactPhone ?? null;
@@ -47,6 +48,7 @@ export class ShopSettingsService {
       actorType: ActorType.User,
       actorId,
       action: AuditAction.ShopSettingsUpdated,
+      ip: ip ?? null,
       targetType: 'tenant',
       targetId: tenantId,
       result: AuditResult.Success,

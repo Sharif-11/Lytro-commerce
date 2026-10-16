@@ -375,7 +375,7 @@ export class LifecycleService {
 
   /** LIF-01: the owner's own non-renewal intent. The state machine never reads this (LIF-02 already reaches
    * `grace` at period end with no flag involved) -- it only drives the dashboard's own banner and audit trail. */
-  async cancelSubscription(tenantId: string): Promise<void> {
+  async cancelSubscription(tenantId: string, ip?: string | null): Promise<void> {
     await this.tenants.runStandalone(async (tx) => {
       await this.tenants.setCancellation(tx, tenantId, this.clock());
       await this.audit.record(tx, {
@@ -383,6 +383,7 @@ export class LifecycleService {
         actorType: ActorType.User,
         actorId: null,
         action: AuditAction.SubscriptionCancelled,
+        ip: ip ?? null,
         targetType: 'tenant',
         targetId: tenantId,
         result: AuditResult.Success,
@@ -391,7 +392,7 @@ export class LifecycleService {
     });
   }
 
-  async undoCancellation(tenantId: string): Promise<void> {
+  async undoCancellation(tenantId: string, ip?: string | null): Promise<void> {
     await this.tenants.runStandalone(async (tx) => {
       await this.tenants.setCancellation(tx, tenantId, null);
       await this.audit.record(tx, {
@@ -399,6 +400,7 @@ export class LifecycleService {
         actorType: ActorType.User,
         actorId: null,
         action: AuditAction.SubscriptionCancellationUndone,
+        ip: ip ?? null,
         targetType: 'tenant',
         targetId: tenantId,
         result: AuditResult.Success,
@@ -419,7 +421,7 @@ export class LifecycleService {
 
   /** BIL-17: the owner's own "renew automatically from balance" toggle, off by default. Read by `runTick`
    * (via `tryAutoRenew`) at the owner's own next period end -- never retroactive, never itself a charge. */
-  async setAutoRenew(tenantId: string, enabled: boolean): Promise<void> {
+  async setAutoRenew(tenantId: string, enabled: boolean, ip?: string | null): Promise<void> {
     await this.tenants.runStandalone(async (tx) => {
       await this.tenants.setAutoRenew(tx, tenantId, enabled);
       await this.audit.record(tx, {
@@ -427,6 +429,7 @@ export class LifecycleService {
         actorType: ActorType.User,
         actorId: null,
         action: AuditAction.AutoRenewToggled,
+        ip: ip ?? null,
         targetType: 'tenant',
         targetId: tenantId,
         result: AuditResult.Success,
@@ -437,7 +440,12 @@ export class LifecycleService {
 
   /** LIF-24: an operator suspension, independent of `state` -- DashboardGuard/TenantResolver already check
    * `suspendedAt` directly, so this never needs to touch `state` at all. */
-  async suspend(tenantId: string, reason: string, operatorId: string): Promise<void> {
+  async suspend(
+    tenantId: string,
+    reason: string,
+    operatorId: string,
+    ip?: string | null,
+  ): Promise<void> {
     await this.tenants.runStandalone(async (tx) => {
       await this.tenants.setSuspension(tx, tenantId, reason, this.clock());
       await this.balance.freeze(tx, tenantId);
@@ -446,6 +454,7 @@ export class LifecycleService {
         actorType: ActorType.PlatformSupport,
         actorId: operatorId,
         action: AuditAction.TenantSuspended,
+        ip: ip ?? null,
         targetType: 'tenant',
         targetId: tenantId,
         result: AuditResult.Success,
@@ -459,7 +468,7 @@ export class LifecycleService {
       targetType: 'tenant',
       targetId: tenantId,
       result: AuditResult.Success,
-      ip: null,
+      ip: ip ?? null,
       summary: { reason },
     });
   }
@@ -469,7 +478,7 @@ export class LifecycleService {
    * of the suspension) would not already require it frozen -- a suspended tenant who is also, say, `locked`
    * for non-payment stays frozen for that reason after the suspension itself is lifted.
    */
-  async restore(tenantId: string, operatorId: string): Promise<void> {
+  async restore(tenantId: string, operatorId: string, ip?: string | null): Promise<void> {
     await this.tenants.runStandalone(async (tx) => {
       await this.tenants.clearSuspension(tx, tenantId);
       const info = await this.tenants.findBillingInfo(tx, tenantId);
@@ -483,6 +492,7 @@ export class LifecycleService {
         actorType: ActorType.PlatformSupport,
         actorId: operatorId,
         action: AuditAction.TenantRestored,
+        ip: ip ?? null,
         targetType: 'tenant',
         targetId: tenantId,
         result: AuditResult.Success,
@@ -496,7 +506,7 @@ export class LifecycleService {
       targetType: 'tenant',
       targetId: tenantId,
       result: AuditResult.Success,
-      ip: null,
+      ip: ip ?? null,
       summary: {},
     });
   }

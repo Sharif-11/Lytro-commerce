@@ -3,6 +3,7 @@ import { ApiBody, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
 import { PlanPaymentKind } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
+import { ClientIp } from '../../../common/client-ip';
 import { SkipTenant } from '../../../common/decorators/skip-tenant';
 import { ResponseMessage } from '../../../common/decorators/response-message';
 import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
@@ -22,7 +23,10 @@ import { PlanPaymentDto, PlanPaymentListDto } from '../dto/billing-response.dto'
 @SkipTenant()
 @UseGuards(OperatorSessionGuard)
 export class OperatorPaymentQueueController {
-  constructor(@Inject(PaymentQueueService) private readonly queue: PaymentQueueService) {}
+  constructor(
+    @Inject(PaymentQueueService) private readonly queue: PaymentQueueService,
+    @Inject(ClientIp) private readonly clientIp: ClientIp,
+  ) {}
 
   @Get()
   @ResponseMessage('PaymentQueueListed')
@@ -45,7 +49,7 @@ export class OperatorPaymentQueueController {
   ): Promise<PlanPaymentRecord> {
     const session = request.operatorSession;
     if (!session) throw new ApiError('unauthenticated', 'SignInToContinue', {});
-    return this.queue.approve(id, session.operatorId);
+    return this.queue.approve(id, session.operatorId, this.clientIp.resolve(request));
   }
 
   @Post(':id/reject')
@@ -60,6 +64,6 @@ export class OperatorPaymentQueueController {
   ): Promise<PlanPaymentRecord> {
     const session = request.operatorSession;
     if (!session) throw new ApiError('unauthenticated', 'SignInToContinue', {});
-    return this.queue.reject(id, session.operatorId, body.note);
+    return this.queue.reject(id, session.operatorId, body.note, this.clientIp.resolve(request));
   }
 }

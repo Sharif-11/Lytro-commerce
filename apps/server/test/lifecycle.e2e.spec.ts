@@ -267,12 +267,20 @@ describeIfDatabase('LIF-01: cancel and undo', () => {
   it('audits the cancellation and the undo', async () => {
     const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
 
-    await lifecycle.cancelSubscription(tenantId);
+    await lifecycle.cancelSubscription(tenantId, '203.0.113.7');
     await lifecycle.undoCancellation(tenantId);
 
     const actions = await auditActions(tenantId);
     expect(actions).toContain(AuditAction.SubscriptionCancelled);
     expect(actions).toContain(AuditAction.SubscriptionCancellationUndone);
+
+    // AUD-02's broader retrofit: cancel/undo now thread the caller's own ip through to the audit row.
+    const rows = await admin.query<{ action: AuditAction; ip: string | null }>(
+      'SELECT action, ip FROM tenant.activity_log WHERE tenant_id = $1 ORDER BY created_at ASC',
+      [tenantId],
+    );
+    const cancelled = rows.rows.find((r) => r.action === AuditAction.SubscriptionCancelled);
+    expect(cancelled?.ip).toBe('203.0.113.7');
   });
 
   it('getCancellation reads back the same flag cancel/undo write', async () => {
@@ -498,7 +506,7 @@ describeIfDatabase('LIF-24: operator suspend and restore', () => {
     const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
 
     const operatorId = randomUUID();
-    await lifecycle.suspend(tenantId, 'policy violation', operatorId);
+    await lifecycle.suspend(tenantId, 'policy violation', operatorId, '203.0.113.9');
     let tenant = await tenantRow(tenantId);
     expect(tenant?.balance_frozen).toBe(true);
     const suspended = await admin.query<{ suspended_at: Date | null }>(
@@ -506,6 +514,14 @@ describeIfDatabase('LIF-24: operator suspend and restore', () => {
       [tenantId],
     );
     expect(suspended.rows[0]?.suspended_at).not.toBeNull();
+
+    // AUD-02's broader retrofit: an operator action now threads its own ip through too, on both the
+    // tenant's own log and the platform log (previously ip: null on both, unconditionally).
+    const suspendEntry = await admin.query<{ ip: string | null }>(
+      `SELECT ip FROM tenant.activity_log WHERE tenant_id = $1 AND action = 'tenant_suspended'`,
+      [tenantId],
+    );
+    expect(suspendEntry.rows[0]?.ip).toBe('203.0.113.9');
 
     await lifecycle.restore(tenantId, operatorId);
     tenant = await tenantRow(tenantId);
