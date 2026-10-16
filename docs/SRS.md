@@ -344,7 +344,7 @@ sequenceDiagram
 
 - **PAY-1** A session has a fixed amount set by the server, is single-use, and expires (for example after 30 minutes).
 - **PAY-2** The return address must be on the tenant's allow-list. Webhooks are signed, retried with backoff and logged.
-- **PAY-3** Session limits: 2 × the plan's monthly order limit per month, plus the per-minute limits in section 6.
+- **PAY-3** Session limits: 2 × the plan's monthly order limit per month, plus the per-minute limits in section 6. **Internal inconsistency, flagged 2026-10-16 (not code drift — no session-limit enforcement code exists at all yet, so neither formula is checkable today):** this contradicts §6's own table, which gives payment sessions per month as a flat number "independent of the order-handling limit above" (600/3,000/12,000), not a 2× derivation from it. Needs reconciling to one source of truth before this is ever implemented.
 - **PAY-4** A transaction ID can be used for only one payment across the platform.
 - **PAY-5** An amount or sender mismatch puts the payment in "needs review" for the tenant's staff; it is never guessed.
 
@@ -372,7 +372,7 @@ Only wallet-kind methods (bKash, Nagad, Rocket) support the automatic levels; ba
 **Tenant verification and abuse control**
 
 - **TVR-1** The hosted payment page is enabled only after the tenant's phone number is verified. This is the only identity check.
-- **TVR-2** Because the page carries the platform's name, it has a "Report this page" link, and an operator can suspend a tenant's payment page immediately.
+- **TVR-2** Because the page carries the platform's name, it has a "Report this page" link, and an operator can suspend a tenant's payment page immediately. **Correction, added 2026-10-16**: the real implementation has no payment-page-scoped suspend — `POST /operator/tenants/:id/suspend` suspends the *whole* tenant (a superset, via the same `suspendedAt` field `DashboardGuard` checks unconditionally — see `KNOWN-GAPS.md` #9), not a narrower payment-page-only toggle.
 - **TVR-3** An optional, editable payment-volume limit for new tenants (for example a low daily total for the first weeks) can be switched on.
 
 **Money handling.** Shoppers pay the tenant's wallet or merchant account directly. The platform does not hold, settle or refund shoppers' money. A legal check on whether this arrangement needs any licence in Bangladesh is a pre-launch item.
@@ -380,6 +380,8 @@ Only wallet-kind methods (bKash, Nagad, Rocket) support the automatic levels; ba
 ## 10. SMS and notifications
 
 Each SMS is a named event the tenant switches on or off, and every SMS except a small free allowance of essential ones is paid from the prepaid balance.
+
+**Not built beyond transactional OTP/reset SMS, added 2026-10-16** — `apps/server/src/modules/shared/messaging/` only sends sign-in codes and password-reset codes; there is no event-toggle concept, no template editor, no per-plan essential-SMS counter or enforcement, and no spend cap anywhere in the codebase. Order-triggered events specifically need an orders module that doesn't exist yet (same root cause as `KNOWN-GAPS.md` #11); the essential-allowance metering itself isn't wired up even independent of that.
 
 **Events (tenant chooses which send)**
 
@@ -473,9 +475,9 @@ Because sign-up is open and one person runs support, the platform must answer mo
 - **ADM-3 Actions.** Suspend or restore a tenant or its payment page, adjust a balance or extend a plan (each with a required reason), reset a tenant owner's sign-in, and export a tenant's data. Every action is written to the platform audit log.
 - **ADM-4 View-as-tenant.** Read-only by default, requires a ticket reference, and is written to the tenant's own activity log so the tenant can see it happened.
 - **ADM-5 Plan payments.** A queue of plan and top-up payments awaiting confirmation, using the same matching as shopper payments, with manual confirmation as a fallback.
-- **ADM-6 Notice board.** The operator publishes notices to tenants: title, body (Bangla and English), category (rate change, maintenance, new feature, policy, security, general), severity (info, important, urgent), audience (all tenants, selected plans, selected states, or one tenant), publish now or scheduled, optional end time, pinned. Tenants read them on a notice board page with an unread badge; urgent notices show as a banner on every page until dismissed; a notice can require acknowledgment, and the operator sees who acknowledged. Publishing sends in-app, push and email, never SMS charged to the tenant. Owners can still read notices while the account is read-only or locked.
+- **ADM-6 Notice board. Not built, added 2026-10-16** — no controller, service, store or DTO for a notice/notice-board concept exists anywhere in `apps/server/src/modules`; `control.notices` itself doesn't exist in code yet either (`RAT-09`'s own nullable `notice_id` column is deliberately unconstrained for exactly this reason). The operator publishes notices to tenants: title, body (Bangla and English), category (rate change, maintenance, new feature, policy, security, general), severity (info, important, urgent), audience (all tenants, selected plans, selected states, or one tenant), publish now or scheduled, optional end time, pinned. Tenants read them on a notice board page with an unread badge; urgent notices show as a banner on every page until dismissed; a notice can require acknowledgment, and the operator sees who acknowledged. Publishing sends in-app, push and email, never SMS charged to the tenant. Owners can still read notices while the account is read-only or locked.
 - **ADM-7 Platform settings.** Per-use rates, lifecycle stage lengths, thresholds and default limits are edited by the operator with an audit trail; a change applies only to future charges or to periods that end after it.
-- **ADM-8 Manual payment entry.** The operator can record, on behalf of a tenant, a plan purchase, renewal, upgrade or top-up paid outside the normal flow, with the wallet, transaction ID, sender number, payment time, evidence and a reason. It produces the same ledger entries, plan snapshot and invoice as the automatic path. Guards: the transaction ID must be unique, evidence and a reason are required, large or frequent entries need a second confirmation step, entries are append-only with reversing entries for corrections, the tenant sees each entry and is notified, and a daily digest of all manual entries is emailed to the owner. A tenant can also submit an "I have paid" claim, which only enters the review queue and never credits anything by itself.
+- **ADM-8 Manual payment entry. Not built, added 2026-10-16** — `OperatorPaymentQueueController` only has list/approve/reject for a tenant-submitted "I have paid" claim (ADM-5's own queue); there is no operator-initiated manual-entry route, no reversing-entry concept, and no daily-digest email anywhere in the codebase. The operator can record, on behalf of a tenant, a plan purchase, renewal, upgrade or top-up paid outside the normal flow, with the wallet, transaction ID, sender number, payment time, evidence and a reason. It produces the same ledger entries, plan snapshot and invoice as the automatic path. Guards: the transaction ID must be unique, evidence and a reason are required, large or frequent entries need a second confirmation step, entries are append-only with reversing entries for corrections, the tenant sees each entry and is notified, and a daily digest of all manual entries is emailed to the owner. A tenant can also submit an "I have paid" claim, which only enters the review queue and never credits anything by itself.
 
 **Support model**
 

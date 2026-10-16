@@ -141,16 +141,25 @@ Public reads always require a **public key** (decided 2026-10-02: no keyless/ano
 
 **Plan payments and top-ups do not create a `tenant.payment_sessions` row.** That table is Phase 5's shopper-order mechanism (`WAL-*`/`PAY-*`), built against `tenant.orders`, which doesn't exist yet and can't be depended on. A plan purchase or top-up instead creates a `control.plan_payments` row (`pending` → `needs_review`/`verified`) — the tenant submits a transaction ID the same way a shopper would on a hosted page, and today's confirmation step is an operator action standing in for Phase 5's real hosted page/gateway (`PHASE-2-PLAN.md` D2-1); only the confirmation *trigger* changes once Phase 5 ships, not this shape.
 
+**Updated 2026-10-16 (Phase 2 shipped):** the rows below replace an earlier pre-implementation sketch of
+this section — `/api/v1/plans/:id/purchase`, `/api/v1/plan-payments/:id/submit` and `/api/v1/invoices` never
+shipped under those names; the real routes are a `billing`-prefixed quote-then-confirm pair, same D2-1 shape,
+plus a split top-up quote/confirm pair instead of one combined submit.
+
 | Method | Path | Auth | Notes |
 | --- | --- | --- | --- |
 | GET | `/api/v1/balance` | session, `balance:read` | Amount, frozen flag. |
-| GET | `/api/v1/balance/ledger` | session, `balance:read` | `?type=&from=&to=` (BAL-14). |
-| POST | `/api/v1/balance/top-up` | session, `balance:manage` | `{ amount }` → a `control.plan_payments` row in `pending` (`kind: top_up`), with the platform's wallet number to pay to (BAL-03, D2-1). |
+| GET | `/api/v1/balance/ledger` | session, `balance:read` | `?type=&dateFrom=&dateTo=&cursor=&limit=`, keyset-paginated (BAL-14). |
+| GET | `/api/v1/balance/current-rates` | session | The tenant-facing current-rates page (RAT-06). |
+| POST | `/api/v1/balance/top-up/quote` | session, `balance:manage` | `{ amount }` → a `control.plan_payments` row in `pending` (`kind: top_up`) (BAL-03, D2-1). |
+| POST | `/api/v1/balance/top-up/confirm` | session, `balance:manage` | `{ paymentId, method: 'balance'\|'wallet', transactionId?, senderNumber?, amountPaid? }` — the wallet fields are required when `method` is `'wallet'`, refused otherwise. `'balance'` exists for shape-symmetry with purchase/upgrade (§8/§11 below); a top-up paying itself from the balance it's topping up has no real use, but nothing currently blocks it. |
 | GET | `/api/v1/plans` | none | For-sale plans only — not-for-sale plans never appear here, enforced server-side (PLN-10). No key or session: reachable by an anonymous marketing-site visitor as well as a signed-in tenant (D2-12) — plans are platform-wide data, not tenant-scoped catalogue data, so a public *key* (which is always tenant-scoped, §4) doesn't apply here. |
-| GET | `/api/v1/billing-terms` | none | Visible terms, each with the plans it's priced for (TRM-02, TRM-13). Same no-auth reasoning as `/plans`. |
-| POST | `/api/v1/plans/:id/purchase` | session | `{ billingTermId }` → quotes the price (held per `BIL-09`) and creates a `control.plan_payments` row in `pending` (`kind: purchase`); the response carries the wallet number to pay to, same shape as a top-up. |
-| POST | `/api/v1/plan-payments/:id/submit` | session | `{ senderNumber, transactionId }`, for either a top-up or a plan purchase → `needs_review` or `checking`, the same shape as `/payment-sessions/:id/submit` (§7) and the same confirmation path both D2-1 flows share. |
-| GET | `/api/v1/invoices` | session | Available in every lifecycle state, including after deletion (BIL-13). |
+| GET | `/api/v1/billing-terms` | none | Visible, platform-wide terms (TRM-02, TRM-13); a tenant-specific term (TRM-14) never appears here. Same no-auth reasoning as `/plans`. |
+| GET | `/api/v1/plans/:id/prices` | none | **Added for D2-12.** A for-sale plan's price per billing term — without this, neither the marketing site nor the dashboard's own comparison grid can show a real figure, only `/plans`' limits/features. Same no-auth reasoning as `/plans`; a not-for-sale plan answers `404`, same guard the quote endpoint below uses. |
+| POST | `/api/v1/billing/quote` | session, `payments:manage` | `{ planId, billingTermId }` → prices a purchase or a renewal of the tenant's current plan (picked automatically, not a separate endpoint) — a `control.plan_payments` row in `pending` (`kind: purchase` or `renewal`). |
+| POST | `/api/v1/billing/purchase` | session, `payments:manage` | `{ paymentId, method: 'balance'\|'wallet', transactionId?, senderNumber?, amountPaid? }` — `'balance'` activates the plan at once; `'wallet'` enters the operator's payment-queue review (§18). |
+| GET | `/api/v1/billing/invoices` | session, `payments:read` | Available in every lifecycle state, including after deletion (BIL-13). |
+| GET | `/api/v1/billing/invoices/:id` | session, `payments:read` | One invoice, including its plan-limits snapshot at the time (BIL-12). |
 
 ---
 
@@ -158,25 +167,38 @@ Public reads always require a **public key** (decided 2026-10-02: no keyless/ano
 
 Entirely separate base path and session type.
 
+**Updated 2026-10-16 (Phase 2 slice 8 shipped):** `operator/tenants` (list) and its suspend/restore pair
+built ahead of ADM-02's own later phase, since LIF-24 (operator suspend/restore) needed a way to find a
+tenant id at all — scoped narrowly to that, not the rest of this section's ADM-03/04/05 detail/balance-
+adjust/view-as screens, which are still genuinely not built.
+
 | Method | Path | Auth | Notes |
 | --- | --- | --- | --- |
-| GET | `/api/v1/operator/tenants` | operator | Search/filter (ADM-02). |
-| GET | `/api/v1/operator/tenants/:id` | operator | Full detail (ADM-03). |
-| POST | `/api/v1/operator/tenants/:id/suspend` | operator | `{ reason }` (ADM-04). |
-| POST | `/api/v1/operator/tenants/:id/balance-adjust` | operator | `{ amount, reason }` (ADM-04). |
-| POST | `/api/v1/operator/tenants/:id/view-as` | operator | `{ reason }` — issues a scoped, read-only, time-limited session (ADM-05). |
+| GET | `/api/v1/operator/tenants` | operator | **Built for LIF-24, not ADM-02 as originally planned.** `?query=&cursor=&limit=` — shop name or slug substring, keyset-paginated. No per-tenant detail route exists yet (ADM-03 below is still unbuilt). |
+| GET | `/api/v1/operator/tenants/:id` | operator | **Not built.** Full detail (ADM-03) — still genuinely future work. |
+| POST | `/api/v1/operator/tenants/:id/suspend` | operator | `{ reason }` (LIF-24). **Built.** |
+| POST | `/api/v1/operator/tenants/:id/restore` | operator | **Built, missing from this doc until now** — no body. Lifts a suspension independent of the tenant's own lifecycle `state` (LIF-24). |
+| POST | `/api/v1/operator/tenants/:id/balance-adjust` | operator | `{ amount, reason }` (ADM-04). **Built**, as a manual balance correction (`BAL-17`) — response is the resulting `LedgerEntry`, not a bare ok. |
+| POST | `/api/v1/operator/tenants/:id/view-as` | operator | **Not built.** `{ reason }` — issues a scoped, read-only, time-limited session (ADM-05) — still genuinely future work. |
 | GET | `/api/v1/operator/plans` | operator | Includes not-for-sale plans. |
-| POST | `/api/v1/operator/plans` | operator | `{ name, rank, forSale, limits, features, prices: [{billingTermId, price}] }` — creates version 1 (PLN-01/03). |
+| POST | `/api/v1/operator/plans` | operator | `{ name, description?, rank, forSale, limits, features }` — creates version 1 (PLN-01/03). Prices are set separately, per term, below — never inline on create. |
 | PATCH | `/api/v1/operator/plans/:id` | operator | Same body, partial; every edit snapshots the prior version to `control.plan_versions` first and increments `version` (PLN-02, D2-3). Never changes a period already paid for (PLN-06). |
 | DELETE | `/api/v1/operator/plans/:id` | operator | `409 conflict` if any snapshot references it — retire (`forSale: false` via PATCH) instead (PLN-08). |
 | GET | `/api/v1/operator/plans/:id/versions` | operator | Every prior version, each exactly as it stood when retired by the next edit (PLN-02, D2-3). |
 | POST | `/api/v1/operator/plans/:id/assign` | operator | `{ tenantId, expiry?, reason }` — no payment step (PLN-17). |
+| GET | `/api/v1/operator/plans/:planId/prices` | operator | A plan's price across every billing term — nested under the plan, not the term, since a price is a (plan, term) pair (TRM-03). |
+| PUT | `/api/v1/operator/plans/:planId/prices/:billingTermId` | operator | `{ price }` — sets or replaces the price for that pair (TRM-03). |
+| DELETE | `/api/v1/operator/plans/:planId/prices/:billingTermId` | operator | Removes the price for that pair. |
 | GET | `/api/v1/operator/billing-terms` | operator | Includes hidden/retired terms. |
-| POST | `/api/v1/operator/billing-terms` | operator | `{ labelBn, labelEn, months, visible, displayOrder, defaultDiscountPct? }` (TRM-01). |
+| POST | `/api/v1/operator/billing-terms` | operator | `{ labelBn, labelEn, months, visible, displayOrder, defaultDiscountPct?, tenantId? }` (TRM-01, TRM-14). |
 | PATCH | `/api/v1/operator/billing-terms/:id` | operator | Affects future purchases only — an existing snapshot keeps the term as bought (TRM-11). |
 | DELETE | `/api/v1/operator/billing-terms/:id` | operator | `409 conflict` if any snapshot used it — retire (`visible: false` via PATCH) instead (TRM-05). |
+| GET | `/api/v1/operator/tenants/:tenantId/limit-overrides` | operator | A tenant's own per-limit overrides (PLN-11). |
+| POST | `/api/v1/operator/tenants/:tenantId/limit-overrides` | operator | `{ limitKey, value, reason }` — reason required. |
+| DELETE | `/api/v1/operator/tenants/:tenantId/limit-overrides/:limitKey` | operator | Removes one override. |
 | GET | `/api/v1/operator/rates` | operator | |
-| PATCH | `/api/v1/operator/rates/:key` | operator | Immediate effect, never retroactive (RAT-02). |
+| GET | `/api/v1/operator/rates/:key/history` | operator | Every change to one rate (RAT-09). |
+| PATCH | `/api/v1/operator/rates/:key` | operator | `{ value, noticeId? }` — immediate effect, never retroactive (RAT-02). |
 | | | | Reviewing a pending top-up, purchase or upgrade's `control.plan_payments` row (D2-1) is not a separate endpoint — it's the same `/api/v1/operator/payment-queue` and `/approve`/`/reject` pair in §18, which already covers every kind of pending payment. |
 | POST | `/api/v1/operator/tenants/:id/verification/request` | operator | Opens a KYC request (KYC-01). |
 | GET | `/api/v1/operator/verifications` | operator, `kyc:review` | Queue, masked NID only (KYC-09). |
@@ -215,15 +237,22 @@ Delivered as signed JSON (`HMAC-SHA256`, timestamp + signature headers, 5-minute
 
 ## 11. Plan lifecycle depth
 
+**Updated 2026-10-16 (Phase 2 shipped):** every route below moved under `billing/`, matching §8's own
+purchase pair — not the standalone `plans/:id/...` shape this section originally sketched. `switch-to-payg`
+never shipped as an endpoint at all: a trial converts to pay-as-you-go automatically, by the trial-expiry
+job (TRL-07), never by an explicit tenant call.
+
 | Method | Path | Auth | Notes |
 | --- | --- | --- | --- |
-| POST | `/api/v1/plans/:id/upgrade/quote` | session | `{ billingTermId }` → credit, amount due, new dates (UPG-03..06); valid 15 minutes, recomputed at confirm (UPG-07). |
-| POST | `/api/v1/plans/:id/upgrade` | session | `{ quoteId }` → creates a `control.plan_payments` row (`kind: upgrade`) for the amount due, same confirmation path as a purchase (§8, D2-1); applies at once on confirmation (UPG-09..12). Only one pending upgrade per tenant (UPG-08). |
-| POST | `/api/v1/plans/downgrade` | session | `{ targetPlanId }`, schedules for period end; preview of every limit that would be exceeded (DWN-01..03). |
-| DELETE | `/api/v1/plans/downgrade` | session | Cancels a scheduled downgrade (DWN-04). |
-| POST | `/api/v1/plans/cancel` | session | Cancels at period end (LIF-01), undoable until then. |
-| POST | `/api/v1/plans/switch-to-payg` | session | Effective at period end, following downgrade timing (PYG-10). |
-| | | | Switching *from* pay-as-you-go *to* a subscription plan (PYG-11) has no endpoint of its own — it is a plain call to `/api/v1/plans/:id/purchase` (§8) at full price, no credit line, exactly as any other purchase. |
+| POST | `/api/v1/billing/upgrade/quote` | session, `payments:manage` | `{ planId, billingTermId }` → credit, amount due (UPG-03..06). Only valid while `active` with a live period and a real current plan; refused otherwise. |
+| POST | `/api/v1/billing/upgrade/confirm` | session, `payments:manage` | `{ paymentId, method: 'balance'\|'wallet', transactionId?, senderNumber?, amountPaid? }` — same two-method shape as `billing/purchase`; applies at once on a balance confirmation (UPG-09..12). Only one pending upgrade per tenant (UPG-08, `conflict`). |
+| POST | `/api/v1/billing/downgrade/preview` | session, `payments:manage` | `{ planId }` → the limits currently over the target plan (DWN-03) — informational, never blocks scheduling. |
+| POST | `/api/v1/billing/downgrade/schedule` | session, `payments:manage` | `{ planId }` → schedules for period end (DWN-01). |
+| POST | `/api/v1/billing/downgrade/cancel` | session, `payments:manage` | Cancels a scheduled downgrade before it takes effect (DWN-04). No body. |
+| GET | `/api/v1/billing/downgrade` | session, `payments:read` | The scheduled downgrade, or `null` when nothing is scheduled (DWN-02). |
+| POST | `/api/v1/billing/cancel` | session, `payments:manage` | Cancels at period end (LIF-01). No body. |
+| POST | `/api/v1/billing/cancel/undo` | session, `payments:manage` | Undoes a cancellation before period end (LIF-01). No body. **No corresponding GET exists** — there is currently no way to read back whether a cancellation is pending; both actions are fire-and-forget from the client's own point of view. |
+| | | | Switching *from* pay-as-you-go *to* a subscription plan (PYG-11) has no endpoint of its own — it is a plain `billing/quote` + `billing/purchase` call (§8) at full price, no credit line, exactly as any other purchase. |
 | GET | `/api/v1/addons` | session | Priced catalogue (PLN-13). **Deferred** — `S`-priority, not built in Phase 2 (`PHASE-2-PLAN.md` D2-4); listed here only so the shape isn't lost. |
 | POST | `/api/v1/addons/:key/purchase` | session, `balance:manage` | Prorated, takes effect at once (PLN-14). **Deferred**, same as above. |
 | GET | `/api/v1/usage` | session | Every metric against its limit, for the usage page (LIM-02). |
@@ -316,7 +345,7 @@ Observability (MON/OBS) is external services reading the database and applicatio
 
 ## 20. Open questions — resolved 2026-10-02
 
-1. **Public catalogue auth**: decided — a public key is always required, no keyless/anonymous path, for tenant-scoped storefront data. See §4. **Updated 2026-10-13**: this does not extend to platform-wide, non-tenant-scoped data — `/api/v1/plans` and `/api/v1/billing-terms` (§8) are deliberately keyless, since a public key is always tenant-scoped and these aren't tenant data at all (D2-12).
+1. **Public catalogue auth**: decided — a public key is always required, no keyless/anonymous path, for tenant-scoped storefront data. See §4. **Updated 2026-10-13, extended 2026-10-16**: this does not extend to platform-wide, non-tenant-scoped data — `/api/v1/plans`, `/api/v1/billing-terms` and `/api/v1/plans/:id/prices` (§8) are deliberately keyless, since a public key is always tenant-scoped and these aren't tenant data at all (D2-12).
 2. **Fulfillment endpoints**: decided — kept as two separate endpoints (`/book`, `/mark-shipped`), not merged into one `/fulfill` with a `method` field.
 3. **OpenAPI generation**: decided — generated from the NestJS decorators, not hand-authored, so API-15's "a build check shall fail when a route is missing from the description" is enforced by construction.
 4. **Chat delivery**: decided — long-poll at launch, no WebSocket/SSE infrastructure yet. See §13.

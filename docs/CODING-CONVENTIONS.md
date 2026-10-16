@@ -69,11 +69,18 @@ packages/validators/src/
   db/                enums.ts, plans/plan-limits.ts
   api/
     <domain>/
-      <resource>/    <resource>-<suffix>.ts
+      <resource>/    <resource>-<suffix>.ts     -- a domain with several schemas per resource
+      <action>.ts                               -- a domain with one schema per action, no resource nesting
   index.ts           barrel for the whole package
 ```
 
-- `api/` file suffixes are fixed: `-common` (fragments and action bodies used by more than one endpoint), `-create`, `-update`, `-details`, `-list`.
+- `api/` file suffixes are a loose convention, not a fixed enum — **corrected 2026-10-16**: the
+  `-common`/`-create`/`-update`/`-details`/`-list` set describes `staff/`, `roles/`, `activity/`'s own
+  files, but most domains added since (`balance/`, `billing/`, `operator/`, `platform/`, `auth/`) use plain
+  free-form action names directly under the domain folder with no `<resource>/` nesting at all —
+  `balance/top-up.ts`, `billing/purchase.ts`, `billing/upgrade.ts`, `billing/downgrade.ts`,
+  `platform/tenant-search.ts`, `auth/auth-code.ts`, and so on. Use `<resource>/<resource>-<suffix>.ts` when
+  a domain genuinely has several schemas for the same resource; otherwise a plain `<action>.ts` is fine.
 - Enumerations are TypeScript `enum`s. The database builds its Postgres enums from them, and never redefines values.
 - JSON column shapes are types from this package, applied with `$type<...>()`.
 - `package.json` declares subpath exports (`common`, `enums`, `plans`). Consumers may import a subpath.
@@ -129,17 +136,28 @@ apps/server/src/
     identity/                sign-up by phone
     tenancy/                 tenant resolution, slugs, trial shops
     staff/                   staff accounts
+    audit/                   platform/tenant activity log (Phase 2)
+    balance/                 ledger, rates, top-up (Phase 2, D2-8)
+    billing/                 plans, terms, prices, purchase/upgrade/downgrade, lifecycle state machine (Phase 2, D2-8)
+    operator/                operator session/2FA guards (Phase 2 slice 8's console sign-in)
+    payments/                plan payments, invoices (Phase 2)
+    platform-settings/       operator-editable platform-wide settings (stage lengths, etc.)
     health/                  health check
     shared/                  infrastructure shared by modules
       messaging/             outbox, SMS providers and the retry worker
     <module>/                each module has the same layout:
       <module>.module.ts
-      controllers/           HTTP only; calls a service
-      dto/                   request classes built from validators schemas
       services/              business rules; depends on ports (interfaces), never on the database
       ports/                 interfaces the services need; one file per contract, implemented in database/adapters
       types/                 result and input types that services return or accept
       tokens.ts              injection tokens for the module
+    team/                    **the one deliberate exception, added 2026-10-16**: every HTTP controller and
+                              request/response DTO for balance/billing/operator/staff/roles/activity actually
+                              lives here, not inside each domain module above — `team/controllers/*.ts`,
+                              `team/dto/*.ts`. The domain modules above have no `controllers/`/`dto/` of
+                              their own at all; `team` is the shared HTTP layer across them, calling into
+                              each one's real service the normal way. Not yet reconciled with the
+                              "each module has the same layout" rule two lines up — flagged, not resolved.
 ```
 
 ### Layering
@@ -183,11 +201,16 @@ apps/admin/src/
     dashboard/
       route.tsx               the layout route: the one session guard, renders the shell around an Outlet
       index.tsx                the dashboard home page
-      staff.tsx, roles.tsx, activity.tsx
+      staff.tsx, roles.tsx, activity.tsx, balance.tsx, billing.tsx, invoices.tsx
                                nested under the same layout, same one guard (D32, 2026-10-10 — a regular
                                `dashboard/` directory with a `route.tsx`, not a pathless `_dashboard/` group:
-                               the latter collides with the root route's own path)
-    operator/                sign-in, enroll, verify
+                               the latter collides with the root route's own path). balance/billing/invoices
+                               added in Phase 2 slice 8 (2026-10-16).
+    operator/                sign-in, enroll, verify, plus a `_console` pathless layout (Phase 2 slice 8,
+                              2026-10-16) guarding `plans.tsx`/`billing-terms.tsx`/`rates.tsx`/`tenants.tsx` —
+                              pathless, not a regular `operator/route.tsx`, since `operator/sign-in.tsx`
+                              already lives directly under `operator/` and a path-based guard there would
+                              also wrap sign-in itself (an infinite redirect loop, found and fixed live)
   views/<route>/
     index.tsx                 the real page
     components/                view-local components, used only by this view
@@ -195,11 +218,25 @@ apps/admin/src/
     ui/                       shared primitives (buttons, inputs, dialogs — not view-specific)
     layout/                   the dashboard shell, split by ENGINEERING-STANDARDS.md §2a's
                                container/presentational line:
-      dashboard-shell.tsx        container — calls useMe()/useDocumentTitle(), composes the rest
-      top-bar.tsx, bottom-nav.tsx presentational — read nav-items.ts, render their own markup (not unified
-                                   into one polymorphic component; see §2a/§4 for why)
+      dashboard-shell.tsx        container — calls useMe()/useDocumentTitle(), composes the rest. Also
+                                   renders the one `tenant_offline` fallback screen (a suspended tenant, or
+                                   staff on a locked/archived shop) when `/me` itself 403s — added 2026-10-16,
+                                   since there's no successful tenant payload to branch a normal banner on.
+      sidebar.tsx, mobile-header.tsx, bottom-nav.tsx
+                                   presentational — read nav-items.ts, render their own markup (not unified
+                                   into one polymorphic component; see §2a/§4 for why). **Corrected
+                                   2026-10-16**: this file used to be named `top-bar.tsx`; the real desktop
+                                   nav component is `sidebar.tsx` (a fixed dark sidebar, sm and up),
+                                   `mobile-header.tsx` is a separate branding-only mobile strip, and
+                                   `bottom-nav.tsx` does the actual mobile nav rendering.
+      lifecycle-banner.tsx        presentational — one banner per trial/grace/read-only/locked/archived
+                                   state, mounted once here rather than per-page (Phase 2 slice 8)
       nav-items.ts                the one array both nav components read — adding a destination is one
                                    entry here, not an edit to both components (open/closed, §2a)
+      operator-nav-items.ts, operator-sidebar.tsx, operator-shell.tsx
+                                   the operator console's own second instance of the sidebar/nav-items pair
+                                   above — not shared with the tenant dashboard's, since the two consoles'
+                                   destinations and guards are genuinely different (Phase 2 slice 8)
       brand-mark.tsx, powered-by-mark.tsx
                                    presentational; brand-mark is also used by AuthCard, so it lives here
                                    rather than as a second copy duplicated into auth-card.tsx
