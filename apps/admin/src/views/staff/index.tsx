@@ -70,10 +70,12 @@ export function Staff(): React.JSX.Element {
           {staffList.data ? (
             <p className="mt-1 text-sm text-slate-500">
               {t('staff.count', { count: staffList.data.staff.length })} ·{' '}
-              {t('staff.seats', {
-                used: staffList.data.seats.used,
-                total: staffList.data.seats.total,
-              })}
+              {staffList.data.seats.total === null
+                ? t('staff.seatsUnlimited', { used: staffList.data.seats.used })
+                : t('staff.seats', {
+                    used: staffList.data.seats.used,
+                    total: staffList.data.seats.total,
+                  })}
             </p>
           ) : null}
         </div>

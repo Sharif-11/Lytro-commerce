@@ -39,11 +39,24 @@ const LIMIT_FIELDS: { key: keyof PlanLimits; labelKey: string }[] = [
   { key: 'activity_retention_days', labelKey: 'operator.plans.limit.activityRetentionDays' },
 ];
 
+// PLN-19: every limit except activity_retention_days (a retention period, not a usage cap) can be unlimited.
+const UNLIMITED_ELIGIBLE: ReadonlySet<keyof PlanLimits> = new Set(
+  LIMIT_FIELDS.filter((field) => field.key !== 'activity_retention_days').map((field) => field.key),
+);
+
 function limitsToDraft(limits: PlanLimits | undefined): Record<string, string> {
   const draft: Record<string, string> = {};
   for (const field of LIMIT_FIELDS) {
     const value = limits?.[field.key];
-    draft[field.key] = value === undefined ? '' : String(value);
+    draft[field.key] = value === undefined || value === null ? '' : String(value);
+  }
+  return draft;
+}
+
+function limitsToUnlimited(limits: PlanLimits | undefined): Record<string, boolean> {
+  const draft: Record<string, boolean> = {};
+  for (const field of LIMIT_FIELDS) {
+    draft[field.key] = limits?.[field.key] === null;
   }
   return draft;
 }
@@ -65,6 +78,7 @@ export function PlanForm({
   const [rank, setRank] = useState(String(initial?.rank ?? 0));
   const [forSale, setForSale] = useState(initial?.forSale ?? true);
   const [limitsDraft, setLimitsDraft] = useState(limitsToDraft(initial?.limits));
+  const [unlimitedDraft, setUnlimitedDraft] = useState(limitsToUnlimited(initial?.limits));
   const [featureRows, setFeatureRows] = useState(
     initial ? Object.entries(initial.features).map(([key, value]) => ({ key, value })) : [],
   );
@@ -85,6 +99,10 @@ export function PlanForm({
     event.preventDefault();
     const limits: PlanLimits = {};
     for (const field of LIMIT_FIELDS) {
+      if (UNLIMITED_ELIGIBLE.has(field.key) && unlimitedDraft[field.key]) {
+        (limits as Record<keyof PlanLimits, number | null | undefined>)[field.key] = null;
+        continue;
+      }
       const raw = limitsDraft[field.key];
       if (raw !== undefined && raw.trim() !== '') limits[field.key] = Number(raw);
     }
@@ -158,17 +176,34 @@ export function PlanForm({
         </span>
         <div className="grid gap-3 sm:grid-cols-2">
           {LIMIT_FIELDS.map((field) => (
-            <TextField
-              key={field.key}
-              label={t(field.labelKey)}
-              name={field.key}
-              type="number"
-              min={0}
-              value={limitsDraft[field.key]}
-              onChange={(event) => {
-                setLimitsDraft((draft) => ({ ...draft, [field.key]: event.target.value }));
-              }}
-            />
+            <div key={field.key} className="space-y-1">
+              <TextField
+                label={t(field.labelKey)}
+                name={field.key}
+                type="number"
+                min={0}
+                disabled={unlimitedDraft[field.key]}
+                value={unlimitedDraft[field.key] ? '' : limitsDraft[field.key]}
+                onChange={(event) => {
+                  setLimitsDraft((draft) => ({ ...draft, [field.key]: event.target.value }));
+                }}
+              />
+              {UNLIMITED_ELIGIBLE.has(field.key) ? (
+                <label className="flex items-center gap-1.5 text-xs text-slate-600">
+                  <input
+                    type="checkbox"
+                    checked={unlimitedDraft[field.key] ?? false}
+                    onChange={(event) => {
+                      setUnlimitedDraft((draft) => ({
+                        ...draft,
+                        [field.key]: event.target.checked,
+                      }));
+                    }}
+                  />
+                  {t('operator.plans.unlimited')}
+                </label>
+              ) : null}
+            </div>
           ))}
         </div>
       </div>

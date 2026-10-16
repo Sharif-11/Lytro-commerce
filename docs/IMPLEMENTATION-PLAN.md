@@ -49,22 +49,21 @@ This is the build order for the **new** NestJS/Next.js/Vite multi-tenant platfor
 
 ## Phase 2 — Plans, billing, lifecycle, balance
 
-**Status: 🔶 Nearly done, 2026-10-16.** Backend slices 1–7 (`PHASE-2-PLAN.md` §6) are merged. The one
-consolidated UI pass (slice 8, D2-10) is merged for everything it names except D2-12's marketing-site/
-upsell pair, which is built and open for review but not yet merged (`KNOWN-GAPS.md` tracks the branch/PR).
-Two real bugs surfaced building and auditing this phase, not yet fixed — `KNOWN-GAPS.md` #1
-(`BillingController`/`BalanceController` missing `lapsed: true`, so a lapsed owner's purchase/invoice
-routes 403 instead of working per `LIF-12`/`BIL-13`) and #9 (`LIF-24` suspension is a full outage, not
-`read_only` as written — needs a product decision, not just a code fix). Neither blocks calling this phase
-done; both are fast follow-ups once decided.
+**Status: ✅ Closeable, 2026-10-16.** Backend slices 1–7 (`PHASE-2-PLAN.md` §6) are merged, and so is the
+consolidated UI pass (slice 8, D2-10) including D2-12's marketing-site/upsell pair (PR #84). `KNOWN-GAPS.md`
+#1 (`BillingController`/`BalanceController` missing `lapsed: true`) is fixed (PR #87) with e2e coverage.
+`PLN-19` (added 2026-10-16, after every slice above shipped) is built as Slice 9; `RAT-15` (same addition
+date) is deferred to Phase 5 per `D2-13`. One real bug remains, tracked but not blocking: `KNOWN-GAPS.md` #9
+(`LIF-24` suspension is a full outage, not `read_only` as written — needs a product decision, not just a
+code fix).
 
 **Delivers:** a tenant can trial, buy a plan, upgrade/downgrade, lapse, renew, delete — the entire subscription skeleton, with real money logic, before any product/order code exists.
 
 - `PLN-*`, `TRL-*`, `TRM-*`, `PYG-*` — plans as data, the one-month trial, billing terms, pay-as-you-go.
 - `PLN-19` (added 2026-10-16) — per-limit "unlimited" on a plan, independent of any specific limit's
-  number. Buildable now at the schema/plan-editor level (it only touches `control.plans`/the plan editor,
-  both already built); most of its *effects* land later, since most limit enforcement it would need to
-  respect (storage, bandwidth, order handling) doesn't exist until Phases 3/4.
+  number. **Shipped 2026-10-16** (`PHASE-2-PLAN.md` Slice 9): schema/plan-editor/every existing consumer
+  fixed; limit-enforcement consumers that don't exist yet (storage, bandwidth, order handling) get their
+  own `null` branch when Phases 3/4 build them, not invented early.
 - `BIL-*` — purchase flow, invoices, the no-refund policy.
 - `UPG-*`, `DWN-*` — upgrade proration (the worked examples we recalculated), downgrade grace handling.
 - `LIF-*` — the full lifecycle state machine (grace → read-only → locked → archived → deleted) as scheduled jobs.

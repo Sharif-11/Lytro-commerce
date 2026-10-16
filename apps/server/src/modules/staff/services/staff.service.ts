@@ -269,7 +269,8 @@ export class StaffService {
    * stay active, up to `limit`; the rest are deactivated (not deleted), their sessions ended at once. A
    * system-caused transition (D2-5): the owner already authorized this when they scheduled the downgrade.
    */
-  async enforceSeatLimit(tenant: StaffTenant, limit: number, now: Date): Promise<string[]> {
+  async enforceSeatLimit(tenant: StaffTenant, limit: number | null, now: Date): Promise<string[]> {
+    if (limit === null) return []; // PLN-19: unlimited seats, nothing to deactivate.
     const deactivated = await this.store.run(tenant.id, async (tx) => {
       const staff = await this.store.listStaff(tx, tenant.id);
       const active = staff.filter((member) => member.active);
@@ -313,8 +314,9 @@ export class StaffService {
   /** Refuses when the shop has no free seat. Takes the seat lock first, so the count is not raced. */
   private async requireSeat(tx: Transaction, tenant: StaffTenant): Promise<void> {
     await this.store.lockSeats(tx, tenant.id);
-    const used = await this.store.countActive(tx, tenant.id);
     const total = this.seatsOf(tenant);
+    if (total === null) return; // PLN-19: unlimited seats never refuse.
+    const used = await this.store.countActive(tx, tenant.id);
     if (used >= total) {
       throw new ApiError('plan_limit_reached', 'SeatLimitReached', { seats: total }, undefined, {
         seats: total,
@@ -322,8 +324,10 @@ export class StaffService {
     }
   }
 
-  private seatsOf(tenant: StaffTenant): number {
-    return tenant.planLimits?.staff ?? DEFAULT_SEATS;
+  // PLN-19: null means unlimited seats, distinct from "not set" falling back to DEFAULT_SEATS.
+  private seatsOf(tenant: StaffTenant): number | null {
+    const staff = tenant.planLimits?.staff;
+    return staff === null ? null : (staff ?? DEFAULT_SEATS);
   }
 
   /**

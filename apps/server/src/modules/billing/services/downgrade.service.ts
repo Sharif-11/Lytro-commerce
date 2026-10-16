@@ -78,11 +78,15 @@ export class DowngradeService {
   /** DWN-03: every limit the target plan would already be over, today -- only what's actually trackable. */
   async preview(tenantId: string, planId: string): Promise<OverLimitItem[]> {
     const targetPlan = await this.plans.findById(planId);
-    const seatLimit = targetPlan.limits.staff ?? DEFAULT_SEATS;
+    const staffLimit = targetPlan.limits.staff;
+    // PLN-19: null means unlimited seats on the target plan, never over-limit.
+    const seatLimit = staffLimit === null ? null : (staffLimit ?? DEFAULT_SEATS);
     const { seats } = await this.staff.list({ id: tenantId, planLimits: targetPlan.limits });
 
     const items: OverLimitItem[] = [];
-    if (seats.used > seatLimit) items.push({ key: 'staff', used: seats.used, limit: seatLimit });
+    if (seatLimit !== null && seats.used > seatLimit) {
+      items.push({ key: 'staff', used: seats.used, limit: seatLimit });
+    }
     return items;
   }
 
@@ -150,7 +154,9 @@ export class DowngradeService {
       });
     });
 
-    const seatLimit = plan.limits.staff ?? DEFAULT_SEATS;
+    const planStaffLimit = plan.limits.staff;
+    // PLN-19: null means unlimited seats on the plan being applied, nothing to enforce.
+    const seatLimit = planStaffLimit === null ? null : (planStaffLimit ?? DEFAULT_SEATS);
     await this.staff.enforceSeatLimit(
       { id: change.tenantId, planLimits: plan.limits },
       seatLimit,
