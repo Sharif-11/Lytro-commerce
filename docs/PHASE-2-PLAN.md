@@ -58,6 +58,9 @@ itself before any of the above landed.)
    has been deleted 30+ days; `LifecycleService.releaseExpiredSlugs` then revokes the slug and the rest of
    the shop's identity/contact fields, leaving `LIF-20`'s own survivor list untouched. `KNOWN-GAPS.md` #28
    is closed.
+10. **`PLN-03`** (found during the full audit): `setPlanPriceSchema` accepted fractional taka (e.g. 449.50)
+    despite the requirement's own "positive whole taka" wording — the limits half was already correct.
+    Added `.int()`. `KNOWN-GAPS.md` #29 is closed.
 
 1. Every `M` requirement in PLN, TRL, TRM, PYG, BIL, UPG, DWN, LIF, BAL and RAT has a passing automated test.
 2. The lifecycle scheduled job transitions a tenant through every state boundary (grace, read-only, locked, archived, deleted) within its 15-minute SLA (LIF-03), derived purely from stored dates (LIF-04) so a test clock can simulate any date, and is idempotent under a doubled or missed run (LIF-23).
