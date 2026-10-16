@@ -409,7 +409,7 @@ State names and timings are in 2.3. "Day N" means N × 24 hours after the paid p
 
 | ID | Requirement | Pass criteria | Pri | Ver |
 | --- | --- | --- | --- | --- |
-| LIF-01 | The owner shall be able to cancel; the cancellation takes effect at the end of the paid period and can be undone until then. | After cancelling, everything works until period end; "Undo" removes the cancellation. | M | E2E |
+| LIF-01 | The owner shall be able to cancel; the cancellation takes effect at the end of the paid period and can be undone until then. **Gap found and fixed 2026-10-16:** `cancel`/`cancel/undo` were write-only, with no way to read the current state back. Added `GET /billing/cancellation` (`LifecycleService.getCancellation`), see `KNOWN-GAPS.md` #2. | After cancelling, everything works until period end; "Undo" removes the cancellation. | M | E2E |
 | LIF-02 | Not renewing shall behave like cancelling: at the period end the tenant enters `grace`. | With no payment, the state is `grace` at period end. | M | JOB |
 | LIF-03 | A scheduled job shall move tenants between states within [15] minutes of each boundary (day 3, 7, 15, 60). | Simulating the clock to each boundary yields the expected state within 15 minutes. | M | JOB |
 | LIF-04 | The state shall be derived from period end and current time, so tests can simulate any date. | A test clock set to day 4 gives `read_only` with no manual change. | M | JOB |

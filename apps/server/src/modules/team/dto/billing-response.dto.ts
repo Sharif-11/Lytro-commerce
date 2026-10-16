@@ -125,6 +125,12 @@ export const scheduledPlanChangeSchema = z.object({
 });
 export class ScheduledPlanChangeDto extends createZodDto(scheduledPlanChangeSchema) {}
 
+// LIF-01: null means no cancellation is currently scheduled.
+export const cancellationStatusSchema = z.object({
+  cancelledAt: z.date().nullable(),
+});
+export class CancellationStatusDto extends createZodDto(cancellationStatusSchema) {}
+
 // DWN-03: one over-limit item in the downgrade preview.
 export const overLimitItemSchema = z.object({
   key: z.string(),

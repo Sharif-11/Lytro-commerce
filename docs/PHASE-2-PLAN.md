@@ -44,6 +44,9 @@ itself before any of the above landed.)
    `DowngradeService.apply` whenever the new plan's retention is shorter than what's currently owed;
    `ActivityLogPurger` now honors an active floor; a notice (audited as `RetentionShortenedNoticeSent`)
    names a real trimmed-entry count via a new `AuditService.countInRange`. `KNOWN-GAPS.md` #26 is closed.
+7. **`LIF-01`** (previously tracked as `KNOWN-GAPS.md` #2): `cancel`/`cancel/undo` were write-only, with no
+   way to read the cancellation state back. Built `GET /billing/cancellation`
+   (`LifecycleService.getCancellation`). `KNOWN-GAPS.md` #2 is closed.
 
 1. Every `M` requirement in PLN, TRL, TRM, PYG, BIL, UPG, DWN, LIF, BAL and RAT has a passing automated test.
 2. The lifecycle scheduled job transitions a tenant through every state boundary (grace, read-only, locked, archived, deleted) within its 15-minute SLA (LIF-03), derived purely from stored dates (LIF-04) so a test clock can simulate any date, and is idempotent under a doubled or missed run (LIF-23).

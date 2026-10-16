@@ -380,6 +380,10 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'Auto-renew setting updated.',
     bn: 'অটো-রিনিউ সেটিং আপডেট হয়েছে।',
   },
+  CancellationRetrieved: {
+    en: 'Cancellation status retrieved.',
+    bn: 'বাতিলের অবস্থা পাওয়া গেছে।',
+  },
   TenantsListed: { en: 'Tenants retrieved.', bn: 'টেন্যান্টগুলো পাওয়া গেছে।' },
   TenantSuspended: { en: 'Shop suspended.', bn: 'শপ সাসপেন্ড হয়েছে।' },
   TenantRestored: { en: 'Shop restored.', bn: 'শপ পুনরুদ্ধার হয়েছে।' },
