@@ -1,8 +1,23 @@
-import { and, desc, eq, ilike, inArray, isNotNull, isNull, lt, or, lte } from 'drizzle-orm';
+import {
+  and,
+  desc,
+  eq,
+  ilike,
+  inArray,
+  isNotNull,
+  isNull,
+  lt,
+  notIlike,
+  or,
+  lte,
+} from 'drizzle-orm';
 import type { Database } from '../../client';
 import type { Executor } from '../../transactions';
 import { plans, tenantDomains, tenants } from '../../schema';
-import { DomainStatus, TenantState, type PlanLimits } from '@lytronix/validators';
+import { DomainStatus, KycStatus, TenantState, type PlanLimits } from '@lytronix/validators';
+
+// LIF-21: "the old subdomain shall stay reserved for 30 days" after deletion.
+const SLUG_RESERVATION_MS = 30 * 24 * 60 * 60 * 1000;
 
 // Shop rows and their lookups. The trial period and plan choice are decided by the tenancy service.
 export interface TenantLookupRow {
@@ -281,6 +296,43 @@ export class TenantRepository {
       .where(eq(tenants.id, tenantId));
   }
 
+  /** LIF-21: deleted tenants whose 30-day subdomain reservation has lapsed, and whose slug hasn't already
+   * been revoked -- the `-revoked-` marker a prior run leaves behind is itself the idempotency check, the
+   * same "the write proves it happened" pattern DWN-11's floor columns use. */
+  async findRevocationCandidates(tx: Executor, now: Date): Promise<RevocationCandidateRow[]> {
+    return tx
+      .select({ id: tenants.id, slug: tenants.slug })
+      .from(tenants)
+      .where(
+        and(
+          isNotNull(tenants.deletedAt),
+          lt(tenants.deletedAt, new Date(now.getTime() - SLUG_RESERVATION_MS)),
+          notIlike(tenants.slug, '%-revoked-%'),
+        ),
+      );
+  }
+
+  /** LIF-21: the shop's identity is no longer meaningful this long after deletion -- frees the literal slug
+   * string for a different subscriber (the one strictly required part: `SlugRepository.findUnavailable`
+   * needs no change of its own, since this is the row it already reads) and clears every other
+   * identity/contact field LIF-20's own survivor list (plan, payment history, invoices, balance) doesn't
+   * depend on. The database trigger (migration 0037) is what actually permits the slug write here; this
+   * method doesn't special-case it. */
+  async revokeExpiredTenant(tx: Executor, tenantId: string, mangledSlug: string): Promise<void> {
+    await tx
+      .update(tenants)
+      .set({
+        slug: mangledSlug,
+        shopName: `Deleted shop ${tenantId.replace(/-/g, '').slice(0, 8)}`,
+        contactPhone: null,
+        contactEmail: null,
+        businessAddress: null,
+        suspendedReason: null,
+        kycStatus: KycStatus.Unverified,
+      })
+      .where(eq(tenants.id, tenantId));
+  }
+
   /** LIF-03/04: every tenant whose lifecycle state is derived from a running period, not yet deleted. */
   async findLapsingCandidates(tx: Executor, now: Date): Promise<LapsingCandidateRow[]> {
     const lapsingStates: TenantState[] = [
@@ -433,6 +485,11 @@ export interface LapsingCandidateRow {
   state: TenantState;
   periodEnd: Date;
   suspendedAt: Date | null;
+}
+
+export interface RevocationCandidateRow {
+  id: string;
+  slug: string;
 }
 
 export interface PaygCandidateRow {

@@ -47,6 +47,13 @@ itself before any of the above landed.)
 7. **`LIF-01`** (previously tracked as `KNOWN-GAPS.md` #2): `cancel`/`cancel/undo` were write-only, with no
    way to read the cancellation state back. Built `GET /billing/cancellation`
    (`LifecycleService.getCancellation`). `KNOWN-GAPS.md` #2 is closed.
+8. **`LIF-21`** (found during the full audit, confirmed a real gap during the `DWN-11`/`LIF-21`/`LIF-22`
+   investigation): the old subdomain was reserved permanently, not for 30 days -- `LIF-19`'s surviving
+   `control.tenants` row kept its `slug` forever, blocked by a hard database trigger (`TEN-19`) with no
+   exception. Migration `0037` narrows that trigger's `WHEN` clause to permit a change only once a tenant
+   has been deleted 30+ days; `LifecycleService.releaseExpiredSlugs` then revokes the slug and the rest of
+   the shop's identity/contact fields, leaving `LIF-20`'s own survivor list untouched. `KNOWN-GAPS.md` #27
+   is closed.
 
 1. Every `M` requirement in PLN, TRL, TRM, PYG, BIL, UPG, DWN, LIF, BAL and RAT has a passing automated test.
 2. The lifecycle scheduled job transitions a tenant through every state boundary (grace, read-only, locked, archived, deleted) within its 15-minute SLA (LIF-03), derived purely from stored dates (LIF-04) so a test clock can simulate any date, and is idempotent under a doubled or missed run (LIF-23).

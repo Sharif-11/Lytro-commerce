@@ -401,6 +401,98 @@ describeIfDatabase('BIL-17: renew automatically from balance', () => {
   });
 });
 
+describeIfDatabase('LIF-21: the old shop identity is revoked 30 days after deletion', () => {
+  async function markDeletedAt(tenantId: string, deletedAt: Date): Promise<void> {
+    await admin.query(
+      `UPDATE control.tenants SET deleted_at = $1, state = 'deleted' WHERE id = $2`,
+      [deletedAt, tenantId],
+    );
+  }
+
+  async function tenantIdentityRow(tenantId: string) {
+    const row = await admin.query<{
+      slug: string;
+      shop_name: string;
+      contact_phone: string | null;
+      contact_email: string | null;
+      business_address: string | null;
+      suspended_reason: string | null;
+      kyc_status: string;
+      plan_id: string | null;
+      balance_amount: string;
+      subscriber_id: string;
+    }>(
+      `SELECT slug, shop_name, contact_phone, contact_email, business_address, suspended_reason,
+         kyc_status, plan_id, balance_amount, subscriber_id
+       FROM control.tenants WHERE id = $1`,
+      [tenantId],
+    );
+    return row.rows[0];
+  }
+
+  it('revokes the slug and every other identity/contact field once deleted 30+ days, never sooner', async () => {
+    const slug = freshSlug();
+    const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, slug, 'trial');
+    const planId = await seedPlan((nextRank += 1));
+    await admin.query(
+      `UPDATE control.tenants SET plan_id = $1, balance_amount = '250.00',
+         contact_phone = '01711111111', contact_email = 'owner@example.com',
+         business_address = '123 Main Road', suspended_reason = 'past policy note',
+         kyc_status = 'verified'
+       WHERE id = $2`,
+      [planId, tenantId],
+    );
+    await markDeletedAt(tenantId, new Date(Date.now() - 31 * DAY_MS));
+
+    const stillReservedSlug = freshSlug();
+    const stillReservedTenantId = await seedShop(
+      admin,
+      `Shop ${freshSlug()}`,
+      stillReservedSlug,
+      'trial',
+    );
+    await markDeletedAt(stillReservedTenantId, new Date(Date.now() - 10 * DAY_MS));
+
+    const result = await lifecycle.runTick(new Date());
+    expect(result.slugsReleased).toBe(1);
+
+    const revoked = await tenantIdentityRow(tenantId);
+    expect(revoked?.slug).not.toBe(slug);
+    expect(revoked?.slug).toContain('-revoked-');
+    expect(revoked?.slug.length).toBeLessThanOrEqual(30);
+    expect(revoked?.shop_name).not.toContain('Shop');
+    expect(revoked?.contact_phone).toBeNull();
+    expect(revoked?.contact_email).toBeNull();
+    expect(revoked?.business_address).toBeNull();
+    expect(revoked?.suspended_reason).toBeNull();
+    expect(revoked?.kyc_status).toBe('unverified');
+    // LIF-20's own survivor list is untouched by the revocation.
+    expect(revoked?.plan_id).toBe(planId);
+    expect(revoked?.balance_amount).toBe('250.00');
+
+    // Still within the 30-day window -- untouched.
+    const stillReserved = await tenantIdentityRow(stillReservedTenantId);
+    expect(stillReserved?.slug).toBe(stillReservedSlug);
+
+    // The original string is now free for a different subscriber to claim.
+    const newTenantId = await seedShop(admin, `Shop ${freshSlug()}`, slug, 'trial');
+    expect((await tenantIdentityRow(newTenantId))?.slug).toBe(slug);
+  });
+
+  it('a second tick is a no-op for an already-revoked tenant', async () => {
+    const slug = freshSlug();
+    const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, slug, 'trial');
+    await markDeletedAt(tenantId, new Date(Date.now() - 31 * DAY_MS));
+
+    await lifecycle.runTick(new Date());
+    const revokedOnce = (await tenantIdentityRow(tenantId))?.slug;
+
+    const result = await lifecycle.runTick(new Date());
+    expect(result.slugsReleased).toBe(0);
+    expect((await tenantIdentityRow(tenantId))?.slug).toBe(revokedOnce);
+  });
+});
+
 describeIfDatabase('LIF-24: operator suspend and restore', () => {
   it('freezes on suspend and unfreezes on restore when not independently lapsed', async () => {
     const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
