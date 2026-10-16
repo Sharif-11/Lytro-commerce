@@ -1,7 +1,10 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMe, useSignOut } from '@/api/auth';
+import { ApiClientError } from '@/api/client';
 import { useDocumentTitle } from '@/hooks/use-document-title';
+import { AuthCard } from '@/components/auth-card';
+import { Button } from '@/components/button';
 import { BottomNav } from '@/components/layout/bottom-nav';
 import { LifecycleBanner } from '@/components/layout/lifecycle-banner';
 import { MobileHeader } from '@/components/layout/mobile-header';
@@ -31,6 +34,23 @@ export function DashboardShell({ children }: DashboardShellProps): React.JSX.Ele
   const handleSignOut = (): void => {
     signOut.mutate();
   };
+
+  // LIF-24/LIF-11: a suspended tenant (any state) or a staff session on a locked/archived shop gets
+  // `tenant_offline` straight from /me (DashboardGuard throws before the route handler ever runs) — there's
+  // no successful tenant to read a state off, so the normal shell (which needs one for nav/shopName) can't
+  // render at all. This is the one screen for that, instead of a blank page or scattered per-widget errors.
+  if (me.isError && me.error instanceof ApiClientError && me.error.code === 'tenant_offline') {
+    return (
+      <AuthCard
+        title={t('dashboard.unavailable.title')}
+        subtitle={t('dashboard.unavailable.subtitle')}
+      >
+        <Button type="button" variant="outline" loading={signOut.isPending} onClick={handleSignOut}>
+          {t('dashboard.logout')}
+        </Button>
+      </AuthCard>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50">

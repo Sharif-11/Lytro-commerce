@@ -419,6 +419,10 @@
       "title": "Your shop",
       "subtitle": "Here's an overview of your shop."
     },
+    "unavailable": {
+      "title": "Shop unavailable",
+      "subtitle": "This shop is temporarily unavailable. Contact support if you believe this is a mistake."
+    },
     "logout": "Log out",
     "comingSoon": "This section is coming soon.",
     "fields": {
