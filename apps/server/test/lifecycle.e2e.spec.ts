@@ -10,6 +10,7 @@ import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { LifecycleService } from '../src/modules/billing/services/lifecycle.service';
 import { PurchaseService } from '../src/modules/billing/services/purchase.service';
 import { BalanceService } from '../src/modules/balance/services/balance.service';
+import { TenantResolver } from '../src/modules/tenancy/services/tenant-resolver.service';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase, seedShop } from './support/database';
 import { SmsCapture } from './support/sms-capture';
@@ -27,6 +28,7 @@ let admin: pg.Client;
 let lifecycle: LifecycleService;
 let purchase: PurchaseService;
 let balance: BalanceService;
+let resolver: TenantResolver;
 const texts = new SmsCapture();
 
 const freshSlug = (): string => `t${randomUUID().replace(/-/g, '').slice(0, 10)}`;
@@ -98,6 +100,7 @@ beforeAll(async () => {
   lifecycle = app.get(LifecycleService);
   purchase = app.get(PurchaseService);
   balance = app.get(BalanceService);
+  resolver = app.get(TenantResolver);
 });
 
 afterAll(async () => {
@@ -533,3 +536,67 @@ describeIfDatabase('LIF-24: operator suspend and restore', () => {
     expect(restored.rows[0]?.suspended_at).toBeNull();
   });
 });
+
+describeIfDatabase(
+  'TEN-27: the host-to-tenant cache is invalidated, not left to its own 60s TTL',
+  () => {
+    it('suspend and restore both invalidate immediately', async () => {
+      const slug = freshSlug();
+      const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, slug, 'active');
+      const host = `${slug}.localhost`;
+
+      const beforeSuspend = await resolver.resolve(host);
+      expect(beforeSuspend.outcome).toBe('tenant'); // warms the cache while still open
+
+      await lifecycle.suspend(tenantId, 'policy violation', randomUUID());
+      const afterSuspend = await resolver.resolve(host);
+      // Without TEN-27's fix this would still read the cached, pre-suspension entry for up to 60s.
+      expect(afterSuspend.outcome).toBe('closed');
+
+      await lifecycle.restore(tenantId, randomUUID());
+      const afterRestore = await resolver.resolve(host);
+      expect(afterRestore.outcome).toBe('tenant');
+    });
+
+    it("the lapse ladder's own archival invalidates immediately", async () => {
+      const planId = await seedPlan((nextRank += 1));
+      const slug = freshSlug();
+      const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, slug, 'trial');
+      const host = `${slug}.localhost`;
+      // Already past the archived threshold (grace 3 + read_only 4 + locked 8 = 15 days), but `state` is
+      // still `active` -- exactly "a tick hasn't run yet", the same fixture LIF-04's own tests use.
+      await activateTenant(
+        tenantId,
+        planId,
+        TenantState.Active,
+        new Date(Date.now() - 20 * DAY_MS),
+      );
+
+      const beforeTick = await resolver.resolve(host);
+      expect(beforeTick.outcome).toBe('tenant'); // warms the cache while the row still says `active`
+
+      await lifecycle.runTick(new Date());
+      const afterTick = await resolver.resolve(host);
+      // Without TEN-27's fix this would still read the cached, pre-archival `active` entry.
+      expect(afterTick.outcome).toBe('closed');
+    });
+
+    it("PYG-21's own archival pass invalidates immediately", async () => {
+      const slug = freshSlug();
+      const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, slug, 'trial');
+      const host = `${slug}.localhost`;
+      await admin.query(
+        `UPDATE control.tenants SET state = 'pay_as_you_go', period_end = NULL,
+         last_activity_at = $1 WHERE id = $2`,
+        [new Date(Date.now() - 30 * DAY_MS), tenantId],
+      );
+
+      const beforeTick = await resolver.resolve(host);
+      expect(beforeTick.outcome).toBe('tenant');
+
+      await lifecycle.runTick(new Date());
+      const afterTick = await resolver.resolve(host);
+      expect(afterTick.outcome).toBe('closed');
+    });
+  },
+);

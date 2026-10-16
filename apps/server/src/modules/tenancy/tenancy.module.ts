@@ -63,6 +63,7 @@ import { TenantSummaries } from './services/tenant-summaries.service';
   ],
   exports: [
     TenantResolver,
+    TenantCache,
     HostClassifier,
     SlugService,
     TenantService,
