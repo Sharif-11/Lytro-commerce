@@ -63,4 +63,8 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   // Checked in test/shop-settings.e2e.spec.ts: a shop's own contact details only (TEN-30).
   'GET /shop-settings': "reads only the session shop's own contact details",
   'PATCH /shop-settings': "a session of shop A on shop B's host is refused, never updates shop B",
+  // Checked in test/data-export.e2e.spec.ts: a shop's own export requests and files only (LIF-16/17).
+  'POST /exports': 'creates an export request scoped to the session shop only',
+  'GET /exports': "lists only the session shop's own export requests",
+  'GET /exports/:id/download': "another shop's export id answers not_found, never its content",
 };

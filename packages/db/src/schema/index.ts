@@ -23,3 +23,4 @@ export * from './control/invoices';
 export * from './control/plan-payments';
 export * from './control/idempotency';
 export * from './control/scheduled-plan-changes';
+export * from './tenant/data-exports';

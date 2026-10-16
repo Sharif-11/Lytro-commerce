@@ -12,6 +12,7 @@ import { daysBetween } from '../../../common/time';
 import { AuditService } from '../../audit/services/audit.service';
 import { PlatformAuditService } from '../../audit/services/platform-audit.service';
 import { BalanceService } from '../../balance/services/balance.service';
+import { DataExportService } from '../../data-export/services/data-export.service';
 import { MailService } from '../../shared/mail/services/mail.service';
 import { MessagingService } from '../../shared/messaging/services/messaging.service';
 import { PlatformSettingsService } from '../../platform-settings/services/platform-settings.service';
@@ -53,6 +54,7 @@ export class LifecycleService {
     @Inject(TenantService) private readonly tenants: TenantService,
     @Inject(StaffService) private readonly staff: StaffService,
     @Inject(BalanceService) private readonly balance: BalanceService,
+    @Inject(DataExportService) private readonly dataExports: DataExportService,
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(PlatformAuditService) private readonly platformAudit: PlatformAuditService,
     @Inject(MessagingService) private readonly sms: MessagingService,
@@ -151,6 +153,7 @@ export class LifecycleService {
    * excludes a deleted tenant), so a second tick after this one is a no-op for this tenant, not a retry. */
   private async deleteIfDue(tenantId: string, now: Date): Promise<boolean> {
     await this.staff.deleteAllForTenant({ id: tenantId, planLimits: null });
+    await this.dataExports.deleteAllForTenant(tenantId); // LIF-16/19: exports go with the rest of the data.
     await this.tenants.runStandalone(async (tx) => {
       await this.tenants.markDeleted(tx, tenantId, now);
       await this.audit.record(tx, {

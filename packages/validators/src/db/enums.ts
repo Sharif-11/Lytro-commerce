@@ -76,6 +76,8 @@ export enum MailKind {
   ShopReady = 'shop_ready',
   // LIF-18, PYG-21: mirrors SmsKind.LifecycleNotice above.
   LifecycleNotice = 'lifecycle_notice',
+  // LIF-16: the owner's requested data export is ready to download.
+  DataExportReady = 'data_export_ready',
 }
 
 export enum MailStatus {
@@ -170,6 +172,9 @@ export enum AuditAction {
   TenantRestored = 'tenant_restored',
   // TEN-30: the owner (or a holder of settings:manage) updating contact phone/email/business address.
   ShopSettingsUpdated = 'shop_settings_updated',
+  // LIF-16/17: the owner's own data export -- one entry when requested, one when actually downloaded.
+  DataExportRequested = 'data_export_requested',
+  DataExportDownloaded = 'data_export_downloaded',
 }
 
 // The pg-boss queues this codebase uses (SCL-08, D25). Add a name here before any code enqueues to it.
@@ -183,6 +188,9 @@ export enum QueueName {
   // `schedule()` (a cron), not the transactional outbox -- there is no single business transaction to anchor
   // a periodic scan to.
   LifecycleTick = 'lifecycle_tick',
+  // LIF-16: generates the owner's data export asynchronously (SCL-08's own transactional-outbox shape --
+  // this one does have a single business transaction to anchor to, the export request itself).
+  DataExport = 'data_export',
 }
 
 // Who performed the action (AUD-02). `system` is the platform itself (a scheduled job); `platform_support` is an

@@ -342,6 +342,15 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   SettingUpdated: { en: 'Setting updated.', bn: 'সেটিং আপডেট হয়েছে।' },
   ShopSettingsRetrieved: { en: 'Shop settings retrieved.', bn: 'শপ সেটিংস পাওয়া গেছে।' },
   ShopSettingsUpdated: { en: 'Shop settings updated.', bn: 'শপ সেটিংস আপডেট হয়েছে।' },
+  ExportRequested: { en: 'Export requested.', bn: 'এক্সপোর্ট রিকোয়েস্ট করা হয়েছে।' },
+  ExportsListed: { en: 'Exports retrieved.', bn: 'এক্সপোর্টগুলো পাওয়া গেছে।' },
+  ExportNotFound: { en: 'Export not found.', bn: 'এক্সপোর্ট পাওয়া যায়নি।' },
+  ExportNotReady: { en: 'Export is not ready yet.', bn: 'এক্সপোর্ট এখনও প্রস্তুত নয়।' },
+  ExportExpired: {
+    en: 'This export link has expired.',
+    bn: 'এই এক্সপোর্ট লিংকের মেয়াদ শেষ হয়ে গেছে।',
+  },
+  OwnerOnlyAction: { en: 'Only the shop owner can do this.', bn: 'শুধু শপ ওনার এটি করতে পারবেন।' },
 
   QuoteCreated: { en: 'Quote created.', bn: 'কোট তৈরি হয়েছে।' },
   PurchaseConfirmed: { en: 'Purchase confirmed.', bn: 'কেনা নিশ্চিত হয়েছে।' },

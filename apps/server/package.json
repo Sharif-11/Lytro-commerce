@@ -23,6 +23,7 @@
     "@nestjs/swagger": "^8.1.1",
     "@scalar/nestjs-api-reference": "^1.2.29",
     "@tygra/nestjs-graceful-shutdown": "^2.0.0",
+    "archiver": "^8.0.0",
     "bcryptjs": "^3.0.3",
     "dotenv": "^16",
     "nestjs-zod": "^5.5.0",
@@ -34,6 +35,7 @@
   },
   "devDependencies": {
     "@nestjs/testing": "^10",
+    "@types/archiver": "^8.0.0",
     "@types/bcryptjs": "^3.0.0",
     "@types/node": "^20",
     "@types/pg": "^8",

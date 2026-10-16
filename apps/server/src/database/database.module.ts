@@ -34,6 +34,7 @@ import {
   UsedTransactionIdsRepository,
   IdempotencyKeysRepository,
   ScheduledPlanChangesRepository,
+  DataExportsRepository,
 } from '@lytronix/db';
 import { EnvironmentParser } from '../config/env';
 import { ENV } from '../config/tokens';
@@ -108,6 +109,11 @@ import { DatabaseService } from './database.service';
       provide: ScheduledPlanChangesRepository,
       useFactory: () => new ScheduledPlanChangesRepository(),
     },
+    {
+      provide: DataExportsRepository,
+      inject: [TransactionRunner],
+      useFactory: (transactions: TransactionRunner) => new DataExportsRepository(transactions),
+    },
   ],
   exports: [
     ENV,
@@ -146,6 +152,7 @@ import { DatabaseService } from './database.service';
     UsedTransactionIdsRepository,
     IdempotencyKeysRepository,
     ScheduledPlanChangesRepository,
+    DataExportsRepository,
   ],
 })
 export class DatabaseModule {}
