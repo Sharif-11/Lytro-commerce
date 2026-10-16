@@ -47,6 +47,10 @@ itself before any of the above landed.)
 7. **`LIF-01`** (previously tracked as `KNOWN-GAPS.md` #2): `cancel`/`cancel/undo` were write-only, with no
    way to read the cancellation state back. Built `GET /billing/cancellation`
    (`LifecycleService.getCancellation`). `KNOWN-GAPS.md` #2 is closed.
+8. **`BAL-14`** (also found during the full audit): the statement's CSV-export half had zero
+   implementation — `GET /balance/ledger` was JSON-only. Built `GET /balance/ledger/export`
+   (`BalanceService.statementAll`), and extracted `toCsv`/`csvEscape` out of the `LIF-16` data-export
+   module into a shared `apps/server/src/common/csv.ts`. `KNOWN-GAPS.md` #27 is closed.
 
 1. Every `M` requirement in PLN, TRL, TRM, PYG, BIL, UPG, DWN, LIF, BAL and RAT has a passing automated test.
 2. The lifecycle scheduled job transitions a tenant through every state boundary (grace, read-only, locked, archived, deleted) within its 15-minute SLA (LIF-03), derived purely from stored dates (LIF-04) so a test clock can simulate any date, and is idempotent under a doubled or missed run (LIF-23).

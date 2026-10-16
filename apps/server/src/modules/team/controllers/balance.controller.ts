@@ -6,6 +6,7 @@ import {
   Post,
   Query,
   Req,
+  Res,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
@@ -18,6 +19,7 @@ import { Dashboard } from '../../../common/decorators/dashboard';
 import { RequirePermission } from '../../../common/decorators/require-permission';
 import { ResponseMessage } from '../../../common/decorators/response-message';
 import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
+import { toCsv } from '../../../common/csv';
 import { DashboardGuard, type DashboardRequest } from '../../identity/guards/dashboard.guard';
 import { SessionGuard } from '../../identity/guards/session.guard';
 import { PermissionGuard } from '../guards/permission.guard';
@@ -27,9 +29,17 @@ import { TopUpService } from '../../balance/services/top-up.service';
 import type { BalanceSnapshot, LedgerPage } from '../../balance/types/ledger-entry';
 import type { RateValue } from '../../balance/types/rate';
 import type { PlanPaymentRecord } from '../../payments/types/plan-payment';
-import { ConfirmTopUpDto, ListLedgerDto, QuoteTopUpDto } from '../dto/balance.dto';
+import { ConfirmTopUpDto, ExportLedgerDto, ListLedgerDto, QuoteTopUpDto } from '../dto/balance.dto';
 import { BalanceSnapshotDto, LedgerPageDto, RateValueDto } from '../dto/balance-response.dto';
 import { PlanPaymentDto } from '../dto/billing-response.dto';
+
+// BAL-14: the raw response object the CSV export route writes to directly -- same narrow local shape
+// `DataExportController`'s own download route already uses, not express's own type.
+interface RawResponse {
+  status(code: number): RawResponse;
+  set(headers: Record<string, string>): RawResponse;
+  send(body: string): void;
+}
 
 // BAL-01, BAL-08, BAL-14, RAT-06: a tenant's own balance, statement and current rates.
 // BAL-18: `current` carries `lapsed: true` so the frozen balance is still shown to the owner after lapse or
@@ -79,6 +89,43 @@ export class BalanceController {
       query.cursor ?? null,
       query.limit,
     );
+  }
+
+  @Get('ledger/export')
+  @RequirePermission(Permission.BalanceRead)
+  @ApiOperation({ summary: "Download the shop's balance statement as CSV (BAL-14)" })
+  @ApiQuery({ name: 'type', required: false, enum: LedgerEntryType })
+  @ApiQuery({ name: 'dateFrom', required: false, type: String })
+  @ApiQuery({ name: 'dateTo', required: false, type: String })
+  async exportLedger(
+    @Query(new ZodValidationPipe(ExportLedgerDto.schema)) query: ExportLedgerDto,
+    @Req() request: DashboardRequest,
+    @Res() response: RawResponse,
+  ): Promise<void> {
+    const entries = await this.balance.statementAll(this.tenantIdOf(request), {
+      type: query.type,
+      dateFrom: query.dateFrom,
+      dateTo: query.dateTo,
+    });
+    const csv = toCsv(
+      entries.map((entry) => ({
+        id: entry.id,
+        type: entry.type,
+        amount: entry.amount,
+        units: entry.units,
+        rateUsed: entry.rateUsed,
+        balanceAfter: entry.balanceAfter,
+        createdAt: entry.createdAt.toISOString(),
+      })),
+      ['id', 'type', 'amount', 'units', 'rateUsed', 'balanceAfter', 'createdAt'],
+    );
+    response
+      .status(200)
+      .set({
+        'Content-Type': 'text/csv; charset=utf-8',
+        'Content-Disposition': 'attachment; filename="balance-statement.csv"',
+      })
+      .send(csv);
   }
 
   @Get('current-rates')

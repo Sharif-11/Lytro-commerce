@@ -3,6 +3,7 @@ import { ZipArchive } from 'archiver';
 import { PassThrough } from 'node:stream';
 import { ActorType, AuditAction, AuditResult, QueueName } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
+import { toCsv } from '../../../common/csv';
 import { AuditService } from '../../audit/services/audit.service';
 import type { ActivityRecord } from '../../audit/types/activity';
 import { InvoicesService } from '../../payments/services/invoices.service';
@@ -21,20 +22,6 @@ export interface DownloadedFile {
   fileContent: Buffer;
   contentType: string;
   fileSizeBytes: number;
-}
-
-function csvEscape(value: string | number | null | undefined): string {
-  const text = value === null || value === undefined ? '' : String(value);
-  if (/[",\n]/.test(text)) return `"${text.replace(/"/g, '""')}"`;
-  return text;
-}
-
-type CsvValue = string | number | null | undefined;
-
-function toCsv(rows: Record<string, CsvValue>[], columns: string[]): string {
-  const header = columns.join(',');
-  const lines = rows.map((row) => columns.map((column) => csvEscape(row[column])).join(','));
-  return [header, ...lines].join('\n');
 }
 
 /** LIF-16/17: the owner's own export of payments and the activity log -- orders/customers/products are not

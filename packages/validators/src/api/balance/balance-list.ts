@@ -11,3 +11,12 @@ export const listLedgerSchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(50),
 });
 export type ListLedgerQuery = z.infer<typeof listLedgerSchema>;
+
+// GET /balance/ledger/export (BAL-14): the same filters, minus pagination -- a CSV covers the whole filtered
+// range, not one page.
+export const exportLedgerSchema = z.object({
+  type: z.nativeEnum(LedgerEntryType).optional(),
+  dateFrom: z.coerce.date().optional(),
+  dateTo: z.coerce.date().optional(),
+});
+export type ExportLedgerQuery = z.infer<typeof exportLedgerSchema>;
