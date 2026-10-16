@@ -14,7 +14,7 @@ export interface StaffMember {
 
 export interface SeatUsage {
   used: number;
-  total: number;
+  total: number | null; // PLN-19: null is unlimited.
 }
 
 export interface StaffList {

@@ -81,6 +81,21 @@ async function moveToPlan(slug: string, planName: string): Promise<void> {
   );
 }
 
+/** PLN-19: a one-off, not-for-sale plan with unlimited seats, so a test moving a tenant onto it never
+    collides with the shared Starter/Growth rows other tests in this file depend on. */
+async function moveToUnlimitedSeatsPlan(slug: string): Promise<void> {
+  const name = `unlimited-seats-${randomUUID()}`;
+  const planId = (
+    await admin.query<{ id: string }>(
+      `INSERT INTO control.plans (name, rank, for_sale, limits)
+       VALUES ($1, 999, false, '{"staff": null}'::jsonb)
+       RETURNING id`,
+      [name],
+    )
+  ).rows[0]?.id;
+  await admin.query('UPDATE control.tenants SET plan_id = $1 WHERE slug = $2', [planId, slug]);
+}
+
 async function addStaff(who: Owner, phone: string): Promise<HttpResult> {
   return post('/staff', { phone, password: PASSWORD, name: 'Staff' }, shopCall(who));
 }
@@ -200,6 +215,21 @@ describeIfDatabase('staff on the Starter plan (STF-01, STF-02, STF-03, STF-04)',
     const again = await addStaff(who, phone);
     expect(again.status).toBe(409);
     expect(errorOf(again)).toMatchObject({ code: 'conflict', details: { field: 'phone' } });
+  });
+});
+
+describeIfDatabase('an unlimited-seats plan never refuses a new seat (PLN-19)', () => {
+  it('adds staff past what a numeric Starter-sized limit would have refused', async () => {
+    const who = await owner();
+    await moveToUnlimitedSeatsPlan(who.slug);
+
+    for (let i = 0; i < 3; i++) {
+      const created = await addStaff(who, texts.freshPhone());
+      expect(created.status).toBe(201);
+    }
+
+    const list = await listStaff(who);
+    expect(list.body).toMatchObject({ seats: { used: 4, total: null } });
   });
 });
 
