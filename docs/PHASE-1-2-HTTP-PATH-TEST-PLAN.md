@@ -303,11 +303,33 @@ Guard: `RequirePermission(BalanceManage)`. `confirm` carries `IdempotencyInterce
 
 No auth, `@SkipTenant()`.
 
-- **Happy**: lists only `forSale: true` plans/terms, with prices (`PLN-10`, `TRM-14`).
+- **Happy**: lists only `forSale: true` plans/terms (`PLN-10`, `TRM-14`). **Correction 2026-10-16: neither
+  response carries a price** — `planSchema`/`billingTermSchema` have no `price` field at all; price is a
+  separate (plan, term) pair, read only via `GET /plans/:id/prices` below. The original "with prices" claim
+  here described an endpoint shape that was never actually built this way.
 - **Validation**: n/a (no input).
-- **Business-rule**: a not-for-sale plan, or a plan with no price for a given term, never appears, enforced server-side even against a crafted request trying to name the hidden plan's id directly (`PLN-04`, `PLN-12`) — attempt `GET /plans?includeHidden=true`-style query tampering and confirm it has no effect.
+- **Business-rule**: a not-for-sale plan never appears, enforced server-side even against a crafted request trying to name the hidden plan's id directly (`PLN-04`, `PLN-12`) — attempt `GET /plans?includeHidden=true`-style query tampering and confirm it has no effect.
 - **Resource/state**: zero for-sale plans (misconfigured platform) → `200` with an empty list, not an error.
-- **Failure/recovery**: a plan price lookup failing for one term shouldn't 500 the whole list — confirm the response still returns every plan, just omitting the broken term's price, or fails the whole request cleanly (pick one behavior and assert it, not an unhandled exception either way).
+- **Failure/recovery**: a malformed or unknown filter param is ignored, not a 500 — there's no server-side plan/price join on this route to fail partway through (see the correction above), so the "omit the broken term's price" scenario this row originally described doesn't apply to `/plans` itself.
+
+### `GET /plans/:id/prices`
+
+**Added 2026-10-16, for D2-12** — no auth, `@SkipTenant()` (same reasoning as `/plans`/`/billing-terms`:
+platform-wide, not tenant-scoped, so a public key doesn't apply). Backs both the marketing site's pricing
+section and the dashboard's own plan-comparison grid, neither of which could show a real figure before this
+existed (`apps/server/src/modules/team/controllers/plans.controller.ts`'s `listPrices`).
+
+- **Happy**: a for-sale plan's id → every `(planId, billingTermId, price)` row set for it, one entry per
+  billing term it's priced for; a term it has no price for simply has no row (not a `null`-valued one).
+- **Validation**: a malformed (non-uuid) `:id` → `404 not_found` via the global invalid-UUID mapping
+  (`ApiErrorFilter`'s `22P02` handling), not a 500, same systemic fix this plan's §6 already covers for other
+  routes.
+- **Business-rule**: a **not-for-sale** plan's id → `404 not_found PlanNotFound`, the identical guard
+  `PurchaseService.quote` uses — confirm this with a real not-for-sale plan id (e.g. Trial or Pay-as-you-go),
+  not just an unknown id, since the two failure paths could otherwise be conflated by a test that only tries
+  a nonexistent id.
+- **Resource/state**: an unknown (but well-formed) plan id → `404 not_found PlanNotFound`.
+- **Failure/recovery**: n/a (pure read, no side effects to roll back).
 
 ---
 
@@ -423,6 +445,19 @@ All guarded by `OperatorSessionGuard`, `@SkipTenant()` — none of these are rea
 - **Business-rule**: unlike an ordinary charge, this can push the balance below zero/past the overdraft floor — it is itself the authority for that, verify a large negative adjustment on a near-zero balance succeeds rather than being refused by the ordinary overdraft guard.
 - **Resource/state**: unknown `:id` → `404`.
 - **Retry/concurrency**: two simultaneous adjustments on the same tenant → both apply, sequentially serialized by the balance row lock (`BAL-11`) — verify the final balance equals the sum of both, never a lost update.
+
+### `GET /operator/tenants`
+
+**Added 2026-10-16, missing from this plan entirely until now.** Operator session; keyset-paginated, never
+OFFSET (same discipline the activity log and balance ledger already follow). Built for `LIF-24` — ahead of
+its own `ADM-02`-era phase — since suspend/restore otherwise had no way to find a tenant id at all.
+
+- **Happy**: `?query=` matches a shop name or slug substring (case-sensitive `ILIKE`, so confirm it's actually case-*insensitive* in practice — Postgres `ILIKE` is, but verify the real query builder uses it and not `LIKE`); omitting `query` lists every tenant, newest-created first.
+- **Validation**: `limit` outside `1..100` → `422`; a structurally malformed `cursor` → `422 PageLinkInvalid` (the same key the activity log's own cursor decode uses, deliberately reused rather than a second "invalid cursor" concept).
+- **AuthN**: tenant session (even the owner's own) → `401`/`403` — this is operator-only, no tenant-facing equivalent.
+- **Business-rule**: a query matching zero tenants → `200` with an empty `entries` array and `nextCursor: null`, not an error.
+- **Resource/state**: paginate past the real end of the result set by passing the last page's own `nextCursor` back → the next page is empty with `nextCursor: null`, not an error or a repeat of the last page.
+- **Retry/concurrency**: a tenant created between two pages of the same paginated walk (by `created_at`) — verify the walk neither duplicates nor skips it, consistent with the `(createdAt, id)` keyset tie-break the cursor encodes.
 
 ### `POST /operator/tenants/:id/suspend`, `POST /operator/tenants/:id/restore` (`LIF-24`)
 
