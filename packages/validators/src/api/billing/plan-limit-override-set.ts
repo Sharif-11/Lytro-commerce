@@ -8,7 +8,8 @@ const limitKeys = Object.keys(planLimitsSchema.shape) as [string, ...string[]];
 
 export const setPlanLimitOverrideSchema = z.object({
   limitKey: z.enum(limitKeys),
-  value: z.union([z.number().int().nonnegative(), z.boolean()]),
+  // PLN-19: null overrides a limit to unlimited, exactly like a numeric override caps it.
+  value: z.union([z.number().int().nonnegative(), z.boolean(), z.null()]),
   reason: z.string().trim().min(1, 'A reason is required.'),
 });
 export type SetPlanLimitOverrideInput = z.infer<typeof setPlanLimitOverrideSchema>;

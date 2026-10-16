@@ -2,18 +2,25 @@ import { z } from 'zod';
 
 // PLN-02, D3: the limits a plan grants, stored as data. Every key is optional because each plan sets its own set;
 // the database stores the same shape in `control.plans.limits` and in a shop's plan snapshot.
+// PLN-19: each of these (never `activity_retention_days`, a retention period, not a usage cap) is also
+// nullable -- `null` means unlimited, `undefined` means "not set, fall back to the consumer's own default",
+// a number means capped at that value. Every reader of these fields must branch on `null` explicitly; treating
+// it as falsy and falling back to a default would silently turn "unlimited" into "use the default" instead.
+const unlimitedInt = () => z.number().int().nonnegative().nullable().optional();
+
 export const planLimitsSchema = z.object({
-  products: z.number().int().nonnegative().optional(),
-  orders_total: z.number().int().nonnegative().optional(),
-  orders_handled_monthly: z.number().int().nonnegative().optional(),
+  products: unlimitedInt(),
+  orders_total: unlimitedInt(),
+  orders_handled_monthly: unlimitedInt(),
   // Seats, counting the owner: Trial 1 (owner only), Starter 2 (owner plus one staff member). STF-02.
-  staff: z.number().int().nonnegative().optional(),
-  paired_devices: z.number().int().nonnegative().optional(),
-  storage_mb: z.number().int().nonnegative().optional(),
-  bandwidth_gb: z.number().int().nonnegative().optional(),
-  essential_sms_total: z.number().int().nonnegative().optional(),
-  essential_sms_monthly: z.number().int().nonnegative().optional(),
-  // How many days an activity log entry is kept before the retention job purges it (AUD-06).
+  staff: unlimitedInt(),
+  paired_devices: unlimitedInt(),
+  storage_mb: unlimitedInt(),
+  bandwidth_gb: unlimitedInt(),
+  essential_sms_total: unlimitedInt(),
+  essential_sms_monthly: unlimitedInt(),
+  // How many days an activity log entry is kept before the retention job purges it (AUD-06). A retention
+  // period, not a usage cap -- PLN-19's "unlimited" concept does not apply here, so this stays non-nullable.
   activity_retention_days: z.number().int().positive().optional(),
 });
 

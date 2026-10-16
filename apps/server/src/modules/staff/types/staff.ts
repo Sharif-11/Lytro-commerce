@@ -23,10 +23,10 @@ export interface StaffCredentials {
   mustSetPassword: boolean;
 }
 
-/** Seats in use (active users, the owner included) against the plan's seats (STF-02). */
+/** Seats in use (active users, the owner included) against the plan's seats (STF-02). `null` total is unlimited (PLN-19). */
 export interface SeatUsage {
   used: number;
-  total: number;
+  total: number | null;
 }
 
 export interface StaffList {

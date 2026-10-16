@@ -13,7 +13,7 @@ export const staffMemberSchema = z.object({
 export class StaffMemberDto extends createZodDto(staffMemberSchema) {}
 
 export const staffListSchema = z.object({
-  seats: z.object({ used: z.number(), total: z.number() }),
+  seats: z.object({ used: z.number(), total: z.number().nullable() }),
   staff: z.array(staffMemberSchema),
 });
 export class StaffListDto extends createZodDto(staffListSchema) {}

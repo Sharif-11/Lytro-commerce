@@ -22,12 +22,20 @@ export function UpsellBanner({
   onUpgrade,
 }: UpsellBannerProps): React.JSX.Element | null {
   const { t } = useTranslation();
-  if (seats.total === 0 || seats.used / seats.total < threshold) return null;
+  // PLN-19: a null seat total/limit is unlimited -- never "near" it, and nothing can raise it further.
+  if (seats.total === null || seats.total === 0 || seats.used / seats.total < threshold) {
+    return null;
+  }
 
-  const currentSeatLimit = currentPlan.limits.staff ?? 0;
+  const rawCurrentSeatLimit = currentPlan.limits.staff;
+  if (rawCurrentSeatLimit === null) return null;
+  const currentSeatLimit = rawCurrentSeatLimit ?? 0;
   const next = plans
     .filter((plan) => plan.forSale && plan.rank > currentPlan.rank)
-    .filter((plan) => (plan.limits.staff ?? 0) > currentSeatLimit)
+    .filter((plan) => {
+      const planSeatLimit = plan.limits.staff;
+      return planSeatLimit === null || (planSeatLimit ?? 0) > currentSeatLimit;
+    })
     .sort((a, b) => a.rank - b.rank)[0];
   if (!next) return null;
 

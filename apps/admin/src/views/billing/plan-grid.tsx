@@ -141,7 +141,8 @@ function PlanCard({
       <ul className="space-y-1 text-sm text-slate-600">
         {Object.entries(plan.limits).map(([key, value]) => (
           <li key={key}>
-            {t(`billing.limit.${key}`, { defaultValue: key })}: {String(value)}
+            {t(`billing.limit.${key}`, { defaultValue: key })}:{' '}
+            {value === null ? t('billing.unlimited') : String(value)}
           </li>
         ))}
       </ul>

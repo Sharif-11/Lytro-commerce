@@ -28,6 +28,16 @@ to the routes above that genuinely need to work for a lapsed owner — probably 
 upgrade/downgrade genuinely shouldn't work while lapsed (`UpgradeService`/`DowngradeService` already refuse
 unless `active`, so the guard change is purely about *reaching* the service, not bypassing its own check).
 
+**Fixed 2026-10-16 (PR #87).** Added `lapsed: true` to exactly `billing/quote`, `billing/purchase`,
+`billing/invoices`, `billing/invoices/:id`, and `balance` (current balance, for `BAL-18`'s "frozen balance
+shown to the subscriber" in every state). Scoped narrower than this write-up's own suggestion in one place,
+deliberately: `balance/top-up/quote`/`balance/top-up/confirm` were left untouched, since no named requirement
+(`BIL-13`/`LIF-11`/`LIF-12`/`BAL-18`) actually requires topping up while lapsed, only renewing from the
+balance that already exists — if a lapsed owner needs to top up before renewing, that's a new requirement to
+raise explicitly, not something to fold into this bug fix. Upgrade/downgrade/cancel routes were left
+untouched for the reason already given above. Covered by four new e2e tests in `dashboard.e2e.spec.ts`
+(locked/archived/deleted owner reading invoices and balance; suspended owner still fully refused).
+
 ## 2. No read endpoint for "is a cancellation currently scheduled" (LIF-01)
 
 `billing/cancel` and `billing/cancel/undo` are write-only — nothing exposes `control.tenants.cancelled_at`
@@ -179,20 +189,21 @@ User-requested, specified as formal SRS rows the same day, not yet scoped into a
   applies broadly, fallback not refusal. Blocked on `WAL-19`'s own gateway plugins, which aren't built
   either — this is new scope on top of unbuilt scope.
 - **`RAT-15`** (new): the commission rate itself, following the existing `RAT-*` rate-settings pattern.
+  **Decided 2026-10-16 (`D2-13`, `PHASE-2-PLAN.md`):** deferred to Phase 5, alongside `WAL-20`/`WAL-21`, its
+  only real consumer — no longer unplanned.
 - **`PLN-19`** (new): the operator shall be able to set any individual plan limit to **unlimited** instead
   of a number, independently per limit (a plan can be unlimited on storage while still capped on seats).
   Generalizes two special cases already hard-coded unconditionally today (order *creation*, `QTA-07`, and
-  courier connections) into an operator-configurable property of any limit on any plan. **Implementation
-  shape, recorded now while the design choice is fresh, not mandated by the SRS row itself:** the cleanest
-  fit for `packages/validators/src/db/plans/plan-limits.ts`'s existing `z.number().int().nonnegative().
-  optional()` fields is adding `.nullable()` to each — `null` = unlimited, `undefined` = not set (existing
-  fallback-to-default behavior, e.g. `plan.limits.staff ?? DEFAULT_SEATS`), a number = capped. Every real
-  consumption site that currently reads a limit with a `?? DEFAULT` fallback (seat enforcement in
-  `staff.service.ts`, `DowngradeService.preview`, the `STA`-adjacent near-limit upsell banner this session
-  built) needs an explicit `null`-means-no-cap branch added, not just the schema change — a blanket `??`
-  fallback would silently treat `null` as "use the default," the opposite of unlimited. Most other
-  consumers (order/product/storage/bandwidth enforcement) don't exist yet, same orders/products-module
-  dependency as the rest of this list.
+  courier connections) into an operator-configurable property of any limit on any plan. **Shipped 2026-10-16
+  (`PHASE-2-PLAN.md` Slice 9, branch `feat/plan-unlimited-limits`):** `.nullable()` added to every usage-cap
+  field in `packages/validators/src/db/plans/plan-limits.ts` (not `activity_retention_days`, a retention
+  period rather than a usage cap) — `null` = unlimited, `undefined` = not set (existing fallback-to-default
+  behavior), a number = capped. Every consumption site that read a limit with a `?? DEFAULT` fallback got an
+  explicit `null`-means-no-cap branch (`StaffService.seatsOf`/`requireSeat`/`enforceSeatLimit`,
+  `DowngradeService.preview`/`apply`, the seat upsell banner, the plan comparison grid's rendering, and the
+  per-tenant limit-override schema for `PLN-11`). Proven by a real e2e test in `staff.e2e.spec.ts` that adds
+  staff past a Starter-sized cap on an unlimited-seats plan. Consumers that don't exist yet (order/product/
+  storage/bandwidth enforcement) still get their own `null` branch only when Phase 3/4 actually builds them.
 
 Confirmed already-specified, not new: automated verification via the SMS listener (level 2) staying free
 regardless of plan or trial state was already `LSN-07`/`PYG-15` — nothing changed there.
