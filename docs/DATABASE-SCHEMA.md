@@ -428,6 +428,8 @@ CREATE TABLE tenant.categories (
     slug            text NOT NULL,
     image_id        uuid,                         -- tenant.media (MED); optional banner/image
     depth           smallint NOT NULL CHECK (depth BETWEEN 1 AND 4),   -- PRD-03
+    behaves_like    text,                         -- PST-06: a control.business_type_presets key; null => nearest
+                                                  -- ancestor's, and with none the shop's own type
     sort_order      integer NOT NULL DEFAULT 0,
     visible         boolean NOT NULL DEFAULT true,
     deleted_at      timestamptz,
@@ -456,6 +458,7 @@ CREATE TABLE tenant.products (
     stock_tracking      tenant.stock_tracking NOT NULL DEFAULT 'tracked',
     batch_tracked       boolean NOT NULL DEFAULT false,     -- INV-12
     serial_tracked      boolean NOT NULL DEFAULT false,     -- INV-14
+    shared_stock        boolean NOT NULL DEFAULT false,     -- INV-24: variants draw from one stock
     low_stock_threshold numeric(14,3) NOT NULL DEFAULT 5 CHECK (low_stock_threshold >= 0),  -- INV-08
     delivery_charge     numeric(10,2) CHECK (delivery_charge >= 0),  -- DLV-03 override; null => zone charge
     weight_kg           numeric(10,3),                     -- null => Adjustable unavailable (PRD-16)
@@ -478,6 +481,7 @@ CREATE TABLE tenant.products (
     UNIQUE (tenant_id, id),
     CHECK (NOT (stock_tracking = 'not_tracked' AND (batch_tracked OR serial_tracked))),
     CHECK (NOT (batch_tracked AND serial_tracked)),
+    CHECK (NOT (shared_stock AND serial_tracked)),            -- INV-24
     FOREIGN KEY (tenant_id, primary_category_id) REFERENCES tenant.categories(tenant_id, id)
 );
 CREATE INDEX ON tenant.products (tenant_id, primary_category_id, sort_order) WHERE deleted_at IS NULL;
@@ -515,6 +519,8 @@ CREATE TABLE tenant.product_variants (
     delivery_mode   tenant.delivery_mode,
     image_id        uuid,
     avg_cost        numeric(12,4),                -- INV-10; never in a public response; null = unknown
+    pack_amount     numeric(14,3) CHECK (pack_amount > 0),  -- INV-24: shared-stock units per unit sold
+    is_stock_holder boolean NOT NULL DEFAULT false,         -- INV-24: the hidden variant holding a shared stock
     active          boolean NOT NULL DEFAULT true,
     deleted_at      timestamptz,
     UNIQUE (tenant_id, id),
@@ -522,6 +528,10 @@ CREATE TABLE tenant.product_variants (
     FOREIGN KEY (tenant_id, product_id) REFERENCES tenant.products(tenant_id, id)
 );
 CREATE UNIQUE INDEX ON tenant.product_variants (tenant_id, sku) WHERE sku IS NOT NULL AND deleted_at IS NULL;
+-- INV-24: a product with shared_stock has one extra variant with is_stock_holder = true (combination_key
+-- '#stock'). Only it has a stock_levels row, batches and movements; it is never sold, never public and not
+-- counted by ATR-14. Every sellable variant has pack_amount, and reserving or moving N of it reserves or
+-- moves N x pack_amount on the holder inside InventoryLedger.apply().
 -- ATR-14 / ATL-03: a trigger refuses the 101st variant of one product.
 ```
 
@@ -818,6 +828,7 @@ CREATE TABLE tenant.delivery_zones (                -- DLV-01; seeded with two r
     name            varchar(60) NOT NULL,
     charge          numeric(10,2) NOT NULL CHECK (charge >= 0),
     is_fallback     boolean NOT NULL DEFAULT false, -- DLV-02: exactly one per tenant, never deleted
+    no_delivery     boolean NOT NULL DEFAULT false, -- DLV-06: public orders to this zone are refused
     UNIQUE (tenant_id, id)
 );
 CREATE UNIQUE INDEX delivery_zones_one_fallback ON tenant.delivery_zones (tenant_id) WHERE is_fallback;
@@ -836,6 +847,15 @@ CREATE UNIQUE INDEX delivery_zone_areas_thana ON tenant.delivery_zone_areas (ten
     WHERE thana_code IS NOT NULL;
 -- Resolution (DLV-02): a row naming the thana, else a row naming its district, else the fallback zone.
 -- The order line stores its computed delivery_charge (ORD-46), so editing a zone never changes old orders.
+
+CREATE TABLE tenant.product_delivery_zones (        -- DLV-07: no rows = the product goes wherever the shop delivers
+    tenant_id       uuid NOT NULL,
+    product_id      uuid NOT NULL,
+    zone_id         uuid NOT NULL,
+    PRIMARY KEY (product_id, zone_id),
+    FOREIGN KEY (tenant_id, product_id) REFERENCES tenant.products(tenant_id, id) ON DELETE CASCADE,
+    FOREIGN KEY (tenant_id, zone_id) REFERENCES tenant.delivery_zones(tenant_id, id)  -- no cascade: DLV-07
+);
 
 CREATE TABLE tenant.size_charts (                   -- PRD-17: one per product or per category
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -988,7 +1008,8 @@ CREATE TABLE tenant.order_lines (
     attribute_values jsonb NOT NULL DEFAULT '{}',
     thumbnail_url   text,                            -- best-effort only (ORD-47)
     unit_price      numeric(10,2) NOT NULL,
-    quantity        integer NOT NULL CHECK (quantity >= 1),
+    quantity        numeric(14,3) NOT NULL CHECK (quantity > 0),  -- UOM-04: decimals only for measured units
+    pack_amount     numeric(14,3),                -- INV-24: shared-stock units per unit sold; null otherwise
     item_discount   numeric(10,2) NOT NULL DEFAULT 0,
     weight_kg       numeric(10,3),
     delivery_mode   tenant.delivery_mode NOT NULL,

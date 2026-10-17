@@ -80,7 +80,7 @@ Rules used below:
 - **Partial** means this phase builds a working part, and a named later phase finishes the rest.
 - Notices delivered through the D3-5 stub count as complete, the same rule Phase 2 applied to `BAL-13`.
 
-### 3.1 Completed by this phase (162)
+### 3.1 Completed by this phase (163)
 
 | Family | Requirements | Count |
 |---|---|---|
@@ -90,7 +90,7 @@ Rules used below:
 | UOM | UOM-01, 02, 03 | 3 |
 | INV | INV-01 – INV-13, INV-18, 19, 20, 21, 22 | 18 |
 | PUR | PUR-01 – PUR-10 | 10 |
-| PST | PST-01 – PST-05 (PST-05: per-shop-type form layout) | 5 |
+| PST | PST-01 – PST-06 (PST-05: per-shop-type form layout; PST-06: categories that behave like another shop type) | 6 |
 | MED | MED-01 – 08, MED-10 – 13 | 12 |
 | STO | STO-02 – 07, STO-09 (video compression, added 2026-10-17) | 7 |
 | BND | BND-01, 02, 03, 05, 06, 07, 08, 09 | 8 |
@@ -106,9 +106,9 @@ Rules used below:
 | LND | LND-01, 02, 03, 04, 05, 06, 14, 17, 18 | 9 |
 | DLV | DLV-01, 02, 05 (delivery zones, added 2026-10-17) | 3 |
 | FED | FED-01 – 06 (Meta catalog feed, added 2026-10-17) | 6 |
-| | **Total** | **162** |
+| | **Total** | **163** |
 
-### 3.2 Partially completed by this phase (35)
+### 3.2 Partially completed by this phase (38)
 
 | Req | Done in this phase | Remaining | Finished in |
 |---|---|---|---|
@@ -145,6 +145,9 @@ Rules used below:
 | LND-15 | Meta Pixel `PageView` and `ViewContent` fire on the landing page, with `content_ids` matching the catalog feed's item IDs | `InitiateCheckout` and `Purchase`, which need the order form | Phase 4 |
 | INV-14 | serials recorded at receiving or added later, with a missing-serials count | serial required before a line ships | Phase 4 |
 | INV-23 | scan, paste and typed serial entry with duplicate and IMEI check-digit validation, at receiving and "add missing" | the same entry when shipping a line | Phase 4 |
+| DLV-06 | "no delivery" zones stored and shown in the delivery settings and on product and landing pages | refusal at public order creation; warning on staff orders | Phase 4 |
+| DLV-07 | product zone limits stored and shown on product and landing pages; zone delete refused while a limit uses it | refusal at order creation, including for combos | Phase 4 |
+| INV-24 | shared stock with pack amounts: availability per variant, adding stock as packs, reservations through the shared stock | the order line's pack-amount snapshot and returns through it | Phase 4 |
 | DLV-03 | product and variant delivery charge stored as an optional override, unset by default | the zone charge used for lines without one (ORD-06a) | Phase 4 |
 | DLV-04 | zone changes recorded in the activity log | proof that an existing order keeps its stored delivery charge | Phase 4 |
 
@@ -211,6 +214,9 @@ Read each row as: the requirements on the left can only be built or proven once 
 | ATR-16 | ATL-01, PST-02 | option sets are library options seeded by presets |
 | FED-01–05 | PRD-09, ATR-07, INV-01, CCH-01–04, LND-01, LND-06 | the feed is another public catalogue view whose links are landing pages |
 | LND-15 `content_ids` | FED-02 | pixel item IDs must equal the feed's item IDs |
+| PST-06 | PST-02, PST-05, PRD-03 | a category points at an existing shop type's defaults instead of copying them |
+| DLV-06, DLV-07 | DLV-01, DLV-02 | limits are expressed in zones |
+| INV-24 | INV-03, INV-15, UOM-03 | a pack amount is a multiplier on one ledger stock |
 
 ---
 
@@ -272,6 +278,9 @@ All in `DATABASE-SCHEMA.md` §3.2 (rewritten 2026-10-17), plus:
 | Delivery zones | `delivery_zones`, `delivery_zone_areas` (DLV-01, 02), seeded with Inside/Outside Dhaka for every tenant | 1 |
 | Size charts, option sets | `size_charts` (product or category, image or table, PRD-17), `option_sets` (platform and tenant, ATR-16) | 1 |
 | Catalog feed | `catalog_feeds` (hashed feed token, FED-01, FED-05) | 9 |
+| Mixed shops | `categories.behaves_like` (PST-06) | 1 |
+| Delivery limits | `delivery_zones.no_delivery` (DLV-06), `product_delivery_zones` (DLV-07) | 1 |
+| Shared stock | `products.shared_stock`, `product_variants.pack_amount` and `is_stock_holder` (INV-24) | 2 |
 
 New permissions in the validators' `Permission` enum: `inventory:read`, `inventory:manage`, `keys:manage`.
 New platform settings: `reservation_expiry_minutes`, `expiry_warning_days`, and the cache lifetimes
@@ -322,11 +331,12 @@ their backend ships earlier.
   Dhaka" for every tenant, with the product delivery charge made an optional override; the shop-wide
   default payment policy and the "delivery charge only" option; size charts on categories and products;
   quick option sets (S–XXL, 38–44, common colors) seeded per preset, plus tenant-saved sets; and
-  "Duplicate product".
+  "Duplicate product". Also: categories that behave like another shop type, for shops selling several kinds
+  of product (PST-06); "no delivery" zones and per-product zone limits (DLV-06, DLV-07).
 - **Requirements completed:** PRD-01, 02, 03, 04, 05, 14, 15, 16, 18; ATR-01, 03, 04, 05, 06, 10, 12, 14;
-  ATL-01–05; UOM-01, 02; PST-02, 03, 04; DWN-07; PYG-16; LND-04; DLV-01, 02. *(E2E halves: PRD-03, ATR-02,
+  ATL-01–05; UOM-01, 02; PST-02, 03, 04, 06; DWN-07; PYG-16; LND-04; DLV-01, 02. *(E2E halves: PRD-03, ATR-02,
   ATR-11, ATR-16, PRD-12, PST-01, DLV-05 finish in Slice 11; PRD-17 in Slices 11 and 12.)*
-- **Partial:** PRD-06, PRD-08, PRD-13, ATR-07, ATR-08, ATR-13, ATR-15, DLV-03, DLV-04, TRL-03 (products),
+- **Partial:** PRD-06, PRD-08, PRD-13, ATR-07, ATR-08, ATR-13, ATR-15, DLV-03, DLV-04, DLV-06, DLV-07, TRL-03 (products),
   PLN-19 (products).
 - **Done when:** a T-shirt with Size × Color saves as one transaction with 6 variants and counts once
   against the limit; a duplicate Red/L and a 4th variant-defining attribute are refused by the database,
@@ -343,6 +353,8 @@ their backend ships earlier.
   permissions and audit.
 - **Requirements completed:** INV-01, 02, 03, 04, 05, 06 (backend), 07 (backend), 08, 09 (backend), 10
   (manual half; receipt half in Slice 4), 11, 18, 19, 20, 21; UOM-03.
+- **Partial:** INV-24 — shared stock with pack amounts (one hidden stock-holding variant; availability per
+  variant; adding stock as packs); reservations through it in Slice 5; the order-line snapshot in Phase 4.
 - **Done when:** a concurrency test of 100 simultaneous −1 changes against 50 on hand gives exactly 50
   successes; the ledger-sum invariant holds after every step of a mixed sequence; an UPDATE on a movement
   fails for every role.
@@ -456,7 +468,8 @@ their backend ships earlier.
   WhatsApp-share actions (and per-variant links); the ad-tracking settings screen (pixel ID, Conversions
   API token entered once); delivery settings with the two Dhaka charges up front and an "Add zone"
   editor; size-chart editor; one-tap option sets in the variant editor; "Duplicate product"; the catalog
-  feed link with copy and setup steps; per-shop-type form layout with "More settings"; price and stock
+  feed link with copy and setup steps; a category's "behaves like" setting; "no delivery" zones and a
+  product's "Delivers to" limit; "Sizes share one stock" with each size's amount; per-shop-type form layout with "More settings"; price and stock
   columns with "Fill all" in the variant grid; IMEI/serial entry by camera scan, pasted list or typing.
   All in Bangla and English, in the same everyday commerce wording the
   admin app already uses (transliterated domain nouns such as স্টক, প্রোডাক্ট — never formal or technical
@@ -481,7 +494,8 @@ their backend ships earlier.
     state, branding, no shop navigation); server-rendered Open Graph and Twitter Card tags; the branded
     "no longer available" page (404) and the 301 from an old slug; served whenever the tenant is
     reachable, including with the storefront off; Meta Pixel `PageView`/`ViewContent`, loaded after the
-    page's content, with `content_ids` set to the feed's variant IDs; the "Size chart" link on the
+    page's content, with `content_ids` set to the feed's variant IDs; a "Delivers to" note when a zone or
+    product limit applies (DLV-06, DLV-07); the "Size chart" link on the
     product page and the landing page. The order form's fields are laid out but not submittable until Phase 4.
 - **Requirements completed:** SFT-01, 02, 03, 04, 05, 11, 12, 14, 15, 16, 17, 18, 19, 21; I18N-02; TEN-08;
   TEN-17; CCH-10; LND-01, 02, 03, 05, 14, 18; PRD-17; ATR-18.
