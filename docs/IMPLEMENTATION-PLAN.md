@@ -90,6 +90,7 @@ code fix).
 - `PRD-*`, `ATR-*`, `ATL-*`, `UOM-*` — products, variants, flexible attributes, units.
 - `INV-*`, `PUR-*`, `PST-*` — inventory, purchasing, shop-type presets.
 - `LND-*` — product landing pages (added 2026-10-17): the shareable single-product page, link previews, stable links and Meta Pixel views. Its order form lands in Phase 4 and its advance/full payment in Phase 5.
+- `DLV-*`, `FED-*`, `PRD-17`, `PRD-18`, `ATR-16` — Facebook-seller essentials (added 2026-10-17): delivery zones (Inside/Outside Dhaka ready by default), size charts, one-tap option sets, "Duplicate product" and the Meta catalog feed. Zone *settings* land here; the zone-based charge is computed by Phase 4's order pricing.
 - `MED-*` — R2 presigned uploads, the validation/resize/variant-generation job, the `control.used_transaction_ids`-style permanence pattern applied to media where relevant.
 - `SFT-*` — the shared storefront, served at subdomain root, including the footer/contact-us section (`SFT-21`, added 2026-10-16, reads `TEN-30`'s contact fields).
 - `CCH-*` — the layered cache (device → edge → process memory → Postgres), built in from the start since retrofitting caching into a storefront already in production is a much riskier change than building it in.
@@ -108,6 +109,7 @@ code fix).
 - `ORD-01` to `ORD-47` — order creation, the `payment_status`/`fulfillment_status` two-axis model, extraction from text (`AI`-adjacent, see Phase 7 for the AI provider itself). Order lines hold stock through Phase 3's reservation primitive (`INV-15`/`INV-16`) and returns call its restock-or-damaged service (`INV-17`); the order-line halves of `PRD-06/07/08/13`, `ATR-07/08/09/13/15`, `ATL-06` and `UOM-04` finish here (`PHASE-3-PLAN.md` §3.2).
 - `QTA-01` to `QTA-07` (moved here from Phase 3, D3-3) — counted at order handling; this phase's manual mark-shipped trigger first, Phase 6's courier booking second.
 - `TAX-*`, `MNU-*` (adopted 2026-10-17) — need order lines; land with or right after this phase.
+- `ORD-06a` (amended 2026-10-17) and `DLV-03`/`DLV-04` — delivery charge by the order's zone, once per order, with product overrides and Adjustable-mode weight extras on top; `PRD-08`'s "delivery charge only" advance and the shop-wide default policy; `SFT-20`/`LND-08` estimates use the same function.
 - `LND-07` to `LND-12`, `LND-16` — the product landing page's order form (name, phone, district, thana, address, comments; variant and quantity), live totals, submission through `ORD-02` with `source = landing_page`, the per-IP limit, the confirmation screen, the Meta `InitiateCheckout`/`Purchase` events and the server-side Conversions API event. Cash-on-delivery products complete here; advance and full prepayment complete in Phase 5 (`LND-10`).
 - `CUS-*` — customer records, addresses, the canonical zilla/thana list.
 - `API-11`'s mandatory `Idempotency-Key` for order creation, built in from this phase's first endpoint, not added after a double-order incident.
