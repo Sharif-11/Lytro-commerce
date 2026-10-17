@@ -794,6 +794,29 @@ actually fail without it — temporarily pointed `resend()` back at `RESET_COOLD
 70-second case failed with the exact expected symptom (no second SMS sent), then restored and confirmed all
 15 relevant tests green again.
 
+## 40. `PYG-21`: the day-23 inactivity warning's dedup wasn't scoped to the current idle period — found and fixed 2026-10-17
+
+`PYG-21` requires the day-23 warning to be sent "exactly once per idle period," and its own pass criteria is
+explicit that a qualifying activity "restarts the clock." The dedup check in `runPaygInactivityPass`
+(`lifecycle.service.ts`) asked only "has a `payg_inactivity` warning ever been sent for this tenant" — with
+no lower bound on *when*. Unlike the subscription lapse ladder (where renewing moves the tenant out of
+`active`/`grace`/etc. entirely, so a stale warning check never resurfaces), a pay-as-you-go tenant stays in
+`pay_as_you_go` the whole time; a qualifying activity only moves `last_activity_at` forward. So a tenant
+warned once, then reset by a top-up, then idle again long enough to cross day 23 a *second* time, would
+never get the second warning — the first one, from the previous idle period, permanently suppressed every
+later one.
+
+**Fixed:** the dedup now also requires the matching audit entry's own `createdAt` to be no older than the
+current idle streak's start (`lastActivityAt`, the same field the idle-day count itself is measured from) —
+a warning from before the last reset no longer counts.
+
+Proven by a new case in `apps/server/test/lifecycle.e2e.spec.ts`'s `PYG-21` block: a tenant warned once,
+then reset by a (simulated) qualifying activity, then idle again past day 23 a second time, gets a second,
+independent warning rather than being silently suppressed by the first. Verified the fix would actually
+fail without it — temporarily dropped the new `createdAt` bound, confirmed the new case failed with the
+exact expected symptom (the second warning never sent), then restored and confirmed all 23 relevant tests
+green again.
+
 ## Not a bug, just noting it so it isn't mistaken for one later
 
 The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data
