@@ -1,0 +1,1 @@
+ALTER TABLE "control"."tenants" ADD COLUMN "lapse_schedule_snapshot" jsonb;
