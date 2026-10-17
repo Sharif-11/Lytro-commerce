@@ -33,7 +33,12 @@ essential-SMS allowance had no metering mechanism at all, despite the plan-limit
 built the counter, revised the requirement's own carve-out rule along the way (sign-in to an existing shop
 now counts; the shop-ready SMS no longer does), and caught a phone-enumeration regression (`AUTH-13`/P1-E10)
 before it shipped by moving the new "use your password" signal from the request-code response to the
-verify response (`KNOWN-GAPS.md` #36). No exit-criteria gap remains.
+verify response (`KNOWN-GAPS.md` #36). A fourth, scoped directly from the user's own tracked checklist:
+`STF-11` (`M`-priority, named `STF` prefix) requires the UI to hide an action the viewer can't perform, not
+just have the API 403 it — the Staff and Roles screens both showed fully clickable Add/Edit/Delete controls
+to a `staff:read`-only viewer, since nothing on the frontend checked the separate `staff:manage` permission
+those routes actually require. Fixed by gating both screens' write controls on a new shared `hasPermission`
+check (`KNOWN-GAPS.md` #38). No exit-criteria gap remains.
 
 1. Every `M` requirement in AUTH, TEN, STF, AUD, I18N-01/02 and ADM-01/18 has a passing automated test (see the test plan).
 2. The isolation suite (SEC-02) passes on every endpoint that takes a resource ID, with two tenants holding overlapping data.

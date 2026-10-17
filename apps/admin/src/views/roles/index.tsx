@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Permission } from '@lytronix/validators';
+import { useMe } from '@/api/auth';
 import { useCreateRole, useDeleteRole, useRoles, useUpdateRole } from '@/api/roles';
 import { errorMessage } from '@/api/error-message';
 import { ApiClientError } from '@/api/client';
+import { hasPermission } from '@/permissions/has-permission';
 import { ErrorBanner } from '@/components/error-banner';
 import { Button } from '@/components/button';
 import { ConfirmDialog } from '@/components/confirm-dialog';
@@ -16,6 +19,8 @@ type Panel = { mode: 'create' } | { mode: 'edit'; role: RoleSummary } | null;
     delete-confirmation flow. RoleForm and RoleList stay presentational. */
 export function Roles(): React.JSX.Element {
   const { t } = useTranslation();
+  const me = useMe();
+  const canManage = hasPermission(me.data, Permission.StaffManage);
   const roles = useRoles();
   const createRole = useCreateRole();
   const updateRole = useUpdateRole();
@@ -76,7 +81,7 @@ export function Roles(): React.JSX.Element {
             </p>
           ) : null}
         </div>
-        {panel === null ? (
+        {panel === null && canManage ? (
           <Button
             type="button"
             variant="primary"
@@ -109,6 +114,7 @@ export function Roles(): React.JSX.Element {
       {roles.data ? (
         <RoleList
           roles={roles.data}
+          canManage={canManage}
           onEdit={(role) => {
             setPanel({ mode: 'edit', role });
           }}

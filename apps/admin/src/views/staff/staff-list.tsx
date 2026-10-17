@@ -5,6 +5,7 @@ import type { RoleSummary } from '@/types/role';
 interface StaffListProps {
   staff: StaffMember[];
   roles: RoleSummary[];
+  canManage: boolean;
   onEdit: (member: StaffMember) => void;
 }
 
@@ -32,7 +33,7 @@ function StatusBadge({ active }: { active: boolean }): React.JSX.Element {
 /** Mobile cards below sm, a table from sm up — matching the reference dashboard's own staff-list layout
     split (UserManagement.jsx), adapted for Lytro's multi-role model instead of a single role dropdown, and
     with no delete action since the backend only supports activate/deactivate, never removal. */
-export function StaffList({ staff, roles, onEdit }: StaffListProps): React.JSX.Element {
+export function StaffList({ staff, roles, canManage, onEdit }: StaffListProps): React.JSX.Element {
   const { t } = useTranslation();
 
   if (staff.length === 0) {
@@ -61,7 +62,7 @@ export function StaffList({ staff, roles, onEdit }: StaffListProps): React.JSX.E
               <StatusBadge active={member.active} />
             </div>
             <p className="mt-2 text-xs text-slate-400">{roleNames(member, roles, t)}</p>
-            {member.isOwner ? null : (
+            {member.isOwner || !canManage ? null : (
               <div className="mt-3 flex gap-2 border-t border-dashed border-slate-100 pt-3">
                 <button
                   type="button"
@@ -107,7 +108,7 @@ export function StaffList({ staff, roles, onEdit }: StaffListProps): React.JSX.E
                   <StatusBadge active={member.active} />
                 </td>
                 <td className="px-4 py-3 text-right">
-                  {member.isOwner ? null : (
+                  {member.isOwner || !canManage ? null : (
                     <button
                       type="button"
                       onClick={() => {

@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Permission } from '@lytronix/validators';
+import { useMe } from '@/api/auth';
 import { useCreateStaff, useResetStaffPassword, useStaffList, useUpdateStaff } from '@/api/staff';
 import { useRoles } from '@/api/roles';
 import { errorMessage } from '@/api/error-message';
+import { hasPermission } from '@/permissions/has-permission';
 import { ErrorBanner } from '@/components/error-banner';
 import { Button } from '@/components/button';
 import { StaffForm, type StaffFormValues } from '@/views/staff/staff-form';
@@ -15,6 +18,8 @@ type Panel = { mode: 'create' } | { mode: 'edit'; member: StaffMember } | null;
     StaffForm and StaffList stay presentational — props in, callbacks out. */
 export function Staff(): React.JSX.Element {
   const { t } = useTranslation();
+  const me = useMe();
+  const canManage = hasPermission(me.data, Permission.StaffManage);
   const staffList = useStaffList();
   const roles = useRoles();
   const createStaff = useCreateStaff();
@@ -79,7 +84,7 @@ export function Staff(): React.JSX.Element {
             </p>
           ) : null}
         </div>
-        {panel === null ? (
+        {panel === null && canManage ? (
           <Button
             type="button"
             variant="primary"
@@ -114,6 +119,7 @@ export function Staff(): React.JSX.Element {
         <StaffList
           staff={staffList.data.staff}
           roles={roles.data ?? []}
+          canManage={canManage}
           onEdit={(member) => {
             setPanel({ mode: 'edit', member });
           }}

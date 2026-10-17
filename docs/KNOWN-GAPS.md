@@ -726,6 +726,44 @@ disabled the existing-tenant lookup and the `suggestPassword` computation, confi
 depending on them failed with the expected symptom, nothing else broke, restored, confirmed all 83 relevant
 tests green.
 
+## 38. `STF-11`: the Staff and Roles screens showed Add/Edit/Delete to a `staff:read`-only viewer — found and fixed 2026-10-17
+
+`STF-11`'s own pass criteria has two halves: "a user without a permission receives 403 by API" (already true
+— every write route on both screens is `@RequirePermission(Permission.StaffManage)`) "and does not see the
+control in the UI" (not true until this fix). Both screens' nav entries are gated on `Permission.StaffRead`
+alone (`nav-items.ts`'s own comment: "Staff and Roles both gate on StaffRead"), but nothing on the frontend
+checked `StaffManage` — a `staff:read`-only staff member could open either screen and see fully clickable
+Add/Edit/Delete controls that would 403 the instant they were used.
+
+**Fixed:**
+- New `apps/admin/src/permissions/has-permission.ts` — the one place "does this viewer hold permission X" is
+  decided (owner implicitly holds everything, per D32; a staff member needs it in their own `permissions`
+  list; defaults to `false` while `/me` hasn't resolved yet). `nav-items.ts`'s `visibleNavItems` refactored to
+  call through it instead of duplicating the same owner-or-permission-list check a third time (one definition
+  per concept) — behavior-preserving, confirmed against every existing case in `nav-items.test.ts`.
+- `views/staff/index.tsx`/`staff-list.tsx` and `views/roles/index.tsx`/`role-list.tsx`: each container computes
+  `canManage = hasPermission(useMe().data, Permission.StaffManage)`, hides its own "Add" button when false,
+  and passes `canManage` down to the list component, which now hides Edit (Staff) and Edit+Delete (Roles) per
+  row — both the mobile-card and desktop-table JSX blocks in each list file had the same unconditional button,
+  so both needed the fix, not just one. Hidden by default while `/me` is still loading (same safer-default
+  `visibleNavItems` already uses), which is a real, reachable case here too — `dashboard-shell.tsx` renders
+  the route view unconditionally even before `/me` resolves, so a hard refresh landing directly on
+  `/dashboard/staff` or `/dashboard/roles` genuinely hits this path.
+- Audited every other screen for the same `*Read`-gates-nav/`*Manage`-gates-writes split. Found two more with
+  the identical gap — **not fixed here, deliberately out of scope**: Balance (`TopUpForm` in
+  `balance/index.tsx` is 100% mutation UI behind `BalanceManage`) and Billing (`PaymentsManage` guards every
+  purchase/upgrade/downgrade/cancel action across several files: `index.tsx`, `PaymentPanel`, `DowngradePanel`,
+  `PlanGrid`, `ScheduledDowngradeBanner`). Both would reuse the same `hasPermission` helper; flagged as their
+  own follow-up rather than tripling this fix's diff. Shop-settings (one permission gates both read and
+  write) and Activity (`AuditRead` has no `Manage` counterpart at all) have no instance of this bug.
+
+Proven by a new `apps/admin/src/permissions/has-permission.test.ts` (the one genuinely pure-function piece of
+this fix: owner bypass, grants when held, denies when absent, denies by default before `/me` resolves) and
+the existing `nav-items.test.ts` staying green after the refactor. The JSX conditionals themselves have no
+automated coverage — no React-component-test infrastructure exists anywhere in `apps/admin` (zero `.test.tsx`
+files, no browser-automation tool in this environment) — verified by reading the diff only, consistent with
+how every other admin-UI-only change this session has been handled.
+
 ## Not a bug, just noting it so it isn't mistaken for one later
 
 The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data
