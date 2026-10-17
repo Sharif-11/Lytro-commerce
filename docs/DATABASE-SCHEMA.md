@@ -775,6 +775,32 @@ CREATE TABLE tenant.purchase_receipt_lines (
 -- PUR-07 "Add stock" writes a purchase_orders row already 'received' plus one receipt, in one transaction.
 ```
 
+#### Product landing pages (LND)
+
+```sql
+CREATE TABLE tenant.product_slug_redirects (       -- LND-04: an old slug keeps resolving after a change
+    tenant_id       uuid NOT NULL,
+    old_slug        text NOT NULL,
+    product_id      uuid NOT NULL,
+    created_at      timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (tenant_id, old_slug),
+    FOREIGN KEY (tenant_id, product_id) REFERENCES tenant.products(tenant_id, id)
+);
+-- A slug is set at creation and never follows a rename; a deliberate slug change inserts the old one
+-- here, and a new product may not take a slug still held here. Public lookup: products.slug first,
+-- then this table (answering 301 to the product's current slug).
+
+CREATE TABLE tenant.ad_tracking_settings (          -- LND-15 to LND-17, one row per tenant
+    tenant_id             uuid PRIMARY KEY,
+    meta_pixel_id         text,                      -- public; rendered into landing pages
+    meta_capi_token_enc   bytea,                     -- Conversions API token, encrypted (SEC-10), never returned
+    updated_at            timestamptz NOT NULL DEFAULT now()
+);
+```
+
+Orders created from a landing page carry `source = 'landing_page'` on `tenant.orders` (Phase 4, LND-09);
+the same column distinguishes storefront, dashboard and API orders (SFT-06).
+
 #### Shop-type presets (PST) — `control` schema, platform-wide
 
 ```sql

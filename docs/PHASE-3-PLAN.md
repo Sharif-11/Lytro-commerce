@@ -10,8 +10,11 @@ agreed before this plan was written:
   reserve-then-expire — that sits behind deliberately simple, everyday-language screens (INV-22).
 - **Shop-type presets** (PST) let one product model serve clothing, cosmetics, grocery, electronics and
   other shops through defaults only, never through locked behaviour.
+- **Product landing pages** (LND, added later the same day) give every product a dedicated, shareable,
+  single-product sales page with its own order form, payment by the product's payment policy, and Meta
+  ad tracking. This phase builds the page; its ordering and payment land in Phases 4 and 5.
 
-Requirement IDs refer to `SRS-detailed.md` §13–§14 (new §14.4–§14.8 added 2026-10-17). Schema refers to
+Requirement IDs refer to `SRS-detailed.md` §13–§14 (new §14.4–§14.12 added 2026-10-17). Schema refers to
 `DATABASE-SCHEMA.md` §3.2, rewritten the same day.
 
 Items marked **Decision** need your answer before the slice they affect starts. Items marked **Proposed** take
@@ -24,7 +27,8 @@ effect unless you change them.
 **Goal.** A tenant can build its catalogue — products, variants, attributes, images — keep honest stock
 through a full inventory system (stock in through purchasing, stock out through reservations, every change
 in a ledger) without needing to know inventory terminology, and an anonymous visitor can browse the
-tenant's storefront, fast and cached, in both languages. No orders flow yet. Phase 4 plugs orders into the
+tenant's storefront, or open any product's shareable landing page, fast and cached, in both languages.
+No orders flow yet. Phase 4 plugs orders into the
 reservation and catalogue machinery this phase builds, and changes neither.
 
 **Phase 3 is complete when all of these hold:**
@@ -42,7 +46,8 @@ reservation and catalogue machinery this phase builds, and changes neither.
    At every step the ledger, the levels, the batches and the average cost all agree.
 4. The `IMPLEMENTATION-PLAN.md` milestone: a tenant adds products with images, and an anonymous visitor
    browses the storefront with no login, fully cached, in Bangla and English. A price change is publicly
-   visible within 60 seconds with edge purging disabled (CCH-04).
+   visible within 60 seconds with edge purging disabled (CCH-04). Every product's landing page loads with
+   a rich link preview, keeps working with the storefront switched off, and survives a product rename.
 5. Media is metered per tenant: storage and bandwidth are counted, enforced at 100% with existing data
    untouched (LIM-03), and reconciled against R2 (MED-04).
 6. CI is green on `main`, and the pull-request flow has been used for every slice.
@@ -73,7 +78,7 @@ Rules used below:
 - **Partial** means this phase builds a working part, and a named later phase finishes the rest.
 - Notices delivered through the D3-5 stub count as complete, the same rule Phase 2 applied to `BAL-13`.
 
-### 3.1 Completed by this phase (138)
+### 3.1 Completed by this phase (147)
 
 | Family | Requirements | Count |
 |---|---|---|
@@ -96,9 +101,10 @@ Rules used below:
 | DWN | DWN-07, 09 (deferred here from Phase 2) | 2 |
 | PYG | PYG-16 (deferred here from Phase 2) | 1 |
 | API | API-03, 04, 05, 08, 10, 23, 24 (public keys, D3-1) | 7 |
-| | **Total** | **138** |
+| LND | LND-01, 02, 03, 04, 05, 06, 14, 17, 18 | 9 |
+| | **Total** | **147** |
 
-### 3.2 Partially completed by this phase (29)
+### 3.2 Partially completed by this phase (31)
 
 | Req | Done in this phase | Remaining | Finished in |
 |---|---|---|---|
@@ -131,6 +137,8 @@ Rules used below:
 | API-07 | public keys read the catalogue and categories | courier locations, orders, payment sessions, shopper OTP, chat | Phases 4–7 |
 | API-21 | key creation and revocation audited | writes made with a key audited | Phase 4 |
 | DAT-13 | full-text and trigram indexes for product search | phone/name search on orders and customers | Phase 4 |
+| LND-13 | landing-page product content cached and fresh within 60 s | the order form's live price and stock read from PostgreSQL at submission | Phase 4 |
+| LND-15 | Meta Pixel `PageView` and `ViewContent` fire on the landing page | `InitiateCheckout` and `Purchase`, which need the order form | Phase 4 |
 
 ### 3.3 Listed for Phase 3 but not built here
 
@@ -145,6 +153,9 @@ Rules used below:
 | TAX-01 – 03, MNU-01 – 05 | adopted 2026-10-17, need order lines | with or after Phase 4 |
 | FPR-01 – 04 | adopted 2026-10-17; needs only ATL, so it can land any time after Slice 1 | after Phase 3 |
 | STA-02, STA-03 | read real order data (INV-18 provides the cost side) | Phase 4 |
+| LND-07, 08, 09, 11, 12 | the landing page's order form: fields, live totals, submission through ORD-02, confirmation, per-IP limit | Phase 4 |
+| LND-10 | payment by the product's policy: cash on delivery in Phase 4; advance and full prepayment through the hosted payment page in Phase 5 | Phases 4, 5 |
+| LND-16 | the server-side Conversions API `Purchase` event fires when an order is created | Phase 4 |
 
 ### 3.4 Dependencies between requirements
 
@@ -176,6 +187,12 @@ Read each row as: the requirements on the left can only be built or proven once 
 | SFT-03, 04, 05, 10, 11, 15 | PRD-09, CCH-*, BND-01, RTE-* | the storefront is a client of the public API |
 | SFT-14, TEN-17 | TEN-16 | the PWA icon and name come from the logo and shop name |
 | LIM-01–04 | STO-02, BND-02, RTE-03, PRD-04 | the usage page reads every counter |
+| LND-01, 03, 05, 13, 14 | PRD-09, CCH-01–04, MED-08 | the landing page is a client of the public catalogue and its images |
+| LND-02 | TEN-08, SFT-12 | visibility follows the tenant, not the storefront switch (SFT-16) |
+| LND-04, 06 | PRD-02 | the share link is the product slug, kept stable across renames |
+| LND-15, 18 | LND-17 | tracking fires only once a pixel is configured |
+| LND-07–12 (Phase 4) | ORD-02, ORD-06, CUS-08, API-11, RTE-06, INV-15 | the order form creates an ordinary order |
+| LND-10 (Phases 4–5) | PRD-08, INV-16, PAY-01, SFT-07 | payment follows the product's policy through the hosted payment page |
 
 ---
 
@@ -204,6 +221,15 @@ Read each row as: the requirements on the left can only be built or proven once 
   query), and sits behind the rate-limit check (RTE-04/CCH-05).
 - **The storefront** (`apps/storefront`, Next.js) is a pure client of the public API, using the tenant's
   public key resolved by host. It never holds a secret key (SFT-11).
+- **Product landing pages** (`/l/<slug>`) live in the same storefront app, as a separate minimal route
+  with no shop navigation. They are server-rendered so link-preview tags reach Facebook's crawler, and
+  served even when the storefront is switched off (LND-02). Their order form (Phase 4) calls the same
+  public order endpoint as checkout, so a landing-page order is an ordinary order with `source =
+  landing_page`.
+- **Ad tracking**: the tenant's Meta Pixel ID is public data rendered into the page; the Conversions API
+  token is a secret, stored encrypted (SEC-10) and used only server-side from the job queue (Phase 4).
+  This is the first per-tenant encrypted credential, so it sets the pattern courier and gateway
+  credentials reuse in Phases 5–6.
 - **The media Worker** (`apps/media-worker`) meters every request and every byte, checks tenant state and
   the blocked list, then serves from cache or R2 (MED-02).
 
@@ -223,6 +249,8 @@ All in `DATABASE-SCHEMA.md` §3.2 (rewritten 2026-10-17), plus:
 | Media | `media_objects` (MED-04: one row per object), `media_usage` | 6 |
 | Bandwidth | `media_bandwidth_counters`, blocked-tenant list | 7 |
 | API keys | `api_keys` (hashed, public subset), `api_key_origins`, `request_counters` | 8 |
+| Landing links | `product_slug_redirects` (old slug → product, LND-04) | 1 |
+| Ad tracking | `ad_tracking_settings` (pixel ID, encrypted Conversions API token, LND-15–17) | 9 |
 
 New permissions in the validators' `Permission` enum: `inventory:read`, `inventory:manage`, `keys:manage`.
 New platform settings: `reservation_expiry_minutes`, `expiry_warning_days`, and the cache lifetimes
@@ -232,10 +260,11 @@ New platform settings: `reservation_expiry_minutes`, `expiry_warning_days`, and 
 
 - **Dashboard** (session + `DashboardGuard`): categories, products, variants, attributes, presets;
   stock levels, history, adjustments, stock checks, expiring batches, serials; suppliers, purchase orders,
-  receipts, quick add-stock; media uploads; API keys; usage.
+  receipts, quick add-stock; media uploads; API keys; usage; ad-tracking settings.
 - **Operator**: presets (PST-04), platform attribute library (ATL-01).
-- **Public** (public key): catalogue lists, product detail, category tree, search, the catalogue-version
-  endpoint (CCH-04).
+- **Public** (public key): catalogue lists, product detail (by slug, resolving old slugs to a redirect,
+  LND-04), category tree, search, the catalogue-version endpoint (CCH-04), and the tenant's public
+  pixel ID for landing pages.
 - **Media host** (Worker): content-hashed public objects, signed private links.
 
 ---
@@ -266,9 +295,11 @@ their backend ships earlier.
   | Pharmacy | box | on | – | – | Strength, Pack size |
   | Home & décor | piece | – | – | – | Color, Material, Size |
   | Other | piece | – | – | – | — |
+  Slugs are fixed at creation and never follow a rename; a deliberate slug change records the old slug in
+  `product_slug_redirects` (LND-04).
 - **Requirements completed:** PRD-01, 02, 03, 04, 05, 14, 15, 16; ATR-01, 03, 04, 05, 06, 10, 12, 14;
-  ATL-01–05; UOM-01, 02; PST-02, 03, 04; DWN-07; PYG-16. *(E2E halves: PRD-03, ATR-02, ATR-11, PRD-12,
-  PST-01 finish in Slice 11.)*
+  ATL-01–05; UOM-01, 02; PST-02, 03, 04; DWN-07; PYG-16; LND-04. *(E2E halves: PRD-03, ATR-02, ATR-11,
+  PRD-12, PST-01 finish in Slice 11.)*
 - **Partial:** PRD-06, PRD-08, PRD-13, ATR-07, ATR-08, ATR-13, ATR-15, TRL-03 (products), PLN-19 (products).
 - **Done when:** a T-shirt with Size × Color saves as one transaction with 6 variants and counts once
   against the limit; a duplicate Red/L and a 4th variant-defining attribute are refused by the database,
@@ -358,9 +389,11 @@ their backend ships earlier.
 - **Delivers:** public list, detail, category tree and search endpoints returning public fields only;
   keyset pagination; slim list payload from denormalised columns; the catalogue-version endpoint;
   cache-key normalisation; ETag/304; the process-memory LRU (100 MB cap, coalesced misses); edge headers
-  with stale-while-revalidate; full-text and trigram search; immutable image URLs.
+  with stale-while-revalidate; full-text and trigram search; immutable image URLs; product lookup by
+  slug with old-slug redirect resolution; the tenant's ad-tracking settings (pixel ID in public responses,
+  Conversions API token encrypted, never returned, changes audited).
 - **Requirements completed:** PRD-09, PRD-10; CCH-01–06, CCH-08, 09, 11, 12 (CCH-10 is the storefront's
-  service worker, Slice 12).
+  service worker, Slice 12); LND-17.
 - **Partial:** CCH-07, CCH-13, DAT-13, ATR-07 (catalogue half).
 - **Done when:** 200 simultaneous requests for one uncached list cause one database query; a price edit
   is visible within 60 s with purging disabled; a 50,000-product tenant's page and search meet the
@@ -383,28 +416,40 @@ their backend ships earlier.
   plain-language inventory screens (stock with "waiting to ship" and "coming", one-tap reasons, "Check
   stock", stock history, low-stock and expiry alerts, serial entry); "Add stock" and "Order from
   supplier"/"It arrived"; suppliers; profit, stock value and losses (gated per D3-9); API keys; usage
-  page with the bandwidth chart. All in Bangla and English, in the same everyday commerce wording the
+  page with the bandwidth chart; each product's landing link with copy, Facebook-share and
+  WhatsApp-share actions (and per-variant links); the ad-tracking settings screen (pixel ID, Conversions
+  API token entered once). All in Bangla and English, in the same everyday commerce wording the
   admin app already uses (transliterated domain nouns such as স্টক, প্রোডাক্ট — never formal or technical
   inventory terms).
 - **Requirements completed (E2E halves):** PST-01; ATR-02, ATR-11; PRD-03, PRD-12; INV-06, 07, 09, 22;
-  PUR-07, PUR-09; BND-08.
+  PUR-07, PUR-09; BND-08; LND-06.
 - **Done when:** a non-technical walkthrough (clothing, cosmetics and grocery presets) completes product
   creation, add stock, stock check and planned purchase without anyone seeing an inventory term or an
   unwanted field.
 
-### Slice 12: shared storefront
+### Slice 12: shared storefront and product landing pages
 - **Depends on:** Slices 7 and 9 (and branding from Phase 1).
-- **Delivers:** the new storefront design; category navigation, search, pagination; product page with
-  the variant picker and stock state; client-side cart without reservation; branding; footer and
-  contact; the offline "temporarily unavailable" page; switch-off; the installable storefront PWA,
-  distinct from the per-tenant admin PWA; the service-worker cache; Bangla default with a per-device
-  toggle; metering parity with an API-only site.
+- **Delivers:**
+  - **Storefront:** the new storefront design; category navigation, search, pagination; product page
+    with the variant picker and stock state; client-side cart without reservation; branding; footer and
+    contact; the offline "temporarily unavailable" page; switch-off; the installable storefront PWA,
+    distinct from the per-tenant admin PWA; the service-worker cache; Bangla default with a per-device
+    toggle; metering parity with an API-only site.
+  - **Landing pages:** the automatic single-product page at `/l/<slug>` (images and video, name,
+    description, price, attributes, variant picker with `?v=` preselection, quantity selector, stock
+    state, branding, no shop navigation); server-rendered Open Graph and Twitter Card tags; the branded
+    "no longer available" page (404) and the 301 from an old slug; served whenever the tenant is
+    reachable, including with the storefront off; Meta Pixel `PageView`/`ViewContent`, loaded after the
+    page's content. The order form's fields are laid out but not submittable until Phase 4.
 - **Requirements completed:** SFT-01, 02, 03, 04, 05, 11, 12, 14, 15, 16, 17, 18, 19, 21; I18N-02; TEN-08;
-  TEN-17; CCH-10.
-- **Partial:** SFT-10, SFT-13, I18N-01.
+  TEN-17; CCH-10; LND-01, 02, 03, 05, 14, 18.
+- **Partial:** SFT-10, SFT-13, I18N-01, LND-13, LND-15.
 - **Done when:** the milestone (exit criterion 4) passes; two tenants show different catalogues and
-  branding with the same layout from one deployment; lapsing a tenant replaces its storefront within
-  the LIF-03 window; a review finds no secret key reachable from storefront code.
+  branding with the same layout from one deployment; lapsing a tenant replaces both its storefront and
+  its landing pages within the LIF-03 window; with the storefront switched off, landing pages still load;
+  a shared landing link shows a rich preview in Facebook's sharing debugger; with the pixel endpoint
+  blocked, the page works normally; a review finds no secret key or Conversions API token reachable from
+  storefront code.
 
 ---
 
@@ -425,7 +470,7 @@ Slice 8 (parallel from day one) ───────┤
                          Slice 10 ◄── (1, 6, 7, 8)
                                        │
           all backend slices 1–10 ─────┴──► Slice 11 (dashboard UI)
-                       Slices 7, 9 ───────► Slice 12 (storefront)
+                       Slices 7, 9 ───────► Slice 12 (storefront + landing pages)
 ```
 
 | Slice | Depends on | Can run in parallel with |
@@ -441,7 +486,7 @@ Slice 8 (parallel from day one) ───────┤
 | 9 Public catalogue & caching | 1, 2, 6, 8 | 3, 4, 5, 7, 10 |
 | 10 Limits & usage | 1, 6, 7, 8 | 3, 4, 5, 9 |
 | 11 Dashboard UI | 1–10 | 12 |
-| 12 Storefront | 7, 9 | 11 |
+| 12 Storefront & landing pages | 7, 9 | 11 |
 
 **Suggested order for one developer:** 1 → 2 → 3 → 4 → 5 (checkpoint 3A) → 8 → 6 → 7 → 9 → 10 → 11 → 12.
 Slice 8 goes first among the second half because Slice 9 needs it, and it is small.
