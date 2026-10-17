@@ -846,8 +846,8 @@ Expected: rate change applies immediately to future charges only, past ledger en
 Covers: `RAT-01` to `RAT-03`, `LIF-26`, `ADM-11`.
 
 **S11-07 Setup checklist auto-detection.**
-Steps: complete each checklist item (add product, connect courier, add wallet, choose SMS events, create API key, pair listener) one at a time.
-Expected: each ticks off automatically without a page reload.
+Steps: on a new shop, check the checklist's starting state; then complete each item one at a time: add a product, add a wallet number, copy a product link, connect a courier, choose SMS events, pair a listener, create an API key.
+Expected: a new shop starts with "shop created" and "delivery charges" already ticked; every other item ticks off automatically without a page reload; once the "Get your shop ready" group is done, the checklist folds away and can be reopened from settings.
 Covers: `SUP-01`.
 
 **S11-08 Tenant list, search, and detail view.**
