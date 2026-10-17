@@ -355,6 +355,38 @@ describeIfDatabase('PYG-21: pay-as-you-go inactivity', () => {
     expect(tenant?.state).toBe(TenantState.Archived);
     expect(tenant?.balance_frozen).toBe(true);
   });
+
+  it('warns again in a later idle period, after a qualifying activity reset the clock in between', async () => {
+    const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
+    await seedOwner(tenantId, `019${(nextRank += 1).toString().slice(0, 8)}`);
+
+    // A day-23 warning from a *previous* idle period, inserted directly since tenant.activity_log is
+    // insert-only (AUD-03) -- a real one would carry the real wall-clock "now" at send time, so to honestly
+    // represent "already sent a while ago" it has to be inserted with that past timestamp directly, not
+    // produced by a real tick and backdated after the fact.
+    await admin.query(
+      `INSERT INTO tenant.activity_log (tenant_id, actor_type, actor_id, action, result, summary, created_at)
+       VALUES ($1, 'system', NULL, 'deletion_warning_sent', 'success',
+         '{"reason":"payg_inactivity","day":23}', now() - interval '28 days')`,
+      [tenantId],
+    );
+
+    // A qualifying activity (order fee, product fee or top-up) reset the clock 24 days ago -- after that
+    // old warning, so this is genuinely a new idle period, itself now also reached day 24. The tenant stays
+    // pay_as_you_go throughout (unlike the subscription lapse ladder, where renewing exits the candidate
+    // list entirely) -- the previous idle period's own warning must not suppress this one.
+    await admin.query(
+      `UPDATE control.tenants SET state = 'pay_as_you_go', period_end = NULL,
+         last_activity_at = $1 WHERE id = $2`,
+      [new Date(Date.now() - 24 * DAY_MS), tenantId],
+    );
+    await lifecycle.runTick(new Date());
+    const actions = await auditActions(tenantId);
+    expect(actions.filter((a) => a === AuditAction.DeletionWarningSent).length).toBe(2);
+
+    const tenant = await tenantRow(tenantId);
+    expect(tenant?.state).toBe(TenantState.PayAsYouGo); // 24 days -- short of day 30's archival
+  });
 });
 
 describeIfDatabase('LIF-01: cancel and undo', () => {

@@ -433,6 +433,11 @@ export class LifecycleService {
         continue;
       }
       if (idleDays >= PAYG_WARNING_DAYS) {
+        // PYG-21: "exactly once per idle period" -- a qualifying activity resets the clock without the
+        // tenant ever leaving `pay_as_you_go` (unlike the lapse ladder, where renewing exits the candidate
+        // list entirely), so a warning from a *previous* idle period must not suppress this one. Scoped to
+        // entries no older than the current idle streak's own start (`lastActivityAt`).
+        const since = candidate.lastActivityAt ?? candidate.createdAt;
         const already = await this.audit.list(
           candidate.id,
           { action: AuditAction.DeletionWarningSent },
@@ -440,7 +445,9 @@ export class LifecycleService {
           50,
         );
         const sent = already.entries.some(
-          (entry) => (entry.summary as { reason?: string } | null)?.reason === 'payg_inactivity',
+          (entry) =>
+            (entry.summary as { reason?: string } | null)?.reason === 'payg_inactivity' &&
+            entry.createdAt >= since,
         );
         if (!sent) {
           await this.sendNotice(
