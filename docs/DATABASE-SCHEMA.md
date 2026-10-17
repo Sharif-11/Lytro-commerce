@@ -400,70 +400,397 @@ CREATE TABLE tenant.user_roles (
 
 A staff member's phone is reserved as a platform identity when they are added, and the subscriber link is what makes the platform-wide STF-06 check possible: the unique constraint on `subscriber_id` spans every shop. The phone identity starts pending (`verified_at` null in `control.subscriber_identities`) and is proven by the person's first code sign-in (D22). Staff sign in separately from the owner, at `POST /auth/staff/signin` on the shop's own host, with the password on this table, never the account password (D23).
 
-### 3.2 Catalogue
+### 3.2 Catalogue, inventory and purchasing
+
+**Revised 2026-10-17.** Replaces the earlier draft (a `jsonb` `attribute_values` column and an integer
+`stock` column on the variant). Attributes are normalized rows (ATL), stock lives in an append-only
+ledger with levels, reservations, batches and serials (INV), stock enters through purchasing (PUR), and
+quantities follow the product's unit (UOM). Every table carries `tenant_id` and the §3 RLS policy unless
+noted; same-tenant references use composite `(tenant_id, id)` keys, the pattern §3.1 already uses.
+
+#### Catalogue
 
 ```sql
 CREATE TABLE tenant.catalogue_state (
     tenant_id       uuid PRIMARY KEY,
     version         bigint NOT NULL DEFAULT 1
 );
--- CCH-02: incremented in the same transaction as any write below that affects public
--- catalogue output. One counter per tenant, read on every cache-key build.
+-- CCH-02/INV-19: incremented in the same transaction as any write that changes public catalogue
+-- output, including a stock-state change (in/low/out). Read on every cache-key build.
 
 CREATE TABLE tenant.categories (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id       uuid NOT NULL,
-    parent_id       uuid REFERENCES tenant.categories(id),
-    name            varchar(80) NOT NULL,        -- SEC-06 cap
+    parent_id       uuid,
+    name            varchar(80) NOT NULL,
     slug            text NOT NULL,
+    image_id        uuid,                         -- tenant.media (MED); optional banner/image
+    depth           smallint NOT NULL CHECK (depth BETWEEN 1 AND 4),   -- PRD-03
     sort_order      integer NOT NULL DEFAULT 0,
     visible         boolean NOT NULL DEFAULT true,
-    UNIQUE (tenant_id, slug)
+    deleted_at      timestamptz,
+    UNIQUE (tenant_id, slug),
+    UNIQUE (tenant_id, id),
+    FOREIGN KEY (tenant_id, parent_id) REFERENCES tenant.categories(tenant_id, id)
 );
+-- "Uncategorized" (PRD-03) is a virtual bucket: products with no category, not a row.
 
-CREATE TYPE tenant.delivery_mode AS ENUM ('default', 'adjustable');
+CREATE TYPE tenant.delivery_mode   AS ENUM ('default', 'adjustable');
+CREATE TYPE tenant.stock_unit      AS ENUM ('piece', 'kg', 'g', 'liter', 'ml', 'dozen', 'pack', 'box'); -- UOM-01
+CREATE TYPE tenant.stock_tracking  AS ENUM ('tracked', 'not_tracked');                               -- INV-02
+CREATE TYPE tenant.stock_state     AS ENUM ('in', 'low', 'out');                                     -- CCH-08
+CREATE TYPE tenant.payment_policy  AS ENUM ('none', 'partial_advance', 'full_prepayment');           -- PRD-08
 
 CREATE TABLE tenant.products (
-    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id       uuid NOT NULL,
-    name            varchar(200) NOT NULL,
-    slug            text NOT NULL,
-    description     text,
-    price           numeric(10,2) NOT NULL CHECK (price >= 0),
-    delivery_charge numeric(10,2) NOT NULL DEFAULT 0 CHECK (delivery_charge >= 0),
-    weight_kg       numeric(10,3),                -- null => Adjustable mode unavailable (PRD-16)
-    delivery_mode   tenant.delivery_mode NOT NULL DEFAULT 'default',
-    active          boolean NOT NULL DEFAULT true,
-    -- denormalised for list pages, kept in sync in the same transaction as any variant write (CCH-11):
-    min_price       numeric(10,2),
-    max_price       numeric(10,2),
-    in_stock        boolean NOT NULL DEFAULT true,
-    primary_category_id uuid REFERENCES tenant.categories(id),
-    created_at      timestamptz NOT NULL DEFAULT now(),
-    UNIQUE (tenant_id, slug)
+    id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id           uuid NOT NULL,
+    name                varchar(200) NOT NULL,
+    slug                text NOT NULL,
+    description         text,
+    base_price          numeric(10,2) NOT NULL CHECK (base_price >= 0),
+    stock_unit          tenant.stock_unit NOT NULL DEFAULT 'piece',
+    stock_tracking      tenant.stock_tracking NOT NULL DEFAULT 'tracked',
+    batch_tracked       boolean NOT NULL DEFAULT false,     -- INV-12
+    serial_tracked      boolean NOT NULL DEFAULT false,     -- INV-14
+    low_stock_threshold numeric(14,3) NOT NULL DEFAULT 5 CHECK (low_stock_threshold >= 0),  -- INV-08
+    delivery_charge     numeric(10,2) NOT NULL DEFAULT 0 CHECK (delivery_charge >= 0),
+    weight_kg           numeric(10,3),                     -- null => Adjustable unavailable (PRD-16)
+    delivery_mode       tenant.delivery_mode NOT NULL DEFAULT 'default',
+    payment_policy      tenant.payment_policy NOT NULL DEFAULT 'none',
+    advance_amount      numeric(10,2) CHECK (advance_amount >= 0),   -- partial_advance only
+    video_id            uuid,                              -- one video (PRD-11)
+    primary_category_id uuid,
+    active              boolean NOT NULL DEFAULT true,
+    sort_order          integer NOT NULL DEFAULT 0,
+    -- denormalised for list pages, kept in sync in the same transaction as any variant/stock write (CCH-11):
+    min_price           numeric(10,2),
+    max_price           numeric(10,2),
+    stock_state         tenant.stock_state NOT NULL DEFAULT 'out',
+    created_at          timestamptz NOT NULL DEFAULT now(),
+    updated_at          timestamptz NOT NULL DEFAULT now(),
+    deleted_at          timestamptz,                       -- PRD-13 soft delete
+    UNIQUE (tenant_id, slug),
+    UNIQUE (tenant_id, id),
+    CHECK (NOT (stock_tracking = 'not_tracked' AND (batch_tracked OR serial_tracked))),
+    CHECK (NOT (batch_tracked AND serial_tracked)),
+    FOREIGN KEY (tenant_id, primary_category_id) REFERENCES tenant.categories(tenant_id, id)
 );
-CREATE INDEX ON tenant.products (tenant_id, primary_category_id, sort_order);
+CREATE INDEX ON tenant.products (tenant_id, primary_category_id, sort_order) WHERE deleted_at IS NULL;
+-- CCH-12 / DAT-13: full-text and trigram search indexes on name/description.
 
-CREATE TABLE tenant.product_categories (          -- PRD-15: multi-category assignment
-    product_id      uuid NOT NULL REFERENCES tenant.products(id),
-    category_id     uuid NOT NULL REFERENCES tenant.categories(id),
-    PRIMARY KEY (product_id, category_id)
+CREATE TABLE tenant.product_categories (            -- PRD-15
+    tenant_id       uuid NOT NULL,
+    product_id      uuid NOT NULL,
+    category_id     uuid NOT NULL,
+    is_primary      boolean NOT NULL DEFAULT false,
+    PRIMARY KEY (tenant_id, product_id, category_id),
+    FOREIGN KEY (tenant_id, product_id)  REFERENCES tenant.products(tenant_id, id),
+    FOREIGN KEY (tenant_id, category_id) REFERENCES tenant.categories(tenant_id, id)
+);
+
+CREATE TABLE tenant.product_images (                -- PRD-11 ordering of images on a product
+    tenant_id       uuid NOT NULL,
+    product_id      uuid NOT NULL,
+    media_id        uuid NOT NULL,
+    sort_order      integer NOT NULL DEFAULT 0,
+    PRIMARY KEY (tenant_id, product_id, media_id),
+    FOREIGN KEY (tenant_id, product_id) REFERENCES tenant.products(tenant_id, id)
 );
 
 CREATE TABLE tenant.product_variants (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id       uuid NOT NULL,
-    product_id      uuid NOT NULL REFERENCES tenant.products(id),
-    attribute_values jsonb NOT NULL DEFAULT '{}', -- {"Size": "L", "Color": "Red"}
-    price           numeric(10,2),                -- override, defaults to product.price when null
-    delivery_charge numeric(10,2),
-    weight_kg       numeric(10,3),
-    delivery_mode   tenant.delivery_mode,
-    stock           integer NOT NULL DEFAULT 0 CHECK (stock >= 0),
+    product_id      uuid NOT NULL,
+    combination_key text NOT NULL DEFAULT '',     -- ATL-04: sorted "attr=option" pairs; '' = default variant
     sku             text,
-    UNIQUE (product_id, attribute_values)          -- ATR-06
+    barcode         text,
+    price           numeric(10,2) CHECK (price >= 0),   -- override; null => products.base_price
+    weight_kg       numeric(10,3),                -- ATR-13 overrides; null => product's value
+    delivery_charge numeric(10,2),
+    delivery_mode   tenant.delivery_mode,
+    image_id        uuid,
+    avg_cost        numeric(12,4),                -- INV-10; never in a public response; null = unknown
+    active          boolean NOT NULL DEFAULT true,
+    deleted_at      timestamptz,
+    UNIQUE (tenant_id, id),
+    UNIQUE (product_id, combination_key),         -- ATR-06 / ATL-04, a real constraint
+    FOREIGN KEY (tenant_id, product_id) REFERENCES tenant.products(tenant_id, id)
 );
-CREATE INDEX ON tenant.product_variants (tenant_id, product_id);
+CREATE UNIQUE INDEX ON tenant.product_variants (tenant_id, sku) WHERE sku IS NOT NULL AND deleted_at IS NULL;
+-- ATR-14 / ATL-03: a trigger refuses the 101st variant of one product.
+```
+
+#### Attributes (ATL)
+
+```sql
+CREATE TYPE tenant.attribute_data_type AS ENUM ('enum_single', 'enum_multi', 'number_with_unit', 'text', 'boolean');
+CREATE TYPE tenant.unit_kind           AS ENUM ('weight', 'volume', 'count');   -- UOM-02
+CREATE TYPE tenant.attribute_role      AS ENUM ('variant_defining', 'informational', 'captured_at_order');
+
+CREATE TABLE tenant.attributes (                    -- ATL-01: one table, two scopes
+    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id       uuid,                         -- NULL = platform library row
+    name            varchar(80) NOT NULL,
+    data_type       tenant.attribute_data_type NOT NULL,
+    unit_kind       tenant.unit_kind,             -- number_with_unit only
+    retired_at      timestamptz,                  -- ATR-10
+    CHECK ((data_type = 'number_with_unit') = (unit_kind IS NOT NULL))
+);
+CREATE UNIQUE INDEX ON tenant.attributes (tenant_id, lower(name)) WHERE tenant_id IS NOT NULL;
+CREATE UNIQUE INDEX ON tenant.attributes (lower(name)) WHERE tenant_id IS NULL;
+-- RLS exception, the one table in §3 that needs it: SELECT allows tenant_id IS NULL OR the tenant's
+-- own rows; INSERT/UPDATE/DELETE allow only the tenant's own rows (platform rows are written by the
+-- operator through the control-plane connection).
+
+CREATE TABLE tenant.attribute_options (
+    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    attribute_id    uuid NOT NULL REFERENCES tenant.attributes(id),
+    tenant_id       uuid,                         -- mirrors the attribute's scope (same RLS rule)
+    value           varchar(80) NOT NULL,
+    sort_order      integer NOT NULL DEFAULT 0,
+    retired_at      timestamptz,
+    UNIQUE (attribute_id, lower(value))
+);
+
+CREATE TABLE tenant.product_attributes (            -- ATL-02, ATL-03
+    tenant_id       uuid NOT NULL,
+    product_id      uuid NOT NULL,
+    attribute_id    uuid NOT NULL REFERENCES tenant.attributes(id),
+    role            tenant.attribute_role NOT NULL,
+    sort_order      integer NOT NULL DEFAULT 0,
+    PRIMARY KEY (tenant_id, product_id, attribute_id),
+    FOREIGN KEY (tenant_id, product_id) REFERENCES tenant.products(tenant_id, id)
+);
+-- Triggers: refuse role = 'variant_defining' for an enum_multi attribute (ATR-01/ATL-02); refuse a 4th
+-- variant_defining row per product (ATR-14/ATL-03). Role changes after the product has orders are refused
+-- in the application (ATR-15), since that needs tenant.order_lines.
+
+CREATE TABLE tenant.product_attribute_values (      -- informational values, product level
+    tenant_id       uuid NOT NULL,
+    product_id      uuid NOT NULL,
+    attribute_id    uuid NOT NULL,
+    option_id       uuid REFERENCES tenant.attribute_options(id),   -- enum types; enum_multi = several rows
+    text_value      text,
+    number_value    numeric(14,4),
+    bool_value      boolean,
+    CHECK (num_nonnulls(option_id, text_value, number_value, bool_value) = 1),
+    FOREIGN KEY (tenant_id, product_id, attribute_id)
+        REFERENCES tenant.product_attributes(tenant_id, product_id, attribute_id)
+);
+
+CREATE TABLE tenant.variant_attribute_values (      -- ATL-04: what makes each variant distinct
+    tenant_id       uuid NOT NULL,
+    variant_id      uuid NOT NULL,
+    attribute_id    uuid NOT NULL REFERENCES tenant.attributes(id),
+    option_id       uuid NOT NULL REFERENCES tenant.attribute_options(id),
+    PRIMARY KEY (tenant_id, variant_id, attribute_id),
+    FOREIGN KEY (tenant_id, variant_id) REFERENCES tenant.product_variants(tenant_id, id)
+);
+-- product_variants.combination_key is rebuilt from these rows in the same transaction.
+
+CREATE TABLE tenant.category_attributes (           -- ATL-05 / ATR-02: suggestions only
+    tenant_id       uuid NOT NULL,
+    category_id     uuid NOT NULL,
+    attribute_id    uuid NOT NULL REFERENCES tenant.attributes(id),
+    PRIMARY KEY (tenant_id, category_id, attribute_id),
+    FOREIGN KEY (tenant_id, category_id) REFERENCES tenant.categories(tenant_id, id)
+);
+```
+
+#### Inventory (INV)
+
+```sql
+-- Quantities are numeric(14,3) throughout; a trigger refuses a fractional quantity when the product's
+-- stock_unit is discrete (piece, dozen, pack, box) — UOM-03.
+
+CREATE TABLE tenant.stock_levels (                  -- INV-01, one row per tracked variant
+    tenant_id       uuid NOT NULL,
+    variant_id      uuid NOT NULL,
+    on_hand         numeric(14,3) NOT NULL DEFAULT 0 CHECK (on_hand >= 0),
+    reserved        numeric(14,3) NOT NULL DEFAULT 0 CHECK (reserved >= 0),
+    unsellable      numeric(14,3) NOT NULL DEFAULT 0 CHECK (unsellable >= 0),  -- INV-13 expired, not yet written off
+    available       numeric(14,3) GENERATED ALWAYS AS (on_hand - reserved - unsellable) STORED,
+    PRIMARY KEY (tenant_id, variant_id),
+    CHECK (on_hand - reserved - unsellable >= 0),  -- overselling is impossible at the data layer
+    FOREIGN KEY (tenant_id, variant_id) REFERENCES tenant.product_variants(tenant_id, id)
+);
+
+CREATE TYPE tenant.stock_reason AS ENUM (           -- INV-04
+    'initial', 'purchase_receipt', 'sale', 'return_received', 'damaged', 'lost', 'expired',
+    'recount', 'manual_adjustment');
+
+CREATE TABLE tenant.stock_movements (               -- INV-03: append-only ledger
+    id              bigserial PRIMARY KEY,
+    tenant_id       uuid NOT NULL,
+    variant_id      uuid NOT NULL,
+    batch_id        uuid,                         -- INV-12, when batch-tracked
+    quantity_delta  numeric(14,3) NOT NULL CHECK (quantity_delta <> 0),
+    on_hand_after   numeric(14,3) NOT NULL,
+    reason          tenant.stock_reason NOT NULL,
+    unit_cost       numeric(12,4),                -- INV-11; null = unknown, never 0
+    reference_type  text,                         -- 'order' | 'purchase_receipt' | 'stock_check' | null
+    reference_id    uuid,
+    actor_user_id   uuid,
+    note            text,
+    created_at      timestamptz NOT NULL DEFAULT now(),
+    FOREIGN KEY (tenant_id, variant_id) REFERENCES tenant.product_variants(tenant_id, id)
+);
+CREATE INDEX ON tenant.stock_movements (tenant_id, variant_id, id DESC);   -- INV-09 history
+-- Insert-only trigger (same as tenant.balance_ledger / tenant.activity_log): UPDATE/DELETE refused for
+-- every role. INV-05: stock_levels.on_hand = SUM(quantity_delta) per variant, provable by test.
+
+CREATE TABLE tenant.stock_batches (                 -- INV-12
+    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id       uuid NOT NULL,
+    variant_id      uuid NOT NULL,
+    batch_code      text,
+    expires_on      date,                         -- null = no expiry, drawn last
+    quantity        numeric(14,3) NOT NULL CHECK (quantity >= 0),
+    received_at     timestamptz NOT NULL DEFAULT now(),
+    expiry_notified_at timestamptz,               -- INV-13 once per batch
+    UNIQUE (tenant_id, id),
+    FOREIGN KEY (tenant_id, variant_id) REFERENCES tenant.product_variants(tenant_id, id)
+);
+CREATE INDEX ON tenant.stock_batches (tenant_id, variant_id, expires_on NULLS LAST, received_at)
+    WHERE quantity > 0;                           -- FEFO pick order
+
+CREATE TYPE tenant.serial_status AS ENUM ('in_stock', 'reserved', 'sold', 'returned', 'written_off');
+
+CREATE TABLE tenant.serial_numbers (                -- INV-14
+    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id       uuid NOT NULL,
+    variant_id      uuid NOT NULL,
+    serial          text NOT NULL,
+    status          tenant.serial_status NOT NULL DEFAULT 'in_stock',
+    received_movement_id bigint,
+    sold_order_id   uuid,
+    UNIQUE (variant_id, serial),
+    FOREIGN KEY (tenant_id, variant_id) REFERENCES tenant.product_variants(tenant_id, id)
+);
+
+CREATE TYPE tenant.reservation_status AS ENUM ('active', 'consumed', 'released');
+
+CREATE TABLE tenant.stock_reservations (            -- INV-15, INV-16
+    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id       uuid NOT NULL,
+    variant_id      uuid NOT NULL,
+    order_id        uuid NOT NULL,                -- FK added in Phase 4 when tenant.orders exists
+    quantity        numeric(14,3) NOT NULL CHECK (quantity > 0),
+    status          tenant.reservation_status NOT NULL DEFAULT 'active',
+    expires_at      timestamptz,                  -- set only while awaiting online payment
+    created_at      timestamptz NOT NULL DEFAULT now(),
+    resolved_at     timestamptz,
+    FOREIGN KEY (tenant_id, variant_id) REFERENCES tenant.product_variants(tenant_id, id)
+);
+CREATE INDEX ON tenant.stock_reservations (expires_at) WHERE status = 'active' AND expires_at IS NOT NULL;
+-- INV-05: stock_levels.reserved = SUM(quantity) of this variant's active reservations.
+
+CREATE TABLE tenant.stock_checks (                  -- INV-07: groups one stock check's recount movements
+    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id       uuid NOT NULL,
+    actor_user_id   uuid,
+    note            text,
+    created_at      timestamptz NOT NULL DEFAULT now()
+);
+```
+
+#### Purchasing (PUR)
+
+```sql
+CREATE TABLE tenant.suppliers (                     -- PUR-01
+    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id       uuid NOT NULL,
+    name            varchar(200) NOT NULL,
+    phone           varchar(15),
+    email           varchar(254),
+    address         text,
+    notes           text,
+    archived_at     timestamptz,
+    UNIQUE (tenant_id, id)
+);
+
+CREATE TABLE tenant.purchase_counters (             -- PUR-03, same locked-row pattern as invoice_counters
+    tenant_id       uuid PRIMARY KEY,
+    last_number     integer NOT NULL DEFAULT 0
+);
+
+CREATE TYPE tenant.purchase_status AS ENUM
+    ('draft', 'ordered', 'partially_received', 'received', 'closed_short', 'cancelled');
+
+CREATE TABLE tenant.purchase_orders (               -- PUR-02
+    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id       uuid NOT NULL,
+    number          integer NOT NULL,
+    supplier_id     uuid,
+    status          tenant.purchase_status NOT NULL DEFAULT 'draft',
+    expected_on     date,
+    notes           text,
+    close_reason    text,                         -- PUR-06
+    created_at      timestamptz NOT NULL DEFAULT now(),
+    ordered_at      timestamptz,
+    UNIQUE (tenant_id, number),
+    UNIQUE (tenant_id, id),
+    FOREIGN KEY (tenant_id, supplier_id) REFERENCES tenant.suppliers(tenant_id, id)
+);
+
+CREATE TABLE tenant.purchase_order_lines (
+    id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id         uuid NOT NULL,
+    purchase_order_id uuid NOT NULL,
+    variant_id        uuid NOT NULL,
+    quantity_ordered  numeric(14,3) NOT NULL CHECK (quantity_ordered > 0),
+    quantity_received numeric(14,3) NOT NULL DEFAULT 0 CHECK (quantity_received >= 0),
+    unit_cost         numeric(12,4) CHECK (unit_cost >= 0),
+    UNIQUE (tenant_id, id),
+    FOREIGN KEY (tenant_id, purchase_order_id) REFERENCES tenant.purchase_orders(tenant_id, id),
+    FOREIGN KEY (tenant_id, variant_id) REFERENCES tenant.product_variants(tenant_id, id)
+);
+-- PUR-05 incoming = SUM(quantity_ordered - quantity_received) over lines of 'ordered' /
+-- 'partially_received' orders; never part of stock_levels.
+
+CREATE TABLE tenant.purchase_receipts (             -- PUR-04, immutable (PUR-08)
+    id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id         uuid NOT NULL,
+    purchase_order_id uuid NOT NULL,
+    received_at       timestamptz NOT NULL DEFAULT now(),
+    actor_user_id     uuid,
+    UNIQUE (tenant_id, id),
+    FOREIGN KEY (tenant_id, purchase_order_id) REFERENCES tenant.purchase_orders(tenant_id, id)
+);
+
+CREATE TABLE tenant.purchase_receipt_lines (
+    tenant_id          uuid NOT NULL,
+    receipt_id         uuid NOT NULL,
+    purchase_line_id   uuid NOT NULL,
+    quantity_accepted  numeric(14,3) NOT NULL CHECK (quantity_accepted >= 0),
+    quantity_rejected  numeric(14,3) NOT NULL DEFAULT 0 CHECK (quantity_rejected >= 0),
+    reject_reason      text,
+    unit_cost          numeric(12,4) CHECK (unit_cost >= 0),
+    batch_id           uuid,                      -- created by this receipt when batch-tracked
+    movement_id        bigint,                    -- the purchase_receipt stock movement it wrote
+    PRIMARY KEY (tenant_id, receipt_id, purchase_line_id),
+    FOREIGN KEY (tenant_id, receipt_id) REFERENCES tenant.purchase_receipts(tenant_id, id),
+    FOREIGN KEY (tenant_id, purchase_line_id) REFERENCES tenant.purchase_order_lines(tenant_id, id)
+);
+-- PUR-07 "Add stock" writes a purchase_orders row already 'received' plus one receipt, in one transaction.
+```
+
+#### Shop-type presets (PST) — `control` schema, platform-wide
+
+```sql
+CREATE TABLE control.business_type_presets (        -- PST-01, PST-04
+    key                 text PRIMARY KEY,          -- 'clothing', 'cosmetics', 'grocery', ...
+    label_bn            text NOT NULL,
+    label_en            text NOT NULL,
+    default_stock_unit  text NOT NULL DEFAULT 'piece',
+    default_batch       boolean NOT NULL DEFAULT false,
+    default_serial      boolean NOT NULL DEFAULT false,
+    default_not_tracked boolean NOT NULL DEFAULT false,
+    default_low_stock   numeric(14,3) NOT NULL DEFAULT 5,
+    suggested_attribute_ids uuid[] NOT NULL DEFAULT '{}',
+    suggested_categories    jsonb NOT NULL DEFAULT '[]'
+);
+-- control.tenants gains business_type text REFERENCES control.business_type_presets(key), nullable.
 ```
 
 ### 3.3 Orders

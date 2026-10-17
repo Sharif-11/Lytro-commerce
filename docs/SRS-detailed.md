@@ -563,15 +563,15 @@ State names and timings are in 2.3. "Day N" means N × 24 hours after the paid p
 
 | ID | Requirement | Pass criteria | Pri | Ver |
 | --- | --- | --- | --- | --- |
-| PRD-01 | Users with `products:manage` shall create products with: name (required, up to [200] characters), description, price ≥ 0, stock ≥ 0 (whole number), category, images, optional video, delivery charge ≥ 0, an optional weight, a delivery-charge mode (PRD-16), active flag, and payment policy. | A product missing a name or with a negative price is rejected with field errors; a valid one is saved. | M | E2E |
+| PRD-01 | Amended 2026-10-17 (stock moved to §14.6 INV; stock unit per UOM-01): users with `products:manage` shall create products with: name (required, up to [200] characters), description, price ≥ 0, a stock unit (UOM-01), a stock-tracking mode (INV-02), category, images, optional video, delivery charge ≥ 0, an optional weight, a delivery-charge mode (PRD-16), active flag, and payment policy. | A product missing a name or with a negative price is rejected with field errors; a valid one is saved. | M | E2E |
 | PRD-02 | Each product shall get a slug unique within the tenant; a duplicate name gets a numeric suffix. | Two products named "18650 Cell" have slugs `18650-cell` and `18650-cell-2`; another tenant may also use `18650-cell`. | M | API |
 | PRD-03 | Users shall manage categories in a tree (create, rename, move, delete), each with a name up to [80] characters, a slug unique within the tenant, an optional image/banner, sort order and a visibility toggle, up to a depth of [4] levels. A tenant with no categories, or a product filed in none, shall not be blocked from anything; an "Uncategorized" bucket shall exist automatically for such products. | A child category appears under its parent; a product with no category still lists and sells normally; deleting a category that holds products is refused with the product count, or the products fall back to Uncategorized if the tenant chooses that option. | M | E2E |
 | PRD-15 | A product shall be assignable to more than one category at once, with one marked primary for canonical navigation. | A product filed under both "Sale" and "Electronics" appears in both listings. | S | API |
 | PRD-16 | Each product (and, per ATR-13, each variant) shall carry a delivery-charge mode: Default or Adjustable. When a weight is entered, the product-creation form shall pre-select Adjustable, and the tenant may switch it to Default manually; when no weight is entered, only Default shall be available, and any stored mode shall be treated as Default regardless of its saved value. | Entering a weight pre-selects Adjustable in the form; clearing the weight afterward forces the effective mode back to Default. | M | E2E |
 | PRD-04 | Creating a product above the plan's product limit shall be refused with `plan_limit_reached`; soft-deleted products shall not count. [Assumption] | Starter with 100 products cannot create the 101st; after deleting one, it can. | M | API |
-| PRD-05 | Editing a product shall be recorded in the audit log, with old and new price and stock in the summary. | An entry shows both values. | M | API |
+| PRD-05 | Amended 2026-10-17: editing a product shall be recorded in the audit log, with old and new price in the summary; every stock change is recorded by the stock ledger (INV-03) instead, and a manual stock edit is additionally audited (INV-21). | An entry shows both prices; a stock edit appears in the stock history and the audit log. | M | API |
 | PRD-06 | An inactive product shall be hidden from the public catalogue; a public order that includes it shall be refused with `conflict` (`product_unavailable`); an order entered by staff may include it. | The public catalogue omits it; public order creation fails; dashboard order creation succeeds. | M | API |
-| PRD-07 | Order creation shall reserve stock atomically; insufficient stock shall refuse the order naming the product; a failed order creation shall restore the reserved stock. | With stock 1, two simultaneous orders for 1 unit give one success and one `conflict`; stock is 0 afterwards. | M | API |
+| PRD-07 | Order creation shall reserve stock atomically (as a reservation, INV-15); insufficient available stock shall refuse the order naming the product; a failed order creation shall restore the reserved stock. A product whose stock is not tracked (INV-02) is never refused for stock. | With stock 1, two simultaneous orders for 1 unit give one success and one `conflict`; stock is 0 afterwards. | M | API |
 | PRD-08 | A product's payment policy shall be none, partial advance, or full prepayment, set at the product level and applied against each ordered variant's own price (not a single product-wide amount); order creation shall compute the required advance and the cash-on-delivery remainder per line, and refuse a plain cash-on-delivery order that violates the policy. | A partial-advance product with a 300 TK advance returns 400 for COD-only, and the order shows advance 300 and COD remainder. | M | API |
 | PRD-09 | The public catalogue endpoint shall list active products with pagination, category filter, search, and sort, returning only public fields (not internal costs, notes, or exact stock counts). | The response has no internal fields; a filtered query returns only matching products. | M | API |
 | PRD-10 | Public catalogue responses may be cached for up to [60] seconds; an edit shall be visible publicly within that time (the mechanism is section 14.3, CCH-01 to CCH-13). | A price change is visible within 60 seconds. | M | API |
@@ -592,9 +592,9 @@ Nothing about a product's attributes is ever mandatory: a tenant creates an attr
 | ATR-04 | A product shall have one or more variants, each a combination of variant-defining attributes the tenant chose for that product (not dictated by category); a product with no variant-defining attributes shall get exactly one default variant automatically. | A battery cell (no variant-defining attributes chosen) gets one variant with no options; a T-shirt where the tenant marked Size and Color as variant-defining gets one variant per combination the tenant adds. | M | API |
 | ATR-14 | A product shall have at most [3] variant-defining attributes and at most [100] variant combinations; creating more shall be refused with a clear message. | Adding a 4th variant-defining attribute, or a 101st combination, is refused; the tenant is told to reduce the options or split into separate products. | M | API |
 | ATR-15 | Marking an existing informational attribute as variant-defining, or the reverse, shall be allowed only before the product has any orders; after that it shall be blocked with a message to create a new product instead. | Toggling Size to variant-defining on a product with past orders is refused. | S | API |
-| ATR-05 | Each variant shall have its own stock (whole number ≥ 0), an optional price override (default the product's base price), an optional barcode/SKU, and its own image; stock reservation and release (PRD-07) shall operate per variant. | Two variants of one product can have different stock and price; reserving one variant's stock does not affect another's. | M | API |
+| ATR-05 | Amended 2026-10-17: each variant shall have its own stock (held as an INV stock level; a whole number for discrete units and a decimal for measured units, UOM-03), an optional cost price (INV-10), an optional price override (default the product's base price), an optional barcode/SKU, and its own image; stock reservation and release (PRD-07) shall operate per variant. | Two variants of one product can have different stock and price; reserving one variant's stock does not affect another's. | M | API |
 | ATR-06 | A variant combination shall be unique within its product; creating a duplicate combination shall be refused. | Adding a second "Red / L" variant to the same product returns `conflict`. | M | API |
-| ATR-07 | The public catalogue and order-creation endpoints shall expose only variants with available stock (or, for products without stock tracking, the parent's active flag) and shall require a variant ID, not a bare product ID, when creating an order line. | Creating an order line with a product ID but no variant is rejected; an out-of-stock variant is not offered. | M | API |
+| ATR-07 | The public catalogue and order-creation endpoints shall expose only variants with available stock (INV-01; or, for a product whose stock is not tracked, INV-02, the product's active flag) and shall require a variant ID, not a bare product ID, when creating an order line. | Creating an order line with a product ID but no variant is rejected; an out-of-stock variant is not offered. | M | API |
 | ATR-08 | Certain attributes may be marked "captured at order time": free text or a number entered by the shopper or staff when the order is created, stored on the order line, and not stock-splitting. | A "Personalization text" attribute lets an order line carry custom text without creating a new variant. | S | API |
 | ATR-09 | Each order line shall store a snapshot of both the chosen variant's variant-defining attribute values (for example Size, Color) and the product's informational attribute values current at order time (for example Material) — not a live reference to either — as part of the full line snapshot in ORD-46. | An order for a cotton T-shirt in Size L still shows "Size: L, Material: 100% Cotton" after the attribute, the variant, or the product is renamed, retired or hard-deleted. | M | API |
 | ATR-10 | Users with `products:manage` shall create, edit and retire their tenant's attribute definitions and each category's suggestion list; retiring an attribute used by an existing product shall leave that product's data unchanged and only remove it from future suggestions and the add-attribute picker. | Retiring "Material" leaves existing products showing it untouched; new products no longer see it suggested. | M | E2E |
@@ -643,12 +643,126 @@ Catalogue browsing is the platform's main read traffic and is identical for ever
 | CCH-05 | The process-memory cache shall have a hard size cap of [100] MB with least-recently-used eviction and a lifetime of at most [60] seconds, shall not use Redis (RED-06), and shall sit after the rate-limit check (RTE-04). | Filling the cache evicts old entries without exceeding the cap; a cached response still decrements the remaining allowance. | M | LOAD |
 | CCH-06 | Concurrent cache misses for the same key shall be coalesced so only one database query runs and the others wait for its result. | 200 simultaneous requests for one uncached list cause one database query. | M | LOAD |
 | CCH-07 | Checkout, order creation, cart, tracking, account pages and every authenticated response shall never be served from a shared cache; the price and stock of each order line shall be read from PostgreSQL at order time and snapshotted, so a stale cached price can never be charged. | With a stale price in every cache, an order is created at the current database price; the shopper is shown the corrected price at checkout. | M | API |
-| CCH-08 | Cached public lists shall show stock as a coarse state (in stock, low, out) and not exact counts; a change of state shall increment the catalogue version, and other stock movements shall not. | A sale that does not cross a state boundary leaves the version unchanged; one that sells the last unit changes it. | S | API |
+| CCH-08 | Cached public lists shall show stock as a coarse state (in stock, low — at or below the product's low-stock threshold, INV-08 — out) and not exact counts; a change of state shall increment the catalogue version, and other stock movements shall not. | A sale that does not cross a state boundary leaves the version unchanged; one that sells the last unit changes it. | S | API |
 | CCH-09 | Product and category images shall have content-hashed addresses served with a one-year immutable cache lifetime, so replacing an image needs no purge. | A replaced image has a new address; the old one still serves the old bytes. | M | API |
 | CCH-10 | The storefront PWA's service worker shall cache the application shell (versioned) and recently viewed catalogue responses, show them when the network is unavailable, and revalidate when it returns. | With the network off, a previously viewed category and product open from the cache; back online they refresh. | S | E2E |
 | CCH-11 | Public catalogue queries shall use keyset pagination (no deep offsets), return a slim list payload (name, price or price range, one thumbnail, stock state) and read the denormalised minimum price, maximum price and in-stock flag kept on the product row transactionally, so list pages do not join variants. | A list of 50,000 products returns any page within the response target; changing a variant price updates the product row's range in the same transaction. | M | LOAD |
 | CCH-12 | Catalogue search shall use PostgreSQL full-text and trigram indexes (DAT-13), behind a single search module interface, and no separate search engine shall be installed at launch; a lightweight engine (Meilisearch or Typesense) shall be evaluated before Elasticsearch only if search 95th-percentile latency stays above [300] ms on production-sized data after tuning, or faceted counts or typo-tolerant ranking across very large catalogues are required. | A search on a 50,000-product tenant meets the target using indexes only; the inventory lists no search engine. | M | LOAD |
 | CCH-13 | Monitoring shall report the edge cache hit ratio (target at least [90]%, to be revised against measured traffic under SCL-13, since capacity is sized for a [40]% miss rate and not a [10]% one), the process-cache hit ratio, catalogue 95th-percentile latency and queries per second, and alert when the edge hit ratio stays below [70]% for [30] minutes; a test shall confirm that cookies and unknown query parameters do not fragment the cache. | A test adding a tracking parameter or a cookie does not create a new cache entry; a forced low hit ratio raises the alert. | S | MAN |
+
+### 14.4 Attribute library (ATL)
+
+Added 2026-10-17 (from `PRODUCT-MODEL-PROPOSAL.md` §2, adopted). Makes ATR-01's attribute library a real data structure, so ATR-06 and ATR-14 are enforced by the database and not only by application code. One deviation from the proposal: platform and tenant attributes share one table distinguished by scope, rather than two tables.
+
+| ID | Requirement | Pass criteria | Pri | Ver |
+| --- | --- | --- | --- | --- |
+| ATL-01 | Attribute definitions shall be stored as rows with a scope (platform library, curated by the operator, or tenant, created inline per ATR-01), a name, a data type (enum-single, enum-multi, number-with-unit, text, boolean), for number-with-unit a unit kind (UOM-02), and for enum types an ordered list of options; a tenant attribute's name is unique within its tenant. | "Size" and "Color" exist in the platform library for every tenant; "Thread count" created by one tenant is visible only to it. | M | API |
+| ATL-02 | Each attribute attached to a product shall carry one role: variant-defining, informational or captured at order time (ATR-04, ATR-08); an enum-multi attribute shall be refused as variant-defining at the data layer. | Marking "Compatible models" (enum-multi) variant-defining is refused even through a direct database write. | M | API |
+| ATL-03 | The limits of ATR-14 (at most [3] variant-defining attributes, at most [100] variants per product) shall be enforced at the data layer as well as the API. | Inserting a 4th variant-defining attribute row directly fails. | M | API |
+| ATL-04 | A variant's defining values shall be stored as rows referencing attribute options, and each variant shall carry a combination key derived from them that is unique within its product, so ATR-06 is a database constraint. | Two variants of one product cannot both resolve to Size L / Color Red; the second insert fails on the unique index. | M | API |
+| ATL-05 | A category's suggested attributes (ATR-02) shall reference attribute rows, not free text, so a suggestion and the attribute it names are the same row. | "Clothing" suggests the platform's own "Size" row, not a copy. | S | API |
+| ATL-06 | Order lines shall snapshot attribute names and values as text (ATR-09), never a live reference, so renaming or retiring an attribute or option never changes a past order. | Renaming "Color" to "Colour" leaves past orders showing "Color". | M | API |
+
+### 14.5 Units of measure (UOM)
+
+Added 2026-10-17 (from `PRODUCT-MODEL-PROPOSAL.md` §3, adopted). For goods sold by weight, volume or pack; tenants who never touch it keep selling whole pieces.
+
+| ID | Requirement | Pass criteria | Pri | Ver |
+| --- | --- | --- | --- | --- |
+| UOM-01 | A product shall declare a stock unit from a fixed list (piece, kg, g, liter, ml, dozen, pack, box), defaulting to piece or to the shop-type preset's default (PST-02). | A battery shop's products default to piece with no setup step. | M | API |
+| UOM-02 | A number-with-unit attribute shall reference a unit kind (weight, volume, count) so values can be offered, sorted and compared consistently. | A "Pack size" attribute of kind count sorts 6-pack before 12-pack. | S | API |
+| UOM-03 | Every stock quantity (stock levels, movements, reservations, purchase lines, batches) shall allow up to [3] decimal places for measured units (kg, g, liter, ml) and only whole numbers for discrete units (piece, dozen, pack, box), enforced at the data layer. | 2.5 kg of loose cumin can be held in stock; 2.5 pieces of a book is refused. | M | API |
+| UOM-04 | An order line's quantity shall be validated against the product's unit: fractional quantities only for measured units. | Ordering 0.5 of a piece-unit product is refused; 0.5 kg of a kg-unit product is accepted. | M | API |
+
+### 14.6 Inventory (INV)
+
+Added 2026-10-17. A complete inventory system that sits behind deliberately simple screens: most tenants are not trained in inventory management and keep working the way they already do (type a stock number, add new stock, ship orders), while every change is recorded the way an inventory system needs it. Stock is held per variant (ATR-05) in the product's stock unit (UOM-03). Multiple locations/warehouses are out of scope (§8 of the proposal).
+
+| ID | Requirement | Pass criteria | Pri | Ver |
+| --- | --- | --- | --- | --- |
+| INV-01 | Each variant of a stock-tracked product shall have a stock level of on-hand, reserved and available quantity, where available = on hand − reserved − expired units not yet written off (INV-13); none may be negative, enforced at the data layer, so stock can never be oversold. | With 1 available, two simultaneous attempts to take 1 give one success and one `conflict`; available is 0 afterwards. | M | API |
+| INV-02 | A product shall have a stock-tracking mode: tracked (default) or not tracked ("made to order": always available, no stock level, no movements, no low-stock alerts, never refused for stock). | A made-to-order cake is orderable with no stock entered; switching a product to tracked starts it at 0 on hand. | M | API |
+| INV-03 | Every change to on-hand stock shall be recorded as an append-only stock movement: variant, signed quantity, on-hand after, reason (INV-04), reference (order, purchase receipt, stock check), unit cost (INV-11), actor, optional note and time; an update or delete of a movement shall be refused for every database role, including the schema owner. | A direct UPDATE on a movement row fails; every on-hand change has a matching movement. | M | API |
+| INV-04 | Movement reasons shall come from a fixed list: initial, purchase receipt, sale, return received, damaged, lost, expired, recount, manual adjustment. | An unknown reason is refused. | M | API |
+| INV-05 | A variant's on-hand quantity shall always equal the sum of its own stock movements, and reserved shall always equal the sum of its active reservations. | After any sequence of receipts, sales, returns, adjustments and checks, both sums match their levels exactly. | M | API |
+| INV-06 | A tenant may type a new stock number directly; the system shall record the difference as a movement and offer a one-tap reason (new stock arrived, counted again, damaged or lost, other), defaulting to manual adjustment when skipped; the level shall never change without a movement. | Editing stock from 10 to 7 and tapping "damaged or lost" records a −3 damaged movement. | M | E2E |
+| INV-07 | A stock check shall let the tenant enter counted quantities for any set of variants; each difference shall be recorded as one recount movement, and the check shall report the value gained or lost at average cost. | Counting 16 where the system says 17 records −1 recount and reports the lost value. | M | E2E |
+| INV-08 | Each tracked product shall have a low-stock threshold (default [5] units, or the shop-type preset's default, editable per product); when a variant's available stock falls to or below it, the tenant shall be notified once per crossing (the same once-per-crossing rule as BAL-13), and the public stock state becomes "low" (CCH-08). | Selling from 6 to 5 sends one notice; further sales to 4 and 3 send none; restocking above 5 and selling back down sends a new one. | M | API |
+| INV-09 | Each variant shall have a stock history: its movements, newest first, paginated, shown in everyday language with the reason and a link to the order, purchase or stock check behind it. | The history reads "+20 new stock from Rahim Traders", "−2 sold, order #1001". | M | E2E |
+| INV-10 | Each variant shall carry an average unit cost, maintained automatically by weighted average on every purchase receipt (PUR-04); before any receipt the tenant may enter it by hand. Cost shall never be required, never block a sale, and never appear in any public response (PRD-09). | Receiving 18 at 750 onto 3 at 700 sets the average to 742.86; a product with no cost still sells. | M | API |
+| INV-11 | Every outgoing movement (sale, damaged, lost, expired, recount loss) shall record the unit cost at that moment, so cost of goods sold and losses stay correct after later cost changes; a missing cost is recorded as unknown, never as zero. | Changing the average cost next month does not change last month's cost of goods sold. | M | API |
+| INV-12 | Batch tracking shall be selectable per product (default from the shop-type preset): stock is received into batches with an optional batch code and optional expiry date; a variant's on hand equals the sum of its batches; every outgoing movement draws from the earliest-expiring batch first, batches without an expiry last. | With batches expiring January and March, a sale takes the January batch first. | M | API |
+| INV-13 | Batches with an expiry date within [30] days shall produce one tenant notice per batch; quantity in an expired batch shall be excluded from available stock automatically and written off with an `expired` movement when the tenant confirms. | A batch expiring in 20 days raises one notice; after its expiry date its units are no longer sellable. | M | JOB |
+| INV-14 | Serial tracking shall be selectable per product (default from the shop-type preset): every unit has a serial (for example an IMEI) unique within its variant; receiving requires one serial per unit received; fulfilling a line records which serials left; each serial has a status (in stock, sold, returned, written off). | Receiving 3 phones requires 3 IMEIs; shipping one records its IMEI against the order; the same IMEI cannot be received twice. | S | API |
+| INV-15 | An order line shall hold stock through a reservation (variant, quantity, order, optional expiry): reserving raises reserved and is refused with `conflict` naming the product when it would exceed available (PRD-07); fulfilment consumes it and writes the sale movement (drawing batches per INV-12 and serials per INV-14); cancellation releases it and writes no movement. | Reserving 2 of 1 available is refused; shipping a 2-unit reservation writes one −2 sale movement; cancelling releases 2 with no movement. | M | API |
+| INV-16 | A reservation for an order awaiting online payment shall expire [30] minutes after creation (aligned with the payment session's own expiry), released automatically within [1] minute of expiring; reservations for cash-on-delivery or staff-entered orders do not expire. | An abandoned bKash checkout's stock is available again about 30 minutes later; a COD order's stock stays reserved. | M | JOB |
+| INV-17 | A returned unit shall be recorded either as sellable (a return-received movement, back into stock) or damaged (a return-received movement followed by a damaged write-off), as the tenant chooses per unit; a return shall never restock automatically. | A return of 2 with 1 marked damaged raises on hand by 1 and records a valued loss for the other. | M | API |
+| INV-18 | The system shall report inventory value (on hand × average cost), cost of goods sold per period, and losses per period by reason, for use by the tenant's statistics (STA-*). | The figures equal the sums of the underlying movements. | M | API |
+| INV-19 | A change of a product's public stock state (in, low, out) shall increment the catalogue version in the same transaction (CCH-02, CCH-08); other stock changes shall not. | Selling the last unit changes the version; a sale from 50 to 49 does not. | M | API |
+| INV-20 | Inventory permissions shall be `inventory:read` and `inventory:manage` (stock edits, stock checks, write-offs, purchasing), added to the platform permission list (STF-07). | A staff member without `inventory:manage` can view stock but not change it. | M | API |
+| INV-21 | Manual adjustments, stock checks and write-offs shall also be recorded in the activity log (AUD-01) with the actor; sales and receipts are traceable through their own references instead. | A manual −3 adjustment appears in the activity log with the staff member's name. | M | API |
+| INV-22 | Inventory screens shall use everyday commerce language and never require knowledge of inventory terms; cost, supplier, batch, expiry and serial fields shall be optional where INV-12/INV-14 allow, shown only when the product or shop type uses them, and their absence shall never block a sale. | A clothing shop never sees expiry or serial fields; a cosmetics shop sees "Expiry date (optional)" when adding stock. | M | E2E |
+
+### 14.7 Purchasing and receiving (PUR)
+
+Added 2026-10-17. How stock enters the shop. Supplier payments (accounts payable), returns to suppliers and multiple receiving locations are out of scope.
+
+| ID | Requirement | Pass criteria | Pri | Ver |
+| --- | --- | --- | --- | --- |
+| PUR-01 | Users with `inventory:manage` shall create, edit and archive suppliers (name required; phone, email, address, notes optional). | An archived supplier is no longer offered for new purchases; its past purchases still show its name. | M | API |
+| PUR-02 | A purchase order shall have a supplier (optional), lines (variant, quantity in the product's stock unit, unit cost), an optional expected date and notes, and a status: draft, ordered, partially received, received, closed short or cancelled. | A purchase moves from draft to ordered to received; cancelling an ordered one with nothing received sets cancelled. | M | API |
+| PUR-03 | Purchase order numbers shall be sequential and gap-free per tenant (the same locked-counter mechanism as DAT-07's invoice numbers). | Two simultaneous purchase orders receive consecutive numbers with no gap or duplicate. | M | API |
+| PUR-04 | Receiving shall record, per line, the quantity accepted, the quantity rejected with a reason, the actual unit cost, and the batch/expiry (INV-12) or serials (INV-14) where the product uses them; one purchase order may be received over several receipts; each receipt shall atomically write purchase-receipt movements, update average cost (INV-10) and update the order's status. | Receiving 18 accepted and 2 rejected of 20 raises on hand by 18, updates the average cost, and leaves the order partially received. | M | API |
+| PUR-05 | A variant's incoming quantity (ordered minus received on open purchase orders) shall be shown alongside its stock and never counted as available. | With 3 on hand and 20 ordered, the product shows "3 · coming 20" and the storefront can sell only 3. | M | API |
+| PUR-06 | A partially received purchase order may be closed short with a reason, dropping the outstanding quantity with no stock effect. | Closing an order with 2 outstanding leaves stock unchanged and removes the 2 from incoming. | M | API |
+| PUR-07 | "Add stock" shall be a one-step receipt that needs no prior purchase order: it creates an already-received purchase record (and a supplier, if a new name is typed) and follows every rule of PUR-04. | Adding 20 units from a newly typed supplier creates the supplier, a received purchase and a +20 receipt movement in one action. | M | E2E |
+| PUR-08 | Receipts shall be immutable once saved; a mistake shall be corrected by a stock adjustment (INV-06), never by editing the receipt. | Editing a saved receipt is refused; a −2 adjustment corrects an over-count. | M | API |
+| PUR-09 | Each variant shall show its purchase history: supplier, date, quantity and unit cost of each receipt. | A variant bought twice shows both receipts with their own costs. | S | E2E |
+| PUR-10 | Creating, receiving, closing and cancelling purchase orders shall be recorded in the activity log (AUD-01). | Each action appears with its actor and purchase number. | M | API |
+
+### 14.8 Shop-type presets (PST)
+
+Added 2026-10-17. Lets one product model serve many kinds of shop without a "shop type" that locks behaviour.
+
+| ID | Requirement | Pass criteria | Pri | Ver |
+| --- | --- | --- | --- | --- |
+| PST-01 | Onboarding shall ask the tenant's main business type from a list (at least clothing, shoes and bags, cosmetics, electronics, mobiles and gadgets, grocery, food and bakery, books and stationery, pharmacy, home and décor, other); the question can be skipped and the answer changed later. | A tenant can pick "Cosmetics", skip it, or change it later from settings. | M | E2E |
+| PST-02 | The business type shall only set defaults and suggestions for new products: suggested categories and attributes (ATR-02), the default stock unit (UOM-01), and whether batch tracking (INV-12), serial tracking (INV-14) or made-to-order (INV-02) are on by default, and the default low-stock threshold (INV-08); it shall never restrict what a product may use. | A cosmetics shop's new products default to batch tracking on; it can still add a hair dryer with batch tracking off. | M | API |
+| PST-03 | Changing the business type shall never alter existing products. | Switching from cosmetics to grocery leaves every existing product's settings unchanged. | M | API |
+| PST-04 | Preset definitions shall be platform-maintained data, editable by the operator without a deploy. | Adding a suggested attribute to the "Grocery" preset takes effect for the next product created. | S | API |
+
+### 14.9 Tax classes (TAX) — adopted, scheduled after Phase 3
+
+Added 2026-10-17 (from `PRODUCT-MODEL-PROPOSAL.md` §4). Tax a tenant charges its own shoppers; unrelated to the platform's own invoices (BIL-12).
+
+| ID | Requirement | Pass criteria | Pri | Ver |
+| --- | --- | --- | --- | --- |
+| TAX-01 | A tenant may define named tax classes with a rate and assign one per product; the default is no tax. | A bookshop marks books zero-rated and stationery at 15%; a seller who never opens tax settings charges none. | S | API |
+| TAX-02 | Order lines shall snapshot the tax class name and rate applied at order time. | Changing a rate next year does not change last year's orders. | M | API |
+| TAX-03 | Order totals shall show one tax line per distinct tax class in the cart. | A cart with zero-rated and 15% items shows two tax lines. | S | API |
+
+### 14.10 Menus and modifier groups (MNU) — adopted, scheduled after Phase 3
+
+Added 2026-10-17 (from `PRODUCT-MODEL-PROPOSAL.md` §5). Restaurants and made-to-order food; modifiers change price and preparation, never stock, so they are not attributes.
+
+| ID | Requirement | Pass criteria | Pri | Ver |
+| --- | --- | --- | --- | --- |
+| MNU-01 | A product may define modifier groups, each with a name, a minimum and maximum selection count, and options with a price change and a default flag. | A burger has "Spice level" (exactly 1) and "Extras" (0–3, extra cheese +30). | M | API |
+| MNU-02 | Modifier choices shall be made at order time and snapshotted on the order line with their price changes, already reflected in the line's unit price. | A burger with Hot and extra cheese stores base + 30 and both names. | M | API |
+| MNU-03 | A group's minimum and maximum shall be enforced at order creation. | No selection for an exactly-1 group is refused with a field error. | M | API |
+| MNU-04 | An order shall have a fulfilment type: delivery (default), takeaway (no courier, no delivery charge) or dine-in (a table reference, no courier, no delivery charge). | A dine-in order for Table 4 has no delivery charge or courier step. | M | API |
+| MNU-05 | A product may be a combo of other products or variants at one combo price, snapshotted with each component's name. | A burger + fries + drink combo at 350 snapshots all three names. | S | API |
+
+### 14.11 Formula pricing (FPR) — adopted, scheduled after Phase 3
+
+Added 2026-10-17 (from `PRODUCT-MODEL-PROPOSAL.md` §6; revises OD-45). Implemented after ATL, since its quantity comes from a number-with-unit attribute.
+
+| ID | Requirement | Pass criteria | Pri | Ver |
+| --- | --- | --- | --- | --- |
+| FPR-01 | A tenant may mark a product's price as computed: unit price = a tenant-maintained rate × the variant's quantity attribute, rounded per PRD-14; static pricing stays the default. | A 5.2 g ring at 9,500 per gram shows 49,400. | S | API |
+| FPR-02 | The rate shall be a named, tenant-maintained value (never an external market feed); editing it re-prices every product that uses it. | Changing the gold rate re-prices every gold product at once. | S | API |
+| FPR-03 | An order line shall snapshot the resolved unit price and the rate used. | A ring sold at 49,400 keeps that figure after the rate changes. | M | API |
+| FPR-04 | Computed pricing shall apply only to the base unit price, never to delivery charges or modifier prices. | A computed-price item still uses its own flat delivery charge. | S | API |
 
 ## 15. Orders (ORD)
 
@@ -664,7 +778,7 @@ Catalogue browsing is the platform's main read traffic and is identical for ever
 | ORD-07 | Initial status shall be set by the server: `unverified` when a payment must be verified (manual, hosted or gateway payment), `pending` for cash on delivery; staff-created orders may choose a status, default `pending`. | Public order with a hosted payment is `unverified`; COD is `pending`. | M | API |
 | ORD-08 | The visible order status shall be limited to the defined statuses (2.3.1) and shall be derived from two internal axes, `payment_status` and `fulfillment_status` (ORD-40), recorded with time, note and user; automatic moves follow: `unverified`→`pending` on payment verified, `unverified`→`rejected` on payment rejected, `pending`→`processing` on courier booking, `processing`→`shipped` and `shipped`/`processing`→`partial_delivered`/`delivered` from courier reports. | Each trigger moves the status and adds a history entry. | M | E2E |
 | ORD-09 | Setting `shipped` manually shall require a courier tracking link or a courier tracking code. | Without either, the change is refused with a clear message. | M | API |
-| ORD-10 | Cancelled, rejected and returned orders shall restore reserved stock. [Assumption] | Stock rises by the ordered quantity once. | M | API |
+| ORD-10 | Amended 2026-10-17: a cancelled or rejected order that never shipped shall release its reservation (INV-15), with no stock movement since no stock left the shop; a returned order shall restore stock only for units the tenant marks sellable again, recording damaged units as written off instead (INV-17). | A cancelled unshipped order raises available stock by the ordered quantity once; a return of 2 units with 1 marked damaged raises on-hand stock by 1. | M | API |
 | ORD-11 | Users with `orders:manage` shall edit customer details, items, pricing and notes; edits after courier booking shall show a warning that the courier's record is not changed. | Editing an item after booking shows the warning and recomputes totals. | M | E2E |
 | ORD-12 | Users with `orders:delete` shall delete an order; an order with a verified payment shall not be deletable. | Deleting a paid order returns `conflict`; deleting an unpaid one succeeds and is audited. | M | API |
 | ORD-13 | The order list shall filter by status, search by name, phone or order number, filter by date range, paginate at [20] per page, and sort newest first. | Each filter and search returns the expected subset with correct page counts. | M | E2E |
@@ -1347,7 +1461,7 @@ Each item below changes at least one requirement above if the answer differs. Br
 | OD-20 | Operator two-factor sign-in | Decided 2026-10-02: TOTP, mandatory (no disable toggle), with backup codes and a break-glass recovery path | ADM-01, ADM-18 |
 | OD-21 | "Renew automatically from balance" option | Offered, default off | BIL-17 |
 | OD-22 | Cached fraud results are still charged to the tenant | Yes | FRD-03 |
-| OD-45 | Dynamic/formula pricing (for example gold jewelry priced by live weight × market rate) and file-upload order-time inputs (for example a customer-uploaded photo for a printed mug) | Out of scope for now; variant price stays a static number the tenant edits by hand, order-time captured attributes are text/number only | ATR-01, ATR-08 |
+| OD-45 | Dynamic/formula pricing (for example gold jewelry priced by live weight × market rate) and file-upload order-time inputs (for example a customer-uploaded photo for a printed mug) | Revised 2026-10-17: formula pricing from a **tenant-maintained** rate is adopted as FPR (§14.11), scheduled after Phase 3; a live external market-data feed stays out of scope. File-upload order-time inputs stay out of scope; order-time captured attributes remain text/number only | ATR-01, ATR-08, FPR |
 | OD-46 | Minimum legal retention period for order/invoice/payment records (to confirm with an accountant); default policy: no age-based deletion ever, only optional archive-from-view | Accepted placeholder — default decided (never delete) and safe to build against; exact legal minimum to confirm with an accountant before launch | ORD-48, LEG-02 |
 | OD-47 | Which paid fraud aggregator (if any) to use in Bangladesh, its price and terms; whether any courier exposes a no-credential public phone-history lookup that could reduce reliance on a paid aggregator | Accepted placeholder — build the FRD-* adapter interface now so any aggregator plugs in later (same adapter pattern as couriers/gateways); vendor choice itself revisit before launch | FRD-02, FRD-14 |
 | OD-48 | Pay-as-you-go rates: order fee 20 TK minimum or 1.5% of order total, whichever is greater, and a 10 TK product-creation fee; resource limits below Starter's (1 seat, 25 products, 250 MB storage, 10 GB bandwidth, 100,000 requests, 5 free essential SMS) (all proposed) | Structure and "below Starter's" rule decided; exact numbers accepted placeholder (10/25/250MB/10GB and the rest), revisit before launch | PYG-01, PYG-02, PYG-16, PYG-20, RAT-10 to RAT-12 |
@@ -1460,6 +1574,7 @@ Each item below changes at least one requirement above if the answer differs. Br
 | ADM | 16 | 13 | 3 | 0 |
 | AI | 11 | 6 | 5 | 0 |
 | API | 28 | 23 | 5 | 0 |
+| ATL | 6 | 5 | 1 | 0 |
 | ATR | 15 | 13 | 2 | 0 |
 | AUD | 8 | 7 | 1 | 0 |
 | AUTH | 26 | 26 | 0 | 0 |
@@ -1474,7 +1589,9 @@ Each item below changes at least one requirement above if the answer differs. Br
 | CUS | 12 | 9 | 2 | 1 |
 | DAT | 54 | 50 | 3 | 1 |
 | DWN | 18 | 18 | 0 | 0 |
+| FPR | 4 | 1 | 3 | 0 |
 | FRD | 14 | 11 | 3 | 0 |
+| INV | 22 | 21 | 1 | 0 |
 | KYC | 16 | 16 | 0 | 0 |
 | LEG | 3 | 3 | 0 | 0 |
 | LIF | 26 | 23 | 3 | 0 |
@@ -1482,6 +1599,7 @@ Each item below changes at least one requirement above if the answer differs. Br
 | LOG | 4 | 4 | 0 | 0 |
 | LSN | 25 | 18 | 6 | 1 |
 | MED | 13 | 10 | 3 | 0 |
+| MNU | 5 | 4 | 1 | 0 |
 | MON | 5 | 5 | 0 | 0 |
 | NTC | 20 | 14 | 5 | 1 |
 | NTF | 7 | 4 | 3 | 0 |
@@ -1491,6 +1609,8 @@ Each item below changes at least one requirement above if the answer differs. Br
 | PLN | 18 | 15 | 3 | 0 |
 | PRD | 16 | 15 | 1 | 0 |
 | PRF | 4 | 3 | 1 | 0 |
+| PST | 4 | 3 | 1 | 0 |
+| PUR | 10 | 9 | 1 | 0 |
 | PYG | 21 | 18 | 3 | 0 |
 | QTA | 7 | 7 | 0 | 0 |
 | RAT | 14 | 13 | 1 | 0 |
@@ -1503,13 +1623,15 @@ Each item below changes at least one requirement above if the answer differs. Br
 | STF | 14 | 12 | 2 | 0 |
 | STO | 7 | 7 | 0 | 0 |
 | SUP | 8 | 4 | 4 | 0 |
+| TAX | 3 | 1 | 2 | 0 |
 | TEN | 31 | 26 | 5 | 0 |
 | TRL | 8 | 8 | 0 | 0 |
 | TRM | 16 | 14 | 2 | 0 |
 | TVR | 4 | 3 | 1 | 0 |
+| UOM | 4 | 3 | 1 | 0 |
 | UPG | 17 | 15 | 2 | 0 |
 | VER | 12 | 12 | 0 | 0 |
 | WAL | 19 | 17 | 2 | 0 |
-| **Total** | **785** | **659** | **108** | **18** |
+| **Total** | **843** | **706** | **119** | **18** |
 
-By verification method: API 359, E2E 250, JOB 49, LOAD 19, MAN 108. Withdrawn IDs (ADM-07, STO-08, BKP-04, MED-14, DAT-48, DAT-49, DAT-50, AUTH-25, RED-12) are not counted. The OBS requirements are counted as Could until paying tenants exceed 50.
+By verification method: API 408, E2E 257, JOB 51, LOAD 19, MAN 108 (2026-10-17: +58 for ATL, UOM, INV, PUR, PST, TAX, MNU, FPR). Withdrawn IDs (ADM-07, STO-08, BKP-04, MED-14, DAT-48, DAT-49, DAT-50, AUTH-25, RED-12) are not counted. The OBS requirements are counted as Could until paying tenants exceed 50.
