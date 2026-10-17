@@ -70,9 +70,13 @@ export class PurchaseService {
     const info = await this.tenants.runStandalone((tx) =>
       this.tenants.findBillingInfo(tx, tenantId),
     );
-    const isRenewal =
-      info?.planId === planId &&
-      (info.state === TenantState.Active || info.state === TenantState.Grace);
+    // DWN-05: paying into the plan already scheduled as this tenant's own downgrade target is a renewal
+    // too, not a fresh purchase -- it's continuing the same subscription onto the plan that was already
+    // going to take over at this exact period boundary, just a little early.
+    const scheduled = await this.downgrade.getScheduled(tenantId);
+    const isOwnPlan = info?.planId === planId || scheduled?.targetPlanId === planId;
+    const isActiveOrGrace = info?.state === TenantState.Active || info?.state === TenantState.Grace;
+    const isRenewal = isOwnPlan && isActiveOrGrace;
 
     return this.payments.quoteStandalone({
       tenantId,
@@ -148,9 +152,14 @@ export class PurchaseService {
     const plan = await this.plans.findById(payment.planId);
     const term = await this.terms.findById(payment.billingTermId);
     const info = await this.tenants.findBillingInfo(tx, payment.tenantId);
+    if (!info) throw new Error('activate() called for a tenant with no billing info');
+    // DWN-05: same "this is really a renewal" widening as `quote()` -- paying for the already-scheduled
+    // downgrade target extends the current period instead of restarting it from today.
+    const scheduled = await this.downgrade.getScheduled(payment.tenantId);
+    const isOwnPlan = info.planId === payment.planId || scheduled?.targetPlanId === payment.planId;
 
     const isRunning =
-      info?.planId === payment.planId &&
+      isOwnPlan &&
       (info.state === TenantState.Active || info.state === TenantState.Grace) &&
       info.periodEnd !== null &&
       info.periodEnd.getTime() > now.getTime();

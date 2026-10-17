@@ -604,6 +604,39 @@ factors being gone at once.
 
 Docs-only; no code change.
 
+## 35. `DWN-05`: the renewal screen quoted the current plan's price even once a downgrade was scheduled — found and fixed 2026-10-17
+
+`PlanGrid`'s current-plan card always offered "renew" at the tenant's own current (higher) plan's price,
+even after a downgrade had been scheduled for that exact period boundary — the screen never checked for a
+pending `scheduled_plan_changes` row at all. Worse, `PurchaseService.quote`/`activate` only ever recognized
+a renewal as "the tenant's own plan" (`info.planId === payment.planId`); paying for a *different* plan while
+still `active` fell into the restart branch (`periodStart = now`), which would have cut the tenant's
+already-paid-for remaining days short had anyone worked around the UI gap by quoting the lower plan
+directly.
+
+**Fixed:**
+- `PurchaseService.quote`/`activate` now also treat the tenant's currently-scheduled downgrade target
+  (`DowngradeService.getScheduled`) as "the tenant's own plan" for renewal/period-extension purposes —
+  paying for it extends the current period from its real `periodEnd`, not from today, and
+  `cancelIfScheduled` (already called at the end of `activate`) then clears the now-redundant scheduled row.
+  An unrelated plan with no downgrade scheduled is untouched: still a plain restart, exactly as before.
+- `apps/admin`'s `PlanGrid`: once a downgrade is scheduled, "renew" moves to the scheduled target plan's own
+  card (its own price, and the backend now treats it as a renewal) instead of staying on the soon-to-be-
+  former current plan; that plan's card shows nothing actionable rather than a now-redundant "downgrade"
+  offer onto the plan already scheduled.
+
+Proven by two new cases in `apps/server/test/plan-downgrade.e2e.spec.ts`: quoting and paying the scheduled
+target extends the period from the real `periodEnd` (not today) and clears the scheduled row; a control
+case confirms an unrelated plan with no downgrade scheduled still restarts as a plain purchase, guarding
+against the fix accidentally widening past its own scope. Verified the extension behavior would actually
+fail without the fix — temporarily disabled the scheduled-target recognition in both `quote` and `activate`,
+confirmed the period-extension test failed with the exact symptom (period restarted from today instead of
+extending), nothing else broke, then restored and confirmed all 60 relevant tests green again.
+
+The admin-UI change has no automated test — no browser-automation tool exists in this environment
+(`KNOWN-GAPS.md` #7) — verified by reading the diff only, consistent with how other frontend-only pieces
+of work this session have been handled.
+
 ## Not a bug, just noting it so it isn't mistaken for one later
 
 The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data

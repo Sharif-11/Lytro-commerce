@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { TenantState } from '@lytronix/validators';
 import { usePublicPlanPrices } from '@/api/billing';
 import type { BillingTerm, Plan } from '@/types/billing-admin';
+import type { ScheduledPlanChange } from '@/types/billing';
 
 export type PlanAction = 'purchase' | 'renew' | 'upgrade' | 'downgrade';
 
@@ -12,6 +13,7 @@ interface PlanGridProps {
   onSelectTerm: (id: string) => void;
   currentPlan: Plan | null;
   tenantState: TenantState;
+  scheduledDowngrade: ScheduledPlanChange | null;
   onAction: (plan: Plan, action: PlanAction) => void;
   actionPending: boolean;
 }
@@ -22,7 +24,10 @@ interface PlanGridProps {
     own eligibility rules (PurchaseService/UpgradeService/DowngradeService): upgrade and downgrade only make
     sense while `active` with a real current plan; everything else is a plain purchase (first purchase, or
     buying again out of a lapsed state), and the current plan while `active`/`grace` offers a renewal
-    instead of a no-op "current" label. */
+    instead of a no-op "current" label. DWN-05: once a downgrade is scheduled, "renew" moves to the
+    scheduled target's own card (its own price, and PurchaseService.quote now treats it as a renewal too)
+    instead of staying on the current, soon-to-be-former plan -- re-offering "downgrade" there again would
+    just be confusing since one is already scheduled. */
 export function PlanGrid({
   plans,
   terms,
@@ -30,16 +35,19 @@ export function PlanGrid({
   onSelectTerm,
   currentPlan,
   tenantState,
+  scheduledDowngrade,
   onAction,
   actionPending,
 }: PlanGridProps): React.JSX.Element {
   const { t } = useTranslation();
+  const canRenew = tenantState === TenantState.Active || tenantState === TenantState.Grace;
 
   function actionFor(plan: Plan): PlanAction | null {
+    if (scheduledDowngrade && plan.id === scheduledDowngrade.targetPlanId) {
+      return canRenew ? 'renew' : null;
+    }
     if (currentPlan && plan.id === currentPlan.id) {
-      return tenantState === TenantState.Active || tenantState === TenantState.Grace
-        ? 'renew'
-        : null;
+      return scheduledDowngrade ? null : canRenew ? 'renew' : null;
     }
     if (tenantState === TenantState.Active && currentPlan) {
       return plan.rank > currentPlan.rank ? 'upgrade' : 'downgrade';
