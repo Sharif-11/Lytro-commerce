@@ -998,6 +998,41 @@ it — temporarily made `PlatformWalletsRepository.list` ignore its own `enabled
 "only enabled wallets" case failed with the exact expected symptom (the disabled wallet leaking through),
 then restored and confirmed all five cases green again.
 
+## 47. `AUTH-09`: free-trial creation had no device, IP or identity limit at all — found and fixed 2026-10-17
+
+`AUTH-09` ("free trials shall be limited to [N] per verified identity and per device or IP within [M]
+days") had zero implementation anywhere in the codebase, found via a dedicated audit of every M-priority
+requirement across Phase 1 and Phase 2: nothing in `ShopCreationService.createShop` (the single call site
+for trial-shop creation) checked trial count, device, or IP; zero test referenced it; `PHASE-1-PLAN.md`'s
+own slice 4 claimed it delivered, with no deferral anywhere. The practical symptom: a subscriber could
+create a trial shop, let it lapse or get deleted, and immediately create another on the same identity or
+the same network, indefinitely.
+
+Two design decisions, made explicitly this session, change the SRS's own bracketed values: the per-identity
+and per-IP caps are now `[1]` (not `[2]`), the window is `[90]` days (not `[30]`), and "device" is IP only —
+there is no device-fingerprinting mechanism anywhere in this codebase (confirmed against the only existing
+precedent, `SUP-08`'s `SignupRateLimiter`, which is IP-only too). Choosing a per-IP cap of 1 is a deliberate
+tightening of `OD-53`'s "up to three tenants per person, one per channel" allowance — in practice it now
+requires each tenant's trial to come from a different IP within the window, since the per-IP check can't
+distinguish a second legitimate channel from abuse. `SRS-detailed.md`'s `AUTH-09` and `OD-53` entries were
+both updated to describe this consequence explicitly, not just the fix.
+
+**Fixed:** a new `control.trial_creations` table (one row per trial actually created, by verified identity
+and client IP) backs a new `TrialLimiter` service, hooked into `ShopCreationService.createShop` inside its
+existing transaction — tx-joined, unlike the sibling `SignupRateLimiter`, so a rolled-back attempt (e.g. an
+address-slug collision) never consumes a quota slot. The three values are environment-variable-configurable
+with a `NODE_ENV`-aware default (strict in production, permissive elsewhere) — the exact `SUP-08` pattern —
+chosen specifically because nearly every existing e2e spec calls `POST /shops` more than once from the same
+loopback IP; this avoided touching any of those existing test files.
+
+Proven by a new `apps/server/test/trial-limit.e2e.spec.ts`: an identity with a seeded prior trial is refused
+even though it owns no tenant yet (the exact delete-and-retry loophole this closes); two different fresh
+identities each succeed once; a third fresh identity is refused once the shared IP reaches its own cap; a
+refused attempt never records (the blocked identity's own count stays at 1, not 2). Verified the fix would
+actually fail without it — temporarily short-circuited `TrialLimiter.refuseIfTooMany` to a no-op, confirmed
+the identity-cap case failed with the exact expected symptom (201 instead of 429), then restored and
+reconfirmed green. Confirmed the full existing e2e suite stays green with zero other file changes needed.
+
 ## Not a bug, just noting it so it isn't mistaken for one later
 
 The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data

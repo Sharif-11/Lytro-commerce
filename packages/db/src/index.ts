@@ -33,6 +33,7 @@ export {
   type FailureScope,
 } from './repositories/identity/sign-in-failure.repository';
 export { SignupAttemptRepository } from './repositories/identity/signup-attempt.repository';
+export { TrialCreationRepository } from './repositories/identity/trial-creation.repository';
 export {
   SessionRepository,
   type SessionRow,

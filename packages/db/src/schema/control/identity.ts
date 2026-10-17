@@ -76,6 +76,25 @@ export const signupAttempts = control.table(
   (t) => [index('signup_attempts_ip_idx').on(t.ip, t.createdAt)],
 );
 
+// AUTH-09: one row per trial shop actually created, keyed by the verified identity used and the client IP
+// (device fingerprinting isn't implemented anywhere -- "device" in practice means IP). Tracks creation
+// history, not current ownership, so deleting a tenant and re-trialing on the same identity is still caught.
+export const trialCreations = control.table(
+  'trial_creations',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    identityId: uuid('identity_id')
+      .notNull()
+      .references(() => subscriberIdentities.id),
+    ip: inet('ip'),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index('trial_creations_identity_idx').on(t.identityId, t.createdAt),
+    index('trial_creations_ip_idx').on(t.ip, t.createdAt),
+  ],
+);
+
 export type SelectSubscriber = typeof subscribers.$inferSelect;
 export type InsertSubscriber = typeof subscribers.$inferInsert;
 export type UpdateSubscriber = Partial<InsertSubscriber>;

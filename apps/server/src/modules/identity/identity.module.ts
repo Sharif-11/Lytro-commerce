@@ -8,6 +8,7 @@ import {
 import { DrizzleSessionStore } from '../../database/adapters/session.adapter';
 import { DrizzleSignInFailureStore } from '../../database/adapters/sign-in-failure.adapter';
 import { DrizzleSignupAttemptStore } from '../../database/adapters/signup-attempt.adapter';
+import { DrizzleTrialCreationStore } from '../../database/adapters/trial-creation.adapter';
 import { MailModule } from '../shared/mail/mail.module';
 import { MessagingModule } from '../shared/messaging/messaging.module';
 import { AuditModule } from '../audit/audit.module';
@@ -36,6 +37,7 @@ import { PasswordSigninService } from './services/password-signin.service';
 import { PhoneNumberFormat } from './services/phone-number-format';
 import { SignInLockout } from './services/sign-in-lockout';
 import { SignupRateLimiter } from './services/signup-rate-limiter';
+import { TrialLimiter } from './services/trial-limiter';
 import { SignedInSession } from './services/signed-in-session';
 import { SignInAudit } from './services/sign-in-audit';
 import { SessionService } from './services/session.service';
@@ -58,6 +60,10 @@ import {
   SESSION_STORE,
   SIGNUP_GATEWAY,
   SIGNUP_SETTINGS,
+  TRIAL_CREATION_STORE,
+  TRIAL_LIMIT_PER_IDENTITY,
+  TRIAL_LIMIT_PER_IP,
+  TRIAL_LIMIT_WINDOW_DAYS,
 } from './tokens';
 
 @Module({
@@ -106,6 +112,25 @@ import {
         env.SIGNUP_RATE_LIMIT_PER_IP ?? (env.NODE_ENV === 'production' ? 10 : 1000),
     },
     SignupRateLimiter,
+    { provide: TRIAL_CREATION_STORE, useClass: DrizzleTrialCreationStore },
+    {
+      provide: TRIAL_LIMIT_PER_IDENTITY,
+      inject: [ENV],
+      useFactory: (env: Env): number =>
+        env.TRIAL_LIMIT_PER_IDENTITY ?? (env.NODE_ENV === 'production' ? 1 : 1000),
+    },
+    {
+      provide: TRIAL_LIMIT_PER_IP,
+      inject: [ENV],
+      useFactory: (env: Env): number =>
+        env.TRIAL_LIMIT_PER_IP ?? (env.NODE_ENV === 'production' ? 1 : 1000),
+    },
+    {
+      provide: TRIAL_LIMIT_WINDOW_DAYS,
+      inject: [ENV],
+      useFactory: (env: Env): number => env.TRIAL_LIMIT_WINDOW_DAYS ?? 90,
+    },
+    TrialLimiter,
     { provide: OTP_SECRET, inject: [ENV], useFactory: (env: Env) => env.OTP_SECRET },
     {
       provide: SESSION_SETTINGS,

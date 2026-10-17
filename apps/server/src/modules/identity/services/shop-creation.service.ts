@@ -7,6 +7,7 @@ import { MessagingService } from '../../shared/messaging/services/messaging.serv
 import { SlugService } from '../../tenancy/services/slug.service';
 import { TenantService } from '../../tenancy/services/tenant.service';
 import { SessionService } from './session.service';
+import { TrialLimiter } from './trial-limiter';
 import { SIGNUP_GATEWAY, SIGNUP_SETTINGS } from '../tokens';
 import type { SessionRecord } from '../ports/session-store';
 import type { SignupGateway } from '../ports/signup-gateway';
@@ -24,9 +25,14 @@ export class ShopCreationService {
     @Inject(MessagingService) private readonly messaging: MessagingService,
     @Inject(MailService) private readonly mail: MailService,
     @Inject(SessionService) private readonly sessions: SessionService,
+    @Inject(TrialLimiter) private readonly trialLimiter: TrialLimiter,
   ) {}
 
-  async createShop(session: SessionRecord, input: CreateShopInput): Promise<ShopCreated> {
+  async createShop(
+    session: SessionRecord,
+    input: CreateShopInput,
+    ip: string | null,
+  ): Promise<ShopCreated> {
     const shopName = input.shopName.trim();
     const ownerName = input.ownerName.trim();
     const address = await this.chooseAddress(shopName, input.address);
@@ -51,6 +57,7 @@ export class ShopCreationService {
         if (ownerIdentityId === null) {
           throw new ApiError('unauthenticated', 'SignInToContinue', {});
         }
+        await this.trialLimiter.refuseIfTooMany(tx, ownerIdentityId, ip);
         const created = await this.tenants.createTrialShop(tx, {
           identityId: ownerIdentityId,
           subscriberId: session.subscriberId,
@@ -62,6 +69,7 @@ export class ShopCreationService {
           liveUrl: this.settings.shopUrl(address),
         });
         await this.sessions.attachTenant(tx, session.id, created.tenantId);
+        await this.trialLimiter.record(tx, ownerIdentityId, ip);
         // The shop-ready text goes to the phone; an owner with no phone is told by email (AUTH-27). Queued in
         // this same transaction, same as the text, so a flaky mail provider gets the same outbox retry (D28).
         const emailMessage =

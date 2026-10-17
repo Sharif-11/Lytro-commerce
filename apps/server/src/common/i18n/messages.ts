@@ -221,6 +221,10 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'Too many sign-ups from this address. Try again later.',
     bn: 'এই অ্যাড্রেস থেকে অনেকবার সাইন-আপ করা হয়েছে। পরে আবার চেষ্টা করুন।',
   },
+  TooManyTrials: {
+    en: 'Too many free trials. Try again later.',
+    bn: 'অনেকবার ফ্রি ট্রায়াল নেওয়া হয়েছে। পরে আবার চেষ্টা করুন।',
+  },
 
   TwoFactorAlreadyEnrolled: {
     en: 'This account is already enrolled.',
