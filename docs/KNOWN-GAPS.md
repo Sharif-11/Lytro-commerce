@@ -1075,6 +1075,48 @@ missing-session check, confirmed the new case failed with the exact expected sym
 401, since the guard then crashed further down trying to CSRF-check a session that doesn't exist), then
 restored and reconfirmed all 13 tests in the file green again.
 
+## 50. `PHASE-2-PLAN` exit criterion 3: `balance_amount`'s re-derivability was never independently proven — found and fixed 2026-10-17
+
+Found while checking all six of Phase 2's own exit criteria directly, not just criterion 1 — after `BAL-13`
+and `PLN-04` closed the only two open M-requirement gaps, the user asked whether Phase 2 could be closed.
+Criterion 3 reads: "...`control.tenants.balance_amount` is always re-derivable as the sum of its own
+tenant's ledger rows." The append-only trigger was already tested (`BAL-02, DAT-10`), but every existing
+test only ever spot-checked the stored amount after one specific operation — never the general invariant
+that the two independently computed totals (the stored column, and a fresh `SUM()` of the ledger) can
+never drift apart.
+
+**Fixed:** no code change — a new case in `balance-ledger.e2e.spec.ts` drives a tenant through a credit,
+two charges (one of them overdrafting) and another credit, asserting after every single step that
+`BalanceService.current()`'s stored amount equals an independently queried `SUM(amount)` over
+`tenant.balance_ledger`, not just at the end.
+
+Verified the fix would actually fail without it — temporarily made `applyDelta` write a value 1 paisa off
+from the ledger's own recorded amount, confirmed the new case failed with the exact expected symptom (a
+one-paisa mismatch), then restored and reconfirmed all 15 tests in the file green again.
+
+## 51. `PHASE-2-PLAN` exit criterion 5: the single combined lifecycle-cycle test didn't exist — found and fixed 2026-10-17
+
+Found the same way as #50. Criterion 5 (test id `P2-E32` in `PHASE-2-TEST-PLAN.md`) names a specific,
+literal bar: "the full cycle... passes end to end against a test clock: `BIL-11` (purchase after lapse) →
+`UPG-09` (upgrade) → `LIF-02` (non-renewal → grace) → `LIF-19` (day-60 deletion) — one tenant, one test, no
+manual steps." Each of the four pieces was already individually tested and passing — `BIL-11` in
+`plan-purchase.e2e.spec.ts`, `UPG-09` in `plan-upgrade.e2e.spec.ts`, `LIF-02`/`LIF-19` in
+`lifecycle.e2e.spec.ts` — but always separately, different files, different tenants. The one test this
+criterion explicitly asks for, proving the four transitions also compose correctly in sequence for the
+same tenant, never existed.
+
+**Fixed:** a new `apps/server/test/lifecycle-cycle.e2e.spec.ts`, white-box (direct service calls, the same
+pattern the three source files already use), walking one tenant through all four transitions by
+backdating `control.tenants.period_end` and calling `LifecycleService.runTick`/`PurchaseService`/
+`UpgradeService` directly — no real waiting, no manual step at any point, including the final no-op tick
+confirming the deletion doesn't need one either.
+
+Verified the fix would actually fail without it — temporarily disabled `LifecycleService`'s own
+day-60-deletion guard, confirmed the new test failed with the exact expected symptom (the tenant stuck at
+`archived` instead of reaching `deleted`), then restored and reconfirmed green, along with re-running
+`lifecycle.e2e.spec.ts`, `plan-purchase.e2e.spec.ts` and `plan-upgrade.e2e.spec.ts` individually (57 tests
+across the three) to confirm the shared `LifecycleService` edit left nothing else broken.
+
 ## Not a bug, just noting it so it isn't mistaken for one later
 
 The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data

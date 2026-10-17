@@ -236,6 +236,38 @@ describeIfDatabase('balance ledger (BAL-01 to BAL-18)', () => {
     expect(texts.sent).toHaveLength(0);
   });
 
+  it('PHASE-2-PLAN exit criterion 3: control.tenants.balance_amount is always re-derivable as the sum of its own ledger rows', async () => {
+    const tenantId = await freshTenant();
+
+    async function sumOfLedger(): Promise<string> {
+      const rows = await admin.query<{ total: string }>(
+        `SELECT COALESCE(SUM(amount), 0)::text AS total FROM tenant.balance_ledger WHERE tenant_id = $1`,
+        [tenantId],
+      );
+      return Number(rows.rows[0]?.total ?? '0').toFixed(2);
+    }
+
+    async function assertReDerivable(): Promise<void> {
+      const stored = (await balance.current(tenantId)).amount;
+      expect(stored).toBe(await sumOfLedger());
+    }
+
+    await assertReDerivable(); // a fresh tenant: zero rows, zero balance.
+    await balance.creditStandalone({ tenantId, amount: '100.00', type: LedgerEntryType.TopUp });
+    await assertReDerivable();
+    await balance.chargeStandalone({ tenantId, amount: '37.50', type: LedgerEntryType.Sms });
+    await assertReDerivable();
+    await balance.chargeStandalone({
+      tenantId,
+      amount: '80.00',
+      type: LedgerEntryType.Ai,
+      overdraftFloor: '-50',
+    });
+    await assertReDerivable();
+    await balance.creditStandalone({ tenantId, amount: '12.25', type: LedgerEntryType.TopUp });
+    await assertReDerivable();
+  });
+
   it('BAL-02, DAT-10: the ledger is insert-only for every role, including the schema owner', async () => {
     const tenantId = await freshTenant();
     await balance.creditStandalone({ tenantId, amount: '10.00', type: LedgerEntryType.TopUp });
