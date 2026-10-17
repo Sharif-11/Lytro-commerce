@@ -1,5 +1,6 @@
 import {
   operatorEnrollSchema,
+  operatorRegenerateBackupCodesSchema,
   operatorSigninSchema,
   operatorVerifySchema,
 } from '@lytronix/validators';
@@ -9,3 +10,6 @@ import { createZodDto } from 'nestjs-zod';
 export class OperatorSigninDto extends createZodDto(operatorSigninSchema) {}
 export class OperatorEnrollDto extends createZodDto(operatorEnrollSchema) {}
 export class OperatorVerifyDto extends createZodDto(operatorVerifySchema) {}
+export class OperatorRegenerateBackupCodesDto extends createZodDto(
+  operatorRegenerateBackupCodesSchema,
+) {}

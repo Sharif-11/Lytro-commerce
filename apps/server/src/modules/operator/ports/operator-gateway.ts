@@ -37,6 +37,7 @@ export interface OperatorSessionRecord {
 export interface OperatorGateway {
   run<T>(work: (tx: Transaction) => Promise<T>): Promise<T>;
   findByEmail(tx: Transaction, email: string): Promise<OperatorAccountRecord | null>;
+  findById(tx: Transaction, id: string): Promise<OperatorAccountRecord | null>;
   setTwoFactorSecret(tx: Transaction, operatorId: string, secret: string): Promise<void>;
   confirmTwoFactor(tx: Transaction, operatorId: string, at: Date): Promise<void>;
   insertBackupCodes(
@@ -46,6 +47,8 @@ export interface OperatorGateway {
   ): Promise<void>;
   findValidBackupCodes(tx: Transaction, operatorId: string): Promise<OperatorBackupCodeRecord[]>;
   markBackupCodeUsed(tx: Transaction, id: string, at: Date): Promise<void>;
+  /** ADM-01: regenerating (and break-glass, ADM-18) invalidates the whole old backup-code set at once. */
+  invalidateBackupCodes(tx: Transaction, operatorId: string): Promise<void>;
   insertSession(tx: Transaction, values: NewOperatorSessionValues): Promise<void>;
   findActiveSession(tokenHash: string, now: Date): Promise<OperatorSessionRecord | null>;
   revokeSession(sessionId: string, at: Date): Promise<void>;

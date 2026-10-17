@@ -120,6 +120,7 @@ export const MESSAGE_KEYS = [
   'OperatorCredentialsAccepted',
   'TwoFactorEnrolled',
   'OperatorVerified',
+  'BackupCodesRegenerated',
 
   // Success -- team / activity / balance
   'ActivityListed',

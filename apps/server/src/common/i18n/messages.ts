@@ -309,6 +309,10 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     bn: 'টু-ফ্যাক্টর অথেনটিকেশন এনরোল হয়েছে।',
   },
   OperatorVerified: { en: 'Verified successfully.', bn: 'সফলভাবে ভেরিফাই হয়েছে।' },
+  BackupCodesRegenerated: {
+    en: 'New backup codes generated; the old ones no longer work.',
+    bn: 'নতুন ব্যাকআপ কোড তৈরি হয়েছে; পুরনো কোডগুলো আর কাজ করবে না।',
+  },
 
   ActivityListed: { en: 'Activity retrieved.', bn: 'অ্যাক্টিভিটি পাওয়া গেছে।' },
   BalanceRetrieved: { en: 'Balance retrieved.', bn: 'ব্যালেন্স পাওয়া গেছে।' },

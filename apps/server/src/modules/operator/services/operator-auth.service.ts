@@ -1,8 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
+import { AuditResult, PlatformActorType, PlatformAuditAction } from '@lytronix/validators';
 import type { Transaction } from '@lytronix/db';
 import { ApiError } from '../../../common/api-error';
 import { HOUR_MS } from '../../../common/time';
+import { PlatformAuditService } from '../../audit/services/platform-audit.service';
 import { OPERATOR_GATEWAY, OPERATOR_SETTINGS } from '../tokens';
 import type {
   OperatorAccountRecord,
@@ -35,6 +37,7 @@ export class OperatorAuthService {
     @Inject(PasswordHasher) private readonly passwords: PasswordHasher,
     @Inject(TotpService) private readonly totp: TotpService,
     @Inject(OPERATOR_SETTINGS) private readonly settings: OperatorSessionSettings,
+    @Inject(PlatformAuditService) private readonly platformAudit: PlatformAuditService,
   ) {}
 
   /** Password only. Never opens a session — tells the caller whether to enroll or enter a code next. */
@@ -117,6 +120,70 @@ export class OperatorAuthService {
       }
     }
     throw this.invalidCode();
+  }
+
+  /**
+   * ADM-01: regenerates the ten backup codes, invalidating the old set in the same transaction. Already
+   * session-guarded (the caller resolves `operatorId` from the session), so this re-asserts the password
+   * and a second factor (TOTP or a still-valid backup code) as a step-up check before destroying anything —
+   * a session cookie alone must not be enough to wipe the account's own recovery codes.
+   */
+  async regenerateBackupCodes(
+    operatorId: string,
+    password: string,
+    code: string,
+  ): Promise<string[]> {
+    const account = await this.gateway.run((tx) => this.gateway.findById(tx, operatorId));
+    if (!account || !(await this.passwords.verify(password, account.passwordHash))) {
+      throw new ApiError('unauthenticated', 'OperatorCredentialsWrong', {});
+    }
+    if (account.twoFactorConfirmedAt === null || account.twoFactorSecret === null) {
+      throw new ApiError('forbidden', 'TwoFactorIncomplete', { next: 'enroll-2fa' });
+    }
+    if (!(await this.verifySecondFactor(account.id, account.twoFactorSecret, code))) {
+      throw this.invalidCode();
+    }
+
+    const backupCodes = this.generateBackupCodes();
+    const hashes = await Promise.all(
+      backupCodes.map((candidate) => this.passwords.hash(candidate)),
+    );
+    await this.gateway.run(async (tx) => {
+      await this.gateway.invalidateBackupCodes(tx, operatorId);
+      await this.gateway.insertBackupCodes(tx, operatorId, hashes);
+    });
+    await this.platformAudit.record({
+      actorType: PlatformActorType.Operator,
+      actorId: operatorId,
+      action: PlatformAuditAction.BackupCodesRegenerated,
+      targetType: 'operator_account',
+      targetId: operatorId,
+      result: AuditResult.Success,
+      ip: null,
+      summary: {},
+    });
+    return backupCodes;
+  }
+
+  /**
+   * TOTP first, then any still-valid backup code, same order `verify` uses. Never marks a matched backup
+   * code used -- the caller (`regenerateBackupCodes`) deletes the whole set immediately after anyway.
+   */
+  private async verifySecondFactor(
+    operatorId: string,
+    twoFactorSecret: string,
+    code: string,
+  ): Promise<boolean> {
+    if (TOTP_CODE_PATTERN.test(code)) {
+      return this.totp.verifyCode(twoFactorSecret, code);
+    }
+    const candidates = await this.gateway.run((tx) =>
+      this.gateway.findValidBackupCodes(tx, operatorId),
+    );
+    for (const candidate of candidates) {
+      if (await this.passwords.verify(code, candidate.codeHash)) return true;
+    }
+    return false;
   }
 
   async resolve(cookieHeader: string | undefined): Promise<OperatorSessionRecord | null> {

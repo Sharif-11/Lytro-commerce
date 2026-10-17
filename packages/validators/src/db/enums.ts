@@ -244,6 +244,8 @@ export enum PlatformActorType {
 export enum PlatformAuditAction {
   // ADM-18: break-glass recovery after an operator loses both their TOTP device and backup codes.
   BreakGlass2faReset = 'break_glass_2fa_reset',
+  // ADM-01: an operator regenerating their own backup-code set, invalidating the old one.
+  BackupCodesRegenerated = 'backup_codes_regenerated',
   // RAT-05: every rate change, by the operator who made it.
   RateChanged = 'rate_changed',
   // BAL-17: an operator's balance adjustment, never a tenant-initiated change.

@@ -233,6 +233,82 @@ describeIfDatabase('operator verification and session (ADM-01, SEC-14)', () => {
   );
 
   it(
+    'regenerates backup codes, invalidating the old set and auditing the action (ADM-01)',
+    async () => {
+      const email = freshEmail();
+      await createOperator(email);
+      const { cookie, csrfToken, backupCodes, secret } = await enroll(email);
+      const oldCode = backupCodes[0];
+      if (!oldCode) throw new Error('expected a backup code');
+
+      const totp = await generate({ secret });
+      const regenerated = await post(
+        '/auth/operator/backup-codes/regenerate',
+        { password: PASSWORD, code: totp },
+        { cookie, 'x-csrf-token': csrfToken },
+      );
+      expect(regenerated.status).toBe(200);
+      const fresh = (regenerated.body as { backupCodes: string[] }).backupCodes;
+      expect(fresh).toHaveLength(10);
+      expect(fresh.some((code) => backupCodes.includes(code))).toBe(false);
+
+      // The old code, never used, is now refused.
+      const refused = await post('/auth/operator/verify', {
+        email,
+        password: PASSWORD,
+        code: oldCode,
+      });
+      expect(refused.status).toBe(401);
+
+      // A fresh code works.
+      const accepted = await post('/auth/operator/verify', {
+        email,
+        password: PASSWORD,
+        code: fresh[0],
+      });
+      expect(accepted.status).toBe(200);
+
+      const account = await admin.query<{ id: string }>(
+        'SELECT id FROM control.operator_accounts WHERE email = $1',
+        [email],
+      );
+      const operatorId = account.rows[0]?.id;
+      const audit = await admin.query<{ count: string }>(
+        `SELECT count(*)::text FROM control.platform_audit_log
+         WHERE action = 'backup_codes_regenerated' AND target_id = $1`,
+        [operatorId],
+      );
+      expect(audit.rows[0]?.count).toBe('1');
+    },
+    BCRYPT_TIMEOUT_MS,
+  );
+
+  it(
+    'refuses regenerating with a wrong password, and refuses with no CSRF token at all',
+    async () => {
+      const email = freshEmail();
+      await createOperator(email);
+      const { cookie, csrfToken, secret } = await enroll(email);
+      const totp = await generate({ secret });
+
+      const wrongPassword = await post(
+        '/auth/operator/backup-codes/regenerate',
+        { password: 'not the password', code: totp },
+        { cookie, 'x-csrf-token': csrfToken },
+      );
+      expect(wrongPassword.status).toBe(401);
+
+      const noCsrf = await post(
+        '/auth/operator/backup-codes/regenerate',
+        { password: PASSWORD, code: totp },
+        { cookie },
+      );
+      expect(noCsrf.status).toBe(403);
+    },
+    BCRYPT_TIMEOUT_MS,
+  );
+
+  it(
     'signs out, invalidating the session at once',
     async () => {
       const email = freshEmail();

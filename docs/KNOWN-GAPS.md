@@ -562,6 +562,48 @@ the expected symptom (`promise resolved instead of rejecting`, the retired term 
 rows) and nothing else broke, then restored and confirmed all 60 relevant tests green again before
 committing.
 
+## 33. `ADM-01`: regenerating backup codes had no implementation at all — found and fixed 2026-10-17
+
+The requirement's own last clause ("regenerating codes invalidates the old set") had nothing behind it.
+`OperatorBackupCodeRepository.deleteAllForOperator` and `OperatorAccountRepository.findById` already
+existed at the repository layer — `deleteAllForOperator`'s own doc comment even anticipated this
+("Regenerating or break-glass recovery invalidates the whole old set at once") — but nothing above that
+layer used them for regeneration. The only place backup codes were ever created was `enroll()`, which runs
+once at first confirmation and explicitly refuses to run again (`TwoFactorAlreadyEnrolled`). No service
+method, no controller route, no DTO.
+
+**Fixed:** `POST /auth/operator/backup-codes/regenerate` (session-guarded, mirroring `signout`'s guard
+shape) re-asserts the password and a second factor — TOTP or a still-valid backup code — as a step-up
+check before destroying anything, since the signed-in session cookie alone must not be enough to wipe the
+account's own recovery codes. On success it deletes the whole old set and inserts ten fresh ones in the
+same transaction, returns them once (same as enrollment), and writes one `control.platform_audit_log` row
+(`backup_codes_regenerated`). Two small additions needed at the gateway layer to reach the already-existing
+repository methods: `OperatorGateway.findById` and `OperatorGateway.invalidateBackupCodes`.
+
+Proven by new cases in both `apps/server/test/operator-auth.spec.ts` (unit, fake gateway: regenerating
+invalidates an old code while a fresh one works, accepts either a TOTP or a backup code as the second
+factor, refuses a wrong password or wrong second factor leaving the old set intact, and asserts exactly one
+audit row) and `apps/server/test/operator-auth.e2e.spec.ts` (HTTP + real database: the full round trip, plus
+a wrong-password case and a missing-CSRF-token case).
+
+## 34. `ADM-18`: the break-glass script was correct, but the documented procedure it names didn't exist — found and fixed 2026-10-17
+
+The pass criteria names "the documented break-glass procedure" explicitly. The script itself
+(`packages/db/src/reset-operator-2fa.ts`) was real, correct, and already logged to
+`control.platform_audit_log` — but no document anywhere under `docs/` told anyone how to actually run it,
+who's allowed to, or what happens afterward. An operator genuinely locked out had a working script and no
+way to discover it.
+
+**Fixed:** `docs/RUNBOOKS.md` (new file) §1 — the trigger condition, who can run it (schema-owner DB access,
+never the app's own restricted role), the exact command, what it does in one transaction, how to verify it
+worked, the full re-enrollment flow the locked-out operator goes through afterward, and the standing
+limitation that the second half of `ADM-18` (a second operator's approval) isn't built yet since `OD-32`
+keeps the platform solo-operator for now. Also cross-references `ADM-01`'s new self-service **regenerate**
+as the lighter-weight path when the operator still holds one working factor — break-glass is only for both
+factors being gone at once.
+
+Docs-only; no code change.
+
 ## Not a bug, just noting it so it isn't mistaken for one later
 
 The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data

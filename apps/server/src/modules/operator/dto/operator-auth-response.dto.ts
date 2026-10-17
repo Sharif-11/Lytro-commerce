@@ -9,3 +9,6 @@ export const operatorEnrolledSchema = z.object({
   backupCodes: z.array(z.string()),
 });
 export class OperatorEnrolledDto extends createZodDto(operatorEnrolledSchema) {}
+
+export const operatorBackupCodesSchema = z.object({ backupCodes: z.array(z.string()) });
+export class OperatorBackupCodesDto extends createZodDto(operatorBackupCodesSchema) {}

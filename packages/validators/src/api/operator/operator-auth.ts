@@ -28,3 +28,14 @@ export const operatorVerifySchema = operatorSigninSchema.extend({
   code: operatorCodeField,
 });
 export type OperatorVerifyInput = z.infer<typeof operatorVerifySchema>;
+
+// POST auth/operator/backup-codes/regenerate (ADM-01) — already session-guarded, so no email here; the
+// password and a second factor (TOTP or a still-valid backup code) are re-asserted as a step-up check
+// before destroying the old set, the same re-assertion discipline every other operator-auth step uses.
+export const operatorRegenerateBackupCodesSchema = z.object({
+  password: operatorPasswordField,
+  code: operatorCodeField,
+});
+export type OperatorRegenerateBackupCodesInput = z.infer<
+  typeof operatorRegenerateBackupCodesSchema
+>;

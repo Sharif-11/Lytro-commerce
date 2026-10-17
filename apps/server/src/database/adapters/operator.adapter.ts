@@ -33,6 +33,17 @@ export class DrizzleOperatorGateway implements OperatorGateway {
 
   async findByEmail(tx: Transaction, email: string): Promise<OperatorAccountRecord | null> {
     const row = await this.accounts.findByEmail(tx, email);
+    return this.toRecord(row);
+  }
+
+  async findById(tx: Transaction, id: string): Promise<OperatorAccountRecord | null> {
+    const row = await this.accounts.findById(tx, id);
+    return this.toRecord(row);
+  }
+
+  private toRecord(
+    row: Awaited<ReturnType<OperatorAccountRepository['findByEmail']>>,
+  ): OperatorAccountRecord | null {
     return row
       ? {
           id: row.id,
@@ -70,6 +81,10 @@ export class DrizzleOperatorGateway implements OperatorGateway {
 
   markBackupCodeUsed(tx: Transaction, id: string, at: Date): Promise<void> {
     return this.backupCodes.markUsed(tx, id, at);
+  }
+
+  invalidateBackupCodes(tx: Transaction, operatorId: string): Promise<void> {
+    return this.backupCodes.deleteAllForOperator(tx, operatorId);
   }
 
   async insertSession(tx: Transaction, values: NewOperatorSessionValues): Promise<void> {
