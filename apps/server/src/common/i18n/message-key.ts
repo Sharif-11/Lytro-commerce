@@ -127,6 +127,7 @@ export const MESSAGE_KEYS = [
   'BalanceRetrieved',
   'LedgerRetrieved',
   'RatesRetrieved',
+  'EssentialSmsUsageRetrieved',
   'BalanceAdjusted',
 
   // Success -- operator billing/plans/rates

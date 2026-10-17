@@ -26,11 +26,17 @@ import { PermissionGuard } from '../guards/permission.guard';
 import { BalanceService } from '../../balance/services/balance.service';
 import { RateService } from '../../balance/services/rate.service';
 import { TopUpService } from '../../balance/services/top-up.service';
+import { EssentialSmsUsageService } from '../../sms-usage/services/essential-sms-usage.service';
 import type { BalanceSnapshot, LedgerPage } from '../../balance/types/ledger-entry';
 import type { RateValue } from '../../balance/types/rate';
 import type { PlanPaymentRecord } from '../../payments/types/plan-payment';
 import { ConfirmTopUpDto, ExportLedgerDto, ListLedgerDto, QuoteTopUpDto } from '../dto/balance.dto';
-import { BalanceSnapshotDto, LedgerPageDto, RateValueDto } from '../dto/balance-response.dto';
+import {
+  BalanceSnapshotDto,
+  EssentialSmsUsageDto,
+  LedgerPageDto,
+  RateValueDto,
+} from '../dto/balance-response.dto';
 import { PlanPaymentDto } from '../dto/billing-response.dto';
 
 // BAL-14: the raw response object the CSV export route writes to directly -- same narrow local shape
@@ -57,6 +63,7 @@ export class BalanceController {
     @Inject(BalanceService) private readonly balance: BalanceService,
     @Inject(RateService) private readonly rates: RateService,
     @Inject(TopUpService) private readonly topUp: TopUpService,
+    @Inject(EssentialSmsUsageService) private readonly smsUsage: EssentialSmsUsageService,
   ) {}
 
   @Get()
@@ -135,6 +142,29 @@ export class BalanceController {
   @ZodResponse({ type: [RateValueDto] })
   currentRates(): Promise<RateValue[]> {
     return this.rates.list();
+  }
+
+  @Get('essential-sms')
+  @RequirePermission(Permission.BalanceRead)
+  @ResponseMessage('EssentialSmsUsageRetrieved')
+  @ApiOperation({
+    summary: "Get the shop's essential-SMS usage against its plan allowance (AUTH-21)",
+  })
+  @ZodResponse({ type: EssentialSmsUsageDto })
+  async essentialSms(@Req() request: DashboardRequest): Promise<{
+    monthlyUsed: number;
+    totalUsed: number;
+    monthlyLimit: number | null;
+    totalLimit: number | null;
+  }> {
+    const usage = await this.smsUsage.currentUsage(this.tenantIdOf(request), new Date());
+    const limits = request.tenant?.planLimits ?? null;
+    return {
+      monthlyUsed: usage.monthly,
+      totalUsed: usage.total,
+      monthlyLimit: limits?.essential_sms_monthly ?? null,
+      totalLimit: limits?.essential_sms_total ?? null,
+    };
   }
 
   @Post('top-up/quote')

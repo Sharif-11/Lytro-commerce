@@ -56,7 +56,12 @@ export enum ChallengeKind {
 }
 
 export enum SmsKind {
+  // AUTH-21: a sign-up or password-reset send is platform cost, always excluded. A sign-in send to an
+  // already-existing shop is the owner's own choice (they have a password) -- that one counts toward the
+  // shop's essential-SMS allowance, recorded separately in control.essential_sms_usage, not here.
   Otp = 'otp',
+  // AUTH-21, revised 2026-10-17: platform cost, like Otp's sign-up case -- it's what makes the shop usable
+  // in the first place, not something charged to the tenant's essential allowance.
   ShopReady = 'shop_ready',
   // LIF-18, PYG-21: a platform-sent notice (deletion warning, inactivity warning) -- never charged to the
   // tenant and never counted toward its essential-SMS allowance (the same carve-out as LIF-10).

@@ -6,7 +6,7 @@ export const DAY_MS = 24 * HOUR_MS;
 
 // TRM-09: Bangladesh has run a fixed UTC+6 offset since it dropped a one-off DST experiment in 2009-2010 --
 // safe to hardcode, no timezone database needed for this one fixed offset.
-const DHAKA_OFFSET_MS = 6 * HOUR_MS;
+export const DHAKA_OFFSET_MS = 6 * HOUR_MS;
 
 /**
  * BIL-10, TRM-09: a billing term's length is in whole calendar months, not a fixed day count (months vary in
@@ -37,4 +37,12 @@ export function daysBetween(from: Date, to: Date): number {
 /** UPG-03: whole days remaining until `to`, rounded up -- a part-day still counts as a full day owed. */
 export function daysUntil(now: Date, to: Date): number {
   return Math.ceil((to.getTime() - now.getTime()) / DAY_MS);
+}
+
+/** AUTH-21: the start (00:00) of the Asia/Dhaka calendar day's month that `date` falls in, same offset trick as `addMonths`. */
+export function startOfMonthDhaka(date: Date): Date {
+  const local = new Date(date.getTime() + DHAKA_OFFSET_MS);
+  local.setUTCDate(1);
+  local.setUTCHours(0, 0, 0, 0);
+  return new Date(local.getTime() - DHAKA_OFFSET_MS);
 }

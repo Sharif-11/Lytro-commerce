@@ -30,6 +30,7 @@ import { OperatorPaymentQueueController } from './controllers/operator-payment-q
 import { ShopSettingsController } from './controllers/shop-settings.controller';
 import { DataExportController } from './controllers/data-export.controller';
 import { DataExportModule } from '../data-export/data-export.module';
+import { SmsUsageModule } from '../sms-usage/sms-usage.module';
 import { ActivityListService } from './services/activity-list.service';
 import { StaffSigninService } from './services/staff-signin.service';
 import { ShopSettingsService } from './services/shop-settings.service';
@@ -52,6 +53,7 @@ import { StaffController } from './controllers/staff.controller';
     PlatformSettingsModule,
     IdempotencyModule,
     DataExportModule,
+    SmsUsageModule,
   ],
   controllers: [
     StaffController,

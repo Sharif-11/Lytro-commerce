@@ -318,6 +318,10 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   BalanceRetrieved: { en: 'Balance retrieved.', bn: 'ব্যালেন্স পাওয়া গেছে।' },
   LedgerRetrieved: { en: 'Ledger retrieved.', bn: 'লেজার পাওয়া গেছে।' },
   RatesRetrieved: { en: 'Rates retrieved.', bn: 'রেট পাওয়া গেছে।' },
+  EssentialSmsUsageRetrieved: {
+    en: 'Essential SMS usage retrieved.',
+    bn: 'জরুরি এসএমএস ব্যবহার পাওয়া গেছে।',
+  },
   BalanceAdjusted: { en: 'Balance adjusted.', bn: 'ব্যালেন্স অ্যাডজাস্ট হয়েছে।' },
 
   BillingTermsListed: { en: 'Billing terms retrieved.', bn: 'বিলিং টার্মগুলো পাওয়া গেছে।' },

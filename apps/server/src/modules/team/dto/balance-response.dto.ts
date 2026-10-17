@@ -8,6 +8,17 @@ export const balanceSnapshotSchema = z.object({
 });
 export class BalanceSnapshotDto extends createZodDto(balanceSnapshotSchema) {}
 
+// AUTH-21: the shop's own essential-SMS usage against its plan's allowance. `null` limits mean unlimited
+// (PLN-19's convention) -- a plan that never set either field falls back to the same `null`, since there's
+// no established "default allowance" constant yet (unlike DEFAULT_SEATS for staff).
+export const essentialSmsUsageSchema = z.object({
+  monthlyUsed: z.number(),
+  totalUsed: z.number(),
+  monthlyLimit: z.number().nullable(),
+  totalLimit: z.number().nullable(),
+});
+export class EssentialSmsUsageDto extends createZodDto(essentialSmsUsageSchema) {}
+
 export const ledgerEntrySchema = z.object({
   id: z.number(),
   type: z.nativeEnum(LedgerEntryType),

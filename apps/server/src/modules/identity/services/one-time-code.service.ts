@@ -5,6 +5,7 @@ import { ApiError } from '../../../common/api-error';
 import { HOUR_MS, MINUTE_MS } from '../../../common/time';
 import { MailDeliveryError } from '../../../common/errors/mail-delivery';
 import { SmsDeliveryError } from '../../../common/errors/sms-delivery';
+import { EssentialSmsUsageService } from '../../sms-usage/services/essential-sms-usage.service';
 import { MailService } from '../../shared/mail/services/mail.service';
 import { MessagingService } from '../../shared/messaging/services/messaging.service';
 import { OneTimeCodeHasher } from './one-time-code-hasher';
@@ -44,13 +45,23 @@ export class OneTimeCodeService {
     @Inject(OneTimeCodeHasher) private readonly hasher: OneTimeCodeHasher,
     @Inject(MessagingService) private readonly messaging: MessagingService,
     @Inject(MailService) private readonly mail: MailService,
+    @Inject(EssentialSmsUsageService) private readonly essentialSms: EssentialSmsUsageService,
   ) {}
 
+  /**
+   * `existingTenantId`: AUTH-21 -- set only when the caller already knows this is a sign-in code to a shop
+   * that already exists (never for sign-up, reset, or an identity-add code -- the owner has no password
+   * alternative in those cases). When set, the SMS counts toward that shop's essential allowance --
+   * internal bookkeeping only, never reflected in this method's own return value. AUTH-13/P1-E10 requires
+   * the *request*-code response to read identically for a known and an unknown phone, so "suggest password
+   * instead" is surfaced only after the code is verified (`SigninService.verifyCode`), never here.
+   */
   async issue(
     destination: string,
     channel: ChallengeChannel,
     kind: ChallengeKind,
     cooldownMs: number = RESEND_COOLDOWN_MS,
+    existingTenantId: string | null = null,
   ): Promise<CodeIssued> {
     const { issued, delivery, expiresAt } = await this.gateway.run(async (tx) => {
       const now = this.settings.now();
@@ -89,6 +100,9 @@ export class OneTimeCodeService {
         channel === ChallengeChannel.Sms
           ? { channel, message: await this.messaging.queueOtp(tx, destination, code, kind) }
           : { channel, message: await this.mail.queueOtp(tx, destination, code, kind) };
+      if (delivery.channel === ChallengeChannel.Sms && existingTenantId !== null) {
+        await this.essentialSms.recordSigninOtp(tx, existingTenantId, delivery.message.body);
+      }
       return {
         issued: {
           expiresInSeconds: CODE_TTL_MS / 1000,

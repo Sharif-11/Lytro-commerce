@@ -637,6 +637,51 @@ The admin-UI change has no automated test — no browser-automation tool exists 
 (`KNOWN-GAPS.md` #7) — verified by reading the diff only, consistent with how other frontend-only pieces
 of work this session have been handled.
 
+## 36. `AUTH-21`: no essential-SMS allowance metering existed at all — found and fixed 2026-10-17
+
+Scoped and fixed directly, not from the full audit. `PlanLimits.essential_sms_total`/`essential_sms_monthly`
+already existed — schema, admin plan editor, operator overrides — but nothing read or incremented them;
+there was no metering mechanism anywhere, confirming `KNOWN-GAPS.md` #18's own note. The requirement itself
+was also revised during this fix (see `SRS-detailed.md` `AUTH-21`, amended 2026-10-17): a sign-up code and
+the shop-ready SMS (SMS-18) are now both platform cost (excluded); a sign-in code to an *already-existing*
+shop counts toward that shop's essential allowance, since the owner could have used their password instead.
+
+**Fixed:**
+- New `control.essential_sms_usage` table (migration `0039`), one row per counted SMS, read live via
+  `SUM(parts)` rather than a denormalised running counter — no monthly-reset job needed, and SMS volume per
+  tenant is small at this platform's declared scale.
+- New `countSmsParts` utility (`apps/server/src/modules/shared/messaging/sms-parts.ts`): a reasonable-effort
+  GSM-7/UCS-2 segment counter (160/153 chars per part for plain text, 70/67 for Bangla), since the
+  requirement names "parts," not a flat per-message count.
+- `SigninService.requestCode` now looks up whether the phone already owns a tenant and threads that through
+  `OneTimeCodeService.issue`, which records the usage (keyed to that tenant) only for an SMS-channel,
+  already-existing-shop sign-in — never for sign-up, a reset code (no password alternative exists), an
+  identity-add code, or the email channel (no SMS cost to meter there).
+- **Caught and fixed a real regression before it shipped**: the first version put a `suggestPassword` flag
+  on the *request*-code response (`POST /auth/phone/code`), which would have broken `AUTH-13`/P1-E10's
+  existing guarantee that this response is identical for a known and an unknown phone (a phone-number
+  enumeration leak). Moved the flag to the *verify* response instead (`POST /auth/phone/verify`) — safe,
+  since by then the caller has already proved they hold the phone, the same reasoning
+  `SignedInSession.open()`'s own `next` step already uses to reveal account state.
+- New `GET /balance/essential-sms` (on `BalanceController`), returning monthly/lifetime usage against the
+  plan's own limits (`null` = unlimited, PLN-19's convention).
+- Enforcement (refusing/charging once the allowance is exceeded) is explicitly out of scope — the
+  requirement's own pass criteria only tests that the counter moves correctly, and that remains
+  `KNOWN-GAPS.md` #14/#18's separate, still-unbuilt territory. The admin-dashboard UI nudge ("use your
+  password instead") is also deferred — the backend contract (`suggestPassword`) is ready, no UI consumes
+  it yet.
+
+Proven by `apps/server/test/sms-parts.spec.ts` (the segment-counting math in isolation), a new
+`AUTH-21: essential-SMS allowance usage for a sign-in code` block in `apps/server/test/one-time-code.spec.ts`
+(white-box: counts only with a tenant id, never for Reset or the email channel, and — critically — asserts
+the request-code response is byte-identical whether or not a tenant id is passed), and
+`apps/server/test/essential-sms-usage.e2e.spec.ts` (full HTTP: sign-up and shop-ready don't count, a
+sign-in code to an existing shop does and the verify response carries the suggestion, usage never leaks
+across tenants). Verified the core recording logic would actually fail without the fix — temporarily
+disabled the existing-tenant lookup and the `suggestPassword` computation, confirmed exactly the two tests
+depending on them failed with the expected symptom, nothing else broke, restored, confirmed all 83 relevant
+tests green.
+
 ## Not a bug, just noting it so it isn't mistaken for one later
 
 The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data

@@ -11,6 +11,7 @@ import { DrizzleSignupAttemptStore } from '../../database/adapters/signup-attemp
 import { MailModule } from '../shared/mail/mail.module';
 import { MessagingModule } from '../shared/messaging/messaging.module';
 import { AuditModule } from '../audit/audit.module';
+import { SmsUsageModule } from '../sms-usage/sms-usage.module';
 import { StaffModule } from '../staff/staff.module';
 import { TenancyModule } from '../tenancy/tenancy.module';
 import { AuthController } from './controllers/auth.controller';
@@ -62,7 +63,7 @@ import {
 @Module({
   // StaffModule's only here for MeController's permissions lookup (D32) — no cycle: StaffModule only imports
   // the leaf AuditModule, never IdentityModule back.
-  imports: [TenancyModule, MessagingModule, MailModule, AuditModule, StaffModule],
+  imports: [TenancyModule, MessagingModule, MailModule, AuditModule, StaffModule, SmsUsageModule],
   controllers: [
     AuthController,
     ShopsController,

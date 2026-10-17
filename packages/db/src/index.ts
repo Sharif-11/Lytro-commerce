@@ -55,6 +55,10 @@ export {
   type NewMailMessage,
 } from './repositories/messaging/mail.repository';
 export {
+  EssentialSmsUsageRepository,
+  type NewEssentialSmsUsage,
+} from './repositories/messaging/essential-sms-usage.repository';
+export {
   OperatorAccountRepository,
   type OperatorAccountRow,
   type NewOperatorAccount,
