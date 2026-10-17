@@ -80,7 +80,7 @@ Rules used below:
 - **Partial** means this phase builds a working part, and a named later phase finishes the rest.
 - Notices delivered through the D3-5 stub count as complete, the same rule Phase 2 applied to `BAL-13`.
 
-### 3.1 Completed by this phase (147)
+### 3.1 Completed by this phase (148)
 
 | Family | Requirements | Count |
 |---|---|---|
@@ -92,7 +92,7 @@ Rules used below:
 | PUR | PUR-01 – PUR-10 | 10 |
 | PST | PST-01 – PST-04 | 4 |
 | MED | MED-01 – 08, MED-10 – 13 | 12 |
-| STO | STO-02 – 07 | 6 |
+| STO | STO-02 – 07, STO-09 (video compression, added 2026-10-17) | 7 |
 | BND | BND-01, 02, 03, 05, 06, 07, 08, 09 | 8 |
 | RTE | RTE-01, 02, 03, 04, 05, 07, 10 | 7 |
 | LIM | LIM-01, 03 | 2 |
@@ -104,7 +104,7 @@ Rules used below:
 | PYG | PYG-16 (deferred here from Phase 2) | 1 |
 | API | API-03, 04, 05, 08, 10, 23, 24 (public keys, D3-1) | 7 |
 | LND | LND-01, 02, 03, 04, 05, 06, 14, 17, 18 | 9 |
-| | **Total** | **147** |
+| | **Total** | **148** |
 
 ### 3.2 Partially completed by this phase (31)
 
@@ -353,16 +353,19 @@ their backend ships earlier.
 ### Slice 6: media upload, processing and storage accounting
 - **Depends on:** Slice 1 (media attaches to products, categories and the shop logo).
 - **Delivers:** the storage port (D3-4); signed direct uploads to a temporary area; the processing job
-  (content validation, resize to 1600 px, WebP q80, 300 px thumbnail, video validation); content-hashed
+  (content validation, resize to 1600 px, WebP q80, 300 px thumbnail, video validation, and FFmpeg video
+  compression to 720p H.264/AAC MP4 at CRF 23 with fast-start and a poster image, STO-09); content-hashed
   keys under the tenant prefix; one row per object; storage usage within a minute; limit enforcement;
   delete; daily R2 reconciliation; tenant-prefix wipe at LIF-19; failure handling; key scoping and
   rotation record.
-- **Requirements completed:** MED-01, 03, 04, 05 (MAN), 06 (MAN), 07 (MAN), 08, 11, 12; STO-02–07;
+- **Requirements completed:** MED-01, 03, 04, 05 (MAN), 06 (MAN), 07 (MAN), 08, 11, 12; STO-02–07, 09;
   PRD-11 (backend); TEN-06; TEN-16 (storage half).
 - **Partial:** STO-01, MED-09, DWN-09 (storage half), TRL-03 (storage), PLN-19 (storage).
 - **Done when:** a 4 MB JPEG is stored smaller as WebP with a thumbnail within 30 seconds; a renamed
   `.exe` and a 6 MB image are refused and usage is unchanged; uploading past the limit gives
-  `plan_limit_reached` while existing images still load.
+  `plan_limit_reached` while existing images still load; a 1-minute 1080p phone video of about 130 MB is
+  stored as a 720p MP4 of about 11–19 MB with a poster within 5 minutes, and usage rises only by the
+  compressed size.
 
 ### Slice 7: media Worker and bandwidth metering
 - **Depends on:** Slice 6.
@@ -520,6 +523,7 @@ Slice 8 goes first among the second half because Slice 9 needs it, and it is sma
 | Phase size (12 slices) | checkpoint 3A (D3-10); the second half can split into 3B without re-planning |
 | The variant matrix save is the most complex write in the system so far | one transaction, a diff-based algorithm, property-style tests over random attribute and option edits |
 | A second stock write path appears by accident | `InventoryLedger.apply()` is the only writer; a test asserts `stock_levels` has no other writer (static check plus the invariant test) |
+| Video encoding (STO-09) is CPU-heavy on the shared VPS and could slow API requests | run it only in the background job queue with a concurrency of 1 at low process priority; the 5-minute bound gives headroom; if load grows, move encoding to a separate worker process or a managed service without changing the contract |
 | R2/Worker behaviour differs from the local stand-ins | Worker contract tests under Miniflare; a staging smoke test against real R2 before Slice 12 ships |
 | The public-key pull-forward (D3-1) collides with Phase 8's fuller design | build the subset on the final `api_keys` table shape; Phase 8 only adds columns and secret-key paths |
 | Cache bugs serve stale prices | CCH-07 makes order-time prices DB-only (Phase 4); the version-in-key design avoids purge dependence; explicit fragmentation tests |
