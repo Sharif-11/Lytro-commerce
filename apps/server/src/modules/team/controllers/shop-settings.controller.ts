@@ -14,10 +14,11 @@ import { PermissionGuard } from '../guards/permission.guard';
 import { ShopSettingsService } from '../services/shop-settings.service';
 import { ShopSettingsDto, UpdateShopSettingsDto } from '../dto/shop-settings.dto';
 
-// TEN-30: a tenant's own support/contact details -- reachable only once a shop exists, never a step of
-// sign-up/create-shop (AUTH-11/AUTH-28). Not reachable while lapsed or suspended: no SRS row names this as
-// one of the owner's narrow lapsed/suspended-owner carve-outs (BIL-13/LIF-11/LIF-12/LIF-24), so it stays
-// behind the plain guard like most other dashboard routes.
+// TEN-30: a tenant's own support/contact details. RAT-14: the one per-tenant rate (extra delivery charge
+// per kg beyond the first, Adjustable-mode products) folded into this same shape -- reachable only once a
+// shop exists, never a step of sign-up/create-shop (AUTH-11/AUTH-28). Not reachable while lapsed or
+// suspended: no SRS row names this as one of the owner's narrow lapsed/suspended-owner carve-outs
+// (BIL-13/LIF-11/LIF-12/LIF-24), so it stays behind the plain guard like most other dashboard routes.
 @ApiTags('Shop settings')
 @Controller('shop-settings')
 @Dashboard({})
@@ -31,7 +32,7 @@ export class ShopSettingsController {
   @Get()
   @RequirePermission(Permission.SettingsManage)
   @ResponseMessage('ShopSettingsRetrieved')
-  @ApiOperation({ summary: "Get the shop's contact details" })
+  @ApiOperation({ summary: "Get the shop's contact details and delivery rate (RAT-14)" })
   @ZodResponse({ type: ShopSettingsDto })
   get(@Req() request: DashboardRequest): Promise<ShopSettings> {
     return this.settings.get(this.tenantIdOf(request));
@@ -40,7 +41,7 @@ export class ShopSettingsController {
   @Patch()
   @RequirePermission(Permission.SettingsManage)
   @ResponseMessage('ShopSettingsUpdated')
-  @ApiOperation({ summary: "Update the shop's contact details" })
+  @ApiOperation({ summary: "Update the shop's contact details and delivery rate (RAT-14)" })
   @ZodResponse({ type: ShopSettingsDto })
   update(
     @Body(new ZodValidationPipe(UpdateShopSettingsDto.schema)) body: UpdateShopSettingsDto,
