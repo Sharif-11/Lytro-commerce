@@ -7,8 +7,10 @@ import { generate } from 'otplib';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from '../src/app/app.module';
+import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase, seedShop } from './support/database';
+import { SmsCapture } from './support/sms-capture';
 import {
   cookieFrom,
   getJson,
@@ -30,6 +32,7 @@ const PASSWORD = 'correct-horse-9';
 let app: INestApplication;
 let port: number;
 let admin: pg.Client;
+const texts = new SmsCapture();
 
 const get = (path: string, headers: Record<string, string> = {}) => getJson(port, path, headers);
 const post = (path: string, payload: unknown, headers: Record<string, string> = {}) =>
@@ -71,6 +74,16 @@ async function operatorHeaders(): Promise<Record<string, string>> {
   return { cookie: session.cookie, 'x-csrf-token': session.csrfToken };
 }
 
+/** A signed-in tenant owner, with no shop needed for PLN-04's own purpose (proving operator-only routes
+    refuse a tenant credential before any shop-specific check would even run). */
+async function ownerHeaders(): Promise<Record<string, string>> {
+  const phone = texts.freshPhone();
+  await post('/auth/phone/code', { phone });
+  const entered = await post('/auth/phone/verify', { phone, code: texts.codeFor(phone) });
+  const body = entered.body as { csrfToken: string };
+  return { cookie: cookieFrom(entered), 'x-csrf-token': body.csrfToken };
+}
+
 interface PlanBody {
   id: string;
   version: number;
@@ -88,7 +101,10 @@ beforeAll(async () => {
   admin = new pg.Client({ connectionString: adminDbUrl });
   await admin.connect();
 
-  const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
+  const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+    .overrideProvider(SMS_PROVIDER)
+    .useValue(texts.provider)
+    .compile();
   ({ app, port } = await listenOn(moduleRef));
 }, BCRYPT_TIMEOUT_MS);
 
@@ -99,6 +115,46 @@ afterAll(async () => {
 });
 
 describeIfDatabase('plans (PLN-01 to PLN-12, PLN-16)', () => {
+  it(
+    'PLN-04: a tenant owner credential never reaches a plan-edit endpoint',
+    async () => {
+      const owner = await ownerHeaders();
+      const operator = await operatorHeaders();
+      const created = await post(
+        '/operator/plans',
+        { name: `Pln04 ${freshSlug()}`, rank: 9000, forSale: false, limits: LIMITS },
+        operator,
+      );
+      expect(created.status).toBe(201);
+      const planId = (created.body as PlanBody).id;
+
+      // No operator cookie at all reaches the same guard the same way -- the tenant's own session cookie is
+      // structurally invisible to it (a different cookie name entirely), so this is `unauthenticated`, not
+      // `forbidden` -- the SRS's pass criteria uses "forbidden" colloquially, not as the literal error code.
+      const createAttempt = await post(
+        '/operator/plans',
+        { name: `Pln04b ${freshSlug()}`, rank: 9001, forSale: false, limits: LIMITS },
+        owner,
+      );
+      expect(createAttempt.status).toBe(401);
+      expect(errorOf(createAttempt)).toMatchObject({ code: 'unauthenticated' });
+
+      const updateAttempt = await patch(`/operator/plans/${planId}`, { rank: 1 }, owner);
+      expect(updateAttempt.status).toBe(401);
+      expect(errorOf(updateAttempt)).toMatchObject({ code: 'unauthenticated' });
+
+      const deleteAttempt = await del(`/operator/plans/${planId}`, owner);
+      expect(deleteAttempt.status).toBe(401);
+      expect(errorOf(deleteAttempt)).toMatchObject({ code: 'unauthenticated' });
+
+      // The plan itself was never touched by any of the refused attempts.
+      const stillThere = await get('/operator/plans', operator);
+      const found = (stillThere.body as PlanBody[]).find((p) => p.id === planId);
+      expect(found).toMatchObject({ rank: 9000 });
+    },
+    BCRYPT_TIMEOUT_MS,
+  );
+
   it(
     'PLN-10: GET /plans never returns a not-for-sale plan',
     async () => {

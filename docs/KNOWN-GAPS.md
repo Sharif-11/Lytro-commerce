@@ -1052,6 +1052,29 @@ Verified the fix would actually fail without it — temporarily short-circuited 
 loop condition to `false`, confirmed the new case failed with the exact expected symptom (an empty notice
 list), then restored and reconfirmed all 14 tests in the file green again.
 
+## 49. `PLN-04`: "operator-only plan edits" had zero test coverage — found and fixed 2026-10-17
+
+Found via this session's own follow-up audit of every M-priority requirement across Phase 1 and Phase 2.
+Like `BAL-13`, this was never a missing implementation — `OperatorSessionGuard` resolves a cookie named
+specifically `lytronix_operator_session`; a tenant/owner session cookie (a structurally different name) can
+never satisfy it, so a tenant credential genuinely cannot reach any `/operator/plans/*` route. But nothing
+tested that rejection: every existing case in `plan-catalogue.e2e.spec.ts` only ever used a freshly-enrolled
+operator session, and `OperatorSessionGuard` wasn't referenced from any test file at all.
+
+**Fixed:** no code change — a new case in `plan-catalogue.e2e.spec.ts` (with a new `ownerHeaders()` helper,
+the first tenant sign-up this file needed) sends a signed-in tenant owner's session to `POST`, `PATCH` and
+`DELETE /operator/plans`, asserting each is refused and the plan itself is untouched. One note worth
+recording: the refusal is `unauthenticated` (401), not literally `forbidden` (403) as the SRS's pass
+criteria colloquially puts it — the operator guard has no visibility into a tenant session at all, the same
+shape as the `not_found`-for-invisible-vs-`forbidden`-for-visible-but-disallowed distinction this codebase
+already draws elsewhere (Phase 1 slice 3). The requirement itself ("only operators shall edit plans") holds
+exactly as stated; only the pass criteria's literal word choice differs from the HTTP status code.
+
+Verified the fix would actually fail without it — temporarily made `OperatorSessionGuard` skip its own
+missing-session check, confirmed the new case failed with the exact expected symptom (a 500 instead of a
+401, since the guard then crashed further down trying to CSRF-check a session that doesn't exist), then
+restored and reconfirmed all 13 tests in the file green again.
+
 ## Not a bug, just noting it so it isn't mistaken for one later
 
 The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data
