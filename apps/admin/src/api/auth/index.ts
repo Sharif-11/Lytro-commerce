@@ -167,13 +167,26 @@ export function useSetPassword() {
 
 // --- Forgot password (AUTH-17 to AUTH-19) ---
 
-/** No onSuccess baked in, same reasoning as useRequestSigninCode — used for both the initial request
-    (navigates to the verify screen) and that screen's own resend button (just resets the countdown). */
+/** The initial request only, from the phone-entry screen — navigates to the verify screen on success.
+    AUTH-18's own 2-minute per-account dedup applies here. The verify screen's own resend button uses
+    useResendPasswordReset instead, which follows AUTH-07's faster 60-second/hourly limits. */
 export function useRequestPasswordReset() {
   return useMutation({
     mutationFn: (phone: string) =>
       tenantSession.client.post<CodeIssued>(
         '/auth/forgot-password',
+        forgotPasswordSchema.parse({ phone }),
+      ),
+  });
+}
+
+/** AUTH-18: the reset-code screen's own resend button — a separate route from the initial request so it
+    can follow AUTH-07's faster 60-second/hourly limits instead of the entry screen's 2-minute dedup. */
+export function useResendPasswordReset() {
+  return useMutation({
+    mutationFn: (phone: string) =>
+      tenantSession.client.post<CodeIssued>(
+        '/auth/forgot-password/resend',
         forgotPasswordSchema.parse({ phone }),
       ),
   });
