@@ -794,7 +794,47 @@ actually fail without it — temporarily pointed `resend()` back at `RESET_COOLD
 70-second case failed with the exact expected symptom (no second SMS sent), then restored and confirmed all
 15 relevant tests green again.
 
-## 40. `PYG-21`: the day-23 inactivity warning's dedup wasn't scoped to the current idle period — found and fixed 2026-10-17
+## 40. `UPG-13`: an upgrade cancelling a scheduled downgrade left no audit trail, and left a pending cancellation untouched — found and fixed 2026-10-17
+
+`UPG-13` requires "a scheduled downgrade or cancellation shall be cancelled by an upgrade," with the pass
+criteria "the banner disappears; audit shows the cancellation." The downgrade half was half-built:
+`DowngradeService.cancelIfScheduled` (called from both `UpgradeService.activate` and `PurchaseService`'s own
+DWN-05 renewal-onto-the-scheduled-target path) deleted the row but wrote no audit entry at all — unlike the
+owner's own manual `cancel()` button, which does. The "or cancellation" half had no implementation
+whatsoever: a pending `cancelledAt` (the owner's own "don't renew" intent, `LIF-01`) was never cleared by an
+upgrade, which is a real functional bug beyond the missing audit trail — `LifecycleService`'s own
+auto-renewal check (`BIL-17`) refuses to renew a tenant with `cancelledAt` set regardless of the auto-renew
+toggle, so an upgraded tenant would silently fail to auto-renew at the *new* period's end over a stale flag
+from before they paid to continue.
+
+**Fixed:**
+- `cancelIfScheduled` now looks up the existing row before deleting it (so it's a true no-op, no spurious
+  entry, when nothing was scheduled) and records `AuditAction.DowngradeCancelled` in the caller's own
+  transaction — the same action the manual button uses, since it's the same event from the log's
+  perspective.
+- `UpgradeService.activate` now also clears `cancelledAt` when one is pending, recording
+  `AuditAction.SubscriptionCancellationUndone` in the same transaction as the plan assignment.
+- Frontend cache invalidation: `useConfirmUpgrade` only invalidated `/me`'s own cache, never the scheduled-
+  downgrade banner's (`SCHEDULED_DOWNGRADE_QUERY_KEY`) — so the banner kept showing the now-cancelled
+  schedule until something else happened to refetch it. Fixed there, and in `useConfirmPurchase` too, since
+  a plain renewal onto the scheduled target (`DWN-05`) clears the same row through the same shared method
+  and had the identical stale-banner gap.
+- The "or cancellation" half has no frontend banner to invalidate — no cancellation-status UI exists in
+  `apps/admin` at all (`useCancelSubscription`/`useUndoCancellation` are fire-and-forget success-toasts,
+  per that file's own note that no read route existed; `GET /billing/cancellation` does exist server-side,
+  just unconsumed). Out of scope here: building that UI is a separate, standalone piece of work, not an
+  upgrade-specific gap.
+
+Proven by new cases in `apps/server/test/plan-downgrade.e2e.spec.ts`'s existing `UPG-13` block: the
+downgrade-cancel case now also asserts the audit entry; a new case asserts an upgrade clears a pending
+`cancelledAt` and audits it; a new no-op case asserts neither audit action appears when nothing was
+scheduled or cancelled. Verified both fixes would actually fail without them — temporarily disabled the
+audit write in `cancelIfScheduled` and the cancellation-clearing block in `activate`, confirmed each
+sabotage produced the exact expected failing assertion, then restored and confirmed all 45 relevant tests
+green again. The frontend cache-invalidation fix has no automated coverage (no browser-automation tool in
+this environment); verified by reading the diff only.
+
+## 41. `PYG-21`: the day-23 inactivity warning's dedup wasn't scoped to the current idle period — found and fixed 2026-10-17
 
 `PYG-21` requires the day-23 warning to be sent "exactly once per idle period," and its own pass criteria is
 explicit that a qualifying activity "restarts the clock." The dedup check in `runPaygInactivityPass`

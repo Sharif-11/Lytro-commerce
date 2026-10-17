@@ -212,7 +212,7 @@ Each slice is one branch and one pull request. CI must pass before merge. Slices
 ### Slice 5: upgrade
 - **Branch:** `feat/plan-upgrade`
 - **Depends on:** slice 4.
-- **Delivers:** the credit/amount-due proration math (`UPG-03`/`UPG-04`, the worked examples in the SRS as literal test cases), the quote screen's data, cycle-restart-on-confirmation, per-period counter reset vs. untouched counters (`UPG-10`/`UPG-11`).
+- **Delivers:** the credit/amount-due proration math (`UPG-03`/`UPG-04`, the worked examples in the SRS as literal test cases), the quote screen's data, cycle-restart-on-confirmation, per-period counter reset vs. untouched counters (`UPG-10`/`UPG-11`). **Correction, 2026-10-17:** `UPG-13` ("a scheduled downgrade or cancellation shall be cancelled by an upgrade") was only half-built — the downgrade row was deleted but with no audit entry, and a pending subscription cancellation was never cleared at all (a real bug beyond the missing audit trail: it could silently block `BIL-17`'s own auto-renewal at the upgraded tenant's new period end). Fixed, along with the scheduled-downgrade banner's own stale frontend cache after an upgrade or a renewal onto the scheduled target; see `KNOWN-GAPS.md` #40.
 - **Requirements:** UPG-01 to UPG-17.
 - **Done when:** Examples A and B from the SRS (299/400 and 3,442/3,939) are literal passing test assertions; a scheduled downgrade is cancelled by an upgrade; the balance is byte-for-byte unchanged by an upgrade.
 
