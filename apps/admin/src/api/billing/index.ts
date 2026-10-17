@@ -56,7 +56,9 @@ export function useQuotePurchase() {
 
 /** BIL-02/08/16: confirms a purchase/renewal quote, from balance or by submitting a wallet payment. A
     balance payment activates the plan immediately, so /me's planName/state can change — invalidated either
-    way rather than branching on `method`, since a wallet submission invalidating a no-op /me is harmless. */
+    way rather than branching on `method`, since a wallet submission invalidating a no-op /me is harmless.
+    UPG-13: paying onto the already-scheduled downgrade target (DWN-05) also clears that schedule
+    server-side, so the banner's own cache needs invalidating here too, the same as an upgrade. */
 export function useConfirmPurchase() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -64,6 +66,7 @@ export function useConfirmPurchase() {
       tenantSession.client.post<PlanPayment>('/billing/purchase', input),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ME_QUERY_KEY });
+      void queryClient.invalidateQueries({ queryKey: SCHEDULED_DOWNGRADE_QUERY_KEY });
     },
   });
 }
@@ -77,6 +80,9 @@ export function useQuoteUpgrade() {
   });
 }
 
+/** UPG-13: an upgrade also supersedes a pending downgrade server-side, so the scheduled-downgrade banner's
+    own cache needs invalidating here too -- otherwise it keeps showing the now-cancelled schedule until
+    something else happens to refetch it. */
 export function useConfirmUpgrade() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -84,6 +90,7 @@ export function useConfirmUpgrade() {
       tenantSession.client.post<PlanPayment>('/billing/upgrade/confirm', input),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ME_QUERY_KEY });
+      void queryClient.invalidateQueries({ queryKey: SCHEDULED_DOWNGRADE_QUERY_KEY });
     },
   });
 }

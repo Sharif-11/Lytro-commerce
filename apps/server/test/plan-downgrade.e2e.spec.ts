@@ -439,6 +439,75 @@ describeIfDatabase('UPG-13: an upgrade cancels a pending downgrade', () => {
     expect(result.invoice).not.toBeNull();
 
     expect(await downgrade.getScheduled(tenantId)).toBeNull();
+    expect(await auditActions(tenantId)).toContain(AuditAction.DowngradeCancelled);
+  });
+
+  it('also clears a pending subscription cancellation', async () => {
+    const rank = (nextRank += 2);
+    const lowPlanId = await seedPlan(rank, 10);
+    const highPlanId = await seedPlan(rank + 1, 10);
+    const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
+    await balance.creditStandalone({ tenantId, amount: '10000.00', type: LedgerEntryType.TopUp });
+    await activateTenant(
+      tenantId,
+      lowPlanId,
+      new Date(),
+      new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
+    );
+    await admin.query('UPDATE control.tenants SET cancelled_at = now() WHERE id = $1', [tenantId]);
+
+    const term = await admin.query<{ id: string }>(
+      `INSERT INTO control.billing_terms (label_bn, label_en, months, visible, display_order)
+       VALUES ('মাস', '1-month', 1, true, 0) RETURNING id`,
+    );
+    const termId = term.rows[0]?.id ?? '';
+    await admin.query(
+      'INSERT INTO control.plan_prices (plan_id, billing_term_id, price) VALUES ($1, $2, $3)',
+      [highPlanId, termId, '699.00'],
+    );
+
+    const quote = await upgrade.quote(tenantId, highPlanId, termId);
+    const result = await upgrade.confirmFromBalance(quote.id, tenantId);
+    expect(result.invoice).not.toBeNull();
+
+    const row = await admin.query<{ cancelled_at: Date | null }>(
+      'SELECT cancelled_at FROM control.tenants WHERE id = $1',
+      [tenantId],
+    );
+    expect(row.rows[0]?.cancelled_at).toBeNull();
+    expect(await auditActions(tenantId)).toContain(AuditAction.SubscriptionCancellationUndone);
+  });
+
+  it('is a no-op, with no spurious audit entry, when nothing was scheduled or cancelled', async () => {
+    const rank = (nextRank += 2);
+    const lowPlanId = await seedPlan(rank, 10);
+    const highPlanId = await seedPlan(rank + 1, 10);
+    const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
+    await balance.creditStandalone({ tenantId, amount: '10000.00', type: LedgerEntryType.TopUp });
+    await activateTenant(
+      tenantId,
+      lowPlanId,
+      new Date(),
+      new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
+    );
+
+    const term = await admin.query<{ id: string }>(
+      `INSERT INTO control.billing_terms (label_bn, label_en, months, visible, display_order)
+       VALUES ('মাস', '1-month', 1, true, 0) RETURNING id`,
+    );
+    const termId = term.rows[0]?.id ?? '';
+    await admin.query(
+      'INSERT INTO control.plan_prices (plan_id, billing_term_id, price) VALUES ($1, $2, $3)',
+      [highPlanId, termId, '699.00'],
+    );
+
+    const quote = await upgrade.quote(tenantId, highPlanId, termId);
+    const result = await upgrade.confirmFromBalance(quote.id, tenantId);
+    expect(result.invoice).not.toBeNull();
+
+    const actions = await auditActions(tenantId);
+    expect(actions).not.toContain(AuditAction.DowngradeCancelled);
+    expect(actions).not.toContain(AuditAction.SubscriptionCancellationUndone);
   });
 });
 
