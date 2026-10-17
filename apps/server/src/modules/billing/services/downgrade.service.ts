@@ -180,6 +180,8 @@ export class DowngradeService {
       await this.tenants.applyPlanAssignment(tx, change.tenantId, {
         planId: plan.id,
         planSnapshot: plan.limits,
+        planVersionSnapshot: plan.version,
+        featureSnapshot: plan.features,
         periodStart: info.periodStart,
         periodEnd: info.periodEnd,
         state: TenantState.Active,

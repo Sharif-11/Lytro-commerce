@@ -104,6 +104,8 @@ export class TenantService {
     values: {
       planId: string;
       planSnapshot: PlanLimits;
+      planVersionSnapshot: number;
+      featureSnapshot: Record<string, boolean>;
       periodStart: Date;
       periodEnd: Date | null;
       state: TenantState;
@@ -128,7 +130,12 @@ export class TenantService {
   }
 
   /** TRL-07: the plan a trial converts to at day 30 with no purchase. */
-  findPayAsYouGoPlan(tx: Transaction): Promise<{ id: string; limits: PlanLimits } | null> {
+  findPayAsYouGoPlan(tx: Transaction): Promise<{
+    id: string;
+    limits: PlanLimits;
+    version: number;
+    features: Record<string, boolean>;
+  } | null> {
     return this.store.findPayAsYouGoPlan(tx);
   }
 

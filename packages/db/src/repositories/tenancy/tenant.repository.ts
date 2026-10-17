@@ -171,9 +171,19 @@ export class TenantRepository {
     db: Executor,
     name: string,
     forSale: boolean,
-  ): Promise<{ id: string; limits: PlanLimits } | null> {
+  ): Promise<{
+    id: string;
+    limits: PlanLimits;
+    version: number;
+    features: Record<string, boolean>;
+  } | null> {
     const rows = await db
-      .select({ id: plans.id, limits: plans.limits })
+      .select({
+        id: plans.id,
+        limits: plans.limits,
+        version: plans.version,
+        features: plans.features,
+      })
       .from(plans)
       .where(and(eq(plans.name, name), eq(plans.forSale, forSale)))
       .limit(1);
@@ -233,6 +243,11 @@ export class TenantRepository {
     values: {
       planId: string;
       planSnapshot: PlanLimits;
+      // PLN-05: "plan ID and version, all limits and features" -- the rest of the purchase snapshot,
+      // frozen alongside planSnapshot so a later edit to the live plan row never changes what an existing
+      // tenant is recorded as having actually bought.
+      planVersionSnapshot: number;
+      featureSnapshot: Record<string, boolean>;
       periodStart: Date;
       periodEnd: Date | null;
       state: TenantState;
@@ -246,6 +261,8 @@ export class TenantRepository {
       .set({
         planId: values.planId,
         planSnapshot: values.planSnapshot,
+        planVersionSnapshot: values.planVersionSnapshot,
+        featureSnapshot: values.featureSnapshot,
         periodStart: values.periodStart,
         periodEnd: values.periodEnd,
         state: values.state,

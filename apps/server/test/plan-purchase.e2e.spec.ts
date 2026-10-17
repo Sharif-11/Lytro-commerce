@@ -129,6 +129,34 @@ describeIfDatabase('plan purchase from balance (BIL-01, BIL-05, BIL-08, BIL-12)'
     expect(list.some((inv) => inv.id === result.invoice?.id)).toBe(true);
   });
 
+  it("PLN-05: the purchase snapshot also freezes the plan's version and features, immune to a later edit", async () => {
+    const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
+    await balance.creditStandalone({ tenantId, amount: '1000.00', type: LedgerEntryType.TopUp });
+    const { planId, termId } = await seedPlanAndTerm(1, '449.00');
+
+    const quote = await purchase.quote(tenantId, planId, termId);
+    await purchase.confirmFromBalance(quote.id, tenantId);
+
+    const snapshotRow = async () =>
+      (
+        await admin.query<{ plan_version_snapshot: number; feature_snapshot: unknown }>(
+          'SELECT plan_version_snapshot, feature_snapshot FROM control.tenants WHERE id = $1',
+          [tenantId],
+        )
+      ).rows[0];
+
+    expect(await snapshotRow()).toEqual({ plan_version_snapshot: 1, feature_snapshot: {} });
+
+    // The operator edits the live plan afterward -- a new version, a feature switched on.
+    await admin.query(
+      `UPDATE control.plans SET version = 2, features = '{"betaDashboard": true}' WHERE id = $1`,
+      [planId],
+    );
+
+    // The already-completed purchase's own snapshot must not drift with it.
+    expect(await snapshotRow()).toEqual({ plan_version_snapshot: 1, feature_snapshot: {} });
+  });
+
   it('BIL-08: refuses a balance payment the balance cannot cover', async () => {
     const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
     const { planId, termId } = await seedPlanAndTerm(1, '449.00');

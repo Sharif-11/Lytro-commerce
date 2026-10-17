@@ -75,7 +75,12 @@ export class DrizzleTenantStore implements TenantStore {
     return this.tenants.findPlanByName(tx, TRIAL_PLAN_NAME, false);
   }
 
-  findPayAsYouGoPlan(tx: Transaction): Promise<{ id: string; limits: PlanLimits } | null> {
+  findPayAsYouGoPlan(tx: Transaction): Promise<{
+    id: string;
+    limits: PlanLimits;
+    version: number;
+    features: Record<string, boolean>;
+  } | null> {
     return this.tenants.findPlanByName(tx, PAYG_PLAN_NAME, false);
   }
 

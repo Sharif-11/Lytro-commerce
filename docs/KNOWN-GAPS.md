@@ -914,6 +914,33 @@ the per-tenant schedule fall through to the live settings unconditionally, and s
 clear-on-restore write, confirmed each sabotage produced the exact expected failing assertion, then
 restored and confirmed all 72 relevant tests green again.
 
+## 44. `PLN-05`: the purchase snapshot omitted the plan's version and feature switches — found and fixed 2026-10-17
+
+`PLN-05` requires "every purchase shall store a snapshot: plan ID and version, all limits and features,
+price paid, billing period, start and end dates." Price paid, billing period and start/end dates were
+already correctly recorded (`control.invoices`, `tenants.period_start`/`period_end`), but the plan's own
+half of that snapshot — `control.tenants.plan_snapshot` — only ever carried `limits`. The plan's `version`
+and `features` (`control.plans.version`/`features`, both already columns on the live plan row) were never
+frozen anywhere. A tenant's own historical record of "what I actually bought" would silently drift if the
+operator later edited the plan's version or feature switches, since nothing captured them at purchase time
+in the first place.
+
+**Fixed:** two new columns, `control.tenants.plan_version_snapshot`/`feature_snapshot`, written by
+`applyPlanAssignment` alongside the existing `plan_snapshot` — at every one of its five call sites
+(`PurchaseService.activate`, `UpgradeService.activate`, `DowngradeService.apply`,
+`PlanAssignmentService.assign`, `TrialLifecycleService.convertExpiredTrials`), each of which already had
+the full plan row in scope. `TenantStore.findPayAsYouGoPlan` widened to also return `version`/`features`
+(it previously selected only `id`/`limits`) so the trial-conversion call site has them to pass through.
+Deliberately not touched: the initial trial sign-up (`insertTenant`) — `PLN-05` says "every *purchase*,"
+and starting a free trial isn't one.
+
+Proven by a new case in `apps/server/test/plan-purchase.e2e.spec.ts`: a purchase freezes the plan's then-
+current version and features onto the tenant row, and editing the live plan afterward (a new version, a
+feature switched on) leaves that already-recorded snapshot untouched. Verified the fix would actually fail
+without it — temporarily removed the two new field writes from `applyPlanAssignment`, confirmed the new
+case failed with the exact expected symptom (both fields staying `null`), then restored and confirmed all
+64 relevant tests green again.
+
 ## Not a bug, just noting it so it isn't mistaken for one later
 
 The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data
