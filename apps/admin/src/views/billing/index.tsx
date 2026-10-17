@@ -273,6 +273,7 @@ export function Billing(): React.JSX.Element {
           onSelectTerm={setSelectedTermId}
           currentPlan={currentPlan}
           tenantState={me.data.tenant.state}
+          scheduledDowngrade={scheduledDowngrade.data ?? null}
           onAction={handlePlanAction}
           actionPending={quotePurchase.isPending || quoteUpgrade.isPending}
         />

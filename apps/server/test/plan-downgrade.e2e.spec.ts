@@ -6,8 +6,10 @@ import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AuditAction, LedgerEntryType } from '@lytronix/validators';
 import { AppModule } from '../src/app/app.module';
+import { addMonths } from '../src/common/time';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { DowngradeService } from '../src/modules/billing/services/downgrade.service';
+import { PurchaseService } from '../src/modules/billing/services/purchase.service';
 import { UpgradeService } from '../src/modules/billing/services/upgrade.service';
 import { StaffService, type StaffTenant } from '../src/modules/staff/services/staff.service';
 import { BalanceService } from '../src/modules/balance/services/balance.service';
@@ -26,6 +28,7 @@ const PASSWORD = 'correct-horse-9';
 let app: INestApplication;
 let admin: pg.Client;
 let downgrade: DowngradeService;
+let purchase: PurchaseService;
 let upgrade: UpgradeService;
 let staff: StaffService;
 let balance: BalanceService;
@@ -56,6 +59,20 @@ async function seedPlanWithRetention(rank: number, activityRetentionDays: number
     ],
   );
   return plan.rows[0]?.id ?? '';
+}
+
+async function seedTermAndPrice(planId: string, months: number, price: string): Promise<string> {
+  const term = await admin.query<{ id: string }>(
+    `INSERT INTO control.billing_terms (label_bn, label_en, months, visible, display_order)
+     VALUES ('মাস', $1, $2, true, 0) RETURNING id`,
+    [`${months.toFixed(0)}-month`, months],
+  );
+  const termId = term.rows[0]?.id ?? '';
+  await admin.query(
+    'INSERT INTO control.plan_prices (plan_id, billing_term_id, price) VALUES ($1, $2, $3)',
+    [planId, termId, price],
+  );
+  return termId;
 }
 
 async function tenantRow(tenantId: string) {
@@ -143,6 +160,7 @@ beforeAll(async () => {
     .compile();
   ({ app } = await listenOn(moduleRef));
   downgrade = app.get(DowngradeService);
+  purchase = app.get(PurchaseService);
   upgrade = app.get(UpgradeService);
   staff = app.get(StaffService);
   balance = app.get(BalanceService);
@@ -285,6 +303,63 @@ describeIfDatabase('applying a downgrade (DWN-06, DWN-08, DWN-16, DWN-17)', () =
 
     // the scheduled row is consumed once applied.
     expect(await downgrade.getScheduled(tenantId)).toBeNull();
+  });
+});
+
+describeIfDatabase('DWN-05: renewing while a downgrade is scheduled', () => {
+  it('quotes and pays the scheduled target plan, extending (not restarting) the current period', async () => {
+    const rank = (nextRank += 2);
+    const highPlanId = await seedPlan(rank, 10);
+    const lowPlanId = await seedPlan(rank - 1, 10);
+    const termId = await seedTermAndPrice(lowPlanId, 1, '199.00');
+    // The high (current) plan deliberately gets no price here -- DWN-05 is specifically about the renewal
+    // no longer quoting it once a downgrade is scheduled; quoting it by mistake would fail PriceNotFound
+    // and make a regression obvious rather than silently passing with the wrong plan's price.
+
+    const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
+    const periodStart = new Date(Date.now() - 20 * 24 * 60 * 60 * 1000);
+    const periodEnd = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000);
+    await activateTenant(tenantId, highPlanId, periodStart, periodEnd);
+    await balance.creditStandalone({ tenantId, amount: '500.00', type: LedgerEntryType.TopUp });
+
+    await downgrade.schedule(tenantId, lowPlanId);
+
+    const quote = await purchase.quote(tenantId, lowPlanId, termId);
+    expect(quote.amount).toBe('199.00');
+
+    const result = await purchase.confirmFromBalance(quote.id, tenantId);
+    expect(result.invoice?.amount).toBe('199.00');
+
+    const tenant = await tenantRow(tenantId);
+    expect(tenant?.plan_id).toBe(lowPlanId);
+    // BIL-10 extends: the new period picks up where the old one was always going to end, not from today.
+    expect(tenant?.period_end?.getTime()).toBe(addMonths(periodEnd, 1).getTime());
+
+    // Paying it already did what the scheduled downgrade was going to do -- nothing left to apply later.
+    expect(await downgrade.getScheduled(tenantId)).toBeNull();
+  });
+
+  it('a renewal into an unrelated plan (no downgrade scheduled) still restarts as a fresh purchase', async () => {
+    const rank = (nextRank += 2);
+    const currentPlanId = await seedPlan(rank, 10);
+    const otherPlanId = await seedPlan(rank - 1, 10);
+    const termId = await seedTermAndPrice(otherPlanId, 1, '149.00');
+
+    const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
+    const periodEnd = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000);
+    await activateTenant(tenantId, currentPlanId, new Date(), periodEnd);
+    await balance.creditStandalone({ tenantId, amount: '500.00', type: LedgerEntryType.TopUp });
+    // No downgrade scheduled -- buying a different, unrelated plan is a plain purchase/restart, same as
+    // before this change; this guards against the DWN-05 fix accidentally widening past its own scope.
+
+    const quote = await purchase.quote(tenantId, otherPlanId, termId);
+    await purchase.confirmFromBalance(quote.id, tenantId);
+
+    const tenant = await tenantRow(tenantId);
+    expect(tenant?.plan_id).toBe(otherPlanId);
+    const now = new Date();
+    const diffMs = Math.abs((tenant?.period_end?.getTime() ?? 0) - addMonths(now, 1).getTime());
+    expect(diffMs).toBeLessThan(5000); // restarted from "now", not extended from the old periodEnd
   });
 });
 

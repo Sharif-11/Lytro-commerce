@@ -72,6 +72,12 @@ itself before any of the above landed.)
     `PurchaseService`/`UpgradeService.quote` now honor `retiredAt`; `create`/`update`/`retire` each write a
     `platform_audit_log` entry with the real operator, IP and old/new values. `KNOWN-GAPS.md` #32 is
     closed.
+13. **`DWN-05`** (scoped and fixed directly): the renewal screen quoted the current plan's price even
+    once a downgrade was scheduled, and paying for a different plan while still active would have
+    restarted the period instead of extending it. `PurchaseService.quote`/`activate` now also recognize
+    the tenant's scheduled downgrade target as "the tenant's own plan" for renewal/period-extension
+    purposes; `apps/admin`'s `PlanGrid` moves the "renew" action to that target plan's own card.
+    `KNOWN-GAPS.md` #35 is closed.
 
 1. Every `M` requirement in PLN, TRL, TRM, PYG, BIL, UPG, DWN, LIF, BAL and RAT has a passing automated test.
 2. The lifecycle scheduled job transitions a tenant through every state boundary (grace, read-only, locked, archived, deleted) within its 15-minute SLA (LIF-03), derived purely from stored dates (LIF-04) so a test clock can simulate any date, and is idempotent under a doubled or missed run (LIF-23).
