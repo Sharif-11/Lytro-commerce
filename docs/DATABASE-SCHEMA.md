@@ -442,12 +442,14 @@ CREATE TYPE tenant.stock_unit      AS ENUM ('piece', 'kg', 'g', 'liter', 'ml', '
 CREATE TYPE tenant.stock_tracking  AS ENUM ('tracked', 'not_tracked');                               -- INV-02
 CREATE TYPE tenant.stock_state     AS ENUM ('in', 'low', 'out');                                     -- CCH-08
 CREATE TYPE tenant.payment_policy  AS ENUM ('none', 'delivery_charge_only', 'partial_advance', 'full_prepayment');  -- PRD-08
+CREATE TYPE tenant.product_kind    AS ENUM ('standard', 'combo');                                     -- CMB-01 (Phase 4)
 
 CREATE TABLE tenant.products (
     id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id           uuid NOT NULL,
     name                varchar(200) NOT NULL,
     slug                text NOT NULL,
+    kind                tenant.product_kind NOT NULL DEFAULT 'standard',  -- CMB-01: a combo holds no stock
     description         text,
     base_price          numeric(10,2) NOT NULL CHECK (base_price >= 0),
     stock_unit          tenant.stock_unit NOT NULL DEFAULT 'piece',
@@ -864,6 +866,50 @@ CREATE TABLE tenant.catalog_feeds (                 -- FED-01, FED-05: one row p
 );
 -- The feed is rendered from the public catalogue read model and cached by catalogue version (FED-04);
 -- it has no table of its own beyond the token.
+```
+
+#### Combo packs (CMB) — Phase 4
+
+```sql
+CREATE TABLE tenant.combo_parts (                   -- CMB-01: a combo product's parts
+    id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id        uuid NOT NULL,
+    combo_product_id uuid NOT NULL,
+    position         smallint NOT NULL CHECK (position BETWEEN 1 AND 10),          -- CMB-10
+    quantity         numeric(14,3) NOT NULL CHECK (quantity > 0 AND quantity <= 20), -- per combo (UOM-03)
+    UNIQUE (tenant_id, id),
+    UNIQUE (combo_product_id, position),
+    FOREIGN KEY (tenant_id, combo_product_id) REFERENCES tenant.products(tenant_id, id) ON DELETE CASCADE
+);
+
+CREATE TABLE tenant.combo_part_variants (           -- CMB-01: allowed variants; exactly one = a fixed part
+    tenant_id        uuid NOT NULL,
+    part_id          uuid NOT NULL,
+    variant_id       uuid NOT NULL,
+    PRIMARY KEY (part_id, variant_id),
+    FOREIGN KEY (tenant_id, part_id) REFERENCES tenant.combo_parts(tenant_id, id) ON DELETE CASCADE,
+    FOREIGN KEY (tenant_id, variant_id) REFERENCES tenant.product_variants(tenant_id, id)  -- no cascade: CMB-08
+);
+CREATE INDEX ON tenant.combo_part_variants (tenant_id, variant_id);  -- CMB-02: combos to recompute on a stock change
+-- A trigger refuses an allowed variant whose product is itself a combo (CMB-01, no nesting) and more than
+-- 100 allowed variants per part (CMB-10). A combo has one product_variants row (combination_key '') and no
+-- stock_levels row; its products.stock_state is recomputed from its parts inside InventoryLedger.apply().
+
+CREATE TABLE tenant.order_line_components (         -- CMB-03, CMB-04: a combo line's component variants
+    id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id        uuid NOT NULL,
+    order_line_id    uuid NOT NULL REFERENCES tenant.order_lines(id),
+    part_position    smallint NOT NULL,
+    variant_id       uuid,                          -- advisory only, like order_lines.variant_id (ORD-46)
+    -- snapshot, copied at order time:
+    product_name     text NOT NULL,
+    attribute_values jsonb NOT NULL DEFAULT '{}',
+    quantity         numeric(14,3) NOT NULL CHECK (quantity > 0)   -- units of this variant in one combo
+);
+CREATE INDEX ON tenant.order_line_components (tenant_id, order_line_id);
+-- A choice part picked as M-Red, M-Red, L-Black gives two rows: M-Red 2 and L-Black 1. Reservations and
+-- stock movements for a combo line are ordinary per-variant rows referencing the order (CMB-03, CMB-05);
+-- the stock-history label finds the combo through this table by order and variant.
 ```
 
 #### Shop-type presets (PST) — `control` schema, platform-wide
