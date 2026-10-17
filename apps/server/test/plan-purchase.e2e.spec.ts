@@ -9,6 +9,7 @@ import { AppModule } from '../src/app/app.module';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { PurchaseService } from '../src/modules/billing/services/purchase.service';
 import { PaymentQueueService } from '../src/modules/billing/services/payment-queue.service';
+import { PlanPaymentsService } from '../src/modules/payments/services/plan-payments.service';
 import { InvoicesService } from '../src/modules/payments/services/invoices.service';
 import { BalanceService } from '../src/modules/balance/services/balance.service';
 import { TopUpService } from '../src/modules/balance/services/top-up.service';
@@ -29,6 +30,7 @@ let app: INestApplication;
 let admin: pg.Client;
 let purchase: PurchaseService;
 let queue: PaymentQueueService;
+let planPayments: PlanPaymentsService;
 let invoices: InvoicesService;
 let balance: BalanceService;
 let topUp: TopUpService;
@@ -90,6 +92,7 @@ beforeAll(async () => {
   ({ app } = await listenOn(moduleRef));
   purchase = app.get(PurchaseService);
   queue = app.get(PaymentQueueService);
+  planPayments = app.get(PlanPaymentsService);
   invoices = app.get(InvoicesService);
   balance = app.get(BalanceService);
   topUp = app.get(TopUpService);
@@ -315,6 +318,77 @@ describeIfDatabase(
     });
   },
 );
+
+describeIfDatabase('BIL-15: 24-hour pending-purchase expiry', () => {
+  async function paymentRow(id: string) {
+    const row = await admin.query<{ status: string; transaction_id: string | null }>(
+      'SELECT status, transaction_id FROM control.plan_payments WHERE id = $1',
+      [id],
+    );
+    return row.rows[0];
+  }
+
+  async function backdateQuote(id: string, quotedAt: Date): Promise<void> {
+    await admin.query('UPDATE control.plan_payments SET quoted_at = $1 WHERE id = $2', [
+      quotedAt,
+      id,
+    ]);
+  }
+
+  it('expires an unsubmitted quote past 24h, but leaves a timely submission alone', async () => {
+    const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
+    const { planId, termId } = await seedPlanAndTerm(1, '449.00');
+
+    const staleQuote = await purchase.quote(tenantId, planId, termId);
+    await backdateQuote(staleQuote.id, new Date(Date.now() - 25 * 60 * 60 * 1000));
+
+    // Submitted on time -- the sweep must leave it alone no matter how old the quote itself now is,
+    // since the clock is about the tenant's own window to act, not the operator's review speed.
+    const submittedQuote = await purchase.quote(tenantId, planId, termId);
+    await purchase.submitWalletPayment(submittedQuote.id, tenantId, {
+      transactionId: `TXN-${randomUUID()}`,
+      senderNumber: '01710000000',
+      amountPaid: '449.00',
+    });
+    await backdateQuote(submittedQuote.id, new Date(Date.now() - 25 * 60 * 60 * 1000));
+
+    const expiredCount = await planPayments.expireStalePending(new Date());
+    expect(expiredCount).toBe(1);
+
+    expect((await paymentRow(staleQuote.id))?.status).toBe(PlanPaymentStatus.Expired);
+    expect((await paymentRow(submittedQuote.id))?.status).toBe(PlanPaymentStatus.Pending);
+  });
+
+  it('a late submission after expiry lands in needs_review regardless of amount match', async () => {
+    const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
+    const { planId, termId } = await seedPlanAndTerm(1, '449.00');
+    const quote = await purchase.quote(tenantId, planId, termId);
+    await backdateQuote(quote.id, new Date(Date.now() - 25 * 60 * 60 * 1000));
+
+    await planPayments.expireStalePending(new Date());
+    expect((await paymentRow(quote.id))?.status).toBe(PlanPaymentStatus.Expired);
+
+    const submitted = await purchase.submitWalletPayment(quote.id, tenantId, {
+      transactionId: `TXN-${randomUUID()}`,
+      senderNumber: '01710000000',
+      amountPaid: '449.00', // matches exactly -- still needs_review since it arrived after expiry
+    });
+    expect(submitted.status).toBe(PlanPaymentStatus.NeedsReview);
+
+    const tenant = await tenantRow(tenantId);
+    expect(tenant?.state).toBe('trial'); // never activates off a late submission alone
+  });
+
+  it('a quote still inside its 24h window is untouched by the sweep', async () => {
+    const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
+    const { planId, termId } = await seedPlanAndTerm(1, '449.00');
+    const quote = await purchase.quote(tenantId, planId, termId);
+
+    const expiredCount = await planPayments.expireStalePending(new Date());
+    expect(expiredCount).toBe(0);
+    expect((await paymentRow(quote.id))?.status).toBe(PlanPaymentStatus.Pending);
+  });
+});
 
 describeIfDatabase('balance top-up (BAL-03 to BAL-06)', () => {
   it('BAL-04: rejects an amount outside the platform-wide bounds', async () => {

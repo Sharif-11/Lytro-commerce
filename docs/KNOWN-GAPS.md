@@ -637,7 +637,51 @@ The admin-UI change has no automated test — no browser-automation tool exists 
 (`KNOWN-GAPS.md` #7) — verified by reading the diff only, consistent with how other frontend-only pieces
 of work this session have been handled.
 
-## 36. `AUTH-21`: no essential-SMS allowance metering existed at all — found and fixed 2026-10-17
+## 36. `BIL-14`/`BIL-15`: no renewal reminders, and a stale wallet quote never expired — found and fixed 2026-10-17
+
+Neither half had any implementation. `BIL-14` (a renewal reminder 7/3/1 days before period end, then daily
+during grace) had no candidate query at all — `LifecycleService`'s own lapse-ladder loop only ever iterates
+tenants whose period has *already* ended (`findLapsingCandidates`), so a still-`active` tenant approaching
+its period end was never looked at. `BIL-15` (an unsubmitted wallet-payment quote expires 24h after it was
+quoted) had the `PlanPaymentStatus.Expired` enum value sitting unused in the schema with nothing ever
+setting it — a tenant could leave a quoted-but-never-submitted `plan_payments` row `pending` forever.
+
+**Fixed:**
+- New `TenantRepository.findUpcomingRenewalCandidates` (still-`active`, `periodEnd` within the next 7 days)
+  feeds a new `LifecycleService.runRenewalReminderPass`, called once per tick alongside the existing
+  lapse-ladder loop. It sends at most one reminder per threshold (7, then 3, then 1 day out), the same
+  audit-log existence check (`summary.day`, a `Set` of already-sent values) `sendDeletionWarningIfDue`
+  already uses just counting down instead of up. The "daily during grace" half reuses the lapse-ladder
+  loop's own candidates (already iterating `Grace`) via `sendDailyGraceReminderIfDue`, which only checks
+  whether the single latest `RenewalReminderSent` entry falls on today's Asia/Dhaka calendar day.
+- Email only, never SMS — `sendRenewalReminderNotice` is a new helper, deliberately not the existing
+  `sendNotice` every other lifecycle notice uses (which sends both), since `BIL-14` is explicit that this
+  reminder is never billed to the tenant as SMS. Push and the in-app banner have no backend state to add
+  (banner is computed client-side from `/me`'s own `periodEnd`, same as the existing lapse-state banner) —
+  push has no provider anywhere in this codebase yet, the same already-acknowledged gap as `PYG-21`'s own
+  day-23 warning; deferred, not silently dropped. The banner's own frontend logic is deferred to a later,
+  UI-focused pass, consistent with how this session treats backend/frontend as separate slices.
+- `PlanPaymentsRepository.expireStalePending`/`PlanPaymentsService.expireStalePending` flip a `pending` row
+  to `expired` once `PENDING_PURCHASE_EXPIRY_MS` (24h) has passed since `quotedAt` — but only when
+  `transactionId IS NULL`. A row the tenant already submitted on time is never touched, no matter how long
+  the operator takes to review it afterward: the clock is about the tenant's own window to act on a quote,
+  not the operator's review speed. Wired into `LifecycleTickWorker`'s existing 5-minute cron as a 4th call,
+  after trial conversion, due downgrades and the lifecycle tick.
+- `PlanPaymentsService.recordSubmission` now accepts a submission arriving after the sweep already expired
+  the row (a late submission), but always routes it to `needs_review`, regardless of amount match — never
+  the normal `pending` bucket a timely submission would land in.
+
+Proven by new cases in `apps/server/test/lifecycle.e2e.spec.ts` (BIL-14: each of the 7/3/1 thresholds fires
+exactly once with a matching `control.mail_outbox` row and zero `control.sms_outbox` rows, idempotent
+against a repeated tick; a `Grace`-state tenant gets exactly one reminder per calendar day, not per tick)
+and `apps/server/test/plan-purchase.e2e.spec.ts` (BIL-15: an unsubmitted quote past 24h expires while a
+timely submission on the same age is left alone; a late submission after expiry lands in `needs_review`
+even with a matching amount; a quote still inside its window is untouched). Verified both would actually
+fail without the fix — temporarily disabled `sendPreRenewalReminderIfDue`/`sendDailyGraceReminderIfDue` and
+separately the `transactionId IS NULL` guard in `expireStalePending`'s query, confirmed each sabotage
+produced the exact expected failing assertion, then restored and confirmed all tests green again.
+
+## 37. `AUTH-21`: no essential-SMS allowance metering existed at all — found and fixed 2026-10-17
 
 Scoped and fixed directly, not from the full audit. `PlanLimits.essential_sms_total`/`essential_sms_monthly`
 already existed — schema, admin plan editor, operator overrides — but nothing read or incremented them;

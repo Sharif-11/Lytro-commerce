@@ -46,3 +46,10 @@ export function startOfMonthDhaka(date: Date): Date {
   local.setUTCHours(0, 0, 0, 0);
   return new Date(local.getTime() - DHAKA_OFFSET_MS);
 }
+
+/** BIL-14: the start (00:00) of the Asia/Dhaka calendar day `date` falls on, same offset trick as `addMonths`. */
+export function startOfDayDhaka(date: Date): Date {
+  const local = new Date(date.getTime() + DHAKA_OFFSET_MS);
+  local.setUTCHours(0, 0, 0, 0);
+  return new Date(local.getTime() - DHAKA_OFFSET_MS);
+}

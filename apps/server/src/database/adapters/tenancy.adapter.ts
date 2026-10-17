@@ -169,6 +169,14 @@ export class DrizzleTenantStore implements TenantStore {
     return this.tenants.findLapsingCandidates(tx, now);
   }
 
+  findUpcomingRenewalCandidates(
+    tx: Transaction,
+    now: Date,
+    horizon: Date,
+  ): Promise<LapsingCandidateRow[]> {
+    return this.tenants.findUpcomingRenewalCandidates(tx, now, horizon);
+  }
+
   findPaygInactiveCandidates(tx: Transaction): Promise<PaygCandidateRow[]> {
     return this.tenants.findPaygInactiveCandidates(tx);
   }
