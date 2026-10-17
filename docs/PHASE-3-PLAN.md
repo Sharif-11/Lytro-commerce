@@ -80,17 +80,17 @@ Rules used below:
 - **Partial** means this phase builds a working part, and a named later phase finishes the rest.
 - Notices delivered through the D3-5 stub count as complete, the same rule Phase 2 applied to `BAL-13`.
 
-### 3.1 Completed by this phase (160)
+### 3.1 Completed by this phase (161)
 
 | Family | Requirements | Count |
 |---|---|---|
 | PRD | PRD-01, 02, 03, 04, 05, 09, 10, 11, 12, 14, 15, 16, 17 (size charts), 18 (duplicate product) | 14 |
-| ATR | ATR-01, 02, 03, 04, 05, 06, 10, 11, 12, 14, 16 (quick option sets) | 11 |
+| ATR | ATR-01, 02, 03, 04, 05, 06, 10, 11, 12, 14, 16 (quick option sets), 17 (variant grid fill-all) | 12 |
 | ATL | ATL-01, 02, 03, 04, 05 | 5 |
 | UOM | UOM-01, 02, 03 | 3 |
-| INV | INV-01 – INV-14, INV-18, 19, 20, 21, 22 | 19 |
+| INV | INV-01 – INV-13, INV-18, 19, 20, 21, 22 | 18 |
 | PUR | PUR-01 – PUR-10 | 10 |
-| PST | PST-01 – PST-04 | 4 |
+| PST | PST-01 – PST-05 (PST-05: per-shop-type form layout) | 5 |
 | MED | MED-01 – 08, MED-10 – 13 | 12 |
 | STO | STO-02 – 07, STO-09 (video compression, added 2026-10-17) | 7 |
 | BND | BND-01, 02, 03, 05, 06, 07, 08, 09 | 8 |
@@ -106,9 +106,9 @@ Rules used below:
 | LND | LND-01, 02, 03, 04, 05, 06, 14, 17, 18 | 9 |
 | DLV | DLV-01, 02, 05 (delivery zones, added 2026-10-17) | 3 |
 | FED | FED-01 – 06 (Meta catalog feed, added 2026-10-17) | 6 |
-| | **Total** | **160** |
+| | **Total** | **161** |
 
-### 3.2 Partially completed by this phase (33)
+### 3.2 Partially completed by this phase (35)
 
 | Req | Done in this phase | Remaining | Finished in |
 |---|---|---|---|
@@ -143,6 +143,8 @@ Rules used below:
 | DAT-13 | full-text and trigram indexes for product search | phone/name search on orders and customers | Phase 4 |
 | LND-13 | landing-page product content cached and fresh within 60 s | the order form's live price and stock read from PostgreSQL at submission | Phase 4 |
 | LND-15 | Meta Pixel `PageView` and `ViewContent` fire on the landing page, with `content_ids` matching the catalog feed's item IDs | `InitiateCheckout` and `Purchase`, which need the order form | Phase 4 |
+| INV-14 | serials recorded at receiving or added later, with a missing-serials count | serial required before a line ships | Phase 4 |
+| INV-23 | scan, paste and typed serial entry with duplicate and IMEI check-digit validation, at receiving and "add missing" | the same entry when shipping a line | Phase 4 |
 | DLV-03 | product and variant delivery charge stored as an optional override, unset by default | the zone charge used for lines without one (ORD-06a) | Phase 4 |
 | DLV-04 | zone changes recorded in the activity log | proof that an existing order keeps its stored delivery charge | Phase 4 |
 
@@ -350,7 +352,8 @@ their backend ships earlier.
 - **Delivers:** batches with optional code and expiry; first-expiry-first-out picking inside
   `InventoryLedger.apply()`; the daily expiry job (warnings, and moving expired quantity to unsellable);
   the expiry write-off; serial numbers with status lifecycle and uniqueness.
-- **Requirements completed:** INV-12, INV-13, INV-14.
+- **Requirements completed:** INV-12, INV-13.
+- **Partial:** INV-14 (serials may be added later; enforced at shipping in Phase 4).
 - **Done when:** with January and March batches, an outbound movement takes January first; a batch
   expiring in 20 days raises exactly one notice; expired units drop out of `available`; a duplicate IMEI
   is refused.
@@ -453,11 +456,14 @@ their backend ships earlier.
   WhatsApp-share actions (and per-variant links); the ad-tracking settings screen (pixel ID, Conversions
   API token entered once); delivery settings with the two Dhaka charges up front and an "Add zone"
   editor; size-chart editor; one-tap option sets in the variant editor; "Duplicate product"; the catalog
-  feed link with copy and setup steps. All in Bangla and English, in the same everyday commerce wording the
+  feed link with copy and setup steps; per-shop-type form layout with "More settings"; price and stock
+  columns with "Fill all" in the variant grid; IMEI/serial entry by camera scan, pasted list or typing.
+  All in Bangla and English, in the same everyday commerce wording the
   admin app already uses (transliterated domain nouns such as স্টক, প্রোডাক্ট — never formal or technical
   inventory terms).
 - **Requirements completed (E2E halves):** PST-01; ATR-02, ATR-11; PRD-03, PRD-12; INV-06, 07, 09, 22;
-  PUR-07, PUR-09; BND-08; LND-06; ATR-16; DLV-05; FED-06.
+  PUR-07, PUR-09; BND-08; LND-06; ATR-16; ATR-17; PST-05; DLV-05; FED-06. *(INV-23's scan and paste
+  entry is built here; its shipping half is Phase 4.)*
 - **Done when:** a non-technical walkthrough (clothing, cosmetics and grocery presets) completes product
   creation, add stock, stock check and planned purchase without anyone seeing an inventory term or an
   unwanted field.

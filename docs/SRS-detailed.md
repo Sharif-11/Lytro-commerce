@@ -596,6 +596,7 @@ Nothing about a product's attributes is ever mandatory: a tenant creates an attr
 | ATR-14 | A product shall have at most [3] variant-defining attributes and at most [100] variant combinations; creating more shall be refused with a clear message. | Adding a 4th variant-defining attribute, or a 101st combination, is refused; the tenant is told to reduce the options or split into separate products. | M | API |
 | ATR-15 | Marking an existing informational attribute as variant-defining, or the reverse, shall be allowed only before the product has any orders; after that it shall be blocked with a message to create a new product instead. | Toggling Size to variant-defining on a product with past orders is refused. | S | API |
 | ATR-16 | Added 2026-10-17: when adding options to a variant-defining attribute, the product edit screen shall offer ready option sets inserted in one tap — at least clothing sizes (S, M, L, XL, XXL), shoe sizes (38 to 44) and common colors — editable after insertion; a tenant may also save its own option set from any attribute's options for reuse. Option sets are platform-maintained presets plus the tenant's own, never mandatory. | Tapping "S–XXL" on a new "Size" attribute adds five options at once, and removing XXL afterwards leaves four; a saved "Kids sizes" set appears on the next product. | M | E2E |
+| ATR-17 | Added 2026-10-17: the variant grid (ATR-11) shall show a stock column and a price column for every variant, with a "Fill all" action for each that sets one value on every variant (or every variant sharing one option, such as all 256 GB), after which single cells stay editable; the price column shall start at the product's price. | Filling stock 5 for all 10 variants sets each to 5; filling price 28,000 for "256 GB" changes only the 256 GB variants; editing one cell afterwards changes only that cell. | M | E2E |
 | ATR-05 | Amended 2026-10-17: each variant shall have its own stock (held as an INV stock level; a whole number for discrete units and a decimal for measured units, UOM-03), an optional cost price (INV-10), an optional price override (default the product's base price), an optional barcode/SKU, and its own image; stock reservation and release (PRD-07) shall operate per variant. | Two variants of one product can have different stock and price; reserving one variant's stock does not affect another's. | M | API |
 | ATR-06 | A variant combination shall be unique within its product; creating a duplicate combination shall be refused. | Adding a second "Red / L" variant to the same product returns `conflict`. | M | API |
 | ATR-07 | The public catalogue and order-creation endpoints shall expose only variants with available stock (INV-01; or, for a product whose stock is not tracked, INV-02, the product's active flag) and shall require a variant ID, not a bare product ID, when creating an order line. | Creating an order line with a product ID but no variant is rejected; an out-of-stock variant is not offered. | M | API |
@@ -697,7 +698,7 @@ Added 2026-10-17. A complete inventory system that sits behind deliberately simp
 | INV-11 | Every outgoing movement (sale, damaged, lost, expired, recount loss) shall record the unit cost at that moment, so cost of goods sold and losses stay correct after later cost changes; a missing cost is recorded as unknown, never as zero. | Changing the average cost next month does not change last month's cost of goods sold. | M | API |
 | INV-12 | Batch tracking shall be selectable per product (default from the shop-type preset): stock is received into batches with an optional batch code and optional expiry date; a variant's on hand equals the sum of its batches; every outgoing movement draws from the earliest-expiring batch first, batches without an expiry last. | With batches expiring January and March, a sale takes the January batch first. | M | API |
 | INV-13 | Batches with an expiry date within [30] days shall produce one tenant notice per batch; quantity in an expired batch shall be excluded from available stock automatically and written off with an `expired` movement when the tenant confirms. | A batch expiring in 20 days raises one notice; after its expiry date its units are no longer sellable. | M | JOB |
-| INV-14 | Serial tracking shall be selectable per product (default from the shop-type preset): every unit has a serial (for example an IMEI) unique within its variant; receiving requires one serial per unit received; fulfilling a line records which serials left; each serial has a status (in stock, sold, returned, written off). | Receiving 3 phones requires 3 IMEIs; shipping one records its IMEI against the order; the same IMEI cannot be received twice. | S | API |
+| INV-14 | Serial tracking shall be selectable per product (default from the shop-type preset): every unit has a serial (for example an IMEI) unique within its variant; amended 2026-10-17: receiving (or opening stock) shall accept one serial per unit or let the tenant add them later, the variant then showing how many units still lack a serial, and a line shall not be marked shipped until a serial is chosen for each of its units; fulfilling a line records which serials left; each serial has a status (in stock, sold, returned, written off). | Receiving 3 phones with 3 IMEIs records them; receiving 3 with "add later" shows "3 IMEIs missing" and shipping one of them is refused until an IMEI is entered; shipping one records its IMEI against the order; the same IMEI cannot be received twice. | S | API |
 | INV-15 | An order line shall hold stock through a reservation (variant, quantity, order, optional expiry): reserving raises reserved and is refused with `conflict` naming the product when it would exceed available (PRD-07); fulfilment consumes it and writes the sale movement (drawing batches per INV-12 and serials per INV-14); cancellation releases it and writes no movement. | Reserving 2 of 1 available is refused; shipping a 2-unit reservation writes one −2 sale movement; cancelling releases 2 with no movement. | M | API |
 | INV-16 | A reservation for an order awaiting online payment shall expire [30] minutes after creation (aligned with the payment session's own expiry), released automatically within [1] minute of expiring; reservations for cash-on-delivery or staff-entered orders do not expire. | An abandoned bKash checkout's stock is available again about 30 minutes later; a COD order's stock stays reserved. | M | JOB |
 | INV-17 | A returned unit shall be recorded either as sellable (a return-received movement, back into stock) or damaged (a return-received movement followed by a damaged write-off), as the tenant chooses per unit; a return shall never restock automatically. | A return of 2 with 1 marked damaged raises on hand by 1 and records a valued loss for the other. | M | API |
@@ -705,6 +706,7 @@ Added 2026-10-17. A complete inventory system that sits behind deliberately simp
 | INV-19 | A change of a product's public stock state (in, low, out) shall increment the catalogue version in the same transaction (CCH-02, CCH-08); other stock changes shall not. | Selling the last unit changes the version; a sale from 50 to 49 does not. | M | API |
 | INV-20 | Inventory permissions shall be `inventory:read` and `inventory:manage` (stock edits, stock checks, write-offs, purchasing), added to the platform permission list (STF-07). | A staff member without `inventory:manage` can view stock but not change it. | M | API |
 | INV-21 | Manual adjustments, stock checks and write-offs shall also be recorded in the activity log (AUD-01) with the actor; sales and receipts are traceable through their own references instead. | A manual −3 adjustment appears in the activity log with the staff member's name. | M | API |
+| INV-23 | Added 2026-10-17: wherever serials are entered (receiving, opening stock, adding missing serials, shipping), the dashboard shall accept them by camera barcode scan (one scan per unit, on a phone or a laptop camera), by pasting a list (one per line), or by typing; duplicates within the entry or against existing serials shall be flagged before saving, and an IMEI shall be checked for 15 digits with a valid check digit. | Scanning 3 phone boxes fills 3 IMEIs; pasting 10 lines with one repeated flags the repeat; a 15-digit number with a wrong check digit is flagged. | M | E2E |
 | INV-22 | Inventory screens shall use everyday commerce language and never require knowledge of inventory terms; cost, supplier, batch, expiry and serial fields shall be optional where INV-12/INV-14 allow, shown only when the product or shop type uses them, and their absence shall never block a sale. | A clothing shop never sees expiry or serial fields; a cosmetics shop sees "Expiry date (optional)" when adding stock. | M | E2E |
 
 ### 14.7 Purchasing and receiving (PUR)
@@ -733,6 +735,7 @@ Added 2026-10-17. Lets one product model serve many kinds of shop without a "sho
 | PST-01 | Onboarding shall ask the tenant's main business type from a list (at least clothing, shoes and bags, cosmetics, electronics, mobiles and gadgets, grocery, food and bakery, books and stationery, pharmacy, home and décor, other); the question can be skipped and the answer changed later. | A tenant can pick "Cosmetics", skip it, or change it later from settings. | M | E2E |
 | PST-02 | The business type shall only set defaults and suggestions for new products: suggested categories and attributes (ATR-02), the default stock unit (UOM-01), and whether batch tracking (INV-12), serial tracking (INV-14) or made-to-order (INV-02) are on by default, and the default low-stock threshold (INV-08); it shall never restrict what a product may use. | A cosmetics shop's new products default to batch tracking on; it can still add a hair dryer with batch tracking off. | M | API |
 | PST-03 | Changing the business type shall never alter existing products. | Switching from cosmetics to grocery leaves every existing product's settings unchanged. | M | API |
+| PST-05 | Added 2026-10-17: the shop-type preset shall decide which optional fields the product form shows up front and which sit under a collapsed "More settings" section: at least the serial-tracking switch (INV-14) and the condition (new, used, refurbished; FED-02) up front for electronics and mobiles and gadgets, and the size chart (PRD-17) up front for clothing and shoes and bags; every field stays reachable under "More settings" for every shop type. | A gadget shop sees "Track each unit's IMEI/serial" and "Condition" without expanding anything; a clothing shop sees the size chart instead and finds the serial switch under "More settings". | M | E2E |
 | PST-04 | Preset definitions shall be platform-maintained data, editable by the operator without a deploy. | Adding a suggested attribute to the "Grocery" preset takes effect for the next product created. | S | API |
 
 ### 14.9 Tax classes (TAX) — adopted, scheduled after Phase 3
@@ -1629,7 +1632,7 @@ Each item below changes at least one requirement above if the answer differs. Br
 | AI | 11 | 6 | 5 | 0 |
 | API | 28 | 23 | 5 | 0 |
 | ATL | 6 | 5 | 1 | 0 |
-| ATR | 16 | 14 | 2 | 0 |
+| ATR | 17 | 15 | 2 | 0 |
 | AUD | 8 | 7 | 1 | 0 |
 | AUTH | 26 | 26 | 0 | 0 |
 | AVL | 5 | 3 | 2 | 0 |
@@ -1647,7 +1650,7 @@ Each item below changes at least one requirement above if the answer differs. Br
 | FED | 6 | 6 | 0 | 0 |
 | FPR | 4 | 1 | 3 | 0 |
 | FRD | 14 | 11 | 3 | 0 |
-| INV | 22 | 21 | 1 | 0 |
+| INV | 23 | 22 | 1 | 0 |
 | KYC | 16 | 16 | 0 | 0 |
 | LEG | 3 | 3 | 0 | 0 |
 | LIF | 26 | 23 | 3 | 0 |
@@ -1666,7 +1669,7 @@ Each item below changes at least one requirement above if the answer differs. Br
 | PLN | 18 | 15 | 3 | 0 |
 | PRD | 18 | 17 | 1 | 0 |
 | PRF | 4 | 3 | 1 | 0 |
-| PST | 4 | 3 | 1 | 0 |
+| PST | 5 | 4 | 1 | 0 |
 | PUR | 10 | 9 | 1 | 0 |
 | PYG | 21 | 18 | 3 | 0 |
 | QTA | 7 | 7 | 0 | 0 |
@@ -1689,6 +1692,6 @@ Each item below changes at least one requirement above if the answer differs. Br
 | UPG | 17 | 15 | 2 | 0 |
 | VER | 12 | 12 | 0 | 0 |
 | WAL | 19 | 17 | 2 | 0 |
-| **Total** | **876** | **739** | **119** | **18** |
+| **Total** | **879** | **742** | **119** | **18** |
 
-By verification method: API 427, E2E 271, JOB 51, LOAD 19, MAN 108 (2026-10-17: +58 for ATL, UOM, INV, PUR, PST, TAX, MNU, FPR; +18 for LND; +1 for STO-09; +14 for DLV, FED, PRD-17, PRD-18, ATR-16). Withdrawn IDs (ADM-07, STO-08, BKP-04, MED-14, DAT-48, DAT-49, DAT-50, AUTH-25, RED-12) are not counted. The OBS requirements are counted as Could until paying tenants exceed 50.
+By verification method: API 427, E2E 274, JOB 51, LOAD 19, MAN 108 (2026-10-17: +58 for ATL, UOM, INV, PUR, PST, TAX, MNU, FPR; +18 for LND; +1 for STO-09; +14 for DLV, FED, PRD-17, PRD-18, ATR-16; +3 for ATR-17, INV-23, PST-05). Withdrawn IDs (ADM-07, STO-08, BKP-04, MED-14, DAT-48, DAT-49, DAT-50, AUTH-25, RED-12) are not counted. The OBS requirements are counted as Could until paying tenants exceed 50.
