@@ -4,13 +4,19 @@ import { Test } from '@nestjs/testing';
 import { randomUUID } from 'node:crypto';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { AuditAction, LedgerEntryType, TenantState } from '@lytronix/validators';
+import {
+  AuditAction,
+  LedgerEntryType,
+  PlatformSettingKey,
+  TenantState,
+} from '@lytronix/validators';
 import { AppModule } from '../src/app/app.module';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { MAIL_PROVIDER } from '../src/modules/shared/mail/tokens';
 import { LifecycleService } from '../src/modules/billing/services/lifecycle.service';
 import { PurchaseService } from '../src/modules/billing/services/purchase.service';
 import { BalanceService } from '../src/modules/balance/services/balance.service';
+import { PlatformSettingsService } from '../src/modules/platform-settings/services/platform-settings.service';
 import { TenantResolver } from '../src/modules/tenancy/services/tenant-resolver.service';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase, seedShop } from './support/database';
@@ -30,6 +36,7 @@ let admin: pg.Client;
 let lifecycle: LifecycleService;
 let purchase: PurchaseService;
 let balance: BalanceService;
+let platformSettings: PlatformSettingsService;
 let resolver: TenantResolver;
 const texts = new SmsCapture();
 const mail = new MailCapture();
@@ -110,6 +117,7 @@ beforeAll(async () => {
   lifecycle = app.get(LifecycleService);
   purchase = app.get(PurchaseService);
   balance = app.get(BalanceService);
+  platformSettings = app.get(PlatformSettingsService);
   resolver = app.get(TenantResolver);
 });
 
@@ -157,6 +165,93 @@ describeIfDatabase('LIF-04/09: deriving and applying the lapse state', () => {
     expect(tenant?.state).toBe(TenantState.Locked);
   });
 });
+
+describeIfDatabase(
+  'LIF-26: a stage-length change never retroactively moves an already-lapsed tenant',
+  () => {
+    it('an already-lapsed tenant keeps the schedule it started with; a tenant lapsing after the change gets the new one', async () => {
+      const planId = await seedPlan((nextRank += 1));
+
+      // Tenant A laps first, under the platform's default 3-day grace.
+      const tenantA = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
+      await activateTenant(tenantA, planId, TenantState.Active, new Date(Date.now() - DAY_MS));
+      await lifecycle.runTick(new Date());
+      expect((await tenantRow(tenantA))?.state).toBe(TenantState.Grace); // 1 day < grace(3)
+
+      const operatorId = randomUUID();
+      try {
+        // The operator widens grace from 3 to 10 days.
+        await platformSettings.set(PlatformSettingKey.GraceDays, 10, operatorId);
+
+        // Tenant A's own clock reaches day 5 -- past its own frozen 3-day grace, but inside the new 10-day
+        // one. Without LIF-26's own snapshot, the live (new) setting would wrongly keep it in grace.
+        await admin.query('UPDATE control.tenants SET period_end = $1 WHERE id = $2', [
+          new Date(Date.now() - 5 * DAY_MS),
+          tenantA,
+        ]);
+        await lifecycle.runTick(new Date());
+        expect((await tenantRow(tenantA))?.state).toBe(TenantState.ReadOnly);
+
+        // Tenant B laps for the first time *after* the change -- nothing to freeze from before, so it gets
+        // today's live setting: 5 days is still within the new 10-day grace.
+        const tenantB = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
+        await activateTenant(
+          tenantB,
+          planId,
+          TenantState.Active,
+          new Date(Date.now() - 5 * DAY_MS),
+        );
+        await lifecycle.runTick(new Date());
+        expect((await tenantRow(tenantB))?.state).toBe(TenantState.Grace);
+      } finally {
+        // Other tests in this file assume the platform's own default (3) -- restore it regardless of outcome.
+        await platformSettings.set(PlatformSettingKey.GraceDays, 3, operatorId);
+      }
+    });
+
+    it('clears the frozen schedule on restore, so the next lapse starts fresh', async () => {
+      const planId = await seedPlan((nextRank += 1));
+      const termId = (
+        await admin.query<{ id: string }>(
+          `INSERT INTO control.billing_terms (label_bn, label_en, months, visible, display_order)
+         VALUES ('মাস', '1-month', 1, true, 0) RETURNING id`,
+        )
+      ).rows[0]?.id as string;
+      await admin.query(
+        'INSERT INTO control.plan_prices (plan_id, billing_term_id, price) VALUES ($1, $2, $3)',
+        [planId, termId, '199.00'],
+      );
+      const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
+      await balance.creditStandalone({ tenantId, amount: '1000.00', type: LedgerEntryType.TopUp });
+
+      // Lapses for real under the default 3-day grace -- a snapshot gets written.
+      await activateTenant(tenantId, planId, TenantState.Active, new Date(Date.now() - DAY_MS));
+      await lifecycle.runTick(new Date());
+      expect((await tenantRow(tenantId))?.state).toBe(TenantState.Grace);
+
+      // Restoring (a real purchase) must clear the frozen schedule.
+      const quote = await purchase.quote(tenantId, planId, termId);
+      await purchase.confirmFromBalance(quote.id, tenantId);
+      expect((await tenantRow(tenantId))?.state).toBe(TenantState.Active);
+
+      const operatorId = randomUUID();
+      try {
+        await platformSettings.set(PlatformSettingKey.GraceDays, 1, operatorId);
+
+        // A brand-new lapse, well after the restore -- it should pick up today's (new) 1-day grace, not the
+        // 3-day one frozen during the first lapse.
+        await admin.query('UPDATE control.tenants SET period_end = $1 WHERE id = $2', [
+          new Date(Date.now() - 2 * DAY_MS),
+          tenantId,
+        ]);
+        await lifecycle.runTick(new Date());
+        expect((await tenantRow(tenantId))?.state).toBe(TenantState.ReadOnly); // 2 days >= the new grace(1)
+      } finally {
+        await platformSettings.set(PlatformSettingKey.GraceDays, 3, operatorId);
+      }
+    });
+  },
+);
 
 describeIfDatabase('LIF-15: restoring a lapsed tenant', () => {
   it('a locked, frozen tenant paying from balance ends up active and unfrozen', async () => {

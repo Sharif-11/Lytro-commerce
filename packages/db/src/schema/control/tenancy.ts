@@ -96,6 +96,16 @@ export const tenants = control.table(
     // no separate "notice sent at" column is needed.
     retentionFloorDays: integer('retention_floor_days'),
     retentionFloorUntil: timestamp('retention_floor_until', { withTimezone: true }),
+    // LIF-26: the platform's grace/read-only/locked/archived stage lengths, frozen the first tick this
+    // tenant is found lapsing -- a later change to the live platform settings must not alter the schedule
+    // an already-lapsed tenant started with. Null while active (or never yet lapsed); cleared back to null
+    // whenever the tenant returns to active (applyPlanAssignment), so its *next* lapse snapshots fresh.
+    lapseScheduleSnapshot: jsonb('lapse_schedule_snapshot').$type<{
+      grace: number;
+      readOnly: number;
+      locked: number;
+      archived: number;
+    }>(),
   },
   (t) => [
     index('tenants_subscriber_idx').on(t.subscriberId),

@@ -109,7 +109,6 @@ export class LifecycleService {
   /** LIF-03/23: the recurring job's single entry point. */
   async runTick(now: Date): Promise<LifecycleTickResult> {
     const stages = await this.stageLengths();
-    const deletionDay = this.deletionDayOf(stages);
     const candidates = await this.tenants.runStandalone((tx) =>
       this.tenants.findLapsingCandidates(tx, now),
     );
@@ -123,7 +122,13 @@ export class LifecycleService {
     for (const candidate of candidates) {
       const daysLapsed = daysBetween(candidate.periodEnd, now);
 
-      if (daysLapsed >= deletionDay) {
+      // LIF-26: an already-lapsed tenant keeps the schedule it started with, even if the platform's live
+      // settings have since changed. `lapseScheduleSnapshot` is null only before the first lapsing tick;
+      // every later tick for this same lapse reads the frozen copy instead of today's `stages`.
+      const tenantStages = candidate.lapseScheduleSnapshot ?? stages;
+      const tenantDeletionDay = this.deletionDayOf(tenantStages);
+
+      if (daysLapsed >= tenantDeletionDay) {
         if (await this.deleteIfDue(candidate.id, now)) deleted += 1;
         continue; // a deleted tenant needs no further transition or warning this tick
       }
@@ -136,8 +141,13 @@ export class LifecycleService {
         continue;
       }
 
-      const target = this.deriveState(daysLapsed, stages);
+      const target = this.deriveState(daysLapsed, tenantStages);
       if (target !== candidate.state) {
+        if (candidate.lapseScheduleSnapshot === null) {
+          await this.tenants.runStandalone((tx) =>
+            this.tenants.setLapseScheduleSnapshot(tx, candidate.id, tenantStages),
+          );
+        }
         await this.transition(candidate.id, candidate.state, target);
         transitioned += 1;
       }

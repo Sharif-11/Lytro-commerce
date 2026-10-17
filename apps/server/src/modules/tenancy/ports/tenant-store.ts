@@ -5,6 +5,7 @@ import type {
   LapsingCandidateRow,
   PaygCandidateRow,
   RevocationCandidateRow,
+  StageLengthsSnapshot,
   Transaction,
 } from '@lytronix/db';
 import type { PlanLimits, TenantState } from '@lytronix/validators';
@@ -78,6 +79,12 @@ export interface TenantStore {
   ): Promise<void>;
   /** LIF-03/04/23: the lifecycle job's own state write -- plan, period and balance are untouched. */
   setLifecycleState(tx: Transaction, tenantId: string, state: TenantState): Promise<void>;
+  /** LIF-26: freezes today's stage lengths onto the tenant the first tick it's found lapsing. */
+  setLapseScheduleSnapshot(
+    tx: Transaction,
+    tenantId: string,
+    snapshot: StageLengthsSnapshot,
+  ): Promise<void>;
   /** LIF-24: an operator closing the public/dashboard side for cause, independent of `state` (checked directly). */
   setSuspension(tx: Transaction, tenantId: string, reason: string, at: Date): Promise<void>;
   /** LIF-15/24: lifts a suspension -- restore (any plan activation) and operator restore both call this. */

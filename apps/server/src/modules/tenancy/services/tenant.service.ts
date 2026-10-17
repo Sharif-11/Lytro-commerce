@@ -154,6 +154,15 @@ export class TenantService {
     return this.store.setLifecycleState(tx, tenantId, state);
   }
 
+  /** LIF-26: freezes today's stage lengths onto the tenant the first tick it's found lapsing. */
+  setLapseScheduleSnapshot(
+    tx: Transaction,
+    tenantId: string,
+    snapshot: Parameters<TenantStore['setLapseScheduleSnapshot']>[2],
+  ): Promise<void> {
+    return this.store.setLapseScheduleSnapshot(tx, tenantId, snapshot);
+  }
+
   /** LIF-24: an operator closing the public/dashboard side for cause, independent of `state`. */
   setSuspension(tx: Transaction, tenantId: string, reason: string, at: Date): Promise<void> {
     return this.store.setSuspension(tx, tenantId, reason, at);

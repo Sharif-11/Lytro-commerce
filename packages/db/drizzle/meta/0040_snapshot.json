@@ -1,5 +1,5 @@
 {
-  "id": "6fa5ac5b-0c35-46c1-8688-11828c1a5b05",
+  "id": "33276ce8-643b-415d-acc0-0bd3244ae75a",
   "prevId": "47f2031e-b726-4fc8-82f3-85092630a753",
   "version": "7",
   "dialect": "postgresql",
@@ -854,18 +854,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "plan_version_snapshot": {
-          "name": "plan_version_snapshot",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "feature_snapshot": {
-          "name": "feature_snapshot",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
         "period_start": {
           "name": "period_start",
           "type": "timestamp with time zone",
@@ -976,6 +964,12 @@
         "retention_floor_until": {
           "name": "retention_floor_until",
           "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lapse_schedule_snapshot": {
+          "name": "lapse_schedule_snapshot",
+          "type": "jsonb",
           "primaryKey": false,
           "notNull": false
         }

@@ -285,8 +285,15 @@
     {
       "idx": 40,
       "version": "7",
-      "when": 1792226260254,
-      "tag": "0040_purchase_snapshot_version_features",
+      "when": 1792225165429,
+      "tag": "0040_lapse_schedule_snapshot",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1792227123787,
+      "tag": "0041_purchase_snapshot_version_features",
       "breakpoints": true
     }
   ]
