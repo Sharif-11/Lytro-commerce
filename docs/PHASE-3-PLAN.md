@@ -104,11 +104,11 @@ Rules used below:
 | PYG | PYG-16 (deferred here from Phase 2) | 1 |
 | API | API-03, 04, 05, 08, 10, 23, 24 (public keys, D3-1) | 7 |
 | LND | LND-01, 02, 03, 04, 05, 06, 14, 17, 18 | 9 |
-| DLV | DLV-01, 02, 05 (delivery zones, added 2026-10-17) | 3 |
+| DLV | DLV-01, 02, 05 (delivery zones around the tenant's home area, added 2026-10-17) | 3 |
 | FED | FED-01 – 06 (Meta catalog feed, added 2026-10-17) | 6 |
 | | **Total** | **163** |
 
-### 3.2 Partially completed by this phase (38)
+### 3.2 Partially completed by this phase (39)
 
 | Req | Done in this phase | Remaining | Finished in |
 |---|---|---|---|
@@ -145,6 +145,7 @@ Rules used below:
 | LND-15 | Meta Pixel `PageView` and `ViewContent` fire on the landing page, with `content_ids` matching the catalog feed's item IDs | `InitiateCheckout` and `Purchase`, which need the order form | Phase 4 |
 | INV-14 | serials recorded at receiving or added later, with a missing-serials count | serial required before a line ships | Phase 4 |
 | INV-23 | scan, paste and typed serial entry with duplicate and IMEI check-digit validation, at receiving and "add missing" | the same entry when shipping a line | Phase 4 |
+| CUS-08 | the canonical location list with its division and city groups, and its read endpoint — pulled forward from Phase 4 because delivery zones are built from it | proof that connecting couriers never changes it (couriers arrive in Phase 6) | Phase 6 |
 | DLV-06 | "no delivery" zones stored and shown in the delivery settings and on product and landing pages | refusal at public order creation; warning on staff orders | Phase 4 |
 | DLV-07 | product zone limits stored and shown on product and landing pages; zone delete refused while a limit uses it | refusal at order creation, including for combos | Phase 4 |
 | INV-24 | shared stock with pack amounts: availability per variant, adding stock as packs, reservations through the shared stock | the order line's pack-amount snapshot and returns through it | Phase 4 |
@@ -205,7 +206,7 @@ Read each row as: the requirements on the left can only be built or proven once 
 | LND-15, 18 | LND-17 | tracking fires only once a pixel is configured |
 | LND-07–12 (Phase 4) | ORD-02, ORD-06, CUS-08, API-11, RTE-06, INV-15 | the order form creates an ordinary order |
 | LND-10 (Phases 4–5) | PRD-08, INV-16, PAY-01, SFT-07 | payment follows the product's policy through the hosted payment page |
-| DLV-01, 02 | CUS-08 | zones are sets of canonical districts and thanas |
+| DLV-01, 02, 05 | CUS-08 | zones are built from the canonical areas: divisions, districts, cities and thanas |
 | DLV-03 | PRD-01, ATR-13 | the product and variant delivery charge becomes an override |
 | ORD-06a, SFT-20, LND-08 (Phase 4) | DLV-02, DLV-03, RAT-14 | the order's thana picks the zone; overrides and weight extras apply on top |
 | PRD-08 "delivery charge only" (Phase 4) | ORD-06a | the advance equals the computed delivery charge |
@@ -275,7 +276,8 @@ All in `DATABASE-SCHEMA.md` §3.2 (rewritten 2026-10-17), plus:
 | API keys | `api_keys` (hashed, public subset), `api_key_origins`, `request_counters` | 8 |
 | Landing links | `product_slug_redirects` (old slug → product, LND-04) | 1 |
 | Ad tracking | `ad_tracking_settings` (pixel ID, encrypted Conversions API token, LND-15–17) | 9 |
-| Delivery zones | `delivery_zones`, `delivery_zone_areas` (DLV-01, 02), seeded with Inside/Outside Dhaka for every tenant | 1 |
+| Delivery zones | `delivery_zones` (home and fallback zones always present), `delivery_zone_areas` at four levels (DLV-01, 02), seeded with Inside/Outside Dhaka city for every tenant | 1 |
+| Locations | `control.locations` with `control.divisions` and `control.cities` groups (CUS-08, pulled forward from Phase 4) | 1 |
 | Size charts, option sets | `size_charts` (product or category, image or table, PRD-17), `option_sets` (platform and tenant, ATR-16) | 1 |
 | Catalog feed | `catalog_feeds` (hashed feed token, FED-01, FED-05) | 9 |
 | Mixed shops | `categories.behaves_like` (PST-06) | 1 |
@@ -327,8 +329,10 @@ their backend ships earlier.
   | Other | piece | – | – | – | — |
   Slugs are fixed at creation and never follow a rename; a deliberate slug change records the old slug in
   `product_slug_redirects` (LND-04).
-  Also added 2026-10-17 for Facebook sellers: delivery zones seeded with "Inside Dhaka" and "Outside
-  Dhaka" for every tenant, with the product delivery charge made an optional override; the shop-wide
+  Also added 2026-10-17 for Facebook sellers: delivery zones built around the tenant's home area
+  ("Inside/Outside Dhaka city" until the tenant picks another city, district or set of thanas), from the
+  canonical location list and its city and division groups (CUS-08, pulled forward from Phase 4), with the
+  product delivery charge made an optional override; the shop-wide
   default payment policy and the "delivery charge only" option; size charts on categories and products;
   quick option sets (S–XXL, 38–44, common colors) seeded per preset, plus tenant-saved sets; and
   "Duplicate product". Also: categories that behave like another shop type, for shops selling several kinds
@@ -336,12 +340,13 @@ their backend ships earlier.
 - **Requirements completed:** PRD-01, 02, 03, 04, 05, 14, 15, 16, 18; ATR-01, 03, 04, 05, 06, 10, 12, 14;
   ATL-01–05; UOM-01, 02; PST-02, 03, 04, 06; DWN-07; PYG-16; LND-04; DLV-01, 02. *(E2E halves: PRD-03, ATR-02,
   ATR-11, ATR-16, PRD-12, PST-01, DLV-05 finish in Slice 11; PRD-17 in Slices 11 and 12.)*
-- **Partial:** PRD-06, PRD-08, PRD-13, ATR-07, ATR-08, ATR-13, ATR-15, DLV-03, DLV-04, DLV-06, DLV-07, TRL-03 (products),
+- **Partial:** PRD-06, PRD-08, PRD-13, ATR-07, ATR-08, ATR-13, ATR-15, DLV-03, DLV-04, DLV-06, DLV-07, CUS-08, TRL-03 (products),
   PLN-19 (products).
 - **Done when:** a T-shirt with Size × Color saves as one transaction with 6 variants and counts once
   against the limit; a duplicate Red/L and a 4th variant-defining attribute are refused by the database,
   not just the API; a pay-as-you-go tenant is charged once per product; a new shop has the two default
-  zones and every thana resolves to exactly one; duplicating that T-shirt gives an inactive copy with 6
+  zones and every thana resolves to exactly one, and picking Chattogram city as the home area renames and
+  refills them at the same charges; duplicating that T-shirt gives an inactive copy with 6
   variants at zero stock and no new storage usage.
 
 ### Slice 2: inventory ledger core
@@ -466,8 +471,8 @@ their backend ships earlier.
   supplier"/"It arrived"; suppliers; profit, stock value and losses (gated per D3-9); API keys; usage
   page with the bandwidth chart; each product's landing link with copy, Facebook-share and
   WhatsApp-share actions (and per-variant links); the ad-tracking settings screen (pixel ID, Conversions
-  API token entered once); delivery settings with the two Dhaka charges up front and an "Add zone"
-  editor; size-chart editor; one-tap option sets in the variant editor; "Duplicate product"; the catalog
+  API token entered once); delivery settings with the home-area picker and its two charges up front, and an "Add zone"
+  editor that adds a whole division, district or city in one step; size-chart editor; one-tap option sets in the variant editor; "Duplicate product"; the catalog
   feed link with copy and setup steps; a category's "behaves like" setting; "no delivery" zones and a
   product's "Delivers to" limit; "Sizes share one stock" with each size's amount; per-shop-type form layout with "More settings"; price and stock
   columns with "Fill all" in the variant grid; IMEI/serial entry by camera scan, pasted list or typing.

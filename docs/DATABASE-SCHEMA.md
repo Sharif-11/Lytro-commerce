@@ -326,14 +326,29 @@ CREATE TABLE control.platform_settings (
 ### 2.5 Canonical locations and courier mapping
 
 ```sql
+CREATE TABLE control.divisions (                    -- CUS-08: the 8 divisions
+    code            text PRIMARY KEY,               -- 'dhaka', 'chattogram', ...
+    name_en         text NOT NULL,
+    name_bn         text NOT NULL
+);
+
+CREATE TABLE control.cities (                       -- CUS-08: one per city corporation; Dhaka North and South
+    code            text PRIMARY KEY,               -- together form 'dhaka' ("Dhaka city"), so 11 rows
+    name_en         text NOT NULL,
+    name_bn         text NOT NULL
+);
+
 CREATE TABLE control.locations (
     id              serial PRIMARY KEY,
     zilla           text NOT NULL,
     thana           text NOT NULL,
+    division_code   text NOT NULL REFERENCES control.divisions(code),  -- the zilla's division
+    city_code       text REFERENCES control.cities(code),              -- null = outside every city area
     UNIQUE (zilla, thana)
 );
 -- CUS-08: one platform-wide list, seeded once from the standard 64-district dataset,
--- identical for every tenant regardless of which couriers it has connected.
+-- identical for every tenant regardless of which couriers it has connected. A thana belongs to at most one
+-- city. Adding a thana or changing its city is a platform data change, announced on the notice board (DLV-02).
 
 CREATE TABLE control.courier_location_map (
     id              serial PRIMARY KEY,
@@ -828,24 +843,31 @@ CREATE TABLE tenant.delivery_zones (                -- DLV-01; seeded with two r
     name            varchar(60) NOT NULL,
     charge          numeric(10,2) NOT NULL CHECK (charge >= 0),
     is_fallback     boolean NOT NULL DEFAULT false, -- DLV-02: exactly one per tenant, never deleted
+    is_home         boolean NOT NULL DEFAULT false, -- DLV-01: "Inside <home area>", exactly one, never deleted
+    auto_named      boolean NOT NULL DEFAULT true,  -- DLV-01: follows the home area's name until renamed
     no_delivery     boolean NOT NULL DEFAULT false, -- DLV-06: public orders to this zone are refused
     UNIQUE (tenant_id, id)
 );
 CREATE UNIQUE INDEX delivery_zones_one_fallback ON tenant.delivery_zones (tenant_id) WHERE is_fallback;
+CREATE UNIQUE INDEX delivery_zones_one_home ON tenant.delivery_zones (tenant_id) WHERE is_home;
 
-CREATE TABLE tenant.delivery_zone_areas (           -- DLV-01, DLV-02: CUS-08 districts or thanas
+CREATE TABLE tenant.delivery_zone_areas (           -- DLV-01, DLV-02: CUS-08 areas at four levels
     tenant_id       uuid NOT NULL,
     zone_id         uuid NOT NULL,
-    district_code   text,                           -- exactly one of district_code, thana_code
-    thana_code      text,
-    CHECK ((district_code IS NULL) <> (thana_code IS NULL)),
+    division_code   text,                           -- exactly one of these four is set
+    zilla           text,                           -- a whole district, by its control.locations.zilla
+    city_code       text,                           -- a whole city area (control.cities)
+    location_id     integer,                        -- one thana (control.locations.id)
+    CHECK (num_nonnulls(division_code, zilla, city_code, location_id) = 1),
     FOREIGN KEY (tenant_id, zone_id) REFERENCES tenant.delivery_zones(tenant_id, id) ON DELETE CASCADE
 );
-CREATE UNIQUE INDEX delivery_zone_areas_district ON tenant.delivery_zone_areas (tenant_id, district_code)
-    WHERE district_code IS NOT NULL;
-CREATE UNIQUE INDEX delivery_zone_areas_thana ON tenant.delivery_zone_areas (tenant_id, thana_code)
-    WHERE thana_code IS NOT NULL;
--- Resolution (DLV-02): a row naming the thana, else a row naming its district, else the fallback zone.
+CREATE UNIQUE INDEX ON tenant.delivery_zone_areas (tenant_id, division_code) WHERE division_code IS NOT NULL;
+CREATE UNIQUE INDEX ON tenant.delivery_zone_areas (tenant_id, zilla) WHERE zilla IS NOT NULL;
+CREATE UNIQUE INDEX ON tenant.delivery_zone_areas (tenant_id, city_code) WHERE city_code IS NOT NULL;
+CREATE UNIQUE INDEX ON tenant.delivery_zone_areas (tenant_id, location_id) WHERE location_id IS NOT NULL;
+-- Resolution (DLV-02): the zone naming the thana, else its city, else its zilla, else its division, else the
+-- fallback zone. Cities and divisions are stored as groups, never expanded, so platform changes flow through.
+-- Every tenant starts with the home zone (one area: city_code 'dhaka', charge 70) and the fallback (130).
 -- The order line stores its computed delivery_charge (ORD-46), so editing a zone never changes old orders.
 
 CREATE TABLE tenant.product_delivery_zones (        -- DLV-07: no rows = the product goes wherever the shop delivers
