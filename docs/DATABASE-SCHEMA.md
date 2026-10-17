@@ -550,8 +550,11 @@ CREATE TABLE tenant.attribute_options (
     attribute_id    uuid NOT NULL REFERENCES tenant.attributes(id),
     tenant_id       uuid,                         -- mirrors the attribute's scope (same RLS rule)
     value           varchar(80) NOT NULL,
+    swatch_color    char(7) CHECK (swatch_color ~ '^#[0-9A-Fa-f]{6}$'),  -- ATR-18, optional
+    swatch_image_id uuid,                         -- ATR-18, optional; at most one of the two
     sort_order      integer NOT NULL DEFAULT 0,
     retired_at      timestamptz,
+    CHECK (swatch_color IS NULL OR swatch_image_id IS NULL),
     UNIQUE (attribute_id, lower(value))
 );
 

@@ -80,12 +80,12 @@ Rules used below:
 - **Partial** means this phase builds a working part, and a named later phase finishes the rest.
 - Notices delivered through the D3-5 stub count as complete, the same rule Phase 2 applied to `BAL-13`.
 
-### 3.1 Completed by this phase (161)
+### 3.1 Completed by this phase (162)
 
 | Family | Requirements | Count |
 |---|---|---|
 | PRD | PRD-01, 02, 03, 04, 05, 09, 10, 11, 12, 14, 15, 16, 17 (size charts), 18 (duplicate product) | 14 |
-| ATR | ATR-01, 02, 03, 04, 05, 06, 10, 11, 12, 14, 16 (quick option sets), 17 (variant grid fill-all) | 12 |
+| ATR | ATR-01, 02, 03, 04, 05, 06, 10, 11, 12, 14, 16 (quick option sets), 17 (variant grid fill-all), 18 (option swatches) | 13 |
 | ATL | ATL-01, 02, 03, 04, 05 | 5 |
 | UOM | UOM-01, 02, 03 | 3 |
 | INV | INV-01 – INV-13, INV-18, 19, 20, 21, 22 | 18 |
@@ -106,7 +106,7 @@ Rules used below:
 | LND | LND-01, 02, 03, 04, 05, 06, 14, 17, 18 | 9 |
 | DLV | DLV-01, 02, 05 (delivery zones, added 2026-10-17) | 3 |
 | FED | FED-01 – 06 (Meta catalog feed, added 2026-10-17) | 6 |
-| | **Total** | **161** |
+| | **Total** | **162** |
 
 ### 3.2 Partially completed by this phase (35)
 
@@ -462,7 +462,7 @@ their backend ships earlier.
   admin app already uses (transliterated domain nouns such as স্টক, প্রোডাক্ট — never formal or technical
   inventory terms).
 - **Requirements completed (E2E halves):** PST-01; ATR-02, ATR-11; PRD-03, PRD-12; INV-06, 07, 09, 22;
-  PUR-07, PUR-09; BND-08; LND-06; ATR-16; ATR-17; PST-05; DLV-05; FED-06. *(INV-23's scan and paste
+  PUR-07, PUR-09; BND-08; LND-06; ATR-16; ATR-17; PST-05; DLV-05; FED-06; ATR-18 (dashboard half; the shopper-facing picker in Slice 12). *(INV-23's scan and paste
   entry is built here; its shipping half is Phase 4.)*
 - **Done when:** a non-technical walkthrough (clothing, cosmetics and grocery presets) completes product
   creation, add stock, stock check and planned purchase without anyone seeing an inventory term or an
@@ -484,7 +484,7 @@ their backend ships earlier.
     page's content, with `content_ids` set to the feed's variant IDs; the "Size chart" link on the
     product page and the landing page. The order form's fields are laid out but not submittable until Phase 4.
 - **Requirements completed:** SFT-01, 02, 03, 04, 05, 11, 12, 14, 15, 16, 17, 18, 19, 21; I18N-02; TEN-08;
-  TEN-17; CCH-10; LND-01, 02, 03, 05, 14, 18; PRD-17.
+  TEN-17; CCH-10; LND-01, 02, 03, 05, 14, 18; PRD-17; ATR-18.
 - **Partial:** SFT-10, SFT-13, I18N-01, LND-13, LND-15.
 - **Done when:** the milestone (exit criterion 4) passes; two tenants show different catalogues and
   branding with the same layout from one deployment; lapsing a tenant replaces both its storefront and

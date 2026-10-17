@@ -597,6 +597,7 @@ Nothing about a product's attributes is ever mandatory: a tenant creates an attr
 | ATR-15 | Marking an existing informational attribute as variant-defining, or the reverse, shall be allowed only before the product has any orders; after that it shall be blocked with a message to create a new product instead. | Toggling Size to variant-defining on a product with past orders is refused. | S | API |
 | ATR-16 | Added 2026-10-17: when adding options to a variant-defining attribute, the product edit screen shall offer ready option sets inserted in one tap — at least clothing sizes (S, M, L, XL, XXL), shoe sizes (38 to 44) and common colors — editable after insertion; a tenant may also save its own option set from any attribute's options for reuse. Option sets are platform-maintained presets plus the tenant's own, never mandatory. | Tapping "S–XXL" on a new "Size" attribute adds five options at once, and removing XXL afterwards leaves four; a saved "Kids sizes" set appears on the next product. | M | E2E |
 | ATR-17 | Added 2026-10-17: the variant grid (ATR-11) shall show a stock column and a price column for every variant, with a "Fill all" action for each that sets one value on every variant (or every variant sharing one option, such as all 256 GB), after which single cells stay editable; the price column shall start at the product's price. | Filling stock 5 for all 10 variants sets each to 5; filling price 28,000 for "256 GB" changes only the 256 GB variants; editing one cell afterwards changes only that cell. | M | E2E |
+| ATR-18 | Added 2026-10-17: any option of a variant-defining attribute may carry an optional swatch, either a colour (picked from a colour picker or sampled from a product photo) or a small image (MED-03); the swatch belongs to the option, so it shows on every product using that option, and the platform's common colours (ATR-16) come with theirs already set. The product page (SFT-04) and landing page (LND-01) variant pickers shall show each option's swatch with its name; an option without a swatch shows its name alone. | Giving "Ruby 05" a red swatch shows a red dot beside it on every product that has that shade; "Red" from the common colours shows its dot with no setup; a size option with no swatch shows just "M". | M | E2E |
 | ATR-05 | Amended 2026-10-17: each variant shall have its own stock (held as an INV stock level; a whole number for discrete units and a decimal for measured units, UOM-03), an optional cost price (INV-10), an optional price override (default the product's base price), an optional barcode/SKU, and its own image; stock reservation and release (PRD-07) shall operate per variant. | Two variants of one product can have different stock and price; reserving one variant's stock does not affect another's. | M | API |
 | ATR-06 | A variant combination shall be unique within its product; creating a duplicate combination shall be refused. | Adding a second "Red / L" variant to the same product returns `conflict`. | M | API |
 | ATR-07 | The public catalogue and order-creation endpoints shall expose only variants with available stock (INV-01; or, for a product whose stock is not tracked, INV-02, the product's active flag) and shall require a variant ID, not a bare product ID, when creating an order line. | Creating an order line with a product ID but no variant is rejected; an out-of-stock variant is not offered. | M | API |
@@ -1632,7 +1633,7 @@ Each item below changes at least one requirement above if the answer differs. Br
 | AI | 11 | 6 | 5 | 0 |
 | API | 28 | 23 | 5 | 0 |
 | ATL | 6 | 5 | 1 | 0 |
-| ATR | 17 | 15 | 2 | 0 |
+| ATR | 18 | 16 | 2 | 0 |
 | AUD | 8 | 7 | 1 | 0 |
 | AUTH | 26 | 26 | 0 | 0 |
 | AVL | 5 | 3 | 2 | 0 |
@@ -1692,6 +1693,6 @@ Each item below changes at least one requirement above if the answer differs. Br
 | UPG | 17 | 15 | 2 | 0 |
 | VER | 12 | 12 | 0 | 0 |
 | WAL | 19 | 17 | 2 | 0 |
-| **Total** | **879** | **742** | **119** | **18** |
+| **Total** | **880** | **743** | **119** | **18** |
 
-By verification method: API 427, E2E 274, JOB 51, LOAD 19, MAN 108 (2026-10-17: +58 for ATL, UOM, INV, PUR, PST, TAX, MNU, FPR; +18 for LND; +1 for STO-09; +14 for DLV, FED, PRD-17, PRD-18, ATR-16; +3 for ATR-17, INV-23, PST-05). Withdrawn IDs (ADM-07, STO-08, BKP-04, MED-14, DAT-48, DAT-49, DAT-50, AUTH-25, RED-12) are not counted. The OBS requirements are counted as Could until paying tenants exceed 50.
+By verification method: API 427, E2E 275, JOB 51, LOAD 19, MAN 108 (2026-10-17: +58 for ATL, UOM, INV, PUR, PST, TAX, MNU, FPR; +18 for LND; +1 for STO-09; +14 for DLV, FED, PRD-17, PRD-18, ATR-16; +4 for ATR-17, ATR-18, INV-23, PST-05). Withdrawn IDs (ADM-07, STO-08, BKP-04, MED-14, DAT-48, DAT-49, DAT-50, AUTH-25, RED-12) are not counted. The OBS requirements are counted as Could until paying tenants exceed 50.
