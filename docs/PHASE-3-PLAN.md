@@ -80,12 +80,12 @@ Rules used below:
 - **Partial** means this phase builds a working part, and a named later phase finishes the rest.
 - Notices delivered through the D3-5 stub count as complete, the same rule Phase 2 applied to `BAL-13`.
 
-### 3.1 Completed by this phase (148)
+### 3.1 Completed by this phase (160)
 
 | Family | Requirements | Count |
 |---|---|---|
-| PRD | PRD-01, 02, 03, 04, 05, 09, 10, 11, 12, 14, 15, 16 | 12 |
-| ATR | ATR-01, 02, 03, 04, 05, 06, 10, 11, 12, 14 | 10 |
+| PRD | PRD-01, 02, 03, 04, 05, 09, 10, 11, 12, 14, 15, 16, 17 (size charts), 18 (duplicate product) | 14 |
+| ATR | ATR-01, 02, 03, 04, 05, 06, 10, 11, 12, 14, 16 (quick option sets) | 11 |
 | ATL | ATL-01, 02, 03, 04, 05 | 5 |
 | UOM | UOM-01, 02, 03 | 3 |
 | INV | INV-01 – INV-14, INV-18, 19, 20, 21, 22 | 19 |
@@ -104,15 +104,17 @@ Rules used below:
 | PYG | PYG-16 (deferred here from Phase 2) | 1 |
 | API | API-03, 04, 05, 08, 10, 23, 24 (public keys, D3-1) | 7 |
 | LND | LND-01, 02, 03, 04, 05, 06, 14, 17, 18 | 9 |
-| | **Total** | **148** |
+| DLV | DLV-01, 02, 05 (delivery zones, added 2026-10-17) | 3 |
+| FED | FED-01 – 06 (Meta catalog feed, added 2026-10-17) | 6 |
+| | **Total** | **160** |
 
-### 3.2 Partially completed by this phase (31)
+### 3.2 Partially completed by this phase (33)
 
 | Req | Done in this phase | Remaining | Finished in |
 |---|---|---|---|
 | PRD-06 | inactive products hidden from the public catalogue | a public order containing one is refused; staff orders allowed | Phase 4 |
 | PRD-07 | atomic reservation primitive, proven under concurrency (INV-15) | wired into order creation; failed creation restores | Phase 4 |
-| PRD-08 | payment policy and advance amount stored per product | per-line advance and COD remainder computed at order creation | Phase 4 |
+| PRD-08 | payment policy (including "delivery charge only") and advance amount stored per product, plus the shop-wide default policy | per-line advance, the delivery-charge advance and COD remainder computed at order creation | Phase 4 |
 | PRD-13 | soft and hard delete of products and variants | proof that past orders still display after a hard delete | Phase 4 |
 | ATR-07 | public catalogue exposes only available variants | order creation requires a variant ID | Phase 4 |
 | ATR-08 | the captured-at-order-time attribute role exists | the value is entered and stored on the order line | Phase 4 |
@@ -140,7 +142,9 @@ Rules used below:
 | API-21 | key creation and revocation audited | writes made with a key audited | Phase 4 |
 | DAT-13 | full-text and trigram indexes for product search | phone/name search on orders and customers | Phase 4 |
 | LND-13 | landing-page product content cached and fresh within 60 s | the order form's live price and stock read from PostgreSQL at submission | Phase 4 |
-| LND-15 | Meta Pixel `PageView` and `ViewContent` fire on the landing page | `InitiateCheckout` and `Purchase`, which need the order form | Phase 4 |
+| LND-15 | Meta Pixel `PageView` and `ViewContent` fire on the landing page, with `content_ids` matching the catalog feed's item IDs | `InitiateCheckout` and `Purchase`, which need the order form | Phase 4 |
+| DLV-03 | product and variant delivery charge stored as an optional override, unset by default | the zone charge used for lines without one (ORD-06a) | Phase 4 |
+| DLV-04 | zone changes recorded in the activity log | proof that an existing order keeps its stored delivery charge | Phase 4 |
 
 ### 3.3 Listed for Phase 3 but not built here
 
@@ -149,7 +153,8 @@ Rules used below:
 | QTA-01 – 07 | counted at order handling, which needs orders (D3-3) | Phase 4 (manual trigger), Phase 6 (courier trigger) |
 | RTE-08, RTE-09 | order creations and payment sessions per minute or period | Phases 4, 5 |
 | BND-04, RTE-11 | auto-buy packs depend on add-ons (PLN-13–15), deferred since Phase 2 | with add-ons |
-| SFT-06, 08, 09, 20 | checkout, tracking, shopper accounts, delivery estimate | Phase 4 |
+| SFT-06, 08, 09, 20 | checkout, tracking, shopper accounts, delivery estimate (by delivery zone) | Phase 4 |
+| ORD-06a (amended 2026-10-17) | the zone charge once per order, with product overrides and weight extras; computed at order creation | Phase 4 |
 | SFT-07 | hosted payment redirect | Phase 5 |
 | ATL-06, UOM-04, ATR-09 | snapshotting and validation on order lines | Phase 4 |
 | TAX-01 – 03, MNU-01 – 05 | adopted 2026-10-17, need order lines | with or after Phase 4 |
@@ -195,6 +200,15 @@ Read each row as: the requirements on the left can only be built or proven once 
 | LND-15, 18 | LND-17 | tracking fires only once a pixel is configured |
 | LND-07–12 (Phase 4) | ORD-02, ORD-06, CUS-08, API-11, RTE-06, INV-15 | the order form creates an ordinary order |
 | LND-10 (Phases 4–5) | PRD-08, INV-16, PAY-01, SFT-07 | payment follows the product's policy through the hosted payment page |
+| DLV-01, 02 | CUS-08 | zones are sets of canonical districts and thanas |
+| DLV-03 | PRD-01, ATR-13 | the product and variant delivery charge becomes an override |
+| ORD-06a, SFT-20, LND-08 (Phase 4) | DLV-02, DLV-03, RAT-14 | the order's thana picks the zone; overrides and weight extras apply on top |
+| PRD-08 "delivery charge only" (Phase 4) | ORD-06a | the advance equals the computed delivery charge |
+| PRD-17 | PRD-03, PRD-15, MED-03 | a chart is inherited from the primary category; an image chart is an uploaded file |
+| PRD-18 | PRD-01, ATR-04, PRD-04, MED-04 | copies the variant matrix, counts toward the limit, reuses stored images |
+| ATR-16 | ATL-01, PST-02 | option sets are library options seeded by presets |
+| FED-01–05 | PRD-09, ATR-07, INV-01, CCH-01–04, LND-01, LND-06 | the feed is another public catalogue view whose links are landing pages |
+| LND-15 `content_ids` | FED-02 | pixel item IDs must equal the feed's item IDs |
 
 ---
 
@@ -253,6 +267,9 @@ All in `DATABASE-SCHEMA.md` §3.2 (rewritten 2026-10-17), plus:
 | API keys | `api_keys` (hashed, public subset), `api_key_origins`, `request_counters` | 8 |
 | Landing links | `product_slug_redirects` (old slug → product, LND-04) | 1 |
 | Ad tracking | `ad_tracking_settings` (pixel ID, encrypted Conversions API token, LND-15–17) | 9 |
+| Delivery zones | `delivery_zones`, `delivery_zone_areas` (DLV-01, 02), seeded with Inside/Outside Dhaka for every tenant | 1 |
+| Size charts, option sets | `size_charts` (product or category, image or table, PRD-17), `option_sets` (platform and tenant, ATR-16) | 1 |
+| Catalog feed | `catalog_feeds` (hashed feed token, FED-01, FED-05) | 9 |
 
 New permissions in the validators' `Permission` enum: `inventory:read`, `inventory:manage`, `keys:manage`.
 New platform settings: `reservation_expiry_minutes`, `expiry_warning_days`, and the cache lifetimes
@@ -299,13 +316,21 @@ their backend ships earlier.
   | Other | piece | – | – | – | — |
   Slugs are fixed at creation and never follow a rename; a deliberate slug change records the old slug in
   `product_slug_redirects` (LND-04).
-- **Requirements completed:** PRD-01, 02, 03, 04, 05, 14, 15, 16; ATR-01, 03, 04, 05, 06, 10, 12, 14;
-  ATL-01–05; UOM-01, 02; PST-02, 03, 04; DWN-07; PYG-16; LND-04. *(E2E halves: PRD-03, ATR-02, ATR-11,
-  PRD-12, PST-01 finish in Slice 11.)*
-- **Partial:** PRD-06, PRD-08, PRD-13, ATR-07, ATR-08, ATR-13, ATR-15, TRL-03 (products), PLN-19 (products).
+  Also added 2026-10-17 for Facebook sellers: delivery zones seeded with "Inside Dhaka" and "Outside
+  Dhaka" for every tenant, with the product delivery charge made an optional override; the shop-wide
+  default payment policy and the "delivery charge only" option; size charts on categories and products;
+  quick option sets (S–XXL, 38–44, common colors) seeded per preset, plus tenant-saved sets; and
+  "Duplicate product".
+- **Requirements completed:** PRD-01, 02, 03, 04, 05, 14, 15, 16, 18; ATR-01, 03, 04, 05, 06, 10, 12, 14;
+  ATL-01–05; UOM-01, 02; PST-02, 03, 04; DWN-07; PYG-16; LND-04; DLV-01, 02. *(E2E halves: PRD-03, ATR-02,
+  ATR-11, ATR-16, PRD-12, PST-01, DLV-05 finish in Slice 11; PRD-17 in Slices 11 and 12.)*
+- **Partial:** PRD-06, PRD-08, PRD-13, ATR-07, ATR-08, ATR-13, ATR-15, DLV-03, DLV-04, TRL-03 (products),
+  PLN-19 (products).
 - **Done when:** a T-shirt with Size × Color saves as one transaction with 6 variants and counts once
   against the limit; a duplicate Red/L and a 4th variant-defining attribute are refused by the database,
-  not just the API; a pay-as-you-go tenant is charged once per product.
+  not just the API; a pay-as-you-go tenant is charged once per product; a new shop has the two default
+  zones and every thana resolves to exactly one; duplicating that T-shirt gives an inactive copy with 6
+  variants at zero stock and no new storage usage.
 
 ### Slice 2: inventory ledger core
 - **Depends on:** Slice 1.
@@ -396,13 +421,16 @@ their backend ships earlier.
   cache-key normalisation; ETag/304; the process-memory LRU (100 MB cap, coalesced misses); edge headers
   with stale-while-revalidate; full-text and trigram search; immutable image URLs; product lookup by
   slug with old-slug redirect resolution; the tenant's ad-tracking settings (pixel ID in public responses,
-  Conversions API token encrypted, never returned, changes audited).
+  Conversions API token encrypted, never returned, changes audited); the Meta catalog feed (a CSV at a
+  secret per-shop URL, one row per variant grouped by product, landing-page links with `?v=`, served from
+  the catalogue cache by version, regenerable).
 - **Requirements completed:** PRD-09, PRD-10; CCH-01–06, CCH-08, 09, 11, 12 (CCH-10 is the storefront's
-  service worker, Slice 12); LND-17.
+  service worker, Slice 12); LND-17; FED-01–05.
 - **Partial:** CCH-07, CCH-13, DAT-13, ATR-07 (catalogue half).
 - **Done when:** 200 simultaneous requests for one uncached list cause one database query; a price edit
   is visible within 60 s with purging disabled; a 50,000-product tenant's page and search meet the
-  response target; a tracking parameter or a cookie never creates a new cache entry.
+  response target; a tracking parameter or a cookie never creates a new cache entry; Meta Commerce
+  Manager accepts the feed URL, and after regeneration the old URL returns 404.
 
 ### Slice 10: limits, usage and downgrade integration
 - **Depends on:** Slices 1, 6, 7, 8.
@@ -423,11 +451,13 @@ their backend ships earlier.
   supplier"/"It arrived"; suppliers; profit, stock value and losses (gated per D3-9); API keys; usage
   page with the bandwidth chart; each product's landing link with copy, Facebook-share and
   WhatsApp-share actions (and per-variant links); the ad-tracking settings screen (pixel ID, Conversions
-  API token entered once). All in Bangla and English, in the same everyday commerce wording the
+  API token entered once); delivery settings with the two Dhaka charges up front and an "Add zone"
+  editor; size-chart editor; one-tap option sets in the variant editor; "Duplicate product"; the catalog
+  feed link with copy and setup steps. All in Bangla and English, in the same everyday commerce wording the
   admin app already uses (transliterated domain nouns such as স্টক, প্রোডাক্ট — never formal or technical
   inventory terms).
 - **Requirements completed (E2E halves):** PST-01; ATR-02, ATR-11; PRD-03, PRD-12; INV-06, 07, 09, 22;
-  PUR-07, PUR-09; BND-08; LND-06.
+  PUR-07, PUR-09; BND-08; LND-06; ATR-16; DLV-05; FED-06.
 - **Done when:** a non-technical walkthrough (clothing, cosmetics and grocery presets) completes product
   creation, add stock, stock check and planned purchase without anyone seeing an inventory term or an
   unwanted field.
@@ -445,9 +475,10 @@ their backend ships earlier.
     state, branding, no shop navigation); server-rendered Open Graph and Twitter Card tags; the branded
     "no longer available" page (404) and the 301 from an old slug; served whenever the tenant is
     reachable, including with the storefront off; Meta Pixel `PageView`/`ViewContent`, loaded after the
-    page's content. The order form's fields are laid out but not submittable until Phase 4.
+    page's content, with `content_ids` set to the feed's variant IDs; the "Size chart" link on the
+    product page and the landing page. The order form's fields are laid out but not submittable until Phase 4.
 - **Requirements completed:** SFT-01, 02, 03, 04, 05, 11, 12, 14, 15, 16, 17, 18, 19, 21; I18N-02; TEN-08;
-  TEN-17; CCH-10; LND-01, 02, 03, 05, 14, 18.
+  TEN-17; CCH-10; LND-01, 02, 03, 05, 14, 18; PRD-17.
 - **Partial:** SFT-10, SFT-13, I18N-01, LND-13, LND-15.
 - **Done when:** the milestone (exit criterion 4) passes; two tenants show different catalogues and
   branding with the same layout from one deployment; lapsing a tenant replaces both its storefront and

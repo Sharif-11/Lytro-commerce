@@ -256,7 +256,9 @@ CREATE TABLE control.rate_history (
 -- uses the default of 0.
 CREATE TABLE tenant.shop_settings (
     tenant_id                       uuid PRIMARY KEY,
-    extra_delivery_charge_per_kg    numeric(10,2) NOT NULL DEFAULT 0
+    extra_delivery_charge_per_kg    numeric(10,2) NOT NULL DEFAULT 0,
+    default_payment_policy          tenant.payment_policy NOT NULL DEFAULT 'none',  -- PRD-08 shop default
+    default_advance_amount          numeric(10,2) CHECK (default_advance_amount >= 0)
 );
 ```
 
@@ -439,7 +441,7 @@ CREATE TYPE tenant.delivery_mode   AS ENUM ('default', 'adjustable');
 CREATE TYPE tenant.stock_unit      AS ENUM ('piece', 'kg', 'g', 'liter', 'ml', 'dozen', 'pack', 'box'); -- UOM-01
 CREATE TYPE tenant.stock_tracking  AS ENUM ('tracked', 'not_tracked');                               -- INV-02
 CREATE TYPE tenant.stock_state     AS ENUM ('in', 'low', 'out');                                     -- CCH-08
-CREATE TYPE tenant.payment_policy  AS ENUM ('none', 'partial_advance', 'full_prepayment');           -- PRD-08
+CREATE TYPE tenant.payment_policy  AS ENUM ('none', 'delivery_charge_only', 'partial_advance', 'full_prepayment');  -- PRD-08
 
 CREATE TABLE tenant.products (
     id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -453,11 +455,12 @@ CREATE TABLE tenant.products (
     batch_tracked       boolean NOT NULL DEFAULT false,     -- INV-12
     serial_tracked      boolean NOT NULL DEFAULT false,     -- INV-14
     low_stock_threshold numeric(14,3) NOT NULL DEFAULT 5 CHECK (low_stock_threshold >= 0),  -- INV-08
-    delivery_charge     numeric(10,2) NOT NULL DEFAULT 0 CHECK (delivery_charge >= 0),
+    delivery_charge     numeric(10,2) CHECK (delivery_charge >= 0),  -- DLV-03 override; null => zone charge
     weight_kg           numeric(10,3),                     -- null => Adjustable unavailable (PRD-16)
     delivery_mode       tenant.delivery_mode NOT NULL DEFAULT 'default',
-    payment_policy      tenant.payment_policy NOT NULL DEFAULT 'none',
+    payment_policy      tenant.payment_policy,             -- null => shop_settings.default_payment_policy
     advance_amount      numeric(10,2) CHECK (advance_amount >= 0),   -- partial_advance only
+    item_condition      text NOT NULL DEFAULT 'new' CHECK (item_condition IN ('new', 'refurbished', 'used')),  -- FED-02
     video_id            uuid,                              -- one video (PRD-11)
     primary_category_id uuid,
     active              boolean NOT NULL DEFAULT true,
@@ -800,6 +803,65 @@ CREATE TABLE tenant.ad_tracking_settings (          -- LND-15 to LND-17, one row
 
 Orders created from a landing page carry `source = 'landing_page'` on `tenant.orders` (Phase 4, LND-09);
 the same column distinguishes storefront, dashboard and API orders (SFT-06).
+
+#### Delivery zones, size charts, option sets and the catalog feed (DLV, PRD-17, ATR-16, FED)
+
+```sql
+CREATE TABLE tenant.delivery_zones (                -- DLV-01; seeded with two rows for every tenant
+    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id       uuid NOT NULL,
+    name            varchar(60) NOT NULL,
+    charge          numeric(10,2) NOT NULL CHECK (charge >= 0),
+    is_fallback     boolean NOT NULL DEFAULT false, -- DLV-02: exactly one per tenant, never deleted
+    UNIQUE (tenant_id, id)
+);
+CREATE UNIQUE INDEX delivery_zones_one_fallback ON tenant.delivery_zones (tenant_id) WHERE is_fallback;
+
+CREATE TABLE tenant.delivery_zone_areas (           -- DLV-01, DLV-02: CUS-08 districts or thanas
+    tenant_id       uuid NOT NULL,
+    zone_id         uuid NOT NULL,
+    district_code   text,                           -- exactly one of district_code, thana_code
+    thana_code      text,
+    CHECK ((district_code IS NULL) <> (thana_code IS NULL)),
+    FOREIGN KEY (tenant_id, zone_id) REFERENCES tenant.delivery_zones(tenant_id, id) ON DELETE CASCADE
+);
+CREATE UNIQUE INDEX delivery_zone_areas_district ON tenant.delivery_zone_areas (tenant_id, district_code)
+    WHERE district_code IS NOT NULL;
+CREATE UNIQUE INDEX delivery_zone_areas_thana ON tenant.delivery_zone_areas (tenant_id, thana_code)
+    WHERE thana_code IS NOT NULL;
+-- Resolution (DLV-02): a row naming the thana, else a row naming its district, else the fallback zone.
+-- The order line stores its computed delivery_charge (ORD-46), so editing a zone never changes old orders.
+
+CREATE TABLE tenant.size_charts (                   -- PRD-17: one per product or per category
+    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id       uuid NOT NULL,
+    product_id      uuid,
+    category_id     uuid,
+    image_id        uuid,                           -- an image chart (MED-03) ...
+    table_rows      jsonb,                          -- ... or a table: up to 15 rows x 10 cells of short text
+    CHECK ((product_id IS NULL) <> (category_id IS NULL)),
+    CHECK ((image_id IS NULL) <> (table_rows IS NULL))
+);
+CREATE UNIQUE INDEX size_charts_product ON tenant.size_charts (tenant_id, product_id) WHERE product_id IS NOT NULL;
+CREATE UNIQUE INDEX size_charts_category ON tenant.size_charts (tenant_id, category_id) WHERE category_id IS NOT NULL;
+
+CREATE TABLE tenant.option_sets (                   -- ATR-16; tenant_id NULL = platform set (same scope rule as attributes)
+    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id       uuid,
+    name            varchar(60) NOT NULL,           -- 'S–XXL', 'Shoe 38–44', 'Common colors'
+    preset_key      text,                           -- platform sets offered first for this shop type (PST)
+    options         text[] NOT NULL CHECK (cardinality(options) BETWEEN 1 AND 50)
+);
+
+CREATE TABLE tenant.catalog_feeds (                 -- FED-01, FED-05: one row per tenant
+    tenant_id       uuid PRIMARY KEY,
+    token_hash      bytea NOT NULL UNIQUE,          -- SHA-256 of the 128-bit URL token, for lookup
+    token_enc       bytea NOT NULL,                 -- encrypted (SEC-10) so the dashboard can show the URL (FED-06)
+    rotated_at      timestamptz NOT NULL DEFAULT now()
+);
+-- The feed is rendered from the public catalogue read model and cached by catalogue version (FED-04);
+-- it has no table of its own beyond the token.
+```
 
 #### Shop-type presets (PST) — `control` schema, platform-wide
 
