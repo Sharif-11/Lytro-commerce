@@ -1,6 +1,6 @@
 # Phase 3 plan: catalogue, inventory, purchasing, media, storefront
 
-Status: draft for discussion, 2026-10-17. Builds on `IMPLEMENTATION-PLAN.md` Phase 3, with three changes
+Status: agreed 2026-10-17 — every decision in §2 accepted as proposed. Builds on `IMPLEMENTATION-PLAN.md` Phase 3, with three changes
 agreed before this plan was written:
 
 - **The product model** adopts the attribute library (ATL) and units of measure (UOM) from
@@ -17,8 +17,8 @@ agreed before this plan was written:
 Requirement IDs refer to `SRS-detailed.md` §13–§14 (new §14.4–§14.12 added 2026-10-17). Schema refers to
 `DATABASE-SCHEMA.md` §3.2, rewritten the same day.
 
-Items marked **Decision** need your answer before the slice they affect starts. Items marked **Proposed** take
-effect unless you change them.
+All decisions in §2 were accepted as proposed on 2026-10-17; reopening one needs an explicit change to
+that row, not a silent deviation during a slice.
 
 ---
 
@@ -28,8 +28,8 @@ effect unless you change them.
 through a full inventory system (stock in through purchasing, stock out through reservations, every change
 in a ledger) without needing to know inventory terminology, and an anonymous visitor can browse the
 tenant's storefront, or open any product's shareable landing page, fast and cached, in both languages.
-No orders flow yet. Phase 4 plugs orders into the
-reservation and catalogue machinery this phase builds, and changes neither.
+No orders flow yet. Phase 4 plugs orders into the reservation and catalogue machinery this phase
+builds, and changes neither.
 
 **Phase 3 is complete when all of these hold:**
 
@@ -54,9 +54,11 @@ reservation and catalogue machinery this phase builds, and changes neither.
 
 ---
 
-## 2. Decisions needed
+## 2. Decisions
 
-| # | Decision | Proposed | Affects |
+**All ten decided 2026-10-17: accepted as proposed.**
+
+| # | Decision | Decided | Affects |
 |---|---|---|---|
 | D3-1 | **The storefront and the public catalogue are read through public API keys** (API-07, SFT-11, RTE-01/07), but `IMPLEMENTATION-PLAN.md` puts `API-01`–`API-23` in Phase 8. Without keys, Phase 3's public endpoints have nothing to authenticate or rate-limit against. | **Pull a public-key subset forward into this phase:** creating public keys with registered origins, bearer auth, revocation and expiry, origin checks/CORS, and two-key rotation (API-01 public half, API-03/04/05/08/10/23/24, API-07 catalogue half). Secret keys, scopes, webhooks and OpenAPI stay in Phase 8. | Slice 8 |
 | D3-2 | **Rate limits (RTE-*) are specified on a shared Redis instance (RED-02/03)**, which `IMPLEMENTATION-PLAN.md` builds in Phase 9. There is one application server until then. | Build the limiter behind one interface: per-minute and per-IP windows in process memory for now (RED-05's own fallback behaviour, exact while there's one server), and monthly quota counters flushed to PostgreSQL every 60 s (RED-04's pattern). Phase 9 swaps in the Redis adapter with no caller change. | Slice 8 |
