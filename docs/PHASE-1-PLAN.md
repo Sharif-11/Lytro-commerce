@@ -207,7 +207,7 @@ Slice 3 comes before any tenant-scoped endpoint is written, so each later endpoi
 ### Slice 4: sign-up by phone
 - **Branch:** `feat/signup-phone`
 - **Depends on:** slices 2 and 3; decisions D3 and D6.
-- **Delivers:** Bangladeshi phone validation with normalisation; OTP generation, storage as a hash, expiry, single use; the wrong-code lock; resend cooldown and hourly cap; subscriber, owner user and trial tenant created in one transaction; the trial plan from the seeded `control.plans`; the "shop ready" message through the stub.
+- **Delivers:** Bangladeshi phone validation with normalisation; OTP generation, storage as a hash, expiry, single use; the wrong-code lock; resend cooldown and hourly cap; subscriber, owner user and trial tenant created in one transaction; the trial plan from the seeded `control.plans`; the "shop ready" message through the stub. **Correction, 2026-10-17:** this line's own `AUTH-09` claim wasn't true — trial-shop creation had no per-identity, per-device or per-IP limit at all. Fixed with a new `control.trial_creations` table and a `TrialLimiter` hooked into `ShopCreationService.createShop`; see `KNOWN-GAPS.md` #47.
 - **Requirements:** AUTH-01, AUTH-02, AUTH-04, AUTH-05, AUTH-06, AUTH-07, AUTH-09, AUTH-10, AUTH-21, SMS-18, TRL-01, TRL-02, TRL-05 (counter starts), TEN-15.
 - **Done when:** a new phone signs up end to end; a sixth wrong code is refused even when correct; a second resend within 60 seconds is refused with a retry hint; the trial is created with the trial limits; the shop-ready stub message contains the live URL.
 

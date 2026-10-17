@@ -302,6 +302,13 @@
       "when": 1792229460253,
       "tag": "0042_platform_wallets",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1792234121433,
+      "tag": "0043_trial_creations",
+      "breakpoints": true
     }
   ]
 }

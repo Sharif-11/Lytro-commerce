@@ -1,6 +1,7 @@
 import { Body, Controller, Inject, Post, Req, UseGuards } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
+import { ClientIp } from '../../../common/client-ip';
 import { SkipTenant } from '../../../common/decorators/skip-tenant';
 import { ResponseMessage } from '../../../common/decorators/response-message';
 import type { HttpRequest } from '../../../common/http';
@@ -17,7 +18,10 @@ import type { ShopCreated } from '../types/shop-created';
 @Controller('shops')
 @SkipTenant()
 export class ShopsController {
-  constructor(@Inject(ShopCreationService) private readonly shops: ShopCreationService) {}
+  constructor(
+    @Inject(ShopCreationService) private readonly shops: ShopCreationService,
+    @Inject(ClientIp) private readonly clientIp: ClientIp,
+  ) {}
 
   @Post()
   @UseGuards(SessionGuard)
@@ -29,6 +33,6 @@ export class ShopsController {
     @Body(new ZodValidationPipe(CreateShopDto.schema)) body: CreateShopDto,
     @Req() request: HttpRequest & { session: SessionRecord },
   ): Promise<ShopCreated> {
-    return this.shops.createShop(request.session, body);
+    return this.shops.createShop(request.session, body, this.clientIp.resolve(request));
   }
 }

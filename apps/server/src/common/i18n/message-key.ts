@@ -79,6 +79,7 @@ export const MESSAGE_KEYS = [
   'AddressRequired',
   'TooManyFailedSignins',
   'TooManySignups',
+  'TooManyTrials',
 
   // Operator / 2FA
   'TwoFactorAlreadyEnrolled',

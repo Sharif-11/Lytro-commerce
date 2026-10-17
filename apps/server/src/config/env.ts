@@ -34,6 +34,12 @@ const envSchema = z.object({
   // machine that creates many tenants from one address in a single run, so only production defaults to it;
   // the limiter itself is identical in every environment — this only changes the threshold.
   SIGNUP_RATE_LIMIT_PER_IP: z.coerce.number().int().positive().optional(),
+  // AUTH-09: free-trial shop creations per verified identity and per client IP, each counted over a rolling
+  // window (days). Same reasoning as SIGNUP_RATE_LIMIT_PER_IP above -- nearly every e2e test calls POST
+  // /shops more than once from the same loopback IP, so only production defaults to the strict SRS value.
+  TRIAL_LIMIT_PER_IDENTITY: z.coerce.number().int().positive().optional(),
+  TRIAL_LIMIT_PER_IP: z.coerce.number().int().positive().optional(),
+  TRIAL_LIMIT_WINDOW_DAYS: z.coerce.number().int().positive().optional(),
   // Connection pool (ENGINEERING-STANDARDS §5). Defaults suit one server; size the total for each deployment.
   DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(100).default(5),
   DATABASE_CONNECT_TIMEOUT_MS: z.coerce.number().int().positive().default(5000),
