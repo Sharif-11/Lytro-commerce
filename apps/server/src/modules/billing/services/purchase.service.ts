@@ -169,6 +169,8 @@ export class PurchaseService {
     await this.tenants.applyPlanAssignment(tx, payment.tenantId, {
       planId: plan.id,
       planSnapshot: plan.limits,
+      planVersionSnapshot: plan.version,
+      featureSnapshot: plan.features,
       periodStart,
       periodEnd,
       state: TenantState.Active,

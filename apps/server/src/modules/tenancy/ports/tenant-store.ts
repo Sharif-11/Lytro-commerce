@@ -17,7 +17,12 @@ export interface TenantStore {
   run<T>(work: (tx: Transaction) => Promise<T>): Promise<T>;
   findTrialPlan(tx: Transaction): Promise<{ id: string; limits: PlanLimits } | null>;
   /** TRL-07: the plan a trial converts to at day 30 with no purchase. */
-  findPayAsYouGoPlan(tx: Transaction): Promise<{ id: string; limits: PlanLimits } | null>;
+  findPayAsYouGoPlan(tx: Transaction): Promise<{
+    id: string;
+    limits: PlanLimits;
+    version: number;
+    features: Record<string, boolean>;
+  } | null>;
   /** TRL-07: trials whose period has ended with no purchase. */
   findExpiredTrialIds(tx: Transaction, now: Date): Promise<string[]>;
   /** BIL-10/11: a transaction-scoped read for a purchase/renewal confirmation's extend-vs-restart decision. */
@@ -46,6 +51,10 @@ export interface TenantStore {
     values: {
       planId: string;
       planSnapshot: PlanLimits;
+      // PLN-05: the rest of the purchase snapshot ("plan ID and version, all limits and features"),
+      // frozen alongside planSnapshot.
+      planVersionSnapshot: number;
+      featureSnapshot: Record<string, boolean>;
       periodStart: Date;
       periodEnd: Date | null;
       state: TenantState;

@@ -281,6 +281,13 @@
       "when": 1792208922422,
       "tag": "0039_essential_sms_usage",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1792226260254,
+      "tag": "0040_purchase_snapshot_version_features",
+      "breakpoints": true
     }
   ]
 }

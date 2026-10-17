@@ -53,6 +53,12 @@ export const tenants = control.table(
     state: tenantState('state').$type<TenantState>().notNull().default(TenantState.Trial),
     planId: uuid('plan_id').references(() => plans.id),
     planSnapshot: jsonb('plan_snapshot').$type<PlanLimits>(), // PLN-02: frozen limits at purchase (Phase 2 writes it)
+    // PLN-05: the rest of "every purchase shall store a snapshot: plan ID and version, all limits and
+    // features" -- planSnapshot above only ever carried the limits half. Written at the same moment, by
+    // the same `applyPlanAssignment` call, so a later edit to the live plan row never silently changes what
+    // an existing tenant is recorded as having actually bought.
+    planVersionSnapshot: integer('plan_version_snapshot'),
+    featureSnapshot: jsonb('feature_snapshot').$type<Record<string, boolean>>(),
     periodStart: timestamp('period_start', { withTimezone: true }),
     periodEnd: timestamp('period_end', { withTimezone: true }),
     balanceAmount: numeric('balance_amount', { precision: 12, scale: 2 }).notNull().default('0'),

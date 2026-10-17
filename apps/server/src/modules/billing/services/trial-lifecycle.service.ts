@@ -36,6 +36,8 @@ export class TrialLifecycleService {
         await this.tenants.applyPlanAssignment(tx, tenantId, {
           planId: payg.id,
           planSnapshot: payg.limits,
+          planVersionSnapshot: payg.version,
+          featureSnapshot: payg.features,
           periodStart: now,
           // PYG-08: pay-as-you-go has no billing period to lapse from.
           periodEnd: null,

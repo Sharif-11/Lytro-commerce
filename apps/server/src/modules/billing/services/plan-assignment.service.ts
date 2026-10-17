@@ -64,6 +64,8 @@ export class PlanAssignmentService {
       this.tenants.applyPlanAssignment(tx, input.tenantId, {
         planId: input.planId,
         planSnapshot: plan.limits,
+        planVersionSnapshot: plan.version,
+        featureSnapshot: plan.features,
         periodStart: now,
         periodEnd: input.expiry,
         state: TenantState.Active,
