@@ -44,6 +44,8 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   // to isolate between tenants — included here only because the route is shop-reachable, not SkipTenant.
   'GET /balance/current-rates':
     'returns the same platform-wide rates regardless of which shop calls it',
+  // Checked in test/essential-sms-usage.e2e.spec.ts: a shop's own sign-in-OTP usage never raises another shop's.
+  'GET /balance/essential-sms': "shows only the session shop's own essential-SMS usage (AUTH-21)",
   // Checked in test/plan-purchase.e2e.spec.ts: a shop's quotes, invoices and top-ups are its own.
   'POST /balance/top-up/quote': 'creates a top-up quote scoped to the session shop only',
   'POST /balance/top-up/confirm': "another shop's top-up payment id answers not_found",
