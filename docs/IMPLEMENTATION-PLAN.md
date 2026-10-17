@@ -90,6 +90,7 @@ code fix).
 - `PRD-*`, `ATR-*`, `ATL-*`, `UOM-*` — products, variants, flexible attributes, units.
 - `INV-*`, `PUR-*`, `PST-*` — inventory, purchasing, shop-type presets.
 - `LND-*` — product landing pages (added 2026-10-17): the shareable single-product page, link previews, stable links and Meta Pixel views. Its order form lands in Phase 4 and its advance/full payment in Phase 5.
+- `SUP-01` (pulled forward from Phase 8, 2026-10-17) — the setup checklist on the dashboard home, with the items whose features exist in this phase: shop created, delivery charges, first product, sharing the link, and an API key under "Later". Later phases add theirs.
 - `DLV-*`, `FED-*`, `PRD-17`, `PRD-18`, `ATR-16` — Facebook-seller essentials (added 2026-10-17): delivery zones (Inside/Outside the seller's home area ready by default, Dhaka city until changed, built from the location list's divisions, districts, cities and thanas), size charts, one-tap option sets, "Duplicate product" and the Meta catalog feed. Zone *settings* land here; the zone-based charge is computed by Phase 4's order pricing.
 - `MED-*` — R2 presigned uploads, the validation/resize/variant-generation job, the `control.used_transaction_ids`-style permanence pattern applied to media where relevant.
 - `SFT-*` — the shared storefront, served at subdomain root, including the footer/contact-us section (`SFT-21`, added 2026-10-16, reads `TEN-30`'s contact fields).
@@ -181,7 +182,7 @@ code fix).
 **Delivers:** the operator can actually run the business, and external integrators have a real API surface.
 
 - `ADM-02` to `ADM-17` — full tenant management, the payment-review queue, manual entry tooling, platform settings UI (now has `control.platform_settings` from Phase 0 to manage). `ADM-03`'s tenant-detail business-summary/order-stats drill-down and `ADM-09`'s period-bucketed SaaS revenue/tenant-count reports (both amended 2026-10-16) read `STA-01`'s own aggregates (Phase 4) and `WAL-20`'s commission revenue (Phase 5) — sequence this after those two land, not before, or the figures would have nothing real to show. Note the tenant-list/search and suspend/restore slice of `ADM-02`/`ADM-04` already shipped early, in Phase 2's own UI pass (slice 8) — built ahead of this phase because `LIF-24` needed it and nothing else in `ADM-*` was ready to ride along yet; the rest of this range is still genuinely Phase 8 work.
-- `SUP-*` — the onboarding checklist, self-service support.
+- `SUP-*` — self-service support: help centre, tickets, response targets, status page. The setup checklist (`SUP-01`) starts earlier, in Phase 3's dashboard pass, and each phase adds its own item as the feature ships: wallet number and listener phone (Phase 5), courier (Phase 6), SMS events (Phase 7).
 - `API-01` to `API-23` — versioning, the generated OpenAPI spec (`API-15`, from NestJS decorators per the earlier decision), webhooks out, scopes. The public-key subset already shipped in Phase 3 (D3-1); this phase adds secret keys, scopes, IP allow-lists and webhooks on the same `api_keys` table.
 - `SMS-18` (shop-ready SMS) technically could land in Phase 1 alongside sign-up, but is listed here as a reminder to verify it still fires correctly once the full SMS/balance machinery from Phase 7 exists around it.
 

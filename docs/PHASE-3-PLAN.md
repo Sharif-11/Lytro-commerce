@@ -108,7 +108,7 @@ Rules used below:
 | FED | FED-01 – 06 (Meta catalog feed, added 2026-10-17) | 6 |
 | | **Total** | **163** |
 
-### 3.2 Partially completed by this phase (39)
+### 3.2 Partially completed by this phase (40)
 
 | Req | Done in this phase | Remaining | Finished in |
 |---|---|---|---|
@@ -145,6 +145,7 @@ Rules used below:
 | LND-15 | Meta Pixel `PageView` and `ViewContent` fire on the landing page, with `content_ids` matching the catalog feed's item IDs | `InitiateCheckout` and `Purchase`, which need the order form | Phase 4 |
 | INV-14 | serials recorded at receiving or added later, with a missing-serials count | serial required before a line ships | Phase 4 |
 | INV-23 | scan, paste and typed serial entry with duplicate and IMEI check-digit validation, at receiving and "add missing" | the same entry when shipping a line | Phase 4 |
+| SUP-01 | the setup checklist on the home screen, pulled forward from Phase 8: shop created, delivery charges, first product, sharing the link, and an API key under "Later" | the items whose features arrive later: wallet number and listener phone (Phase 5), courier (Phase 6), SMS events (Phase 7) | Phases 5–7 |
 | CUS-08 | the canonical location list with its division and city groups, and its read endpoint — pulled forward from Phase 4 because delivery zones are built from it | proof that connecting couriers never changes it (couriers arrive in Phase 6) | Phase 6 |
 | DLV-06 | "no delivery" zones stored and shown in the delivery settings and on product and landing pages | refusal at public order creation; warning on staff orders | Phase 4 |
 | DLV-07 | product zone limits stored and shown on product and landing pages; zone delete refused while a limit uses it | refusal at order creation, including for combos | Phase 4 |
@@ -215,6 +216,7 @@ Read each row as: the requirements on the left can only be built or proven once 
 | ATR-16 | ATL-01, PST-02 | option sets are library options seeded by presets |
 | FED-01–05 | PRD-09, ATR-07, INV-01, CCH-01–04, LND-01, LND-06 | the feed is another public catalogue view whose links are landing pages |
 | LND-15 `content_ids` | FED-02 | pixel item IDs must equal the feed's item IDs |
+| SUP-01 (this phase's items) | PRD-01, DLV-01, LND-06, API-03 | each item ticks itself by detecting its feature: a product, the zone defaults, a copied link, a key |
 | PST-06 | PST-02, PST-05, PRD-03 | a category points at an existing shop type's defaults instead of copying them |
 | DLV-06, DLV-07 | DLV-01, DLV-02 | limits are expressed in zones |
 | INV-24 | INV-03, INV-15, UOM-03 | a pack amount is a multiplier on one ledger stock |
@@ -473,7 +475,7 @@ their backend ships earlier.
   WhatsApp-share actions (and per-variant links); the ad-tracking settings screen (pixel ID, Conversions
   API token entered once); delivery settings with the home-area picker and its two charges up front, and an "Add zone"
   editor that adds a whole division, district or city in one step; size-chart editor; one-tap option sets in the variant editor; "Duplicate product"; the catalog
-  feed link with copy and setup steps; a category's "behaves like" setting; "no delivery" zones and a
+  feed link with copy and setup steps; the setup checklist on the home screen (SUP-01); a category's "behaves like" setting; "no delivery" zones and a
   product's "Delivers to" limit; "Sizes share one stock" with each size's amount; per-shop-type form layout with "More settings"; price and stock
   columns with "Fill all" in the variant grid; IMEI/serial entry by camera scan, pasted list or typing.
   All in Bangla and English, in the same everyday commerce wording the
@@ -482,6 +484,8 @@ their backend ships earlier.
 - **Requirements completed (E2E halves):** PST-01; ATR-02, ATR-11; PRD-03, PRD-12; INV-06, 07, 09, 22;
   PUR-07, PUR-09; BND-08; LND-06; ATR-16; ATR-17; PST-05; DLV-05; FED-06; ATR-18 (dashboard half; the shopper-facing picker in Slice 12). *(INV-23's scan and paste
   entry is built here; its shipping half is Phase 4.)*
+- **Partial:** SUP-01 — the checklist with the items that exist by the end of this phase; later phases add
+  theirs.
 - **Done when:** a non-technical walkthrough (clothing, cosmetics and grocery presets) completes product
   creation, add stock, stock check and planned purchase without anyone seeing an inventory term or an
   unwanted field.
