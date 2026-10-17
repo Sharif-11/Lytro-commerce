@@ -84,6 +84,12 @@ export interface TenantStore {
   revokeExpiredTenant(tx: Transaction, tenantId: string, mangledSlug: string): Promise<void>;
   /** LIF-03/04: every tenant whose lifecycle state is derived from a running period, not yet deleted. */
   findLapsingCandidates(tx: Transaction, now: Date): Promise<LapsingCandidateRow[]>;
+  /** BIL-14: still-`active` tenants whose period ends within [now, horizon]. */
+  findUpcomingRenewalCandidates(
+    tx: Transaction,
+    now: Date,
+    horizon: Date,
+  ): Promise<LapsingCandidateRow[]>;
   /** PYG-21: every pay-as-you-go tenant, not yet deleted -- the 23/30-day thresholds are the service's job. */
   findPaygInactiveCandidates(tx: Transaction): Promise<PaygCandidateRow[]>;
   /** PYG-21/LIF-19: tenants already archived by the inactivity pass, awaiting their own day-60 deletion. */

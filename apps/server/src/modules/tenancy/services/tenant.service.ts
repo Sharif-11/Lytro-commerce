@@ -185,6 +185,15 @@ export class TenantService {
     return this.store.findLapsingCandidates(tx, now);
   }
 
+  /** BIL-14: still-`active` tenants whose period ends within [now, horizon]. */
+  findUpcomingRenewalCandidates(
+    tx: Transaction,
+    now: Date,
+    horizon: Date,
+  ): Promise<Awaited<ReturnType<TenantStore['findUpcomingRenewalCandidates']>>> {
+    return this.store.findUpcomingRenewalCandidates(tx, now, horizon);
+  }
+
   /** PYG-21: every pay-as-you-go tenant, not yet deleted. */
   findPaygInactiveCandidates(
     tx: Transaction,

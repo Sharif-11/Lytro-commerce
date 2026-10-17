@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { Transaction } from '@lytronix/db';
 import { PlanPaymentKind, PlanPaymentStatus } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
+import { HOUR_MS } from '../../../common/time';
 import { UniqueViolation } from '../../../common/errors/unique-violation';
 import type { NewPlanPaymentValues, PlanPaymentsStore } from '../ports/plan-payments-store';
 import { PLAN_PAYMENTS_STORE } from '../tokens';
@@ -11,6 +12,9 @@ const PENDING_LIKE: readonly PlanPaymentStatus[] = [
   PlanPaymentStatus.Pending,
   PlanPaymentStatus.NeedsReview,
 ];
+
+// BIL-15: an unsubmitted quote expires this long after it was first quoted.
+export const PENDING_PURCHASE_EXPIRY_MS = 24 * HOUR_MS;
 
 /**
  * D2-1: control.plan_payments, the stand-in confirmation row for a purchase, renewal, upgrade or top-up. This
@@ -85,7 +89,10 @@ export class PlanPaymentsService {
   /**
    * BIL-02/BAL-03: a wallet payment's "I have paid" step. `matchesQuoted` decides which bucket it lands in
    * (BIL-06) -- either way nothing activates until an operator later calls `approve`. Refuses a row that was
-   * already submitted or isn't pending, so a tenant can't resubmit over an operator's decision.
+   * already submitted or has moved past `pending`/`expired`, so a tenant can't resubmit over an operator's
+   * decision. BIL-15: a submission arriving after the sweep already marked the row `expired` is still
+   * accepted -- but always goes to `needs_review`, regardless of amount match, never the normal `pending`
+   * bucket a timely submission would land in.
    */
   async recordSubmission(
     tx: Transaction,
@@ -94,12 +101,19 @@ export class PlanPaymentsService {
   ): Promise<void> {
     const payment = await this.store.findByIdForUpdate(tx, id);
     if (!payment) throw new ApiError('not_found', 'PlanPaymentNotFound', {});
-    if (payment.status !== PlanPaymentStatus.Pending || payment.transactionId !== null) {
+    const isLate = payment.status === PlanPaymentStatus.Expired;
+    if (
+      (payment.status !== PlanPaymentStatus.Pending && !isLate) ||
+      payment.transactionId !== null
+    ) {
       throw new ApiError('conflict', 'PlanPaymentNotPending', {});
     }
     try {
       await this.store.setStatus(tx, id, {
-        status: values.matchesQuoted ? PlanPaymentStatus.Pending : PlanPaymentStatus.NeedsReview,
+        status:
+          isLate || !values.matchesQuoted
+            ? PlanPaymentStatus.NeedsReview
+            : PlanPaymentStatus.Pending,
         transactionId: values.transactionId,
         senderNumber: values.senderNumber,
       });
@@ -172,5 +186,11 @@ export class PlanPaymentsService {
   /** BIL-08: paying from balance is atomic and instant -- no transaction ID, no operator in the loop. */
   async markVerifiedDirect(tx: Transaction, id: string, now: Date): Promise<void> {
     await this.store.setStatus(tx, id, { status: PlanPaymentStatus.Verified, verifiedAt: now });
+  }
+
+  /** BIL-15: the recurring sweep's own entry point -- unsubmitted quotes older than 24h expire. */
+  expireStalePending(now: Date): Promise<number> {
+    const cutoff = new Date(now.getTime() - PENDING_PURCHASE_EXPIRY_MS);
+    return this.store.run((tx) => this.store.expireStalePending(tx, cutoff));
   }
 }

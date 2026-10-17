@@ -38,4 +38,6 @@ export interface PlanPaymentsStore {
   transactionIdUsed(tx: Transaction, transactionId: string): Promise<boolean>;
   /** Registers the ID, in the same `tx` as the status change that uses it -- the real platform-wide guard. */
   registerTransactionId(tx: Transaction, transactionId: string, tenantId: string): Promise<void>;
+  /** BIL-15: unsubmitted `pending` rows past `cutoff` (their own `quotedAt` + 24h) expire. Returns the count. */
+  expireStalePending(tx: Transaction, cutoff: Date): Promise<number>;
 }
