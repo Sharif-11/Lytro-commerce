@@ -184,6 +184,24 @@ export class UpgradeService {
     });
     await this.downgrade.cancelIfScheduled(tx, payment.tenantId);
 
+    // UPG-13: an upgrade also supersedes a pending non-renewal intent -- paying to upgrade is inconsistent
+    // with "don't renew", and a stale cancelledAt would otherwise block BIL-17's own auto-renewal at the
+    // new period's end even with the toggle on.
+    if (info?.cancelledAt) {
+      await this.tenants.setCancellation(tx, payment.tenantId, null);
+      await this.audit.record(tx, {
+        tenantId: payment.tenantId,
+        actorType: ActorType.User,
+        actorId: null,
+        action: AuditAction.SubscriptionCancellationUndone,
+        ip: ip ?? null,
+        targetType: 'tenant',
+        targetId: payment.tenantId,
+        result: AuditResult.Success,
+        summary: {},
+      });
+    }
+
     const invoice = await this.invoices.issue(tx, {
       tenantId: payment.tenantId,
       kind: InvoiceKind.Upgrade,

@@ -130,11 +130,26 @@ export class DowngradeService {
   }
 
   /**
-   * UPG-13: an upgrade supersedes any pending downgrade/pay-as-you-go-switch. Called inside the upgrade's own
-   * activation transaction -- both control-schema, no RLS concern, so this can safely join that transaction.
+   * UPG-13: an upgrade (or an ordinary purchase/renewal landing on the scheduled target, DWN-05) supersedes
+   * any pending downgrade/pay-as-you-go-switch. Called inside the caller's own activation transaction --
+   * both control-schema, no RLS concern, so this can safely join that transaction. Audited the same way the
+   * owner's own manual `cancel()` is, since from the log's perspective it's the same event: the scheduled
+   * change is gone and never takes effect.
    */
-  cancelIfScheduled(tx: Transaction, tenantId: string): Promise<void> {
-    return this.store.delete(tx, tenantId);
+  async cancelIfScheduled(tx: Transaction, tenantId: string): Promise<void> {
+    const existing = await this.store.findByTenant(tx, tenantId);
+    if (!existing) return;
+    await this.store.delete(tx, tenantId);
+    await this.audit.record(tx, {
+      tenantId,
+      actorType: ActorType.User,
+      actorId: null,
+      action: AuditAction.DowngradeCancelled,
+      targetType: 'plan',
+      targetId: existing.targetPlanId,
+      result: AuditResult.Success,
+      summary: {},
+    });
   }
 
   /**
