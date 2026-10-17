@@ -78,10 +78,17 @@ code fix).
 
 ## Phase 3 — Catalogue, storefront, caching, media
 
-**Delivers:** the public storefront is live and fast, even with zero orders flowing through it yet.
+**Delivers:** the public storefront is live and fast, even with zero orders flowing through it yet, and every tenant has a full inventory system behind deliberately simple screens.
 
-- `STO-*`, `BND-*`, `RTE-*`, `QTA-*` — the metered-limit enforcement machinery (now has real plan data from Phase 2 to read against).
-- `PRD-*`, `ATR-*` — products, variants, flexible attributes.
+**Detailed plan: `PHASE-3-PLAN.md`** (2026-10-17) — 12 slices, which requirements each completes or only partially completes, and the dependencies between them. Scope changes made there, summarised:
+- **Added:** `ATL-*`, `UOM-*` (normalized attributes, units of measure), `INV-*` (stock ledger, levels, batches/expiry, serials, reservations), `PUR-*` (suppliers, purchase orders, receiving), `PST-*` (shop-type presets) — all new §14.4–14.8 of `SRS-detailed.md`.
+- **Pulled forward from Phase 8:** a public-API-key subset (`API-01` public half, `API-03/04/05/08/10/23/24`), since the storefront reads the catalogue through public keys (D3-1).
+- **Rate limits without Redis yet:** `RTE-*` are built behind a limiter interface with in-process and PostgreSQL stores; Phase 9 swaps in Redis (D3-2).
+- **Moved to Phase 4:** `QTA-*` — every quota rule counts at order handling, which needs orders (D3-3).
+
+- `STO-*`, `BND-*`, `RTE-*` — the metered-limit enforcement machinery (now has real plan data from Phase 2 to read against).
+- `PRD-*`, `ATR-*`, `ATL-*`, `UOM-*` — products, variants, flexible attributes, units.
+- `INV-*`, `PUR-*`, `PST-*` — inventory, purchasing, shop-type presets.
 - `MED-*` — R2 presigned uploads, the validation/resize/variant-generation job, the `control.used_transaction_ids`-style permanence pattern applied to media where relevant.
 - `SFT-*` — the shared storefront, served at subdomain root, including the footer/contact-us section (`SFT-21`, added 2026-10-16, reads `TEN-30`'s contact fields).
 - `CCH-*` — the layered cache (device → edge → process memory → Postgres), built in from the start since retrofitting caching into a storefront already in production is a much riskier change than building it in.
@@ -97,7 +104,9 @@ code fix).
 
 **Delivers:** the core commerce loop — a shopper (or staff) can create an order, and it moves through the two-axis status model.
 
-- `ORD-01` to `ORD-47` — order creation, the `payment_status`/`fulfillment_status` two-axis model, extraction from text (`AI`-adjacent, see Phase 7 for the AI provider itself).
+- `ORD-01` to `ORD-47` — order creation, the `payment_status`/`fulfillment_status` two-axis model, extraction from text (`AI`-adjacent, see Phase 7 for the AI provider itself). Order lines hold stock through Phase 3's reservation primitive (`INV-15`/`INV-16`) and returns call its restock-or-damaged service (`INV-17`); the order-line halves of `PRD-06/07/08/13`, `ATR-07/08/09/13/15`, `ATL-06` and `UOM-04` finish here (`PHASE-3-PLAN.md` §3.2).
+- `QTA-01` to `QTA-07` (moved here from Phase 3, D3-3) — counted at order handling; this phase's manual mark-shipped trigger first, Phase 6's courier booking second.
+- `TAX-*`, `MNU-*` (adopted 2026-10-17) — need order lines; land with or right after this phase.
 - `CUS-*` — customer records, addresses, the canonical zilla/thana list.
 - `API-11`'s mandatory `Idempotency-Key` for order creation, built in from this phase's first endpoint, not added after a double-order incident.
 - `STA-01` to `STA-04` (added 2026-10-16) — the tenant's own business statistics: order/revenue stats
@@ -166,7 +175,7 @@ code fix).
 
 - `ADM-02` to `ADM-17` — full tenant management, the payment-review queue, manual entry tooling, platform settings UI (now has `control.platform_settings` from Phase 0 to manage). `ADM-03`'s tenant-detail business-summary/order-stats drill-down and `ADM-09`'s period-bucketed SaaS revenue/tenant-count reports (both amended 2026-10-16) read `STA-01`'s own aggregates (Phase 4) and `WAL-20`'s commission revenue (Phase 5) — sequence this after those two land, not before, or the figures would have nothing real to show. Note the tenant-list/search and suspend/restore slice of `ADM-02`/`ADM-04` already shipped early, in Phase 2's own UI pass (slice 8) — built ahead of this phase because `LIF-24` needed it and nothing else in `ADM-*` was ready to ride along yet; the rest of this range is still genuinely Phase 8 work.
 - `SUP-*` — the onboarding checklist, self-service support.
-- `API-01` to `API-23` — versioning, the generated OpenAPI spec (`API-15`, from NestJS decorators per the earlier decision), webhooks out, scopes.
+- `API-01` to `API-23` — versioning, the generated OpenAPI spec (`API-15`, from NestJS decorators per the earlier decision), webhooks out, scopes. The public-key subset already shipped in Phase 3 (D3-1); this phase adds secret keys, scopes, IP allow-lists and webhooks on the same `api_keys` table.
 - `SMS-18` (shop-ready SMS) technically could land in Phase 1 alongside sign-up, but is listed here as a reminder to verify it still fires correctly once the full SMS/balance machinery from Phase 7 exists around it.
 
 **Why this late:** the operator console's real value is managing tenants and data that only exist once Phases 1–7 are live; building a full admin UI against empty tables is low-value work done early.
