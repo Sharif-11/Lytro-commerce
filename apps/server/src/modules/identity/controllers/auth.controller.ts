@@ -18,7 +18,7 @@ import {
   VerifyForgotPasswordDto,
   VerifySigninCodeDto,
 } from '../dto/auth.dto';
-import { CodeIssuedDto, SignedInBodyDto } from '../dto/auth-response.dto';
+import { CodeIssuedDto, PhoneSignedInBodyDto, SignedInBodyDto } from '../dto/auth-response.dto';
 import { SessionGuard } from '../guards/session.guard';
 import type { SessionRecord } from '../ports/session-store';
 import { ForgotPasswordService } from '../services/forgot-password.service';
@@ -35,6 +35,10 @@ interface SignedInBody {
   next: NextStep;
   tenantId: string | null;
   csrfToken: string;
+}
+
+interface PhoneSignedInBody extends SignedInBody {
+  suggestPassword: boolean;
 }
 
 // Sign-in runs before any shop exists on the platform host, so these routes skip the tenant check (TEN-7a).
@@ -69,19 +73,24 @@ export class AuthController {
   @ResponseMessage('SignedIn')
   @ApiOperation({ summary: 'Verify a phone sign-in code' })
   @ApiBody({ type: VerifySigninCodeDto })
-  @ZodResponse({ type: SignedInBodyDto })
+  @ZodResponse({ type: PhoneSignedInBodyDto })
   async verifyCode(
     @Body(new ZodValidationPipe(VerifySigninCodeDto.schema)) body: VerifySigninCodeDto,
     @Req() request: HttpRequest,
     @Res({ passthrough: true }) response: HttpResponse,
-  ): Promise<SignedInBody> {
+  ): Promise<PhoneSignedInBody> {
     const result = await this.signin.verifyCode(
       body.phone,
       body.code,
       this.clientIp.context(request),
     );
     response.setHeader('Set-Cookie', result.cookie);
-    return { next: result.next, tenantId: result.tenantId, csrfToken: result.csrfToken };
+    return {
+      next: result.next,
+      tenantId: result.tenantId,
+      csrfToken: result.csrfToken,
+      suggestPassword: result.suggestPassword,
+    };
   }
 
   @Post('email/code')

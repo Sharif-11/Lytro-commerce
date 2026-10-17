@@ -140,6 +140,7 @@ describeIfDatabase('route inventory against the application (SEC-02)', () => {
       'GET /activity',
       'GET /balance',
       'GET /balance/current-rates',
+      'GET /balance/essential-sms',
       'GET /balance/ledger',
       'GET /balance/ledger/export',
       'GET /billing/cancellation',

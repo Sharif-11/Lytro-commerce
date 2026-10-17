@@ -23,6 +23,8 @@ import { type MailStore } from '../src/modules/shared/mail/ports/mail-store';
 import { type MailProvider } from '../src/modules/shared/mail/ports/mail-provider';
 import { MailService } from '../src/modules/shared/mail/services/mail.service';
 import type { JobQueue } from '../src/modules/shared/queue/ports/job-queue';
+import type { EssentialSmsUsageStore } from '../src/modules/sms-usage/ports/essential-sms-usage-store';
+import { EssentialSmsUsageService } from '../src/modules/sms-usage/services/essential-sms-usage.service';
 
 // AUTH-05 to AUTH-07, tested through the real service with fake ports. Codes of every kind share these rules.
 const SECRET = 's'.repeat(32);
@@ -40,6 +42,7 @@ interface World {
   mailFails: boolean;
   counter: number;
   queued: { queueName: string; payload: unknown }[];
+  essentialSmsUsage: { tenantId: string; kind: string; parts: number }[];
 }
 
 function world(): World {
@@ -54,6 +57,7 @@ function world(): World {
     mailFails: false,
     counter: 0,
     queued: [],
+    essentialSmsUsage: [],
   };
 }
 
@@ -172,6 +176,15 @@ function build(state: World) {
     shopUrl: (address) => `http://${address}.localhost:3000`,
   };
 
+  const essentialSmsUsageStore: EssentialSmsUsageStore = {
+    record: (_tx, values) => {
+      state.essentialSmsUsage.push(values);
+      return Promise.resolve();
+    },
+    sumPartsSince: () => Promise.resolve(0),
+  };
+  const essentialSms = new EssentialSmsUsageService(essentialSmsUsageStore);
+
   const gateway = { run: <T>(work: (tx: Transaction) => Promise<T>) => work(TX) };
   const codes = new OneTimeCodeService(
     challenges,
@@ -180,8 +193,9 @@ function build(state: World) {
     new OneTimeCodeHasher(SECRET),
     messaging,
     mail,
+    essentialSms,
   );
-  return { codes, messaging, mail, challenges };
+  return { codes, messaging, mail, challenges, essentialSmsUsage: state.essentialSmsUsage };
 }
 
 /** The code most recently texted, read back from the provider log, since the outbox never stores a code. */
@@ -259,6 +273,52 @@ describe('requesting a code (AUTH-05, AUTH-07)', () => {
     const resetCode = state.challenges.filter((c) => c.kind === ChallengeKind.Reset);
     expect(signinCode).toHaveLength(1);
     expect(resetCode).toHaveLength(1);
+  });
+});
+
+describe('AUTH-21: essential-SMS allowance for a sign-in code to an existing shop', () => {
+  const TENANT_ID = 'tenant-1';
+
+  it('with no tenantId (sign-up), nothing is counted', async () => {
+    const state = world();
+    const { codes, essentialSmsUsage } = build(state);
+    await codes.issue(PHONE, ChallengeChannel.Sms, SIGNIN);
+    expect(essentialSmsUsage).toHaveLength(0);
+  });
+
+  it('with a tenantId (sign-in to an existing shop), counts the SMS against that shop', async () => {
+    const state = world();
+    const { codes, essentialSmsUsage } = build(state);
+    await codes.issue(PHONE, ChallengeChannel.Sms, SIGNIN, undefined, TENANT_ID);
+    expect(essentialSmsUsage).toHaveLength(1);
+    expect(essentialSmsUsage[0]).toMatchObject({ tenantId: TENANT_ID, kind: 'otp' });
+    expect(essentialSmsUsage[0]?.parts).toBeGreaterThan(0);
+  });
+
+  it('AUTH-13/P1-E10: the request-code response is identical whether or not a tenantId is passed', async () => {
+    const state = world();
+    const { codes } = build(state);
+    const unknown = await codes.issue(PHONE, ChallengeChannel.Sms, SIGNIN);
+    advance(state, RESEND_COOLDOWN_MS);
+    const known = await codes.issue(PHONE, ChallengeChannel.Sms, SIGNIN, undefined, TENANT_ID);
+    expect(known).toEqual(unknown);
+  });
+
+  it('issue() itself only gates on channel, not kind -- Reset is excluded by its callers never passing a tenantId', async () => {
+    const state = world();
+    const { codes, essentialSmsUsage } = build(state);
+    // ForgotPasswordService (the real Reset caller) never passes a tenantId, since there's no password
+    // alternative to a reset -- this test proves that exclusion lives at the caller, not inside issue()
+    // itself, which would otherwise happily count a Reset code too if one were ever passed in.
+    await codes.issue(PHONE, ChallengeChannel.Sms, ChallengeKind.Reset, undefined, TENANT_ID);
+    expect(essentialSmsUsage).toHaveLength(1);
+  });
+
+  it('an email-channel code never counts, even with a tenantId', async () => {
+    const state = world();
+    const { codes, essentialSmsUsage } = build(state);
+    await codes.issue('owner@example.com', ChallengeChannel.Email, SIGNIN, undefined, TENANT_ID);
+    expect(essentialSmsUsage).toHaveLength(0);
   });
 });
 

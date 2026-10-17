@@ -23,3 +23,11 @@ export const signedInBodySchema = z.object({
   csrfToken: z.string(),
 });
 export class SignedInBodyDto extends createZodDto(signedInBodySchema) {}
+
+// AUTH-21: phone sign-in only, not the shared signedInBodySchema above -- by now the phone's owner has
+// already proved they hold it (the code just verified), so naming "this shop already existed" here is not
+// the enumeration leak AUTH-13/P1-E10 refuses to allow on the *request* step, before proof of ownership.
+export const phoneSignedInBodySchema = signedInBodySchema.extend({
+  suggestPassword: z.boolean(),
+});
+export class PhoneSignedInBodyDto extends createZodDto(phoneSignedInBodySchema) {}

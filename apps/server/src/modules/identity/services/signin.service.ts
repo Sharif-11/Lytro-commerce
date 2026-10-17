@@ -34,14 +34,27 @@ export class SigninService {
   ) {}
 
   async requestCode(rawPhone: string) {
+    const phone = this.requirePhone(rawPhone);
+    // AUTH-21: a known phone signing in by code is choosing that over its own password, so the code costs
+    // that shop's essential-SMS allowance -- a brand-new phone (sign-up) has no shop yet to charge it to.
+    const existing = await this.gateway.run((tx) => this.gateway.findSubscriberByPhone(tx, phone));
+    const owned = existing
+      ? await this.gateway.run((tx) => this.gateway.findOwnedTenant(tx, existing.subscriberId))
+      : null;
     return this.codes.issue(
-      this.requirePhone(rawPhone),
+      phone,
       ChallengeChannel.Sms,
       ChallengeKind.Signin,
+      undefined,
+      owned?.id ?? null,
     );
   }
 
-  async verifyCode(rawPhone: string, code: string, context: SessionContext): Promise<SignedIn> {
+  async verifyCode(
+    rawPhone: string,
+    code: string,
+    context: SessionContext,
+  ): Promise<SignedIn & { suggestPassword: boolean }> {
     const phone = this.requirePhone(rawPhone);
     const existing = await this.gateway.run((tx) => this.gateway.findSubscriberByPhone(tx, phone));
     await this.lockout.refuseIfLocked(existing?.subscriberId ?? null);
@@ -95,7 +108,10 @@ export class SigninService {
       if (!existing) {
         await this.signupLimit.record(context.ip);
       }
-      return opened;
+      // AUTH-21: safe to reveal only now, after the code has proved phone ownership -- unlike the
+      // request-code step (AUTH-13/P1-E10), there's no enumeration concern once the owner already knows
+      // their own account exists.
+      return { ...opened, suggestPassword: opened.tenantId !== null };
     } catch (error) {
       if (error instanceof UniqueViolation) {
         throw new ApiError('conflict', 'PleaseTryAgain', {});

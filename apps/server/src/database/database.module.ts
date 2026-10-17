@@ -35,6 +35,7 @@ import {
   IdempotencyKeysRepository,
   ScheduledPlanChangesRepository,
   DataExportsRepository,
+  EssentialSmsUsageRepository,
 } from '@lytronix/db';
 import { EnvironmentParser } from '../config/env';
 import { ENV } from '../config/tokens';
@@ -114,6 +115,7 @@ import { DatabaseService } from './database.service';
       inject: [TransactionRunner],
       useFactory: (transactions: TransactionRunner) => new DataExportsRepository(transactions),
     },
+    { provide: EssentialSmsUsageRepository, useFactory: () => new EssentialSmsUsageRepository() },
   ],
   exports: [
     ENV,
@@ -153,6 +155,7 @@ import { DatabaseService } from './database.service';
     IdempotencyKeysRepository,
     ScheduledPlanChangesRepository,
     DataExportsRepository,
+    EssentialSmsUsageRepository,
   ],
 })
 export class DatabaseModule {}

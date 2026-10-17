@@ -28,7 +28,12 @@ this criterion's own `ADM-01`/`ADM-18` directly: `ADM-01`'s "regenerating codes 
 had zero implementation (no route existed to even call it) — fixed with a new session-guarded,
 step-up-verified `POST /auth/operator/backup-codes/regenerate` (`KNOWN-GAPS.md` #33); `ADM-18`'s
 break-glass script was already correct, but the documented procedure its own pass criteria names didn't
-exist — fixed as `docs/RUNBOOKS.md` §1 (`KNOWN-GAPS.md` #34). No exit-criteria gap remains.
+exist — fixed as `docs/RUNBOOKS.md` §1 (`KNOWN-GAPS.md` #34). A third, also scoped directly: `AUTH-21`'s
+essential-SMS allowance had no metering mechanism at all, despite the plan-limit fields already existing —
+built the counter, revised the requirement's own carve-out rule along the way (sign-in to an existing shop
+now counts; the shop-ready SMS no longer does), and caught a phone-enumeration regression (`AUTH-13`/P1-E10)
+before it shipped by moving the new "use your password" signal from the request-code response to the
+verify response (`KNOWN-GAPS.md` #36). No exit-criteria gap remains.
 
 1. Every `M` requirement in AUTH, TEN, STF, AUD, I18N-01/02 and ADM-01/18 has a passing automated test (see the test plan).
 2. The isolation suite (SEC-02) passes on every endpoint that takes a resource ID, with two tenants holding overlapping data.
