@@ -89,6 +89,7 @@ code fix).
 - `STO-*`, `BND-*`, `RTE-*` — the metered-limit enforcement machinery (now has real plan data from Phase 2 to read against).
 - `PRD-*`, `ATR-*`, `ATL-*`, `UOM-*` — products, variants, flexible attributes, units.
 - `INV-*`, `PUR-*`, `PST-*` — inventory, purchasing, shop-type presets.
+- `LND-*` — product landing pages (added 2026-10-17): the shareable single-product page, link previews, stable links and Meta Pixel views. Its order form lands in Phase 4 and its advance/full payment in Phase 5.
 - `MED-*` — R2 presigned uploads, the validation/resize/variant-generation job, the `control.used_transaction_ids`-style permanence pattern applied to media where relevant.
 - `SFT-*` — the shared storefront, served at subdomain root, including the footer/contact-us section (`SFT-21`, added 2026-10-16, reads `TEN-30`'s contact fields).
 - `CCH-*` — the layered cache (device → edge → process memory → Postgres), built in from the start since retrofitting caching into a storefront already in production is a much riskier change than building it in.
@@ -107,6 +108,7 @@ code fix).
 - `ORD-01` to `ORD-47` — order creation, the `payment_status`/`fulfillment_status` two-axis model, extraction from text (`AI`-adjacent, see Phase 7 for the AI provider itself). Order lines hold stock through Phase 3's reservation primitive (`INV-15`/`INV-16`) and returns call its restock-or-damaged service (`INV-17`); the order-line halves of `PRD-06/07/08/13`, `ATR-07/08/09/13/15`, `ATL-06` and `UOM-04` finish here (`PHASE-3-PLAN.md` §3.2).
 - `QTA-01` to `QTA-07` (moved here from Phase 3, D3-3) — counted at order handling; this phase's manual mark-shipped trigger first, Phase 6's courier booking second.
 - `TAX-*`, `MNU-*` (adopted 2026-10-17) — need order lines; land with or right after this phase.
+- `LND-07` to `LND-12`, `LND-16` — the product landing page's order form (name, phone, district, thana, address, comments; variant and quantity), live totals, submission through `ORD-02` with `source = landing_page`, the per-IP limit, the confirmation screen, the Meta `InitiateCheckout`/`Purchase` events and the server-side Conversions API event. Cash-on-delivery products complete here; advance and full prepayment complete in Phase 5 (`LND-10`).
 - `CUS-*` — customer records, addresses, the canonical zilla/thana list.
 - `API-11`'s mandatory `Idempotency-Key` for order creation, built in from this phase's first endpoint, not added after a double-order incident.
 - `STA-01` to `STA-04` (added 2026-10-16) — the tenant's own business statistics: order/revenue stats
@@ -125,6 +127,7 @@ code fix).
 
 - `WAL-*` — wallet/bank accounts, the plugin registry pattern (`WAL-6`).
 - `PAY-*` — hosted payment sessions, the `created → awaiting_payment → checking → verified` state machine.
+- `LND-10` (second half) — a product landing page whose product requires a partial advance or full prepayment (`PRD-08`) sends the customer to the hosted payment page; the stock reservation's expiry (`INV-16`) is set from the real payment-session lifetime here.
 - `VER-*` — the three verification tiers (manual, listener, gateway), including the SIM-swap-aware cooldown added earlier (`SEC-14`'s sibling consideration) if you chose to build it.
 - `WAL-20`/`WAL-21`, `RAT-15` (added 2026-10-16) — the per-order commission on level-3 (automated gateway)
   verification, charged to the tenant's balance regardless of plan, falling back to listener/manual
