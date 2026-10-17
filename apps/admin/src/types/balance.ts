@@ -30,3 +30,14 @@ export interface RateValue {
   value: string;
   effectiveFrom: string;
 }
+
+/** Mirrors `PlatformWallet` in apps/server/src/modules/balance/types/platform-wallet.ts (BIL-02/BAL-03). */
+export interface PlatformWallet {
+  id: string;
+  provider: string;
+  number: string;
+  label: string | null;
+  enabled: boolean;
+  displayOrder: number;
+  createdAt: string;
+}

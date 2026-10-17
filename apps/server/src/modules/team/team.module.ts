@@ -24,6 +24,8 @@ import {
   OperatorPlanPricesController,
 } from './controllers/operator-billing-terms.controller';
 import { OperatorPlanLimitOverridesController } from './controllers/operator-plan-limit-overrides.controller';
+import { OperatorPlatformWalletsController } from './controllers/operator-platform-wallets.controller';
+import { PlatformWalletsController } from './controllers/platform-wallets.controller';
 import { OperatorSettingsController } from './controllers/operator-settings.controller';
 import { BillingController } from './controllers/billing.controller';
 import { OperatorPaymentQueueController } from './controllers/operator-payment-queue.controller';
@@ -69,6 +71,8 @@ import { StaffController } from './controllers/staff.controller';
     OperatorBillingTermsController,
     OperatorPlanPricesController,
     OperatorPlanLimitOverridesController,
+    OperatorPlatformWalletsController,
+    PlatformWalletsController,
     OperatorSettingsController,
     BillingController,
     OperatorPaymentQueueController,

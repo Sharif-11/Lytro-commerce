@@ -1,12 +1,13 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ConfirmTopUpInput, QuoteTopUpInput } from '@lytronix/validators';
 import { tenantSession } from '@/session/tenant-session';
-import type { BalanceSnapshot, LedgerPage, RateValue } from '@/types/balance';
+import type { BalanceSnapshot, LedgerPage, PlatformWallet, RateValue } from '@/types/balance';
 import type { PlanPayment } from '@/types/plan-payment';
 
 export const BALANCE_QUERY_KEY = ['balance'] as const;
 export const LEDGER_QUERY_KEY = ['balance', 'ledger'] as const;
 export const RATES_QUERY_KEY = ['balance', 'current-rates'] as const;
+export const PLATFORM_WALLETS_QUERY_KEY = ['platform-wallets'] as const;
 const PAGE_SIZE = 50;
 
 export function useBalance() {
@@ -45,6 +46,15 @@ export function useCurrentRates() {
   return useQuery({
     queryKey: RATES_QUERY_KEY,
     queryFn: () => tenantSession.client.get<RateValue[]>('/balance/current-rates'),
+  });
+}
+
+/** GET /platform-wallets (BIL-02/BAL-03): where to send money for a plan purchase or a top-up. Enabled-only,
+    reachable with no specific permission -- see the route's own comment for why. */
+export function usePlatformWallets() {
+  return useQuery({
+    queryKey: PLATFORM_WALLETS_QUERY_KEY,
+    queryFn: () => tenantSession.client.get<PlatformWallet[]>('/platform-wallets'),
   });
 }
 

@@ -25,3 +25,4 @@ export * from './control/idempotency';
 export * from './control/scheduled-plan-changes';
 export * from './tenant/data-exports';
 export * from './control/essential-sms-usage';
+export * from './control/platform-wallets';

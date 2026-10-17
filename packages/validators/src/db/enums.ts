@@ -268,6 +268,10 @@ export enum PlatformAuditAction {
   // PLN-11: a per-tenant limit override, set or removed.
   PlanLimitOverrideSet = 'plan_limit_override_set',
   PlanLimitOverrideRemoved = 'plan_limit_override_removed',
+  // BIL-02/BAL-03: the platform's own wallet numbers, by the operator who changed them.
+  PlatformWalletAdded = 'platform_wallet_added',
+  PlatformWalletUpdated = 'platform_wallet_updated',
+  PlatformWalletRemoved = 'platform_wallet_removed',
   // TRM-16: every billing-term change.
   BillingTermCreated = 'billing_term_created',
   BillingTermUpdated = 'billing_term_updated',

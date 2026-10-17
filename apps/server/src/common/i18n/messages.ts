@@ -52,6 +52,10 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   RateCannotBeNegative: { en: 'A rate cannot be negative.', bn: 'রেট নেগেটিভ হতে পারে না।' },
   UnknownRate: { en: 'Unknown rate.', bn: 'অজানা রেট।' },
   UnknownSetting: { en: 'Unknown setting.', bn: 'অজানা সেটিং।' },
+  PlatformWalletNotFound: {
+    en: 'Platform wallet not found.',
+    bn: 'প্ল্যাটফর্ম ওয়ালেট পাওয়া যায়নি।',
+  },
 
   BillingTermNotFound: { en: 'Billing term not found.', bn: 'বিলিং টার্মটি খুঁজে পাওয়া যায়নি।' },
   BillingTermInUse: {
@@ -347,6 +351,19 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   RatesListed: { en: 'Rates retrieved.', bn: 'রেট পাওয়া গেছে।' },
   RateHistoryRetrieved: { en: 'Rate history retrieved.', bn: 'রেটের হিস্টরি পাওয়া গেছে।' },
   RateUpdated: { en: 'Rate updated.', bn: 'রেট আপডেট হয়েছে।' },
+  PlatformWalletsListed: {
+    en: 'Platform wallets retrieved.',
+    bn: 'প্ল্যাটফর্ম ওয়ালেট পাওয়া গেছে।',
+  },
+  PlatformWalletAdded: { en: 'Platform wallet added.', bn: 'প্ল্যাটফর্ম ওয়ালেট যুক্ত হয়েছে।' },
+  PlatformWalletUpdated: {
+    en: 'Platform wallet updated.',
+    bn: 'প্ল্যাটফর্ম ওয়ালেট আপডেট হয়েছে।',
+  },
+  PlatformWalletRemoved: {
+    en: 'Platform wallet removed.',
+    bn: 'প্ল্যাটফর্ম ওয়ালেট রিমুভ হয়েছে।',
+  },
   SettingsListed: { en: 'Settings retrieved.', bn: 'সেটিংসগুলো পাওয়া গেছে।' },
   SettingUpdated: { en: 'Setting updated.', bn: 'সেটিং আপডেট হয়েছে।' },
   ShopSettingsRetrieved: { en: 'Shop settings retrieved.', bn: 'শপ সেটিংস পাওয়া গেছে।' },

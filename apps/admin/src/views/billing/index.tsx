@@ -3,6 +3,7 @@ import { useSearch } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { TenantState } from '@lytronix/validators';
 import { useMe } from '@/api/auth';
+import { usePlatformWallets } from '@/api/balance';
 import {
   useCancelDowngrade,
   useCancelSubscription,
@@ -45,6 +46,7 @@ export function Billing(): React.JSX.Element {
   const { t } = useTranslation();
   const search = useSearch({ from: '/dashboard/billing' });
   const me = useMe();
+  const platformWallets = usePlatformWallets();
   const plans = usePublicPlans();
   const terms = usePublicBillingTerms();
   const staff = useStaffList();
@@ -230,6 +232,7 @@ export function Billing(): React.JSX.Element {
           balancePending={confirmPurchase.isPending || confirmUpgrade.isPending}
           walletPending={confirmPurchase.isPending || confirmUpgrade.isPending}
           error={confirmError ? errorMessage(confirmError, t) : null}
+          wallets={platformWallets.data}
         />
       ) : null}
 

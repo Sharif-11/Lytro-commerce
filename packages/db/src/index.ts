@@ -99,6 +99,11 @@ export {
 export { PlanAssignmentsRepository } from './repositories/billing/plan-assignments.repository';
 export { PlanLimitOverridesRepository } from './repositories/billing/plan-limit-overrides.repository';
 export {
+  PlatformWalletsRepository,
+  type NewPlatformWallet,
+  type UpdatePlatformWallet,
+} from './repositories/billing/platform-wallets.repository';
+export {
   InvoiceCountersRepository,
   InvoicesRepository,
   type NewInvoice,

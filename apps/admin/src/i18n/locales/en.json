@@ -322,6 +322,7 @@
     "ledgerDate": "Date",
     "loadMore": "Load more",
     "noneYet": "No ledger entries yet.",
+    "sendPaymentTo": "Send your payment to one of these numbers first",
     "ratesTitle": "Current rates",
     "ratesEffectiveFrom": "Effective from {{date}}",
     "rate": {

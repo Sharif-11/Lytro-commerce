@@ -3,7 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/button';
 import { TextField } from '@/components/text-field';
 import { ErrorBanner } from '@/components/error-banner';
+import { PlatformWalletList } from '@/components/platform-wallet-list';
 import type { PlanPayment } from '@/types/plan-payment';
+import type { PlatformWallet } from '@/types/balance';
 
 export interface ConfirmWalletValues {
   transactionId: string;
@@ -20,6 +22,7 @@ interface PaymentPanelProps {
   balancePending: boolean;
   walletPending: boolean;
   error: string | null;
+  wallets: PlatformWallet[] | undefined;
 }
 
 /** BIL-02/08/16: the shared "pay from balance, or submit a wallet payment" step, once a purchase or upgrade
@@ -34,6 +37,7 @@ export function PaymentPanel({
   balancePending,
   walletPending,
   error,
+  wallets,
 }: PaymentPanelProps): React.JSX.Element {
   const { t } = useTranslation();
   const [transactionId, setTransactionId] = useState('');
@@ -65,6 +69,8 @@ export function PaymentPanel({
       </div>
 
       <form onSubmit={handleWalletSubmit} className="space-y-4">
+        <PlatformWalletList wallets={wallets} />
+
         <TextField
           label={t('balance.transactionId')}
           name="transactionId"
