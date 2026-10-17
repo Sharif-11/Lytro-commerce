@@ -12,10 +12,12 @@ import { AppModule } from '../src/app/app.module';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { BalanceService } from '../src/modules/balance/services/balance.service';
 import { RateService } from '../src/modules/balance/services/rate.service';
+import { LOW_BALANCE_NOTIFIER } from '../src/modules/balance/tokens';
 import { ApiError } from '../src/common/api-error';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase, seedShop } from './support/database';
 import { SmsCapture } from './support/sms-capture';
+import { LowBalanceCapture } from './support/low-balance-capture';
 import { cookieFrom, getJson, patchJson, postJson, type HttpResult } from './support/http';
 
 // The balance ledger and rates, over the real database (BAL-01 to BAL-18, RAT-01 to RAT-14). Direct-service
@@ -35,6 +37,7 @@ let admin: pg.Client;
 let balance: BalanceService;
 let rates: RateService;
 const texts = new SmsCapture();
+const lowBalance = new LowBalanceCapture();
 
 const post = (path: string, payload: unknown, headers: Record<string, string> = {}) =>
   postJson(port, path, payload, headers);
@@ -148,6 +151,8 @@ beforeAll(async () => {
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(SMS_PROVIDER)
     .useValue(texts.provider)
+    .overrideProvider(LOW_BALANCE_NOTIFIER)
+    .useValue(lowBalance)
     .compile();
   ({ app, port } = await listenOn(moduleRef));
   balance = app.get(BalanceService);
@@ -186,6 +191,49 @@ describeIfDatabase('balance ledger (BAL-01 to BAL-18)', () => {
       [tenantId],
     );
     expect(rows.rows[0]?.count).toBe('50');
+  });
+
+  it('BAL-13: a low-balance notice fires once per threshold crossing, never on an SMS, never again while already past it', async () => {
+    const tenantId = await freshTenant();
+    await balance.creditStandalone({ tenantId, amount: '60.00', type: LedgerEntryType.TopUp });
+
+    // Crosses 50 TK downward (60 -> 45): one notice.
+    await balance.chargeStandalone({ tenantId, amount: '15.00', type: LedgerEntryType.Sms });
+    expect(lowBalance.forTenant(tenantId)).toEqual([
+      { tenantId, thresholdPaisa: 5000n, balanceAfter: '45.00' },
+    ]);
+
+    // Stays above 0 (45 -> 5): no new notice, and the 50 TK notice doesn't repeat.
+    await balance.chargeStandalone({
+      tenantId,
+      amount: '40.00',
+      type: LedgerEntryType.Sms,
+      overdraftFloor: '-50',
+    });
+    expect(lowBalance.forTenant(tenantId)).toHaveLength(1);
+
+    // Crosses 0 downward (5 -> -5): a second, independent notice.
+    await balance.chargeStandalone({
+      tenantId,
+      amount: '10.00',
+      type: LedgerEntryType.Sms,
+      overdraftFloor: '-50',
+    });
+    expect(lowBalance.forTenant(tenantId)).toEqual([
+      { tenantId, thresholdPaisa: 5000n, balanceAfter: '45.00' },
+      { tenantId, thresholdPaisa: 0n, balanceAfter: '-5.00' },
+    ]);
+
+    // Already past 0 (-5 -> -10): no new notice.
+    await balance.chargeStandalone({
+      tenantId,
+      amount: '5.00',
+      type: LedgerEntryType.Sms,
+      overdraftFloor: '-50',
+    });
+    expect(lowBalance.forTenant(tenantId)).toHaveLength(2);
+
+    expect(texts.sent).toHaveLength(0);
   });
 
   it('BAL-02, DAT-10: the ledger is insert-only for every role, including the schema owner', async () => {

@@ -1033,6 +1033,25 @@ actually fail without it — temporarily short-circuited `TrialLimiter.refuseIfT
 the identity-cap case failed with the exact expected symptom (201 instead of 429), then restored and
 reconfirmed green. Confirmed the full existing e2e suite stays green with zero other file changes needed.
 
+## 48. `BAL-13`: the low-balance notice had zero test coverage — found and fixed 2026-10-17
+
+Found via this session's own follow-up audit of every M-priority requirement across Phase 1 and Phase 2.
+Unlike most entries in this list, `BAL-13` was never missing an implementation — `BalanceService`'s private
+`checkLowBalanceCrossing` (called from the one place every balance change happens, `applyDelta`) and the
+`ConsoleLowBalanceNotifier` stub (the same D6 stub-provider precedent as SMS/mail before a real provider
+existed) were both already correctly built. Nothing anywhere tested the "once per crossing" threshold logic
+at 50 TK and at 0, so a regression here could have shipped silently.
+
+**Fixed:** no code change — a new `LowBalanceCapture` test double (`apps/server/test/support/`, same shape
+as the existing `SmsCapture`/`MailCapture`) overrides `LOW_BALANCE_NOTIFIER` in `balance-ledger.e2e.spec.ts`,
+and a new case there drives a tenant's balance down through both thresholds in sequence (60 → 45 → 5 → -5 →
+-10 TK), asserting a notice fires exactly once at each crossing, never again while already past it, and
+never through the SMS provider.
+
+Verified the fix would actually fail without it — temporarily short-circuited `checkLowBalanceCrossing`'s
+loop condition to `false`, confirmed the new case failed with the exact expected symptom (an empty notice
+list), then restored and reconfirmed all 14 tests in the file green again.
+
 ## Not a bug, just noting it so it isn't mistaken for one later
 
 The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data
