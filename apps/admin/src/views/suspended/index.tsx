@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useBalance, useConfirmTopUp, useQuoteTopUp } from '@/api/balance';
+import { useBalance, useConfirmTopUp, usePlatformWallets, useQuoteTopUp } from '@/api/balance';
 import { errorMessage } from '@/api/error-message';
 import { ApiClientError } from '@/api/client';
 import { AuthCard } from '@/components/auth-card';
@@ -24,6 +24,7 @@ interface SuspendedProps {
 export function Suspended({ onSignOut, signOutPending }: SuspendedProps): React.JSX.Element {
   const { t } = useTranslation();
   const balance = useBalance();
+  const platformWallets = usePlatformWallets();
   const quoteTopUp = useQuoteTopUp();
   const confirmTopUp = useConfirmTopUp();
   const [quote, setQuote] = useState<PlanPayment | null>(null);
@@ -97,6 +98,7 @@ export function Suspended({ onSignOut, signOutPending }: SuspendedProps): React.
           quotePending={quoteTopUp.isPending}
           confirmPending={confirmTopUp.isPending}
           error={topUpError ? resolveTopUpError(topUpError) : null}
+          wallets={platformWallets.data}
         />
       </div>
     </AuthCard>

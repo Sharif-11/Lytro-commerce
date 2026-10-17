@@ -3,7 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/button';
 import { TextField } from '@/components/text-field';
 import { ErrorBanner } from '@/components/error-banner';
+import { PlatformWalletList } from '@/components/platform-wallet-list';
 import type { PlanPayment } from '@/types/plan-payment';
+import type { PlatformWallet } from '@/types/balance';
 
 export interface ConfirmTopUpValues {
   transactionId: string;
@@ -22,6 +24,7 @@ interface TopUpFormProps {
   quotePending: boolean;
   confirmPending: boolean;
   error: string | null;
+  wallets: PlatformWallet[] | undefined;
 }
 
 /** Presentational (ENGINEERING-STANDARDS.md §2a): two steps in one card, switched on whether `quote` is
@@ -35,6 +38,7 @@ export function TopUpForm({
   quotePending,
   confirmPending,
   error,
+  wallets,
 }: TopUpFormProps): React.JSX.Element {
   const { t } = useTranslation();
   const [amount, setAmount] = useState('');
@@ -65,6 +69,8 @@ export function TopUpForm({
         <h2 className="text-base font-semibold text-slate-900">
           {t('balance.quoted', { amount: quote.amount })}
         </h2>
+
+        <PlatformWalletList wallets={wallets} />
 
         <TextField
           label={t('balance.transactionId')}

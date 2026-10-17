@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
   BalanceLedgerRepository,
+  PlatformWalletsRepository,
   RatesRepository,
   ShopSettingsRepository,
   TransactionRunner,
@@ -12,9 +13,15 @@ import type {
   LedgerFilters,
   NewLedgerEntry,
 } from '../../modules/balance/ports/balance-ledger-store';
+import type {
+  NewPlatformWalletValues,
+  PlatformWalletsStore,
+  UpdatePlatformWalletValues,
+} from '../../modules/balance/ports/platform-wallets-store';
 import type { RateStore } from '../../modules/balance/ports/rate-store';
 import type { ShopSettingsStore } from '../../modules/balance/ports/shop-settings-store';
 import type { LedgerEntry } from '../../modules/balance/types/ledger-entry';
+import type { PlatformWallet } from '../../modules/balance/types/platform-wallet';
 import type { RateHistoryEntry, RateValue } from '../../modules/balance/types/rate';
 import { DatabaseService } from '../database.service';
 
@@ -98,6 +105,31 @@ export class DrizzleRateStore implements RateStore {
       noticeId: row.noticeId,
       changedAt: row.changedAt,
     }));
+  }
+}
+
+/** Database-backed platform wallet numbers (BIL-02/BAL-03). Platform-wide, no transaction or tenant context. */
+@Injectable()
+export class DrizzlePlatformWalletsStore implements PlatformWalletsStore {
+  constructor(
+    @Inject(DatabaseService) private readonly database: Pick<DatabaseService, 'handle'>,
+    @Inject(PlatformWalletsRepository) private readonly wallets: PlatformWalletsRepository,
+  ) {}
+
+  list(enabledOnly: boolean): Promise<PlatformWallet[]> {
+    return this.wallets.list(this.database.handle.db, enabledOnly);
+  }
+
+  create(values: NewPlatformWalletValues): Promise<PlatformWallet> {
+    return this.wallets.insert(this.database.handle.db, values);
+  }
+
+  update(id: string, values: UpdatePlatformWalletValues): Promise<PlatformWallet | null> {
+    return this.wallets.update(this.database.handle.db, id, values);
+  }
+
+  remove(id: string): Promise<void> {
+    return this.wallets.remove(this.database.handle.db, id);
   }
 }
 

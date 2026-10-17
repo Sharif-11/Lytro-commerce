@@ -295,6 +295,13 @@
       "when": 1792227123787,
       "tag": "0041_purchase_snapshot_version_features",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1792229460253,
+      "tag": "0042_platform_wallets",
+      "breakpoints": true
     }
   ]
 }

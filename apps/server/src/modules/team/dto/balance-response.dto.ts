@@ -44,6 +44,17 @@ export const rateValueSchema = z.object({
 });
 export class RateValueDto extends createZodDto(rateValueSchema) {}
 
+export const platformWalletSchema = z.object({
+  id: z.string(),
+  provider: z.string(),
+  number: z.string(),
+  label: z.string().nullable(),
+  enabled: z.boolean(),
+  displayOrder: z.number(),
+  createdAt: z.date(),
+});
+export class PlatformWalletDto extends createZodDto(platformWalletSchema) {}
+
 export const rateHistoryEntrySchema = z.object({
   id: z.number(),
   key: z.nativeEnum(RateKey),

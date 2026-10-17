@@ -28,6 +28,7 @@ export const MESSAGE_KEYS = [
   'RateCannotBeNegative',
   'UnknownRate',
   'UnknownSetting',
+  'PlatformWalletNotFound',
 
   // Billing / plans
   'BillingTermNotFound',
@@ -151,6 +152,10 @@ export const MESSAGE_KEYS = [
   'RatesListed',
   'RateHistoryRetrieved',
   'RateUpdated',
+  'PlatformWalletsListed',
+  'PlatformWalletAdded',
+  'PlatformWalletUpdated',
+  'PlatformWalletRemoved',
   'SettingsListed',
   'SettingUpdated',
   'ShopSettingsRetrieved',

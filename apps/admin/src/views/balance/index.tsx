@@ -5,6 +5,7 @@ import {
   useConfirmTopUp,
   useCurrentRates,
   useLedger,
+  usePlatformWallets,
   useQuoteTopUp,
   type LedgerFilters,
 } from '@/api/balance';
@@ -22,6 +23,7 @@ export function Balance(): React.JSX.Element {
   const { t } = useTranslation();
   const balance = useBalance();
   const rates = useCurrentRates();
+  const platformWallets = usePlatformWallets();
   const [filters, setFilters] = useState<LedgerFilters>({});
   const ledger = useLedger(filters);
   const quoteTopUp = useQuoteTopUp();
@@ -105,6 +107,7 @@ export function Balance(): React.JSX.Element {
         quotePending={quoteTopUp.isPending}
         confirmPending={confirmTopUp.isPending}
         error={topUpError ? resolveTopUpError(topUpError) : null}
+        wallets={platformWallets.data}
       />
 
       <RatesCard rates={rates.data} isLoading={rates.isLoading} />

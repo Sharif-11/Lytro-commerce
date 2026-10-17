@@ -322,6 +322,7 @@
     "ledgerDate": "তারিখ",
     "loadMore": "আরও দেখুন",
     "noneYet": "এখনো কোনো লেজার এন্ট্রি নেই।",
+    "sendPaymentTo": "আগে এই নাম্বারগুলোর যে কোনো একটিতে পেমেন্ট সেন্ড করুন",
     "ratesTitle": "কারেন্ট রেট",
     "ratesEffectiveFrom": "{{date}} থেকে কার্যকর",
     "rate": {

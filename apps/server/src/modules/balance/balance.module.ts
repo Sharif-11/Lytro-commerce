@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import {
   DrizzleBalanceLedgerStore,
+  DrizzlePlatformWalletsStore,
   DrizzleRateStore,
   DrizzleShopSettingsStore,
 } from '../../database/adapters/balance.adapter';
@@ -11,6 +12,7 @@ import { TenancyModule } from '../tenancy/tenancy.module';
 import { ConsoleLowBalanceNotifier } from './services/console-low-balance-notifier';
 import { BalanceService } from './services/balance.service';
 import { PayAsYouGoBillingService } from './services/payg-billing.service';
+import { PlatformWalletsService } from './services/platform-wallets.service';
 import { RateService } from './services/rate.service';
 import { ShopDeliveryRateService } from './services/shop-delivery-rate.service';
 import { TopUpService } from './services/top-up.service';
@@ -18,6 +20,7 @@ import {
   BALANCE_LEDGER_STORE,
   CLOCK,
   LOW_BALANCE_NOTIFIER,
+  PLATFORM_WALLETS_STORE,
   RATE_STORE,
   SHOP_SETTINGS_STORE,
 } from './tokens';
@@ -30,6 +33,7 @@ import {
     { provide: BALANCE_LEDGER_STORE, useClass: DrizzleBalanceLedgerStore },
     { provide: RATE_STORE, useClass: DrizzleRateStore },
     { provide: SHOP_SETTINGS_STORE, useClass: DrizzleShopSettingsStore },
+    { provide: PLATFORM_WALLETS_STORE, useClass: DrizzlePlatformWalletsStore },
     { provide: LOW_BALANCE_NOTIFIER, useClass: ConsoleLowBalanceNotifier },
     { provide: CLOCK, useValue: (): Date => new Date() },
     BalanceService,
@@ -37,6 +41,7 @@ import {
     ShopDeliveryRateService,
     PayAsYouGoBillingService,
     TopUpService,
+    PlatformWalletsService,
   ],
   exports: [
     BalanceService,
@@ -44,6 +49,7 @@ import {
     ShopDeliveryRateService,
     PayAsYouGoBillingService,
     TopUpService,
+    PlatformWalletsService,
   ],
 })
 export class BalanceModule {}

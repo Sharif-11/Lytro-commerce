@@ -965,6 +965,39 @@ fail without it — temporarily removed the actual write from `ShopDeliveryRateS
 three dependent cases failed with the exact expected symptom (the value never actually changing), then
 restored and confirmed all 25 relevant tests green again.
 
+## 46. `BIL-02`/`BAL-03`: no "platform wallet number" concept existed anywhere — found and fixed 2026-10-17
+
+Both requirements name the same missing concept from two call sites: `BIL-02` ("payment methods for a plan
+shall be the platform's active wallet numbers that the operator has enabled, and the tenant's balance") and
+`BAL-03` ("a top-up shall be paid to the platform's wallet number through the hosted payment page"). Neither
+existed. The practical symptom: the admin's own top-up form and purchase/upgrade payment panel both already
+asked the tenant for a transaction ID and sender number, but never told them *where* to actually send the
+money first — `payment-panel.tsx` even carried its own long-standing comment naming `BIL-02/08/16` without
+the gap ever being closed. Not `WAL-*` (Phase 5): that is a tenant's own wallet accounts for receiving
+payments *from* its shoppers (money flows shopper → tenant); this is the platform's own wallet number(s) a
+*tenant* pays *into* (money flows tenant → platform) — zero overlap, zero dependency on gateways or orders.
+
+**Fixed:** a new `control.platform_wallets` table (platform-wide, independent rows, no "one active per
+provider" rule — that's `WAL-03`'s own nuance, not named here), a `PlatformWalletsService` in the `balance`
+module (each mutation platform-audited via new `PlatformAuditAction.PlatformWallet{Added,Updated,Removed}`
+entries), an `OperatorPlatformWalletsController` for CRUD, and a new tenant-facing `GET /platform-wallets`
+(enabled-only). That last route deliberately carries no `PermissionGuard`/`RequirePermission` — gating it
+behind either `BalanceManage` or `PaymentsManage` specifically would block a staff member who legitimately
+holds only the other one from seeing where to send money for their own allowed action, so it matches the
+`GET /me`-style precedent (`IdentitiesController`, `DataExportController`): a signed-in dashboard session is
+enough. It also carries `suspendedOwner: true` (`LIF-24`), the same carve-out `balance.controller.ts`'s own
+top-up/quote and top-up/confirm routes already have, since this is exactly the data those routes need to be
+useful while suspended. On the frontend, a new shared `PlatformWalletList` component renders the enabled
+numbers just above the transaction-id/sender-number fields in both `TopUpForm` and `PaymentPanel`.
+
+Proven by new cases in `apps/server/test/platform-wallets.e2e.spec.ts`: an operator can add/update/remove a
+wallet, each step audited; updating an unknown id answers `not_found`; the operator routes refuse an
+unauthenticated caller; the tenant-facing route is reachable by a staff member holding zero permissions and
+returns only enabled wallets, a disabled one never appearing. Verified the fix would actually fail without
+it — temporarily made `PlatformWalletsRepository.list` ignore its own `enabledOnly` argument, confirmed the
+"only enabled wallets" case failed with the exact expected symptom (the disabled wallet leaking through),
+then restored and confirmed all five cases green again.
+
 ## Not a bug, just noting it so it isn't mistaken for one later
 
 The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data
