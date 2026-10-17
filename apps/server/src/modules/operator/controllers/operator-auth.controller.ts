@@ -9,11 +9,21 @@ import { type HttpRequest, type HttpResponse } from '../../../common/http';
 import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
 import {
   operatorEnrollSchema,
+  operatorRegenerateBackupCodesSchema,
   operatorSigninSchema,
   operatorVerifySchema,
 } from '@lytronix/validators';
-import { OperatorEnrollDto, OperatorSigninDto, OperatorVerifyDto } from '../dto/operator-auth.dto';
-import { OperatorEnrolledDto, OperatorSignedInDto } from '../dto/operator-auth-response.dto';
+import {
+  OperatorEnrollDto,
+  OperatorRegenerateBackupCodesDto,
+  OperatorSigninDto,
+  OperatorVerifyDto,
+} from '../dto/operator-auth.dto';
+import {
+  OperatorBackupCodesDto,
+  OperatorEnrolledDto,
+  OperatorSignedInDto,
+} from '../dto/operator-auth-response.dto';
 import { OperatorSessionGuard } from '../guards/operator-session.guard';
 import { OperatorAuthService } from '../services/operator-auth.service';
 import type { OperatorSessionRecord } from '../ports/operator-gateway';
@@ -90,6 +100,28 @@ export class OperatorAuthController {
     );
     response.setHeader('Set-Cookie', result.cookie);
     return { csrfToken: result.csrfToken };
+  }
+
+  @Post('backup-codes/regenerate')
+  @HttpCode(200)
+  @UseGuards(OperatorSessionGuard)
+  @ResponseMessage('BackupCodesRegenerated')
+  @ApiOperation({
+    summary: 'Regenerate the ten backup codes, invalidating the old set',
+    description:
+      'Re-asserts the password and a second factor (TOTP or a still-valid backup code) as a step-up ' +
+      "check -- the signed-in session alone is not enough to wipe the account's own recovery codes.",
+  })
+  @ApiBody({ type: OperatorRegenerateBackupCodesDto })
+  @ZodResponse({ type: OperatorBackupCodesDto })
+  regenerateBackupCodes(
+    @Body(new ZodValidationPipe(operatorRegenerateBackupCodesSchema))
+    body: OperatorRegenerateBackupCodesDto,
+    @Req() request: HttpRequest & { operatorSession: OperatorSessionRecord },
+  ): Promise<{ backupCodes: string[] }> {
+    return this.operators
+      .regenerateBackupCodes(request.operatorSession.operatorId, body.password, body.code)
+      .then((backupCodes) => ({ backupCodes }));
   }
 
   @Post('signout')

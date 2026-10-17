@@ -23,7 +23,12 @@ re-audit caught that the first pass had left it PARTIAL (`KNOWN-GAPS.md` #23). A
 day (2026-10-17) found one more `M`-priority, named-prefix gap: `TEN-27`'s `TenantCache.invalidateTenant()`
 was dead code, never called from suspend/restore/archive, so a lifecycle change could take up to the
 cache's own 60s TTL to actually close a tenant's public side instead of the required 5s — fixed by wiring
-it into `LifecycleService` at those three events (`KNOWN-GAPS.md` #31). No exit-criteria gap remains.
+it into `LifecycleService` at those three events (`KNOWN-GAPS.md` #31). Two more found scoping a fix for
+this criterion's own `ADM-01`/`ADM-18` directly: `ADM-01`'s "regenerating codes invalidates the old set"
+had zero implementation (no route existed to even call it) — fixed with a new session-guarded,
+step-up-verified `POST /auth/operator/backup-codes/regenerate` (`KNOWN-GAPS.md` #33); `ADM-18`'s
+break-glass script was already correct, but the documented procedure its own pass criteria names didn't
+exist — fixed as `docs/RUNBOOKS.md` §1 (`KNOWN-GAPS.md` #34). No exit-criteria gap remains.
 
 1. Every `M` requirement in AUTH, TEN, STF, AUD, I18N-01/02 and ADM-01/18 has a passing automated test (see the test plan).
 2. The isolation suite (SEC-02) passes on every endpoint that takes a resource ID, with two tenants holding overlapping data.

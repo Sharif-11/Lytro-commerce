@@ -3,6 +3,7 @@ import { ENV } from '../../config/tokens';
 import type { Env } from '../../config/env';
 import { DrizzleOperatorGateway } from '../../database/adapters/operator.adapter';
 import { ClientIp } from '../../common/client-ip';
+import { AuditModule } from '../audit/audit.module';
 import { TenancyModule } from '../tenancy/tenancy.module';
 import { PasswordHasher } from '../identity/services/password-hasher';
 import { OperatorAuthController } from './controllers/operator-auth.controller';
@@ -20,7 +21,7 @@ import type { OperatorSessionSettings } from './types/session';
 // re-importing it here links to that same instance, and OperatorAuthController's own `@SkipTenant()` exempts
 // its routes from it regardless).
 @Module({
-  imports: [TenancyModule],
+  imports: [TenancyModule, AuditModule],
   controllers: [OperatorAuthController],
   providers: [
     { provide: OPERATOR_GATEWAY, useClass: DrizzleOperatorGateway },

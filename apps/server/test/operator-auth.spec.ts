@@ -1,8 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { generate } from 'otplib';
 import { describe, expect, it } from 'vitest';
-import type { Transaction } from '@lytronix/db';
+import type { NewPlatformAuditEntry, Transaction } from '@lytronix/db';
 import { PasswordHasher } from '../src/modules/identity/services/password-hasher';
+import { PlatformAuditService } from '../src/modules/audit/services/platform-audit.service';
+import type { PlatformAuditStore } from '../src/modules/audit/ports/platform-audit-store';
 import {
   OPERATOR_SESSION_COOKIE,
   OperatorAuthService,
@@ -38,6 +40,7 @@ interface World {
     expiresAt: Date;
     revokedAt: Date | null;
   })[];
+  platformAuditLog: NewPlatformAuditEntry[];
   now: Date;
   counter: number;
 }
@@ -48,6 +51,7 @@ function world(): World {
     backupCodes: [],
     usedBackupCodeIds: new Set(),
     sessions: [],
+    platformAuditLog: [],
     now: new Date('2026-10-08T10:00:00Z'),
     counter: 0,
   };
@@ -58,6 +62,7 @@ function build(state: World) {
     run: <T>(work: (tx: Transaction) => Promise<T>) => work(TX),
     findByEmail: (_tx, email) =>
       Promise.resolve(state.accounts.find((a) => a.email === email) ?? null),
+    findById: (_tx, id) => Promise.resolve(state.accounts.find((a) => a.id === id) ?? null),
     setTwoFactorSecret: (_tx, operatorId, secret) => {
       const account = state.accounts.find((a) => a.id === operatorId);
       if (account) {
@@ -86,6 +91,12 @@ function build(state: World) {
       state.usedBackupCodeIds.add(id);
       return Promise.resolve();
     },
+    // Same single-operator-per-test assumption as insertBackupCodes above -- clears the whole flat list.
+    invalidateBackupCodes: () => {
+      state.backupCodes = [];
+      state.usedBackupCodeIds = new Set();
+      return Promise.resolve();
+    },
     insertSession: (_tx, values) => {
       state.counter += 1;
       state.sessions.push({
@@ -112,11 +123,18 @@ function build(state: World) {
   };
 
   const settings: OperatorSessionSettings = { now: () => state.now, secureCookies: false };
+  const auditStore: PlatformAuditStore = {
+    insert: (entry) => {
+      state.platformAuditLog.push(entry);
+      return Promise.resolve();
+    },
+  };
   const service = new OperatorAuthService(
     gateway,
     new PasswordHasher(),
     new TotpService(),
     settings,
+    new PlatformAuditService(auditStore),
   );
   return { service, gateway };
 }
@@ -291,6 +309,109 @@ describe('operator verification, every sign-in once enrolled (ADM-01)', () => {
       details: { next: 'enroll-2fa' },
     });
   });
+});
+
+describe('operator backup-code regeneration (ADM-01)', () => {
+  async function enrolledAccount(state: World): Promise<{
+    service: OperatorAuthService;
+    operatorId: string;
+    secret: string;
+    backupCodes: string[];
+  }> {
+    const { service } = build(state);
+    const account = addAccount(state, await new PasswordHasher().hash(PASSWORD));
+    const signedIn = await service.signin(EMAIL, PASSWORD);
+    if (signedIn.next !== 'enroll-2fa') throw new Error('expected enroll-2fa');
+    const code = await generate({ secret: signedIn.secret });
+    const enrolled = await service.enroll(EMAIL, PASSWORD, code, CONTEXT);
+    return {
+      service,
+      operatorId: account.id,
+      secret: signedIn.secret,
+      backupCodes: enrolled.backupCodes,
+    };
+  }
+
+  it(
+    'regenerates with the right password and TOTP code, invalidating every old code at once',
+    async () => {
+      const state = world();
+      const { service, operatorId, secret, backupCodes } = await enrolledAccount(state);
+      const totp = await generate({ secret });
+
+      const fresh = await service.regenerateBackupCodes(operatorId, PASSWORD, totp);
+      expect(fresh).toHaveLength(10);
+      expect(new Set(fresh).size).toBe(10);
+      expect(fresh.some((code) => backupCodes.includes(code))).toBe(false); // disjoint from the old set
+
+      // An old code, never used, is now rejected (one is enough to prove the set was wiped -- checking
+      // every one of the ten would mean up to 10x10 bcrypt comparisons against the fresh set, far too slow).
+      const old = backupCodes[0];
+      if (!old) throw new Error('expected a backup code');
+      await expect(service.verify(EMAIL, PASSWORD, old, CONTEXT)).rejects.toMatchObject({
+        code: 'unauthenticated',
+      });
+      // A fresh code works.
+      const opened = await service.verify(EMAIL, PASSWORD, fresh[0] ?? '', CONTEXT);
+      expect(opened.cookie).toContain(`${OPERATOR_SESSION_COOKIE}=`);
+
+      expect(state.platformAuditLog).toHaveLength(1);
+      expect(state.platformAuditLog[0]).toMatchObject({
+        action: 'backup_codes_regenerated',
+        actorId: operatorId,
+        targetId: operatorId,
+      });
+    },
+    BCRYPT_TIMEOUT_MS,
+  );
+
+  it(
+    'accepts a still-valid backup code as the second factor too',
+    async () => {
+      const state = world();
+      const { service, operatorId, backupCodes } = await enrolledAccount(state);
+      const unused = backupCodes[1];
+      if (!unused) throw new Error('expected a backup code');
+
+      const fresh = await service.regenerateBackupCodes(operatorId, PASSWORD, unused);
+      expect(fresh).toHaveLength(10);
+    },
+    BCRYPT_TIMEOUT_MS,
+  );
+
+  it(
+    'refuses a wrong password, leaving the old codes intact',
+    async () => {
+      const state = world();
+      const { service, operatorId, secret, backupCodes } = await enrolledAccount(state);
+      const totp = await generate({ secret });
+
+      await expect(
+        service.regenerateBackupCodes(operatorId, 'wrong password', totp),
+      ).rejects.toMatchObject({ code: 'unauthenticated' });
+
+      const stillValid = backupCodes[0];
+      if (!stillValid) throw new Error('expected a backup code');
+      const opened = await service.verify(EMAIL, PASSWORD, stillValid, CONTEXT);
+      expect(opened.cookie).toContain(`${OPERATOR_SESSION_COOKIE}=`);
+    },
+    BCRYPT_TIMEOUT_MS,
+  );
+
+  it(
+    'refuses a wrong second factor',
+    async () => {
+      const state = world();
+      const { service, operatorId, secret } = await enrolledAccount(state);
+      const real = await generate({ secret });
+      const wrong = real === '000000' ? '111111' : '000000';
+
+      await expect(
+        service.regenerateBackupCodes(operatorId, PASSWORD, wrong),
+      ).rejects.toMatchObject({ code: 'unauthenticated' });
+    },
+    BCRYPT_TIMEOUT_MS,
+  );
 });
 
 describe('operator session lookup and sign-out (SEC-14, D8)', () => {

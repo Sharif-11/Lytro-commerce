@@ -267,6 +267,13 @@
       "when": 1792168000000,
       "tag": "0037_revoke_expired_slug",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1792255200000,
+      "tag": "0038_operator_backup_codes_delete_grant",
+      "breakpoints": true
     }
   ]
 }
