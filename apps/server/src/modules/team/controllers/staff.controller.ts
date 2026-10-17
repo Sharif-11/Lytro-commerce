@@ -25,6 +25,7 @@ import { DashboardGuard, type DashboardRequest } from '../../identity/guards/das
 import { SessionGuard } from '../../identity/guards/session.guard';
 import { PermissionGuard } from '../guards/permission.guard';
 import { PhoneNumberFormat } from '../../identity/services/phone-number-format';
+import { PlanLimitOverridesService } from '../../billing/services/plan-limit-overrides.service';
 import { StaffService, type StaffTenant } from '../../staff/services/staff.service';
 import type { StaffList, StaffMember } from '../../staff/types/staff';
 import { CreateStaffDto, ResetStaffPasswordDto, UpdateStaffDto } from '../dto/staff.dto';
@@ -40,6 +41,7 @@ export class StaffController {
     @Inject(StaffService) private readonly staff: StaffService,
     @Inject(PhoneNumberFormat) private readonly phones: PhoneNumberFormat,
     @Inject(ClientIp) private readonly clientIp: ClientIp,
+    @Inject(PlanLimitOverridesService) private readonly limitOverrides: PlanLimitOverridesService,
   ) {}
 
   @Get()
@@ -47,8 +49,8 @@ export class StaffController {
   @ResponseMessage('StaffListed')
   @ApiOperation({ summary: "List the shop's staff" })
   @ZodResponse({ type: StaffListDto })
-  list(@Req() request: DashboardRequest): Promise<StaffList> {
-    return this.staff.list(this.shopOf(request));
+  async list(@Req() request: DashboardRequest): Promise<StaffList> {
+    return this.staff.list(await this.shopOf(request));
   }
 
   @Post()
@@ -57,7 +59,7 @@ export class StaffController {
   @ApiOperation({ summary: 'Add a staff member' })
   @ApiBody({ type: CreateStaffDto })
   @ZodResponse({ type: StaffMemberDto })
-  create(
+  async create(
     @Body(new ZodValidationPipe(CreateStaffDto.schema)) body: CreateStaffDto,
     @Req() request: DashboardRequest,
   ): Promise<StaffMember> {
@@ -66,7 +68,7 @@ export class StaffController {
       throw new ApiError('validation_error', 'PhoneInvalid', { field: 'phone' });
     }
     return this.staff.create(
-      this.shopOf(request),
+      await this.shopOf(request),
       {
         phone,
         password: body.password,
@@ -84,7 +86,7 @@ export class StaffController {
   @ApiOperation({ summary: 'Update a staff member' })
   @ApiBody({ type: UpdateStaffDto })
   @ZodResponse({ type: StaffMemberDto })
-  update(
+  async update(
     @Param('id') id: string,
     @Body(new ZodValidationPipe(UpdateStaffDto.schema)) body: UpdateStaffDto,
     @Req() request: DashboardRequest,
@@ -92,7 +94,7 @@ export class StaffController {
     const parsed = staffIdSchema.safeParse(id);
     if (!parsed.success) throw new ApiError('not_found', 'StaffNotFound', {});
     return this.staff.update(
-      this.shopOf(request),
+      await this.shopOf(request),
       parsed.data,
       body,
       new Date(),
@@ -117,7 +119,7 @@ export class StaffController {
     const parsed = staffIdSchema.safeParse(id);
     if (!parsed.success) throw new ApiError('not_found', 'StaffNotFound', {});
     await this.staff.resetPassword(
-      this.shopOf(request),
+      await this.shopOf(request),
       parsed.data,
       body.newPassword,
       new Date(),
@@ -127,10 +129,13 @@ export class StaffController {
     return { ok: true };
   }
 
-  private shopOf(request: DashboardRequest): StaffTenant {
+  /** PLN-11: the seat limit (and any other limit `StaffService` reads) must reflect a per-tenant override,
+      not just the plan snapshot -- merged here so every route on this controller gets it for free. */
+  private async shopOf(request: DashboardRequest): Promise<StaffTenant> {
     const tenant = request.tenant;
     if (!tenant) throw new ApiError('forbidden', 'CreateShopToContinue', { next: 'create-shop' });
-    return { id: tenant.id, planLimits: tenant.planLimits };
+    const planLimits = await this.limitOverrides.effectiveLimits(tenant.id, tenant.planLimits);
+    return { id: tenant.id, planLimits };
   }
 
   /** The acting staff member, or null for the owner's own session (AUD-02). */

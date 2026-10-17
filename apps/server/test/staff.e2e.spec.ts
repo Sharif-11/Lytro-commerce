@@ -160,6 +160,29 @@ describeIfDatabase('staff seats on the Trial plan (STF-02)', () => {
     expect(response.status).toBe(402);
     expect(errorOf(response)).toMatchObject({ code: 'plan_limit_reached', details: { seats: 1 } });
   });
+
+  it('PLN-11: a per-tenant override raises the seat limit above what Trial alone allows', async () => {
+    const who = await owner();
+    await admin.query(
+      `INSERT INTO control.plan_limit_overrides (tenant_id, limit_key, value, reason, set_by)
+       VALUES ((SELECT id FROM control.tenants WHERE slug = $1), 'staff', '3', 'goodwill credit', $2)`,
+      [who.slug, randomUUID()],
+    );
+
+    // Trial's own cap is 1 (owner only) -- without the override both of these would be refused.
+    const first = await addStaff(who, texts.freshPhone());
+    expect(first.status).toBe(201);
+    const second = await addStaff(who, texts.freshPhone());
+    expect(second.status).toBe(201);
+
+    const list = await listStaff(who);
+    expect(list.body).toMatchObject({ seats: { used: 3, total: 3 } });
+
+    // The override's own ceiling (3 total) is still enforced -- a 4th seat is refused.
+    const third = await addStaff(who, texts.freshPhone());
+    expect(third.status).toBe(402);
+    expect(errorOf(third)).toMatchObject({ code: 'plan_limit_reached', details: { seats: 3 } });
+  });
 });
 
 describeIfDatabase('staff on the Starter plan (STF-01, STF-02, STF-03, STF-04)', () => {
