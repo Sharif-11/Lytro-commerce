@@ -232,7 +232,39 @@ describeIfDatabase('resetting a forgotten password (AUTH-17, AUTH-18, AUTH-19)',
     const second = await post('/auth/forgot-password', { phone });
     expect(second.status).toBe(200);
     expect(second.body).toEqual(first.body);
+    expect(first.body).toMatchObject({ resendAfterSeconds: 120 });
     expect(texts.countFor(phone)).toBe(before + 1);
+  });
+
+  it("the reset-code screen's own resend button follows AUTH-07's 60-second limit, not the 2-minute request cooldown (AUTH-18)", async () => {
+    const phone = await ownerWithPassword();
+    const first = await post('/auth/forgot-password', { phone });
+    expect(first.body).toMatchObject({ resendAfterSeconds: 120 });
+    const before = texts.countFor(phone);
+
+    // Still well inside the entry screen's own 2-minute cooldown, but past AUTH-07's 60-second one.
+    await admin.query(
+      "UPDATE control.verification_challenges SET created_at = now() - interval '70 seconds' WHERE destination = $1",
+      [phone],
+    );
+
+    const resent = await post('/auth/forgot-password/resend', { phone });
+    expect(resent.status).toBe(200);
+    expect(resent.body).toMatchObject({ resendAfterSeconds: 60 });
+    expect(texts.countFor(phone)).toBe(before + 1); // a real second SMS, not silently absorbed
+  });
+
+  it('the resend route itself still enforces its own 60-second cooldown, with the same silent reply (AUTH-18)', async () => {
+    const phone = await ownerWithPassword();
+    await post('/auth/forgot-password', { phone });
+    const before = texts.countFor(phone);
+
+    const resent = await post('/auth/forgot-password/resend', { phone });
+    expect(resent.status).toBe(200);
+    expect(texts.countFor(phone)).toBe(before); // too soon -- absorbed, no second SMS
+
+    const unknown = await post('/auth/forgot-password/resend', { phone: texts.freshPhone() });
+    expect(unknown.body).toEqual(resent.body); // AUTH-17: identical reply, known or not
   });
 
   it('opens a session that must set a password before anything else, then sets it and ends the old sessions', async () => {

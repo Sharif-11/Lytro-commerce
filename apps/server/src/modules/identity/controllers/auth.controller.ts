@@ -157,6 +157,21 @@ export class AuthController {
     return this.forgot.request(body.phone);
   }
 
+  @Post('forgot-password/resend')
+  @HttpCode(200)
+  @ResponseMessage('CodeSent')
+  @ApiOperation({
+    summary:
+      "Resend a password-reset code from the reset-code screen's own resend button (AUTH-18)",
+  })
+  @ApiBody({ type: ForgotPasswordDto })
+  @ZodResponse({ type: CodeIssuedDto })
+  resendReset(
+    @Body(new ZodValidationPipe(ForgotPasswordDto.schema)) body: ForgotPasswordDto,
+  ): Promise<CodeIssued> {
+    return this.forgot.resend(body.phone);
+  }
+
   @Post('forgot-password/email')
   @HttpCode(200)
   @ResponseMessage('CodeSent')

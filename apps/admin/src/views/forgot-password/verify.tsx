@@ -7,7 +7,7 @@ import { OtpInput } from '@/components/otp-input';
 import { ErrorBanner } from '@/components/error-banner';
 import { useCountdown } from '@/components/use-countdown';
 import { errorMessage } from '@/api/error-message';
-import { useRequestPasswordReset, useVerifyForgotPassword } from '@/api/auth';
+import { useResendPasswordReset, useVerifyForgotPassword } from '@/api/auth';
 
 // AUTH-19: this always lands in a must_set_password session — unlike the sign-up/sign-in verify screen,
 // there's only one destination (/set-password, required), so no NextStep switch is needed here.
@@ -23,7 +23,7 @@ export function ForgotPasswordVerify(): React.JSX.Element {
   const resendIn = useCountdown(resendAfterSeconds);
 
   const verify = useVerifyForgotPassword();
-  const resend = useRequestPasswordReset();
+  const resend = useResendPasswordReset();
 
   function handleSubmit(event: SyntheticEvent<HTMLFormElement>): void {
     event.preventDefault();

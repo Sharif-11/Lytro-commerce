@@ -764,6 +764,36 @@ automated coverage — no React-component-test infrastructure exists anywhere in
 files, no browser-automation tool in this environment) — verified by reading the diff only, consistent with
 how every other admin-UI-only change this session has been handled.
 
+## 39. `AUTH-18`: the reset-code screen's resend button used the entry form's 2-minute cooldown, not AUTH-07's 60-second one — found and fixed 2026-10-17
+
+`AUTH-18` sets two different cooldowns on purpose: the forgot-password entry form itself is limited to one
+request per 2 minutes per account (a silent no-op on a repeat, to blunt blind SMS-bombing of a form reachable
+by anyone who knows a phone number), but the *resend button* on the already-displayed reset-code screen is
+supposed to follow AUTH-07's faster, standard 60-second/5-per-hour limits instead — the same limits the
+sign-in flow's own resend already uses. Only one backend route (`POST /auth/forgot-password`) and one
+frontend hook (`useRequestPasswordReset`) existed, used for both actions, so the resend button was bound to
+the entry form's own 2-minute cooldown the whole time: clicking it between 60 and 120 seconds after the last
+code returned 200 but silently sent nothing, with the UI's own countdown reset as if it had.
+
+**Fixed:**
+- `ForgotPasswordService` gained `resend(phone)`, calling the same `requestFor` helper `request(phone)` uses
+  but with `RESEND_COOLDOWN_MS` (60s) instead of the default `RESET_COOLDOWN_MS` (120s) — `requestFor` itself
+  now takes the cooldown as a parameter rather than hardcoding it, and its own reply's `resendAfterSeconds`
+  reflects whichever cooldown was actually applied. Still enumeration-safe (AUTH-17): the same silent-swallow
+  and the same generic reply regardless of account existence, for either route.
+- New `POST /auth/forgot-password/resend` route, and a new `useResendPasswordReset` hook in `apps/admin`,
+  wired to the reset-code screen's own "Resend" button in place of the old, reused `useRequestPasswordReset`.
+  The entry screen (`views/forgot-password/index.tsx`) is untouched — it still calls the original route with
+  the original 2-minute cooldown.
+
+Proven by two new cases in `apps/server/test/password.e2e.spec.ts`: a resend 70 seconds after the last code
+(inside the entry form's own 2-minute window, but past AUTH-07's 60-second one) sends a real second SMS and
+reports `resendAfterSeconds: 60`; the resend route still enforces its own 60-second cooldown when called too
+soon, with the same AUTH-17-identical silent reply for a known and an unknown phone. Verified the fix would
+actually fail without it — temporarily pointed `resend()` back at `RESET_COOLDOWN_MS`, confirmed the
+70-second case failed with the exact expected symptom (no second SMS sent), then restored and confirmed all
+15 relevant tests green again.
+
 ## Not a bug, just noting it so it isn't mistaken for one later
 
 The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data

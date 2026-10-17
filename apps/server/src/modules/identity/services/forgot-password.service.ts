@@ -8,7 +8,12 @@ import {
 } from '@lytronix/validators';
 import type { Transaction } from '@lytronix/db';
 import { ApiError } from '../../../common/api-error';
-import { OneTimeCodeService, CODE_TTL_MS, RESET_COOLDOWN_MS } from './one-time-code.service';
+import {
+  OneTimeCodeService,
+  CODE_TTL_MS,
+  RESEND_COOLDOWN_MS,
+  RESET_COOLDOWN_MS,
+} from './one-time-code.service';
 import { EmailFormat } from './email-format';
 import { PhoneNumberFormat } from './phone-number-format';
 import { SignInAudit } from './sign-in-audit';
@@ -38,6 +43,22 @@ export class ForgotPasswordService {
   request(rawPhone: string): Promise<CodeIssued> {
     return this.requestFor(this.phoneFormat.normalize(rawPhone), ChallengeChannel.Sms, (tx, d) =>
       this.gateway.findSubscriberByPhone(tx, d),
+    );
+  }
+
+  /**
+   * AUTH-18: the reset-code screen's own "resend" button -- once the flow has already started, the
+   * stricter two-minute per-account dedup `request()` uses (meant to blunt blind SMS-bombing of the entry
+   * form) no longer applies; this follows AUTH-07's own, faster 60-second/hourly limits instead. Still
+   * enumeration-safe (AUTH-17): same silent-swallow, same generic reply regardless of account existence or
+   * whether the cooldown blocked a real send -- only the cooldown duration passed to `requestFor` differs.
+   */
+  resend(rawPhone: string): Promise<CodeIssued> {
+    return this.requestFor(
+      this.phoneFormat.normalize(rawPhone),
+      ChallengeChannel.Sms,
+      (tx, d) => this.gateway.findSubscriberByPhone(tx, d),
+      RESEND_COOLDOWN_MS,
     );
   }
 
@@ -72,19 +93,20 @@ export class ForgotPasswordService {
     destination: string | null,
     channel: ChallengeChannel,
     lookup: Lookup,
+    cooldownMs: number = RESET_COOLDOWN_MS,
   ): Promise<CodeIssued> {
     if (destination !== null) {
       const account = await this.gateway.run((tx) => lookup(tx, destination));
       if (account !== null) {
         try {
-          await this.codes.issue(destination, channel, ChallengeKind.Reset, RESET_COOLDOWN_MS);
+          await this.codes.issue(destination, channel, ChallengeKind.Reset, cooldownMs);
         } catch (error) {
           // A refused or undelivered reset code gets the same reply as success, so the caller learns nothing.
           if (!(error instanceof ApiError)) throw error;
         }
       }
     }
-    return { expiresInSeconds: CODE_TTL_MS / 1000, resendAfterSeconds: RESET_COOLDOWN_MS / 1000 };
+    return { expiresInSeconds: CODE_TTL_MS / 1000, resendAfterSeconds: cooldownMs / 1000 };
   }
 
   private async verifyFor(
