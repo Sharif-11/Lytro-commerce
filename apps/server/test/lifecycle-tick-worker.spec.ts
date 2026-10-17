@@ -4,6 +4,7 @@ import { LifecycleTickWorker } from '../src/modules/shared/queue-workers/service
 import type { DowngradeService } from '../src/modules/billing/services/downgrade.service';
 import type { LifecycleService } from '../src/modules/billing/services/lifecycle.service';
 import type { TrialLifecycleService } from '../src/modules/billing/services/trial-lifecycle.service';
+import type { PlanPaymentsService } from '../src/modules/payments/services/plan-payments.service';
 import type { PgBossClient } from '../src/modules/shared/queue/services/pg-boss-client';
 
 // This worker is the one thing standing between TrialLifecycleService.convertExpiredTrials()/
@@ -51,7 +52,10 @@ describe('LifecycleTickWorker (D2-6)', () => {
       convertExpiredTrials: () => Promise.resolve(0),
     } as unknown as TrialLifecycleService;
     const downgrade = { applyDueChanges: () => Promise.resolve(0) } as unknown as DowngradeService;
-    const worker = new LifecycleTickWorker(client, lifecycle, trials, downgrade);
+    const planPayments = {
+      expireStalePending: () => Promise.resolve(0),
+    } as unknown as PlanPaymentsService;
+    const worker = new LifecycleTickWorker(client, lifecycle, trials, downgrade, planPayments);
 
     await worker.onModuleInit();
 
@@ -62,7 +66,7 @@ describe('LifecycleTickWorker (D2-6)', () => {
     ]);
   });
 
-  it('calls trial conversion, due downgrades and the lifecycle tick every time the queue fires (TRL-01/07, DWN-06/08/15/17)', async () => {
+  it('calls trial conversion, due downgrades, the lifecycle tick and the payment sweep every time the queue fires (TRL-01/07, DWN-06/08/15/17, BIL-15)', async () => {
     const { client, runWork } = fakePgBoss();
     const order: string[] = [];
     const lifecycle = {
@@ -83,11 +87,17 @@ describe('LifecycleTickWorker (D2-6)', () => {
         return Promise.resolve(0);
       },
     } as unknown as DowngradeService;
-    const worker = new LifecycleTickWorker(client, lifecycle, trials, downgrade);
+    const planPayments = {
+      expireStalePending: () => {
+        order.push('payment-sweep');
+        return Promise.resolve(0);
+      },
+    } as unknown as PlanPaymentsService;
+    const worker = new LifecycleTickWorker(client, lifecycle, trials, downgrade, planPayments);
 
     await worker.onModuleInit();
     await runWork();
 
-    expect(order).toEqual(['trials', 'downgrade', 'lifecycle']);
+    expect(order).toEqual(['trials', 'downgrade', 'lifecycle', 'payment-sweep']);
   });
 });

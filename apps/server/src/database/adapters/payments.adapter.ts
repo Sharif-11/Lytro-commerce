@@ -100,4 +100,8 @@ export class DrizzlePlanPaymentsStore implements PlanPaymentsStore {
   async registerTransactionId(tx: Transaction, transactionId: string, tenantId: string) {
     await this.usedIds.insert(tx, transactionId, tenantId);
   }
+
+  expireStalePending(tx: Transaction, cutoff: Date) {
+    return this.payments.expireStalePending(tx, cutoff);
+  }
 }

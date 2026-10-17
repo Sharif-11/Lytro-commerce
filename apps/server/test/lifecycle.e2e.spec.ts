@@ -7,6 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AuditAction, LedgerEntryType, TenantState } from '@lytronix/validators';
 import { AppModule } from '../src/app/app.module';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
+import { MAIL_PROVIDER } from '../src/modules/shared/mail/tokens';
 import { LifecycleService } from '../src/modules/billing/services/lifecycle.service';
 import { PurchaseService } from '../src/modules/billing/services/purchase.service';
 import { BalanceService } from '../src/modules/balance/services/balance.service';
@@ -14,6 +15,7 @@ import { TenantResolver } from '../src/modules/tenancy/services/tenant-resolver.
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase, seedShop } from './support/database';
 import { SmsCapture } from './support/sms-capture';
+import { MailCapture } from './support/mail-capture';
 
 // Phase 2 slice 7: LIF-01 to LIF-26, PYG-21. White-box, test-clock-driven -- the same pattern
 // TrialLifecycleService's and DowngradeService.apply's own specs already use: seed a tenant at a known
@@ -30,6 +32,7 @@ let purchase: PurchaseService;
 let balance: BalanceService;
 let resolver: TenantResolver;
 const texts = new SmsCapture();
+const mail = new MailCapture();
 
 const freshSlug = (): string => `t${randomUUID().replace(/-/g, '').slice(0, 10)}`;
 let nextRank = 800000;
@@ -75,10 +78,15 @@ async function auditActions(tenantId: string): Promise<AuditAction[]> {
   return log.rows.map((row) => row.action);
 }
 
-async function seedOwner(tenantId: string, phone: string): Promise<void> {
+async function seedOwner(
+  tenantId: string,
+  phone: string,
+  email: string | null = null,
+): Promise<void> {
   await admin.query(
-    `INSERT INTO tenant.users (tenant_id, phone, name, is_owner, active) VALUES ($1, $2, 'Owner', true, true)`,
-    [tenantId, phone],
+    `INSERT INTO tenant.users (tenant_id, phone, email, name, is_owner, active)
+     VALUES ($1, $2, $3, 'Owner', true, true)`,
+    [tenantId, phone, email],
   );
 }
 
@@ -95,6 +103,8 @@ beforeAll(async () => {
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(SMS_PROVIDER)
     .useValue(texts.provider)
+    .overrideProvider(MAIL_PROVIDER)
+    .useValue(mail.provider)
     .compile();
   ({ app } = await listenOn(moduleRef));
   lifecycle = app.get(LifecycleService);
@@ -207,6 +217,87 @@ describeIfDatabase('LIF-18: deletion warnings', () => {
     await lifecycle.runTick(new Date());
     const actionsAfter = await auditActions(tenantId);
     expect(actionsAfter.filter((a) => a === AuditAction.DeletionWarningSent).length).toBe(2);
+  });
+});
+
+describeIfDatabase('BIL-14: renewal reminders', () => {
+  it('sends exactly one email reminder at each of the 7/3/1-day thresholds, never by SMS', async () => {
+    const planId = await seedPlan((nextRank += 1));
+    const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
+    const phone = `017${(nextRank += 1).toString().slice(0, 8)}`;
+    const email = `${freshSlug()}@example.com`;
+    await seedOwner(tenantId, phone, email);
+    await activateTenant(tenantId, planId, TenantState.Active, new Date(Date.now() + 7 * DAY_MS));
+
+    await lifecycle.runTick(new Date());
+    await lifecycle.runTick(new Date()); // same day again -- must not duplicate
+
+    let actions = await auditActions(tenantId);
+    expect(actions.filter((a) => a === AuditAction.RenewalReminderSent).length).toBe(1);
+
+    // Move to the 3-day threshold -- day 7 is already sent, so this is a fresh one.
+    await admin.query('UPDATE control.tenants SET period_end = $1 WHERE id = $2', [
+      new Date(Date.now() + 3 * DAY_MS),
+      tenantId,
+    ]);
+    await lifecycle.runTick(new Date());
+    actions = await auditActions(tenantId);
+    expect(actions.filter((a) => a === AuditAction.RenewalReminderSent).length).toBe(2);
+
+    // And the 1-day threshold.
+    await admin.query('UPDATE control.tenants SET period_end = $1 WHERE id = $2', [
+      new Date(Date.now() + 1 * DAY_MS),
+      tenantId,
+    ]);
+    await lifecycle.runTick(new Date());
+    actions = await auditActions(tenantId);
+    expect(actions.filter((a) => a === AuditAction.RenewalReminderSent).length).toBe(3);
+
+    const mailRows = await admin.query(
+      `SELECT 1 FROM control.mail_outbox WHERE to_email = $1 AND kind = 'lifecycle_notice'`,
+      [email],
+    );
+    expect(mailRows.rowCount).toBe(3);
+
+    // The requirement's own carve-out: never billed to the tenant as SMS.
+    const smsRows = await admin.query(`SELECT 1 FROM control.sms_outbox WHERE to_phone = $1`, [
+      phone,
+    ]);
+    expect(smsRows.rowCount).toBe(0);
+  });
+
+  it('a grace-period tenant gets exactly one reminder per calendar day, not per tick', async () => {
+    const planId = await seedPlan((nextRank += 1));
+    const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
+    const phone = `016${(nextRank += 1).toString().slice(0, 8)}`;
+    const email = `${freshSlug()}@example.com`;
+    await seedOwner(tenantId, phone, email);
+    await activateTenant(tenantId, planId, TenantState.Grace, new Date(Date.now() - DAY_MS));
+
+    // A reminder was already sent yesterday -- today's first tick must still send a fresh one.
+    await admin.query(
+      `INSERT INTO tenant.activity_log (tenant_id, actor_type, actor_id, action, result, summary, created_at)
+       VALUES ($1, 'system', NULL, 'renewal_reminder_sent', 'success', '{}', now() - interval '1 day')`,
+      [tenantId],
+    );
+
+    await lifecycle.runTick(new Date());
+    let actions = await auditActions(tenantId);
+    expect(actions.filter((a) => a === AuditAction.RenewalReminderSent).length).toBe(2); // yesterday's + today's
+
+    await lifecycle.runTick(new Date()); // same day again -- must not duplicate
+    actions = await auditActions(tenantId);
+    expect(actions.filter((a) => a === AuditAction.RenewalReminderSent).length).toBe(2);
+
+    const mailRows = await admin.query(
+      `SELECT 1 FROM control.mail_outbox WHERE to_email = $1 AND kind = 'lifecycle_notice'`,
+      [email],
+    );
+    expect(mailRows.rowCount).toBe(1); // only today's real send queues mail -- yesterday's row was a raw insert
+    const smsRows = await admin.query(`SELECT 1 FROM control.sms_outbox WHERE to_phone = $1`, [
+      phone,
+    ]);
+    expect(smsRows.rowCount).toBe(0);
   });
 });
 

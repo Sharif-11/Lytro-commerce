@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, isNotNull } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNotNull, isNull, lt } from 'drizzle-orm';
 import {
   planPayments,
   usedTransactionIds,
@@ -78,6 +78,26 @@ export class PlanPaymentsRepository {
     },
   ): Promise<void> {
     await tx.update(planPayments).set(values).where(eq(planPayments.id, id));
+  }
+
+  /**
+   * BIL-15: an unsubmitted quote (never got a transaction ID) past its own 24h window expires. A row
+   * already submitted (`transaction_id` set) is left alone -- it's awaiting an operator's own decision,
+   * not sitting idle, so BIL-15's expiry doesn't apply to it at all.
+   */
+  async expireStalePending(tx: Executor, cutoff: Date): Promise<number> {
+    const rows = await tx
+      .update(planPayments)
+      .set({ status: PlanPaymentStatus.Expired })
+      .where(
+        and(
+          eq(planPayments.status, PlanPaymentStatus.Pending),
+          isNull(planPayments.transactionId),
+          lt(planPayments.quotedAt, cutoff),
+        ),
+      )
+      .returning({ id: planPayments.id });
+    return rows.length;
   }
 }
 

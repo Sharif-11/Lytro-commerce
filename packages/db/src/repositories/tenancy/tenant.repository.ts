@@ -2,6 +2,7 @@ import {
   and,
   desc,
   eq,
+  gt,
   ilike,
   inArray,
   isNotNull,
@@ -356,6 +357,35 @@ export class TenantRepository {
           isNotNull(tenants.periodEnd),
           isNull(tenants.deletedAt),
           lte(tenants.periodEnd, now),
+        ),
+      );
+    return rows
+      .filter((row): row is typeof row & { periodEnd: Date } => row.periodEnd !== null)
+      .map((row) => ({ ...row, periodEnd: row.periodEnd }));
+  }
+
+  /** BIL-14: still-`active` tenants whose period ends within the reminder window (7/3/1 days out) --
+   *  the "daily during grace" half reuses `findLapsingCandidates` above, already looping over Grace. */
+  async findUpcomingRenewalCandidates(
+    tx: Executor,
+    now: Date,
+    horizon: Date,
+  ): Promise<LapsingCandidateRow[]> {
+    const rows = await tx
+      .select({
+        id: tenants.id,
+        state: tenants.state,
+        periodEnd: tenants.periodEnd,
+        suspendedAt: tenants.suspendedAt,
+      })
+      .from(tenants)
+      .where(
+        and(
+          eq(tenants.state, TenantState.Active),
+          isNotNull(tenants.periodEnd),
+          isNull(tenants.deletedAt),
+          gt(tenants.periodEnd, now),
+          lte(tenants.periodEnd, horizon),
         ),
       );
     return rows

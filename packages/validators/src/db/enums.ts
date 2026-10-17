@@ -171,6 +171,10 @@ export enum AuditAction {
   AutoRenewToggled = 'auto_renew_toggled',
   // LIF-18: a day-45/57 deletion warning. System-caused, tenant's own log (same split as LifecycleStateChanged).
   DeletionWarningSent = 'deletion_warning_sent',
+  // BIL-14: a renewal reminder -- 7/3/1 days before period end while still `active`, then once per calendar
+  // day while `grace`. Email only, never SMS (the requirement's own carve-out); `summary.day` distinguishes
+  // the two shapes (a number for the pre-period-end set, absent for a daily grace send).
+  RenewalReminderSent = 'renewal_reminder_sent',
   // LIF-19: the day-60 business-data deletion itself.
   TenantDeleted = 'tenant_deleted',
   // LIF-24: an operator's suspend/restore, mirrored to the platform log (PlatformAuditAction below).

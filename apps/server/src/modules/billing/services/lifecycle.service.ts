@@ -10,7 +10,7 @@ import {
   TenantState,
 } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
-import { daysBetween } from '../../../common/time';
+import { DAY_MS, daysBetween, startOfDayDhaka } from '../../../common/time';
 import { AuditService } from '../../audit/services/audit.service';
 import { PlatformAuditService } from '../../audit/services/platform-audit.service';
 import { BalanceService } from '../../balance/services/balance.service';
@@ -34,6 +34,10 @@ const PAYG_ARCHIVE_DAYS = 30;
 // LIF-18: deletion warnings, counted the same way as every other lifecycle day (from period end).
 const DELETION_WARNING_DAYS = [45, 57] as const;
 
+// BIL-14: renewal reminders, counted down to period end while still `active`. Order matters -- `.find`
+// below returns the first match, so a missed tick still catches up on 7 before 3 before 1.
+const RENEWAL_REMINDER_DAYS = [7, 3, 1] as const;
+
 export interface StageLengths {
   grace: number;
   readOnly: number;
@@ -47,6 +51,7 @@ export interface LifecycleTickResult {
   deleted: number;
   renewed: number;
   slugsReleased: number;
+  remindersSent: number;
 }
 
 /**
@@ -113,6 +118,7 @@ export class LifecycleService {
     let warningsSent = 0;
     let deleted = 0;
     let renewed = 0;
+    let remindersSent = 0;
 
     for (const candidate of candidates) {
       const daysLapsed = daysBetween(candidate.periodEnd, now);
@@ -138,8 +144,17 @@ export class LifecycleService {
       if (await this.sendDeletionWarningIfDue(candidate.id, daysLapsed)) {
         warningsSent += 1;
       }
+      // BIL-14: the daily-during-grace half -- `target` is this tick's authoritative state, not the row's
+      // possibly-stale `candidate.state`, so a tenant entering grace this very tick is already covered.
+      if (
+        target === TenantState.Grace &&
+        (await this.sendDailyGraceReminderIfDue(candidate.id, now))
+      ) {
+        remindersSent += 1;
+      }
     }
 
+    const upcomingRemindersSent = await this.runRenewalReminderPass(now);
     const payg = await this.runPaygInactivityPass(now);
     const slugsReleased = await this.releaseExpiredSlugs(now);
     return {
@@ -148,6 +163,7 @@ export class LifecycleService {
       deleted: deleted + payg.deleted,
       renewed,
       slugsReleased,
+      remindersSent: remindersSent + upcomingRemindersSent + payg.remindersSent,
     };
   }
 
@@ -276,6 +292,106 @@ export class LifecycleService {
   }
 
   /**
+   * BIL-14: the pre-period-end half -- still-`active` tenants whose period ends within the next
+   * `RENEWAL_REMINDER_DAYS[0]` days. The "daily during grace" half is inlined in `runTick`'s own loop,
+   * since those candidates are already being iterated there.
+   */
+  private async runRenewalReminderPass(now: Date): Promise<number> {
+    const horizonDays = Math.max(...RENEWAL_REMINDER_DAYS);
+    const horizon = new Date(now.getTime() + horizonDays * DAY_MS);
+    const upcoming = await this.tenants.runStandalone((tx) =>
+      this.tenants.findUpcomingRenewalCandidates(tx, now, horizon),
+    );
+    let sent = 0;
+    for (const candidate of upcoming) {
+      const daysUntilPeriodEnd = daysBetween(now, candidate.periodEnd);
+      if (await this.sendPreRenewalReminderIfDue(candidate.id, daysUntilPeriodEnd)) sent += 1;
+    }
+    return sent;
+  }
+
+  /**
+   * BIL-14: sends the 7/3/1-day-out reminder at most once per threshold, the exact same audit-log
+   * existence check `sendDeletionWarningIfDue` uses, just counting down to period end instead of up from it.
+   */
+  private async sendPreRenewalReminderIfDue(
+    tenantId: string,
+    daysUntilPeriodEnd: number,
+  ): Promise<boolean> {
+    const already = await this.audit.list(
+      tenantId,
+      { action: AuditAction.RenewalReminderSent },
+      null,
+      50,
+    );
+    const sentDays = new Set(
+      already.entries
+        .map((entry) => (entry.summary as { day?: number } | null)?.day)
+        .filter((day): day is number => day !== undefined),
+    );
+    const due = RENEWAL_REMINDER_DAYS.find(
+      (day) => daysUntilPeriodEnd <= day && !sentDays.has(day),
+    );
+    if (due === undefined) return false;
+    await this.sendRenewalReminderNotice(tenantId, { day: due }, due);
+    return true;
+  }
+
+  /**
+   * BIL-14: the daily-during-grace half. "Daily" is a calendar day (Asia/Dhaka, TRM-09's own convention),
+   * not a rolling 24h window -- checked against the single most recent `RenewalReminderSent` entry rather
+   * than building a `Set`, since only "was one sent today" matters here, not a fixed set of thresholds.
+   */
+  private async sendDailyGraceReminderIfDue(tenantId: string, now: Date): Promise<boolean> {
+    const latest = await this.audit.list(
+      tenantId,
+      { action: AuditAction.RenewalReminderSent },
+      null,
+      1,
+    );
+    const lastSentAt = latest.entries[0]?.createdAt;
+    if (lastSentAt && startOfDayDhaka(lastSentAt).getTime() === startOfDayDhaka(now).getTime()) {
+      return false;
+    }
+    await this.sendRenewalReminderNotice(tenantId, {}, null);
+    return true;
+  }
+
+  /**
+   * BIL-14: email (and the in-app banner, computed client-side from `/me`'s own `periodEnd` -- no backend
+   * state) only, never SMS -- the requirement's own explicit carve-out, unlike `sendNotice` below which
+   * every other lifecycle notice uses and which does send SMS. Push has no provider in this codebase at
+   * all yet (the same already-acknowledged gap PYG-21's own day-23 warning has); deferred, not silently
+   * dropped.
+   */
+  private async sendRenewalReminderNotice(
+    tenantId: string,
+    summary: Record<string, unknown>,
+    daysLeft: number | null,
+  ): Promise<void> {
+    const contact = await this.staff.ownerContact(tenantId);
+    const body =
+      daysLeft === null
+        ? 'Your shop is in its grace period. Renew now to avoid losing access to your dashboard.'
+        : `Your plan renews in ${daysLeft.toString()} day(s). Renew now to avoid any interruption.`;
+    await this.tenants.runStandalone(async (tx) => {
+      if (contact?.email) {
+        await this.mail.queueLifecycleNotice(tx, contact.email, 'Your plan is renewing soon', body);
+      }
+      await this.audit.record(tx, {
+        tenantId,
+        actorType: ActorType.System,
+        actorId: null,
+        action: AuditAction.RenewalReminderSent,
+        targetType: 'tenant',
+        targetId: tenantId,
+        result: AuditResult.Success,
+        summary,
+      });
+    });
+  }
+
+  /**
    * PYG-21: a second, independent pass -- no grace/read-only stop, matching PYG-09's voluntary-closure shape.
    * Two separate candidate lists: one for tenants still `pay_as_you_go` (warn at 23 days, archive at 30), one
    * for tenants this same pass already archived (continue their own day-60-after-archival deletion clock).
@@ -350,8 +466,8 @@ export class LifecycleService {
     }
 
     // PYG-21 has no billing period to renew; slug release is its own independent pass, computed once in
-    // runTick, not per PAYG candidate.
-    return { transitioned, warningsSent, deleted, renewed: 0, slugsReleased: 0 };
+    // runTick, not per PAYG candidate. BIL-14's renewal reminders don't apply either -- no period end here.
+    return { transitioned, warningsSent, deleted, renewed: 0, slugsReleased: 0, remindersSent: 0 };
   }
 
   /** LIF-18/PYG-21: platform-sent, never charged -- SMS + email only (no push channel exists, see slice plan). */
