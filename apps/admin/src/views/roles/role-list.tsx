@@ -4,6 +4,7 @@ import { PERMISSION_OPTIONS } from '@/views/roles/permission-options';
 
 interface RoleListProps {
   roles: RoleSummary[];
+  canManage: boolean;
   onEdit: (role: RoleSummary) => void;
   onDelete: (role: RoleSummary) => void;
 }
@@ -17,7 +18,7 @@ function permissionLabels(role: RoleSummary, t: (key: string) => string): string
 
 /** Mobile cards below sm, a table from sm up — same split as StaffList, for the same reason (one layout
     language across the dashboard's list screens, ENGINEERING-STANDARDS.md §4). */
-export function RoleList({ roles, onEdit, onDelete }: RoleListProps): React.JSX.Element {
+export function RoleList({ roles, canManage, onEdit, onDelete }: RoleListProps): React.JSX.Element {
   const { t } = useTranslation();
 
   if (roles.length === 0) {
@@ -34,26 +35,28 @@ export function RoleList({ roles, onEdit, onDelete }: RoleListProps): React.JSX.
             <p className="mt-1 text-xs text-slate-400">
               {t('roles.userCount', { count: role.holders })}
             </p>
-            <div className="mt-3 flex gap-2 border-t border-dashed border-slate-100 pt-3">
-              <button
-                type="button"
-                onClick={() => {
-                  onEdit(role);
-                }}
-                className="flex-1 rounded-lg border border-slate-200 py-1.5 text-xs font-medium text-slate-600 hover:border-slate-300"
-              >
-                {t('common.edit')}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onDelete(role);
-                }}
-                className="flex-1 rounded-lg border border-red-200 py-1.5 text-xs font-medium text-red-600 hover:border-red-300"
-              >
-                {t('common.delete')}
-              </button>
-            </div>
+            {canManage ? (
+              <div className="mt-3 flex gap-2 border-t border-dashed border-slate-100 pt-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    onEdit(role);
+                  }}
+                  className="flex-1 rounded-lg border border-slate-200 py-1.5 text-xs font-medium text-slate-600 hover:border-slate-300"
+                >
+                  {t('common.edit')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onDelete(role);
+                  }}
+                  className="flex-1 rounded-lg border border-red-200 py-1.5 text-xs font-medium text-red-600 hover:border-red-300"
+                >
+                  {t('common.delete')}
+                </button>
+              </div>
+            ) : null}
           </div>
         ))}
       </div>
@@ -80,24 +83,28 @@ export function RoleList({ roles, onEdit, onDelete }: RoleListProps): React.JSX.
                   {t('roles.userCount', { count: role.holders })}
                 </td>
                 <td className="px-4 py-3 text-right whitespace-nowrap">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onEdit(role);
-                    }}
-                    className="font-medium text-brand-700 hover:underline"
-                  >
-                    {t('common.edit')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onDelete(role);
-                    }}
-                    className="ml-3 font-medium text-red-600 hover:underline"
-                  >
-                    {t('common.delete')}
-                  </button>
+                  {canManage ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onEdit(role);
+                        }}
+                        className="font-medium text-brand-700 hover:underline"
+                      >
+                        {t('common.edit')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onDelete(role);
+                        }}
+                        className="ml-3 font-medium text-red-600 hover:underline"
+                      >
+                        {t('common.delete')}
+                      </button>
+                    </>
+                  ) : null}
                 </td>
               </tr>
             ))}

@@ -9,6 +9,7 @@ import {
   UsersIcon,
   WalletIcon,
 } from '@/components/icons';
+import { hasPermission } from '@/permissions/has-permission';
 import type { MeResponse } from '@/types/me';
 
 export interface NavItem {
@@ -83,7 +84,5 @@ export const navItems: NavItem[] = [
 export function visibleNavItems(
   me: Pick<MeResponse, 'isOwner' | 'permissions'> | undefined,
 ): NavItem[] {
-  if (me?.isOwner) return navItems;
-  const granted = me?.permissions ?? [];
-  return navItems.filter((item) => !item.permission || granted.includes(item.permission));
+  return navItems.filter((item) => !item.permission || hasPermission(me, item.permission));
 }
