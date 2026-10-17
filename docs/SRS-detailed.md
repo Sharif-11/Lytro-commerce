@@ -759,7 +759,7 @@ Added 2026-10-17 (from `PRODUCT-MODEL-PROPOSAL.md` §5). Restaurants and made-to
 | MNU-02 | Modifier choices shall be made at order time and snapshotted on the order line with their price changes, already reflected in the line's unit price. | A burger with Hot and extra cheese stores base + 30 and both names. | M | API |
 | MNU-03 | A group's minimum and maximum shall be enforced at order creation. | No selection for an exactly-1 group is refused with a field error. | M | API |
 | MNU-04 | An order shall have a fulfilment type: delivery (default), takeaway (no courier, no delivery charge) or dine-in (a table reference, no courier, no delivery charge). | A dine-in order for Table 4 has no delivery charge or courier step. | M | API |
-| MNU-05 | A product may be a combo of other products or variants at one combo price, snapshotted with each component's name. | A burger + fries + drink combo at 350 snapshots all three names. | S | API |
+| MNU-05 | *Withdrawn: combos are defined once, as combo packs (CMB-01 to CMB-10).* | — | — | — |
 
 ### 14.11 Formula pricing (FPR) — adopted, scheduled after Phase 3
 
@@ -1678,7 +1678,7 @@ Each item below changes at least one requirement above if the answer differs. Br
 | LOG | 4 | 4 | 0 | 0 |
 | LSN | 25 | 18 | 6 | 1 |
 | MED | 13 | 10 | 3 | 0 |
-| MNU | 5 | 4 | 1 | 0 |
+| MNU | 4 | 4 | 0 | 0 |
 | MON | 5 | 5 | 0 | 0 |
 | NTC | 20 | 14 | 5 | 1 |
 | NTF | 7 | 4 | 3 | 0 |
@@ -1711,6 +1711,6 @@ Each item below changes at least one requirement above if the answer differs. Br
 | UPG | 17 | 15 | 2 | 0 |
 | VER | 12 | 12 | 0 | 0 |
 | WAL | 19 | 17 | 2 | 0 |
-| **Total** | **890** | **753** | **119** | **18** |
+| **Total** | **889** | **753** | **118** | **18** |
 
-By verification method: API 436, E2E 276, JOB 51, LOAD 19, MAN 108 (2026-10-17: +58 for ATL, UOM, INV, PUR, PST, TAX, MNU, FPR; +18 for LND; +1 for STO-09; +14 for DLV, FED, PRD-17, PRD-18, ATR-16; +4 for ATR-17, ATR-18, INV-23, PST-05; +10 for CMB). Withdrawn IDs (ADM-07, STO-08, BKP-04, MED-14, DAT-48, DAT-49, DAT-50, AUTH-25, RED-12) are not counted. The OBS requirements are counted as Could until paying tenants exceed 50.
+By verification method: API 435, E2E 276, JOB 51, LOAD 19, MAN 108 (2026-10-17: +58 for ATL, UOM, INV, PUR, PST, TAX, MNU, FPR; +18 for LND; +1 for STO-09; +14 for DLV, FED, PRD-17, PRD-18, ATR-16; +4 for ATR-17, ATR-18, INV-23, PST-05; +10 for CMB, −1 for MNU-05 withdrawn into CMB). Withdrawn IDs (ADM-07, STO-08, BKP-04, MED-14, DAT-48, DAT-49, DAT-50, AUTH-25, RED-12, MNU-05) are not counted. The OBS requirements are counted as Could until paying tenants exceed 50.

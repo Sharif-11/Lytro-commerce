@@ -159,7 +159,7 @@ Rules used below:
 | ORD-06a (amended 2026-10-17) | the zone charge once per order, with product overrides and weight extras; computed at order creation | Phase 4 |
 | SFT-07 | hosted payment redirect | Phase 5 |
 | ATL-06, UOM-04, ATR-09 | snapshotting and validation on order lines | Phase 4 |
-| TAX-01 – 03, MNU-01 – 05 | adopted 2026-10-17, need order lines | with or after Phase 4 |
+| TAX-01 – 03, MNU-01 – 04 | adopted 2026-10-17, need order lines | with or after Phase 4 |
 | FPR-01 – 04 | adopted 2026-10-17; needs only ATL, so it can land any time after Slice 1 | after Phase 3 |
 | STA-02, STA-03 | read real order data (INV-18 provides the cost side) | Phase 4 |
 | LND-07, 08, 09, 11, 12 | the landing page's order form: fields, live totals, submission through ORD-02, confirmation, per-IP limit | Phase 4 |
