@@ -9,6 +9,7 @@ import {
   type BillingInfoRow,
   type ContactDetailsRow,
   type LapsingCandidateRow,
+  type StageLengthsSnapshot,
   type PaygCandidateRow,
   type RevocationCandidateRow,
   type Transaction,
@@ -139,6 +140,14 @@ export class DrizzleTenantStore implements TenantStore {
 
   setLifecycleState(tx: Transaction, tenantId: string, state: TenantState): Promise<void> {
     return this.tenants.setLifecycleState(tx, tenantId, state);
+  }
+
+  setLapseScheduleSnapshot(
+    tx: Transaction,
+    tenantId: string,
+    snapshot: StageLengthsSnapshot,
+  ): Promise<void> {
+    return this.tenants.setLapseScheduleSnapshot(tx, tenantId, snapshot);
   }
 
   setSuspension(tx: Transaction, tenantId: string, reason: string, at: Date): Promise<void> {

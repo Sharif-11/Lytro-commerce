@@ -890,6 +890,30 @@ Verified both would actually fail without the fix — temporarily made `effectiv
 confirmed each new case failed with the exact expected symptom (the plan's own default value, not the
 override, winning), then restored and confirmed all 56 relevant tests green again.
 
+## 43. `LIF-26`: a stage-length setting change retroactively moved an already-lapsed tenant — found and fixed 2026-10-17
+
+`LIF-26` requires that "a change shall apply only to subscription periods that end after the change, and a
+tenant already lapsed shall keep the schedule it started with." `LifecycleService.runTick` read the grace/
+read-only/locked/archived stage lengths once per tick from the live `platform_settings` and applied that
+same set to every lapsing tenant, with no per-tenant record of what schedule a tenant's own lapse actually
+started under. An operator widening or shortening a stage length retroactively re-evaluated every tenant
+already partway through the lapse ladder against the new numbers — the exact scenario `LIF-26`'s own pass
+criteria names (grace changing from 3 to 5 days on 25 Sep must not move a tenant whose period ended 23 Sep).
+
+**Fixed:** new `control.tenants.lapse_schedule_snapshot` (jsonb), frozen the first tick a tenant is found
+lapsing (the same tick its deletion-day check and state derivation also switch from the live settings to
+this per-tenant copy) and cleared back to `null` whenever the tenant returns to `active` (`applyPlanAssignment`),
+so its *next* lapse snapshots whatever is current at that later moment instead of reusing a stale copy.
+
+Proven by two new cases in `apps/server/test/lifecycle.e2e.spec.ts`'s new `LIF-26` block: widening grace
+from 3 to 10 days mid-lapse still moves an already-lapsed tenant into `read_only` on schedule, while a
+different tenant lapsing for the first time *after* the change correctly gets the new, wider grace; and a
+tenant that's restored and later lapses again picks up whatever setting is current at that second lapse,
+not the one frozen during its first. Verified both would actually fail without the fix — temporarily made
+the per-tenant schedule fall through to the live settings unconditionally, and separately removed the
+clear-on-restore write, confirmed each sabotage produced the exact expected failing assertion, then
+restored and confirmed all 72 relevant tests green again.
+
 ## Not a bug, just noting it so it isn't mistaken for one later
 
 The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data

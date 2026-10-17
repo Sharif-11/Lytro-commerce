@@ -16,6 +16,7 @@ export {
   type BalanceRow,
   type BillingInfoRow,
   type LapsingCandidateRow,
+  type StageLengthsSnapshot,
   type PaygCandidateRow,
   type ContactDetailsRow,
   type RevocationCandidateRow,

@@ -249,6 +249,10 @@ export class TenantRepository {
         periodStart: values.periodStart,
         periodEnd: values.periodEnd,
         state: values.state,
+        // LIF-26: returning to active clears any frozen lapse schedule -- the *next* lapse (a new period
+        // ending in the future) snapshots whatever the platform settings say at that later moment, not the
+        // one this tenant happened to start with last time.
+        lapseScheduleSnapshot: null,
         ...(values.billingTermId !== undefined ? { billingTermId: values.billingTermId } : {}),
       })
       .where(eq(tenants.id, tenantId));
@@ -287,6 +291,18 @@ export class TenantRepository {
   /** LIF-03/04/23: the lifecycle job's own state write -- plan, period and balance are untouched. */
   async setLifecycleState(tx: Executor, tenantId: string, state: TenantState): Promise<void> {
     await tx.update(tenants).set({ state }).where(eq(tenants.id, tenantId));
+  }
+
+  /** LIF-26: freezes today's stage lengths onto the tenant the first tick it's found lapsing. */
+  async setLapseScheduleSnapshot(
+    tx: Executor,
+    tenantId: string,
+    snapshot: StageLengthsSnapshot,
+  ): Promise<void> {
+    await tx
+      .update(tenants)
+      .set({ lapseScheduleSnapshot: snapshot })
+      .where(eq(tenants.id, tenantId));
   }
 
   /** LIF-19: the day-60 deletion job's own state/marker write. */
@@ -349,6 +365,7 @@ export class TenantRepository {
         state: tenants.state,
         periodEnd: tenants.periodEnd,
         suspendedAt: tenants.suspendedAt,
+        lapseScheduleSnapshot: tenants.lapseScheduleSnapshot,
       })
       .from(tenants)
       .where(
@@ -377,6 +394,7 @@ export class TenantRepository {
         state: tenants.state,
         periodEnd: tenants.periodEnd,
         suspendedAt: tenants.suspendedAt,
+        lapseScheduleSnapshot: tenants.lapseScheduleSnapshot,
       })
       .from(tenants)
       .where(
@@ -510,11 +528,21 @@ export interface BalanceRow {
   state: (typeof tenants.$inferSelect)['state'];
 }
 
+// LIF-26: the shape frozen onto a tenant's own `lapse_schedule_snapshot` column, matching the schema's own
+// inline `$type`.
+export interface StageLengthsSnapshot {
+  grace: number;
+  readOnly: number;
+  locked: number;
+  archived: number;
+}
+
 export interface LapsingCandidateRow {
   id: string;
   state: TenantState;
   periodEnd: Date;
   suspendedAt: Date | null;
+  lapseScheduleSnapshot: StageLengthsSnapshot | null;
 }
 
 export interface RevocationCandidateRow {
