@@ -141,4 +141,19 @@ describeIfDatabase('AUTH-21: essential-SMS allowance', () => {
     expect((firstUsage.body as { totalUsed: number }).totalUsed).toBeGreaterThan(0);
     expect(secondUsage.body).toMatchObject({ monthlyUsed: 0, totalUsed: 0 });
   });
+
+  it('PLN-11: a per-tenant override wins over the plan snapshot for both limits', async () => {
+    const who = await owner();
+    await admin.query(
+      `INSERT INTO control.plan_limit_overrides (tenant_id, limit_key, value, reason, set_by)
+       VALUES
+         ((SELECT id FROM control.tenants WHERE slug = $1), 'essential_sms_total', '500', 'goodwill credit', $2),
+         ((SELECT id FROM control.tenants WHERE slug = $1), 'essential_sms_monthly', 'null', 'goodwill credit', $2)`,
+      [who.slug, randomUUID()],
+    );
+
+    const usage = await get('/balance/essential-sms', shopCall(who));
+    expect(usage.status).toBe(200);
+    expect(usage.body).toMatchObject({ totalLimit: 500, monthlyLimit: null });
+  });
 });

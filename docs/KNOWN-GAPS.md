@@ -857,6 +857,39 @@ fail without it — temporarily dropped the new `createdAt` bound, confirmed the
 exact expected symptom (the second warning never sent), then restored and confirmed all 23 relevant tests
 green again.
 
+## 42. `PLN-11`: a per-tenant limit override existed only in the operator's own CRUD screen, never read by anything that enforces or displays a limit — found and fixed 2026-10-17
+
+`PLN-11` requires "the override applies over the snapshot" — but `control.plan_limit_overrides` (schema,
+`PlanLimitOverridesService.set`/`listForTenant`/`remove`, the operator's own `/operator/tenants/:id/limit-
+overrides` CRUD route) had exactly one consumer anywhere in the codebase: that same CRUD controller. An
+operator could set, list and remove an override, each step correctly audited — but no enforcement path
+(seats) or display path (the essential-SMS allowance, `PLN-11`'s own named example) ever read it. Setting
+"free essential SMS" for a tenant did nothing beyond the operator's own screen; a seat-limit override had no
+effect on whether `POST /staff` actually refused the next hire.
+
+**Fixed:** new `PlanLimitOverridesService.effectiveLimits(tenantId, snapshot)` merges a tenant's overrides
+over a given plan-limits snapshot (override wins per key; everything else passes through unchanged). Wired
+into the two real consumers that exist today:
+- `StaffController`'s own `shopOf()` helper (used by every route on that controller, so `POST /staff`'s seat
+  check and `GET /staff`'s own seats-used/total display both pick it up for free).
+- `BalanceController.essentialSms()` (`GET /balance/essential-sms`), so the displayed `totalLimit`/
+  `monthlyLimit` reflect an override instead of the raw plan snapshot.
+
+Not wired into `DowngradeService`'s own seat-overage preview/apply (which reads a *different* plan's raw
+`limits`, not the tenant's current snapshot, for a hypothetical "what if" check) or into
+`activity_retention_days` (a retention period, not read through any per-request guard the way seats/SMS
+are) — left as-is, deliberately out of scope rather than guessed at. Every other limit key
+(`products`, `orders_*`, `storage_mb`, `bandwidth_gb`, `paired_devices`) has no enforcement consumer at all
+yet (Phase 3/4 territory), so there is nothing today for an override on those keys to actually affect either.
+
+Proven by two new cases: `apps/server/test/staff.e2e.spec.ts` (an override raises the Trial plan's own
+1-seat cap to 3, and the override's own ceiling is still enforced past that) and
+`apps/server/test/essential-sms-usage.e2e.spec.ts` (an override sets `essential_sms_total` to a number and
+`essential_sms_monthly` to unlimited, both reflected exactly in the `GET /balance/essential-sms` response).
+Verified both would actually fail without the fix — temporarily made `effectiveLimits` a no-op passthrough,
+confirmed each new case failed with the exact expected symptom (the plan's own default value, not the
+override, winning), then restored and confirmed all 56 relevant tests green again.
+
 ## Not a bug, just noting it so it isn't mistaken for one later
 
 The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data

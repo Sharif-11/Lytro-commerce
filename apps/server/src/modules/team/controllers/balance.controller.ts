@@ -27,6 +27,7 @@ import { BalanceService } from '../../balance/services/balance.service';
 import { RateService } from '../../balance/services/rate.service';
 import { TopUpService } from '../../balance/services/top-up.service';
 import { EssentialSmsUsageService } from '../../sms-usage/services/essential-sms-usage.service';
+import { PlanLimitOverridesService } from '../../billing/services/plan-limit-overrides.service';
 import type { BalanceSnapshot, LedgerPage } from '../../balance/types/ledger-entry';
 import type { RateValue } from '../../balance/types/rate';
 import type { PlanPaymentRecord } from '../../payments/types/plan-payment';
@@ -64,6 +65,7 @@ export class BalanceController {
     @Inject(RateService) private readonly rates: RateService,
     @Inject(TopUpService) private readonly topUp: TopUpService,
     @Inject(EssentialSmsUsageService) private readonly smsUsage: EssentialSmsUsageService,
+    @Inject(PlanLimitOverridesService) private readonly limitOverrides: PlanLimitOverridesService,
   ) {}
 
   @Get()
@@ -157,8 +159,13 @@ export class BalanceController {
     monthlyLimit: number | null;
     totalLimit: number | null;
   }> {
-    const usage = await this.smsUsage.currentUsage(this.tenantIdOf(request), new Date());
-    const limits = request.tenant?.planLimits ?? null;
+    const tenantId = this.tenantIdOf(request);
+    const usage = await this.smsUsage.currentUsage(tenantId, new Date());
+    // PLN-11: a per-tenant override (e.g. free essential SMS) must win over the plan snapshot here too.
+    const limits = await this.limitOverrides.effectiveLimits(
+      tenantId,
+      request.tenant?.planLimits ?? null,
+    );
     return {
       monthlyUsed: usage.monthly,
       totalUsed: usage.total,

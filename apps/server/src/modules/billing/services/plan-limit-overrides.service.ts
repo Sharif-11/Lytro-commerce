@@ -1,5 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { AuditResult, PlatformActorType, PlatformAuditAction } from '@lytronix/validators';
+import {
+  AuditResult,
+  PlatformActorType,
+  PlatformAuditAction,
+  type PlanLimits,
+} from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import { PlatformAuditService } from '../../audit/services/platform-audit.service';
 import type { PlanLimitOverridesStore } from '../ports/plan-limit-overrides-store';
@@ -42,6 +47,21 @@ export class PlanLimitOverridesService {
 
   listForTenant(tenantId: string): Promise<PlanLimitOverrideRecord[]> {
     return this.store.run((tx) => this.store.listForTenant(tx, tenantId));
+  }
+
+  /**
+   * PLN-11: "the override applies over the snapshot" -- every enforcement or display path that reads a
+   * tenant's plan limits must call this instead of reading the snapshot directly, so a per-tenant override
+   * actually takes effect rather than only existing in the operator's own CRUD screen.
+   */
+  async effectiveLimits(tenantId: string, snapshot: PlanLimits | null): Promise<PlanLimits | null> {
+    const overrides = await this.listForTenant(tenantId);
+    if (overrides.length === 0) return snapshot;
+    const merged: Record<string, unknown> = { ...(snapshot ?? {}) };
+    for (const override of overrides) {
+      merged[override.limitKey] = override.value;
+    }
+    return merged;
   }
 
   /** Removing the override restores the plan snapshot's own value (PLN-11). */
