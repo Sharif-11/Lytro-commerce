@@ -941,6 +941,30 @@ without it — temporarily removed the two new field writes from `applyPlanAssig
 case failed with the exact expected symptom (both fields staying `null`), then restored and confirmed all
 64 relevant tests green again.
 
+## 45. `RAT-14`: the tenant's own extra-delivery-charge-per-kg rate had no API endpoint at all — found and fixed 2026-10-17
+
+`RAT-14` is the one rate (of RAT-01 to RAT-14) that's per-tenant rather than platform-wide — the shop's own
+owner sets it, not an operator. `tenant.shop_settings.extra_delivery_charge_per_kg` and its full
+repository/store/adapter stack already existed (`ShopSettingsStore`, registered in `BalanceModule` under
+`SHOP_SETTINGS_STORE`), but nothing ever injected that token — no service method, no controller route. The
+operator's own rate editor (`OperatorRatesController`) already carried a comment flagging the gap
+explicitly: "RAT-01 to RAT-14 (except RAT-14 itself, which is per-tenant)."
+
+**Fixed:** a new `ShopDeliveryRateService` (in the `balance` module, exported alongside `RateService`)
+wraps the existing store with `get`/`set`. Folded into the existing `/shop-settings` `GET`/`PATCH` routes
+(`TEN-30`'s own contact-details endpoint) rather than a new controller — one combined "shop settings" shape
+over two different tables, the service layer hiding the split. Validation (non-negative, at most two
+decimals) extracted into a new shared `nonNegativeMoneyField` in `@lytronix/validators`'s common module,
+reused by the platform rate-update schema too rather than duplicating the same zod chain a second time.
+
+Proven by new cases in `apps/server/test/shop-settings.e2e.spec.ts`: defaults to `0.00` for a tenant that's
+never set it; a `PATCH` sets it (formatted to two decimals) without disturbing the contact fields; omitting
+it leaves the stored value untouched; a negative value or one with more than two decimals is refused with
+the stored value unchanged; one shop's rate never leaks into another's. Verified the fix would actually
+fail without it — temporarily removed the actual write from `ShopDeliveryRateService.set`, confirmed the
+three dependent cases failed with the exact expected symptom (the value never actually changing), then
+restored and confirmed all 25 relevant tests green again.
+
 ## Not a bug, just noting it so it isn't mistaken for one later
 
 The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data

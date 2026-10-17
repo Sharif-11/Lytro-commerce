@@ -240,3 +240,72 @@ describeIfDatabase('shop contact settings (TEN-30)', () => {
     expect(write.status).toBe(403);
   });
 });
+
+describeIfDatabase("the tenant's own extra-delivery-charge-per-kg rate (RAT-14)", () => {
+  it('defaults to 0.00 for a tenant that has never set it', async () => {
+    const who = await owner();
+    const initial = await get('/shop-settings', shopCall(who));
+    expect(initial.status).toBe(200);
+    expect(initial.body).toMatchObject({ extraDeliveryChargePerKg: '0.00' });
+  });
+
+  it('sets the rate, formatted to two decimals, and leaves the contact fields untouched', async () => {
+    const who = await owner();
+    await patch('/shop-settings', { contactEmail: 'support@example.com' }, shopCall(who));
+
+    const updated = await patch(
+      '/shop-settings',
+      { extraDeliveryChargePerKg: 15.5 },
+      shopCall(who),
+    );
+    expect(updated.status).toBe(200);
+    expect(updated.body).toMatchObject({
+      extraDeliveryChargePerKg: '15.50',
+      contactEmail: 'support@example.com',
+    });
+
+    const reloaded = await get('/shop-settings', shopCall(who));
+    expect(reloaded.body).toMatchObject({ extraDeliveryChargePerKg: '15.50' });
+  });
+
+  it('omitting it from the request leaves the stored rate untouched', async () => {
+    const who = await owner();
+    await patch('/shop-settings', { extraDeliveryChargePerKg: 20 }, shopCall(who));
+    const partial = await patch(
+      '/shop-settings',
+      { contactEmail: 'owner@example.com' },
+      shopCall(who),
+    );
+    expect(partial.status).toBe(200);
+    expect(partial.body).toMatchObject({ extraDeliveryChargePerKg: '20.00' });
+  });
+
+  it('rejects a negative rate and one with more than two decimals, leaving the stored value unchanged', async () => {
+    const who = await owner();
+    await patch('/shop-settings', { extraDeliveryChargePerKg: 10 }, shopCall(who));
+
+    const negative = await patch('/shop-settings', { extraDeliveryChargePerKg: -5 }, shopCall(who));
+    expect(negative.status).toBe(400);
+    expect(errorOf(negative)).toMatchObject({ code: 'validation_error' });
+
+    const tooPrecise = await patch(
+      '/shop-settings',
+      { extraDeliveryChargePerKg: 10.555 },
+      shopCall(who),
+    );
+    expect(tooPrecise.status).toBe(400);
+    expect(errorOf(tooPrecise)).toMatchObject({ code: 'validation_error' });
+
+    const unchanged = await get('/shop-settings', shopCall(who));
+    expect(unchanged.body).toMatchObject({ extraDeliveryChargePerKg: '10.00' });
+  });
+
+  it("one shop's rate never leaks into another's", async () => {
+    const first = await owner();
+    const second = await owner();
+    await patch('/shop-settings', { extraDeliveryChargePerKg: 30 }, shopCall(first));
+
+    const secondSettings = await get('/shop-settings', shopCall(second));
+    expect(secondSettings.body).toMatchObject({ extraDeliveryChargePerKg: '0.00' });
+  });
+});

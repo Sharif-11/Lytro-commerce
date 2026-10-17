@@ -12,6 +12,7 @@ import { ConsoleLowBalanceNotifier } from './services/console-low-balance-notifi
 import { BalanceService } from './services/balance.service';
 import { PayAsYouGoBillingService } from './services/payg-billing.service';
 import { RateService } from './services/rate.service';
+import { ShopDeliveryRateService } from './services/shop-delivery-rate.service';
 import { TopUpService } from './services/top-up.service';
 import {
   BALANCE_LEDGER_STORE,
@@ -33,9 +34,16 @@ import {
     { provide: CLOCK, useValue: (): Date => new Date() },
     BalanceService,
     RateService,
+    ShopDeliveryRateService,
     PayAsYouGoBillingService,
     TopUpService,
   ],
-  exports: [BalanceService, RateService, PayAsYouGoBillingService, TopUpService],
+  exports: [
+    BalanceService,
+    RateService,
+    ShopDeliveryRateService,
+    PayAsYouGoBillingService,
+    TopUpService,
+  ],
 })
 export class BalanceModule {}
