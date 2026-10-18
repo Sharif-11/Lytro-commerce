@@ -1,7 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Transaction } from '@lytronix/db';
-import { ActorType, AuditAction, AuditResult, type PlanLimits } from '@lytronix/validators';
-import { ApiError } from '../../../common/api-error';
+import {
+  ActorType,
+  AuditAction,
+  AuditResult,
+  type PlanLimits,
+  ServerFieldProblemCode,
+} from '@lytronix/validators';
+import { ApiError, FieldsError } from '../../../common/api-error';
 import { UniqueViolation } from '../../../common/errors/unique-violation';
 import { AuditService } from '../../audit/services/audit.service';
 import type { RoleStore } from '../ports/role-store';
@@ -119,9 +125,16 @@ export class StaffService {
       await this.requireSeat(tx, tenant);
       const subscriberId = await this.accounts.reservePhone(tx, input.phone);
       if (subscriberId === null) {
-        throw new ApiError('conflict', 'StaffPhoneBelongsToOwner', {
-          field: 'phone',
-        });
+        throw new FieldsError(
+          [
+            {
+              field: 'phone',
+              problem: ServerFieldProblemCode.Taken,
+              messageKey: 'StaffPhoneBelongsToOwner',
+            },
+          ],
+          'conflict',
+        );
       }
       let created: StaffRecord;
       try {
@@ -134,9 +147,16 @@ export class StaffService {
         });
       } catch (error) {
         if (error instanceof UniqueViolation) {
-          throw new ApiError('conflict', 'StaffPhoneInUse', {
-            field: 'phone',
-          });
+          throw new FieldsError(
+            [
+              {
+                field: 'phone',
+                problem: ServerFieldProblemCode.Taken,
+                messageKey: 'StaffPhoneInUse',
+              },
+            ],
+            'conflict',
+          );
         }
         throw error;
       }
@@ -253,9 +273,13 @@ export class StaffService {
             ? await this.hasher.verify(current, creds.passwordHash)
             : false;
         if (!matches) {
-          throw new ApiError('validation_error', 'CurrentPasswordWrong', {
-            field: 'currentPassword',
-          });
+          throw new FieldsError([
+            {
+              field: 'currentPassword',
+              problem: ServerFieldProblemCode.Incorrect,
+              messageKey: 'CurrentPasswordWrong',
+            },
+          ]);
         }
       }
       await this.store.setPassword(tx, tenantId, userId, passwordHash, false);
@@ -269,9 +293,9 @@ export class StaffService {
     if (roleIds.length === 0) return;
     const found = await this.roles.findByIds(tx, tenantId, roleIds);
     if (found.length !== roleIds.length) {
-      throw new ApiError('validation_error', 'RoleNotInShop', {
-        field: 'roleIds',
-      });
+      throw new FieldsError([
+        { field: 'roleIds', problem: ServerFieldProblemCode.NotFound, messageKey: 'RoleNotInShop' },
+      ]);
     }
   }
 

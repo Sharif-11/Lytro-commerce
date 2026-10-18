@@ -6,9 +6,11 @@ import {
   ChallengeKind,
   LAPSED_TENANT_STATES,
   SignInMethod,
+  FieldProblemCode,
+  ServerFieldProblemCode,
 } from '@lytronix/validators';
 import type { Transaction } from '@lytronix/db';
-import { ApiError } from '../../../common/api-error';
+import { ApiError, FieldsError } from '../../../common/api-error';
 import { UniqueViolation } from '../../../common/errors/unique-violation';
 import { OneTimeCodeService } from './one-time-code.service';
 import { PhoneNumberFormat } from './phone-number-format';
@@ -87,9 +89,13 @@ export class SigninService {
       const opened = await this.gateway.run(async (tx) => {
         const consumed = await this.gateway.consumeChallenge(tx, challengeId, new Date());
         if (!consumed) {
-          throw new ApiError('validation_error', 'CodeAlreadyUsed', {
-            field: 'code',
-          });
+          throw new FieldsError([
+            {
+              field: 'code',
+              problem: ServerFieldProblemCode.AlreadyUsed,
+              messageKey: 'CodeAlreadyUsed',
+            },
+          ]);
         }
         const subscriberId = existing?.subscriberId ?? (await this.createAccount(tx, phone));
         // The code proves the number, so a pending staff phone becomes verified here (AUTH-08).
@@ -133,7 +139,7 @@ export class SigninService {
   private requirePhone(raw: string): string {
     const phone = this.phoneFormat.normalize(raw);
     if (!phone) {
-      throw new ApiError('validation_error', 'PhoneInvalid', { field: 'phone' });
+      throw new FieldsError([{ field: 'phone', problem: FieldProblemCode.InvalidFormat }]);
     }
     return phone;
   }

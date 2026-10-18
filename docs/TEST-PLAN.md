@@ -810,8 +810,13 @@ Covers: `API-01`, `API-03` to `API-08`.
 
 **S09-11 CORS enforcement and request body-size limits.**
 Steps: 1) Make a public-key request from an origin not on the tenant's registered list. 2) Submit a request body exceeding the configured size cap.
-Expected: unregistered-origin request refused (ties to `API-07`/`RTE-07`'s origin check); oversized body rejected cleanly, not a server crash or timeout.
-Covers: `API-16`, `API-21`.
+Expected: unregistered-origin request refused (ties to `API-07`/`RTE-07`'s origin check); a body over 1 MB answers 413 with a plain message, not a server crash or timeout, while one just under 1 MB is read normally (`API-26`).
+Covers: `API-21`, `API-26`.
+
+**S09-11a Invalid fields, named and explained.**
+Steps: 1) Send a request missing a required field, one with a too-short password, and one with two invalid fields, each with `Accept-Language: bn` and `en`. 2) Send a taken shop address. 3) Send a body that is not valid JSON, and call an unknown route.
+Expected: each invalid field appears in `errors.details.fields` with its problem code and a plain message saying what to fix ("New password is too short. Use at least 8 characters."); a single field's message is also the response's message, and two fields give a count; the taken address names the next free one ("That shop URL is taken. Try fashion-house-2."); the malformed body and the unknown route answer 400 and 404 in plain words, never with parser or framework text.
+Covers: `API-16`, §2.6.
 
 **S09-12 Bulk endpoint limits.**
 Steps: submit a bulk import at and beyond its stricter per-request size cap.

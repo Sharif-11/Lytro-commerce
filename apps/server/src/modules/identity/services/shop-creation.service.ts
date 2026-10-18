@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { CreateShopInput } from '@lytronix/validators';
-import { ApiError } from '../../../common/api-error';
+import { FieldProblemCode, ServerFieldProblemCode } from '@lytronix/validators';
+import { ApiError, FieldsError } from '../../../common/api-error';
 import { UniqueViolation } from '../../../common/errors/unique-violation';
 import { BalanceService } from '../../balance/services/balance.service';
 import { MailService } from '../../shared/mail/services/mail.service';
@@ -100,18 +101,15 @@ export class ShopCreationService {
       const check = await this.slugs.checkAddress(typed.trim());
       if (check.ok) return check.address;
       if (check.reason === 'format') {
-        throw new ApiError('validation_error', 'AddressFormatInvalid', { field: 'address' });
+        throw new FieldsError([{ field: 'address', problem: FieldProblemCode.InvalidFormat }]);
       }
-      throw new ApiError('conflict', 'AddressTaken', {
-        field: 'address',
-        suggestion: check.suggestion,
-      });
+      throw this.addressTaken(check.suggestion);
     }
     const suggestion = await this.slugs.suggest(shopName);
     if (!suggestion) {
-      throw new ApiError('validation_error', 'AddressRequired', {
-        field: 'address',
-      });
+      throw new FieldsError([
+        { field: 'address', problem: FieldProblemCode.Required, messageKey: 'AddressRequired' },
+      ]);
     }
     return suggestion;
   }
@@ -121,9 +119,23 @@ export class ShopCreationService {
     if (error.target === 'phone') {
       return new ApiError('conflict', 'ShopAlreadyExists', {});
     }
-    return new ApiError('conflict', 'AddressTaken', {
-      field: 'address',
-      suggestion: await this.slugs.suggest(shopName),
-    });
+    return this.addressTaken(await this.slugs.suggest(shopName));
+  }
+
+  /** AUTH-11: a taken address, with the next free one to try when there is one. */
+  private addressTaken(suggestion: string | null): FieldsError {
+    return new FieldsError(
+      [
+        {
+          field: 'address',
+          problem: ServerFieldProblemCode.Taken,
+          ...(suggestion === null
+            ? { messageKey: 'AddressTaken' as const }
+            : { messageKey: 'AddressTakenTry' as const, params: { suggestion } }),
+        },
+      ],
+      'conflict',
+      { suggestion },
+    );
   }
 }

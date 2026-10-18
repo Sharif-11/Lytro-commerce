@@ -97,7 +97,10 @@ describeIfDatabase('sign-up by phone, end to end', () => {
     const response = await post('/auth/phone/code', { phone: '+14155550100' });
     expect(response.status).toBe(400);
     expect(response.body).toMatchObject({
-      error: { code: 'validation_error', details: { field: 'phone' } },
+      error: {
+        code: 'validation_error',
+        details: { fields: [{ field: 'phone', problem: 'invalid_format' }] },
+      },
     });
   });
 
@@ -169,7 +172,7 @@ describeIfDatabase('sign-up by phone, end to end', () => {
     const response = await createShop(returning, { ownerName: 'Karim', shopName: 'Second Shop' });
     expect(response.status).toBe(409);
     expect(response.body).toEqual({
-      error: { code: 'conflict', message: 'এই অ্যাকাউন্টের শপ আগে থেকেই আছে।', details: {} },
+      error: { code: 'conflict', message: 'এই অ্যাকাউন্টের দোকান আগে থেকেই আছে।', details: {} },
     });
   });
 
@@ -190,7 +193,14 @@ describeIfDatabase('sign-up by phone, end to end', () => {
     });
     expect(response.status).toBe(409);
     expect(response.body).toMatchObject({
-      error: { code: 'conflict', details: { field: 'address', suggestion: 'fashion-house-3' } },
+      error: {
+        code: 'conflict',
+        message: 'এই লিংকটি আগে থেকেই নেওয়া আছে। fashion-house-3 চেষ্টা করুন।',
+        details: {
+          suggestion: 'fashion-house-3',
+          fields: [{ field: 'address', problem: 'taken' }],
+        },
+      },
     });
   });
 
@@ -233,7 +243,11 @@ describeIfDatabase('sign-up by phone, end to end', () => {
     const response = await post('/auth/phone/verify', { phone: texts.freshPhone(), code: 'abc' });
     expect(response.status).toBe(400);
     expect(response.body).toMatchObject({
-      error: { code: 'validation_error', details: { fields: expect.any(Array) as unknown } },
+      error: {
+        code: 'validation_error',
+        message: '6 সংখ্যার কোডটি দিন।',
+        details: { fields: [{ field: 'code', problem: 'invalid_format' }] },
+      },
     });
   });
 });

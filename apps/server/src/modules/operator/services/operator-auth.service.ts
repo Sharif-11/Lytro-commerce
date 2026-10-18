@@ -1,8 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
-import { AuditResult, PlatformActorType, PlatformAuditAction } from '@lytronix/validators';
+import {
+  AuditResult,
+  PlatformActorType,
+  PlatformAuditAction,
+  ServerFieldProblemCode,
+} from '@lytronix/validators';
 import type { Transaction } from '@lytronix/db';
-import { ApiError } from '../../../common/api-error';
+import { ApiError, FieldsError } from '../../../common/api-error';
 import { HOUR_MS } from '../../../common/time';
 import { PlatformAuditService } from '../../audit/services/platform-audit.service';
 import { OPERATOR_GATEWAY, OPERATOR_SETTINGS } from '../tokens';
@@ -73,7 +78,9 @@ export class OperatorAuthService {
       !TOTP_CODE_PATTERN.test(code) ||
       !(await this.totp.verifyCode(account.twoFactorSecret, code))
     ) {
-      throw new ApiError('validation_error', 'CodeIncorrect', { field: 'code' });
+      throw new FieldsError([
+        { field: 'code', problem: ServerFieldProblemCode.Incorrect, messageKey: 'CodeIncorrect' },
+      ]);
     }
 
     const backupCodes = this.generateBackupCodes();

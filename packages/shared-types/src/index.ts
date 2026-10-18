@@ -30,6 +30,21 @@ export interface ApiSuccessBody<T = unknown> {
   data: T;
 }
 
+/**
+ * API-16: one field a request got wrong, in `errors.details.fields` -- its path, a stable problem code (see
+ * FieldProblemCode and ServerFieldProblemCode in @lytronix/validators), the limit it broke, and the message to
+ * show next to it, in the request's language.
+ */
+export interface ApiFieldError {
+  field: string;
+  problem: string;
+  message: string;
+  min?: number;
+  max?: number;
+  length?: number;
+  exclusive?: boolean;
+}
+
 export interface ApiErrorBody {
   success: false;
   statusCode: number;

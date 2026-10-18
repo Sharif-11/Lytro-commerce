@@ -224,7 +224,7 @@ describeIfDatabase('plans (PLN-01 to PLN-12, PLN-16)', () => {
       expect(clash.status).toBe(400);
       expect(errorOf(clash)).toMatchObject({
         code: 'validation_error',
-        details: { field: 'rank' },
+        details: { fields: [{ field: 'rank', problem: 'taken' }] },
       });
 
       const notForSaleSameRank = await post(

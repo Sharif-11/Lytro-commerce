@@ -237,7 +237,10 @@ describeIfDatabase('staff on the Starter plan (STF-01, STF-02, STF-03, STF-04)',
 
     const again = await addStaff(who, phone);
     expect(again.status).toBe(409);
-    expect(errorOf(again)).toMatchObject({ code: 'conflict', details: { field: 'phone' } });
+    expect(errorOf(again)).toMatchObject({
+      code: 'conflict',
+      details: { fields: [{ field: 'phone', problem: 'taken' }] },
+    });
   });
 });
 
@@ -344,7 +347,10 @@ describeIfDatabase('roles built from the permission list (STF-07, STF-08, STF-09
     expect((await createRole(who, 'Cashier', ['orders:read'])).status).toBe(201);
     const again = await createRole(who, 'Cashier', ['payments:read']);
     expect(again.status).toBe(409);
-    expect(errorOf(again)).toMatchObject({ code: 'conflict', details: { field: 'name' } });
+    expect(errorOf(again)).toMatchObject({
+      code: 'conflict',
+      details: { fields: [{ field: 'name', problem: 'taken' }] },
+    });
   });
 
   it('edits a role and keeps the change', async () => {
@@ -408,7 +414,7 @@ describeIfDatabase('roles built from the permission list (STF-07, STF-08, STF-09
     expect(response.status).toBe(400);
     expect(errorOf(response)).toMatchObject({
       code: 'validation_error',
-      details: { field: 'roleIds' },
+      details: { fields: [{ field: 'roleIds', problem: 'not_found' }] },
     });
   });
 
@@ -447,7 +453,10 @@ describeIfDatabase('staff accounts and phones across the platform (STF-06, AUTH-
     await moveToPlan(theirs.slug, 'Starter');
     const response = await addStaff(theirs, ours.phone);
     expect(response.status).toBe(409);
-    expect(errorOf(response)).toMatchObject({ code: 'conflict', details: { field: 'phone' } });
+    expect(errorOf(response)).toMatchObject({
+      code: 'conflict',
+      details: { fields: [{ field: 'phone', problem: 'taken' }] },
+    });
   });
 
   it('refuses a phone that is already staff in another shop', async () => {
@@ -792,7 +801,9 @@ describeIfDatabase('staff passwords (STF-13, AUTH-19, AUTH-20)', () => {
 
     const missing = await post('/auth/staff/password', { newPassword: 'another-pass-1' }, call);
     expect(missing.status).toBe(400);
-    expect(errorOf(missing)).toMatchObject({ details: { field: 'currentPassword' } });
+    expect(errorOf(missing)).toMatchObject({
+      details: { fields: [{ field: 'currentPassword' }] },
+    });
 
     const wrong = await post(
       '/auth/staff/password',

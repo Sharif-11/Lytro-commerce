@@ -1311,6 +1311,35 @@ Found in the same audit. Migration `0026` seeded `payg_product_fee` at 0 as a pl
 while the rate is still the untouched placeholder, never over an operator's edit. No fee is charged yet
 (#11). Verified in `trial-lifecycle.e2e.spec.ts`.
 
+## 64. `API-16`, `API-26`, §2.6: validation errors named fields but not what was wrong, and framework errors leaked raw text — found and fixed 2026-10-18
+
+Found in the 2026-10-18 check of validation errors:
+- The validation pipe returned only field names, so "Password must be at least 8 characters." never reached a client. Service checks used a second shape (`{ field }`).
+- A body that wasn't valid JSON answered the parser's own English text ("Unterminated string in JSON at position 14").
+- An unknown route answered "Cannot GET /api/v1/…".
+- A body over 100 KB crashed to 500, although `API-26` sets 1 MB and 413.
+- The operator payment queue's `kind` filter wasn't validated.
+
+**Fixed:**
+- Every refusal about fields is now a `FieldsError`, worded per request by `ApiErrorFilter` into `details.fields: [{ field, problem, message, ... }]`.
+  - Format problems are worded by the shared catalogue from #139 (`@lytronix/validators`).
+  - Checks only the server can make (address taken, wrong current password, code expired or used, role not in this shop, amount out of range) keep their own message with a stable problem code from `ServerFieldProblemCode`.
+  - The 35 service checks that named a field use this shape. Five server messages the shared wording replaces were removed: `ReasonRequired`, `EmailInvalid`, `PhoneInvalid`, `CurrentPasswordRequired` and `AddressFormatInvalid`.
+- Some messages now say more:
+  - A taken address names the next free one.
+  - A wrong code says how many tries are left.
+  - An amount out of range gives the range.
+- The framework's and the body parser's rejections are worded from the status (400, 404, 413, 415, 429), never from their own text.
+- `HttpSetup` (the `/api/v1` prefix and a 1 MB body limit) is shared by `main.ts` and the e2e bootstrap.
+- The payment queue's `kind` is validated.
+- The server's Bangla now says দোকান for "shop", as the dashboard and Lytronix do, not শপ.
+
+**Not done:**
+- No 415 for an unsupported content type. The parser ignores such a body, so the request is answered as missing its fields, which is still plain.
+- The dashboard does not use the new shape yet. It will be redesigned, and the redesign uses `details.fields` and the shared check.
+
+Verified with `error-messages.e2e.spec.ts` (new) and the updated assertions in `password`, `plan-catalogue`, `response-envelope`, `signup` and `staff`.
+
 ## Not a bug, just noting it so it isn't mistaken for one later
 
 The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data

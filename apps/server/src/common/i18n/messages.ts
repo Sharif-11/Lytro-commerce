@@ -1,5 +1,5 @@
 import type { MessageKey } from './message-key';
-import type { Lang } from './accept-language';
+import type { Language } from '@lytronix/validators';
 
 export type MessageParams = Record<string, string | number>;
 
@@ -14,15 +14,31 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   },
   SignInToContinue: { en: 'Sign in to continue.', bn: 'চালিয়ে যেতে লগইন করুন।' },
   RequestNotAccepted: { en: 'Request not accepted.', bn: 'রিকোয়েস্টটি গ্রহণ করা হয়নি।' },
+  // §2.6: the framework's and the body parser's own rejections, worded for a person (malformed JSON, API-26).
+  RequestNotReadable: {
+    en: "We couldn't read the information sent. Please try again.",
+    bn: 'পাঠানো তথ্য পড়া যায়নি। আবার চেষ্টা করুন।',
+  },
+  RequestTooLarge: {
+    en: 'Too much information was sent at once. Please send less and try again.',
+    bn: 'একবারে অনেক বেশি তথ্য পাঠানো হয়েছে। কম করে আবার চেষ্টা করুন।',
+  },
+  TooManyRequests: {
+    en: 'Too many requests. Please wait a moment and try again.',
+    bn: 'অনেক বেশি রিকোয়েস্ট এসেছে। একটু অপেক্ষা করে আবার চেষ্টা করুন।',
+  },
   CreateShopToContinue: {
     en: 'Create your shop to continue.',
-    bn: 'চালিয়ে যেতে আপনার শপ তৈরি করুন।',
+    bn: 'চালিয়ে যেতে আপনার দোকান তৈরি করুন।',
   },
   SetPasswordToContinue: {
     en: 'Set a password to continue.',
     bn: 'চালিয়ে যেতে একটি পাসওয়ার্ড সেট করুন।',
   },
-  ShopUnavailable: { en: 'This shop is not available right now.', bn: 'এই শপটি এখন উপলব্ধ নয়।' },
+  ShopUnavailable: {
+    en: 'This shop is not available right now.',
+    bn: 'এই দোকানটি এখন উপলব্ধ নয়।',
+  },
   PermissionDenied: {
     en: 'You do not have permission for this.',
     bn: 'এটি করার অনুমতি আপনার নেই।',
@@ -32,7 +48,6 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'Something went wrong. Please try again.',
     bn: 'কিছু একটা সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।',
   },
-  ReasonRequired: { en: 'A reason is required.', bn: 'একটি কারণ উল্লেখ করা আবশ্যক।' },
   SettingValueInvalid: {
     en: 'This value is not valid for this setting.',
     bn: 'এই সেটিংয়ের জন্য মানটি সঠিক নয়।',
@@ -94,12 +109,12 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     bn: 'এই কোটের মেয়াদ শেষ হয়ে গেছে। অনুগ্রহ করে নতুন একটি চান।',
   },
   AmountOutOfRange: {
-    en: 'This amount is outside the allowed range.',
-    bn: 'এই পরিমাণ অনুমোদিত সীমার বাইরে।',
+    en: (p) => `Enter an amount between ${String(p.min)} and ${String(p.max)} TK.`,
+    bn: (p) => `${String(p.min)} থেকে ${String(p.max)} টাকার মধ্যে একটি অ্যামাউন্ট দিন।`,
   },
   TopUpNotAvailable: {
     en: 'Top-up is not available in the shop’s current state.',
-    bn: 'শপের বর্তমান অবস্থায় টপ-আপ উপলব্ধ নয়।',
+    bn: 'দোকানের বর্তমান অবস্থায় টপ-আপ উপলব্ধ নয়।',
   },
   UpgradeNotAvailable: {
     en: 'Upgrade is only available while your plan is active.',
@@ -111,7 +126,7 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   },
   UpgradePending: {
     en: 'An upgrade is already pending for this shop.',
-    bn: 'এই শপের জন্য একটি আপগ্রেড ইতিমধ্যে পেন্ডিং আছে।',
+    bn: 'এই দোকানের জন্য একটি আপগ্রেড ইতিমধ্যে পেন্ডিং আছে।',
   },
   UpgradeNotWorthwhile: {
     en: 'The credit for your remaining days covers this plan and term. Please choose a longer term.',
@@ -123,11 +138,11 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   },
   PayAsYouGoNotAvailable: {
     en: "This shop can't switch to pay-as-you-go right now.",
-    bn: 'এই শপ এখন পে-অ্যাজ-ইউ-গো-তে যেতে পারবে না।',
+    bn: 'এই দোকান এখন পে-অ্যাজ-ইউ-গো-তে যেতে পারবে না।',
   },
   CloseNotAvailable: {
     en: 'Only a pay-as-you-go shop can be closed. A shop on a plan stops at its period end when you cancel.',
-    bn: 'শুধু পে-অ্যাজ-ইউ-গো শপ বন্ধ করা যায়। প্ল্যানে থাকা শপ ক্যানসেল করলে মেয়াদ শেষে বন্ধ হয়।',
+    bn: 'শুধু পে-অ্যাজ-ইউ-গো দোকান বন্ধ করা যায়। প্ল্যানে থাকা দোকান ক্যানসেল করলে মেয়াদ শেষে বন্ধ হয়।',
   },
   DowngradeMustBeLowerRank: {
     en: 'You can only downgrade to a lower plan.',
@@ -135,7 +150,7 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   },
   ScheduledChangeNotFound: {
     en: 'No scheduled change was found for this shop.',
-    bn: 'এই শপের জন্য কোনো নির্ধারিত পরিবর্তন পাওয়া যায়নি।',
+    bn: 'এই দোকানের জন্য কোনো নির্ধারিত পরিবর্তন পাওয়া যায়নি।',
   },
 
   FacebookSignInNotConfirmed: {
@@ -150,7 +165,6 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'This code has already been used.',
     bn: 'এই কোডটি আগেই ব্যবহার করা হয়েছে।',
   },
-  EmailInvalid: { en: 'Enter a valid email address.', bn: 'একটি সঠিক ইমেইল অ্যাড্রেস দিন।' },
   CodeInvalid: {
     en: 'This code is not valid. Request a new one.',
     bn: 'এই কোডটি সঠিক নয়। নতুন একটি কোড নিন।',
@@ -160,6 +174,13 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     bn: 'এই কোডের মেয়াদ শেষ হয়ে গেছে। নতুন একটি কোড নিন।',
   },
   CodeIncorrect: { en: 'The code is not correct.', bn: 'কোডটি সঠিক নয়।' },
+  CodeIncorrectTriesLeft: {
+    en: (p) => {
+      const left = Number(p.attemptsLeft);
+      return `The code is not correct. You can try ${String(left)} more ${left === 1 ? 'time' : 'times'}.`;
+    },
+    bn: (p) => `কোডটি সঠিক নয়। আর ${String(p.attemptsLeft)} বার চেষ্টা করতে পারবেন।`,
+  },
   TooManyWrongCodes: {
     en: 'Too many wrong codes. Wait before trying again.',
     bn: 'অনেকবার ভুল কোড দেওয়া হয়েছে। আবার চেষ্টা করার আগে অপেক্ষা করুন।',
@@ -170,11 +191,7 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   },
   IdentityOwnsShop: {
     en: 'This identity owns your shop, so it cannot be removed.',
-    bn: 'এই আইডেন্টিটি আপনার শপের মালিক, তাই এটি রিমুভ করা যাবে না।',
-  },
-  PhoneInvalid: {
-    en: 'Enter a Bangladeshi mobile number, such as 017XXXXXXXX.',
-    bn: 'একটি বাংলাদেশি মোবাইল নম্বর দিন, যেমন 017XXXXXXXX।',
+    bn: 'এই আইডেন্টিটি আপনার দোকানের মালিক, তাই এটি রিমুভ করা যাবে না।',
   },
   AccountCannotBeAdded: {
     en: 'This account cannot be added. Try another.',
@@ -200,26 +217,25 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'That phone number and password do not match.',
     bn: 'এই ফোন নম্বর ও পাসওয়ার্ড মিলছে না।',
   },
-  CurrentPasswordRequired: {
-    en: 'Enter your current password.',
-    bn: 'আপনার কারেন্ট পাসওয়ার্ড দিন।',
-  },
   CurrentPasswordWrong: {
     en: 'Your current password is not correct.',
     bn: 'আপনার কারেন্ট পাসওয়ার্ডটি সঠিক নয়।',
   },
   ShopAlreadyExists: {
     en: 'This account already has a shop.',
-    bn: 'এই অ্যাকাউন্টের শপ আগে থেকেই আছে।',
+    bn: 'এই অ্যাকাউন্টের দোকান আগে থেকেই আছে।',
   },
-  AddressFormatInvalid: {
-    en: 'Use 3 to 30 lowercase letters, digits or hyphens for the address.',
-    bn: 'অ্যাড্রেসে ৩ থেকে ৩০টি ছোট হাতের অক্ষর, সংখ্যা বা হাইফেন ব্যবহার করুন।',
+  AddressTaken: {
+    en: 'That shop URL is taken. Try another one.',
+    bn: 'এই লিংকটি আগে থেকেই নেওয়া আছে। অন্য একটি দিন।',
   },
-  AddressTaken: { en: 'That address is taken.', bn: 'এই অ্যাড্রেসটি আগে থেকেই নেওয়া আছে।' },
+  AddressTakenTry: {
+    en: (p) => `That shop URL is taken. Try ${String(p.suggestion)}.`,
+    bn: (p) => `এই লিংকটি আগে থেকেই নেওয়া আছে। ${String(p.suggestion)} চেষ্টা করুন।`,
+  },
   AddressRequired: {
-    en: 'Choose an address for your shop.',
-    bn: 'আপনার শপের জন্য একটি অ্যাড্রেস বেছে নিন।',
+    en: 'Choose a URL for your shop.',
+    bn: 'আপনার দোকানের জন্য একটি লিংক বেছে নিন।',
   },
   TooManyFailedSignins: {
     en: 'Too many failed sign-ins. Wait before trying again.',
@@ -266,7 +282,7 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   RoleNotFound: { en: 'Role not found.', bn: 'রোলটি খুঁজে পাওয়া যায়নি।' },
   StaffPhoneBelongsToOwner: {
     en: 'That phone number belongs to a shop owner.',
-    bn: 'এই ফোন নম্বরটি একজন শপ ওনারের।',
+    bn: 'এই ফোন নম্বরটি একজন দোকান ওনারের।',
   },
   StaffPhoneInUse: {
     en: 'That phone number is already in use.',
@@ -276,7 +292,7 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   OwnerCannotBeChanged: { en: 'The owner cannot be changed.', bn: 'ওনারকে পরিবর্তন করা যাবে না।' },
   RoleNotInShop: {
     en: 'One of the roles does not exist in this shop.',
-    bn: 'এই রোলগুলোর একটি এই শপে নেই।',
+    bn: 'এই রোলগুলোর একটি এই দোকানে নেই।',
   },
   SeatLimitReached: {
     en: (p) => {
@@ -314,7 +330,7 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   },
   ProfileRetrieved: { en: 'Profile retrieved.', bn: 'প্রোফাইল পাওয়া গেছে।' },
   OauthProvidersListed: { en: 'Sign-in options retrieved.', bn: 'লগইন অপশনগুলো পাওয়া গেছে।' },
-  ShopCreated: { en: 'Shop created successfully.', bn: 'শপ সফলভাবে তৈরি হয়েছে।' },
+  ShopCreated: { en: 'Shop created successfully.', bn: 'দোকান সফলভাবে তৈরি হয়েছে।' },
 
   OperatorCredentialsAccepted: {
     en: 'Credentials accepted.',
@@ -378,8 +394,8 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   },
   SettingsListed: { en: 'Settings retrieved.', bn: 'সেটিংসগুলো পাওয়া গেছে।' },
   SettingUpdated: { en: 'Setting updated.', bn: 'সেটিং আপডেট হয়েছে।' },
-  ShopSettingsRetrieved: { en: 'Shop settings retrieved.', bn: 'শপ সেটিংস পাওয়া গেছে।' },
-  ShopSettingsUpdated: { en: 'Shop settings updated.', bn: 'শপ সেটিংস আপডেট হয়েছে।' },
+  ShopSettingsRetrieved: { en: 'Shop settings retrieved.', bn: 'দোকানের সেটিংস পাওয়া গেছে।' },
+  ShopSettingsUpdated: { en: 'Shop settings updated.', bn: 'দোকানের সেটিংস আপডেট হয়েছে।' },
   ExportRequested: { en: 'Export requested.', bn: 'এক্সপোর্ট রিকোয়েস্ট করা হয়েছে।' },
   ExportsListed: { en: 'Exports retrieved.', bn: 'এক্সপোর্টগুলো পাওয়া গেছে।' },
   ExportNotFound: { en: 'Export not found.', bn: 'এক্সপোর্ট পাওয়া যায়নি।' },
@@ -388,7 +404,10 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'This export link has expired.',
     bn: 'এই এক্সপোর্ট লিংকের মেয়াদ শেষ হয়ে গেছে।',
   },
-  OwnerOnlyAction: { en: 'Only the shop owner can do this.', bn: 'শুধু শপ ওনার এটি করতে পারবেন।' },
+  OwnerOnlyAction: {
+    en: 'Only the shop owner can do this.',
+    bn: 'শুধু দোকানের ওনার এটি করতে পারবেন।',
+  },
 
   QuoteCreated: { en: 'Quote created.', bn: 'কোট তৈরি হয়েছে।' },
   PurchaseConfirmed: { en: 'Purchase confirmed.', bn: 'কেনা নিশ্চিত হয়েছে।' },
@@ -404,7 +423,7 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   UpgradeConfirmed: { en: 'Upgrade confirmed.', bn: 'আপগ্রেড নিশ্চিত হয়েছে।' },
   DowngradeScheduled: { en: 'Downgrade scheduled.', bn: 'ডাউনগ্রেড নির্ধারিত হয়েছে।' },
   PayAsYouGoChosen: { en: 'Pay-as-you-go chosen.', bn: 'পে-অ্যাজ-ইউ-গো বেছে নেওয়া হয়েছে।' },
-  ShopClosed: { en: 'Shop closed.', bn: 'শপ বন্ধ করা হয়েছে।' },
+  ShopClosed: { en: 'Shop closed.', bn: 'দোকান বন্ধ করা হয়েছে।' },
   DowngradeCancelled: { en: 'Downgrade cancelled.', bn: 'ডাউনগ্রেড বাতিল হয়েছে।' },
   DowngradePreviewed: { en: 'Downgrade preview retrieved.', bn: 'ডাউনগ্রেড প্রিভিউ পাওয়া গেছে।' },
   DowngradeRetrieved: { en: 'Scheduled change retrieved.', bn: 'নির্ধারিত পরিবর্তন পাওয়া গেছে।' },
@@ -425,8 +444,8 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     bn: 'বাতিলের অবস্থা পাওয়া গেছে।',
   },
   TenantsListed: { en: 'Tenants retrieved.', bn: 'টেন্যান্টগুলো পাওয়া গেছে।' },
-  TenantSuspended: { en: 'Shop suspended.', bn: 'শপ সাসপেন্ড হয়েছে।' },
-  TenantRestored: { en: 'Shop restored.', bn: 'শপ পুনরুদ্ধার হয়েছে।' },
+  TenantSuspended: { en: 'Shop suspended.', bn: 'দোকান সাসপেন্ড হয়েছে।' },
+  TenantRestored: { en: 'Shop restored.', bn: 'দোকান পুনরুদ্ধার হয়েছে।' },
 
   RolesListed: { en: 'Roles retrieved.', bn: 'রোলগুলো পাওয়া গেছে।' },
   RoleCreated: { en: 'Role created.', bn: 'রোল তৈরি হয়েছে।' },
@@ -438,7 +457,7 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   StaffPasswordReset: { en: 'Staff password reset.', bn: 'স্টাফের পাসওয়ার্ড রিসেট হয়েছে।' },
 };
 
-export function translate(key: MessageKey, lang: Lang, params: MessageParams = {}): string {
+export function translate(key: MessageKey, lang: Language, params: MessageParams = {}): string {
   const text = DICTIONARY[key][lang];
   return typeof text === 'function' ? text(params) : text;
 }

@@ -4,8 +4,9 @@ import {
   PlatformActorType,
   PlatformAuditAction,
   PlatformSettingKey,
+  FieldProblemCode,
 } from '@lytronix/validators';
-import { ApiError } from '../../../common/api-error';
+import { FieldsError } from '../../../common/api-error';
 import { PlatformAuditService } from '../../audit/services/platform-audit.service';
 import type { PlatformSettingsStore } from '../ports/platform-settings-store';
 import { PLATFORM_SETTINGS_STORE } from '../tokens';
@@ -47,7 +48,13 @@ const VALIDATORS: Record<PlatformSettingKey, (value: unknown) => boolean> = {
 
 function validate(key: PlatformSettingKey, value: unknown): void {
   if (!VALIDATORS[key](value)) {
-    throw new ApiError('validation_error', 'SettingValueInvalid', { field: 'value' });
+    throw new FieldsError([
+      {
+        field: 'value',
+        problem: FieldProblemCode.InvalidFormat,
+        messageKey: 'SettingValueInvalid',
+      },
+    ]);
   }
 }
 

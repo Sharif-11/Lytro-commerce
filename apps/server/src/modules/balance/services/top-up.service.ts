@@ -1,6 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { PlanPaymentKind, PlatformSettingKey, TenantState } from '@lytronix/validators';
-import { ApiError } from '../../../common/api-error';
+import {
+  PlanPaymentKind,
+  PlatformSettingKey,
+  TenantState,
+  ServerFieldProblemCode,
+} from '@lytronix/validators';
+import { ApiError, FieldsError } from '../../../common/api-error';
 import { PlanPaymentsService } from '../../payments/services/plan-payments.service';
 import type { PlanPaymentRecord } from '../../payments/types/plan-payment';
 import { PlatformSettingsService } from '../../platform-settings/services/platform-settings.service';
@@ -49,10 +54,20 @@ export class TopUpService {
     const maxAmount = typeof max?.value === 'number' ? max.value : DEFAULT_MAX_AMOUNT;
     const requested = Number(amount);
     if (requested < minAmount || requested > maxAmount) {
-      throw new ApiError('validation_error', 'AmountOutOfRange', {
-        min: minAmount,
-        max: maxAmount,
-      });
+      throw new FieldsError(
+        [
+          {
+            field: 'amount',
+            problem: ServerFieldProblemCode.OutOfRange,
+            messageKey: 'AmountOutOfRange',
+            params: { min: minAmount, max: maxAmount },
+            min: minAmount,
+            max: maxAmount,
+          },
+        ],
+        'validation_error',
+        { min: minAmount, max: maxAmount },
+      );
     }
 
     return this.payments.quoteStandalone({

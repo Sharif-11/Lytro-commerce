@@ -5,9 +5,10 @@ import {
   ChallengeChannel,
   ChallengeKind,
   SignInMethod,
+  ServerFieldProblemCode,
 } from '@lytronix/validators';
 import type { Transaction } from '@lytronix/db';
-import { ApiError } from '../../../common/api-error';
+import { ApiError, FieldsError } from '../../../common/api-error';
 import {
   OneTimeCodeService,
   CODE_TTL_MS,
@@ -157,8 +158,8 @@ export class ForgotPasswordService {
 
   /** The same reply for a wrong, expired or unknown code (AUTH-17). */
   private invalidCode(): ApiError {
-    return new ApiError('validation_error', 'CodeInvalid', {
-      field: 'code',
-    });
+    return new FieldsError([
+      { field: 'code', problem: ServerFieldProblemCode.Expired, messageKey: 'CodeInvalid' },
+    ]);
   }
 }

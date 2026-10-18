@@ -7,9 +7,10 @@ import {
   IdentityKind,
   OauthProvider,
   SignInMethod,
+  ServerFieldProblemCode,
 } from '@lytronix/validators';
 import type { Transaction } from '@lytronix/db';
-import { ApiError } from '../../../common/api-error';
+import { ApiError, FieldsError } from '../../../common/api-error';
 import { ENV } from '../../../config/tokens';
 import type { Env } from '../../../config/env';
 import { MINUTE_MS } from '../../../common/time';
@@ -76,9 +77,13 @@ export class OauthService {
     const provider = this.find(name);
     const attempt = await this.states.consume(state, provider.provider, this.settings.now());
     if (attempt === null) {
-      throw new ApiError('validation_error', 'SignInLinkInvalid', {
-        field: 'state',
-      });
+      throw new FieldsError([
+        {
+          field: 'state',
+          problem: ServerFieldProblemCode.Expired,
+          messageKey: 'SignInLinkInvalid',
+        },
+      ]);
     }
     const profile = await provider.exchange({
       code,

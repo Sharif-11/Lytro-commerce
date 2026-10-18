@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { ApiError } from '../../../common/api-error';
+import { ServerFieldProblemCode } from '@lytronix/validators';
+import { ApiError, FieldsError } from '../../../common/api-error';
 import { UniqueViolation } from '../../../common/errors/unique-violation';
 import type { NewPlanValues, PlanEditValues, PlansStore } from '../ports/plans-store';
 import { PLANS_STORE } from '../tokens';
@@ -15,9 +16,9 @@ export class PlansService {
       return await this.store.run((tx) => this.store.create(tx, values));
     } catch (error) {
       if (error instanceof UniqueViolation && error.target === 'rank') {
-        throw new ApiError('validation_error', 'PlanRankTaken', {
-          field: 'rank',
-        });
+        throw new FieldsError([
+          { field: 'rank', problem: ServerFieldProblemCode.Taken, messageKey: 'PlanRankTaken' },
+        ]);
       }
       throw error;
     }
@@ -47,9 +48,9 @@ export class PlansService {
       return updated;
     } catch (error) {
       if (error instanceof UniqueViolation && error.target === 'rank') {
-        throw new ApiError('validation_error', 'PlanRankTaken', {
-          field: 'rank',
-        });
+        throw new FieldsError([
+          { field: 'rank', problem: ServerFieldProblemCode.Taken, messageKey: 'PlanRankTaken' },
+        ]);
       }
       throw error;
     }

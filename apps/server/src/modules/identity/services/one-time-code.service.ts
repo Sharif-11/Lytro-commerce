@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { ChallengeChannel, type ChallengeKind } from '@lytronix/validators';
+import { ChallengeChannel, type ChallengeKind, ServerFieldProblemCode } from '@lytronix/validators';
 import type { Transaction } from '@lytronix/db';
-import { ApiError } from '../../../common/api-error';
+import { ApiError, FieldsError } from '../../../common/api-error';
 import { HOUR_MS, MINUTE_MS } from '../../../common/time';
 import { MailDeliveryError } from '../../../common/errors/mail-delivery';
 import { SmsDeliveryError } from '../../../common/errors/sms-delivery';
@@ -164,20 +164,28 @@ export class OneTimeCodeService {
       case 'ok':
         return outcome.challengeId;
       case 'missing':
-        throw new ApiError('validation_error', 'CodeInvalid', {
-          field: 'code',
-        });
+        throw new FieldsError([
+          { field: 'code', problem: ServerFieldProblemCode.Expired, messageKey: 'CodeInvalid' },
+        ]);
       case 'expired':
-        throw new ApiError('validation_error', 'CodeExpired', {
-          field: 'code',
-        });
+        throw new FieldsError([
+          { field: 'code', problem: ServerFieldProblemCode.Expired, messageKey: 'CodeExpired' },
+        ]);
       case 'locked':
         throw this.tooManyWrongCodes(outcome.retryAfterSeconds);
       case 'wrong':
-        throw new ApiError('validation_error', 'CodeIncorrect', {
-          field: 'code',
-          attemptsLeft: outcome.attemptsLeft,
-        });
+        throw new FieldsError(
+          [
+            {
+              field: 'code',
+              problem: ServerFieldProblemCode.Incorrect,
+              messageKey: 'CodeIncorrectTriesLeft',
+              params: { attemptsLeft: outcome.attemptsLeft },
+            },
+          ],
+          'validation_error',
+          { attemptsLeft: outcome.attemptsLeft },
+        );
     }
   }
 

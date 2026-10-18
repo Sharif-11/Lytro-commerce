@@ -7,8 +7,9 @@ import {
   PlatformActorType,
   PlatformAuditAction,
   TenantState,
+  FieldProblemCode,
 } from '@lytronix/validators';
-import { ApiError } from '../../../common/api-error';
+import { ApiError, FieldsError } from '../../../common/api-error';
 import { AuditService } from '../../audit/services/audit.service';
 import { PlatformAuditService } from '../../audit/services/platform-audit.service';
 import { TenantService } from '../../tenancy/services/tenant.service';
@@ -43,7 +44,7 @@ export class PlanAssignmentService {
 
   async assign(input: AssignPlanInput): Promise<PlanAssignmentRecord> {
     if (input.reason.trim().length === 0) {
-      throw new ApiError('validation_error', 'ReasonRequired', { field: 'reason' });
+      throw new FieldsError([{ field: 'reason', problem: FieldProblemCode.Required }]);
     }
 
     const plan = await this.plans.run((tx: Transaction) => this.plans.findById(tx, input.planId));

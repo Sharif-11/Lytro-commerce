@@ -4,8 +4,10 @@ import {
   AuditResult,
   SignInMethod,
   type SetPasswordInput,
+  FieldProblemCode,
+  ServerFieldProblemCode,
 } from '@lytronix/validators';
-import { ApiError } from '../../../common/api-error';
+import { FieldsError } from '../../../common/api-error';
 import { MINUTE_MS } from '../../../common/time';
 import { PasswordHasher } from './password-hasher';
 import { SessionService } from './session.service';
@@ -68,14 +70,16 @@ export class PasswordService {
     typed: string | undefined,
   ): Promise<void> {
     if (typed === undefined || typed === '') {
-      throw new ApiError('validation_error', 'CurrentPasswordRequired', {
-        field: 'currentPassword',
-      });
+      throw new FieldsError([{ field: 'currentPassword', problem: FieldProblemCode.Required }]);
     }
     if (await this.hasher.verify(typed, current)) return;
     await this.lockout.recordFailure(session.subscriberId, session.ip);
-    throw new ApiError('validation_error', 'CurrentPasswordWrong', {
-      field: 'currentPassword',
-    });
+    throw new FieldsError([
+      {
+        field: 'currentPassword',
+        problem: ServerFieldProblemCode.Incorrect,
+        messageKey: 'CurrentPasswordWrong',
+      },
+    ]);
   }
 }

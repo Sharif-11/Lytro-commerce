@@ -12,7 +12,8 @@ import {
 } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
-import { ApiError } from '../../../common/api-error';
+import { FieldProblemCode } from '@lytronix/validators';
+import { ApiError, FieldsError } from '../../../common/api-error';
 import { ClientIp } from '../../../common/client-ip';
 import { SkipTenant } from '../../../common/decorators/skip-tenant';
 import { ResponseMessage } from '../../../common/decorators/response-message';
@@ -83,7 +84,9 @@ export class OperatorTenantLifecycleController {
     }
     // Same key the activity log's own cursor decode uses (ActivityListService.decodeCursor) -- one concept,
     // not two.
-    throw new ApiError('validation_error', 'PageLinkInvalid', { field: 'cursor' });
+    throw new FieldsError([
+      { field: 'cursor', problem: FieldProblemCode.InvalidFormat, messageKey: 'PageLinkInvalid' },
+    ]);
   }
 
   @Post(':id/suspend')

@@ -6,8 +6,9 @@ import {
   PlatformActorType,
   PlatformAuditAction,
   type PlanLimits,
+  FieldProblemCode,
 } from '@lytronix/validators';
-import { ApiError } from '../../../common/api-error';
+import { FieldsError } from '../../../common/api-error';
 import { AuditService } from '../../audit/services/audit.service';
 import { PlatformAuditService } from '../../audit/services/platform-audit.service';
 import type { PlanLimitOverridesStore } from '../ports/plan-limit-overrides-store';
@@ -31,7 +32,7 @@ export class PlanLimitOverridesService {
     operatorId: string,
   ): Promise<PlanLimitOverrideRecord> {
     if (reason.trim().length === 0) {
-      throw new ApiError('validation_error', 'ReasonRequired', { field: 'reason' });
+      throw new FieldsError([{ field: 'reason', problem: FieldProblemCode.Required }]);
     }
     const row = await this.store.run(async (tx) => {
       const saved = await this.store.set(tx, {

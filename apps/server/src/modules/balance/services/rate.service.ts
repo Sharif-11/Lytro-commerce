@@ -4,8 +4,9 @@ import {
   PlatformAuditAction,
   AuditResult,
   type RateKey,
+  FieldProblemCode,
 } from '@lytronix/validators';
-import { ApiError } from '../../../common/api-error';
+import { FieldsError } from '../../../common/api-error';
 import { PlatformAuditService } from '../../audit/services/platform-audit.service';
 import type { RateStore } from '../ports/rate-store';
 import { RATE_STORE } from '../tokens';
@@ -54,7 +55,14 @@ export class RateService {
   ): Promise<void> {
     const numeric = Number(newValue);
     if (!Number.isFinite(numeric) || numeric < 0) {
-      throw new ApiError('validation_error', 'RateCannotBeNegative', { field: 'value' });
+      throw new FieldsError([
+        {
+          field: 'value',
+          problem: FieldProblemCode.TooSmall,
+          min: 0,
+          messageKey: 'RateCannotBeNegative',
+        },
+      ]);
     }
     const current = await this.store.get(key);
     await this.store.set(key, current?.value ?? null, newValue, operatorId, noticeId);

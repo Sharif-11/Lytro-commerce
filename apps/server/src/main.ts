@@ -1,20 +1,21 @@
 import 'dotenv/config';
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { apiReference } from '@scalar/nestjs-api-reference';
 import { setupGracefulShutdown } from '@tygra/nestjs-graceful-shutdown';
 import { cleanupOpenApiDoc } from 'nestjs-zod';
 import { AppModule } from './app/app.module';
+import { HttpSetup } from './app/http-setup';
 import { EnvironmentParser } from './config/env';
-import { UNVERSIONED_ROUTES } from './common/unversioned-routes';
 
 // The process entry point: loads the validated settings, builds the application and starts listening.
 class Application {
   async start(): Promise<void> {
     const env = new EnvironmentParser().parse();
-    const app = await NestFactory.create(AppModule);
-    app.setGlobalPrefix('api/v1', { exclude: UNVERSIONED_ROUTES });
+    const app = await NestFactory.create<NestExpressApplication>(AppModule);
+    new HttpSetup().apply(app);
 
     // API docs, generated from the same Zod DTOs every route already validates request/response against
     // (nestjs-zod's createZodDto) -- one definition per shape, never a hand-maintained second copy.
