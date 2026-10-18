@@ -89,14 +89,17 @@ The rule as first written would have swallowed every one of those calls into "se
 reaching the backend at all. Fixed below by giving the backend its own reserved prefix, checked first, on
 every host.
 
-One `Caddyfile`, with a rule checked before anything else, on **every** host block:
+One `Caddyfile`, with a rule checked first on the two app hosts, `app.lytro.app` and `admin.lytro.app`:
 
 - **`/api/*`** → reverse-proxy to `server` unchanged, with `x-lytronix-edge-secret` added (§6). This is how
-  the dashboard and the operator console (and anything else running client-side) reach the backend:
-  same-origin, relative fetches to `/api/v1/...` on their own host, `app.lytro.app` and `admin.lytro.app`. **Updated 2026-10-14 (API-14):** the
-  backend itself now serves every route under `/api/v1/...` (the exact prefix the SPA already calls), so
-  Caddy no longer strips anything — a plain `handle`, not `handle_path`. Before this, the backend had no
-  prefix at all and Caddy's incoming `/api/...` was stripped before reaching `server`; that's no longer true.
+  the dashboard and the operator console reach the backend: same-origin, relative fetches to `/api/v1/...` on
+  their own host. **Updated 2026-10-14 (API-14):** the backend itself serves every route under `/api/v1/...`
+  (the exact prefix the apps call), so Caddy strips nothing — a plain `handle`, not `handle_path`.
+- **Not on any other host (D3-11).** The apex serves the marketing site only, and a shop's host serves its
+  public pages only, the storefront owning every path there (`TEN-08`, `SFT-02`), so neither forwards `/api`.
+  The storefront and the website call the backend server-side, inside the deployment (§6), and code running
+  in a shopper's browser uses the public API at `api.lytro.app` with a public key (`API-14`, D3-1). Until
+  Slice 0 lands, `deploy/Caddyfile` still forwards `/api/*` on every host, as the earlier layout needed.
 
 Then, per host, one rule each and no path lists:
 
