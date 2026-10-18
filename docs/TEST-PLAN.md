@@ -90,8 +90,8 @@ Expected: refused within 30 days; claimable after.
 Covers: `TEN-15` to `TEN-18`, `TEN-20` to `TEN-22`, `TEN-24` to `TEN-28`.
 
 **S01-16 One dashboard address.**
-Preconditions: an owner of two shops; a staff member of shop A only.
-Steps: 1) The owner signs in once at `app.lytro.app/sign-in`. 2) Open `app.lytro.app/<shop-a>` and `app.lytro.app/<shop-b>`. 3) As the staff member, open `app.lytro.app/<shop-b>` and call one of shop B's dashboard API endpoints. 4) Create a shop named "Sign in".
+Preconditions: a person who owns shop B and is staff in shop A; a staff member of shop A only.
+Steps: 1) The first person signs in once at `app.lytro.app/sign-in`. 2) Open `app.lytro.app/<shop-a>` and `app.lytro.app/<shop-b>`. 3) As the staff member, open `app.lytro.app/<shop-b>` and call one of shop B's dashboard API endpoints. 4) Create a shop named "Sign in".
 Expected: one sign-in lands on a shop picker, and both dashboards open by path without signing in again; step 3 returns the same not-found as an unknown shop, for both the page and the API; the shop in step 4 receives the slug `sign-in-2`.
 Covers: `TEN-31`, `TEN-26`.
 
@@ -99,6 +99,21 @@ Covers: `TEN-31`, `TEN-26`.
 Steps: 1) On the marketing page, type "gamma" in the claim box. 2) Continue with Google. 3) On create-shop, check the address, then type an address that is taken and one that is reserved, then go back to "gamma". 4) In the set-up step, choose Cosmetics and Chattogram city. 5) Open the delivery settings and a new product form.
 Expected: "gamma" is pre-filled on create-shop after the Google round trip; the taken and reserved addresses are shown as such, each with a suggested alternative; the delivery zones read "Inside Chattogram city" and "Outside Chattogram city"; the new product form starts with batch tracking on (the cosmetics default).
 Covers: `AUTH-28`, `AUTH-11`, `PST-01`, `DLV-01`.
+
+**S01-20 Starting with a plan from the website.**
+Steps: 1) On the pricing page, pick Starter for 12 months, and look at the entry screen. 2) Sign up with Google and create the shop. 3) On the checkout, change the term, go back to 12 months, and pay through the payment page. 4) Before the payment is verified, add a product. 5) Verify the payment. 6) Repeat with a second guest who continues without paying, and a third whose payment fails.
+Expected: the entry screen shows the terms line with both links, and the new account records both versions and the time; the checkout opens after create-shop with Starter, 12 months and 4,741 TK and says a started period isn't refunded; the shop works on its trial while the payment is checked and keeps the product; after verification the shop is on Starter, and an SMS and an email arrive, with the free SMS count unchanged; the set-password and set-up steps follow the checkout; continuing without paying, or a failed payment, leaves the trial running, with the checkout still available from the dashboard.
+Covers: `AUTH-29`, `LEG-01`, `TRL-06`, `BIL-05`.
+
+**S01-21 New shops limited per connection; sign-in never.**
+Steps: 1) From an internet connection that opened a shop within 90 days, sign up with a new phone and fill in create-shop. 2) Repeat with a new Google account from the same connection. 3) From the same connection, sign in as the owner of the existing shop. 4) Look through that dashboard for any way to open another shop.
+Expected: both sign-ups are refused at create-shop with a plain message, keep what was typed, create nothing, and offer no other way in; the owner signs in and uses the dashboard normally from the same connection; the dashboard has no "create another shop" action anywhere.
+Covers: `AUTH-30`, `AUTH-09`, `TEN-15`, `AUTH-08`.
+
+**S01-22 The staff sign-in page.**
+Steps: 1) As an owner, add a staff member. 2) From the owners' entry screen, follow the staff link. 3) Sign in with the staff phone and the owner's password. 4) Try an unknown phone, then a wrong password. 5) As the owner, reset the staff password; sign in again. 6) Lock the shop and try once more.
+Expected: the staff page asks for a new password before anything else, then opens the shop's dashboard; both bad attempts get the same error; after the reset a new password is required again; the locked shop returns `tenant_offline`; the page tells a staff member who forgot the password to ask the owner.
+Covers: `AUTH-31`, `AUTH-19`, `STF-13`, `AUTH-22`.
 
 **S01-17 Default identity, and the free name and logo.**
 Steps: 1) Create a shop with no logo; open its storefront, a landing page, a hosted payment page and the dashboard. 2) Upload a logo and open them again.
@@ -441,8 +456,8 @@ Expected: dashboard order creation validates the same fields as the public endpo
 Covers: `ORD-01`, `ORD-03` to `ORD-22`, `ORD-46`, `ORD-47`.
 
 **S05-16 Order extraction from pasted text (AI-assisted draft).**
-Steps: paste a free-text message resembling a Facebook/WhatsApp order into the extraction tool; review and confirm the draft; try an ambiguous or incomplete message.
-Expected: a structured draft order is produced for review, never auto-submitted without staff confirmation; an ambiguous message is flagged for manual completion rather than guessed.
+Steps: paste a free-text message resembling a Facebook/WhatsApp order into the extraction tool; review and confirm the draft; try an ambiguous or incomplete message; in a shop whose default courier is Pathao, paste a message naming "Mirpur 10".
+Expected: a structured draft order is produced for review, never auto-submitted without staff confirmation; an ambiguous message is flagged for manual completion rather than guessed; the Pathao shop's draft suggests Pathao's Mirpur 10 for staff to confirm.
 Covers: `ORD-30` to `ORD-34`, `AI` (extraction-specific rows).
 
 **S05-17 Snapshot-vs-live-data permanence beyond products.**
@@ -452,7 +467,7 @@ Covers: `ORD-48`, `ORD-49`, `ORD-50`.
 
 **S05-18 Shopper OTP sign-in and canonical location mapping.**
 Steps: 1) A returning shopper signs in by phone OTP on the storefront. 2) View the canonical zilla/thana list — confirm it's identical across tenants. 3) Connect two different couriers and compare their own zone lists against the canonical one.
-Expected: shopper OTP sign-in works the same way as staff OTP, scoped to that tenant only; the canonical list never varies by tenant; each courier's zone mapping is its own table layered on top of the canonical list, never modifying it.
+Expected: shopper OTP sign-in works the same way as staff OTP, scoped to that tenant only; the canonical list never varies by tenant; each courier's area list sits under the canonical thanas, never modifying them.
 Covers: `CUS-02` to `CUS-05`, `CUS-08`, `CUS-10`, `CUS-11`.
 
 **S05-19 Cache invalidation and versioning mechanics.**
@@ -529,10 +544,10 @@ Steps: 1) Run the shared contract suite (book, track, webhook parse, status map,
 Expected: the suite must pass before the adapter reaches a real tenant; a disconnected courier's old webhook token returns 401 afterward, while that tenant's already-shipped orders keep their tracking history intact.
 Covers: `CRR-20`, `CRR-21`.
 
-**S06-13 Unmapped courier zone at booking time.**
-Steps: book a courier for a customer address whose zilla/thana has no mapping yet in that specific courier's zone table.
-Expected: staff is flagged to choose/confirm the zone by hand (ties to `CRR-10`); the order is never silently blocked from booking just because one courier's zone table is incomplete for that address.
-Covers: `CUS-12`.
+**S06-13 The courier's exact area, from the order form to booking.**
+Steps: 1) With Pathao as the default courier, place one storefront order choosing Mirpur and "Mirpur 10", and one skipping the area; compare their delivery charges. 2) As staff, try to save an order without an area, and send an API order whose area is in another thana. 3) Book the first order with Pathao, then the second. 4) With RedX, book one order in a thana where RedX has one area and one where it has several. 5) Switch the default courier to RedX, then open the first order and a new checkout. 6) Open checkout in a shop whose default courier takes the address as text.
+Expected: checkout offers only Pathao's areas inside Mirpur, the shopper may skip it, and both orders have the same delivery charge; staff can't save without an area and the out-of-thana area is refused; the first order books to Mirpur 10 exactly; the second opens the area choice and sends no booking; RedX's only area is used automatically and staff choose where it has several; no booking is ever sent with a guessed area and no order is blocked; after the switch the first order keeps its Pathao area and checkout offers RedX's areas; the address-text courier's shop shows no area field.
+Covers: `CUS-10`, `CUS-12`, `CUS-13`, `CRR-10`.
 
 **S06-14 Fraud-check feature itself: running a check, signal-only behavior, shared hashing.**
 Steps: 1) Run a check above the tenant's configured COD threshold — observe it's advisory, never auto-blocking an order on its own. 2) Contribute delivered/cancelled/returned outcomes from several tenants on the same customer phone; check the shared signal appears only once at least 5 tenants have contributed. 3) Exceed the check rate limit.
