@@ -190,6 +190,159 @@ describeIfDatabase('plan purchase from balance (BIL-01, BIL-05, BIL-08, BIL-12)'
   });
 });
 
+async function seedOwnerContact(tenantId: string): Promise<{ phone: string; email: string }> {
+  const phone = `0171${randomUUID().replace(/\D/g, '').slice(0, 7)}`;
+  const email = `${freshSlug()}@example.com`;
+  await admin.query(
+    `INSERT INTO tenant.users (tenant_id, phone, email, name, is_owner, active)
+     VALUES ($1, $2, $3, 'Rahima Akter', true, true)`,
+    [tenantId, phone, email],
+  );
+  return { phone, email };
+}
+
+async function invoiceRow(invoiceId: string) {
+  const row = await admin.query<{
+    shop_name: string | null;
+    owner_name: string | null;
+    plan_name: string | null;
+    plan_version: number | null;
+    period_start: Date | null;
+    period_end: Date | null;
+    discount_amount: string;
+    payment_method: string | null;
+    payment_reference: string | null;
+  }>(
+    `SELECT shop_name, owner_name, plan_name, plan_version, period_start, period_end, discount_amount,
+            payment_method, payment_reference
+     FROM control.invoices WHERE id = $1`,
+    [invoiceId],
+  );
+  return row.rows[0];
+}
+
+describeIfDatabase('BIL-12, BIL-05: what an invoice states, and the plan-active notice', () => {
+  it('a balance purchase states shop, owner, plan, period, the term discount and the payment method', async () => {
+    const shopName = `Shop ${freshSlug()}`;
+    const tenantId = await seedShop(admin, shopName, freshSlug(), 'trial');
+    const { phone, email } = await seedOwnerContact(tenantId);
+    await balance.creditStandalone({ tenantId, amount: '5000.00', type: LedgerEntryType.TopUp });
+    const { planId } = await seedPlanAndTerm(1, '449.00');
+    const yearTerm = await admin.query<{ id: string }>(
+      `INSERT INTO control.billing_terms (label_bn, label_en, months, visible, display_order)
+       VALUES ('বছর', '12-month', 12, true, 1) RETURNING id`,
+    );
+    const yearTermId = yearTerm.rows[0]?.id ?? '';
+    await admin.query(
+      'INSERT INTO control.plan_prices (plan_id, billing_term_id, price) VALUES ($1, $2, $3)',
+      [planId, yearTermId, '4741.00'],
+    );
+    const plan = await admin.query<{ name: string }>(
+      'SELECT name FROM control.plans WHERE id = $1',
+      [planId],
+    );
+
+    const quote = await purchase.quote(tenantId, planId, yearTermId);
+    const result = await purchase.confirmFromBalance(quote.id, tenantId);
+    const invoiceId = result.invoice?.id ?? '';
+    const tenant = await admin.query<{ period_start: Date; period_end: Date }>(
+      'SELECT period_start, period_end FROM control.tenants WHERE id = $1',
+      [tenantId],
+    );
+
+    expect(await invoiceRow(invoiceId)).toEqual({
+      shop_name: shopName,
+      owner_name: 'Rahima Akter',
+      plan_name: plan.rows[0]?.name,
+      plan_version: 1,
+      period_start: tenant.rows[0]?.period_start,
+      period_end: tenant.rows[0]?.period_end,
+      // TRM-12: 12 months at the 1-month rate is 5,388; the 12-month price is 4,741.
+      discount_amount: '647.00',
+      payment_method: 'balance',
+      payment_reference: null,
+    });
+
+    // BIL-05: the owner hears the plan is active, by SMS and email, naming the invoice.
+    const number = String(result.invoice?.number);
+    const sms = await admin.query<{ body: string }>(
+      'SELECT body FROM control.sms_outbox WHERE to_phone = $1',
+      [phone],
+    );
+    expect(sms.rows.map((row) => row.body).join(' ')).toContain(`Invoice #${number}`);
+    const mails = await admin.query<{ subject: string; body: string }>(
+      `SELECT subject, body FROM control.mail_outbox WHERE to_email = $1 AND kind = 'lifecycle_notice'`,
+      [email],
+    );
+    expect(mails.rows).toHaveLength(1);
+    expect(mails.rows[0]?.subject).toBe('Your plan is active');
+    expect(mails.rows[0]?.body).toContain(`Invoice #${number}, 4741.00 TK`);
+  });
+
+  it('the shortest term itself carries no discount', async () => {
+    const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
+    await balance.creditStandalone({ tenantId, amount: '1000.00', type: LedgerEntryType.TopUp });
+    const { planId, termId } = await seedPlanAndTerm(1, '449.00');
+
+    const quote = await purchase.quote(tenantId, planId, termId);
+    const result = await purchase.confirmFromBalance(quote.id, tenantId);
+
+    const invoice = await invoiceRow(result.invoice?.id ?? '');
+    expect(invoice?.discount_amount).toBe('0.00');
+    // No owner row on this shop -- the invoice still issues, with no owner name and no notice.
+    expect(invoice?.owner_name).toBeNull();
+  });
+
+  it('a wallet payment states the transaction ID the operator verified', async () => {
+    const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
+    const { planId, termId } = await seedPlanAndTerm(1, '449.00');
+    const quote = await purchase.quote(tenantId, planId, termId);
+    const transactionId = `TXN-${randomUUID()}`;
+    await purchase.submitWalletPayment(quote.id, tenantId, {
+      transactionId,
+      senderNumber: '01710000000',
+      amountPaid: '449.00',
+    });
+    await queue.approve(quote.id, operatorId());
+
+    const list = await invoices.listForTenant(tenantId);
+    const invoice = await invoiceRow(list[0]?.id ?? '');
+    expect(invoice?.payment_method).toBe('wallet');
+    expect(invoice?.payment_reference).toBe(transactionId);
+  });
+});
+
+describeIfDatabase('AUD-08, ADM-04: a rejected payment in the shop activity log', () => {
+  it('records the rejection and its note as Platform support, never the operator id', async () => {
+    const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
+    const { planId, termId } = await seedPlanAndTerm(1, '449.00');
+    const quote = await purchase.quote(tenantId, planId, termId);
+    await purchase.submitWalletPayment(quote.id, tenantId, {
+      transactionId: `TXN-${randomUUID()}`,
+      senderNumber: '01710000000',
+      amountPaid: '449.00',
+    });
+
+    await queue.reject(quote.id, operatorId(), 'No such transaction in the bKash statement');
+
+    const log = await admin.query<{
+      actor_type: string;
+      actor_id: string | null;
+      summary: { note?: string; amount?: string };
+    }>(
+      `SELECT actor_type, actor_id, summary FROM tenant.activity_log
+       WHERE tenant_id = $1 AND action = 'plan_payment_rejected'`,
+      [tenantId],
+    );
+    expect(log.rows).toHaveLength(1);
+    expect(log.rows[0]).toMatchObject({
+      actor_type: 'platform_support',
+      actor_id: null,
+      summary: { note: 'No such transaction in the bKash statement', amount: '449.00' },
+    });
+  });
+});
+
 describeIfDatabase('TRM-04: retiring a billing term', () => {
   it('refuses a new purchase or renewal quote against a retired term', async () => {
     const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');

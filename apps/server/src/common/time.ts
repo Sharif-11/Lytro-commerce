@@ -53,3 +53,8 @@ export function startOfDayDhaka(date: Date): Date {
   local.setUTCHours(0, 0, 0, 0);
   return new Date(local.getTime() - DHAKA_OFFSET_MS);
 }
+
+/** BIL-05: the Asia/Dhaka calendar date `date` falls on, as YYYY-MM-DD -- how a date is written into a notice. */
+export function dhakaDate(date: Date): string {
+  return new Date(date.getTime() + DHAKA_OFFSET_MS).toISOString().slice(0, 10);
+}

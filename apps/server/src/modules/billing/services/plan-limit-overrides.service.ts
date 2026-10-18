@@ -1,11 +1,14 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
+  ActorType,
+  AuditAction,
   AuditResult,
   PlatformActorType,
   PlatformAuditAction,
   type PlanLimits,
 } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
+import { AuditService } from '../../audit/services/audit.service';
 import { PlatformAuditService } from '../../audit/services/platform-audit.service';
 import type { PlanLimitOverridesStore } from '../ports/plan-limit-overrides-store';
 import { PLAN_LIMIT_OVERRIDES_STORE } from '../tokens';
@@ -17,6 +20,7 @@ export class PlanLimitOverridesService {
   constructor(
     @Inject(PLAN_LIMIT_OVERRIDES_STORE) private readonly store: PlanLimitOverridesStore,
     @Inject(PlatformAuditService) private readonly platformAudit: PlatformAuditService,
+    @Inject(AuditService) private readonly audit: AuditService,
   ) {}
 
   async set(
@@ -29,9 +33,27 @@ export class PlanLimitOverridesService {
     if (reason.trim().length === 0) {
       throw new ApiError('validation_error', 'ReasonRequired', { field: 'reason' });
     }
-    const row = await this.store.run((tx) =>
-      this.store.set(tx, { tenantId, limitKey, value, reason, setBy: operatorId }),
-    );
+    const row = await this.store.run(async (tx) => {
+      const saved = await this.store.set(tx, {
+        tenantId,
+        limitKey,
+        value,
+        reason,
+        setBy: operatorId,
+      });
+      // AUD-08, ADM-04: shown to the shop as "Platform support", with the reason.
+      await this.audit.record(tx, {
+        tenantId,
+        actorType: ActorType.PlatformSupport,
+        actorId: null,
+        action: AuditAction.PlanLimitOverrideSet,
+        targetType: 'tenant',
+        targetId: tenantId,
+        result: AuditResult.Success,
+        summary: { limitKey, value, reason },
+      });
+      return saved;
+    });
     await this.platformAudit.record({
       actorType: PlatformActorType.Operator,
       actorId: operatorId,
@@ -66,7 +88,19 @@ export class PlanLimitOverridesService {
 
   /** Removing the override restores the plan snapshot's own value (PLN-11). */
   async remove(tenantId: string, limitKey: string, operatorId: string): Promise<void> {
-    await this.store.run((tx) => this.store.remove(tx, tenantId, limitKey));
+    await this.store.run(async (tx) => {
+      await this.store.remove(tx, tenantId, limitKey);
+      await this.audit.record(tx, {
+        tenantId,
+        actorType: ActorType.PlatformSupport,
+        actorId: null,
+        action: AuditAction.PlanLimitOverrideRemoved,
+        targetType: 'tenant',
+        targetId: tenantId,
+        result: AuditResult.Success,
+        summary: { limitKey },
+      });
+    });
     await this.platformAudit.record({
       actorType: PlatformActorType.Operator,
       actorId: operatorId,

@@ -276,6 +276,17 @@ CREATE TABLE control.invoices (
     amount          numeric(10,2) NOT NULL,
     credit_amount   numeric(10,2) NOT NULL DEFAULT 0, -- UPG-03/UPG-15: the credit line shown on an upgrade invoice
     billing_term_label text NOT NULL,
+    -- BIL-12: copied at issue, so a later rename or plan edit never changes an issued invoice. Null on
+    -- invoices issued before migration 0045.
+    shop_name       text,
+    owner_name      text,
+    plan_name       text,
+    plan_version    integer,
+    period_start    timestamptz,
+    period_end      timestamptz,
+    discount_amount numeric(10,2) NOT NULL DEFAULT 0, -- saving against the shortest visible term (TRM-12)
+    payment_method  text,                        -- balance | wallet
+    payment_reference text,                      -- the wallet transaction ID; null for a balance payment
     issued_at       timestamptz NOT NULL DEFAULT now()
 );
 
@@ -1311,14 +1322,14 @@ CREATE TABLE control.addon_purchases (
 CREATE TABLE control.scheduled_plan_changes (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id       uuid NOT NULL UNIQUE REFERENCES control.tenants(id), -- one pending change at a time (UPG-08 pattern)
-    kind            text NOT NULL,                  -- downgrade | pay_as_you_go_switch
-    target_plan_id  uuid REFERENCES control.plans(id),
+    kind            text NOT NULL,                  -- downgrade | pay_as_you_go_switch (PYG-10)
+    target_plan_id  uuid REFERENCES control.plans(id), -- null for pay_as_you_go_switch
     effective_at    timestamptz NOT NULL,
     created_at      timestamptz NOT NULL DEFAULT now()
 );
 ```
 
-**Pay-as-you-go (PYG):** no new tables. A pay-as-you-go tenant is `control.tenants` with `plan_id NULL`, `state = 'pay_as_you_go'`, `period_start/end NULL`. Its order fee and product fee are ordinary `tenant.balance_ledger` rows (`type = 'order_fee' | 'product_fee'`), charged at the moment `tenant.orders.handled_at` is set (PYG-02) or at product creation (PYG-16) — the same ledger every other charge uses.
+**Pay-as-you-go (PYG):** no new tables. A pay-as-you-go tenant is `control.tenants` with `plan_id` set to the seeded, not-for-sale "Pay-as-you-go" plan, `state = 'pay_as_you_go'`, `period_end NULL` and `period_start` set to the moment it switched (the idle clock's start, PYG-21). Its order fee and product fee are ordinary `tenant.balance_ledger` rows (`type = 'order_fee' | 'product_fee'`), charged at the moment `tenant.orders.handled_at` is set (PYG-02) or at product creation (PYG-16) — the same ledger every other charge uses.
 
 ## 5. SMS, push and notifications
 

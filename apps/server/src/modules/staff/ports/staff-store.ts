@@ -1,5 +1,6 @@
 import type { Transaction } from '@lytronix/db';
 import type { StaffCredentials, StaffRecord } from '../types/staff';
+import type { OwnerContact } from '../types/owner-contact';
 
 /** Staff rows of one shop. Every method runs inside the caller's transaction, which carries the tenant context. */
 export interface StaffStore {
@@ -55,8 +56,5 @@ export interface StaffStore {
   /** LIF-19: deletes every staff row of the shop. Call after RoleStore.deleteAllForTenant (FK order). */
   deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void>;
   /** LIF-18/24, PYG-21: the owner's own contact, for a platform-sent notice (never a staff member's). */
-  findOwnerContact(
-    tx: Transaction,
-    tenantId: string,
-  ): Promise<{ phone: string | null; email: string | null } | null>;
+  findOwnerContact(tx: Transaction, tenantId: string): Promise<OwnerContact | null>;
 }

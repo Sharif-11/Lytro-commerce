@@ -5,7 +5,8 @@ import type { ScheduledPlanChangeRecord } from '../types/scheduled-plan-change';
 export interface NewScheduledPlanChangeValues {
   tenantId: string;
   kind: ScheduledPlanChangeKind;
-  targetPlanId: string;
+  // Null for a switch to pay-as-you-go (PYG-10), which has no plan to pick.
+  targetPlanId: string | null;
   effectiveAt: Date;
 }
 

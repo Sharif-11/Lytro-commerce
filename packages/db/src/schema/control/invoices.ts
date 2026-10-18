@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import {
   bigint,
   check,
+  integer,
   jsonb,
   numeric,
   smallint,
@@ -9,7 +10,7 @@ import {
   timestamp,
   uuid,
 } from 'drizzle-orm/pg-core';
-import { InvoiceKind, type PlanLimits } from '@lytronix/validators';
+import { InvoiceKind, type PlanLimits, type PlanPaymentMethod } from '@lytronix/validators';
 import { control } from '../shared';
 import { tenants } from './tenancy';
 
@@ -39,6 +40,20 @@ export const invoices = control.table(
     // UPG-03/UPG-15: the credit line on an upgrade invoice; zero for a purchase/renewal.
     creditAmount: numeric('credit_amount', { precision: 10, scale: 2 }).notNull().default('0'),
     billingTermLabel: text('billing_term_label').notNull(),
+    // BIL-12: the rest of what the invoice states, copied at issue so a later rename, plan edit or deletion
+    // never changes a past invoice (TRM-15's rule for the term label, applied to every field). Null only on
+    // invoices issued before these columns existed.
+    shopName: text('shop_name'),
+    ownerName: text('owner_name'),
+    planName: text('plan_name'),
+    planVersion: integer('plan_version'),
+    periodStart: timestamp('period_start', { withTimezone: true }),
+    periodEnd: timestamp('period_end', { withTimezone: true }),
+    // TRM-12: the saving against the plan's shortest visible term, before any upgrade credit.
+    discountAmount: numeric('discount_amount', { precision: 10, scale: 2 }).notNull().default('0'),
+    paymentMethod: text('payment_method').$type<PlanPaymentMethod>(),
+    // The wallet transaction ID; null for a payment from the balance.
+    paymentReference: text('payment_reference'),
     issuedAt: timestamp('issued_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [

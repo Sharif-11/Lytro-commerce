@@ -98,6 +98,18 @@ export class PaymentQueueService {
     const now = this.clock();
     return this.tenants.runStandalone(async (tx) => {
       const payment = await this.payments.reject(tx, paymentId, operatorId, now);
+      // AUD-08, ADM-04: the shop learns its payment was turned down, and why, as "Platform support".
+      await this.audit.record(tx, {
+        tenantId: payment.tenantId,
+        actorType: ActorType.PlatformSupport,
+        actorId: null,
+        action: AuditAction.PlanPaymentRejected,
+        ip: ip ?? null,
+        targetType: 'plan_payment',
+        targetId: payment.id,
+        result: AuditResult.Success,
+        summary: { kind: payment.kind, amount: payment.amount, note },
+      });
       await this.platformAudit.record({
         actorType: PlatformActorType.Operator,
         actorId: operatorId,

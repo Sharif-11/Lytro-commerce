@@ -157,10 +157,10 @@ export class UserRepository {
   async findOwnerContact(
     tx: Transaction,
     tenantId: string,
-  ): Promise<{ phone: string | null; email: string | null } | null> {
+  ): Promise<{ phone: string | null; email: string | null; name: string | null } | null> {
     await this.transactions.setTenantContext(tx, tenantId);
     const rows = await tx
-      .select({ phone: users.phone, email: users.email })
+      .select({ phone: users.phone, email: users.email, name: users.name })
       .from(users)
       .where(and(eq(users.tenantId, tenantId), eq(users.isOwner, true)))
       .limit(1);

@@ -165,6 +165,12 @@ export enum AuditAction {
   // DWN-06/08/17: the system applying an already-scheduled downgrade at its effective date -- D2-5 puts
   // this on the tenant's own log only, the same split TRL-07's trial-conversion job already established.
   DowngradeApplied = 'downgrade_applied',
+  // PYG-01, PYG-10, LIF-15: the owner choosing pay-as-you-go -- scheduled for the period's end while a paid
+  // period runs (and cancellable like a downgrade), or applied at once to a lapsed shop; the system applying
+  // a scheduled one at its effective date writes PayAsYouGoApplied too.
+  PayAsYouGoScheduled = 'pay_as_you_go_scheduled',
+  PayAsYouGoCancelled = 'pay_as_you_go_cancelled',
+  PayAsYouGoApplied = 'pay_as_you_go_applied',
   // DWN-11: a downgrade that shortens activity-log retention -- sent once, at apply time, 14 days before the
   // shorter retention actually takes effect. System-caused, tenant's own log.
   RetentionShortenedNoticeSent = 'retention_shortened_notice_sent',
@@ -185,6 +191,12 @@ export enum AuditAction {
   // LIF-24: an operator's suspend/restore, mirrored to the platform log (PlatformAuditAction below).
   TenantSuspended = 'tenant_suspended',
   TenantRestored = 'tenant_restored',
+  // AUD-08, ADM-04: other operator actions on a shop, mirrored to the platform log and shown to the shop as
+  // "Platform support" with the operator's reason, never the operator's identity.
+  BalanceAdjusted = 'balance_adjusted',
+  PlanLimitOverrideSet = 'plan_limit_override_set',
+  PlanLimitOverrideRemoved = 'plan_limit_override_removed',
+  PlanPaymentRejected = 'plan_payment_rejected',
   // TEN-30: the owner (or a holder of settings:manage) updating contact phone/email/business address.
   ShopSettingsUpdated = 'shop_settings_updated',
   // LIF-16/17: the owner's own data export -- one entry when requested, one when actually downloaded.
@@ -206,6 +218,13 @@ export const MONEY_RELATED_AUDIT_ACTIONS: ReadonlySet<AuditAction> = new Set([
   AuditAction.DowngradeScheduled,
   AuditAction.DowngradeCancelled,
   AuditAction.DowngradeApplied,
+  AuditAction.PayAsYouGoScheduled,
+  AuditAction.PayAsYouGoCancelled,
+  AuditAction.PayAsYouGoApplied,
+  AuditAction.BalanceAdjusted,
+  AuditAction.PlanLimitOverrideSet,
+  AuditAction.PlanLimitOverrideRemoved,
+  AuditAction.PlanPaymentRejected,
   AuditAction.SubscriptionCancelled,
   AuditAction.SubscriptionCancellationUndone,
 ]);
@@ -351,6 +370,11 @@ export enum PlanPaymentStatus {
   Expired = 'expired',
 }
 
+// BIL-02, BIL-12: how a plan payment was paid -- from the shop's balance, or a wallet transfer the operator
+// verified. One list for the purchase and upgrade requests and the invoice that records it.
+export const PLAN_PAYMENT_METHODS = ['balance', 'wallet'] as const;
+export type PlanPaymentMethod = (typeof PLAN_PAYMENT_METHODS)[number];
+
 // BIL-12: what produced an invoice.
 export enum InvoiceKind {
   Purchase = 'purchase',
@@ -358,8 +382,8 @@ export enum InvoiceKind {
   Upgrade = 'upgrade',
 }
 
-// DWN-01: what control.scheduled_plan_changes row is for -- a downgrade today; PYG-10 reuses the same table
-// and timing rule for a subscription-to-pay-as-you-go switch later, which is why this isn't a bare string.
+// DWN-01, PYG-10: what a control.scheduled_plan_changes row is for -- a downgrade, or a switch from a plan to
+// pay-as-you-go, both taking effect at the current period's end.
 export enum ScheduledPlanChangeKind {
   Downgrade = 'downgrade',
   PayAsYouGoSwitch = 'pay_as_you_go_switch',

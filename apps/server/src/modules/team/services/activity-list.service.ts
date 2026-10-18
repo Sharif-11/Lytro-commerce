@@ -40,23 +40,25 @@ export class ActivityListService {
     const names = await this.staff.namesOf(tenant, userIds);
 
     return {
-      entries: page.entries.map((entry) => ({
-        id: String(entry.id),
-        tenantId: entry.tenantId,
-        actorType: entry.actorType,
-        actorId: entry.actorId,
-        actorName:
-          entry.actorId !== null
-            ? (names.get(entry.actorId) ?? null)
-            : (FIXED_NAMES[entry.actorType] ?? null),
-        action: entry.action,
-        targetType: entry.targetType,
-        targetId: entry.targetId,
-        result: entry.result,
-        summary: entry.summary,
-        ip: entry.ip,
-        createdAt: entry.createdAt.toISOString(),
-      })),
+      entries: page.entries.map((entry) => {
+        const fixedName = FIXED_NAMES[entry.actorType];
+        // An entry written before operator ids stopped being recorded still never shows one.
+        const actorId = fixedName === undefined ? entry.actorId : null;
+        return {
+          id: String(entry.id),
+          tenantId: entry.tenantId,
+          actorType: entry.actorType,
+          actorId,
+          actorName: fixedName ?? (actorId !== null ? (names.get(actorId) ?? null) : null),
+          action: entry.action,
+          targetType: entry.targetType,
+          targetId: entry.targetId,
+          result: entry.result,
+          summary: entry.summary,
+          ip: entry.ip,
+          createdAt: entry.createdAt.toISOString(),
+        };
+      }),
       nextCursor: page.nextCursor ? this.encodeCursor(page.nextCursor) : null,
     };
   }

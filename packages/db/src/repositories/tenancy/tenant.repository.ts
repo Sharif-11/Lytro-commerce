@@ -501,6 +501,7 @@ export class TenantRepository {
     const rows = await tx
       .select({
         state: tenants.state,
+        shopName: tenants.shopName,
         planId: tenants.planId,
         periodStart: tenants.periodStart,
         periodEnd: tenants.periodEnd,
@@ -538,6 +539,8 @@ export class TenantRepository {
 
 export interface BillingInfoRow {
   state: TenantState;
+  // BIL-12: copied onto each invoice at issue.
+  shopName: string;
   planId: string | null;
   periodStart: Date | null;
   periodEnd: Date | null;

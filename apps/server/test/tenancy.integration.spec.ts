@@ -222,6 +222,23 @@ describeIfDatabase('slug suggestions against the database (AUTH-11, TEN-26)', ()
     expect(await slugs.suggest('Admin')).toBe('admin-2');
   });
 
+  it("refuses both of the platform's own names, lytro and lytronix", async () => {
+    const slugs = new SlugService(
+      new DrizzleSlugAvailability(database, new SlugRepository()),
+      new SlugFormat(),
+    );
+    expect(await slugs.checkAddress('lytro')).toEqual({
+      ok: false,
+      reason: 'unavailable',
+      suggestion: 'lytro-2',
+    });
+    expect(await slugs.checkAddress('lytronix')).toEqual({
+      ok: false,
+      reason: 'unavailable',
+      suggestion: 'lytronix-2',
+    });
+  });
+
   it('accepts a free address and refuses a taken one with a suggestion', async () => {
     const slugs = new SlugService(
       new DrizzleSlugAvailability(database, new SlugRepository()),

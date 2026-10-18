@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { PLAN_PAYMENT_METHODS } from '../../db/enums';
 
 // POST /billing/quote (BIL-01): the plan and billing term the tenant wants to price.
 export const quotePurchaseSchema = z.object({
@@ -14,7 +15,7 @@ export type QuotePurchaseInput = z.infer<typeof quotePurchaseSchema>;
 export const confirmPurchaseSchema = z
   .object({
     paymentId: z.string().uuid(),
-    method: z.enum(['balance', 'wallet']),
+    method: z.enum(PLAN_PAYMENT_METHODS),
     transactionId: z.string().trim().min(1).optional(),
     senderNumber: z.string().trim().min(1).optional(),
     amountPaid: z.coerce.number().positive().optional(),

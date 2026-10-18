@@ -6,7 +6,8 @@ import type { Executor } from '../../transactions';
 export interface NewScheduledPlanChange {
   tenantId: string;
   kind: ScheduledPlanChangeKind;
-  targetPlanId: string;
+  // Null for a switch to pay-as-you-go (PYG-10), which has no plan to pick.
+  targetPlanId: string | null;
   effectiveAt: Date;
 }
 

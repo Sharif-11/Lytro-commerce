@@ -69,8 +69,8 @@ Each scenario lists its preconditions, numbered steps, expected result, and the 
 - Covers: AUTH-08, TEN-15, OD-53.
 
 **P1-E05 Subdomain assignment and reserved names. [API]**
-- Steps: sign up shops named "Fashion House" twice and "Admin" once; check the subdomains shown before sign-up completes; try to claim `www` and `api` directly.
-- Expected: `fashion-house` and `fashion-house-2`; "Admin" gets `admin-2`; `www` and `api` are never issued; the slug never changes when the shop is renamed.
+- Steps: sign up shops named "Fashion House" twice and "Admin" once; check the subdomains shown before sign-up completes; try to claim `www`, `api`, `lytro` and `lytronix` directly.
+- Expected: `fashion-house` and `fashion-house-2`; "Admin" gets `admin-2`; `www`, `api`, `lytro` and `lytronix` are never issued (`lytro` offered as `lytro-2`); the slug never changes when the shop is renamed.
 - Covers: AUTH-11, TEN-19, TEN-26.
 - Note (2026-10-13): slug/reserved-name assignment is automated (`test/slug.spec.ts`,
   `test/tenancy.integration.spec.ts`). "The slug never changes when the shop is renamed" is a genuine gap,

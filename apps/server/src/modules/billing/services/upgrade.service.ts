@@ -14,6 +14,7 @@ import { ApiError } from '../../../common/api-error';
 import { addMonths, daysBetween, daysUntil, HOUR_MS } from '../../../common/time';
 import { AuditService } from '../../audit/services/audit.service';
 import { BalanceService } from '../../balance/services/balance.service';
+import { fromPaisa, toPaisa } from '../../balance/services/money';
 import { InvoicesService } from '../../payments/services/invoices.service';
 import { PlanPaymentsService } from '../../payments/services/plan-payments.service';
 import type { InvoiceRecord } from '../../payments/types/invoice';
@@ -22,6 +23,7 @@ import { TenantService } from '../../tenancy/services/tenant.service';
 import { CLOCK } from '../tokens';
 import { BillingTermsService } from './billing-terms.service';
 import { DowngradeService } from './downgrade.service';
+import { PlanInvoicingService } from './plan-invoicing.service';
 import { PlansService } from './plans.service';
 
 // UPG-07: a quote's price is held for 15 minutes (shorter than a purchase's 30, S-priority but the same
@@ -46,6 +48,7 @@ export class UpgradeService {
     @Inject(BillingTermsService) private readonly terms: BillingTermsService,
     @Inject(PlanPaymentsService) private readonly payments: PlanPaymentsService,
     @Inject(InvoicesService) private readonly invoices: InvoicesService,
+    @Inject(PlanInvoicingService) private readonly invoicing: PlanInvoicingService,
     @Inject(TenantService) private readonly tenants: TenantService,
     @Inject(BalanceService) private readonly balance: BalanceService,
     @Inject(AuditService) private readonly audit: AuditService,
@@ -167,7 +170,8 @@ export class UpgradeService {
     }
 
     const info = await this.tenants.findBillingInfo(tx, payment.tenantId);
-    const oldPlanId = info?.planId ?? null;
+    if (!info) throw new Error('activate() called for a tenant with no billing info');
+    const oldPlanId = info.planId;
     const plan = await this.plans.findById(payment.planId);
     const term = await this.terms.findById(payment.billingTermId);
 
@@ -189,7 +193,7 @@ export class UpgradeService {
     // UPG-13: an upgrade also supersedes a pending non-renewal intent -- paying to upgrade is inconsistent
     // with "don't renew", and a stale cancelledAt would otherwise block BIL-17's own auto-renewal at the
     // new period's end even with the toggle on.
-    if (info?.cancelledAt) {
+    if (info.cancelledAt) {
       await this.tenants.setCancellation(tx, payment.tenantId, null);
       await this.audit.record(tx, {
         tenantId: payment.tenantId,
@@ -204,13 +208,16 @@ export class UpgradeService {
       });
     }
 
-    const invoice = await this.invoices.issue(tx, {
-      tenantId: payment.tenantId,
+    const invoice = await this.invoicing.issue(tx, {
       kind: InvoiceKind.Upgrade,
-      planSnapshot: plan.limits,
-      amount: payment.amount,
-      creditAmount: payment.creditAmount,
-      billingTermLabel: term.labelEn,
+      payment,
+      plan,
+      term,
+      // UPG-04: the amount due is the term's price less the credit, so the two together are the price quoted.
+      fullPrice: fromPaisa(toPaisa(payment.amount) + toPaisa(payment.creditAmount)),
+      periodStart,
+      periodEnd,
+      shopName: info.shopName,
     });
 
     await this.audit.record(tx, {

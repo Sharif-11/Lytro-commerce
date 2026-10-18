@@ -7,6 +7,7 @@ import {
   PlatformActorType,
   PlatformAuditAction,
   PlatformSettingKey,
+  ScheduledPlanChangeKind,
   SLUG_MAX_LENGTH,
   TenantState,
 } from '@lytronix/validators';
@@ -23,6 +24,7 @@ import { StaffService } from '../../staff/services/staff.service';
 import { TenantCache } from '../../tenancy/services/tenant-cache';
 import { TenantService } from '../../tenancy/services/tenant.service';
 import { CLOCK } from '../tokens';
+import { DowngradeService } from './downgrade.service';
 import { PurchaseService } from './purchase.service';
 
 // LIF-26, 2.3: defaults, each a day-count *within* that stage, not cumulative from period end.
@@ -71,6 +73,7 @@ export class LifecycleService {
     @Inject(BalanceService) private readonly balance: BalanceService,
     @Inject(DataExportService) private readonly dataExports: DataExportService,
     @Inject(PurchaseService) private readonly purchase: PurchaseService,
+    @Inject(DowngradeService) private readonly downgrade: DowngradeService,
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(PlatformAuditService) private readonly platformAudit: PlatformAuditService,
     @Inject(MessagingService) private readonly sms: MessagingService,
@@ -337,6 +340,9 @@ export class LifecycleService {
     tenantId: string,
     daysUntilPeriodEnd: number,
   ): Promise<boolean> {
+    // PYG-10: a shop switching to pay-as-you-go at this period's end has nothing to renew.
+    const scheduled = await this.downgrade.getScheduled(tenantId);
+    if (scheduled?.kind === ScheduledPlanChangeKind.PayAsYouGoSwitch) return false;
     const already = await this.audit.list(
       tenantId,
       { action: AuditAction.RenewalReminderSent },
@@ -622,7 +628,7 @@ export class LifecycleService {
       await this.audit.record(tx, {
         tenantId,
         actorType: ActorType.PlatformSupport,
-        actorId: operatorId,
+        actorId: null, // AUD-08: never the operator's own id; the platform audit log keeps who it was.
         action: AuditAction.TenantSuspended,
         ip: ip ?? null,
         targetType: 'tenant',
@@ -661,7 +667,7 @@ export class LifecycleService {
       await this.audit.record(tx, {
         tenantId,
         actorType: ActorType.PlatformSupport,
-        actorId: operatorId,
+        actorId: null, // AUD-08: never the operator's own id; the platform audit log keeps who it was.
         action: AuditAction.TenantRestored,
         ip: ip ?? null,
         targetType: 'tenant',

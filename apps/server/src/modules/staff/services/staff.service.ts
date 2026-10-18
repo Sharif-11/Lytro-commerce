@@ -10,6 +10,7 @@ import type { StaffStore } from '../ports/staff-store';
 import type { StaffAccounts } from '../ports/staff-accounts';
 import { ROLE_STORE, STAFF_ACCOUNTS, STAFF_PASSWORD_HASHER, STAFF_STORE } from '../tokens';
 import type { StaffCredentials, StaffList, StaffMember, StaffRecord } from '../types/staff';
+import type { OwnerContact } from '../types/owner-contact';
 
 // STF-02: a plan without a staff limit has one seat, the owner's own.
 export const DEFAULT_SEATS = 1;
@@ -54,7 +55,7 @@ export class StaffService {
   }
 
   /** LIF-18/24, PYG-21: the owner's own contact, for a platform-sent notice. */
-  ownerContact(tenantId: string): Promise<{ phone: string | null; email: string | null } | null> {
+  ownerContact(tenantId: string): Promise<OwnerContact | null> {
     return this.store.run(tenantId, (tx) => this.store.findOwnerContact(tx, tenantId));
   }
 

@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { AuditResult, PlatformActorType, PlatformAuditAction } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import { PlatformAuditService } from '../../audit/services/platform-audit.service';
+import { fromPaisa, toPaisa } from '../../balance/services/money';
 import type {
   BillingTermEditValues,
   BillingTermsStore,
@@ -52,6 +53,41 @@ export class BillingTermsService {
     const term = await this.store.run((tx) => this.store.findById(tx, id));
     if (!term) throw new ApiError('not_found', 'BillingTermNotFound', {});
     return term;
+  }
+
+  /**
+   * TRM-12, BIL-12: what a plan's price for one term saves against the plan's shortest visible priced term at
+   * that term's monthly rate -- the saving the purchase screen shows, in taka (Starter for 12 months at 4,741
+   * against 449 a month saves 647.00, 12%). Zero for the shortest term itself, or with no shorter priced term.
+   */
+  async savingFor(
+    tenantId: string,
+    planId: string,
+    term: BillingTermRecord,
+    price: string,
+  ): Promise<string> {
+    const [terms, prices] = await Promise.all([
+      this.listVisibleFor(tenantId),
+      this.listPricesForPlan(planId),
+    ]);
+    const priceOf = (termId: string): string | undefined =>
+      prices.find((p) => p.billingTermId === termId)?.price;
+    const shortest = terms
+      .filter((candidate) => candidate.retiredAt === null && priceOf(candidate.id) !== undefined)
+      .reduce<BillingTermRecord | null>(
+        (best, candidate) => (best === null || candidate.months < best.months ? candidate : best),
+        null,
+      );
+    const shortestPrice = shortest ? priceOf(shortest.id) : undefined;
+    if (!shortest || shortestPrice === undefined || shortest.months >= term.months) {
+      return fromPaisa(0n);
+    }
+    // The shorter term's rate over this term's months, rounded half up to the paisa.
+    const months = BigInt(shortest.months);
+    const scaled = toPaisa(shortestPrice) * BigInt(term.months);
+    const fullPaisa = (scaled * 2n + months) / (2n * months);
+    const saving = fullPaisa - toPaisa(price);
+    return fromPaisa(saving > 0n ? saving : 0n);
   }
 
   /** BIL-01: the price for one plan+term pair, or null if the operator never set one. */

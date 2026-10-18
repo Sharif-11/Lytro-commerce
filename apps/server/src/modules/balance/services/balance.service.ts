@@ -1,12 +1,15 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Transaction } from '@lytronix/db';
 import {
+  ActorType,
+  AuditAction,
   AuditResult,
   LedgerEntryType,
   PlatformActorType,
   PlatformAuditAction,
 } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
+import { AuditService } from '../../audit/services/audit.service';
 import { PlatformAuditService } from '../../audit/services/platform-audit.service';
 import { TenantService } from '../../tenancy/services/tenant.service';
 import type { BalanceLedgerStore, LedgerFilters } from '../ports/balance-ledger-store';
@@ -61,6 +64,7 @@ export class BalanceService {
     @Inject(BALANCE_LEDGER_STORE) private readonly ledger: BalanceLedgerStore,
     @Inject(TenantService) private readonly tenants: TenantService,
     @Inject(PlatformAuditService) private readonly platformAudit: PlatformAuditService,
+    @Inject(AuditService) private readonly audit: AuditService,
     @Inject(LOW_BALANCE_NOTIFIER) private readonly notifier: LowBalanceNotifier,
     @Inject(CLOCK) private readonly clock: () => Date,
   ) {}
@@ -112,16 +116,29 @@ export class BalanceService {
     if (input.reason.trim().length === 0) {
       throw new ApiError('validation_error', 'ReasonRequired', { field: 'reason' });
     }
-    const entry = await this.runStandalone(input.tenantId, (tx) =>
-      this.applyDelta(tx, input.tenantId, {
+    const entry = await this.runStandalone(input.tenantId, async (tx) => {
+      const applied = await this.applyDelta(tx, input.tenantId, {
         type: LedgerEntryType.Adjustment,
         signedAmount: input.amount,
         reference: { reason: input.reason, operatorId: input.operatorId },
         // An operator adjustment is itself the authority for crossing BAL-10's floor; it is a correction, not an
         // ordinary spend, and never reversed automatically.
         overdraftFloor: undefined,
-      }),
-    );
+      });
+      // AUD-08, ADM-04: the shop sees the correction in its own activity log as "Platform support", with the
+      // reason, in the same transaction as the ledger entry.
+      await this.audit.record(tx, {
+        tenantId: input.tenantId,
+        actorType: ActorType.PlatformSupport,
+        actorId: null,
+        action: AuditAction.BalanceAdjusted,
+        targetType: 'tenant',
+        targetId: input.tenantId,
+        result: AuditResult.Success,
+        summary: { amount: input.amount, reason: input.reason },
+      });
+      return applied;
+    });
     await this.platformAudit.record({
       actorType: PlatformActorType.Operator,
       actorId: input.operatorId,
