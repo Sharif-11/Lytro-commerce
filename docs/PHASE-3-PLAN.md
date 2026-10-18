@@ -102,7 +102,7 @@ Rules used below:
 | CCH | CCH-01 – 06, CCH-08 – 12 | 11 |
 | I18N | I18N-02 (storefront half; dashboard half done in Phase 1) | 1 |
 | TEN | TEN-06, 08, 16, 17, 18, 26 and 29 (amended 2026-10-18), 31 (one dashboard address, added 2026-10-18) | 8 |
-| AUTH | AUTH-28 (amended 2026-10-18: claimed address, set-up step, terms line), AUTH-30 (no trial left: pay-as-you-go or a plan) and AUTH-31 (staff sign-in page), both added 2026-10-18 | 3 |
+| AUTH | AUTH-28 (amended 2026-10-18: claimed address, set-up step, terms line), AUTH-30 (new shops limited per account and connection, sign-in never) and AUTH-31 (staff sign-in page), both added 2026-10-18 | 3 |
 | ADM | ADM-01 (amended 2026-10-18: separate application) | 1 |
 | BRN | BRN-01 – 07 (brand identity, added 2026-10-18) | 7 |
 | PLN | PLN-13, 14, 15 (add-ons, deferred by Phase 2's D2-4, scheduled 2026-10-18) | 3 |
@@ -251,7 +251,7 @@ Phases 0–2 are complete against the SRS as it stood when they were built. Amen
 | `BRAND-IDENTITY.md` §11 follow-ups | Phase 1 UI | Palette, fonts, logo and theme colour taken from Lytronix's battery business | Lytro's palette and assets; the operator console's inverted look | 11 |
 | AUTH-28 | Phase 1 | Identity, create shop, set password; a claimed address is lost | The claimed address is carried through to create-shop with an availability check; a "set up your shop" step asks the shop type and home area | 0, 11 |
 | AUTH-29 | Phase 2 (D2-12) | A plan picked on the website opens the purchase screen after create-shop, in place of the set-password offer | The checkout with a "continue without paying" choice, then the password and set-up steps; an SMS and email when the plan is activated | 0, 11 |
-| AUTH-09, AUTH-10 | Phase 1 | A refused trial ends sign-up with an error | Create-shop offers pay-as-you-go or a plan instead (AUTH-30) | 0, 11 |
+| AUTH-09, AUTH-30 | Phase 1 | A refused new shop gets a generic "too many free trials" error | A plain message that a shop was recently opened from this account or connection, keeping what was typed; sign-in never limited | 11 |
 | Staff sign-in | Phase 1 | On the shop's own address | At `app.lytro.app/staff-sign-in`, linked from the owners' entry screen (AUTH-31) | 0 |
 | ADM-01 | Phase 1 (slice 10) | The operator console inside `apps/admin`, chosen by hostname | Its own app, `apps/operator`; `apps/admin` renamed `apps/dashboard`; shared `packages/ui` and `packages/api-client` | 0b |
 | PLN-13, PLN-14, PLN-15, UPG-14 | Deferred by Phase 2 (D2-4) | Not built | Built, with PLN-13/14 raised to Must | 10a |
@@ -359,7 +359,7 @@ their backend ships earlier.
   - The claim box's address (`?shop=`) carried through sign-in and verification, Google and Facebook
     included, to create-shop, pre-filled, with a live availability check limited per IP (AUTH-28).
   - The plan picked on the pricing page carried the same way, with the checkout straight after create-shop and a
-    "continue without paying" choice (AUTH-29); a refused trial offering pay-as-you-go or a plan (AUTH-30).
+    "continue without paying" choice (AUTH-29); a plain refusal when a new shop is over the per-account or per-connection limit (AUTH-30).
   - The terms line on the entry screen, recording both versions and the time on each new account (LEG-01).
   - Staff sign-in at `app.lytro.app/staff-sign-in`, linked from the owners' entry screen (AUTH-31).
   - The dashboard app's routes under `/$shop`, with sign-up, sign-in, create-shop and staff sign-in on the same
@@ -371,7 +371,7 @@ their backend ships earlier.
     cases updated to match.
 - **Requirements completed:** TEN-17, TEN-18, TEN-26, TEN-29, TEN-31 (and the dashboard half of TEN-08 and TEN-09;
   TEN-16's monogram; AUTH-28's claimed address).
-- **Done when:** an owner of two shops switches between them by path with one sign-in; a staff member of shop A
+- **Done when:** a person who owns one shop and is staff in another switches between them by path with one sign-in; a staff member of shop A
   gets not-found at shop B's path; `/dashboard` on a shop's subdomain is the storefront's not-found; a request
   with a valid session but a shop subdomain's `Origin` is refused; a cookie a shop's subdomain sets for
   `.lytro.app` never reaches the dashboard; two shops install as two distinct apps.

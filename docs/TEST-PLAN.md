@@ -90,8 +90,8 @@ Expected: refused within 30 days; claimable after.
 Covers: `TEN-15` to `TEN-18`, `TEN-20` to `TEN-22`, `TEN-24` to `TEN-28`.
 
 **S01-16 One dashboard address.**
-Preconditions: an owner of two shops; a staff member of shop A only.
-Steps: 1) The owner signs in once at `app.lytro.app/sign-in`. 2) Open `app.lytro.app/<shop-a>` and `app.lytro.app/<shop-b>`. 3) As the staff member, open `app.lytro.app/<shop-b>` and call one of shop B's dashboard API endpoints. 4) Create a shop named "Sign in".
+Preconditions: a person who owns shop B and is staff in shop A; a staff member of shop A only.
+Steps: 1) The first person signs in once at `app.lytro.app/sign-in`. 2) Open `app.lytro.app/<shop-a>` and `app.lytro.app/<shop-b>`. 3) As the staff member, open `app.lytro.app/<shop-b>` and call one of shop B's dashboard API endpoints. 4) Create a shop named "Sign in".
 Expected: one sign-in lands on a shop picker, and both dashboards open by path without signing in again; step 3 returns the same not-found as an unknown shop, for both the page and the API; the shop in step 4 receives the slug `sign-in-2`.
 Covers: `TEN-31`, `TEN-26`.
 
@@ -105,10 +105,10 @@ Steps: 1) On the pricing page, pick Starter for 12 months, and look at the entry
 Expected: the entry screen shows the terms line with both links, and the new account records both versions and the time; the checkout opens after create-shop with Starter, 12 months and 4,741 TK and says a started period isn't refunded; the shop works on its trial while the payment is checked and keeps the product; after verification the shop is on Starter, and an SMS and an email arrive, with the free SMS count unchanged; the set-password and set-up steps follow the checkout; continuing without paying, or a failed payment, leaves the trial running, with the checkout still available from the dashboard.
 Covers: `AUTH-29`, `LEG-01`, `TRL-06`, `BIL-05`.
 
-**S01-21 No free trial left.**
-Steps: 1) From an internet connection that started a trial within 90 days, sign up with a new phone and fill in create-shop. 2) Choose pay-as-you-go. 3) Repeat with another new phone, choose Growth instead, and verify the payment.
-Expected: create-shop says no free trial is available and keeps what was typed; pay-as-you-go opens the shop at once; choosing Growth opens the shop on pay-as-you-go and then its checkout, and after verification the shop is on Growth.
-Covers: `AUTH-30`, `AUTH-09`, `PYG-01`, `PYG-11`.
+**S01-21 New shops limited per connection; sign-in never.**
+Steps: 1) From an internet connection that opened a shop within 90 days, sign up with a new phone and fill in create-shop. 2) Repeat with a new Google account from the same connection. 3) From the same connection, sign in as the owner of the existing shop. 4) Look through that dashboard for any way to open another shop.
+Expected: both sign-ups are refused at create-shop with a plain message, keep what was typed, create nothing, and offer no other way in; the owner signs in and uses the dashboard normally from the same connection; the dashboard has no "create another shop" action anywhere.
+Covers: `AUTH-30`, `AUTH-09`, `TEN-15`, `AUTH-08`.
 
 **S01-22 The staff sign-in page.**
 Steps: 1) As an owner, add a staff member. 2) From the owners' entry screen, follow the staff link. 3) Sign in with the staff phone and the owner's password. 4) Try an unknown phone, then a wrong password. 5) As the owner, reset the staff password; sign in again. 6) Lock the shop and try once more.
