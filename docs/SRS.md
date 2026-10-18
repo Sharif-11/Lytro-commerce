@@ -284,7 +284,7 @@ These functions already exist in the single-tenant product and carry over per te
 
 **Order status model.** The status a tenant and shopper see stays one field, but it is computed from two tracked axes: `payment_status` (unverified, pending_verification, partially_paid, paid, payment_failed, refunded) and `fulfillment_status` (unfulfilled, processing, partially_shipped, shipped, partially_delivered, delivered, returned), changed only by the server. This lets a multi-line order be partly paid and partly shipped without one status field contradicting itself, following the pattern used by established platforms (payment status and fulfillment status tracked independently). Manual overrides (hold, cancelled, in review) suspend the computed value until cleared.
 
-**Order extraction from text (optional AI).** Staff can paste a customer's message and have it turned into a draft order with the district and area matched to the courier list. It is text only for now (image extraction is future work) and is billed per use from the balance.
+**Order extraction from text (optional AI).** Staff can paste a customer's message and have it turned into a draft order with the district and area matched to the platform's location list. It is text only for now (image extraction is future work) and is billed per use from the balance.
 
 ## 8. Couriers and fraud checking
 

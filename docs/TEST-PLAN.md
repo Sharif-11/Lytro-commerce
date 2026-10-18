@@ -13,7 +13,7 @@ Status: draft v1, 2026-10-02. Builds on `SRS-detailed.md` §26's suite skeleton 
 **S01-01 Sign-up by phone, full trial provisioning.**
 Preconditions: none (fresh phone number).
 Steps: 1) Continue with a new Bangladeshi phone number. 2) Receive and enter the 6-digit OTP within 5 minutes. 3) In the create-shop step enter the shop name, owner name and address. 4) Skip the set-password offer and both set-up questions. 5) Land on the dashboard.
-Expected: the account exists after step 2 with no tenant; after step 3 the owner user, tenant in `trial` and unique subdomain exist; dashboard shows 30-day trial limits (40 orders, 20 products, 200 MB storage, 5 GB bandwidth, 8 essential SMS) and a setup checklist; the "shop ready" SMS arrives at the phone containing the shop's live URL; essential-SMS counter reads 1 of 8 (shop-ready only; the code is platform cost, AUTH-21).
+Expected: the account exists after step 2 with no tenant; after step 3 the owner user, tenant in `trial` and unique subdomain exist; dashboard shows 30-day trial limits (40 orders, 20 products, 200 MB storage, 5 GB bandwidth, 8 essential SMS) and a setup checklist; the "shop ready" SMS arrives at the phone containing the shop's live URL; essential-SMS counter reads 0 of 8 (the sign-up code and the shop-ready SMS are both platform cost, AUTH-21).
 Covers: `AUTH-04`, `AUTH-05`, `AUTH-10`, `AUTH-21`, `AUTH-28`, `TRL-01`, `TRL-03`, `SMS-18`, `SMS-01`.
 
 **S01-02 Sign-up abuse limits.**

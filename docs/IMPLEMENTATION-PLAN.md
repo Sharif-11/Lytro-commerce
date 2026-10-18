@@ -141,10 +141,8 @@ code fix).
 - `LND-10` (second half) — a product landing page whose product requires a partial advance or full prepayment (`PRD-08`) sends the customer to the hosted payment page; the stock reservation's expiry (`INV-16`) is set from the real payment-session lifetime here.
 - `VER-*` — the three verification tiers (manual, listener, gateway), including the SIM-swap-aware cooldown added earlier (`SEC-14`'s sibling consideration) if you chose to build it.
 - `WAL-20`/`WAL-21`, `RAT-15`, `RAT-16` (added 2026-10-16, amended 2026-10-18) — verification fees charged to the balance on each automatically verified payment: [0.10]% by the listener, [1.00]% through a wallet's gateway checkout, manual verification free; the same rates on every plan, trial included; the gateway fee reserved before the shopper is sent to the checkout, and a listener match the balance can't cover falls back to free manual review.
-  verification, charged to the tenant's balance regardless of plan, falling back to listener/manual
-  verification rather than blocking the order when the balance can't cover it. Build this alongside
-  `WAL-19`'s gateway plugins themselves, not after — the commission is part of what "level 3" means, not a
-  bolt-on; confirming the listener (level 2) stays commission-free either way (`LSN-07`/`PYG-15`, unchanged).
+  Build the gateway fee alongside `WAL-19`'s gateway plugins themselves, not after: the fee is part of what
+  "level 3" means, not a bolt-on.
 - `LSN-*` — the SMS listener app's pairing/upload/matching pipeline, `tenant.listener_messages` with its 90-day redaction job.
 - `TVR-*` — tenant verification before the hosted page goes live, abuse controls.
 - `SEC-16` (stack traces never in production) should already be true everywhere by now, but re-verify specifically on payment error paths — this is the surface most likely to leak a provider's raw error text if someone's in a hurry.
