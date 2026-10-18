@@ -240,7 +240,7 @@ Storage, media bandwidth, API requests and payment sessions have strict per-plan
 - **RTE-3** Dashboard sign-in traffic and API keys use separate limit buckets, so an integration can never lock the owner out.
 - **RTE-4** Optional request packs (starting price 20 TK per 100,000 requests) follow the same opt-in rule.
 
-**Pay per use.** SMS, chat AI replies, AI order extraction and fraud checks are charged from the balance at platform-wide rates that follow the operator's current cost.
+**Pay per use.** SMS, chat AI replies, AI order extraction and fraud checks are charged from the balance at platform-wide rates that follow the operator's current cost. A shop on a plan may also buy an allowance of fraud checks or order extractions for its current period, used before the balance; once it is used up or ends, charging returns to pay per use.
 
 - **RAT-1** Rates are platform settings, not part of a plan, and are edited only by the operator.
 - **RAT-2** A rate change takes effect immediately for every tenant's future charges. The system requires no notice period.
@@ -633,7 +633,7 @@ Several items still need a decision or a quote before build, and the main risks 
 | 1 | Behaviour above the monthly order limit | Undecided: block, or accept and prompt upgrade or extra-orders pack |
 | 2 | Refund after a period has started | Decided 2026-10-02: none, ever, including a tenant's first purchase — the one-month free trial is the pre-payment evaluation window |
 | 3 | Plan values marked † in section 4 (products, orders, staff, retention, support response) | Proposed starting values, editable |
-| 4 | Add-on and pack prices (extra orders, products, seats, storage, bandwidth, requests) | Proposed starting values, editable |
+| 4 | Add-on and pack prices (extra orders, products, seats, storage, bandwidth, requests, fraud-check and extraction allowances) | Proposed starting values, editable |
 | 5 | Per-use rates (SMS, chat AI, extraction, fraud checks) | Platform settings, effective immediately; values set after verifying provider prices |
 | 6 | Provider bandwidth and transfer terms (BDIX storage, VPS) | To be confirmed with each provider before launch |
 | 7 | Nagad and Rocket gateways and receipt SMS formats | Not built; manual and phone-based verification only |

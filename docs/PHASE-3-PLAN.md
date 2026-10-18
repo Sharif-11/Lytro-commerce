@@ -544,7 +544,8 @@ their backend ships earlier.
 - **Depends on:** Slice 10 (usage and limits), and Phase 2's billing (balance, plan payments, proration).
 - **Delivers (backend; the screens are in Slice 11):**
   - The add-on catalogue as operator-editable data (`control.addons`): limit add-ons, packs and feature
-    add-ons, priced from OD-04's placeholders.
+    add-ons, priced from OD-04's placeholders. The allowance kind (PLN-20) is added in Phase 7, with the
+    fake-order checks and order reads it covers.
   - Buying: from the balance, taking effect at once, or directly through the platform's payment flow, taking
     effect when the payment is confirmed (Phase 2's operator-confirmed stand-in until Phase 5's hosted page,
     D2-1); prorated to the period's end; an invoice and an audit entry.

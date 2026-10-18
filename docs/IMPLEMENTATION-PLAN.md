@@ -178,6 +178,7 @@ code fix).
 - `I18N-03` fully wired — this is the natural point to confirm the whole localization system (dashboard, storefront, SMS, notices, error messages from `SEC-16`) is consistent, since every piece now exists.
 - `FRD-*` — fraud checking, the shared cross-tenant hash table (`control.fraud_hashes`), the adapter-pattern placeholder for whichever aggregator gets chosen later (`OD-47`).
 - `CHT-*`, `AI-*` — chat, AI auto-reply (language-matching per `AI-09`, not a toggle), order extraction from text.
+- `PLN-20` (added 2026-10-18) — allowance add-ons for fake-order checks and order reads from text: pay-per-use by default, with an optional allowance for the current plan period from Phase 3's add-on catalogue, used before the balance and back to pay-per-use once used up or ended. It lands here because both services it covers are built in this phase.
 
 **Why last among the "features" phases:** every one of these is a third-party integration that benefits from the circuit breaker, balance-charging, and adapter patterns already proven in Phases 2 and 6 — building AI/fraud/SMS *before* those patterns exist risks three more one-off, inconsistent integrations instead of three more adapters following an established shape.
 
