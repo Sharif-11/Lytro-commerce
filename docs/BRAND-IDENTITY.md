@@ -93,7 +93,7 @@ The SVG wordmarks in `docs/brand/` are set in live text. Before any production u
 
 **Contrast, checked.** White on teal-700 6.3:1. White on teal-600 4.9:1 (the floor). Ink on marigold-500 8.2:1. Marigold-700 on white 5.2:1. Marigold-500 on teal-900 6.0:1. Teal-400 on ink 7.9:1. Neutral-700 on white 10.6:1 is the floor for any secondary text, because Noto Sans Bengali strokes are thin and neutral-500 reads lighter than its 5.4:1 suggests. Neutral-500 is allowed only for Latin captions at 13 px or larger, and neutral-400 is never used for text.
 
-**Third-party colours.** bKash pink, Nagad orange and Rocket purple appear only inside those services' own logos at checkout. Never as Lytro UI colour.
+**Third-party colours.** bKash pink, Nagad orange and Rocket purple appear only on the hosted payment page, inside the selected method's own panel (§8.7), and inside those services' own logos. Never as Lytro UI colour.
 
 ---
 
@@ -174,8 +174,12 @@ Chrome: sidebar on teal-900 with teal-800 active state and white text; content o
 
 PWA manifest: name "Lytro", theme colour teal-800 `#0a4f4b`, background neutral-50, icon `icon-dashboard.svg`. When a tenant uploads a logo, the installed app's icon, name and splash take the tenant's identity and the Lytro icon is the fallback. Native wrapper: status bar teal-900, adaptive icon with the mark as foreground on a teal-700 background, splash on teal-900 with the white mark centred at 96 dp.
 
+**With the shop's brand identity on** (BRN-02, a paid add-on on every plan): the chrome, primary buttons, fonts, corner shape and spacing take the shop's identity. Status colours, the layout and "Powered by Lytro" stay Lytro's.
+
 ### 8.3 Shopper storefront PWA (`apps/storefront`)
 The tenant's brand owns this surface. Lytro provides the defaults a new shop starts with: ink text on white, teal-700 as the accent until the tenant picks one, Inter and Noto Sans Bengali, the same radius scale. Lytro appears twice: "Powered by Lytro" in the footer and "Secured by Lytro" with the mark beside the pay button on the hosted payment page. The storefront's manifest uses the tenant's name and logo.
+
+**Free and paid.** Every shop shows its own name and logo, or a monogram, on Lytro's defaults (TEN-16). The shop's own colours, fonts, shape and spacing need the brand identity add-on (BRN-02, BRN-05).
 
 ### 8.4 Operator console (`apps/admin`, `/operator`)
 Inverted so an operator never confuses it with a tenant's dashboard: chrome `#061211`, surfaces `#132725`, text neutral-100, primary teal-400 with ink text, accent marigold-300. An "OPERATOR" eyebrow in marigold sits above the wordmark in the sidebar. Favicon and icon use `icon-operator.svg` (ink tile, marigold mark). Copy is English-leaning and exact.
@@ -192,6 +196,13 @@ One mark, four tiles. The tile tells the surfaces apart at a glance.
 | Operator console | teal-900 | marigold | `icon-operator.svg` |
 | Listener | teal-900 | white, plus marigold arcs | `icon-listener.svg` |
 | Storefront | tenant logo; Lytro dashboard icon as fallback | | |
+
+### 8.7 Hosted payment page (`pay.lytro.app`)
+Used for manual payments only. A wallet whose gateway the seller has connected sends the shopper straight to that wallet's own checkout page, which carries the wallet's own design (PAY-06).
+
+- **Frame:** neutral and Lytro's. The header shows the shop's name and logo, or its monogram, and nothing else from the shop's brand (PAY-05, BRN-04). The footer carries "Secured by Lytro", "Report this page" and the line "This page never asks for your PIN or OTP".
+- **Method panels:** each manual method sits in its own panel in that wallet's official logo and colour scheme, with step-by-step instructions written the way the wallet's own app words them for the account type (Send Money, Cash Out, Payment), in Bangla by default. Bank transfer uses a neutral panel with the full account details.
+- **Decision, 2026-10-18:** the owner decided to use the wallets' official logos and colour schemes without written brand-use approval, because shoppers trust them and bKash and Nagad have raised no complaint about this common practice. Revisit at once if a provider objects; the panels can fall back to text names and neutral colours by a setting, with no redesign.
 
 ---
 

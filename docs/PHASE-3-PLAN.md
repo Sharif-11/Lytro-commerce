@@ -81,7 +81,7 @@ Rules used below:
 - **Partial** means this phase builds a working part, and a named later phase finishes the rest.
 - Notices delivered through the D3-5 stub count as complete, the same rule Phase 2 applied to `BAL-13`.
 
-### 3.1 Completed by this phase (166)
+### 3.1 Completed by this phase (173)
 
 | Family | Requirements | Count |
 |---|---|---|
@@ -101,13 +101,14 @@ Rules used below:
 | CCH | CCH-01 – 06, CCH-08 – 12 | 11 |
 | I18N | I18N-02 (storefront half; dashboard half done in Phase 1) | 1 |
 | TEN | TEN-06, 08, 16, 17, 26 and 29 (amended 2026-10-18), 31 (one dashboard address, added 2026-10-18) | 7 |
+| BRN | BRN-01, 02, 03, 04, 06, 07 (brand identity, added 2026-10-18; the add-on purchase, BRN-05, waits for the add-on catalogue) | 6 |
 | DWN | DWN-07, 09 (deferred here from Phase 2) | 2 |
 | PYG | PYG-16 (deferred here from Phase 2) | 1 |
-| API | API-03, 04, 05, 08, 10, 23, 24 (public keys, D3-1) | 7 |
+| API | API-03, 04, 05, 08, 10, 14 (the `api.lytro.app` host, amended 2026-10-18), 23, 24 (public keys, D3-1) | 8 |
 | LND | LND-01, 02, 03, 04, 05, 06, 14, 17, 18 | 9 |
 | DLV | DLV-01, 02, 05 (delivery zones around the tenant's home area, added 2026-10-17) | 3 |
 | FED | FED-01 – 06 (Meta catalog feed, added 2026-10-17) | 6 |
-| | **Total** | **166** |
+| | **Total** | **173** |
 
 ### 3.2 Partially completed by this phase (40)
 
@@ -171,6 +172,7 @@ Rules used below:
 | LND-07, 08, 09, 11, 12 | the landing page's order form: fields, live totals, submission through ORD-02, confirmation, per-IP limit | Phase 4 |
 | LND-10 | payment by the product's policy: cash on delivery in Phase 4; advance and full prepayment through the hosted payment page in Phase 5 | Phases 4, 5 |
 | LND-16 | the server-side Conversions API `Purchase` event fires when an order is created | Phase 4 |
+| BRN-05 | buying the brand identity add-on needs the add-on catalogue (PLN-13/14), not yet built or scheduled; until then the operator can switch it on for a shop by override (PLN-11) | with add-ons |
 
 ### 3.4 Dependencies between requirements
 
@@ -452,7 +454,8 @@ their backend ships earlier.
 - **Delivers:** the D3-1 public-key subset (hashed storage, shown once, registered origins, expiry,
   revocation honoured within 5 s, two-key rotation, CORS and preflight); the D3-2 limiter (per-key
   per-minute sliding window, per-IP total, monthly quota with warnings, separate dashboard bucket); rate
-  headers; snapshot-and-override driven limits.
+  headers; snapshot-and-override driven limits; the public API host `https://api.lytro.app/v1`, which accepts keys only
+  (API-14, amended 2026-10-18).
 - **Requirements completed:** API-03, 04, 05, 08, 10, 23, 24; RTE-01, 02, 03, 04, 05, 07, 10.
 - **Partial:** API-01, API-07, API-21, RTE-06, PLN-19 (requests).
 - **Done when:** request 61 within a minute on a Starter public key returns 429 with `Retry-After`; an
@@ -497,14 +500,15 @@ their backend ships earlier.
   WhatsApp-share actions (and per-variant links); the ad-tracking settings screen (pixel ID, Conversions
   API token entered once); delivery settings with the home-area picker and its two charges up front, and an "Add zone"
   editor that adds a whole division, district or city in one step; size-chart editor; one-tap option sets in the variant editor; "Duplicate product"; the catalog
-  feed link with copy and setup steps; the setup checklist on the home screen (SUP-01); a category's "behaves like" setting; "no delivery" zones and a
+  feed link with copy and setup steps; the setup checklist on the home screen (SUP-01); the brand identity editor with live preview, and the
+  dashboard themed by the shop's identity when switched on (BRN); a category's "behaves like" setting; "no delivery" zones and a
   product's "Delivers to" limit; "Sizes share one stock" with each size's amount; per-shop-type form layout with "More settings"; price and stock
   columns with "Fill all" in the variant grid; IMEI/serial entry by camera scan, pasted list or typing.
   All in Bangla and English, in the same everyday commerce wording the
   admin app already uses (transliterated domain nouns such as স্টক, প্রোডাক্ট — never formal or technical
   inventory terms).
 - **Requirements completed (E2E halves):** PST-01; ATR-02, ATR-11; PRD-03, PRD-12; INV-06, 07, 09, 22;
-  PUR-07, PUR-09; BND-08; LND-06; ATR-16; ATR-17; PST-05; DLV-05; FED-06; ATR-18 (dashboard half; the shopper-facing picker in Slice 12). *(INV-23's scan and paste
+  PUR-07, PUR-09; BND-08; LND-06; ATR-16; ATR-17; PST-05; DLV-05; FED-06; ATR-18 (dashboard half; the shopper-facing picker in Slice 12); BRN-03, 06, 07 (identity rules, editor preview, token engine). *(INV-23's scan and paste
   entry is built here; its shipping half is Phase 4.)*
 - **Partial:** SUP-01 — the checklist with the items that exist by the end of this phase; later phases add
   theirs.
@@ -529,7 +533,7 @@ their backend ships earlier.
     product limit applies (DLV-06, DLV-07); the "Size chart" link on the
     product page and the landing page. The order form's fields are laid out but not submittable until Phase 4.
 - **Requirements completed:** SFT-01, 02, 03, 04, 05, 11, 12, 14, 15, 16, 17, 18, 19, 21; I18N-02; TEN-08 (public pages; Slice 0 removes the dashboard);
-  CCH-10; LND-01, 02, 03, 05, 14, 18; PRD-17; ATR-18.
+  BRN-01, 02, 04 (storefront and landing pages themed by the shop's identity); CCH-10; LND-01, 02, 03, 05, 14, 18; PRD-17; ATR-18.
 - **Partial:** SFT-10, SFT-13, I18N-01, LND-13, LND-15.
 - **Done when:** the milestone (exit criterion 4) passes; two tenants show different catalogues and
   branding with the same layout from one deployment; lapsing a tenant replaces both its storefront and

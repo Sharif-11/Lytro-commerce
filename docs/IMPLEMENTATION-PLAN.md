@@ -90,6 +90,7 @@ code fix).
 - `PRD-*`, `ATR-*`, `ATL-*`, `UOM-*` — products, variants, flexible attributes, units.
 - `INV-*`, `PUR-*`, `PST-*` — inventory, purchasing, shop-type presets.
 - `LND-*` — product landing pages (added 2026-10-17): the shareable single-product page, link previews, stable links and Meta Pixel views. Its order form lands in Phase 4 and its advance/full payment in Phase 5.
+- `BRN-*` (added 2026-10-18) — brand identity: name and logo free on every plan; colours, fonts, shape and spacing behind the "Use my brand" switch, with editor and live preview, built in Phase 3's UI slices. Buying it as an add-on (`BRN-05`) arrives with the add-on catalogue (`PLN-13`/`PLN-14`). The public API moves to `https://api.lytro.app/v1` (`API-14`) in Slice 8.
 - D3-11 (decided 2026-10-18) — one dashboard address, `app.lytro.app/<shop>`: shop subdomains and custom domains serve public pages only; `TEN-31` added and `TEN-08`, `TEN-09`, `TEN-17`, `TEN-26`, `TEN-29`, `SFT-02` amended. Built first, as Phase 3's Slice 0, because the storefront takes over every path on a shop's host.
 - `SUP-01` (pulled forward from Phase 8, 2026-10-17) — the setup checklist on the dashboard home, with the items whose features exist in this phase: shop created, delivery charges, first product, sharing the link, and an API key under "Later". Later phases add theirs.
 - `DLV-*`, `FED-*`, `PRD-17`, `PRD-18`, `ATR-16` — Facebook-seller essentials (added 2026-10-17): delivery zones (Inside/Outside the seller's home area ready by default, Dhaka city until changed, built from the location list's divisions, districts, cities and thanas), size charts, one-tap option sets, "Duplicate product" and the Meta catalog feed. Zone *settings* land here; the zone-based charge is computed by Phase 4's order pricing.
@@ -132,6 +133,7 @@ code fix).
 **Delivers:** real money moves through the system — the highest-risk phase, deserves isolated, extra-careful testing before touching production data.
 
 - `WAL-*` — wallet/bank accounts, the plugin registry pattern (`WAL-6`).
+- `PAY-01`, `PAY-05`, `PAY-06`, `PAY-23` (amended or added 2026-10-18) — manual payments on our hosted page at `pay.lytro.app/<session>`: the shop's name and logo, each wallet's official logo and colours in its own panel, steps for the account type, and no third-party code. A wallet whose gateway the seller has connected sends the shopper straight to that wallet's own checkout, never through our page.
 - `PAY-*` — hosted payment sessions, the `created → awaiting_payment → checking → verified` state machine.
 - `LND-10` (second half) — a product landing page whose product requires a partial advance or full prepayment (`PRD-08`) sends the customer to the hosted payment page; the stock reservation's expiry (`INV-16`) is set from the real payment-session lifetime here.
 - `VER-*` — the three verification tiers (manual, listener, gateway), including the SIM-swap-aware cooldown added earlier (`SEC-14`'s sibling consideration) if you chose to build it.

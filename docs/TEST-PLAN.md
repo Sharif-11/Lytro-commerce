@@ -95,6 +95,17 @@ Steps: 1) The owner signs in once at `app.lytro.app/sign-in`. 2) Open `app.lytro
 Expected: one sign-in lands on a shop picker, and both dashboards open by path without signing in again; step 3 returns the same not-found as an unknown shop, for both the page and the API; the shop in step 4 receives the slug `sign-in-2`.
 Covers: `TEN-31`, `TEN-26`.
 
+**S01-17 Default identity, and the free name and logo.**
+Steps: 1) Create a shop with no logo; open its storefront, a landing page, a hosted payment page and the dashboard. 2) Upload a logo and open them again.
+Expected: all four use Lytro's default tokens and show the shop's monogram, then its logo, never another tenant's; "Powered by Lytro" (storefront, dashboard) and "Secured by Lytro" (payment page) are present and cannot be removed.
+Covers: `TEN-16`, `TEN-18`, `BRN-01`.
+
+**S01-18 The brand identity add-on.**
+Preconditions: a trial shop; a Pro shop without the add-on; a shop with the add-on.
+Steps: 1) In the trial and Pro shops, change identity settings in the editor and try to switch "Use my brand" on. 2) In the shop with the add-on, pick a pale yellow main colour, then a passing identity, and switch it on; check the storefront, a landing page, the dashboard, both installed apps and the payment page. 3) Look at a paid and a failed payment's colours; try to upload a CSS or font file. 4) Switch off, then on. 5) Let the add-on lapse, then buy it again. 6) Compare the stylesheet served to two shops with different identities, and change one shop's identity.
+Expected: the preview updates live while the live pages stay unchanged, and neither the trial nor the Pro shop can switch on; the pale yellow is refused with a passing suggested shade; with the identity on, fonts, colours, shape and spacing change on every surface but the payment page, which still shows only the name and logo; status colours stay fixed and no CSS or font file is accepted; switching off restores the default and switching on restores the saved identity; a lapse reverts to the default with settings kept, and buying again restores them; both shops get the same stylesheet file, and only the changed shop's cached pages are invalidated.
+Covers: `BRN-02` to `BRN-07`.
+
 ---
 
 ## S02 — Staff, roles, audit (STF, AUD)
@@ -395,7 +406,7 @@ Expected: the library attribute is reusable across products; variant-defining at
 Covers: `ATR-01`, `ATR-02`, `ATR-03`, `ATR-05` to `ATR-07`, `ATR-09` to `ATR-14`.
 
 **S05-14 The storefront itself: load, cart, checkout redirect, tracking, shopper account.**
-Steps: 1) Load a tenant's storefront root — browse categories, search, paginate. 2) Add items to a cart; confirm no stock is reserved yet. 3) Check out with an online payment method — confirm redirect to the hosted page with no payment UI built into the storefront itself. 4) Open the tracking page by tracking ID, and separately by phone for a signed-in shopper. 5) Install the storefront's own PWA. 6) Disable the shared storefront for a tenant that has its own external website.
+Steps: 1) Load a tenant's storefront root — browse categories, search, paginate. 2) Add items to a cart; confirm no stock is reserved yet. 3) Check out with an online payment method — confirm redirect to the session's payment address (the hosted page for a manual method, the wallet's own checkout for a method whose gateway is selected) with no payment UI built into the storefront itself. 4) Open the tracking page by tracking ID, and separately by phone for a signed-in shopper. 5) Install the storefront's own PWA. 6) Disable the shared storefront for a tenant that has its own external website.
 Expected: catalogue browses/searches/paginates correctly; cart never touches stock until checkout submits; checkout creates a payment session and redirects, with zero payment-collection UI in the storefront's own code; tracking works both ways; PWA installs with tenant branding; a tenant that opts out still has API + hosted payment page working.
 Covers: `SFT-01`, `SFT-02`, `SFT-03`, `SFT-05`, `SFT-07`, `SFT-08`, `SFT-09`, `SFT-10`, `SFT-12` to `SFT-19`.
 
@@ -574,14 +585,14 @@ Expected: incomplete bank fields rejected with field errors; a valid bank accoun
 Covers: `WAL-06`, `WAL-07`, `WAL-08`, `WAL-14`, `WAL-15`, `WAL-17`, `WAL-18`, `WAL-19`.
 
 **S07-14 Hosted page content, allow-listed return, and transaction-ID format.**
-Steps: 1) Open the hosted page — confirm it shows tenant name/logo, amount, order reference, each enabled method's active account, note, and a countdown, nothing from another tenant. 2) Submit a return address not on the tenant's allow-list. 3) Submit a transaction ID that's too short, and one already used platform-wide. 4) Let a session reach a final result and observe the redirect.
-Expected: page content matches exactly what's specified, no cross-tenant leakage; an unlisted return address is rejected before session creation; malformed/duplicate transaction IDs are rejected with a clear message; the final redirect carries session ID and status, retry allowed after `failed` within the session window.
-Covers: `PAY-04` to `PAY-08`, `PAY-17`, `PAY-19`.
+Steps: 1) Open the hosted page at `pay.lytro.app/<session>` — confirm it shows the tenant's name and logo (or monogram), amount, order reference, each enabled manual method in its own panel with that wallet's official logo and colours, the steps for its account type, the active account, note, a countdown, the "never asks for your PIN or OTP" notice and "Secured by Lytro", nothing from another tenant and none of the shop's other brand settings. 2) Switch from bKash to Nagad. 3) Submit a return address not on the tenant's allow-list. 4) Submit a transaction ID that's too short, and one already used platform-wide. 5) Let a session reach a final result and observe the redirect. 6) Inspect the page's Content Security Policy and a session ID.
+Expected: page content matches exactly what's specified, no cross-tenant leakage, no field asking for a PIN or OTP; the panel's logo, colours and steps change with the method; an unlisted return address is rejected before session creation; malformed/duplicate transaction IDs are rejected with a clear message; the final redirect carries session ID and status, retry allowed after `failed` within the session window; the policy blocks every script source but the platform's own, and the session ID is a 128-bit random value.
+Covers: `PAY-04`, `PAY-05`, `PAY-07`, `PAY-08`, `PAY-17`, `PAY-19`, `PAY-23`.
 
-**S07-15 Gateway button visibility and operator-level session exemption.**
-Steps: 1) Check the pay-with-gateway button's visibility with and without a selected, credentialed gateway account. 2) Create a plan-purchase/top-up session while the tenant is already at its own session-limit for shopper payments.
-Expected: the button appears only when a real gateway account is both selected and enabled; the platform's own plan/top-up sessions use a separate engine and never count against a tenant's own session limit.
-Covers: `PAY-09` (webhook retry — covered in S06's webhook scenarios too, cross-reference), `PAY-10` (if distinct), `PAY-21`.
+**S07-15 A gateway goes straight to the wallet, and operator-level session exemption.**
+Steps: 1) With a selected, credentialed bKash gateway account, choose bKash at storefront checkout, and separately create a session through the API with the method set to bKash. 2) Complete the payment on bKash's checkout and return. 3) Open the same tenant's hosted page for a manual method. 4) Create a plan-purchase/top-up session while the tenant is already at its own session-limit for shopper payments.
+Expected: checkout opens bKash's own checkout directly and the API returns bKash's checkout address, never the hosted page; on return, `pay.lytro.app` verifies the payment with bKash and redirects to the return address with status `verified`; the hosted page offers only manual methods and no gateway button; the platform's own plan/top-up sessions never count against a tenant's own session limit.
+Covers: `PAY-01`, `PAY-06`, `PAY-09` (webhook retry — covered in S06's webhook scenarios too, cross-reference), `PAY-10` (if distinct), `PAY-21`.
 
 **S07-16 Gateway error handling and sandbox-payment exclusion from revenue.**
 Steps: 1) Force a gateway credential/token error mid-session. 2) Complete a payment in a gateway's sandbox/test mode; check whether it appears in revenue reports.
@@ -723,13 +734,13 @@ Expected: delivery log matches each attempt (status, first 1KB of response); end
 Covers: `API-13`.
 
 **S09-05 Versioning and deprecation headers.**
-Steps: call an unversioned path; call a deprecated version.
-Expected: unversioned returns 404; deprecated version carries `Deprecation` and `Sunset` headers.
+Steps: call an unversioned path on `api.lytro.app`; call a deprecated version; call `api.lytro.app/v1` with only a dashboard session cookie and no key.
+Expected: unversioned returns 404; deprecated version carries `Deprecation` and `Sunset` headers; the cookie-only call returns 401.
 Covers: `API-14`.
 
 **S09-06 OpenAPI spec stays honest.**
 Steps: add a new route without updating the generated spec (simulate a build with a missing decorator).
-Expected: CI build fails; every real route otherwise appears in `/api/v1/openapi.json`.
+Expected: CI build fails; every real route otherwise appears in `https://api.lytro.app/v1/openapi.json`.
 Covers: `API-15`.
 
 **S09-07 Error contract — code vs. message vs. stack trace.**

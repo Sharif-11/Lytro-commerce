@@ -108,7 +108,7 @@ Navbar on desktop: Features, Pricing, FAQ, About, Contact, then the language tog
 
 ## 7. Open items
 
-- Official bKash, Nagad, Steadfast and Pathao logos need their brand-use permission before they replace the text wordmarks.
+- Official Steadfast and Pathao logos need their brand-use permission before they replace the text wordmarks. bKash, Nagad and Rocket use their official logos (decided 2026-10-18, `BRAND-IDENTITY.md` §8.7).
 - The testimonial slot is filled only from Stage 1 case studies (MARKETING-PLAN.md §5, weeks 6 to 8).
 - A Google Play badge is added to the hero and final CTA only once the native dashboard app is listed.
 - The per-order pay-as-you-go fee is described, not priced, because the amount is not yet decided in the SRS.

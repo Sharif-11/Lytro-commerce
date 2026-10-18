@@ -60,6 +60,8 @@ implement the earlier path-split layout (the dashboard on the apex and on every 
 | `www.lytro.app` | VPS IP | redirects to the apex |
 | `app.lytro.app` | VPS IP | sign-up, sign-in, create-shop and the tenant dashboard at `/<shop>` (`apps/admin`) |
 | `admin.lytro.app` | VPS IP | operator console (`apps/admin`, same build, host-branched route tree) |
+| `api.lytro.app` | VPS IP | the public API at `/v1/...` (`apps/server`), API keys only (API-14) |
+| `pay.lytro.app` | VPS IP | the hosted payment page for manual payments, and the return address for wallet gateways (PAY-01, PAY-06); Phase 5 |
 | `*.lytro.app` (wildcard) | VPS IP | every shop's public pages: storefront and landing pages (`apps/storefront`) only. Covers every tenant automatically; no per-shop DNS entry is ever created. `app`, `admin` and `www` are reserved labels (TEN-26), so no shop can take them. |
 
 ## 5. Routing rules
@@ -92,6 +94,11 @@ Then, per host, one rule each and no path lists:
 - **`admin.lytro.app`** → serve `apps/admin`'s static build directly. Same files as `app.lytro.app`; the
   SPA's own router shows the operator route tree instead of the tenant one purely because of which host it's
   running on (`window.location.hostname`), not a different build.
+- **`api.lytro.app`** → reverse-proxy `/v1/*` to `server` as `/api/v1/*`, with the edge secret added. Keys only:
+  the backend refuses a session cookie here (API-14). This is the one address in the public API's documentation.
+- **`pay.lytro.app`** → the hosted payment page (built in Phase 5), served with a Content Security Policy that
+  allows only the platform's own scripts and styles and the wallets' logo images (PAY-23). Wallet gateways
+  return the shopper here; it confirms the payment, then redirects to the session's return address.
 - **`*.lytro.app`** (any other single-label host, a shop's own subdomain) → reverse-proxy to `storefront`,
   which reads `Host` itself to resolve which tenant to render (SFT-01). Every path belongs to the storefront,
   including the shopper sign-in (SFT-09); nothing here serves the dashboard.
