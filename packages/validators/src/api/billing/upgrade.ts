@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { PLAN_PAYMENT_METHODS } from '../../db/enums';
+import { requireWalletFields } from './purchase';
 
 // POST /billing/upgrade/quote (UPG-01/02): the higher-ranked plan and term the tenant wants to price.
 export const quoteUpgradeSchema = z.object({
@@ -19,12 +20,5 @@ export const confirmUpgradeSchema = z
     senderNumber: z.string().trim().min(1).optional(),
     amountPaid: z.coerce.number().positive().optional(),
   })
-  .refine(
-    (value) =>
-      value.method === 'balance' ||
-      (value.transactionId !== undefined &&
-        value.senderNumber !== undefined &&
-        value.amountPaid !== undefined),
-    { message: 'transactionId, senderNumber and amountPaid are required for a wallet payment.' },
-  );
+  .superRefine(requireWalletFields);
 export type ConfirmUpgradeInput = z.infer<typeof confirmUpgradeSchema>;

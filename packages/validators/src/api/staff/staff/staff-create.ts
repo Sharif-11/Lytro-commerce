@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { NAME_MAX_LENGTH, PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from '../../../common/limits';
+import { FieldProblemCode } from '../../../validation/field-problem';
 
 // POST staff: the owner adds a staff member with a phone and a password (STF-01). The phone is normalised on the server.
 export const createStaffSchema = z.object({
@@ -18,6 +19,7 @@ export const updateStaffSchema = z
   })
   .refine((value) => value.active !== undefined || value.roleIds !== undefined, {
     message: 'nothing to change',
+    params: { problem: FieldProblemCode.NothingToChange },
   });
 export type UpdateStaffInput = z.infer<typeof updateStaffSchema>;
 
