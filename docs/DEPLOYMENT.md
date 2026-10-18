@@ -15,24 +15,39 @@ managed database, until real load or revenue justifies the cost.
 ## 2. Topology
 
 ```
-                    ┌─────────────────────────────────────────┐
-                    │              Caddy (edge)                │
-                    │  TLS termination, wildcard cert,         │
-                    │  host routing, adds the edge secret      │
-                    └──────┬──────────┬──────────┬─────────────┘
-                           │          │          │
-              ┌────────────┘          │          └────────────┐
-              ▼                       ▼                       ▼
-     dashboard + operator     website (Next, SSR)     storefront (Next, SSR)
-     no process — Caddy              container                container
-     serves dist/ directly                │                       │
-                                           └───────────┬───────────┘
-                                                        ▼
-                                              server (NestJS, container)
-                                                        │
-                                                        ▼
-                                              postgres (container)
+                    ┌──────────────────────────────────────────────────────┐
+                    │                     Caddy (edge)                      │
+                    │  TLS termination, wildcard cert, host routing,        │
+                    │  adds the edge secret                                 │
+                    └───┬─────────────┬─────────────┬─────────────┬─────────┘
+                        │             │             │             │
+                        ▼             ▼             ▼             ▼
+                   dashboard      operator       website      storefront
+                 app.lytro.app  admin.lytro.app  lytro.app    *.lytro.app
+                  static dist/   static dist/   (Next, SSR)   (Next, SSR)
+                  no process     no process     container     container
+                        │             │             │             │
+                        └──── /api ───┘             └──────┬──────┘
+                               │                           │
+                               └─────────────┬─────────────┘
+                                             ▼
+                                  server (NestJS, container)
+                                             │
+                                             ▼
+                                   postgres (container)
 ```
+
+**Two separate static apps (D3-12, Phase 3 Slice 0b).** The tenant dashboard and the operator console are
+different builds, each with its own:
+- host
+- directory on disk
+- Content Security Policy
+- release
+
+Neither app's files contain the other's screens or API calls. Each calls the backend through Caddy's `/api/*`
+rule on its own host. Session cookies are host-only (`TEN-29`), so a seller's session exists only on
+`app.lytro.app` and an operator's only on `admin.lytro.app`. Until Slice 0b, one `apps/admin` build serves
+both hosts and picks its screens by hostname.
 
 ## 3. Why Caddy, not nginx
 
@@ -74,14 +89,17 @@ The rule as first written would have swallowed every one of those calls into "se
 reaching the backend at all. Fixed below by giving the backend its own reserved prefix, checked first, on
 every host.
 
-One `Caddyfile`, with a rule checked before anything else, on **every** host block:
+One `Caddyfile`, with a rule checked first on the two app hosts, `app.lytro.app` and `admin.lytro.app`:
 
 - **`/api/*`** → reverse-proxy to `server` unchanged, with `x-lytronix-edge-secret` added (§6). This is how
-  the admin SPA (and anything else running client-side) reaches the backend: same-origin, relative fetches to
-  `/api/v1/...`, on whichever host the SPA happens to be running on. **Updated 2026-10-14 (API-14):** the
-  backend itself now serves every route under `/api/v1/...` (the exact prefix the SPA already calls), so
-  Caddy no longer strips anything — a plain `handle`, not `handle_path`. Before this, the backend had no
-  prefix at all and Caddy's incoming `/api/...` was stripped before reaching `server`; that's no longer true.
+  the dashboard and the operator console reach the backend: same-origin, relative fetches to `/api/v1/...` on
+  their own host. **Updated 2026-10-14 (API-14):** the backend itself serves every route under `/api/v1/...`
+  (the exact prefix the apps call), so Caddy strips nothing — a plain `handle`, not `handle_path`.
+- **Not on any other host (D3-11).** The apex serves the marketing site only, and a shop's host serves its
+  public pages only, the storefront owning every path there (`TEN-08`, `SFT-02`), so neither forwards `/api`.
+  The storefront and the website call the backend server-side, inside the deployment (§6), and code running
+  in a shopper's browser uses the public API at `api.lytro.app` with a public key (`API-14`, D3-1). Until
+  Slice 0 lands, `deploy/Caddyfile` still forwards `/api/*` on every host, as the earlier layout needed.
 
 Then, per host, one rule each and no path lists:
 
@@ -92,8 +110,10 @@ Then, per host, one rule each and no path lists:
   Google and Facebook send the browser back to `/auth/oauth/:provider/callback`, a route of the SPA, which
   reads `code`/`state` off its own URL and calls `/api/v1/auth/oauth/:provider/callback` itself, then routes
   on the response's `next` like a normal sign-in.
-- **`admin.lytro.app`** → serve `apps/operator`'s static build directly: its own build, with its own strict
-  Content Security Policy, so no operator code ships to sellers (D3-12). Until Slice 0b the operator console
+- **`admin.lytro.app`** → serve `apps/operator`'s static build from its own directory, with a fallback to
+  `index.html` for any unmatched path (the console's own router takes over), under its own strict Content
+  Security Policy: only the console's own scripts and styles, since it never loads a third-party script. No
+  operator code ships to sellers, and no seller code to operators (D3-12). Until Slice 0b the operator console
   is part of `apps/admin`'s build, picked by hostname.
 - **`api.lytro.app`** → reverse-proxy `/v1/*` to `server` as `/api/v1/*`, with the edge secret added. Keys only:
   the backend refuses a session cookie here (API-14). This is the one address in the public API's documentation.
@@ -156,25 +176,30 @@ for `active`) with zero infrastructure work on this platform's side per tenant.
 
 ## 8. Per-app build and runtime
 
-| App | Build output | Runtime | Why |
-|---|---|---|---|
-| `apps/operator` | `vite build` → static `dist/` | **none** — Caddy serves the files directly | The operator console's own build (D3-12, Phase 3 Slice 0b) |
-| `apps/admin` (`apps/dashboard` from Slice 0b) | `vite build` → static `dist/` | **none** — Caddy serves the files directly | A pure client-rendered SPA; there is nothing to run once the files exist |
-| `apps/website` | Next.js, a standard server build (not a static export) | Node container, `next start` | Content is expected to grow (testimonials, a blog later per the landing-page plan); starting server-rendered avoids re-architecting the moment something dynamic is added, and costs little extra on a VPS already running two other Node processes |
-| `apps/storefront` | Next.js, standalone server build | Node container, `next start` | Must render dynamically per request — SFT-01 requires one shared app serving every tenant differently based on the request's `Host`, which a static export cannot do |
+| App | Served at | Build output | Runtime | Why |
+|---|---|---|---|---|
+| `apps/dashboard` (`apps/admin` until Slice 0b) | `app.lytro.app` | `vite build` → static `dist/` | **none** — Caddy serves the files directly | A pure client-rendered SPA; there is nothing to run once the files exist |
+| `apps/operator` (from Slice 0b) | `admin.lytro.app` | `vite build` → static `dist/` | **none** — Caddy serves the files directly | The operator console's own build, kept apart from the sellers' app (D3-12) |
+| `apps/website` | `lytro.app` | Next.js, a standard server build (not a static export) | Node container, `next start` | Content is expected to grow (testimonials, a blog later per the landing-page plan); starting server-rendered avoids re-architecting the moment something dynamic is added, and costs little extra on a VPS already running two other Node processes |
+| `apps/storefront` | `*.lytro.app`, custom domains | Next.js, standalone server build | Node container, `next start` | Must render dynamically per request — SFT-01 requires one shared app serving every tenant differently based on the request's `Host`, which a static export cannot do |
 
 ## 9. Fits the existing CI/CD pipeline (`ENGINEERING-STANDARDS.md` §7) without changing it
 
 That section already specifies build-once/promote-with-a-smoke-test/manual-production-approval. This section
 only adds concrete artifacts to it, nothing new in process:
 
-- The build step now produces container images for `server`, `website`, `storefront`, plus `apps/admin`'s
-  static files (baked into a tiny image alongside Caddy's own config, or shipped as a plain build artifact
-  Caddy's container mounts) — still one versioned release, still staging → smoke test → manual production
-  promotion.
-- `apps/admin`'s own "deploy" is cheaper than the others: swapping its static files behind the same
-  already-running edge, with no container restart needed at all — the existing rollback story (§7: "the
-  previous container image stays available and redeployable in one step") applies even more simply here.
+- **The build step produces one versioned artifact per app.**
+  - `server`, `website` and `storefront` are container images.
+  - `apps/dashboard` and `apps/operator` are each their own static build: baked into a small image alongside
+    Caddy's config, or shipped as a plain build artifact that Caddy's container mounts at that app's
+    directory.
+  - Every artifact still goes staging → smoke test → manual production promotion.
+- **The two static apps release independently (D3-12).** A change to one doesn't rebuild or redeploy the
+  other. A seller-dashboard release can never change the operator console, and the reverse.
+- **A static app's deploy is cheaper than the others.** Its files are swapped behind the already-running
+  edge, with no container restart at all. Rollback is simpler too: keep the previous build's directory and
+  point back to it. The existing rollback story still applies (§7: "the previous container image stays
+  available and redeployable in one step").
 
 ## 10. Open, deliberately deferred
 
