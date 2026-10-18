@@ -222,6 +222,16 @@ Steps: 1) Mark a plan not-for-sale — attempt a new purchase. 2) Operator assig
 Expected: not-for-sale plan disappears from the purchase screen but existing subscribers keep working; a directly-assigned tenant is never prompted to renew/pay and never lapses through the normal lifecycle.
 Covers: `PLN-08`, `PLN-10`, `PLN-16` to `PLN-18`.
 
+**S03-25 Add-ons: catalogue, payment, renewal and lapse.**
+Steps: 1) As operator, add, edit and retire a catalogue item. 2) On day 10 of a 30-day period, buy extra products from the balance. 3) Buy extra storage directly, and check the limit before and after the payment is confirmed. 4) Renew the plan with one add-on set to renew and one with renewal off. 5) As a pay-as-you-go tenant, buy an add-on and let 30 days pass, once with enough balance and once without. 6) Upgrade the plan while an add-on runs. 7) Let a brand identity add-on lapse, then buy it again.
+Expected: catalogue changes take effect without a deploy, and a retired item can't be bought while one already bought keeps running; the products limit rises at once, for two thirds of a period's price; the storage limit rises only on confirmation; the plan renewal includes the renewing add-on in one payment, and the other lapses after warnings 7 days and 1 day before; the pay-as-you-go add-on renews from the balance, or lapses when the balance is short; the add-on keeps its end date across the upgrade; on the lapse the storefront and dashboard revert to the default identity with settings kept, and buying again restores them.
+Covers: `PLN-13`, `PLN-14`, `UPG-14`, `BRN-05`.
+
+**S03-26 Packs and auto-buy.**
+Steps: reach 100% of bandwidth and of API requests 1) with auto-buy off, 2) with auto-buy on and enough balance, 3) with auto-buy on and too little balance.
+Expected: 1) a hard stop; 2) a pack is bought, the ledger shows it, and service continues; 3) service stops (429) and no pack is bought.
+Covers: `PLN-15`, `BND-04`, `RTE-11`.
+
 **S03-15 Billing term CRUD, pricing prefill, and period math.**
 Steps: 1) Operator creates a term with 0 months, then 61 months. 2) Create a valid 4-month term with a default discount — observe price prefill on a plan. 3) Edit the prefilled price by hand. 4) Retire the term. 5) Edit the retired term's length; check an already-subscribed tenant's dates.
 Expected: 0/61-month terms rejected; valid term prefills correctly but a hand-edit sticks and isn't overridden by the discount later; retiring stops new purchases/renewals on it while existing subscribers keep their original schedule unchanged, even after the term's own definition is later edited.

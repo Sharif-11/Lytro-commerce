@@ -159,6 +159,9 @@ No store, service, controller, DTO or test references an add-on concept anywhere
 Phase 2's exit criteria by `PHASE-2-PLAN.md` D2-4 — this is just making that explicit on the SRS requirement
 rows themselves, which are tagged with concrete `API`/`E2E` verification types as if checkable now.
 
+**Scheduled 2026-10-18:** Phase 3, Slice 10a (`PHASE-3-PLAN.md`), with PLN-13 and PLN-14 raised to Must
+because the brand identity add-on (BRN-05) depends on them.
+
 ## 13. Data export (LIF-16/LIF-17) — built 2026-10-16
 
 Was zero implementation; closed the same day it was planned. `POST /exports` inserts a `pending` row

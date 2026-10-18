@@ -81,7 +81,7 @@ Rules used below:
 - **Partial** means this phase builds a working part, and a named later phase finishes the rest.
 - Notices delivered through the D3-5 stub count as complete, the same rule Phase 2 applied to `BAL-13`.
 
-### 3.1 Completed by this phase (173)
+### 3.1 Completed by this phase (181)
 
 | Family | Requirements | Count |
 |---|---|---|
@@ -94,21 +94,23 @@ Rules used below:
 | PST | PST-01 – PST-06 (PST-05: per-shop-type form layout; PST-06: categories that behave like another shop type) | 6 |
 | MED | MED-01 – 08, MED-10 – 13 | 12 |
 | STO | STO-02 – 07, STO-09 (video compression, added 2026-10-17) | 7 |
-| BND | BND-01, 02, 03, 05, 06, 07, 08, 09 | 8 |
-| RTE | RTE-01, 02, 03, 04, 05, 07, 10 | 7 |
+| BND | BND-01 – 09 (04: auto-buy packs, with add-ons) | 9 |
+| RTE | RTE-01, 02, 03, 04, 05, 07, 10, 11 (11: request packs, with add-ons) | 8 |
 | LIM | LIM-01, 03 | 2 |
 | SFT | SFT-01, 02, 03, 04, 05, 11, 12, 14, 15, 16, 17, 18, 19, 21 | 14 |
 | CCH | CCH-01 – 06, CCH-08 – 12 | 11 |
 | I18N | I18N-02 (storefront half; dashboard half done in Phase 1) | 1 |
-| TEN | TEN-06, 08, 16, 17, 26 and 29 (amended 2026-10-18), 31 (one dashboard address, added 2026-10-18) | 7 |
-| BRN | BRN-01, 02, 03, 04, 06, 07 (brand identity, added 2026-10-18; the add-on purchase, BRN-05, waits for the add-on catalogue) | 6 |
+| TEN | TEN-06, 08, 16, 17, 18, 26 and 29 (amended 2026-10-18), 31 (one dashboard address, added 2026-10-18) | 8 |
+| BRN | BRN-01 – 07 (brand identity, added 2026-10-18) | 7 |
+| PLN | PLN-13, 14, 15 (add-ons, deferred by Phase 2's D2-4, scheduled 2026-10-18) | 3 |
+| UPG | UPG-14 (add-ons kept across plan changes) | 1 |
 | DWN | DWN-07, 09 (deferred here from Phase 2) | 2 |
 | PYG | PYG-16 (deferred here from Phase 2) | 1 |
 | API | API-03, 04, 05, 08, 10, 14 (the `api.lytro.app` host, amended 2026-10-18), 23, 24 (public keys, D3-1) | 8 |
 | LND | LND-01, 02, 03, 04, 05, 06, 14, 17, 18 | 9 |
 | DLV | DLV-01, 02, 05 (delivery zones around the tenant's home area, added 2026-10-17) | 3 |
 | FED | FED-01 – 06 (Meta catalog feed, added 2026-10-17) | 6 |
-| | **Total** | **173** |
+| | **Total** | **181** |
 
 ### 3.2 Partially completed by this phase (40)
 
@@ -161,7 +163,6 @@ Rules used below:
 |---|---|---|
 | QTA-01 – 07 | counted at order handling, which needs orders (D3-3) | Phase 4 (manual trigger), Phase 6 (courier trigger) |
 | RTE-08, RTE-09 | order creations and payment sessions per minute or period | Phases 4, 5 |
-| BND-04, RTE-11 | auto-buy packs depend on add-ons (PLN-13–15), deferred since Phase 2 | with add-ons |
 | SFT-06, 08, 09, 20 | checkout, tracking, shopper accounts, delivery estimate (by delivery zone) | Phase 4 |
 | ORD-06a (amended 2026-10-17) | the zone charge once per order, with product overrides and weight extras; computed at order creation | Phase 4 |
 | SFT-07 | hosted payment redirect | Phase 5 |
@@ -172,7 +173,6 @@ Rules used below:
 | LND-07, 08, 09, 11, 12 | the landing page's order form: fields, live totals, submission through ORD-02, confirmation, per-IP limit | Phase 4 |
 | LND-10 | payment by the product's policy: cash on delivery in Phase 4; advance and full prepayment through the hosted payment page in Phase 5 | Phases 4, 5 |
 | LND-16 | the server-side Conversions API `Purchase` event fires when an order is created | Phase 4 |
-| BRN-05 | buying the brand identity add-on needs the add-on catalogue (PLN-13/14), not yet built or scheduled; until then the operator can switch it on for a shop by override (PLN-11) | with add-ons |
 
 ### 3.4 Dependencies between requirements
 
@@ -219,6 +219,7 @@ Read each row as: the requirements on the left can only be built or proven once 
 | ATR-16 | ATL-01, PST-02 | option sets are library options seeded by presets |
 | FED-01–05 | PRD-09, ATR-07, INV-01, CCH-01–04, LND-01, LND-06 | the feed is another public catalogue view whose links are landing pages |
 | LND-15 `content_ids` | FED-02 | pixel item IDs must equal the feed's item IDs |
+| PLN-13–15, UPG-14, BND-04, RTE-11, BRN-05 | LIM-01–04, PLN-05, PLN-11, BAL-02, BIL-02/03/08/10 | add-ons sit on top of the plan snapshot and overrides and are paid like a plan, from the balance or directly |
 | TEN-31 | TEN-24, TEN-26, TEN-29 | the dashboard's shop comes from the path, so the slug list and the same-site cookie rules both matter |
 | SUP-01 (this phase's items) | PRD-01, DLV-01, LND-06, API-03 | each item ticks itself by detecting its feature: a product, the zone defaults, a copied link, a key |
 | PST-06 | PST-02, PST-05, PRD-03 | a category points at an existing shop type's defaults instead of copying them |
@@ -226,6 +227,27 @@ Read each row as: the requirements on the left can only be built or proven once 
 | INV-24 | INV-03, INV-15, UOM-03 | a pack amount is a multiplier on one ledger stock |
 
 ---
+
+### 3.4a Rework of code built in Phases 0–2
+
+Phases 0–2 are complete against the SRS as it stood when they were built. Amendments made on 2026-10-17 and
+2026-10-18 change some of that behaviour, so this phase reworks it rather than reopening those phases.
+
+| Requirement | Built in | Today | After the rework | Slice |
+|---|---|---|---|---|
+| D13 → D3-11, TEN-31 | Phase 1 (slices 5, 9) | Dashboard on three kinds of host; the shop comes from the host or the session | Dashboard only at `app.lytro.app/<shop>`; the shop comes from the path, with a membership check | 0 |
+| TEN-29 | Phase 1 | Cookies tied to the exact host, plus a CSRF token (SEC-14) | Also `__Host-` cookies and an `Origin` check | 0 |
+| TEN-26 | Phase 1 (slice 4) | Reserved slug list | Also the dashboard host's page names | 0 |
+| TEN-17 | Phase 1 (slice 9) | Installed from each shop's subdomain | Installed from `app.lytro.app/<shop>/` | 0 |
+| TEN-16 | Phase 1 (slice 9) | A generic placeholder until a logo is uploaded | A monogram | 0 |
+| TEN-18 | Phase 1 (slice 9) | "Powered by Lytronix" | "Powered by Lytro" | 0 |
+| Phase 1–2 tests and test plans | Phases 1–2 | Test the old host model | Test the new one | 0 |
+| API-14 | 2026-10-14 | `/api/v1` on every host | The public API at `api.lytro.app/v1`, keys only | 8 |
+| `BRAND-IDENTITY.md` §11 follow-ups | Phase 1 UI | Palette, fonts, logo and theme colour taken from Lytronix's battery business | Lytro's palette and assets; the operator console's inverted look | 11 |
+| PLN-13, PLN-14, PLN-15, UPG-14 | Deferred by Phase 2 (D2-4) | Not built | Built, with PLN-13/14 raised to Must | 10a |
+
+The domain itself (`lytro.com` to `lytro.app`) was already changed in the dashboard app and `deploy/Caddyfile`
+on 2026-10-18.
 
 ## 3.5 Architecture for this phase
 
@@ -282,6 +304,7 @@ All in `DATABASE-SCHEMA.md` §3.2 (rewritten 2026-10-17), plus:
 | API keys | `api_keys` (hashed, public subset), `api_key_origins`, `request_counters` | 8 |
 | Landing links | `product_slug_redirects` (old slug → product, LND-04) | 1 |
 | Ad tracking | `ad_tracking_settings` (pixel ID, encrypted Conversions API token, LND-15–17) | 9 |
+| Add-ons | `control.addons`, `control.addon_purchases` (already designed; `kind`, payment and renewal columns added 2026-10-18) | 10a |
 | Delivery zones | `delivery_zones` (home and fallback zones always present), `delivery_zone_areas` at four levels (DLV-01, 02), seeded with Inside/Outside Dhaka city for every tenant | 1 |
 | Locations | `control.locations` with `control.divisions` and `control.cities` groups (CUS-08, pulled forward from Phase 4) | 1 |
 | Size charts, option sets | `size_charts` (product or category, image or table, PRD-17), `option_sets` (platform and tenant, ATR-16) | 1 |
@@ -321,6 +344,8 @@ their backend ships earlier.
     hosts; the dashboard's tenant comes from the `/<shop>` path segment, with a membership check that answers
     not-found for a shop the person doesn't belong to; one sign-in across a person's shops, with a shop picker.
   - `__Host-` session cookies and an `Origin` check on every state-changing dashboard and operator request.
+  - A monogram instead of the placeholder logo (TEN-16), and "Powered by Lytro" instead of "Powered by
+    Lytronix" (TEN-18).
   - The dashboard app's routes under `/$shop`, with sign-up, sign-in, create-shop and staff sign-in on the same
     host; a per-shop installable dashboard app scoped to `/<shop>/`.
   - Shop subdomains and custom domains stop serving the dashboard; the reserved-slug list gains the dashboard
@@ -328,7 +353,8 @@ their backend ships earlier.
   - `deploy/Caddyfile` rewritten to one rule per host (`DEPLOYMENT.md` §4–5), `OAUTH_CALLBACK_BASE` on
     `app.lytro.app`, the marketing site's sign-up links pointing there, and the Phase 1–2 test plans' host
     cases updated to match.
-- **Requirements completed:** TEN-17, TEN-26, TEN-29, TEN-31 (and the dashboard half of TEN-08 and TEN-09).
+- **Requirements completed:** TEN-17, TEN-18, TEN-26, TEN-29, TEN-31 (and the dashboard half of TEN-08 and TEN-09;
+  TEN-16's monogram).
 - **Done when:** an owner of two shops switches between them by path with one sign-in; a staff member of shop A
   gets not-found at shop B's path; `/dashboard` on a shop's subdomain is the storefront's not-found; a request
   with a valid session but a shop subdomain's `Origin` is refused; a cookie a shop's subdomain sets for
@@ -489,8 +515,30 @@ their backend ships earlier.
 - **Done when:** after hitting each limit, all existing records and files remain; a tenant downgraded to
   100 products with 340 sees them listed on the banner and can still sell all 340.
 
+### Slice 10a: add-ons
+- **Depends on:** Slice 10 (usage and limits), and Phase 2's billing (balance, plan payments, proration).
+- **Delivers (backend; the screens are in Slice 11):**
+  - The add-on catalogue as operator-editable data (`control.addons`): limit add-ons, packs and feature
+    add-ons, priced from OD-04's placeholders.
+  - Buying: from the balance, taking effect at once, or directly through the platform's payment flow, taking
+    effect when the payment is confirmed (Phase 2's operator-confirmed stand-in until Phase 5's hosted page,
+    D2-1); prorated to the period's end; an invoice and an audit entry.
+  - Limits calculated as plan snapshot + operator overrides + active add-ons.
+  - Renewal with the plan in one payment, a renewal switch per add-on, [30]-day periods renewed from the
+    balance for pay-as-you-go tenants, warnings 7 days and 1 day before a lapse, and the lapse job.
+  - Packs: bought by hand, or by opt-in auto-buy at 100% (bandwidth, API requests).
+  - Feature add-ons: the brand identity entitlement, reverting to the default with settings kept on a lapse.
+  - Add-ons kept across plan changes.
+- **Requirements completed:** PLN-13. *(PLN-14, PLN-15, UPG-14, BND-04, RTE-11 and BRN-05 finish in Slice 11,
+  with their screens.)*
+- **Done when:** extra products bought on day 10 of 30 raise the limit at once for two thirds of a period's
+  price; a direct payment activates the add-on only on confirmation; renewing the plan renews the add-ons set
+  to renew in one payment; an add-on with renewal off lapses at period end after both warnings, and branding
+  reverts to the default with its settings kept; with auto-buy on and enough balance, reaching 100% of
+  bandwidth buys a pack and service continues, and without enough balance it stops.
+
 ### Slice 11: dashboard UI (consolidated)
-- **Depends on:** every backend slice, 0–10.
+- **Depends on:** every backend slice, 0–10a.
 - **Delivers:** onboarding shop-type picker; product editor with the free "Add attribute" control,
   category suggestions and the variant matrix; category tree; product search; image and video manager;
   plain-language inventory screens (stock with "waiting to ship" and "coming", one-tap reasons, "Check
@@ -501,14 +549,17 @@ their backend ships earlier.
   API token entered once); delivery settings with the home-area picker and its two charges up front, and an "Add zone"
   editor that adds a whole division, district or city in one step; size-chart editor; one-tap option sets in the variant editor; "Duplicate product"; the catalog
   feed link with copy and setup steps; the setup checklist on the home screen (SUP-01); the brand identity editor with live preview, and the
-  dashboard themed by the shop's identity when switched on (BRN); a category's "behaves like" setting; "no delivery" zones and a
+  dashboard themed by the shop's identity when switched on (BRN); the add-ons screen, with buying from the
+  usage page and the brand editor and a renewal switch per add-on; Lytro's palette, fonts, logo, theme colour and
+  the operator console's inverted look (`BRAND-IDENTITY.md` §11); a category's "behaves like" setting; "no delivery" zones and a
   product's "Delivers to" limit; "Sizes share one stock" with each size's amount; per-shop-type form layout with "More settings"; price and stock
   columns with "Fill all" in the variant grid; IMEI/serial entry by camera scan, pasted list or typing.
   All in Bangla and English, in the same everyday commerce wording the
   admin app already uses (transliterated domain nouns such as স্টক, প্রোডাক্ট — never formal or technical
   inventory terms).
 - **Requirements completed (E2E halves):** PST-01; ATR-02, ATR-11; PRD-03, PRD-12; INV-06, 07, 09, 22;
-  PUR-07, PUR-09; BND-08; LND-06; ATR-16; ATR-17; PST-05; DLV-05; FED-06; ATR-18 (dashboard half; the shopper-facing picker in Slice 12); BRN-03, 06, 07 (identity rules, editor preview, token engine). *(INV-23's scan and paste
+  PUR-07, PUR-09; BND-08; LND-06; ATR-16; ATR-17; PST-05; DLV-05; FED-06; ATR-18 (dashboard half; the shopper-facing picker in Slice 12); BRN-03, 06, 07 (identity rules, editor preview, token engine); PLN-14, PLN-15, UPG-14, BND-04, RTE-11, BRN-05
+  (add-on screens). *(INV-23's scan and paste
   entry is built here; its shipping half is Phase 4.)*
 - **Partial:** SUP-01 — the checklist with the items that exist by the end of this phase; later phases add
   theirs.
@@ -548,6 +599,7 @@ their backend ships earlier.
 
 ```
 Slice 0 (one dashboard address, parallel from day one) ──► needed by Slices 11 and 12
+Slice 10a (add-ons) after Slice 10 ──► needed by Slice 11
 
             ┌──────────── 3A: catalogue & inventory ────────────┐
 Slice 1 ──► Slice 2 ──► Slice 3 ──► Slice 4
@@ -579,10 +631,11 @@ Slice 8 (parallel from day one) ───────┤
 | 8 API keys & rate limits | — | 1–7 |
 | 9 Public catalogue & caching | 1, 2, 6, 8 | 3, 4, 5, 7, 10 |
 | 10 Limits & usage | 1, 6, 7, 8 | 3, 4, 5, 9 |
-| 11 Dashboard UI | 0–10 | 12 |
+| 10a Add-ons | 10 | 12 |
+| 11 Dashboard UI | 0–10a | 12 |
 | 12 Storefront & landing pages | 0, 7, 9 | 11 |
 
-**Suggested order for one developer:** 0 → 1 → 2 → 3 → 4 → 5 (checkpoint 3A) → 8 → 6 → 7 → 9 → 10 → 11 → 12.
+**Suggested order for one developer:** 0 → 1 → 2 → 3 → 4 → 5 (checkpoint 3A) → 8 → 6 → 7 → 9 → 10 → 10a → 11 → 12.
 Slice 8 goes first among the second half because Slice 9 needs it, and it is small.
 
 ---
