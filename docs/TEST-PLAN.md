@@ -47,9 +47,9 @@ Steps: for every endpoint that takes a resource ID, request tenant B's resource 
 Expected: every attempt returns `not_found`, never `forbidden` (so existence isn't leaked); automated isolation suite passes across the full endpoint list.
 Covers: `TEN-03`, `SEC-02`.
 
-**S01-08 Cookie scoping and payment-callback tenant identification.**
-Steps: 1) Sign in on tenant A's subdomain; inspect the cookie's scope. 2) Attempt to send that cookie to tenant B's subdomain. 3) Deliver a payment callback to a different host than the one the session started on.
-Expected: cookie never transmitted to tenant B's host; the callback still credits the correct tenant via its signed session/callback identifier, not the request host.
+**S01-08 Cookie scoping, same-site requests and payment-callback tenant identification.**
+Steps: 1) Sign in at `app.lytro.app`; inspect the session cookie. 2) From a shop's subdomain, set a cookie with the session cookie's name for `.lytro.app`, then make a dashboard request. 3) Send a state-changing dashboard request with a valid session but the `Origin` of a shop's subdomain. 4) Deliver a payment callback to a different host than the one the session started on.
+Expected: the session cookie is `__Host-` prefixed, Secure, `Path=/`, with no `Domain`, and is never sent to another host; the cookie set from the shop's subdomain never reaches the dashboard; the request in step 3 is refused; the callback still credits the correct tenant via its signed session/callback identifier, not the request host.
 Covers: `TEN-29`.
 
 **S01-09 Lifecycle-gated sign-in.**
@@ -75,19 +75,25 @@ Expected: Starter/trial/PAYG refused with `plan_feature_unavailable`; Growth suc
 Covers: `TEN-10`, `TEN-13`, `TEN-14`.
 
 **S01-13 Per-tenant PWA branding.**
-Steps: install the dashboard PWA from two different tenants' own subdomains/custom domains.
+Steps: install the dashboard PWA from two different shops' dashboard paths (`app.lytro.app/<shop-a>/`, `app.lytro.app/<shop-b>/`).
 Expected: two distinctly named, distinctly iconed home-screen apps, each reflecting its own tenant's shop name/logo at install time, both still carrying the non-removable "Powered by" mark.
-Covers: `TEN-08`, `TEN-17`.
+Covers: `TEN-17`.
 
 **S01-14 Hostname resolution happens before auth, and reserved-slug collisions are blocked.**
-Steps: 1) Request an unknown subdomain. 2) Attempt to claim a subdomain matching a reserved word or an existing tenant's. 3) Request a known tenant's subdomain with no session at all.
-Expected: unknown subdomain returns a generic not-found page before any auth logic runs; reserved/colliding slugs rejected at sign-up; a known subdomain resolves to that tenant's public storefront with no session required.
+Steps: 1) Request an unknown subdomain. 2) Attempt to claim a subdomain matching a reserved word or an existing tenant's. 3) Request a known tenant's subdomain with no session at all. 4) Request `/dashboard` and `/sign-in` on a known shop's subdomain and on its custom domain.
+Expected: unknown subdomain returns a generic not-found page before any auth logic runs; reserved/colliding slugs rejected at sign-up; a known subdomain resolves to that tenant's public storefront with no session required; neither host serves the dashboard (the storefront answers both paths).
 Covers: `TEN-01`, `TEN-04` to `TEN-09`, `TEN-11`, `TEN-12`.
 
 **S01-15 Deleted-tenant subdomain reservation window.**
 Steps: delete a tenant's business data (day 60); attempt to claim its old subdomain as a different subscriber within 30 days, then after.
 Expected: refused within 30 days; claimable after.
 Covers: `TEN-15` to `TEN-18`, `TEN-20` to `TEN-22`, `TEN-24` to `TEN-28`.
+
+**S01-16 One dashboard address.**
+Preconditions: an owner of two shops; a staff member of shop A only.
+Steps: 1) The owner signs in once at `app.lytro.app/sign-in`. 2) Open `app.lytro.app/<shop-a>` and `app.lytro.app/<shop-b>`. 3) As the staff member, open `app.lytro.app/<shop-b>` and call one of shop B's dashboard API endpoints. 4) Create a shop named "Sign in".
+Expected: one sign-in lands on a shop picker, and both dashboards open by path without signing in again; step 3 returns the same not-found as an unknown shop, for both the page and the API; the shop in step 4 receives the slug `sign-in-2`.
+Covers: `TEN-31`, `TEN-26`.
 
 ---
 
