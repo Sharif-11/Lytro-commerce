@@ -125,6 +125,12 @@ Bangla first, English by toggle (I18N-01); the dashboard's existing vernacular (
 
 ---
 
+## 4a. Responsive rules
+
+Every screen is written phone-first: the base styles target a 360 px viewport, and two breakpoints add layout rather than take it away. At 640 px forms gain a second column and action rows sit side by side; at 900 px the dashboard gains its sidebar and loses the bottom tabs, and the flow map spreads into three lanes. Rules that hold at every width: tap targets at least 44 px; body text never under 16 px; buttons wrap long Bangla labels instead of overflowing; URLs and order lines break anywhere rather than widen the page; nothing has a fixed width wider than the screen; the page never scrolls sideways. The prototype was checked at 360, 640 and 900 px.
+
+---
+
 ## 5. Mapping onto `apps/dashboard` (today `apps/admin`)
 
 | Screen | Route | Exists today | Change |
