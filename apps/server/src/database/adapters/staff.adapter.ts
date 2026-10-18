@@ -9,6 +9,7 @@ import {
 import { UniqueViolation } from '../../common/errors/unique-violation';
 import type { StaffStore } from '../../modules/staff/ports/staff-store';
 import type { StaffCredentials, StaffRecord } from '../../modules/staff/types/staff';
+import type { OwnerContact } from '../../modules/staff/types/owner-contact';
 import { DatabaseService } from '../database.service';
 
 // The unique index on a shop's staff phones (STF-06 within one shop).
@@ -153,10 +154,7 @@ export class DrizzleStaffStore implements StaffStore {
     return this.users.deleteAllForTenant(tx, tenantId);
   }
 
-  findOwnerContact(
-    tx: Transaction,
-    tenantId: string,
-  ): Promise<{ phone: string | null; email: string | null } | null> {
+  findOwnerContact(tx: Transaction, tenantId: string): Promise<OwnerContact | null> {
     return this.users.findOwnerContact(tx, tenantId);
   }
 }

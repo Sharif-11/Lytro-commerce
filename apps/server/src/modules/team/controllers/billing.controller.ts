@@ -23,7 +23,11 @@ import { DashboardGuard, type DashboardRequest } from '../../identity/guards/das
 import { SessionGuard } from '../../identity/guards/session.guard';
 import { PermissionGuard } from '../guards/permission.guard';
 import { OkDto } from '../../../common/dto/ok.dto';
-import { DowngradeService, type OverLimitItem } from '../../billing/services/downgrade.service';
+import {
+  DowngradeService,
+  type OverLimitItem,
+  type PayAsYouGoChoice,
+} from '../../billing/services/downgrade.service';
 import { LifecycleService } from '../../billing/services/lifecycle.service';
 import { PurchaseService } from '../../billing/services/purchase.service';
 import { UpgradeService } from '../../billing/services/upgrade.service';
@@ -45,6 +49,7 @@ import {
   InvoiceDto,
   InvoiceListDto,
   OverLimitItemListDto,
+  PayAsYouGoChoiceDto,
   PlanPaymentDto,
   ScheduledPlanChangeDto,
 } from '../dto/billing-response.dto';
@@ -191,6 +196,24 @@ export class BillingController {
   async cancelDowngrade(@Req() request: DashboardRequest): Promise<{ ok: true }> {
     await this.downgrade.cancel(this.tenantIdOf(request), this.clientIp.resolve(request));
     return { ok: true };
+  }
+
+  // PYG-01, PYG-10, LIF-15: scheduled for the period's end while a paid period runs, cancelled through
+  // `downgrade/cancel` and shown by `GET downgrade` like any scheduled change; at once for a lapsed shop, which
+  // only its owner can reach (DashboardGuard's lapsed carve-out).
+  @Post('pay-as-you-go')
+  @Dashboard({ lapsed: true })
+  @RequirePermission(Permission.PaymentsManage)
+  @ResponseMessage('PayAsYouGoChosen')
+  @ApiOperation({
+    summary: "Choose pay-as-you-go: at the paid period's end, or at once for a lapsed shop",
+  })
+  @ZodResponse({ type: PayAsYouGoChoiceDto })
+  choosePayAsYouGo(@Req() request: DashboardRequest): Promise<PayAsYouGoChoice> {
+    return this.downgrade.choosePayAsYouGo(
+      this.tenantIdOf(request),
+      this.clientIp.resolve(request),
+    );
   }
 
   @Get('downgrade')

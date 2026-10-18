@@ -919,8 +919,8 @@ Covers: `ADM-02`, `ADM-03`.
 
 **S11-09 Operator tenant actions, all audited.**
 Steps: suspend a tenant and its payment page; restore it; extend a plan by days with a reason; adjust a balance with a reason; attempt each with an empty reason; reset an owner's sign-in; set an override.
-Expected: every action succeeds with a reason, fails without one; each writes a platform audit entry and, where relevant, a tenant activity entry.
-Covers: `ADM-04`.
+Expected: every action succeeds with a reason, fails without one; each writes a platform audit entry and, where relevant, a tenant activity entry, shown on the shop's Activity page as "Platform support" with the reason and no operator id or name (suspend, restore, balance adjustment, limit override, and rejecting a plan payment, `AUD-08`).
+Covers: `ADM-04`, `AUD-08`.
 
 **S11-10 Platform audit log filtering and manual-entry guardrails.**
 Steps: 1) Filter the platform audit log by tenant, actor, action, and date. 2) Record a manual out-of-band payment (`ADM-14`-style) with an invalid or missing required field.

@@ -14,7 +14,6 @@ import { ApiError } from '../../../common/api-error';
 import { addMonths, HOUR_MS } from '../../../common/time';
 import { AuditService } from '../../audit/services/audit.service';
 import { BalanceService } from '../../balance/services/balance.service';
-import { InvoicesService } from '../../payments/services/invoices.service';
 import { PlanPaymentsService } from '../../payments/services/plan-payments.service';
 import type { InvoiceRecord } from '../../payments/types/invoice';
 import type { PlanPaymentRecord } from '../../payments/types/plan-payment';
@@ -22,6 +21,7 @@ import { TenantService } from '../../tenancy/services/tenant.service';
 import { CLOCK } from '../tokens';
 import { BillingTermsService } from './billing-terms.service';
 import { DowngradeService } from './downgrade.service';
+import { PlanInvoicingService } from './plan-invoicing.service';
 import { PlansService } from './plans.service';
 
 // BIL-09: a quote's price is held for 30 minutes.
@@ -47,7 +47,7 @@ export class PurchaseService {
     @Inject(PlansService) private readonly plans: PlansService,
     @Inject(BillingTermsService) private readonly terms: BillingTermsService,
     @Inject(PlanPaymentsService) private readonly payments: PlanPaymentsService,
-    @Inject(InvoicesService) private readonly invoices: InvoicesService,
+    @Inject(PlanInvoicingService) private readonly invoicing: PlanInvoicingService,
     @Inject(TenantService) private readonly tenants: TenantService,
     @Inject(BalanceService) private readonly balance: BalanceService,
     @Inject(AuditService) private readonly audit: AuditService,
@@ -185,13 +185,15 @@ export class PurchaseService {
     await this.balance.unfreeze(tx, payment.tenantId);
     await this.downgrade.cancelIfScheduled(tx, payment.tenantId);
 
-    const invoice = await this.invoices.issue(tx, {
-      tenantId: payment.tenantId,
+    const invoice = await this.invoicing.issue(tx, {
       kind: payment.kind === PlanPaymentKind.Renewal ? InvoiceKind.Renewal : InvoiceKind.Purchase,
-      planSnapshot: plan.limits,
-      amount: payment.amount,
-      creditAmount: payment.creditAmount,
-      billingTermLabel: term.labelEn,
+      payment,
+      plan,
+      term,
+      fullPrice: payment.amount,
+      periodStart,
+      periodEnd,
+      shopName: info.shopName,
     });
 
     await this.audit.record(tx, {

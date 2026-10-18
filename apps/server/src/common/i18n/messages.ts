@@ -121,6 +121,10 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'Downgrade is only available while your plan is active.',
     bn: 'ডাউনগ্রেড শুধুমাত্র প্ল্যান চালু থাকলে উপলব্ধ।',
   },
+  PayAsYouGoNotAvailable: {
+    en: "This shop can't switch to pay-as-you-go right now.",
+    bn: 'এই দোকান এখন পে-অ্যাজ-ইউ-গো-তে যেতে পারবে না।',
+  },
   DowngradeMustBeLowerRank: {
     en: 'You can only downgrade to a lower plan.',
     bn: 'আপনি শুধুমাত্র নিম্নতর প্ল্যানে ডাউনগ্রেড করতে পারবেন।',
@@ -395,6 +399,7 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   UpgradeSubmitted: { en: 'Upgrade payment submitted.', bn: 'আপগ্রেড পেমেন্ট জমা দেওয়া হয়েছে।' },
   UpgradeConfirmed: { en: 'Upgrade confirmed.', bn: 'আপগ্রেড নিশ্চিত হয়েছে।' },
   DowngradeScheduled: { en: 'Downgrade scheduled.', bn: 'ডাউনগ্রেড নির্ধারিত হয়েছে।' },
+  PayAsYouGoChosen: { en: 'Pay-as-you-go chosen.', bn: 'পে-অ্যাজ-ইউ-গো বেছে নেওয়া হয়েছে।' },
   DowngradeCancelled: { en: 'Downgrade cancelled.', bn: 'ডাউনগ্রেড বাতিল হয়েছে।' },
   DowngradePreviewed: { en: 'Downgrade preview retrieved.', bn: 'ডাউনগ্রেড প্রিভিউ পাওয়া গেছে।' },
   DowngradeRetrieved: { en: 'Scheduled change retrieved.', bn: 'নির্ধারিত পরিবর্তন পাওয়া গেছে।' },

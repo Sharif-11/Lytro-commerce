@@ -614,3 +614,208 @@ describeIfDatabase('DWN-11: shorter retention is delayed 14 days, with a notice'
     expect(daysUntilFloorLifts).toBe(14); // the clock refreshed from the second downgrade's own notice
   });
 });
+
+async function payAsYouGoPlanId(): Promise<string> {
+  const plan = await admin.query<{ id: string }>(
+    `SELECT id FROM control.plans WHERE name = 'Pay-as-you-go'`,
+  );
+  return plan.rows[0]?.id ?? '';
+}
+
+async function scheduledRow(tenantId: string) {
+  const row = await admin.query<{
+    kind: string;
+    target_plan_id: string | null;
+    effective_at: Date;
+  }>(
+    'SELECT kind, target_plan_id, effective_at FROM control.scheduled_plan_changes WHERE tenant_id = $1',
+    [tenantId],
+  );
+  return row.rows[0];
+}
+
+// The tick only picks up a change once its effective date has passed -- moving this tenant's period end and
+// its change into the past stands in for the days going by, without making any other test's change due.
+async function endPeriodNow(tenantId: string): Promise<void> {
+  await admin.query(
+    `UPDATE control.tenants SET period_end = now() - interval '1 minute' WHERE id = $1`,
+    [tenantId],
+  );
+  await admin.query(
+    `UPDATE control.scheduled_plan_changes SET effective_at = now() - interval '1 minute'
+     WHERE tenant_id = $1`,
+    [tenantId],
+  );
+}
+
+describeIfDatabase('PYG-01, PYG-10: switching from a plan to pay-as-you-go at period end', () => {
+  it('schedules the switch for the period end, changing nothing until then', async () => {
+    const planId = await seedPlan((nextRank += 2), 10);
+    const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
+    const periodEnd = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000);
+    await activateTenant(tenantId, planId, new Date(), periodEnd);
+
+    const choice = await downgrade.choosePayAsYouGo(tenantId);
+    expect(choice.effective).toBe('period_end');
+    expect(choice.effectiveAt?.getTime()).toBe(periodEnd.getTime());
+
+    const scheduled = await scheduledRow(tenantId);
+    expect(scheduled?.kind).toBe('pay_as_you_go_switch');
+    expect(scheduled?.target_plan_id).toBeNull();
+    expect(scheduled?.effective_at.getTime()).toBe(periodEnd.getTime());
+
+    const tenant = await tenantRow(tenantId);
+    expect(tenant?.state).toBe('active');
+    expect(tenant?.plan_id).toBe(planId);
+    expect(await auditActions(tenantId)).toContain(AuditAction.PayAsYouGoScheduled);
+  });
+
+  it('replaces a scheduled downgrade -- only one change is ever pending', async () => {
+    const rank = (nextRank += 2);
+    const highPlanId = await seedPlan(rank, 10);
+    const lowPlanId = await seedPlan(rank - 1, 2);
+    const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
+    await activateTenant(
+      tenantId,
+      highPlanId,
+      new Date(),
+      new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
+    );
+
+    await downgrade.schedule(tenantId, lowPlanId);
+    await downgrade.choosePayAsYouGo(tenantId);
+
+    const scheduled = await scheduledRow(tenantId);
+    expect(scheduled?.kind).toBe('pay_as_you_go_switch');
+    expect(scheduled?.target_plan_id).toBeNull();
+  });
+
+  it('at period end the tick moves the shop onto pay-as-you-go, with seats cut to its limit', async () => {
+    const planId = await seedPlan((nextRank += 2), 10);
+    const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
+    await activateTenant(
+      tenantId,
+      planId,
+      new Date(Date.now() - 20 * 24 * 60 * 60 * 1000),
+      new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
+    );
+    await balance.creditStandalone({ tenantId, amount: '300.00', type: LedgerEntryType.TopUp });
+    await seedOwner(tenantId);
+    await addStaff(tenantId, 2); // owner + 2 = 3 seats, against pay-as-you-go's 1
+
+    await downgrade.choosePayAsYouGo(tenantId);
+    await endPeriodNow(tenantId);
+    const now = new Date();
+    await downgrade.applyDueChanges(now);
+
+    const tenant = await tenantRow(tenantId);
+    expect(tenant?.state).toBe('pay_as_you_go');
+    expect(tenant?.plan_id).toBe(await payAsYouGoPlanId());
+    expect(tenant?.plan_snapshot.staff).toBe(1);
+    // PYG-08: no billing period; the idle clock (PYG-17) counts from the switch.
+    expect(tenant?.period_end).toBeNull();
+    expect(tenant?.period_start?.getTime()).toBe(now.getTime());
+    expect(tenant?.balance_amount).toBe('300.00');
+    expect(await scheduledRow(tenantId)).toBeUndefined();
+
+    const list = await staff.list({ id: tenantId, planLimits: { staff: 1 } });
+    const active = list.staff.filter((member) => member.active);
+    expect(active).toHaveLength(1);
+    expect(active[0]?.isOwner).toBe(true);
+
+    const actions = await auditActions(tenantId);
+    expect(actions.indexOf(AuditAction.PayAsYouGoApplied)).toBeGreaterThan(
+      actions.indexOf(AuditAction.PayAsYouGoScheduled),
+    );
+  });
+
+  it('cancelling the switch keeps the plan, and logs it as a pay-as-you-go cancellation', async () => {
+    const planId = await seedPlan((nextRank += 2), 10);
+    const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
+    await activateTenant(
+      tenantId,
+      planId,
+      new Date(),
+      new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
+    );
+
+    await downgrade.choosePayAsYouGo(tenantId);
+    await downgrade.cancel(tenantId);
+
+    expect(await scheduledRow(tenantId)).toBeUndefined();
+    const actions = await auditActions(tenantId);
+    expect(actions).toContain(AuditAction.PayAsYouGoCancelled);
+    expect(actions).not.toContain(AuditAction.DowngradeCancelled);
+    expect((await tenantRow(tenantId))?.plan_id).toBe(planId);
+  });
+
+  it('renewing the plan before period end supersedes the switch', async () => {
+    const planId = await seedPlan((nextRank += 2), 10);
+    const termId = await seedTermAndPrice(planId, 1, '199.00');
+    const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
+    const periodEnd = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000);
+    await activateTenant(tenantId, planId, new Date(), periodEnd);
+    await balance.creditStandalone({ tenantId, amount: '500.00', type: LedgerEntryType.TopUp });
+
+    await downgrade.choosePayAsYouGo(tenantId);
+    const quote = await purchase.quote(tenantId, planId, termId);
+    await purchase.confirmFromBalance(quote.id, tenantId);
+
+    expect(await scheduledRow(tenantId)).toBeUndefined();
+    expect(await auditActions(tenantId)).toContain(AuditAction.PayAsYouGoCancelled);
+    const tenant = await tenantRow(tenantId);
+    expect(tenant?.state).toBe('active');
+    expect(tenant?.period_end?.getTime()).toBe(addMonths(periodEnd, 1).getTime());
+  });
+});
+
+describeIfDatabase('LIF-15: a lapsed shop restored by choosing pay-as-you-go', () => {
+  it.each(['grace', 'read_only', 'locked', 'archived'])(
+    'a %s shop switches at once, its balance usable again',
+    async (state) => {
+      const planId = await seedPlan((nextRank += 2), 10);
+      const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
+      await activateTenant(
+        tenantId,
+        planId,
+        new Date(Date.now() - 60 * 24 * 60 * 60 * 1000),
+        new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+      );
+      await balance.creditStandalone({ tenantId, amount: '120.00', type: LedgerEntryType.TopUp });
+      await admin.query(
+        `UPDATE control.tenants SET state = $2, balance_frozen = true, cancelled_at = now()
+         WHERE id = $1`,
+        [tenantId, state],
+      );
+
+      const choice = await downgrade.choosePayAsYouGo(tenantId);
+      expect(choice).toEqual({ effective: 'now', effectiveAt: null });
+
+      const row = await admin.query<{
+        state: string;
+        period_end: Date | null;
+        balance_frozen: boolean;
+        cancelled_at: Date | null;
+      }>(
+        'SELECT state, period_end, balance_frozen, cancelled_at FROM control.tenants WHERE id = $1',
+        [tenantId],
+      );
+      expect(row.rows[0]).toMatchObject({
+        state: 'pay_as_you_go',
+        period_end: null,
+        balance_frozen: false,
+        cancelled_at: null,
+      });
+      expect((await balance.current(tenantId)).amount).toBe('120.00');
+      expect(await auditActions(tenantId)).toContain(AuditAction.PayAsYouGoApplied);
+    },
+  );
+
+  it.each(['trial', 'pay_as_you_go', 'deleted'])('a %s shop is refused', async (state) => {
+    const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
+    await admin.query('UPDATE control.tenants SET state = $2 WHERE id = $1', [tenantId, state]);
+
+    await expect(downgrade.choosePayAsYouGo(tenantId)).rejects.toMatchObject({ code: 'conflict' });
+    expect(await scheduledRow(tenantId)).toBeUndefined();
+  });
+});

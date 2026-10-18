@@ -12,6 +12,7 @@ import { AppModule } from '../src/app/app.module';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { BalanceService } from '../src/modules/balance/services/balance.service';
 import { RateService } from '../src/modules/balance/services/rate.service';
+import { PlanLimitOverridesService } from '../src/modules/billing/services/plan-limit-overrides.service';
 import { LOW_BALANCE_NOTIFIER } from '../src/modules/balance/tokens';
 import { ApiError } from '../src/common/api-error';
 import { listenOn } from './support/bootstrap';
@@ -36,6 +37,7 @@ let port: number;
 let admin: pg.Client;
 let balance: BalanceService;
 let rates: RateService;
+let overrides: PlanLimitOverridesService;
 const texts = new SmsCapture();
 const lowBalance = new LowBalanceCapture();
 
@@ -157,6 +159,7 @@ beforeAll(async () => {
   ({ app, port } = await listenOn(moduleRef));
   balance = app.get(BalanceService);
   rates = app.get(RateService);
+  overrides = app.get(PlanLimitOverridesService);
 }, BCRYPT_TIMEOUT_MS);
 
 afterAll(async () => {
@@ -395,6 +398,52 @@ describeIfDatabase('rates (RAT-01 to RAT-14)', () => {
 });
 
 describeIfDatabase('balance and rates over HTTP (controller wiring)', () => {
+  it("AUD-08, ADM-04: an operator's adjustment and limit override show in the shop's activity as Platform support", async () => {
+    const who = await owner();
+    const tenantId = await tenantIdOf(who.slug);
+    const operatorId = randomUUID();
+    await balance.adjustStandalone({
+      tenantId,
+      amount: '15.00',
+      reason: 'refund for a failed courier booking',
+      operatorId,
+    });
+    await overrides.set(tenantId, 'products', 500, 'launch week allowance', operatorId);
+    await overrides.remove(tenantId, 'products', operatorId);
+
+    const response = await get('/activity', shopCall(who));
+    expect(response.status).toBe(200);
+    const entries = (
+      response.body as {
+        entries: {
+          action: string;
+          actorType: string;
+          actorId: string | null;
+          actorName: string;
+          summary: unknown;
+        }[];
+      }
+    ).entries.filter((entry) => entry.actorType === 'platform_support');
+    expect(entries.map((entry) => entry.action).sort()).toEqual([
+      'balance_adjusted',
+      'plan_limit_override_removed',
+      'plan_limit_override_set',
+    ]);
+    for (const entry of entries) {
+      expect(entry.actorName).toBe('Platform support');
+      expect(entry.actorId).toBeNull(); // never the operator's own id
+    }
+    expect(entries.find((entry) => entry.action === 'balance_adjusted')?.summary).toEqual({
+      amount: '15.00',
+      reason: 'refund for a failed courier booking',
+    });
+    expect(entries.find((entry) => entry.action === 'plan_limit_override_set')?.summary).toEqual({
+      limitKey: 'products',
+      value: 500,
+      reason: 'launch week allowance',
+    });
+  });
+
   it("reads an owner's own balance and the current-rates page", async () => {
     const who = await owner();
     const response = await get('/balance', shopCall(who));

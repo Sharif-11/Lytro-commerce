@@ -1163,6 +1163,81 @@ Verified with `returning-owner.e2e.spec.ts` (new) and two new cases in `lifecycl
 updated deleted-owner case in `dashboard.e2e.spec.ts`. Undoing each fix in turn made exactly its own tests
 fail, and the server booted for real (`node dist/main.js`) with the new module wiring.
 
+## 55. `PYG-01`, `PYG-10`, `LIF-15`: a shop on a plan could never choose pay-as-you-go — found and fixed 2026-10-18
+
+Found in the 2026-10-18 audit of Phases 0-2 against `SRS-detailed.md`. The only way onto pay-as-you-go was a
+trial running out. A shop on a plan had no way to switch at period end (`PYG-10`), and a lapsed shop could
+only be restored by buying a plan, though `LIF-15` also allows choosing pay-as-you-go. The
+`pay_as_you_go_switch` kind existed in `scheduled_plan_changes`, but nothing wrote or applied it.
+
+**Fixed:**
+- `POST /api/v1/billing/pay-as-you-go` (`DowngradeService.choosePayAsYouGo`). An `active` shop with a running
+  period gets the switch scheduled for the period end, replacing any scheduled downgrade
+  (`pay_as_you_go_scheduled`). A `grace`, `read_only`, `locked` or `archived` shop, or an `active` one with
+  no running period, switches at once: no period, balance unfrozen, cancellation cleared, public side back
+  online (`pay_as_you_go_applied`). A trial, a shop already on pay-as-you-go and a deleted shop get
+  `409 conflict`.
+- The tick's `applyDueChanges` applies a due switch before `runTick`, so neither renewal nor lapse fires
+  first. Seats over pay-as-you-go's one are deactivated, and a shorter retention gets its 14-day floor
+  and notice, as for a downgrade (`DWN-08`, `DWN-11`).
+- `downgrade/cancel` cancels a scheduled switch too (`pay_as_you_go_cancelled`). A purchase, renewal or
+  upgrade supersedes it. No renewal reminder (`BIL-14`) goes out while a switch is scheduled.
+
+The dashboard buttons wait for the consolidated UI pass. Verified with new cases in
+`plan-downgrade.e2e.spec.ts` and `lifecycle.e2e.spec.ts`.
+
+## 56. `BIL-12`, `BIL-05`: invoices left out most of what they must state, and the owner was never told — found and fixed 2026-10-18
+
+Found in the same audit. An invoice held only its number, amount, credit, term label and limits. Shop and
+owner name, plan name and version, period dates, discount and payment reference were all missing. Activation
+did not notify the owner (`BIL-05`).
+
+**Fixed:**
+- `control.invoices` gains `shop_name`, `owner_name`, `plan_name`, `plan_version`, `period_start`,
+  `period_end`, `discount_amount`, `payment_method` and `payment_reference` (migration `0045`), copied when
+  the invoice is issued. Invoices from before this migration keep them empty (discount `0`).
+- The discount is the saving against the shortest visible priced term at its monthly rate, the figure
+  `TRM-12` shows (`BillingTermsService.savingFor`; Starter for 12 months at 4,741 against 449 a month saves
+  647.00). For an upgrade it is measured on the full term price, before the credit line.
+- `payment_method` is `balance` or `wallet`. For a wallet payment, `payment_reference` is the transaction
+  ID the operator verified.
+- Purchase, renewal and upgrade share one `PlanInvoicingService`, which issues the invoice and queues an
+  SMS and an email to the owner ("Your Starter plan is active until 2027-10-18. Invoice #12, 4741.00 TK.").
+  Both go through the platform's lifecycle-notice outbox, never billed to the shop, and both join the
+  activation's transaction.
+- The invoice response and the data export carry the new fields.
+
+Tax lines still wait for a tax configuration, which does not exist yet. Verified with new cases in
+`plan-purchase.e2e.spec.ts`.
+
+## 57. `TEN-26`: "lytro" was not reserved — found and fixed 2026-10-18
+
+Found in the same audit. The reserved list had `lytronix` but not `lytro`, the platform's public name since
+the 2026-10-18 rename, so a shop could take `lytro.lytro.app`. Migration `0046` adds it, and `TEN-26` now
+names both. Verified in `tenancy.integration.spec.ts`: both are refused with a `-2` suggestion.
+
+## 58. `AUD-08`, `ADM-04`: operator corrections never reached the shop's activity log — found and fixed 2026-10-18
+
+Found in the same audit. A balance adjustment, a limit override and a rejected plan payment were written
+only to the platform audit log, so the shop never saw them. Suspension and restore did reach the shop's log,
+but with the operator's own id as the actor. The Activity page then showed a blank actor name and exposed
+an internal id, against `AUD-08`'s "Platform support", no personal details.
+
+**Fixed:**
+- `BalanceService.adjustStandalone`, `PlanLimitOverridesService.set`/`remove` and
+  `PaymentQueueService.reject` also write a tenant activity entry (`balance_adjusted`,
+  `plan_limit_override_set`, `plan_limit_override_removed`, `plan_payment_rejected`) as `platform_support`.
+  Each entry carries the reason or note and is written in the same transaction as the change. All four
+  are money-related, so they are kept 24 months (`AUD-07`).
+- Every `platform_support` entry is written with no actor id; the platform audit log keeps which operator
+  acted. The Activity page always shows a `platform_support` or `system` entry under its fixed name with no
+  id, which also covers suspension entries written before this fix.
+
+The `ADM-04` actions not built yet (extending a plan by days, resetting an owner's sign-in, suspending only
+the payment page) stay with the operator console in Phase 8. Verified with new cases in
+`balance-ledger.e2e.spec.ts` and `plan-purchase.e2e.spec.ts`. Undoing the list change, with an operator
+id written again, made the activity case fail.
+
 ## Not a bug, just noting it so it isn't mistaken for one later
 
 The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data

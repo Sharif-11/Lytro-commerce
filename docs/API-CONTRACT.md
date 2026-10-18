@@ -160,7 +160,7 @@ plus a split top-up quote/confirm pair instead of one combined submit.
 | POST | `/api/v1/billing/quote` | session, `payments:manage` | `{ planId, billingTermId }` → prices a purchase or a renewal of the tenant's current plan (picked automatically, not a separate endpoint) — a `control.plan_payments` row in `pending` (`kind: purchase` or `renewal`). |
 | POST | `/api/v1/billing/purchase` | session, `payments:manage` | `{ paymentId, method: 'balance'\|'wallet', transactionId?, senderNumber?, amountPaid? }` — `'balance'` activates the plan at once; `'wallet'` enters the operator's payment-queue review (§18). |
 | GET | `/api/v1/billing/invoices` | session, `payments:read` | Available in every lifecycle state, including after deletion (BIL-13). For the owner, also the invoices of their earlier, deleted shops, each with `earlierShop: true` (LIF-21); staff see this shop's only. |
-| GET | `/api/v1/billing/invoices/:id` | session, `payments:read` | One invoice, including its plan-limits snapshot at the time (BIL-12); the owner may also open an earlier, deleted shop's invoice (`earlierShop: true`). |
+| GET | `/api/v1/billing/invoices/:id` | session, `payments:read` | One invoice, including its plan-limits snapshot at the time (BIL-12); the owner may also open an earlier, deleted shop's invoice (`earlierShop: true`). Each invoice also states `shopName`, `ownerName`, `planName`, `planVersion`, `periodStart`, `periodEnd`, `discountAmount`, `paymentMethod` (`balance`\|`wallet`) and `paymentReference` (the wallet transaction ID), as at issue; all but `discountAmount` are null on invoices issued before 2026-10-18. |
 
 ---
 
@@ -239,9 +239,9 @@ Delivered as signed JSON (`HMAC-SHA256`, timestamp + signature headers, 5-minute
 ## 11. Plan lifecycle depth
 
 **Updated 2026-10-16 (Phase 2 shipped):** every route below moved under `billing/`, matching §8's own
-purchase pair — not the standalone `plans/:id/...` shape this section originally sketched. `switch-to-payg`
-never shipped as an endpoint at all: a trial converts to pay-as-you-go automatically, by the trial-expiry
-job (TRL-07), never by an explicit tenant call.
+purchase pair — not the standalone `plans/:id/...` shape this section originally sketched. A trial converts to
+pay-as-you-go automatically, by the trial-expiry job (TRL-07). **Updated 2026-10-18:** a shop on a plan, or a
+lapsed one, chooses it with `billing/pay-as-you-go` (PYG-10, LIF-15).
 
 | Method | Path | Auth | Notes |
 | --- | --- | --- | --- |
@@ -249,8 +249,9 @@ job (TRL-07), never by an explicit tenant call.
 | POST | `/api/v1/billing/upgrade/confirm` | session, `payments:manage` | `{ paymentId, method: 'balance'\|'wallet', transactionId?, senderNumber?, amountPaid? }` — same two-method shape as `billing/purchase`; applies at once on a balance confirmation (UPG-09..12). Only one pending upgrade per tenant (UPG-08, `conflict`). |
 | POST | `/api/v1/billing/downgrade/preview` | session, `payments:manage` | `{ planId }` → the limits currently over the target plan (DWN-03) — informational, never blocks scheduling. |
 | POST | `/api/v1/billing/downgrade/schedule` | session, `payments:manage` | `{ planId }` → schedules for period end (DWN-01). |
-| POST | `/api/v1/billing/downgrade/cancel` | session, `payments:manage` | Cancels a scheduled downgrade before it takes effect (DWN-04). No body. |
-| GET | `/api/v1/billing/downgrade` | session, `payments:read` | The scheduled downgrade, or `null` when nothing is scheduled (DWN-02). |
+| POST | `/api/v1/billing/downgrade/cancel` | session, `payments:manage` | Cancels a scheduled downgrade or pay-as-you-go switch before it takes effect (DWN-04). No body. |
+| GET | `/api/v1/billing/downgrade` | session, `payments:read` | The scheduled change (`kind: 'downgrade' \| 'pay_as_you_go_switch'`; `targetPlanId` is null for a switch), or `null` when nothing is scheduled (DWN-02). |
+| POST | `/api/v1/billing/pay-as-you-go` | session, `payments:manage` | Choose pay-as-you-go (PYG-01). No body. `active` with a running period → `{ effective: 'period_end', effectiveAt }`, scheduled like a downgrade and replacing one (PYG-10). `grace`/`read_only`/`locked`/`archived`, or `active` with no running period → `{ effective: 'now', effectiveAt: null }`, restored at once (LIF-15). Trial, already pay-as-you-go or deleted → `409 conflict`. Open in every lapsed state. |
 | POST | `/api/v1/billing/cancel` | session, `payments:manage` | Cancels at period end (LIF-01). No body. |
 | POST | `/api/v1/billing/cancel/undo` | session, `payments:manage` | Undoes a cancellation before period end (LIF-01). No body. **No corresponding GET exists** — there is currently no way to read back whether a cancellation is pending; both actions are fire-and-forget from the client's own point of view. |
 | | | | Switching *from* pay-as-you-go *to* a subscription plan (PYG-11) has no endpoint of its own — it is a plain `billing/quote` + `billing/purchase` call (§8) at full price, no credit line, exactly as any other purchase. |

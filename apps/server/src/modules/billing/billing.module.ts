@@ -21,6 +21,7 @@ import { LifecycleService } from './services/lifecycle.service';
 import { PlanAssignmentService } from './services/plan-assignment.service';
 import { PlanLimitOverridesService } from './services/plan-limit-overrides.service';
 import { PaymentQueueService } from './services/payment-queue.service';
+import { PlanInvoicingService } from './services/plan-invoicing.service';
 import { PurchaseService } from './services/purchase.service';
 import { TrialLifecycleService } from './services/trial-lifecycle.service';
 import { UpgradeService } from './services/upgrade.service';
@@ -59,6 +60,7 @@ import {
     PlanAssignmentService,
     PlanLimitOverridesService,
     TrialLifecycleService,
+    PlanInvoicingService,
     PurchaseService,
     UpgradeService,
     DowngradeService,

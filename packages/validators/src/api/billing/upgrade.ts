@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { PLAN_PAYMENT_METHODS } from '../../db/enums';
 
 // POST /billing/upgrade/quote (UPG-01/02): the higher-ranked plan and term the tenant wants to price.
 export const quoteUpgradeSchema = z.object({
@@ -13,7 +14,7 @@ export type QuoteUpgradeInput = z.infer<typeof quoteUpgradeSchema>;
 export const confirmUpgradeSchema = z
   .object({
     paymentId: z.string().uuid(),
-    method: z.enum(['balance', 'wallet']),
+    method: z.enum(PLAN_PAYMENT_METHODS),
     transactionId: z.string().trim().min(1).optional(),
     senderNumber: z.string().trim().min(1).optional(),
     amountPaid: z.coerce.number().positive().optional(),

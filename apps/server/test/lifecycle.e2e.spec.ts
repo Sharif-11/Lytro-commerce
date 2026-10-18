@@ -361,6 +361,23 @@ describeIfDatabase('BIL-14: renewal reminders', () => {
     expect(smsRows.rowCount).toBe(0);
   });
 
+  it('PYG-10: sends no reminder when the shop is switching to pay-as-you-go at period end', async () => {
+    const planId = await seedPlan((nextRank += 1));
+    const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
+    await seedOwner(tenantId, `017${(nextRank += 1).toString().slice(0, 8)}`, null);
+    const periodEnd = new Date(Date.now() + 7 * DAY_MS);
+    await activateTenant(tenantId, planId, TenantState.Active, periodEnd);
+    await admin.query(
+      `INSERT INTO control.scheduled_plan_changes (tenant_id, kind, target_plan_id, effective_at)
+       VALUES ($1, 'pay_as_you_go_switch', NULL, $2)`,
+      [tenantId, periodEnd],
+    );
+
+    await lifecycle.runTick(new Date());
+
+    expect(await auditActions(tenantId)).not.toContain(AuditAction.RenewalReminderSent);
+  });
+
   it('a grace-period tenant gets exactly one reminder per calendar day, not per tick', async () => {
     const planId = await seedPlan((nextRank += 1));
     const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');

@@ -1,5 +1,5 @@
 import type { Transaction } from '@lytronix/db';
-import type { InvoiceKind, PlanLimits } from '@lytronix/validators';
+import type { InvoiceKind, PlanLimits, PlanPaymentMethod } from '@lytronix/validators';
 import type { InvoiceRecord } from '../types/invoice';
 
 export interface NewInvoiceValues {
@@ -9,6 +9,16 @@ export interface NewInvoiceValues {
   amount: string;
   creditAmount: string;
   billingTermLabel: string;
+  // BIL-12: the rest of what the invoice states, as it stands at issue.
+  shopName: string;
+  ownerName: string | null;
+  planName: string;
+  planVersion: number;
+  periodStart: Date;
+  periodEnd: Date;
+  discountAmount: string;
+  paymentMethod: PlanPaymentMethod;
+  paymentReference: string | null;
 }
 
 /** control.invoices / control.invoice_counters (BIL-12/13, DAT-07). */

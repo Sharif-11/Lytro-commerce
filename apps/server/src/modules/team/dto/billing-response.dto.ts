@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
-import { planLimitsSchema } from '@lytronix/validators';
+import { PLAN_PAYMENT_METHODS, planLimitsSchema } from '@lytronix/validators';
 
 export const billingTermSchema = z.object({
   id: z.string(),
@@ -109,6 +109,16 @@ export const invoiceSchema = z.object({
   amount: z.string(),
   creditAmount: z.string(),
   billingTermLabel: z.string(),
+  // BIL-12: null only on invoices issued before these fields existed.
+  shopName: z.string().nullable(),
+  ownerName: z.string().nullable(),
+  planName: z.string().nullable(),
+  planVersion: z.number().nullable(),
+  periodStart: z.date().nullable(),
+  periodEnd: z.date().nullable(),
+  discountAmount: z.string(),
+  paymentMethod: z.enum(PLAN_PAYMENT_METHODS).nullable(),
+  paymentReference: z.string().nullable(),
   issuedAt: z.date(),
   // LIF-21: true for an invoice of the owner's earlier, deleted shop, listed alongside this shop's own.
   earlierShop: z.boolean(),
@@ -126,6 +136,13 @@ export const scheduledPlanChangeSchema = z.object({
   createdAt: z.date(),
 });
 export class ScheduledPlanChangeDto extends createZodDto(scheduledPlanChangeSchema) {}
+
+// PYG-01, PYG-10, LIF-15: choosing pay-as-you-go -- scheduled for the paid period's end, or done at once.
+export const payAsYouGoChoiceSchema = z.object({
+  effective: z.enum(['period_end', 'now']),
+  effectiveAt: z.date().nullable(),
+});
+export class PayAsYouGoChoiceDto extends createZodDto(payAsYouGoChoiceSchema) {}
 
 // LIF-01: null means no cancellation is currently scheduled.
 export const cancellationStatusSchema = z.object({

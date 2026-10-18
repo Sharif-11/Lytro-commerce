@@ -29,6 +29,15 @@ export interface NewInvoice {
   amount: string;
   creditAmount: string;
   billingTermLabel: string;
+  shopName: string;
+  ownerName: string | null;
+  planName: string;
+  planVersion: number;
+  periodStart: Date;
+  periodEnd: Date;
+  discountAmount: string;
+  paymentMethod: SelectInvoice['paymentMethod'];
+  paymentReference: string | null;
 }
 
 // BIL-12/13: one invoice per confirmed payment, listable/downloadable by the owner in every tenant state.
