@@ -12,7 +12,7 @@ Status: draft v1, 2026-10-02. Builds on `SRS-detailed.md` §26's suite skeleton 
 
 **S01-01 Sign-up by phone, full trial provisioning.**
 Preconditions: none (fresh phone number).
-Steps: 1) Continue with a new Bangladeshi phone number. 2) Receive and enter the 6-digit OTP within 5 minutes. 3) In the create-shop step enter the shop name, owner name and address. 4) Skip the set-password offer. 5) Land on the dashboard.
+Steps: 1) Continue with a new Bangladeshi phone number. 2) Receive and enter the 6-digit OTP within 5 minutes. 3) In the create-shop step enter the shop name, owner name and address. 4) Skip the set-password offer and both set-up questions. 5) Land on the dashboard.
 Expected: the account exists after step 2 with no tenant; after step 3 the owner user, tenant in `trial` and unique subdomain exist; dashboard shows 30-day trial limits (40 orders, 20 products, 200 MB storage, 5 GB bandwidth, 8 essential SMS) and a setup checklist; the "shop ready" SMS arrives at the phone containing the shop's live URL; essential-SMS counter reads 1 of 8 (shop-ready only; the code is platform cost, AUTH-21).
 Covers: `AUTH-04`, `AUTH-05`, `AUTH-10`, `AUTH-21`, `AUTH-28`, `TRL-01`, `TRL-03`, `SMS-18`, `SMS-01`.
 
@@ -94,6 +94,11 @@ Preconditions: an owner of two shops; a staff member of shop A only.
 Steps: 1) The owner signs in once at `app.lytro.app/sign-in`. 2) Open `app.lytro.app/<shop-a>` and `app.lytro.app/<shop-b>`. 3) As the staff member, open `app.lytro.app/<shop-b>` and call one of shop B's dashboard API endpoints. 4) Create a shop named "Sign in".
 Expected: one sign-in lands on a shop picker, and both dashboards open by path without signing in again; step 3 returns the same not-found as an unknown shop, for both the page and the API; the shop in step 4 receives the slug `sign-in-2`.
 Covers: `TEN-31`, `TEN-26`.
+
+**S01-19 Claimed address and the set-up step.**
+Steps: 1) On the marketing page, type "gamma" in the claim box. 2) Continue with Google. 3) On create-shop, check the address, then type an address that is taken and one that is reserved, then go back to "gamma". 4) In the set-up step, choose Cosmetics and Chattogram city. 5) Open the delivery settings and a new product form.
+Expected: "gamma" is pre-filled on create-shop after the Google round trip; the taken and reserved addresses are shown as such, each with a suggested alternative; the delivery zones read "Inside Chattogram city" and "Outside Chattogram city"; the new product form starts with batch tracking on (the cosmetics default).
+Covers: `AUTH-28`, `AUTH-11`, `PST-01`, `DLV-01`.
 
 **S01-17 Default identity, and the free name and logo.**
 Steps: 1) Create a shop with no logo; open its storefront, a landing page, a hosted payment page and the dashboard. 2) Upload a logo and open them again.
@@ -873,7 +878,7 @@ Expected: rate change applies immediately to future charges only, past ledger en
 Covers: `RAT-01` to `RAT-03`, `LIF-26`, `ADM-11`.
 
 **S11-07 Setup checklist auto-detection.**
-Steps: on a new shop, check the checklist's starting state; then complete each item one at a time: add a product, add a wallet number, copy a product link, connect a courier, choose SMS events, pair a listener, create an API key.
+Steps: on a new shop, check the checklist's starting state; then complete each item one at a time: add a product, upload a logo, add a wallet number, copy a product link, connect a courier, choose SMS events, pair a listener, create an API key.
 Expected: a new shop starts with "shop created" and "delivery charges" already ticked; every other item ticks off automatically without a page reload; once the "Get your shop ready" group is done, the checklist folds away and can be reopened from settings.
 Covers: `SUP-01`.
 

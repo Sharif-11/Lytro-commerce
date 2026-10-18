@@ -2,6 +2,8 @@
 
 Status: v1 design, 2026-10-17. A working prototype is `docs/brand/lytro-landing.html` (open it in a browser; it needs internet access for Google Fonts), also published at https://claude.ai/artifact/MwvopjMr9UqhFzf4hZMdoK. This document is the spec behind it and the map onto `apps/website`. The brand rules it follows are in `BRAND-IDENTITY.md`. Nothing in `apps/website` has been changed yet.
 
+**Scheduled 2026-10-18** as a parallel track to Phase 3 (`PHASE-3-PLAN.md`): step A now, step B (the inventory and statistics spotlights, the storefront showcase) once those features are live.
+
 ---
 
 ## 1. What the page has to do
@@ -42,7 +44,7 @@ Three sites were studied on 2026-10-17: Bonik AI (bonikai.app), BonikLabs (bonik
 | --- | --- | --- | --- |
 | 1 | Nav (sticky) | Orientation and the one CTA | Wordmark, four anchor links, বাং/EN toggle, লগইন, marigold "ফ্রি দোকান খুলুন". Hamburger under 880 px. |
 | 2 | Hero | The promise and the first action | Eyebrow, H1 "আপনার দোকান, আপনার হাতে।", one-sentence lead, claim-your-shop input, three micro-trust ticks, "see a shop" link. Phone mockup of the dashboard with two floating cards (fake-order check, bKash matched). |
-| 3 | Integration strip | Reduce "will it work with what I use" | Text wordmarks until official logos are licensed. |
+| 3 | Integration strip | Reduce "will it work with what I use" | The wallets' official logos (decided 2026-10-18, `BRAND-IDENTITY.md` §8.7); couriers as text wordmarks until they give permission. |
 | 4 | Problems, before/after | Lead with the pain | The five pains from the marketing plan, each paired with its answer. |
 | 5 | Features | What you actually get | Two spotlight cards first, each with its own mockup: stock and inventory (INV-01 to INV-24, PUR-01 to PUR-10: low-stock alerts, one-step add stock, barcode and IMEI scan, batches and expiry, stock check) and business statistics (STA-01 to STA-04, INV-18: sales by week to year, hot-selling products, trend, inventory value and cost of goods). Then six cards with small vignettes: fake-order check, one-tap courier, payment matching, storefront, staff roles, variants and stock. |
 | 5b | Why Lytro | The advantages, the way Bonik AI states its benefits | Six cards, each a product rule: money goes straight to the seller's wallet (no platform custody), a flat per-order fee rather than a percentage, the seller's own courier account, Bangla everywhere and phone first, nightly encrypted backups with per-shop isolation (DAT-8), and the public API for sellers with their own site. |
@@ -87,7 +89,7 @@ Navbar on desktop: Features, Pricing, FAQ, About, Contact, then the language tog
 | --- | --- | --- |
 | Nav | `nav.tsx` | Replace the gradient "L" tile with the mark SVG and wordmark; add anchor links and the language toggle; CTA label "ফ্রি দোকান খুলুন" in marigold. |
 | Hero | `hero.tsx` | Dark chrome band, new headline and lead, claim input posting to `app.lytro.app/sign-in?shop=`, phone mockup component (static JSX, no screenshot). |
-| Strip | new `integrations.tsx` | Text wordmarks now; swap to licensed logos later. |
+| Strip | new `integrations.tsx` | The wallets' official logos; courier text wordmarks until permission. |
 | Problems | `solutions.tsx` | Keep data, change layout to before/after pairs. |
 | Features | new `features.tsx` | Two spotlight cards (inventory, statistics) plus six cards with vignettes. The spotlights ship only when Phase 3 inventory (INV, PUR) and statistics (STA) are live, per the "never claim what is not live" rule. |
 | Why Lytro | new `why.tsx` | Six advantage cards. |
