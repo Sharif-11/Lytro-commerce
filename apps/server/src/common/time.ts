@@ -39,12 +39,20 @@ export function daysUntil(now: Date, to: Date): number {
   return Math.ceil((to.getTime() - now.getTime()) / DAY_MS);
 }
 
-/** AUTH-21: the start (00:00) of the Asia/Dhaka calendar day's month that `date` falls in, same offset trick as `addMonths`. */
-export function startOfMonthDhaka(date: Date): Date {
-  const local = new Date(date.getTime() + DHAKA_OFFSET_MS);
-  local.setUTCDate(1);
-  local.setUTCHours(0, 0, 0, 0);
-  return new Date(local.getTime() - DHAKA_OFFSET_MS);
+/**
+ * UPG-10, PYG-19: the start of the month-long cycle `now` falls in, counting whole months from `anchor` (via
+ * `addMonths`, so a cycle anchored on the 31st starts on the last day of a shorter month). `anchor` may be
+ * after `now` -- a renewal paid early starts its period at the old period's end -- and the cycles then
+ * count back from it.
+ */
+export function monthlyCycleStart(anchor: Date, now: Date): Date {
+  const from = new Date(anchor.getTime() + DHAKA_OFFSET_MS);
+  const to = new Date(now.getTime() + DHAKA_OFFSET_MS);
+  let months =
+    (to.getUTCFullYear() - from.getUTCFullYear()) * 12 + (to.getUTCMonth() - from.getUTCMonth());
+  // The calendar-month difference is right or one too many; step back until the cycle has started.
+  while (addMonths(anchor, months) > now) months -= 1;
+  return addMonths(anchor, months);
 }
 
 /** BIL-14: the start (00:00) of the Asia/Dhaka calendar day `date` falls on, same offset trick as `addMonths`. */

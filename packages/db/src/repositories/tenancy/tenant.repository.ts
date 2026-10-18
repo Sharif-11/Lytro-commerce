@@ -270,6 +270,7 @@ export class TenantRepository {
         // ending in the future) snapshots whatever the platform settings say at that later moment, not the
         // one this tenant happened to start with last time.
         lapseScheduleSnapshot: null,
+        archivedAt: null, // LIF-15: a plan or pay-as-you-go always leaves `archived`
         ...(values.billingTermId !== undefined ? { billingTermId: values.billingTermId } : {}),
       })
       .where(eq(tenants.id, tenantId));
@@ -305,9 +306,31 @@ export class TenantRepository {
     await tx.update(tenants).set({ cancelledAt }).where(eq(tenants.id, tenantId));
   }
 
-  /** LIF-03/04/23: the lifecycle job's own state write -- plan, period and balance are untouched. */
-  async setLifecycleState(tx: Executor, tenantId: string, state: TenantState): Promise<void> {
-    await tx.update(tenants).set({ state }).where(eq(tenants.id, tenantId));
+  /**
+   * LIF-03/04/23, PYG-09: the lifecycle state write -- plan, period and balance are untouched. Entering
+   * `archived` records when (`at`), which a pay-as-you-go shop's deletion clock counts from.
+   */
+  async setLifecycleState(
+    tx: Executor,
+    tenantId: string,
+    state: TenantState,
+    at: Date,
+  ): Promise<void> {
+    await tx
+      .update(tenants)
+      .set({ state, archivedAt: state === TenantState.Archived ? at : null })
+      .where(eq(tenants.id, tenantId));
+  }
+
+  /**
+   * PYG-09, LIF-24: puts a shop that an operator suspension archived back on pay-as-you-go, its idle clock
+   * (PYG-21) starting again from `at`.
+   */
+  async returnToPayAsYouGo(tx: Executor, tenantId: string, at: Date): Promise<void> {
+    await tx
+      .update(tenants)
+      .set({ state: TenantState.PayAsYouGo, periodStart: at, archivedAt: null })
+      .where(eq(tenants.id, tenantId));
   }
 
   /** LIF-26: freezes today's stage lengths onto the tenant the first tick it's found lapsing. */
@@ -444,14 +467,15 @@ export class TenantRepository {
         lastActivityAt: tenants.lastActivityAt,
         periodStart: tenants.periodStart,
         createdAt: tenants.createdAt,
+        archivedAt: tenants.archivedAt,
       })
       .from(tenants)
       .where(and(eq(tenants.state, TenantState.PayAsYouGo), isNull(tenants.deletedAt)));
   }
 
-  /** PYG-21/LIF-19: tenants already archived by the inactivity pass (never had a billing period, so
-   * `period_end` stays null even in `archived` -- unlike a subscription tenant, which always has one). The
-   * day-60-after-archival deletion clock for these is tracked the same way, from `last_activity_at`. */
+  /** PYG-09/21, LIF-19: archived pay-as-you-go tenants -- by inactivity, closure or suspension. They never had a
+   * billing period, so `period_end` stays null even in `archived`, unlike a subscription tenant. The
+   * day-60-after-archival deletion clock for these runs from `archived_at`. */
   async findPaygArchivedCandidates(tx: Executor): Promise<PaygCandidateRow[]> {
     return tx
       .select({
@@ -459,6 +483,7 @@ export class TenantRepository {
         lastActivityAt: tenants.lastActivityAt,
         periodStart: tenants.periodStart,
         createdAt: tenants.createdAt,
+        archivedAt: tenants.archivedAt,
       })
       .from(tenants)
       .where(
@@ -511,6 +536,9 @@ export class TenantRepository {
         planSnapshot: tenants.planSnapshot,
         retentionFloorDays: tenants.retentionFloorDays,
         retentionFloorUntil: tenants.retentionFloorUntil,
+        createdAt: tenants.createdAt,
+        suspendedAt: tenants.suspendedAt,
+        archivedAt: tenants.archivedAt,
       })
       .from(tenants)
       .where(eq(tenants.id, id))
@@ -550,6 +578,9 @@ export interface BillingInfoRow {
   planSnapshot: PlanLimits | null;
   retentionFloorDays: number | null;
   retentionFloorUntil: Date | null;
+  createdAt: Date;
+  suspendedAt: Date | null;
+  archivedAt: Date | null;
 }
 
 export interface BalanceRow {
@@ -586,6 +617,8 @@ export interface PaygCandidateRow {
   /** When the tenant became pay-as-you-go: the trial conversion sets it (TRL-07). */
   periodStart: Date | null;
   createdAt: Date;
+  /** PYG-09: when it was archived; null while still pay-as-you-go, or for one archived before this was kept. */
+  archivedAt: Date | null;
 }
 
 /** LIF-20/21: a deleted shop of an account, with whatever balance it still holds. */

@@ -330,6 +330,20 @@
       "when": 1792332800300,
       "tag": "0046_reserve_lytro",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1792335601700,
+      "tag": "0047_tenant_archived_at",
+      "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1792335615251,
+      "tag": "0048_payg_product_fee",
+      "breakpoints": true
     }
   ]
 }

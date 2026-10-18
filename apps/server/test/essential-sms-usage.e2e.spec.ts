@@ -157,3 +157,94 @@ describeIfDatabase('AUTH-21: essential-SMS allowance', () => {
     expect(usage.body).toMatchObject({ totalLimit: 500, monthlyLimit: null });
   });
 });
+
+async function tenantIdOf(slug: string): Promise<string> {
+  const row = await admin.query<{ id: string }>('SELECT id FROM control.tenants WHERE slug = $1', [
+    slug,
+  ]);
+  return row.rows[0]?.id ?? '';
+}
+
+/** Past both the resend cooldown and AUTH-07's hourly cap, so one phone can be sent many codes in a test. */
+async function forgetCodes(phone: string): Promise<void> {
+  await admin.query(
+    "UPDATE control.verification_challenges SET created_at = now() - interval '2 hours' WHERE destination = $1",
+    [phone],
+  );
+}
+
+async function usageRows(tenantId: string): Promise<number> {
+  const rows = await admin.query('SELECT 1 FROM control.essential_sms_usage WHERE tenant_id = $1', [
+    tenantId,
+  ]);
+  return rows.rowCount ?? 0;
+}
+
+async function seedUsage(tenantId: string, parts: number, daysAgo: number): Promise<void> {
+  await admin.query(
+    `INSERT INTO control.essential_sms_usage (tenant_id, kind, parts, created_at)
+     VALUES ($1, 'otp', $2, now() - make_interval(days => $3))`,
+    [tenantId, parts, daysAgo],
+  );
+}
+
+describeIfDatabase('LIF-10, SMS-04: a sign-in code to a lapsed shop is never counted', () => {
+  it('counts nothing in grace, read-only, locked or archived, and counts again once live', async () => {
+    const who = await owner();
+    const tenantId = await tenantIdOf(who.slug);
+
+    for (const state of ['grace', 'read_only', 'locked', 'archived']) {
+      await admin.query('UPDATE control.tenants SET state = $2 WHERE id = $1', [tenantId, state]);
+      await forgetCodes(who.phone);
+      const sent = await post('/auth/phone/code', { phone: who.phone });
+      expect(sent.status).toBe(200); // the code itself still goes out
+    }
+    expect(await usageRows(tenantId)).toBe(0);
+
+    await admin.query(`UPDATE control.tenants SET state = 'active' WHERE id = $1`, [tenantId]);
+    await forgetCodes(who.phone);
+    await post('/auth/phone/code', { phone: who.phone });
+    expect(await usageRows(tenantId)).toBe(1);
+  });
+});
+
+describeIfDatabase('UPG-10, PYG-19: the monthly allowance cycle', () => {
+  it('a plan counts from its period start, so a new period (an upgrade) starts again at zero', async () => {
+    const who = await owner();
+    const tenantId = await tenantIdOf(who.slug);
+    await admin.query(
+      `UPDATE control.tenants SET state = 'active', period_start = now() - interval '5 days',
+         period_end = now() + interval '25 days'
+       WHERE id = $1`,
+      [tenantId],
+    );
+    await seedUsage(tenantId, 2, 8); // before this period: last cycle's
+    await seedUsage(tenantId, 3, 2); // this period
+
+    const before = await get('/balance/essential-sms', shopCall(who));
+    expect(before.body).toMatchObject({ monthlyUsed: 3, totalUsed: 5 });
+
+    // An upgrade starts a new period at its confirmation (UPG-09).
+    await admin.query(`UPDATE control.tenants SET period_start = now() WHERE id = $1`, [tenantId]);
+    const after = await get('/balance/essential-sms', shopCall(who));
+    expect(after.body).toMatchObject({ monthlyUsed: 0, totalUsed: 5 });
+  });
+
+  it('pay-as-you-go counts in months from the shop creation date, not its switch date', async () => {
+    const who = await owner();
+    const tenantId = await tenantIdOf(who.slug);
+    // Created 40 days ago, so its current cycle began 9 to 12 days ago (one calendar month after creation);
+    // switched to pay-as-you-go 5 days ago.
+    await admin.query(
+      `UPDATE control.tenants SET state = 'pay_as_you_go', created_at = now() - interval '40 days',
+         period_start = now() - interval '5 days', period_end = NULL
+       WHERE id = $1`,
+      [tenantId],
+    );
+    await seedUsage(tenantId, 4, 15); // the previous cycle
+    await seedUsage(tenantId, 1, 8); // this cycle, though before the switch
+
+    const usage = await get('/balance/essential-sms', shopCall(who));
+    expect(usage.body).toMatchObject({ monthlyUsed: 1, totalUsed: 5 });
+  });
+});

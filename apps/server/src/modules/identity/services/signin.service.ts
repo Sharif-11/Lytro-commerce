@@ -4,6 +4,7 @@ import {
   AuditResult,
   ChallengeChannel,
   ChallengeKind,
+  LAPSED_TENANT_STATES,
   SignInMethod,
 } from '@lytronix/validators';
 import type { Transaction } from '@lytronix/db';
@@ -41,12 +42,15 @@ export class SigninService {
     const owned = existing
       ? await this.gateway.run((tx) => this.gateway.findOwnedTenant(tx, existing.subscriberId))
       : null;
+    // LIF-10, SMS-04: in a lapsed shop the code is the platform letting the owner back in to restore it --
+    // never counted toward the free allowance, never charged.
+    const countedTo = owned && !LAPSED_TENANT_STATES.includes(owned.state) ? owned.id : null;
     return this.codes.issue(
       phone,
       ChallengeChannel.Sms,
       ChallengeKind.Signin,
       undefined,
-      owned?.id ?? null,
+      countedTo,
     );
   }
 

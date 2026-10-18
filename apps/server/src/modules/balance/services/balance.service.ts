@@ -25,7 +25,8 @@ const ACTIVITY_TYPES: ReadonlySet<LedgerEntryType> = new Set([
   LedgerEntryType.TopUp,
 ]);
 
-// BAL-13: low-balance thresholds, in paisa, checked as a downward crossing (never repeated while already past).
+// BAL-13: low-balance thresholds, in paisa. A charge crosses one when it brings the balance from above it to it or
+// below -- reaching exactly 0 counts, since BAL-10 stops most charges there -- never repeated while already past.
 const LOW_BALANCE_THRESHOLDS_PAISA: readonly bigint[] = [5000n, 0n];
 
 // BAL-14: a CSV covers the whole filtered range, not one page -- capped so one tenant's statement can't
@@ -286,19 +287,20 @@ export class BalanceService {
     await this.tenants.applyBalanceChange(tx, tenantId, afterAmount, {
       touchActivityAt: ACTIVITY_TYPES.has(input.type) ? this.clock() : undefined,
     });
-    await this.checkLowBalanceCrossing(tenantId, beforePaisa, afterPaisa, afterAmount);
+    await this.checkLowBalanceCrossing(tx, tenantId, beforePaisa, afterPaisa, afterAmount);
     return entry;
   }
 
   private async checkLowBalanceCrossing(
+    tx: Transaction,
     tenantId: string,
     beforePaisa: bigint,
     afterPaisa: bigint,
     afterAmount: string,
   ): Promise<void> {
     for (const threshold of LOW_BALANCE_THRESHOLDS_PAISA) {
-      if (beforePaisa >= threshold && afterPaisa < threshold) {
-        await this.notifier.notifyCrossed(tenantId, threshold, afterAmount);
+      if (beforePaisa > threshold && afterPaisa <= threshold) {
+        await this.notifier.notifyCrossed(tx, tenantId, threshold, afterAmount);
       }
     }
   }

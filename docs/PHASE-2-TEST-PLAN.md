@@ -92,8 +92,8 @@ Each scenario lists its preconditions, numbered steps, expected result, and the 
 - Covers: PYG-16, PYG-17, PYG-18.
 
 **P2-E12 Pay-as-you-go has no volume-triggered lapse, and its rolling-cycle limits reset on its own anniversary. [JOB]**
-- Steps: drive a pay-as-you-go tenant through heavy order/product activity for a year, with regular qualifying charges throughout; separately, create one on the 10th of a month and check its bandwidth/request counters on the following 10th.
-- Expected: no forced state change regardless of volume, as long as qualifying activity continues (contrast with P2-E13, where activity *stops*); the rolling-cycle counters reset on the tenant's own creation-date anniversary, not the calendar month's 1st.
+- Steps: drive a pay-as-you-go tenant through heavy order/product activity for a year, with regular qualifying charges throughout; separately, create one on the 10th of a month and check its bandwidth, request and free-SMS counters on the following 10th, including one that switched to pay-as-you-go on another day.
+- Expected: no forced state change regardless of volume, as long as qualifying activity continues (contrast with P2-E13, where activity *stops*); the rolling-cycle counters reset on the tenant's own creation-date anniversary, not the calendar month's 1st and not the day it switched.
 - Covers: PYG-08, PYG-19.
 
 **P2-E13 Pay-as-you-go auto-archive after inactivity. [JOB]**
@@ -103,8 +103,8 @@ Each scenario lists its preconditions, numbered steps, expected result, and the 
 - Covers: PYG-21.
 
 **P2-E14 Pay-as-you-go voluntary closure and operator suspension. [E2E]**
-- Steps: the owner voluntarily closes a pay-as-you-go tenant; separately, an operator suspends one for cause.
-- Expected: both move the tenant directly to `archived` with no grace or read-only period; business-data deletion follows at day 60 counted from that point, exactly as any other archived tenant.
+- Steps: the owner voluntarily closes a pay-as-you-go tenant (`POST /billing/close`); a staff member with every billing permission tries the same; a trial owner tries it; separately, an operator suspends a pay-as-you-go tenant for cause and later restores it, and suspends and restores one its owner had already closed.
+- Expected: both closure and suspension move the tenant directly to `archived` with no grace or read-only period; the owner is sent the deletion date; warnings follow at days 45 and 57 and business-data deletion at day 60, counted from that point, not from its last activity; the staff member gets `403` and the trial `409`; choosing pay-as-you-go reopens a closed shop; restoring the suspended one puts it back on pay-as-you-go with a fresh idle clock, while the closed one stays archived with its clock unchanged.
 - Covers: PYG-09.
 
 **P2-E15 Switching between pay-as-you-go and a subscription. [E2E]**
@@ -168,7 +168,7 @@ Each scenario lists its preconditions, numbered steps, expected result, and the 
 
 **P2-E26 Confirmation applies immediately; counters reset vs. stay untouched. [E2E]**
 - Steps: confirm an upgrade and immediately check the new limits, the renewal date, and both kinds of counter (per-period: orders handled, essential SMS used, bandwidth, requests, sessions; not-per-period: products stored, storage used, seats in use).
-- Expected: new limits are usable at once (a 3rd user can be created right after Starter→Growth); the renewal date is confirmation time plus the new period's length; every per-period counter reads zero immediately after; every non-period counter is exactly what it was before.
+- Expected: new limits are usable at once (a 3rd user can be created right after Starter→Growth); the renewal date is confirmation time plus the new period's length; every per-period counter reads zero immediately after (the free essential-SMS month runs from the period's start, SMS-04); every non-period counter is exactly what it was before.
 - Covers: UPG-09, UPG-10, UPG-11, UPG-12.
 
 **P2-E27 Upgrade's side effects: cancels a scheduled downgrade, credits the invoice, both payment methods behave correctly, a failed attempt is unaffected. [E2E]**
@@ -213,7 +213,7 @@ Each scenario lists its preconditions, numbered steps, expected result, and the 
 
 **P2-E34 Owner-only in `locked`; the essential-SMS and shopper-messaging carve-outs. [API]**
 - Steps: attempt a staff sign-in while `locked`; the owner signs in while `locked` and receives a sign-in code; check for any outbound message to a shopper from a tenant in any lapsed stage from day 3 onward; send a courier webhook for an already-booked parcel at day 10 (`locked`) and again at day 20 (`archived`).
-- Expected: staff sign-in is refused with `tenant_offline`; the owner's own sign-in code is still sent and neither charges the balance nor the essential-SMS allowance; no push/SMS/email to a shopper is ever sent from day 3 onward; the day-10 webhook still updates the order, the day-20 one is logged and ignored.
+- Expected: staff sign-in is refused with `tenant_offline`; the owner's own sign-in code is still sent, in `grace`, `read_only`, `locked` and `archived` alike, and neither charges the balance nor the essential-SMS allowance, which counts it again once the shop is live; no push/SMS/email to a shopper is ever sent from day 3 onward; the day-10 webhook still updates the order, the day-20 one is logged and ignored.
 - Covers: LIF-10, LIF-11, LIF-12, LIF-13, LIF-14.
 
 **P2-E35 Export in read-only and locked. [E2E]**
@@ -245,7 +245,7 @@ Each scenario lists its preconditions, numbered steps, expected result, and the 
 
 **P2-E40 Charge only on success, low-balance notices, and the statement. [JOB]**
 - Steps: force a service call (SMS or AI) to fail after a balance reservation; cross 50 TK and then 0 from above; cross back above 50 TK and down through it again; pull a statement filtered by type and date, export it, and attempt a top-up without `balance:manage`.
-- Expected: the failed service leaves the balance unchanged, confirming the reservation was released; a notice fires once per crossing of 50 and 0, never by SMS; crossing the same threshold a second time fires a second notice; the filtered statement's sum matches the underlying entries and exports correctly; the permission-less top-up attempt is 403.
+- Expected: the failed service leaves the balance unchanged, confirming the reservation was released; a notice fires once per crossing of 50 and 0 (reaching exactly 0 counts), emailed to the owner and never by SMS, and a failed charge sends none; crossing the same threshold a second time fires a second notice; the filtered statement's sum matches the underlying entries and exports correctly; the permission-less top-up attempt is 403.
 - Covers: BAL-12, BAL-13, BAL-14.
 
 **P2-E41 Rate-at-time-of-charge, audited adjustments, and survival past deletion. [API]**

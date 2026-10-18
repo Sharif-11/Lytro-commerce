@@ -1,3 +1,5 @@
+import type { Transaction } from '@lytronix/db';
+
 export interface CrossedNotice {
   tenantId: string;
   thresholdPaisa: bigint;
@@ -8,7 +10,12 @@ export interface CrossedNotice {
 export class LowBalanceCapture {
   readonly notified: CrossedNotice[] = [];
 
-  notifyCrossed(tenantId: string, thresholdPaisa: bigint, balanceAfter: string): Promise<void> {
+  notifyCrossed(
+    _tx: Transaction,
+    tenantId: string,
+    thresholdPaisa: bigint,
+    balanceAfter: string,
+  ): Promise<void> {
     this.notified.push({ tenantId, thresholdPaisa, balanceAfter });
     return Promise.resolve();
   }

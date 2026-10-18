@@ -41,7 +41,7 @@ export class PlanInvoicingService {
 
   async issue(tx: Transaction, input: PlanInvoiceInput): Promise<InvoiceRecord> {
     const { payment, plan, term } = input;
-    const owner = await this.staff.ownerContact(payment.tenantId);
+    const owner = await this.staff.ownerContactIn(tx, payment.tenantId);
     const discountAmount = await this.terms.savingFor(
       payment.tenantId,
       plan.id,

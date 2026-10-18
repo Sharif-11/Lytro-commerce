@@ -123,7 +123,11 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   },
   PayAsYouGoNotAvailable: {
     en: "This shop can't switch to pay-as-you-go right now.",
-    bn: 'এই দোকান এখন পে-অ্যাজ-ইউ-গো-তে যেতে পারবে না।',
+    bn: 'এই শপ এখন পে-অ্যাজ-ইউ-গো-তে যেতে পারবে না।',
+  },
+  CloseNotAvailable: {
+    en: 'Only a pay-as-you-go shop can be closed. A shop on a plan stops at its period end when you cancel.',
+    bn: 'শুধু পে-অ্যাজ-ইউ-গো শপ বন্ধ করা যায়। প্ল্যানে থাকা শপ ক্যানসেল করলে মেয়াদ শেষে বন্ধ হয়।',
   },
   DowngradeMustBeLowerRank: {
     en: 'You can only downgrade to a lower plan.',
@@ -400,6 +404,7 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   UpgradeConfirmed: { en: 'Upgrade confirmed.', bn: 'আপগ্রেড নিশ্চিত হয়েছে।' },
   DowngradeScheduled: { en: 'Downgrade scheduled.', bn: 'ডাউনগ্রেড নির্ধারিত হয়েছে।' },
   PayAsYouGoChosen: { en: 'Pay-as-you-go chosen.', bn: 'পে-অ্যাজ-ইউ-গো বেছে নেওয়া হয়েছে।' },
+  ShopClosed: { en: 'Shop closed.', bn: 'শপ বন্ধ করা হয়েছে।' },
   DowngradeCancelled: { en: 'Downgrade cancelled.', bn: 'ডাউনগ্রেড বাতিল হয়েছে।' },
   DowngradePreviewed: { en: 'Downgrade preview retrieved.', bn: 'ডাউনগ্রেড প্রিভিউ পাওয়া গেছে।' },
   DowngradeRetrieved: { en: 'Scheduled change retrieved.', bn: 'নির্ধারিত পরিবর্তন পাওয়া গেছে।' },
