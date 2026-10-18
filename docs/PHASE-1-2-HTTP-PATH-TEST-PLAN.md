@@ -19,7 +19,7 @@ Each endpoint below is tested against the path types that actually apply to it (
 ## Conventions used below
 
 - Every path is relative to the API's base; prepend `/api/v1` per the server's global prefix convention, except `health` and the hosted/public-key routes, which have none.
-- `Host:` header selects the tenant for every tenant-scoped and public-storefront route (subdomain-based multi-tenancy, `TEN-7a`) — `shop-a.lytronix.test` / `shop-b.lytronix.test` denote two distinct tenants with overlapping data, used throughout for isolation checks (`TEN-03`, `SEC-02`).
+- `Host:` header selects the tenant for every tenant-scoped and public-storefront route (subdomain-based multi-tenancy, `TEN-7a`) — `shop-a.lytro.test` / `shop-b.lytro.test` denote two distinct tenants with overlapping data, used throughout for isolation checks (`TEN-03`, `SEC-02`).
 - `Cookie: session=<opaque>` denotes a signed-in dashboard/staff session; `Cookie: session=<opaque>; csrf=<token>` + `X-CSRF-Token: <token>` denotes the same session with its CSRF pair, required on every mutating dashboard request.
 - `Cookie: op_session=<opaque>` denotes a signed-in operator session (separate cookie/session type from tenant sessions, `ADM-01`).
 - `Idempotency-Key: <uuid>` is shown on every write that is cost-bearing or side-effecting; where the route does **not** actually wire `IdempotencyInterceptor` (flagged inline), the retry-path test proves the *current* behavior (a duplicate side effect), which is itself the finding to act on, not a passing test to ignore.
@@ -196,9 +196,9 @@ DTO: `CreateShopDto` — real shape confirmed live: `{shopName: string, ownerNam
 
 DTO: `PasswordSigninDto`, shared shape. No `@SkipTenant()` — tenant resolved from `Host:`.
 
-- **Happy**: `Host: shop-a.lytronix.test` + correct staff phone/password → `200`, session scoped to shop A (`AUTH-12`).
+- **Happy**: `Host: shop-a.lytro.test` + correct staff phone/password → `200`, session scoped to shop A (`AUTH-12`).
 - **Validation**: malformed phone → `422`.
-- **AuthN/isolation**: a staff phone that belongs to shop A, called with `Host: shop-b.lytronix.test` → refused, same generic failure as any wrong credential (`TEN-03`-style, no cross-shop leak).
+- **AuthN/isolation**: a staff phone that belongs to shop A, called with `Host: shop-b.lytro.test` → refused, same generic failure as any wrong credential (`TEN-03`-style, no cross-shop leak).
 - **Business-rule**: a deactivated staff member's phone/password → same generic failure as wrong credentials (`STF-05`); the shop is `locked` → only the owner may sign in, staff refused `tenant_offline` (`LIF-11`); shop `archived` → dashboard content withheld even if sign-in nominally succeeds.
 - **Business-rule (`LIF-10`)**: the *owner's* own `POST /auth/phone/code`/`POST /auth/forgot-password` for a `locked` or `archived` tenant still sends the SMS (this is the owner's essential sign-in/reset path, carved out from the lapsed-state freeze) — confirm via `GET /balance` immediately before/after that the balance is unchanged and via `GET /activity` that no essential-SMS-allowance counter moved, in contrast to the same call failing outright for a *staff* phone in the same `locked` tenant (previous bullet).
 - **Resource/state**: unknown subdomain in `Host:` → `404` before any credential check runs at all.

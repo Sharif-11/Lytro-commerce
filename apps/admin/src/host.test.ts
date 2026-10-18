@@ -10,17 +10,17 @@ function setHostname(hostname: string): void {
 
 describe('isOperatorHost', () => {
   it('is false for the tenant-facing host', () => {
-    setHostname('lytro.com');
+    setHostname('lytro.app');
     expect(isOperatorHost()).toBe(false);
   });
 
   it('is true for the default operator host', () => {
-    setHostname('admin.lytro.com');
+    setHostname('admin.lytro.app');
     expect(isOperatorHost()).toBe(true);
   });
 
   it('is false for a tenant shop subdomain', () => {
-    setHostname('acme.lytro.com');
+    setHostname('acme.lytro.app');
     expect(isOperatorHost()).toBe(false);
   });
 });

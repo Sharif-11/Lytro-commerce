@@ -36,7 +36,7 @@ managed database, until real load or revenue justifies the cost.
 
 ## 3. Why Caddy, not nginx
 
-`*.lytro.com` needs a **wildcard TLS certificate**, which needs the ACME **DNS-01** challenge, not the simpler
+`*.lytro.app` needs a **wildcard TLS certificate**, which needs the ACME **DNS-01** challenge, not the simpler
 HTTP-01 one. Caddy does this natively — built-in ACME client, a DNS-provider plugin for the DNS-01 step,
 automatic renewal, no cron job to maintain. nginx needs certbot bolted on as a second piece of software with
 its own renewal hook to keep working. For a solo-maintained deployment, one less moving part to operate is
@@ -48,12 +48,14 @@ maintainer separately sells paid support contracts; the server itself is not pai
 
 ## 4. DNS records
 
+The platform domain is `lytro.app` (decided 2026-10-18). Every host below is on it.
+
 | Record | Target | Purpose |
 |---|---|---|
-| `lytro.com` (apex) | VPS IP | marketing (`apps/website`) + tenant sign-up/sign-in/dashboard (`apps/admin`), split by path |
-| `www.lytro.com` | VPS IP | same as apex |
-| `admin.lytro.com` | VPS IP | operator console (`apps/admin`, same build, host-branched route tree) |
-| `*.lytro.com` (wildcard) | VPS IP | every shop subdomain — `apps/storefront` (public) + `apps/admin` (staff dashboard), split by path. Covers every tenant automatically; no per-shop DNS entry is ever created. |
+| `lytro.app` (apex) | VPS IP | marketing (`apps/website`) + tenant sign-up/sign-in/dashboard (`apps/admin`), split by path |
+| `www.lytro.app` | VPS IP | same as apex |
+| `admin.lytro.app` | VPS IP | operator console (`apps/admin`, same build, host-branched route tree) |
+| `*.lytro.app` (wildcard) | VPS IP | every shop subdomain — `apps/storefront` (public) + `apps/admin` (staff dashboard), split by path. Covers every tenant automatically; no per-shop DNS entry is ever created. |
 
 ## 5. Routing rules
 
@@ -75,7 +77,7 @@ One `Caddyfile`, with a rule checked before anything else, on **every** host blo
 
 Then, per host:
 
-- **`lytro.com`, `www.lytro.com`**
+- **`lytro.app`, `www.lytro.app`**
   - `/sign-up*`, `/sign-in*`, `/verify-code*`, `/forgot-password*`, `/auth/oauth/*/callback`, `/create-shop*`,
     `/set-password*`, `/unavailable*`, `/dashboard*` → serve `apps/admin`'s static build, with a fallback to
     `index.html` for any unmatched path (client-side router takes over)
@@ -91,10 +93,10 @@ Then, per host:
   anywhere itself. The SPA route at that same path reads `code`/`state` off its own URL and makes the actual
   `/api/v1/auth/oauth/:provider/callback` call itself, the same way every other screen in this flow talks to
   the backend, then routes on the response's `next` like a normal sign-in.
-- **`admin.lytro.com`**: everything (other than `/api/*` above) → serve `apps/admin`'s static build directly.
+- **`admin.lytro.app`**: everything (other than `/api/*` above) → serve `apps/admin`'s static build directly.
   Same files as the tenant-facing host — the SPA's own router shows the operator route tree instead of the
   tenant one purely because of which host it's running on (`window.location.hostname`), not a different build.
-- **`*.lytro.com`** (any other single-label host — a shop's own subdomain)
+- **`*.lytro.app`** (any other single-label host — a shop's own subdomain)
   - `/sign-in*`, `/dashboard*` → serve `apps/admin`'s static build (staff sign-in and dashboard)
   - everything else → reverse-proxy to `storefront`, which reads `Host` itself to resolve which tenant to
     render (SFT-01)
@@ -120,7 +122,7 @@ predates this document and isn't new. Caddy, as that edge, must:
 ## 7. Custom domains (`TEN-09`, `TEN-11`, `TEN-13`, `TEN-24`) — no manual mapping, ever
 
 A Growth/Pro tenant can point their own domain (e.g. `fashionhouse.com`) at their shop instead of
-`fashion-house.lytro.com`. Nothing about this needs a human to edit Caddy's config per tenant — the mechanism
+`fashion-house.lytro.app`. Nothing about this needs a human to edit Caddy's config per tenant — the mechanism
 is fully automatic on the platform side, split across three pieces that are each already required by the SRS:
 
 - **Tenant's own action (manual, unavoidable):** they add one DNS record at their own registrar, pointing

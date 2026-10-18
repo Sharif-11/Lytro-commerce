@@ -9,7 +9,7 @@
 # docker-compose (or equivalent) is expected to name its containers the same way; override via the {$...}
 # environment placeholders if it doesn't.
 {
-	# DEPLOYMENT.md §3: Caddy's built-in ACME client needs the DNS-01 challenge for *.lytro.com's wildcard
+	# DEPLOYMENT.md §3: Caddy's built-in ACME client needs the DNS-01 challenge for *.lytro.app's wildcard
 	# cert, which needs a DNS-provider plugin (built in via xcaddy) and that provider's own directive here —
 	# neither the VPS provider nor the DNS registrar is chosen yet (§10's own "open, deliberately deferred"
 	# list). Fill in once both are: for example, for Cloudflare DNS,
@@ -35,17 +35,17 @@
 
 # apps/admin's static build: no process, Caddy serves dist/ directly (§8), falling back to index.html for
 # any unmatched path so the client-side router takes over. Plain directives, not wrapped in its own `handle`,
-# so this can be imported either as a handle block's body (lytro.com, *.lytro.com — only some paths go here)
-# or directly into a site block (admin.lytro.com — the whole host does).
+# so this can be imported either as a handle block's body (lytro.app, *.lytro.app — only some paths go here)
+# or directly into a site block (admin.lytro.app — the whole host does).
 (admin_spa) {
 	root * {$ADMIN_DIST_PATH:/srv/admin/dist}
 	try_files {path} /index.html
 	file_server
 }
 
-# lytro.com, www.lytro.com: marketing (apps/website) + tenant sign-up/sign-in/dashboard (apps/admin), split
+# lytro.app, www.lytro.app: marketing (apps/website) + tenant sign-up/sign-in/dashboard (apps/admin), split
 # by path (§4, §5).
-lytro.com, www.lytro.com {
+lytro.app, www.lytro.app {
 	import api_proxy
 
 	# Exactly the path list in DEPLOYMENT.md §5's "Correction, 2026-10-09" — kept in sync with that doc, not
@@ -60,19 +60,19 @@ lytro.com, www.lytro.com {
 	}
 }
 
-# admin.lytro.com: the operator console — same apps/admin build as every other host, showing its operator
+# admin.lytro.app: the operator console — same apps/admin build as every other host, showing its operator
 # route tree instead of the tenant one purely because of which host it's running on
 # (window.location.hostname in host.ts), not a different build. Everything but /api/* is the SPA.
-admin.lytro.com {
+admin.lytro.app {
 	import api_proxy
 	import admin_spa
 }
 
-# *.lytro.com (any other single-label host — a shop's own subdomain): apps/storefront (public) + apps/admin
+# *.lytro.app (any other single-label host — a shop's own subdomain): apps/storefront (public) + apps/admin
 # (staff dashboard), split by path. Covers every tenant automatically; no per-shop DNS entry or Caddy config
-# change is ever needed for a plain *.lytro.com shop (custom domains are a separate, deferred mechanism —
+# change is ever needed for a plain *.lytro.app shop (custom domains are a separate, deferred mechanism —
 # see the commented block at the end of this file).
-*.lytro.com {
+*.lytro.app {
 	import api_proxy
 
 	@admin_paths path /sign-in* /dashboard*
@@ -106,5 +106,5 @@ admin.lytro.com {
 # 	}
 # }
 #
-# and a catch-all site block (any hostname not matched above) that serves storefront the same way *.lytro.com
+# and a catch-all site block (any hostname not matched above) that serves storefront the same way *.lytro.app
 # above does, so a verified custom domain resolves exactly like a shop's own subdomain.

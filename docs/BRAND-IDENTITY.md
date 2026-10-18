@@ -158,7 +158,7 @@ Scale: 12, 14, 16, 18, 22, 28, 36, 48 px. UI line height 1.45, display 1.1, Bang
 | Storefront | The tenant's voice; Lytro only adds reassurance | "পেমেন্ট নিরাপদ। Secured by Lytro." |
 | Operator console | Precise, English-leaning, never cute | "Tenant locked. Reason required." |
 | Listener | Status only, always visible | "Lytro Listener চালু আছে। পেমেন্ট SMS মিলছে।" |
-| SMS to shoppers | Shortest possible, tenant name first | "Rahim Gadgets: অর্ডার #1042 পাঠানো হয়েছে। ট্র্যাক: lyt.ro/t/8f2k" |
+| SMS to shoppers | Shortest possible, tenant name first | "Rahim Gadgets: অর্ডার #1042 পাঠানো হয়েছে। ট্র্যাক: lytro.app/t/8f2k" |
 
 **Patterns.** Success: what happened, then the next step. Error: what went wrong, what to do, no apology. Empty state: what will appear here and the one button that starts it. Destructive confirmation: name the thing being deleted and the consequence in the button label ("অর্ডার ডিলিট করুন"), never "OK".
 
@@ -228,13 +228,13 @@ One mark, four tiles. The tile tells the surfaces apart at a glance.
 6. Give the operator shell its inverted chrome and the operator favicon.
 7. Set the storefront's metadata title to the tenant's name and add the footer attribution and payment-page "Secured by Lytro" mark.
 8. Outline the three text-based SVGs to paths in Figma and replace them.
-9. File the trademark at the Department of Patents, Designs and Trademarks (classes 9, 35, 42), and secure lytro.com.bd and social handles. Assume lytro.com is unavailable.
+9. File the trademark at the Department of Patents, Designs and Trademarks (classes 9, 35, 42), and secure the lytro.app domain (chosen 2026-10-18), lytro.com.bd as a defensive registration, and social handles.
 
 ---
 
 ## 12. Open questions
 
-- Short tracking-link domain for SMS (section 7 uses `lyt.ro` as a placeholder; it is not owned).
+- Whether SMS tracking links need a shorter domain than `lytro.app/t/…` (section 7 uses `lytro.app`; a short domain such as `lyt.ro` is not owned).
 - Whether the native dashboard app ships on iOS as well as Android at launch; the icon set covers both.
 - Whether marigold should also mark "trial" state in the dashboard or stay reserved for actions only. Recommendation: actions only.
 

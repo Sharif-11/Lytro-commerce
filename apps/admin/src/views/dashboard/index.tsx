@@ -36,7 +36,7 @@ export function DashboardHome(): React.JSX.Element {
             <>
               <div className="flex items-center justify-between gap-4 rounded-xl bg-white px-4 py-3 shadow-sm">
                 <dt className="text-slate-500">{t('dashboard.fields.shopUrl')}</dt>
-                <dd className="truncate font-medium text-slate-900">{tenant.slug}.lytro.com</dd>
+                <dd className="truncate font-medium text-slate-900">{tenant.slug}.lytro.app</dd>
               </div>
               <div className="flex items-center justify-between gap-4 rounded-xl bg-white px-4 py-3 shadow-sm">
                 <dt className="text-slate-500">{t('dashboard.fields.state')}</dt>

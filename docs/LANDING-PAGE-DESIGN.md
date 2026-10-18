@@ -64,7 +64,7 @@ Navbar on desktop: Features, Pricing, FAQ, About, Contact, then the language tog
 
 - **Bangla by default, English by toggle.** The toggle swaps every string in place and remembers the choice on the device. Western digits are used for money, order numbers and phone numbers in both languages; Bangla digits are used only in running Bangla prose (counts like ৩০ দিন).
 - **One accent per screen.** The marigold button appears once in the nav, once in the hero, once on the highlighted plan and once in the final CTA. Everything else is teal or outline.
-- **The claim input normalises as you submit.** Lowercase, letters, digits and hyphens only, which is what the shop link accepts. The suffix `.lytro.app` is a placeholder until the storefront domain is chosen.
+- **The claim input normalises as you submit.** Lowercase, letters, digits and hyphens only, which is what the shop link accepts. The suffix is `.lytro.app`, the platform domain.
 - **Mobile first.** Base styles are written for a 360 px phone; breakpoints at 640, 900 and 1100 px add columns, the tilted phone and hover states. On phones: the hero stacks with the phone mockup centred and the two proof cards inline beneath it; the integration strip scrolls sideways with faded edges; pricing is a swipeable, snap-scrolling row with position dots; the menu is a full-height sheet; a sticky bottom call to action appears once the hero scrolls away and hides near the final band. Every tap target is at least 44 px, body text never drops below 16 px, and the page never scrolls sideways.
 - **No motion except the mark drawing in once** and the FAQ chevron. Reduced-motion is respected.
 - **Sticky nav height 64 px**, backdrop blur, hairline border; the CTA stays visible on desktop at all times.
@@ -108,7 +108,6 @@ Navbar on desktop: Features, Pricing, FAQ, About, Contact, then the language tog
 
 ## 7. Open items
 
-- The storefront domain suffix shown in the claim input and mockups (`lytro.app`) is a placeholder.
 - Official bKash, Nagad, Steadfast and Pathao logos need their brand-use permission before they replace the text wordmarks.
 - The testimonial slot is filled only from Stage 1 case studies (MARKETING-PLAN.md §5, weeks 6 to 8).
 - A Google Play badge is added to the hero and final CTA only once the native dashboard app is listed.

@@ -4,7 +4,7 @@ interface TextFieldProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string;
   error?: string;
   icon?: ReactNode;
-  /** A fixed label after the input, inside the field's border (e.g. ".lytro.com" on the shop URL field). */
+  /** A fixed label after the input, inside the field's border (e.g. ".lytro.app" on the shop URL field). */
   suffix?: ReactNode;
 }
 
