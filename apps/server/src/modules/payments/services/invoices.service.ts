@@ -24,6 +24,11 @@ export class InvoicesService {
     return this.store.run((tx) => this.store.listForTenant(tx, tenantId));
   }
 
+  /** BIL-13, LIF-21: a shop's invoices together with its owner's earlier, deleted shops'. */
+  listForTenants(tenantIds: string[]): Promise<InvoiceRecord[]> {
+    return this.store.run((tx) => this.store.listForTenants(tx, tenantIds));
+  }
+
   async findById(id: string): Promise<InvoiceRecord> {
     const invoice = await this.store.run((tx) => this.store.findById(tx, id));
     if (!invoice) throw new ApiError('not_found', 'InvoiceNotFound', {});

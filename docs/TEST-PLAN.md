@@ -55,7 +55,7 @@ Covers: `TEN-29`.
 **S01-09 Lifecycle-gated sign-in.**
 Preconditions: tenants in `active`, `grace`, `read_only`, `locked`, `archived`, `deleted` (via test clock).
 Steps: attempt staff sign-in and owner sign-in in each state.
-Expected: staff can sign in during `active`/`grace`/`read_only` only; only the owner can sign in during `locked`; no dashboard content in `archived`; a `deleted` tenant's subscriber can still sign in to see plan history/invoices and buy a plan.
+Expected: staff can sign in during `active`/`grace`/`read_only` only; only the owner can sign in during `locked`; no dashboard content in `archived`; a `deleted` tenant's owner can still sign in, and lands on create-shop to open a new shop (S03-28).
 Covers: `AUTH-22`, `AUTH-23`.
 
 **S01-10 Sign-up field validation and identity uniqueness.**
@@ -193,9 +193,9 @@ Expected: 26th product refused regardless of balance; order creation itself neve
 Covers: `PYG-01`, `PYG-02`, `PYG-08`, `PYG-16`, `PYG-17`, `PYG-20`.
 
 **S03-08a Pay-as-you-go auto-archive after inactivity. (Added 2026-10-13, reverses S03-08's pre-revision claim.)**
-Steps: 1) Create a PAYG tenant and let it sit with no order fee, product fee or top-up. 2) Advance the clock to day 23 — check for the warning. 3) Advance to day 30 with still no qualifying activity. 4) Separately, repeat with a top-up on day 25 before the 30-day mark.
-Expected: a day-23 warning (in-app, push, email — never SMS) sent exactly once; at day 30 with no activity the tenant is `archived` directly, no grace or read-only stage; business-data deletion follows at day 60 from that point (`LIF-19`), same as any other archived tenant; the day-25 top-up resets the clock, cancelling the pending warning/archival.
-Covers: `PYG-21`.
+Steps: 1) Create a PAYG tenant and let it sit with no order fee, product fee or top-up. 2) Advance the clock to day 23 — check for the warning. 3) Advance to day 30 with still no qualifying activity. 4) Separately, repeat with a top-up on day 25 before the 30-day mark. 5) Let a trial end with no activity, including one with a top-up during the trial. 6) Advance an archived idle tenant to 45, 57 and 60 days after its archival.
+Expected: a day-23 warning (in-app, push, email — never SMS) sent exactly once; at day 30 with no activity the tenant is `archived` directly, no grace or read-only stage; business-data deletion follows at day 60 from that point (`LIF-19`), same as any other archived tenant; the day-25 top-up resets the clock, cancelling the pending warning/archival; the converted trial stays pay-as-you-go for 30 days after the conversion, whatever happened during the trial; the archived tenant gets one warning at 45 days and one at 57, and is deleted at 60.
+Covers: `PYG-21`, `LIF-18`, `LIF-19`.
 
 **S03-09 Balance concurrency and atomicity.**
 Steps: with a 50 TK balance, fire 100 simultaneous 1-TK charge requests.
@@ -241,6 +241,11 @@ Covers: `PLN-15`, `BND-04`, `RTE-11`.
 Steps: 1) As a trial shop and as a pay-as-you-go shop, open the add-ons screen. 2) As a Starter shop on day 10 of 30, buy a [100]-check allowance from the balance. 3) Run checks until 100 have returned a result, including one repeat within 3 days, and force one failure along the way; then run one more. 4) Set an automatic check rule, then empty the balance with the allowance used up, and place a qualifying order. 5) Buy an order-read allowance, use it up, then read one more message with enough balance and once with too little. 6) Renew the plan once with the allowance set to renew and once with renewal off, then run a check after each period end.
 Expected: neither the trial nor the pay-as-you-go shop is offered an allowance; the allowance costs two thirds of its price and gives all 100 checks; each check with a result uses one, the repeat included, the failure none, and the balance is unchanged until the 101st check, charged at the fraud-check rate; with neither allowance nor balance the automatic check is skipped and the order is still created; the extra read is charged from the balance, or refused for insufficient balance, never for the used-up allowance; renewal restores the full 100 and unused checks do not carry over; with renewal off the next check is charged from the balance; the usage page shows checks and reads left, with warnings at 50%, 80% and 95%; every check and read shows whether it used the allowance or the balance.
 Covers: `PLN-20`, `PLN-13`, `FRD-03`, `FRD-05`, `ORD-34`.
+
+**S03-28 An owner whose shop was deleted opens a new one.**
+Steps: 1) Give a shop a balance of 250 TK and one invoice, then let it reach deletion (`LIF-19`). 2) Sign in as its owner. 3) Create a new shop on the same account. 4) Open the balance, the ledger and the invoice list as the owner, then the invoice list as a staff member with `payments:read`. 5) Try to create a second shop. 6) Repeat steps 1–3 with a shop that held no balance.
+Expected: sign-in lands on create-shop with no shop on the account; the new shop is created on the same identity and the deleted shop stays deleted; 250 TK moves to the new shop, with a carry-over entry on each shop (the old one left at 0.00, the new balance usable at once); the owner sees the old invoice, marked as from the earlier shop, and the staff member does not; a second shop is refused; with no balance, nothing moves.
+Covers: `LIF-21`, `AUTH-22`, `AUTH-23`, `BAL-18`, `BIL-13`, `BAL-02`.
 
 **S03-15 Billing term CRUD, pricing prefill, and period math.**
 Steps: 1) Operator creates a term with 0 months, then 61 months. 2) Create a valid 4-month term with a default discount — observe price prefill on a plan. 3) Edit the prefilled price by hand. 4) Retire the term. 5) Edit the retired term's length; check an already-subscribed tenant's dates.

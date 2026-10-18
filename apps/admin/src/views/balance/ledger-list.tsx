@@ -28,6 +28,7 @@ const TYPE_LABEL_KEYS: Record<LedgerEntryType, string> = {
   [LedgerEntryType.PlanPayment]: 'balance.type.planPayment',
   [LedgerEntryType.Adjustment]: 'balance.type.adjustment',
   [LedgerEntryType.Reversal]: 'balance.type.reversal',
+  [LedgerEntryType.CarryOver]: 'balance.type.carryOver',
 };
 
 function typeLabel(entry: LedgerEntry, t: (key: string) => string): string {

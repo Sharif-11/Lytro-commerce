@@ -344,7 +344,8 @@
       "productFee": "Product fee",
       "planPayment": "Plan payment",
       "adjustment": "Adjustment",
-      "reversal": "Reversal"
+      "reversal": "Reversal",
+      "carryOver": "Carried over"
     }
   },
   "billing": {

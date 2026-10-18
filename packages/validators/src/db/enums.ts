@@ -300,6 +300,8 @@ export enum LedgerEntryType {
   PlanPayment = 'plan_payment',
   Adjustment = 'adjustment',
   Reversal = 'reversal',
+  // LIF-21, BAL-18: a deleted shop's remaining balance moved into the owner's new shop, one entry on each side.
+  CarryOver = 'carry_over',
 }
 
 // RAT-01: the platform-wide, per-use rates control.rates holds. Add a key here before any code reads or writes

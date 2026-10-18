@@ -135,6 +135,44 @@ export class BalanceService {
     return entry;
   }
 
+  /**
+   * LIF-20/21, BAL-18: when an owner whose shop was deleted opens a new one, each deleted shop's remaining
+   * balance moves into it -- one `carry_over` entry on each side, each naming the other shop, in the caller's own
+   * transaction (the new shop's creation). The deleted shop's balance is frozen; this move is the one exception,
+   * since it is not a spend, and no low-balance notice fires for a shop that no longer exists. A balance at or
+   * below zero stays where it is.
+   */
+  async carryOverFromDeletedShops(
+    tx: Transaction,
+    subscriberId: string,
+    toTenantId: string,
+  ): Promise<void> {
+    const sources = await this.tenants.findDeletedShopsOf(tx, subscriberId);
+    for (const source of sources) {
+      const from = await this.tenants.lockBalanceForUpdate(tx, source.id);
+      if (!from || toPaisa(from.amount) <= 0n) continue;
+      const to = await this.tenants.lockBalanceForUpdate(tx, toTenantId);
+      if (!to) throw new Error('tenant not found');
+      const toAfter = fromPaisa(toPaisa(to.amount) + toPaisa(from.amount));
+      await this.ledger.insert(tx, {
+        tenantId: source.id,
+        type: LedgerEntryType.CarryOver,
+        amount: fromPaisa(-toPaisa(from.amount)),
+        balanceAfter: fromPaisa(0n),
+        reference: { toTenantId },
+      });
+      await this.tenants.applyBalanceChange(tx, source.id, fromPaisa(0n));
+      await this.ledger.insert(tx, {
+        tenantId: toTenantId,
+        type: LedgerEntryType.CarryOver,
+        amount: from.amount,
+        balanceAfter: toAfter,
+        reference: { fromTenantId: source.id },
+      });
+      await this.tenants.applyBalanceChange(tx, toTenantId, toAfter);
+    }
+  }
+
   /** BAL-07/09: makes the balance usable again (plan purchase, pay-as-you-go activation). */
   freeze(tx: Transaction, tenantId: string): Promise<void> {
     return this.tenants.setBalanceFrozen(tx, tenantId, true);

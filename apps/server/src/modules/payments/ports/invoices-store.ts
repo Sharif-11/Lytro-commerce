@@ -19,4 +19,5 @@ export interface InvoicesStore {
   insert(tx: Transaction, number: number, values: NewInvoiceValues): Promise<InvoiceRecord>;
   findById(tx: Transaction, id: string): Promise<InvoiceRecord | null>;
   listForTenant(tx: Transaction, tenantId: string): Promise<InvoiceRecord[]>;
+  listForTenants(tx: Transaction, tenantIds: string[]): Promise<InvoiceRecord[]>;
 }

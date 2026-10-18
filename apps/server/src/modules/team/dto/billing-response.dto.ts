@@ -110,6 +110,8 @@ export const invoiceSchema = z.object({
   creditAmount: z.string(),
   billingTermLabel: z.string(),
   issuedAt: z.date(),
+  // LIF-21: true for an invoice of the owner's earlier, deleted shop, listed alongside this shop's own.
+  earlierShop: z.boolean(),
 });
 export class InvoiceDto extends createZodDto(invoiceSchema) {}
 export class InvoiceListDto extends createZodDto(invoiceSchema.array()) {}

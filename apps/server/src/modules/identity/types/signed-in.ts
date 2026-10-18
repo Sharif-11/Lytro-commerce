@@ -1,5 +1,4 @@
-export type NextStep =
-  'create-shop' | 'dashboard' | 'set-password' | 'renewal' | 'purchase' | 'unavailable';
+export type NextStep = 'create-shop' | 'dashboard' | 'set-password' | 'renewal' | 'unavailable';
 
 export interface SignedIn {
   next: NextStep;

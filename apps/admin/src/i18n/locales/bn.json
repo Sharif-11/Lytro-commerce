@@ -344,7 +344,8 @@
       "productFee": "প্রোডাক্ট ফি",
       "planPayment": "প্ল্যান পেমেন্ট",
       "adjustment": "অ্যাডজাস্টমেন্ট",
-      "reversal": "রিভার্সাল"
+      "reversal": "রিভার্সাল",
+      "carryOver": "ক্যারি ওভার"
     }
   },
   "billing": {
