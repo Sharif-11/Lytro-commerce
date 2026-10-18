@@ -12,7 +12,7 @@ Status: draft v1, 2026-10-02. Builds on `SRS-detailed.md` §26's suite skeleton 
 
 **S01-01 Sign-up by phone, full trial provisioning.**
 Preconditions: none (fresh phone number).
-Steps: 1) Continue with a new Bangladeshi phone number. 2) Receive and enter the 6-digit OTP within 5 minutes. 3) In the create-shop step enter the shop name, owner name and address. 4) Skip the set-password offer. 5) Land on the dashboard.
+Steps: 1) Continue with a new Bangladeshi phone number. 2) Receive and enter the 6-digit OTP within 5 minutes. 3) In the create-shop step enter the shop name, owner name and address. 4) Skip the set-password offer and both set-up questions. 5) Land on the dashboard.
 Expected: the account exists after step 2 with no tenant; after step 3 the owner user, tenant in `trial` and unique subdomain exist; dashboard shows 30-day trial limits (40 orders, 20 products, 200 MB storage, 5 GB bandwidth, 8 essential SMS) and a setup checklist; the "shop ready" SMS arrives at the phone containing the shop's live URL; essential-SMS counter reads 1 of 8 (shop-ready only; the code is platform cost, AUTH-21).
 Covers: `AUTH-04`, `AUTH-05`, `AUTH-10`, `AUTH-21`, `AUTH-28`, `TRL-01`, `TRL-03`, `SMS-18`, `SMS-01`.
 
@@ -47,9 +47,9 @@ Steps: for every endpoint that takes a resource ID, request tenant B's resource 
 Expected: every attempt returns `not_found`, never `forbidden` (so existence isn't leaked); automated isolation suite passes across the full endpoint list.
 Covers: `TEN-03`, `SEC-02`.
 
-**S01-08 Cookie scoping and payment-callback tenant identification.**
-Steps: 1) Sign in on tenant A's subdomain; inspect the cookie's scope. 2) Attempt to send that cookie to tenant B's subdomain. 3) Deliver a payment callback to a different host than the one the session started on.
-Expected: cookie never transmitted to tenant B's host; the callback still credits the correct tenant via its signed session/callback identifier, not the request host.
+**S01-08 Cookie scoping, same-site requests and payment-callback tenant identification.**
+Steps: 1) Sign in at `app.lytro.app`; inspect the session cookie. 2) From a shop's subdomain, set a cookie with the session cookie's name for `.lytro.app`, then make a dashboard request. 3) Send a state-changing dashboard request with a valid session but the `Origin` of a shop's subdomain. 4) Deliver a payment callback to a different host than the one the session started on.
+Expected: the session cookie is `__Host-` prefixed, Secure, `Path=/`, with no `Domain`, and is never sent to another host; the cookie set from the shop's subdomain never reaches the dashboard; the request in step 3 is refused; the callback still credits the correct tenant via its signed session/callback identifier, not the request host.
 Covers: `TEN-29`.
 
 **S01-09 Lifecycle-gated sign-in.**
@@ -75,19 +75,41 @@ Expected: Starter/trial/PAYG refused with `plan_feature_unavailable`; Growth suc
 Covers: `TEN-10`, `TEN-13`, `TEN-14`.
 
 **S01-13 Per-tenant PWA branding.**
-Steps: install the dashboard PWA from two different tenants' own subdomains/custom domains.
+Steps: install the dashboard PWA from two different shops' dashboard paths (`app.lytro.app/<shop-a>/`, `app.lytro.app/<shop-b>/`).
 Expected: two distinctly named, distinctly iconed home-screen apps, each reflecting its own tenant's shop name/logo at install time, both still carrying the non-removable "Powered by" mark.
-Covers: `TEN-08`, `TEN-17`.
+Covers: `TEN-17`.
 
 **S01-14 Hostname resolution happens before auth, and reserved-slug collisions are blocked.**
-Steps: 1) Request an unknown subdomain. 2) Attempt to claim a subdomain matching a reserved word or an existing tenant's. 3) Request a known tenant's subdomain with no session at all.
-Expected: unknown subdomain returns a generic not-found page before any auth logic runs; reserved/colliding slugs rejected at sign-up; a known subdomain resolves to that tenant's public storefront with no session required.
+Steps: 1) Request an unknown subdomain. 2) Attempt to claim a subdomain matching a reserved word or an existing tenant's. 3) Request a known tenant's subdomain with no session at all. 4) Request `/dashboard` and `/sign-in` on a known shop's subdomain and on its custom domain.
+Expected: unknown subdomain returns a generic not-found page before any auth logic runs; reserved/colliding slugs rejected at sign-up; a known subdomain resolves to that tenant's public storefront with no session required; neither host serves the dashboard (the storefront answers both paths).
 Covers: `TEN-01`, `TEN-04` to `TEN-09`, `TEN-11`, `TEN-12`.
 
 **S01-15 Deleted-tenant subdomain reservation window.**
 Steps: delete a tenant's business data (day 60); attempt to claim its old subdomain as a different subscriber within 30 days, then after.
 Expected: refused within 30 days; claimable after.
 Covers: `TEN-15` to `TEN-18`, `TEN-20` to `TEN-22`, `TEN-24` to `TEN-28`.
+
+**S01-16 One dashboard address.**
+Preconditions: an owner of two shops; a staff member of shop A only.
+Steps: 1) The owner signs in once at `app.lytro.app/sign-in`. 2) Open `app.lytro.app/<shop-a>` and `app.lytro.app/<shop-b>`. 3) As the staff member, open `app.lytro.app/<shop-b>` and call one of shop B's dashboard API endpoints. 4) Create a shop named "Sign in".
+Expected: one sign-in lands on a shop picker, and both dashboards open by path without signing in again; step 3 returns the same not-found as an unknown shop, for both the page and the API; the shop in step 4 receives the slug `sign-in-2`.
+Covers: `TEN-31`, `TEN-26`.
+
+**S01-19 Claimed address and the set-up step.**
+Steps: 1) On the marketing page, type "gamma" in the claim box. 2) Continue with Google. 3) On create-shop, check the address, then type an address that is taken and one that is reserved, then go back to "gamma". 4) In the set-up step, choose Cosmetics and Chattogram city. 5) Open the delivery settings and a new product form.
+Expected: "gamma" is pre-filled on create-shop after the Google round trip; the taken and reserved addresses are shown as such, each with a suggested alternative; the delivery zones read "Inside Chattogram city" and "Outside Chattogram city"; the new product form starts with batch tracking on (the cosmetics default).
+Covers: `AUTH-28`, `AUTH-11`, `PST-01`, `DLV-01`.
+
+**S01-17 Default identity, and the free name and logo.**
+Steps: 1) Create a shop with no logo; open its storefront, a landing page, a hosted payment page and the dashboard. 2) Upload a logo and open them again.
+Expected: all four use Lytro's default tokens and show the shop's monogram, then its logo, never another tenant's; "Powered by Lytro" (storefront, dashboard) and "Secured by Lytro" (payment page) are present and cannot be removed.
+Covers: `TEN-16`, `TEN-18`, `BRN-01`.
+
+**S01-18 The brand identity add-on.**
+Preconditions: a trial shop; a Pro shop without the add-on; a shop with the add-on.
+Steps: 1) In the trial and Pro shops, change identity settings in the editor and try to switch "Use my brand" on. 2) In the shop with the add-on, pick a pale yellow main colour, then a passing identity, and switch it on; check the storefront, a landing page, the dashboard, both installed apps and the payment page. 3) Look at a paid and a failed payment's colours; try to upload a CSS or font file. 4) Switch off, then on. 5) Let the add-on lapse, then buy it again. 6) Compare the stylesheet served to two shops with different identities, and change one shop's identity.
+Expected: the preview updates live while the live pages stay unchanged, and neither the trial nor the Pro shop can switch on; the pale yellow is refused with a passing suggested shade; with the identity on, fonts, colours, shape and spacing change on every surface but the payment page, which still shows only the name and logo; status colours stay fixed and no CSS or font file is accepted; switching off restores the default and switching on restores the saved identity; a lapse reverts to the default with settings kept, and buying again restores them; both shops get the same stylesheet file, and only the changed shop's cached pages are invalidated.
+Covers: `BRN-02` to `BRN-07`.
 
 ---
 
@@ -204,6 +226,16 @@ Covers: `PLN-01` to `PLN-07`, `PLN-09`, `PLN-11`, `PLN-12`.
 Steps: 1) Mark a plan not-for-sale — attempt a new purchase. 2) Operator assigns a not-for-sale plan to a specific tenant directly. 3) Leave that tenant untouched for a year.
 Expected: not-for-sale plan disappears from the purchase screen but existing subscribers keep working; a directly-assigned tenant is never prompted to renew/pay and never lapses through the normal lifecycle.
 Covers: `PLN-08`, `PLN-10`, `PLN-16` to `PLN-18`.
+
+**S03-25 Add-ons: catalogue, payment, renewal and lapse.**
+Steps: 1) As operator, add, edit and retire a catalogue item. 2) On day 10 of a 30-day period, buy extra products from the balance. 3) Buy extra storage directly, and check the limit before and after the payment is confirmed. 4) Renew the plan with one add-on set to renew and one with renewal off. 5) As a pay-as-you-go tenant, buy an add-on and let 30 days pass, once with enough balance and once without. 6) Upgrade the plan while an add-on runs. 7) Let a brand identity add-on lapse, then buy it again.
+Expected: catalogue changes take effect without a deploy, and a retired item can't be bought while one already bought keeps running; the products limit rises at once, for two thirds of a period's price; the storage limit rises only on confirmation; the plan renewal includes the renewing add-on in one payment, and the other lapses after warnings 7 days and 1 day before; the pay-as-you-go add-on renews from the balance, or lapses when the balance is short; the add-on keeps its end date across the upgrade; on the lapse the storefront and dashboard revert to the default identity with settings kept, and buying again restores them.
+Covers: `PLN-13`, `PLN-14`, `UPG-14`, `BRN-05`.
+
+**S03-26 Packs and auto-buy.**
+Steps: reach 100% of bandwidth and of API requests 1) with auto-buy off, 2) with auto-buy on and enough balance, 3) with auto-buy on and too little balance.
+Expected: 1) a hard stop; 2) a pack is bought, the ledger shows it, and service continues; 3) service stops (429) and no pack is bought.
+Covers: `PLN-15`, `BND-04`, `RTE-11`.
 
 **S03-15 Billing term CRUD, pricing prefill, and period math.**
 Steps: 1) Operator creates a term with 0 months, then 61 months. 2) Create a valid 4-month term with a default discount — observe price prefill on a plan. 3) Edit the prefilled price by hand. 4) Retire the term. 5) Edit the retired term's length; check an already-subscribed tenant's dates.
@@ -389,7 +421,7 @@ Expected: the library attribute is reusable across products; variant-defining at
 Covers: `ATR-01`, `ATR-02`, `ATR-03`, `ATR-05` to `ATR-07`, `ATR-09` to `ATR-14`.
 
 **S05-14 The storefront itself: load, cart, checkout redirect, tracking, shopper account.**
-Steps: 1) Load a tenant's storefront root — browse categories, search, paginate. 2) Add items to a cart; confirm no stock is reserved yet. 3) Check out with an online payment method — confirm redirect to the hosted page with no payment UI built into the storefront itself. 4) Open the tracking page by tracking ID, and separately by phone for a signed-in shopper. 5) Install the storefront's own PWA. 6) Disable the shared storefront for a tenant that has its own external website.
+Steps: 1) Load a tenant's storefront root — browse categories, search, paginate. 2) Add items to a cart; confirm no stock is reserved yet. 3) Check out with an online payment method — confirm redirect to the session's payment address (the hosted page for a manual method, the wallet's own checkout for a method whose gateway is selected) with no payment UI built into the storefront itself. 4) Open the tracking page by tracking ID, and separately by phone for a signed-in shopper. 5) Install the storefront's own PWA. 6) Disable the shared storefront for a tenant that has its own external website.
 Expected: catalogue browses/searches/paginates correctly; cart never touches stock until checkout submits; checkout creates a payment session and redirects, with zero payment-collection UI in the storefront's own code; tracking works both ways; PWA installs with tenant branding; a tenant that opts out still has API + hosted payment page working.
 Covers: `SFT-01`, `SFT-02`, `SFT-03`, `SFT-05`, `SFT-07`, `SFT-08`, `SFT-09`, `SFT-10`, `SFT-12` to `SFT-19`.
 
@@ -568,14 +600,19 @@ Expected: incomplete bank fields rejected with field errors; a valid bank accoun
 Covers: `WAL-06`, `WAL-07`, `WAL-08`, `WAL-14`, `WAL-15`, `WAL-17`, `WAL-18`, `WAL-19`.
 
 **S07-14 Hosted page content, allow-listed return, and transaction-ID format.**
-Steps: 1) Open the hosted page — confirm it shows tenant name/logo, amount, order reference, each enabled method's active account, note, and a countdown, nothing from another tenant. 2) Submit a return address not on the tenant's allow-list. 3) Submit a transaction ID that's too short, and one already used platform-wide. 4) Let a session reach a final result and observe the redirect.
-Expected: page content matches exactly what's specified, no cross-tenant leakage; an unlisted return address is rejected before session creation; malformed/duplicate transaction IDs are rejected with a clear message; the final redirect carries session ID and status, retry allowed after `failed` within the session window.
-Covers: `PAY-04` to `PAY-08`, `PAY-17`, `PAY-19`.
+Steps: 1) Open the hosted page at `pay.lytro.app/<session>` — confirm it shows the tenant's name and logo (or monogram), amount, order reference, each enabled manual method in its own panel with that wallet's official logo and colours, the steps for its account type, the active account, note, a countdown, the "never asks for your PIN or OTP" notice and "Secured by Lytro", nothing from another tenant and none of the shop's other brand settings. 2) Switch from bKash to Nagad. 3) Submit a return address not on the tenant's allow-list. 4) Submit a transaction ID that's too short, and one already used platform-wide. 5) Let a session reach a final result and observe the redirect. 6) Inspect the page's Content Security Policy and a session ID.
+Expected: page content matches exactly what's specified, no cross-tenant leakage, no field asking for a PIN or OTP; the panel's logo, colours and steps change with the method; an unlisted return address is rejected before session creation; malformed/duplicate transaction IDs are rejected with a clear message; the final redirect carries session ID and status, retry allowed after `failed` within the session window; the policy blocks every script source but the platform's own, and the session ID is a 128-bit random value.
+Covers: `PAY-04`, `PAY-05`, `PAY-07`, `PAY-08`, `PAY-17`, `PAY-19`, `PAY-23`.
 
-**S07-15 Gateway button visibility and operator-level session exemption.**
-Steps: 1) Check the pay-with-gateway button's visibility with and without a selected, credentialed gateway account. 2) Create a plan-purchase/top-up session while the tenant is already at its own session-limit for shopper payments.
-Expected: the button appears only when a real gateway account is both selected and enabled; the platform's own plan/top-up sessions use a separate engine and never count against a tenant's own session limit.
-Covers: `PAY-09` (webhook retry — covered in S06's webhook scenarios too, cross-reference), `PAY-10` (if distinct), `PAY-21`.
+**S07-15 A gateway goes straight to the wallet, and operator-level session exemption.**
+Steps: 1) With a selected, credentialed bKash gateway account, choose bKash at storefront checkout, and separately create a session through the API with the method set to bKash. 2) Complete the payment on bKash's checkout and return. 3) Open the same tenant's hosted page for a manual method. 4) Create a plan-purchase/top-up session while the tenant is already at its own session-limit for shopper payments.
+Expected: checkout opens bKash's own checkout directly and the API returns bKash's checkout address, never the hosted page; on return, `pay.lytro.app` verifies the payment with bKash and redirects to the return address with status `verified`; the hosted page offers only manual methods and no gateway button; the platform's own plan/top-up sessions never count against a tenant's own session limit.
+Covers: `PAY-01`, `PAY-06`, `PAY-09` (webhook retry — covered in S06's webhook scenarios too, cross-reference), `PAY-10` (if distinct), `PAY-21`.
+
+**S07-23 Verification fees by method.**
+Steps: 1) Verify a ৳70 advance three ways: manually, by the listener, and through bKash checkout. 2) Repeat one listener and one gateway payment on a trial shop. 3) Let a listener match need review, then approve it. 4) With too little balance, start a gateway payment, and separately let a listener receipt match. 5) With enough balance, start a gateway payment and abandon it. 6) Record a refund on a listener-verified payment. 7) Change both rates, then verify one more payment each way.
+Expected: manual charges nothing, the listener ৳0.07 and the gateway ৳0.70, each as a ledger entry naming its method; the trial shop pays the same; the reviewed-then-approved payment charges nothing; with too little balance, bKash checkout is not offered and the listener match goes to manual review with a low-balance notice; the abandoned checkout's reserved fee is released; the refund charges nothing and leaves the original fee in place; the new rates apply only to the payments verified after the change.
+Covers: `WAL-20`, `WAL-21`, `RAT-15`, `RAT-16`.
 
 **S07-16 Gateway error handling and sandbox-payment exclusion from revenue.**
 Steps: 1) Force a gateway credential/token error mid-session. 2) Complete a payment in a gateway's sandbox/test mode; check whether it appears in revenue reports.
@@ -717,13 +754,13 @@ Expected: delivery log matches each attempt (status, first 1KB of response); end
 Covers: `API-13`.
 
 **S09-05 Versioning and deprecation headers.**
-Steps: call an unversioned path; call a deprecated version.
-Expected: unversioned returns 404; deprecated version carries `Deprecation` and `Sunset` headers.
+Steps: call an unversioned path on `api.lytro.app`; call a deprecated version; call `api.lytro.app/v1` with only a dashboard session cookie and no key.
+Expected: unversioned returns 404; deprecated version carries `Deprecation` and `Sunset` headers; the cookie-only call returns 401.
 Covers: `API-14`.
 
 **S09-06 OpenAPI spec stays honest.**
 Steps: add a new route without updating the generated spec (simulate a build with a missing decorator).
-Expected: CI build fails; every real route otherwise appears in `/api/v1/openapi.json`.
+Expected: CI build fails; every real route otherwise appears in `https://api.lytro.app/v1/openapi.json`.
 Covers: `API-15`.
 
 **S09-07 Error contract — code vs. message vs. stack trace.**
@@ -815,8 +852,8 @@ Covers: `AI-07`, `AI-11`.
 ## S11 — Operator and support (ADM, SUP, NTC, RAT)
 
 **S11-01 Operator console isolation and mandatory 2FA.**
-Steps: 1) Attempt to sign a tenant credential into the operator console. 2) Create a new operator account; attempt to use it before completing TOTP enrollment. 3) Complete enrollment with a wrong code, then the right one. 4) Use a backup code; attempt to reuse it.
-Expected: tenant credential never works on the console; account unusable until a valid TOTP code confirms enrollment; backup code works once, rejected on reuse.
+Steps: 1) Attempt to sign a tenant credential into the operator console. 2) Create a new operator account; attempt to use it before completing TOTP enrollment. 3) Complete enrollment with a wrong code, then the right one. 4) Use a backup code; attempt to reuse it. 5) Inspect the seller dashboard's built files.
+Expected: tenant credential never works on the console; account unusable until a valid TOTP code confirms enrollment; backup code works once, rejected on reuse; the dashboard's build contains no operator screens or operator API calls.
 Covers: `ADM-01`.
 
 **S11-02 2FA break-glass recovery.**
@@ -825,9 +862,9 @@ Steps: simulate losing both the TOTP device and all backup codes; run the docume
 Expected: account recovered via the logged break-glass procedure; account unusable again until 2FA is freshly re-enrolled; with a second operator present, the same recovery requires their approval instead of being self-service.
 Covers: `ADM-18`.
 
-**S11-03 View-as-tenant, scoped and audited.**
-Steps: open view-as-tenant with a reason under 10 characters; retry with a valid reason; attempt a write while viewing; let 30 minutes pass.
-Expected: short reason refused; valid reason opens a read-only, time-limited, banner-shown session; writes refused; every page opened is logged to the tenant's own activity log; access ends at 30 minutes.
+**S11-03 View-as-tenant, approved, scoped and audited.**
+Steps: 1) Request view-as-tenant with a reason under 10 characters; retry with a valid reason. 2) Try to open the shop before anyone answers. 3) As a staff member without `support:approve`, try to allow it; then allow it as the owner. 4) Follow the support link; then reuse it. 5) Open an order and its customer, and attempt a write. 6) Change the address to another shop. 7) End the view from the seller's side; separately, leave a second request unanswered for 24 hours.
+Expected: short reason refused; the shop gets the banner, push and SMS; nothing opens before approval; the unpermitted staff member cannot allow it, the owner can; the link opens the real dashboard at `app.lytro.app/<shop>` in a read-only, banner-shown support view, and the reused link is refused; the order and full customer details are visible and the write is refused; the other shop does not open; ending it closes the view at once; the unanswered request lapses; the request, the approval and every page opened appear in the tenant's activity log.
 Covers: `ADM-05`.
 
 **S11-04 Payment/top-up review queue, no double-credit.**
@@ -846,7 +883,7 @@ Expected: rate change applies immediately to future charges only, past ledger en
 Covers: `RAT-01` to `RAT-03`, `LIF-26`, `ADM-11`.
 
 **S11-07 Setup checklist auto-detection.**
-Steps: on a new shop, check the checklist's starting state; then complete each item one at a time: add a product, add a wallet number, copy a product link, connect a courier, choose SMS events, pair a listener, create an API key.
+Steps: on a new shop, check the checklist's starting state; then complete each item one at a time: add a product, upload a logo, add a wallet number, copy a product link, connect a courier, choose SMS events, pair a listener, create an API key.
 Expected: a new shop starts with "shop created" and "delivery charges" already ticked; every other item ticks off automatically without a page reload; once the "Get your shop ready" group is done, the checklist folds away and can be reopened from settings.
 Covers: `SUP-01`.
 

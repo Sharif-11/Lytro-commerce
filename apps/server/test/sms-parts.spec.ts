@@ -3,7 +3,7 @@ import { countSmsParts } from '../src/modules/shared/messaging/sms-parts';
 
 describe('countSmsParts (AUTH-21)', () => {
   it('plain ASCII up to 160 characters is one GSM-7 part', () => {
-    const body = 'Your shop is ready: http://example.lytro.com';
+    const body = 'Your shop is ready: http://example.lytro.app';
     expect(countSmsParts(body)).toMatchObject({ encoding: 'gsm7', parts: 1 });
   });
 
