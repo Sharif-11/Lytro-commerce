@@ -248,6 +248,9 @@ importers:
 
   apps/website:
     dependencies:
+      '@lytronix/validators':
+        specifier: workspace:*
+        version: link:../../packages/validators
       next:
         specifier: ^15
         version: 15.5.27(@opentelemetry/api@1.9.1)(@playwright/test@1.64.0)(@types/node@20.19.43)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)

@@ -1,6 +1,6 @@
 # Landing page design (apps/website)
 
-Status: v1 design, 2026-10-17. A working prototype is `docs/brand/lytro-landing.html` (open it in a browser; it needs internet access for Google Fonts), also published at https://claude.ai/artifact/MwvopjMr9UqhFzf4hZMdoK. This document is the spec behind it and the map onto `apps/website`. The brand rules it follows are in `BRAND-IDENTITY.md`. Nothing in `apps/website` has been changed yet.
+Status: v1 design, 2026-10-17; built 2026-10-19. A working prototype is `docs/brand/lytro-landing.html` (open it in a browser; it needs internet access for Google Fonts), also published at https://claude.ai/artifact/MwvopjMr9UqhFzf4hZMdoK. This document is the spec behind it and the map onto `apps/website`. The brand rules it follows are in `BRAND-IDENTITY.md`. `apps/website` was rebuilt from scratch to this spec on 2026-10-19 (§6 is the map).
 
 **Scheduled 2026-10-18** as a parallel track to Phase 3 (`PHASE-3-PLAN.md`): step A now, step B (the inventory and statistics spotlights, the storefront showcase) once those features are live.
 
@@ -85,26 +85,28 @@ Navbar on desktop: Features, Pricing, FAQ, About, Contact, then the language tog
 
 ## 6. Mapping onto apps/website
 
-| Prototype section | Component | Change |
+Built 2026-10-19 as a fresh Next.js app (`apps/website`, the old code removed). Every string is a Bangla/English pair kept next to the component that shows it; the visitor's language is a per-device cookie read on the server, so the first paint is already in the chosen language.
+
+| Prototype section | Built as | Notes |
 | --- | --- | --- |
-| Nav | `nav.tsx` | Replace the gradient "L" tile with the mark SVG and wordmark; add anchor links and the language toggle; CTA label "ফ্রি দোকান খুলুন" in marigold. |
-| Hero | `hero.tsx` | Dark chrome band, new headline and lead, claim input posting to `app.lytro.app/sign-in?shop=`, phone mockup component (static JSX, no screenshot). |
-| Strip | new `integrations.tsx` | Official logos from `docs/brand/third-party/` for the live services (bKash, Nagad, Steadfast, Pathao at launch). |
-| Problems | `solutions.tsx` | Keep data, change layout to before/after pairs. |
-| Features | new `features.tsx` | Two spotlight cards (inventory, statistics) plus six cards with vignettes. The spotlights ship only when Phase 3 inventory (INV, PUR) and statistics (STA) are live, per the "never claim what is not live" rule. |
-| Why Lytro | new `why.tsx` | Six advantage cards. |
-| Contact | new `contact.tsx` | Three cards; real WhatsApp, phone and email once the support line exists. |
-| Showcase | new `showcase.tsx` | Storefront and tracking mockups. |
-| How it works | `how-it-works.tsx` | Copy tightened. |
-| Pricing | `pricing.tsx` | Keep live plan fetch; add term toggle (client component) using `/billing-terms`; highlight pay-as-you-go with the badge. |
-| Proof | new `proof.tsx` | Operator story; testimonial slot reads from a static list that starts empty. |
-| Zero risk | new `risk.tsx` | Four cards. |
-| FAQ | `faq.tsx` | Six items, first open. |
-| Final CTA | `final-cta.tsx` | Dark band, two buttons. |
-| Footer | `footer.tsx` | Columns only for pages that exist. |
-| Fonts | `layout.tsx` | Add Plus Jakarta Sans 700/800 via next/font. |
-| Tokens | `globals.css` | Replace the @theme block with `docs/brand/tailwind-theme.css`. |
-| Metadata | `layout.tsx` | Keep the Bangla title; add `og:image` from `docs/brand/og-image.svg` exported to PNG. |
+| Nav | `components/layout/site-nav.tsx`, `mobile-menu.tsx`, `language-toggle.tsx` | Mark and wordmark SVG, five links, বাং/EN toggle (cookie + server refresh), log in, one marigold button. Full-height sheet under 1024 px. |
+| Hero | `components/landing/hero.tsx`, `claim-box.tsx`, `components/mockups/phone-dashboard.tsx` | Claim input normalises with the shared `SLUG_PATTERN` and posts to `app.lytro.app/sign-in?shop=`. Phone drawn in JSX. "See a shop" link only when the showcase is live. |
+| Strip | `components/landing/integrations.tsx` | Official logos in `public/third-party/` (bKash, Nagad, Steadfast, Pathao) plus "more coming". Sideways scroll on phones. |
+| Problems | `components/landing/problems.tsx` | Before/after pairs. |
+| Features | `components/landing/features.tsx`, `mockups/inventory-card.tsx`, `mockups/stats-card.tsx` | Six cards always; the inventory and statistics spotlights render only when `LIVE_FEATURES` lists `inventory` / `statistics`. |
+| Why Lytro | `components/landing/why-lytro.tsx` | Six rules; the fee rule follows WAL-20 (manual verification free, a percentage only for automatic verification). |
+| Showcase | `components/landing/showcase.tsx`, `mockups/storefront-frame.tsx`, `mockups/tracking-frame.tsx` | Rendered only when `LIVE_FEATURES` lists `showcase`. |
+| How it works | `components/landing/how-it-works.tsx` | Three steps. |
+| Pricing | `components/landing/pricing.tsx` (server) + `pricing-cards.tsx` (client), `lib/pricing/pricing-model.ts`, `lib/api/plans-api.ts` | Live `/plans`, `/billing-terms`, `/plans/:id/prices` read server-side with the edge secret, cached 60 s. Term toggle, saving badge, swipe row with dots on phones. Plan buttons carry `planId` and `termId`. Feature lines come from the plan's `features` flags (`custom_domain`, `priority_support`). Backend unreachable: pay-as-you-go card plus an honest note, no invented prices. |
+| About (proof) | `components/landing/proof.tsx` | Operator story, empty testimonial list, link to `/about`. |
+| Zero risk | `components/landing/zero-risk.tsx` | Four cards. |
+| FAQ | `components/landing/faq.tsx` | Native `<details>` with a shared `name`, first open. |
+| Contact | `/contact` page | The landing page links to the page instead of carrying its own contact section (see `SITE-PAGES-DESIGN.md`). |
+| Final CTA | `components/landing/final-cta.tsx` | Dark band, accent and ghost buttons. |
+| Footer | `components/layout/site-footer.tsx` | Columns list only routes that exist; Terms, Privacy and Notices join when those pages ship. |
+| Sticky CTA | `components/layout/sticky-cta.tsx` | Phone-only bottom bar between the hero and the final band. |
+| Fonts, tokens, metadata | `app/layout.tsx`, `app/globals.css`, `app/opengraph-image.tsx`, `app/icon.svg` | next/font (Plus Jakarta Sans, Inter, Noto Sans Bengali); `@theme` from `docs/brand/tailwind-theme.css`; Bangla title and a generated link preview. |
+| Settings | `lib/env.ts`, `.env.example` | `SERVER_URL`, `TRUSTED_EDGE_SECRET`, `APP_URL`, `SITE_URL`, `LIVE_FEATURES`, `CONTACT_WEBHOOK_URL`, `SUPPORT_*`. |
 
 ---
 

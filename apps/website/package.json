@@ -2,7 +2,7 @@
   "name": "@lytronix/website",
   "version": "0.0.0",
   "private": true,
-  "description": "Lytro's marketing landing page (Next.js). See docs/PHASE-1-PLAN.md slice 11, docs/MARKETING-PLAN.md.",
+  "description": "Lytro's marketing site (Next.js): the landing page, about and contact. Design: docs/LANDING-PAGE-DESIGN.md, docs/SITE-PAGES-DESIGN.md, docs/BRAND-IDENTITY.md.",
   "scripts": {
     "dev": "next dev -H 0.0.0.0 -p 3003",
     "build": "next build",
@@ -12,6 +12,7 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@lytronix/validators": "workspace:*",
     "next": "^15",
     "react": "^19",
     "react-dom": "^19"
