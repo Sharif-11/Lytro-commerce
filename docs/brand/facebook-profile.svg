@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-label="Lytro">
+  <!-- Facebook page profile picture (also X, YouTube, LinkedIn avatars). Facebook crops it to a circle, so the mark
+       sits inside the central 70%. Export to PNG at 1024 px; never add the wordmark here, it becomes unreadable at 40 px. -->
+  <rect width="1024" height="1024" fill="#0E6B66"/>
+  <path d="M15 15V49H31L49 29" transform="translate(512 512) scale(9.5) translate(-32 -32)" fill="none" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

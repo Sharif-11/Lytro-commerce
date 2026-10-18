@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1640 624" width="1640" height="624" role="img" aria-label="Lytro: আপনার দোকান, আপনার হাতে">
+  <!-- Facebook page cover, 1640 x 624. Phones crop the sides, so everything that matters stays inside the central
+       1200 px (x 220 to 1420). The profile circle overlaps the bottom-left on desktop, so nothing sits there.
+       Set in live type: outline the text to paths (or export PNG from Figma) before uploading. Also reusable as the
+       Google Play feature graphic at 1024 x 500 with the same composition. -->
+  <rect width="1640" height="624" fill="#063B38"/>
+  <rect x="0" y="0" width="1640" height="624" fill="url(#g)"/>
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0A4F4B" stop-opacity="0.6"/>
+      <stop offset="1" stop-color="#063B38" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <!-- Mark + wordmark lockup -->
+  <g transform="translate(300 150)">
+    <path d="M15 15V49H31L49 29" transform="translate(-13.03 9.65) scale(1.3029)" fill="none" stroke="#3EC4B9" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="65.14" y="80" font-family="'Plus Jakarta Sans', Inter, sans-serif" font-weight="800" font-size="76" letter-spacing="-3" fill="#FFFFFF">ytro</text>
+  </g>
+  <!-- Bangla promise line -->
+  <text x="300" y="340" font-family="'Noto Sans Bengali', 'Hind Siliguri', sans-serif" font-weight="700" font-size="64" fill="#FFFFFF">আপনার দোকান, আপনার হাতে।</text>
+  <text x="300" y="400" font-family="'Noto Sans Bengali', 'Hind Siliguri', sans-serif" font-weight="400" font-size="30" fill="#B9ECE6">অর্ডার, পেমেন্ট, কুরিয়ার আর ফেক অর্ডার চেক, সব এক জায়গায়। মাসিক ফি নেই।</text>
+  <!-- CTA pill -->
+  <rect x="300" y="450" width="340" height="64" rx="12" fill="#F2A516"/>
+  <text x="470" y="493" text-anchor="middle" font-family="'Noto Sans Bengali', 'Hind Siliguri', sans-serif" font-weight="600" font-size="28" fill="#10201F">ফ্রি দোকান খুলুন</text>
+  <text x="670" y="492" font-family="Inter, sans-serif" font-weight="500" font-size="26" fill="#7FDCD3">lytro.app</text>
+</svg>

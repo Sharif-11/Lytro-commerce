@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 24" width="150" height="24" role="img" aria-label="Powered by Lytro">
+  <!-- Attribution lockup for tenant dashboards and storefront footers (TEN-8). Monochrome, inherits currentColor, minimum height 16px.
+       The mark is the L of the wordmark, followed by "ytro". -->
+  <text x="0" y="17" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-weight="500" font-size="12" fill="currentColor" opacity="0.85">Powered by</text>
+  <path d="M15 15V49H31L49 29" transform="translate(67.6 4.04) scale(0.24)" fill="none" stroke="currentColor" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="82" y="17" font-family="'Plus Jakarta Sans', Inter, ui-sans-serif, system-ui, sans-serif" font-weight="800" font-size="14" letter-spacing="-0.4" fill="currentColor">ytro</text>
+</svg>

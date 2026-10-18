@@ -2,7 +2,7 @@
 
 Status: draft v1. This plan covers the multi-tenant SaaS platform only (working brand name not yet chosen; "the platform" is used throughout). It is separate from the Lytronix battery business. Every number marked *(proposal)* is a starting guess to be replaced by measurement. No market statistics are quoted, because none have been verified.
 
-Related documents: `SRS.md` and `SRS-detailed.md` (what the product does), and the brand identity brief (name, voice, colours, still to be finalised).
+Related documents: `SRS.md` and `SRS-detailed.md` (what the product does), and `BRAND-IDENTITY.md` (name, logo, colours, voice and per-surface application, with assets in `docs/brand/`).
 
 ---
 

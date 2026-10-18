@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 64" width="240" height="64" role="img" aria-label="লাইট্রো">
+  <!-- Bangla lockup: the mark with লাইট্রো in Noto Sans Bengali Bold. Used where the page language is Bangla and the
+       Latin wordmark would be the only Latin word on screen (SMS templates, printed labels, notices). Outline before shipping. -->
+  <path d="M15 15V49H31L49 29" fill="none" stroke="#0E6B66" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="66" y="44" font-family="'Noto Sans Bengali', 'Hind Siliguri', sans-serif" font-weight="700" font-size="34" fill="#10201F">লাইট্রো</text>
+</svg>

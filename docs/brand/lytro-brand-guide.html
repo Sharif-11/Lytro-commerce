@@ -1,0 +1,742 @@
+<title>Lytro Brand Guide</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&family=Inter:wght@400;500;600&family=Noto+Sans+Bengali:wght@400;600;700&display=swap">
+<style>
+  /* Layout: a single reading column with full-bleed bands for the hero, the colour wall and the surface mockups.
+     The page is itself set in the Lytro system, so the guide demonstrates what it describes. */
+  :root {
+    --teal-50:#effaf8; --teal-100:#ddf5f2; --teal-200:#b9ece6; --teal-300:#7fdcd3; --teal-400:#3ec4b9;
+    --teal-500:#17a89e; --teal-600:#107f78; --teal-700:#0e6b66; --teal-800:#0a4f4b; --teal-900:#063b38;
+    --mari-100:#fdf0d1; --mari-300:#f8cf6e; --mari-500:#f2a516; --mari-700:#9a6004;
+    --ink:#10201f; --n700:#2c3f3e; --n500:#5b6e6d; --n400:#7e8f8e; --n300:#a9b9b8; --n200:#d5dfde; --n100:#eaf0ef; --n50:#f6f9f8; --white:#ffffff;
+    --success:#1b7a43; --danger:#c8323b;
+
+    --bg: var(--white);
+    --bg-sunken: var(--n50);
+    --surface: var(--white);
+    --line: var(--n200);
+    --text: var(--ink);
+    --muted: var(--n700);
+    --primary: var(--teal-700);
+    --on-primary: var(--white);
+    --accent: var(--mari-500);
+    --on-accent: var(--ink);
+    --accent-text: var(--mari-700);
+    --chrome: var(--teal-900);
+    --on-chrome: var(--white);
+    --on-chrome-muted: var(--n300);
+    --mark: var(--teal-700);
+    --code-bg: var(--n50);
+
+    --font-display: 'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --font-ui: 'Inter', 'Noto Sans Bengali', ui-sans-serif, system-ui, sans-serif;
+    --font-bn: 'Noto Sans Bengali', 'Hind Siliguri', sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg:#0c1a19; --bg-sunken:#091413; --surface:#132725; --line:#24403d; --text:#eaf0ef; --muted:#d5dfde;
+      --primary:#3ec4b9; --on-primary:#10201f; --accent:#f8cf6e; --on-accent:#10201f; --accent-text:#f8cf6e;
+      --chrome:#061211; --on-chrome:#ffffff; --on-chrome-muted:#d5dfde; --mark:#3ec4b9; --code-bg:#0f2422;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg:#0c1a19; --bg-sunken:#091413; --surface:#132725; --line:#24403d; --text:#eaf0ef; --muted:#d5dfde;
+    --primary:#3ec4b9; --on-primary:#10201f; --accent:#f8cf6e; --on-accent:#10201f; --accent-text:#f8cf6e;
+    --chrome:#061211; --on-chrome:#ffffff; --on-chrome-muted:#d5dfde; --mark:#3ec4b9; --code-bg:#0f2422;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-ui); font-size: 16px; line-height: 1.5; margin: 0; }
+  body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--chrome); }
+  h1, h2, h3, h4 { font-family: var(--font-display); line-height: 1.15; margin: 0; text-wrap: balance; letter-spacing: -0.02em; }
+  h2 { font-size: 1.75rem; }
+  h3 { font-size: 1.125rem; }
+  p { margin: 0; }
+  a { color: var(--primary); }
+  :lang(bn), .bn { font-family: var(--font-bn); line-height: 1.6; }
+  .eyebrow { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent-text); }
+  .muted { color: var(--muted); }
+  .wrap { max-width: 1040px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  section.block { padding-block: 56px; border-top: 1px solid var(--line); }
+  section.block > .wrap > header { display: grid; gap: 8px; max-width: 640px; margin-bottom: 28px; }
+  section.block > .wrap > header p { color: var(--muted); }
+  .band { background: var(--bg-sunken); }
+  .grid { display: grid; gap: 16px; }
+  .g2 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+  .g3 { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+  .g4 { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; min-width: 0; }
+  .card h3 { margin-bottom: 6px; }
+  .card p { font-size: 0.9375rem; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.9375rem; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-weight: 600; font-size: 0.8125rem; color: var(--muted); letter-spacing: 0.02em; }
+  .tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+  code, pre { font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; font-size: 0.8125rem; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; overflow-x: auto; margin: 0; line-height: 1.5; }
+  .num { font-variant-numeric: tabular-nums; }
+  button.copy { font: inherit; font-size: 0.8125rem; font-weight: 600; border: 1px solid var(--line); background: var(--surface); color: var(--text); border-radius: 6px; padding: 6px 10px; cursor: pointer; }
+  button.copy:hover { border-color: var(--primary); }
+  button.copy:focus-visible, .btn:focus-visible { outline: 2px solid var(--teal-500); outline-offset: 2px; }
+
+  /* Hero */
+  .hero { background: var(--chrome); color: var(--on-chrome); padding-block: 56px 64px; }
+  .hero .wrap { display: grid; gap: 32px; grid-template-columns: 1.2fr 1fr; align-items: center; }
+  .hero .lockup { display: flex; align-items: center; gap: 10px; }
+  .hero .lockup svg { width: 44px; height: 44px; }
+  .hero .word { font-family: var(--font-display); font-weight: 800; font-size: 2.5rem; letter-spacing: -0.04em; line-height: 1; }
+  .hero h1 { font-size: clamp(1.75rem, 4vw, 2.6rem); margin-top: 28px; }
+  .hero h1.bn { font-family: var(--font-bn); letter-spacing: 0; line-height: 1.35; }
+  .hero .sub { color: var(--on-chrome-muted); margin-top: 14px; max-width: 48ch; }
+  .hero .meta { margin-top: 28px; display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 0.875rem; color: var(--on-chrome-muted); }
+  .hero .meta b { color: var(--on-chrome); font-weight: 600; }
+  .bigmark { display: grid; place-items: center; }
+  .bigmark svg { width: min(100%, 280px); height: auto; }
+  @media (max-width: 760px) { .hero .wrap { grid-template-columns: 1fr; } .bigmark svg { width: 160px; } }
+
+  /* Logo section */
+  .logo-stage { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+  .stage { border: 1px solid var(--line); border-radius: 10px; min-height: 150px; display: grid; place-items: center; padding: 20px; position: relative; }
+  .stage .lbl { position: absolute; left: 12px; top: 10px; font-size: 0.75rem; color: var(--muted); }
+  .stage.light { background: #ffffff; color: #10201f; }
+  .stage.light .lbl { color: #5b6e6d; }
+  .stage.dark { background: #063b38; color: #ffffff; }
+  .stage.dark .lbl { color: #a9b9b8; }
+  .stage.ink { background: #10201f; color: #ffffff; }
+  .stage.ink .lbl { color: #a9b9b8; }
+  .wmk { display: block; height: 36px; width: auto; aspect-ratio: 126 / 64; }
+  .wm { display: flex; align-items: center; gap: 10px; }
+  .wm svg { width: 40px; height: 40px; }
+  .wm .t { font-family: var(--font-display); font-weight: 800; font-size: 2.1rem; letter-spacing: -0.04em; line-height: 1; }
+  .wm .t.bn { font-family: var(--font-bn); font-weight: 700; font-size: 1.7rem; letter-spacing: 0; }
+  .clear { position: relative; width: 150px; height: 150px; }
+  .clear svg { width: 100%; height: 100%; }
+  .construct { display: grid; gap: 16px; grid-template-columns: 1fr 1fr; align-items: center; }
+  @media (max-width: 640px) { .construct { grid-template-columns: 1fr; } }
+  .rules { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; font-size: 0.9375rem; }
+  .rules li { padding-left: 22px; position: relative; }
+  .rules li::before { content: ""; position: absolute; left: 0; top: 9px; width: 10px; height: 2px; background: var(--primary); }
+  .rules.no li::before { background: var(--danger); transform: rotate(45deg); }
+  .rules.no li::after { content: ""; position: absolute; left: 0; top: 9px; width: 10px; height: 2px; background: var(--danger); transform: rotate(-45deg); }
+
+  /* Colour */
+  .scale { display: grid; grid-template-columns: repeat(10, 1fr); border-radius: 10px; overflow: hidden; border: 1px solid var(--line); }
+  .scale div { aspect-ratio: 1 / 1.25; display: flex; align-items: flex-end; padding: 6px; font-size: 0.6875rem; font-family: ui-monospace, Consolas, monospace; }
+  .scale.four { grid-template-columns: repeat(4, 1fr); }
+  .scale.nine { grid-template-columns: repeat(9, 1fr); }
+  @media (max-width: 640px) { .scale div { font-size: 0.5625rem; padding: 4px; } }
+  .roles { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+  .role { border-radius: 10px; padding: 14px; min-height: 92px; display: grid; align-content: space-between; border: 1px solid var(--line); }
+  .role b { font-size: 0.875rem; }
+  .role span { font-size: 0.75rem; opacity: 0.85; font-variant-numeric: tabular-nums; }
+  .status { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { font-size: 0.8125rem; font-weight: 600; padding: 4px 10px; border-radius: 999px; }
+
+  /* Type */
+  .specimen { display: grid; gap: 10px; }
+  .specimen .d { font-family: var(--font-display); font-weight: 800; font-size: 2.25rem; letter-spacing: -0.02em; line-height: 1.1; }
+  .specimen .dbn { font-family: var(--font-bn); font-weight: 700; font-size: 2rem; line-height: 1.4; }
+  .specimen .u { font-size: 1rem; }
+  .specimen .ubn { font-family: var(--font-bn); font-size: 1rem; line-height: 1.6; }
+  .specimen .s { font-size: 0.875rem; color: var(--muted); }
+  .scale-list { display: grid; gap: 6px; font-variant-numeric: tabular-nums; }
+  .scale-list div { display: flex; align-items: baseline; gap: 14px; border-bottom: 1px dashed var(--line); padding-bottom: 4px; }
+  .scale-list small { color: var(--muted); width: 56px; flex: none; font-size: 0.75rem; }
+  .money { font-size: 1.5rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  /* Voice */
+  .pair { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; }
+  @media (max-width: 640px) { .pair { grid-template-columns: 1fr; } }
+  .say { border-radius: 10px; padding: 12px 14px; border: 1px solid var(--line); font-size: 0.9375rem; }
+  .say.yes { border-left: 3px solid var(--success); }
+  .say.no { border-left: 3px solid var(--danger); }
+  .say small { display: block; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+
+  /* Surfaces: small mockups built from the tokens */
+  .mock { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: #ffffff; color: #10201f; font-size: 11px; line-height: 1.4; min-width: 0; }
+  .mock .bn { line-height: 1.5; }
+  .mock-title { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+  .mock-title h3 { font-size: 1rem; }
+  .mock-title span { font-size: 0.8125rem; color: var(--muted); }
+  .m-landing .top { background: #063b38; color: #fff; padding: 12px 14px 16px; }
+  .m-landing .nav { display: flex; justify-content: space-between; align-items: center; }
+  .m-landing .nav .w { display: flex; gap: 5px; align-items: center; font-family: var(--font-display); font-weight: 800; font-size: 14px; letter-spacing: -0.03em; }
+  .m-landing .nav .w svg { width: 16px; height: 16px; }
+  .m-landing .cta { background: #f2a516; color: #10201f; font-weight: 600; border-radius: 4px; padding: 4px 8px; font-size: 10px; }
+  .m-landing h4 { font-family: var(--font-bn); font-weight: 700; font-size: 16px; line-height: 1.4; margin-top: 12px; letter-spacing: 0; }
+  .m-landing .sub { color: #a9b9b8; margin-top: 4px; }
+  .m-landing .below { padding: 10px 14px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .m-landing .below div { border: 1px solid #d5dfde; border-radius: 6px; padding: 6px; }
+  .m-landing .below b { display: block; font-size: 11px; }
+  .m-landing .trust { display: flex; gap: 8px; padding: 8px 14px 12px; color: #5b6e6d; font-size: 10px; }
+  .m-landing .trust span { border: 1px solid #d5dfde; border-radius: 4px; padding: 2px 6px; }
+  .m-dash { display: grid; grid-template-columns: 78px 1fr; min-height: 190px; }
+  .m-dash .side { background: #063b38; color: #fff; padding: 10px 8px; display: grid; align-content: start; gap: 6px; }
+  .m-dash .shop { display: flex; align-items: center; gap: 5px; font-weight: 600; font-size: 10px; margin-bottom: 4px; }
+  .m-dash .shop i { width: 16px; height: 16px; border-radius: 50%; background: #e2136e; display: inline-block; flex: none; }
+  .m-dash .side div.n { padding: 4px 6px; border-radius: 4px; color: #b9ece6; font-size: 10px; }
+  .m-dash .side div.n.on { background: #0a4f4b; color: #fff; }
+  .m-dash .pb { margin-top: auto; display: flex; align-items: center; gap: 4px; color: #a9b9b8; font-size: 8px; padding-top: 10px; }
+  .m-dash .pb svg { width: 10px; height: 10px; }
+  .m-dash .pb b { font-family: var(--font-display); font-weight: 800; letter-spacing: -0.03em; font-size: 9px; }
+  .m-dash .main { background: #f6f9f8; padding: 10px; display: grid; gap: 8px; align-content: start; }
+  .m-dash .row { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+  .m-dash .btn-a { background: #f2a516; color: #10201f; font-weight: 600; border-radius: 4px; padding: 3px 7px; font-size: 10px; }
+  .m-dash .btn-p { background: #0e6b66; color: #fff; font-weight: 600; border-radius: 4px; padding: 3px 7px; font-size: 10px; }
+  .m-dash .c { background: #fff; border: 1px solid #d5dfde; border-radius: 6px; padding: 8px; display: grid; gap: 4px; }
+  .m-dash .c .r { display: flex; justify-content: space-between; gap: 6px; }
+  .m-dash .chip { font-size: 9px; padding: 1px 6px; }
+  .m-store { background: #fff; }
+  .m-store .hdr { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-bottom: 1px solid #d5dfde; font-weight: 700; font-size: 13px; color: #6b2140; }
+  .m-store .hdr span { font-weight: 400; font-size: 10px; color: #5b6e6d; }
+  .m-store .prods { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 10px 12px; }
+  .m-store .p { border: 1px solid #d5dfde; border-radius: 6px; overflow: hidden; }
+  .m-store .p i { display: block; height: 42px; background: #f3e6ec; }
+  .m-store .p div { padding: 5px 6px; }
+  .m-store .p b { display: block; font-size: 10px; color: #6b2140; }
+  .m-store .buy { margin: 0 12px 10px; background: #8a2e5c; color: #fff; text-align: center; border-radius: 6px; padding: 6px; font-weight: 600; }
+  .m-store .foot { border-top: 1px solid #d5dfde; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; color: #5b6e6d; font-size: 9px; }
+  .m-store .foot .pb { display: flex; align-items: center; gap: 4px; }
+  .m-store .foot .pb svg { width: 10px; height: 10px; }
+  .m-store .foot b { font-family: var(--font-display); font-weight: 800; letter-spacing: -0.03em; font-size: 9px; }
+  .m-op { display: grid; grid-template-columns: 84px 1fr; min-height: 190px; background: #0c1a19; color: #eaf0ef; }
+  .m-op .side { background: #061211; padding: 10px 8px; display: grid; align-content: start; gap: 6px; }
+  .m-op .eb { font-size: 8px; letter-spacing: 0.1em; color: #f8cf6e; font-weight: 600; }
+  .m-op .w { display: flex; gap: 4px; align-items: center; font-family: var(--font-display); font-weight: 800; font-size: 13px; letter-spacing: -0.03em; color: #fff; }
+  .m-op .w svg { width: 14px; height: 14px; }
+  .m-op .side div.n { padding: 4px 6px; border-radius: 4px; color: #a9b9b8; font-size: 10px; }
+  .m-op .side div.n.on { background: #132725; color: #fff; }
+  .m-op .main { padding: 10px; display: grid; gap: 8px; align-content: start; }
+  .m-op table { font-size: 10px; }
+  .m-op th, .m-op td { padding: 4px 6px; border-bottom: 1px solid #24403d; color: #eaf0ef; }
+  .m-op th { color: #a9b9b8; }
+  .m-op .btn-p { background: #3ec4b9; color: #10201f; font-weight: 600; border-radius: 4px; padding: 3px 7px; font-size: 10px; display: inline-block; }
+  .m-listen { background: #0c1a19; color: #eaf0ef; padding: 14px; min-height: 190px; display: grid; gap: 10px; align-content: start; }
+  .m-listen .st { display: flex; align-items: center; gap: 6px; color: #3ec4b9; font-weight: 600; }
+  .m-listen .st i { width: 7px; height: 7px; border-radius: 50%; background: #3ec4b9; display: inline-block; }
+  .m-listen .code { display: flex; gap: 5px; }
+  .m-listen .code span { background: #f8cf6e; color: #10201f; font-weight: 700; font-size: 16px; width: 26px; height: 32px; display: grid; place-items: center; border-radius: 5px; font-variant-numeric: tabular-nums; }
+  .m-listen .log { border: 1px solid #24403d; border-radius: 6px; padding: 6px 8px; display: grid; gap: 3px; color: #a9b9b8; font-size: 10px; }
+  .m-listen .log b { color: #eaf0ef; font-weight: 500; }
+
+  /* App icons */
+  .icons { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+  .icon { display: grid; gap: 8px; justify-items: center; width: 112px; text-align: center; font-size: 0.8125rem; }
+  .icon svg { width: 88px; height: 88px; border-radius: 22%; box-shadow: 0 2px 8px rgba(16,32,31,0.18); }
+  .icon .t { width: 88px; height: 88px; border-radius: 22%; background: #6b2140; color: #fff; display: grid; place-items: center; font-weight: 800; font-size: 32px; font-family: var(--font-display); box-shadow: 0 2px 8px rgba(16,32,31,0.18); }
+
+  .foot { padding-block: 40px; color: var(--muted); font-size: 0.875rem; border-top: 1px solid var(--line); }
+  @media (prefers-reduced-motion: no-preference) {
+    .draw path { stroke-dasharray: 90; stroke-dashoffset: 90; animation: draw 0.9s ease-out 0.2s forwards; }
+    @keyframes draw { to { stroke-dashoffset: 0; } }
+  }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="mark" viewBox="0 0 64 64"><path d="M15 15V49H31L49 29" fill="none" stroke="currentColor" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="wordmark" viewBox="0 0 126 64"><path d="M15 15V49H31L49 29" transform="translate(2.8 8.12) scale(0.72)" fill="none" stroke="var(--wm-mark, currentColor)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/><text x="46" y="47" font-family="'Plus Jakarta Sans', Inter, ui-sans-serif, system-ui, sans-serif" font-weight="800" font-size="42" letter-spacing="-1.3" fill="var(--wm-text, currentColor)">ytro</text></symbol>
+</svg>
+
+<header class="hero">
+  <div class="wrap">
+    <div>
+      <div class="lockup">
+        <svg class="wmk" style="height:60px;--wm-mark:#3ec4b9;--wm-text:#fff"><use href="#wordmark"/></svg>
+      </div>
+      <h1 class="bn" lang="bn">আপনার দোকান, আপনার হাতে।</h1>
+      <p class="sub">Brand identity v1 for Lytro, the commerce platform by Lytronix for Bangladeshi sellers who run their shop from a phone. This page is set in the system it describes.</p>
+      <div class="meta">
+        <div><b>Name</b> Lytro · লাইট্রো</div>
+        <div><b>Company</b> Lytronix</div>
+        <div><b>Surfaces</b> 5</div>
+        <div><b>Status</b> v1.1, 17 Oct 2026</div>
+      </div>
+    </div>
+    <div class="bigmark" style="color:#3ec4b9">
+      <svg class="draw"><use href="#mark"/></svg>
+    </div>
+  </div>
+</header>
+
+<section class="block">
+  <div class="wrap">
+    <header>
+      <div class="eyebrow">01 Brand platform</div>
+      <h2>One hand should be enough</h2>
+      <p>A seller already runs the business with a phone in one hand. Every brand decision, from the single-stroke mark to one-sentence messages, follows from making that hand enough.</p>
+    </header>
+    <div class="grid g2">
+      <div class="card">
+        <h3>Positioning</h3>
+        <p>The fastest, simplest way for a Bangladeshi seller to run a real online shop, with orders, payments, couriers and fraud checks already connected, in Bangla, with no monthly fee to start.</p>
+      </div>
+      <div class="card">
+        <h3>Lines</h3>
+        <p><b>Promise</b> Your shop, in your hand. <span class="bn" lang="bn">আপনার দোকান, আপনার হাতে।</span></p>
+        <p style="margin-top:8px"><b>Offer</b> Sell today. Pay when you sell. <span class="bn" lang="bn">আজই বিক্রি শুরু করুন। বিক্রি হলে তবেই ফি।</span></p>
+      </div>
+      <div class="card">
+        <h3>We are</h3>
+        <ul class="rules">
+          <li><b>Dependable.</b> Things happen when the seller taps.</li>
+          <li><b>Plain-spoken.</b> Short sentences, the seller's own words.</li>
+          <li><b>Quick.</b> The product and the copy both move fast.</li>
+          <li><b>Local.</b> Bangla first; bKash, Nagad and Dhaka couriers by name.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>We are not</h3>
+        <ul class="rules no">
+          <li><b>Flashy.</b> No promise the product cannot keep.</li>
+          <li><b>Corporate.</b> No "solutions", no "empower".</li>
+          <li><b>Rushed.</b> Never skip the number a seller needs to trust.</li>
+          <li><b>Folksy.</b> No village-fair illustration, no cliché.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="tablewrap" style="margin-top:16px">
+      <table>
+        <thead><tr><th>Surface</th><th>Name in UI</th><th>How much Lytro shows</th></tr></thead>
+        <tbody>
+          <tr><td>Landing page</td><td>Lytro</td><td>Full brand.</td></tr>
+          <tr><td>Tenant dashboard, PWA and native</td><td>Lytro; the tenant's shop name in the nav</td><td>Lytro chrome and components, the tenant's identity. "Powered by Lytro" stays.</td></tr>
+          <tr><td>Shopper storefront PWA</td><td>The tenant's shop</td><td>Neutral defaults only. "Powered by Lytro" in the footer, "Secured by Lytro" at payment.</td></tr>
+          <tr><td>Operator console</td><td>Lytro Operator</td><td>Full brand, inverted chrome so it is never mistaken for a tenant dashboard.</td></tr>
+          <tr><td>Android listener</td><td>Lytro Listener</td><td>Full brand, utility treatment.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="block band">
+  <div class="wrap">
+    <header>
+      <div class="eyebrow">02 Logo</div>
+      <h2>An L that ends in a tick</h2>
+      <p>One stroke draws the initial, a check mark and a rising line. It is the order confirmed, the payment matched, the courier booked. Round caps, no fill, never a gradient.</p>
+    </header>
+    <div class="logo-stage">
+      <div class="stage light"><span class="lbl">Mark on light · teal-700</span><svg style="width:72px;height:72px;color:#0e6b66"><use href="#mark"/></svg></div>
+      <div class="stage dark"><span class="lbl">Mark on chrome · white</span><svg style="width:72px;height:72px;color:#fff"><use href="#mark"/></svg></div>
+      <div class="stage ink"><span class="lbl">Mark on ink · teal-400</span><svg style="width:72px;height:72px;color:#3ec4b9"><use href="#mark"/></svg></div>
+      <div class="stage light"><span class="lbl">Wordmark</span><svg class="wmk" style="height:48px;--wm-mark:#0e6b66;--wm-text:#10201f"><use href="#wordmark"/></svg></div>
+      <div class="stage dark"><span class="lbl">Wordmark, dark</span><svg class="wmk" style="height:48px;--wm-mark:#3ec4b9;--wm-text:#fff"><use href="#wordmark"/></svg></div>
+      <div class="stage light"><span class="lbl">Bangla lockup</span><div class="wm" style="color:#0e6b66"><svg><use href="#mark"/></svg><span class="t bn" lang="bn" style="color:#10201f">লাইট্রো</span></div></div>
+    </div>
+    <div class="construct" style="margin-top:24px">
+      <div class="card">
+        <h3>Construction and clear space</h3>
+        <div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap;margin-top:8px">
+          <div class="clear">
+            <svg viewBox="0 0 64 64" style="color:var(--mark)">
+              <rect x="0.5" y="0.5" width="63" height="63" fill="none" stroke="var(--line)" stroke-dasharray="2 2"/>
+              <rect x="10" y="10" width="44" height="44" fill="none" stroke="var(--line)"/>
+              <path d="M15 15V49H31L49 29" fill="none" stroke="currentColor" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <ul class="rules" style="flex:1;min-width:180px">
+            <li>Grid 64 × 64, path <code>M15 15V49H31L49 29</code>, stroke 10.</li>
+            <li>Clear space is one stroke width on every side.</li>
+            <li>Minimum: mark 16 px, wordmark 72 px wide.</li>
+            <li>Wordmark: the mark is the L, then “ytro” in Plus Jakarta Sans ExtraBold, tracking −0.03 em. No separate l.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Never</h3>
+        <ul class="rules no">
+          <li>Rotate it, outline it, or change the stroke weight.</li>
+          <li>Add a gradient, a shadow or a circle around it.</li>
+          <li>Pair it with a lightning bolt, a battery, or the Lytronix green.</li>
+          <li>Write a lowercase l between the mark and “ytro”, set the wordmark in title case, or write "Lytro Commerce" to customers.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="block">
+  <div class="wrap">
+    <header>
+      <div class="eyebrow">03 Colour</div>
+      <h2>Teal to be trusted, marigold to be tapped</h2>
+      <p>The Bangladeshi commerce screen is already pink, orange and red. Teal is calm and unclaimed. Marigold, the gada phool, is reserved for the one action a seller should take next.</p>
+    </header>
+    <h3 style="margin-bottom:8px">Teal, the brand colour</h3>
+    <div class="scale">
+      <div style="background:#effaf8;color:#10201f">50</div><div style="background:#ddf5f2;color:#10201f">100</div><div style="background:#b9ece6;color:#10201f">200</div><div style="background:#7fdcd3;color:#10201f">300</div><div style="background:#3ec4b9;color:#10201f">400</div><div style="background:#17a89e;color:#10201f">500</div><div style="background:#107f78;color:#fff">600</div><div style="background:#0e6b66;color:#fff">700</div><div style="background:#0a4f4b;color:#fff">800</div><div style="background:#063b38;color:#fff">900</div>
+    </div>
+    <div class="grid g2" style="margin-top:16px">
+      <div>
+        <h3 style="margin-bottom:8px">Marigold, the accent</h3>
+        <div class="scale four">
+          <div style="background:#fdf0d1;color:#10201f">100</div><div style="background:#f8cf6e;color:#10201f">300</div><div style="background:#f2a516;color:#10201f">500</div><div style="background:#9a6004;color:#fff">700</div>
+        </div>
+      </div>
+      <div>
+        <h3 style="margin-bottom:8px">Neutrals, teal-biased</h3>
+        <div class="scale nine">
+          <div style="background:#10201f;color:#fff">ink</div><div style="background:#2c3f3e;color:#fff">700</div><div style="background:#5b6e6d;color:#fff">500</div><div style="background:#7e8f8e;color:#10201f">400</div><div style="background:#a9b9b8;color:#10201f">300</div><div style="background:#d5dfde;color:#10201f">200</div><div style="background:#eaf0ef;color:#10201f">100</div><div style="background:#f6f9f8;color:#10201f">50</div><div style="background:#ffffff;color:#10201f;border-left:1px solid #d5dfde">wht</div>
+        </div>
+      </div>
+    </div>
+    <h3 style="margin:24px 0 8px">Roles, with contrast</h3>
+    <div class="roles">
+      <div class="role" style="background:#0e6b66;color:#fff"><b>Primary</b><span class="num">teal-700 · white 6.3:1</span></div>
+      <div class="role" style="background:#f2a516;color:#10201f"><b>Accent</b><span class="num">marigold-500 · ink 8.2:1</span></div>
+      <div class="role" style="background:#063b38;color:#f2a516"><b>Chrome + accent</b><span class="num">teal-900 · marigold 6.0:1</span></div>
+      <div class="role" style="background:#10201f;color:#3ec4b9"><b>Dark primary</b><span class="num">ink · teal-400 7.9:1</span></div>
+      <div class="role" style="background:#fff;color:#9a6004;border-color:#d5dfde"><b>Accent as text</b><span class="num">marigold-700 · white 5.2:1</span></div>
+      <div class="role" style="background:#fff;color:#2c3f3e;border-color:#d5dfde"><b>Secondary text</b><span class="num">neutral-700 · white 10.6:1</span></div>
+    </div>
+    <p class="muted" style="margin-top:12px;font-size:0.875rem">Secondary text is never lighter than neutral-700. Noto Sans Bengali has thin strokes, so neutral-500 reads lighter than its 5.4:1 suggests; it is kept for Latin captions at 13 px or larger only. On dark bands, use a lighter token, never opacity.</p>
+    <h3 style="margin:24px 0 8px">Status, one meaning each</h3>
+    <div class="status">
+      <span class="chip" style="background:#e3f3e9;color:#1b7a43">ডেলিভারড</span>
+      <span class="chip" style="background:#ddf5f2;color:#0e6b66">কনফার্মড</span>
+      <span class="chip" style="background:#fdf0d1;color:#9a6004">পেন্ডিং</span>
+      <span class="chip" style="background:#fbe7e8;color:#c8323b">ফেক সন্দেহ</span>
+      <span class="chip" style="background:#eaf0ef;color:#5b6e6d">ক্যানসেলড</span>
+    </div>
+    <p class="muted" style="margin-top:12px;font-size:0.875rem">bKash pink, Nagad orange and Rocket purple appear only inside those services' own logos at checkout, never as Lytro UI colour.</p>
+  </div>
+</section>
+
+<section class="block band">
+  <div class="wrap">
+    <header>
+      <div class="eyebrow">04 Typography and numbers</div>
+      <h2>Three faces, one scale</h2>
+      <p>Plus Jakarta Sans for the wordmark and headlines, Inter for interface text and digits, Noto Sans Bengali for everything in Bangla. The last two are already in the apps.</p>
+    </header>
+    <div class="grid g2">
+      <div class="card specimen">
+        <div class="d">Sell today. Pay when you sell.</div>
+        <div class="dbn" lang="bn">শিপ করার আগেই ফেক অর্ডার ধরুন।</div>
+        <div class="u">Orders, payments, couriers and fraud checks, already connected. Inter 400 at 16 px, line height 1.45.</div>
+        <div class="ubn" lang="bn">অর্ডার, পেমেন্ট, কুরিয়ার আর ফ্রড চেক, সব এক জায়গায়। Noto Sans Bengali 400, লাইন হাইট ১.৬।</div>
+        <div class="s">EYEBROW LABELS GET 0.06 EM TRACKING · captions 14 px in neutral-500</div>
+      </div>
+      <div class="card">
+        <h3>Scale</h3>
+        <div class="scale-list" style="margin-top:8px">
+          <div><small>48 / 1.1</small><span style="font-family:var(--font-display);font-weight:800;font-size:2.25rem;letter-spacing:-0.02em">Display</span></div>
+          <div><small>28 / 1.15</small><span style="font-family:var(--font-display);font-weight:700;font-size:1.75rem">Page title</span></div>
+          <div><small>22 / 1.25</small><span style="font-weight:600;font-size:1.375rem">Section</span></div>
+          <div><small>18 / 1.4</small><span style="font-weight:600;font-size:1.125rem">Card title</span></div>
+          <div><small>16 / 1.45</small><span>Body, never smaller on phones</span></div>
+          <div><small>14 / 1.45</small><span style="font-size:0.875rem">Table cells, captions</span></div>
+          <div><small>12 / 1.4</small><span style="font-size:0.75rem;font-weight:600;letter-spacing:0.06em">EYEBROW</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Money and digits</h3>
+        <p class="money" style="margin-top:8px">৳1,250 <span class="muted" style="font-size:1rem;font-weight:400">· ৳12,500.50</span></p>
+        <ul class="rules" style="margin-top:10px">
+          <li>Western digits everywhere, including Bangla UI. Order numbers and phone numbers get read aloud and typed back.</li>
+          <li>Taka sign first, no space. Paisa only when non-zero. Three-digit grouping, like bKash statements.</li>
+          <li>Tabular numerals wherever digits line up.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Dates and times</h3>
+        <ul class="rules" style="margin-top:8px">
+          <li><span lang="bn" class="bn">১৭ অক্টোবর, বিকাল ৪:৩০</span> in Bangla display text.</li>
+          <li><span class="num">17 Oct 2026, 4:30 PM</span> in tables and English UI.</li>
+          <li>Relative time only under 24 hours: <span lang="bn" class="bn">৫ মিনিট আগে</span>.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="block">
+  <div class="wrap">
+    <header>
+      <div class="eyebrow">05 Voice</div>
+      <h2>Say what happens, in the seller's words</h2>
+      <p>Bangla first, one sentence per message, numbers carry the trust, and the seller is never blamed. The register is the commerce vernacular the dashboard already speaks.</p>
+    </header>
+    <div class="pair">
+      <div class="say yes"><small>Say</small><span lang="bn" class="bn">অর্ডার কনফার্ম হয়েছে। কুরিয়ার বুক করুন।</span></div>
+      <div class="say no"><small>Not</small><span lang="bn" class="bn">আপনার অনুরোধ সফলভাবে সম্পন্ন হয়েছে।</span></div>
+      <div class="say yes"><small>Say</small><span lang="bn" class="bn">এই নম্বরে আগে ৩টি অর্ডার রিটার্ন হয়েছে। কল করে কনফার্ম করুন।</span></div>
+      <div class="say no"><small>Not</small><span lang="bn" class="bn">সতর্কতা: সন্দেহজনক ক্রেতা শনাক্ত হয়েছে!</span></div>
+      <div class="say yes"><small>Say</small><span lang="bn" class="bn">ব্যালেন্স ৳40। এই অর্ডারের ফি ৳5।</span></div>
+      <div class="say no"><small>Not</small><span lang="bn" class="bn">আপনার অ্যাকাউন্টে পর্যাপ্ত ব্যালেন্স নেই।</span></div>
+      <div class="say yes"><small>Say</small>Tenant locked. Reason required.</div>
+      <div class="say no"><small>Not</small>Oops! Something went wrong while locking this tenant 😅</div>
+    </div>
+    <div class="tablewrap" style="margin-top:16px">
+      <table>
+        <thead><tr><th>English</th><th>Bangla UI</th><th>Not this</th></tr></thead>
+        <tbody>
+          <tr><td>Order, pending, confirmed, shipped, delivered</td><td lang="bn" class="bn">অর্ডার, পেন্ডিং, কনফার্মড, পাঠানো হয়েছে, ডেলিভারড</td><td lang="bn" class="bn">আদেশ, অপেক্ষমাণ, নিশ্চিত</td></tr>
+          <tr><td>Courier, delivery charge</td><td lang="bn" class="bn">কুরিয়ার, ডেলিভারি চার্জ</td><td lang="bn" class="bn">বাহক, পরিবহন মূল্য</td></tr>
+          <tr><td>Balance, top up</td><td lang="bn" class="bn">ব্যালেন্স, টপ-আপ</td><td lang="bn" class="bn">স্থিতি, পুনর্ভরণ</td></tr>
+          <tr><td>Save, cancel, edit, delete</td><td lang="bn" class="bn">সেভ করুন, ক্যানসেল, এডিট, ডিলিট</td><td lang="bn" class="bn">সংরক্ষণ, বাতিল, সম্পাদনা, মুছুন</td></tr>
+          <tr><td>Fake order check</td><td lang="bn" class="bn">ফেক অর্ডার চেক</td><td lang="bn" class="bn">প্রতারণা যাচাই</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="block band">
+  <div class="wrap">
+    <header>
+      <div class="eyebrow">06 Surfaces</div>
+      <h2>Five screens, one system</h2>
+      <p>Full brand where Lytro is the seller's choice; the tenant's own identity where their customers look; inverted chrome where an operator must never mistake which side they are on.</p>
+    </header>
+    <div class="grid g2">
+      <div>
+        <div class="mock-title"><h3>Landing page</h3><span>apps/website</span></div>
+        <div class="mock m-landing">
+          <div class="top">
+            <div class="nav"><div class="w"><svg class="wmk" style="height:16px;--wm-mark:#3ec4b9;--wm-text:#fff"><use href="#wordmark"/></svg></div><div style="display:flex;gap:6px;align-items:center"><span style="color:#a9b9b8">EN</span><span class="cta bn" lang="bn">শুরু করুন</span></div></div>
+            <h4 lang="bn">শিপ করার আগেই ফেক অর্ডার ধরুন।</h4>
+            <div class="sub bn" lang="bn">অর্ডার, পেমেন্ট, কুরিয়ার, সব এক জায়গায়। মাসিক ফি নেই।</div>
+          </div>
+          <div class="below"><div><b>৳0</b><span class="muted">মাসিক ফি</span></div><div><b>1 ট্যাপ</b><span class="muted">কুরিয়ার বুকিং</span></div><div><b>30 দিন</b><span class="muted">ফ্রি ট্রায়াল</span></div></div>
+          <div class="trust"><span>bKash</span><span>Nagad</span><span>Steadfast</span><span>Pathao</span></div>
+        </div>
+      </div>
+      <div>
+        <div class="mock-title"><h3>Tenant dashboard</h3><span>PWA and native</span></div>
+        <div class="mock m-dash">
+          <div class="side">
+            <div class="shop"><i></i>Rahim Gadgets</div>
+            <div class="n on bn" lang="bn">অর্ডার</div><div class="n bn" lang="bn">প্রোডাক্ট</div><div class="n bn" lang="bn">কাস্টমার</div><div class="n bn" lang="bn">ব্যালেন্স</div>
+            <div class="pb">Powered by <svg class="wmk" style="height:10px;--wm-mark:currentColor;--wm-text:currentColor"><use href="#wordmark"/></svg></div>
+          </div>
+          <div class="main">
+            <div class="row"><b class="bn" lang="bn" style="font-size:12px">৩টি অর্ডার কনফার্মের অপেক্ষায়</b><span class="btn-a bn" lang="bn">সব কনফার্ম</span></div>
+            <div class="c"><div class="r"><b>#1042 · Karim</b><span class="chip" style="background:#fdf0d1;color:#9a6004">পেন্ডিং</span></div><div class="r muted"><span>Galaxy Buds, 1</span><span class="num">৳3,490</span></div><div class="r"><span class="muted bn" lang="bn">মিরপুর, ঢাকা</span><span class="btn-p bn" lang="bn">কুরিয়ার বুক</span></div></div>
+            <div class="c"><div class="r"><b>#1041 · Shanta</b><span class="chip" style="background:#fbe7e8;color:#c8323b">ফেক সন্দেহ</span></div><div class="r muted bn" lang="bn"><span>এই নম্বরে ৩টি রিটার্ন</span><span class="num">৳1,250</span></div></div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="mock-title"><h3>Shopper storefront</h3><span>tenant-branded PWA</span></div>
+        <div class="mock m-store">
+          <div class="hdr">Nisha's Closet <span lang="bn" class="bn">কার্ট · 2</span></div>
+          <div class="prods">
+            <div class="p"><i></i><div><b>Jamdani saree</b><span class="num">৳4,200</span></div></div>
+            <div class="p"><i></i><div><b>Kurti, M</b><span class="num">৳1,150</span></div></div>
+            <div class="p"><i></i><div><b>Dupatta</b><span class="num">৳650</span></div></div>
+          </div>
+          <div class="buy bn" lang="bn">অর্ডার করুন · ডেলিভারি চার্জ ৳60</div>
+          <div class="foot"><span lang="bn" class="bn">পেমেন্ট নিরাপদ · Secured by Lytro</span><span class="pb">Powered by <svg class="wmk" style="height:10px;--wm-mark:currentColor;--wm-text:currentColor"><use href="#wordmark"/></svg></span></div>
+        </div>
+        <p class="muted" style="font-size:0.8125rem;margin-top:6px">The plum is the tenant's colour. Lytro shows only in the footer and at payment.</p>
+      </div>
+      <div>
+        <div class="mock-title"><h3>Operator console</h3><span>/operator</span></div>
+        <div class="mock m-op">
+          <div class="side">
+            <div class="eb">OPERATOR</div>
+            <div class="w"><svg class="wmk" style="height:15px;--wm-mark:#f8cf6e;--wm-text:#fff"><use href="#wordmark"/></svg></div>
+            <div class="n on">Tenants</div><div class="n">Plans</div><div class="n">Rates</div><div class="n">Notices</div>
+          </div>
+          <div class="main">
+            <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:12px">Tenants · 142</b><span class="btn-p">New notice</span></div>
+            <table><thead><tr><th>Shop</th><th>Plan</th><th>State</th></tr></thead><tbody>
+              <tr><td>Rahim Gadgets</td><td>Growth</td><td style="color:#3ec4b9">Active</td></tr>
+              <tr><td>Nisha's Closet</td><td>Pay-as-you-go</td><td style="color:#3ec4b9">Active</td></tr>
+              <tr><td>Dhaka Mobile Hub</td><td>Starter</td><td style="color:#f8cf6e">Grace · 4 d</td></tr>
+            </tbody></table>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="mock-title"><h3>Android listener</h3><span>Lytro Listener</span></div>
+        <div class="mock m-listen">
+          <div class="st bn" lang="bn"><i></i>চালু আছে · পেমেন্ট SMS মিলছে</div>
+          <div class="muted bn" lang="bn" style="color:#a9b9b8">পেয়ারিং কোড</div>
+          <div class="code"><span>4</span><span>8</span><span>2</span><span>9</span><span>1</span><span>7</span></div>
+          <div class="log"><div><b>bKash · ৳3,490 · TrxID 9KL2M</b> <span lang="bn" class="bn">অর্ডার #1042 এর সাথে মিলেছে</span></div><div><b>Nagad · ৳1,250</b> <span lang="bn" class="bn">মিল পাওয়া যায়নি, মালিককে জানানো হয়েছে</span></div></div>
+        </div>
+      </div>
+      <div>
+        <div class="mock-title"><h3>App icons</h3><span>one mark, four tiles</span></div>
+        <div class="icons">
+          <div class="icon"><svg viewBox="0 0 512 512"><rect width="512" height="512" fill="#0e6b66"/><path d="M15 15V49H31L49 29" transform="translate(256 256) scale(5) translate(-32 -32)" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/></svg>Dashboard</div>
+          <div class="icon"><svg viewBox="0 0 512 512"><rect width="512" height="512" fill="#063b38"/><path d="M15 15V49H31L49 29" transform="translate(256 256) scale(5) translate(-32 -32)" fill="none" stroke="#f2a516" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/></svg>Operator</div>
+          <div class="icon"><svg viewBox="0 0 512 512"><rect width="512" height="512" fill="#063b38"/><g transform="translate(236 276) scale(4.6) translate(-32 -32)"><path d="M15 15V49H31L49 29" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/></g><g fill="none" stroke="#f2a516" stroke-width="30" stroke-linecap="round"><path d="M336 150a60 60 0 0 1 60 60"/><path d="M336 96a114 114 0 0 1 114 114"/></g></svg>Listener</div>
+          <div class="icon"><div class="t">N</div>Storefront, tenant's own</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="block">
+  <div class="wrap">
+    <header>
+      <div class="eyebrow">07 Applications</div>
+      <h2>Navbar, icons, Facebook, sharing</h2>
+      <p>Where the identity meets the outside world. The same mark, scaled to each place; the wordmark only where there is room for it.</p>
+    </header>
+    <style>
+      .apps { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+      .app { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); min-width: 0; }
+      .app .cap { padding: 10px 14px; border-bottom: 1px solid var(--line); font-size: 0.8125rem; color: var(--muted); display: flex; justify-content: space-between; gap: 8px; }
+      .app .cap b { color: var(--text); font-weight: 600; }
+      .navmock { height: 56px; display: flex; align-items: center; justify-content: space-between; padding: 0 14px; font-size: 12px; gap: 8px; }
+      .navmock .w .wmk { height: 24px; }
+      .navmock .links { display: flex; gap: 10px; font-weight: 500; }
+      .navmock .acts { display: flex; gap: 6px; align-items: center; }
+      .navmock .pill { border: 1px solid currentColor; border-radius: 999px; padding: 1px 6px; font-family: var(--font-ui); font-size: 9px; font-weight: 600; opacity: 0.8; }
+      .navmock .cta { background: #f2a516; color: #10201f; font-weight: 600; border-radius: 5px; padding: 5px 9px; font-family: var(--font-bn); }
+      .navmock.light { background: #fff; color: #2c3f3e; }
+      .navmock.light .w { --wm-mark: #0e6b66; --wm-text: #10201f; }
+      .navmock.dark { background: #063b38; color: #b9ece6; }
+      .navmock.dark .w { --wm-mark: #3ec4b9; --wm-text: #fff; }
+      .fav { display: flex; gap: 16px; align-items: center; padding: 16px 14px; flex-wrap: wrap; }
+      .fav .tab { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 8px 8px 0 0; padding: 6px 10px; font-size: 12px; background: var(--bg-sunken); }
+      .fav .tab svg { width: 16px; height: 16px; color: #0e6b66; }
+      .fav .tab.op svg { color: #f2a516; background: #063b38; border-radius: 3px; padding: 1px; }
+      .fb { padding: 14px; display: grid; gap: 10px; }
+      .fb .cover { position: relative; aspect-ratio: 1640 / 624; background: #063b38; border-radius: 8px; overflow: hidden; }
+      .fb .cover .in { position: absolute; left: 18%; top: 22%; color: #fff; }
+      .fb .cover .in .w { --wm-mark: #3ec4b9; --wm-text: #fff; }
+      .fb .cover .in .w .wmk { height: 18px; }
+      .fb .cover .in .l { font-family: var(--font-bn); font-weight: 700; font-size: 13px; margin-top: 6px; }
+      .fb .cover .in .c { display: inline-block; margin-top: 6px; background: #f2a516; color: #10201f; font-family: var(--font-bn); font-size: 9px; font-weight: 600; border-radius: 3px; padding: 2px 6px; }
+      .fb .cover .big { position: absolute; right: 12%; top: 18%; width: 28%; color: #0e6b66; }
+      .fb .cover .safe { position: absolute; left: 13.4%; right: 13.4%; top: 0; bottom: 0; border-left: 1px dashed rgba(255,255,255,0.35); border-right: 1px dashed rgba(255,255,255,0.35); }
+      .fb .row { display: flex; align-items: center; gap: 10px; margin-top: -26px; margin-left: 14px; }
+      .fb .avatar { width: 56px; height: 56px; border-radius: 50%; background: #0e6b66; border: 3px solid var(--surface); display: grid; place-items: center; }
+      .fb .avatar svg { width: 34px; height: 34px; color: #fff; }
+      .fb .name { font-weight: 600; font-size: 0.9375rem; margin-top: 22px; }
+      .fb .name small { display: block; color: var(--muted); font-weight: 400; font-size: 0.75rem; }
+      .og { margin: 14px; aspect-ratio: 1200 / 630; background: #063b38; border-radius: 8px; position: relative; overflow: hidden; color: #fff; padding: 8%; display: grid; align-content: space-between; }
+      .og .w { --wm-mark: #3ec4b9; --wm-text: #fff; }
+      .og .w .wmk { height: 18px; }
+      .og .h { font-family: var(--font-bn); font-weight: 700; font-size: 17px; line-height: 1.35; }
+      .og .h span { color: #7fdcd3; }
+      .og .f { display: flex; justify-content: space-between; align-items: center; font-size: 9px; color: #7fdcd3; font-family: var(--font-ui); }
+      .og .f i { background: #f2a516; color: #10201f; font-style: normal; font-family: var(--font-bn); font-weight: 600; border-radius: 3px; padding: 2px 6px; }
+      .og .big { position: absolute; right: 8%; top: 12%; width: 26%; color: #0e6b66; }
+      .sig { padding: 14px; font-size: 0.875rem; display: grid; gap: 2px; }
+      .sig b { font-weight: 600; }
+      .sig .co { display: flex; align-items: center; gap: 6px; color: var(--muted); }
+      .sig .co svg { width: 16px; height: 16px; color: var(--mark); }
+    </style>
+    <div class="apps">
+      <div class="app"><div class="cap"><b>Website navbar</b><span>light, 64 px</span></div>
+        <div class="navmock light"><div class="w"><svg class="wmk"><use href="#wordmark"/></svg></div><div class="links"><span lang="bn" class="bn">ফিচার</span><span lang="bn" class="bn">প্রাইসিং</span><span lang="bn" class="bn">প্রশ্নোত্তর</span></div><div class="acts"><span class="pill">বাং · EN</span><span lang="bn" class="bn">লগইন</span><span class="cta" lang="bn">ফ্রি দোকান খুলুন</span></div></div>
+        <div class="navmock dark"><div class="w"><svg class="wmk"><use href="#wordmark"/></svg></div><div class="links"><span lang="bn" class="bn">ফিচার</span><span lang="bn" class="bn">প্রাইসিং</span><span lang="bn" class="bn">প্রশ্নোত্তর</span></div><div class="acts"><span class="pill">বাং · EN</span><span lang="bn" class="bn">লগইন</span><span class="cta" lang="bn">ফ্রি দোকান খুলুন</span></div></div>
+      </div>
+      <div class="app"><div class="cap"><b>Favicon and browser tabs</b><span>mark alone, no tile</span></div>
+        <div class="fav">
+          <span class="tab"><svg><use href="#mark"/></svg>Lytro</span>
+          <span class="tab"><svg><use href="#mark"/></svg>Rahim Gadgets · Lytro</span>
+          <span class="tab op"><svg><use href="#mark"/></svg>Lytro Operator</span>
+        </div>
+        <p class="muted" style="padding:0 14px 14px;font-size:0.8125rem">16 and 32 px: the mark in teal-700 with no square behind it. The operator tab uses the marigold-on-ink variant so the two are never confused.</p>
+      </div>
+      <div class="app"><div class="cap"><b>Facebook page</b><span>profile 1024², cover 1640 × 624</span></div>
+        <div class="fb">
+          <div class="cover"><div class="safe"></div><div class="in"><div class="w"><svg class="wmk"><use href="#wordmark"/></svg></div><div class="l">আপনার দোকান, আপনার হাতে।</div><span class="c">ফ্রি দোকান খুলুন</span></div></div>
+          <div class="row"><div class="avatar"><svg><use href="#mark"/></svg></div><div class="name">Lytro<small>@lytro.app · Software company</small></div></div>
+        </div>
+        <p class="muted" style="padding:0 14px 14px;font-size:0.8125rem">The avatar is the mark only; the circle crop keeps it whole. The cover carries the wordmark once, never a second mark as a watermark. The dashed lines are the phone crop; everything that matters stays between them.</p>
+      </div>
+      <div class="app"><div class="cap"><b>Share image</b><span>Open Graph 1200 × 630</span></div>
+        <div class="og"><div class="w"><svg class="wmk"><use href="#wordmark"/></svg></div><div class="h">আপনার দোকান,<br><span>আপনার হাতে।</span></div><div class="f"><i>ফ্রি দোকান খুলুন</i><span>lytro.app · by Lytronix</span></div></div>
+      </div>
+      <div class="app"><div class="cap"><b>Email signature</b><span>text only</span></div>
+        <div class="sig"><b>Sharif Islam</b><span class="muted">Founder</span><span class="co"><svg><use href="#mark"/></svg>Lytro by Lytronix</span><span class="muted num">+880 1X XXXX XXXX · WhatsApp</span></div>
+      </div>
+      <div class="app"><div class="cap"><b>Font styling, the short list</b><span>full table in the brief</span></div>
+        <div class="tablewrap" style="border:0;border-radius:0">
+          <table style="font-size:0.8125rem">
+            <tbody>
+              <tr><td>Wordmark</td><td>mark as the L + “ytro” · Plus Jakarta Sans 800</td></tr>
+              <tr><td>Nav link</td><td>Inter 500 · 15 px</td></tr>
+              <tr><td>Button</td><td>Inter 600 · 15 px · 12 × 20 pad · radius 8</td></tr>
+              <tr><td>H1 landing</td><td>Noto Sans Bengali 700 · 32 to 52 px · 1.25</td></tr>
+              <tr><td>H2 section</td><td>Noto Sans Bengali 700 · 24 to 34 px · 1.3</td></tr>
+              <tr><td>Body</td><td>Inter / Noto Sans Bengali 400 · 16 px · 1.5 / 1.6</td></tr>
+              <tr><td>Secondary text</td><td>same face · neutral-700, never lighter</td></tr>
+              <tr><td>Eyebrow</td><td>Inter 600 · 12 px · uppercase · 0.08 em (en only)</td></tr>
+              <tr><td>Money</td><td>Inter 600 tabular · ৳1,250</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="block band">
+  <div class="wrap">
+    <header>
+      <div class="eyebrow">08 Tokens</div>
+      <h2>Paste, do not retype</h2>
+      <p>The full files live in the repo under docs/brand. This is the Tailwind theme block that replaces the one in both web apps; it keeps the existing brand and accent names so no component class changes.</p>
+    </header>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button class="copy" id="copy-theme" type="button">Copy theme block</button></div>
+<pre id="theme-block">@theme {
+  --font-sans: 'Inter', 'Noto Sans Bengali', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+  --color-brand-50: #effaf8;   --color-brand-100: #ddf5f2;  --color-brand-200: #b9ece6;
+  --color-brand-300: #7fdcd3;  --color-brand-400: #3ec4b9;  --color-brand-500: #17a89e;
+  --color-brand-600: #107f78;  --color-brand-700: #0e6b66;  --color-brand-800: #0a4f4b;
+  --color-brand-900: #063b38;
+
+  --color-accent-100: #fdf0d1; --color-accent-300: #f8cf6e; --color-accent-500: #f2a516; --color-accent-700: #9a6004;
+
+  --color-ink: #10201f;
+  --color-neutral-50: #f6f9f8;  --color-neutral-100: #eaf0ef; --color-neutral-200: #d5dfde; --color-neutral-300: #a9b9b8;
+  --color-neutral-400: #7e8f8e; --color-neutral-500: #5b6e6d; --color-neutral-700: #2c3f3e;
+
+  --color-success: #1b7a43; --color-warning: #9a6004; --color-danger: #c8323b;
+
+  --color-sidebar: #063b38; --color-sidebar-alt: #0a4f4b; --color-sidebar-line: rgba(255, 255, 255, 0.1);
+  --color-operator-chrome: #061211;
+
+  --radius-control: 6px; --radius-card: 10px; --radius-sheet: 16px;
+}</pre>
+    <div class="grid g3" style="margin-top:16px">
+      <div class="card"><h3>PWA manifest</h3><p><code>theme_color</code> #0a4f4b, <code>background_color</code> #f6f9f8, icon from icon-dashboard.svg. The current #0d9488 matches nothing and goes.</p></div>
+      <div class="card"><h3>Android</h3><p>android-colors.xml: status bar teal-900, primary teal-700, accent marigold-500, notification colour teal-500, white-only 24 dp glyph.</p></div>
+      <div class="card"><h3>Attribution</h3><p>"Powered by Lytronix" becomes "Powered by Lytro" in bn.json, en.json and SRS TEN-8. The lockup is monochrome and at least 16 px tall.</p></div>
+    </div>
+  </div>
+</section>
+
+<footer class="foot">
+  <div class="wrap">
+    <div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:center">
+      <div class="wm"><svg class="wmk" style="height:28px;--wm-mark:var(--mark);--wm-text:var(--text)"><use href="#wordmark"/></svg><span style="font-size:0.875rem">by Lytronix</span></div>
+      <div>Brief and assets: docs/BRAND-IDENTITY.md and docs/brand/ in the repository. Wordmark SVGs are set in live type and need outlining before production.</div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  (function () {
+    var btn = document.getElementById('copy-theme');
+    var pre = document.getElementById('theme-block');
+    if (!btn || !pre) return;
+    btn.addEventListener('click', function () {
+      var text = pre.textContent;
+      function done(ok) { btn.textContent = ok ? 'Copied' : 'Select and copy'; setTimeout(function () { btn.textContent = 'Copy theme block'; }, 1800); }
+      function fallback() {
+        try { var r = document.createRange(); r.selectNodeContents(pre); var s = window.getSelection(); s.removeAllRanges(); s.addRange(r); done(false); } catch (e) { done(false); }
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+      } else { fallback(); }
+    });
+  })();
+</script>

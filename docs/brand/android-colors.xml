@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Lytro colours for the Android listener app and the native dashboard wrapper. Mirrors tokens.json. -->
+<resources>
+    <color name="lytro_teal_900">#063B38</color>
+    <color name="lytro_teal_800">#0A4F4B</color>
+    <color name="lytro_teal_700">#0E6B66</color>
+    <color name="lytro_teal_500">#17A89E</color>
+    <color name="lytro_teal_400">#3EC4B9</color>
+    <color name="lytro_teal_100">#DDF5F2</color>
+    <color name="lytro_marigold_500">#F2A516</color>
+    <color name="lytro_marigold_300">#F8CF6E</color>
+    <color name="lytro_marigold_700">#9A6004</color>
+    <color name="lytro_ink">#10201F</color>
+    <color name="lytro_neutral_500">#5B6E6D</color>
+    <color name="lytro_neutral_200">#D5DFDE</color>
+    <color name="lytro_neutral_50">#F6F9F8</color>
+    <color name="lytro_success">#1B7A43</color>
+    <color name="lytro_danger">#C8323B</color>
+
+    <!-- Roles -->
+    <color name="colorPrimary">@color/lytro_teal_700</color>
+    <color name="colorPrimaryDark">@color/lytro_teal_900</color>
+    <color name="colorAccent">@color/lytro_marigold_500</color>
+    <color name="statusBar">@color/lytro_teal_900</color>
+    <color name="navigationBar">@color/lytro_teal_900</color>
+    <color name="ic_launcher_background">@color/lytro_teal_900</color>
+    <color name="notificationColor">@color/lytro_teal_500</color>
+</resources>
