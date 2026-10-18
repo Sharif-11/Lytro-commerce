@@ -609,6 +609,11 @@ Steps: 1) With a selected, credentialed bKash gateway account, choose bKash at s
 Expected: checkout opens bKash's own checkout directly and the API returns bKash's checkout address, never the hosted page; on return, `pay.lytro.app` verifies the payment with bKash and redirects to the return address with status `verified`; the hosted page offers only manual methods and no gateway button; the platform's own plan/top-up sessions never count against a tenant's own session limit.
 Covers: `PAY-01`, `PAY-06`, `PAY-09` (webhook retry — covered in S06's webhook scenarios too, cross-reference), `PAY-10` (if distinct), `PAY-21`.
 
+**S07-23 Verification fees by method.**
+Steps: 1) Verify a ৳70 advance three ways: manually, by the listener, and through bKash checkout. 2) Repeat one listener and one gateway payment on a trial shop. 3) Let a listener match need review, then approve it. 4) With too little balance, start a gateway payment, and separately let a listener receipt match. 5) With enough balance, start a gateway payment and abandon it. 6) Record a refund on a listener-verified payment. 7) Change both rates, then verify one more payment each way.
+Expected: manual charges nothing, the listener ৳0.07 and the gateway ৳0.70, each as a ledger entry naming its method; the trial shop pays the same; the reviewed-then-approved payment charges nothing; with too little balance, bKash checkout is not offered and the listener match goes to manual review with a low-balance notice; the abandoned checkout's reserved fee is released; the refund charges nothing and leaves the original fee in place; the new rates apply only to the payments verified after the change.
+Covers: `WAL-20`, `WAL-21`, `RAT-15`, `RAT-16`.
+
 **S07-16 Gateway error handling and sandbox-payment exclusion from revenue.**
 Steps: 1) Force a gateway credential/token error mid-session. 2) Complete a payment in a gateway's sandbox/test mode; check whether it appears in revenue reports.
 Expected: a credential error fails the session with a clear message and notifies the tenant the gateway needs attention; a sandbox-mode payment never counts toward real revenue, balance, or the fraud-signal aggregation.

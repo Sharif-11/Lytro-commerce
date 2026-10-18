@@ -233,6 +233,7 @@ User-requested, specified as formal SRS rows the same day, not yet scoped into a
   Confirmed via `AskUserQuestion` 2026-10-16: pure percentage (no flat floor, unlike `PYG-02`'s order fee),
   applies broadly, fallback not refusal. Blocked on `WAL-19`'s own gateway plugins, which aren't built
   either — this is new scope on top of unbuilt scope.
+- **Amended 2026-10-18:** the fee is charged on each verified payment's amount rather than the order's total, the listener now carries its own fee (`RAT-16`, [0.10]%), and the gateway fee is reserved before the shopper is sent to the wallet's checkout (`WAL-20`, `WAL-21`).
 - **`RAT-15`** (new): the commission rate itself, following the existing `RAT-*` rate-settings pattern.
   **Decided 2026-10-16 (`D2-13`, `PHASE-2-PLAN.md`):** deferred to Phase 5, alongside `WAL-20`/`WAL-21`, its
   only real consumer — no longer unplanned.
