@@ -1,8 +1,8 @@
 'use client';
 
-import { useRef, useState } from 'react';
-import { CheckList } from '@/components/ui/check-list';
+import { useEffect, useRef, useState } from 'react';
 import { buttonClass } from '@/components/ui/button';
+import { CheckList } from '@/components/ui/check-list';
 import type { Language } from '@/lib/i18n/language';
 
 // What the server hands the client: every figure already computed, every label already in both languages.
@@ -45,11 +45,46 @@ const text = {
   perTerm: { bn: 'মোট', en: 'total' },
   choose: { bn: 'নিন', en: 'Choose' },
   off: { bn: 'কম', en: 'off' },
-  slide: { bn: 'প্ল্যান', en: 'Plan' },
+  goTo: { bn: 'প্ল্যান', en: 'Plan' },
 } as const;
 
-/** The pricing cards with the billing-term toggle. On a phone the cards are a snap-scrolling row with
-    position dots; from 640 px they become a grid (LANDING-PAGE-DESIGN.md §4). */
+/** Phones only: the card row is a snap carousel that advances on its own every few seconds, stops while the
+    visitor touches or scrolls it, and resumes a while after they let go. Off from 640 px, where the cards
+    are a grid, and for visitors who prefer reduced motion. */
+const PHONE_QUERY = '(max-width: 639px) and (prefers-reduced-motion: no-preference)';
+const ROTATE_EVERY_MS = 4500;
+const RESUME_AFTER_MS = 9000;
+
+class CardRow {
+  constructor(private readonly element: HTMLElement) {}
+
+  /** Each card's left edge, in scroll coordinates. */
+  stops(): number[] {
+    return Array.from(this.element.children)
+      .filter((child): child is HTMLElement => child instanceof HTMLElement)
+      .map((child) => child.offsetLeft - this.element.offsetLeft);
+  }
+
+  /** The index of the card nearest the current scroll position. */
+  current(): number {
+    const stops = this.stops();
+    let best = 0;
+    for (let index = 0; index < stops.length; index += 1) {
+      const stop = stops[index] ?? 0;
+      const bestStop = stops[best] ?? 0;
+      if (Math.abs(stop - this.element.scrollLeft) < Math.abs(bestStop - this.element.scrollLeft)) {
+        best = index;
+      }
+    }
+    return best;
+  }
+
+  goTo(index: number, smooth: boolean): void {
+    const left = this.stops()[index] ?? 0;
+    this.element.scrollTo({ left, behavior: smooth ? 'smooth' : 'auto' });
+  }
+}
+
 export function PricingCards({
   language,
   payg,
@@ -61,19 +96,59 @@ export function PricingCards({
 }) {
   const [termId, setTermId] = useState(view?.defaultTermId ?? '');
   const [active, setActive] = useState(0);
-  const row = useRef<HTMLDivElement>(null);
+  const rowRef = useRef<HTMLDivElement>(null);
+  const pausedUntil = useRef(0);
 
   const cardCount = 1 + (view?.plans.length ?? 0);
   const baseTerm = view?.terms.find((term) => term.id === termId);
   const monthlyTerm = baseTerm?.months === 1;
 
-  const onScroll = () => {
-    const element = row.current;
-    if (!element || element.children.length === 0) return;
-    const first = element.children[0];
-    if (!(first instanceof HTMLElement)) return;
-    const step = first.offsetWidth + 16;
-    setActive(Math.min(cardCount - 1, Math.round(element.scrollLeft / step)));
+  useEffect(() => {
+    const element = rowRef.current;
+    if (!element || cardCount < 2) return;
+    const row = new CardRow(element);
+    const media = window.matchMedia(PHONE_QUERY);
+    let visible = false;
+
+    const onScroll = () => {
+      setActive(row.current());
+    };
+    const pause = () => {
+      pausedUntil.current = Date.now() + RESUME_AFTER_MS;
+    };
+    const tick = () => {
+      if (!media.matches || !visible || Date.now() < pausedUntil.current) return;
+      row.goTo((row.current() + 1) % cardCount, true);
+    };
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        visible = entries.some((entry) => entry.isIntersecting);
+      },
+      { threshold: 0.4 },
+    );
+    observer.observe(element);
+    element.addEventListener('scroll', onScroll, { passive: true });
+    for (const name of ['pointerdown', 'touchstart', 'wheel', 'keydown'] as const) {
+      element.addEventListener(name, pause, { passive: true });
+    }
+    const timer = window.setInterval(tick, ROTATE_EVERY_MS);
+
+    return () => {
+      window.clearInterval(timer);
+      observer.disconnect();
+      element.removeEventListener('scroll', onScroll);
+      for (const name of ['pointerdown', 'touchstart', 'wheel', 'keydown'] as const) {
+        element.removeEventListener(name, pause);
+      }
+    };
+  }, [cardCount]);
+
+  const jumpTo = (index: number) => {
+    const element = rowRef.current;
+    if (!element) return;
+    pausedUntil.current = Date.now() + RESUME_AFTER_MS;
+    new CardRow(element).goTo(index, true);
   };
 
   return (
@@ -82,7 +157,7 @@ export function PricingCards({
         <div className="mt-8 flex justify-center">
           <div
             role="group"
-            className="inline-flex rounded-full border border-neutral-200 bg-white p-1"
+            className="inline-flex max-w-full flex-wrap justify-center gap-1 rounded-full border border-neutral-200 bg-white p-1"
           >
             {view.terms.map((term) => (
               <button
@@ -115,9 +190,8 @@ export function PricingCards({
       ) : null}
 
       <div
-        ref={row}
-        onScroll={onScroll}
-        className="scroll-row mt-8 -mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 lg:grid-cols-4"
+        ref={rowRef}
+        className="scroll-row mt-8 -mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pt-4 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 lg:grid-cols-4"
       >
         <article className="relative flex w-[82vw] max-w-[340px] shrink-0 snap-center flex-col rounded-card border-2 border-accent-500 bg-white p-5 shadow-lift sm:w-auto sm:max-w-none">
           <span className="absolute -top-3.5 left-5 rounded-full bg-accent-500 px-3 py-1 text-[12px] font-bold text-ink">
@@ -176,12 +250,24 @@ export function PricingCards({
       </div>
 
       {cardCount > 1 ? (
-        <div className="mt-3 flex justify-center gap-1.5 sm:hidden" aria-hidden="true">
+        <div className="mt-3 flex justify-center gap-2 sm:hidden">
           {Array.from({ length: cardCount }, (_, index) => (
-            <span
+            <button
               key={index}
-              className={`h-1.5 rounded-full transition-all ${index === active ? 'w-5 bg-brand-700' : 'w-1.5 bg-neutral-200'}`}
-            />
+              type="button"
+              aria-label={`${text.goTo[language]} ${String(index + 1)}`}
+              aria-current={index === active ? 'true' : undefined}
+              onClick={() => {
+                jumpTo(index);
+              }}
+              className="flex h-8 w-8 items-center justify-center"
+            >
+              <span
+                className={`block h-2 rounded-full transition-all ${
+                  index === active ? 'w-6 bg-brand-700' : 'w-2 bg-neutral-200'
+                }`}
+              />
+            </button>
           ))}
         </div>
       ) : null}

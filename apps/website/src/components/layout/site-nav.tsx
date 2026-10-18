@@ -18,13 +18,18 @@ const text = {
   contact: { bn: 'যোগাযোগ', en: 'Contact' },
   login: { bn: 'লগইন', en: 'Log in' },
   cta: { bn: 'ফ্রি দোকান খুলুন', en: 'Open a free shop' },
+  note: {
+    bn: '৩০ দিন ফ্রি ট্রায়াল। কার্ড নেই, মাসিক ফি নেই।',
+    en: '30-day free trial. No card, no monthly fee.',
+  },
   openMenu: { bn: 'মেনু খুলুন', en: 'Open menu' },
   closeMenu: { bn: 'মেনু বন্ধ করুন', en: 'Close menu' },
   home: { bn: 'Lytro হোম', en: 'Lytro home' },
 } satisfies Record<string, Bilingual>;
 
-/** Sticky, 64 px, blurred white with a hairline (LANDING-PAGE-DESIGN.md §4). Desktop shows five links, the
-    language toggle, log in and the one marigold button; under 1024 px the links move into the sheet. */
+/** Sticky, 64 px, blurred white with a hairline (LANDING-PAGE-DESIGN.md §4). Phones and tablets get the
+    wordmark, the বাং/EN toggle and the burger; the links, log in and the one marigold button appear at the
+    desktop breakpoint, and until then they live in the sheet. */
 export function SiteNav({ language }: { language: Language }) {
   const copy = new Copy(language);
   const env = SiteEnvironment.current();
@@ -50,13 +55,13 @@ export function SiteNav({ language }: { language: Language }) {
   const cta = { href: urls.signIn(), label: copy.of(text.cta) };
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-white/85 backdrop-blur-md">
-      <div className="mx-auto flex h-16 w-full max-w-[1160px] items-center gap-3 px-4 sm:px-6 lg:px-8">
-        <Link href="/" aria-label={copy.of(text.home)} className="flex items-center">
-          <Wordmark height={30} />
+    <header className="sticky top-0 z-40 border-b border-line bg-white/90 backdrop-blur-md">
+      <div className="mx-auto flex h-16 w-full max-w-[1160px] items-center gap-2 px-4 sm:px-6 lg:px-8">
+        <Link href="/" aria-label={copy.of(text.home)} className="flex shrink-0 items-center">
+          <Wordmark height={28} />
         </Link>
 
-        <nav className="ml-6 hidden items-center gap-1 lg:flex" aria-label="Primary">
+        <nav className="ml-4 hidden items-center gap-0.5 lg:flex" aria-label="Primary">
           {desktopLinks.map((link) => (
             <Link
               key={link.href}
@@ -71,12 +76,10 @@ export function SiteNav({ language }: { language: Language }) {
         <div className="ml-auto flex items-center gap-2">
           <LanguageToggle language={language} />
           {/* Wrapped so `hidden` is not overridden by the button's own display class. */}
-          <div className="hidden md:block">
+          <div className="hidden items-center gap-2 lg:flex">
             <a href={login.href} className={buttonClass('ghost')}>
               {login.label}
             </a>
-          </div>
-          <div className="hidden sm:block">
             <a href={cta.href} className={buttonClass('accent')}>
               {cta.label}
             </a>
@@ -85,6 +88,7 @@ export function SiteNav({ language }: { language: Language }) {
             links={sheetLinks}
             login={login}
             cta={cta}
+            note={copy.of(text.note)}
             labels={{ open: copy.of(text.openMenu), close: copy.of(text.closeMenu) }}
           />
         </div>
