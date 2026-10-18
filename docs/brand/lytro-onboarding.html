@@ -1,0 +1,804 @@
+<title>Lytro Onboarding Flow</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&family=Inter:wght@400;500;600;700&family=Noto+Sans+Bengali:wght@400;500;600;700;800&display=swap">
+<style>
+  /* Layout: a prototype switcher over fourteen views: the flow map, the sign-up steps on app.lytro.app, and the
+     first-run dashboard at app.lytro.app/<shop>. Dashboard views share one shell (header, sidebar from 900 px,
+     bottom tabs on phones) injected by script. Mobile-first, Bangla primary, EN toggle swaps copy in place. */
+  :root {
+    --teal-50:#effaf8; --teal-100:#ddf5f2; --teal-200:#b9ece6; --teal-300:#7fdcd3; --teal-400:#3ec4b9; --teal-500:#17a89e;
+    --teal-600:#107f78; --teal-700:#0e6b66; --teal-800:#0a4f4b; --teal-900:#063b38; --teal-950:#042826;
+    --mari-100:#fdf0d1; --mari-300:#f8cf6e; --mari-500:#f2a516; --mari-700:#9a6004;
+    --ink:#10201f; --n700:#2c3f3e; --n500:#5b6e6d; --n400:#7e8f8e; --n300:#a9b9b8; --n200:#d5dfde; --n100:#eaf0ef; --n50:#f6f9f8; --white:#ffffff;
+    --success:#1b7a43; --success-soft:#e3f3e9; --danger:#c8323b; --danger-soft:#fbe7e8; --warn:#9a6004; --warn-soft:#fdf0d1;
+    --bg: var(--n50); --text: var(--ink); --muted: var(--n700); --line: rgba(16,32,31,0.08); --line-strong: rgba(16,32,31,0.14);
+    --shadow-sm: 0 1px 2px rgba(16,32,31,0.05), 0 2px 8px -2px rgba(16,32,31,0.06);
+    --shadow-md: 0 1px 2px rgba(16,32,31,0.04), 0 16px 40px -16px rgba(16,32,31,0.18);
+    --font-display: 'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --font-ui: 'Inter', 'Noto Sans Bengali', ui-sans-serif, system-ui, sans-serif;
+    --font-bn: 'Noto Sans Bengali', 'Hind Siliguri', 'Inter', sans-serif;
+    --gutter: max(16px, env(safe-area-inset-left, 0px)); --gutter-r: max(16px, env(safe-area-inset-right, 0px));
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font-bn); font-size: 16px; line-height: 1.6; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+  body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 60; background: var(--ink); }
+  body[data-lang="en"] { font-family: var(--font-ui); line-height: 1.5; }
+  h1, h2, h3, h4 { margin: 0; line-height: 1.3; font-weight: 700; text-wrap: balance; }
+  p { margin: 0; }
+  a { color: inherit; text-decoration: none; }
+  svg { display: block; }
+  button { font-family: inherit; }
+  [hidden] { display: none !important; }
+  .wrap { width: 100%; max-width: 1040px; margin: 0 auto; padding-left: var(--gutter); padding-right: var(--gutter-r); min-width: 0; }
+  .num { font-family: var(--font-ui); font-variant-numeric: tabular-nums; }
+  .muted { color: var(--muted); }
+  .card { background: var(--white); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow-sm); }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-weight: 600; font-size: 0.9375rem; border-radius: 10px; min-height: 46px; padding: 11px 18px; border: 1px solid transparent; cursor: pointer; line-height: 1.2; white-space: nowrap; -webkit-tap-highlight-color: transparent; }
+  .btn-accent { background: var(--mari-500); color: var(--ink); box-shadow: 0 8px 20px -8px rgba(242,165,22,0.7); }
+  .btn-primary { background: var(--teal-700); color: var(--white); }
+  .btn-outline { background: var(--white); color: var(--ink); border-color: var(--line-strong); }
+  .btn-link { background: transparent; color: var(--teal-700); padding: 6px 8px; min-height: 36px; font-weight: 600; }
+  .btn-sm { min-height: 36px; padding: 6px 12px; font-size: 0.875rem; border-radius: 8px; }
+  .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+  .btn:focus-visible, a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--teal-500); outline-offset: 2px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; font-size: 0.75rem; font-weight: 600; padding: 3px 10px; border-radius: 999px; white-space: nowrap; line-height: 1.4; }
+  .chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .chip.ok { background: var(--success-soft); color: var(--success); }
+  .chip.warn { background: var(--warn-soft); color: var(--warn); }
+  .chip.bad { background: var(--danger-soft); color: var(--danger); }
+  .chip.info { background: var(--teal-100); color: var(--teal-800); }
+  .chip.n { background: var(--n100); color: var(--n700); }
+  .chip.nodot::before { display: none; }
+  .wmk { display: block; height: 30px; width: auto; aspect-ratio: 142 / 64; }
+  .mono { width: 32px; height: 32px; border-radius: 9px; background: var(--n100); color: var(--ink); display: grid; place-items: center; font-family: var(--font-display); font-weight: 800; font-size: 1rem; flex: none; }
+  .field { display: grid; gap: 6px; }
+  .field label { font-size: 0.875rem; font-weight: 500; color: var(--n700); }
+  .field label small { color: var(--n500); font-weight: 400; }
+  .field input, .field select, .field textarea { font: inherit; font-size: 1rem; padding: 11px 13px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--white); color: var(--ink); width: 100%; min-height: 46px; font-family: var(--font-ui); }
+  .field select { font-family: inherit; }
+  .field input::placeholder { color: var(--n500); }
+  .field .err { font-size: 0.8125rem; color: var(--danger); font-weight: 500; }
+  .field .hint { font-size: 0.8125rem; color: var(--muted); }
+  .f2 { display: grid; grid-template-columns: 1fr; gap: 12px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chips label, .chips .c { border: 1px solid var(--line-strong); border-radius: 999px; padding: 8px 14px; font-size: 0.9rem; cursor: pointer; min-height: 40px; display: inline-flex; align-items: center; gap: 6px; background: var(--white); position: relative; }
+  .chips input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  .chips label:has(input:checked), .chips .c.on { background: var(--teal-700); color: var(--white); border-color: var(--teal-700); font-weight: 600; }
+  .chips label:has(input:focus-visible) { outline: 2px solid var(--teal-500); outline-offset: 2px; }
+  .note { border-left: 3px solid var(--teal-500); background: var(--teal-50); border-radius: 0 10px 10px 0; padding: 10px 14px; font-size: 0.9rem; color: var(--teal-900); }
+  .note.warn { border-color: var(--mari-500); background: var(--mari-100); color: var(--ink); }
+  .note.bad { border-color: var(--danger); background: var(--danger-soft); color: var(--ink); }
+  .legal { font-size: 0.8125rem; color: var(--n500); text-align: center; }
+  .legal a { color: var(--teal-700); font-weight: 500; }
+  .spec { font-family: var(--font-ui); font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.04em; color: var(--teal-700); background: var(--teal-50); border: 1px solid var(--teal-100); border-radius: 6px; padding: 2px 6px; white-space: nowrap; }
+
+  /* Prototype switcher */
+  .proto { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 55; background: var(--ink); color: var(--white); font-family: var(--font-ui); font-size: 0.8125rem; }
+  .proto .wrap { display: flex; align-items: center; gap: 6px; min-height: 44px; overflow-x: auto; scrollbar-width: none; }
+  .proto .wrap::-webkit-scrollbar { display: none; }
+  .proto .lbl { color: var(--n300); white-space: nowrap; margin-right: 4px; }
+  .proto a { white-space: nowrap; padding: 5px 11px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.18); color: var(--n200); font-weight: 500; }
+  .proto a.on { background: var(--teal-400); color: var(--ink); border-color: var(--teal-400); font-weight: 600; }
+  .proto .sep { width: 1px; height: 18px; background: rgba(255,255,255,0.25); flex: none; margin: 0 4px; }
+  .proto .lang { margin-left: auto; display: inline-flex; border: 1px solid rgba(255,255,255,0.25); border-radius: 999px; padding: 2px; flex: none; }
+  .proto .lang button { border: 0; background: transparent; color: var(--n300); font: inherit; font-weight: 600; padding: 4px 10px; border-radius: 999px; cursor: pointer; min-height: 28px; }
+  .proto .lang button[aria-pressed="true"] { background: var(--white); color: var(--ink); }
+  .urlbar { background: var(--white); border-bottom: 1px solid var(--line); font-family: var(--font-ui); font-size: 0.8125rem; color: var(--n700); }
+  .urlbar .wrap { display: flex; align-items: center; gap: 8px; min-height: 34px; }
+  .urlbar svg { width: 12px; height: 12px; color: var(--success); }
+  .urlbar b { font-weight: 600; color: var(--ink); }
+  .urlbar .req { margin-left: auto; display: flex; gap: 4px; flex-wrap: wrap; }
+
+  /* Flow map */
+  .map { padding-block: 24px 40px; display: grid; gap: 18px; }
+  .lanes { display: grid; grid-template-columns: 1fr; gap: 12px; }
+  .lane { padding: 14px; display: grid; gap: 10px; align-content: start; }
+  .lane h3 { font-size: 0.8125rem; font-family: var(--font-ui); letter-spacing: 0.06em; text-transform: uppercase; color: var(--n500); display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+  .lane h3 b { font-family: var(--font-ui); letter-spacing: 0; text-transform: none; color: var(--ink); font-size: 0.875rem; }
+  .node { border: 1px solid var(--line-strong); border-radius: 12px; padding: 10px 12px; background: var(--white); display: grid; gap: 4px; position: relative; }
+  .node.step { border-color: var(--teal-300); background: var(--teal-50); }
+  .node.exit { border-style: dashed; }
+  .node .t { font-weight: 600; font-size: 0.9375rem; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .node .t i { font-style: normal; width: 22px; height: 22px; border-radius: 50%; background: var(--teal-700); color: var(--white); font-family: var(--font-ui); font-size: 0.75rem; font-weight: 700; display: grid; place-items: center; flex: none; }
+  .node .d { font-size: 0.8125rem; color: var(--muted); }
+  .node .ids { display: flex; flex-wrap: wrap; gap: 4px; }
+  .arrow { text-align: center; color: var(--n400); font-size: 0.8125rem; line-height: 1; padding: 2px 0; }
+  .branch { display: grid; gap: 8px; padding-left: 14px; border-left: 2px dashed var(--n200); }
+  .legend { display: flex; flex-wrap: wrap; gap: 10px 18px; font-size: 0.8125rem; color: var(--muted); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { width: 14px; height: 10px; border-radius: 3px; border: 1px solid var(--line-strong); background: var(--white); }
+  .legend i.s { background: var(--teal-50); border-color: var(--teal-300); }
+  .legend i.e { border-style: dashed; }
+  @media (min-width: 900px) { .lanes { grid-template-columns: 1.2fr 1fr 1fr; } }
+
+  /* Auth shell (bare, app.lytro.app) */
+  .auth { min-height: calc(100vh - 44px); display: grid; grid-template-rows: auto 1fr auto; }
+  .auth-top { background: var(--white); border-bottom: 1px solid var(--line); }
+  .auth-top .wrap { height: 56px; display: flex; align-items: center; justify-content: space-between; }
+  .auth-top .wordmark { --wm-mark: var(--teal-700); --wm-text: var(--ink); display: inline-flex; }
+  .auth-top .help { font-size: 0.875rem; color: var(--n700); }
+  .auth-main { padding: 20px var(--gutter-r) 32px var(--gutter); display: grid; justify-items: center; align-content: start; gap: 12px; }
+  .ctx { width: 100%; max-width: 440px; display: flex; flex-wrap: wrap; gap: 8px; }
+  .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; width: 100%; max-width: 440px; font-family: var(--font-ui); font-size: 0.7rem; font-weight: 600; color: var(--n500); }
+  .steps div { display: grid; gap: 6px; text-align: center; }
+  .steps i { display: block; height: 4px; border-radius: 2px; background: var(--n200); }
+  .steps div.done i { background: var(--teal-500); }
+  .steps div.on { color: var(--teal-800); }
+  .steps div.on i { background: var(--teal-700); }
+  .steps div.done { color: var(--teal-700); }
+  .pane { width: 100%; max-width: 440px; padding: 22px 18px; display: grid; gap: 14px; }
+  .pane h2 { font-size: 1.3rem; }
+  .pane .sub { color: var(--muted); font-size: 0.9375rem; margin-top: -6px; }
+  .phone-f { display: flex; border: 1px solid var(--line-strong); border-radius: 10px; overflow: hidden; background: var(--white); min-height: 48px; }
+  .phone-f .cc { display: flex; align-items: center; gap: 6px; padding: 0 12px; background: var(--n50); border-right: 1px solid var(--line); font-family: var(--font-ui); font-weight: 600; font-size: 0.9375rem; color: var(--n700); white-space: nowrap; }
+  .phone-f input { flex: 1; min-width: 0; border: 0; font: inherit; font-family: var(--font-ui); font-size: 1.0625rem; padding: 12px 14px; letter-spacing: 0.04em; }
+  .or { display: flex; align-items: center; gap: 12px; color: var(--n500); font-size: 0.8125rem; }
+  .or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+  .oauth { display: grid; gap: 10px; }
+  .oauth .btn { width: 100%; }
+  .oauth img { width: 18px; height: 18px; flex: none; }
+  .otp { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+  .otp input { width: 100%; text-align: center; font-family: var(--font-ui); font-size: 1.5rem; font-weight: 600; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--white); min-height: 52px; font-variant-numeric: tabular-nums; }
+  .slug { display: flex; align-items: center; border: 1px solid var(--line-strong); border-radius: 10px; overflow: hidden; background: var(--white); min-height: 46px; }
+  .slug input { flex: 1; min-width: 0; border: 0; font: inherit; font-family: var(--font-ui); font-size: 1rem; padding: 11px 13px; }
+  .slug span { font-family: var(--font-ui); font-size: 0.875rem; color: var(--n700); padding: 0 12px; background: var(--n50); border-left: 1px solid var(--line); align-self: stretch; display: flex; align-items: center; white-space: nowrap; }
+  .avail { display: flex; align-items: center; gap: 8px; font-size: 0.8125rem; flex-wrap: wrap; }
+  .addr { font-size: 0.8125rem; color: var(--muted); display: grid; gap: 2px; }
+  .addr b { font-family: var(--font-ui); color: var(--teal-800); font-weight: 600; word-break: break-all; }
+  .statebar { display: flex; flex-wrap: wrap; gap: 6px; width: 100%; max-width: 440px; font-family: var(--font-ui); font-size: 0.75rem; align-items: center; color: var(--n500); }
+  .statebar button { font: inherit; border: 1px solid var(--line-strong); background: var(--white); border-radius: 999px; padding: 4px 10px; cursor: pointer; color: var(--n700); }
+  .statebar button[aria-pressed="true"] { background: var(--ink); color: var(--white); border-color: var(--ink); }
+  .plan-row { display: grid; gap: 8px; }
+  .plan-opt { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; border: 1px solid var(--line-strong); border-radius: 12px; padding: 10px 12px; cursor: pointer; background: var(--white); }
+  .plan-opt input { accent-color: var(--teal-700); width: 18px; height: 18px; }
+  .plan-opt b { display: block; }
+  .plan-opt small { color: var(--muted); font-size: 0.8125rem; }
+  .plan-opt .pr { font-family: var(--font-ui); font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+  .plan-opt .pr small { display: block; font-weight: 400; }
+  .plan-opt:has(input:checked) { border-color: var(--teal-700); background: var(--teal-50); }
+  .total { display: flex; justify-content: space-between; align-items: baseline; border-top: 1px solid var(--line); padding-top: 10px; }
+  .total b { font-family: var(--font-ui); font-size: 1.5rem; font-variant-numeric: tabular-nums; }
+  .pay { display: grid; gap: 8px; }
+  .pay .btn { width: 100%; justify-content: flex-start; gap: 10px; }
+  .pay img { height: 18px; width: auto; }
+  .pw-rules { display: grid; gap: 4px; font-size: 0.8125rem; color: var(--n700); }
+  .pw-rules div { display: flex; gap: 8px; align-items: center; }
+  .pw-rules svg { width: 14px; height: 14px; color: var(--n300); }
+  .pw-rules div.ok svg { color: var(--success); }
+  .act-row { display: grid; gap: 10px; }
+  .act-row .btn { width: 100%; }
+  .zone-prev { display: grid; gap: 6px; }
+  .zone-prev div { display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; font-size: 0.9rem; background: var(--n50); }
+  .zone-prev b { font-family: var(--font-ui); font-variant-numeric: tabular-nums; }
+  .auth-foot { padding: 14px var(--gutter-r) calc(14px + env(safe-area-inset-bottom, 0px)) var(--gutter); text-align: center; font-size: 0.8125rem; color: var(--n500); display: flex; justify-content: center; gap: 6px; align-items: center; }
+  .auth-foot .wmk { height: 12px; --wm-mark: currentColor; --wm-text: currentColor; }
+
+  /* Dashboard shell */
+  .dash { min-height: calc(100vh - 44px - 34px); display: grid; grid-template-columns: 1fr; grid-template-rows: auto 1fr auto; }
+  .d-head { background: var(--white); border-bottom: 1px solid var(--line); position: sticky; top: calc(44px + env(safe-area-inset-top, 0px)); z-index: 40; }
+  .d-head .wrap { height: 56px; display: flex; align-items: center; gap: 10px; }
+  .d-head .shop { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1; }
+  .d-head .shop b { font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .d-head .shop small { display: block; font-family: var(--font-ui); font-size: 0.6875rem; color: var(--n500); }
+  .d-head .acts { display: flex; gap: 6px; align-items: center; }
+  .ibtn { width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--line); background: var(--white); display: grid; place-items: center; cursor: pointer; position: relative; }
+  .ibtn svg { width: 20px; height: 20px; color: var(--n700); }
+  .ibtn .dot { position: absolute; top: 7px; right: 7px; width: 8px; height: 8px; border-radius: 50%; background: var(--danger); border: 2px solid var(--white); }
+  .lang2 { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 2px; font-family: var(--font-ui); font-size: 0.7rem; font-weight: 600; }
+  .lang2 span { padding: 4px 8px; border-radius: 999px; color: var(--n500); }
+  .lang2 span.on { background: var(--ink); color: var(--white); }
+  .d-side { display: none; }
+  .d-main { padding: 14px var(--gutter-r) calc(84px + env(safe-area-inset-bottom, 0px)) var(--gutter); display: grid; gap: 12px; align-content: start; min-width: 0; }
+  .d-tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 45; background: var(--white); border-top: 1px solid var(--line); display: grid; grid-template-columns: repeat(5, 1fr); padding: 6px 0 calc(6px + env(safe-area-inset-bottom, 0px)); }
+  .d-tabs a { display: grid; justify-items: center; gap: 2px; font-size: 0.6875rem; color: var(--n500); padding: 4px 0; position: relative; }
+  .d-tabs a svg { width: 22px; height: 22px; }
+  .d-tabs a.on { color: var(--teal-700); font-weight: 600; }
+  .d-tabs .badge { position: absolute; top: 2px; right: calc(50% - 18px); min-width: 16px; height: 16px; border-radius: 8px; background: var(--danger); color: var(--white); font-family: var(--font-ui); font-size: 0.625rem; font-weight: 700; display: grid; place-items: center; padding: 0 4px; }
+  .pb { display: flex; align-items: center; gap: 5px; font-size: 0.75rem; color: var(--n500); }
+  .pb .wmk { height: 11px; --wm-mark: currentColor; --wm-text: currentColor; }
+  .page-t { display: flex; justify-content: space-between; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+  .page-t h1 { font-size: 1.25rem; }
+  .page-t .sub { font-size: 0.875rem; color: var(--muted); }
+  .banner { border-radius: 14px; padding: 12px 14px; display: grid; grid-template-columns: 1fr auto; gap: 8px 12px; align-items: center; }
+  .banner b { display: block; }
+  .banner small { color: inherit; opacity: 0.85; font-size: 0.8125rem; }
+  .banner.trial { background: var(--teal-900); color: var(--white); }
+  .banner.trial .btn { background: var(--mari-500); color: var(--ink); min-height: 38px; padding: 6px 12px; font-size: 0.875rem; }
+  .banner.urgent { background: var(--danger-soft); border: 1px solid rgba(200,50,59,0.3); color: var(--ink); }
+  .banner.pay { background: var(--mari-100); border: 1px solid rgba(154,96,4,0.25); color: var(--ink); }
+  .banner .x { width: 32px; height: 32px; border-radius: 8px; border: 0; background: transparent; cursor: pointer; color: inherit; font-size: 1.1rem; }
+  .cl { padding: 16px; display: grid; gap: 12px; }
+  .cl .top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .cl h2 { font-size: 1.0625rem; }
+  .prog { height: 8px; border-radius: 4px; background: var(--n100); overflow: hidden; }
+  .prog i { display: block; height: 100%; width: 33%; background: linear-gradient(90deg, var(--teal-400), var(--teal-700)); border-radius: 4px; }
+  .cl h3 { font-size: 0.8125rem; font-family: var(--font-ui); letter-spacing: 0.05em; text-transform: uppercase; color: var(--n500); margin-top: 4px; }
+  body[data-lang="bn"] .cl h3 { font-family: var(--font-bn); letter-spacing: 0; text-transform: none; font-size: 0.875rem; }
+  .items { display: grid; gap: 6px; }
+  .item { display: grid; grid-template-columns: 26px 1fr auto; gap: 10px; align-items: center; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--white); min-height: 54px; }
+  .item .ck { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--n300); display: grid; place-items: center; }
+  .item .ck svg { width: 14px; height: 14px; color: var(--white); }
+  .item.done .ck { background: var(--success); border-color: var(--success); }
+  .item b { font-size: 0.9375rem; font-weight: 600; }
+  .item.done b { color: var(--n700); font-weight: 500; }
+  .item small { display: block; color: var(--muted); font-size: 0.8125rem; }
+  .item .go { color: var(--teal-700); font-weight: 600; font-size: 0.875rem; white-space: nowrap; }
+  .item svg.arrow { width: 18px; height: 18px; color: var(--n400); }
+  .grid2 { display: grid; grid-template-columns: 1fr; gap: 12px; }
+  .stat { padding: 14px 16px; display: grid; gap: 2px; }
+  .stat b { font-family: var(--font-ui); font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .stat span { font-size: 0.8125rem; color: var(--muted); }
+  .stats3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .empty { padding: 22px 16px; text-align: center; display: grid; gap: 10px; justify-items: center; }
+  .empty .ic { width: 52px; height: 52px; border-radius: 16px; background: var(--teal-50); color: var(--teal-700); display: grid; place-items: center; }
+  .empty .ic svg { width: 26px; height: 26px; }
+  .empty h3 { font-size: 1rem; }
+  .empty p { font-size: 0.875rem; color: var(--muted); max-width: 36ch; }
+  .empty .acts { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .link-card { padding: 14px 16px; display: grid; gap: 10px; }
+  .link-card .u { font-family: var(--font-ui); font-weight: 600; color: var(--teal-800); background: var(--teal-50); border: 1px solid var(--teal-100); border-radius: 10px; padding: 8px 12px; word-break: break-all; display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+  .share { display: flex; gap: 8px; flex-wrap: wrap; }
+  .share .btn { flex: 1; min-height: 40px; padding: 6px 10px; font-size: 0.875rem; }
+  .share img { width: 16px; height: 16px; }
+  .form { padding: 16px; display: grid; gap: 12px; }
+  .form h2 { font-size: 1.0625rem; }
+  .more { border: 1px dashed var(--line-strong); border-radius: 12px; padding: 10px 12px; }
+  .more summary { cursor: pointer; font-weight: 600; font-size: 0.9375rem; list-style: none; display: flex; justify-content: space-between; }
+  .more summary::-webkit-details-marker { display: none; }
+  .more .in { display: grid; gap: 10px; padding-top: 10px; font-size: 0.875rem; color: var(--muted); }
+  .sw { display: flex; justify-content: space-between; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--white); }
+  .sw b { display: block; font-size: 0.9375rem; }
+  .sw small { color: var(--muted); font-size: 0.8125rem; }
+  .tog { width: 44px; height: 26px; border-radius: 13px; background: var(--n200); position: relative; flex: none; }
+  .tog::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--white); box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+  .tog.on { background: var(--teal-700); }
+  .tog.on::after { left: 21px; }
+  .photo { border: 2px dashed var(--line-strong); border-radius: 12px; padding: 18px; text-align: center; color: var(--muted); font-size: 0.875rem; display: grid; gap: 6px; justify-items: center; }
+  .photo svg { width: 26px; height: 26px; color: var(--teal-700); }
+  .wallet { display: grid; gap: 8px; }
+  .wl { display: grid; grid-template-columns: 40px 1fr auto; gap: 10px; align-items: center; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--white); }
+  .wl img { height: 20px; width: auto; }
+  .wl .lg { width: 40px; display: grid; place-items: center; }
+  .wl b { display: block; font-size: 0.9375rem; }
+  .wl small { color: var(--muted); font-size: 0.8125rem; font-family: var(--font-ui); }
+  .code { display: flex; gap: 6px; justify-content: center; }
+  .code span { background: var(--mari-300); color: var(--ink); font-weight: 700; font-size: 1.5rem; width: 38px; height: 46px; display: grid; place-items: center; border-radius: 8px; font-variant-numeric: tabular-nums; font-family: var(--font-ui); }
+  .qr { width: 132px; height: 132px; margin: 0 auto; border-radius: 12px; background: repeating-linear-gradient(90deg, var(--ink) 0 6px, transparent 6px 12px), repeating-linear-gradient(0deg, var(--ink) 0 6px, transparent 6px 12px); background-blend-mode: multiply; opacity: 0.85; border: 8px solid var(--white); outline: 1px solid var(--line); }
+  .dev { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--white); }
+  .dev b { font-size: 0.9375rem; }
+  .dev small { color: var(--muted); font-size: 0.8125rem; grid-column: 1; }
+  .cour { display: grid; gap: 10px; }
+  .co { padding: 14px; display: grid; gap: 10px; }
+  .co .hd { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .co .hd img { height: 22px; width: auto; }
+  .picker { width: 100%; max-width: 440px; display: grid; gap: 8px; }
+  .shopc { display: grid; grid-template-columns: 40px 1fr auto; gap: 10px; align-items: center; padding: 12px 14px; }
+  .shopc b { display: block; }
+  .shopc small { color: var(--muted); font-size: 0.8125rem; font-family: var(--font-ui); }
+  .shopc .arrow { width: 18px; height: 18px; color: var(--n400); }
+  .exits { display: grid; gap: 12px; width: 100%; max-width: 440px; }
+  .o { background: var(--white); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; gap: 4px; }
+  .o .r { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .o b { font-family: var(--font-ui); font-size: 0.9rem; }
+  .o .m { color: var(--n700); font-size: 0.8125rem; }
+  .o .act { display: flex; gap: 6px; margin-top: 4px; }
+  .o .act .btn { flex: 1; min-height: 36px; padding: 6px 10px; font-size: 0.8125rem; }
+  .fold { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 14px; }
+  .fold b { font-size: 0.9375rem; }
+  .fold small { color: var(--muted); font-size: 0.8125rem; display: block; }
+
+  @media (min-width: 640px) {
+    .f2 { grid-template-columns: 1fr 1fr; }
+    .grid2 { grid-template-columns: 1fr 1fr; }
+    .act-row { grid-template-columns: 1fr 1fr; }
+    .act-row .btn.full { grid-column: 1 / -1; }
+    .d-main { padding-top: 18px; }
+  }
+  @media (min-width: 900px) {
+    .dash { grid-template-columns: 232px 1fr; grid-template-rows: auto 1fr; }
+    .d-head { grid-column: 1 / -1; }
+    .d-side { display: grid; align-content: start; gap: 4px; padding: 16px 12px; background: var(--teal-900); color: var(--white); position: sticky; top: calc(44px + 56px + env(safe-area-inset-top, 0px)); height: calc(100vh - 44px - 56px); }
+    .d-side a { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 10px; color: var(--teal-100); font-size: 0.9375rem; font-weight: 500; }
+    .d-side a svg { width: 20px; height: 20px; }
+    .d-side a.on { background: var(--teal-800); color: var(--white); font-weight: 600; }
+    .d-side .badge { margin-left: auto; min-width: 18px; height: 18px; border-radius: 9px; background: var(--mari-500); color: var(--ink); font-family: var(--font-ui); font-size: 0.6875rem; font-weight: 700; display: grid; place-items: center; padding: 0 5px; }
+    .d-side .pb { margin-top: auto; color: var(--teal-200); padding: 8px 12px; }
+    .d-tabs { display: none; }
+    .d-main { padding: 22px 24px 32px; max-width: 920px; }
+    .stat b { font-size: 1.75rem; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="mark" viewBox="0 0 64 64"><path d="M15 15V49H31L49 29" fill="none" stroke="currentColor" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="wordmark" viewBox="0 0 142 64"><path d="M15 15V49H31L49 29" transform="translate(2.8 8.12) scale(0.72)" fill="none" stroke="var(--wm-mark, currentColor)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/><text x="46" y="47" font-family="'Plus Jakarta Sans', Inter, ui-sans-serif, system-ui, sans-serif" font-weight="800" font-size="42" letter-spacing="-1.3" fill="var(--wm-text, currentColor)">ytro</text></symbol>
+  <symbol id="check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="back" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+  <symbol id="bell" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 20a2 2 0 0 0 4 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+  <symbol id="orders" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 8h8M8 12h8M8 16h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="boxes" viewBox="0 0 24 24"><path d="M3 8l9-4 9 4-9 4zM3 8v8l9 4 9-4V8M12 12v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+  <symbol id="users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3.5 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="17" cy="9" r="2.4" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M16 14.5c2.5 0 4.5 1.8 4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="wallet" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3 10h18M16 14h2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="more" viewBox="0 0 24 24"><circle cx="6" cy="12" r="1.8" fill="currentColor"/><circle cx="12" cy="12" r="1.8" fill="currentColor"/><circle cx="18" cy="12" r="1.8" fill="currentColor"/></symbol>
+  <symbol id="home" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9H4z M10 20v-6h4v6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+  <symbol id="store" viewBox="0 0 24 24"><path d="M4 9l1.5-4h13L20 9M4 9v10h16V9M4 9h16M10 19v-5h4v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+  <symbol id="truck" viewBox="0 0 24 24"><path d="M3 7h10v9H3zM13 10h4l3 3v3h-7z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="7" cy="17.5" r="1.8" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="17" cy="17.5" r="1.8" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+  <symbol id="sms" viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M10 7h4M10 10h4M10 13h2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+  <symbol id="camera" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.5" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+  <symbol id="share" viewBox="0 0 24 24"><path d="M12 15V4M8 8l4-4 4 4M5 13v6h14v-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7M12 17h.01" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3.5 12h17M12 3.5c3 3 3 14 0 17M12 3.5c-3 3-3 14 0 17" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+</svg>
+
+<div class="proto">
+  <div class="wrap">
+    <span class="lbl" data-en="Prototype">প্রোটোটাইপ</span>
+    <a href="#map" data-page="map" data-en="Flow map">ফ্লো ম্যাপ</a>
+    <span class="sep"></span>
+    <a href="#s1" data-page="s1" data-en="1 Sign-in">১ সাইন-ইন</a>
+    <a href="#s1b" data-page="s1b" data-en="1b Code">১খ কোড</a>
+    <a href="#s2" data-page="s2" data-en="2 Create shop">২ দোকান তৈরি</a>
+    <a href="#s2b" data-page="s2b" data-en="2b Checkout">২খ চেকআউট</a>
+    <a href="#s3" data-page="s3" data-en="3 Password">৩ পাসওয়ার্ড</a>
+    <a href="#s4" data-page="s4" data-en="4 Set up">৪ সেট-আপ</a>
+    <span class="sep"></span>
+    <a href="#home" data-page="home" data-en="Home, day one">হোম, প্রথম দিন</a>
+    <a href="#product" data-page="product" data-en="First product">প্রথম প্রোডাক্ট</a>
+    <a href="#wallet" data-page="wallet" data-en="Wallet">পেমেন্ট নম্বর</a>
+    <a href="#listener" data-page="listener" data-en="Listener">লিসেনার</a>
+    <a href="#courier" data-page="courier" data-en="Courier">কুরিয়ার</a>
+    <a href="#home2" data-page="home2" data-en="After first order">প্রথম অর্ডারের পর</a>
+    <span class="sep"></span>
+    <a href="#exits" data-page="exits" data-en="Picker and exits">পিকার ও এক্সিট</a>
+    <div class="lang" role="group" aria-label="Language"><button type="button" id="lang-bn" aria-pressed="true">বাং</button><button type="button" id="lang-en" aria-pressed="false">EN</button></div>
+  </div>
+</div>
+
+<!-- ================= FLOW MAP ================= -->
+<div class="page" id="page-map">
+  <div class="urlbar"><div class="wrap"><span data-en="Hosts and steps, from the claim box to the first shipped order">ক্লেইম বক্স থেকে প্রথম শিপ হওয়া অর্ডার পর্যন্ত, হোস্ট আর ধাপ</span></div></div>
+  <div class="wrap map">
+    <div class="legend"><span><i class="s"></i><span data-en="a step the seller sees">সেলার যে ধাপ দেখে</span></span><span><i></i><span data-en="a server decision">সার্ভারের সিদ্ধান্ত</span></span><span><i class="e"></i><span data-en="an exit or a return path">এক্সিট বা ফিরে আসার পথ</span></span><span><span class="spec">AUTH-28</span> <span data-en="requirement it implements">যে রিকোয়ারমেন্ট</span></span></div>
+    <div class="lanes">
+      <div class="lane card">
+        <h3><span>app.lytro.app</span><b data-en="sign-up to dashboard">সাইন-আপ থেকে ড্যাশবোর্ড</b></h3>
+        <div class="node exit"><div class="t" data-en="lytro.app claim box · pricing pick">lytro.app ক্লেইম বক্স · প্রাইসিং পিক</div><div class="d" data-en="?shop=megh and &plan=&term= travel with the visitor through every identity path">?shop=megh আর &plan=&term= প্রতিটা পরিচয়ের পথে ভিজিটরের সাথে যায়</div><div class="ids"><span class="spec">AUTH-28</span><span class="spec">AUTH-29</span></div></div>
+        <div class="arrow">▼</div>
+        <div class="node step"><div class="t"><i>1</i><span data-en="Sign-in: phone, Google or Facebook">সাইন-ইন: ফোন, গুগল বা ফেসবুক</span></div><div class="d" data-en="One door for new and returning. Terms line under the buttons; staff link to their own page.">নতুন আর পুরনো, দরজা একটাই। বাটনের নিচে টার্মস লাইন; স্টাফের নিজের পেজের লিংক।</div><div class="ids"><span class="spec">AUTH-01</span><span class="spec">AUTH-12</span><span class="spec">LEG-01</span><span class="spec">AUTH-31</span></div></div>
+        <div class="branch">
+          <div class="node step"><div class="t"><i>1b</i><span data-en="Code: 6 digits, 5 minutes, resend after 60 s">কোড: ৬ সংখ্যা, ৫ মিনিট, ৬০ সেকেন্ড পর আবার</span></div><div class="ids"><span class="spec">AUTH-05</span><span class="spec">AUTH-06</span><span class="spec">AUTH-07</span><span class="spec">AUTH-14</span></div></div>
+          <div class="node"><div class="t" data-en="Google or Facebook → provider → /auth/oauth/:p/callback">গুগল বা ফেসবুক → প্রোভাইডার → /auth/oauth/:p/callback</div><div class="ids"><span class="spec">AUTH-24</span></div></div>
+        </div>
+        <div class="arrow">▼</div>
+        <div class="node"><div class="t" data-en="Server answers “next”">সার্ভার বলে “next”</div><div class="d">create-shop · dashboard · set-password · renewal · unavailable</div><div class="ids"><span class="spec">AUTH-22</span><span class="spec">AUTH-23</span></div></div>
+        <div class="arrow">▼</div>
+        <div class="node step"><div class="t"><i>2</i><span data-en="Create shop: name, link with live check, owner, address">দোকান তৈরি: নাম, লিংক (লাইভ চেক), মালিক, ঠিকানা</span></div><div class="d" data-en="Link pre-filled from the claim; taken or reserved offers the next free one. Refused by the per-account or per-connection limit with a plain message, keeping the text. Trial starts here; shop-ready SMS with the storefront URL.">ক্লেইম থেকে লিংক আগে থেকে ভরা; নেওয়া বা রিজার্ভড হলে পরেরটা দেখায়। অ্যাকাউন্ট বা কানেকশনের লিমিটে সাদা কথায় না, লেখা থাকে। ট্রায়াল এখান থেকে শুরু; স্টোরফ্রন্টের ঠিকানাসহ SMS।</div><div class="ids"><span class="spec">AUTH-10</span><span class="spec">AUTH-11</span><span class="spec">AUTH-30</span><span class="spec">TEN-26</span><span class="spec">SMS-18</span></div></div>
+        <div class="branch">
+          <div class="node step"><div class="t"><i>2b</i><span data-en="Checkout, only when a plan was picked">চেকআউট, শুধু প্ল্যান বাছা থাকলে</span></div><div class="d" data-en="Plan and term changeable, price and saving, no refund once started; pay on the payment page or a wallet's checkout, or continue without paying and stay on the trial.">প্ল্যান আর মেয়াদ বদলানো যায়, দাম আর সাশ্রয়, শুরু হলে ফেরত নেই; পেমেন্ট পেজ বা ওয়ালেটের চেকআউটে দিন, বা না দিয়ে এগিয়ে যান, ট্রায়ালে থাকুন।</div><div class="ids"><span class="spec">AUTH-29</span><span class="spec">BIL-01</span><span class="spec">BIL-18</span></div></div>
+        </div>
+        <div class="arrow">▼</div>
+        <div class="node step"><div class="t"><i>3</i><span data-en="Password, optional, shown once">পাসওয়ার্ড, ঐচ্ছিক, একবারই</span></div><div class="d" data-en="Facebook-only accounts are told Facebook is their only way back in.">শুধু-ফেসবুক অ্যাকাউন্টকে বলা হয় ফেসবুকই ফেরার একমাত্র পথ।</div><div class="ids"><span class="spec">AUTH-20</span><span class="spec">AUTH-27</span></div></div>
+        <div class="arrow">▼</div>
+        <div class="node step"><div class="t"><i>4</i><span data-en="Set up: what you sell · where you deliver from">সেট-আপ: কী বেচেন · কোথা থেকে পাঠান</span></div><div class="d" data-en="Both skippable; default shop type and Dhaka city. Two delivery zones exist from the start.">দুটোই বাদ দেওয়া যায়; ডিফল্ট ধরন আর ঢাকা সিটি। দুটো ডেলিভারি জোন শুরু থেকেই থাকে।</div><div class="ids"><span class="spec">PST-01</span><span class="spec">DLV-01</span></div></div>
+        <div class="arrow">▼</div>
+        <div class="node step" style="border-color:var(--mari-500);background:var(--mari-100)"><div class="t"><span data-en="Dashboard home at app.lytro.app/megh">ড্যাশবোর্ড হোম app.lytro.app/megh</span></div><div class="d" data-en="Trial countdown, setup checklist, shop link, empty states.">ট্রায়ালের দিন, সেটআপ চেকলিস্ট, দোকানের লিংক, খালি অবস্থা।</div><div class="ids"><span class="spec">TEN-31</span><span class="spec">SUP-01</span><span class="spec">TRL-08</span></div></div>
+      </div>
+      <div class="lane card">
+        <h3><span data-en="Other doors">অন্য দরজা</span><b data-en="same host">একই হোস্ট</b></h3>
+        <div class="node step"><div class="t" data-en="Staff sign-in · /staff-sign-in">স্টাফ সাইন-ইন · /staff-sign-in</div><div class="d" data-en="Phone and the owner-set password; a new password is required before the shop opens; forgot it → ask the owner.">ফোন আর মালিকের দেওয়া পাসওয়ার্ড; দোকান খোলার আগে নতুন পাসওয়ার্ড লাগে; ভুলে গেলে মালিককে বলুন।</div><div class="ids"><span class="spec">AUTH-31</span><span class="spec">AUTH-19</span><span class="spec">STF-13</span></div></div>
+        <div class="node step"><div class="t" data-en="Returning owner → /megh">পুরনো মালিক → /megh</div><div class="d" data-en="Code sign-in to an existing shop uses its free SMS; the screen says so and offers password as the free way.">পুরনো দোকানে কোড দিয়ে লগইন তার ফ্রি SMS খরচ করে; স্ক্রিন বলে দেয়, পাসওয়ার্ডটা ফ্রি পথ।</div><div class="ids"><span class="spec">AUTH-21</span></div></div>
+        <div class="node step"><div class="t" data-en="Shop picker · /shops">শপ পিকার · /shops</div><div class="d" data-en="Only for a person in more than one shop, e.g. staff who also own one. Never a “new shop” button.">শুধু যিনি একাধিক দোকানে আছেন, যেমন স্টাফ যার নিজের দোকানও আছে। কখনো “নতুন দোকান” বাটন নয়।</div><div class="ids"><span class="spec">TEN-31</span><span class="spec">TEN-15</span></div></div>
+        <div class="node exit"><div class="t" data-en="Left after step 1">১ নম্বরের পর চলে গেছেন</div><div class="d" data-en="Every later sign-in lands on create-shop until the shop exists.">দোকান না হওয়া পর্যন্ত পরের প্রতিটা লগইন দোকান তৈরিতে নামে।</div><div class="ids"><span class="spec">AUTH-28</span></div></div>
+        <div class="node exit"><div class="t" data-en="Deleted shop → create-shop again">ডিলিট হওয়া দোকান → আবার দোকান তৈরি</div><div class="d" data-en="A new, empty shop; old invoices and the leftover balance follow it. The old one is never revived.">নতুন, খালি দোকান; পুরনো ইনভয়েস আর বাকি ব্যালেন্স সাথে আসে। পুরনোটা কখনো ফেরে না।</div><div class="ids"><span class="spec">LIF-21</span><span class="spec">AUTH-23</span></div></div>
+        <div class="node exit"><div class="t" data-en="Locked or archived → /megh/renew">লকড বা আর্কাইভড → /megh/renew</div><div class="d" data-en="Owner only: pick a plan, or pay-as-you-go without paying, or export. Staff get tenant_offline.">শুধু মালিক: প্ল্যান নিন, বা না দিয়ে পে-অ্যাজ-ইউ-গো, বা এক্সপোর্ট। স্টাফ পায় tenant_offline।</div><div class="ids"><span class="spec">LIF-11</span><span class="spec">LIF-12</span><span class="spec">LIF-15</span></div></div>
+        <div class="node exit"><div class="t" data-en="Suspended → /unavailable">সাসপেন্ডেড → /unavailable</div><div class="d" data-en="“Your shop is not available right now.” Support button, no reason; balance and top-up still open to the owner.">“আপনার দোকান এখন পাওয়া যাচ্ছে না।” সাপোর্ট বাটন, কারণ নেই; মালিকের ব্যালেন্স আর টপ-আপ খোলা।</div><div class="ids"><span class="spec">LIF-24</span></div></div>
+      </div>
+      <div class="lane card">
+        <h3><span data-en="After the dashboard opens">ড্যাশবোর্ড খোলার পর</span><b data-en="first sale">প্রথম বিক্রি</b></h3>
+        <div class="node step"><div class="t" data-en="Add the first product">প্রথম প্রোডাক্ট তুলুন</div><div class="d" data-en="Form follows the shop type; landing page live at once with Copy, Facebook, WhatsApp.">ফর্ম দোকানের ধরন মেনে; ল্যান্ডিং পেজ সাথে সাথে লাইভ, কপি, ফেসবুক, WhatsApp।</div><div class="ids"><span class="spec">PST-05</span><span class="spec">LND-01</span><span class="spec">LND-06</span></div></div>
+        <div class="node step"><div class="t" data-en="Add a wallet number">ওয়ালেট নম্বর দিন</div><div class="d" data-en="bKash, Nagad, Rocket or bank; nothing activates by itself. Needs a verified phone.">বিকাশ, নগদ, রকেট বা ব্যাংক; নিজে থেকে কিছু অ্যাক্টিভ হয় না। ভেরিফাই করা ফোন লাগে।</div><div class="ids"><span class="spec">WAL-01</span><span class="spec">WAL-04</span><span class="spec">TVR-01</span></div></div>
+        <div class="node step"><div class="t" data-en="Share the shop link">দোকানের লিংক শেয়ার করুন</div><div class="d" data-en="megh.lytro.app on the Facebook page; ticks the checklist.">ফেসবুক পেজে megh.lytro.app; চেকলিস্টে টিক পড়ে।</div><div class="ids"><span class="spec">SUP-01</span></div></div>
+        <div class="node"><div class="t" data-en="First order arrives (shopper-placed)">প্রথম অর্ডার আসে (ক্রেতার)</div><div class="d" data-en="Push and in-app notice; home switches to the working state.">পুশ আর ইন-অ্যাপ নোটিশ; হোম কাজের অবস্থায় যায়।</div><div class="ids"><span class="spec">ORD-20</span></div></div>
+        <div class="node step"><div class="t" data-en="Pair the Listener · connect a courier">লিসেনার পেয়ার · কুরিয়ার জুড়ুন</div><div class="d" data-en="“Later” items: 10-minute code; Steadfast or Pathao with a test call; tracking link by hand always works.">“পরে” আইটেম: ১০ মিনিটের কোড; Steadfast বা Pathao টেস্ট কলসহ; হাতে ট্র্যাকিং লিংক সবসময় চলে।</div><div class="ids"><span class="spec">LSN-01</span><span class="spec">CRR-02</span><span class="spec">CRR-16</span></div></div>
+        <div class="node step"><div class="t" data-en="Confirm, book courier, ship">কনফার্ম, কুরিয়ার বুক, শিপ</div><div class="d" data-en="Handling counts toward the trial's 40; creation never limited.">হ্যান্ডলিং ট্রায়ালের ৪০-এ গোনা হয়; তৈরি কখনো সীমিত নয়।</div><div class="ids"><span class="spec">QTA-04</span><span class="spec">QTA-07</span></div></div>
+        <div class="node exit"><div class="t" data-en="Day 30 with no plan → pay-as-you-go">৩০ দিনে প্ল্যান না নিলে → পে-অ্যাজ-ইউ-গো</div><div class="d" data-en="Nothing lost; limits widen; fee per booked order.">কিছু হারায় না; লিমিট বাড়ে; বুক করা অর্ডারে ফি।</div><div class="ids"><span class="spec">TRL-07</span></div></div>
+      </div>
+    </div>
+    <div class="card" style="padding:14px 16px;display:grid;gap:6px;font-size:0.875rem">
+      <b data-en="Where the backend is reached from">ব্যাকএন্ড কোথা থেকে ডাকা হয়</b>
+      <span class="muted" data-en="app.lytro.app and admin.lytro.app call /api/v1 on their own host through Caddy, with a host-only session cookie. lytro.app and every shop host have no /api: the website and the storefront call the server inside the deployment, and anything in a shopper's browser uses api.lytro.app with a public key.">app.lytro.app আর admin.lytro.app নিজের হোস্টে Caddy দিয়ে /api/v1 ডাকে, হোস্ট-অনলি সেশন কুকি নিয়ে। lytro.app আর দোকানের হোস্টে /api নেই: ওয়েবসাইট আর স্টোরফ্রন্ট ডিপ্লয়মেন্টের ভেতরে সার্ভার ডাকে, আর ক্রেতার ব্রাউজারের কোড api.lytro.app-এ পাবলিক কি দিয়ে।</span>
+    </div>
+  </div>
+</div>
+
+<!-- ================= STEP 1 SIGN-IN ================= -->
+<div class="page auth" id="page-s1" hidden>
+  <div class="urlbar"><div class="wrap"><svg><use href="#lock"/></svg><b>app.lytro.app</b>/sign-in?shop=megh&amp;plan=starter&amp;term=12m<span class="req"><span class="spec">AUTH-28 §1</span><span class="spec">LEG-01</span><span class="spec">AUTH-31</span></span></div></div>
+  <div class="auth-top"><div class="wrap"><span class="wordmark"><svg class="wmk"><use href="#wordmark"/></svg></span><a href="#" class="help" data-en="Need help?">সাহায্য লাগবে?</a></div></div>
+  <div class="auth-main">
+    <div class="ctx"><span class="chip info nodot"><svg style="width:12px;height:12px"><use href="#store"/></svg> <span data-en="megh.lytro.app is held for you">megh.lytro.app আপনার জন্য রাখা আছে</span></span><span class="chip warn nodot" data-en="Starter · 12 months · ৳4,741">Starter · ১২ মাস · ৳4,741</span></div>
+    <form class="pane card" novalidate>
+      <h2 data-en="Welcome to Lytro">লাইট্রোতে স্বাগতম</h2>
+      <p class="sub" data-en="Enter your phone number to continue. New or returning, this is the only door.">চালিয়ে যেতে আপনার ফোন নম্বর দিন। নতুন হোন বা পুরনো, দরজা এই একটাই।</p>
+      <div class="field"><label data-en="Phone number">ফোন নম্বর</label><div class="phone-f"><span class="cc">🇧🇩 +880</span><input type="tel" inputmode="numeric" placeholder="1XXXXXXXXX" maxlength="11"></div></div>
+      <button type="button" class="btn btn-accent" data-en="Continue">এগিয়ে যান</button>
+      <div class="or" data-en="or">অথবা</div>
+      <div class="oauth"><button type="button" class="btn btn-outline"><img src="third-party/google.svg" alt=""><span data-en="Continue with Google">গুগল দিয়ে চালিয়ে যান</span></button><button type="button" class="btn btn-outline"><img src="third-party/facebook.svg" alt=""><span data-en="Continue with Facebook">ফেসবুক দিয়ে চালিয়ে যান</span></button></div>
+      <p class="legal" data-en-html="By continuing you accept the <a href='#'>Terms</a> and the <a href='#'>Privacy policy</a>.">এগিয়ে গেলে আপনি <a href="#">টার্মস</a> আর <a href="#">প্রাইভেসি পলিসি</a> মেনে নিচ্ছেন।</p>
+      <p class="legal"><a href="#" data-en="Staff? Sign in here">স্টাফ? এখানে লগইন করুন</a></p>
+    </form>
+    <div class="statebar"><span data-en="Returning owner variant:">পুরনো মালিকের ভ্যারিয়েন্ট:</span><button type="button" id="s1-ret" aria-pressed="false" data-en="code uses free SMS line">কোডে ফ্রি SMS লাইন</button></div>
+    <div class="pane card" id="s1-retline" hidden style="padding:14px 18px"><div class="note" data-en="Signing in by code uses one of your shop's free SMS. Sign in with your password instead, it is free.">কোড দিয়ে লগইন করলে আপনার দোকানের একটা ফ্রি SMS খরচ হয়। পাসওয়ার্ড দিয়ে লগইন করুন, সেটা ফ্রি।</div><div style="margin-top:10px"><a href="#" class="btn btn-link" style="margin-left:-8px" data-en="Use a password instead">পাসওয়ার্ড দিয়ে লগইন করুন</a></div><div class="ids" style="margin-top:6px"><span class="spec">AUTH-21</span></div></div>
+  </div>
+  <div class="auth-foot"><span>Powered by</span><svg class="wmk"><use href="#wordmark"/></svg><span>· Lytronix</span></div>
+</div>
+
+<!-- ================= STEP 1b CODE ================= -->
+<div class="page auth" id="page-s1b" hidden>
+  <div class="urlbar"><div class="wrap"><svg><use href="#lock"/></svg><b>app.lytro.app</b>/verify-code<span class="req"><span class="spec">AUTH-05</span><span class="spec">AUTH-06</span><span class="spec">AUTH-07</span><span class="spec">AUTH-14</span></span></div></div>
+  <div class="auth-top"><div class="wrap"><span class="wordmark"><svg class="wmk"><use href="#wordmark"/></svg></span><a href="#" class="help" data-en="Need help?">সাহায্য লাগবে?</a></div></div>
+  <div class="auth-main">
+    <form class="pane card" novalidate>
+      <button type="button" class="btn btn-link" style="justify-self:start;margin-left:-8px"><svg style="width:18px;height:18px"><use href="#back"/></svg><span data-en="Change number">নম্বর বদলান</span></button>
+      <h2 data-en="Verify your number">আপনার নম্বর ভেরিফাই করুন</h2>
+      <p class="sub"><span data-en="A 6-digit code was sent to">৬ সংখ্যার একটি কোড পাঠানো হয়েছে</span> <b class="num">+880 1712 345678</b></p>
+      <div class="field"><label data-en="Verification code">ভেরিফিকেশন কোড</label><div class="otp"><input inputmode="numeric" maxlength="1" value="4"><input inputmode="numeric" maxlength="1" value="8"><input inputmode="numeric" maxlength="1" value="2"><input inputmode="numeric" maxlength="1"><input inputmode="numeric" maxlength="1"><input inputmode="numeric" maxlength="1"></div><span class="hint" data-en="Valid for 5 minutes. After 5 wrong codes the number locks for 15 minutes.">৫ মিনিট পর্যন্ত কাজ করবে। ৫ বার ভুল হলে নম্বরটা ১৫ মিনিট লক থাকবে।</span></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.875rem;color:var(--muted);flex-wrap:wrap;gap:6px"><span class="num" data-en="Resend in 42 s">৪২ সেকেন্ড পর আবার পাঠান</span><span class="muted" data-en="4 of 5 resends left this hour">এই ঘণ্টায় আর ৪ বার</span></div>
+      <button type="button" class="btn btn-accent" data-en="Verify">ভেরিফাই করুন</button>
+      <p class="legal"><a href="#" data-en="Use a password instead">পাসওয়ার্ড দিয়ে লগইন করুন</a></p>
+    </form>
+    <div class="pane card" style="padding:14px 18px"><div class="note bad" data-en="That code is not right. 4 tries left before a 15-minute lock.">কোডটা ঠিক নেই। ১৫ মিনিটের লকের আগে আর ৪ বার চেষ্টা করা যাবে।</div><div class="ids" style="margin-top:6px"><span class="spec">AUTH-06</span> <span class="muted" style="font-size:0.75rem" data-en="(error state)">(এরর অবস্থা)</span></div></div>
+  </div>
+  <div class="auth-foot"><span>Powered by</span><svg class="wmk"><use href="#wordmark"/></svg><span>· Lytronix</span></div>
+</div>
+
+<!-- ================= STEP 2 CREATE SHOP ================= -->
+<div class="page auth" id="page-s2" hidden>
+  <div class="urlbar"><div class="wrap"><svg><use href="#lock"/></svg><b>app.lytro.app</b>/create-shop<span class="req"><span class="spec">AUTH-10</span><span class="spec">AUTH-11</span><span class="spec">AUTH-30</span><span class="spec">TEN-26</span><span class="spec">TEN-31</span></span></div></div>
+  <div class="auth-top"><div class="wrap"><span class="wordmark"><svg class="wmk"><use href="#wordmark"/></svg></span><a href="#" class="help" data-en="Need help?">সাহায্য লাগবে?</a></div></div>
+  <div class="auth-main">
+    <div class="steps"><div class="done"><i></i><span data-en="Phone">ফোন</span></div><div class="on"><i></i><span data-en="Your shop">আপনার দোকান</span></div><div><i></i><span data-en="Password">পাসওয়ার্ড</span></div><div><i></i><span data-en="Set up">সেট-আপ</span></div></div>
+    <div class="statebar"><span data-en="Link state:">লিংকের অবস্থা:</span><button type="button" class="s2st" data-st="checking" aria-pressed="false" data-en="checking">চেক হচ্ছে</button><button type="button" class="s2st" data-st="ok" aria-pressed="true" data-en="available">পাওয়া যায়</button><button type="button" class="s2st" data-st="taken" aria-pressed="false" data-en="taken">নেওয়া</button><button type="button" class="s2st" data-st="reserved" aria-pressed="false" data-en="reserved">রিজার্ভড</button><button type="button" class="s2st" data-st="refused" aria-pressed="false" data-en="refused (AUTH-30)">রিফিউজড (AUTH-30)</button></div>
+    <form class="pane card" id="s2form" novalidate>
+      <h2 data-en="Name your shop">দোকানের নাম দিন</h2>
+      <p class="sub" data-en="Two things make a shop: a name and a link. The link is set once and never changes.">দুটো জিনিসে দোকান হয়: একটা নাম আর একটা লিংক। লিংক একবারই ঠিক হয়, আর বদলায় না।</p>
+      <div class="field"><label data-en="Shop name">দোকানের নাম</label><input type="text" maxlength="60" value="Megh Gadgets"><span class="hint" data-en="Any script, up to 60 characters. Does not have to be unique.">যেকোনো ভাষায়, সর্বোচ্চ ৬০ অক্ষর। অনন্য হতে হবে না।</span></div>
+      <div class="field"><label data-en="Shop link">দোকানের লিংক</label><div class="slug"><input type="text" id="s2slug" value="megh" autocapitalize="none"><span>.lytro.app</span></div>
+        <div class="avail" id="s2avail"></div>
+        <div class="addr"><span data-en="Customers will visit">কাস্টমার যাবে</span> <b id="s2a1">megh.lytro.app</b><span data-en="You will work at">আপনি কাজ করবেন</span> <b id="s2a2">app.lytro.app/megh</b></div>
+      </div>
+      <div class="f2"><div class="field"><label data-en="Your name">আপনার নাম</label><input type="text" value="রহিম উদ্দিন"></div><div class="field"><label data-en-html="Shop address <small>(optional)</small>">দোকানের ঠিকানা <small>(ঐচ্ছিক)</small></label><input type="text" placeholder="মিরপুর ১০, ঢাকা" data-en-placeholder="Mirpur 10, Dhaka"></div></div>
+      <div class="note bad" id="s2refuse" hidden data-en="A shop was already opened from this account or internet connection recently, so a new one cannot be opened now. Nothing you typed is lost. If this is your shop, sign in to it instead.">এই অ্যাকাউন্ট বা ইন্টারনেট কানেকশন থেকে সম্প্রতি একটা দোকান খোলা হয়েছে, তাই এখন নতুন একটা খোলা যাচ্ছে না। আপনি যা লিখেছেন কিছু হারায়নি। এটা আপনার দোকান হলে সেটাতেই লগইন করুন।</div>
+      <div class="note" id="s2final"><span data-en="Your address will be">আপনার ঠিকানা হবে</span> <b class="num" id="s2a3">megh.lytro.app</b> <span data-en="and it will never change, even if you rename the shop.">আর এটা কখনো বদলাবে না, দোকানের নাম বদলালেও না।</span></div>
+      <button type="button" class="btn btn-accent" id="s2btn" data-en="Create my shop">দোকান তৈরি করুন</button>
+    </form>
+    <div class="pane card" style="padding:12px 18px;font-size:0.8125rem;color:var(--muted)"><span data-en="On success: the owner user, the trial tenant and the subdomain are created in one unit of work; the shop-ready SMS with the storefront address is sent once, platform cost; the trial clock starts now, not at sign-up.">সফল হলে: মালিক, ট্রায়াল টেন্যান্ট আর সাবডোমেইন এক কাজে তৈরি; স্টোরফ্রন্টের ঠিকানাসহ “দোকান রেডি” SMS একবার যায়, প্ল্যাটফর্মের খরচে; ট্রায়ালের ঘড়ি এখন থেকে, সাইন-আপ থেকে নয়।</span> <span class="spec">AUTH-10</span> <span class="spec">SMS-18</span></div>
+  </div>
+  <div class="auth-foot"><span>Powered by</span><svg class="wmk"><use href="#wordmark"/></svg><span>· Lytronix</span></div>
+</div>
+
+<!-- ================= STEP 2b CHECKOUT ================= -->
+<div class="page auth" id="page-s2b" hidden>
+  <div class="urlbar"><div class="wrap"><svg><use href="#lock"/></svg><b>app.lytro.app</b>/checkout<span class="req"><span class="spec">AUTH-29</span><span class="spec">BIL-01</span><span class="spec">BIL-02</span><span class="spec">BIL-18</span><span class="spec">TRM-12</span></span></div></div>
+  <div class="auth-top"><div class="wrap"><span class="wordmark"><svg class="wmk"><use href="#wordmark"/></svg></span><a href="#" class="help" data-en="Need help?">সাহায্য লাগবে?</a></div></div>
+  <div class="auth-main">
+    <div class="pane card">
+      <div class="chip ok nodot" data-en="Megh Gadgets is created. Your trial is running.">Megh Gadgets তৈরি হয়েছে। ট্রায়াল চলছে।</div>
+      <h2 data-en="Start on Starter?">Starter দিয়ে শুরু করবেন?</h2>
+      <p class="sub" data-en="You picked this on the pricing page. Change it, pay now, or continue on the free trial and decide later.">প্রাইসিং পেজে এটা বেছেছিলেন। বদলান, এখনই দিন, বা ফ্রি ট্রায়ালে থেকে পরে ঠিক করুন।</p>
+      <div class="field"><label data-en="Plan">প্ল্যান</label><div class="chips"><label><input type="radio" name="pl" checked><span>Starter</span></label><label><input type="radio" name="pl"><span>Growth</span></label><label><input type="radio" name="pl"><span>Pro</span></label></div></div>
+      <div class="field"><label data-en="Billing term">মেয়াদ</label>
+        <div class="plan-row">
+          <label class="plan-opt"><input type="radio" name="tm"><div><b data-en="1 month">১ মাস</b><small data-en="৳449 per month">মাসে ৳449</small></div><div class="pr">৳449</div></label>
+          <label class="plan-opt"><input type="radio" name="tm"><div><b data-en="6 months">৬ মাস</b><small data-en="about ৳413 per month · 8% off">প্রায় ৳413/মাস · ৮% কম</small></div><div class="pr">৳2,478</div></label>
+          <label class="plan-opt"><input type="radio" name="tm" checked><div><b data-en="12 months">১২ মাস</b><small data-en="about ৳395 per month · 12% off">প্রায় ৳395/মাস · ১২% কম</small></div><div class="pr">৳4,741</div></label>
+        </div>
+      </div>
+      <div class="total"><span data-en="To pay now">এখন দিতে হবে</span><b>৳4,741</b></div>
+      <p class="hint" style="font-size:0.8125rem;color:var(--muted)" data-en="A period that has started is not refunded. Your 30-day trial is the time to try things first.">শুরু হওয়া মেয়াদের টাকা ফেরত হয় না। আগে দেখে নেওয়ার জন্যই ৩০ দিনের ট্রায়াল।</p>
+      <div class="pay">
+        <button type="button" class="btn btn-primary"><img src="third-party/bkash.png" alt="bKash" style="height:16px;filter:brightness(0) invert(1)"><span data-en="Pay by bKash, Nagad or bank on the payment page">পেমেন্ট পেজে বিকাশ, নগদ বা ব্যাংকে দিন</span></button>
+        <button type="button" class="btn btn-outline"><svg style="width:18px;height:18px;color:var(--teal-700)"><use href="#arrow"/></svg><span data-en="Continue without paying, stay on the trial">না দিয়ে এগিয়ে যান, ট্রায়ালে থাকুন</span></button>
+      </div>
+      <p class="legal" data-en="You can add products while the payment is checked. When it is verified, the plan starts and everything you added stays.">পেমেন্ট চেক হওয়ার সময়েই প্রোডাক্ট তুলতে পারবেন। ভেরিফাই হলে প্ল্যান শুরু, যা তুলেছেন সব থাকে।</p>
+    </div>
+  </div>
+  <div class="auth-foot"><span>Powered by</span><svg class="wmk"><use href="#wordmark"/></svg><span>· Lytronix</span></div>
+</div>
+
+<!-- ================= STEP 3 PASSWORD ================= -->
+<div class="page auth" id="page-s3" hidden>
+  <div class="urlbar"><div class="wrap"><svg><use href="#lock"/></svg><b>app.lytro.app</b>/set-password<span class="req"><span class="spec">AUTH-03</span><span class="spec">AUTH-20</span><span class="spec">AUTH-27</span><span class="spec">AUTH-19</span></span></div></div>
+  <div class="auth-top"><div class="wrap"><span class="wordmark"><svg class="wmk"><use href="#wordmark"/></svg></span><a href="#" class="help" data-en="Need help?">সাহায্য লাগবে?</a></div></div>
+  <div class="auth-main">
+    <div class="steps"><div class="done"><i></i><span data-en="Phone">ফোন</span></div><div class="done"><i></i><span data-en="Your shop">আপনার দোকান</span></div><div class="on"><i></i><span data-en="Password">পাসওয়ার্ড</span></div><div><i></i><span data-en="Set up">সেট-আপ</span></div></div>
+    <div class="statebar"><span data-en="Variant:">ভ্যারিয়েন্ট:</span><button type="button" class="s3st" data-st="phone" aria-pressed="true" data-en="phone account">ফোন অ্যাকাউন্ট</button><button type="button" class="s3st" data-st="fb" aria-pressed="false" data-en="Facebook-only, no email">শুধু ফেসবুক, ইমেইল নেই</button><button type="button" class="s3st" data-st="must" aria-pressed="false" data-en="must set (staff / reset)">বাধ্যতামূলক (স্টাফ / রিসেট)</button></div>
+    <form class="pane card" novalidate>
+      <h2 id="s3h" data-en="Set a password?">পাসওয়ার্ড দেবেন?</h2>
+      <p class="sub" id="s3sub" data-en="Optional. With a password you can sign in without waiting for an SMS, and sign-in stays free. You can also do this later from settings.">ঐচ্ছিক। পাসওয়ার্ড থাকলে SMS-এর অপেক্ষা ছাড়াই লগইন করা যায়, আর লগইন ফ্রি থাকে। পরে সেটিংস থেকেও করা যাবে।</p>
+      <div class="note warn" id="s3fb" hidden data-en="You signed up with Facebook and gave no email. Facebook sign-in is your only way back into this account. Add a phone or email in settings so you have a second way.">আপনি ফেসবুক দিয়ে সাইন আপ করেছেন, ইমেইল দেননি। ফেসবুক লগইনই এই অ্যাকাউন্টে ফেরার একমাত্র পথ। সেটিংসে ফোন বা ইমেইল যোগ করুন, যাতে দ্বিতীয় পথ থাকে।</div>
+      <div class="field"><label data-en="Password">পাসওয়ার্ড</label><input type="password" autocomplete="new-password" placeholder="••••••••"></div>
+      <div class="pw-rules"><div class="ok"><svg><use href="#check"/></svg><span data-en="8 to 20 characters">৮ থেকে ২০ অক্ষর</span></div><div><svg><use href="#check"/></svg><span data-en="Has a number">একটা সংখ্যা আছে</span></div><div><svg><use href="#check"/></svg><span data-en="Not your phone number">আপনার ফোন নম্বর নয়</span></div></div>
+      <div class="act-row"><button type="button" class="btn btn-outline" id="s3skip" data-en="Skip for now">এখন থাক</button><button type="button" class="btn btn-primary" data-en="Save password">পাসওয়ার্ড সেভ করুন</button></div>
+    </form>
+  </div>
+  <div class="auth-foot"><span>Powered by</span><svg class="wmk"><use href="#wordmark"/></svg><span>· Lytronix</span></div>
+</div>
+
+<!-- ================= STEP 4 SET UP ================= -->
+<div class="page auth" id="page-s4" hidden>
+  <div class="urlbar"><div class="wrap"><svg><use href="#lock"/></svg><b>app.lytro.app</b>/set-up<span class="req"><span class="spec">AUTH-28 §4</span><span class="spec">PST-01</span><span class="spec">DLV-01</span></span></div></div>
+  <div class="auth-top"><div class="wrap"><span class="wordmark"><svg class="wmk"><use href="#wordmark"/></svg></span><a href="#" class="help" data-en="Need help?">সাহায্য লাগবে?</a></div></div>
+  <div class="auth-main">
+    <div class="steps"><div class="done"><i></i><span data-en="Phone">ফোন</span></div><div class="done"><i></i><span data-en="Your shop">আপনার দোকান</span></div><div class="done"><i></i><span data-en="Password">পাসওয়ার্ড</span></div><div class="on"><i></i><span data-en="Set up">সেট-আপ</span></div></div>
+    <form class="pane card" novalidate>
+      <h2 data-en="Two quick questions">দুটো ছোট প্রশ্ন</h2>
+      <p class="sub" data-en="Both set sensible defaults for your products and delivery. Skip either; change both later in settings.">দুটোই আপনার প্রোডাক্ট আর ডেলিভারির ডিফল্ট ঠিক করে। যেটা খুশি বাদ দিন; পরে সেটিংসে বদলানো যায়।</p>
+      <div class="field"><label data-en="What do you mainly sell?">মূলত কী বিক্রি করেন?</label>
+        <div class="chips">
+          <label><input type="radio" name="t"><span data-en="Clothing">পোশাক</span></label><label><input type="radio" name="t"><span data-en="Shoes and bags">জুতা ও ব্যাগ</span></label><label><input type="radio" name="t"><span data-en="Cosmetics">কসমেটিক্স</span></label><label><input type="radio" name="t"><span data-en="Electronics">ইলেকট্রনিক্স</span></label><label><input type="radio" name="t" checked><span data-en="Mobiles and gadgets">মোবাইল ও গ্যাজেট</span></label><label><input type="radio" name="t"><span data-en="Grocery">মুদি</span></label><label><input type="radio" name="t"><span data-en="Food and bakery">খাবার ও বেকারি</span></label><label><input type="radio" name="t"><span data-en="Books and stationery">বই ও স্টেশনারি</span></label><label><input type="radio" name="t"><span data-en="Pharmacy">ফার্মেসি</span></label><label><input type="radio" name="t"><span data-en="Home and décor">হোম ও ডেকর</span></label><label><input type="radio" name="t"><span data-en="Other">অন্য কিছু</span></label>
+        </div>
+        <span class="hint" data-en="Gadget shops get IMEI tracking and condition up front on the product form; nothing is ever locked.">গ্যাজেটের দোকান প্রোডাক্ট ফর্মে সামনে পায় IMEI ট্র্যাকিং আর কন্ডিশন; কিছুই আটকে থাকে না।</span>
+      </div>
+      <div class="field"><label data-en="Where do you deliver from?">কোথা থেকে পাঠান?</label>
+        <div class="chips"><label><input type="radio" name="h" checked><span data-en="Dhaka city">ঢাকা সিটি</span></label><label><input type="radio" name="h"><span data-en="Chattogram city">চট্টগ্রাম সিটি</span></label><label><input type="radio" name="h"><span data-en="Another city or district">অন্য শহর বা জেলা</span></label><label><input type="radio" name="h"><span data-en="My own thanas">আমার নিজের থানা</span></label></div>
+        <div class="zone-prev"><div><span data-en="Inside Dhaka city">ঢাকা সিটির ভেতরে</span><b>৳70</b></div><div><span data-en="Outside Dhaka city">ঢাকা সিটির বাইরে</span><b>৳130</b></div></div>
+        <span class="hint" data-en="These two zones exist from the start so you can sell today. Edit the charges or add zones any time.">এই দুটো জোন শুরু থেকেই আছে, যাতে আজই বেচতে পারেন। চার্জ বদলান বা জোন যোগ করুন যখন খুশি।</span>
+      </div>
+      <div class="act-row"><button type="button" class="btn btn-outline" data-en="Skip">বাদ দিন</button><button type="button" class="btn btn-accent" data-en="Open my dashboard">ড্যাশবোর্ড খুলুন</button></div>
+    </form>
+  </div>
+  <div class="auth-foot"><span>Powered by</span><svg class="wmk"><use href="#wordmark"/></svg><span>· Lytronix</span></div>
+</div>
+
+<!-- ================= DASHBOARD VIEWS (shell injected) ================= -->
+<div class="page" id="page-home" hidden>
+  <div class="urlbar"><div class="wrap"><svg><use href="#lock"/></svg><b>app.lytro.app</b>/megh<span class="req"><span class="spec">TEN-31</span><span class="spec">SUP-01</span><span class="spec">TRL-08</span><span class="spec">NTC-04</span></span></div></div>
+  <section class="dash" data-tab="home" data-title="হোম" data-title-en="Home">
+    <div class="banner trial"><div><b data-en="30 days left in your trial">ট্রায়ালে ৩০ দিন বাকি</b><small data-en="At day 30 you continue on pay-as-you-go. Nothing is lost.">৩০ দিনে আপনি পে-অ্যাজ-ইউ-গো-তে চলে যাবেন। কিছু হারায় না।</small></div><a href="#" class="btn" data-en="See plans">প্ল্যান দেখুন</a></div>
+    <div class="banner pay" id="paybanner"><div><b data-en="Starter · payment being checked">Starter · পেমেন্ট চেক হচ্ছে</b><small data-en="We will tell you when it is verified. Keep working meanwhile.">ভেরিফাই হলে জানাবো। ততক্ষণ কাজ চালিয়ে যান।</small></div><button type="button" class="x" aria-label="Dismiss" onclick="this.closest('.banner').hidden=true">×</button></div>
+    <div class="banner urgent"><div><b data-en="Maintenance tonight, 2:00 to 2:30">আজ রাতে মেইনটেন্যান্স, ২:০০ থেকে ২:৩০</b><small data-en="The dashboard will be read-only for 30 minutes. Your shop stays open.">ড্যাশবোর্ড ৩০ মিনিট শুধু পড়া যাবে। দোকান খোলা থাকে।</small></div><button type="button" class="x" aria-label="Dismiss" onclick="this.closest('.banner').hidden=true">×</button></div>
+    <div class="cl card">
+      <div class="top"><h2 data-en="Set up your shop">দোকান সাজিয়ে নিন</h2><span class="chip info nodot num" data-en="2 of 6 done">৬-এর ২ হয়েছে</span></div>
+      <div class="prog"><i></i></div>
+      <h3 data-en="Get your shop ready">দোকান রেডি করুন</h3>
+      <div class="items">
+        <a href="#" class="item done"><span class="ck"><svg><use href="#check"/></svg></span><div><b data-en="Shop created">দোকান তৈরি</b><small>megh.lytro.app</small></div><span></span></a>
+        <a href="#" class="item done"><span class="ck"><svg><use href="#check"/></svg></span><div><b data-en="Delivery charges">ডেলিভারি চার্জ</b><small data-en="Inside Dhaka city ৳70 · outside ৳130">ঢাকা সিটির ভেতরে ৳70 · বাইরে ৳130</small></div><span class="go" data-en="Change">বদলান</span></a>
+        <a href="#product" class="item"><span class="ck"></span><div><b data-en="Add your first product">প্রথম প্রোডাক্ট তুলুন</b><small data-en="Name, price, a photo. Its page goes live at once.">নাম, দাম, একটা ছবি। পেজ সাথে সাথে লাইভ।</small></div><svg class="arrow"><use href="#arrow"/></svg></a>
+        <a href="#" class="item"><span class="ck"></span><div><b data-en="Upload your logo">লোগো আপলোড করুন</b><small data-en="Free. Until then your shop shows its monogram.">ফ্রি। ততক্ষণ দোকানে অক্ষরের মনোগ্রাম দেখায়।</small></div><svg class="arrow"><use href="#arrow"/></svg></a>
+        <a href="#wallet" class="item"><span class="ck"></span><div><b data-en="Add a wallet number for payments">পেমেন্টের জন্য ওয়ালেট নম্বর দিন</b><small data-en="bKash, Nagad, Rocket or bank.">বিকাশ, নগদ, রকেট বা ব্যাংক।</small></div><svg class="arrow"><use href="#arrow"/></svg></a>
+        <a href="#" class="item"><span class="ck"></span><div><b data-en="Share your shop link">দোকানের লিংক শেয়ার করুন</b><small data-en="Ticks itself the first time you copy or share a link.">প্রথমবার লিংক কপি বা শেয়ার করলেই টিক পড়ে।</small></div><svg class="arrow"><use href="#arrow"/></svg></a>
+      </div>
+      <h3 data-en="Later, when you need them">পরে, যখন লাগবে</h3>
+      <div class="items">
+        <a href="#courier" class="item"><span class="ck"></span><div><b data-en="Connect a courier">কুরিয়ার জুড়ুন</b><small data-en="Steadfast or Pathao, on your own account.">Steadfast বা Pathao, নিজের অ্যাকাউন্টে।</small></div><svg class="arrow"><use href="#arrow"/></svg></a>
+        <a href="#" class="item"><span class="ck"></span><div><b data-en="Choose SMS events">SMS ইভেন্ট বেছে নিন</b><small data-en="Which messages customers get. 8 free in the trial.">কাস্টমার কোন মেসেজ পাবে। ট্রায়ালে ৮টা ফ্রি।</small></div><svg class="arrow"><use href="#arrow"/></svg></a>
+        <a href="#listener" class="item"><span class="ck"></span><div><b data-en="Pair a listener phone">লিসেনার ফোন পেয়ার করুন</b><small data-en="Payments match themselves from the SMS.">SMS থেকে পেমেন্ট নিজেই মিলে যায়।</small></div><svg class="arrow"><use href="#arrow"/></svg></a>
+        <a href="#" class="item"><span class="ck"></span><div><b data-en="Create an API key">API কি তৈরি করুন</b><small data-en="Only if you have your own website.">শুধু নিজের ওয়েবসাইট থাকলে।</small></div><svg class="arrow"><use href="#arrow"/></svg></a>
+      </div>
+    </div>
+    <div class="link-card card"><b data-en="Your shop link">আপনার দোকানের লিংক</b><div class="u"><span>megh.lytro.app</span><button type="button" class="btn btn-outline btn-sm" id="copy1"><svg style="width:16px;height:16px"><use href="#copy"/></svg><span data-en="Copy">কপি</span></button></div><div class="share"><a href="#" class="btn btn-outline"><img src="third-party/facebook.svg" alt=""><span data-en="Share on Facebook">ফেসবুকে শেয়ার</span></a><a href="#" class="btn btn-outline"><svg style="width:16px;height:16px;color:#25D366"><use href="#share"/></svg><span>WhatsApp</span></a></div></div>
+    <div class="grid2">
+      <div class="card"><div class="stats3" style="padding:12px 12px 0"><div class="stat" style="padding:4px"><b>৳0</b><span data-en="Today">আজ</span></div><div class="stat" style="padding:4px"><b>0</b><span data-en="Orders">অর্ডার</span></div><div class="stat" style="padding:4px"><b>0</b><span data-en="To confirm">কনফার্ম বাকি</span></div></div>
+        <div class="empty"><div class="ic"><svg><use href="#orders"/></svg></div><h3 data-en="Your first order will appear here">আপনার প্রথম অর্ডার এখানে আসবে</h3><p data-en="Share the shop link on your page, or enter an order a customer gave you on Messenger.">পেজে দোকানের লিংক শেয়ার করুন, বা মেসেঞ্জারে পাওয়া অর্ডার নিজে লিখুন।</p><div class="acts"><a href="#" class="btn btn-primary btn-sm" data-en="Enter an order">অর্ডার লিখুন</a><a href="#" class="btn btn-outline btn-sm" data-en="Paste a message">মেসেজ পেস্ট করুন</a></div></div></div>
+      <div class="card"><div class="empty"><div class="ic"><svg><use href="#boxes"/></svg></div><h3 data-en="No products yet">এখনো প্রোডাক্ট নেই</h3><p data-en="Each product gets its own page you can share. Trial: up to 20 products.">প্রতিটা প্রোডাক্টের নিজের পেজ হয়, শেয়ার করা যায়। ট্রায়ালে ২০টা পর্যন্ত।</p><div class="acts"><a href="#product" class="btn btn-accent btn-sm" data-en="Add your first product">প্রথম প্রোডাক্ট তুলুন</a></div></div></div>
+    </div>
+  </section>
+</div>
+
+<div class="page" id="page-product" hidden>
+  <div class="urlbar"><div class="wrap"><svg><use href="#lock"/></svg><b>app.lytro.app</b>/megh/products/new<span class="req"><span class="spec">PRD-01</span><span class="spec">PST-05</span><span class="spec">ATR-03</span><span class="spec">INV-14</span><span class="spec">LND-06</span></span></div></div>
+  <section class="dash" data-tab="products" data-title="প্রথম প্রোডাক্ট" data-title-en="First product">
+    <div class="page-t"><div><h1 data-en="Add a product">প্রোডাক্ট তুলুন</h1><p class="sub" data-en="Only a name and a price are needed. Everything else can wait.">শুধু নাম আর দাম লাগে। বাকি সব পরে।</p></div><span class="chip n nodot" data-en="Mobiles and gadgets form">মোবাইল ও গ্যাজেট ফর্ম</span></div>
+    <div class="form card">
+      <div class="field"><label data-en="Product name">প্রোডাক্টের নাম</label><input type="text" value="Galaxy Buds FE"></div>
+      <div class="f2"><div class="field"><label data-en="Price">দাম</label><input type="text" inputmode="numeric" value="৳3,490"></div><div class="field"><label data-en-html="Stock <small>(pieces)</small>">স্টক <small>(পিস)</small></label><input type="text" inputmode="numeric" value="6"></div></div>
+      <div class="photo"><svg><use href="#camera"/></svg><b data-en="Add a photo">ছবি দিন</b><span data-en="Camera or gallery. Up to 5 MB. A video is optional.">ক্যামেরা বা গ্যালারি। সর্বোচ্চ ৫ MB। ভিডিও ঐচ্ছিক।</span></div>
+      <div class="sw"><div><b data-en="Track each unit's IMEI or serial">প্রতিটা ইউনিটের IMEI বা সিরিয়াল ট্র্যাক করুন</b><small data-en="Scan the box when stock arrives and when you ship.">স্টক এলে আর শিপ করার সময় বক্স স্ক্যান করুন।</small></div><span class="tog on" role="switch" aria-checked="true"></span></div>
+      <div class="field"><label data-en="Condition">কন্ডিশন</label><div class="chips"><label><input type="radio" name="cond" checked><span data-en="New">নতুন</span></label><label><input type="radio" name="cond"><span data-en="Used">ব্যবহৃত</span></label><label><input type="radio" name="cond"><span data-en="Refurbished">রিফার্বিশড</span></label></div></div>
+      <details class="more"><summary><span data-en="More settings">আরও সেটিংস</span><span>+</span></summary><div class="in"><span data-en="Description · category · attributes and variants (Size, Colour) · own delivery charge · weight · payment policy · size chart · low-stock alert level · batch and expiry · made to order">বিবরণ · ক্যাটাগরি · অ্যাট্রিবিউট আর ভ্যারিয়েন্ট (সাইজ, রঙ) · নিজের ডেলিভারি চার্জ · ওজন · পেমেন্ট পলিসি · সাইজ চার্ট · লো-স্টক অ্যালার্ট · ব্যাচ আর মেয়াদ · মেড টু অর্ডার</span></div></details>
+      <div class="act-row"><button type="button" class="btn btn-outline" data-en="Save as draft">ড্রাফট রাখুন</button><button type="button" class="btn btn-accent" data-en="Save and go live">সেভ করে লাইভ করুন</button></div>
+    </div>
+    <div class="link-card card"><div style="display:flex;gap:8px;align-items:center"><span class="chip ok" data-en="Live">লাইভ</span><b data-en="After saving: the product's page">সেভের পর: প্রোডাক্টের পেজ</b></div><div class="u"><span>megh.lytro.app/l/galaxy-buds-fe</span><button type="button" class="btn btn-outline btn-sm"><svg style="width:16px;height:16px"><use href="#copy"/></svg><span data-en="Copy">কপি</span></button></div><div class="share"><a href="#" class="btn btn-outline"><img src="third-party/facebook.svg" alt=""><span data-en="Share on Facebook">ফেসবুকে শেয়ার</span></a><a href="#" class="btn btn-outline"><svg style="width:16px;height:16px;color:#25D366"><use href="#share"/></svg><span>WhatsApp</span></a></div><span class="muted" style="font-size:0.8125rem" data-en="Copying or sharing ticks “Share your shop link” on the checklist.">কপি বা শেয়ার করলেই চেকলিস্টে “দোকানের লিংক শেয়ার” টিক পড়ে।</span></div>
+  </section>
+</div>
+
+<div class="page" id="page-wallet" hidden>
+  <div class="urlbar"><div class="wrap"><svg><use href="#lock"/></svg><b>app.lytro.app</b>/megh/settings/payments<span class="req"><span class="spec">WAL-01</span><span class="spec">WAL-03</span><span class="spec">WAL-04</span><span class="spec">TVR-01</span></span></div></div>
+  <section class="dash" data-tab="more" data-title="পেমেন্ট নম্বর" data-title-en="Payment numbers">
+    <div class="page-t"><div><h1 data-en="Payment numbers">পেমেন্ট নম্বর</h1><p class="sub" data-en="Customers pay these directly. Lytro never holds your money.">কাস্টমার সরাসরি এগুলোতে পে করে। Lytro কখনো আপনার টাকা ধরে না।</p></div></div>
+    <div class="note" data-en="Customers cannot pay online until you add a number and switch it on. Cash on delivery works already.">নম্বর দিয়ে চালু না করা পর্যন্ত কাস্টমার অনলাইনে পে করতে পারবে না। ক্যাশ অন ডেলিভারি এখনই চলে।</div>
+    <div class="form card">
+      <h2 data-en="Add a number">নম্বর যোগ করুন</h2>
+      <div class="field"><label data-en="Method">মাধ্যম</label><div class="chips"><label><input type="radio" name="w" checked><span><img src="third-party/bkash.png" alt="" style="height:14px"> bKash</span></label><label><input type="radio" name="w"><span><img src="third-party/nagad.png" alt="" style="height:14px"> Nagad</span></label><label><input type="radio" name="w"><span>Rocket</span></label><label><input type="radio" name="w"><span data-en="Bank">ব্যাংক</span></label></div></div>
+      <div class="f2"><div class="field"><label data-en="Number">নম্বর</label><input type="tel" inputmode="numeric" placeholder="01XXXXXXXXX"></div><div class="field"><label data-en="Account type">অ্যাকাউন্টের ধরন</label><select><option data-en="Personal (Send Money)">পার্সোনাল (সেন্ড মানি)</option><option data-en="Agent (Cash Out)">এজেন্ট (ক্যাশ আউট)</option><option data-en="Merchant (Payment)">মার্চেন্ট (পেমেন্ট)</option></select></div></div>
+      <div class="f2"><div class="field"><label data-en="Account name">অ্যাকাউন্টের নাম</label><input type="text" placeholder="Megh Gadgets"></div><div class="field"><label data-en-html="Note to customers <small>(optional)</small>">কাস্টমারের জন্য নোট <small>(ঐচ্ছিক)</small></label><input type="text" placeholder="রেফারেন্সে অর্ডার নম্বর দিন" data-en-placeholder="Put the order number as reference"></div></div>
+      <div class="act-row"><button type="button" class="btn btn-accent full" data-en="Save number">নম্বর সেভ করুন</button></div>
+    </div>
+    <div class="wallet">
+      <div class="wl card"><div class="lg"><img src="third-party/bkash.png" alt="bKash"></div><div><b class="num">01712 345678 · Megh Gadgets</b><small data-en="Personal · added just now">পার্সোনাল · এইমাত্র যোগ হয়েছে</small></div><span class="tog" role="switch" aria-checked="false" title="Not active"></span></div>
+      <span class="muted" style="font-size:0.8125rem" data-en="Nothing switches on by itself. Switch on one number per method; only that one is shown to customers.">নিজে থেকে কিছু চালু হয় না। মাধ্যমপ্রতি একটা নম্বর চালু করুন; শুধু সেটাই কাস্টমার দেখে।</span>
+    </div>
+  </section>
+</div>
+
+<div class="page" id="page-listener" hidden>
+  <div class="urlbar"><div class="wrap"><svg><use href="#lock"/></svg><b>app.lytro.app</b>/megh/settings/listener<span class="req"><span class="spec">LSN-01</span><span class="spec">LSN-02</span><span class="spec">LSN-08</span><span class="spec">LSN-20</span></span></div></div>
+  <section class="dash" data-tab="more" data-title="লিসেনার" data-title-en="Listener">
+    <div class="page-t"><div><h1 data-en="Listener phone">লিসেনার ফোন</h1><p class="sub" data-en="A small app on the phone that receives your bKash and Nagad SMS. It reads only wallet receipts and marks the matching order paid.">যে ফোনে বিকাশ-নগদের SMS আসে, সেখানে ছোট একটা অ্যাপ। শুধু ওয়ালেটের রিসিট পড়ে, মিলে যাওয়া অর্ডার পেইড করে।</p></div><span class="chip n nodot" data-en="Trial: 1 device">ট্রায়াল: ১টা ডিভাইস</span></div>
+    <div class="form card" style="text-align:center;justify-items:center">
+      <h2 data-en="Pair a phone">ফোন পেয়ার করুন</h2>
+      <p class="muted" style="font-size:0.9rem" data-en="Install Lytro Listener from the Play Store on that phone, then scan this or type the code. It works once and expires in 10 minutes.">ওই ফোনে Play Store থেকে Lytro Listener ইনস্টল করুন, তারপর এটা স্ক্যান করুন বা কোড লিখুন। একবারই কাজ করে, ১০ মিনিটে মেয়াদ শেষ।</p>
+      <div class="qr" aria-hidden="true"></div>
+      <div class="code"><span>7</span><span>K</span><span>4</span><span>Q</span><span>2</span><span>M</span><span>8</span><span>X</span></div>
+      <span class="muted num" style="font-size:0.8125rem" data-en="Expires in 9:40">৯:৪০ পর মেয়াদ শেষ</span>
+      <div class="act-row" style="width:100%"><button type="button" class="btn btn-outline" data-en="New code">নতুন কোড</button><button type="button" class="btn btn-primary" data-en="I have paired it">পেয়ার করেছি</button></div>
+    </div>
+    <div class="dev card"><b>Realme C55 · Listener</b><span class="chip ok" data-en="Online">অনলাইন</span><small data-en="Last seen 1 minute ago · 0 receipts today">শেষ দেখা ১ মিনিট আগে · আজ ০টা রিসিট</small><span class="btn btn-link btn-sm" style="grid-row:1/3;grid-column:2" data-en="Revoke">বাদ দিন</span></div>
+    <div class="note warn" data-en="Keep that phone on and connected. If no paired phone is seen for 30 minutes, the payment page tells the customer it is checking and asks you to verify by hand.">ওই ফোনটা চালু আর কানেক্টেড রাখুন। ৩০ মিনিট কোনো পেয়ার করা ফোন না দেখলে পেমেন্ট পেজ কাস্টমারকে বলে চেক হচ্ছে, আর আপনাকে হাতে ভেরিফাই করতে বলে।</div>
+  </section>
+</div>
+
+<div class="page" id="page-courier" hidden>
+  <div class="urlbar"><div class="wrap"><svg><use href="#lock"/></svg><b>app.lytro.app</b>/megh/settings/couriers<span class="req"><span class="spec">CRR-01</span><span class="spec">CRR-02</span><span class="spec">CRR-05</span><span class="spec">CRR-16</span></span></div></div>
+  <section class="dash" data-tab="more" data-title="কুরিয়ার" data-title-en="Couriers">
+    <div class="page-t"><div><h1 data-en="Couriers">কুরিয়ার</h1><p class="sub" data-en="Book from the order in one tap, on your own courier account. Your rates, your payouts.">অর্ডার থেকেই এক ট্যাপে বুক, নিজের কুরিয়ার অ্যাকাউন্টে। রেট আপনার, পেআউট আপনার।</p></div></div>
+    <div class="cour">
+      <div class="co card"><div class="hd"><img src="third-party/steadfast.svg" alt="Steadfast"><span class="chip n nodot" data-en="Not connected">জোড়া নেই</span></div>
+        <div class="f2"><div class="field"><label>API key</label><input type="password" autocomplete="new-password" placeholder="••••••••••••"></div><div class="field"><label>Secret key</label><input type="password" autocomplete="new-password" placeholder="••••••••••••"></div></div>
+        <span class="muted" style="font-size:0.8125rem" data-en="From Steadfast's merchant panel. We test them with one call before saving and never show them again.">Steadfast-এর মার্চেন্ট প্যানেল থেকে। সেভের আগে এক কলে টেস্ট করি, আর কখনো দেখাই না।</span>
+        <div class="act-row"><button type="button" class="btn btn-primary full" data-en="Test and connect">টেস্ট করে জুড়ুন</button></div></div>
+      <div class="co card"><div class="hd"><img src="third-party/pathao.svg" alt="Pathao"><span class="chip n nodot" data-en="Not connected">জোড়া নেই</span></div><span class="muted" style="font-size:0.875rem" data-en="Client ID, client secret, username and password from Pathao Merchant. The webhook handshake happens by itself.">Pathao Merchant থেকে ক্লায়েন্ট আইডি, সিক্রেট, ইউজারনেম আর পাসওয়ার্ড। ওয়েবহুক হ্যান্ডশেক নিজে থেকেই হয়।</span><div class="act-row"><button type="button" class="btn btn-outline full" data-en="Connect Pathao">Pathao জুড়ুন</button></div></div>
+      <div class="note" data-en="No courier yet? You can still mark an order shipped by entering the tracking link by hand.">এখনো কুরিয়ার নেই? ট্র্যাকিং লিংক হাতে লিখেও অর্ডার শিপড করা যায়।</div>
+    </div>
+  </section>
+</div>
+
+<div class="page" id="page-home2" hidden>
+  <div class="urlbar"><div class="wrap"><svg><use href="#lock"/></svg><b>app.lytro.app</b>/megh<span class="req"><span class="spec">ORD-20</span><span class="spec">QTA-04</span><span class="spec">FRD-01</span><span class="spec">SUP-01</span></span></div></div>
+  <section class="dash" data-tab="home" data-title="হোম" data-title-en="Home" data-badge="1">
+    <div class="banner trial"><div><b data-en="27 days left in your trial · 3 of 40 orders handled">ট্রায়ালে ২৭ দিন বাকি · ৪০-এর ৩ অর্ডার হ্যান্ডেল হয়েছে</b><small data-en="At day 30 you continue on pay-as-you-go. Nothing is lost.">৩০ দিনে আপনি পে-অ্যাজ-ইউ-গো-তে চলে যাবেন। কিছু হারায় না।</small></div><a href="#" class="btn" data-en="See plans">প্ল্যান দেখুন</a></div>
+    <div class="stats3"><div class="stat card"><b>৳5,590</b><span data-en="Today">আজ</span></div><div class="stat card"><b>2</b><span data-en="New orders">নতুন অর্ডার</span></div><div class="stat card"><b>1</b><span data-en="To confirm">কনফার্ম বাকি</span></div></div>
+    <div class="card" style="padding:12px;display:grid;gap:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center"><b data-en="Orders">অর্ডার</b><a href="#" class="btn btn-link btn-sm" data-en="See all">সব দেখুন</a></div>
+      <div class="o"><div class="r"><b>#1002 · Karim</b><span class="chip warn" data-en="Pending">পেন্ডিং</span></div><div class="r"><span class="m">Galaxy Buds FE × 1 · <span data-en="Mirpur, Dhaka">মিরপুর, ঢাকা</span></span><b>৳3,490</b></div><div class="r"><span class="chip ok nodot" data-en="bKash ৳3,490 matched">বিকাশ ৳3,490 মিলেছে</span></div><div class="act"><a href="#" class="btn btn-accent" data-en="Confirm">কনফার্ম</a><a href="#" class="btn btn-primary" data-en="Book courier">কুরিয়ার বুক</a></div></div>
+      <div class="o"><div class="r"><b>#1001 · Shanta</b><span class="chip bad" data-en="Risk">ফেক সন্দেহ</span></div><div class="r"><span class="m" data-en="3 returns on this number before · call to confirm">এই নম্বরে আগে ৩টি রিটার্ন · কল করে কনফার্ম করুন</span><b>৳2,100</b></div></div>
+    </div>
+    <div class="fold card"><div><b data-en="Set up your shop · 4 of 6 done">দোকান সাজানো · ৬-এর ৪ হয়েছে</b><small data-en="Left: logo, share link. Later: courier, SMS events, listener, API key.">বাকি: লোগো, লিংক শেয়ার। পরে: কুরিয়ার, SMS ইভেন্ট, লিসেনার, API কি।</small></div><a href="#home" class="btn btn-outline btn-sm" data-en="Open">খুলুন</a></div>
+    <div class="note" data-en="A customer's order arrives as a push and an in-app notice. Confirming and booking count toward the trial's 40 handled orders; receiving orders is never limited.">কাস্টমারের অর্ডার পুশ আর ইন-অ্যাপ নোটিশে আসে। কনফার্ম আর বুকিং ট্রায়ালের ৪০ হ্যান্ডেল অর্ডারে গোনা হয়; অর্ডার পাওয়া কখনো সীমিত নয়।</div>
+  </section>
+</div>
+
+<!-- ================= PICKER AND EXITS ================= -->
+<div class="page auth" id="page-exits" hidden>
+  <div class="urlbar"><div class="wrap"><svg><use href="#lock"/></svg><b>app.lytro.app</b>/shops · /megh/renew · /unavailable<span class="req"><span class="spec">TEN-31</span><span class="spec">TEN-15</span><span class="spec">LIF-11</span><span class="spec">LIF-15</span><span class="spec">LIF-24</span><span class="spec">LIF-21</span></span></div></div>
+  <div class="auth-top"><div class="wrap"><span class="wordmark"><svg class="wmk"><use href="#wordmark"/></svg></span><a href="#" class="help" data-en="Need help?">সাহায্য লাগবে?</a></div></div>
+  <div class="auth-main">
+    <div class="picker">
+      <div class="card" style="padding:14px 16px 6px"><h2 style="font-size:1.1rem" data-en="Which shop?">কোন দোকান?</h2><p class="muted" style="font-size:0.875rem" data-en="You are in two shops. One sign-in opens both.">আপনি দুটো দোকানে আছেন। এক লগইনে দুটোই খোলে।</p></div>
+      <a href="#home" class="shopc card"><span class="mono">M</span><div><b>Megh Gadgets</b><small data-en="Owner · app.lytro.app/megh">মালিক · app.lytro.app/megh</small></div><svg class="arrow"><use href="#arrow"/></svg></a>
+      <a href="#" class="shopc card"><span class="mono" style="background:#f3e6ec;color:#6b2140">N</span><div><b>Nisha's Closet</b><small data-en="Staff, orders only · app.lytro.app/nishascloset">স্টাফ, শুধু অর্ডার · app.lytro.app/nishascloset</small></div><svg class="arrow"><use href="#arrow"/></svg></a>
+      <span class="muted" style="font-size:0.8125rem;padding:0 4px" data-en="There is deliberately no “open another shop” here: one shop per person. A shop is created only through sign-up.">এখানে ইচ্ছে করেই “আরেকটা দোকান খুলুন” নেই: একজনের একটা দোকান। দোকান শুধু সাইন-আপ দিয়েই হয়।</span>
+    </div>
+    <div class="exits" style="margin-top:12px">
+      <div class="pane card" style="max-width:none"><div class="chip bad nodot" data-en="Locked · day 9 after the period ended">লকড · মেয়াদ শেষের ৯ দিন পর</div><h2 style="font-size:1.1rem" data-en="Renew to open Megh Gadgets">Megh Gadgets খুলতে রিনিউ করুন</h2><p class="muted" style="font-size:0.9rem" data-en="Only you can sign in now, to renew or export. Everything is kept. At day 15 the shop is archived; at day 60 its data is deleted after two warnings.">এখন শুধু আপনি লগইন করতে পারেন, রিনিউ বা এক্সপোর্টের জন্য। সব রাখা আছে। ১৫ দিনে দোকান আর্কাইভড; ৬০ দিনে দুটো সতর্কবার্তার পর ডেটা মোছে।</p><div class="act-row"><a href="#" class="btn btn-accent" data-en="Choose a plan">প্ল্যান নিন</a><a href="#" class="btn btn-outline" data-en="Continue on pay-as-you-go">পে-অ্যাজ-ইউ-গো-তে চলুন</a><a href="#" class="btn btn-link full" data-en="Export my data">আমার ডেটা এক্সপোর্ট করুন</a></div></div>
+      <div class="pane card" style="max-width:none"><div class="chip n nodot" data-en="Suspended">সাসপেন্ডেড</div><h2 style="font-size:1.1rem" data-en="Your shop is not available right now">আপনার দোকান এখন পাওয়া যাচ্ছে না</h2><p class="muted" style="font-size:0.9rem" data-en="Contact support for help. You can still see your balance and top up.">সাহায্যের জন্য সাপোর্টে যোগাযোগ করুন। ব্যালেন্স দেখা আর টপ-আপ এখনো করা যায়।</p><div class="act-row"><a href="#" class="btn btn-primary" data-en="Contact support">সাপোর্টে যোগাযোগ</a><a href="#" class="btn btn-outline" data-en="Balance · ৳120">ব্যালেন্স · ৳120</a></div></div>
+      <div class="pane card" style="max-width:none"><div class="chip n nodot" data-en="After deletion">ডিলিটের পর</div><h2 style="font-size:1.1rem" data-en="Open a new shop">নতুন দোকান খুলুন</h2><p class="muted" style="font-size:0.9rem" data-en="Your old shop's data was deleted on 12 Oct. You can open a new, empty shop now; its invoice list will show the old shop's invoices and your remaining balance moves to it.">পুরনো দোকানের ডেটা ১২ অক্টোবর মুছে গেছে। এখন নতুন, খালি দোকান খুলতে পারেন; তার ইনভয়েস তালিকায় পুরনোগুলো থাকবে, আর বাকি ব্যালেন্স সেখানে যাবে।</p><div class="act-row"><a href="#s2" class="btn btn-accent full" data-en="Go to create shop">দোকান তৈরিতে যান</a></div></div>
+    </div>
+  </div>
+  <div class="auth-foot"><span>Powered by</span><svg class="wmk"><use href="#wordmark"/></svg><span>· Lytronix</span></div>
+</div>
+
+<script>
+  (function () {
+    var body = document.body; body.setAttribute('data-lang', 'bn');
+
+    /* Dashboard shell: wrap each .dash section with header, sidebar and bottom tabs */
+    var NAV = [
+      ['home', 'হোম', 'Home', 'home'], ['orders', 'অর্ডার', 'Orders', 'orders'], ['products', 'প্রোডাক্ট', 'Products', 'boxes'],
+      ['customers', 'কাস্টমার', 'Customers', 'users'], ['balance', 'ব্যালেন্স', 'Balance', 'wallet'], ['more', 'আরও', 'More', 'more']
+    ];
+    document.querySelectorAll('.dash').forEach(function (sec) {
+      var tab = sec.getAttribute('data-tab'); var badge = sec.getAttribute('data-badge');
+      var side = NAV.map(function (n) { return '<a href="#" class="' + (n[0] === tab ? 'on' : '') + '"><svg><use href="#' + n[3] + '"/></svg><span data-en="' + n[2] + '">' + n[1] + '</span>' + (n[0] === 'more' ? '<span class="badge">1</span>' : '') + '</a>'; }).join('');
+      var tabs = NAV.filter(function (n) { return n[0] !== 'balance'; }).map(function (n) { return '<a href="#" class="' + (n[0] === tab ? 'on' : '') + '"><svg><use href="#' + n[3] + '"/></svg><span data-en="' + n[2] + '">' + n[1] + '</span>' + (n[0] === 'more' ? '<span class="badge">1</span>' : '') + '</a>'; }).join('');
+      var main = document.createElement('div'); main.className = 'd-main'; while (sec.firstChild) main.appendChild(sec.firstChild);
+      sec.innerHTML = '<header class="d-head"><div class="wrap"><div class="shop"><span class="mono">M</span><div><b>Megh Gadgets</b><small data-en="Trial · app.lytro.app/megh">ট্রায়াল · app.lytro.app/megh</small></div></div><div class="acts"><span class="lang2"><span class="on">বাং</span><span>EN</span></span><button type="button" class="ibtn" aria-label="Notifications"><svg><use href="#bell"/></svg>' + (badge ? '<span class="dot"></span>' : '') + '</button></div></div></header>'
+        + '<nav class="d-side" aria-label="Sections">' + side + '<div class="pb"><span>Powered by</span><svg class="wmk"><use href="#wordmark"/></svg></div></nav>';
+      sec.appendChild(main);
+      var t = document.createElement('nav'); t.className = 'd-tabs'; t.setAttribute('aria-label', 'Sections'); t.innerHTML = tabs;
+      sec.appendChild(t);
+    });
+
+    /* Language */
+    var nodes = Array.prototype.slice.call(document.querySelectorAll('[data-en],[data-en-html],[data-en-placeholder]'));
+    nodes.forEach(function (el) {
+      if (el.hasAttribute('data-en-html')) el.setAttribute('data-bn-html', el.innerHTML);
+      else if (el.hasAttribute('data-en')) el.setAttribute('data-bn', el.textContent);
+      if (el.hasAttribute('data-en-placeholder')) el.setAttribute('data-bn-placeholder', el.getAttribute('placeholder'));
+    });
+    function setLang(lang) {
+      body.setAttribute('data-lang', lang); document.documentElement.setAttribute('lang', lang);
+      nodes.forEach(function (el) {
+        if (el.hasAttribute('data-en-html')) el.innerHTML = el.getAttribute(lang === 'en' ? 'data-en-html' : 'data-bn-html');
+        else if (el.hasAttribute('data-en')) el.textContent = el.getAttribute(lang === 'en' ? 'data-en' : 'data-bn');
+        if (el.hasAttribute('data-en-placeholder')) el.setAttribute('placeholder', el.getAttribute(lang === 'en' ? 'data-en-placeholder' : 'data-bn-placeholder'));
+      });
+      document.getElementById('lang-bn').setAttribute('aria-pressed', lang === 'bn');
+      document.getElementById('lang-en').setAttribute('aria-pressed', lang === 'en');
+      document.querySelectorAll('.lang2 span').forEach(function (s, i) { s.classList.toggle('on', (i === 0) === (lang === 'bn')); });
+      try { localStorage.setItem('lytro-lang', lang); } catch (e) {}
+    }
+    document.getElementById('lang-bn').addEventListener('click', function () { setLang('bn'); });
+    document.getElementById('lang-en').addEventListener('click', function () { setLang('en'); });
+    var saved = null; try { saved = localStorage.getItem('lytro-lang'); } catch (e) {}
+    if (saved === 'en') setLang('en');
+
+    /* Pages */
+    var pages = ['map', 's1', 's1b', 's2', 's2b', 's3', 's4', 'home', 'product', 'wallet', 'listener', 'courier', 'home2', 'exits'];
+    function showPage(name) {
+      if (pages.indexOf(name) < 0) name = 'map';
+      pages.forEach(function (p) { document.getElementById('page-' + p).hidden = (p !== name); });
+      document.querySelectorAll('.proto a[data-page]').forEach(function (a) { a.classList.toggle('on', a.getAttribute('data-page') === name); });
+      window.scrollTo(0, 0);
+    }
+    function route() { showPage((location.hash || '#map').slice(1)); }
+    window.addEventListener('hashchange', route); route();
+
+    /* Step 1 returning-owner variant */
+    var ret = document.getElementById('s1-ret');
+    ret.addEventListener('click', function () { var on = ret.getAttribute('aria-pressed') !== 'true'; ret.setAttribute('aria-pressed', on ? 'true' : 'false'); document.getElementById('s1-retline').hidden = !on; });
+
+    /* Step 2 link states */
+    var S2 = {
+      checking: { bn: '<span class="chip n nodot">চেক হচ্ছে…</span>', en: '<span class="chip n nodot">Checking…</span>' },
+      ok: { bn: '<span class="chip ok">megh পাওয়া যায়</span>', en: '<span class="chip ok">megh is available</span>' },
+      taken: { bn: '<span class="chip bad">megh নেওয়া হয়ে গেছে</span><span class="muted">এটা নিন:</span><button type="button" class="chips"><span class="c">megh-2</span></button>', en: '<span class="chip bad">megh is taken</span><span class="muted">Take this one:</span><button type="button" class="chips"><span class="c">megh-2</span></button>' },
+      reserved: { bn: '<span class="chip bad">admin রিজার্ভড</span><span class="muted">এটা নিন:</span><button type="button" class="chips"><span class="c">admin-2</span></button>', en: '<span class="chip bad">admin is reserved</span><span class="muted">Take this one:</span><button type="button" class="chips"><span class="c">admin-2</span></button>' },
+      refused: { bn: '<span class="chip ok">megh পাওয়া যায়</span>', en: '<span class="chip ok">megh is available</span>' }
+    };
+    var s2state = 'ok';
+    function renderS2() {
+      var lang = body.getAttribute('data-lang') || 'bn';
+      var slug = (s2state === 'reserved') ? 'admin' : document.getElementById('s2slug').value.trim() || 'megh';
+      if (s2state === 'reserved') document.getElementById('s2slug').value = 'admin';
+      document.getElementById('s2avail').innerHTML = S2[s2state][lang];
+      document.getElementById('s2a1').textContent = slug + '.lytro.app'; document.getElementById('s2a2').textContent = 'app.lytro.app/' + slug; document.getElementById('s2a3').textContent = slug + '.lytro.app';
+      document.getElementById('s2refuse').hidden = (s2state !== 'refused'); document.getElementById('s2final').hidden = (s2state === 'refused' || s2state === 'taken' || s2state === 'reserved');
+      document.getElementById('s2btn').disabled = (s2state !== 'ok' && s2state !== 'refused');
+      document.querySelectorAll('.s2st').forEach(function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-st') === s2state ? 'true' : 'false'); });
+    }
+    document.querySelectorAll('.s2st').forEach(function (b) { b.addEventListener('click', function () { s2state = b.getAttribute('data-st'); if (s2state !== 'reserved' && document.getElementById('s2slug').value === 'admin') document.getElementById('s2slug').value = 'megh'; renderS2(); }); });
+    document.getElementById('s2slug').addEventListener('input', function () { this.value = this.value.toLowerCase().replace(/[^a-z0-9-]/g, ''); if (s2state === 'reserved') s2state = 'ok'; renderS2(); });
+    document.getElementById('lang-bn').addEventListener('click', renderS2); document.getElementById('lang-en').addEventListener('click', renderS2);
+    renderS2();
+
+    /* Step 3 variants */
+    var S3 = {
+      phone: { h: ['পাসওয়ার্ড দেবেন?', 'Set a password?'], sub: ['ঐচ্ছিক। পাসওয়ার্ড থাকলে SMS-এর অপেক্ষা ছাড়াই লগইন করা যায়, আর লগইন ফ্রি থাকে। পরে সেটিংস থেকেও করা যাবে।', 'Optional. With a password you can sign in without waiting for an SMS, and sign-in stays free. You can also do this later from settings.'], fb: false, skip: true },
+      fb: { h: ['পাসওয়ার্ড দেবেন?', 'Set a password?'], sub: ['ঐচ্ছিক। পরে সেটিংস থেকেও করা যাবে।', 'Optional. You can also do this later from settings.'], fb: true, skip: true },
+      must: { h: ['নতুন পাসওয়ার্ড দিন', 'Set a new password'], sub: ['এগোনোর আগে একটা নতুন পাসওয়ার্ড লাগবে। মালিক যেটা দিয়েছেন সেটা আর চলবে না।', 'A new password is needed before you continue. The one the owner gave you stops working.'], fb: false, skip: false }
+    };
+    document.querySelectorAll('.s3st').forEach(function (b) { b.addEventListener('click', function () {
+      var k = b.getAttribute('data-st'); var lang = body.getAttribute('data-lang') || 'bn'; var i = lang === 'en' ? 1 : 0;
+      document.querySelectorAll('.s3st').forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+      var h = document.getElementById('s3h'); h.textContent = S3[k].h[i]; h.setAttribute('data-bn', S3[k].h[0]); h.setAttribute('data-en', S3[k].h[1]);
+      var s = document.getElementById('s3sub'); s.textContent = S3[k].sub[i]; s.setAttribute('data-bn', S3[k].sub[0]); s.setAttribute('data-en', S3[k].sub[1]);
+      document.getElementById('s3fb').hidden = !S3[k].fb; document.getElementById('s3skip').hidden = !S3[k].skip;
+    }); });
+
+    /* Copy */
+    var c1 = document.getElementById('copy1');
+    if (c1) c1.addEventListener('click', function () { var done = function () { c1.querySelector('span').textContent = (body.getAttribute('data-lang') === 'en') ? 'Copied' : 'কপি হয়েছে'; }; if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText('https://megh.lytro.app').then(done, done); else done(); });
+  })();
+</script>
