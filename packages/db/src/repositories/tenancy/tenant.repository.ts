@@ -330,6 +330,14 @@ export class TenantRepository {
       .where(eq(tenants.id, tenantId));
   }
 
+  /** LIF-20/21: an account's deleted shops -- their invoices stay the owner's, their balance moves on. */
+  async findDeletedShopsOf(tx: Executor, subscriberId: string): Promise<DeletedShopRow[]> {
+    return tx
+      .select({ id: tenants.id, balanceAmount: tenants.balanceAmount })
+      .from(tenants)
+      .where(and(eq(tenants.subscriberId, subscriberId), isNotNull(tenants.deletedAt)));
+  }
+
   /** LIF-21: deleted tenants whose 30-day subdomain reservation has lapsed, and whose slug hasn't already
    * been revoked -- the `-revoked-` marker a prior run leaves behind is itself the idempotency check, the
    * same "the write proves it happened" pattern DWN-11's floor columns use. */
@@ -434,6 +442,7 @@ export class TenantRepository {
       .select({
         id: tenants.id,
         lastActivityAt: tenants.lastActivityAt,
+        periodStart: tenants.periodStart,
         createdAt: tenants.createdAt,
       })
       .from(tenants)
@@ -448,6 +457,7 @@ export class TenantRepository {
       .select({
         id: tenants.id,
         lastActivityAt: tenants.lastActivityAt,
+        periodStart: tenants.periodStart,
         createdAt: tenants.createdAt,
       })
       .from(tenants)
@@ -570,7 +580,15 @@ export interface RevocationCandidateRow {
 export interface PaygCandidateRow {
   id: string;
   lastActivityAt: Date | null;
+  /** When the tenant became pay-as-you-go: the trial conversion sets it (TRL-07). */
+  periodStart: Date | null;
   createdAt: Date;
+}
+
+/** LIF-20/21: a deleted shop of an account, with whatever balance it still holds. */
+export interface DeletedShopRow {
+  id: string;
+  balanceAmount: string;
 }
 
 /** TEN-30. Each field is independently nullable: null means "not set/cleared". */

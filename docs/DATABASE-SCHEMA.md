@@ -134,10 +134,10 @@ CREATE TYPE control.tenant_state AS ENUM
 
 CREATE TABLE control.tenants (
     id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    -- TEN-15 / OD-53: a tenant is created from exactly one identity; the UNIQUE constraint on
-    -- owner_identity_id is what enforces "at most one tenant per identity channel" — a second
-    -- tenant creation attempt with the same identity fails at the database, not just in application code.
-    owner_identity_id   uuid NOT NULL UNIQUE REFERENCES control.subscriber_identities(id),
+    -- TEN-15 / OD-53: a tenant is created from exactly one identity; the partial unique index
+    -- tenants_owner_identity_live_idx (below) enforces "at most one live tenant per identity" at the
+    -- database. A deleted tenant doesn't count, so its owner can open a new shop on the same identity (LIF-21).
+    owner_identity_id   uuid NOT NULL REFERENCES control.subscriber_identities(id),
     subscriber_id       uuid NOT NULL REFERENCES control.subscribers(id),
     cell_id             integer NOT NULL DEFAULT 1,      -- SCL-07: always 1 at launch
     shop_name           varchar(60) NOT NULL,             -- SEC-06/AUTH-01 cap
@@ -1146,7 +1146,8 @@ CREATE TABLE tenant.balance_ledger (
     id              bigserial PRIMARY KEY,
     tenant_id       uuid NOT NULL,
     type            text NOT NULL,                     -- top_up | sms | ai | extraction | fraud_check |
-                                                          -- order_fee | product_fee | plan_payment | adjustment | reversal
+                                                          -- order_fee | product_fee | plan_payment | adjustment | reversal |
+                                                          -- carry_over (LIF-21: a deleted shop's balance moved to the new one)
     amount          numeric(10,2) NOT NULL,             -- signed
     units           numeric(10,2),
     rate_used       numeric(12,4),

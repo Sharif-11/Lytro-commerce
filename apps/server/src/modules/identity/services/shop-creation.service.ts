@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { CreateShopInput } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import { UniqueViolation } from '../../../common/errors/unique-violation';
+import { BalanceService } from '../../balance/services/balance.service';
 import { MailService } from '../../shared/mail/services/mail.service';
 import { MessagingService } from '../../shared/messaging/services/messaging.service';
 import { SlugService } from '../../tenancy/services/slug.service';
@@ -14,7 +15,10 @@ import type { SignupGateway } from '../ports/signup-gateway';
 import type { SignupSettings } from '../ports/signup-settings';
 import type { ShopCreated } from '../types/shop-created';
 
-/** The create-shop step (AUTH-10, AUTH-11, AUTH-28, D13). */
+/**
+ * The create-shop step (AUTH-10, AUTH-11, AUTH-28, D13). An owner whose shop was deleted comes back here and
+ * opens a new one (LIF-21), bringing the old shop's balance along.
+ */
 @Injectable()
 export class ShopCreationService {
   constructor(
@@ -26,6 +30,7 @@ export class ShopCreationService {
     @Inject(MailService) private readonly mail: MailService,
     @Inject(SessionService) private readonly sessions: SessionService,
     @Inject(TrialLimiter) private readonly trialLimiter: TrialLimiter,
+    @Inject(BalanceService) private readonly balance: BalanceService,
   ) {}
 
   async createShop(
@@ -70,6 +75,7 @@ export class ShopCreationService {
         });
         await this.sessions.attachTenant(tx, session.id, created.tenantId);
         await this.trialLimiter.record(tx, ownerIdentityId, ip);
+        await this.balance.carryOverFromDeletedShops(tx, session.subscriberId, created.tenantId);
         // The shop-ready text goes to the phone; an owner with no phone is told by email (AUTH-27). Queued in
         // this same transaction, same as the text, so a flaky mail provider gets the same outbox retry (D28).
         const emailMessage =

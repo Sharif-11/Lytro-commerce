@@ -17,6 +17,7 @@ import {
   numeric,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
@@ -31,10 +32,10 @@ export const tenants = control.table(
   'tenants',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    // TEN-15: one tenant per owner identity. Unique here means one tenant per identity channel.
+    // TEN-15: one live tenant per owner identity -- unique among tenants not yet deleted (the partial index
+    // below), so an owner whose shop was deleted can open a new one on the same identity (LIF-21).
     ownerIdentityId: uuid('owner_identity_id')
       .notNull()
-      .unique()
       .references(() => subscriberIdentities.id),
     subscriberId: uuid('subscriber_id')
       .notNull()
@@ -108,6 +109,9 @@ export const tenants = control.table(
     }>(),
   },
   (t) => [
+    uniqueIndex('tenants_owner_identity_live_idx')
+      .on(t.ownerIdentityId)
+      .where(sql`${t.deletedAt} IS NULL`),
     index('tenants_subscriber_idx').on(t.subscriberId),
     index('tenants_state_idx').on(t.state),
     index('tenants_cell_idx').on(t.cellId),

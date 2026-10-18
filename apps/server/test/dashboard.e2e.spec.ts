@@ -181,14 +181,18 @@ describeIfDatabase('the lifecycle gate at sign-in and on the dashboard (AUTH-22,
     expect((await signInWithPassword(who.phone)).body).toMatchObject({ next: 'renewal' });
   });
 
-  it('sends an owner of a deleted shop to the purchase screen, with the account summary (AUTH-23)', async () => {
+  it('sends an owner of a deleted shop to create-shop, with no shop on the account (AUTH-23, LIF-21)', async () => {
     const who = await owner();
-    await setState(who.slug, 'deleted');
+    // As LIF-19's job leaves it: the state and the deletion time together.
+    await admin.query(
+      `UPDATE control.tenants SET state = 'deleted', deleted_at = now() WHERE slug = $1`,
+      [who.slug],
+    );
     const signedIn = await signInWithPassword(who.phone);
-    expect(signedIn.body).toMatchObject({ next: 'purchase' });
+    expect(signedIn.body).toMatchObject({ next: 'create-shop' });
     const summary = await get('/me', withSession({ cookie: cookieFrom(signedIn) }, PLATFORM.host));
     expect(summary.status).toBe(200);
-    expect(summary.body).toMatchObject({ tenant: { state: 'deleted' } });
+    expect(summary.body).toMatchObject({ tenant: null });
   });
 
   it('sends a suspended owner to the "unavailable" next step, but still lets them reach /me (LIF-24)', async () => {

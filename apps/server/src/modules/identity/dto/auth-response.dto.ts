@@ -6,7 +6,6 @@ const nextStepSchema = z.enum([
   'dashboard',
   'set-password',
   'renewal',
-  'purchase',
   'unavailable',
 ]);
 

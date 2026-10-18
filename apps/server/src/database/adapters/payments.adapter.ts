@@ -46,6 +46,10 @@ export class DrizzleInvoicesStore implements InvoicesStore {
   listForTenant(tx: Transaction, tenantId: string) {
     return this.invoices.listForTenant(tx, tenantId);
   }
+
+  listForTenants(tx: Transaction, tenantIds: string[]) {
+    return this.invoices.listForTenants(tx, tenantIds);
+  }
 }
 
 /** control.plan_payments / control.used_transaction_ids (D2-1). */

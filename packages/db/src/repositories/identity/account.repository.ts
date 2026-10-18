@@ -102,6 +102,7 @@ export class AccountRepository {
     return rows[0] ?? null;
   }
 
+  /** The account's live shop. A deleted shop is not owned any more: its owner signs up a new one (LIF-21). */
   async findOwnedTenant(
     db: Executor,
     subscriberId: string,
@@ -109,7 +110,7 @@ export class AccountRepository {
     const rows = await db
       .select({ id: tenants.id, state: tenants.state, suspendedAt: tenants.suspendedAt })
       .from(tenants)
-      .where(eq(tenants.subscriberId, subscriberId))
+      .where(and(eq(tenants.subscriberId, subscriberId), isNull(tenants.deletedAt)))
       .limit(1);
     return rows[0] ?? null;
   }

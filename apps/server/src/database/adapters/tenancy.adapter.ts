@@ -8,6 +8,7 @@ import {
   type BalanceRow,
   type BillingInfoRow,
   type ContactDetailsRow,
+  type DeletedShopRow,
   type LapsingCandidateRow,
   type StageLengthsSnapshot,
   type PaygCandidateRow,
@@ -101,6 +102,10 @@ export class DrizzleTenantStore implements TenantStore {
     } catch (error) {
       if (this.transactions.isUniqueViolation(error, 'tenants_slug')) {
         throw new UniqueViolation('address');
+      }
+      // TEN-15: the identity already holds a live shop -- a race the create-shop check lost.
+      if (this.transactions.isUniqueViolation(error, 'tenants_owner_identity_live')) {
+        throw new UniqueViolation('phone');
       }
       throw error;
     }
@@ -197,6 +202,10 @@ export class DrizzleTenantStore implements TenantStore {
 
   findPaygArchivedCandidates(tx: Transaction): Promise<PaygCandidateRow[]> {
     return this.tenants.findPaygArchivedCandidates(tx);
+  }
+
+  findDeletedShopsOf(tx: Transaction, subscriberId: string): Promise<DeletedShopRow[]> {
+    return this.tenants.findDeletedShopsOf(tx, subscriberId);
   }
 
   findContactDetails(tx: Transaction, tenantId: string): Promise<ContactDetailsRow | null> {

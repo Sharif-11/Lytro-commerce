@@ -224,6 +224,14 @@ export class TenantService {
     return this.store.findPaygArchivedCandidates(tx);
   }
 
+  /** LIF-20/21: an account's deleted shops -- their invoices stay the owner's, their balance moves on. */
+  findDeletedShopsOf(
+    tx: Transaction,
+    subscriberId: string,
+  ): Promise<Awaited<ReturnType<TenantStore['findDeletedShopsOf']>>> {
+    return this.store.findDeletedShopsOf(tx, subscriberId);
+  }
+
   /** TEN-30: the owner's own contact phone/email/business address. */
   findContactDetails(tx: Transaction, tenantId: string): Promise<ContactDetailsRow | null> {
     return this.store.findContactDetails(tx, tenantId);

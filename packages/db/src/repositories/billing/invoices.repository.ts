@@ -1,4 +1,4 @@
-import { desc, eq, sql } from 'drizzle-orm';
+import { desc, eq, inArray, sql } from 'drizzle-orm';
 import { invoiceCounters, invoices, type SelectInvoice } from '../../schema';
 import type { Executor } from '../../transactions';
 
@@ -49,6 +49,16 @@ export class InvoicesRepository {
       .select()
       .from(invoices)
       .where(eq(invoices.tenantId, tenantId))
+      .orderBy(desc(invoices.number));
+  }
+
+  /** BIL-13, LIF-21: one owner's invoices across a shop and its predecessors, newest first. */
+  async listForTenants(tx: Executor, tenantIds: string[]): Promise<SelectInvoice[]> {
+    if (tenantIds.length === 0) return [];
+    return tx
+      .select()
+      .from(invoices)
+      .where(inArray(invoices.tenantId, tenantIds))
       .orderBy(desc(invoices.number));
   }
 }

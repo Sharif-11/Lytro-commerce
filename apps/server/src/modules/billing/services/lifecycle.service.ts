@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import type { PaygCandidateRow } from '@lytronix/db';
 import {
   ActorType,
   AuditAction,
@@ -30,6 +31,8 @@ const DEFAULT_STAGE_DAYS = { grace: 3, readOnly: 4, locked: 8, archived: 45 };
 // PYG-21: a pay-as-you-go tenant idle this many days gets the warning / is archived.
 const PAYG_WARNING_DAYS = 23;
 const PAYG_ARCHIVE_DAYS = 30;
+// PYG-09, LIF-19: an archived pay-as-you-go tenant's business data goes this many days after its archival.
+const PAYG_DELETION_DAYS_AFTER_ARCHIVAL = 60;
 
 // LIF-18: deletion warnings, counted the same way as every other lifecycle day (from period end).
 const DELETION_WARNING_DAYS = [45, 57] as const;
@@ -274,15 +277,21 @@ export class LifecycleService {
    * log itself (the `summary.day` already written) rather than a new column -- the same "derive, don't
    * duplicate" discipline `deriveState` above already follows for the state itself.
    */
-  private async sendDeletionWarningIfDue(tenantId: string, daysLapsed: number): Promise<boolean> {
+  private async sendDeletionWarningIfDue(
+    tenantId: string,
+    daysLapsed: number,
+    since?: Date,
+  ): Promise<boolean> {
     const already = await this.audit.list(
       tenantId,
       { action: AuditAction.DeletionWarningSent },
       null,
       50,
     );
+    // `since`: only this archival's own warnings count, never one from an earlier archival the tenant came back from.
     const sentDays = new Set(
       already.entries
+        .filter((entry) => since === undefined || entry.createdAt >= since)
         .map((entry) => (entry.summary as { day?: number } | null)?.day)
         .filter((day): day is number => day !== undefined),
     );
@@ -417,7 +426,8 @@ export class LifecycleService {
       this.tenants.findPaygInactiveCandidates(tx),
     );
     for (const candidate of inactive) {
-      const idleDays = daysBetween(candidate.lastActivityAt ?? candidate.createdAt, now);
+      const since = this.idleSince(candidate);
+      const idleDays = daysBetween(since, now);
       if (idleDays >= PAYG_ARCHIVE_DAYS) {
         await this.tenants.runStandalone(async (tx) => {
           await this.tenants.setLifecycleState(tx, candidate.id, TenantState.Archived);
@@ -446,8 +456,7 @@ export class LifecycleService {
         // PYG-21: "exactly once per idle period" -- a qualifying activity resets the clock without the
         // tenant ever leaving `pay_as_you_go` (unlike the lapse ladder, where renewing exits the candidate
         // list entirely), so a warning from a *previous* idle period must not suppress this one. Scoped to
-        // entries no older than the current idle streak's own start (`lastActivityAt`).
-        const since = candidate.lastActivityAt ?? candidate.createdAt;
+        // entries no older than the current idle streak's own start.
         const already = await this.audit.list(
           candidate.id,
           { action: AuditAction.DeletionWarningSent },
@@ -476,15 +485,37 @@ export class LifecycleService {
       this.tenants.findPaygArchivedCandidates(tx),
     );
     for (const candidate of archived) {
-      const idleDays = daysBetween(candidate.lastActivityAt ?? candidate.createdAt, now);
-      if (idleDays >= PAYG_ARCHIVE_DAYS + 60 && (await this.deleteIfDue(candidate.id, now))) {
+      // LIF-18/19 count from the archival itself, PYG-21's idle day 30: warnings at 45 and 57, deletion at 60.
+      const archivedAt = new Date(this.idleSince(candidate).getTime() + PAYG_ARCHIVE_DAYS * DAY_MS);
+      const daysArchived = daysBetween(archivedAt, now);
+      if (
+        daysArchived >= PAYG_DELETION_DAYS_AFTER_ARCHIVAL &&
+        (await this.deleteIfDue(candidate.id, now))
+      ) {
         deleted += 1;
+        continue;
+      }
+      if (await this.sendDeletionWarningIfDue(candidate.id, daysArchived, archivedAt)) {
+        warningsSent += 1;
       }
     }
 
     // PYG-21 has no billing period to renew; slug release is its own independent pass, computed once in
     // runTick, not per PAYG candidate. BIL-14's renewal reminders don't apply either -- no period end here.
     return { transitioned, warningsSent, deleted, renewed: 0, slugsReleased: 0, remindersSent: 0 };
+  }
+
+  /**
+   * PYG-21: the idle clock runs from the latest qualifying activity or from when the tenant became
+   * pay-as-you-go (`periodStart`, set by the trial conversion, TRL-07), whichever is later -- never from the
+   * shop's creation, so a trial that ends with no activity gets its full 30 days as pay-as-you-go. A row with no
+   * `periodStart` falls back to the activity, then the creation date.
+   */
+  private idleSince(candidate: PaygCandidateRow): Date {
+    const becamePayg = candidate.periodStart;
+    if (becamePayg === null) return candidate.lastActivityAt ?? candidate.createdAt;
+    const activity = candidate.lastActivityAt;
+    return activity !== null && activity.getTime() > becamePayg.getTime() ? activity : becamePayg;
   }
 
   /** LIF-18/PYG-21: platform-sent, never charged -- SMS + email only (no push channel exists, see slice plan). */

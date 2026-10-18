@@ -18,6 +18,7 @@ export {
   type LapsingCandidateRow,
   type StageLengthsSnapshot,
   type PaygCandidateRow,
+  type DeletedShopRow,
   type ContactDetailsRow,
   type RevocationCandidateRow,
 } from './repositories/tenancy/tenant.repository';

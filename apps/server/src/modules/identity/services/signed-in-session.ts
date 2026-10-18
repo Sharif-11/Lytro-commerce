@@ -48,7 +48,7 @@ export class SignedInSession {
     if (owned.suspendedAt !== null) return 'unavailable';
     if (owned.state === TenantState.Locked || owned.state === TenantState.Archived)
       return 'renewal';
-    if (owned.state === TenantState.Deleted) return 'purchase';
+    // A deleted shop is never `owned` -- its owner gets `create-shop` above and opens a new one (LIF-21).
     return 'dashboard';
   }
 }

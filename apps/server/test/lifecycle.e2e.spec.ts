@@ -482,6 +482,90 @@ describeIfDatabase('PYG-21: pay-as-you-go inactivity', () => {
     const tenant = await tenantRow(tenantId);
     expect(tenant?.state).toBe(TenantState.PayAsYouGo); // 24 days -- short of day 30's archival
   });
+
+  it('counts the idle clock from the switch to pay-as-you-go, never from the shop creation', async () => {
+    const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
+    await seedOwner(tenantId, `019${(nextRank += 1).toString().slice(0, 8)}`);
+    const warnings = async (): Promise<number> =>
+      (await auditActions(tenantId)).filter((a) => a === AuditAction.DeletionWarningSent).length;
+
+    // Created 31 days ago; its 30-day trial converted yesterday (TRL-07), with no activity at all.
+    await admin.query(
+      `UPDATE control.tenants SET state = 'pay_as_you_go', period_end = NULL, last_activity_at = NULL,
+         created_at = $1, period_start = $2 WHERE id = $3`,
+      [new Date(Date.now() - 31 * DAY_MS), new Date(Date.now() - DAY_MS), tenantId],
+    );
+    await lifecycle.runTick(new Date());
+    expect((await tenantRow(tenantId))?.state).toBe(TenantState.PayAsYouGo);
+    expect(await warnings()).toBe(0);
+
+    // A top-up during the trial, 40 days ago, doesn't count against the pay-as-you-go clock either.
+    await admin.query('UPDATE control.tenants SET last_activity_at = $1 WHERE id = $2', [
+      new Date(Date.now() - 40 * DAY_MS),
+      tenantId,
+    ]);
+    await lifecycle.runTick(new Date());
+    expect((await tenantRow(tenantId))?.state).toBe(TenantState.PayAsYouGo);
+    expect(await warnings()).toBe(0);
+
+    // 23 days after the switch, the warning; 30 days after, the archival.
+    await admin.query('UPDATE control.tenants SET period_start = $1 WHERE id = $2', [
+      new Date(Date.now() - 23 * DAY_MS),
+      tenantId,
+    ]);
+    await lifecycle.runTick(new Date());
+    expect(await warnings()).toBe(1);
+    await admin.query('UPDATE control.tenants SET period_start = $1 WHERE id = $2', [
+      new Date(Date.now() - 30 * DAY_MS),
+      tenantId,
+    ]);
+    await lifecycle.runTick(new Date());
+    expect((await tenantRow(tenantId))?.state).toBe(TenantState.Archived);
+  });
+
+  it('warns an idle archived shop 45 and 57 days after its archival, then deletes it at 60 (LIF-18, LIF-19)', async () => {
+    const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
+    const phone = `019${(nextRank += 1).toString().slice(0, 8)}`;
+    await seedOwner(tenantId, phone);
+    const warningDays = async (): Promise<number[]> => {
+      const rows = await admin.query<{ day: number }>(
+        `SELECT (summary->>'day')::int AS day FROM tenant.activity_log
+          WHERE tenant_id = $1 AND action = 'deletion_warning_sent' ORDER BY created_at ASC`,
+        [tenantId],
+      );
+      return rows.rows.map((row) => row.day);
+    };
+    // Switched to pay-as-you-go 75 days ago and idle since: archived at day 30, so 45 days archived now.
+    const switchedAgo = async (days: number): Promise<void> => {
+      await admin.query('UPDATE control.tenants SET period_start = $1 WHERE id = $2', [
+        new Date(Date.now() - days * DAY_MS),
+        tenantId,
+      ]);
+    };
+    await admin.query(
+      `UPDATE control.tenants SET state = 'archived', period_end = NULL, balance_frozen = true,
+         last_activity_at = NULL WHERE id = $1`,
+      [tenantId],
+    );
+    await switchedAgo(75);
+
+    await lifecycle.runTick(new Date());
+    await lifecycle.runTick(new Date()); // same day again -- must not repeat
+    expect(await warningDays()).toEqual([45]);
+    expect((await tenantRow(tenantId))?.state).toBe(TenantState.Archived);
+
+    await switchedAgo(87);
+    await lifecycle.runTick(new Date());
+    expect(await warningDays()).toEqual([45, 57]);
+    const texted = await admin.query('SELECT 1 FROM control.sms_outbox WHERE to_phone = $1', [
+      phone,
+    ]);
+    expect(texted.rowCount).toBe(2);
+
+    await switchedAgo(90);
+    await lifecycle.runTick(new Date());
+    expect((await tenantRow(tenantId))?.state).toBe(TenantState.Deleted);
+  });
 });
 
 describeIfDatabase('LIF-01: cancel and undo', () => {

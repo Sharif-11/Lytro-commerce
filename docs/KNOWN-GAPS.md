@@ -1121,6 +1121,48 @@ day-60-deletion guard, confirmed the new test failed with the exact expected sym
 `lifecycle.e2e.spec.ts`, `plan-purchase.e2e.spec.ts` and `plan-upgrade.e2e.spec.ts` individually (57 tests
 across the three) to confirm the shared `LifecycleService` edit left nothing else broken.
 
+## 52. `PYG-21`: the idle clock counted from the shop's creation, so a trial was archived the moment it ended — found and fixed 2026-10-18
+
+Found while walking through what a returning owner sees. `LifecycleService.runPaygInactivityPass` measured
+idleness from `last_activity_at ?? created_at`. A trial that ended with no qualifying activity became
+pay-as-you-go (`TRL-07`) already 30 days "idle" -- counted from the shop's creation -- and was archived on
+the next tick, with no day-23 warning. `PYG-21` says the clock starts when the tenant became pay-as-you-go.
+
+**Fixed:** the clock now runs from the later of `last_activity_at` and `period_start`, which the trial
+conversion sets to the moment of conversion; `created_at` is only the fallback for a row with neither. An
+activity during the trial (a top-up) no longer counts against the pay-as-you-go clock either.
+
+## 53. `LIF-18`: an idle pay-as-you-go shop was deleted without the day-45 and day-57 warnings — found and fixed 2026-10-18
+
+Found in the same walk-through. The deletion warnings only ran in the lapse ladder, which reads
+`period_end`; a pay-as-you-go shop archived for inactivity has none, so its archived pass deleted it at day
+60 without either warning, and no SMS or email ever said so.
+
+**Fixed:** the archived pay-as-you-go pass now sends the same warnings 45 and 57 days after the archival,
+counting only warnings sent since that archival, and deletes at 60.
+
+## 54. `LIF-21`: buying a plan after deletion revived the deleted shop instead of opening a new one — found and fixed 2026-10-18
+
+Found in the same walk-through. Sign-in sent an owner of a deleted shop to `next: purchase`; create-shop
+refused them (`ShopAlreadyExists`, since `findOwnedTenant` counted the deleted shop); and a purchase set the
+deleted row back to `active` with `deleted_at` still set -- so the lifecycle jobs skipped it, and the
+address-release job could later rename the live shop to "Deleted shop …". `LIF-21` promised a new empty
+shop. Decided 2026-10-18 (option a): the owner goes back through create-shop.
+
+**Fixed:**
+- `findOwnedTenant` ignores deleted shops, so sign-in answers `create-shop` and create-shop proceeds; the
+  `purchase` next step is gone, server and dashboard alike.
+- `control.tenants.owner_identity_id` is unique among live tenants only (migration `0044`, a partial unique
+  index), so the new shop can use the same identity.
+- Creating the shop moves each deleted shop's remaining balance into it, with a new `carry_over` ledger entry
+  on each side (`BalanceService.carryOverFromDeletedShops`, in the create-shop transaction).
+- The owner's invoice list and invoice view include the deleted shops' invoices, marked `earlierShop: true`;
+  staff see only the current shop's.
+
+Verified with `returning-owner.e2e.spec.ts` (new) and two new cases in `lifecycle.e2e.spec.ts`, and the
+updated deleted-owner case in `dashboard.e2e.spec.ts`. Undoing each fix in turn made exactly its own tests
+fail, and the server booted for real (`node dist/main.js`) with the new module wiring.
+
 ## Not a bug, just noting it so it isn't mistaken for one later
 
 The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data

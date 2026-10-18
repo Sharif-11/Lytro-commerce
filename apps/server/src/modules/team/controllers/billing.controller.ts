@@ -29,6 +29,7 @@ import { PurchaseService } from '../../billing/services/purchase.service';
 import { UpgradeService } from '../../billing/services/upgrade.service';
 import type { ScheduledPlanChangeRecord } from '../../billing/types/scheduled-plan-change';
 import { InvoicesService } from '../../payments/services/invoices.service';
+import { TenantService } from '../../tenancy/services/tenant.service';
 import type { InvoiceRecord } from '../../payments/types/invoice';
 import type { PlanPaymentRecord } from '../../payments/types/plan-payment';
 import {
@@ -48,6 +49,9 @@ import {
   ScheduledPlanChangeDto,
 } from '../dto/billing-response.dto';
 
+/** An invoice as the billing screen lists it: this shop's own, or one from the owner's earlier shop. */
+type ListedInvoice = InvoiceRecord & { earlierShop: boolean };
+
 // BIL-01 to BIL-13: a tenant's own purchase/renewal flow and invoices.
 // LIF-11/LIF-12: `quote`, `purchase` and both invoice routes carry `lapsed: true` so a locked/archived/deleted
 // owner can still renew and read invoices; DashboardGuard's own lapsed carve-out already restricts this to the
@@ -66,6 +70,7 @@ export class BillingController {
     @Inject(DowngradeService) private readonly downgrade: DowngradeService,
     @Inject(LifecycleService) private readonly lifecycle: LifecycleService,
     @Inject(InvoicesService) private readonly invoices: InvoicesService,
+    @Inject(TenantService) private readonly tenants: TenantService,
     @Inject(ClientIp) private readonly clientIp: ClientIp,
   ) {}
 
@@ -259,8 +264,11 @@ export class BillingController {
   @ResponseMessage('InvoicesListed')
   @ApiOperation({ summary: "List the shop's invoices" })
   @ZodResponse({ type: InvoiceListDto })
-  listInvoices(@Req() request: DashboardRequest): Promise<InvoiceRecord[]> {
-    return this.invoices.listForTenant(this.tenantIdOf(request));
+  async listInvoices(@Req() request: DashboardRequest): Promise<ListedInvoice[]> {
+    const tenantId = this.tenantIdOf(request);
+    const earlier = await this.earlierShopsOf(request, tenantId);
+    const invoices = await this.invoices.listForTenants([tenantId, ...earlier]);
+    return invoices.map((invoice) => ({ ...invoice, earlierShop: invoice.tenantId !== tenantId }));
   }
 
   @Get('invoices/:id')
@@ -272,12 +280,24 @@ export class BillingController {
   async getInvoice(
     @Param('id') id: string,
     @Req() request: DashboardRequest,
-  ): Promise<InvoiceRecord> {
+  ): Promise<ListedInvoice> {
+    const tenantId = this.tenantIdOf(request);
     const invoice = await this.invoices.findById(id);
-    if (invoice.tenantId !== this.tenantIdOf(request)) {
-      throw new ApiError('not_found', 'InvoiceNotFound', {});
+    if (invoice.tenantId === tenantId) return { ...invoice, earlierShop: false };
+    if ((await this.earlierShopsOf(request, tenantId)).includes(invoice.tenantId)) {
+      return { ...invoice, earlierShop: true };
     }
-    return invoice;
+    throw new ApiError('not_found', 'InvoiceNotFound', {});
+  }
+
+  /** BIL-13, LIF-21: the owner's earlier, deleted shops, whose invoices stay the owner's. Staff see none. */
+  private async earlierShopsOf(request: DashboardRequest, tenantId: string): Promise<string[]> {
+    const session = request.session;
+    if (!session || session.userId !== null) return [];
+    const shops = await this.tenants.runStandalone((tx) =>
+      this.tenants.findDeletedShopsOf(tx, session.subscriberId),
+    );
+    return shops.map((shop) => shop.id).filter((id) => id !== tenantId);
   }
 
   private tenantIdOf(request: DashboardRequest): string {

@@ -12,6 +12,7 @@ import { DrizzleTrialCreationStore } from '../../database/adapters/trial-creatio
 import { MailModule } from '../shared/mail/mail.module';
 import { MessagingModule } from '../shared/messaging/messaging.module';
 import { AuditModule } from '../audit/audit.module';
+import { BalanceModule } from '../balance/balance.module';
 import { SmsUsageModule } from '../sms-usage/sms-usage.module';
 import { StaffModule } from '../staff/staff.module';
 import { TenancyModule } from '../tenancy/tenancy.module';
@@ -69,7 +70,15 @@ import {
 @Module({
   // StaffModule's only here for MeController's permissions lookup (D32) — no cycle: StaffModule only imports
   // the leaf AuditModule, never IdentityModule back.
-  imports: [TenancyModule, MessagingModule, MailModule, AuditModule, StaffModule, SmsUsageModule],
+  imports: [
+    TenancyModule,
+    MessagingModule,
+    MailModule,
+    AuditModule,
+    StaffModule,
+    SmsUsageModule,
+    BalanceModule,
+  ],
   controllers: [
     AuthController,
     ShopsController,
