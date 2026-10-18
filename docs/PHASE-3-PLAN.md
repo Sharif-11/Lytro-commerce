@@ -623,8 +623,8 @@ their backend ships earlier.
 - **Depends on:** nothing in this phase for step A. `LANDING-PAGE-DESIGN.md` and `BRAND-IDENTITY.md` are its
   spec. It touches only `apps/website` and shares no code with the slices, so it runs alongside them.
 - **Step A (now):** the Lytro brand (tokens, fonts, logo); the hero with the claim box posting to
-  `app.lytro.app/sign-in?shop=`; the integration strip (the wallets' official logos, couriers as text until they
-  give permission); problems, why Lytro, how it works, pricing with the monthly/yearly toggle, zero risk, FAQ,
+  `app.lytro.app/sign-in?shop=`; the integration strip with the official logos in `docs/brand/third-party/`
+  (bKash, Nagad, Steadfast, Pathao at launch); problems, why Lytro, how it works, pricing with the monthly/yearly toggle, zero risk, FAQ,
   contact and footer; every button pointing at `app.lytro.app` (together with Slice 0).
 - **Step B (when the features are live):** the inventory and statistics spotlight cards (after this phase's
   inventory and Phase 4's statistics) and the storefront and tracking showcase (after Slice 12 and Phase 4),

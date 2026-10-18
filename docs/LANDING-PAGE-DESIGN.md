@@ -89,7 +89,7 @@ Navbar on desktop: Features, Pricing, FAQ, About, Contact, then the language tog
 | --- | --- | --- |
 | Nav | `nav.tsx` | Replace the gradient "L" tile with the mark SVG and wordmark; add anchor links and the language toggle; CTA label "ফ্রি দোকান খুলুন" in marigold. |
 | Hero | `hero.tsx` | Dark chrome band, new headline and lead, claim input posting to `app.lytro.app/sign-in?shop=`, phone mockup component (static JSX, no screenshot). |
-| Strip | new `integrations.tsx` | The wallets' official logos; courier text wordmarks until permission. |
+| Strip | new `integrations.tsx` | Official logos from `docs/brand/third-party/` for the live services (bKash, Nagad, Steadfast, Pathao at launch). |
 | Problems | `solutions.tsx` | Keep data, change layout to before/after pairs. |
 | Features | new `features.tsx` | Two spotlight cards (inventory, statistics) plus six cards with vignettes. The spotlights ship only when Phase 3 inventory (INV, PUR) and statistics (STA) are live, per the "never claim what is not live" rule. |
 | Why Lytro | new `why.tsx` | Six advantage cards. |
