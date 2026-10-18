@@ -1,0 +1,643 @@
+<title>Lytro Site Pages</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&family=Inter:wght@400;500;600;700&family=Noto+Sans+Bengali:wght@400;500;600;700;800&display=swap">
+<style>
+  /* Layout: three pages in one prototype (About, Contact, Sign-up) behind a page switcher, mobile-first, in the Lytro
+     system. About and Contact share the marketing site's nav; Sign-up uses the dashboard host's bare shell because it
+     lives on app.lytro.app, not the website. Bangla primary, EN toggle swaps copy in place. */
+  :root {
+    --teal-50:#effaf8; --teal-100:#ddf5f2; --teal-200:#b9ece6; --teal-300:#7fdcd3; --teal-400:#3ec4b9; --teal-500:#17a89e;
+    --teal-600:#107f78; --teal-700:#0e6b66; --teal-800:#0a4f4b; --teal-900:#063b38; --teal-950:#042826;
+    --mari-100:#fdf0d1; --mari-300:#f8cf6e; --mari-500:#f2a516; --mari-700:#9a6004;
+    --ink:#10201f; --n700:#2c3f3e; --n500:#5b6e6d; --n400:#7e8f8e; --n300:#a9b9b8; --n200:#d5dfde; --n100:#eaf0ef; --n50:#f6f9f8; --white:#ffffff;
+    --success:#1b7a43; --success-soft:#e3f3e9; --danger:#c8323b; --danger-soft:#fbe7e8;
+    --bg: var(--white); --text: var(--ink); --muted: var(--n700); --line: rgba(16,32,31,0.08); --line-strong: rgba(16,32,31,0.14);
+    --shadow-sm: 0 1px 2px rgba(16,32,31,0.05), 0 2px 8px -2px rgba(16,32,31,0.06);
+    --shadow-md: 0 1px 2px rgba(16,32,31,0.04), 0 16px 40px -16px rgba(16,32,31,0.18);
+    --font-display: 'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --font-ui: 'Inter', 'Noto Sans Bengali', ui-sans-serif, system-ui, sans-serif;
+    --font-bn: 'Noto Sans Bengali', 'Hind Siliguri', 'Inter', sans-serif;
+    --gutter: max(20px, env(safe-area-inset-left, 0px)); --gutter-r: max(20px, env(safe-area-inset-right, 0px));
+    --sec: 56px;
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font-bn); font-size: 16px; line-height: 1.65; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+  body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 60; background: var(--ink); }
+  body[data-lang="en"] { font-family: var(--font-ui); line-height: 1.55; }
+  h1, h2, h3, h4 { margin: 0; line-height: 1.3; font-weight: 700; text-wrap: balance; }
+  body[data-lang="en"] h1, body[data-lang="en"] h2 { font-family: var(--font-display); letter-spacing: -0.025em; line-height: 1.1; }
+  p { margin: 0; }
+  a { color: inherit; text-decoration: none; }
+  svg { display: block; }
+  .wrap { width: 100%; max-width: 1040px; margin: 0 auto; padding-left: var(--gutter); padding-right: var(--gutter-r); min-width: 0; }
+  .num { font-family: var(--font-ui); font-variant-numeric: tabular-nums; }
+  .muted { color: var(--muted); }
+  .eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 0.8125rem; font-weight: 600; color: var(--teal-800); background: var(--teal-50); border: 1px solid var(--teal-100); border-radius: 999px; padding: 5px 12px 5px 8px; line-height: 1.3; }
+  .eyebrow::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--mari-500); box-shadow: 0 0 0 3px var(--mari-100); }
+  .on-dark .eyebrow { color: var(--white); background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-weight: 600; font-size: 1rem; border-radius: 12px; min-height: 48px; padding: 12px 20px; border: 1px solid transparent; cursor: pointer; font-family: inherit; line-height: 1.2; white-space: nowrap; transition: transform 0.15s, box-shadow 0.15s, background 0.15s, border-color 0.15s; -webkit-tap-highlight-color: transparent; }
+  .btn:active { transform: translateY(1px); }
+  .btn-accent { background: var(--mari-500); color: var(--ink); box-shadow: 0 1px 0 rgba(255,255,255,0.35) inset, 0 8px 20px -8px rgba(242,165,22,0.7); }
+  .btn-accent:hover { background: #f4b03a; }
+  .btn-primary { background: var(--teal-700); color: var(--white); box-shadow: 0 8px 20px -10px rgba(14,107,102,0.8); }
+  .btn-primary:hover { background: var(--teal-800); }
+  .btn-outline { background: var(--white); color: var(--ink); border-color: var(--line-strong); }
+  .btn-outline:hover { border-color: var(--teal-700); background: var(--teal-50); }
+  .btn-ghost { background: rgba(255,255,255,0.04); color: var(--white); border-color: rgba(255,255,255,0.24); }
+  .btn-link { background: transparent; color: var(--teal-700); padding: 8px 10px; min-height: 40px; font-weight: 600; }
+  .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+  .btn:focus-visible, a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--teal-500); outline-offset: 2px; }
+  .card { background: var(--white); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow-sm); }
+  .wmk { display: block; height: 34px; width: auto; aspect-ratio: 142 / 64; }
+  .mark { width: 26px; height: 26px; }
+  section { padding-block: var(--sec); }
+  .sec-head { display: grid; gap: 12px; margin-bottom: 28px; justify-items: start; }
+  .sec-head.center { justify-items: center; text-align: center; margin-inline: auto; }
+  .sec-head h2 { font-size: clamp(1.5rem, 1.1rem + 2.2vw, 2.25rem); line-height: 1.28; }
+  .sec-head p { color: var(--muted); max-width: 58ch; }
+  [hidden] { display: none !important; }
+
+  /* Prototype switcher (not part of the product) */
+  .proto { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 55; background: var(--ink); color: var(--white); font-family: var(--font-ui); font-size: 0.8125rem; }
+  .proto .wrap { display: flex; align-items: center; gap: 8px; min-height: 44px; overflow-x: auto; scrollbar-width: none; }
+  .proto .wrap::-webkit-scrollbar { display: none; }
+  .proto .lbl { color: var(--n300); white-space: nowrap; margin-right: 4px; }
+  .proto a { white-space: nowrap; padding: 6px 12px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.18); color: var(--n200); font-weight: 500; }
+  .proto a.on { background: var(--teal-400); color: var(--ink); border-color: var(--teal-400); font-weight: 600; }
+  .proto .lang { margin-left: auto; display: inline-flex; border: 1px solid rgba(255,255,255,0.25); border-radius: 999px; padding: 2px; }
+  .proto .lang button { border: 0; background: transparent; color: var(--n300); font: inherit; font-weight: 600; padding: 4px 10px; border-radius: 999px; cursor: pointer; min-height: 28px; }
+  .proto .lang button[aria-pressed="true"] { background: var(--white); color: var(--ink); }
+
+  /* Site nav (About, Contact) */
+  .nav { position: sticky; top: calc(44px + env(safe-area-inset-top, 0px)); z-index: 50; background: rgba(255,255,255,0.9); backdrop-filter: saturate(160%) blur(12px); border-bottom: 1px solid var(--line); }
+  .nav .wrap { height: 60px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .nav .wordmark { --wm-mark: var(--teal-700); --wm-text: var(--ink); display: inline-flex; }
+  .nav-links { display: none; gap: 2px; }
+  .nav-links a { font-size: 0.9375rem; font-weight: 500; padding: 8px 13px; border-radius: 8px; color: var(--n700); }
+  .nav-links a.on, .nav-links a:hover { background: var(--n50); color: var(--ink); }
+  .nav .acts { display: flex; gap: 8px; align-items: center; }
+  .nav .login { display: none; font-size: 0.9375rem; font-weight: 500; padding: 8px 12px; color: var(--n700); }
+  .nav .cta { min-height: 42px; padding: 9px 16px; font-size: 0.9375rem; }
+  @media (min-width: 900px) { .nav-links { display: flex; } .nav .login { display: inline-flex; } }
+
+  /* Page hero bands */
+  .band { position: relative; background: var(--teal-900); color: var(--white); overflow: hidden; isolation: isolate; padding-block: 56px; }
+  .band .glow { position: absolute; inset: 0; z-index: -1; background: radial-gradient(70% 50% at 85% 10%, rgba(62,196,185,0.26), transparent 62%), radial-gradient(50% 40% at 0% 100%, rgba(242,165,22,0.14), transparent 60%), linear-gradient(180deg, var(--teal-900), var(--teal-950)); }
+  .band .grid { position: absolute; inset: 0; z-index: -1; background-image: radial-gradient(rgba(255,255,255,0.09) 1px, transparent 1.2px); background-size: 24px 24px; -webkit-mask-image: radial-gradient(80% 60% at 50% 30%, #000 30%, transparent 100%); mask-image: radial-gradient(80% 60% at 50% 30%, #000 30%, transparent 100%); }
+  .band h1 { font-size: clamp(1.9rem, 1.3rem + 3vw, 3rem); margin-top: 16px; line-height: 1.22; font-weight: 800; }
+  .band h1 em { font-style: normal; color: var(--teal-300); }
+  .band .lead { margin-top: 14px; color: #f0faf8; font-size: 1.0625rem; max-width: 54ch; }
+  .crumbs { font-family: var(--font-ui); font-size: 0.8125rem; color: var(--teal-200); display: flex; gap: 6px; align-items: center; }
+  .crumbs b { color: var(--white); font-weight: 500; }
+
+  /* About */
+  .story { display: grid; gap: 28px; }
+  .story .txt { display: grid; gap: 14px; font-size: 1.0625rem; max-width: 62ch; }
+  .story .txt p + p { margin-top: 2px; }
+  .story .pull { border-left: 3px solid var(--mari-500); padding: 6px 0 6px 16px; font-size: 1.25rem; font-weight: 600; line-height: 1.5; color: var(--teal-900); }
+  .facts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .fact { padding: 16px; display: grid; gap: 4px; }
+  .fact b { font-family: var(--font-ui); font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; }
+  .fact span { font-size: 0.875rem; color: var(--muted); }
+  .vals { display: grid; grid-template-columns: 1fr; gap: 12px; }
+  .val { padding: 20px; display: grid; grid-template-columns: 40px 1fr; gap: 4px 14px; align-content: start; }
+  .val .ic { grid-row: 1 / 3; width: 40px; height: 40px; border-radius: 12px; background: var(--teal-50); color: var(--teal-700); display: grid; place-items: center; }
+  .val .ic svg { width: 20px; height: 20px; }
+  .val h3 { font-size: 1.0625rem; align-self: center; }
+  .val p { color: var(--muted); font-size: 0.9375rem; }
+  .timeline { display: grid; gap: 0; position: relative; padding-left: 26px; }
+  .timeline::before { content: ""; position: absolute; left: 8px; top: 10px; bottom: 10px; width: 2px; background: var(--n200); }
+  .tl { position: relative; padding: 10px 0 18px; display: grid; gap: 4px; }
+  .tl::before { content: ""; position: absolute; left: -24px; top: 16px; width: 14px; height: 14px; border-radius: 50%; background: var(--teal-500); border: 3px solid var(--white); box-shadow: 0 0 0 1px var(--teal-500); }
+  .tl.next::before { background: var(--n200); box-shadow: 0 0 0 1px var(--n300); }
+  .tl b { font-size: 1rem; }
+  .tl span { color: var(--muted); font-size: 0.9375rem; }
+  .tl small { font-family: var(--font-ui); font-size: 0.75rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--teal-700); }
+  .people { display: grid; grid-template-columns: 1fr; gap: 12px; }
+  .person { padding: 18px; display: flex; gap: 14px; align-items: center; }
+  .person i { width: 52px; height: 52px; border-radius: 50%; background: var(--n100); color: var(--n700); display: grid; place-items: center; font-family: var(--font-display); font-weight: 800; font-size: 1.25rem; flex: none; border: 1px dashed var(--n300); }
+  .person b { display: block; }
+  .person span { font-size: 0.875rem; color: var(--muted); }
+
+  /* Contact */
+  .cgrid { display: grid; grid-template-columns: 1fr; gap: 20px; }
+  .chan { display: grid; gap: 12px; }
+  .ch { padding: 18px; display: grid; grid-template-columns: 40px 1fr auto; gap: 2px 14px; align-items: center; }
+  .ch .ic { grid-row: 1 / 3; width: 40px; height: 40px; border-radius: 12px; background: var(--teal-50); color: var(--teal-700); display: grid; place-items: center; }
+  .ch .ic svg { width: 20px; height: 20px; }
+  .ch b { font-size: 1rem; }
+  .ch .v { font-family: var(--font-ui); font-weight: 600; color: var(--ink); font-size: 1rem; word-break: break-all; }
+  .ch small { color: var(--muted); font-size: 0.8125rem; grid-column: 2 / 4; }
+  .ch .btn { grid-row: 1 / 3; grid-column: 3; min-height: 40px; padding: 8px 14px; font-size: 0.875rem; }
+  .hours { padding: 18px; display: grid; gap: 8px; }
+  .hours .row { display: flex; justify-content: space-between; gap: 12px; font-size: 0.9375rem; border-bottom: 1px dashed var(--line); padding-bottom: 6px; }
+  .hours .row:last-child { border: 0; }
+  .hours .now { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8125rem; color: var(--success); font-weight: 600; }
+  .hours .now::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--success); }
+  form.cf { padding: 22px 20px; display: grid; gap: 14px; }
+  .field { display: grid; gap: 6px; }
+  .field label { font-size: 0.875rem; font-weight: 500; color: var(--n700); }
+  .field label small { color: var(--n500); font-weight: 400; }
+  .field input, .field select, .field textarea { font: inherit; font-size: 1rem; padding: 12px 14px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--white); color: var(--ink); width: 100%; min-height: 48px; font-family: var(--font-ui); }
+  .field textarea { min-height: 120px; resize: vertical; font-family: inherit; }
+  .field input::placeholder, .field textarea::placeholder { color: var(--n500); }
+  .field .err { font-size: 0.8125rem; color: var(--danger); font-weight: 500; }
+  .field.invalid input, .field.invalid textarea { border-color: var(--danger); }
+  .f2 { display: grid; grid-template-columns: 1fr; gap: 14px; }
+  .topics { display: flex; flex-wrap: wrap; gap: 8px; }
+  .topics label { border: 1px solid var(--line-strong); border-radius: 999px; padding: 8px 14px; font-size: 0.9rem; cursor: pointer; min-height: 40px; display: inline-flex; align-items: center; gap: 6px; }
+  .topics input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  .topics label:has(input:checked) { background: var(--teal-700); color: var(--white); border-color: var(--teal-700); }
+  .topics label:has(input:focus-visible) { outline: 2px solid var(--teal-500); outline-offset: 2px; }
+  .sent { padding: 28px 20px; text-align: center; display: grid; gap: 10px; justify-items: center; }
+  .sent .ok { width: 56px; height: 56px; border-radius: 50%; background: var(--success-soft); color: var(--success); display: grid; place-items: center; }
+  .sent .ok svg { width: 28px; height: 28px; }
+  .map { border-radius: 18px; overflow: hidden; border: 1px solid var(--line); background: linear-gradient(135deg, var(--teal-50), var(--n50)); min-height: 160px; display: grid; place-items: center; text-align: center; padding: 20px; color: var(--muted); font-size: 0.9rem; position: relative; }
+  .map::before { content: ""; position: absolute; inset: 0; background-image: linear-gradient(rgba(14,107,102,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(14,107,102,0.08) 1px, transparent 1px); background-size: 28px 28px; }
+  .map > * { position: relative; }
+  .map b { display: block; color: var(--ink); font-size: 1rem; }
+  .map .pin { width: 36px; height: 36px; border-radius: 50% 50% 50% 0; background: var(--mari-500); transform: rotate(-45deg); margin-bottom: 10px; box-shadow: 0 8px 16px -8px rgba(242,165,22,0.9); }
+  .map .pin::after { content: ""; position: absolute; inset: 10px; border-radius: 50%; background: var(--ink); }
+
+  /* Sign-up (app.lytro.app shell) */
+  .app { min-height: calc(100vh - 44px); background: var(--n50); display: grid; grid-template-rows: auto 1fr auto; }
+  .app-top { background: var(--white); border-bottom: 1px solid var(--line); }
+  .app-top .wrap { height: 60px; display: flex; align-items: center; justify-content: space-between; }
+  .app-top .wordmark { --wm-mark: var(--teal-700); --wm-text: var(--ink); display: inline-flex; }
+  .app-top .help { font-size: 0.875rem; color: var(--n700); display: inline-flex; align-items: center; gap: 6px; }
+  .app-top .help svg { width: 16px; height: 16px; color: var(--teal-700); }
+  .app-main { padding: 24px var(--gutter-r) 40px var(--gutter); display: grid; justify-items: center; align-content: start; }
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; width: 100%; max-width: 440px; margin-bottom: 18px; font-family: var(--font-ui); font-size: 0.75rem; font-weight: 600; color: var(--n500); }
+  .steps div { display: grid; gap: 6px; text-align: center; }
+  .steps i { display: block; height: 4px; border-radius: 2px; background: var(--n200); }
+  .steps div.done i { background: var(--teal-500); }
+  .steps div.on { color: var(--teal-800); }
+  .steps div.on i { background: var(--teal-700); }
+  .steps div.done { color: var(--teal-700); }
+  .pane { width: 100%; max-width: 440px; padding: 24px 20px; display: grid; gap: 16px; }
+  .pane h2 { font-size: 1.375rem; }
+  .pane .sub { color: var(--muted); font-size: 0.9375rem; margin-top: -6px; }
+  .phone-f { display: flex; border: 1px solid var(--line-strong); border-radius: 10px; overflow: hidden; background: var(--white); min-height: 50px; }
+  .phone-f .cc { display: flex; align-items: center; gap: 6px; padding: 0 12px; background: var(--n50); border-right: 1px solid var(--line); font-family: var(--font-ui); font-weight: 600; font-size: 0.9375rem; color: var(--n700); white-space: nowrap; }
+  .phone-f input { flex: 1; min-width: 0; border: 0; font: inherit; font-family: var(--font-ui); font-size: 1.0625rem; padding: 12px 14px; letter-spacing: 0.04em; }
+  .or { display: flex; align-items: center; gap: 12px; color: var(--n500); font-size: 0.8125rem; }
+  .or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+  .oauth { display: grid; gap: 10px; }
+  .oauth .btn { width: 100%; justify-content: center; gap: 10px; }
+  .oauth img { width: 18px; height: 18px; flex: none; display: block; }
+  .legal { font-size: 0.8125rem; color: var(--n500); text-align: center; }
+  .legal a { color: var(--teal-700); font-weight: 500; }
+  .otp { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+  .otp input { width: 100%; aspect-ratio: 0.85; text-align: center; font-family: var(--font-ui); font-size: 1.5rem; font-weight: 600; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--white); color: var(--ink); min-height: 52px; font-variant-numeric: tabular-nums; }
+  .otp input:focus { border-color: var(--teal-500); }
+  .resend { display: flex; justify-content: space-between; align-items: center; font-size: 0.875rem; color: var(--muted); flex-wrap: wrap; gap: 6px; }
+  .slug { display: flex; align-items: center; border: 1px solid var(--line-strong); border-radius: 10px; overflow: hidden; background: var(--white); min-height: 48px; }
+  .slug input { flex: 1; min-width: 0; border: 0; font: inherit; font-family: var(--font-ui); font-size: 1rem; padding: 12px 14px; }
+  .slug span { font-family: var(--font-ui); font-size: 0.875rem; color: var(--n700); padding: 0 12px; background: var(--n50); border-left: 1px solid var(--line); align-self: stretch; display: flex; align-items: center; white-space: nowrap; }
+  .hint { font-size: 0.8125rem; color: var(--muted); }
+  .hint b { font-family: var(--font-ui); color: var(--teal-800); font-weight: 600; word-break: break-all; }
+  .types { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .types label { border: 1px solid var(--line-strong); border-radius: 10px; padding: 10px 12px; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; gap: 8px; min-height: 46px; position: relative; }
+  .types input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  .types label:has(input:checked) { border-color: var(--teal-700); background: var(--teal-50); color: var(--teal-900); font-weight: 600; }
+  .types label:has(input:focus-visible) { outline: 2px solid var(--teal-500); outline-offset: 2px; }
+  .pw-rules { display: grid; gap: 4px; font-size: 0.8125rem; color: var(--n700); }
+  .pw-rules div { display: flex; gap: 8px; align-items: center; }
+  .pw-rules svg { width: 14px; height: 14px; color: var(--n300); }
+  .pw-rules div.ok svg { color: var(--success); }
+  .done-h { text-align: center; display: grid; gap: 8px; justify-items: center; }
+  .done-h .ok { width: 64px; height: 64px; border-radius: 50%; background: var(--success-soft); color: var(--success); display: grid; place-items: center; }
+  .done-h .ok svg { width: 32px; height: 32px; }
+  .done-h .url { font-family: var(--font-ui); font-weight: 600; color: var(--teal-800); background: var(--teal-50); border: 1px solid var(--teal-100); border-radius: 999px; padding: 6px 12px; font-size: 0.875rem; word-break: break-all; }
+  .todo { display: grid; gap: 8px; }
+  .todo a { display: grid; grid-template-columns: 36px 1fr auto; gap: 2px 12px; align-items: center; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--white); min-height: 56px; }
+  .todo a:hover { border-color: var(--teal-700); }
+  .todo .ic { grid-row: 1 / 3; width: 36px; height: 36px; border-radius: 10px; background: var(--teal-50); color: var(--teal-700); display: grid; place-items: center; }
+  .todo .ic svg { width: 18px; height: 18px; }
+  .todo b { font-size: 0.9375rem; }
+  .todo small { color: var(--muted); font-size: 0.8125rem; }
+  .todo .arrow { grid-row: 1 / 3; width: 18px; height: 18px; color: var(--n400); }
+  .app-foot { padding: 16px var(--gutter-r) calc(16px + env(safe-area-inset-bottom, 0px)) var(--gutter); text-align: center; font-size: 0.8125rem; color: var(--n500); display: flex; justify-content: center; gap: 6px; align-items: center; }
+  .app-foot .wmk { height: 12px; --wm-mark: currentColor; --wm-text: currentColor; }
+  .act-row { display: grid; gap: 10px; }
+  .act-row .btn { width: 100%; }
+
+  /* Footer (site pages) */
+  footer.site { padding-block: 36px calc(28px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--line); background: var(--white); }
+  footer.site .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px 20px; align-items: center; font-size: 0.875rem; color: var(--n700); }
+  footer.site .wordmark { --wm-mark: var(--teal-700); --wm-text: var(--ink); display: inline-flex; }
+  footer.site nav { display: flex; flex-wrap: wrap; gap: 4px 18px; }
+
+  @media (min-width: 640px) {
+    :root { --sec: 72px; }
+    .f2 { grid-template-columns: 1fr 1fr; }
+    .vals { grid-template-columns: repeat(2, 1fr); }
+    .people { grid-template-columns: repeat(2, 1fr); }
+    .act-row { grid-template-columns: 1fr 1fr; }
+    .act-row .btn.full { grid-column: 1 / -1; }
+  }
+  @media (min-width: 900px) {
+    :root { --sec: 88px; }
+    .story { grid-template-columns: 1.2fr 0.8fr; gap: 40px; align-items: start; }
+    .vals { grid-template-columns: repeat(3, 1fr); }
+    .cgrid { grid-template-columns: 0.9fr 1.1fr; gap: 28px; align-items: start; }
+    .people { grid-template-columns: repeat(3, 1fr); }
+    .pane { padding: 32px 28px; }
+    .app-main { padding-top: 40px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .btn { transition: none; } html { scroll-behavior: auto; } }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="mark" viewBox="0 0 64 64"><path d="M15 15V49H31L49 29" fill="none" stroke="currentColor" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="wordmark" viewBox="0 0 142 64"><path d="M15 15V49H31L49 29" transform="translate(2.8 8.12) scale(0.72)" fill="none" stroke="var(--wm-mark, currentColor)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/><text x="46" y="47" font-family="'Plus Jakarta Sans', Inter, ui-sans-serif, system-ui, sans-serif" font-weight="800" font-size="42" letter-spacing="-1.3" fill="var(--wm-text, currentColor)">ytro</text></symbol>
+  <symbol id="check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="back" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="phone" viewBox="0 0 24 24"><path d="M6 3h4l2 5-2.5 1.5a11 11 0 0 0 5 5L16 12l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 4 5a2 2 0 0 1 2-2z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+  <symbol id="mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3.5 7l8.5 6 8.5-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+  <symbol id="chat" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 9h8M8 12h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="shield" viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="bank" viewBox="0 0 24 24"><path d="M3 9l9-5 9 5H3zM5 9v8M9.5 9v8M14.5 9v8M19 9v8M3 20h18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/></symbol>
+  <symbol id="globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3.5 12h17M12 3.5c3 3 3 14 0 17M12 3.5c-3 3-3 14 0 17" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+  <symbol id="store" viewBox="0 0 24 24"><path d="M4 9l1.5-4h13L20 9M4 9v10h16V9M4 9h16M10 19v-5h4v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+  <symbol id="boxes" viewBox="0 0 24 24"><path d="M3 8l9-4 9 4-9 4zM3 8v8l9 4 9-4V8M12 12v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+  <symbol id="wallet" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3 10h18M16 14h2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="sms" viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M10 7h4M10 10h4M10 13h2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="truck" viewBox="0 0 24 24"><path d="M3 7h10v9H3zM13 10h4l3 3v3h-7z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="7" cy="17.5" r="1.8" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="17" cy="17.5" r="1.8" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+  <symbol id="heart" viewBox="0 0 24 24"><path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+  <symbol id="eye" viewBox="0 0 24 24"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="2.6" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+  <symbol id="help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7M12 17h.01" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+</svg>
+
+<div class="proto">
+  <div class="wrap">
+    <span class="lbl" data-en="Prototype">প্রোটোটাইপ</span>
+    <a href="#about" data-page="about" data-en="About">আমাদের সম্পর্কে</a>
+    <a href="#contact" data-page="contact" data-en="Contact">যোগাযোগ</a>
+    <a href="#signup" data-page="signup" data-en="Sign-up flow">সাইন-আপ ফ্লো</a>
+    <div class="lang" role="group" aria-label="Language"><button type="button" id="lang-bn" aria-pressed="true">বাং</button><button type="button" id="lang-en" aria-pressed="false">EN</button></div>
+  </div>
+</div>
+
+<!-- ============================== ABOUT ============================== -->
+<div class="page" id="page-about">
+  <header class="nav">
+    <div class="wrap">
+      <a href="#about" class="wordmark" aria-label="Lytro"><svg class="wmk"><use href="#wordmark"/></svg></a>
+      <nav class="nav-links" aria-label="Main"><a href="#" data-en="Features">ফিচার</a><a href="#" data-en="Pricing">প্রাইসিং</a><a href="#" data-en="FAQ">প্রশ্নোত্তর</a><a href="#about" class="on" data-en="About">আমাদের সম্পর্কে</a><a href="#contact" data-en="Contact">যোগাযোগ</a></nav>
+      <div class="acts"><a href="#" class="login" data-en="Log in">লগইন</a><a href="#signup" class="btn btn-accent cta" data-en="Open a free shop">ফ্রি দোকান খুলুন</a></div>
+    </div>
+  </header>
+  <section class="band on-dark">
+    <div class="glow" aria-hidden="true"></div><div class="grid" aria-hidden="true"></div>
+    <div class="wrap">
+      <div class="crumbs"><span>lytro.app</span><span>/</span><b data-en="About">আমাদের সম্পর্কে</b></div>
+      <h1 data-en-html="We are sellers first.<br><em>The software came second.</em>">আমরা আগে সেলার।<br><em>সফটওয়্যারটা পরে এসেছে।</em></h1>
+      <p class="lead" data-en="Lytro began as the tool one Dhaka gadget shop built to stop losing money on fake orders and lost hours on couriers. It still runs that shop every day. Now it runs yours.">Lytro শুরু হয়েছিল ঢাকার একটা গ্যাজেটের দোকানের নিজের টুল হিসেবে, ফেক অর্ডারে টাকা আর কুরিয়ারে ঘণ্টা হারানো বন্ধ করতে। সেই দোকানটা আজও প্রতিদিন এটাতেই চলে। এখন আপনারটাও চলবে।</p>
+    </div>
+  </section>
+  <section>
+    <div class="wrap story">
+      <div class="txt">
+        <span class="eyebrow" data-en="The story">গল্পটা</span>
+        <h2 data-en="Built on a shop counter, not in a boardroom">বোর্ডরুমে নয়, দোকানের কাউন্টারে বানানো</h2>
+        <p data-en="Lytronix sells batteries and gadgets in Dhaka, mostly through a Facebook page and a phone. Orders lived in Messenger and a notebook. Every day someone typed addresses into a courier portal, matched bKash SMS to orders by hand, and shipped to numbers that had returned three parcels before.">Lytronix ঢাকায় ব্যাটারি আর গ্যাজেট বিক্রি করে, বেশিরভাগই একটা ফেসবুক পেজ আর একটা ফোন দিয়ে। অর্ডার থাকতো মেসেঞ্জারে আর খাতায়। প্রতিদিন কেউ একজন কুরিয়ার পোর্টালে ঠিকানা টাইপ করতো, বিকাশের SMS হাতে হাতে অর্ডারের সাথে মেলাতো, আর এমন নম্বরে শিপ করতো যেটা আগেই তিনটা পার্সেল ফেরত দিয়েছে।</p>
+        <p data-en="So we built the tool we needed: one screen for orders, a courier booking that took one tap, a small app that read payment SMS, and a check that remembered which numbers had burned us. It worked. Sellers we knew asked for it. Lytro is that tool, rebuilt so any shop can use it, in Bangla, from a phone.">তাই আমরা নিজেদের দরকারি টুলটা বানালাম: অর্ডারের জন্য এক স্ক্রিন, এক ট্যাপে কুরিয়ার বুকিং, পেমেন্ট SMS পড়ার ছোট একটা অ্যাপ, আর এমন একটা চেক যেটা মনে রাখে কোন নম্বর আমাদের ঠকিয়েছে। কাজ হলো। পরিচিত সেলাররা চাইলো। Lytro সেই টুলটাই, নতুন করে বানানো, যাতে যেকোনো দোকান ব্যবহার করতে পারে, বাংলায়, ফোন থেকে।</p>
+        <div class="pull" data-en="We run our own shop on the same account you get. Same sign-up, same limits, same fees. When something breaks, it breaks for us first.">আপনি যে অ্যাকাউন্ট পান, আমরা নিজেদের দোকানও সেটাতেই চালাই। একই সাইন-আপ, একই লিমিট, একই ফি। কিছু ভাঙলে আগে আমাদেরই ভাঙে।</div>
+        <p data-en="Lytro is made by Lytronix, a Dhaka company. The platform is a separate product with its own team, support line and accounts; the battery shop is simply its first customer.">Lytro বানায় Lytronix, ঢাকার একটা কোম্পানি। প্ল্যাটফর্মটা আলাদা প্রোডাক্ট, নিজের টিম, সাপোর্ট লাইন আর অ্যাকাউন্ট নিয়ে; ব্যাটারির দোকানটা শুধু এর প্রথম কাস্টমার।</p>
+      </div>
+      <div style="display:grid;gap:12px">
+        <div class="facts">
+          <div class="fact card"><b>2</b><span data-en="businesses: one sells batteries, one builds Lytro">ব্যবসা: একটা ব্যাটারি বেচে, একটা Lytro বানায়</span></div>
+          <div class="fact card"><b>1</b><span data-en="first tenant, our own shop, on the same terms as yours">প্রথম টেন্যান্ট, আমাদের নিজের দোকান, আপনার মতো একই শর্তে</span></div>
+          <div class="fact card"><b>৳0</b><span data-en="monthly fee to start, for everyone">শুরু করতে মাসিক ফি, সবার জন্য</span></div>
+          <div class="fact card"><b data-en="BD">BD</b><span data-en="data hosted in Bangladesh on BDIX servers, backed up nightly">ডেটা বাংলাদেশে BDIX সার্ভারে, প্রতি রাতে ব্যাকআপ</span></div>
+        </div>
+        <div class="timeline card" style="padding:18px 18px 6px 44px">
+          <div class="tl"><small data-en="Before">আগে</small><b data-en="A notebook, Messenger and three courier portals">একটা খাতা, মেসেঞ্জার আর তিনটা কুরিয়ার পোর্টাল</b><span data-en="The Lytronix shop runs the way most shops do.">Lytronix-এর দোকান চলে যেভাবে বেশিরভাগ দোকান চলে।</span></div>
+          <div class="tl"><small data-en="Then">তারপর</small><b data-en="A tool for one shop">একটা দোকানের জন্য একটা টুল</b><span data-en="Orders, courier booking, payment SMS and a fraud check, built for ourselves.">অর্ডার, কুরিয়ার বুকিং, পেমেন্ট SMS আর ফ্রড চেক, নিজেদের জন্য বানানো।</span></div>
+          <div class="tl"><small data-en="Now">এখন</small><b data-en="Lytro, for every shop">Lytro, সব দোকানের জন্য</b><span data-en="Rebuilt from the ground up as a platform, in Bangla, phone first, pay when you sell.">গোড়া থেকে নতুন করে প্ল্যাটফর্ম হিসেবে বানানো, বাংলায়, ফোন থেকে, বিক্রি হলে তবেই ফি।</span></div>
+          <div class="tl next"><small data-en="Next">পরে</small><b data-en="Stock, statistics and more couriers">স্টক, পরিসংখ্যান আর আরও কুরিয়ার</b><span data-en="We list a feature only when it is live. Watch the notice board.">ফিচার লাইভ হলে তবেই লিস্টে ওঠে। নোটিশ বোর্ডে চোখ রাখুন।</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <section style="background:var(--n50)">
+    <div class="wrap">
+      <div class="sec-head center"><span class="eyebrow" data-en="What we believe">আমরা যা বিশ্বাস করি</span><h2 data-en="Six rules, written into the product">ছয়টা নিয়ম, প্রোডাক্টের ভেতরে লেখা</h2></div>
+      <div class="vals">
+        <div class="val card"><div class="ic"><svg><use href="#bank"/></svg></div><h3 data-en="Your money never passes through us">আপনার টাকা আমাদের হাত দিয়ে যায় না</h3><p data-en="Customers pay your own bKash, Nagad or bank. We never hold, settle or delay it.">কাস্টমার পেমেন্ট করে আপনার নিজের বিকাশ, নগদ বা ব্যাংকে। আমরা ধরে রাখি না, দেরিও করাই না।</p></div>
+        <div class="val card"><div class="ic"><svg><use href="#eye"/></svg></div><h3 data-en="We only claim what is live">যা লাইভ, শুধু সেটাই দাবি করি</h3><p data-en="No counters that show zero, no quotes we wrote ourselves, no features that are “coming soon” on the pricing page.">শূন্য দেখানো কাউন্টার নেই, নিজেরা লেখা রিভিউ নেই, প্রাইসিং পেজে “শিগগিরই আসছে” ফিচার নেই।</p></div>
+        <div class="val card"><div class="ic"><svg><use href="#globe"/></svg></div><h3 data-en="Bangla first, not translated later">বাংলা আগে, পরে অনুবাদ নয়</h3><p data-en="Every screen, SMS and invoice is written in Bangla first, in the words sellers use. English is a toggle.">প্রতিটা স্ক্রিন, SMS আর ইনভয়েস আগে বাংলায় লেখা, সেলাররা যে শব্দ ব্যবহার করে সেভাবে। ইংরেজি একটা টগল।</p></div>
+        <div class="val card"><div class="ic"><svg><use href="#shield"/></svg></div><h3 data-en="Your shop's data is yours alone">আপনার দোকানের ডেটা শুধু আপনার</h3><p data-en="Every request is checked against your shop. Every change is logged with who made it. Backups run every night.">প্রতিটা রিকোয়েস্ট আপনার দোকানের সাথে মিলিয়ে দেখা হয়। কে কী বদলালো তার লগ থাকে। প্রতি রাতে ব্যাকআপ।</p></div>
+        <div class="val card"><div class="ic"><svg><use href="#truck"/></svg></div><h3 data-en="Your couriers, your rates">আপনার কুরিয়ার, আপনার রেট</h3><p data-en="Couriers are booked on your own account. We do not sit between you and the people who deliver your parcels.">কুরিয়ার বুক হয় আপনার নিজের অ্যাকাউন্টে। আপনি আর যারা পার্সেল পৌঁছায়, তাদের মাঝে আমরা বসি না।</p></div>
+        <div class="val card"><div class="ic"><svg><use href="#heart"/></svg></div><h3 data-en="A person answers">একজন মানুষ উত্তর দেয়</h3><p data-en="Setup help for your first shop is free, on WhatsApp or a call, in Bangla.">প্রথম দোকানের সেটআপে সাহায্য ফ্রি, WhatsApp-এ বা কলে, বাংলায়।</p></div>
+      </div>
+    </div>
+  </section>
+  <section>
+    <div class="wrap">
+      <div class="sec-head"><span class="eyebrow" data-en="The team">টিম</span><h2 data-en="Small, in Dhaka, reachable">ছোট, ঢাকায়, নাগালের মধ্যে</h2><p data-en="Names and photos go here once the team agrees to be shown. Until then the cards stay honest placeholders, not stock faces.">টিম দেখাতে রাজি হলে এখানে নাম আর ছবি বসবে। ততদিন কার্ডগুলো সৎ প্লেসহোল্ডার, স্টক মুখ নয়।</p></div>
+      <div class="people">
+        <div class="person card"><i>?</i><div><b data-en="Founder">ফাউন্ডার</b><span data-en="Runs the Lytronix shop and the platform">Lytronix-এর দোকান আর প্ল্যাটফর্ম চালান</span></div></div>
+        <div class="person card"><i>?</i><div><b data-en="Engineering">ইঞ্জিনিয়ারিং</b><span data-en="Builds and operates Lytro">Lytro বানায় আর চালায়</span></div></div>
+        <div class="person card"><i>?</i><div><b data-en="Seller support">সেলার সাপোর্ট</b><span data-en="Your WhatsApp line, in Bangla">আপনার WhatsApp লাইন, বাংলায়</span></div></div>
+      </div>
+    </div>
+  </section>
+  <section class="band on-dark" style="padding-block:56px;text-align:center">
+    <div class="glow" aria-hidden="true"></div>
+    <div class="wrap" style="display:grid;gap:14px;justify-items:center">
+      <h2 style="font-size:clamp(1.5rem,1.1rem+2vw,2.25rem)" data-en="See it with your own orders">নিজের অর্ডার দিয়েই দেখুন</h2>
+      <p style="color:#eef9f7" data-en="Three minutes, a phone number, no card.">তিন মিনিট, একটা ফোন নম্বর, কার্ড লাগবে না।</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center"><a href="#signup" class="btn btn-accent" data-en="Open a free shop">ফ্রি দোকান খুলুন</a><a href="#contact" class="btn btn-ghost" data-en="Talk to us first">আগে কথা বলুন</a></div>
+    </div>
+  </section>
+  <footer class="site"><div class="wrap"><span class="wordmark"><svg class="wmk" style="height:26px"><use href="#wordmark"/></svg></span><nav><a href="#about" data-en="About">আমাদের সম্পর্কে</a><a href="#contact" data-en="Contact">যোগাযোগ</a><a href="#" data-en="Terms">টার্মস</a><a href="#" data-en="Privacy">প্রাইভেসি</a></nav><span>© 2026 Lytro by Lytronix</span></div></footer>
+</div>
+
+<!-- ============================== CONTACT ============================== -->
+<div class="page" id="page-contact" hidden>
+  <header class="nav">
+    <div class="wrap">
+      <a href="#about" class="wordmark" aria-label="Lytro"><svg class="wmk"><use href="#wordmark"/></svg></a>
+      <nav class="nav-links" aria-label="Main"><a href="#" data-en="Features">ফিচার</a><a href="#" data-en="Pricing">প্রাইসিং</a><a href="#" data-en="FAQ">প্রশ্নোত্তর</a><a href="#about" data-en="About">আমাদের সম্পর্কে</a><a href="#contact" class="on" data-en="Contact">যোগাযোগ</a></nav>
+      <div class="acts"><a href="#" class="login" data-en="Log in">লগইন</a><a href="#signup" class="btn btn-accent cta" data-en="Open a free shop">ফ্রি দোকান খুলুন</a></div>
+    </div>
+  </header>
+  <section class="band on-dark" style="padding-block:48px">
+    <div class="glow" aria-hidden="true"></div><div class="grid" aria-hidden="true"></div>
+    <div class="wrap">
+      <div class="crumbs"><span>lytro.app</span><span>/</span><b data-en="Contact">যোগাযোগ</b></div>
+      <h1 data-en-html="Talk to a person,<br><em>not a bot.</em>">একজন মানুষের সাথে কথা বলুন,<br><em>বটের সাথে নয়।</em></h1>
+      <p class="lead" data-en="Stuck on setup, unsure which plan fits, or want a demo on a call? Message us. We answer in Bangla or English, Saturday to Thursday, 10 am to 8 pm.">সেটআপে আটকে গেছেন, কোন প্ল্যান মানায় বুঝছেন না, বা কলে ডেমো চান? মেসেজ দিন। বাংলা বা ইংরেজিতে উত্তর দিই, শনি থেকে বৃহস্পতি, সকাল ১০টা থেকে রাত ৮টা।</p>
+    </div>
+  </section>
+  <section>
+    <div class="wrap cgrid">
+      <div class="chan">
+        <div class="ch card"><div class="ic"><svg><use href="#chat"/></svg></div><b>WhatsApp</b><span class="v">+880 1X-XXXX-XXXX</span><small data-en="Fastest. Send a screenshot of where you are stuck.">সবচেয়ে দ্রুত। যেখানে আটকে আছেন তার স্ক্রিনশট পাঠান।</small><a href="#" class="btn btn-primary" data-en="Message">মেসেজ</a></div>
+        <div class="ch card"><div class="ic"><svg><use href="#phone"/></svg></div><b data-en="Phone">ফোন</b><span class="v">+880 1X-XXXX-XXXX</span><small data-en="For a live demo on a call or screen share.">কলে বা স্ক্রিন শেয়ারে লাইভ ডেমোর জন্য।</small><a href="#" class="btn btn-outline" data-en="Call">কল</a></div>
+        <div class="ch card"><div class="ic"><svg><use href="#mail"/></svg></div><b data-en="Email">ইমেইল</b><span class="v">hello@lytro.app</span><small data-en="Partnerships, agencies, anything that needs a paper trail.">পার্টনারশিপ, এজেন্সি, যেখানে লিখিত রেকর্ড দরকার।</small><a href="#" class="btn btn-outline" data-en="Copy">কপি</a></div>
+        <div class="hours card">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b data-en="Support hours">সাপোর্টের সময়</b><span class="now" data-en="Open now">এখন খোলা</span></div>
+          <div class="row"><span data-en="Saturday to Thursday">শনি থেকে বৃহস্পতি</span><span class="num">10:00 – 20:00</span></div>
+          <div class="row"><span data-en="Friday">শুক্রবার</span><span data-en="Closed; WhatsApp answered next morning">বন্ধ; WhatsApp-এর উত্তর পরদিন সকালে</span></div>
+          <div class="row"><span data-en="Urgent: payment page or storefront down">জরুরি: পেমেন্ট পেজ বা স্টোরফ্রন্ট বন্ধ</span><span data-en="Any time, WhatsApp">যেকোনো সময়, WhatsApp</span></div>
+        </div>
+        <div class="map"><div><div class="pin" aria-hidden="true"></div><b data-en="Lytronix, Dhaka">Lytronix, ঢাকা</b><span data-en="Street address goes here. Visits by appointment.">রাস্তার ঠিকানা এখানে বসবে। দেখা করতে আগে সময় নিন।</span></div></div>
+      </div>
+      <div>
+        <form class="cf card" id="cform" novalidate>
+          <div><h2 style="font-size:1.25rem" data-en="Write to us">আমাদের লিখুন</h2><p class="muted" style="font-size:0.9rem;margin-top:4px" data-en="We reply within one business day. For setup help, send your page link and we will call you.">এক কর্মদিবসের মধ্যে উত্তর দিই। সেটআপে সাহায্যের জন্য পেজের লিংক দিন, আমরা কল করবো।</p></div>
+          <div class="field"><label data-en="What is it about?">কী নিয়ে?</label>
+            <div class="topics">
+              <label><input type="radio" name="topic" value="setup" checked><span data-en="Setup help">সেটআপে সাহায্য</span></label>
+              <label><input type="radio" name="topic" value="demo"><span data-en="Book a demo">ডেমো বুক</span></label>
+              <label><input type="radio" name="topic" value="plan"><span data-en="Plans and pricing">প্ল্যান আর দাম</span></label>
+              <label><input type="radio" name="topic" value="bug"><span data-en="Something is broken">কিছু ভেঙে গেছে</span></label>
+              <label><input type="radio" name="topic" value="partner"><span data-en="Partnership">পার্টনারশিপ</span></label>
+            </div>
+          </div>
+          <div class="f2">
+            <div class="field" id="f-name"><label for="c-name" data-en="Your name">আপনার নাম</label><input id="c-name" type="text" autocomplete="name" placeholder="রহিম উদ্দিন" data-en-placeholder="Rahim Uddin"><span class="err" hidden data-en="Please enter your name.">নামটা লিখুন।</span></div>
+            <div class="field" id="f-phone"><label for="c-phone" data-en="Phone number">ফোন নম্বর</label><input id="c-phone" type="tel" inputmode="numeric" autocomplete="tel" placeholder="01XXXXXXXXX"><span class="err" hidden data-en="Enter a valid Bangladeshi mobile number.">সঠিক বাংলাদেশী মোবাইল নম্বর দিন।</span></div>
+          </div>
+          <div class="field"><label for="c-page" data-en-html="Facebook page or shop link <small>(optional)</small>">ফেসবুক পেজ বা দোকানের লিংক <small>(ঐচ্ছিক)</small></label><input id="c-page" type="url" inputmode="url" placeholder="facebook.com/rahimgadgets"></div>
+          <div class="field" id="f-msg"><label for="c-msg" data-en="Message">মেসেজ</label><textarea id="c-msg" placeholder="যেটা জানতে চান বা যেখানে আটকে আছেন, এক-দুই লাইনে লিখুন।" data-en-placeholder="One or two lines on what you need or where you are stuck."></textarea><span class="err" hidden data-en="Write a line so we know how to help.">এক লাইন লিখুন, যাতে বুঝি কীভাবে সাহায্য করবো।</span></div>
+          <div class="act-row"><button type="submit" class="btn btn-accent full" data-en="Send message">মেসেজ পাঠান</button></div>
+          <p class="legal" data-en="We use your number only to reply. No marketing SMS.">আপনার নম্বর শুধু উত্তর দিতে ব্যবহার করি। মার্কেটিং SMS নেই।</p>
+        </form>
+        <div class="sent card" id="csent" hidden>
+          <div class="ok"><svg><use href="#check"/></svg></div>
+          <h2 style="font-size:1.25rem" data-en="Got it. We will reply within one business day.">পেয়েছি। এক কর্মদিবসের মধ্যে উত্তর দেবো।</h2>
+          <p class="muted" data-en="If it is urgent, WhatsApp is faster.">জরুরি হলে WhatsApp-এ দ্রুত হয়।</p>
+          <button type="button" class="btn btn-outline" id="cagain" data-en="Send another">আরেকটা পাঠান</button>
+        </div>
+      </div>
+    </div>
+  </section>
+  <footer class="site"><div class="wrap"><span class="wordmark"><svg class="wmk" style="height:26px"><use href="#wordmark"/></svg></span><nav><a href="#about" data-en="About">আমাদের সম্পর্কে</a><a href="#contact" data-en="Contact">যোগাযোগ</a><a href="#" data-en="Terms">টার্মস</a><a href="#" data-en="Privacy">প্রাইভেসি</a></nav><span>© 2026 Lytro by Lytronix</span></div></footer>
+</div>
+
+<!-- ============================== SIGN-UP (app.lytro.app) ============================== -->
+<div class="page app" id="page-signup" hidden>
+  <div class="app-top"><div class="wrap"><a href="#about" class="wordmark" aria-label="Lytro"><svg class="wmk" style="height:30px"><use href="#wordmark"/></svg></a><a href="#contact" class="help"><svg><use href="#help"/></svg><span data-en="Need help?">সাহায্য লাগবে?</span></a></div></div>
+  <div class="app-main">
+    <div class="steps" id="steps" aria-hidden="true">
+      <div class="on" data-s="1"><i></i><span data-en="Phone">ফোন</span></div>
+      <div data-s="2"><i></i><span data-en="Your shop">আপনার দোকান</span></div>
+      <div data-s="3"><i></i><span data-en="Password">পাসওয়ার্ড</span></div>
+    </div>
+
+    <!-- Step 1a: phone -->
+    <form class="pane card" id="s-phone" novalidate>
+      <h2 data-en="Welcome to Lytro">লাইট্রোতে স্বাগতম</h2>
+      <p class="sub" data-en="Enter your phone number to continue. New or returning, this is the only door.">চালিয়ে যেতে আপনার ফোন নম্বর দিন। নতুন হোন বা পুরনো, দরজা এই একটাই।</p>
+      <div class="field" id="f-sphone"><label for="s-phone-in" data-en="Phone number">ফোন নম্বর</label>
+        <div class="phone-f"><span class="cc">🇧🇩 +880</span><input id="s-phone-in" type="tel" inputmode="numeric" autocomplete="tel-national" placeholder="1XXXXXXXXX" maxlength="11"></div>
+        <span class="err" hidden data-en="Enter a valid Bangladeshi mobile number.">সঠিক বাংলাদেশী মোবাইল নম্বর দিন।</span>
+      </div>
+      <button type="submit" class="btn btn-accent" data-en="Continue">এগিয়ে যান</button>
+      <div class="or" data-en="or">অথবা</div>
+      <div class="oauth">
+        <button type="button" class="btn btn-outline"><img src="third-party/google.svg" alt="" width="18" height="18"><span data-en="Continue with Google">গুগল দিয়ে চালিয়ে যান</span></button>
+        <button type="button" class="btn btn-outline"><img src="third-party/facebook.svg" alt="" width="18" height="18"><span data-en="Continue with Facebook">ফেসবুক দিয়ে চালিয়ে যান</span></button>
+      </div>
+      <p class="legal" data-en-html="By continuing you agree to the <a href='#'>Terms</a> and <a href='#'>Privacy policy</a>. No card, no monthly fee.">এগিয়ে গেলে আপনি <a href="#">টার্মস</a> আর <a href="#">প্রাইভেসি পলিসি</a>-তে রাজি হচ্ছেন। কার্ড নেই, মাসিক ফি নেই।</p>
+      <p class="legal"><a href="#" data-en="Staff? Log in here">স্টাফ? এখানে লগইন করুন</a></p>
+    </form>
+
+    <!-- Step 1b: code -->
+    <form class="pane card" id="s-code" novalidate hidden>
+      <button type="button" class="btn btn-link" id="code-back" style="justify-self:start;margin-left:-10px"><svg style="width:18px;height:18px"><use href="#back"/></svg><span data-en="Change number">নম্বর বদলান</span></button>
+      <h2 data-en="Verify your number">আপনার নম্বর ভেরিফাই করুন</h2>
+      <p class="sub"><span data-en="A 6-digit code was sent to">৬ সংখ্যার একটি কোড পাঠানো হয়েছে</span> <b class="num" id="code-phone">+880 1XXXXXXXXX</b></p>
+      <div class="field"><label data-en="Verification code">ভেরিফিকেশন কোড</label>
+        <div class="otp" id="otp"><input inputmode="numeric" maxlength="1" aria-label="Digit 1" autocomplete="one-time-code"><input inputmode="numeric" maxlength="1" aria-label="Digit 2"><input inputmode="numeric" maxlength="1" aria-label="Digit 3"><input inputmode="numeric" maxlength="1" aria-label="Digit 4"><input inputmode="numeric" maxlength="1" aria-label="Digit 5"><input inputmode="numeric" maxlength="1" aria-label="Digit 6"></div>
+        <span class="err" id="otp-err" hidden data-en="That code is not right. 4 tries left.">কোডটা ঠিক নেই। আর ৪ বার চেষ্টা করা যাবে।</span>
+      </div>
+      <div class="resend"><span data-en="Valid for 5 minutes.">৫ মিনিট পর্যন্ত কাজ করবে।</span><button type="button" class="btn btn-link" id="resend" disabled><span data-en="Resend in">আবার পাঠান</span> <span class="num" id="resend-t">60</span>s</button></div>
+      <button type="submit" class="btn btn-accent" data-en="Verify">ভেরিফাই করুন</button>
+      <p class="legal"><a href="#" data-en="Use a password instead">পাসওয়ার্ড দিয়ে লগইন করুন</a></p>
+    </form>
+
+    <!-- Step 2: create shop -->
+    <form class="pane card" id="s-shop" novalidate hidden>
+      <h2 data-en="Name your shop">দোকানের নাম দিন</h2>
+      <p class="sub" data-en="Two things make a shop: a name and a link. Everything else can wait.">দুটো জিনিসে দোকান হয়: একটা নাম আর একটা লিংক। বাকিটা পরে।</p>
+      <div class="field" id="f-sname"><label for="s-name" data-en="Shop name">দোকানের নাম</label><input id="s-name" type="text" maxlength="60" placeholder="Rahim Gadgets" autocomplete="organization"><span class="err" hidden data-en="A shop needs a name, up to 60 characters.">দোকানের একটা নাম লাগবে, সর্বোচ্চ ৬০ অক্ষর।</span></div>
+      <div class="field"><label for="s-slug" data-en="Shop link">দোকানের লিংক</label>
+        <div class="slug"><input id="s-slug" type="text" autocapitalize="none" autocomplete="off" placeholder="rahim-gadgets"><span>.lytro.app</span></div>
+        <p class="hint"><span data-en="Customers see">কাস্টমার দেখবে</span> <b id="slug-store">rahim-gadgets.lytro.app</b> · <span data-en="you work at">আপনি কাজ করবেন</span> <b id="slug-app">app.lytro.app/rahim-gadgets</b></p>
+      </div>
+      <div class="f2">
+        <div class="field" id="f-owner"><label for="s-owner" data-en="Your name">আপনার নাম</label><input id="s-owner" type="text" autocomplete="name" placeholder="রহিম উদ্দিন" data-en-placeholder="Rahim Uddin"><span class="err" hidden data-en="Please enter your name.">নামটা লিখুন।</span></div>
+        <div class="field"><label for="s-addr" data-en="Shop address">দোকানের ঠিকানা</label><input id="s-addr" type="text" autocomplete="street-address" placeholder="মিরপুর ১০, ঢাকা" data-en-placeholder="Mirpur 10, Dhaka"></div>
+      </div>
+      <div class="field"><label data-en-html="What do you mainly sell? <small>(optional, sets sensible defaults)</small>">মূলত কী বিক্রি করেন? <small>(ঐচ্ছিক, কিছু ডিফল্ট ঠিক করে দেয়)</small></label>
+        <div class="types">
+          <label><input type="radio" name="type" value="clothing"><span data-en="Clothing">পোশাক</span></label>
+          <label><input type="radio" name="type" value="cosmetics"><span data-en="Cosmetics">কসমেটিক্স</span></label>
+          <label><input type="radio" name="type" value="gadgets" checked><span data-en="Mobiles and gadgets">মোবাইল ও গ্যাজেট</span></label>
+          <label><input type="radio" name="type" value="shoes"><span data-en="Shoes and bags">জুতা ও ব্যাগ</span></label>
+          <label><input type="radio" name="type" value="food"><span data-en="Food and bakery">খাবার ও বেকারি</span></label>
+          <label><input type="radio" name="type" value="other"><span data-en="Something else">অন্য কিছু</span></label>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-accent" data-en="Create my shop">দোকান তৈরি করুন</button>
+    </form>
+
+    <!-- Step 3: password (optional) -->
+    <form class="pane card" id="s-pass" novalidate hidden>
+      <h2 data-en="Set a password?">পাসওয়ার্ড দেবেন?</h2>
+      <p class="sub" data-en="Optional. With a password you can sign in without waiting for an SMS. You can also do this later from settings.">ঐচ্ছিক। পাসওয়ার্ড থাকলে SMS-এর অপেক্ষা ছাড়াই লগইন করা যায়। পরে সেটিংস থেকেও করা যাবে।</p>
+      <div class="field"><label for="s-pw" data-en="Password">পাসওয়ার্ড</label><input id="s-pw" type="password" autocomplete="new-password" placeholder="••••••••"></div>
+      <div class="pw-rules" id="pw-rules">
+        <div data-r="len"><svg><use href="#check"/></svg><span data-en="At least 8 characters">কমপক্ষে ৮ অক্ষর</span></div>
+        <div data-r="num"><svg><use href="#check"/></svg><span data-en="Has a number">একটা সংখ্যা আছে</span></div>
+        <div data-r="phone"><svg><use href="#check"/></svg><span data-en="Not your phone number">আপনার ফোন নম্বর নয়</span></div>
+      </div>
+      <div class="act-row"><button type="button" class="btn btn-outline" id="pw-skip" data-en="Skip for now">এখন থাক</button><button type="submit" class="btn btn-primary" data-en="Save password">পাসওয়ার্ড সেভ করুন</button></div>
+    </form>
+
+    <!-- Done -->
+    <div class="pane card" id="s-done" hidden>
+      <div class="done-h">
+        <div class="ok"><svg><use href="#check"/></svg></div>
+        <h2 data-en="Your shop is live">আপনার দোকান লাইভ</h2>
+        <span class="url" id="done-url">rahim-gadgets.lytro.app</span>
+        <p class="muted" style="font-size:0.9375rem" data-en="30-day trial started. No card, no monthly fee. Three things make the first sale happen:">৩০ দিনের ট্রায়াল শুরু। কার্ড নেই, মাসিক ফি নেই। প্রথম বিক্রির জন্য তিনটা কাজ:</p>
+      </div>
+      <div class="todo">
+        <a href="#"><span class="ic"><svg><use href="#boxes"/></svg></span><b data-en="Add your first product">প্রথম প্রোডাক্ট তুলুন</b><small data-en="Name, price, a photo. 1 minute.">নাম, দাম, একটা ছবি। ১ মিনিট।</small><svg class="arrow"><use href="#arrow"/></svg></a>
+        <a href="#"><span class="ic"><svg><use href="#wallet"/></svg></span><b data-en="Add your bKash or Nagad number">বিকাশ বা নগদ নম্বর দিন</b><small data-en="So customers can pay you directly.">যাতে কাস্টমার সরাসরি আপনাকে পে করে।</small><svg class="arrow"><use href="#arrow"/></svg></a>
+        <a href="#"><span class="ic"><svg><use href="#sms"/></svg></span><b data-en="Pair the Listener app">লিসেনার অ্যাপ পেয়ার করুন</b><small data-en="Payments match themselves from the SMS.">SMS থেকে পেমেন্ট নিজেই মিলে যাবে।</small><svg class="arrow"><use href="#arrow"/></svg></a>
+      </div>
+      <div class="act-row"><a href="#" class="btn btn-accent full" data-en="Go to my dashboard">ড্যাশবোর্ডে যান</a></div>
+      <p class="legal" data-en-html="Share your shop link on your page: <b id='done-share'>rahim-gadgets.lytro.app</b>">পেজে দোকানের লিংক শেয়ার করুন: <b id="done-share">rahim-gadgets.lytro.app</b></p>
+    </div>
+  </div>
+  <div class="app-foot"><span>Powered by</span><svg class="wmk"><use href="#wordmark"/></svg><span>· Lytronix</span></div>
+</div>
+
+<script>
+  (function () {
+    var body = document.body; body.setAttribute('data-lang', 'bn');
+    /* Language */
+    var nodes = Array.prototype.slice.call(document.querySelectorAll('[data-en],[data-en-html],[data-en-placeholder]'));
+    nodes.forEach(function (el) {
+      if (el.hasAttribute('data-en-html')) el.setAttribute('data-bn-html', el.innerHTML);
+      else if (el.hasAttribute('data-en')) el.setAttribute('data-bn', el.textContent);
+      if (el.hasAttribute('data-en-placeholder')) el.setAttribute('data-bn-placeholder', el.getAttribute('placeholder'));
+    });
+    function setLang(lang) {
+      body.setAttribute('data-lang', lang); document.documentElement.setAttribute('lang', lang);
+      nodes.forEach(function (el) {
+        if (el.hasAttribute('data-en-html')) el.innerHTML = el.getAttribute(lang === 'en' ? 'data-en-html' : 'data-bn-html');
+        else if (el.hasAttribute('data-en')) el.textContent = el.getAttribute(lang === 'en' ? 'data-en' : 'data-bn');
+        if (el.hasAttribute('data-en-placeholder')) el.setAttribute('placeholder', el.getAttribute(lang === 'en' ? 'data-en-placeholder' : 'data-bn-placeholder'));
+      });
+      document.getElementById('lang-bn').setAttribute('aria-pressed', lang === 'bn');
+      document.getElementById('lang-en').setAttribute('aria-pressed', lang === 'en');
+      try { localStorage.setItem('lytro-lang', lang); } catch (e) {}
+    }
+    document.getElementById('lang-bn').addEventListener('click', function () { setLang('bn'); });
+    document.getElementById('lang-en').addEventListener('click', function () { setLang('en'); });
+    var saved = null; try { saved = localStorage.getItem('lytro-lang'); } catch (e) {}
+    if (saved === 'en') setLang('en');
+
+    /* Page switcher by hash */
+    var pages = ['about', 'contact', 'signup'];
+    function showPage(name) {
+      if (pages.indexOf(name) < 0) name = 'about';
+      pages.forEach(function (p) { document.getElementById('page-' + p).hidden = (p !== name); });
+      document.querySelectorAll('.proto a[data-page]').forEach(function (a) { a.classList.toggle('on', a.getAttribute('data-page') === name); });
+      window.scrollTo(0, 0);
+    }
+    function route() { showPage((location.hash || '#about').slice(1)); }
+    window.addEventListener('hashchange', route); route();
+
+    /* Contact form */
+    var cf = document.getElementById('cform');
+    function bdPhone(v) { return /^(?:\+?88)?01[3-9]\d{8}$/.test(v.replace(/[\s-]/g, '')); }
+    function flag(id, bad) { var f = document.getElementById(id); f.classList.toggle('invalid', bad); f.querySelector('.err').hidden = !bad; }
+    cf.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var n = document.getElementById('c-name').value.trim(), p = document.getElementById('c-phone').value, m = document.getElementById('c-msg').value.trim();
+      flag('f-name', !n); flag('f-phone', !bdPhone(p)); flag('f-msg', !m);
+      if (!n || !bdPhone(p) || !m) { cf.querySelector('.invalid input, .invalid textarea').focus(); return; }
+      cf.hidden = true; document.getElementById('csent').hidden = false;
+    });
+    document.getElementById('cagain').addEventListener('click', function () { cf.reset(); cf.hidden = false; document.getElementById('csent').hidden = true; });
+    document.querySelectorAll('#f-name input, #f-phone input, #f-msg textarea').forEach(function (i) { i.addEventListener('input', function () { i.closest('.field').classList.remove('invalid'); i.closest('.field').querySelector('.err').hidden = true; }); });
+
+    /* Sign-up flow */
+    var panes = ['s-phone', 's-code', 's-shop', 's-pass', 's-done'];
+    function go(id, step) {
+      panes.forEach(function (p) { document.getElementById(p).hidden = (p !== id); });
+      document.querySelectorAll('#steps div').forEach(function (d) { var s = +d.getAttribute('data-s'); d.classList.toggle('done', s < step); d.classList.toggle('on', s === step); });
+      window.scrollTo(0, 0);
+    }
+    var phoneVal = '';
+    var timer = null;
+    function startResend() {
+      var t = 60, btn = document.getElementById('resend'), out = document.getElementById('resend-t');
+      btn.disabled = true; out.textContent = t;
+      clearInterval(timer);
+      timer = setInterval(function () { t--; out.textContent = t; if (t <= 0) { clearInterval(timer); btn.disabled = false; btn.querySelector('span:first-child').textContent = (body.getAttribute('data-lang') === 'en') ? 'Resend code' : 'আবার কোড পাঠান'; out.textContent = ''; btn.lastChild.textContent = ''; } }, 1000);
+    }
+    document.getElementById('s-phone').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var v = document.getElementById('s-phone-in').value.replace(/\D/g, '');
+      if (v.length === 11 && v.charAt(0) === '0') v = v.slice(1);
+      var ok = /^1[3-9]\d{8}$/.test(v);
+      flag('f-sphone', !ok); if (!ok) { document.getElementById('s-phone-in').focus(); return; }
+      phoneVal = '+880 ' + v; document.getElementById('code-phone').textContent = phoneVal;
+      go('s-code', 1); startResend(); document.querySelector('#otp input').focus();
+    });
+    document.getElementById('s-phone-in').addEventListener('input', function () { flag('f-sphone', false); });
+    document.getElementById('code-back').addEventListener('click', function () { go('s-phone', 1); });
+    var otp = document.querySelectorAll('#otp input');
+    otp.forEach(function (inp, i) {
+      inp.addEventListener('input', function () { inp.value = inp.value.replace(/\D/g, '').slice(0, 1); document.getElementById('otp-err').hidden = true; if (inp.value && otp[i + 1]) otp[i + 1].focus(); });
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Backspace' && !inp.value && otp[i - 1]) otp[i - 1].focus(); });
+      inp.addEventListener('paste', function (e) { var d = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '').slice(0, 6); if (d.length === 6) { e.preventDefault(); otp.forEach(function (o, k) { o.value = d[k]; }); otp[5].focus(); } });
+    });
+    document.getElementById('resend').addEventListener('click', function () { startResend(); });
+    document.getElementById('s-code').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var code = Array.prototype.map.call(otp, function (o) { return o.value; }).join('');
+      if (code.length < 6) { document.getElementById('otp-err').hidden = false; otp[code.length].focus(); return; }
+      clearInterval(timer); go('s-shop', 2); document.getElementById('s-name').focus();
+    });
+    function slugify(s) { return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40); }
+    var slugTouched = false;
+    document.getElementById('s-name').addEventListener('input', function () { flag('f-sname', false); if (!slugTouched) { document.getElementById('s-slug').value = slugify(this.value); updSlug(); } });
+    document.getElementById('s-slug').addEventListener('input', function () { slugTouched = !!this.value; this.value = slugify(this.value); updSlug(); });
+    function updSlug() { var v = document.getElementById('s-slug').value || 'your-shop'; document.getElementById('slug-store').textContent = v + '.lytro.app'; document.getElementById('slug-app').textContent = 'app.lytro.app/' + v; }
+    document.getElementById('s-shop').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var n = document.getElementById('s-name').value.trim(), o = document.getElementById('s-owner').value.trim();
+      flag('f-sname', !n || n.length > 60); flag('f-owner', !o);
+      if (!n || n.length > 60 || !o) { document.querySelector('#s-shop .invalid input').focus(); return; }
+      var v = document.getElementById('s-slug').value || slugify(n) || 'your-shop';
+      document.getElementById('done-url').textContent = v + '.lytro.app'; var sh = document.getElementById('done-share'); if (sh) sh.textContent = v + '.lytro.app';
+      go('s-pass', 3); document.getElementById('s-pw').focus();
+    });
+    document.getElementById('s-owner').addEventListener('input', function () { flag('f-owner', false); });
+    document.getElementById('s-pw').addEventListener('input', function () {
+      var v = this.value; var r = document.getElementById('pw-rules');
+      r.querySelector('[data-r="len"]').classList.toggle('ok', v.length >= 8);
+      r.querySelector('[data-r="num"]').classList.toggle('ok', /\d/.test(v));
+      r.querySelector('[data-r="phone"]').classList.toggle('ok', v.length > 0 && phoneVal.replace(/\D/g, '').indexOf(v.replace(/\D/g, '')) < 0);
+    });
+    document.getElementById('pw-skip').addEventListener('click', function () { go('s-done', 4); });
+    document.getElementById('s-pass').addEventListener('submit', function (e) { e.preventDefault(); go('s-done', 4); });
+  })();
+</script>
