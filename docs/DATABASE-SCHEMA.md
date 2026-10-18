@@ -326,14 +326,29 @@ CREATE TABLE control.platform_settings (
 ### 2.5 Canonical locations and courier mapping
 
 ```sql
+CREATE TABLE control.divisions (                    -- CUS-08: the 8 divisions
+    code            text PRIMARY KEY,               -- 'dhaka', 'chattogram', ...
+    name_en         text NOT NULL,
+    name_bn         text NOT NULL
+);
+
+CREATE TABLE control.cities (                       -- CUS-08: one per city corporation; Dhaka North and South
+    code            text PRIMARY KEY,               -- together form 'dhaka' ("Dhaka city"), so 11 rows
+    name_en         text NOT NULL,
+    name_bn         text NOT NULL
+);
+
 CREATE TABLE control.locations (
     id              serial PRIMARY KEY,
     zilla           text NOT NULL,
     thana           text NOT NULL,
+    division_code   text NOT NULL REFERENCES control.divisions(code),  -- the zilla's division
+    city_code       text REFERENCES control.cities(code),              -- null = outside every city area
     UNIQUE (zilla, thana)
 );
 -- CUS-08: one platform-wide list, seeded once from the standard 64-district dataset,
--- identical for every tenant regardless of which couriers it has connected.
+-- identical for every tenant regardless of which couriers it has connected. A thana belongs to at most one
+-- city. Adding a thana or changing its city is a platform data change, announced on the notice board (DLV-02).
 
 CREATE TABLE control.courier_location_map (
     id              serial PRIMARY KEY,
@@ -428,6 +443,8 @@ CREATE TABLE tenant.categories (
     slug            text NOT NULL,
     image_id        uuid,                         -- tenant.media (MED); optional banner/image
     depth           smallint NOT NULL CHECK (depth BETWEEN 1 AND 4),   -- PRD-03
+    behaves_like    text,                         -- PST-06: a control.business_type_presets key; null => nearest
+                                                  -- ancestor's, and with none the shop's own type
     sort_order      integer NOT NULL DEFAULT 0,
     visible         boolean NOT NULL DEFAULT true,
     deleted_at      timestamptz,
@@ -442,18 +459,21 @@ CREATE TYPE tenant.stock_unit      AS ENUM ('piece', 'kg', 'g', 'liter', 'ml', '
 CREATE TYPE tenant.stock_tracking  AS ENUM ('tracked', 'not_tracked');                               -- INV-02
 CREATE TYPE tenant.stock_state     AS ENUM ('in', 'low', 'out');                                     -- CCH-08
 CREATE TYPE tenant.payment_policy  AS ENUM ('none', 'delivery_charge_only', 'partial_advance', 'full_prepayment');  -- PRD-08
+CREATE TYPE tenant.product_kind    AS ENUM ('standard', 'combo');                                     -- CMB-01 (Phase 4)
 
 CREATE TABLE tenant.products (
     id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id           uuid NOT NULL,
     name                varchar(200) NOT NULL,
     slug                text NOT NULL,
+    kind                tenant.product_kind NOT NULL DEFAULT 'standard',  -- CMB-01: a combo holds no stock
     description         text,
     base_price          numeric(10,2) NOT NULL CHECK (base_price >= 0),
     stock_unit          tenant.stock_unit NOT NULL DEFAULT 'piece',
     stock_tracking      tenant.stock_tracking NOT NULL DEFAULT 'tracked',
     batch_tracked       boolean NOT NULL DEFAULT false,     -- INV-12
     serial_tracked      boolean NOT NULL DEFAULT false,     -- INV-14
+    shared_stock        boolean NOT NULL DEFAULT false,     -- INV-24: variants draw from one stock
     low_stock_threshold numeric(14,3) NOT NULL DEFAULT 5 CHECK (low_stock_threshold >= 0),  -- INV-08
     delivery_charge     numeric(10,2) CHECK (delivery_charge >= 0),  -- DLV-03 override; null => zone charge
     weight_kg           numeric(10,3),                     -- null => Adjustable unavailable (PRD-16)
@@ -476,6 +496,7 @@ CREATE TABLE tenant.products (
     UNIQUE (tenant_id, id),
     CHECK (NOT (stock_tracking = 'not_tracked' AND (batch_tracked OR serial_tracked))),
     CHECK (NOT (batch_tracked AND serial_tracked)),
+    CHECK (NOT (shared_stock AND serial_tracked)),            -- INV-24
     FOREIGN KEY (tenant_id, primary_category_id) REFERENCES tenant.categories(tenant_id, id)
 );
 CREATE INDEX ON tenant.products (tenant_id, primary_category_id, sort_order) WHERE deleted_at IS NULL;
@@ -513,6 +534,8 @@ CREATE TABLE tenant.product_variants (
     delivery_mode   tenant.delivery_mode,
     image_id        uuid,
     avg_cost        numeric(12,4),                -- INV-10; never in a public response; null = unknown
+    pack_amount     numeric(14,3) CHECK (pack_amount > 0),  -- INV-24: shared-stock units per unit sold
+    is_stock_holder boolean NOT NULL DEFAULT false,         -- INV-24: the hidden variant holding a shared stock
     active          boolean NOT NULL DEFAULT true,
     deleted_at      timestamptz,
     UNIQUE (tenant_id, id),
@@ -520,6 +543,10 @@ CREATE TABLE tenant.product_variants (
     FOREIGN KEY (tenant_id, product_id) REFERENCES tenant.products(tenant_id, id)
 );
 CREATE UNIQUE INDEX ON tenant.product_variants (tenant_id, sku) WHERE sku IS NOT NULL AND deleted_at IS NULL;
+-- INV-24: a product with shared_stock has one extra variant with is_stock_holder = true (combination_key
+-- '#stock'). Only it has a stock_levels row, batches and movements; it is never sold, never public and not
+-- counted by ATR-14. Every sellable variant has pack_amount, and reserving or moving N of it reserves or
+-- moves N x pack_amount on the holder inside InventoryLedger.apply().
 -- ATR-14 / ATL-03: a trigger refuses the 101st variant of one product.
 ```
 
@@ -550,8 +577,11 @@ CREATE TABLE tenant.attribute_options (
     attribute_id    uuid NOT NULL REFERENCES tenant.attributes(id),
     tenant_id       uuid,                         -- mirrors the attribute's scope (same RLS rule)
     value           varchar(80) NOT NULL,
+    swatch_color    char(7) CHECK (swatch_color ~ '^#[0-9A-Fa-f]{6}$'),  -- ATR-18, optional
+    swatch_image_id uuid,                         -- ATR-18, optional; at most one of the two
     sort_order      integer NOT NULL DEFAULT 0,
     retired_at      timestamptz,
+    CHECK (swatch_color IS NULL OR swatch_image_id IS NULL),
     UNIQUE (attribute_id, lower(value))
 );
 
@@ -813,24 +843,41 @@ CREATE TABLE tenant.delivery_zones (                -- DLV-01; seeded with two r
     name            varchar(60) NOT NULL,
     charge          numeric(10,2) NOT NULL CHECK (charge >= 0),
     is_fallback     boolean NOT NULL DEFAULT false, -- DLV-02: exactly one per tenant, never deleted
+    is_home         boolean NOT NULL DEFAULT false, -- DLV-01: "Inside <home area>", exactly one, never deleted
+    auto_named      boolean NOT NULL DEFAULT true,  -- DLV-01: follows the home area's name until renamed
+    no_delivery     boolean NOT NULL DEFAULT false, -- DLV-06: public orders to this zone are refused
     UNIQUE (tenant_id, id)
 );
 CREATE UNIQUE INDEX delivery_zones_one_fallback ON tenant.delivery_zones (tenant_id) WHERE is_fallback;
+CREATE UNIQUE INDEX delivery_zones_one_home ON tenant.delivery_zones (tenant_id) WHERE is_home;
 
-CREATE TABLE tenant.delivery_zone_areas (           -- DLV-01, DLV-02: CUS-08 districts or thanas
+CREATE TABLE tenant.delivery_zone_areas (           -- DLV-01, DLV-02: CUS-08 areas at four levels
     tenant_id       uuid NOT NULL,
     zone_id         uuid NOT NULL,
-    district_code   text,                           -- exactly one of district_code, thana_code
-    thana_code      text,
-    CHECK ((district_code IS NULL) <> (thana_code IS NULL)),
+    division_code   text,                           -- exactly one of these four is set
+    zilla           text,                           -- a whole district, by its control.locations.zilla
+    city_code       text,                           -- a whole city area (control.cities)
+    location_id     integer,                        -- one thana (control.locations.id)
+    CHECK (num_nonnulls(division_code, zilla, city_code, location_id) = 1),
     FOREIGN KEY (tenant_id, zone_id) REFERENCES tenant.delivery_zones(tenant_id, id) ON DELETE CASCADE
 );
-CREATE UNIQUE INDEX delivery_zone_areas_district ON tenant.delivery_zone_areas (tenant_id, district_code)
-    WHERE district_code IS NOT NULL;
-CREATE UNIQUE INDEX delivery_zone_areas_thana ON tenant.delivery_zone_areas (tenant_id, thana_code)
-    WHERE thana_code IS NOT NULL;
--- Resolution (DLV-02): a row naming the thana, else a row naming its district, else the fallback zone.
+CREATE UNIQUE INDEX ON tenant.delivery_zone_areas (tenant_id, division_code) WHERE division_code IS NOT NULL;
+CREATE UNIQUE INDEX ON tenant.delivery_zone_areas (tenant_id, zilla) WHERE zilla IS NOT NULL;
+CREATE UNIQUE INDEX ON tenant.delivery_zone_areas (tenant_id, city_code) WHERE city_code IS NOT NULL;
+CREATE UNIQUE INDEX ON tenant.delivery_zone_areas (tenant_id, location_id) WHERE location_id IS NOT NULL;
+-- Resolution (DLV-02): the zone naming the thana, else its city, else its zilla, else its division, else the
+-- fallback zone. Cities and divisions are stored as groups, never expanded, so platform changes flow through.
+-- Every tenant starts with the home zone (one area: city_code 'dhaka', charge 70) and the fallback (130).
 -- The order line stores its computed delivery_charge (ORD-46), so editing a zone never changes old orders.
+
+CREATE TABLE tenant.product_delivery_zones (        -- DLV-07: no rows = the product goes wherever the shop delivers
+    tenant_id       uuid NOT NULL,
+    product_id      uuid NOT NULL,
+    zone_id         uuid NOT NULL,
+    PRIMARY KEY (product_id, zone_id),
+    FOREIGN KEY (tenant_id, product_id) REFERENCES tenant.products(tenant_id, id) ON DELETE CASCADE,
+    FOREIGN KEY (tenant_id, zone_id) REFERENCES tenant.delivery_zones(tenant_id, id)  -- no cascade: DLV-07
+);
 
 CREATE TABLE tenant.size_charts (                   -- PRD-17: one per product or per category
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -861,6 +908,50 @@ CREATE TABLE tenant.catalog_feeds (                 -- FED-01, FED-05: one row p
 );
 -- The feed is rendered from the public catalogue read model and cached by catalogue version (FED-04);
 -- it has no table of its own beyond the token.
+```
+
+#### Combo packs (CMB) — Phase 4
+
+```sql
+CREATE TABLE tenant.combo_parts (                   -- CMB-01: a combo product's parts
+    id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id        uuid NOT NULL,
+    combo_product_id uuid NOT NULL,
+    position         smallint NOT NULL CHECK (position BETWEEN 1 AND 10),          -- CMB-10
+    quantity         numeric(14,3) NOT NULL CHECK (quantity > 0 AND quantity <= 20), -- per combo (UOM-03)
+    UNIQUE (tenant_id, id),
+    UNIQUE (combo_product_id, position),
+    FOREIGN KEY (tenant_id, combo_product_id) REFERENCES tenant.products(tenant_id, id) ON DELETE CASCADE
+);
+
+CREATE TABLE tenant.combo_part_variants (           -- CMB-01: allowed variants; exactly one = a fixed part
+    tenant_id        uuid NOT NULL,
+    part_id          uuid NOT NULL,
+    variant_id       uuid NOT NULL,
+    PRIMARY KEY (part_id, variant_id),
+    FOREIGN KEY (tenant_id, part_id) REFERENCES tenant.combo_parts(tenant_id, id) ON DELETE CASCADE,
+    FOREIGN KEY (tenant_id, variant_id) REFERENCES tenant.product_variants(tenant_id, id)  -- no cascade: CMB-08
+);
+CREATE INDEX ON tenant.combo_part_variants (tenant_id, variant_id);  -- CMB-02: combos to recompute on a stock change
+-- A trigger refuses an allowed variant whose product is itself a combo (CMB-01, no nesting) and more than
+-- 100 allowed variants per part (CMB-10). A combo has one product_variants row (combination_key '') and no
+-- stock_levels row; its products.stock_state is recomputed from its parts inside InventoryLedger.apply().
+
+CREATE TABLE tenant.order_line_components (         -- CMB-03, CMB-04: a combo line's component variants
+    id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id        uuid NOT NULL,
+    order_line_id    uuid NOT NULL REFERENCES tenant.order_lines(id),
+    part_position    smallint NOT NULL,
+    variant_id       uuid,                          -- advisory only, like order_lines.variant_id (ORD-46)
+    -- snapshot, copied at order time:
+    product_name     text NOT NULL,
+    attribute_values jsonb NOT NULL DEFAULT '{}',
+    quantity         numeric(14,3) NOT NULL CHECK (quantity > 0)   -- units of this variant in one combo
+);
+CREATE INDEX ON tenant.order_line_components (tenant_id, order_line_id);
+-- A choice part picked as M-Red, M-Red, L-Black gives two rows: M-Red 2 and L-Black 1. Reservations and
+-- stock movements for a combo line are ordinary per-variant rows referencing the order (CMB-03, CMB-05);
+-- the stock-history label finds the combo through this table by order and variant.
 ```
 
 #### Shop-type presets (PST) — `control` schema, platform-wide
@@ -939,7 +1030,8 @@ CREATE TABLE tenant.order_lines (
     attribute_values jsonb NOT NULL DEFAULT '{}',
     thumbnail_url   text,                            -- best-effort only (ORD-47)
     unit_price      numeric(10,2) NOT NULL,
-    quantity        integer NOT NULL CHECK (quantity >= 1),
+    quantity        numeric(14,3) NOT NULL CHECK (quantity > 0),  -- UOM-04: decimals only for measured units
+    pack_amount     numeric(14,3),                -- INV-24: shared-stock units per unit sold; null otherwise
     item_discount   numeric(10,2) NOT NULL DEFAULT 0,
     weight_kg       numeric(10,3),
     delivery_mode   tenant.delivery_mode NOT NULL,
