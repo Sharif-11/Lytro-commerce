@@ -42,7 +42,7 @@ Three sites were studied on 2026-10-17: Bonik AI (bonikai.app), BonikLabs (bonik
 | --- | --- | --- | --- |
 | 1 | Nav (sticky) | Orientation and the one CTA | Wordmark, four anchor links, বাং/EN toggle, লগইন, marigold "ফ্রি দোকান খুলুন". Hamburger under 880 px. |
 | 2 | Hero | The promise and the first action | Eyebrow, H1 "আপনার দোকান, আপনার হাতে।", one-sentence lead, claim-your-shop input, three micro-trust ticks, "see a shop" link. Phone mockup of the dashboard with two floating cards (fake-order check, bKash matched). |
-| 3 | Integration strip | Reduce "will it work with what I use" | Text wordmarks until official logos are licensed. |
+| 3 | Integration strip | Reduce "will it work with what I use" | Official logos from `docs/brand/third-party/`, each in its own colours on a white tile; only live services appear. |
 | 4 | Problems, before/after | Lead with the pain | The five pains from the marketing plan, each paired with its answer. |
 | 5 | Features | What you actually get | Two spotlight cards first, each with its own mockup: stock and inventory (INV-01 to INV-24, PUR-01 to PUR-10: low-stock alerts, one-step add stock, barcode and IMEI scan, batches and expiry, stock check) and business statistics (STA-01 to STA-04, INV-18: sales by week to year, hot-selling products, trend, inventory value and cost of goods). Then six cards with small vignettes: fake-order check, one-tap courier, payment matching, storefront, staff roles, variants and stock. |
 | 5b | Why Lytro | The advantages, the way Bonik AI states its benefits | Six cards, each a product rule: money goes straight to the seller's wallet (no platform custody), a flat per-order fee rather than a percentage, the seller's own courier account, Bangla everywhere and phone first, nightly encrypted backups with per-shop isolation (DAT-8), and the public API for sellers with their own site. |
@@ -109,7 +109,7 @@ Navbar on desktop: Features, Pricing, FAQ, About, Contact, then the language tog
 ## 7. Open items
 
 - The storefront domain suffix shown in the claim input and mockups (`lytro.app`) is a placeholder.
-- Official bKash, Nagad, Steadfast and Pathao logos need their brand-use permission before they replace the text wordmarks.
+- The integration strip and the sign-in buttons use the official logos in `docs/brand/third-party/` (sources and rules in its README). Permission for paid advertising that shows them is still to be confirmed with each brand.
 - The testimonial slot is filled only from Stage 1 case studies (MARKETING-PLAN.md §5, weeks 6 to 8).
 - A Google Play badge is added to the hero and final CTA only once the native dashboard app is listed.
 - The per-order pay-as-you-go fee is described, not priced, because the amount is not yet decided in the SRS.
