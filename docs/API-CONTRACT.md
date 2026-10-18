@@ -61,7 +61,7 @@ Status: draft v1, for review before implementation. Companion to `DATABASE-SCHEM
 | POST | `/api/v1/roles` | session, `staff:manage` | `{ name, permissions[] }`; permissions come from the platform list; 409 `conflict` for a name already used. |
 | PATCH | `/api/v1/roles/:id` | session, `staff:manage` | `{ name?, permissions? }` (STF-07). |
 | DELETE | `/api/v1/roles/:id` | session, `staff:manage` | 409 `conflict` with `holders` if a user still holds it (STF-09). |
-| POST | `/auth/staff/signin` | none, on the shop host | `{ phone, password }` with the staff password the owner set. Refused with 401 on the platform host or for another shop's phone; 403 `tenant_offline` when the shop is locked or suspended. |
+| POST | `/auth/staff/signin` | none, on `app.lytro.app` | `{ phone, password }` with the password the owner set, from the staff sign-in page (AUTH-31). An unknown phone, an owner's phone and a wrong password get the same 401 (AUTH-13); 403 `tenant_offline` when the shop is locked, archived or suspended (AUTH-22). On success a session flagged `must_set_password` on the first sign-in or after an owner reset (AUTH-19), and the shop's path. |
 | POST | `/api/v1/staff/:id/password` | session, `staff:manage` | `{ newPassword }`: the owner sets a new password; the member's sessions end and they must choose their own at the next sign-in (STF-13). |
 | POST | `/auth/staff/password` | session of a staff member, open while a change is pending | `{ currentPassword?, newPassword }`; the current password is needed unless the owner asked for a change (AUTH-19, AUTH-20). |
 | GET | `/api/v1/activity` | session, `audit:read` | `?dateFrom&dateTo&actorId&action&cursor&limit`; keyset-paginated, newest first (AUD-04). |

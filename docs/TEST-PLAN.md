@@ -100,6 +100,21 @@ Steps: 1) On the marketing page, type "gamma" in the claim box. 2) Continue with
 Expected: "gamma" is pre-filled on create-shop after the Google round trip; the taken and reserved addresses are shown as such, each with a suggested alternative; the delivery zones read "Inside Chattogram city" and "Outside Chattogram city"; the new product form starts with batch tracking on (the cosmetics default).
 Covers: `AUTH-28`, `AUTH-11`, `PST-01`, `DLV-01`.
 
+**S01-20 Starting with a plan from the website.**
+Steps: 1) On the pricing page, pick Starter for 12 months, and look at the entry screen. 2) Sign up with Google and create the shop. 3) On the checkout, change the term, go back to 12 months, and pay through the payment page. 4) Before the payment is verified, add a product. 5) Verify the payment. 6) Repeat with a second guest who continues without paying, and a third whose payment fails.
+Expected: the entry screen shows the terms line with both links, and the new account records both versions and the time; the checkout opens after create-shop with Starter, 12 months and 4,741 TK and says a started period isn't refunded; the shop works on its trial while the payment is checked and keeps the product; after verification the shop is on Starter, and an SMS and an email arrive, with the free SMS count unchanged; the set-password and set-up steps follow the checkout; continuing without paying, or a failed payment, leaves the trial running, with the checkout still available from the dashboard.
+Covers: `AUTH-29`, `LEG-01`, `TRL-06`, `BIL-05`.
+
+**S01-21 No free trial left.**
+Steps: 1) From an internet connection that started a trial within 90 days, sign up with a new phone and fill in create-shop. 2) Choose pay-as-you-go. 3) Repeat with another new phone, choose Growth instead, and verify the payment.
+Expected: create-shop says no free trial is available and keeps what was typed; pay-as-you-go opens the shop at once; choosing Growth opens the shop on pay-as-you-go and then its checkout, and after verification the shop is on Growth.
+Covers: `AUTH-30`, `AUTH-09`, `PYG-01`, `PYG-11`.
+
+**S01-22 The staff sign-in page.**
+Steps: 1) As an owner, add a staff member. 2) From the owners' entry screen, follow the staff link. 3) Sign in with the staff phone and the owner's password. 4) Try an unknown phone, then a wrong password. 5) As the owner, reset the staff password; sign in again. 6) Lock the shop and try once more.
+Expected: the staff page asks for a new password before anything else, then opens the shop's dashboard; both bad attempts get the same error; after the reset a new password is required again; the locked shop returns `tenant_offline`; the page tells a staff member who forgot the password to ask the owner.
+Covers: `AUTH-31`, `AUTH-19`, `STF-13`, `AUTH-22`.
+
 **S01-17 Default identity, and the free name and logo.**
 Steps: 1) Create a shop with no logo; open its storefront, a landing page, a hosted payment page and the dashboard. 2) Upload a logo and open them again.
 Expected: all four use Lytro's default tokens and show the shop's monogram, then its logo, never another tenant's; "Powered by Lytro" (storefront, dashboard) and "Secured by Lytro" (payment page) are present and cannot be removed.

@@ -43,7 +43,9 @@ At launch both live in the same PostgreSQL instance. The split is what lets a fu
 CREATE TABLE control.subscribers (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     password_hash   text,                -- null for an OAuth-only subscriber (AUTH-24)
-    created_at      timestamptz NOT NULL DEFAULT now(),
+    terms_version   text NOT NULL,       -- LEG-01: the terms of service accepted at sign-up
+    privacy_version text NOT NULL,       -- LEG-01: the privacy policy accepted at sign-up
+    created_at      timestamptz NOT NULL DEFAULT now(),  -- also the time of acceptance (LEG-01)
     last_sign_in_at timestamptz
 );
 
