@@ -78,4 +78,4 @@ Follows AUTH-28 exactly: identity, create shop, optional password. The prototype
 - Contact details, hours and the street address are placeholders. The hours shown are a proposal.
 - Team cards stay empty until people agree to be shown.
 - Terms and Privacy pages are linked from the sign-up screen and the footer but are not designed here; they are legal content first.
-- The Google and Facebook buttons use neutral glyphs in the prototype; the real buttons must follow each provider's brand rules.
+- The Google and Facebook buttons use the official marks from `docs/brand/third-party/` (full set and README arrive with the logos PR); the built buttons must still follow each provider's sign-in branding rules.

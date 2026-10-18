@@ -188,8 +188,7 @@
   .or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
   .oauth { display: grid; gap: 10px; }
   .oauth .btn { width: 100%; justify-content: center; gap: 10px; }
-  .oauth .g { width: 18px; height: 18px; border-radius: 50%; background: conic-gradient(#ea4335 0 25%, #fbbc05 0 50%, #34a853 0 75%, #4285f4 0); flex: none; }
-  .oauth .fbk { width: 18px; height: 18px; border-radius: 4px; background: #1877f2; color: #fff; font-family: var(--font-display); font-weight: 800; font-size: 13px; display: grid; place-items: center; flex: none; }
+  .oauth img { width: 18px; height: 18px; flex: none; display: block; }
   .legal { font-size: 0.8125rem; color: var(--n500); text-align: center; }
   .legal a { color: var(--teal-700); font-weight: 500; }
   .otp { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
@@ -447,8 +446,8 @@
       <button type="submit" class="btn btn-accent" data-en="Continue">এগিয়ে যান</button>
       <div class="or" data-en="or">অথবা</div>
       <div class="oauth">
-        <button type="button" class="btn btn-outline"><span class="g" aria-hidden="true"></span><span data-en="Continue with Google">গুগল দিয়ে চালিয়ে যান</span></button>
-        <button type="button" class="btn btn-outline"><span class="fbk" aria-hidden="true">f</span><span data-en="Continue with Facebook">ফেসবুক দিয়ে চালিয়ে যান</span></button>
+        <button type="button" class="btn btn-outline"><img src="third-party/google.svg" alt="" width="18" height="18"><span data-en="Continue with Google">গুগল দিয়ে চালিয়ে যান</span></button>
+        <button type="button" class="btn btn-outline"><img src="third-party/facebook.svg" alt="" width="18" height="18"><span data-en="Continue with Facebook">ফেসবুক দিয়ে চালিয়ে যান</span></button>
       </div>
       <p class="legal" data-en-html="By continuing you agree to the <a href='#'>Terms</a> and <a href='#'>Privacy policy</a>. No card, no monthly fee.">এগিয়ে গেলে আপনি <a href="#">টার্মস</a> আর <a href="#">প্রাইভেসি পলিসি</a>-তে রাজি হচ্ছেন। কার্ড নেই, মাসিক ফি নেই।</p>
       <p class="legal"><a href="#" data-en="Staff? Log in here">স্টাফ? এখানে লগইন করুন</a></p>
