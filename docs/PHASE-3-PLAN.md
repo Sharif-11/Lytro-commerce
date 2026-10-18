@@ -13,6 +13,8 @@ agreed before this plan was written:
 - **Product landing pages** (LND, added later the same day) give every product a dedicated, shareable,
   single-product sales page with its own order form, payment by the product's payment policy, and Meta
   ad tracking. This phase builds the page; its ordering and payment land in Phases 4 and 5.
+- **Custom domains** (TEN-09 to TEN-14, added 2026-10-18 as Slice 13, D3-13): a Growth or Pro shop's own
+  domain serves its storefront and landing pages, after Slice 12 builds them.
 
 Requirement IDs refer to `SRS-detailed.md` §13–§14 (new §14.4–§14.12 added 2026-10-17). Schema refers to
 `DATABASE-SCHEMA.md` §3.2, rewritten the same day.
@@ -51,6 +53,9 @@ builds, and changes neither.
 5. Media is metered per tenant: storage and bandwidth are counted, enforced at 100% with existing data
    untouched (LIM-03), and reconciled against R2 (MED-04).
 6. CI is green on `main`, and the pull-request flow has been used for every slice.
+7. A Growth shop's own domain, once its DNS record exists, is activated within 10 minutes and serves its
+   storefront and landing pages over HTTPS, with no step on the platform's side; a downgrade to a plan
+   without custom domains turns it off, keeping the subdomain working, and an upgrade turns it back on.
 
 ---
 
@@ -72,6 +77,7 @@ builds, and changes neither.
 | D3-10 | **Phase size.** At 12 slices, this is larger than Phase 2. | Keep it one phase, with an internal checkpoint after Slice 5 ("3A: catalogue and inventory complete, internally usable") before media and the storefront begin. If velocity suggests otherwise at the checkpoint, the remainder can become Phase 3B without reshuffling anything. | Planning |
 | D3-11 | **One dashboard address (decided 2026-10-18).** The dashboard was served on three kinds of host (D13 in `PHASE-1-PLAN.md`): the platform host, every shop's subdomain and custom domains. On a shop's host it shares an origin with storefront and landing pages that run third-party scripts (Meta Pixel, chat widget), so any of them could call the dashboard API as the signed-in seller. It also gave sellers two sign-ins and clashed with the shopper sign-in path. | The dashboard moves to `app.lytro.app/<shop>` for owners and staff alike (TEN-31). Shop subdomains and custom domains serve public pages only (TEN-08, TEN-09, SFT-02); `lytro.app` is marketing only; `admin.lytro.app` stays the operator console. Sessions become `__Host-` cookies with an `Origin` check on state-changing requests (TEN-29), and the dashboard host's top-level paths become reserved slugs (TEN-26). Built first, as Slice 0, because the storefront (Slice 12) takes over every path on a shop's host. | Slice 0; Slices 11, 12 |
 | D3-12 | **Separate operator app (decided 2026-10-18).** The operator console lives inside the tenant dashboard's build (`apps/admin`), and the app picks operator or seller screens from the hostname. Every seller's browser downloads operator code and the map of operator API calls, one deploy carries both, and the full console Phase 8 builds would grow inside the sellers' app. | A separate `apps/operator` served at `admin.lytro.app`; shared code moves to `packages/ui` (design tokens, basic components) and `packages/api-client`; `apps/admin` is renamed `apps/dashboard`. View-as-tenant (ADM-05, Phase 8) opens the real seller dashboard, read-only, after the seller approves a support request. Built as Slice 0b. | Slice 0b; Phase 8 |
+| D3-13 | **Custom domains (decided 2026-10-18).** TEN-09 to TEN-14 are Must, but Phase 1 built only the `tenant_domains` table and the host lookup, deferring the behaviour "to a later phase", and no phase picked it up; DWN-10 and PYG-07 depend on it. A custom domain serves only the storefront and landing pages (D3-11), which Slice 12 builds. | Build it in this phase as **Slice 13, after Slice 12**: the domain routes with the plan and one-shop-per-domain checks, the DNS check that activates a domain, the endpoint Caddy asks before issuing a certificate (`DEPLOYMENT.md` §7), and DWN-10's turning off and back on. The domain screen belongs to the redesigned dashboard. | Slice 13 |
 
 ---
 
@@ -82,7 +88,7 @@ Rules used below:
 - **Partial** means this phase builds a working part, and a named later phase finishes the rest.
 - Notices delivered through the D3-5 stub count as complete, the same rule Phase 2 applied to `BAL-13`.
 
-### 3.1 Completed by this phase (185)
+### 3.1 Completed by this phase (193)
 
 | Family | Requirements | Count |
 |---|---|---|
@@ -101,19 +107,19 @@ Rules used below:
 | SFT | SFT-01, 02, 03, 04, 05, 11, 12, 14, 15, 16, 17, 18, 19, 21 | 14 |
 | CCH | CCH-01 – 06, CCH-08 – 12 | 11 |
 | I18N | I18N-02 (storefront half; dashboard half done in Phase 1) | 1 |
-| TEN | TEN-06, 08, 16, 17, 18, 26 and 29 (amended 2026-10-18), 31 (one dashboard address, added 2026-10-18) | 8 |
+| TEN | TEN-06, 08, 16, 17, 18, 26 and 29 (amended 2026-10-18), 31 (one dashboard address, added 2026-10-18); 09 – 14 (custom domains, scheduled 2026-10-18, D3-13) | 14 |
 | AUTH | AUTH-28 (amended 2026-10-18: claimed address, set-up step, terms line), AUTH-30 (new shops limited per account and connection, sign-in never) and AUTH-31 (staff sign-in page), both added 2026-10-18 | 3 |
 | ADM | ADM-01 (amended 2026-10-18: separate application) | 1 |
 | BRN | BRN-01 – 07 (brand identity, added 2026-10-18) | 7 |
 | PLN | PLN-13, 14, 15 (add-ons, deferred by Phase 2's D2-4, scheduled 2026-10-18) | 3 |
 | UPG | UPG-14 (add-ons kept across plan changes) | 1 |
-| DWN | DWN-07, 09 (deferred here from Phase 2) | 2 |
-| PYG | PYG-16 (deferred here from Phase 2) | 1 |
+| DWN | DWN-07, 09 (deferred here from Phase 2), 10 (custom domain off and on again, D3-13) | 3 |
+| PYG | PYG-16 (deferred here from Phase 2), 07 (no custom domain, D3-13) | 2 |
 | API | API-03, 04, 05, 08, 10, 14 (the `api.lytro.app` host, amended 2026-10-18), 23, 24 (public keys, D3-1) | 8 |
 | LND | LND-01, 02, 03, 04, 05, 06, 14, 17, 18 | 9 |
 | DLV | DLV-01, 02, 05 (delivery zones around the tenant's home area, added 2026-10-17) | 3 |
 | FED | FED-01 – 06 (Meta catalog feed, added 2026-10-17) | 6 |
-| | **Total** | **185** |
+| | **Total** | **193** |
 
 ### 3.2 Partially completed by this phase (42)
 
@@ -230,6 +236,7 @@ Read each row as: the requirements on the left can only be built or proven once 
 | PST-06 | PST-02, PST-05, PRD-03 | a category points at an existing shop type's defaults instead of copying them |
 | DLV-06, DLV-07 | DLV-01, DLV-02 | limits are expressed in zones |
 | INV-24 | INV-03, INV-15, UOM-03 | a pack amount is a multiplier on one ledger stock |
+| TEN-09 – 14, PYG-07, DWN-10 | SFT-01, SFT-02, LND-01, TEN-24, TEN-31, PLN-01, DWN-06 | a custom domain serves the storefront and landing pages; the host lookup, plan features and the downgrade's apply step already exist |
 
 ---
 
@@ -321,6 +328,7 @@ All in `DATABASE-SCHEMA.md` §3.2 (rewritten 2026-10-17), plus:
 | Catalog feed | `catalog_feeds` (hashed feed token, FED-01, FED-05) | 9 |
 | Mixed shops | `categories.behaves_like` (PST-06) | 1 |
 | Delivery limits | `delivery_zones.no_delivery` (DLV-06), `product_delivery_zones` (DLV-07) | 1 |
+| Custom domains | `control.tenant_domains` (exists since Phase 1): an `inactive` status for a domain the plan no longer includes (DWN-10), `last_checked_at` for the DNS check, the domain unique among live rows only (so a removed one can be added again), one live domain per shop (TEN-09) | 13 |
 | Shared stock | `products.shared_stock`, `product_variants.pack_amount` and `is_stock_holder` (INV-24) | 2 |
 
 New permissions in the validators' `Permission` enum: `inventory:read`, `inventory:manage`, `keys:manage`.
@@ -331,7 +339,10 @@ New platform settings: `reservation_expiry_minutes`, `expiry_warning_days`, and 
 
 - **Dashboard** (session + `DashboardGuard`): categories, products, variants, attributes, presets;
   stock levels, history, adjustments, stock checks, expiring batches, serials; suppliers, purchase orders,
-  receipts, quick add-stock; media uploads; API keys; usage; ad-tracking settings.
+  receipts, quick add-stock; media uploads; API keys; usage; ad-tracking settings; the custom domain
+  (add, view with its DNS instructions and status, remove).
+- **Internal** (from Caddy only): whether a hostname is an active custom domain, asked before a certificate
+  is issued (TEN-13).
 - **Operator**: presets (PST-04), platform attribute library (ATL-01).
 - **Public** (public key): catalogue lists, product detail (by slug, resolving old slugs to a redirect,
   LND-04), category tree, search, the catalogue-version endpoint (CCH-04), and the tenant's public
@@ -629,6 +640,31 @@ their backend ships earlier.
   blocked, the page works normally; a review finds no secret key or Conversions API token reachable from
   storefront code.
 
+### Slice 13: custom domains (D3-13)
+- **Depends on:** Slice 12 (the storefront and landing pages a domain serves), Slice 0 (custom domains never
+  serve the dashboard) and Phase 2's plan features and downgrade.
+- **Delivers:**
+  - Routes to add, view and remove the shop's one custom domain: refused with `plan_feature_unavailable` on
+    trial, Starter and pay-as-you-go (TEN-10, PYG-07), and with `conflict` when another shop has it live
+    (TEN-12). Viewing returns the DNS record to add, with the root-domain case (an A record to the platform's
+    address) and the `www.` case (a CNAME) both explained.
+  - A recurring DNS check that activates a pending domain within 10 minutes (TEN-11), marks one that never
+    verifies as `failed` after a set time, and invalidates the host cache on any change (TEN-27).
+  - The endpoint Caddy asks before issuing a certificate, answering yes only for an active custom domain,
+    and the `deploy/Caddyfile` on-demand TLS block that uses it (TEN-13, `DEPLOYMENT.md` §7).
+  - Removing a domain stops serving it at once; the subdomain keeps working (TEN-14).
+  - DWN-10: a downgrade's apply step turns the domain `inactive` (record kept, domain answers not-found), and
+    an upgrade or purchase of a plan with custom domains turns it back on. A lapsed shop's domain goes
+    offline with its subdomain (LIF-07), not through this.
+  - The domain screen lands in the redesigned dashboard, not in this slice.
+- **Requirements completed:** TEN-09, 10, 11, 12, 13 (MAN), 14; PYG-07; DWN-10.
+- **Done when:** a Growth shop adds a domain, sees the DNS instructions, and the domain becomes `active` on its own
+  once the record exists; the storefront and a landing page load on it over HTTPS with a valid certificate,
+  while `/dashboard` there is the storefront's not-found; a Starter shop is refused; a second shop adding a
+  live domain gets `conflict`; removing it answers not-found within the cache window while the subdomain
+  works; downgrading to Starter turns it off at the effective date and upgrading turns it back on; Caddy's
+  ask endpoint says no for an unknown or pending hostname.
+
 ### Parallel track: marketing site redesign (`apps/website`)
 - **Depends on:** nothing in this phase for step A. `LANDING-PAGE-DESIGN.md` and `BRAND-IDENTITY.md` are its
   spec. It touches only `apps/website` and shares no code with the slices, so it runs alongside them.
@@ -666,7 +702,7 @@ Slice 8 (parallel from day one) ───────┤
                          Slice 10 ◄── (1, 6, 7, 8)
                                        │
           all backend slices 1–10 ─────┴──► Slice 11 (dashboard UI)
-                       Slices 7, 9 ───────► Slice 12 (storefront + landing pages)
+                       Slices 7, 9 ───────► Slice 12 (storefront + landing pages) ──► Slice 13 (custom domains)
 ```
 
 | Slice | Depends on | Can run in parallel with |
@@ -686,8 +722,9 @@ Slice 8 (parallel from day one) ───────┤
 | 10a Add-ons | 10 | 12 |
 | 11 Dashboard UI | 0, 0b, 1–10a | 12 |
 | 12 Storefront & landing pages | 0, 0b, 7, 9 | 11 |
+| 13 Custom domains | 0, 12 | 11 |
 
-**Suggested order for one developer:** 0 → 0b → 1 → 2 → 3 → 4 → 5 (checkpoint 3A) → 8 → 6 → 7 → 9 → 10 → 10a → 11 → 12.
+**Suggested order for one developer:** 0 → 0b → 1 → 2 → 3 → 4 → 5 (checkpoint 3A) → 8 → 6 → 7 → 9 → 10 → 10a → 11 → 12 → 13.
 Slice 8 goes first among the second half because Slice 9 needs it, and it is small.
 
 ---

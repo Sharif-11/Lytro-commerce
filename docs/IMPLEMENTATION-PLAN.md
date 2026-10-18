@@ -100,6 +100,7 @@ code fix).
 - `DLV-*`, `FED-*`, `PRD-17`, `PRD-18`, `ATR-16` — Facebook-seller essentials (added 2026-10-17): delivery zones (Inside/Outside the seller's home area ready by default, Dhaka city until changed, built from the location list's divisions, districts, cities and thanas), size charts, one-tap option sets, "Duplicate product" and the Meta catalog feed. Zone *settings* land here; the zone-based charge is computed by Phase 4's order pricing.
 - `MED-*` — R2 presigned uploads, the validation/resize/variant-generation job, the `control.used_transaction_ids`-style permanence pattern applied to media where relevant.
 - `SFT-*` — the shared storefront, served at subdomain root, including the footer/contact-us section (`SFT-21`, added 2026-10-16, reads `TEN-30`'s contact fields).
+- `TEN-09` to `TEN-14`, `PYG-07`, `DWN-10` (scheduled 2026-10-18, D3-13) — custom domains for Growth and Pro: DNS verification, automatic certificates and turning off on a downgrade. Phase 1 built only the table and the host lookup; Phase 3's Slice 13, after the storefront they serve.
 - `CCH-*` — the layered cache (device → edge → process memory → Postgres), built in from the start since retrofitting caching into a storefront already in production is a much riskier change than building it in.
 - `I18N-01`/`I18N-02` extended to the storefront specifically (device-persisted toggle).
 
