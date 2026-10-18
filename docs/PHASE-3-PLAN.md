@@ -82,7 +82,7 @@ Rules used below:
 - **Partial** means this phase builds a working part, and a named later phase finishes the rest.
 - Notices delivered through the D3-5 stub count as complete, the same rule Phase 2 applied to `BAL-13`.
 
-### 3.1 Completed by this phase (183)
+### 3.1 Completed by this phase (185)
 
 | Family | Requirements | Count |
 |---|---|---|
@@ -102,7 +102,7 @@ Rules used below:
 | CCH | CCH-01 – 06, CCH-08 – 12 | 11 |
 | I18N | I18N-02 (storefront half; dashboard half done in Phase 1) | 1 |
 | TEN | TEN-06, 08, 16, 17, 18, 26 and 29 (amended 2026-10-18), 31 (one dashboard address, added 2026-10-18) | 8 |
-| AUTH | AUTH-28 (amended 2026-10-18: claimed address and set-up step) | 1 |
+| AUTH | AUTH-28 (amended 2026-10-18: claimed address, set-up step, terms line), AUTH-30 (new shops limited per account and connection, sign-in never) and AUTH-31 (staff sign-in page), both added 2026-10-18 | 3 |
 | ADM | ADM-01 (amended 2026-10-18: separate application) | 1 |
 | BRN | BRN-01 – 07 (brand identity, added 2026-10-18) | 7 |
 | PLN | PLN-13, 14, 15 (add-ons, deferred by Phase 2's D2-4, scheduled 2026-10-18) | 3 |
@@ -113,9 +113,9 @@ Rules used below:
 | LND | LND-01, 02, 03, 04, 05, 06, 14, 17, 18 | 9 |
 | DLV | DLV-01, 02, 05 (delivery zones around the tenant's home area, added 2026-10-17) | 3 |
 | FED | FED-01 – 06 (Meta catalog feed, added 2026-10-17) | 6 |
-| | **Total** | **183** |
+| | **Total** | **185** |
 
-### 3.2 Partially completed by this phase (40)
+### 3.2 Partially completed by this phase (42)
 
 | Req | Done in this phase | Remaining | Finished in |
 |---|---|---|---|
@@ -159,6 +159,8 @@ Rules used below:
 | INV-24 | shared stock with pack amounts: availability per variant, adding stock as packs, reservations through the shared stock | the order line's pack-amount snapshot and returns through it | Phase 4 |
 | DLV-03 | product and variant delivery charge stored as an optional override, unset by default | the zone charge used for lines without one (ORD-06a) | Phase 4 |
 | DLV-04 | zone changes recorded in the activity log | proof that an existing order keeps its stored delivery charge | Phase 4 |
+| AUTH-29 | the checkout after create-shop for a plan picked on the pricing page, then the password and set-up steps; continuing without paying; the SMS and email when the plan is activated | payment through the platform's payment page and a wallet's checkout, in place of Phase 2's operator-confirmed stand-in | Phase 5 |
+| LEG-01 | the terms line on the entry screen, with both versions and the time recorded on each new account | the reviewed terms and privacy text | Phase 9 |
 
 ### 3.3 Listed for Phase 3 but not built here
 
@@ -248,6 +250,9 @@ Phases 0–2 are complete against the SRS as it stood when they were built. Amen
 | API-14 | 2026-10-14 | `/api/v1` on every host | The public API at `api.lytro.app/v1`, keys only | 8 |
 | `BRAND-IDENTITY.md` §11 follow-ups | Phase 1 UI | Palette, fonts, logo and theme colour taken from Lytronix's battery business | Lytro's palette and assets; the operator console's inverted look | 11 |
 | AUTH-28 | Phase 1 | Identity, create shop, set password; a claimed address is lost | The claimed address is carried through to create-shop with an availability check; a "set up your shop" step asks the shop type and home area | 0, 11 |
+| AUTH-29 | Phase 2 (D2-12) | A plan picked on the website opens the purchase screen after create-shop, in place of the set-password offer | The checkout with a "continue without paying" choice, then the password and set-up steps; an SMS and email when the plan is activated | 0, 11 |
+| AUTH-09, AUTH-30 | Phase 1 | A refused new shop gets a generic "too many free trials" error | A plain message that a shop was recently opened from this account or connection, keeping what was typed; sign-in never limited | 11 |
+| Staff sign-in | Phase 1 | On the shop's own address | At `app.lytro.app/staff-sign-in`, linked from the owners' entry screen (AUTH-31) | 0 |
 | ADM-01 | Phase 1 (slice 10) | The operator console inside `apps/admin`, chosen by hostname | Its own app, `apps/operator`; `apps/admin` renamed `apps/dashboard`; shared `packages/ui` and `packages/api-client` | 0b |
 | PLN-13, PLN-14, PLN-15, UPG-14 | Deferred by Phase 2 (D2-4) | Not built | Built, with PLN-13/14 raised to Must | 10a |
 
@@ -353,6 +358,10 @@ their backend ships earlier.
     Lytronix" (TEN-18).
   - The claim box's address (`?shop=`) carried through sign-in and verification, Google and Facebook
     included, to create-shop, pre-filled, with a live availability check limited per IP (AUTH-28).
+  - The plan picked on the pricing page carried the same way, with the checkout straight after create-shop and a
+    "continue without paying" choice (AUTH-29); a plain refusal when a new shop is over the per-account or per-connection limit (AUTH-30).
+  - The terms line on the entry screen, recording both versions and the time on each new account (LEG-01).
+  - Staff sign-in at `app.lytro.app/staff-sign-in`, linked from the owners' entry screen (AUTH-31).
   - The dashboard app's routes under `/$shop`, with sign-up, sign-in, create-shop and staff sign-in on the same
     host; a per-shop installable dashboard app scoped to `/<shop>/`.
   - Shop subdomains and custom domains stop serving the dashboard; the reserved-slug list gains the dashboard
@@ -362,7 +371,7 @@ their backend ships earlier.
     cases updated to match.
 - **Requirements completed:** TEN-17, TEN-18, TEN-26, TEN-29, TEN-31 (and the dashboard half of TEN-08 and TEN-09;
   TEN-16's monogram; AUTH-28's claimed address).
-- **Done when:** an owner of two shops switches between them by path with one sign-in; a staff member of shop A
+- **Done when:** a person who owns one shop and is staff in another switches between them by path with one sign-in; a staff member of shop A
   gets not-found at shop B's path; `/dashboard` on a shop's subdomain is the storefront's not-found; a request
   with a valid session but a shop subdomain's `Origin` is refused; a cookie a shop's subdomain sets for
   `.lytro.app` never reaches the dashboard; two shops install as two distinct apps.
@@ -586,7 +595,7 @@ their backend ships earlier.
   inventory terms).
 - **Requirements completed (E2E halves):** PST-01; ATR-02, ATR-11; PRD-03, PRD-12; INV-06, 07, 09, 22;
   PUR-07, PUR-09; BND-08; LND-06; ATR-16; ATR-17; PST-05; DLV-05; FED-06; ATR-18 (dashboard half; the shopper-facing picker in Slice 12); BRN-03, 06, 07 (identity rules, editor preview, token engine); PLN-14, PLN-15, UPG-14, BND-04, RTE-11, BRN-05
-  (add-on screens); AUTH-28 (the set-up step). *(INV-23's scan and paste
+  (add-on screens); AUTH-28 (the set-up step and the terms line); AUTH-30; AUTH-31. *(INV-23's scan and paste
   entry is built here; its shipping half is Phase 4.)*
 - **Partial:** SUP-01 — the checklist with the items that exist by the end of this phase; later phases add
   theirs.

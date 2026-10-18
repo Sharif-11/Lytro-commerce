@@ -12,7 +12,7 @@ Status: draft v1, for review before implementation. PostgreSQL 16+. Companion to
 | Cell identifier, always 1 at launch (SCL-07) | `cell_id` on `control.tenants`, read by the app, not joined on yet |
 | Row-level security (DAT-03) | Policy on every `tenant.*` table, keyed to a session variable |
 | One primary server at launch, read/write pool split from day one (DAT-19, DAT-56) | Called out in connection notes, not a schema concern but affects how the app opens connections |
-| Canonical location list + courier mapping, decoupled (CUS-08/10/11/12) | `control.locations` and `control.courier_location_map`, both platform-wide |
+| Canonical location list + courier areas, decoupled (CUS-08, CUS-10 to CUS-13) | `control.locations` and `control.courier_areas`, both platform-wide |
 | Catalogue version for cache invalidation (CCH-02) | `tenant.catalogue_state` |
 | Order creation unlimited, only handling counted (QTA-01/05/07) | `tenant.orders.handled_at` is the single column the counters key off |
 | Delivery-charge Default/Adjustable modes (PRD-16, ORD-06a) | Columns on `tenant.products` / `tenant.product_variants` |
@@ -43,7 +43,9 @@ At launch both live in the same PostgreSQL instance. The split is what lets a fu
 CREATE TABLE control.subscribers (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     password_hash   text,                -- null for an OAuth-only subscriber (AUTH-24)
-    created_at      timestamptz NOT NULL DEFAULT now(),
+    terms_version   text NOT NULL,       -- LEG-01: the terms of service accepted at sign-up
+    privacy_version text NOT NULL,       -- LEG-01: the privacy policy accepted at sign-up
+    created_at      timestamptz NOT NULL DEFAULT now(),  -- also the time of acceptance (LEG-01)
     last_sign_in_at timestamptz
 );
 
@@ -350,15 +352,19 @@ CREATE TABLE control.locations (
 -- identical for every tenant regardless of which couriers it has connected. A thana belongs to at most one
 -- city. Adding a thana or changing its city is a platform data change, announced on the notice board (DLV-02).
 
-CREATE TABLE control.courier_location_map (
+CREATE TABLE control.courier_areas (
     id              serial PRIMARY KEY,
-    courier_key     text NOT NULL,               -- 'steadfast', 'pathao', ...
-    location_id     integer NOT NULL REFERENCES control.locations(id),
-    courier_zone_code text NOT NULL,
-    UNIQUE (courier_key, location_id)
+    courier_key     text NOT NULL,               -- 'pathao', 'redx', ...; none for a courier that books by address text
+    area_code       text NOT NULL,               -- the courier's own ID for the area
+    name            text NOT NULL,
+    location_id     integer NOT NULL REFERENCES control.locations(id),  -- the one canonical thana it sits in
+    retired_at      timestamptz,                 -- no longer offered; still readable on orders that hold it
+    UNIQUE (courier_key, area_code)
 );
--- CUS-10/11/12: resolved only at booking time (see tenant.orders.courier_key below);
--- adding a courier only adds rows here, never touches control.locations or any tenant address.
+CREATE INDEX ON control.courier_areas (courier_key, location_id) WHERE retired_at IS NULL;
+-- CUS-10 to CUS-13: a thana may hold many areas of one courier. Delivery zones and charges never read this
+-- table; it only gives a courier its exact area, chosen on the order form or by staff before booking.
+-- Adding a courier only adds rows here, never touches control.locations or any tenant address.
 ```
 
 ---
@@ -1003,8 +1009,9 @@ CREATE TABLE tenant.orders (
     discount        numeric(10,2) NOT NULL DEFAULT 0,
     grand_total     numeric(12,2) NOT NULL,
     due              numeric(12,2) NOT NULL,
+    area_courier_key text,                           -- CUS-13: the courier the stored area belongs to
+    courier_area_code text,                          -- CUS-12/13: from the form or chosen by staff; never sets the delivery zone
     courier_key     text,                            -- set once booked
-    courier_zone_code text,                          -- resolved via control.courier_location_map at booking (CUS-12)
     consignment_id  text,
     -- QTA-01/05/07: the ONLY column the handling counters read; order creation never touches it.
     handled_at      timestamptz,
