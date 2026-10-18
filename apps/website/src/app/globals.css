@@ -161,6 +161,25 @@ html[lang='en'] .heading {
   }
 }
 
+/* The pricing row on phones: a snap carousel with the scrollbar hidden and no edge fade, so the next card
+   peeks in at full strength. From the tablet breakpoint it is a plain grid. */
+.snap-row {
+  scrollbar-width: none;
+}
+.snap-row::-webkit-scrollbar {
+  display: none;
+}
+
+/* The highlighted plan (the sketch's `.plan.hot`): a teal gradient border drawn with two backgrounds and a
+   teal lift shadow, so the one marigold accent stays the badge and the button. */
+.plan-hot {
+  border: 2px solid transparent;
+  background:
+    linear-gradient(#fff, #fff) padding-box,
+    linear-gradient(160deg, #3ec4b9, #0a4f4b) border-box;
+  box-shadow: 0 24px 56px -24px rgba(14, 107, 102, 0.45);
+}
+
 /* The integration strip on phones glides sideways on its own: the track holds two copies of the tiles and
    slides by exactly one copy, so the loop is seamless. From the tablet breakpoint the sketch's static,
    centred row is used instead and the second copy is dropped. */

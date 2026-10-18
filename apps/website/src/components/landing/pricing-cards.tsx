@@ -191,22 +191,24 @@ export function PricingCards({
 
       <div
         ref={rowRef}
-        className="scroll-row mt-8 -mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pt-4 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 lg:grid-cols-4"
+        className="snap-row mt-7 -mx-4 flex snap-x snap-mandatory gap-3.5 overflow-x-auto px-4 pt-5 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:px-0 lg:grid-cols-4"
       >
-        <article className="relative flex w-[82vw] max-w-[340px] shrink-0 snap-center flex-col rounded-card border-2 border-accent-500 bg-white p-5 shadow-lift sm:w-auto sm:max-w-none">
-          <span className="absolute -top-3.5 left-5 rounded-full bg-accent-500 px-3 py-1 text-[12px] font-bold text-ink">
+        {/* The sketch's `.plan.hot`: the badge sits on the top edge, kept to one line so it never grows
+            under the row's top padding. */}
+        <article className="plan-hot relative flex w-[min(82vw,320px)] shrink-0 snap-center flex-col rounded-card px-5 py-[22px] sm:w-auto">
+          <span className="absolute -top-[13px] left-[18px] max-w-[calc(100%-36px)] truncate rounded-full bg-accent-500 px-3 py-1 text-[12px] font-bold text-ink shadow-[0_6px_14px_-6px_rgba(242,165,22,0.9)]">
             {payg.badge}
           </span>
-          <h3 className="heading mt-2 text-[20px] text-ink">{payg.name}</h3>
-          <p className="mt-1 min-h-[42px] text-[14px] text-neutral-700">{payg.description}</p>
-          <p className="mt-4 flex items-baseline gap-1.5">
-            <span className="num text-[36px] font-extrabold leading-none text-ink">
+          <h3 className="heading text-[19px] text-ink">{payg.name}</h3>
+          <p className="mt-2 min-h-[42px] text-[14px] text-neutral-700">{payg.description}</p>
+          <p className="mt-4 flex items-baseline gap-1.5 border-t border-line pt-3">
+            <span className="num text-[34px] font-bold leading-none tracking-tight text-ink">
               {payg.price}
             </span>
             <span className="text-[14px] text-neutral-700">{text.perMonth[language]}</span>
           </p>
-          <CheckList className="mt-5 flex-1" items={payg.lines} />
-          <a href={payg.signInUrl} className={`mt-6 ${buttonClass('accent', 'lg')}`}>
+          <CheckList className="mt-4 flex-1" circled items={payg.lines} />
+          <a href={payg.signInUrl} className={`mt-5 ${buttonClass('accent', 'lg')}`}>
             {payg.cta}
           </a>
         </article>
@@ -217,15 +219,15 @@ export function PricingCards({
           return (
             <article
               key={plan.id}
-              className="flex w-[82vw] max-w-[340px] shrink-0 snap-center flex-col rounded-card border border-line bg-white p-5 shadow-card sm:w-auto sm:max-w-none"
+              className="flex w-[min(82vw,320px)] shrink-0 snap-center flex-col rounded-card border border-line bg-white px-5 py-[22px] shadow-card sm:w-auto"
             >
-              <h3 className="heading mt-2 text-[20px] text-ink">{plan.name}</h3>
-              <p className="mt-1 min-h-[42px] text-[14px] text-neutral-700">
+              <h3 className="heading text-[19px] text-ink">{plan.name}</h3>
+              <p className="mt-2 min-h-[42px] text-[14px] text-neutral-700">
                 {plan.description ?? ''}
               </p>
               {price ? (
-                <p className="mt-4 flex flex-wrap items-baseline gap-x-1.5">
-                  <span className="num text-[36px] font-extrabold leading-none text-ink">
+                <p className="mt-4 flex flex-wrap items-baseline gap-x-1.5 border-t border-line pt-3">
+                  <span className="num text-[34px] font-bold leading-none tracking-tight text-ink">
                     {price.monthly}
                   </span>
                   <span className="text-[14px] text-neutral-700">{text.perMonth[language]}</span>
@@ -236,10 +238,10 @@ export function PricingCards({
                   ) : null}
                 </p>
               ) : (
-                <p className="mt-4 text-[14px] text-neutral-700">—</p>
+                <p className="mt-4 border-t border-line pt-3 text-[14px] text-neutral-700">—</p>
               )}
-              <CheckList className="mt-5 flex-1" items={plan.lines} />
-              <a href={href} className={`mt-6 ${buttonClass('primary', 'lg')}`}>
+              <CheckList className="mt-4 flex-1" circled items={plan.lines} />
+              <a href={href} className={`mt-5 ${buttonClass('primary', 'lg')}`}>
                 {language === 'bn'
                   ? `${plan.name} ${text.choose.bn}`
                   : `${text.choose.en} ${plan.name}`}
@@ -250,7 +252,7 @@ export function PricingCards({
       </div>
 
       {cardCount > 1 ? (
-        <div className="mt-3 flex justify-center gap-2 sm:hidden">
+        <div className="mt-2 flex justify-center gap-1.5 sm:hidden">
           {Array.from({ length: cardCount }, (_, index) => (
             <button
               key={index}
@@ -263,8 +265,8 @@ export function PricingCards({
               className="flex h-8 w-8 items-center justify-center"
             >
               <span
-                className={`block h-2 rounded-full transition-all ${
-                  index === active ? 'w-6 bg-brand-700' : 'w-2 bg-neutral-200'
+                className={`block h-1.5 rounded-full transition-all ${
+                  index === active ? 'w-[18px] bg-brand-700' : 'w-1.5 bg-neutral-200'
                 }`}
               />
             </button>
