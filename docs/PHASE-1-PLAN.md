@@ -143,7 +143,7 @@ Migrations are generated from the Drizzle schema and reviewed before they run (D
 
 - `control.subscribers`, `control.subscriber_identities` (DATABASE-SCHEMA §2.1)
 - `control.tenants` (§2.2): the table already exists in the schema design but has no migration yet. Add its columns, including `kyc_status`.
-- `control.tenant_domains` (§2.2), for custom domains. Phase 1 creates the table; custom domain behaviour comes with Growth and Pro, in a later phase.
+- `control.tenant_domains` (§2.2), for custom domains. Phase 1 creates the table; custom domain behaviour comes with Growth and Pro, in a later phase (scheduled 2026-10-18: `PHASE-3-PLAN.md` Slice 13, D3-13).
 - `control.plans` (minimal, per D3): Trial and Starter rows with their limits as data.
 - `tenant.users`, `tenant.roles`, `tenant.user_roles` (§3.1)
 - `tenant.activity_log` (§3.5)
