@@ -1270,8 +1270,9 @@ CREATE TABLE control.plan_assignments (
 
 CREATE TABLE control.addons (                      -- PLN-13
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    key             text NOT NULL UNIQUE,           -- extra_orders | extra_products | extra_seat | extra_storage | extra_bandwidth | extra_requests
-    unit_size       numeric(12,2) NOT NULL,
+    key             text NOT NULL UNIQUE,           -- extra_orders | extra_products | extra_seat | extra_storage | extra_bandwidth | extra_requests | brand_identity
+    kind            text NOT NULL CHECK (kind IN ('limit', 'pack', 'feature')),  -- PLN-13, amended 2026-10-18
+    unit_size       numeric(12,2),                  -- null for a feature add-on
     price           numeric(10,2) NOT NULL,
     retired_at      timestamptz
 );
@@ -1281,9 +1282,16 @@ CREATE TABLE control.addon_purchases (
     tenant_id       uuid NOT NULL REFERENCES control.tenants(id),
     addon_id        uuid NOT NULL REFERENCES control.addons(id),
     quantity        integer NOT NULL DEFAULT 1,
+    status          text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'lapsed')),
+    paid_from       text NOT NULL CHECK (paid_from IN ('balance', 'payment')),  -- PLN-14: balance (BIL-08) or directly
+    plan_payment_id uuid REFERENCES control.plan_payments(id),  -- set when paid directly (BIL-03)
+    renews          boolean NOT NULL DEFAULT true,   -- PLN-14: renews with the plan unless switched off
     purchased_at    timestamptz NOT NULL DEFAULT now(),
-    expires_at      timestamptz NOT NULL            -- PLN-14: lapses at the end of the current period
+    starts_at       timestamptz,                     -- set when it takes effect (at once from balance, on confirmation if paid directly)
+    expires_at      timestamptz NOT NULL            -- PLN-14: end of the plan period, or a [30]-day period for pay-as-you-go
 );
+-- Limits are calculated as plan snapshot + operator overrides (PLN-11) + active limit add-ons. A pack is
+-- consumed rather than expiring; the tenant's auto-buy opt-in (PLN-15) is a setting on the tenant.
 
 -- DWN/UPG/LIF (downgrade, upgrade, lifecycle) need no new tables: they're operations that
 -- read/write control.tenants.state, .plan_snapshot, .period_start/end and write a
