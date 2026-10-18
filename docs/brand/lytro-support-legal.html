@@ -1,0 +1,547 @@
+<title>Lytro Support and Legal Pages</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&family=Inter:wght@400;500;600;700&family=Noto+Sans+Bengali:wght@400;500;600;700;800&display=swap">
+<style>
+  /* Layout: four pages behind a prototype switcher: Help centre, Notices and status, Terms, Privacy. Mobile-first,
+     one reading column for the legal pages with a sticky section index from 900 px. Bangla primary, EN toggle. */
+  :root {
+    --teal-50:#effaf8; --teal-100:#ddf5f2; --teal-200:#b9ece6; --teal-300:#7fdcd3; --teal-400:#3ec4b9; --teal-500:#17a89e;
+    --teal-600:#107f78; --teal-700:#0e6b66; --teal-800:#0a4f4b; --teal-900:#063b38; --teal-950:#042826;
+    --mari-100:#fdf0d1; --mari-300:#f8cf6e; --mari-500:#f2a516; --mari-700:#9a6004;
+    --ink:#10201f; --n700:#2c3f3e; --n500:#5b6e6d; --n400:#7e8f8e; --n300:#a9b9b8; --n200:#d5dfde; --n100:#eaf0ef; --n50:#f6f9f8; --white:#ffffff;
+    --success:#1b7a43; --success-soft:#e3f3e9; --danger:#c8323b; --danger-soft:#fbe7e8; --warn:#9a6004; --warn-soft:#fdf0d1;
+    --bg: var(--white); --text: var(--ink); --muted: var(--n700); --line: rgba(16,32,31,0.08); --line-strong: rgba(16,32,31,0.14);
+    --shadow-sm: 0 1px 2px rgba(16,32,31,0.05), 0 2px 8px -2px rgba(16,32,31,0.06);
+    --shadow-md: 0 1px 2px rgba(16,32,31,0.04), 0 16px 40px -16px rgba(16,32,31,0.18);
+    --font-display: 'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --font-ui: 'Inter', 'Noto Sans Bengali', ui-sans-serif, system-ui, sans-serif;
+    --font-bn: 'Noto Sans Bengali', 'Hind Siliguri', 'Inter', sans-serif;
+    --gutter: max(20px, env(safe-area-inset-left, 0px)); --gutter-r: max(20px, env(safe-area-inset-right, 0px));
+    --sec: 48px;
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font-bn); font-size: 16px; line-height: 1.7; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+  body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 60; background: var(--ink); }
+  body[data-lang="en"] { font-family: var(--font-ui); line-height: 1.6; }
+  h1, h2, h3, h4 { margin: 0; line-height: 1.3; font-weight: 700; text-wrap: balance; }
+  body[data-lang="en"] h1, body[data-lang="en"] h2 { font-family: var(--font-display); letter-spacing: -0.025em; line-height: 1.12; }
+  p { margin: 0; }
+  a { color: inherit; text-decoration: none; }
+  svg { display: block; }
+  img { max-width: 100%; }
+  .wrap { width: 100%; max-width: 1040px; margin: 0 auto; padding-left: var(--gutter); padding-right: var(--gutter-r); min-width: 0; }
+  .num { font-family: var(--font-ui); font-variant-numeric: tabular-nums; }
+  .muted { color: var(--muted); }
+  .eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 0.8125rem; font-weight: 600; color: var(--teal-800); background: var(--teal-50); border: 1px solid var(--teal-100); border-radius: 999px; padding: 5px 12px 5px 8px; line-height: 1.3; }
+  .eyebrow::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--mari-500); box-shadow: 0 0 0 3px var(--mari-100); }
+  .on-dark .eyebrow { color: var(--white); background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-weight: 600; font-size: 0.9375rem; border-radius: 12px; min-height: 46px; padding: 11px 18px; border: 1px solid transparent; cursor: pointer; font-family: inherit; line-height: 1.2; white-space: nowrap; -webkit-tap-highlight-color: transparent; }
+  .btn-accent { background: var(--mari-500); color: var(--ink); box-shadow: 0 8px 20px -8px rgba(242,165,22,0.7); }
+  .btn-primary { background: var(--teal-700); color: var(--white); }
+  .btn-outline { background: var(--white); color: var(--ink); border-color: var(--line-strong); }
+  .btn-outline:hover { border-color: var(--teal-700); background: var(--teal-50); }
+  .btn:focus-visible, a:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--teal-500); outline-offset: 2px; }
+  .card { background: var(--white); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow-sm); }
+  .wmk { display: block; height: 34px; width: auto; aspect-ratio: 142 / 64; }
+  section { padding-block: var(--sec); }
+  [hidden] { display: none !important; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; font-size: 0.75rem; font-weight: 600; padding: 3px 10px; border-radius: 999px; white-space: nowrap; line-height: 1.4; }
+  .chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .chip.ok { background: var(--success-soft); color: var(--success); }
+  .chip.warn { background: var(--warn-soft); color: var(--warn); }
+  .chip.bad { background: var(--danger-soft); color: var(--danger); }
+  .chip.info { background: var(--teal-100); color: var(--teal-800); }
+  .chip.n { background: var(--n100); color: var(--n700); }
+
+  /* Prototype switcher */
+  .proto { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 55; background: var(--ink); color: var(--white); font-family: var(--font-ui); font-size: 0.8125rem; }
+  .proto .wrap { display: flex; align-items: center; gap: 8px; min-height: 44px; overflow-x: auto; scrollbar-width: none; }
+  .proto .wrap::-webkit-scrollbar { display: none; }
+  .proto .lbl { color: var(--n300); white-space: nowrap; margin-right: 4px; }
+  .proto a { white-space: nowrap; padding: 6px 12px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.18); color: var(--n200); font-weight: 500; }
+  .proto a.on { background: var(--teal-400); color: var(--ink); border-color: var(--teal-400); font-weight: 600; }
+  .proto .lang { margin-left: auto; display: inline-flex; border: 1px solid rgba(255,255,255,0.25); border-radius: 999px; padding: 2px; }
+  .proto .lang button { border: 0; background: transparent; color: var(--n300); font: inherit; font-weight: 600; padding: 4px 10px; border-radius: 999px; cursor: pointer; min-height: 28px; }
+  .proto .lang button[aria-pressed="true"] { background: var(--white); color: var(--ink); }
+
+  /* Site nav */
+  .nav { position: sticky; top: calc(44px + env(safe-area-inset-top, 0px)); z-index: 50; background: rgba(255,255,255,0.9); backdrop-filter: saturate(160%) blur(12px); border-bottom: 1px solid var(--line); }
+  .nav .wrap { height: 60px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .nav .wordmark { --wm-mark: var(--teal-700); --wm-text: var(--ink); display: inline-flex; }
+  .nav-links { display: none; gap: 2px; }
+  .nav-links a { font-size: 0.9375rem; font-weight: 500; padding: 8px 13px; border-radius: 8px; color: var(--n700); }
+  .nav-links a.on, .nav-links a:hover { background: var(--n50); color: var(--ink); }
+  .nav .cta { min-height: 42px; padding: 9px 16px; font-size: 0.9375rem; }
+  @media (min-width: 900px) { .nav-links { display: flex; } }
+
+  /* Page band */
+  .band { position: relative; background: var(--teal-900); color: var(--white); overflow: hidden; isolation: isolate; padding-block: 44px; }
+  .band .glow { position: absolute; inset: 0; z-index: -1; background: radial-gradient(70% 50% at 85% 10%, rgba(62,196,185,0.26), transparent 62%), linear-gradient(180deg, var(--teal-900), var(--teal-950)); }
+  .band h1 { font-size: clamp(1.75rem, 1.2rem + 2.6vw, 2.6rem); margin-top: 14px; line-height: 1.25; font-weight: 800; }
+  .band .lead { margin-top: 12px; color: #f0faf8; font-size: 1.0625rem; max-width: 56ch; }
+  .crumbs { font-family: var(--font-ui); font-size: 0.8125rem; color: var(--teal-200); display: flex; gap: 6px; align-items: center; }
+  .crumbs b { color: var(--white); font-weight: 500; }
+
+  /* Help centre */
+  .search { margin-top: 20px; display: flex; background: var(--white); border-radius: 12px; overflow: hidden; max-width: 560px; box-shadow: 0 10px 30px -12px rgba(0,0,0,0.5); }
+  .search svg { width: 20px; height: 20px; color: var(--n500); margin: 0 0 0 14px; align-self: center; flex: none; }
+  .search input { flex: 1; min-width: 0; border: 0; font: inherit; font-size: 1rem; padding: 14px 12px; color: var(--ink); }
+  .search input::placeholder { color: var(--n500); }
+  .quick { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; font-size: 0.8125rem; }
+  .quick a { border: 1px solid rgba(255,255,255,0.25); color: var(--white); border-radius: 999px; padding: 5px 12px; }
+  .cats { display: grid; grid-template-columns: 1fr; gap: 14px; }
+  .cat { padding: 20px; display: grid; gap: 10px; align-content: start; }
+  .cat .ic { width: 42px; height: 42px; border-radius: 12px; background: var(--teal-50); color: var(--teal-700); display: grid; place-items: center; }
+  .cat .ic svg { width: 21px; height: 21px; }
+  .cat h3 { font-size: 1.0625rem; }
+  .cat ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+  .cat li a { display: flex; justify-content: space-between; gap: 10px; align-items: center; padding: 9px 0; border-top: 1px dashed var(--line); font-size: 0.9375rem; color: var(--n700); min-height: 40px; }
+  .cat li a:hover { color: var(--teal-800); }
+  .cat li a svg { width: 16px; height: 16px; color: var(--n400); flex: none; }
+  .cat li:first-child a { border-top: 0; }
+  .article { display: grid; grid-template-columns: 1fr; gap: 20px; }
+  .article .body { padding: 22px 20px; display: grid; gap: 14px; }
+  .article .body h2 { font-size: 1.375rem; }
+  .article .meta { font-size: 0.8125rem; color: var(--muted); display: flex; gap: 12px; flex-wrap: wrap; }
+  .steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; counter-reset: s; }
+  .steps li { display: grid; grid-template-columns: 30px 1fr; gap: 12px; align-items: start; }
+  .steps li::before { counter-increment: s; content: counter(s); width: 30px; height: 30px; border-radius: 50%; background: var(--teal-700); color: var(--white); display: grid; place-items: center; font-family: var(--font-ui); font-weight: 700; font-size: 0.875rem; }
+  .steps li b { display: block; }
+  .steps li span { color: var(--muted); font-size: 0.9375rem; }
+  .tip { border-left: 3px solid var(--mari-500); background: var(--mari-100); border-radius: 0 10px 10px 0; padding: 10px 14px; font-size: 0.9375rem; }
+  .helpful { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 0.9rem; color: var(--muted); border-top: 1px solid var(--line); padding-top: 14px; }
+  .helpful button { font: inherit; border: 1px solid var(--line-strong); background: var(--white); border-radius: 999px; padding: 6px 14px; cursor: pointer; min-height: 36px; }
+  .helpful button[aria-pressed="true"] { background: var(--teal-700); color: var(--white); border-color: var(--teal-700); }
+  .side { display: grid; gap: 12px; align-content: start; }
+  .side .box { padding: 18px; display: grid; gap: 8px; }
+  .side .box h3 { font-size: 1rem; }
+  .side .box p { font-size: 0.9rem; color: var(--muted); }
+  .side .box .btn { width: 100%; margin-top: 4px; }
+
+  /* Notices and status */
+  .status { display: grid; grid-template-columns: 1fr; gap: 10px; }
+  .st { padding: 14px 16px; display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; align-items: center; }
+  .st b { font-size: 0.9375rem; }
+  .st small { color: var(--muted); font-size: 0.8125rem; font-family: var(--font-ui); }
+  .st .chip { grid-row: 1 / 3; }
+  .overall { padding: 18px 20px; display: flex; gap: 14px; align-items: center; background: var(--success-soft); border: 1px solid rgba(27,122,67,0.2); border-radius: 18px; }
+  .overall .dot { width: 40px; height: 40px; border-radius: 50%; background: var(--success); color: var(--white); display: grid; place-items: center; flex: none; }
+  .overall .dot svg { width: 22px; height: 22px; }
+  .overall b { display: block; color: var(--success); font-size: 1.0625rem; }
+  .overall span { font-size: 0.875rem; color: var(--n700); }
+  .nlist { display: grid; gap: 12px; }
+  .notice { padding: 18px 20px; display: grid; gap: 8px; }
+  .notice .top { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .notice .top time { font-family: var(--font-ui); font-size: 0.8125rem; color: var(--muted); margin-left: auto; }
+  .notice h3 { font-size: 1.0625rem; }
+  .notice p { color: var(--n700); font-size: 0.9375rem; }
+  .notice.urgent { border-color: rgba(200,50,59,0.3); background: #fffaf9; }
+  .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  .filters button { font: inherit; font-size: 0.875rem; font-weight: 500; border: 1px solid var(--line-strong); background: var(--white); border-radius: 999px; padding: 6px 14px; cursor: pointer; min-height: 38px; color: var(--n700); }
+  .filters button[aria-pressed="true"] { background: var(--ink); color: var(--white); border-color: var(--ink); }
+  .subscribe { padding: 18px 20px; display: grid; gap: 10px; background: var(--teal-50); border: 1px solid var(--teal-100); border-radius: 18px; }
+  .subscribe p { font-size: 0.9rem; color: var(--n700); }
+
+  /* Legal */
+  .legal-wrap { display: grid; grid-template-columns: 1fr; gap: 24px; }
+  .draft { display: flex; gap: 12px; align-items: flex-start; background: var(--warn-soft); border: 1px solid rgba(154,96,4,0.25); border-radius: 14px; padding: 12px 16px; font-size: 0.9rem; color: var(--n700); margin-bottom: 20px; }
+  .draft svg { width: 20px; height: 20px; color: var(--warn); flex: none; margin-top: 2px; }
+  .draft b { color: var(--warn); }
+  .toc { display: none; }
+  .toc ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; font-size: 0.875rem; }
+  .toc a { display: block; padding: 7px 10px; border-radius: 8px; color: var(--n700); border-left: 2px solid transparent; }
+  .toc a:hover { background: var(--n50); color: var(--ink); }
+  .toc h4 { font-size: 0.75rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--n500); font-family: var(--font-ui); padding: 0 10px 8px; }
+  body[data-lang="bn"] .toc h4 { text-transform: none; letter-spacing: 0; font-family: var(--font-bn); font-size: 0.8125rem; }
+  .doc { max-width: 72ch; display: grid; gap: 26px; }
+  .doc .meta { font-size: 0.875rem; color: var(--muted); display: flex; gap: 12px; flex-wrap: wrap; font-family: var(--font-ui); }
+  .doc .intro { font-size: 1.0625rem; }
+  .doc section.clause { padding: 0; display: grid; gap: 10px; scroll-margin-top: 130px; }
+  .doc .clause h2 { font-size: 1.25rem; display: flex; gap: 10px; align-items: baseline; }
+  .doc .clause h2 small { font-family: var(--font-ui); font-size: 0.8125rem; color: var(--teal-700); font-weight: 600; }
+  .doc .clause p, .doc .clause li { font-size: 0.9875rem; color: var(--n700); }
+  .doc .clause ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .doc .plain { background: var(--teal-50); border: 1px solid var(--teal-100); border-radius: 12px; padding: 10px 14px; font-size: 0.9rem; color: var(--teal-900); display: flex; gap: 10px; align-items: flex-start; }
+  .doc .plain svg { width: 18px; height: 18px; color: var(--teal-700); flex: none; margin-top: 2px; }
+  .doc .plain b { font-weight: 600; }
+  .dl { display: grid; gap: 8px; }
+  .dl div { display: grid; grid-template-columns: 1fr; gap: 2px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--white); font-size: 0.9rem; }
+  .dl div b { color: var(--ink); }
+  .dl div span { color: var(--n700); }
+
+  /* Footer */
+  footer.site { padding-block: 36px calc(28px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--line); background: var(--white); }
+  footer.site .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px 20px; align-items: center; font-size: 0.875rem; color: var(--n700); }
+  footer.site .wordmark { --wm-mark: var(--teal-700); --wm-text: var(--ink); display: inline-flex; }
+  footer.site nav { display: flex; flex-wrap: wrap; gap: 4px 18px; }
+
+  @media (min-width: 640px) {
+    :root { --sec: 64px; }
+    .cats { grid-template-columns: repeat(2, 1fr); }
+    .status { grid-template-columns: repeat(2, 1fr); }
+    .dl div { grid-template-columns: 180px 1fr; gap: 12px; }
+  }
+  @media (min-width: 900px) {
+    .cats { grid-template-columns: repeat(3, 1fr); gap: 18px; }
+    .article { grid-template-columns: 1fr 300px; gap: 24px; align-items: start; }
+    .status { grid-template-columns: repeat(3, 1fr); }
+    .legal-wrap { grid-template-columns: 240px 1fr; gap: 40px; align-items: start; }
+    .toc { display: block; position: sticky; top: 124px; }
+  }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="mark" viewBox="0 0 64 64"><path d="M15 15V49H31L49 29" fill="none" stroke="currentColor" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="wordmark" viewBox="0 0 142 64"><path d="M15 15V49H31L49 29" transform="translate(2.8 8.12) scale(0.72)" fill="none" stroke="var(--wm-mark, currentColor)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/><text x="46" y="47" font-family="'Plus Jakarta Sans', Inter, ui-sans-serif, system-ui, sans-serif" font-weight="800" font-size="42" letter-spacing="-1.3" fill="var(--wm-text, currentColor)">ytro</text></symbol>
+  <symbol id="check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 16l4.5 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="rocket" viewBox="0 0 24 24"><path d="M14 4c3 0 6 3 6 6l-6 6-4-4z M8 12l-3 1 2 2 2 2 1-3M5 19l2-2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/></symbol>
+  <symbol id="orders" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 8h8M8 12h8M8 16h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="wallet" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3 10h18M16 14h2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="store" viewBox="0 0 24 24"><path d="M4 9l1.5-4h13L20 9M4 9v10h16V9M4 9h16M10 19v-5h4v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+  <symbol id="plan" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3 10h18" stroke="currentColor" stroke-width="1.8"/></symbol>
+  <symbol id="users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3.5 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="17" cy="9" r="2.4" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M16 14.5c2.5 0 4.5 1.8 4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="chat" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 9h8M8 12h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="warn" viewBox="0 0 24 24"><path d="M12 4l9 16H3z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 10v4M12 17h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 11v5M12 8h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="sms" viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M10 7h4M10 10h4M10 13h2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+</svg>
+
+<div class="proto">
+  <div class="wrap">
+    <span class="lbl" data-en="Prototype">প্রোটোটাইপ</span>
+    <a href="#help" data-page="help" data-en="Help centre">সাহায্য</a>
+    <a href="#notices" data-page="notices" data-en="Notices and status">নোটিশ ও স্ট্যাটাস</a>
+    <a href="#terms" data-page="terms" data-en="Terms">টার্মস</a>
+    <a href="#privacy" data-page="privacy" data-en="Privacy">প্রাইভেসি</a>
+    <div class="lang" role="group" aria-label="Language"><button type="button" id="lang-bn" aria-pressed="true">বাং</button><button type="button" id="lang-en" aria-pressed="false">EN</button></div>
+  </div>
+</div>
+
+<header class="nav">
+  <div class="wrap">
+    <a href="#help" class="wordmark" aria-label="Lytro"><svg class="wmk"><use href="#wordmark"/></svg></a>
+    <nav class="nav-links" aria-label="Main"><a href="#" data-en="Features">ফিচার</a><a href="#" data-en="Pricing">প্রাইসিং</a><a href="#help" data-en="Help">সাহায্য</a><a href="#" data-en="About">আমাদের সম্পর্কে</a><a href="#" data-en="Contact">যোগাযোগ</a></nav>
+    <a href="#" class="btn btn-accent cta" data-en="Open a free shop">ফ্রি দোকান খুলুন</a>
+  </div>
+</header>
+
+<!-- ============================== HELP CENTRE ============================== -->
+<div class="page" id="page-help">
+  <section class="band on-dark">
+    <div class="glow" aria-hidden="true"></div>
+    <div class="wrap">
+      <div class="crumbs"><span>lytro.app</span><span>/</span><b data-en="Help">সাহায্য</b></div>
+      <h1 data-en="How can we help?">কীভাবে সাহায্য করতে পারি?</h1>
+      <p class="lead" data-en="Short guides written for a phone screen. If a guide does not solve it, WhatsApp is one tap away at the bottom.">ফোনের স্ক্রিনের জন্য লেখা ছোট ছোট গাইড। গাইডে না মিললে নিচে এক ট্যাপে WhatsApp।</p>
+      <div class="search"><svg><use href="#search"/></svg><input type="search" id="hsearch" placeholder="যেমন: লিসেনার পেয়ার, কুরিয়ার বুক, ডোমেইন" data-en-placeholder="e.g. pair listener, book courier, domain" aria-label="Search help"></div>
+      <div class="quick"><a href="#help" data-en="Pair the Listener">লিসেনার পেয়ার</a><a href="#help" data-en="Fake-order check">ফেক অর্ডার চেক</a><a href="#help" data-en="Add bKash number">বিকাশ নম্বর যোগ</a><a href="#help" data-en="Custom domain">নিজের ডোমেইন</a></div>
+    </div>
+  </section>
+  <section style="padding-top:36px">
+    <div class="wrap">
+      <div class="cats">
+        <div class="cat card"><div class="ic"><svg><use href="#rocket"/></svg></div><h3 data-en="Getting started">শুরু করা</h3><ul>
+          <li><a href="#help"><span data-en="Open your shop in three minutes">৩ মিনিটে দোকান খুলুন</span><svg><use href="#arrow"/></svg></a></li>
+          <li><a href="#help"><span data-en="Add your first product">প্রথম প্রোডাক্ট তুলুন</span><svg><use href="#arrow"/></svg></a></li>
+          <li><a href="#help"><span data-en="Share your shop link on your Facebook page">ফেসবুক পেজে দোকানের লিংক শেয়ার করুন</span><svg><use href="#arrow"/></svg></a></li>
+          <li><a href="#help"><span data-en="Install the dashboard on your phone">ফোনে ড্যাশবোর্ড ইনস্টল করুন</span><svg><use href="#arrow"/></svg></a></li></ul></div>
+        <div class="cat card"><div class="ic"><svg><use href="#orders"/></svg></div><h3 data-en="Orders and couriers">অর্ডার আর কুরিয়ার</h3><ul>
+          <li><a href="#help"><span data-en="Confirm an order and book a courier">অর্ডার কনফার্ম করে কুরিয়ার বুক করুন</span><svg><use href="#arrow"/></svg></a></li>
+          <li><a href="#help"><span data-en="Connect your Steadfast or Pathao account">Steadfast বা Pathao অ্যাকাউন্ট জুড়ুন</span><svg><use href="#arrow"/></svg></a></li>
+          <li><a href="#help"><span data-en="What the fake-order check looks at">ফেক অর্ডার চেক কী দেখে</span><svg><use href="#arrow"/></svg></a></li>
+          <li><a href="#help"><span data-en="Returns and damaged parcels">রিটার্ন আর নষ্ট পার্সেল</span><svg><use href="#arrow"/></svg></a></li></ul></div>
+        <div class="cat card"><div class="ic"><svg><use href="#wallet"/></svg></div><h3 data-en="Payments">পেমেন্ট</h3><ul>
+          <li><a href="#help" style="color:var(--teal-800);font-weight:600"><span data-en="Pair the Listener app">লিসেনার অ্যাপ পেয়ার করুন</span><svg><use href="#arrow"/></svg></a></li>
+          <li><a href="#help"><span data-en="Add your bKash or Nagad number">বিকাশ বা নগদ নম্বর যোগ করুন</span><svg><use href="#arrow"/></svg></a></li>
+          <li><a href="#help"><span data-en="When a payment does not match">পেমেন্ট মিলছে না, কী করবেন</span><svg><use href="#arrow"/></svg></a></li>
+          <li><a href="#help"><span data-en="Cash on delivery and partial advance">ক্যাশ অন ডেলিভারি আর আংশিক অ্যাডভান্স</span><svg><use href="#arrow"/></svg></a></li></ul></div>
+        <div class="cat card"><div class="ic"><svg><use href="#store"/></svg></div><h3 data-en="Storefront and domain">স্টোরফ্রন্ট আর ডোমেইন</h3><ul>
+          <li><a href="#help"><span data-en="Logo, name and colours">লোগো, নাম আর রঙ</span><svg><use href="#arrow"/></svg></a></li>
+          <li><a href="#help"><span data-en="Connect your own domain">নিজের ডোমেইন জুড়ুন</span><svg><use href="#arrow"/></svg></a></li>
+          <li><a href="#help"><span data-en="Delivery charge by district">জেলা অনুযায়ী ডেলিভারি চার্জ</span><svg><use href="#arrow"/></svg></a></li>
+          <li><a href="#help"><span data-en="Switch the storefront off">স্টোরফ্রন্ট বন্ধ রাখুন</span><svg><use href="#arrow"/></svg></a></li></ul></div>
+        <div class="cat card"><div class="ic"><svg><use href="#plan"/></svg></div><h3 data-en="Plans and balance">প্ল্যান আর ব্যালেন্স</h3><ul>
+          <li><a href="#help"><span data-en="Trial, pay-as-you-go and fixed plans">ট্রায়াল, পে-অ্যাজ-ইউ-গো আর ফিক্সড প্ল্যান</span><svg><use href="#arrow"/></svg></a></li>
+          <li><a href="#help"><span data-en="Top up your balance">ব্যালেন্স টপ-আপ করুন</span><svg><use href="#arrow"/></svg></a></li>
+          <li><a href="#help"><span data-en="What happens if a plan lapses">প্ল্যান শেষ হয়ে গেলে কী হয়</span><svg><use href="#arrow"/></svg></a></li>
+          <li><a href="#help"><span data-en="Cancel or change a plan">প্ল্যান ক্যানসেল বা বদল</span><svg><use href="#arrow"/></svg></a></li></ul></div>
+        <div class="cat card"><div class="ic"><svg><use href="#users"/></svg></div><h3 data-en="Staff and roles">স্টাফ আর রোল</h3><ul>
+          <li><a href="#help"><span data-en="Add staff with their own phone">নিজের ফোন দিয়ে স্টাফ যোগ করুন</span><svg><use href="#arrow"/></svg></a></li>
+          <li><a href="#help"><span data-en="What each role can see">কোন রোল কী দেখে</span><svg><use href="#arrow"/></svg></a></li>
+          <li><a href="#help"><span data-en="Read the activity log">অ্যাক্টিভিটি লগ পড়ুন</span><svg><use href="#arrow"/></svg></a></li>
+          <li><a href="#help"><span data-en="Remove a staff member">স্টাফ বাদ দিন</span><svg><use href="#arrow"/></svg></a></li></ul></div>
+      </div>
+    </div>
+  </section>
+  <section style="background:var(--n50)">
+    <div class="wrap">
+      <div class="article">
+        <article class="body card">
+          <div class="meta"><span class="chip info" data-en="Payments">পেমেন্ট</span><span data-en="Updated 18 Oct 2026">আপডেট ১৮ অক্টোবর ২০২৬</span><span data-en="3 minutes">৩ মিনিট</span></div>
+          <h2 data-en="Pair the Listener app">লিসেনার অ্যাপ পেয়ার করুন</h2>
+          <p class="muted" data-en="The Listener reads the bKash and Nagad receipt SMS on your phone and marks the matching order paid. It reads only wallet SMS, nothing else.">লিসেনার আপনার ফোনে আসা বিকাশ আর নগদের রিসিট SMS পড়ে ঠিক অর্ডারটাকে পেইড করে দেয়। শুধু ওয়ালেটের SMS পড়ে, আর কিছু না।</p>
+          <ol class="steps">
+            <li><b data-en="Install Lytro Listener on the phone that receives wallet SMS">যে ফোনে ওয়ালেটের SMS আসে, সেখানে Lytro Listener ইনস্টল করুন</b><span data-en="Usually the phone with your merchant or personal bKash SIM.">সাধারণত যে ফোনে আপনার মার্চেন্ট বা পার্সোনাল বিকাশ সিম।</span></li>
+            <li><b data-en="In the dashboard open Settings, then Payments, then Pair a device">ড্যাশবোর্ডে সেটিংস, তারপর পেমেন্ট, তারপর ডিভাইস পেয়ার</b><span data-en="You get a 6-digit code. It works once and expires in a few minutes.">৬ সংখ্যার একটা কোড পাবেন। একবারই কাজ করে, কয়েক মিনিটে মেয়াদ শেষ।</span></li>
+            <li><b data-en="Type the code into the Listener">কোডটা লিসেনারে লিখুন</b><span data-en="The app asks for SMS permission. Allow it; without it nothing can be matched.">অ্যাপ SMS পারমিশন চাইবে। দিন; না দিলে কিছুই মিলবে না।</span></li>
+            <li><b data-en="Send yourself a small test payment">নিজেকে ছোট একটা টেস্ট পেমেন্ট পাঠান</b><span data-en="Within a minute the dashboard shows it under Payments as “matched”.">এক মিনিটের মধ্যে ড্যাশবোর্ডে পেমেন্টের নিচে “মিলেছে” দেখাবে।</span></li>
+          </ol>
+          <div class="tip" data-en-html="<b>Keep the phone on.</b> If no paired phone has been seen for a while, the payment page tells the customer it is checking and asks you to verify by hand."><b>ফোনটা চালু রাখুন।</b> অনেকক্ষণ কোনো পেয়ার করা ফোন না দেখলে পেমেন্ট পেজ কাস্টমারকে বলে চেক হচ্ছে, আর আপনাকে হাতে ভেরিফাই করতে বলে।</div>
+          <div class="helpful"><span data-en="Did this solve it?">সমাধান হলো?</span><button type="button" class="hv" data-en="Yes">হ্যাঁ</button><button type="button" class="hv" data-en="No">না</button></div>
+        </article>
+        <aside class="side">
+          <div class="box card"><h3 data-en="Still stuck?">তবুও আটকে আছেন?</h3><p data-en="Send a screenshot on WhatsApp. Setup help for your first shop is free.">WhatsApp-এ স্ক্রিনশট পাঠান। প্রথম দোকানের সেটআপে সাহায্য ফ্রি।</p><a href="#" class="btn btn-primary" data-en="WhatsApp support">WhatsApp সাপোর্ট</a></div>
+          <div class="box card"><h3 data-en="Related">সম্পর্কিত</h3><ul style="list-style:none;margin:0;padding:0;display:grid;gap:8px;font-size:0.9rem"><li><a href="#help" style="color:var(--teal-800)" data-en="Add your bKash or Nagad number">বিকাশ বা নগদ নম্বর যোগ করুন</a></li><li><a href="#help" style="color:var(--teal-800)" data-en="When a payment does not match">পেমেন্ট মিলছে না, কী করবেন</a></li><li><a href="#help" style="color:var(--teal-800)" data-en="How many devices can I pair?">কয়টা ডিভাইস পেয়ার করা যায়?</a></li></ul></div>
+          <div class="box card"><h3 data-en="Service status">সার্ভিস স্ট্যাটাস</h3><p><span class="chip ok" data-en="All systems normal">সব ঠিক চলছে</span></p><a href="#notices" class="btn btn-outline" data-en="Notices and status">নোটিশ ও স্ট্যাটাস</a></div>
+        </aside>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ============================== NOTICES AND STATUS ============================== -->
+<div class="page" id="page-notices" hidden>
+  <section class="band on-dark">
+    <div class="glow" aria-hidden="true"></div>
+    <div class="wrap">
+      <div class="crumbs"><span>lytro.app</span><span>/</span><b data-en="Notices">নোটিশ</b></div>
+      <h1 data-en="Notices and service status">নোটিশ আর সার্ভিস স্ট্যাটাস</h1>
+      <p class="lead" data-en="Rate changes, maintenance windows, new features and outages, all in one place, so the same question is not asked a hundred times.">রেট বদল, মেইনটেন্যান্সের সময়, নতুন ফিচার আর আউটেজ, সব এক জায়গায়, যাতে একই প্রশ্ন একশোবার করতে না হয়।</p>
+    </div>
+  </section>
+  <section style="padding-top:36px">
+    <div class="wrap" style="display:grid;gap:14px">
+      <div class="overall"><div class="dot"><svg><use href="#check"/></svg></div><div><b data-en="All systems normal">সব ঠিক চলছে</b><span data-en="Checked from two locations every minute. Last check: just now.">প্রতি মিনিটে দুই জায়গা থেকে চেক হয়। শেষ চেক: এইমাত্র।</span></div></div>
+      <div class="status">
+        <div class="st card"><b data-en="Dashboard">ড্যাশবোর্ড</b><small>app.lytro.app</small><span class="chip ok" data-en="Normal">ঠিক আছে</span></div>
+        <div class="st card"><b data-en="Storefronts">স্টোরফ্রন্ট</b><small>*.lytro.app</small><span class="chip ok" data-en="Normal">ঠিক আছে</span></div>
+        <div class="st card"><b data-en="Payment page">পেমেন্ট পেজ</b><small>pay.lytro.app</small><span class="chip ok" data-en="Normal">ঠিক আছে</span></div>
+        <div class="st card"><b data-en="API">API</b><small>api.lytro.app</small><span class="chip ok" data-en="Normal">ঠিক আছে</span></div>
+        <div class="st card"><b data-en="SMS sending">SMS পাঠানো</b><small data-en="gateway">গেটওয়ে</small><span class="chip ok" data-en="Normal">ঠিক আছে</span></div>
+        <div class="st card"><b data-en="Courier booking">কুরিয়ার বুকিং</b><small>Steadfast · Pathao</small><span class="chip ok" data-en="Normal">ঠিক আছে</span></div>
+      </div>
+    </div>
+  </section>
+  <section style="background:var(--n50)">
+    <div class="wrap">
+      <div class="filters" role="group" aria-label="Filter notices">
+        <button type="button" aria-pressed="true" data-f="all" data-en="All">সব</button>
+        <button type="button" aria-pressed="false" data-f="maintenance" data-en="Maintenance">মেইনটেন্যান্স</button>
+        <button type="button" aria-pressed="false" data-f="feature" data-en="New features">নতুন ফিচার</button>
+        <button type="button" aria-pressed="false" data-f="rate" data-en="Rate changes">রেট বদল</button>
+        <button type="button" aria-pressed="false" data-f="incident" data-en="Incidents">আউটেজ</button>
+      </div>
+      <div class="nlist" id="nlist">
+        <div class="notice card" data-k="maintenance"><div class="top"><span class="chip warn" data-en="Maintenance">মেইনটেন্যান্স</span><span class="chip n" data-en="Scheduled">নির্ধারিত</span><time datetime="2026-10-24T02:00">২৪ অক্টোবর, রাত ২:০০–২:৩০</time></div><h3 data-en="Database maintenance, 30 minutes, Friday night">ডেটাবেস মেইনটেন্যান্স, ৩০ মিনিট, শুক্রবার রাতে</h3><p data-en="The dashboard will be read-only for about 30 minutes. Storefronts and the payment page stay up; orders placed in that window are saved and appear afterwards.">ড্যাশবোর্ড প্রায় ৩০ মিনিট শুধু পড়া যাবে। স্টোরফ্রন্ট আর পেমেন্ট পেজ চালু থাকবে; ওই সময়ের অর্ডার সেভ হয়ে পরে দেখাবে।</p></div>
+        <div class="notice card" data-k="feature"><div class="top"><span class="chip info" data-en="New feature">নতুন ফিচার</span><time datetime="2026-10-18">১৮ অক্টোবর ২০২৬</time></div><h3 data-en="Product landing pages are live">প্রোডাক্ট ল্যান্ডিং পেজ লাইভ</h3><p data-en="Every active product now has its own page at your shop address under /l/. Share it on your Facebook page; it takes orders without a cart.">প্রতিটা অ্যাক্টিভ প্রোডাক্টের এখন নিজের পেজ আছে আপনার দোকানের ঠিকানার /l/ এর নিচে। ফেসবুক পেজে শেয়ার করুন; কার্ট ছাড়াই অর্ডার নেয়।</p></div>
+        <div class="notice card" data-k="rate"><div class="top"><span class="chip n" data-en="Rate change">রেট বদল</span><time datetime="2026-11-01">১ নভেম্বর ২০২৬ থেকে</time></div><h3 data-en="SMS price per part changes from 1 November">১ নভেম্বর থেকে SMS-এর পার্টপ্রতি দাম বদলাচ্ছে</h3><p data-en="The gateway price changed. Your free monthly SMS allowance is unchanged. The new rate is shown next to every template in the dashboard.">গেটওয়ের দাম বদলেছে। আপনার মাসিক ফ্রি SMS একই থাকছে। নতুন রেট ড্যাশবোর্ডে প্রতিটা টেমপ্লেটের পাশে দেখানো আছে।</p></div>
+        <div class="notice card urgent" data-k="incident"><div class="top"><span class="chip bad" data-en="Incident">আউটেজ</span><span class="chip ok" data-en="Resolved">সমাধান হয়েছে</span><time datetime="2026-10-12">১২ অক্টোবর, ১১:২০–১১:৫২</time></div><h3 data-en="Pathao bookings failed for 32 minutes">Pathao বুকিং ৩২ মিনিট ফেইল করেছে</h3><p data-en="Pathao's API returned errors. Bookings made in that window were retried automatically and all went through by 12:05. No order was lost.">Pathao-র API এরর দিচ্ছিল। ওই সময়ের বুকিং নিজে থেকে আবার চেষ্টা হয়েছে, ১২:০৫-এর মধ্যে সব গেছে। কোনো অর্ডার হারায়নি।</p></div>
+        <div class="notice card" data-k="feature"><div class="top"><span class="chip info" data-en="New feature">নতুন ফিচার</span><time datetime="2026-10-05">৫ অক্টোবর ২০২৬</time></div><h3 data-en="Variant swatches: colour and image on options">ভ্যারিয়েন্ট সোয়াচ: অপশনে রঙ আর ছবি</h3><p data-en="A colour option can show a swatch and an image instead of a plain word. Set it on the attribute; existing products are unchanged.">রঙের অপশনে এখন শুধু শব্দের বদলে সোয়াচ আর ছবি দেখানো যায়। অ্যাট্রিবিউটে সেট করুন; পুরনো প্রোডাক্ট একই থাকে।</p></div>
+      </div>
+      <div class="subscribe" style="margin-top:16px"><b data-en="Get notices in the dashboard">নোটিশ ড্যাশবোর্ডেই পান</b><p data-en="Every notice here also appears on your dashboard notice board with an unread badge. Urgent ones show as a banner until you dismiss them. We never send notices by SMS charged to you.">এখানকার প্রতিটা নোটিশ আপনার ড্যাশবোর্ডের নোটিশ বোর্ডেও আনরিড ব্যাজসহ আসে। জরুরিগুলো ব্যানার হয়ে থাকে যতক্ষণ না সরান। আপনার খরচে SMS-এ নোটিশ কখনো পাঠাই না।</p></div>
+    </div>
+  </section>
+</div>
+
+<!-- ============================== TERMS ============================== -->
+<div class="page" id="page-terms" hidden>
+  <section class="band on-dark" style="padding-block:40px">
+    <div class="glow" aria-hidden="true"></div>
+    <div class="wrap">
+      <div class="crumbs"><span>lytro.app</span><span>/</span><b data-en="Terms">টার্মস</b></div>
+      <h1 data-en="Terms of service">সার্ভিসের শর্তাবলী</h1>
+      <p class="lead" data-en="The deal between you and Lytro, written so a seller can read it on a phone. Each section starts with the plain version.">আপনার আর Lytro-র মধ্যে চুক্তিটা, যাতে একজন সেলার ফোনে পড়তে পারে। প্রতিটা অংশ সহজ ভাষার সারাংশ দিয়ে শুরু।</p>
+    </div>
+  </section>
+  <section style="padding-top:28px">
+    <div class="wrap">
+      <div class="draft"><svg><use href="#warn"/></svg><div><b data-en="Draft for legal review.">লিগ্যাল রিভিউর জন্য খসড়া।</b> <span data-en="Structure and plain-language summaries are final; the wording of each clause is to be settled with a lawyer before launch (SRS LEG-1).">কাঠামো আর সহজ ভাষার সারাংশ চূড়ান্ত; প্রতিটা ধারার শব্দ লঞ্চের আগে আইনজীবীর সাথে ঠিক হবে (SRS LEG-1)।</span></div></div>
+      <div class="legal-wrap">
+        <nav class="toc" aria-label="Sections"><h4 data-en="On this page">এই পেজে</h4><ol>
+          <li><a href="#t1" data-en="1. Your account and shop">১. আপনার অ্যাকাউন্ট আর দোকান</a></li><li><a href="#t2" data-en="2. Trial, plans and fees">২. ট্রায়াল, প্ল্যান আর ফি</a></li><li><a href="#t3" data-en="3. Balance and top-ups">৩. ব্যালেন্স আর টপ-আপ</a></li><li><a href="#t4" data-en="4. If a plan lapses">৪. প্ল্যান শেষ হয়ে গেলে</a></li><li><a href="#t5" data-en="5. Your customers' money">৫. আপনার কাস্টমারের টাকা</a></li><li><a href="#t6" data-en="6. Couriers and SMS">৬. কুরিয়ার আর SMS</a></li><li><a href="#t7" data-en="7. Fraud data">৭. ফ্রড ডেটা</a></li><li><a href="#t8" data-en="8. Acceptable use">৮. যা করা যাবে না</a></li><li><a href="#t9" data-en="9. Your data and deletion">৯. আপনার ডেটা আর মুছে ফেলা</a></li><li><a href="#t10" data-en="10. Availability and liability">১০. সার্ভিস আর দায়</a></li><li><a href="#t11" data-en="11. Changes and contact">১১. বদল আর যোগাযোগ</a></li>
+        </ol></nav>
+        <div class="doc">
+          <div class="meta"><span data-en="Version 0.1, draft">ভার্সন ০.১, খসড়া</span><span data-en="Effective: on launch">কার্যকর: লঞ্চের দিন</span><span>Lytro by Lytronix, Dhaka</span></div>
+          <p class="intro" data-en="These terms apply to anyone who opens a shop on Lytro, signs in as staff, or uses the API. By creating a shop you agree to them. “We” means Lytronix, the company that runs Lytro; “you” means the shop owner.">এই শর্ত তাদের জন্য যারা Lytro-তে দোকান খোলেন, স্টাফ হিসেবে লগইন করেন, বা API ব্যবহার করেন। দোকান খুললেই আপনি এতে রাজি হচ্ছেন। “আমরা” মানে Lytronix, যারা Lytro চালায়; “আপনি” মানে দোকানের মালিক।</p>
+
+          <section class="clause" id="t1"><h2><small>1</small><span data-en="Your account and shop">আপনার অ্যাকাউন্ট আর দোকান</span></h2>
+            <div class="plain"><svg><use href="#info"/></svg><span data-en-html="<b>Plainly:</b> one phone number, one owner. You are responsible for your staff and for what your shop sells."><b>সহজ কথায়:</b> একটা ফোন নম্বর, একজন মালিক। আপনার স্টাফ আর আপনার দোকান কী বেচে, তার দায় আপনার।</span></div>
+            <ul><li data-en="You sign up with a phone number, Google or Facebook; the verified identity is the owner. You may add staff with their own phone numbers and roles; what they do in your shop is your responsibility.">আপনি ফোন নম্বর, গুগল বা ফেসবুক দিয়ে সাইন আপ করেন; ভেরিফাই করা পরিচয়টাই মালিক। নিজের নম্বর আর রোল দিয়ে স্টাফ যোগ করতে পারেন; আপনার দোকানে তারা যা করে তার দায় আপনার।</li><li data-en="Your shop name, logo, products, prices and customer messages are yours. You must have the right to sell what you list and to use the images you upload.">আপনার দোকানের নাম, লোগো, প্রোডাক্ট, দাম আর কাস্টমারের মেসেজ আপনার। যা লিস্ট করেন তা বেচার আর যে ছবি তোলেন তা ব্যবহারের অধিকার আপনার থাকতে হবে।</li><li data-en="A small “Powered by Lytro” mark stays on your dashboard and storefront, and “Secured by Lytro” on the payment page. They cannot be removed.">ছোট একটা “Powered by Lytro” চিহ্ন আপনার ড্যাশবোর্ড আর স্টোরফ্রন্টে থাকে, আর পেমেন্ট পেজে “Secured by Lytro”। এগুলো সরানো যায় না।</li></ul></section>
+
+          <section class="clause" id="t2"><h2><small>2</small><span data-en="Trial, plans and fees">ট্রায়াল, প্ল্যান আর ফি</span></h2>
+            <div class="plain"><svg><use href="#info"/></svg><span data-en-html="<b>Plainly:</b> 30 days free, then pay-as-you-go unless you pick a plan. A started period is not refunded."><b>সহজ কথায়:</b> ৩০ দিন ফ্রি, তারপর প্ল্যান না নিলে পে-অ্যাজ-ইউ-গো। শুরু হওয়া পিরিয়ডের টাকা ফেরত হয় না।</span></div>
+            <ul><li data-en="The trial lasts 30 days from sign-up with the limits shown at sign-up. When it ends you continue on pay-as-you-go automatically; nothing is deleted and no card is required.">সাইন-আপ থেকে ৩০ দিন ট্রায়াল, সাইন-আপে দেখানো লিমিট নিয়ে। শেষ হলে নিজে থেকেই পে-অ্যাজ-ইউ-গো-তে চলবেন; কিছু মোছে না, কার্ড লাগে না।</li><li data-en="Pay-as-you-go has no monthly fee. A fixed platform fee is charged per order when your staff handle it (book a courier or mark it processing or shipped), plus a small per-product fee as published on the pricing page.">পে-অ্যাজ-ইউ-গো-তে মাসিক ফি নেই। অর্ডার হ্যান্ডেল করলে (কুরিয়ার বুক বা প্রসেসিং/শিপড মার্ক করলে) অর্ডারপ্রতি নির্দিষ্ট প্ল্যাটফর্ম ফি কাটে, আর প্রাইসিং পেজে লেখা ছোট একটা প্রোডাক্টপ্রতি ফি।</li><li data-en="Fixed plans (Starter, Growth, Pro) are paid in advance for the term you choose. Upgrades start immediately and restart the billing period; downgrades take effect at the end of the paid period.">ফিক্সড প্ল্যান (Starter, Growth, Pro) বেছে নেওয়া মেয়াদের জন্য আগে থেকে দিতে হয়। আপগ্রেড সাথে সাথে শুরু হয় আর বিলিং পিরিয়ড নতুন করে শুরু হয়; ডাউনগ্রেড পেইড পিরিয়ড শেষে কার্যকর হয়।</li><li data-en="No refund is given for a period that has started, including your first purchase. The trial is the evaluation window.">শুরু হওয়া কোনো পিরিয়ডের টাকা ফেরত হয় না, প্রথম কেনাকাটাসহ। ট্রায়ালটাই যাচাইয়ের সময়।</li><li data-en="You may cancel at any time; the cancellation takes effect at the end of the paid period and can be undone until then.">যেকোনো সময় ক্যানসেল করতে পারেন; পেইড পিরিয়ড শেষে কার্যকর হয়, ততক্ষণ ফিরিয়ে নেওয়া যায়।</li></ul></section>
+
+          <section class="clause" id="t3"><h2><small>3</small><span data-en="Balance and top-ups">ব্যালেন্স আর টপ-আপ</span></h2>
+            <div class="plain"><svg><use href="#info"/></svg><span data-en-html="<b>Plainly:</b> your balance is your money. It is never deleted, but it is frozen while a plan is lapsed."><b>সহজ কথায়:</b> ব্যালেন্স আপনার টাকা। কখনো মোছে না, তবে প্ল্যান শেষ থাকলে জমে থাকে।</span></div>
+            <ul><li data-en="Your balance pays for SMS beyond the free allowance and for paid features. Top-ups are offered while a plan is active and have no expiry date.">ফ্রি SMS-এর বাইরের SMS আর পেইড ফিচারের খরচ ব্যালেন্স থেকে যায়। প্ল্যান অ্যাক্টিভ থাকলে টপ-আপ করা যায়, মেয়াদ শেষ হয় না।</li><li data-en="When a plan lapses the balance is frozen: it cannot be spent, and it is neither deleted nor refunded. Buying a plan again makes it usable.">প্ল্যান শেষ হলে ব্যালেন্স জমে যায়: খরচ করা যায় না, মোছেও না, ফেরতও হয় না। আবার প্ল্যান নিলে ব্যবহার করা যায়।</li></ul></section>
+
+          <section class="clause" id="t4"><h2><small>4</small><span data-en="If a plan lapses">প্ল্যান শেষ হয়ে গেলে</span></h2>
+            <div class="plain"><svg><use href="#info"/></svg><span data-en-html="<b>Plainly:</b> you get 60 days and four stages before business data is deleted. Pay-as-you-go never lapses."><b>সহজ কথায়:</b> ব্যবসার ডেটা মোছার আগে ৬০ দিন আর চারটা ধাপ পান। পে-অ্যাজ-ইউ-গো কখনো শেষ হয় না।</span></div>
+            <div class="dl">
+              <div><b data-en="Days 0 to 3: grace">০–৩ দিন: গ্রেস</b><span data-en="Everything works. A renewal banner shows days left.">সব কাজ করে। রিনিউয়ালের ব্যানারে বাকি দিন দেখায়।</span></div>
+              <div><b data-en="Days 3 to 7: read-only">৩–৭ দিন: শুধু পড়া</b><span data-en="You and staff can view and export, buy a plan, change password. Storefront, payment page, API and listener go offline.">আপনি আর স্টাফ দেখতে আর এক্সপোর্ট করতে পারেন, প্ল্যান কিনতে, পাসওয়ার্ড বদলাতে। স্টোরফ্রন্ট, পেমেন্ট পেজ, API আর লিসেনার বন্ধ।</span></div>
+              <div><b data-en="Days 7 to 15: locked">৭–১৫ দিন: লকড</b><span data-en="Only the owner can sign in, only to renew or export.">শুধু মালিক লগইন করতে পারেন, শুধু রিনিউ বা এক্সপোর্টের জন্য।</span></div>
+              <div><b data-en="Days 15 to 60: archived">১৫–৬০ দিন: আর্কাইভড</b><span data-en="Dashboard off except a purchase screen. All data is kept.">কেনার স্ক্রিন ছাড়া ড্যাশবোর্ড বন্ধ। সব ডেটা থাকে।</span></div>
+              <div><b data-en="Day 60: deletion">৬০ দিন: মুছে ফেলা</b><span data-en="Business data is deleted after advance warning, except records the law requires us to keep.">আগে থেকে জানিয়ে ব্যবসার ডেটা মুছে ফেলা হয়, আইনে রাখতে বলা রেকর্ড ছাড়া।</span></div>
+            </div>
+            <p data-en="Essential SMS for your own sign-in and password reset are still sent in lapsed states and are not charged to you.">লগইন আর পাসওয়ার্ড রিসেটের জরুরি SMS শেষ হওয়া অবস্থাতেও যায়, আর আপনার খরচে নয়।</p></section>
+
+          <section class="clause" id="t5"><h2><small>5</small><span data-en="Your customers' money">আপনার কাস্টমারের টাকা</span></h2>
+            <div class="plain"><svg><use href="#info"/></svg><span data-en-html="<b>Plainly:</b> customers pay you, not us. We never hold, settle or refund their money."><b>সহজ কথায়:</b> কাস্টমার আপনাকে পে করে, আমাদের না। তাদের টাকা আমরা ধরি না, সেটেল করি না, ফেরতও দিই না।</span></div>
+            <ul><li data-en="Shoppers pay your own bKash, Nagad or bank account directly. Lytro records and matches payments; it does not receive them. Refunds to shoppers are between you and them.">ক্রেতা সরাসরি আপনার বিকাশ, নগদ বা ব্যাংকে পে করে। Lytro পেমেন্ট রেকর্ড আর ম্যাচ করে; নেয় না। ক্রেতাকে ফেরত দেওয়া আপনার আর তার ব্যাপার।</li><li data-en="The payment page shows your shop name and logo and the wallets' official marks. It never asks for a PIN or password.">পেমেন্ট পেজে আপনার দোকানের নাম, লোগো আর ওয়ালেটের অফিসিয়াল চিহ্ন দেখায়। কখনো পিন বা পাসওয়ার্ড চায় না।</li></ul></section>
+
+          <section class="clause" id="t6"><h2><small>6</small><span data-en="Couriers and SMS">কুরিয়ার আর SMS</span></h2>
+            <div class="plain"><svg><use href="#info"/></svg><span data-en-html="<b>Plainly:</b> couriers are your contract; SMS beyond the free allowance costs what the pricing page says."><b>সহজ কথায়:</b> কুরিয়ার আপনার চুক্তি; ফ্রি SMS-এর বাইরে প্রাইসিং পেজের দাম।</span></div>
+            <ul><li data-en="Courier bookings are made on your own courier account with your credentials. Delivery charges, delays, losses and claims are between you and the courier.">কুরিয়ার বুকিং আপনার নিজের অ্যাকাউন্টে আপনার ক্রেডেনশিয়াল দিয়ে হয়। ডেলিভারি চার্জ, দেরি, হারানো আর ক্লেইম আপনার আর কুরিয়ারের মধ্যে।</li><li data-en="SMS to your customers are sent in your shop's name from templates you control. Each plan includes a free monthly allowance; beyond it, SMS are charged per part from your balance at the published rate.">কাস্টমারকে SMS যায় আপনার দোকানের নামে, আপনার নিয়ন্ত্রণের টেমপ্লেট থেকে। প্রতিটা প্ল্যানে মাসিক ফ্রি SMS আছে; এর বাইরে পার্টপ্রতি প্রকাশিত রেটে ব্যালেন্স থেকে কাটে।</li></ul></section>
+
+          <section class="clause" id="t7"><h2><small>7</small><span data-en="Fraud data">ফ্রড ডেটা</span></h2>
+            <div class="plain"><svg><use href="#info"/></svg><span data-en-html="<b>Plainly:</b> return and cancel history is shared across shops in hashed form, so everyone's fake-order check gets better."><b>সহজ কথায়:</b> রিটার্ন আর ক্যানসেলের রেকর্ড হ্যাশ করে দোকানগুলোর মধ্যে শেয়ার হয়, যাতে সবার ফেক অর্ডার চেক ভালো হয়।</span></div>
+            <ul><li data-en="The fake-order check uses your shop's own order history and a cross-shop signal built from hashed phone numbers and outcomes (delivered, returned, cancelled). No shop can see another shop's customers, orders or names.">ফেক অর্ডার চেক আপনার দোকানের নিজের রেকর্ড আর হ্যাশ করা ফোন নম্বর ও ফলাফল (ডেলিভারড, রিটার্ন, ক্যানসেল) থেকে বানানো ক্রস-শপ সিগন্যাল ব্যবহার করে। কোনো দোকান অন্য দোকানের কাস্টমার, অর্ডার বা নাম দেখতে পায় না।</li><li data-en="The check is advice. You decide whether to ship.">চেকটা পরামর্শ। শিপ করবেন কিনা আপনি ঠিক করেন।</li></ul></section>
+
+          <section class="clause" id="t8"><h2><small>8</small><span data-en="Acceptable use">যা করা যাবে না</span></h2>
+            <ul><li data-en="No illegal goods, counterfeit products, or anything you do not have the right to sell.">বেআইনি পণ্য, নকল প্রোডাক্ট, বা যা বেচার অধিকার আপনার নেই।</li><li data-en="No spam SMS, no messages to people who did not order from you, no misuse of customer data.">স্প্যাম SMS না, যারা আপনার থেকে অর্ডার করেনি তাদের মেসেজ না, কাস্টমারের ডেটার অপব্যবহার না।</li><li data-en="No attempts to access another shop's data, to abuse the API, or to evade limits.">অন্য দোকানের ডেটায় ঢোকার চেষ্টা, API-এর অপব্যবহার, বা লিমিট এড়ানোর চেষ্টা না।</li><li data-en="We may suspend a shop that breaks these rules, after notice where possible. Suspension follows the lapsed-plan stages above.">এই নিয়ম ভাঙলে আমরা দোকান সাসপেন্ড করতে পারি, সম্ভব হলে জানিয়ে। সাসপেনশন ওপরের ধাপগুলো মেনে চলে।</li></ul></section>
+
+          <section class="clause" id="t9"><h2><small>9</small><span data-en="Your data and deletion">আপনার ডেটা আর মুছে ফেলা</span></h2>
+            <div class="plain"><svg><use href="#info"/></svg><span data-en-html="<b>Plainly:</b> your data is yours; you can export it any time; orders are kept while you are active; everything is deleted 60 days after a lapse."><b>সহজ কথায়:</b> ডেটা আপনার; যখন খুশি এক্সপোর্ট করতে পারেন; অ্যাক্টিভ থাকলে অর্ডার থাকে; শেষ হওয়ার ৬০ দিন পর সব মোছে।</span></div>
+            <ul><li data-en="You can export your products, customers and orders from the dashboard at any time, including in read-only and locked states.">যখন খুশি ড্যাশবোর্ড থেকে প্রোডাক্ট, কাস্টমার আর অর্ডার এক্সপোর্ট করতে পারেন, শুধু-পড়া আর লকড অবস্থাতেও।</li><li data-en="Completed orders, payments and invoices are kept while your shop is active, because they are financial records. Chat and activity logs are kept for the period of your plan (30, 90 or 365 days).">দোকান অ্যাক্টিভ থাকলে সম্পন্ন অর্ডার, পেমেন্ট আর ইনভয়েস রাখা হয়, কারণ এগুলো আর্থিক রেকর্ড। চ্যাট আর অ্যাক্টিভিটি লগ প্ল্যানের মেয়াদ অনুযায়ী থাকে (৩০, ৯০ বা ৩৬৫ দিন)।</li><li data-en="Uploaded media counts against your plan's storage. Media is deleted with the shop.">আপলোড করা মিডিয়া প্ল্যানের স্টোরেজে গোনা হয়। দোকানের সাথে মিডিয়াও মোছে।</li><li data-en="Your customers' personal data is deleted with your business data, except what the law requires us to keep. See the Privacy policy.">আপনার কাস্টমারের ব্যক্তিগত ডেটা আপনার ব্যবসার ডেটার সাথে মোছে, আইনে রাখতে বলা অংশ ছাড়া। প্রাইভেসি পলিসি দেখুন।</li></ul></section>
+
+          <section class="clause" id="t10"><h2><small>10</small><span data-en="Availability and liability">সার্ভিস আর দায়</span></h2>
+            <ul><li data-en="We aim to keep Lytro up around the clock, monitor it from outside Bangladesh every minute, and back up data every night. We do not promise uninterrupted service; outages and maintenance are posted on the Notices page.">আমরা Lytro সারাক্ষণ চালু রাখার চেষ্টা করি, প্রতি মিনিটে বাংলাদেশের বাইরে থেকে মনিটর করি, আর প্রতি রাতে ব্যাকআপ নিই। নিরবচ্ছিন্ন সার্ভিসের প্রতিশ্রুতি দিই না; আউটেজ আর মেইনটেন্যান্স নোটিশ পেজে থাকে।</li><li data-en="Our liability to you is limited to the fees you paid us in the three months before the claim. We are not liable for courier losses, wallet outages, or decisions you make from the fake-order check. [Wording to be settled with counsel.]">আপনার প্রতি আমাদের দায় দাবির আগের তিন মাসে আপনি যে ফি দিয়েছেন তার মধ্যে সীমিত। কুরিয়ারের ক্ষতি, ওয়ালেটের আউটেজ, বা ফেক অর্ডার চেক দেখে নেওয়া সিদ্ধান্তের দায় আমাদের নয়। [শব্দ আইনজীবীর সাথে ঠিক হবে।]</li></ul></section>
+
+          <section class="clause" id="t11"><h2><small>11</small><span data-en="Changes and contact">বদল আর যোগাযোগ</span></h2>
+            <ul><li data-en="If these terms change in a way that affects you, we post a notice at least 15 days before it takes effect, on the Notices page and your dashboard notice board. Price changes are announced the same way.">এই শর্ত আপনাকে প্রভাবিত করার মতো বদলালে কার্যকর হওয়ার কমপক্ষে ১৫ দিন আগে নোটিশ পেজ আর আপনার ড্যাশবোর্ডের নোটিশ বোর্ডে জানাই। দামের বদলও একইভাবে।</li><li data-en="These terms are governed by the laws of Bangladesh. Questions: hello@lytro.app or the Contact page.">এই শর্ত বাংলাদেশের আইনে চলে। প্রশ্ন: hello@lytro.app বা যোগাযোগ পেজ।</li></ul></section>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ============================== PRIVACY ============================== -->
+<div class="page" id="page-privacy" hidden>
+  <section class="band on-dark" style="padding-block:40px">
+    <div class="glow" aria-hidden="true"></div>
+    <div class="wrap">
+      <div class="crumbs"><span>lytro.app</span><span>/</span><b data-en="Privacy">প্রাইভেসি</b></div>
+      <h1 data-en="Privacy policy">প্রাইভেসি পলিসি</h1>
+      <p class="lead" data-en="What we collect, why, where it lives, and how to get it deleted. Written for the seller and for the seller's customers.">কী সংগ্রহ করি, কেন, কোথায় থাকে, আর কীভাবে মুছতে বলবেন। সেলার আর সেলারের কাস্টমার, দুজনের জন্য লেখা।</p>
+    </div>
+  </section>
+  <section style="padding-top:28px">
+    <div class="wrap">
+      <div class="draft"><svg><use href="#warn"/></svg><div><b data-en="Draft for legal review.">লিগ্যাল রিভিউর জন্য খসড়া।</b> <span data-en="Retention periods are set after an accountant's and a lawyer's advice (SRS LEG-2). The facts about where data lives and what the Listener reads are from the system design.">সংরক্ষণের মেয়াদ হিসাবরক্ষক আর আইনজীবীর পরামর্শের পর ঠিক হবে (SRS LEG-2)। ডেটা কোথায় থাকে আর লিসেনার কী পড়ে, সেগুলো সিস্টেম ডিজাইন থেকে।</span></div></div>
+      <div class="legal-wrap">
+        <nav class="toc" aria-label="Sections"><h4 data-en="On this page">এই পেজে</h4><ol>
+          <li><a href="#p1" data-en="1. Who this covers">১. কাদের জন্য</a></li><li><a href="#p2" data-en="2. What we collect">২. কী সংগ্রহ করি</a></li><li><a href="#p3" data-en="3. The Listener app">৩. লিসেনার অ্যাপ</a></li><li><a href="#p4" data-en="4. How we use it">৪. কীভাবে ব্যবহার করি</a></li><li><a href="#p5" data-en="5. Who we share with">৫. কার সাথে শেয়ার করি</a></li><li><a href="#p6" data-en="6. Where it lives">৬. কোথায় থাকে</a></li><li><a href="#p7" data-en="7. How long we keep it">৭. কতদিন রাখি</a></li><li><a href="#p8" data-en="8. Your rights">৮. আপনার অধিকার</a></li><li><a href="#p9" data-en="9. Cookies">৯. কুকি</a></li><li><a href="#p10" data-en="10. Contact">১০. যোগাযোগ</a></li>
+        </ol></nav>
+        <div class="doc">
+          <div class="meta"><span data-en="Version 0.1, draft">ভার্সন ০.১, খসড়া</span><span data-en="Effective: on launch">কার্যকর: লঞ্চের দিন</span><span>Lytro by Lytronix, Dhaka</span></div>
+
+          <section class="clause" id="p1"><h2><small>1</small><span data-en="Who this covers">কাদের জন্য</span></h2>
+            <div class="plain"><svg><use href="#info"/></svg><span data-en-html="<b>Plainly:</b> sellers and staff are our users. Shoppers are the seller's customers; we hold their data for the seller."><b>সহজ কথায়:</b> সেলার আর স্টাফ আমাদের ইউজার। ক্রেতারা সেলারের কাস্টমার; তাদের ডেটা আমরা সেলারের হয়ে রাখি।</span></div>
+            <ul><li data-en="Shop owners and staff: you have an account with us, and this policy applies to you directly.">দোকানের মালিক আর স্টাফ: আপনার অ্যাকাউন্ট আমাদের কাছে, এই পলিসি সরাসরি আপনার জন্য।</li><li data-en="Shoppers: you buy from a shop that runs on Lytro. The shop decides what to do with your data; we process it on the shop's behalf and under its instructions. Questions about a specific order go to the shop first.">ক্রেতা: আপনি Lytro-তে চলা একটা দোকান থেকে কেনেন। আপনার ডেটা নিয়ে কী হবে দোকান ঠিক করে; আমরা দোকানের হয়ে, তার নির্দেশে প্রসেস করি। কোনো অর্ডার নিয়ে প্রশ্ন আগে দোকানকে।</li></ul></section>
+
+          <section class="clause" id="p2"><h2><small>2</small><span data-en="What we collect">কী সংগ্রহ করি</span></h2>
+            <div class="dl">
+              <div><b data-en="From sellers and staff">সেলার আর স্টাফের</b><span data-en="Phone number, name, shop name and address, optional email, Google or Facebook identity if you sign in with them, wallet numbers you add, courier account credentials you connect (stored encrypted), and what you do in the dashboard (activity log).">ফোন নম্বর, নাম, দোকানের নাম আর ঠিকানা, ঐচ্ছিক ইমেইল, গুগল বা ফেসবুক দিয়ে লগইন করলে সেই পরিচয়, যোগ করা ওয়ালেট নম্বর, জোড়া কুরিয়ার অ্যাকাউন্টের ক্রেডেনশিয়াল (এনক্রিপ্ট করে রাখা), আর ড্যাশবোর্ডে কী করেন (অ্যাক্টিভিটি লগ)।</span></div>
+              <div><b data-en="From shoppers">ক্রেতার</b><span data-en="Name, phone number, delivery address, what was ordered, payment transaction IDs and sender numbers, delivery outcome, and messages sent to the shop.">নাম, ফোন নম্বর, ডেলিভারির ঠিকানা, কী অর্ডার হলো, পেমেন্টের ট্রানজেকশন আইডি আর প্রেরকের নম্বর, ডেলিভারির ফলাফল, আর দোকানকে পাঠানো মেসেজ।</span></div>
+              <div><b data-en="Automatically">নিজে থেকে</b><span data-en="Device and browser type, IP address, sign-in times, and error reports, kept for security and debugging.">ডিভাইস আর ব্রাউজারের ধরন, IP, লগইনের সময়, আর এরর রিপোর্ট, নিরাপত্তা আর ডিবাগের জন্য।</span></div>
+              <div><b data-en="Never">কখনো না</b><span data-en="Wallet PINs, passwords of other services, or card numbers. The payment page never asks for them.">ওয়ালেটের পিন, অন্য সার্ভিসের পাসওয়ার্ড, বা কার্ড নম্বর। পেমেন্ট পেজ কখনো চায় না।</span></div>
+            </div></section>
+
+          <section class="clause" id="p3"><h2><small>3</small><span data-en="The Listener app">লিসেনার অ্যাপ</span></h2>
+            <div class="plain"><svg><use href="#info"/></svg><span data-en-html="<b>Plainly:</b> it reads wallet receipt SMS on your phone and nothing else, and sends only the amount, transaction ID and sender number."><b>সহজ কথায়:</b> আপনার ফোনে ওয়ালেটের রিসিট SMS পড়ে, আর কিছু না, আর শুধু পরিমাণ, ট্রানজেকশন আইডি আর প্রেরকের নম্বর পাঠায়।</span></div>
+            <ul><li data-en="The Listener asks for SMS permission so it can read incoming messages. It acts only on messages from bKash and Nagad; other SMS are ignored and never uploaded.">লিসেনার SMS পারমিশন চায় যাতে আসা মেসেজ পড়তে পারে। শুধু বিকাশ আর নগদের মেসেজে কাজ করে; অন্য SMS উপেক্ষা করে, কখনো আপলোড করে না।</li><li data-en="From a wallet SMS it sends the amount, transaction ID, sender number and time to your shop, where it is matched to an order. It is paired to your shop only; a token from another phone is refused.">ওয়ালেটের SMS থেকে পরিমাণ, ট্রানজেকশন আইডি, প্রেরকের নম্বর আর সময় আপনার দোকানে পাঠায়, যেখানে অর্ডারের সাথে মেলানো হয়। শুধু আপনার দোকানে পেয়ার করা; অন্য ফোনের টোকেন নেওয়া হয় না।</li><li data-en="You can unpair a phone from the dashboard at any time; its token stops working at once.">যেকোনো সময় ড্যাশবোর্ড থেকে ফোন আনপেয়ার করতে পারেন; টোকেন সাথে সাথে বন্ধ হয়।</li></ul></section>
+
+          <section class="clause" id="p4"><h2><small>4</small><span data-en="How we use it">কীভাবে ব্যবহার করি</span></h2>
+            <ul><li data-en="To run your shop: orders, payments, couriers, SMS to customers, invoices, statistics.">আপনার দোকান চালাতে: অর্ডার, পেমেন্ট, কুরিয়ার, কাস্টমারকে SMS, ইনভয়েস, পরিসংখ্যান।</li><li data-en="To protect shops: the fake-order check uses hashed phone numbers and order outcomes across shops. No shop sees another shop's data.">দোকান বাঁচাতে: ফেক অর্ডার চেক দোকানগুলোর হ্যাশ করা ফোন নম্বর আর অর্ডারের ফলাফল ব্যবহার করে। কোনো দোকান অন্য দোকানের ডেটা দেখে না।</li><li data-en="To bill you and to send you essential messages: sign-in codes, notices, renewal reminders. No marketing SMS without your consent.">আপনাকে বিল করতে আর জরুরি মেসেজ দিতে: লগইন কোড, নোটিশ, রিনিউয়াল রিমাইন্ডার। সম্মতি ছাড়া মার্কেটিং SMS না।</li><li data-en="We do not sell personal data and do not use shoppers' data to advertise to them.">ব্যক্তিগত ডেটা বেচি না, ক্রেতার ডেটা দিয়ে তাদের বিজ্ঞাপন দেখাই না।</li></ul></section>
+
+          <section class="clause" id="p5"><h2><small>5</small><span data-en="Who we share with">কার সাথে শেয়ার করি</span></h2>
+            <ul><li data-en="Couriers you connect (Steadfast, Pathao): the shopper's name, phone, address and parcel details, to deliver the order.">আপনার জোড়া কুরিয়ার (Steadfast, Pathao): ক্রেতার নাম, ফোন, ঠিকানা আর পার্সেলের বিবরণ, অর্ডার পৌঁছাতে।</li><li data-en="SMS gateway: the shopper's number and the message text, to send order SMS.">SMS গেটওয়ে: ক্রেতার নম্বর আর মেসেজের টেক্সট, অর্ডারের SMS পাঠাতে।</li><li data-en="Payment providers, when a shop connects a gateway: the amount and reference, so the wallet's own checkout can run.">পেমেন্ট প্রোভাইডার, দোকান গেটওয়ে জুড়লে: পরিমাণ আর রেফারেন্স, যাতে ওয়ালেটের নিজের চেকআউট চলে।</li><li data-en="Hosting and backups: servers in Bangladesh and an encrypted backup store; providers can hold data but not read it.">হোস্টিং আর ব্যাকআপ: বাংলাদেশের সার্ভার আর এনক্রিপ্টেড ব্যাকআপ স্টোর; প্রোভাইডার ডেটা রাখতে পারে, পড়তে পারে না।</li><li data-en="Authorities, only when the law requires it.">কর্তৃপক্ষ, শুধু আইনে বাধ্য হলে।</li></ul></section>
+
+          <section class="clause" id="p6"><h2><small>6</small><span data-en="Where it lives">কোথায় থাকে</span></h2>
+            <div class="plain"><svg><use href="#info"/></svg><span data-en-html="<b>Plainly:</b> on servers in Bangladesh, with encrypted backups every night and restore drills every month."><b>সহজ কথায়:</b> বাংলাদেশের সার্ভারে, প্রতি রাতে এনক্রিপ্টেড ব্যাকআপ আর প্রতি মাসে রিস্টোর ড্রিল।</span></div>
+            <ul><li data-en="The database runs on servers in Bangladesh. Media and encrypted backups are stored with a cloud provider; a yearly restore test runs outside Bangladesh.">ডেটাবেস বাংলাদেশের সার্ভারে চলে। মিডিয়া আর এনক্রিপ্টেড ব্যাকআপ একটা ক্লাউড প্রোভাইডারে থাকে; বছরে একবার বাংলাদেশের বাইরে রিস্টোর টেস্ট হয়।</li><li data-en="Every shop's rows are tagged with the shop and checked on every request. Sessions use secure, host-only cookies; passwords and device tokens are stored only as hashes; courier credentials are encrypted.">প্রতিটা দোকানের রো দোকান দিয়ে ট্যাগ করা আর প্রতিটা রিকোয়েস্টে চেক হয়। সেশন সিকিউর, হোস্ট-অনলি কুকিতে; পাসওয়ার্ড আর ডিভাইস টোকেন শুধু হ্যাশ হিসেবে; কুরিয়ারের ক্রেডেনশিয়াল এনক্রিপ্টেড।</li></ul></section>
+
+          <section class="clause" id="p7"><h2><small>7</small><span data-en="How long we keep it">কতদিন রাখি</span></h2>
+            <div class="dl">
+              <div><b data-en="Orders, payments, invoices">অর্ডার, পেমেন্ট, ইনভয়েস</b><span data-en="While the shop is active; they are financial records. Deleted with the shop 60 days after a lapse, except what the law requires.">দোকান অ্যাক্টিভ থাকা পর্যন্ত; আর্থিক রেকর্ড। শেষ হওয়ার ৬০ দিন পর দোকানের সাথে মোছে, আইনে রাখতে বলা অংশ ছাড়া।</span></div>
+              <div><b data-en="Chat and activity logs">চ্যাট আর অ্যাক্টিভিটি লগ</b><span data-en="30, 90 or 365 days depending on the plan; money-related entries longer.">প্ল্যান অনুযায়ী ৩০, ৯০ বা ৩৬৫ দিন; টাকা-সংক্রান্ত এন্ট্রি আরও বেশি।</span></div>
+              <div><b data-en="Hashed fraud signals">হ্যাশ করা ফ্রড সিগন্যাল</b><span data-en="Kept after a shop closes, in hashed form only, because they protect other shops. [Period to be set with counsel.]">দোকান বন্ধ হলেও শুধু হ্যাশ আকারে থাকে, কারণ অন্য দোকানকে বাঁচায়। [মেয়াদ আইনজীবীর সাথে ঠিক হবে।]</span></div>
+              <div><b data-en="Security logs">সিকিউরিটি লগ</b><span data-en="Up to 12 months. [Proposal.]">সর্বোচ্চ ১২ মাস। [প্রস্তাব।]</span></div>
+            </div></section>
+
+          <section class="clause" id="p8"><h2><small>8</small><span data-en="Your rights">আপনার অধিকার</span></h2>
+            <ul><li data-en="Sellers: export your data from the dashboard at any time; delete your shop from settings; ask us to correct anything about your account.">সেলার: যখন খুশি ড্যাশবোর্ড থেকে ডেটা এক্সপোর্ট; সেটিংস থেকে দোকান ডিলিট; অ্যাকাউন্টের কিছু ভুল থাকলে ঠিক করতে বলুন।</li><li data-en="Shoppers: ask the shop, or us, to erase your personal details. We remove name, phone and address from your orders and keep only the financial totals the shop must retain.">ক্রেতা: দোকানকে বা আমাদের বলুন আপনার ব্যক্তিগত তথ্য মুছতে। অর্ডার থেকে নাম, ফোন আর ঠিকানা সরিয়ে শুধু দোকানের রাখতে হবে এমন আর্থিক যোগফল রাখি।</li><li data-en="Staff: your account can be removed by the shop owner; your name stays in the activity log entries you made.">স্টাফ: মালিক আপনার অ্যাকাউন্ট সরাতে পারেন; আপনার করা অ্যাক্টিভিটি লগ এন্ট্রিতে নাম থাকে।</li></ul></section>
+
+          <section class="clause" id="p9"><h2><small>9</small><span data-en="Cookies">কুকি</span></h2>
+            <ul><li data-en="The dashboard and storefront use only the cookies needed to keep you signed in and to remember your language. No advertising cookies. Shops may add their own Facebook pixel to their storefront; that is the shop's choice and the shop's responsibility to disclose.">ড্যাশবোর্ড আর স্টোরফ্রন্ট শুধু লগইন রাখা আর ভাষা মনে রাখার কুকি ব্যবহার করে। বিজ্ঞাপনের কুকি নেই। দোকান নিজের স্টোরফ্রন্টে নিজের ফেসবুক পিক্সেল বসাতে পারে; সেটা দোকানের সিদ্ধান্ত আর জানানোর দায়ও দোকানের।</li></ul></section>
+
+          <section class="clause" id="p10"><h2><small>10</small><span data-en="Contact">যোগাযোগ</span></h2>
+            <ul><li data-en="Privacy questions and erasure requests: hello@lytro.app, or the Contact page. We reply within one business day and act on erasure requests within 30 days. [Period to be confirmed.]">প্রাইভেসির প্রশ্ন আর মুছে ফেলার অনুরোধ: hello@lytro.app, বা যোগাযোগ পেজ। এক কর্মদিবসে উত্তর দিই, মুছে ফেলার অনুরোধে ৩০ দিনের মধ্যে কাজ করি। [মেয়াদ নিশ্চিত হবে।]</li></ul></section>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<footer class="site"><div class="wrap"><span class="wordmark"><svg class="wmk" style="height:26px"><use href="#wordmark"/></svg></span><nav><a href="#help" data-en="Help">সাহায্য</a><a href="#notices" data-en="Notices">নোটিশ</a><a href="#terms" data-en="Terms">টার্মস</a><a href="#privacy" data-en="Privacy">প্রাইভেসি</a><a href="#" data-en="Contact">যোগাযোগ</a></nav><span>© 2026 Lytro by Lytronix</span></div></footer>
+
+<script>
+  (function () {
+    var body = document.body; body.setAttribute('data-lang', 'bn');
+    var nodes = Array.prototype.slice.call(document.querySelectorAll('[data-en],[data-en-html],[data-en-placeholder]'));
+    nodes.forEach(function (el) {
+      if (el.hasAttribute('data-en-html')) el.setAttribute('data-bn-html', el.innerHTML);
+      else if (el.hasAttribute('data-en')) el.setAttribute('data-bn', el.textContent);
+      if (el.hasAttribute('data-en-placeholder')) el.setAttribute('data-bn-placeholder', el.getAttribute('placeholder'));
+    });
+    function setLang(lang) {
+      body.setAttribute('data-lang', lang); document.documentElement.setAttribute('lang', lang);
+      nodes.forEach(function (el) {
+        if (el.hasAttribute('data-en-html')) el.innerHTML = el.getAttribute(lang === 'en' ? 'data-en-html' : 'data-bn-html');
+        else if (el.hasAttribute('data-en')) el.textContent = el.getAttribute(lang === 'en' ? 'data-en' : 'data-bn');
+        if (el.hasAttribute('data-en-placeholder')) el.setAttribute('placeholder', el.getAttribute(lang === 'en' ? 'data-en-placeholder' : 'data-bn-placeholder'));
+      });
+      document.getElementById('lang-bn').setAttribute('aria-pressed', lang === 'bn');
+      document.getElementById('lang-en').setAttribute('aria-pressed', lang === 'en');
+      try { localStorage.setItem('lytro-lang', lang); } catch (e) {}
+    }
+    document.getElementById('lang-bn').addEventListener('click', function () { setLang('bn'); });
+    document.getElementById('lang-en').addEventListener('click', function () { setLang('en'); });
+    var saved = null; try { saved = localStorage.getItem('lytro-lang'); } catch (e) {}
+    if (saved === 'en') setLang('en');
+
+    var pages = ['help', 'notices', 'terms', 'privacy'];
+    function showPage(name) {
+      if (pages.indexOf(name) < 0) name = 'help';
+      pages.forEach(function (p) { document.getElementById('page-' + p).hidden = (p !== name); });
+      document.querySelectorAll('.proto a[data-page]').forEach(function (a) { a.classList.toggle('on', a.getAttribute('data-page') === name); });
+      document.querySelectorAll('.nav-links a').forEach(function (a) { a.classList.toggle('on', a.getAttribute('href') === '#help' && name === 'help'); });
+    }
+    function route() {
+      var h = (location.hash || '#help').slice(1);
+      if (/^t\d+$/.test(h)) { showPage('terms'); var el = document.getElementById(h); if (el) el.scrollIntoView(); return; }
+      if (/^p\d+$/.test(h)) { showPage('privacy'); var el2 = document.getElementById(h); if (el2) el2.scrollIntoView(); return; }
+      showPage(h); window.scrollTo(0, 0);
+    }
+    window.addEventListener('hashchange', route); route();
+
+    /* Notice filter */
+    document.querySelectorAll('.filters button').forEach(function (b) {
+      b.addEventListener('click', function () {
+        document.querySelectorAll('.filters button').forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+        var f = b.getAttribute('data-f');
+        document.querySelectorAll('#nlist .notice').forEach(function (n) { n.hidden = (f !== 'all' && n.getAttribute('data-k') !== f); });
+      });
+    });
+    /* Helpful vote */
+    document.querySelectorAll('.hv').forEach(function (b) { b.addEventListener('click', function () { document.querySelectorAll('.hv').forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); }); }); });
+  })();
+</script>
