@@ -44,7 +44,7 @@ Three sites were studied on 2026-10-17: Bonik AI (bonikai.app), BonikLabs (bonik
 | --- | --- | --- | --- |
 | 1 | Nav (sticky) | Orientation and the one CTA | Wordmark, four anchor links, বাং/EN toggle, লগইন, marigold "ফ্রি দোকান খুলুন". Hamburger under 880 px. |
 | 2 | Hero | The promise and the first action | Eyebrow, H1 "আপনার দোকান, আপনার হাতে।", one-sentence lead, claim-your-shop input, three micro-trust ticks, "see a shop" link. Phone mockup of the dashboard with two floating cards (fake-order check, bKash matched). |
-| 3 | Integration strip | Reduce "will it work with what I use" | The wallets' official logos (decided 2026-10-18, `BRAND-IDENTITY.md` §8.7); couriers as text wordmarks until they give permission. |
+| 3 | Integration strip | Reduce "will it work with what I use" | Official logos from `docs/brand/third-party/`, each in its own colours on a white tile (wallets decided 2026-10-18, `BRAND-IDENTITY.md` §8.7); only live services appear. |
 | 4 | Problems, before/after | Lead with the pain | The five pains from the marketing plan, each paired with its answer. |
 | 5 | Features | What you actually get | Two spotlight cards first, each with its own mockup: stock and inventory (INV-01 to INV-24, PUR-01 to PUR-10: low-stock alerts, one-step add stock, barcode and IMEI scan, batches and expiry, stock check) and business statistics (STA-01 to STA-04, INV-18: sales by week to year, hot-selling products, trend, inventory value and cost of goods). Then six cards with small vignettes: fake-order check, one-tap courier, payment matching, storefront, staff roles, variants and stock. |
 | 5b | Why Lytro | The advantages, the way Bonik AI states its benefits | Six cards, each a product rule: money goes straight to the seller's wallet (no platform custody), free manual payment verification, with small percentage fees only when the seller turns on automatic verification (listener or wallet checkout), the seller's own courier account, Bangla everywhere and phone first, nightly encrypted backups with per-shop isolation (DAT-8), and the public API for sellers with their own site. |
@@ -110,7 +110,7 @@ Navbar on desktop: Features, Pricing, FAQ, About, Contact, then the language tog
 
 ## 7. Open items
 
-- Official Steadfast and Pathao logos need their brand-use permission before they replace the text wordmarks. bKash, Nagad and Rocket use their official logos (decided 2026-10-18, `BRAND-IDENTITY.md` §8.7).
+- The integration strip and the sign-in buttons use the official logos in `docs/brand/third-party/` (sources and rules in its README). bKash, Nagad and Rocket use their official logos (decided 2026-10-18, `BRAND-IDENTITY.md` §8.7); permission from Steadfast and Pathao for paid advertising that shows their marks is still to be confirmed.
 - The testimonial slot is filled only from Stage 1 case studies (MARKETING-PLAN.md §5, weeks 6 to 8).
 - A Google Play badge is added to the hero and final CTA only once the native dashboard app is listed.
 - The per-order pay-as-you-go fee is described, not priced, because the amount is not yet decided in the SRS.

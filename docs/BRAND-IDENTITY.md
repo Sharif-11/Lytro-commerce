@@ -93,7 +93,7 @@ The SVG wordmarks in `docs/brand/` are set in live text. Before any production u
 
 **Contrast, checked.** White on teal-700 6.3:1. White on teal-600 4.9:1 (the floor). Ink on marigold-500 8.2:1. Marigold-700 on white 5.2:1. Marigold-500 on teal-900 6.0:1. Teal-400 on ink 7.9:1. Neutral-700 on white 10.6:1 is the floor for any secondary text, because Noto Sans Bengali strokes are thin and neutral-500 reads lighter than its 5.4:1 suggests. Neutral-500 is allowed only for Latin captions at 13 px or larger, and neutral-400 is never used for text.
 
-**Third-party colours.** bKash pink, Nagad orange and Rocket purple appear only on the hosted payment page, inside the selected method's own panel (§8.7), and inside those services' own logos. Never as Lytro UI colour.
+**Third-party logos and colours.** bKash, Nagad, Steadfast, Pathao, RedX, Google and Facebook appear only as their own official logos, in their own colours, from `docs/brand/third-party/` (sources and rules in its README). On the hosted payment page the wallets' colours also appear inside the selected method's own panel (§8.7). Their colours are never used as Lytro UI colour.
 
 ---
 
