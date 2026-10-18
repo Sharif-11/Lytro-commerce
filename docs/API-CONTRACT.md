@@ -87,6 +87,7 @@ Public reads always require a **public key** (decided 2026-10-02: no keyless/ano
 | GET | `/api/v1/categories` | session/secret, `products:read` | |
 | POST | `/api/v1/categories` | session/secret, `products:manage` | |
 | GET | `/api/v1/locations` | public key | The canonical zilla/thana list (CUS-08) — same response for every tenant. |
+| GET | `/api/v1/locations/:locationId/courier-areas` | public key or session | A courier's areas inside one thana (CUS-10, CUS-13): the shop's default courier, or `?courierKey=` for staff choosing an area before booking. An empty list for a courier that books by address text. |
 
 **Every write above increments `tenant.catalogue_state.version` in the same transaction** (CCH-02); the client never sets the version.
 
@@ -96,7 +97,7 @@ Public reads always require a **public key** (decided 2026-10-02: no keyless/ano
 
 | Method | Path | Auth | Notes |
 | --- | --- | --- | --- |
-| POST | `/api/v1/orders` | public key or session/secret `orders:manage` | Creation is **never** limited by handling quotas (QTA-07) — only rate limits (RTE-06/08) apply. `{ customerName, customerPhone, locationId, address, items: [{variantId, quantity}], notes? }`. Public key sets no status/discount; server decides `pending` vs `unverified` (ORD-07). |
+| POST | `/api/v1/orders` | public key or session/secret `orders:manage` | Creation is **never** limited by handling quotas (QTA-07) — only rate limits (RTE-06/08) apply. `{ customerName, customerPhone, locationId, courierAreaCode?, address, items: [{variantId, quantity}], notes? }`; `courierAreaCode` is the default courier's area, required from staff and optional from a public key, refused if it is not in `locationId` (CUS-13). Public key sets no status/discount; server decides `pending` vs `unverified` (ORD-07). |
 | GET | `/api/v1/orders` | session/secret `orders:read` | `?status=&search=&from=&to=&page=&limit=` (ORD-13). |
 | GET | `/api/v1/orders/:id` | session/secret `orders:read` | Full detail incl. line snapshots, payment ledger, timeline. |
 | PATCH | `/api/v1/orders/:id` | session/secret `orders:manage` | Edit customer/items/notes; warns if already courier-booked (ORD-11). |
@@ -115,7 +116,7 @@ Public reads always require a **public key** (decided 2026-10-02: no keyless/ano
 | GET | `/api/v1/couriers/adapters` | session/secret | Available adapters + required credential fields (CRR-01). |
 | POST | `/api/v1/couriers/connections` | session, `couriers:manage` | `{ courierKey, credentials }`; validated with a test call before saving (CRR-02). |
 | DELETE | `/api/v1/couriers/connections/:key` | session, `couriers:manage` | Revokes webhook token; past orders keep their tracking data (CRR-20). |
-| POST | `/api/v1/orders/:id/book` | session/secret `orders:manage` | `{ courierKey }`. Resolves `location → control.courier_location_map` (CUS-12); on success sets `handled_at` (QTA-01) and moves `pending → processing`. Idempotent (CRR-08). |
+| POST | `/api/v1/orders/:id/book` | session/secret `orders:manage` | `{ courierKey, courierAreaCode? }`. Uses the order's stored area for that courier, else that courier's only area in the thana; otherwise sends nothing and returns `validation_error` on `courierAreaCode` with the areas to choose from (CUS-12, CRR-10); on success sets `handled_at` (QTA-01) and moves `pending → processing`. Idempotent (CRR-08). |
 | POST | `/api/v1/orders/:id/mark-shipped` | session/secret `orders:manage` | `{ trackingLink }` for a courier without an API (CRR-16, ORD-09); also sets `handled_at`. |
 | POST | `/api/v1/webhooks/courier/:tenantId/:courierKey/:token` | courier callback | Unguessable per-tenant-per-courier token (CRR-11); updates the matching order only. |
 

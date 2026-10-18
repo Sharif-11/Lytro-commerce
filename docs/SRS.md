@@ -295,7 +295,7 @@ Every plan can connect any number of couriers, each using the tenant's own couri
 - **CRR-1 Adapter interface.** Each courier is one adapter with the same interface: credential fields, book parcel, track, parse webhook, status map and location mapping. Steadfast is the first adapter; others (for example Pathao, RedX, Paperfly, eCourier, CarryBee) are added as tenants need them, after checking each courier's current API and terms.
 - **CRR-2 Tenant credentials.** Credentials are entered per tenant per courier, stored encrypted, and never returned to a client. The platform never uses its own courier account for a tenant.
 - **CRR-3 No cap on connections.** Connecting a courier costs the platform almost nothing; the courier bills the tenant directly.
-- **CRR-4 Locations.** Each adapter maps the order's district and area to that courier's own location IDs.
+- **CRR-4 Locations.** Delivery charges always come from the platform's own district and thana. A courier that books by its own areas keeps its area list under those thanas; when it is the shop's default courier, every order form offers its areas after the thana (required for staff, optional for shoppers), and staff choose any missing area before booking, so a parcel is never booked to a guessed area.
 - **CRR-5 Webhooks.** Each tenant and courier gets its own webhook address with a secret token, so an incoming callback identifies the tenant. Where a courier has no webhook, status is polled on a slow schedule.
 - **CRR-6 Statuses.** Courier statuses are mapped to the order lifecycle, and the raw courier status is kept.
 - **CRR-7 Manual couriers.** A courier without an API is used by entering a tracking link by hand.

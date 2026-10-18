@@ -436,8 +436,8 @@ Expected: dashboard order creation validates the same fields as the public endpo
 Covers: `ORD-01`, `ORD-03` to `ORD-22`, `ORD-46`, `ORD-47`.
 
 **S05-16 Order extraction from pasted text (AI-assisted draft).**
-Steps: paste a free-text message resembling a Facebook/WhatsApp order into the extraction tool; review and confirm the draft; try an ambiguous or incomplete message.
-Expected: a structured draft order is produced for review, never auto-submitted without staff confirmation; an ambiguous message is flagged for manual completion rather than guessed.
+Steps: paste a free-text message resembling a Facebook/WhatsApp order into the extraction tool; review and confirm the draft; try an ambiguous or incomplete message; in a shop whose default courier is Pathao, paste a message naming "Mirpur 10".
+Expected: a structured draft order is produced for review, never auto-submitted without staff confirmation; an ambiguous message is flagged for manual completion rather than guessed; the Pathao shop's draft suggests Pathao's Mirpur 10 for staff to confirm.
 Covers: `ORD-30` to `ORD-34`, `AI` (extraction-specific rows).
 
 **S05-17 Snapshot-vs-live-data permanence beyond products.**
@@ -447,7 +447,7 @@ Covers: `ORD-48`, `ORD-49`, `ORD-50`.
 
 **S05-18 Shopper OTP sign-in and canonical location mapping.**
 Steps: 1) A returning shopper signs in by phone OTP on the storefront. 2) View the canonical zilla/thana list — confirm it's identical across tenants. 3) Connect two different couriers and compare their own zone lists against the canonical one.
-Expected: shopper OTP sign-in works the same way as staff OTP, scoped to that tenant only; the canonical list never varies by tenant; each courier's zone mapping is its own table layered on top of the canonical list, never modifying it.
+Expected: shopper OTP sign-in works the same way as staff OTP, scoped to that tenant only; the canonical list never varies by tenant; each courier's area list sits under the canonical thanas, never modifying them.
 Covers: `CUS-02` to `CUS-05`, `CUS-08`, `CUS-10`, `CUS-11`.
 
 **S05-19 Cache invalidation and versioning mechanics.**
@@ -524,10 +524,10 @@ Steps: 1) Run the shared contract suite (book, track, webhook parse, status map,
 Expected: the suite must pass before the adapter reaches a real tenant; a disconnected courier's old webhook token returns 401 afterward, while that tenant's already-shipped orders keep their tracking history intact.
 Covers: `CRR-20`, `CRR-21`.
 
-**S06-13 Unmapped courier zone at booking time.**
-Steps: book a courier for a customer address whose zilla/thana has no mapping yet in that specific courier's zone table.
-Expected: staff is flagged to choose/confirm the zone by hand (ties to `CRR-10`); the order is never silently blocked from booking just because one courier's zone table is incomplete for that address.
-Covers: `CUS-12`.
+**S06-13 The courier's exact area, from the order form to booking.**
+Steps: 1) With Pathao as the default courier, place one storefront order choosing Mirpur and "Mirpur 10", and one skipping the area; compare their delivery charges. 2) As staff, try to save an order without an area, and send an API order whose area is in another thana. 3) Book the first order with Pathao, then the second. 4) With RedX, book one order in a thana where RedX has one area and one where it has several. 5) Switch the default courier to RedX, then open the first order and a new checkout. 6) Open checkout in a shop whose default courier takes the address as text.
+Expected: checkout offers only Pathao's areas inside Mirpur, the shopper may skip it, and both orders have the same delivery charge; staff can't save without an area and the out-of-thana area is refused; the first order books to Mirpur 10 exactly; the second opens the area choice and sends no booking; RedX's only area is used automatically and staff choose where it has several; no booking is ever sent with a guessed area and no order is blocked; after the switch the first order keeps its Pathao area and checkout offers RedX's areas; the address-text courier's shop shows no area field.
+Covers: `CUS-10`, `CUS-12`, `CUS-13`, `CRR-10`.
 
 **S06-14 Fraud-check feature itself: running a check, signal-only behavior, shared hashing.**
 Steps: 1) Run a check above the tenant's configured COD threshold — observe it's advisory, never auto-blocking an order on its own. 2) Contribute delivered/cancelled/returned outcomes from several tenants on the same customer phone; check the shared signal appears only once at least 5 tenants have contributed. 3) Exceed the check rate limit.

@@ -162,6 +162,7 @@ code fix).
 3. **RedX third** — exercises the bilingual-message storage and payout-event-routing logic (`CRR-12`) neither of the first two adapters needed.
 4. `PRF-05`/`CRR-26` — the circuit breaker, built once, used by all three adapters and every later third-party integration (SMS, AI, fraud).
 5. `CRR-17` — payout reconciliation, once at least one adapter's payout data shape is understood (RedX conveniently folds this into its webhook stream, which is itself a useful edge case to build against).
+6. `CUS-10` to `CUS-13`, `CRR-10` (amended and added 2026-10-18) — each courier's own area list under Lytro's thanas, refreshed from its API; the extra area picker on every order form for the default courier (required for staff, optional for shoppers); and the exact area before booking. Delivery charges keep coming from Lytro's thana. A courier that takes the address as text, as Steadfast appears to, needs no list.
 
 **Why three adapters in this order, not just Steadfast:** building a second and third adapter *during* initial development, not months later, is what actually proves the adapter boundary holds — if Pathao's handshake or RedX's payout-event quirk had forced a change to shared booking/order code, you'd want to know now, not after Steadfast-only code has calcified into assumptions.
 
