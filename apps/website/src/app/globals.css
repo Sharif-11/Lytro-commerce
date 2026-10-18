@@ -161,36 +161,39 @@ html[lang='en'] .heading {
   }
 }
 
-/* The integration strip glides sideways on its own: the track holds two copies of the tiles and slides by
-   exactly one copy, so the loop is seamless. It pauses under the pointer and stands still for visitors who
-   prefer reduced motion. */
+/* The integration strip on phones glides sideways on its own: the track holds two copies of the tiles and
+   slides by exactly one copy, so the loop is seamless. From the tablet breakpoint the sketch's static,
+   centred row is used instead and the second copy is dropped. */
 .marquee {
   overflow: hidden;
   -webkit-mask-image: linear-gradient(
     90deg,
     transparent,
-    #000 48px,
-    #000 calc(100% - 48px),
+    #000 32px,
+    #000 calc(100% - 32px),
     transparent
   );
-  mask-image: linear-gradient(90deg, transparent, #000 48px, #000 calc(100% - 48px), transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 32px, #000 calc(100% - 32px), transparent);
 }
 .marquee-track {
   display: flex;
   width: max-content;
-  animation: marquee 28s linear infinite;
-}
-.marquee:hover .marquee-track,
-.marquee:focus-within .marquee-track {
-  animation-play-state: paused;
+  animation: marquee 22s linear infinite;
 }
 @keyframes marquee {
   to {
     transform: translateX(-50%);
   }
 }
-@media (prefers-reduced-motion: reduce) {
+@media (min-width: 40rem) {
+  .marquee {
+    overflow: visible;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
   .marquee-track {
+    width: auto;
+    justify-content: center;
     animation: none;
   }
 }

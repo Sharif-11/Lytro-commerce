@@ -6,7 +6,7 @@ import { Copy, type Bilingual } from '@/lib/i18n/copy';
 import type { Language } from '@/lib/i18n/language';
 import { AppUrls } from '@/lib/urls';
 import { LanguageToggle } from './language-toggle';
-import { MobileMenu } from './mobile-menu';
+import { NavShell } from './nav-shell';
 
 const text = {
   features: { bn: 'ফিচার', en: 'Features' },
@@ -54,45 +54,47 @@ export function SiteNav({ language }: { language: Language }) {
   const login = { href: urls.signIn(), label: copy.of(text.login) };
   const cta = { href: urls.signIn(), label: copy.of(text.cta) };
 
-  return (
-    <header className="sticky top-0 z-40 border-b border-line bg-white/90 backdrop-blur-md">
-      <div className="mx-auto flex h-16 w-full max-w-[1160px] items-center gap-2 px-4 sm:px-6 lg:px-8">
-        <Link href="/" aria-label={copy.of(text.home)} className="flex shrink-0 items-center">
-          <Wordmark height={28} />
-        </Link>
+  const bar = (
+    <>
+      <Link href="/" aria-label={copy.of(text.home)} className="flex shrink-0 items-center">
+        <Wordmark height={28} />
+      </Link>
 
-        <nav className="ml-4 hidden items-center gap-0.5 lg:flex" aria-label="Primary">
-          {desktopLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="rounded-control px-3 py-2 text-[15px] font-semibold text-neutral-700 hover:bg-neutral-50 hover:text-ink"
-            >
-              {link.label}
-            </Link>
-          ))}
-        </nav>
+      <nav className="ml-4 hidden items-center gap-0.5 lg:flex" aria-label="Primary">
+        {desktopLinks.map((link) => (
+          <Link
+            key={link.href}
+            href={link.href}
+            className="rounded-control px-3 py-2 text-[15px] font-semibold text-neutral-700 hover:bg-neutral-50 hover:text-ink"
+          >
+            {link.label}
+          </Link>
+        ))}
+      </nav>
 
-        <div className="ml-auto flex items-center gap-2">
-          <LanguageToggle language={language} />
-          {/* Wrapped so `hidden` is not overridden by the button's own display class. */}
-          <div className="hidden items-center gap-2 lg:flex">
-            <a href={login.href} className={buttonClass('ghost')}>
-              {login.label}
-            </a>
-            <a href={cta.href} className={buttonClass('accent')}>
-              {cta.label}
-            </a>
-          </div>
-          <MobileMenu
-            links={sheetLinks}
-            login={login}
-            cta={cta}
-            note={copy.of(text.note)}
-            labels={{ open: copy.of(text.openMenu), close: copy.of(text.closeMenu) }}
-          />
+      <div className="ml-auto flex items-center gap-2">
+        <LanguageToggle language={language} />
+        {/* Wrapped so `hidden` is not overridden by the button's own display class. */}
+        <div className="hidden items-center gap-2 lg:flex">
+          <a href={login.href} className={buttonClass('ghost')}>
+            {login.label}
+          </a>
+          <a href={cta.href} className={buttonClass('accent')}>
+            {cta.label}
+          </a>
         </div>
       </div>
-    </header>
+    </>
+  );
+
+  return (
+    <NavShell
+      bar={bar}
+      links={sheetLinks}
+      login={login}
+      cta={cta}
+      note={copy.of(text.note)}
+      labels={{ open: copy.of(text.openMenu), close: copy.of(text.closeMenu) }}
+    />
   );
 }

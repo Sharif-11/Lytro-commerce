@@ -51,7 +51,7 @@ const text = {
 /** Phones only: the card row is a snap carousel that advances on its own every few seconds, stops while the
     visitor touches or scrolls it, and resumes a while after they let go. Off from 640 px, where the cards
     are a grid, and for visitors who prefer reduced motion. */
-const PHONE_QUERY = '(max-width: 639px) and (prefers-reduced-motion: no-preference)';
+const PHONE_QUERY = '(max-width: 639px)';
 const ROTATE_EVERY_MS = 4500;
 const RESUME_AFTER_MS = 9000;
 

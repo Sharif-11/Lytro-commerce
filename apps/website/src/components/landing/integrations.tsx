@@ -20,12 +20,16 @@ const services = [
   { name: 'Pathao', src: '/third-party/pathao.svg', width: 100, height: 36 },
 ];
 
-/** The strip rotates on its own at every width (`.marquee` in globals.css). The second copy of the tiles
-    exists only to make the loop seamless, so it is hidden from assistive technology. */
+/** On phones the strip rotates on its own (`.marquee` in globals.css); the second copy of the tiles only
+    makes that loop seamless, so it is hidden from assistive technology and dropped from 640 px, where the
+    tiles sit centred in one static row as in the sketch. */
 export function Integrations({ language }: { language: Language }) {
   const copy = new Copy(language);
-  const tiles = (hidden: boolean) => (
-    <ul className="flex shrink-0 gap-3 pr-3" aria-hidden={hidden || undefined}>
+  const tiles = (duplicate: boolean) => (
+    <ul
+      className={`flex shrink-0 gap-3 pr-3 sm:flex-wrap sm:justify-center sm:pr-0 ${duplicate ? 'sm:hidden' : ''}`}
+      aria-hidden={duplicate || undefined}
+    >
       {services.map((service) => (
         <li
           key={service.name}
@@ -33,10 +37,11 @@ export function Integrations({ language }: { language: Language }) {
         >
           <Image
             src={service.src}
-            alt={hidden ? '' : service.name}
+            alt={duplicate ? '' : service.name}
             width={service.width}
             height={service.height}
-            className="h-9 w-auto max-w-[110px] object-contain"
+            className="h-9 max-w-[110px] object-contain"
+            style={{ width: 'auto' }}
           />
         </li>
       ))}
