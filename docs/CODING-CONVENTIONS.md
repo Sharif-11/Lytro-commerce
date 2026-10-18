@@ -196,6 +196,12 @@ apps/server/src/
 
 ## 6a. Admin app (apps/admin)
 
+**Superseded by D3-12 (`PHASE-3-PLAN.md`, decided 2026-10-18), from Phase 3's Slice 0b:** the operator console
+becomes its own app, `apps/operator`, served at `admin.lytro.app` with its own build and release.
+`apps/admin` is renamed `apps/dashboard` and serves only the tenant dashboard at `app.lytro.app`, and
+shared code moves to `packages/ui` and `packages/api-client`. Until that slice, this section describes the
+code as it is.
+
 Decided 2026-10-09, while planning slice 9. One Vite + React build, deployed to two hosts (see
 `docs/DEPLOYMENT.md`): the tenant-facing domain (sign-up, sign-in, dashboard, staff) and `admin.<platform
 domain>` (the operator console). The router picks which route tree to mount by `window.location.hostname` at

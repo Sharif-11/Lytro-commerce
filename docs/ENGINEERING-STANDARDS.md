@@ -95,11 +95,11 @@ Not yet specified anywhere else — new content.
 2. Lint (ESLint) and format check (Prettier) — fails the build, not just a warning. Same rules the pre-commit hook used, run here without `--fix` (CI reports, it doesn't rewrite code) so a bypassed or skipped hook can't let something through.
 3. Unit tests (services in isolation, mocked repositories/adapters).
 4. Integration tests (real Postgres in a CI-spun container, exercising repository + service layers together).
-5. Build (NestJS server, Next.js storefront, Vite admin) — a build failure blocks merge.
+5. Build (NestJS server, Next.js website and storefront, and the two Vite apps: the tenant dashboard and the operator console, separate builds from Phase 3's Slice 0b, D3-12) — a build failure blocks merge.
 6. Contract tests for any adapter (CRR-21) — run whenever an adapter file changes.
 
 **CD (on merge to trunk):**
-1. Build a versioned artifact (container image) once; the same artifact is what gets deployed everywhere, never rebuilt per environment.
+1. Build a versioned artifact once per app — a container image for the server, website and storefront, a static build for the dashboard and the operator console (`DEPLOYMENT.md` §9); the same artifact is what gets deployed everywhere, never rebuilt per environment. The dashboard and the operator console release independently of each other.
 2. Deploy to staging automatically; smoke test (the same scripted order-and-payment check from OBS-08) runs against it. Added 2026-10-02: a failed smoke test halts the pipeline before any production step is even offered, alerts the operator the same way a production page would (not a silent log line), and the failing artifact is never eligible for promotion — the next deploy to staging is a fresh attempt (a new commit, or a manual retry), not an automatic skip-ahead.
 3. Manual promotion to production (not automatic — a person approves, given real money moves through this system); the thing promoted is the exact artifact that passed staging's smoke test, never a rebuild.
 4. Production deploy follows the already-decided sequence (AVL-05): standby first, health check, then primary, zero-downtime reload. At launch (phase 1, one server) this collapses to a single health-checked reload; the pipeline step doesn't change when phase 2 adds the standby — only which servers it targets does.
