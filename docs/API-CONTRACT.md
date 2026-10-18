@@ -253,8 +253,8 @@ job (TRL-07), never by an explicit tenant call.
 | POST | `/api/v1/billing/cancel` | session, `payments:manage` | Cancels at period end (LIF-01). No body. |
 | POST | `/api/v1/billing/cancel/undo` | session, `payments:manage` | Undoes a cancellation before period end (LIF-01). No body. **No corresponding GET exists** — there is currently no way to read back whether a cancellation is pending; both actions are fire-and-forget from the client's own point of view. |
 | | | | Switching *from* pay-as-you-go *to* a subscription plan (PYG-11) has no endpoint of its own — it is a plain `billing/quote` + `billing/purchase` call (§8) at full price, no credit line, exactly as any other purchase. |
-| GET | `/api/v1/addons` | session | Priced catalogue (PLN-13). **Deferred** — `S`-priority, not built in Phase 2 (`PHASE-2-PLAN.md` D2-4); listed here only so the shape isn't lost. |
-| POST | `/api/v1/addons/:key/purchase` | session, `balance:manage` | Prorated, takes effect at once (PLN-14). **Deferred**, same as above. |
+| GET | `/api/v1/addons` | session | Priced catalogue (PLN-13). Deferred by Phase 2 (`PHASE-2-PLAN.md` D2-4); scheduled 2026-10-18 for Phase 3, Slice 10a. |
+| POST | `/api/v1/addons/:key/purchase` | session, `balance:manage` | Prorated; from the balance it takes effect at once, paid directly it takes effect on confirmation (PLN-14). Phase 3, Slice 10a. |
 | GET | `/api/v1/usage` | session | Every metric against its limit, for the usage page (LIM-02). |
 
 ## 12. SMS and notifications

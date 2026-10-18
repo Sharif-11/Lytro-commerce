@@ -1270,8 +1270,8 @@ CREATE TABLE control.plan_assignments (
 
 CREATE TABLE control.addons (                      -- PLN-13
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    key             text NOT NULL UNIQUE,           -- extra_orders | extra_products | extra_seat | extra_storage | extra_bandwidth | extra_requests | brand_identity
-    kind            text NOT NULL CHECK (kind IN ('limit', 'pack', 'feature')),  -- PLN-13, amended 2026-10-18
+    key             text NOT NULL UNIQUE,           -- extra_orders | extra_products | extra_seat | extra_storage | extra_bandwidth | extra_requests | brand_identity | fraud_check_allowance | extraction_allowance
+    kind            text NOT NULL CHECK (kind IN ('limit', 'pack', 'feature', 'allowance')),  -- PLN-13, amended 2026-10-18; allowance: PLN-20
     unit_size       numeric(12,2),                  -- null for a feature add-on
     price           numeric(10,2) NOT NULL,
     retired_at      timestamptz
@@ -1288,10 +1288,14 @@ CREATE TABLE control.addon_purchases (
     renews          boolean NOT NULL DEFAULT true,   -- PLN-14: renews with the plan unless switched off
     purchased_at    timestamptz NOT NULL DEFAULT now(),
     starts_at       timestamptz,                     -- set when it takes effect (at once from balance, on confirmation if paid directly)
+    uses_left       integer CHECK (uses_left >= 0),  -- PLN-20: an allowance's uses left this period; null for other kinds
     expires_at      timestamptz NOT NULL            -- PLN-14: end of the plan period, or a [30]-day period for pay-as-you-go
 );
 -- Limits are calculated as plan snapshot + operator overrides (PLN-11) + active limit add-ons. A pack is
 -- consumed rather than expiring; the tenant's auto-buy opt-in (PLN-15) is a setting on the tenant.
+-- An allowance (PLN-20) is used before the balance: each fake-order check or order read takes one from
+-- uses_left in the same transaction as the check or read; at 0, or after expires_at, it is charged from
+-- the balance again. A renewal sets uses_left back to the full number.
 
 -- DWN/UPG/LIF (downgrade, upgrade, lifecycle) need no new tables: they're operations that
 -- read/write control.tenants.state, .plan_snapshot, .period_start/end and write a
@@ -1410,9 +1414,23 @@ CREATE TABLE tenant.fraud_checks (
     summary         jsonb,                              -- {delivered, cancelled, returned}
     sources         text[] NOT NULL DEFAULT '{}',
     cached          boolean NOT NULL DEFAULT false,
+    paid_from       text CHECK (paid_from IN ('balance', 'allowance')),  -- PLN-20; null when nothing was charged (FRD-03)
     checked_at      timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX ON tenant.fraud_checks (tenant_id, phone, checked_at DESC);
+
+-- ORD-30 to ORD-34, PLN-20: one row per successful order read from text. The pasted message itself is
+-- not kept; the row exists to show what each read used.
+CREATE TABLE tenant.order_extractions (
+    id              bigserial PRIMARY KEY,
+    tenant_id       uuid NOT NULL,
+    user_id         uuid NOT NULL,
+    input_chars     integer NOT NULL CHECK (input_chars BETWEEN 1 AND 4000),  -- ORD-33
+    confidence      numeric(4,3),
+    paid_from       text NOT NULL CHECK (paid_from IN ('balance', 'allowance')),
+    created_at      timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX ON tenant.order_extractions (tenant_id, created_at DESC);
 
 CREATE TABLE tenant.fraud_rules (
     tenant_id       uuid PRIMARY KEY,

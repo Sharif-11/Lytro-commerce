@@ -13,7 +13,7 @@ Status: draft v1, 2026-10-02. Builds on `SRS-detailed.md` §26's suite skeleton 
 **S01-01 Sign-up by phone, full trial provisioning.**
 Preconditions: none (fresh phone number).
 Steps: 1) Continue with a new Bangladeshi phone number. 2) Receive and enter the 6-digit OTP within 5 minutes. 3) In the create-shop step enter the shop name, owner name and address. 4) Skip the set-password offer and both set-up questions. 5) Land on the dashboard.
-Expected: the account exists after step 2 with no tenant; after step 3 the owner user, tenant in `trial` and unique subdomain exist; dashboard shows 30-day trial limits (40 orders, 20 products, 200 MB storage, 5 GB bandwidth, 8 essential SMS) and a setup checklist; the "shop ready" SMS arrives at the phone containing the shop's live URL; essential-SMS counter reads 1 of 8 (shop-ready only; the code is platform cost, AUTH-21).
+Expected: the account exists after step 2 with no tenant; after step 3 the owner user, tenant in `trial` and unique subdomain exist; dashboard shows 30-day trial limits (40 orders, 20 products, 200 MB storage, 5 GB bandwidth, 8 essential SMS) and a setup checklist; the "shop ready" SMS arrives at the phone containing the shop's live URL; essential-SMS counter reads 0 of 8 (the sign-up code and the shop-ready SMS are both platform cost, AUTH-21).
 Covers: `AUTH-04`, `AUTH-05`, `AUTH-10`, `AUTH-21`, `AUTH-28`, `TRL-01`, `TRL-03`, `SMS-18`, `SMS-01`.
 
 **S01-02 Sign-up abuse limits.**
@@ -236,6 +236,11 @@ Covers: `PLN-13`, `PLN-14`, `UPG-14`, `BRN-05`.
 Steps: reach 100% of bandwidth and of API requests 1) with auto-buy off, 2) with auto-buy on and enough balance, 3) with auto-buy on and too little balance.
 Expected: 1) a hard stop; 2) a pack is bought, the ledger shows it, and service continues; 3) service stops (429) and no pack is bought.
 Covers: `PLN-15`, `BND-04`, `RTE-11`.
+
+**S03-27 Allowance add-ons for fake-order checks and order reads.**
+Steps: 1) As a trial shop and as a pay-as-you-go shop, open the add-ons screen. 2) As a Starter shop on day 10 of 30, buy a [100]-check allowance from the balance. 3) Run checks until 100 have returned a result, including one repeat within 3 days, and force one failure along the way; then run one more. 4) Set an automatic check rule, then empty the balance with the allowance used up, and place a qualifying order. 5) Buy an order-read allowance, use it up, then read one more message with enough balance and once with too little. 6) Renew the plan once with the allowance set to renew and once with renewal off, then run a check after each period end.
+Expected: neither the trial nor the pay-as-you-go shop is offered an allowance; the allowance costs two thirds of its price and gives all 100 checks; each check with a result uses one, the repeat included, the failure none, and the balance is unchanged until the 101st check, charged at the fraud-check rate; with neither allowance nor balance the automatic check is skipped and the order is still created; the extra read is charged from the balance, or refused for insufficient balance, never for the used-up allowance; renewal restores the full 100 and unused checks do not carry over; with renewal off the next check is charged from the balance; the usage page shows checks and reads left, with warnings at 50%, 80% and 95%; every check and read shows whether it used the allowance or the balance.
+Covers: `PLN-20`, `PLN-13`, `FRD-03`, `FRD-05`, `ORD-34`.
 
 **S03-15 Billing term CRUD, pricing prefill, and period math.**
 Steps: 1) Operator creates a term with 0 months, then 61 months. 2) Create a valid 4-month term with a default discount — observe price prefill on a plan. 3) Edit the prefilled price by hand. 4) Retire the term. 5) Edit the retired term's length; check an already-subscribed tenant's dates.

@@ -141,10 +141,8 @@ code fix).
 - `LND-10` (second half) — a product landing page whose product requires a partial advance or full prepayment (`PRD-08`) sends the customer to the hosted payment page; the stock reservation's expiry (`INV-16`) is set from the real payment-session lifetime here.
 - `VER-*` — the three verification tiers (manual, listener, gateway), including the SIM-swap-aware cooldown added earlier (`SEC-14`'s sibling consideration) if you chose to build it.
 - `WAL-20`/`WAL-21`, `RAT-15`, `RAT-16` (added 2026-10-16, amended 2026-10-18) — verification fees charged to the balance on each automatically verified payment: [0.10]% by the listener, [1.00]% through a wallet's gateway checkout, manual verification free; the same rates on every plan, trial included; the gateway fee reserved before the shopper is sent to the checkout, and a listener match the balance can't cover falls back to free manual review.
-  verification, charged to the tenant's balance regardless of plan, falling back to listener/manual
-  verification rather than blocking the order when the balance can't cover it. Build this alongside
-  `WAL-19`'s gateway plugins themselves, not after — the commission is part of what "level 3" means, not a
-  bolt-on; confirming the listener (level 2) stays commission-free either way (`LSN-07`/`PYG-15`, unchanged).
+  Build the gateway fee alongside `WAL-19`'s gateway plugins themselves, not after: the fee is part of what
+  "level 3" means, not a bolt-on.
 - `LSN-*` — the SMS listener app's pairing/upload/matching pipeline, `tenant.listener_messages` with its 90-day redaction job.
 - `TVR-*` — tenant verification before the hosted page goes live, abuse controls.
 - `SEC-16` (stack traces never in production) should already be true everywhere by now, but re-verify specifically on payment error paths — this is the surface most likely to leak a provider's raw error text if someone's in a hurry.
@@ -178,6 +176,7 @@ code fix).
 - `I18N-03` fully wired — this is the natural point to confirm the whole localization system (dashboard, storefront, SMS, notices, error messages from `SEC-16`) is consistent, since every piece now exists.
 - `FRD-*` — fraud checking, the shared cross-tenant hash table (`control.fraud_hashes`), the adapter-pattern placeholder for whichever aggregator gets chosen later (`OD-47`).
 - `CHT-*`, `AI-*` — chat, AI auto-reply (language-matching per `AI-09`, not a toggle), order extraction from text.
+- `PLN-20` (added 2026-10-18) — allowance add-ons for fake-order checks and order reads from text: pay-per-use by default, with an optional allowance for the current plan period from Phase 3's add-on catalogue, used before the balance and back to pay-per-use once used up or ended. It lands here because both services it covers are built in this phase.
 
 **Why last among the "features" phases:** every one of these is a third-party integration that benefits from the circuit breaker, balance-charging, and adapter patterns already proven in Phases 2 and 6 — building AI/fraud/SMS *before* those patterns exist risks three more one-off, inconsistent integrations instead of three more adapters following an established shape.
 
