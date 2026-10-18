@@ -216,6 +216,19 @@ export class BillingController {
     );
   }
 
+  // PYG-09: closing archives the shop and starts its deletion clock, so only the owner may do it. Deliberately
+  // no @RequirePermission: PermissionGuard refuses every staff member on a route without one, whatever their role.
+  @Post('close')
+  @ResponseMessage('ShopClosed')
+  @ApiOperation({
+    summary: 'Close a pay-as-you-go shop now: archived at once, deleted after 60 days (owner only)',
+  })
+  @ZodResponse({ type: OkDto })
+  async closePayAsYouGo(@Req() request: DashboardRequest): Promise<{ ok: true }> {
+    await this.lifecycle.closePayAsYouGo(this.tenantIdOf(request), this.clientIp.resolve(request));
+    return { ok: true };
+  }
+
   @Get('downgrade')
   @RequirePermission(Permission.PaymentsRead)
   @ResponseMessage('DowngradeRetrieved')

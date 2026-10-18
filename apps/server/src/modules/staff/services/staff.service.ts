@@ -56,7 +56,15 @@ export class StaffService {
 
   /** LIF-18/24, PYG-21: the owner's own contact, for a platform-sent notice. */
   ownerContact(tenantId: string): Promise<OwnerContact | null> {
-    return this.store.run(tenantId, (tx) => this.store.findOwnerContact(tx, tenantId));
+    return this.store.run(tenantId, (tx) => this.ownerContactIn(tx, tenantId));
+  }
+
+  /**
+   * The same, inside the caller's transaction -- for a write that queues a notice to the owner in its own
+   * transaction (BIL-05, BAL-13), so it never needs a second connection while it holds row locks.
+   */
+  ownerContactIn(tx: Transaction, tenantId: string): Promise<OwnerContact | null> {
+    return this.store.findOwnerContact(tx, tenantId);
   }
 
   /** Runs work in a transaction with the shop's tenant context set. */

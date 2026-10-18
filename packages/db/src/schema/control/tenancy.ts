@@ -74,6 +74,10 @@ export const tenants = control.table(
     // never reads this -- not renewing (LIF-02) already reaches `grace` at period end with no flag involved;
     // it exists only so the dashboard can show "cancelled, effective <date>" and offer "Undo".
     cancelledAt: timestamp('cancelled_at', { withTimezone: true }),
+    // PYG-09, PYG-21: when the tenant entered `archived`; cleared when a plan or pay-as-you-go restores it
+    // (applyPlanAssignment). A pay-as-you-go shop's deletion clock (LIF-18, LIF-19) runs from here, since it
+    // has no period end to count from.
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
     // LIF-20/21/22: set once by the day-60 deletion job (LIF-19), never before. The row and its state
     // ('deleted') persist after this is set -- deletion removes only the business data listed in LIF-19.
     // LIF-21's own day-90 revocation job (deletedAt + 30 days) reads this to find its candidates.

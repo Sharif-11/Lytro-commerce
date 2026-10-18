@@ -139,7 +139,7 @@ There was also no repository query yet for "which scheduled downgrades are due"
 this purpose. Added `ScheduledPlanChangesRepository.findDue`/the matching port method (`WHERE effective_at
 <= now`, the same shape `findLapsingCandidates`/`findExpiredTrialIds` already use), a new
 `DowngradeService.applyDueChanges(now)` that calls it and applies each due `Downgrade`-kind row (skipping
-`PayAsYouGoSwitch`, which nothing schedules yet — `PYG-10` isn't built), and wired both
+`PayAsYouGoSwitch`, which nothing scheduled yet — `PYG-10` was built later, see #55), and wired both
 `trials.convertExpiredTrials()` and `downgrade.applyDueChanges(now)` into the tick alongside the existing
 `lifecycle.runTick(now)` call. Covered by a new `test/lifecycle-tick-worker.spec.ts` (proves the worker
 itself calls all three on every fire, with a fake pg-boss client — the exact layer whose absence let this
@@ -1056,6 +1056,8 @@ Verified the fix would actually fail without it — temporarily short-circuited 
 loop condition to `false`, confirmed the new case failed with the exact expected symptom (an empty notice
 list), then restored and reconfirmed all 14 tests in the file green again.
 
+**Superseded 2026-10-18 (#60):** the stub never reached the owner, and reaching exactly 0 never counted.
+
 ## 49. `PLN-04`: "operator-only plan edits" had zero test coverage — found and fixed 2026-10-17
 
 Found via this session's own follow-up audit of every M-priority requirement across Phase 1 and Phase 2.
@@ -1237,6 +1239,77 @@ The `ADM-04` actions not built yet (extending a plan by days, resetting an owner
 the payment page) stay with the operator console in Phase 8. Verified with new cases in
 `balance-ledger.e2e.spec.ts` and `plan-purchase.e2e.spec.ts`. Undoing the list change, with an operator
 id written again, made the activity case fail.
+
+## 59. `PYG-09`: a pay-as-you-go shop could not be closed, and a suspension never archived one — found and fixed 2026-10-18
+
+Found in the 2026-10-18 audit of Phases 0-2. There was no way for an owner to close a pay-as-you-go shop, and
+an operator suspension of one only suspended it, though `PYG-09` says either archives it at once and starts
+its 60-day deletion clock. The clock itself could not have counted from a closure anyway: an archived
+pay-as-you-go shop's archival date was worked out from its idle clock (`PYG-21`), the only way one could be
+archived until now.
+
+**Fixed:**
+- `control.tenants.archived_at` (migration `0047`) records when a tenant entered `archived`, and any plan
+  or pay-as-you-go assignment clears it. An archived pay-as-you-go shop's day-45 and day-57 warnings and its
+  day-60 deletion count from it. A shop archived before the column existed falls back to the idle clock,
+  which is how it was archived.
+- `POST /api/v1/billing/close` (`LifecycleService.closePayAsYouGo`), owner only: a pay-as-you-go shop is
+  archived at once, its balance frozen, `shop_closed` logged, and the owner sent an SMS and an email naming
+  the deletion date. Any other state answers `409 conflict`. Choosing pay-as-you-go or buying a plan
+  reopens it (`LIF-15`).
+- An operator suspension of a pay-as-you-go shop also archives it, at the suspension's own moment. Restoring
+  returns it to pay-as-you-go with a fresh idle clock. A shop already archived before the suspension, for
+  inactivity or by its owner, stays archived.
+- The deletion warning now says the shop can also be kept by choosing pay-as-you-go.
+
+Verified with `shop-close.e2e.spec.ts` (new).
+
+## 60. `BAL-13`: the low-balance notice never reached anyone, and "at 0" never fired — found and fixed 2026-10-18
+
+Found in the same audit. The notifier was still the console stub from #48, so the owner never heard. Separately,
+a crossing needed the balance to go below the threshold, and since `BAL-10` stops an ordinary charge at 0,
+the "at 0" notice could fire only on an overdraft SMS charge.
+
+**Fixed:**
+- `MailLowBalanceNotifier` emails the owner ("Your balance is low" / "Your balance has run out") in the
+  transaction of the charge that crossed the threshold, so a charge that fails sends nothing. Never SMS.
+- Reaching a threshold from above now counts as crossing it.
+- The owner lookup it uses joins the caller's transaction (`StaffService.ownerContactIn`), so a charge holding
+  the balance row lock never waits for a second database connection. The plan-active notice (#56) uses it
+  too.
+
+**Still open:** the in-app notice is the dashboard's balance banner, built in the UI pass, and push has no
+provider yet, as for `BIL-14` and `PYG-21`. An owner with no email on file gets only the banner. Verified
+with new cases in `plan-purchase.e2e.spec.ts`; the existing `balance-ledger` cases still pass.
+
+## 61. `LIF-10`, `SMS-04`: an owner's sign-in code to a lapsed shop used up its free SMS — found and fixed 2026-10-18
+
+Found in the same audit. A sign-in code to an existing shop counts toward its free allowance (`AUTH-21`), in
+every state. `LIF-10` and `SMS-04` say that in a lapsed shop it is the platform helping the owner back in, and
+must not count.
+
+**Fixed:** `SigninService.requestCode` counts the code only when the shop is not in grace, read-only, locked
+or archived. Those four states are now one shared list, `LAPSED_TENANT_STATES` in `@lytronix/validators`,
+which the pay-as-you-go choice (`LIF-15`) uses too. Verified in `essential-sms-usage.e2e.spec.ts`.
+
+## 62. `UPG-10`, `PYG-19`: the free-SMS month was the calendar month for every shop — found and fixed 2026-10-18
+
+Found in the same audit. The monthly free-SMS count reset on the 1st of each calendar month. It should restart
+with each paid period, so an upgrade resets it (`UPG-10`), and for pay-as-you-go it should run in months from
+the shop's creation date (`PYG-19`).
+
+**Fixed:** `EssentialSmsUsageService` counts the month from the period's start, or from the creation date for
+pay-as-you-go, using a new `monthlyCycleStart` (`common/time.ts`, unit-tested). It counts back correctly from a
+period start still in the future, as after an early renewal. Orders, bandwidth, requests and payment sessions
+(the rest of `UPG-10`) are not metered yet; they should use the same cycle when they are. Verified in
+`time.spec.ts` and `essential-sms-usage.e2e.spec.ts`.
+
+## 63. 2.1, `OD-48`: the pay-as-you-go product fee was 0 TK — found and fixed 2026-10-18
+
+Found in the same audit. Migration `0026` seeded `payg_product_fee` at 0 as a placeholder, while 2.1 and
+`OD-48` set it at 10 TK. Migration `0048` sets it to 10 and writes a `rate_history` row. It does this only
+while the rate is still the untouched placeholder, never over an operator's edit. No fee is charged yet
+(#11). Verified in `trial-lifecycle.e2e.spec.ts`.
 
 ## Not a bug, just noting it so it isn't mistaken for one later
 

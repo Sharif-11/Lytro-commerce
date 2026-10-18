@@ -51,6 +51,7 @@ export const MESSAGE_KEYS = [
   'UpgradeNotWorthwhile',
   'DowngradeNotAvailable',
   'PayAsYouGoNotAvailable',
+  'CloseNotAvailable',
   'DowngradeMustBeLowerRank',
   'ScheduledChangeNotFound',
 
@@ -184,6 +185,7 @@ export const MESSAGE_KEYS = [
   'UpgradeConfirmed',
   'DowngradeScheduled',
   'PayAsYouGoChosen',
+  'ShopClosed',
   'DowngradeCancelled',
   'DowngradePreviewed',
   'DowngradeRetrieved',

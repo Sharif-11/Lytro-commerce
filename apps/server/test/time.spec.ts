@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addMonths } from '../src/common/time';
+import { addMonths, monthlyCycleStart } from '../src/common/time';
 
 // TRM-09: calendar months in Asia/Dhaka, clamped to the last day of a shorter target month -- never an
 // overflow into the month after. Bug found 2026-10-16: addMonths used setUTCMonth with no clamp at all, so
@@ -42,5 +42,38 @@ describe('addMonths (TRM-09)', () => {
   it('a non-clamped addition is unaffected by the Dhaka offset', () => {
     const result = addMonths(new Date('2026-06-10T08:00:00Z'), 6);
     expect(result.toISOString()).toBe('2026-12-10T08:00:00.000Z');
+  });
+});
+
+// UPG-10, PYG-19: the free-SMS allowance runs in month-long cycles counted from an anchor (a period's start, or a
+// pay-as-you-go shop's creation), not by calendar month.
+describe('monthlyCycleStart (UPG-10, PYG-19)', () => {
+  it('is the anchor itself during the first month', () => {
+    const anchor = new Date('2026-03-10T05:00:00Z');
+    expect(monthlyCycleStart(anchor, new Date('2026-04-09T05:00:00Z'))).toEqual(anchor);
+  });
+
+  it('moves on a month at the anchor time, not at a calendar month', () => {
+    const anchor = new Date('2026-03-10T05:00:00Z');
+    expect(monthlyCycleStart(anchor, new Date('2026-04-10T05:00:00Z')).toISOString()).toBe(
+      '2026-04-10T05:00:00.000Z',
+    );
+    expect(monthlyCycleStart(anchor, new Date('2026-06-02T00:00:00Z')).toISOString()).toBe(
+      '2026-05-10T05:00:00.000Z',
+    );
+  });
+
+  it('clamps a cycle anchored on the 31st to the end of a shorter month', () => {
+    const anchor = new Date('2026-01-31T10:00:00Z');
+    expect(monthlyCycleStart(anchor, new Date('2026-03-01T00:00:00Z')).toISOString()).toBe(
+      '2026-02-28T10:00:00.000Z',
+    );
+  });
+
+  it('counts back from an anchor still in the future (a renewal paid early)', () => {
+    const anchor = new Date('2026-07-15T05:00:00Z');
+    expect(monthlyCycleStart(anchor, new Date('2026-07-01T00:00:00Z')).toISOString()).toBe(
+      '2026-06-15T05:00:00.000Z',
+    );
   });
 });

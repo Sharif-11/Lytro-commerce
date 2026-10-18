@@ -4,6 +4,7 @@ import {
   ActorType,
   AuditAction,
   AuditResult,
+  LAPSED_TENANT_STATES,
   MONEY_RELATED_AUDIT_ACTIONS,
   type PlanLimits,
   ScheduledPlanChangeKind,
@@ -42,14 +43,6 @@ const DEFAULT_ACTIVITY_RETENTION_DAYS = 30;
 
 // DWN-11: the shorter retention a downgrade brings never applies sooner than this many days after notice.
 const RETENTION_NOTICE_DAYS = 14;
-
-// LIF-15: the lapsed stages a shop can still be restored from by choosing pay-as-you-go, before deletion.
-const LAPSED_STATES: ReadonlySet<TenantState> = new Set([
-  TenantState.Grace,
-  TenantState.ReadOnly,
-  TenantState.Locked,
-  TenantState.Archived,
-]);
 
 /** The plan a swap puts the tenant on, and the period and state it lands in. */
 interface PlanSwap {
@@ -169,7 +162,7 @@ export class DowngradeService {
       return { effective: 'period_end', effectiveAt: change.effectiveAt };
     }
 
-    if (info.state !== TenantState.Active && !LAPSED_STATES.has(info.state)) {
+    if (info.state !== TenantState.Active && !LAPSED_TENANT_STATES.includes(info.state)) {
       throw new ApiError('conflict', 'PayAsYouGoNotAvailable', {});
     }
     await this.switchToPayAsYouGo(tenantId, now, ActorType.User, ip ?? null);

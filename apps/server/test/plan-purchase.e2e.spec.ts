@@ -312,6 +312,57 @@ describeIfDatabase('BIL-12, BIL-05: what an invoice states, and the plan-active 
   });
 });
 
+describeIfDatabase('BAL-13: the low-balance notice reaches the owner', () => {
+  it('emails the owner once at 50 TK and once at zero, never by SMS', async () => {
+    const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
+    const { phone, email } = await seedOwnerContact(tenantId);
+    await balance.creditStandalone({ tenantId, amount: '60.00', type: LedgerEntryType.TopUp });
+    const mails = async () =>
+      (
+        await admin.query<{ subject: string; body: string }>(
+          'SELECT subject, body FROM control.mail_outbox WHERE to_email = $1 ORDER BY created_at ASC',
+          [email],
+        )
+      ).rows;
+
+    await balance.chargeStandalone({ tenantId, type: LedgerEntryType.Sms, amount: '15.00' });
+    await balance.chargeStandalone({ tenantId, type: LedgerEntryType.Sms, amount: '5.00' });
+    expect(await mails()).toEqual([
+      {
+        subject: 'Your balance is low',
+        body: expect.stringContaining(
+          "Your shop's balance is 45.00 TK, below 50.00 TK.",
+        ) as unknown,
+      },
+    ]);
+
+    await balance.chargeStandalone({ tenantId, type: LedgerEntryType.Sms, amount: '40.00' });
+    const sent = await mails();
+    expect(sent.map((mail) => mail.subject)).toEqual([
+      'Your balance is low',
+      'Your balance has run out',
+    ]);
+    expect(sent[1]?.body).toContain('0.00 TK');
+
+    const sms = await admin.query('SELECT 1 FROM control.sms_outbox WHERE to_phone = $1', [phone]);
+    expect(sms.rowCount).toBe(0);
+  });
+
+  it('a charge that fails sends nothing', async () => {
+    const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
+    const { email } = await seedOwnerContact(tenantId);
+    await balance.creditStandalone({ tenantId, amount: '60.00', type: LedgerEntryType.TopUp });
+
+    await expect(
+      balance.chargeStandalone({ tenantId, type: LedgerEntryType.Sms, amount: '70.00' }),
+    ).rejects.toMatchObject({ code: 'quota_exceeded' });
+    const mail = await admin.query('SELECT 1 FROM control.mail_outbox WHERE to_email = $1', [
+      email,
+    ]);
+    expect(mail.rowCount).toBe(0);
+  });
+});
+
 describeIfDatabase('AUD-08, ADM-04: a rejected payment in the shop activity log', () => {
   it('records the rejection and its note as Platform support, never the operator id', async () => {
     const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');

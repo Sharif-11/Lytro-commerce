@@ -164,6 +164,10 @@ CREATE TABLE control.tenants (
     -- period end regardless) -- it exists only so the dashboard can show "cancelled, effective
     -- <date>" and offer "Undo". Added by migration 0031_lifecycle_cancellation.sql.
     cancelled_at           timestamptz,
+    -- PYG-09, PYG-21: when the tenant entered `archived`; cleared when a plan or pay-as-you-go restores
+    -- it. A pay-as-you-go shop's deletion clock (LIF-18, LIF-19) runs from here, since it has no period
+    -- end. Added by migration 0047_tenant_archived_at.sql.
+    archived_at            timestamptz,
     -- LIF-20/21/22: set once by the day-60 deletion job (LIF-19), never before. The row and its
     -- state ('deleted') persist after this is set -- deletion removes only the business data
     -- listed in LIF-19, not the tenant row itself (LIF-20 keeps the subscriber link, plan/payment
@@ -233,7 +237,7 @@ CREATE TABLE control.plan_prices (
 CREATE TABLE control.rates (
     key             text PRIMARY KEY,           -- 'sms_per_unit', 'ai_reply', 'fraud_check',
                                                   -- 'payg_order_fee_min', 'payg_order_fee_pct',
-                                                  -- 'payg_product_fee', 'sms_unit_size_chars' (RAT-13)
+                                                  -- 'payg_product_fee' (10 TK, OD-48), 'sms_unit_size_chars' (RAT-13)
     value           numeric(12,4) NOT NULL,
     effective_from  timestamptz NOT NULL DEFAULT now()
 );

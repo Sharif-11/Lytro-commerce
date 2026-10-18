@@ -165,6 +165,7 @@ describeIfDatabase('route inventory against the application (SEC-02)', () => {
       'POST /billing/auto-renew',
       'POST /billing/cancel',
       'POST /billing/cancel/undo',
+      'POST /billing/close',
       'POST /billing/downgrade/cancel',
       'POST /billing/downgrade/preview',
       'POST /billing/downgrade/schedule',

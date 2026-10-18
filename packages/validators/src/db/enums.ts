@@ -12,6 +12,17 @@ export enum TenantState {
   Deleted = 'deleted',
 }
 
+/**
+ * 2.3: past the paid period's end and not yet deleted. A purchase or choosing pay-as-you-go restores a shop from
+ * any of these (LIF-15), and the owner's own sign-in codes in them are never counted as usage (LIF-10).
+ */
+export const LAPSED_TENANT_STATES: readonly TenantState[] = [
+  TenantState.Grace,
+  TenantState.ReadOnly,
+  TenantState.Locked,
+  TenantState.Archived,
+];
+
 export enum KycStatus {
   Unverified = 'unverified',
   Pending = 'pending',
@@ -176,6 +187,8 @@ export enum AuditAction {
   RetentionShortenedNoticeSent = 'retention_shortened_notice_sent',
   // LIF-01: the owner's own cancellation intent, set and cleared before period end.
   SubscriptionCancelled = 'subscription_cancelled',
+  // PYG-09: the owner closing a pay-as-you-go shop, which archives it at once.
+  ShopClosed = 'shop_closed',
   SubscriptionCancellationUndone = 'subscription_cancellation_undone',
   // BIL-17: the owner's own "renew automatically from balance" toggle. The renewal itself, once triggered,
   // reuses PlanRenewed (PurchaseService.activate already writes it) -- no separate action needed for that.

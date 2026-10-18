@@ -162,7 +162,7 @@ describeIfDatabase('pay-as-you-go order and product fees (PYG-02, PYG-16)', () =
     ).rejects.toMatchObject({ code: 'quota_exceeded' });
   });
 
-  it('PYG-16: charges a flat fee once, regardless of order size', async () => {
+  it('PYG-16, OD-48: charges the flat 10 TK fee once, regardless of order size', async () => {
     const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'pay_as_you_go');
     await balance.creditStandalone({
       tenantId,
@@ -174,5 +174,6 @@ describeIfDatabase('pay-as-you-go order and product fees (PYG-02, PYG-16)', () =
       paygBilling.chargeProductCreationFee(tx, tenantId, randomUUID()),
     );
     expect(entry.type).toBe(LedgerEntryType.ProductFee);
+    expect(entry.amount).toBe('-10.00'); // 2.1's pay-as-you-go product fee
   });
 });

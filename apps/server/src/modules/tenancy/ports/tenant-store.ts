@@ -78,8 +78,10 @@ export interface TenantStore {
     amount: string,
     options?: { frozen?: boolean; touchActivityAt?: Date },
   ): Promise<void>;
-  /** LIF-03/04/23: the lifecycle job's own state write -- plan, period and balance are untouched. */
-  setLifecycleState(tx: Transaction, tenantId: string, state: TenantState): Promise<void>;
+  /** LIF-03/04/23, PYG-09: the state write; entering `archived` records `at`. Plan, period and balance are untouched. */
+  setLifecycleState(tx: Transaction, tenantId: string, state: TenantState, at: Date): Promise<void>;
+  /** PYG-09, LIF-24: back on pay-as-you-go after a suspension archived it, the idle clock restarting at `at`. */
+  returnToPayAsYouGo(tx: Transaction, tenantId: string, at: Date): Promise<void>;
   /** LIF-26: freezes today's stage lengths onto the tenant the first tick it's found lapsing. */
   setLapseScheduleSnapshot(
     tx: Transaction,

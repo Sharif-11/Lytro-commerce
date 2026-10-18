@@ -148,8 +148,17 @@ export class DrizzleTenantStore implements TenantStore {
     return this.tenants.applyBalanceChange(tx, tenantId, amount, options);
   }
 
-  setLifecycleState(tx: Transaction, tenantId: string, state: TenantState): Promise<void> {
-    return this.tenants.setLifecycleState(tx, tenantId, state);
+  setLifecycleState(
+    tx: Transaction,
+    tenantId: string,
+    state: TenantState,
+    at: Date,
+  ): Promise<void> {
+    return this.tenants.setLifecycleState(tx, tenantId, state, at);
+  }
+
+  returnToPayAsYouGo(tx: Transaction, tenantId: string, at: Date): Promise<void> {
+    return this.tenants.returnToPayAsYouGo(tx, tenantId, at);
   }
 
   setLapseScheduleSnapshot(

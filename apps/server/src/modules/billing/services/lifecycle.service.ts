@@ -12,7 +12,7 @@ import {
   TenantState,
 } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
-import { DAY_MS, daysBetween, startOfDayDhaka } from '../../../common/time';
+import { DAY_MS, daysBetween, dhakaDate, startOfDayDhaka } from '../../../common/time';
 import { AuditService } from '../../audit/services/audit.service';
 import { PlatformAuditService } from '../../audit/services/platform-audit.service';
 import { BalanceService } from '../../balance/services/balance.service';
@@ -154,7 +154,7 @@ export class LifecycleService {
             this.tenants.setLapseScheduleSnapshot(tx, candidate.id, tenantStages),
           );
         }
-        await this.transition(candidate.id, candidate.state, target);
+        await this.transition(candidate.id, candidate.state, target, now);
         transitioned += 1;
       }
       if (await this.sendDeletionWarningIfDue(candidate.id, daysLapsed)) {
@@ -235,9 +235,14 @@ export class LifecycleService {
   }
 
   /** LIF-25: one audit entry per transition; LIF-09 freezes the balance the moment a tenant is no longer Grace. */
-  private async transition(tenantId: string, from: TenantState, to: TenantState): Promise<void> {
+  private async transition(
+    tenantId: string,
+    from: TenantState,
+    to: TenantState,
+    now: Date,
+  ): Promise<void> {
     await this.tenants.runStandalone(async (tx) => {
-      await this.tenants.setLifecycleState(tx, tenantId, to);
+      await this.tenants.setLifecycleState(tx, tenantId, to, now);
       if (to !== TenantState.Grace) await this.balance.freeze(tx, tenantId);
       await this.audit.record(tx, {
         tenantId,
@@ -307,7 +312,7 @@ export class LifecycleService {
       tenantId,
       AuditAction.DeletionWarningSent,
       { day: due },
-      `Your shop will be deleted in ${daysLeft} day(s) unless you buy a plan. Export your data from the dashboard before then.`,
+      `Your shop will be deleted in ${daysLeft} day(s) unless you buy a plan or choose pay-as-you-go. Export your data from the dashboard before then.`,
       'Your shop is scheduled for deletion',
     );
     return true;
@@ -436,7 +441,7 @@ export class LifecycleService {
       const idleDays = daysBetween(since, now);
       if (idleDays >= PAYG_ARCHIVE_DAYS) {
         await this.tenants.runStandalone(async (tx) => {
-          await this.tenants.setLifecycleState(tx, candidate.id, TenantState.Archived);
+          await this.tenants.setLifecycleState(tx, candidate.id, TenantState.Archived, now);
           await this.balance.freeze(tx, candidate.id);
           await this.audit.record(tx, {
             tenantId: candidate.id,
@@ -491,8 +496,12 @@ export class LifecycleService {
       this.tenants.findPaygArchivedCandidates(tx),
     );
     for (const candidate of archived) {
-      // LIF-18/19 count from the archival itself, PYG-21's idle day 30: warnings at 45 and 57, deletion at 60.
-      const archivedAt = new Date(this.idleSince(candidate).getTime() + PAYG_ARCHIVE_DAYS * DAY_MS);
+      // LIF-18/19 count from the archival itself -- idle day 30 (PYG-21), the owner's closure or a suspension
+      // (PYG-09): warnings at 45 and 57, deletion at 60. A shop archived before `archived_at` was kept was
+      // archived for inactivity, so its idle clock gives the same date.
+      const archivedAt =
+        candidate.archivedAt ??
+        new Date(this.idleSince(candidate).getTime() + PAYG_ARCHIVE_DAYS * DAY_MS);
       const daysArchived = daysBetween(archivedAt, now);
       if (
         daysArchived >= PAYG_DELETION_DAYS_AFTER_ARCHIVAL &&
@@ -614,16 +623,62 @@ export class LifecycleService {
     });
   }
 
-  /** LIF-24: an operator suspension, independent of `state` -- DashboardGuard/TenantResolver already check
-   * `suspendedAt` directly, so this never needs to touch `state` at all. */
+  /**
+   * PYG-09: the owner closes a pay-as-you-go shop. It is archived at once -- no grace or read-only stage, since
+   * no paid period exists to protect -- and its business data is deleted 60 days later, after the day-45 and
+   * day-57 warnings (LIF-18, LIF-19). Until then, choosing pay-as-you-go or buying a plan reopens it (LIF-15).
+   */
+  async closePayAsYouGo(tenantId: string, ip?: string | null): Promise<void> {
+    const now = this.clock();
+    const contact = await this.staff.ownerContact(tenantId);
+    await this.tenants.runStandalone(async (tx) => {
+      const info = await this.tenants.findBillingInfo(tx, tenantId);
+      if (info?.state !== TenantState.PayAsYouGo) {
+        throw new ApiError('conflict', 'CloseNotAvailable', {});
+      }
+      await this.tenants.setLifecycleState(tx, tenantId, TenantState.Archived, now);
+      await this.balance.freeze(tx, tenantId);
+      await this.audit.record(tx, {
+        tenantId,
+        actorType: ActorType.User,
+        actorId: null,
+        action: AuditAction.ShopClosed,
+        ip: ip ?? null,
+        targetType: 'tenant',
+        targetId: tenantId,
+        result: AuditResult.Success,
+        summary: { from: TenantState.PayAsYouGo, to: TenantState.Archived },
+      });
+      // Platform-sent and never charged, like every notice about the owner's own account (LIF-10).
+      const deletionDate = dhakaDate(
+        new Date(now.getTime() + PAYG_DELETION_DAYS_AFTER_ARCHIVAL * DAY_MS),
+      );
+      const body =
+        `${info.shopName} is closed. Its data will be deleted on ${deletionDate}. Until then you can ` +
+        'reopen it by choosing pay-as-you-go or a plan, and export your data from the dashboard.';
+      if (contact?.phone) await this.sms.queueLifecycleNotice(tx, contact.phone, body);
+      if (contact?.email) {
+        await this.mail.queueLifecycleNotice(tx, contact.email, 'Your shop is closed', body);
+      }
+    });
+    this.tenantCache.invalidateTenant(tenantId); // TEN-27: the public side goes offline at once.
+  }
+
+  /**
+   * LIF-24: an operator suspension, independent of `state` -- DashboardGuard/TenantResolver already check
+   * `suspendedAt` directly. PYG-09: a pay-as-you-go shop is also archived by it, at the same moment, so its
+   * 60-day deletion clock starts; `restore` undoes that.
+   */
   async suspend(
     tenantId: string,
     reason: string,
     operatorId: string,
     ip?: string | null,
   ): Promise<void> {
+    const now = this.clock();
     await this.tenants.runStandalone(async (tx) => {
-      await this.tenants.setSuspension(tx, tenantId, reason, this.clock());
+      const info = await this.tenants.findBillingInfo(tx, tenantId);
+      await this.tenants.setSuspension(tx, tenantId, reason, now);
       await this.balance.freeze(tx, tenantId);
       await this.audit.record(tx, {
         tenantId,
@@ -636,6 +691,20 @@ export class LifecycleService {
         result: AuditResult.Success,
         summary: { reason },
       });
+      if (info?.state === TenantState.PayAsYouGo) {
+        await this.tenants.setLifecycleState(tx, tenantId, TenantState.Archived, now);
+        await this.audit.record(tx, {
+          tenantId,
+          actorType: ActorType.PlatformSupport,
+          actorId: null,
+          action: AuditAction.LifecycleStateChanged,
+          ip: ip ?? null,
+          targetType: 'tenant',
+          targetId: tenantId,
+          result: AuditResult.Success,
+          summary: { from: TenantState.PayAsYouGo, to: TenantState.Archived, reason: 'suspended' },
+        });
+      }
     });
     await this.platformAudit.record({
       actorType: PlatformActorType.Operator,
@@ -653,11 +722,34 @@ export class LifecycleService {
   /**
    * LIF-24: reverses a suspension. Unfreezes the balance only if the tenant's own lifecycle state (independent
    * of the suspension) would not already require it frozen -- a suspended tenant who is also, say, `locked`
-   * for non-payment stays frozen for that reason after the suspension itself is lifted.
+   * for non-payment stays frozen for that reason after the suspension itself is lifted. PYG-09: a
+   * pay-as-you-go shop the suspension archived (archived at the suspension's own moment) goes back to
+   * pay-as-you-go; one already archived before it, for inactivity or by its owner, stays archived.
    */
   async restore(tenantId: string, operatorId: string, ip?: string | null): Promise<void> {
+    const now = this.clock();
     await this.tenants.runStandalone(async (tx) => {
+      const before = await this.tenants.findBillingInfo(tx, tenantId);
+      const archivedBySuspension =
+        before?.state === TenantState.Archived &&
+        before.periodEnd === null &&
+        before.archivedAt !== null &&
+        before.archivedAt.getTime() === before.suspendedAt?.getTime();
       await this.tenants.clearSuspension(tx, tenantId);
+      if (archivedBySuspension) {
+        await this.tenants.returnToPayAsYouGo(tx, tenantId, now);
+        await this.audit.record(tx, {
+          tenantId,
+          actorType: ActorType.PlatformSupport,
+          actorId: null,
+          action: AuditAction.LifecycleStateChanged,
+          ip: ip ?? null,
+          targetType: 'tenant',
+          targetId: tenantId,
+          result: AuditResult.Success,
+          summary: { from: TenantState.Archived, to: TenantState.PayAsYouGo, reason: 'restored' },
+        });
+      }
       const info = await this.tenants.findBillingInfo(tx, tenantId);
       const stillLapsed =
         info?.state === TenantState.ReadOnly ||

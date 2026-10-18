@@ -182,6 +182,7 @@ function build(state: World) {
       return Promise.resolve();
     },
     sumPartsSince: () => Promise.resolve(0),
+    findCycleTenant: () => Promise.resolve(null),
   };
   const essentialSms = new EssentialSmsUsageService(essentialSmsUsageStore);
 
