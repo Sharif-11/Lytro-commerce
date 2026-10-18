@@ -857,9 +857,9 @@ Steps: simulate losing both the TOTP device and all backup codes; run the docume
 Expected: account recovered via the logged break-glass procedure; account unusable again until 2FA is freshly re-enrolled; with a second operator present, the same recovery requires their approval instead of being self-service.
 Covers: `ADM-18`.
 
-**S11-03 View-as-tenant, scoped and audited.**
-Steps: 1) Open view-as-tenant with a reason under 10 characters; retry with a valid reason. 2) Follow the support link; then reuse the same link, and use a fresh one after 60 seconds. 3) While viewing, open an order and attempt a write. 4) Change the address to another shop. 5) Let 30 minutes pass.
-Expected: short reason refused, and no seller approval is asked for; the valid reason opens the real dashboard at `app.lytro.app/<shop>` in a read-only, banner-shown support view, while the reused and the expired links are refused; the customer's phone shows as 017••••5678 and the write is refused; the other shop does not open; every page opened is logged to the tenant's activity log with the operator's name and reason; access ends at 30 minutes.
+**S11-03 View-as-tenant, approved, scoped and audited.**
+Steps: 1) Request view-as-tenant with a reason under 10 characters; retry with a valid reason. 2) Try to open the shop before anyone answers. 3) As a staff member without `support:approve`, try to allow it; then allow it as the owner. 4) Follow the support link; then reuse it. 5) Open an order and its customer, and attempt a write. 6) Change the address to another shop. 7) End the view from the seller's side; separately, leave a second request unanswered for 24 hours.
+Expected: short reason refused; the shop gets the banner, push and SMS; nothing opens before approval; the unpermitted staff member cannot allow it, the owner can; the link opens the real dashboard at `app.lytro.app/<shop>` in a read-only, banner-shown support view, and the reused link is refused; the order and full customer details are visible and the write is refused; the other shop does not open; ending it closes the view at once; the unanswered request lapses; the request, the approval and every page opened appear in the tenant's activity log.
 Covers: `ADM-05`.
 
 **S11-04 Payment/top-up review queue, no double-credit.**
