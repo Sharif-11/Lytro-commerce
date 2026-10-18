@@ -53,6 +53,7 @@ A limit, an enumeration, a type shape or a constant is defined in exactly one pl
 | Enumerations (tenant state, KYC and domain status, SMS kind and status, identity kind) | `packages/validators/src/db/enums.ts` |
 | Plan limits shape | `packages/validators/src/db/plans/plan-limits.ts` |
 | Request shapes (API DTO schemas) | `packages/validators/src/api/<domain>/<resource>/` |
+| Field problem codes, field names and their Bangla/English messages (API-16) | `packages/validators/src/validation/` |
 | Postgres enums | `packages/db/src/schema/enums.ts`, built from the validators enums |
 | Table row types | Each table file: `Select<Name>`, `Insert<Name>`, `Update<Name>` |
 | Durations | `apps/server/src/common/time.ts` |
@@ -67,6 +68,7 @@ A shape that matches another is an alias of the shared type. It is never copied.
 packages/validators/src/
   common/            limits.ts, index.ts
   db/                enums.ts, plans/plan-limits.ts
+  validation/        field problem codes, field labels, messages, fieldProblemsOf
   api/
     <domain>/
       <resource>/    <resource>-<suffix>.ts     -- a domain with several schemas per resource
@@ -85,6 +87,15 @@ packages/validators/src/
 - JSON column shapes are types from this package, applied with `$type<...>()`.
 - `package.json` declares subpath exports (`common`, `enums`, `plans`). Consumers may import a subpath.
 - Zod stays at version 3 until a deliberate upgrade.
+- Schemas carry rules, not wording. What a person reads when a field fails comes from `validation/`:
+  `fieldProblemsOf` turns a failed check into one problem per field (`too_short`, `required`, ...), and
+  `fieldProblemMessage` words it in Bangla or English. The server and the dashboard both use these, so a field
+  says the same thing before and after a request is sent.
+- A new request field needs an entry in `FIELD_LABELS`, in both languages (`null` only when its meaning differs
+  between requests); a test fails otherwise. A field that needs an example of the right format (phone, code,
+  shop URL) gets a message in `FIELD_MESSAGES`.
+- A custom check (`refine`, `superRefine`) names its problem with `params: { problem: FieldProblemCode.X }`
+  and the field it is about with `path`; without them it is reported as a format problem on the whole request.
 
 ## 5. Database package
 
