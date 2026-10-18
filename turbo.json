@@ -3,7 +3,18 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"],
+      "env": [
+        "TRUSTED_EDGE_SECRET",
+        "SERVER_URL",
+        "APP_URL",
+        "SITE_URL",
+        "LIVE_FEATURES",
+        "CONTACT_WEBHOOK_URL",
+        "SUPPORT_WHATSAPP",
+        "SUPPORT_PHONE",
+        "SUPPORT_EMAIL"
+      ]
     },
     "typecheck": {
       "dependsOn": ["^build"]
@@ -33,7 +44,15 @@
         "DATABASE_STATEMENT_TIMEOUT_MS",
         "PLATFORM_DOMAIN",
         "TRUSTED_EDGE_SECRET",
-        "OTP_SECRET"
+        "OTP_SECRET",
+        "SERVER_URL",
+        "APP_URL",
+        "SITE_URL",
+        "LIVE_FEATURES",
+        "CONTACT_WEBHOOK_URL",
+        "SUPPORT_WHATSAPP",
+        "SUPPORT_PHONE",
+        "SUPPORT_EMAIL"
       ]
     }
   }

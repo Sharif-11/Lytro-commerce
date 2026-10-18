@@ -1,30 +1,162 @@
 @import 'tailwindcss';
 
-/* Lytro's identity, matching apps/admin's own (D34) — these two apps share no build tooling, so the token
-   values are kept in sync by hand across apps/admin/src/index.css and this file, not imported. */
+/* Lytro's identity: the token values are docs/brand/tailwind-theme.css (BRAND-IDENTITY.md §4, §9), kept in
+   step by hand with apps/admin. Secondary text is neutral-700 or darker, never neutral-500 for Bangla
+   (BRAND-IDENTITY.md §4). */
 @theme {
   --font-sans: var(--font-inter), var(--font-noto-bengali), ui-sans-serif, system-ui, sans-serif;
+  --font-bn: var(--font-noto-bengali), var(--font-inter), sans-serif;
+  --font-display: var(--font-jakarta), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 
-  --color-brand-50: #f0f7e8;
-  --color-brand-100: #dcedc5;
-  --color-brand-200: #bfe099;
-  --color-brand-300: #9dce6a;
-  --color-brand-400: #87c14c;
-  --color-brand-500: #76c043;
-  --color-brand-600: #4a7d1e;
-  --color-brand-700: #3a6216;
-  --color-brand-800: #2c4b10;
-  --color-brand-900: #1f360a;
+  --color-brand-50: #effaf8;
+  --color-brand-100: #ddf5f2;
+  --color-brand-200: #b9ece6;
+  --color-brand-300: #7fdcd3;
+  --color-brand-400: #3ec4b9;
+  --color-brand-500: #17a89e;
+  --color-brand-600: #107f78;
+  --color-brand-700: #0e6b66;
+  --color-brand-800: #0a4f4b;
+  --color-brand-900: #063b38;
+  --color-brand-950: #042826;
 
-  --color-accent-300: #f3c77a;
-  --color-accent-400: #e2a33d;
-  --color-accent-500: #d97706;
+  --color-accent-100: #fdf0d1;
+  --color-accent-300: #f8cf6e;
+  --color-accent-500: #f2a516;
+  --color-accent-700: #9a6004;
 
-  --color-ink: #0f172a;
+  --color-ink: #10201f;
+  --color-neutral-50: #f6f9f8;
+  --color-neutral-100: #eaf0ef;
+  --color-neutral-200: #d5dfde;
+  --color-neutral-300: #a9b9b8;
+  --color-neutral-400: #7e8f8e;
+  --color-neutral-500: #5b6e6d;
+  --color-neutral-700: #2c3f3e;
+
+  --color-success: #1b7a43;
+  --color-success-soft: #e3f3e9;
+  --color-warning: #9a6004;
+  --color-warning-soft: #fdf0d1;
+  --color-danger: #c8323b;
+  --color-danger-soft: #fbe7e8;
+
+  --color-line: rgba(16, 32, 31, 0.08);
+  --color-line-strong: rgba(16, 32, 31, 0.14);
+
+  --radius-control: 10px;
+  --radius-card: 18px;
+  --radius-sheet: 24px;
+
+  --shadow-card: 0 1px 2px rgba(16, 32, 31, 0.05), 0 2px 8px -2px rgba(16, 32, 31, 0.06);
+  --shadow-lift: 0 1px 2px rgba(16, 32, 31, 0.04), 0 16px 40px -16px rgba(16, 32, 31, 0.18);
+  --shadow-accent: 0 1px 0 rgba(255, 255, 255, 0.35) inset, 0 8px 20px -8px rgba(242, 165, 22, 0.7);
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
-  font-family: var(--font-sans);
-  background-color: #ffffff;
+  background: var(--color-white);
   color: var(--color-ink);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* The visitor's language sets the body face: Noto Sans Bengali leads in Bangla, Inter in English. */
+html[lang='bn'] body {
+  font-family: var(--font-bn);
+  line-height: 1.65;
+}
+html[lang='en'] body {
+  font-family: var(--font-sans);
+  line-height: 1.55;
+}
+
+/* Headlines: Bangla stays in Noto Sans Bengali; English takes Plus Jakarta Sans with tight tracking. */
+.display {
+  font-weight: 800;
+  line-height: 1.22;
+  text-wrap: balance;
+}
+html[lang='en'] .display {
+  font-family: var(--font-display);
+  letter-spacing: -0.03em;
+  line-height: 1.08;
+}
+.heading {
+  font-weight: 700;
+  line-height: 1.28;
+  text-wrap: balance;
+}
+html[lang='en'] .heading {
+  font-family: var(--font-display);
+  letter-spacing: -0.025em;
+  line-height: 1.12;
+}
+.wordmark-text {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.045em;
+}
+.num {
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .draw-mark path {
+    stroke-dasharray: 90;
+    stroke-dashoffset: 90;
+    animation: draw-mark 0.8s ease-out 0.2s forwards;
+  }
+  @keyframes draw-mark {
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* The hero's and final band's dot grid, masked toward the middle so it reads as texture, not a pattern. */
+.dot-grid {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.09) 1px, transparent 1.2px);
+  background-size: 24px 24px;
+  -webkit-mask-image: radial-gradient(80% 60% at 50% 30%, #000 30%, transparent 100%);
+  mask-image: radial-gradient(80% 60% at 50% 30%, #000 30%, transparent 100%);
+}
+
+/* Horizontal rows that scroll on phones (the integration strip, the pricing cards) hide their scrollbar and
+   fade at the edges; from the tablet breakpoint up they become plain grids. */
+.scroll-row {
+  scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    transparent,
+    #000 16px,
+    #000 calc(100% - 16px),
+    transparent
+  );
+  mask-image: linear-gradient(90deg, transparent, #000 16px, #000 calc(100% - 16px), transparent);
+}
+.scroll-row::-webkit-scrollbar {
+  display: none;
+}
+@media (min-width: 40rem) {
+  .scroll-row {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
 }
