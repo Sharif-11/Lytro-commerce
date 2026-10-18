@@ -84,7 +84,19 @@ describeIfDatabase('the response envelope (API-14, SRS-detailed §2.6)', () => {
     expect(response.envelope).toMatchObject({
       success: false,
       statusCode: 400,
-      errors: { code: 'validation_error', details: { field: 'phone' } },
+      message: 'একটি বাংলাদেশি মোবাইল নম্বর দিন, যেমন 017XXXXXXXX।',
+      errors: {
+        code: 'validation_error',
+        details: {
+          fields: [
+            {
+              field: 'phone',
+              problem: 'invalid_format',
+              message: 'একটি বাংলাদেশি মোবাইল নম্বর দিন, যেমন 017XXXXXXXX।',
+            },
+          ],
+        },
+      },
     });
   });
 
@@ -94,7 +106,8 @@ describeIfDatabase('the response envelope (API-14, SRS-detailed §2.6)', () => {
     expect(response.envelope).toMatchObject({
       success: false,
       statusCode: 404,
-      errors: { code: 'not_found' },
+      message: 'পেজটি খুঁজে পাওয়া যায়নি।', // never the framework's own "Cannot GET /api/v1/does-not-exist"
+      errors: { code: 'not_found', details: {} },
     });
   });
 

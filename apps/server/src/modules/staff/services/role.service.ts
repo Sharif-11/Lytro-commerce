@@ -5,8 +5,9 @@ import {
   AuditResult,
   type CreateRoleInput,
   type UpdateRoleInput,
+  ServerFieldProblemCode,
 } from '@lytronix/validators';
-import { ApiError } from '../../../common/api-error';
+import { ApiError, FieldsError } from '../../../common/api-error';
 import { UniqueViolation } from '../../../common/errors/unique-violation';
 import { AuditService } from '../../audit/services/audit.service';
 import type { RoleStore } from '../ports/role-store';
@@ -112,7 +113,10 @@ export class RoleService {
   }
 
   private nameTaken(): ApiError {
-    return new ApiError('conflict', 'RoleNameTaken', { field: 'name' });
+    return new FieldsError(
+      [{ field: 'name', problem: ServerFieldProblemCode.Taken, messageKey: 'RoleNameTaken' }],
+      'conflict',
+    );
   }
 
   private notFound(): ApiError {

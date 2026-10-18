@@ -1,4 +1,4 @@
-export type Lang = 'en' | 'bn';
+import type { Language } from '@lytronix/validators';
 
 interface Candidate {
   tag: string;
@@ -23,7 +23,7 @@ function parse(header: string): Candidate[] {
  * one that doesn't ask for English specifically, gets Bangla. English only when the header's highest-weighted
  * tag starts with "en" (e.g. "en", "en-US").
  */
-export function resolveLanguage(acceptLanguage: string | undefined): Lang {
+export function resolveLanguage(acceptLanguage: string | undefined): Language {
   if (acceptLanguage === undefined || acceptLanguage.trim().length === 0) return 'bn';
   const [best] = parse(acceptLanguage);
   return best?.tag.startsWith('en') === true ? 'en' : 'bn';

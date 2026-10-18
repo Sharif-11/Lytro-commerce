@@ -334,7 +334,15 @@ describeIfDatabase('changing a password (AUTH-20)', () => {
     );
     expect(withoutCurrent.status).toBe(400);
     expect(withoutCurrent.body).toMatchObject({
-      error: { code: 'validation_error', details: { field: 'currentPassword' } },
+      error: {
+        code: 'validation_error',
+        message: 'কারেন্ট পাসওয়ার্ড দিন।',
+        details: {
+          fields: [
+            { field: 'currentPassword', problem: 'required', message: 'কারেন্ট পাসওয়ার্ড দিন।' },
+          ],
+        },
+      },
     });
 
     const withCurrent = await post(

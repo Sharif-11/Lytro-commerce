@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { ActorType, type ListActivityQuery } from '@lytronix/validators';
-import { ApiError } from '../../../common/api-error';
+import { ActorType, type ListActivityQuery, FieldProblemCode } from '@lytronix/validators';
+import { FieldsError } from '../../../common/api-error';
 import { AuditService } from '../../audit/services/audit.service';
 import type { ActivityCursor } from '../../audit/types/activity';
 import { StaffService } from '../../staff/services/staff.service';
@@ -85,6 +85,8 @@ export class ActivityListService {
     } catch {
       // Falls through to the same refusal as a structurally wrong cursor.
     }
-    throw new ApiError('validation_error', 'PageLinkInvalid', { field: 'cursor' });
+    throw new FieldsError([
+      { field: 'cursor', problem: FieldProblemCode.InvalidFormat, messageKey: 'PageLinkInvalid' },
+    ]);
   }
 }

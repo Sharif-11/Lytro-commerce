@@ -7,8 +7,9 @@ import {
   LedgerEntryType,
   PlatformActorType,
   PlatformAuditAction,
+  FieldProblemCode,
 } from '@lytronix/validators';
-import { ApiError } from '../../../common/api-error';
+import { ApiError, FieldsError } from '../../../common/api-error';
 import { AuditService } from '../../audit/services/audit.service';
 import { PlatformAuditService } from '../../audit/services/platform-audit.service';
 import { TenantService } from '../../tenancy/services/tenant.service';
@@ -115,7 +116,7 @@ export class BalanceService {
     operatorId: string;
   }): Promise<LedgerEntry> {
     if (input.reason.trim().length === 0) {
-      throw new ApiError('validation_error', 'ReasonRequired', { field: 'reason' });
+      throw new FieldsError([{ field: 'reason', problem: FieldProblemCode.Required }]);
     }
     const entry = await this.runStandalone(input.tenantId, async (tx) => {
       const applied = await this.applyDelta(tx, input.tenantId, {

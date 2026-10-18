@@ -1,7 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { z } from 'zod';
-import { ChallengeChannel, ChallengeKind, IdentityKind } from '@lytronix/validators';
-import { ApiError } from '../../../common/api-error';
+import {
+  ChallengeChannel,
+  ChallengeKind,
+  IdentityKind,
+  FieldProblemCode,
+  ServerFieldProblemCode,
+} from '@lytronix/validators';
+import { ApiError, FieldsError } from '../../../common/api-error';
 import { UniqueViolation } from '../../../common/errors/unique-violation';
 import { EmailFormat } from './email-format';
 import { OneTimeCodeService } from './one-time-code.service';
@@ -63,9 +69,13 @@ export class IdentitiesService {
       await this.gateway.run(async (tx) => {
         const consumed = await this.gateway.consumeChallenge(tx, challengeId, new Date());
         if (!consumed) {
-          throw new ApiError('validation_error', 'CodeAlreadyUsed', {
-            field: 'code',
-          });
+          throw new FieldsError([
+            {
+              field: 'code',
+              problem: ServerFieldProblemCode.AlreadyUsed,
+              messageKey: 'CodeAlreadyUsed',
+            },
+          ]);
         }
         const holder = await this.gateway.findSubscriberByIdentity(
           tx,
@@ -114,7 +124,9 @@ export class IdentitiesService {
     if (kind === 'phone') {
       const phone = this.phoneFormat.normalize(value);
       if (!phone) {
-        throw new ApiError('validation_error', 'PhoneInvalid', { field: 'value' });
+        throw new FieldsError([
+          { field: 'value', problem: FieldProblemCode.InvalidFormat, wordedAs: 'phone' },
+        ]);
       }
       return {
         destination: phone,
@@ -124,7 +136,7 @@ export class IdentitiesService {
     }
     const email = this.emailFormat.normalize(value);
     if (!email) {
-      throw new ApiError('validation_error', 'EmailInvalid', { field: 'value' });
+      throw new FieldsError([{ field: 'value', problem: FieldProblemCode.InvalidEmail }]);
     }
     return {
       destination: email,

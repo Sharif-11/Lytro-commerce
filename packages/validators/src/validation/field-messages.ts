@@ -1,4 +1,4 @@
-import { CODE_LENGTH } from '../common/limits';
+import { CODE_LENGTH, SLUG_MAX_LENGTH, SLUG_MIN_LENGTH } from '../common/limits';
 import { FIELD_LABELS } from './field-labels';
 import {
   FieldProblemCode,
@@ -173,8 +173,8 @@ const FIELD_MESSAGES: Readonly<Record<string, Partial<Record<FieldProblemCode, T
   },
   address: {
     [FieldProblemCode.InvalidFormat]: {
-      en: 'Use only small English letters (a-z), numbers and hyphens, like fashion-house.',
-      bn: 'শুধু ছোট হাতের ইংরেজি অক্ষর (a-z), সংখ্যা আর হাইফেন দিন, যেমন fashion-house।',
+      en: `Use ${String(SLUG_MIN_LENGTH)} to ${String(SLUG_MAX_LENGTH)} small English letters (a-z), numbers and hyphens, like fashion-house.`,
+      bn: `${String(SLUG_MIN_LENGTH)} থেকে ${String(SLUG_MAX_LENGTH)}টি ছোট হাতের ইংরেজি অক্ষর (a-z), সংখ্যা আর হাইফেন দিন, যেমন fashion-house।`,
     },
   },
 };
@@ -235,7 +235,10 @@ export function fieldErrorsOf(problems: readonly FieldProblem[], language: Langu
  * The message for a failed request as a whole: the one field's own message when only one failed, so the
  * person reads exactly what to fix; a count when several did, each of which carries its own message.
  */
-export function validationSummary(errors: readonly FieldError[], language: Language): string {
+export function validationSummary(
+  errors: readonly Pick<FieldError, 'message'>[],
+  language: Language,
+): string {
   const [only, ...rest] = errors;
   if (!only) return SUMMARY.none[language];
   if (rest.length === 0) return only.message;

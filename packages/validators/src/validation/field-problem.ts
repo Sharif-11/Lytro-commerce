@@ -33,6 +33,19 @@ export enum FieldProblemCode {
 }
 
 /**
+ * API-16: problems only the server can find, by looking at stored data -- an address someone else has, a code
+ * that ran out. The server words these itself; a client can rely on the code like any other.
+ */
+export enum ServerFieldProblemCode {
+  Taken = 'taken',
+  AlreadyUsed = 'already_used',
+  Incorrect = 'incorrect',
+  Expired = 'expired',
+  NotFound = 'not_found',
+  OutOfRange = 'out_of_range',
+}
+
+/**
  * One failed field: which (`field`, a dotted path such as `items.0.name`; empty for the request as a whole),
  * why, and the limit it broke. Language-free, so it can travel in an API error and be worded on either side.
  */

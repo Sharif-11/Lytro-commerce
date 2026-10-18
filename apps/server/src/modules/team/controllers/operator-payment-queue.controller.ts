@@ -13,7 +13,7 @@ import {
 } from '../../operator/guards/operator-session.guard';
 import { PaymentQueueService } from '../../billing/services/payment-queue.service';
 import type { PlanPaymentRecord } from '../../payments/types/plan-payment';
-import { RejectPaymentDto } from '../dto/billing.dto';
+import { ListPaymentQueueDto, RejectPaymentDto } from '../dto/billing.dto';
 import { PlanPaymentDto, PlanPaymentListDto } from '../dto/billing-response.dto';
 
 // D2-1/ADM-06: the one operator queue for every pending plan_payments row -- the manual stand-in for Phase 5's
@@ -33,8 +33,10 @@ export class OperatorPaymentQueueController {
   @ApiOperation({ summary: 'List payments awaiting review' })
   @ApiQuery({ name: 'kind', required: false, enum: PlanPaymentKind })
   @ZodResponse({ type: PlanPaymentListDto })
-  list(@Query('kind') kind?: PlanPaymentKind): Promise<PlanPaymentRecord[]> {
-    return this.queue.listPending(kind);
+  list(
+    @Query(new ZodValidationPipe(ListPaymentQueueDto.schema)) query: ListPaymentQueueDto,
+  ): Promise<PlanPaymentRecord[]> {
+    return this.queue.listPending(query.kind);
   }
 
   @Post(':id/approve')

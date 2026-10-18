@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Transaction } from '@lytronix/db';
-import { PlanPaymentKind, PlanPaymentStatus } from '@lytronix/validators';
-import { ApiError } from '../../../common/api-error';
+import { PlanPaymentKind, PlanPaymentStatus, ServerFieldProblemCode } from '@lytronix/validators';
+import { ApiError, FieldsError } from '../../../common/api-error';
 import { HOUR_MS } from '../../../common/time';
 import { UniqueViolation } from '../../../common/errors/unique-violation';
 import type { NewPlanPaymentValues, PlanPaymentsStore } from '../ports/plan-payments-store';
@@ -119,7 +119,16 @@ export class PlanPaymentsService {
       });
     } catch (error) {
       if (error instanceof UniqueViolation && error.target === 'transactionId') {
-        throw new ApiError('conflict', 'TransactionIdAlreadyUsed', {});
+        throw new FieldsError(
+          [
+            {
+              field: 'transactionId',
+              problem: ServerFieldProblemCode.AlreadyUsed,
+              messageKey: 'TransactionIdAlreadyUsed',
+            },
+          ],
+          'conflict',
+        );
       }
       throw error;
     }

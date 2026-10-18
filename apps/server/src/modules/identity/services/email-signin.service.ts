@@ -5,9 +5,11 @@ import {
   ChallengeChannel,
   ChallengeKind,
   SignInMethod,
+  FieldProblemCode,
+  ServerFieldProblemCode,
 } from '@lytronix/validators';
 import type { Transaction } from '@lytronix/db';
-import { ApiError } from '../../../common/api-error';
+import { ApiError, FieldsError } from '../../../common/api-error';
 import { UniqueViolation } from '../../../common/errors/unique-violation';
 import { EmailFormat } from './email-format';
 import { OneTimeCodeService } from './one-time-code.service';
@@ -70,9 +72,13 @@ export class EmailSigninService {
       const opened = await this.gateway.run(async (tx) => {
         const consumed = await this.gateway.consumeChallenge(tx, challengeId, new Date());
         if (!consumed) {
-          throw new ApiError('validation_error', 'CodeAlreadyUsed', {
-            field: 'code',
-          });
+          throw new FieldsError([
+            {
+              field: 'code',
+              problem: ServerFieldProblemCode.AlreadyUsed,
+              messageKey: 'CodeAlreadyUsed',
+            },
+          ]);
         }
         const accountId = subscriberId ?? (await this.createAccount(tx, email));
         return this.signedIn.open(tx, {
@@ -109,7 +115,7 @@ export class EmailSigninService {
   private requireEmail(raw: string): string {
     const email = this.emailFormat.normalize(raw);
     if (!email) {
-      throw new ApiError('validation_error', 'EmailInvalid', { field: 'email' });
+      throw new FieldsError([{ field: 'email', problem: FieldProblemCode.InvalidEmail }]);
     }
     return email;
   }

@@ -1,4 +1,4 @@
-import { Permission } from '@lytronix/validators';
+import { Permission, FieldProblemCode } from '@lytronix/validators';
 import {
   Body,
   Controller,
@@ -14,7 +14,7 @@ import {
 import { staffIdSchema } from '@lytronix/validators';
 import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
-import { ApiError } from '../../../common/api-error';
+import { ApiError, FieldsError } from '../../../common/api-error';
 import { ClientIp } from '../../../common/client-ip';
 import { Dashboard } from '../../../common/decorators/dashboard';
 import { RequirePermission } from '../../../common/decorators/require-permission';
@@ -65,7 +65,7 @@ export class StaffController {
   ): Promise<StaffMember> {
     const phone = this.phones.normalize(body.phone);
     if (phone === null) {
-      throw new ApiError('validation_error', 'PhoneInvalid', { field: 'phone' });
+      throw new FieldsError([{ field: 'phone', problem: FieldProblemCode.InvalidFormat }]);
     }
     return this.staff.create(
       await this.shopOf(request),
