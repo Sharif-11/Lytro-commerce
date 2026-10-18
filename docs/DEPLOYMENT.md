@@ -6,7 +6,7 @@ VPS exists. Nothing here is infrastructure that currently runs; this is the plan
 
 ## 1. Why this shape
 
-Three apps are frontend-facing (`apps/website`, `apps/admin`, `apps/storefront`), plus the backend
+Four apps are frontend-facing (`apps/website`, `apps/dashboard`, `apps/operator`, `apps/storefront`; the dashboard is `apps/admin` until Phase 3's Slice 0b renames it and moves the operator console out, D3-12), plus the backend
 (`apps/server`) and Postgres. The budget constraint already stated in `ENGINEERING-STANDARDS.md` §0 (500
 tenants, one VPS, no rewrite at 10,000) applies here exactly as it does to the backend: everything below runs
 on one VPS, behind one reverse proxy, as containers — no per-service cloud platform, no CDN subscription, no
@@ -23,7 +23,7 @@ managed database, until real load or revenue justifies the cost.
                            │          │          │
               ┌────────────┘          │          └────────────┐
               ▼                       ▼                       ▼
-     admin (static files)     website (Next, SSR)     storefront (Next, SSR)
+     dashboard + operator     website (Next, SSR)     storefront (Next, SSR)
      no process — Caddy              container                container
      serves dist/ directly                │                       │
                                            └───────────┬───────────┘
@@ -52,14 +52,15 @@ The platform domain is `lytro.app` (decided 2026-10-18). Every host below is on 
 
 **Target layout (D3-11, decided 2026-10-18).** `deploy/Caddyfile`, the apps and the Phase 1–2 test plans still
 implement the earlier path-split layout (the dashboard on the apex and on every shop's subdomain) until Phase
-3's Slice 0 lands; that slice changes all of them together.
+3's Slice 0 lands; that slice changes all of them together. The operator console moves to its own app,
+`apps/operator`, in Slice 0b (D3-12), which also renames `apps/admin` to `apps/dashboard`.
 
 | Record | Target | Purpose |
 |---|---|---|
 | `lytro.app` (apex) | VPS IP | marketing site (`apps/website`) only |
 | `www.lytro.app` | VPS IP | redirects to the apex |
-| `app.lytro.app` | VPS IP | sign-up, sign-in, create-shop and the tenant dashboard at `/<shop>` (`apps/admin`) |
-| `admin.lytro.app` | VPS IP | operator console (`apps/admin`, same build, host-branched route tree) |
+| `app.lytro.app` | VPS IP | sign-up, sign-in, create-shop and the tenant dashboard at `/<shop>` (`apps/dashboard`) |
+| `admin.lytro.app` | VPS IP | operator console (`apps/operator`, its own build, D3-12) |
 | `api.lytro.app` | VPS IP | the public API at `/v1/...` (`apps/server`), API keys only (API-14) |
 | `pay.lytro.app` | VPS IP | the hosted payment page for manual payments, and the return address for wallet gateways (PAY-01, PAY-06); Phase 5 |
 | `*.lytro.app` (wildcard) | VPS IP | every shop's public pages: storefront and landing pages (`apps/storefront`) only. Covers every tenant automatically; no per-shop DNS entry is ever created. `app`, `admin` and `www` are reserved labels (TEN-26), so no shop can take them. |
@@ -85,15 +86,15 @@ One `Caddyfile`, with a rule checked before anything else, on **every** host blo
 Then, per host, one rule each and no path lists:
 
 - **`lytro.app`** → reverse-proxy to `website`. `www.lytro.app` redirects here.
-- **`app.lytro.app`** → serve `apps/admin`'s static build, with a fallback to `index.html` for any unmatched
+- **`app.lytro.app`** → serve `apps/dashboard`'s static build, with a fallback to `index.html` for any unmatched
   path (the client-side router takes over): sign-up, sign-in, create-shop, the password screens, the
   dashboard at `/<shop>/...`, and the OAuth callback. `OAUTH_CALLBACK_BASE` is `https://app.lytro.app`:
   Google and Facebook send the browser back to `/auth/oauth/:provider/callback`, a route of the SPA, which
   reads `code`/`state` off its own URL and calls `/api/v1/auth/oauth/:provider/callback` itself, then routes
   on the response's `next` like a normal sign-in.
-- **`admin.lytro.app`** → serve `apps/admin`'s static build directly. Same files as `app.lytro.app`; the
-  SPA's own router shows the operator route tree instead of the tenant one purely because of which host it's
-  running on (`window.location.hostname`), not a different build.
+- **`admin.lytro.app`** → serve `apps/operator`'s static build directly: its own build, with its own strict
+  Content Security Policy, so no operator code ships to sellers (D3-12). Until Slice 0b the operator console
+  is part of `apps/admin`'s build, picked by hostname.
 - **`api.lytro.app`** → reverse-proxy `/v1/*` to `server` as `/api/v1/*`, with the edge secret added. Keys only:
   the backend refuses a session cookie here (API-14). This is the one address in the public API's documentation.
 - **`pay.lytro.app`** → the hosted payment page (built in Phase 5), served with a Content Security Policy that
@@ -155,7 +156,8 @@ for `active`) with zero infrastructure work on this platform's side per tenant.
 
 | App | Build output | Runtime | Why |
 |---|---|---|---|
-| `apps/admin` | `vite build` → static `dist/` | **none** — Caddy serves the files directly | A pure client-rendered SPA; there is nothing to run once the files exist |
+| `apps/operator` | `vite build` → static `dist/` | **none** — Caddy serves the files directly | The operator console's own build (D3-12, Phase 3 Slice 0b) |
+| `apps/admin` (`apps/dashboard` from Slice 0b) | `vite build` → static `dist/` | **none** — Caddy serves the files directly | A pure client-rendered SPA; there is nothing to run once the files exist |
 | `apps/website` | Next.js, a standard server build (not a static export) | Node container, `next start` | Content is expected to grow (testimonials, a blog later per the landing-page plan); starting server-rendered avoids re-architecting the moment something dynamic is added, and costs little extra on a VPS already running two other Node processes |
 | `apps/storefront` | Next.js, standalone server build | Node container, `next start` | Must render dynamically per request — SFT-01 requires one shared app serving every tenant differently based on the request's `Host`, which a static export cannot do |
 

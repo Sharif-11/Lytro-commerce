@@ -39,9 +39,9 @@ One product brand, five surfaces. Surfaces are named by what they are for, never
 | Surface | Name in UI | Lytro visibility |
 | --- | --- | --- |
 | Marketing site (`apps/website`) | Lytro | Full brand. |
-| Tenant dashboard, PWA and native (`apps/admin`) | Lytro (app name); the tenant's shop name in the navigation | Chrome colours and components are Lytro's; the identity shown is the tenant's (TEN-8). A "Powered by Lytro" mark stays. |
+| Tenant dashboard, PWA and native (`apps/dashboard`, today `apps/admin`) | Lytro (app name); the tenant's shop name in the navigation | Chrome colours and components are Lytro's; the identity shown is the tenant's (TEN-8). A "Powered by Lytro" mark stays. |
 | Shopper storefront PWA (`apps/storefront`) | The tenant's shop name | Lytro supplies neutral defaults only. "Powered by Lytro" in the footer and "Secured by Lytro" on the hosted payment page. |
-| Operator console (`apps/admin`, `/operator`) | Lytro Operator | Full brand, inverted chrome, so it can never be mistaken for a tenant dashboard. |
+| Operator console (`apps/operator`, `admin.lytro.app`) | Lytro Operator | Full brand, inverted chrome, so it can never be mistaken for a tenant dashboard. |
 | Android SMS listener | Lytro Listener | Full brand, utility treatment. |
 
 Attribution wording changes from "Powered by Lytronix" to "Powered by Lytro". This touches TEN-8 in the SRS and the `common.poweredBy` strings; see section 11.
@@ -169,10 +169,12 @@ Scale: 12, 14, 16, 18, 22, 28, 36, 48 px. UI line height 1.45, display 1.1, Bang
 ### 8.1 Landing page (`apps/website`)
 Full brand. Hero on teal-900 chrome: wordmark top left, language toggle and a marigold "শুরু করুন" button top right, Bangla headline in Noto Sans Bengali 700 at 36 to 48 px, a real dashboard screenshot on a phone. Below the fold the page runs on white with neutral-50 bands. One marigold CTA per section. Trust strip shows bKash, Nagad, Steadfast and Pathao in their own logos on a neutral band. Footer carries "Lytro by Lytronix" and the Bangla lockup. Metadata title stays "Lytro — আপনার অনলাইন দোকান চালান এক জায়গা থেকে".
 
-### 8.2 Tenant dashboard, PWA and native (`apps/admin`)
+### 8.2 Tenant dashboard, PWA and native (`apps/dashboard`, today `apps/admin`)
 Chrome: sidebar on teal-900 with teal-800 active state and white text; content on neutral-50 with white cards. The navigation header shows the tenant's shop name and uploaded logo, not Lytro's (TEN-8). "Powered by Lytro" sits at the bottom of the sidebar at 16 px, monochrome, non-removable. Primary buttons teal-700; the single accent button per screen (confirm order, book courier) marigold with ink text. Status chips use the status colours only.
 
 PWA manifest: name "Lytro", theme colour teal-800 `#0a4f4b`, background neutral-50, icon `icon-dashboard.svg`. When a tenant uploads a logo, the installed app's icon, name and splash take the tenant's identity and the Lytro icon is the fallback. Native wrapper: status bar teal-900, adaptive icon with the mark as foreground on a teal-700 background, splash on teal-900 with the white mark centred at 96 dp.
+
+**Support view** (ADM-05): a full-width banner on every screen, in the operator console's ink and marigold so it can never pass for the shop's own interface, naming the operator and the time left.
 
 **With the shop's brand identity on** (BRN-02, a paid add-on on every plan): the chrome, primary buttons, fonts, corner shape and spacing take the shop's identity. Status colours, the layout and "Powered by Lytro" stay Lytro's.
 
@@ -181,7 +183,7 @@ The tenant's brand owns this surface. Lytro provides the defaults a new shop sta
 
 **Free and paid.** Every shop shows its own name and logo, or a monogram, on Lytro's defaults (TEN-16). The shop's own colours, fonts, shape and spacing need the brand identity add-on (BRN-02, BRN-05).
 
-### 8.4 Operator console (`apps/admin`, `/operator`)
+### 8.4 Operator console (`apps/operator`, `admin.lytro.app`)
 Inverted so an operator never confuses it with a tenant's dashboard: chrome `#061211`, surfaces `#132725`, text neutral-100, primary teal-400 with ink text, accent marigold-300. An "OPERATOR" eyebrow in marigold sits above the wordmark in the sidebar. Favicon and icon use `icon-operator.svg` (ink tile, marigold mark). Copy is English-leaning and exact.
 
 ### 8.5 Android listener

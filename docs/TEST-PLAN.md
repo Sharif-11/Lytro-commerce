@@ -847,8 +847,8 @@ Covers: `AI-07`, `AI-11`.
 ## S11 — Operator and support (ADM, SUP, NTC, RAT)
 
 **S11-01 Operator console isolation and mandatory 2FA.**
-Steps: 1) Attempt to sign a tenant credential into the operator console. 2) Create a new operator account; attempt to use it before completing TOTP enrollment. 3) Complete enrollment with a wrong code, then the right one. 4) Use a backup code; attempt to reuse it.
-Expected: tenant credential never works on the console; account unusable until a valid TOTP code confirms enrollment; backup code works once, rejected on reuse.
+Steps: 1) Attempt to sign a tenant credential into the operator console. 2) Create a new operator account; attempt to use it before completing TOTP enrollment. 3) Complete enrollment with a wrong code, then the right one. 4) Use a backup code; attempt to reuse it. 5) Inspect the seller dashboard's built files.
+Expected: tenant credential never works on the console; account unusable until a valid TOTP code confirms enrollment; backup code works once, rejected on reuse; the dashboard's build contains no operator screens or operator API calls.
 Covers: `ADM-01`.
 
 **S11-02 2FA break-glass recovery.**
@@ -858,8 +858,8 @@ Expected: account recovered via the logged break-glass procedure; account unusab
 Covers: `ADM-18`.
 
 **S11-03 View-as-tenant, scoped and audited.**
-Steps: open view-as-tenant with a reason under 10 characters; retry with a valid reason; attempt a write while viewing; let 30 minutes pass.
-Expected: short reason refused; valid reason opens a read-only, time-limited, banner-shown session; writes refused; every page opened is logged to the tenant's own activity log; access ends at 30 minutes.
+Steps: 1) Open view-as-tenant with a reason under 10 characters; retry with a valid reason. 2) Follow the support link; then reuse the same link, and use a fresh one after 60 seconds. 3) While viewing, open an order and attempt a write. 4) Change the address to another shop. 5) Let 30 minutes pass.
+Expected: short reason refused, and no seller approval is asked for; the valid reason opens the real dashboard at `app.lytro.app/<shop>` in a read-only, banner-shown support view, while the reused and the expired links are refused; the customer's phone shows as 017••••5678 and the write is refused; the other shop does not open; every page opened is logged to the tenant's activity log with the operator's name and reason; access ends at 30 minutes.
 Covers: `ADM-05`.
 
 **S11-04 Payment/top-up review queue, no double-credit.**

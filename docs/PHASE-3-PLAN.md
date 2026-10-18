@@ -56,7 +56,7 @@ builds, and changes neither.
 
 ## 2. Decisions
 
-**D3-1 to D3-10 decided 2026-10-17, accepted as proposed; D3-11 decided 2026-10-18.**
+**D3-1 to D3-10 decided 2026-10-17, accepted as proposed; D3-11 and D3-12 decided 2026-10-18.**
 
 | # | Decision | Decided | Affects |
 |---|---|---|---|
@@ -71,6 +71,7 @@ builds, and changes neither.
 | D3-9 | Who may see cost and profit (INV-10/18). Profit is sensitive, and not every staff member should see it. | Cost, stock value and profit figures require `inventory:manage`; `inventory:read` sees quantities only. The owner always sees everything. | Slices 2, 11 |
 | D3-10 | **Phase size.** At 12 slices, this is larger than Phase 2. | Keep it one phase, with an internal checkpoint after Slice 5 ("3A: catalogue and inventory complete, internally usable") before media and the storefront begin. If velocity suggests otherwise at the checkpoint, the remainder can become Phase 3B without reshuffling anything. | Planning |
 | D3-11 | **One dashboard address (decided 2026-10-18).** The dashboard was served on three kinds of host (D13 in `PHASE-1-PLAN.md`): the platform host, every shop's subdomain and custom domains. On a shop's host it shares an origin with storefront and landing pages that run third-party scripts (Meta Pixel, chat widget), so any of them could call the dashboard API as the signed-in seller. It also gave sellers two sign-ins and clashed with the shopper sign-in path. | The dashboard moves to `app.lytro.app/<shop>` for owners and staff alike (TEN-31). Shop subdomains and custom domains serve public pages only (TEN-08, TEN-09, SFT-02); `lytro.app` is marketing only; `admin.lytro.app` stays the operator console. Sessions become `__Host-` cookies with an `Origin` check on state-changing requests (TEN-29), and the dashboard host's top-level paths become reserved slugs (TEN-26). Built first, as Slice 0, because the storefront (Slice 12) takes over every path on a shop's host. | Slice 0; Slices 11, 12 |
+| D3-12 | **Separate operator app (decided 2026-10-18).** The operator console lives inside the tenant dashboard's build (`apps/admin`), and the app picks operator or seller screens from the hostname. Every seller's browser downloads operator code and the map of operator API calls, one deploy carries both, and the full console Phase 8 builds would grow inside the sellers' app. | A separate `apps/operator` served at `admin.lytro.app`; shared code moves to `packages/ui` (design tokens, basic components) and `packages/api-client`; `apps/admin` is renamed `apps/dashboard`. View-as-tenant (ADM-05, Phase 8) opens the real seller dashboard through a one-time support pass, with no seller approval and customer phones masked. Built as Slice 0b. | Slice 0b; Phase 8 |
 
 ---
 
@@ -81,7 +82,7 @@ Rules used below:
 - **Partial** means this phase builds a working part, and a named later phase finishes the rest.
 - Notices delivered through the D3-5 stub count as complete, the same rule Phase 2 applied to `BAL-13`.
 
-### 3.1 Completed by this phase (182)
+### 3.1 Completed by this phase (183)
 
 | Family | Requirements | Count |
 |---|---|---|
@@ -102,6 +103,7 @@ Rules used below:
 | I18N | I18N-02 (storefront half; dashboard half done in Phase 1) | 1 |
 | TEN | TEN-06, 08, 16, 17, 18, 26 and 29 (amended 2026-10-18), 31 (one dashboard address, added 2026-10-18) | 8 |
 | AUTH | AUTH-28 (amended 2026-10-18: claimed address and set-up step) | 1 |
+| ADM | ADM-01 (amended 2026-10-18: separate application) | 1 |
 | BRN | BRN-01 – 07 (brand identity, added 2026-10-18) | 7 |
 | PLN | PLN-13, 14, 15 (add-ons, deferred by Phase 2's D2-4, scheduled 2026-10-18) | 3 |
 | UPG | UPG-14 (add-ons kept across plan changes) | 1 |
@@ -111,7 +113,7 @@ Rules used below:
 | LND | LND-01, 02, 03, 04, 05, 06, 14, 17, 18 | 9 |
 | DLV | DLV-01, 02, 05 (delivery zones around the tenant's home area, added 2026-10-17) | 3 |
 | FED | FED-01 – 06 (Meta catalog feed, added 2026-10-17) | 6 |
-| | **Total** | **182** |
+| | **Total** | **183** |
 
 ### 3.2 Partially completed by this phase (40)
 
@@ -246,6 +248,7 @@ Phases 0–2 are complete against the SRS as it stood when they were built. Amen
 | API-14 | 2026-10-14 | `/api/v1` on every host | The public API at `api.lytro.app/v1`, keys only | 8 |
 | `BRAND-IDENTITY.md` §11 follow-ups | Phase 1 UI | Palette, fonts, logo and theme colour taken from Lytronix's battery business | Lytro's palette and assets; the operator console's inverted look | 11 |
 | AUTH-28 | Phase 1 | Identity, create shop, set password; a claimed address is lost | The claimed address is carried through to create-shop with an availability check; a "set up your shop" step asks the shop type and home area | 0, 11 |
+| ADM-01 | Phase 1 (slice 10) | The operator console inside `apps/admin`, chosen by hostname | Its own app, `apps/operator`; `apps/admin` renamed `apps/dashboard`; shared `packages/ui` and `packages/api-client` | 0b |
 | PLN-13, PLN-14, PLN-15, UPG-14 | Deferred by Phase 2 (D2-4) | Not built | Built, with PLN-13/14 raised to Must | 10a |
 
 The domain itself (`lytro.com` to `lytro.app`) was already changed in the dashboard app and `deploy/Caddyfile`
@@ -363,6 +366,24 @@ their backend ships earlier.
   gets not-found at shop B's path; `/dashboard` on a shop's subdomain is the storefront's not-found; a request
   with a valid session but a shop subdomain's `Origin` is refused; a cookie a shop's subdomain sets for
   `.lytro.app` never reaches the dashboard; two shops install as two distinct apps.
+
+### Slice 0b: separate operator app (D3-12)
+- **Depends on:** Slice 0 (the hosts and sessions it reworks).
+- **Delivers:**
+  - `packages/ui` (the brand doc's design tokens and basic components) and `packages/api-client` (the request
+    wrapper, CSRF handling and error mapping), extracted from `apps/admin` so both apps share one definition.
+  - `apps/operator`: the existing operator screens moved out of `apps/admin` (sign-in with two-factor
+    enrolment, plans, billing terms, rates, tenants), served at `admin.lytro.app` with its own strict Content
+    Security Policy and the operator console's inverted look (`BRAND-IDENTITY.md` §8.4).
+  - `apps/admin` renamed `apps/dashboard` (folder, package name, CI, `deploy/Caddyfile`, and the docs that
+    describe current code), with the hostname switch (`host.ts`, `VITE_OPERATOR_HOST`) removed.
+  - Room for support view (ADM-05, Phase 8): a separate session type reserved on the server and a banner slot
+    in the dashboard shell.
+  - The operator tests moved with their screens.
+- **Requirements completed:** ADM-01 (amended: separate application).
+- **Done when:** the dashboard's built files contain no operator screens or operator API calls;
+  `admin.lytro.app` serves only `apps/operator`; both apps take their tokens and basic components from
+  `packages/ui`; building or deploying one app does not rebuild the other; every moved operator test passes.
 
 ### Slice 1: catalogue core — products, variants, attributes, units, presets
 - **Depends on:** none in this phase (reads Phase 2's plan-limit machinery).
@@ -542,7 +563,7 @@ their backend ships earlier.
   bandwidth buys a pack and service continues, and without enough balance it stops.
 
 ### Slice 11: dashboard UI (consolidated)
-- **Depends on:** every backend slice, 0–10a.
+- **Depends on:** every backend slice: 0, 0b and 1–10a.
 - **Delivers:** the onboarding "Set up your shop" step after create-shop, asking the shop type (PST-01) and the
   home area (DLV-01), both skippable; product editor with the free "Add attribute" control,
   category suggestions and the variant matrix; category tree; product search; image and video manager;
@@ -555,8 +576,8 @@ their backend ships earlier.
   editor that adds a whole division, district or city in one step; size-chart editor; one-tap option sets in the variant editor; "Duplicate product"; the catalog
   feed link with copy and setup steps; the setup checklist on the home screen (SUP-01); the brand identity editor with live preview, and the
   dashboard themed by the shop's identity when switched on (BRN); the add-ons screen, with buying from the
-  usage page and the brand editor and a renewal switch per add-on; Lytro's palette, fonts, logo, theme colour and
-  the operator console's inverted look (`BRAND-IDENTITY.md` §11); a category's "behaves like" setting; "no delivery" zones and a
+  usage page and the brand editor and a renewal switch per add-on; Lytro's palette, fonts, logo and theme colour
+  (`BRAND-IDENTITY.md` §11; the operator console's look is Slice 0b); a category's "behaves like" setting; "no delivery" zones and a
   product's "Delivers to" limit; "Sizes share one stock" with each size's amount; per-shop-type form layout with "More settings"; price and stock
   columns with "Fill all" in the variant grid; IMEI/serial entry by camera scan, pasted list or typing.
   All in Bangla and English, in the same everyday commerce wording the
@@ -573,7 +594,7 @@ their backend ships earlier.
   unwanted field.
 
 ### Slice 12: shared storefront and product landing pages
-- **Depends on:** Slices 0, 7 and 9 (and branding from Phase 1).
+- **Depends on:** Slices 0, 0b, 7 and 9 (and branding from Phase 1).
 - **Delivers:**
   - **Storefront:** the new storefront design; category navigation, search, pagination; product page
     with the variant picker and stock state; client-side cart without reservation; branding; footer and
@@ -617,6 +638,7 @@ their backend ships earlier.
 
 ```
 Slice 0 (one dashboard address, parallel from day one) ──► needed by Slices 11 and 12
+Slice 0b (operator app, shared packages) after Slice 0 ──► needed by Slices 11 and 12
 Slice 10a (add-ons) after Slice 10 ──► needed by Slice 11
 Marketing site (parallel track): step A any time, step B once the features it shows are live
 
@@ -640,6 +662,7 @@ Slice 8 (parallel from day one) ───────┤
 | Slice | Depends on | Can run in parallel with |
 |---|---|---|
 | 0 One dashboard address | — | 1–10 |
+| 0b Operator app | 0 | 1–10 |
 | 1 Catalogue core | — | 8 |
 | 2 Inventory ledger | 1 | 6, 8 |
 | 3 Batches & serials | 2 | 6, 7, 8 |
@@ -651,10 +674,10 @@ Slice 8 (parallel from day one) ───────┤
 | 9 Public catalogue & caching | 1, 2, 6, 8 | 3, 4, 5, 7, 10 |
 | 10 Limits & usage | 1, 6, 7, 8 | 3, 4, 5, 9 |
 | 10a Add-ons | 10 | 12 |
-| 11 Dashboard UI | 0–10a | 12 |
-| 12 Storefront & landing pages | 0, 7, 9 | 11 |
+| 11 Dashboard UI | 0, 0b, 1–10a | 12 |
+| 12 Storefront & landing pages | 0, 0b, 7, 9 | 11 |
 
-**Suggested order for one developer:** 0 → 1 → 2 → 3 → 4 → 5 (checkpoint 3A) → 8 → 6 → 7 → 9 → 10 → 10a → 11 → 12.
+**Suggested order for one developer:** 0 → 0b → 1 → 2 → 3 → 4 → 5 (checkpoint 3A) → 8 → 6 → 7 → 9 → 10 → 10a → 11 → 12.
 Slice 8 goes first among the second half because Slice 9 needs it, and it is small.
 
 ---
