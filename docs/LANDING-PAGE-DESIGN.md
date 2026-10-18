@@ -68,7 +68,7 @@ Navbar on desktop: Features, Pricing, FAQ, About, Contact, then the language tog
 - **Mobile first.** Base styles are written for a 360 px phone; breakpoints at 640, 900 and 1100 px add columns, the tilted phone and hover states. On phones: the hero stacks with the phone mockup centred and the two proof cards inline beneath it; the integration strip scrolls sideways with faded edges; pricing is a swipeable, snap-scrolling row with position dots; the menu is a full-height sheet; a sticky bottom call to action appears once the hero scrolls away and hides near the final band. Every tap target is at least 44 px, body text never drops below 16 px, and the page never scrolls sideways.
 - **No motion except the mark drawing in once** and the FAQ chevron. Reduced-motion is respected.
 - **Sticky nav height 64 px**, backdrop blur, hairline border; the CTA stays visible on desktop at all times.
-- **Every CTA goes to `/sign-in`** (AUTH-12 makes it the single entry point). Plan buttons carry `?planId=&termId=` as pricing.tsx already does.
+- **Every CTA goes to `app.lytro.app/sign-in`** (AUTH-12 makes it the single entry point; the dashboard host is separate from the marketing site, D3-11). Plan buttons carry `?planId=&termId=` as pricing.tsx already does.
 
 ---
 
@@ -86,7 +86,7 @@ Navbar on desktop: Features, Pricing, FAQ, About, Contact, then the language tog
 | Prototype section | Component | Change |
 | --- | --- | --- |
 | Nav | `nav.tsx` | Replace the gradient "L" tile with the mark SVG and wordmark; add anchor links and the language toggle; CTA label "ফ্রি দোকান খুলুন" in marigold. |
-| Hero | `hero.tsx` | Dark chrome band, new headline and lead, claim input posting to `/sign-in?shop=`, phone mockup component (static JSX, no screenshot). |
+| Hero | `hero.tsx` | Dark chrome band, new headline and lead, claim input posting to `app.lytro.app/sign-in?shop=`, phone mockup component (static JSX, no screenshot). |
 | Strip | new `integrations.tsx` | Text wordmarks now; swap to licensed logos later. |
 | Problems | `solutions.tsx` | Keep data, change layout to before/after pairs. |
 | Features | new `features.tsx` | Two spotlight cards (inventory, statistics) plus six cards with vignettes. The spotlights ship only when Phase 3 inventory (INV, PUR) and statistics (STA) are live, per the "never claim what is not live" rule. |

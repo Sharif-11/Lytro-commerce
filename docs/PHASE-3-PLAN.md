@@ -56,7 +56,7 @@ builds, and changes neither.
 
 ## 2. Decisions
 
-**All ten decided 2026-10-17: accepted as proposed.**
+**D3-1 to D3-10 decided 2026-10-17, accepted as proposed; D3-11 decided 2026-10-18.**
 
 | # | Decision | Decided | Affects |
 |---|---|---|---|
@@ -70,6 +70,7 @@ builds, and changes neither.
 | D3-8 | Shop-type preset list and defaults (PST-01/02). | See §6, Slice 1. The operator can edit presets later without a deploy (PST-04). | Slice 1 |
 | D3-9 | Who may see cost and profit (INV-10/18). Profit is sensitive, and not every staff member should see it. | Cost, stock value and profit figures require `inventory:manage`; `inventory:read` sees quantities only. The owner always sees everything. | Slices 2, 11 |
 | D3-10 | **Phase size.** At 12 slices, this is larger than Phase 2. | Keep it one phase, with an internal checkpoint after Slice 5 ("3A: catalogue and inventory complete, internally usable") before media and the storefront begin. If velocity suggests otherwise at the checkpoint, the remainder can become Phase 3B without reshuffling anything. | Planning |
+| D3-11 | **One dashboard address (decided 2026-10-18).** The dashboard was served on three kinds of host (D13 in `PHASE-1-PLAN.md`): the platform host, every shop's subdomain and custom domains. On a shop's host it shares an origin with storefront and landing pages that run third-party scripts (Meta Pixel, chat widget), so any of them could call the dashboard API as the signed-in seller. It also gave sellers two sign-ins and clashed with the shopper sign-in path. | The dashboard moves to `app.lytro.app/<shop>` for owners and staff alike (TEN-31). Shop subdomains and custom domains serve public pages only (TEN-08, TEN-09, SFT-02); `lytro.app` is marketing only; `admin.lytro.app` stays the operator console. Sessions become `__Host-` cookies with an `Origin` check on state-changing requests (TEN-29), and the dashboard host's top-level paths become reserved slugs (TEN-26). Built first, as Slice 0, because the storefront (Slice 12) takes over every path on a shop's host. | Slice 0; Slices 11, 12 |
 
 ---
 
@@ -80,7 +81,7 @@ Rules used below:
 - **Partial** means this phase builds a working part, and a named later phase finishes the rest.
 - Notices delivered through the D3-5 stub count as complete, the same rule Phase 2 applied to `BAL-13`.
 
-### 3.1 Completed by this phase (163)
+### 3.1 Completed by this phase (166)
 
 | Family | Requirements | Count |
 |---|---|---|
@@ -99,14 +100,14 @@ Rules used below:
 | SFT | SFT-01, 02, 03, 04, 05, 11, 12, 14, 15, 16, 17, 18, 19, 21 | 14 |
 | CCH | CCH-01 – 06, CCH-08 – 12 | 11 |
 | I18N | I18N-02 (storefront half; dashboard half done in Phase 1) | 1 |
-| TEN | TEN-06, 08, 16, 17 | 4 |
+| TEN | TEN-06, 08, 16, 17, 26 and 29 (amended 2026-10-18), 31 (one dashboard address, added 2026-10-18) | 7 |
 | DWN | DWN-07, 09 (deferred here from Phase 2) | 2 |
 | PYG | PYG-16 (deferred here from Phase 2) | 1 |
 | API | API-03, 04, 05, 08, 10, 23, 24 (public keys, D3-1) | 7 |
 | LND | LND-01, 02, 03, 04, 05, 06, 14, 17, 18 | 9 |
 | DLV | DLV-01, 02, 05 (delivery zones around the tenant's home area, added 2026-10-17) | 3 |
 | FED | FED-01 – 06 (Meta catalog feed, added 2026-10-17) | 6 |
-| | **Total** | **163** |
+| | **Total** | **166** |
 
 ### 3.2 Partially completed by this phase (40)
 
@@ -216,6 +217,7 @@ Read each row as: the requirements on the left can only be built or proven once 
 | ATR-16 | ATL-01, PST-02 | option sets are library options seeded by presets |
 | FED-01–05 | PRD-09, ATR-07, INV-01, CCH-01–04, LND-01, LND-06 | the feed is another public catalogue view whose links are landing pages |
 | LND-15 `content_ids` | FED-02 | pixel item IDs must equal the feed's item IDs |
+| TEN-31 | TEN-24, TEN-26, TEN-29 | the dashboard's shop comes from the path, so the slug list and the same-site cookie rules both matter |
 | SUP-01 (this phase's items) | PRD-01, DLV-01, LND-06, API-03 | each item ticks itself by detecting its feature: a product, the zone defaults, a copied link, a key |
 | PST-06 | PST-02, PST-05, PRD-03 | a category points at an existing shop type's defaults instead of copying them |
 | DLV-06, DLV-07 | DLV-01, DLV-02 | limits are expressed in zones |
@@ -309,6 +311,26 @@ Each slice is its own branch and PR, with a test-first verification of its requi
 rule, **dashboard and storefront UI land as one consolidated pass at the end (Slices 11, 12)**, after
 every backend slice. Requirements verified as `E2E` are therefore finished in Slice 11 or 12, even when
 their backend ships earlier.
+
+### Slice 0: one dashboard address (D3-11)
+- **Depends on:** none (runs in parallel with Slices 1–8).
+- **Delivers:**
+  - `app.lytro.app` as the only dashboard host: the host classifier treats `app.` and `admin.` as platform
+    hosts; the dashboard's tenant comes from the `/<shop>` path segment, with a membership check that answers
+    not-found for a shop the person doesn't belong to; one sign-in across a person's shops, with a shop picker.
+  - `__Host-` session cookies and an `Origin` check on every state-changing dashboard and operator request.
+  - The dashboard app's routes under `/$shop`, with sign-up, sign-in, create-shop and staff sign-in on the same
+    host; a per-shop installable dashboard app scoped to `/<shop>/`.
+  - Shop subdomains and custom domains stop serving the dashboard; the reserved-slug list gains the dashboard
+    host's top-level paths.
+  - `deploy/Caddyfile` rewritten to one rule per host (`DEPLOYMENT.md` §4–5), `OAUTH_CALLBACK_BASE` on
+    `app.lytro.app`, the marketing site's sign-up links pointing there, and the Phase 1–2 test plans' host
+    cases updated to match.
+- **Requirements completed:** TEN-17, TEN-26, TEN-29, TEN-31 (and the dashboard half of TEN-08 and TEN-09).
+- **Done when:** an owner of two shops switches between them by path with one sign-in; a staff member of shop A
+  gets not-found at shop B's path; `/dashboard` on a shop's subdomain is the storefront's not-found; a request
+  with a valid session but a shop subdomain's `Origin` is refused; a cookie a shop's subdomain sets for
+  `.lytro.app` never reaches the dashboard; two shops install as two distinct apps.
 
 ### Slice 1: catalogue core — products, variants, attributes, units, presets
 - **Depends on:** none in this phase (reads Phase 2's plan-limit machinery).
@@ -465,7 +487,7 @@ their backend ships earlier.
   100 products with 340 sees them listed on the banner and can still sell all 340.
 
 ### Slice 11: dashboard UI (consolidated)
-- **Depends on:** every backend slice, 1–10.
+- **Depends on:** every backend slice, 0–10.
 - **Delivers:** onboarding shop-type picker; product editor with the free "Add attribute" control,
   category suggestions and the variant matrix; category tree; product search; image and video manager;
   plain-language inventory screens (stock with "waiting to ship" and "coming", one-tap reasons, "Check
@@ -491,7 +513,7 @@ their backend ships earlier.
   unwanted field.
 
 ### Slice 12: shared storefront and product landing pages
-- **Depends on:** Slices 7 and 9 (and branding from Phase 1).
+- **Depends on:** Slices 0, 7 and 9 (and branding from Phase 1).
 - **Delivers:**
   - **Storefront:** the new storefront design; category navigation, search, pagination; product page
     with the variant picker and stock state; client-side cart without reservation; branding; footer and
@@ -506,8 +528,8 @@ their backend ships earlier.
     page's content, with `content_ids` set to the feed's variant IDs; a "Delivers to" note when a zone or
     product limit applies (DLV-06, DLV-07); the "Size chart" link on the
     product page and the landing page. The order form's fields are laid out but not submittable until Phase 4.
-- **Requirements completed:** SFT-01, 02, 03, 04, 05, 11, 12, 14, 15, 16, 17, 18, 19, 21; I18N-02; TEN-08;
-  TEN-17; CCH-10; LND-01, 02, 03, 05, 14, 18; PRD-17; ATR-18.
+- **Requirements completed:** SFT-01, 02, 03, 04, 05, 11, 12, 14, 15, 16, 17, 18, 19, 21; I18N-02; TEN-08 (public pages; Slice 0 removes the dashboard);
+  CCH-10; LND-01, 02, 03, 05, 14, 18; PRD-17; ATR-18.
 - **Partial:** SFT-10, SFT-13, I18N-01, LND-13, LND-15.
 - **Done when:** the milestone (exit criterion 4) passes; two tenants show different catalogues and
   branding with the same layout from one deployment; lapsing a tenant replaces both its storefront and
@@ -521,6 +543,8 @@ their backend ships earlier.
 ## 7. Slice dependencies and order
 
 ```
+Slice 0 (one dashboard address, parallel from day one) ──► needed by Slices 11 and 12
+
             ┌──────────── 3A: catalogue & inventory ────────────┐
 Slice 1 ──► Slice 2 ──► Slice 3 ──► Slice 4
    │           │           │
@@ -540,6 +564,7 @@ Slice 8 (parallel from day one) ───────┤
 
 | Slice | Depends on | Can run in parallel with |
 |---|---|---|
+| 0 One dashboard address | — | 1–10 |
 | 1 Catalogue core | — | 8 |
 | 2 Inventory ledger | 1 | 6, 8 |
 | 3 Batches & serials | 2 | 6, 7, 8 |
@@ -550,10 +575,10 @@ Slice 8 (parallel from day one) ───────┤
 | 8 API keys & rate limits | — | 1–7 |
 | 9 Public catalogue & caching | 1, 2, 6, 8 | 3, 4, 5, 7, 10 |
 | 10 Limits & usage | 1, 6, 7, 8 | 3, 4, 5, 9 |
-| 11 Dashboard UI | 1–10 | 12 |
-| 12 Storefront & landing pages | 7, 9 | 11 |
+| 11 Dashboard UI | 0–10 | 12 |
+| 12 Storefront & landing pages | 0, 7, 9 | 11 |
 
-**Suggested order for one developer:** 1 → 2 → 3 → 4 → 5 (checkpoint 3A) → 8 → 6 → 7 → 9 → 10 → 11 → 12.
+**Suggested order for one developer:** 0 → 1 → 2 → 3 → 4 → 5 (checkpoint 3A) → 8 → 6 → 7 → 9 → 10 → 11 → 12.
 Slice 8 goes first among the second half because Slice 9 needs it, and it is small.
 
 ---

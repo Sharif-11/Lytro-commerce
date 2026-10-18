@@ -18,7 +18,7 @@ managed database, until real load or revenue justifies the cost.
                     ┌─────────────────────────────────────────┐
                     │              Caddy (edge)                │
                     │  TLS termination, wildcard cert,         │
-                    │  host+path routing, adds the edge secret │
+                    │  host routing, adds the edge secret      │
                     └──────┬──────────┬──────────┬─────────────┘
                            │          │          │
               ┌────────────┘          │          └────────────┐
@@ -50,12 +50,17 @@ maintainer separately sells paid support contracts; the server itself is not pai
 
 The platform domain is `lytro.app` (decided 2026-10-18). Every host below is on it.
 
+**Target layout (D3-11, decided 2026-10-18).** `deploy/Caddyfile`, the apps and the Phase 1–2 test plans still
+implement the earlier path-split layout (the dashboard on the apex and on every shop's subdomain) until Phase
+3's Slice 0 lands; that slice changes all of them together.
+
 | Record | Target | Purpose |
 |---|---|---|
-| `lytro.app` (apex) | VPS IP | marketing (`apps/website`) + tenant sign-up/sign-in/dashboard (`apps/admin`), split by path |
-| `www.lytro.app` | VPS IP | same as apex |
+| `lytro.app` (apex) | VPS IP | marketing site (`apps/website`) only |
+| `www.lytro.app` | VPS IP | redirects to the apex |
+| `app.lytro.app` | VPS IP | sign-up, sign-in, create-shop and the tenant dashboard at `/<shop>` (`apps/admin`) |
 | `admin.lytro.app` | VPS IP | operator console (`apps/admin`, same build, host-branched route tree) |
-| `*.lytro.app` (wildcard) | VPS IP | every shop subdomain — `apps/storefront` (public) + `apps/admin` (staff dashboard), split by path. Covers every tenant automatically; no per-shop DNS entry is ever created. |
+| `*.lytro.app` (wildcard) | VPS IP | every shop's public pages: storefront and landing pages (`apps/storefront`) only. Covers every tenant automatically; no per-shop DNS entry is ever created. `app`, `admin` and `www` are reserved labels (TEN-26), so no shop can take them. |
 
 ## 5. Routing rules
 
@@ -75,35 +80,27 @@ One `Caddyfile`, with a rule checked before anything else, on **every** host blo
   Caddy no longer strips anything — a plain `handle`, not `handle_path`. Before this, the backend had no
   prefix at all and Caddy's incoming `/api/...` was stripped before reaching `server`; that's no longer true.
 
-Then, per host:
+Then, per host, one rule each and no path lists:
 
-- **`lytro.app`, `www.lytro.app`**
-  - `/sign-up*`, `/sign-in*`, `/verify-code*`, `/forgot-password*`, `/auth/oauth/*/callback`, `/create-shop*`,
-    `/set-password*`, `/unavailable*`, `/dashboard*` → serve `apps/admin`'s static build, with a fallback to
-    `index.html` for any unmatched path (client-side router takes over)
-  - everything else → reverse-proxy to `website`
+- **`lytro.app`** → reverse-proxy to `website`. `www.lytro.app` redirects here.
+- **`app.lytro.app`** → serve `apps/admin`'s static build, with a fallback to `index.html` for any unmatched
+  path (the client-side router takes over): sign-up, sign-in, create-shop, the password screens, the
+  dashboard at `/<shop>/...`, and the OAuth callback. `OAUTH_CALLBACK_BASE` is `https://app.lytro.app`:
+  Google and Facebook send the browser back to `/auth/oauth/:provider/callback`, a route of the SPA, which
+  reads `code`/`state` off its own URL and calls `/api/v1/auth/oauth/:provider/callback` itself, then routes
+  on the response's `next` like a normal sign-in.
+- **`admin.lytro.app`** → serve `apps/admin`'s static build directly. Same files as `app.lytro.app`; the
+  SPA's own router shows the operator route tree instead of the tenant one purely because of which host it's
+  running on (`window.location.hostname`), not a different build.
+- **`*.lytro.app`** (any other single-label host, a shop's own subdomain) → reverse-proxy to `storefront`,
+  which reads `Host` itself to resolve which tenant to render (SFT-01). Every path belongs to the storefront,
+  including the shopper sign-in (SFT-09); nothing here serves the dashboard.
 
-  **Correction, 2026-10-09:** this list was missing `/verify-code*`, `/create-shop*`, `/set-password*` and
-  `/unavailable*` outright (added as those screens were built, docs never caught up), and had a wrong entry
-  for the OAuth callback (`/auth/callback`, singular, no provider segment — doesn't match the real path).
-  `/auth/oauth/*/callback` replaces it: Google/Facebook redirect the browser back to `OAUTH_CALLBACK_BASE` +
-  `/auth/oauth/:provider/callback` (`OauthService.redirectUri`, `apps/server`), which must resolve to
-  `apps/admin`'s static build, not the backend directly. The backend's own callback controller
-  (`GET auth/oauth/:provider/callback`) returns raw JSON with a `Set-Cookie` header; it doesn't redirect
-  anywhere itself. The SPA route at that same path reads `code`/`state` off its own URL and makes the actual
-  `/api/v1/auth/oauth/:provider/callback` call itself, the same way every other screen in this flow talks to
-  the backend, then routes on the response's `next` like a normal sign-in.
-- **`admin.lytro.app`**: everything (other than `/api/*` above) → serve `apps/admin`'s static build directly.
-  Same files as the tenant-facing host — the SPA's own router shows the operator route tree instead of the
-  tenant one purely because of which host it's running on (`window.location.hostname`), not a different build.
-- **`*.lytro.app`** (any other single-label host — a shop's own subdomain)
-  - `/sign-in*`, `/dashboard*` → serve `apps/admin`'s static build (staff sign-in and dashboard)
-  - everything else → reverse-proxy to `storefront`, which reads `Host` itself to resolve which tenant to
-    render (SFT-01)
-
-A worked example of this whole path, host by host, is in `docs/PHASE-1-PLAN.md`'s slice 9 planning discussion;
-nothing here repeats it — this document is the infrastructure, not the walkthrough. (That walkthrough predates
-this correction and still describes page paths correctly; only the `/auth*` API-routing detail was wrong.)
+**Replaced 2026-10-18 (D3-11).** Until then the apex and every shop's subdomain split their paths between the
+dashboard app and the website or storefront, using hand-maintained path lists that fell out of step with the
+app's routes more than once (the 2026-10-09 correction, and staff sign-in, which no list covered). One rule per
+host removes the lists. The earlier rules are in this file's git history, and the Phase 1 plan's slice 9
+walkthrough still describes them.
 
 ## 6. The edge secret (already built, on the backend side)
 
