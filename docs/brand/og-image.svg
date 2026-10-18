@@ -3,8 +3,8 @@
        Facebook under 1 MB) and reference from og:image. Set in live type: outline before export. -->
   <rect width="1200" height="630" fill="#063B38"/>
   <g transform="translate(96 96)">
-    <path d="M15 15V49H31L49 29" transform="translate(-6 -4) scale(1.03)" fill="none" stroke="#3EC4B9" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
-    <text x="68" y="64" font-family="'Plus Jakarta Sans', Inter, sans-serif" font-weight="800" font-size="60" letter-spacing="-2.4" fill="#FFFFFF">ytro</text>
+    <path d="M15 15V49H31L49 29" transform="translate(-10.29 8.46) scale(1.0286)" fill="none" stroke="#3EC4B9" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="51.43" y="64" font-family="'Plus Jakarta Sans', Inter, sans-serif" font-weight="800" font-size="60" letter-spacing="-2.4" fill="#FFFFFF">ytro</text>
   </g>
   <text x="96" y="330" font-family="'Noto Sans Bengali', 'Hind Siliguri', sans-serif" font-weight="700" font-size="68" fill="#FFFFFF">আপনার দোকান,</text>
   <text x="96" y="415" font-family="'Noto Sans Bengali', 'Hind Siliguri', sans-serif" font-weight="700" font-size="68" fill="#7FDCD3">আপনার হাতে।</text>
