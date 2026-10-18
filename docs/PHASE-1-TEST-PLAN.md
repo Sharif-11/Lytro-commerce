@@ -42,7 +42,7 @@ Each scenario lists its preconditions, numbered steps, expected result, and the 
   2. Read the OTP from the stub store. Enter it within five minutes. The create-shop step opens.
   3. Enter a shop name, owner name and the address `gamma`. Submit.
   4. The set-password offer opens. Skip it.
-  5. Land on the dashboard at `gamma.localhost/admin`.
+  5. Land on the dashboard on the platform host, at `localhost/dashboard` (D13: the owner stays there).
 - Expected: after step 2 a subscriber and a verified phone exist, with no tenant; after step 3 the owner user and the tenant in `trial` exist with the subdomain `gamma`; the dashboard shows trial limits (40 handled orders, 20 products, 1 seat, 200 MB, 5 GB, 8 essential SMS) and a setup checklist; the stub store holds one "shop ready" message with the live URL; the essential counter reads 1 of 8, because the code is platform cost; the account has no password.
 - Covers: AUTH-01, AUTH-04, AUTH-05, AUTH-10, AUTH-12, AUTH-21, AUTH-28, TRL-01, TRL-03, SMS-18, TRL-08.
 - Note (2026-10-13): the trial subscriber/tenant creation, the shop-ready SMS and "no password after skipping

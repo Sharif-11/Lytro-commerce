@@ -39,9 +39,9 @@ One product brand, five surfaces. Surfaces are named by what they are for, never
 | Surface | Name in UI | Lytro visibility |
 | --- | --- | --- |
 | Marketing site (`apps/website`) | Lytro | Full brand. |
-| Tenant dashboard, PWA and native (`apps/admin`) | Lytro (app name); the tenant's shop name in the navigation | Chrome colours and components are Lytro's; the identity shown is the tenant's (TEN-8). A "Powered by Lytro" mark stays. |
+| Tenant dashboard, PWA and native (`apps/dashboard`, today `apps/admin`) | Lytro (app name); the tenant's shop name in the navigation | Chrome colours and components are Lytro's; the identity shown is the tenant's (TEN-8). A "Powered by Lytro" mark stays. |
 | Shopper storefront PWA (`apps/storefront`) | The tenant's shop name | Lytro supplies neutral defaults only. "Powered by Lytro" in the footer and "Secured by Lytro" on the hosted payment page. |
-| Operator console (`apps/admin`, `/operator`) | Lytro Operator | Full brand, inverted chrome, so it can never be mistaken for a tenant dashboard. |
+| Operator console (`apps/operator`, `admin.lytro.app`) | Lytro Operator | Full brand, inverted chrome, so it can never be mistaken for a tenant dashboard. |
 | Android SMS listener | Lytro Listener | Full brand, utility treatment. |
 
 Attribution wording changes from "Powered by Lytronix" to "Powered by Lytro". This touches TEN-8 in the SRS and the `common.poweredBy` strings; see section 11.
@@ -93,7 +93,7 @@ The SVG wordmarks in `docs/brand/` are set in live text. Before any production u
 
 **Contrast, checked.** White on teal-700 6.3:1. White on teal-600 4.9:1 (the floor). Ink on marigold-500 8.2:1. Marigold-700 on white 5.2:1. Marigold-500 on teal-900 6.0:1. Teal-400 on ink 7.9:1. Neutral-700 on white 10.6:1 is the floor for any secondary text, because Noto Sans Bengali strokes are thin and neutral-500 reads lighter than its 5.4:1 suggests. Neutral-500 is allowed only for Latin captions at 13 px or larger, and neutral-400 is never used for text.
 
-**Third-party colours.** bKash pink, Nagad orange and Rocket purple appear only inside those services' own logos at checkout. Never as Lytro UI colour.
+**Third-party logos and colours.** bKash, Nagad, Steadfast, Pathao, RedX, Google and Facebook appear only as their own official logos, in their own colours, from `docs/brand/third-party/` (sources and rules in its README). On the hosted payment page the wallets' colours also appear inside the selected method's own panel (§8.7). Their colours are never used as Lytro UI colour.
 
 ---
 
@@ -158,7 +158,7 @@ Scale: 12, 14, 16, 18, 22, 28, 36, 48 px. UI line height 1.45, display 1.1, Bang
 | Storefront | The tenant's voice; Lytro only adds reassurance | "পেমেন্ট নিরাপদ। Secured by Lytro." |
 | Operator console | Precise, English-leaning, never cute | "Tenant locked. Reason required." |
 | Listener | Status only, always visible | "Lytro Listener চালু আছে। পেমেন্ট SMS মিলছে।" |
-| SMS to shoppers | Shortest possible, tenant name first | "Rahim Gadgets: অর্ডার #1042 পাঠানো হয়েছে। ট্র্যাক: lyt.ro/t/8f2k" |
+| SMS to shoppers | Shortest possible, tenant name first | "Rahim Gadgets: অর্ডার #1042 পাঠানো হয়েছে। ট্র্যাক: lytro.app/t/8f2k" |
 
 **Patterns.** Success: what happened, then the next step. Error: what went wrong, what to do, no apology. Empty state: what will appear here and the one button that starts it. Destructive confirmation: name the thing being deleted and the consequence in the button label ("অর্ডার ডিলিট করুন"), never "OK".
 
@@ -169,15 +169,21 @@ Scale: 12, 14, 16, 18, 22, 28, 36, 48 px. UI line height 1.45, display 1.1, Bang
 ### 8.1 Landing page (`apps/website`)
 Full brand. Hero on teal-900 chrome: wordmark top left, language toggle and a marigold "শুরু করুন" button top right, Bangla headline in Noto Sans Bengali 700 at 36 to 48 px, a real dashboard screenshot on a phone. Below the fold the page runs on white with neutral-50 bands. One marigold CTA per section. Trust strip shows bKash, Nagad, Steadfast and Pathao in their own logos on a neutral band. Footer carries "Lytro by Lytronix" and the Bangla lockup. Metadata title stays "Lytro — আপনার অনলাইন দোকান চালান এক জায়গা থেকে".
 
-### 8.2 Tenant dashboard, PWA and native (`apps/admin`)
+### 8.2 Tenant dashboard, PWA and native (`apps/dashboard`, today `apps/admin`)
 Chrome: sidebar on teal-900 with teal-800 active state and white text; content on neutral-50 with white cards. The navigation header shows the tenant's shop name and uploaded logo, not Lytro's (TEN-8). "Powered by Lytro" sits at the bottom of the sidebar at 16 px, monochrome, non-removable. Primary buttons teal-700; the single accent button per screen (confirm order, book courier) marigold with ink text. Status chips use the status colours only.
 
 PWA manifest: name "Lytro", theme colour teal-800 `#0a4f4b`, background neutral-50, icon `icon-dashboard.svg`. When a tenant uploads a logo, the installed app's icon, name and splash take the tenant's identity and the Lytro icon is the fallback. Native wrapper: status bar teal-900, adaptive icon with the mark as foreground on a teal-700 background, splash on teal-900 with the white mark centred at 96 dp.
 
+**Support view** (ADM-05): a full-width banner on every screen, in the operator console's ink and marigold so it can never pass for the shop's own interface, naming the operator and the time left.
+
+**With the shop's brand identity on** (BRN-02, a paid add-on on every plan): the chrome, primary buttons, fonts, corner shape and spacing take the shop's identity. Status colours, the layout and "Powered by Lytro" stay Lytro's.
+
 ### 8.3 Shopper storefront PWA (`apps/storefront`)
 The tenant's brand owns this surface. Lytro provides the defaults a new shop starts with: ink text on white, teal-700 as the accent until the tenant picks one, Inter and Noto Sans Bengali, the same radius scale. Lytro appears twice: "Powered by Lytro" in the footer and "Secured by Lytro" with the mark beside the pay button on the hosted payment page. The storefront's manifest uses the tenant's name and logo.
 
-### 8.4 Operator console (`apps/admin`, `/operator`)
+**Free and paid.** Every shop shows its own name and logo, or a monogram, on Lytro's defaults (TEN-16). The shop's own colours, fonts, shape and spacing need the brand identity add-on (BRN-02, BRN-05).
+
+### 8.4 Operator console (`apps/operator`, `admin.lytro.app`)
 Inverted so an operator never confuses it with a tenant's dashboard: chrome `#061211`, surfaces `#132725`, text neutral-100, primary teal-400 with ink text, accent marigold-300. An "OPERATOR" eyebrow in marigold sits above the wordmark in the sidebar. Favicon and icon use `icon-operator.svg` (ink tile, marigold mark). Copy is English-leaning and exact.
 
 ### 8.5 Android listener
@@ -192,6 +198,13 @@ One mark, four tiles. The tile tells the surfaces apart at a glance.
 | Operator console | teal-900 | marigold | `icon-operator.svg` |
 | Listener | teal-900 | white, plus marigold arcs | `icon-listener.svg` |
 | Storefront | tenant logo; Lytro dashboard icon as fallback | | |
+
+### 8.7 Hosted payment page (`pay.lytro.app`)
+Used for manual payments only. A wallet whose gateway the seller has connected sends the shopper straight to that wallet's own checkout page, which carries the wallet's own design (PAY-06).
+
+- **Frame:** neutral and Lytro's. The header shows the shop's name and logo, or its monogram, and nothing else from the shop's brand (PAY-05, BRN-04). The footer carries "Secured by Lytro", "Report this page" and the line "This page never asks for your PIN or OTP".
+- **Method panels:** each manual method sits in its own panel in that wallet's official logo and colour scheme, with step-by-step instructions written the way the wallet's own app words them for the account type (Send Money, Cash Out, Payment), in Bangla by default. Bank transfer uses a neutral panel with the full account details.
+- **Decision, 2026-10-18:** the owner decided to use the wallets' official logos and colour schemes without written brand-use approval, because shoppers trust them and bKash and Nagad have raised no complaint about this common practice. Revisit at once if a provider objects; the panels can fall back to text names and neutral colours by a setting, with no redesign.
 
 ---
 
@@ -228,13 +241,13 @@ One mark, four tiles. The tile tells the surfaces apart at a glance.
 6. Give the operator shell its inverted chrome and the operator favicon.
 7. Set the storefront's metadata title to the tenant's name and add the footer attribution and payment-page "Secured by Lytro" mark.
 8. Outline the three text-based SVGs to paths in Figma and replace them.
-9. File the trademark at the Department of Patents, Designs and Trademarks (classes 9, 35, 42), and secure lytro.com.bd and social handles. Assume lytro.com is unavailable.
+9. File the trademark at the Department of Patents, Designs and Trademarks (classes 9, 35, 42), and secure the lytro.app domain (chosen 2026-10-18), lytro.com.bd as a defensive registration, and social handles.
 
 ---
 
 ## 12. Open questions
 
-- Short tracking-link domain for SMS (section 7 uses `lyt.ro` as a placeholder; it is not owned).
+- Whether SMS tracking links need a shorter domain than `lytro.app/t/…` (section 7 uses `lytro.app`; a short domain such as `lyt.ro` is not owned).
 - Whether the native dashboard app ships on iOS as well as Android at launch; the icon set covers both.
 - Whether marigold should also mark "trial" state in the dashboard or stay reserved for actions only. Recommendation: actions only.
 

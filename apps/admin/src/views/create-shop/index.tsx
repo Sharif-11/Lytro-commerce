@@ -71,7 +71,7 @@ export function CreateShop(): React.JSX.Element {
           label={t('auth.createShop.addressLabel')}
           name="address"
           icon={<LinkIcon />}
-          suffix=".lytro.com"
+          suffix=".lytro.app"
           placeholder="your-shop"
           value={address}
           onChange={(event) => {
