@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Lytro Listener">
+  <!-- Android SMS listener icon. Ink tile, white mark, two marigold signal arcs at the top right (it listens for payment SMS). -->
+  <rect width="512" height="512" rx="112" fill="#063B38"/>
+  <g transform="translate(236 276) scale(4.6) translate(-32 -32)">
+    <path d="M15 15V49H31L49 29" fill="none" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <g fill="none" stroke="#F2A516" stroke-width="30" stroke-linecap="round">
+    <path d="M336 150a60 60 0 0 1 60 60"/>
+    <path d="M336 96a114 114 0 0 1 114 114"/>
+  </g>
+</svg>

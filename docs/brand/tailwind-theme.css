@@ -1,0 +1,45 @@
+/* Drop-in replacement for the @theme block in apps/admin/src/index.css and apps/website/src/app/globals.css.
+   Keeps the existing brand-* and accent-* names so no component class changes; only the values move. */
+@theme {
+  --font-sans: 'Inter', 'Noto Sans Bengali', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+  --color-brand-50: #effaf8;
+  --color-brand-100: #ddf5f2;
+  --color-brand-200: #b9ece6;
+  --color-brand-300: #7fdcd3;
+  --color-brand-400: #3ec4b9;
+  --color-brand-500: #17a89e;
+  --color-brand-600: #107f78;
+  --color-brand-700: #0e6b66;
+  --color-brand-800: #0a4f4b;
+  --color-brand-900: #063b38;
+
+  --color-accent-100: #fdf0d1;
+  --color-accent-300: #f8cf6e;
+  --color-accent-500: #f2a516;
+  --color-accent-700: #9a6004;
+
+  --color-ink: #10201f;
+  --color-neutral-50: #f6f9f8;
+  --color-neutral-100: #eaf0ef;
+  --color-neutral-200: #d5dfde;
+  --color-neutral-300: #a9b9b8;
+  --color-neutral-400: #7e8f8e;
+  --color-neutral-500: #5b6e6d;
+  --color-neutral-700: #2c3f3e;
+
+  --color-success: #1b7a43;
+  --color-warning: #9a6004;
+  --color-danger: #c8323b;
+
+  /* Dashboard sidebar and operator chrome. */
+  --color-sidebar: #063b38;
+  --color-sidebar-alt: #0a4f4b;
+  --color-sidebar-line: rgba(255, 255, 255, 0.1);
+  --color-operator-chrome: #061211;
+
+  --radius-control: 6px;
+  --radius-card: 10px;
+  --radius-sheet: 16px;
+}

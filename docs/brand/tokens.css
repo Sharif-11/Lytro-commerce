@@ -1,0 +1,124 @@
+/* Lytro design tokens: the single source of truth for colour, type, radius and spacing.
+   apps/admin/src/index.css and apps/website/src/app/globals.css copy the @theme block from tailwind-theme.css;
+   native and Android surfaces use tokens.json and android-colors.xml. Change here first, then sync. */
+
+:root {
+  /* Teal: the brand colour. 700 is the primary; 600 is the floor for white text (AA). */
+  --lytro-teal-50: #effaf8;
+  --lytro-teal-100: #ddf5f2;
+  --lytro-teal-200: #b9ece6;
+  --lytro-teal-300: #7fdcd3;
+  --lytro-teal-400: #3ec4b9;
+  --lytro-teal-500: #17a89e;
+  --lytro-teal-600: #107f78;
+  --lytro-teal-700: #0e6b66;
+  --lytro-teal-800: #0a4f4b;
+  --lytro-teal-900: #063b38;
+
+  /* Marigold (gada phool): the accent. Buttons carry ink text on 500; text on light uses 700. */
+  --lytro-marigold-100: #fdf0d1;
+  --lytro-marigold-300: #f8cf6e;
+  --lytro-marigold-500: #f2a516;
+  --lytro-marigold-700: #9a6004;
+
+  /* Neutrals, biased toward teal so greys read as part of the same family. */
+  --lytro-ink: #10201f;
+  --lytro-neutral-700: #2c3f3e;
+  --lytro-neutral-500: #5b6e6d;
+  --lytro-neutral-400: #7e8f8e;
+  --lytro-neutral-300: #a9b9b8;
+  --lytro-neutral-200: #d5dfde;
+  --lytro-neutral-100: #eaf0ef;
+  --lytro-neutral-50: #f6f9f8;
+  --lytro-white: #ffffff;
+
+  /* Status. Never used as decoration; each means one thing. */
+  --lytro-success: #1b7a43;
+  --lytro-success-soft: #e3f3e9;
+  --lytro-warning: #9a6004;
+  --lytro-warning-soft: #fdf0d1;
+  --lytro-danger: #c8323b;
+  --lytro-danger-soft: #fbe7e8;
+  --lytro-info: #0e6b66;
+  --lytro-info-soft: #ddf5f2;
+
+  /* Semantic roles, light theme. Components use these, never the raw scale. */
+  --color-bg: var(--lytro-white);
+  --color-bg-sunken: var(--lytro-neutral-50);
+  --color-surface: var(--lytro-white);
+  --color-surface-raised: var(--lytro-white);
+  --color-line: var(--lytro-neutral-200);
+  --color-line-strong: var(--lytro-neutral-300);
+  --color-text: var(--lytro-ink);
+  --color-text-muted: var(--lytro-neutral-700); /* secondary text; Bangla strokes are thin, so never lighter than this */
+  --color-text-subtle: var(--lytro-neutral-500); /* Latin captions and labels at 13 px or larger only */
+  --color-text-placeholder: var(--lytro-neutral-500);
+  --color-primary: var(--lytro-teal-700);
+  --color-primary-hover: var(--lytro-teal-800);
+  --color-on-primary: var(--lytro-white);
+  --color-primary-soft: var(--lytro-teal-50);
+  --color-accent: var(--lytro-marigold-500);
+  --color-on-accent: var(--lytro-ink);
+  --color-accent-text: var(--lytro-marigold-700);
+  --color-link: var(--lytro-teal-700);
+  --color-focus: var(--lytro-teal-500);
+  --color-chrome: var(--lytro-teal-900); /* dashboard sidebar, landing hero, operator chrome */
+  --color-on-chrome: var(--lytro-white);
+  --color-on-chrome-muted: var(--lytro-neutral-300);
+
+  /* Type */
+  --font-display: 'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-ui: 'Inter', 'Noto Sans Bengali', ui-sans-serif, system-ui, sans-serif;
+  --font-bn: 'Noto Sans Bengali', 'Hind Siliguri', 'Inter', sans-serif;
+  --text-xs: 0.75rem; /* 12 */
+  --text-sm: 0.875rem; /* 14 */
+  --text-md: 1rem; /* 16 */
+  --text-lg: 1.125rem; /* 18 */
+  --text-xl: 1.375rem; /* 22 */
+  --text-2xl: 1.75rem; /* 28 */
+  --text-3xl: 2.25rem; /* 36 */
+  --text-4xl: 3rem; /* 48 */
+  --leading-ui: 1.45;
+  --leading-bn: 1.6; /* Bangla glyphs are taller; give them more line */
+  --leading-display: 1.1;
+
+  /* Shape and space */
+  --radius-control: 6px;
+  --radius-card: 10px;
+  --radius-sheet: 16px;
+  --radius-pill: 999px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --shadow-card: 0 1px 2px rgba(16, 32, 31, 0.06), 0 4px 12px rgba(16, 32, 31, 0.06);
+}
+
+/* Dark theme: same roles, re-pointed. Primary becomes the lighter teal with ink text so buttons stay AA. */
+[data-theme='dark'],
+.dark {
+  --color-bg: #0c1a19;
+  --color-bg-sunken: #091413;
+  --color-surface: #132725;
+  --color-surface-raised: #1a3230;
+  --color-line: #24403d;
+  --color-line-strong: #335450;
+  --color-text: var(--lytro-neutral-100);
+  --color-text-muted: var(--lytro-neutral-200);
+  --color-text-subtle: var(--lytro-neutral-300);
+  --color-text-placeholder: var(--lytro-neutral-400);
+  --color-primary: var(--lytro-teal-400);
+  --color-primary-hover: var(--lytro-teal-300);
+  --color-on-primary: var(--lytro-ink);
+  --color-primary-soft: #0f3330;
+  --color-accent: var(--lytro-marigold-300);
+  --color-on-accent: var(--lytro-ink);
+  --color-accent-text: var(--lytro-marigold-300);
+  --color-link: var(--lytro-teal-300);
+  --color-chrome: #061211;
+  color-scheme: dark;
+}
