@@ -9,17 +9,26 @@ import {
   useSetLimitOverride,
   useSuspendTenant,
 } from '@/api/tenants';
-import { errorMessage } from '@/api/error-message';
-import { Button } from '@/components/ui/button';
-import { Tag } from '@/components/ui/chip';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { Card, CardTitle, CheckboxRow, Detail, SelectField } from '@/components/ui/fields';
-import { ErrorBanner, Notice } from '@/components/ui/notice';
-import { TextArea, TextField } from '@/components/ui/text-field';
+import { errorMessage } from '@lytronix/api-client';
+import {
+  Button,
+  Card,
+  CardTitle,
+  CheckboxRow,
+  ConfirmDialog,
+  Detail,
+  ErrorBanner,
+  formatDate,
+  formatDateTime,
+  formatTakaExact,
+  Notice,
+  SelectField,
+  Tag,
+  TextArea,
+  TextField,
+} from '@lytronix/ui';
 import { useCopy } from '@/lib/use-copy';
-import { formatDate, formatDateTime } from '@/lib/dates';
 import { canBeUnlimited, LIMIT_KEYS, limitLabelKey, type LimitKey } from '@/lib/limit-keys';
-import { formatTakaExact } from '@/lib/money';
 import type { TenantSummary } from '@/types/operator';
 
 interface TenantPanelProps {

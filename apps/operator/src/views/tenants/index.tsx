@@ -1,11 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchTenants } from '@/api/tenants';
-import { errorMessage } from '@/api/error-message';
-import { Button } from '@/components/ui/button';
-import { EmptyLine, Page, PageHeader } from '@/components/ui/fields';
-import { ErrorBanner } from '@/components/ui/notice';
-import { TextField } from '@/components/ui/text-field';
+import { errorMessage } from '@lytronix/api-client';
+import { Button, EmptyLine, ErrorBanner, Page, PageHeader, TextField } from '@lytronix/ui';
 import type { TenantSummary } from '@/types/operator';
 import { TenantList } from './tenant-list';
 import { TenantPanel } from './tenant-panel';

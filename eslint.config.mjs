@@ -156,8 +156,14 @@ export default tseslint.config(
     ...tseslint.configs.disableTypeChecked,
   },
   {
-    // CODING-CONVENTIONS.md §1: applications never import the database package except through the server.
-    files: ['apps/dashboard/src/**/*.{ts,tsx}', 'apps/operator/src/**/*.{ts,tsx}'],
+    // CODING-CONVENTIONS.md §1: applications never import the database package except through the server; nor
+    // do the packages they share.
+    files: [
+      'apps/dashboard/src/**/*.{ts,tsx}',
+      'apps/operator/src/**/*.{ts,tsx}',
+      'packages/ui/src/**/*.{ts,tsx}',
+      'packages/api-client/src/**/*.ts',
+    ],
     plugins: {
       'react-hooks': reactHooks,
       'react-refresh': reactRefresh,

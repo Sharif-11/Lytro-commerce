@@ -53,9 +53,15 @@ importers:
 
   apps/dashboard:
     dependencies:
+      '@lytronix/api-client':
+        specifier: workspace:^
+        version: link:../../packages/api-client
       '@lytronix/shared-types':
         specifier: workspace:^
         version: link:../../packages/shared-types
+      '@lytronix/ui':
+        specifier: workspace:^
+        version: link:../../packages/ui
       '@lytronix/validators':
         specifier: workspace:^
         version: link:../../packages/validators
@@ -123,9 +129,15 @@ importers:
 
   apps/operator:
     dependencies:
+      '@lytronix/api-client':
+        specifier: workspace:^
+        version: link:../../packages/api-client
       '@lytronix/shared-types':
         specifier: workspace:^
         version: link:../../packages/shared-types
+      '@lytronix/ui':
+        specifier: workspace:^
+        version: link:../../packages/ui
       '@lytronix/validators':
         specifier: workspace:^
         version: link:../../packages/validators
@@ -332,6 +344,19 @@ importers:
         specifier: ^2.1.2
         version: 2.1.9(@types/node@20.19.43)(jsdom@25.0.1)(lightningcss@1.32.0)(terser@5.51.2)
 
+  packages/api-client:
+    dependencies:
+      '@lytronix/shared-types':
+        specifier: workspace:^
+        version: link:../shared-types
+    devDependencies:
+      i18next:
+        specifier: ^24
+        version: 24.2.3(typescript@5.9.3)
+      vitest:
+        specifier: ^2.1.2
+        version: 2.1.9(@types/node@20.19.43)(jsdom@25.0.1)(lightningcss@1.32.0)(terser@5.51.2)
+
   packages/config: {}
 
   packages/db:
@@ -373,6 +398,27 @@ importers:
 
   packages/shared-types:
     devDependencies:
+      vitest:
+        specifier: ^2.1.2
+        version: 2.1.9(@types/node@20.19.43)(jsdom@25.0.1)(lightningcss@1.32.0)(terser@5.51.2)
+
+  packages/ui:
+    devDependencies:
+      '@types/react':
+        specifier: ^19
+        version: 19.3.0
+      i18next:
+        specifier: ^24
+        version: 24.2.3(typescript@5.9.3)
+      jsdom:
+        specifier: ^25
+        version: 25.0.1
+      react:
+        specifier: ^19
+        version: 19.3.0
+      react-i18next:
+        specifier: ^15
+        version: 15.7.4(i18next@24.2.3(typescript@5.9.3))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(typescript@5.9.3)
       vitest:
         specifier: ^2.1.2
         version: 2.1.9(@types/node@20.19.43)(jsdom@25.0.1)(lightningcss@1.32.0)(terser@5.51.2)

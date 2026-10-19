@@ -2,16 +2,22 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActorType, AuditAction, AuditResult } from '@lytronix/validators';
 import { useActivityList } from '@/api/activity';
-import { errorMessage } from '@/api/error-message';
+import { errorMessage } from '@lytronix/api-client';
+import {
+  Button,
+  Chip,
+  EmptyLine,
+  ErrorBanner,
+  formatDate,
+  Icon,
+  Page,
+  PageHeader,
+  Tag,
+  TextField,
+} from '@lytronix/ui';
 import { useMe } from '@/api/me';
-import { Button } from '@/components/ui/button';
-import { Chip, Tag } from '@/components/ui/chip';
-import { EmptyLine, Page, PageHeader } from '@/components/ui/fields';
-import { Icon } from '@/components/ui/icon';
-import { ErrorBanner } from '@/components/ui/notice';
 import { Sheet } from '@/components/ui/sheet';
-import { TextField } from '@/components/ui/text-field';
-import { dayLabel, formatDate, formatTime, groupByDay } from '@/lib/dates';
+import { dayLabel, formatTime, groupByDay } from '@/lib/dates';
 import type { ActivityEntry } from '@/types/activity';
 
 /** The action groups the chips offer; the API filters one action, so a group narrows on the client. */

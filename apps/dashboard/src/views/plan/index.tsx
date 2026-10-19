@@ -12,11 +12,9 @@ import {
   useScheduledChange,
   useUndoCancellation,
 } from '@/api/billing';
-import { errorMessage } from '@/api/error-message';
+import { errorMessage } from '@lytronix/api-client';
+import { Chip, ErrorBanner, Notice, Page } from '@lytronix/ui';
 import { useMe } from '@/api/me';
-import { Chip } from '@/components/ui/chip';
-import { Page } from '@/components/ui/fields';
-import { ErrorBanner, Notice } from '@/components/ui/notice';
 import { Toast } from '@/components/ui/toast';
 import { useToast } from '@/hooks/use-toast';
 import { hasPermission } from '@/lib/permissions';

@@ -1,13 +1,10 @@
 import { useEffect, useState, type SyntheticEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from '@lytronix/validators';
-import { errorMessage } from '@/api/error-message';
+import { errorMessage } from '@lytronix/api-client';
+import { Button, ErrorBanner, Tag, TextField } from '@lytronix/ui';
 import { useCreateStaff, useResetStaffPassword, useUpdateStaff } from '@/api/staff';
-import { Button } from '@/components/ui/button';
-import { Tag } from '@/components/ui/chip';
-import { ErrorBanner } from '@/components/ui/notice';
 import { Sheet } from '@/components/ui/sheet';
-import { TextField } from '@/components/ui/text-field';
 import { firstPassword } from '@/lib/first-password';
 import { bangladeshiPhone } from '@/lib/phone';
 import type { RoleSummary, StaffMember } from '@/types/staff';

@@ -1,7 +1,6 @@
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
-import { Icon } from '@/components/ui/icon';
-import { LanguageToggle } from '@/components/ui/language-toggle';
+import { Icon, LanguageToggle } from '@lytronix/ui';
 
 interface ShopHeaderProps {
   slug: string;

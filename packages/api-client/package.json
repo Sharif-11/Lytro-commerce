@@ -1,0 +1,31 @@
+{
+  "name": "@lytronix/api-client",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The browser apps' one request wrapper (D3-12): cookies, the CSRF header, the shop a call names, and the server's errors read back with a localized fallback.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint src test",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@lytronix/shared-types": "workspace:^"
+  },
+  "peerDependencies": {
+    "i18next": "^24"
+  },
+  "devDependencies": {
+    "i18next": "^24",
+    "vitest": "^2.1.2"
+  }
+}

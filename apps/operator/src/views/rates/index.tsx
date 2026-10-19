@@ -2,12 +2,18 @@ import { useState, type SyntheticEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { RateKey } from '@lytronix/validators';
 import { useRateHistory, useRates, useUpdateRate } from '@/api/rates';
-import { errorMessage } from '@/api/error-message';
-import { Button } from '@/components/ui/button';
-import { Card, EmptyLine, Page, PageHeader } from '@/components/ui/fields';
-import { ErrorBanner } from '@/components/ui/notice';
-import { TextField } from '@/components/ui/text-field';
-import { formatDate, formatDateTime } from '@/lib/dates';
+import { errorMessage } from '@lytronix/api-client';
+import {
+  Button,
+  Card,
+  EmptyLine,
+  ErrorBanner,
+  formatDate,
+  formatDateTime,
+  Page,
+  PageHeader,
+  TextField,
+} from '@lytronix/ui';
 import type { RateValue } from '@/types/operator';
 
 /** RAT-02/08/09: seven rates, each one number, edited in place with its history under the row. */

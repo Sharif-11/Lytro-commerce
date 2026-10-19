@@ -1,6 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Chip } from '@/components/ui/chip';
-import { formatTaka } from '@/lib/money';
+import { Chip, formatTaka } from '@lytronix/ui';
 import type { PricingTable } from '@/lib/pricing-table';
 
 interface PlanPickerProps {

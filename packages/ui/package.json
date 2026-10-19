@@ -1,0 +1,40 @@
+{
+  "name": "@lytronix/ui",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Lytro's design tokens and basic components for the browser apps (D3-12): one definition, themed per app by styles/light.css (the dashboard) or styles/console.css (the operator console).",
+  "type": "module",
+  "sideEffects": [
+    "*.css"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./base.css": "./src/styles/base.css",
+    "./light.css": "./src/styles/light.css",
+    "./console.css": "./src/styles/console.css"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint src test",
+    "test": "vitest run --passWithNoTests"
+  },
+  "peerDependencies": {
+    "i18next": "^24",
+    "react": "^19",
+    "react-i18next": "^15"
+  },
+  "devDependencies": {
+    "@types/react": "^19",
+    "i18next": "^24",
+    "jsdom": "^25",
+    "react": "^19",
+    "react-i18next": "^15",
+    "vitest": "^2.1.2"
+  }
+}

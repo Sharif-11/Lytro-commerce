@@ -2,11 +2,9 @@ import { useState, type SyntheticEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from '@lytronix/validators';
 import { useStaffSetPassword } from '@/api/auth';
-import { errorMessage } from '@/api/error-message';
-import { Button } from '@/components/ui/button';
-import { ErrorBanner } from '@/components/ui/notice';
+import { errorMessage } from '@lytronix/api-client';
+import { Button, ErrorBanner, TextField } from '@lytronix/ui';
 import { StepFrame } from '@/components/ui/step-frame';
-import { TextField } from '@/components/ui/text-field';
 
 /** AUTH-19 for staff (STF-13): the first sign-in, and the first after an owner reset, needs a new password
     before the shop opens. No Skip. */

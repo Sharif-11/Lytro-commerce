@@ -1,8 +1,6 @@
 import { useState, type SyntheticEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button } from '@/components/ui/button';
-import { ErrorBanner } from '@/components/ui/notice';
-import { TextField } from '@/components/ui/text-field';
+import { Button, ErrorBanner, TextField } from '@lytronix/ui';
 
 interface VerifyStepProps {
   onSubmit: (code: string) => void;

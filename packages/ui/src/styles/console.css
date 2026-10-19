@@ -1,0 +1,92 @@
+/* The console theme: the operator console, inverted so it is never mistaken for a seller's dashboard
+   (BRAND-IDENTITY §8.4): chrome #061211, surfaces #132725, light text, teal-400 primary with ink text,
+   marigold-300 accent, and a notch denser than the dashboard. Secondary text is neutral-200 or lighter: Bangla
+   thin strokes make mid greys read light. Import after base.css. */
+@theme {
+  --color-success: #5fd48f;
+  --color-success-soft: rgba(95, 212, 143, 0.14);
+  --color-warning: #f8cf6e;
+  --color-warning-soft: rgba(248, 207, 110, 0.14);
+  --color-danger: #ff7b83;
+  --color-danger-soft: rgba(255, 123, 131, 0.14);
+
+  --color-line: rgba(255, 255, 255, 0.1);
+  --color-line-strong: rgba(255, 255, 255, 0.2);
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 10px -2px rgba(0, 0, 0, 0.35);
+
+  /* The roles the shared components use. */
+  --color-chrome: #061211;
+  --color-on-chrome: #ffffff;
+  --color-surface: #132725;
+  --color-surface-alt: #1b3432;
+  --color-surface-hover: #1f3d3a;
+  --color-fg: #eaf0ef;
+  --color-fg-muted: #c8d6d4;
+  --color-fg-muted-hover: var(--color-fg);
+  --color-placeholder: var(--color-neutral-400);
+  --color-field: var(--color-surface-alt);
+  --color-control: transparent;
+  --color-control-line: var(--color-line-strong);
+  --color-line-active: var(--color-brand-300);
+  --color-focus: var(--color-brand-300);
+  --color-focus-offset: var(--color-chrome);
+  --color-field-ring: color-mix(in oklab, var(--color-brand-300) 30%, transparent);
+  --color-field-error-ring: color-mix(in oklab, var(--color-danger) 30%, transparent);
+
+  --color-primary: var(--color-brand-400);
+  --color-primary-hover: var(--color-brand-300);
+  --color-on-primary: var(--color-ink);
+  --color-primary-soft: color-mix(in oklab, var(--color-brand-400) 15%, transparent);
+  --color-primary-text: var(--color-brand-300);
+  --color-accent: var(--color-accent-300);
+  --color-accent-hover: var(--color-accent-100);
+  --color-on-accent: var(--color-ink);
+  --color-accent-soft: color-mix(in oklab, var(--color-accent-300) 15%, transparent);
+  --color-accent-text: var(--color-accent-300);
+  --color-info: var(--color-fg);
+  --color-info-soft: var(--color-surface-alt);
+  --color-danger-fill: var(--color-danger-soft);
+  --color-on-danger-fill: var(--color-danger);
+  --color-danger-fill-hover: color-mix(in oklab, var(--color-danger) 25%, transparent);
+  --color-danger-ring: color-mix(in oklab, var(--color-danger) 40%, transparent);
+  --color-backdrop: color-mix(in oklab, var(--color-black) 60%, transparent);
+  --shadow-dialog: var(--shadow-card);
+
+  /* Type and size, a notch denser: 15 px controls, 14 px copy, 13 px labels. */
+  --text-ui: 15px;
+  --text-copy: 14px;
+  --text-label: 13px;
+  --min-height-chip: 2.5rem;
+  --padding-tag-y: 0.125rem;
+  --max-width-page: 1080px;
+  --max-width-page-narrow: 760px;
+  --width-dialog: min(92vw, 420px);
+  /* The browser's own cap for a modal dialog, which the console has always kept. */
+  --max-width-dialog: calc(100% - 6px - 2em);
+  --opacity-field-disabled: 0.5;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--color-chrome);
+  color: var(--color-fg);
+  font-size: 15px;
+}
+
+.eyebrow {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-accent-300);
+}
+
+/* Native date and select controls pick up the dark scheme; keep their text legible. */
+input[type='date'],
+select {
+  color-scheme: dark;
+}

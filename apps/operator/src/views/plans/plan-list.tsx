@@ -1,7 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Button } from '@/components/ui/button';
-import { Tag } from '@/components/ui/chip';
-import { Card, EmptyLine } from '@/components/ui/fields';
+import { Button, Card, EmptyLine, Tag } from '@lytronix/ui';
 import { limitLabelKey } from '@/lib/limit-keys';
 import type { Plan } from '@/types/operator';
 

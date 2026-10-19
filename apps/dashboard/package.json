@@ -14,7 +14,9 @@
     "test": "pnpm generate-routes && vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@lytronix/api-client": "workspace:^",
     "@lytronix/shared-types": "workspace:^",
+    "@lytronix/ui": "workspace:^",
     "@lytronix/validators": "workspace:^",
     "@tanstack/react-query": "^5",
     "@tanstack/react-router": "^1",

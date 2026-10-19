@@ -1,8 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Button } from '@/components/ui/button';
-import { Tag } from '@/components/ui/chip';
-import { Card, EmptyLine } from '@/components/ui/fields';
-import { formatDate } from '@/lib/dates';
+import { Button, Card, EmptyLine, formatDate, Tag } from '@lytronix/ui';
 import type { BillingTerm } from '@/types/operator';
 
 interface BillingTermListProps {

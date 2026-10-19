@@ -11,11 +11,8 @@ import {
   useSetPlanPrice,
   useUpdatePlan,
 } from '@/api/plans';
-import { errorMessage } from '@/api/error-message';
-import { Button } from '@/components/ui/button';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { EmptyLine, Page, PageHeader } from '@/components/ui/fields';
-import { ErrorBanner } from '@/components/ui/notice';
+import { errorMessage } from '@lytronix/api-client';
+import { Button, ConfirmDialog, EmptyLine, ErrorBanner, Page, PageHeader } from '@lytronix/ui';
 import type { Plan } from '@/types/operator';
 import { PlanForm, type PlanFormValues } from './plan-form';
 import { PlanList } from './plan-list';

@@ -1,9 +1,6 @@
 import { useState, type SyntheticEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button } from '@/components/ui/button';
-import { Card, CardTitle } from '@/components/ui/fields';
-import { ErrorBanner } from '@/components/ui/notice';
-import { TextField } from '@/components/ui/text-field';
+import { Button, Card, CardTitle, ErrorBanner, TextField } from '@lytronix/ui';
 import type { BillingTerm, PlanPrice } from '@/types/operator';
 
 interface PlanPricesProps {

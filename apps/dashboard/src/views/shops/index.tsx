@@ -2,8 +2,8 @@ import { useEffect } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { useMe } from '@/api/me';
-import { errorMessage } from '@/api/error-message';
-import { ErrorBanner } from '@/components/ui/notice';
+import { errorMessage } from '@lytronix/api-client';
+import { ErrorBanner } from '@lytronix/ui';
 import { StepFrame } from '@/components/ui/step-frame';
 
 /**

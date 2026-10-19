@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { useMe } from '@/api/me';
-import { Notice } from '@/components/ui/notice';
+import { Notice } from '@lytronix/ui';
 import { PENDING_PAYMENT_KEY } from '@/views/checkout';
 import { shopSetupStore, type ShopSetup } from '@/session/shop-setup-store';
 import { SetupChecklist } from './setup-checklist';

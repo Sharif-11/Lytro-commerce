@@ -396,9 +396,11 @@ their backend ships earlier.
   `.lytro.app` never reaches the dashboard; two shops install as two distinct apps.
 
 ### Slice 0b: separate operator app (D3-12)
-- **Status, 2026-10-19:** `apps/operator` and `apps/dashboard` exist and replace `apps/admin` (PR #145). Each
-  app carries its own copy of the request wrapper and the primitives; `packages/ui` and `packages/api-client`
-  are still to be extracted, as their own branch.
+- **Status, 2026-10-19:** `apps/operator` and `apps/dashboard` exist and replace `apps/admin` (PR #145).
+  `packages/ui` (tokens, the light and console themes, the basic components, formats, language setup) and
+  `packages/api-client` (the request wrapper and error fallback) are extracted, and both apps take them from
+  there, with every screen pixel-identical before and after. Still open: the console's own strict Content
+  Security Policy in `deploy/Caddyfile`, and the room for support view (ADM-05).
 - **Depends on:** Slice 0 (the hosts and sessions it reworks).
 - **Delivers:**
   - `packages/ui` (the brand doc's design tokens and basic components) and `packages/api-client` (the request

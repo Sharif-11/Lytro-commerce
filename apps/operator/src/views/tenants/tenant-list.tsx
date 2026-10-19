@@ -1,7 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Tag } from '@/components/ui/chip';
-import { Card } from '@/components/ui/fields';
-import { formatDate } from '@/lib/dates';
+import { Card, formatDate, Tag } from '@lytronix/ui';
 import type { TenantSummary } from '@/types/operator';
 
 interface TenantListProps {

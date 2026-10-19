@@ -3,12 +3,9 @@ import { useNavigate, useSearch } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from '@lytronix/validators';
 import { RECOVERY_NOTE_KEY, useSetPassword } from '@/api/auth';
-import { errorMessage } from '@/api/error-message';
-import { Button } from '@/components/ui/button';
-import { Icon } from '@/components/ui/icon';
-import { ErrorBanner, Notice } from '@/components/ui/notice';
+import { errorMessage } from '@lytronix/api-client';
+import { Button, ErrorBanner, Icon, Notice, TextField } from '@lytronix/ui';
 import { StepFrame } from '@/components/ui/step-frame';
-import { TextField } from '@/components/ui/text-field';
 
 function readRecoveryNote(): boolean {
   try {

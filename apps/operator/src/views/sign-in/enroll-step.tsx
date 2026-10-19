@@ -1,9 +1,7 @@
 import { useEffect, useState, type SyntheticEvent } from 'react';
 import QRCode from 'qrcode';
 import { useTranslation } from 'react-i18next';
-import { Button } from '@/components/ui/button';
-import { ErrorBanner } from '@/components/ui/notice';
-import { TextField } from '@/components/ui/text-field';
+import { Button, ErrorBanner, TextField } from '@lytronix/ui';
 import { useCopy } from '@/lib/use-copy';
 
 interface EnrollStepProps {

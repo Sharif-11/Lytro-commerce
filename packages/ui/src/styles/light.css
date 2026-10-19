@@ -1,0 +1,79 @@
+/* The light theme: the tenant dashboard (BRAND-IDENTITY §8.2). Content on neutral-50 with white cards, teal-700
+   primary, marigold the one accent per screen. Secondary text is neutral-700 or darker; mid greys are for lines
+   and disabled states only. Import after base.css. */
+@theme {
+  --color-success: #1b7a43;
+  --color-success-soft: #e3f3e9;
+  --color-warning: #9a6004;
+  --color-warning-soft: #fdf0d1;
+  --color-danger: #c8323b;
+  --color-danger-soft: #fbe7e8;
+
+  --color-line: rgba(16, 32, 31, 0.08);
+  --color-line-strong: rgba(16, 32, 31, 0.14);
+
+  --color-sidebar: #063b38;
+  --color-sidebar-alt: #0a4f4b;
+  --color-sidebar-line: rgba(255, 255, 255, 0.1);
+
+  --shadow-card: 0 1px 2px rgba(16, 32, 31, 0.05), 0 2px 8px -2px rgba(16, 32, 31, 0.06);
+  --shadow-lift: 0 1px 2px rgba(16, 32, 31, 0.04), 0 16px 40px -16px rgba(16, 32, 31, 0.18);
+
+  /* The roles the shared components use. */
+  --color-chrome: var(--color-brand-900);
+  --color-on-chrome: #ffffff;
+  --color-surface: #ffffff;
+  --color-surface-alt: var(--color-neutral-100);
+  --color-surface-hover: var(--color-brand-50);
+  --color-fg: var(--color-ink);
+  --color-fg-muted: var(--color-neutral-700);
+  --color-fg-muted-hover: var(--color-neutral-700);
+  --color-placeholder: var(--color-neutral-500);
+  --color-field: #ffffff;
+  --color-control: #ffffff;
+  --color-control-line: var(--color-neutral-200);
+  --color-line-active: var(--color-brand-700);
+  --color-focus: var(--color-brand-500);
+  --color-focus-offset: #ffffff;
+  --color-field-ring: color-mix(in oklab, var(--color-brand-500) 25%, transparent);
+  --color-field-error-ring: color-mix(in oklab, var(--color-danger) 25%, transparent);
+
+  --color-primary: var(--color-brand-700);
+  --color-primary-hover: var(--color-brand-800);
+  --color-on-primary: #ffffff;
+  --color-primary-soft: var(--color-brand-100);
+  --color-primary-text: var(--color-brand-800);
+  --color-accent: var(--color-accent-500);
+  --color-accent-hover: #e0970f;
+  --color-on-accent: var(--color-ink);
+  --color-accent-soft: var(--color-accent-100);
+  --color-accent-text: var(--color-accent-700);
+  --color-info: var(--color-brand-900);
+  --color-info-soft: var(--color-brand-50);
+  --color-danger-fill: var(--color-danger);
+  --color-on-danger-fill: #ffffff;
+  --color-danger-fill-hover: #a9262e;
+  --color-danger-ring: transparent;
+  --color-backdrop: color-mix(in oklab, var(--color-ink) 40%, transparent);
+  --shadow-dialog: var(--shadow-lift);
+
+  /* Type and size: 16 px controls so phones never zoom, 15 px copy, 14 px labels. */
+  --text-ui: 1rem;
+  --text-ui--line-height: 1.5;
+  --text-copy: 15px;
+  --text-label: 14px;
+  --min-height-chip: 2.75rem;
+  --padding-tag-y: 0.25rem;
+  --max-width-page: 960px;
+  --max-width-page-narrow: 720px;
+  --width-dialog: calc(100% - 2rem);
+  --max-width-dialog: 420px;
+  /* A read-only field (a fixed charge) stays at full strength: its hint says why it can't change. */
+  --opacity-field-disabled: 1;
+}
+
+body {
+  background-color: var(--color-neutral-50);
+  color: var(--color-ink);
+  font-size: 16px;
+}

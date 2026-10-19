@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Wordmark } from '@/components/brand/wordmark';
-import { LanguageToggle } from '@/components/ui/language-toggle';
+import { LanguageToggle, Wordmark } from '@lytronix/ui';
 
 /** The sign-in screens' frame: the OPERATOR eyebrow and wordmark, one card, nothing else. */
 export function AuthFrame({

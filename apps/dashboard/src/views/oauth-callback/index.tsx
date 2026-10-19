@@ -2,8 +2,8 @@ import { useEffect } from 'react';
 import { Link, useParams, useSearch } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { useOauthCallback } from '@/api/auth';
-import { errorMessage } from '@/api/error-message';
-import { ErrorBanner } from '@/components/ui/notice';
+import { errorMessage } from '@lytronix/api-client';
+import { ErrorBanner } from '@lytronix/ui';
 import { StepFrame } from '@/components/ui/step-frame';
 
 // Each OAuth `state` is single-use server-side. StrictMode mounts twice in development and a per-instance

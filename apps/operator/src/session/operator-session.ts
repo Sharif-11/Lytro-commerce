@@ -1,4 +1,4 @@
-import { ApiClient } from '@/api/client';
+import { ApiClient } from '@lytronix/api-client';
 
 // The CSRF token is only ever sent once, in the enroll or verify response body (SEC-14); only its hash is
 // stored server-side. A copy in sessionStorage lets a reload survive without a fresh two-factor sign-in.

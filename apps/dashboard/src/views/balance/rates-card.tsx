@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { RateKey } from '@lytronix/validators';
-import { formatDate } from '@/lib/dates';
+import { formatDate } from '@lytronix/ui';
 import type { RateValue } from '@/types/balance';
 
 /** RAT-06: each per-use rate with its unit in words, and when the current values took effect. */

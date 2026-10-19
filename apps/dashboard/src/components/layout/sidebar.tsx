@@ -1,7 +1,6 @@
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
-import { PoweredByLytro, Wordmark } from '@/components/brand/wordmark';
-import { Icon } from '@/components/ui/icon';
+import { Icon, PoweredByLytro, Wordmark } from '@lytronix/ui';
 import { navItems } from './nav-items';
 
 interface SidebarProps {

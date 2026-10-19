@@ -210,7 +210,7 @@ Used for manual payments only. A wallet whose gateway the seller has connected s
 
 ## 9. Tokens
 
-`docs/brand/tokens.css` is the source of truth with light and dark roles. `tailwind-theme.css` is the `@theme` block to paste into both Tailwind apps; it keeps the `brand-*` and `accent-*` names so existing classes keep working. `tokens.json` is for native code and design tools. `android-colors.xml` is for the listener and the native wrapper.
+`docs/brand/tokens.css` is the source of truth with light and dark roles. In code, `packages/ui` carries them: `styles/base.css` for the scales, type and shape, and `styles/light.css` (dashboard) and `styles/console.css` (operator console) for the roles the shared components use. `tailwind-theme.css` is the `@theme` block to paste into both Tailwind apps; it keeps the `brand-*` and `accent-*` names so existing classes keep working. `tokens.json` is for native code and design tools. `android-colors.xml` is for the listener and the native wrapper.
 
 ---
 
