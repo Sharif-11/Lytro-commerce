@@ -130,4 +130,13 @@ export {
   type ProductPatch,
 } from './repositories/catalogue/product.repository';
 export { VariantRepository, type VariantPatch } from './repositories/catalogue/variant.repository';
-export { PresetRepository } from './repositories/catalogue/preset.repository';
+export { PresetRepository, type PresetPatch } from './repositories/catalogue/preset.repository';
+export {
+  SizeChartRepository,
+  type SizeChartOwner,
+} from './repositories/catalogue/size-chart.repository';
+export { OptionSetRepository } from './repositories/catalogue/option-set.repository';
+export {
+  PlatformLibraryRepository,
+  type PlatformOptionSetPatch,
+} from './repositories/catalogue/platform-library.repository';

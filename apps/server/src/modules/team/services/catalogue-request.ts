@@ -4,8 +4,9 @@ import { ApiError } from '../../../common/api-error';
 import { ClientIp } from '../../../common/client-ip';
 import type { MessageKey } from '../../../common/i18n/message-key';
 import { PlanLimitOverridesService } from '../../billing/services/plan-limit-overrides.service';
-import type { CatalogueActor, CatalogueShop } from '../../catalogue/types/catalogue';
+import type { CatalogueActor, CatalogueShop, OperatorActor } from '../../catalogue/types/catalogue';
 import type { DashboardRequest } from '../../identity/guards/dashboard.guard';
+import type { OperatorSessionRequest } from '../../operator/guards/operator-session.guard';
 
 /** What every catalogue route reads off its request: the shop (with its effective limits) and who is acting. */
 @Injectable()
@@ -36,6 +37,13 @@ export class CatalogueRequest {
   /** The acting staff member, or null for the owner's own session (AUD-02), and the client address. */
   actorOf(request: DashboardRequest): CatalogueActor {
     return { userId: request.session?.userId ?? null, ip: this.clientIp.resolve(request) };
+  }
+
+  /** PST-04, ATL-01: the operator curating the platform's library, and from where (AUD-03). */
+  operatorOf(request: OperatorSessionRequest): OperatorActor {
+    const session = request.operatorSession;
+    if (!session) throw new ApiError('unauthenticated', 'SignInToContinue', {});
+    return { operatorId: session.operatorId, ip: this.clientIp.resolve(request) };
   }
 
   /** A path id that is not an id is simply no such thing. */

@@ -9,6 +9,7 @@ import {
   FieldProblemCode,
   MAX_VARIANTS_PER_PRODUCT,
   PaymentPolicy,
+  PRODUCT_NAME_MAX_LENGTH,
   ServerFieldProblemCode,
   StockState,
   StockTracking,
@@ -29,9 +30,16 @@ import type {
   CategoryStore,
   ProductChange,
   ProductStore,
+  SizeChartStore,
   VariantChange,
 } from '../ports/catalogue-stores';
-import { ATTRIBUTE_STORE, CATALOGUE_TRANSACTIONS, CATEGORY_STORE, PRODUCT_STORE } from '../tokens';
+import {
+  ATTRIBUTE_STORE,
+  CATALOGUE_TRANSACTIONS,
+  CATEGORY_STORE,
+  PRODUCT_STORE,
+  SIZE_CHART_STORE,
+} from '../tokens';
 import type {
   AttributeRecord,
   CatalogueActor,
@@ -44,8 +52,10 @@ import type {
   ProductListItem,
   ProductPage,
   ProductRecord,
+  SizeChartView,
   VariantAttributeView,
   VariantRecord,
+  VariantValueRecord,
   VariantView,
 } from '../types/catalogue';
 import { CatalogueActivity, type ResolvedActor } from './catalogue-activity';
@@ -82,6 +92,15 @@ function effectiveMode(weight: string | null, mode: DeliveryMode): DeliveryMode 
   return weight === null ? DeliveryMode.Default : mode;
 }
 
+// PRD-18: what a copy's name ends with.
+const COPY_SUFFIX = ' (copy)';
+
+/** PRD-18: "<name> (copy)", the name shortened if it would not fit otherwise. */
+function copyName(name: string): string {
+  const room = PRODUCT_NAME_MAX_LENGTH - COPY_SUFFIX.length;
+  return `${name.length > room ? name.slice(0, room).trimEnd() : name}${COPY_SUFFIX}`;
+}
+
 function variantChangeOf(spec: VariantSpec | null): VariantChange {
   if (!spec) return {};
   const change: VariantChange = {};
@@ -99,7 +118,8 @@ function variantChangeOf(spec: VariantSpec | null): VariantChange {
 }
 
 /**
- * PRD-01 to PRD-05, PRD-13 to PRD-16, ATR-03 to ATR-15, ATL-02 to ATL-04, PST-02, PYG-16, LND-04: a shop's products.
+ * PRD-01 to PRD-05, PRD-13 to PRD-18, ATR-03 to ATR-15, ATL-02 to ATL-04, PST-02, PST-06, PYG-16, LND-04: a shop's
+ * products.
  * A product saves with its attributes and variants in one transaction, counts once against the plan's product
  * limit however many variants it has, is charged the pay-as-you-go fee once at creation, keeps its link slug
  * through renames, and moves the catalogue version with every change (CCH-02).
@@ -111,6 +131,7 @@ export class ProductService {
     @Inject(PRODUCT_STORE) private readonly products: ProductStore,
     @Inject(CATEGORY_STORE) private readonly categories: CategoryStore,
     @Inject(ATTRIBUTE_STORE) private readonly attributes: AttributeStore,
+    @Inject(SIZE_CHART_STORE) private readonly charts: SizeChartStore,
     @Inject(PresetService) private readonly presets: PresetService,
     @Inject(PayAsYouGoBillingService) private readonly payAsYouGo: PayAsYouGoBillingService,
     @Inject(CatalogueActivity) private readonly activity: CatalogueActivity,
@@ -158,7 +179,6 @@ export class ProductService {
     input: CreateProductInput,
     actor: CatalogueActor,
   ): Promise<ProductDetail> {
-    const defaults = await this.presets.defaultsFor(shop.businessType);
     const who = await this.activity.resolve(shop.id, actor);
     return this.transactions.run(async (tx) => {
       // PRD-04: product creations count against the limit one after the other.
@@ -170,6 +190,11 @@ export class ProductService {
         shop.id,
         input.categoryIds ?? (input.primaryCategoryId ? [input.primaryCategoryId] : []),
       );
+      const primaryCategoryId = input.primaryCategoryId ?? categoryIds[0] ?? null;
+      // PST-06: the primary category, or the nearest one above it, may make it behave like another shop type.
+      const defaults =
+        (await this.presets.defaultsWithin(tx, shop, primaryCategoryId)) ??
+        (await this.presets.defaultsFor(shop.businessType));
       const matrix = await this.resolveMatrix(
         tx,
         shop.id,
@@ -189,7 +214,7 @@ export class ProductService {
         tenantId: shop.id,
         slug,
         ...this.newProductFields(input, defaults),
-        primaryCategoryId: input.primaryCategoryId ?? categoryIds[0] ?? null,
+        primaryCategoryId,
       });
       await this.products.replaceCategoryLinks(tx, shop.id, product.id, categoryIds);
       await this.writeMatrixAttributes(tx, shop.id, product.id, matrix, new Set());
@@ -209,6 +234,119 @@ export class ProductService {
       });
       await this.products.bumpVersion(tx, shop.id);
       return this.detail(tx, shop.id, product.id);
+    });
+  }
+
+  /**
+   * PRD-18: a copy of the product in one action: its fields, categories, attributes, live variants (with their
+   * prices, weights and delivery overrides, but no SKU or barcode, which stay the original's) and its own size
+   * chart. The copy is inactive, named "<name> (copy)" with a new slug, holds no stock, and counts toward the
+   * product limit and the pay-as-you-go fee like any new product.
+   */
+  async duplicate(
+    shop: CatalogueShop,
+    productId: string,
+    actor: CatalogueActor,
+  ): Promise<ProductDetail> {
+    const who = await this.activity.resolve(shop.id, actor);
+    return this.transactions.run(async (tx) => {
+      await this.products.lockCatalogue(tx, shop.id);
+      await this.refuseOverLimit(tx, shop);
+      const source = await this.findLive(tx, shop.id, productId);
+
+      const name = copyName(source.name);
+      const base = slugOf(name, 'product');
+      const slug = nextFreeSlug(base, await this.products.slugsLike(tx, shop.id, base));
+      const copy = await this.products.insertProduct(tx, {
+        tenantId: shop.id,
+        slug,
+        name,
+        description: source.description,
+        basePrice: source.basePrice,
+        stockUnit: source.stockUnit,
+        stockTracking: source.stockTracking,
+        batchTracked: source.batchTracked,
+        serialTracked: source.serialTracked,
+        lowStockThreshold: source.lowStockThreshold,
+        deliveryCharge: source.deliveryCharge,
+        weightKg: source.weightKg,
+        deliveryMode: source.deliveryMode,
+        paymentPolicy: source.paymentPolicy,
+        advanceAmount: source.advanceAmount,
+        primaryCategoryId: source.primaryCategoryId,
+        sortOrder: source.sortOrder,
+        active: false,
+        stockState:
+          source.stockTracking === StockTracking.NotTracked ? StockState.In : StockState.Out,
+      });
+
+      const links = await this.products.listCategoryLinks(tx, shop.id, [productId]);
+      await this.products.replaceCategoryLinks(
+        tx,
+        shop.id,
+        copy.id,
+        links.map((link) => link.categoryId),
+      );
+      const attributeRows = await this.products.listProductAttributes(tx, shop.id, productId);
+      await this.products.insertProductAttributes(
+        tx,
+        attributeRows.map((row) => ({ ...row, productId: copy.id })),
+      );
+      const values = await this.products.listAttributeValues(tx, shop.id, productId);
+      await this.products.insertAttributeValues(
+        tx,
+        values.map((value) => ({
+          tenantId: shop.id,
+          productId: copy.id,
+          attributeId: value.attributeId,
+          optionId: value.optionId,
+          textValue: value.textValue,
+          numberValue: value.numberValue,
+          boolValue: value.boolValue,
+        })),
+      );
+
+      const variants = await this.products.listVariants(tx, shop.id, productId, false);
+      const variantValues = await this.products.listVariantValues(
+        tx,
+        shop.id,
+        variants.map((variant) => variant.id),
+      );
+      const copiedValues: VariantValueRecord[] = [];
+      for (const variant of variants) {
+        const row = await this.products.insertVariant(tx, {
+          tenantId: shop.id,
+          productId: copy.id,
+          combinationKey: variant.combinationKey,
+          price: variant.price,
+          weightKg: variant.weightKg,
+          deliveryCharge: variant.deliveryCharge,
+          deliveryMode: variant.deliveryMode,
+          active: variant.active,
+        });
+        for (const value of variantValues) {
+          if (value.variantId === variant.id) {
+            copiedValues.push({ ...value, productId: copy.id, variantId: row.id });
+          }
+        }
+      }
+      await this.products.insertVariantValues(tx, copiedValues);
+
+      const chart = await this.charts.findChart(tx, shop.id, { productId });
+      if (chart) await this.charts.putChart(tx, shop.id, { productId: copy.id }, chart.tableRows);
+      await this.products.refreshPriceRange(tx, shop.id, copy.id);
+
+      if (shop.state === TenantState.PayAsYouGo) {
+        await this.payAsYouGo.chargeProductCreationFee(tx, shop.id, copy.id);
+      }
+      await this.record(tx, shop.id, who, AuditAction.ProductCreated, copy.id, {
+        name: copy.name,
+        price: copy.basePrice,
+        variants: variants.length,
+        duplicateOf: productId,
+      });
+      await this.products.bumpVersion(tx, shop.id);
+      return this.detail(tx, shop.id, copy.id);
     });
   }
 
@@ -1004,7 +1142,11 @@ export class ProductService {
           name: attribute.name,
           dataType: attribute.dataType,
           unitKind: attribute.unitKind,
-          options: used.map((option) => ({ id: option.id, value: option.value })),
+          options: used.map((option) => ({
+            id: option.id,
+            value: option.value,
+            swatchColor: option.swatchColor,
+          })),
         },
       ];
     });
@@ -1083,8 +1225,32 @@ export class ProductService {
       variantAttributes,
       attributes: described,
       variants: variantViews,
+      sizeChart: await this.sizeChartOf(tx, tenantId, product),
       createdAt: product.createdAt,
       updatedAt: product.updatedAt,
     };
+  }
+
+  /** PRD-17: the product's own chart, else the one on its primary category or the nearest category above it. */
+  private async sizeChartOf(
+    tx: Transaction,
+    tenantId: string,
+    product: ProductRecord,
+  ): Promise<SizeChartView | null> {
+    const own = await this.charts.findChart(tx, tenantId, { productId: product.id });
+    if (own) return { source: 'product', categoryId: null, rows: own.tableRows };
+    if (product.primaryCategoryId === null) return null;
+    const charts = new Map(
+      (await this.charts.listCategoryCharts(tx, tenantId)).map((chart) => [
+        chart.categoryId,
+        chart.tableRows,
+      ]),
+    );
+    if (charts.size === 0) return null;
+    for (const category of await this.categories.lineage(tx, tenantId, product.primaryCategoryId)) {
+      const rows = charts.get(category.id);
+      if (rows) return { source: 'category', categoryId: category.id, rows };
+    }
+    return null;
   }
 }

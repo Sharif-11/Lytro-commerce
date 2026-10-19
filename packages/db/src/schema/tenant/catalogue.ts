@@ -6,6 +6,7 @@ import {
   foreignKey,
   index,
   integer,
+  jsonb,
   numeric,
   primaryKey,
   smallint,
@@ -54,6 +55,9 @@ export const categories = tenant.table(
     name: varchar('name', { length: CATEGORY_NAME_MAX_LENGTH }).notNull(),
     slug: text('slug').notNull(),
     depth: smallint('depth').notNull(),
+    // PST-06: the shop type (a control.business_type_presets key, held by value) its products behave like; null
+    // follows the nearest ancestor's, and with none the shop's own type.
+    behavesLike: text('behaves_like'),
     sortOrder: integer('sort_order').notNull().default(0),
     visible: boolean('visible').notNull().default(true),
     createdAt: createdAt(),
@@ -220,8 +224,42 @@ export const productSlugRedirects = tenant.table(
   ],
 );
 
+// PRD-17: one chart per product or per category, a table of short text. A product without its own uses its primary
+// category's. The image chart (MED-03) arrives with media in Slice 6.
+export const sizeCharts = tenant.table(
+  'size_charts',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    tenantId: uuid('tenant_id').notNull(),
+    productId: uuid('product_id'),
+    categoryId: uuid('category_id'),
+    tableRows: jsonb('table_rows').$type<string[][]>().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    foreignKey({
+      name: 'size_charts_product_fk',
+      columns: [t.tenantId, t.productId],
+      foreignColumns: [products.tenantId, products.id],
+    }).onDelete('cascade'),
+    foreignKey({
+      name: 'size_charts_category_fk',
+      columns: [t.tenantId, t.categoryId],
+      foreignColumns: [categories.tenantId, categories.id],
+    }).onDelete('cascade'),
+    check('size_charts_owner_check', sql`(${t.productId} IS NULL) <> (${t.categoryId} IS NULL)`),
+    uniqueIndex('size_charts_product_idx')
+      .on(t.tenantId, t.productId)
+      .where(sql`${t.productId} IS NOT NULL`),
+    uniqueIndex('size_charts_category_idx')
+      .on(t.tenantId, t.categoryId)
+      .where(sql`${t.categoryId} IS NOT NULL`),
+  ],
+);
+
 export type SelectCategory = typeof categories.$inferSelect;
 export type SelectProduct = typeof products.$inferSelect;
 export type InsertProduct = typeof products.$inferInsert;
 export type SelectProductVariant = typeof productVariants.$inferSelect;
 export type InsertProductVariant = typeof productVariants.$inferInsert;
+export type SelectSizeChart = typeof sizeCharts.$inferSelect;

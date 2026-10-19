@@ -234,6 +234,12 @@ export const MESSAGE_KEYS = [
   'AttributeValueWrongKind',
   'CapturedAttributeWrongType',
 
+  // Catalogue (Phase 3 Slice 1b)
+  'PresetNotFound',
+  'BatchOrSerialNotBoth',
+  'OptionSetNameTaken',
+  'OptionSetNotFound',
+
   // Success -- catalogue
   'PresetsListed',
   'ProductDefaultsRetrieved',
@@ -256,6 +262,15 @@ export const MESSAGE_KEYS = [
   'ProductAttributesSaved',
   'ProductSlugChanged',
   'ProductDeleted',
+  'ProductDuplicated',
+  'SizeChartSaved',
+  'SizeChartRemoved',
+  'OptionsAdded',
+  'OptionSetsListed',
+  'OptionSetCreated',
+  'OptionSetUpdated',
+  'OptionSetDeleted',
+  'PresetUpdated',
 ] as const;
 
 export type MessageKey = (typeof MESSAGE_KEYS)[number];

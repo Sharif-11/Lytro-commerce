@@ -15,9 +15,18 @@ import type {
   AttributeStore,
   CatalogueTransactions,
   CategoryStore,
+  PresetStore,
   ProductStore,
+  SizeChartStore,
 } from '../ports/catalogue-stores';
-import { ATTRIBUTE_STORE, CATALOGUE_TRANSACTIONS, CATEGORY_STORE, PRODUCT_STORE } from '../tokens';
+import {
+  ATTRIBUTE_STORE,
+  CATALOGUE_TRANSACTIONS,
+  CATEGORY_STORE,
+  PRESET_STORE,
+  PRODUCT_STORE,
+  SIZE_CHART_STORE,
+} from '../tokens';
 import type { CatalogueActor, CategoryRecord, CategoryView } from '../types/catalogue';
 import { CatalogueActivity } from './catalogue-activity';
 import { nextFreeSlug, slugOf } from './slug';
@@ -26,6 +35,7 @@ function view(
   category: CategoryRecord,
   productCount: number,
   suggestedAttributeIds: string[],
+  sizeChart: string[][] | null,
 ): CategoryView {
   return {
     id: category.id,
@@ -37,11 +47,14 @@ function view(
     visible: category.visible,
     productCount,
     suggestedAttributeIds,
+    behavesLike: category.behavesLike,
+    sizeChart,
   };
 }
 
 /**
- * PRD-03, ATR-02, ATL-05: a shop's category tree, up to four levels, and the attributes each suggests. A tenant
+ * PRD-03, ATR-02, ATL-05, PST-06: a shop's category tree, up to four levels, the attributes each suggests and the
+ * shop type each behaves like. A tenant
  * with no categories is blocked from nothing; products filed in none are "Uncategorized" (not a row). Every change
  * moves the catalogue version, since the tree is public (CCH-02).
  */
@@ -52,6 +65,8 @@ export class CategoryService {
     @Inject(CATEGORY_STORE) private readonly categories: CategoryStore,
     @Inject(ATTRIBUTE_STORE) private readonly attributes: AttributeStore,
     @Inject(PRODUCT_STORE) private readonly products: ProductStore,
+    @Inject(PRESET_STORE) private readonly presets: PresetStore,
+    @Inject(SIZE_CHART_STORE) private readonly charts: SizeChartStore,
     @Inject(CatalogueActivity) private readonly activity: CatalogueActivity,
   ) {}
 
@@ -68,6 +83,8 @@ export class CategoryService {
     actor: CatalogueActor,
   ): Promise<CategoryView> {
     const who = await this.activity.resolve(tenantId, actor);
+    const behavesLike = input.behavesLike ?? null;
+    await this.refuseUnknownType(behavesLike);
     return this.transactions.run(async (tx) => {
       const parentId = input.parentId ?? null;
       const depth = parentId === null ? 1 : (await this.parentOf(tx, tenantId, parentId)).depth + 1;
@@ -86,6 +103,7 @@ export class CategoryService {
           depth,
           sortOrder: input.sortOrder ?? 0,
           visible: input.visible ?? true,
+          behavesLike,
         });
       } catch (error) {
         // Two categories of the same name created at once: the loser simply tries again.
@@ -101,10 +119,10 @@ export class CategoryService {
           type: 'category',
           id: row.id,
         },
-        { name: row.name, parentId },
+        { name: row.name, parentId, ...(behavesLike !== null ? { behavesLike } : {}) },
       );
       await this.products.bumpVersion(tx, tenantId);
-      return view(row, 0, []);
+      return view(row, 0, [], null);
     });
   }
 
@@ -116,12 +134,15 @@ export class CategoryService {
     actor: CatalogueActor,
   ): Promise<CategoryView> {
     const who = await this.activity.resolve(tenantId, actor);
+    if (input.behavesLike !== undefined) await this.refuseUnknownType(input.behavesLike);
     return this.transactions.run(async (tx) => {
       const current = await this.find(tx, tenantId, categoryId);
       const patch: Parameters<CategoryStore['updateCategory']>[3] = {};
       if (input.name !== undefined) patch.name = input.name;
       if (input.sortOrder !== undefined) patch.sortOrder = input.sortOrder;
       if (input.visible !== undefined) patch.visible = input.visible;
+      // PST-06, PST-03: applies to products created from now on; none already saved changes.
+      if (input.behavesLike !== undefined) patch.behavesLike = input.behavesLike;
 
       if (input.parentId !== undefined && input.parentId !== current.parentId) {
         const subtree = await this.categories.subtree(tx, tenantId, categoryId);
@@ -279,6 +300,19 @@ export class CategoryService {
     return parent;
   }
 
+  /** PST-06: a category behaves like one of the platform's shop types, which the operator may change (PST-04). */
+  private async refuseUnknownType(key: string | null): Promise<void> {
+    if (key !== null && !(await this.presets.findPreset(key))) {
+      throw new FieldsError([
+        {
+          field: 'behavesLike',
+          problem: ServerFieldProblemCode.NotFound,
+          messageKey: 'BusinessTypeUnknown',
+        },
+      ]);
+    }
+  }
+
   private refuseTooDeep(): never {
     throw new FieldsError([
       {
@@ -301,6 +335,12 @@ export class CategoryService {
       tenantId,
       rows.map((row) => row.id),
     );
+    const charts = new Map(
+      (await this.charts.listCategoryCharts(tx, tenantId)).map((chart) => [
+        chart.categoryId,
+        chart.tableRows,
+      ]),
+    );
     return rows.map((row) =>
       view(
         row,
@@ -308,6 +348,7 @@ export class CategoryService {
         suggestions
           .filter((entry) => entry.categoryId === row.id)
           .map((entry) => entry.attributeId),
+        charts.get(row.id) ?? null,
       ),
     );
   }

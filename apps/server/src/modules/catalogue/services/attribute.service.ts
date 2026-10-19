@@ -5,6 +5,7 @@ import {
   AuditAction,
   OPTION_DATA_TYPES,
   ServerFieldProblemCode,
+  type AddOptionsInput,
   type CreateAttributeInput,
   type CreateOptionInput,
   type UpdateAttributeInput,
@@ -12,8 +13,13 @@ import {
 } from '@lytronix/validators';
 import { ApiError, FieldsError } from '../../../common/api-error';
 import { UniqueViolation } from '../../../common/errors/unique-violation';
-import type { AttributeStore, CatalogueTransactions } from '../ports/catalogue-stores';
-import { ATTRIBUTE_STORE, CATALOGUE_TRANSACTIONS } from '../tokens';
+import type {
+  AttributeStore,
+  CatalogueTransactions,
+  OptionPatch,
+  ProductStore,
+} from '../ports/catalogue-stores';
+import { ATTRIBUTE_STORE, CATALOGUE_TRANSACTIONS, PRODUCT_STORE } from '../tokens';
 import type {
   AttributeRecord,
   AttributeView,
@@ -30,10 +36,11 @@ function scopeOf(row: { tenantId: string | null }): 'platform' | 'shop' {
   return row.tenantId === null ? 'platform' : 'shop';
 }
 
-function optionView(option: OptionRecord): OptionView {
+export function optionView(option: OptionRecord): OptionView {
   return {
     id: option.id,
     value: option.value,
+    swatchColor: option.swatchColor,
     scope: scopeOf(option),
     retired: option.retiredAt !== null,
   };
@@ -58,15 +65,45 @@ export function attributeView(attribute: AttributeRecord, options: OptionRecord[
 }
 
 /**
- * ATL-01, ATR-01, ATR-10, UOM-02: the attribute library a shop works with. A shop reads the platform's attributes
- * and its own, adds its own attributes by name the moment it needs one, adds its own values to either, and renames
- * or retires only its own. Retiring keeps every product that uses it unchanged.
+ * UOM-02: a number-with-unit value is stored as a plain number ("1.50" and "1.5" are the same value); any other
+ * value as given. `field` names the request field a refusal points at.
+ */
+export function canonicalOptionValue(
+  attribute: AttributeRecord,
+  value: string,
+  field = 'value',
+): string {
+  if (attribute.dataType !== AttributeDataType.NumberWithUnit) return value;
+  const amount = Number(value);
+  if (!NUMBER_VALUE.test(value) || !(amount > 0)) {
+    throw new FieldsError([
+      {
+        field,
+        problem: ServerFieldProblemCode.OutOfRange,
+        messageKey: 'OptionValueNotANumber',
+      },
+    ]);
+  }
+  return String(amount);
+}
+
+/** ATR-18: swatches are stored in one spelling, so "#ff0000" and "#FF0000" are the same colour. */
+export function canonicalSwatch(swatch: string | null | undefined): string | null | undefined {
+  return swatch === undefined || swatch === null ? swatch : swatch.toUpperCase();
+}
+
+/**
+ * ATL-01, ATR-01, ATR-10, ATR-16, ATR-18, UOM-02: the attribute library a shop works with. A shop reads the
+ * platform's attributes and its own, adds its own attributes by name the moment it needs one, adds its own values
+ * to either (one at a time or a whole option set), gives its own values a swatch, and renames or retires only its
+ * own. Retiring keeps every product that uses it unchanged.
  */
 @Injectable()
 export class AttributeService {
   constructor(
     @Inject(CATALOGUE_TRANSACTIONS) private readonly transactions: CatalogueTransactions,
     @Inject(ATTRIBUTE_STORE) private readonly attributes: AttributeStore,
+    @Inject(PRODUCT_STORE) private readonly products: ProductStore,
     @Inject(CatalogueActivity) private readonly activity: CatalogueActivity,
   ) {}
 
@@ -161,12 +198,14 @@ export class AttributeService {
           ...(input.retired !== undefined ? { retired: input.retired } : {}),
         },
       );
+      // CCH-02: a renamed attribute reads differently on every product page that shows it.
+      if (input.name !== undefined) await this.products.bumpVersion(tx, tenantId);
       const options = await this.attributes.listOptions(tx, tenantId, [row.id], true);
       return attributeView(row, options);
     });
   }
 
-  /** A shop's own value of an attribute with options, its own or the platform's. */
+  /** A shop's own value of an attribute with options, its own or the platform's, with its swatch (ATR-18). */
   async addOption(
     tenantId: string,
     attributeId: string,
@@ -174,12 +213,18 @@ export class AttributeService {
   ): Promise<OptionView> {
     return this.transactions.run(async (tx) => {
       const attribute = await this.holdingOptions(tx, tenantId, attributeId);
-      const value = this.canonicalValue(attribute, input.value);
+      const value = canonicalOptionValue(attribute, input.value);
       await this.refuseTakenValue(tx, tenantId, attributeId, value, null);
       const sortOrder = await this.attributes.nextOptionPosition(tx, tenantId, attributeId);
       try {
         return optionView(
-          await this.attributes.insertOption(tx, { tenantId, attributeId, value, sortOrder }),
+          await this.attributes.insertOption(tx, {
+            tenantId,
+            attributeId,
+            value,
+            swatchColor: canonicalSwatch(input.swatchColor) ?? null,
+            sortOrder,
+          }),
         );
       } catch (error) {
         if (error instanceof UniqueViolation)
@@ -189,7 +234,51 @@ export class AttributeService {
     });
   }
 
-  /** Renames or retires one of the shop's own values. */
+  /**
+   * ATR-16: several values at once, as tapping an option set adds them, returned in the order given. A value the
+   * shop already sees (the platform's, with its swatch, or its own) is reused rather than doubled; one of its own it
+   * had retired comes back.
+   */
+  async addOptions(
+    tenantId: string,
+    attributeId: string,
+    input: AddOptionsInput,
+  ): Promise<OptionView[]> {
+    return this.transactions.run(async (tx) => {
+      const attribute = await this.holdingOptions(tx, tenantId, attributeId);
+      const values = input.values.map((value, index) =>
+        canonicalOptionValue(attribute, value, `values.${String(index)}`),
+      );
+      const result: OptionRecord[] = [];
+      let sortOrder = await this.attributes.nextOptionPosition(tx, tenantId, attributeId);
+      for (const value of values) {
+        if (result.some((option) => option.value.toLowerCase() === value.toLowerCase())) continue;
+        const existing = await this.attributes.findOptionByValue(tx, tenantId, attributeId, value);
+        if (existing && existing.tenantId !== null && existing.retiredAt !== null) {
+          const revived = await this.attributes.updateOption(
+            tx,
+            tenantId,
+            attributeId,
+            existing.id,
+            {
+              retiredAt: null,
+            },
+          );
+          result.push(revived ?? existing);
+        } else if (existing) {
+          result.push(existing);
+        } else {
+          result.push(
+            await this.attributes.insertOption(tx, { tenantId, attributeId, value, sortOrder }),
+          );
+          sortOrder += 1;
+        }
+      }
+      return result.map(optionView);
+    });
+  }
+
+  /** Renames, re-colours or retires one of the shop's own values. */
   async updateOption(
     tenantId: string,
     attributeId: string,
@@ -202,16 +291,21 @@ export class AttributeService {
       if (!current || current.tenantId === null || current.attributeId !== attributeId) {
         throw new ApiError('not_found', 'OptionNotFound', {});
       }
-      const patch: { value?: string; retiredAt?: Date | null } = {};
+      const patch: OptionPatch = {};
       if (input.value !== undefined) {
-        patch.value = this.canonicalValue(attribute, input.value);
+        patch.value = canonicalOptionValue(attribute, input.value);
         await this.refuseTakenValue(tx, tenantId, attributeId, patch.value, optionId);
       }
+      if (input.swatchColor !== undefined) patch.swatchColor = canonicalSwatch(input.swatchColor);
       if (input.retired !== undefined) {
         patch.retiredAt = input.retired ? (current.retiredAt ?? new Date()) : null;
       }
       const row = await this.attributes.updateOption(tx, tenantId, attributeId, optionId, patch);
       if (!row) throw new ApiError('not_found', 'OptionNotFound', {});
+      // CCH-02: the value and its swatch show in the variant pickers of every product that uses it (ATR-18).
+      if (row.value !== current.value || row.swatchColor !== current.swatchColor) {
+        await this.products.bumpVersion(tx, tenantId);
+      }
       return optionView(row);
     });
   }
@@ -227,22 +321,6 @@ export class AttributeService {
       throw new ApiError('conflict', 'AttributeHasNoOptions', {});
     }
     return attribute;
-  }
-
-  /** UOM-02: a number-with-unit value is stored as a plain number ("1.50" and "1.5" are the same value). */
-  private canonicalValue(attribute: AttributeRecord, value: string): string {
-    if (attribute.dataType !== AttributeDataType.NumberWithUnit) return value;
-    const amount = Number(value);
-    if (!NUMBER_VALUE.test(value) || !(amount > 0)) {
-      throw new FieldsError([
-        {
-          field: 'value',
-          problem: ServerFieldProblemCode.OutOfRange,
-          messageKey: 'OptionValueNotANumber',
-        },
-      ]);
-    }
-    return String(amount);
   }
 
   private async refuseTakenName(

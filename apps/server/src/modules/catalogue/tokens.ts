@@ -3,3 +3,6 @@ export const ATTRIBUTE_STORE = Symbol('ATTRIBUTE_STORE');
 export const CATEGORY_STORE = Symbol('CATEGORY_STORE');
 export const PRODUCT_STORE = Symbol('PRODUCT_STORE');
 export const PRESET_STORE = Symbol('PRESET_STORE');
+export const SIZE_CHART_STORE = Symbol('SIZE_CHART_STORE');
+export const OPTION_SET_STORE = Symbol('OPTION_SET_STORE');
+export const PLATFORM_LIBRARY_STORE = Symbol('PLATFORM_LIBRARY_STORE');

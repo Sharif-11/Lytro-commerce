@@ -423,13 +423,17 @@ their backend ships earlier.
 
 ### Slice 1: catalogue core — products, variants, attributes, units, presets
 - **Status (2026-10-19):** built as three PRs, since one would be too large to review.
-  - **1a, catalogue core (this PR):** the catalogue and attribute tables with their data-layer limits and scope
+  - **1a, catalogue core (#150):** the catalogue and attribute tables with their data-layer limits and scope
     checks; the shop-type presets and the shop's business type; the attribute library; the category tree; products
     with their variant matrix, describing attributes, slugs and redirects; the product limit; the pay-as-you-go
     product fee.
-  - **1b, product extras:** size charts (PRD-17), duplicate product (PRD-18), option sets and swatches (ATR-16,
-    ATR-18), categories that behave like another shop type (PST-06), and the operator's editing of presets and the
-    platform library (PST-04, ATL-01).
+  - **1b, product extras (this PR, migration 0052):** size charts (PRD-17), duplicate product (PRD-18), option sets and
+    swatches (ATR-16, ATR-18), categories that behave like another shop type (PST-06), the up-front fields each
+    preset names (PST-05), and the operator's editing of presets and the platform library (PST-04, ATL-01). A chart
+    is a table for now; the image chart, image swatches and copying a product's images arrive with media (Slice 6).
+    A product without its own chart shows the one on its primary category or the nearest category above it. The
+    operator writes the platform's rows through the application role under a `platform_curation` policy rather
+    than a separate connection.
   - **1c, delivery:** the canonical location list (CUS-08), delivery zones with the home area (DLV-01 to DLV-03,
     DLV-06, DLV-07) and the shop's default payment policy (PRD-08).
 - **Depends on:** none in this phase (reads Phase 2's plan-limit machinery).
@@ -562,7 +566,8 @@ their backend ships earlier.
 - **Depends on:** Slices 1, 2 (stock state), 6 (thumbnails) and 8 (public keys, rate-limit ordering).
 - **Delivers:** public list, detail, category tree and search endpoints returning public fields only;
   keyset pagination; slim list payload from denormalised columns; the catalogue-version endpoint;
-  cache-key normalisation; ETag/304; the process-memory LRU (100 MB cap, coalesced misses); edge headers
+  cache-key normalisation, with a platform library version beside the shop's own so an operator's edit to the
+  shared attributes reaches every shop (KNOWN-GAPS §66); ETag/304; the process-memory LRU (100 MB cap, coalesced misses); edge headers
   with stale-while-revalidate; full-text and trigram search; immutable image URLs; product lookup by
   slug with old-slug redirect resolution; the tenant's ad-tracking settings (pixel ID in public responses,
   Conversions API token encrypted, never returned, changes audited); the Meta catalog feed (a CSV at a

@@ -1349,6 +1349,16 @@ loosened later. Planned with Slice 11. The console's policy, and the harness tha
 every screen loaded under the policy with no violation, plus a check that an injected script, a foreign fetch
 and framing are refused.
 
+## 66. `CCH-02`: an operator's edit to the platform library moves no shop's catalogue version — open, found 2026-10-19
+
+Slice 1b lets the operator rename, re-colour or retire a platform attribute or value (PST-04, ATL-01, ATR-18), and
+every shop using it shows the change. `CCH-02` keys each shop's caches on that shop's own
+`tenant.catalogue_state.version`, and the operator's write cannot move every shop's version (row-level security
+scopes `catalogue_state` to one shop, and one platform edit could touch thousands of shops). Nothing reads the
+public catalogue yet, so nothing serves a stale page today. Slice 9, which builds the public catalogue and its
+cache keys, must add a platform library version to the key (one row the operator's writes bump), so a platform
+edit is visible within `PRD-10`'s window. A shop's own edits already move its version, swatches included.
+
 ## Not a bug, just noting it so it isn't mistaken for one later
 
 The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data
