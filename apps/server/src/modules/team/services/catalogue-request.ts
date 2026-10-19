@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { catalogueIdSchema } from '@lytronix/validators';
+import { catalogueIdSchema, type Permission } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import { ClientIp } from '../../../common/client-ip';
 import type { MessageKey } from '../../../common/i18n/message-key';
@@ -7,6 +7,7 @@ import { PlanLimitOverridesService } from '../../billing/services/plan-limit-ove
 import type { CatalogueActor, CatalogueShop, OperatorActor } from '../../catalogue/types/catalogue';
 import type { DashboardRequest } from '../../identity/guards/dashboard.guard';
 import type { OperatorSessionRequest } from '../../operator/guards/operator-session.guard';
+import { StaffService } from '../../staff/services/staff.service';
 
 /** What every catalogue route reads off its request: the shop (with its effective limits) and who is acting. */
 @Injectable()
@@ -14,7 +15,24 @@ export class CatalogueRequest {
   constructor(
     @Inject(PlanLimitOverridesService) private readonly limitOverrides: PlanLimitOverridesService,
     @Inject(ClientIp) private readonly clientIp: ClientIp,
+    @Inject(StaffService) private readonly staff: StaffService,
   ) {}
+
+  /**
+   * Whether the caller holds a permission beyond the one the route requires, for what a response may show (D3-9:
+   * cost needs inventory:manage). The owner holds every permission.
+   */
+  async holds(request: DashboardRequest, permission: Permission): Promise<boolean> {
+    const session = request.session;
+    const tenant = request.tenant;
+    if (!session || !tenant) return false;
+    if (session.userId === null) return true;
+    const held = await this.staff.permissionsOf(
+      { id: tenant.id, planLimits: tenant.planLimits },
+      session.userId,
+    );
+    return held?.includes(permission) ?? false;
+  }
 
   tenantIdOf(request: DashboardRequest): string {
     const tenant = request.tenant;

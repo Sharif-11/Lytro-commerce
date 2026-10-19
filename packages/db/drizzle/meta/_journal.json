@@ -379,6 +379,13 @@
       "when": 1792428177425,
       "tag": "0053_locations_delivery",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1792433865037,
+      "tag": "0054_inventory_ledger",
+      "breakpoints": true
     }
   ]
 }

@@ -12,6 +12,7 @@ export * from './api/shops/shops-create';
 export * from './api/shops/shop-settings';
 export * from './api/catalogue';
 export * from './api/delivery/delivery-zone';
+export * from './api/inventory/stock';
 export * from './api/staff/staff/staff-create';
 export * from './api/staff/staff/staff-password';
 export * from './api/audit/activity/activity-list';

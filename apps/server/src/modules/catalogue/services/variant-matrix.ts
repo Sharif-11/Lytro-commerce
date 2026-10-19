@@ -29,6 +29,12 @@ export type MatrixProblem =
  * ATL-04: a variant's combination key: its "attributeId=optionId" pairs sorted by attribute and joined by "&".
  * The key of a product's one default variant, which has no options, is ''.
  */
+/** The option ids a combination key names, in the key's own order; none for a product's one default variant. */
+export function optionIdsOfKey(key: string): string[] {
+  if (key === '') return [];
+  return key.split('&').map((pair) => pair.slice(pair.indexOf('=') + 1));
+}
+
 export function combinationKey(pairs: readonly OptionPair[]): string {
   return [...pairs]
     .sort((a, b) => (a.attributeId < b.attributeId ? -1 : a.attributeId > b.attributeId ? 1 : 0))

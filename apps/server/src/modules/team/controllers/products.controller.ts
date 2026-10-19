@@ -27,6 +27,7 @@ import { ResponseMessage } from '../../../common/decorators/response-message';
 import { OkDto } from '../../../common/dto/ok.dto';
 import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
 import { ProductService } from '../../catalogue/services/product.service';
+import { StockService } from '../../inventory/services/stock.service';
 import { SizeChartService, type SizeChartRows } from '../../catalogue/services/size-chart.service';
 import type { ProductDetail, ProductPage } from '../../catalogue/types/catalogue';
 import { DashboardGuard, type DashboardRequest } from '../../identity/guards/dashboard.guard';
@@ -54,6 +55,9 @@ import { CatalogueRequest } from '../services/catalogue-request';
 export class ProductsController {
   constructor(
     @Inject(ProductService) private readonly products: ProductService,
+    // INV-02, INV-03: opening stock, the made-to-order switch and a changed matrix move stock in the product's own
+    // transaction, through the hooks inventory provides.
+    @Inject(StockService) private readonly stock: StockService,
     @Inject(SizeChartService) private readonly charts: SizeChartService,
     @Inject(CatalogueRequest) private readonly catalogue: CatalogueRequest,
   ) {}
@@ -166,6 +170,7 @@ export class ProductsController {
       await this.catalogue.shopOf(request),
       body,
       this.catalogue.actorOf(request),
+      this.stock,
     );
   }
 
@@ -197,6 +202,7 @@ export class ProductsController {
       this.catalogue.idOf(id, 'ProductNotFound'),
       body,
       this.catalogue.actorOf(request),
+      this.stock,
     );
   }
 
@@ -235,6 +241,7 @@ export class ProductsController {
       this.catalogue.idOf(id, 'ProductNotFound'),
       body,
       this.catalogue.actorOf(request),
+      this.stock,
     );
   }
 

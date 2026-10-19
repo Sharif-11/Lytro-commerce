@@ -17,6 +17,7 @@ import {
   type Transaction,
 } from '@lytronix/db';
 import { MissingReference } from '../../common/errors/missing-reference';
+import { StockRefused } from '../../common/errors/stock-refused';
 import { UniqueViolation } from '../../common/errors/unique-violation';
 import type {
   AttributeStore,
@@ -62,6 +63,8 @@ const PLATFORM_OPTION_VALUE_INDEX = 'attribute_options_platform_value_idx';
 const OPTION_SET_NAME_INDEX = 'option_sets_tenant_name_idx';
 const PLATFORM_OPTION_SET_NAME_INDEX = 'option_sets_platform_name_idx';
 const PRODUCT_ZONE_KEY = 'product_delivery_zones_zone_fk';
+// UOM-03: the trigger that keeps a product holding a fraction of stock in a measured unit.
+const WHOLE_UNITS_CHECK = 'stock_whole_units';
 
 /** One transaction per unit of catalogue work. Each repository call sets the shop's tenant context itself. */
 @Injectable()
@@ -382,6 +385,8 @@ export class DrizzleProductStore implements ProductStore {
     } catch (error) {
       if (this.transactions.isUniqueViolation(error, PRODUCT_SLUG_KEY))
         throw new UniqueViolation('slug');
+      if (this.transactions.isCheckViolation(error, WHOLE_UNITS_CHECK))
+        throw new StockRefused('whole_units');
       throw error;
     }
   }

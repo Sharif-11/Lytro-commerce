@@ -68,3 +68,7 @@ export const DEFAULT_FALLBACK_ZONE_CHARGE = '130.00';
 export const DELIVERY_ZONE_MAX_ZILLAS = 64;
 export const DELIVERY_ZONE_MAX_CITIES = 11;
 export const DELIVERY_ZONE_MAX_THANAS = 600;
+// INV-03, INV-06: a stock movement's optional note.
+export const STOCK_NOTE_MAX_LENGTH = 200;
+// INV-09: a page of stock history.
+export const STOCK_HISTORY_PAGE_SIZE = 20;

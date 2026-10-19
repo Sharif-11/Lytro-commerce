@@ -49,6 +49,7 @@ import {
   LocationRepository,
   DeliveryZoneRepository,
   CatalogueDataRepository,
+  StockRepository,
 } from '@lytronix/db';
 import { EnvironmentParser } from '../config/env';
 import { ENV } from '../config/tokens';
@@ -123,6 +124,11 @@ import { DatabaseService } from './database.service';
       useFactory: (transactions: TransactionRunner) => new PlatformLibraryRepository(transactions),
     },
     { provide: LocationRepository, useFactory: () => new LocationRepository() },
+    {
+      provide: StockRepository,
+      inject: [TransactionRunner],
+      useFactory: (transactions: TransactionRunner) => new StockRepository(transactions),
+    },
     {
       provide: CatalogueDataRepository,
       inject: [TransactionRunner],
@@ -231,6 +237,7 @@ import { DatabaseService } from './database.service';
     LocationRepository,
     DeliveryZoneRepository,
     CatalogueDataRepository,
+    StockRepository,
   ],
 })
 export class DatabaseModule {}
