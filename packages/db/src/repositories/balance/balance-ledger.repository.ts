@@ -14,8 +14,9 @@ export interface LedgerCursor {
   id: number;
 }
 
-// BAL-02: the only writer of tenant.balance_ledger. Insert-only at the database role level (the migration adds
-// a trigger reusing tenant.reject_mutation()); this repository never updates or deletes a row it inserted.
+// BAL-02: the only writer of tenant.balance_ledger. Insert-only for every role (triggers reusing
+// tenant.reject_mutation()); the insert trigger moves the tenant's balance and fills balance_after, so an insert is
+// the whole balance change and this repository never updates or deletes a row it inserted.
 export class BalanceLedgerRepository {
   constructor(private readonly transactions: TransactionRunner) {}
 
@@ -46,16 +47,5 @@ export class BalanceLedgerRepository {
       .where(and(...conditions))
       .orderBy(desc(balanceLedger.id))
       .limit(limit);
-  }
-
-  /** BAL-02's invariant check: the sum of a tenant's own entries, re-derivable independently of balance_amount. */
-  async sumFor(tx: Transaction, tenantId: string): Promise<string> {
-    await this.transactions.setTenantContext(tx, tenantId);
-    const rows = await tx
-      .select({ amount: balanceLedger.amount })
-      .from(balanceLedger)
-      .where(eq(balanceLedger.tenantId, tenantId));
-    const total = rows.reduce((sum, row) => sum + Number(row.amount), 0);
-    return total.toFixed(2);
   }
 }

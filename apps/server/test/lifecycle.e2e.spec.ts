@@ -19,7 +19,7 @@ import { BalanceService } from '../src/modules/balance/services/balance.service'
 import { PlatformSettingsService } from '../src/modules/platform-settings/services/platform-settings.service';
 import { TenantResolver } from '../src/modules/tenancy/services/tenant-resolver.service';
 import { listenOn } from './support/bootstrap';
-import { prepareTestDatabase, seedShop } from './support/database';
+import { prepareTestDatabase, seedBalance, seedShop } from './support/database';
 import { SmsCapture } from './support/sms-capture';
 import { MailCapture } from './support/mail-capture';
 
@@ -940,13 +940,14 @@ describeIfDatabase('LIF-21: the old shop identity is revoked 30 days after delet
     const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, slug, 'trial');
     const planId = await seedPlan((nextRank += 1));
     await admin.query(
-      `UPDATE control.tenants SET plan_id = $1, balance_amount = '250.00',
+      `UPDATE control.tenants SET plan_id = $1,
          contact_phone = '01711111111', contact_email = 'owner@example.com',
          business_address = '123 Main Road', suspended_reason = 'past policy note',
          kyc_status = 'verified'
        WHERE id = $2`,
       [planId, tenantId],
     );
+    await seedBalance(admin, tenantId, '250.00');
     await markDeletedAt(tenantId, new Date(Date.now() - 31 * DAY_MS));
 
     const stillReservedSlug = freshSlug();

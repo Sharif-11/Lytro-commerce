@@ -44,6 +44,8 @@ export interface TenantStore {
   ): Promise<string>;
   /** Locks the tenant's balance row for the rest of the transaction (BAL-11). Null if the tenant does not exist. */
   lockBalanceForUpdate(tx: Transaction, tenantId: string): Promise<BalanceRow | null>;
+  /** BAL-01: the balance as last committed, without a lock. Null if the tenant does not exist. */
+  findBalance(tx: Transaction, tenantId: string): Promise<BalanceRow | null>;
   /** BAL-07/08/09: freezes or unfreezes the balance without touching its amount. */
   setBalanceFrozen(tx: Transaction, tenantId: string, frozen: boolean): Promise<void>;
   /** PLN-17/TRL-07: activates a plan assignment with a normal snapshot; `state` is the caller's to decide. */
@@ -71,13 +73,8 @@ export interface TenantStore {
     tenantId: string,
     floor: { days: number; until: Date },
   ): Promise<void>;
-  /** Writes the new balance, and optionally the frozen flag and/or the cached last-activity timestamp (D2-11). */
-  applyBalanceChange(
-    tx: Transaction,
-    tenantId: string,
-    amount: string,
-    options?: { frozen?: boolean; touchActivityAt?: Date },
-  ): Promise<void>;
+  /** D2-11: moves the cached last-activity timestamp. The balance itself moves only through a ledger entry. */
+  touchActivity(tx: Transaction, tenantId: string, at: Date): Promise<void>;
   /** LIF-03/04/23, PYG-09: the state write; entering `archived` records `at`. Plan, period and balance are untouched. */
   setLifecycleState(tx: Transaction, tenantId: string, state: TenantState, at: Date): Promise<void>;
   /** PYG-09, LIF-24: back on pay-as-you-go after a suspension archived it, the idle clock restarting at `at`. */

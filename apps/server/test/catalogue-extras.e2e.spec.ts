@@ -9,7 +9,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from '../src/app/app.module';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { listenOn } from './support/bootstrap';
-import { prepareTestDatabase } from './support/database';
+import { prepareTestDatabase, seedBalance } from './support/database';
 import {
   cookieFrom,
   deleteJson,
@@ -313,11 +313,12 @@ describeIfDatabase('duplicating a product (PRD-18)', () => {
 
     const payg = await openShop(port, texts, 'dup-payg');
     await admin.query(
-      `UPDATE control.tenants SET state = 'pay_as_you_go', balance_amount = '100.00',
+      `UPDATE control.tenants SET state = 'pay_as_you_go',
          plan_id = (SELECT id FROM control.plans WHERE name = 'Pay-as-you-go')
        WHERE id = $1`,
       [payg.tenantId],
     );
+    await seedBalance(admin, payg.tenantId, '100.00');
     const original = await create(payg, { name: 'Original', basePrice: 1 });
     const copy = (await payg.post(`/products/${original.id}/duplicate`, {})).body as Product;
     const fees = await admin.query<{ amount: string; reference: unknown }>(

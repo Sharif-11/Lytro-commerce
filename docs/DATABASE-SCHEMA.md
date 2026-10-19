@@ -149,7 +149,10 @@ CREATE TABLE control.tenants (
     period_end            timestamptz,
     balance_amount        numeric(12,2) NOT NULL DEFAULT 0,  -- BAL-01: one balance per subscriber; since
                                                               -- subscriber:tenant is 1:1 (AUTH-10), it lives
-                                                              -- here rather than duplicated in `control.subscribers`
+                                                              -- here rather than duplicated in `control.subscribers`.
+                                                              -- BAL-02: moved only by a balance_ledger insert
+                                                              -- (its trigger, migration 0055); any other change,
+                                                              -- or a new row not at 0, is refused for every role
     balance_frozen         boolean NOT NULL DEFAULT false,
     created_at            timestamptz NOT NULL DEFAULT now(),
     suspended_at           timestamptz,
@@ -1244,21 +1247,30 @@ CREATE TABLE tenant.courier_connections (
     UNIQUE (tenant_id, courier_key)
 );
 
+CREATE TYPE tenant.ledger_entry_type AS ENUM ('top_up', 'sms', 'ai', 'extraction', 'fraud_check',
+    'order_fee', 'product_fee', 'plan_payment', 'adjustment', 'reversal',
+    'carry_over');                                      -- carry_over: LIF-21, a deleted shop's balance moved to the new one
+
 CREATE TABLE tenant.balance_ledger (
     id              bigserial PRIMARY KEY,
     tenant_id       uuid NOT NULL,
-    type            text NOT NULL,                     -- top_up | sms | ai | extraction | fraud_check |
-                                                          -- order_fee | product_fee | plan_payment | adjustment | reversal |
-                                                          -- carry_over (LIF-21: a deleted shop's balance moved to the new one)
-    amount          numeric(10,2) NOT NULL,             -- signed
+    type            tenant.ledger_entry_type NOT NULL,
+    amount          numeric(10,2) NOT NULL CHECK (amount <> 0),  -- signed, never zero
     units           numeric(10,2),
     rate_used       numeric(12,4),
     reference       jsonb,
-    balance_after   numeric(12,2) NOT NULL,
+    balance_after   numeric(12,2) NOT NULL DEFAULT 0,   -- filled by the insert trigger, never by the writer
     created_at      timestamptz NOT NULL DEFAULT now()
 );
--- BAL-02: append-only (insert-only grant, same pattern as audit tables); balance_amount on
--- control.tenants is a cached total, always re-derivable by summing this table.
+-- BAL-02, BAL-11 (migration 0055, 2026-10-20): the database keeps the balance from this table, the way
+-- stock_levels is kept from stock_movements. A BEFORE INSERT trigger locks the tenant's control.tenants row
+-- (so one tenant's entries apply in turn), fills balance_after and moves balance_amount to it; a trigger on
+-- control.tenants refuses any other change to balance_amount (pg_trigger_depth() > 1 lets only the entry
+-- trigger through). The application still locks the same row first, to check the frozen flag and the
+-- overdraft floor (BAL-07, BAL-08, BAL-10) against the balance the entry then moves.
+-- DAT-10: append-only. UPDATE and DELETE are refused for every role (tenant.reject_mutation(), 0026), and so is
+-- TRUNCATE (0055), which row triggers never see; the application role holds only SELECT and INSERT.
+-- The amount check covers entries written from 0055 on (NOT VALID); an earlier entry is never changed.
 ```
 
 **Note on `transaction_id` uniqueness (PAY-16, BIL-07):** the SRS states this must be unique *platform-wide*, but `tenant.payment_sessions`/`payments` live in per-tenant, RLS-protected tables, so a plain unique index only covers one tenant. At launch (single cell, one schema) a lightweight `control.used_transaction_ids (transaction_id text primary key, first_used_at timestamptz, tenant_id uuid)` table (defined in full in section 2.4), written in the same transaction as the payment/session insert, gives the real platform-wide guarantee without weakening tenant RLS. This is exactly the kind of platform-wide uniqueness registry SCL-06 already anticipates living in the control schema once cells exist.

@@ -1388,6 +1388,48 @@ Found while fixing §67. The fix belongs in that purger: for a tenant whose `del
 except the billing and deletion events, under the same switched-off trigger and transaction it already uses.
 Not scheduled yet.
 
+## 69. `BAL-02`, `BAL-11`, `BAL-16`, `ADM-08`: the balance ledger's guarantees rested on application code — found and fixed 2026-10-20
+
+An ACID audit of the balance ledger, made after the stock ledger (Slice 2a) was built with its invariants in the
+database. Atomicity and isolation already held: every change locked the tenant row, checked it, wrote the entry
+and the new balance in the caller's transaction, and the `BAL-11` test proved concurrent charges apply in turn.
+What it found:
+- **The balance was not tied to the ledger in the database.** The application role may update every column of
+  `control.tenants`, so any code or query could change `balance_amount` without an entry, and nothing checked
+  `balance_after`. Only the code path proved "balance = sum of entries".
+- **An operator's adjustment wrote its platform audit entry after its transaction committed**, and the payment
+  approval and rejection wrote theirs on a separate connection before theirs did. A crash, or a commit that failed,
+  could leave an adjustment with no `ADM-08` entry, or an entry for an approval that never happened.
+- **An entry's type was free text, and a charge of nothing was accepted** as an empty entry; a negative charge
+  failed only as a 500.
+- **Units × rate (`BAL-16`) truncated instead of rounding**, and refused a rate as stored (`0.5500`, four decimals);
+  the pay-as-you-go fees rounded rates with floating point (`DAT-05`).
+- **`TRUNCATE` passed the append-only triggers**, which are row triggers, on the balance ledger, the activity log and
+  stock movements (the schema owner only; the application role holds no `TRUNCATE`).
+- **Reading the balance took the charge lock** (`SELECT … FOR UPDATE`), so a balance page waited behind charges.
+- `BalanceLedgerRepository.sumFor`, meant as the `BAL-02` check, summed with floats and had no caller.
+
+**Fixed** (migration 0055): an entry's insert now locks the tenant row, fills `balance_after` and moves
+`balance_amount`, and a trigger refuses any other change to the balance for every role, so `BalanceService` no
+longer writes it. The type is the `tenant.ledger_entry_type` enum; a zero amount is refused by a check, and a
+charge of nothing or less by `BalanceService.charge`. A pay-as-you-go fee whose rate is 0 writes no entry; the
+`ai_reply` and `fraud_check` rates are seeded at 0, so their charges must skip a 0 rate the same way when they are
+built. Platform audit entries for adjustments, approvals and rejections join their transaction
+(`PlatformAuditService.recordWithin`). Money helpers round half up on exact integers for units × rate, flat rates
+and percentages. The three append-only tables refuse `TRUNCATE`. `current()` reads without a lock. `sumFor` is
+gone. Proven in `balance-ledger.e2e.spec.ts`, `plan-purchase.e2e.spec.ts`, `trial-lifecycle.e2e.spec.ts` and
+`money.spec.ts`, each case broken on purpose and caught. Tests that seeded a balance with `UPDATE` now write an
+entry (`seedBalance` in `test/support/database.ts`).
+
+## 70. `ADM-08`: most platform audit entries are written after their action commits — open, found 2026-10-20
+
+§69 moved the balance adjustment and the payment approval and rejection into their own transactions. The other
+`PlatformAuditService.record` callers still write after the action's transaction has committed: billing terms,
+rates, platform wallets, plan assignment, plan-limit overrides, the lifecycle job, the platform library, platform
+settings and operator sign-in. A crash between the two leaves the action done with no `ADM-08` entry. None of them
+moves money. The fix is the same: open the action's transaction around both and call `recordWithin`. Not
+scheduled yet.
+
 ## Not a bug, just noting it so it isn't mistaken for one later
 
 The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data

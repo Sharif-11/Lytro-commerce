@@ -386,6 +386,13 @@
       "when": 1792433865037,
       "tag": "0054_inventory_ledger",
       "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1792436755815,
+      "tag": "0055_balance_ledger_guards",
+      "breakpoints": true
     }
   ]
 }

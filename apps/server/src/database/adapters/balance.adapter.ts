@@ -43,7 +43,6 @@ export class DrizzleBalanceLedgerStore implements BalanceLedgerStore {
       tenantId: entry.tenantId,
       type: entry.type,
       amount: entry.amount,
-      balanceAfter: entry.balanceAfter,
       units: entry.units ?? null,
       rateUsed: entry.rateUsed ?? null,
       reference: entry.reference ?? null,
