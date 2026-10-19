@@ -6,12 +6,17 @@ import {
   usePlatformWallets,
   useUpdatePlatformWallet,
 } from '@/api/platform-wallets';
-import { errorMessage } from '@/api/error-message';
-import { Button } from '@/components/ui/button';
-import { Tag } from '@/components/ui/chip';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { Card, EmptyLine, Page, PageHeader } from '@/components/ui/fields';
-import { ErrorBanner } from '@/components/ui/notice';
+import { errorMessage } from '@lytronix/api-client';
+import {
+  Button,
+  Card,
+  ConfirmDialog,
+  EmptyLine,
+  ErrorBanner,
+  Page,
+  PageHeader,
+  Tag,
+} from '@lytronix/ui';
 import type { PlatformWallet } from '@/types/operator';
 import { WalletForm, type WalletFormValues } from './wallet-form';
 

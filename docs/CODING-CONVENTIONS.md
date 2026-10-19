@@ -9,6 +9,8 @@ apps/server/src/          NestJS modular monolith
 packages/db/              @lytronix/db: connection, schema, repositories, migrations, database tests
 packages/validators/      @lytronix/validators: request shapes, shared limits, enumerations, plan shapes
 packages/shared-types/    @lytronix/shared-types: error codes and API envelope types
+packages/ui/              @lytronix/ui: design tokens and themes, basic components, formats, language setup (§6c)
+packages/api-client/      @lytronix/api-client: the browser apps' request wrapper and error fallback (§6c)
 packages/config/          shared TypeScript configuration
 docs/                     requirements, designs, plans and this document
 ```
@@ -17,6 +19,8 @@ Dependency rules (enforced by lint where possible):
 - `validators` and `shared-types` import no internal package.
 - `db` imports only `validators`.
 - `server` imports `db`, `validators` and `shared-types`.
+- `ui` imports no internal package; `api-client` imports only `shared-types`.
+- `dashboard` and `operator` import `ui`, `api-client`, `validators` and `shared-types`, never each other.
 - Applications never import `db` directly except through the server.
 
 ## 2. Language rules
@@ -198,9 +202,8 @@ apps/server/src/
 
 Rebuilt 2026-10-19 from `ONBOARDING-FLOW-DESIGN.md` as a fresh Vite + React app serving only the tenant side at
 `app.lytro.app` (D3-12). The old `apps/admin`, which also carried the operator console and picked its screens
-by hostname, was removed; `apps/operator` (§6b) took the console the same day. Shared code (`packages/ui`,
-`packages/api-client`, PHASE-3-PLAN Slice 0b) is still to be extracted; until then each app carries its own
-copy of the request wrapper, the error mapping, the icons, the wordmark and the primitives.
+by hostname, was removed; `apps/operator` (§6b) took the console the same day. What both apps use comes from
+`packages/ui` and `packages/api-client` (§6c, PHASE-3-PLAN Slice 0b); this tree holds only the dashboard's own.
 
 ```
 apps/dashboard/src/
@@ -224,34 +227,33 @@ apps/dashboard/src/
   views/<screen>/
     index.tsx                the real page; sibling files are view-local pieces (checkout/plan-picker.tsx)
   components/
-    ui/                      primitives: button, text-field, otp-input, chip, notice, icon, language-toggle,
-                             step-frame (the onboarding shell with the progress bar), confirm-dialog, fields
-                             (select, checkbox row, page header, card, page column)
-    brand/                   the mark, the wordmark, Powered by Lytro, the Google and Facebook marks
+    ui/                      the primitives only the dashboard uses: otp-input, sheet, toast, step-frame (the
+                             onboarding shell with the progress bar); the rest come from @lytronix/ui
+    brand/                   the Google and Facebook marks (Lytro's own mark and wordmark are in @lytronix/ui)
     layout/                  the shop shell, split on ENGINEERING-STANDARDS.md §2a's container/presentational
                              line: shop-shell.tsx (container, reads /me) over sidebar.tsx, bottom-nav.tsx,
                              shop-header.tsx, lifecycle-banner.tsx (presentational); nav-items.ts is the one
                              list both navs render
   api/
-    client.ts                the typed fetch wrapper: CSRF header on mutating requests, the error envelope
     me.ts, auth.ts, billing.ts, balance.ts, staff.ts, activity.ts, shop-settings.ts, identities.ts
                              query/mutation hooks per backend module; a view calls useMe(), never the client
-    error-message.ts         ErrorCode → copy, exhaustive, no default
   session/
-    tenant-session.ts        the CSRF token and the last /me; the auth-init gate guards wait on
+    tenant-session.ts        the CSRF token, the last /me and the ApiClient; the auth-init gate guards wait on
+    shop-of-path.ts          the shop a page belongs to (TEN-31), which the client names on every call
     sign-up-intent.ts        the claimed address and picked plan, carried through step 1 (AUTH-28/29)
     shop-setup-store.ts      the set-up answers and the share-link tick, per device until the endpoints exist
     next-step.ts             NextStep → route, exhaustive
-  lib/                       pure helpers with injected settings: app-config, slug, phone, pricing-table, money
+  lib/                       pure helpers with injected settings: app-config, slug, phone, pricing-table, dates
+                             (times within a day, grouping by day)
   hooks/                     generic hooks: use-document-title, use-countdown, use-copy-to-clipboard
-  i18n/                      react-i18next; bn.json and en.json
+  i18n/                      @lytronix/ui's startLanguage with Bangla first and its own key; bn.json and en.json
   types/                     structural duplicates of server response shapes (me, auth, billing)
 ```
 
 - **React components stay functions.** This is the one place §2's "classes, not free functions" rule does not
-  apply — React's own model (hooks) requires function components. The rule still applies to everything in this
-  tree that is *not* a component: `client.ts`, the two session holders above, are classes with injected
-  config, the same shape the server's own services use.
+  apply — React's own model (hooks) requires function components. The rule still applies to everything that is
+  *not* a component: `ApiClient` (§6c) and the session holders are classes with injected config, the same shape
+  the server's own services use.
 - Stack: TanStack Router (file-based) and TanStack Query (server state) — not React Router or Redux Toolkit.
   Chosen over RTK Query specifically to avoid adopting Redux as the app's state layer for an app that has no
   cross-cutting client state that needs it (see the comparison in the slice 9 planning discussion for the
@@ -280,13 +282,12 @@ apps/operator/src/
                            limit overrides, assign plan), plans (form, list, prices, versions), billing-terms,
                            rates, settings, wallets, account (backup-code regeneration)
   components/
-    ui/                    the dark primitives: button, text-field (+ textarea), chip/tag, notice, fields,
-                           confirm-dialog, icon, language-toggle
-    layout/                console-shell (sidebar from 1024 px, menu sheet below), auth-frame, nav-items
-  api/                     client.ts, error-message.ts, operator-auth, plans, billing-terms, rates, settings,
-                           tenants, payment-queue, platform-wallets
-  session/                 operator-session.ts (CSRF key lytro.operator.csrf)
-  lib/                     limit-keys (from planLimitsSchema, the one list), dates, money, download, use-copy
+    layout/                console-shell (sidebar from 1024 px, menu sheet below), auth-frame, nav-items; every
+                           primitive comes from @lytronix/ui, in the console theme (§6c)
+  api/                     operator-auth, plans, billing-terms, rates, settings, tenants, payment-queue,
+                           platform-wallets
+  session/                 operator-session.ts (CSRF key lytro.operator.csrf, the ApiClient)
+  lib/                     limit-keys (from planLimitsSchema, the one list), download, use-copy
   types/operator.ts        structural duplicates of the operator response shapes
 ```
 - `apps/dashboard` may import `@lytronix/validators` and `@lytronix/shared-types` directly (confirmed neither has
@@ -296,6 +297,36 @@ apps/operator/src/
   layer as a facade, a custom hook as the unit of reuse) are written up in full in
   `ENGINEERING-STANDARDS.md` §2a and §3a — this section is the file tree those principles produce, not a
   restatement of the reasoning behind it.
+
+## 6c. Shared browser packages (packages/ui, packages/api-client)
+
+Extracted 2026-10-19 (PHASE-3-PLAN Slice 0b) from the two apps' copies, with no visible change to either.
+
+```
+packages/ui/src/
+  styles/base.css          brand scales, type, shape and base classes, the same in every app
+  styles/light.css         the dashboard's theme: the semantic roles at their light values (BRAND-IDENTITY §8.2)
+  styles/console.css       the operator console's inverted theme (§8.4)
+  components/              button, chip and tag, confirm-dialog, fields, icon, language-toggle, notice,
+                           text-field (+ textarea), wordmark
+  format/                  formatTaka, formatTakaExact, daysUntil, formatDate, formatDateTime
+  language.ts              startLanguage: i18next on the device's last choice, remembered per app (I18N-01/02)
+  dictionary-keys.ts       the keys the components read from each app's dictionaries
+packages/api-client/src/
+  api-client.ts            ApiClient (cookies, the CSRF header, the shop a call names) and ApiClientError
+  error-message.ts         errorMessage(): the server's own copy first, the app's dictionary as the fallback
+```
+- **A shared component names only semantic roles** (`bg-primary`, `text-fg`, `bg-field`, `border-control-line`,
+  `text-copy`, ...), never a raw scale, and each theme points every role at its own value. A new role goes into
+  both theme files in the same change. Brand colours that never change (the wordmark's) are the exception.
+- An app's `index.css` imports `tailwindcss`, then `@lytronix/ui/base.css`, then its one theme. `base.css` carries
+  `@source '../components'`, so Tailwind sees the components' classes from inside each app's build.
+- A component only one app uses stays in that app; it moves here when a second app needs it.
+- Each app's dictionaries carry `ERROR_MESSAGE_KEYS` and `UI_DICTIONARY_KEYS`, each in its own wording, and each
+  app's dictionaries test checks them.
+- Both packages build to `dist/` with `tsc`, like `shared-types`; turbo's `^build` builds them before an app.
+  While an app's dev server runs, a change to a package's TypeScript shows after `pnpm --filter @lytronix/ui build`
+  (or `api-client`); the theme CSS is read from source, so a change there shows at once.
 
 ## 7. Database connection
 

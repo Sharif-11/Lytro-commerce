@@ -1,10 +1,7 @@
 import { useState, type SyntheticEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { PlanLimits } from '@lytronix/validators';
-import { Button } from '@/components/ui/button';
-import { Card, CardTitle, CheckboxRow } from '@/components/ui/fields';
-import { ErrorBanner } from '@/components/ui/notice';
-import { TextField } from '@/components/ui/text-field';
+import { Button, Card, CardTitle, CheckboxRow, ErrorBanner, TextField } from '@lytronix/ui';
 import { canBeUnlimited, LIMIT_KEYS, limitLabelKey, type LimitKey } from '@/lib/limit-keys';
 import type { Plan } from '@/types/operator';
 

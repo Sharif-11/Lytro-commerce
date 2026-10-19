@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Icon, type IconName } from '@/components/ui/icon';
+import { Icon, type IconName } from '@lytronix/ui';
 import type { ShopSection } from '@/components/layout/nav-items';
 
 const icons: Record<Exclude<ShopSection, 'home' | 'more'>, IconName> = {

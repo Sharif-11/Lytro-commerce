@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Button } from '@/components/ui/button';
+import { Button } from '@lytronix/ui';
 import { downloadText } from '@/lib/download';
 import { useCopy } from '@/lib/use-copy';
 

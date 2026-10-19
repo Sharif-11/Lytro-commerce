@@ -1,9 +1,6 @@
 import { useState, type SyntheticEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button } from '@/components/ui/button';
-import { ErrorBanner } from '@/components/ui/notice';
-import { TextField } from '@/components/ui/text-field';
-import { formatTaka } from '@/lib/money';
+import { Button, ErrorBanner, formatTaka, TextField } from '@lytronix/ui';
 import type { PlatformWallet } from '@/types/billing';
 
 export interface WalletPaymentValues {

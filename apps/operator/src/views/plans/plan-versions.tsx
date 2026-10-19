@@ -1,6 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Card, CardTitle } from '@/components/ui/fields';
-import { formatDateTime } from '@/lib/dates';
+import { Card, CardTitle, formatDateTime } from '@lytronix/ui';
 import type { PlanVersion } from '@/types/operator';
 
 /** PLN-02: the prior versions a plan edit snapshotted, read-only. */

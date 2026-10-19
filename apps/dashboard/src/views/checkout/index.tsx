@@ -9,9 +9,8 @@ import {
   usePlatformWallets,
   useQuotePurchase,
 } from '@/api/billing';
-import { errorMessage } from '@/api/error-message';
-import { Button } from '@/components/ui/button';
-import { Notice } from '@/components/ui/notice';
+import { errorMessage } from '@lytronix/api-client';
+import { Button, Notice } from '@lytronix/ui';
 import { StepFrame } from '@/components/ui/step-frame';
 import { PricingTable } from '@/lib/pricing-table';
 import { signUpIntent } from '@/session/sign-up-intent';

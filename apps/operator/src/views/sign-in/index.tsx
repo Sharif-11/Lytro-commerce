@@ -7,7 +7,7 @@ import {
   useOperatorVerify,
   type Credentials,
 } from '@/api/operator-auth';
-import { errorMessage } from '@/api/error-message';
+import { errorMessage } from '@lytronix/api-client';
 import { AuthFrame } from '@/components/layout/auth-frame';
 import { BackupCodesStep } from './backup-codes-step';
 import { CredentialsStep } from './credentials-step';

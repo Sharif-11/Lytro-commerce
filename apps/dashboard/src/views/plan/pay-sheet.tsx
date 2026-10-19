@@ -8,11 +8,9 @@ import {
   useQuotePurchase,
   useQuoteUpgrade,
 } from '@/api/billing';
-import { errorMessage } from '@/api/error-message';
-import { Button } from '@/components/ui/button';
-import { ErrorBanner } from '@/components/ui/notice';
+import { errorMessage } from '@lytronix/api-client';
+import { Button, ErrorBanner, formatTaka } from '@lytronix/ui';
 import { Sheet } from '@/components/ui/sheet';
-import { formatTaka } from '@/lib/money';
 import type { PricingTable } from '@/lib/pricing-table';
 import type { Plan, PlanPayment } from '@/types/billing';
 import { WalletStep } from '@/views/billing/wallet-step';

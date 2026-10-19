@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
-import { Icon } from '@/components/ui/icon';
+import { Icon } from '@lytronix/ui';
 import { bottomNavItems } from './nav-items';
 
 /** Phones and small tablets: five tabs, icon over label, 56 px tall plus the safe area. */

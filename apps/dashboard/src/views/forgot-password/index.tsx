@@ -2,11 +2,9 @@ import { useState, type SyntheticEvent } from 'react';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { useRequestPasswordReset } from '@/api/auth';
-import { errorMessage } from '@/api/error-message';
-import { Button } from '@/components/ui/button';
-import { ErrorBanner } from '@/components/ui/notice';
+import { errorMessage } from '@lytronix/api-client';
+import { Button, ErrorBanner, TextField } from '@lytronix/ui';
 import { StepFrame } from '@/components/ui/step-frame';
-import { TextField } from '@/components/ui/text-field';
 import { bangladeshiPhone } from '@/lib/phone';
 
 /** AUTH-17: the reply is the same whether or not the number has an account. */

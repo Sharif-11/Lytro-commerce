@@ -1,4 +1,4 @@
-import type { IconName } from '@/components/ui/icon';
+import type { IconName } from '@lytronix/ui';
 
 export type ShopSection = 'home' | 'orders' | 'products' | 'customers' | 'balance' | 'more';
 

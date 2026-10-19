@@ -1,0 +1,86 @@
+/* Lytro's identity in code (docs/brand/tokens.css; BRAND-IDENTITY.md §4–§6, §9): the brand scales, type and
+   shape every app shares. An app imports this right after Tailwind, then one theme: light.css (the tenant
+   dashboard) or console.css (the operator console). A theme points the semantic roles the shared components
+   use (primary, surface, fg, field, ...) at its own values; the components never name a raw scale. */
+@source '../components';
+
+@theme {
+  --font-sans: 'Inter', 'Noto Sans Bengali', ui-sans-serif, system-ui, sans-serif;
+  --font-bn: 'Noto Sans Bengali', 'Inter', sans-serif;
+  --font-display: 'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+  --color-brand-50: #effaf8;
+  --color-brand-100: #ddf5f2;
+  --color-brand-200: #b9ece6;
+  --color-brand-300: #7fdcd3;
+  --color-brand-400: #3ec4b9;
+  --color-brand-500: #17a89e;
+  --color-brand-600: #107f78;
+  --color-brand-700: #0e6b66;
+  --color-brand-800: #0a4f4b;
+  --color-brand-900: #063b38;
+
+  --color-accent-100: #fdf0d1;
+  --color-accent-300: #f8cf6e;
+  --color-accent-500: #f2a516;
+  --color-accent-700: #9a6004;
+
+  --color-ink: #10201f;
+  --color-neutral-50: #f6f9f8;
+  --color-neutral-100: #eaf0ef;
+  --color-neutral-200: #d5dfde;
+  --color-neutral-300: #a9b9b8;
+  --color-neutral-400: #7e8f8e;
+  --color-neutral-500: #5b6e6d;
+  --color-neutral-700: #2c3f3e;
+
+  --radius-control: 10px;
+  --radius-card: 14px;
+  --radius-sheet: 20px;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+html[lang='bn'] body {
+  font-family: var(--font-bn);
+  line-height: 1.65;
+}
+
+.heading {
+  font-weight: 700;
+  line-height: 1.25;
+  text-wrap: balance;
+}
+html[lang='en'] .heading {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+.wordmark-text {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.045em;
+}
+.num {
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
+.mono {
+  font-family: ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

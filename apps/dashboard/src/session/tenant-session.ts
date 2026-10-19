@@ -1,5 +1,6 @@
-import { ApiClient } from '../api/client';
+import { ApiClient } from '@lytronix/api-client';
 import type { MeResponse } from '../types/me';
+import { shopOfPath } from './shop-of-path';
 
 // The CSRF token is only ever sent once, in a sign-in response body (SEC-14); only its hash is stored
 // server-side. A copy in sessionStorage lets a page reload survive without a fresh sign-in.
@@ -18,7 +19,12 @@ export class TenantSession {
 
   constructor(baseUrl = '/api/v1') {
     this.csrfToken = TenantSession.readStoredToken();
-    this.client = new ApiClient({ baseUrl, getCsrfToken: () => this.csrfToken });
+    this.client = new ApiClient({
+      baseUrl,
+      getCsrfToken: () => this.csrfToken,
+      // TEN-31: every call from a shop's page names that shop; the server checks the person belongs to it.
+      getShop: () => shopOfPath(window.location.pathname),
+    });
     this.ready = new Promise((resolve) => {
       this.resolveReady = resolve;
     });

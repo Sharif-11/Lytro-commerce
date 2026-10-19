@@ -1,6 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Button } from '@/components/ui/button';
-import { Icon } from '@/components/ui/icon';
+import { Button, Icon } from '@lytronix/ui';
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard';
 import { appConfig } from '@/lib/app-config';
 

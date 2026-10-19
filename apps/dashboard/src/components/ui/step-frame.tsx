@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { PoweredByLytro, Wordmark } from '@/components/brand/wordmark';
-import { LanguageToggle } from '@/components/ui/language-toggle';
+import { LanguageToggle, PoweredByLytro, Wordmark } from '@lytronix/ui';
 import { appConfig } from '@/lib/app-config';
 
 export type OnboardingStep = 'identity' | 'shop' | 'checkout' | 'password' | 'setUp';

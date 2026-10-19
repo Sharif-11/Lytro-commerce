@@ -2,10 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { useMe } from '@/api/me';
-import { Button } from '@/components/ui/button';
-import { Chip } from '@/components/ui/chip';
+import { Button, Chip, formatTaka } from '@lytronix/ui';
 import { StepFrame } from '@/components/ui/step-frame';
-import { formatTaka } from '@/lib/money';
 import {
   DEFAULT_ZONE_CHARGES,
   HOME_AREAS,

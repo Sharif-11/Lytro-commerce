@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
-import { Button } from '@/components/ui/button';
+import { Button } from '@lytronix/ui';
 import { StepFrame } from '@/components/ui/step-frame';
 import { appConfig } from '@/lib/app-config';
 

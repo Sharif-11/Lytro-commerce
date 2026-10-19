@@ -2,11 +2,8 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { TenantState } from '@lytronix/validators';
 import { useCancelSubscription, useCloseShop } from '@/api/billing';
-import { errorMessage } from '@/api/error-message';
-import { Button } from '@/components/ui/button';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { Icon } from '@/components/ui/icon';
-import { formatDate } from '@/lib/dates';
+import { errorMessage } from '@lytronix/api-client';
+import { Button, ConfirmDialog, formatDate, Icon } from '@lytronix/ui';
 import type { MeTenant } from '@/types/me';
 
 interface StopSubscriptionProps {

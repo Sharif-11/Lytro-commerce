@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { ERROR_MESSAGE_KEYS } from '@lytronix/api-client';
+import { UI_DICTIONARY_KEYS } from '@lytronix/ui';
 import bn from '../src/i18n/locales/bn.json';
 import en from '../src/i18n/locales/en.json';
 
@@ -12,5 +14,13 @@ function keysOf(value: unknown, prefix = ''): string[] {
 describe('dictionaries', () => {
   it('carry the same keys in both languages', () => {
     expect(keysOf(bn).sort()).toEqual(keysOf(en).sort());
+  });
+
+  it('carry every key the shared components and error fallbacks read', () => {
+    for (const dictionary of [bn, en]) {
+      expect(keysOf(dictionary)).toEqual(
+        expect.arrayContaining([...ERROR_MESSAGE_KEYS, ...UI_DICTIONARY_KEYS]),
+      );
+    }
   });
 });

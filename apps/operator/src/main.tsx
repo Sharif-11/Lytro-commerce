@@ -4,7 +4,7 @@ import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from '@ta
 import { RouterProvider } from '@tanstack/react-router';
 import './index.css';
 import './i18n';
-import { ApiClientError } from './api/client';
+import { ApiClientError } from '@lytronix/api-client';
 import { router } from './router';
 import { operatorSession } from './session/operator-session';
 

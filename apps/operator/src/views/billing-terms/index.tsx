@@ -7,11 +7,8 @@ import {
   useRetireBillingTerm,
   useUpdateBillingTerm,
 } from '@/api/billing-terms';
-import { errorMessage } from '@/api/error-message';
-import { Button } from '@/components/ui/button';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { EmptyLine, Page, PageHeader } from '@/components/ui/fields';
-import { ErrorBanner } from '@/components/ui/notice';
+import { errorMessage } from '@lytronix/api-client';
+import { Button, ConfirmDialog, EmptyLine, ErrorBanner, Page, PageHeader } from '@lytronix/ui';
 import type { BillingTerm } from '@/types/operator';
 import { BillingTermForm, type BillingTermFormValues } from './billing-term-form';
 import { BillingTermList } from './billing-term-list';

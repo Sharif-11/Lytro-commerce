@@ -1,16 +1,12 @@
 import { useEffect, useState, type SyntheticEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { errorMessage } from '@/api/error-message';
+import { errorMessage } from '@lytronix/api-client';
+import { Button, ErrorBanner, formatTaka, Page, PageHeader, TextField } from '@lytronix/ui';
 import { useMe } from '@/api/me';
 import { useShopSettings, useUpdateShopSettings } from '@/api/shop-settings';
-import { Button } from '@/components/ui/button';
-import { Page, PageHeader } from '@/components/ui/fields';
-import { ErrorBanner } from '@/components/ui/notice';
-import { TextField } from '@/components/ui/text-field';
 import { Toast } from '@/components/ui/toast';
 import { useToast } from '@/hooks/use-toast';
 import { appConfig } from '@/lib/app-config';
-import { formatTaka } from '@/lib/money';
 import { DEFAULT_ZONE_CHARGES, shopSetupStore } from '@/session/shop-setup-store';
 
 /** Shop settings (TEN-30, RAT-14): grouped cards, each with its own Save, and a toast on success. */

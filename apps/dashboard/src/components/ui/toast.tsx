@@ -1,4 +1,4 @@
-import { Icon } from './icon';
+import { Icon } from '@lytronix/ui';
 
 /** The pill above the bottom tabs on phones, at the foot of the page on wider screens. */
 export function Toast({ message }: { message: string | null }): React.JSX.Element | null {

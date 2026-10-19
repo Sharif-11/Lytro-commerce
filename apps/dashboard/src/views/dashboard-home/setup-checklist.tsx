@@ -1,7 +1,6 @@
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
-import { Icon, type IconName } from '@/components/ui/icon';
-import { formatTaka } from '@/lib/money';
+import { formatTaka, Icon, type IconName } from '@lytronix/ui';
 import { DEFAULT_ZONE_CHARGES, type ShopSetup } from '@/session/shop-setup-store';
 
 interface ChecklistItem {

@@ -3,7 +3,18 @@ import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { IdentityKind, OauthProvider } from '@lytronix/validators';
 import { useOauthProviders } from '@/api/auth';
-import { errorMessage } from '@/api/error-message';
+import { errorMessage } from '@lytronix/api-client';
+import {
+  Button,
+  ConfirmDialog,
+  EmptyLine,
+  ErrorBanner,
+  Icon,
+  Notice,
+  Page,
+  PageHeader,
+  TextField,
+} from '@lytronix/ui';
 import {
   useAttachOauth,
   useIdentities,
@@ -12,14 +23,8 @@ import {
   useVerifyIdentity,
 } from '@/api/identities';
 import { FacebookIcon, GoogleIcon } from '@/components/brand/oauth-icons';
-import { Button } from '@/components/ui/button';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { EmptyLine, Page, PageHeader } from '@/components/ui/fields';
-import { Icon } from '@/components/ui/icon';
 import { OtpInput } from '@/components/ui/otp-input';
-import { ErrorBanner, Notice } from '@/components/ui/notice';
 import { Sheet } from '@/components/ui/sheet';
-import { TextField } from '@/components/ui/text-field';
 import { Toast } from '@/components/ui/toast';
 import { useToast } from '@/hooks/use-toast';
 import { bangladeshiPhone } from '@/lib/phone';

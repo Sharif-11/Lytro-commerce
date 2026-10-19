@@ -12,6 +12,8 @@ Multi-tenant commerce platform (monorepo).
 | `apps/operator`         | Operator console at admin.lytro.app: 2FA sign-in, payment queue, tenants, plans, rates (Vite + React) |
 | `apps/website`          | Marketing site (Next.js) — added to this table 2026-10-16, pre-existing in the repo                   |
 | `packages/shared-types` | Types shared between apps (API error contract)                                                        |
+| `packages/ui`           | Design tokens, the light and console themes, basic components, formats and language setup             |
+| `packages/api-client`   | The browser apps' request wrapper (cookies, CSRF, the shop a call names) and error fallback           |
 | `packages/validators`   | Zod request schemas and shared enums (also shapes the Drizzle schema)                                 |
 | `packages/db`           | Drizzle schema, repositories, migrations, transaction runner                                          |
 | `packages/config`       | Shared TypeScript configuration                                                                       |

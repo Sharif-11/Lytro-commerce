@@ -1,11 +1,8 @@
 import { useState, type SyntheticEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useRegenerateBackupCodes } from '@/api/operator-auth';
-import { errorMessage } from '@/api/error-message';
-import { Button } from '@/components/ui/button';
-import { Card, CardTitle, Page, PageHeader } from '@/components/ui/fields';
-import { ErrorBanner } from '@/components/ui/notice';
-import { TextField } from '@/components/ui/text-field';
+import { errorMessage } from '@lytronix/api-client';
+import { Button, Card, CardTitle, ErrorBanner, Page, PageHeader, TextField } from '@lytronix/ui';
 import { BackupCodesStep } from '@/views/sign-in/backup-codes-step';
 
 /** The operator's own account: new backup codes, which re-asserts the password and a fresh code. */

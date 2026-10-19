@@ -1,7 +1,7 @@
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { TenantState } from '@lytronix/validators';
-import { daysUntil } from '@/lib/money';
+import { daysUntil } from '@lytronix/ui';
 import type { MeTenant } from '@/types/me';
 
 interface LifecycleBannerProps {
