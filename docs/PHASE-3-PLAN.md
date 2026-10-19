@@ -400,8 +400,8 @@ their backend ships earlier.
   `packages/ui` (tokens, the light and console themes, the basic components, formats, language setup) and
   `packages/api-client` (the request wrapper and error fallback) are extracted, and both apps take them from
   there, with every screen pixel-identical before and after. `admin.lytro.app` carries the console's own strict
-  Content Security Policy (`operator_csp` in `deploy/Caddyfile`). Still open: the room for support view
-  (ADM-05).
+  Content Security Policy (`operator_csp` in `deploy/Caddyfile`). The slice is done: the room for support view
+  moved to Phase 8 (below).
 - **Depends on:** Slice 0 (the hosts and sessions it reworks).
 - **Delivers:**
   - `packages/ui` (the brand doc's design tokens and basic components) and `packages/api-client` (the request
@@ -411,8 +411,10 @@ their backend ships earlier.
     Security Policy and the operator console's inverted look (`BRAND-IDENTITY.md` §8.4).
   - `apps/admin` renamed `apps/dashboard` (folder, package name, CI, `deploy/Caddyfile`, and the docs that
     describe current code), with the hostname switch (`host.ts`, `VITE_OPERATOR_HOST`) removed.
-  - Room for support view (ADM-05, Phase 8): a separate session type reserved on the server and a banner slot
-    in the dashboard shell.
+  - ~~Room for support view (ADM-05, Phase 8): a separate session type reserved on the server and a banner slot
+    in the dashboard shell.~~ Moved to Phase 8 (decided 2026-10-19). Slice 0 made `DashboardGuard` the one place
+    a dashboard request becomes a shop and a person, so the support session plugs in there when Phase 8 builds
+    it whole; reserving a session nothing issues and a banner nothing fills would only add dead code.
   - The operator tests moved with their screens.
 - **Requirements completed:** ADM-01 (amended: separate application).
 - **Done when:** the dashboard's built files contain no operator screens or operator API calls;
