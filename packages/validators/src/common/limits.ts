@@ -58,3 +58,13 @@ export const OPTION_SET_NAME_MAX_LENGTH = 60;
 export const OPTION_SET_MAX_OPTIONS = 50;
 // ATR-18: an option's colour swatch, as #RRGGBB.
 export const SWATCH_COLOR_PATTERN = /^#[0-9A-Fa-f]{6}$/;
+// DLV-01: delivery zones. A shop starts with "Inside Dhaka city" at 70 TK and the fallback at 130 TK, and may hold
+// up to 20 zones in all. A zone's areas are capped by what exists: 64 zillas, 11 cities, every thana.
+export const DELIVERY_ZONE_NAME_MAX_LENGTH = 60;
+export const MAX_DELIVERY_ZONES = 20;
+export const DEFAULT_HOME_CITY = 'dhaka';
+export const DEFAULT_HOME_ZONE_CHARGE = '70.00';
+export const DEFAULT_FALLBACK_ZONE_CHARGE = '130.00';
+export const DELIVERY_ZONE_MAX_ZILLAS = 64;
+export const DELIVERY_ZONE_MAX_CITIES = 11;
+export const DELIVERY_ZONE_MAX_THANAS = 600;

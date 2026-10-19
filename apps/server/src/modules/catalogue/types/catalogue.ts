@@ -137,6 +137,12 @@ export interface OptionSetView {
   presetKey: string | null;
 }
 
+/** PRD-08: the policy every product with none of its own follows. */
+export interface ShopPaymentPolicy {
+  defaultPaymentPolicy: PaymentPolicy;
+  defaultAdvanceAmount: string | null;
+}
+
 /** PRD-17: the chart a product shows, its own or the nearest category's. */
 export interface SizeChartView {
   source: 'product' | 'category';
@@ -199,8 +205,12 @@ export interface ProductDetail {
   weightKg: string | null;
   deliveryMode: DeliveryMode;
   effectiveDeliveryMode: DeliveryMode;
+  /** PRD-08: its own policy, or null to follow the shop's default. */
   paymentPolicy: PaymentPolicy | null;
   advanceAmount: string | null;
+  /** PRD-08: the policy that applies: its own, else the shop's default, with that policy's advance. */
+  effectivePaymentPolicy: PaymentPolicy;
+  effectiveAdvanceAmount: string | null;
   active: boolean;
   archived: boolean;
   categoryIds: string[];
@@ -213,6 +223,8 @@ export interface ProductDetail {
   variants: VariantView[];
   /** PRD-17: its own chart, else its primary category's or the nearest one above it; null for none. */
   sizeChart: SizeChartView | null;
+  /** DLV-07: the zones it may be delivered to; empty means wherever the shop delivers. */
+  deliveryZoneIds: string[];
   createdAt: Date;
   updatedAt: Date;
 }

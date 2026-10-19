@@ -136,6 +136,12 @@ export {
   type SizeChartOwner,
 } from './repositories/catalogue/size-chart.repository';
 export { OptionSetRepository } from './repositories/catalogue/option-set.repository';
+export { LocationRepository, type LocationList } from './repositories/delivery/location.repository';
+export {
+  DeliveryZoneRepository,
+  type DeliveryZonePatch,
+  type ZoneAreas,
+} from './repositories/delivery/delivery-zone.repository';
 export {
   PlatformLibraryRepository,
   type PlatformOptionSetPatch,

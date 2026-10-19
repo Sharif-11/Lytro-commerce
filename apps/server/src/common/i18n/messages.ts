@@ -590,6 +590,44 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'This option set was not found.',
     bn: 'অপশন সেটটি পাওয়া যায়নি।',
   },
+  LocationNotFound: {
+    en: 'This thana was not found.',
+    bn: 'থানাটি পাওয়া যায়নি।',
+  },
+  DeliveryAreaNotFound: {
+    en: 'Choose an area from the list.',
+    bn: 'লিস্ট থেকে একটি এলাকা বেছে নিন।',
+  },
+  DeliveryAreaTaken: {
+    en: 'This area is already in another delivery zone. Remove it from there first.',
+    bn: 'এই এলাকাটি অন্য একটি ডেলিভারি জোনে আছে। আগে সেখান থেকে সরান।',
+  },
+  DeliveryZoneNotFound: {
+    en: 'This delivery zone was not found.',
+    bn: 'ডেলিভারি জোনটি পাওয়া যায়নি।',
+  },
+  DeliveryZoneFixed: {
+    en: 'The inside and outside zones are always there and cannot be deleted.',
+    bn: 'ভিতরের আর বাইরের জোন সবসময় থাকে, ডিলিট করা যায় না।',
+  },
+  DeliveryZoneInUse: {
+    en: 'Some products deliver only to this zone. Change their delivery zones first.',
+    bn: 'কিছু প্রোডাক্ট শুধু এই জোনে ডেলিভারি হয়। আগে সেগুলোর ডেলিভারি জোন বদলান।',
+  },
+  TooManyDeliveryZones: {
+    en: (p) =>
+      `A shop has at most ${String(p.max)} delivery zones. Add the areas to a zone you already have.`,
+    bn: (p) =>
+      `একটি দোকানে সর্বোচ্চ ${String(p.max)}টি ডেলিভারি জোন রাখা যায়। এলাকাগুলো আগের কোনো জোনে যোগ করুন।`,
+  },
+  HomeZoneAreasAreHomeArea: {
+    en: 'This zone covers your home area. Change the home area instead.',
+    bn: 'এই জোনটি আপনার হোম এরিয়া। এর বদলে হোম এরিয়া বদলান।',
+  },
+  FallbackZoneHasNoAreas: {
+    en: 'This zone covers every area no other zone has, so it has no areas of its own.',
+    bn: 'অন্য কোনো জোনে না থাকা সব এলাকা এই জোনে পড়ে, তাই এর আলাদা এলাকা নেই।',
+  },
   PresetsListed: {
     en: 'Shop types retrieved.',
     bn: 'দোকানের ধরনগুলো পাওয়া গেছে।',
@@ -709,6 +747,38 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   PresetUpdated: {
     en: 'Shop type updated.',
     bn: 'দোকানের ধরন আপডেট হয়েছে।',
+  },
+  LocationsListed: {
+    en: 'Districts and thanas retrieved.',
+    bn: 'জেলা ও থানার লিস্ট পাওয়া গেছে।',
+  },
+  DeliveryZonesListed: {
+    en: 'Delivery zones retrieved.',
+    bn: 'ডেলিভারি জোন পাওয়া গেছে।',
+  },
+  DeliveryZoneCreated: {
+    en: 'Delivery zone added.',
+    bn: 'ডেলিভারি জোন যোগ হয়েছে।',
+  },
+  DeliveryZoneUpdated: {
+    en: 'Delivery zone updated.',
+    bn: 'ডেলিভারি জোন আপডেট হয়েছে।',
+  },
+  DeliveryZoneDeleted: {
+    en: 'Delivery zone deleted.',
+    bn: 'ডেলিভারি জোন ডিলিট হয়েছে।',
+  },
+  HomeAreaSaved: {
+    en: 'Home area saved.',
+    bn: 'হোম এরিয়া সেভ হয়েছে।',
+  },
+  DeliveryZoneResolved: {
+    en: 'Delivery zone found.',
+    bn: 'ডেলিভারি জোন পাওয়া গেছে।',
+  },
+  ProductDeliveryZonesSaved: {
+    en: 'Delivery zones saved for this product.',
+    bn: 'এই প্রোডাক্টের ডেলিভারি জোন সেভ হয়েছে।',
   },
 };
 

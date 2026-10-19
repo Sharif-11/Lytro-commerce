@@ -13,7 +13,8 @@ export class UniqueViolation extends Error {
       | 'sku'
       | 'combination'
       | 'name'
-      | 'value',
+      | 'value'
+      | 'area',
   ) {
     super(`unique violation: ${target}`);
     this.name = 'UniqueViolation';

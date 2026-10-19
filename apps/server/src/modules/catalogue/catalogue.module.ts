@@ -7,6 +7,7 @@ import {
   DrizzlePlatformLibraryStore,
   DrizzlePresetStore,
   DrizzleProductStore,
+  DrizzleShopPolicyStore,
   DrizzleSizeChartStore,
 } from '../../database/adapters/catalogue.adapter';
 import { AuditModule } from '../audit/audit.module';
@@ -15,11 +16,13 @@ import { StaffModule } from '../staff/staff.module';
 import { TenancyModule } from '../tenancy/tenancy.module';
 import { AttributeService } from './services/attribute.service';
 import { CatalogueActivity } from './services/catalogue-activity';
+import { CatalogueVersion } from './services/catalogue-version';
 import { CategoryService } from './services/category.service';
 import { OptionSetService } from './services/option-set.service';
 import { PlatformLibraryService } from './services/platform-library.service';
 import { PresetService } from './services/preset.service';
 import { ProductService } from './services/product.service';
+import { ShopPaymentPolicyService } from './services/shop-payment-policy.service';
 import { SizeChartService } from './services/size-chart.service';
 import {
   ATTRIBUTE_STORE,
@@ -29,6 +32,7 @@ import {
   PLATFORM_LIBRARY_STORE,
   PRESET_STORE,
   PRODUCT_STORE,
+  SHOP_POLICY_STORE,
   SIZE_CHART_STORE,
 } from './tokens';
 
@@ -47,7 +51,10 @@ import {
     { provide: SIZE_CHART_STORE, useClass: DrizzleSizeChartStore },
     { provide: OPTION_SET_STORE, useClass: DrizzleOptionSetStore },
     { provide: PLATFORM_LIBRARY_STORE, useClass: DrizzlePlatformLibraryStore },
+    { provide: SHOP_POLICY_STORE, useClass: DrizzleShopPolicyStore },
     CatalogueActivity,
+    CatalogueVersion,
+    ShopPaymentPolicyService,
     PresetService,
     AttributeService,
     CategoryService,
@@ -57,6 +64,11 @@ import {
     PlatformLibraryService,
   ],
   exports: [
+    // For the delivery module (Slice 1c), whose writes log and version like the catalogue's own.
+    CATALOGUE_TRANSACTIONS,
+    CatalogueActivity,
+    CatalogueVersion,
+    ShopPaymentPolicyService,
     PresetService,
     AttributeService,
     CategoryService,

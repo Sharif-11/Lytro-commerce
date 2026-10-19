@@ -10,6 +10,7 @@ import type {
   OptionRecord,
   OptionSetRecord,
   PresetRecord,
+  ShopPaymentPolicy,
   ProductAttributeRecord,
   ProductAttributeValueRecord,
   ProductRecord,
@@ -266,6 +267,23 @@ export interface ProductStore {
   ): Promise<VariantRecord | null>;
   retireVariants(tx: Transaction, tenantId: string, ids: string[]): Promise<void>;
   insertVariantValues(tx: Transaction, rows: VariantValueRecord[]): Promise<void>;
+  /** DLV-07: the zones the product may be delivered to. */
+  listDeliveryZoneIds(tx: Transaction, tenantId: string, productId: string): Promise<string[]>;
+  /** A zone the shop does not have comes back as MissingReference('zone'). */
+  replaceDeliveryZones(
+    tx: Transaction,
+    tenantId: string,
+    productId: string,
+    zoneIds: string[],
+  ): Promise<void>;
+}
+
+/** PRD-08: the shop-wide default payment policy, null until the shop sets one. */
+export interface ShopPolicyStore {
+  get(tenantId: string): Promise<ShopPaymentPolicy | null>;
+  /** The same, inside the caller's transaction (a product's detail reads it with the product). */
+  find(tx: Transaction, tenantId: string): Promise<ShopPaymentPolicy | null>;
+  set(tenantId: string, policy: ShopPaymentPolicy): Promise<void>;
 }
 
 /** PST-01, PST-02, PST-04: the platform's shop-type presets. */

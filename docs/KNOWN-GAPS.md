@@ -1359,6 +1359,16 @@ public catalogue yet, so nothing serves a stale page today. Slice 9, which build
 cache keys, must add a platform library version to the key (one row the operator's writes bump), so a platform
 edit is visible within `PRD-10`'s window. A shop's own edits already move its version, swatches included.
 
+## 67. `LIF-19`: the day-60 deletion leaves Phase 3's catalogue and delivery data in place — open, found 2026-10-19
+
+`LifecycleService.deleteIfDue` deletes a lapsed shop's staff and data exports and marks it deleted, as Phases 1
+and 2 built it. Phase 3 has since added business data `LIF-19` names: products and their variants, attributes,
+categories, size charts, option sets, delivery zones and the shop's settings rows. None of it is deleted at day 60
+yet, so a deleted shop's catalogue would survive in the database (unreadable to any other shop, behind row-level
+security, but present). Found while reading the lifecycle code for Slice 1c. Planned as a small follow-up PR: delete
+the tenant's rows from every Phase 3 table in `deleteIfDue`'s transaction, children first, with a test that a
+deleted shop has none left. Media files (`MED-09`) join it in Slice 6.
+
 ## Not a bug, just noting it so it isn't mistaken for one later
 
 The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data

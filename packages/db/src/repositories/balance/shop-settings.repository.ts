@@ -2,7 +2,8 @@ import { eq } from 'drizzle-orm';
 import { shopSettings, type SelectShopSettings } from '../../schema';
 import type { Transaction, TransactionRunner } from '../../transactions';
 
-// RAT-14: a tenant's own extra-delivery-charge-per-kg rate. One row per tenant that has ever set it.
+// RAT-14, PRD-08: a tenant's own extra-delivery-charge-per-kg rate and default payment policy. One row per tenant
+// that has ever set either.
 export class ShopSettingsRepository {
   constructor(private readonly transactions: TransactionRunner) {}
 
@@ -25,5 +26,18 @@ export class ShopSettingsRepository {
         target: shopSettings.tenantId,
         set: { extraDeliveryChargePerKg },
       });
+  }
+
+  /** PRD-08: the shop-wide default payment policy, with the advance a partial-advance default asks. */
+  async setPaymentPolicy(
+    tx: Transaction,
+    tenantId: string,
+    policy: Pick<SelectShopSettings, 'defaultPaymentPolicy' | 'defaultAdvanceAmount'>,
+  ): Promise<void> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    await tx
+      .insert(shopSettings)
+      .values({ tenantId, ...policy })
+      .onConflictDoUpdate({ target: shopSettings.tenantId, set: policy });
   }
 }

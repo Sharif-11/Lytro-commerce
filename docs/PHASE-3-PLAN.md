@@ -71,7 +71,7 @@ builds, and changes neither.
 | D3-4 | **Media infrastructure**: R2 and a Cloudflare Worker (MED-01/02, BND-01) are real cloud services, and developers and CI need to run without them. | A `MediaStorage` port with an R2 adapter (staging/production) and an S3-compatible local adapter (MinIO in docker-compose) for dev/CI. The Worker's code lives in-repo (`apps/media-worker`), unit-tested with Miniflare, plus a thin in-process stand-in of the same metering contract for server e2e tests. Same stub-provider precedent as D6. | Slices 6, 7 |
 | D3-5 | **Notices to the tenant** — low stock (INV-08), expiry (INV-13), limit thresholds (LIM-01, BND-05, RTE-03) — need in-app and push delivery, which is Phase 7's notification module (NTF). | Deliver through a `TenantNotifier` port with a console stub, exactly as `BAL-13` did in Phase 2 (D6 precedent). These requirements count as complete when the once-per-crossing logic is proven; Phase 7 swaps the adapter. | Slices 2, 3, 7, 10 |
 | D3-6 | Reservation expiry for unpaid online orders (INV-16) — `[30]` minutes, meant to match the payment session lifetime, which Phase 5 fixes. | Store it as a platform setting (`reservation_expiry_minutes`, default 30). Phase 5 sets it from the real session lifetime. | Slice 5 |
-| D3-7 | Module boundaries (`ENGINEERING-STANDARDS.md` §1). | New modules: **`catalogue`** (categories, products, variants, attributes, presets), **`inventory`** (levels, ledger, batches, serials, reservations, stock checks), **`purchasing`** (suppliers, purchase orders, receipts), **`media`** (uploads, processing, storage accounting), **`public-api`** (public keys, rate limiting, public catalogue). `inventory` depends only on `catalogue`; `purchasing` depends on `inventory`. Nothing depends on `purchasing`. | All |
+| D3-7 | Module boundaries (`ENGINEERING-STANDARDS.md` §1). | New modules: **`catalogue`** (categories, products, variants, attributes, presets), **`delivery`** (the canonical location list and delivery zones, added in Slice 1c; depends only on `catalogue`), **`inventory`** (levels, ledger, batches, serials, reservations, stock checks), **`purchasing`** (suppliers, purchase orders, receipts), **`media`** (uploads, processing, storage accounting), **`public-api`** (public keys, rate limiting, public catalogue). `inventory` depends only on `catalogue`; `purchasing` depends on `inventory`. Nothing depends on `purchasing`. | All |
 | D3-8 | Shop-type preset list and defaults (PST-01/02). | See §6, Slice 1. The operator can edit presets later without a deploy (PST-04). | Slice 1 |
 | D3-9 | Who may see cost and profit (INV-10/18). Profit is sensitive, and not every staff member should see it. | Cost, stock value and profit figures require `inventory:manage`; `inventory:read` sees quantities only. The owner always sees everything. | Slices 2, 11 |
 | D3-10 | **Phase size.** At 12 slices, this is larger than Phase 2. | Keep it one phase, with an internal checkpoint after Slice 5 ("3A: catalogue and inventory complete, internally usable") before media and the storefront begin. If velocity suggests otherwise at the checkpoint, the remainder can become Phase 3B without reshuffling anything. | Planning |
@@ -159,7 +159,7 @@ Rules used below:
 | INV-14 | serials recorded at receiving or added later, with a missing-serials count | serial required before a line ships | Phase 4 |
 | INV-23 | scan, paste and typed serial entry with duplicate and IMEI check-digit validation, at receiving and "add missing" | the same entry when shipping a line | Phase 4 |
 | SUP-01 | the setup checklist on the home screen, pulled forward from Phase 8: shop created, delivery charges, first product, logo, sharing the link, and an API key under "Later" | the items whose features arrive later: wallet number and listener phone (Phase 5), courier (Phase 6), SMS events (Phase 7) | Phases 5–7 |
-| CUS-08 | the canonical location list with its division and city groups, and its read endpoint — pulled forward from Phase 4 because delivery zones are built from it | proof that connecting couriers never changes it (couriers arrive in Phase 6) | Phase 6 |
+| CUS-08 | the canonical location list with its city groups, and its read endpoint — pulled forward from Phase 4 because delivery zones are built from it | proof that connecting couriers never changes it (couriers arrive in Phase 6) | Phase 6 |
 | DLV-06 | "no delivery" zones stored and shown in the delivery settings and on product and landing pages | refusal at public order creation; warning on staff orders | Phase 4 |
 | DLV-07 | product zone limits stored and shown on product and landing pages; zone delete refused while a limit uses it | refusal at order creation, including for combos | Phase 4 |
 | INV-24 | shared stock with pack amounts: availability per variant, adding stock as packs, reservations through the shared stock | the order line's pack-amount snapshot and returns through it | Phase 4 |
@@ -221,7 +221,7 @@ Read each row as: the requirements on the left can only be built or proven once 
 | LND-15, 18 | LND-17 | tracking fires only once a pixel is configured |
 | LND-07–12 (Phase 4) | ORD-02, ORD-06, CUS-08, API-11, RTE-06, INV-15 | the order form creates an ordinary order |
 | LND-10 (Phases 4–5) | PRD-08, INV-16, PAY-01, SFT-07 | payment follows the product's policy through the hosted payment page |
-| DLV-01, 02, 05 | CUS-08 | zones are built from the canonical areas: divisions, districts, cities and thanas |
+| DLV-01, 02, 05 | CUS-08 | zones are built from the canonical areas: districts, cities and thanas |
 | DLV-03 | PRD-01, ATR-13 | the product and variant delivery charge becomes an override |
 | ORD-06a, SFT-20, LND-08 (Phase 4) | DLV-02, DLV-03, RAT-14 | the order's thana picks the zone; overrides and weight extras apply on top |
 | PRD-08 "delivery charge only" (Phase 4) | ORD-06a | the advance equals the computed delivery charge |
@@ -268,7 +268,7 @@ on 2026-10-18.
 
 ## 3.5 Architecture for this phase
 
-- **Five new server modules** (D3-7), each with ports and adapters, white-box service tests over the real
+- **Six new server modules** (D3-7), each with ports and adapters, white-box service tests over the real
   database, and a few HTTP smoke tests — the same pattern every Phase 2 slice used:
   - `catalogue`, `inventory`, `purchasing`, `media`, `public-api`
   - The dependency direction is one-way: `public-api` → `catalogue`/`inventory`; `purchasing` →
@@ -322,8 +322,8 @@ All in `DATABASE-SCHEMA.md` §3.2 (rewritten 2026-10-17), plus:
 | Landing links | `product_slug_redirects` (old slug → product, LND-04) | 1 |
 | Ad tracking | `ad_tracking_settings` (pixel ID, encrypted Conversions API token, LND-15–17) | 9 |
 | Add-ons | `control.addons`, `control.addon_purchases` (already designed; `kind`, payment and renewal columns added 2026-10-18) | 10a |
-| Delivery zones | `delivery_zones` (home and fallback zones always present), `delivery_zone_areas` at four levels (DLV-01, 02), seeded with Inside/Outside Dhaka city for every tenant | 1 |
-| Locations | `control.locations` with `control.divisions` and `control.cities` groups (CUS-08, pulled forward from Phase 4) | 1 |
+| Delivery zones | `delivery_zones` (home and fallback zones always present), `delivery_zone_areas` at three levels: district, city, thana (DLV-01, 02), with Inside/Outside Dhaka city for every tenant | 1 |
+| Locations | `control.zillas`, `control.locations` and the `control.cities` groups (CUS-08, pulled forward from Phase 4) | 1 |
 | Size charts, option sets | `size_charts` (product or category, image or table, PRD-17), `option_sets` (platform and tenant, ATR-16) | 1 |
 | Catalog feed | `catalog_feeds` (hashed feed token, FED-01, FED-05) | 9 |
 | Mixed shops | `categories.behaves_like` (PST-06) | 1 |
@@ -427,15 +427,22 @@ their backend ships earlier.
     checks; the shop-type presets and the shop's business type; the attribute library; the category tree; products
     with their variant matrix, describing attributes, slugs and redirects; the product limit; the pay-as-you-go
     product fee.
-  - **1b, product extras (this PR, migration 0052):** size charts (PRD-17), duplicate product (PRD-18), option sets and
+  - **1b, product extras (#152, migration 0052):** size charts (PRD-17), duplicate product (PRD-18), option sets and
     swatches (ATR-16, ATR-18), categories that behave like another shop type (PST-06), the up-front fields each
     preset names (PST-05), and the operator's editing of presets and the platform library (PST-04, ATL-01). A chart
     is a table for now; the image chart, image swatches and copying a product's images arrive with media (Slice 6).
     A product without its own chart shows the one on its primary category or the nearest category above it. The
     operator writes the platform's rows through the application role under a `platform_curation` policy rather
     than a separate connection.
-  - **1c, delivery:** the canonical location list (CUS-08), delivery zones with the home area (DLV-01 to DLV-03,
-    DLV-06, DLV-07) and the shop's default payment policy (PRD-08).
+  - **1c, delivery (this PR, migration 0053):** the canonical location list (CUS-08), delivery zones with the home
+    area (DLV-01 to DLV-03, DLV-06, DLV-07) and the shop's default payment policy (PRD-08), in a new `delivery`
+    module that depends on `catalogue`. Decided with the user before building: no divisions (zones name districts,
+    cities and thanas, CUS-08, DLV-01, DLV-02 amended); the shopper picks the district, then the thana, then writes
+    the address, with no area-name search; the list is bdapi's 64 districts and 494 upazilas plus the city police
+    thanas of Dhaka (49, Uttara as one), Chattogram (15), Khulna (8) and Rajshahi (6), the other seven cities being
+    their Sadar upazilas (`packages/db/data/locations.json`). Zone names that follow the home area are built in
+    both languages when read rather than stored, and a shop's two default zones are made the first time its zones
+    are read or written.
 - **Depends on:** none in this phase (reads Phase 2's plan-limit machinery).
 - **Delivers:** the catalogue and attribute tables; slugs; the category tree with an "Uncategorized"
   virtual bucket; the variant matrix save; data-layer limit triggers; product counting against plan
@@ -458,7 +465,7 @@ their backend ships earlier.
   `product_slug_redirects` (LND-04).
   Also added 2026-10-17 for Facebook sellers: delivery zones built around the tenant's home area
   ("Inside/Outside Dhaka city" until the tenant picks another city, district or set of thanas), from the
-  canonical location list and its city and division groups (CUS-08, pulled forward from Phase 4), with the
+  canonical location list and its city groups (CUS-08, pulled forward from Phase 4), with the
   product delivery charge made an optional override; the shop-wide
   default payment policy and the "delivery charge only" option; size charts on categories and products;
   quick option sets (S–XXL, 38–44, common colors) seeded per preset, plus tenant-saved sets; and
@@ -625,7 +632,7 @@ their backend ships earlier.
   page with the bandwidth chart; each product's landing link with copy, Facebook-share and
   WhatsApp-share actions (and per-variant links); the ad-tracking settings screen (pixel ID, Conversions
   API token entered once); delivery settings with the home-area picker and its two charges up front, and an "Add zone"
-  editor that adds a whole division, district or city in one step; size-chart editor; one-tap option sets in the variant editor; "Duplicate product"; the catalog
+  editor that adds a whole district or city in one step; size-chart editor; one-tap option sets in the variant editor; "Duplicate product"; the catalog
   feed link with copy and setup steps; the setup checklist on the home screen (SUP-01); the brand identity editor with live preview, and the
   dashboard themed by the shop's identity when switched on (BRN); the dashboard's own Content Security Policy on
   `app.lytro.app`, once Slices 6 and 7 fix where images and uploads go (KNOWN-GAPS §65); the add-ons screen, with buying from the

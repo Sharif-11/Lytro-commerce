@@ -3,6 +3,7 @@ import { emailField } from '../auth/auth-code';
 import { phoneField } from '../identity/phone-signup/phone-signup-common';
 import { BUSINESS_ADDRESS_MAX_LENGTH } from '../../common/limits';
 import { nonNegativeMoneyField } from '../../common/money';
+import { PaymentPolicy } from '../../db/enums';
 
 // TEN-30: a tenant's own support/contact details, set from dashboard settings any time after onboarding --
 // never a field at shop creation (that step has its own, unrelated `address`, the subdomain-slug candidate,
@@ -15,6 +16,9 @@ export const shopSettingsSchema = z.object({
   contactEmail: z.string().nullable(),
   businessAddress: z.string().nullable(),
   extraDeliveryChargePerKg: z.string(),
+  // PRD-08: what a product with no payment policy of its own follows.
+  defaultPaymentPolicy: z.nativeEnum(PaymentPolicy),
+  defaultAdvanceAmount: z.string().nullable(),
 });
 export type ShopSettings = z.infer<typeof shopSettingsSchema>;
 
@@ -23,5 +27,9 @@ export const updateShopSettingsSchema = z.object({
   contactEmail: emailField.nullable().optional(),
   businessAddress: z.string().trim().max(BUSINESS_ADDRESS_MAX_LENGTH).nullable().optional(),
   extraDeliveryChargePerKg: nonNegativeMoneyField.optional(),
+  // PRD-08: the shop-wide default payment policy. A partial advance needs its amount (checked by the server
+  // against the stored policy, since either may change alone); no other policy takes one.
+  defaultPaymentPolicy: z.nativeEnum(PaymentPolicy).optional(),
+  defaultAdvanceAmount: nonNegativeMoneyField.nullable().optional(),
 });
 export type UpdateShopSettingsInput = z.infer<typeof updateShopSettingsSchema>;

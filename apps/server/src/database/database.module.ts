@@ -46,6 +46,8 @@ import {
   SizeChartRepository,
   OptionSetRepository,
   PlatformLibraryRepository,
+  LocationRepository,
+  DeliveryZoneRepository,
 } from '@lytronix/db';
 import { EnvironmentParser } from '../config/env';
 import { ENV } from '../config/tokens';
@@ -118,6 +120,12 @@ import { DatabaseService } from './database.service';
       provide: PlatformLibraryRepository,
       inject: [TransactionRunner],
       useFactory: (transactions: TransactionRunner) => new PlatformLibraryRepository(transactions),
+    },
+    { provide: LocationRepository, useFactory: () => new LocationRepository() },
+    {
+      provide: DeliveryZoneRepository,
+      inject: [TransactionRunner],
+      useFactory: (transactions: TransactionRunner) => new DeliveryZoneRepository(transactions),
     },
     {
       provide: UserRepository,
@@ -214,6 +222,8 @@ import { DatabaseService } from './database.service';
     SizeChartRepository,
     OptionSetRepository,
     PlatformLibraryRepository,
+    LocationRepository,
+    DeliveryZoneRepository,
   ],
 })
 export class DatabaseModule {}

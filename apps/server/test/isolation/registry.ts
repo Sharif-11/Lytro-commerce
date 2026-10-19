@@ -119,4 +119,15 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'GET /option-sets': "lists the platform's option sets and only the session shop's own",
   'POST /option-sets': 'saves the set in the session shop only',
   'DELETE /option-sets/:id': "another shop's set (or a platform one) answers 404",
+  // Phase 3 Slice 1c, checked in test/delivery.e2e.spec.ts.
+  'GET /locations': 'returns the same platform-wide list regardless of which shop calls it',
+  'GET /delivery-zones': "lists only the session shop's own zones",
+  'GET /delivery-zones/resolve': "resolves against the session shop's own zones only",
+  'PUT /delivery-zones/home-area': "sets only the session shop's own home zone",
+  'POST /delivery-zones': 'creates a zone in the session shop only',
+  'PATCH /delivery-zones/:id': "another shop's zone answers 404",
+  'PUT /delivery-zones/:id/areas': "another shop's zone answers 404",
+  'DELETE /delivery-zones/:id': "another shop's zone answers 404",
+  'PUT /products/:id/delivery-zones':
+    "another shop's product answers 404; another shop's zone is not_found",
 };
