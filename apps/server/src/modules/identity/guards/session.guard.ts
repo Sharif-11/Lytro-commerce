@@ -33,6 +33,13 @@ export class SessionGuard implements CanActivate {
     if (MUTATING_METHODS.has(request.method) && !this.sessions.csrfMatches(session, csrf)) {
       throw new ApiError('forbidden', 'RequestNotAccepted', {});
     }
+    // TEN-29: a shop's subdomain is the same site as the dashboard, so SameSite alone doesn't stop it.
+    if (
+      MUTATING_METHODS.has(request.method) &&
+      !this.sessions.originAllowed(headerValue(request.headers.origin))
+    ) {
+      throw new ApiError('forbidden', 'RequestNotAccepted', {});
+    }
 
     const allowedWhilePending = this.reflector.getAllAndOverride<boolean | undefined>(
       ALLOW_PENDING_PASSWORD,

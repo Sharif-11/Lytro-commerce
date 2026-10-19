@@ -60,8 +60,13 @@ async function owner(): Promise<Owner> {
   return { phone, slug, ...session };
 }
 
-function shopCall(who: Owner): { cookie: string; 'x-csrf-token': string; host: string } {
-  return { cookie: who.cookie, 'x-csrf-token': who.csrfToken, host: `${who.slug}.localhost` };
+function shopCall(who: Owner): Record<string, string> {
+  return {
+    cookie: who.cookie,
+    'x-csrf-token': who.csrfToken,
+    host: 'localhost',
+    'x-lytro-shop': who.slug,
+  };
 }
 
 async function moveToPlan(slug: string, planName: string): Promise<void> {
@@ -117,7 +122,8 @@ describeIfDatabase('the activity log (AUD-01, AUD-02, AUD-04)', () => {
     const session = {
       cookie: cookieFrom(signedIn),
       'x-csrf-token': (signedIn.body as { csrfToken: string }).csrfToken,
-      host: `${who.slug}.localhost`,
+      host: 'localhost',
+      'x-lytro-shop': who.slug,
     };
     const before = await get('/activity', session);
     const beforeCount = (before.body as { entries: ActivityEntry[] }).entries.length;
@@ -152,7 +158,8 @@ describeIfDatabase('the activity log (AUD-01, AUD-02, AUD-04)', () => {
     const session = {
       cookie: cookieFrom(signedIn),
       'x-csrf-token': (signedIn.body as { csrfToken: string }).csrfToken,
-      host: `${who.slug}.localhost`,
+      host: 'localhost',
+      'x-lytro-shop': who.slug,
     };
     expect((await post('/auth/signin', { phone: who.phone, password: 'wrong' }, {})).status).toBe(
       401,
@@ -259,12 +266,13 @@ describeIfDatabase('the activity log (AUD-01, AUD-02, AUD-04)', () => {
     const readerSignIn = await post(
       '/auth/staff/signin',
       { phone: readerPhone, password: STAFF_PASSWORD },
-      { host: `${who.slug}.localhost` },
+      { host: 'localhost', 'x-lytro-shop': who.slug },
     );
     const readerCall = {
       cookie: cookieFrom(readerSignIn),
       'x-csrf-token': (readerSignIn.body as { csrfToken: string }).csrfToken,
-      host: `${who.slug}.localhost`,
+      host: 'localhost',
+      'x-lytro-shop': who.slug,
     };
     const denied = await get('/activity', readerCall);
     expect(denied.status).toBe(403);
@@ -285,13 +293,14 @@ describeIfDatabase('the activity log (AUD-01, AUD-02, AUD-04)', () => {
     const auditorSignIn = await post(
       '/auth/staff/signin',
       { phone: auditorPhone, password: STAFF_PASSWORD },
-      { host: `${other.slug}.localhost` },
+      { host: 'localhost', 'x-lytro-shop': other.slug },
     );
     expect(auditorSignIn.status).toBe(200);
     const auditorCall = {
       cookie: cookieFrom(auditorSignIn),
       'x-csrf-token': (auditorSignIn.body as { csrfToken: string }).csrfToken,
-      host: `${other.slug}.localhost`,
+      host: 'localhost',
+      'x-lytro-shop': other.slug,
     };
     const allowed = await get('/activity', auditorCall);
     expect(allowed.status).toBe(200);

@@ -8,6 +8,11 @@ import type { StaffAccounts } from '../../modules/staff/ports/staff-accounts';
 export class DrizzleStaffAccounts implements StaffAccounts {
   constructor(@Inject(AccountRepository) private readonly accounts: AccountRepository) {}
 
+  async findSubscriberByPhone(tx: Transaction, phone: string): Promise<string | null> {
+    const found = await this.accounts.findSubscriberByIdentity(tx, IdentityKind.Phone, phone);
+    return found?.subscriberId ?? null;
+  }
+
   async reservePhone(tx: Transaction, phone: string): Promise<string | null> {
     const existing = await this.accounts.findSubscriberByIdentity(tx, IdentityKind.Phone, phone);
     if (existing) {

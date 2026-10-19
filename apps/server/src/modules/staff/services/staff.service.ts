@@ -12,7 +12,7 @@ import { UniqueViolation } from '../../../common/errors/unique-violation';
 import { AuditService } from '../../audit/services/audit.service';
 import type { RoleStore } from '../ports/role-store';
 import type { StaffPasswordHasher } from '../ports/staff-password-hasher';
-import type { StaffStore } from '../ports/staff-store';
+import type { StaffShop, StaffStore } from '../ports/staff-store';
 import type { StaffAccounts } from '../ports/staff-accounts';
 import { ROLE_STORE, STAFF_ACCOUNTS, STAFF_PASSWORD_HASHER, STAFF_STORE } from '../tokens';
 import type { StaffCredentials, StaffList, StaffMember, StaffRecord } from '../types/staff';
@@ -71,6 +71,24 @@ export class StaffService {
    */
   ownerContactIn(tx: Transaction, tenantId: string): Promise<OwnerContact | null> {
     return this.store.findOwnerContact(tx, tenantId);
+  }
+
+  /** TEN-31, AUTH-31: the shop this person is staff in, if any (STF-06: at most one). */
+  staffShopOf(subscriberId: string): Promise<StaffShop | null> {
+    return this.store.runAcrossShops((tx) => this.staffShopOfIn(tx, subscriberId));
+  }
+
+  /** AUTH-31: the shop of the staff member who signs in with this phone, found with no shop to start from. */
+  staffShopByPhone(phone: string): Promise<StaffShop | null> {
+    return this.store.runAcrossShops(async (tx) => {
+      const subscriberId = await this.accounts.findSubscriberByPhone(tx, phone);
+      return subscriberId === null ? null : this.store.findStaffShop(tx, subscriberId);
+    });
+  }
+
+  /** The same, inside the caller's transaction. */
+  staffShopOfIn(tx: Transaction, subscriberId: string): Promise<StaffShop | null> {
+    return this.store.findStaffShop(tx, subscriberId);
   }
 
   /** Runs work in a transaction with the shop's tenant context set. */

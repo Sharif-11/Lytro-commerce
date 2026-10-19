@@ -242,6 +242,10 @@ export class DrizzleTenantSummaryStore implements TenantSummaryStore {
     return this.tenants.findSummaryById(this.database.handle.db, tenantId);
   }
 
+  findSummaryBySlug(slug: string): Promise<TenantSummary | null> {
+    return this.tenants.findSummaryBySlug(this.database.handle.db, slug);
+  }
+
   async search(
     query: string | null,
     cursor: TenantSearchCursor | null,

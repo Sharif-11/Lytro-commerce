@@ -14,6 +14,7 @@ export interface TenantSearchPage {
     shop-name/slug search (LIF-24), used to find a tenant id before suspending or restoring it. */
 export interface TenantSummaryStore {
   findSummary(tenantId: string): Promise<TenantSummary | null>;
+  findSummaryBySlug(slug: string): Promise<TenantSummary | null>;
   search(
     query: string | null,
     cursor: TenantSearchCursor | null,

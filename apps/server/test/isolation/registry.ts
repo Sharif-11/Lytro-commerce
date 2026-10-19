@@ -7,12 +7,13 @@
 // Key: "METHOD /path", exactly as the route is registered (for example "GET /orders/:id").
 // Value: what the case checks. Every case expects `not_found` for another shop's ID (TEN-03).
 //
-// GET /me: a session of one shop is refused on another shop's host (TEN-28), and the summary shows only its own shop.
-// Checked over HTTP in test/dashboard.e2e.spec.ts.
+// GET /me: a dashboard call naming a shop the person doesn't belong to answers 404 (TEN-31), and the summary shows only
+// the shop the call names. Checked over HTTP in test/dashboard.e2e.spec.ts and test/staff.e2e.spec.ts.
 // The identity routes: a signed-in account can list, add and remove only its own identities (AUTH-26). Checked in
 // test/identities.e2e.spec.ts, including a removal of another account's identity, which answers 404.
 export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
-  'GET /me': 'session of shop A on shop B host is refused; summary shows only the session shop',
+  'GET /me':
+    'naming a shop the person does not belong to answers 404; summary shows only the named shop',
   'GET /me/identities': 'lists only the session account identities',
   'POST /me/identities/code': 'code is sent to the session account only',
   'POST /me/identities/verify':
@@ -24,10 +25,7 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'GET /staff': 'lists only the session shop staff and seats',
   'POST /staff': 'creates staff in the session shop only; seats are counted in that shop',
   'PATCH /staff/:id': 'another shop staff member answers 404',
-  // Checked in test/staff.e2e.spec.ts: a staff phone of one shop is refused on another shop's host.
-  'POST /auth/staff/signin': 'a staff phone of shop A is refused on shop B host',
-  // Checked in test/staff.e2e.spec.ts: another shop cannot reset a staff password; a staff member changes only their own.
-  'POST /auth/staff/password': 'changes only the session staff member password',
+  // Checked in test/staff.e2e.spec.ts: another shop cannot reset a staff password.
   'POST /staff/:id/password': 'another shop staff member answers 404',
   // Checked in test/staff.e2e.spec.ts: roles are the shop's own, and a held role cannot be deleted.
   'GET /roles': 'lists only the session shop roles and holder counts',
@@ -75,7 +73,7 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'POST /billing/cancel/undo': "undoes only the session shop's own cancellation",
   // Checked in test/shop-settings.e2e.spec.ts: a shop's own contact details only (TEN-30).
   'GET /shop-settings': "reads only the session shop's own contact details",
-  'PATCH /shop-settings': "a session of shop A on shop B's host is refused, never updates shop B",
+  'PATCH /shop-settings': "shop A's owner naming shop B answers 404, never updates shop B",
   // Checked in test/data-export.e2e.spec.ts: a shop's own export requests and files only (LIF-16/17).
   'POST /exports': 'creates an export request scoped to the session shop only',
   'GET /exports': "lists only the session shop's own export requests",

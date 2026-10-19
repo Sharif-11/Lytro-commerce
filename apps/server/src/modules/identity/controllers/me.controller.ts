@@ -7,6 +7,7 @@ import { MeResponseDto } from '../dto/me-response.dto';
 import { DashboardGuard, type DashboardRequest } from '../guards/dashboard.guard';
 import { SessionGuard } from '../guards/session.guard';
 import { StaffService } from '../../staff/services/staff.service';
+import { ShopMemberships, type ShopListing } from '../services/shop-memberships';
 import type { TenantSummary } from '../../tenancy/types/tenant-summary';
 
 export interface MeResponse {
@@ -26,6 +27,7 @@ export interface MeResponse {
     planName: string | null;
     periodEnd: string | null;
   } | null;
+  shops: ShopListing[];
 }
 
 // The dashboard shell's account summary.
@@ -36,7 +38,10 @@ export interface MeResponse {
 @Dashboard({ lapsed: true, suspendedOwner: true, withoutShop: true })
 @UseGuards(SessionGuard, DashboardGuard)
 export class MeController {
-  constructor(@Inject(StaffService) private readonly staff: StaffService) {}
+  constructor(
+    @Inject(StaffService) private readonly staff: StaffService,
+    @Inject(ShopMemberships) private readonly memberships: ShopMemberships,
+  ) {}
 
   @Get()
   @ResponseMessage('ProfileRetrieved')
@@ -48,6 +53,8 @@ export class MeController {
     const isOwner = userId === null;
     const permissions =
       isOwner || tenant === null ? [] : ((await this.staff.permissionsOf(tenant, userId)) ?? []);
+    const signedIn = request.signedIn ?? request.session;
+    const shops = signedIn ? await this.memberships.list(signedIn) : [];
     return {
       subscriber: { id: request.session?.subscriberId ?? '' },
       isOwner,
@@ -64,6 +71,7 @@ export class MeController {
               planName: tenant.planName,
               periodEnd: tenant.periodEnd?.toISOString() ?? null,
             },
+      shops,
     };
   }
 }

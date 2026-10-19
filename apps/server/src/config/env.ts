@@ -14,6 +14,10 @@ const envSchema = z.object({
     .min(1)
     .default('localhost')
     .transform((value) => value.toLowerCase()),
+  // TEN-29: the dashboard's and the operator console's own origins. A state-changing request carrying another
+  // Origin is refused. Default in production: https://app.<PLATFORM_DOMAIN> and https://admin.<PLATFORM_DOMAIN>.
+  DASHBOARD_ORIGIN: z.string().url().optional(),
+  OPERATOR_ORIGIN: z.string().url().optional(),
   // The edge (any proxy in front of the server) adds this secret to every request it forwards (decision R3).
   TRUSTED_EDGE_SECRET: z.string().min(32).optional(),
   // A second accepted secret, set only while the edge's secret is being rotated (no downtime).

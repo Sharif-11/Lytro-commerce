@@ -359,6 +359,14 @@ every backend slice. Requirements verified as `E2E` are therefore finished in Sl
 their backend ships earlier.
 
 ### Slice 0: one dashboard address (D3-11)
+- **Status (2026-10-19):** the dashboard app with its `/$shop` routes, the staff sign-in page, checkout and set-up, the
+  rewritten `deploy/Caddyfile` and the marketing links landed in #144–#146. The server half is this slice's own PR:
+  - the platform hosts never resolve to a shop
+  - the shop comes from the page (`x-lytro-shop`) with a membership check, staff included
+  - staff sign in from their phone alone
+  - `/me` lists the person's shops
+  - `__Host-` cookies and the `Origin` check
+  - the dashboard's page names are reserved
 - **Depends on:** none (runs in parallel with Slices 1–8).
 - **Delivers:**
   - `app.lytro.app` as the only dashboard host: the host classifier treats `app.` and `admin.` as platform

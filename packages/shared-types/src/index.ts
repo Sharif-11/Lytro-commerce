@@ -20,6 +20,13 @@ export const ERROR_CODES = [
 
 export type ErrorCode = (typeof ERROR_CODES)[number];
 
+/**
+ * TEN-31: the dashboard runs at app.lytro.app/<shop slug>/..., but its API calls go to /api/v1/... and so carry no
+ * path of their own. Every call from a shop's page names that shop in this header; the server checks that the
+ * signed-in person belongs to it.
+ */
+export const SHOP_HEADER = 'x-lytro-shop';
+
 // Every response is one of these two shapes (decided 2026-10-14) -- `success` tells a client which one it got
 // without inspecting the status code. `message` is a short, human sentence in both; `errors`/`data` hold the
 // payload each shape actually needs, never both on the same response.

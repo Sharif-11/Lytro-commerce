@@ -37,10 +37,12 @@ const post = (path: string, payload: unknown, headers: Record<string, string> = 
 const get = (path: string, headers: Record<string, string> = {}) => getJson(port, path, headers);
 
 const freshSlug = (): string => `r${randomUUID().replace(/-/g, '').slice(0, 10)}`;
-const call = (who: Session, host = PLATFORM): Record<string, string> => ({
+// TEN-31: a dashboard call on the platform host, naming the page's shop when there is one.
+const call = (who: Session, shop: string | null = null): Record<string, string> => ({
   cookie: who.cookie,
   'x-csrf-token': who.csrfToken,
-  host,
+  host: PLATFORM,
+  ...(shop === null ? {} : { 'x-lytro-shop': shop }),
 });
 
 function sessionFrom(response: Awaited<ReturnType<typeof post>>): Session {
@@ -209,28 +211,26 @@ describeIfDatabase('an owner whose shop was deleted opens a new one (LIF-21)', (
       await post(
         '/roles',
         { name: `Payments ${randomUUID().slice(0, 6)}`, permissions: ['payments:read'] },
-        call(back, `${slug}.localhost`),
+        call(back, slug),
       )
     ).body as { id: string };
     const staffPhone = texts.freshPhone();
     const hired = await post(
       '/staff',
       { phone: staffPhone, password: STAFF_PASSWORD, roleIds: [role.id] },
-      call(back, `${slug}.localhost`),
+      call(back, slug),
     );
     expect(hired.status).toBe(201);
     const staff = sessionFrom(
       await post(
         '/auth/staff/signin',
         { phone: staffPhone, password: STAFF_PASSWORD },
-        { host: `${slug}.localhost` },
+        { host: PLATFORM },
       ),
     );
-    const staffList = await get('/billing/invoices', call(staff, `${slug}.localhost`));
+    const staffList = await get('/billing/invoices', call(staff, slug));
     expect(staffList.status).toBe(200);
     expect((staffList.body as { id: string }[]).map((invoice) => invoice.id)).toEqual([ownInvoice]);
-    expect(
-      (await get(`/billing/invoices/${earlierInvoice}`, call(staff, `${slug}.localhost`))).status,
-    ).toBe(404);
+    expect((await get(`/billing/invoices/${earlierInvoice}`, call(staff, slug))).status).toBe(404);
   });
 });

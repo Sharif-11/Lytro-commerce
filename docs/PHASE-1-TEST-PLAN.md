@@ -94,10 +94,11 @@ Each scenario lists its preconditions, numbered steps, expected result, and the 
   the repo" standing gap flagged in the Phase-1 coverage audit; see `apps/admin/e2e/README` (global-setup.ts)
   for how the harness runs a real multi-host browser session without Caddy.
 
-**P1-E08 A session from one tenant is refused on another tenant's host. [API]**
-- Steps: obtain a session on tenant alpha; send it to tenant beta's API host.
-- Expected: `403`; the response leaks nothing about the other tenant.
-- Covers: TEN-28.
+**P1-E08 A session from one tenant is refused another tenant's shop. [API]**
+- Updated 2026-10-19 (TEN-31, Phase 3 Slice 0): the dashboard has one address, so the shop comes from the page, not the host.
+- Steps: obtain a session as tenant alpha's owner; call a dashboard route naming beta in `x-lytro-shop`; call one on beta's subdomain.
+- Expected: `404 not_found` for both, the same as for an unknown shop; the response leaks nothing about the other tenant.
+- Covers: TEN-28, TEN-31.
 
 **P1-E09 Requests that bypass the edge are refused. [API]**
 - Steps: send a request straight to the origin with a forged `Host` header, bypassing the trusted edge (simulated with a configuration flag that marks the request as untrusted).
@@ -149,10 +150,11 @@ Each scenario lists its preconditions, numbered steps, expected result, and the 
   `tenant_offline`) — `test/staff.e2e.spec.ts`. `locked` was already covered; `suspended` is owner-only per
   the dashboard lifecycle test and not a staff sign-in case.
 
-**P1-E33 Three-host dashboard access and onboarding resume. [API]**
-- Steps: verify a new phone on the platform host and stop; sign in again — check `next`; create the shop on the platform host; confirm the dashboard loads there; sign in directly on the shop subdomain and confirm the same dashboard; send the platform-host session to the shop subdomain and vice versa; sign in again after the set-password offer was seen.
-- Expected: the second sign-in on the platform host returns `next: create-shop`; the dashboard loads on the platform host after shop creation; signing in on the subdomain also gives the dashboard; a session from one host is refused on any other host with `forbidden`; the set-password offer is not shown again.
-- Covers: AUTH-10, AUTH-28, TEN-28, TEN-29, D13.
+**P1-E33 One dashboard address and onboarding resume. [API]**
+- Updated 2026-10-19: D13's three hosts were replaced by one dashboard address (D3-11, TEN-31).
+- Steps: verify a new phone on the platform host and stop; sign in again and check `next`; create the shop; open the dashboard naming the shop; try the dashboard on the shop's subdomain; sign in again after the set-password offer was seen.
+- Expected: the second sign-in returns `next: create-shop`; the dashboard opens on the platform host for the shop it names; the shop's subdomain answers `404`; the set-password offer is not shown again.
+- Covers: AUTH-10, AUTH-28, TEN-28, TEN-29, TEN-31.
 - Note (2026-10-12): "the set-password offer is not shown again" was already proven by the existing
   `test/signup.e2e.spec.ts` assertion that a returning phone gets `next: 'dashboard'`, not `'set-password'` —
   tied explicitly to this scenario now. True by construction: create-shop (and the offer with it) can only

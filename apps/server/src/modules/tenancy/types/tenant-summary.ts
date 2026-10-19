@@ -11,4 +11,6 @@ export interface TenantSummary {
   planName: string | null;
   planLimits: PlanLimits | null;
   periodEnd: Date | null;
+  /** TEN-31: the account that owns the shop, for the dashboard's membership check. */
+  ownerSubscriberId: string;
 }

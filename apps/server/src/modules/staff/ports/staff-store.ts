@@ -6,6 +6,8 @@ import type { OwnerContact } from '../types/owner-contact';
 export interface StaffStore {
   /** Runs the work in a transaction with the shop's tenant context set. */
   run<T>(tenantId: string, work: (tx: Transaction) => Promise<T>): Promise<T>;
+  /** A transaction that names no shop: only control tables and the person's own staff row are readable (TEN-31). */
+  runAcrossShops<T>(work: (tx: Transaction) => Promise<T>): Promise<T>;
   insertOwner(
     tx: Transaction,
     values: { tenantId: string; phone: string | null; email: string | null; name: string },
@@ -57,4 +59,13 @@ export interface StaffStore {
   deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void>;
   /** LIF-18/24, PYG-21: the owner's own contact, for a platform-sent notice (never a staff member's). */
   findOwnerContact(tx: Transaction, tenantId: string): Promise<OwnerContact | null>;
+  /** TEN-31, AUTH-31: the shop a person is active staff in, and their staff row there, found across shops. */
+  findStaffShop(tx: Transaction, subscriberId: string): Promise<StaffShop | null>;
+}
+
+/** The shop a person is staff in (at most one, STF-06), their staff row's id, and whether it is still active. */
+export interface StaffShop {
+  tenantId: string;
+  userId: string;
+  active: boolean;
 }

@@ -344,6 +344,20 @@
       "when": 1792335615251,
       "tag": "0048_payg_product_fee",
       "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1792398278545,
+      "tag": "0049_own_staff_row",
+      "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1792398281512,
+      "tag": "0050_reserve_dashboard_paths",
+      "breakpoints": true
     }
   ]
 }

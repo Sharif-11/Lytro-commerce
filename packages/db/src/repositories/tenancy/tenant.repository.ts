@@ -39,6 +39,8 @@ export interface TenantSummaryRow {
   planName: string | null;
   planLimits: PlanLimits | null;
   periodEnd: Date | null;
+  /** TEN-31: the account that owns the shop, for the dashboard's membership check. */
+  ownerSubscriberId: string;
 }
 
 // LIF-24: the operator's own keyset cursor for search() -- the latest-created tenant the caller has already
@@ -54,7 +56,18 @@ export interface TenantSearchRow extends TenantSummaryRow {
 
 export class TenantRepository {
   async findSummaryById(db: Database, id: string): Promise<TenantSummaryRow | null> {
-    const rows = await db
+    const rows = await this.summaryQuery(db).where(eq(tenants.id, id)).limit(1);
+    return rows[0] ?? null;
+  }
+
+  /** TEN-31: the shop a dashboard page names by its slug. */
+  async findSummaryBySlug(db: Database, slug: string): Promise<TenantSummaryRow | null> {
+    const rows = await this.summaryQuery(db).where(eq(tenants.slug, slug)).limit(1);
+    return rows[0] ?? null;
+  }
+
+  private summaryQuery(db: Database) {
+    return db
       .select({
         id: tenants.id,
         slug: tenants.slug,
@@ -65,12 +78,10 @@ export class TenantRepository {
         planName: plans.name,
         planLimits: plans.limits,
         periodEnd: tenants.periodEnd,
+        ownerSubscriberId: tenants.subscriberId,
       })
       .from(tenants)
-      .leftJoin(plans, eq(plans.id, tenants.planId))
-      .where(eq(tenants.id, id))
-      .limit(1);
-    return rows[0] ?? null;
+      .leftJoin(plans, eq(plans.id, tenants.planId));
   }
 
   /** LIF-24: the operator's tenant search, by shop name or slug substring -- never OFFSET, the same
@@ -106,6 +117,7 @@ export class TenantRepository {
         planName: plans.name,
         planLimits: plans.limits,
         periodEnd: tenants.periodEnd,
+        ownerSubscriberId: tenants.subscriberId,
         createdAt: tenants.createdAt,
       })
       .from(tenants)

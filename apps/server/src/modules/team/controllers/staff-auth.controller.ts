@@ -5,33 +5,31 @@ import { AllowPendingPassword } from '../../../common/decorators/allow-pending-p
 import { ApiError } from '../../../common/api-error';
 import { ClientIp } from '../../../common/client-ip';
 import { ResponseMessage } from '../../../common/decorators/response-message';
+import { SkipTenant } from '../../../common/decorators/skip-tenant';
 import { OkDto } from '../../../common/dto/ok.dto';
-import { headerValue, type HttpRequest, type HttpResponse } from '../../../common/http';
+import type { HttpRequest, HttpResponse } from '../../../common/http';
 import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
 import { PasswordSigninDto } from '../../identity/dto/auth.dto';
 import { SignedInBodyDto } from '../../identity/dto/auth-response.dto';
 import type { NextStep } from '../../identity/types/signed-in';
 import { SessionGuard, type SessionRequest } from '../../identity/guards/session.guard';
 import { ChangeStaffPasswordDto } from '../dto/staff.dto';
-import { TenantResolver } from '../../tenancy/services/tenant-resolver.service';
-import { TenantSummaries } from '../../tenancy/services/tenant-summaries.service';
 import { StaffSigninService } from '../services/staff-signin.service';
 
-// Staff sign-in is only meaningful on a shop's own host, so the shop comes from the host (TEN-28).
+// AUTH-31: staff sign in at app.lytro.app/staff-sign-in; the phone finds their shop, never the request host.
 @ApiTags('Staff Auth')
 @Controller('auth/staff')
+@SkipTenant()
 export class StaffAuthController {
   constructor(
     @Inject(StaffSigninService) private readonly signin: StaffSigninService,
-    @Inject(TenantResolver) private readonly resolver: TenantResolver,
-    @Inject(TenantSummaries) private readonly summaries: TenantSummaries,
     @Inject(ClientIp) private readonly clientIp: ClientIp,
   ) {}
 
   @Post('signin')
   @HttpCode(200)
   @ResponseMessage('SignedIn')
-  @ApiOperation({ summary: "Staff sign-in, on the shop's own host" })
+  @ApiOperation({ summary: 'Staff sign-in, with the phone and the password the owner set' })
   @ApiBody({ type: PasswordSigninDto })
   @ZodResponse({ type: SignedInBodyDto })
   async signIn(
@@ -39,12 +37,7 @@ export class StaffAuthController {
     @Req() request: HttpRequest,
     @Res({ passthrough: true }) response: HttpResponse,
   ): Promise<{ next: NextStep; tenantId: string | null; csrfToken: string }> {
-    const resolved = await this.resolver.resolve(headerValue(request.headers.host));
-    if (resolved.outcome === 'not_found') throw new ApiError('not_found', 'PageNotFound', {});
-    const shop = await this.summaries.findById(resolved.tenant.id);
-    if (!shop) throw new ApiError('not_found', 'PageNotFound', {});
     const result = await this.signin.signIn(
-      shop,
       body.phone,
       body.password,
       this.clientIp.context(request),

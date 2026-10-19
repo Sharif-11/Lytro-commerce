@@ -62,8 +62,13 @@ async function owner(): Promise<Owner> {
   return { phone, slug, ...session };
 }
 
-function shopCall(who: Owner): { cookie: string; 'x-csrf-token': string; host: string } {
-  return { cookie: who.cookie, 'x-csrf-token': who.csrfToken, host: `${who.slug}.localhost` };
+function shopCall(who: Owner): Record<string, string> {
+  return {
+    cookie: who.cookie,
+    'x-csrf-token': who.csrfToken,
+    host: 'localhost',
+    'x-lytro-shop': who.slug,
+  };
 }
 
 /** Trial has one seat (the owner only, STF-02) -- a staff-holding test needs at least Starter's two. */
@@ -94,14 +99,16 @@ async function viewerSession(who: Owner, permissions: string[]): Promise<Record<
     '/auth/staff/signin',
     { phone, password: STAFF_PASSWORD },
     {
-      host: `${who.slug}.localhost`,
+      host: 'localhost',
+      'x-lytro-shop': who.slug,
     },
   );
   expect(signedIn.status).toBe(200);
   return {
     cookie: cookieFrom(signedIn),
     'x-csrf-token': (signedIn.body as { csrfToken: string }).csrfToken,
-    host: `${who.slug}.localhost`,
+    host: 'localhost',
+    'x-lytro-shop': who.slug,
   };
 }
 
@@ -224,20 +231,20 @@ describeIfDatabase('shop contact settings (TEN-30)', () => {
     expect(allowed.status).toBe(200);
   });
 
-  it('refuses a session carried over to another shop’s host, for both GET and PATCH (TEN-28)', async () => {
+  it("answers another shop's page with 404, for both GET and PATCH (TEN-31)", async () => {
     const mine = await owner();
     const theirs = await owner();
-    const crossHost = { cookie: mine.cookie, host: `${theirs.slug}.localhost` };
+    const crossHost = { cookie: mine.cookie, host: 'localhost', 'x-lytro-shop': theirs.slug };
 
     const read = await get('/shop-settings', crossHost);
-    expect(read.status).toBe(403);
+    expect(read.status).toBe(404);
 
     const write = await patch(
       '/shop-settings',
       { contactPhone: '+8801711111111' },
       { ...crossHost, 'x-csrf-token': mine.csrfToken },
     );
-    expect(write.status).toBe(403);
+    expect(write.status).toBe(404);
   });
 });
 
