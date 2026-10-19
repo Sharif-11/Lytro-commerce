@@ -399,8 +399,9 @@ their backend ships earlier.
 - **Status, 2026-10-19:** `apps/operator` and `apps/dashboard` exist and replace `apps/admin` (PR #145).
   `packages/ui` (tokens, the light and console themes, the basic components, formats, language setup) and
   `packages/api-client` (the request wrapper and error fallback) are extracted, and both apps take them from
-  there, with every screen pixel-identical before and after. Still open: the console's own strict Content
-  Security Policy in `deploy/Caddyfile`, and the room for support view (ADM-05).
+  there, with every screen pixel-identical before and after. `admin.lytro.app` carries the console's own strict
+  Content Security Policy (`operator_csp` in `deploy/Caddyfile`). Still open: the room for support view
+  (ADM-05).
 - **Depends on:** Slice 0 (the hosts and sessions it reworks).
 - **Delivers:**
   - `packages/ui` (the brand doc's design tokens and basic components) and `packages/api-client` (the request
@@ -609,7 +610,8 @@ their backend ships earlier.
   API token entered once); delivery settings with the home-area picker and its two charges up front, and an "Add zone"
   editor that adds a whole division, district or city in one step; size-chart editor; one-tap option sets in the variant editor; "Duplicate product"; the catalog
   feed link with copy and setup steps; the setup checklist on the home screen (SUP-01); the brand identity editor with live preview, and the
-  dashboard themed by the shop's identity when switched on (BRN); the add-ons screen, with buying from the
+  dashboard themed by the shop's identity when switched on (BRN); the dashboard's own Content Security Policy on
+  `app.lytro.app`, once Slices 6 and 7 fix where images and uploads go (KNOWN-GAPS §65); the add-ons screen, with buying from the
   usage page and the brand editor and a renewal switch per add-on; Lytro's palette, fonts, logo and theme colour
   (`BRAND-IDENTITY.md` §11; the operator console's look is Slice 0b); a category's "behaves like" setting; "no delivery" zones and a
   product's "Delivers to" limit; "Sizes share one stock" with each size's amount; per-shop-type form layout with "More settings"; price and stock

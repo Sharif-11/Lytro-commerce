@@ -113,7 +113,9 @@ Then, per host, one rule each and no path lists:
   on the response's `next` like a normal sign-in.
 - **`admin.lytro.app`** → serve `apps/operator`'s static build from its own directory, with a fallback to
   `index.html` for any unmatched path (the console's own router takes over), under its own strict Content
-  Security Policy: only the console's own scripts and styles, since it never loads a third-party script. No
+  Security Policy (`operator_csp` in `deploy/Caddyfile`). Scripts, styles, fetches, the service worker and the
+  manifest come from the console's own origin only. The two exceptions are Google Fonts' stylesheet and font
+  files, and `data:` images for the two-factor QR code. No inline script, no plugin, no framing. No
   operator code ships to sellers, and no seller code to operators (D3-12). The old `apps/admin` build that
   carried both was removed on 2026-10-19; `apps/operator` replaced it the same day.
 - **`api.lytro.app`** → reverse-proxy `/v1/*` to `server` as `/api/v1/*`, with the edge secret added. Keys only:
