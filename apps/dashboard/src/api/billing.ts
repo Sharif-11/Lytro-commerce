@@ -202,9 +202,10 @@ export function useSetAutoRenew() {
 
 // --- Invoices (BIL-12, BIL-13) ---
 
-export function useInvoices() {
+export function useInvoices(options: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: INVOICES_QUERY_KEY,
     queryFn: () => tenantSession.client.get<Invoice[]>('/billing/invoices'),
+    enabled: options.enabled ?? true,
   });
 }

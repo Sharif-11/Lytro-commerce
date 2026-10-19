@@ -67,7 +67,7 @@ export function LifecycleBanner({ slug, tenant }: LifecycleBannerProps): React.J
 function PlansLink({ slug, label }: { slug: string; label: string }): React.JSX.Element {
   return (
     <Link
-      to="/$shop/plans"
+      to="/$shop/plan"
       params={{ shop: slug }}
       className="inline-flex min-h-9 shrink-0 items-center rounded-control border border-current/30 px-3 text-[13px] font-bold"
     >

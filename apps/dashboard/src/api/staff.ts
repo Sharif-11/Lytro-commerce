@@ -13,10 +13,11 @@ export const ROLES_QUERY_KEY = ['roles'] as const;
 
 // --- Staff (STF-01..07, STF-13) ---
 
-export function useStaffList() {
+export function useStaffList(options: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: STAFF_QUERY_KEY,
     queryFn: () => tenantSession.client.get<StaffList>('/staff'),
+    enabled: options.enabled ?? true,
   });
 }
 

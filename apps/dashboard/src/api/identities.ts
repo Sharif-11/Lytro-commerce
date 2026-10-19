@@ -11,10 +11,11 @@ import type { Identity } from '@/types/identity';
 export const IDENTITIES_QUERY_KEY = ['me', 'identities'] as const;
 
 /** AUTH-26: the sign-in methods on the account. */
-export function useIdentities() {
+export function useIdentities(options: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: IDENTITIES_QUERY_KEY,
     queryFn: () => tenantSession.client.get<{ identities: Identity[] }>('/me/identities'),
+    enabled: options.enabled ?? true,
   });
 }
 

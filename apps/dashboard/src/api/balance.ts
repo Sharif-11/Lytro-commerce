@@ -8,10 +8,11 @@ export const BALANCE_QUERY_KEY = ['balance'] as const;
 export const LEDGER_QUERY_KEY = ['balance', 'ledger'] as const;
 const PAGE_SIZE = 50;
 
-export function useBalance() {
+export function useBalance(options: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: BALANCE_QUERY_KEY,
     queryFn: () => tenantSession.client.get<BalanceSnapshot>('/balance'),
+    enabled: options.enabled ?? true,
   });
 }
 

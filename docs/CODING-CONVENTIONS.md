@@ -218,8 +218,9 @@ apps/dashboard/src/
       route.tsx              the layout route: the one session guard, renders ShopShell around an Outlet
       index.tsx              the dashboard home
       orders.tsx, products.tsx, customers.tsx, more.tsx
-      plans.tsx, balance.tsx, invoices.tsx, staff.tsx, roles.tsx, activity.tsx, settings.tsx, account.tsx
-                             the Phase 1–2 sections, gated per permission inside the view
+      plan.tsx, balance.tsx, invoices.tsx, team.tsx, team_.roles.tsx, activity.tsx, settings.tsx, account.tsx
+                             the Phase 1–2 sections (DASHBOARD-SECTIONS-DESIGN.md), gated per permission in the view;
+                             team_.roles is a sibling of team, not a child, so People needs no Outlet
   views/<screen>/
     index.tsx                the real page; sibling files are view-local pieces (checkout/plan-picker.tsx)
   components/

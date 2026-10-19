@@ -63,6 +63,14 @@ export class PricingTable {
     return [...own].sort((a, b) => a.term.months - b.term.months)[0] ?? null;
   }
 
+  /** The best saving a term offers against the shortest one, for the term chips (TRM-12); 0 when none. */
+  discountPercent(termId: string): number {
+    return Math.max(
+      0,
+      ...this.options.filter((o) => o.term.id === termId).map((o) => o.savingPercent),
+    );
+  }
+
   isEmpty(): boolean {
     return this.options.length === 0;
   }
