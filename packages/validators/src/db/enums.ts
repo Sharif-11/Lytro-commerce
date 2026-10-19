@@ -215,6 +215,19 @@ export enum AuditAction {
   // LIF-16/17: the owner's own data export -- one entry when requested, one when actually downloaded.
   DataExportRequested = 'data_export_requested',
   DataExportDownloaded = 'data_export_downloaded',
+  // PRD-05: a product's own changes. Stock changes are the stock ledger's (INV-03), never these.
+  ProductCreated = 'product_created',
+  ProductUpdated = 'product_updated',
+  ProductVariantsSaved = 'product_variants_saved',
+  ProductSlugChanged = 'product_slug_changed',
+  ProductDeleted = 'product_deleted',
+  CategoryCreated = 'category_created',
+  CategoryUpdated = 'category_updated',
+  CategoryDeleted = 'category_deleted',
+  AttributeCreated = 'attribute_created',
+  AttributeUpdated = 'attribute_updated',
+  // PST-01: the shop's main business type, which sets new products' defaults (PST-02).
+  BusinessTypeChanged = 'business_type_changed',
 }
 
 // AUD-07: these action kinds (payment, wallet, credential, plan, balance) are kept 24 months regardless of
@@ -406,6 +419,91 @@ export enum ScheduledPlanChangeKind {
  * The values of a string enum as the non-empty tuple that Drizzle's `pgEnum` expects. Throws on an empty enum,
  * which cannot happen for the enums above; the check keeps the type honest without a cast.
  */
+// UOM-01: the unit a product's stock is counted in. piece, dozen, pack and box are whole numbers; the rest take
+// up to three decimals (UOM-03).
+export enum StockUnit {
+  Piece = 'piece',
+  Kg = 'kg',
+  G = 'g',
+  Liter = 'liter',
+  Ml = 'ml',
+  Dozen = 'dozen',
+  Pack = 'pack',
+  Box = 'box',
+}
+
+// INV-02: whether a product's stock is counted at all ("made to order" when not).
+export enum StockTracking {
+  Tracked = 'tracked',
+  NotTracked = 'not_tracked',
+}
+
+// CCH-08: what the public catalogue says about a product's stock.
+export enum StockState {
+  In = 'in',
+  Low = 'low',
+  Out = 'out',
+}
+
+// PRD-16: how a product's delivery charge is worked out. Adjustable needs a weight.
+export enum DeliveryMode {
+  Default = 'default',
+  Adjustable = 'adjustable',
+}
+
+// PRD-08: what a shopper pays before delivery.
+export enum PaymentPolicy {
+  None = 'none',
+  DeliveryChargeOnly = 'delivery_charge_only',
+  PartialAdvance = 'partial_advance',
+  FullPrepayment = 'full_prepayment',
+}
+
+// ATL-01: an attribute's kind of value.
+export enum AttributeDataType {
+  EnumSingle = 'enum_single',
+  EnumMulti = 'enum_multi',
+  NumberWithUnit = 'number_with_unit',
+  Text = 'text',
+  Boolean = 'boolean',
+}
+
+// UOM-02: what a number-with-unit attribute measures.
+export enum UnitKind {
+  Weight = 'weight',
+  Volume = 'volume',
+  Count = 'count',
+}
+
+// ATL-02: what an attribute does on one product.
+export enum AttributeRole {
+  VariantDefining = 'variant_defining',
+  Informational = 'informational',
+  CapturedAtOrder = 'captured_at_order',
+}
+
+/**
+ * The attribute types that hold options (ATL-01). A number-with-unit attribute's options are numbers in its unit
+ * kind's base unit (grams, millilitres, a count), so they sort and compare as numbers (UOM-02).
+ */
+export const OPTION_DATA_TYPES: readonly AttributeDataType[] = [
+  AttributeDataType.EnumSingle,
+  AttributeDataType.EnumMulti,
+  AttributeDataType.NumberWithUnit,
+];
+
+/** The types that can split a product into variants (ATR-04): one option each. Never enum-multi (ATL-02). */
+export const VARIANT_DATA_TYPES: readonly AttributeDataType[] = [
+  AttributeDataType.EnumSingle,
+  AttributeDataType.NumberWithUnit,
+];
+
+/** The types a shopper or staff member can fill in when ordering (ATR-08): free text or a number. */
+export const CAPTURED_DATA_TYPES: readonly AttributeDataType[] = [
+  AttributeDataType.Text,
+  AttributeDataType.NumberWithUnit,
+];
+
 export function enumTuple<T extends string>(values: readonly T[]): [T, ...T[]] {
   const [first, ...rest] = values;
   if (first === undefined) throw new Error('an enum must have at least one value');

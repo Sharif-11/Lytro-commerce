@@ -123,4 +123,6 @@ export interface TenantStore {
     tenantId: string,
     values: Partial<ContactDetailsRow>,
   ): Promise<void>;
+  /** PST-01: sets the shop's business type, or clears it with null. */
+  setBusinessType(tx: Transaction, tenantId: string, businessType: string | null): Promise<void>;
 }

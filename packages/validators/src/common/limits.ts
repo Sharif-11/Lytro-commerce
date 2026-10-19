@@ -26,3 +26,26 @@ export const BUSINESS_ADDRESS_MAX_LENGTH = 300;
 // unhandled Postgres error instead of a clean validation message -- the bound belongs in the schema, at the
 // one place every such amount is defined, not rediscovered per field.
 export const MONEY_AMOUNT_MAX = 9_999_999_999.99;
+
+// Catalogue (SRS-detailed §14). A product's name and description (PRD-01), a category's name and depth (PRD-03),
+// an attribute's name and an option's value (ATL-01), and the variant limits (ATR-14), enforced by the request
+// shapes here and again by the database (ATL-03).
+export const PRODUCT_NAME_MAX_LENGTH = 200;
+export const PRODUCT_DESCRIPTION_MAX_LENGTH = 5000;
+export const CATEGORY_NAME_MAX_LENGTH = 80;
+export const CATEGORY_MAX_DEPTH = 4;
+export const ATTRIBUTE_NAME_MAX_LENGTH = 80;
+export const OPTION_VALUE_MAX_LENGTH = 80;
+export const MAX_VARIANT_ATTRIBUTES = 3;
+export const MAX_VARIANTS_PER_PRODUCT = 100;
+// PRD-12: the dashboard's product list pages.
+export const PRODUCT_PAGE_SIZE = 20;
+export const LIST_PAGE_SIZE_MAX = 100;
+// LND-04: a product's link slug. Letters (Bangla included), digits and hyphens, no leading or trailing hyphen.
+export const PRODUCT_SLUG_MAX_LENGTH = 120;
+export const PRODUCT_SLUG_PATTERN = /^[\p{L}\p{M}\p{N}]+(?:-[\p{L}\p{M}\p{N}]+)*$/u;
+export const SKU_MAX_LENGTH = 64;
+// The `numeric(10,2)` price and charge columns, and the `numeric(10,3)` weight and `numeric(14,3)` quantity ones.
+export const PRICE_MAX = 99_999_999.99;
+export const WEIGHT_KG_MAX = 9_999_999.999;
+export const QUANTITY_MAX = 99_999_999_999.999;

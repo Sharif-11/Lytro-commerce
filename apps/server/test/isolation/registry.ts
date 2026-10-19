@@ -78,4 +78,32 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'POST /exports': 'creates an export request scoped to the session shop only',
   'GET /exports': "lists only the session shop's own export requests",
   'GET /exports/:id/download': "another shop's export id answers not_found, never its content",
+  // Checked in test/catalogue-products.e2e.spec.ts and test/catalogue-library.e2e.spec.ts (Phase 3 Slice 1), and at the
+  // data layer in test/catalogue-db.e2e.spec.ts. GET /presets is platform data, the same for every shop.
+  'GET /presets': 'returns the same platform-wide shop types regardless of which shop calls it',
+  'GET /product-defaults': "the session shop's own business type decides the defaults",
+  'PUT /business-type': "sets only the session shop's own business type",
+  'GET /attributes':
+    "lists the platform's attributes and only the session shop's own, never another shop's",
+  'POST /attributes': 'creates an attribute in the session shop only',
+  'PATCH /attributes/:id': "another shop's attribute (or a platform one) answers 404",
+  'POST /attributes/:id/options':
+    "another shop's attribute answers 404; the option is the session shop's own",
+  'PATCH /attributes/:id/options/:optionId': "another shop's option answers 404",
+  'GET /categories': "lists only the session shop's own categories",
+  'POST /categories':
+    'creates a category in the session shop only; another shop as parent answers not_found',
+  'PATCH /categories/:id': "another shop's category answers 404",
+  'DELETE /categories/:id': "another shop's category answers 404",
+  'PUT /categories/:id/attributes':
+    "another shop's category answers 404; another shop's attribute is not_found",
+  'GET /products': "lists only the session shop's own products",
+  'POST /products':
+    "creates in the session shop only; another shop's category, attribute or option ids are not_found",
+  'GET /products/:id': "another shop's product answers 404",
+  'PATCH /products/:id': "another shop's product answers 404",
+  'DELETE /products/:id': "another shop's product answers 404, archived or hard",
+  'PUT /products/:id/variants': "another shop's product answers 404",
+  'PUT /products/:id/attributes': "another shop's product answers 404",
+  'PUT /products/:id/slug': "another shop's product answers 404",
 };

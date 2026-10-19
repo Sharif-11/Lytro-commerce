@@ -38,6 +38,11 @@ import {
   ScheduledPlanChangesRepository,
   DataExportsRepository,
   EssentialSmsUsageRepository,
+  AttributeRepository,
+  CategoryRepository,
+  ProductRepository,
+  VariantRepository,
+  PresetRepository,
 } from '@lytronix/db';
 import { EnvironmentParser } from '../config/env';
 import { ENV } from '../config/tokens';
@@ -75,6 +80,27 @@ import { DatabaseService } from './database.service';
       inject: [TransactionRunner],
       useFactory: (transactions: TransactionRunner) => new RoleRepository(transactions),
     },
+    {
+      provide: AttributeRepository,
+      inject: [TransactionRunner],
+      useFactory: (transactions: TransactionRunner) => new AttributeRepository(transactions),
+    },
+    {
+      provide: CategoryRepository,
+      inject: [TransactionRunner],
+      useFactory: (transactions: TransactionRunner) => new CategoryRepository(transactions),
+    },
+    {
+      provide: ProductRepository,
+      inject: [TransactionRunner],
+      useFactory: (transactions: TransactionRunner) => new ProductRepository(transactions),
+    },
+    {
+      provide: VariantRepository,
+      inject: [TransactionRunner],
+      useFactory: (transactions: TransactionRunner) => new VariantRepository(transactions),
+    },
+    { provide: PresetRepository, useFactory: () => new PresetRepository() },
     {
       provide: UserRepository,
       inject: [TransactionRunner],
@@ -162,6 +188,11 @@ import { DatabaseService } from './database.service';
     ScheduledPlanChangesRepository,
     DataExportsRepository,
     EssentialSmsUsageRepository,
+    AttributeRepository,
+    CategoryRepository,
+    ProductRepository,
+    VariantRepository,
+    PresetRepository,
   ],
 })
 export class DatabaseModule {}

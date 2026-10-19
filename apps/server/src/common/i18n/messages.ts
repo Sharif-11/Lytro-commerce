@@ -455,6 +455,209 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   StaffCreated: { en: 'Staff member added.', bn: 'স্টাফ মেম্বার যুক্ত হয়েছে।' },
   StaffUpdated: { en: 'Staff member updated.', bn: 'স্টাফ মেম্বার আপডেট হয়েছে।' },
   StaffPasswordReset: { en: 'Staff password reset.', bn: 'স্টাফের পাসওয়ার্ড রিসেট হয়েছে।' },
+
+  // --- Catalogue (Phase 3 Slice 1) ---
+  ProductLimitReached: {
+    en: (p) => {
+      const products = Number(p.products);
+      return `Your plan includes ${String(products)} product${products === 1 ? '' : 's'}. Archive one or upgrade to add more.`;
+    },
+    bn: (p) =>
+      `আপনার প্ল্যানে ${String(p.products)}টি প্রোডাক্ট রাখা যায়। আরও যোগ করতে একটি আর্কাইভ করুন বা আপগ্রেড করুন।`,
+  },
+  ProductNotFound: {
+    en: 'This product was not found.',
+    bn: 'প্রোডাক্টটি পাওয়া যায়নি।',
+  },
+  CategoryNotFound: {
+    en: 'This category was not found.',
+    bn: 'ক্যাটাগরিটি পাওয়া যায়নি।',
+  },
+  AttributeNotFound: {
+    en: 'This attribute was not found.',
+    bn: 'অ্যাট্রিবিউটটি পাওয়া যায়নি।',
+  },
+  OptionNotFound: {
+    en: 'This option was not found.',
+    bn: 'অপশনটি পাওয়া যায়নি।',
+  },
+  CategoryHasProducts: {
+    en: (p) => {
+      const count = Number(p.count);
+      return `${String(count)} product${count === 1 ? ' is' : 's are'} filed here. Move ${count === 1 ? 'it' : 'them'} to Uncategorized to delete the category.`;
+    },
+    bn: (p) =>
+      `এই ক্যাটাগরিতে ${String(p.count)}টি প্রোডাক্ট আছে। ক্যাটাগরি ডিলিট করতে প্রোডাক্টগুলো ক্যাটাগরিহীন করে দিন।`,
+  },
+  CategoryHasChildren: {
+    en: (p) => {
+      const count = Number(p.count);
+      return `This category has ${String(count)} sub-categor${count === 1 ? 'y' : 'ies'}. Move or delete ${count === 1 ? 'it' : 'them'} first.`;
+    },
+    bn: (p) =>
+      `এই ক্যাটাগরির ভেতরে ${String(p.count)}টি সাব-ক্যাটাগরি আছে। আগে সেগুলো সরান বা ডিলিট করুন।`,
+  },
+  CategoryTooDeep: {
+    en: (p) => `Categories go up to ${String(p.max)} levels deep. Choose a higher parent.`,
+    bn: (p) =>
+      `ক্যাটাগরি সর্বোচ্চ ${String(p.max)} ধাপ পর্যন্ত রাখা যায়। আরও উপরের একটি প্যারেন্ট বেছে নিন।`,
+  },
+  CategoryCannotMoveUnderItself: {
+    en: 'A category cannot go under itself or one of its own sub-categories.',
+    bn: 'কোনো ক্যাটাগরিকে তার নিজের বা নিজের সাব-ক্যাটাগরির ভেতরে রাখা যায় না।',
+  },
+  AttributeNameTaken: {
+    en: 'An attribute with this name already exists. Use that one.',
+    bn: 'এই নামে একটি অ্যাট্রিবিউট আগে থেকেই আছে। সেটাই ব্যবহার করুন।',
+  },
+  OptionValueTaken: {
+    en: 'This option already exists. Use that one.',
+    bn: 'এই অপশনটি আগে থেকেই আছে। সেটাই ব্যবহার করুন।',
+  },
+  AttributeHasNoOptions: {
+    en: 'This kind of attribute has no options.',
+    bn: 'এই ধরনের অ্যাট্রিবিউটের কোনো অপশন থাকে না।',
+  },
+  OptionValueNotANumber: {
+    en: 'Enter a number greater than 0, with up to 4 decimals.',
+    bn: '0-এর চেয়ে বড় একটি সংখ্যা দিন, দশমিকের পর সর্বোচ্চ 4 ঘর।',
+  },
+  AttributeCannotSplitVariants: {
+    en: 'This attribute cannot make variants. Use one with a single choice per product, such as Size or Color.',
+    bn: 'এই অ্যাট্রিবিউট দিয়ে ভ্যারিয়েন্ট বানানো যায় না। সাইজ বা কালারের মতো এক অপশনের অ্যাট্রিবিউট ব্যবহার করুন।',
+  },
+  AttributeAlreadyMakesVariants: {
+    en: 'This attribute already makes the variants of this product.',
+    bn: 'এই অ্যাট্রিবিউট দিয়ে এই প্রোডাক্টের ভ্যারিয়েন্ট তৈরি হচ্ছে।',
+  },
+  OptionNotOfAttribute: {
+    en: "Choose one of this attribute's listed options.",
+    bn: 'এই অ্যাট্রিবিউটের লিস্টের অপশনগুলো থেকে বেছে নিন।',
+  },
+  OneOptionPerAttribute: {
+    en: 'Choose one option of each attribute.',
+    bn: 'প্রতিটি অ্যাট্রিবিউট থেকে একটি করে অপশন বেছে নিন।',
+  },
+  VariantCombinationRepeated: {
+    en: 'This combination is already a variant of this product.',
+    bn: 'এই কম্বিনেশনটি এই প্রোডাক্টে আগে থেকেই একটি ভ্যারিয়েন্ট হিসেবে আছে।',
+  },
+  TooManyVariants: {
+    en: (p) =>
+      `A product has at most ${String(p.max)} variants. Use fewer options, or split it into separate products.`,
+    bn: (p) =>
+      `একটি প্রোডাক্টে সর্বোচ্চ ${String(p.max)}টি ভ্যারিয়েন্ট রাখা যায়। অপশন কমান, বা আলাদা প্রোডাক্ট বানান।`,
+  },
+  TooManyVariantAttributes: {
+    en: (p) =>
+      `A product's variants come from at most ${String(p.max)} attributes. Use fewer, or split it into separate products.`,
+    bn: (p) =>
+      `একটি প্রোডাক্টের ভ্যারিয়েন্ট সর্বোচ্চ ${String(p.max)}টি অ্যাট্রিবিউট দিয়ে বানানো যায়। কম ব্যবহার করুন, বা আলাদা প্রোডাক্ট বানান।`,
+  },
+  SkuTaken: {
+    en: 'Another variant in your shop already has this SKU.',
+    bn: 'আপনার দোকানের অন্য একটি ভ্যারিয়েন্টে এই SKU আগে থেকেই আছে।',
+  },
+  ProductSlugTaken: {
+    en: 'Another product already uses this link. Choose another.',
+    bn: 'অন্য একটি প্রোডাক্ট এই লিংক ব্যবহার করছে। অন্য একটি বেছে নিন।',
+  },
+  BusinessTypeUnknown: {
+    en: 'Choose one of the listed shop types.',
+    bn: 'লিস্টের দোকানের ধরনগুলো থেকে একটি বেছে নিন।',
+  },
+  AttributeValueWrongKind: {
+    en: "This value doesn't fit the attribute's type.",
+    bn: 'এই ভ্যালু অ্যাট্রিবিউটের টাইপের সাথে মেলে না।',
+  },
+  CapturedAttributeWrongType: {
+    en: 'Only a text or number attribute can be filled in when ordering.',
+    bn: 'শুধু টেক্সট বা সংখ্যার অ্যাট্রিবিউট অর্ডারের সময় পূরণ করা যায়।',
+  },
+  PresetsListed: {
+    en: 'Shop types retrieved.',
+    bn: 'দোকানের ধরনগুলো পাওয়া গেছে।',
+  },
+  ProductDefaultsRetrieved: {
+    en: 'Product defaults retrieved.',
+    bn: 'প্রোডাক্টের ডিফল্ট পাওয়া গেছে।',
+  },
+  BusinessTypeSaved: {
+    en: 'Shop type saved.',
+    bn: 'দোকানের ধরন সেভ হয়েছে।',
+  },
+  AttributesListed: {
+    en: 'Attributes retrieved.',
+    bn: 'অ্যাট্রিবিউট পাওয়া গেছে।',
+  },
+  AttributeCreated: {
+    en: 'Attribute added.',
+    bn: 'অ্যাট্রিবিউট যোগ হয়েছে।',
+  },
+  AttributeUpdated: {
+    en: 'Attribute updated.',
+    bn: 'অ্যাট্রিবিউট আপডেট হয়েছে।',
+  },
+  OptionCreated: {
+    en: 'Option added.',
+    bn: 'অপশন যোগ হয়েছে।',
+  },
+  OptionUpdated: {
+    en: 'Option updated.',
+    bn: 'অপশন আপডেট হয়েছে।',
+  },
+  CategoriesListed: {
+    en: 'Categories retrieved.',
+    bn: 'ক্যাটাগরি পাওয়া গেছে।',
+  },
+  CategoryCreated: {
+    en: 'Category added.',
+    bn: 'ক্যাটাগরি যোগ হয়েছে।',
+  },
+  CategoryUpdated: {
+    en: 'Category updated.',
+    bn: 'ক্যাটাগরি আপডেট হয়েছে।',
+  },
+  CategoryDeleted: {
+    en: 'Category deleted.',
+    bn: 'ক্যাটাগরি ডিলিট হয়েছে।',
+  },
+  CategorySuggestionsSaved: {
+    en: 'Suggested attributes saved.',
+    bn: 'সাজেস্টেড অ্যাট্রিবিউট সেভ হয়েছে।',
+  },
+  ProductsListed: {
+    en: 'Products retrieved.',
+    bn: 'প্রোডাক্ট পাওয়া গেছে।',
+  },
+  ProductRetrieved: {
+    en: 'Product retrieved.',
+    bn: 'প্রোডাক্ট পাওয়া গেছে।',
+  },
+  ProductCreated: {
+    en: 'Product added.',
+    bn: 'প্রোডাক্ট যোগ হয়েছে।',
+  },
+  ProductUpdated: {
+    en: 'Product updated.',
+    bn: 'প্রোডাক্ট আপডেট হয়েছে।',
+  },
+  ProductVariantsSaved: {
+    en: 'Variants saved.',
+    bn: 'ভ্যারিয়েন্ট সেভ হয়েছে।',
+  },
+  ProductAttributesSaved: {
+    en: 'Attributes saved.',
+    bn: 'অ্যাট্রিবিউট সেভ হয়েছে।',
+  },
+  ProductSlugChanged: {
+    en: 'Product link changed. The old link still works.',
+    bn: 'প্রোডাক্ট লিংক বদলানো হয়েছে। আগের লিংকটিও কাজ করবে।',
+  },
+  ProductDeleted: {
+    en: 'Product deleted.',
+    bn: 'প্রোডাক্ট ডিলিট হয়েছে।',
+  },
 };
 
 export function translate(key: MessageKey, lang: Language, params: MessageParams = {}): string {

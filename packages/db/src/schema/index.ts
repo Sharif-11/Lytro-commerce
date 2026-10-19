@@ -26,3 +26,6 @@ export * from './control/scheduled-plan-changes';
 export * from './tenant/data-exports';
 export * from './control/essential-sms-usage';
 export * from './control/platform-wallets';
+export * from './tenant/catalogue';
+export * from './tenant/attributes';
+export * from './control/presets';
