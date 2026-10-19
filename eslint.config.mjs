@@ -157,7 +157,7 @@ export default tseslint.config(
   },
   {
     // CODING-CONVENTIONS.md §1: applications never import the database package except through the server.
-    files: ['apps/admin/src/**/*.{ts,tsx}'],
+    files: ['apps/dashboard/src/**/*.{ts,tsx}'],
     plugins: {
       'react-hooks': reactHooks,
       'react-refresh': reactRefresh,
@@ -182,7 +182,7 @@ export default tseslint.config(
   {
     // TanStack Router's own documented pattern (`throw redirect(...)`, `throw notFound()`) throws a plain
     // object, not an Error — the library's control-flow mechanism, not a mistake to flag here.
-    files: ['apps/admin/src/routes/**/*.{ts,tsx}'],
+    files: ['apps/dashboard/src/routes/**/*.{ts,tsx}'],
     rules: {
       '@typescript-eslint/only-throw-error': 'off',
     },

@@ -1,0 +1,42 @@
+{
+  "name": "@lytronix/dashboard",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The tenant dashboard at app.lytro.app (Vite + React): sign-up, sign-in, create-shop, checkout, set-up and every shop's dashboard at /<slug>. Design: docs/ONBOARDING-FLOW-DESIGN.md.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 3002",
+    "generate-routes": "tsr generate",
+    "build": "pnpm generate-routes && tsc -p tsconfig.json --noEmit && vite build",
+    "preview": "vite preview --port 3002",
+    "typecheck": "pnpm generate-routes && tsc -p tsconfig.json --noEmit",
+    "lint": "pnpm generate-routes && eslint .",
+    "test": "pnpm generate-routes && vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@lytronix/shared-types": "workspace:^",
+    "@lytronix/validators": "workspace:^",
+    "@tanstack/react-query": "^5",
+    "@tanstack/react-router": "^1",
+    "i18next": "^24",
+    "react": "^19",
+    "react-dom": "^19",
+    "react-i18next": "^15",
+    "zod": "^3"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@tanstack/router-cli": "^1.167.40",
+    "@tanstack/router-plugin": "^1",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vite-pwa/assets-generator": "^2.0.0",
+    "@vitejs/plugin-react": "^4",
+    "jsdom": "^25",
+    "tailwindcss": "^4.3.3",
+    "vite": "^5",
+    "vite-plugin-pwa": "^2.0.0",
+    "vitest": "^2.1.2"
+  }
+}

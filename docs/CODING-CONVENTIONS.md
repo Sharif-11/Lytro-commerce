@@ -194,86 +194,53 @@ apps/server/src/
 - The server reads settings only through `EnvironmentParser`. Nothing else reads `process.env` except the entry point's bootstrap and the test setup.
 - Every variable a turbo task reads is listed in that task's `env` in `turbo.json`.
 
-## 6a. Admin app (apps/admin)
+## 6a. Dashboard app (apps/dashboard)
 
-**Superseded by D3-12 (`PHASE-3-PLAN.md`, decided 2026-10-18), from Phase 3's Slice 0b:** the operator console
-becomes its own app, `apps/operator`, served at `admin.lytro.app` with its own build and release.
-`apps/admin` is renamed `apps/dashboard` and serves only the tenant dashboard at `app.lytro.app`, and
-shared code moves to `packages/ui` and `packages/api-client`. Until that slice, this section describes the
-code as it is.
-
-Decided 2026-10-09, while planning slice 9. One Vite + React build, deployed to two hosts (see
-`docs/DEPLOYMENT.md`): the tenant-facing domain (sign-up, sign-in, dashboard, staff) and `admin.<platform
-domain>` (the operator console). The router picks which route tree to mount by `window.location.hostname` at
-boot — one codebase, not two.
+Rebuilt 2026-10-19 from `ONBOARDING-FLOW-DESIGN.md` as a fresh Vite + React app serving only the tenant side at
+`app.lytro.app` (D3-12). The old `apps/admin`, which also carried the operator console and picked its screens
+by hostname, was removed; `apps/operator` is still to be built, and shared code (`packages/ui`,
+`packages/api-client`) is extracted when it exists.
 
 ```
-apps/admin/src/
-  main.tsx                 entry point
-  router.tsx                TanStack Router setup; host-branches into the tenant or operator route tree
-  routes/                   thin: one file per route. Sets metadata and renders a view. No business logic.
-    sign-in.tsx, verify-code.tsx, create-shop.tsx, set-password.tsx, forgot-password/
-                             transitional auth-flow screens — outside the dashboard layout on purpose
-                             (create-shop in particular has no tenant yet to show a dashboard shell for)
-    dashboard/
-      route.tsx               the layout route: the one session guard, renders the shell around an Outlet
-      index.tsx                the dashboard home page
-      staff.tsx, roles.tsx, activity.tsx, balance.tsx, billing.tsx, invoices.tsx
-                               nested under the same layout, same one guard (D32, 2026-10-10 — a regular
-                               `dashboard/` directory with a `route.tsx`, not a pathless `_dashboard/` group:
-                               the latter collides with the root route's own path). balance/billing/invoices
-                               added in Phase 2 slice 8 (2026-10-16).
-    operator/                sign-in, enroll, verify, plus a `_console` pathless layout (Phase 2 slice 8,
-                              2026-10-16) guarding `plans.tsx`/`billing-terms.tsx`/`rates.tsx`/`tenants.tsx` —
-                              pathless, not a regular `operator/route.tsx`, since `operator/sign-in.tsx`
-                              already lives directly under `operator/` and a path-based guard there would
-                              also wrap sign-in itself (an infinite redirect loop, found and fixed live)
-  views/<route>/
-    index.tsx                 the real page
-    components/                view-local components, used only by this view
+apps/dashboard/src/
+  main.tsx                 entry point: query client, router, the one /me auth-init call
+  router.tsx               TanStack Router setup over the generated route tree
+  routes/                  thin: one file per route, a search schema and a view. No business logic.
+    index.tsx               / → /shops when signed in, /sign-in otherwise
+    sign-in.tsx, verify-code.tsx, auth/oauth/$provider/callback.tsx
+    create-shop.tsx, checkout.tsx, set-password.tsx, set-up.tsx
+                             the onboarding steps (AUTH-28), each with its own session guard since there is no
+                             shop yet to hang a layout on
+    shops.tsx               lands on the person's shop (TEN-31)
+    staff-sign-in.tsx, staff-set-password.tsx, forgot-password/, unavailable.tsx
+    $shop/
+      route.tsx              the layout route: the one session guard, renders ShopShell around an Outlet
+      index.tsx              the dashboard home
+      orders.tsx, products.tsx, customers.tsx, balance.tsx, more.tsx, plans.tsx
+  views/<screen>/
+    index.tsx                the real page; sibling files are view-local pieces (checkout/plan-picker.tsx)
   components/
-    ui/                       shared primitives (buttons, inputs, dialogs — not view-specific)
-    layout/                   the dashboard shell, split by ENGINEERING-STANDARDS.md §2a's
-                               container/presentational line:
-      dashboard-shell.tsx        container — calls useMe()/useDocumentTitle(), composes the rest. Also
-                                   renders the one `tenant_offline` fallback screen (a suspended tenant, or
-                                   staff on a locked/archived shop) when `/me` itself 403s — added 2026-10-16,
-                                   since there's no successful tenant payload to branch a normal banner on.
-      sidebar.tsx, mobile-header.tsx, bottom-nav.tsx
-                                   presentational — read nav-items.ts, render their own markup (not unified
-                                   into one polymorphic component; see §2a/§4 for why). **Corrected
-                                   2026-10-16**: this file used to be named `top-bar.tsx`; the real desktop
-                                   nav component is `sidebar.tsx` (a fixed dark sidebar, sm and up),
-                                   `mobile-header.tsx` is a separate branding-only mobile strip, and
-                                   `bottom-nav.tsx` does the actual mobile nav rendering.
-      lifecycle-banner.tsx        presentational — one banner per trial/grace/read-only/locked/archived
-                                   state, mounted once here rather than per-page (Phase 2 slice 8)
-      nav-items.ts                the one array both nav components read — adding a destination is one
-                                   entry here, not an edit to both components (open/closed, §2a)
-      operator-nav-items.ts, operator-sidebar.tsx, operator-shell.tsx
-                                   the operator console's own second instance of the sidebar/nav-items pair
-                                   above — not shared with the tenant dashboard's, since the two consoles'
-                                   destinations and guards are genuinely different (Phase 2 slice 8)
-      brand-mark.tsx, powered-by-mark.tsx
-                                   presentational; brand-mark is also used by AuthCard, so it lives here
-                                   rather than as a second copy duplicated into auth-card.tsx
-      language-toggle.tsx         presentational control over i18n/index.ts's setLanguage/getLanguage
-  hooks/                     generic, non-API-specific reusable hooks — distinct from api/<domain>/ the
-                             same way the server's ports/ are distinct from its services/
-    use-document-title.ts     sets document.title, restores the previous one on unmount; not shop-specific
+    ui/                      primitives: button, text-field, otp-input, chip, notice, icon, language-toggle,
+                             step-frame (the onboarding shell with the progress bar)
+    brand/                   the mark, the wordmark, Powered by Lytro, the Google and Facebook marks
+    layout/                  the shop shell, split on ENGINEERING-STANDARDS.md §2a's container/presentational
+                             line: shop-shell.tsx (container, reads /me) over sidebar.tsx, bottom-nav.tsx,
+                             shop-header.tsx, lifecycle-banner.tsx (presentational); nav-items.ts is the one
+                             list both navs render
   api/
-    client.ts                  the typed fetch wrapper: attaches the CSRF header on mutating requests, parses
-                                the error envelope from @lytronix/shared-types
-    <domain>/                  query/mutation hooks (TanStack Query) for one backend module each, mirroring
-                                the server's own module names (auth, staff, roles, operator-auth, ...) — a
-                                view calls useMe() or useStaffList(), never the client directly (dependency
-                                inversion, §2a)
-  i18n/                       react-i18next setup; bn.json and en.json dictionaries
+    client.ts                the typed fetch wrapper: CSRF header on mutating requests, the error envelope
+    me.ts, auth.ts, billing.ts
+                             query/mutation hooks per backend module; a view calls useMe(), never the client
+    error-message.ts         ErrorCode → copy, exhaustive, no default
   session/
-    tenant-session.ts          holds the CSRF token and the last /me result; the auth-init gate protected
-                                queries wait on
-    operator-session.ts        holds the CSRF token; no gate (no protected operator screens exist yet)
-  types/
+    tenant-session.ts        the CSRF token and the last /me; the auth-init gate guards wait on
+    sign-up-intent.ts        the claimed address and picked plan, carried through step 1 (AUTH-28/29)
+    shop-setup-store.ts      the set-up answers and the share-link tick, per device until the endpoints exist
+    next-step.ts             NextStep → route, exhaustive
+  lib/                       pure helpers with injected settings: app-config, slug, phone, pricing-table, money
+  hooks/                     generic hooks: use-document-title, use-countdown, use-copy-to-clipboard
+  i18n/                      react-i18next; bn.json and en.json
+  types/                     structural duplicates of server response shapes (me, auth, billing)
 ```
 
 - **React components stay functions.** This is the one place §2's "classes, not free functions" rule does not
@@ -290,7 +257,7 @@ apps/admin/src/
   line-count cap is adopted (the 150-line rule from a sibling project's own convention was considered and not
   carried over without evidence it's needed here yet) — split a component when it's doing two things, the same
   single-responsibility judgement call §2's layering already asks for everywhere else.
-- `apps/admin` may import `@lytronix/validators` and `@lytronix/shared-types` directly (confirmed neither has
+- `apps/dashboard` may import `@lytronix/validators` and `@lytronix/shared-types` directly (confirmed neither has
   a Node-only dependency) — reusing a zod schema or an enum from there is preferred over redefining it
   client-side, the same "one definition per concept" rule §3 states for the server.
 - SOLID and the frontend design patterns this tree is built around (container/presentational, the `api/`

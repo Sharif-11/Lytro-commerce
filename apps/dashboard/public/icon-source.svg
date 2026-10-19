@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Lytro Dashboard">
+  <!-- Tenant dashboard app icon (PWA and native). Teal tile, white mark. Safe for maskable: mark stays inside the central 80%. -->
+  <rect width="512" height="512" rx="112" fill="#0E6B66"/>
+  <path d="M15 15V49H31L49 29" transform="translate(256 256) scale(5) translate(-32 -32)" fill="none" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

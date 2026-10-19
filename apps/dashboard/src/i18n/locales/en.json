@@ -1,0 +1,297 @@
+{
+  "common": {
+    "appName": "Lytro",
+    "loading": "Loading…",
+    "somethingWentWrong": "Something went wrong. Please try again.",
+    "language": "Language",
+    "continue": "Continue",
+    "copy": "Copy",
+    "copied": "Copied",
+    "signOut": "Sign out"
+  },
+  "frame": {
+    "needHelp": "Need help?",
+    "progress": "Step {{current}} of {{total}}",
+    "steps": {
+      "identity": "Phone",
+      "shop": "Your shop",
+      "password": "Password",
+      "setUp": "Set up"
+    }
+  },
+  "errors": {
+    "rateLimited": "Too many attempts. Please try again later.",
+    "rateLimitedSeconds": "Too many attempts. Try again in {{seconds}}s.",
+    "rateLimitedMinutes": "Too many attempts. Try again in {{minutes}} min.",
+    "conflict": "That is already taken. Try something else.",
+    "validation": "Please check what you entered.",
+    "unauthenticated": "Please sign in again.",
+    "tenantOffline": "This shop is not open right now.",
+    "notFound": "We could not find that.",
+    "planLimited": "This is not available on your current plan."
+  },
+  "signIn": {
+    "title": "Welcome to Lytro",
+    "lead": "Enter your phone number to continue. New or returning, this is the only door.",
+    "phoneLabel": "Phone number",
+    "passwordLabel": "Password",
+    "continue": "Continue",
+    "signInWithPassword": "Sign in",
+    "usePasswordInstead": "Sign in with a password",
+    "useCodeInstead": "Sign in with a code",
+    "forgotPassword": "Forgot your password?",
+    "invalidPhone": "Enter a valid Bangladeshi mobile number",
+    "continueWithGoogle": "Continue with Google",
+    "continueWithFacebook": "Continue with Facebook",
+    "or": "or",
+    "freeSmsNote": "Signing in by code to an existing shop uses one of the shop's free SMS. Password sign-in is free.",
+    "termsBefore": "By continuing you accept the",
+    "terms": "Terms",
+    "termsAnd": "and the",
+    "privacy": "Privacy policy",
+    "termsAfter": ".",
+    "staffLink": "Staff? Sign in here",
+    "heldAddress": "{{host}} is being held for you",
+    "pickedPlan": "Plan: {{plan}} · {{term}}"
+  },
+  "verify": {
+    "title": "Verify your number",
+    "lead": "We sent a 6-digit code to {{phone}}",
+    "submit": "Verify",
+    "resend": "Resend code",
+    "resendIn": "Resend in {{seconds}}s",
+    "validFor": "The code is valid for {{minutes}} minutes.",
+    "expired": "This code has expired. Request a new one.",
+    "invalidCode": "Enter the 6-digit code",
+    "changeNumber": "Use a different number",
+    "usePassword": "Use a password instead"
+  },
+  "oauth": {
+    "title": "Signing you in…",
+    "lead": "One moment",
+    "backToSignIn": "Back to sign in"
+  },
+  "createShop": {
+    "title": "Create your shop",
+    "lead": "Pick a name and a link. The link is set once and never changes.",
+    "shopNameLabel": "Shop name",
+    "linkLabel": "Shop link",
+    "linkRule": "Lowercase letters, digits and hyphens, 3 to 30 characters.",
+    "linkLooksGood": "The link looks good",
+    "linkInvalid": "Use 3 to 30 lowercase letters, digits and hyphens, with no hyphen at the start or end.",
+    "linkReserved": "This link cannot be given out. Pick another one.",
+    "tryInstead": "You could take:",
+    "customerAddress": "Customers see",
+    "dashboardAddress": "Your dashboard",
+    "ownerNameLabel": "Your name",
+    "required": "This is needed.",
+    "tooLong": "Keep the name within 60 characters.",
+    "finalAddress": "Your shop's address will be",
+    "finalAddressNote": ". It cannot be changed later.",
+    "refused": "A shop was already opened from this account or internet connection recently. Nothing was created; everything you typed is kept.",
+    "alreadyHasShop": "This account already has a shop. One shop per account.",
+    "submit": "Create shop"
+  },
+  "checkout": {
+    "title": "Get your plan",
+    "lead": "Your shop is ready. Pay for the plan now, or continue on the trial without paying.",
+    "plan": "Plan",
+    "term": "Term",
+    "perMonth": "/ month",
+    "perTerm": "/ {{months}} months",
+    "monthlyEquivalent": "{{amount}} a month",
+    "saving": "{{percent}}% saving",
+    "noRefund": "A started period is not refunded.",
+    "sendAmount": "Send {{amount}} to one of these numbers:",
+    "noWalletsYet": "No payment numbers are set yet. Contact support, or take a plan later from the dashboard.",
+    "transactionId": "Transaction ID (TrxID)",
+    "senderNumber": "Number you sent from",
+    "amountPaid": "Amount you sent",
+    "fillAllFields": "Fill in all three fields.",
+    "submitPayment": "Submit payment",
+    "quoting": "Working out the price…",
+    "submitted": "Payment submitted. The plan starts once it is verified; we will let you know.",
+    "submittedNext": "Until then your shop runs on the trial; nothing is blocked.",
+    "continueWithoutPaying": "Continue without paying",
+    "noPlans": "No plan is on sale right now. Your shop continues on the trial."
+  },
+  "setPassword": {
+    "title": "Set a password",
+    "lead": "Optional. You can always sign in with a code; a password lets you in without an SMS.",
+    "titleRequired": "Choose a new password",
+    "leadRequired": "A new password is needed to continue.",
+    "newPasswordLabel": "New password",
+    "ruleLength": "{{min}} to {{max}} characters",
+    "ruleDigit": "At least one digit",
+    "ruleNotPhone": "Not your phone number",
+    "rulesNotMet": "The password does not meet the rules.",
+    "facebookOnly": "Your account was created with Facebook only, with no phone or email. The only way back in is signing in with that same Facebook account. You can add a phone number later from settings.",
+    "submit": "Save password",
+    "skip": "Skip for now"
+  },
+  "staffSetPassword": {
+    "lead": "Your shop owner set a temporary password. Choose your own to continue."
+  },
+  "setUp": {
+    "title": "Set up your shop",
+    "lead": "Two questions, both skippable and changeable later.",
+    "shopTypeQuestion": "What do you mainly sell?",
+    "shopTypeHint": "The add-product form follows this.",
+    "types": {
+      "clothing": "Clothing",
+      "shoes_bags": "Shoes and bags",
+      "cosmetics": "Cosmetics",
+      "electronics": "Electronics",
+      "mobiles_gadgets": "Mobiles and gadgets",
+      "grocery": "Grocery",
+      "food_bakery": "Food and bakery",
+      "books_stationery": "Books and stationery",
+      "pharmacy": "Pharmacy",
+      "home_decor": "Home and décor",
+      "other": "Other"
+    },
+    "homeAreaQuestion": "Where do you deliver from?",
+    "homeAreaHint": "Your two delivery zones are built from this.",
+    "areas": {
+      "dhaka_city": "Dhaka city",
+      "chattogram_city": "Chattogram city",
+      "sylhet_city": "Sylhet city",
+      "khulna_city": "Khulna city",
+      "rajshahi_city": "Rajshahi city",
+      "barishal_city": "Barishal city",
+      "rangpur_city": "Rangpur city",
+      "mymensingh_city": "Mymensingh city",
+      "cumilla_district": "Cumilla district",
+      "gazipur_district": "Gazipur district",
+      "narayanganj_district": "Narayanganj district"
+    },
+    "insideZone": "Inside {{area}}",
+    "outsideZone": "Outside {{area}}",
+    "zonesNote": "Both charges can be changed later in settings, and zones can be added.",
+    "submit": "Save and open the dashboard",
+    "skip": "Skip for now"
+  },
+  "shops": {
+    "title": "Opening your shop…"
+  },
+  "staffSignIn": {
+    "title": "Staff sign-in",
+    "lead": "Sign in with the phone number and password your shop owner gave you.",
+    "forgotNote": "Forgot the password? Ask the owner; they can set a new one.",
+    "ownerLink": "Owner? Sign in here"
+  },
+  "forgotPassword": {
+    "title": "Reset your password",
+    "lead": "Enter your phone number and we will send a reset code.",
+    "submit": "Send reset code",
+    "verifyTitle": "Enter the reset code",
+    "backToSignIn": "Back to sign in"
+  },
+  "nav": {
+    "primary": "Main menu",
+    "home": "Home",
+    "orders": "Orders",
+    "products": "Products",
+    "customers": "Customers",
+    "balance": "Balance",
+    "more": "More",
+    "notices": "Notices"
+  },
+  "lifecycle": {
+    "trialDaysLeft_one": "{{count}} day left in your trial.",
+    "trialDaysLeft_other": "{{count}} days left in your trial.",
+    "trialNoEnd": "You are on the trial.",
+    "trialWhatHappens": "At day 30 you continue on pay-as-you-go; nothing is lost.",
+    "seePlans": "See plans",
+    "graceNotice": "Your plan has lapsed.",
+    "renewByDays_one": "Renew within {{count}} day to avoid restrictions.",
+    "renewByDays_other": "Renew within {{count}} days to avoid restrictions.",
+    "renewNow": "Renew now",
+    "readOnlyNotice": "Your shop is read-only until you renew: you can view and export, not change.",
+    "lockedNotice": "Your shop is locked. Only the owner can sign in, to renew or export.",
+    "archivedNotice": "Your shop is archived. Take a plan or choose pay-as-you-go to bring it back."
+  },
+  "shop": {
+    "notFound": {
+      "title": "Shop not found",
+      "lead": "There is no shop at this address, or it is not yours.",
+      "goToMyShop": "Go to my shop"
+    },
+    "offline": {
+      "title": "The shop is not open right now",
+      "lead": "Talk to the shop's owner."
+    },
+    "suspended": {
+      "title": "Your shop is not available right now",
+      "lead": "Contact support for help.",
+      "contactSupport": "Contact support",
+      "balance": "See balance or top up"
+    },
+    "lockedOut": {
+      "title": "Renew and the shop opens again",
+      "lead": "All your data is here. Take a plan or choose pay-as-you-go.",
+      "renew": "See plans"
+    }
+  },
+  "home": {
+    "title": "Home",
+    "paymentBeingChecked": "Your payment is being checked. The plan name appears here once it is active.",
+    "checklist": {
+      "title": "Get your shop ready",
+      "shopCreated": "Shop created",
+      "deliveryCharges": "Delivery charges",
+      "deliveryDetail": "Inside {{area}} {{inside}} · outside {{outside}}",
+      "shareLink": "Share your shop link",
+      "open": "Open",
+      "moreLater": "Products, logo, payment numbers and couriers join this list as those features go live."
+    },
+    "link": {
+      "title": "Your shop link",
+      "facebook": "Share on Facebook",
+      "whatsapp": "Share on WhatsApp",
+      "shareText": "See my shop: {{url}}"
+    },
+    "today": {
+      "title": "Today",
+      "orders": "Orders",
+      "sales": "Sales",
+      "toConfirm": "To confirm",
+      "empty": "Your first order will appear here. Share the link on your page."
+    }
+  },
+  "sections": {
+    "orders": {
+      "emptyTitle": "No orders yet",
+      "emptyLead": "When the first order arrives, you confirm it and book the courier here."
+    },
+    "products": {
+      "emptyTitle": "No products yet",
+      "emptyLead": "The add-product form is coming to this section; you will add your first product from here."
+    },
+    "customers": {
+      "emptyTitle": "No customers yet",
+      "emptyLead": "Your customer list builds here after the first order."
+    },
+    "balance": {
+      "emptyTitle": "Balance ৳0",
+      "emptyLead": "Top-ups for SMS and paid features are coming to this section."
+    }
+  },
+  "more": {
+    "plan": "Plan",
+    "trial": "Trial",
+    "shopAddress": "Shop address",
+    "plans": "Plans and billing",
+    "support": "Support"
+  },
+  "plans": {
+    "title": "Plans",
+    "lead": "Choose a plan and a term, then send the payment. The plan starts once it is verified.",
+    "backHome": "Back to home",
+    "paygTitle": "Pay-as-you-go",
+    "paygLead": "No monthly fee; a small fee only when an order is delivered.",
+    "choosePayg": "Choose pay-as-you-go",
+    "paygNow": "Pay-as-you-go is on. The shop is open again.",
+    "paygAtPeriodEnd": "You move to pay-as-you-go when the current period ends."
+  }
+}

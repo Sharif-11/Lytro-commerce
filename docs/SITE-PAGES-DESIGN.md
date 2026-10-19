@@ -56,7 +56,7 @@ Follows AUTH-28 exactly: identity, create shop, optional password. The prototype
 
 **Shell.** Bare: wordmark top-left, "Need help?" top-right linking to Contact, a three-segment progress bar labelled Phone, Your shop, Password, one card per step on a sunken background, "Powered by Lytro · Lytronix" footer. No marketing nav, so nothing pulls the seller away mid-flow.
 
-**Copy.** Reuses the dashboard's existing strings where they exist (`apps/admin/src/i18n/locales/bn.json`: welcome title, phone prompt, verify title, resend, Google and Facebook buttons, staff link). New strings follow the same register.
+**Copy.** Reuses the dashboard's existing strings where they exist (`apps/dashboard/src/i18n/locales/bn.json`: welcome title, phone prompt, verify title, resend, Google and Facebook buttons, staff link). New strings follow the same register.
 
 **Mobile.** One column throughout, inputs 48 px tall, the phone prefix fixed, numeric keyboards on phone and code fields, the code field accepts a pasted SMS.
 
@@ -68,7 +68,7 @@ Follows AUTH-28 exactly: identity, create shop, optional password. The prototype
 | --- | --- | --- | --- |
 | About | `apps/website` | `/about` | Built 2026-10-19: `app/about/page.tsx`. Team cards read from a static list whose names are empty until people agree to appear. |
 | Contact | `apps/website` | `/contact` | Built 2026-10-19: `app/contact/page.tsx`, `contact-form.tsx` and the server action in `actions.ts`, with the rules in `lib/contact/contact-submission.ts`. Channel values come from `SUPPORT_WHATSAPP`, `SUPPORT_PHONE` and `SUPPORT_EMAIL`, so placeholders cannot ship. The form posts to `CONTACT_WEBHOOK_URL`; without one it tells the visitor to use WhatsApp instead of pretending to send. "Open now" is computed in Dhaka time in the browser. |
-| Sign-up | `apps/admin` | `/sign-in`, `/verify-code`, `/create-shop`, `/set-password` (existing routes) | Restyle the existing screens to the shell and panes here; the flow and validation already exist. Add the business-type chips (PST-01) and the two-address slug preview (TEN-31). |
+| Sign-up | `apps/dashboard` | `/sign-in`, `/verify-code`, `/create-shop`, `/checkout`, `/set-password`, `/set-up` | Built 2026-10-19 as a fresh app to this shell (`components/ui/step-frame.tsx`); the map of screens to files is in `ONBOARDING-FLOW-DESIGN.md` §5. |
 | Footer and nav | `apps/website` | | Add About and Contact to the nav and footer when the pages exist, per the landing-page spec. |
 
 ---

@@ -46,8 +46,9 @@ different builds, each with its own:
 
 Neither app's files contain the other's screens or API calls. Each calls the backend through Caddy's `/api/*`
 rule on its own host. Session cookies are host-only (`TEN-29`), so a seller's session exists only on
-`app.lytro.app` and an operator's only on `admin.lytro.app`. Until Slice 0b, one `apps/admin` build serves
-both hosts and picks its screens by hostname.
+`app.lytro.app` and an operator's only on `admin.lytro.app`. `apps/dashboard` (built 2026-10-19 from the
+onboarding design) serves `app.lytro.app`; `apps/operator` is not built yet, so `admin.lytro.app` has nothing
+to serve until it is.
 
 ## 3. Why Caddy, not nginx
 
@@ -113,8 +114,8 @@ Then, per host, one rule each and no path lists:
 - **`admin.lytro.app`** → serve `apps/operator`'s static build from its own directory, with a fallback to
   `index.html` for any unmatched path (the console's own router takes over), under its own strict Content
   Security Policy: only the console's own scripts and styles, since it never loads a third-party script. No
-  operator code ships to sellers, and no seller code to operators (D3-12). Until Slice 0b the operator console
-  is part of `apps/admin`'s build, picked by hostname.
+  operator code ships to sellers, and no seller code to operators (D3-12). `apps/operator` is not built yet:
+  the old `apps/admin` build that carried the console was removed on 2026-10-19 with the dashboard rebuild.
 - **`api.lytro.app`** → reverse-proxy `/v1/*` to `server` as `/api/v1/*`, with the edge secret added. Keys only:
   the backend refuses a session cookie here (API-14). This is the one address in the public API's documentation.
 - **`pay.lytro.app`** → the hosted payment page (built in Phase 5), served with a Content Security Policy that
@@ -178,8 +179,8 @@ for `active`) with zero infrastructure work on this platform's side per tenant.
 
 | App | Served at | Build output | Runtime | Why |
 |---|---|---|---|---|
-| `apps/dashboard` (`apps/admin` until Slice 0b) | `app.lytro.app` | `vite build` → static `dist/` | **none** — Caddy serves the files directly | A pure client-rendered SPA; there is nothing to run once the files exist |
-| `apps/operator` (from Slice 0b) | `admin.lytro.app` | `vite build` → static `dist/` | **none** — Caddy serves the files directly | The operator console's own build, kept apart from the sellers' app (D3-12) |
+| `apps/dashboard` | `app.lytro.app` | `vite build` → static `dist/` | **none** — Caddy serves the files directly | A pure client-rendered SPA; there is nothing to run once the files exist |
+| `apps/operator` (not yet built) | `admin.lytro.app` | `vite build` → static `dist/` | **none** — Caddy serves the files directly | The operator console's own build, kept apart from the sellers' app (D3-12) |
 | `apps/website` | `lytro.app` | Next.js, a standard server build (not a static export) | Node container, `next start` | Content is expected to grow (testimonials, a blog later per the landing-page plan); starting server-rendered avoids re-architecting the moment something dynamic is added, and costs little extra on a VPS already running two other Node processes |
 | `apps/storefront` | `*.lytro.app`, custom domains | Next.js, standalone server build | Node container, `next start` | Must render dynamically per request — SFT-01 requires one shared app serving every tenant differently based on the request's `Host`, which a static export cannot do |
 
