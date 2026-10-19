@@ -31,6 +31,10 @@ import type { OperatorSessionSettings } from './types/session';
       useFactory: (env: Env): OperatorSessionSettings => ({
         now: (): Date => new Date(),
         secureCookies: env.NODE_ENV === 'production',
+        // TEN-29: the console's own origin; outside production, checked only when configured.
+        origin:
+          env.OPERATOR_ORIGIN ??
+          (env.NODE_ENV === 'production' ? `https://admin.${env.PLATFORM_DOMAIN}` : null),
       }),
     },
     PasswordHasher,

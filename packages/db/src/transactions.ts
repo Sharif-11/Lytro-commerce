@@ -17,6 +17,14 @@ export class TransactionRunner {
   }
 
   /**
+   * TEN-31: names the person this transaction acts for, so the `own_staff_row` policy (migration 0049) lets it read
+   * that person's own staff row in whichever shop it is. Nothing else becomes readable.
+   */
+  async setSubscriberContext(tx: Transaction, subscriberId: string): Promise<void> {
+    await tx.execute(sql`SELECT set_config('app.subscriber_id', ${subscriberId}, true)`);
+  }
+
+  /**
    * True when a unique constraint was violated and its name contains the fragment. Services use it to turn a race
    * (two sign-ups with the same phone or address) into a clear answer rather than a 500.
    */

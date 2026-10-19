@@ -158,8 +158,6 @@ describeIfDatabase('route inventory against the application (SEC-02)', () => {
       'PATCH /roles/:id',
       'PATCH /shop-settings',
       'PATCH /staff/:id',
-      'POST /auth/staff/password',
-      'POST /auth/staff/signin',
       'POST /balance/top-up/confirm',
       'POST /balance/top-up/quote',
       'POST /billing/auto-renew',

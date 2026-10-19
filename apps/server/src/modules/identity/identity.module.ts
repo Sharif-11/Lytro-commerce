@@ -44,6 +44,7 @@ import { SignInAudit } from './services/sign-in-audit';
 import { SessionService } from './services/session.service';
 import type { SessionSettings } from './types/session';
 import { ShopCreationService } from './services/shop-creation.service';
+import { ShopMemberships } from './services/shop-memberships';
 import { EmailFormat } from './services/email-format';
 import { EmailSigninService } from './services/email-signin.service';
 import { SigninService } from './services/signin.service';
@@ -146,6 +147,11 @@ import {
       inject: [ENV],
       useFactory: (env: Env): SessionSettings => ({
         secureCookies: env.NODE_ENV === 'production',
+        // TEN-29: the dashboard's own origin. Outside production it is checked only when configured, since the
+        // development servers run on whichever local port is free.
+        origin:
+          env.DASHBOARD_ORIGIN ??
+          (env.NODE_ENV === 'production' ? `https://app.${env.PLATFORM_DOMAIN}` : null),
       }),
     },
     OneTimeCodeHasher,
@@ -164,6 +170,7 @@ import {
     PasswordHasher,
     SessionService,
     SessionGuard,
+    ShopMemberships,
     DashboardGuard,
     ClientIp,
     SignInLockout,
@@ -181,6 +188,8 @@ import {
   exports: [
     SessionService,
     SessionGuard,
+    // DashboardGuard is built in each module that uses it, so what it injects is exported with it.
+    ShopMemberships,
     DashboardGuard,
     PhoneNumberFormat,
     PasswordHasher,

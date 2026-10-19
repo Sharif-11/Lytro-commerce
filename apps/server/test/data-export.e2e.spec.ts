@@ -97,8 +97,13 @@ async function owner(): Promise<Owner> {
   return { phone, slug, ...session };
 }
 
-function shopCall(who: Owner): { cookie: string; 'x-csrf-token': string; host: string } {
-  return { cookie: who.cookie, 'x-csrf-token': who.csrfToken, host: `${who.slug}.localhost` };
+function shopCall(who: Owner): Record<string, string> {
+  return {
+    cookie: who.cookie,
+    'x-csrf-token': who.csrfToken,
+    host: 'localhost',
+    'x-lytro-shop': who.slug,
+  };
 }
 
 async function tenantIdOf(slug: string): Promise<string> {
@@ -132,14 +137,16 @@ async function viewerSession(who: Owner): Promise<Record<string, string>> {
     '/auth/staff/signin',
     { phone, password: STAFF_PASSWORD },
     {
-      host: `${who.slug}.localhost`,
+      host: 'localhost',
+      'x-lytro-shop': who.slug,
     },
   );
   expect(signedIn.status).toBe(200);
   return {
     cookie: cookieFrom(signedIn),
     'x-csrf-token': (signedIn.body as { csrfToken: string }).csrfToken,
-    host: `${who.slug}.localhost`,
+    host: 'localhost',
+    'x-lytro-shop': who.slug,
   };
 }
 

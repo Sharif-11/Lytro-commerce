@@ -8,4 +8,6 @@ export interface StaffAccounts {
    * shop owner, who cannot also be staff (STF-06).
    */
   reservePhone(tx: Transaction, phone: string): Promise<string | null>;
+  /** AUTH-31: the account behind a phone, if there is one -- where a staff member signs in. */
+  findSubscriberByPhone(tx: Transaction, phone: string): Promise<string | null>;
 }

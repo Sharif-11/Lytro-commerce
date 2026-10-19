@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { AuditAction, AuditResult, type SignInMethod } from '@lytronix/validators';
 import type { Transaction } from '@lytronix/db';
+import { originAllowed, sessionCookieName } from '../../../common/cookies';
 import { DAY_MS } from '../../../common/time';
 import { SESSION_SETTINGS, SESSION_STORE, SIGNUP_SETTINGS } from '../tokens';
 import { SignInAudit } from './sign-in-audit';
@@ -21,6 +22,16 @@ export class SessionService {
     @Inject(SESSION_SETTINGS) private readonly settings: SessionSettings,
     @Inject(SignInAudit) private readonly signInAudit: SignInAudit,
   ) {}
+
+  /** TEN-29: the cookie's name, `__Host-` prefixed wherever cookies are Secure. */
+  get cookieName(): string {
+    return sessionCookieName(SESSION_COOKIE, this.settings.secureCookies);
+  }
+
+  /** TEN-29: whether a state-changing request may come from this Origin. */
+  originAllowed(origin: string | undefined): boolean {
+    return originAllowed(origin, this.settings.origin);
+  }
 
   /** Creates a session in the caller's unit of work and returns the cookie value and CSRF token to send back. */
   async open(
@@ -96,12 +107,12 @@ export class SessionService {
   }
 
   clearCookie(): string {
-    return `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${this.secureSuffix()}`;
+    return `${this.cookieName}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${this.secureSuffix()}`;
   }
 
   private cookieFor(token: string): string {
     const maxAge = Math.floor(SESSION_TTL_MS / 1000);
-    return `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${String(maxAge)}${this.secureSuffix()}`;
+    return `${this.cookieName}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${String(maxAge)}${this.secureSuffix()}`;
   }
 
   private secureSuffix(): string {
@@ -112,7 +123,7 @@ export class SessionService {
     if (!cookieHeader) return null;
     for (const part of cookieHeader.split(';')) {
       const [name, ...rest] = part.trim().split('=');
-      if (name === SESSION_COOKIE && rest.length > 0) return rest.join('=');
+      if (name === this.cookieName && rest.length > 0) return rest.join('=');
     }
     return null;
   }

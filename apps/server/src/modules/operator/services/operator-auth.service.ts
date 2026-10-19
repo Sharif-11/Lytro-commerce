@@ -8,6 +8,7 @@ import {
 } from '@lytronix/validators';
 import type { Transaction } from '@lytronix/db';
 import { ApiError, FieldsError } from '../../../common/api-error';
+import { originAllowed, sessionCookieName } from '../../../common/cookies';
 import { HOUR_MS } from '../../../common/time';
 import { PlatformAuditService } from '../../audit/services/platform-audit.service';
 import { OPERATOR_GATEWAY, OPERATOR_SETTINGS } from '../tokens';
@@ -200,6 +201,16 @@ export class OperatorAuthService {
   }
 
   /** Compared in constant time (SEC-14), the same discipline as the tenant dashboard's own CSRF check. */
+  /** TEN-29: the cookie's name, `__Host-` prefixed wherever cookies are Secure. */
+  get cookieName(): string {
+    return sessionCookieName(OPERATOR_SESSION_COOKIE, this.settings.secureCookies);
+  }
+
+  /** TEN-29: whether a state-changing request may come from this Origin. */
+  originAllowed(origin: string | undefined): boolean {
+    return originAllowed(origin, this.settings.origin);
+  }
+
   csrfMatches(session: { csrfHash: string }, received: string | undefined): boolean {
     if (received === undefined) return false;
     const a = Buffer.from(this.digest(received));
@@ -212,7 +223,7 @@ export class OperatorAuthService {
   }
 
   clearCookie(): string {
-    return `${OPERATOR_SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0${this.secureSuffix()}`;
+    return `${this.cookieName}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0${this.secureSuffix()}`;
   }
 
   /** A password-only check, with the same timing whether the email is unknown or the password is wrong (AUTH-13's rule, applied to operators too). */
@@ -253,7 +264,7 @@ export class OperatorAuthService {
     const maxAge = Math.floor(OPERATOR_SESSION_TTL_MS / 1000);
     // SEC-14's minimum is Lax; Strict is used here outright since the operator console has no cross-site
     // redirect flow (no OAuth, no payment page) that would need the cookie carried cross-site.
-    return `${OPERATOR_SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${String(maxAge)}${this.secureSuffix()}`;
+    return `${this.cookieName}=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${String(maxAge)}${this.secureSuffix()}`;
   }
 
   private secureSuffix(): string {
@@ -264,7 +275,7 @@ export class OperatorAuthService {
     if (!cookieHeader) return null;
     for (const part of cookieHeader.split(';')) {
       const [name, ...rest] = part.trim().split('=');
-      if (name === OPERATOR_SESSION_COOKIE && rest.length > 0) return rest.join('=');
+      if (name === this.cookieName && rest.length > 0) return rest.join('=');
     }
     return null;
   }

@@ -81,6 +81,11 @@ function withSession(who: { cookie: string }, host: string): Record<string, stri
   return { cookie: who.cookie, host };
 }
 
+/** A dashboard page's request: the platform host, naming the page's shop (TEN-31). */
+function withShop(who: { cookie: string }, slug: string): Record<string, string> {
+  return { cookie: who.cookie, host: 'localhost', 'x-lytro-shop': slug };
+}
+
 beforeAll(async () => {
   if (!ADMIN_URL) return;
   const { adminDbUrl, appDbUrl } = await prepareTestDatabase(ADMIN_URL, DB_NAME);
@@ -122,25 +127,39 @@ describeIfDatabase('the dashboard on each host kind (TEN-28, TEN-29)', () => {
     expect(response.body).toMatchObject({ tenant: null });
   });
 
-  it('gives the owner the same summary on the shop subdomain', async () => {
+  it('TEN-31: opens the shop the page names, and lists it for the picker', async () => {
     const who = await owner();
-    const response = await get('/me', withSession(who, `${who.slug}.localhost`));
+    const response = await get('/me', withShop(who, who.slug));
     expect(response.status).toBe(200);
-    expect(response.body).toMatchObject({ tenant: { slug: who.slug } });
+    expect(response.body).toMatchObject({
+      tenant: { slug: who.slug },
+      shops: [{ slug: who.slug, role: 'owner' }],
+    });
   });
 
-  it('refuses a session on another shop subdomain (TEN-28)', async () => {
+  it("TEN-31: another shop's page answers 404, exactly like a shop that doesn't exist", async () => {
     const mine = await owner();
     const theirs = await owner();
-    const response = await get('/me', withSession(mine, `${theirs.slug}.localhost`));
-    expect(response.status).toBe(403);
-    expect(response.body).toMatchObject({ error: { code: 'forbidden' } });
+    const response = await get('/me', withShop(mine, theirs.slug));
+    expect(response.status).toBe(404);
+    expect(response.body).toMatchObject({ error: { code: 'not_found' } });
+    expect((await get('/me', withShop(mine, freshSlug()))).status).toBe(404);
+    expect((await get('/me', PLATFORM)).status).toBe(401);
   });
 
-  it('answers an unknown shop subdomain with 404, and a request without a session with 401', async () => {
+  it("TEN-31: a shop's own subdomain never serves the dashboard, even to its owner", async () => {
     const who = await owner();
-    expect((await get('/me', withSession(who, `${freshSlug()}.localhost`))).status).toBe(404);
-    expect((await get('/me', PLATFORM)).status).toBe(401);
+    const response = await get('/me', withSession(who, `${who.slug}.localhost`));
+    expect(response.status).toBe(404);
+  });
+
+  it('TEN-08: the platform hosts never resolve to a shop', async () => {
+    const who = await owner();
+    for (const host of ['app.localhost', 'admin.localhost']) {
+      const response = await get('/me', { ...withShop(who, who.slug), host });
+      expect(response.status).toBe(200);
+      expect(response.body).toMatchObject({ tenant: { slug: who.slug } });
+    }
   });
 
   it('refuses the dashboard to a session that still owes a password (AUTH-19)', async () => {

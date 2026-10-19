@@ -160,6 +160,8 @@ Applies to every tenant-scoped write in this document, tested once here as the r
 
 ### Cross-cutting: hostname resolution happens before anything else, and the trusted edge is the only source of it (`TEN-24`, `TEN-25`, `TEN-28`)
 
+> **Superseded 2026-10-19 (Phase 3 Slice 0, TEN-31):** the dashboard now runs on `app.lytro.app` only. A dashboard request on a shop's host answers `404`, and the shop comes from the page's `x-lytro-shop` header with a membership check, so naming another shop also answers `404` rather than `403`. The trusted-edge rules below still hold; the host-mismatch case is kept as a record of the Phase 1–2 behaviour. Current proof: `test/dashboard.e2e.spec.ts` and `test/staff.e2e.spec.ts`.
+
 **Verified live, 2026-10-15, against two real tenants** (`fashion-house` / `fashion-house-2`, both actually created via the flow above):
 
 ```

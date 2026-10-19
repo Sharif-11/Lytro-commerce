@@ -1,7 +1,24 @@
-import type { ApiErrorBody, ApiSuccessBody, ErrorCode } from '@lytronix/shared-types';
+import {
+  SHOP_HEADER,
+  type ApiErrorBody,
+  type ApiSuccessBody,
+  type ErrorCode,
+} from '@lytronix/shared-types';
+import { DASHBOARD_PATHS } from '@lytronix/validators';
 
 const MUTATING_METHODS: ReadonlySet<string> = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 const CSRF_HEADER = 'x-csrf-token';
+
+/**
+ * TEN-31: the shop a dashboard page belongs to -- the first segment of app.lytro.app/<shop>/..., unless that segment
+ * is one of the dashboard's own pages (sign-in, checkout, ...), which are never a shop's slug (TEN-26).
+ */
+function shopOfPath(pathname: string): string | null {
+  const first = pathname.split('/').find((segment) => segment !== '') ?? null;
+  if (first === null) return null;
+  const pages: readonly string[] = DASHBOARD_PATHS;
+  return pages.includes(first) ? null : decodeURIComponent(first);
+}
 
 /** Mirrors the server's ApiError shape (apps/server/src/common/api-error.ts), on the client side. */
 export class ApiClientError extends Error {
@@ -16,17 +33,18 @@ export class ApiClientError extends Error {
     this.name = 'ApiClientError';
   }
 
-  /** API-16: the server names the field a validation problem belongs to; this reads that back. */
+  /**
+   * API-16: each invalid field's message, by field. The server sends `details.fields` as a list of
+   * `{ field, problem, message }` (ApiFieldError), worded in the request's language.
+   */
   fieldProblems(): Record<string, string> {
     const fields = this.details.fields;
-    if (typeof fields !== 'object' || fields === null) return {};
+    if (!Array.isArray(fields)) return {};
     const out: Record<string, string> = {};
-    for (const [field, problem] of Object.entries(fields as Record<string, unknown>)) {
-      if (typeof problem === 'string') out[field] = problem;
-      else if (typeof problem === 'object' && problem !== null && 'message' in problem) {
-        const message = (problem as { message?: unknown }).message;
-        if (typeof message === 'string') out[field] = message;
-      }
+    for (const entry of fields as unknown[]) {
+      if (typeof entry !== 'object' || entry === null) continue;
+      const { field, message } = entry as { field?: unknown; message?: unknown };
+      if (typeof field === 'string' && typeof message === 'string') out[field] = message;
     }
     return out;
   }
@@ -49,6 +67,9 @@ export class ApiClient {
     const method = (init.method ?? 'GET').toUpperCase();
     const headers = new Headers(init.headers);
     headers.set('Content-Type', 'application/json');
+    // TEN-31: a call from a shop's page names that shop; the server checks the person belongs to it.
+    const shop = shopOfPath(window.location.pathname);
+    if (shop !== null) headers.set(SHOP_HEADER, shop);
     if (MUTATING_METHODS.has(method)) {
       const csrfToken = this.options.getCsrfToken();
       if (csrfToken !== null) headers.set(CSRF_HEADER, csrfToken);

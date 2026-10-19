@@ -66,8 +66,13 @@ async function owner(): Promise<Owner> {
   return { phone, slug, ...session };
 }
 
-function shopCall(who: Owner): { cookie: string; 'x-csrf-token': string; host: string } {
-  return { cookie: who.cookie, 'x-csrf-token': who.csrfToken, host: `${who.slug}.localhost` };
+function shopCall(who: Owner): Record<string, string> {
+  return {
+    cookie: who.cookie,
+    'x-csrf-token': who.csrfToken,
+    host: 'localhost',
+    'x-lytro-shop': who.slug,
+  };
 }
 
 beforeAll(async () => {

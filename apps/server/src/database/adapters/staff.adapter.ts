@@ -7,7 +7,7 @@ import {
   type Transaction,
 } from '@lytronix/db';
 import { UniqueViolation } from '../../common/errors/unique-violation';
-import type { StaffStore } from '../../modules/staff/ports/staff-store';
+import type { StaffShop, StaffStore } from '../../modules/staff/ports/staff-store';
 import type { StaffCredentials, StaffRecord } from '../../modules/staff/types/staff';
 import type { OwnerContact } from '../../modules/staff/types/owner-contact';
 import { DatabaseService } from '../database.service';
@@ -50,6 +50,10 @@ export class DrizzleStaffStore implements StaffStore {
   ) {}
 
   run<T>(_tenantId: string, work: (tx: Transaction) => Promise<T>): Promise<T> {
+    return this.transactions.run(this.database.handle.db, work);
+  }
+
+  runAcrossShops<T>(work: (tx: Transaction) => Promise<T>): Promise<T> {
     return this.transactions.run(this.database.handle.db, work);
   }
 
@@ -156,5 +160,9 @@ export class DrizzleStaffStore implements StaffStore {
 
   findOwnerContact(tx: Transaction, tenantId: string): Promise<OwnerContact | null> {
     return this.users.findOwnerContact(tx, tenantId);
+  }
+
+  findStaffShop(tx: Transaction, subscriberId: string): Promise<StaffShop | null> {
+    return this.users.findStaffShop(tx, subscriberId);
   }
 }

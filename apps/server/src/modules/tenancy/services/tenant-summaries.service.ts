@@ -17,6 +17,11 @@ export class TenantSummaries {
     return this.store.findSummary(tenantId);
   }
 
+  /** TEN-31: the shop a dashboard page names by its slug. */
+  findBySlug(slug: string): Promise<TenantSummary | null> {
+    return this.store.findSummaryBySlug(slug);
+  }
+
   search(
     query: string | null,
     cursor: TenantSearchCursor | null,

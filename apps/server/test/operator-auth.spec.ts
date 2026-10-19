@@ -122,7 +122,11 @@ function build(state: World) {
     },
   };
 
-  const settings: OperatorSessionSettings = { now: () => state.now, secureCookies: false };
+  const settings: OperatorSessionSettings = {
+    now: () => state.now,
+    secureCookies: false,
+    origin: null,
+  };
   const auditStore: PlatformAuditStore = {
     insert: (entry) => {
       state.platformAuditLog.push(entry);

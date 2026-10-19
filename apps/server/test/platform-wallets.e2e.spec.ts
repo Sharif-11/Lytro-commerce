@@ -73,8 +73,13 @@ async function owner(): Promise<Owner> {
   return { phone, slug, ...session };
 }
 
-function shopCall(who: Owner): { cookie: string; 'x-csrf-token': string; host: string } {
-  return { cookie: who.cookie, 'x-csrf-token': who.csrfToken, host: `${who.slug}.localhost` };
+function shopCall(who: Owner): Record<string, string> {
+  return {
+    cookie: who.cookie,
+    'x-csrf-token': who.csrfToken,
+    host: 'localhost',
+    'x-lytro-shop': who.slug,
+  };
 }
 
 async function moveToPlan(slug: string, planName: string): Promise<void> {
@@ -94,7 +99,7 @@ async function staffSignIn(slug: string, phone: string): Promise<HttpResult> {
   return post(
     '/auth/staff/signin',
     { phone, password: STAFF_PASSWORD },
-    { host: `${slug}.localhost` },
+    { host: 'localhost', 'x-lytro-shop': slug },
   );
 }
 
@@ -247,7 +252,11 @@ describeIfDatabase('platform wallets (BIL-02, BAL-03)', () => {
         expect(signedIn.status).toBe(200);
         const cookie = cookieFrom(signedIn);
 
-        const response = await get('/platform-wallets', { cookie, host: `${who.slug}.localhost` });
+        const response = await get('/platform-wallets', {
+          cookie,
+          host: 'localhost',
+          'x-lytro-shop': who.slug,
+        });
         expect(response.status).toBe(200);
         const ids = (response.body as WalletBody[]).map((w) => w.id);
         expect(ids).toContain((enabled.body as WalletBody).id);

@@ -1,14 +1,14 @@
 import { CanActivate, ExecutionContext, Inject, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { SHOP_HEADER } from '@lytronix/shared-types';
 import { TenantState } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import { DASHBOARD, type DashboardOptions } from '../../../common/decorators/dashboard';
 import { headerValue } from '../../../common/http';
 import type { TenantSummary } from '../../tenancy/types/tenant-summary';
 import { HostClassifier } from '../../tenancy/services/host-classifier';
-import { TenantResolver } from '../../tenancy/services/tenant-resolver.service';
-import { TenantSummaries } from '../../tenancy/services/tenant-summaries.service';
 import type { SessionRecord } from '../ports/session-store';
+import { ShopMemberships } from '../services/shop-memberships';
 
 // LIF-06, LIF-11, AUTH-22: after the paid period the owner may reach lapsed routes only; staff reach nothing once locked.
 export const LAPSED: ReadonlySet<TenantState> = new Set([
@@ -21,18 +21,20 @@ export interface DashboardRequest {
   headers: Record<string, string | string[] | undefined>;
   method?: string;
   ip?: string;
+  /** The session as this request sees it: the shop it names, and who the person acts as there (TEN-31). */
   session?: SessionRecord;
+  /** The session exactly as it was signed in, before the guard narrowed it to one shop. */
+  signedIn?: SessionRecord;
   tenant?: TenantSummary | null;
 }
 
-/** The dashboard's tenant rules (TEN-28, AUTH-22, AUTH-23, LIF-24). */
+/** The dashboard's shop rules (TEN-31, AUTH-22, AUTH-23, LIF-24). */
 @Injectable()
 export class DashboardGuard implements CanActivate {
   constructor(
     @Inject(Reflector) private readonly reflector: Reflector,
     @Inject(HostClassifier) private readonly hosts: HostClassifier,
-    @Inject(TenantResolver) private readonly resolver: TenantResolver,
-    @Inject(TenantSummaries) private readonly summaries: TenantSummaries,
+    @Inject(ShopMemberships) private readonly memberships: ShopMemberships,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -45,34 +47,36 @@ export class DashboardGuard implements CanActivate {
     const session = request.session;
     if (!session) throw new ApiError('unauthenticated', 'SignInToContinue', {});
 
-    const rawHost = headerValue(request.headers.host);
-    const target = this.hosts.classify(rawHost);
-    if (target.kind === 'invalid') throw new ApiError('not_found', 'PageNotFound', {});
-
-    // Staff work on their own shop's host only. The platform host is for the account owner.
-    if (target.kind === 'platform' && session.userId !== null) {
-      throw new ApiError('forbidden', 'RequestNotAccepted', {});
+    // TEN-31: the dashboard is served from the platform's own host only. A shop's subdomain or custom domain serves
+    // its public pages, never the dashboard.
+    if (this.hosts.classify(headerValue(request.headers.host)).kind !== 'platform') {
+      throw new ApiError('not_found', 'PageNotFound', {});
     }
 
-    if (target.kind !== 'platform') {
-      const resolved = await this.resolver.resolve(rawHost);
-      if (resolved.outcome === 'not_found') throw new ApiError('not_found', 'PageNotFound', {});
-      if (session.tenantId !== resolved.tenant.id) {
-        throw new ApiError('forbidden', 'RequestNotAccepted', {});
-      }
-    }
-
-    if (session.tenantId === null) {
+    // The shop comes from the page: app.lytro.app/<slug>/... names it in SHOP_HEADER. The steps right after sign-up
+    // (checkout, set-up) have no slug in their path and work on the shop the session started on.
+    const slug = headerValue(request.headers[SHOP_HEADER])?.trim().toLowerCase() || null;
+    const membership =
+      slug === null
+        ? await this.memberships.ofSession(session)
+        : await this.memberships.ofSlug(session, slug);
+    if (membership === null) {
+      // A shop the person doesn't belong to answers exactly like one that doesn't exist.
+      if (slug !== null) throw new ApiError('not_found', 'PageNotFound', {});
       if (options.withoutShop) {
+        request.signedIn = session;
         request.tenant = null;
         return true;
       }
       throw new ApiError('forbidden', 'CreateShopToContinue', { next: 'create-shop' });
     }
 
-    const tenant = await this.summaries.findById(session.tenantId);
-    if (!tenant) throw new ApiError('not_found', 'PageNotFound', {});
-    const ownerSession = session.userId === null;
+    // Everything after this guard (PermissionGuard, the controllers) reads the shop and the acting person from the
+    // session, so the request's session is narrowed to this shop -- as its owner, or as the person's staff row.
+    request.signedIn = session;
+    request.session = { ...session, tenantId: membership.tenant.id, userId: membership.userId };
+    const tenant = membership.tenant;
+    const ownerSession = membership.userId === null;
     if (tenant.suspendedAt !== null) {
       // LIF-24 (decided 2026-10-16): suspension is a separate axis from lifecycle state, stricter than any
       // lapsed state for everyone except the owner, who gets only the narrow set of routes that help

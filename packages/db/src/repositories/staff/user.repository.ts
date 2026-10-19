@@ -64,6 +64,24 @@ export class UserRepository {
     return rows[0] ?? null;
   }
 
+  /**
+   * TEN-31, AUTH-31: the shop a person is staff in, and their staff row there -- at most one, since a subscriber is
+   * staff in at most one shop (STF-06). Read across shops through the `own_staff_row` policy, so it needs no shop to
+   * start from. The caller decides what an inactive row means (STF-05).
+   */
+  async findStaffShop(
+    tx: Transaction,
+    subscriberId: string,
+  ): Promise<{ tenantId: string; userId: string; active: boolean } | null> {
+    await this.transactions.setSubscriberContext(tx, subscriberId);
+    const rows = await tx
+      .select({ tenantId: users.tenantId, userId: users.id, active: users.active })
+      .from(users)
+      .where(and(eq(users.subscriberId, subscriberId), eq(users.isOwner, false)))
+      .limit(1);
+    return rows[0] ?? null;
+  }
+
   /** Finds a shop's staff member by the phone they sign in with (STF-01). */
   async findUserByPhone(
     tx: Transaction,

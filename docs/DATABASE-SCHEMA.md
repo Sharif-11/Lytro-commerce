@@ -416,6 +416,10 @@ CREATE TABLE tenant.users (
     UNIQUE (tenant_id, id),                     -- lets user_roles prove a role and a user share a tenant
     UNIQUE (subscriber_id)                      -- STF-06: one subscriber is staff in at most one shop, platform-wide
 );
+-- TEN-31, AUTH-31 (migration 0049): besides tenant_isolation, a SELECT-only policy `own_staff_row` lets a
+-- transaction that names a person (set_config('app.subscriber_id', ...)) read that person's own staff row in any
+-- shop, so the dashboard can list the shops they belong to and staff can sign in with no shop host. Nothing else
+-- becomes readable, and every write still follows tenant_isolation.
 
 CREATE TABLE tenant.roles (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),

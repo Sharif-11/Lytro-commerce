@@ -19,5 +19,9 @@ export const meResponseSchema = z.object({
       periodEnd: z.string().nullable(),
     })
     .nullable(),
+  // TEN-31: every shop the signed-in person may open -- one opens directly, several show the picker.
+  shops: z.array(
+    z.object({ slug: z.string(), shopName: z.string(), role: z.enum(['owner', 'staff']) }),
+  ),
 });
 export class MeResponseDto extends createZodDto(meResponseSchema) {}

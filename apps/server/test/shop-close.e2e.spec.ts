@@ -67,7 +67,12 @@ async function owner(): Promise<Owner> {
 }
 
 function shopCall(who: Owner): Record<string, string> {
-  return { cookie: who.cookie, 'x-csrf-token': who.csrfToken, host: `${who.slug}.localhost` };
+  return {
+    cookie: who.cookie,
+    'x-csrf-token': who.csrfToken,
+    host: 'localhost',
+    'x-lytro-shop': who.slug,
+  };
 }
 
 /** A staff member holding every permission a role can carry is still not the owner. */
@@ -98,13 +103,14 @@ async function staffSession(who: Owner): Promise<Record<string, string>> {
   const signedIn = await post(
     '/auth/staff/signin',
     { phone, password: STAFF_PASSWORD },
-    { host: `${who.slug}.localhost` },
+    { host: 'localhost', 'x-lytro-shop': who.slug },
   );
   expect(signedIn.status).toBe(200);
   return {
     cookie: cookieFrom(signedIn),
     'x-csrf-token': (signedIn.body as { csrfToken: string }).csrfToken,
-    host: `${who.slug}.localhost`,
+    host: 'localhost',
+    'x-lytro-shop': who.slug,
   };
 }
 

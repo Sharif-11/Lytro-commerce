@@ -5,6 +5,10 @@ import { PLATFORM_DOMAIN } from '../tokens';
 // TEN-7a: the tenant is derived from the request host alone. Pure logic with no I/O, so the rules are testable
 // without a database.
 
+// TEN-08: the platform's own hosts under its domain -- the dashboard (TEN-31), the operator console, the public API,
+// the payment page and www. They are reserved slugs too (TEN-26), but they are never even looked up as shops.
+const PLATFORM_LABELS: ReadonlySet<string> = new Set(['app', 'admin', 'api', 'pay', 'www']);
+
 const HOSTNAME_PATTERN =
   /^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$/;
 
@@ -47,6 +51,7 @@ export class HostClassifier {
       const label = host.slice(0, -suffix.length);
       // Only a single label is a shop address; deeper names are not shops.
       if (label.includes('.')) return { kind: 'invalid' };
+      if (PLATFORM_LABELS.has(label)) return { kind: 'platform' };
       return this.slugs.isValid(label) ? { kind: 'shop', slug: label } : { kind: 'invalid' };
     }
 

@@ -25,6 +25,12 @@ export class OperatorSessionGuard implements CanActivate {
     if (!session) throw new ApiError('unauthenticated', 'SignInToContinue', {});
 
     const csrf = headerValue(request.headers[CSRF_HEADER]);
+    if (
+      MUTATING_METHODS.has(request.method) &&
+      !this.operators.originAllowed(headerValue(request.headers.origin))
+    ) {
+      throw new ApiError('forbidden', 'RequestNotAccepted', {});
+    }
     if (MUTATING_METHODS.has(request.method) && !this.operators.csrfMatches(session, csrf)) {
       throw new ApiError('forbidden', 'RequestNotAccepted', {});
     }
