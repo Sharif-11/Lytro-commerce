@@ -1,0 +1,601 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lytro Operator Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&family=Inter:wght@400;500;600;700&family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap">
+<style>
+  /* Prototype of the operator console at admin.lytro.app (OPERATOR-CONSOLE-DESIGN.md). Inverted chrome per
+     BRAND-IDENTITY §8.4 so it is never mistaken for a seller's dashboard. English by default, exact, never
+     cute. Desktop is the primary surface (an operator works at a desk); phones get the same screens stacked.
+     Only what the Phase 1–2 operator endpoints return is drawn; anything beyond is marked "later". */
+  :root {
+    --teal-100:#ddf5f2; --teal-200:#b9ece6; --teal-300:#7fdcd3; --teal-400:#3ec4b9; --teal-500:#17a89e; --teal-700:#0e6b66; --teal-900:#063b38;
+    --mari-100:#fdf0d1; --mari-300:#f8cf6e; --mari-500:#f2a516;
+    --ink:#10201f; --n100:#eaf0ef; --n200:#d5dfde; --n300:#a9b9b8; --n400:#7e8f8e;
+    --chrome:#061211; --sunken:#091413; --surface:#132725; --surface-2:#1b3432; --hover:#1f3d3a;
+    --fg:#eaf0ef; --fg-2:#c8d6d4; --line:rgba(255,255,255,0.1); --line-2:rgba(255,255,255,0.2);
+    --ok:#5fd48f; --ok-soft:rgba(95,212,143,0.14); --warn:#f8cf6e; --warn-soft:rgba(248,207,110,0.14); --bad:#ff7b83; --bad-soft:rgba(255,123,131,0.14);
+    --font-display:'Plus Jakarta Sans','Inter',ui-sans-serif,system-ui,sans-serif;
+    --font-ui:'Inter','Noto Sans Bengali',ui-sans-serif,system-ui,sans-serif;
+    --mono:ui-monospace,'Cascadia Mono','Segoe UI Mono',Menlo,monospace;
+    --gutter:max(16px, env(safe-area-inset-left,0px)); --gutter-r:max(16px, env(safe-area-inset-right,0px));
+    color-scheme:dark;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--chrome); color:var(--fg); font-family:var(--font-ui); font-size:15px; line-height:1.5; -webkit-font-smoothing:antialiased; overflow-x:hidden; }
+  h1,h2,h3 { margin:0; line-height:1.25; font-weight:700; }
+  h1 { font-family:var(--font-display); letter-spacing:-0.02em; }
+  p { margin:0; }
+  a { color:inherit; text-decoration:none; }
+  svg { display:block; }
+  button { font-family:inherit; }
+  [hidden] { display:none !important; }
+  .num { font-variant-numeric:tabular-nums; }
+  .mono { font-family:var(--mono); font-variant-numeric:tabular-nums; }
+  .muted { color:var(--fg-2); }
+  .eb { font-size:11px; font-weight:800; letter-spacing:0.14em; text-transform:uppercase; color:var(--mari-300); }
+  .card { background:var(--surface); border:1px solid var(--line); border-radius:14px; }
+  .btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; font-weight:600; font-size:0.9375rem; border-radius:10px; min-height:44px; padding:10px 16px; border:1px solid transparent; cursor:pointer; white-space:nowrap; }
+  .btn svg { width:18px; height:18px; flex:none; }
+  .btn-p { background:var(--teal-400); color:var(--ink); }
+  .btn-a { background:var(--mari-300); color:var(--ink); }
+  .btn-o { background:transparent; color:var(--fg); border-color:var(--line-2); }
+  .btn-g { background:transparent; color:var(--teal-300); }
+  .btn-d { background:var(--bad-soft); color:var(--bad); border-color:rgba(255,123,131,0.4); }
+  .btn-sm { min-height:36px; padding:6px 12px; font-size:0.875rem; border-radius:8px; }
+  .btn:disabled { opacity:0.5; cursor:not-allowed; }
+  .chip { display:inline-flex; align-items:center; gap:6px; font-size:0.75rem; font-weight:700; padding:2px 9px; border-radius:999px; white-space:nowrap; }
+  .chip.ok { background:var(--ok-soft); color:var(--ok); }
+  .chip.warn { background:var(--warn-soft); color:var(--warn); }
+  .chip.bad { background:var(--bad-soft); color:var(--bad); }
+  .chip.info { background:rgba(62,196,185,0.15); color:var(--teal-300); }
+  .chip.n { background:var(--surface-2); color:var(--fg-2); }
+  .field { display:grid; gap:6px; }
+  .field label { font-size:0.8125rem; font-weight:600; }
+  .field label small { color:var(--fg-2); font-weight:400; }
+  .field input,.field select,.field textarea { font:inherit; font-size:1rem; padding:10px 12px; border:1px solid var(--line-2); border-radius:10px; background:var(--surface-2); color:var(--fg); width:100%; min-height:44px; }
+  .field input::placeholder { color:var(--n400); }
+  .field .hint { font-size:0.8125rem; color:var(--fg-2); }
+  .f2 { display:grid; grid-template-columns:1fr; gap:12px; }
+  .note { border-left:3px solid var(--teal-400); background:rgba(62,196,185,0.08); border-radius:0 10px 10px 0; padding:10px 14px; font-size:0.875rem; }
+  .note.warn { border-color:var(--mari-300); background:var(--warn-soft); }
+  .note.bad { border-color:var(--bad); background:var(--bad-soft); }
+  .spec { font-size:0.6875rem; font-weight:600; letter-spacing:0.04em; color:var(--teal-300); background:rgba(62,196,185,0.1); border:1px solid rgba(62,196,185,0.25); border-radius:6px; padding:2px 6px; }
+  .spec.later { color:var(--mari-300); background:var(--warn-soft); border-color:rgba(248,207,110,0.35); }
+  .wmk { display:block; height:26px; width:auto; aspect-ratio:142/64; --wm-mark:#f8cf6e; --wm-text:#fff; }
+  .tog { width:40px; height:24px; border-radius:12px; background:var(--n400); position:relative; flex:none; border:0; cursor:pointer; }
+  .tog::after { content:""; position:absolute; top:3px; left:3px; width:18px; height:18px; border-radius:50%; background:var(--white,#fff); }
+  .tog.on { background:var(--teal-400); }
+  .tog.on::after { left:19px; background:var(--ink); }
+
+  /* Prototype switcher */
+  .proto { position:sticky; top:0; z-index:55; background:#000; color:#fff; font-size:0.8125rem; border-bottom:1px solid var(--line); }
+  .proto .wrap { display:flex; align-items:center; gap:6px; min-height:44px; overflow-x:auto; scrollbar-width:none; padding:0 var(--gutter); }
+  .proto .wrap::-webkit-scrollbar { display:none; }
+  .proto .lbl { color:var(--n300); white-space:nowrap; flex:none; margin-right:4px; }
+  .proto a { white-space:nowrap; padding:5px 11px; border-radius:999px; border:1px solid rgba(255,255,255,0.18); color:var(--n200); font-weight:500; flex:none; }
+  .proto a.on { background:var(--mari-300); color:var(--ink); border-color:var(--mari-300); font-weight:600; }
+  .urlbar { background:var(--sunken); border-bottom:1px solid var(--line); font-size:0.8125rem; color:var(--fg-2); }
+  .urlbar .wrap { display:flex; align-items:center; gap:6px 8px; min-height:34px; padding:6px var(--gutter); flex-wrap:wrap; }
+  .urlbar svg { width:12px; height:12px; color:var(--ok); }
+  .urlbar b { color:var(--fg); }
+  .urlbar .req { margin-left:auto; display:flex; gap:4px; flex-wrap:wrap; }
+
+  /* Auth frame */
+  .auth { min-height:calc(100vh - 44px - 34px); display:grid; grid-template-rows:auto 1fr auto; }
+  .auth-top { display:flex; justify-content:space-between; align-items:center; padding:12px var(--gutter); height:64px; }
+  .auth-main { padding:16px var(--gutter-r) 32px var(--gutter); display:grid; justify-items:center; align-content:start; gap:12px; }
+  .pane { width:100%; max-width:440px; padding:24px 20px; display:grid; gap:14px; }
+  .pane h2 { font-size:1.375rem; font-family:var(--font-display); letter-spacing:-0.02em; }
+  .pane .sub { color:var(--fg-2); font-size:0.9375rem; margin-top:-6px; }
+  .qr { width:200px; height:200px; margin:0 auto; border-radius:12px; background:#fff; padding:10px; }
+  .qr i { display:block; width:100%; height:100%; background:repeating-linear-gradient(90deg, var(--ink) 0 6px, transparent 6px 12px), repeating-linear-gradient(0deg, var(--ink) 0 6px, transparent 6px 12px); background-blend-mode:multiply; opacity:0.9; }
+  .secret { display:flex; justify-content:space-between; align-items:center; gap:10px; border:1px solid var(--line-2); background:var(--surface-2); border-radius:10px; padding:10px 12px; font-family:var(--mono); font-size:0.875rem; }
+  .secret span { color:var(--teal-300); font-family:var(--font-ui); font-weight:700; font-size:0.75rem; }
+  .codes { display:grid; grid-template-columns:1fr 1fr; gap:6px 16px; border:1px solid var(--line); background:var(--surface-2); border-radius:10px; padding:12px 14px; font-family:var(--mono); font-size:0.9375rem; }
+  .statebar { display:flex; flex-wrap:wrap; gap:6px; font-size:0.75rem; align-items:center; color:var(--n300); width:100%; max-width:440px; }
+  .statebar button { font:inherit; border:1px solid var(--line-2); background:transparent; border-radius:999px; padding:4px 10px; cursor:pointer; color:var(--fg-2); }
+  .statebar button[aria-pressed="true"] { background:var(--mari-300); color:var(--ink); border-color:var(--mari-300); }
+  .auth-foot { padding:14px var(--gutter); text-align:center; font-size:0.8125rem; color:var(--fg-2); }
+
+  /* Console shell */
+  .con { min-height:calc(100vh - 44px - 34px); display:grid; grid-template-columns:1fr; grid-template-rows:auto 1fr; }
+  .c-top { position:sticky; min-width:0; top:44px; z-index:40; background:rgba(6,18,17,0.92); backdrop-filter:blur(8px); border-bottom:1px solid var(--line); display:flex; align-items:center; gap:10px; height:56px; padding:0 var(--gutter); }
+  .c-top .menu { width:40px; height:40px; border-radius:10px; border:1px solid var(--line); background:transparent; color:var(--fg); display:grid; place-items:center; cursor:pointer; }
+  .c-top .menu svg { width:20px; height:20px; }
+  .c-top .brand { display:flex; align-items:center; gap:8px; }
+  .c-top .brand .wmk { height:20px; }
+  .search { flex:1; display:flex; align-items:center; gap:8px; min-width:0; border:1px solid var(--line-2); background:var(--surface-2); border-radius:10px; padding:0 10px; height:40px; color:var(--fg-2); font-size:0.875rem; }
+  .search span { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
+  .search svg { width:16px; height:16px; flex:none; }
+  .search kbd { margin-left:auto; font-family:var(--mono); font-size:0.6875rem; border:1px solid var(--line-2); border-radius:4px; padding:1px 5px; color:var(--n300); }
+  .c-side { display:none; }
+  .c-main { padding:16px var(--gutter-r) 32px var(--gutter); display:grid; gap:14px; align-content:start; min-width:0; }
+  .page-t { display:flex; justify-content:space-between; align-items:flex-end; gap:10px; flex-wrap:wrap; }
+  .page-t h1 { font-size:1.375rem; }
+  .page-t .sub { font-size:0.875rem; color:var(--fg-2); }
+  .page-t .acts { display:flex; gap:8px; flex-wrap:wrap; }
+  .crumb { font-size:0.8125rem; color:var(--fg-2); display:flex; align-items:center; gap:6px; }
+  .crumb svg { width:14px; height:14px; }
+  .kpis { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; }
+  .kpi { padding:12px 14px; display:grid; gap:2px; }
+  .kpi b { font-size:1.5rem; font-weight:700; letter-spacing:-0.02em; font-family:var(--font-display); }
+  .kpi b.warn { color:var(--warn); }
+  .kpi span { font-size:0.8125rem; color:var(--fg-2); }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; }
+  .chips .c { border:1px solid var(--line-2); border-radius:999px; padding:6px 12px; font-size:0.875rem; cursor:pointer; min-height:36px; display:inline-flex; align-items:center; gap:6px; background:transparent; color:var(--fg-2); }
+  .chips .c.on { background:var(--teal-400); color:var(--ink); border-color:var(--teal-400); font-weight:600; }
+  .chips .c i { font-style:normal; font-family:var(--mono); font-size:0.75rem; background:rgba(0,0,0,0.2); border-radius:999px; padding:0 6px; }
+
+  /* Tables → cards on phones */
+  table { width:100%; border-collapse:collapse; font-size:0.875rem; }
+  thead { display:none; }
+  tr { display:grid; gap:4px 10px; padding:12px 14px; border-top:1px solid var(--line); }
+  tr:first-child { border-top:0; }
+  td { display:block; min-width:0; }
+  td[data-l]::before { content:attr(data-l) " "; color:var(--fg-2); font-size:0.75rem; }
+  td.pri { font-weight:600; font-size:0.9375rem; }
+  td.pri[data-l]::before { display:none; }
+  td.acts { display:flex; gap:6px; flex-wrap:wrap; margin-top:4px; }
+  td .mono { font-size:0.8125rem; color:var(--fg-2); }
+  .tbl { overflow:hidden; }
+
+  /* Queue */
+  .q { padding:14px; display:grid; gap:10px; }
+  .q .hd { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap; }
+  .q .amt { font-family:var(--font-display); font-size:1.5rem; font-weight:700; letter-spacing:-0.02em; }
+  .q .meta { display:grid; grid-template-columns:1fr 1fr; gap:6px 12px; font-size:0.875rem; }
+  .q .meta span { color:var(--fg-2); font-size:0.75rem; display:block; }
+  .q .meta b { font-weight:500; }
+  .q .acts { display:flex; gap:8px; flex-wrap:wrap; }
+  .q.review { border-color:rgba(248,207,110,0.45); }
+  .q .why { font-size:0.8125rem; color:var(--warn); }
+
+  /* Tenant detail */
+  .t-hd { padding:16px; display:grid; gap:12px; }
+  .t-hd h1 { display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:1.375rem; }
+  .t-hd .ids { font-family:var(--mono); font-size:0.75rem; color:var(--fg-2); display:flex; gap:10px; flex-wrap:wrap; }
+  .t-hd .acts { display:flex; gap:8px; flex-wrap:wrap; }
+  .facts { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; }
+  .fact { padding:10px 12px; background:var(--surface-2); border-radius:10px; display:grid; gap:2px; }
+  .fact span { font-size:0.75rem; color:var(--fg-2); }
+  .fact b { font-size:1rem; }
+  .sec { padding:14px 16px; display:grid; gap:10px; }
+  .sec h2 { font-size:1rem; display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .sec h2 small { font-size:0.8125rem; color:var(--fg-2); font-weight:400; }
+  .later { padding:14px 16px; border:1px dashed var(--line-2); border-radius:14px; color:var(--fg-2); font-size:0.875rem; display:grid; gap:4px; }
+  .row { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:10px 0; border-top:1px solid var(--line); font-size:0.9rem; }
+  .row:first-of-type { border-top:0; }
+  .row small { display:block; color:var(--fg-2); font-size:0.8125rem; }
+
+  /* Plan matrix */
+  .matrix { overflow-x:auto; }
+  .matrix table { min-width:560px; }
+  .matrix thead { display:table-header-group; }
+  .matrix tr { display:table-row; padding:0; border:0; }
+  .matrix th,.matrix td { display:table-cell; padding:10px 12px; border-top:1px solid var(--line); text-align:left; vertical-align:middle; }
+  .matrix th { font-size:0.75rem; color:var(--fg-2); font-weight:600; letter-spacing:0.04em; text-transform:uppercase; border-top:0; }
+  .matrix td[data-l]::before { display:none; }
+  .matrix .price { font-family:var(--mono); font-size:0.9375rem; }
+  .matrix .price input { width:88px; font:inherit; background:var(--surface-2); border:1px solid var(--line-2); border-radius:8px; color:var(--fg); padding:6px 8px; text-align:right; }
+  .matrix .price.unset input { border-style:dashed; color:var(--n400); }
+  .matrix .pl b { display:block; }
+  .matrix .pl small { color:var(--fg-2); font-size:0.75rem; }
+  .matrix .off { opacity:0.55; }
+
+  /* Drawer (edit panel): bottom sheet on phones, side panel from 640 px */
+  .drawer { position:fixed; inset:0; z-index:70; display:grid; align-items:end; background:rgba(0,0,0,0.55); }
+  .drawer .pn { background:var(--surface); border:1px solid var(--line); border-radius:20px 20px 0 0; padding:10px 16px 20px; display:grid; gap:12px; max-height:92vh; overflow-y:auto; width:100%; }
+  .drawer h2 { font-size:1.125rem; display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .drawer h2 .x { width:32px; height:32px; border:0; background:var(--surface-2); color:var(--fg); border-radius:8px; cursor:pointer; }
+  .drawer .foot { display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap; padding-top:4px; }
+  .limits { display:grid; gap:8px; }
+  .lim { display:grid; grid-template-columns:1fr 110px auto; gap:8px; align-items:center; font-size:0.875rem; }
+  .lim input { font:inherit; background:var(--surface-2); border:1px solid var(--line-2); border-radius:8px; color:var(--fg); padding:7px 10px; text-align:right; font-family:var(--mono); width:100%; }
+  .lim label { display:flex; align-items:center; gap:6px; font-size:0.75rem; color:var(--fg-2); white-space:nowrap; }
+  .lim.unl input { opacity:0.4; }
+  .vers { font-size:0.8125rem; color:var(--fg-2); display:grid; gap:4px; }
+  .vers b { color:var(--fg); font-family:var(--mono); font-weight:600; }
+
+  /* Rates */
+  .rate { display:grid; grid-template-columns:1fr auto; gap:6px 12px; align-items:center; padding:12px 14px; border-top:1px solid var(--line); }
+  .rate:first-child { border-top:0; }
+  .rate b { display:block; font-size:0.9375rem; }
+  .rate small { color:var(--fg-2); font-size:0.8125rem; display:block; }
+  .rate .v { font-family:var(--mono); font-size:1.25rem; text-align:right; }
+  .rate .acts { grid-column:1 / -1; display:flex; gap:6px; }
+  .hist { grid-column:1 / -1; border-top:1px dashed var(--line); padding-top:8px; font-size:0.8125rem; color:var(--fg-2); display:grid; gap:4px; }
+  .hist b { color:var(--fg); font-family:var(--mono); font-weight:500; }
+  .inline { grid-column:1 / -1; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .inline input { font:inherit; background:var(--surface-2); border:1px solid var(--teal-400); border-radius:8px; color:var(--fg); padding:8px 10px; font-family:var(--mono); width:120px; }
+  .toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:var(--fg); color:var(--ink); font-size:0.875rem; font-weight:600; padding:10px 16px; border-radius:999px; z-index:60; display:flex; gap:8px; align-items:center; white-space:nowrap; }
+  .toast svg { width:16px; height:16px; color:var(--teal-700); }
+
+  @media (min-width:640px) {
+    .f2 { grid-template-columns:1fr 1fr; }
+    .kpis { grid-template-columns:repeat(4,1fr); }
+    .facts { grid-template-columns:repeat(4,1fr); }
+    .q .meta { grid-template-columns:repeat(4,1fr); }
+    .drawer { align-items:stretch; justify-items:end; }
+    .drawer .pn { width:min(100%,520px); height:100%; max-height:none; border-radius:0; border-width:0 0 0 1px; padding:20px 24px; }
+    thead { display:table-header-group; }
+    thead th { font-size:0.75rem; color:var(--fg-2); font-weight:600; letter-spacing:0.04em; text-transform:uppercase; text-align:left; padding:10px 14px; }
+    tr { display:table-row; padding:0; }
+    td { display:table-cell; padding:10px 14px; border-top:1px solid var(--line); vertical-align:middle; }
+    td[data-l]::before { display:none; }
+    td.acts { display:table-cell; white-space:nowrap; text-align:right; }
+    td.acts .btn { margin-left:4px; }
+  }
+  @media (min-width:1024px) {
+    .con { grid-template-columns:240px 1fr; grid-template-rows:auto 1fr; }
+    .c-side { grid-column:1; grid-row:1 / -1; }
+    .c-top { grid-column:2; grid-row:1; }
+    .c-main { grid-column:2; grid-row:2; }
+    .c-top .menu,.c-top .brand { display:none; }
+    .c-side { display:flex; flex-direction:column; gap:2px; padding:20px 12px; background:var(--chrome); border-right:1px solid var(--line); position:sticky; top:44px; height:calc(100vh - 44px); }
+    .c-side .hd { padding:0 12px 16px; }
+    .c-side a { display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:10px; color:var(--fg-2); font-size:0.9375rem; font-weight:500; }
+    .c-side a svg { width:20px; height:20px; }
+    .c-side a.on { background:var(--surface-2); color:var(--teal-300); font-weight:600; }
+    .c-side a i { margin-left:auto; font-style:normal; font-family:var(--mono); font-size:0.75rem; background:var(--mari-300); color:var(--ink); border-radius:999px; padding:0 7px; font-weight:700; }
+    .c-side .ft { margin-top:auto; padding:12px; display:grid; gap:8px; border-top:1px solid var(--line); font-size:0.8125rem; color:var(--fg-2); }
+    .c-main { padding:24px 28px 40px; max-width:1180px; }
+    .two { display:grid; grid-template-columns:1fr 360px; gap:14px; align-items:start; }
+  }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="mark" viewBox="0 0 64 64"><path d="M15 15V49H31L49 29" fill="none" stroke="currentColor" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="wordmark" viewBox="0 0 142 64"><path d="M15 15V49H31L49 29" transform="translate(2.8 8.12) scale(0.72)" fill="none" stroke="var(--wm-mark, currentColor)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/><text x="46" y="47" font-family="'Plus Jakarta Sans', Inter, system-ui, sans-serif" font-size="42" font-weight="800" letter-spacing="-1.3" fill="var(--wm-text, currentColor)">ytro</text></symbol>
+  <symbol id="check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+  <symbol id="menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="searchi" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 16l4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="inbox" viewBox="0 0 24 24"><path d="M4 4h16v16H4zM4 14h5l1 2h4l1-2h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+  <symbol id="store" viewBox="0 0 24 24"><path d="M4 9l1.5-4h13L20 9M4 9v10h16V9M4 9h16M10 19v-5h4v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+  <symbol id="tag" viewBox="0 0 24 24"><path d="M3 12V3h9l9 9-9 9-9-9Zm5-5h.01" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="cal" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M4 10h16M8 3v4M16 3v4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="rates" viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-8M22 19H2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="wallet" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3 10h18M15 14h3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="shield" viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+  <symbol id="logout" viewBox="0 0 24 24"><path d="M10 4H5v16h5M14 8l4 4-4 4M8 12h10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+  <symbol id="dl" viewBox="0 0 24 24"><path d="M12 4v11m-5-4 5 5 5-5M5 20h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</svg>
+
+<nav class="proto" aria-label="Prototype pages">
+  <div class="wrap">
+    <span class="lbl">Operator</span>
+    <a href="#signin" data-page="signin">Sign-in</a>
+    <a href="#queue" data-page="queue">Queue</a>
+    <a href="#tenants" data-page="tenants">Tenants</a>
+    <a href="#tenant" data-page="tenant">Tenant</a>
+    <a href="#plans" data-page="plans">Plans</a>
+    <a href="#plan-edit" data-page="plan-edit">Plan editor</a>
+    <a href="#terms" data-page="terms">Billing terms</a>
+    <a href="#rates" data-page="rates">Rates</a>
+    <a href="#settings" data-page="settings">Settings</a>
+    <a href="#wallets" data-page="wallets">Wallets</a>
+    <a href="#account" data-page="account">Account</a>
+  </div>
+</nav>
+
+<!-- ===== SIGN-IN ===== -->
+<div class="page" id="page-signin" hidden>
+  <div class="urlbar"><div class="wrap"><svg><use href="#lock"/></svg><b>admin.lytro.app</b>/sign-in<span class="req"><span class="spec">ADM-01</span><span class="spec">ADM-18</span></span></div></div>
+  <div class="auth">
+    <div class="auth-top"><div><div class="eb">Operator</div><svg class="wmk"><use href="#wordmark"/></svg></div><span class="muted" style="font-size:0.8125rem">EN · বাং</span></div>
+    <div class="auth-main">
+      <div class="statebar"><span>Step:</span><button type="button" class="ast" data-st="cred" aria-pressed="true">credentials</button><button type="button" class="ast" data-st="enroll" aria-pressed="false">first time: enrol</button><button type="button" class="ast" data-st="codes" aria-pressed="false">backup codes</button><button type="button" class="ast" data-st="verify" aria-pressed="false">verify</button></div>
+      <div class="pane card" id="a-cred">
+        <h2>Operator sign-in</h2><p class="sub">The platform console. Separate from any seller's dashboard; a seller account cannot sign in here.</p>
+        <div class="field"><label>Email</label><input type="email" placeholder="you@lytronix.com"></div>
+        <div class="field"><label>Password</label><input type="password"></div>
+        <button type="button" class="btn btn-p">Continue</button>
+      </div>
+      <div class="pane card" id="a-enroll" hidden>
+        <h2>Set up two-factor sign-in</h2><p class="sub">Required once. Scan with an authenticator app, then enter the 6-digit code it shows.</p>
+        <div class="qr"><i></i></div>
+        <div class="field"><label>Cannot scan? Enter this key by hand</label><div class="secret">JBSW Y3DP EHPK 3PXP JBSW Y3DP<span>Copy</span></div></div>
+        <div class="field"><label>6-digit code</label><input type="text" inputmode="numeric" class="mono" placeholder="000000"></div>
+        <button type="button" class="btn btn-p">Confirm and enable</button>
+      </div>
+      <div class="pane card" id="a-codes" hidden>
+        <h2>Save your backup codes</h2><p class="sub">Each works once if you lose the authenticator. Shown this one time only; the account page can make new ones.</p>
+        <div class="codes"><span>ab12-cd34</span><span>ef56-gh78</span><span>ij90-kl12</span><span>mn34-op56</span><span>qr78-st90</span><span>uv12-wx34</span><span>yz56-ab78</span><span>cd90-ef12</span><span>gh34-ij56</span><span>kl78-mn90</span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button type="button" class="btn btn-o">Copy all</button><button type="button" class="btn btn-o"><svg><use href="#dl"/></svg>Download</button></div>
+        <button type="button" class="btn btn-p">I have saved these</button>
+      </div>
+      <div class="pane card" id="a-verify" hidden>
+        <h2>Enter your code</h2><p class="sub">From your authenticator app, or one backup code.</p>
+        <div class="field"><label>Code</label><input type="text" class="mono" placeholder="000000 or ab12-cd34" autofocus></div>
+        <div class="note bad" hidden>Wrong code. 4 attempts left before a 15-minute wait.</div>
+        <button type="button" class="btn btn-p">Sign in</button>
+        <button type="button" class="btn btn-g">Use a different account</button>
+      </div>
+    </div>
+    <div class="auth-foot">Lytro operator console · Lytronix</div>
+  </div>
+</div>
+
+<!-- ===== QUEUE (home) ===== -->
+<div class="page" id="page-queue" hidden>
+  <div class="urlbar"><div class="wrap"><svg><use href="#lock"/></svg><b>admin.lytro.app</b>/queue<span class="req"><span class="spec">ADM-06</span><span class="spec">BIL-06</span><span class="spec">BIL-15</span><span class="spec">D2-1</span></span></div></div>
+  <section class="con" data-nav="queue">
+    <div class="page-t"><div><h1>Payment queue</h1><p class="sub">Wallet payments to match against the bKash and Nagad statements. Approving activates the plan or credits the balance once.</p></div></div>
+    <div class="kpis">
+      <div class="card kpi"><b class="warn">1</b><span>Needs review · amount differs</span></div>
+      <div class="card kpi"><b>2</b><span>Pending · waiting for a match</span></div>
+      <div class="card kpi"><b class="num">৳1,699</b><span>In the queue</span></div>
+      <div class="card kpi"><b class="num">38 min</b><span>Oldest waiting</span></div>
+    </div>
+    <div class="chips"><span class="c on">All <i>3</i></span><span class="c">Purchase <i>1</i></span><span class="c">Renewal</span><span class="c">Upgrade</span><span class="c">Top-up <i>2</i></span><span class="c" style="margin-left:auto">Needs review only</span></div>
+    <div class="card q review">
+      <div class="hd"><div><span class="amt">৳698</span> <span class="chip warn">Needs review</span> <span class="chip info">Purchase</span><p class="why">Quoted ৳699, seller says ৳698 sent.</p></div><span class="muted" style="font-size:0.8125rem">19 Oct, 09:43 · 38 min ago</span></div>
+      <div class="meta"><div><span>Shop</span><b>Megh Fashion <span class="mono">megh</span> <span class="spec later" title="queue rows carry tenantId only today">name: backend</span></b></div><div><span>Plan · term</span><b>Growth · Monthly</b></div><div><span>Sender</span><b class="mono">01712-345678</b></div><div><span>TrxID</span><b class="mono">9KL2M3TRX</b></div></div>
+      <div class="acts"><button type="button" class="btn btn-p btn-sm">Approve ৳698</button><button type="button" class="btn btn-d btn-sm">Reject with a note</button><a href="#tenant" class="btn btn-g btn-sm">Open shop</a></div>
+    </div>
+    <div class="card q">
+      <div class="hd"><div><span class="amt">৳500</span> <span class="chip n">Pending</span> <span class="chip info">Top-up</span></div><span class="muted" style="font-size:0.8125rem">19 Oct, 00:07 · 10 h ago</span></div>
+      <div class="meta"><div><span>Shop</span><b>ভাই ভাই স্টোর <span class="mono">bhai</span></b></div><div><span>Credits</span><b>Balance +৳500</b></div><div><span>Sender</span><b class="mono">01811-111111</b></div><div><span>TrxID</span><b class="mono">NGD77QQ</b></div></div>
+      <div class="acts"><button type="button" class="btn btn-p btn-sm">Approve ৳500</button><button type="button" class="btn btn-d btn-sm">Reject with a note</button><a href="#tenant" class="btn btn-g btn-sm">Open shop</a></div>
+    </div>
+    <div class="card q" style="opacity:0.85">
+      <div class="hd"><div><span class="amt">৳501</span> <span class="chip n">Pending</span> <span class="chip info">Top-up</span></div><span class="muted" style="font-size:0.8125rem">18 Oct, 22:10 · 12 h ago</span></div>
+      <div class="meta"><div><span>Shop</span><b>Rupa Cosmetics <span class="mono">rupa</span></b></div><div><span>Credits</span><b>Balance +৳501</b></div><div><span>Sender</span><b class="mono">01922-222222</b></div><div><span>TrxID</span><b class="mono">BK55ZZ1</b></div></div>
+      <div class="acts"><button type="button" class="btn btn-p btn-sm">Approve ৳501</button><button type="button" class="btn btn-d btn-sm">Reject with a note</button><a href="#tenant" class="btn btn-g btn-sm">Open shop</a></div>
+    </div>
+    <div class="drawer" hidden id="rejdrawer"><div class="pn"><h2>Reject ৳698 from Megh Fashion<button type="button" class="x">✕</button></h2><div class="field"><label>Note the seller will read</label><textarea rows="3">The amount does not match the quote (৳699). Send the difference or start a new purchase.</textarea></div><div class="foot"><button type="button" class="btn btn-o">Cancel</button><button type="button" class="btn btn-d">Reject payment</button></div></div></div>
+  </section>
+</div>
+
+<!-- ===== TENANTS ===== -->
+<div class="page" id="page-tenants" hidden>
+  <div class="urlbar"><div class="wrap"><svg><use href="#lock"/></svg><b>admin.lytro.app</b>/tenants?query=…<span class="req"><span class="spec">ADM-02</span><span class="spec">LIF-24</span></span></div></div>
+  <section class="con" data-nav="tenants">
+    <div class="page-t"><div><h1>Tenants</h1><p class="sub">Search by shop name or address. Filters by state and plan arrive with ADM-02's full list.</p></div></div>
+    <div class="field"><input type="search" placeholder="Shop name or address" value=""></div>
+    <div class="chips"><span class="c on">All</span><span class="c">Suspended <i>1</i></span><span class="c" style="opacity:0.5" title="later">Grace or later</span><span class="c" style="opacity:0.5" title="later">Pay-as-you-go</span></div>
+    <div class="card tbl">
+      <table>
+        <thead><tr><th>Shop</th><th>State</th><th>Plan</th><th>Period end</th><th></th></tr></thead>
+        <tbody>
+          <tr><td class="pri">Megh Fashion <span class="mono">megh</span></td><td data-l="State"><span class="chip ok">Active</span></td><td data-l="Plan">Growth</td><td data-l="Period end" class="num">9 Nov 2026 · 21 d</td><td class="acts"><a href="#tenant" class="btn btn-o btn-sm">Open</a></td></tr>
+          <tr><td class="pri">Rupa Cosmetics <span class="mono">rupa</span></td><td data-l="State"><span class="chip warn">Grace</span> <span class="chip bad">Suspended</span></td><td data-l="Plan">Starter</td><td data-l="Period end" class="num">18 Oct 2026 · −1 d</td><td class="acts"><a href="#tenant" class="btn btn-o btn-sm">Open</a></td></tr>
+          <tr><td class="pri">ভাই ভাই স্টোর <span class="mono">bhai</span></td><td data-l="State"><span class="chip info">Trial</span></td><td data-l="Plan">—</td><td data-l="Period end" class="num">31 Oct 2026 · 12 d</td><td class="acts"><a href="#tenant" class="btn btn-o btn-sm">Open</a></td></tr>
+          <tr><td class="pri">Dhaka Mobile Hub <span class="mono">dmh</span></td><td data-l="State"><span class="chip bad">Locked</span></td><td data-l="Plan">Starter</td><td data-l="Period end" class="num">10 Oct 2026 · −9 d</td><td class="acts"><a href="#tenant" class="btn btn-o btn-sm">Open</a></td></tr>
+          <tr><td class="pri">Nisha's Closet <span class="mono">nisha</span></td><td data-l="State"><span class="chip ok">Pay-as-you-go</span></td><td data-l="Plan">—</td><td data-l="Period end" class="num">—</td><td class="acts"><a href="#tenant" class="btn btn-o btn-sm">Open</a></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div><button type="button" class="btn btn-o">Load 20 more</button></div>
+  </section>
+</div>
+
+<!-- ===== TENANT DETAIL ===== -->
+<div class="page" id="page-tenant" hidden>
+  <div class="urlbar"><div class="wrap"><svg><use href="#lock"/></svg><b>admin.lytro.app</b>/tenants/megh<span class="req"><span class="spec">ADM-03</span><span class="spec">ADM-04</span><span class="spec">PLN-11</span><span class="spec">PLN-17</span><span class="spec">BAL-17</span></span></div></div>
+  <section class="con" data-nav="tenants">
+    <div class="crumb"><a href="#tenants">Tenants</a><svg><use href="#chev"/></svg><span>Megh Fashion</span></div>
+    <div class="card t-hd">
+      <div><h1>Megh Fashion <span class="chip ok">Active</span></h1><div class="ids"><span>megh.lytro.app</span><span>tenant a1b2c3d4-1111-4111-8111-111111111111</span><span class="spec" title="copied to clipboard">copy id</span></div></div>
+      <div class="facts"><div class="fact"><span>Plan</span><b>Growth v3</b></div><div class="fact"><span>Period ends</span><b class="num">9 Nov 2026 · 21 d</b></div><div class="fact"><span>Suspended</span><b>No</b></div><div class="fact"><span>Overrides</span><b>1</b></div></div>
+      <div class="acts"><button type="button" class="btn btn-d btn-sm" id="susp">Suspend for cause</button><button type="button" class="btn btn-o btn-sm" id="adj">Adjust balance</button><button type="button" class="btn btn-o btn-sm" id="asg">Assign a plan</button><button type="button" class="btn btn-o btn-sm" id="ovr">Add limit override</button></div>
+    </div>
+    <div class="statebar"><span>Variant:</span><button type="button" class="tst" data-st="ok" aria-pressed="true">active</button><button type="button" class="tst" data-st="susp" aria-pressed="false">suspended</button></div>
+    <div class="note bad" id="suspnote" hidden><b>Suspended since 17 Oct 2026, 14:02 · by ops@lytronix.com.</b> Reason: "Repeated complaints of undelivered parcels; see ticket #231." The storefront and payment page are offline for shoppers; the owner can still see the balance and top up. <button type="button" class="btn btn-o btn-sm" style="margin-left:8px">Restore</button></div>
+    <div class="two">
+      <div style="display:grid;gap:14px">
+        <div class="card sec">
+          <h2>Limit overrides <small>replace the plan's value for this shop only · PLN-11</small></h2>
+          <div class="row"><div><b>Staff seats (owner included) · 8</b><small>Plan gives 5 · "Enterprise deal, 3 extra seats" · set 14 Oct by ops@lytronix.com</small></div><button type="button" class="btn btn-g btn-sm">Remove</button></div>
+          <div class="row" style="opacity:0.7"><div><b>Essential SMS (monthly) · unlimited</b><small>Plan gives unlimited already · "Pilot shop" · set 2 Oct</small></div><button type="button" class="btn btn-g btn-sm">Remove</button></div>
+        </div>
+        <div class="later"><b style="color:var(--fg)">Later, with ADM-03</b><span>Balance and frozen flag · usage against every limit · errors in the last 24 h · failed SMS and courier bookings · last sign-in · open tickets · payments awaiting review. The endpoints do not exist yet; this card is their place.</span></div>
+      </div>
+      <div class="card sec">
+        <h2>Recent operator actions <small>on this shop</small></h2>
+        <div class="row"><div><b>Override set · staff 8</b><small>14 Oct · ops@lytronix.com</small></div></div>
+        <div class="row"><div><b>Balance +৳50</b><small>18 Oct · "duplicate SMS charge refunded"</small></div></div>
+        <div class="row"><div><b>Payment approved · ৳699</b><small>10 Oct · purchase, Growth monthly</small></div></div>
+        <p class="muted" style="font-size:0.8125rem">From the platform audit log (ADM-08) when it has a read endpoint; until then this list is empty.</p>
+      </div>
+    </div>
+    <div class="drawer" id="d-susp" hidden><div class="pn"><h2>Suspend Megh Fashion<button type="button" class="x">✕</button></h2><p class="muted" style="font-size:0.9rem">The storefront, API and payment page go offline for shoppers at once. The owner keeps the dashboard, sees the reason you write, and can still top up. Recorded in both audit logs.</p><div class="field"><label>Reason the owner will read</label><textarea rows="3" placeholder="e.g. Repeated complaints of undelivered parcels; see ticket #231."></textarea></div><div class="foot"><button type="button" class="btn btn-o">Cancel</button><button type="button" class="btn btn-d">Suspend shop</button></div></div></div>
+    <div class="drawer" id="d-adj" hidden><div class="pn"><h2>Adjust balance · Megh Fashion<button type="button" class="x">✕</button></h2><p class="muted" style="font-size:0.9rem">A correction, not a refund. Negative takes money off. The reason goes on the seller's statement and in the audit log.</p><div class="f2"><div class="field"><label>Amount, ৳</label><input type="text" inputmode="decimal" class="mono" placeholder="+50.00 or −20.00"></div><div class="field"><label>Reason</label><input type="text" placeholder="duplicate SMS charge refunded"></div></div><div class="foot"><button type="button" class="btn btn-o">Cancel</button><button type="button" class="btn btn-p">Apply adjustment</button></div></div></div>
+    <div class="drawer" id="d-asg" hidden><div class="pn"><h2>Assign a plan · Megh Fashion<button type="button" class="x">✕</button></h2><p class="muted" style="font-size:0.9rem">No payment step. Takes effect now with a normal snapshot; an expiry makes it lapse like a paid period, no expiry means it never renews or lapses (PLN-17/18).</p><div class="field"><label>Plan</label><select><option>Enterprise (not for sale)</option><option>Growth</option><option>Starter</option></select></div><div class="f2"><div class="field"><label>Expiry <small>optional</small></label><input type="date"></div><div class="field"><label>Reason</label><input type="text" placeholder="signed enterprise deal #12"></div></div><div class="foot"><button type="button" class="btn btn-o">Cancel</button><button type="button" class="btn btn-p">Assign plan</button></div></div></div>
+    <div class="drawer" id="d-ovr" hidden><div class="pn"><h2>Limit override · Megh Fashion<button type="button" class="x">✕</button></h2><div class="field"><label>Limit</label><select><option>Products</option><option>Orders (total)</option><option>Orders handled a month</option><option selected>Staff seats (owner included)</option><option>Paired devices</option><option>Storage (MB)</option><option>Bandwidth (GB)</option><option>Essential SMS (total)</option><option>Essential SMS (monthly)</option><option>Activity retention (days)</option></select></div><div class="lim"><span>Value <small class="muted">plan gives 5</small></span><input type="text" class="mono" value="8"><label><input type="checkbox"> unlimited</label></div><div class="field"><label>Reason</label><input type="text" placeholder="Enterprise deal, 3 extra seats"></div><div class="foot"><button type="button" class="btn btn-o">Cancel</button><button type="button" class="btn btn-p">Set override</button></div></div></div>
+  </section>
+</div>
+
+<!-- ===== PLANS (matrix) ===== -->
+<div class="page" id="page-plans" hidden>
+  <div class="urlbar"><div class="wrap"><svg><use href="#lock"/></svg><b>admin.lytro.app</b>/plans<span class="req"><span class="spec">PLN-01</span><span class="spec">PLN-03</span><span class="spec">PLN-16</span><span class="spec">TRM-03</span><span class="spec">TRM-13</span></span></div></div>
+  <section class="con" data-nav="plans">
+    <div class="page-t"><div><h1>Plans and prices</h1><p class="sub">One grid: a row per plan, a column per live billing term. A cell with no price means the plan is not offered for that term. Prices are whole taka and save per cell.</p></div><div class="acts"><a href="#plan-edit" class="btn btn-p btn-sm"><svg><use href="#plus"/></svg>New plan</a></div></div>
+    <div class="card matrix">
+      <table>
+        <thead><tr><th>Plan</th><th>Rank</th><th>Monthly · 1 m</th><th>Yearly · 12 m <small class="muted" style="text-transform:none;letter-spacing:0">12% off pre-fills</small></th><th>Half-year · 6 m <span class="chip n" style="text-transform:none;letter-spacing:0">hidden</span></th><th></th></tr></thead>
+        <tbody>
+          <tr><td class="pl"><b>Starter</b><small>v2 · for sale · 100 products · 2 seats</small></td><td class="num">1</td><td class="price"><input value="449"></td><td class="price"><input value="4,741"></td><td class="price unset"><input placeholder="—"></td><td class="acts"><a href="#plan-edit" class="btn btn-o btn-sm">Edit</a></td></tr>
+          <tr><td class="pl"><b>Growth</b><small>v3 · for sale · 1,000 products · 5 seats · custom domain</small></td><td class="num">2</td><td class="price"><input value="699"></td><td class="price"><input value="7,381"></td><td class="price"><input value="3,858"></td><td class="acts"><a href="#plan-edit" class="btn btn-o btn-sm">Edit</a></td></tr>
+          <tr><td class="pl"><b>Pro</b><small>v1 · for sale · unlimited products · 15 seats</small></td><td class="num">3</td><td class="price"><input value="1,499"></td><td class="price"><input value="15,829"></td><td class="price unset"><input placeholder="—"></td><td class="acts"><a href="#plan-edit" class="btn btn-o btn-sm">Edit</a></td></tr>
+          <tr class="off"><td class="pl"><b>Enterprise</b><small>v1 · not for sale · assigned by hand · 50 seats</small></td><td class="num">9</td><td class="price unset"><input placeholder="—" disabled></td><td class="price unset"><input placeholder="—" disabled></td><td class="price unset"><input placeholder="—" disabled></td><td class="acts"><a href="#plan-edit" class="btn btn-o btn-sm">Edit</a></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="muted" style="font-size:0.8125rem">Ranks must be unique among plans for sale: a higher rank is an upgrade, a lower one a downgrade (PLN-16). A plan referenced by any shop cannot be deleted, only taken off sale (PLN-08).</p>
+    <div class="toast"><svg><use href="#check"/></svg>Growth · Yearly saved as ৳7,381</div>
+  </section>
+</div>
+
+<!-- ===== PLAN EDITOR (drawer) ===== -->
+<div class="page" id="page-plan-edit" hidden>
+  <div class="urlbar"><div class="wrap"><svg><use href="#lock"/></svg><b>admin.lytro.app</b>/plans/growth<span class="req"><span class="spec">PLN-02</span><span class="spec">PLN-19</span><span class="spec">PLN-06</span></span></div></div>
+  <section class="con" data-nav="plans">
+    <div class="page-t"><div><h1>Plans and prices</h1></div></div>
+    <div class="card matrix" style="opacity:0.4"><table><tbody><tr><td class="pl"><b>Growth</b></td><td class="price"><input value="699"></td></tr></tbody></table></div>
+    <div class="drawer">
+      <div class="pn">
+        <h2>Edit Growth <span class="chip n">v3</span><button type="button" class="x">✕</button></h2>
+        <p class="muted" style="font-size:0.875rem">Saving creates v4. Shops already on v3 keep v3 until they renew; new buyers get v4 (PLN-06).</p>
+        <div class="f2"><div class="field"><label>Name</label><input value="Growth"></div><div class="field"><label>Rank</label><input class="mono" value="2"></div></div>
+        <div class="field"><label>Description <small>shown on the plan cards</small></label><input value="Own domain and a team"></div>
+        <label style="display:flex;align-items:center;gap:10px;font-size:0.9375rem"><button type="button" class="tog on"></button> For sale</label>
+        <div>
+          <p style="font-weight:600;font-size:0.875rem;margin-bottom:8px">Limits <small class="muted">blank = not set, the default applies · unlimited = no cap (PLN-19)</small></p>
+          <div class="limits">
+            <div class="lim"><span>Products</span><input class="mono" value="1000"><label><input type="checkbox"> unlimited</label></div>
+            <div class="lim"><span>Orders (total)</span><input class="mono" placeholder="—"><label><input type="checkbox"> unlimited</label></div>
+            <div class="lim"><span>Orders handled a month</span><input class="mono" value="3000"><label><input type="checkbox"> unlimited</label></div>
+            <div class="lim"><span>Staff seats (owner included)</span><input class="mono" value="5"><label><input type="checkbox"> unlimited</label></div>
+            <div class="lim"><span>Paired devices</span><input class="mono" value="3"><label><input type="checkbox"> unlimited</label></div>
+            <div class="lim"><span>Storage (MB)</span><input class="mono" value="5000"><label><input type="checkbox"> unlimited</label></div>
+            <div class="lim"><span>Bandwidth (GB)</span><input class="mono" value="50"><label><input type="checkbox"> unlimited</label></div>
+            <div class="lim"><span>Essential SMS (total)</span><input class="mono" placeholder="—"><label><input type="checkbox"> unlimited</label></div>
+            <div class="lim unl"><span>Essential SMS (monthly)</span><input class="mono" value="" disabled><label><input type="checkbox" checked> unlimited</label></div>
+            <div class="lim"><span>Activity retention (days)</span><input class="mono" value="90"><label style="visibility:hidden"><input type="checkbox"> unlimited</label></div>
+          </div>
+        </div>
+        <div>
+          <p style="font-weight:600;font-size:0.875rem;margin-bottom:8px">Feature flags <small class="muted">free keys the apps read</small></p>
+          <div class="chips"><span class="c on mono">custom_domain</span><span class="c mono" style="text-decoration:line-through">ai_chat</span><span class="c">+ add flag</span></div>
+        </div>
+        <div class="vers"><b>v3</b> recorded 29 Sept 2026 · products 800 → 1,000 &nbsp; <b>v2</b> 20 Aug 2026 · seats 3 → 5 &nbsp; <b>v1</b> 1 Jul 2026</div>
+        <div class="foot"><button type="button" class="btn btn-g" style="margin-right:auto;color:var(--bad)" disabled title="referenced by 42 shops">Delete · in use</button><button type="button" class="btn btn-o">Cancel</button><button type="button" class="btn btn-p">Save as v4</button></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ===== BILLING TERMS ===== -->
+<div class="page" id="page-terms" hidden>
+  <div class="urlbar"><div class="wrap"><svg><use href="#lock"/></svg><b>admin.lytro.app</b>/billing-terms<span class="req"><span class="spec">TRM-01</span><span class="spec">TRM-04</span><span class="spec">TRM-05</span><span class="spec">TRM-14</span></span></div></div>
+  <section class="con" data-nav="terms">
+    <div class="page-t"><div><h1>Billing terms</h1><p class="sub">The lengths a plan can be bought for. Visible terms appear on seller screens as soon as a plan has a price for them.</p></div><div class="acts"><button type="button" class="btn btn-p btn-sm"><svg><use href="#plus"/></svg>New term</button></div></div>
+    <div class="card tbl">
+      <table>
+        <thead><tr><th>Term</th><th>Months</th><th>Visible</th><th>Pre-fill discount</th><th>Priced plans</th><th></th></tr></thead>
+        <tbody>
+          <tr><td class="pri">Monthly <span class="muted" lang="bn">মাসিক</span></td><td data-l="Months" class="num">1</td><td data-l="Visible"><button type="button" class="tog on" aria-label="Visible"></button></td><td data-l="Discount" class="num">—</td><td data-l="Priced plans">3 of 4</td><td class="acts"><button type="button" class="btn btn-o btn-sm">Edit</button><button type="button" class="btn btn-g btn-sm">Retire</button></td></tr>
+          <tr><td class="pri">Yearly <span class="muted" lang="bn">বার্ষিক</span></td><td data-l="Months" class="num">12</td><td data-l="Visible"><button type="button" class="tog on" aria-label="Visible"></button></td><td data-l="Discount" class="num">12%</td><td data-l="Priced plans">3 of 4</td><td class="acts"><button type="button" class="btn btn-o btn-sm">Edit</button><button type="button" class="btn btn-g btn-sm">Retire</button></td></tr>
+          <tr><td class="pri">Half-year <span class="muted" lang="bn">ছয় মাস</span></td><td data-l="Months" class="num">6</td><td data-l="Visible"><button type="button" class="tog" aria-label="Hidden"></button></td><td data-l="Discount" class="num">8%</td><td data-l="Priced plans">1 of 4</td><td class="acts"><button type="button" class="btn btn-o btn-sm">Edit</button><button type="button" class="btn btn-g btn-sm">Retire</button></td></tr>
+          <tr><td class="pri">Enterprise 24 m <span class="chip info">one shop</span></td><td data-l="Months" class="num">24</td><td data-l="Visible"><button type="button" class="tog on" aria-label="Visible"></button></td><td data-l="Discount" class="num">—</td><td data-l="Priced plans">1 of 4</td><td class="acts"><button type="button" class="btn btn-o btn-sm">Edit</button><button type="button" class="btn btn-g btn-sm">Retire</button></td></tr>
+          <tr style="opacity:0.55"><td class="pri">Quarterly <span class="chip n">retired 2 Oct</span></td><td data-l="Months" class="num">3</td><td data-l="Visible">—</td><td data-l="Discount" class="num">5%</td><td data-l="Priced plans">kept on 12 invoices</td><td class="acts"></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="muted" style="font-size:0.8125rem">Retiring stops new purchases and renewals on the term; subscriptions already on it finish as bought. Delete is offered only for a term no invoice references (TRM-05).</p>
+  </section>
+</div>
+
+<!-- ===== RATES ===== -->
+<div class="page" id="page-rates" hidden>
+  <div class="urlbar"><div class="wrap"><svg><use href="#lock"/></svg><b>admin.lytro.app</b>/rates<span class="req"><span class="spec">RAT-01</span><span class="spec">RAT-02</span><span class="spec">RAT-05</span><span class="spec">RAT-09</span></span></div></div>
+  <section class="con" data-nav="rates">
+    <div class="page-t"><div><h1>Rates</h1><p class="sub">Per-use charges. A change applies to the next charge by every shop and never rewrites a past entry. Sellers see the new value on their rates page at once.</p></div></div>
+    <div class="card">
+      <div class="rate"><div><b>SMS, per part</b><small>৳ · a part is 70 characters (below) · since 21 Jul 2026</small></div><div class="v">0.25</div><div class="inline"><input class="mono" value="0.30" aria-label="New value"><button type="button" class="btn btn-p btn-sm">Save</button><button type="button" class="btn btn-o btn-sm">Cancel</button><span class="muted" style="font-size:0.8125rem">Next: offer a rate-change notice (RAT-09) <span class="spec later">notices later</span></span></div></div>
+      <div class="rate"><div><b>Chat AI reply</b><small>৳ · since 21 Jul 2026</small></div><div class="v">0.10</div><div class="acts"><button type="button" class="btn btn-o btn-sm">Change</button><button type="button" class="btn btn-g btn-sm">History</button></div></div>
+      <div class="rate"><div><b>Fake-order check</b><small>৳ · since 19 Sept 2026</small></div><div class="v">0.05</div><div class="acts"><button type="button" class="btn btn-o btn-sm">Change</button><button type="button" class="btn btn-g btn-sm">Hide history</button></div><div class="hist"><div><b>0.08 → 0.05</b> · 19 Sept 2026, 12:07 · ops@lytronix.com · no notice</div><div><b>— → 0.08</b> · 1 Jul 2026 · seed</div></div></div>
+      <div class="rate"><div><b>Pay-as-you-go order fee, minimum</b><small>৳ per delivered order · since 21 Jul 2026</small></div><div class="v">2.00</div><div class="acts"><button type="button" class="btn btn-o btn-sm">Change</button><button type="button" class="btn btn-g btn-sm">History</button></div></div>
+      <div class="rate"><div><b>Pay-as-you-go order fee</b><small>% of the order total, the greater of this and the minimum · since 21 Jul 2026</small></div><div class="v">1.00</div><div class="acts"><button type="button" class="btn btn-o btn-sm">Change</button><button type="button" class="btn btn-g btn-sm">History</button></div></div>
+      <div class="rate"><div><b>Pay-as-you-go product fee</b><small>৳ per product created · since 21 Jul 2026</small></div><div class="v">0.50</div><div class="acts"><button type="button" class="btn btn-o btn-sm">Change</button><button type="button" class="btn btn-g btn-sm">History</button></div></div>
+      <div class="rate"><div><b>SMS part size</b><small>characters per billed part · since 21 Jul 2026</small></div><div class="v">70</div><div class="acts"><button type="button" class="btn btn-o btn-sm">Change</button><button type="button" class="btn btn-g btn-sm">History</button></div></div>
+    </div>
+  </section>
+</div>
+
+<!-- ===== SETTINGS ===== -->
+<div class="page" id="page-settings" hidden>
+  <div class="urlbar"><div class="wrap"><svg><use href="#lock"/></svg><b>admin.lytro.app</b>/settings<span class="req"><span class="spec">ADM-11</span><span class="spec">LIF-26</span><span class="spec">BAL-04</span><span class="spec">TRL-01</span></span></div></div>
+  <section class="con" data-nav="settings">
+    <div class="page-t"><div><h1>Platform settings</h1><p class="sub">Everything platform-wide that is not a rate. A change applies to periods that end after it; a shop already lapsed keeps the schedule it started with.</p></div></div>
+    <div class="two">
+      <div style="display:grid;gap:14px">
+        <div class="card sec"><h2>Trial and top-up</h2>
+          <div class="row"><div><b>Trial length · 30 days</b><small>New shops get this before pay-as-you-go. Updated 1 Jul 2026.</small></div><button type="button" class="btn btn-o btn-sm">Change</button></div>
+          <div class="row"><div><b>Top-up minimum · ৳100</b><small>Smallest top-up a seller may start. Applies to the next quote. Updated 12 Sept by ops@lytronix.com.</small></div><button type="button" class="btn btn-o btn-sm">Change</button></div>
+          <div class="row"><div><b>Top-up maximum · ৳50,000</b><small>Updated 12 Sept.</small></div><button type="button" class="btn btn-o btn-sm">Change</button></div>
+        </div>
+        <div class="card sec"><h2>Lifecycle after a period ends <small>days in each stage</small></h2>
+          <div class="row"><div><b>Grace · 3 days</b><small>Everything still works; renewal reminders daily.</small></div><div class="inline" style="grid-column:auto"><input class="mono" value="3" style="width:72px"><button type="button" class="btn btn-p btn-sm">Save</button><button type="button" class="btn btn-o btn-sm">Cancel</button></div></div>
+          <div class="row"><div><b>Read-only · 4 days</b><small>Dashboard reads only; storefront offline.</small></div><button type="button" class="btn btn-o btn-sm">Change</button></div>
+          <div class="row"><div><b>Locked · 8 days</b><small>Owner sees only renew and balance.</small></div><button type="button" class="btn btn-o btn-sm">Change</button></div>
+          <div class="row"><div><b>Archived · 45 days</b><small>Then deletion; warnings at day 45 and 57 of the whole span.</small></div><button type="button" class="btn btn-o btn-sm">Change</button></div>
+        </div>
+      </div>
+      <div class="card sec" style="align-self:start"><h2>Timeline at these values</h2>
+        <div class="row"><div><b>Day 0</b><small>Period ends</small></div></div>
+        <div class="row"><div><b>Day 3</b><small>Read-only</small></div></div>
+        <div class="row"><div><b>Day 7</b><small>Locked</small></div></div>
+        <div class="row"><div><b>Day 15</b><small>Archived · storefront offline, data kept</small></div></div>
+        <div class="row"><div><b>Day 60</b><small>Business data deleted; balance and invoices survive</small></div></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ===== WALLETS ===== -->
+<div class="page" id="page-wallets" hidden>
+  <div class="urlbar"><div class="wrap"><svg><use href="#lock"/></svg><b>admin.lytro.app</b>/wallets<span class="req"><span class="spec">ADM-10</span><span class="spec">BIL-02</span></span></div></div>
+  <section class="con" data-nav="wallets">
+    <div class="page-t"><div><h1>Platform wallets</h1><p class="sub">The numbers sellers send plan payments and top-ups to, in the order shown to them. Off hides a number without deleting it.</p></div><div class="acts"><button type="button" class="btn btn-p btn-sm"><svg><use href="#plus"/></svg>Add number</button></div></div>
+    <div class="card tbl">
+      <table>
+        <thead><tr><th>Provider</th><th>Number</th><th>Label</th><th>Shown</th><th>Order</th><th></th></tr></thead>
+        <tbody>
+          <tr><td class="pri">bKash</td><td data-l="Number" class="mono">01700-000000</td><td data-l="Label">Personal</td><td data-l="Shown"><button type="button" class="tog on"></button></td><td data-l="Order" class="num">1</td><td class="acts"><button type="button" class="btn btn-o btn-sm">Edit</button><button type="button" class="btn btn-g btn-sm" style="color:var(--bad)">Remove</button></td></tr>
+          <tr><td class="pri">Nagad</td><td data-l="Number" class="mono">01800-000000</td><td data-l="Label">—</td><td data-l="Shown"><button type="button" class="tog on"></button></td><td data-l="Order" class="num">2</td><td class="acts"><button type="button" class="btn btn-o btn-sm">Edit</button><button type="button" class="btn btn-g btn-sm" style="color:var(--bad)">Remove</button></td></tr>
+          <tr style="opacity:0.6"><td class="pri">bKash</td><td data-l="Number" class="mono">01900-111111</td><td data-l="Label">Merchant (old)</td><td data-l="Shown"><button type="button" class="tog"></button></td><td data-l="Order" class="num">3</td><td class="acts"><button type="button" class="btn btn-o btn-sm">Edit</button><button type="button" class="btn btn-g btn-sm" style="color:var(--bad)">Remove</button></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note">Sellers see provider, number and label on the checkout, top-up and upgrade screens exactly as listed here. Gateway credentials (ADM-10's second half) arrive with the hosted payment page.</div>
+  </section>
+</div>
+
+<!-- ===== ACCOUNT ===== -->
+<div class="page" id="page-account" hidden>
+  <div class="urlbar"><div class="wrap"><svg><use href="#lock"/></svg><b>admin.lytro.app</b>/account<span class="req"><span class="spec">ADM-01</span><span class="spec">ADM-18</span></span></div></div>
+  <section class="con" data-nav="account">
+    <div class="page-t"><div><h1>Account</h1><p class="sub">ops@lytronix.com · two-factor on since 1 Jul 2026</p></div></div>
+    <div class="two">
+      <div class="card sec"><h2>Backup codes</h2><p class="muted" style="font-size:0.9rem">7 of 10 unused <span class="spec later">count: backend</span>. Making new ones invalidates every old code. Confirm with your password and a fresh authenticator code.</p><div class="f2"><div class="field"><label>Password</label><input type="password"></div><div class="field"><label>Authenticator code</label><input class="mono" placeholder="000000"></div></div><div><button type="button" class="btn btn-o">Generate new codes</button></div></div>
+      <div class="card sec" style="align-self:start"><h2>Session</h2><div class="row"><div><b>This browser</b><small>Signed in 09:12 today · expires with the cookie</small></div><button type="button" class="btn btn-o btn-sm"><svg><use href="#logout"/></svg>Sign out</button></div><p class="muted" style="font-size:0.8125rem">Lost the authenticator and the codes? Recovery is a logged break-glass database action (ADM-18), not a screen.</p></div>
+    </div>
+  </section>
+</div>
+
+<script>
+  (function () {
+    var NAV = [['queue', 'Payment queue', 'inbox', 3], ['tenants', 'Tenants', 'store', 0], ['plans', 'Plans and prices', 'tag', 0], ['terms', 'Billing terms', 'cal', 0], ['rates', 'Rates', 'rates', 0], ['settings', 'Settings', 'settings', 0], ['wallets', 'Platform wallets', 'wallet', 0], ['account', 'Account', 'shield', 0]];
+    document.querySelectorAll('.con').forEach(function (sec) {
+      var on = sec.getAttribute('data-nav');
+      var side = NAV.map(function (n) { return '<a href="#' + n[0] + '" class="' + (n[0] === on ? 'on' : '') + '"><svg><use href="#' + n[2] + '"/></svg>' + n[1] + (n[3] ? '<i>' + n[3] + '</i>' : '') + '</a>'; }).join('');
+      var main = document.createElement('div'); main.className = 'c-main'; while (sec.firstChild) main.appendChild(sec.firstChild);
+      sec.innerHTML = '<aside class="c-side"><div class="hd"><div class="eb">Operator</div><svg class="wmk"><use href="#wordmark"/></svg></div>' + side + '<div class="ft"><span>ops@lytronix.com</span><a href="#signin" style="padding:0;color:var(--fg-2)"><svg><use href="#logout"/></svg>Sign out</a></div></aside>'
+        + '<header class="c-top"><button type="button" class="menu" aria-label="Menu"><svg><use href="#menu"/></svg></button><div class="brand"><span class="eb">Operator</span><svg class="wmk"><use href="#wordmark"/></svg></div><div class="search" role="search"><svg><use href="#searchi"/></svg><span>Find a shop by name or address…</span><kbd>/</kbd></div></header>';
+      sec.appendChild(main);
+    });
+    var pages = ['signin', 'queue', 'tenants', 'tenant', 'plans', 'plan-edit', 'terms', 'rates', 'settings', 'wallets', 'account'];
+    function showPage(name) { if (pages.indexOf(name) < 0) name = 'queue'; pages.forEach(function (p) { document.getElementById('page-' + p).hidden = (p !== name); }); document.querySelectorAll('.proto a[data-page]').forEach(function (a) { a.classList.toggle('on', a.getAttribute('data-page') === name); }); window.scrollTo(0, 0); }
+    function route() { showPage((location.hash || '#queue').slice(1)); }
+    window.addEventListener('hashchange', route); route();
+    function press(sel, cb) { document.querySelectorAll(sel).forEach(function (b) { b.addEventListener('click', function () { document.querySelectorAll(sel).forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); }); cb(b.getAttribute('data-st')); }); }); }
+    press('.ast', function (st) { ['cred', 'enroll', 'codes', 'verify'].forEach(function (k) { document.getElementById('a-' + k).hidden = k !== st; }); });
+    press('.tst', function (st) { document.getElementById('suspnote').hidden = st !== 'susp'; document.getElementById('susp').hidden = st === 'susp'; });
+    [['susp', 'd-susp'], ['adj', 'd-adj'], ['asg', 'd-asg'], ['ovr', 'd-ovr']].forEach(function (p) { var b = document.getElementById(p[0]); var d = document.getElementById(p[1]); if (b && d) { b.addEventListener('click', function () { d.hidden = false; }); d.querySelectorAll('.x, .btn-o').forEach(function (x) { x.addEventListener('click', function () { d.hidden = true; }); }); } });
+    document.querySelectorAll('#page-queue .btn-d').forEach(function (b) { b.addEventListener('click', function () { document.getElementById('rejdrawer').hidden = false; }); });
+    var rd = document.getElementById('rejdrawer'); rd.querySelectorAll('.x, .btn-o').forEach(function (x) { x.addEventListener('click', function () { rd.hidden = true; }); });
+  })();
+</script>
+</body>
+</html>
