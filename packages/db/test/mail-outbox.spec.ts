@@ -59,7 +59,11 @@ describe('mail outbox claiming (D28)', () => {
       body: 'Ready',
     });
     // The row's first time comes from the database clock, so the claims use the same clock.
-    const { rows } = await admin.query<{ now: Date }>('SELECT now() AS now');
+    // The database keeps microseconds and a Date keeps milliseconds: read one millisecond on, or a claim made
+    // in the insert's own millisecond reads as earlier than the row's first time and misses it.
+    const { rows } = await admin.query<{ now: Date }>(
+      "SELECT now() + interval '1 millisecond' AS now",
+    );
     const now = rows[0]?.now ?? new Date();
     await new MailRepository().claimDue(handle.db, {
       now,
