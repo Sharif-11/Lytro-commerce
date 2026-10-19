@@ -47,6 +47,15 @@
 	file_server
 }
 
+# The operator console's own strict Content Security Policy (DEPLOYMENT.md §5, D3-12): every script, style,
+# fetch, worker and manifest from the console's own origin only. The two exceptions are fonts (Google Fonts'
+# stylesheet and its font files) and data: images (the two-factor QR code, drawn client-side, ADM-01). No
+# inline script, no plugin, no framing and no <base>: an injected script has nowhere to load from and
+# nothing to send to.
+(operator_csp) {
+	header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+}
+
 # lytro.app: the marketing site only (apps/website). www redirects to the apex.
 www.lytro.app {
 	redir https://lytro.app{uri} permanent
@@ -63,9 +72,10 @@ app.lytro.app {
 	import dashboard_spa
 }
 
-# admin.lytro.app: the operator console (apps/operator, its own build, D3-12). Until that app ships this
-# host has nothing to serve; the block stays so DNS and TLS are ready for it.
+# admin.lytro.app: the operator console (apps/operator, its own build, D3-12), under its own strict Content
+# Security Policy. The operator session cookie is host-only here (TEN-29).
 admin.lytro.app {
+	import operator_csp
 	import api_proxy
 	import operator_spa
 }

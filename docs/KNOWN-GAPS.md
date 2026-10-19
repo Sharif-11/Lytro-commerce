@@ -1340,6 +1340,15 @@ Found in the 2026-10-18 check of validation errors:
 
 Verified with `error-messages.e2e.spec.ts` (new) and the updated assertions in `password`, `plan-catalogue`, `response-envelope`, `signup` and `staff`.
 
+## 65. `app.lytro.app` has no Content Security Policy of its own yet — open, found 2026-10-19
+
+`DEPLOYMENT.md` §2 gives each static app its own policy. Slice 0b set the console's (`operator_csp` in
+`deploy/Caddyfile`); the dashboard's host still sends none. It waits for Slices 6 and 7, which decide where
+shop images load from and where uploads go, so the policy is written once against real origins rather than
+loosened later. Planned with Slice 11. The console's policy, and the harness that checked it, are the model:
+every screen loaded under the policy with no violation, plus a check that an injected script, a foreign fetch
+and framing are refused.
+
 ## Not a bug, just noting it so it isn't mistaken for one later
 
 The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data
