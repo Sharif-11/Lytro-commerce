@@ -1,0 +1,118 @@
+@import 'tailwindcss';
+
+/* The operator console is inverted so it is never mistaken for a seller's dashboard (BRAND-IDENTITY §8.4):
+   chrome #061211, surfaces #132725, light text, teal-400 primary with ink text, marigold-300 accent. The
+   brand scales below are the same as docs/brand/tailwind-theme.css; the semantic tokens (chrome, surface,
+   fg, line) are what the console's components use, so the palette lives in one place. */
+@theme {
+  --font-sans: 'Inter', 'Noto Sans Bengali', ui-sans-serif, system-ui, sans-serif;
+  --font-bn: 'Noto Sans Bengali', 'Inter', sans-serif;
+  --font-display: 'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+  --color-brand-100: #ddf5f2;
+  --color-brand-200: #b9ece6;
+  --color-brand-300: #7fdcd3;
+  --color-brand-400: #3ec4b9;
+  --color-brand-500: #17a89e;
+  --color-brand-600: #107f78;
+  --color-brand-700: #0e6b66;
+  --color-brand-800: #0a4f4b;
+  --color-brand-900: #063b38;
+
+  --color-accent-100: #fdf0d1;
+  --color-accent-300: #f8cf6e;
+  --color-accent-500: #f2a516;
+  --color-accent-700: #9a6004;
+
+  --color-ink: #10201f;
+  --color-neutral-100: #eaf0ef;
+  --color-neutral-200: #d5dfde;
+  --color-neutral-300: #a9b9b8;
+  --color-neutral-400: #7e8f8e;
+
+  /* Semantic, dark. Secondary text is neutral-200 or lighter: Bangla thin strokes make mid greys read light. */
+  --color-chrome: #061211;
+  --color-surface: #132725;
+  --color-surface-alt: #1b3432;
+  --color-surface-hover: #1f3d3a;
+  --color-fg: #eaf0ef;
+  --color-fg-muted: #c8d6d4;
+  --color-line: rgba(255, 255, 255, 0.1);
+  --color-line-strong: rgba(255, 255, 255, 0.2);
+
+  --color-success: #5fd48f;
+  --color-success-soft: rgba(95, 212, 143, 0.14);
+  --color-warning: #f8cf6e;
+  --color-warning-soft: rgba(248, 207, 110, 0.14);
+  --color-danger: #ff7b83;
+  --color-danger-soft: rgba(255, 123, 131, 0.14);
+
+  --radius-control: 10px;
+  --radius-card: 14px;
+  --radius-sheet: 20px;
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 10px -2px rgba(0, 0, 0, 0.35);
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  color-scheme: dark;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-chrome);
+  color: var(--color-fg);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+html[lang='bn'] body {
+  font-family: var(--font-bn);
+  line-height: 1.65;
+}
+
+.heading {
+  font-weight: 700;
+  line-height: 1.25;
+  text-wrap: balance;
+}
+html[lang='en'] .heading {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+.wordmark-text {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.045em;
+}
+.num {
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
+.mono {
+  font-family: ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+}
+.eyebrow {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-accent-300);
+}
+
+/* Native date and select controls pick up the dark scheme; keep their text legible. */
+input[type='date'],
+select {
+  color-scheme: dark;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

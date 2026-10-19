@@ -228,6 +228,8 @@ Used for manual payments only. A wallet whose gateway the seller has connected s
 | `facebook-profile.svg`, `facebook-cover.svg`, `og-image.svg` | Facebook page avatar and cover, Open Graph share image (section 13). Outline or export to PNG before upload. |
 | `tokens.css`, `tailwind-theme.css`, `tokens.json`, `android-colors.xml` | Tokens. |
 | `lytro-brand-guide.html`, `lytro-landing.html` | The visual brand guide and the landing-page prototype, self-contained HTML. |
+| `lytro-onboarding.html`, `lytro-site-pages.html`, `lytro-support-legal.html` | The onboarding flow, the site pages and the support and legal pages, self-contained prototypes (ONBOARDING-FLOW-DESIGN.md, SITE-PAGES-DESIGN.md, SUPPORT-LEGAL-PAGES-DESIGN.md). |
+| `lytro-dashboard-sections.html`, `lytro-operator.html` | The Phase 1–2 dashboard sections and the operator console, self-contained prototypes (DASHBOARD-SECTIONS-DESIGN.md, OPERATOR-CONSOLE-DESIGN.md). |
 
 ---
 

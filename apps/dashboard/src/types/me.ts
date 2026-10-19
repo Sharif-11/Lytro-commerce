@@ -13,6 +13,8 @@ export interface MeTenant {
   suspended: boolean;
   planName: string | null;
   periodEnd: string | null;
+  /** BIL-17. Not sent by the server yet (DASHBOARD-SECTIONS-DESIGN §9); the switch reads off when absent. */
+  autoRenewEnabled?: boolean;
 }
 
 export interface MeResponse {

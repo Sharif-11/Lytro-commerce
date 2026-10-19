@@ -6,6 +6,7 @@ const paths = {
   arrow: 'M5 12h14m-6-6 6 6-6 6',
   back: 'M19 12H5m6 6-6-6 6-6',
   chevron: 'm6 9 6 6 6-6',
+  next: 'm9 6 6 6-6 6',
   menu: 'M4 7h16M4 12h16M4 17h16',
   home: 'M4 11 12 4l8 7v9h-5v-6H9v6H4v-9Z',
   orders: 'M5 4h14v16H5V4Zm3 5h8M8 13h8M8 17h5',
@@ -18,6 +19,7 @@ const paths = {
   phone:
     'M6 3h4l2 5-2.5 1.5a11 11 0 0 0 5 5L16 12l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 4 5a2 2 0 0 1 2-2Z',
   lock: 'M6 11h12v10H6V11Zm3 0V7a3 3 0 0 1 6 0v4',
+  mail: 'M3 5h18v14H3V5Zm0 2 9 6 9-6',
   store: 'M4 10V21h16V10M3 10l2-6h14l2 6H3Zm6 11v-6h6v6',
   link: 'M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1',
   copy: 'M9 9h11v11H9V9Zm-5 7V4h12',

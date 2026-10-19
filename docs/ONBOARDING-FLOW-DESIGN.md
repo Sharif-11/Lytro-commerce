@@ -147,9 +147,12 @@ Built 2026-10-19 as a fresh Vite + React app (the old `apps/admin`, which also c
 | Shop landing | `/shops` | `views/shops` | Reads /me and opens the person's shop, or create-shop without one. The multi-shop picker waits for a memberships field on /me. |
 | Dashboard home | `/$shop/` | `views/dashboard-home` | Trial banner (in the shell), checklist with only live items, shop link card (Copy, Facebook, WhatsApp tick the share item), the empty Today card, the payment-being-checked note. |
 | Shell | `/$shop` layout | `components/layout/shop-shell.tsx` | The one session guard; slug checked against /me with the same not-found for a stranger's shop; sidebar from 1024 px, five bottom tabs below; lifecycle banner; locked, archived, suspended and `tenant_offline` exits. |
-| Sections | `/$shop/orders`, `products`, `customers`, `balance` | `views/sections/section-empty.tsx` | Honest first-run states until each module ships. |
-| More | `/$shop/more` | `views/more` | Plans, support, language, sign out, Powered by Lytro. No "create another shop" (TEN-15). |
-| Plans and renewal | `/$shop/plans` | `views/plans` | TRL-08's plan page and the lifecycle renewal screen, with pay-as-you-go as the no-payment choice for a lapsed shop. |
+| Sections | `/$shop/orders`, `products`, `customers` | `views/sections/section-empty.tsx` | Honest first-run states until each Phase 3 module ships. |
+| More | `/$shop/more` | `views/more` | Plans, invoices, staff, roles, activity, shop settings, account (each shown only with its permission), support, language, sign out, Powered by Lytro. No "create another shop" (TEN-15). |
+| Plans and billing | `/$shop/plan`, `/$shop/invoices` | `views/plan`, `views/invoices` | TRL-08's plan page and the lifecycle renewal screen: purchase, renew, upgrade (quote then pay from balance or a wallet), downgrade preview and scheduling, cancel and undo, auto-renew, pay-as-you-go, closing a pay-as-you-go shop; invoices with the plan snapshot. |
+| Balance | `/$shop/balance` | `views/balance` | Balance and frozen state, top-up (quote then wallet), the free-SMS allowance, current rates, the statement with filters and CSV export. |
+| Team | `/$shop/team`, `/$shop/team/roles`, `/$shop/activity` | `views/team`, `views/team/roles.tsx`, `views/activity` | Staff accounts against the seat limit, roles over the Phase 2 permission list, the activity log with its filters. |
+| Settings and account | `/$shop/settings`, `/$shop/account` | `views/settings`, `views/account` | TEN-30 contact details and the per-kg delivery charge; AUTH-26 sign-in methods (add a phone or email by code, attach Google or Facebook, remove). |
 | Staff sign-in | `/staff-sign-in`, `/staff-set-password` | `views/staff-sign-in`, `views/staff-set-password` | On the app host; the must-set-password gate. |
 | Forgot password | `/forgot-password`, `/forgot-password/verify` | `views/forgot-password` | Opens a must-set-password session. |
 | Unavailable | `/unavailable` | `views/unavailable` | LIF-24 wording with the support button; the balance carve-out links to the balance section. |

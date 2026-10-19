@@ -388,6 +388,9 @@ their backend ships earlier.
   `.lytro.app` never reaches the dashboard; two shops install as two distinct apps.
 
 ### Slice 0b: separate operator app (D3-12)
+- **Status, 2026-10-19:** `apps/operator` and `apps/dashboard` exist and replace `apps/admin` (PR #145). Each
+  app carries its own copy of the request wrapper and the primitives; `packages/ui` and `packages/api-client`
+  are still to be extracted, as their own branch.
 - **Depends on:** Slice 0 (the hosts and sessions it reworks).
 - **Delivers:**
   - `packages/ui` (the brand doc's design tokens and basic components) and `packages/api-client` (the request

@@ -198,8 +198,9 @@ apps/server/src/
 
 Rebuilt 2026-10-19 from `ONBOARDING-FLOW-DESIGN.md` as a fresh Vite + React app serving only the tenant side at
 `app.lytro.app` (D3-12). The old `apps/admin`, which also carried the operator console and picked its screens
-by hostname, was removed; `apps/operator` is still to be built, and shared code (`packages/ui`,
-`packages/api-client`) is extracted when it exists.
+by hostname, was removed; `apps/operator` (§6b) took the console the same day. Shared code (`packages/ui`,
+`packages/api-client`, PHASE-3-PLAN Slice 0b) is still to be extracted; until then each app carries its own
+copy of the request wrapper, the error mapping, the icons, the wordmark and the primitives.
 
 ```
 apps/dashboard/src/
@@ -216,12 +217,16 @@ apps/dashboard/src/
     $shop/
       route.tsx              the layout route: the one session guard, renders ShopShell around an Outlet
       index.tsx              the dashboard home
-      orders.tsx, products.tsx, customers.tsx, balance.tsx, more.tsx, plans.tsx
+      orders.tsx, products.tsx, customers.tsx, more.tsx
+      plan.tsx, balance.tsx, invoices.tsx, team.tsx, team_.roles.tsx, activity.tsx, settings.tsx, account.tsx
+                             the Phase 1–2 sections (DASHBOARD-SECTIONS-DESIGN.md), gated per permission in the view;
+                             team_.roles is a sibling of team, not a child, so People needs no Outlet
   views/<screen>/
     index.tsx                the real page; sibling files are view-local pieces (checkout/plan-picker.tsx)
   components/
     ui/                      primitives: button, text-field, otp-input, chip, notice, icon, language-toggle,
-                             step-frame (the onboarding shell with the progress bar)
+                             step-frame (the onboarding shell with the progress bar), confirm-dialog, fields
+                             (select, checkbox row, page header, card, page column)
     brand/                   the mark, the wordmark, Powered by Lytro, the Google and Facebook marks
     layout/                  the shop shell, split on ENGINEERING-STANDARDS.md §2a's container/presentational
                              line: shop-shell.tsx (container, reads /me) over sidebar.tsx, bottom-nav.tsx,
@@ -229,7 +234,7 @@ apps/dashboard/src/
                              list both navs render
   api/
     client.ts                the typed fetch wrapper: CSRF header on mutating requests, the error envelope
-    me.ts, auth.ts, billing.ts
+    me.ts, auth.ts, billing.ts, balance.ts, staff.ts, activity.ts, shop-settings.ts, identities.ts
                              query/mutation hooks per backend module; a view calls useMe(), never the client
     error-message.ts         ErrorCode → copy, exhaustive, no default
   session/
@@ -257,6 +262,33 @@ apps/dashboard/src/
   line-count cap is adopted (the 150-line rule from a sibling project's own convention was considered and not
   carried over without evidence it's needed here yet) — split a component when it's doing two things, the same
   single-responsibility judgement call §2's layering already asks for everywhere else.
+
+## 6b. Operator app (apps/operator)
+
+Built 2026-10-19 as its own Vite + React app at `admin.lytro.app` (D3-12), the inverted console of
+`BRAND-IDENTITY.md` §8.4: dark chrome, teal-400 primary, marigold eyebrow, English by default with the Bangla
+toggle. Same stack and the same layering as §6a; no `/me` for operators, so the session holder answers from
+the CSRF token alone and a 401 on any call clears it (`main.tsx`).
+
+```
+apps/operator/src/
+  main.tsx                 entry point: query client with the 401 handler, router
+  routes/                  thin: index (→ queue or sign-in), sign-in, _console (the one session guard + shell)
+    _console/              payment-queue, tenants, plans, billing-terms, rates, settings, wallets, account
+  views/<screen>/          sign-in (credentials, enroll with the QR drawn client-side, backup codes, verify),
+                           payment-queue, tenants (list + the one panel: suspend/restore, balance adjust,
+                           limit overrides, assign plan), plans (form, list, prices, versions), billing-terms,
+                           rates, settings, wallets, account (backup-code regeneration)
+  components/
+    ui/                    the dark primitives: button, text-field (+ textarea), chip/tag, notice, fields,
+                           confirm-dialog, icon, language-toggle
+    layout/                console-shell (sidebar from 1024 px, menu sheet below), auth-frame, nav-items
+  api/                     client.ts, error-message.ts, operator-auth, plans, billing-terms, rates, settings,
+                           tenants, payment-queue, platform-wallets
+  session/                 operator-session.ts (CSRF key lytro.operator.csrf)
+  lib/                     limit-keys (from planLimitsSchema, the one list), dates, money, download, use-copy
+  types/operator.ts        structural duplicates of the operator response shapes
+```
 - `apps/dashboard` may import `@lytronix/validators` and `@lytronix/shared-types` directly (confirmed neither has
   a Node-only dependency) — reusing a zod schema or an enum from there is preferred over redefining it
   client-side, the same "one definition per concept" rule §3 states for the server.

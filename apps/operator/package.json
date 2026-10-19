@@ -1,0 +1,44 @@
+{
+  "name": "@lytronix/operator",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The operator console at admin.lytro.app (Vite + React), its own build apart from the sellers' dashboard (D3-12): two-factor sign-in, plans and prices, billing terms, rates, platform settings, tenants, the payment queue and platform wallets.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 3005",
+    "generate-routes": "tsr generate",
+    "build": "pnpm generate-routes && tsc -p tsconfig.json --noEmit && vite build",
+    "preview": "vite preview --port 3005",
+    "typecheck": "pnpm generate-routes && tsc -p tsconfig.json --noEmit",
+    "lint": "pnpm generate-routes && eslint .",
+    "test": "pnpm generate-routes && vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@lytronix/shared-types": "workspace:^",
+    "@lytronix/validators": "workspace:^",
+    "@tanstack/react-query": "^5",
+    "@tanstack/react-router": "^1",
+    "i18next": "^24",
+    "qrcode": "^1.5.4",
+    "react": "^19",
+    "react-dom": "^19",
+    "react-i18next": "^15",
+    "zod": "^3"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@tanstack/router-cli": "^1.167.40",
+    "@tanstack/router-plugin": "^1",
+    "@types/node": "^20",
+    "@types/qrcode": "^1.5.6",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vite-pwa/assets-generator": "^2.0.0",
+    "@vitejs/plugin-react": "^4",
+    "jsdom": "^25",
+    "tailwindcss": "^4.3.3",
+    "vite": "^5",
+    "vite-plugin-pwa": "^2.0.0",
+    "vitest": "^2.1.2"
+  }
+}

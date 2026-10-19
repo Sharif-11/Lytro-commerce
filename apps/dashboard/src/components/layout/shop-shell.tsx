@@ -101,9 +101,9 @@ export function ShopShell({ slug, children }: ShopShellProps): React.JSX.Element
     );
   }
 
-  // LIF-11/12: a locked or archived shop shows only the way back; the plans screen is that way back, so it
+  // LIF-11/12: a locked or archived shop shows only the way back; the plan screen is that way back, so it
   // is the one route that still renders.
-  const onPlans = location.pathname.endsWith('/plans');
+  const onPlans = location.pathname.endsWith('/plan');
   const lockedOut =
     (tenant.state === TenantState.Locked || tenant.state === TenantState.Archived) && !onPlans;
 
@@ -127,7 +127,7 @@ function LockedOut({ slug }: { slug: string }): React.JSX.Element {
     <div className="mx-auto max-w-[520px] px-4 py-10 text-center sm:px-6">
       <h1 className="heading text-[22px] text-ink">{t('shop.lockedOut.title')}</h1>
       <p className="mt-2 text-[15px] text-neutral-700">{t('shop.lockedOut.lead')}</p>
-      <Link to="/$shop/plans" params={{ shop: slug }} className="mt-6 block">
+      <Link to="/$shop/plan" params={{ shop: slug }} className="mt-6 block">
         <Button type="button">{t('shop.lockedOut.renew')}</Button>
       </Link>
     </div>
