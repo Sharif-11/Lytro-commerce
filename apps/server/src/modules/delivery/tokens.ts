@@ -1,0 +1,2 @@
+export const LOCATION_STORE = Symbol('LOCATION_STORE');
+export const DELIVERY_ZONE_STORE = Symbol('DELIVERY_ZONE_STORE');

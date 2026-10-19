@@ -240,6 +240,17 @@ export const MESSAGE_KEYS = [
   'OptionSetNameTaken',
   'OptionSetNotFound',
 
+  // Delivery (Phase 3 Slice 1c)
+  'LocationNotFound',
+  'DeliveryAreaNotFound',
+  'DeliveryAreaTaken',
+  'DeliveryZoneNotFound',
+  'DeliveryZoneFixed',
+  'DeliveryZoneInUse',
+  'TooManyDeliveryZones',
+  'HomeZoneAreasAreHomeArea',
+  'FallbackZoneHasNoAreas',
+
   // Success -- catalogue
   'PresetsListed',
   'ProductDefaultsRetrieved',
@@ -271,6 +282,14 @@ export const MESSAGE_KEYS = [
   'OptionSetUpdated',
   'OptionSetDeleted',
   'PresetUpdated',
+  'LocationsListed',
+  'DeliveryZonesListed',
+  'DeliveryZoneCreated',
+  'DeliveryZoneUpdated',
+  'DeliveryZoneDeleted',
+  'HomeAreaSaved',
+  'DeliveryZoneResolved',
+  'ProductDeliveryZonesSaved',
 ] as const;
 
 export type MessageKey = (typeof MESSAGE_KEYS)[number];

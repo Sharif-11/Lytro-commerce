@@ -13,6 +13,7 @@ import {
 } from 'drizzle-orm';
 import {
   catalogueState,
+  productDeliveryZones,
   productAttributes,
   productAttributeValues,
   productCategories,
@@ -263,6 +264,47 @@ export class ProductRepository {
           inArray(productCategories.productId, productIds),
         ),
       );
+  }
+
+  /** DLV-07: the zones each product may be delivered to; a product with none goes wherever the shop delivers. */
+  async listDeliveryZoneIds(
+    tx: Transaction,
+    tenantId: string,
+    productId: string,
+  ): Promise<string[]> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const rows = await tx
+      .select({ zoneId: productDeliveryZones.zoneId })
+      .from(productDeliveryZones)
+      .where(
+        and(
+          eq(productDeliveryZones.tenantId, tenantId),
+          eq(productDeliveryZones.productId, productId),
+        ),
+      );
+    return rows.map((row) => row.zoneId);
+  }
+
+  /** DLV-07: replaces the product's zone limit. A zone of another shop is refused by the foreign key. */
+  async replaceDeliveryZones(
+    tx: Transaction,
+    tenantId: string,
+    productId: string,
+    zoneIds: string[],
+  ): Promise<void> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    await tx
+      .delete(productDeliveryZones)
+      .where(
+        and(
+          eq(productDeliveryZones.tenantId, tenantId),
+          eq(productDeliveryZones.productId, productId),
+        ),
+      );
+    if (zoneIds.length === 0) return;
+    await tx
+      .insert(productDeliveryZones)
+      .values(zoneIds.map((zoneId) => ({ tenantId, productId, zoneId })));
   }
 
   async replaceCategoryLinks(

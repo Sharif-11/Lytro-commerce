@@ -228,6 +228,11 @@ export enum AuditAction {
   AttributeUpdated = 'attribute_updated',
   // PST-01: the shop's main business type, which sets new products' defaults (PST-02).
   BusinessTypeChanged = 'business_type_changed',
+  // Phase 3 Slice 1c: delivery zones (DLV-01, DLV-04).
+  DeliveryZoneCreated = 'delivery_zone_created',
+  DeliveryZoneUpdated = 'delivery_zone_updated',
+  DeliveryZoneDeleted = 'delivery_zone_deleted',
+  DeliveryHomeAreaChanged = 'delivery_home_area_changed',
   // ATR-16: a shop's own option sets.
   OptionSetCreated = 'option_set_created',
   OptionSetDeleted = 'option_set_deleted',

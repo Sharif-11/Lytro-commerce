@@ -130,6 +130,8 @@ export const productDetailSchema = z.object({
   effectiveDeliveryMode: z.nativeEnum(DeliveryMode),
   paymentPolicy: z.nativeEnum(PaymentPolicy).nullable(),
   advanceAmount: z.string().nullable(),
+  effectivePaymentPolicy: z.nativeEnum(PaymentPolicy),
+  effectiveAdvanceAmount: z.string().nullable(),
   active: z.boolean(),
   archived: z.boolean(),
   categoryIds: z.array(z.string()),
@@ -183,6 +185,7 @@ export const productDetailSchema = z.object({
       rows: z.array(z.array(z.string())),
     })
     .nullable(),
+  deliveryZoneIds: z.array(z.string()),
   createdAt: z.date(),
   updatedAt: z.date(),
 });

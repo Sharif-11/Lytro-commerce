@@ -29,3 +29,5 @@ export * from './control/platform-wallets';
 export * from './tenant/catalogue';
 export * from './tenant/attributes';
 export * from './control/presets';
+export * from './control/locations';
+export * from './tenant/delivery';

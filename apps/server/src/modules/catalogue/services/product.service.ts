@@ -8,7 +8,6 @@ import {
   DeliveryMode,
   FieldProblemCode,
   MAX_VARIANTS_PER_PRODUCT,
-  PaymentPolicy,
   PRODUCT_NAME_MAX_LENGTH,
   ServerFieldProblemCode,
   StockState,
@@ -17,11 +16,13 @@ import {
   VARIANT_DATA_TYPES,
   type CreateProductInput,
   type ListProductsQuery,
+  type ProductDeliveryZonesInput,
   type SaveProductAttributesInput,
   type SaveVariantsInput,
   type UpdateProductInput,
 } from '@lytronix/validators';
 import { ApiError, FieldsError, type InvalidField } from '../../../common/api-error';
+import { MissingReference } from '../../../common/errors/missing-reference';
 import { UniqueViolation } from '../../../common/errors/unique-violation';
 import { PayAsYouGoBillingService } from '../../balance/services/payg-billing.service';
 import type {
@@ -59,7 +60,9 @@ import type {
   VariantView,
 } from '../types/catalogue';
 import { CatalogueActivity, type ResolvedActor } from './catalogue-activity';
+import { settlePaymentPolicy } from './payment-policy';
 import { PresetService } from './preset.service';
+import { ShopPaymentPolicyService } from './shop-payment-policy.service';
 import { nextFreeSlug, slugOf } from './slug';
 import { planVariants, type MatrixProblem, type PlannedVariant } from './variant-matrix';
 
@@ -133,6 +136,7 @@ export class ProductService {
     @Inject(ATTRIBUTE_STORE) private readonly attributes: AttributeStore,
     @Inject(SIZE_CHART_STORE) private readonly charts: SizeChartStore,
     @Inject(PresetService) private readonly presets: PresetService,
+    @Inject(ShopPaymentPolicyService) private readonly shopPolicy: ShopPaymentPolicyService,
     @Inject(PayAsYouGoBillingService) private readonly payAsYouGo: PayAsYouGoBillingService,
     @Inject(CatalogueActivity) private readonly activity: CatalogueActivity,
   ) {}
@@ -334,6 +338,13 @@ export class ProductService {
 
       const chart = await this.charts.findChart(tx, shop.id, { productId });
       if (chart) await this.charts.putChart(tx, shop.id, { productId: copy.id }, chart.tableRows);
+      // DLV-07: the copy goes where the original goes.
+      await this.products.replaceDeliveryZones(
+        tx,
+        shop.id,
+        copy.id,
+        await this.products.listDeliveryZoneIds(tx, shop.id, productId),
+      );
       await this.products.refreshPriceRange(tx, shop.id, copy.id);
 
       if (shop.state === TenantState.PayAsYouGo) {
@@ -347,6 +358,39 @@ export class ProductService {
       });
       await this.products.bumpVersion(tx, shop.id);
       return this.detail(tx, shop.id, copy.id);
+    });
+  }
+
+  /** DLV-07: limits where the product may be delivered; an empty list lifts the limit. */
+  async setDeliveryZones(
+    shop: CatalogueShop,
+    productId: string,
+    input: ProductDeliveryZonesInput,
+    actor: CatalogueActor,
+  ): Promise<ProductDetail> {
+    const who = await this.activity.resolve(shop.id, actor);
+    return this.transactions.run(async (tx) => {
+      await this.findLive(tx, shop.id, productId);
+      const zoneIds = [...new Set(input.zoneIds)];
+      try {
+        await this.products.replaceDeliveryZones(tx, shop.id, productId, zoneIds);
+      } catch (error) {
+        if (error instanceof MissingReference) {
+          throw new FieldsError([
+            {
+              field: 'zoneIds',
+              problem: ServerFieldProblemCode.NotFound,
+              messageKey: 'DeliveryZoneNotFound',
+            },
+          ]);
+        }
+        throw error;
+      }
+      await this.record(tx, shop.id, who, AuditAction.ProductUpdated, productId, {
+        deliveryZoneIds: zoneIds,
+      });
+      await this.products.bumpVersion(tx, shop.id);
+      return this.detail(tx, shop.id, productId);
     });
   }
 
@@ -677,23 +721,14 @@ export class ProductService {
     }
 
     if (input.paymentPolicy !== undefined || input.advanceAmount !== undefined) {
-      const policy =
-        input.paymentPolicy !== undefined ? input.paymentPolicy : current.paymentPolicy;
-      const partial = policy === PaymentPolicy.PartialAdvance;
-      const advance =
-        input.advanceAmount !== undefined
-          ? (money(input.advanceAmount) ?? null)
-          : partial
-            ? current.advanceAmount
-            : null;
-      if (partial && advance === null) {
-        throw new FieldsError([{ field: 'advanceAmount', problem: FieldProblemCode.Required }]);
-      }
-      if (!partial && advance !== null) {
-        throw new FieldsError([{ field: 'advanceAmount', problem: FieldProblemCode.NotAllowed }]);
-      }
-      change.paymentPolicy = policy;
-      change.advanceAmount = advance;
+      // PRD-08: null follows the shop's default policy.
+      const settled = settlePaymentPolicy(
+        { policy: current.paymentPolicy, advance: current.advanceAmount },
+        { policy: input.paymentPolicy, advance: input.advanceAmount },
+        'advanceAmount',
+      );
+      change.paymentPolicy = settled.policy;
+      change.advanceAmount = settled.advance;
     }
     return change;
   }
@@ -1215,6 +1250,7 @@ export class ProductService {
       effectiveDeliveryMode: effectiveMode(product.weightKg, product.deliveryMode),
       paymentPolicy: product.paymentPolicy,
       advanceAmount: product.advanceAmount,
+      ...(await this.effectivePolicy(tx, tenantId, product)),
       active: product.active,
       archived: product.deletedAt !== null,
       categoryIds: links.map((link) => link.categoryId),
@@ -1226,8 +1262,28 @@ export class ProductService {
       attributes: described,
       variants: variantViews,
       sizeChart: await this.sizeChartOf(tx, tenantId, product),
+      deliveryZoneIds: await this.products.listDeliveryZoneIds(tx, tenantId, productId),
       createdAt: product.createdAt,
       updatedAt: product.updatedAt,
+    };
+  }
+
+  /** PRD-08: the product's own policy and advance when it has a policy, else the shop's default pair. */
+  private async effectivePolicy(
+    tx: Transaction,
+    tenantId: string,
+    product: ProductRecord,
+  ): Promise<Pick<ProductDetail, 'effectivePaymentPolicy' | 'effectiveAdvanceAmount'>> {
+    if (product.paymentPolicy !== null) {
+      return {
+        effectivePaymentPolicy: product.paymentPolicy,
+        effectiveAdvanceAmount: product.advanceAmount,
+      };
+    }
+    const shop = await this.shopPolicy.within(tx, tenantId);
+    return {
+      effectivePaymentPolicy: shop.defaultPaymentPolicy,
+      effectiveAdvanceAmount: shop.defaultAdvanceAmount,
     };
   }
 

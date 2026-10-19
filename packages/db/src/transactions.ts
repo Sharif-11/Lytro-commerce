@@ -37,13 +37,22 @@ export class TransactionRunner {
    * (two sign-ups with the same phone or address) into a clear answer rather than a 500.
    */
   isUniqueViolation(error: unknown, constraintFragment: string): boolean {
+    return this.violates(error, '23505', constraintFragment);
+  }
+
+  /** True when a foreign key was violated and its name contains the fragment (a reference to a missing row). */
+  isForeignKeyViolation(error: unknown, constraintFragment: string): boolean {
+    return this.violates(error, '23503', constraintFragment);
+  }
+
+  private violates(error: unknown, sqlState: string, constraintFragment: string): boolean {
     // The driver may wrap the Postgres error in `cause`; read whichever object carries the fields, without a cast.
     const source = error instanceof Error && error.cause ? error.cause : error;
     if (typeof source !== 'object' || source === null) return false;
     const code = 'code' in source ? source.code : undefined;
     const constraint = 'constraint' in source ? source.constraint : undefined;
     return (
-      code === '23505' && typeof constraint === 'string' && constraint.includes(constraintFragment)
+      code === sqlState && typeof constraint === 'string' && constraint.includes(constraintFragment)
     );
   }
 }

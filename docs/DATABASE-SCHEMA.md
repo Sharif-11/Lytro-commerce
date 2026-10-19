@@ -266,6 +266,8 @@ CREATE TABLE tenant.shop_settings (
     default_payment_policy          tenant.payment_policy NOT NULL DEFAULT 'none',  -- PRD-08 shop default
     default_advance_amount          numeric(10,2) CHECK (default_advance_amount >= 0)
 );
+-- PRD-08's two columns were built in Phase 3 Slice 1c (0053), with the products' own rule as a check: a partial
+-- advance needs its amount, and no other policy takes one.
 ```
 
 ### 2.4 Invoices and platform audit
@@ -342,30 +344,39 @@ CREATE TABLE control.platform_settings (
 
 ### 2.5 Canonical locations and courier mapping
 
-```sql
-CREATE TABLE control.divisions (                    -- CUS-08: the 8 divisions
-    code            text PRIMARY KEY,               -- 'dhaka', 'chattogram', ...
-    name_en         text NOT NULL,
-    name_bn         text NOT NULL
-);
+**Built in Phase 3 Slice 1c (migration 0053, 2026-10-19)**, without divisions: delivery zones name districts,
+cities and thanas only (DLV-01, DLV-02), and nothing else needs a division.
 
+```sql
 CREATE TABLE control.cities (                       -- CUS-08: one per city corporation; Dhaka North and South
     code            text PRIMARY KEY,               -- together form 'dhaka' ("Dhaka city"), so 11 rows
     name_en         text NOT NULL,
-    name_bn         text NOT NULL
+    name_bn         text NOT NULL,
+    sort_order      smallint NOT NULL DEFAULT 0
 );
 
-CREATE TABLE control.locations (
-    id              serial PRIMARY KEY,
-    zilla           text NOT NULL,
-    thana           text NOT NULL,
-    division_code   text NOT NULL REFERENCES control.divisions(code),  -- the zilla's division
-    city_code       text REFERENCES control.cities(code),              -- null = outside every city area
-    UNIQUE (zilla, thana)
+CREATE TABLE control.zillas (                       -- CUS-08: the 64 districts
+    id              smallint PRIMARY KEY,           -- fixed by the seed: tenants hold it by value
+    name_en         text NOT NULL,
+    name_bn         text NOT NULL
 );
--- CUS-08: one platform-wide list, seeded once from the standard 64-district dataset,
--- identical for every tenant regardless of which couriers it has connected. A thana belongs to at most one
--- city. Adding a thana or changing its city is a platform data change, announced on the notice board (DLV-02).
+CREATE UNIQUE INDEX ON control.zillas (lower(name_en));
+
+CREATE TABLE control.locations (                    -- CUS-08: every thana
+    id              integer PRIMARY KEY,            -- fixed by the seed: tenants (zones, orders) hold it by value
+    zilla_id        smallint NOT NULL REFERENCES control.zillas(id),
+    name_en         text NOT NULL,
+    name_bn         text NOT NULL,
+    city_code       text REFERENCES control.cities(code)  -- null = outside every city area
+);
+CREATE UNIQUE INDEX ON control.locations (zilla_id, lower(name_en));
+-- CUS-08: one platform-wide list, identical for every tenant regardless of which couriers it has connected, and
+-- seeded from packages/db/data/locations.json: the standard dataset's 64 districts and 494 upazilas (current
+-- English spellings), plus the city police thanas of the four cities that dataset leaves out (Dhaka 49 with
+-- Uttara as one, Chattogram 15, Khulna 8, Rajshahi 6). The other seven cities are their Sadar upazilas
+-- (Narayanganj with Bandar, Cumilla with Sadar Dakshin). 572 thanas in all. A thana belongs to at most one city.
+-- Adding a thana or changing its city is a platform data change in a later migration that adds rows rather
+-- than renumbering, announced on the notice board (DLV-02).
 
 CREATE TABLE control.courier_areas (
     id              serial PRIMARY KEY,
@@ -893,37 +904,44 @@ the same column distinguishes storefront, dashboard and API orders (SFT-06).
 #### Delivery zones, size charts, option sets and the catalog feed (DLV, PRD-17, ATR-16, FED)
 
 ```sql
-CREATE TABLE tenant.delivery_zones (                -- DLV-01; seeded with two rows for every tenant
+CREATE TABLE tenant.delivery_zones (                -- DLV-01; built in Slice 1c (0053)
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id       uuid NOT NULL,
-    name            varchar(60) NOT NULL,
+    name            varchar(60),                    -- null = follows the home area ("Inside Dhaka city")
     charge          numeric(10,2) NOT NULL CHECK (charge >= 0),
-    is_fallback     boolean NOT NULL DEFAULT false, -- DLV-02: exactly one per tenant, never deleted
     is_home         boolean NOT NULL DEFAULT false, -- DLV-01: "Inside <home area>", exactly one, never deleted
-    auto_named      boolean NOT NULL DEFAULT true,  -- DLV-01: follows the home area's name until renamed
+    is_fallback     boolean NOT NULL DEFAULT false, -- DLV-02: "Outside <home area>", exactly one, never deleted
     no_delivery     boolean NOT NULL DEFAULT false, -- DLV-06: public orders to this zone are refused
-    UNIQUE (tenant_id, id)
+    created_at      timestamptz NOT NULL DEFAULT now(),
+    updated_at      timestamptz NOT NULL DEFAULT now(),
+    UNIQUE (tenant_id, id),
+    CHECK (NOT (is_home AND is_fallback)),
+    CHECK (name IS NOT NULL OR is_home OR is_fallback)  -- only those two follow the home area's name
 );
-CREATE UNIQUE INDEX delivery_zones_one_fallback ON tenant.delivery_zones (tenant_id) WHERE is_fallback;
-CREATE UNIQUE INDEX delivery_zones_one_home ON tenant.delivery_zones (tenant_id) WHERE is_home;
+CREATE UNIQUE INDEX delivery_zones_one_fallback_idx ON tenant.delivery_zones (tenant_id) WHERE is_fallback;
+CREATE UNIQUE INDEX delivery_zones_one_home_idx ON tenant.delivery_zones (tenant_id) WHERE is_home;
+-- Decided in Slice 1c: an automatic name is not stored. The API builds "Inside/Outside <home area>" in English and
+-- Bangla from the home zone's areas ("ঢাকা সিটির ভিতরে"), so it reads right in either language and follows a new
+-- home area with nothing to rewrite; a name the tenant sets is kept as typed.
 
-CREATE TABLE tenant.delivery_zone_areas (           -- DLV-01, DLV-02: CUS-08 areas at four levels
+CREATE TABLE tenant.delivery_zone_areas (           -- DLV-01, DLV-02: CUS-08 areas at three levels
     tenant_id       uuid NOT NULL,
     zone_id         uuid NOT NULL,
-    division_code   text,                           -- exactly one of these four is set
-    zilla           text,                           -- a whole district, by its control.locations.zilla
-    city_code       text,                           -- a whole city area (control.cities)
-    location_id     integer,                        -- one thana (control.locations.id)
-    CHECK (num_nonnulls(division_code, zilla, city_code, location_id) = 1),
+    zilla_id        smallint,                       -- exactly one of these three is set: a whole district,
+    city_code       text,                           -- a whole city area (control.cities),
+    location_id     integer,                        -- or one thana (control.locations.id), each by value
+    CHECK (num_nonnulls(zilla_id, city_code, location_id) = 1),
     FOREIGN KEY (tenant_id, zone_id) REFERENCES tenant.delivery_zones(tenant_id, id) ON DELETE CASCADE
 );
-CREATE UNIQUE INDEX ON tenant.delivery_zone_areas (tenant_id, division_code) WHERE division_code IS NOT NULL;
-CREATE UNIQUE INDEX ON tenant.delivery_zone_areas (tenant_id, zilla) WHERE zilla IS NOT NULL;
+CREATE UNIQUE INDEX ON tenant.delivery_zone_areas (tenant_id, zilla_id) WHERE zilla_id IS NOT NULL;
 CREATE UNIQUE INDEX ON tenant.delivery_zone_areas (tenant_id, city_code) WHERE city_code IS NOT NULL;
 CREATE UNIQUE INDEX ON tenant.delivery_zone_areas (tenant_id, location_id) WHERE location_id IS NOT NULL;
--- Resolution (DLV-02): the zone naming the thana, else its city, else its zilla, else its division, else the
--- fallback zone. Cities and divisions are stored as groups, never expanded, so platform changes flow through.
--- Every tenant starts with the home zone (one area: city_code 'dhaka', charge 70) and the fallback (130).
+-- Resolution (DLV-02): the zone naming the thana, else its city, else its zilla, else the fallback zone. Cities and
+-- districts are stored as groups, never expanded, so platform changes flow through. The home zone's areas are the
+-- home area: one city, one zilla, or the tenant's own thanas (DLV-01); the fallback has none.
+-- The two default zones are made the first time anything reads or writes a shop's zones (the home zone covering
+-- city 'dhaka' at 70, the fallback at 130), by inserts that do nothing when the row exists, so shop creation does
+-- not depend on the delivery module and no backfill was needed.
 -- The order line stores its computed delivery_charge (ORD-46), so editing a zone never changes old orders.
 
 CREATE TABLE tenant.product_delivery_zones (        -- DLV-07: no rows = the product goes wherever the shop delivers
@@ -934,6 +952,8 @@ CREATE TABLE tenant.product_delivery_zones (        -- DLV-07: no rows = the pro
     FOREIGN KEY (tenant_id, product_id) REFERENCES tenant.products(tenant_id, id) ON DELETE CASCADE,
     FOREIGN KEY (tenant_id, zone_id) REFERENCES tenant.delivery_zones(tenant_id, id)  -- no cascade: DLV-07
 );
+-- Built in Slice 1c with PRIMARY KEY (tenant_id, product_id, zone_id), the shop's own key first like every other
+-- composite key in §3.2.
 
 CREATE TABLE tenant.size_charts (                   -- PRD-17: one per product or per category
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),

@@ -34,6 +34,7 @@ import { SessionGuard } from '../../identity/guards/session.guard';
 import {
   ChangeProductSlugDto,
   CreateProductDto,
+  ProductDeliveryZonesDto,
   SaveProductAttributesDto,
   SaveVariantsDto,
   SizeChartDto,
@@ -72,6 +73,27 @@ export class ProductsController {
     return this.products.duplicate(
       await this.catalogue.shopOf(request),
       this.catalogue.idOf(id, 'ProductNotFound'),
+      this.catalogue.actorOf(request),
+    );
+  }
+
+  @Put(':id/delivery-zones')
+  @RequirePermission(Permission.ProductsManage)
+  @ResponseMessage('ProductDeliveryZonesSaved')
+  @ApiOperation({
+    summary: 'Limit where the product may be delivered; an empty list lifts the limit (DLV-07)',
+  })
+  @ApiBody({ type: ProductDeliveryZonesDto })
+  @ZodResponse({ type: ProductDetailDto })
+  async setDeliveryZones(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(ProductDeliveryZonesDto.schema)) body: ProductDeliveryZonesDto,
+    @Req() request: DashboardRequest,
+  ): Promise<ProductDetail> {
+    return this.products.setDeliveryZones(
+      await this.catalogue.shopOf(request),
+      this.catalogue.idOf(id, 'ProductNotFound'),
+      body,
       this.catalogue.actorOf(request),
     );
   }

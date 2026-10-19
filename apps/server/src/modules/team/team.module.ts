@@ -38,6 +38,9 @@ import { StaffSigninService } from './services/staff-signin.service';
 import { ShopSettingsService } from './services/shop-settings.service';
 import { StaffController } from './controllers/staff.controller';
 import { CatalogueModule } from '../catalogue/catalogue.module';
+import { DeliveryModule } from '../delivery/delivery.module';
+import { DeliveryZonesController } from './controllers/delivery-zones.controller';
+import { LocationsController } from './controllers/locations.controller';
 import { AttributesController } from './controllers/attributes.controller';
 import { CatalogueSetupController } from './controllers/catalogue-setup.controller';
 import { CategoriesController } from './controllers/categories.controller';
@@ -69,6 +72,7 @@ import { CatalogueRequest } from './services/catalogue-request';
     DataExportModule,
     SmsUsageModule,
     CatalogueModule,
+    DeliveryModule,
   ],
   controllers: [
     StaffController,
@@ -99,6 +103,8 @@ import { CatalogueRequest } from './services/catalogue-request';
     OperatorPresetsController,
     OperatorAttributesController,
     OperatorOptionSetsController,
+    LocationsController,
+    DeliveryZonesController,
   ],
   providers: [
     StaffSigninService,

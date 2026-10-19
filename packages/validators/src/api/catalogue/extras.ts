@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import {
   CATEGORY_NAME_MAX_LENGTH,
+  MAX_DELIVERY_ZONES,
   OPTION_SET_MAX_OPTIONS,
   OPTION_SET_NAME_MAX_LENGTH,
   OPTION_VALUE_MAX_LENGTH,
@@ -62,6 +63,13 @@ export const productDefaultsQuerySchema = z.object({
   categoryId: catalogueIdSchema.optional(),
 });
 export type ProductDefaultsQuery = z.infer<typeof productDefaultsQuerySchema>;
+
+// PUT products/:id/delivery-zones (DLV-07): the zones the product may be delivered to; none means wherever the shop
+// delivers. A zone a product names cannot be deleted until the product stops naming it.
+export const productDeliveryZonesSchema = z.object({
+  zoneIds: z.array(catalogueIdSchema).max(MAX_DELIVERY_ZONES),
+});
+export type ProductDeliveryZonesInput = z.infer<typeof productDeliveryZonesSchema>;
 
 // --- The operator's curation (PST-04, ATL-01, ATR-16) ---
 

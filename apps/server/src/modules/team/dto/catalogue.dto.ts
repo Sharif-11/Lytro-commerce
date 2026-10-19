@@ -8,6 +8,7 @@ import {
   createOptionSetSchema,
   createPlatformOptionSetSchema,
   createProductSchema,
+  productDeliveryZonesSchema,
   saveProductAttributesSchema,
   saveVariantsSchema,
   setBusinessTypeSchema,
@@ -36,6 +37,7 @@ export class SaveVariantsDto extends createZodDto(saveVariantsSchema) {}
 export class SaveProductAttributesDto extends createZodDto(saveProductAttributesSchema) {}
 export class ChangeProductSlugDto extends createZodDto(changeProductSlugSchema) {}
 export class SizeChartDto extends createZodDto(sizeChartSchema) {}
+export class ProductDeliveryZonesDto extends createZodDto(productDeliveryZonesSchema) {}
 export class AddOptionsDto extends createZodDto(addOptionsSchema) {}
 export class CreateOptionSetDto extends createZodDto(createOptionSetSchema) {}
 export class UpdatePresetDto extends createZodDto(updatePresetSchema) {}

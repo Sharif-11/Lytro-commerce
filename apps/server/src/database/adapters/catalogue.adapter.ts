@@ -6,6 +6,7 @@ import {
   PlatformLibraryRepository,
   PresetRepository,
   ProductRepository,
+  ShopSettingsRepository,
   SizeChartRepository,
   TransactionRunner,
   VariantRepository,
@@ -14,6 +15,7 @@ import {
   type SizeChartOwner,
   type Transaction,
 } from '@lytronix/db';
+import { MissingReference } from '../../common/errors/missing-reference';
 import { UniqueViolation } from '../../common/errors/unique-violation';
 import type {
   AttributeStore,
@@ -25,6 +27,7 @@ import type {
   PresetStore,
   ProductChange,
   ProductStore,
+  ShopPolicyStore,
   SizeChartStore,
   VariantChange,
 } from '../../modules/catalogue/ports/catalogue-stores';
@@ -37,6 +40,7 @@ import type {
   ProductAttributeRecord,
   ProductAttributeValueRecord,
   ProductRecord,
+  ShopPaymentPolicy,
   SizeChartRecord,
   VariantRecord,
   VariantValueRecord,
@@ -55,6 +59,7 @@ const PLATFORM_ATTRIBUTE_NAME_INDEX = 'attributes_platform_name_idx';
 const PLATFORM_OPTION_VALUE_INDEX = 'attribute_options_platform_value_idx';
 const OPTION_SET_NAME_INDEX = 'option_sets_tenant_name_idx';
 const PLATFORM_OPTION_SET_NAME_INDEX = 'option_sets_platform_name_idx';
+const PRODUCT_ZONE_KEY = 'product_delivery_zones_zone_fk';
 
 /** One transaction per unit of catalogue work. Each repository call sets the shop's tenant context itself. */
 @Injectable()
@@ -301,6 +306,26 @@ export class DrizzleProductStore implements ProductStore {
     return this.products.lockCatalogue(tx, tenantId);
   }
 
+  listDeliveryZoneIds(tx: Transaction, tenantId: string, productId: string): Promise<string[]> {
+    return this.products.listDeliveryZoneIds(tx, tenantId, productId);
+  }
+
+  async replaceDeliveryZones(
+    tx: Transaction,
+    tenantId: string,
+    productId: string,
+    zoneIds: string[],
+  ): Promise<void> {
+    try {
+      await this.products.replaceDeliveryZones(tx, tenantId, productId, zoneIds);
+    } catch (error) {
+      if (this.transactions.isForeignKeyViolation(error, PRODUCT_ZONE_KEY)) {
+        throw new MissingReference('zone');
+      }
+      throw error;
+    }
+  }
+
   bumpVersion(tx: Transaction, tenantId: string): Promise<number> {
     return this.products.bumpVersion(tx, tenantId);
   }
@@ -537,6 +562,35 @@ export class DrizzlePresetStore implements PresetStore {
 
   updatePreset(key: string, patch: PresetPatch): Promise<PresetRecord | null> {
     return this.presets.updatePreset(this.database.handle.db, key, patch);
+  }
+}
+
+@Injectable()
+export class DrizzleShopPolicyStore implements ShopPolicyStore {
+  constructor(
+    @Inject(DatabaseService) private readonly database: Pick<DatabaseService, 'handle'>,
+    @Inject(TransactionRunner) private readonly transactions: TransactionRunner,
+    @Inject(ShopSettingsRepository) private readonly settings: ShopSettingsRepository,
+  ) {}
+
+  get(tenantId: string): Promise<ShopPaymentPolicy | null> {
+    return this.transactions.run(this.database.handle.db, (tx) => this.find(tx, tenantId));
+  }
+
+  async find(tx: Transaction, tenantId: string): Promise<ShopPaymentPolicy | null> {
+    const row = await this.settings.get(tx, tenantId);
+    return row
+      ? {
+          defaultPaymentPolicy: row.defaultPaymentPolicy,
+          defaultAdvanceAmount: row.defaultAdvanceAmount,
+        }
+      : null;
+  }
+
+  set(tenantId: string, policy: ShopPaymentPolicy): Promise<void> {
+    return this.transactions.run(this.database.handle.db, (tx) =>
+      this.settings.setPaymentPolicy(tx, tenantId, policy),
+    );
   }
 }
 
