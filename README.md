@@ -30,6 +30,25 @@ pnpm test
 
 Local database (requires Docker): `docker compose up -d postgres`.
 
+## Run everything
+
+One command starts Postgres and every app in watch mode (Turborepo runs each workspace's `dev` script):
+
+```bash
+pnpm dev
+```
+
+| App                                 | Address               |
+| ----------------------------------- | --------------------- |
+| API (`apps/server`)                 | http://localhost:3000 |
+| Storefront (`apps/storefront`)      | http://localhost:3001 |
+| Tenant dashboard (`apps/dashboard`) | http://localhost:3002 |
+| Marketing site (`apps/website`)     | http://localhost:3003 |
+| Operator console (`apps/operator`)  | http://localhost:3005 |
+
+The two Vite apps proxy `/api` to the API, so they need no extra setup. One app alone:
+`pnpm --filter @lytronix/operator dev`.
+
 ## Development flow
 
 Work on a branch, open a pull request, merge once CI passes. See docs/ENGINEERING-STANDARDS.md §7.
