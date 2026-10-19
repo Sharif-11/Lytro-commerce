@@ -87,13 +87,27 @@ Public reads always require a **public key** (decided 2026-10-02: no keyless/ano
 | GET | `/api/v1/catalogue/categories` | public key | Tree, cached ~5 min (CCH-03). |
 | GET | `/api/v1/catalogue/version` | public key | `{ version }`, cached 5s — the freshness primitive CCH-04 relies on instead of purging. |
 | POST | `/api/v1/catalogue/delivery-estimate` | public key | `{ items: [{variantId, quantity}], locationId? }` → `{ deliveryCharge, exact: boolean }`. Same calculation function as order pricing (SFT-20, ORD-06a) — never a separate approximation. |
-| GET | `/api/v1/products` | session/secret, `products:read` | Dashboard list, unfiltered by active flag, with internal fields. |
-| POST | `/api/v1/products` | session/secret, `products:manage` | `{ name, price, deliveryCharge, weightKg?, deliveryMode, categoryIds[], ... }`. |
-| PATCH | `/api/v1/products/:id` | session/secret, `products:manage` | |
-| DELETE | `/api/v1/products/:id` | session/secret, `products:manage` | Soft by default; `?hard=true` for hard delete (PRD-13). |
-| POST | `/api/v1/products/:id/variants` | session/secret, `products:manage` | |
-| GET | `/api/v1/categories` | session/secret, `products:read` | |
-| POST | `/api/v1/categories` | session/secret, `products:manage` | |
+| GET | `/api/v1/products` | session/secret, `products:read` | Dashboard list (PRD-12): `?search=&categoryId=<id\|uncategorized>&page=&limit=` (20 by default). Archived products left out; inactive ones included. Each item: id, name, slug, prices (base, min, max), active, stock state, primary category, variant count. |
+| POST | `/api/v1/products` | session/secret, `products:manage` | One transaction (ATR-11): the product's fields (`name` and `basePrice` required, ATR-03; the rest default from the shop type, PST-02), `categoryIds` and `primaryCategoryId` (PRD-15), `variantAttributes: [{ attributeId, optionIds }]` (at most 3, ATR-14), `variants: [{ optionIds, price?, sku?, barcode?, weightKg?, deliveryCharge?, deliveryMode?, active? }]` (omitted: every combination; at most 100), and `attributes: [{ attributeId, role: informational\|captured_at_order, optionIds?\|textValue?\|numberValue?\|boolValue? }]`. Refuses past the plan's product limit with `plan_limit_reached` (PRD-04); a pay-as-you-go shop is charged the product fee once, in the same transaction (PYG-16). Returns the product detail. |
+| GET | `/api/v1/products/:id` | session/secret, `products:read` | The detail: fields, `oldSlugs`, categories, `variantAttributes` with the options in use, describing `attributes`, `variants` with their effective price and delivery mode (PRD-16, ATR-13), `archived`. |
+| PATCH | `/api/v1/products/:id` | session/secret, `products:manage` | The product's own fields and categories. The slug never follows a rename (LND-04). A price change is logged with the old and new price (PRD-05). |
+| DELETE | `/api/v1/products/:id` | session/secret, `products:manage` | Archives by default: hidden from lists, not counted against the limit, still readable. `?hard=true` removes it for good (PRD-13). |
+| PUT | `/api/v1/products/:id/variants` | session/secret, `products:manage` | `{ variantAttributes, variants? }`, replacing what is stored (ATR-11). A combination no longer listed is retired; listed again, the same variant comes back. A repeated combination is `conflict` (ATR-06). |
+| PUT | `/api/v1/products/:id/attributes` | session/secret, `products:manage` | `{ attributes }`: the describing and captured-at-order attributes, replacing what is stored (ATL-02, ATR-08). |
+| PUT | `/api/v1/products/:id/slug` | session/secret, `products:manage` | `{ slug }`: a deliberate link change. The old slug keeps redirecting, and no other product may take it (LND-04). |
+| GET | `/api/v1/categories` | session/secret, `products:read` | The tree, top level first: each category with its parent, depth, slug, visibility, product count and suggested attribute ids. |
+| POST | `/api/v1/categories` | session/secret, `products:manage` | `{ name, parentId?, sortOrder?, visible? }`, up to four levels deep (PRD-03). |
+| PATCH | `/api/v1/categories/:id` | session/secret, `products:manage` | Rename, move (with everything under it), reorder, show or hide. The slug stays. |
+| DELETE | `/api/v1/categories/:id` | session/secret, `products:manage` | Refused with the count while it has sub-categories or products; `?products=uncategorize` moves its products to Uncategorized (PRD-03). |
+| PUT | `/api/v1/categories/:id/attributes` | session/secret, `products:manage` | `{ attributeIds }`: the attributes suggested for its products, in order (ATR-02, ATL-05). Suggestions only. |
+| GET | `/api/v1/attributes` | session/secret, `products:read` | The platform's attributes and the shop's own, each with `scope` and its options; `?includeRetired=true` for retired ones too (ATL-01, ATR-10). |
+| POST | `/api/v1/attributes` | session/secret, `products:manage` | `{ name, dataType, unitKind? }`: one of the shop's own attributes (ATR-01). A name the shop already sees is `conflict` with `details.attributeId`, the one to use. |
+| PATCH | `/api/v1/attributes/:id` | session/secret, `products:manage` | Rename or retire the shop's own attribute; a platform one answers `not_found`. Its type never changes. |
+| POST | `/api/v1/attributes/:id/options` | session/secret, `products:manage` | `{ value }`: the shop's own value of an attribute with options, its own or the platform's. A number with a unit takes a number in its kind's base unit (UOM-02). A value already there is `conflict` with `details.optionId`. |
+| PATCH | `/api/v1/attributes/:id/options/:optionId` | session/secret, `products:manage` | Rename or retire the shop's own value. |
+| GET | `/api/v1/presets` | session/secret, `products:read` | The shop types and the defaults each gives a new product (PST-01, PST-02). The same for every shop. |
+| GET | `/api/v1/product-defaults` | session/secret, `products:read` | What a new product starts with in this shop, from its business type ("Other" when none is chosen). |
+| PUT | `/api/v1/business-type` | session/secret, `settings:manage` | `{ businessType }`: a preset key, or null. Existing products keep their settings (PST-03). |
 | GET | `/api/v1/locations` | public key | The canonical zilla/thana list (CUS-08) — same response for every tenant. |
 | GET | `/api/v1/locations/:locationId/courier-areas` | public key or session | A courier's areas inside one thana (CUS-10, CUS-13): the shop's default courier, or `?courierKey=` for staff choosing an area before booking. An empty list for a courier that books by address text. |
 

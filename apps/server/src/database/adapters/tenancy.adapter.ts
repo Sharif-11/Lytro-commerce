@@ -228,6 +228,10 @@ export class DrizzleTenantStore implements TenantStore {
   ): Promise<void> {
     return this.tenants.updateContactDetails(tx, tenantId, values);
   }
+
+  setBusinessType(tx: Transaction, tenantId: string, businessType: string | null): Promise<void> {
+    return this.tenants.setBusinessType(tx, tenantId, businessType);
+  }
 }
 
 /** Shop summaries for the dashboard (AUTH-22, AUTH-23), plus the operator's own search (LIF-24). */

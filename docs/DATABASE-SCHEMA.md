@@ -452,6 +452,11 @@ noted; same-tenant references use composite `(tenant_id, id)` keys, the pattern 
 
 #### Catalogue
 
+**Built in Phase 3 Slice 1 (migration 0051, 2026-10-19)**, with the decisions noted inline below. Columns a
+later slice needs arrive with it: `image_id`, `video_id` and `tenant.product_images` (Slice 6), `avg_cost`,
+`pack_amount`, `is_stock_holder` and `shared_stock` (Slice 2), `kind` (Phase 4, CMB), `item_condition` (Slice 9),
+`categories.behaves_like` (PST-06) and the option swatches (ATR-18).
+
 ```sql
 CREATE TABLE tenant.catalogue_state (
     tenant_id       uuid PRIMARY KEY,
@@ -472,12 +477,13 @@ CREATE TABLE tenant.categories (
                                                   -- ancestor's, and with none the shop's own type
     sort_order      integer NOT NULL DEFAULT 0,
     visible         boolean NOT NULL DEFAULT true,
-    deleted_at      timestamptz,
     UNIQUE (tenant_id, slug),
     UNIQUE (tenant_id, id),
     FOREIGN KEY (tenant_id, parent_id) REFERENCES tenant.categories(tenant_id, id)
 );
 -- "Uncategorized" (PRD-03) is a virtual bucket: products with no category, not a row.
+-- Decided in Slice 1: a category is deleted outright, not archived. Deleting one with sub-categories or products
+-- is refused with their count, unless the products are moved to Uncategorized first.
 
 CREATE TYPE tenant.delivery_mode   AS ENUM ('default', 'adjustable');
 CREATE TYPE tenant.stock_unit      AS ENUM ('piece', 'kg', 'g', 'liter', 'ml', 'dozen', 'pack', 'box'); -- UOM-01
@@ -527,11 +533,10 @@ CREATE TABLE tenant.products (
 CREATE INDEX ON tenant.products (tenant_id, primary_category_id, sort_order) WHERE deleted_at IS NULL;
 -- CCH-12 / DAT-13: full-text and trigram search indexes on name/description.
 
-CREATE TABLE tenant.product_categories (            -- PRD-15
+CREATE TABLE tenant.product_categories (            -- PRD-15; the primary one is products.primary_category_id
     tenant_id       uuid NOT NULL,
     product_id      uuid NOT NULL,
     category_id     uuid NOT NULL,
-    is_primary      boolean NOT NULL DEFAULT false,
     PRIMARY KEY (tenant_id, product_id, category_id),
     FOREIGN KEY (tenant_id, product_id)  REFERENCES tenant.products(tenant_id, id),
     FOREIGN KEY (tenant_id, category_id) REFERENCES tenant.categories(tenant_id, id)
@@ -600,15 +605,24 @@ CREATE UNIQUE INDEX ON tenant.attributes (lower(name)) WHERE tenant_id IS NULL;
 CREATE TABLE tenant.attribute_options (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     attribute_id    uuid NOT NULL REFERENCES tenant.attributes(id),
-    tenant_id       uuid,                         -- mirrors the attribute's scope (same RLS rule)
+    tenant_id       uuid,                         -- its own scope: NULL = platform value, else one shop's (same RLS rule)
     value           varchar(80) NOT NULL,
     swatch_color    char(7) CHECK (swatch_color ~ '^#[0-9A-Fa-f]{6}$'),  -- ATR-18, optional
     swatch_image_id uuid,                         -- ATR-18, optional; at most one of the two
     sort_order      integer NOT NULL DEFAULT 0,
     retired_at      timestamptz,
     CHECK (swatch_color IS NULL OR swatch_image_id IS NULL),
-    UNIQUE (attribute_id, lower(value))
+    UNIQUE (attribute_id, id)                     -- lets a value row prove its option belongs to its attribute
 );
+CREATE UNIQUE INDEX ON tenant.attribute_options (attribute_id, lower(value)) WHERE tenant_id IS NULL;
+CREATE UNIQUE INDEX ON tenant.attribute_options (tenant_id, attribute_id, lower(value)) WHERE tenant_id IS NOT NULL;
+-- Decided in Slice 1: an option carries its own scope, so a shop adds its own values ("Ruby 05") to a platform
+-- attribute ("Shade") and two shops may each hold the same value. Only enum-single, enum-multi and
+-- number-with-unit attributes hold options; a number-with-unit option is a number in its unit kind's base unit
+-- (grams, millilitres, a count), so it sorts and compares as one (UOM-02).
+-- Foreign keys are checked past row-level security, so triggers refuse any attribute or option reference (here,
+-- product_attributes, category_attributes and both value tables) that is neither the platform's nor the row's
+-- own shop's (SEC-02).
 
 CREATE TABLE tenant.product_attributes (            -- ATL-02, ATL-03
     tenant_id       uuid NOT NULL,
@@ -619,9 +633,11 @@ CREATE TABLE tenant.product_attributes (            -- ATL-02, ATL-03
     PRIMARY KEY (tenant_id, product_id, attribute_id),
     FOREIGN KEY (tenant_id, product_id) REFERENCES tenant.products(tenant_id, id)
 );
--- Triggers: refuse role = 'variant_defining' for an enum_multi attribute (ATR-01/ATL-02); refuse a 4th
--- variant_defining row per product (ATR-14/ATL-03). Role changes after the product has orders are refused
--- in the application (ATR-15), since that needs tenant.order_lines.
+-- Triggers: refuse role = 'variant_defining' for an enum_multi attribute (ATR-01/ATL-02), and for any attribute
+-- without options (text, boolean): only enum-single and number-with-unit attributes define variants. Refuse a
+-- 4th variant_defining row per product (ATR-14/ATL-03), and a role change away from variant_defining while
+-- variants still name it. Role changes after the product has orders are refused in the application (ATR-15),
+-- since that needs tenant.order_lines. An attribute's type never changes once made.
 
 CREATE TABLE tenant.product_attribute_values (      -- informational values, product level
     tenant_id       uuid NOT NULL,
@@ -638,13 +654,21 @@ CREATE TABLE tenant.product_attribute_values (      -- informational values, pro
 
 CREATE TABLE tenant.variant_attribute_values (      -- ATL-04: what makes each variant distinct
     tenant_id       uuid NOT NULL,
+    product_id      uuid NOT NULL,
     variant_id      uuid NOT NULL,
-    attribute_id    uuid NOT NULL REFERENCES tenant.attributes(id),
-    option_id       uuid NOT NULL REFERENCES tenant.attribute_options(id),
+    attribute_id    uuid NOT NULL,
+    option_id       uuid NOT NULL,
     PRIMARY KEY (tenant_id, variant_id, attribute_id),
-    FOREIGN KEY (tenant_id, variant_id) REFERENCES tenant.product_variants(tenant_id, id)
+    FOREIGN KEY (tenant_id, product_id, variant_id)
+        REFERENCES tenant.product_variants(tenant_id, product_id, id) ON DELETE CASCADE,
+    FOREIGN KEY (tenant_id, product_id, attribute_id)
+        REFERENCES tenant.product_attributes(tenant_id, product_id, attribute_id),
+    FOREIGN KEY (attribute_id, option_id) REFERENCES tenant.attribute_options(attribute_id, id)
 );
--- product_variants.combination_key is rebuilt from these rows in the same transaction.
+-- product_variants.combination_key is built from these rows, in the same transaction, as the sorted
+-- "attributeId=optionId" pairs joined by "&". Keyed to the product's own attribute row (decided in Slice 1), so an
+-- attribute still naming live variants cannot be removed from the product; a trigger checks it is variant-defining.
+-- A retired variant keeps no rows here, only its combination_key, which brings the same variant back.
 
 CREATE TABLE tenant.category_attributes (           -- ATL-05 / ATR-02: suggestions only
     tenant_id       uuid NOT NULL,

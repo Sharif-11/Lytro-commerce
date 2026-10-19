@@ -7,7 +7,7 @@ import reactRefresh from 'eslint-plugin-react-refresh';
 // Module boundaries (ENGINEERING-STANDARDS §1, PHASE-1-PLAN "packages and layers"). Each rule names the
 // structure it protects, so a violation explains itself.
 const otherModuleRepositories = (own) =>
-  ['identity', 'tenancy', 'staff', 'messaging']
+  ['identity', 'tenancy', 'staff', 'messaging', 'catalogue']
     .filter((module) => module !== own)
     .flatMap((module) => [`**/repositories/${module}/**`, `../${module}/**`]);
 
@@ -84,6 +84,22 @@ export default tseslint.config(
           patterns: [
             {
               group: otherModuleRepositories('staff'),
+              message: "Use the other module's service, not its repository (ENGINEERING §1).",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['packages/db/src/repositories/catalogue/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: otherModuleRepositories('catalogue'),
               message: "Use the other module's service, not its repository (ENGINEERING §1).",
             },
           ],
