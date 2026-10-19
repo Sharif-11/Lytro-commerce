@@ -54,8 +54,5 @@ jobs:
       - name: Build all apps
         run: pnpm build
 
-      - name: Install Playwright Chromium
-        run: npx --prefix apps/admin playwright install --with-deps chromium
-
-      - name: Admin E2E
-        run: pnpm test:e2e
+      # The browser E2E suite returns with apps/dashboard's own Playwright tests; apps/admin's suite left
+      # with that app (docs/PHASE-3-PLAN.md D3-12).

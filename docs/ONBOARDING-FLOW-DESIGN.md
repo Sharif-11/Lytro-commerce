@@ -121,7 +121,7 @@ Home switches to a working state: the three figures, the order list preview with
 ---
 
 ## 4. Copy rules on these screens
-Bangla first, English by toggle (I18N-01); the dashboard's existing vernacular (`apps/admin/src/i18n/locales/bn.json`: লাইট্রোতে স্বাগতম, এগিয়ে যান, ভেরিফাই করুন, স্টাফ? এখানে লগইন করুন); one sentence per message; never blame the seller; the AUTH-30 refusal, the AUTH-27 recovery note and the AUTH-21 free-SMS line are the three places where a second sentence explains what to do.
+Bangla first, English by toggle (I18N-01); the dashboard's existing vernacular (`apps/dashboard/src/i18n/locales/bn.json`: লাইট্রোতে স্বাগতম, এগিয়ে যান, ভেরিফাই করুন, স্টাফ? এখানে লগইন করুন); one sentence per message; never blame the seller; the AUTH-30 refusal, the AUTH-27 recovery note and the AUTH-21 free-SMS line are the three places where a second sentence explains what to do.
 
 ---
 
@@ -131,26 +131,28 @@ Every screen is written phone-first: the base styles target a 360 px viewport, a
 
 ---
 
-## 5. Mapping onto `apps/dashboard` (today `apps/admin`)
+## 5. Mapping onto `apps/dashboard`
 
-| Screen | Route | Exists today | Change |
+Built 2026-10-19 as a fresh Vite + React app (the old `apps/admin`, which also carried the operator console, was removed; `apps/operator` is still to be built, D3-12). Every screen lives under `src/views/`, one folder each; routes under `src/routes/` are thin; the API layer is `src/api/` (TanStack Query hooks over one `ApiClient`); copy is `src/i18n/locales/{bn,en}.json`.
+
+| Screen | Route | Built as | Notes |
 | --- | --- | --- | --- |
-| Sign-in | `/sign-in` | yes (`views/sign-in`) | keep `?shop=`, `?plan=`, `?term=` through every path; terms line; staff link; claimed-address and plan chips |
-| Code | `/verify-code` | yes | OTP boxes, tries-left message, free-SMS line for existing shops |
-| OAuth return | `/auth/oauth/:provider/callback` | yes | route on `next` as sign-in does; keep the query context |
-| Create shop | `/create-shop` | yes (`views/create-shop`) | live availability with suggestion chips, two-address preview, AUTH-30 refusal state |
-| Checkout | `/checkout` | no | new; uses `billing/quote` and `billing/purchase`; "continue without paying" |
-| Set password | `/set-password` | yes | optional variant with Skip; recovery note for provider accounts |
-| Set up | `/set-up` | no | new; PST-01 chips and the DLV-01 home-area picker with zone preview |
-| Shop picker | `/shops` | no | new; only when the session belongs to several shops |
-| Dashboard home | `/$shop/` | yes (`views/dashboard`, placeholder) | trial banner, checklist, shop link card, today card, empty states |
-| Staff sign-in | `/staff-sign-in` | yes (`staff-sign-in.tsx`, on the shop host) | move to the app host; must-set-password gate |
-| Renewal | `/$shop/renew` | partly (`billing.tsx`) | the lifecycle exits above |
-| Unavailable | `/unavailable` | yes | keep; add the balance and top-up carve-out |
-
-Routes move under `/$shop` in Slice 0; the screens above are Slice 0 and Slice 11 work per `PHASE-3-PLAN.md`.
-
----
+| Sign-in | `/sign-in` | `views/sign-in` | `?shop=`, `?planId=`, `?termId=` captured once into `session/sign-up-intent.ts` and kept through every identity path; terms line; staff link; held-address and picked-plan chips; the AUTH-21 free-SMS line under the code form. |
+| Code | `/verify-code` | `views/verify-code` | Six boxes (`components/ui/otp-input.tsx`), five-minute validity, resend after the server's window, the server's own wrong-code message, "use a password instead". |
+| OAuth return | `/auth/oauth/:provider/callback` | `views/oauth-callback` | Routes on `next` like sign-in; the AUTH-27 `facebook-only` note is kept for the password step. |
+| Create shop | `/create-shop` | `views/create-shop`, `lib/slug.ts` | Link pre-filled from the claimed address or the name's Latin letters; format and reserved names checked as typed, availability by the server at submit (no live-check endpoint yet); a taken link shows the server's field error and a `name-2` chip; both addresses previewed; the AUTH-30 refusal keeps everything typed. |
+| Checkout | `/checkout` | `views/checkout` (+ `plan-picker.tsx`, `payment-form.tsx`), `lib/pricing-table.ts` | `billing/quote` on every choice, `billing/purchase` with a wallet transaction (the Phase 2 stand-in for the hosted page), the no-refund line, "continue without paying". Opens only when a plan was picked. |
+| Set password | `/set-password` | `views/set-password` | Optional with Skip, or required (`?required=true`) after a reset; live rules; the Facebook-only recovery note. |
+| Set up | `/set-up` | `views/set-up`, `session/shop-setup-store.ts` | PST-01 chips and the DLV-01 home-area chips with the two-zone preview. The answers are held per device until the Phase 3 endpoints exist; that store is the seam they replace. |
+| Shop landing | `/shops` | `views/shops` | Reads /me and opens the person's shop, or create-shop without one. The multi-shop picker waits for a memberships field on /me. |
+| Dashboard home | `/$shop/` | `views/dashboard-home` | Trial banner (in the shell), checklist with only live items, shop link card (Copy, Facebook, WhatsApp tick the share item), the empty Today card, the payment-being-checked note. |
+| Shell | `/$shop` layout | `components/layout/shop-shell.tsx` | The one session guard; slug checked against /me with the same not-found for a stranger's shop; sidebar from 1024 px, five bottom tabs below; lifecycle banner; locked, archived, suspended and `tenant_offline` exits. |
+| Sections | `/$shop/orders`, `products`, `customers`, `balance` | `views/sections/section-empty.tsx` | Honest first-run states until each module ships. |
+| More | `/$shop/more` | `views/more` | Plans, support, language, sign out, Powered by Lytro. No "create another shop" (TEN-15). |
+| Plans and renewal | `/$shop/plans` | `views/plans` | TRL-08's plan page and the lifecycle renewal screen, with pay-as-you-go as the no-payment choice for a lapsed shop. |
+| Staff sign-in | `/staff-sign-in`, `/staff-set-password` | `views/staff-sign-in`, `views/staff-set-password` | On the app host; the must-set-password gate. |
+| Forgot password | `/forgot-password`, `/forgot-password/verify` | `views/forgot-password` | Opens a must-set-password session. |
+| Unavailable | `/unavailable` | `views/unavailable` | LIF-24 wording with the support button; the balance carve-out links to the balance section. |
 
 ## 6. Open items
 - The hosted payment page in the checkout is Phase 5; until then the checkout's wallet step is the Phase 2 operator-confirmed stand-in (AUTH-29 partial).

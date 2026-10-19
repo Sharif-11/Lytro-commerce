@@ -24,7 +24,7 @@ One deployable NestJS application (SCL-09), not a services-per-module split — 
 - **Interface segregation.** Don't give every adapter a fat interface with methods most implementations don't need. A courier without a public API (CRR-16, manual tracking-link only) shouldn't be forced to implement `book()` — split the interface (e.g., `TrackableCourier` vs. `BookableCourier`) so a manual courier only implements what it actually does.
 - **Dependency inversion.** Services depend on interfaces (a repository interface, an adapter interface), injected by NestJS's container — never on a concrete Postgres client or a specific HTTP library directly. This is what makes unit-testing a pricing calculation possible without a database at all: inject a fake repository that returns fixed data.
 
-## 2a. SOLID, applied to the frontend (`apps/admin`) — added 2026-10-10, while planning the dashboard shell
+## 2a. SOLID, applied to the frontend (`apps/dashboard`) — added 2026-10-10, while planning the dashboard shell
 
 §2's principles translate directly; the vocabulary changes (classes → components and hooks), the reasoning doesn't:
 
@@ -34,7 +34,7 @@ One deployable NestJS application (SCL-09), not a services-per-module split — 
 - **Interface segregation.** `Sidebar` and `BottomNav` each take only the props their own layout needs. They are deliberately *not* unified into one polymorphic `NavBar` with a `variant` prop — their actual markup (a fixed dark sidebar with icon-and-label rows vs. a horizontal icon-over-label tab bar) differs enough that a shared component would just relocate the branching inside itself instead of removing it. See §4's DRY boundary below — this is that line, applied here.
 - **Dependency inversion.** Views depend on hooks (`useMe()`, `useStaffList()`), never on `ApiClient` or `fetch` directly — the frontend's version of "services depend on ports, injected." The `api/<domain>/` layer (§6a of `CODING-CONVENTIONS.md`) is that abstraction boundary; `ApiClient` itself is the one concrete thing every hook is built on, the same way every backend adapter sits on one database client.
 
-## 3a. Frontend design patterns (mirrors §3's table, same idea applied to `apps/admin`)
+## 3a. Frontend design patterns (mirrors §3's table, same idea applied to `apps/dashboard`)
 
 | Pattern | Where | Why here specifically |
 | --- | --- | --- |
@@ -63,7 +63,7 @@ One deployable NestJS application (SCL-09), not a services-per-module split — 
 - **One validation path.** The same DTO/validation class is used whether a request comes from the dashboard, a secret key, or a public key (API-18's "the same action through the API and the dashboard produce the same metering and charges" already demands this outcome; sharing the validation code is how it's guaranteed rather than hoped for).
 - **One limit-check.** Every plan-limit check reads the tenant's snapshot and overrides through one shared guard (RTE-10, already decided), never a hard-coded number re-typed per feature.
 - **The line to not cross.** DRY stops being a virtue when it forces two genuinely different concerns to share code just because they look similar today — e.g., the canonical zilla/thana list (CUS-08) and a courier's own zone list are superficially similar (both "location data") but are kept as two separate tables (CUS-08 vs. CUS-10) on purpose, because they change independently and for different reasons. Shared structure, not shared meaning, is not a reason to merge two concepts.
-- **The same two rules hold in `apps/admin`.** One shared decision, every caller: the session-guard check lives in exactly one layout route (`routes/dashboard/route.tsx`), not copy-pasted `beforeLoad` checks per screen; nav destinations live in one array (`nav-items.ts`), read by every component that renders a nav. And the same line not to cross: `Sidebar` and `BottomNav` share that one data source but stay two separate components rather than one forced into a `variant` prop (§2a) — their markup is a different concern from "which routes exist," even though both happen to be "navigation." The operator console's own equivalents (`operator-nav-items.ts`, `OperatorSidebar`, `OperatorShell`) are a second, separate instance of this same pair, not a shared one — `apps/admin/src/components/layout/`'s own note on why is in that file.
+- **The same two rules hold in `apps/dashboard`.** One shared decision, every caller: the session-guard check lives in exactly one layout route (`routes/$shop/route.tsx`), not copy-pasted `beforeLoad` checks per screen; nav destinations live in one array (`nav-items.ts`), read by every component that renders a nav. And the same line not to cross: `Sidebar` and `BottomNav` share that one data source but stay two separate components rather than one forced into a `variant` prop (§2a) — their markup is a different concern from "which routes exist," even though both happen to be "navigation." The operator console's own equivalents (`operator-nav-items.ts`, `OperatorSidebar`, `OperatorShell`) are a second, separate instance of this same pair, not a shared one — `apps/admin/src/components/layout/`'s own note on why is in that file.
 
 ## 5. Database query practices
 

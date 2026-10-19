@@ -2,8 +2,8 @@
 # restate its reasoning — read DEPLOYMENT.md first if a rule here looks surprising, it probably explains why.
 #
 # Status: not yet deployed anywhere (DEPLOYMENT.md's own status line: "planned, not yet built — no server
-# exists to point DNS at"). Written and validated (`caddy validate`, see this file's own PR) against that
-# plan so the actual VPS setup is "point DNS here and run this," not a rewrite.
+# exists to point DNS at"). Written and validated (`caddy validate`) against that plan so the actual VPS
+# setup is "point DNS here and run this," not a rewrite.
 #
 # Service names below (server, website, storefront) match DEPLOYMENT.md §2's topology diagram — a production
 # docker-compose (or equivalent) is expected to name its containers the same way; override via the {$...}
@@ -18,13 +18,13 @@
 	email {$ACME_EMAIL}
 }
 
-# --- Shared pieces (DEPLOYMENT.md §5, §6), imported into every site block below instead of repeated ---
+# --- Shared pieces (DEPLOYMENT.md §5, §6) ---
 
-# /api/* -> reverse-proxy to the backend unchanged, with the edge secret attached (§6). Checked first, on
-# every host: this is how the admin SPA (and anything else running client-side) reaches apps/server —
-# same-origin, relative fetches to /api/v1/..., on whichever host the SPA happens to be running on. No path
-# rewrite (API-14): the backend itself serves everything under /api/v1, the exact prefix the SPA already
-# calls, so `handle` (not `handle_path`) passes the request through with nothing stripped.
+# /api/* -> reverse-proxy to the backend unchanged, with the edge secret attached (§6). Only the two app
+# hosts import this: the marketing site and the storefront call the backend server-side instead (§5), so a
+# browser on lytro.app or a shop's subdomain never reaches /api at all. No path rewrite (API-14): the backend
+# itself serves everything under /api/v1, the exact prefix the SPA calls, so `handle` (not `handle_path`)
+# passes the request through with nothing stripped.
 (api_proxy) {
 	handle /api/* {
 		reverse_proxy {$SERVER_UPSTREAM:server:3000} {
@@ -33,58 +33,61 @@
 	}
 }
 
-# apps/admin's static build: no process, Caddy serves dist/ directly (§8), falling back to index.html for
-# any unmatched path so the client-side router takes over. Plain directives, not wrapped in its own `handle`,
-# so this can be imported either as a handle block's body (lytro.app, *.lytro.app — only some paths go here)
-# or directly into a site block (admin.lytro.app — the whole host does).
-(admin_spa) {
-	root * {$ADMIN_DIST_PATH:/srv/admin/dist}
+# A static SPA build: no process, Caddy serves dist/ directly (§8), falling back to index.html for any
+# unmatched path so the client-side router takes over.
+(dashboard_spa) {
+	root * {$DASHBOARD_DIST_PATH:/srv/dashboard/dist}
 	try_files {path} /index.html
 	file_server
 }
 
-# lytro.app, www.lytro.app: marketing (apps/website) + tenant sign-up/sign-in/dashboard (apps/admin), split
-# by path (§4, §5).
-lytro.app, www.lytro.app {
-	import api_proxy
-
-	# Exactly the path list in DEPLOYMENT.md §5's "Correction, 2026-10-09" — kept in sync with that doc, not
-	# re-derived from the route tree, since Caddy has no way to introspect apps/admin's TanStack Router config.
-	@admin_paths path /sign-up* /sign-in* /verify-code* /forgot-password* /auth/oauth/*/callback /create-shop* /set-password* /unavailable* /dashboard*
-	handle @admin_paths {
-		import admin_spa
-	}
-
-	handle {
-		reverse_proxy {$WEBSITE_UPSTREAM:website:3003}
-	}
+(operator_spa) {
+	root * {$OPERATOR_DIST_PATH:/srv/operator/dist}
+	try_files {path} /index.html
+	file_server
 }
 
-# admin.lytro.app: the operator console — same apps/admin build as every other host, showing its operator
-# route tree instead of the tenant one purely because of which host it's running on
-# (window.location.hostname in host.ts), not a different build. Everything but /api/* is the SPA.
+# lytro.app: the marketing site only (apps/website). www redirects to the apex.
+www.lytro.app {
+	redir https://lytro.app{uri} permanent
+}
+
+lytro.app {
+	reverse_proxy {$WEBSITE_UPSTREAM:website:3003}
+}
+
+# app.lytro.app: sign-up, sign-in, create-shop, the OAuth callback and every shop's dashboard at /<slug>
+# (apps/dashboard, TEN-31). The session cookie is host-only here (TEN-29).
+app.lytro.app {
+	import api_proxy
+	import dashboard_spa
+}
+
+# admin.lytro.app: the operator console (apps/operator, its own build, D3-12). Until that app ships this
+# host has nothing to serve; the block stays so DNS and TLS are ready for it.
 admin.lytro.app {
 	import api_proxy
-	import admin_spa
+	import operator_spa
 }
 
-# *.lytro.app (any other single-label host — a shop's own subdomain): apps/storefront (public) + apps/admin
-# (staff dashboard), split by path. Covers every tenant automatically; no per-shop DNS entry or Caddy config
-# change is ever needed for a plain *.lytro.app shop (custom domains are a separate, deferred mechanism —
-# see the commented block at the end of this file).
+# api.lytro.app: the public API, keys only (API-14). /v1/* is proxied as /api/v1/* with the edge secret.
+api.lytro.app {
+	handle_path /v1/* {
+		rewrite * /api/v1{uri}
+		reverse_proxy {$SERVER_UPSTREAM:server:3000} {
+			header_up x-lytronix-edge-secret {$TRUSTED_EDGE_SECRET}
+		}
+	}
+	respond 404
+}
+
+# *.lytro.app (any other single-label host — a shop's own subdomain): the storefront and landing pages only
+# (apps/storefront). No dashboard and no /api on a shop host (§5). Covers every tenant automatically; `app`,
+# `admin`, `api`, `pay` and `www` are reserved labels (TEN-26), so no shop can take them.
 *.lytro.app {
-	import api_proxy
-
-	@admin_paths path /sign-in* /dashboard*
-	handle @admin_paths {
-		import admin_spa
-	}
-
-	handle {
-		# storefront reads Host itself to resolve which tenant to render (SFT-01) — Caddy passes Host through
-		# unmodified by default, no explicit header handling needed here.
-		reverse_proxy {$STOREFRONT_UPSTREAM:storefront:3001}
-	}
+	# storefront reads Host itself to resolve which tenant to render (SFT-01) — Caddy passes Host through
+	# unmodified by default, no explicit header handling needed here.
+	reverse_proxy {$STOREFRONT_UPSTREAM:storefront:3001}
 }
 
 # --- Custom domains (TEN-09, TEN-11, TEN-13, TEN-24) — deliberately not enabled yet ---
