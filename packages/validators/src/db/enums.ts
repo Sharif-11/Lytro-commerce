@@ -117,6 +117,10 @@ export enum Permission {
   CustomersManage = 'customers:manage',
   FraudRead = 'fraud:read',
   FraudManage = 'fraud:manage',
+  // INV-20: viewing stock, and changing it (edits, stock checks, write-offs, purchasing). Cost, stock value and
+  // profit need manage (D3-9).
+  InventoryRead = 'inventory:read',
+  InventoryManage = 'inventory:manage',
   KeysManage = 'keys:manage',
   ListenerRead = 'listener:read',
   ListenerManage = 'listener:manage',
@@ -236,6 +240,9 @@ export enum AuditAction {
   // ATR-16: a shop's own option sets.
   OptionSetCreated = 'option_set_created',
   OptionSetDeleted = 'option_set_deleted',
+  // Phase 3 Slice 2a: manual stock changes and write-offs (INV-21), and a hand-entered average cost (INV-10).
+  StockAdjusted = 'stock_adjusted',
+  VariantCostSet = 'variant_cost_set',
 }
 
 // AUD-07: these action kinds (payment, wallet, credential, plan, balance) are kept 24 months regardless of
@@ -460,6 +467,36 @@ export enum StockState {
   In = 'in',
   Low = 'low',
   Out = 'out',
+}
+
+// UOM-03: the units stock may be held in fractions of (up to three decimals); every other unit is whole numbers.
+export const MEASURED_STOCK_UNITS: readonly StockUnit[] = [
+  StockUnit.Kg,
+  StockUnit.G,
+  StockUnit.Liter,
+  StockUnit.Ml,
+];
+
+// INV-04: why on-hand stock changed. Every stock movement carries one.
+export enum StockReason {
+  Initial = 'initial',
+  PurchaseReceipt = 'purchase_receipt',
+  Sale = 'sale',
+  ReturnReceived = 'return_received',
+  Damaged = 'damaged',
+  Lost = 'lost',
+  Expired = 'expired',
+  Recount = 'recount',
+  ManualAdjustment = 'manual_adjustment',
+}
+
+// INV-06: the one-tap reasons offered when a tenant types a new stock number. "New stock arrived" records a manual
+// adjustment until purchasing (Slice 4) makes it a received purchase; skipping the tap is "other".
+export enum StockEditReason {
+  NewStock = 'new_stock',
+  CountedAgain = 'counted_again',
+  DamagedOrLost = 'damaged_or_lost',
+  Other = 'other',
 }
 
 // PRD-16: how a product's delivery charge is worked out. Adjustable needs a weight.

@@ -86,6 +86,12 @@ const attributeValueInput = z.object({
 
 const variantAttributesField = z.array(variantAttributeInput).max(MAX_VARIANT_ATTRIBUTES);
 const variantsField = z.array(variantInput).max(MAX_VARIANTS_PER_PRODUCT);
+
+// A new product's variant may arrive with the stock already on the shelf, recorded as its opening stock (INV-03,
+// `initial`). Whether the product's unit allows a fraction is checked by the server (UOM-03).
+const newVariantsField = z
+  .array(variantInput.extend({ openingStock: quantityField.optional() }))
+  .max(MAX_VARIANTS_PER_PRODUCT);
 const attributesField = z.array(attributeValueInput).max(ATTRIBUTES_PER_PRODUCT_MAX);
 
 type Ctx = z.RefinementCtx;
@@ -205,7 +211,7 @@ export const createProductSchema = z
   .object({
     ...productFields,
     variantAttributes: variantAttributesField.optional(),
-    variants: variantsField.optional(),
+    variants: newVariantsField.optional(),
     attributes: attributesField.optional(),
   })
   .superRefine((value, ctx) => {

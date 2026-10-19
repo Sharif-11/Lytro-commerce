@@ -624,6 +624,26 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'This zone covers your home area. Change the home area instead.',
     bn: 'এই জোনটি আপনার হোম এরিয়া। এর বদলে হোম এরিয়া বদলান।',
   },
+  MadeToOrderHasNoStock: {
+    en: 'A made-to-order product has no stock. Turn on stock tracking to enter it.',
+    bn: 'মেড টু অর্ডার প্রোডাক্টের স্টক থাকে না। স্টক দিতে স্টক ট্র্যাকিং চালু করুন।',
+  },
+  WholeUnitsOnly: {
+    en: 'This product is counted in whole units. Enter a whole number.',
+    bn: 'এই প্রোডাক্ট পুরো সংখ্যায় গোনা হয়। একটি পূর্ণ সংখ্যা দিন।',
+  },
+  NotEnoughStock: {
+    en: 'There is not enough stock for this change.',
+    bn: 'এই পরিবর্তনের জন্য যথেষ্ট স্টক নেই।',
+  },
+  StockReasonDoesNotFit: {
+    en: 'This reason does not fit the change. Choose another.',
+    bn: 'এই কারণটি পরিবর্তনের সাথে মেলে না। অন্য একটি বেছে নিন।',
+  },
+  CostFromPurchases: {
+    en: 'This cost now comes from your purchases, so it cannot be typed in.',
+    bn: 'এই খরচ এখন আপনার কেনাকাটা থেকে হিসাব হয়, তাই হাতে লেখা যায় না।',
+  },
   FallbackZoneHasNoAreas: {
     en: 'This zone covers every area no other zone has, so it has no areas of its own.',
     bn: 'অন্য কোনো জোনে না থাকা সব এলাকা এই জোনে পড়ে, তাই এর আলাদা এলাকা নেই।',
@@ -779,6 +799,22 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   ProductDeliveryZonesSaved: {
     en: 'Delivery zones saved for this product.',
     bn: 'এই প্রোডাক্টের ডেলিভারি জোন সেভ হয়েছে।',
+  },
+  StockRetrieved: {
+    en: 'Stock retrieved.',
+    bn: 'স্টক পাওয়া গেছে।',
+  },
+  StockSaved: {
+    en: 'Stock saved.',
+    bn: 'স্টক সেভ হয়েছে।',
+  },
+  VariantCostSaved: {
+    en: 'Cost saved.',
+    bn: 'কেনা দাম সেভ হয়েছে।',
+  },
+  StockHistoryRetrieved: {
+    en: 'Stock history retrieved.',
+    bn: 'স্টকের হিস্টরি পাওয়া গেছে।',
   },
 };
 

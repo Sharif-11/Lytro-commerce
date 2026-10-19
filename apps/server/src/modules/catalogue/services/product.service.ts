@@ -8,6 +8,7 @@ import {
   DeliveryMode,
   FieldProblemCode,
   MAX_VARIANTS_PER_PRODUCT,
+  MEASURED_STOCK_UNITS,
   PRODUCT_NAME_MAX_LENGTH,
   ServerFieldProblemCode,
   StockState,
@@ -23,6 +24,7 @@ import {
 } from '@lytronix/validators';
 import { ApiError, FieldsError, type InvalidField } from '../../../common/api-error';
 import { MissingReference } from '../../../common/errors/missing-reference';
+import { StockRefused } from '../../../common/errors/stock-refused';
 import { UniqueViolation } from '../../../common/errors/unique-violation';
 import { PayAsYouGoBillingService } from '../../balance/services/payg-billing.service';
 import type {
@@ -30,6 +32,7 @@ import type {
   CatalogueTransactions,
   CategoryStore,
   ProductChange,
+  ProductStockHooks,
   ProductStore,
   SizeChartStore,
   VariantChange,
@@ -182,6 +185,7 @@ export class ProductService {
     shop: CatalogueShop,
     input: CreateProductInput,
     actor: CatalogueActor,
+    stock?: ProductStockHooks,
   ): Promise<ProductDetail> {
     const who = await this.activity.resolve(shop.id, actor);
     return this.transactions.run(async (tx) => {
@@ -212,12 +216,15 @@ export class ProductService {
         new Set(matrix.attributes.map((entry) => entry.attribute.id)),
       );
 
+      const fields = this.newProductFields(input, defaults);
+      this.checkOpeningStock(input, fields);
+
       const base = slugOf(input.name, 'product');
       const slug = nextFreeSlug(base, await this.products.slugsLike(tx, shop.id, base));
       const product = await this.products.insertProduct(tx, {
         tenantId: shop.id,
         slug,
-        ...this.newProductFields(input, defaults),
+        ...fields,
         primaryCategoryId,
       });
       await this.products.replaceCategoryLinks(tx, shop.id, product.id, categoryIds);
@@ -225,6 +232,11 @@ export class ProductService {
       await this.writeDescriptions(tx, shop.id, product.id, described, matrix.attributes.length);
       await this.writeVariants(tx, shop.id, product.id, matrix.planned, [], input.variants);
       await this.products.refreshPriceRange(tx, shop.id, product.id);
+      const opening = await this.openingLines(tx, shop.id, product.id, matrix.planned);
+      if (opening.length > 0) {
+        if (!stock) throw new Error('opening stock is recorded through the inventory hooks');
+        await stock.recordOpeningStock(tx, shop.id, product.id, opening, who);
+      }
 
       // PYG-16: once, at creation, whatever the number of variants; part of this transaction, so a creation that
       // fails takes its charge with it.
@@ -235,6 +247,7 @@ export class ProductService {
         name: product.name,
         price: product.basePrice,
         variants: matrix.planned.length,
+        ...(opening.length > 0 ? { openingStock: opening.length } : {}),
       });
       await this.products.bumpVersion(tx, shop.id);
       return this.detail(tx, shop.id, product.id);
@@ -400,6 +413,7 @@ export class ProductService {
     productId: string,
     input: UpdateProductInput,
     actor: CatalogueActor,
+    stock?: ProductStockHooks,
   ): Promise<ProductDetail> {
     const who = await this.activity.resolve(shop.id, actor);
     return this.transactions.run(async (tx) => {
@@ -423,8 +437,33 @@ export class ProductService {
         change.primaryCategoryId = primary;
       }
 
-      const updated = await this.products.updateProduct(tx, shop.id, productId, change);
+      // INV-02: a product going made to order first writes off what it holds, so the ledger stays true.
+      const untracking =
+        change.stockTracking === StockTracking.NotTracked &&
+        current.stockTracking === StockTracking.Tracked;
+      if (untracking) {
+        if (!stock) throw new Error('a tracking change goes through the inventory hooks');
+        await stock.beforeUntracking(tx, shop.id, productId, who);
+      }
+      let updated: ProductRecord | null;
+      try {
+        updated = await this.products.updateProduct(tx, shop.id, productId, change);
+      } catch (error) {
+        if (error instanceof StockRefused) {
+          throw new FieldsError([
+            {
+              field: 'stockUnit',
+              problem: FieldProblemCode.NotAllowed,
+              messageKey: 'WholeUnitsOnly',
+            },
+          ]);
+        }
+        throw error;
+      }
       if (!updated) throw new ApiError('not_found', 'ProductNotFound', {});
+      if (change.stockTracking !== undefined || change.lowStockThreshold !== undefined) {
+        await stock?.refreshStockState(tx, shop.id, productId);
+      }
       const priceChanged = updated.basePrice !== current.basePrice;
       if (priceChanged) await this.products.refreshPriceRange(tx, shop.id, productId);
 
@@ -447,6 +486,7 @@ export class ProductService {
     productId: string,
     input: SaveVariantsInput,
     actor: CatalogueActor,
+    stock?: ProductStockHooks,
   ): Promise<ProductDetail> {
     const who = await this.activity.resolve(shop.id, actor);
     return this.transactions.run(async (tx) => {
@@ -485,6 +525,8 @@ export class ProductService {
 
       await this.writeVariants(tx, shop.id, productId, matrix.planned, existing, input.variants);
       await this.products.refreshPriceRange(tx, shop.id, productId);
+      // CCH-08: a retired variant no longer sells, whatever it still holds (its stock stays, visible to the shop).
+      await stock?.refreshStockState(tx, shop.id, productId);
       await this.record(tx, shop.id, who, AuditAction.ProductVariantsSaved, productId, {
         variants: matrix.planned.length,
         retired: retiring.length,
@@ -641,6 +683,54 @@ export class ProductService {
       }));
     if (problems.length > 0) throw new FieldsError(problems);
     return unique;
+  }
+
+  /**
+   * INV-02, UOM-03: opening stock is for a tracked product only, and in whole numbers unless its unit is measured
+   * (kg, g, liter, ml). The database refuses both too; this names the field.
+   */
+  private checkOpeningStock(
+    input: CreateProductInput,
+    fields: Pick<ProductChange, 'stockTracking' | 'stockUnit'>,
+  ): void {
+    const measured =
+      fields.stockUnit !== undefined && MEASURED_STOCK_UNITS.includes(fields.stockUnit);
+    const problems = (input.variants ?? []).flatMap((spec, index): InvalidField[] => {
+      const quantity = spec.openingStock ?? 0;
+      if (quantity === 0) return [];
+      const field = `variants.${String(index)}.openingStock`;
+      if (fields.stockTracking === StockTracking.NotTracked) {
+        return [
+          { field, problem: FieldProblemCode.NotAllowed, messageKey: 'MadeToOrderHasNoStock' },
+        ];
+      }
+      if (!measured && !Number.isInteger(quantity)) {
+        return [{ field, problem: FieldProblemCode.NotAllowed, messageKey: 'WholeUnitsOnly' }];
+      }
+      return [];
+    });
+    if (problems.length > 0) throw new FieldsError(problems);
+  }
+
+  /** INV-03: the opening stock each new variant was given, by the variant it became. */
+  private async openingLines(
+    tx: Transaction,
+    tenantId: string,
+    productId: string,
+    planned: PlannedVariant<VariantSpec>[],
+  ): Promise<{ variantId: string; quantity: string }[]> {
+    const stocked = planned.filter((plan) => (plan.spec?.openingStock ?? 0) > 0);
+    if (stocked.length === 0) return [];
+    const ids = new Map(
+      (await this.products.listVariants(tx, tenantId, productId, false)).map((row) => [
+        row.combinationKey,
+        row.id,
+      ]),
+    );
+    return stocked.flatMap((plan) => {
+      const variantId = ids.get(plan.key);
+      return variantId ? [{ variantId, quantity: String(plan.spec?.openingStock ?? 0) }] : [];
+    });
   }
 
   /** PST-02: a new product's settings, with the shop type's defaults for whatever the request leaves out. */

@@ -251,6 +251,13 @@ export const MESSAGE_KEYS = [
   'HomeZoneAreasAreHomeArea',
   'FallbackZoneHasNoAreas',
 
+  // Inventory (Phase 3 Slice 2a)
+  'MadeToOrderHasNoStock',
+  'WholeUnitsOnly',
+  'NotEnoughStock',
+  'StockReasonDoesNotFit',
+  'CostFromPurchases',
+
   // Success -- catalogue
   'PresetsListed',
   'ProductDefaultsRetrieved',
@@ -290,6 +297,10 @@ export const MESSAGE_KEYS = [
   'HomeAreaSaved',
   'DeliveryZoneResolved',
   'ProductDeliveryZonesSaved',
+  'StockRetrieved',
+  'StockSaved',
+  'VariantCostSaved',
+  'StockHistoryRetrieved',
 ] as const;
 
 export type MessageKey = (typeof MESSAGE_KEYS)[number];

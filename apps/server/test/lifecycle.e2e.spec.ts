@@ -416,8 +416,8 @@ describeIfDatabase('BIL-14: renewal reminders', () => {
 /**
  * LIF-19: one of everything Phase 3 stores for a shop, written as the admin so the test needs no session: a
  * category tree with a size chart and a suggested attribute, a product with a variant split by a platform attribute
- * on one of the shop's own values, a describing attribute of its own, an old slug, a size chart and a delivery
- * limit, an option set, the catalogue version, delivery zones with areas, and the settings row.
+ * on one of the shop's own values, a describing attribute of its own, an old slug, stock, a size chart and a
+ * delivery limit, an option set, the catalogue version, delivery zones with areas, and the settings row.
  */
 async function seedCatalogue(tenantId: string): Promise<void> {
   const one = async (sql: string, params: unknown[]): Promise<string> => {
@@ -486,6 +486,12 @@ async function seedCatalogue(tenantId: string): Promise<void> {
   await admin.query(
     "INSERT INTO tenant.product_slug_redirects (tenant_id, old_slug, product_id) VALUES ($1, 'old-shirt', $2)",
     [tenantId, product],
+  );
+  // Slice 2a: stock, which makes a level and a movement the ledger otherwise never lets go of.
+  await admin.query(
+    `INSERT INTO tenant.stock_movements (tenant_id, product_id, variant_id, quantity_delta, reason)
+     VALUES ($1, $2, $3, 5, 'initial')`,
+    [tenantId, product, variant],
   );
   await admin.query(
     `INSERT INTO tenant.size_charts (tenant_id, product_id, table_rows) VALUES ($1, $2, '[["40"]]')`,

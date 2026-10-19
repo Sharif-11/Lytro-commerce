@@ -434,7 +434,7 @@ their backend ships earlier.
     A product without its own chart shows the one on its primary category or the nearest category above it. The
     operator writes the platform's rows through the application role under a `platform_curation` policy rather
     than a separate connection.
-  - **1c, delivery (this PR, migration 0053):** the canonical location list (CUS-08), delivery zones with the home
+  - **1c, delivery (#154, migration 0053):** the canonical location list (CUS-08), delivery zones with the home
     area (DLV-01 to DLV-03, DLV-06, DLV-07) and the shop's default payment policy (PRD-08), in a new `delivery`
     module that depends on `catalogue`. Decided with the user before building: no divisions (zones name districts,
     cities and thanas, CUS-08, DLV-01, DLV-02 amended); the shopper picks the district, then the thana, then writes
@@ -484,6 +484,22 @@ their backend ships earlier.
   variants at zero stock and no new storage usage.
 
 ### Slice 2: inventory ledger core
+- **Status (2026-10-20):** built as two PRs, agreed with the user before any code.
+  - **2a, ledger core (this PR, migration 0054):** stock levels and the append-only movement ledger (the database
+    keeps the levels from the movements); `InventoryLedger.apply()`; opening stock; stock edits with one-tap
+    reasons; stock history; the made-to-order switch; once-per-crossing low-stock notices through a console notifier
+    (D3-5); the public stock state with its catalogue version bump; hand-entered average cost and cost on outgoing
+    movements; UOM-03's whole-unit rule; `inventory:read` and `inventory:manage`; the activity log. A new `inventory`
+    module depends on `catalogue`; catalogue reaches it through stock hooks its callers pass in, inside the
+    product's own transaction.
+  - **2b:** stock checks (INV-07), stock value, cost of goods sold and losses by period (INV-18), and shared stock
+    with pack amounts (INV-24).
+  - **Decisions:** opening stock rides the create-product request per variant, as `initial` movements; a product's
+    public state is its best variant's (in if any variant is in, else low if any is low, else out); retiring a
+    variant keeps its stock in view ("retired, N in stock") and never sells it; turning a tracked product made to
+    order writes its stock off to zero with a recorded movement, and tracking it again starts at 0; until
+    purchasing (Slice 4), "new stock arrived" records a manual adjustment and never touches the average cost, while
+    "counted again" is a recount, "damaged or lost" is damaged, and "other" is a manual adjustment.
 - **Depends on:** Slice 1.
 - **Delivers:** stock levels; the append-only movement ledger; `InventoryLedger.apply()`; manual edits
   with one-tap reasons; stock checks; stock history; low-stock threshold and once-per-crossing notices;

@@ -11,6 +11,7 @@ import { BalanceModule } from '../balance/balance.module';
 import { CatalogueModule } from '../catalogue/catalogue.module';
 import { DataExportModule } from '../data-export/data-export.module';
 import { DeliveryModule } from '../delivery/delivery.module';
+import { InventoryModule } from '../inventory/inventory.module';
 import { MailModule } from '../shared/mail/mail.module';
 import { MessagingModule } from '../shared/messaging/messaging.module';
 import { PaymentsModule } from '../payments/payments.module';
@@ -49,7 +50,8 @@ import {
     MessagingModule,
     MailModule,
     PlatformSettingsModule,
-    // LIF-19: the day-60 deletion removes the shop's catalogue and delivery zones too.
+    // LIF-19: the day-60 deletion removes the shop's stock, catalogue and delivery zones too.
+    InventoryModule,
     CatalogueModule,
     DeliveryModule,
   ],

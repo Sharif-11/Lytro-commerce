@@ -699,6 +699,23 @@ CREATE TABLE tenant.category_attributes (           -- ATL-05 / ATR-02: suggesti
 
 #### Inventory (INV)
 
+**Built in Phase 3 Slice 2a (migration 0054, 2026-10-20):** `stock_levels`, `stock_movements`, `stock_reason` and
+`product_variants.avg_cost`, with these decisions against the design below:
+- **The database keeps the levels.** The application only inserts movements. A `BEFORE INSERT` trigger checks the
+  variant is the named product's, refuses a fraction for a whole-unit product (UOM-03), makes the level if missing,
+  locks it (`FOR UPDATE`, so concurrent movements on a variant apply in turn), fills `on_hand_after` and moves the
+  level. A level's `on_hand` cannot otherwise change: a trigger refuses it unless the write comes from the movement
+  trigger (`pg_trigger_depth() > 1`), and a level is made empty. INV-05's on-hand half therefore holds by
+  construction; the reserved half arrives with reservations (Slice 5).
+- **Movements hold the product and variant by value, with no foreign key**, and carry `product_id`. PRD-13 lets a
+  product with orders be hard-deleted; its movements stay, so cost of goods sold and losses never change after the
+  fact (INV-18). A level does reference its variant, and goes with it.
+- **Append-only, with one exception.** An UPDATE of a movement is refused for every role (the application role also
+  holds no UPDATE grant). A DELETE is refused too, except LIF-19's day-60 deletion: the transaction must name the
+  shop in `app.erasing_tenant`, and the shop must be archived or deleted, so no live shop's ledger can go.
+- `stock_levels.low_notified` carries INV-08's once-per-crossing state; `batch_id`, `stock_batches`, serials,
+  reservations and stock checks arrive in Slices 2b, 3 and 5.
+
 ```sql
 -- Quantities are numeric(14,3) throughout; a trigger refuses a fractional quantity when the product's
 -- stock_unit is discrete (piece, dozen, pack, box) — UOM-03.

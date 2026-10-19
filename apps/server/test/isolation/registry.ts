@@ -130,4 +130,10 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'DELETE /delivery-zones/:id': "another shop's zone answers 404",
   'PUT /products/:id/delivery-zones':
     "another shop's product answers 404; another shop's zone is not_found",
+  // Phase 3 Slice 2a, checked in test/inventory.e2e.spec.ts.
+  'GET /products/:id/stock': "another shop's product answers 404",
+  'PUT /products/:id/variants/:variantId/stock': "another shop's product or variant answers 404",
+  'PUT /products/:id/variants/:variantId/cost': "another shop's product or variant answers 404",
+  'GET /products/:id/variants/:variantId/stock-history':
+    "another shop's product or variant answers 404",
 };

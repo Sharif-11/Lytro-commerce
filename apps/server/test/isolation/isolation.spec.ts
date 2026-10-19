@@ -168,6 +168,8 @@ describeIfDatabase('route inventory against the application (SEC-02)', () => {
       'GET /product-defaults',
       'GET /products',
       'GET /products/:id',
+      'GET /products/:id/stock',
+      'GET /products/:id/variants/:variantId/stock-history',
       'GET /roles',
       'GET /shop-settings',
       'GET /staff',
@@ -218,6 +220,8 @@ describeIfDatabase('route inventory against the application (SEC-02)', () => {
       'PUT /products/:id/size-chart',
       'PUT /products/:id/slug',
       'PUT /products/:id/variants',
+      'PUT /products/:id/variants/:variantId/cost',
+      'PUT /products/:id/variants/:variantId/stock',
     ]);
     expect(compareWithRegistry(routes, ISOLATION_REGISTRY)).toEqual({ uncovered: [], stale: [] });
   });

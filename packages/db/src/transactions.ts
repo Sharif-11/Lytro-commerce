@@ -40,6 +40,11 @@ export class TransactionRunner {
     return this.violates(error, '23505', constraintFragment);
   }
 
+  /** True when a check (or a trigger raising one) was violated and its name contains the fragment. */
+  isCheckViolation(error: unknown, constraintFragment: string): boolean {
+    return this.violates(error, '23514', constraintFragment);
+  }
+
   /** True when a foreign key was violated and its name contains the fragment (a reference to a missing row). */
   isForeignKeyViolation(error: unknown, constraintFragment: string): boolean {
     return this.violates(error, '23503', constraintFragment);

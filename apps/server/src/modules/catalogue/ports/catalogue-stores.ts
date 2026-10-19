@@ -18,6 +18,32 @@ import type {
   VariantRecord,
   VariantValueRecord,
 } from '../types/catalogue';
+import type { ResolvedActor } from '../services/catalogue-activity';
+
+/**
+ * INV-02, INV-03, INV-19: what the inventory module does inside a product's own transaction, so a product and its
+ * stock change together or not at all. Catalogue calls these and never depends on inventory: the caller passes
+ * inventory's implementation, the same way the pay-as-you-go fee joins the creation's transaction.
+ */
+export interface ProductStockHooks {
+  /** A new product's stock already on the shelf, per variant (INV-03, reason `initial`). */
+  recordOpeningStock(
+    tx: Transaction,
+    tenantId: string,
+    productId: string,
+    lines: { variantId: string; quantity: string }[],
+    who: ResolvedActor,
+  ): Promise<void>;
+  /** Before a tracked product becomes made to order: the stock it holds written off to zero, recorded (INV-02). */
+  beforeUntracking(
+    tx: Transaction,
+    tenantId: string,
+    productId: string,
+    who: ResolvedActor,
+  ): Promise<void>;
+  /** After its variants, tracking or threshold changed: its public stock state worked out again (CCH-08, INV-19). */
+  refreshStockState(tx: Transaction, tenantId: string, productId: string): Promise<void>;
+}
 
 /** Opens one transaction for a unit of catalogue work; every store method below takes it. */
 export interface CatalogueTransactions {

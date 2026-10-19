@@ -183,6 +183,9 @@ export const productVariants = tenant.table(
     weightKg: numeric('weight_kg', { precision: 10, scale: 3 }),
     deliveryCharge: numeric('delivery_charge', { precision: 10, scale: 2 }),
     deliveryMode: deliveryMode('delivery_mode'),
+    // INV-10: the weighted average unit cost (by hand until a purchase receipt sets it); null is unknown. Never in a
+    // public response.
+    avgCost: numeric('avg_cost', { precision: 12, scale: 4 }),
     active: boolean('active').notNull().default(true),
     createdAt: createdAt(),
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
@@ -202,6 +205,7 @@ export const productVariants = tenant.table(
     check('product_variants_price_check', sql`${t.price} >= 0`),
     check('product_variants_weight_check', sql`${t.weightKg} > 0`),
     check('product_variants_delivery_charge_check', sql`${t.deliveryCharge} >= 0`),
+    check('product_variants_avg_cost_check', sql`${t.avgCost} >= 0`),
   ],
 );
 

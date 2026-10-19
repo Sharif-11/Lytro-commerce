@@ -137,6 +137,13 @@ export {
 } from './repositories/catalogue/size-chart.repository';
 export { OptionSetRepository } from './repositories/catalogue/option-set.repository';
 export { CatalogueDataRepository } from './repositories/catalogue/catalogue-data.repository';
+export {
+  StockRepository,
+  type NewStockMovement,
+  type StockHistoryRow,
+  type StockVariantRow,
+  type VariantStockRow,
+} from './repositories/inventory/stock.repository';
 export { LocationRepository, type LocationList } from './repositories/delivery/location.repository';
 export {
   DeliveryZoneRepository,

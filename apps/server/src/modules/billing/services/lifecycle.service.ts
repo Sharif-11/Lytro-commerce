@@ -18,6 +18,7 @@ import { PlatformAuditService } from '../../audit/services/platform-audit.servic
 import { BalanceService } from '../../balance/services/balance.service';
 import { CatalogueEraser } from '../../catalogue/services/catalogue-eraser';
 import { DeliveryZoneService } from '../../delivery/services/delivery-zone.service';
+import { InventoryEraser } from '../../inventory/services/inventory-eraser';
 import { DataExportService } from '../../data-export/services/data-export.service';
 import { MailService } from '../../shared/mail/services/mail.service';
 import { MessagingService } from '../../shared/messaging/services/messaging.service';
@@ -74,6 +75,7 @@ export class LifecycleService {
     @Inject(StaffService) private readonly staff: StaffService,
     @Inject(BalanceService) private readonly balance: BalanceService,
     @Inject(DataExportService) private readonly dataExports: DataExportService,
+    @Inject(InventoryEraser) private readonly inventory: InventoryEraser,
     @Inject(CatalogueEraser) private readonly catalogue: CatalogueEraser,
     @Inject(DeliveryZoneService) private readonly deliveryZones: DeliveryZoneService,
     @Inject(PurchaseService) private readonly purchase: PurchaseService,
@@ -268,8 +270,10 @@ export class LifecycleService {
   private async deleteIfDue(tenantId: string, now: Date): Promise<boolean> {
     await this.staff.deleteAllForTenant({ id: tenantId, planLimits: null });
     await this.dataExports.deleteAllForTenant(tenantId); // LIF-16/19: exports go with the rest of the data.
-    // Phase 3: products and everything under them, categories, attributes, option sets and the settings row, then
-    // the delivery zones those products' limits named. Each step is safe to repeat if a tick stops between them.
+    // Phase 3: the stock ledger and levels, then products and everything under them, categories, attributes, option
+    // sets and the settings row, then the delivery zones those products' limits named. Each step is safe to repeat
+    // if a tick stops between them.
+    await this.inventory.deleteAllForTenant(tenantId);
     await this.catalogue.deleteAllForTenant(tenantId);
     await this.deliveryZones.deleteAllForTenant(tenantId);
     await this.tenants.runStandalone(async (tx) => {
