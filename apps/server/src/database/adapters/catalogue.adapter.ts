@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
   AttributeRepository,
+  CatalogueDataRepository,
   CategoryRepository,
   OptionSetRepository,
   PlatformLibraryRepository,
@@ -19,6 +20,7 @@ import { MissingReference } from '../../common/errors/missing-reference';
 import { UniqueViolation } from '../../common/errors/unique-violation';
 import type {
   AttributeStore,
+  CatalogueDataStore,
   CatalogueTransactions,
   CategoryStore,
   OptionPatch,
@@ -562,6 +564,19 @@ export class DrizzlePresetStore implements PresetStore {
 
   updatePreset(key: string, patch: PresetPatch): Promise<PresetRecord | null> {
     return this.presets.updatePreset(this.database.handle.db, key, patch);
+  }
+}
+
+@Injectable()
+export class DrizzleCatalogueDataStore implements CatalogueDataStore {
+  constructor(
+    @Inject(CatalogueDataRepository) private readonly catalogue: CatalogueDataRepository,
+    @Inject(ShopSettingsRepository) private readonly settings: ShopSettingsRepository,
+  ) {}
+
+  async deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void> {
+    await this.catalogue.deleteAllForTenant(tx, tenantId);
+    await this.settings.deleteForTenant(tx, tenantId);
   }
 }
 

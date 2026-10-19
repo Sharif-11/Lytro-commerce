@@ -1359,15 +1359,34 @@ public catalogue yet, so nothing serves a stale page today. Slice 9, which build
 cache keys, must add a platform library version to the key (one row the operator's writes bump), so a platform
 edit is visible within `PRD-10`'s window. A shop's own edits already move its version, swatches included.
 
-## 67. `LIF-19`: the day-60 deletion leaves Phase 3's catalogue and delivery data in place — open, found 2026-10-19
+## 67. `LIF-19`: the day-60 deletion left Phase 3's catalogue and delivery data in place — found and fixed 2026-10-19
 
-`LifecycleService.deleteIfDue` deletes a lapsed shop's staff and data exports and marks it deleted, as Phases 1
+`LifecycleService.deleteIfDue` deleted a lapsed shop's staff and data exports and marked it deleted, as Phases 1
 and 2 built it. Phase 3 has since added business data `LIF-19` names: products and their variants, attributes,
-categories, size charts, option sets, delivery zones and the shop's settings rows. None of it is deleted at day 60
-yet, so a deleted shop's catalogue would survive in the database (unreadable to any other shop, behind row-level
-security, but present). Found while reading the lifecycle code for Slice 1c. Planned as a small follow-up PR: delete
-the tenant's rows from every Phase 3 table in `deleteIfDue`'s transaction, children first, with a test that a
-deleted shop has none left. Media files (`MED-09`) join it in Slice 6.
+categories, size charts, option sets and delivery zones, and the shop's settings row (`tenant.shop_settings`,
+holding `RAT-14`'s rate since Phase 2 and `PRD-08`'s default policy since Slice 1c). None of it was deleted at day
+60, so a deleted shop's catalogue survived in the database (unreadable to any other shop, behind row-level
+security, but present). Found while reading the lifecycle code for Slice 1c.
+
+**Fixed:** `deleteIfDue` now also calls `CatalogueEraser.deleteAllForTenant` (products first, which take their
+variants, values, attributes, category links, old slugs, size charts and delivery limits with them; then
+categories, the shop's own attribute values and attributes, option sets, the catalogue version, and the settings
+row, in one transaction) and then `DeliveryZoneService.deleteAllForTenant` (zones and their areas, after the
+products whose limits named them). Platform rows are never touched. Each step is safe to repeat if a tick stops
+between them. Proven by a case in `apps/server/test/lifecycle.e2e.spec.ts` that seeds one of everything Phase 3
+stores and then checks every tenant-schema table: after day 60 none holds a row of the shop except the balance
+ledger (`LIF-20` keeps it) and the activity log (§68). Any table a later slice adds fails that check until its
+data is deleted too. Media files (`MED-09`) join the deletion in Slice 6.
+
+## 68. `LIF-19`: a deleted shop's activity log is kept whole — open, found 2026-10-19
+
+`LIF-19` deletes the tenant's activity log "except billing and deletion events". Nothing does that yet: the
+day-60 job leaves every entry. The live application cannot do it, since `tenant.activity_log` is insert-only for
+every role (migration 0001, `AUD-03`, `DAT-10`); the only deletion is `ActivityLogPurger`
+(`packages/db/src/purge-activity-log.ts`), the privileged pipeline step for plan retention (`AUD-06`, `AUD-07`).
+Found while fixing §67. The fix belongs in that purger: for a tenant whose `deleted_at` is set, delete every entry
+except the billing and deletion events, under the same switched-off trigger and transaction it already uses.
+Not scheduled yet.
 
 ## Not a bug, just noting it so it isn't mistaken for one later
 

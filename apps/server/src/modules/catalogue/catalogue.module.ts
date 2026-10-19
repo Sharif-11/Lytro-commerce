@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import {
   DrizzleAttributeStore,
+  DrizzleCatalogueDataStore,
   DrizzleCatalogueTransactions,
   DrizzleCategoryStore,
   DrizzleOptionSetStore,
@@ -16,6 +17,7 @@ import { StaffModule } from '../staff/staff.module';
 import { TenancyModule } from '../tenancy/tenancy.module';
 import { AttributeService } from './services/attribute.service';
 import { CatalogueActivity } from './services/catalogue-activity';
+import { CatalogueEraser } from './services/catalogue-eraser';
 import { CatalogueVersion } from './services/catalogue-version';
 import { CategoryService } from './services/category.service';
 import { OptionSetService } from './services/option-set.service';
@@ -26,6 +28,7 @@ import { ShopPaymentPolicyService } from './services/shop-payment-policy.service
 import { SizeChartService } from './services/size-chart.service';
 import {
   ATTRIBUTE_STORE,
+  CATALOGUE_DATA_STORE,
   CATALOGUE_TRANSACTIONS,
   CATEGORY_STORE,
   OPTION_SET_STORE,
@@ -52,7 +55,9 @@ import {
     { provide: OPTION_SET_STORE, useClass: DrizzleOptionSetStore },
     { provide: PLATFORM_LIBRARY_STORE, useClass: DrizzlePlatformLibraryStore },
     { provide: SHOP_POLICY_STORE, useClass: DrizzleShopPolicyStore },
+    { provide: CATALOGUE_DATA_STORE, useClass: DrizzleCatalogueDataStore },
     CatalogueActivity,
+    CatalogueEraser,
     CatalogueVersion,
     ShopPaymentPolicyService,
     PresetService,
@@ -69,6 +74,8 @@ import {
     CatalogueActivity,
     CatalogueVersion,
     ShopPaymentPolicyService,
+    // For the day-60 deletion (LIF-19).
+    CatalogueEraser,
     PresetService,
     AttributeService,
     CategoryService,

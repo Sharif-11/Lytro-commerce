@@ -413,6 +413,130 @@ describeIfDatabase('BIL-14: renewal reminders', () => {
   });
 });
 
+/**
+ * LIF-19: one of everything Phase 3 stores for a shop, written as the admin so the test needs no session: a
+ * category tree with a size chart and a suggested attribute, a product with a variant split by a platform attribute
+ * on one of the shop's own values, a describing attribute of its own, an old slug, a size chart and a delivery
+ * limit, an option set, the catalogue version, delivery zones with areas, and the settings row.
+ */
+async function seedCatalogue(tenantId: string): Promise<void> {
+  const one = async (sql: string, params: unknown[]): Promise<string> => {
+    const result = await admin.query<{ id: string }>(sql, params);
+    return result.rows[0]?.id ?? '';
+  };
+  const size = await one(
+    "SELECT id FROM tenant.attributes WHERE tenant_id IS NULL AND name = 'Size'",
+    [],
+  );
+  const parent = await one(
+    "INSERT INTO tenant.categories (tenant_id, name, slug, depth) VALUES ($1, 'Clothing', 'clothing', 1) RETURNING id",
+    [tenantId],
+  );
+  const child = await one(
+    "INSERT INTO tenant.categories (tenant_id, parent_id, name, slug, depth) VALUES ($1, $2, 'Shirts', 'shirts', 2) RETURNING id",
+    [tenantId, parent],
+  );
+  const fabric = await one(
+    "INSERT INTO tenant.attributes (tenant_id, name, data_type) VALUES ($1, 'Weave', 'enum_single') RETURNING id",
+    [tenantId],
+  );
+  const twill = await one(
+    "INSERT INTO tenant.attribute_options (tenant_id, attribute_id, value) VALUES ($1, $2, 'Twill') RETURNING id",
+    [tenantId, fabric],
+  );
+  const large = await one(
+    "INSERT INTO tenant.attribute_options (tenant_id, attribute_id, value) VALUES ($1, $2, 'XL-own') RETURNING id",
+    [tenantId, size],
+  );
+  await admin.query(
+    'INSERT INTO tenant.category_attributes (tenant_id, category_id, attribute_id) VALUES ($1, $2, $3)',
+    [tenantId, child, fabric],
+  );
+  await admin.query(
+    `INSERT INTO tenant.size_charts (tenant_id, category_id, table_rows) VALUES ($1, $2, '[["S","M"]]')`,
+    [tenantId, parent],
+  );
+  const product = await one(
+    `INSERT INTO tenant.products (tenant_id, name, slug, base_price, primary_category_id)
+     VALUES ($1, 'Shirt', 'shirt', 500, $2) RETURNING id`,
+    [tenantId, child],
+  );
+  await admin.query(
+    'INSERT INTO tenant.product_categories (tenant_id, product_id, category_id) VALUES ($1, $2, $3)',
+    [tenantId, product, child],
+  );
+  await admin.query(
+    `INSERT INTO tenant.product_attributes (tenant_id, product_id, attribute_id, role)
+     VALUES ($1, $2, $3, 'variant_defining'), ($1, $2, $4, 'informational')`,
+    [tenantId, product, size, fabric],
+  );
+  await admin.query(
+    'INSERT INTO tenant.product_attribute_values (tenant_id, product_id, attribute_id, option_id) VALUES ($1, $2, $3, $4)',
+    [tenantId, product, fabric, twill],
+  );
+  const variant = await one(
+    'INSERT INTO tenant.product_variants (tenant_id, product_id, combination_key) VALUES ($1, $2, $3) RETURNING id',
+    [tenantId, product, `${size}=${large}`],
+  );
+  await admin.query(
+    `INSERT INTO tenant.variant_attribute_values (tenant_id, product_id, variant_id, attribute_id, option_id)
+     VALUES ($1, $2, $3, $4, $5)`,
+    [tenantId, product, variant, size, large],
+  );
+  await admin.query(
+    "INSERT INTO tenant.product_slug_redirects (tenant_id, old_slug, product_id) VALUES ($1, 'old-shirt', $2)",
+    [tenantId, product],
+  );
+  await admin.query(
+    `INSERT INTO tenant.size_charts (tenant_id, product_id, table_rows) VALUES ($1, $2, '[["40"]]')`,
+    [tenantId, product],
+  );
+  await admin.query(
+    "INSERT INTO tenant.option_sets (tenant_id, name, options) VALUES ($1, 'Mine', ARRAY['A', 'B'])",
+    [tenantId],
+  );
+  await admin.query('INSERT INTO tenant.catalogue_state (tenant_id, version) VALUES ($1, 3)', [
+    tenantId,
+  ]);
+  const homeZone = await one(
+    'INSERT INTO tenant.delivery_zones (tenant_id, is_home, charge) VALUES ($1, true, 70) RETURNING id',
+    [tenantId],
+  );
+  await admin.query(
+    'INSERT INTO tenant.delivery_zones (tenant_id, is_fallback, charge) VALUES ($1, true, 130)',
+    [tenantId],
+  );
+  await admin.query(
+    "INSERT INTO tenant.delivery_zone_areas (tenant_id, zone_id, city_code) VALUES ($1, $2, 'dhaka')",
+    [tenantId, homeZone],
+  );
+  await admin.query(
+    'INSERT INTO tenant.product_delivery_zones (tenant_id, product_id, zone_id) VALUES ($1, $2, $3)',
+    [tenantId, product, homeZone],
+  );
+  await admin.query(
+    `INSERT INTO tenant.shop_settings (tenant_id, extra_delivery_charge_per_kg, default_payment_policy)
+     VALUES ($1, 10, 'delivery_charge_only')`,
+    [tenantId],
+  );
+}
+
+/** Every tenant-schema table that still holds a row of the shop, by name. */
+async function tablesHolding(tenantId: string): Promise<string[]> {
+  const tables = await admin.query<{ table_name: string }>(
+    `SELECT table_name FROM information_schema.columns
+     WHERE table_schema = 'tenant' AND column_name = 'tenant_id' ORDER BY table_name`,
+  );
+  const holding: string[] = [];
+  for (const { table_name: table } of tables.rows) {
+    const rows = await admin.query(`SELECT 1 FROM tenant.${table} WHERE tenant_id = $1 LIMIT 1`, [
+      tenantId,
+    ]);
+    if ((rows.rowCount ?? 0) > 0) holding.push(table);
+  }
+  return holding;
+}
+
 describeIfDatabase('LIF-19: day-60 business-data deletion', () => {
   it('deletes staff/roles, sets deleted_at, and a second tick is a no-op', async () => {
     const planId = await seedPlan((nextRank += 1));
@@ -439,6 +563,31 @@ describeIfDatabase('LIF-19: day-60 business-data deletion', () => {
       (a) => a === AuditAction.TenantDeleted,
     ).length;
     expect(deletedCountAfter).toBe(deletedCountBefore);
+  });
+
+  it("deletes the shop's Phase 3 catalogue, delivery zones and settings, leaving only the ledger and the log", async () => {
+    const planId = await seedPlan((nextRank += 1));
+    const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
+    await seedOwner(tenantId, `018${(nextRank += 1).toString().slice(0, 8)}`);
+    await seedCatalogue(tenantId);
+    const platformBefore = await admin.query<{ total: number }>(
+      'SELECT count(*)::int AS total FROM tenant.attributes WHERE tenant_id IS NULL',
+    );
+    const periodEnd = new Date(Date.now() - 61 * DAY_MS);
+    await activateTenant(tenantId, planId, TenantState.Archived, periodEnd, true);
+
+    await lifecycle.runTick(new Date());
+
+    expect((await tenantRow(tenantId))?.state).toBe(TenantState.Deleted);
+    // Every tenant table with the shop's rows, beyond the two LIF-19 and LIF-20 keep: the balance ledger, and the
+    // activity log, which the application role cannot delete from (AUD-03; KNOWN-GAPS §68).
+    const left = await tablesHolding(tenantId);
+    expect(left.filter((table) => !['balance_ledger', 'activity_log'].includes(table))).toEqual([]);
+    // The platform's own library is untouched.
+    const platformAfter = await admin.query<{ total: number }>(
+      'SELECT count(*)::int AS total FROM tenant.attributes WHERE tenant_id IS NULL',
+    );
+    expect(platformAfter.rows[0]?.total).toBe(platformBefore.rows[0]?.total);
   });
 });
 

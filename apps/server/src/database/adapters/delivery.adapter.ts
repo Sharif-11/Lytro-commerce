@@ -127,4 +127,8 @@ export class DrizzleDeliveryZoneStore implements DeliveryZoneStore {
   ): Promise<{ id: string; name: string }[]> {
     return this.zones.productsLimitedTo(tx, tenantId, zoneId);
   }
+
+  deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void> {
+    return this.zones.deleteAllForTenant(tx, tenantId);
+  }
 }
