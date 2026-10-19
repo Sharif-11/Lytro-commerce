@@ -37,6 +37,12 @@ import { ActivityListService } from './services/activity-list.service';
 import { StaffSigninService } from './services/staff-signin.service';
 import { ShopSettingsService } from './services/shop-settings.service';
 import { StaffController } from './controllers/staff.controller';
+import { CatalogueModule } from '../catalogue/catalogue.module';
+import { AttributesController } from './controllers/attributes.controller';
+import { CatalogueSetupController } from './controllers/catalogue-setup.controller';
+import { CategoriesController } from './controllers/categories.controller';
+import { ProductsController } from './controllers/products.controller';
+import { CatalogueRequest } from './services/catalogue-request';
 
 // The team's HTTP routes. They sit outside the staff module because they need the identity and tenancy gates,
 // and tenancy already imports the staff module. Slice 1's balance/rates routes, and slice 2's plan/term
@@ -56,6 +62,7 @@ import { StaffController } from './controllers/staff.controller';
     IdempotencyModule,
     DataExportModule,
     SmsUsageModule,
+    CatalogueModule,
   ],
   controllers: [
     StaffController,
@@ -78,7 +85,17 @@ import { StaffController } from './controllers/staff.controller';
     OperatorPaymentQueueController,
     ShopSettingsController,
     DataExportController,
+    CatalogueSetupController,
+    AttributesController,
+    CategoriesController,
+    ProductsController,
   ],
-  providers: [StaffSigninService, ActivityListService, ClientIp, ShopSettingsService],
+  providers: [
+    StaffSigninService,
+    ActivityListService,
+    ClientIp,
+    ShopSettingsService,
+    CatalogueRequest,
+  ],
 })
 export class TeamModule {}

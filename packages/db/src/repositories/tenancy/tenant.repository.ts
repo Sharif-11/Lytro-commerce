@@ -41,6 +41,8 @@ export interface TenantSummaryRow {
   periodEnd: Date | null;
   /** TEN-31: the account that owns the shop, for the dashboard's membership check. */
   ownerSubscriberId: string;
+  /** PST-01: the shop's main business type (a preset key), which sets new products' defaults; null until chosen. */
+  businessType: string | null;
 }
 
 // LIF-24: the operator's own keyset cursor for search() -- the latest-created tenant the caller has already
@@ -79,6 +81,7 @@ export class TenantRepository {
         planLimits: plans.limits,
         periodEnd: tenants.periodEnd,
         ownerSubscriberId: tenants.subscriberId,
+        businessType: tenants.businessType,
       })
       .from(tenants)
       .leftJoin(plans, eq(plans.id, tenants.planId));
@@ -118,6 +121,7 @@ export class TenantRepository {
         planLimits: plans.limits,
         periodEnd: tenants.periodEnd,
         ownerSubscriberId: tenants.subscriberId,
+        businessType: tenants.businessType,
         createdAt: tenants.createdAt,
       })
       .from(tenants)
@@ -530,6 +534,15 @@ export class TenantRepository {
   ): Promise<void> {
     if (Object.keys(values).length === 0) return;
     await tx.update(tenants).set(values).where(eq(tenants.id, tenantId));
+  }
+
+  /** PST-01, PST-03: sets the shop's business type. Existing products keep their own settings. */
+  async setBusinessType(
+    tx: Executor,
+    tenantId: string,
+    businessType: string | null,
+  ): Promise<void> {
+    await tx.update(tenants).set({ businessType }).where(eq(tenants.id, tenantId));
   }
 
   /** BIL-10/11/UPG-03: a transaction-scoped read of what a purchase/renewal/upgrade confirmation needs to

@@ -23,6 +23,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import { control, createdAt } from '../shared';
 import { plans } from './plans';
+import { businessTypePresets } from './presets';
 import { subscriberIdentities, subscribers } from './identity';
 
 // Note: `control.tenant_state` is created by the migration; declared here for the columns that use it.
@@ -89,6 +90,9 @@ export const tenants = control.table(
     contactPhone: varchar('contact_phone', { length: 30 }),
     contactEmail: varchar('contact_email', { length: 254 }),
     businessAddress: text('business_address'),
+    // PST-01: the shop's main business type, which sets new products' defaults and suggestions (PST-02). Null
+    // until chosen; changing it never touches existing products (PST-03).
+    businessType: text('business_type').references(() => businessTypePresets.key),
     // BIL-17: the billing term the tenant's current period was bought/renewed for -- a plain uuid, not a
     // Drizzle `.references()`, since `billing-terms.ts` already imports this table (tenant-scoped terms,
     // TRM-14), and the reverse import would be circular. Null for trial/pay-as-you-go, which have no term.

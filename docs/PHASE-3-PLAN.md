@@ -422,6 +422,16 @@ their backend ships earlier.
   `packages/ui`; building or deploying one app does not rebuild the other; every moved operator test passes.
 
 ### Slice 1: catalogue core — products, variants, attributes, units, presets
+- **Status (2026-10-19):** built as three PRs, since one would be too large to review.
+  - **1a, catalogue core (this PR):** the catalogue and attribute tables with their data-layer limits and scope
+    checks; the shop-type presets and the shop's business type; the attribute library; the category tree; products
+    with their variant matrix, describing attributes, slugs and redirects; the product limit; the pay-as-you-go
+    product fee.
+  - **1b, product extras:** size charts (PRD-17), duplicate product (PRD-18), option sets and swatches (ATR-16,
+    ATR-18), categories that behave like another shop type (PST-06), and the operator's editing of presets and the
+    platform library (PST-04, ATL-01).
+  - **1c, delivery:** the canonical location list (CUS-08), delivery zones with the home area (DLV-01 to DLV-03,
+    DLV-06, DLV-07) and the shop's default payment policy (PRD-08).
 - **Depends on:** none in this phase (reads Phase 2's plan-limit machinery).
 - **Delivers:** the catalogue and attribute tables; slugs; the category tree with an "Uncategorized"
   virtual bucket; the variant matrix save; data-layer limit triggers; product counting against plan

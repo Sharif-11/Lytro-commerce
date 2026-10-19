@@ -1,0 +1,5 @@
+export const CATALOGUE_TRANSACTIONS = Symbol('CATALOGUE_TRANSACTIONS');
+export const ATTRIBUTE_STORE = Symbol('ATTRIBUTE_STORE');
+export const CATEGORY_STORE = Symbol('CATEGORY_STORE');
+export const PRODUCT_STORE = Symbol('PRODUCT_STORE');
+export const PRESET_STORE = Symbol('PRESET_STORE');

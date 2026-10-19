@@ -255,4 +255,9 @@ export class TenantService {
   ): Promise<void> {
     return this.store.updateContactDetails(tx, tenantId, values);
   }
+
+  /** PST-01, PST-03: the shop's business type. Existing products keep their own settings. */
+  setBusinessType(tx: Transaction, tenantId: string, businessType: string | null): Promise<void> {
+    return this.store.setBusinessType(tx, tenantId, businessType);
+  }
 }

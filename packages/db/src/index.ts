@@ -121,3 +121,13 @@ export {
   type NewScheduledPlanChange,
 } from './repositories/billing/scheduled-plan-changes.repository';
 export { DataExportsRepository } from './repositories/tenancy/data-exports.repository';
+export { AttributeRepository } from './repositories/catalogue/attribute.repository';
+export { CategoryRepository } from './repositories/catalogue/category.repository';
+export {
+  ProductRepository,
+  type ProductListFilter,
+  type ProductListRow,
+  type ProductPatch,
+} from './repositories/catalogue/product.repository';
+export { VariantRepository, type VariantPatch } from './repositories/catalogue/variant.repository';
+export { PresetRepository } from './repositories/catalogue/preset.repository';

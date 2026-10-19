@@ -13,4 +13,6 @@ export interface TenantSummary {
   periodEnd: Date | null;
   /** TEN-31: the account that owns the shop, for the dashboard's membership check. */
   ownerSubscriberId: string;
+  /** PST-01: the shop's main business type (a preset key), which sets new products' defaults; null until chosen. */
+  businessType: string | null;
 }
