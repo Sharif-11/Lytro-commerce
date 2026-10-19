@@ -5,6 +5,7 @@ import {
   AttributeRole,
   DeliveryMode,
   PaymentPolicy,
+  ProductFormField,
   StockState,
   StockTracking,
   StockUnit,
@@ -20,10 +21,13 @@ const productDefaultsFields = {
   lowStockThreshold: z.string(),
   suggestedAttributeIds: z.array(z.string()),
   suggestedCategories: z.array(z.string()),
+  upFrontFields: z.array(z.nativeEnum(ProductFormField)),
 };
 
 export const productDefaultsSchema = z.object({
   businessType: z.string().nullable(),
+  presetKey: z.string().nullable(),
+  fromCategoryId: z.string().nullable(),
   ...productDefaultsFields,
 });
 export class ProductDefaultsDto extends createZodDto(productDefaultsSchema) {}
@@ -39,6 +43,7 @@ export class PresetViewDto extends createZodDto(presetViewSchema) {}
 export const optionViewSchema = z.object({
   id: z.string(),
   value: z.string(),
+  swatchColor: z.string().nullable(),
   scope,
   retired: z.boolean(),
 });
@@ -65,8 +70,24 @@ export const categoryViewSchema = z.object({
   visible: z.boolean(),
   productCount: z.number(),
   suggestedAttributeIds: z.array(z.string()),
+  behavesLike: z.string().nullable(),
+  sizeChart: z.array(z.array(z.string())).nullable(),
 });
 export class CategoryViewDto extends createZodDto(categoryViewSchema) {}
+
+export const sizeChartRowsSchema = z.object({
+  rows: z.array(z.array(z.string())),
+});
+export class SizeChartRowsDto extends createZodDto(sizeChartRowsSchema) {}
+
+export const optionSetViewSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  options: z.array(z.string()),
+  scope,
+  presetKey: z.string().nullable(),
+});
+export class OptionSetViewDto extends createZodDto(optionSetViewSchema) {}
 
 export const productPageSchema = z.object({
   products: z.array(
@@ -122,7 +143,9 @@ export const productDetailSchema = z.object({
       name: z.string(),
       dataType: z.nativeEnum(AttributeDataType),
       unitKind: z.string().nullable(),
-      options: z.array(z.object({ id: z.string(), value: z.string() })),
+      options: z.array(
+        z.object({ id: z.string(), value: z.string(), swatchColor: z.string().nullable() }),
+      ),
     }),
   ),
   attributes: z.array(
@@ -153,6 +176,13 @@ export const productDetailSchema = z.object({
       active: z.boolean(),
     }),
   ),
+  sizeChart: z
+    .object({
+      source: z.enum(['product', 'category']),
+      categoryId: z.string().nullable(),
+      rows: z.array(z.array(z.string())),
+    })
+    .nullable(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });

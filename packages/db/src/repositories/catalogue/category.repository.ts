@@ -1,6 +1,7 @@
 import { and, asc, count, countDistinct, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { categories, productCategories, products, type SelectCategory } from '../../schema';
 import type { Transaction, TransactionRunner } from '../../transactions';
+import { isEmptyPatch } from '../patch';
 
 // PRD-03, PRD-15: a shop's category tree and the products filed in it. Every method runs inside a transaction
 // that carries the shop's tenant context, so row-level security applies.
@@ -54,6 +55,7 @@ export class CategoryRepository {
       depth: number;
       sortOrder: number;
       visible: boolean;
+      behavesLike: string | null;
     },
   ): Promise<SelectCategory> {
     await this.transactions.setTenantContext(tx, values.tenantId);
@@ -73,14 +75,14 @@ export class CategoryRepository {
       depth?: number;
       sortOrder?: number;
       visible?: boolean;
+      behavesLike?: string | null;
     },
   ): Promise<SelectCategory | null> {
     await this.transactions.setTenantContext(tx, tenantId);
-    const rows = await tx
-      .update(categories)
-      .set(patch)
-      .where(and(eq(categories.tenantId, tenantId), eq(categories.id, id)))
-      .returning();
+    const own = and(eq(categories.tenantId, tenantId), eq(categories.id, id));
+    const rows = isEmptyPatch(patch)
+      ? await tx.select().from(categories).where(own)
+      : await tx.update(categories).set(patch).where(own).returning();
     return rows[0] ?? null;
   }
 
@@ -101,6 +103,28 @@ export class CategoryRepository {
       )
       SELECT id, level FROM tree`);
     return result.rows.map((row) => ({ id: row.id, level: row.level }));
+  }
+
+  /** PST-06: the category and the categories above it, nearest first. */
+  async lineage(tx: Transaction, tenantId: string, id: string): Promise<SelectCategory[]> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const result = await tx.execute<{ id: string; level: number }>(sql`
+      WITH RECURSIVE line AS (
+        SELECT c.id, c.parent_id, 0 AS level FROM tenant.categories c
+        WHERE c.tenant_id = ${tenantId} AND c.id = ${id}
+        UNION ALL
+        SELECT c.id, c.parent_id, line.level + 1 FROM tenant.categories c
+        JOIN line ON c.id = line.parent_id
+        WHERE c.tenant_id = ${tenantId}
+      )
+      SELECT id, level FROM line`);
+    const level = new Map(result.rows.map((row) => [row.id, row.level]));
+    if (level.size === 0) return [];
+    const rows = await tx
+      .select()
+      .from(categories)
+      .where(and(eq(categories.tenantId, tenantId), inArray(categories.id, [...level.keys()])));
+    return rows.sort((a, b) => (level.get(a.id) ?? 0) - (level.get(b.id) ?? 0));
   }
 
   /** Re-levels a moved category's subtree: each descendant sits `level` below the category's new depth. */

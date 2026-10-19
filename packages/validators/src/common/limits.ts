@@ -49,3 +49,12 @@ export const SKU_MAX_LENGTH = 64;
 export const PRICE_MAX = 99_999_999.99;
 export const WEIGHT_KG_MAX = 9_999_999.999;
 export const QUANTITY_MAX = 99_999_999_999.999;
+// PRD-17: a size chart table, up to 15 rows of up to 10 short cells.
+export const SIZE_CHART_MAX_ROWS = 15;
+export const SIZE_CHART_MAX_COLUMNS = 10;
+export const SIZE_CHART_CELL_MAX_LENGTH = 40;
+// ATR-16: an option set's name and how many values it holds.
+export const OPTION_SET_NAME_MAX_LENGTH = 60;
+export const OPTION_SET_MAX_OPTIONS = 50;
+// ATR-18: an option's colour swatch, as #RRGGBB.
+export const SWATCH_COLOR_PATTERN = /^#[0-9A-Fa-f]{6}$/;

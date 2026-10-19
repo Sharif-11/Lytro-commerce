@@ -9,6 +9,8 @@ export const createCategorySchema = z.object({
   parentId: catalogueIdSchema.nullable().optional(),
   sortOrder: z.number().int().min(0).max(1_000_000).optional(),
   visible: z.boolean().optional(),
+  // PST-06: the shop type (a preset key) its products behave like; null follows its parent, then the shop.
+  behavesLike: z.string().trim().min(1).max(40).nullable().optional(),
 });
 export type CreateCategoryInput = z.infer<typeof createCategorySchema>;
 

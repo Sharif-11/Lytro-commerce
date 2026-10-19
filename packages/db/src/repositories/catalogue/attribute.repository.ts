@@ -7,6 +7,7 @@ import {
   type SelectAttributeOption,
 } from '../../schema';
 import type { Transaction, TransactionRunner } from '../../transactions';
+import { isEmptyPatch } from '../patch';
 
 // ATL-01, ATR-01, ATR-02, ATR-10: the attribute library a shop sees (the platform's rows and its own) and its
 // categories' suggestions. Row-level security already hides other shops' rows; every query also names the scope
@@ -88,11 +89,10 @@ export class AttributeRepository {
     patch: { name?: string; retiredAt?: Date | null },
   ): Promise<SelectAttribute | null> {
     await this.transactions.setTenantContext(tx, tenantId);
-    const rows = await tx
-      .update(attributes)
-      .set(patch)
-      .where(and(eq(attributes.tenantId, tenantId), eq(attributes.id, id)))
-      .returning();
+    const own = and(eq(attributes.tenantId, tenantId), eq(attributes.id, id));
+    const rows = isEmptyPatch(patch)
+      ? await tx.select().from(attributes).where(own)
+      : await tx.update(attributes).set(patch).where(own).returning();
     return rows[0] ?? null;
   }
 
@@ -155,7 +155,13 @@ export class AttributeRepository {
 
   async insertOption(
     tx: Transaction,
-    values: { tenantId: string; attributeId: string; value: string; sortOrder: number },
+    values: {
+      tenantId: string;
+      attributeId: string;
+      value: string;
+      swatchColor?: string | null;
+      sortOrder: number;
+    },
   ): Promise<SelectAttributeOption> {
     await this.transactions.setTenantContext(tx, values.tenantId);
     const rows = await tx.insert(attributeOptions).values(values).returning();
@@ -185,20 +191,17 @@ export class AttributeRepository {
     tenantId: string,
     attributeId: string,
     id: string,
-    patch: { value?: string; retiredAt?: Date | null },
+    patch: { value?: string; swatchColor?: string | null; retiredAt?: Date | null },
   ): Promise<SelectAttributeOption | null> {
     await this.transactions.setTenantContext(tx, tenantId);
-    const rows = await tx
-      .update(attributeOptions)
-      .set(patch)
-      .where(
-        and(
-          eq(attributeOptions.tenantId, tenantId),
-          eq(attributeOptions.attributeId, attributeId),
-          eq(attributeOptions.id, id),
-        ),
-      )
-      .returning();
+    const own = and(
+      eq(attributeOptions.tenantId, tenantId),
+      eq(attributeOptions.attributeId, attributeId),
+      eq(attributeOptions.id, id),
+    );
+    const rows = isEmptyPatch(patch)
+      ? await tx.select().from(attributeOptions).where(own)
+      : await tx.update(attributeOptions).set(patch).where(own).returning();
     return rows[0] ?? null;
   }
 

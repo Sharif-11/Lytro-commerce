@@ -2,10 +2,16 @@ import { Inject, Injectable } from '@nestjs/common';
 import {
   AttributeRepository,
   CategoryRepository,
+  OptionSetRepository,
+  PlatformLibraryRepository,
   PresetRepository,
   ProductRepository,
+  SizeChartRepository,
   TransactionRunner,
   VariantRepository,
+  type PlatformOptionSetPatch,
+  type PresetPatch,
+  type SizeChartOwner,
   type Transaction,
 } from '@lytronix/db';
 import { UniqueViolation } from '../../common/errors/unique-violation';
@@ -13,19 +19,25 @@ import type {
   AttributeStore,
   CatalogueTransactions,
   CategoryStore,
+  OptionPatch,
+  OptionSetStore,
+  PlatformLibraryStore,
   PresetStore,
   ProductChange,
   ProductStore,
+  SizeChartStore,
   VariantChange,
 } from '../../modules/catalogue/ports/catalogue-stores';
 import type {
   AttributeRecord,
   CategoryRecord,
   OptionRecord,
+  OptionSetRecord,
   PresetRecord,
   ProductAttributeRecord,
   ProductAttributeValueRecord,
   ProductRecord,
+  SizeChartRecord,
   VariantRecord,
   VariantValueRecord,
 } from '../../modules/catalogue/types/catalogue';
@@ -39,6 +51,10 @@ const PRODUCT_SLUG_KEY = 'products_tenant_slug_key';
 const REDIRECT_KEY = 'product_slug_redirects_pkey';
 const VARIANT_SKU_INDEX = 'product_variants_tenant_sku_idx';
 const VARIANT_COMBINATION_KEY = 'product_variants_product_combination_key';
+const PLATFORM_ATTRIBUTE_NAME_INDEX = 'attributes_platform_name_idx';
+const PLATFORM_OPTION_VALUE_INDEX = 'attribute_options_platform_value_idx';
+const OPTION_SET_NAME_INDEX = 'option_sets_tenant_name_idx';
+const PLATFORM_OPTION_SET_NAME_INDEX = 'option_sets_platform_name_idx';
 
 /** One transaction per unit of catalogue work. Each repository call sets the shop's tenant context itself. */
 @Injectable()
@@ -136,7 +152,13 @@ export class DrizzleAttributeStore implements AttributeStore {
 
   async insertOption(
     tx: Transaction,
-    values: { tenantId: string; attributeId: string; value: string; sortOrder: number },
+    values: {
+      tenantId: string;
+      attributeId: string;
+      value: string;
+      swatchColor?: string | null;
+      sortOrder: number;
+    },
   ): Promise<OptionRecord> {
     try {
       return await this.attributes.insertOption(tx, values);
@@ -152,7 +174,7 @@ export class DrizzleAttributeStore implements AttributeStore {
     tenantId: string,
     attributeId: string,
     id: string,
-    patch: { value?: string; retiredAt?: Date | null },
+    patch: OptionPatch,
   ): Promise<OptionRecord | null> {
     try {
       return await this.attributes.updateOption(tx, tenantId, attributeId, id, patch);
@@ -204,7 +226,7 @@ export class DrizzleCategoryStore implements CategoryStore {
     tx: Transaction,
     values: Pick<
       CategoryRecord,
-      'parentId' | 'name' | 'slug' | 'depth' | 'sortOrder' | 'visible'
+      'parentId' | 'name' | 'slug' | 'depth' | 'sortOrder' | 'visible' | 'behavesLike'
     > & {
       tenantId: string;
     },
@@ -222,9 +244,15 @@ export class DrizzleCategoryStore implements CategoryStore {
     tx: Transaction,
     tenantId: string,
     id: string,
-    patch: Partial<Pick<CategoryRecord, 'name' | 'parentId' | 'depth' | 'sortOrder' | 'visible'>>,
+    patch: Partial<
+      Pick<CategoryRecord, 'name' | 'parentId' | 'depth' | 'sortOrder' | 'visible' | 'behavesLike'>
+    >,
   ): Promise<CategoryRecord | null> {
     return this.categories.updateCategory(tx, tenantId, id, patch);
+  }
+
+  lineage(tx: Transaction, tenantId: string, id: string): Promise<CategoryRecord[]> {
+    return this.categories.lineage(tx, tenantId, id);
   }
 
   subtree(tx: Transaction, tenantId: string, id: string): Promise<{ id: string; level: number }[]> {
@@ -505,5 +533,183 @@ export class DrizzlePresetStore implements PresetStore {
 
   findPreset(key: string): Promise<PresetRecord | null> {
     return this.presets.findPreset(this.database.handle.db, key);
+  }
+
+  updatePreset(key: string, patch: PresetPatch): Promise<PresetRecord | null> {
+    return this.presets.updatePreset(this.database.handle.db, key, patch);
+  }
+}
+
+@Injectable()
+export class DrizzleSizeChartStore implements SizeChartStore {
+  constructor(@Inject(SizeChartRepository) private readonly charts: SizeChartRepository) {}
+
+  findChart(
+    tx: Transaction,
+    tenantId: string,
+    owner: SizeChartOwner,
+  ): Promise<SizeChartRecord | null> {
+    return this.charts.findChart(tx, tenantId, owner);
+  }
+
+  listCategoryCharts(tx: Transaction, tenantId: string): Promise<SizeChartRecord[]> {
+    return this.charts.listCategoryCharts(tx, tenantId);
+  }
+
+  putChart(
+    tx: Transaction,
+    tenantId: string,
+    owner: SizeChartOwner,
+    rows: string[][],
+  ): Promise<SizeChartRecord> {
+    return this.charts.putChart(tx, tenantId, owner, rows);
+  }
+
+  deleteChart(tx: Transaction, tenantId: string, owner: SizeChartOwner): Promise<boolean> {
+    return this.charts.deleteChart(tx, tenantId, owner);
+  }
+}
+
+@Injectable()
+export class DrizzleOptionSetStore implements OptionSetStore {
+  constructor(
+    @Inject(TransactionRunner) private readonly transactions: TransactionRunner,
+    @Inject(OptionSetRepository) private readonly sets: OptionSetRepository,
+  ) {}
+
+  listOptionSets(tx: Transaction, tenantId: string): Promise<OptionSetRecord[]> {
+    return this.sets.listOptionSets(tx, tenantId);
+  }
+
+  async insertOptionSet(
+    tx: Transaction,
+    values: { tenantId: string; name: string; options: string[] },
+  ): Promise<OptionSetRecord> {
+    try {
+      return await this.sets.insertOptionSet(tx, values);
+    } catch (error) {
+      if (this.transactions.isUniqueViolation(error, OPTION_SET_NAME_INDEX))
+        throw new UniqueViolation('name');
+      throw error;
+    }
+  }
+
+  deleteOptionSet(tx: Transaction, tenantId: string, id: string): Promise<boolean> {
+    return this.sets.deleteOptionSet(tx, tenantId, id);
+  }
+}
+
+@Injectable()
+export class DrizzlePlatformLibraryStore implements PlatformLibraryStore {
+  constructor(
+    @Inject(TransactionRunner) private readonly transactions: TransactionRunner,
+    @Inject(PlatformLibraryRepository) private readonly library: PlatformLibraryRepository,
+  ) {}
+
+  /** Runs a write, turning a taken name or value into UniqueViolation. */
+  private async guarded<T>(write: () => Promise<T>): Promise<T> {
+    try {
+      return await write();
+    } catch (error) {
+      if (
+        this.transactions.isUniqueViolation(error, PLATFORM_ATTRIBUTE_NAME_INDEX) ||
+        this.transactions.isUniqueViolation(error, PLATFORM_OPTION_SET_NAME_INDEX)
+      ) {
+        throw new UniqueViolation('name');
+      }
+      if (this.transactions.isUniqueViolation(error, PLATFORM_OPTION_VALUE_INDEX))
+        throw new UniqueViolation('value');
+      throw error;
+    }
+  }
+
+  listAttributes(tx: Transaction): Promise<AttributeRecord[]> {
+    return this.library.listAttributes(tx);
+  }
+
+  findAttribute(tx: Transaction, id: string): Promise<AttributeRecord | null> {
+    return this.library.findAttribute(tx, id);
+  }
+
+  findAttributeByName(tx: Transaction, name: string): Promise<AttributeRecord | null> {
+    return this.library.findAttributeByName(tx, name);
+  }
+
+  insertAttribute(
+    tx: Transaction,
+    values: Pick<AttributeRecord, 'name' | 'dataType' | 'unitKind'>,
+  ): Promise<AttributeRecord> {
+    return this.guarded(() => this.library.insertAttribute(tx, values));
+  }
+
+  updateAttribute(
+    tx: Transaction,
+    id: string,
+    patch: { name?: string; retiredAt?: Date | null },
+  ): Promise<AttributeRecord | null> {
+    return this.guarded(() => this.library.updateAttribute(tx, id, patch));
+  }
+
+  listOptions(tx: Transaction, attributeIds: string[]): Promise<OptionRecord[]> {
+    return this.library.listOptions(tx, attributeIds);
+  }
+
+  findOption(tx: Transaction, attributeId: string, id: string): Promise<OptionRecord | null> {
+    return this.library.findOption(tx, attributeId, id);
+  }
+
+  findOptionByValue(
+    tx: Transaction,
+    attributeId: string,
+    value: string,
+  ): Promise<OptionRecord | null> {
+    return this.library.findOptionByValue(tx, attributeId, value);
+  }
+
+  nextOptionPosition(tx: Transaction, attributeId: string): Promise<number> {
+    return this.library.nextOptionPosition(tx, attributeId);
+  }
+
+  insertOption(
+    tx: Transaction,
+    values: { attributeId: string; value: string; swatchColor: string | null; sortOrder: number },
+  ): Promise<OptionRecord> {
+    return this.guarded(() => this.library.insertOption(tx, values));
+  }
+
+  updateOption(
+    tx: Transaction,
+    attributeId: string,
+    id: string,
+    patch: OptionPatch,
+  ): Promise<OptionRecord | null> {
+    return this.guarded(() => this.library.updateOption(tx, attributeId, id, patch));
+  }
+
+  listOptionSets(tx: Transaction): Promise<OptionSetRecord[]> {
+    return this.library.listOptionSets(tx);
+  }
+
+  nextOptionSetPosition(tx: Transaction): Promise<number> {
+    return this.library.nextOptionSetPosition(tx);
+  }
+
+  insertOptionSet(
+    tx: Transaction,
+    values: { name: string; presetKey: string | null; options: string[]; sortOrder: number },
+  ): Promise<OptionSetRecord> {
+    return this.guarded(() => this.library.insertOptionSet(tx, values));
+  }
+
+  updateOptionSet(
+    tx: Transaction,
+    id: string,
+    patch: PlatformOptionSetPatch,
+  ): Promise<OptionSetRecord | null> {
+    return this.guarded(() => this.library.updateOptionSet(tx, id, patch));
+  }
+
+  deleteOptionSet(tx: Transaction, id: string): Promise<OptionSetRecord | null> {
+    return this.library.deleteOptionSet(tx, id);
   }
 }

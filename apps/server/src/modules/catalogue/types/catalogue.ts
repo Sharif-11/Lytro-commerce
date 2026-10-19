@@ -3,10 +3,12 @@ import type {
   SelectAttributeOption,
   SelectBusinessTypePreset,
   SelectCategory,
+  SelectOptionSet,
   SelectProduct,
   SelectProductAttribute,
   SelectProductAttributeValue,
   SelectProductVariant,
+  SelectSizeChart,
   SelectVariantAttributeValue,
 } from '@lytronix/db';
 import type {
@@ -15,6 +17,7 @@ import type {
   DeliveryMode,
   PaymentPolicy,
   PlanLimits,
+  ProductFormField,
   StockState,
   StockTracking,
   StockUnit,
@@ -31,6 +34,8 @@ export type ProductAttributeValueRecord = SelectProductAttributeValue;
 export type VariantRecord = SelectProductVariant;
 export type VariantValueRecord = SelectVariantAttributeValue;
 export type PresetRecord = SelectBusinessTypePreset;
+export type SizeChartRecord = SelectSizeChart;
+export type OptionSetRecord = SelectOptionSet;
 
 /** The shop a catalogue call acts for: its plan limits (with overrides merged), its state and its business type. */
 export interface CatalogueShop {
@@ -46,12 +51,20 @@ export interface CatalogueActor {
   ip: string | null;
 }
 
+/** PST-04, ATL-01: the operator curating the platform's library, and from where (AUD-03). */
+export interface OperatorActor {
+  operatorId: string;
+  ip: string | null;
+}
+
 /** 'platform' rows come from the shared library (ATL-01); 'shop' rows are the shop's own. */
 export type CatalogueScope = 'platform' | 'shop';
 
 export interface OptionView {
   id: string;
   value: string;
+  /** ATR-18: #RRGGBB, or null for an option shown by its name alone. */
+  swatchColor: string | null;
   scope: CatalogueScope;
   retired: boolean;
 }
@@ -78,11 +91,14 @@ export interface CategoryView {
   productCount: number;
   /** ATR-02: attributes suggested for products filed under it, in order. */
   suggestedAttributeIds: string[];
+  /** PST-06: the shop type its products behave like; null follows its parent, then the shop. */
+  behavesLike: string | null;
+  /** PRD-17: its own size chart, or null. */
+  sizeChart: string[][] | null;
 }
 
-/** PST-02: what a new product starts with in this shop. */
-export interface ProductDefaults {
-  businessType: string | null;
+/** PST-02, PST-05: what one shop type gives a new product. */
+export interface PresetDefaults {
   stockUnit: StockUnit;
   stockTracking: StockTracking;
   batchTracked: boolean;
@@ -90,13 +106,43 @@ export interface ProductDefaults {
   lowStockThreshold: string;
   suggestedAttributeIds: string[];
   suggestedCategories: string[];
+  /** PST-05: the optional fields the product form shows up front; the rest sit under "More settings". */
+  upFrontFields: ProductFormField[];
+}
+
+/** PST-02, PST-06: what a new product starts with in this shop, filed under this category or none. */
+export interface ProductDefaults extends PresetDefaults {
+  /** The shop's own type. */
+  businessType: string | null;
+  /** The type these defaults come from: a category's "behaves like", else the shop's, else "other". */
+  presetKey: string | null;
+  /** PST-06: the category whose "behaves like" chose the type, or null when the shop's own type applies. */
+  fromCategoryId: string | null;
 }
 
 export interface PresetView {
   key: string;
   labelBn: string;
   labelEn: string;
-  defaults: Omit<ProductDefaults, 'businessType'>;
+  defaults: PresetDefaults;
+}
+
+/** ATR-16: a set of values inserted in one tap. */
+export interface OptionSetView {
+  id: string;
+  name: string;
+  options: string[];
+  scope: CatalogueScope;
+  /** A platform set offered first to shops of this type, or null. */
+  presetKey: string | null;
+}
+
+/** PRD-17: the chart a product shows, its own or the nearest category's. */
+export interface SizeChartView {
+  source: 'product' | 'category';
+  /** The category it comes from, when it is not the product's own. */
+  categoryId: string | null;
+  rows: string[][];
 }
 
 export interface VariantAttributeView {
@@ -104,8 +150,8 @@ export interface VariantAttributeView {
   name: string;
   dataType: AttributeDataType;
   unitKind: string | null;
-  /** The options its live variants use, in the attribute's own order. */
-  options: { id: string; value: string }[];
+  /** The options its live variants use, in the attribute's own order, with their swatches (ATR-18). */
+  options: { id: string; value: string; swatchColor: string | null }[];
 }
 
 export interface ProductAttributeView {
@@ -165,6 +211,8 @@ export interface ProductDetail {
   variantAttributes: VariantAttributeView[];
   attributes: ProductAttributeView[];
   variants: VariantView[];
+  /** PRD-17: its own chart, else its primary category's or the nearest one above it; null for none. */
+  sizeChart: SizeChartView | null;
   createdAt: Date;
   updatedAt: Date;
 }

@@ -42,6 +42,12 @@ import { AttributesController } from './controllers/attributes.controller';
 import { CatalogueSetupController } from './controllers/catalogue-setup.controller';
 import { CategoriesController } from './controllers/categories.controller';
 import { ProductsController } from './controllers/products.controller';
+import { OptionSetsController } from './controllers/option-sets.controller';
+import {
+  OperatorAttributesController,
+  OperatorOptionSetsController,
+  OperatorPresetsController,
+} from './controllers/operator-catalogue.controller';
 import { CatalogueRequest } from './services/catalogue-request';
 
 // The team's HTTP routes. They sit outside the staff module because they need the identity and tenancy gates,
@@ -89,6 +95,10 @@ import { CatalogueRequest } from './services/catalogue-request';
     AttributesController,
     CategoriesController,
     ProductsController,
+    OptionSetsController,
+    OperatorPresetsController,
+    OperatorAttributesController,
+    OperatorOptionSetsController,
   ],
   providers: [
     StaffSigninService,

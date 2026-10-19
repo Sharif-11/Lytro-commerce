@@ -25,6 +25,14 @@ export class TransactionRunner {
   }
 
   /**
+   * PST-04, ATL-01, ATR-16: lets the rest of the transaction write the platform's rows of the attribute library and
+   * its option sets (the `platform_curation` policies, migration 0052), and only those. Operator routes only.
+   */
+  async enablePlatformCuration(tx: Transaction): Promise<void> {
+    await tx.execute(sql`SELECT set_config('app.platform_curation', 'on', true)`);
+  }
+
+  /**
    * True when a unique constraint was violated and its name contains the fragment. Services use it to turn a race
    * (two sign-ups with the same phone or address) into a clear answer rather than a 500.
    */

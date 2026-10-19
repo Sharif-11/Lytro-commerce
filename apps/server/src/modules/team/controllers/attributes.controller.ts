@@ -22,6 +22,7 @@ import type { AttributeView, OptionView } from '../../catalogue/types/catalogue'
 import { DashboardGuard, type DashboardRequest } from '../../identity/guards/dashboard.guard';
 import { SessionGuard } from '../../identity/guards/session.guard';
 import {
+  AddOptionsDto,
   CreateAttributeDto,
   CreateOptionDto,
   UpdateAttributeDto,
@@ -31,8 +32,8 @@ import { AttributeViewDto, OptionViewDto } from '../dto/catalogue-response.dto';
 import { PermissionGuard } from '../guards/permission.guard';
 import { CatalogueRequest } from '../services/catalogue-request';
 
-// ATL-01, ATR-01, ATR-10, UOM-02: the attribute library a shop sees (the platform's and its own), and its own
-// attributes and values, made inline while editing a product.
+// ATL-01, ATR-01, ATR-10, ATR-16, ATR-18, UOM-02: the attribute library a shop sees (the platform's and its own),
+// and its own attributes and values (with their swatches), made inline while editing a product.
 @ApiTags('Catalogue')
 @Controller('attributes')
 @Dashboard({})
@@ -111,10 +112,31 @@ export class AttributesController {
     );
   }
 
+  @Post(':id/options/batch')
+  @RequirePermission(Permission.ProductsManage)
+  @ResponseMessage('OptionsAdded')
+  @ApiOperation({
+    summary:
+      'Add several values at once, as an option set does; values already there are reused (ATR-16)',
+  })
+  @ApiBody({ type: AddOptionsDto })
+  @ZodResponse({ type: [OptionViewDto] })
+  addOptions(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(AddOptionsDto.schema)) body: AddOptionsDto,
+    @Req() request: DashboardRequest,
+  ): Promise<OptionView[]> {
+    return this.attributes.addOptions(
+      this.catalogue.tenantIdOf(request),
+      this.catalogue.idOf(id, 'AttributeNotFound'),
+      body,
+    );
+  }
+
   @Patch(':id/options/:optionId')
   @RequirePermission(Permission.ProductsManage)
   @ResponseMessage('OptionUpdated')
-  @ApiOperation({ summary: "Rename or retire one of the shop's own values" })
+  @ApiOperation({ summary: "Rename, re-colour or retire one of the shop's own values (ATR-18)" })
   @ApiBody({ type: UpdateOptionDto })
   @ZodResponse({ type: OptionViewDto })
   updateOption(

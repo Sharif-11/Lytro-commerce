@@ -43,6 +43,9 @@ import {
   ProductRepository,
   VariantRepository,
   PresetRepository,
+  SizeChartRepository,
+  OptionSetRepository,
+  PlatformLibraryRepository,
 } from '@lytronix/db';
 import { EnvironmentParser } from '../config/env';
 import { ENV } from '../config/tokens';
@@ -101,6 +104,21 @@ import { DatabaseService } from './database.service';
       useFactory: (transactions: TransactionRunner) => new VariantRepository(transactions),
     },
     { provide: PresetRepository, useFactory: () => new PresetRepository() },
+    {
+      provide: SizeChartRepository,
+      inject: [TransactionRunner],
+      useFactory: (transactions: TransactionRunner) => new SizeChartRepository(transactions),
+    },
+    {
+      provide: OptionSetRepository,
+      inject: [TransactionRunner],
+      useFactory: (transactions: TransactionRunner) => new OptionSetRepository(transactions),
+    },
+    {
+      provide: PlatformLibraryRepository,
+      inject: [TransactionRunner],
+      useFactory: (transactions: TransactionRunner) => new PlatformLibraryRepository(transactions),
+    },
     {
       provide: UserRepository,
       inject: [TransactionRunner],
@@ -193,6 +211,9 @@ import { DatabaseService } from './database.service';
     ProductRepository,
     VariantRepository,
     PresetRepository,
+    SizeChartRepository,
+    OptionSetRepository,
+    PlatformLibraryRepository,
   ],
 })
 export class DatabaseModule {}

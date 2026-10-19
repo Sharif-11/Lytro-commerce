@@ -1,12 +1,19 @@
-import type { Transaction } from '@lytronix/db';
+import type {
+  PlatformOptionSetPatch,
+  PresetPatch,
+  SizeChartOwner,
+  Transaction,
+} from '@lytronix/db';
 import type {
   AttributeRecord,
   CategoryRecord,
   OptionRecord,
+  OptionSetRecord,
   PresetRecord,
   ProductAttributeRecord,
   ProductAttributeValueRecord,
   ProductRecord,
+  SizeChartRecord,
   VariantRecord,
   VariantValueRecord,
 } from '../types/catalogue';
@@ -55,14 +62,20 @@ export interface AttributeStore {
   nextOptionPosition(tx: Transaction, tenantId: string, attributeId: string): Promise<number>;
   insertOption(
     tx: Transaction,
-    values: { tenantId: string; attributeId: string; value: string; sortOrder: number },
+    values: {
+      tenantId: string;
+      attributeId: string;
+      value: string;
+      swatchColor?: string | null;
+      sortOrder: number;
+    },
   ): Promise<OptionRecord>;
   updateOption(
     tx: Transaction,
     tenantId: string,
     attributeId: string,
     id: string,
-    patch: { value?: string; retiredAt?: Date | null },
+    patch: OptionPatch,
   ): Promise<OptionRecord | null>;
   listCategorySuggestions(
     tx: Transaction,
@@ -77,6 +90,13 @@ export interface AttributeStore {
   ): Promise<void>;
 }
 
+/** An option change: its value, its swatch (ATR-18), whether it is retired. */
+export interface OptionPatch {
+  value?: string;
+  swatchColor?: string | null;
+  retiredAt?: Date | null;
+}
+
 /** PRD-03: a shop's category tree. */
 export interface CategoryStore {
   listCategories(tx: Transaction, tenantId: string): Promise<CategoryRecord[]>;
@@ -86,7 +106,7 @@ export interface CategoryStore {
     tx: Transaction,
     values: Pick<
       CategoryRecord,
-      'parentId' | 'name' | 'slug' | 'depth' | 'sortOrder' | 'visible'
+      'parentId' | 'name' | 'slug' | 'depth' | 'sortOrder' | 'visible' | 'behavesLike'
     > & {
       tenantId: string;
     },
@@ -95,8 +115,12 @@ export interface CategoryStore {
     tx: Transaction,
     tenantId: string,
     id: string,
-    patch: Partial<Pick<CategoryRecord, 'name' | 'parentId' | 'depth' | 'sortOrder' | 'visible'>>,
+    patch: Partial<
+      Pick<CategoryRecord, 'name' | 'parentId' | 'depth' | 'sortOrder' | 'visible' | 'behavesLike'>
+    >,
   ): Promise<CategoryRecord | null>;
+  /** PST-06, PRD-17: the category and the ones above it, nearest first; empty when the shop has no such category. */
+  lineage(tx: Transaction, tenantId: string, id: string): Promise<CategoryRecord[]>;
   subtree(tx: Transaction, tenantId: string, id: string): Promise<{ id: string; level: number }[]>;
   setSubtreeDepths(
     tx: Transaction,
@@ -244,8 +268,89 @@ export interface ProductStore {
   insertVariantValues(tx: Transaction, rows: VariantValueRecord[]): Promise<void>;
 }
 
-/** PST-01, PST-02: the platform's shop-type presets. */
+/** PST-01, PST-02, PST-04: the platform's shop-type presets. */
 export interface PresetStore {
   listPresets(): Promise<PresetRecord[]>;
   findPreset(key: string): Promise<PresetRecord | null>;
+  updatePreset(key: string, patch: PresetPatch): Promise<PresetRecord | null>;
+}
+
+export type { SizeChartOwner };
+
+/** PRD-17: a shop's size charts, one per product or category. */
+export interface SizeChartStore {
+  findChart(
+    tx: Transaction,
+    tenantId: string,
+    owner: SizeChartOwner,
+  ): Promise<SizeChartRecord | null>;
+  /** Every one of the shop's category charts, for the category list. */
+  listCategoryCharts(tx: Transaction, tenantId: string): Promise<SizeChartRecord[]>;
+  putChart(
+    tx: Transaction,
+    tenantId: string,
+    owner: SizeChartOwner,
+    rows: string[][],
+  ): Promise<SizeChartRecord>;
+  deleteChart(tx: Transaction, tenantId: string, owner: SizeChartOwner): Promise<boolean>;
+}
+
+/** ATR-16: the option sets a shop sees, and the ones it saves. */
+export interface OptionSetStore {
+  listOptionSets(tx: Transaction, tenantId: string): Promise<OptionSetRecord[]>;
+  /** A name the shop already used comes back as UniqueViolation('name'). */
+  insertOptionSet(
+    tx: Transaction,
+    values: { tenantId: string; name: string; options: string[] },
+  ): Promise<OptionSetRecord>;
+  deleteOptionSet(tx: Transaction, tenantId: string, id: string): Promise<boolean>;
+}
+
+/**
+ * PST-04, ATL-01, ATR-16, ATR-18: the operator's curation of the platform's attributes, their options and the
+ * platform's option sets. Names and values already taken come back as UniqueViolation('name') or ('value').
+ */
+export interface PlatformLibraryStore {
+  listAttributes(tx: Transaction): Promise<AttributeRecord[]>;
+  findAttribute(tx: Transaction, id: string): Promise<AttributeRecord | null>;
+  findAttributeByName(tx: Transaction, name: string): Promise<AttributeRecord | null>;
+  insertAttribute(
+    tx: Transaction,
+    values: Pick<AttributeRecord, 'name' | 'dataType' | 'unitKind'>,
+  ): Promise<AttributeRecord>;
+  updateAttribute(
+    tx: Transaction,
+    id: string,
+    patch: { name?: string; retiredAt?: Date | null },
+  ): Promise<AttributeRecord | null>;
+  listOptions(tx: Transaction, attributeIds: string[]): Promise<OptionRecord[]>;
+  findOption(tx: Transaction, attributeId: string, id: string): Promise<OptionRecord | null>;
+  findOptionByValue(
+    tx: Transaction,
+    attributeId: string,
+    value: string,
+  ): Promise<OptionRecord | null>;
+  nextOptionPosition(tx: Transaction, attributeId: string): Promise<number>;
+  insertOption(
+    tx: Transaction,
+    values: { attributeId: string; value: string; swatchColor: string | null; sortOrder: number },
+  ): Promise<OptionRecord>;
+  updateOption(
+    tx: Transaction,
+    attributeId: string,
+    id: string,
+    patch: OptionPatch,
+  ): Promise<OptionRecord | null>;
+  listOptionSets(tx: Transaction): Promise<OptionSetRecord[]>;
+  nextOptionSetPosition(tx: Transaction): Promise<number>;
+  insertOptionSet(
+    tx: Transaction,
+    values: { name: string; presetKey: string | null; options: string[]; sortOrder: number },
+  ): Promise<OptionSetRecord>;
+  updateOptionSet(
+    tx: Transaction,
+    id: string,
+    patch: PlatformOptionSetPatch,
+  ): Promise<OptionSetRecord | null>;
+  deleteOptionSet(tx: Transaction, id: string): Promise<OptionSetRecord | null>;
 }

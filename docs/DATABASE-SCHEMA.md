@@ -454,8 +454,10 @@ noted; same-tenant references use composite `(tenant_id, id)` keys, the pattern 
 
 **Built in Phase 3 Slice 1 (migration 0051, 2026-10-19)**, with the decisions noted inline below. Columns a
 later slice needs arrive with it: `image_id`, `video_id` and `tenant.product_images` (Slice 6), `avg_cost`,
-`pack_amount`, `is_stock_holder` and `shared_stock` (Slice 2), `kind` (Phase 4, CMB), `item_condition` (Slice 9),
-`categories.behaves_like` (PST-06) and the option swatches (ATR-18).
+`pack_amount`, `is_stock_holder` and `shared_stock` (Slice 2), `kind` (Phase 4, CMB) and `item_condition` (Slice 9).
+**Slice 1b (migration 0052, 2026-10-19)** added `categories.behaves_like` (PST-06), `attribute_options.swatch_color`
+(ATR-18), `tenant.size_charts` and `tenant.option_sets` (below) and `business_type_presets.up_front_fields` (PST-05);
+`swatch_image_id` and the size chart's `image_id` arrive with media in Slice 6.
 
 ```sql
 CREATE TABLE tenant.catalogue_state (
@@ -623,6 +625,11 @@ CREATE UNIQUE INDEX ON tenant.attribute_options (tenant_id, attribute_id, lower(
 -- Foreign keys are checked past row-level security, so triggers refuse any attribute or option reference (here,
 -- product_attributes, category_attributes and both value tables) that is neither the platform's nor the row's
 -- own shop's (SEC-02).
+-- Decided in Slice 1b (PST-04, ATL-01): the operator curates the platform rows through the application role, not
+-- a separate connection. attributes, attribute_options and option_sets each carry a `platform_curation` policy
+-- allowing writes to rows with no tenant only when the transaction has set app.platform_curation = 'on'
+-- (TransactionRunner.enablePlatformCuration, called by the operator's routes alone). A shop's transaction never
+-- sets it, so its writes stay its own.
 
 CREATE TABLE tenant.product_attributes (            -- ATL-02, ATL-03
     tenant_id       uuid NOT NULL,
@@ -940,14 +947,25 @@ CREATE TABLE tenant.size_charts (                   -- PRD-17: one per product o
 );
 CREATE UNIQUE INDEX size_charts_product ON tenant.size_charts (tenant_id, product_id) WHERE product_id IS NOT NULL;
 CREATE UNIQUE INDEX size_charts_category ON tenant.size_charts (tenant_id, category_id) WHERE category_id IS NOT NULL;
+-- Built in Slice 1b (0052) as a table only: table_rows NOT NULL, with no image_id until media lands (Slice 6),
+-- when the image-or-table check above replaces it. Composite (tenant_id, product_id) and (tenant_id, category_id)
+-- keys cascade with their owner. A product without its own chart shows the one on its primary category or the
+-- nearest category above it (PRD-17), resolved when the product is read.
 
 CREATE TABLE tenant.option_sets (                   -- ATR-16; tenant_id NULL = platform set (same scope rule as attributes)
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id       uuid,
     name            varchar(60) NOT NULL,           -- 'S–XXL', 'Shoe 38–44', 'Common colors'
     preset_key      text,                           -- platform sets offered first for this shop type (PST)
-    options         text[] NOT NULL CHECK (cardinality(options) BETWEEN 1 AND 50)
+    options         text[] NOT NULL CHECK (cardinality(options) BETWEEN 1 AND 50),
+    sort_order      integer NOT NULL DEFAULT 0,
+    CHECK (tenant_id IS NULL OR preset_key IS NULL)  -- only a platform set is offered by shop type
 );
+-- Built in Slice 1b (0052), with the attribute library's two-scope policies and unique lower(name) per scope.
+-- The values are plain text, matched to or added as options of whichever attribute they are inserted into
+-- (POST attributes/:id/options/batch), so a set is never tied to one attribute. Seeded: "S–XXL" (clothing),
+-- "Shoe 38–44" (shoes_bags) and "Common colors", whose values are the platform Color options seeded with
+-- their swatches (ATR-18).
 
 CREATE TABLE tenant.catalog_feeds (                 -- FED-01, FED-05: one row per tenant
     tenant_id       uuid PRIMARY KEY,
@@ -1016,8 +1034,12 @@ CREATE TABLE control.business_type_presets (        -- PST-01, PST-04
     default_not_tracked boolean NOT NULL DEFAULT false,
     default_low_stock   numeric(14,3) NOT NULL DEFAULT 5,
     suggested_attribute_ids uuid[] NOT NULL DEFAULT '{}',
-    suggested_categories    jsonb NOT NULL DEFAULT '[]'
+    suggested_categories    jsonb NOT NULL DEFAULT '[]',
+    up_front_fields         text[] NOT NULL DEFAULT '{}'  -- PST-05 (Slice 1b): ProductFormField names shown
+                                                          -- before "More settings"
 );
+-- The operator edits rows through PATCH operator/presets/:key (PST-04; the application role holds UPDATE on this
+-- table from 0052). The key never changes: shops and categories hold it by value.
 -- control.tenants gains business_type text REFERENCES control.business_type_presets(key), nullable.
 ```
 

@@ -81,7 +81,8 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   // Checked in test/catalogue-products.e2e.spec.ts and test/catalogue-library.e2e.spec.ts (Phase 3 Slice 1), and at the
   // data layer in test/catalogue-db.e2e.spec.ts. GET /presets is platform data, the same for every shop.
   'GET /presets': 'returns the same platform-wide shop types regardless of which shop calls it',
-  'GET /product-defaults': "the session shop's own business type decides the defaults",
+  'GET /product-defaults':
+    "the session shop's own business type, or its own category's behaves-like, decides the defaults; another shop's category answers 404",
   'PUT /business-type': "sets only the session shop's own business type",
   'GET /attributes':
     "lists the platform's attributes and only the session shop's own, never another shop's",
@@ -106,4 +107,16 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'PUT /products/:id/variants': "another shop's product answers 404",
   'PUT /products/:id/attributes': "another shop's product answers 404",
   'PUT /products/:id/slug': "another shop's product answers 404",
+  // Phase 3 Slice 1b, checked in test/catalogue-extras.e2e.spec.ts.
+  'POST /attributes/:id/options/batch':
+    "another shop's attribute answers 404; the values it adds are the session shop's own",
+  'PUT /categories/:id/size-chart': "another shop's category answers 404",
+  'DELETE /categories/:id/size-chart': "another shop's category answers 404",
+  'POST /products/:id/duplicate':
+    "another shop's product answers 404; the copy is the session shop's own",
+  'PUT /products/:id/size-chart': "another shop's product answers 404",
+  'DELETE /products/:id/size-chart': "another shop's product answers 404",
+  'GET /option-sets': "lists the platform's option sets and only the session shop's own",
+  'POST /option-sets': 'saves the set in the session shop only',
+  'DELETE /option-sets/:id': "another shop's set (or a platform one) answers 404",
 };

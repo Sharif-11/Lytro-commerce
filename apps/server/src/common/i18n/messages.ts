@@ -574,6 +574,22 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'Only a text or number attribute can be filled in when ordering.',
     bn: 'শুধু টেক্সট বা সংখ্যার অ্যাট্রিবিউট অর্ডারের সময় পূরণ করা যায়।',
   },
+  PresetNotFound: {
+    en: 'This shop type was not found.',
+    bn: 'দোকানের এই ধরনটি পাওয়া যায়নি।',
+  },
+  BatchOrSerialNotBoth: {
+    en: 'Choose batch tracking or serial tracking, not both.',
+    bn: 'ব্যাচ ট্র্যাকিং অথবা সিরিয়াল ট্র্যাকিং বেছে নিন, দুটো একসাথে নয়।',
+  },
+  OptionSetNameTaken: {
+    en: 'An option set with this name already exists. Choose another name.',
+    bn: 'এই নামে একটি অপশন সেট আগে থেকেই আছে। অন্য একটি নাম দিন।',
+  },
+  OptionSetNotFound: {
+    en: 'This option set was not found.',
+    bn: 'অপশন সেটটি পাওয়া যায়নি।',
+  },
   PresetsListed: {
     en: 'Shop types retrieved.',
     bn: 'দোকানের ধরনগুলো পাওয়া গেছে।',
@@ -657,6 +673,42 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   ProductDeleted: {
     en: 'Product deleted.',
     bn: 'প্রোডাক্ট ডিলিট হয়েছে।',
+  },
+  ProductDuplicated: {
+    en: 'Product copied. The copy stays hidden until you turn it on.',
+    bn: 'প্রোডাক্ট কপি হয়েছে। চালু না করা পর্যন্ত কপিটি দোকানে দেখাবে না।',
+  },
+  SizeChartSaved: {
+    en: 'Size chart saved.',
+    bn: 'সাইজ চার্ট সেভ হয়েছে।',
+  },
+  SizeChartRemoved: {
+    en: 'Size chart removed.',
+    bn: 'সাইজ চার্ট সরানো হয়েছে।',
+  },
+  OptionsAdded: {
+    en: 'Options added.',
+    bn: 'অপশন যোগ হয়েছে।',
+  },
+  OptionSetsListed: {
+    en: 'Option sets retrieved.',
+    bn: 'অপশন সেট পাওয়া গেছে।',
+  },
+  OptionSetCreated: {
+    en: 'Option set saved.',
+    bn: 'অপশন সেট সেভ হয়েছে।',
+  },
+  OptionSetUpdated: {
+    en: 'Option set updated.',
+    bn: 'অপশন সেট আপডেট হয়েছে।',
+  },
+  OptionSetDeleted: {
+    en: 'Option set deleted.',
+    bn: 'অপশন সেট ডিলিট হয়েছে।',
+  },
+  PresetUpdated: {
+    en: 'Shop type updated.',
+    bn: 'দোকানের ধরন আপডেট হয়েছে।',
   },
 };
 

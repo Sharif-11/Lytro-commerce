@@ -19,6 +19,7 @@ import {
   AttributeDataType,
   AttributeRole,
   enumTuple,
+  OPTION_SET_NAME_MAX_LENGTH,
   OPTION_VALUE_MAX_LENGTH,
   UnitKind,
 } from '@lytronix/validators';
@@ -74,6 +75,8 @@ export const attributeOptions = tenant.table(
       .references(() => attributes.id),
     tenantId: uuid('tenant_id'),
     value: varchar('value', { length: OPTION_VALUE_MAX_LENGTH }).notNull(),
+    // ATR-18: an optional colour swatch, #RRGGBB. The image swatch (MED-03) arrives with media in Slice 6.
+    swatchColor: varchar('swatch_color', { length: 7 }),
     sortOrder: integer('sort_order').notNull().default(0),
     retiredAt: timestamp('retired_at', { withTimezone: true }),
     createdAt: createdAt(),
@@ -87,6 +90,7 @@ export const attributeOptions = tenant.table(
     uniqueIndex('attribute_options_tenant_value_idx')
       .on(t.tenantId, t.attributeId, sql`lower(${t.value})`)
       .where(sql`${t.tenantId} IS NOT NULL`),
+    check('attribute_options_swatch_check', sql`${t.swatchColor} ~ '^#[0-9A-Fa-f]{6}$'`),
   ],
 );
 
@@ -206,8 +210,35 @@ export const categoryAttributes = tenant.table(
   ],
 );
 
+// ATR-16: values inserted in one tap. Same two scopes as attributes: tenant_id NULL is a platform set (offered first
+// to shops of its preset_key's type), a tenant id is a set that shop saved. The values are plain text, matched to
+// or added as options of whichever attribute they are inserted into.
+export const optionSets = tenant.table(
+  'option_sets',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    tenantId: uuid('tenant_id'),
+    name: varchar('name', { length: OPTION_SET_NAME_MAX_LENGTH }).notNull(),
+    presetKey: text('preset_key'),
+    options: text('options').array().notNull(),
+    sortOrder: integer('sort_order').notNull().default(0),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex('option_sets_tenant_name_idx')
+      .on(t.tenantId, sql`lower(${t.name})`)
+      .where(sql`${t.tenantId} IS NOT NULL`),
+    uniqueIndex('option_sets_platform_name_idx')
+      .on(sql`lower(${t.name})`)
+      .where(sql`${t.tenantId} IS NULL`),
+    check('option_sets_options_check', sql`cardinality(${t.options}) BETWEEN 1 AND 50`),
+    check('option_sets_preset_check', sql`${t.tenantId} IS NULL OR ${t.presetKey} IS NULL`),
+  ],
+);
+
 export type SelectAttribute = typeof attributes.$inferSelect;
 export type SelectAttributeOption = typeof attributeOptions.$inferSelect;
 export type SelectProductAttribute = typeof productAttributes.$inferSelect;
 export type SelectProductAttributeValue = typeof productAttributeValues.$inferSelect;
 export type SelectVariantAttributeValue = typeof variantAttributeValues.$inferSelect;
+export type SelectOptionSet = typeof optionSets.$inferSelect;

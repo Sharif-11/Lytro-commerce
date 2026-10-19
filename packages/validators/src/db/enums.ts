@@ -228,6 +228,9 @@ export enum AuditAction {
   AttributeUpdated = 'attribute_updated',
   // PST-01: the shop's main business type, which sets new products' defaults (PST-02).
   BusinessTypeChanged = 'business_type_changed',
+  // ATR-16: a shop's own option sets.
+  OptionSetCreated = 'option_set_created',
+  OptionSetDeleted = 'option_set_deleted',
 }
 
 // AUD-07: these action kinds (payment, wallet, credential, plan, balance) are kept 24 months regardless of
@@ -330,6 +333,15 @@ export enum PlatformAuditAction {
   // LIF-24: mirrors AuditAction.TenantSuspended/TenantRestored above (D2-5).
   TenantSuspended = 'tenant_suspended',
   TenantRestored = 'tenant_restored',
+  // PST-04, ATL-01, ATR-16: the operator curating the shop-type presets and the platform's attribute library.
+  PresetUpdated = 'preset_updated',
+  PlatformAttributeCreated = 'platform_attribute_created',
+  PlatformAttributeUpdated = 'platform_attribute_updated',
+  PlatformOptionCreated = 'platform_option_created',
+  PlatformOptionUpdated = 'platform_option_updated',
+  PlatformOptionSetCreated = 'platform_option_set_created',
+  PlatformOptionSetUpdated = 'platform_option_set_updated',
+  PlatformOptionSetDeleted = 'platform_option_set_deleted',
 }
 
 // BAL-02: what a balance-ledger entry is for. One list, shared by every module that ever charges or credits a
@@ -503,6 +515,20 @@ export const CAPTURED_DATA_TYPES: readonly AttributeDataType[] = [
   AttributeDataType.Text,
   AttributeDataType.NumberWithUnit,
 ];
+
+// PST-05: the optional product-form fields a shop type can show up front; every other one sits under
+// "More settings". Every field stays reachable for every shop type.
+export enum ProductFormField {
+  StockTracking = 'stockTracking',
+  BatchTracked = 'batchTracked',
+  SerialTracked = 'serialTracked',
+  ItemCondition = 'itemCondition',
+  SizeChart = 'sizeChart',
+  WeightKg = 'weightKg',
+  LowStockThreshold = 'lowStockThreshold',
+  DeliveryCharge = 'deliveryCharge',
+  PaymentPolicy = 'paymentPolicy',
+}
 
 export function enumTuple<T extends string>(values: readonly T[]): [T, ...T[]] {
   const [first, ...rest] = values;

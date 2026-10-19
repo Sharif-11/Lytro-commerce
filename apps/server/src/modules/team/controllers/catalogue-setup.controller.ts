@@ -1,7 +1,11 @@
-import { Body, Controller, Get, Inject, Put, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Inject, Put, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
-import { Permission } from '@lytronix/validators';
+import {
+  Permission,
+  productDefaultsQuerySchema,
+  type ProductDefaultsQuery,
+} from '@lytronix/validators';
 import { Dashboard } from '../../../common/decorators/dashboard';
 import { RequirePermission } from '../../../common/decorators/require-permission';
 import { ResponseMessage } from '../../../common/decorators/response-message';
@@ -15,7 +19,8 @@ import { PresetViewDto, ProductDefaultsDto } from '../dto/catalogue-response.dto
 import { PermissionGuard } from '../guards/permission.guard';
 import { CatalogueRequest } from '../services/catalogue-request';
 
-// PST-01, PST-02: the shop types, what a new product starts with in this shop, and the shop's own choice.
+// PST-01, PST-02, PST-05, PST-06: the shop types, what a new product starts with in this shop (or under one of its
+// categories), and the shop's own choice.
 @ApiTags('Catalogue')
 @Controller()
 @Dashboard({})
@@ -41,11 +46,18 @@ export class CatalogueSetupController {
   @RequirePermission(Permission.ProductsRead)
   @ResponseMessage('ProductDefaultsRetrieved')
   @ApiOperation({
-    summary: 'What a new product starts with in this shop, from its business type (PST-02)',
+    summary:
+      'What a new product starts with: from the category it is filed under when that behaves like a shop type, else the shop type (PST-02, PST-05, PST-06)',
   })
   @ZodResponse({ type: ProductDefaultsDto })
-  async defaults(@Req() request: DashboardRequest): Promise<ProductDefaults> {
-    return this.presets.defaultsFor((await this.catalogue.shopOf(request)).businessType);
+  async defaults(
+    @Query(new ZodValidationPipe(productDefaultsQuerySchema)) query: ProductDefaultsQuery,
+    @Req() request: DashboardRequest,
+  ): Promise<ProductDefaults> {
+    return this.presets.productDefaults(
+      await this.catalogue.shopOf(request),
+      query.categoryId ?? null,
+    );
   }
 
   @Put('business-type')

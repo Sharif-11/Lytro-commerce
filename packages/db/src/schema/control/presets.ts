@@ -23,6 +23,11 @@ export const businessTypePresets = control.table('business_type_presets', {
     .notNull()
     .default(sql`'{}'`),
   suggestedCategories: jsonb('suggested_categories').$type<string[]>().notNull().default([]),
+  // PST-05: the optional product-form fields (ProductFormField) shown up front; the rest sit under "More settings".
+  upFrontFields: text('up_front_fields')
+    .array()
+    .notNull()
+    .default(sql`'{}'`),
 });
 
 export type SelectBusinessTypePreset = typeof businessTypePresets.$inferSelect;
