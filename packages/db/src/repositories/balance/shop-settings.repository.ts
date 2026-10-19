@@ -28,6 +28,12 @@ export class ShopSettingsRepository {
       });
   }
 
+  /** LIF-19: removes the shop's settings row (its delivery rate and default payment policy) at day 60. */
+  async deleteForTenant(tx: Transaction, tenantId: string): Promise<void> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    await tx.delete(shopSettings).where(eq(shopSettings.tenantId, tenantId));
+  }
+
   /** PRD-08: the shop-wide default payment policy, with the advance a partial-advance default asks. */
   async setPaymentPolicy(
     tx: Transaction,

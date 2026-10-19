@@ -39,6 +39,8 @@ export interface DeliveryZoneStore {
     tenantId: string,
     zoneId: string,
   ): Promise<{ id: string; name: string }[]>;
+  /** LIF-19: every zone of the shop, once its products' limits are gone. */
+  deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void>;
 }
 
 /** DLV-07: a zone a product still names was deleted underneath the check that looked for one. */

@@ -278,6 +278,11 @@ export interface ProductStore {
   ): Promise<void>;
 }
 
+/** LIF-19: every catalogue row of a shop, and its settings row, deleted at day 60. */
+export interface CatalogueDataStore {
+  deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void>;
+}
+
 /** PRD-08: the shop-wide default payment policy, null until the shop sets one. */
 export interface ShopPolicyStore {
   get(tenantId: string): Promise<ShopPaymentPolicy | null>;

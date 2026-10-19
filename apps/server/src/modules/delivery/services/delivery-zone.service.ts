@@ -279,6 +279,14 @@ export class DeliveryZoneService {
     });
   }
 
+  /**
+   * LIF-19: the day-60 deletion job's delivery step: every zone and its areas. Runs after the catalogue's, since a
+   * product's delivery limit keeps its zone. A second run finds nothing to delete.
+   */
+  deleteAllForTenant(tenantId: string): Promise<void> {
+    return this.transactions.run((tx) => this.zones.deleteAllForTenant(tx, tenantId));
+  }
+
   // --- Building blocks ---
 
   private async find(tx: Transaction, tenantId: string, zoneId: string): Promise<ZoneRecord> {

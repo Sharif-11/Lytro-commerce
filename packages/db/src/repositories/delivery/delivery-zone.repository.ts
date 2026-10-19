@@ -179,6 +179,15 @@ export class DeliveryZoneRepository {
       .where(and(eq(deliveryZoneAreas.tenantId, tenantId), or(...matches)));
   }
 
+  /**
+   * LIF-19: deletes every zone of the shop with its areas. Its products' delivery limits must already be gone (they
+   * go with the products), since a limit keeps its zone.
+   */
+  async deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    await tx.delete(deliveryZones).where(eq(deliveryZones.tenantId, tenantId));
+  }
+
   /** DLV-07: the products that name this zone in their delivery limit. */
   async productsLimitedTo(
     tx: Transaction,
