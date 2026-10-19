@@ -216,12 +216,15 @@ apps/dashboard/src/
     $shop/
       route.tsx              the layout route: the one session guard, renders ShopShell around an Outlet
       index.tsx              the dashboard home
-      orders.tsx, products.tsx, customers.tsx, balance.tsx, more.tsx, plans.tsx
+      orders.tsx, products.tsx, customers.tsx, more.tsx
+      plans.tsx, balance.tsx, invoices.tsx, staff.tsx, roles.tsx, activity.tsx, settings.tsx, account.tsx
+                             the Phase 1–2 sections, gated per permission inside the view
   views/<screen>/
     index.tsx                the real page; sibling files are view-local pieces (checkout/plan-picker.tsx)
   components/
     ui/                      primitives: button, text-field, otp-input, chip, notice, icon, language-toggle,
-                             step-frame (the onboarding shell with the progress bar)
+                             step-frame (the onboarding shell with the progress bar), confirm-dialog, fields
+                             (select, checkbox row, page header, card, page column)
     brand/                   the mark, the wordmark, Powered by Lytro, the Google and Facebook marks
     layout/                  the shop shell, split on ENGINEERING-STANDARDS.md §2a's container/presentational
                              line: shop-shell.tsx (container, reads /me) over sidebar.tsx, bottom-nav.tsx,
@@ -229,7 +232,7 @@ apps/dashboard/src/
                              list both navs render
   api/
     client.ts                the typed fetch wrapper: CSRF header on mutating requests, the error envelope
-    me.ts, auth.ts, billing.ts
+    me.ts, auth.ts, billing.ts, balance.ts, staff.ts, activity.ts, shop-settings.ts, identities.ts
                              query/mutation hooks per backend module; a view calls useMe(), never the client
     error-message.ts         ErrorCode → copy, exhaustive, no default
   session/

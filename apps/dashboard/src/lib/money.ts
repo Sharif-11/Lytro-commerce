@@ -5,6 +5,14 @@ export function formatTaka(amount: number | string): string {
   return `৳${Math.round(value).toLocaleString('en-US')}`;
 }
 
+/** `৳-0.50`: the same, but paisa kept when the amount has any -- ledger lines and rates charge fractions. */
+export function formatTakaExact(amount: number | string): string {
+  const value = typeof amount === 'string' ? Number(amount) : amount;
+  if (!Number.isFinite(value)) return '৳0';
+  const fraction = Math.abs(value) % 1 === 0 ? 0 : 2;
+  return `৳${value.toLocaleString('en-US', { minimumFractionDigits: fraction, maximumFractionDigits: 2 })}`;
+}
+
 /** Whole days from now until an ISO date, never negative; null without a date. */
 export function daysUntil(iso: string | null, now = Date.now()): number | null {
   if (!iso) return null;
