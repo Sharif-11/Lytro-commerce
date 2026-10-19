@@ -115,6 +115,10 @@ export class DrizzleTenantStore implements TenantStore {
     return this.tenants.lockBalanceForUpdate(tx, tenantId);
   }
 
+  findBalance(tx: Transaction, tenantId: string): Promise<BalanceRow | null> {
+    return this.tenants.findBalance(tx, tenantId);
+  }
+
   setBalanceFrozen(tx: Transaction, tenantId: string, frozen: boolean): Promise<void> {
     return this.tenants.setBalanceFrozen(tx, tenantId, frozen);
   }
@@ -139,13 +143,8 @@ export class DrizzleTenantStore implements TenantStore {
     return this.tenants.setRetentionFloor(tx, tenantId, floor);
   }
 
-  applyBalanceChange(
-    tx: Transaction,
-    tenantId: string,
-    amount: string,
-    options?: { frozen?: boolean; touchActivityAt?: Date },
-  ): Promise<void> {
-    return this.tenants.applyBalanceChange(tx, tenantId, amount, options);
+  touchActivity(tx: Transaction, tenantId: string, at: Date): Promise<void> {
+    return this.tenants.touchActivity(tx, tenantId, at);
   }
 
   setLifecycleState(

@@ -35,6 +35,7 @@ const PASSWORD = 'correct-horse-9';
 let app: INestApplication;
 let port: number;
 let admin: pg.Client;
+let appUrl: string;
 let balance: BalanceService;
 let rates: RateService;
 let overrides: PlanLimitOverridesService;
@@ -148,6 +149,7 @@ async function enrollOperator(email: string): Promise<{ cookie: string; csrfToke
 beforeAll(async () => {
   if (!ADMIN_URL) return;
   const { adminDbUrl, appDbUrl } = await prepareTestDatabase(ADMIN_URL, DB_NAME);
+  appUrl = appDbUrl;
   process.env['DATABASE_URL'] = appDbUrl;
   process.env['OTP_SECRET'] = 'balance-e2e-otp-secret-0123456789abcdefgh';
   process.env['PLATFORM_DOMAIN'] = 'localhost';
@@ -343,6 +345,38 @@ describeIfDatabase('balance ledger (BAL-01 to BAL-18)', () => {
     expect(entry.rateUsed).toBe('0.5500');
   });
 
+  it('BAL-16: units x rate rounds to the paisa, and takes a rate as stored, with four decimals', async () => {
+    const tenantId = await freshTenant();
+    await balance.creditStandalone({ tenantId, amount: '10.00', type: LedgerEntryType.TopUp });
+
+    // 1.5 x 0.55 = 0.825, rounded half up to 0.83.
+    const half = await balance.chargeStandalone({
+      tenantId,
+      type: LedgerEntryType.Sms,
+      units: '1.5',
+      rateUsed: '0.55',
+    });
+    expect(half.amount).toBe('-0.83');
+
+    // The rate exactly as control.rates holds it ('0.5500'), and one using all four decimals.
+    const stored = await rates.current(RateKey.SmsPerUnit);
+    const asStored = await balance.chargeStandalone({
+      tenantId,
+      type: LedgerEntryType.Sms,
+      units: '2',
+      rateUsed: stored?.value ?? '',
+    });
+    expect(asStored.amount).toBe('-1.10');
+    const fine = await balance.chargeStandalone({
+      tenantId,
+      type: LedgerEntryType.Sms,
+      units: '3',
+      rateUsed: '0.5525',
+    });
+    expect(fine.amount).toBe('-1.66'); // 1.6575
+    expect(fine.rateUsed).toBe('0.5525');
+  });
+
   it('BAL-17: an operator adjustment needs a reason and is audited', async () => {
     const tenantId = await freshTenant();
     await expect(
@@ -370,6 +404,153 @@ describeIfDatabase('balance ledger (BAL-01 to BAL-18)', () => {
       [tenantId],
     );
     expect(audited.rows[0]?.count).toBe('1');
+  });
+
+  it('ADM-08: an operator adjustment and its platform audit entry commit together or not at all', async () => {
+    const tenantId = await freshTenant();
+    // The platform log refuses this one write, the way a dropped connection or a crash would lose it.
+    await admin.query(
+      `CREATE FUNCTION public.refuse_audit() RETURNS trigger LANGUAGE plpgsql
+       AS $$ BEGIN RAISE EXCEPTION 'audit write lost'; END $$`,
+    );
+    await admin.query(
+      `CREATE TRIGGER refuse_audit BEFORE INSERT ON control.platform_audit_log
+       FOR EACH ROW WHEN (NEW.target_id = '${tenantId}') EXECUTE FUNCTION public.refuse_audit()`,
+    );
+    try {
+      await expect(
+        balance.adjustStandalone({
+          tenantId,
+          amount: '25.00',
+          reason: 'manual correction',
+          operatorId: randomUUID(),
+        }),
+      ).rejects.toThrow(/audit write lost/);
+    } finally {
+      await admin.query('DROP TRIGGER refuse_audit ON control.platform_audit_log');
+      await admin.query('DROP FUNCTION public.refuse_audit()');
+    }
+
+    expect((await balance.current(tenantId)).amount).toBe('0.00');
+    const entries = await admin.query<{ count: string }>(
+      'SELECT count(*)::text FROM tenant.balance_ledger WHERE tenant_id = $1',
+      [tenantId],
+    );
+    expect(entries.rows[0]?.count).toBe('0');
+  });
+});
+
+describeIfDatabase('the database keeps the balance (BAL-02, BAL-11, DAT-10)', () => {
+  async function storedBalance(tenantId: string): Promise<string> {
+    const row = await admin.query<{ amount: string }>(
+      'SELECT balance_amount::text AS amount FROM control.tenants WHERE id = $1',
+      [tenantId],
+    );
+    return row.rows[0]?.amount ?? '';
+  }
+
+  it('an entry moves the balance and fills balance_after, whatever its writer passed', async () => {
+    const tenantId = await freshTenant();
+    await balance.creditStandalone({ tenantId, amount: '40.00', type: LedgerEntryType.TopUp });
+
+    // Straight into the table as the schema owner, with a made-up balance_after.
+    const row = await admin.query<{ balance_after: string }>(
+      `INSERT INTO tenant.balance_ledger (tenant_id, type, amount, balance_after)
+       VALUES ($1, 'adjustment', '-15.00', '999.00') RETURNING balance_after::text`,
+      [tenantId],
+    );
+    expect(row.rows[0]?.balance_after).toBe('25.00');
+    expect(await storedBalance(tenantId)).toBe('25.00');
+  });
+
+  it('a balance changes only through an entry, for the app role and the schema owner alike', async () => {
+    const tenantId = await freshTenant();
+    await balance.creditStandalone({ tenantId, amount: '10.00', type: LedgerEntryType.TopUp });
+
+    await expect(
+      admin.query("UPDATE control.tenants SET balance_amount = '500.00' WHERE id = $1", [tenantId]),
+    ).rejects.toThrow(/only through a balance-ledger entry/);
+    const appClient = new pg.Client({ connectionString: appUrl });
+    await appClient.connect();
+    try {
+      await expect(
+        appClient.query("UPDATE control.tenants SET balance_amount = '500.00' WHERE id = $1", [
+          tenantId,
+        ]),
+      ).rejects.toThrow(/only through a balance-ledger entry/);
+      // The tenant row's other columns still change as before.
+      await appClient.query('UPDATE control.tenants SET balance_frozen = true WHERE id = $1', [
+        tenantId,
+      ]);
+    } finally {
+      await appClient.end();
+    }
+    expect(await storedBalance(tenantId)).toBe('10.00');
+
+    // A new shop starts at zero.
+    await expect(
+      admin.query(
+        `INSERT INTO control.tenants (owner_identity_id, subscriber_id, shop_name, slug, balance_amount)
+         SELECT owner_identity_id, subscriber_id, 'Copy', $2, '50.00' FROM control.tenants WHERE id = $1`,
+        [tenantId, freshSlug()],
+      ),
+    ).rejects.toThrow(/only through a balance-ledger entry/);
+  });
+
+  it('an entry of nothing, or of an unknown kind, is refused; so is a charge of nothing or less', async () => {
+    const tenantId = await freshTenant();
+    await expect(
+      admin.query(
+        "INSERT INTO tenant.balance_ledger (tenant_id, type, amount) VALUES ($1, 'adjustment', 0)",
+        [tenantId],
+      ),
+    ).rejects.toThrow(/balance_ledger_amount_nonzero/);
+    await expect(
+      admin.query(
+        "INSERT INTO tenant.balance_ledger (tenant_id, type, amount) VALUES ($1, 'gift', '5.00')",
+        [tenantId],
+      ),
+    ).rejects.toThrow(/invalid input value for enum/);
+    for (const amount of ['0.00', '-5.00']) {
+      await expect(
+        balance.chargeStandalone({ tenantId, amount, type: LedgerEntryType.Sms }),
+      ).rejects.toThrow('charge amount must be positive');
+    }
+    expect(await storedBalance(tenantId)).toBe('0.00');
+  });
+
+  it('DAT-10: the append-only tables refuse a TRUNCATE, even from the schema owner', async () => {
+    for (const table of [
+      'tenant.balance_ledger',
+      'tenant.activity_log',
+      'tenant.stock_movements',
+    ]) {
+      await expect(admin.query(`TRUNCATE ${table}`)).rejects.toThrow(/insert-only/);
+    }
+  });
+
+  it('BAL-01: reading the balance never waits behind a charge holding the lock', async () => {
+    const tenantId = await freshTenant();
+    await balance.creditStandalone({ tenantId, amount: '10.00', type: LedgerEntryType.TopUp });
+
+    const holder = new pg.Client({ connectionString: appUrl });
+    await holder.connect();
+    try {
+      await holder.query('BEGIN');
+      await holder.query('SELECT 1 FROM control.tenants WHERE id = $1 FOR UPDATE', [tenantId]);
+      const outcome = await Promise.race([
+        balance.current(tenantId).then((snapshot) => snapshot.amount),
+        new Promise<string>((resolve) =>
+          setTimeout(() => {
+            resolve('still waiting');
+          }, 2_000),
+        ),
+      ]);
+      expect(outcome).toBe('10.00');
+    } finally {
+      await holder.query('ROLLBACK');
+      await holder.end();
+    }
   });
 });
 

@@ -74,7 +74,7 @@ export class PaymentQueueService {
         await this.purchase.activate(tx, payment, now, ip);
       }
 
-      await this.platformAudit.record({
+      await this.platformAudit.recordWithin(tx, {
         actorType: PlatformActorType.Operator,
         actorId: operatorId,
         action: PlatformAuditAction.PlanPaymentVerified,
@@ -110,7 +110,7 @@ export class PaymentQueueService {
         result: AuditResult.Success,
         summary: { kind: payment.kind, amount: payment.amount, note },
       });
-      await this.platformAudit.record({
+      await this.platformAudit.recordWithin(tx, {
         actorType: PlatformActorType.Operator,
         actorId: operatorId,
         action: PlatformAuditAction.PlanPaymentRejected,

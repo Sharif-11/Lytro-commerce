@@ -223,26 +223,30 @@ export class TenantRepository {
     return rows[0] ?? null;
   }
 
+  /** BAL-01: the balance as last committed, for a reader. Takes no lock, so it never waits behind a charge. */
+  async findBalance(tx: Executor, tenantId: string): Promise<BalanceRow | null> {
+    const rows = await tx
+      .select({
+        amount: tenants.balanceAmount,
+        frozen: tenants.balanceFrozen,
+        state: tenants.state,
+      })
+      .from(tenants)
+      .where(eq(tenants.id, tenantId));
+    return rows[0] ?? null;
+  }
+
   /** BAL-07/08/09: freezes or unfreezes the balance without touching its amount. */
   async setBalanceFrozen(tx: Executor, tenantId: string, frozen: boolean): Promise<void> {
     await tx.update(tenants).set({ balanceFrozen: frozen }).where(eq(tenants.id, tenantId));
   }
 
-  /** Writes the new balance (and, for pay-as-you-go activity, the cached last-activity timestamp, D2-11). */
-  async applyBalanceChange(
-    tx: Executor,
-    tenantId: string,
-    amount: string,
-    options: { frozen?: boolean; touchActivityAt?: Date } = {},
-  ): Promise<void> {
-    await tx
-      .update(tenants)
-      .set({
-        balanceAmount: amount,
-        ...(options.frozen !== undefined ? { balanceFrozen: options.frozen } : {}),
-        ...(options.touchActivityAt ? { lastActivityAt: options.touchActivityAt } : {}),
-      })
-      .where(eq(tenants.id, tenantId));
+  /**
+   * D2-11: the cached last-activity timestamp a pay-as-you-go charge or top-up moves. The balance itself is never
+   * written here: a balance-ledger entry moves it, and the database refuses any other change (BAL-02).
+   */
+  async touchActivity(tx: Executor, tenantId: string, at: Date): Promise<void> {
+    await tx.update(tenants).set({ lastActivityAt: at }).where(eq(tenants.id, tenantId));
   }
 
   /**

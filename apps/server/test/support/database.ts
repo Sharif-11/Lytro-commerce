@@ -53,6 +53,23 @@ export async function prepareTestDatabase(
   };
 }
 
+/**
+ * Gives a shop a balance the only way the database allows (BAL-02): one balance-ledger entry, whose insert moves
+ * balance_amount. An adjustment, since a seeded balance may be any sign; zero writes nothing.
+ */
+export async function seedBalance(
+  admin: pg.Client,
+  tenantId: string,
+  amount: string,
+): Promise<void> {
+  if (Number(amount) === 0) return;
+  await admin.query(
+    `INSERT INTO tenant.balance_ledger (tenant_id, type, amount, reference)
+     VALUES ($1, 'adjustment', $2, '{"seeded": "test"}')`,
+    [tenantId, amount],
+  );
+}
+
 /** Creates a subscriber, a verified phone identity and a shop, as the admin role. Returns the shop id. */
 export async function seedShop(
   admin: pg.Client,

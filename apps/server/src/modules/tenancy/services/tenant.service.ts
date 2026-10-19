@@ -77,19 +77,19 @@ export class TenantService {
     return this.store.lockBalanceForUpdate(tx, tenantId);
   }
 
+  /** BAL-01: the balance as last committed, for a reader; takes no lock. */
+  findBalance(tx: Transaction, tenantId: string): Promise<BalanceRow | null> {
+    return this.store.findBalance(tx, tenantId);
+  }
+
   /** BAL-07/08/09: freezes or unfreezes the balance without touching its amount. */
   setBalanceFrozen(tx: Transaction, tenantId: string, frozen: boolean): Promise<void> {
     return this.store.setBalanceFrozen(tx, tenantId, frozen);
   }
 
-  /** Writes the new balance (and, optionally, the frozen flag and/or D2-11's last-activity timestamp). */
-  applyBalanceChange(
-    tx: Transaction,
-    tenantId: string,
-    amount: string,
-    options?: { frozen?: boolean; touchActivityAt?: Date },
-  ): Promise<void> {
-    return this.store.applyBalanceChange(tx, tenantId, amount, options);
+  /** D2-11: moves the cached last-activity timestamp. The balance itself moves only through a ledger entry. */
+  touchActivity(tx: Transaction, tenantId: string, at: Date): Promise<void> {
+    return this.store.touchActivity(tx, tenantId, at);
   }
 
   /** Opens a transaction for a caller that doesn't have one yet (control.tenants has no RLS/tenant context). */

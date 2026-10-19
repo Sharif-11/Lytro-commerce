@@ -4,12 +4,13 @@ import { Test } from '@nestjs/testing';
 import { randomUUID } from 'node:crypto';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { AuditAction, LedgerEntryType, TenantState } from '@lytronix/validators';
+import { AuditAction, LedgerEntryType, RateKey, TenantState } from '@lytronix/validators';
 import { AppModule } from '../src/app/app.module';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { TrialLifecycleService } from '../src/modules/billing/services/trial-lifecycle.service';
 import { PayAsYouGoBillingService } from '../src/modules/balance/services/payg-billing.service';
 import { BalanceService } from '../src/modules/balance/services/balance.service';
+import { RateService } from '../src/modules/balance/services/rate.service';
 import { TenantService } from '../src/modules/tenancy/services/tenant.service';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase, seedShop } from './support/database';
@@ -26,6 +27,7 @@ let admin: pg.Client;
 let trialLifecycle: TrialLifecycleService;
 let paygBilling: PayAsYouGoBillingService;
 let balance: BalanceService;
+let rates: RateService;
 let tenants: TenantService;
 const texts = new SmsCapture();
 
@@ -60,6 +62,7 @@ beforeAll(async () => {
   trialLifecycle = app.get(TrialLifecycleService);
   paygBilling = app.get(PayAsYouGoBillingService);
   balance = app.get(BalanceService);
+  rates = app.get(RateService);
   tenants = app.get(TenantService);
 });
 
@@ -143,13 +146,24 @@ describeIfDatabase('pay-as-you-go order and product fees (PYG-02, PYG-16)', () =
     const below = await tenants.runStandalone((tx) =>
       paygBilling.chargeOrderFee(tx, tenantId, randomUUID(), '200.00'),
     );
-    expect(below.amount).toBe('-20.00');
+    expect(below?.amount).toBe('-20.00');
 
     // 5000 * 1.5% = 75.00, above the minimum -- the percentage wins.
     const above = await tenants.runStandalone((tx) =>
       paygBilling.chargeOrderFee(tx, tenantId, randomUUID(), '5000.00'),
     );
-    expect(above.amount).toBe('-75.00');
+    expect(above?.amount).toBe('-75.00');
+
+    // 1234.56 * 1.5% = 18.5184, above a 15 TK minimum: exact paisa arithmetic rounds it to 18.52.
+    await rates.change(RateKey.PaygOrderFeeMin, '15', randomUUID(), null);
+    try {
+      const rounded = await tenants.runStandalone((tx) =>
+        paygBilling.chargeOrderFee(tx, tenantId, randomUUID(), '1234.56'),
+      );
+      expect(rounded?.amount).toBe('-18.52');
+    } finally {
+      await rates.change(RateKey.PaygOrderFeeMin, '20', randomUUID(), null);
+    }
   });
 
   it('PYG-03: refuses to charge a fee the balance cannot cover', async () => {
@@ -173,7 +187,26 @@ describeIfDatabase('pay-as-you-go order and product fees (PYG-02, PYG-16)', () =
     const entry = await tenants.runStandalone((tx) =>
       paygBilling.chargeProductCreationFee(tx, tenantId, randomUUID()),
     );
-    expect(entry.type).toBe(LedgerEntryType.ProductFee);
-    expect(entry.amount).toBe('-10.00'); // 2.1's pay-as-you-go product fee
+    expect(entry?.type).toBe(LedgerEntryType.ProductFee);
+    expect(entry?.amount).toBe('-10.00'); // 2.1's pay-as-you-go product fee
+  });
+
+  it('BAL-02: a fee the operator set to nothing is no charge and writes no entry', async () => {
+    const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'pay_as_you_go');
+    await rates.change(RateKey.PaygProductFee, '0', randomUUID(), null);
+    try {
+      const entry = await tenants.runStandalone((tx) =>
+        paygBilling.chargeProductCreationFee(tx, tenantId, randomUUID()),
+      );
+      expect(entry).toBeNull();
+    } finally {
+      await rates.change(RateKey.PaygProductFee, '10', randomUUID(), null);
+    }
+    const rows = await admin.query<{ count: string }>(
+      'SELECT count(*)::text FROM tenant.balance_ledger WHERE tenant_id = $1',
+      [tenantId],
+    );
+    expect(rows.rows[0]?.count).toBe('0');
+    expect((await balance.current(tenantId)).amount).toBe('0.00');
   });
 });

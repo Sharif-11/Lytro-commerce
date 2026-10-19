@@ -2,11 +2,11 @@ import type { Transaction } from '@lytronix/db';
 import type { LedgerEntryType } from '@lytronix/validators';
 import type { LedgerEntry } from '../types/ledger-entry';
 
+// No balance_after: the database fills it from the balance it locks, and moves the balance with it (BAL-02).
 export interface NewLedgerEntry {
   tenantId: string;
   type: LedgerEntryType;
-  amount: string; // signed
-  balanceAfter: string;
+  amount: string; // signed, never zero
   units?: string | null;
   rateUsed?: string | null;
   reference?: unknown;

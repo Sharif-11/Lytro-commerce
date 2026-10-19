@@ -6,7 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from '../src/app/app.module';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { listenOn } from './support/bootstrap';
-import { prepareTestDatabase } from './support/database';
+import { prepareTestDatabase, seedBalance } from './support/database';
 import { errorOf, fieldsOf, openShop, type ShopClient } from './support/shop-client';
 import { SmsCapture } from './support/sms-capture';
 
@@ -489,11 +489,12 @@ describeIfDatabase('the pay-as-you-go product fee (PYG-16)', () => {
   async function payAsYouGo(balance: string): Promise<ShopClient> {
     const shop = await openShop(port, texts, 'payg');
     await admin.query(
-      `UPDATE control.tenants SET state = 'pay_as_you_go', balance_amount = $2,
+      `UPDATE control.tenants SET state = 'pay_as_you_go',
          plan_id = (SELECT id FROM control.plans WHERE name = 'Pay-as-you-go')
        WHERE id = $1`,
-      [shop.tenantId, balance],
+      [shop.tenantId],
     );
+    await seedBalance(admin, shop.tenantId, balance);
     return shop;
   }
 

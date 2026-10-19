@@ -73,4 +73,8 @@ export class DrizzlePlatformAuditStore implements PlatformAuditStore {
   insert(entry: NewPlatformAuditEntry): Promise<void> {
     return this.log.insert(this.database.handle.db, entry);
   }
+
+  insertWithin(tx: Transaction, entry: NewPlatformAuditEntry): Promise<void> {
+    return this.log.insert(tx, entry);
+  }
 }

@@ -7,7 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from '../src/app/app.module';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { listenOn } from './support/bootstrap';
-import { prepareTestDatabase } from './support/database';
+import { prepareTestDatabase, seedBalance } from './support/database';
 import { SmsCapture } from './support/sms-capture';
 import { cookieFrom, getJson, postJson } from './support/http';
 
@@ -72,10 +72,11 @@ async function owner(): Promise<{ phone: string; slug: string; tenantId: string 
 
 /** As LIF-19's job leaves a shop: deleted, with its balance frozen and whatever it held still on it. */
 async function deleteShop(tenantId: string, balance: string): Promise<void> {
+  await seedBalance(admin, tenantId, balance);
   await admin.query(
-    `UPDATE control.tenants SET state = 'deleted', deleted_at = now(), balance_frozen = true,
-       balance_amount = $1 WHERE id = $2`,
-    [balance, tenantId],
+    `UPDATE control.tenants SET state = 'deleted', deleted_at = now(), balance_frozen = true
+       WHERE id = $1`,
+    [tenantId],
   );
 }
 

@@ -656,6 +656,40 @@ describeIfDatabase('balance top-up (BAL-03 to BAL-06)', () => {
     const after = await balance.current(tenantId);
     expect((Number(after.amount) - Number(before.amount)).toFixed(2)).toBe('500.00');
   });
+
+  it('ADM-08: an approval that fails at commit leaves no platform audit entry behind', async () => {
+    const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'active');
+    const quote = await topUp.quote(tenantId, '500.00');
+    await topUp.submit(quote.id, tenantId, {
+      transactionId: `TXN-${randomUUID()}`,
+      senderNumber: '01710000000',
+      amountPaid: '500.00',
+    });
+
+    // A check deferred to commit refuses this shop's credit, so the approval fails at its very last step.
+    await admin.query(
+      `CREATE FUNCTION public.refuse_at_commit() RETURNS trigger LANGUAGE plpgsql
+       AS $$ BEGIN RAISE EXCEPTION 'commit refused'; END $$`,
+    );
+    await admin.query(
+      `CREATE CONSTRAINT TRIGGER refuse_at_commit AFTER INSERT ON tenant.balance_ledger
+       DEFERRABLE INITIALLY DEFERRED FOR EACH ROW WHEN (NEW.tenant_id = '${tenantId}')
+       EXECUTE FUNCTION public.refuse_at_commit()`,
+    );
+    try {
+      await expect(queue.approve(quote.id, operatorId())).rejects.toThrow(/commit refused/);
+    } finally {
+      await admin.query('DROP TRIGGER refuse_at_commit ON tenant.balance_ledger');
+      await admin.query('DROP FUNCTION public.refuse_at_commit()');
+    }
+
+    const audited = await admin.query<{ count: string }>(
+      'SELECT count(*)::text FROM control.platform_audit_log WHERE target_id = $1',
+      [quote.id],
+    );
+    expect(audited.rows[0]?.count).toBe('0');
+    expect((await balance.current(tenantId)).amount).toBe('0.00');
+  });
 });
 
 describeIfDatabase('tenant isolation (SEC-02)', () => {

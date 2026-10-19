@@ -4,7 +4,7 @@ import { LedgerEntryType, RateKey } from '@lytronix/validators';
 import type { LedgerEntry } from '../types/ledger-entry';
 import { BalanceService } from './balance.service';
 import { RateService } from './rate.service';
-import { fromPaisa, toPaisa } from './money';
+import { fromPaisa, percentOf, rateToPaisa, toPaisa } from './money';
 
 /**
  * PYG-02/PYG-16: the pay-as-you-go order-fee and product-creation-fee charges. Built against the ledger
@@ -15,6 +15,9 @@ import { fromPaisa, toPaisa } from './money';
  * Deliberately takes the caller's own transaction, never opens its own: PYG-04/PYG-18 require the charge to
  * be reversed automatically if the booking/creation itself subsequently fails, which only happens for free
  * if the charge is part of that same transaction, not a separate one committed on its own.
+ *
+ * A fee whose rate the operator set to nothing is no charge, so it writes no entry and returns null (BAL-02: an
+ * entry is a balance change).
  */
 @Injectable()
 export class PayAsYouGoBillingService {
@@ -29,19 +32,17 @@ export class PayAsYouGoBillingService {
     tenantId: string,
     orderId: string,
     orderTotal: string,
-  ): Promise<LedgerEntry> {
+  ): Promise<LedgerEntry | null> {
     const [min, pct] = await Promise.all([
       this.rates.current(RateKey.PaygOrderFeeMin),
       this.rates.current(RateKey.PaygOrderFeePct),
     ]);
     if (!min || !pct) throw new Error('payg order fee rates are not seeded');
 
-    const totalPaisa = toPaisa(orderTotal);
-    // Rates are numeric(12,4) -- up to 4 decimal places -- while toPaisa() only accepts money's own 2, so
-    // rate values are rounded to paisa directly here instead of going through toPaisa().
-    const minPaisa = BigInt(Math.round(Number(min.value) * 100));
-    const pctPaisa = BigInt(Math.round((Number(totalPaisa) * Number(pct.value)) / 100));
+    const minPaisa = rateToPaisa(min.value);
+    const pctPaisa = percentOf(toPaisa(orderTotal), pct.value);
     const feePaisa = pctPaisa > minPaisa ? pctPaisa : minPaisa;
+    if (feePaisa === 0n) return null;
 
     return this.balance.charge(tx, {
       tenantId,
@@ -56,11 +57,12 @@ export class PayAsYouGoBillingService {
     tx: Transaction,
     tenantId: string,
     productId: string,
-  ): Promise<LedgerEntry> {
+  ): Promise<LedgerEntry | null> {
     const fee = await this.rates.current(RateKey.PaygProductFee);
     if (!fee) throw new Error('payg product fee rate is not seeded');
 
-    const feePaisa = BigInt(Math.round(Number(fee.value) * 100));
+    const feePaisa = rateToPaisa(fee.value);
+    if (feePaisa === 0n) return null;
 
     return this.balance.charge(tx, {
       tenantId,

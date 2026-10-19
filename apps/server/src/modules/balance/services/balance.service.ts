@@ -17,7 +17,7 @@ import type { BalanceLedgerStore, LedgerFilters } from '../ports/balance-ledger-
 import type { LowBalanceNotifier } from '../ports/low-balance-notifier';
 import { BALANCE_LEDGER_STORE, CLOCK, LOW_BALANCE_NOTIFIER } from '../tokens';
 import type { BalanceSnapshot, LedgerEntry, LedgerPage } from '../types/ledger-entry';
-import { fromPaisa, toPaisa } from './money';
+import { fromPaisa, toPaisa, unitsTimesRate } from './money';
 
 // D2-11: these are the only ledger entries that count as pay-as-you-go "activity" for PYG-21's inactivity clock.
 const ACTIVITY_TYPES: ReadonlySet<LedgerEntryType> = new Set([
@@ -75,10 +75,16 @@ export class BalanceService {
     return this.ledger.run(tenantId, work);
   }
 
-  charge(tx: Transaction, input: ChargeInput): Promise<LedgerEntry> {
+  async charge(tx: Transaction, input: ChargeInput): Promise<LedgerEntry> {
+    const paisa = this.paisaOf(input);
+    // BAL-02: an entry is a balance change. Nothing to charge is a caller's mistake, never an empty entry, and a
+    // negative charge would be a credit in disguise.
+    if (paisa <= 0n) {
+      throw new Error('charge amount must be positive');
+    }
     return this.applyDelta(tx, input.tenantId, {
       type: input.type,
-      signedAmount: `-${this.amountOf(input)}`,
+      signedAmount: fromPaisa(-paisa),
       reference: input.reference,
       units: input.units,
       rateUsed: input.rateUsed,
@@ -139,17 +145,18 @@ export class BalanceService {
         result: AuditResult.Success,
         summary: { amount: input.amount, reason: input.reason },
       });
+      // ADM-08: the platform's own record joins the same transaction, so no adjustment ever stands unrecorded.
+      await this.platformAudit.recordWithin(tx, {
+        actorType: PlatformActorType.Operator,
+        actorId: input.operatorId,
+        action: PlatformAuditAction.BalanceAdjusted,
+        targetType: 'tenant',
+        targetId: input.tenantId,
+        result: AuditResult.Success,
+        ip: null,
+        summary: { amount: input.amount, reason: input.reason },
+      });
       return applied;
-    });
-    await this.platformAudit.record({
-      actorType: PlatformActorType.Operator,
-      actorId: input.operatorId,
-      action: PlatformAuditAction.BalanceAdjusted,
-      targetType: 'tenant',
-      targetId: input.tenantId,
-      result: AuditResult.Success,
-      ip: null,
-      summary: { amount: input.amount, reason: input.reason },
     });
     return entry;
   }
@@ -159,7 +166,8 @@ export class BalanceService {
    * balance moves into it -- one `carry_over` entry on each side, each naming the other shop, in the caller's own
    * transaction (the new shop's creation). The deleted shop's balance is frozen; this move is the one exception,
    * since it is not a spend, and no low-balance notice fires for a shop that no longer exists. A balance at or
-   * below zero stays where it is.
+   * below zero stays where it is. The deleted shop's row is locked first, so two new shops opened at once can never
+   * both move the same balance; each entry's own insert then locks and moves its shop's balance.
    */
   async carryOverFromDeletedShops(
     tx: Transaction,
@@ -170,25 +178,18 @@ export class BalanceService {
     for (const source of sources) {
       const from = await this.tenants.lockBalanceForUpdate(tx, source.id);
       if (!from || toPaisa(from.amount) <= 0n) continue;
-      const to = await this.tenants.lockBalanceForUpdate(tx, toTenantId);
-      if (!to) throw new Error('tenant not found');
-      const toAfter = fromPaisa(toPaisa(to.amount) + toPaisa(from.amount));
       await this.ledger.insert(tx, {
         tenantId: source.id,
         type: LedgerEntryType.CarryOver,
         amount: fromPaisa(-toPaisa(from.amount)),
-        balanceAfter: fromPaisa(0n),
         reference: { toTenantId },
       });
-      await this.tenants.applyBalanceChange(tx, source.id, fromPaisa(0n));
       await this.ledger.insert(tx, {
         tenantId: toTenantId,
         type: LedgerEntryType.CarryOver,
         amount: from.amount,
-        balanceAfter: toAfter,
         reference: { fromTenantId: source.id },
       });
-      await this.tenants.applyBalanceChange(tx, toTenantId, toAfter);
     }
   }
 
@@ -204,7 +205,8 @@ export class BalanceService {
   /** BAL-01, BAL-08: the current amount and whether it is frozen. */
   async current(tenantId: string): Promise<BalanceSnapshot> {
     return this.runStandalone(tenantId, async (tx) => {
-      const row = await this.tenants.lockBalanceForUpdate(tx, tenantId);
+      // A read takes no lock, so a balance page never waits behind a charge, nor holds one up.
+      const row = await this.tenants.findBalance(tx, tenantId);
       if (!row) throw new Error('tenant not found');
       return { amount: row.amount, frozen: row.frozen };
     });
@@ -234,23 +236,23 @@ export class BalanceService {
     );
   }
 
-  private amountOf(input: ChargeInput): string {
+  private paisaOf(input: ChargeInput): bigint {
     if (input.units !== undefined && input.rateUsed !== undefined) {
       if (input.amount !== undefined) {
         throw new Error('provide either amount or units+rateUsed, not both');
       }
-      const paisa = (toPaisa(input.units) * toPaisa(input.rateUsed)) / 100n;
-      return fromPaisa(paisa);
+      return unitsTimesRate(input.units, input.rateUsed);
     }
     if (input.amount === undefined) throw new Error('provide amount or units+rateUsed');
-    return input.amount;
+    return toPaisa(input.amount);
   }
 
   /**
    * The one place every balance change actually happens (BAL-02, BAL-11): locks the tenant row, checks frozen
-   * (BAL-07/08) and the overdraft floor (BAL-10), writes the ledger row and the new balance together, then
-   * fires the low-balance notice (BAL-13) if a threshold was crossed downward. `signedAmount` is already signed
-   * — negative for a charge, positive for a credit.
+   * (BAL-07/08) and the overdraft floor (BAL-10), and writes the ledger entry. The entry's insert is the balance
+   * change: the database moves the balance and fills balance_after from the row this lock holds, and refuses any
+   * other change to it (migration 0055). Then fires the low-balance notice (BAL-13) if a threshold was crossed
+   * downward. `signedAmount` is already signed — negative for a charge, positive for a credit.
    */
   private async applyDelta(
     tx: Transaction,
@@ -275,20 +277,24 @@ export class BalanceService {
     if (input.overdraftFloor !== undefined && afterPaisa < toPaisa(input.overdraftFloor)) {
       throw new ApiError('quota_exceeded', 'InsufficientBalance', { balance: balance.amount });
     }
-    const afterAmount = fromPaisa(afterPaisa);
     const entry = await this.ledger.insert(tx, {
       tenantId,
       type: input.type,
       amount: input.signedAmount,
-      balanceAfter: afterAmount,
       units: input.units ?? null,
       rateUsed: input.rateUsed ?? null,
       reference: input.reference ?? null,
     });
-    await this.tenants.applyBalanceChange(tx, tenantId, afterAmount, {
-      touchActivityAt: ACTIVITY_TYPES.has(input.type) ? this.clock() : undefined,
-    });
-    await this.checkLowBalanceCrossing(tx, tenantId, beforePaisa, afterPaisa, afterAmount);
+    if (ACTIVITY_TYPES.has(input.type)) {
+      await this.tenants.touchActivity(tx, tenantId, this.clock());
+    }
+    await this.checkLowBalanceCrossing(
+      tx,
+      tenantId,
+      beforePaisa,
+      toPaisa(entry.balanceAfter),
+      entry.balanceAfter,
+    );
     return entry;
   }
 

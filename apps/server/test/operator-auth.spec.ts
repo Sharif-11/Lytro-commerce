@@ -132,6 +132,10 @@ function build(state: World) {
       state.platformAuditLog.push(entry);
       return Promise.resolve();
     },
+    insertWithin: (_tx, entry) => {
+      state.platformAuditLog.push(entry);
+      return Promise.resolve();
+    },
   };
   const service = new OperatorAuthService(
     gateway,
