@@ -229,8 +229,13 @@ describeIfDatabase('UPG-10, PYG-19: the monthly allowance cycle', () => {
     const before = await get('/balance/essential-sms', shopCall(who));
     expect(before.body).toMatchObject({ monthlyUsed: 3, totalUsed: 5 });
 
-    // An upgrade starts a new period at its confirmation (UPG-09).
-    await admin.query(`UPDATE control.tenants SET period_start = now() WHERE id = $1`, [tenantId]);
+    // An upgrade starts a new period at its confirmation (UPG-09). The start comes from this process's clock, the
+    // one the server reads its `now` from: the database's clock can run a few milliseconds ahead, and a start after
+    // the server's now is a period not yet begun, counted from a month earlier.
+    await admin.query(`UPDATE control.tenants SET period_start = $2 WHERE id = $1`, [
+      tenantId,
+      new Date(),
+    ]);
     const after = await get('/balance/essential-sms', shopCall(who));
     expect(after.body).toMatchObject({ monthlyUsed: 0, totalUsed: 5 });
   });
