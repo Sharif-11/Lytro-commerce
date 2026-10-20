@@ -23,8 +23,6 @@ import { SmsCapture } from './support/sms-capture';
 const ADMIN_URL = process.env['DATABASE_TEST_ADMIN_URL'];
 const DB_NAME = 'lytronix_purchasing_test';
 const describeIfDatabase = ADMIN_URL ? describe : describe.skip;
-// A fresh database with every migration, and the app booted on it: more than the default 10 s on a busy machine.
-const SETUP_TIMEOUT_MS = 30_000;
 
 let app: INestApplication;
 let port: number;
@@ -44,7 +42,7 @@ beforeAll(async () => {
     .useValue(texts.provider)
     .compile();
   ({ app, port } = await listenOn(moduleRef));
-}, SETUP_TIMEOUT_MS);
+});
 
 afterAll(async () => {
   if (!ADMIN_URL) return;

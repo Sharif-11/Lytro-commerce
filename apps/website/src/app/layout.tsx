@@ -1,28 +1,37 @@
 import type { Metadata } from 'next';
-import { Inter, Noto_Sans_Bengali, Plus_Jakarta_Sans } from 'next/font/google';
+import localFont from 'next/font/local';
 import type { ReactNode } from 'react';
 import { SiteEnvironment } from '@/lib/env';
 import { requestLanguage } from '@/lib/i18n/read-language';
 import './globals.css';
 
 // BRAND-IDENTITY.md §5: Plus Jakarta Sans for the wordmark and English headlines, Inter for UI and digits,
-// Noto Sans Bengali for Bangla. Self-hosted by next/font, so the page never waits on a third-party host.
-const jakarta = Plus_Jakarta_Sans({
-  subsets: ['latin'],
-  weight: ['700', '800'],
+// Noto Sans Bengali for Bangla. The files are in the repo (src/fonts, with their licences), so neither the build nor
+// the page ever waits on a third-party host. Each is a variable font, covering every weight in one file.
+const jakarta = localFont({
+  src: '../fonts/plus-jakarta-sans-latin-wght-normal.woff2',
+  weight: '200 800',
   variable: '--font-jakarta',
   display: 'swap',
 });
-const inter = Inter({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
+const inter = localFont({
+  src: '../fonts/inter-latin-wght-normal.woff2',
+  weight: '100 900',
   variable: '--font-inter',
   display: 'swap',
 });
-const notoBengali = Noto_Sans_Bengali({
-  subsets: ['bengali', 'latin'],
-  weight: ['400', '500', '600', '700', '800'],
+const notoBengali = localFont({
+  src: '../fonts/noto-sans-bengali-bengali-wght-normal.woff2',
+  weight: '100 900',
   variable: '--font-noto-bengali',
+  display: 'swap',
+});
+// Noto Sans Bengali's own Latin letters, for English words and digits inside Bangla text (globals.css --font-bn).
+// A file of its own, since a local font cannot give each file its own range of characters.
+const notoLatin = localFont({
+  src: '../fonts/noto-sans-bengali-latin-wght-normal.woff2',
+  weight: '100 900',
+  variable: '--font-noto-latin',
   display: 'swap',
 });
 
@@ -53,7 +62,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   return (
     <html
       lang={language}
-      className={`${jakarta.variable} ${inter.variable} ${notoBengali.variable}`}
+      className={`${jakarta.variable} ${inter.variable} ${notoBengali.variable} ${notoLatin.variable}`}
     >
       <body>{children}</body>
     </html>

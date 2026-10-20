@@ -35,8 +35,6 @@ import { SmsCapture } from './support/sms-capture';
 const ADMIN_URL = process.env['DATABASE_TEST_ADMIN_URL'];
 const DB_NAME = 'lytronix_inventory_test';
 const describeIfDatabase = ADMIN_URL ? describe : describe.skip;
-// A fresh database with every migration, and the app booted on it: more than the default 10 s on a busy machine.
-const SETUP_TIMEOUT_MS = 30_000;
 
 /** Keeps every low-stock notice, in place of the console stand-in. */
 class LowStockCapture implements LowStockNotifier {
@@ -92,7 +90,7 @@ beforeAll(async () => {
     .useValue(expiry)
     .compile();
   ({ app, port } = await listenOn(moduleRef));
-}, SETUP_TIMEOUT_MS);
+});
 
 afterAll(async () => {
   if (!ADMIN_URL) return;
