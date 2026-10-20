@@ -1,13 +1,13 @@
 import { useTranslation } from 'react-i18next';
 import { RateKey } from '@lytronix/validators';
-import { formatDate } from '@lytronix/ui';
+import { formatDate, formatRate } from '@lytronix/ui';
 import type { RateValue } from '@/types/balance';
 
 /** RAT-06: each per-use rate with its unit in words, and when the current values took effect. */
 export function RatesCard({ rates }: { rates: RateValue[] | undefined }): React.JSX.Element {
   const { t, i18n } = useTranslation();
   const byKey = new Map((rates ?? []).map((rate) => [rate.key, rate]));
-  const value = (key: RateKey): string => byKey.get(key)?.value ?? '–';
+  const value = (key: RateKey): string => formatRate(byKey.get(key)?.value ?? null);
   const since =
     rates && rates.length > 0 ? rates.map((rate) => rate.effectiveFrom).sort()[0] : null;
 
