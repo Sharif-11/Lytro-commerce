@@ -7,17 +7,18 @@ import {
   ServerFieldProblemCode,
   type AddOptionsInput,
   type CreateAttributeInput,
-  type CreateOptionInput,
+  type CreateShopOptionInput,
   type UpdateAttributeInput,
-  type UpdateOptionInput,
+  type UpdateShopOptionInput,
 } from '@lytronix/validators';
 import { ApiError, FieldsError } from '../../../common/api-error';
 import { UniqueViolation } from '../../../common/errors/unique-violation';
+import type { ImageView } from '../../../common/media-links';
 import type {
   AttributeStore,
   CatalogueTransactions,
-  OptionPatch,
   ProductStore,
+  ShopOptionPatch,
 } from '../ports/catalogue-stores';
 import { ATTRIBUTE_STORE, CATALOGUE_TRANSACTIONS, PRODUCT_STORE } from '../tokens';
 import type {
@@ -28,6 +29,7 @@ import type {
   OptionView,
 } from '../types/catalogue';
 import { CatalogueActivity } from './catalogue-activity';
+import { CatalogueImages, refuseUnattachable } from './catalogue-images';
 
 // UOM-02: a number-with-unit option is a number in its kind's base unit, up to four decimals.
 const NUMBER_VALUE = /^\d+(\.\d{1,4})?$/;
@@ -36,11 +38,16 @@ function scopeOf(row: { tenantId: string | null }): 'platform' | 'shop' {
   return row.tenantId === null ? 'platform' : 'shop';
 }
 
-export function optionView(option: OptionRecord): OptionView {
+/** An option as shown, with its swatch image when it has one among `images` (ATR-18). */
+export function optionView(
+  option: OptionRecord,
+  images: ReadonlyMap<string, ImageView> = new Map(),
+): OptionView {
   return {
     id: option.id,
     value: option.value,
     swatchColor: option.swatchColor,
+    swatchImage: option.swatchImageId === null ? null : (images.get(option.swatchImageId) ?? null),
     scope: scopeOf(option),
     retired: option.retiredAt !== null,
   };
@@ -52,7 +59,11 @@ function ordered(attribute: AttributeRecord, options: OptionRecord[]): OptionRec
   return [...options].sort((a, b) => Number(a.value) - Number(b.value));
 }
 
-export function attributeView(attribute: AttributeRecord, options: OptionRecord[]): AttributeView {
+export function attributeView(
+  attribute: AttributeRecord,
+  options: OptionRecord[],
+  images: ReadonlyMap<string, ImageView> = new Map(),
+): AttributeView {
   return {
     id: attribute.id,
     name: attribute.name,
@@ -60,7 +71,7 @@ export function attributeView(attribute: AttributeRecord, options: OptionRecord[
     unitKind: attribute.unitKind,
     scope: scopeOf(attribute),
     retired: attribute.retiredAt !== null,
-    options: ordered(attribute, options).map(optionView),
+    options: ordered(attribute, options).map((option) => optionView(option, images)),
   };
 }
 
@@ -105,6 +116,7 @@ export class AttributeService {
     @Inject(ATTRIBUTE_STORE) private readonly attributes: AttributeStore,
     @Inject(PRODUCT_STORE) private readonly products: ProductStore,
     @Inject(CatalogueActivity) private readonly activity: CatalogueActivity,
+    @Inject(CatalogueImages) private readonly images: CatalogueImages,
   ) {}
 
   list(tenantId: string, includeRetired: boolean): Promise<AttributeView[]> {
@@ -116,10 +128,12 @@ export class AttributeService {
         rows.map((row) => row.id),
         includeRetired,
       );
+      const images = await this.swatchesOf(tx, tenantId, options);
       return rows.map((row) =>
         attributeView(
           row,
           options.filter((option) => option.attributeId === row.id),
+          images,
         ),
       );
     });
@@ -201,36 +215,40 @@ export class AttributeService {
       // CCH-02: a renamed attribute reads differently on every product page that shows it.
       if (input.name !== undefined) await this.products.bumpVersion(tx, tenantId);
       const options = await this.attributes.listOptions(tx, tenantId, [row.id], true);
-      return attributeView(row, options);
+      return attributeView(row, options, await this.swatchesOf(tx, tenantId, options));
     });
   }
 
-  /** A shop's own value of an attribute with options, its own or the platform's, with its swatch (ATR-18). */
+  /**
+   * A shop's own value of an attribute with options, its own or the platform's, with its swatch: a colour or a
+   * ready image of the shop's (ATR-18, MED-03).
+   */
   async addOption(
     tenantId: string,
     attributeId: string,
-    input: CreateOptionInput,
+    input: CreateShopOptionInput,
   ): Promise<OptionView> {
     return this.transactions.run(async (tx) => {
       const attribute = await this.holdingOptions(tx, tenantId, attributeId);
       const value = canonicalOptionValue(attribute, input.value);
       await this.refuseTakenValue(tx, tenantId, attributeId, value, null);
       const sortOrder = await this.attributes.nextOptionPosition(tx, tenantId, attributeId);
+      let row: OptionRecord;
       try {
-        return optionView(
-          await this.attributes.insertOption(tx, {
-            tenantId,
-            attributeId,
-            value,
-            swatchColor: canonicalSwatch(input.swatchColor) ?? null,
-            sortOrder,
-          }),
-        );
+        row = await this.attributes.insertOption(tx, {
+          tenantId,
+          attributeId,
+          value,
+          swatchColor: canonicalSwatch(input.swatchColor) ?? null,
+          swatchImageId: input.swatchImageId ?? null,
+          sortOrder,
+        });
       } catch (error) {
         if (error instanceof UniqueViolation)
           await this.refuseTakenValue(tx, tenantId, attributeId, value, null);
-        throw error;
+        refuseUnattachable(error, 'swatchImageId');
       }
+      return optionView(row, await this.swatchesOf(tx, tenantId, [row]));
     });
   }
 
@@ -274,16 +292,17 @@ export class AttributeService {
           sortOrder += 1;
         }
       }
-      return result.map(optionView);
+      const images = await this.swatchesOf(tx, tenantId, result);
+      return result.map((option) => optionView(option, images));
     });
   }
 
-  /** Renames, re-colours or retires one of the shop's own values. */
+  /** Renames, re-colours or retires one of the shop's own values; setting one kind of swatch clears the other. */
   async updateOption(
     tenantId: string,
     attributeId: string,
     optionId: string,
-    input: UpdateOptionInput,
+    input: UpdateShopOptionInput,
   ): Promise<OptionView> {
     return this.transactions.run(async (tx) => {
       const attribute = await this.holdingOptions(tx, tenantId, attributeId);
@@ -291,23 +310,52 @@ export class AttributeService {
       if (!current || current.tenantId === null || current.attributeId !== attributeId) {
         throw new ApiError('not_found', 'OptionNotFound', {});
       }
-      const patch: OptionPatch = {};
+      const patch: ShopOptionPatch = {};
       if (input.value !== undefined) {
         patch.value = canonicalOptionValue(attribute, input.value);
         await this.refuseTakenValue(tx, tenantId, attributeId, patch.value, optionId);
       }
-      if (input.swatchColor !== undefined) patch.swatchColor = canonicalSwatch(input.swatchColor);
+      if (input.swatchColor !== undefined) {
+        patch.swatchColor = canonicalSwatch(input.swatchColor);
+        if (input.swatchColor !== null) patch.swatchImageId = null;
+      }
+      if (input.swatchImageId !== undefined) {
+        patch.swatchImageId = input.swatchImageId;
+        if (input.swatchImageId !== null) patch.swatchColor = null;
+      }
       if (input.retired !== undefined) {
         patch.retiredAt = input.retired ? (current.retiredAt ?? new Date()) : null;
       }
-      const row = await this.attributes.updateOption(tx, tenantId, attributeId, optionId, patch);
+      let row: OptionRecord | null;
+      try {
+        row = await this.attributes.updateOption(tx, tenantId, attributeId, optionId, patch);
+      } catch (error) {
+        refuseUnattachable(error, 'swatchImageId');
+      }
       if (!row) throw new ApiError('not_found', 'OptionNotFound', {});
       // CCH-02: the value and its swatch show in the variant pickers of every product that uses it (ATR-18).
-      if (row.value !== current.value || row.swatchColor !== current.swatchColor) {
+      if (
+        row.value !== current.value ||
+        row.swatchColor !== current.swatchColor ||
+        row.swatchImageId !== current.swatchImageId
+      ) {
         await this.products.bumpVersion(tx, tenantId);
       }
-      return optionView(row);
+      return optionView(row, await this.swatchesOf(tx, tenantId, [row]));
     });
+  }
+
+  /** ATR-18: the swatch images these options show. */
+  private swatchesOf(
+    tx: Transaction,
+    tenantId: string,
+    options: OptionRecord[],
+  ): Promise<Map<string, ImageView>> {
+    return this.images.viewsOf(
+      tx,
+      tenantId,
+      options.map((option) => option.swatchImageId),
+    );
   }
 
   private async holdingOptions(

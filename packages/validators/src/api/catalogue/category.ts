@@ -11,6 +11,8 @@ export const createCategorySchema = z.object({
   visible: z.boolean().optional(),
   // PST-06: the shop type (a preset key) its products behave like; null follows its parent, then the shop.
   behavesLike: z.string().trim().min(1).max(40).nullable().optional(),
+  // MED-03: its banner, a ready image of the shop's; null removes it.
+  imageId: catalogueIdSchema.nullable().optional(),
 });
 export type CreateCategoryInput = z.infer<typeof createCategorySchema>;
 

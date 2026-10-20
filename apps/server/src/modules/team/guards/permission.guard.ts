@@ -24,10 +24,9 @@ export class PermissionGuard implements CanActivate {
     // The owner's own session holds every permission.
     if (session.userId === null) return true;
 
-    const required = this.reflector.getAllAndOverride<Permission | undefined>(REQUIRED_PERMISSION, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
+    const required = this.reflector.getAllAndOverride<
+      Permission | readonly Permission[] | undefined
+    >(REQUIRED_PERMISSION, [context.getHandler(), context.getClass()]);
     // A route without a declared permission is refused for staff: it fails closed.
     if (!required) throw new ApiError('forbidden', 'PermissionDenied', {});
 
@@ -38,9 +37,10 @@ export class PermissionGuard implements CanActivate {
       session.userId,
     );
     if (held === null) throw new ApiError('unauthenticated', 'SignInToContinue', {});
-    if (!held.includes(required)) {
+    const anyOf: readonly Permission[] = typeof required === 'string' ? [required] : required;
+    if (!anyOf.some((permission) => held.includes(permission))) {
       throw new ApiError('forbidden', 'PermissionDenied', {
-        permission: required,
+        permission: typeof required === 'string' ? required : [...required],
       });
     }
     return true;

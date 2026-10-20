@@ -1,6 +1,8 @@
 import type {
   PlatformOptionSetPatch,
   PresetPatch,
+  ProductImageRow,
+  SizeChartContent,
   SizeChartOwner,
   Transaction,
 } from '@lytronix/db';
@@ -100,6 +102,7 @@ export interface AttributeStore {
     value: string,
   ): Promise<OptionRecord | null>;
   nextOptionPosition(tx: Transaction, tenantId: string, attributeId: string): Promise<number>;
+  /** A swatch image that is not a ready image of the shop's comes back as MediaNotAttachable. */
   insertOption(
     tx: Transaction,
     values: {
@@ -107,6 +110,7 @@ export interface AttributeStore {
       attributeId: string;
       value: string;
       swatchColor?: string | null;
+      swatchImageId?: string | null;
       sortOrder: number;
     },
   ): Promise<OptionRecord>;
@@ -115,7 +119,7 @@ export interface AttributeStore {
     tenantId: string,
     attributeId: string,
     id: string,
-    patch: OptionPatch,
+    patch: ShopOptionPatch,
   ): Promise<OptionRecord | null>;
   listCategorySuggestions(
     tx: Transaction,
@@ -137,16 +141,22 @@ export interface OptionPatch {
   retiredAt?: Date | null;
 }
 
+/** ATR-18, MED-03: a shop's own option may show an image of the shop's as its swatch. */
+export interface ShopOptionPatch extends OptionPatch {
+  swatchImageId?: string | null;
+}
+
 /** PRD-03: a shop's category tree. */
 export interface CategoryStore {
   listCategories(tx: Transaction, tenantId: string): Promise<CategoryRecord[]>;
   findCategories(tx: Transaction, tenantId: string, ids: string[]): Promise<CategoryRecord[]>;
   slugsLike(tx: Transaction, tenantId: string, base: string): Promise<string[]>;
+  /** A banner that is not a ready image of the shop's comes back as MediaNotAttachable, here and in updates. */
   insertCategory(
     tx: Transaction,
     values: Pick<
       CategoryRecord,
-      'parentId' | 'name' | 'slug' | 'depth' | 'sortOrder' | 'visible' | 'behavesLike'
+      'parentId' | 'name' | 'slug' | 'depth' | 'sortOrder' | 'visible' | 'behavesLike' | 'imageId'
     > & {
       tenantId: string;
     },
@@ -156,7 +166,10 @@ export interface CategoryStore {
     tenantId: string,
     id: string,
     patch: Partial<
-      Pick<CategoryRecord, 'name' | 'parentId' | 'depth' | 'sortOrder' | 'visible' | 'behavesLike'>
+      Pick<
+        CategoryRecord,
+        'name' | 'parentId' | 'depth' | 'sortOrder' | 'visible' | 'behavesLike' | 'imageId'
+      >
     >,
   ): Promise<CategoryRecord | null>;
   /** PST-06, PRD-17: the category and the ones above it, nearest first; empty when the shop has no such category. */
@@ -366,13 +379,35 @@ export interface SizeChartStore {
   ): Promise<SizeChartRecord | null>;
   /** Every one of the shop's category charts, for the category list. */
   listCategoryCharts(tx: Transaction, tenantId: string): Promise<SizeChartRecord[]>;
+  /** An image that is not a ready image of the shop's comes back as MediaNotAttachable. */
   putChart(
     tx: Transaction,
     tenantId: string,
     owner: SizeChartOwner,
-    rows: string[][],
+    content: SizeChartContent,
   ): Promise<SizeChartRecord>;
   deleteChart(tx: Transaction, tenantId: string, owner: SizeChartOwner): Promise<boolean>;
+}
+
+/** MED-08, PRD-11: which images are ready to show, and the photos of products, in order. */
+export interface CatalogueImageStore {
+  readyImages(
+    tx: Transaction,
+    tenantId: string,
+    ids: string[],
+  ): Promise<{ id: string; hash: string }[]>;
+  listProductImages(
+    tx: Transaction,
+    tenantId: string,
+    productIds: string[],
+  ): Promise<ProductImageRow[]>;
+  /** A photo that is not a ready image of the shop's comes back as MediaNotAttachable. */
+  setProductImages(
+    tx: Transaction,
+    tenantId: string,
+    productId: string,
+    mediaIds: string[],
+  ): Promise<void>;
 }
 
 /** ATR-16: the option sets a shop sees, and the ones it saves. */

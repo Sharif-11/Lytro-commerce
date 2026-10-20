@@ -267,10 +267,12 @@ CREATE TABLE tenant.shop_settings (
     tenant_id                       uuid PRIMARY KEY,
     extra_delivery_charge_per_kg    numeric(10,2) NOT NULL DEFAULT 0,
     default_payment_policy          tenant.payment_policy NOT NULL DEFAULT 'none',  -- PRD-08 shop default
-    default_advance_amount          numeric(10,2) CHECK (default_advance_amount >= 0)
+    default_advance_amount          numeric(10,2) CHECK (default_advance_amount >= 0),
+    logo_media_id                   uuid             -- TEN-16: a ready image of the shop's; null shows its monogram
 );
 -- PRD-08's two columns were built in Phase 3 Slice 1c (0053), with the products' own rule as a check: a partial
--- advance needs its amount, and no other policy takes one.
+-- advance needs its amount, and no other policy takes one. The logo (Slice 6a, 0065) is cleared when its image is
+-- deleted (ON DELETE SET NULL (logo_media_id)), and must be a ready image of the shop's (§3.5's attach trigger).
 ```
 
 ### 2.4 Invoices and platform audit
@@ -470,8 +472,10 @@ noted; same-tenant references use composite `(tenant_id, id)` keys, the pattern 
 later slice needs arrive with it: `image_id`, `video_id` and `tenant.product_images` (Slice 6), `avg_cost`,
 `pack_amount`, `is_stock_holder` and `shared_stock` (Slice 2), `kind` (Phase 4, CMB) and `item_condition` (Slice 9).
 **Slice 1b (migration 0052, 2026-10-19)** added `categories.behaves_like` (PST-06), `attribute_options.swatch_color`
-(ATR-18), `tenant.size_charts` and `tenant.option_sets` (below) and `business_type_presets.up_front_fields` (PST-05);
-`swatch_image_id` and the size chart's `image_id` arrive with media in Slice 6.
+(ATR-18), `tenant.size_charts` and `tenant.option_sets` (below) and `business_type_presets.up_front_fields` (PST-05).
+**Slice 6a (migration 0065, 2026-10-21)** added `categories.image_id`, `attribute_options.swatch_image_id`, the size
+chart's `image_id` and `tenant.product_images`, each pointing at `tenant.media` (§3.5); `products.video_id` arrives
+with video in Slice 6b. `product_variants.image_id` is not built: no SRS row asks for a variant's own photo.
 
 ```sql
 CREATE TABLE tenant.catalogue_state (
@@ -558,14 +562,18 @@ CREATE TABLE tenant.product_categories (            -- PRD-15; the primary one i
     FOREIGN KEY (tenant_id, category_id) REFERENCES tenant.categories(tenant_id, id)
 );
 
-CREATE TABLE tenant.product_images (                -- PRD-11 ordering of images on a product
+CREATE TABLE tenant.product_images (                -- PRD-11 ordering of images on a product (built in 6a, 0065)
     tenant_id       uuid NOT NULL,
     product_id      uuid NOT NULL,
     media_id        uuid NOT NULL,
-    sort_order      integer NOT NULL DEFAULT 0,
+    sort_order      integer NOT NULL CHECK (sort_order >= 0),
     PRIMARY KEY (tenant_id, product_id, media_id),
-    FOREIGN KEY (tenant_id, product_id) REFERENCES tenant.products(tenant_id, id)
+    UNIQUE (tenant_id, product_id, sort_order),
+    FOREIGN KEY (tenant_id, product_id) REFERENCES tenant.products(tenant_id, id) ON DELETE CASCADE,
+    FOREIGN KEY (tenant_id, media_id)   REFERENCES tenant.media(tenant_id, id) ON DELETE CASCADE
 );
+-- Up to 10 per product (PRD-11, checked by the request); each a ready image of the shop's (§3.5's attach trigger).
+-- Saving a product's photos replaces the set; a duplicated product shows the same items (PRD-18).
 
 CREATE TABLE tenant.product_variants (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -1150,9 +1158,9 @@ CREATE TABLE tenant.size_charts (                   -- PRD-17: one per product o
 );
 CREATE UNIQUE INDEX size_charts_product ON tenant.size_charts (tenant_id, product_id) WHERE product_id IS NOT NULL;
 CREATE UNIQUE INDEX size_charts_category ON tenant.size_charts (tenant_id, category_id) WHERE category_id IS NOT NULL;
--- Built in Slice 1b (0052) as a table only: table_rows NOT NULL, with no image_id until media lands (Slice 6),
--- when the image-or-table check above replaces it. Composite (tenant_id, product_id) and (tenant_id, category_id)
--- keys cascade with their owner. A product without its own chart shows the one on its primary category or the
+-- Built in Slice 1b (0052) as a table only; Slice 6a (0065) made table_rows nullable and added image_id with the
+-- image-or-table check above. An image chart is nothing without its image, so it goes with it (ON DELETE CASCADE).
+-- Composite (tenant_id, product_id) and (tenant_id, category_id) keys cascade with their owner. A product without its own chart shows the one on its primary category or the
 -- nearest category above it (PRD-17), resolved when the product is read.
 
 CREATE TABLE tenant.option_sets (                   -- ATR-16; tenant_id NULL = platform set (same scope rule as attributes)
@@ -1484,6 +1492,69 @@ CREATE TABLE control.api_usage (                          -- RTE-03 (built in Sl
     updated_at      timestamptz NOT NULL DEFAULT now(),
     PRIMARY KEY (tenant_id, cycle_start)
 );
+
+```
+
+**Built in Phase 3 Slice 6a (migration 0065, 2026-10-21):** tenant media (MED-01, MED-03, MED-04, STO-01), with these
+decisions:
+- **One `tenant.media` row per uploaded item, from the moment its upload link is given out.** It moves only forward
+  -- `uploading`, `processing`, then `ready` or `failed` -- and what it is never changes once it ends (a trigger,
+  `media_moves_forward`). A refused item keeps why, and stores and counts nothing.
+- **One `tenant.media_objects` row per stored file**, with its exact size; a shop's storage use is their live sum
+  (STO-01), and the daily reconciliation against R2 (MED-04) arrives in Slice 6b. Files are written only while the
+  item is processing (`media_objects_while_processing`), and every key is under `tenants/<tenant_id>/`.
+- **Public names carry the content's fingerprint** (MED-08): `tenants/<tenant>/<media id>/<hash>.webp` and
+  `.thumb.webp`. The uploaded original is not kept.
+- **What is attached anywhere is a ready image of the shop's** -- a product's photo, a category's banner, a swatch, a
+  size chart, the logo. One trigger function, `tenant.check_attached_image()`, checks each (`media_ready_image`).
+- **Deleting an item removes it from everywhere at once**: product photos go (cascade), an image size chart goes
+  (cascade), and the category banner, the swatch and the logo are cleared (`SET NULL` of that column only). Its
+  files go in the deletion job.
+
+```sql
+CREATE TYPE tenant.media_kind        AS ENUM ('image', 'video');
+CREATE TYPE tenant.media_status      AS ENUM ('uploading', 'processing', 'ready', 'failed');
+CREATE TYPE tenant.media_purpose     AS ENUM ('product_image', 'product_video', 'category_image', 'swatch_image',
+                                              'size_chart_image', 'shop_logo');
+CREATE TYPE tenant.media_object_role AS ENUM ('main', 'thumbnail', 'poster');
+
+CREATE TABLE tenant.media (                                -- MED-03, STO-01 (built in Slice 6a)
+    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id       uuid NOT NULL,
+    kind            tenant.media_kind NOT NULL,
+    status          tenant.media_status NOT NULL DEFAULT 'uploading',
+    purpose         tenant.media_purpose NOT NULL,          -- what it was uploaded for; attachable anywhere once ready
+    target_id       uuid,                                   -- the product, category or option it was uploaded for
+    upload_key      text,                                   -- the temporary upload's key, until processed
+    content_type    varchar(100) NOT NULL,                  -- what the browser said; the content is what counts
+    declared_bytes  bigint NOT NULL CHECK (declared_bytes > 0),
+    width           integer,
+    height          integer,
+    duration_ms     integer,                                -- videos (Slice 6b)
+    hash            varchar(64),                            -- MED-08: in the public name
+    failure         text,                                   -- not_supported | too_large | unreadable | not_uploaded | storage_full
+    created_by      uuid,
+    created_at      timestamptz NOT NULL DEFAULT now(),
+    ready_at        timestamptz,
+    UNIQUE (tenant_id, id),
+    CHECK ((status = 'ready') = (ready_at IS NOT NULL AND hash IS NOT NULL))
+);
+CREATE INDEX ON tenant.media (tenant_id, created_at DESC, id DESC);
+CREATE INDEX ON tenant.media (tenant_id, status);
+
+CREATE TABLE tenant.media_objects (                        -- MED-01, MED-04, STO-01 (built in Slice 6a)
+    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id       uuid NOT NULL,
+    media_id        uuid NOT NULL,
+    role            tenant.media_object_role NOT NULL,
+    key             text NOT NULL UNIQUE CHECK (key LIKE 'tenants/' || tenant_id::text || '/%'),
+    bytes           bigint NOT NULL CHECK (bytes >= 0),
+    content_type    varchar(100) NOT NULL,
+    created_at      timestamptz NOT NULL DEFAULT now(),
+    UNIQUE (tenant_id, media_id, role),
+    FOREIGN KEY (tenant_id, media_id) REFERENCES tenant.media(tenant_id, id) ON DELETE CASCADE
+);
+-- The app may insert and delete these rows, never change one (a file's size is what it was stored at).
 
 CREATE TABLE tenant.activity_log (
     id              bigserial PRIMARY KEY,

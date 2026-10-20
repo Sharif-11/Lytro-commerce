@@ -63,6 +63,28 @@ const envSchema = z.object({
   FACEBOOK_APP_SECRET: z.string().min(1).optional(),
   // Where the provider sends the browser back to; the callback address is this base plus the provider route.
   OAUTH_CALLBACK_BASE: z.string().min(1).default('http://localhost:3000'),
+  // D3-4, MED-01: the S3-compatible store tenant media lives in -- Cloudflare R2, with dev buckets for development and
+  // CI. Left unset, media is off: an upload answers that storage is unavailable, and nothing else changes. R2 accepts
+  // path-style addressing.
+  MEDIA_STORAGE_ENDPOINT: z.string().url().optional(),
+  MEDIA_STORAGE_REGION: z.string().min(1).default('auto'),
+  MEDIA_STORAGE_PATH_STYLE: z
+    .enum(['true', 'false'])
+    .default('true')
+    .transform((v) => v === 'true'),
+  // MED-03: the temporary bucket browsers upload into, and the bucket each shop's media lives in under its prefix.
+  MEDIA_UPLOADS_BUCKET: z.string().min(3).default('lytro-uploads'),
+  MEDIA_BUCKET: z.string().min(3).default('lytro-media'),
+  // MED-07: one key per job -- signing a browser's upload, processing it, deleting objects -- each with the least it
+  // needs, kept out of the repository and rotated every 90 days.
+  MEDIA_SIGNER_ACCESS_KEY: z.string().min(1).optional(),
+  MEDIA_SIGNER_SECRET_KEY: z.string().min(1).optional(),
+  MEDIA_PROCESSOR_ACCESS_KEY: z.string().min(1).optional(),
+  MEDIA_PROCESSOR_SECRET_KEY: z.string().min(1).optional(),
+  MEDIA_DELETER_ACCESS_KEY: z.string().min(1).optional(),
+  MEDIA_DELETER_SECRET_KEY: z.string().min(1).optional(),
+  // MED-08: where public media is read from (the media Worker's address, Slice 7; the local store in development).
+  MEDIA_PUBLIC_BASE_URL: z.string().url().optional(),
 });
 
 const envWithEdgeRule = envSchema.superRefine((value, ctx) => {
@@ -86,6 +108,26 @@ const envWithEdgeRule = envSchema.superRefine((value, ctx) => {
       path: ['FACEBOOK_APP_ID'],
       message: 'required when FACEBOOK_SIGN_IN_ENABLED is true',
     });
+  }
+  // D3-4, MED-07: media is on only with its store and all three keys; half a set would fail at the first upload.
+  if (value.MEDIA_STORAGE_ENDPOINT) {
+    for (const key of [
+      'MEDIA_SIGNER_ACCESS_KEY',
+      'MEDIA_SIGNER_SECRET_KEY',
+      'MEDIA_PROCESSOR_ACCESS_KEY',
+      'MEDIA_PROCESSOR_SECRET_KEY',
+      'MEDIA_DELETER_ACCESS_KEY',
+      'MEDIA_DELETER_SECRET_KEY',
+      'MEDIA_PUBLIC_BASE_URL',
+    ] as const) {
+      if (!value[key]) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [key],
+          message: 'required when MEDIA_STORAGE_ENDPOINT is set',
+        });
+      }
+    }
   }
   if (value.TRUSTED_EDGE_SECRET_NEXT && !value.TRUSTED_EDGE_SECRET) {
     ctx.addIssue({

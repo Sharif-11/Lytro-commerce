@@ -651,6 +651,33 @@ their backend ships earlier.
   reservation is released within a minute with no movement; the golden-path test passes.
 
 ### Slice 6: media upload, processing and storage accounting
+- **Status (2026-10-21):** thirteen decisions agreed with the user before any code; built as two PRs, 6a (storage,
+  uploads, images, usage and its limit, attaching, deleting; migration 0065) and 6b (video, the nightly reconciliation,
+  the key inventory).
+  - **The store:** the S3 API, which R2 speaks, behind a storage port (D3-4), with one key per job -- signing a
+    browser's upload, processing it, deleting files (MED-07). MinIO's images are no longer published, so development
+    and CI use real R2 dev buckets, and the end-to-end tests an in-memory stand-in that takes only the file it signed
+    for, as R2 does. Two buckets: a temporary one browsers upload into, cleared after a day, and one for each shop's
+    media under `tenants/<shop>/`.
+  - **An upload starts with the file's details only** -- kind, type, size, purpose and the place it is for -- checked
+    against the per-file limit, the shop's storage, the place and the permission. It is answered with a link, valid 15
+    minutes, that takes exactly that size and type. The browser sends the file, then finishes, and a job processes it.
+    The storage limit is weighed again with the stored sizes, under a per-shop lock. A store that is away answers 503
+    with `Retry-After`.
+  - **Images** are judged by content (JPEG, PNG, WebP), turned upright and stripped of metadata, stored as a WebP of at
+    most 1600 px at q80 and a 300 px thumbnail; the uploaded file is not kept. Public names carry the content's
+    fingerprint, under the item's own id (`tenants/<shop>/<media id>/<hash>.webp`), so two identical uploads never
+    share a name. The per-file limits (5 MB, 100 MB) are platform settings.
+  - **Attaching:** a product's photos, up to 10 in order (`PUT /products/:id/images`); a category's banner (the slice's
+    text names categories; the design points had left them out); an image swatch on a shop's own value, a colour or
+    an image, never both; an image size chart in place of a table; the shop's logo (`PUT /shop-settings/logo`). The
+    database keeps each a ready image of the shop's own. Catalogue managers handle the catalogue's media, and settings
+    managers handle the logo.
+  - **Deleting** removes the item from everywhere at once and drops usage; its files go in the deletion job, the only
+    one holding the deleting key. The past-orders warning shows 0 until orders arrive (Phase 4). Day 60 wipes the
+    rows and every file under the shop's prefix.
+  - **Built as decided in 6a**, with videos turned away until 6b. An item whose processing runs out of retries while
+    the store is away stays `processing` until 6b's nightly sweep.
 - **Depends on:** Slice 1 (media attaches to products, categories and the shop logo).
 - **Delivers:** the storage port (D3-4); signed direct uploads to a temporary area; the processing job
   (content validation, resize to 1600 px, WebP q80, 300 px thumbnail, video validation, and FFmpeg video

@@ -181,14 +181,19 @@ describeIfDatabase('size charts (PRD-17)', () => {
     ];
     const set = await shop.put(`/categories/${shoes.id}/size-chart`, { rows });
     expect(set.status).toBe(200);
-    expect(set.body).toEqual({ rows });
+    expect(set.body).toEqual({ rows, image: null });
 
     const runner = await create(shop, {
       name: 'Runner',
       basePrice: 900,
       categoryIds: [sneakers.id],
     });
-    expect(runner.sizeChart).toEqual({ source: 'category', categoryId: shoes.id, rows });
+    expect(runner.sizeChart).toEqual({
+      source: 'category',
+      categoryId: shoes.id,
+      rows,
+      image: null,
+    });
     expect((await create(shop, { name: 'Laces', basePrice: 50 })).sizeChart).toBeNull();
 
     const own = [
@@ -200,6 +205,7 @@ describeIfDatabase('size charts (PRD-17)', () => {
       source: 'product',
       categoryId: null,
       rows: own,
+      image: null,
     });
 
     expect((await shop.delete(`/products/${runner.id}/size-chart`)).status).toBe(200);
@@ -455,7 +461,7 @@ describeIfDatabase('option swatches (ATR-18)', () => {
       variantAttributes: [{ attributeId: shade.id, optionIds: [ruby.id] }],
     });
     expect(lipstick.variantAttributes[0]?.options).toEqual([
-      { id: ruby.id, value: 'Ruby 05', swatchColor: '#B0102A' },
+      { id: ruby.id, value: 'Ruby 05', swatchColor: '#B0102A', swatchImage: null },
     ]);
 
     // Re-colouring shows at once and moves the catalogue version (CCH-02).
@@ -712,7 +718,14 @@ describeIfDatabase(
         (row) => row.id === sleeve.id,
       );
       expect(seen?.options).toEqual([
-        { id: longId, value: 'Long', swatchColor: '#123ABC', scope: 'platform', retired: false },
+        {
+          id: longId,
+          value: 'Long',
+          swatchColor: '#123ABC',
+          swatchImage: null,
+          scope: 'platform',
+          retired: false,
+        },
       ]);
       expect((await shop.patch(`/attributes/${sleeve.id}`, { name: 'Mine now' })).status).toBe(404);
 

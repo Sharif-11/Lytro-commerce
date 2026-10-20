@@ -261,6 +261,11 @@ export enum AuditAction {
   // short (PUR-04, PUR-06, PUR-07, PUR-10).
   PurchaseReceived = 'purchase_received',
   PurchaseClosedShort = 'purchase_closed_short',
+  // Phase 3 Slice 6a: a product's photos set in order, the shop's logo set, and a media item deleted (PRD-11, TEN-16,
+  // MED-09).
+  ProductImagesSaved = 'product_images_saved',
+  ShopLogoSaved = 'shop_logo_saved',
+  MediaDeleted = 'media_deleted',
   // Phase 3 Slice 8: a public API key made, its name or website addresses changed, or revoked (API-01, API-21).
   ApiKeyCreated = 'api_key_created',
   ApiKeyUpdated = 'api_key_updated',
@@ -271,6 +276,38 @@ export enum AuditAction {
 // arrive in Phase 8.
 export enum ApiKeyType {
   Public = 'public',
+}
+
+// MED-03, STO-01, D3-4: an uploaded item -- an image or a video -- and how far it has got: its upload link given out,
+// its file being processed, ready to use, or refused (nothing of it stored or counted).
+export enum MediaKind {
+  Image = 'image',
+  Video = 'video',
+}
+
+export enum MediaStatus {
+  Uploading = 'uploading',
+  Processing = 'processing',
+  Ready = 'ready',
+  Failed = 'failed',
+}
+
+// MED-03: what an upload is for, named when it starts, so the right permission and the room left are checked before
+// any file is sent. The item can still be attached elsewhere once ready.
+export enum MediaPurpose {
+  ProductImage = 'product_image',
+  ProductVideo = 'product_video',
+  CategoryImage = 'category_image',
+  SwatchImage = 'swatch_image',
+  SizeChartImage = 'size_chart_image',
+  ShopLogo = 'shop_logo',
+}
+
+// STO-01, STO-04, STO-09: each stored file of an item: the picture itself, its thumbnail, a video's poster.
+export enum MediaObjectRole {
+  Main = 'main',
+  Thumbnail = 'thumbnail',
+  Poster = 'poster',
 }
 
 // AUD-07: these action kinds (payment, wallet, credential, plan, balance) are kept 24 months regardless of
@@ -335,6 +372,10 @@ export enum QueueName {
   InventoryExpiryTick = 'inventory_expiry_tick',
   // INV-16: every minute, releases the stock held for orders whose online payment never came.
   ReservationExpiryTick = 'reservation_expiry_tick',
+  // MED-03: an uploaded file to validate and turn into what is stored; MED-07, MED-09: stored files to delete, with the
+  // deletion job's own key.
+  MediaProcess = 'media_process',
+  MediaDelete = 'media_delete',
 }
 
 // Who performed the action (AUD-02). `system` is the platform itself (a scheduled job); `platform_support` is an
@@ -459,6 +500,9 @@ export enum PlatformSettingKey {
   // INV-16, D3-6: how long stock stays held for an order awaiting online payment before it is released. Phase 5 sets
   // it from the payment session's own lifetime.
   ReservationExpiryMinutes = 'reservation_expiry_minutes',
+  // STO-04, STO-05 (2.1, "editable"): the largest image and video one upload may be, in MB.
+  MediaImageMaxMb = 'media_image_max_mb',
+  MediaVideoMaxMb = 'media_video_max_mb',
 }
 
 // D2-1: what a control.plan_payments row is for -- a purchase, a renewal, an upgrade, or a balance top-up.

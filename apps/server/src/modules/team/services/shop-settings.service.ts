@@ -7,11 +7,17 @@ import {
   type ShopSettings,
   type UpdateShopSettingsInput,
 } from '@lytronix/validators';
+import type { ImageView } from '../../../common/media-links';
 import { AuditService } from '../../audit/services/audit.service';
 import { ShopDeliveryRateService } from '../../balance/services/shop-delivery-rate.service';
 import { ShopPaymentPolicyService } from '../../catalogue/services/shop-payment-policy.service';
+import type { CatalogueActor } from '../../catalogue/types/catalogue';
+import { MediaService } from '../../media/services/media.service';
 import { StaffService } from '../../staff/services/staff.service';
 import { TenantService } from '../../tenancy/services/tenant.service';
+
+/** The shop's settings as shown, with its logo, or null for its monogram (TEN-16). */
+export type ShopSettingsView = ShopSettings & { logo: ImageView | null };
 
 /** TEN-30/RAT-14/PRD-08: a tenant's own support/contact details, its one per-tenant rate and its default payment
     policy, set from dashboard settings any time after onboarding -- two different tables (`control.tenants`,
@@ -24,15 +30,31 @@ export class ShopSettingsService {
     @Inject(StaffService) private readonly staff: StaffService,
     @Inject(ShopDeliveryRateService) private readonly deliveryRate: ShopDeliveryRateService,
     @Inject(ShopPaymentPolicyService) private readonly paymentPolicy: ShopPaymentPolicyService,
+    @Inject(MediaService) private readonly media: MediaService,
   ) {}
 
-  async get(tenantId: string): Promise<ShopSettings> {
+  async get(tenantId: string): Promise<ShopSettingsView> {
     const contact = await this.tenants.runStandalone(async (tx) => {
       const row = await this.tenants.findContactDetails(tx, tenantId);
       return row ?? { contactPhone: null, contactEmail: null, businessAddress: null };
     });
     const extraDeliveryChargePerKg = await this.deliveryRate.get(tenantId);
-    return { ...contact, extraDeliveryChargePerKg, ...(await this.paymentPolicy.get(tenantId)) };
+    return {
+      ...contact,
+      extraDeliveryChargePerKg,
+      ...(await this.paymentPolicy.get(tenantId)),
+      logo: await this.media.logoOf(tenantId),
+    };
+  }
+
+  /** TEN-16: the shop's logo becomes one of its ready images, or none for its monogram. */
+  async setLogo(
+    tenantId: string,
+    mediaId: string | null,
+    actor: CatalogueActor,
+  ): Promise<ShopSettingsView> {
+    await this.media.setLogo(tenantId, mediaId, actor);
+    return this.get(tenantId);
   }
 
   async update(
@@ -40,7 +62,7 @@ export class ShopSettingsService {
     actingUserId: string | null,
     input: UpdateShopSettingsInput,
     ip?: string | null,
-  ): Promise<ShopSettings> {
+  ): Promise<ShopSettingsView> {
     // PRD-08 first: a policy the rule refuses must refuse the whole update, before anything is written.
     const policy =
       input.defaultPaymentPolicy !== undefined || input.defaultAdvanceAmount !== undefined

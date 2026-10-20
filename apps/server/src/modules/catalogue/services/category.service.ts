@@ -11,6 +11,7 @@ import {
 } from '@lytronix/validators';
 import { ApiError, FieldsError } from '../../../common/api-error';
 import { UniqueViolation } from '../../../common/errors/unique-violation';
+import type { ImageView } from '../../../common/media-links';
 import type {
   AttributeStore,
   CatalogueTransactions,
@@ -29,14 +30,18 @@ import {
 } from '../tokens';
 import type { CatalogueActor, CategoryRecord, CategoryView } from '../types/catalogue';
 import { CatalogueActivity } from './catalogue-activity';
+import { CatalogueImages, refuseUnattachable } from './catalogue-images';
 import { nextFreeSlug, slugOf } from './slug';
 
 function view(
   category: CategoryRecord,
   productCount: number,
   suggestedAttributeIds: string[],
-  sizeChart: string[][] | null,
+  chart: { rows: string[][] | null; imageId: string | null } | null,
+  images: ReadonlyMap<string, ImageView>,
 ): CategoryView {
+  const imageOf = (id: string | null | undefined): ImageView | null =>
+    id === null || id === undefined ? null : (images.get(id) ?? null);
   return {
     id: category.id,
     parentId: category.parentId,
@@ -48,7 +53,9 @@ function view(
     productCount,
     suggestedAttributeIds,
     behavesLike: category.behavesLike,
-    sizeChart,
+    image: imageOf(category.imageId),
+    sizeChart: chart?.rows ?? null,
+    sizeChartImage: imageOf(chart?.imageId),
   };
 }
 
@@ -68,6 +75,7 @@ export class CategoryService {
     @Inject(PRESET_STORE) private readonly presets: PresetStore,
     @Inject(SIZE_CHART_STORE) private readonly charts: SizeChartStore,
     @Inject(CatalogueActivity) private readonly activity: CatalogueActivity,
+    @Inject(CatalogueImages) private readonly images: CatalogueImages,
   ) {}
 
   list(tenantId: string): Promise<CategoryView[]> {
@@ -104,11 +112,12 @@ export class CategoryService {
           sortOrder: input.sortOrder ?? 0,
           visible: input.visible ?? true,
           behavesLike,
+          imageId: input.imageId ?? null,
         });
       } catch (error) {
         // Two categories of the same name created at once: the loser simply tries again.
         if (error instanceof UniqueViolation) throw new ApiError('conflict', 'PleaseTryAgain', {});
-        throw error;
+        refuseUnattachable(error, 'imageId');
       }
       await this.activity.record(
         tx,
@@ -122,7 +131,7 @@ export class CategoryService {
         { name: row.name, parentId, ...(behavesLike !== null ? { behavesLike } : {}) },
       );
       await this.products.bumpVersion(tx, tenantId);
-      return view(row, 0, [], null);
+      return view(row, 0, [], null, await this.images.viewsOf(tx, tenantId, [row.imageId]));
     });
   }
 
@@ -143,6 +152,8 @@ export class CategoryService {
       if (input.visible !== undefined) patch.visible = input.visible;
       // PST-06, PST-03: applies to products created from now on; none already saved changes.
       if (input.behavesLike !== undefined) patch.behavesLike = input.behavesLike;
+      // MED-03: its banner, or none.
+      if (input.imageId !== undefined) patch.imageId = input.imageId;
 
       if (input.parentId !== undefined && input.parentId !== current.parentId) {
         const subtree = await this.categories.subtree(tx, tenantId, categoryId);
@@ -164,7 +175,12 @@ export class CategoryService {
         await this.categories.setSubtreeDepths(tx, tenantId, subtree, depth);
       }
 
-      const row = await this.categories.updateCategory(tx, tenantId, categoryId, patch);
+      let row: CategoryRecord | null;
+      try {
+        row = await this.categories.updateCategory(tx, tenantId, categoryId, patch);
+      } catch (error) {
+        refuseUnattachable(error, 'imageId');
+      }
       if (!row) throw new ApiError('not_found', 'CategoryNotFound', {});
       await this.activity.record(
         tx,
@@ -338,9 +354,13 @@ export class CategoryService {
     const charts = new Map(
       (await this.charts.listCategoryCharts(tx, tenantId)).map((chart) => [
         chart.categoryId,
-        chart.tableRows,
+        { rows: chart.tableRows, imageId: chart.imageId },
       ]),
     );
+    const images = await this.images.viewsOf(tx, tenantId, [
+      ...rows.map((row) => row.imageId),
+      ...[...charts.values()].map((chart) => chart.imageId),
+    ]);
     return rows.map((row) =>
       view(
         row,
@@ -349,6 +369,7 @@ export class CategoryService {
           .filter((entry) => entry.categoryId === row.id)
           .map((entry) => entry.attributeId),
         charts.get(row.id) ?? null,
+        images,
       ),
     );
   }

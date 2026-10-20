@@ -160,6 +160,7 @@ export class AttributeRepository {
       attributeId: string;
       value: string;
       swatchColor?: string | null;
+      swatchImageId?: string | null;
       sortOrder: number;
     },
   ): Promise<SelectAttributeOption> {
@@ -191,7 +192,12 @@ export class AttributeRepository {
     tenantId: string,
     attributeId: string,
     id: string,
-    patch: { value?: string; swatchColor?: string | null; retiredAt?: Date | null },
+    patch: {
+      value?: string;
+      swatchColor?: string | null;
+      swatchImageId?: string | null;
+      retiredAt?: Date | null;
+    },
   ): Promise<SelectAttributeOption | null> {
     await this.transactions.setTenantContext(tx, tenantId);
     const own = and(

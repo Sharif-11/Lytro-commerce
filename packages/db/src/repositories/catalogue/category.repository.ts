@@ -57,6 +57,7 @@ export class CategoryRepository {
       sortOrder: number;
       visible: boolean;
       behavesLike: string | null;
+      imageId?: string | null;
     },
   ): Promise<SelectCategory> {
     await this.transactions.setTenantContext(tx, values.tenantId);
@@ -77,6 +78,7 @@ export class CategoryRepository {
       sortOrder?: number;
       visible?: boolean;
       behavesLike?: string | null;
+      imageId?: string | null;
     },
   ): Promise<SelectCategory | null> {
     await this.transactions.setTenantContext(tx, tenantId);

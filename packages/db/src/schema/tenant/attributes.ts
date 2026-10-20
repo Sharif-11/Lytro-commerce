@@ -75,8 +75,10 @@ export const attributeOptions = tenant.table(
       .references(() => attributes.id),
     tenantId: uuid('tenant_id'),
     value: varchar('value', { length: OPTION_VALUE_MAX_LENGTH }).notNull(),
-    // ATR-18: an optional colour swatch, #RRGGBB. The image swatch (MED-03) arrives with media in Slice 6.
+    // ATR-18: an optional swatch: a colour, #RRGGBB, or a small image of the shop's (MED-03), never both. Only a shop's
+    // own value takes an image; deleting the image clears it.
     swatchColor: varchar('swatch_color', { length: 7 }),
+    swatchImageId: uuid('swatch_image_id'),
     sortOrder: integer('sort_order').notNull().default(0),
     retiredAt: timestamp('retired_at', { withTimezone: true }),
     createdAt: createdAt(),
@@ -91,6 +93,14 @@ export const attributeOptions = tenant.table(
       .on(t.tenantId, t.attributeId, sql`lower(${t.value})`)
       .where(sql`${t.tenantId} IS NOT NULL`),
     check('attribute_options_swatch_check', sql`${t.swatchColor} ~ '^#[0-9A-Fa-f]{6}$'`),
+    check(
+      'attribute_options_swatch_one_check',
+      sql`${t.swatchColor} IS NULL OR ${t.swatchImageId} IS NULL`,
+    ),
+    check(
+      'attribute_options_swatch_image_check',
+      sql`${t.swatchImageId} IS NULL OR ${t.tenantId} IS NOT NULL`,
+    ),
   ],
 );
 

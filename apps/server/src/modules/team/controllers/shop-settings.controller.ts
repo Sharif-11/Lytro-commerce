@@ -1,7 +1,7 @@
-import { Body, Controller, Get, Inject, Patch, Req, UseGuards } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, Inject, Patch, Put, Req, UseGuards } from '@nestjs/common';
+import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
-import { Permission, type ShopSettings } from '@lytronix/validators';
+import { Permission } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import { ClientIp } from '../../../common/client-ip';
 import { Dashboard } from '../../../common/decorators/dashboard';
@@ -11,8 +11,9 @@ import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
 import { DashboardGuard, type DashboardRequest } from '../../identity/guards/dashboard.guard';
 import { SessionGuard } from '../../identity/guards/session.guard';
 import { PermissionGuard } from '../guards/permission.guard';
-import { ShopSettingsService } from '../services/shop-settings.service';
-import { ShopSettingsDto, UpdateShopSettingsDto } from '../dto/shop-settings.dto';
+import { CatalogueRequest } from '../services/catalogue-request';
+import { ShopSettingsService, type ShopSettingsView } from '../services/shop-settings.service';
+import { ShopLogoDto, ShopSettingsDto, UpdateShopSettingsDto } from '../dto/shop-settings.dto';
 
 // TEN-30: a tenant's own support/contact details. RAT-14: the one per-tenant rate (extra delivery charge
 // per kg beyond the first, Adjustable-mode products) folded into this same shape -- reachable only once a
@@ -27,14 +28,17 @@ export class ShopSettingsController {
   constructor(
     @Inject(ShopSettingsService) private readonly settings: ShopSettingsService,
     @Inject(ClientIp) private readonly clientIp: ClientIp,
+    @Inject(CatalogueRequest) private readonly catalogue: CatalogueRequest,
   ) {}
 
   @Get()
   @RequirePermission(Permission.SettingsManage)
   @ResponseMessage('ShopSettingsRetrieved')
-  @ApiOperation({ summary: "Get the shop's contact details and delivery rate (RAT-14)" })
+  @ApiOperation({
+    summary: "Get the shop's contact details, delivery rate and logo (RAT-14, TEN-16)",
+  })
   @ZodResponse({ type: ShopSettingsDto })
-  get(@Req() request: DashboardRequest): Promise<ShopSettings> {
+  get(@Req() request: DashboardRequest): Promise<ShopSettingsView> {
     return this.settings.get(this.tenantIdOf(request));
   }
 
@@ -46,12 +50,31 @@ export class ShopSettingsController {
   update(
     @Body(new ZodValidationPipe(UpdateShopSettingsDto.schema)) body: UpdateShopSettingsDto,
     @Req() request: DashboardRequest,
-  ): Promise<ShopSettings> {
+  ): Promise<ShopSettingsView> {
     return this.settings.update(
       this.tenantIdOf(request),
       request.session?.userId ?? null,
       body,
       this.clientIp.resolve(request),
+    );
+  }
+
+  @Put('logo')
+  @RequirePermission(Permission.SettingsManage)
+  @ResponseMessage('ShopLogoSaved')
+  @ApiOperation({
+    summary: "Set the shop's logo to one of its ready images, or null for its monogram (TEN-16)",
+  })
+  @ApiBody({ type: ShopLogoDto })
+  @ZodResponse({ type: ShopSettingsDto })
+  setLogo(
+    @Body(new ZodValidationPipe(ShopLogoDto.schema)) body: ShopLogoDto,
+    @Req() request: DashboardRequest,
+  ): Promise<ShopSettingsView> {
+    return this.settings.setLogo(
+      this.tenantIdOf(request),
+      body.mediaId,
+      this.catalogue.actorOf(request),
     );
   }
 

@@ -31,6 +31,8 @@ const DESCRIPTIONS: Record<PlatformSettingKey, string> = {
     'How many days after locked a lapsed tenant stays archived before deletion (LIF-26, 2.3).',
   [PlatformSettingKey.ReservationExpiryMinutes]:
     'How many minutes an order awaiting online payment holds its stock (INV-16).',
+  [PlatformSettingKey.MediaImageMaxMb]: 'The largest image one upload may be, in MB (STO-04).',
+  [PlatformSettingKey.MediaVideoMaxMb]: 'The largest video one upload may be, in MB (STO-05).',
 };
 
 // A positive-int check, the only shape any key needs today; slice 7 extends this map, not a switch, as more
@@ -47,6 +49,8 @@ const VALIDATORS: Record<PlatformSettingKey, (value: unknown) => boolean> = {
   [PlatformSettingKey.LockedDays]: isPositiveInt,
   [PlatformSettingKey.ArchivedDays]: isPositiveInt,
   [PlatformSettingKey.ReservationExpiryMinutes]: isPositiveInt,
+  [PlatformSettingKey.MediaImageMaxMb]: isPositiveInt,
+  [PlatformSettingKey.MediaVideoMaxMb]: isPositiveInt,
 };
 
 function validate(key: PlatformSettingKey, value: unknown): void {

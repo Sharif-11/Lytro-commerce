@@ -139,6 +139,7 @@ export { VariantRepository, type VariantPatch } from './repositories/catalogue/v
 export { PresetRepository, type PresetPatch } from './repositories/catalogue/preset.repository';
 export {
   SizeChartRepository,
+  type SizeChartContent,
   type SizeChartOwner,
 } from './repositories/catalogue/size-chart.repository';
 export { OptionSetRepository } from './repositories/catalogue/option-set.repository';
@@ -156,6 +157,14 @@ export {
   type VariantStockRow,
 } from './repositories/inventory/stock.repository';
 export { SerialRepository, type NewSerial } from './repositories/inventory/serial.repository';
+export {
+  MediaRepository,
+  type MediaOutcome,
+  type MediaUses,
+  type NewMedia,
+  type NewMediaObject,
+  type ProductImageRow,
+} from './repositories/media/media.repository';
 export {
   ReservationRepository,
   type NewReservation,

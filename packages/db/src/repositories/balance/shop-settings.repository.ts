@@ -34,6 +34,15 @@ export class ShopSettingsRepository {
     await tx.delete(shopSettings).where(eq(shopSettings.tenantId, tenantId));
   }
 
+  /** TEN-16: the shop's logo, or none to show its monogram. */
+  async setLogo(tx: Transaction, tenantId: string, logoMediaId: string | null): Promise<void> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    await tx
+      .insert(shopSettings)
+      .values({ tenantId, logoMediaId })
+      .onConflictDoUpdate({ target: shopSettings.tenantId, set: { logoMediaId } });
+  }
+
   /** PRD-08: the shop-wide default payment policy, with the advance a partial-advance default asks. */
   async setPaymentPolicy(
     tx: Transaction,

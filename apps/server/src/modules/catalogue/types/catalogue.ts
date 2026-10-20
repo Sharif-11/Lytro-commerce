@@ -24,6 +24,7 @@ import type {
   StockUnit,
   TenantState,
 } from '@lytronix/validators';
+import type { ImageView } from '../../../common/media-links';
 
 // The stored rows, as aliases of the shared types (ENGINEERING-STANDARDS §4), never copies.
 export type CategoryRecord = SelectCategory;
@@ -66,6 +67,8 @@ export interface OptionView {
   value: string;
   /** ATR-18: #RRGGBB, or null for an option shown by its name alone. */
   swatchColor: string | null;
+  /** ATR-18, MED-03: a shop's own option may show an image instead; null for none. */
+  swatchImage: ImageView | null;
   scope: CatalogueScope;
   retired: boolean;
 }
@@ -94,8 +97,12 @@ export interface CategoryView {
   suggestedAttributeIds: string[];
   /** PST-06: the shop type its products behave like; null follows its parent, then the shop. */
   behavesLike: string | null;
-  /** PRD-17: its own size chart, or null. */
+  /** MED-03: its banner, or null. */
+  image: ImageView | null;
+  /** PRD-17: its own size chart as a table, or null. */
   sizeChart: string[][] | null;
+  /** PRD-17, MED-03: its own size chart as an image, or null. */
+  sizeChartImage: ImageView | null;
 }
 
 /** PST-02, PST-05: what one shop type gives a new product. */
@@ -151,7 +158,9 @@ export interface SizeChartView {
   source: 'product' | 'category';
   /** The category it comes from, when it is not the product's own. */
   categoryId: string | null;
-  rows: string[][];
+  /** A table of short text, or null when the chart is an image (MED-03). */
+  rows: string[][] | null;
+  image: ImageView | null;
 }
 
 export interface VariantAttributeView {
@@ -160,7 +169,12 @@ export interface VariantAttributeView {
   dataType: AttributeDataType;
   unitKind: string | null;
   /** The options its live variants use, in the attribute's own order, with their swatches (ATR-18). */
-  options: { id: string; value: string; swatchColor: string | null }[];
+  options: {
+    id: string;
+    value: string;
+    swatchColor: string | null;
+    swatchImage: ImageView | null;
+  }[];
 }
 
 export interface ProductAttributeView {
@@ -232,6 +246,8 @@ export interface ProductDetail {
   variants: VariantView[];
   /** PRD-17: its own chart, else its primary category's or the nearest one above it; null for none. */
   sizeChart: SizeChartView | null;
+  /** PRD-11: its photos, in the order shown (up to 10). */
+  images: ImageView[];
   /** DLV-07: the zones it may be delivered to; empty means wherever the shop delivers. */
   deliveryZoneIds: string[];
   createdAt: Date;
@@ -249,6 +265,8 @@ export interface ProductListItem {
   stockState: StockState;
   primaryCategoryId: string | null;
   variantCount: number;
+  /** PRD-11: its first photo, for the list, or null. */
+  image: ImageView | null;
   createdAt: Date;
 }
 

@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { Transaction } from '@lytronix/db';
+import type { SizeChartContent, Transaction } from '@lytronix/db';
 import {
   AttributeDataType,
   AttributeRole,
@@ -21,6 +21,7 @@ import {
   type CreateProductInput,
   type ListProductsQuery,
   type ProductDeliveryZonesInput,
+  type ProductImagesInput,
   type SaveProductAttributesInput,
   type SaveVariantsInput,
   type UpdateProductInput,
@@ -34,6 +35,7 @@ import { dhakaDate } from '../../../common/time';
 import { PayAsYouGoBillingService } from '../../balance/services/payg-billing.service';
 import type {
   AttributeStore,
+  CatalogueImageStore,
   CatalogueTransactions,
   CategoryStore,
   ProductChange,
@@ -44,6 +46,7 @@ import type {
 } from '../ports/catalogue-stores';
 import {
   ATTRIBUTE_STORE,
+  CATALOGUE_IMAGE_STORE,
   CATALOGUE_TRANSACTIONS,
   CATEGORY_STORE,
   PRODUCT_STORE,
@@ -61,6 +64,7 @@ import type {
   ProductListItem,
   ProductPage,
   ProductRecord,
+  SizeChartRecord,
   SizeChartView,
   VariantAttributeView,
   VariantRecord,
@@ -68,6 +72,7 @@ import type {
   VariantView,
 } from '../types/catalogue';
 import { CatalogueActivity, type ResolvedActor } from './catalogue-activity';
+import { CatalogueImages, refuseUnattachable } from './catalogue-images';
 import { settlePaymentPolicy } from './payment-policy';
 import { PresetService } from './preset.service';
 import { ShopPaymentPolicyService } from './shop-payment-policy.service';
@@ -110,6 +115,12 @@ const COPY_SUFFIX = ' (copy)';
 function copyName(name: string): string {
   const room = PRODUCT_NAME_MAX_LENGTH - COPY_SUFFIX.length;
   return `${name.length > room ? name.slice(0, room).trimEnd() : name}${COPY_SUFFIX}`;
+}
+
+/** PRD-17: what a stored chart shows, to copy it: its table or its image. */
+function chartContent(chart: SizeChartRecord): SizeChartContent | null {
+  if (chart.imageId !== null) return { imageId: chart.imageId };
+  return chart.tableRows !== null ? { rows: chart.tableRows } : null;
 }
 
 function variantChangeOf(spec: VariantSpec | null): VariantChange {
@@ -158,6 +169,8 @@ export class ProductService {
     @Inject(ShopPaymentPolicyService) private readonly shopPolicy: ShopPaymentPolicyService,
     @Inject(PayAsYouGoBillingService) private readonly payAsYouGo: PayAsYouGoBillingService,
     @Inject(CatalogueActivity) private readonly activity: CatalogueActivity,
+    @Inject(CATALOGUE_IMAGE_STORE) private readonly photos: CatalogueImageStore,
+    @Inject(CatalogueImages) private readonly images: CatalogueImages,
   ) {}
 
   /** PRD-12: the dashboard's list, 20 to a page by default, archived products left out. */
@@ -169,6 +182,12 @@ export class ProductService {
         offset: (query.page - 1) * query.limit,
         limit: query.limit,
       });
+      // PRD-11: each product's first photo, for the list.
+      const photos = await this.images.ofProducts(
+        tx,
+        tenantId,
+        rows.map(({ product }) => product.id),
+      );
       const products: ProductListItem[] = rows.map(({ product, variantCount }) => ({
         id: product.id,
         name: product.name,
@@ -180,6 +199,7 @@ export class ProductService {
         stockState: product.stockState,
         primaryCategoryId: product.primaryCategoryId,
         variantCount,
+        image: photos.get(product.id)?.[0] ?? null,
         createdAt: product.createdAt,
       }));
       return {
@@ -391,7 +411,18 @@ export class ProductService {
       if (source.sharedStock) await this.ensureStockHolder(tx, shop.id, copy.id);
 
       const chart = await this.charts.findChart(tx, shop.id, { productId });
-      if (chart) await this.charts.putChart(tx, shop.id, { productId: copy.id }, chart.tableRows);
+      const content = chart ? chartContent(chart) : null;
+      if (content) await this.charts.putChart(tx, shop.id, { productId: copy.id }, content);
+      // PRD-11, PRD-18: the copy shows the same photos, in the same order; each stays one item in the library.
+      const photos = await this.photos.listProductImages(tx, shop.id, [productId]);
+      if (photos.length > 0) {
+        await this.photos.setProductImages(
+          tx,
+          shop.id,
+          copy.id,
+          photos.map((photo) => photo.mediaId),
+        );
+      }
       // DLV-07: the copy goes where the original goes.
       await this.products.replaceDeliveryZones(
         tx,
@@ -412,6 +443,32 @@ export class ProductService {
       });
       await this.products.bumpVersion(tx, shop.id);
       return this.detail(tx, shop.id, copy.id);
+    });
+  }
+
+  /**
+   * PRD-11: the product's photos become these, in the order shown -- each a ready image of the shop's; an empty list
+   * removes them all. Removing a photo keeps it in the library.
+   */
+  async setImages(
+    shop: CatalogueShop,
+    productId: string,
+    input: ProductImagesInput,
+    actor: CatalogueActor,
+  ): Promise<ProductDetail> {
+    const who = await this.activity.resolve(shop.id, actor);
+    return this.transactions.run(async (tx) => {
+      await this.findLive(tx, shop.id, productId);
+      try {
+        await this.photos.setProductImages(tx, shop.id, productId, input.mediaIds);
+      } catch (error) {
+        refuseUnattachable(error, 'mediaIds');
+      }
+      await this.record(tx, shop.id, who, AuditAction.ProductImagesSaved, productId, {
+        mediaIds: input.mediaIds,
+      });
+      await this.products.bumpVersion(tx, shop.id);
+      return this.detail(tx, shop.id, productId);
     });
   }
 
@@ -1622,6 +1679,12 @@ export class ProductService {
         (row): [string, OptionRecord] => [row.id, row],
       ),
     );
+    // ATR-18: the swatch images of the options its variants use.
+    const swatches = await this.images.viewsOf(
+      tx,
+      tenantId,
+      [...options.values()].map((option) => option.swatchImageId),
+    );
     const byOrder = (a: OptionRecord, b: OptionRecord, numeric: boolean) =>
       numeric
         ? Number(a.value) - Number(b.value)
@@ -1654,6 +1717,8 @@ export class ProductService {
             id: option.id,
             value: option.value,
             swatchColor: option.swatchColor,
+            swatchImage:
+              option.swatchImageId === null ? null : (swatches.get(option.swatchImageId) ?? null),
           })),
         },
       ];
@@ -1738,6 +1803,7 @@ export class ProductService {
       attributes: described,
       variants: variantViews,
       sizeChart: await this.sizeChartOf(tx, tenantId, product),
+      images: (await this.images.ofProducts(tx, tenantId, [productId])).get(productId) ?? [],
       deliveryZoneIds: await this.products.listDeliveryZoneIds(tx, tenantId, productId),
       createdAt: product.createdAt,
       updatedAt: product.updatedAt,
@@ -1769,19 +1835,31 @@ export class ProductService {
     tenantId: string,
     product: ProductRecord,
   ): Promise<SizeChartView | null> {
+    const shown = async (
+      chart: SizeChartRecord,
+      categoryId: string | null,
+    ): Promise<SizeChartView> => {
+      const images = await this.images.viewsOf(tx, tenantId, [chart.imageId]);
+      return {
+        source: categoryId === null ? 'product' : 'category',
+        categoryId,
+        rows: chart.tableRows,
+        image: chart.imageId === null ? null : (images.get(chart.imageId) ?? null),
+      };
+    };
     const own = await this.charts.findChart(tx, tenantId, { productId: product.id });
-    if (own) return { source: 'product', categoryId: null, rows: own.tableRows };
+    if (own) return shown(own, null);
     if (product.primaryCategoryId === null) return null;
     const charts = new Map(
       (await this.charts.listCategoryCharts(tx, tenantId)).map((chart) => [
         chart.categoryId,
-        chart.tableRows,
+        chart,
       ]),
     );
     if (charts.size === 0) return null;
     for (const category of await this.categories.lineage(tx, tenantId, product.primaryCategoryId)) {
-      const rows = charts.get(category.id);
-      if (rows) return { source: 'category', categoryId: category.id, rows };
+      const chart = charts.get(category.id);
+      if (chart) return shown(chart, category.id);
     }
     return null;
   }

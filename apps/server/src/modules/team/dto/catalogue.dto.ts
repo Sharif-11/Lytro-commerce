@@ -8,7 +8,9 @@ import {
   createOptionSetSchema,
   createPlatformOptionSetSchema,
   createProductSchema,
+  createShopOptionSchema,
   productDeliveryZonesSchema,
+  productImagesSchema,
   saveProductAttributesSchema,
   saveVariantsSchema,
   setBusinessTypeSchema,
@@ -19,6 +21,7 @@ import {
   updatePlatformOptionSetSchema,
   updatePresetSchema,
   updateProductSchema,
+  updateShopOptionSchema,
 } from '@lytronix/validators';
 import { createZodDto } from 'nestjs-zod';
 
@@ -28,6 +31,8 @@ export class CreateAttributeDto extends createZodDto(createAttributeSchema) {}
 export class UpdateAttributeDto extends createZodDto(updateAttributeSchema) {}
 export class CreateOptionDto extends createZodDto(createOptionSchema) {}
 export class UpdateOptionDto extends createZodDto(updateOptionSchema) {}
+export class CreateShopOptionDto extends createZodDto(createShopOptionSchema) {}
+export class UpdateShopOptionDto extends createZodDto(updateShopOptionSchema) {}
 export class CreateCategoryDto extends createZodDto(createCategorySchema) {}
 export class UpdateCategoryDto extends createZodDto(updateCategorySchema) {}
 export class CategoryAttributesDto extends createZodDto(categoryAttributesSchema) {}
@@ -38,6 +43,7 @@ export class SaveProductAttributesDto extends createZodDto(saveProductAttributes
 export class ChangeProductSlugDto extends createZodDto(changeProductSlugSchema) {}
 export class SizeChartDto extends createZodDto(sizeChartSchema) {}
 export class ProductDeliveryZonesDto extends createZodDto(productDeliveryZonesSchema) {}
+export class ProductImagesDto extends createZodDto(productImagesSchema) {}
 export class AddOptionsDto extends createZodDto(addOptionsSchema) {}
 export class CreateOptionSetDto extends createZodDto(createOptionSetSchema) {}
 export class UpdatePresetDto extends createZodDto(updatePresetSchema) {}

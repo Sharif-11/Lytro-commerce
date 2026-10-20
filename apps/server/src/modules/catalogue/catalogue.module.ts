@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import {
   DrizzleAttributeStore,
   DrizzleCatalogueDataStore,
+  DrizzleCatalogueImageStore,
   DrizzleCatalogueTransactions,
   DrizzleCategoryStore,
   DrizzleOptionSetStore,
@@ -11,6 +12,7 @@ import {
   DrizzleShopPolicyStore,
   DrizzleSizeChartStore,
 } from '../../database/adapters/catalogue.adapter';
+import { MediaLinks } from '../../common/media-links';
 import { AuditModule } from '../audit/audit.module';
 import { BalanceModule } from '../balance/balance.module';
 import { StaffModule } from '../staff/staff.module';
@@ -18,6 +20,7 @@ import { TenancyModule } from '../tenancy/tenancy.module';
 import { AttributeService } from './services/attribute.service';
 import { CatalogueActivity } from './services/catalogue-activity';
 import { CatalogueEraser } from './services/catalogue-eraser';
+import { CatalogueImages } from './services/catalogue-images';
 import { CatalogueVersion } from './services/catalogue-version';
 import { CategoryService } from './services/category.service';
 import { OptionSetService } from './services/option-set.service';
@@ -29,6 +32,7 @@ import { SizeChartService } from './services/size-chart.service';
 import {
   ATTRIBUTE_STORE,
   CATALOGUE_DATA_STORE,
+  CATALOGUE_IMAGE_STORE,
   CATALOGUE_TRANSACTIONS,
   CATEGORY_STORE,
   OPTION_SET_STORE,
@@ -56,6 +60,9 @@ import {
     { provide: PLATFORM_LIBRARY_STORE, useClass: DrizzlePlatformLibraryStore },
     { provide: SHOP_POLICY_STORE, useClass: DrizzleShopPolicyStore },
     { provide: CATALOGUE_DATA_STORE, useClass: DrizzleCatalogueDataStore },
+    { provide: CATALOGUE_IMAGE_STORE, useClass: DrizzleCatalogueImageStore },
+    MediaLinks,
+    CatalogueImages,
     CatalogueActivity,
     CatalogueEraser,
     CatalogueVersion,
@@ -74,6 +81,9 @@ import {
     CatalogueActivity,
     CatalogueVersion,
     ShopPaymentPolicyService,
+    // For the media module (Slice 6), whose screens show images the same way.
+    MediaLinks,
+    CatalogueImages,
     // For the day-60 deletion (LIF-19).
     CatalogueEraser,
     PresetService,

@@ -1,7 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { Transaction } from '@lytronix/db';
+import type { SizeChartContent, SizeChartOwner, Transaction } from '@lytronix/db';
 import { AuditAction, type SizeChartInput } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
+import type { ImageView } from '../../../common/media-links';
 import type {
   CatalogueTransactions,
   CategoryStore,
@@ -9,12 +10,21 @@ import type {
   SizeChartStore,
 } from '../ports/catalogue-stores';
 import { CATALOGUE_TRANSACTIONS, CATEGORY_STORE, PRODUCT_STORE, SIZE_CHART_STORE } from '../tokens';
-import type { CatalogueActor } from '../types/catalogue';
+import type { CatalogueActor, SizeChartRecord } from '../types/catalogue';
 import { CatalogueActivity } from './catalogue-activity';
+import { CatalogueImages, refuseUnattachable } from './catalogue-images';
 
-/** PRD-17: a chart as it is stored and shown. */
+/** PRD-17: a chart as it is stored and shown: its table, or its image (MED-03). */
 export interface SizeChartRows {
-  rows: string[][];
+  rows: string[][] | null;
+  image: ImageView | null;
+}
+
+/** PRD-17: what the request asks the chart to show. */
+function contentOf(input: SizeChartInput): SizeChartContent {
+  if (input.rows !== undefined) return { rows: input.rows };
+  if (input.imageId !== undefined) return { imageId: input.imageId };
+  throw new Error('a size chart names its rows or its image (sizeChartSchema)');
 }
 
 /**
@@ -30,6 +40,7 @@ export class SizeChartService {
     @Inject(PRODUCT_STORE) private readonly products: ProductStore,
     @Inject(CATEGORY_STORE) private readonly categories: CategoryStore,
     @Inject(CatalogueActivity) private readonly activity: CatalogueActivity,
+    @Inject(CatalogueImages) private readonly images: CatalogueImages,
   ) {}
 
   async setOnProduct(
@@ -41,7 +52,7 @@ export class SizeChartService {
     const who = await this.activity.resolve(tenantId, actor);
     return this.transactions.run(async (tx) => {
       await this.liveProduct(tx, tenantId, productId);
-      const chart = await this.charts.putChart(tx, tenantId, { productId }, input.rows);
+      const chart = await this.put(tx, tenantId, { productId }, input);
       await this.activity.record(
         tx,
         tenantId,
@@ -51,7 +62,7 @@ export class SizeChartService {
         { sizeChart: 'set' },
       );
       await this.products.bumpVersion(tx, tenantId);
-      return { rows: chart.tableRows };
+      return this.shown(tx, tenantId, chart);
     });
   }
 
@@ -86,7 +97,7 @@ export class SizeChartService {
     const who = await this.activity.resolve(tenantId, actor);
     return this.transactions.run(async (tx) => {
       await this.category(tx, tenantId, categoryId);
-      const chart = await this.charts.putChart(tx, tenantId, { categoryId }, input.rows);
+      const chart = await this.put(tx, tenantId, { categoryId }, input);
       await this.activity.record(
         tx,
         tenantId,
@@ -96,7 +107,7 @@ export class SizeChartService {
         { sizeChart: 'set' },
       );
       await this.products.bumpVersion(tx, tenantId);
-      return { rows: chart.tableRows };
+      return this.shown(tx, tenantId, chart);
     });
   }
 
@@ -119,6 +130,31 @@ export class SizeChartService {
       );
       await this.products.bumpVersion(tx, tenantId);
     });
+  }
+
+  private async put(
+    tx: Transaction,
+    tenantId: string,
+    owner: SizeChartOwner,
+    input: SizeChartInput,
+  ): Promise<SizeChartRecord> {
+    try {
+      return await this.charts.putChart(tx, tenantId, owner, contentOf(input));
+    } catch (error) {
+      refuseUnattachable(error, 'imageId');
+    }
+  }
+
+  private async shown(
+    tx: Transaction,
+    tenantId: string,
+    chart: SizeChartRecord,
+  ): Promise<SizeChartRows> {
+    const images = await this.images.viewsOf(tx, tenantId, [chart.imageId]);
+    return {
+      rows: chart.tableRows,
+      image: chart.imageId === null ? null : (images.get(chart.imageId) ?? null),
+    };
   }
 
   private async liveProduct(tx: Transaction, tenantId: string, productId: string): Promise<void> {

@@ -97,6 +97,9 @@ export const PURCHASE_PAGE_SIZE = 20;
 // purchase history (PUR-09).
 export const PURCHASE_REASON_MAX_LENGTH = 200;
 export const PURCHASE_HISTORY_PAGE_SIZE = 20;
+// PRD-11: the photos one product may show, and a page of the shop's media.
+export const PRODUCT_IMAGES_MAX = 10;
+export const MEDIA_PAGE_SIZE = 40;
 // API-01, API-02: a key's name, the website addresses one public key may be used from, and the live keys a shop holds.
 export const API_KEY_NAME_MAX_LENGTH = 80;
 export const API_KEY_WEBSITES_MAX = 10;

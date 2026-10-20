@@ -1182,6 +1182,48 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'Inventory report retrieved.',
     bn: 'ইনভেন্টরি রিপোর্ট পাওয়া গেছে।',
   },
+
+  // --- Media (Phase 3 Slice 6) ---
+  MediaNotFound: {
+    en: 'This photo or video was not found.',
+    bn: 'ছবি বা ভিডিওটি পাওয়া যায়নি।',
+  },
+  ImageTooLarge: {
+    en: (p) => `An image can be up to ${String(p.mb)} MB.`,
+    bn: (p) => `ছবি সর্বোচ্চ ${String(p.mb)} MB হতে পারে।`,
+  },
+  VideoUploadsNotOpen: {
+    en: 'Video uploads are coming soon; upload a photo for now.',
+    bn: 'ভিডিও আপলোড শীঘ্রই আসছে; আপাতত ছবি আপলোড করুন।',
+  },
+  StorageLimitReached: {
+    en: (p) =>
+      `Your plan includes ${String(p.mb)} MB of storage, and this file would go over it. Delete photos you no longer use, or upgrade.`,
+    bn: (p) =>
+      `আপনার প্ল্যানে ${String(p.mb)} MB স্টোরেজ আছে, এই ফাইলে তা ছাড়িয়ে যাবে। অপ্রয়োজনীয় ছবি ডিলিট করুন বা আপগ্রেড করুন।`,
+  },
+  StorageUnavailable: {
+    en: 'Photo storage is not reachable right now. Please try again in a minute.',
+    bn: 'এই মুহূর্তে ছবির স্টোরেজে পৌঁছানো যাচ্ছে না। এক মিনিট পরে আবার চেষ্টা করুন।',
+  },
+  MediaNotAttachable: {
+    en: 'Choose a photo that has finished uploading.',
+    bn: 'আপলোড শেষ হয়েছে এমন একটি ছবি বেছে নিন।',
+  },
+  UploadStarted: { en: 'Upload started.', bn: 'আপলোড শুরু হয়েছে।' },
+  UploadFinished: {
+    en: 'Upload received; the photo is being prepared.',
+    bn: 'আপলোড পাওয়া গেছে; ছবিটি রেডি করা হচ্ছে।',
+  },
+  MediaListed: { en: 'Media retrieved.', bn: 'মিডিয়া পাওয়া গেছে।' },
+  MediaRetrieved: { en: 'Media item retrieved.', bn: 'মিডিয়া আইটেম পাওয়া গেছে।' },
+  StorageUsageRetrieved: {
+    en: 'Storage use retrieved.',
+    bn: 'স্টোরেজের ব্যবহার পাওয়া গেছে।',
+  },
+  MediaDeleted: { en: 'Deleted from your media.', bn: 'মিডিয়া থেকে ডিলিট করা হয়েছে।' },
+  ProductImagesSaved: { en: 'Product photos saved.', bn: 'প্রোডাক্টের ছবি সেভ হয়েছে।' },
+  ShopLogoSaved: { en: 'Logo saved.', bn: 'লোগো সেভ হয়েছে।' },
 };
 
 export function translate(key: MessageKey, lang: Language, params: MessageParams = {}): string {

@@ -33,4 +33,5 @@ export * from './control/locations';
 export * from './tenant/delivery';
 export * from './tenant/inventory';
 export * from './tenant/purchasing';
+export * from './tenant/media';
 export * from './control/api-keys';

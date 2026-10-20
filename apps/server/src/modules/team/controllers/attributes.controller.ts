@@ -24,9 +24,9 @@ import { SessionGuard } from '../../identity/guards/session.guard';
 import {
   AddOptionsDto,
   CreateAttributeDto,
-  CreateOptionDto,
+  CreateShopOptionDto,
   UpdateAttributeDto,
-  UpdateOptionDto,
+  UpdateShopOptionDto,
 } from '../dto/catalogue.dto';
 import { AttributeViewDto, OptionViewDto } from '../dto/catalogue-response.dto';
 import { PermissionGuard } from '../guards/permission.guard';
@@ -97,12 +97,15 @@ export class AttributesController {
   @Post(':id/options')
   @RequirePermission(Permission.ProductsManage)
   @ResponseMessage('OptionCreated')
-  @ApiOperation({ summary: "Add one of the shop's own values to an attribute with options" })
-  @ApiBody({ type: CreateOptionDto })
+  @ApiOperation({
+    summary:
+      "Add one of the shop's own values to an attribute with options, with a colour or image swatch (ATR-18)",
+  })
+  @ApiBody({ type: CreateShopOptionDto })
   @ZodResponse({ type: OptionViewDto })
   addOption(
     @Param('id') id: string,
-    @Body(new ZodValidationPipe(CreateOptionDto.schema)) body: CreateOptionDto,
+    @Body(new ZodValidationPipe(CreateShopOptionDto.schema)) body: CreateShopOptionDto,
     @Req() request: DashboardRequest,
   ): Promise<OptionView> {
     return this.attributes.addOption(
@@ -136,13 +139,16 @@ export class AttributesController {
   @Patch(':id/options/:optionId')
   @RequirePermission(Permission.ProductsManage)
   @ResponseMessage('OptionUpdated')
-  @ApiOperation({ summary: "Rename, re-colour or retire one of the shop's own values (ATR-18)" })
-  @ApiBody({ type: UpdateOptionDto })
+  @ApiOperation({
+    summary:
+      "Rename, re-colour, give an image swatch or retire one of the shop's own values (ATR-18)",
+  })
+  @ApiBody({ type: UpdateShopOptionDto })
   @ZodResponse({ type: OptionViewDto })
   updateOption(
     @Param('id') id: string,
     @Param('optionId') optionId: string,
-    @Body(new ZodValidationPipe(UpdateOptionDto.schema)) body: UpdateOptionDto,
+    @Body(new ZodValidationPipe(UpdateShopOptionDto.schema)) body: UpdateShopOptionDto,
     @Req() request: DashboardRequest,
   ): Promise<OptionView> {
     return this.attributes.updateOption(

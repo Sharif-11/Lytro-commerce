@@ -18,6 +18,9 @@ export const shopSettings = tenant.table(
       .notNull()
       .default(PaymentPolicy.None),
     defaultAdvanceAmount: numeric('default_advance_amount', { precision: 10, scale: 2 }),
+    // TEN-16: the shop's logo, a ready image of its own; without one the shop shows its monogram. Deleting the image
+    // clears it.
+    logoMediaId: uuid('logo_media_id'),
   },
   (t) => [
     check(

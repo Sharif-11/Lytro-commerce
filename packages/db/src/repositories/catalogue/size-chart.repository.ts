@@ -5,6 +5,9 @@ import type { Transaction, TransactionRunner } from '../../transactions';
 /** A size chart belongs to one product or one category (PRD-17). */
 export type SizeChartOwner = { productId: string } | { categoryId: string };
 
+/** PRD-17, MED-03: what a chart shows: a table of short text, or an image of the shop's. */
+export type SizeChartContent = { rows: string[][] } | { imageId: string };
+
 // PRD-17: a shop's size charts, one per product or per category. Every method sets the shop's tenant context.
 export class SizeChartRepository {
   constructor(private readonly transactions: TransactionRunner) {}
@@ -42,13 +45,17 @@ export class SizeChartRepository {
     tx: Transaction,
     tenantId: string,
     owner: SizeChartOwner,
-    tableRows: string[][],
+    content: SizeChartContent,
   ): Promise<SelectSizeChart> {
     await this.transactions.setTenantContext(tx, tenantId);
     const byProduct = 'productId' in owner;
+    const shown =
+      'rows' in content
+        ? { tableRows: content.rows, imageId: null }
+        : { tableRows: null, imageId: content.imageId };
     const rows = await tx
       .insert(sizeCharts)
-      .values({ tenantId, ...owner, tableRows })
+      .values({ tenantId, ...owner, ...shown })
       .onConflictDoUpdate({
         target: byProduct
           ? [sizeCharts.tenantId, sizeCharts.productId]
@@ -56,7 +63,7 @@ export class SizeChartRepository {
         targetWhere: byProduct
           ? sql`${sizeCharts.productId} IS NOT NULL`
           : sql`${sizeCharts.categoryId} IS NOT NULL`,
-        set: { tableRows, updatedAt: new Date() },
+        set: { ...shown, updatedAt: new Date() },
       })
       .returning();
     const row = rows[0];
