@@ -14,6 +14,7 @@ import {
 } from 'drizzle-orm';
 import type { Database } from '../../client';
 import type { Executor } from '../../transactions';
+import { escapeLike } from '../like';
 import { plans, tenantDomains, tenants } from '../../schema';
 import { DomainStatus, KycStatus, TenantState, type PlanLimits } from '@lytronix/validators';
 
@@ -87,9 +88,9 @@ export class TenantRepository {
       .leftJoin(plans, eq(plans.id, tenants.planId));
   }
 
-  /** LIF-24: the operator's tenant search, by shop name or slug substring -- never OFFSET, the same
-   * keyset discipline the audit log's own list() uses. Pass `limit + 1` to learn whether another page
-   * exists (AuditService.list's own trick). */
+  /** LIF-24: the operator's tenant search, by shop name or slug substring, a typed `%` or `_` matched as
+   * itself -- never OFFSET, the same keyset discipline the audit log's own list() uses. Pass `limit + 1`
+   * to learn whether another page exists (AuditService.list's own trick). */
   async search(
     db: Database,
     filters: { query: string | null },
@@ -98,7 +99,7 @@ export class TenantRepository {
   ): Promise<TenantSearchRow[]> {
     const conditions = [];
     if (filters.query) {
-      const pattern = `%${filters.query}%`;
+      const pattern = `%${escapeLike(filters.query)}%`;
       conditions.push(or(ilike(tenants.shopName, pattern), ilike(tenants.slug, pattern)));
     }
     if (cursor) {

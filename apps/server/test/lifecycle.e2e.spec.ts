@@ -18,6 +18,7 @@ import { PurchaseService } from '../src/modules/billing/services/purchase.servic
 import { BalanceService } from '../src/modules/balance/services/balance.service';
 import { PlatformSettingsService } from '../src/modules/platform-settings/services/platform-settings.service';
 import { TenantResolver } from '../src/modules/tenancy/services/tenant-resolver.service';
+import { TenantSummaries } from '../src/modules/tenancy/services/tenant-summaries.service';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase, seedBalance, seedShop } from './support/database';
 import { SmsCapture } from './support/sms-capture';
@@ -1054,6 +1055,21 @@ describeIfDatabase('LIF-21: the old shop identity is revoked 30 days after delet
     const result = await lifecycle.runTick(new Date());
     expect(result.slugsReleased).toBe(0);
     expect((await tenantIdentityRow(tenantId))?.slug).toBe(revokedOnce);
+  });
+});
+
+describeIfDatabase("LIF-24: the operator's shop search", () => {
+  it('matches a typed % or _ as itself, never as a wildcard', async () => {
+    const summaries = app.get(TenantSummaries);
+    await seedShop(admin, '100% Cotton', freshSlug());
+    await seedShop(admin, '100 Cotton', freshSlug());
+    await seedShop(admin, 'A_B Traders', freshSlug());
+    await seedShop(admin, 'AXB Traders', freshSlug());
+    const names = async (query: string): Promise<string[]> =>
+      (await summaries.search(query, null, 50)).entries.map((row) => row.shopName);
+    expect(await names('0% C')).toEqual(['100% Cotton']);
+    expect(await names('a_b')).toEqual(['A_B Traders']);
+    expect((await names('cotton')).sort()).toEqual(['100 Cotton', '100% Cotton']);
   });
 });
 

@@ -1,6 +1,7 @@
 import { and, asc, count, countDistinct, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { categories, productCategories, products, type SelectCategory } from '../../schema';
 import type { Transaction, TransactionRunner } from '../../transactions';
+import { escapeLike } from '../like';
 import { isEmptyPatch } from '../patch';
 
 // PRD-03, PRD-15: a shop's category tree and the products filed in it. Every method runs inside a transaction
@@ -39,7 +40,7 @@ export class CategoryRepository {
       .where(
         and(
           eq(categories.tenantId, tenantId),
-          sql`(${categories.slug} = ${base} OR ${categories.slug} LIKE ${`${base}-%`})`,
+          sql`(${categories.slug} = ${base} OR ${categories.slug} LIKE ${`${escapeLike(base)}-%`})`,
         ),
       );
     return rows.map((row) => row.slug);
