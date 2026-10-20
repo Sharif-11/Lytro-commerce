@@ -292,9 +292,38 @@ limit with "See plans" (PRD-04).
 
 ### 7.5 Categories (`/categories`)
 
-A tree four levels deep (PRD-03): name, product count, visibility switch, kebab. The **category sheet**:
-name, parent (move), visible, "behaves like a shop type" (PST-06), the suggested attributes as chips
-(ATR-02), the size chart (PRD-17), and delete with the product count and the Uncategorized fallback. Built.
+**Job.** Keep a small tree the storefront can navigate, without ever blocking a product (PRD-03: a
+product sells with no category, and "Uncategorized" always exists).
+
+**Layout.** The tree, four levels deep, one row per category: name, the product count, a "Hidden" chip when
+it is off the storefront, the "behaves like" chip when set (PST-06), the visibility switch (saves at
+once, `PATCH`) and a ⋯ menu. **Add category** in the header. Tapping a row opens the category sheet.
+Day one: the empty state with the one button, and the shop type's suggested categories as chips with
+"Add these n" (PST-02; the list is the operator's preset data and is empty until curated, PST-04).
+
+**The flow.**
+- *New category* (sheet, `POST`): name (any script, 80), where it sits (the parent picker, top level by
+  default), visible, "behaves like" (follows the shop's type by default), and the line that the link name
+  is made from the name and never changes. Saving returns to the tree with the new row marked and a toast.
+- *Sub-category*: the same sheet with the parent filled from the row's menu; the depth line says four
+  levels.
+- *Row menu*: Edit, Add a sub-category, Move up, Move down (`sortOrder`), Hide or Show on the storefront,
+  Delete.
+- *Category sheet* (`PATCH`, `PUT …/attributes`, `PUT …/size-chart`): name; where it sits (the parent
+  picker, with the category itself and its subtree greyed as "cannot sit inside itself", and the note that
+  sub-categories move with it); visible; "behaves like"; the suggested attributes as chips with a checklist
+  picker over the library and the shop's own (ATR-02, ATL-05); the size chart with its editor (PRD-17); a
+  Delete button.
+- *Delete* (`DELETE`, three cases): a category holding products asks to move them to Uncategorized first
+  ("Move the products and delete", nothing is removed); a category with sub-categories is refused with the
+  count and the way out; an empty one confirms in one tap. The tree then shows the toast with what moved.
+- *From the product editor*: the category picker's last row, "New category", opens the same sheet and
+  returns to the picker with the new category selected.
+
+**Content.** `GET /categories` (tree with counts, suggestions, "behaves like", charts), `POST`,
+`PATCH`, `DELETE /categories/:id` with `?products=uncategorize`, `PUT …/attributes`, `PUT` and
+`DELETE …/size-chart` (all built, #150 and #152). **States.** Read-only: the switches, menu and buttons
+are absent; the tree stays.
 
 ### 7.6 Attributes and option sets (`/attributes`)
 
