@@ -27,6 +27,7 @@ import { ApiError, FieldsError, type InvalidField } from '../../../common/api-er
 import { MissingReference } from '../../../common/errors/missing-reference';
 import { StockRefused } from '../../../common/errors/stock-refused';
 import { UniqueViolation } from '../../../common/errors/unique-violation';
+import { dhakaDate } from '../../../common/time';
 import { PayAsYouGoBillingService } from '../../balance/services/payg-billing.service';
 import type {
   AttributeStore,
@@ -239,7 +240,11 @@ export class ProductService {
       const opening = await this.openingLines(tx, shop.id, product.id, matrix.planned);
       // INV-24: stock already on the shelf loose, in the product's unit, on top of any given as packs.
       if (holderId !== null && (input.sharedOpeningStock ?? 0) > 0) {
-        opening.push({ variantId: holderId, quantity: String(input.sharedOpeningStock) });
+        opening.push({
+          variantId: holderId,
+          quantity: String(input.sharedOpeningStock),
+          ...(input.sharedOpeningBatch ? { batch: input.sharedOpeningBatch } : {}),
+        });
       }
       if (opening.length > 0) {
         if (!stock) throw new Error('opening stock is recorded through the inventory hooks');
@@ -468,6 +473,18 @@ export class ProductService {
       try {
         updated = await this.products.updateProduct(tx, shop.id, productId, change);
       } catch (error) {
+        if (error instanceof StockRefused && error.kind === 'expired_waiting') {
+          throw new FieldsError(
+            [
+              {
+                field: 'batchTracked',
+                problem: FieldProblemCode.NotAllowed,
+                messageKey: 'ExpiredStockAwaitsWriteOff',
+              },
+            ],
+            'conflict',
+          );
+        }
         if (error instanceof StockRefused) {
           throw new FieldsError([
             {
@@ -731,7 +748,7 @@ export class ProductService {
    */
   private checkOpeningStock(
     input: CreateProductInput,
-    fields: Pick<ProductChange, 'stockTracking' | 'stockUnit' | 'sharedStock'>,
+    fields: Pick<ProductChange, 'stockTracking' | 'stockUnit' | 'sharedStock' | 'batchTracked'>,
   ): void {
     const measured =
       fields.stockUnit !== undefined && MEASURED_STOCK_UNITS.includes(fields.stockUnit);
@@ -763,6 +780,31 @@ export class ProductService {
         problem: FieldProblemCode.NotAllowed,
         messageKey: 'WholeUnitsOnly',
       });
+    }
+    // INV-12: an opening batch is for a batch-tracked product, and never expired already.
+    const today = dhakaDate(new Date());
+    const batches: [string, { expiresOn?: string } | undefined][] = [
+      ...(input.variants ?? []).map((spec, index): [string, { expiresOn?: string } | undefined] => [
+        `variants.${String(index)}.openingBatch`,
+        spec.openingBatch,
+      ]),
+      ['sharedOpeningBatch', input.sharedOpeningBatch],
+    ];
+    for (const [field, batch] of batches) {
+      if (!batch) continue;
+      if (fields.batchTracked !== true) {
+        problems.push({
+          field,
+          problem: FieldProblemCode.NotAllowed,
+          messageKey: 'BatchesNotTracked',
+        });
+      } else if (batch.expiresOn !== undefined && batch.expiresOn < today) {
+        problems.push({
+          field: `${field}.expiresOn`,
+          problem: FieldProblemCode.NotAllowed,
+          messageKey: 'ExpiryInThePast',
+        });
+      }
     }
     if (problems.length > 0) throw new FieldsError(problems);
   }
@@ -881,13 +923,13 @@ export class ProductService {
     await this.products.clearPackAmounts(tx, tenantId, productId);
   }
 
-  /** INV-03: the opening stock each new variant was given, by the variant it became. */
+  /** INV-03, INV-12: the opening stock each new variant was given, by the variant it became, with its batch. */
   private async openingLines(
     tx: Transaction,
     tenantId: string,
     productId: string,
     planned: PlannedVariant<VariantSpec>[],
-  ): Promise<{ variantId: string; quantity: string }[]> {
+  ): Promise<Parameters<ProductStockHooks['recordOpeningStock']>[3]> {
     const stocked = planned.filter((plan) => (plan.spec?.openingStock ?? 0) > 0);
     if (stocked.length === 0) return [];
     const ids = new Map(
@@ -898,7 +940,16 @@ export class ProductService {
     );
     return stocked.flatMap((plan) => {
       const variantId = ids.get(plan.key);
-      return variantId ? [{ variantId, quantity: String(plan.spec?.openingStock ?? 0) }] : [];
+      const batch = plan.spec?.openingBatch;
+      return variantId
+        ? [
+            {
+              variantId,
+              quantity: String(plan.spec?.openingStock ?? 0),
+              ...(batch ? { batch } : {}),
+            },
+          ]
+        : [];
     });
   }
 

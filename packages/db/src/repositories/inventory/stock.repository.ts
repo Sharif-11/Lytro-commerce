@@ -3,6 +3,7 @@ import { StockReason } from '@lytronix/validators';
 import {
   productVariants,
   products,
+  stockBatches,
   stockLevels,
   stockMovements,
   users,
@@ -34,6 +35,7 @@ export interface StockVariantRow {
     | 'lowStockThreshold'
     | 'stockState'
     | 'sharedStock'
+    | 'batchTracked'
     | 'deletedAt'
   >;
 }
@@ -50,6 +52,8 @@ export interface VariantStockRow {
   avgCost: string | null;
   onHand: string;
   reserved: string;
+  /** INV-13: stock in its expired batches, out of what is available until written off. */
+  unsellable: string;
   available: string;
   lowNotified: boolean;
   hasLevel: boolean;
@@ -69,9 +73,11 @@ export interface OutgoingRow {
   unknownCost: number;
 }
 
-/** One line of a variant's stock history, with who made it. */
+/** One line of a variant's stock history, with who made it and, for a batch, its code and expiry (INV-12). */
 export interface StockHistoryRow extends SelectStockMovement {
   actorName: string | null;
+  batchCode: string | null;
+  expiresOn: string | null;
 }
 
 // INV-01, INV-03, INV-09, INV-10: a shop's stock levels and its movement ledger. Every method sets the shop's tenant
@@ -127,6 +133,7 @@ export class StockRepository {
         lowStockThreshold: products.lowStockThreshold,
         stockState: products.stockState,
         sharedStock: products.sharedStock,
+        batchTracked: products.batchTracked,
         productDeletedAt: products.deletedAt,
       })
       .from(productVariants)
@@ -153,6 +160,7 @@ export class StockRepository {
         lowStockThreshold: row.lowStockThreshold,
         stockState: row.stockState,
         sharedStock: row.sharedStock,
+        batchTracked: row.batchTracked,
         deletedAt: row.productDeletedAt,
       },
     }));
@@ -192,6 +200,7 @@ export class StockRepository {
         avgCost: productVariants.avgCost,
         onHand: stockLevels.onHand,
         reserved: stockLevels.reserved,
+        unsellable: stockLevels.unsellable,
         available: stockLevels.available,
         lowNotified: stockLevels.lowNotified,
       })
@@ -218,6 +227,7 @@ export class StockRepository {
       avgCost: row.avgCost,
       onHand: row.onHand ?? '0.000',
       reserved: row.reserved ?? '0.000',
+      unsellable: row.unsellable ?? '0.000',
       available: row.available ?? '0.000',
       lowNotified: row.lowNotified ?? false,
       hasLevel: row.onHand !== null,
@@ -267,11 +277,23 @@ export class StockRepository {
     await this.transactions.setTenantContext(tx, tenantId);
     const own = and(eq(stockMovements.tenantId, tenantId), eq(stockMovements.variantId, variantId));
     const rows = await tx
-      .select({ movement: stockMovements, actorName: users.name })
+      .select({
+        movement: stockMovements,
+        actorName: users.name,
+        batchCode: stockBatches.batchCode,
+        expiresOn: stockBatches.expiresOn,
+      })
       .from(stockMovements)
       .leftJoin(
         users,
         and(eq(users.tenantId, stockMovements.tenantId), eq(users.id, stockMovements.actorUserId)),
+      )
+      .leftJoin(
+        stockBatches,
+        and(
+          eq(stockBatches.tenantId, stockMovements.tenantId),
+          eq(stockBatches.id, stockMovements.batchId),
+        ),
       )
       .where(own)
       .orderBy(desc(stockMovements.id))
@@ -279,7 +301,12 @@ export class StockRepository {
       .limit(page.limit);
     const totals = await tx.select({ total: count() }).from(stockMovements).where(own);
     return {
-      rows: rows.map((row) => ({ ...row.movement, actorName: row.actorName })),
+      rows: rows.map((row) => ({
+        ...row.movement,
+        actorName: row.actorName,
+        batchCode: row.batchCode,
+        expiresOn: row.expiresOn,
+      })),
       total: totals[0]?.total ?? 0,
     };
   }
@@ -369,13 +396,14 @@ export class StockRepository {
   }
 
   /**
-   * LIF-19: a lapsed shop's ledger and levels, at day 60. The movements' guard lets this through only for the shop
+   * LIF-19: a lapsed shop's ledger, batches and levels, at day 60. The movements' guard lets this through only for the shop
    * named in the transaction, and only while it is archived or deleted.
    */
   async deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void> {
     await this.transactions.setTenantContext(tx, tenantId);
     await tx.execute(sql`SELECT set_config('app.erasing_tenant', ${tenantId}, true)`);
     await tx.delete(stockMovements).where(eq(stockMovements.tenantId, tenantId));
+    await tx.delete(stockBatches).where(eq(stockBatches.tenantId, tenantId));
     await tx.delete(stockLevels).where(eq(stockLevels.tenantId, tenantId));
   }
 }

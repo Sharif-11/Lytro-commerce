@@ -7,10 +7,13 @@ import { StockReason } from '@lytronix/validators';
 import { AppModule } from '../src/app/app.module';
 import type { CatalogueTransactions } from '../src/modules/catalogue/ports/catalogue-stores';
 import { CATALOGUE_TRANSACTIONS } from '../src/modules/catalogue/tokens';
+import { BatchExpiryService } from '../src/modules/inventory/services/batch-expiry.service';
 import { InventoryLedger } from '../src/modules/inventory/services/inventory-ledger';
+import type { BatchExpiryNotifier } from '../src/modules/inventory/ports/stock-batch-store';
 import type { LowStockNotifier } from '../src/modules/inventory/ports/stock-store';
-import { LOW_STOCK_NOTIFIER } from '../src/modules/inventory/tokens';
-import type { LowStockNotice } from '../src/modules/inventory/types/inventory';
+import { BATCH_EXPIRY_NOTIFIER, LOW_STOCK_NOTIFIER } from '../src/modules/inventory/tokens';
+import type { BatchExpiryNotice, LowStockNotice } from '../src/modules/inventory/types/inventory';
+import { DAY_MS, dhakaDate } from '../src/common/time';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase } from './support/database';
@@ -42,12 +45,27 @@ class LowStockCapture implements LowStockNotifier {
   }
 }
 
+/** Keeps every expiry notice, in place of the console stand-in. */
+class ExpiryCapture implements BatchExpiryNotifier {
+  readonly notices: BatchExpiryNotice[] = [];
+
+  expiringSoon(notice: BatchExpiryNotice): Promise<void> {
+    this.notices.push(notice);
+    return Promise.resolve();
+  }
+
+  for(batchId: string): BatchExpiryNotice[] {
+    return this.notices.filter((notice) => notice.batchId === batchId);
+  }
+}
+
 let app: INestApplication;
 let port: number;
 let admin: pg.Client;
 let appDbUrl: string;
 const texts = new SmsCapture();
 const lowStock = new LowStockCapture();
+const expiry = new ExpiryCapture();
 
 beforeAll(async () => {
   if (!ADMIN_URL) return;
@@ -63,6 +81,8 @@ beforeAll(async () => {
     .useValue(texts.provider)
     .overrideProvider(LOW_STOCK_NOTIFIER)
     .useValue(lowStock)
+    .overrideProvider(BATCH_EXPIRY_NOTIFIER)
+    .useValue(expiry)
     .compile();
   ({ app, port } = await listenOn(moduleRef));
 });
@@ -1383,5 +1403,411 @@ describeIfDatabase('shared stock (INV-24, UOM-04)', () => {
         pens.variantId,
       ]),
     ).rejects.toThrow(/whole number/);
+  });
+});
+
+describeIfDatabase('batches and expiry (INV-12, INV-13)', () => {
+  interface Batch {
+    id: string;
+    variantId: string;
+    optionIds: string[];
+    batchCode: string | null;
+    expiresOn: string | null;
+    noExpiry: boolean;
+    quantity: string;
+    state: string;
+  }
+
+  interface BatchMovement extends Movement {
+    batch: { id: string; batchCode: string | null; expiresOn: string | null } | null;
+  }
+
+  /** A day `offset` days from today, in Asia/Dhaka, as YYYY-MM-DD. */
+  const day = (offset: number): string => dhakaDate(new Date(Date.now() + offset * DAY_MS));
+
+  /** A batch-tracked product with one default variant. */
+  async function cream(
+    shop: ShopClient,
+    extra: Record<string, unknown> = {},
+  ): Promise<{ product: Product; variantId: string }> {
+    return simple(shop, 'Face cream', 0, { batchTracked: true, ...extra });
+  }
+
+  async function batchesOf(shop: ShopClient, productId: string): Promise<Batch[]> {
+    const result = await shop.get(`/products/${productId}/batches`);
+    expect(result.status, JSON.stringify(result.body)).toBe(200);
+    return (result.body as { batches: Batch[] }).batches;
+  }
+
+  function add(shop: ShopClient, productId: string, variantId: string, body: unknown) {
+    return shop.post(`/products/${productId}/variants/${variantId}/stock-additions`, body);
+  }
+
+  async function sell(shop: ShopClient, variantId: string, quantity: number): Promise<void> {
+    const transactions = app.get<CatalogueTransactions>(CATALOGUE_TRANSACTIONS);
+    const ledger = app.get(InventoryLedger);
+    await transactions.run((tx) =>
+      ledger.apply(
+        tx,
+        shop.tenantId,
+        [{ variantId, delta: String(-quantity), reason: StockReason.Sale }],
+        { id: null, ip: null },
+      ),
+    );
+  }
+
+  /** As if the batch's last sellable day had passed. */
+  async function expire(batchId: string): Promise<void> {
+    await admin.query('UPDATE tenant.stock_batches SET expires_on = $2 WHERE id = $1', [
+      batchId,
+      day(-1),
+    ]);
+  }
+
+  async function onHandAndBatches(
+    tenantId: string,
+    variantId: string,
+  ): Promise<{ onHand: string; batches: string }> {
+    const result = await admin.query<{ on_hand: string; batches: string }>(
+      `SELECT l.on_hand, (SELECT coalesce(sum(b.quantity), 0)::numeric(14, 3) FROM tenant.stock_batches b
+         WHERE b.tenant_id = l.tenant_id AND b.variant_id = l.variant_id AND b.closed_at IS NULL) AS batches
+       FROM tenant.stock_levels l WHERE l.tenant_id = $1 AND l.variant_id = $2`,
+      [tenantId, variantId],
+    );
+    return { onHand: result.rows[0]?.on_hand ?? '', batches: result.rows[0]?.batches ?? '' };
+  }
+
+  it('takes the earliest-expiring batch first, one movement per batch (the Slice 3 done-when)', async () => {
+    const shop = await openShop(port, texts, 'batch-fefo');
+    const { product, variantId } = await cream(shop);
+    // Received in the opposite order to their expiry: the later batch first.
+    expect(
+      (
+        await add(shop, product.id, variantId, {
+          quantity: 4,
+          batch: { batchCode: 'MAR', expiresOn: day(100) },
+        })
+      ).status,
+    ).toBe(200);
+    await add(shop, product.id, variantId, {
+      quantity: 3,
+      batch: { batchCode: 'JAN', expiresOn: day(40) },
+    });
+    await add(shop, product.id, variantId, { quantity: 6 }); // no expiry: picked last
+
+    await sell(shop, variantId, 5);
+    const moved = (await history(shop, product.id, variantId)) as BatchMovement[];
+    expect(moved.slice(0, 2).map((row) => [row.delta, row.batch?.batchCode])).toEqual(
+      expect.arrayContaining([
+        ['-3.000', 'JAN'],
+        ['-2.000', 'MAR'],
+      ]),
+    );
+    const batches = await batchesOf(shop, product.id);
+    expect(batches.map((row) => [row.batchCode, row.quantity, row.noExpiry])).toEqual([
+      ['MAR', '2.000', false],
+      [null, '6.000', true],
+    ]);
+    expect(await onHandAndBatches(shop.tenantId, variantId)).toEqual({
+      onHand: '8.000',
+      batches: '8.000',
+    });
+  });
+
+  it('puts arriving stock in the batch described, the batch named, or the one "no expiry" batch', async () => {
+    const shop = await openShop(port, texts, 'batch-in');
+    const { product, variantId } = await cream(shop, {
+      variants: [
+        { optionIds: [], openingStock: 2, openingBatch: { batchCode: 'L1', expiresOn: day(60) } },
+      ],
+    });
+    await add(shop, product.id, variantId, { quantity: 1 });
+    await add(shop, product.id, variantId, { quantity: 2 });
+    // The same lot again, with or without its expiry, joins it.
+    await add(shop, product.id, variantId, { quantity: 5, batch: { batchCode: 'L1' } });
+    await add(shop, product.id, variantId, {
+      quantity: 1,
+      batch: { batchCode: 'L1', expiresOn: day(60) },
+    });
+    let batches = await batchesOf(shop, product.id);
+    expect(batches.map((row) => [row.batchCode, row.quantity])).toEqual([
+      ['L1', '8.000'],
+      [null, '3.000'],
+    ]);
+    const lot = batches[0]?.id ?? '';
+    await add(shop, product.id, variantId, { quantity: 1, batchId: lot });
+    batches = await batchesOf(shop, product.id);
+    expect(batches[0]?.quantity).toBe('9.000');
+
+    const differs = await add(shop, product.id, variantId, {
+      quantity: 1,
+      batch: { batchCode: 'L1', expiresOn: day(90) },
+    });
+    expect(differs.status).toBe(409);
+    const past = await add(shop, product.id, variantId, {
+      quantity: 1,
+      batch: { expiresOn: day(-3) },
+    });
+    expect(fieldsOf(past)).toEqual({ 'batch.expiresOn': 'not_allowed' });
+    const both = await add(shop, product.id, variantId, { quantity: 1, batchId: lot, batch: {} });
+    expect(fieldsOf(both)).toEqual({ batch: 'not_allowed' });
+    // Stock leaving names the batch it leaves, never a new one.
+    const newOnTheWayOut = await setStock(shop, product.id, variantId, {
+      onHand: 2,
+      batch: { batchCode: 'X' },
+    });
+    expect(fieldsOf(newOnTheWayOut)).toEqual({ batch: 'not_allowed' });
+    await setStock(shop, product.id, variantId, {
+      onHand: 10,
+      reason: 'damaged_or_lost',
+      batchId: lot,
+    });
+    batches = await batchesOf(shop, product.id);
+    expect(batches.map((row) => row.quantity)).toEqual(['7.000', '3.000']);
+
+    // A product without batches takes none.
+    const plain = await simple(shop, 'Plain soap', 3);
+    const refused = await add(shop, plain.product.id, plain.variantId, {
+      quantity: 1,
+      batch: { batchCode: 'A' },
+    });
+    expect(fieldsOf(refused)).toEqual({ batch: 'not_allowed' });
+    const opening = await shop.post('/products', {
+      name: 'Plain',
+      basePrice: 1,
+      variants: [{ optionIds: [], openingStock: 1, openingBatch: { batchCode: 'A' } }],
+    });
+    expect(fieldsOf(opening)).toEqual({ 'variants.0.openingBatch': 'not_allowed' });
+  });
+
+  it('never sells an expired batch, takes it out of available, and writes it off only when confirmed', async () => {
+    const shop = await openShop(port, texts, 'batch-expired');
+    const { product, variantId } = await cream(shop, { lowStockThreshold: 0 });
+    await shop.put(`/products/${product.id}/variants/${variantId}/cost`, { avgCost: 40 });
+    await add(shop, product.id, variantId, {
+      quantity: 3,
+      batch: { batchCode: 'OLD', expiresOn: day(10) },
+    });
+    await add(shop, product.id, variantId, {
+      quantity: 2,
+      batch: { batchCode: 'NEW', expiresOn: day(200) },
+    });
+    const held = await batchesOf(shop, product.id);
+    const old = held.find((row) => row.batchCode === 'OLD')?.id ?? '';
+    const fresh = held.find((row) => row.batchCode === 'NEW')?.id ?? '';
+    await expire(old);
+    const pass = await app.get(BatchExpiryService).runDaily();
+    expect(pass.refreshed).toBeGreaterThanOrEqual(1);
+
+    let stock = variant(await stockOf(shop, product.id), variantId) as VariantStock & {
+      unsellable: string;
+    };
+    expect(stock).toMatchObject({ onHand: '5.000', unsellable: '3.000', available: '2.000' });
+    expect((await batchesOf(shop, product.id)).find((row) => row.id === old)?.state).toBe(
+      'expired',
+    );
+    // A sale takes only what is sellable.
+    await expect(sell(shop, variantId, 3)).rejects.toMatchObject({ code: 'conflict' });
+    await sell(shop, variantId, 2);
+    expect((await shop.get(`/products/${product.id}`)).body).toMatchObject({ stockState: 'out' });
+
+    // A batch not yet expired is never written off this way.
+    const notYet = await shop.post(`/products/${product.id}/batches/${fresh}/write-off`, {});
+    expect(notYet.status).toBe(409);
+    const writtenOff = await shop.post(`/products/${product.id}/batches/${old}/write-off`, {});
+    expect(writtenOff.status, JSON.stringify(writtenOff.body)).toBe(200);
+    stock = variant(await stockOf(shop, product.id), variantId) as VariantStock & {
+      unsellable: string;
+    };
+    expect(stock).toMatchObject({ onHand: '0.000', unsellable: '0.000' });
+    expect(((await history(shop, product.id, variantId)) as BatchMovement[])[0]).toMatchObject({
+      delta: '-3.000',
+      reason: 'expired',
+      unitCost: '40.0000',
+    });
+    const figures = (await shop.get('/inventory/figures')).body as {
+      losses: { byReason: { reason: string; value: string }[] };
+    };
+    expect(figures.losses.byReason).toContainEqual(
+      expect.objectContaining({ reason: 'expired', value: '120.00' }),
+    );
+  });
+
+  it('warns once per batch expiring within 30 days, and lists the expiring and the expired', async () => {
+    const shop = await openShop(port, texts, 'batch-warn');
+    const { product, variantId } = await cream(shop);
+    await add(shop, product.id, variantId, {
+      quantity: 4,
+      batch: { batchCode: 'SOON', expiresOn: day(20) },
+    });
+    await add(shop, product.id, variantId, {
+      quantity: 4,
+      batch: { batchCode: 'LATER', expiresOn: day(45) },
+    });
+    await add(shop, product.id, variantId, {
+      quantity: 1,
+      batch: { batchCode: 'GONE', expiresOn: day(5) },
+    });
+    const batches = await batchesOf(shop, product.id);
+    const soon = batches.find((row) => row.batchCode === 'SOON')?.id ?? '';
+    const later = batches.find((row) => row.batchCode === 'LATER')?.id ?? '';
+    const gone = batches.find((row) => row.batchCode === 'GONE')?.id ?? '';
+    await expire(gone);
+
+    const service = app.get(BatchExpiryService);
+    await service.runDaily();
+    expect(expiry.for(soon)).toHaveLength(1);
+    expect(expiry.for(soon)[0]).toMatchObject({
+      batchCode: 'SOON',
+      expiresOn: day(20),
+      quantity: '4.000',
+    });
+    expect(expiry.for(later)).toHaveLength(0);
+    // A second pass sends nothing more.
+    await service.runDaily();
+    expect(expiry.for(soon)).toHaveLength(1);
+
+    const expiring = (await shop.get('/batches?state=expiring')).body as { batches: Batch[] };
+    expect(expiring.batches.map((row) => row.batchCode)).toEqual(['SOON']);
+    const expired = (await shop.get('/batches?state=expired')).body as { batches: Batch[] };
+    expect(expired.batches.map((row) => row.batchCode)).toEqual(['GONE']);
+    const both = (await shop.get('/batches')).body as { batches: Batch[]; total: number };
+    expect(both.batches.map((row) => row.batchCode)).toEqual(['GONE', 'SOON']);
+  });
+
+  it('turns batches on over stock held with no movement, and off only once expired stock is written off', async () => {
+    const shop = await openShop(port, texts, 'batch-switch');
+    const { product, variantId } = await simple(shop, 'Lotion', 10);
+    const on = await shop.patch(`/products/${product.id}`, { batchTracked: true });
+    expect(on.status, JSON.stringify(on.body)).toBe(200);
+    expect((await batchesOf(shop, product.id)).map((row) => [row.noExpiry, row.quantity])).toEqual([
+      [true, '10.000'],
+    ]);
+    expect(await history(shop, product.id, variantId)).toHaveLength(1); // only the opening stock
+    expect(await onHandAndBatches(shop.tenantId, variantId)).toEqual({
+      onHand: '10.000',
+      batches: '10.000',
+    });
+
+    await add(shop, product.id, variantId, {
+      quantity: 2,
+      batch: { batchCode: 'B', expiresOn: day(9) },
+    });
+    const dated =
+      (await batchesOf(shop, product.id)).find((row) => row.batchCode === 'B')?.id ?? '';
+    await expire(dated);
+    const off = await shop.patch(`/products/${product.id}`, { batchTracked: false });
+    expect(off.status).toBe(409);
+    expect(fieldsOf(off)).toEqual({ batchTracked: 'not_allowed' });
+    await shop.post(`/products/${product.id}/batches/${dated}/write-off`, {});
+    const offNow = await shop.patch(`/products/${product.id}`, { batchTracked: false });
+    expect(offNow.status, JSON.stringify(offNow.body)).toBe(200);
+    expect(await batchesOf(shop, product.id)).toEqual([]);
+    expect(variant(await stockOf(shop, product.id), variantId).onHand).toBe('10.000');
+    // Unbatched again: a plain edit moves it.
+    expect((await setStock(shop, product.id, variantId, { onHand: 9 })).status).toBe(200);
+  });
+
+  it('counts a batch, or the variant as a whole, in a stock check', async () => {
+    const shop = await openShop(port, texts, 'batch-check');
+    const { product, variantId } = await cream(shop);
+    await add(shop, product.id, variantId, {
+      quantity: 5,
+      batch: { batchCode: 'A', expiresOn: day(60) },
+    });
+    await add(shop, product.id, variantId, {
+      quantity: 3,
+      batch: { batchCode: 'B', expiresOn: day(90) },
+    });
+    const a = (await batchesOf(shop, product.id)).find((row) => row.batchCode === 'A')?.id ?? '';
+    const byBatch = await shop.post('/stock-checks', {
+      lines: [{ variantId, batchId: a, counted: 4 }],
+    });
+    expect(byBatch.status, JSON.stringify(byBatch.body)).toBe(201);
+    expect((byBatch.body as { lines: unknown[] }).lines[0]).toMatchObject({
+      expected: '5.000',
+      counted: '4.000',
+      batch: { id: a, batchCode: 'A' },
+    });
+    // The whole variant counted at 10 where it holds 7: the 3 found have no batch yet.
+    await shop.post('/stock-checks', { lines: [{ variantId, counted: 10 }] });
+    expect((await batchesOf(shop, product.id)).map((row) => [row.batchCode, row.quantity])).toEqual(
+      [
+        ['A', '4.000'],
+        ['B', '3.000'],
+        [null, '3.000'],
+      ],
+    );
+    const both = await shop.post('/stock-checks', {
+      lines: [
+        { variantId, counted: 1 },
+        { variantId, batchId: a, counted: 1 },
+      ],
+    });
+    expect(fieldsOf(both)).toEqual({ 'lines.1.batchId': 'not_allowed' });
+  });
+
+  it('keeps a shared stock in batches on its pool', async () => {
+    const shop = await openShop(port, texts, 'batch-pool');
+    const { size, ids } = await sizes(shop, ['30 ml', '50 ml']);
+    const created = await shop.post('/products', {
+      name: 'Serum',
+      basePrice: 100,
+      stockUnit: 'ml',
+      batchTracked: true,
+      sharedStock: true,
+      variantAttributes: [{ attributeId: size, optionIds: ids }],
+      variants: [
+        { optionIds: [ids[0]], packAmount: 30 },
+        {
+          optionIds: [ids[1]],
+          packAmount: 50,
+          openingStock: 2,
+          openingBatch: { batchCode: 'S1', expiresOn: day(120) },
+        },
+      ],
+    });
+    expect(created.status, JSON.stringify(created.body)).toBe(201);
+    const product = created.body as Product;
+    const batches = await batchesOf(shop, product.id);
+    expect(batches.map((row) => [row.batchCode, row.quantity, row.optionIds])).toEqual([
+      ['S1', '100.000', []],
+    ]);
+  });
+
+  it('holds the batch rules at the data layer, and keeps another shop out', async () => {
+    const shop = await openShop(port, texts, 'batch-db');
+    const other = await openShop(port, texts, 'batch-other');
+    const { product, variantId } = await cream(shop);
+    await add(shop, product.id, variantId, {
+      quantity: 4,
+      batch: { batchCode: 'Z', expiresOn: day(30) },
+    });
+    const batch = (await batchesOf(shop, product.id))[0]?.id ?? '';
+    await expect(
+      admin.query(
+        `INSERT INTO tenant.stock_movements (tenant_id, product_id, variant_id, quantity_delta, reason)
+         VALUES ($1, $2, $3, 1, 'recount')`,
+        [shop.tenantId, product.id, variantId],
+      ),
+    ).rejects.toThrow(/names a batch exactly when/);
+    await expect(
+      admin.query('UPDATE tenant.stock_batches SET quantity = 99 WHERE id = $1', [batch]),
+    ).rejects.toThrow(/only through a stock movement/);
+    await expect(
+      admin.query(
+        `INSERT INTO tenant.stock_batches (tenant_id, variant_id, quantity) VALUES ($1, $2, 5)`,
+        [shop.tenantId, variantId],
+      ),
+    ).rejects.toThrow(/only through a stock movement/);
+    await expect(
+      admin.query('DELETE FROM tenant.stock_batches WHERE id = $1', [batch]),
+    ).rejects.toThrow(/goes only with its variant/);
+
+    expect((await other.get(`/products/${product.id}/batches`)).status).toBe(404);
+    expect(
+      (await other.post(`/products/${product.id}/batches/${batch}/write-off`, {})).status,
+    ).toBe(404);
+    expect(((await other.get('/batches')).body as { total: number }).total).toBe(0);
   });
 });

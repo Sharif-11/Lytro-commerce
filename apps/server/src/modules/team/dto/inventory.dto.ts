@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
 import {
   addStockSchema,
+  BatchState,
   recordStockCheckSchema,
   setStockSchema,
   StockReason,
@@ -20,6 +21,12 @@ export class RecordStockCheckDto extends createZodDto(recordStockCheckSchema) {}
 // --- Responses. Cost fields are present only for a caller who may see cost (D3-9). ---
 
 const actorSchema = z.object({ userId: z.string(), name: z.string().nullable() });
+// INV-12: a batch named on a movement or a counted line.
+const movedBatchSchema = z.object({
+  id: z.string(),
+  batchCode: z.string().nullable(),
+  expiresOn: z.string().nullable(),
+});
 
 export const productStockViewSchema = z.object({
   productId: z.string(),
@@ -33,6 +40,7 @@ export const productStockViewSchema = z.object({
       variantId: z.string(),
       onHand: z.string(),
       reserved: z.string(),
+      unsellable: z.string(),
       available: z.string(),
       state: z.nativeEnum(StockState),
       avgCost: z.string().nullable().optional(),
@@ -46,6 +54,7 @@ export const productStockViewSchema = z.object({
       retired: z.boolean(),
       onHand: z.string().nullable(),
       reserved: z.string().nullable(),
+      unsellable: z.string().nullable(),
       available: z.string(),
       packAmount: z.string().nullable(),
       state: z.nativeEnum(StockState),
@@ -64,6 +73,7 @@ export const stockHistoryPageSchema = z.object({
       reason: z.nativeEnum(StockReason),
       unitCost: z.string().nullable().optional(),
       reference: z.object({ type: z.string(), id: z.string() }).nullable(),
+      batch: movedBatchSchema.nullable(),
       note: z.string().nullable(),
       actor: actorSchema.nullable(),
       createdAt: z.date(),
@@ -100,6 +110,7 @@ export const stockCheckViewSchema = stockCheckSummarySchema.extend({
       variantId: z.string(),
       productName: z.string().nullable(),
       optionIds: z.array(z.string()),
+      batch: movedBatchSchema.nullable(),
       expected: z.string(),
       counted: z.string(),
       difference: z.string(),
@@ -136,3 +147,31 @@ export const inventoryFiguresSchema = z.object({
   }),
 });
 export class InventoryFiguresDto extends createZodDto(inventoryFiguresSchema) {}
+
+// INV-12, INV-13: open batches holding stock, each with where it stands against its expiry.
+const batchViewSchema = z.object({
+  id: z.string(),
+  variantId: z.string(),
+  optionIds: z.array(z.string()),
+  batchCode: z.string().nullable(),
+  expiresOn: z.string().nullable(),
+  noExpiry: z.boolean(),
+  quantity: z.string(),
+  receivedAt: z.date(),
+  state: z.nativeEnum(BatchState),
+});
+
+export const productBatchesSchema = z.object({
+  productId: z.string(),
+  batches: z.array(batchViewSchema),
+});
+export class ProductBatchesDto extends createZodDto(productBatchesSchema) {}
+
+export const shopBatchPageSchema = z.object({
+  batches: z.array(batchViewSchema.extend({ productId: z.string(), productName: z.string() })),
+  page: z.number(),
+  limit: z.number(),
+  total: z.number(),
+  pages: z.number(),
+});
+export class ShopBatchPageDto extends createZodDto(shopBatchPageSchema) {}

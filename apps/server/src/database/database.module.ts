@@ -51,6 +51,7 @@ import {
   CatalogueDataRepository,
   StockRepository,
   StockCheckRepository,
+  StockBatchRepository,
 } from '@lytronix/db';
 import { EnvironmentParser } from '../config/env';
 import { ENV } from '../config/tokens';
@@ -134,6 +135,11 @@ import { DatabaseService } from './database.service';
       provide: StockCheckRepository,
       inject: [TransactionRunner],
       useFactory: (transactions: TransactionRunner) => new StockCheckRepository(transactions),
+    },
+    {
+      provide: StockBatchRepository,
+      inject: [TransactionRunner],
+      useFactory: (transactions: TransactionRunner) => new StockBatchRepository(transactions),
     },
     {
       provide: CatalogueDataRepository,
@@ -245,6 +251,7 @@ import { DatabaseService } from './database.service';
     CatalogueDataRepository,
     StockRepository,
     StockCheckRepository,
+    StockBatchRepository,
   ],
 })
 export class DatabaseModule {}

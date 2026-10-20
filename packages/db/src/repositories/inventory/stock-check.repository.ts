@@ -2,6 +2,7 @@ import { and, asc, count, desc, eq, sql } from 'drizzle-orm';
 import {
   productVariants,
   products,
+  stockBatches,
   stockCheckLines,
   stockChecks,
   users,
@@ -30,6 +31,9 @@ export interface StockCheckSummaryRow extends StockCheckRow {
 export interface StockCheckLineRow extends SelectStockCheckLine {
   productName: string | null;
   combinationKey: string | null;
+  /** INV-12: the counted batch's code and expiry, when a batch was counted. */
+  batchCode: string | null;
+  expiresOn: string | null;
 }
 
 // A line's difference valued at its cost, rounded to the paisa the way each line is shown.
@@ -86,6 +90,8 @@ export class StockCheckRepository {
         line: stockCheckLines,
         productName: products.name,
         combinationKey: productVariants.combinationKey,
+        batchCode: stockBatches.batchCode,
+        expiresOn: stockBatches.expiresOn,
       })
       .from(stockCheckLines)
       .leftJoin(
@@ -102,6 +108,13 @@ export class StockCheckRepository {
           eq(productVariants.id, stockCheckLines.variantId),
         ),
       )
+      .leftJoin(
+        stockBatches,
+        and(
+          eq(stockBatches.tenantId, stockCheckLines.tenantId),
+          eq(stockBatches.id, stockCheckLines.batchId),
+        ),
+      )
       .where(and(eq(stockCheckLines.tenantId, tenantId), eq(stockCheckLines.checkId, checkId)))
       .orderBy(
         asc(products.createdAt),
@@ -112,6 +125,8 @@ export class StockCheckRepository {
       ...row.line,
       productName: row.productName,
       combinationKey: row.combinationKey,
+      batchCode: row.batchCode,
+      expiresOn: row.expiresOn,
     }));
   }
 

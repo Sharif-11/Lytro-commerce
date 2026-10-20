@@ -719,6 +719,25 @@ CREATE TABLE tenant.category_attributes (           -- ATL-05 / ATR-02: suggesti
 - `stock_levels.low_notified` carries INV-08's once-per-crossing state; `batch_id`, `stock_batches`, serials,
   reservations and stock checks arrive in Slices 2b, 3 and 5.
 
+**Built in Phase 3 Slice 3a (migration 0058, 2026-10-20):** `stock_batches`, `stock_movements.batch_id` and
+`stock_check_lines.batch_id` (INV-12, INV-13), with these decisions against the design below:
+- **One movement per batch.** A movement of a batch-tracked product names exactly one open batch of its variant, and
+  the movement trigger moves that batch's quantity with the level, under the level's lock. A batch's quantity is its
+  `opening_quantity` plus its own movements, and a variant's on hand is the sum of its open batches; a trigger refuses
+  any other change to a batch's stock, and a batch is deleted only with its variant or by LIF-19's day-60 deletion.
+  `InventoryLedger.apply()` splits a change across batches in the picking order (expiry first, none last, oldest
+  received among equals); a sale never takes an expired batch, any other unnamed loss takes it last.
+- **Arriving stock** opens a batch (optional code and expiry, never already past), joins an open one with the same code,
+  or goes into the variant's one "no expiry" batch (`is_default`), so a missing date never blocks anything (INV-22).
+- **`stock_levels.unsellable`** is the stock in expired open batches: the movement trigger works it out with every
+  movement, and the daily expiry pass (`tenant.refresh_unsellable`, at 00:05 Asia/Dhaka) at the day boundary.
+  `tenant.dhaka_today()` is the day expiry is measured against; an expiry date is the batch's last sellable day.
+- **Switching batch tracking** on puts each variant's held stock into its "no expiry" batch as its opening quantity,
+  with no movement; off closes the open batches (kept, with their history) and is refused while expired stock waits
+  to be written off.
+- A stock check counts a variant as a whole or batch by batch, never both (a unique index on the line).
+- No per-batch cost: movements keep the variant's average cost (INV-10, INV-11).
+
 **Built in Phase 3 Slice 2b, shared stock (migration 0057, 2026-10-20):** `products.shared_stock`,
 `product_variants.pack_amount` and `product_variants.is_stock_holder` (INV-24), as designed in the catalogue section:
 - The stock holder has combination key `#stock` (`STOCK_HOLDER_KEY`), no pack amount, and is the only variant of a

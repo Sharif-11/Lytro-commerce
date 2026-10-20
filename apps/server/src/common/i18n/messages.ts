@@ -656,6 +656,34 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'Shared stock can be turned on or off only while the product holds no stock. Set its stock to 0 first.',
     bn: 'প্রোডাক্টে কোনো স্টক না থাকলেই শুধু শেয়ার্ড স্টক চালু বা বন্ধ করা যায়। আগে স্টক 0 করুন।',
   },
+  BatchNotFound: {
+    en: 'That batch was not found.',
+    bn: 'ব্যাচটি পাওয়া যায়নি।',
+  },
+  BatchesNotTracked: {
+    en: 'This product does not keep batches. Turn on batch tracking to give its stock a batch.',
+    bn: 'এই প্রোডাক্টের ব্যাচ রাখা হয় না। স্টকের ব্যাচ দিতে ব্যাচ ট্র্যাকিং চালু করুন।',
+  },
+  NewBatchOnlyForArrivals: {
+    en: 'A new batch is for stock arriving. To take stock away, choose the batch it leaves.',
+    bn: 'নতুন ব্যাচ শুধু আসা স্টকের জন্য। স্টক কমাতে যে ব্যাচ থেকে যাচ্ছে সেটি বেছে নিন।',
+  },
+  ExpiryInThePast: {
+    en: 'This expiry date has already passed. Check the date.',
+    bn: 'এই এক্সপায়ারি ডেট পার হয়ে গেছে। তারিখটি দেখে নিন।',
+  },
+  BatchExpiryDiffers: {
+    en: 'A batch with this code already has a different expiry date. One batch has one expiry date.',
+    bn: 'এই কোডের ব্যাচের এক্সপায়ারি ডেট আলাদা। একটি ব্যাচের একটিই এক্সপায়ারি ডেট থাকে।',
+  },
+  BatchNotExpired: {
+    en: 'This batch has not expired. Write off damaged or lost stock from the stock screen.',
+    bn: 'এই ব্যাচটি এক্সপায়ার হয়নি। ড্যামেজ বা হারানো স্টক স্টক স্ক্রিন থেকে বাদ দিন।',
+  },
+  ExpiredStockAwaitsWriteOff: {
+    en: 'Some expired stock is still waiting to be written off. Write it off before turning batches off.',
+    bn: 'কিছু এক্সপায়ার্ড স্টক এখনো বাদ দেওয়া বাকি। ব্যাচ বন্ধ করার আগে সেটি বাদ দিন।',
+  },
   StockCheckNotFound: {
     en: 'That stock check was not found.',
     bn: 'স্টক চেকটি পাওয়া যায়নি।',
@@ -851,6 +879,14 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   StockAdded: {
     en: 'Stock added.',
     bn: 'স্টক যোগ হয়েছে।',
+  },
+  BatchesRetrieved: {
+    en: 'Batches retrieved.',
+    bn: 'ব্যাচগুলো পাওয়া গেছে।',
+  },
+  BatchWrittenOff: {
+    en: 'Expired stock written off.',
+    bn: 'এক্সপায়ার্ড স্টক বাদ দেওয়া হয়েছে।',
   },
   InventoryFiguresRetrieved: {
     en: 'Inventory report retrieved.',

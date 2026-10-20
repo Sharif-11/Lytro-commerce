@@ -286,6 +286,9 @@ export enum QueueName {
   // LIF-16: generates the owner's data export asynchronously (SCL-08's own transactional-outbox shape --
   // this one does have a single business transaction to anchor to, the export request itself).
   DataExport = 'data_export',
+  // INV-13: the daily expiry pass, a cron like LifecycleTick: warns of batches about to expire and takes expired ones
+  // out of available stock.
+  InventoryExpiryTick = 'inventory_expiry_tick',
 }
 
 // Who performed the action (AUD-02). `system` is the platform itself (a scheduled job); `platform_support` is an
@@ -483,6 +486,14 @@ export const MEASURED_STOCK_UNITS: readonly StockUnit[] = [
 // combination can take it, since a real key is "attributeId=optionId" pairs or ''. Mirrored in the database's
 // product_variants_stock_holder_check.
 export const STOCK_HOLDER_KEY = '#stock';
+
+// INV-12, INV-13: where a batch stands against its expiry date: expired (past its last sellable day, never sold, waiting
+// to be written off), expiring (within EXPIRY_WARNING_DAYS), or fine (later, or no expiry at all).
+export enum BatchState {
+  Fine = 'fine',
+  Expiring = 'expiring',
+  Expired = 'expired',
+}
 
 // INV-04: why on-hand stock changed. Every stock movement carries one.
 export enum StockReason {

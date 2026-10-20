@@ -1,34 +1,55 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Transaction } from '@lytronix/db';
-import { StockTracking, StockState } from '@lytronix/validators';
+import { StockReason, StockTracking, StockState } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import { StockRefused } from '../../../common/errors/stock-refused';
+import { dhakaDate } from '../../../common/time';
 import type { ResolvedActor } from '../../catalogue/services/catalogue-activity';
 import { CatalogueVersion } from '../../catalogue/services/catalogue-version';
+import type { StockBatchStore } from '../ports/stock-batch-store';
 import type { LowStockNotifier, StockStore } from '../ports/stock-store';
-import { LOW_STOCK_NOTIFIER, STOCK_STORE } from '../tokens';
+import { LOW_STOCK_NOTIFIER, STOCK_BATCH_STORE, STOCK_STORE } from '../tokens';
 import type {
+  BatchDescription,
   MovementRecord,
   NewStockMovement,
+  StockBatchRecord,
   StockChange,
   StockVariantRow,
   VariantStockRow,
 } from '../types/inventory';
-import { milli, packsToStock, productState, sharedVariantState, variantState } from './stock-state';
+import {
+  milli,
+  packsToStock,
+  productState,
+  quantityOf,
+  sharedVariantState,
+  variantState,
+} from './stock-state';
+
+/** INV-13: a batch is expired once its last sellable day (in Asia/Dhaka) is past. */
+export function batchExpired(batch: Pick<StockBatchRecord, 'expiresOn'>, today: string): boolean {
+  return batch.expiresOn !== null && batch.expiresOn < today;
+}
+
+function byId(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0;
+}
 
 /**
- * INV-01 to INV-05, INV-08, INV-11, INV-19, INV-24: the one path every change to on-hand stock takes, inside the
- * caller's transaction. It records each change as a movement (the database moves the level from it, refusing stock
+ * INV-01 to INV-05, INV-08, INV-11 to INV-13, INV-19, INV-24: the one path every change to on-hand stock takes, inside
+ * the caller's transaction. It records each change as a movement (the database moves the level from it, refusing stock
  * below zero and fractions of whole-unit products), stamps an outgoing movement with the unit cost of the moment, then
  * works out each product's public stock state again (moving the catalogue version only when it changes) and tells the
  * shop, once per crossing, about stock that has fallen to its low-stock threshold. A change named on a variant of a
- * product sharing its stock is that many of its packs, and lands on the product's stock holder: no caller works out a
- * pack amount itself.
+ * product sharing its stock is that many of its packs, and lands on the product's stock holder; a change of
+ * batch-tracked stock lands in its batches, one movement per batch. No caller works out a pack amount or a batch itself.
  */
 @Injectable()
 export class InventoryLedger {
   constructor(
     @Inject(STOCK_STORE) private readonly store: StockStore,
+    @Inject(STOCK_BATCH_STORE) private readonly batches: StockBatchStore,
     @Inject(LOW_STOCK_NOTIFIER) private readonly notifier: LowStockNotifier,
     @Inject(CatalogueVersion) private readonly version: CatalogueVersion,
   ) {}
@@ -57,31 +78,41 @@ export class InventoryLedger {
         (row): [string, StockVariantRow] => [row.productId, row],
       ),
     );
-    const rows: NewStockMovement[] = changes.map((change) => {
+    const landed = changes.map((change) => {
       const variant = variants.get(change.variantId);
       if (!variant) throw new ApiError('not_found', 'ProductNotFound', {});
       // INV-02: a made-to-order product holds no stock and moves none.
       if (variant.product.stockTracking !== StockTracking.Tracked) {
         throw new ApiError('conflict', 'MadeToOrderHasNoStock', {});
       }
-      const landing = this.landingOf(variant, change.delta, holders);
-      const outgoing = milli(landing.delta) < 0;
-      return {
-        tenantId,
-        productId: landing.on.productId,
-        variantId: landing.on.variantId,
-        quantityDelta: landing.delta,
-        reason: change.reason,
-        // INV-11: what leaving stock cost at this moment; unknown stays null, never zero.
-        unitCost: outgoing ? landing.on.avgCost : null,
-        referenceType: change.reference?.type ?? null,
-        referenceId: change.reference?.id ?? null,
-        actorUserId: who.id,
-        note: change.note ?? null,
-      };
+      return { change, ...this.landingOf(variant, change.delta, holders) };
     });
-    // Two writers always lock levels in the same order, so they wait for each other instead of deadlocking.
-    rows.sort((a, b) => (a.variantId < b.variantId ? -1 : a.variantId > b.variantId ? 1 : 0));
+    // Two writers always lock in the same order -- levels by variant, then each level's batches -- so they wait for
+    // each other instead of deadlocking.
+    landed.sort((a, b) => byId(a.on.variantId, b.on.variantId));
+    const today = dhakaDate(new Date());
+    const rows: NewStockMovement[] = [];
+    for (const { change, on, delta } of landed) {
+      const parts = on.product.batchTracked
+        ? await this.batchParts(tx, tenantId, on, delta, change, today)
+        : [{ batchId: null, delta }];
+      for (const part of parts) {
+        rows.push({
+          tenantId,
+          productId: on.productId,
+          variantId: on.variantId,
+          batchId: part.batchId,
+          quantityDelta: part.delta,
+          reason: change.reason,
+          // INV-11: what leaving stock cost at this moment; unknown stays null, never zero.
+          unitCost: milli(part.delta) < 0 ? on.avgCost : null,
+          referenceType: change.reference?.type ?? null,
+          referenceId: change.reference?.id ?? null,
+          actorUserId: who.id,
+          note: change.note ?? null,
+        });
+      }
+    }
 
     let movements: MovementRecord[];
     try {
@@ -154,6 +185,93 @@ export class InventoryLedger {
     }
     await this.store.setLowNotified(tx, tenantId, crossed, true);
     await this.store.setLowNotified(tx, tenantId, recovered, false);
+  }
+
+  /**
+   * INV-12, INV-13: a change of batch-tracked stock, batch by batch, under the level's lock and then its batches'. A
+   * named batch takes all of it. Rising, it goes into the batch described (joining an open one of the same code), or
+   * into the variant's "no expiry" batch. Falling, it leaves in the picking order: earliest expiry first, none last.
+   * A sale never takes an expired batch; any other loss (damage, a recount, a write-off) takes expired stock last.
+   */
+  private async batchParts(
+    tx: Transaction,
+    tenantId: string,
+    on: StockVariantRow,
+    delta: string,
+    change: StockChange,
+    today: string,
+  ): Promise<{ batchId: string; delta: string }[]> {
+    await this.store.lockLevel(tx, tenantId, on.variantId);
+    const open = await this.batches.lockOpenBatches(tx, tenantId, on.variantId);
+    if (change.batchId) {
+      const named = open.find((batch) => batch.id === change.batchId);
+      if (!named) throw new ApiError('not_found', 'BatchNotFound', {});
+      return [{ batchId: named.id, delta }];
+    }
+    const amount = milli(delta);
+    if (amount > 0) {
+      const into = await this.incomingBatch(tx, tenantId, on.variantId, open, change.batch, today);
+      return [{ batchId: into.id, delta }];
+    }
+    const sellable = open.filter((batch) => !batchExpired(batch, today));
+    const expired = open.filter((batch) => batchExpired(batch, today));
+    const picking = change.reason === StockReason.Sale ? sellable : [...sellable, ...expired];
+    let need = -amount;
+    const parts: { batchId: string; delta: string }[] = [];
+    for (const batch of picking) {
+      if (need === 0) break;
+      const take = Math.min(milli(batch.quantity), need);
+      if (take <= 0) continue;
+      parts.push({ batchId: batch.id, delta: quantityOf(-take) });
+      need -= take;
+    }
+    if (need > 0) throw new ApiError('conflict', 'NotEnoughStock', {});
+    return parts;
+  }
+
+  /**
+   * INV-12, INV-22: the batch arriving stock goes into. Described with a code the variant already has open, it joins
+   * that batch, unless it names a different expiry (one lot has one expiry date). Described otherwise, it opens a new
+   * batch, never with an expiry already past. Not described, it goes into the variant's one "no expiry" batch.
+   */
+  private async incomingBatch(
+    tx: Transaction,
+    tenantId: string,
+    variantId: string,
+    open: StockBatchRecord[],
+    described: BatchDescription | null | undefined,
+    today: string,
+  ): Promise<StockBatchRecord> {
+    const batchCode = described?.batchCode ?? null;
+    const expiresOn = described?.expiresOn ?? null;
+    if (batchCode === null && expiresOn === null) {
+      return (
+        open.find((batch) => batch.isDefault) ??
+        this.batches.insertBatch(tx, tenantId, {
+          variantId,
+          batchCode: null,
+          expiresOn: null,
+          isDefault: true,
+        })
+      );
+    }
+    if (expiresOn !== null && expiresOn < today) {
+      throw new ApiError('conflict', 'ExpiryInThePast', {});
+    }
+    const same =
+      batchCode !== null ? open.find((batch) => batch.batchCode === batchCode) : undefined;
+    if (same) {
+      if (expiresOn !== null && same.expiresOn !== expiresOn) {
+        throw new ApiError('conflict', 'BatchExpiryDiffers', {});
+      }
+      return same;
+    }
+    return this.batches.insertBatch(tx, tenantId, {
+      variantId,
+      batchCode,
+      expiresOn,
+      isDefault: false,
+    });
   }
 
   /**

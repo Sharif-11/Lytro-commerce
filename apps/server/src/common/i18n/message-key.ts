@@ -261,6 +261,13 @@ export const MESSAGE_KEYS = [
   'StockIsShared',
   'WholePacksOnly',
   'SharedStockNeedsEmpty',
+  'BatchNotFound',
+  'BatchesNotTracked',
+  'NewBatchOnlyForArrivals',
+  'ExpiryInThePast',
+  'BatchExpiryDiffers',
+  'BatchNotExpired',
+  'ExpiredStockAwaitsWriteOff',
   'PeriodEndsBeforeItStarts',
 
   // Success -- catalogue
@@ -311,6 +318,8 @@ export const MESSAGE_KEYS = [
   'StockCheckRetrieved',
   'InventoryFiguresRetrieved',
   'StockAdded',
+  'BatchesRetrieved',
+  'BatchWrittenOff',
 ] as const;
 
 export type MessageKey = (typeof MESSAGE_KEYS)[number];
