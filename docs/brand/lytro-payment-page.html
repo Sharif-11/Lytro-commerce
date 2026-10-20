@@ -154,6 +154,14 @@ svg.i{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2;stroke
   .sheet{width:440px;border-radius:16px;max-height:80%}
   .toast{left:50%;transform:translateX(-50%);width:360px;right:auto}
 }
+.brandrow .ref{font-size:13px;color:var(--g600);margin-top:2px}
+/* embedded inside the dashboard prototype: no toolbar, the page fills the iframe */
+body.embedded{background:var(--sky-50)}
+.embedded .tb,.embedded .caption{display:none}
+.embedded .stage{padding:0}
+.embedded .frame{width:100%;height:100vh;border:0;border-radius:0;box-shadow:none}
+.embedded .statusbar,.embedded .urlbar{display:none}
+.embedded .pp{top:0}
 @media (prefers-reduced-motion: reduce){.tick path{animation:none;stroke-dashoffset:0}}
 </style>
 </head>
@@ -220,24 +228,31 @@ const W = {
   upay: { name: 'Upay', up: 'UPAY', col: '#1F4E98', ussd: '*268#', logo: '<span class="txt" style="color:#1F4E98">উপায়</span>' },
 };
 const VERB = { personal: 'Send Money', agent: 'Cash Out', merchant: 'Payment' };
-const SHOP = { name: ['মেঘ ফ্যাশন', 'Megh Fashion'], no: '01712345678', amount: 250 };
-const ST = { device: 'phone', lang: 'bn', screen: 'pick' };
-const go = (s) => { ST.screen = s; document.getElementById('selScreen').value = s; render(); };
+const PAY_INIT = window.PAY_INIT || null;
+const CTX = Object.assign({ platform: false, amount: 250, ref: null, no: '01712345678', screen: 'pick', lang: 'bn' }, PAY_INIT || {});
+const SHOP = { name: ['মেঘ ফ্যাশন', 'Megh Fashion'], no: CTX.no, amount: CTX.amount };
+const ST = { device: 'phone', lang: CTX.lang, screen: CTX.screen, wallet: null };
+const go = (s) => { ST.screen = s; const sel = document.getElementById('selScreen'); if (sel) sel.value = s; render(); };
+/* the host (the dashboard prototype) is told where the shopper went; standalone, the page just restarts */
+const payReturn = (status) => { if (window.parent && window.parent !== window) window.parent.postMessage({ type: 'pay-return', status }, '*'); else go('pick'); };
+/* the demo verify: checking, then verified after the listener's usual few seconds */
+const payVerify = () => { go('checking'); clearTimeout(ST.t); ST.t = setTimeout(() => { if (ST.screen === 'checking') go('verified'); }, 2500); };
+const ACT = { checking: "go(ST.wallet || 'bkash')", rejected: "go(ST.wallet || 'bkash')", verified: "payReturn('verified')", 'checking-late': "payReturn('checking')", manual: "payReturn('checking')", review: "payReturn('review')", expired: "payReturn('expired')", paid: "payReturn('paid')", cancelled: "payReturn('cancelled')" };
 
 /* ---------- pieces ---------- */
-const topbar = (back) => `<div class="topbar"><button aria-label="back" ${back ? `onclick="go('${back}')"` : ''}>${ic('back', 28, 2.5)}</button><button aria-label="close">${ic('x', 28, 2.5)}</button></div>`;
+const topbar = (back) => `<div class="topbar"><button aria-label="back" ${back ? `onclick="go('${back}')"` : ''}>${ic('back', 28, 2.5)}</button><button aria-label="close" onclick="payReturn('cancelled')">${ic('x', 28, 2.5)}</button></div>`;
 const legal = () => `<p class="legal">${t('legal')}</p>`;
 const picker = (o) => `
-  <div class="brandrow"><span class="logo">${o.platform ? `<span class="mono" style="background:#063b38"><svg viewBox="0 0 64 64" width="28" height="28"><path d="M15 15V49H31L49 29" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/></svg></span>` : `<span class="mono">${L('ম', 'M')}</span>`}</span><div><div class="nm">${o.platform ? 'Lytro' : L(...SHOP.name)}</div><button class="pill">${t('viewDetails')}</button></div></div>
+  <div class="brandrow"><span class="logo">${o.platform ? `<span class="mono" style="background:#063b38"><svg viewBox="0 0 64 64" width="28" height="28"><path d="M15 15V49H31L49 29" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/></svg></span>` : `<span class="mono">${L('ম', 'M')}</span>`}</span><div><div class="nm">${o.platform ? 'Lytro' : L(...SHOP.name)}</div>${CTX.ref ? `<div class="ref">${CTX.ref}</div>` : ''}<button class="pill">${t('viewDetails')}</button></div></div>
   <div class="contacts"><button aria-label="support" style="color:var(--blue)">${ic('headset')}</button><button aria-label="whatsapp" style="color:#25D366">${ic('chat')}</button><button aria-label="call" style="color:var(--blue)">${ic('phone')}</button></div>
   <div class="sect">${t('mobileBanking')}</div>
   <div class="tiles">${['bkash', 'nagad', 'rocket', 'upay'].map(k => `<button class="tile" onclick="go('${k}')">${W[k].logo}</button>`).join('')}</div>
-  <div class="paybar">${t('pay', { a: o.amount || SHOP.amount })}</div>`;
+  <div class="paybar">${t('pay', { a: Number(o.amount || SHOP.amount).toLocaleString('en-US') })}</div>`;
 
 function stepsFor(k, ty, no, amount) {
   const w = W[k]; const hl = (s) => `<b class="hl">${s}</b>`; const verb = hl(`"${VERB[ty]}"`);
   const numLine = (lead) => `${lead} ${hl(no)}<button class="copy" onclick="go('copied')">${ic('copy', 16)}${t('copy')}</button>`;
-  const amtLine = L(`পরিমাণ: ${hl(amount)} টাকা দিয়ে ${hl('SUBMIT')} করুন।`, `Amount: ${hl(amount)} taka, then ${hl('SUBMIT')}.`);
+  const amtLine = L(`পরিমাণ: ${hl(Number(amount).toLocaleString('en-US'))} টাকা দিয়ে ${hl('SUBMIT')} করুন।`, `Amount: ${hl(Number(amount).toLocaleString('en-US'))} taka, then ${hl('SUBMIT')}.`);
   const verifyLine = L(`${hl('Transaction ID')} দিয়ে ${hl('VERIFY')} করুন।`, `Enter the ${hl('Transaction ID')} and ${hl('VERIFY')}.`);
   if (k === 'bkash') return [
     L(`${hl(w.ussd)} ডায়াল করে আপনার ${hl(w.up)} মোবাইল মেনুতে যান অথবা ${hl(w.up)} অ্যাপে যান।`, `Dial ${hl(w.ussd)} to open your ${hl(w.up)} mobile menu, or open the ${hl(w.up)} app.`),
@@ -259,7 +274,7 @@ function stepsFor(k, ty, no, amount) {
 }
 function panel(k, ty, o = {}) {
   const w = W[k]; const no = o.no || SHOP.no; const amount = o.amount || SHOP.amount;
-  return `<div class="whead"><span class="lbox">${w.logo}</span><span class="amt"><i></i><b>${amount} ৳</b></span></div>
+  return `<div class="whead"><span class="lbox">${w.logo}</span><span class="amt"><i></i><b>${Number(amount).toLocaleString('en-US')} ৳</b></span></div>
   <div class="note">${t('note')}</div>
   <div class="ccard" style="background:${w.col}"><p class="ctitle">${t('enterTrx')}</p><div class="inp ${o.dup ? 'val bad' : ''}">${o.dup ? '9F2KQ7' : t('enterTrx')}</div>${o.dup ? `<div class="ierr">${t('dupErr')}</div>` : ''}
     <div class="ihead"><span>${t('instructions')}</span></div>
@@ -275,7 +290,7 @@ const trxRows = () => [[t('amount'), '250 ৳'], [t('method'), 'bKash · Send Mo
 
 /* ---------- screens: [content, fixed button label, button colour, back target] ---------- */
 const SC = {
-  pick: () => [picker({}), null],
+  pick: () => [picker({ platform: CTX.platform }), null],
   bkash: () => [panel('bkash', 'personal'), t('verify'), W.bkash.col],
   'bkash-agent': () => [panel('bkash', 'agent'), t('verify'), W.bkash.col],
   'bkash-merchant': () => [panel('bkash', 'merchant'), t('verify'), W.bkash.col],
@@ -303,18 +318,21 @@ function render() {
   const f = document.getElementById('frame');
   f.className = 'frame ' + ST.device; f.dataset.lang = ST.lang;
   const chrome = `<div class="statusbar"><span>9:41</span><span>●●● ᯤ ▮</span></div><div class="urlbar"><span class="dots"><i></i><i></i><i></i></span><span class="url">🔒 pay.lytro.app/8f2kq7x1a9z3</span></div>`;
+  if (['bkash', 'nagad', 'rocket', 'upay'].includes(ST.screen)) ST.wallet = ST.screen;
   const [content, label, col] = SC[ST.screen]();
+  const act = ACT[ST.screen] || 'payVerify()';
   const isPanel = !['pick', 'checking', 'checking-late', 'manual', 'verified', 'review', 'rejected', 'expired', 'paid', 'cancelled', 'suspended'].includes(ST.screen);
-  const fixed = label ? `<div class="fixedbar"><button class="vbtn" style="background:${col}">${label}</button></div>` : '';
+  const fixed = label ? `<div class="fixedbar"><button class="vbtn" style="background:${col}" onclick="${act}">${label}</button></div>` : '';
   const sheet = ST.screen === 'report' ? `<div class="scrim" onclick="go('bkash')"><div class="sheet" onclick="event.stopPropagation()"><div class="sh"><h2>${t('reportTitle')}</h2><button onclick="go('bkash')">${ic('x', 22)}</button></div><div class="sb">${[['r1', false], ['r2', false], ['r3', true], ['r4', false]].map(([k, on]) => `<div class="opt"><span class="radio ${on ? 'on' : ''}"></span>${t(k)}</div>`).join('')}<div class="inp">${t('rNote')}</div></div><div class="sf"><button class="btn">${t('sendReport')}</button></div></div></div>` : '';
   const toast = ST.screen === 'copied' ? `<div class="toast">${ic('check', 18)}${t('copiedNo', { n: SHOP.no })}</div>` : '';
   f.innerHTML = chrome + `<div class="pp"><div class="root"><div class="card">${topbar(isPanel ? 'pick' : null)}<div class="content ${label ? 'has-fixed' : ''}">${content}</div></div></div>${fixed}</div>${sheet}${toast}`;
+  if (PAY_INIT && ST.screen === 'verified') { clearTimeout(ST.t2); ST.t2 = setTimeout(() => { if (ST.screen === 'verified') payReturn('verified'); }, 5000); }
 }
 function setLang(l) { ST.lang = l; document.querySelectorAll('#segLang button').forEach(b => b.classList.toggle('on', b.dataset.v === l)); render(); }
 document.getElementById('selScreen').addEventListener('change', e => { ST.screen = e.target.value; render(); });
 document.querySelectorAll('#segDevice button').forEach(b => b.addEventListener('click', () => { ST.device = b.dataset.v; document.querySelectorAll('#segDevice button').forEach(x => x.classList.toggle('on', x === b)); render(); }));
 document.querySelectorAll('#segLang button').forEach(b => b.addEventListener('click', () => setLang(b.dataset.v)));
-(function init() { const h = location.hash.replace('#', ''); if (h && SC[h]) { ST.screen = h; document.getElementById('selScreen').value = h; } render(); })();
+(function init() { if (PAY_INIT) { document.body.classList.add('embedded'); } else { const h = location.hash.replace('#', ''); if (h && SC[h]) { ST.screen = h; document.getElementById('selScreen').value = h; } } render(); })();
 </script>
 </body>
 </html>

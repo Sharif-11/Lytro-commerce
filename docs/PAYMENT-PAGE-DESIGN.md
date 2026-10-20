@@ -139,6 +139,13 @@ under the box with a yellow ring on it.
 
 ---
 
+## 2a. Embedded in the dashboard prototype
+
+`docs/brand/lytro-dashboard.html` carries this page as an inert template and opens it in a frame for the
+four platform payments, passing the payee (Lytro), the amount, the reference and the language. The page
+reports where the shopper went (`verified`, `checking`, `cancelled`, `expired`, …) and the dashboard
+returns to the matching state. The standalone file stays the reference for the page itself.
+
 ## 3. Widths checked
 
 320 × 616 (the reference's small view), 390 × 844 and the 1280 px desktop, in Bangla and English, for the
