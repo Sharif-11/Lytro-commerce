@@ -719,6 +719,14 @@ CREATE TABLE tenant.category_attributes (           -- ATL-05 / ATR-02: suggesti
 - `stock_levels.low_notified` carries INV-08's once-per-crossing state; `batch_id`, `stock_batches`, serials,
   reservations and stock checks arrive in Slices 2b, 3 and 5.
 
+**Built in Phase 3 Slice 2b (migration 0056, 2026-10-20):** `stock_checks` and `stock_check_lines` (INV-07). Against
+the design below, a check stores each line it counted: what the variant held (`expected`, read under the level's
+lock), what was counted, the variant's average cost at that moment (`unit_cost`, null when unknown) and the recount
+movement behind a difference (`movement_id`, null when the count matched). So a check reports the value gained or lost
+however the cost moves later, and shows the lines that matched too. Lines hold the product and variant by value, as
+movements do. A check is never changed: the application role holds SELECT, INSERT and DELETE (DELETE for LIF-19's
+day-60 deletion only). INV-18's figures need no table: they are read from the levels and the movements.
+
 ```sql
 -- Quantities are numeric(14,3) throughout; a trigger refuses a fractional quantity when the product's
 -- stock_unit is discrete (piece, dozen, pack, box) — UOM-03.
@@ -809,8 +817,22 @@ CREATE TABLE tenant.stock_checks (                  -- INV-07: groups one stock 
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id       uuid NOT NULL,
     actor_user_id   uuid,
-    note            text,
-    created_at      timestamptz NOT NULL DEFAULT now()
+    note            varchar(200),
+    created_at      timestamptz NOT NULL DEFAULT now(),
+    UNIQUE (tenant_id, id)
+);
+
+CREATE TABLE tenant.stock_check_lines (             -- INV-07: one counted variant (built in Slice 2b)
+    tenant_id       uuid NOT NULL,
+    check_id        uuid NOT NULL,
+    product_id      uuid NOT NULL,                -- by value, like a movement's
+    variant_id      uuid NOT NULL,
+    expected        numeric(14,3) NOT NULL CHECK (expected >= 0),  -- held when counted, under the level's lock
+    counted         numeric(14,3) NOT NULL CHECK (counted >= 0),
+    unit_cost       numeric(12,4),                -- the average cost at that moment; null = unknown
+    movement_id     bigint,                       -- the recount movement; null when the count matched
+    PRIMARY KEY (tenant_id, check_id, variant_id),
+    FOREIGN KEY (tenant_id, check_id) REFERENCES tenant.stock_checks(tenant_id, id) ON DELETE CASCADE
 );
 ```
 

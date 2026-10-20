@@ -644,6 +644,14 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'This cost now comes from your purchases, so it cannot be typed in.',
     bn: 'এই খরচ এখন আপনার কেনাকাটা থেকে হিসাব হয়, তাই হাতে লেখা যায় না।',
   },
+  StockCheckNotFound: {
+    en: 'That stock check was not found.',
+    bn: 'স্টক চেকটি পাওয়া যায়নি।',
+  },
+  PeriodEndsBeforeItStarts: {
+    en: 'The start date is after the end date. Choose an earlier start.',
+    bn: 'শুরুর তারিখ শেষের তারিখের পরে। আগের একটি তারিখ বেছে নিন।',
+  },
   FallbackZoneHasNoAreas: {
     en: 'This zone covers every area no other zone has, so it has no areas of its own.',
     bn: 'অন্য কোনো জোনে না থাকা সব এলাকা এই জোনে পড়ে, তাই এর আলাদা এলাকা নেই।',
@@ -815,6 +823,22 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   StockHistoryRetrieved: {
     en: 'Stock history retrieved.',
     bn: 'স্টকের হিস্টরি পাওয়া গেছে।',
+  },
+  StockCheckSaved: {
+    en: 'Stock check saved.',
+    bn: 'স্টক চেক সেভ হয়েছে।',
+  },
+  StockChecksRetrieved: {
+    en: 'Stock checks retrieved.',
+    bn: 'স্টক চেকগুলো পাওয়া গেছে।',
+  },
+  StockCheckRetrieved: {
+    en: 'Stock check retrieved.',
+    bn: 'স্টক চেক পাওয়া গেছে।',
+  },
+  InventoryFiguresRetrieved: {
+    en: 'Inventory report retrieved.',
+    bn: 'ইনভেন্টরি রিপোর্ট পাওয়া গেছে।',
   },
 };
 

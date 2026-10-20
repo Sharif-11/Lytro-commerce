@@ -1,10 +1,11 @@
 // DAT-05: money is never floating point. Amounts are stored and exchanged as decimal strings; arithmetic here
 // runs on integer paisa (1/100 TK) so repeated additions never drift the way repeated float addition would.
 
-// A rate (control.rates.value, balance_ledger.rate_used) is numeric(12,4): up to four decimals, a hundredth of a
-// paisa. Money itself has two.
-const RATE_DECIMALS = 4;
-const RATE_SCALE = 10n ** BigInt(RATE_DECIMALS);
+// A rate (control.rates.value, balance_ledger.rate_used) and a unit cost (avg_cost, unit_cost) are numeric(12,4): up
+// to four decimals, a hundredth of a paisa. Money itself has two, and a stock quantity three (UOM-03).
+const FINE_DECIMALS = 4;
+const FINE_SCALE = 10n ** BigInt(FINE_DECIMALS);
+const QUANTITY_DECIMALS = 3;
 
 /** Parses a plain decimal string with at most `decimals` places into an integer count of 10^-decimals. */
 function toScaled(value: string, decimals: number): bigint {
@@ -39,15 +40,23 @@ export function divideRounded(dividend: bigint, divisor: bigint): bigint {
 
 /** BAL-16: units (two decimals) times a rate (up to four), in paisa, rounded to the paisa. */
 export function unitsTimesRate(units: string, rate: string): bigint {
-  return divideRounded(toScaled(units, 2) * toScaled(rate, RATE_DECIMALS), RATE_SCALE);
+  return divideRounded(toScaled(units, 2) * toScaled(rate, FINE_DECIMALS), FINE_SCALE);
 }
 
 /** A flat rate (up to four decimals) as paisa, rounded to the paisa. */
 export function rateToPaisa(rate: string): bigint {
-  return divideRounded(toScaled(rate, RATE_DECIMALS), RATE_SCALE / 100n);
+  return divideRounded(toScaled(rate, FINE_DECIMALS), FINE_SCALE / 100n);
 }
 
 /** `percent` per cent (a rate, up to four decimals) of an amount in paisa, rounded to the paisa. */
 export function percentOf(paisa: bigint, percent: string): bigint {
-  return divideRounded(paisa * toScaled(percent, RATE_DECIMALS), 100n * RATE_SCALE);
+  return divideRounded(paisa * toScaled(percent, FINE_DECIMALS), 100n * FINE_SCALE);
+}
+
+/** INV-07, INV-18: a stock quantity (up to three decimals, signed) at a unit cost (up to four), in paisa, rounded. */
+export function quantityTimesCost(quantity: string, unitCost: string): bigint {
+  return divideRounded(
+    toScaled(quantity, QUANTITY_DECIMALS) * toScaled(unitCost, FINE_DECIMALS),
+    10n ** BigInt(QUANTITY_DECIMALS + FINE_DECIMALS - 2),
+  );
 }

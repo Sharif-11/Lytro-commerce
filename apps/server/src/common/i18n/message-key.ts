@@ -257,6 +257,8 @@ export const MESSAGE_KEYS = [
   'NotEnoughStock',
   'StockReasonDoesNotFit',
   'CostFromPurchases',
+  'StockCheckNotFound',
+  'PeriodEndsBeforeItStarts',
 
   // Success -- catalogue
   'PresetsListed',
@@ -301,6 +303,10 @@ export const MESSAGE_KEYS = [
   'StockSaved',
   'VariantCostSaved',
   'StockHistoryRetrieved',
+  'StockCheckSaved',
+  'StockChecksRetrieved',
+  'StockCheckRetrieved',
+  'InventoryFiguresRetrieved',
 ] as const;
 
 export type MessageKey = (typeof MESSAGE_KEYS)[number];

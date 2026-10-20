@@ -41,6 +41,10 @@ import { CatalogueModule } from '../catalogue/catalogue.module';
 import { DeliveryModule } from '../delivery/delivery.module';
 import { InventoryModule } from '../inventory/inventory.module';
 import { InventoryController } from './controllers/inventory.controller';
+import {
+  InventoryFiguresController,
+  StockChecksController,
+} from './controllers/stock-checks.controller';
 import { DeliveryZonesController } from './controllers/delivery-zones.controller';
 import { LocationsController } from './controllers/locations.controller';
 import { AttributesController } from './controllers/attributes.controller';
@@ -109,6 +113,8 @@ import { CatalogueRequest } from './services/catalogue-request';
     LocationsController,
     DeliveryZonesController,
     InventoryController,
+    StockChecksController,
+    InventoryFiguresController,
   ],
   providers: [
     StaffSigninService,

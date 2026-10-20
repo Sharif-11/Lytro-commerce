@@ -3,7 +3,9 @@ import type {
   LowStockNotice,
   MovementRecord,
   NewStockMovement,
+  OutgoingRow,
   StockHistoryRow,
+  StockValueRow,
   StockVariantRow,
   VariantStockRow,
 } from '../types/inventory';
@@ -44,6 +46,14 @@ export interface StockStore {
     variantId: string,
     avgCost: string | null,
   ): Promise<void>;
+  /** INV-18: the stock held now, at average cost. */
+  stockValue(tx: Transaction, tenantId: string): Promise<StockValueRow>;
+  /** INV-18: the stock that left in a period, by reason, at the cost each movement recorded. */
+  outgoingByReason(
+    tx: Transaction,
+    tenantId: string,
+    period: { from: Date; to: Date },
+  ): Promise<OutgoingRow[]>;
   deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void>;
 }
 

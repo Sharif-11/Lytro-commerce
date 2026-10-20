@@ -243,6 +243,8 @@ export enum AuditAction {
   // Phase 3 Slice 2a: manual stock changes and write-offs (INV-21), and a hand-entered average cost (INV-10).
   StockAdjusted = 'stock_adjusted',
   VariantCostSet = 'variant_cost_set',
+  // Phase 3 Slice 2b: a stock check and the recounts it recorded (INV-07, INV-21).
+  StockChecked = 'stock_checked',
 }
 
 // AUD-07: these action kinds (payment, wallet, credential, plan, balance) are kept 24 months regardless of

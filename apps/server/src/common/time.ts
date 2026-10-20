@@ -62,6 +62,11 @@ export function startOfDayDhaka(date: Date): Date {
   return new Date(local.getTime() - DHAKA_OFFSET_MS);
 }
 
+/** INV-18: the start (00:00) of the Asia/Dhaka calendar day written YYYY-MM-DD. */
+export function dhakaDayStart(day: string): Date {
+  return new Date(Date.parse(`${day}T00:00:00Z`) - DHAKA_OFFSET_MS);
+}
+
 /** BIL-05: the Asia/Dhaka calendar date `date` falls on, as YYYY-MM-DD -- how a date is written into a notice. */
 export function dhakaDate(date: Date): string {
   return new Date(date.getTime() + DHAKA_OFFSET_MS).toISOString().slice(0, 10);

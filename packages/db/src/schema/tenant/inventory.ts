@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import {
+  bigint,
   bigserial,
   boolean,
   check,
@@ -9,6 +10,7 @@ import {
   primaryKey,
   text,
   timestamp,
+  unique,
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
@@ -87,6 +89,54 @@ export const stockMovements = tenant.table(
   ],
 );
 
+// INV-07: one stock check, the counts it recorded, and the recount movement behind each difference. A check is a
+// record of what was counted: never changed, deleted only with the rest of a lapsed shop's data (LIF-19).
+export const stockChecks = tenant.table(
+  'stock_checks',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    tenantId: uuid('tenant_id').notNull(),
+    actorUserId: uuid('actor_user_id'),
+    note: varchar('note', { length: STOCK_NOTE_MAX_LENGTH }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    unique('stock_checks_tenant_id_key').on(t.tenantId, t.id),
+    index('stock_checks_tenant_created_idx').on(t.tenantId, t.createdAt.desc(), t.id.desc()),
+  ],
+);
+
+// INV-07: what one variant held when it was counted, what was counted, and its average cost at that moment (null is
+// unknown), so the check reports the value gained or lost however the cost moves later. The variant and product are
+// held by value, like a movement's, so a check outlives a product deleted for good (PRD-13).
+export const stockCheckLines = tenant.table(
+  'stock_check_lines',
+  {
+    tenantId: uuid('tenant_id').notNull(),
+    checkId: uuid('check_id').notNull(),
+    productId: uuid('product_id').notNull(),
+    variantId: uuid('variant_id').notNull(),
+    expected: numeric('expected', { precision: 14, scale: 3 }).notNull(),
+    counted: numeric('counted', { precision: 14, scale: 3 }).notNull(),
+    unitCost: numeric('unit_cost', { precision: 12, scale: 4 }),
+    // The recount movement recording the difference; null when the count matched.
+    movementId: bigint('movement_id', { mode: 'number' }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.tenantId, t.checkId, t.variantId] }),
+    foreignKey({
+      name: 'stock_check_lines_check_fk',
+      columns: [t.tenantId, t.checkId],
+      foreignColumns: [stockChecks.tenantId, stockChecks.id],
+    }).onDelete('cascade'),
+    check('stock_check_lines_expected_check', sql`${t.expected} >= 0`),
+    check('stock_check_lines_counted_check', sql`${t.counted} >= 0`),
+  ],
+);
+
 export type SelectStockLevel = typeof stockLevels.$inferSelect;
 export type SelectStockMovement = typeof stockMovements.$inferSelect;
 export type InsertStockMovement = typeof stockMovements.$inferInsert;
+export type SelectStockCheck = typeof stockChecks.$inferSelect;
+export type SelectStockCheckLine = typeof stockCheckLines.$inferSelect;
+export type InsertStockCheckLine = typeof stockCheckLines.$inferInsert;
