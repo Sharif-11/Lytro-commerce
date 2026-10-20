@@ -1,5 +1,7 @@
 # Tenant dashboard: the Phase 1–2 sections
 
+> **Superseded 2026-10-20** by `TENANT-DASHBOARD-DESIGN.md` and `docs/brand/lytro-dashboard.html`, which re-design the whole dashboard. This document is kept for the endpoint notes and the backend additions in §9; its screens are no longer the target.
+
 The screens a seller opens from **More** once the shop exists: Plan, Balance, Invoices, Team, Activity, Shop
 settings, Sign-in and security. Designed 2026-10-19 from `SRS-detailed.md` and the endpoints the server
 exposes today (`API-CONTRACT.md` §2, 3, 8, 9, 11), the way `ONBOARDING-FLOW-DESIGN.md` was: each screen starts

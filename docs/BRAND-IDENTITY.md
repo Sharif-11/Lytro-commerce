@@ -228,8 +228,10 @@ Used for manual payments only. A wallet whose gateway the seller has connected s
 | `facebook-profile.svg`, `facebook-cover.svg`, `og-image.svg` | Facebook page avatar and cover, Open Graph share image (section 13). Outline or export to PNG before upload. |
 | `tokens.css`, `tailwind-theme.css`, `tokens.json`, `android-colors.xml` | Tokens. |
 | `lytro-brand-guide.html`, `lytro-landing.html` | The visual brand guide and the landing-page prototype, self-contained HTML. |
-| `lytro-onboarding.html`, `lytro-site-pages.html`, `lytro-support-legal.html` | The onboarding flow, the site pages and the support and legal pages, self-contained prototypes (ONBOARDING-FLOW-DESIGN.md, SITE-PAGES-DESIGN.md, SUPPORT-LEGAL-PAGES-DESIGN.md). |
-| `lytro-dashboard-sections.html`, `lytro-operator.html` | The Phase 1–2 dashboard sections and the operator console, self-contained prototypes (DASHBOARD-SECTIONS-DESIGN.md, OPERATOR-CONSOLE-DESIGN.md). |
+| `lytro-onboarding.html`, `lytro-site-pages.html`, `lytro-support-legal.html` | The first onboarding flow (its screens are superseded by `lytro-dashboard.html`; its flow and decisions stay in ONBOARDING-FLOW-DESIGN.md), the site pages and the support and legal pages, self-contained prototypes (SITE-PAGES-DESIGN.md, SUPPORT-LEGAL-PAGES-DESIGN.md). |
+| `lytro-dashboard.html` | The whole seller journey as of Phase 3 Slice 3: sign-in and onboarding, every hub and sheet of the dashboard, the lifecycle states, and the later-phase designs under their own group; phone, tablet and desktop; self-contained prototype (TENANT-DASHBOARD-DESIGN.md). Supersedes `lytro-dashboard-sections.html` and the screens of `lytro-onboarding.html`. |
+| `lytro-payment-page.html` | The hosted manual-payment page (`pay.lytro.app`): a panel per wallet in its official colours, every account type and session state, self-contained prototype (PAYMENT-PAGE-DESIGN.md). |
+| `lytro-dashboard-sections.html`, `lytro-operator.html` | The earlier Phase 1–2 dashboard sections (superseded, kept for history) and the operator console, self-contained prototypes (DASHBOARD-SECTIONS-DESIGN.md, OPERATOR-CONSOLE-DESIGN.md). |
 
 ---
 

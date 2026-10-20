@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lytro payment page prototype</title>
+<meta name="description" content="Hosted manual-payment page prototype for Lytro (pay.lytro.app), matched to the reference layout: wallet picker, per-wallet coloured card with the transaction-ID box and instructions, fixed verify button; 320 px full-bleed and a 672 px centred card from 640 px. Spec: docs/PAYMENT-PAGE-DESIGN.md.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&display=swap">
+<style>
+/* Tailwind values the reference page uses, written out: sky-50/100/900, gray-100/200/500/600/900, yellow-50/100/300. */
+:root{
+  --sky-50:#f0f9ff;--sky-100:#e0f2fe;--sky-900:#0c4a6e;--blue:#1e8fe0;
+  --g100:#f3f4f6;--g200:#e5e7eb;--g300:#d1d5db;--g500:#6b7280;--g600:#4b5563;--g900:#111827;
+  --y50:#fefce8;--y100:#fef9c3;--y300:#fde047;
+  --sh-sm:0 1px 2px rgba(0,0,0,.05);--sh-md:0 4px 6px -1px rgba(0,0,0,.1),0 2px 4px -2px rgba(0,0,0,.1);--sh-lg:0 10px 15px -3px rgba(0,0,0,.1),0 4px 6px -4px rgba(0,0,0,.1);--sh-xl:0 20px 25px -5px rgba(0,0,0,.1),0 8px 10px -6px rgba(0,0,0,.1);
+  --font:'Hind Siliguri',ui-sans-serif,system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);color:var(--g900);background:#e6ebea;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+svg.i{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+/* harness (not product UI) */
+.tb{position:sticky;top:0;z-index:50;background:#10201f;color:#eaf0ef;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;padding:10px 16px;font-size:13px;font-family:Inter,system-ui,sans-serif}
+.tb .brand{font-weight:800;letter-spacing:-.03em;font-size:16px;color:#fff;margin-right:8px}
+.tb label{display:flex;align-items:center;gap:6px;color:#a9b9b8}
+.tb select{background:#1a3230;color:#fff;border:1px solid #335450;border-radius:6px;padding:5px 8px;font-size:13px}
+.tb .seg{display:inline-flex;border:1px solid #335450;border-radius:6px;overflow:hidden}
+.tb .seg button{padding:5px 10px;color:#a9b9b8}
+.tb .seg button.on{background:#3ec4b9;color:#10201f;font-weight:600}
+.tb .note{margin-left:auto;color:#7e8f8e}
+.stage{display:flex;justify-content:center;padding:28px 16px 48px}
+.frame{container-type:inline-size;background:var(--sky-50);overflow:hidden;position:relative;box-shadow:0 20px 60px rgba(16,32,31,.25)}
+.frame.small{width:320px;height:616px;border-radius:28px;border:8px solid #0b1514}
+.frame.phone{width:390px;height:844px;border-radius:40px;border:8px solid #0b1514}
+.frame.desktop{width:1280px;height:820px;border-radius:12px;border:1px solid #c9d3d2}
+.statusbar{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font-size:14px;font-weight:600;background:var(--sky-50)}
+.frame.desktop .statusbar{display:none}
+.urlbar{display:none;height:40px;align-items:center;gap:10px;padding:0 14px;background:#f1f4f3;border-bottom:1px solid #d5dfde;font-size:13px;color:#2c3f3e;font-family:Inter,system-ui,sans-serif}
+.frame.desktop .urlbar{display:flex}
+.urlbar .dots i{display:inline-block;width:10px;height:10px;border-radius:50%;background:#d5dfde;margin-right:6px}
+.urlbar .url{background:#fff;border:1px solid #d5dfde;border-radius:6px;padding:4px 10px;flex:1;max-width:520px}
+.caption{max-width:1280px;margin:0 auto;padding:0 16px 40px;color:#2c3f3e;font-size:13px;line-height:1.6;font-family:Inter,system-ui,sans-serif}
+.caption b{color:#10201f}
+
+/* page: root → card → topbar + content; fixed bar */
+.pp{position:absolute;left:0;right:0;bottom:0;top:44px;overflow:auto;background:var(--sky-50)}
+.frame.desktop .pp{top:40px}
+.root{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0}
+.card{position:relative;width:100%;min-height:100%;padding:0 16px;background:transparent}
+.topbar{margin:8px;padding:8px;border-radius:12px;border:1px solid var(--sky-100);background:rgba(255,255,255,.65);box-shadow:0 8px 24px rgba(2,132,199,.08);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:space-between}
+.topbar button{width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;color:var(--g900)}
+.topbar svg.i{width:28px;height:28px;stroke-width:2.5}
+.content{padding-bottom:16px;font-size:14px;font-weight:400;line-height:1.625}
+.content.has-fixed{padding-bottom:96px}
+
+/* picker */
+.brandrow{display:flex;align-items:center;justify-content:center;gap:16px;margin-top:24px}
+.brandrow .logo{width:56px;height:56px;border-radius:50%;border:1px solid var(--g200);background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:var(--sh-sm)}
+.brandrow .logo .mono{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#0e6b66;color:#fff;font-weight:700;font-size:22px}
+.brandrow .nm{font-size:18px;font-weight:700;line-height:1.3}
+.brandrow .pill{margin-top:4px;height:28px;padding:0 14px;border-radius:999px;border:1px solid var(--g300);background:#fff;font-size:13px;font-weight:500;box-shadow:var(--sh-sm);display:inline-flex;align-items:center}
+.contacts{display:flex;justify-content:center;gap:12px;margin-top:32px}
+.contacts button{width:48px;height:48px;border-radius:12px;border:1px solid var(--g200);background:#fff;box-shadow:var(--sh-sm);display:inline-flex;align-items:center;justify-content:center}
+.contacts svg.i{width:24px;height:24px}
+.sect{margin:24px 16px 0;padding:8px 12px;border-radius:8px;background:var(--blue);color:#fff;font-size:18px;font-weight:700;text-align:center;line-height:26px}
+.tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;padding:0 20px;margin-top:32px}
+.tile{height:70px;border-radius:12px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.tile img{max-height:32px;max-width:110px;display:block}
+.tile .txt{font-weight:700;font-size:22px;letter-spacing:-.01em}
+.paybar{margin:16px 16px 0;padding:12px;border-radius:8px;background:var(--sky-100);color:var(--sky-900);font-size:20px;font-weight:700;text-align:center;line-height:28px}
+
+/* wallet panel */
+.whead{margin-top:12px;padding:12px;border-radius:16px;background:#fff;border:1px solid var(--g100);box-shadow:var(--sh-sm);display:flex;align-items:center;justify-content:space-between}
+.whead .lbox{width:96px;height:56px;border-radius:8px;background:var(--g100);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.whead .lbox img{max-height:30px;max-width:80px;display:block}
+.whead .lbox .txt{font-weight:700;font-size:18px}
+.whead .amt{display:flex;align-items:center;gap:16px}
+.whead .amt i{display:block;width:1px;height:32px;background:var(--g200)}
+.whead .amt b{font-size:24px;font-weight:700;padding-right:12px;white-space:nowrap}
+.note{margin-top:16px;padding:6px 8px;border-radius:4px;background:var(--y50);border:1px solid var(--y100);color:var(--g600);font-weight:300;font-size:12px;text-align:center;opacity:.5;line-height:20px}
+.note b{font-weight:700}
+.ccard{margin-top:8px;padding:24px;border-radius:12px;color:#fff;box-shadow:var(--sh-md);margin-bottom:12px}
+.ccard .ctitle{text-align:center;font-size:16px;font-weight:500;opacity:.95;margin-bottom:8px;line-height:24px}
+.ccard .inp{height:44px;border-radius:8px;background:#fff;color:var(--g500);display:flex;align-items:center;justify-content:center;font-size:15px;padding:0 12px;box-shadow:var(--sh-sm)}
+.ccard .inp.val{color:var(--g900);font-weight:600;letter-spacing:.04em}
+.ccard .inp.bad{box-shadow:0 0 0 2px var(--y300)}
+.ccard .ierr{margin-top:6px;font-size:12px;font-weight:600;color:var(--y300);text-align:center}
+.ccard .ihead{margin-top:16px;padding-bottom:4px;margin-bottom:8px;border-bottom:1px solid rgba(0,0,0,.15);font-weight:700;font-size:14px;letter-spacing:.05em;text-transform:uppercase;display:flex;align-items:center;justify-content:space-between}
+.ilist{list-style:none;font-size:12px;font-weight:300}
+.ilist li{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid rgba(0,0,0,.15)}
+.ilist li:last-child{border-bottom:0}
+.ilist li::before{content:"";width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.85);flex:none}
+.ilist .hl{font-weight:700;color:var(--y300);font-size:16px;line-height:1.3}
+.ilist .copy{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:8px;background:var(--g900);color:#fff;font-size:14px;font-weight:500;margin-left:8px;vertical-align:middle;box-shadow:var(--sh-sm)}
+.ilist .copy svg.i{width:16px;height:16px}
+.ilist li span{flex:1;min-width:0}
+.legal{margin-top:4px;font-size:12px;color:var(--g500);text-align:center;line-height:1.6}
+.legal a{color:var(--g600);text-decoration:underline}
+.fixedbar{position:absolute;left:0;right:0;bottom:0;margin:0 auto;width:100%;padding:28px 16px max(14px, env(safe-area-inset-bottom));z-index:10;background:linear-gradient(to top,var(--sky-50) 60%,rgba(240,249,255,0))}
+.fixedbar .vbtn{display:flex;align-items:center;justify-content:center;width:100%;height:52px;border-radius:12px;color:#fff;font-size:16px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;box-shadow:var(--sh-lg)}
+.fixedbar .vbtn.disabled{background:var(--sky-100);color:var(--sky-900)}
+
+/* status states, in the same language */
+.scard{margin-top:12px;padding:32px 24px;border-radius:16px;background:#fff;border:1px solid var(--g100);box-shadow:var(--sh-sm);display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center}
+.scard .ic{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.scard .ic svg{width:40px;height:40px}
+.scard h2{font-size:20px;font-weight:700}
+.scard p{font-size:14px;color:var(--g600);max-width:320px}
+.scard .det{width:100%;background:var(--g100);border-radius:8px;padding:4px 12px;margin-top:4px}
+.scard .kv{display:flex;justify-content:space-between;gap:12px;padding:8px 0;font-size:14px}
+.scard .kv + .kv{border-top:1px solid var(--g200)}
+.scard .kv .k{color:var(--g600)}
+.scard .kv .v{font-weight:600}
+.ring{position:relative;width:72px;height:72px}
+.ring svg{width:72px;height:72px;transform:rotate(-90deg)}
+.ring circle{fill:none;stroke-width:6}
+.ring .bg{stroke:var(--g100)}
+.ring .fg{stroke:var(--blue);stroke-linecap:round;stroke-dasharray:201;stroke-dashoffset:120}
+.ring .t{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px}
+.tick{width:72px;height:72px;border-radius:50%;background:#dcfce7;display:flex;align-items:center;justify-content:center}
+.tick svg{width:40px;height:40px;stroke:#15803d;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.tick path{stroke-dasharray:40;stroke-dashoffset:40;animation:draw .4s ease-out forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+.toast{position:absolute;left:16px;right:16px;bottom:100px;background:var(--g900);color:#fff;padding:12px 16px;border-radius:10px;font-size:14px;display:flex;align-items:center;gap:10px;z-index:30;box-shadow:var(--sh-lg)}
+.toast svg.i{width:18px;height:18px;color:#86efac}
+.scrim{position:absolute;inset:0;background:rgba(17,24,39,.45);z-index:20;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:#fff;border-radius:16px 16px 0 0;width:100%;max-height:92%;display:flex;flex-direction:column;box-shadow:0 -8px 32px rgba(0,0,0,.2)}
+.sheet .sh{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 16px 8px}
+.sheet .sh h2{font-size:18px;font-weight:700}
+.sheet .sb{overflow:auto;padding:4px 16px 16px;display:flex;flex-direction:column;gap:4px}
+.sheet .sf{padding:12px 16px 16px;border-top:1px solid var(--g200)}
+.opt{display:flex;align-items:center;gap:12px;padding:10px 0;font-size:15px}
+.radio{width:22px;height:22px;border-radius:50%;border:2px solid var(--g300);flex:none}
+.radio.on{border-color:var(--blue);border-width:7px}
+.sheet .btn{display:flex;align-items:center;justify-content:center;width:100%;height:48px;border-radius:12px;background:var(--blue);color:#fff;font-size:16px;font-weight:700}
+.sheet .inp{height:44px;border:1px solid var(--g300);border-radius:8px;display:flex;align-items:center;padding:0 12px;color:var(--g500);margin-top:8px}
+
+/* 640 and up: the centred card, exactly as the reference's sm: classes */
+@container (min-width: 640px){
+  .root{padding:0 16px;min-height:100%}
+  .card{min-height:0;height:max-content;max-width:672px;border-radius:8px;box-shadow:var(--sh-xl);background:#fff;backdrop-filter:blur(4px);margin:24px auto}
+  .topbar{margin:12px;padding:12px}
+  .content{padding-bottom:32px}
+  .content.has-fixed{padding-bottom:32px}
+  .tiles{grid-template-columns:repeat(4,1fr)}
+  .note{font-size:14px}
+  .ilist{font-size:14px}
+  .ilist .hl{font-size:18px}
+  .fixedbar{max-width:672px}
+  .scrim{align-items:center}
+  .sheet{width:440px;border-radius:16px;max-height:80%}
+  .toast{left:50%;transform:translateX(-50%);width:360px;right:auto}
+}
+@media (prefers-reduced-motion: reduce){.tick path{animation:none;stroke-dashoffset:0}}
+</style>
+</head>
+<body>
+<div class="tb">
+  <span class="brand">lytro · payment page prototype</span>
+  <label>State
+    <select id="selScreen">
+      <optgroup label="Choose"><option value="pick">Method picker</option></optgroup>
+      <optgroup label="Wallet panels"><option value="bkash">bKash · Send Money</option><option value="bkash-agent">bKash · agent (Cash Out)</option><option value="bkash-merchant">bKash · merchant (Payment)</option><option value="nagad">Nagad · Send Money</option><option value="rocket">Rocket · Send Money</option><option value="upay">Upay · Send Money</option><option value="dup">bKash · duplicate TrxID error</option><option value="copied">bKash · number copied (toast)</option></optgroup>
+      <optgroup label="After verify"><option value="checking">Checking, listener online (12 s)</option><option value="checking-late">Checking, past 30 s</option><option value="manual">Manual check (listener offline)</option><option value="verified">Verified</option><option value="review">Needs review</option><option value="rejected">Rejected with a reason</option><option value="expired">Expired</option><option value="paid">Already paid</option><option value="cancelled">Cancelled</option><option value="suspended">Page suspended</option></optgroup>
+      <optgroup label="Other"><option value="platform">Platform payment (Lytro, plan)</option><option value="report">Report this page (sheet)</option></optgroup>
+    </select>
+  </label>
+  <label>Device <span class="seg" id="segDevice"><button data-v="small">Small 320</button><button data-v="phone" class="on">Phone 390</button><button data-v="desktop">Desktop 1280</button></span></label>
+  <label>Language <span class="seg" id="segLang"><button data-v="bn" class="on">বাংলা</button><button data-v="en">EN</button></span></label>
+  <span class="note">Spec: docs/PAYMENT-PAGE-DESIGN.md</span>
+</div>
+<div class="stage"><div id="frame" class="frame phone" data-lang="bn"></div></div>
+<p class="caption"><b>How to read this.</b> The layout follows the reference page element for element, with the same spacing values its markup uses: a frosted top bar with back and close; on the picker the shop's logo and name with "View Details", three contact buttons, the blue "Mobile Banking" bar, four logo tiles and the light "Pay" bar; on a wallet's screen the logo-and-amount header, the faded yellow note, the wallet-coloured card with the centred transaction-ID box and the INSTRUCTIONS list with yellow highlights and the black Copy button, and the fixed VERIFY TRANSACTION button. Below 640 px the page is full-bleed; from 640 px it is a 672 px white card centred on the page. bKash and Nagad use the official marks from <code>docs/brand/third-party/</code>; Rocket and Upay are text stand-ins until their marks are fetched. "Secured by Lytro", the PIN notice and "Report" are the one line the SRS adds under the card.</p>
+<script>
+const I = {
+  back:'<path d="M19 12H5"/><path d="m12 19-7-7 7-7"/>',
+  x:'<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+  copy:'<rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
+  headset:'<path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H3z"/><path d="M21 14h-3a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h3z"/><path d="M3 14v-2a9 9 0 0 1 18 0v2"/><path d="M21 19a3 3 0 0 1-3 3h-3"/>',
+  chat:'<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.5 9.5c0 2.5 3 5.5 5.5 5.5l1.5-1.5-2-1.5-1 1a4.5 4.5 0 0 1-2.5-2.5l1-1-1.5-2Z"/>',
+  phone:'<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/>',
+  check:'<path d="M20 6 9 17l-5-5"/>', clock:'<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+  search:'<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>', lock:'<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  user:'<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+};
+const ic = (n, s, sw) => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true" style="${s ? `width:${s}px;height:${s}px;` : ''}${sw ? `stroke-width:${sw}` : ''}">${I[n]}</svg>`;
+
+const S = {
+  viewDetails:['View Details','View Details'],mobileBanking:['Mobile Banking','Mobile Banking'],pay:['Pay {a} BDT','Pay {a} BDT'],
+  note:['<b>নোট:</b> টাকা পাঠানোর ৫-১০ সেকেন্ড পর ভেরিফাই করবেন।','<b>Note:</b> verify 5 to 10 seconds after sending the money.'],
+  enterTrx:['ট্রান্সজেকশন আইডি দিন','Enter the transaction ID'],instructions:['INSTRUCTIONS','INSTRUCTIONS'],copy:['Copy','Copy'],verify:['VERIFY TRANSACTION','VERIFY TRANSACTION'],
+  dupErr:['এই ট্রান্সেকশন আইডি ইতিমধ্যে ব্যবহৃত হয়েছে','This transaction ID has already been used'],
+  legal:['🔒 Secured by Lytro · এই পেজ কখনো PIN বা OTP চায় না · <a href="#" onclick="go(\'report\');return false">রিপোর্ট করুন</a>','🔒 Secured by Lytro · This page never asks for your PIN or OTP · <a href="#" onclick="go(\'report\');return false">Report this page</a>'],
+  copiedNo:['নম্বর কপি হয়েছে: {n}','Number copied: {n}'],
+  checkingT:['SMS মেলানো হচ্ছে…','Matching the SMS…'],checkingP:['সাধারণত ১০ সেকেন্ড লাগে। এই পেজে থাকুন।','Usually about 10 seconds. Stay on this page.'],
+  lateT:['আমরা শিগগিরই কনফার্ম করব','We will confirm shortly'],lateP:['এই পেজ বন্ধ করলেও হবে। কনফার্ম হলে SMS পাবেন, আর দোকান জানবে।','You can close this page. You get an SMS when it is confirmed, and the shop is told.'],
+  manualT:['দোকান চেক করে কনফার্ম করবে','The shop will check and confirm'],manualP:['সাধারণত কিছুক্ষণের মধ্যে। কনফার্ম হলে SMS পাবেন।','Usually within a short while. You get an SMS when it is confirmed.'],
+  verifiedT:['পেমেন্ট হয়েছে','Paid'],verifiedP:['{s} সেকেন্ডে দোকানে ফিরছেন।','Returning to the shop in {s} seconds.'],
+  reviewT:['টাকা মিলছে না','The payment did not match'],reviewP:['SMS-এ ৳{a} এসেছে, পাঠানোর কথা ৳{b}। দোকান দেখে জানাবে; আপনার কিছু করতে হবে না।','The SMS shows ৳{a}, the amount was ৳{b}. The shop will check and let you know; nothing to do now.'],
+  rejectedT:['পেমেন্ট কনফার্ম হয়নি','Payment not confirmed'],rejectedReason:['দোকান বলেছে: "{r}"','The shop said: "{r}"'],
+  expiredT:['সময় শেষ হয়ে গেছে','This payment link has expired'],expiredP:['টাকা পাঠিয়ে থাকলে দোকানকে ট্রান্সজেকশন আইডি জানান। না পাঠিয়ে থাকলে দোকানে ফিরে আবার শুরু করুন।','If you already sent the money, give the shop the transaction ID. If not, go back and start again.'],
+  paidT:['এই পেমেন্ট আগেই হয়েছে','This payment was already made'],cancelledT:['এই পেমেন্ট ক্যানসেল করা হয়েছে','This payment was cancelled'],cancelledP:['দোকান পেমেন্টটি বাতিল করেছে। নতুন করে অর্ডার করতে দোকানে ফিরুন।','The shop cancelled this payment. Go back to the shop to order again.'],
+  suspendedT:['এই পেমেন্ট পেজ এখন বন্ধ আছে','This payment page is closed right now'],
+  amount:['টাকা','Amount'],method:['মেথড','Method'],trx:['ট্রান্সজেকশন আইডি','Transaction ID'],time:['সময়','Time'],
+  backShop:['BACK TO SHOP','BACK TO SHOP'],retry:['TRY AGAIN','TRY AGAIN'],wrongTrx:['CHANGE TRANSACTION ID','CHANGE TRANSACTION ID'],
+  reportTitle:['এই পেজ রিপোর্ট করুন','Report this page'],r1:['এটা আমার দোকান নয়','This is not the shop I ordered from'],r2:['টাকার পরিমাণ ভুল','The amount is wrong'],r3:['আমার PIN চেয়েছে','It asked for my PIN'],r4:['অন্য কিছু','Something else'],rNote:['কী হয়েছে, এক লাইনে (ঐচ্ছিক)','What happened, in a line (optional)'],sendReport:['রিপোর্ট পাঠান','Send report'],
+};
+let LANG = 'bn';
+const t = (k, v) => { let s = S[k] ? S[k][LANG === 'bn' ? 0 : 1] : k; if (v) for (const [a, b] of Object.entries(v)) s = s.split('{' + a + '}').join(b); return s; };
+const L = (bn, en) => LANG === 'bn' ? bn : en;
+
+/* wallets: colours sampled from the reference page (bKash from its markup, the rest from the screenshots); confirm against each merchant kit */
+const W = {
+  bkash: { name: 'bKash', up: 'BKASH', col: '#CF2772', ussd: '*247#', logo: '<img src="third-party/bkash.png" alt="bKash">' },
+  nagad: { name: 'Nagad', up: 'NAGAD', col: '#D71E22', ussd: '*167#', logo: '<img src="third-party/nagad.png" alt="Nagad">' },
+  rocket: { name: 'Rocket', up: 'ROCKET', col: '#892C8C', ussd: '*322#', logo: '<span class="txt" style="color:#892C8C">Rocket</span>' },
+  upay: { name: 'Upay', up: 'UPAY', col: '#1F4E98', ussd: '*268#', logo: '<span class="txt" style="color:#1F4E98">উপায়</span>' },
+};
+const VERB = { personal: 'Send Money', agent: 'Cash Out', merchant: 'Payment' };
+const SHOP = { name: ['মেঘ ফ্যাশন', 'Megh Fashion'], no: '01712345678', amount: 250 };
+const ST = { device: 'phone', lang: 'bn', screen: 'pick' };
+const go = (s) => { ST.screen = s; document.getElementById('selScreen').value = s; render(); };
+
+/* ---------- pieces ---------- */
+const topbar = (back) => `<div class="topbar"><button aria-label="back" ${back ? `onclick="go('${back}')"` : ''}>${ic('back', 28, 2.5)}</button><button aria-label="close">${ic('x', 28, 2.5)}</button></div>`;
+const legal = () => `<p class="legal">${t('legal')}</p>`;
+const picker = (o) => `
+  <div class="brandrow"><span class="logo">${o.platform ? `<span class="mono" style="background:#063b38"><svg viewBox="0 0 64 64" width="28" height="28"><path d="M15 15V49H31L49 29" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/></svg></span>` : `<span class="mono">${L('ম', 'M')}</span>`}</span><div><div class="nm">${o.platform ? 'Lytro' : L(...SHOP.name)}</div><button class="pill">${t('viewDetails')}</button></div></div>
+  <div class="contacts"><button aria-label="support" style="color:var(--blue)">${ic('headset')}</button><button aria-label="whatsapp" style="color:#25D366">${ic('chat')}</button><button aria-label="call" style="color:var(--blue)">${ic('phone')}</button></div>
+  <div class="sect">${t('mobileBanking')}</div>
+  <div class="tiles">${['bkash', 'nagad', 'rocket', 'upay'].map(k => `<button class="tile" onclick="go('${k}')">${W[k].logo}</button>`).join('')}</div>
+  <div class="paybar">${t('pay', { a: o.amount || SHOP.amount })}</div>`;
+
+function stepsFor(k, ty, no, amount) {
+  const w = W[k]; const hl = (s) => `<b class="hl">${s}</b>`; const verb = hl(`"${VERB[ty]}"`);
+  const numLine = (lead) => `${lead} ${hl(no)}<button class="copy" onclick="go('copied')">${ic('copy', 16)}${t('copy')}</button>`;
+  const amtLine = L(`পরিমাণ: ${hl(amount)} টাকা দিয়ে ${hl('SUBMIT')} করুন।`, `Amount: ${hl(amount)} taka, then ${hl('SUBMIT')}.`);
+  const verifyLine = L(`${hl('Transaction ID')} দিয়ে ${hl('VERIFY')} করুন।`, `Enter the ${hl('Transaction ID')} and ${hl('VERIFY')}.`);
+  if (k === 'bkash') return [
+    L(`${hl(w.ussd)} ডায়াল করে আপনার ${hl(w.up)} মোবাইল মেনুতে যান অথবা ${hl(w.up)} অ্যাপে যান।`, `Dial ${hl(w.ussd)} to open your ${hl(w.up)} mobile menu, or open the ${hl(w.up)} app.`),
+    L(`${verb} -এ ক্লিক করুন।`, `Tap ${verb}.`),
+    numLine(L(ty === 'agent' ? 'এজেন্ট নম্বর হিসেবে এই নম্বরটি লিখুন:' : ty === 'merchant' ? 'মার্চেন্ট নম্বর হিসেবে এই নম্বরটি লিখুন:' : 'প্রাপক নম্বর হিসেবে এই নম্বরটি লিখুন:', ty === 'agent' ? 'Enter this as the agent number:' : ty === 'merchant' ? 'Enter this as the merchant number:' : 'Enter this as the recipient number:')),
+    amtLine,
+    L(`এখন উপরের বক্সে আপনার ${hl('Transaction ID')} দিন এবং ${hl('VERIFY')} করুন।`, `Now enter your ${hl('Transaction ID')} in the box above and ${hl('VERIFY')}.`),
+  ];
+  if (k === 'nagad') return [
+    L(`${hl(w.ussd)} ডায়াল করে আপনার ${hl(w.up)} মোবাইল মেনুতে যান অথবা অ্যাপে যান।`, `Dial ${hl(w.ussd)} to open your ${hl(w.up)} mobile menu, or open the app.`),
+    L(`${verb} এ ক্লিক করুন।`, `Tap ${verb}.`),
+    numLine(L('প্রাপক নম্বর:', 'Recipient number:')), amtLine, verifyLine,
+  ];
+  return [
+    L(`${hl(w.ussd)} অথবা ${hl(w.up)} অ্যাপে যান।`, `Dial ${hl(w.ussd)} or open the ${hl(w.up)} app.`),
+    L(k === 'rocket' ? `${verb} নির্বাচন করুন।` : `${verb} সিলেক্ট করুন।`, `Select ${verb}.`),
+    numLine(L('প্রাপক নম্বর:', 'Recipient number:')), amtLine, verifyLine,
+  ];
+}
+function panel(k, ty, o = {}) {
+  const w = W[k]; const no = o.no || SHOP.no; const amount = o.amount || SHOP.amount;
+  return `<div class="whead"><span class="lbox">${w.logo}</span><span class="amt"><i></i><b>${amount} ৳</b></span></div>
+  <div class="note">${t('note')}</div>
+  <div class="ccard" style="background:${w.col}"><p class="ctitle">${t('enterTrx')}</p><div class="inp ${o.dup ? 'val bad' : ''}">${o.dup ? '9F2KQ7' : t('enterTrx')}</div>${o.dup ? `<div class="ierr">${t('dupErr')}</div>` : ''}
+    <div class="ihead"><span>${t('instructions')}</span></div>
+    <ul class="ilist">${stepsFor(k, ty, no, amount).map(s => `<li><span>${s}</span></li>`).join('')}</ul></div>
+  ${legal()}`;
+}
+const det = (rows) => `<div class="det">${rows.map(([k, v]) => `<div class="kv"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('')}</div>`;
+const scard = (icon, title, p, extra) => `<div class="scard">${icon}<h2>${title}</h2>${p ? `<p>${p}</p>` : ''}${extra || ''}</div>${legal()}`;
+const ring = (s) => `<div class="ring"><svg viewBox="0 0 72 72"><circle class="bg" cx="36" cy="36" r="32"/><circle class="fg" cx="36" cy="36" r="32"/></svg><span class="t">${s}s</span></div>`;
+const bigIcon = (n, bg, col) => `<span class="ic" style="background:${bg};color:${col}">${ic(n, 40, 2)}</span>`;
+const tick = () => `<span class="tick"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>`;
+const trxRows = () => [[t('amount'), '250 ৳'], [t('method'), 'bKash · Send Money'], [t('trx'), '9F2KQ7X1']];
+
+/* ---------- screens: [content, fixed button label, button colour, back target] ---------- */
+const SC = {
+  pick: () => [picker({}), null],
+  bkash: () => [panel('bkash', 'personal'), t('verify'), W.bkash.col],
+  'bkash-agent': () => [panel('bkash', 'agent'), t('verify'), W.bkash.col],
+  'bkash-merchant': () => [panel('bkash', 'merchant'), t('verify'), W.bkash.col],
+  nagad: () => [panel('nagad', 'personal', { no: '01812345678' }), t('verify'), W.nagad.col],
+  rocket: () => [panel('rocket', 'personal', { no: '017123456789' }), t('verify'), W.rocket.col],
+  upay: () => [panel('upay', 'personal'), t('verify'), W.upay.col],
+  dup: () => [panel('bkash', 'personal', { dup: true }), t('verify'), W.bkash.col],
+  copied: () => [panel('bkash', 'personal'), t('verify'), W.bkash.col],
+  report: () => [panel('bkash', 'personal'), t('verify'), W.bkash.col],
+  platform: () => [panel('bkash', 'personal', { no: '01700000000', amount: 449 }), t('verify'), W.bkash.col],
+  checking: () => [scard(ring(12), t('checkingT'), t('checkingP'), det(trxRows())), t('wrongTrx'), 'var(--g500)'],
+  'checking-late': () => [scard(bigIcon('clock', 'var(--sky-100)', 'var(--sky-900)'), t('lateT'), t('lateP'), det(trxRows())), t('backShop'), 'var(--blue)'],
+  manual: () => [scard(bigIcon('user', 'var(--sky-100)', 'var(--sky-900)'), t('manualT'), t('manualP'), det(trxRows())), t('backShop'), 'var(--blue)'],
+  verified: () => [scard(tick(), t('verifiedT'), t('verifiedP', { s: 5 }), det([...trxRows(), [t('time'), L('আজ সকাল 11:48', 'Today 11:48 am')]])), t('backShop'), '#15803d'],
+  review: () => [scard(bigIcon('search', 'var(--y50)', '#a16207'), t('reviewT'), t('reviewP', { a: 240, b: 250 }), det(trxRows())), t('backShop'), 'var(--blue)'],
+  rejected: () => [scard(bigIcon('x', '#fee2e2', '#b91c1c'), t('rejectedT'), t('rejectedReason', { r: L('এই TrxID-র টাকা আমাদের নম্বরে আসেনি', 'No money arrived on our number for this TrxID') }), det(trxRows())), t('retry'), W.bkash.col],
+  expired: () => [scard(bigIcon('clock', 'var(--g100)', 'var(--g600)'), t('expiredT'), t('expiredP')), t('backShop'), 'var(--blue)'],
+  paid: () => [scard(bigIcon('check', '#dcfce7', '#15803d'), t('paidT'), '', det([[t('amount'), '250 ৳'], [t('method'), 'bKash'], [t('time'), L('আজ সকাল 11:48', 'Today 11:48 am')]])), t('backShop'), 'var(--blue)'],
+  cancelled: () => [scard(bigIcon('x', 'var(--g100)', 'var(--g600)'), t('cancelledT'), t('cancelledP')), t('backShop'), 'var(--blue)'],
+  suspended: () => [scard(bigIcon('lock', 'var(--g100)', 'var(--g600)'), t('suspendedT'), ''), null],
+};
+const BACK = { pick: null };
+function render() {
+  LANG = ST.lang;
+  const f = document.getElementById('frame');
+  f.className = 'frame ' + ST.device; f.dataset.lang = ST.lang;
+  const chrome = `<div class="statusbar"><span>9:41</span><span>●●● ᯤ ▮</span></div><div class="urlbar"><span class="dots"><i></i><i></i><i></i></span><span class="url">🔒 pay.lytro.app/8f2kq7x1a9z3</span></div>`;
+  const [content, label, col] = SC[ST.screen]();
+  const isPanel = !['pick', 'checking', 'checking-late', 'manual', 'verified', 'review', 'rejected', 'expired', 'paid', 'cancelled', 'suspended'].includes(ST.screen);
+  const fixed = label ? `<div class="fixedbar"><button class="vbtn" style="background:${col}">${label}</button></div>` : '';
+  const sheet = ST.screen === 'report' ? `<div class="scrim" onclick="go('bkash')"><div class="sheet" onclick="event.stopPropagation()"><div class="sh"><h2>${t('reportTitle')}</h2><button onclick="go('bkash')">${ic('x', 22)}</button></div><div class="sb">${[['r1', false], ['r2', false], ['r3', true], ['r4', false]].map(([k, on]) => `<div class="opt"><span class="radio ${on ? 'on' : ''}"></span>${t(k)}</div>`).join('')}<div class="inp">${t('rNote')}</div></div><div class="sf"><button class="btn">${t('sendReport')}</button></div></div></div>` : '';
+  const toast = ST.screen === 'copied' ? `<div class="toast">${ic('check', 18)}${t('copiedNo', { n: SHOP.no })}</div>` : '';
+  f.innerHTML = chrome + `<div class="pp"><div class="root"><div class="card">${topbar(isPanel ? 'pick' : null)}<div class="content ${label ? 'has-fixed' : ''}">${content}</div></div></div>${fixed}</div>${sheet}${toast}`;
+}
+function setLang(l) { ST.lang = l; document.querySelectorAll('#segLang button').forEach(b => b.classList.toggle('on', b.dataset.v === l)); render(); }
+document.getElementById('selScreen').addEventListener('change', e => { ST.screen = e.target.value; render(); });
+document.querySelectorAll('#segDevice button').forEach(b => b.addEventListener('click', () => { ST.device = b.dataset.v; document.querySelectorAll('#segDevice button').forEach(x => x.classList.toggle('on', x === b)); render(); }));
+document.querySelectorAll('#segLang button').forEach(b => b.addEventListener('click', () => setLang(b.dataset.v)));
+(function init() { const h = location.hash.replace('#', ''); if (h && SC[h]) { ST.screen = h; document.getElementById('selScreen').value = h; } render(); })();
+</script>
+</body>
+</html>
