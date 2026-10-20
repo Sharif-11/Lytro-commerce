@@ -5,7 +5,7 @@
    (BRAND-IDENTITY.md §4). */
 @theme {
   --font-sans: var(--font-inter), var(--font-noto-bengali), ui-sans-serif, system-ui, sans-serif;
-  --font-bn: var(--font-noto-bengali), var(--font-inter), sans-serif;
+  --font-bn: var(--font-noto-bengali), var(--font-noto-latin), var(--font-inter), sans-serif;
   --font-display: var(--font-jakarta), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 
   --color-brand-50: #effaf8;

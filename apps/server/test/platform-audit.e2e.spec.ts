@@ -31,7 +31,6 @@ import { SmsCapture } from './support/sms-capture';
 const ADMIN_URL = process.env['DATABASE_TEST_ADMIN_URL'];
 const DB_NAME = 'lytronix_platform_audit_test';
 const describeIfDatabase = ADMIN_URL ? describe : describe.skip;
-const SETUP_TIMEOUT_MS = 30_000;
 const PASSWORD = 'operator-pass-2468';
 
 let app: INestApplication;
@@ -57,7 +56,7 @@ beforeAll(async () => {
     .useValue(texts.provider)
     .compile();
   ({ app, port } = await listenOn(moduleRef));
-}, SETUP_TIMEOUT_MS);
+});
 
 afterAll(async () => {
   if (!ADMIN_URL) return;
