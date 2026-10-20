@@ -1,45 +1,45 @@
+import 'dotenv/config';
 import { randomUUID } from 'node:crypto';
-import { CreateBucketCommand, S3Client } from '@aws-sdk/client-s3';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { S3MediaStorage, type StorageKey } from '../src/modules/media/providers/s3-media-storage';
 
-// Phase 3 Slice 6a: the media store over the S3 API (D3-4), against a real S3-compatible store: a signed upload takes
-// exactly the file it was signed for (MED-03), and processed media goes under the shop's prefix (MED-01). Runs only
-// when MEDIA_TEST_STORAGE_URL (and its key, MEDIA_TEST_STORAGE_KEY / _SECRET) names a store.
-const ENDPOINT = process.env['MEDIA_TEST_STORAGE_URL'];
+// Phase 3 Slice 6a: the media store over the S3 API (D3-4), against the real store the server is set up with -- the R2
+// dev buckets in development and CI: a signed upload takes exactly the file it was signed for (MED-03), and processed
+// media goes under its prefix (MED-01). Uses the server's own MEDIA_* settings; runs only when MEDIA_STORAGE_ENDPOINT
+// is set. Everything it writes is under one run's folder, removed afterwards.
+const env = process.env;
+const ENDPOINT = env['MEDIA_STORAGE_ENDPOINT'];
 const describeIfStorage = ENDPOINT ? describe : describe.skip;
-const KEY: StorageKey = {
-  accessKeyId: process.env['MEDIA_TEST_STORAGE_KEY'] ?? '',
-  secretAccessKey: process.env['MEDIA_TEST_STORAGE_SECRET'] ?? '',
-};
-// Fresh buckets per run, so runs never see each other's objects.
-const RUN = randomUUID().slice(0, 8);
-const UPLOADS = `test-uploads-${RUN}`;
-const MEDIA = `test-media-${RUN}`;
 
+function keyOf(job: 'SIGNER' | 'PROCESSOR' | 'DELETER'): StorageKey {
+  return {
+    accessKeyId: env[`MEDIA_${job}_ACCESS_KEY`] ?? '',
+    secretAccessKey: env[`MEDIA_${job}_SECRET_KEY`] ?? '',
+  };
+}
+
+const RUN = `test-runs/${randomUUID()}`;
 let storage: S3MediaStorage;
 
-beforeAll(async () => {
+beforeAll(() => {
   if (!ENDPOINT) return;
-  const admin = new S3Client({
-    endpoint: ENDPOINT,
-    region: 'auto',
-    forcePathStyle: true,
-    credentials: KEY,
-  });
-  for (const bucket of [UPLOADS, MEDIA])
-    await admin.send(new CreateBucketCommand({ Bucket: bucket }));
   storage = new S3MediaStorage({
     endpoint: ENDPOINT,
-    region: 'auto',
-    pathStyle: true,
-    uploadsBucket: UPLOADS,
-    mediaBucket: MEDIA,
+    region: env['MEDIA_STORAGE_REGION'] ?? 'auto',
+    pathStyle: (env['MEDIA_STORAGE_PATH_STYLE'] ?? 'true') === 'true',
+    uploadsBucket: env['MEDIA_UPLOADS_BUCKET'] ?? 'lytro-uploads',
+    mediaBucket: env['MEDIA_BUCKET'] ?? 'lytro-media',
     publicBaseUrl: 'https://media.example.test/',
-    signer: KEY,
-    processor: KEY,
-    deleter: KEY,
+    signer: keyOf('SIGNER'),
+    processor: keyOf('PROCESSOR'),
+    deleter: keyOf('DELETER'),
   });
+});
+
+afterAll(async () => {
+  if (!ENDPOINT) return;
+  const left = await storage.listMedia(`${RUN}/`);
+  await storage.deleteMedia(left.map((object) => object.key));
 });
 
 function put(url: string, body: Buffer, type: string): Promise<number> {
@@ -50,7 +50,7 @@ function put(url: string, body: Buffer, type: string): Promise<number> {
 
 describeIfStorage('the media store (D3-4, MED-01, MED-03)', () => {
   it('takes exactly the file a signed upload was made for, and refuses any other', async () => {
-    const key = `uploads/${randomUUID()}`;
+    const key = `${RUN}/${randomUUID()}`;
     const file = Buffer.alloc(1000, 1);
     const signed = await storage.signUpload(key, 'image/jpeg', file.length, 900);
     expect(signed).toMatchObject({ method: 'PUT', headers: { 'content-type': 'image/jpeg' } });
@@ -64,10 +64,14 @@ describeIfStorage('the media store (D3-4, MED-01, MED-03)', () => {
   });
 
   it('keeps processed media under its prefix, lists it with its size, and deletes it', async () => {
-    const prefix = `tenants/${randomUUID()}/`;
+    const prefix = `${RUN}/tenants/${randomUUID()}/`;
     await storage.putMedia(`${prefix}a.webp`, Buffer.alloc(300, 2), 'image/webp');
     await storage.putMedia(`${prefix}a.thumb.webp`, Buffer.alloc(40, 3), 'image/webp');
-    await storage.putMedia(`tenants/${randomUUID()}/other.webp`, Buffer.alloc(10, 4), 'image/webp');
+    await storage.putMedia(
+      `${RUN}/tenants/${randomUUID()}/other.webp`,
+      Buffer.alloc(10, 4),
+      'image/webp',
+    );
     const listed = await storage.listMedia(prefix);
     expect(listed.sort((x, y) => x.key.localeCompare(y.key))).toEqual([
       { key: `${prefix}a.thumb.webp`, bytes: 40 },
