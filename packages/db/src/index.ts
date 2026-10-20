@@ -141,6 +141,8 @@ export {
   StockRepository,
   type NewStockMovement,
   type OutgoingRow,
+  type ReferencedMovementRow,
+  type ReturnedRow,
   type ShortfallRow,
   type StockHistoryRow,
   type StockValueRow,

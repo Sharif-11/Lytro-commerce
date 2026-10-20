@@ -28,7 +28,9 @@ import type {
   NewStockBatch,
   NewStockMovement,
   OutgoingRow,
+  ReferencedMovementRow,
   ReservationRecord,
+  ReturnedRow,
   SerialRecord,
   ShortfallRow,
   StockCheckLineRow,
@@ -168,6 +170,22 @@ export class DrizzleStockStore implements StockStore {
 
   stockValue(tx: Transaction, tenantId: string): Promise<StockValueRow> {
     return this.stock.stockValue(tx, tenantId);
+  }
+
+  listReferencing(
+    tx: Transaction,
+    tenantId: string,
+    reference: { type: string; id: string },
+  ): Promise<ReferencedMovementRow[]> {
+    return this.stock.listReferencing(tx, tenantId, reference);
+  }
+
+  returnedInPeriod(
+    tx: Transaction,
+    tenantId: string,
+    period: { from: Date; to: Date },
+  ): Promise<ReturnedRow> {
+    return this.stock.returnedInPeriod(tx, tenantId, period);
   }
 
   outgoingByReason(
@@ -332,6 +350,10 @@ export class DrizzleSerialStore implements SerialStore {
     soldOrderId: string | null,
   ): Promise<void> {
     return this.serials.markLeft(tx, tenantId, ids, movementId, soldOrderId);
+  }
+
+  markReturned(tx: Transaction, tenantId: string, ids: string[]): Promise<void> {
+    return this.serials.markReturned(tx, tenantId, ids);
   }
 
   listSerials(

@@ -16,11 +16,13 @@ import { BatchExpiryService } from '../src/modules/inventory/services/batch-expi
 import { InventoryLedger } from '../src/modules/inventory/services/inventory-ledger';
 import { ReservationExpiryService } from '../src/modules/inventory/services/reservation-expiry.service';
 import { ReservationService } from '../src/modules/inventory/services/reservation.service';
+import { StockReturnService } from '../src/modules/inventory/services/stock-return.service';
 import { BATCH_EXPIRY_NOTIFIER, LOW_STOCK_NOTIFIER } from '../src/modules/inventory/tokens';
 import type {
   ReservationLine,
   ReservationRecord,
   Shipment,
+  StockReturn,
 } from '../src/modules/inventory/types/inventory';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { listenOn } from './support/bootstrap';
@@ -29,11 +31,11 @@ import { ExpiryCapture, LowStockCapture } from './support/inventory-notices';
 import { errorOf, openShop, type ShopClient } from './support/shop-client';
 import { SmsCapture } from './support/sms-capture';
 
-// Phase 3 Slice 5a: stock held for orders -- reserving, shipping (consuming) and letting go (releasing), the minute
-// pass that lets an unpaid order's hold run out, what expiry under a hold does, and the guards on held stock; INV-05
-// under concurrency (exit criterion 2) and the inventory golden path (exit criterion 3). Reservations are a service
-// Phase 4's orders call, so these tests call it directly. INV-15, INV-16, PRD-07. Runs only when
-// DATABASE_TEST_ADMIN_URL is set.
+// Phase 3 Slice 5: stock held for orders -- reserving, shipping (consuming) and letting go (releasing), the minute
+// pass that lets an unpaid order's hold run out, what expiry under a hold does, the guards on held stock, and taking
+// shipped units back (5b); INV-05 under concurrency (exit criterion 2) and the inventory golden path (exit criterion 3).
+// Reservations and returns are services Phase 4's orders call, so these tests call them directly. INV-15 to INV-17,
+// PRD-07. Runs only when DATABASE_TEST_ADMIN_URL is set.
 const ADMIN_URL = process.env['DATABASE_TEST_ADMIN_URL'];
 const DB_NAME = 'lytronix_reservations_test';
 const describeIfDatabase = ADMIN_URL ? describe : describe.skip;
@@ -112,6 +114,7 @@ interface Movement {
 interface Batch {
   id: string;
   batchCode: string | null;
+  expiresOn: string | null;
   quantity: string;
 }
 
@@ -144,6 +147,10 @@ function reserve(
 
 function ship(shop: ShopClient, shipments: Shipment[]) {
   return inTx((tx) => app.get(ReservationService).consume(tx, shop.tenantId, shipments, SYSTEM));
+}
+
+function takeBack(shop: ShopClient, request: StockReturn) {
+  return inTx((tx) => app.get(StockReturnService).receive(tx, shop.tenantId, request, SYSTEM));
 }
 
 function release(shop: ShopClient, ids: string[]): Promise<void> {
@@ -257,7 +264,7 @@ async function statusOf(id: string): Promise<string> {
 
 /**
  * INV-05, exit criteria 2 and 3: for every level of the shop, on hand is the sum of its movements, reserved the sum of
- * its active reservations, and, on a batch-tracked product, on hand the sum of its batches.
+ * its active reservations, and, on a batch-tracked product, on hand the sum of its open batches.
  */
 async function expectLedgerAgrees(tenantId: string): Promise<void> {
   const result = await admin.query<{
@@ -276,7 +283,8 @@ async function expectLedgerAgrees(tenantId: string): Promise<void> {
         WHERE r.tenant_id = l.tenant_id AND r.variant_id = l.variant_id AND r.status = 'active')::numeric(14, 3)::text
          AS held,
        (SELECT coalesce(sum(b.quantity), 0) FROM tenant.stock_batches b
-        WHERE b.tenant_id = l.tenant_id AND b.variant_id = l.variant_id)::numeric(14, 3)::text AS batched
+        WHERE b.tenant_id = l.tenant_id AND b.variant_id = l.variant_id AND b.closed_at IS NULL)::numeric(14, 3)::text
+         AS batched
      FROM tenant.stock_levels l
      JOIN tenant.product_variants v ON v.tenant_id = l.tenant_id AND v.id = l.variant_id
      JOIN tenant.products p ON p.tenant_id = v.tenant_id AND p.id = v.product_id
@@ -778,6 +786,305 @@ describeIfDatabase('while units are held for an order (INV-15, PRD-13)', () => {
       [shop.tenantId],
     );
     expect(left.rows[0]?.count).toBe('0');
+  });
+});
+
+describeIfDatabase('returns of shipped stock (INV-17)', () => {
+  /** Ships this many units of the variant on one reservation; the reservation. */
+  async function shipped(
+    shop: ShopClient,
+    variantId: string,
+    quantity: number,
+    serials?: string[],
+  ): Promise<ReservationRecord> {
+    const [held] = await reserve(shop, [line(variantId, quantity)]);
+    if (!held) throw new Error('nothing was held');
+    await ship(shop, [{ reservationId: held.id, serials: serials ?? null }]);
+    return held;
+  }
+
+  async function figures(shop: ShopClient) {
+    const result = await shop.get('/inventory/figures');
+    expect(result.status, JSON.stringify(result.body)).toBe(200);
+    return result.body as {
+      costOfGoodsSold: { value: string };
+      losses: { value: string; byReason: { reason: string; value: string }[] };
+    };
+  }
+
+  it('takes 2 back with 1 damaged: on hand up by 1, a loss for the other, both at the sale cost (the INV-17 example)', async () => {
+    const shop = await openShop(port, texts, 'return');
+    const soap = await simple(shop, 'Soap', 5);
+    await shop.put(`/products/${soap.product.id}/variants/${soap.variantId}/cost`, { avgCost: 40 });
+    const held = await shipped(shop, soap.variantId, 3);
+    // A dearer delivery moves the average to (2 x 40 + 10 x 100) / 12 = 90; the return keeps the sale's 40.
+    const delivered = await addStock(shop, soap.product.id, soap.variantId, {
+      quantity: 10,
+      unitCost: 100,
+    });
+    expect(delivered.status, JSON.stringify(delivered.body)).toBe(200);
+    expect(await variantStock(shop, soap.product.id, soap.variantId)).toMatchObject({
+      onHand: '12.000',
+      avgCost: '90.0000',
+    });
+
+    await takeBack(shop, { reservationId: held.id, sellable: '1', damaged: '1' });
+    expect(await variantStock(shop, soap.product.id, soap.variantId)).toMatchObject({
+      onHand: '13.000',
+      available: '13.000',
+      avgCost: '90.0000',
+    });
+    const [writeOff, back] = await movementsOf(shop, soap.product.id, soap.variantId);
+    expect(back).toMatchObject({
+      delta: '2.000',
+      reason: 'return_received',
+      unitCost: '40.0000',
+      reference: { type: 'reservation', id: held.id },
+    });
+    expect(writeOff).toMatchObject({
+      delta: '-1.000',
+      reason: 'damaged',
+      unitCost: '40.0000',
+      reference: { type: 'reservation', id: held.id },
+    });
+    // INV-18: cost of goods sold is the 3 sold less the 2 back, at 40; the damaged one is a loss at 40.
+    const report = await figures(shop);
+    expect(report.costOfGoodsSold.value).toBe('40.00');
+    expect(report.losses.byReason).toEqual([
+      expect.objectContaining({ reason: 'damaged', value: '40.00' }),
+    ]);
+    await expectLedgerAgrees(shop.tenantId);
+
+    // In parts, never more than shipped less what came back.
+    await takeBack(shop, { reservationId: held.id, sellable: '1', damaged: '0' });
+    await expect(
+      takeBack(shop, { reservationId: held.id, sellable: '1', damaged: '0' }),
+    ).rejects.toMatchObject({ code: 'conflict', messageKey: 'MoreThanShipped' });
+    await expect(
+      takeBack(shop, { reservationId: held.id, sellable: '0', damaged: '0' }),
+    ).rejects.toMatchObject({ messageKey: 'NothingReturned' });
+    expect((await figures(shop)).costOfGoodsSold.value).toBe('0.00');
+
+    // Only what shipped comes back: not an order still holding its stock.
+    const [waiting] = await reserve(shop, [line(soap.variantId, 1)]);
+    await expect(
+      takeBack(shop, { reservationId: waiting?.id ?? '', sellable: '1', damaged: '0' }),
+    ).rejects.toMatchObject({ code: 'conflict', messageKey: 'ReservationNotShipped' });
+    // The database holds the same line, whatever path a write takes.
+    await expect(
+      admin.query(
+        `INSERT INTO tenant.stock_movements
+           (tenant_id, product_id, variant_id, quantity_delta, reason, reference_type, reference_id)
+         VALUES ($1, $2, $3, 1, 'return_received', 'reservation', $4)`,
+        [shop.tenantId, soap.product.id, soap.variantId, held.id],
+      ),
+    ).rejects.toMatchObject({ constraint: 'stock_movements_reservation' });
+    await expectLedgerAgrees(shop.tenantId);
+  });
+
+  it('puts units back into the batch they left, soonest expiring first or the one named, reopening a closed one', async () => {
+    const shop = await openShop(port, texts, 'return-batch');
+    const { product, variantId } = await simple(shop, 'Face cream', 0, {
+      batchTracked: true,
+      lowStockThreshold: 0,
+    });
+    await addStock(shop, product.id, variantId, {
+      quantity: 2,
+      batch: { batchCode: 'A', expiresOn: day(60) },
+    });
+    await addStock(shop, product.id, variantId, {
+      quantity: 3,
+      batch: { batchCode: 'B', expiresOn: day(120) },
+    });
+    const held = await shipped(shop, variantId, 4);
+    const byCode = async () =>
+      Object.fromEntries(
+        (await batchesOf(shop, product.id)).map((row) => [row.batchCode ?? '', row.quantity]),
+      );
+    // A, shipped whole, is empty, so the shop's batch list leaves it out.
+    expect(await byCode()).toEqual({ B: '1.000' });
+
+    // The two from A come back into A first; once A has all its units back, the next goes into B.
+    await takeBack(shop, { reservationId: held.id, sellable: '2', damaged: '0' });
+    expect(await byCode()).toMatchObject({ A: '2.000', B: '1.000' });
+    await takeBack(shop, { reservationId: held.id, sellable: '1', damaged: '0' });
+    expect(await byCode()).toMatchObject({ A: '2.000', B: '2.000' });
+    await expect(
+      takeBack(shop, {
+        reservationId: held.id,
+        sellable: '1',
+        damaged: '0',
+        batchId: randomUUID(),
+      }),
+    ).rejects.toMatchObject({ code: 'not_found', messageKey: 'BatchNotFound' });
+    await expectLedgerAgrees(shop.tenantId);
+
+    // Batch tracking off and on again closes A and B. The last unit, named as B's, comes back into a new B with B's
+    // expiry, never into "no expiry".
+    const b = (await batchesOf(shop, product.id)).find((row) => row.batchCode === 'B')?.id ?? '';
+    expect((await shop.patch(`/products/${product.id}`, { batchTracked: false })).status).toBe(200);
+    expect((await shop.patch(`/products/${product.id}`, { batchTracked: true })).status).toBe(200);
+    await takeBack(shop, { reservationId: held.id, sellable: '1', damaged: '0', batchId: b });
+    const reopened = (await batchesOf(shop, product.id)).find((row) => row.batchCode === 'B');
+    expect(reopened).toMatchObject({ quantity: '1.000', expiresOn: day(120) });
+    expect(reopened?.id).not.toBe(b);
+    await expectLedgerAgrees(shop.tenantId);
+  });
+
+  it('brings a unit of an expired batch back expired: on hand, not sellable', async () => {
+    const shop = await openShop(port, texts, 'return-expired');
+    const { product, variantId } = await simple(shop, 'Face cream', 0, {
+      batchTracked: true,
+      lowStockThreshold: 0,
+    });
+    await addStock(shop, product.id, variantId, {
+      quantity: 2,
+      batch: { batchCode: 'OLD', expiresOn: day(10) },
+    });
+    const held = await shipped(shop, variantId, 2);
+    // Shipped whole, the batch is empty and out of the shop's list.
+    const old = await admin.query<{ id: string }>(
+      "SELECT id FROM tenant.stock_batches WHERE variant_id = $1 AND batch_code = 'OLD'",
+      [variantId],
+    );
+    await expire(old.rows[0]?.id ?? '');
+    await takeBack(shop, { reservationId: held.id, sellable: '1', damaged: '0' });
+    expect(await variantStock(shop, product.id, variantId)).toMatchObject({
+      onHand: '1.000',
+      unsellable: '1.000',
+      available: '0.000',
+    });
+    await expectLedgerAgrees(shop.tenantId);
+  });
+
+  it('takes a serial-numbered unit back by a serial sold on the shipment, as a new unit, the sale kept', async () => {
+    const shop = await openShop(port, texts, 'return-serial');
+    const phone = await simple(shop, 'Phone', 0, { serialTracked: true, serialFormat: 'any' });
+    await addStock(shop, phone.product.id, phone.variantId, {
+      quantity: 4,
+      serials: ['SN-A', 'SN-B', 'SN-C', 'SN-D'],
+    });
+    const held = await shipped(shop, phone.variantId, 2, ['SN-A', 'SN-B']);
+    await shipped(shop, phone.variantId, 1, ['SN-C']);
+    const one = (serial: string, damaged = false) => ({
+      reservationId: held.id,
+      sellable: damaged ? '0' : '1',
+      damaged: damaged ? '1' : '0',
+      serials: { sellable: damaged ? [] : [serial], damaged: damaged ? [serial] : [] },
+    });
+    await expect(
+      takeBack(shop, { reservationId: held.id, sellable: '1', damaged: '0' }),
+    ).rejects.toMatchObject({ messageKey: 'SerialPerUnitReturned' });
+    // Not one sold on another shipment, nor one never sold.
+    for (const serial of ['SN-C', 'SN-D']) {
+      await expect(takeBack(shop, one(serial))).rejects.toMatchObject({
+        code: 'not_found',
+        messageKey: 'SerialNotFound',
+      });
+    }
+    await takeBack(shop, one('SN-A'));
+    // Nor one that already came back.
+    await expect(takeBack(shop, one('SN-A'))).rejects.toMatchObject({
+      code: 'not_found',
+      messageKey: 'SerialNotFound',
+    });
+    await takeBack(shop, one('SN-B', true));
+    const rows = await admin.query<{ serial: string; status: string }>(
+      `SELECT serial, status::text FROM tenant.serial_numbers WHERE tenant_id = $1
+       ORDER BY serial, status`,
+      [shop.tenantId],
+    );
+    expect(rows.rows.map((row) => `${row.serial} ${row.status}`)).toEqual([
+      'SN-A in_stock',
+      'SN-A returned',
+      'SN-B returned',
+      'SN-B written_off',
+      'SN-C sold',
+      'SN-D in_stock',
+    ]);
+    expect(await variantStock(shop, phone.product.id, phone.variantId)).toMatchObject({
+      onHand: '2.000',
+    });
+    // A returned serial is history: the database keeps it as it is.
+    await expect(
+      admin.query(
+        `UPDATE tenant.serial_numbers SET status = 'in_stock'
+         WHERE tenant_id = $1 AND serial = 'SN-B' AND status = 'returned'`,
+        [shop.tenantId],
+      ),
+    ).rejects.toMatchObject({ constraint: 'serial_numbers_history' });
+    await expectLedgerAgrees(shop.tenantId);
+  });
+
+  it('brings a size of a shared stock back at the pack amount it was ordered at (INV-24)', async () => {
+    const shop = await openShop(port, texts, 'return-shared');
+    const { attributeId, ids } = await platformOptions(shop, 'Size', ['10 ml', '100 ml']);
+    const body = (small: number) => ({
+      variantAttributes: [{ attributeId, optionIds: ids }],
+      variants: [
+        { optionIds: [ids[0]], packAmount: small },
+        { optionIds: [ids[1]], packAmount: 100 },
+      ],
+    });
+    const perfume = await create(shop, {
+      name: 'Oud',
+      stockUnit: 'ml',
+      sharedStock: true,
+      sharedOpeningStock: 200,
+      ...body(10),
+    });
+    const small = perfume.variants.find((row) => row.optionIds[0] === ids[0])?.id ?? '';
+    const held = await shipped(shop, small, 3);
+    expect((await stockOf(shop, perfume.id)).shared).toMatchObject({ onHand: '170.000' });
+    // The size is sold as 12 ml from now on; the packs that shipped as 10 ml come back as 10 ml.
+    const repacked = await shop.put(`/products/${perfume.id}/variants`, body(12));
+    expect(repacked.status, JSON.stringify(repacked.body)).toBe(200);
+    await takeBack(shop, { reservationId: held.id, sellable: '2', damaged: '0' });
+    expect((await stockOf(shop, perfume.id)).shared).toMatchObject({ onHand: '190.000' });
+    await expect(
+      takeBack(shop, { reservationId: held.id, sellable: '0.5', damaged: '0' }),
+    ).rejects.toMatchObject({ messageKey: 'WholePacksOnly' });
+    await expectLedgerAgrees(shop.tenantId);
+  });
+
+  it('takes units back to a retired variant, and refuses a product no longer kept in stock', async () => {
+    const shop = await openShop(port, texts, 'return-gone');
+    const { attributeId, ids } = await platformOptions(shop, 'Size', ['S', 'M']);
+    const [smallOption, mediumOption] = ids;
+    const kurti = await create(shop, {
+      name: 'Kurti',
+      variantAttributes: [{ attributeId, optionIds: ids }],
+      variants: [
+        { optionIds: [smallOption], openingStock: 2 },
+        { optionIds: [mediumOption], openingStock: 2 },
+      ],
+    });
+    const small = kurti.variants.find((row) => row.optionIds[0] === smallOption)?.id ?? '';
+    const sold = await shipped(shop, small, 1);
+    const retired = await shop.put(`/products/${kurti.id}/variants`, {
+      variantAttributes: [{ attributeId, optionIds: [mediumOption] }],
+    });
+    expect(retired.status, JSON.stringify(retired.body)).toBe(200);
+    await takeBack(shop, { reservationId: sold.id, sellable: '1', damaged: '0' });
+    expect(await variantStock(shop, kurti.id, small)).toMatchObject({
+      onHand: '2.000',
+    });
+
+    const soap = await simple(shop, 'Soap', 3);
+    const soapSold = await shipped(shop, soap.variantId, 1);
+    expect(
+      (await shop.patch(`/products/${soap.product.id}`, { stockTracking: 'not_tracked' })).status,
+    ).toBe(200);
+    await expect(
+      takeBack(shop, { reservationId: soapSold.id, sellable: '1', damaged: '0' }),
+    ).rejects.toMatchObject({ code: 'conflict', messageKey: 'ReturnCannotRestock' });
+    const comb = await simple(shop, 'Comb', 3);
+    const combSold = await shipped(shop, comb.variantId, 1);
+    expect((await shop.delete(`/products/${comb.product.id}?hard=true`)).status).toBe(200);
+    await expect(
+      takeBack(shop, { reservationId: combSold.id, sellable: '1', damaged: '0' }),
+    ).rejects.toMatchObject({ code: 'conflict', messageKey: 'ReturnCannotRestock' });
+    await expectLedgerAgrees(shop.tenantId);
   });
 });
 

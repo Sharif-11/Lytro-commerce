@@ -21,6 +21,8 @@ export interface SerialStore {
     movementId: number,
     soldOrderId: string | null,
   ): Promise<void>;
+  /** INV-17: these sold units came back; each returns as a new in-stock serial, the sold row kept as history. */
+  markReturned(tx: Transaction, tenantId: string, ids: string[]): Promise<void>;
   listSerials(
     tx: Transaction,
     tenantId: string,

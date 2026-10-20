@@ -719,6 +719,19 @@ CREATE TABLE tenant.category_attributes (           -- ATL-05 / ATR-02: suggesti
 - `stock_levels.low_notified` carries INV-08's once-per-crossing state; `batch_id`, `stock_batches`, serials,
   reservations and stock checks arrive in Slices 2b, 3 and 5.
 
+**Built in Phase 3 Slice 5b (migration 0063, 2026-10-20):** returns of shipped stock (INV-17), with no new table. A
+return is movements naming the reservation that shipped, as its sale does: a `return_received` movement for every unit
+coming back, then a `damaged` write-off for those the shop marks damaged, both carrying the sale's unit cost, so the
+average cost is untouched and a damaged unit is a loss at what it cost.
+- **The movement trigger keeps the counts.** A movement naming a reservation is, on the variant that held it, the
+  reservation's sale (never more than it held), a return (never more than it shipped less what came back), or the
+  damaged write-off of returned units (never more than came back). The return and its write-off take nothing free
+  between them, so they go through while expiry has left the level short.
+- **Batches.** Units go back into a batch the shipment took from. A batch closed since opens again under its code and
+  expiry, never as the "no expiry" batch; an expired one takes its units back expired.
+- **Serials stay history.** A sold serial changes only to `returned`; the unit comes back as a new in-stock row, and
+  a returned or written-off row never changes.
+
 **Built in Phase 3 Slice 5a (migration 0062, 2026-10-20):** `stock_reservations`, `reservation_status`,
 `stock_levels.short_notified`, the platform setting `reservation_expiry_minutes` (default 30) and an index on
 `stock_movements (tenant_id, reference_type, reference_id)` (INV-15, INV-16), with these decisions against the design

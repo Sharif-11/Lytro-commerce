@@ -101,6 +101,20 @@ export interface ShortfallRow {
   shortNotified: boolean;
 }
 
+/** A movement naming a record (a reservation, a receipt), with its batch as it is now (INV-12). */
+export interface ReferencedMovementRow extends SelectStockMovement {
+  batchCode: string | null;
+  expiresOn: string | null;
+  batchClosed: boolean;
+}
+
+/** INV-18: the stock that came back in a period, valued at the cost each return recorded. */
+export interface ReturnedRow {
+  movements: number;
+  value: string;
+  unknownCost: number;
+}
+
 /** One line of a variant's stock history, with who made it and, for a batch, its code and expiry (INV-12). */
 export interface StockHistoryRow extends SelectStockMovement {
   actorName: string | null;
@@ -503,6 +517,69 @@ export class StockRepository {
       )
       .groupBy(stockMovements.reason)
       .orderBy(asc(stockMovements.reason));
+  }
+
+  /** The movements naming this record, oldest first, each with its batch. */
+  async listReferencing(
+    tx: Transaction,
+    tenantId: string,
+    reference: { type: string; id: string },
+  ): Promise<ReferencedMovementRow[]> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const rows = await tx
+      .select({
+        movement: stockMovements,
+        batchCode: stockBatches.batchCode,
+        expiresOn: stockBatches.expiresOn,
+        closedAt: stockBatches.closedAt,
+      })
+      .from(stockMovements)
+      .leftJoin(
+        stockBatches,
+        and(
+          eq(stockBatches.tenantId, stockMovements.tenantId),
+          eq(stockBatches.id, stockMovements.batchId),
+        ),
+      )
+      .where(
+        and(
+          eq(stockMovements.tenantId, tenantId),
+          eq(stockMovements.referenceType, reference.type),
+          eq(stockMovements.referenceId, reference.id),
+        ),
+      )
+      .orderBy(asc(stockMovements.id));
+    return rows.map((row) => ({
+      ...row.movement,
+      batchCode: row.batchCode,
+      expiresOn: row.expiresOn,
+      batchClosed: row.closedAt !== null,
+    }));
+  }
+
+  /** INV-17, INV-18: the stock returned in a period, at the sale's cost each return recorded. */
+  async returnedInPeriod(
+    tx: Transaction,
+    tenantId: string,
+    period: { from: Date; to: Date },
+  ): Promise<ReturnedRow> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const [row] = await tx
+      .select({
+        movements: sql<number>`count(*)::int`,
+        value: sql<string>`coalesce(round(sum(${stockMovements.quantityDelta} * ${stockMovements.unitCost}), 2), 0)::numeric(14, 2)::text`,
+        unknownCost: sql<number>`count(*) FILTER (WHERE ${stockMovements.unitCost} IS NULL)::int`,
+      })
+      .from(stockMovements)
+      .where(
+        and(
+          eq(stockMovements.tenantId, tenantId),
+          eq(stockMovements.reason, StockReason.ReturnReceived),
+          gte(stockMovements.createdAt, period.from),
+          lt(stockMovements.createdAt, period.to),
+        ),
+      );
+    return row ?? { movements: 0, value: '0.00', unknownCost: 0 };
   }
 
   /**

@@ -625,6 +625,19 @@ their backend ships earlier.
     - **Also built:** the minute pass (KNOWN-GAPS §74 notes how it scales); the daily pass's one notice per shortfall;
       the guards on held stock, in the database too; the day-60 deletion; INV-05 checked after every step; the golden
       path as one test.
+  - **5b (migration 0063), seven follow-up decisions agreed before code:**
+    - A return names the shipped reservation. It may come back in parts, never more than shipped less what came
+      back, and every unit is marked sellable or damaged.
+    - Units go back into a batch the shipment took: the soonest-expiring one with units still out, unless the shop
+      names one. A batch closed since opens again by code and expiry, never as "no expiry"; an expired one comes back
+      expired.
+    - The damaged write-off carries the sale's cost, not the average of the moment.
+    - A serial must be one sold on that shipment. Its sold record becomes `returned`, and the unit comes back as a new
+      in-stock record, written off at once if damaged.
+    - A size of a shared stock restores the pack amount it was ordered at.
+    - A retired variant takes its units back; a product made to order or deleted for good is refused clearly.
+    - Cost of goods sold is sales less returns, and damaged returns are losses.
+    - Built as decided, a service with no route of its own, like reservations.
 - **Depends on:** Slice 2 (and Slice 3, for consuming against batches and serials).
 - **Delivers:** reserve / consume / release services; the expiry job and its platform setting (D3-6); the
   restock-or-damaged return service; **the inventory golden-path test** (exit criterion 3).

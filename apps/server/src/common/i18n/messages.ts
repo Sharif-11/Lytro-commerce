@@ -764,6 +764,26 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'Some units held for this order have expired, so it cannot ship as it is.',
     bn: 'এই অর্ডারের জন্য হোল্ড করা কিছু ইউনিট এক্সপায়ার হয়ে গেছে, তাই এভাবে শিপ করা যাবে না।',
   },
+  NothingReturned: {
+    en: 'Mark at least one returned unit as sellable or damaged.',
+    bn: 'অন্তত একটি রিটার্ন ইউনিট বিক্রয়যোগ্য বা ড্যামেজ হিসেবে চিহ্নিত করুন।',
+  },
+  ReservationNotShipped: {
+    en: 'This order has not shipped, so nothing can come back. Release its stock instead.',
+    bn: 'এই অর্ডার এখনো শিপ হয়নি, তাই রিটার্ন নেওয়া যাবে না। এর বদলে স্টক রিলিজ করুন।',
+  },
+  MoreThanShipped: {
+    en: 'That is more than was shipped and has not come back yet.',
+    bn: 'এটি শিপ হওয়া এবং এখনো রিটার্ন না আসা পরিমাণের চেয়ে বেশি।',
+  },
+  SerialPerUnitReturned: {
+    en: 'Give the serial number of every unit returned.',
+    bn: 'রিটার্ন আসা প্রতিটি ইউনিটের সিরিয়াল নম্বর দিন।',
+  },
+  ReturnCannotRestock: {
+    en: 'This product is no longer kept in stock, so the return cannot go back into stock.',
+    bn: 'এই প্রোডাক্ট আর স্টকে রাখা হয় না, তাই রিটার্ন আসা ইউনিট স্টকে নেওয়া যাবে না।',
+  },
   SupplierNotFound: {
     en: 'That supplier was not found.',
     bn: 'সাপ্লায়ারটি পাওয়া যায়নি।',
