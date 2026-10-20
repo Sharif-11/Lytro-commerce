@@ -1430,6 +1430,14 @@ settings and operator sign-in. A crash between the two leaves the action done wi
 moves money. The fix is the same: open the action's transaction around both and call `recordWithin`. Not
 scheduled yet.
 
+## 71. `LIF-24`: the operator's shop search read a typed `%` or `_` as a wildcard — found and fixed 2026-10-20
+
+Found while building Phase 3 Slice 4a. The search put the operator's text straight into an `ILIKE` pattern, so
+`%` matched every shop and `_` any one character. Nothing leaked (the query is parameterised and operator-only), but
+the results were wrong. The search now escapes the text with the shared `escapeLike`, as the product and supplier
+searches do, and the category slug lookup does the same for consistency (a slug never holds either character
+today). Verified in `lifecycle.e2e.spec.ts`: `0% C` finds only "100% Cotton", and `a_b` only "A_B Traders".
+
 ## Not a bug, just noting it so it isn't mistaken for one later
 
 The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data
