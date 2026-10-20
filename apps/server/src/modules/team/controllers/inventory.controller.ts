@@ -1,4 +1,16 @@
-import { Body, Controller, Get, Inject, Param, Put, Query, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Inject,
+  Param,
+  Post,
+  Put,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
 import { Permission, stockHistoryQuerySchema, type StockHistoryQuery } from '@lytronix/validators';
@@ -11,6 +23,7 @@ import type { ProductStockView, StockHistoryPage } from '../../inventory/types/i
 import { DashboardGuard, type DashboardRequest } from '../../identity/guards/dashboard.guard';
 import { SessionGuard } from '../../identity/guards/session.guard';
 import {
+  AddStockDto,
   ProductStockViewDto,
   SetStockDto,
   StockHistoryPageDto,
@@ -61,6 +74,31 @@ export class InventoryController {
     @Req() request: DashboardRequest,
   ): Promise<ProductStockView> {
     return this.stock.setStock(
+      this.catalogue.tenantIdOf(request),
+      this.catalogue.idOf(id, 'ProductNotFound'),
+      this.catalogue.idOf(variantId, 'ProductNotFound'),
+      body,
+      this.catalogue.actorOf(request),
+    );
+  }
+
+  @Post('variants/:variantId/stock-additions')
+  @HttpCode(200)
+  @RequirePermission(Permission.InventoryManage)
+  @ResponseMessage('StockAdded')
+  @ApiOperation({
+    summary:
+      'Add stock that arrived: packs of a size sharing one stock, the shared stock in its unit, or units (INV-06, INV-24)',
+  })
+  @ApiBody({ type: AddStockDto })
+  @ZodResponse({ type: ProductStockViewDto })
+  addStock(
+    @Param('id') id: string,
+    @Param('variantId') variantId: string,
+    @Body(new ZodValidationPipe(AddStockDto.schema)) body: AddStockDto,
+    @Req() request: DashboardRequest,
+  ): Promise<ProductStockView> {
+    return this.stock.addStock(
       this.catalogue.tenantIdOf(request),
       this.catalogue.idOf(id, 'ProductNotFound'),
       this.catalogue.idOf(variantId, 'ProductNotFound'),

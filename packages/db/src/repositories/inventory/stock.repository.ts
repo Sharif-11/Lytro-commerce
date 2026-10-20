@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, gte, inArray, lt, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, gte, inArray, isNull, lt, sql, type SQL } from 'drizzle-orm';
 import { StockReason } from '@lytronix/validators';
 import {
   productVariants,
@@ -22,9 +22,19 @@ export interface StockVariantRow {
   combinationKey: string;
   retired: boolean;
   avgCost: string | null;
+  /** INV-24: the hidden variant holding the product's shared stock. */
+  isStockHolder: boolean;
+  /** INV-24: how much of the shared stock one unit sold uses; null unless the product shares its stock. */
+  packAmount: string | null;
   product: Pick<
     SelectProduct,
-    'name' | 'stockTracking' | 'stockUnit' | 'lowStockThreshold' | 'stockState' | 'deletedAt'
+    | 'name'
+    | 'stockTracking'
+    | 'stockUnit'
+    | 'lowStockThreshold'
+    | 'stockState'
+    | 'sharedStock'
+    | 'deletedAt'
   >;
 }
 
@@ -34,6 +44,8 @@ export interface VariantStockRow {
   productId: string;
   combinationKey: string;
   retired: boolean;
+  isStockHolder: boolean;
+  packAmount: string | null;
   sku: string | null;
   avgCost: string | null;
   onHand: string;
@@ -72,8 +84,34 @@ export class StockRepository {
     tenantId: string,
     variantIds: string[],
   ): Promise<StockVariantRow[]> {
-    await this.transactions.setTenantContext(tx, tenantId);
     if (variantIds.length === 0) return [];
+    return this.selectVariants(tx, tenantId, inArray(productVariants.id, variantIds));
+  }
+
+  /** INV-24: the live stock-holder variant of each of these products that shares its stock. */
+  async findStockHolders(
+    tx: Transaction,
+    tenantId: string,
+    productIds: string[],
+  ): Promise<StockVariantRow[]> {
+    if (productIds.length === 0) return [];
+    return this.selectVariants(
+      tx,
+      tenantId,
+      and(
+        inArray(productVariants.productId, productIds),
+        eq(productVariants.isStockHolder, true),
+        isNull(productVariants.deletedAt),
+      ),
+    );
+  }
+
+  private async selectVariants(
+    tx: Transaction,
+    tenantId: string,
+    which: SQL | undefined,
+  ): Promise<StockVariantRow[]> {
+    await this.transactions.setTenantContext(tx, tenantId);
     const rows = await tx
       .select({
         variantId: productVariants.id,
@@ -81,11 +119,14 @@ export class StockRepository {
         combinationKey: productVariants.combinationKey,
         deletedAt: productVariants.deletedAt,
         avgCost: productVariants.avgCost,
+        isStockHolder: productVariants.isStockHolder,
+        packAmount: productVariants.packAmount,
         name: products.name,
         stockTracking: products.stockTracking,
         stockUnit: products.stockUnit,
         lowStockThreshold: products.lowStockThreshold,
         stockState: products.stockState,
+        sharedStock: products.sharedStock,
         productDeletedAt: products.deletedAt,
       })
       .from(productVariants)
@@ -96,19 +137,22 @@ export class StockRepository {
           eq(products.id, productVariants.productId),
         ),
       )
-      .where(and(eq(productVariants.tenantId, tenantId), inArray(productVariants.id, variantIds)));
+      .where(and(eq(productVariants.tenantId, tenantId), which));
     return rows.map((row) => ({
       variantId: row.variantId,
       productId: row.productId,
       combinationKey: row.combinationKey,
       retired: row.deletedAt !== null,
       avgCost: row.avgCost,
+      isStockHolder: row.isStockHolder,
+      packAmount: row.packAmount,
       product: {
         name: row.name,
         stockTracking: row.stockTracking,
         stockUnit: row.stockUnit,
         lowStockThreshold: row.lowStockThreshold,
         stockState: row.stockState,
+        sharedStock: row.sharedStock,
         deletedAt: row.productDeletedAt,
       },
     }));
@@ -142,6 +186,8 @@ export class StockRepository {
         productId: productVariants.productId,
         combinationKey: productVariants.combinationKey,
         deletedAt: productVariants.deletedAt,
+        isStockHolder: productVariants.isStockHolder,
+        packAmount: productVariants.packAmount,
         sku: productVariants.sku,
         avgCost: productVariants.avgCost,
         onHand: stockLevels.onHand,
@@ -166,6 +212,8 @@ export class StockRepository {
       productId: row.productId,
       combinationKey: row.combinationKey,
       retired: row.deletedAt !== null,
+      isStockHolder: row.isStockHolder,
+      packAmount: row.packAmount,
       sku: row.sku,
       avgCost: row.avgCost,
       onHand: row.onHand ?? '0.000',

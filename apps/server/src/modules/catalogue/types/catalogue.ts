@@ -185,6 +185,8 @@ export interface VariantView {
   deliveryMode: DeliveryMode | null;
   /** PRD-16, ATR-13: Default whenever no weight applies, whatever is stored. */
   effectiveDeliveryMode: DeliveryMode;
+  /** INV-24: how much of the product's shared stock one unit of it uses; null unless the product shares its stock. */
+  packAmount: string | null;
   active: boolean;
 }
 
@@ -200,6 +202,8 @@ export interface ProductDetail {
   stockTracking: StockTracking;
   batchTracked: boolean;
   serialTracked: boolean;
+  /** INV-24: whether its variants draw on one shared stock. */
+  sharedStock: boolean;
   lowStockThreshold: string;
   deliveryCharge: string | null;
   weightKg: string | null;

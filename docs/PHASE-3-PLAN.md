@@ -502,6 +502,15 @@ their backend ships earlier.
       to today when left out). Every outgoing movement that is not a sale counts as a loss, by reason, including a
       manual adjustment and the made-to-order write-off. Returns (Slice 5, Phase 4) do not yet offset cost of goods
       sold.
+    - **Shared stock (migration 0057), five decisions agreed before code:** a hidden stock-holder variant per product
+      holds the stock, filtered out in the variant repository; every live variant has an explicit pack amount while
+      the product shares (no default), whole unless the unit is measured, set with the switch in the variants save;
+      the ledger alone turns a change on a variant into pack x quantity on the holder, a variant's available count is
+      the shared stock divided by its pack, rounded down, and the threshold and notice apply to the shared stock; the
+      shared stock is set, costed, counted and read through the existing routes by its holder's id, with one new
+      addition route that takes packs of a variant, and opening stock as packs per variant plus loose stock; sharing
+      switches only while the product holds nothing, and turning the product made to order writes the stock off and
+      stops sharing.
   - **Decisions:** opening stock rides the create-product request per variant, as `initial` movements; a product's
     public state is its best variant's (in if any variant is in, else low if any is low, else out); retiring a
     variant keeps its stock in view ("retired, N in stock") and never sells it; turning a tracked product made to

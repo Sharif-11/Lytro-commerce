@@ -719,6 +719,20 @@ CREATE TABLE tenant.category_attributes (           -- ATL-05 / ATR-02: suggesti
 - `stock_levels.low_notified` carries INV-08's once-per-crossing state; `batch_id`, `stock_batches`, serials,
   reservations and stock checks arrive in Slices 2b, 3 and 5.
 
+**Built in Phase 3 Slice 2b, shared stock (migration 0057, 2026-10-20):** `products.shared_stock`,
+`product_variants.pack_amount` and `product_variants.is_stock_holder` (INV-24), as designed in the catalogue section:
+- The stock holder has combination key `#stock` (`STOCK_HOLDER_KEY`), no pack amount, and is the only variant of a
+  sharing product with a level and movements. The movement trigger refuses a movement on any other variant of a sharing
+  product, and on a holder whose product no longer shares. Catalogue reads leave it out in the variant repository
+  itself; the price range and ATR-14's limit trigger leave it out too. Turning sharing off retires it, keeping its
+  history; turning it on again brings the same row back.
+- A pack is a whole number for a whole-unit product (a trigger on `pack_amount`, and `keep_whole_stock` refuses a unit
+  change while a pack is a fraction). `shared_stock` changes only while no variant of the product, holder included,
+  has stock on hand or reserved (`keep_shared_switch_empty`). Shared stock is never made to order or serial-numbered
+  (a check).
+- `InventoryLedger.apply()` takes a change named on a sharing variant as that many whole packs and records pack x
+  quantity on the holder; no caller multiplies a pack amount itself.
+
 **Built in Phase 3 Slice 2b (migration 0056, 2026-10-20):** `stock_checks` and `stock_check_lines` (INV-07). Against
 the design below, a check stores each line it counted: what the variant held (`expected`, read under the level's
 lock), what was counted, the variant's average cost at that moment (`unit_cost`, null when unknown) and the recount

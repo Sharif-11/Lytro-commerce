@@ -16,6 +16,12 @@ import type {
  */
 export interface StockStore {
   findVariants(tx: Transaction, tenantId: string, variantIds: string[]): Promise<StockVariantRow[]>;
+  /** INV-24: the live stock-holder variant of each of these products that shares its stock. */
+  findStockHolders(
+    tx: Transaction,
+    tenantId: string,
+    productIds: string[],
+  ): Promise<StockVariantRow[]>;
   insertMovements(
     tx: Transaction,
     tenantId: string,

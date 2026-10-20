@@ -3,7 +3,11 @@ import { type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { StockReason } from '@lytronix/validators';
 import { AppModule } from '../src/app/app.module';
+import type { CatalogueTransactions } from '../src/modules/catalogue/ports/catalogue-stores';
+import { CATALOGUE_TRANSACTIONS } from '../src/modules/catalogue/tokens';
+import { InventoryLedger } from '../src/modules/inventory/services/inventory-ledger';
 import type { LowStockNotifier } from '../src/modules/inventory/ports/stock-store';
 import { LOW_STOCK_NOTIFIER } from '../src/modules/inventory/tokens';
 import type { LowStockNotice } from '../src/modules/inventory/types/inventory';
@@ -17,7 +21,8 @@ import { SmsCapture } from './support/sms-capture';
 // Phase 3 Slice 2a: the stock ledger over HTTP and at the data layer -- opening stock, stock edits with one-tap
 // reasons, history, the public stock state and its catalogue version, once-per-crossing low-stock notices, the
 // made-to-order switch, cost and who may see it. INV-01 to INV-11, INV-19 to INV-21, UOM-03, CCH-08. Slice 2b: stock
-// checks and the inventory figures, INV-07 and INV-18. Runs only when DATABASE_TEST_ADMIN_URL is set.
+// checks and the inventory figures, INV-07 and INV-18; shared stock with pack amounts, INV-24 and UOM-04. Runs only when
+// DATABASE_TEST_ADMIN_URL is set.
 const ADMIN_URL = process.env['DATABASE_TEST_ADMIN_URL'];
 const DB_NAME = 'lytronix_inventory_test';
 const describeIfDatabase = ADMIN_URL ? describe : describe.skip;
@@ -960,5 +965,423 @@ describeIfDatabase('inventory figures (INV-18, D3-9)', () => {
     expect(fieldsOf(backwards)).toEqual({ dateTo: 'not_allowed' });
     const notADay = await shop.get('/inventory/figures?dateFrom=2026-02-30');
     expect(fieldsOf(notADay)).toEqual({ dateFrom: 'invalid_date' });
+  });
+});
+
+describeIfDatabase('shared stock (INV-24, UOM-04)', () => {
+  interface SharedStock {
+    variantId: string;
+    onHand: string;
+    reserved: string;
+    available: string;
+    state: string;
+    avgCost?: string | null;
+  }
+
+  /** A size drawing on the shared stock holds none of its own: its onHand is null. */
+  interface PackStock extends Omit<VariantStock, 'onHand'> {
+    packAmount: string | null;
+    onHand: string | null;
+  }
+
+  interface SharedView {
+    state: string;
+    shared: SharedStock | null;
+    variants: PackStock[];
+  }
+
+  interface Detail {
+    id: string;
+    sharedStock: boolean;
+    minPrice: string | null;
+    variants: { id: string; optionIds: string[]; packAmount: string | null }[];
+  }
+
+  const AMOUNTS = [3, 6, 10, 100];
+
+  /** A perfume in ml, sold as 3, 6, 10 and 100 ml from one stock. */
+  async function perfume(
+    shop: ShopClient,
+    extra: Record<string, unknown> = {},
+  ): Promise<{ product: Detail; size: Map<number, string> }> {
+    const { size, ids } = await sizes(
+      shop,
+      AMOUNTS.map((amount) => `${String(amount)} ml`),
+    );
+    const result = await shop.post('/products', {
+      name: 'Oud',
+      basePrice: 10,
+      stockUnit: 'ml',
+      sharedStock: true,
+      variantAttributes: [{ attributeId: size, optionIds: ids }],
+      variants: AMOUNTS.map((amount, index) => ({
+        optionIds: [ids[index]],
+        packAmount: amount,
+        price: amount * 10,
+      })),
+      ...extra,
+    });
+    expect(result.status, JSON.stringify(result.body)).toBe(201);
+    const product = result.body as Detail;
+    const byOption = new Map(product.variants.map((row) => [row.optionIds[0], row.id]));
+    return {
+      product,
+      size: new Map(AMOUNTS.map((amount, index) => [amount, byOption.get(ids[index]) ?? ''])),
+    };
+  }
+
+  async function sharedOf(shop: ShopClient, productId: string): Promise<SharedView> {
+    return (await stockOf(shop, productId)) as unknown as SharedView;
+  }
+
+  function availableBySize(view: SharedView, size: Map<number, string>): string[] {
+    return AMOUNTS.map(
+      (amount) => view.variants.find((row) => row.variantId === size.get(amount))?.available ?? '',
+    );
+  }
+
+  /** The one write path every future sale takes (Phase 4), named on a size as a number of its packs. */
+  async function sell(shop: ShopClient, variantId: string, packs: number): Promise<void> {
+    const transactions = app.get<CatalogueTransactions>(CATALOGUE_TRANSACTIONS);
+    const ledger = app.get(InventoryLedger);
+    await transactions.run((tx) =>
+      ledger.apply(
+        tx,
+        shop.tenantId,
+        [{ variantId, delta: String(-packs), reason: StockReason.Sale }],
+        { id: null, ip: null },
+      ),
+    );
+  }
+
+  it('holds one stock, shows each size its whole packs, and moves pack x quantity on it (the INV-24 example)', async () => {
+    const shop = await openShop(port, texts, 'perfume');
+    const { product, size } = await perfume(shop, { sharedOpeningStock: 200 });
+    expect(product.sharedStock).toBe(true);
+    expect(product.variants.find((row) => row.id === size.get(6))?.packAmount).toBe('6.000');
+    expect(product.variants.find((row) => row.id === size.get(100))?.packAmount).toBe('100.000');
+
+    let view = await sharedOf(shop, product.id);
+    expect(view.shared).toMatchObject({ onHand: '200.000', available: '200.000', state: 'in' });
+    expect(availableBySize(view, size)).toEqual(['66.000', '33.000', '20.000', '2.000']);
+    expect(view.variants.every((row) => row.onHand === null)).toBe(true);
+
+    // Two 6 ml decants sold: one movement of -12 ml on the shared stock.
+    await sell(shop, size.get(6) ?? '', 2);
+    view = await sharedOf(shop, product.id);
+    expect(view.shared?.onHand).toBe('188.000');
+    expect(availableBySize(view, size)).toEqual(['62.000', '31.000', '18.000', '1.000']);
+    const pool = view.shared?.variantId ?? '';
+    expect((await history(shop, product.id, pool))[0]).toMatchObject({
+      delta: '-12.000',
+      reason: 'sale',
+    });
+
+    // "1 x 100 ml bottle" added as a pack of its size.
+    const added = await shop.post(
+      `/products/${product.id}/variants/${size.get(100) ?? ''}/stock-additions`,
+      { quantity: 1 },
+    );
+    expect(added.status, JSON.stringify(added.body)).toBe(200);
+    expect((added.body as SharedView).shared?.onHand).toBe('288.000');
+    expect((await history(shop, product.id, pool))[0]).toMatchObject({
+      delta: '100.000',
+      reason: 'manual_adjustment',
+    });
+
+    // Serial numbers never go with shared stock.
+    const serials = await shop.patch(`/products/${product.id}`, { serialTracked: true });
+    expect(fieldsOf(serials)).toEqual({ serialTracked: 'not_allowed' });
+  });
+
+  it('records opening stock given as packs of a size, and as loose stock, on the shared stock', async () => {
+    const shop = await openShop(port, texts, 'perfume-open');
+    const { size: sizeAttribute, ids } = await sizes(shop, ['50 ml', '100 ml']);
+    const created = await shop.post('/products', {
+      name: 'Musk',
+      basePrice: 900,
+      stockUnit: 'ml',
+      sharedStock: true,
+      sharedOpeningStock: 35.5,
+      variantAttributes: [{ attributeId: sizeAttribute, optionIds: ids }],
+      variants: [
+        { optionIds: [ids[0]], packAmount: 50 },
+        { optionIds: [ids[1]], packAmount: 100, openingStock: 2 },
+      ],
+    });
+    expect(created.status, JSON.stringify(created.body)).toBe(201);
+    const product = created.body as Detail;
+    const view = await sharedOf(shop, product.id);
+    expect(view.shared?.onHand).toBe('235.500');
+    const opening = await history(shop, product.id, view.shared?.variantId ?? '');
+    expect(opening.map((row) => [row.delta, row.reason]).sort()).toEqual([
+      ['200.000', 'initial'],
+      ['35.500', 'initial'],
+    ]);
+  });
+
+  it('keeps the stock holder out of the catalogue: variants, their count, the price range and the variant limit', async () => {
+    const shop = await openShop(port, texts, 'perfume-hidden');
+    const { product } = await perfume(shop);
+    // A price change works the range out again, with the stock holder in place. The sizes sell from 30 to 1000; the
+    // product's own price (now 12) is no variant's, so the stock holder adds none.
+    await shop.patch(`/products/${product.id}`, { basePrice: 12 });
+    const detail = (await shop.get(`/products/${product.id}`)).body as Detail;
+    expect(detail.variants).toHaveLength(4);
+    expect(detail.minPrice).toBe('30.00');
+    const listed = (await shop.get('/products')).body as {
+      products: { id: string; variantCount: number }[];
+    };
+    expect(listed.products.find((row) => row.id === product.id)?.variantCount).toBe(4);
+
+    // A hundred sizes are allowed: the stock holder is not one of them. Options are added 50 at a time.
+    const size = await platformId(shop, 'Size');
+    const ids: string[] = [];
+    for (const start of [1, 51]) {
+      const made = await shop.post(`/attributes/${size}/options/batch`, {
+        values: Array.from({ length: 50 }, (_, index) => `${String(start + index)} g`),
+      });
+      ids.push(...(made.body as { id: string }[]).map((option) => option.id));
+    }
+    const hundred = await shop.post('/products', {
+      name: 'Saffron',
+      basePrice: 100,
+      stockUnit: 'g',
+      sharedStock: true,
+      variantAttributes: [{ attributeId: size, optionIds: ids }],
+      variants: ids.map((id, index) => ({ optionIds: [id], packAmount: index + 1 })),
+    });
+    expect(hundred.status, JSON.stringify(hundred.body)).toBe(201);
+    expect((hundred.body as Detail).variants).toHaveLength(100);
+  });
+
+  it('refuses what a shared stock cannot be: no sizes, a size with no pack, a fraction of a piece, and stock set on a size', async () => {
+    const shop = await openShop(port, texts, 'perfume-refused');
+    const noSizes = await shop.post('/products', {
+      name: 'Loose',
+      basePrice: 10,
+      sharedStock: true,
+    });
+    expect(fieldsOf(noSizes)).toEqual({ variants: 'required' });
+    const noPack = await shop.post('/products', {
+      name: 'Loose',
+      basePrice: 10,
+      sharedStock: true,
+      variants: [{ optionIds: [] }],
+    });
+    expect(fieldsOf(noPack)).toEqual({ 'variants.0.packAmount': 'required' });
+    const packOnOrdinary = await shop.post('/products', {
+      name: 'Plain',
+      basePrice: 10,
+      variants: [{ optionIds: [], packAmount: 2 }],
+    });
+    expect(fieldsOf(packOnOrdinary)).toEqual({ 'variants.0.packAmount': 'not_allowed' });
+    const fractionOfPiece = await shop.post('/products', {
+      name: 'Pens',
+      basePrice: 10,
+      stockUnit: 'piece',
+      sharedStock: true,
+      variants: [{ optionIds: [], packAmount: 1.5 }],
+    });
+    expect(fieldsOf(fractionOfPiece)).toEqual({ 'variants.0.packAmount': 'not_allowed' });
+    const halfPack = await shop.post('/products', {
+      name: 'Pens',
+      basePrice: 10,
+      stockUnit: 'piece',
+      sharedStock: true,
+      variants: [{ optionIds: [], packAmount: 12, openingStock: 1.5 }],
+    });
+    expect(fieldsOf(halfPack)).toEqual({ 'variants.0.openingStock': 'not_whole_number' });
+    const withSerials = await shop.post('/products', {
+      name: 'Phones',
+      basePrice: 10,
+      serialTracked: true,
+      sharedStock: true,
+      variants: [{ optionIds: [], packAmount: 1 }],
+    });
+    expect(fieldsOf(withSerials)).toEqual({ serialTracked: 'not_allowed' });
+    const patched = await shop.patch(`/products/${(await simple(shop, 'Box', 1)).product.id}`, {
+      sharedStock: true,
+    });
+    expect(fieldsOf(patched)).toEqual({ sharedStock: 'not_allowed' });
+
+    const { product, size } = await perfume(shop, { sharedOpeningStock: 30 });
+    const six = size.get(6) ?? '';
+    const onSize = await setStock(shop, product.id, six, { onHand: 5 });
+    expect(onSize.status).toBe(409);
+    expect(errorOf(onSize).code).toBe('conflict');
+    expect(
+      (await shop.put(`/products/${product.id}/variants/${six}/cost`, { avgCost: 1 })).status,
+    ).toBe(409);
+    const counted = await shop.post('/stock-checks', { lines: [{ variantId: six, counted: 1 }] });
+    expect(fieldsOf(counted)).toEqual({ 'lines.0.variantId': 'not_allowed' });
+    const halfDecant = await shop.post(`/products/${product.id}/variants/${six}/stock-additions`, {
+      quantity: 1.5,
+    });
+    expect(fieldsOf(halfDecant)).toEqual({ quantity: 'not_allowed' });
+    expect((await sharedOf(shop, product.id)).shared?.onHand).toBe('30.000');
+  });
+
+  it('switches to and from shared stock only while the product holds nothing, and keeps one stock holder', async () => {
+    const shop = await openShop(port, texts, 'perfume-switch');
+    const { size, ids } = await sizes(shop, ['5 ml', '10 ml']);
+    const product = await create(shop, {
+      name: 'Amber',
+      basePrice: 300,
+      stockUnit: 'ml',
+      variantAttributes: [{ attributeId: size, optionIds: ids }],
+      variants: [
+        { optionIds: [ids[0]], openingStock: 4 },
+        { optionIds: [ids[1]], openingStock: 0 },
+      ],
+    });
+    const small = product.variants.find((row) => row.optionIds[0] === ids[0])?.id ?? '';
+    const shareIt = {
+      sharedStock: true,
+      variantAttributes: [{ attributeId: size, optionIds: ids }],
+      variants: [
+        { optionIds: [ids[0]], packAmount: 5 },
+        { optionIds: [ids[1]], packAmount: 10 },
+      ],
+    };
+
+    // Four 5 ml vials are never turned into 20 ml of loose stock.
+    const holding = await shop.put(`/products/${product.id}/variants`, shareIt);
+    expect(holding.status).toBe(409);
+    expect(errorOf(holding).code).toBe('conflict');
+    await setStock(shop, product.id, small, { onHand: 0, reason: 'other' });
+    const shared = await shop.put(`/products/${product.id}/variants`, shareIt);
+    expect(shared.status, JSON.stringify(shared.body)).toBe(200);
+    expect((shared.body as Detail).sharedStock).toBe(true);
+    let view = await sharedOf(shop, product.id);
+    const holder = view.shared?.variantId ?? '';
+    expect(holder).not.toBe('');
+    await setStock(shop, product.id, holder, { onHand: 60, reason: 'new_stock' });
+
+    const unshareIt = {
+      ...shareIt,
+      sharedStock: false,
+      variants: [{ optionIds: [ids[0]] }, { optionIds: [ids[1]] }],
+    };
+    expect((await shop.put(`/products/${product.id}/variants`, unshareIt)).status).toBe(409);
+    await setStock(shop, product.id, holder, { onHand: 0, reason: 'other' });
+    const unshared = await shop.put(`/products/${product.id}/variants`, unshareIt);
+    expect(unshared.status, JSON.stringify(unshared.body)).toBe(200);
+    expect((unshared.body as Detail).sharedStock).toBe(false);
+    expect((unshared.body as Detail).variants.map((row) => row.packAmount)).toEqual([null, null]);
+    view = await sharedOf(shop, product.id);
+    expect(view.shared).toBeNull();
+    expect(view.variants).toHaveLength(2);
+
+    // Shared again: the same stock holder comes back, with its history.
+    await shop.put(`/products/${product.id}/variants`, shareIt);
+    view = await sharedOf(shop, product.id);
+    expect(view.shared?.variantId).toBe(holder);
+    expect(await history(shop, product.id, holder)).toHaveLength(2);
+  });
+
+  it('writes the shared stock off and stops sharing when the product becomes made to order', async () => {
+    const shop = await openShop(port, texts, 'perfume-mto');
+    const { product } = await perfume(shop, { sharedOpeningStock: 50 });
+    const holder = (await sharedOf(shop, product.id)).shared?.variantId ?? '';
+    const made = await shop.patch(`/products/${product.id}`, { stockTracking: 'not_tracked' });
+    expect(made.status, JSON.stringify(made.body)).toBe(200);
+    const detail = made.body as Detail;
+    expect(detail.sharedStock).toBe(false);
+    expect(detail.variants.every((row) => row.packAmount === null)).toBe(true);
+    expect((await history(shop, product.id, holder))[0]).toMatchObject({
+      delta: '-50.000',
+      reason: 'manual_adjustment',
+      note: 'Switched to made to order',
+    });
+    expect((await sharedOf(shop, product.id)).shared).toBeNull();
+  });
+
+  it('states each size from the shared stock, and sends the low-stock notice on the shared stock, once per crossing', async () => {
+    const shop = await openShop(port, texts, 'perfume-low');
+    const { product, size } = await perfume(shop, {
+      sharedOpeningStock: 120,
+      lowStockThreshold: 20,
+    });
+    const holder = (await sharedOf(shop, product.id)).shared?.variantId ?? '';
+    expect((await shop.get(`/products/${product.id}`)).body).toMatchObject({ stockState: 'in' });
+
+    await sell(shop, size.get(100) ?? '', 1); // 20 ml left: at the threshold
+    expect(lowStock.for(holder)).toHaveLength(1);
+    let view = await sharedOf(shop, product.id);
+    expect(view.state).toBe('low');
+    expect(view.variants.find((row) => row.variantId === size.get(100))?.state).toBe('out');
+    await sell(shop, size.get(10) ?? '', 1); // 10 ml left: still past it, no second notice
+    expect(lowStock.for(holder)).toHaveLength(1);
+    await sell(shop, size.get(3) ?? '', 3); // 1 ml: no size has a whole pack left
+    view = await sharedOf(shop, product.id);
+    expect(view.state).toBe('out');
+    expect((await shop.get(`/products/${product.id}`)).body).toMatchObject({ stockState: 'out' });
+  });
+
+  it('prices a pack at its share of the per-unit cost, and records that cost on stock leaving', async () => {
+    const shop = await openShop(port, texts, 'perfume-cost');
+    const { product, size } = await perfume(shop, { sharedOpeningStock: 100 });
+    const holder = (await sharedOf(shop, product.id)).shared?.variantId ?? '';
+    const costed = await shop.put(`/products/${product.id}/variants/${holder}/cost`, {
+      avgCost: 2.5,
+    });
+    expect(costed.status, JSON.stringify(costed.body)).toBe(200);
+    const view = costed.body as SharedView;
+    expect(view.shared?.avgCost).toBe('2.5000');
+    expect(view.variants.find((row) => row.variantId === size.get(6))?.avgCost).toBe('15.0000');
+    await sell(shop, size.get(6) ?? '', 1);
+    expect((await history(shop, product.id, holder))[0]).toMatchObject({
+      delta: '-6.000',
+      unitCost: '2.5000',
+    });
+  });
+
+  it('counts the shared stock in a stock check, and copies the sharing when the product is duplicated', async () => {
+    const shop = await openShop(port, texts, 'perfume-copy');
+    const { product } = await perfume(shop, { sharedOpeningStock: 200 });
+    const holder = (await sharedOf(shop, product.id)).shared?.variantId ?? '';
+    const check = await shop.post('/stock-checks', {
+      lines: [{ variantId: holder, counted: 190 }],
+    });
+    expect(check.status, JSON.stringify(check.body)).toBe(201);
+    expect((check.body as { lines: unknown[] }).lines[0]).toMatchObject({
+      productName: 'Oud',
+      optionIds: [],
+      difference: '-10.000',
+    });
+    expect((await sharedOf(shop, product.id)).shared?.onHand).toBe('190.000');
+
+    const copied = await shop.post(`/products/${product.id}/duplicate`, {});
+    expect(copied.status, JSON.stringify(copied.body)).toBe(201);
+    const copy = copied.body as Detail;
+    expect(copy.sharedStock).toBe(true);
+    const packs = (detail: Detail) =>
+      detail.variants.map((row) => Number(row.packAmount)).sort((a, b) => a - b);
+    expect(packs(copy)).toEqual(AMOUNTS);
+    const copyStock = await sharedOf(shop, copy.id);
+    expect(copyStock.shared).toMatchObject({ onHand: '0.000' });
+    expect(copyStock.shared?.variantId).not.toBe(holder);
+  });
+
+  it('holds the rules at the data layer: stock only on the holder, no switch while holding, whole packs of pieces', async () => {
+    const shop = await openShop(port, texts, 'perfume-db');
+    const { product, size } = await perfume(shop, { sharedOpeningStock: 40 });
+    await expect(
+      admin.query(
+        `INSERT INTO tenant.stock_movements (tenant_id, product_id, variant_id, quantity_delta, reason)
+         VALUES ($1, $2, $3, 5, 'recount')`,
+        [shop.tenantId, product.id, size.get(6)],
+      ),
+    ).rejects.toThrow(/stock holder only/);
+    await expect(
+      admin.query('UPDATE tenant.products SET shared_stock = false WHERE id = $1', [product.id]),
+    ).rejects.toThrow(/only while it holds none/);
+    const pens = await simple(shop, 'Pens', 0);
+    await expect(
+      admin.query('UPDATE tenant.product_variants SET pack_amount = 1.5 WHERE id = $1', [
+        pens.variantId,
+      ]),
+    ).rejects.toThrow(/whole number/);
   });
 });

@@ -134,6 +134,8 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'GET /products/:id/stock': "another shop's product answers 404",
   'PUT /products/:id/variants/:variantId/stock': "another shop's product or variant answers 404",
   'PUT /products/:id/variants/:variantId/cost': "another shop's product or variant answers 404",
+  'POST /products/:id/variants/:variantId/stock-additions':
+    "another shop's product or variant answers 404",
   'GET /products/:id/variants/:variantId/stock-history':
     "another shop's product or variant answers 404",
   // Phase 3 Slice 2b, checked in test/inventory.e2e.spec.ts.

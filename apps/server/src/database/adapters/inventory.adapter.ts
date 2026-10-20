@@ -43,6 +43,14 @@ export class DrizzleStockStore implements StockStore {
     return this.stock.findVariants(tx, tenantId, variantIds);
   }
 
+  findStockHolders(
+    tx: Transaction,
+    tenantId: string,
+    productIds: string[],
+  ): Promise<StockVariantRow[]> {
+    return this.stock.findStockHolders(tx, tenantId, productIds);
+  }
+
   async insertMovements(
     tx: Transaction,
     tenantId: string,

@@ -400,6 +400,13 @@
       "when": 1792439639655,
       "tag": "0056_stock_checks",
       "breakpoints": true
+    },
+    {
+      "idx": 57,
+      "version": "7",
+      "when": 1792476963250,
+      "tag": "0057_shared_stock",
+      "breakpoints": true
     }
   ]
 }

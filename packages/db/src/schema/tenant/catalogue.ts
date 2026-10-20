@@ -89,6 +89,8 @@ export const products = tenant.table(
     stockTracking: stockTracking('stock_tracking').notNull().default(StockTracking.Tracked),
     batchTracked: boolean('batch_tracked').notNull().default(false),
     serialTracked: boolean('serial_tracked').notNull().default(false),
+    // INV-24: the variants draw on one stock, held by the product's stock-holder variant, each using its pack amount.
+    sharedStock: boolean('shared_stock').notNull().default(false),
     lowStockThreshold: numeric('low_stock_threshold', { precision: 14, scale: 3 })
       .notNull()
       .default('5'),
@@ -129,6 +131,11 @@ export const products = tenant.table(
       sql`NOT (${t.stockTracking} = 'not_tracked' AND (${t.batchTracked} OR ${t.serialTracked}))`,
     ),
     check('products_batch_serial_check', sql`NOT (${t.batchTracked} AND ${t.serialTracked})`),
+    // INV-24: shared stock is counted stock, and never serial-numbered.
+    check(
+      'products_shared_stock_check',
+      sql`NOT (${t.sharedStock} AND (${t.stockTracking} = 'not_tracked' OR ${t.serialTracked}))`,
+    ),
     check(
       'products_advance_check',
       sql`CASE WHEN ${t.paymentPolicy} = 'partial_advance' THEN ${t.advanceAmount} IS NOT NULL AND ${t.advanceAmount} >= 0 ELSE ${t.advanceAmount} IS NULL END`,
@@ -186,6 +193,11 @@ export const productVariants = tenant.table(
     // INV-10: the weighted average unit cost (by hand until a purchase receipt sets it); null is unknown. Never in a
     // public response.
     avgCost: numeric('avg_cost', { precision: 12, scale: 4 }),
+    // INV-24: on a product with shared stock, how much of it one unit sold uses (6 for a 6 ml decant); null otherwise.
+    packAmount: numeric('pack_amount', { precision: 14, scale: 3 }),
+    // INV-24: the one hidden variant (combination key STOCK_HOLDER_KEY) that holds a shared stock. Never sold, never
+    // listed with the product's variants, never counted against the variant limit.
+    isStockHolder: boolean('is_stock_holder').notNull().default(false),
     active: boolean('active').notNull().default(true),
     createdAt: createdAt(),
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
@@ -206,6 +218,11 @@ export const productVariants = tenant.table(
     check('product_variants_weight_check', sql`${t.weightKg} > 0`),
     check('product_variants_delivery_charge_check', sql`${t.deliveryCharge} >= 0`),
     check('product_variants_avg_cost_check', sql`${t.avgCost} >= 0`),
+    check('product_variants_pack_amount_check', sql`${t.packAmount} > 0`),
+    check(
+      'product_variants_stock_holder_check',
+      sql`NOT ${t.isStockHolder} OR (${t.combinationKey} = '#stock' AND ${t.packAmount} IS NULL)`,
+    ),
   ],
 );
 

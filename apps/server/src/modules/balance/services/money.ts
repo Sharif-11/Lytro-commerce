@@ -60,3 +60,15 @@ export function quantityTimesCost(quantity: string, unitCost: string): bigint {
     10n ** BigInt(QUANTITY_DECIMALS + FINE_DECIMALS - 2),
   );
 }
+
+/** INV-24: the cost of one pack of `packAmount` at a unit cost, to four decimals like the cost itself, rounded. */
+export function packCost(packAmount: string, unitCost: string): string {
+  const fine = divideRounded(
+    toScaled(packAmount, QUANTITY_DECIMALS) * toScaled(unitCost, FINE_DECIMALS),
+    10n ** BigInt(QUANTITY_DECIMALS),
+  );
+  const sign = fine < 0n ? '-' : '';
+  const magnitude = fine < 0n ? -fine : fine;
+  const fraction = (magnitude % FINE_SCALE).toString().padStart(FINE_DECIMALS, '0');
+  return `${sign}${(magnitude / FINE_SCALE).toString()}.${fraction}`;
+}

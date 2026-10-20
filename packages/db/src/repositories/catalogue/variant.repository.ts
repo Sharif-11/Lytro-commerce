@@ -17,17 +17,22 @@ export type VariantPatch = Partial<
     | 'weightKg'
     | 'deliveryCharge'
     | 'deliveryMode'
+    | 'packAmount'
     | 'active'
     | 'deletedAt'
   >
 >;
+
+// INV-24: every read of "the product's variants" leaves out the stock-holder variant, which holds a shared stock and is
+// never sold, listed or counted. Only findStockHolder reaches it.
+const sellable = eq(productVariants.isStockHolder, false);
 
 // ATR-04 to ATR-06, ATR-13, ATL-04: a product's variants and the options that make each one distinct. Every
 // method runs inside a transaction that carries the shop's tenant context, so row-level security applies.
 export class VariantRepository {
   constructor(private readonly transactions: TransactionRunner) {}
 
-  /** A product's variants, oldest first; retired ones only when asked (to bring one back). */
+  /** A product's variants, oldest first; retired ones only when asked (to bring one back). Never its stock holder. */
   async listVariants(
     tx: Transaction,
     tenantId: string,
@@ -42,6 +47,7 @@ export class VariantRepository {
         and(
           eq(productVariants.tenantId, tenantId),
           eq(productVariants.productId, productId),
+          sellable,
           includeRetired ? undefined : isNull(productVariants.deletedAt),
         ),
       )
@@ -63,10 +69,40 @@ export class VariantRepository {
           eq(productVariants.tenantId, tenantId),
           eq(productVariants.productId, productId),
           eq(productVariants.id, id),
+          sellable,
           isNull(productVariants.deletedAt),
         ),
       );
     return rows[0] ?? null;
+  }
+
+  /** INV-24: the product's stock-holder variant, retired or not; null for a product that never shared its stock. */
+  async findStockHolder(
+    tx: Transaction,
+    tenantId: string,
+    productId: string,
+  ): Promise<SelectProductVariant | null> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const rows = await tx
+      .select()
+      .from(productVariants)
+      .where(
+        and(
+          eq(productVariants.tenantId, tenantId),
+          eq(productVariants.productId, productId),
+          eq(productVariants.isStockHolder, true),
+        ),
+      );
+    return rows[0] ?? null;
+  }
+
+  /** INV-24: a product that stops sharing its stock keeps no pack amounts, on any of its variants. */
+  async clearPackAmounts(tx: Transaction, tenantId: string, productId: string): Promise<void> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    await tx
+      .update(productVariants)
+      .set({ packAmount: null })
+      .where(and(eq(productVariants.tenantId, tenantId), eq(productVariants.productId, productId)));
   }
 
   async listVariantValues(
