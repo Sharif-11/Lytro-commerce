@@ -4,6 +4,7 @@ import type {
   MovementRecord,
   NewStockMovement,
   OutgoingRow,
+  ShortfallRow,
   StockHistoryRow,
   StockValueRow,
   StockVariantRow,
@@ -11,8 +12,9 @@ import type {
 } from '../types/inventory';
 
 /**
- * INV-01, INV-03, INV-09, INV-10: a shop's stock levels and its movement ledger. A movement the database refuses
- * (stock below zero or below what is reserved, or a fraction of a whole-unit product) comes back as StockRefused.
+ * INV-01, INV-03, INV-09, INV-10: a shop's stock levels and its movement ledger. A movement the database refuses comes
+ * back as StockRefused: taking more than is free ('shortfall'), leaving less on hand than is held for orders ('held'),
+ * or a fraction of a whole-unit product ('whole_units').
  */
 export interface StockStore {
   findVariants(tx: Transaction, tenantId: string, variantIds: string[]): Promise<StockVariantRow[]>;
@@ -32,8 +34,19 @@ export interface StockStore {
     tenantId: string,
     productIds: string[],
   ): Promise<VariantStockRow[]>;
+  /** The stock lock order: products in id order, then levels in variant order, then batches and serials. */
+  lockProducts(tx: Transaction, tenantId: string, productIds: string[]): Promise<void>;
+  /** A variant's on-hand stock, locked after its product. */
   lockLevel(tx: Transaction, tenantId: string, variantId: string): Promise<string>;
   setLowNotified(
+    tx: Transaction,
+    tenantId: string,
+    variantIds: string[],
+    notified: boolean,
+  ): Promise<void>;
+  /** INV-13, INV-15: levels short of what they hold for orders, and those still marked as told. */
+  listShortfalls(tx: Transaction, tenantId: string): Promise<ShortfallRow[]>;
+  setShortNotified(
     tx: Transaction,
     tenantId: string,
     variantIds: string[],

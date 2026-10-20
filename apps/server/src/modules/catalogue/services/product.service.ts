@@ -135,6 +135,17 @@ function variantChangeOf(spec: VariantSpec | null): VariantChange {
  * limit however many variants it has, is charged the pay-as-you-go fee once at creation, keeps its link slug
  * through renames, and moves the catalogue version with every change (CCH-02).
  */
+/**
+ * INV-15: the database refused to let go of a variant or product while units are held for orders -- retiring it,
+ * deleting it for good. Those orders ship or are cancelled first.
+ */
+function refuseHeld(error: unknown): never {
+  if (error instanceof StockRefused && error.kind === 'held') {
+    throw new ApiError('conflict', 'UnitsHeldForOrders', {});
+  }
+  throw error;
+}
+
 @Injectable()
 export class ProductService {
   constructor(
@@ -513,6 +524,9 @@ export class ProductService {
             'conflict',
           );
         }
+        if (error instanceof StockRefused && error.kind === 'held') {
+          throw new ApiError('conflict', 'UnitsHeldForOrders', {});
+        }
         if (error instanceof StockRefused) {
           throw new FieldsError([
             {
@@ -575,11 +589,13 @@ export class ProductService {
       const retiring = existing.filter(
         (row) => row.deletedAt === null && !keep.has(row.combinationKey),
       );
-      await this.products.retireVariants(
-        tx,
-        shop.id,
-        retiring.map((row) => row.id),
-      );
+      await this.products
+        .retireVariants(
+          tx,
+          shop.id,
+          retiring.map((row) => row.id),
+        )
+        .catch(refuseHeld);
 
       // Attributes that no longer split it, and descriptive ones that now do, leave their old rows.
       const leaving = current
@@ -705,7 +721,7 @@ export class ProductService {
       const product = await this.products.findProduct(tx, shop.id, productId, true);
       if (!product) throw new ApiError('not_found', 'ProductNotFound', {});
       if (hard) {
-        await this.products.deleteProduct(tx, shop.id, productId);
+        await this.products.deleteProduct(tx, shop.id, productId).catch(refuseHeld);
       } else if (product.deletedAt === null) {
         await this.products.updateProduct(tx, shop.id, productId, { deletedAt: new Date() });
       }
@@ -991,7 +1007,7 @@ export class ProductService {
   ): Promise<void> {
     const holder = await this.products.findStockHolder(tx, tenantId, productId);
     if (holder && holder.deletedAt === null) {
-      await this.products.retireVariants(tx, tenantId, [holder.id]);
+      await this.products.retireVariants(tx, tenantId, [holder.id]).catch(refuseHeld);
     }
     await this.products.clearPackAmounts(tx, tenantId, productId);
   }

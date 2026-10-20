@@ -1472,6 +1472,27 @@ and each change writes its entry in its own transaction: `plan_created`, `plan_u
 version), `plan_deleted`, `billing_term_deleted` (what the term was), `plan_price_set` and `plan_price_removed` (the
 price before and after). Verified in `platform-audit.e2e.spec.ts`.
 
+## 74. `INV-16`: the reservation expiry pass opens a transaction for every live shop, every minute — open, found 2026-10-20
+
+Built this way in Phase 3 Slice 5a. Row-level security keeps the application role from reading every shop's
+reservations in one query, so the minute pass (`ReservationExpiryService`) lists the shops not deleted and, for each,
+opens a transaction that looks for reservations whose time ran out (an index on `expires_at` keeps each look cheap).
+That is right at today's scale, but the work grows with the number of shops, not the number of unpaid orders. With a
+few thousand shops, keep a small control-schema list of the shops holding an unpaid order (written with the
+reservation, cleared when its last one resolves) and visit only those.
+
+## 75. `INV-01`, `INV-05`: two stock writers on one product could deadlock — found and fixed 2026-10-20
+
+Found by Phase 3 Slice 5a's concurrency test. Every stock change share-locks its product row in the movement trigger,
+then waits for the variant's level, and the first writer then updates the same product row (its public stock state,
+CCH-08). Two writers on one product could each hold the share lock the other's update needed, and Postgres aborted one
+of them (`deadlock detected`, a 500). Two orders for the last unit hit it every time; two stock edits on different sizes
+of one product could too, whenever both changed the product's state. Every stock writer now locks in one order: its
+products first (`FOR NO KEY UPDATE`, in id order: in the ledger, the reservations, stock checks, the daily expiry pass,
+and in `lockLevel` itself), then levels in variant order, then reservations, batches and serials. Verified in
+`reservations.e2e.spec.ts`: two orders for the last unit give one hold and one conflict, five rounds over; ten orders
+for five units give five of each; two orders on different sizes of one product both hold, five rounds over.
+
 ## Not a bug, just noting it so it isn't mistaken for one later
 
 The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data

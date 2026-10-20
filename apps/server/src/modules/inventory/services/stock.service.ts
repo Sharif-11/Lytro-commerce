@@ -44,6 +44,7 @@ import {
   packsToStock,
   productState,
   quantityOf,
+  reservedExpired,
   sharedVariantState,
   variantState,
 } from './stock-state';
@@ -372,16 +373,21 @@ export class StockService implements ProductStockHooks {
     );
   }
 
-  /** INV-02: everything the product holds written off to zero, recorded, before it stops being tracked. */
+  /**
+   * INV-02: everything the product holds written off to zero, recorded, before it stops being tracked. Refused while
+   * units are held for orders (INV-15): those orders ship or are let go first.
+   */
   async beforeUntracking(
     tx: Transaction,
     tenantId: string,
     productId: string,
     who: ResolvedActor,
   ): Promise<void> {
-    const held = (await this.store.listVariantStock(tx, tenantId, [productId])).filter(
-      (row) => milli(row.onHand) > 0,
-    );
+    const stock = await this.store.listVariantStock(tx, tenantId, [productId]);
+    if (stock.some((row) => milli(row.reserved) > 0)) {
+      throw new ApiError('conflict', 'UnitsHeldForOrders', {});
+    }
+    const held = stock.filter((row) => milli(row.onHand) > 0);
     if (held.length === 0) return;
     // INV-14: every serial-numbered unit goes with its serial. Each level is locked before its serials, as the ledger
     // takes them.
@@ -557,6 +563,7 @@ export class StockService implements ProductStockHooks {
             onHand: row.onHand,
             reserved: row.reserved,
             unsellable: row.unsellable,
+            reservedExpired: reservedExpired(row),
             available: row.available,
             packAmount: null,
             missingSerials:
@@ -571,6 +578,7 @@ export class StockService implements ProductStockHooks {
           onHand: pool.onHand,
           reserved: pool.reserved,
           unsellable: pool.unsellable,
+          reservedExpired: reservedExpired(pool),
           available: pool.available,
           incoming: incoming.get(pool.variantId) ?? NONE_INCOMING,
           state: variantState(pool.available, product.lowStockThreshold),
@@ -607,6 +615,7 @@ export class StockService implements ProductStockHooks {
       onHand: null,
       reserved: null,
       unsellable: null,
+      reservedExpired: null,
       available: quantityOf(packsOf(pool.available, pack) * 1000),
       missingSerials: null,
       incoming: null,

@@ -46,6 +46,8 @@ export const productStockViewSchema = z.object({
       onHand: z.string(),
       reserved: z.string(),
       unsellable: z.string(),
+      // INV-13, INV-15: units held for orders that expiry left with nothing sellable under them.
+      reservedExpired: z.string(),
       available: z.string(),
       // PUR-05: ordered and not yet received on placed, open purchases; never available.
       incoming: z.string(),
@@ -62,6 +64,7 @@ export const productStockViewSchema = z.object({
       onHand: z.string().nullable(),
       reserved: z.string().nullable(),
       unsellable: z.string().nullable(),
+      reservedExpired: z.string().nullable(),
       available: z.string(),
       missingSerials: z.number().nullable(),
       incoming: z.string().nullable(),

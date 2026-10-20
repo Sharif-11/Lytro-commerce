@@ -148,15 +148,18 @@ export class StockCheckService {
       });
       if (problems.length > 0) throw new FieldsError(problems);
 
-      // Each variant's stock is locked before it is compared, in one order (its level, then its batches), so a sale
-      // landing mid-check waits for it and the recorded difference is from the number actually held. A line counting
-      // a batch is compared with that batch, any other with the variant's whole stock.
+      // Each variant's stock is locked before it is compared, in one order (the products, then its level, then its
+      // batches), so a sale landing mid-check waits for it and the recorded difference is from the number actually
+      // held. A line counting a batch is compared with that batch, any other with the variant's whole stock.
       const lines = [...input.lines].sort((a, b) => {
         const left = `${a.variantId}/${a.batchId ?? ''}`;
         const right = `${b.variantId}/${b.batchId ?? ''}`;
         return left < right ? -1 : left > right ? 1 : 0;
       });
       const held = new Map<string, string>();
+      await this.stock.lockProducts(tx, tenantId, [
+        ...new Set([...variants.values()].map((row) => row.productId)),
+      ]);
       for (const variantId of new Set(lines.map((line) => line.variantId))) {
         held.set(`${variantId}/`, await this.stock.lockLevel(tx, tenantId, variantId));
         if (!lines.some((line) => line.variantId === variantId && line.batchId !== undefined)) {

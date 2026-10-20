@@ -1,7 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { SerialStatus } from '@lytronix/validators';
+import type { ReservationStatus, SerialStatus } from '@lytronix/validators';
 import {
   PurchaseOrderRepository,
+  ReservationRepository,
   SerialRepository,
   StockBatchRepository,
   StockCheckRepository,
@@ -16,16 +17,20 @@ import type {
   NewStockCheckLine,
   StockCheckStore,
 } from '../../modules/inventory/ports/stock-check-store';
+import type { ReservationStore } from '../../modules/inventory/ports/reservation-store';
 import type { SerialStore } from '../../modules/inventory/ports/serial-store';
 import type { StockBatchStore } from '../../modules/inventory/ports/stock-batch-store';
 import type { StockStore } from '../../modules/inventory/ports/stock-store';
 import type {
   MovementRecord,
+  NewReservation,
   NewSerial,
   NewStockBatch,
   NewStockMovement,
   OutgoingRow,
+  ReservationRecord,
   SerialRecord,
+  ShortfallRow,
   StockCheckLineRow,
   StockCheckRow,
   StockBatchListRow,
@@ -37,12 +42,14 @@ import type {
   VariantStockRow,
 } from '../../modules/inventory/types/inventory';
 
-// The checks a movement can run into (INV-01, UOM-03), by what they protect.
+// The checks a movement or a reservation can run into (INV-01, UOM-03, INV-15), by what they protect. The triggers
+// refusing more than is free report the name of the check they took over from (migration 0062).
 const SHORTFALL_CHECKS = [
   'stock_levels_on_hand_check',
   'stock_levels_available_check',
   'stock_batches_quantity_check',
 ];
+const HELD_CHECK = 'stock_levels_reserved_held_check';
 const WHOLE_UNITS_CHECK = 'stock_whole_units';
 // INV-14: a serial a held unit already has (migration 0059).
 const SERIAL_HELD_INDEX = 'serial_numbers_held_idx';
@@ -82,6 +89,7 @@ export class DrizzleStockStore implements StockStore {
       if (SHORTFALL_CHECKS.some((check) => this.transactions.isCheckViolation(error, check))) {
         throw new StockRefused('shortfall');
       }
+      if (this.transactions.isCheckViolation(error, HELD_CHECK)) throw new StockRefused('held');
       if (this.transactions.isCheckViolation(error, WHOLE_UNITS_CHECK)) {
         throw new StockRefused('whole_units');
       }
@@ -97,6 +105,10 @@ export class DrizzleStockStore implements StockStore {
     return this.stock.listVariantStock(tx, tenantId, productIds);
   }
 
+  lockProducts(tx: Transaction, tenantId: string, productIds: string[]): Promise<void> {
+    return this.stock.lockProducts(tx, tenantId, productIds);
+  }
+
   lockLevel(tx: Transaction, tenantId: string, variantId: string): Promise<string> {
     return this.stock.lockLevel(tx, tenantId, variantId);
   }
@@ -108,6 +120,19 @@ export class DrizzleStockStore implements StockStore {
     notified: boolean,
   ): Promise<void> {
     return this.stock.setLowNotified(tx, tenantId, variantIds, notified);
+  }
+
+  listShortfalls(tx: Transaction, tenantId: string): Promise<ShortfallRow[]> {
+    return this.stock.listShortfalls(tx, tenantId);
+  }
+
+  setShortNotified(
+    tx: Transaction,
+    tenantId: string,
+    variantIds: string[],
+    notified: boolean,
+  ): Promise<void> {
+    return this.stock.setShortNotified(tx, tenantId, variantIds, notified);
   }
 
   listHistory(
@@ -299,13 +324,14 @@ export class DrizzleSerialStore implements SerialStore {
     }
   }
 
-  markWrittenOff(
+  markLeft(
     tx: Transaction,
     tenantId: string,
     ids: string[],
     movementId: number,
+    soldOrderId: string | null,
   ): Promise<void> {
-    return this.serials.markWrittenOff(tx, tenantId, ids, movementId);
+    return this.serials.markLeft(tx, tenantId, ids, movementId, soldOrderId);
   }
 
   listSerials(
@@ -347,5 +373,61 @@ export class DrizzleSerialStore implements SerialStore {
 
   deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void> {
     return this.serials.deleteAllForTenant(tx, tenantId);
+  }
+}
+
+@Injectable()
+export class DrizzleReservationStore implements ReservationStore {
+  constructor(
+    @Inject(TransactionRunner) private readonly transactions: TransactionRunner,
+    @Inject(ReservationRepository) private readonly reservations: ReservationRepository,
+  ) {}
+
+  async insert(tx: Transaction, tenantId: string, row: NewReservation): Promise<ReservationRecord> {
+    try {
+      return await this.reservations.insert(tx, tenantId, row);
+    } catch (error) {
+      if (SHORTFALL_CHECKS.some((check) => this.transactions.isCheckViolation(error, check))) {
+        throw new StockRefused('shortfall');
+      }
+      if (this.transactions.isCheckViolation(error, WHOLE_UNITS_CHECK)) {
+        throw new StockRefused('whole_units');
+      }
+      throw error;
+    }
+  }
+
+  findReservations(tx: Transaction, tenantId: string, ids: string[]): Promise<ReservationRecord[]> {
+    return this.reservations.findReservations(tx, tenantId, ids);
+  }
+
+  lockReservations(tx: Transaction, tenantId: string, ids: string[]): Promise<ReservationRecord[]> {
+    return this.reservations.lockReservations(tx, tenantId, ids);
+  }
+
+  listForOrder(tx: Transaction, tenantId: string, orderId: string): Promise<ReservationRecord[]> {
+    return this.reservations.listForOrder(tx, tenantId, orderId);
+  }
+
+  listDue(
+    tx: Transaction,
+    tenantId: string,
+    now: Date,
+    limit: number,
+  ): Promise<ReservationRecord[]> {
+    return this.reservations.listDue(tx, tenantId, now, limit);
+  }
+
+  resolve(
+    tx: Transaction,
+    tenantId: string,
+    ids: string[],
+    status: ReservationStatus.Consumed | ReservationStatus.Released,
+  ): Promise<string[]> {
+    return this.reservations.resolve(tx, tenantId, ids, status);
+  }
+
+  deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void> {
+    return this.reservations.deleteAllForTenant(tx, tenantId);
   }
 }

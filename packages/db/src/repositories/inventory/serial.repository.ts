@@ -87,18 +87,24 @@ export class SerialRepository {
     await tx.insert(serialNumbers).values(rows.map((row) => ({ tenantId, ...row })));
   }
 
-  /** INV-14: these units left by this movement, written off. */
-  async markWrittenOff(
+  /** INV-14: these units left by this movement: sold with the order they went to, or written off. */
+  async markLeft(
     tx: Transaction,
     tenantId: string,
     ids: string[],
     movementId: number,
+    soldOrderId: string | null,
   ): Promise<void> {
     await this.transactions.setTenantContext(tx, tenantId);
     if (ids.length === 0) return;
     await tx
       .update(serialNumbers)
-      .set({ status: SerialStatus.WrittenOff, leftMovementId: movementId, updatedAt: new Date() })
+      .set({
+        status: soldOrderId !== null ? SerialStatus.Sold : SerialStatus.WrittenOff,
+        leftMovementId: movementId,
+        soldOrderId,
+        updatedAt: new Date(),
+      })
       .where(and(eq(serialNumbers.tenantId, tenantId), inArray(serialNumbers.id, ids)));
   }
 

@@ -18,6 +18,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import {
   enumTuple,
+  ReservationStatus,
   SERIAL_MAX_LENGTH,
   SerialStatus,
   StockReason,
@@ -32,10 +33,16 @@ import { productVariants } from './catalogue';
 
 export const stockReason = tenant.enum('stock_reason', enumTuple(Object.values(StockReason)));
 export const serialStatus = tenant.enum('serial_status', enumTuple(Object.values(SerialStatus)));
+export const reservationStatus = tenant.enum(
+  'reservation_status',
+  enumTuple(Object.values(ReservationStatus)),
+);
 
 // INV-01: one row per tracked variant that has ever held stock. Its on-hand quantity changes only through a stock
-// movement: a trigger on stock_movements keeps it, and refuses any other change. None of the three may go below
-// zero, and nor may what is available, so stock can never be oversold.
+// movement, and its reserved quantity only through a reservation: triggers keep both, and refuse any other change.
+// None of the three may go below zero, and reserved never exceeds on hand. Available is what is left to sell, never
+// below zero: reserving and taking stock out are refused beyond it, so stock can never be oversold. Only expiry can
+// leave reserved units without sellable stock under them (INV-13); the shortfall is shown and the shop told.
 export const stockLevels = tenant.table(
   'stock_levels',
   {
@@ -47,11 +54,14 @@ export const stockLevels = tenant.table(
     // INV-13 (Slice 3): expired, not yet written off.
     unsellable: numeric('unsellable', { precision: 14, scale: 3 }).notNull().default('0'),
     available: numeric('available', { precision: 14, scale: 3 }).generatedAlwaysAs(
-      sql`"on_hand" - "reserved" - "unsellable"`,
+      sql`GREATEST("on_hand" - "reserved" - "unsellable", 0)`,
     ),
     // INV-08: set when available falls to or below the low-stock threshold and the notice goes out; cleared when it
     // rises above, so each crossing notifies once.
     lowNotified: boolean('low_notified').notNull().default(false),
+    // INV-13, INV-15: set when expired stock leaves units held for orders with nothing sellable under them, and the
+    // shop is told; cleared when the shortfall is gone, so each one notifies once.
+    shortNotified: boolean('short_notified').notNull().default(false),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -64,7 +74,7 @@ export const stockLevels = tenant.table(
     check('stock_levels_on_hand_check', sql`${t.onHand} >= 0`),
     check('stock_levels_reserved_check', sql`${t.reserved} >= 0`),
     check('stock_levels_unsellable_check', sql`${t.unsellable} >= 0`),
-    check('stock_levels_available_check', sql`${t.onHand} - ${t.reserved} - ${t.unsellable} >= 0`),
+    check('stock_levels_reserved_held_check', sql`${t.reserved} <= ${t.onHand}`),
   ],
 );
 
@@ -99,6 +109,10 @@ export const stockMovements = tenant.table(
     check('stock_movements_unit_cost_check', sql`${t.unitCost} >= 0`),
     index('stock_movements_variant_idx').on(t.tenantId, t.variantId, t.id.desc()),
     index('stock_movements_tenant_created_idx').on(t.tenantId, t.createdAt),
+    // What a receipt brought in, or a reservation shipped (INV-15), found from the record it names.
+    index('stock_movements_reference_idx')
+      .on(t.tenantId, t.referenceType, t.referenceId)
+      .where(sql`${t.referenceId} IS NOT NULL`),
   ],
 );
 
@@ -238,7 +252,57 @@ export const stockCheckLines = tenant.table(
   ],
 );
 
+// INV-15, INV-16, INV-24: stock held for one order line (or, for a combo line, one of its parts), from the moment the
+// order is made until it ships (consumed, with its sale movements naming it) or is let go (released, with no movement).
+// `variant_id` holds the stock -- the variant itself, or its product's shared stock -- and `quantity` is in that stock's
+// unit; `sold_variant_id` is the variant ordered, `ordered` how many of it, and `pack_amount` what one of them uses of a
+// shared stock. A trigger keeps the level's reserved quantity from the active rows. The variants and the order are held
+// by value: orders arrive in Phase 4, and a resolved row is history.
+export const stockReservations = tenant.table(
+  'stock_reservations',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    tenantId: uuid('tenant_id').notNull(),
+    orderId: uuid('order_id').notNull(),
+    orderLineId: uuid('order_line_id').notNull(),
+    productId: uuid('product_id').notNull(),
+    variantId: uuid('variant_id').notNull(),
+    soldVariantId: uuid('sold_variant_id').notNull(),
+    ordered: numeric('ordered', { precision: 14, scale: 3 }).notNull(),
+    packAmount: numeric('pack_amount', { precision: 14, scale: 3 }),
+    quantity: numeric('quantity', { precision: 14, scale: 3 }).notNull(),
+    status: reservationStatus('status').notNull().default(ReservationStatus.Active),
+    // INV-16: set only while the order awaits online payment.
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
+    createdAt: createdAt(),
+    resolvedAt: timestamp('resolved_at', { withTimezone: true }),
+  },
+  (t) => [
+    unique('stock_reservations_tenant_id_key').on(t.tenantId, t.id),
+    // A line holds each variant once at a time; a line let go may be held again.
+    uniqueIndex('stock_reservations_line_idx')
+      .on(t.tenantId, t.orderLineId, t.soldVariantId)
+      .where(sql`${t.status} = 'active'`),
+    index('stock_reservations_variant_idx')
+      .on(t.tenantId, t.variantId)
+      .where(sql`${t.status} = 'active'`),
+    index('stock_reservations_expiry_idx')
+      .on(t.tenantId, t.expiresAt)
+      .where(sql`${t.status} = 'active' AND ${t.expiresAt} IS NOT NULL`),
+    index('stock_reservations_order_idx').on(t.tenantId, t.orderId),
+    check('stock_reservations_quantity_check', sql`${t.quantity} > 0`),
+    check('stock_reservations_ordered_check', sql`${t.ordered} > 0`),
+    check('stock_reservations_pack_check', sql`${t.packAmount} > 0`),
+    check(
+      'stock_reservations_resolved_check',
+      sql`(${t.status} = 'active') = (${t.resolvedAt} IS NULL)`,
+    ),
+  ],
+);
+
 export type SelectStockLevel = typeof stockLevels.$inferSelect;
+export type SelectStockReservation = typeof stockReservations.$inferSelect;
+export type InsertStockReservation = typeof stockReservations.$inferInsert;
 export type SelectStockMovement = typeof stockMovements.$inferSelect;
 export type InsertStockMovement = typeof stockMovements.$inferInsert;
 export type SelectSerialNumber = typeof serialNumbers.$inferSelect;

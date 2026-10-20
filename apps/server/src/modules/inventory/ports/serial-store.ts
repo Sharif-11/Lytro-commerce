@@ -13,11 +13,13 @@ export interface SerialStore {
   lockHeld(tx: Transaction, tenantId: string, variantId: string): Promise<SerialRecord[]>;
   findHeld(tx: Transaction, tenantId: string, serials: string[]): Promise<SerialRecord[]>;
   insertSerials(tx: Transaction, tenantId: string, rows: NewSerial[]): Promise<void>;
-  markWrittenOff(
+  /** These units left by this movement: sold to the order named, or written off when none is. */
+  markLeft(
     tx: Transaction,
     tenantId: string,
     ids: string[],
     movementId: number,
+    soldOrderId: string | null,
   ): Promise<void>;
   listSerials(
     tx: Transaction,

@@ -39,7 +39,7 @@ function byId(a: string, b: string): number {
 }
 
 /**
- * INV-01 to INV-05, INV-08, INV-11 to INV-13, INV-19, INV-24: the one path every change to on-hand stock takes, inside
+ * INV-01 to INV-05, INV-08, INV-11 to INV-15, INV-19, INV-24: the one path every change to on-hand stock takes, inside
  * the caller's transaction. It records each change as a movement (the database moves the level from it, refusing stock
  * below zero and fractions of whole-unit products), stamps an outgoing movement with the unit cost of the moment, then
  * works out each product's public stock state again (moving the catalogue version only when it changes) and tells the
@@ -91,17 +91,24 @@ export class InventoryLedger {
       }
       return { change, ...this.landingOf(variant, change.delta, holders) };
     });
-    // Two writers always lock in the same order -- levels by variant, then each level's batches -- so they wait for
-    // each other instead of deadlocking.
+    // Two writers always lock in the same order -- products by id, levels by variant, then each level's batches and
+    // serials -- so they wait for each other instead of deadlocking.
+    await this.store.lockProducts(tx, tenantId, [...new Set(landed.map(({ on }) => on.productId))]);
     landed.sort((a, b) => byId(a.on.variantId, b.on.variantId));
     const today = dhakaDate(new Date());
     const rows: NewStockMovement[] = [];
-    const serialWork: { row: number; variantId: string; arriving: string[]; leaving: string[] }[] =
-      [];
+    const serialWork: {
+      row: number;
+      variantId: string;
+      arriving: string[];
+      leaving: string[];
+      soldTo: string | null;
+    }[] = [];
     for (const { change, on, delta } of landed) {
       const units = await this.serialUnits(tx, tenantId, on, delta, change.serials ?? []);
       if (units.arriving.length > 0 || units.leaving.length > 0) {
-        serialWork.push({ row: rows.length, variantId: on.variantId, ...units });
+        const soldTo = change.reason === StockReason.Sale ? (change.orderId ?? null) : null;
+        serialWork.push({ row: rows.length, variantId: on.variantId, ...units, soldTo });
       }
       const parts = on.product.batchTracked
         ? await this.batchParts(tx, tenantId, on, delta, change, today)
@@ -130,9 +137,9 @@ export class InventoryLedger {
       movements = await this.store.insertMovements(tx, tenantId, rows);
     } catch (error) {
       if (error instanceof StockRefused) {
-        throw error.kind === 'shortfall'
-          ? new ApiError('conflict', 'NotEnoughStock', {})
-          : new ApiError('conflict', 'WholeUnitsOnly', {});
+        if (error.kind === 'shortfall') throw new ApiError('conflict', 'NotEnoughStock', {});
+        if (error.kind === 'held') throw new ApiError('conflict', 'UnitsHeldForOrders', {});
+        throw new ApiError('conflict', 'WholeUnitsOnly', {});
       }
       throw error;
     }
@@ -154,7 +161,7 @@ export class InventoryLedger {
         if (error instanceof UniqueViolation) throw new ApiError('conflict', 'SerialTaken', {});
         throw error;
       }
-      await this.serials.markWrittenOff(tx, tenantId, work.leaving, movement.id);
+      await this.serials.markLeft(tx, tenantId, work.leaving, movement.id, work.soldTo);
     }
     await this.refresh(tx, tenantId, [...new Set(rows.map((row) => row.productId))], true);
     return movements;

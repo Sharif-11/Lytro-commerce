@@ -53,6 +53,7 @@ import {
   StockCheckRepository,
   StockBatchRepository,
   SerialRepository,
+  ReservationRepository,
   SupplierRepository,
   PurchaseOrderRepository,
   PurchaseReceiptRepository,
@@ -149,6 +150,11 @@ import { DatabaseService } from './database.service';
       provide: SerialRepository,
       inject: [TransactionRunner],
       useFactory: (transactions: TransactionRunner) => new SerialRepository(transactions),
+    },
+    {
+      provide: ReservationRepository,
+      inject: [TransactionRunner],
+      useFactory: (transactions: TransactionRunner) => new ReservationRepository(transactions),
     },
     {
       provide: SupplierRepository,
@@ -277,6 +283,7 @@ import { DatabaseService } from './database.service';
     StockCheckRepository,
     StockBatchRepository,
     SerialRepository,
+    ReservationRepository,
     SupplierRepository,
     PurchaseOrderRepository,
     PurchaseReceiptRepository,

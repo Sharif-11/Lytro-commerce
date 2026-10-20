@@ -141,12 +141,17 @@ export {
   StockRepository,
   type NewStockMovement,
   type OutgoingRow,
+  type ShortfallRow,
   type StockHistoryRow,
   type StockValueRow,
   type StockVariantRow,
   type VariantStockRow,
 } from './repositories/inventory/stock.repository';
 export { SerialRepository, type NewSerial } from './repositories/inventory/serial.repository';
+export {
+  ReservationRepository,
+  type NewReservation,
+} from './repositories/inventory/reservation.repository';
 export {
   StockBatchRepository,
   type NewStockBatch,
