@@ -24,6 +24,20 @@ export class SupplierRepository {
     return row;
   }
 
+  /**
+   * PUR-07: a new live supplier of this name, unless a live one has it already (ignoring case): then nothing is made
+   * and null comes back. A writer adding the same name at the same moment waits for the first and makes nothing. The
+   * live-name index is the only unique rule a new supplier can meet (its id is new), so any conflict is that one.
+   */
+  async insertSupplierIfFree(
+    tx: Transaction,
+    values: Omit<InsertSupplier, 'id' | 'createdAt' | 'updatedAt' | 'archivedAt'>,
+  ): Promise<SelectSupplier | null> {
+    await this.transactions.setTenantContext(tx, values.tenantId);
+    const [row] = await tx.insert(suppliers).values(values).onConflictDoNothing().returning();
+    return row ?? null;
+  }
+
   async findSupplier(
     tx: Transaction,
     tenantId: string,

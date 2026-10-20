@@ -64,6 +64,14 @@ export class DrizzleSupplierStore implements SupplierStore {
     }
   }
 
+  insertSupplierIfFree(
+    tx: Transaction,
+    tenantId: string,
+    values: Pick<SupplierRecord, 'name' | 'phone' | 'email' | 'address' | 'notes'>,
+  ): Promise<SupplierRecord | null> {
+    return this.suppliers.insertSupplierIfFree(tx, { tenantId, ...values });
+  }
+
   findSupplier(tx: Transaction, tenantId: string, id: string): Promise<SupplierRecord | null> {
     return this.suppliers.findSupplier(tx, tenantId, id);
   }

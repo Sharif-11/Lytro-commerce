@@ -11,6 +11,12 @@ export interface SupplierStore {
     tenantId: string,
     values: Pick<SupplierRecord, 'name' | 'phone' | 'email' | 'address' | 'notes'>,
   ): Promise<SupplierRecord>;
+  /** PUR-07: a new supplier of this name, or null when a live one has it (another writer may just have added it). */
+  insertSupplierIfFree(
+    tx: Transaction,
+    tenantId: string,
+    values: Pick<SupplierRecord, 'name' | 'phone' | 'email' | 'address' | 'notes'>,
+  ): Promise<SupplierRecord | null>;
   findSupplier(tx: Transaction, tenantId: string, id: string): Promise<SupplierRecord | null>;
   /** PUR-07: the live supplier of this name, ignoring case. */
   findLiveByName(tx: Transaction, tenantId: string, name: string): Promise<SupplierRecord | null>;
