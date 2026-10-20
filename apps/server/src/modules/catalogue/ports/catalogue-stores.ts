@@ -38,6 +38,8 @@ export interface ProductStockHooks {
       variantId: string;
       quantity: string;
       batch?: { batchCode?: string; expiresOn?: string };
+      /** INV-14: the serials of its units, as stored. */
+      serials?: string[];
     }[],
     who: ResolvedActor,
   ): Promise<void>;
@@ -52,6 +54,8 @@ export interface ProductStockHooks {
   refreshStockState(tx: Transaction, tenantId: string, productId: string): Promise<void>;
   /** INV-24: whether any variant of the product, its stock holder included, holds or has reserved any stock. */
   holdsStock(tx: Transaction, tenantId: string, productId: string): Promise<boolean>;
+  /** INV-14: which of these serials (as stored) a unit the shop holds already has. */
+  takenSerials(tx: Transaction, tenantId: string, serials: string[]): Promise<string[]>;
 }
 
 /** Opens one transaction for a unit of catalogue work; every store method below takes it. */

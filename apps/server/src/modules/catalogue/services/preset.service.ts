@@ -3,6 +3,7 @@ import type { Transaction } from '@lytronix/db';
 import {
   AuditAction,
   ProductFormField,
+  SerialFormat,
   ServerFieldProblemCode,
   StockTracking,
   StockUnit,
@@ -41,6 +42,7 @@ function defaultsOf(preset: PresetRecord | null): PresetDefaults {
       stockTracking: StockTracking.Tracked,
       batchTracked: false,
       serialTracked: false,
+      serialFormat: SerialFormat.Any,
       lowStockThreshold: '5.000',
       suggestedAttributeIds: [],
       suggestedCategories: [],
@@ -52,6 +54,7 @@ function defaultsOf(preset: PresetRecord | null): PresetDefaults {
     stockTracking: preset.defaultNotTracked ? StockTracking.NotTracked : StockTracking.Tracked,
     batchTracked: preset.defaultBatch && !preset.defaultNotTracked,
     serialTracked: preset.defaultSerial && !preset.defaultNotTracked,
+    serialFormat: preset.defaultSerialFormat,
     lowStockThreshold: preset.defaultLowStock,
     suggestedAttributeIds: preset.suggestedAttributeIds,
     suggestedCategories: preset.suggestedCategories,

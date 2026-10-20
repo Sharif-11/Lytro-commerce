@@ -9,7 +9,7 @@ import {
   SIZE_CHART_MAX_COLUMNS,
   SIZE_CHART_MAX_ROWS,
 } from '../../common/limits';
-import { ProductFormField, StockUnit } from '../../db/enums';
+import { ProductFormField, SerialFormat, StockUnit } from '../../db/enums';
 import { FieldProblemCode } from '../../validation/field-problem';
 import { catalogueIdSchema, quantityField } from './catalogue-common';
 
@@ -82,6 +82,7 @@ export const updatePresetSchema = z
     defaultStockUnit: z.nativeEnum(StockUnit),
     defaultBatch: z.boolean(),
     defaultSerial: z.boolean(),
+    defaultSerialFormat: z.nativeEnum(SerialFormat),
     defaultNotTracked: z.boolean(),
     defaultLowStock: quantityField,
     suggestedAttributeIds: z.array(catalogueIdSchema).max(20),

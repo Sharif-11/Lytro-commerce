@@ -23,8 +23,9 @@ import { CatalogueActivity, type ResolvedActor } from '../../catalogue/services/
 import { optionIdsOfKey } from '../../catalogue/services/variant-matrix';
 import { CATALOGUE_TRANSACTIONS } from '../../catalogue/tokens';
 import type { CatalogueActor } from '../../catalogue/types/catalogue';
+import type { SerialStore } from '../ports/serial-store';
 import type { StockStore } from '../ports/stock-store';
-import { STOCK_STORE } from '../tokens';
+import { SERIAL_STORE, STOCK_STORE } from '../tokens';
 import type {
   BatchDescription,
   ProductStockView,
@@ -36,6 +37,7 @@ import type {
   VariantStockView,
 } from '../types/inventory';
 import { InventoryLedger } from './inventory-ledger';
+import { SerialEntryService } from './serial-entry.service';
 import {
   milli,
   packsOf,
@@ -78,7 +80,9 @@ export class StockService implements ProductStockHooks {
   constructor(
     @Inject(CATALOGUE_TRANSACTIONS) private readonly transactions: CatalogueTransactions,
     @Inject(STOCK_STORE) private readonly store: StockStore,
+    @Inject(SERIAL_STORE) private readonly serials: SerialStore,
     @Inject(InventoryLedger) private readonly ledger: InventoryLedger,
+    @Inject(SerialEntryService) private readonly serialEntry: SerialEntryService,
     @Inject(CatalogueActivity) private readonly activity: CatalogueActivity,
   ) {}
 
@@ -114,8 +118,10 @@ export class StockService implements ProductStockHooks {
       }
       const current = await this.store.lockLevel(tx, tenantId, variantId);
       const change = milli(input.onHand) - milli(current);
+      if (change === 0) this.refuseSerialsWithout(variant, input.serials);
       if (change !== 0) {
         const batch = this.batchChoiceOf(variant, input, change > 0);
+        const serials = await this.serialsOf(tx, tenantId, variant, input.serials, change);
         const reason = reasonFor(input.reason ?? StockEditReason.Other, change > 0);
         if (reason === null) {
           throw new FieldsError([
@@ -129,7 +135,16 @@ export class StockService implements ProductStockHooks {
         await this.ledger.apply(
           tx,
           tenantId,
-          [{ variantId, delta: quantityOf(change), reason, note: input.note ?? null, ...batch }],
+          [
+            {
+              variantId,
+              delta: quantityOf(change),
+              reason,
+              note: input.note ?? null,
+              ...batch,
+              serials,
+            },
+          ],
           who,
         );
         await this.activity.record(
@@ -212,6 +227,13 @@ export class StockService implements ProductStockHooks {
         ]);
       }
       const batch = this.batchChoiceOf(variant, input, true);
+      const serials = await this.serialsOf(
+        tx,
+        tenantId,
+        variant,
+        input.serials,
+        milli(input.quantity),
+      );
       const quantity = quantityOf(milli(input.quantity));
       await this.ledger.apply(
         tx,
@@ -223,6 +245,7 @@ export class StockService implements ProductStockHooks {
             reason: StockReason.ManualAdjustment,
             note: input.note ?? null,
             ...batch,
+            serials,
           },
         ],
         who,
@@ -259,6 +282,17 @@ export class StockService implements ProductStockHooks {
         offset: (query.page - 1) * query.limit,
         limit: query.limit,
       });
+      // INV-14: the serials each movement brought in or took out.
+      const moved = new Map<number, string[]>();
+      for (const serial of await this.serials.listForMovements(
+        tx,
+        tenantId,
+        rows.map((row) => row.id),
+      )) {
+        for (const id of [serial.receivedMovementId, serial.leftMovementId]) {
+          if (id !== null) moved.set(id, [...(moved.get(id) ?? []), serial.serial]);
+        }
+      }
       return {
         movements: rows.map((row) => ({
           id: row.id,
@@ -274,6 +308,7 @@ export class StockService implements ProductStockHooks {
             row.batchId !== null
               ? { id: row.batchId, batchCode: row.batchCode, expiresOn: row.expiresOn }
               : null,
+          serials: moved.get(row.id) ?? [],
           note: row.note,
           actor: row.actorUserId !== null ? { userId: row.actorUserId, name: row.actorName } : null,
           createdAt: row.createdAt,
@@ -292,7 +327,12 @@ export class StockService implements ProductStockHooks {
     tx: Transaction,
     tenantId: string,
     _productId: string,
-    lines: { variantId: string; quantity: string; batch?: BatchDescription }[],
+    lines: {
+      variantId: string;
+      quantity: string;
+      batch?: BatchDescription;
+      serials?: string[];
+    }[],
     who: ResolvedActor,
   ): Promise<void> {
     await this.ledger.apply(
@@ -303,6 +343,7 @@ export class StockService implements ProductStockHooks {
         delta: quantityOf(milli(line.quantity)),
         reason: StockReason.Initial,
         batch: line.batch ?? null,
+        serials: line.serials ?? null,
       })),
       who,
     );
@@ -319,6 +360,20 @@ export class StockService implements ProductStockHooks {
       (row) => milli(row.onHand) > 0,
     );
     if (held.length === 0) return;
+    // INV-14: every serial-numbered unit goes with its serial. Each level is locked before its serials, as the ledger
+    // takes them.
+    const serials = new Map<string, string[]>();
+    const inLockOrder = [...held].sort((a, b) =>
+      a.variantId < b.variantId ? -1 : a.variantId > b.variantId ? 1 : 0,
+    );
+    for (const row of inLockOrder) {
+      await this.store.lockLevel(tx, tenantId, row.variantId);
+      const own = await this.serials.lockHeld(tx, tenantId, row.variantId);
+      serials.set(
+        row.variantId,
+        own.map((serial) => serial.serial),
+      );
+    }
     await this.ledger.apply(
       tx,
       tenantId,
@@ -327,6 +382,7 @@ export class StockService implements ProductStockHooks {
         delta: quantityOf(-milli(row.onHand)),
         reason: StockReason.ManualAdjustment,
         note: UNTRACKING_NOTE,
+        serials: serials.get(row.variantId) ?? null,
       })),
       who,
     );
@@ -350,6 +406,10 @@ export class StockService implements ProductStockHooks {
 
   refreshStockState(tx: Transaction, tenantId: string, productId: string): Promise<void> {
     return this.ledger.refresh(tx, tenantId, [productId], false);
+  }
+
+  async takenSerials(tx: Transaction, tenantId: string, serials: string[]): Promise<string[]> {
+    return [...(await this.serialEntry.taken(tx, tenantId, serials))];
   }
 
   async holdsStock(tx: Transaction, tenantId: string, productId: string): Promise<boolean> {
@@ -415,6 +475,41 @@ export class StockService implements ProductStockHooks {
     return { batch: input.batch ?? null };
   }
 
+  /**
+   * INV-14: the serials a stock change names, as stored: arriving at most one per unit and held nowhere in the shop,
+   * or leaving from this variant's units in stock. Only a serial-numbered product has serials.
+   */
+  private async serialsOf(
+    tx: Transaction,
+    tenantId: string,
+    variant: StockVariantRow,
+    entered: string[] | undefined,
+    changeMilli: number,
+  ): Promise<string[]> {
+    this.refuseSerialsWithout(variant, entered);
+    const units = Math.abs(changeMilli) / 1000;
+    const format = variant.product.serialFormat;
+    return changeMilli > 0
+      ? this.serialEntry.arriving(tx, tenantId, entered, format, 'serials', units)
+      : this.serialEntry.leaving(
+          tx,
+          tenantId,
+          variant.variantId,
+          entered,
+          format,
+          'serials',
+          units,
+        );
+  }
+
+  private refuseSerialsWithout(variant: StockVariantRow, entered: string[] | undefined): void {
+    if (entered && entered.length > 0 && !variant.product.serialTracked) {
+      throw new FieldsError([
+        { field: 'serials', problem: FieldProblemCode.NotAllowed, messageKey: 'SerialsNotTracked' },
+      ]);
+    }
+  }
+
   /** The variant, which must be one of this live product's, retired or not. */
   private async variantOf(
     tx: Transaction,
@@ -445,6 +540,13 @@ export class StockService implements ProductStockHooks {
       throw new ApiError('not_found', 'ProductNotFound', {});
     }
     const product = first.product;
+    const held = product.serialTracked
+      ? await this.serials.countHeld(
+          tx,
+          tenantId,
+          rows.map((row) => row.variantId),
+        )
+      : null;
     const pool = product.sharedStock
       ? rows.find((row) => row.isStockHolder && !row.retired)
       : undefined;
@@ -464,6 +566,8 @@ export class StockService implements ProductStockHooks {
             unsellable: row.unsellable,
             available: row.available,
             packAmount: null,
+            missingSerials:
+              held !== null ? milli(row.onHand) / 1000 - (held.get(row.variantId) ?? 0) : null,
             state: variantState(row.available, product.lowStockThreshold),
             ...(canSeeCost ? { avgCost: row.avgCost } : {}),
           }));
@@ -509,6 +613,7 @@ export class StockService implements ProductStockHooks {
       reserved: null,
       unsellable: null,
       available: quantityOf(packsOf(pool.available, pack) * 1000),
+      missingSerials: null,
       packAmount: row.packAmount,
       state: sharedVariantState(pool.available, pack, threshold),
       ...(canSeeCost

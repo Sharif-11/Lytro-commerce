@@ -13,10 +13,13 @@ import {
 import {
   AttributeRole,
   DeliveryMode,
+  MEASURED_STOCK_UNITS,
   PaymentPolicy,
+  SerialFormat,
   StockTracking,
   StockUnit,
 } from '../../db/enums';
+import { serialsField } from '../inventory/stock';
 import { FieldProblemCode } from '../../validation/field-problem';
 import { newBatchField } from '../inventory/stock';
 import {
@@ -45,6 +48,8 @@ const productFields = {
   stockTracking: z.nativeEnum(StockTracking).optional(),
   batchTracked: z.boolean().optional(),
   serialTracked: z.boolean().optional(),
+  // INV-23: what its serials look like; left out, the shop type's (an IMEI for mobiles, any code otherwise).
+  serialFormat: z.nativeEnum(SerialFormat).optional(),
   lowStockThreshold: quantityField.optional(),
   deliveryCharge: priceField.nullable().optional(),
   weightKg: weightKgField.nullable().optional(),
@@ -100,6 +105,8 @@ const newVariantsField = z
       openingStock: quantityField.optional(),
       // INV-12: the batch the opening stock is, on a batch-tracked product.
       openingBatch: newBatchField.optional(),
+      // INV-14: the serials of the opening stock's units, one per unit; fewer leaves the rest to add later.
+      openingSerials: serialsField.optional(),
     }),
   )
   .max(MAX_VARIANTS_PER_PRODUCT);
@@ -250,6 +257,15 @@ function checkFields(value: Partial<z.infer<z.ZodObject<typeof productFields>>>,
       ['serialTracked'],
       FieldProblemCode.NotAllowed,
       'Choose batches or serial numbers, not both.',
+    );
+  }
+  // INV-14: a serial is one per unit, so it needs a product counted in whole units.
+  if (value.serialTracked && value.stockUnit && MEASURED_STOCK_UNITS.includes(value.stockUnit)) {
+    refuse(
+      ctx,
+      ['serialTracked'],
+      FieldProblemCode.NotAllowed,
+      'Serial numbers need a product counted in whole units.',
     );
   }
   if (

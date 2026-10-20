@@ -719,6 +719,21 @@ CREATE TABLE tenant.category_attributes (           -- ATL-05 / ATR-02: suggesti
 - `stock_levels.low_notified` carries INV-08's once-per-crossing state; `batch_id`, `stock_batches`, serials,
   reservations and stock checks arrive in Slices 2b, 3 and 5.
 
+**Built in Phase 3 Slice 3b (migration 0059, 2026-10-20):** `serial_numbers`, `serial_status`,
+`products.serial_format` and `business_type_presets.default_serial_format` (INV-14, INV-23), with these decisions against
+the design below:
+- **Unique among the units held, shop-wide:** a partial unique index on `(tenant_id, serial)` for `in_stock` and
+  `reserved` rows. A sold or written-off serial stays as history and may come back as a new row (a trade-in, a repair).
+  Stored normalised: an IMEI as its 15 digits (spaces and dashes dropped), any other serial upper-cased.
+- **Never more serials than units:** a constraint trigger, deferred to commit, on serial rows and on movements, so a
+  change that moves stock and marks its serials is judged as a whole. Units with no serial yet are allowed (added
+  later); a fall naming fewer serials than units takes those first, and the ledger refuses one it cannot cover.
+- **History:** `left_movement_id` records the movement a unit left by (a write-off now, a sale in Phase 4); a row that
+  has left never changes, and an in-stock one may be corrected or deleted (a typo). A row goes with its variant, or by
+  LIF-19's day-60 deletion.
+- Serial tracking is refused on a measured unit (a check), and turned off only while no unit holds a serial (a
+  trigger). `default_serial_format` is `imei` for mobiles and gadgets.
+
 **Built in Phase 3 Slice 3a (migration 0058, 2026-10-20):** `stock_batches`, `stock_movements.batch_id` and
 `stock_check_lines.batch_id` (INV-12, INV-13), with these decisions against the design below:
 - **One movement per batch.** A movement of a batch-tracked product names exactly one open batch of its variant, and
@@ -817,17 +832,20 @@ CREATE INDEX ON tenant.stock_batches (tenant_id, variant_id, expires_on NULLS LA
 
 CREATE TYPE tenant.serial_status AS ENUM ('in_stock', 'reserved', 'sold', 'returned', 'written_off');
 
-CREATE TABLE tenant.serial_numbers (                -- INV-14
+CREATE TABLE tenant.serial_numbers (                -- INV-14 (built in Slice 3b)
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id       uuid NOT NULL,
     variant_id      uuid NOT NULL,
-    serial          text NOT NULL,
+    serial          varchar(64) NOT NULL,          -- normalised: an IMEI's digits, else upper-case
     status          tenant.serial_status NOT NULL DEFAULT 'in_stock',
-    received_movement_id bigint,
+    received_movement_id bigint,                   -- null for a serial added later
+    left_movement_id bigint,                       -- the write-off, or (Phase 4) the sale
     sold_order_id   uuid,
-    UNIQUE (variant_id, serial),
-    FOREIGN KEY (tenant_id, variant_id) REFERENCES tenant.product_variants(tenant_id, id)
+    created_at      timestamptz NOT NULL DEFAULT now(),
+    updated_at      timestamptz NOT NULL DEFAULT now(),
+    FOREIGN KEY (tenant_id, variant_id) REFERENCES tenant.product_variants(tenant_id, id) ON DELETE CASCADE
 );
+CREATE UNIQUE INDEX ON tenant.serial_numbers (tenant_id, serial) WHERE status IN ('in_stock', 'reserved');
 
 CREATE TYPE tenant.reservation_status AS ENUM ('active', 'consumed', 'released');
 

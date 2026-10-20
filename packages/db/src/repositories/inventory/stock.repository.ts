@@ -36,6 +36,8 @@ export interface StockVariantRow {
     | 'stockState'
     | 'sharedStock'
     | 'batchTracked'
+    | 'serialTracked'
+    | 'serialFormat'
     | 'deletedAt'
   >;
 }
@@ -134,6 +136,8 @@ export class StockRepository {
         stockState: products.stockState,
         sharedStock: products.sharedStock,
         batchTracked: products.batchTracked,
+        serialTracked: products.serialTracked,
+        serialFormat: products.serialFormat,
         productDeletedAt: products.deletedAt,
       })
       .from(productVariants)
@@ -161,6 +165,8 @@ export class StockRepository {
         stockState: row.stockState,
         sharedStock: row.sharedStock,
         batchTracked: row.batchTracked,
+        serialTracked: row.serialTracked,
+        serialFormat: row.serialFormat,
         deletedAt: row.productDeletedAt,
       },
     }));

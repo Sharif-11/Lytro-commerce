@@ -493,6 +493,12 @@ async function seedCatalogue(tenantId: string): Promise<void> {
      VALUES ($1, $2, $3, 5, 'initial')`,
     [tenantId, product, variant],
   );
+  // Slice 3b: a serial on one of those units, which, once its unit has left, nothing but the day-60 deletion removes.
+  await admin.query('UPDATE tenant.products SET serial_tracked = true WHERE id = $1', [product]);
+  await admin.query(
+    "INSERT INTO tenant.serial_numbers (tenant_id, variant_id, serial, status) VALUES ($1, $2, 'SEED-1', 'written_off')",
+    [tenantId, variant],
+  );
   // Slice 3a: a batch, which only its variant's deletion or the day-60 deletion may remove.
   await admin.query('INSERT INTO tenant.stock_batches (tenant_id, variant_id) VALUES ($1, $2)', [
     tenantId,

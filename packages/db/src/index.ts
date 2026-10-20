@@ -146,6 +146,7 @@ export {
   type StockVariantRow,
   type VariantStockRow,
 } from './repositories/inventory/stock.repository';
+export { SerialRepository, type NewSerial } from './repositories/inventory/serial.repository';
 export {
   StockBatchRepository,
   type NewStockBatch,

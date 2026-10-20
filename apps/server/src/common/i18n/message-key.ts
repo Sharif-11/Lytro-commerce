@@ -268,6 +268,18 @@ export const MESSAGE_KEYS = [
   'BatchExpiryDiffers',
   'BatchNotExpired',
   'ExpiredStockAwaitsWriteOff',
+  'SerialInvalid',
+  'NotAnImei',
+  'ImeiCheckDigitWrong',
+  'SerialRepeated',
+  'SerialTaken',
+  'SerialNotFound',
+  'TooManySerials',
+  'SerialsMustBeNamed',
+  'SerialsNotTracked',
+  'SerialsStillHeld',
+  'SerialsNeedWholeUnits',
+  'SerialHasLeft',
   'PeriodEndsBeforeItStarts',
 
   // Success -- catalogue
@@ -320,6 +332,10 @@ export const MESSAGE_KEYS = [
   'StockAdded',
   'BatchesRetrieved',
   'BatchWrittenOff',
+  'SerialsRetrieved',
+  'SerialsAdded',
+  'SerialCorrected',
+  'SerialRemoved',
 ] as const;
 
 export type MessageKey = (typeof MESSAGE_KEYS)[number];

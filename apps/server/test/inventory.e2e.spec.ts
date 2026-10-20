@@ -3,7 +3,7 @@ import { type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { StockReason } from '@lytronix/validators';
+import { isValidImei, StockReason } from '@lytronix/validators';
 import { AppModule } from '../src/app/app.module';
 import type { CatalogueTransactions } from '../src/modules/catalogue/ports/catalogue-stores';
 import { CATALOGUE_TRANSACTIONS } from '../src/modules/catalogue/tokens';
@@ -30,6 +30,8 @@ const ADMIN_URL = process.env['DATABASE_TEST_ADMIN_URL'];
 const DB_NAME = 'lytronix_inventory_test';
 const describeIfDatabase = ADMIN_URL ? describe : describe.skip;
 const STAFF_PASSWORD = 'staff-pass-2468';
+// A fresh database with every migration, and the app booted on it: more than the default 10 s on a busy machine.
+const SETUP_TIMEOUT_MS = 30_000;
 
 /** Keeps every low-stock notice, in place of the console stand-in. */
 class LowStockCapture implements LowStockNotifier {
@@ -85,7 +87,7 @@ beforeAll(async () => {
     .useValue(expiry)
     .compile();
   ({ app, port } = await listenOn(moduleRef));
-});
+}, SETUP_TIMEOUT_MS);
 
 afterAll(async () => {
   if (!ADMIN_URL) return;
@@ -1809,5 +1811,349 @@ describeIfDatabase('batches and expiry (INV-12, INV-13)', () => {
       (await other.post(`/products/${product.id}/batches/${batch}/write-off`, {})).status,
     ).toBe(404);
     expect(((await other.get('/batches')).body as { total: number }).total).toBe(0);
+  });
+});
+
+describeIfDatabase('serial numbers (INV-14, INV-23)', () => {
+  interface Serial {
+    id: string;
+    serial: string;
+    status: string;
+    receivedMovementId: number | null;
+    leftMovementId: number | null;
+  }
+
+  interface SerialMovement extends Movement {
+    id: number;
+    serials: string[];
+  }
+
+  let next = 0;
+  /** A fresh, valid IMEI: 14 digits and their check digit. */
+  function imei(): string {
+    next += 1;
+    const body = `35${String(Date.now()).slice(-6)}${String(next).padStart(6, '0')}`;
+    for (let digit = 0; digit <= 9; digit += 1) {
+      if (isValidImei(`${body}${String(digit)}`)) return `${body}${String(digit)}`;
+    }
+    throw new Error('no check digit');
+  }
+
+  /** A phone sold by IMEI, with one default variant. */
+  function phone(shop: ShopClient, name = 'Phone', extra: Record<string, unknown> = {}) {
+    return simple(shop, name, 0, { serialTracked: true, serialFormat: 'imei', ...extra });
+  }
+
+  async function serialsOf(
+    shop: ShopClient,
+    productId: string,
+    variantId: string,
+    query = '',
+  ): Promise<{ serials: Serial[]; total: number }> {
+    const result = await shop.get(`/products/${productId}/variants/${variantId}/serials${query}`);
+    expect(result.status, JSON.stringify(result.body)).toBe(200);
+    return result.body as { serials: Serial[]; total: number };
+  }
+
+  async function missing(
+    shop: ShopClient,
+    productId: string,
+    variantId: string,
+  ): Promise<number | null> {
+    return (
+      variant(await stockOf(shop, productId), variantId) as VariantStock & {
+        missingSerials: number | null;
+      }
+    ).missingSerials;
+  }
+
+  function add(shop: ShopClient, productId: string, variantId: string, body: unknown) {
+    return shop.post(`/products/${productId}/variants/${variantId}/stock-additions`, body);
+  }
+
+  it('records one IMEI per unit received, or leaves them to add later, and never takes the same IMEI twice (the INV-14 pass criterion)', async () => {
+    const shop = await openShop(port, texts, 'serial-receive');
+    const { product, variantId } = await phone(shop);
+    const [a, b, c] = [imei(), imei(), imei()];
+    const received = await add(shop, product.id, variantId, { quantity: 3, serials: [a, b, c] });
+    expect(received.status, JSON.stringify(received.body)).toBe(200);
+    expect(
+      (await serialsOf(shop, product.id, variantId)).serials.map((row) => row.serial).sort(),
+    ).toEqual([a, b, c].sort());
+    expect(await missing(shop, product.id, variantId)).toBe(0);
+    expect(
+      ((await history(shop, product.id, variantId)) as SerialMovement[])[0]?.serials.sort(),
+    ).toEqual([a, b, c].sort());
+
+    await add(shop, product.id, variantId, { quantity: 3 });
+    expect(await missing(shop, product.id, variantId)).toBe(3);
+
+    const twice = await add(shop, product.id, variantId, { quantity: 1, serials: [b] });
+    expect(twice.status).toBe(409);
+    expect(fieldsOf(twice)).toEqual({ 'serials.0': 'taken' });
+  });
+
+  it('flags a bad check digit, a short number and a repeat line by line, saving nothing (INV-23)', async () => {
+    const shop = await openShop(port, texts, 'serial-flags');
+    const { product, variantId } = await phone(shop);
+    const good = imei();
+    const wrong = `${good.slice(0, 14)}${String((Number(good[14]) + 1) % 10)}`;
+    const refused = await add(shop, product.id, variantId, {
+      quantity: 4,
+      serials: [good, wrong, '12345', good],
+    });
+    expect(refused.status).toBe(400);
+    expect(fieldsOf(refused)).toEqual({
+      'serials.1': 'invalid_format',
+      'serials.2': 'invalid_format',
+      'serials.3': 'not_allowed',
+    });
+    expect(variant(await stockOf(shop, product.id), variantId).onHand).toBe('0.000');
+    // Spaces and dashes are a scan's or a person's; the IMEI is its digits.
+    const spaced = `${good.slice(0, 2)} ${good.slice(2, 8)}-${good.slice(8)}`;
+    await add(shop, product.id, variantId, { quantity: 1, serials: [spaced] });
+    expect((await serialsOf(shop, product.id, variantId)).serials[0]?.serial).toBe(good);
+
+    // Any other serial is compared in capitals.
+    const laptop = await simple(shop, 'Laptop', 0, { serialTracked: true });
+    await add(shop, laptop.product.id, laptop.variantId, { quantity: 1, serials: ['sn-abc'] });
+    const again = await add(shop, laptop.product.id, laptop.variantId, {
+      quantity: 1,
+      serials: ['SN-ABC'],
+    });
+    expect(fieldsOf(again)).toEqual({ 'serials.0': 'taken' });
+  });
+
+  it('adds serials later, up to the units still missing one, and corrects or removes one while its unit is in stock', async () => {
+    const shop = await openShop(port, texts, 'serial-later');
+    const { product, variantId } = await phone(shop);
+    await add(shop, product.id, variantId, { quantity: 3 });
+    const [a, b, c] = [imei(), imei(), imei()];
+    const added = await shop.post(`/products/${product.id}/variants/${variantId}/serials`, {
+      serials: [a, b],
+    });
+    expect(added.status, JSON.stringify(added.body)).toBe(201);
+    expect(await missing(shop, product.id, variantId)).toBe(1);
+    const tooMany = await shop.post(`/products/${product.id}/variants/${variantId}/serials`, {
+      serials: [c, imei()],
+    });
+    expect(fieldsOf(tooMany)).toEqual({ serials: 'too_many' });
+
+    const held = (await serialsOf(shop, product.id, variantId)).serials;
+    const first = held.find((row) => row.serial === a)?.id ?? '';
+    const corrected = await shop.patch(`/products/${product.id}/serials/${first}`, { serial: c });
+    expect(corrected.status, JSON.stringify(corrected.body)).toBe(200);
+    expect((corrected.body as Serial).serial).toBe(c);
+    const second = held.find((row) => row.serial === b)?.id ?? '';
+    expect((await shop.delete(`/products/${product.id}/serials/${second}`)).status).toBe(200);
+    expect(await missing(shop, product.id, variantId)).toBe(2);
+  });
+
+  it('names the serials leaving, takes units without one first, and refuses when every unit has one', async () => {
+    const shop = await openShop(port, texts, 'serial-leave');
+    const { product, variantId } = await phone(shop);
+    const [a, b] = [imei(), imei()];
+    await add(shop, product.id, variantId, { quantity: 2, serials: [a, b] });
+    await add(shop, product.id, variantId, { quantity: 1 });
+    // 3 -> 2 names no serial: the unit without one goes.
+    expect(
+      (await setStock(shop, product.id, variantId, { onHand: 2, reason: 'damaged_or_lost' }))
+        .status,
+    ).toBe(200);
+    expect(await missing(shop, product.id, variantId)).toBe(0);
+    const unnamed = await setStock(shop, product.id, variantId, {
+      onHand: 1,
+      reason: 'damaged_or_lost',
+    });
+    expect(unnamed.status).toBe(409);
+    const named = await setStock(shop, product.id, variantId, {
+      onHand: 1,
+      reason: 'damaged_or_lost',
+      serials: [a],
+    });
+    expect(named.status, JSON.stringify(named.body)).toBe(200);
+    const writtenOff = (await serialsOf(shop, product.id, variantId, '?status=written_off'))
+      .serials;
+    expect(writtenOff.map((row) => row.serial)).toEqual([a]);
+    expect(writtenOff[0]?.leftMovementId).toBe(
+      ((await history(shop, product.id, variantId)) as SerialMovement[])[0]?.id ?? -1,
+    );
+    // A unit that has left keeps its serial as history.
+    const left = writtenOff[0]?.id ?? '';
+    expect(
+      (await shop.patch(`/products/${product.id}/serials/${left}`, { serial: imei() })).status,
+    ).toBe(409);
+    expect((await shop.delete(`/products/${product.id}/serials/${left}`)).status).toBe(409);
+    // A serial no unit in stock has is not one that can leave.
+    const notHeld = await setStock(shop, product.id, variantId, {
+      onHand: 0,
+      reason: 'damaged_or_lost',
+      serials: [imei()],
+    });
+    expect(fieldsOf(notHeld)).toEqual({ 'serials.0': 'not_found' });
+  });
+
+  it('keeps a serial unique among the units the shop holds, and lets one that left come back as a new unit', async () => {
+    const shop = await openShop(port, texts, 'serial-unique');
+    const first = await phone(shop, 'Phone A');
+    const second = await phone(shop, 'Phone B');
+    const shared = imei();
+    await add(shop, first.product.id, first.variantId, { quantity: 1, serials: [shared] });
+    const elsewhere = await add(shop, second.product.id, second.variantId, {
+      quantity: 1,
+      serials: [shared],
+    });
+    expect(fieldsOf(elsewhere)).toEqual({ 'serials.0': 'taken' });
+    // Written off, then bought back in as a trade-in.
+    await setStock(shop, first.product.id, first.variantId, {
+      onHand: 0,
+      reason: 'damaged_or_lost',
+      serials: [shared],
+    });
+    const back = await add(shop, second.product.id, second.variantId, {
+      quantity: 1,
+      serials: [shared],
+    });
+    expect(back.status, JSON.stringify(back.body)).toBe(200);
+  });
+
+  it("takes opening serials at creation, writes them off on made to order, and checks a stock check's missing ones", async () => {
+    const shop = await openShop(port, texts, 'serial-open');
+    const [a, b, c] = [imei(), imei(), imei()];
+    const tooMany = await shop.post('/products', {
+      name: 'Phone',
+      basePrice: 1000,
+      serialTracked: true,
+      serialFormat: 'imei',
+      variants: [{ optionIds: [], openingStock: 1, openingSerials: [a, b] }],
+    });
+    expect(fieldsOf(tooMany)).toEqual({ 'variants.0.openingSerials': 'too_many' });
+    const created = await create(shop, {
+      name: 'Phone',
+      basePrice: 1000,
+      serialTracked: true,
+      serialFormat: 'imei',
+      variants: [{ optionIds: [], openingStock: 3, openingSerials: [a, b, c] }],
+    });
+    const variantId = created.variants[0]?.id ?? '';
+    expect((await serialsOf(shop, created.id, variantId)).total).toBe(3);
+    const taken = await shop.post('/products', {
+      name: 'Phone again',
+      basePrice: 1000,
+      serialTracked: true,
+      serialFormat: 'imei',
+      variants: [{ optionIds: [], openingStock: 1, openingSerials: [a] }],
+    });
+    expect(taken.status).toBe(409);
+    expect(fieldsOf(taken)).toEqual({ 'variants.0.openingSerials.0': 'taken' });
+
+    // A check counting 2 of 3 names the one missing.
+    const check = await shop.post('/stock-checks', {
+      lines: [{ variantId, counted: 2, missingSerials: [c] }],
+    });
+    expect(check.status, JSON.stringify(check.body)).toBe(201);
+    expect(
+      (await serialsOf(shop, created.id, variantId, '?status=written_off')).serials.map(
+        (row) => row.serial,
+      ),
+    ).toEqual([c]);
+    const unnamed = await shop.post('/stock-checks', { lines: [{ variantId, counted: 1 }] });
+    expect(unnamed.status).toBe(409);
+
+    // Made to order: every unit goes, and every serial with it.
+    expect(
+      (await shop.patch(`/products/${created.id}`, { stockTracking: 'not_tracked' })).status,
+    ).toBe(200);
+    expect((await serialsOf(shop, created.id, variantId, '?status=written_off')).total).toBe(3);
+  });
+
+  it('turns serial tracking on over stock held, off only once no unit holds a serial, and never for a measured unit', async () => {
+    const shop = await openShop(port, texts, 'serial-switch');
+    const { product, variantId } = await simple(shop, 'Speaker', 4);
+    expect((await shop.patch(`/products/${product.id}`, { serialTracked: true })).status).toBe(200);
+    expect(await missing(shop, product.id, variantId)).toBe(4);
+    await shop.post(`/products/${product.id}/variants/${variantId}/serials`, {
+      serials: ['SPK-1'],
+    });
+    const off = await shop.patch(`/products/${product.id}`, { serialTracked: false });
+    expect(off.status).toBe(409);
+    expect(fieldsOf(off)).toEqual({ serialTracked: 'not_allowed' });
+    const held = (await serialsOf(shop, product.id, variantId)).serials[0]?.id ?? '';
+    await shop.delete(`/products/${product.id}/serials/${held}`);
+    expect((await shop.patch(`/products/${product.id}`, { serialTracked: false })).status).toBe(
+      200,
+    );
+
+    const measured = await shop.post('/products', {
+      name: 'Rice',
+      basePrice: 80,
+      stockUnit: 'kg',
+      serialTracked: true,
+    });
+    expect(fieldsOf(measured)).toEqual({ serialTracked: 'not_allowed' });
+    const rice = await simple(shop, 'Lentils', 1, { stockUnit: 'kg' });
+    const later = await shop.patch(`/products/${rice.product.id}`, { serialTracked: true });
+    expect(fieldsOf(later)).toEqual({ serialTracked: 'not_allowed' });
+    // A phone shop's products expect IMEIs.
+    expect((await shop.put('/business-type', { businessType: 'mobiles_gadgets' })).status).toBe(
+      200,
+    );
+    const gadget = (await shop.post('/products', { name: 'Tablet', basePrice: 1 })).body as {
+      serialTracked: boolean;
+      serialFormat: string;
+    };
+    expect(gadget).toMatchObject({ serialTracked: true, serialFormat: 'imei' });
+  });
+
+  it('holds the serial rules at the data layer, and keeps another shop out', async () => {
+    const shop = await openShop(port, texts, 'serial-db');
+    const other = await openShop(port, texts, 'serial-other');
+    const { product, variantId } = await phone(shop);
+    const a = imei();
+    await add(shop, product.id, variantId, { quantity: 1, serials: [a] });
+    await expect(
+      admin.query(
+        `INSERT INTO tenant.serial_numbers (tenant_id, variant_id, serial) VALUES ($1, $2, $3)`,
+        [shop.tenantId, variantId, imei()],
+      ),
+    ).rejects.toThrow(/holds 2 serials for 1(\.000)? units/);
+    const plain = await simple(shop, 'Charger', 1);
+    await expect(
+      admin.query(
+        `INSERT INTO tenant.serial_numbers (tenant_id, variant_id, serial) VALUES ($1, $2, 'X')`,
+        [shop.tenantId, plain.variantId],
+      ),
+    ).rejects.toThrow(/only for a serial-numbered product/);
+    await expect(
+      admin.query('UPDATE tenant.products SET serial_tracked = false WHERE id = $1', [product.id]),
+    ).rejects.toThrow(/turned off only while no unit holds a serial/);
+    await setStock(shop, product.id, variantId, {
+      onHand: 0,
+      reason: 'damaged_or_lost',
+      serials: [a],
+    });
+    await expect(
+      admin.query("UPDATE tenant.serial_numbers SET status = 'in_stock' WHERE serial = $1", [a]),
+    ).rejects.toThrow(/kept as history/);
+    await expect(
+      admin.query('DELETE FROM tenant.serial_numbers WHERE serial = $1', [a]),
+    ).rejects.toThrow(/kept as history/);
+
+    const serial =
+      (await serialsOf(shop, product.id, variantId, '?status=written_off')).serials[0]?.id ?? '';
+    expect((await other.get(`/products/${product.id}/variants/${variantId}/serials`)).status).toBe(
+      404,
+    );
+    expect(
+      (
+        await other.post(`/products/${product.id}/variants/${variantId}/serials`, {
+          serials: [imei()],
+        })
+      ).status,
+    ).toBe(404);
+    expect(
+      (await other.patch(`/products/${product.id}/serials/${serial}`, { serial: imei() })).status,
+    ).toBe(404);
+    expect((await other.delete(`/products/${product.id}/serials/${serial}`)).status).toBe(404);
   });
 });

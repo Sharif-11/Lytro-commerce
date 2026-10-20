@@ -1,8 +1,8 @@
 import { sql } from 'drizzle-orm';
 import { boolean, integer, jsonb, numeric, text, uuid } from 'drizzle-orm/pg-core';
-import { StockUnit } from '@lytronix/validators';
+import { SerialFormat, StockUnit } from '@lytronix/validators';
 import { control } from '../shared';
-import { stockUnit } from '../tenant/catalogue';
+import { serialFormat, stockUnit } from '../tenant/catalogue';
 
 // PST-01, PST-02, PST-04: the shop types, and the defaults and suggestions each gives a new product. Platform
 // data the operator edits without a deploy; a shop's choice is control.tenants.business_type. Defaults only:
@@ -15,6 +15,8 @@ export const businessTypePresets = control.table('business_type_presets', {
   defaultStockUnit: stockUnit('default_stock_unit').notNull().default(StockUnit.Piece),
   defaultBatch: boolean('default_batch').notNull().default(false),
   defaultSerial: boolean('default_serial').notNull().default(false),
+  // INV-23: what a new product's serials look like (an IMEI for mobiles).
+  defaultSerialFormat: serialFormat('default_serial_format').notNull().default(SerialFormat.Any),
   defaultNotTracked: boolean('default_not_tracked').notNull().default(false),
   defaultLowStock: numeric('default_low_stock', { precision: 14, scale: 3 }).notNull().default('5'),
   // Platform attribute rows (tenant.attributes with no tenant) suggested in this order (ATR-02).

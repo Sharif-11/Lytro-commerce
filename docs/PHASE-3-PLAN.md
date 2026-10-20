@@ -542,9 +542,13 @@ their backend ships earlier.
     on puts held stock into the "no expiry" batch with no movement, off is refused while expired stock waits; the
     daily pass at 00:05 Asia/Dhaka warns once per batch within 30 days and keeps `unsellable`; expired stock is written
     off only when the shop confirms. For Slice 5: a reservation sitting in a batch that expires cannot ship from it.
-  - **3b decisions:** serials per unit or added later, unique within the shop (an INV-14 amendment), `serialFormat`
-    (IMEI with its check digit, or any), a bad or repeated line refusing the whole save, decreases naming serials,
-    in-stock serials correctable, serial tracking on at any time and off only with no serial in stock.
+  - **3b decisions (migration 0059):** serials per unit or added later, unique within the shop among the units it
+    holds, so a sold or written-off serial may return as a new unit (an INV-14 amendment); `serialFormat` (IMEI with
+    its check digit, spaces and dashes dropped, or any code, compared in capitals), defaulting from the shop type; a bad
+    or repeated line refusing the whole save; decreases naming serials, unnamed ones taking units with no serial
+    first; a stock check naming its missing serials; `left_movement_id` on each unit that leaves; in-stock serials
+    correctable or removable; serial tracking on at any time, off only with no serial in stock, never on a measured
+    unit.
 - **Depends on:** Slice 2.
 - **Delivers:** batches with optional code and expiry; first-expiry-first-out picking inside
   `InventoryLedger.apply()`; the daily expiry job (warnings, and moving expired quantity to unsellable);

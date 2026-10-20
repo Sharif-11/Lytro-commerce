@@ -14,7 +14,8 @@ export class UniqueViolation extends Error {
       | 'combination'
       | 'name'
       | 'value'
-      | 'area',
+      | 'area'
+      | 'serial',
   ) {
     super(`unique violation: ${target}`);
     this.name = 'UniqueViolation';

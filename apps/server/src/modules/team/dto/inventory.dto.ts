@@ -1,7 +1,10 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
 import {
+  addSerialsSchema,
   addStockSchema,
+  correctSerialSchema,
+  SerialStatus,
   BatchState,
   recordStockCheckSchema,
   setStockSchema,
@@ -15,6 +18,8 @@ import {
 // DTO classes built from the shared schemas, so each request shape is written once (ENGINEERING §4).
 export class SetStockDto extends createZodDto(setStockSchema) {}
 export class AddStockDto extends createZodDto(addStockSchema) {}
+export class AddSerialsDto extends createZodDto(addSerialsSchema) {}
+export class CorrectSerialDto extends createZodDto(correctSerialSchema) {}
 export class VariantCostDto extends createZodDto(variantCostSchema) {}
 export class RecordStockCheckDto extends createZodDto(recordStockCheckSchema) {}
 
@@ -56,6 +61,7 @@ export const productStockViewSchema = z.object({
       reserved: z.string().nullable(),
       unsellable: z.string().nullable(),
       available: z.string(),
+      missingSerials: z.number().nullable(),
       packAmount: z.string().nullable(),
       state: z.nativeEnum(StockState),
       avgCost: z.string().nullable().optional(),
@@ -74,6 +80,7 @@ export const stockHistoryPageSchema = z.object({
       unitCost: z.string().nullable().optional(),
       reference: z.object({ type: z.string(), id: z.string() }).nullable(),
       batch: movedBatchSchema.nullable(),
+      serials: z.array(z.string()),
       note: z.string().nullable(),
       actor: actorSchema.nullable(),
       createdAt: z.date(),
@@ -175,3 +182,24 @@ export const shopBatchPageSchema = z.object({
   pages: z.number(),
 });
 export class ShopBatchPageDto extends createZodDto(shopBatchPageSchema) {}
+
+// INV-14: one serial-numbered unit, and a page of them.
+export const serialViewSchema = z.object({
+  id: z.string(),
+  variantId: z.string(),
+  serial: z.string(),
+  status: z.nativeEnum(SerialStatus),
+  receivedMovementId: z.number().nullable(),
+  leftMovementId: z.number().nullable(),
+  createdAt: z.date(),
+});
+export class SerialViewDto extends createZodDto(serialViewSchema) {}
+
+export const serialPageSchema = z.object({
+  serials: z.array(serialViewSchema),
+  page: z.number(),
+  limit: z.number(),
+  total: z.number(),
+  pages: z.number(),
+});
+export class SerialPageDto extends createZodDto(serialPageSchema) {}

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import {
+  DrizzleSerialStore,
   DrizzleStockBatchStore,
   DrizzleStockCheckStore,
   DrizzleStockStore,
@@ -12,11 +13,14 @@ import { ConsoleLowStockNotifier } from './services/console-low-stock-notifier';
 import { InventoryEraser } from './services/inventory-eraser';
 import { InventoryFiguresService } from './services/inventory-figures.service';
 import { InventoryLedger } from './services/inventory-ledger';
+import { SerialEntryService } from './services/serial-entry.service';
+import { SerialService } from './services/serial.service';
 import { StockCheckService } from './services/stock-check.service';
 import { StockService } from './services/stock.service';
 import {
   BATCH_EXPIRY_NOTIFIER,
   LOW_STOCK_NOTIFIER,
+  SERIAL_STORE,
   STOCK_BATCH_STORE,
   STOCK_CHECK_STORE,
   STOCK_STORE,
@@ -31,6 +35,7 @@ import {
     { provide: STOCK_STORE, useClass: DrizzleStockStore },
     { provide: STOCK_CHECK_STORE, useClass: DrizzleStockCheckStore },
     { provide: STOCK_BATCH_STORE, useClass: DrizzleStockBatchStore },
+    { provide: SERIAL_STORE, useClass: DrizzleSerialStore },
     { provide: BATCH_EXPIRY_NOTIFIER, useClass: ConsoleBatchExpiryNotifier },
     { provide: LOW_STOCK_NOTIFIER, useClass: ConsoleLowStockNotifier },
     InventoryLedger,
@@ -39,9 +44,12 @@ import {
     InventoryFiguresService,
     BatchService,
     BatchExpiryService,
+    SerialEntryService,
+    SerialService,
     InventoryEraser,
   ],
   exports: [
+    SerialService,
     StockService,
     StockCheckService,
     InventoryFiguresService,
