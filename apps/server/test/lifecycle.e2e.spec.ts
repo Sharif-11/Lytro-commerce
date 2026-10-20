@@ -493,6 +493,11 @@ async function seedCatalogue(tenantId: string): Promise<void> {
      VALUES ($1, $2, $3, 5, 'initial')`,
     [tenantId, product, variant],
   );
+  // Slice 3a: a batch, which only its variant's deletion or the day-60 deletion may remove.
+  await admin.query('INSERT INTO tenant.stock_batches (tenant_id, variant_id) VALUES ($1, $2)', [
+    tenantId,
+    variant,
+  ]);
   // Slice 2b: a stock check and the line it counted.
   const check = await admin.query<{ id: string }>(
     'INSERT INTO tenant.stock_checks (tenant_id) VALUES ($1) RETURNING id',

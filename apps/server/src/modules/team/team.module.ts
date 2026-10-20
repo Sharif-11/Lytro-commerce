@@ -45,6 +45,7 @@ import {
   InventoryFiguresController,
   StockChecksController,
 } from './controllers/stock-checks.controller';
+import { BatchesController } from './controllers/batches.controller';
 import { DeliveryZonesController } from './controllers/delivery-zones.controller';
 import { LocationsController } from './controllers/locations.controller';
 import { AttributesController } from './controllers/attributes.controller';
@@ -115,6 +116,7 @@ import { CatalogueRequest } from './services/catalogue-request';
     InventoryController,
     StockChecksController,
     InventoryFiguresController,
+    BatchesController,
   ],
   providers: [
     StaffSigninService,

@@ -532,6 +532,19 @@ their backend ships earlier.
   fails for every role.
 
 ### Slice 3: batches, expiry and serial numbers
+- **Status (2026-10-20):** seven decisions agreed with the user before any code; built as two PRs, 3a (batches and
+  expiry, migration 0058) and 3b (serial numbers).
+  - **3a decisions:** one movement per batch, the database keeping batch quantities with the level; the ledger picks
+    (earliest expiry first, none last, oldest received among equals), a sale never takes an expired batch, and, found
+    while building, any other unnamed loss takes expired stock last so a recount or damage can always be recorded;
+    arriving stock opens a described batch, joins an open one of the same code (a different expiry is refused, a
+    missing one joins), or goes into the variant's "no expiry" batch, never with a past expiry; turning batch tracking
+    on puts held stock into the "no expiry" batch with no movement, off is refused while expired stock waits; the
+    daily pass at 00:05 Asia/Dhaka warns once per batch within 30 days and keeps `unsellable`; expired stock is written
+    off only when the shop confirms. For Slice 5: a reservation sitting in a batch that expires cannot ship from it.
+  - **3b decisions:** serials per unit or added later, unique within the shop (an INV-14 amendment), `serialFormat`
+    (IMEI with its check digit, or any), a bad or repeated line refusing the whole save, decreases naming serials,
+    in-stock serials correctable, serial tracking on at any time and off only with no serial in stock.
 - **Depends on:** Slice 2.
 - **Delivers:** batches with optional code and expiry; first-expiry-first-out picking inside
   `InventoryLedger.apply()`; the daily expiry job (warnings, and moving expired quantity to unsellable);

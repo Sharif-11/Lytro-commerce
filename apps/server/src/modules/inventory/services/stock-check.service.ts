@@ -18,9 +18,10 @@ import { CatalogueActivity } from '../../catalogue/services/catalogue-activity';
 import { optionIdsOfKey } from '../../catalogue/services/variant-matrix';
 import { CATALOGUE_TRANSACTIONS } from '../../catalogue/tokens';
 import type { CatalogueActor } from '../../catalogue/types/catalogue';
+import type { StockBatchStore } from '../ports/stock-batch-store';
 import type { NewStockCheckLine, StockCheckStore } from '../ports/stock-check-store';
 import type { StockStore } from '../ports/stock-store';
-import { STOCK_CHECK_STORE, STOCK_STORE } from '../tokens';
+import { STOCK_BATCH_STORE, STOCK_CHECK_STORE, STOCK_STORE } from '../tokens';
 import type {
   StockActorView,
   StockChange,
@@ -52,6 +53,7 @@ export class StockCheckService {
     @Inject(CATALOGUE_TRANSACTIONS) private readonly transactions: CatalogueTransactions,
     @Inject(STOCK_STORE) private readonly stock: StockStore,
     @Inject(STOCK_CHECK_STORE) private readonly checks: StockCheckStore,
+    @Inject(STOCK_BATCH_STORE) private readonly batches: StockBatchStore,
     @Inject(InventoryLedger) private readonly ledger: InventoryLedger,
     @Inject(CatalogueActivity) private readonly activity: CatalogueActivity,
   ) {}
@@ -120,26 +122,59 @@ export class StockCheckService {
             },
           ];
         }
+        // INV-12: only a batch-tracked product's stock is counted batch by batch.
+        if (line.batchId !== undefined && !variant.product.batchTracked) {
+          return [
+            {
+              field: `${field}.batchId`,
+              problem: FieldProblemCode.NotAllowed,
+              messageKey: 'BatchesNotTracked',
+            },
+          ];
+        }
         return [];
       });
       if (problems.length > 0) throw new FieldsError(problems);
 
-      // Each variant's stock is locked before it is compared, in one order, so a sale landing mid-check waits for
-      // it and the recorded difference is from the number actually held.
-      const lines = [...input.lines].sort((a, b) =>
-        a.variantId < b.variantId ? -1 : a.variantId > b.variantId ? 1 : 0,
-      );
+      // Each variant's stock is locked before it is compared, in one order (its level, then its batches), so a sale
+      // landing mid-check waits for it and the recorded difference is from the number actually held. A line counting
+      // a batch is compared with that batch, any other with the variant's whole stock.
+      const lines = [...input.lines].sort((a, b) => {
+        const left = `${a.variantId}/${a.batchId ?? ''}`;
+        const right = `${b.variantId}/${b.batchId ?? ''}`;
+        return left < right ? -1 : left > right ? 1 : 0;
+      });
       const held = new Map<string, string>();
-      for (const line of lines) {
-        held.set(line.variantId, await this.stock.lockLevel(tx, tenantId, line.variantId));
+      for (const variantId of new Set(lines.map((line) => line.variantId))) {
+        held.set(`${variantId}/`, await this.stock.lockLevel(tx, tenantId, variantId));
+        if (!lines.some((line) => line.variantId === variantId && line.batchId !== undefined)) {
+          continue;
+        }
+        for (const batch of await this.batches.lockOpenBatches(tx, tenantId, variantId)) {
+          held.set(`${variantId}/${batch.id}`, batch.quantity);
+        }
       }
+      const missing = input.lines.flatMap((line, index): InvalidField[] =>
+        line.batchId !== undefined && !held.has(`${line.variantId}/${line.batchId}`)
+          ? [
+              {
+                field: `lines.${String(index)}.batchId`,
+                problem: ServerFieldProblemCode.NotFound,
+                messageKey: 'BatchNotFound',
+              },
+            ]
+          : [],
+      );
+      if (missing.length > 0) throw new FieldsError(missing);
+      const heldFor = (line: { variantId: string; batchId?: string }): string =>
+        held.get(`${line.variantId}/${line.batchId ?? ''}`) ?? '0';
 
       const check = await this.checks.insertCheck(tx, tenantId, {
         actorUserId: who.id,
         note: input.note ?? null,
       });
       const changes: StockChange[] = lines.flatMap((line) => {
-        const difference = milli(line.counted) - milli(held.get(line.variantId) ?? '0');
+        const difference = milli(line.counted) - milli(heldFor(line));
         return difference === 0
           ? []
           : [
@@ -148,22 +183,28 @@ export class StockCheckService {
                 delta: quantityOf(difference),
                 reason: StockReason.Recount,
                 reference: { type: STOCK_CHECK_REFERENCE, id: check.id },
+                batchId: line.batchId ?? null,
               },
             ];
       });
-      const movements = new Map(
-        (await this.ledger.apply(tx, tenantId, changes, who)).map((row) => [row.variantId, row.id]),
-      );
+      // A batch line's movement is its batch's; a whole variant's difference may land in several batches, and the
+      // line keeps the first.
+      const movements = new Map<string, number>();
+      for (const row of await this.ledger.apply(tx, tenantId, changes, who)) {
+        movements.set(`${row.variantId}/${row.batchId ?? ''}`, row.id);
+        if (!movements.has(`${row.variantId}/`)) movements.set(`${row.variantId}/`, row.id);
+      }
       const stored: NewStockCheckLine[] = lines.map((line) => {
         const variant = variants.get(line.variantId);
         if (!variant) throw new Error('a checked variant was found above');
         return {
           productId: variant.productId,
           variantId: line.variantId,
-          expected: quantityOf(milli(held.get(line.variantId) ?? '0')),
+          batchId: line.batchId ?? null,
+          expected: quantityOf(milli(heldFor(line))),
           counted: quantityOf(milli(line.counted)),
           unitCost: variant.avgCost,
-          movementId: movements.get(line.variantId) ?? null,
+          movementId: movements.get(`${line.variantId}/${line.batchId ?? ''}`) ?? null,
         };
       });
       await this.checks.insertLines(tx, tenantId, check.id, stored);
@@ -237,6 +278,10 @@ export class StockCheckService {
           productId: row.productId,
           variantId: row.variantId,
           productName: row.productName,
+          batch:
+            row.batchId !== null
+              ? { id: row.batchId, batchCode: row.batchCode, expiresOn: row.expiresOn }
+              : null,
           // A shared stock is named by its product alone.
           optionIds:
             row.combinationKey !== null && row.combinationKey !== STOCK_HOLDER_KEY

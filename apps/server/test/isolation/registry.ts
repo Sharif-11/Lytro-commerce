@@ -143,4 +143,8 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'GET /stock-checks': "lists only the session shop's own checks",
   'GET /stock-checks/:id': "another shop's check answers 404",
   'GET /inventory/figures': "sums only the session shop's own stock and movements",
+  // Phase 3 Slice 3a, checked in test/inventory.e2e.spec.ts.
+  'GET /products/:id/batches': "another shop's product answers 404",
+  'POST /products/:id/batches/:batchId/write-off': "another shop's product or batch answers 404",
+  'GET /batches': "lists only the session shop's own batches",
 };

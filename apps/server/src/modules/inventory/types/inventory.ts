@@ -1,6 +1,9 @@
 import type {
+  NewStockBatch,
   NewStockMovement,
   OutgoingRow,
+  SelectStockBatch,
+  StockBatchListRow,
   SelectStockMovement,
   StockCheckLineRow,
   StockCheckRow,
@@ -10,13 +13,22 @@ import type {
   StockVariantRow,
   VariantStockRow,
 } from '@lytronix/db';
-import type { StockReason, StockState, StockTracking, StockUnit } from '@lytronix/validators';
+import type {
+  BatchState,
+  StockReason,
+  StockState,
+  StockTracking,
+  StockUnit,
+} from '@lytronix/validators';
 
 // The stored rows, as aliases of the shared types (ENGINEERING-STANDARDS §4), never copies.
 export type MovementRecord = SelectStockMovement;
+export type StockBatchRecord = SelectStockBatch;
 export type {
+  NewStockBatch,
   NewStockMovement,
   OutgoingRow,
+  StockBatchListRow,
   StockCheckLineRow,
   StockCheckRow,
   StockCheckSummaryRow,
@@ -26,13 +38,70 @@ export type {
   VariantStockRow,
 };
 
-/** One change to on-hand stock, as the ledger records it (INV-03). `delta` is signed, in the product's unit. */
+/** INV-12: a new batch arriving: an optional lot code and expiry date (its last sellable day, YYYY-MM-DD). */
+export interface BatchDescription {
+  batchCode?: string;
+  expiresOn?: string;
+}
+
+/**
+ * One change to on-hand stock, as the ledger records it (INV-03). `delta` is signed, in the product's unit. On a
+ * batch-tracked product (INV-12) it may name the batch it moves (`batchId`), or, rising, describe a new one; with
+ * neither, a rise goes into the variant's "no expiry" batch and a fall leaves in the picking order.
+ */
 export interface StockChange {
   variantId: string;
   delta: string;
   reason: StockReason;
   note?: string | null;
   reference?: { type: string; id: string } | null;
+  batchId?: string | null;
+  batch?: BatchDescription | null;
+}
+
+/** INV-13: one batch about to expire. */
+export interface BatchExpiryNotice {
+  tenantId: string;
+  productId: string;
+  productName: string;
+  variantId: string;
+  batchId: string;
+  batchCode: string | null;
+  expiresOn: string;
+  quantity: string;
+}
+
+/** INV-12, INV-13: one open batch, as the shop sees it. */
+export interface BatchView {
+  id: string;
+  variantId: string;
+  /** The options naming its variant; none for a product's default variant or its shared stock. */
+  optionIds: string[];
+  batchCode: string | null;
+  expiresOn: string | null;
+  /** INV-22: the variant's batch for stock with no code and no expiry. */
+  noExpiry: boolean;
+  quantity: string;
+  receivedAt: Date;
+  state: BatchState;
+}
+
+export interface ProductBatchesView {
+  productId: string;
+  batches: BatchView[];
+}
+
+export interface ShopBatchView extends BatchView {
+  productId: string;
+  productName: string;
+}
+
+export interface ShopBatchPage {
+  batches: ShopBatchView[];
+  page: number;
+  limit: number;
+  total: number;
+  pages: number;
 }
 
 /** INV-08: one variant's stock falling to or below its product's threshold. */
@@ -55,6 +124,8 @@ export interface VariantStockView {
   /** Null for a variant drawing on a shared stock, which holds none of its own (INV-24). */
   onHand: string | null;
   reserved: string | null;
+  /** INV-13: stock in expired batches, held but never sold until written off; null like onHand. */
+  unsellable: string | null;
   /** For a variant drawing on a shared stock, the whole packs of it the shared stock makes (INV-24). */
   available: string;
   /** INV-24: how much of the shared stock one unit sold uses; null unless the product shares its stock. */
@@ -70,6 +141,7 @@ export interface SharedStockView {
   variantId: string;
   onHand: string;
   reserved: string;
+  unsellable: string;
   available: string;
   state: StockState;
   /** INV-10, D3-9: per unit of the stock, present only for a caller who may see cost. */
@@ -96,9 +168,18 @@ export interface StockMovementView {
   /** INV-11, D3-9: present only for a caller who may see cost; null is unknown. */
   unitCost?: string | null;
   reference: { type: string; id: string } | null;
+  /** INV-12: the batch it moved, on a batch-tracked product. */
+  batch: MovedBatchView | null;
   note: string | null;
   actor: StockActorView | null;
   createdAt: Date;
+}
+
+/** INV-12: a batch named on a movement or a counted line. */
+export interface MovedBatchView {
+  id: string;
+  batchCode: string | null;
+  expiresOn: string | null;
 }
 
 export interface StockHistoryPage {
@@ -122,6 +203,8 @@ export interface StockCheckLineView {
   /** Null where the product has since been deleted for good (PRD-13). */
   productName: string | null;
   optionIds: string[];
+  /** INV-12: the batch counted; null for a variant counted as a whole. */
+  batch: MovedBatchView | null;
   expected: string;
   counted: string;
   difference: string;

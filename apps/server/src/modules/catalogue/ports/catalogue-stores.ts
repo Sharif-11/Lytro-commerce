@@ -26,12 +26,19 @@ import type { ResolvedActor } from '../services/catalogue-activity';
  * inventory's implementation, the same way the pay-as-you-go fee joins the creation's transaction.
  */
 export interface ProductStockHooks {
-  /** A new product's stock already on the shelf, per variant (INV-03, reason `initial`). */
+  /**
+   * A new product's stock already on the shelf, per variant (INV-03, reason `initial`), each line in the batch it
+   * describes on a batch-tracked product (INV-12).
+   */
   recordOpeningStock(
     tx: Transaction,
     tenantId: string,
     productId: string,
-    lines: { variantId: string; quantity: string }[],
+    lines: {
+      variantId: string;
+      quantity: string;
+      batch?: { batchCode?: string; expiresOn?: string };
+    }[],
     who: ResolvedActor,
   ): Promise<void>;
   /** Before a tracked product becomes made to order: the stock it holds written off to zero, recorded (INV-02). */

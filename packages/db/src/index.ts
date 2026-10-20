@@ -147,6 +147,11 @@ export {
   type VariantStockRow,
 } from './repositories/inventory/stock.repository';
 export {
+  StockBatchRepository,
+  type NewStockBatch,
+  type StockBatchListRow,
+} from './repositories/inventory/stock-batch.repository';
+export {
   StockCheckRepository,
   type StockCheckLineRow,
   type StockCheckRow,

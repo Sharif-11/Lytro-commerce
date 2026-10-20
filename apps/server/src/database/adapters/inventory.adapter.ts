@@ -1,22 +1,28 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
+  StockBatchRepository,
   StockCheckRepository,
   StockRepository,
   TransactionRunner,
   type Transaction,
 } from '@lytronix/db';
 import { StockRefused } from '../../common/errors/stock-refused';
+import { DatabaseService } from '../database.service';
 import type {
   NewStockCheckLine,
   StockCheckStore,
 } from '../../modules/inventory/ports/stock-check-store';
+import type { StockBatchStore } from '../../modules/inventory/ports/stock-batch-store';
 import type { StockStore } from '../../modules/inventory/ports/stock-store';
 import type {
   MovementRecord,
+  NewStockBatch,
   NewStockMovement,
   OutgoingRow,
   StockCheckLineRow,
   StockCheckRow,
+  StockBatchListRow,
+  StockBatchRecord,
   StockCheckSummaryRow,
   StockHistoryRow,
   StockValueRow,
@@ -25,7 +31,11 @@ import type {
 } from '../../modules/inventory/types/inventory';
 
 // The checks a movement can run into (INV-01, UOM-03), by what they protect.
-const SHORTFALL_CHECKS = ['stock_levels_on_hand_check', 'stock_levels_available_check'];
+const SHORTFALL_CHECKS = [
+  'stock_levels_on_hand_check',
+  'stock_levels_available_check',
+  'stock_batches_quantity_check',
+];
 const WHOLE_UNITS_CHECK = 'stock_whole_units';
 
 @Injectable()
@@ -174,5 +184,67 @@ export class DrizzleStockCheckStore implements StockCheckStore {
 
   deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void> {
     return this.checks.deleteAllForTenant(tx, tenantId);
+  }
+}
+
+/** Database-backed stock batches (INV-12, INV-13). Every method but listShopIds runs in the caller's transaction. */
+@Injectable()
+export class DrizzleStockBatchStore implements StockBatchStore {
+  constructor(
+    @Inject(DatabaseService) private readonly database: Pick<DatabaseService, 'handle'>,
+    @Inject(StockBatchRepository) private readonly batches: StockBatchRepository,
+  ) {}
+
+  findBatches(tx: Transaction, tenantId: string, batchIds: string[]): Promise<StockBatchRecord[]> {
+    return this.batches.findBatches(tx, tenantId, batchIds);
+  }
+
+  lockOpenBatches(
+    tx: Transaction,
+    tenantId: string,
+    variantId: string,
+  ): Promise<StockBatchRecord[]> {
+    return this.batches.lockOpenBatches(tx, tenantId, variantId);
+  }
+
+  insertBatch(tx: Transaction, tenantId: string, batch: NewStockBatch): Promise<StockBatchRecord> {
+    return this.batches.insertBatch(tx, tenantId, batch);
+  }
+
+  listProductBatches(
+    tx: Transaction,
+    tenantId: string,
+    productId: string,
+  ): Promise<StockBatchListRow[]> {
+    return this.batches.listProductBatches(tx, tenantId, productId);
+  }
+
+  listShopBatches(
+    tx: Transaction,
+    tenantId: string,
+    range: { from: string | null; until: string },
+    page: { offset: number; limit: number },
+  ): Promise<{ rows: StockBatchListRow[]; total: number }> {
+    return this.batches.listShopBatches(tx, tenantId, range, page);
+  }
+
+  listUnnotified(
+    tx: Transaction,
+    tenantId: string,
+    range: { from: string; until: string },
+  ): Promise<StockBatchListRow[]> {
+    return this.batches.listUnnotified(tx, tenantId, range);
+  }
+
+  markNotified(tx: Transaction, tenantId: string, batchIds: string[]): Promise<void> {
+    return this.batches.markNotified(tx, tenantId, batchIds);
+  }
+
+  refreshUnsellable(tx: Transaction, tenantId: string): Promise<string[]> {
+    return this.batches.refreshUnsellable(tx, tenantId);
+  }
+
+  listShopIds(): Promise<string[]> {
+    return this.batches.listShopIds(this.database.handle.db);
   }
 }

@@ -18,12 +18,18 @@ import { Dashboard } from '../../../common/decorators/dashboard';
 import { RequirePermission } from '../../../common/decorators/require-permission';
 import { ResponseMessage } from '../../../common/decorators/response-message';
 import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
+import { BatchService } from '../../inventory/services/batch.service';
 import { StockService } from '../../inventory/services/stock.service';
-import type { ProductStockView, StockHistoryPage } from '../../inventory/types/inventory';
+import type {
+  ProductBatchesView,
+  ProductStockView,
+  StockHistoryPage,
+} from '../../inventory/types/inventory';
 import { DashboardGuard, type DashboardRequest } from '../../identity/guards/dashboard.guard';
 import { SessionGuard } from '../../identity/guards/session.guard';
 import {
   AddStockDto,
+  ProductBatchesDto,
   ProductStockViewDto,
   SetStockDto,
   StockHistoryPageDto,
@@ -41,8 +47,48 @@ import { CatalogueRequest } from '../services/catalogue-request';
 export class InventoryController {
   constructor(
     @Inject(StockService) private readonly stock: StockService,
+    @Inject(BatchService) private readonly batches: BatchService,
     @Inject(CatalogueRequest) private readonly catalogue: CatalogueRequest,
   ) {}
+
+  @Get('batches')
+  @RequirePermission(Permission.InventoryRead)
+  @ResponseMessage('BatchesRetrieved')
+  @ApiOperation({
+    summary:
+      "A product's batches holding stock, in picking order, with their expiry (INV-12, INV-13)",
+  })
+  @ZodResponse({ type: ProductBatchesDto })
+  listBatches(
+    @Param('id') id: string,
+    @Req() request: DashboardRequest,
+  ): Promise<ProductBatchesView> {
+    return this.batches.productBatches(
+      this.catalogue.tenantIdOf(request),
+      this.catalogue.idOf(id, 'ProductNotFound'),
+    );
+  }
+
+  @Post('batches/:batchId/write-off')
+  @HttpCode(200)
+  @RequirePermission(Permission.InventoryManage)
+  @ResponseMessage('BatchWrittenOff')
+  @ApiOperation({
+    summary: 'Write off what an expired batch holds, as an expired movement (INV-13)',
+  })
+  @ZodResponse({ type: ProductBatchesDto })
+  writeOff(
+    @Param('id') id: string,
+    @Param('batchId') batchId: string,
+    @Req() request: DashboardRequest,
+  ): Promise<ProductBatchesView> {
+    return this.batches.writeOff(
+      this.catalogue.tenantIdOf(request),
+      this.catalogue.idOf(id, 'ProductNotFound'),
+      this.catalogue.idOf(batchId, 'BatchNotFound'),
+      this.catalogue.actorOf(request),
+    );
+  }
 
   @Get('stock')
   @RequirePermission(Permission.InventoryRead)

@@ -13,6 +13,7 @@ import {
   type VariantCostInput,
 } from '@lytronix/validators';
 import { ApiError, FieldsError } from '../../../common/api-error';
+import { dhakaDate } from '../../../common/time';
 import { packCost } from '../../balance/services/money';
 import type {
   CatalogueTransactions,
@@ -25,8 +26,10 @@ import type { CatalogueActor } from '../../catalogue/types/catalogue';
 import type { StockStore } from '../ports/stock-store';
 import { STOCK_STORE } from '../tokens';
 import type {
+  BatchDescription,
   ProductStockView,
   SharedStockView,
+  StockChange,
   StockHistoryPage,
   StockVariantRow,
   VariantStockRow,
@@ -112,6 +115,7 @@ export class StockService implements ProductStockHooks {
       const current = await this.store.lockLevel(tx, tenantId, variantId);
       const change = milli(input.onHand) - milli(current);
       if (change !== 0) {
+        const batch = this.batchChoiceOf(variant, input, change > 0);
         const reason = reasonFor(input.reason ?? StockEditReason.Other, change > 0);
         if (reason === null) {
           throw new FieldsError([
@@ -125,7 +129,7 @@ export class StockService implements ProductStockHooks {
         await this.ledger.apply(
           tx,
           tenantId,
-          [{ variantId, delta: quantityOf(change), reason, note: input.note ?? null }],
+          [{ variantId, delta: quantityOf(change), reason, note: input.note ?? null, ...batch }],
           who,
         );
         await this.activity.record(
@@ -207,6 +211,7 @@ export class StockService implements ProductStockHooks {
           },
         ]);
       }
+      const batch = this.batchChoiceOf(variant, input, true);
       const quantity = quantityOf(milli(input.quantity));
       await this.ledger.apply(
         tx,
@@ -217,6 +222,7 @@ export class StockService implements ProductStockHooks {
             delta: quantity,
             reason: StockReason.ManualAdjustment,
             note: input.note ?? null,
+            ...batch,
           },
         ],
         who,
@@ -264,6 +270,10 @@ export class StockService implements ProductStockHooks {
             row.referenceType !== null && row.referenceId !== null
               ? { type: row.referenceType, id: row.referenceId }
               : null,
+          batch:
+            row.batchId !== null
+              ? { id: row.batchId, batchCode: row.batchCode, expiresOn: row.expiresOn }
+              : null,
           note: row.note,
           actor: row.actorUserId !== null ? { userId: row.actorUserId, name: row.actorName } : null,
           createdAt: row.createdAt,
@@ -282,7 +292,7 @@ export class StockService implements ProductStockHooks {
     tx: Transaction,
     tenantId: string,
     _productId: string,
-    lines: { variantId: string; quantity: string }[],
+    lines: { variantId: string; quantity: string; batch?: BatchDescription }[],
     who: ResolvedActor,
   ): Promise<void> {
     await this.ledger.apply(
@@ -292,6 +302,7 @@ export class StockService implements ProductStockHooks {
         variantId: line.variantId,
         delta: quantityOf(milli(line.quantity)),
         reason: StockReason.Initial,
+        batch: line.batch ?? null,
       })),
       who,
     );
@@ -369,6 +380,41 @@ export class StockService implements ProductStockHooks {
     return variant;
   }
 
+  /**
+   * INV-12: the batch a stock change names or describes. Only a batch-tracked product has batches, and only arriving
+   * stock opens one, never with an expiry already past; stock leaving may name the batch it leaves.
+   */
+  private batchChoiceOf(
+    variant: StockVariantRow,
+    input: { batch?: BatchDescription; batchId?: string },
+    rising: boolean,
+  ): Pick<StockChange, 'batch' | 'batchId'> {
+    if (input.batch === undefined && input.batchId === undefined) return {};
+    const field = input.batchId !== undefined ? 'batchId' : 'batch';
+    if (!variant.product.batchTracked) {
+      throw new FieldsError([
+        { field, problem: FieldProblemCode.NotAllowed, messageKey: 'BatchesNotTracked' },
+      ]);
+    }
+    if (input.batchId !== undefined) return { batchId: input.batchId };
+    if (!rising) {
+      throw new FieldsError([
+        { field, problem: FieldProblemCode.NotAllowed, messageKey: 'NewBatchOnlyForArrivals' },
+      ]);
+    }
+    const expiresOn = input.batch?.expiresOn;
+    if (expiresOn !== undefined && expiresOn < dhakaDate(new Date())) {
+      throw new FieldsError([
+        {
+          field: 'batch.expiresOn',
+          problem: FieldProblemCode.NotAllowed,
+          messageKey: 'ExpiryInThePast',
+        },
+      ]);
+    }
+    return { batch: input.batch ?? null };
+  }
+
   /** The variant, which must be one of this live product's, retired or not. */
   private async variantOf(
     tx: Transaction,
@@ -415,6 +461,7 @@ export class StockService implements ProductStockHooks {
             retired: row.retired,
             onHand: row.onHand,
             reserved: row.reserved,
+            unsellable: row.unsellable,
             available: row.available,
             packAmount: null,
             state: variantState(row.available, product.lowStockThreshold),
@@ -425,6 +472,7 @@ export class StockService implements ProductStockHooks {
           variantId: pool.variantId,
           onHand: pool.onHand,
           reserved: pool.reserved,
+          unsellable: pool.unsellable,
           available: pool.available,
           state: variantState(pool.available, product.lowStockThreshold),
           ...(canSeeCost ? { avgCost: pool.avgCost } : {}),
@@ -459,6 +507,7 @@ export class StockService implements ProductStockHooks {
       retired: false,
       onHand: null,
       reserved: null,
+      unsellable: null,
       available: quantityOf(packsOf(pool.available, pack) * 1000),
       packAmount: row.packAmount,
       state: sharedVariantState(pool.available, pack, threshold),

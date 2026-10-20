@@ -4,6 +4,7 @@ import {
   bigserial,
   boolean,
   check,
+  date,
   foreignKey,
   index,
   numeric,
@@ -11,10 +12,16 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
-import { enumTuple, StockReason, STOCK_NOTE_MAX_LENGTH } from '@lytronix/validators';
+import {
+  enumTuple,
+  StockReason,
+  STOCK_BATCH_CODE_MAX_LENGTH,
+  STOCK_NOTE_MAX_LENGTH,
+} from '@lytronix/validators';
 import { createdAt, tenant } from '../shared';
 import { productVariants } from './catalogue';
 
@@ -72,6 +79,9 @@ export const stockMovements = tenant.table(
     quantityDelta: numeric('quantity_delta', { precision: 14, scale: 3 }).notNull(),
     onHandAfter: numeric('on_hand_after', { precision: 14, scale: 3 }).notNull().default('0'),
     reason: stockReason('reason').notNull(),
+    // INV-12: on a batch-tracked product, the one batch this movement moved (held by value, like the variant); null
+    // otherwise. A change spanning batches is one movement per batch.
+    batchId: uuid('batch_id'),
     // INV-11: the unit cost when stock left; null is unknown, never zero.
     unitCost: numeric('unit_cost', { precision: 12, scale: 4 }),
     referenceType: text('reference_type'),
@@ -86,6 +96,59 @@ export const stockMovements = tenant.table(
     check('stock_movements_unit_cost_check', sql`${t.unitCost} >= 0`),
     index('stock_movements_variant_idx').on(t.tenantId, t.variantId, t.id.desc()),
     index('stock_movements_tenant_created_idx').on(t.tenantId, t.createdAt),
+  ],
+);
+
+// INV-12, INV-13: a variant's stock, batch by batch, on a batch-tracked product (on a product sharing its stock, the
+// stock holder's). A batch's quantity is its opening quantity plus the sum of its own movements, and a variant's on
+// hand is the sum of its open batches; the movement trigger keeps both, and a quantity changes no other way. The
+// opening quantity is non-zero only for the "no expiry" batch made when batch tracking is turned on over stock already
+// held. Closed when batch tracking is turned off, kept for its history.
+export const stockBatches = tenant.table(
+  'stock_batches',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    tenantId: uuid('tenant_id').notNull(),
+    variantId: uuid('variant_id').notNull(),
+    batchCode: varchar('batch_code', { length: STOCK_BATCH_CODE_MAX_LENGTH }),
+    // The batch's last sellable day, in Asia/Dhaka; null never expires and is picked last.
+    expiresOn: date('expires_on', { mode: 'string' }),
+    // INV-22: the variant's one batch for stock with no code and no expiry.
+    isDefault: boolean('is_default').notNull().default(false),
+    openingQuantity: numeric('opening_quantity', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0'),
+    quantity: numeric('quantity', { precision: 14, scale: 3 }).notNull().default('0'),
+    receivedAt: timestamp('received_at', { withTimezone: true }).notNull().defaultNow(),
+    // INV-13: set when the batch's one expiry notice went out.
+    expiryNotifiedAt: timestamp('expiry_notified_at', { withTimezone: true }),
+    closedAt: timestamp('closed_at', { withTimezone: true }),
+  },
+  (t) => [
+    unique('stock_batches_tenant_id_key').on(t.tenantId, t.id),
+    foreignKey({
+      name: 'stock_batches_variant_fk',
+      columns: [t.tenantId, t.variantId],
+      foreignColumns: [productVariants.tenantId, productVariants.id],
+    }).onDelete('cascade'),
+    check('stock_batches_quantity_check', sql`${t.quantity} >= 0`),
+    check('stock_batches_opening_quantity_check', sql`${t.openingQuantity} >= 0`),
+    check(
+      'stock_batches_default_check',
+      sql`NOT ${t.isDefault} OR (${t.batchCode} IS NULL AND ${t.expiresOn} IS NULL)`,
+    ),
+    uniqueIndex('stock_batches_default_idx')
+      .on(t.tenantId, t.variantId)
+      .where(sql`${t.isDefault} AND ${t.closedAt} IS NULL`),
+    uniqueIndex('stock_batches_code_idx')
+      .on(t.tenantId, t.variantId, t.batchCode)
+      .where(sql`${t.batchCode} IS NOT NULL AND ${t.closedAt} IS NULL`),
+    index('stock_batches_pick_idx')
+      .on(t.tenantId, t.variantId, t.expiresOn, t.receivedAt)
+      .where(sql`${t.closedAt} IS NULL`),
+    index('stock_batches_expiry_idx')
+      .on(t.tenantId, t.expiresOn)
+      .where(sql`${t.closedAt} IS NULL AND ${t.expiresOn} IS NOT NULL`),
   ],
 );
 
@@ -112,10 +175,15 @@ export const stockChecks = tenant.table(
 export const stockCheckLines = tenant.table(
   'stock_check_lines',
   {
+    // A check may count several batches of one variant, so a line has its own key; the migration keeps a variant (or
+    // one of its batches) to one line per check with a unique index.
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
     tenantId: uuid('tenant_id').notNull(),
     checkId: uuid('check_id').notNull(),
     productId: uuid('product_id').notNull(),
     variantId: uuid('variant_id').notNull(),
+    // INV-12: the batch counted; null for a variant counted as a whole. Held by value.
+    batchId: uuid('batch_id'),
     expected: numeric('expected', { precision: 14, scale: 3 }).notNull(),
     counted: numeric('counted', { precision: 14, scale: 3 }).notNull(),
     unitCost: numeric('unit_cost', { precision: 12, scale: 4 }),
@@ -123,7 +191,6 @@ export const stockCheckLines = tenant.table(
     movementId: bigint('movement_id', { mode: 'number' }),
   },
   (t) => [
-    primaryKey({ columns: [t.tenantId, t.checkId, t.variantId] }),
     foreignKey({
       name: 'stock_check_lines_check_fk',
       columns: [t.tenantId, t.checkId],
@@ -137,6 +204,8 @@ export const stockCheckLines = tenant.table(
 export type SelectStockLevel = typeof stockLevels.$inferSelect;
 export type SelectStockMovement = typeof stockMovements.$inferSelect;
 export type InsertStockMovement = typeof stockMovements.$inferInsert;
+export type SelectStockBatch = typeof stockBatches.$inferSelect;
+export type InsertStockBatch = typeof stockBatches.$inferInsert;
 export type SelectStockCheck = typeof stockChecks.$inferSelect;
 export type SelectStockCheckLine = typeof stockCheckLines.$inferSelect;
 export type InsertStockCheckLine = typeof stockCheckLines.$inferInsert;

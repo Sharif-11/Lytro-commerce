@@ -72,6 +72,11 @@ export const DELIVERY_ZONE_MAX_THANAS = 600;
 export const STOCK_NOTE_MAX_LENGTH = 200;
 // INV-09: a page of stock history.
 export const STOCK_HISTORY_PAGE_SIZE = 20;
+// INV-12: a batch's optional code (a lot number), and a page of batches.
+export const STOCK_BATCH_CODE_MAX_LENGTH = 40;
+export const STOCK_BATCH_PAGE_SIZE = 20;
+// INV-13: a batch expiring within this many days raises its one notice.
+export const EXPIRY_WARNING_DAYS = 30;
 // INV-07: the variants one stock check may count, and a page of past checks.
 export const STOCK_CHECK_LINES_MAX = 500;
 export const STOCK_CHECK_PAGE_SIZE = 20;

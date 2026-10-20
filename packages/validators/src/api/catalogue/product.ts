@@ -18,6 +18,7 @@ import {
   StockUnit,
 } from '../../db/enums';
 import { FieldProblemCode } from '../../validation/field-problem';
+import { newBatchField } from '../inventory/stock';
 import {
   catalogueIdSchema,
   positiveQuantityField,
@@ -94,7 +95,13 @@ const variantsField = z.array(variantInput).max(MAX_VARIANTS_PER_PRODUCT);
 // A new product's variant may arrive with the stock already on the shelf, recorded as its opening stock (INV-03,
 // `initial`). Whether the product's unit allows a fraction is checked by the server (UOM-03).
 const newVariantsField = z
-  .array(variantInput.extend({ openingStock: quantityField.optional() }))
+  .array(
+    variantInput.extend({
+      openingStock: quantityField.optional(),
+      // INV-12: the batch the opening stock is, on a batch-tracked product.
+      openingBatch: newBatchField.optional(),
+    }),
+  )
   .max(MAX_VARIANTS_PER_PRODUCT);
 const attributesField = z.array(attributeValueInput).max(ATTRIBUTES_PER_PRODUCT_MAX);
 
@@ -282,6 +289,7 @@ export const createProductSchema = z
     ...productFields,
     sharedStock: z.boolean().optional(),
     sharedOpeningStock: quantityField.optional(),
+    sharedOpeningBatch: newBatchField.optional(),
     variantAttributes: variantAttributesField.optional(),
     variants: newVariantsField.optional(),
     attributes: attributesField.optional(),

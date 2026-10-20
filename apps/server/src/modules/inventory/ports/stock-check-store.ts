@@ -5,6 +5,8 @@ import type { StockCheckLineRow, StockCheckRow, StockCheckSummaryRow } from '../
 export interface NewStockCheckLine {
   productId: string;
   variantId: string;
+  /** INV-12: the batch counted; null for a variant counted as a whole. */
+  batchId: string | null;
   expected: string;
   counted: string;
   unitCost: string | null;
