@@ -190,7 +190,7 @@ Lytro" at the foot. Every field is 48 px, every button full width, every message
 | Verify code `/verify-code` | six boxes, "works for 5 minutes", resend countdown, change number, use a password | three digits typed; wrong code with tries left and the 15-minute lock line | AUTH-05 to 07, 13, 14 |
 | OAuth return `/auth/oauth/:p/callback` | a spinner and "back to sign-in" | | AUTH-24 |
 | Create shop `/create-shop` | shop name (any script, 60); the link with the `.lytro.app` suffix and the live verdict; both addresses previewed; owner name; the final-address line; **দোকান তৈরি করুন** | available; taken with the `megh-2` chip; refused (AUTH-30) with everything kept; after a deleted shop, the carry-over note | AUTH-10, 11, 23, 30, TEN-19, 26, 31 |
-| Checkout `/checkout` | plan and term chips; price, monthly equivalent and saving; the no-refund line; the platform's wallet number with Copy; TrxID, sender and amount; **পেমেন্ট জমা দিন**; "continue without paying" | before; submitted, with "your shop runs on the trial meanwhile" | AUTH-29, BIL-01, 02, 03, 18, TRM-12 |
+| Checkout `/checkout` | plan and term chips; price, monthly equivalent and saving; the no-refund line; the four wallet marks; **পেমেন্ট পেজে যান · ৳4,741**, which opens the hosted payment page with Lytro as the payee (§7.19); "continue without paying" | before; returned while the payment is still being checked ("your shop runs on the trial meanwhile"); returned paid ("Starter is on", the period, invoice, SMS and email) | AUTH-29, BIL-01, 02, 03, 04, 18, TRM-12, PAY-21 |
 | Set password `/set-password` | the new password with three live rules; Save; Skip | optional; Facebook-only account with the recovery note; required (no Skip) after a reset or an owner-set staff password | AUTH-19, 20, 27 |
 | Set up `/set-up` | the eleven shop types as chips; the home area as chips with a search; the two-zone preview (৳70 inside, ৳130 outside); Save or Skip | | AUTH-28, PST-01, DLV-01 |
 | Staff sign-in `/staff-sign-in` | phone and the owner-set password; the "ask the owner" line; the owner link | | AUTH-31 |
@@ -362,9 +362,11 @@ names). Built: `GET/POST/PATCH/DELETE /delivery-zones`, `PUT …/home-area`, `�
 
 A plain card: the amount in 36 px, the "frozen" chip when frozen (BAL-08), this month's free SMS as a bar,
 **Top up** (marigold, `balance:manage`), "Current rates". The statement grouped by day with units × rate
-and the balance after, segments by type, dates, CSV; the rates card. The **top-up sheet** (BAL-03, 04,
-BIL-03): amount with quick chips, the platform's wallet number with Copy, sender number and TrxID, then the
-"being checked" line. Built.
+and the balance after, segments by type, dates, CSV; the rates card. The **top-up sheet** (BAL-03, 04): the amount with quick chips and "buys about n SMS", the four wallet
+marks, and **পেমেন্ট পেজে যান · ৳500**, which opens the hosted payment page for that amount (§7.19).
+Coming back, the Balance screen shows the "৳500 top-up is being checked" banner until it matches, then
+the credited toast and the ledger row. Built today as `POST /balance/top-up/quote` then `/confirm`; the
+page replaces the inline wallet step in Phase 5.
 
 ### 7.12 Plan (`/plan`)
 
@@ -376,10 +378,15 @@ next payment, orders handled), the one action for the state (Renew for ৳…, P
 pay-as-you-go card. Add-ons as a card that says what will be bought here (Slice 10a). Stop the subscription
 as a disclosure at the foot.
 
-**Sheets.** *Upgrade* (UPG-06): new price, credit for unused days, amount due, the new period, the limits
-that change, pay from balance or by wallet, the 15-minute validity and no-refund lines. *Downgrade*
-(DWN-03): the effective date first, the over-limit list, one sentence per consequence, the new price, "Move
-down on 9 Nov". Built.
+**Sheets.** *How to pay* (BIL-02, BIL-08): from the balance when it covers the price, else greyed with
+the reason, or on the payment page with the four wallet marks; the line that nothing changes before the
+payment is confirmed and that the request lapses after 24 hours (BIL-04, BIL-15). *Upgrade* (UPG-06,
+UPG-16): new price, credit for unused days, amount due, the new period, the limits that change, pay from
+balance (enough here) or on the payment page, the 15-minute validity and no-refund lines. *Downgrade*
+(DWN-03): the effective date first, the over-limit list, one sentence per consequence, the new price,
+"Move down on 9 Nov". Coming back from the page, Plan shows the "payment being checked" banner (nothing
+changes until it is confirmed), then "Renewed · runs until 9 Dec" or "Growth is on" with the new figures.
+Built.
 
 ### 7.13 Invoices (`/invoices`)
 
@@ -414,7 +421,26 @@ storefront.
 The identities as rows with the provider's mark and the action per row (AUTH-26, AUTH-27), the language
 toggle (I18N-02), Sign out. Built.
 
-### 7.18 Lifecycle, suspension and support view
+### 7.19 Paying the platform through the hosted page
+
+Every payment to Lytro (a plan at checkout, a renewal, an upgrade, a top-up) goes through the hosted
+payment page of `PAYMENT-PAGE-DESIGN.md` with Lytro as the payee, the platform's wallet numbers, the exact
+amount and the reference (PAY-21, BIL-03, BAL-03). The dashboard never shows a wallet number or asks for a
+transaction ID itself. The wiring:
+
+| Where the seller taps | The page opens with | Coming back |
+| --- | --- | --- |
+| Checkout, "পেমেন্ট পেজে যান · ৳4,741" | Lytro · Starter · 12 months · ৳4,741 | paid → "Starter is on" and the password step; still checking → "submitted, the trial runs meanwhile" and the password step; closed → the checkout again |
+| Balance, Top up, "পেমেন্ট পেজে যান · ৳500" | Lytro · Top-up · ৳500 | paid → the credited toast and ledger row; still checking → the "being checked" banner; closed → Balance |
+| Plan, Renew → How to pay, "পেমেন্ট পেজে যান · ৳449" | Lytro · Starter · 1 month · renewal · ৳449 | paid → "Renewed · runs until 9 Dec"; still checking → the banner; closed → Plan |
+| Plan, Upgrade, "Pay on the payment page" | Lytro · Upgrade to Growth · ৳400 | paid → "Growth is on"; still checking → the banner; closed → the upgrade sheet |
+
+In the prototype the page is embedded as its own document inside the frame: the picker, the wallet's
+coloured card, Verify, the checking ring and the verified card, then "back to shop" returns to the state
+above (auto-return after five seconds when paid, PAY-08). The page is in the toolbar's "Payment page"
+group with each of the four contexts.
+
+### 7.20 Lifecycle, suspension and support view
 
 | State | What the shell does | SRS |
 | --- | --- | --- |
