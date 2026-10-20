@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
 import {
+  recordStockCheckSchema,
   setStockSchema,
   StockReason,
   StockState,
@@ -12,8 +13,11 @@ import {
 // DTO classes built from the shared schemas, so each request shape is written once (ENGINEERING §4).
 export class SetStockDto extends createZodDto(setStockSchema) {}
 export class VariantCostDto extends createZodDto(variantCostSchema) {}
+export class RecordStockCheckDto extends createZodDto(recordStockCheckSchema) {}
 
 // --- Responses. Cost fields are present only for a caller who may see cost (D3-9). ---
+
+const actorSchema = z.object({ userId: z.string(), name: z.string().nullable() });
 
 export const productStockViewSchema = z.object({
   productId: z.string(),
@@ -47,7 +51,7 @@ export const stockHistoryPageSchema = z.object({
       unitCost: z.string().nullable().optional(),
       reference: z.object({ type: z.string(), id: z.string() }).nullable(),
       note: z.string().nullable(),
-      actor: z.object({ userId: z.string(), name: z.string().nullable() }).nullable(),
+      actor: actorSchema.nullable(),
       createdAt: z.date(),
     }),
   ),
@@ -57,3 +61,64 @@ export const stockHistoryPageSchema = z.object({
   pages: z.number(),
 });
 export class StockHistoryPageDto extends createZodDto(stockHistoryPageSchema) {}
+
+// INV-07: values and costs are present only for a caller who may see cost (D3-9).
+const stockCheckTotalsSchema = z.object({
+  lines: z.number(),
+  changed: z.number(),
+  valueGained: z.string().optional(),
+  valueLost: z.string().optional(),
+  unknownCost: z.number().optional(),
+});
+
+const stockCheckSummarySchema = z.object({
+  id: z.string(),
+  note: z.string().nullable(),
+  actor: actorSchema.nullable(),
+  createdAt: z.date(),
+  totals: stockCheckTotalsSchema,
+});
+
+export const stockCheckViewSchema = stockCheckSummarySchema.extend({
+  lines: z.array(
+    z.object({
+      productId: z.string(),
+      variantId: z.string(),
+      productName: z.string().nullable(),
+      optionIds: z.array(z.string()),
+      expected: z.string(),
+      counted: z.string(),
+      difference: z.string(),
+      unitCost: z.string().nullable().optional(),
+      value: z.string().nullable().optional(),
+    }),
+  ),
+});
+export class StockCheckViewDto extends createZodDto(stockCheckViewSchema) {}
+
+export const stockCheckPageSchema = z.object({
+  checks: z.array(stockCheckSummarySchema),
+  page: z.number(),
+  limit: z.number(),
+  total: z.number(),
+  pages: z.number(),
+});
+export class StockCheckPageDto extends createZodDto(stockCheckPageSchema) {}
+
+// INV-18: every figure is a value to the paisa, with what had no cost to count.
+const movedFigureSchema = z.object({
+  value: z.string(),
+  movements: z.number(),
+  unknownCost: z.number(),
+});
+
+export const inventoryFiguresSchema = z.object({
+  dateFrom: z.string(),
+  dateTo: z.string(),
+  stockValue: z.object({ value: z.string(), unknownCost: z.number() }),
+  costOfGoodsSold: movedFigureSchema,
+  losses: movedFigureSchema.extend({
+    byReason: z.array(movedFigureSchema.extend({ reason: z.nativeEnum(StockReason) })),
+  }),
+});
+export class InventoryFiguresDto extends createZodDto(inventoryFiguresSchema) {}

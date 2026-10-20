@@ -493,6 +493,16 @@ async function seedCatalogue(tenantId: string): Promise<void> {
      VALUES ($1, $2, $3, 5, 'initial')`,
     [tenantId, product, variant],
   );
+  // Slice 2b: a stock check and the line it counted.
+  const check = await admin.query<{ id: string }>(
+    'INSERT INTO tenant.stock_checks (tenant_id) VALUES ($1) RETURNING id',
+    [tenantId],
+  );
+  await admin.query(
+    `INSERT INTO tenant.stock_check_lines (tenant_id, check_id, product_id, variant_id, expected, counted)
+     VALUES ($1, $2, $3, $4, 5, 5)`,
+    [tenantId, check.rows[0]?.id, product, variant],
+  );
   await admin.query(
     `INSERT INTO tenant.size_charts (tenant_id, product_id, table_rows) VALUES ($1, $2, '[["40"]]')`,
     [tenantId, product],

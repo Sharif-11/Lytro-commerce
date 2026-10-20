@@ -493,7 +493,15 @@ their backend ships earlier.
     module depends on `catalogue`; catalogue reaches it through stock hooks its callers pass in, inside the
     product's own transaction.
   - **2b:** stock checks (INV-07), stock value, cost of goods sold and losses by period (INV-18), and shared stock
-    with pack amounts (INV-24).
+    with pack amounts (INV-24). Built as two PRs: stock checks and the figures first (migration 0056), then shared
+    stock, which reaches into product create and update, the variant matrix, duplication and the variant limit.
+    - **Stock checks:** a check stores every line it counted, matching or not, with the average cost at that moment,
+      so its value gained or lost never moves with a later cost. A difference is read under the level's lock. Lines
+      are valued to the paisa, rounded half up, and a changed line with no cost is counted, never valued at zero.
+    - **Figures:** stock value now; cost of goods sold and losses for a period of whole Asia/Dhaka days (this month
+      to today when left out). Every outgoing movement that is not a sale counts as a loss, by reason, including a
+      manual adjustment and the made-to-order write-off. Returns (Slice 5, Phase 4) do not yet offset cost of goods
+      sold.
   - **Decisions:** opening stock rides the create-product request per variant, as `initial` movements; a product's
     public state is its best variant's (in if any variant is in, else low if any is low, else out); retiring a
     variant keeps its stock in view ("retired, N in stock") and never sells it; turning a tracked product made to

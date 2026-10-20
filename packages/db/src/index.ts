@@ -140,10 +140,18 @@ export { CatalogueDataRepository } from './repositories/catalogue/catalogue-data
 export {
   StockRepository,
   type NewStockMovement,
+  type OutgoingRow,
   type StockHistoryRow,
+  type StockValueRow,
   type StockVariantRow,
   type VariantStockRow,
 } from './repositories/inventory/stock.repository';
+export {
+  StockCheckRepository,
+  type StockCheckLineRow,
+  type StockCheckRow,
+  type StockCheckSummaryRow,
+} from './repositories/inventory/stock-check.repository';
 export { LocationRepository, type LocationList } from './repositories/delivery/location.repository';
 export {
   DeliveryZoneRepository,

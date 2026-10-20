@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, inArray, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, gte, inArray, lt, sql } from 'drizzle-orm';
 import { StockReason } from '@lytronix/validators';
 import {
   productVariants,
@@ -41,6 +41,20 @@ export interface VariantStockRow {
   available: string;
   lowNotified: boolean;
   hasLevel: boolean;
+}
+
+/** INV-18: the stock held now at average cost; variants holding stock with no cost add nothing and are counted. */
+export interface StockValueRow {
+  value: string;
+  unknownCost: number;
+}
+
+/** INV-18: one reason's outgoing movements in a period, valued at the cost each recorded. */
+export interface OutgoingRow {
+  reason: StockReason;
+  movements: number;
+  value: string;
+  unknownCost: number;
 }
 
 /** One line of a variant's stock history, with who made it. */
@@ -251,6 +265,59 @@ export class StockRepository {
       .update(productVariants)
       .set({ avgCost })
       .where(and(eq(productVariants.tenantId, tenantId), eq(productVariants.id, variantId)));
+  }
+
+  /**
+   * INV-18: what the stock held now is worth at average cost, and how many variants holding stock have no cost yet
+   * (counted at nothing, so the value is a floor, never a guess).
+   */
+  async stockValue(tx: Transaction, tenantId: string): Promise<StockValueRow> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const rows = await tx
+      .select({
+        value: sql<string>`coalesce(round(sum(${stockLevels.onHand} * ${productVariants.avgCost}), 2), 0)::numeric(14, 2)::text`,
+        unknownCost: sql<number>`count(*) FILTER (WHERE ${productVariants.avgCost} IS NULL)::int`,
+      })
+      .from(stockLevels)
+      .innerJoin(
+        productVariants,
+        and(
+          eq(productVariants.tenantId, stockLevels.tenantId),
+          eq(productVariants.id, stockLevels.variantId),
+        ),
+      )
+      .where(and(eq(stockLevels.tenantId, tenantId), sql`${stockLevels.onHand} > 0`));
+    return rows[0] ?? { value: '0.00', unknownCost: 0 };
+  }
+
+  /**
+   * INV-11, INV-18: the stock that left in a period, by reason, valued at the cost each movement recorded. A
+   * movement whose cost was unknown adds nothing and is counted instead.
+   */
+  async outgoingByReason(
+    tx: Transaction,
+    tenantId: string,
+    period: { from: Date; to: Date },
+  ): Promise<OutgoingRow[]> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    return tx
+      .select({
+        reason: stockMovements.reason,
+        movements: sql<number>`count(*)::int`,
+        value: sql<string>`coalesce(round(sum(-${stockMovements.quantityDelta} * ${stockMovements.unitCost}), 2), 0)::numeric(14, 2)::text`,
+        unknownCost: sql<number>`count(*) FILTER (WHERE ${stockMovements.unitCost} IS NULL)::int`,
+      })
+      .from(stockMovements)
+      .where(
+        and(
+          eq(stockMovements.tenantId, tenantId),
+          sql`${stockMovements.quantityDelta} < 0`,
+          gte(stockMovements.createdAt, period.from),
+          lt(stockMovements.createdAt, period.to),
+        ),
+      )
+      .groupBy(stockMovements.reason)
+      .orderBy(asc(stockMovements.reason));
   }
 
   /**

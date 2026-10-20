@@ -136,4 +136,9 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'PUT /products/:id/variants/:variantId/cost': "another shop's product or variant answers 404",
   'GET /products/:id/variants/:variantId/stock-history':
     "another shop's product or variant answers 404",
+  // Phase 3 Slice 2b, checked in test/inventory.e2e.spec.ts.
+  'POST /stock-checks': "another shop's variant is not_found, and nothing is recorded",
+  'GET /stock-checks': "lists only the session shop's own checks",
+  'GET /stock-checks/:id': "another shop's check answers 404",
+  'GET /inventory/figures': "sums only the session shop's own stock and movements",
 };

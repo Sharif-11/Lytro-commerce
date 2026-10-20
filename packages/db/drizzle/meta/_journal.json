@@ -393,6 +393,13 @@
       "when": 1792436755815,
       "tag": "0055_balance_ledger_guards",
       "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1792439639655,
+      "tag": "0056_stock_checks",
+      "breakpoints": true
     }
   ]
 }

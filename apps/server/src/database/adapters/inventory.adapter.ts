@@ -1,11 +1,25 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { StockRepository, TransactionRunner, type Transaction } from '@lytronix/db';
+import {
+  StockCheckRepository,
+  StockRepository,
+  TransactionRunner,
+  type Transaction,
+} from '@lytronix/db';
 import { StockRefused } from '../../common/errors/stock-refused';
+import type {
+  NewStockCheckLine,
+  StockCheckStore,
+} from '../../modules/inventory/ports/stock-check-store';
 import type { StockStore } from '../../modules/inventory/ports/stock-store';
 import type {
   MovementRecord,
   NewStockMovement,
+  OutgoingRow,
+  StockCheckLineRow,
+  StockCheckRow,
+  StockCheckSummaryRow,
   StockHistoryRow,
+  StockValueRow,
   StockVariantRow,
   VariantStockRow,
 } from '../../modules/inventory/types/inventory';
@@ -90,7 +104,67 @@ export class DrizzleStockStore implements StockStore {
     return this.stock.setAvgCost(tx, tenantId, variantId, avgCost);
   }
 
+  stockValue(tx: Transaction, tenantId: string): Promise<StockValueRow> {
+    return this.stock.stockValue(tx, tenantId);
+  }
+
+  outgoingByReason(
+    tx: Transaction,
+    tenantId: string,
+    period: { from: Date; to: Date },
+  ): Promise<OutgoingRow[]> {
+    return this.stock.outgoingByReason(tx, tenantId, period);
+  }
+
   deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void> {
     return this.stock.deleteAllForTenant(tx, tenantId);
+  }
+}
+
+/** Database-backed stock checks (INV-07). Every method runs in the caller's transaction, under the shop's context. */
+@Injectable()
+export class DrizzleStockCheckStore implements StockCheckStore {
+  constructor(@Inject(StockCheckRepository) private readonly checks: StockCheckRepository) {}
+
+  async insertCheck(
+    tx: Transaction,
+    tenantId: string,
+    values: { actorUserId: string | null; note: string | null },
+  ): Promise<StockCheckRow> {
+    const row = await this.checks.insertCheck(tx, { tenantId, ...values });
+    return { ...row, actorName: null };
+  }
+
+  insertLines(
+    tx: Transaction,
+    tenantId: string,
+    checkId: string,
+    lines: NewStockCheckLine[],
+  ): Promise<void> {
+    return this.checks.insertLines(
+      tx,
+      tenantId,
+      lines.map((line) => ({ tenantId, checkId, ...line })),
+    );
+  }
+
+  findCheck(tx: Transaction, tenantId: string, id: string): Promise<StockCheckRow | null> {
+    return this.checks.findCheck(tx, tenantId, id);
+  }
+
+  listLines(tx: Transaction, tenantId: string, checkId: string): Promise<StockCheckLineRow[]> {
+    return this.checks.listLines(tx, tenantId, checkId);
+  }
+
+  listChecks(
+    tx: Transaction,
+    tenantId: string,
+    page: { offset: number; limit: number },
+  ): Promise<{ rows: StockCheckSummaryRow[]; total: number }> {
+    return this.checks.listChecks(tx, tenantId, page);
+  }
+
+  deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void> {
+    return this.checks.deleteAllForTenant(tx, tenantId);
   }
 }

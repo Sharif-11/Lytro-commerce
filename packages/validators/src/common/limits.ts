@@ -72,3 +72,6 @@ export const DELIVERY_ZONE_MAX_THANAS = 600;
 export const STOCK_NOTE_MAX_LENGTH = 200;
 // INV-09: a page of stock history.
 export const STOCK_HISTORY_PAGE_SIZE = 20;
+// INV-07: the variants one stock check may count, and a page of past checks.
+export const STOCK_CHECK_LINES_MAX = 500;
+export const STOCK_CHECK_PAGE_SIZE = 20;
