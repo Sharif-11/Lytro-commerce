@@ -418,6 +418,56 @@ describeIfDatabase('the activity log (AUD-01, AUD-02, AUD-04)', () => {
     expect(markers).not.toContain('purged-too-old');
   });
 
+  it('LIF-19: a deleted shop keeps only its billing and deletion events, each for 24 months', async () => {
+    const deleted = await owner();
+    const live = await owner();
+    const idOf = async (slug: string): Promise<string> =>
+      (await admin.query<{ id: string }>('SELECT id FROM control.tenants WHERE slug = $1', [slug]))
+        .rows[0]?.id ?? '';
+    const deletedId = await idOf(deleted.slug);
+    const liveId = await idOf(live.slug);
+    // [action, marker, age]: the same entries for both shops.
+    const entries: [string, string, string][] = [
+      ['role_created', 'ordinary', '1 day'],
+      ['sign_in', 'sign-in', '1 hour'],
+      ['plan_purchased', 'billing', '40 days'],
+      ['deletion_warning_sent', 'warning', '40 days'],
+      ['data_export_requested', 'export', '50 days'],
+      ['tenant_deleted', 'deleted', '1 hour'],
+      ['lifecycle_state_changed', 'too-old', '25 months'],
+    ];
+    for (const tenantId of [deletedId, liveId]) {
+      for (const [action, marker, age] of entries) {
+        await admin.query(
+          `INSERT INTO tenant.activity_log (tenant_id, actor_type, actor_id, action, result, summary, created_at)
+           VALUES ($1, 'system', NULL, $2, 'success', $3::jsonb, now() - $4::interval)`,
+          [tenantId, action, JSON.stringify({ marker }), age],
+        );
+      }
+    }
+    await admin.query(
+      "UPDATE control.tenants SET state = 'deleted', deleted_at = now() WHERE id = $1",
+      [deletedId],
+    );
+
+    await new ActivityLogPurger().run(activityAdminUrl);
+
+    const markersOf = async (tenantId: string): Promise<string[]> =>
+      (
+        await admin.query<{ summary: { marker?: string } | null }>(
+          'SELECT summary FROM tenant.activity_log WHERE tenant_id = $1',
+          [tenantId],
+        )
+      ).rows
+        .map((row) => row.summary?.marker ?? '')
+        .filter((marker) => marker !== '')
+        .sort();
+    // Deleted: billing and deletion events stay, however old (under 24 months); everything else goes, however new.
+    expect(await markersOf(deletedId)).toEqual(['billing', 'deleted', 'export', 'warning']);
+    // Live: the plan's 30 days as before, money entries kept 24 months.
+    expect(await markersOf(liveId)).toEqual(['billing', 'deleted', 'ordinary', 'sign-in']);
+  });
+
   it('DWN-11: an active retention floor protects an entry the new, shorter plan would otherwise purge', async () => {
     const who = await owner();
     const tenantRow = await admin.query<{ id: string }>(

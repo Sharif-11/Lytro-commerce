@@ -1378,7 +1378,7 @@ stores and then checks every tenant-schema table: after day 60 none holds a row 
 ledger (`LIF-20` keeps it) and the activity log (§68). Any table a later slice adds fails that check until its
 data is deleted too. Media files (`MED-09`) join the deletion in Slice 6.
 
-## 68. `LIF-19`: a deleted shop's activity log is kept whole — open, found 2026-10-19
+## 68. `LIF-19`: a deleted shop's activity log is kept whole — found 2026-10-19, fixed 2026-10-20
 
 `LIF-19` deletes the tenant's activity log "except billing and deletion events". Nothing does that yet: the
 day-60 job leaves every entry. The live application cannot do it, since `tenant.activity_log` is insert-only for
@@ -1386,7 +1386,13 @@ every role (migration 0001, `AUD-03`, `DAT-10`); the only deletion is `ActivityL
 (`packages/db/src/purge-activity-log.ts`), the privileged pipeline step for plan retention (`AUD-06`, `AUD-07`).
 Found while fixing §67. The fix belongs in that purger: for a tenant whose `deleted_at` is set, delete every entry
 except the billing and deletion events, under the same switched-off trigger and transaction it already uses.
-Not scheduled yet.
+
+**Fixed 2026-10-20**, as above. The user settled what is kept: the billing events are AUD-07's money-related entries,
+and the deletion events (`DELETION_AUDIT_ACTIONS`) are the shop's lifecycle changes, the day-45 and day-57 warnings,
+the deletion, the owner closing the shop and the owner's data export. Each stays 24 months from its own date, as a
+money entry does; a live shop's retention is unchanged. A deleted shop's log is cleared on the purge job's next run
+after day 60, since only that job may delete from the table. LIF-19 carries an "Amended" note. Verified in
+`activity.e2e.spec.ts`: a deleted shop and a live one with the same entries, each keeping what it should.
 
 ## 69. `BAL-02`, `BAL-11`, `BAL-16`, `ADM-08`: the balance ledger's guarantees rested on application code — found and fixed 2026-10-20
 
