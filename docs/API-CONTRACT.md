@@ -239,6 +239,11 @@ plus a split top-up quote/confirm pair instead of one combined submit.
 
 Entirely separate base path and session type.
 
+**ADM-08, 2026-10-20:** every operator change below (plans and their prices, billing terms, platform wallets, rates,
+settings, limit overrides, plan assignment, suspend and restore, the platform library, backup codes) writes its
+platform audit entry in the change's own transaction, so a change that stands always has its entry, and one that
+fails leaves neither.
+
 **Updated 2026-10-16 (Phase 2 slice 8 shipped):** `operator/tenants` (list) and its suspend/restore pair
 built ahead of ADM-02's own later phase, since LIF-24 (operator suspend/restore) needed a way to find a
 tenant id at all — scoped narrowly to that, not the rest of this section's ADM-03/04/05 detail/balance-

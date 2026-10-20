@@ -720,16 +720,17 @@ export class LifecycleService {
           summary: { from: TenantState.PayAsYouGo, to: TenantState.Archived, reason: 'suspended' },
         });
       }
-    });
-    await this.platformAudit.record({
-      actorType: PlatformActorType.Operator,
-      actorId: operatorId,
-      action: PlatformAuditAction.TenantSuspended,
-      targetType: 'tenant',
-      targetId: tenantId,
-      result: AuditResult.Success,
-      ip: ip ?? null,
-      summary: { reason },
+      // ADM-08: the platform's own record joins the same transaction.
+      await this.platformAudit.recordWithin(tx, {
+        actorType: PlatformActorType.Operator,
+        actorId: operatorId,
+        action: PlatformAuditAction.TenantSuspended,
+        targetType: 'tenant',
+        targetId: tenantId,
+        result: AuditResult.Success,
+        ip: ip ?? null,
+        summary: { reason },
+      });
     });
     this.tenantCache.invalidateTenant(tenantId); // TEN-27: within 5s, not the cache's own 60s TTL.
   }
@@ -782,16 +783,16 @@ export class LifecycleService {
         result: AuditResult.Success,
         summary: {},
       });
-    });
-    await this.platformAudit.record({
-      actorType: PlatformActorType.Operator,
-      actorId: operatorId,
-      action: PlatformAuditAction.TenantRestored,
-      targetType: 'tenant',
-      targetId: tenantId,
-      result: AuditResult.Success,
-      ip: ip ?? null,
-      summary: {},
+      await this.platformAudit.recordWithin(tx, {
+        actorType: PlatformActorType.Operator,
+        actorId: operatorId,
+        action: PlatformAuditAction.TenantRestored,
+        targetType: 'tenant',
+        targetId: tenantId,
+        result: AuditResult.Success,
+        ip: ip ?? null,
+        summary: {},
+      });
     });
     this.tenantCache.invalidateTenant(tenantId); // TEN-27: within 5s, not the cache's own 60s TTL.
   }

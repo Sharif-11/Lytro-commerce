@@ -354,10 +354,12 @@ export enum PlatformAuditAction {
   RateChanged = 'rate_changed',
   // BAL-17: an operator's balance adjustment, never a tenant-initiated change.
   BalanceAdjusted = 'balance_adjusted',
-  // PLN-02/D2-3: a plan edit, each one preceded by its own version snapshot.
+  // PLN-02/D2-3: a plan edit, each one preceded by its own version snapshot; PLN-08: a plan deleted while nothing
+  // references it.
   PlanCreated = 'plan_created',
   PlanUpdated = 'plan_updated',
   PlanRetired = 'plan_retired',
+  PlanDeleted = 'plan_deleted',
   // PLN-17: mirrors AuditAction.PlanAssigned above, written to this log too (D2-5).
   PlanAssigned = 'plan_assigned',
   // PLN-11: a per-tenant limit override, set or removed.
@@ -367,10 +369,13 @@ export enum PlatformAuditAction {
   PlatformWalletAdded = 'platform_wallet_added',
   PlatformWalletUpdated = 'platform_wallet_updated',
   PlatformWalletRemoved = 'platform_wallet_removed',
-  // TRM-16: every billing-term change.
+  // TRM-16: every billing-term change, a deletion included; TRM-03: a plan's price for a term, set or removed.
   BillingTermCreated = 'billing_term_created',
   BillingTermUpdated = 'billing_term_updated',
   BillingTermRetired = 'billing_term_retired',
+  BillingTermDeleted = 'billing_term_deleted',
+  PlanPriceSet = 'plan_price_set',
+  PlanPriceRemoved = 'plan_price_removed',
   // LIF-26: a platform-wide setting change (e.g. trial length), by the operator who made it.
   SettingsChanged = 'settings_changed',
   // D2-1/ADM-06: an operator reviewing a control.plan_payments row -- the manual stand-in for Phase 5's real

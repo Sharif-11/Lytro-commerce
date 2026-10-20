@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { PlatformSettingsRepository } from '@lytronix/db';
+import { PlatformSettingsRepository, TransactionRunner, type Transaction } from '@lytronix/db';
 import type { PlatformSettingKey } from '@lytronix/validators';
 import type { PlatformSettingsStore } from '../../modules/platform-settings/ports/platform-settings-store';
 import type { PlatformSettingValue } from '../../modules/platform-settings/types/platform-setting';
@@ -9,8 +9,13 @@ import { DatabaseService } from '../database.service';
 export class DrizzlePlatformSettingsStore implements PlatformSettingsStore {
   constructor(
     @Inject(DatabaseService) private readonly database: Pick<DatabaseService, 'handle'>,
+    @Inject(TransactionRunner) private readonly transactions: TransactionRunner,
     @Inject(PlatformSettingsRepository) private readonly settings: PlatformSettingsRepository,
   ) {}
+
+  run<T>(work: (tx: Transaction) => Promise<T>): Promise<T> {
+    return this.transactions.run(this.database.handle.db, work);
+  }
 
   async get(key: PlatformSettingKey): Promise<PlatformSettingValue | null> {
     const row = await this.settings.get(this.database.handle.db, key);
@@ -37,11 +42,12 @@ export class DrizzlePlatformSettingsStore implements PlatformSettingsStore {
   }
 
   set(
+    tx: Transaction,
     key: PlatformSettingKey,
     value: unknown,
     description: string,
     updatedBy: string,
   ): Promise<void> {
-    return this.settings.set(this.database.handle.db, key, value, description, updatedBy);
+    return this.settings.set(tx, key, value, description, updatedBy);
   }
 }

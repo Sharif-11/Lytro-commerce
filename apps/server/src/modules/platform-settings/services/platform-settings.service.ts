@@ -87,17 +87,21 @@ export class PlatformSettingsService {
   async set(key: PlatformSettingKey, value: unknown, operatorId: string): Promise<void> {
     validate(key, value);
     const current = await this.store.get(key);
-    await this.store.set(key, value, DESCRIPTIONS[key], operatorId);
-    this.cache.invalidate(key);
-    await this.platformAudit.record({
-      actorType: PlatformActorType.Operator,
-      actorId: operatorId,
-      action: PlatformAuditAction.SettingsChanged,
-      targetType: 'setting',
-      targetId: null,
-      result: AuditResult.Success,
-      ip: null,
-      summary: { key, oldValue: current?.value ?? null, newValue: value },
+    // ADM-08: the change and its platform audit entry commit together or not at all.
+    await this.store.run(async (tx) => {
+      await this.store.set(tx, key, value, DESCRIPTIONS[key], operatorId);
+      await this.platformAudit.recordWithin(tx, {
+        actorType: PlatformActorType.Operator,
+        actorId: operatorId,
+        action: PlatformAuditAction.SettingsChanged,
+        targetType: 'setting',
+        targetId: null,
+        result: AuditResult.Success,
+        ip: null,
+        summary: { key, oldValue: current?.value ?? null, newValue: value },
+      });
     });
+    // After the commit, so nothing can read the old value back into the cache in between.
+    this.cache.invalidate(key);
   }
 }

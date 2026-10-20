@@ -122,8 +122,13 @@ export class OperatorBillingTermsController {
   @ResponseMessage('BillingTermDeleted')
   @ApiOperation({ summary: 'Delete a billing term (only if unreferenced)' })
   @ZodResponse({ type: OkDto })
-  async delete(@Param('id') id: string): Promise<{ ok: true }> {
-    await this.terms.delete(id);
+  async delete(
+    @Param('id') id: string,
+    @Req() request: OperatorSessionRequest,
+  ): Promise<{ ok: true }> {
+    const session = request.operatorSession;
+    if (!session) throw new ApiError('unauthenticated', 'SignInToContinue', {});
+    await this.terms.delete(id, session.operatorId, this.clientIp.resolve(request));
     return { ok: true };
   }
 }
@@ -134,7 +139,10 @@ export class OperatorBillingTermsController {
 @SkipTenant()
 @UseGuards(OperatorSessionGuard)
 export class OperatorPlanPricesController {
-  constructor(@Inject(BillingTermsService) private readonly terms: BillingTermsService) {}
+  constructor(
+    @Inject(BillingTermsService) private readonly terms: BillingTermsService,
+    @Inject(ClientIp) private readonly clientIp: ClientIp,
+  ) {}
 
   @Get()
   @ResponseMessage('PlanPricesListed')
@@ -154,8 +162,17 @@ export class OperatorPlanPricesController {
     @Param('planId') planId: string,
     @Param('billingTermId') billingTermId: string,
     @Body(new ZodValidationPipe(SetPlanPriceDto.schema)) body: SetPlanPriceDto,
+    @Req() request: OperatorSessionRequest,
   ): Promise<{ ok: true }> {
-    await this.terms.setPrice(planId, billingTermId, body.price.toFixed(2));
+    const session = request.operatorSession;
+    if (!session) throw new ApiError('unauthenticated', 'SignInToContinue', {});
+    await this.terms.setPrice(
+      planId,
+      billingTermId,
+      body.price.toFixed(2),
+      session.operatorId,
+      this.clientIp.resolve(request),
+    );
     return { ok: true };
   }
 
@@ -167,8 +184,16 @@ export class OperatorPlanPricesController {
   async remove(
     @Param('planId') planId: string,
     @Param('billingTermId') billingTermId: string,
+    @Req() request: OperatorSessionRequest,
   ): Promise<{ ok: true }> {
-    await this.terms.removePrice(planId, billingTermId);
+    const session = request.operatorSession;
+    if (!session) throw new ApiError('unauthenticated', 'SignInToContinue', {});
+    await this.terms.removePrice(
+      planId,
+      billingTermId,
+      session.operatorId,
+      this.clientIp.resolve(request),
+    );
     return { ok: true };
   }
 }

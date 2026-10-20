@@ -351,7 +351,8 @@ export interface ShopPolicyStore {
 export interface PresetStore {
   listPresets(): Promise<PresetRecord[]>;
   findPreset(key: string): Promise<PresetRecord | null>;
-  updatePreset(key: string, patch: PresetPatch): Promise<PresetRecord | null>;
+  /** PST-04: inside the operator's own transaction, so the change and its platform audit entry commit together. */
+  updatePreset(tx: Transaction, key: string, patch: PresetPatch): Promise<PresetRecord | null>;
 }
 
 export type { SizeChartOwner };

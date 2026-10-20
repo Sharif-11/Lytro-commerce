@@ -29,6 +29,8 @@ import type {
   AttributeRecord,
   AttributeView,
   OperatorActor,
+  OptionRecord,
+  OptionSetRecord,
   OptionSetView,
   OptionView,
   PresetView,
@@ -110,16 +112,20 @@ export class PlatformLibraryService {
         },
       ]);
     }
-    if (input.suggestedAttributeIds !== undefined) {
-      patch.suggestedAttributeIds = await this.transactions.run((tx) =>
-        this.platformAttributeIds(tx, input.suggestedAttributeIds ?? []),
-      );
-    }
-    const row = await this.presets.updatePreset(key, patch);
-    if (!row) throw new ApiError('not_found', 'PresetNotFound', {});
-    await this.audit(operator, PlatformAuditAction.PresetUpdated, 'preset', null, {
-      key,
-      fields: Object.keys(patch),
+    const row = await this.transactions.run(async (tx) => {
+      if (input.suggestedAttributeIds !== undefined) {
+        patch.suggestedAttributeIds = await this.platformAttributeIds(
+          tx,
+          input.suggestedAttributeIds,
+        );
+      }
+      const updated = await this.presets.updatePreset(tx, key, patch);
+      if (!updated) throw new ApiError('not_found', 'PresetNotFound', {});
+      await this.audit(tx, operator, PlatformAuditAction.PresetUpdated, 'preset', null, {
+        key,
+        fields: Object.keys(patch),
+      });
+      return updated;
     });
     return presetView(row);
   }
@@ -148,8 +154,9 @@ export class PlatformLibraryService {
   ): Promise<AttributeView> {
     const row = await this.transactions.run(async (tx) => {
       if (await this.library.findAttributeByName(tx, input.name)) refuseTakenName();
+      let created: AttributeRecord;
       try {
-        return await this.library.insertAttribute(tx, {
+        created = await this.library.insertAttribute(tx, {
           name: input.name,
           dataType: input.dataType,
           unitKind: input.unitKind ?? null,
@@ -158,10 +165,15 @@ export class PlatformLibraryService {
         if (error instanceof UniqueViolation) refuseTakenName();
         throw error;
       }
-    });
-    await this.audit(operator, PlatformAuditAction.PlatformAttributeCreated, 'attribute', row.id, {
-      name: row.name,
-      dataType: row.dataType,
+      await this.audit(
+        tx,
+        operator,
+        PlatformAuditAction.PlatformAttributeCreated,
+        'attribute',
+        created.id,
+        { name: created.name, dataType: created.dataType },
+      );
+      return created;
     });
     return attributeView(row, []);
   }
@@ -171,7 +183,7 @@ export class PlatformLibraryService {
     input: UpdateAttributeInput,
     operator: OperatorActor,
   ): Promise<AttributeView> {
-    const { before, view } = await this.transactions.run(async (tx) => {
+    return this.transactions.run(async (tx) => {
       const current = await this.attribute(tx, attributeId);
       if (input.name !== undefined) {
         const holder = await this.library.findAttributeByName(tx, input.name);
@@ -190,22 +202,19 @@ export class PlatformLibraryService {
         throw error;
       }
       if (!row) throw new ApiError('not_found', 'AttributeNotFound', {});
-      return {
-        before: current,
-        view: attributeView(row, await this.library.listOptions(tx, [row.id])),
-      };
+      await this.audit(
+        tx,
+        operator,
+        PlatformAuditAction.PlatformAttributeUpdated,
+        'attribute',
+        attributeId,
+        {
+          ...(input.name !== undefined ? { from: current.name, to: row.name } : {}),
+          ...(input.retired !== undefined ? { retired: input.retired } : {}),
+        },
+      );
+      return attributeView(row, await this.library.listOptions(tx, [row.id]));
     });
-    await this.audit(
-      operator,
-      PlatformAuditAction.PlatformAttributeUpdated,
-      'attribute',
-      attributeId,
-      {
-        ...(input.name !== undefined ? { from: before.name, to: view.name } : {}),
-        ...(input.retired !== undefined ? { retired: input.retired } : {}),
-      },
-    );
-    return view;
   }
 
   async addOption(
@@ -217,8 +226,9 @@ export class PlatformLibraryService {
       const attribute = await this.holdingOptions(tx, attributeId);
       const value = canonicalOptionValue(attribute, input.value);
       if (await this.library.findOptionByValue(tx, attributeId, value)) refuseTakenValue();
+      let created: OptionRecord;
       try {
-        return await this.library.insertOption(tx, {
+        created = await this.library.insertOption(tx, {
           attributeId,
           value,
           swatchColor: canonicalSwatch(input.swatchColor) ?? null,
@@ -228,18 +238,20 @@ export class PlatformLibraryService {
         if (error instanceof UniqueViolation) refuseTakenValue();
         throw error;
       }
+      await this.audit(
+        tx,
+        operator,
+        PlatformAuditAction.PlatformOptionCreated,
+        'attribute',
+        attributeId,
+        {
+          optionId: created.id,
+          value: created.value,
+          swatchColor: created.swatchColor,
+        },
+      );
+      return created;
     });
-    await this.audit(
-      operator,
-      PlatformAuditAction.PlatformOptionCreated,
-      'attribute',
-      attributeId,
-      {
-        optionId: row.id,
-        value: row.value,
-        swatchColor: row.swatchColor,
-      },
-    );
     return optionView(row);
   }
 
@@ -263,25 +275,27 @@ export class PlatformLibraryService {
       if (input.retired !== undefined) {
         patch.retiredAt = input.retired ? (current.retiredAt ?? new Date()) : null;
       }
+      let updated: OptionRecord | null;
       try {
-        const updated = await this.library.updateOption(tx, attributeId, optionId, patch);
-        if (!updated) throw new ApiError('not_found', 'OptionNotFound', {});
-        return updated;
+        updated = await this.library.updateOption(tx, attributeId, optionId, patch);
       } catch (error) {
         if (error instanceof UniqueViolation) refuseTakenValue();
         throw error;
       }
+      if (!updated) throw new ApiError('not_found', 'OptionNotFound', {});
+      await this.audit(
+        tx,
+        operator,
+        PlatformAuditAction.PlatformOptionUpdated,
+        'attribute',
+        attributeId,
+        {
+          optionId,
+          fields: Object.keys(input),
+        },
+      );
+      return updated;
     });
-    await this.audit(
-      operator,
-      PlatformAuditAction.PlatformOptionUpdated,
-      'attribute',
-      attributeId,
-      {
-        optionId,
-        fields: Object.keys(input),
-      },
-    );
     return optionView(row);
   }
 
@@ -304,8 +318,9 @@ export class PlatformLibraryService {
       if (sets.some((set) => set.name.toLowerCase() === input.name.toLowerCase())) {
         refuseTakenSetName();
       }
+      let created: OptionSetRecord;
       try {
-        return await this.library.insertOptionSet(tx, {
+        created = await this.library.insertOptionSet(tx, {
           name: input.name,
           presetKey,
           options: distinctValues(input.options),
@@ -315,11 +330,19 @@ export class PlatformLibraryService {
         if (error instanceof UniqueViolation) refuseTakenSetName();
         throw error;
       }
-    });
-    await this.audit(operator, PlatformAuditAction.PlatformOptionSetCreated, 'option_set', row.id, {
-      name: row.name,
-      presetKey,
-      options: row.options.length,
+      await this.audit(
+        tx,
+        operator,
+        PlatformAuditAction.PlatformOptionSetCreated,
+        'option_set',
+        created.id,
+        {
+          name: created.name,
+          presetKey,
+          options: created.options.length,
+        },
+      );
+      return created;
     });
     return optionSetView(row);
   }
@@ -338,30 +361,47 @@ export class PlatformLibraryService {
           refuseTakenSetName();
         }
       }
+      let updated: OptionSetRecord | null;
       try {
-        const updated = await this.library.updateOptionSet(tx, id, {
+        updated = await this.library.updateOptionSet(tx, id, {
           ...(name !== undefined ? { name } : {}),
           ...(input.presetKey !== undefined ? { presetKey: input.presetKey } : {}),
           ...(input.options !== undefined ? { options: distinctValues(input.options) } : {}),
         });
-        if (!updated) throw new ApiError('not_found', 'OptionSetNotFound', {});
-        return updated;
       } catch (error) {
         if (error instanceof UniqueViolation) refuseTakenSetName();
         throw error;
       }
-    });
-    await this.audit(operator, PlatformAuditAction.PlatformOptionSetUpdated, 'option_set', id, {
-      fields: Object.keys(input),
+      if (!updated) throw new ApiError('not_found', 'OptionSetNotFound', {});
+      await this.audit(
+        tx,
+        operator,
+        PlatformAuditAction.PlatformOptionSetUpdated,
+        'option_set',
+        id,
+        {
+          fields: Object.keys(input),
+        },
+      );
+      return updated;
     });
     return optionSetView(row);
   }
 
   async deleteOptionSet(id: string, operator: OperatorActor): Promise<void> {
-    const row = await this.transactions.run((tx) => this.library.deleteOptionSet(tx, id));
-    if (!row) throw new ApiError('not_found', 'OptionSetNotFound', {});
-    await this.audit(operator, PlatformAuditAction.PlatformOptionSetDeleted, 'option_set', id, {
-      name: row.name,
+    await this.transactions.run(async (tx) => {
+      const row = await this.library.deleteOptionSet(tx, id);
+      if (!row) throw new ApiError('not_found', 'OptionSetNotFound', {});
+      await this.audit(
+        tx,
+        operator,
+        PlatformAuditAction.PlatformOptionSetDeleted,
+        'option_set',
+        id,
+        {
+          name: row.name,
+        },
+      );
     });
   }
 
@@ -409,14 +449,16 @@ export class PlatformLibraryService {
     }
   }
 
+  /** ADM-08: the operator's change and its platform audit entry, in the change's own transaction. */
   private audit(
+    tx: Transaction,
     operator: OperatorActor,
     action: PlatformAuditAction,
     targetType: string,
     targetId: string | null,
     summary: Record<string, unknown>,
   ): Promise<void> {
-    return this.platformAudit.record({
+    return this.platformAudit.recordWithin(tx, {
       actorType: PlatformActorType.Operator,
       actorId: operator.operatorId,
       action,

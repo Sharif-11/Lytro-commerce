@@ -599,8 +599,8 @@ export class DrizzlePresetStore implements PresetStore {
     return this.presets.findPreset(this.database.handle.db, key);
   }
 
-  updatePreset(key: string, patch: PresetPatch): Promise<PresetRecord | null> {
-    return this.presets.updatePreset(this.database.handle.db, key, patch);
+  updatePreset(tx: Transaction, key: string, patch: PresetPatch): Promise<PresetRecord | null> {
+    return this.presets.updatePreset(tx, key, patch);
   }
 }
 

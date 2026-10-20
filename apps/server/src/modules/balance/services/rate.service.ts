@@ -65,18 +65,22 @@ export class RateService {
       ]);
     }
     const current = await this.store.get(key);
-    await this.store.set(key, current?.value ?? null, newValue, operatorId, noticeId);
-    // RAT-02: effective immediately, not after the cache's own TTL expires.
-    this.cache.invalidate(key);
-    await this.platformAudit.record({
-      actorType: PlatformActorType.Operator,
-      actorId: operatorId,
-      action: PlatformAuditAction.RateChanged,
-      targetType: 'rate',
-      targetId: null,
-      result: AuditResult.Success,
-      ip: null,
-      summary: { key, oldValue: current?.value ?? null, newValue, noticeId },
+    // RAT-02 and ADM-08: the new value, its history row and the platform audit entry commit together.
+    await this.store.run(async (tx) => {
+      await this.store.set(tx, key, current?.value ?? null, newValue, operatorId, noticeId);
+      await this.platformAudit.recordWithin(tx, {
+        actorType: PlatformActorType.Operator,
+        actorId: operatorId,
+        action: PlatformAuditAction.RateChanged,
+        targetType: 'rate',
+        targetId: null,
+        result: AuditResult.Success,
+        ip: null,
+        summary: { key, oldValue: current?.value ?? null, newValue, noticeId },
+      });
     });
+    // RAT-02: effective immediately, not after the cache's own TTL expires. After the commit, so nothing can read
+    // the old value back into the cache in between.
+    this.cache.invalidate(key);
   }
 }
