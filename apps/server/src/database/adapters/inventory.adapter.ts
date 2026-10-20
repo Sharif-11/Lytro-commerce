@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { SerialStatus } from '@lytronix/validators';
 import {
+  PurchaseOrderRepository,
   SerialRepository,
   StockBatchRepository,
   StockCheckRepository,
@@ -51,6 +52,7 @@ export class DrizzleStockStore implements StockStore {
   constructor(
     @Inject(TransactionRunner) private readonly transactions: TransactionRunner,
     @Inject(StockRepository) private readonly stock: StockRepository,
+    @Inject(PurchaseOrderRepository) private readonly purchases: PurchaseOrderRepository,
   ) {}
 
   findVariants(
@@ -119,6 +121,15 @@ export class DrizzleStockStore implements StockStore {
 
   hasReceipt(tx: Transaction, tenantId: string, variantId: string): Promise<boolean> {
     return this.stock.hasReceipt(tx, tenantId, variantId);
+  }
+
+  async incoming(
+    tx: Transaction,
+    tenantId: string,
+    variantIds: string[],
+  ): Promise<Map<string, string>> {
+    const rows = await this.purchases.incoming(tx, tenantId, variantIds);
+    return new Map(rows.map((row) => [row.variantId, row.incoming]));
   }
 
   setAvgCost(

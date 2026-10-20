@@ -53,6 +53,8 @@ import {
   StockCheckRepository,
   StockBatchRepository,
   SerialRepository,
+  SupplierRepository,
+  PurchaseOrderRepository,
 } from '@lytronix/db';
 import { EnvironmentParser } from '../config/env';
 import { ENV } from '../config/tokens';
@@ -146,6 +148,16 @@ import { DatabaseService } from './database.service';
       provide: SerialRepository,
       inject: [TransactionRunner],
       useFactory: (transactions: TransactionRunner) => new SerialRepository(transactions),
+    },
+    {
+      provide: SupplierRepository,
+      inject: [TransactionRunner],
+      useFactory: (transactions: TransactionRunner) => new SupplierRepository(transactions),
+    },
+    {
+      provide: PurchaseOrderRepository,
+      inject: [TransactionRunner],
+      useFactory: (transactions: TransactionRunner) => new PurchaseOrderRepository(transactions),
     },
     {
       provide: CatalogueDataRepository,
@@ -259,6 +271,8 @@ import { DatabaseService } from './database.service';
     StockCheckRepository,
     StockBatchRepository,
     SerialRepository,
+    SupplierRepository,
+    PurchaseOrderRepository,
   ],
 })
 export class DatabaseModule {}

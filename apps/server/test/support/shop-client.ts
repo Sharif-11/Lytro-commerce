@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import type pg from 'pg';
 import { expect } from 'vitest';
 import {
   cookieFrom,
@@ -99,4 +100,41 @@ export function fieldsOf(result: HttpResult): Record<string, string> {
   return Object.fromEntries(
     (fields as { field: string; problem: string }[]).map((entry) => [entry.field, entry.problem]),
   );
+}
+
+const STAFF_PASSWORD = 'staff-pass-2468';
+
+/**
+ * INV-20, D3-9: a staff member of the shop holding only these permissions, signed in; the headers to call as them. The
+ * shop moves to the Starter plan first, so it has a seat for them.
+ */
+export async function staffWith(
+  port: number,
+  texts: SmsCapture,
+  admin: pg.Client,
+  shop: ShopClient,
+  permissions: string[],
+): Promise<Record<string, string>> {
+  await admin.query(
+    "UPDATE control.tenants SET plan_id = (SELECT id FROM control.plans WHERE name = 'Starter') WHERE id = $1",
+    [shop.tenantId],
+  );
+  const role = (await shop.post('/roles', { name: permissions.join(' '), permissions })).body as {
+    id: string;
+  };
+  const phone = texts.freshPhone();
+  const made = await shop.post('/staff', { phone, password: STAFF_PASSWORD, roleIds: [role.id] });
+  expect(made.status, JSON.stringify(made.body)).toBe(201);
+  const signedIn = await postJson(
+    port,
+    '/auth/staff/signin',
+    { phone, password: STAFF_PASSWORD },
+    { host: 'localhost', 'x-lytro-shop': shop.slug },
+  );
+  return {
+    cookie: cookieFrom(signedIn),
+    'x-csrf-token': (signedIn.body as { csrfToken: string }).csrfToken,
+    host: 'localhost',
+    'x-lytro-shop': shop.slug,
+  };
 }

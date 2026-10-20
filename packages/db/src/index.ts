@@ -158,6 +158,18 @@ export {
   type StockCheckRow,
   type StockCheckSummaryRow,
 } from './repositories/inventory/stock-check.repository';
+export {
+  SupplierRepository,
+  type SupplierPatch,
+} from './repositories/purchasing/supplier.repository';
+export {
+  PurchaseOrderRepository,
+  type PurchaseLinePatch,
+  type PurchaseLineRow,
+  type PurchaseOrderPatch,
+  type PurchaseOrderRow,
+  type PurchaseOrderSummaryRow,
+} from './repositories/purchasing/purchase-order.repository';
 export { LocationRepository, type LocationList } from './repositories/delivery/location.repository';
 export {
   DeliveryZoneRepository,

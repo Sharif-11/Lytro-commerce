@@ -740,6 +740,50 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'The start date is after the end date. Choose an earlier start.',
     bn: 'শুরুর তারিখ শেষের তারিখের পরে। আগের একটি তারিখ বেছে নিন।',
   },
+  SupplierNotFound: {
+    en: 'That supplier was not found.',
+    bn: 'সাপ্লায়ারটি পাওয়া যায়নি।',
+  },
+  SupplierNameTaken: {
+    en: 'You already have a supplier with this name. Use that one, or choose another name.',
+    bn: 'এই নামে আপনার একটি সাপ্লায়ার আগে থেকেই আছে। সেটি ব্যবহার করুন, অথবা অন্য নাম দিন।',
+  },
+  SupplierArchived: {
+    en: 'This supplier is archived. Bring it back first, or choose another supplier.',
+    bn: 'এই সাপ্লায়ার আর্কাইভ করা আছে। আগে ফিরিয়ে আনুন, অথবা অন্য সাপ্লায়ার বেছে নিন।',
+  },
+  PurchaseNotFound: {
+    en: 'That purchase was not found.',
+    bn: 'পারচেজটি পাওয়া যায়নি।',
+  },
+  PurchaseAlreadyPlaced: {
+    en: 'This purchase has already been placed with the supplier.',
+    bn: 'এই পারচেজ আগেই সাপ্লায়ারকে দেওয়া হয়েছে।',
+  },
+  PurchaseIsDraft: {
+    en: 'This purchase is still a draft, so there is nothing to cancel. Delete the draft instead.',
+    bn: 'এই পারচেজ এখনো ড্রাফট, তাই ক্যানসেল করার কিছু নেই। এর বদলে ড্রাফটটি ডিলিট করুন।',
+  },
+  PurchasePlacedIsKept: {
+    en: 'A placed purchase is kept on record. Cancel it instead.',
+    bn: 'দেওয়া পারচেজ রেকর্ডে থেকে যায়। এর বদলে এটি ক্যানসেল করুন।',
+  },
+  PurchaseHasDeliveries: {
+    en: 'Stock has been received on this purchase, so only its expected date and notes can change.',
+    bn: 'এই পারচেজে স্টক রিসিভ হয়েছে, তাই শুধু আসার তারিখ আর নোট বদলানো যায়।',
+  },
+  PurchaseCloseShortInstead: {
+    en: 'Stock has been received on this purchase, so it cannot be cancelled. Close it short instead.',
+    bn: 'এই পারচেজে স্টক রিসিভ হয়েছে, তাই এটি ক্যানসেল করা যায় না। এর বদলে বাকিটা ক্লোজ করুন।',
+  },
+  PurchaseFinished: {
+    en: 'This purchase is finished and can no longer change.',
+    bn: 'এই পারচেজ শেষ হয়ে গেছে, এটি আর বদলানো যায় না।',
+  },
+  VariantRetired: {
+    en: 'This variant is no longer sold, so it cannot be bought.',
+    bn: 'এই ভ্যারিয়েন্ট আর বিক্রি হয় না, তাই এটি কেনা যায় না।',
+  },
   FallbackZoneHasNoAreas: {
     en: 'This zone covers every area no other zone has, so it has no areas of its own.',
     bn: 'অন্য কোনো জোনে না থাকা সব এলাকা এই জোনে পড়ে, তাই এর আলাদা এলাকা নেই।',
@@ -951,6 +995,50 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   SerialRemoved: {
     en: 'Serial number removed.',
     bn: 'সিরিয়াল নম্বর সরানো হয়েছে।',
+  },
+  SuppliersRetrieved: {
+    en: 'Suppliers retrieved.',
+    bn: 'সাপ্লায়ারগুলো পাওয়া গেছে।',
+  },
+  SupplierRetrieved: {
+    en: 'Supplier retrieved.',
+    bn: 'সাপ্লায়ার পাওয়া গেছে।',
+  },
+  SupplierCreated: {
+    en: 'Supplier added.',
+    bn: 'সাপ্লায়ার যোগ হয়েছে।',
+  },
+  SupplierUpdated: {
+    en: 'Supplier saved.',
+    bn: 'সাপ্লায়ার সেভ হয়েছে।',
+  },
+  PurchaseOrdersRetrieved: {
+    en: 'Purchases retrieved.',
+    bn: 'পারচেজগুলো পাওয়া গেছে।',
+  },
+  PurchaseOrderRetrieved: {
+    en: 'Purchase retrieved.',
+    bn: 'পারচেজ পাওয়া গেছে।',
+  },
+  PurchaseOrderCreated: {
+    en: 'Purchase saved as a draft.',
+    bn: 'পারচেজ ড্রাফট হিসেবে সেভ হয়েছে।',
+  },
+  PurchaseOrderUpdated: {
+    en: 'Purchase saved.',
+    bn: 'পারচেজ সেভ হয়েছে।',
+  },
+  PurchaseOrderPlaced: {
+    en: 'Purchase placed with the supplier.',
+    bn: 'পারচেজ সাপ্লায়ারকে দেওয়া হয়েছে।',
+  },
+  PurchaseOrderCancelled: {
+    en: 'Purchase cancelled.',
+    bn: 'পারচেজ ক্যানসেল করা হয়েছে।',
+  },
+  PurchaseOrderDeleted: {
+    en: 'Draft deleted.',
+    bn: 'ড্রাফট ডিলিট করা হয়েছে।',
   },
   InventoryFiguresRetrieved: {
     en: 'Inventory report retrieved.',

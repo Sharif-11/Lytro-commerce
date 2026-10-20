@@ -282,6 +282,19 @@ export const MESSAGE_KEYS = [
   'SerialHasLeft',
   'PeriodEndsBeforeItStarts',
 
+  // Purchasing (Phase 3 Slice 4a)
+  'SupplierNotFound',
+  'SupplierNameTaken',
+  'SupplierArchived',
+  'PurchaseNotFound',
+  'PurchaseAlreadyPlaced',
+  'PurchaseIsDraft',
+  'PurchasePlacedIsKept',
+  'PurchaseHasDeliveries',
+  'PurchaseCloseShortInstead',
+  'PurchaseFinished',
+  'VariantRetired',
+
   // Success -- catalogue
   'PresetsListed',
   'ProductDefaultsRetrieved',
@@ -336,6 +349,17 @@ export const MESSAGE_KEYS = [
   'SerialsAdded',
   'SerialCorrected',
   'SerialRemoved',
+  'SuppliersRetrieved',
+  'SupplierRetrieved',
+  'SupplierCreated',
+  'SupplierUpdated',
+  'PurchaseOrdersRetrieved',
+  'PurchaseOrderRetrieved',
+  'PurchaseOrderCreated',
+  'PurchaseOrderUpdated',
+  'PurchaseOrderPlaced',
+  'PurchaseOrderCancelled',
+  'PurchaseOrderDeleted',
 ] as const;
 
 export type MessageKey = (typeof MESSAGE_KEYS)[number];

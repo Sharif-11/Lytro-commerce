@@ -84,3 +84,12 @@ export const EXPIRY_WARNING_DAYS = 30;
 // INV-07: the variants one stock check may count, and a page of past checks.
 export const STOCK_CHECK_LINES_MAX = 500;
 export const STOCK_CHECK_PAGE_SIZE = 20;
+// PUR-01: a supplier's name, address and notes, and a page of suppliers.
+export const SUPPLIER_NAME_MAX_LENGTH = 200;
+export const SUPPLIER_ADDRESS_MAX_LENGTH = 500;
+export const SUPPLIER_NOTES_MAX_LENGTH = 1000;
+export const SUPPLIER_PAGE_SIZE = 20;
+// PUR-02: the lines one purchase may hold, its notes, and a page of purchases.
+export const PURCHASE_LINES_MAX = 200;
+export const PURCHASE_NOTES_MAX_LENGTH = 1000;
+export const PURCHASE_PAGE_SIZE = 20;

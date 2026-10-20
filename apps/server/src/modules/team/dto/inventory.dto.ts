@@ -47,6 +47,8 @@ export const productStockViewSchema = z.object({
       reserved: z.string(),
       unsellable: z.string(),
       available: z.string(),
+      // PUR-05: ordered and not yet received on placed, open purchases; never available.
+      incoming: z.string(),
       state: z.nativeEnum(StockState),
       avgCost: z.string().nullable().optional(),
     })
@@ -62,6 +64,7 @@ export const productStockViewSchema = z.object({
       unsellable: z.string().nullable(),
       available: z.string(),
       missingSerials: z.number().nullable(),
+      incoming: z.string().nullable(),
       packAmount: z.string().nullable(),
       state: z.nativeEnum(StockState),
       avgCost: z.string().nullable().optional(),

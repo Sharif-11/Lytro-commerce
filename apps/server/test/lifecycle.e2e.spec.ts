@@ -514,6 +514,27 @@ async function seedCatalogue(tenantId: string): Promise<void> {
      VALUES ($1, $2, $3, $4, 5, 5)`,
     [tenantId, check.rows[0]?.id, product, variant],
   );
+  // Slice 4a: a supplier, the purchase counter, and a placed purchase with stock received on its item, which only the
+  // day-60 deletion removes.
+  const supplier = await one(
+    "INSERT INTO tenant.suppliers (tenant_id, name) VALUES ($1, 'Rahim Traders') RETURNING id",
+    [tenantId],
+  );
+  await admin.query(
+    'INSERT INTO tenant.purchase_counters (tenant_id, last_number) VALUES ($1, 1)',
+    [tenantId],
+  );
+  const purchase = await one(
+    `INSERT INTO tenant.purchase_orders (tenant_id, number, supplier_id, status, ordered_at)
+     VALUES ($1, 1, $2, 'partially_received', now()) RETURNING id`,
+    [tenantId, supplier],
+  );
+  await admin.query(
+    `INSERT INTO tenant.purchase_order_lines
+       (tenant_id, purchase_order_id, product_id, variant_id, position, quantity_ordered, quantity_received)
+     VALUES ($1, $2, $3, $4, 0, 10, 5)`,
+    [tenantId, purchase, product, variant],
+  );
   await admin.query(
     `INSERT INTO tenant.size_charts (tenant_id, product_id, table_rows) VALUES ($1, $2, '[["40"]]')`,
     [tenantId, product],
