@@ -1,0 +1,2 @@
+export const SUPPLIER_STORE = Symbol('SUPPLIER_STORE');
+export const PURCHASE_ORDER_STORE = Symbol('PURCHASE_ORDER_STORE');

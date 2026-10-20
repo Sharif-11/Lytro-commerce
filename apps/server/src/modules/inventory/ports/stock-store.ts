@@ -46,6 +46,8 @@ export interface StockStore {
     page: { offset: number; limit: number },
   ): Promise<{ rows: StockHistoryRow[]; total: number }>;
   hasReceipt(tx: Transaction, tenantId: string, variantId: string): Promise<boolean>;
+  /** PUR-05: each variant's incoming stock from placed, open purchases; a variant with none is left out. */
+  incoming(tx: Transaction, tenantId: string, variantIds: string[]): Promise<Map<string, string>>;
   setAvgCost(
     tx: Transaction,
     tenantId: string,

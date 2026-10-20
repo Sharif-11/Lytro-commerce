@@ -560,6 +560,26 @@ their backend ships earlier.
   is refused.
 
 ### Slice 4: purchasing and receiving
+- **Status (2026-10-20):** ten decisions agreed with the user before any code; built as two PRs, 4a (suppliers and
+  purchase orders, migration 0060) and 4b (receiving).
+  - **Decisions:** a new `purchasing` module depending on `inventory`. A draft has no number and may be deleted;
+    placing it with the supplier gives it the shop's next number, from a locked counter row, gap-free (PUR-03). A
+    draft changes freely; a placed purchase's items and supplier change until the first delivery, then only its
+    expected date and notes. Rejected units do not count as received, so the line stays outstanding; a rejection needs
+    a reason; accepted plus rejected never exceeds what is outstanding (bonus units go through Add stock); an
+    all-rejected delivery is recorded and leaves the status. Average cost = (held x old + accepted x cost) / (held +
+    accepted), to four decimals, half up; with no cost known or nothing held, the receipt's cost; a receipt with no
+    cost leaves it; rejected units never touch it. A shared product is bought by its shared stock, in its unit. A
+    receipt line takes the batch and serials as stock additions do, one batch per line per receipt. Stock additions
+    and "new stock arrived" become one-step receipts, with an optional supplier (a typed name finds a live one,
+    ignoring case, or makes it) and unit cost. Suppliers: a name unique among the live ones, ignoring case; archived,
+    never deleted. Cancel only a placed purchase with nothing received (a draft is deleted); close short with a reason;
+    incoming is ordered minus received on placed, open purchases; costs only with `inventory:manage` (D3-9).
+  - **4a (migration 0060):** suppliers; purchase orders with drafts, placing, editing, cancelling and deleting a draft;
+    incoming stock on the stock view; purchase lines holding the variant by value (a purchase outlives a product
+    deleted for good), checked by a trigger for the product's own variant, never a shared stock's size, in whole units
+    unless measured; a product moves to a whole-number unit only while no unfinished purchase buys a fraction of it; a
+    retired variant is not bought; the activity log; the day-60 deletion.
 - **Depends on:** Slices 2 and 3.
 - **Delivers:** suppliers; purchase orders with gap-free numbers; receipts (partial, with rejects, batch
   and serial capture); weighted-average cost on receipt; incoming quantity; closing short; one-step

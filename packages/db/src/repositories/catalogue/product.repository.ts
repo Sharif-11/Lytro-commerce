@@ -26,6 +26,7 @@ import {
   type SelectProductAttributeValue,
 } from '../../schema';
 import type { Transaction, TransactionRunner } from '../../transactions';
+import { escapeLike } from '../like';
 
 export type ProductPatch = Partial<
   Omit<InsertProduct, 'id' | 'tenantId' | 'slug' | 'createdAt' | 'minPrice' | 'maxPrice'>
@@ -42,10 +43,6 @@ export interface ProductListFilter {
 export interface ProductListRow {
   product: SelectProduct;
   variantCount: number;
-}
-
-function escapeLike(text: string): string {
-  return text.replace(/[\\%_]/g, (character) => `\\${character}`);
 }
 
 // PRD-01 to PRD-05, PRD-15, LND-04, CCH-02: a shop's products, the categories they are filed in, their

@@ -14,6 +14,8 @@ export * from './api/catalogue';
 export * from './api/delivery/delivery-zone';
 export * from './api/inventory/stock';
 export * from './api/inventory/stock-check';
+export * from './api/purchasing/supplier';
+export * from './api/purchasing/purchase-order';
 export * from './api/staff/staff/staff-create';
 export * from './api/staff/staff/staff-password';
 export * from './api/audit/activity/activity-list';

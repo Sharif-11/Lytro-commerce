@@ -40,6 +40,9 @@ import { StaffController } from './controllers/staff.controller';
 import { CatalogueModule } from '../catalogue/catalogue.module';
 import { DeliveryModule } from '../delivery/delivery.module';
 import { InventoryModule } from '../inventory/inventory.module';
+import { PurchasingModule } from '../purchasing/purchasing.module';
+import { PurchaseOrdersController } from './controllers/purchase-orders.controller';
+import { SuppliersController } from './controllers/suppliers.controller';
 import { InventoryController } from './controllers/inventory.controller';
 import {
   InventoryFiguresController,
@@ -81,6 +84,7 @@ import { CatalogueRequest } from './services/catalogue-request';
     CatalogueModule,
     DeliveryModule,
     InventoryModule,
+    PurchasingModule,
   ],
   controllers: [
     StaffController,
@@ -117,6 +121,8 @@ import { CatalogueRequest } from './services/catalogue-request';
     StockChecksController,
     InventoryFiguresController,
     BatchesController,
+    SuppliersController,
+    PurchaseOrdersController,
   ],
   providers: [
     StaffSigninService,

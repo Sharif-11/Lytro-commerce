@@ -249,6 +249,14 @@ export enum AuditAction {
   SerialsAdded = 'serials_added',
   SerialCorrected = 'serial_corrected',
   SerialRemoved = 'serial_removed',
+  // Phase 3 Slice 4a: suppliers, and purchases made, changed, placed, cancelled or deleted as drafts (PUR-01, PUR-10).
+  SupplierCreated = 'supplier_created',
+  SupplierUpdated = 'supplier_updated',
+  PurchaseCreated = 'purchase_created',
+  PurchaseUpdated = 'purchase_updated',
+  PurchasePlaced = 'purchase_placed',
+  PurchaseCancelled = 'purchase_cancelled',
+  PurchaseDeleted = 'purchase_deleted',
 }
 
 // AUD-07: these action kinds (payment, wallet, credential, plan, balance) are kept 24 months regardless of
@@ -514,6 +522,17 @@ export enum BatchState {
   Fine = 'fine',
   Expiring = 'expiring',
   Expired = 'expired',
+}
+
+// PUR-02: where a purchase stands. A draft has no number yet and may be deleted; placing it with the supplier gives it
+// the next number (PUR-03). Partly and fully received, and closed short, come with receiving (Slice 4b).
+export enum PurchaseStatus {
+  Draft = 'draft',
+  Ordered = 'ordered',
+  PartiallyReceived = 'partially_received',
+  Received = 'received',
+  ClosedShort = 'closed_short',
+  Cancelled = 'cancelled',
 }
 
 // INV-04: why on-hand stock changed. Every stock movement carries one.

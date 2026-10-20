@@ -1,5 +1,7 @@
 # Tenant onboarding: flow and first-run dashboard design
 
+> **Screens superseded 2026-10-20.** The flow, routing rules and decisions below still hold. The screens themselves are now drawn in `TENANT-DASHBOARD-DESIGN.md` §6 and `docs/brand/lytro-dashboard.html` (the one prototype for the whole journey); `lytro-onboarding.html` is kept for history.
+
 Status: v1 design, 2026-10-18, written against `SRS-detailed.md` as of commit 3da3e56 (AUTH-28 amended with the terms line, chosen plan and staff page; AUTH-29, AUTH-30, AUTH-31 added; TEN-15 one shop per person; TEN-31 one dashboard address) and `DEPLOYMENT.md` as of the same commit (`/api` only on the two app hosts). A working prototype of every screen is `docs/brand/lytro-onboarding.html` (open in a browser; needs internet for Google Fonts). Brand rules are in `BRAND-IDENTITY.md`; the landing page is in `LANDING-PAGE-DESIGN.md`.
 
 Scope: from the landing page to the first order being shipped. The full orders, products and settings screens are Phase 3 Slice 11 and Phase 4 work and are not designed here beyond their first-run states.

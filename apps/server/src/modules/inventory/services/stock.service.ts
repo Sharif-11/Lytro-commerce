@@ -47,6 +47,9 @@ import {
   variantState,
 } from './stock-state';
 
+// PUR-05: a variant with nothing on its way, in the form quantities are shown.
+const NONE_INCOMING = '0.000';
+
 // What the note on a made-to-order switch's write-off says (INV-02).
 const UNTRACKING_NOTE = 'Switched to made to order';
 
@@ -550,6 +553,11 @@ export class StockService implements ProductStockHooks {
     const pool = product.sharedStock
       ? rows.find((row) => row.isStockHolder && !row.retired)
       : undefined;
+    const incoming = await this.store.incoming(
+      tx,
+      tenantId,
+      rows.map((row) => row.variantId),
+    );
     const variants: VariantStockView[] = pool
       ? rows
           .filter((row) => !row.isStockHolder && !row.retired)
@@ -568,6 +576,7 @@ export class StockService implements ProductStockHooks {
             packAmount: null,
             missingSerials:
               held !== null ? milli(row.onHand) / 1000 - (held.get(row.variantId) ?? 0) : null,
+            incoming: incoming.get(row.variantId) ?? NONE_INCOMING,
             state: variantState(row.available, product.lowStockThreshold),
             ...(canSeeCost ? { avgCost: row.avgCost } : {}),
           }));
@@ -578,6 +587,7 @@ export class StockService implements ProductStockHooks {
           reserved: pool.reserved,
           unsellable: pool.unsellable,
           available: pool.available,
+          incoming: incoming.get(pool.variantId) ?? NONE_INCOMING,
           state: variantState(pool.available, product.lowStockThreshold),
           ...(canSeeCost ? { avgCost: pool.avgCost } : {}),
         }
@@ -614,6 +624,7 @@ export class StockService implements ProductStockHooks {
       unsellable: null,
       available: quantityOf(packsOf(pool.available, pack) * 1000),
       missingSerials: null,
+      incoming: null,
       packAmount: row.packAmount,
       state: sharedVariantState(pool.available, pack, threshold),
       ...(canSeeCost

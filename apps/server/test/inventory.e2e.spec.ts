@@ -17,8 +17,14 @@ import { DAY_MS, dhakaDate } from '../src/common/time';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase } from './support/database';
-import { cookieFrom, getJson, postJson, putJson } from './support/http';
-import { errorOf, fieldsOf, openShop, type ShopClient } from './support/shop-client';
+import { getJson, postJson, putJson } from './support/http';
+import {
+  errorOf,
+  fieldsOf,
+  openShop,
+  staffWith as signInStaffWith,
+  type ShopClient,
+} from './support/shop-client';
 import { SmsCapture } from './support/sms-capture';
 
 // Phase 3 Slice 2a: the stock ledger over HTTP and at the data layer -- opening stock, stock edits with one-tap
@@ -29,7 +35,6 @@ import { SmsCapture } from './support/sms-capture';
 const ADMIN_URL = process.env['DATABASE_TEST_ADMIN_URL'];
 const DB_NAME = 'lytronix_inventory_test';
 const describeIfDatabase = ADMIN_URL ? describe : describe.skip;
-const STAFF_PASSWORD = 'staff-pass-2468';
 // A fresh database with every migration, and the app booted on it: more than the default 10 s on a busy machine.
 const SETUP_TIMEOUT_MS = 30_000;
 
@@ -204,29 +209,8 @@ async function version(tenantId: string): Promise<number> {
 }
 
 /** A staff member of the shop holding only these permissions, signed in; the headers to call as them. */
-async function staffWith(shop: ShopClient, permissions: string[]): Promise<Record<string, string>> {
-  await admin.query(
-    "UPDATE control.tenants SET plan_id = (SELECT id FROM control.plans WHERE name = 'Starter') WHERE id = $1",
-    [shop.tenantId],
-  );
-  const role = (await shop.post('/roles', { name: permissions.join(' '), permissions })).body as {
-    id: string;
-  };
-  const phone = texts.freshPhone();
-  const made = await shop.post('/staff', { phone, password: STAFF_PASSWORD, roleIds: [role.id] });
-  expect(made.status, JSON.stringify(made.body)).toBe(201);
-  const signedIn = await postJson(
-    port,
-    '/auth/staff/signin',
-    { phone, password: STAFF_PASSWORD },
-    { host: 'localhost', 'x-lytro-shop': shop.slug },
-  );
-  return {
-    cookie: cookieFrom(signedIn),
-    'x-csrf-token': (signedIn.body as { csrfToken: string }).csrfToken,
-    host: 'localhost',
-    'x-lytro-shop': shop.slug,
-  };
+function staffWith(shop: ShopClient, permissions: string[]): Promise<Record<string, string>> {
+  return signInStaffWith(port, texts, admin, shop, permissions);
 }
 
 describeIfDatabase('opening stock and the stock view (INV-01, INV-03, UOM-03)', () => {

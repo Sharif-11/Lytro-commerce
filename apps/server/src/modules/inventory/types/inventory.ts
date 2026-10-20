@@ -159,6 +159,11 @@ export interface VariantStockView {
   available: string;
   /** INV-14: on a serial-numbered product, how many units held have no serial yet; null otherwise. */
   missingSerials: number | null;
+  /**
+   * PUR-05: ordered and not yet received on placed, open purchases; never part of what is available. Null for a variant
+   * drawing on a shared stock, which is bought by the shared stock.
+   */
+  incoming: string | null;
   /** INV-24: how much of the shared stock one unit sold uses; null unless the product shares its stock. */
   packAmount: string | null;
   state: StockState;
@@ -174,6 +179,8 @@ export interface SharedStockView {
   reserved: string;
   unsellable: string;
   available: string;
+  /** PUR-05: ordered and not yet received on placed, open purchases, in the product's unit. */
+  incoming: string;
   state: StockState;
   /** INV-10, D3-9: per unit of the stock, present only for a caller who may see cost. */
   avgCost?: string | null;

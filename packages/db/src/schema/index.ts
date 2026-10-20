@@ -32,3 +32,4 @@ export * from './control/presets';
 export * from './control/locations';
 export * from './tenant/delivery';
 export * from './tenant/inventory';
+export * from './tenant/purchasing';

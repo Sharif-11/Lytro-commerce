@@ -889,20 +889,40 @@ CREATE TABLE tenant.stock_check_lines (             -- INV-07: one counted varia
 
 #### Purchasing (PUR)
 
+**Built in Phase 3 Slice 4a (migration 0060, 2026-10-20):** `suppliers`, `purchase_counters`, `purchase_status`,
+`purchase_orders` and `purchase_order_lines` (PUR-01 to PUR-03, PUR-05). Receipts follow in Slice 4b. Against the
+design below:
+- **A draft has no number.** `number` is null exactly while the purchase is a draft (a check), so a draft can be
+  deleted without leaving a gap; placing it takes the next number from the shop's counter row, which the statement
+  taking it holds locked to the end of its transaction. A trigger keeps a number once given, never lets a placed
+  purchase go back to draft, and deletes only a draft (and LIF-19's day-60 deletion).
+- **Lines hold the product and variant by value**, like a movement's, so a purchase outlives a product deleted for good
+  (PRD-13); each line has a `position`, and one line per variant per purchase. A trigger checks a new line names one
+  of the product's own variants, never a size drawing on a shared stock (INV-24), in whole numbers unless measured
+  (UOM-03); a line keeps its variant and purchase, and one with stock received on it is kept. A product moves to a
+  whole-number unit only while no unfinished purchase buys a fraction of it (`keep_whole_stock`, extended).
+- **Suppliers:** `address` is `varchar(500)`, `phone` `varchar(30)` as the shop's contact phone; the name is unique
+  among live suppliers ignoring case (a partial unique index on `lower(name)`). Archived, never deleted, except at
+  day 60.
+- `close_reason` (PUR-06) is added with receiving and closing short, in Slice 4b.
+
 ```sql
-CREATE TABLE tenant.suppliers (                     -- PUR-01
+CREATE TABLE tenant.suppliers (                     -- PUR-01 (built in Slice 4a)
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id       uuid NOT NULL,
     name            varchar(200) NOT NULL,
-    phone           varchar(15),
+    phone           varchar(30),
     email           varchar(254),
-    address         text,
-    notes           text,
+    address         varchar(500),
+    notes           varchar(1000),
     archived_at     timestamptz,
+    created_at      timestamptz NOT NULL DEFAULT now(),
+    updated_at      timestamptz NOT NULL DEFAULT now(),
     UNIQUE (tenant_id, id)
 );
+CREATE UNIQUE INDEX ON tenant.suppliers (tenant_id, lower(name)) WHERE archived_at IS NULL;
 
-CREATE TABLE tenant.purchase_counters (             -- PUR-03, same locked-row pattern as invoice_counters
+CREATE TABLE tenant.purchase_counters (             -- PUR-03, a locked row per shop, as invoice_counters
     tenant_id       uuid PRIMARY KEY,
     last_number     integer NOT NULL DEFAULT 0
 );
@@ -910,35 +930,38 @@ CREATE TABLE tenant.purchase_counters (             -- PUR-03, same locked-row p
 CREATE TYPE tenant.purchase_status AS ENUM
     ('draft', 'ordered', 'partially_received', 'received', 'closed_short', 'cancelled');
 
-CREATE TABLE tenant.purchase_orders (               -- PUR-02
+CREATE TABLE tenant.purchase_orders (               -- PUR-02 (built in Slice 4a)
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id       uuid NOT NULL,
-    number          integer NOT NULL,
+    number          integer CHECK (number > 0),   -- null while a draft; given when placed
     supplier_id     uuid,
     status          tenant.purchase_status NOT NULL DEFAULT 'draft',
     expected_on     date,
-    notes           text,
-    close_reason    text,                         -- PUR-06
+    notes           varchar(1000),
     created_at      timestamptz NOT NULL DEFAULT now(),
-    ordered_at      timestamptz,
+    updated_at      timestamptz NOT NULL DEFAULT now(),
+    ordered_at      timestamptz,                  -- null while a draft
     UNIQUE (tenant_id, number),
     UNIQUE (tenant_id, id),
+    CHECK ((status = 'draft') = (number IS NULL) AND (number IS NULL) = (ordered_at IS NULL)),
     FOREIGN KEY (tenant_id, supplier_id) REFERENCES tenant.suppliers(tenant_id, id)
 );
 
-CREATE TABLE tenant.purchase_order_lines (
+CREATE TABLE tenant.purchase_order_lines (          -- PUR-02, PUR-05 (built in Slice 4a)
     id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id         uuid NOT NULL,
     purchase_order_id uuid NOT NULL,
-    variant_id        uuid NOT NULL,
+    product_id        uuid NOT NULL,              -- held by value, checked by a trigger
+    variant_id        uuid NOT NULL,              -- held by value; a shared stock's holder, never one of its sizes
+    position          integer NOT NULL,
     quantity_ordered  numeric(14,3) NOT NULL CHECK (quantity_ordered > 0),
     quantity_received numeric(14,3) NOT NULL DEFAULT 0 CHECK (quantity_received >= 0),
     unit_cost         numeric(12,4) CHECK (unit_cost >= 0),
     UNIQUE (tenant_id, id),
-    FOREIGN KEY (tenant_id, purchase_order_id) REFERENCES tenant.purchase_orders(tenant_id, id),
-    FOREIGN KEY (tenant_id, variant_id) REFERENCES tenant.product_variants(tenant_id, id)
+    UNIQUE (purchase_order_id, variant_id),
+    FOREIGN KEY (tenant_id, purchase_order_id) REFERENCES tenant.purchase_orders(tenant_id, id) ON DELETE CASCADE
 );
--- PUR-05 incoming = SUM(quantity_ordered - quantity_received) over lines of 'ordered' /
+-- PUR-05 incoming = SUM(greatest(quantity_ordered - quantity_received, 0)) over lines of 'ordered' /
 -- 'partially_received' orders; never part of stock_levels.
 
 CREATE TABLE tenant.purchase_receipts (             -- PUR-04, immutable (PUR-08)
