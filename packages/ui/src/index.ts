@@ -20,7 +20,7 @@ export { TextArea, TextField } from './components/text-field';
 export { Mark, PoweredByLytro, Wordmark } from './components/wordmark';
 export { UI_DICTIONARY_KEYS } from './dictionary-keys';
 export { formatDate, formatDateTime } from './format/dates';
-export { daysUntil, formatTaka, formatTakaExact } from './format/money';
+export { daysUntil, formatRate, formatTaka, formatTakaExact } from './format/money';
 export {
   defaultLanguageOf,
   startLanguage,

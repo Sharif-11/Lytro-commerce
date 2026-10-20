@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { daysUntil, formatTaka, formatTakaExact } from '../src';
+import { daysUntil, formatRate, formatTaka, formatTakaExact } from '../src';
 
 describe('formatTaka', () => {
   it('rounds to whole taka with grouping and the sign first', () => {
@@ -24,5 +24,14 @@ describe('daysUntil', () => {
     expect(daysUntil(new Date(now + 2.5 * 864e5).toISOString(), now)).toBe(3);
     expect(daysUntil(new Date(now - 864e5).toISOString(), now)).toBe(0);
     expect(daysUntil(null, now)).toBeNull();
+  });
+});
+
+describe('formatRate', () => {
+  it('trims the stored four decimals to what a seller reads', () => {
+    expect(formatRate('0.4000')).toBe('0.4');
+    expect(formatRate('20.0000')).toBe('20');
+    expect(formatRate('1.2560')).toBe('1.26');
+    expect(formatRate(null)).toBe('–');
   });
 });

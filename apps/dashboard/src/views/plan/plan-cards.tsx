@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { RateKey, TenantState } from '@lytronix/validators';
 import { useCurrentRates } from '@/api/balance';
-import { Button, formatTaka, Tag } from '@lytronix/ui';
+import { Button, formatRate, formatTaka, Tag } from '@lytronix/ui';
 import type { PricingTable } from '@/lib/pricing-table';
 import type { Plan } from '@/types/billing';
 
@@ -41,7 +41,8 @@ export function PlanCards({
 }: PlanCardsProps): React.JSX.Element {
   const { t } = useTranslation();
   const rates = useCurrentRates();
-  const rate = (key: RateKey): string => rates.data?.find((r) => r.key === key)?.value ?? '–';
+  const rate = (key: RateKey): string =>
+    formatRate(rates.data?.find((r) => r.key === key)?.value ?? null);
   const active = state === TenantState.Active;
   const trialOrPayg = state === TenantState.Trial || state === TenantState.PayAsYouGo;
 
