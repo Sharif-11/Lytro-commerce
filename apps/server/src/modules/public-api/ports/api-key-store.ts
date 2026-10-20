@@ -5,7 +5,7 @@ import type {
   ApiUsageRow,
   NewApiKey,
   RequestQuotaNotice,
-} from '../types/api-access';
+} from '../types/public-api';
 
 /**
  * API-01 to API-05, API-08, API-23, PLN-11: a shop's API keys, and what the public API reads about the shop a key

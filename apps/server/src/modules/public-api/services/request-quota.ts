@@ -9,7 +9,7 @@ import {
 import { MINUTE_MS, SECOND_MS, usageCycleStart } from '../../../common/time';
 import type { ApiUsageStore, RequestQuotaNotifier } from '../ports/api-key-store';
 import { API_USAGE_STORE, REQUEST_QUOTA_NOTIFIER } from '../tokens';
-import type { ApiShop } from '../types/api-access';
+import type { ApiShop } from '../types/public-api';
 import { monthlyLimit } from './request-limits';
 import { ExpiringCache } from './expiring-cache';
 

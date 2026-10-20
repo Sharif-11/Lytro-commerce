@@ -20,7 +20,7 @@ import { CatalogueEraser } from '../../catalogue/services/catalogue-eraser';
 import { DeliveryZoneService } from '../../delivery/services/delivery-zone.service';
 import { InventoryEraser } from '../../inventory/services/inventory-eraser';
 import { PurchasingEraser } from '../../purchasing/services/purchasing-eraser';
-import { ApiKeyEraser } from '../../api-access/services/api-key-eraser';
+import { ApiKeyEraser } from '../../public-api/services/api-key-eraser';
 import { DataExportService } from '../../data-export/services/data-export.service';
 import { MailService } from '../../shared/mail/services/mail.service';
 import { MessagingService } from '../../shared/messaging/services/messaging.service';
