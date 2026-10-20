@@ -102,9 +102,11 @@ describe('classifyHost (TEN-7a, TEN-24)', () => {
 
 describe("the platform's own hosts (TEN-08)", () => {
   it('never resolve to a shop, though they sit under the platform domain', () => {
-    for (const label of ['app', 'admin', 'api', 'pay', 'www']) {
+    for (const label of ['app', 'admin', 'pay', 'www']) {
       expect(hosts.classify(`${label}.localhost`)).toEqual({ kind: 'platform' });
     }
+    // API-14: the public API has a host of its own, which names no shop either.
+    expect(hosts.classify('api.localhost')).toEqual({ kind: 'api' });
     expect(hosts.classify('megh.localhost')).toEqual({ kind: 'shop', slug: 'megh' });
   });
 });

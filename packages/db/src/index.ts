@@ -101,6 +101,12 @@ export {
 export { PlanAssignmentsRepository } from './repositories/billing/plan-assignments.repository';
 export { PlanLimitOverridesRepository } from './repositories/billing/plan-limit-overrides.repository';
 export {
+  ApiKeyRepository,
+  type ApiShopRow,
+  type NewApiKey,
+} from './repositories/api/api-key.repository';
+export { ApiUsageRepository, type ApiUsageRow } from './repositories/api/api-usage.repository';
+export {
   PlatformWalletsRepository,
   type NewPlatformWallet,
   type UpdatePlatformWallet,

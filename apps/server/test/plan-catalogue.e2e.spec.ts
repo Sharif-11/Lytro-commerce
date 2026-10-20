@@ -547,6 +547,16 @@ describeIfDatabase('per-tenant limit overrides (PLN-11)', () => {
 
       const afterRemoval = await get(`/operator/tenants/${tenantId}/limit-overrides`, headers);
       expect(afterRemoval.body).toEqual([]);
+
+      // PLN-19: an override may make a limit unlimited, stored as the value null.
+      const unlimited = await post(
+        `/operator/tenants/${tenantId}/limit-overrides`,
+        { limitKey: 'products', value: null, reason: 'enterprise trial' },
+        headers,
+      );
+      expect(unlimited.status, JSON.stringify(unlimited.body)).toBe(200);
+      const listedUnlimited = await get(`/operator/tenants/${tenantId}/limit-overrides`, headers);
+      expect(listedUnlimited.body).toMatchObject([{ limitKey: 'products', value: null }]);
     },
     BCRYPT_TIMEOUT_MS,
   );

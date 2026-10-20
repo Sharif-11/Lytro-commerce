@@ -19,9 +19,29 @@ export const planLimitsSchema = z.object({
   bandwidth_gb: unlimitedInt(),
   essential_sms_total: unlimitedInt(),
   essential_sms_monthly: unlimitedInt(),
+  // RTE-01, RTE-03 (2.1): requests a public key may make in any 60 seconds, and requests the shop's keys may make in a
+  // billing cycle (a month from the period's start; pay-as-you-go from its creation date).
+  requests_per_minute_public: unlimitedInt(),
+  requests_monthly: unlimitedInt(),
   // How many days an activity log entry is kept before the retention job purges it (AUD-06). A retention
   // period, not a usage cap -- PLN-19's "unlimited" concept does not apply here, so this stays non-nullable.
   activity_retention_days: z.number().int().positive().optional(),
 });
 
 export type PlanLimits = z.infer<typeof planLimitsSchema>;
+
+/**
+ * PLN-11: a tenant's limits are its plan snapshot with each of its overrides laid over it. The one place that does
+ * this, so every reader -- the dashboard, the API's rate limits -- agrees on what a shop may do.
+ */
+export function withOverrides(
+  snapshot: PlanLimits | null,
+  overrides: readonly { limitKey: string; value: unknown }[],
+): PlanLimits | null {
+  if (overrides.length === 0) return snapshot;
+  const merged: Record<string, unknown> = { ...(snapshot ?? {}) };
+  for (const override of overrides) {
+    merged[override.limitKey] = override.value;
+  }
+  return merged;
+}

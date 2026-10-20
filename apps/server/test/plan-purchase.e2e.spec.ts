@@ -14,6 +14,7 @@ import { InvoicesService } from '../src/modules/payments/services/invoices.servi
 import { BalanceService } from '../src/modules/balance/services/balance.service';
 import { TopUpService } from '../src/modules/balance/services/top-up.service';
 import { IdempotencyService } from '../src/common/idempotency/idempotency.service';
+import { addMonths } from '../src/common/time';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase, seedShop } from './support/database';
 import { SmsCapture } from './support/sms-capture';
@@ -523,9 +524,11 @@ describeIfDatabase(
       await purchase.confirmFromBalance(quote.id, tenantId);
 
       const tenant = await tenantRow(tenantId);
-      const expected = new Date(oldPeriodEnd);
-      expected.setUTCMonth(expected.getUTCMonth() + 1);
-      expect(new Date(tenant?.period_end ?? 0).getTime()).toBe(expected.getTime());
+      // A month on the Asia/Dhaka calendar (TRM-09), as the server counts it: in UTC the end date can fall on a
+      // different day of the month than it does in Dhaka.
+      expect(new Date(tenant?.period_end ?? 0).getTime()).toBe(
+        addMonths(oldPeriodEnd, 1).getTime(),
+      );
     });
 
     it('BIL-11: a purchase after lapse starts a fresh period from confirmation time', async () => {

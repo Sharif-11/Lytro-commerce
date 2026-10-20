@@ -7,6 +7,7 @@ import {
   PlatformAuditAction,
   type PlanLimits,
   FieldProblemCode,
+  withOverrides,
 } from '@lytronix/validators';
 import { FieldsError } from '../../../common/api-error';
 import { AuditService } from '../../audit/services/audit.service';
@@ -79,13 +80,7 @@ export class PlanLimitOverridesService {
    * actually takes effect rather than only existing in the operator's own CRUD screen.
    */
   async effectiveLimits(tenantId: string, snapshot: PlanLimits | null): Promise<PlanLimits | null> {
-    const overrides = await this.listForTenant(tenantId);
-    if (overrides.length === 0) return snapshot;
-    const merged: Record<string, unknown> = { ...(snapshot ?? {}) };
-    for (const override of overrides) {
-      merged[override.limitKey] = override.value;
-    }
-    return merged;
+    return withOverrides(snapshot, await this.listForTenant(tenantId));
   }
 
   /** Removing the override restores the plan snapshot's own value (PLN-11). */

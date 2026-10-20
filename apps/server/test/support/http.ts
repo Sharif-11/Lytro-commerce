@@ -95,13 +95,27 @@ function send(
   payload: unknown,
   headers: Record<string, string>,
 ): Promise<HttpResult> {
+  return sendExact(port, method, withApiPrefix(path), payload, headers);
+}
+
+/**
+ * A request to exactly this path, with no /api/v1 added -- for the public API host, whose own addresses are
+ * /v1/... (API-14), and for a preflight (OPTIONS, API-23).
+ */
+export function sendExact(
+  port: number,
+  method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE' | 'OPTIONS',
+  path: string,
+  payload: unknown,
+  headers: Record<string, string>,
+): Promise<HttpResult> {
   const data = payload === undefined ? '' : JSON.stringify(payload);
   return new Promise((resolve, reject) => {
     const req = httpRequest(
       {
         host: '127.0.0.1',
         port,
-        path: withApiPrefix(path),
+        path,
         method,
         headers: {
           'content-type': 'application/json',

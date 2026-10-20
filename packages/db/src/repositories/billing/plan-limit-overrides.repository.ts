@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { planLimitOverrides, type SelectPlanLimitOverride } from '../../schema';
 import type { Executor } from '../../transactions';
 
@@ -8,12 +8,14 @@ export class PlanLimitOverridesRepository {
     db: Executor,
     values: { tenantId: string; limitKey: string; value: unknown; reason: string; setBy: string },
   ): Promise<SelectPlanLimitOverride> {
+    // PLN-19: unlimited is the JSON value null, which the column holds; a bare null would be no value at all.
+    const value = values.value === null ? sql`'null'::jsonb` : values.value;
     const [row] = await db
       .insert(planLimitOverrides)
-      .values(values)
+      .values({ ...values, value })
       .onConflictDoUpdate({
         target: [planLimitOverrides.tenantId, planLimitOverrides.limitKey],
-        set: { value: values.value, reason: values.reason, setBy: values.setBy, setAt: new Date() },
+        set: { value, reason: values.reason, setBy: values.setBy, setAt: new Date() },
       })
       .returning();
     if (!row) throw new Error('insert returned no plan limit override');

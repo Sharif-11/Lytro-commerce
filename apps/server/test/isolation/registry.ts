@@ -170,4 +170,11 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'POST /purchase-orders/:id/close': "another shop's purchase answers 404",
   'GET /products/:id/variants/:variantId/purchases':
     "another shop's product or variant answers 404",
+  // Phase 3 Slice 8, checked in test/api-keys.e2e.spec.ts: a shop's API keys are its own.
+  'GET /api-keys': "lists only the session shop's own keys",
+  'POST /api-keys': 'makes a key for the session shop only; the 20-key limit counts that shop',
+  'PATCH /api-keys/:id': "another shop's key answers 404",
+  'POST /api-keys/:id/revoke': "another shop's key answers 404 and keeps working",
+  // The public API (API-10, TEN-02): the shop comes from the key alone, whatever the request names.
+  'GET /shop': "answers the key's own shop only; a shop id sent with the request is ignored",
 };

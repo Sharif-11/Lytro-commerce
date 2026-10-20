@@ -30,6 +30,8 @@ import { OperatorSettingsController } from './controllers/operator-settings.cont
 import { BillingController } from './controllers/billing.controller';
 import { OperatorPaymentQueueController } from './controllers/operator-payment-queue.controller';
 import { ShopSettingsController } from './controllers/shop-settings.controller';
+import { ApiKeysController } from './controllers/api-keys.controller';
+import { ApiAccessModule } from '../api-access/api-access.module';
 import { DataExportController } from './controllers/data-export.controller';
 import { DataExportModule } from '../data-export/data-export.module';
 import { SmsUsageModule } from '../sms-usage/sms-usage.module';
@@ -88,6 +90,7 @@ import { CatalogueRequest } from './services/catalogue-request';
     DeliveryModule,
     InventoryModule,
     PurchasingModule,
+    ApiAccessModule,
   ],
   controllers: [
     StaffController,
@@ -109,6 +112,7 @@ import { CatalogueRequest } from './services/catalogue-request';
     BillingController,
     OperatorPaymentQueueController,
     ShopSettingsController,
+    ApiKeysController,
     DataExportController,
     CatalogueSetupController,
     AttributesController,
