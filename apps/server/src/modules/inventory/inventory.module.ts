@@ -17,6 +17,7 @@ import { InventoryFiguresService } from './services/inventory-figures.service';
 import { InventoryLedger } from './services/inventory-ledger';
 import { ReservationExpiryService } from './services/reservation-expiry.service';
 import { ReservationService } from './services/reservation.service';
+import { StockReturnService } from './services/stock-return.service';
 import { SerialEntryService } from './services/serial-entry.service';
 import { SerialService } from './services/serial.service';
 import { StockCheckService } from './services/stock-check.service';
@@ -54,6 +55,7 @@ import {
     SerialService,
     ReservationService,
     ReservationExpiryService,
+    StockReturnService,
     InventoryEraser,
   ],
   exports: [
@@ -66,9 +68,11 @@ import {
     InventoryFiguresService,
     BatchService,
     BatchExpiryService,
-    // INV-15, INV-16: holding stock for orders, for Phase 4's orders module, and the minute pass for its worker.
+    // INV-15 to INV-17: holding stock for orders and taking returns back, for Phase 4's orders module, and the minute
+    // pass for its worker.
     ReservationService,
     ReservationExpiryService,
+    StockReturnService,
     InventoryEraser,
   ],
 })

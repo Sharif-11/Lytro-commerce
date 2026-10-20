@@ -15,6 +15,15 @@ function figureOf(row: OutgoingRow): MovedFigure {
   return { value: row.value, movements: row.movements, unknownCost: row.unknownCost };
 }
 
+/** INV-17: sales less what came back, in paisa; the returns' movements and unknown costs are counted too. */
+function lessReturns(sales: MovedFigure, returned: MovedFigure): MovedFigure {
+  return {
+    value: fromPaisa(toPaisa(sales.value) - toPaisa(returned.value)),
+    movements: sales.movements + returned.movements,
+    unknownCost: sales.unknownCost + returned.unknownCost,
+  };
+}
+
 /** Adds figures in paisa, so a total is exactly the sum of its parts. */
 function total(figures: MovedFigure[]): MovedFigure {
   return {
@@ -27,8 +36,9 @@ function total(figures: MovedFigure[]): MovedFigure {
 /**
  * INV-18, D3-9: the inventory figures a shop's statistics (STA-*) read: what the stock held is worth at average cost,
  * the cost of goods sold in a period, and the losses in it by reason, each valued at the cost its movement recorded
- * (INV-11), so a later cost change never moves a past period. Every outgoing movement that was not a sale counts as a
- * loss. A movement or variant with no cost adds nothing and is counted, so a figure is never a guess.
+ * (INV-11), so a later cost change never moves a past period. The cost of goods sold is the sales less the returns
+ * (INV-17), both at the sale's cost; every outgoing movement that was not a sale counts as a loss, a damaged return
+ * among them. A movement or variant with no cost adds nothing and is counted, so a figure is never a guess.
  */
 @Injectable()
 export class InventoryFiguresService {
@@ -62,6 +72,7 @@ export class InventoryFiguresService {
       const stockValue = await this.stock.stockValue(tx, tenantId);
       const outgoing = await this.stock.outgoingByReason(tx, tenantId, period);
       const sales = outgoing.find((row) => row.reason === StockReason.Sale);
+      const returned = await this.stock.returnedInPeriod(tx, tenantId, period);
       const byReason = outgoing
         .filter((row) => row.reason !== StockReason.Sale)
         .map((row) => ({ reason: row.reason, ...figureOf(row) }));
@@ -69,7 +80,7 @@ export class InventoryFiguresService {
         dateFrom,
         dateTo,
         stockValue,
-        costOfGoodsSold: sales ? figureOf(sales) : NOTHING,
+        costOfGoodsSold: lessReturns(sales ? figureOf(sales) : NOTHING, returned),
         losses: { ...total(byReason), byReason },
       };
     });

@@ -290,6 +290,13 @@ export const MESSAGE_KEYS = [
   'SerialPerUnitShipped',
   'ReservedStockExpired',
 
+  // Returns (Phase 3 Slice 5b)
+  'NothingReturned',
+  'ReservationNotShipped',
+  'MoreThanShipped',
+  'SerialPerUnitReturned',
+  'ReturnCannotRestock',
+
   // Purchasing (Phase 3 Slice 4a)
   'SupplierNotFound',
   'SupplierNameTaken',

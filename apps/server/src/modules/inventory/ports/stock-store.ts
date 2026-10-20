@@ -4,6 +4,8 @@ import type {
   MovementRecord,
   NewStockMovement,
   OutgoingRow,
+  ReferencedMovementRow,
+  ReturnedRow,
   ShortfallRow,
   StockHistoryRow,
   StockValueRow,
@@ -70,6 +72,18 @@ export interface StockStore {
   ): Promise<void>;
   /** INV-18: the stock held now, at average cost. */
   stockValue(tx: Transaction, tenantId: string): Promise<StockValueRow>;
+  /** The movements naming this record (a reservation, a receipt), oldest first, each with its batch as it is now. */
+  listReferencing(
+    tx: Transaction,
+    tenantId: string,
+    reference: { type: string; id: string },
+  ): Promise<ReferencedMovementRow[]>;
+  /** INV-17, INV-18: the stock returned in a period, at the sale's cost each return recorded. */
+  returnedInPeriod(
+    tx: Transaction,
+    tenantId: string,
+    period: { from: Date; to: Date },
+  ): Promise<ReturnedRow>;
   /** INV-18: the stock that left in a period, by reason, at the cost each movement recorded. */
   outgoingByReason(
     tx: Transaction,

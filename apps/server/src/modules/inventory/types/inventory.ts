@@ -5,6 +5,8 @@ import type {
   NewStockMovement,
   SelectSerialNumber,
   SelectStockReservation,
+  ReferencedMovementRow,
+  ReturnedRow,
   ShortfallRow,
   OutgoingRow,
   SelectStockBatch,
@@ -38,6 +40,8 @@ export type {
   NewStockBatch,
   NewStockMovement,
   OutgoingRow,
+  ReferencedMovementRow,
+  ReturnedRow,
   ShortfallRow,
   StockBatchListRow,
   StockCheckLineRow,
@@ -75,7 +79,9 @@ export interface StockChange {
   serials?: string[] | null;
   /**
    * INV-10, PUR-04: on a purchase receipt, what each arriving unit cost, per unit of the stock it lands in (four
-   * decimals); the database takes it into the average cost. Null or left out when not known.
+   * decimals); the database takes it into the average cost. Null or left out when not known. INV-17: on a return, and
+   * on the write-off of a damaged one, what the unit cost when it was sold. Left out on any other fall: the average
+   * cost of the moment (INV-11).
    */
   unitCost?: string | null;
   /** INV-14: on a sale, the order its units went to; the serials leaving with it are sold to that order. */
@@ -103,6 +109,20 @@ export interface ReservationRequest {
 export interface Shipment {
   reservationId: string;
   serials?: string[] | null;
+}
+
+/**
+ * INV-17: units of a shipped reservation coming back, in what was ordered (whole packs for a size drawing on a shared
+ * stock), each marked sellable or damaged by the shop.
+ */
+export interface StockReturn {
+  reservationId: string;
+  sellable: string;
+  damaged: string;
+  /** INV-12: the batch they come back into, one the shipment took from; left out, the one expiring soonest first. */
+  batchId?: string | null;
+  /** INV-14: on a serial-numbered product, the serial (as stored) of every unit coming back, as it is marked. */
+  serials?: { sellable: string[]; damaged: string[] } | null;
 }
 
 /** INV-13, INV-15: expiry has left units held for orders with nothing sellable under them. */

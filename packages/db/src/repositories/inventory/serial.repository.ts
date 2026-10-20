@@ -108,6 +108,16 @@ export class SerialRepository {
       .where(and(eq(serialNumbers.tenantId, tenantId), inArray(serialNumbers.id, ids)));
   }
 
+  /** INV-17: these sold units came back; each returns as a new in-stock serial, so the sold row stays as history. */
+  async markReturned(tx: Transaction, tenantId: string, ids: string[]): Promise<void> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    if (ids.length === 0) return;
+    await tx
+      .update(serialNumbers)
+      .set({ status: SerialStatus.Returned, updatedAt: new Date() })
+      .where(and(eq(serialNumbers.tenantId, tenantId), inArray(serialNumbers.id, ids)));
+  }
+
   /** A variant's serials, newest first, those of one status when asked, else the ones it holds. */
   async listSerials(
     tx: Transaction,
