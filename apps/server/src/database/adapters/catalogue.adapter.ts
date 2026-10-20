@@ -65,6 +65,8 @@ const PLATFORM_OPTION_SET_NAME_INDEX = 'option_sets_platform_name_idx';
 const PRODUCT_ZONE_KEY = 'product_delivery_zones_zone_fk';
 // UOM-03: the trigger that keeps a product holding a fraction of stock in a measured unit.
 const WHOLE_UNITS_CHECK = 'stock_whole_units';
+// INV-24: a product switching to or from shared stock while it holds some (migration 0057).
+const SHARED_SWITCH_CHECK = 'shared_stock_switch_needs_empty';
 
 /** One transaction per unit of catalogue work. Each repository call sets the shop's tenant context itself. */
 @Injectable()
@@ -387,6 +389,8 @@ export class DrizzleProductStore implements ProductStore {
         throw new UniqueViolation('slug');
       if (this.transactions.isCheckViolation(error, WHOLE_UNITS_CHECK))
         throw new StockRefused('whole_units');
+      if (this.transactions.isCheckViolation(error, SHARED_SWITCH_CHECK))
+        throw new StockRefused('not_empty');
       throw error;
     }
   }
@@ -512,7 +516,12 @@ export class DrizzleProductStore implements ProductStore {
 
   async insertVariant(
     tx: Transaction,
-    values: VariantChange & { tenantId: string; productId: string; combinationKey: string },
+    values: VariantChange & {
+      tenantId: string;
+      productId: string;
+      combinationKey: string;
+      isStockHolder?: boolean;
+    },
   ): Promise<VariantRecord> {
     try {
       return await this.variants.insertVariant(tx, values);
@@ -538,6 +547,18 @@ export class DrizzleProductStore implements ProductStore {
     return this.variants.retireVariants(tx, tenantId, ids);
   }
 
+  findStockHolder(
+    tx: Transaction,
+    tenantId: string,
+    productId: string,
+  ): Promise<VariantRecord | null> {
+    return this.variants.findStockHolder(tx, tenantId, productId);
+  }
+
+  clearPackAmounts(tx: Transaction, tenantId: string, productId: string): Promise<void> {
+    return this.variants.clearPackAmounts(tx, tenantId, productId);
+  }
+
   insertVariantValues(tx: Transaction, rows: VariantValueRecord[]): Promise<void> {
     return this.variants.insertVariantValues(tx, rows);
   }
@@ -547,6 +568,9 @@ export class DrizzleProductStore implements ProductStore {
       throw new UniqueViolation('sku');
     if (this.transactions.isUniqueViolation(error, VARIANT_COMBINATION_KEY)) {
       throw new UniqueViolation('combination');
+    }
+    if (this.transactions.isCheckViolation(error, WHOLE_UNITS_CHECK)) {
+      throw new StockRefused('whole_units');
     }
     throw error;
   }

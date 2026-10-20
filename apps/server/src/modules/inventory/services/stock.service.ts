@@ -7,11 +7,13 @@ import {
   StockEditReason,
   StockReason,
   StockTracking,
+  type AddStockInput,
   type SetStockInput,
   type StockHistoryQuery,
   type VariantCostInput,
 } from '@lytronix/validators';
 import { ApiError, FieldsError } from '../../../common/api-error';
+import { packCost } from '../../balance/services/money';
 import type {
   CatalogueTransactions,
   ProductStockHooks,
@@ -24,12 +26,21 @@ import type { StockStore } from '../ports/stock-store';
 import { STOCK_STORE } from '../tokens';
 import type {
   ProductStockView,
+  SharedStockView,
   StockHistoryPage,
   StockVariantRow,
+  VariantStockRow,
   VariantStockView,
 } from '../types/inventory';
 import { InventoryLedger } from './inventory-ledger';
-import { milli, productState, quantityOf, variantState } from './stock-state';
+import {
+  milli,
+  packsOf,
+  productState,
+  quantityOf,
+  sharedVariantState,
+  variantState,
+} from './stock-state';
 
 // What the note on a made-to-order switch's write-off says (INV-02).
 const UNTRACKING_NOTE = 'Switched to made to order';
@@ -53,9 +64,11 @@ function reasonFor(edit: StockEditReason, rising: boolean): StockReason | null {
 }
 
 /**
- * INV-01 to INV-11, INV-20, INV-21: a shop's stock, as the product's stock screen reads and edits it, and the hooks
- * catalogue calls inside a product's own transaction (opening stock, a made-to-order switch, a changed matrix or
- * threshold). Cost (INV-10) is shown only to a caller who may see it (D3-9).
+ * INV-01 to INV-11, INV-20, INV-21, INV-24: a shop's stock, as the product's stock screen reads and edits it, and the
+ * hooks catalogue calls inside a product's own transaction (opening stock, a made-to-order switch, a changed matrix or
+ * threshold, a switch to or from shared stock). Cost (INV-10) is shown only to a caller who may see it (D3-9). A
+ * product sharing its stock holds it on its stock holder, which these routes take like any variant; a variant drawing
+ * on it holds none of its own, so its stock and cost are set on the shared stock.
  */
 @Injectable()
 export class StockService implements ProductStockHooks {
@@ -84,7 +97,7 @@ export class StockService implements ProductStockHooks {
   ): Promise<ProductStockView> {
     const who = await this.activity.resolve(tenantId, actor);
     return this.transactions.run(async (tx) => {
-      const variant = await this.variantOf(tx, tenantId, productId, variantId);
+      const variant = await this.holderOf(tx, tenantId, productId, variantId);
       if (variant.product.stockTracking !== StockTracking.Tracked) {
         throw new ApiError('conflict', 'MadeToOrderHasNoStock', {});
       }
@@ -147,7 +160,7 @@ export class StockService implements ProductStockHooks {
   ): Promise<ProductStockView> {
     const who = await this.activity.resolve(tenantId, actor);
     return this.transactions.run(async (tx) => {
-      const variant = await this.variantOf(tx, tenantId, productId, variantId);
+      const variant = await this.holderOf(tx, tenantId, productId, variantId);
       if (await this.store.hasReceipt(tx, tenantId, variantId)) {
         throw new ApiError('conflict', 'CostFromPurchases', {});
       }
@@ -160,6 +173,67 @@ export class StockService implements ProductStockHooks {
         AuditAction.VariantCostSet,
         { type: 'product', id: productId },
         { variantId, from: variant.avgCost, to: avgCost },
+      );
+      return this.viewWithin(tx, tenantId, productId, true);
+    });
+  }
+
+  /**
+   * INV-06, INV-24: stock that arrived, added to what is held and recorded as new stock (a manual adjustment until
+   * purchasing, Slice 4). On a variant of a product sharing its stock it is a whole number of that variant's packs; on
+   * the shared stock, in the product's unit; on any other variant, units.
+   */
+  async addStock(
+    tenantId: string,
+    productId: string,
+    variantId: string,
+    input: AddStockInput,
+    actor: CatalogueActor,
+  ): Promise<ProductStockView> {
+    const who = await this.activity.resolve(tenantId, actor);
+    return this.transactions.run(async (tx) => {
+      const variant = await this.variantOf(tx, tenantId, productId, variantId);
+      if (variant.product.stockTracking !== StockTracking.Tracked) {
+        throw new ApiError('conflict', 'MadeToOrderHasNoStock', {});
+      }
+      const packs = variant.product.sharedStock && !variant.isStockHolder;
+      const whole = packs || !MEASURED_STOCK_UNITS.includes(variant.product.stockUnit);
+      if (whole && !Number.isInteger(input.quantity)) {
+        throw new FieldsError([
+          {
+            field: 'quantity',
+            problem: FieldProblemCode.NotAllowed,
+            messageKey: packs ? 'WholePacksOnly' : 'WholeUnitsOnly',
+          },
+        ]);
+      }
+      const quantity = quantityOf(milli(input.quantity));
+      await this.ledger.apply(
+        tx,
+        tenantId,
+        [
+          {
+            variantId,
+            delta: quantity,
+            reason: StockReason.ManualAdjustment,
+            note: input.note ?? null,
+          },
+        ],
+        who,
+      );
+      await this.activity.record(
+        tx,
+        tenantId,
+        who,
+        AuditAction.StockAdjusted,
+        { type: 'product', id: productId },
+        {
+          variantId,
+          added: quantity,
+          ...(packs ? { packAmount: variant.packAmount } : {}),
+          reason: StockReason.ManualAdjustment,
+          ...(input.note ? { note: input.note } : {}),
+        },
       );
       return this.viewWithin(tx, tenantId, productId, true);
     });
@@ -267,7 +341,33 @@ export class StockService implements ProductStockHooks {
     return this.ledger.refresh(tx, tenantId, [productId], false);
   }
 
+  async holdsStock(tx: Transaction, tenantId: string, productId: string): Promise<boolean> {
+    return (await this.store.listVariantStock(tx, tenantId, [productId])).some(
+      (row) => milli(row.onHand) !== 0 || milli(row.reserved) !== 0,
+    );
+  }
+
   // --- Building blocks ---
+
+  /**
+   * INV-24: a variant that holds its own stock: an ordinary one, or a product's stock holder while it shares. A variant
+   * drawing on a shared stock holds none, so its stock and cost are the shared stock's.
+   */
+  private async holderOf(
+    tx: Transaction,
+    tenantId: string,
+    productId: string,
+    variantId: string,
+  ): Promise<StockVariantRow> {
+    const variant = await this.variantOf(tx, tenantId, productId, variantId);
+    if (variant.isStockHolder && !variant.product.sharedStock) {
+      throw new ApiError('not_found', 'ProductNotFound', {});
+    }
+    if (variant.product.sharedStock && !variant.isStockHolder) {
+      throw new ApiError('conflict', 'StockIsShared', {});
+    }
+    return variant;
+  }
 
   /** The variant, which must be one of this live product's, retired or not. */
   private async variantOf(
@@ -299,18 +399,37 @@ export class StockService implements ProductStockHooks {
       throw new ApiError('not_found', 'ProductNotFound', {});
     }
     const product = first.product;
-    const shown = rows.filter((row) => !row.retired || milli(row.onHand) > 0);
-    const variants: VariantStockView[] = shown.map((row) => ({
-      variantId: row.variantId,
-      optionIds: optionIdsOfKey(row.combinationKey),
-      sku: row.sku,
-      retired: row.retired,
-      onHand: row.onHand,
-      reserved: row.reserved,
-      available: row.available,
-      state: variantState(row.available, product.lowStockThreshold),
-      ...(canSeeCost ? { avgCost: row.avgCost } : {}),
-    }));
+    const pool = product.sharedStock
+      ? rows.find((row) => row.isStockHolder && !row.retired)
+      : undefined;
+    const variants: VariantStockView[] = pool
+      ? rows
+          .filter((row) => !row.isStockHolder && !row.retired)
+          .map((row) => this.packView(row, pool, product.lowStockThreshold, canSeeCost))
+      : rows
+          .filter((row) => !row.isStockHolder && (!row.retired || milli(row.onHand) > 0))
+          .map((row) => ({
+            variantId: row.variantId,
+            optionIds: optionIdsOfKey(row.combinationKey),
+            sku: row.sku,
+            retired: row.retired,
+            onHand: row.onHand,
+            reserved: row.reserved,
+            available: row.available,
+            packAmount: null,
+            state: variantState(row.available, product.lowStockThreshold),
+            ...(canSeeCost ? { avgCost: row.avgCost } : {}),
+          }));
+    const shared: SharedStockView | null = pool
+      ? {
+          variantId: pool.variantId,
+          onHand: pool.onHand,
+          reserved: pool.reserved,
+          available: pool.available,
+          state: variantState(pool.available, product.lowStockThreshold),
+          ...(canSeeCost ? { avgCost: pool.avgCost } : {}),
+        }
+      : null;
     return {
       productId,
       stockTracking: product.stockTracking,
@@ -320,7 +439,32 @@ export class StockService implements ProductStockHooks {
         product.stockTracking === StockTracking.Tracked
           ? productState(variants.filter((row) => !row.retired).map((row) => row.state))
           : product.stockState,
+      shared,
       variants,
+    };
+  }
+
+  /** INV-24: a variant drawing on the shared stock: the whole packs it makes, and a pack's share of the cost. */
+  private packView(
+    row: VariantStockRow,
+    pool: VariantStockRow,
+    threshold: string,
+    canSeeCost: boolean,
+  ): VariantStockView {
+    const pack = row.packAmount ?? '0';
+    return {
+      variantId: row.variantId,
+      optionIds: optionIdsOfKey(row.combinationKey),
+      sku: row.sku,
+      retired: false,
+      onHand: null,
+      reserved: null,
+      available: quantityOf(packsOf(pool.available, pack) * 1000),
+      packAmount: row.packAmount,
+      state: sharedVariantState(pool.available, pack, threshold),
+      ...(canSeeCost
+        ? { avgCost: pool.avgCost !== null ? packCost(pack, pool.avgCost) : null }
+        : {}),
     };
   }
 }

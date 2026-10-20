@@ -644,6 +644,18 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'This cost now comes from your purchases, so it cannot be typed in.',
     bn: 'এই খরচ এখন আপনার কেনাকাটা থেকে হিসাব হয়, তাই হাতে লেখা যায় না।',
   },
+  StockIsShared: {
+    en: "This product's sizes share one stock. Change the shared stock instead.",
+    bn: 'এই প্রোডাক্টের সাইজগুলো একটি স্টক শেয়ার করে। এর বদলে শেয়ার্ড স্টক বদলান।',
+  },
+  WholePacksOnly: {
+    en: 'Sizes sharing one stock sell in whole packs. Enter a whole number.',
+    bn: 'শেয়ার্ড স্টকের সাইজ পুরো প্যাকে বিক্রি হয়। একটি পূর্ণ সংখ্যা দিন।',
+  },
+  SharedStockNeedsEmpty: {
+    en: 'Shared stock can be turned on or off only while the product holds no stock. Set its stock to 0 first.',
+    bn: 'প্রোডাক্টে কোনো স্টক না থাকলেই শুধু শেয়ার্ড স্টক চালু বা বন্ধ করা যায়। আগে স্টক 0 করুন।',
+  },
   StockCheckNotFound: {
     en: 'That stock check was not found.',
     bn: 'স্টক চেকটি পাওয়া যায়নি।',
@@ -835,6 +847,10 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   StockCheckRetrieved: {
     en: 'Stock check retrieved.',
     bn: 'স্টক চেক পাওয়া গেছে।',
+  },
+  StockAdded: {
+    en: 'Stock added.',
+    bn: 'স্টক যোগ হয়েছে।',
   },
   InventoryFiguresRetrieved: {
     en: 'Inventory report retrieved.',

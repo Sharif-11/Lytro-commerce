@@ -44,6 +44,18 @@ export const quantityField = z.coerce
     params: { problem: FieldProblemCode.TooManyDecimals },
   });
 
+// A stock quantity that must be more than zero: a pack amount (INV-24, how much of a shared stock one unit sold uses)
+// or stock added (INV-06). Three decimals; whether a whole-unit product allows a fraction is the server's and the
+// database's check (UOM-03).
+export const positiveQuantityField = z.coerce
+  .number()
+  .positive()
+  .max(QUANTITY_MAX)
+  .refine(threeDecimals.check, {
+    message: threeDecimals.message,
+    params: { problem: FieldProblemCode.TooManyDecimals },
+  });
+
 // Every catalogue id in a path or a body.
 export const catalogueIdSchema = z.string().uuid();
 

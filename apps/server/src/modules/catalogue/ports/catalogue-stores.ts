@@ -43,6 +43,8 @@ export interface ProductStockHooks {
   ): Promise<void>;
   /** After its variants, tracking or threshold changed: its public stock state worked out again (CCH-08, INV-19). */
   refreshStockState(tx: Transaction, tenantId: string, productId: string): Promise<void>;
+  /** INV-24: whether any variant of the product, its stock holder included, holds or has reserved any stock. */
+  holdsStock(tx: Transaction, tenantId: string, productId: string): Promise<boolean>;
 }
 
 /** Opens one transaction for a unit of catalogue work; every store method below takes it. */
@@ -181,6 +183,7 @@ export type VariantChange = Partial<
     | 'weightKg'
     | 'deliveryCharge'
     | 'deliveryMode'
+    | 'packAmount'
     | 'active'
     | 'deletedAt'
   >
@@ -280,10 +283,18 @@ export interface ProductStore {
     tenantId: string,
     variantIds: string[],
   ): Promise<VariantValueRecord[]>;
-  /** A SKU a live variant already has comes back as UniqueViolation('sku'). */
+  /**
+   * A SKU a live variant already has comes back as UniqueViolation('sku'); a fraction of a pack of a whole-unit
+   * product as StockRefused('whole_units').
+   */
   insertVariant(
     tx: Transaction,
-    values: VariantChange & { tenantId: string; productId: string; combinationKey: string },
+    values: VariantChange & {
+      tenantId: string;
+      productId: string;
+      combinationKey: string;
+      isStockHolder?: boolean;
+    },
   ): Promise<VariantRecord>;
   updateVariant(
     tx: Transaction,
@@ -293,6 +304,14 @@ export interface ProductStore {
   ): Promise<VariantRecord | null>;
   retireVariants(tx: Transaction, tenantId: string, ids: string[]): Promise<void>;
   insertVariantValues(tx: Transaction, rows: VariantValueRecord[]): Promise<void>;
+  /** INV-24: the product's stock-holder variant, retired or not; never one of listVariants'. */
+  findStockHolder(
+    tx: Transaction,
+    tenantId: string,
+    productId: string,
+  ): Promise<VariantRecord | null>;
+  /** INV-24: clears every pack amount of a product that stops sharing its stock. */
+  clearPackAmounts(tx: Transaction, tenantId: string, productId: string): Promise<void>;
   /** DLV-07: the zones the product may be delivered to. */
   listDeliveryZoneIds(tx: Transaction, tenantId: string, productId: string): Promise<string[]>;
   /** A zone the shop does not have comes back as MissingReference('zone'). */

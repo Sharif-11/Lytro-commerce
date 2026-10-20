@@ -258,6 +258,9 @@ export const MESSAGE_KEYS = [
   'StockReasonDoesNotFit',
   'CostFromPurchases',
   'StockCheckNotFound',
+  'StockIsShared',
+  'WholePacksOnly',
+  'SharedStockNeedsEmpty',
   'PeriodEndsBeforeItStarts',
 
   // Success -- catalogue
@@ -307,6 +310,7 @@ export const MESSAGE_KEYS = [
   'StockChecksRetrieved',
   'StockCheckRetrieved',
   'InventoryFiguresRetrieved',
+  'StockAdded',
 ] as const;
 
 export type MessageKey = (typeof MESSAGE_KEYS)[number];

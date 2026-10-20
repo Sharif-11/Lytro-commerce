@@ -52,11 +52,27 @@ export interface VariantStockView {
   sku: string | null;
   /** Retired from the product (ATR-11) but still holding stock: shown, never sold. */
   retired: boolean;
+  /** Null for a variant drawing on a shared stock, which holds none of its own (INV-24). */
+  onHand: string | null;
+  reserved: string | null;
+  /** For a variant drawing on a shared stock, the whole packs of it the shared stock makes (INV-24). */
+  available: string;
+  /** INV-24: how much of the shared stock one unit sold uses; null unless the product shares its stock. */
+  packAmount: string | null;
+  state: StockState;
+  /** INV-10, D3-9: present only for a caller who may see cost; for a pack, its share of the shared stock's cost. */
+  avgCost?: string | null;
+}
+
+/** INV-24: a product's shared stock, held by its stock-holder variant, in the product's unit. */
+export interface SharedStockView {
+  /** The stock holder: the id the stock, cost, history, addition and stock check routes take. */
+  variantId: string;
   onHand: string;
   reserved: string;
   available: string;
   state: StockState;
-  /** INV-10, D3-9: present only for a caller who may see cost. */
+  /** INV-10, D3-9: per unit of the stock, present only for a caller who may see cost. */
   avgCost?: string | null;
 }
 
@@ -67,6 +83,8 @@ export interface ProductStockView {
   lowStockThreshold: string;
   /** CCH-08: the product's public stock state, its best variant's. */
   state: StockState;
+  /** INV-24: the stock the variants share; null for a product whose variants hold their own. */
+  shared: SharedStockView | null;
   variants: VariantStockView[];
 }
 

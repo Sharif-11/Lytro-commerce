@@ -20,6 +20,7 @@ import {
 import { FieldProblemCode } from '../../validation/field-problem';
 import {
   catalogueIdSchema,
+  positiveQuantityField,
   priceField,
   quantityField,
   queryFlag,
@@ -70,6 +71,9 @@ const variantInput = z.object({
   weightKg: weightKgField.nullable().optional(),
   deliveryCharge: priceField.nullable().optional(),
   deliveryMode: z.nativeEnum(DeliveryMode).nullable().optional(),
+  // INV-24: on a product sharing its stock, how much of it one unit of this variant uses; required there, refused
+  // elsewhere.
+  packAmount: positiveQuantityField.optional(),
   active: z.boolean().optional(),
 });
 
@@ -156,6 +160,70 @@ function checkRoles(
   });
 }
 
+/**
+ * INV-24, UOM-04: a product sharing its stock lists its variants, each with its pack amount, since nothing else says
+ * how much of the stock each one uses; a product that does not share has no pack amounts. Opening stock of a shared
+ * product's variant is a number of its packs, so a whole one. `sharedStock` undefined (a variants save that leaves it
+ * as stored) is checked by the server against the product.
+ */
+function checkSharing(
+  value: {
+    sharedStock?: boolean;
+    sharedOpeningStock?: number;
+    variants?: (z.infer<typeof variantInput> & { openingStock?: number })[];
+  },
+  ctx: Ctx,
+): void {
+  if (value.sharedStock === true) {
+    if (!value.variants || value.variants.length === 0) {
+      refuse(
+        ctx,
+        ['variants'],
+        FieldProblemCode.Required,
+        'List the sizes and how much each uses.',
+      );
+    }
+    value.variants?.forEach((variant, index) => {
+      if (variant.packAmount === undefined) {
+        refuse(
+          ctx,
+          ['variants', index, 'packAmount'],
+          FieldProblemCode.Required,
+          'Say how much of the stock one of these uses.',
+        );
+      }
+      if (variant.openingStock !== undefined && !Number.isInteger(variant.openingStock)) {
+        refuse(
+          ctx,
+          ['variants', index, 'openingStock'],
+          FieldProblemCode.NotWholeNumber,
+          'Opening stock here is a number of packs.',
+        );
+      }
+    });
+  }
+  if (value.sharedStock === false) {
+    value.variants?.forEach((variant, index) => {
+      if (variant.packAmount !== undefined) {
+        refuse(
+          ctx,
+          ['variants', index, 'packAmount'],
+          FieldProblemCode.NotAllowed,
+          'Only a product sharing one stock has pack amounts.',
+        );
+      }
+    });
+    if (value.sharedOpeningStock !== undefined) {
+      refuse(
+        ctx,
+        ['sharedOpeningStock'],
+        FieldProblemCode.NotAllowed,
+        'Only a product sharing one stock has shared opening stock.',
+      );
+    }
+  }
+}
+
 /** The product's own field rules that need no stored data (INV-12/14, PRD-08, PRD-15). */
 function checkFields(value: Partial<z.infer<z.ZodObject<typeof productFields>>>, ctx: Ctx): void {
   if (
@@ -206,10 +274,14 @@ function checkFields(value: Partial<z.infer<z.ZodObject<typeof productFields>>>,
 
 // POST products (PRD-01, ATR-03, ATR-11): the product, its attributes and its variants in one request, saved in
 // one transaction. With no variant-defining attributes it gets one default variant (ATR-04); with some and no
-// `variants`, one variant for every combination of the chosen options.
+// `variants`, one variant for every combination of the chosen options. With `sharedStock` (INV-24) its variants draw on
+// one stock: each lists its pack amount, opening stock may be given as packs per variant and as `sharedOpeningStock` in
+// the product's unit, and the variants must be listed.
 export const createProductSchema = z
   .object({
     ...productFields,
+    sharedStock: z.boolean().optional(),
+    sharedOpeningStock: quantityField.optional(),
     variantAttributes: variantAttributesField.optional(),
     variants: newVariantsField.optional(),
     attributes: attributesField.optional(),
@@ -218,6 +290,23 @@ export const createProductSchema = z
     checkFields(value, ctx);
     checkMatrix(value, ctx);
     checkRoles(value, ctx);
+    checkSharing({ ...value, sharedStock: value.sharedStock ?? false }, ctx);
+    if (value.sharedStock && value.serialTracked) {
+      refuse(
+        ctx,
+        ['serialTracked'],
+        FieldProblemCode.NotAllowed,
+        'A product sharing one stock has no serial numbers.',
+      );
+    }
+    if (value.sharedStock && value.stockTracking === StockTracking.NotTracked) {
+      refuse(
+        ctx,
+        ['sharedStock'],
+        FieldProblemCode.NotAllowed,
+        'A product whose stock is not counted has no stock to share.',
+      );
+    }
   });
 export type CreateProductInput = z.infer<typeof createProductSchema>;
 
@@ -228,21 +317,34 @@ export const updateProductSchema = z
     ...productFields,
     name: productFields.name.optional(),
     basePrice: productFields.basePrice.optional(),
+    // INV-24: switched where the variants are saved, since each one needs its pack amount with it.
+    sharedStock: z.unknown().optional(),
   })
   .superRefine((value, ctx) => {
     checkFields(value, ctx);
+    if (value.sharedStock !== undefined) {
+      refuse(
+        ctx,
+        ['sharedStock'],
+        FieldProblemCode.NotAllowed,
+        'Turn shared stock on or off where the sizes are saved.',
+      );
+    }
   });
 export type UpdateProductInput = z.infer<typeof updateProductSchema>;
 
 // PUT products/:id/variants (ATR-11): the variant-defining attributes and the variants, replacing what is stored.
-// A combination no longer listed is retired, not deleted; one listed again comes back.
+// A combination no longer listed is retired, not deleted; one listed again comes back. `sharedStock` (INV-24) turns
+// shared stock on or off, only while the product holds none; left out, it stays as it is.
 export const saveVariantsSchema = z
   .object({
+    sharedStock: z.boolean().optional(),
     variantAttributes: variantAttributesField,
     variants: variantsField.optional(),
   })
   .superRefine((value, ctx) => {
     checkMatrix(value, ctx);
+    checkSharing(value, ctx);
   });
 export type SaveVariantsInput = z.infer<typeof saveVariantsSchema>;
 

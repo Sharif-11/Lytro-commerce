@@ -237,6 +237,7 @@ export class ProductRepository {
                   rows.map((row) => row.id),
                 ),
                 isNull(productVariants.deletedAt),
+                eq(productVariants.isStockHolder, false),
               ),
             )
             .groupBy(productVariants.productId);
@@ -468,6 +469,7 @@ export class ProductRepository {
         FROM tenant.products pp
         LEFT JOIN tenant.product_variants v
           ON v.tenant_id = pp.tenant_id AND v.product_id = pp.id AND v.deleted_at IS NULL AND v.active
+            AND NOT v.is_stock_holder
         WHERE pp.tenant_id = ${tenantId} AND pp.id = ${productId}
       ) r
       WHERE p.tenant_id = ${tenantId} AND p.id = ${productId}`);

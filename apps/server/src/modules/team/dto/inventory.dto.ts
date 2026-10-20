@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
 import {
+  addStockSchema,
   recordStockCheckSchema,
   setStockSchema,
   StockReason,
@@ -12,6 +13,7 @@ import {
 
 // DTO classes built from the shared schemas, so each request shape is written once (ENGINEERING §4).
 export class SetStockDto extends createZodDto(setStockSchema) {}
+export class AddStockDto extends createZodDto(addStockSchema) {}
 export class VariantCostDto extends createZodDto(variantCostSchema) {}
 export class RecordStockCheckDto extends createZodDto(recordStockCheckSchema) {}
 
@@ -25,15 +27,27 @@ export const productStockViewSchema = z.object({
   stockUnit: z.nativeEnum(StockUnit),
   lowStockThreshold: z.string(),
   state: z.nativeEnum(StockState),
+  // INV-24: the stock the variants share, held by the product's stock holder; null when each holds its own.
+  shared: z
+    .object({
+      variantId: z.string(),
+      onHand: z.string(),
+      reserved: z.string(),
+      available: z.string(),
+      state: z.nativeEnum(StockState),
+      avgCost: z.string().nullable().optional(),
+    })
+    .nullable(),
   variants: z.array(
     z.object({
       variantId: z.string(),
       optionIds: z.array(z.string()),
       sku: z.string().nullable(),
       retired: z.boolean(),
-      onHand: z.string(),
-      reserved: z.string(),
+      onHand: z.string().nullable(),
+      reserved: z.string().nullable(),
       available: z.string(),
+      packAmount: z.string().nullable(),
       state: z.nativeEnum(StockState),
       avgCost: z.string().nullable().optional(),
     }),

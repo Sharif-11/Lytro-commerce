@@ -210,6 +210,7 @@ describeIfDatabase('route inventory against the application (SEC-02)', () => {
       'POST /option-sets',
       'POST /products',
       'POST /products/:id/duplicate',
+      'POST /products/:id/variants/:variantId/stock-additions',
       'POST /roles',
       'POST /staff',
       'POST /staff/:id/password',

@@ -15,6 +15,7 @@ import {
   StockTracking,
   TenantState,
   VARIANT_DATA_TYPES,
+  STOCK_HOLDER_KEY,
   type CreateProductInput,
   type ListProductsQuery,
   type ProductDeliveryZonesInput,
@@ -218,6 +219,8 @@ export class ProductService {
 
       const fields = this.newProductFields(input, defaults);
       this.checkOpeningStock(input, fields);
+      const shared = fields.sharedStock === true;
+      this.checkPacks(input.variants, shared, fields.stockUnit);
 
       const base = slugOf(input.name, 'product');
       const slug = nextFreeSlug(base, await this.products.slugsLike(tx, shop.id, base));
@@ -230,9 +233,14 @@ export class ProductService {
       await this.products.replaceCategoryLinks(tx, shop.id, product.id, categoryIds);
       await this.writeMatrixAttributes(tx, shop.id, product.id, matrix, new Set());
       await this.writeDescriptions(tx, shop.id, product.id, described, matrix.attributes.length);
-      await this.writeVariants(tx, shop.id, product.id, matrix.planned, [], input.variants);
+      await this.writeVariants(tx, shop.id, product.id, matrix.planned, [], input.variants, shared);
       await this.products.refreshPriceRange(tx, shop.id, product.id);
+      const holderId = shared ? await this.ensureStockHolder(tx, shop.id, product.id) : null;
       const opening = await this.openingLines(tx, shop.id, product.id, matrix.planned);
+      // INV-24: stock already on the shelf loose, in the product's unit, on top of any given as packs.
+      if (holderId !== null && (input.sharedOpeningStock ?? 0) > 0) {
+        opening.push({ variantId: holderId, quantity: String(input.sharedOpeningStock) });
+      }
       if (opening.length > 0) {
         if (!stock) throw new Error('opening stock is recorded through the inventory hooks');
         await stock.recordOpeningStock(tx, shop.id, product.id, opening, who);
@@ -247,6 +255,7 @@ export class ProductService {
         name: product.name,
         price: product.basePrice,
         variants: matrix.planned.length,
+        ...(shared ? { sharedStock: true } : {}),
         ...(opening.length > 0 ? { openingStock: opening.length } : {}),
       });
       await this.products.bumpVersion(tx, shop.id);
@@ -284,6 +293,7 @@ export class ProductService {
         stockTracking: source.stockTracking,
         batchTracked: source.batchTracked,
         serialTracked: source.serialTracked,
+        sharedStock: source.sharedStock,
         lowStockThreshold: source.lowStockThreshold,
         deliveryCharge: source.deliveryCharge,
         weightKg: source.weightKg,
@@ -339,6 +349,7 @@ export class ProductService {
           weightKg: variant.weightKg,
           deliveryCharge: variant.deliveryCharge,
           deliveryMode: variant.deliveryMode,
+          packAmount: variant.packAmount,
           active: variant.active,
         });
         for (const value of variantValues) {
@@ -348,6 +359,8 @@ export class ProductService {
         }
       }
       await this.products.insertVariantValues(tx, copiedValues);
+      // INV-24: the copy shares its stock the same way, with a stock holder of its own, empty.
+      if (source.sharedStock) await this.ensureStockHolder(tx, shop.id, copy.id);
 
       const chart = await this.charts.findChart(tx, shop.id, { productId });
       if (chart) await this.charts.putChart(tx, shop.id, { productId: copy.id }, chart.tableRows);
@@ -437,13 +450,19 @@ export class ProductService {
         change.primaryCategoryId = primary;
       }
 
-      // INV-02: a product going made to order first writes off what it holds, so the ledger stays true.
+      // INV-24: a product sharing its stock is never serial-numbered.
+      if (current.sharedStock && change.serialTracked === true) {
+        throw new FieldsError([{ field: 'serialTracked', problem: FieldProblemCode.NotAllowed }]);
+      }
+      // INV-02: a product going made to order first writes off what it holds, so the ledger stays true. One sharing
+      // its stock stops sharing it with that (INV-24): a made-to-order product holds no stock to share.
       const untracking =
         change.stockTracking === StockTracking.NotTracked &&
         current.stockTracking === StockTracking.Tracked;
       if (untracking) {
         if (!stock) throw new Error('a tracking change goes through the inventory hooks');
         await stock.beforeUntracking(tx, shop.id, productId, who);
+        if (current.sharedStock) change.sharedStock = false;
       }
       let updated: ProductRecord | null;
       try {
@@ -461,6 +480,7 @@ export class ProductService {
         throw error;
       }
       if (!updated) throw new ApiError('not_found', 'ProductNotFound', {});
+      if (change.sharedStock === false) await this.retireStockHolder(tx, shop.id, productId);
       if (change.stockTracking !== undefined || change.lowStockThreshold !== undefined) {
         await stock?.refreshStockState(tx, shop.id, productId);
       }
@@ -490,7 +510,12 @@ export class ProductService {
   ): Promise<ProductDetail> {
     const who = await this.activity.resolve(shop.id, actor);
     return this.transactions.run(async (tx) => {
-      await this.findLive(tx, shop.id, productId);
+      const product = await this.findLive(tx, shop.id, productId);
+      // INV-24: left out, sharing stays as it is; switching it needs a counted product without serials, holding nothing.
+      const shared = input.sharedStock ?? product.sharedStock;
+      const switching = shared !== product.sharedStock;
+      if (switching) await this.checkSwitch(tx, shop.id, product, shared, stock);
+      this.checkPacks(input.variants, shared, product.stockUnit);
       const current = await this.products.listProductAttributes(tx, shop.id, productId);
       const splitting = new Set(
         current
@@ -523,13 +548,27 @@ export class ProductService {
       const stillSplitting = new Set([...splitting].filter((id) => wanted.has(id)));
       await this.writeMatrixAttributes(tx, shop.id, productId, matrix, stillSplitting);
 
-      await this.writeVariants(tx, shop.id, productId, matrix.planned, existing, input.variants);
+      await this.writeVariants(
+        tx,
+        shop.id,
+        productId,
+        matrix.planned,
+        existing,
+        input.variants,
+        shared,
+      );
+      if (switching) {
+        if (shared) await this.ensureStockHolder(tx, shop.id, productId);
+        else await this.retireStockHolder(tx, shop.id, productId);
+        await this.switchSharing(tx, shop.id, productId, shared);
+      }
       await this.products.refreshPriceRange(tx, shop.id, productId);
       // CCH-08: a retired variant no longer sells, whatever it still holds (its stock stays, visible to the shop).
       await stock?.refreshStockState(tx, shop.id, productId);
       await this.record(tx, shop.id, who, AuditAction.ProductVariantsSaved, productId, {
         variants: matrix.planned.length,
         retired: retiring.length,
+        ...(switching ? { sharedStock: shared } : {}),
       });
       await this.products.bumpVersion(tx, shop.id);
       return this.detail(tx, shop.id, productId);
@@ -687,14 +726,16 @@ export class ProductService {
 
   /**
    * INV-02, UOM-03: opening stock is for a tracked product only, and in whole numbers unless its unit is measured
-   * (kg, g, liter, ml). The database refuses both too; this names the field.
+   * (kg, g, liter, ml). The database refuses both too; this names the field. For a product sharing its stock (INV-24),
+   * a variant's opening stock is a whole number of its packs, and the loose stock follows the unit.
    */
   private checkOpeningStock(
     input: CreateProductInput,
-    fields: Pick<ProductChange, 'stockTracking' | 'stockUnit'>,
+    fields: Pick<ProductChange, 'stockTracking' | 'stockUnit' | 'sharedStock'>,
   ): void {
     const measured =
       fields.stockUnit !== undefined && MEASURED_STOCK_UNITS.includes(fields.stockUnit);
+    const shared = fields.sharedStock === true;
     const problems = (input.variants ?? []).flatMap((spec, index): InvalidField[] => {
       const quantity = spec.openingStock ?? 0;
       if (quantity === 0) return [];
@@ -704,12 +745,140 @@ export class ProductService {
           { field, problem: FieldProblemCode.NotAllowed, messageKey: 'MadeToOrderHasNoStock' },
         ];
       }
-      if (!measured && !Number.isInteger(quantity)) {
+      if (!Number.isInteger(quantity) && (shared || !measured)) {
+        return [
+          {
+            field,
+            problem: FieldProblemCode.NotAllowed,
+            messageKey: shared ? 'WholePacksOnly' : 'WholeUnitsOnly',
+          },
+        ];
+      }
+      return [];
+    });
+    const loose = input.sharedOpeningStock ?? 0;
+    if (shared && !measured && !Number.isInteger(loose)) {
+      problems.push({
+        field: 'sharedOpeningStock',
+        problem: FieldProblemCode.NotAllowed,
+        messageKey: 'WholeUnitsOnly',
+      });
+    }
+    if (problems.length > 0) throw new FieldsError(problems);
+  }
+
+  /**
+   * INV-24, UOM-03: a product sharing its stock lists its variants, each with its pack amount, a whole number unless
+   * the product is counted in a measured unit; one that does not share has none. The database refuses a fraction too;
+   * this names the field.
+   */
+  private checkPacks(
+    variants: VariantSpec[] | undefined,
+    shared: boolean,
+    stockUnit: ProductChange['stockUnit'],
+  ): void {
+    if (shared && (!variants || variants.length === 0)) {
+      throw new FieldsError([{ field: 'variants', problem: FieldProblemCode.Required }]);
+    }
+    const measured = stockUnit !== undefined && MEASURED_STOCK_UNITS.includes(stockUnit);
+    const problems = (variants ?? []).flatMap((spec, index): InvalidField[] => {
+      const field = `variants.${String(index)}.packAmount`;
+      if (!shared) {
+        return spec.packAmount !== undefined
+          ? [{ field, problem: FieldProblemCode.NotAllowed }]
+          : [];
+      }
+      if (spec.packAmount === undefined) return [{ field, problem: FieldProblemCode.Required }];
+      if (!measured && !Number.isInteger(spec.packAmount)) {
         return [{ field, problem: FieldProblemCode.NotAllowed, messageKey: 'WholeUnitsOnly' }];
       }
       return [];
     });
     if (problems.length > 0) throw new FieldsError(problems);
+  }
+
+  /**
+   * INV-24: shared stock is turned on only for a counted product without serial numbers, and on or off only while the
+   * product holds nothing, since its stock is never converted between the two.
+   */
+  private async checkSwitch(
+    tx: Transaction,
+    tenantId: string,
+    product: ProductRecord,
+    shared: boolean,
+    stock: ProductStockHooks | undefined,
+  ): Promise<void> {
+    if (shared && product.stockTracking !== StockTracking.Tracked) {
+      throw new FieldsError([
+        {
+          field: 'sharedStock',
+          problem: FieldProblemCode.NotAllowed,
+          messageKey: 'MadeToOrderHasNoStock',
+        },
+      ]);
+    }
+    if (shared && product.serialTracked) {
+      throw new FieldsError([{ field: 'sharedStock', problem: FieldProblemCode.NotAllowed }]);
+    }
+    if (!stock) throw new Error('a shared stock switch goes through the inventory hooks');
+    if (await stock.holdsStock(tx, tenantId, product.id)) {
+      throw new ApiError('conflict', 'SharedStockNeedsEmpty', {});
+    }
+  }
+
+  /** INV-24: the flag itself; the database refuses it too if stock arrived since the check. */
+  private async switchSharing(
+    tx: Transaction,
+    tenantId: string,
+    productId: string,
+    shared: boolean,
+  ): Promise<void> {
+    try {
+      await this.products.updateProduct(tx, tenantId, productId, { sharedStock: shared });
+    } catch (error) {
+      if (error instanceof StockRefused && error.kind === 'not_empty') {
+        throw new ApiError('conflict', 'SharedStockNeedsEmpty', {});
+      }
+      throw error;
+    }
+  }
+
+  /** INV-24: the product's stock holder, made, or brought back when the product shared its stock before. */
+  private async ensureStockHolder(
+    tx: Transaction,
+    tenantId: string,
+    productId: string,
+  ): Promise<string> {
+    const holder = await this.products.findStockHolder(tx, tenantId, productId);
+    if (holder) {
+      if (holder.deletedAt !== null) {
+        await this.products.updateVariant(tx, tenantId, holder.id, { deletedAt: null });
+      }
+      return holder.id;
+    }
+    const made = await this.products.insertVariant(tx, {
+      tenantId,
+      productId,
+      combinationKey: STOCK_HOLDER_KEY,
+      isStockHolder: true,
+    });
+    return made.id;
+  }
+
+  /**
+   * INV-24: a product that stops sharing its stock retires its holder, keeping it and its history for when the product
+   * shares again, and keeps no pack amounts.
+   */
+  private async retireStockHolder(
+    tx: Transaction,
+    tenantId: string,
+    productId: string,
+  ): Promise<void> {
+    const holder = await this.products.findStockHolder(tx, tenantId, productId);
+    if (holder && holder.deletedAt === null) {
+      await this.products.retireVariants(tx, tenantId, [holder.id]);
+    }
+    await this.products.clearPackAmounts(tx, tenantId, productId);
   }
 
   /** INV-03: the opening stock each new variant was given, by the variant it became. */
@@ -757,6 +926,7 @@ export class ProductService {
       stockTracking,
       batchTracked,
       serialTracked,
+      sharedStock: input.sharedStock ?? false,
       lowStockThreshold:
         input.lowStockThreshold !== undefined
           ? String(input.lowStockThreshold)
@@ -1119,7 +1289,8 @@ export class ProductService {
 
   /**
    * Writes the planned variants: a live one with the same combination keeps its row (and its overrides unless the
-   * request changes them), a retired one comes back, anything else is new.
+   * request changes them), a retired one comes back, anything else is new. On a product sharing its stock, each takes
+   * the pack amount listed for it (INV-24).
    */
   private async writeVariants(
     tx: Transaction,
@@ -1128,11 +1299,15 @@ export class ProductService {
     planned: PlannedVariant<VariantSpec>[],
     existing: VariantRecord[],
     requested: VariantSpec[] | undefined,
+    shared: boolean,
   ): Promise<void> {
     const byKey = new Map(existing.map((row) => [row.combinationKey, row]));
     const values: Parameters<ProductStore['insertVariantValues']>[1] = [];
     for (const plan of planned) {
       const change = variantChangeOf(plan.spec);
+      if (shared && plan.spec?.packAmount !== undefined) {
+        change.packAmount = String(plan.spec.packAmount);
+      }
       const at = plan.spec && requested ? requested.indexOf(plan.spec) : -1;
       try {
         const found = byKey.get(plan.key);
@@ -1156,6 +1331,15 @@ export class ProductService {
         for (const pair of plan.pairs)
           values.push({ tenantId, productId, variantId: row.id, ...pair });
       } catch (error) {
+        if (error instanceof StockRefused && error.kind === 'whole_units') {
+          throw new FieldsError([
+            {
+              field: at >= 0 ? `variants.${String(at)}.packAmount` : 'variants',
+              problem: FieldProblemCode.NotAllowed,
+              messageKey: 'WholeUnitsOnly',
+            },
+          ]);
+        }
         if (error instanceof UniqueViolation && error.target === 'sku') {
           throw new FieldsError(
             [
@@ -1318,6 +1502,7 @@ export class ProductService {
         deliveryCharge: variant.deliveryCharge,
         deliveryMode: variant.deliveryMode,
         effectiveDeliveryMode: effectiveMode(weight, mode),
+        packAmount: variant.packAmount,
         active: variant.active,
       };
     });
@@ -1333,6 +1518,7 @@ export class ProductService {
       stockTracking: product.stockTracking,
       batchTracked: product.batchTracked,
       serialTracked: product.serialTracked,
+      sharedStock: product.sharedStock,
       lowStockThreshold: product.lowStockThreshold,
       deliveryCharge: product.deliveryCharge,
       weightKg: product.weightKg,

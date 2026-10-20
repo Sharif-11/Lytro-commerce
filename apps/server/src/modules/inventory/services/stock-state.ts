@@ -23,3 +23,28 @@ export function productState(states: StockState[]): StockState {
   if (states.includes(StockState.Low)) return StockState.Low;
   return StockState.Out;
 }
+
+/** INV-24: how many whole packs of `packAmount` a shared stock's available quantity makes, rounded down. */
+export function packsOf(available: string, packAmount: string): number {
+  const pack = milli(packAmount);
+  return pack > 0 ? Math.floor(Math.max(milli(available), 0) / pack) : 0;
+}
+
+/**
+ * INV-24, CCH-08, INV-08: a variant drawing on a shared stock is out when not one of its packs is left, low when the
+ * shared stock is at or under the product's threshold, else in.
+ */
+export function sharedVariantState(
+  poolAvailable: string,
+  packAmount: string,
+  threshold: string,
+): StockState {
+  if (packsOf(poolAvailable, packAmount) === 0) return StockState.Out;
+  if (milli(poolAvailable) <= milli(threshold)) return StockState.Low;
+  return StockState.In;
+}
+
+/** INV-24: a whole number of packs of `packAmount`, in the shared stock's unit. Exact, since `packs` is whole. */
+export function packsToStock(packs: string, packAmount: string): string {
+  return quantityOf((milli(packs) / 1000) * milli(packAmount));
+}

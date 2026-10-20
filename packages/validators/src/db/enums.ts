@@ -479,6 +479,11 @@ export const MEASURED_STOCK_UNITS: readonly StockUnit[] = [
   StockUnit.Ml,
 ];
 
+// INV-24: the combination key of a product's stock-holder variant, the hidden variant holding a shared stock. No real
+// combination can take it, since a real key is "attributeId=optionId" pairs or ''. Mirrored in the database's
+// product_variants_stock_holder_check.
+export const STOCK_HOLDER_KEY = '#stock';
+
 // INV-04: why on-hand stock changed. Every stock movement carries one.
 export enum StockReason {
   Initial = 'initial',

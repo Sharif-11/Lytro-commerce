@@ -7,6 +7,7 @@ import {
   ServerFieldProblemCode,
   StockReason,
   StockTracking,
+  STOCK_HOLDER_KEY,
   type RecordStockCheckInput,
   type StockCheckListQuery,
 } from '@lytronix/validators';
@@ -74,7 +75,12 @@ export class StockCheckService {
       const problems = input.lines.flatMap((line, index): InvalidField[] => {
         const field = `lines.${String(index)}`;
         const variant = variants.get(line.variantId);
-        if (!variant || variant.product.deletedAt !== null) {
+        // INV-24: a stock holder counts only while its product shares its stock.
+        if (
+          !variant ||
+          variant.product.deletedAt !== null ||
+          (variant.isStockHolder && !variant.product.sharedStock)
+        ) {
           return [
             {
               field: `${field}.variantId`,
@@ -89,6 +95,16 @@ export class StockCheckService {
               field: `${field}.variantId`,
               problem: FieldProblemCode.NotAllowed,
               messageKey: 'MadeToOrderHasNoStock',
+            },
+          ];
+        }
+        // INV-24: a size drawing on a shared stock holds none of its own; the shared stock is what is counted.
+        if (variant.product.sharedStock && !variant.isStockHolder) {
+          return [
+            {
+              field: `${field}.variantId`,
+              problem: FieldProblemCode.NotAllowed,
+              messageKey: 'StockIsShared',
             },
           ];
         }
@@ -221,7 +237,11 @@ export class StockCheckService {
           productId: row.productId,
           variantId: row.variantId,
           productName: row.productName,
-          optionIds: row.combinationKey !== null ? optionIdsOfKey(row.combinationKey) : [],
+          // A shared stock is named by its product alone.
+          optionIds:
+            row.combinationKey !== null && row.combinationKey !== STOCK_HOLDER_KEY
+              ? optionIdsOfKey(row.combinationKey)
+              : [],
           expected: row.expected,
           counted: row.counted,
           difference,
