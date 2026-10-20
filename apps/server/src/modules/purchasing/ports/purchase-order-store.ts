@@ -20,12 +20,19 @@ import type {
 export interface PurchaseOrderStore {
   /** The variants an item may name, with their products, as the stock ledger knows them. */
   findVariants(tx: Transaction, tenantId: string, variantIds: string[]): Promise<StockVariantRow[]>;
+  /**
+   * INV-01: locks the variant's stock level, as every stock writer does first, so a one-step arrival takes the level
+   * before the purchase counter, in the same order as a stock edit.
+   */
+  lockLevel(tx: Transaction, tenantId: string, variantId: string): Promise<void>;
   /** PUR-03: the next number, gap-free; the counter stays locked until the transaction ends. */
   nextNumber(tx: Transaction, tenantId: string): Promise<number>;
+  /** A draft, or (PUR-07) a purchase placed at once with its number. */
   insertOrder(
     tx: Transaction,
     tenantId: string,
-    values: Pick<PurchaseOrderRow, 'supplierId' | 'expectedOn' | 'notes'>,
+    values: Pick<PurchaseOrderRow, 'supplierId' | 'expectedOn' | 'notes'> &
+      Partial<Pick<PurchaseOrderRow, 'status' | 'number' | 'orderedAt'>>,
   ): Promise<string>;
   findOrder(
     tx: Transaction,

@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { PurchaseStatus } from '@lytronix/validators';
 import {
   PurchaseOrderRepository,
+  PurchaseReceiptRepository,
   StockRepository,
   SupplierRepository,
   TransactionRunner,
@@ -12,15 +13,21 @@ import {
   type Transaction,
 } from '@lytronix/db';
 import { MissingReference } from '../../common/errors/missing-reference';
+import { PurchaseRefused } from '../../common/errors/purchase-refused';
 import { StockRefused } from '../../common/errors/stock-refused';
 import { UniqueViolation } from '../../common/errors/unique-violation';
 import type { PurchaseOrderStore } from '../../modules/purchasing/ports/purchase-order-store';
+import type { PurchaseReceiptStore } from '../../modules/purchasing/ports/purchase-receipt-store';
 import type { SupplierStore } from '../../modules/purchasing/ports/supplier-store';
 import type {
   NewPurchaseLine,
+  NewReceiptLine,
+  PurchaseHistoryRow,
   PurchaseLineRow,
   PurchaseOrderRow,
   PurchaseOrderSummaryRow,
+  PurchaseReceiptLineRow,
+  PurchaseReceiptRow,
   SupplierRecord,
 } from '../../modules/purchasing/types/purchasing';
 
@@ -31,6 +38,9 @@ const WHOLE_UNITS_CHECK = 'stock_whole_units';
 const SHARED_LINE_CHECK = 'purchase_lines_shared';
 const LINE_VARIANT_KEY = 'purchase_lines_variant';
 const SUPPLIER_KEY = 'purchase_orders_supplier_fk';
+// PUR-04: what the receipt triggers refuse (migration 0061).
+const OUTSTANDING_CHECK = 'purchase_receipt_lines_outstanding';
+const OPEN_CHECK = 'purchase_receipts_open';
 
 @Injectable()
 export class DrizzleSupplierStore implements SupplierStore {
@@ -56,6 +66,10 @@ export class DrizzleSupplierStore implements SupplierStore {
 
   findSupplier(tx: Transaction, tenantId: string, id: string): Promise<SupplierRecord | null> {
     return this.suppliers.findSupplier(tx, tenantId, id);
+  }
+
+  findLiveByName(tx: Transaction, tenantId: string, name: string): Promise<SupplierRecord | null> {
+    return this.suppliers.findLiveByName(tx, tenantId, name);
   }
 
   async updateSupplier(
@@ -104,6 +118,10 @@ export class DrizzlePurchaseOrderStore implements PurchaseOrderStore {
     return this.stock.findVariants(tx, tenantId, variantIds);
   }
 
+  async lockLevel(tx: Transaction, tenantId: string, variantId: string): Promise<void> {
+    await this.stock.lockLevel(tx, tenantId, variantId);
+  }
+
   nextNumber(tx: Transaction, tenantId: string): Promise<number> {
     return this.orders.nextNumber(tx, tenantId);
   }
@@ -111,7 +129,8 @@ export class DrizzlePurchaseOrderStore implements PurchaseOrderStore {
   async insertOrder(
     tx: Transaction,
     tenantId: string,
-    values: Pick<PurchaseOrderRow, 'supplierId' | 'expectedOn' | 'notes'>,
+    values: Pick<PurchaseOrderRow, 'supplierId' | 'expectedOn' | 'notes'> &
+      Partial<Pick<PurchaseOrderRow, 'status' | 'number' | 'orderedAt'>>,
   ): Promise<string> {
     try {
       return (await this.orders.insertOrder(tx, { tenantId, ...values })).id;
@@ -212,5 +231,76 @@ export class DrizzlePurchaseOrderStore implements PurchaseOrderStore {
       throw new MissingReference('supplier');
     }
     throw error;
+  }
+}
+
+@Injectable()
+export class DrizzlePurchaseReceiptStore implements PurchaseReceiptStore {
+  constructor(
+    @Inject(TransactionRunner) private readonly transactions: TransactionRunner,
+    @Inject(PurchaseReceiptRepository) private readonly receipts: PurchaseReceiptRepository,
+  ) {}
+
+  async insertReceipt(
+    tx: Transaction,
+    tenantId: string,
+    values: { purchaseOrderId: string; actorUserId: string | null; note: string | null },
+  ): Promise<string> {
+    try {
+      return (await this.receipts.insertReceipt(tx, { tenantId, ...values })).id;
+    } catch (error) {
+      if (this.transactions.isCheckViolation(error, OPEN_CHECK)) {
+        throw new PurchaseRefused('not_open');
+      }
+      throw error;
+    }
+  }
+
+  async insertLines(
+    tx: Transaction,
+    tenantId: string,
+    receiptId: string,
+    lines: NewReceiptLine[],
+  ): Promise<void> {
+    try {
+      await this.receipts.insertLines(
+        tx,
+        tenantId,
+        lines.map((line) => ({ tenantId, receiptId, ...line })),
+      );
+    } catch (error) {
+      if (this.transactions.isCheckViolation(error, OUTSTANDING_CHECK)) {
+        throw new PurchaseRefused('outstanding');
+      }
+      if (this.transactions.isCheckViolation(error, WHOLE_UNITS_CHECK)) {
+        throw new StockRefused('whole_units');
+      }
+      throw error;
+    }
+  }
+
+  countForOrder(tx: Transaction, tenantId: string, orderId: string): Promise<number> {
+    return this.receipts.countForOrder(tx, tenantId, orderId);
+  }
+
+  listForOrder(
+    tx: Transaction,
+    tenantId: string,
+    orderId: string,
+  ): Promise<{ receipts: PurchaseReceiptRow[]; lines: PurchaseReceiptLineRow[] }> {
+    return this.receipts.listForOrder(tx, tenantId, orderId);
+  }
+
+  historyForVariant(
+    tx: Transaction,
+    tenantId: string,
+    variantId: string,
+    page: { offset: number; limit: number },
+  ): Promise<{ rows: PurchaseHistoryRow[]; total: number }> {
+    return this.receipts.historyForVariant(tx, tenantId, variantId, page);
+  }
+
+  deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void> {
+    return this.receipts.deleteAllForTenant(tx, tenantId);
   }
 }

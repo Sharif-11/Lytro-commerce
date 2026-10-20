@@ -293,7 +293,8 @@ describeIfDatabase('typing a new stock number (INV-06, INV-09, INV-21)', () => {
 
     const movements = await history(shop, product.id, variantId);
     expect(movements.map((row) => [row.delta, row.reason, row.onHandAfter])).toEqual([
-      ['9.000', 'manual_adjustment', '20.000'],
+      // PUR-07: new stock arriving is a purchase received in full.
+      ['9.000', 'purchase_receipt', '20.000'],
       ['-1.000', 'recount', '11.000'],
       ['5.000', 'manual_adjustment', '12.000'],
       ['-3.000', 'damaged', '7.000'],
@@ -310,7 +311,8 @@ describeIfDatabase('typing a new stock number (INV-06, INV-09, INV-21)', () => {
        WHERE tenant_id = $1 AND action = 'stock_adjusted' ORDER BY created_at`,
       [shop.tenantId],
     );
-    expect(logged.rows).toHaveLength(4);
+    // The arrival is logged as the purchase it became (purchase_received), not as a stock edit.
+    expect(logged.rows).toHaveLength(3);
     expect(logged.rows[0]?.summary).toMatchObject({
       variantId,
       from: '10.000',
@@ -1092,7 +1094,7 @@ describeIfDatabase('shared stock (INV-24, UOM-04)', () => {
     expect((added.body as SharedView).shared?.onHand).toBe('288.000');
     expect((await history(shop, product.id, pool))[0]).toMatchObject({
       delta: '100.000',
-      reason: 'manual_adjustment',
+      reason: 'purchase_receipt',
     });
 
     // Serial numbers never go with shared stock.

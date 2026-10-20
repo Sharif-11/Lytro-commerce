@@ -8,6 +8,7 @@ import type { Translation } from './field-problem';
  * A test checks that every field of every request schema is listed here.
  */
 export const FIELD_LABELS: Readonly<Record<string, Translation | null>> = {
+  accepted: { en: 'Accepted', bn: 'অ্যাকসেপ্টেড' },
   action: { en: 'Action', bn: 'অ্যাকশন' },
   active: { en: 'Active', bn: 'অ্যাক্টিভ' },
   activity_retention_days: { en: 'Activity log days', bn: 'অ্যাক্টিভিটি লগের দিন' },
@@ -75,6 +76,7 @@ export const FIELD_LABELS: Readonly<Record<string, Translation | null>> = {
   forSale: { en: 'For sale', bn: 'ফর সেল' },
   hard: { en: 'Delete for good', bn: 'পার্মানেন্টলি ডিলিট' },
   includeRetired: { en: 'Show retired', bn: 'রিটায়ার্ডগুলোও দেখান' },
+  itemId: { en: 'Item', bn: 'আইটেম' },
   items: { en: 'Items', bn: 'আইটেম' },
   kind: null,
   label: { en: 'Label', bn: 'লেবেল' },
@@ -128,6 +130,8 @@ export const FIELD_LABELS: Readonly<Record<string, Translation | null>> = {
   query: { en: 'Search', bn: 'সার্চ' },
   rank: { en: 'Rank', bn: 'র‍্যাংক' },
   reason: { en: 'Reason', bn: 'কারণ' },
+  rejected: { en: 'Rejected', bn: 'রিজেক্টেড' },
+  rejectReason: { en: 'Reason for rejecting', bn: 'রিজেক্টের কারণ' },
   retired: { en: 'Retired', bn: 'রিটায়ার্ড' },
   role: { en: 'Attribute use', bn: 'অ্যাট্রিবিউটের ব্যবহার' },
   roleIds: { en: 'Roles', bn: 'রোল' },
@@ -154,6 +158,7 @@ export const FIELD_LABELS: Readonly<Record<string, Translation | null>> = {
   suggestedAttributeIds: { en: 'Suggested attributes', bn: 'সাজেস্টেড অ্যাট্রিবিউট' },
   suggestedCategories: { en: 'Suggested categories', bn: 'সাজেস্টেড ক্যাটাগরি' },
   supplierId: { en: 'Supplier', bn: 'সাপ্লায়ার' },
+  supplierName: { en: 'Supplier', bn: 'সাপ্লায়ার' },
   swatchColor: { en: 'Swatch colour', bn: 'সোয়াচ কালার' },
   tenantId: { en: 'Shop', bn: 'দোকান' },
   textValue: { en: 'Value', bn: 'ভ্যালু' },

@@ -9,6 +9,7 @@ import {
   STOCK_BATCH_PAGE_SIZE,
   STOCK_HISTORY_PAGE_SIZE,
   STOCK_NOTE_MAX_LENGTH,
+  SUPPLIER_NAME_MAX_LENGTH,
 } from '../../common/limits';
 import { BatchState, SerialStatus, StockEditReason } from '../../db/enums';
 import { FieldProblemCode } from '../../validation/field-problem';
@@ -35,7 +36,10 @@ const serialField = z
 export const serialsField = z.array(serialField).min(1).max(SERIALS_PER_ENTRY_MAX);
 
 /** A stock change names the batch it lands in or leaves (`batchId`) or describes a new one (`batch`), never both. */
-function oneBatchChoice(value: { batch?: unknown; batchId?: string }, ctx: z.RefinementCtx): void {
+export function oneBatchChoice(
+  value: { batch?: unknown; batchId?: string },
+  ctx: z.RefinementCtx,
+): void {
   if (value.batch !== undefined && value.batchId !== undefined) {
     ctx.addIssue({
       code: 'custom',
@@ -63,13 +67,17 @@ export const setStockSchema = z
   .superRefine(oneBatchChoice);
 export type SetStockInput = z.infer<typeof setStockSchema>;
 
-// POST products/:id/variants/:variantId/stock-additions (INV-06, INV-24): stock that arrived, added to what is held.
-// On a variant of a product sharing its stock it is a whole number of that variant's packs (UOM-04); on the shared
-// stock itself it is in the product's unit; on any other variant, units. Recorded as new stock (a manual adjustment
-// until purchasing, Slice 4).
+// POST products/:id/variants/:variantId/stock-additions (INV-06, INV-24, PUR-07): stock that arrived, added to what is
+// held, recorded as a purchase received in full. On a variant of a product sharing its stock it is a whole number of
+// that variant's packs (UOM-04), and `unitCost` is what one pack cost; on the shared stock itself it is in the
+// product's unit; on any other variant, units. The supplier is optional: a live one by `supplierId`, or a name typed,
+// which finds a live supplier of that name (ignoring case) or adds one.
 export const addStockSchema = z
   .object({
     quantity: positiveQuantityField,
+    supplierId: catalogueIdSchema.optional(),
+    supplierName: z.string().trim().min(1).max(SUPPLIER_NAME_MAX_LENGTH).optional(),
+    unitCost: priceField.nullable().optional(),
     note: z.string().trim().min(1).max(STOCK_NOTE_MAX_LENGTH).optional(),
     // INV-12: the batch it arrived as, or the batch it joins.
     batch: newBatchField.optional(),
@@ -77,7 +85,17 @@ export const addStockSchema = z
     // INV-14: the serials of the units arriving, one per unit; fewer leaves the rest to add later.
     serials: serialsField.optional(),
   })
-  .superRefine(oneBatchChoice);
+  .superRefine((value, ctx) => {
+    oneBatchChoice(value, ctx);
+    if (value.supplierId !== undefined && value.supplierName !== undefined) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['supplierName'],
+        message: 'Choose a supplier or type a new one, not both.',
+        params: { problem: FieldProblemCode.NotAllowed },
+      });
+    }
+  });
 export type AddStockInput = z.infer<typeof addStockSchema>;
 
 // PUT products/:id/variants/:variantId/cost (INV-10): the average unit cost entered by hand, before any purchase

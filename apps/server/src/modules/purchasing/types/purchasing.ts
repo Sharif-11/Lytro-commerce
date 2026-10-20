@@ -1,14 +1,24 @@
 import type {
+  PurchaseHistoryRow,
   PurchaseLineRow,
   PurchaseOrderRow,
   PurchaseOrderSummaryRow,
+  PurchaseReceiptLineRow,
+  PurchaseReceiptRow,
   SelectSupplier,
 } from '@lytronix/db';
 import type { PurchaseStatus, StockUnit } from '@lytronix/validators';
 
 // The stored rows, as aliases of the shared types (ENGINEERING-STANDARDS §4), never copies.
 export type SupplierRecord = SelectSupplier;
-export type { PurchaseLineRow, PurchaseOrderRow, PurchaseOrderSummaryRow };
+export type {
+  PurchaseHistoryRow,
+  PurchaseLineRow,
+  PurchaseOrderRow,
+  PurchaseOrderSummaryRow,
+  PurchaseReceiptLineRow,
+  PurchaseReceiptRow,
+};
 
 /** PUR-01: a supplier as the shop sees it. */
 export interface SupplierView {
@@ -61,7 +71,27 @@ export interface PurchaseItemView {
   total?: string | null;
 }
 
-/** PUR-02: one purchase, item by item. A draft has no number. */
+/** PUR-04: what one delivery brought for one item. Cost only for a caller who may see it (D3-9). */
+export interface ReceiptItemView {
+  itemId: string;
+  accepted: string;
+  rejected: string;
+  rejectReason: string | null;
+  unitCost?: string | null;
+  /** INV-12: the batch the accepted units landed in. */
+  batch: { id: string; batchCode: string | null; expiresOn: string | null } | null;
+}
+
+/** PUR-04, PUR-08: one delivery against a purchase, as it was saved; it never changes. */
+export interface PurchaseReceiptView {
+  id: string;
+  receivedAt: Date;
+  actor: { userId: string; name: string | null } | null;
+  note: string | null;
+  items: ReceiptItemView[];
+}
+
+/** PUR-02: one purchase, item by item, with its deliveries. A draft has no number. */
 export interface PurchaseOrderView {
   id: string;
   number: number | null;
@@ -72,7 +102,11 @@ export interface PurchaseOrderView {
   createdAt: Date;
   updatedAt: Date;
   orderedAt: Date | null;
+  /** PUR-06: why it was closed short; null otherwise. */
+  closeReason: string | null;
   items: PurchaseItemView[];
+  /** PUR-04: its deliveries, oldest first. */
+  receipts: PurchaseReceiptView[];
   /** What the items cost where the cost is known, to the paisa, and how many have none. */
   total?: string;
   unknownCost?: number;
@@ -98,6 +132,38 @@ export interface PurchaseOrderPage {
   limit: number;
   total: number;
   pages: number;
+}
+
+/** PUR-09: one delivery of a variant, as its purchase history shows it. Cost only with inventory:manage (D3-9). */
+export interface PurchaseHistoryView {
+  receiptId: string;
+  purchaseOrderId: string;
+  number: number | null;
+  supplier: PurchaseSupplierView | null;
+  receivedAt: Date;
+  accepted: string;
+  rejected: string;
+  rejectReason: string | null;
+  unitCost?: string | null;
+}
+
+export interface PurchaseHistoryPage {
+  purchases: PurchaseHistoryView[];
+  page: number;
+  limit: number;
+  total: number;
+  pages: number;
+}
+
+/** What a delivery brought for one item, as a receipt stores it. */
+export interface NewReceiptLine {
+  purchaseLineId: string;
+  quantityAccepted: string;
+  quantityRejected: string;
+  rejectReason: string | null;
+  unitCost: string | null;
+  batchId: string | null;
+  movementId: number | null;
 }
 
 /** One item as a purchase stores it. */

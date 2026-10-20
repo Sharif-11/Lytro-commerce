@@ -23,7 +23,8 @@ import { CATALOGUE_TRANSACTIONS } from '../../catalogue/tokens';
 import type { CatalogueActor } from '../../catalogue/types/catalogue';
 import { milli, quantityOf } from '../../inventory/services/stock-state';
 import type { PurchaseOrderStore } from '../ports/purchase-order-store';
-import { PURCHASE_ORDER_STORE } from '../tokens';
+import type { PurchaseReceiptStore } from '../ports/purchase-receipt-store';
+import { PURCHASE_ORDER_STORE, PURCHASE_RECEIPT_STORE } from '../tokens';
 import type {
   NewPurchaseLine,
   PurchaseItemView,
@@ -92,6 +93,7 @@ export class PurchaseOrderService {
   constructor(
     @Inject(CATALOGUE_TRANSACTIONS) private readonly transactions: CatalogueTransactions,
     @Inject(PURCHASE_ORDER_STORE) private readonly orders: PurchaseOrderStore,
+    @Inject(PURCHASE_RECEIPT_STORE) private readonly receipts: PurchaseReceiptStore,
     @Inject(SupplierService) private readonly suppliers: SupplierService,
     @Inject(CatalogueActivity) private readonly activity: CatalogueActivity,
   ) {}
@@ -129,7 +131,7 @@ export class PurchaseOrderService {
   }
 
   get(tenantId: string, id: string, canSeeCost: boolean): Promise<PurchaseOrderView> {
-    return this.transactions.run((tx) => this.viewWithin(tx, tenantId, id, canSeeCost));
+    return this.transactions.run((tx) => this.view(tx, tenantId, id, canSeeCost));
   }
 
   /** PUR-02: a new purchase, saved as a draft. */
@@ -160,7 +162,7 @@ export class PurchaseOrderService {
         { type: 'purchase', id },
         { items: lines.length },
       );
-      return this.viewWithin(tx, tenantId, id, true);
+      return this.view(tx, tenantId, id, true);
     });
   }
 
@@ -184,7 +186,7 @@ export class PurchaseOrderService {
       if (
         (input.items !== undefined ||
           (input.supplierId !== undefined && input.supplierId !== order.supplierId)) &&
-        this.hasDeliveries(order, stored)
+        (await this.hasDeliveries(tx, tenantId, order, stored))
       ) {
         throw new ApiError('conflict', 'PurchaseHasDeliveries', {});
       }
@@ -220,7 +222,7 @@ export class PurchaseOrderService {
           { number: order.number, changed },
         );
       }
-      return this.viewWithin(tx, tenantId, id, true);
+      return this.view(tx, tenantId, id, true);
     });
   }
 
@@ -260,7 +262,7 @@ export class PurchaseOrderService {
         { type: 'purchase', id },
         { number },
       );
-      return this.viewWithin(tx, tenantId, id, true);
+      return this.view(tx, tenantId, id, true);
     });
   }
 
@@ -275,7 +277,9 @@ export class PurchaseOrderService {
       if (FINISHED.includes(order.status)) {
         throw new ApiError('conflict', 'PurchaseFinished', {});
       }
-      if (this.hasDeliveries(order, await this.orders.listLines(tx, tenantId, id))) {
+      if (
+        await this.hasDeliveries(tx, tenantId, order, await this.orders.listLines(tx, tenantId, id))
+      ) {
         throw new ApiError('conflict', 'PurchaseCloseShortInstead', {});
       }
       await this.orders.updateOrder(tx, tenantId, id, { status: PurchaseStatus.Cancelled });
@@ -287,7 +291,7 @@ export class PurchaseOrderService {
         { type: 'purchase', id },
         { number: order.number },
       );
-      return this.viewWithin(tx, tenantId, id, true);
+      return this.view(tx, tenantId, id, true);
     });
   }
 
@@ -320,11 +324,20 @@ export class PurchaseOrderService {
     return order;
   }
 
-  /** Whether stock has been received on the purchase, after which its items and supplier stay as they are. */
-  private hasDeliveries(order: PurchaseOrderRow, lines: PurchaseLineRow[]): boolean {
+  /**
+   * Whether a delivery has been received on the purchase, even one rejected in full, after which its items and
+   * supplier stay as they are, and it is closed short rather than cancelled.
+   */
+  private async hasDeliveries(
+    tx: Transaction,
+    tenantId: string,
+    order: PurchaseOrderRow,
+    lines: PurchaseLineRow[],
+  ): Promise<boolean> {
     return (
       order.status === PurchaseStatus.PartiallyReceived ||
-      lines.some((line) => milli(line.quantityReceived) > 0)
+      lines.some((line) => milli(line.quantityReceived) > 0) ||
+      (await this.receipts.countForOrder(tx, tenantId, order.id)) > 0
     );
   }
 
@@ -484,7 +497,8 @@ export class PurchaseOrderService {
     }
   }
 
-  private async viewWithin(
+  /** PUR-02, PUR-04: a purchase as the shop sees it, inside a transaction already open; its deliveries oldest first. */
+  async view(
     tx: Transaction,
     tenantId: string,
     id: string,
@@ -494,6 +508,10 @@ export class PurchaseOrderService {
     if (!order) throw new ApiError('not_found', 'PurchaseNotFound', {});
     const lines = await this.orders.listLines(tx, tenantId, id);
     const items = lines.map((row) => itemView(row, canSeeCost));
+    const delivered = await this.receipts.listForOrder(tx, tenantId, id);
+    // A delivery's items in the order the purchase lists them.
+    const positions = new Map(lines.map((row) => [row.id, row.position]));
+    const positionOf = (itemId: string): number => positions.get(itemId) ?? 0;
     const known = lines.filter((row) => row.unitCost !== null);
     return {
       id: order.id,
@@ -505,7 +523,31 @@ export class PurchaseOrderService {
       createdAt: order.createdAt,
       updatedAt: order.updatedAt,
       orderedAt: order.orderedAt,
+      closeReason: order.closeReason,
       items,
+      receipts: delivered.receipts.map((receipt) => ({
+        id: receipt.id,
+        receivedAt: receipt.receivedAt,
+        actor:
+          receipt.actorUserId !== null
+            ? { userId: receipt.actorUserId, name: receipt.actorName }
+            : null,
+        note: receipt.note,
+        items: delivered.lines
+          .filter((line) => line.receiptId === receipt.id)
+          .sort((a, b) => positionOf(a.purchaseLineId) - positionOf(b.purchaseLineId))
+          .map((line) => ({
+            itemId: line.purchaseLineId,
+            accepted: line.quantityAccepted,
+            rejected: line.quantityRejected,
+            rejectReason: line.rejectReason,
+            ...(canSeeCost ? { unitCost: line.unitCost } : {}),
+            batch:
+              line.batchId !== null
+                ? { id: line.batchId, batchCode: line.batchCode, expiresOn: line.expiresOn }
+                : null,
+          })),
+      })),
       ...(canSeeCost
         ? {
             total: fromPaisa(

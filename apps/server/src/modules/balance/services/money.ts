@@ -61,14 +61,33 @@ export function quantityTimesCost(quantity: string, unitCost: string): bigint {
   );
 }
 
-/** INV-24: the cost of one pack of `packAmount` at a unit cost, to four decimals like the cost itself, rounded. */
-export function packCost(packAmount: string, unitCost: string): string {
-  const fine = divideRounded(
-    toScaled(packAmount, QUANTITY_DECIMALS) * toScaled(unitCost, FINE_DECIMALS),
-    10n ** BigInt(QUANTITY_DECIMALS),
-  );
+/** A count of 10^-4 taka as a decimal string with four places, as a unit cost is stored. */
+function fromFine(fine: bigint): string {
   const sign = fine < 0n ? '-' : '';
   const magnitude = fine < 0n ? -fine : fine;
   const fraction = (magnitude % FINE_SCALE).toString().padStart(FINE_DECIMALS, '0');
   return `${sign}${(magnitude / FINE_SCALE).toString()}.${fraction}`;
+}
+
+/** INV-24: the cost of one pack of `packAmount` at a unit cost, to four decimals like the cost itself, rounded. */
+export function packCost(packAmount: string, unitCost: string): string {
+  return fromFine(
+    divideRounded(
+      toScaled(packAmount, QUANTITY_DECIMALS) * toScaled(unitCost, FINE_DECIMALS),
+      10n ** BigInt(QUANTITY_DECIMALS),
+    ),
+  );
+}
+
+/**
+ * INV-24, PUR-07: what one unit of a shared stock cost, from what one pack of `packAmount` (more than zero) cost: the
+ * pack's cost divided by its amount, to four decimals, rounded half up. A 100 ml pack at 500.00 is 5.0000 a ml.
+ */
+export function unitCostOfPack(packPrice: string, packAmount: string): string {
+  return fromFine(
+    divideRounded(
+      toScaled(packPrice, FINE_DECIMALS) * 10n ** BigInt(QUANTITY_DECIMALS),
+      toScaled(packAmount, QUANTITY_DECIMALS),
+    ),
+  );
 }

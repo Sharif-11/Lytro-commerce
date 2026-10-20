@@ -906,6 +906,22 @@ design below:
   day 60.
 - `close_reason` (PUR-06) is added with receiving and closing short, in Slice 4b.
 
+**Built in Phase 3 Slice 4b (migration 0061, 2026-10-20):** `purchase_receipts`, `purchase_receipt_lines` and
+`purchase_orders.close_reason` (PUR-04, PUR-06, PUR-08), with these decisions against the design below:
+- **The received quantity is kept by the database.** A receipt line's insert locks its item, refuses one not on the
+  receipt's purchase, refuses accepted plus rejected beyond what is still to come, refuses a fraction of a whole-unit
+  product, and adds the accepted units to the item's `quantity_received`, which nothing else may move (a new item has
+  received nothing). A check keeps it at or under what was ordered. Rejected units stay outstanding.
+- **Receipts never change** (PUR-08): an update is refused on both tables, and a delete except by LIF-19's day-60
+  deletion. A receipt is taken only against a placed, open purchase (`ordered`, `partially_received`).
+- **The average cost is kept by the movement trigger** (INV-10): a `purchase_receipt` movement carries its unit cost,
+  and when it has one, the variant's `avg_cost` becomes (held x average + received x cost) / (held + received), to four
+  decimals, half up, under the level's lock; with nothing held, or no average yet, it is the receipt's cost. A receipt
+  with no cost leaves it. A `purchase_receipt` movement must bring stock in and name its receipt
+  (`reference_type = 'purchase_receipt'`). Typing the average by hand ends at the first receipt carrying a cost.
+- A receipt line has no `id`: one line per item per receipt (the primary key). Its `batch_id` and `movement_id` are
+  held by value; `movement_id` is set exactly when units were accepted, and a reason exactly when units were rejected.
+
 ```sql
 CREATE TABLE tenant.suppliers (                     -- PUR-01 (built in Slice 4a)
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -964,12 +980,13 @@ CREATE TABLE tenant.purchase_order_lines (          -- PUR-02, PUR-05 (built in 
 -- PUR-05 incoming = SUM(greatest(quantity_ordered - quantity_received, 0)) over lines of 'ordered' /
 -- 'partially_received' orders; never part of stock_levels.
 
-CREATE TABLE tenant.purchase_receipts (             -- PUR-04, immutable (PUR-08)
+CREATE TABLE tenant.purchase_receipts (             -- PUR-04, immutable (PUR-08) (built in Slice 4b)
     id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id         uuid NOT NULL,
     purchase_order_id uuid NOT NULL,
     received_at       timestamptz NOT NULL DEFAULT now(),
     actor_user_id     uuid,
+    note              varchar(200),
     UNIQUE (tenant_id, id),
     FOREIGN KEY (tenant_id, purchase_order_id) REFERENCES tenant.purchase_orders(tenant_id, id)
 );
@@ -980,10 +997,10 @@ CREATE TABLE tenant.purchase_receipt_lines (
     purchase_line_id   uuid NOT NULL,
     quantity_accepted  numeric(14,3) NOT NULL CHECK (quantity_accepted >= 0),
     quantity_rejected  numeric(14,3) NOT NULL DEFAULT 0 CHECK (quantity_rejected >= 0),
-    reject_reason      text,
+    reject_reason      varchar(200),              -- exactly when units were rejected
     unit_cost          numeric(12,4) CHECK (unit_cost >= 0),
     batch_id           uuid,                      -- created by this receipt when batch-tracked
-    movement_id        bigint,                    -- the purchase_receipt stock movement it wrote
+    movement_id        bigint,                    -- the purchase_receipt stock movement it wrote; null when none accepted
     PRIMARY KEY (tenant_id, receipt_id, purchase_line_id),
     FOREIGN KEY (tenant_id, receipt_id) REFERENCES tenant.purchase_receipts(tenant_id, id),
     FOREIGN KEY (tenant_id, purchase_line_id) REFERENCES tenant.purchase_order_lines(tenant_id, id)

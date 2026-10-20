@@ -257,6 +257,10 @@ export enum AuditAction {
   PurchasePlaced = 'purchase_placed',
   PurchaseCancelled = 'purchase_cancelled',
   PurchaseDeleted = 'purchase_deleted',
+  // Phase 3 Slice 4b: a delivery received (in full at once, by Add stock or new stock arriving), and a purchase closed
+  // short (PUR-04, PUR-06, PUR-07, PUR-10).
+  PurchaseReceived = 'purchase_received',
+  PurchaseClosedShort = 'purchase_closed_short',
 }
 
 // AUD-07: these action kinds (payment, wallet, credential, plan, balance) are kept 24 months regardless of

@@ -16,6 +16,7 @@ export * from './api/inventory/stock';
 export * from './api/inventory/stock-check';
 export * from './api/purchasing/supplier';
 export * from './api/purchasing/purchase-order';
+export * from './api/purchasing/receipt';
 export * from './api/staff/staff/staff-create';
 export * from './api/staff/staff/staff-password';
 export * from './api/audit/activity/activity-list';

@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 import {
   divideRounded,
   fromPaisa,
+  packCost,
   percentOf,
   rateToPaisa,
   toPaisa,
+  unitCostOfPack,
   unitsTimesRate,
 } from '../src/modules/balance/services/money';
 
@@ -36,5 +38,12 @@ describe('money (DAT-05, BAL-16)', () => {
     expect(rateToPaisa('0.0050')).toBe(1n);
     expect(percentOf(toPaisa('5000.00'), '1.5000')).toBe(7500n);
     expect(percentOf(toPaisa('1234.56'), '1.5')).toBe(1852n); // 18.5184
+  });
+
+  it('INV-24, PUR-07: a pack cost and a cost per unit of a shared stock turn into each other, to four decimals', () => {
+    expect(packCost('6.000', '5.0000')).toBe('30.0000');
+    expect(unitCostOfPack('500.00', '100.000')).toBe('5.0000');
+    expect(unitCostOfPack('10.00', '3.000')).toBe('3.3333');
+    expect(unitCostOfPack('20.00', '3.000')).toBe('6.6667'); // half up
   });
 });

@@ -38,7 +38,7 @@ export interface PurchaseLineRow extends SelectPurchaseOrderLine {
 export type PurchaseOrderPatch = Partial<
   Pick<
     SelectPurchaseOrder,
-    'supplierId' | 'status' | 'number' | 'expectedOn' | 'notes' | 'orderedAt'
+    'supplierId' | 'status' | 'number' | 'expectedOn' | 'notes' | 'orderedAt' | 'closeReason'
   >
 >;
 
@@ -77,9 +77,11 @@ export class PurchaseOrderRepository {
     return row.lastNumber;
   }
 
+  /** A draft, or (PUR-07, a one-step arrival) a purchase placed at once with its number. */
   async insertOrder(
     tx: Transaction,
-    values: Pick<SelectPurchaseOrder, 'tenantId' | 'supplierId' | 'expectedOn' | 'notes'>,
+    values: Pick<SelectPurchaseOrder, 'tenantId' | 'supplierId' | 'expectedOn' | 'notes'> &
+      Partial<Pick<SelectPurchaseOrder, 'status' | 'number' | 'orderedAt'>>,
   ): Promise<SelectPurchaseOrder> {
     await this.transactions.setTenantContext(tx, values.tenantId);
     const [row] = await tx.insert(purchaseOrders).values(values).returning();

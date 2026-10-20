@@ -37,6 +37,26 @@ export class SupplierRepository {
     return row ?? null;
   }
 
+  /** PUR-07: the live supplier of this name, ignoring case, if there is one. */
+  async findLiveByName(
+    tx: Transaction,
+    tenantId: string,
+    name: string,
+  ): Promise<SelectSupplier | null> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const [row] = await tx
+      .select()
+      .from(suppliers)
+      .where(
+        and(
+          eq(suppliers.tenantId, tenantId),
+          isNull(suppliers.archivedAt),
+          sql`lower(${suppliers.name}) = lower(${name})`,
+        ),
+      );
+    return row ?? null;
+  }
+
   async updateSupplier(
     tx: Transaction,
     tenantId: string,

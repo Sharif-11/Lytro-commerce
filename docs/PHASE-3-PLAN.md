@@ -580,6 +580,15 @@ their backend ships earlier.
     deleted for good), checked by a trigger for the product's own variant, never a shared stock's size, in whole units
     unless measured; a product moves to a whole-number unit only while no unfinished purchase buys a fraction of it; a
     retired variant is not bought; the activity log; the day-60 deletion.
+  - **4b (migration 0061), five follow-up decisions agreed before code:** only a receipt carrying a unit cost takes the
+    average over, so the cost stays typed by hand until one arrives (an INV-10 amendment); a delivery's unit cost left
+    out is the one on the item, null is unknown, and the receipt movement carries it; Add stock on a size of a shared
+    stock takes a cost per pack, kept per unit of the shared stock; "new stock arrived" on a stock edit is a one-step
+    receipt with no supplier or cost; only a placed purchase is received, and an item whose product changed since is
+    refused for that item and closed short. Built: receipts with rejects that stay outstanding, the database keeping
+    each item's received quantity and the average cost, batches and serials on receipt, closing short, Add stock and
+    new stock arriving as numbered received purchases (inventory hands them to purchasing through a port its callers
+    pass, so it never depends on purchasing), purchase history per variant, receipts that never change.
 - **Depends on:** Slices 2 and 3.
 - **Delivers:** suppliers; purchase orders with gap-free numbers; receipts (partial, with rejects, batch
   and serial capture); weighted-average cost on receipt; incoming quantity; closing short; one-step

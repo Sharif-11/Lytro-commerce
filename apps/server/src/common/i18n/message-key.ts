@@ -294,6 +294,12 @@ export const MESSAGE_KEYS = [
   'PurchaseCloseShortInstead',
   'PurchaseFinished',
   'VariantRetired',
+  'PlaceBeforeReceiving',
+  'PurchaseItemNotFound',
+  'PurchaseItemChanged',
+  'MoreThanOutstanding',
+  'NothingAccepted',
+  'NothingReceivedCancelInstead',
 
   // Success -- catalogue
   'PresetsListed',
@@ -360,6 +366,9 @@ export const MESSAGE_KEYS = [
   'PurchaseOrderPlaced',
   'PurchaseOrderCancelled',
   'PurchaseOrderDeleted',
+  'PurchaseReceived',
+  'PurchaseClosedShort',
+  'PurchaseHistoryRetrieved',
 ] as const;
 
 export type MessageKey = (typeof MESSAGE_KEYS)[number];

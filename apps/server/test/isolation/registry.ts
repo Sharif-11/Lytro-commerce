@@ -164,4 +164,10 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'POST /purchase-orders/:id/place': "another shop's purchase answers 404",
   'POST /purchase-orders/:id/cancel': "another shop's purchase answers 404",
   'DELETE /purchase-orders/:id': "another shop's purchase answers 404",
+  // Phase 3 Slice 4b, checked in test/purchasing.e2e.spec.ts.
+  'POST /purchase-orders/:id/receipts':
+    "another shop's purchase answers 404; another purchase's item is not_found",
+  'POST /purchase-orders/:id/close': "another shop's purchase answers 404",
+  'GET /products/:id/variants/:variantId/purchases':
+    "another shop's product or variant answers 404",
 };

@@ -67,6 +67,11 @@ export interface StockChange {
    * units leaving; a fall naming fewer takes units with no serial yet for the rest.
    */
   serials?: string[] | null;
+  /**
+   * INV-10, PUR-04: on a purchase receipt, what each arriving unit cost, per unit of the stock it lands in (four
+   * decimals); the database takes it into the average cost. Null or left out when not known.
+   */
+  unitCost?: string | null;
 }
 
 /** INV-14: one serial-numbered unit, as the shop sees it. */
