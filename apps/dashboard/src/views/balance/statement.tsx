@@ -9,6 +9,7 @@ import {
   EmptyLine,
   ErrorBanner,
   formatDate,
+  formatRate,
   formatTakaExact,
   Icon,
   type IconName,
@@ -225,7 +226,12 @@ function Row({ entry, language }: { entry: LedgerEntry; language: string }): Rea
   if (reference.productId) details.push(t('balance.ref.product'));
   if (reference.reason) details.push(reference.reason);
   if (entry.units !== null && entry.rateUsed !== null) {
-    details.push(t('balance.ref.unitsAtRate', { units: entry.units, rate: entry.rateUsed }));
+    details.push(
+      t('balance.ref.unitsAtRate', {
+        units: formatRate(entry.units),
+        rate: formatRate(entry.rateUsed),
+      }),
+    );
   }
   details.push(formatTime(entry.createdAt, language));
 

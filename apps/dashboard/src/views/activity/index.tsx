@@ -49,6 +49,7 @@ const GROUPS: { key: string; actions: string[] }[] = [
 ];
 
 const SYSTEM: string = ActorType.System;
+const USER: string = ActorType.User;
 const PLATFORM: string = ActorType.PlatformSupport;
 const FAILURE: string = AuditResult.Failure;
 
@@ -263,7 +264,9 @@ function Row({ entry, language }: { entry: ActivityEntry; language: string }): R
     ? t('activity.actor.platformSupport')
     : system
       ? t('activity.actor.system')
-      : (entry.actorName ?? t('activity.actor.unknown'));
+      : (entry.actorName ??
+        // A signed-in actor without a staff row is the owner acting through their own account.
+        (entry.actorType === USER ? t('activity.actor.owner') : t('activity.actor.unknown')));
   const target = entry.targetId ? entry.targetId.slice(0, 8) : '';
   const sentence = t(`activity.sentence.${entry.action}`, { defaultValue: entry.action, target });
   const detail = summaryDetail(entry.summary);

@@ -13,6 +13,13 @@ export function formatTakaExact(amount: number | string): string {
   return `৳${value.toLocaleString('en-US', { minimumFractionDigits: fraction, maximumFractionDigits: 2 })}`;
 }
 
+/** A platform rate as a seller reads it: at most two decimals, no trailing zeros (RAT-08 stores four). */
+export function formatRate(value: string | number | null): string {
+  const numeric = typeof value === 'string' ? Number(value) : value;
+  if (numeric === null || !Number.isFinite(numeric)) return '–';
+  return numeric.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+}
+
 /** Whole days from now until an ISO date, never negative; null without a date. */
 export function daysUntil(iso: string | null, now = Date.now()): number | null {
   if (!iso) return null;
