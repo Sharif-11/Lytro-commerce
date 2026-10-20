@@ -288,6 +288,20 @@ export const MONEY_RELATED_AUDIT_ACTIONS: ReadonlySet<AuditAction> = new Set([
   AuditAction.SubscriptionCancellationUndone,
 ]);
 
+// LIF-19: the events that explain why a deleted shop's data is gone -- its lifecycle changes (the archive that led to
+// the deletion among them), the day-45 and day-57 warnings, the deletion itself, the owner closing the shop, and the
+// owner's own data export. With the money-related entries above (its billing), they are all a deleted shop's activity
+// log keeps, each for 24 months from its own date; the purge job removes every other entry. An action belongs here
+// only if it is part of how a shop comes to be deleted.
+export const DELETION_AUDIT_ACTIONS: ReadonlySet<AuditAction> = new Set([
+  AuditAction.LifecycleStateChanged,
+  AuditAction.DeletionWarningSent,
+  AuditAction.TenantDeleted,
+  AuditAction.ShopClosed,
+  AuditAction.DataExportRequested,
+  AuditAction.DataExportDownloaded,
+]);
+
 // The pg-boss queues this codebase uses (SCL-08, D25). Add a name here before any code enqueues to it.
 export enum QueueName {
   Sms = 'sms',

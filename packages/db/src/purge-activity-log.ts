@@ -1,9 +1,10 @@
 import 'dotenv/config';
 import { sql } from 'drizzle-orm';
-import { MONEY_RELATED_AUDIT_ACTIONS } from '@lytronix/validators';
+import { DELETION_AUDIT_ACTIONS, MONEY_RELATED_AUDIT_ACTIONS } from '@lytronix/validators';
 import { DatabaseConnector } from './client';
 
-// AUD-07: a money-related entry is kept this long regardless of the plan's own retention setting.
+// AUD-07: a money-related entry is kept this long regardless of the plan's own retention setting; LIF-19: so is every
+// entry a deleted shop keeps.
 const MONEY_RETENTION_MONTHS = 24;
 
 /**
@@ -12,7 +13,9 @@ const MONEY_RETENTION_MONTHS = 24;
  * which is kept for 24 months regardless of plan. DWN-11: a downgrade that shortens retention doesn't lower
  * the floor used here until `tenants.retention_floor_until` (set by `DowngradeService.apply`, 14 days after
  * the owner was notified) has passed -- until then the greater of the floor and the current plan's own
- * retention applies. Runs as its own privileged pipeline step, the same way
+ * retention applies. LIF-19: a deleted shop (`deleted_at` set) keeps only its billing (the money-related entries) and
+ * its deletion events (`DELETION_AUDIT_ACTIONS`), each for 24 months from its own date; every other entry of it goes,
+ * however new. Runs as its own privileged pipeline step, the same way
  * migrations do (ENGINEERING-STANDARDS §7): never from the live app, which never holds a credential that can
  * delete from this table. The table's insert-only trigger (migration 0001, AUD-03, DAT-10) rejects UPDATE and
  * DELETE from every role unconditionally, so even this connection must turn it off for the moment of the
@@ -26,10 +29,16 @@ export class ActivityLogPurger {
       applicationName: 'lytronix-purge',
     });
     try {
-      const moneyActions = sql.join(
-        [...MONEY_RELATED_AUDIT_ACTIONS].map((action) => sql`${action}`),
-        sql`, `,
+      const listOf = (actions: ReadonlySet<string>) =>
+        sql.join(
+          [...actions].map((action) => sql`${action}`),
+          sql`, `,
+        );
+      const moneyActions = listOf(MONEY_RELATED_AUDIT_ACTIONS);
+      const keptOnDeletion = listOf(
+        new Set([...MONEY_RELATED_AUDIT_ACTIONS, ...DELETION_AUDIT_ACTIONS]),
       );
+      const kept = sql.raw(`interval '${String(MONEY_RETENTION_MONTHS)} months'`);
       const result = await handle.db.transaction(async (tx) => {
         await tx.execute(
           sql`ALTER TABLE tenant.activity_log DISABLE TRIGGER activity_log_insert_only`,
@@ -40,19 +49,25 @@ export class ActivityLogPurger {
             USING control.tenants t
             LEFT JOIN control.plans p ON p.id = t.plan_id
             WHERE al.tenant_id = t.id
-              AND al.created_at < now() - (
-                COALESCE(
-                  CASE
-                    WHEN t.retention_floor_until IS NOT NULL AND now() < t.retention_floor_until
-                      THEN GREATEST(t.retention_floor_days, (p.limits ->> 'activity_retention_days')::int)
-                    ELSE (p.limits ->> 'activity_retention_days')::int
-                  END,
-                  30
-                ) || ' days'
-              )::interval
               AND (
-                al.action NOT IN (${moneyActions})
-                OR al.created_at < now() - interval '${sql.raw(String(MONEY_RETENTION_MONTHS))} months'
+                (
+                  t.deleted_at IS NOT NULL
+                  AND (al.action NOT IN (${keptOnDeletion}) OR al.created_at < now() - ${kept})
+                )
+                OR (
+                  t.deleted_at IS NULL
+                  AND al.created_at < now() - (
+                    COALESCE(
+                      CASE
+                        WHEN t.retention_floor_until IS NOT NULL AND now() < t.retention_floor_until
+                          THEN GREATEST(t.retention_floor_days, (p.limits ->> 'activity_retention_days')::int)
+                        ELSE (p.limits ->> 'activity_retention_days')::int
+                      END,
+                      30
+                    ) || ' days'
+                  )::interval
+                  AND (al.action NOT IN (${moneyActions}) OR al.created_at < now() - ${kept})
+                )
               )
           `);
         } finally {
