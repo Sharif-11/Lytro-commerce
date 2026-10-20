@@ -1,6 +1,6 @@
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { UNVERSIONED_ROUTES } from '../common/unversioned-routes';
-import { PublicApiHost } from '../modules/api-access/services/public-api-host';
+import { PublicApiHost } from '../modules/public-api/services/public-api-host';
 
 // API-26: a request body over this size is refused with 413 before any handler runs.
 const BODY_LIMIT = '1mb';

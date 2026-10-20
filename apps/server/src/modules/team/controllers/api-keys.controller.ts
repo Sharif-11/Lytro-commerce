@@ -17,8 +17,8 @@ import { Dashboard } from '../../../common/decorators/dashboard';
 import { RequirePermission } from '../../../common/decorators/require-permission';
 import { ResponseMessage } from '../../../common/decorators/response-message';
 import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
-import { ApiKeyService } from '../../api-access/services/api-key.service';
-import type { ApiKeyView, CreatedApiKeyView } from '../../api-access/types/api-access';
+import { ApiKeyService } from '../../public-api/services/api-key.service';
+import type { ApiKeyView, CreatedApiKeyView } from '../../public-api/types/public-api';
 import { DashboardGuard, type DashboardRequest } from '../../identity/guards/dashboard.guard';
 import { SessionGuard } from '../../identity/guards/session.guard';
 import {

@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { PublicApiRoute } from '../../../common/decorators/public-api';
 import { ResponseMessage } from '../../../common/decorators/response-message';
 import { PublicKeyGuard, type PublicApiRequest } from '../guards/public-key.guard';
-import type { PublicShopView } from '../types/api-access';
+import type { PublicShopView } from '../types/public-api';
 
 /** API-05, API-14: a public API route: on the API host at /v1/..., behind a public key and its limits. */
 export const PublicApi = (): ClassDecorator & MethodDecorator =>

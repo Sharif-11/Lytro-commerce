@@ -6,13 +6,13 @@ import {
   TransactionRunner,
   type Transaction,
 } from '@lytronix/db';
-import type { ApiKeyStore, ApiUsageStore } from '../../modules/api-access/ports/api-key-store';
+import type { ApiKeyStore, ApiUsageStore } from '../../modules/public-api/ports/api-key-store';
 import type {
   ApiKeyRecord,
   ApiShopRow,
   ApiUsageRow,
   NewApiKey,
-} from '../../modules/api-access/types/api-access';
+} from '../../modules/public-api/types/public-api';
 import { DatabaseService } from '../database.service';
 
 /** control.api_keys (API-01 to API-05, API-08, API-23), and the shop a key belongs to with its overrides. */

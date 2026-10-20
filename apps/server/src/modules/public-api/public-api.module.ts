@@ -3,7 +3,7 @@ import { ClientIp } from '../../common/client-ip';
 import {
   DrizzleApiKeyStore,
   DrizzleApiUsageStore,
-} from '../../database/adapters/api-access.adapter';
+} from '../../database/adapters/public-api.adapter';
 import { CatalogueModule } from '../catalogue/catalogue.module';
 import { TenancyModule } from '../tenancy/tenancy.module';
 import { PublicShopController } from './controllers/public-shop.controller';
@@ -39,4 +39,4 @@ import { API_CLOCK, API_KEY_STORE, API_USAGE_STORE, REQUEST_QUOTA_NOTIFIER } fro
   ],
   exports: [ApiKeyService, ApiKeyEraser, PublicApiHost, RequestQuota],
 })
-export class ApiAccessModule {}
+export class PublicApiModule {}

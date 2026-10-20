@@ -12,7 +12,7 @@ import { CatalogueActivity } from '../../catalogue/services/catalogue-activity';
 import type { CatalogueActor } from '../../catalogue/types/catalogue';
 import type { ApiKeyStore } from '../ports/api-key-store';
 import { API_CLOCK, API_KEY_STORE } from '../tokens';
-import type { ApiKeyRecord, ApiKeyView, CreatedApiKeyView } from '../types/api-access';
+import type { ApiKeyRecord, ApiKeyView, CreatedApiKeyView } from '../types/public-api';
 import { ApiKeyAuthenticator } from './api-key-authenticator';
 import { hashOfKey, newPublicKeyValue, shownPrefixOf } from './api-key-value';
 

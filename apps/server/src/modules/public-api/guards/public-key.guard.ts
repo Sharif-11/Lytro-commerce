@@ -11,7 +11,7 @@ import { allowOrigin } from '../services/cors';
 import { perMinuteLimit, RequestLimits } from '../services/request-limits';
 import { RequestQuota } from '../services/request-quota';
 import { API_CLOCK } from '../tokens';
-import type { ApiShop, AuthenticatedKey } from '../types/api-access';
+import type { ApiShop, AuthenticatedKey } from '../types/public-api';
 
 /** A public API request once its key is accepted: the shop it acts for (TEN-02, API-10) and the key. */
 export interface PublicApiRequest extends HttpRequest {

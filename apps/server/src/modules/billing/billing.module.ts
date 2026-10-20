@@ -12,7 +12,7 @@ import { CatalogueModule } from '../catalogue/catalogue.module';
 import { DataExportModule } from '../data-export/data-export.module';
 import { DeliveryModule } from '../delivery/delivery.module';
 import { InventoryModule } from '../inventory/inventory.module';
-import { ApiAccessModule } from '../api-access/api-access.module';
+import { PublicApiModule } from '../public-api/public-api.module';
 import { PurchasingModule } from '../purchasing/purchasing.module';
 import { MailModule } from '../shared/mail/mail.module';
 import { MessagingModule } from '../shared/messaging/messaging.module';
@@ -57,7 +57,7 @@ import {
     InventoryModule,
     CatalogueModule,
     DeliveryModule,
-    ApiAccessModule,
+    PublicApiModule,
   ],
   providers: [
     { provide: PLANS_STORE, useClass: DrizzlePlansStore },

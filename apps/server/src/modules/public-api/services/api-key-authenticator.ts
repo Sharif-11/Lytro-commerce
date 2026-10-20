@@ -2,7 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { withOverrides } from '@lytronix/validators';
 import type { ApiKeyStore } from '../ports/api-key-store';
 import { API_CLOCK, API_KEY_STORE } from '../tokens';
-import type { ApiShop, AuthenticatedKey } from '../types/api-access';
+import type { ApiShop, AuthenticatedKey } from '../types/public-api';
 import { hashOfKey } from './api-key-value';
 import { ExpiringCache } from './expiring-cache';
 
