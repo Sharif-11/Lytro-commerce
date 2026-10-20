@@ -10,6 +10,8 @@ import {
   MAX_VARIANTS_PER_PRODUCT,
   MEASURED_STOCK_UNITS,
   PRODUCT_NAME_MAX_LENGTH,
+  normalizeSerial,
+  SerialFormat,
   ServerFieldProblemCode,
   StockState,
   StockTracking,
@@ -27,6 +29,7 @@ import { ApiError, FieldsError, type InvalidField } from '../../../common/api-er
 import { MissingReference } from '../../../common/errors/missing-reference';
 import { StockRefused } from '../../../common/errors/stock-refused';
 import { UniqueViolation } from '../../../common/errors/unique-violation';
+import { readSerials } from '../../../common/serial-entry';
 import { dhakaDate } from '../../../common/time';
 import { PayAsYouGoBillingService } from '../../balance/services/payg-billing.service';
 import type {
@@ -220,8 +223,10 @@ export class ProductService {
 
       const fields = this.newProductFields(input, defaults);
       this.checkOpeningStock(input, fields);
+      this.checkSerialUnits(fields);
       const shared = fields.sharedStock === true;
       this.checkPacks(input.variants, shared, fields.stockUnit);
+      await this.refuseTakenSerials(tx, shop.id, input, fields, stock);
 
       const base = slugOf(input.name, 'product');
       const slug = nextFreeSlug(base, await this.products.slugsLike(tx, shop.id, base));
@@ -237,7 +242,13 @@ export class ProductService {
       await this.writeVariants(tx, shop.id, product.id, matrix.planned, [], input.variants, shared);
       await this.products.refreshPriceRange(tx, shop.id, product.id);
       const holderId = shared ? await this.ensureStockHolder(tx, shop.id, product.id) : null;
-      const opening = await this.openingLines(tx, shop.id, product.id, matrix.planned);
+      const opening = await this.openingLines(
+        tx,
+        shop.id,
+        product.id,
+        matrix.planned,
+        product.serialFormat,
+      );
       // INV-24: stock already on the shelf loose, in the product's unit, on top of any given as packs.
       if (holderId !== null && (input.sharedOpeningStock ?? 0) > 0) {
         opening.push({
@@ -298,6 +309,7 @@ export class ProductService {
         stockTracking: source.stockTracking,
         batchTracked: source.batchTracked,
         serialTracked: source.serialTracked,
+        serialFormat: source.serialFormat,
         sharedStock: source.sharedStock,
         lowStockThreshold: source.lowStockThreshold,
         deliveryCharge: source.deliveryCharge,
@@ -459,6 +471,10 @@ export class ProductService {
       if (current.sharedStock && change.serialTracked === true) {
         throw new FieldsError([{ field: 'serialTracked', problem: FieldProblemCode.NotAllowed }]);
       }
+      this.checkSerialUnits({
+        serialTracked: change.serialTracked ?? current.serialTracked,
+        stockUnit: change.stockUnit ?? current.stockUnit,
+      });
       // INV-02: a product going made to order first writes off what it holds, so the ledger stays true. One sharing
       // its stock stops sharing it with that (INV-24): a made-to-order product holds no stock to share.
       const untracking =
@@ -473,6 +489,18 @@ export class ProductService {
       try {
         updated = await this.products.updateProduct(tx, shop.id, productId, change);
       } catch (error) {
+        if (error instanceof StockRefused && error.kind === 'serials_held') {
+          throw new FieldsError(
+            [
+              {
+                field: 'serialTracked',
+                problem: FieldProblemCode.NotAllowed,
+                messageKey: 'SerialsStillHeld',
+              },
+            ],
+            'conflict',
+          );
+        }
         if (error instanceof StockRefused && error.kind === 'expired_waiting') {
           throw new FieldsError(
             [
@@ -748,7 +776,15 @@ export class ProductService {
    */
   private checkOpeningStock(
     input: CreateProductInput,
-    fields: Pick<ProductChange, 'stockTracking' | 'stockUnit' | 'sharedStock' | 'batchTracked'>,
+    fields: Pick<
+      ProductChange,
+      | 'stockTracking'
+      | 'stockUnit'
+      | 'sharedStock'
+      | 'batchTracked'
+      | 'serialTracked'
+      | 'serialFormat'
+    >,
   ): void {
     const measured =
       fields.stockUnit !== undefined && MEASURED_STOCK_UNITS.includes(fields.stockUnit);
@@ -790,6 +826,43 @@ export class ProductService {
       ]),
       ['sharedOpeningBatch', input.sharedOpeningBatch],
     ];
+    // INV-14, INV-23: opening serials are a serial-numbered product's, at most one per unit, each once in the product.
+    const seen = new Set<string>();
+    (input.variants ?? []).forEach((spec, index) => {
+      if (!spec.openingSerials) return;
+      const field = `variants.${String(index)}.openingSerials`;
+      if (fields.serialTracked !== true) {
+        problems.push({
+          field,
+          problem: FieldProblemCode.NotAllowed,
+          messageKey: 'SerialsNotTracked',
+        });
+        return;
+      }
+      const read = readSerials(spec.openingSerials, fields.serialFormat ?? SerialFormat.Any, field);
+      problems.push(...read.problems);
+      read.serials.forEach((serial) => {
+        if (seen.has(serial)) {
+          const at = spec.openingSerials?.findIndex(
+            (raw) => normalizeSerial(raw, fields.serialFormat ?? SerialFormat.Any) === serial,
+          );
+          problems.push({
+            field: `${field}.${String(at ?? 0)}`,
+            problem: FieldProblemCode.NotAllowed,
+            messageKey: 'SerialRepeated',
+          });
+        }
+        seen.add(serial);
+      });
+      if (read.serials.length > (spec.openingStock ?? 0)) {
+        problems.push({
+          field,
+          problem: FieldProblemCode.TooMany,
+          max: spec.openingStock ?? 0,
+          messageKey: 'TooManySerials',
+        });
+      }
+    });
     for (const [field, batch] of batches) {
       if (!batch) continue;
       if (fields.batchTracked !== true) {
@@ -923,12 +996,67 @@ export class ProductService {
     await this.products.clearPackAmounts(tx, tenantId, productId);
   }
 
-  /** INV-03, INV-12: the opening stock each new variant was given, by the variant it became, with its batch. */
+  /** INV-14: a serial is one per unit, so serial numbers need a product counted in whole units. */
+  private checkSerialUnits(fields: Pick<ProductChange, 'serialTracked' | 'stockUnit'>): void {
+    if (
+      fields.serialTracked === true &&
+      fields.stockUnit !== undefined &&
+      MEASURED_STOCK_UNITS.includes(fields.stockUnit)
+    ) {
+      throw new FieldsError([
+        {
+          field: 'serialTracked',
+          problem: FieldProblemCode.NotAllowed,
+          messageKey: 'SerialsNeedWholeUnits',
+        },
+      ]);
+    }
+  }
+
+  /** INV-14, INV-23: no opening serial may be one a unit the shop holds already has. */
+  private async refuseTakenSerials(
+    tx: Transaction,
+    tenantId: string,
+    input: CreateProductInput,
+    fields: Pick<ProductChange, 'serialFormat'>,
+    stock: ProductStockHooks | undefined,
+  ): Promise<void> {
+    const format = fields.serialFormat ?? SerialFormat.Any;
+    const entered = (input.variants ?? []).flatMap((spec, index) =>
+      (spec.openingSerials ?? []).map((raw, at) => ({
+        field: `variants.${String(index)}.openingSerials.${String(at)}`,
+        serial: normalizeSerial(raw, format),
+      })),
+    );
+    if (entered.length === 0) return;
+    if (!stock) throw new Error('opening serials are checked through the inventory hooks');
+    const taken = new Set(
+      await stock.takenSerials(
+        tx,
+        tenantId,
+        entered.map((entry) => entry.serial),
+      ),
+    );
+    const problems: InvalidField[] = entered
+      .filter((entry) => taken.has(entry.serial))
+      .map((entry) => ({
+        field: entry.field,
+        problem: ServerFieldProblemCode.Taken,
+        messageKey: 'SerialTaken',
+      }));
+    if (problems.length > 0) throw new FieldsError(problems, 'conflict');
+  }
+
+  /**
+   * INV-03, INV-12, INV-14: the opening stock each new variant was given, by the variant it became, with its batch and
+   * the serials of its units, as stored.
+   */
   private async openingLines(
     tx: Transaction,
     tenantId: string,
     productId: string,
     planned: PlannedVariant<VariantSpec>[],
+    format: SerialFormat,
   ): Promise<Parameters<ProductStockHooks['recordOpeningStock']>[3]> {
     const stocked = planned.filter((plan) => (plan.spec?.openingStock ?? 0) > 0);
     if (stocked.length === 0) return [];
@@ -941,12 +1069,14 @@ export class ProductService {
     return stocked.flatMap((plan) => {
       const variantId = ids.get(plan.key);
       const batch = plan.spec?.openingBatch;
+      const serials = plan.spec?.openingSerials?.map((raw) => normalizeSerial(raw, format));
       return variantId
         ? [
             {
               variantId,
               quantity: String(plan.spec?.openingStock ?? 0),
               ...(batch ? { batch } : {}),
+              ...(serials ? { serials } : {}),
             },
           ]
         : [];
@@ -977,6 +1107,7 @@ export class ProductService {
       stockTracking,
       batchTracked,
       serialTracked,
+      serialFormat: input.serialFormat ?? defaults.serialFormat,
       sharedStock: input.sharedStock ?? false,
       lowStockThreshold:
         input.lowStockThreshold !== undefined
@@ -1002,6 +1133,7 @@ export class ProductService {
     if (input.description !== undefined) change.description = input.description;
     if (input.basePrice !== undefined) change.basePrice = String(input.basePrice);
     if (input.stockUnit !== undefined) change.stockUnit = input.stockUnit;
+    if (input.serialFormat !== undefined) change.serialFormat = input.serialFormat;
     if (input.lowStockThreshold !== undefined)
       change.lowStockThreshold = String(input.lowStockThreshold);
     if (input.deliveryCharge !== undefined)
@@ -1569,6 +1701,7 @@ export class ProductService {
       stockTracking: product.stockTracking,
       batchTracked: product.batchTracked,
       serialTracked: product.serialTracked,
+      serialFormat: product.serialFormat,
       sharedStock: product.sharedStock,
       lowStockThreshold: product.lowStockThreshold,
       deliveryCharge: product.deliveryCharge,

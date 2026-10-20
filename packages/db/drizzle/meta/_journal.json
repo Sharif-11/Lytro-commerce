@@ -414,6 +414,13 @@
       "when": 1792481441111,
       "tag": "0058_stock_batches",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1792484165193,
+      "tag": "0059_serial_numbers",
+      "breakpoints": true
     }
   ]
 }

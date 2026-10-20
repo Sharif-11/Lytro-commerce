@@ -75,6 +75,10 @@ export const STOCK_HISTORY_PAGE_SIZE = 20;
 // INV-12: a batch's optional code (a lot number), and a page of batches.
 export const STOCK_BATCH_CODE_MAX_LENGTH = 40;
 export const STOCK_BATCH_PAGE_SIZE = 20;
+// INV-14, INV-23: one serial (an IMEI is 15 digits), the serials one request may enter, and a page of them.
+export const SERIAL_MAX_LENGTH = 64;
+export const SERIALS_PER_ENTRY_MAX = 500;
+export const SERIAL_PAGE_SIZE = 50;
 // INV-13: a batch expiring within this many days raises its one notice.
 export const EXPIRY_WARNING_DAYS = 30;
 // INV-07: the variants one stock check may count, and a page of past checks.

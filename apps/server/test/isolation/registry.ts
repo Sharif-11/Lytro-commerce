@@ -147,4 +147,9 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'GET /products/:id/batches': "another shop's product answers 404",
   'POST /products/:id/batches/:batchId/write-off': "another shop's product or batch answers 404",
   'GET /batches': "lists only the session shop's own batches",
+  // Phase 3 Slice 3b, checked in test/inventory.e2e.spec.ts.
+  'GET /products/:id/variants/:variantId/serials': "another shop's product or variant answers 404",
+  'POST /products/:id/variants/:variantId/serials': "another shop's product or variant answers 404",
+  'PATCH /products/:id/serials/:serialId': "another shop's product or serial answers 404",
+  'DELETE /products/:id/serials/:serialId': "another shop's product or serial answers 404",
 };

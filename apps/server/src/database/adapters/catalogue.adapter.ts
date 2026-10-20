@@ -69,6 +69,8 @@ const WHOLE_UNITS_CHECK = 'stock_whole_units';
 const SHARED_SWITCH_CHECK = 'shared_stock_switch_needs_empty';
 // INV-13: batch tracking turned off while an expired batch still holds stock (migration 0058).
 const BATCHES_OFF_CHECK = 'batches_off_after_write_off';
+// INV-14: serial tracking turned off while a unit holds a serial (migration 0059).
+const SERIALS_OFF_CHECK = 'serials_off_needs_none';
 
 /** One transaction per unit of catalogue work. Each repository call sets the shop's tenant context itself. */
 @Injectable()
@@ -395,6 +397,8 @@ export class DrizzleProductStore implements ProductStore {
         throw new StockRefused('not_empty');
       if (this.transactions.isCheckViolation(error, BATCHES_OFF_CHECK))
         throw new StockRefused('expired_waiting');
+      if (this.transactions.isCheckViolation(error, SERIALS_OFF_CHECK))
+        throw new StockRefused('serials_held');
       throw error;
     }
   }

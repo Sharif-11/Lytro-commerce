@@ -8,6 +8,7 @@ import {
 import { calendarDayField } from '../../common/dates';
 import { FieldProblemCode } from '../../validation/field-problem';
 import { catalogueIdSchema, quantityField } from '../catalogue/catalogue-common';
+import { serialsField } from './stock';
 
 // POST stock-checks (INV-07): what the shop counted, for any set of variants. Each difference from the stock held is
 // recorded as one recount movement; whether a variant's unit allows a fraction is the server's check (UOM-03). A line
@@ -21,6 +22,8 @@ export const recordStockCheckSchema = z
           variantId: catalogueIdSchema,
           batchId: catalogueIdSchema.optional(),
           counted: quantityField,
+          // INV-14: on a serial-numbered product, the serials of the units found missing; written off with the count.
+          missingSerials: serialsField.optional(),
         }),
       )
       .min(1)

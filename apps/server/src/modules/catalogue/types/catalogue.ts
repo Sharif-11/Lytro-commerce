@@ -18,6 +18,7 @@ import type {
   PaymentPolicy,
   PlanLimits,
   ProductFormField,
+  SerialFormat,
   StockState,
   StockTracking,
   StockUnit,
@@ -103,6 +104,8 @@ export interface PresetDefaults {
   stockTracking: StockTracking;
   batchTracked: boolean;
   serialTracked: boolean;
+  /** INV-23: what a new product's serials look like. */
+  serialFormat: SerialFormat;
   lowStockThreshold: string;
   suggestedAttributeIds: string[];
   suggestedCategories: string[];
@@ -202,6 +205,8 @@ export interface ProductDetail {
   stockTracking: StockTracking;
   batchTracked: boolean;
   serialTracked: boolean;
+  /** INV-23: what its serials look like. */
+  serialFormat: SerialFormat;
   /** INV-24: whether its variants draw on one shared stock. */
   sharedStock: boolean;
   lowStockThreshold: string;

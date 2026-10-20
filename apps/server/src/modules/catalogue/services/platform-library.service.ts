@@ -90,6 +90,9 @@ export class PlatformLibraryService {
     if (input.defaultStockUnit !== undefined) patch.defaultStockUnit = input.defaultStockUnit;
     if (input.defaultBatch !== undefined) patch.defaultBatch = input.defaultBatch;
     if (input.defaultSerial !== undefined) patch.defaultSerial = input.defaultSerial;
+    if (input.defaultSerialFormat !== undefined) {
+      patch.defaultSerialFormat = input.defaultSerialFormat;
+    }
     if (input.defaultNotTracked !== undefined) patch.defaultNotTracked = input.defaultNotTracked;
     if (input.defaultLowStock !== undefined) patch.defaultLowStock = String(input.defaultLowStock);
     if (input.suggestedCategories !== undefined)

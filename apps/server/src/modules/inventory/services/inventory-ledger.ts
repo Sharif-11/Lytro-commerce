@@ -1,14 +1,16 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Transaction } from '@lytronix/db';
-import { StockReason, StockTracking, StockState } from '@lytronix/validators';
+import { SerialStatus, StockReason, StockTracking, StockState } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import { StockRefused } from '../../../common/errors/stock-refused';
+import { UniqueViolation } from '../../../common/errors/unique-violation';
 import { dhakaDate } from '../../../common/time';
 import type { ResolvedActor } from '../../catalogue/services/catalogue-activity';
 import { CatalogueVersion } from '../../catalogue/services/catalogue-version';
+import type { SerialStore } from '../ports/serial-store';
 import type { StockBatchStore } from '../ports/stock-batch-store';
 import type { LowStockNotifier, StockStore } from '../ports/stock-store';
-import { LOW_STOCK_NOTIFIER, STOCK_BATCH_STORE, STOCK_STORE } from '../tokens';
+import { LOW_STOCK_NOTIFIER, SERIAL_STORE, STOCK_BATCH_STORE, STOCK_STORE } from '../tokens';
 import type {
   BatchDescription,
   MovementRecord,
@@ -43,13 +45,15 @@ function byId(a: string, b: string): number {
  * works out each product's public stock state again (moving the catalogue version only when it changes) and tells the
  * shop, once per crossing, about stock that has fallen to its low-stock threshold. A change named on a variant of a
  * product sharing its stock is that many of its packs, and lands on the product's stock holder; a change of
- * batch-tracked stock lands in its batches, one movement per batch. No caller works out a pack amount or a batch itself.
+ * batch-tracked stock lands in its batches, one movement per batch; a change of serial-numbered stock records the
+ * serials that came in with it or went out (INV-14). No caller works out a pack amount, a batch or a serial itself.
  */
 @Injectable()
 export class InventoryLedger {
   constructor(
     @Inject(STOCK_STORE) private readonly store: StockStore,
     @Inject(STOCK_BATCH_STORE) private readonly batches: StockBatchStore,
+    @Inject(SERIAL_STORE) private readonly serials: SerialStore,
     @Inject(LOW_STOCK_NOTIFIER) private readonly notifier: LowStockNotifier,
     @Inject(CatalogueVersion) private readonly version: CatalogueVersion,
   ) {}
@@ -92,7 +96,13 @@ export class InventoryLedger {
     landed.sort((a, b) => byId(a.on.variantId, b.on.variantId));
     const today = dhakaDate(new Date());
     const rows: NewStockMovement[] = [];
+    const serialWork: { row: number; variantId: string; arriving: string[]; leaving: string[] }[] =
+      [];
     for (const { change, on, delta } of landed) {
+      const units = await this.serialUnits(tx, tenantId, on, delta, change.serials ?? []);
+      if (units.arriving.length > 0 || units.leaving.length > 0) {
+        serialWork.push({ row: rows.length, variantId: on.variantId, ...units });
+      }
       const parts = on.product.batchTracked
         ? await this.batchParts(tx, tenantId, on, delta, change, today)
         : [{ batchId: null, delta }];
@@ -125,8 +135,67 @@ export class InventoryLedger {
       }
       throw error;
     }
+    // INV-14: each unit's serial goes in or out with the movement that moved it.
+    for (const work of serialWork) {
+      const movement = movements[work.row];
+      if (!movement) throw new Error('every stock change was recorded as a movement');
+      try {
+        await this.serials.insertSerials(
+          tx,
+          tenantId,
+          work.arriving.map((serial) => ({
+            variantId: work.variantId,
+            serial,
+            receivedMovementId: movement.id,
+          })),
+        );
+      } catch (error) {
+        if (error instanceof UniqueViolation) throw new ApiError('conflict', 'SerialTaken', {});
+        throw error;
+      }
+      await this.serials.markWrittenOff(tx, tenantId, work.leaving, movement.id);
+    }
     await this.refresh(tx, tenantId, [...new Set(rows.map((row) => row.productId))], true);
     return movements;
+  }
+
+  /**
+   * INV-14: the serials a change of serial-numbered stock brings in (at most one per unit, none held anywhere in the
+   * shop already) or takes out (held by this variant, in stock). Units leaving without a named serial are units that
+   * have none yet; the change is refused when there are not that many. Locks the variant's level, then its serials.
+   */
+  private async serialUnits(
+    tx: Transaction,
+    tenantId: string,
+    on: StockVariantRow,
+    delta: string,
+    named: string[],
+  ): Promise<{ arriving: string[]; leaving: string[] }> {
+    if (!on.product.serialTracked) {
+      if (named.length > 0) throw new ApiError('conflict', 'SerialsNotTracked', {});
+      return { arriving: [], leaving: [] };
+    }
+    const units = Math.abs(milli(delta)) / 1000;
+    if (named.length > units) throw new ApiError('conflict', 'TooManySerials', {});
+    const onHand = milli(await this.store.lockLevel(tx, tenantId, on.variantId)) / 1000;
+    const held = await this.serials.lockHeld(tx, tenantId, on.variantId);
+    if (milli(delta) > 0) {
+      if (named.length > 0 && (await this.serials.findHeld(tx, tenantId, named)).length > 0) {
+        throw new ApiError('conflict', 'SerialTaken', {});
+      }
+      return { arriving: named, leaving: [] };
+    }
+    const inStock = new Map(
+      held.filter((row) => row.status === SerialStatus.InStock).map((row) => [row.serial, row.id]),
+    );
+    const leaving = named.map((serial) => inStock.get(serial));
+    if (leaving.some((id) => id === undefined)) {
+      throw new ApiError('not_found', 'SerialNotFound', {});
+    }
+    if (units - named.length > onHand - held.length) {
+      throw new ApiError('conflict', 'SerialsMustBeNamed', {});
+    }
+    return { arriving: [], leaving: leaving.filter((id): id is string => id !== undefined) };
   }
 
   /**

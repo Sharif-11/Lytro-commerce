@@ -32,6 +32,7 @@ import type {
   StockCheckView,
 } from '../types/inventory';
 import { InventoryLedger } from './inventory-ledger';
+import { SerialEntryService } from './serial-entry.service';
 import { milli, quantityOf } from './stock-state';
 
 // What a recount movement names as the record behind it (INV-09).
@@ -55,6 +56,7 @@ export class StockCheckService {
     @Inject(STOCK_CHECK_STORE) private readonly checks: StockCheckStore,
     @Inject(STOCK_BATCH_STORE) private readonly batches: StockBatchStore,
     @Inject(InventoryLedger) private readonly ledger: InventoryLedger,
+    @Inject(SerialEntryService) private readonly serialEntry: SerialEntryService,
     @Inject(CatalogueActivity) private readonly activity: CatalogueActivity,
   ) {}
 
@@ -132,6 +134,16 @@ export class StockCheckService {
             },
           ];
         }
+        // INV-14: only a serial-numbered product's missing units are named.
+        if (line.missingSerials !== undefined && !variant.product.serialTracked) {
+          return [
+            {
+              field: `${field}.missingSerials`,
+              problem: FieldProblemCode.NotAllowed,
+              messageKey: 'SerialsNotTracked',
+            },
+          ];
+        }
         return [];
       });
       if (problems.length > 0) throw new FieldsError(problems);
@@ -173,6 +185,26 @@ export class StockCheckService {
         actorUserId: who.id,
         note: input.note ?? null,
       });
+      // INV-14: the serials of units found missing, at most one per unit short, each in stock on its variant.
+      const missingSerials = new Map<(typeof lines)[number], string[]>();
+      for (const line of lines) {
+        if (!line.missingSerials) continue;
+        const variant = variants.get(line.variantId);
+        if (!variant) throw new Error('a checked variant was found above');
+        const short = Math.max(milli(heldFor(line)) - milli(line.counted), 0) / 1000;
+        missingSerials.set(
+          line,
+          await this.serialEntry.leaving(
+            tx,
+            tenantId,
+            line.variantId,
+            line.missingSerials,
+            variant.product.serialFormat,
+            `lines.${String(input.lines.indexOf(line))}.missingSerials`,
+            short,
+          ),
+        );
+      }
       const changes: StockChange[] = lines.flatMap((line) => {
         const difference = milli(line.counted) - milli(heldFor(line));
         return difference === 0
@@ -184,6 +216,7 @@ export class StockCheckService {
                 reason: StockReason.Recount,
                 reference: { type: STOCK_CHECK_REFERENCE, id: check.id },
                 batchId: line.batchId ?? null,
+                serials: missingSerials.get(line) ?? null,
               },
             ];
       });

@@ -684,6 +684,54 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'Some expired stock is still waiting to be written off. Write it off before turning batches off.',
     bn: 'কিছু এক্সপায়ার্ড স্টক এখনো বাদ দেওয়া বাকি। ব্যাচ বন্ধ করার আগে সেটি বাদ দিন।',
   },
+  SerialInvalid: {
+    en: 'Use only letters, numbers and dashes, at most 64.',
+    bn: 'শুধু অক্ষর, সংখ্যা আর ড্যাশ দিন, সর্বোচ্চ ৬৪টি।',
+  },
+  NotAnImei: {
+    en: 'An IMEI is 15 digits.',
+    bn: 'IMEI হয় ১৫ সংখ্যার।',
+  },
+  ImeiCheckDigitWrong: {
+    en: 'This IMEI is not valid. Check its digits.',
+    bn: 'এই IMEI সঠিক নয়। সংখ্যাগুলো দেখে নিন।',
+  },
+  SerialRepeated: {
+    en: 'This serial number is listed twice.',
+    bn: 'এই সিরিয়াল নম্বর দুইবার দেওয়া হয়েছে।',
+  },
+  SerialTaken: {
+    en: 'A unit in your stock already has this serial number.',
+    bn: 'আপনার স্টকের একটি ইউনিটের এই সিরিয়াল নম্বর আগে থেকেই আছে।',
+  },
+  SerialNotFound: {
+    en: 'No unit of this item in stock has this serial number.',
+    bn: 'স্টকে এই আইটেমের কোনো ইউনিটের এই সিরিয়াল নম্বর নেই।',
+  },
+  TooManySerials: {
+    en: 'There are more serial numbers than units.',
+    bn: 'ইউনিটের চেয়ে সিরিয়াল নম্বর বেশি দেওয়া হয়েছে।',
+  },
+  SerialsMustBeNamed: {
+    en: 'Every unit here has a serial number. Say which ones are leaving.',
+    bn: 'এখানের প্রতিটি ইউনিটের সিরিয়াল নম্বর আছে। কোনগুলো যাচ্ছে তা জানান।',
+  },
+  SerialsNotTracked: {
+    en: 'This product does not keep serial numbers. Turn on serial tracking to enter them.',
+    bn: 'এই প্রোডাক্টের সিরিয়াল নম্বর রাখা হয় না। দিতে সিরিয়াল ট্র্যাকিং চালু করুন।',
+  },
+  SerialsStillHeld: {
+    en: 'Some units in stock still have serial numbers. Remove them before turning serial tracking off.',
+    bn: 'স্টকের কিছু ইউনিটে এখনো সিরিয়াল নম্বর আছে। সিরিয়াল ট্র্যাকিং বন্ধ করার আগে সেগুলো সরান।',
+  },
+  SerialsNeedWholeUnits: {
+    en: 'Serial numbers need a product counted in whole units.',
+    bn: 'সিরিয়াল নম্বরের জন্য প্রোডাক্ট পুরো ইউনিটে গোনা হতে হবে।',
+  },
+  SerialHasLeft: {
+    en: 'This unit has left your stock, so its serial number is kept as it was.',
+    bn: 'এই ইউনিট স্টক থেকে চলে গেছে, তাই এর সিরিয়াল নম্বর আগের মতোই রাখা হয়েছে।',
+  },
   StockCheckNotFound: {
     en: 'That stock check was not found.',
     bn: 'স্টক চেকটি পাওয়া যায়নি।',
@@ -887,6 +935,22 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   BatchWrittenOff: {
     en: 'Expired stock written off.',
     bn: 'এক্সপায়ার্ড স্টক বাদ দেওয়া হয়েছে।',
+  },
+  SerialsRetrieved: {
+    en: 'Serial numbers retrieved.',
+    bn: 'সিরিয়াল নম্বরগুলো পাওয়া গেছে।',
+  },
+  SerialsAdded: {
+    en: 'Serial numbers added.',
+    bn: 'সিরিয়াল নম্বর যোগ হয়েছে।',
+  },
+  SerialCorrected: {
+    en: 'Serial number corrected.',
+    bn: 'সিরিয়াল নম্বর ঠিক করা হয়েছে।',
+  },
+  SerialRemoved: {
+    en: 'Serial number removed.',
+    bn: 'সিরিয়াল নম্বর সরানো হয়েছে।',
   },
   InventoryFiguresRetrieved: {
     en: 'Inventory report retrieved.',

@@ -1,5 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
+import type { SerialStatus } from '@lytronix/validators';
 import {
+  SerialRepository,
   StockBatchRepository,
   StockCheckRepository,
   StockRepository,
@@ -7,18 +9,22 @@ import {
   type Transaction,
 } from '@lytronix/db';
 import { StockRefused } from '../../common/errors/stock-refused';
+import { UniqueViolation } from '../../common/errors/unique-violation';
 import { DatabaseService } from '../database.service';
 import type {
   NewStockCheckLine,
   StockCheckStore,
 } from '../../modules/inventory/ports/stock-check-store';
+import type { SerialStore } from '../../modules/inventory/ports/serial-store';
 import type { StockBatchStore } from '../../modules/inventory/ports/stock-batch-store';
 import type { StockStore } from '../../modules/inventory/ports/stock-store';
 import type {
   MovementRecord,
+  NewSerial,
   NewStockBatch,
   NewStockMovement,
   OutgoingRow,
+  SerialRecord,
   StockCheckLineRow,
   StockCheckRow,
   StockBatchListRow,
@@ -37,6 +43,8 @@ const SHORTFALL_CHECKS = [
   'stock_batches_quantity_check',
 ];
 const WHOLE_UNITS_CHECK = 'stock_whole_units';
+// INV-14: a serial a held unit already has (migration 0059).
+const SERIAL_HELD_INDEX = 'serial_numbers_held_idx';
 
 @Injectable()
 export class DrizzleStockStore implements StockStore {
@@ -246,5 +254,87 @@ export class DrizzleStockBatchStore implements StockBatchStore {
 
   listShopIds(): Promise<string[]> {
     return this.batches.listShopIds(this.database.handle.db);
+  }
+}
+
+/** Database-backed serial numbers (INV-14). Every method runs in the caller's transaction, under the shop's context. */
+@Injectable()
+export class DrizzleSerialStore implements SerialStore {
+  constructor(
+    @Inject(TransactionRunner) private readonly transactions: TransactionRunner,
+    @Inject(SerialRepository) private readonly serials: SerialRepository,
+  ) {}
+
+  countHeld(tx: Transaction, tenantId: string, variantIds: string[]): Promise<Map<string, number>> {
+    return this.serials.countHeld(tx, tenantId, variantIds);
+  }
+
+  lockHeld(tx: Transaction, tenantId: string, variantId: string): Promise<SerialRecord[]> {
+    return this.serials.lockHeld(tx, tenantId, variantId);
+  }
+
+  findHeld(tx: Transaction, tenantId: string, serials: string[]): Promise<SerialRecord[]> {
+    return this.serials.findHeld(tx, tenantId, serials);
+  }
+
+  async insertSerials(tx: Transaction, tenantId: string, rows: NewSerial[]): Promise<void> {
+    try {
+      await this.serials.insertSerials(tx, tenantId, rows);
+    } catch (error) {
+      if (this.transactions.isUniqueViolation(error, SERIAL_HELD_INDEX)) {
+        throw new UniqueViolation('serial');
+      }
+      throw error;
+    }
+  }
+
+  markWrittenOff(
+    tx: Transaction,
+    tenantId: string,
+    ids: string[],
+    movementId: number,
+  ): Promise<void> {
+    return this.serials.markWrittenOff(tx, tenantId, ids, movementId);
+  }
+
+  listSerials(
+    tx: Transaction,
+    tenantId: string,
+    variantId: string,
+    status: SerialStatus | null,
+    page: { offset: number; limit: number },
+  ): Promise<{ rows: SerialRecord[]; total: number }> {
+    return this.serials.listSerials(tx, tenantId, variantId, status, page);
+  }
+
+  listForMovements(
+    tx: Transaction,
+    tenantId: string,
+    movementIds: number[],
+  ): Promise<SerialRecord[]> {
+    return this.serials.listForMovements(tx, tenantId, movementIds);
+  }
+
+  findSerial(tx: Transaction, tenantId: string, id: string): Promise<SerialRecord | null> {
+    return this.serials.findSerial(tx, tenantId, id);
+  }
+
+  async updateSerial(tx: Transaction, tenantId: string, id: string, serial: string): Promise<void> {
+    try {
+      await this.serials.updateSerial(tx, tenantId, id, serial);
+    } catch (error) {
+      if (this.transactions.isUniqueViolation(error, SERIAL_HELD_INDEX)) {
+        throw new UniqueViolation('serial');
+      }
+      throw error;
+    }
+  }
+
+  deleteSerial(tx: Transaction, tenantId: string, id: string): Promise<void> {
+    return this.serials.deleteSerial(tx, tenantId, id);
+  }
+
+  deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void> {
+    return this.serials.deleteAllForTenant(tx, tenantId);
   }
 }

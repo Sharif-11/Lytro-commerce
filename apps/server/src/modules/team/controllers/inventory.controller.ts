@@ -1,10 +1,12 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   Inject,
   Param,
+  Patch,
   Post,
   Put,
   Query,
@@ -13,23 +15,37 @@ import {
 } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
-import { Permission, stockHistoryQuerySchema, type StockHistoryQuery } from '@lytronix/validators';
+import {
+  Permission,
+  serialListQuerySchema,
+  stockHistoryQuerySchema,
+  type SerialListQuery,
+  type StockHistoryQuery,
+} from '@lytronix/validators';
+import { OkDto } from '../../../common/dto/ok.dto';
 import { Dashboard } from '../../../common/decorators/dashboard';
 import { RequirePermission } from '../../../common/decorators/require-permission';
 import { ResponseMessage } from '../../../common/decorators/response-message';
 import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
 import { BatchService } from '../../inventory/services/batch.service';
+import { SerialService } from '../../inventory/services/serial.service';
 import { StockService } from '../../inventory/services/stock.service';
 import type {
   ProductBatchesView,
   ProductStockView,
+  SerialPage,
+  SerialView,
   StockHistoryPage,
 } from '../../inventory/types/inventory';
 import { DashboardGuard, type DashboardRequest } from '../../identity/guards/dashboard.guard';
 import { SessionGuard } from '../../identity/guards/session.guard';
 import {
+  AddSerialsDto,
   AddStockDto,
+  CorrectSerialDto,
   ProductBatchesDto,
+  SerialPageDto,
+  SerialViewDto,
   ProductStockViewDto,
   SetStockDto,
   StockHistoryPageDto,
@@ -48,8 +64,95 @@ export class InventoryController {
   constructor(
     @Inject(StockService) private readonly stock: StockService,
     @Inject(BatchService) private readonly batches: BatchService,
+    @Inject(SerialService) private readonly serials: SerialService,
     @Inject(CatalogueRequest) private readonly catalogue: CatalogueRequest,
   ) {}
+
+  @Get('variants/:variantId/serials')
+  @RequirePermission(Permission.InventoryRead)
+  @ResponseMessage('SerialsRetrieved')
+  @ApiOperation({ summary: "A variant's serial numbers, the units it holds by default (INV-14)" })
+  @ZodResponse({ type: SerialPageDto })
+  listSerials(
+    @Param('id') id: string,
+    @Param('variantId') variantId: string,
+    @Query(new ZodValidationPipe(serialListQuerySchema)) query: SerialListQuery,
+    @Req() request: DashboardRequest,
+  ): Promise<SerialPage> {
+    return this.serials.list(
+      this.catalogue.tenantIdOf(request),
+      this.catalogue.idOf(id, 'ProductNotFound'),
+      this.catalogue.idOf(variantId, 'ProductNotFound'),
+      query,
+    );
+  }
+
+  @Post('variants/:variantId/serials')
+  @RequirePermission(Permission.InventoryManage)
+  @ResponseMessage('SerialsAdded')
+  @ApiOperation({
+    summary: 'Add serial numbers to units already held that have none yet (INV-14, INV-23)',
+  })
+  @ApiBody({ type: AddSerialsDto })
+  @ZodResponse({ type: SerialPageDto })
+  addSerials(
+    @Param('id') id: string,
+    @Param('variantId') variantId: string,
+    @Body(new ZodValidationPipe(AddSerialsDto.schema)) body: AddSerialsDto,
+    @Req() request: DashboardRequest,
+  ): Promise<SerialPage> {
+    return this.serials.add(
+      this.catalogue.tenantIdOf(request),
+      this.catalogue.idOf(id, 'ProductNotFound'),
+      this.catalogue.idOf(variantId, 'ProductNotFound'),
+      body,
+      this.catalogue.actorOf(request),
+    );
+  }
+
+  @Patch('serials/:serialId')
+  @RequirePermission(Permission.InventoryManage)
+  @ResponseMessage('SerialCorrected')
+  @ApiOperation({
+    summary: 'Correct a serial number typed wrong, while its unit is in stock (INV-14)',
+  })
+  @ApiBody({ type: CorrectSerialDto })
+  @ZodResponse({ type: SerialViewDto })
+  correctSerial(
+    @Param('id') id: string,
+    @Param('serialId') serialId: string,
+    @Body(new ZodValidationPipe(CorrectSerialDto.schema)) body: CorrectSerialDto,
+    @Req() request: DashboardRequest,
+  ): Promise<SerialView> {
+    return this.serials.correct(
+      this.catalogue.tenantIdOf(request),
+      this.catalogue.idOf(id, 'ProductNotFound'),
+      this.catalogue.idOf(serialId, 'SerialNotFound'),
+      body,
+      this.catalogue.actorOf(request),
+    );
+  }
+
+  @Delete('serials/:serialId')
+  @RequirePermission(Permission.InventoryManage)
+  @ResponseMessage('SerialRemoved')
+  @ApiOperation({
+    summary: 'Remove a serial number while its unit is in stock; the unit then has none (INV-14)',
+  })
+  @ZodResponse({ type: OkDto })
+  async removeSerial(
+    @Param('id') id: string,
+    @Param('serialId') serialId: string,
+    @Req() request: DashboardRequest,
+  ): Promise<{ ok: true }> {
+    await this.serials.remove(
+      this.catalogue.tenantIdOf(request),
+      this.catalogue.idOf(id, 'ProductNotFound'),
+      this.catalogue.idOf(serialId, 'SerialNotFound'),
+      this.catalogue.actorOf(request),
+    );
+    return { ok: true };
+  }
 
   @Get('batches')
   @RequirePermission(Permission.InventoryRead)

@@ -23,6 +23,7 @@ import {
   enumTuple,
   PaymentPolicy,
   PRODUCT_NAME_MAX_LENGTH,
+  SerialFormat,
   StockState,
   StockTracking,
   StockUnit,
@@ -37,6 +38,7 @@ export const stockUnit = tenant.enum('stock_unit', enumTuple(Object.values(Stock
 export const stockTracking = tenant.enum('stock_tracking', enumTuple(Object.values(StockTracking)));
 export const stockState = tenant.enum('stock_state', enumTuple(Object.values(StockState)));
 export const deliveryMode = tenant.enum('delivery_mode', enumTuple(Object.values(DeliveryMode)));
+export const serialFormat = tenant.enum('serial_format', enumTuple(Object.values(SerialFormat)));
 export const paymentPolicy = tenant.enum('payment_policy', enumTuple(Object.values(PaymentPolicy)));
 
 // CCH-02, INV-19: bumped in the same transaction as any write that changes what the public catalogue shows.
@@ -89,6 +91,8 @@ export const products = tenant.table(
     stockTracking: stockTracking('stock_tracking').notNull().default(StockTracking.Tracked),
     batchTracked: boolean('batch_tracked').notNull().default(false),
     serialTracked: boolean('serial_tracked').notNull().default(false),
+    // INV-23: what its serials look like: an IMEI checked for its check digit, or any code.
+    serialFormat: serialFormat('serial_format').notNull().default(SerialFormat.Any),
     // INV-24: the variants draw on one stock, held by the product's stock-holder variant, each using its pack amount.
     sharedStock: boolean('shared_stock').notNull().default(false),
     lowStockThreshold: numeric('low_stock_threshold', { precision: 14, scale: 3 })
@@ -132,6 +136,11 @@ export const products = tenant.table(
     ),
     check('products_batch_serial_check', sql`NOT (${t.batchTracked} AND ${t.serialTracked})`),
     // INV-24: shared stock is counted stock, and never serial-numbered.
+    // INV-14: a serial is one per unit, so a serial-numbered product is counted in whole units.
+    check(
+      'products_serial_units_check',
+      sql`NOT (${t.serialTracked} AND ${t.stockUnit} IN ('kg', 'g', 'liter', 'ml'))`,
+    ),
     check(
       'products_shared_stock_check',
       sql`NOT (${t.sharedStock} AND (${t.stockTracking} = 'not_tracked' OR ${t.serialTracked}))`,

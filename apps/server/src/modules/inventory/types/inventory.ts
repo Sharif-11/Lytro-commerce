@@ -1,6 +1,8 @@
 import type {
+  NewSerial,
   NewStockBatch,
   NewStockMovement,
+  SelectSerialNumber,
   OutgoingRow,
   SelectStockBatch,
   StockBatchListRow,
@@ -15,6 +17,7 @@ import type {
 } from '@lytronix/db';
 import type {
   BatchState,
+  SerialStatus,
   StockReason,
   StockState,
   StockTracking,
@@ -24,7 +27,9 @@ import type {
 // The stored rows, as aliases of the shared types (ENGINEERING-STANDARDS §4), never copies.
 export type MovementRecord = SelectStockMovement;
 export type StockBatchRecord = SelectStockBatch;
+export type SerialRecord = SelectSerialNumber;
 export type {
+  NewSerial,
   NewStockBatch,
   NewStockMovement,
   OutgoingRow,
@@ -57,6 +62,30 @@ export interface StockChange {
   reference?: { type: string; id: string } | null;
   batchId?: string | null;
   batch?: BatchDescription | null;
+  /**
+   * INV-14: on a serial-numbered product, the serials (as stored) of the units arriving, at most one each, or of the
+   * units leaving; a fall naming fewer takes units with no serial yet for the rest.
+   */
+  serials?: string[] | null;
+}
+
+/** INV-14: one serial-numbered unit, as the shop sees it. */
+export interface SerialView {
+  id: string;
+  variantId: string;
+  serial: string;
+  status: SerialStatus;
+  receivedMovementId: number | null;
+  leftMovementId: number | null;
+  createdAt: Date;
+}
+
+export interface SerialPage {
+  serials: SerialView[];
+  page: number;
+  limit: number;
+  total: number;
+  pages: number;
 }
 
 /** INV-13: one batch about to expire. */
@@ -128,6 +157,8 @@ export interface VariantStockView {
   unsellable: string | null;
   /** For a variant drawing on a shared stock, the whole packs of it the shared stock makes (INV-24). */
   available: string;
+  /** INV-14: on a serial-numbered product, how many units held have no serial yet; null otherwise. */
+  missingSerials: number | null;
   /** INV-24: how much of the shared stock one unit sold uses; null unless the product shares its stock. */
   packAmount: string | null;
   state: StockState;
@@ -170,6 +201,8 @@ export interface StockMovementView {
   reference: { type: string; id: string } | null;
   /** INV-12: the batch it moved, on a batch-tracked product. */
   batch: MovedBatchView | null;
+  /** INV-14: the serials of the units it brought in or took out. */
+  serials: string[];
   note: string | null;
   actor: StockActorView | null;
   createdAt: Date;

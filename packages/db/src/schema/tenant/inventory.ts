@@ -18,6 +18,8 @@ import {
 } from 'drizzle-orm/pg-core';
 import {
   enumTuple,
+  SERIAL_MAX_LENGTH,
+  SerialStatus,
   StockReason,
   STOCK_BATCH_CODE_MAX_LENGTH,
   STOCK_NOTE_MAX_LENGTH,
@@ -29,6 +31,7 @@ import { productVariants } from './catalogue';
 // stock unit is not measured (UOM-03). Both tables sit behind the tenant_isolation policy.
 
 export const stockReason = tenant.enum('stock_reason', enumTuple(Object.values(StockReason)));
+export const serialStatus = tenant.enum('serial_status', enumTuple(Object.values(SerialStatus)));
 
 // INV-01: one row per tracked variant that has ever held stock. Its on-hand quantity changes only through a stock
 // movement: a trigger on stock_movements keeps it, and refuses any other change. None of the three may go below
@@ -152,6 +155,40 @@ export const stockBatches = tenant.table(
   ],
 );
 
+// INV-14: one serial-numbered unit (an IMEI, say). A variant never holds more serials than units; a unit may lack one
+// for now (added later). A serial is unique within the shop among the units it holds (in stock or reserved); one that
+// was sold or written off may come back as a new unit (a trade-in, a repair), as a row of its own. A unit's row is
+// history once it has left: never changed again.
+export const serialNumbers = tenant.table(
+  'serial_numbers',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    tenantId: uuid('tenant_id').notNull(),
+    variantId: uuid('variant_id').notNull(),
+    serial: varchar('serial', { length: SERIAL_MAX_LENGTH }).notNull(),
+    status: serialStatus('status').notNull().default(SerialStatus.InStock),
+    // The movement that brought the unit in; null for a serial added later to a unit already held.
+    receivedMovementId: bigint('received_movement_id', { mode: 'number' }),
+    // The movement it left by: a write-off now, a sale in Phase 4.
+    leftMovementId: bigint('left_movement_id', { mode: 'number' }),
+    soldOrderId: uuid('sold_order_id'),
+    createdAt: createdAt(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique('serial_numbers_tenant_id_key').on(t.tenantId, t.id),
+    foreignKey({
+      name: 'serial_numbers_variant_fk',
+      columns: [t.tenantId, t.variantId],
+      foreignColumns: [productVariants.tenantId, productVariants.id],
+    }).onDelete('cascade'),
+    uniqueIndex('serial_numbers_held_idx')
+      .on(t.tenantId, t.serial)
+      .where(sql`${t.status} IN ('in_stock', 'reserved')`),
+    index('serial_numbers_variant_idx').on(t.tenantId, t.variantId, t.status),
+  ],
+);
+
 // INV-07: one stock check, the counts it recorded, and the recount movement behind each difference. A check is a
 // record of what was counted: never changed, deleted only with the rest of a lapsed shop's data (LIF-19).
 export const stockChecks = tenant.table(
@@ -204,6 +241,7 @@ export const stockCheckLines = tenant.table(
 export type SelectStockLevel = typeof stockLevels.$inferSelect;
 export type SelectStockMovement = typeof stockMovements.$inferSelect;
 export type InsertStockMovement = typeof stockMovements.$inferInsert;
+export type SelectSerialNumber = typeof serialNumbers.$inferSelect;
 export type SelectStockBatch = typeof stockBatches.$inferSelect;
 export type InsertStockBatch = typeof stockBatches.$inferInsert;
 export type SelectStockCheck = typeof stockChecks.$inferSelect;

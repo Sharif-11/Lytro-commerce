@@ -245,6 +245,10 @@ export enum AuditAction {
   VariantCostSet = 'variant_cost_set',
   // Phase 3 Slice 2b: a stock check and the recounts it recorded (INV-07, INV-21).
   StockChecked = 'stock_checked',
+  // Phase 3 Slice 3b: serials added to units already held, corrected or removed (INV-14, INV-21).
+  SerialsAdded = 'serials_added',
+  SerialCorrected = 'serial_corrected',
+  SerialRemoved = 'serial_removed',
 }
 
 // AUD-07: these action kinds (payment, wallet, credential, plan, balance) are kept 24 months regardless of
@@ -486,6 +490,23 @@ export const MEASURED_STOCK_UNITS: readonly StockUnit[] = [
 // combination can take it, since a real key is "attributeId=optionId" pairs or ''. Mirrored in the database's
 // product_variants_stock_holder_check.
 export const STOCK_HOLDER_KEY = '#stock';
+
+// INV-14, INV-23: what a product's serials look like: an IMEI (15 digits with its check digit), or any code of letters,
+// digits and dashes.
+export enum SerialFormat {
+  Imei = 'imei',
+  Any = 'any',
+}
+
+// INV-14: where one serial-numbered unit is. Reserved arrives with reservations (Slice 5), sold and returned with
+// orders (Phase 4). In stock and reserved are the units the shop holds.
+export enum SerialStatus {
+  InStock = 'in_stock',
+  Reserved = 'reserved',
+  Sold = 'sold',
+  Returned = 'returned',
+  WrittenOff = 'written_off',
+}
 
 // INV-12, INV-13: where a batch stands against its expiry date: expired (past its last sellable day, never sold, waiting
 // to be written off), expiring (within EXPIRY_WARNING_DAYS), or fine (later, or no expiry at all).
