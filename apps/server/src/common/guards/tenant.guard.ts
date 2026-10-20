@@ -5,7 +5,9 @@ import { headerValue } from '../http';
 import { SKIP_TENANT } from '../decorators/skip-tenant';
 import { SKIP_EDGE } from '../decorators/skip-edge';
 import { DASHBOARD, type DashboardOptions } from '../decorators/dashboard';
+import { PUBLIC_API } from '../decorators/public-api';
 import type { CachedTenant } from '../../modules/tenancy/types/cached-tenant';
+import { HostClassifier } from '../../modules/tenancy/services/host-classifier';
 import { TenantResolver } from '../../modules/tenancy/services/tenant-resolver.service';
 import { EdgeSecret } from './edge-secret';
 
@@ -15,6 +17,8 @@ export const EDGE_HEADER = 'x-lytronix-edge-secret';
 export interface TenantRequest {
   headers: Record<string, string | string[] | undefined>;
   tenant?: CachedTenant;
+  /** API-14: set when the request came in on the API host at its public /v1/ address. */
+  publicApi?: boolean;
 }
 
 /** Runs before authentication on every route. */
@@ -24,6 +28,7 @@ export class TenantGuard implements CanActivate {
     @Inject(TenantResolver) private readonly resolver: TenantResolver,
     @Inject(Reflector) private readonly reflector: Reflector,
     @Inject(EdgeSecret) private readonly edgeSecret: EdgeSecret,
+    @Inject(HostClassifier) private readonly hosts: HostClassifier,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -39,6 +44,10 @@ export class TenantGuard implements CanActivate {
       context.getHandler(),
       context.getClass(),
     ]);
+    const publicApi = this.reflector.getAllAndOverride<boolean | undefined>(PUBLIC_API, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
     const request = context.switchToHttp().getRequest<TenantRequest>();
 
     if (
@@ -47,6 +56,15 @@ export class TenantGuard implements CanActivate {
       !this.edgeSecret.matches(request.headers[EDGE_HEADER])
     ) {
       throw new ApiError('forbidden', 'RequestNotAccepted');
+    }
+    // API-14, TEN-02: a public API route answers only on the API host at /v1/..., and its own guard takes the shop
+    // from the key. Nothing else answers on the API host: it takes key authentication only.
+    if (publicApi) {
+      if (request.publicApi !== true) throw new ApiError('not_found', 'PageNotFound');
+      return true;
+    }
+    if (this.hosts.classify(headerValue(request.headers.host)).kind === 'api') {
+      throw new ApiError('not_found', 'PageNotFound');
     }
     if (skip || dashboard) return true;
 

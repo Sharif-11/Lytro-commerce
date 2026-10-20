@@ -297,6 +297,17 @@ export const MESSAGE_KEYS = [
   'SerialPerUnitReturned',
   'ReturnCannotRestock',
 
+  // Public API keys and limits (Phase 3 Slice 8)
+  'ApiKeyMissing',
+  'ApiKeyInvalid',
+  'ApiKeyWasRevoked',
+  'ApiKeyExpired',
+  'WebsiteNotRegistered',
+  'RequestsUsedUp',
+  'ApiKeyNotFound',
+  'TooManyApiKeys',
+  'ApiKeyExpiryInPast',
+
   // Purchasing (Phase 3 Slice 4a)
   'SupplierNotFound',
   'SupplierNameTaken',
@@ -384,6 +395,11 @@ export const MESSAGE_KEYS = [
   'PurchaseReceived',
   'PurchaseClosedShort',
   'PurchaseHistoryRetrieved',
+  'ApiKeysListed',
+  'ApiKeyCreated',
+  'ApiKeyUpdated',
+  'ApiKeyRevoked',
+  'ShopRetrieved',
 ] as const;
 
 export type MessageKey = (typeof MESSAGE_KEYS)[number];

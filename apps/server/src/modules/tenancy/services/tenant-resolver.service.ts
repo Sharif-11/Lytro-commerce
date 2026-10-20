@@ -27,7 +27,8 @@ export class TenantResolver {
 
   async resolve(rawHost: string | undefined): Promise<ResolvedHost> {
     const target = this.hosts.classify(rawHost);
-    if (target.kind === 'invalid' || target.kind === 'platform') return { outcome: 'not_found' };
+    // Only a shop's subdomain or custom domain names a shop; the platform's and the API's hosts never do.
+    if (target.kind !== 'shop' && target.kind !== 'custom') return { outcome: 'not_found' };
 
     const host = this.hosts.normalize(rawHost);
     if (host === null) return { outcome: 'not_found' };

@@ -261,6 +261,16 @@ export enum AuditAction {
   // short (PUR-04, PUR-06, PUR-07, PUR-10).
   PurchaseReceived = 'purchase_received',
   PurchaseClosedShort = 'purchase_closed_short',
+  // Phase 3 Slice 8: a public API key made, its name or website addresses changed, or revoked (API-01, API-21).
+  ApiKeyCreated = 'api_key_created',
+  ApiKeyUpdated = 'api_key_updated',
+  ApiKeyRevoked = 'api_key_revoked',
+}
+
+// API-01, D3-1: the kinds of API key. A public key is for a browser, from registered website addresses; secret keys
+// arrive in Phase 8.
+export enum ApiKeyType {
+  Public = 'public',
 }
 
 // AUD-07: these action kinds (payment, wallet, credential, plan, balance) are kept 24 months regardless of
@@ -268,6 +278,10 @@ export enum AuditAction {
 // money-related action is added here deliberately, the same discipline AuditAction's own comment asks for.
 export const MONEY_RELATED_AUDIT_ACTIONS: ReadonlySet<AuditAction> = new Set([
   AuditAction.PasswordChanged,
+  // API-21: an API key is a credential.
+  AuditAction.ApiKeyCreated,
+  AuditAction.ApiKeyUpdated,
+  AuditAction.ApiKeyRevoked,
   AuditAction.PasswordReset,
   AuditAction.PlanAssigned,
   AuditAction.PlanPurchased,

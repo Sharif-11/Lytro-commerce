@@ -784,6 +784,44 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'This product is no longer kept in stock, so the return cannot go back into stock.',
     bn: 'এই প্রোডাক্ট আর স্টকে রাখা হয় না, তাই রিটার্ন আসা ইউনিট স্টকে নেওয়া যাবে না।',
   },
+  ApiKeyMissing: {
+    en: 'Send your API key as "Authorization: Bearer <key>".',
+    bn: 'আপনার API কি "Authorization: Bearer <key>" হিসেবে পাঠান।',
+  },
+  ApiKeyInvalid: {
+    en: 'This API key is not valid. Check it, or make a new one in the dashboard.',
+    bn: 'এই API কি সঠিক নয়। কি-টি দেখে নিন, অথবা ড্যাশবোর্ড থেকে নতুন একটি তৈরি করুন।',
+  },
+  ApiKeyWasRevoked: {
+    en: 'This API key was revoked. Use another key, or make a new one in the dashboard.',
+    bn: 'এই API কি বাতিল করা হয়েছে। অন্য কি ব্যবহার করুন, অথবা ড্যাশবোর্ড থেকে নতুন একটি তৈরি করুন।',
+  },
+  ApiKeyExpired: {
+    en: 'This API key has expired. Make a new one in the dashboard.',
+    bn: 'এই API কি-র মেয়াদ শেষ হয়ে গেছে। ড্যাশবোর্ড থেকে নতুন একটি তৈরি করুন।',
+  },
+  WebsiteNotRegistered: {
+    en: "This website is not one of this API key's website addresses. Add it to the key in the dashboard.",
+    bn: 'এই ওয়েবসাইট এই API কি-র ওয়েবসাইট তালিকায় নেই। ড্যাশবোর্ডে কি-টিতে এটি যোগ করুন।',
+  },
+  RequestsUsedUp: {
+    en: 'This shop has used all its API requests for this billing period. They start again with the next one.',
+    bn: 'এই দোকান এই বিলিং পিরিয়ডের সব API রিকোয়েস্ট ব্যবহার করে ফেলেছে। পরের পিরিয়ডে আবার শুরু হবে।',
+  },
+  ApiKeyNotFound: {
+    en: 'That API key was not found.',
+    bn: 'API কি-টি পাওয়া যায়নি।',
+  },
+  TooManyApiKeys: {
+    en: (p) =>
+      `A shop holds at most ${String(p.max)} API keys at once. Revoke one you no longer use first.`,
+    bn: (p) =>
+      `একটি দোকানে একসাথে সর্বোচ্চ ${String(p.max)}টি API কি রাখা যায়। আগে অব্যবহৃত একটি বাতিল করুন।`,
+  },
+  ApiKeyExpiryInPast: {
+    en: 'This date has already passed. Choose a later one, or leave it empty for a key that never expires.',
+    bn: 'এই তারিখ পার হয়ে গেছে। পরের একটি তারিখ বেছে নিন, অথবা মেয়াদহীন কি-র জন্য খালি রাখুন।',
+  },
   SupplierNotFound: {
     en: 'That supplier was not found.',
     bn: 'সাপ্লায়ারটি পাওয়া যায়নি।',
@@ -1075,6 +1113,26 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   SupplierCreated: {
     en: 'Supplier added.',
     bn: 'সাপ্লায়ার যোগ হয়েছে।',
+  },
+  ApiKeysListed: {
+    en: 'API keys retrieved.',
+    bn: 'API কি-গুলো পাওয়া গেছে।',
+  },
+  ApiKeyCreated: {
+    en: 'API key made. Copy it now: it is shown only this once.',
+    bn: 'API কি তৈরি হয়েছে। এখনই কপি করে রাখুন: এটি শুধু এই একবারই দেখানো হবে।',
+  },
+  ApiKeyUpdated: {
+    en: 'API key saved.',
+    bn: 'API কি সেভ হয়েছে।',
+  },
+  ApiKeyRevoked: {
+    en: 'API key revoked. It stops working within a few seconds.',
+    bn: 'API কি বাতিল হয়েছে। কয়েক সেকেন্ডের মধ্যে এটি কাজ করা বন্ধ করবে।',
+  },
+  ShopRetrieved: {
+    en: 'Shop retrieved.',
+    bn: 'দোকানের তথ্য পাওয়া গেছে।',
   },
   SupplierUpdated: {
     en: 'Supplier saved.',

@@ -20,6 +20,7 @@ import { CatalogueEraser } from '../../catalogue/services/catalogue-eraser';
 import { DeliveryZoneService } from '../../delivery/services/delivery-zone.service';
 import { InventoryEraser } from '../../inventory/services/inventory-eraser';
 import { PurchasingEraser } from '../../purchasing/services/purchasing-eraser';
+import { ApiKeyEraser } from '../../api-access/services/api-key-eraser';
 import { DataExportService } from '../../data-export/services/data-export.service';
 import { MailService } from '../../shared/mail/services/mail.service';
 import { MessagingService } from '../../shared/messaging/services/messaging.service';
@@ -79,6 +80,7 @@ export class LifecycleService {
     @Inject(PurchasingEraser) private readonly purchasing: PurchasingEraser,
     @Inject(InventoryEraser) private readonly inventory: InventoryEraser,
     @Inject(CatalogueEraser) private readonly catalogue: CatalogueEraser,
+    @Inject(ApiKeyEraser) private readonly apiKeys: ApiKeyEraser,
     @Inject(DeliveryZoneService) private readonly deliveryZones: DeliveryZoneService,
     @Inject(PurchaseService) private readonly purchase: PurchaseService,
     @Inject(DowngradeService) private readonly downgrade: DowngradeService,
@@ -273,12 +275,13 @@ export class LifecycleService {
     await this.staff.deleteAllForTenant({ id: tenantId, planLimits: null });
     await this.dataExports.deleteAllForTenant(tenantId); // LIF-16/19: exports go with the rest of the data.
     // Phase 3: purchases and suppliers, the stock ledger and levels, then products and everything under them,
-    // categories, attributes, option sets and the settings row, then the delivery zones those products' limits named.
-    // Each step is safe to repeat if a tick stops between them.
+    // categories, attributes, option sets and the settings row, then the delivery zones those products' limits named,
+    // and the shop's API keys and request counts. Each step is safe to repeat if a tick stops between them.
     await this.purchasing.deleteAllForTenant(tenantId);
     await this.inventory.deleteAllForTenant(tenantId);
     await this.catalogue.deleteAllForTenant(tenantId);
     await this.deliveryZones.deleteAllForTenant(tenantId);
+    await this.apiKeys.deleteAllForTenant(tenantId);
     await this.tenants.runStandalone(async (tx) => {
       await this.tenants.markDeleted(tx, tenantId, now);
       await this.audit.record(tx, {

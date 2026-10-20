@@ -668,7 +668,10 @@
       "purchase_cancelled": "cancelled a purchase",
       "purchase_deleted": "deleted a draft purchase",
       "purchase_received": "received a purchase",
-      "purchase_closed_short": "closed a purchase short"
+      "purchase_closed_short": "closed a purchase short",
+      "api_key_created": "made an API key",
+      "api_key_updated": "changed an API key",
+      "api_key_revoked": "revoked an API key"
     }
   },
   "settings": {

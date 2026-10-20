@@ -126,7 +126,8 @@ beforeAll(async () => {
     ],
   }).compile();
 
-  ({ app, port } = await listenOn(moduleRef));
+  // A module of tenancy alone, without the public API's host (Phase 3 Slice 8).
+  ({ app, port } = await listenOn(moduleRef, { publicApiHost: false }));
 });
 
 afterAll(async () => {

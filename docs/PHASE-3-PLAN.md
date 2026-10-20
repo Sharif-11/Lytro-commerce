@@ -600,6 +600,10 @@ their backend ships earlier.
   consecutive numbers.
 
 ### Slice 5: stock reservations — *checkpoint "3A" after this slice (D3-10)*
+- **Checkpoint 3A (2026-10-20):** catalogue and inventory complete (Slices 0–5, decided 2026-10-17, merged by
+  2026-10-20). Decided with the user: the phase stays one phase, with no Phase 3B, and continues in the suggested
+  order with Slice 8 next. KNOWN-GAPS §66 (an operator's edit to the platform library moves no shop's catalogue
+  version) is fixed inside Slice 9, where caching first depends on it.
 - **Status (2026-10-20):** eight decisions agreed with the user before any code; built as two PRs, 5a (reservations,
   migration 0062) and 5b (returns, INV-17).
   - **Decisions:** a reservation is a service Phase 4's orders call, with no route of its own. It names its order and
@@ -675,6 +679,24 @@ their backend ships earlier.
   within about 2 minutes; a lapsed tenant's media is refused before any R2 read.
 
 ### Slice 8: public API keys and rate limits
+- **Status (2026-10-20):** ten decisions agreed with the user before any code; built as one PR (migration 0064).
+  - **Decisions:** keys live in the control schema, as a SHA-256 hash with a visible prefix, the value shown once,
+    `lytro_pk_` and 32 random characters. The dashboard (`keys:manage`) makes, lists, edits and revokes keys, at most
+    20 live; making and revoking are audited by name, never value; rotation is two live keys. Website addresses are
+    exact origins, at most 10 per key, HTTPS except `http://localhost` and `http://127.0.0.1`.
+  - **The API host:** `api.lytro.app/v1/...` takes keys only; this slice serves `GET /v1/shop`, and the catalogue
+    joins it in Slice 9. Every public route runs one gate before anything else (RTE-04): the key (401), the website
+    (403, an absent `Origin` too), the shop open, the visitor's 120 a minute (RTE-06), the key's per-minute limit
+    (429 with `Retry-After`), then the cycle's requests (429 `quota_exceeded`).
+  - **Lookups and limits:** lookups are kept for at most 5 seconds, and revoking clears this server's copy at once. A
+    preflight is answered by whether a live key registers its website. The per-minute window is an exact sliding one,
+    in memory (D3-2). The monthly counts are flushed to PostgreSQL every minute, with warnings at 50, 80 and 95
+    percent, once each.
+  - **Plan limits:** `requests_per_minute_public` and `requests_monthly` are seeded on every plan from 2.1, filled
+    into every snapshot, and overridable.
+  - **Built as decided.** When a flush crosses more than one warning, only the highest is sent.
+  - **Found while building it:** an operator's override to unlimited (`null`) failed with a server error (KNOWN-GAPS
+    §76).
 - **Depends on:** none in this phase (can run in parallel with Slices 1–7).
 - **Delivers:** the D3-1 public-key subset (hashed storage, shown once, registered origins, expiry,
   revocation honoured within 5 s, two-key rotation, CORS and preflight); the D3-2 limiter (per-key

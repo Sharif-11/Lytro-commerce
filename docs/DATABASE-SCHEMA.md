@@ -1440,23 +1440,50 @@ CREATE TABLE tenant.balance_ledger (
 
 ### 3.5 Keys, audit, misc
 
+**Built in Phase 3 Slice 8 (migration 0064, 2026-10-20):** `control.api_keys`, `control.api_key_type` and
+`control.api_usage` (API-01 to API-05, API-08, API-23, RTE-03), with these decisions against the design below:
+- **In the control schema, not the tenant's.** The public API finds a key from its hash before it knows the shop, so
+  the table needs no tenant context; every dashboard query still names the shop.
+- **Only the key's SHA-256 hash is kept**, with a short prefix to recognise it by (`lytro_pk_` and four characters).
+  The key is 32 random letters and digits, so a slow hash adds nothing. A revoked key stays, as history; keys go only
+  with LIF-19's day-60 deletion.
+- **Public keys only for now** (D3-1); scopes and IP allow-lists arrive with secret keys in Phase 8.
+- **Website addresses** are exact origins, normalised when stored; a GIN index over the live keys' addresses answers
+  a preflight, which carries no key (API-23).
+- **`control.api_usage`** holds each shop's requests per billing cycle, flushed from the server's own counts every
+  minute (D3-2, RED-04's pattern), and the highest quota warning sent for the cycle (RTE-03).
+- Two plan limits, `requests_per_minute_public` and `requests_monthly`, are seeded on every plan from 2.1 and filled
+  into each shop's snapshot from its plan.
+
 ```sql
-CREATE TABLE tenant.api_keys (
+CREATE TYPE control.api_key_type AS ENUM ('public');      -- 'secret' arrives in Phase 8
+
+CREATE TABLE control.api_keys (                           -- API-01 to API-05, API-08 (built in Slice 8)
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id       uuid NOT NULL,
-    name            text NOT NULL,
-    type            text NOT NULL,                     -- public | secret
-    key_hash        text NOT NULL,
-    key_prefix      text NOT NULL,
-    scopes          text[] NOT NULL DEFAULT '{}',
-    allowed_origins text[] NOT NULL DEFAULT '{}',       -- public keys
-    ip_allowlist    inet[],                              -- secret keys
+    tenant_id       uuid NOT NULL REFERENCES control.tenants(id),
+    type            control.api_key_type NOT NULL DEFAULT 'public',
+    name            varchar(80) NOT NULL,
+    prefix          varchar(24) NOT NULL,                 -- 'lytro_pk_' and four characters, shown in the list
+    key_hash        char(64) NOT NULL UNIQUE,             -- SHA-256 of the key; the key itself is shown once
+    websites        text[] NOT NULL,                      -- exact origins a public key works from
     expires_at      timestamptz,
+    created_by      uuid,
+    created_at      timestamptz NOT NULL DEFAULT now(),
+    last_used_at    timestamptz,                          -- written at most once a minute
     revoked_at      timestamptz,
-    last_used_at    timestamptz,
-    created_at      timestamptz NOT NULL DEFAULT now()
+    revoked_by      uuid
 );
-CREATE UNIQUE INDEX ON tenant.api_keys (key_hash);
+CREATE INDEX ON control.api_keys (tenant_id, created_at);
+CREATE INDEX ON control.api_keys USING gin (websites) WHERE revoked_at IS NULL;   -- API-23 preflight
+
+CREATE TABLE control.api_usage (                          -- RTE-03 (built in Slice 8)
+    tenant_id       uuid NOT NULL REFERENCES control.tenants(id),
+    cycle_start     timestamptz NOT NULL,                 -- the billing cycle's start (UPG-10, PYG-19)
+    requests        bigint NOT NULL DEFAULT 0,
+    warned_percent  integer NOT NULL DEFAULT 0,           -- 0, 50, 80 or 95: the highest warning sent
+    updated_at      timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (tenant_id, cycle_start)
+);
 
 CREATE TABLE tenant.activity_log (
     id              bigserial PRIMARY KEY,

@@ -12,6 +12,7 @@ import { CatalogueModule } from '../catalogue/catalogue.module';
 import { DataExportModule } from '../data-export/data-export.module';
 import { DeliveryModule } from '../delivery/delivery.module';
 import { InventoryModule } from '../inventory/inventory.module';
+import { ApiAccessModule } from '../api-access/api-access.module';
 import { PurchasingModule } from '../purchasing/purchasing.module';
 import { MailModule } from '../shared/mail/mail.module';
 import { MessagingModule } from '../shared/messaging/messaging.module';
@@ -51,11 +52,12 @@ import {
     MessagingModule,
     MailModule,
     PlatformSettingsModule,
-    // LIF-19: the day-60 deletion removes the shop's purchases, stock, catalogue and delivery zones too.
+    // LIF-19: the day-60 deletion removes the shop's purchases, stock, catalogue, delivery zones and API keys too.
     PurchasingModule,
     InventoryModule,
     CatalogueModule,
     DeliveryModule,
+    ApiAccessModule,
   ],
   providers: [
     { provide: PLANS_STORE, useClass: DrizzlePlansStore },

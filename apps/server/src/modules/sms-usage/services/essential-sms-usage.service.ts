@@ -1,9 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Transaction } from '@lytronix/db';
-import { SmsKind, TenantState } from '@lytronix/validators';
-import { monthlyCycleStart } from '../../../common/time';
+import { SmsKind } from '@lytronix/validators';
+import { usageCycleStart } from '../../../common/time';
 import { countSmsParts } from '../../shared/messaging/sms-parts';
-import type { EssentialSmsUsageStore, UsageCycleTenant } from '../ports/essential-sms-usage-store';
+import type { EssentialSmsUsageStore } from '../ports/essential-sms-usage-store';
 import { ESSENTIAL_SMS_USAGE_STORE } from '../tokens';
 
 export interface EssentialSmsUsage {
@@ -28,21 +28,11 @@ export class EssentialSmsUsageService {
 
   async currentUsage(tenantId: string, now: Date): Promise<EssentialSmsUsage> {
     const tenant = await this.store.findCycleTenant(tenantId);
-    const cycleStart = tenant ? monthlyCycleStart(this.cycleAnchor(tenant), now) : now;
+    const cycleStart = tenant ? usageCycleStart(tenant, now) : now;
     const [monthly, total] = await Promise.all([
       this.store.sumPartsSince(tenantId, cycleStart),
       this.store.sumPartsSince(tenantId, null),
     ]);
     return { monthly, total };
-  }
-
-  /**
-   * UPG-10, PYG-19: the monthly allowance runs in months from the paid period's start, so a purchase, a
-   * restart after lapse or an upgrade (each a new period) starts it again from zero. Pay-as-you-go has no
-   * period, so it counts from the shop's creation date.
-   */
-  private cycleAnchor(tenant: UsageCycleTenant): Date {
-    if (tenant.state === TenantState.PayAsYouGo) return tenant.createdAt;
-    return tenant.periodStart ?? tenant.createdAt;
   }
 }

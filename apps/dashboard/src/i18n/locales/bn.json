@@ -668,7 +668,10 @@
       "purchase_cancelled": "সাপ্লায়ারের অর্ডার বাতিল করেছেন",
       "purchase_deleted": "ড্রাফট অর্ডার ডিলিট করেছেন",
       "purchase_received": "সাপ্লায়ারের মাল বুঝে নিয়েছেন",
-      "purchase_closed_short": "কম মাল পেয়ে অর্ডার ক্লোজ করেছেন"
+      "purchase_closed_short": "কম মাল পেয়ে অর্ডার ক্লোজ করেছেন",
+      "api_key_created": "API কি তৈরি করেছেন",
+      "api_key_updated": "API কি বদলেছেন",
+      "api_key_revoked": "API কি বাতিল করেছেন"
     }
   },
   "settings": {

@@ -1,3 +1,5 @@
+import { TenantState } from '@lytronix/validators';
+
 // Durations in milliseconds, defined once. Services use these instead of writing 60 * 1000 themselves.
 export const SECOND_MS = 1000;
 export const MINUTE_MS = 60 * SECOND_MS;
@@ -53,6 +55,22 @@ export function monthlyCycleStart(anchor: Date, now: Date): Date {
   // The calendar-month difference is right or one too many; step back until the cycle has started.
   while (addMonths(anchor, months) > now) months -= 1;
   return addMonths(anchor, months);
+}
+
+/**
+ * UPG-10, PYG-19, RTE-03: the start of the shop's usage cycle `now` falls in. A monthly allowance (free essential SMS,
+ * API requests) runs in months from the paid period's start, so a purchase, a restart after lapse or an upgrade (each
+ * a new period) starts it again from zero. Pay-as-you-go has no period, so it counts from the shop's creation date.
+ */
+export function usageCycleStart(
+  tenant: { state: TenantState; periodStart: Date | null; createdAt: Date },
+  now: Date,
+): Date {
+  const anchor =
+    tenant.state === TenantState.PayAsYouGo
+      ? tenant.createdAt
+      : (tenant.periodStart ?? tenant.createdAt);
+  return monthlyCycleStart(anchor, now);
 }
 
 /** BIL-14: the start (00:00) of the Asia/Dhaka calendar day `date` falls on, same offset trick as `addMonths`. */

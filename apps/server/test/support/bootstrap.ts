@@ -8,9 +8,10 @@ import { HttpSetup } from '../../src/app/http-setup';
  * and the body limit), listening on an ephemeral port, and returns the app and the port the e2e specs call. */
 export async function listenOn(
   moduleRef: TestingModule,
+  options: { publicApiHost?: boolean } = {},
 ): Promise<{ app: INestApplication; port: number }> {
   const app = moduleRef.createNestApplication<NestExpressApplication>();
-  new HttpSetup().apply(app);
+  new HttpSetup().apply(app, options);
   await app.listen(0, '127.0.0.1');
   const port = (app.getHttpServer().address() as AddressInfo).port;
   return { app, port };

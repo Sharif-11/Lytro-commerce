@@ -1493,6 +1493,25 @@ and in `lockLevel` itself), then levels in variant order, then reservations, bat
 `reservations.e2e.spec.ts`: two orders for the last unit give one hold and one conflict, five rounds over; ten orders
 for five units give five of each; two orders on different sizes of one product both hold, five rounds over.
 
+## 76. `PLN-19`, `PLN-11`: an operator could not override a limit to unlimited — found and fixed 2026-10-20
+
+Found while building Phase 3 Slice 8. PLN-19 lets any limit be unlimited, written as `null`, and the operator's
+override route accepts `null` as the value. The repository passed that `null` straight to the `jsonb` value column,
+which stored SQL NULL instead of the JSON value `null`; the column refuses NULL, so the override failed with a server
+error and no shop could be given an unlimited limit. The repository now stores the JSON value `null`, which reads back
+as `null`, so the override applies as unlimited. Verified in `plan-catalogue.e2e.spec.ts` (an unlimited override set
+and listed through the operator route) and `api-keys.e2e.spec.ts` (an unlimited monthly request limit is never
+refused).
+
+## 77. `BIL-10`: a renewal test failed in the first hours of a Dhaka day that fell on a month's 31st — found and fixed 2026-10-21
+
+Found while running the full suite for Phase 3 Slice 8, just after midnight in Dhaka. The test renews a period ending
+in ten days and expects the new end one month later, but worked that month out in UTC, while the server counts it on
+the Asia/Dhaka calendar (TRM-09). Ten days from 00:02 on 21 October, Dhaka time, is 31 October in Dhaka but still
+30 October in UTC, so the server's month (to 30 November, the 31st clamped) and the test's (to 30 November in UTC) were
+a day apart. The server was right; the test now uses the server's own `addMonths`. It could fail only in the first
+six hours of a Dhaka day whose date ten days on is the 31st.
+
 ## Not a bug, just noting it so it isn't mistaken for one later
 
 The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data
