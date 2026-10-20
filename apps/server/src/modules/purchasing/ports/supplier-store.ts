@@ -12,6 +12,8 @@ export interface SupplierStore {
     values: Pick<SupplierRecord, 'name' | 'phone' | 'email' | 'address' | 'notes'>,
   ): Promise<SupplierRecord>;
   findSupplier(tx: Transaction, tenantId: string, id: string): Promise<SupplierRecord | null>;
+  /** PUR-07: the live supplier of this name, ignoring case. */
+  findLiveByName(tx: Transaction, tenantId: string, name: string): Promise<SupplierRecord | null>;
   updateSupplier(
     tx: Transaction,
     tenantId: string,

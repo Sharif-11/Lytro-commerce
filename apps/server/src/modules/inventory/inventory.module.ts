@@ -49,6 +49,9 @@ import {
     InventoryEraser,
   ],
   exports: [
+    // The one write path for stock, and the serial checks, for purchasing's receipts (D3-7: purchasing -> inventory).
+    InventoryLedger,
+    SerialEntryService,
     SerialService,
     StockService,
     StockCheckService,

@@ -30,6 +30,7 @@ import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
 import { BatchService } from '../../inventory/services/batch.service';
 import { SerialService } from '../../inventory/services/serial.service';
 import { StockService } from '../../inventory/services/stock.service';
+import { ReceivingService } from '../../purchasing/services/receiving.service';
 import type {
   ProductBatchesView,
   ProductStockView,
@@ -65,6 +66,8 @@ export class InventoryController {
     @Inject(StockService) private readonly stock: StockService,
     @Inject(BatchService) private readonly batches: BatchService,
     @Inject(SerialService) private readonly serials: SerialService,
+    // PUR-07: stock arriving through these routes is recorded as a purchase received in full.
+    @Inject(ReceivingService) private readonly arrivals: ReceivingService,
     @Inject(CatalogueRequest) private readonly catalogue: CatalogueRequest,
   ) {}
 
@@ -228,6 +231,7 @@ export class InventoryController {
       this.catalogue.idOf(variantId, 'ProductNotFound'),
       body,
       this.catalogue.actorOf(request),
+      this.arrivals,
     );
   }
 
@@ -237,7 +241,7 @@ export class InventoryController {
   @ResponseMessage('StockAdded')
   @ApiOperation({
     summary:
-      'Add stock that arrived: packs of a size sharing one stock, the shared stock in its unit, or units (INV-06, INV-24)',
+      'Add stock that arrived, recorded as a purchase received in full: packs of a size sharing one stock, the shared stock in its unit, or units (INV-06, INV-24, PUR-07)',
   })
   @ApiBody({ type: AddStockDto })
   @ZodResponse({ type: ProductStockViewDto })
@@ -253,6 +257,7 @@ export class InventoryController {
       this.catalogue.idOf(variantId, 'ProductNotFound'),
       body,
       this.catalogue.actorOf(request),
+      this.arrivals,
     );
   }
 

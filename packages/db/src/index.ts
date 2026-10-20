@@ -170,6 +170,12 @@ export {
   type PurchaseOrderRow,
   type PurchaseOrderSummaryRow,
 } from './repositories/purchasing/purchase-order.repository';
+export {
+  PurchaseReceiptRepository,
+  type PurchaseHistoryRow,
+  type PurchaseReceiptLineRow,
+  type PurchaseReceiptRow,
+} from './repositories/purchasing/purchase-receipt.repository';
 export { LocationRepository, type LocationList } from './repositories/delivery/location.repository';
 export {
   DeliveryZoneRepository,

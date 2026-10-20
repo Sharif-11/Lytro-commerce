@@ -514,8 +514,8 @@ async function seedCatalogue(tenantId: string): Promise<void> {
      VALUES ($1, $2, $3, $4, 5, 5)`,
     [tenantId, check.rows[0]?.id, product, variant],
   );
-  // Slice 4a: a supplier, the purchase counter, and a placed purchase with stock received on its item, which only the
-  // day-60 deletion removes.
+  // Slice 4a: a supplier, the purchase counter, and a placed purchase; Slice 4b: a delivery against it, with stock
+  // received on its item. Only the day-60 deletion removes a receipt, or an item with stock received on it.
   const supplier = await one(
     "INSERT INTO tenant.suppliers (tenant_id, name) VALUES ($1, 'Rahim Traders') RETURNING id",
     [tenantId],
@@ -529,11 +529,27 @@ async function seedCatalogue(tenantId: string): Promise<void> {
      VALUES ($1, 1, $2, 'partially_received', now()) RETURNING id`,
     [tenantId, supplier],
   );
-  await admin.query(
+  const item = await one(
     `INSERT INTO tenant.purchase_order_lines
-       (tenant_id, purchase_order_id, product_id, variant_id, position, quantity_ordered, quantity_received)
-     VALUES ($1, $2, $3, $4, 0, 10, 5)`,
+       (tenant_id, purchase_order_id, product_id, variant_id, position, quantity_ordered)
+     VALUES ($1, $2, $3, $4, 0, 10) RETURNING id`,
     [tenantId, purchase, product, variant],
+  );
+  const receipt = await one(
+    'INSERT INTO tenant.purchase_receipts (tenant_id, purchase_order_id) VALUES ($1, $2) RETURNING id',
+    [tenantId, purchase],
+  );
+  const received = await admin.query<{ id: string }>(
+    `INSERT INTO tenant.stock_movements
+       (tenant_id, product_id, variant_id, quantity_delta, reason, unit_cost, reference_type, reference_id)
+     VALUES ($1, $2, $3, 5, 'purchase_receipt', 700, 'purchase_receipt', $4) RETURNING id`,
+    [tenantId, product, variant, receipt],
+  );
+  await admin.query(
+    `INSERT INTO tenant.purchase_receipt_lines
+       (tenant_id, receipt_id, purchase_line_id, quantity_accepted, unit_cost, movement_id)
+     VALUES ($1, $2, $3, 5, 700, $4)`,
+    [tenantId, receipt, item, received.rows[0]?.id],
   );
   await admin.query(
     `INSERT INTO tenant.size_charts (tenant_id, product_id, table_rows) VALUES ($1, $2, '[["40"]]')`,

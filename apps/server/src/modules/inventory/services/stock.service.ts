@@ -13,8 +13,7 @@ import {
   type VariantCostInput,
 } from '@lytronix/validators';
 import { ApiError, FieldsError } from '../../../common/api-error';
-import { dhakaDate } from '../../../common/time';
-import { packCost } from '../../balance/services/money';
+import { packCost, unitCostOfPack } from '../../balance/services/money';
 import type {
   CatalogueTransactions,
   ProductStockHooks,
@@ -24,23 +23,25 @@ import { optionIdsOfKey } from '../../catalogue/services/variant-matrix';
 import { CATALOGUE_TRANSACTIONS } from '../../catalogue/tokens';
 import type { CatalogueActor } from '../../catalogue/types/catalogue';
 import type { SerialStore } from '../ports/serial-store';
+import type { StockArrivals } from '../ports/stock-arrivals';
 import type { StockStore } from '../ports/stock-store';
 import { SERIAL_STORE, STOCK_STORE } from '../tokens';
 import type {
   BatchDescription,
   ProductStockView,
   SharedStockView,
-  StockChange,
   StockHistoryPage,
   StockVariantRow,
   VariantStockRow,
   VariantStockView,
 } from '../types/inventory';
+import { batchChoiceOf } from './batch-choice';
 import { InventoryLedger } from './inventory-ledger';
 import { SerialEntryService } from './serial-entry.service';
 import {
   milli,
   packsOf,
+  packsToStock,
   productState,
   quantityOf,
   sharedVariantState,
@@ -54,14 +55,14 @@ const NONE_INCOMING = '0.000';
 const UNTRACKING_NOTE = 'Switched to made to order';
 
 /**
- * INV-06: the one-tap reason as the ledger records it. "New stock arrived" is a manual adjustment until purchasing
- * (Slice 4) makes it a received purchase; a reason that contradicts the change (new stock that lowers it, damage that
- * raises it) is refused rather than guessed.
+ * INV-06: the one-tap reason as the ledger records it. "New stock arrived" is a purchase received (PUR-07, recorded by
+ * the stock arrivals); a reason that contradicts the change (new stock that lowers it, damage that raises it) is
+ * refused rather than guessed.
  */
 function reasonFor(edit: StockEditReason, rising: boolean): StockReason | null {
   switch (edit) {
     case StockEditReason.NewStock:
-      return rising ? StockReason.ManualAdjustment : null;
+      return rising ? StockReason.PurchaseReceipt : null;
     case StockEditReason.CountedAgain:
       return StockReason.Recount;
     case StockEditReason.DamagedOrLost:
@@ -96,7 +97,8 @@ export class StockService implements ProductStockHooks {
 
   /**
    * INV-06: the tenant types the stock they now have; the difference is recorded as one movement with the one-tap
-   * reason (a manual adjustment when skipped), and the change is in the activity log (INV-21).
+   * reason (a manual adjustment when skipped), and the change is in the activity log (INV-21). New stock arriving is
+   * handed to `arrivals`, which records it as a purchase received in full, with no supplier or cost (PUR-07).
    */
   async setStock(
     tenantId: string,
@@ -104,6 +106,7 @@ export class StockService implements ProductStockHooks {
     variantId: string,
     input: SetStockInput,
     actor: CatalogueActor,
+    arrivals: StockArrivals,
   ): Promise<ProductStockView> {
     const who = await this.activity.resolve(tenantId, actor);
     return this.transactions.run(async (tx) => {
@@ -122,8 +125,24 @@ export class StockService implements ProductStockHooks {
       const current = await this.store.lockLevel(tx, tenantId, variantId);
       const change = milli(input.onHand) - milli(current);
       if (change === 0) this.refuseSerialsWithout(variant, input.serials);
-      if (change !== 0) {
-        const batch = this.batchChoiceOf(variant, input, change > 0);
+      if (change > 0 && input.reason === StockEditReason.NewStock) {
+        await arrivals.arrived(
+          tx,
+          tenantId,
+          {
+            productId,
+            variantId,
+            quantity: quantityOf(change),
+            unitCost: null,
+            supplier: null,
+            note: input.note ?? null,
+            ...batchChoiceOf(variant, input, true),
+            serials: await this.serialsOf(tx, tenantId, variant, input.serials, change),
+          },
+          who,
+        );
+      } else if (change !== 0) {
+        const batch = batchChoiceOf(variant, input, change > 0);
         const serials = await this.serialsOf(tx, tenantId, variant, input.serials, change);
         const reason = reasonFor(input.reason ?? StockEditReason.Other, change > 0);
         if (reason === null) {
@@ -170,8 +189,8 @@ export class StockService implements ProductStockHooks {
   }
 
   /**
-   * INV-10: the average unit cost typed in by hand, until a purchase receipt sets it (Slice 4). Never public, so the
-   * catalogue version stays; in the activity log.
+   * INV-10: the average unit cost typed in by hand, until a purchase receipt carrying a cost sets it. Never public, so
+   * the catalogue version stays; in the activity log.
    */
   async setCost(
     tenantId: string,
@@ -183,7 +202,7 @@ export class StockService implements ProductStockHooks {
     const who = await this.activity.resolve(tenantId, actor);
     return this.transactions.run(async (tx) => {
       const variant = await this.holderOf(tx, tenantId, productId, variantId);
-      if (await this.store.hasReceipt(tx, tenantId, variantId)) {
+      if (await this.store.hasCostedReceipt(tx, tenantId, variantId)) {
         throw new ApiError('conflict', 'CostFromPurchases', {});
       }
       const avgCost = input.avgCost === null ? null : input.avgCost.toFixed(4);
@@ -201,8 +220,9 @@ export class StockService implements ProductStockHooks {
   }
 
   /**
-   * INV-06, INV-24: stock that arrived, added to what is held and recorded as new stock (a manual adjustment until
-   * purchasing, Slice 4). On a variant of a product sharing its stock it is a whole number of that variant's packs; on
+   * INV-06, INV-24, PUR-07: stock that arrived, added to what is held and handed to `arrivals`, which records it as a
+   * purchase received in full (with the supplier and cost, if given). On a variant of a product sharing its stock it is
+   * a whole number of that variant's packs, at a cost per pack, and arrives on the shared stock, at a cost per unit; on
    * the shared stock, in the product's unit; on any other variant, units.
    */
   async addStock(
@@ -211,6 +231,7 @@ export class StockService implements ProductStockHooks {
     variantId: string,
     input: AddStockInput,
     actor: CatalogueActor,
+    arrivals: StockArrivals,
   ): Promise<ProductStockView> {
     const who = await this.activity.resolve(tenantId, actor);
     return this.transactions.run(async (tx) => {
@@ -229,7 +250,7 @@ export class StockService implements ProductStockHooks {
           },
         ]);
       }
-      const batch = this.batchChoiceOf(variant, input, true);
+      const batch = batchChoiceOf(variant, input, true);
       const serials = await this.serialsOf(
         tx,
         tenantId,
@@ -238,34 +259,33 @@ export class StockService implements ProductStockHooks {
         milli(input.quantity),
       );
       const quantity = quantityOf(milli(input.quantity));
-      await this.ledger.apply(
+      const cost = input.unitCost === undefined || input.unitCost === null ? null : input.unitCost;
+      // INV-24: packs of a size arrive on the shared stock, and a pack's cost becomes a cost per unit of it.
+      const holder = packs
+        ? (await this.store.findStockHolders(tx, tenantId, [productId]))[0]
+        : variant;
+      const pack = variant.packAmount ?? '0';
+      if (!holder) throw new Error('a product sharing its stock has no stock holder');
+      await arrivals.arrived(
         tx,
         tenantId,
-        [
-          {
-            variantId,
-            delta: quantity,
-            reason: StockReason.ManualAdjustment,
-            note: input.note ?? null,
-            ...batch,
-            serials,
-          },
-        ],
-        who,
-      );
-      await this.activity.record(
-        tx,
-        tenantId,
-        who,
-        AuditAction.StockAdjusted,
-        { type: 'product', id: productId },
         {
-          variantId,
-          added: quantity,
-          ...(packs ? { packAmount: variant.packAmount } : {}),
-          reason: StockReason.ManualAdjustment,
-          ...(input.note ? { note: input.note } : {}),
+          productId,
+          variantId: holder.variantId,
+          quantity: packs ? packsToStock(quantity, pack) : quantity,
+          unitCost:
+            cost === null ? null : packs ? unitCostOfPack(cost.toFixed(2), pack) : cost.toFixed(4),
+          supplier:
+            input.supplierId !== undefined
+              ? { id: input.supplierId }
+              : input.supplierName !== undefined
+                ? { name: input.supplierName }
+                : null,
+          note: input.note ?? null,
+          ...batch,
+          serials,
         },
+        who,
       );
       return this.viewWithin(tx, tenantId, productId, true);
     });
@@ -441,41 +461,6 @@ export class StockService implements ProductStockHooks {
       throw new ApiError('conflict', 'StockIsShared', {});
     }
     return variant;
-  }
-
-  /**
-   * INV-12: the batch a stock change names or describes. Only a batch-tracked product has batches, and only arriving
-   * stock opens one, never with an expiry already past; stock leaving may name the batch it leaves.
-   */
-  private batchChoiceOf(
-    variant: StockVariantRow,
-    input: { batch?: BatchDescription; batchId?: string },
-    rising: boolean,
-  ): Pick<StockChange, 'batch' | 'batchId'> {
-    if (input.batch === undefined && input.batchId === undefined) return {};
-    const field = input.batchId !== undefined ? 'batchId' : 'batch';
-    if (!variant.product.batchTracked) {
-      throw new FieldsError([
-        { field, problem: FieldProblemCode.NotAllowed, messageKey: 'BatchesNotTracked' },
-      ]);
-    }
-    if (input.batchId !== undefined) return { batchId: input.batchId };
-    if (!rising) {
-      throw new FieldsError([
-        { field, problem: FieldProblemCode.NotAllowed, messageKey: 'NewBatchOnlyForArrivals' },
-      ]);
-    }
-    const expiresOn = input.batch?.expiresOn;
-    if (expiresOn !== undefined && expiresOn < dhakaDate(new Date())) {
-      throw new FieldsError([
-        {
-          field: 'batch.expiresOn',
-          problem: FieldProblemCode.NotAllowed,
-          messageKey: 'ExpiryInThePast',
-        },
-      ]);
-    }
-    return { batch: input.batch ?? null };
   }
 
   /**

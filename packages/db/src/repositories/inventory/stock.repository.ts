@@ -1,4 +1,17 @@
-import { and, asc, count, desc, eq, gte, inArray, isNull, lt, sql, type SQL } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  gte,
+  inArray,
+  isNotNull,
+  isNull,
+  lt,
+  sql,
+  type SQL,
+} from 'drizzle-orm';
 import { StockReason } from '@lytronix/validators';
 import {
   productVariants,
@@ -317,8 +330,11 @@ export class StockRepository {
     };
   }
 
-  /** INV-10: whether a purchase receipt has set the variant's cost (Slice 4), after which it is no longer typed in. */
-  async hasReceipt(tx: Transaction, tenantId: string, variantId: string): Promise<boolean> {
+  /**
+   * INV-10: whether a purchase receipt carrying a unit cost has set the variant's average cost, after which it is no
+   * longer typed in. A receipt with no cost leaves it to the hand.
+   */
+  async hasCostedReceipt(tx: Transaction, tenantId: string, variantId: string): Promise<boolean> {
     await this.transactions.setTenantContext(tx, tenantId);
     const rows = await tx
       .select({ id: stockMovements.id })
@@ -328,6 +344,7 @@ export class StockRepository {
           eq(stockMovements.tenantId, tenantId),
           eq(stockMovements.variantId, variantId),
           eq(stockMovements.reason, StockReason.PurchaseReceipt),
+          isNotNull(stockMovements.unitCost),
         ),
       )
       .limit(1);

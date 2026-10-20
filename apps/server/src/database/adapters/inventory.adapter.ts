@@ -119,8 +119,8 @@ export class DrizzleStockStore implements StockStore {
     return this.stock.listHistory(tx, tenantId, variantId, page);
   }
 
-  hasReceipt(tx: Transaction, tenantId: string, variantId: string): Promise<boolean> {
-    return this.stock.hasReceipt(tx, tenantId, variantId);
+  hasCostedReceipt(tx: Transaction, tenantId: string, variantId: string): Promise<boolean> {
+    return this.stock.hasCostedReceipt(tx, tenantId, variantId);
   }
 
   async incoming(

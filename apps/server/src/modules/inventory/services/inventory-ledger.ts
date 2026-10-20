@@ -114,8 +114,9 @@ export class InventoryLedger {
           batchId: part.batchId,
           quantityDelta: part.delta,
           reason: change.reason,
-          // INV-11: what leaving stock cost at this moment; unknown stays null, never zero.
-          unitCost: milli(part.delta) < 0 ? on.avgCost : null,
+          // INV-11: what leaving stock cost at this moment; unknown stays null, never zero. INV-10: what a receipt's
+          // units cost, which the database takes into the average.
+          unitCost: milli(part.delta) < 0 ? on.avgCost : (change.unitCost ?? null),
           referenceType: change.reference?.type ?? null,
           referenceId: change.reference?.id ?? null,
           actorUserId: who.id,

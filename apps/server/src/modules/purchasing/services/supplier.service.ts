@@ -11,7 +11,7 @@ import {
 import { ApiError, FieldsError } from '../../../common/api-error';
 import { UniqueViolation } from '../../../common/errors/unique-violation';
 import type { CatalogueTransactions } from '../../catalogue/ports/catalogue-stores';
-import { CatalogueActivity } from '../../catalogue/services/catalogue-activity';
+import { CatalogueActivity, type ResolvedActor } from '../../catalogue/services/catalogue-activity';
 import { CATALOGUE_TRANSACTIONS } from '../../catalogue/tokens';
 import type { CatalogueActor } from '../../catalogue/types/catalogue';
 import type { SupplierStore } from '../ports/supplier-store';
@@ -158,14 +158,49 @@ export class SupplierService {
     return row;
   }
 
+  /**
+   * PUR-07: the supplier a name typed with arriving stock means, inside the arrival's own transaction: the live one of
+   * that name, ignoring case, or else a new one, in the activity log like any other.
+   */
+  async namedSupplier(
+    tx: Transaction,
+    tenantId: string,
+    name: string,
+    who: ResolvedActor,
+    field: string,
+  ): Promise<SupplierRecord> {
+    const found = await this.suppliers.findLiveByName(tx, tenantId, name);
+    if (found) return found;
+    const row = await this.named(
+      () =>
+        this.suppliers.insertSupplier(tx, tenantId, {
+          name,
+          phone: null,
+          email: null,
+          address: null,
+          notes: null,
+        }),
+      field,
+    );
+    await this.activity.record(
+      tx,
+      tenantId,
+      who,
+      AuditAction.SupplierCreated,
+      { type: 'supplier', id: row.id },
+      { name: row.name },
+    );
+    return row;
+  }
+
   private async found(tx: Transaction, tenantId: string, id: string): Promise<SupplierRecord> {
     const row = await this.suppliers.findSupplier(tx, tenantId, id);
     if (!row) throw new ApiError('not_found', 'SupplierNotFound', {});
     return row;
   }
 
-  /** A write that may meet a live supplier of the same name, answered on the name. */
-  private async named<T>(write: () => Promise<T>): Promise<T> {
+  /** A write that may meet a live supplier of the same name, answered on the field that named it. */
+  private async named<T>(write: () => Promise<T>, field = 'name'): Promise<T> {
     try {
       return await write();
     } catch (error) {
@@ -173,7 +208,7 @@ export class SupplierService {
         throw new FieldsError(
           [
             {
-              field: 'name',
+              field,
               problem: ServerFieldProblemCode.Taken,
               messageKey: 'SupplierNameTaken',
             },

@@ -761,8 +761,8 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     bn: 'এই পারচেজ আগেই সাপ্লায়ারকে দেওয়া হয়েছে।',
   },
   PurchaseIsDraft: {
-    en: 'This purchase is still a draft, so there is nothing to cancel. Delete the draft instead.',
-    bn: 'এই পারচেজ এখনো ড্রাফট, তাই ক্যানসেল করার কিছু নেই। এর বদলে ড্রাফটটি ডিলিট করুন।',
+    en: 'This purchase is still a draft and has not been placed. Delete the draft instead.',
+    bn: 'এই পারচেজ এখনো ড্রাফট, সাপ্লায়ারকে দেওয়া হয়নি। এর বদলে ড্রাফটটি ডিলিট করুন।',
   },
   PurchasePlacedIsKept: {
     en: 'A placed purchase is kept on record. Cancel it instead.',
@@ -783,6 +783,30 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   VariantRetired: {
     en: 'This variant is no longer sold, so it cannot be bought.',
     bn: 'এই ভ্যারিয়েন্ট আর বিক্রি হয় না, তাই এটি কেনা যায় না।',
+  },
+  PlaceBeforeReceiving: {
+    en: 'This purchase is still a draft. Place it with the supplier before receiving it.',
+    bn: 'এই পারচেজ এখনো ড্রাফট। রিসিভ করার আগে এটি সাপ্লায়ারকে দিন।',
+  },
+  PurchaseItemNotFound: {
+    en: 'That item is not on this purchase.',
+    bn: 'এই আইটেমটি এই পারচেজে নেই।',
+  },
+  PurchaseItemChanged: {
+    en: 'This product has changed since the purchase was placed, so it cannot be received. Close the purchase short instead.',
+    bn: 'পারচেজ দেওয়ার পর এই প্রোডাক্ট বদলে গেছে, তাই এটি রিসিভ করা যায় না। এর বদলে পারচেজের বাকিটা ক্লোজ করুন।',
+  },
+  MoreThanOutstanding: {
+    en: 'That is more than is still to come on this item.',
+    bn: 'এই আইটেমে যতটা আসা বাকি, এটা তার চেয়ে বেশি।',
+  },
+  NothingAccepted: {
+    en: 'Nothing is accepted on this item, so it has no batch or serial numbers.',
+    bn: 'এই আইটেমে কিছুই অ্যাকসেপ্ট করা হয়নি, তাই এর কোনো ব্যাচ বা সিরিয়াল নম্বর নেই।',
+  },
+  NothingReceivedCancelInstead: {
+    en: 'Nothing has been received on this purchase yet. Cancel it instead.',
+    bn: 'এই পারচেজে এখনো কিছু রিসিভ হয়নি। এর বদলে এটি ক্যানসেল করুন।',
   },
   FallbackZoneHasNoAreas: {
     en: 'This zone covers every area no other zone has, so it has no areas of its own.',
@@ -1039,6 +1063,18 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   PurchaseOrderDeleted: {
     en: 'Draft deleted.',
     bn: 'ড্রাফট ডিলিট করা হয়েছে।',
+  },
+  PurchaseReceived: {
+    en: 'Delivery received.',
+    bn: 'ডেলিভারি রিসিভ করা হয়েছে।',
+  },
+  PurchaseClosedShort: {
+    en: 'Purchase closed; the rest will not come.',
+    bn: 'পারচেজ ক্লোজ করা হয়েছে; বাকিটা আর আসবে না।',
+  },
+  PurchaseHistoryRetrieved: {
+    en: 'Purchase history retrieved.',
+    bn: 'পারচেজ হিস্টরি পাওয়া গেছে।',
   },
   InventoryFiguresRetrieved: {
     en: 'Inventory report retrieved.',
