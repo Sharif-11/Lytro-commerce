@@ -14,6 +14,12 @@ import {
 
 const scope = z.enum(['platform', 'shop']);
 
+// MED-08: a ready image as every screen shows it: which item it is, and where its picture and thumbnail are read from.
+export const imageViewSchema = z.object({
+  id: z.string(),
+  urls: z.object({ main: z.string(), thumbnail: z.string() }),
+});
+
 const productDefaultsFields = {
   stockUnit: z.nativeEnum(StockUnit),
   stockTracking: z.nativeEnum(StockTracking),
@@ -46,6 +52,7 @@ export const optionViewSchema = z.object({
   id: z.string(),
   value: z.string(),
   swatchColor: z.string().nullable(),
+  swatchImage: imageViewSchema.nullable(),
   scope,
   retired: z.boolean(),
 });
@@ -73,12 +80,15 @@ export const categoryViewSchema = z.object({
   productCount: z.number(),
   suggestedAttributeIds: z.array(z.string()),
   behavesLike: z.string().nullable(),
+  image: imageViewSchema.nullable(),
   sizeChart: z.array(z.array(z.string())).nullable(),
+  sizeChartImage: imageViewSchema.nullable(),
 });
 export class CategoryViewDto extends createZodDto(categoryViewSchema) {}
 
 export const sizeChartRowsSchema = z.object({
-  rows: z.array(z.array(z.string())),
+  rows: z.array(z.array(z.string())).nullable(),
+  image: imageViewSchema.nullable(),
 });
 export class SizeChartRowsDto extends createZodDto(sizeChartRowsSchema) {}
 
@@ -104,6 +114,7 @@ export const productPageSchema = z.object({
       stockState: z.nativeEnum(StockState),
       primaryCategoryId: z.string().nullable(),
       variantCount: z.number(),
+      image: imageViewSchema.nullable(),
       createdAt: z.date(),
     }),
   ),
@@ -150,7 +161,12 @@ export const productDetailSchema = z.object({
       dataType: z.nativeEnum(AttributeDataType),
       unitKind: z.string().nullable(),
       options: z.array(
-        z.object({ id: z.string(), value: z.string(), swatchColor: z.string().nullable() }),
+        z.object({
+          id: z.string(),
+          value: z.string(),
+          swatchColor: z.string().nullable(),
+          swatchImage: imageViewSchema.nullable(),
+        }),
       ),
     }),
   ),
@@ -187,9 +203,11 @@ export const productDetailSchema = z.object({
     .object({
       source: z.enum(['product', 'category']),
       categoryId: z.string().nullable(),
-      rows: z.array(z.array(z.string())),
+      rows: z.array(z.array(z.string())).nullable(),
+      image: imageViewSchema.nullable(),
     })
     .nullable(),
+  images: z.array(imageViewSchema),
   deliveryZoneIds: z.array(z.string()),
   createdAt: z.date(),
   updatedAt: z.date(),

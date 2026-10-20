@@ -59,6 +59,7 @@ import {
   SupplierRepository,
   PurchaseOrderRepository,
   PurchaseReceiptRepository,
+  MediaRepository,
 } from '@lytronix/db';
 import { EnvironmentParser } from '../config/env';
 import { ENV } from '../config/tokens';
@@ -172,6 +173,11 @@ import { DatabaseService } from './database.service';
       provide: PurchaseReceiptRepository,
       inject: [TransactionRunner],
       useFactory: (transactions: TransactionRunner) => new PurchaseReceiptRepository(transactions),
+    },
+    {
+      provide: MediaRepository,
+      inject: [TransactionRunner],
+      useFactory: (transactions: TransactionRunner) => new MediaRepository(transactions),
     },
     {
       provide: CatalogueDataRepository,
@@ -293,6 +299,7 @@ import { DatabaseService } from './database.service';
     SupplierRepository,
     PurchaseOrderRepository,
     PurchaseReceiptRepository,
+    MediaRepository,
   ],
 })
 export class DatabaseModule {}

@@ -400,6 +400,22 @@ export const MESSAGE_KEYS = [
   'ApiKeyUpdated',
   'ApiKeyRevoked',
   'ShopRetrieved',
+
+  // Media (Phase 3 Slice 6)
+  'MediaNotFound',
+  'ImageTooLarge',
+  'VideoUploadsNotOpen',
+  'StorageLimitReached',
+  'StorageUnavailable',
+  'MediaNotAttachable',
+  'UploadStarted',
+  'UploadFinished',
+  'MediaListed',
+  'MediaRetrieved',
+  'StorageUsageRetrieved',
+  'MediaDeleted',
+  'ProductImagesSaved',
+  'ShopLogoSaved',
 ] as const;
 
 export type MessageKey = (typeof MESSAGE_KEYS)[number];

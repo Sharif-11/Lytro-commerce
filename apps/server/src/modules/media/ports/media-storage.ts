@@ -13,8 +13,8 @@ export interface StoredObject {
 }
 
 /**
- * D3-4, MED-01, MED-03, MED-07: the S3-compatible store tenant media lives in -- R2 on real servers, a local store in
- * development and CI. Uploads land in a temporary bucket; processed media is written under the shop's prefix in the
+ * D3-4, MED-01, MED-03, MED-07: the S3-compatible store tenant media lives in -- R2, with dev buckets for development
+ * and CI, and an in-memory stand-in in the end-to-end tests. Uploads land in a temporary bucket; processed media is written under the shop's prefix in the
  * media bucket. Each call uses the key of the job it belongs to: signing, processing or deleting. A store that cannot
  * be reached comes back as StorageUnavailable.
  */
@@ -34,6 +34,4 @@ export interface MediaStorage {
   deleteMedia(keys: string[]): Promise<void>;
   /** Every object under a prefix, for the daily reconciliation and the day-60 wipe. */
   listMedia(prefix: string): Promise<StoredObject[]>;
-  /** MED-08: the stable public address of a public object. */
-  publicUrl(key: string): string;
 }

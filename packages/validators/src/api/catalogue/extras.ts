@@ -14,28 +14,51 @@ import { FieldProblemCode } from '../../validation/field-problem';
 import { catalogueIdSchema, quantityField } from './catalogue-common';
 
 // PUT products/:id/size-chart and categories/:id/size-chart (PRD-17): a chart as a table of short text, up to 15
-// rows of up to 10 cells, every row as wide as the first. A cell may be empty (a header's corner).
-export const sizeChartSchema = z.object({
-  rows: z
-    .array(
-      z.array(z.string().trim().max(SIZE_CHART_CELL_MAX_LENGTH)).min(1).max(SIZE_CHART_MAX_COLUMNS),
-    )
-    .min(1)
-    .max(SIZE_CHART_MAX_ROWS)
-    .superRefine((rows, ctx) => {
-      const width = rows[0]?.length ?? 0;
-      rows.forEach((row, index) => {
-        if (row.length !== width) {
-          ctx.addIssue({
-            code: 'custom',
-            path: [index],
-            message: 'Give every row the same number of cells.',
-            params: { problem: FieldProblemCode.NotAllowed },
-          });
-        }
+// rows of up to 10 cells, every row as wide as the first (a cell may be empty, a header's corner) -- or, in its place,
+// a ready image of the shop's (MED-03). One or the other.
+export const sizeChartSchema = z
+  .object({
+    rows: z
+      .array(
+        z
+          .array(z.string().trim().max(SIZE_CHART_CELL_MAX_LENGTH))
+          .min(1)
+          .max(SIZE_CHART_MAX_COLUMNS),
+      )
+      .min(1)
+      .max(SIZE_CHART_MAX_ROWS)
+      .superRefine((rows, ctx) => {
+        const width = rows[0]?.length ?? 0;
+        rows.forEach((row, index) => {
+          if (row.length !== width) {
+            ctx.addIssue({
+              code: 'custom',
+              path: [index],
+              message: 'Give every row the same number of cells.',
+              params: { problem: FieldProblemCode.NotAllowed },
+            });
+          }
+        });
+      })
+      .optional(),
+    imageId: catalogueIdSchema.optional(),
+  })
+  .superRefine((value, ctx) => {
+    if ((value.rows === undefined) === (value.imageId === undefined)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: [value.rows === undefined ? 'rows' : 'imageId'],
+        message:
+          value.rows === undefined
+            ? 'Give the chart its rows or an image.'
+            : 'Give the chart its rows or an image, not both.',
+        params: {
+          problem:
+            value.rows === undefined ? FieldProblemCode.Required : FieldProblemCode.NotAllowed,
+        },
       });
-    }),
-});
+    }
+  });
 export type SizeChartInput = z.infer<typeof sizeChartSchema>;
 
 const setValues = z

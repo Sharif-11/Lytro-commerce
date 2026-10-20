@@ -15,3 +15,13 @@ export class StorageUnavailable extends Error {
     this.name = 'StorageUnavailable';
   }
 }
+
+// MED-03, PRD-11, ATR-18, PRD-17, TEN-16: what was named to show somewhere is not a ready image of the shop's -- still
+// uploading, refused, a video, deleted or another shop's (the database's `media_ready_image`). Adapters report it, so
+// services can say which field without knowing constraint names.
+export class MediaNotAttachable extends Error {
+  constructor() {
+    super('media not attachable');
+    this.name = 'MediaNotAttachable';
+  }
+}

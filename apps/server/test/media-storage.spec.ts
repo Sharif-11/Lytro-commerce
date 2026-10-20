@@ -29,7 +29,6 @@ beforeAll(() => {
     pathStyle: (env['MEDIA_STORAGE_PATH_STYLE'] ?? 'true') === 'true',
     uploadsBucket: env['MEDIA_UPLOADS_BUCKET'] ?? 'lytro-uploads',
     mediaBucket: env['MEDIA_BUCKET'] ?? 'lytro-media',
-    publicBaseUrl: 'https://media.example.test/',
     signer: keyOf('SIGNER'),
     processor: keyOf('PROCESSOR'),
     deleter: keyOf('DELETER'),
@@ -79,6 +78,5 @@ describeIfStorage('the media store (D3-4, MED-01, MED-03)', () => {
     ]);
     await storage.deleteMedia(listed.map((object) => object.key));
     expect(await storage.listMedia(prefix)).toEqual([]);
-    expect(storage.publicUrl(`${prefix}a.webp`)).toBe(`https://media.example.test/${prefix}a.webp`);
   });
 });

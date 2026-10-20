@@ -36,6 +36,7 @@ import {
   ChangeProductSlugDto,
   CreateProductDto,
   ProductDeliveryZonesDto,
+  ProductImagesDto,
   SaveProductAttributesDto,
   SaveVariantsDto,
   SizeChartDto,
@@ -45,9 +46,9 @@ import { ProductDetailDto, ProductPageDto, SizeChartRowsDto } from '../dto/catal
 import { PermissionGuard } from '../guards/permission.guard';
 import { CatalogueRequest } from '../services/catalogue-request';
 
-// PRD-01 to PRD-05, PRD-12, PRD-13, PRD-17, PRD-18, ATR-03 to ATR-15, LND-04, PYG-16: a shop's products, their
-// attributes and variants, size charts and link slugs, and duplicating one. Each write moves the catalogue version
-// (CCH-02).
+// PRD-01 to PRD-05, PRD-11 to PRD-13, PRD-17, PRD-18, ATR-03 to ATR-15, LND-04, PYG-16: a shop's products, their
+// attributes and variants, photos, size charts and link slugs, and duplicating one. Each write moves the catalogue
+// version (CCH-02).
 @ApiTags('Catalogue')
 @Controller('products')
 @Dashboard({})
@@ -77,6 +78,28 @@ export class ProductsController {
     return this.products.duplicate(
       await this.catalogue.shopOf(request),
       this.catalogue.idOf(id, 'ProductNotFound'),
+      this.catalogue.actorOf(request),
+    );
+  }
+
+  @Put(':id/images')
+  @RequirePermission(Permission.ProductsManage)
+  @ResponseMessage('ProductImagesSaved')
+  @ApiOperation({
+    summary:
+      "Set the product's photos, in the order shown, from the shop's ready images; an empty list removes them (PRD-11)",
+  })
+  @ApiBody({ type: ProductImagesDto })
+  @ZodResponse({ type: ProductDetailDto })
+  async setImages(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(ProductImagesDto.schema)) body: ProductImagesDto,
+    @Req() request: DashboardRequest,
+  ): Promise<ProductDetail> {
+    return this.products.setImages(
+      await this.catalogue.shopOf(request),
+      this.catalogue.idOf(id, 'ProductNotFound'),
+      body,
       this.catalogue.actorOf(request),
     );
   }

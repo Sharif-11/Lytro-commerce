@@ -60,6 +60,8 @@ export const categories = tenant.table(
     // PST-06: the shop type (a control.business_type_presets key, held by value) its products behave like; null
     // follows the nearest ancestor's, and with none the shop's own type.
     behavesLike: text('behaves_like'),
+    // MED-03: an optional banner, a ready image of the shop's; deleting the image clears it.
+    imageId: uuid('image_id'),
     sortOrder: integer('sort_order').notNull().default(0),
     visible: boolean('visible').notNull().default(true),
     createdAt: createdAt(),
@@ -254,8 +256,8 @@ export const productSlugRedirects = tenant.table(
   ],
 );
 
-// PRD-17: one chart per product or per category, a table of short text. A product without its own uses its primary
-// category's. The image chart (MED-03) arrives with media in Slice 6.
+// PRD-17: one chart per product or per category, either a table of short text or an uploaded image (MED-03), never
+// both. A product without its own uses its primary category's. Deleting an image chart's image removes the chart.
 export const sizeCharts = tenant.table(
   'size_charts',
   {
@@ -263,7 +265,8 @@ export const sizeCharts = tenant.table(
     tenantId: uuid('tenant_id').notNull(),
     productId: uuid('product_id'),
     categoryId: uuid('category_id'),
-    tableRows: jsonb('table_rows').$type<string[][]>().notNull(),
+    tableRows: jsonb('table_rows').$type<string[][]>(),
+    imageId: uuid('image_id'),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -278,6 +281,7 @@ export const sizeCharts = tenant.table(
       foreignColumns: [categories.tenantId, categories.id],
     }).onDelete('cascade'),
     check('size_charts_owner_check', sql`(${t.productId} IS NULL) <> (${t.categoryId} IS NULL)`),
+    check('size_charts_content_check', sql`(${t.imageId} IS NULL) <> (${t.tableRows} IS NULL)`),
     uniqueIndex('size_charts_product_idx')
       .on(t.tenantId, t.productId)
       .where(sql`${t.productId} IS NOT NULL`),

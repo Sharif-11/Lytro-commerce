@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { BillingModule } from '../../billing/billing.module';
 import { DataExportModule } from '../../data-export/data-export.module';
 import { InventoryModule } from '../../inventory/inventory.module';
+import { MediaModule } from '../../media/media.module';
 import { PaymentsModule } from '../../payments/payments.module';
 import { MessagingModule } from '../messaging/messaging.module';
 import { QueueModule } from '../queue/queue.module';
@@ -10,6 +11,8 @@ import { SmsRetryWorker } from './services/sms-retry-worker';
 import { DataExportWorker } from './services/data-export-worker';
 import { InventoryExpiryTickWorker } from './services/inventory-expiry-tick-worker';
 import { ReservationExpiryTickWorker } from './services/reservation-expiry-tick-worker';
+import { MediaDeleteWorker } from './services/media-delete-worker';
+import { MediaProcessWorker } from './services/media-process-worker';
 
 // D27/D2-6: registers pg-boss queues and their work handlers. Kept apart from QueueModule (the queue mechanism
 // itself, SCL-08, D25) and from MessagingModule/BillingModule (the delivery/lifecycle business rules), so
@@ -23,6 +26,7 @@ import { ReservationExpiryTickWorker } from './services/reservation-expiry-tick-
     DataExportModule,
     PaymentsModule,
     InventoryModule,
+    MediaModule,
   ],
   providers: [
     SmsRetryWorker,
@@ -30,6 +34,8 @@ import { ReservationExpiryTickWorker } from './services/reservation-expiry-tick-
     DataExportWorker,
     InventoryExpiryTickWorker,
     ReservationExpiryTickWorker,
+    MediaProcessWorker,
+    MediaDeleteWorker,
   ],
 })
 export class QueueWorkersModule {}

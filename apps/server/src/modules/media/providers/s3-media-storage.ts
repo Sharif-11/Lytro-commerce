@@ -24,7 +24,6 @@ export interface S3MediaStorageSettings {
   pathStyle: boolean;
   uploadsBucket: string;
   mediaBucket: string;
-  publicBaseUrl: string;
   signer: StorageKey;
   processor: StorageKey;
   deleter: StorageKey;
@@ -36,7 +35,7 @@ const IMMUTABLE = 'public, max-age=31536000, immutable';
 const DELETE_BATCH = 1000;
 
 /**
- * D3-4: the media store over the S3 API, which both Cloudflare R2 and the local stores speak. Three clients, one per
+ * D3-4: the media store over the S3 API, which R2 and other S3-compatible stores speak. Three clients, one per
  * key (MED-07): the signer only signs browser uploads into the temporary bucket, the processor reads and clears uploads
  * and writes media, and only the deleter removes media.
  */
@@ -152,10 +151,6 @@ export class S3MediaStorage implements MediaStorage {
       }
     } while (token !== undefined);
     return objects;
-  }
-
-  publicUrl(key: string): string {
-    return `${this.settings.publicBaseUrl.replace(/\/+$/, '')}/${key}`;
   }
 
   private clientFor(key: StorageKey): S3Client {

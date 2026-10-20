@@ -175,6 +175,18 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'POST /api-keys': 'makes a key for the session shop only; the 20-key limit counts that shop',
   'PATCH /api-keys/:id': "another shop's key answers 404",
   'POST /api-keys/:id/revoke': "another shop's key answers 404 and keeps working",
+  // Phase 3 Slice 6a, checked in test/media.e2e.spec.ts: a shop's media is its own, and only its own ready images
+  // can be attached anywhere (DAT-02, the database's media_ready_image).
+  'POST /media/uploads':
+    "starts an upload for the session shop only; another shop's place is not_found",
+  'POST /media/:id/finish': "another shop's item answers 404",
+  'GET /media': "lists only the session shop's own ready media",
+  'GET /media/usage': "counts only the session shop's own stored files",
+  'GET /media/:id': "another shop's item answers 404",
+  'DELETE /media/:id': "another shop's item answers 404 and stays",
+  'PUT /products/:id/images':
+    "another shop's product answers 404; another shop's image is not_found",
+  'PUT /shop-settings/logo': "sets only the session shop's logo; another shop's image is not_found",
   // The public API (API-10, TEN-02): the shop comes from the key alone, whatever the request names.
   'GET /shop': "answers the key's own shop only; a shop id sent with the request is ignored",
 };

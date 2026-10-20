@@ -6,7 +6,7 @@ import {
 } from '../../common/limits';
 import { AttributeDataType, UnitKind } from '../../db/enums';
 import { FieldProblemCode } from '../../validation/field-problem';
-import { queryFlag } from './catalogue-common';
+import { catalogueIdSchema, queryFlag } from './catalogue-common';
 
 // POST attributes (ATR-01, ATL-01): a shop's own attribute, made the moment a name is typed on a product. A
 // number-with-unit attribute names what it measures (UOM-02); no other type has a unit.
@@ -63,6 +63,35 @@ export const updateOptionSchema = z.object({
   retired: z.boolean().optional(),
 });
 export type UpdateOptionInput = z.infer<typeof updateOptionSchema>;
+
+// ATR-18, MED-03: a shop's own value may show a small image of the shop's as its swatch in place of a colour -- one or
+// the other, never both; null clears it. The platform's values take colours only.
+const swatchImageIdField = catalogueIdSchema.nullable().optional();
+const oneSwatch = (
+  value: { swatchColor?: string | null; swatchImageId?: string | null },
+  ctx: z.RefinementCtx,
+): void => {
+  if (typeof value.swatchColor === 'string' && typeof value.swatchImageId === 'string') {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['swatchImageId'],
+      message: 'Choose a colour or an image for the swatch, not both.',
+      params: { problem: FieldProblemCode.NotAllowed },
+    });
+  }
+};
+
+// POST attributes/:id/options from a shop: its own value, with a colour or an image swatch.
+export const createShopOptionSchema = createOptionSchema
+  .extend({ swatchImageId: swatchImageIdField })
+  .superRefine(oneSwatch);
+export type CreateShopOptionInput = z.infer<typeof createShopOptionSchema>;
+
+// PATCH attributes/:id/options/:optionId from a shop: setting one swatch clears the other.
+export const updateShopOptionSchema = updateOptionSchema
+  .extend({ swatchImageId: swatchImageIdField })
+  .superRefine(oneSwatch);
+export type UpdateShopOptionInput = z.infer<typeof updateShopOptionSchema>;
 
 // GET attributes: the platform's attributes and the shop's own, retired ones only when asked (ATR-10).
 export const listAttributesSchema = z.object({

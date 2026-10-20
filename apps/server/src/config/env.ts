@@ -63,9 +63,9 @@ const envSchema = z.object({
   FACEBOOK_APP_SECRET: z.string().min(1).optional(),
   // Where the provider sends the browser back to; the callback address is this base plus the provider route.
   OAUTH_CALLBACK_BASE: z.string().min(1).default('http://localhost:3000'),
-  // D3-4, MED-01: the S3-compatible store tenant media lives in -- Cloudflare R2 on real servers, a local S3 store in
-  // development and CI. Left unset, media is off: an upload answers that storage is unavailable, and nothing else
-  // changes. Path-style addressing is what local stores need; R2 accepts it too.
+  // D3-4, MED-01: the S3-compatible store tenant media lives in -- Cloudflare R2, with dev buckets for development and
+  // CI. Left unset, media is off: an upload answers that storage is unavailable, and nothing else changes. R2 accepts
+  // path-style addressing.
   MEDIA_STORAGE_ENDPOINT: z.string().url().optional(),
   MEDIA_STORAGE_REGION: z.string().min(1).default('auto'),
   MEDIA_STORAGE_PATH_STYLE: z

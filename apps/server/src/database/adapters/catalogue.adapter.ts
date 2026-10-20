@@ -3,6 +3,7 @@ import {
   AttributeRepository,
   CatalogueDataRepository,
   CategoryRepository,
+  MediaRepository,
   OptionSetRepository,
   PlatformLibraryRepository,
   PresetRepository,
@@ -13,15 +14,19 @@ import {
   VariantRepository,
   type PlatformOptionSetPatch,
   type PresetPatch,
+  type ProductImageRow,
+  type SizeChartContent,
   type SizeChartOwner,
   type Transaction,
 } from '@lytronix/db';
+import { MediaNotAttachable } from '../../common/errors/media-refused';
 import { MissingReference } from '../../common/errors/missing-reference';
 import { StockRefused } from '../../common/errors/stock-refused';
 import { UniqueViolation } from '../../common/errors/unique-violation';
 import type {
   AttributeStore,
   CatalogueDataStore,
+  CatalogueImageStore,
   CatalogueTransactions,
   CategoryStore,
   OptionPatch,
@@ -30,6 +35,7 @@ import type {
   PresetStore,
   ProductChange,
   ProductStore,
+  ShopOptionPatch,
   ShopPolicyStore,
   SizeChartStore,
   VariantChange,
@@ -49,6 +55,7 @@ import type {
   VariantValueRecord,
 } from '../../modules/catalogue/types/catalogue';
 import { DatabaseService } from '../database.service';
+import { MEDIA_READY_IMAGE } from './media.adapter';
 
 // The unique indexes a catalogue write can run into, by what they protect.
 const ATTRIBUTE_NAME_INDEX = 'attributes_tenant_name_idx';
@@ -175,6 +182,7 @@ export class DrizzleAttributeStore implements AttributeStore {
       attributeId: string;
       value: string;
       swatchColor?: string | null;
+      swatchImageId?: string | null;
       sortOrder: number;
     },
   ): Promise<OptionRecord> {
@@ -183,6 +191,8 @@ export class DrizzleAttributeStore implements AttributeStore {
     } catch (error) {
       if (this.transactions.isUniqueViolation(error, OPTION_VALUE_INDEX))
         throw new UniqueViolation('value');
+      if (this.transactions.isCheckViolation(error, MEDIA_READY_IMAGE))
+        throw new MediaNotAttachable();
       throw error;
     }
   }
@@ -192,13 +202,15 @@ export class DrizzleAttributeStore implements AttributeStore {
     tenantId: string,
     attributeId: string,
     id: string,
-    patch: OptionPatch,
+    patch: ShopOptionPatch,
   ): Promise<OptionRecord | null> {
     try {
       return await this.attributes.updateOption(tx, tenantId, attributeId, id, patch);
     } catch (error) {
       if (this.transactions.isUniqueViolation(error, OPTION_VALUE_INDEX))
         throw new UniqueViolation('value');
+      if (this.transactions.isCheckViolation(error, MEDIA_READY_IMAGE))
+        throw new MediaNotAttachable();
       throw error;
     }
   }
@@ -244,7 +256,7 @@ export class DrizzleCategoryStore implements CategoryStore {
     tx: Transaction,
     values: Pick<
       CategoryRecord,
-      'parentId' | 'name' | 'slug' | 'depth' | 'sortOrder' | 'visible' | 'behavesLike'
+      'parentId' | 'name' | 'slug' | 'depth' | 'sortOrder' | 'visible' | 'behavesLike' | 'imageId'
     > & {
       tenantId: string;
     },
@@ -254,19 +266,30 @@ export class DrizzleCategoryStore implements CategoryStore {
     } catch (error) {
       if (this.transactions.isUniqueViolation(error, CATEGORY_SLUG_KEY))
         throw new UniqueViolation('slug');
+      if (this.transactions.isCheckViolation(error, MEDIA_READY_IMAGE))
+        throw new MediaNotAttachable();
       throw error;
     }
   }
 
-  updateCategory(
+  async updateCategory(
     tx: Transaction,
     tenantId: string,
     id: string,
     patch: Partial<
-      Pick<CategoryRecord, 'name' | 'parentId' | 'depth' | 'sortOrder' | 'visible' | 'behavesLike'>
+      Pick<
+        CategoryRecord,
+        'name' | 'parentId' | 'depth' | 'sortOrder' | 'visible' | 'behavesLike' | 'imageId'
+      >
     >,
   ): Promise<CategoryRecord | null> {
-    return this.categories.updateCategory(tx, tenantId, id, patch);
+    try {
+      return await this.categories.updateCategory(tx, tenantId, id, patch);
+    } catch (error) {
+      if (this.transactions.isCheckViolation(error, MEDIA_READY_IMAGE))
+        throw new MediaNotAttachable();
+      throw error;
+    }
   }
 
   lineage(tx: Transaction, tenantId: string, id: string): Promise<CategoryRecord[]> {
@@ -666,7 +689,10 @@ export class DrizzleShopPolicyStore implements ShopPolicyStore {
 
 @Injectable()
 export class DrizzleSizeChartStore implements SizeChartStore {
-  constructor(@Inject(SizeChartRepository) private readonly charts: SizeChartRepository) {}
+  constructor(
+    @Inject(TransactionRunner) private readonly transactions: TransactionRunner,
+    @Inject(SizeChartRepository) private readonly charts: SizeChartRepository,
+  ) {}
 
   findChart(
     tx: Transaction,
@@ -680,13 +706,19 @@ export class DrizzleSizeChartStore implements SizeChartStore {
     return this.charts.listCategoryCharts(tx, tenantId);
   }
 
-  putChart(
+  async putChart(
     tx: Transaction,
     tenantId: string,
     owner: SizeChartOwner,
-    rows: string[][],
+    content: SizeChartContent,
   ): Promise<SizeChartRecord> {
-    return this.charts.putChart(tx, tenantId, owner, rows);
+    try {
+      return await this.charts.putChart(tx, tenantId, owner, content);
+    } catch (error) {
+      if (this.transactions.isCheckViolation(error, MEDIA_READY_IMAGE))
+        throw new MediaNotAttachable();
+      throw error;
+    }
   }
 
   deleteChart(tx: Transaction, tenantId: string, owner: SizeChartOwner): Promise<boolean> {
@@ -835,5 +867,45 @@ export class DrizzlePlatformLibraryStore implements PlatformLibraryStore {
 
   deleteOptionSet(tx: Transaction, id: string): Promise<OptionSetRecord | null> {
     return this.library.deleteOptionSet(tx, id);
+  }
+}
+
+/** MED-08, PRD-11: tenant.media read for what the catalogue shows, and tenant.product_images. */
+@Injectable()
+export class DrizzleCatalogueImageStore implements CatalogueImageStore {
+  constructor(
+    @Inject(TransactionRunner) private readonly transactions: TransactionRunner,
+    @Inject(MediaRepository) private readonly media: MediaRepository,
+  ) {}
+
+  readyImages(
+    tx: Transaction,
+    tenantId: string,
+    ids: string[],
+  ): Promise<{ id: string; hash: string }[]> {
+    return this.media.readyImages(tx, tenantId, ids);
+  }
+
+  listProductImages(
+    tx: Transaction,
+    tenantId: string,
+    productIds: string[],
+  ): Promise<ProductImageRow[]> {
+    return this.media.listProductImages(tx, tenantId, productIds);
+  }
+
+  async setProductImages(
+    tx: Transaction,
+    tenantId: string,
+    productId: string,
+    mediaIds: string[],
+  ): Promise<void> {
+    try {
+      await this.media.setProductImages(tx, tenantId, productId, mediaIds);
+    } catch (error) {
+      if (this.transactions.isCheckViolation(error, MEDIA_READY_IMAGE))
+        throw new MediaNotAttachable();
+      throw error;
+    }
   }
 }
