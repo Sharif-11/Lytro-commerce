@@ -248,13 +248,7 @@ export class ReceivingService implements StockArrivals {
         ? null
         : 'id' in arrival.supplier
           ? await this.suppliers.liveSupplier(tx, tenantId, arrival.supplier.id, 'supplierId')
-          : await this.suppliers.namedSupplier(
-              tx,
-              tenantId,
-              arrival.supplier.name,
-              who,
-              'supplierName',
-            );
+          : await this.suppliers.namedSupplier(tx, tenantId, arrival.supplier.name, who);
     const number = await this.orders.nextNumber(tx, tenantId);
     const orderId = await this.orders.insertOrder(tx, tenantId, {
       supplierId: supplier?.id ?? null,

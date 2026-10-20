@@ -160,28 +160,30 @@ export class SupplierService {
 
   /**
    * PUR-07: the supplier a name typed with arriving stock means, inside the arrival's own transaction: the live one of
-   * that name, ignoring case, or else a new one, in the activity log like any other.
+   * that name, ignoring case, or else a new one, in the activity log like any other. Two arrivals typing the same new
+   * name at once both get the one supplier the first adds.
    */
   async namedSupplier(
     tx: Transaction,
     tenantId: string,
     name: string,
     who: ResolvedActor,
-    field: string,
   ): Promise<SupplierRecord> {
     const found = await this.suppliers.findLiveByName(tx, tenantId, name);
     if (found) return found;
-    const row = await this.named(
-      () =>
-        this.suppliers.insertSupplier(tx, tenantId, {
-          name,
-          phone: null,
-          email: null,
-          address: null,
-          notes: null,
-        }),
-      field,
-    );
+    const row = await this.suppliers.insertSupplierIfFree(tx, tenantId, {
+      name,
+      phone: null,
+      email: null,
+      address: null,
+      notes: null,
+    });
+    if (!row) {
+      // Another arrival typed the same name a moment ago; the insert waited for it, and its supplier is the one meant.
+      const added = await this.suppliers.findLiveByName(tx, tenantId, name);
+      if (!added) throw new Error('a supplier name is taken by no live supplier');
+      return added;
+    }
     await this.activity.record(
       tx,
       tenantId,
@@ -199,8 +201,8 @@ export class SupplierService {
     return row;
   }
 
-  /** A write that may meet a live supplier of the same name, answered on the field that named it. */
-  private async named<T>(write: () => Promise<T>, field = 'name'): Promise<T> {
+  /** A write that may meet a live supplier of the same name, answered on the name. */
+  private async named<T>(write: () => Promise<T>): Promise<T> {
     try {
       return await write();
     } catch (error) {
@@ -208,7 +210,7 @@ export class SupplierService {
         throw new FieldsError(
           [
             {
-              field,
+              field: 'name',
               problem: ServerFieldProblemCode.Taken,
               messageKey: 'SupplierNameTaken',
             },

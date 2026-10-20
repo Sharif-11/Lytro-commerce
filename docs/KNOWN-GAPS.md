@@ -1438,6 +1438,15 @@ the results were wrong. The search now escapes the text with the shared `escapeL
 searches do, and the category slug lookup does the same for consistency (a slug never holds either character
 today). Verified in `lifecycle.e2e.spec.ts`: `0% C` finds only "100% Cotton", and `a_b` only "A_B Traders".
 
+## 72. `PUR-07`: two arrivals typing one new supplier name at once could refuse the second — found and fixed 2026-10-20
+
+Found while building Phase 3 Slice 4b. "Add stock" with a typed supplier name looks for a live supplier of that name,
+and adds one if there is none. Two arrivals for different products, typing the same new name at the same moment,
+both found none; the second insert then hit the live-name unique index and the arrival was refused, though PUR-07
+says a typed name means one supplier. The insert now does nothing on that conflict (the index is the only unique rule
+a new supplier can meet), having waited for the first writer, and the second arrival reads back the supplier the
+first added. Verified in `purchasing.e2e.spec.ts`: five rounds of two arrivals at once each end with one supplier.
+
 ## Not a bug, just noting it so it isn't mistaken for one later
 
 The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data

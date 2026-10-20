@@ -1017,6 +1017,38 @@ describeIfDatabase('stock arriving in one step (PUR-07)', () => {
     });
   });
 
+  it('gives two arrivals typing one new supplier name at once that one supplier', async () => {
+    const shop = await openShop(port, texts, 'supplier-race');
+    const lamp = await product(shop, 'Lamp', 0);
+    const fan = await product(shop, 'Fan', 0);
+    // Different products, so the two arrivals do not wait on one stock level and truly overlap.
+    for (let round = 0; round < 5; round += 1) {
+      const name = `Race Traders ${String(round)}`;
+      const results = await Promise.all(
+        [lamp, fan].map((made) =>
+          shop.post(`/products/${made.id}/variants/${made.variantId}/stock-additions`, {
+            quantity: 1,
+            supplierName: name,
+          }),
+        ),
+      );
+      expect(
+        results.map((row) => row.status),
+        JSON.stringify(results.map((row) => row.body)),
+      ).toEqual([200, 200]);
+    }
+    const suppliers = (await shop.get('/suppliers?limit=100')).body as { suppliers: Supplier[] };
+    expect(suppliers.suppliers.map((row) => row.name)).toEqual([
+      'Race Traders 0',
+      'Race Traders 1',
+      'Race Traders 2',
+      'Race Traders 3',
+      'Race Traders 4',
+    ]);
+    const added = await actions(shop.tenantId, 'supplier_created');
+    expect(added).toHaveLength(5);
+  });
+
   it('records new stock arriving on a stock edit as a purchase, keeping the typed cost', async () => {
     const shop = await openShop(port, texts, 'arrived');
     const jar = await product(shop, 'Jar', 4);
