@@ -53,17 +53,18 @@ export class PlanLimitOverridesService {
         result: AuditResult.Success,
         summary: { limitKey, value, reason },
       });
+      // ADM-08: the platform's own record joins the same transaction.
+      await this.platformAudit.recordWithin(tx, {
+        actorType: PlatformActorType.Operator,
+        actorId: operatorId,
+        action: PlatformAuditAction.PlanLimitOverrideSet,
+        targetType: 'tenant',
+        targetId: tenantId,
+        result: AuditResult.Success,
+        ip: null,
+        summary: { limitKey, value, reason },
+      });
       return saved;
-    });
-    await this.platformAudit.record({
-      actorType: PlatformActorType.Operator,
-      actorId: operatorId,
-      action: PlatformAuditAction.PlanLimitOverrideSet,
-      targetType: 'tenant',
-      targetId: tenantId,
-      result: AuditResult.Success,
-      ip: null,
-      summary: { limitKey, value, reason },
     });
     return row;
   }
@@ -101,16 +102,16 @@ export class PlanLimitOverridesService {
         result: AuditResult.Success,
         summary: { limitKey },
       });
-    });
-    await this.platformAudit.record({
-      actorType: PlatformActorType.Operator,
-      actorId: operatorId,
-      action: PlatformAuditAction.PlanLimitOverrideRemoved,
-      targetType: 'tenant',
-      targetId: tenantId,
-      result: AuditResult.Success,
-      ip: null,
-      summary: { limitKey },
+      await this.platformAudit.recordWithin(tx, {
+        actorType: PlatformActorType.Operator,
+        actorId: operatorId,
+        action: PlatformAuditAction.PlanLimitOverrideRemoved,
+        targetType: 'tenant',
+        targetId: tenantId,
+        result: AuditResult.Success,
+        ip: null,
+        summary: { limitKey },
+      });
     });
   }
 }

@@ -27,52 +27,59 @@ export class PlatformWalletsService {
     return this.store.list(enabledOnly);
   }
 
-  async create(values: NewPlatformWalletValues, operatorId: string): Promise<PlatformWallet> {
-    const wallet = await this.store.create(values);
-    await this.platformAudit.record({
-      actorType: PlatformActorType.Operator,
-      actorId: operatorId,
-      action: PlatformAuditAction.PlatformWalletAdded,
-      targetType: 'platform_wallet',
-      targetId: wallet.id,
-      result: AuditResult.Success,
-      ip: null,
-      summary: { ...values },
+  /** ADM-08: each change and its platform audit entry commit together or not at all. */
+  create(values: NewPlatformWalletValues, operatorId: string): Promise<PlatformWallet> {
+    return this.store.run(async (tx) => {
+      const wallet = await this.store.create(tx, values);
+      await this.platformAudit.recordWithin(tx, {
+        actorType: PlatformActorType.Operator,
+        actorId: operatorId,
+        action: PlatformAuditAction.PlatformWalletAdded,
+        targetType: 'platform_wallet',
+        targetId: wallet.id,
+        result: AuditResult.Success,
+        ip: null,
+        summary: { ...values },
+      });
+      return wallet;
     });
-    return wallet;
   }
 
-  async update(
+  update(
     id: string,
     values: UpdatePlatformWalletValues,
     operatorId: string,
   ): Promise<PlatformWallet> {
-    const wallet = await this.store.update(id, values);
-    if (!wallet) throw new ApiError('not_found', 'PlatformWalletNotFound', { id });
-    await this.platformAudit.record({
-      actorType: PlatformActorType.Operator,
-      actorId: operatorId,
-      action: PlatformAuditAction.PlatformWalletUpdated,
-      targetType: 'platform_wallet',
-      targetId: id,
-      result: AuditResult.Success,
-      ip: null,
-      summary: { ...values },
+    return this.store.run(async (tx) => {
+      const wallet = await this.store.update(tx, id, values);
+      if (!wallet) throw new ApiError('not_found', 'PlatformWalletNotFound', { id });
+      await this.platformAudit.recordWithin(tx, {
+        actorType: PlatformActorType.Operator,
+        actorId: operatorId,
+        action: PlatformAuditAction.PlatformWalletUpdated,
+        targetType: 'platform_wallet',
+        targetId: id,
+        result: AuditResult.Success,
+        ip: null,
+        summary: { ...values },
+      });
+      return wallet;
     });
-    return wallet;
   }
 
-  async remove(id: string, operatorId: string): Promise<void> {
-    await this.store.remove(id);
-    await this.platformAudit.record({
-      actorType: PlatformActorType.Operator,
-      actorId: operatorId,
-      action: PlatformAuditAction.PlatformWalletRemoved,
-      targetType: 'platform_wallet',
-      targetId: id,
-      result: AuditResult.Success,
-      ip: null,
-      summary: {},
+  remove(id: string, operatorId: string): Promise<void> {
+    return this.store.run(async (tx) => {
+      await this.store.remove(tx, id);
+      await this.platformAudit.recordWithin(tx, {
+        actorType: PlatformActorType.Operator,
+        actorId: operatorId,
+        action: PlatformAuditAction.PlatformWalletRemoved,
+        targetType: 'platform_wallet',
+        targetId: id,
+        result: AuditResult.Success,
+        ip: null,
+        summary: {},
+      });
     });
   }
 }

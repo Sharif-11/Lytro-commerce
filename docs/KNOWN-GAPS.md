@@ -1427,7 +1427,7 @@ gone. Proven in `balance-ledger.e2e.spec.ts`, `plan-purchase.e2e.spec.ts`, `tria
 `money.spec.ts`, each case broken on purpose and caught. Tests that seeded a balance with `UPDATE` now write an
 entry (`seedBalance` in `test/support/database.ts`).
 
-## 70. `ADM-08`: most platform audit entries are written after their action commits — open, found 2026-10-20
+## 70. `ADM-08`: most platform audit entries are written after their action commits — found and fixed 2026-10-20
 
 §69 moved the balance adjustment and the payment approval and rejection into their own transactions. The other
 `PlatformAuditService.record` callers still write after the action's transaction has committed: billing terms,
@@ -1435,6 +1435,16 @@ rates, platform wallets, plan assignment, plan-limit overrides, the lifecycle jo
 settings and operator sign-in. A crash between the two leaves the action done with no `ADM-08` entry. None of them
 moves money. The fix is the same: open the action's transaction around both and call `recordWithin`. Not
 scheduled yet.
+
+**Fixed 2026-10-20.** All sixteen callers now write their entry with `recordWithin` inside the action's transaction
+(the operator-sign-in entry above is the backup-code regeneration, the only one that service writes). The rate,
+setting and platform-wallet stores gained a `run` and take the transaction on their writes; the preset update joins
+the platform library's transaction. Two writes that were never atomic are now: a rate change and its history row,
+and a plan assignment, which ran as three transactions (the assignment, the shop's new plan, the shop's activity
+entry) before its platform entry. A setting's and a rate's cached value is cleared after the commit, so nothing can
+read the old value back into the cache in between. Verified in `platform-audit.e2e.spec.ts`: each action, with its
+platform entry refused the way a crash would lose it, leaves nothing behind; with `recordWithin` made to write
+outside the action, all nine cases fail.
 
 ## 71. `LIF-24`: the operator's shop search read a typed `%` or `_` as a wildcard — found and fixed 2026-10-20
 
@@ -1452,6 +1462,15 @@ both found none; the second insert then hit the live-name unique index and the a
 says a typed name means one supplier. The insert now does nothing on that conflict (the index is the only unique rule
 a new supplier can meet), having waited for the first writer, and the second arrival reads back the supplier the
 first added. Verified in `purchasing.e2e.spec.ts`: five rounds of two arrivals at once each end with one supplier.
+
+## 73. `ADM-08`: plans, a billing term deleted and plan prices wrote no platform audit entry at all — found and fixed 2026-10-20
+
+Found while fixing §70. Creating, editing and deleting a plan (the `plan_created` and `plan_updated` actions were
+defined but never written), deleting a billing term, and setting or removing a plan's price for a term changed the
+platform with no record of which operator did it. The operator routes now pass the operator (and their IP) through,
+and each change writes its entry in its own transaction: `plan_created`, `plan_updated` (the fields set and the new
+version), `plan_deleted`, `billing_term_deleted` (what the term was), `plan_price_set` and `plan_price_removed` (the
+price before and after). Verified in `platform-audit.e2e.spec.ts`.
 
 ## Not a bug, just noting it so it isn't mistaken for one later
 

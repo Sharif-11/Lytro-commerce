@@ -159,16 +159,17 @@ export class OperatorAuthService {
     await this.gateway.run(async (tx) => {
       await this.gateway.invalidateBackupCodes(tx, operatorId);
       await this.gateway.insertBackupCodes(tx, operatorId, hashes);
-    });
-    await this.platformAudit.record({
-      actorType: PlatformActorType.Operator,
-      actorId: operatorId,
-      action: PlatformAuditAction.BackupCodesRegenerated,
-      targetType: 'operator_account',
-      targetId: operatorId,
-      result: AuditResult.Success,
-      ip: null,
-      summary: {},
+      // ADM-08: the platform's own record joins the same transaction.
+      await this.platformAudit.recordWithin(tx, {
+        actorType: PlatformActorType.Operator,
+        actorId: operatorId,
+        action: PlatformAuditAction.BackupCodesRegenerated,
+        targetType: 'operator_account',
+        targetId: operatorId,
+        result: AuditResult.Success,
+        ip: null,
+        summary: {},
+      });
     });
     return backupCodes;
   }

@@ -24,7 +24,7 @@ import {
   type OperatorSessionRequest,
 } from '../../operator/guards/operator-session.guard';
 import { PlanAssignmentService } from '../../billing/services/plan-assignment.service';
-import { PlansService } from '../../billing/services/plans.service';
+import { PlansService, type PlanOperator } from '../../billing/services/plans.service';
 import type { PlanAssignmentRecord } from '../../billing/types/plan-assignment';
 import type { PlanRecord, PlanVersionRecord } from '../../billing/types/plan';
 import { AssignPlanDto, CreatePlanDto, UpdatePlanDto } from '../dto/billing.dto';
@@ -68,15 +68,19 @@ export class OperatorPlansController {
   @ZodResponse({ type: PlanDto })
   create(
     @Body(new ZodValidationPipe(CreatePlanDto.schema)) body: CreatePlanDto,
+    @Req() request: OperatorSessionRequest,
   ): Promise<PlanRecord> {
-    return this.plans.create({
-      name: body.name,
-      description: body.description ?? null,
-      rank: body.rank,
-      forSale: body.forSale,
-      limits: body.limits,
-      features: body.features,
-    });
+    return this.plans.create(
+      {
+        name: body.name,
+        description: body.description ?? null,
+        rank: body.rank,
+        forSale: body.forSale,
+        limits: body.limits,
+        features: body.features,
+      },
+      this.operatorOf(request),
+    );
   }
 
   @Get(':id/versions')
@@ -95,8 +99,9 @@ export class OperatorPlansController {
   update(
     @Param('id') id: string,
     @Body(new ZodValidationPipe(UpdatePlanDto.schema)) body: UpdatePlanDto,
+    @Req() request: OperatorSessionRequest,
   ): Promise<PlanRecord> {
-    return this.plans.update(id, body);
+    return this.plans.update(id, body, this.operatorOf(request));
   }
 
   @Delete(':id')
@@ -104,8 +109,11 @@ export class OperatorPlansController {
   @ResponseMessage('PlanDeleted')
   @ApiOperation({ summary: 'Delete a plan (only if unreferenced)' })
   @ZodResponse({ type: OkDto })
-  async delete(@Param('id') id: string): Promise<{ ok: true }> {
-    await this.plans.delete(id);
+  async delete(
+    @Param('id') id: string,
+    @Req() request: OperatorSessionRequest,
+  ): Promise<{ ok: true }> {
+    await this.plans.delete(id, this.operatorOf(request));
     return { ok: true };
   }
 
@@ -128,5 +136,10 @@ export class OperatorPlansController {
       operatorId: operatorIdOf(request),
       ip: this.clientIp.resolve(request),
     });
+  }
+
+  /** ADM-08: who changed the plan, for the platform audit log. */
+  private operatorOf(request: OperatorSessionRequest): PlanOperator {
+    return { operatorId: operatorIdOf(request), ip: this.clientIp.resolve(request) };
   }
 }

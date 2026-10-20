@@ -47,52 +47,49 @@ export class PlanAssignmentService {
       throw new FieldsError([{ field: 'reason', problem: FieldProblemCode.Required }]);
     }
 
-    const plan = await this.plans.run((tx: Transaction) => this.plans.findById(tx, input.planId));
-    if (!plan) throw new ApiError('not_found', 'PlanNotFound', {});
-
-    const assignment = await this.assignments.run((tx) => {
-      return this.assignments.insert(tx, {
+    // ADM-08: the assignment, the shop's new plan, and both audit entries commit together or not at all -- never an
+    // assignment recorded but not applied, nor one applied with no record of who did it.
+    const assignment = await this.tenants.runStandalone(async (tx: Transaction) => {
+      const plan = await this.plans.findById(tx, input.planId);
+      if (!plan) throw new ApiError('not_found', 'PlanNotFound', {});
+      const assignment = await this.assignments.insert(tx, {
         tenantId: input.tenantId,
         planId: input.planId,
         expiry: input.expiry,
         reason: input.reason,
         assignedBy: input.operatorId,
       });
-    });
-
-    const now = new Date();
-    await this.tenants.runStandalone((tx) =>
-      this.tenants.applyPlanAssignment(tx, input.tenantId, {
+      await this.tenants.applyPlanAssignment(tx, input.tenantId, {
         planId: input.planId,
         planSnapshot: plan.limits,
         planVersionSnapshot: plan.version,
         featureSnapshot: plan.features,
-        periodStart: now,
+        periodStart: new Date(),
         periodEnd: input.expiry,
         state: TenantState.Active,
-      }),
-    );
-
-    await this.audit.recordStandalone({
-      tenantId: input.tenantId,
-      actorType: ActorType.PlatformSupport,
-      actorId: null,
-      action: AuditAction.PlanAssigned,
-      ip: input.ip ?? null,
-      targetType: 'plan',
-      targetId: input.planId,
-      result: AuditResult.Success,
-      summary: { reason: input.reason, expiry: input.expiry },
-    });
-    await this.platformAudit.record({
-      actorType: PlatformActorType.Operator,
-      actorId: input.operatorId,
-      action: PlatformAuditAction.PlanAssigned,
-      targetType: 'tenant',
-      targetId: input.tenantId,
-      result: AuditResult.Success,
-      ip: input.ip ?? null,
-      summary: { planId: input.planId, reason: input.reason, expiry: input.expiry },
+      });
+      await this.audit.record(tx, {
+        tenantId: input.tenantId,
+        actorType: ActorType.PlatformSupport,
+        actorId: null,
+        action: AuditAction.PlanAssigned,
+        ip: input.ip ?? null,
+        targetType: 'plan',
+        targetId: input.planId,
+        result: AuditResult.Success,
+        summary: { reason: input.reason, expiry: input.expiry },
+      });
+      await this.platformAudit.recordWithin(tx, {
+        actorType: PlatformActorType.Operator,
+        actorId: input.operatorId,
+        action: PlatformAuditAction.PlanAssigned,
+        targetType: 'tenant',
+        targetId: input.tenantId,
+        result: AuditResult.Success,
+        ip: input.ip ?? null,
+        summary: { planId: input.planId, reason: input.reason, expiry: input.expiry },
+      });
+      return assignment;
     });
 
     return assignment;

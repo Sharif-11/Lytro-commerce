@@ -61,13 +61,18 @@ export class DrizzleBalanceLedgerStore implements BalanceLedgerStore {
   }
 }
 
-/** Database-backed rates (RAT-01..14). Platform-wide, no transaction or tenant context needed. */
+/** Database-backed rates (RAT-01..14). Platform-wide, no tenant context needed. */
 @Injectable()
 export class DrizzleRateStore implements RateStore {
   constructor(
     @Inject(DatabaseService) private readonly database: Pick<DatabaseService, 'handle'>,
+    @Inject(TransactionRunner) private readonly transactions: TransactionRunner,
     @Inject(RatesRepository) private readonly rates: RatesRepository,
   ) {}
+
+  run<T>(work: (tx: Transaction) => Promise<T>): Promise<T> {
+    return this.transactions.run(this.database.handle.db, work);
+  }
 
   async get(key: RateKey): Promise<RateValue | null> {
     const row = await this.rates.get(this.database.handle.db, key);
@@ -84,13 +89,14 @@ export class DrizzleRateStore implements RateStore {
   }
 
   set(
+    tx: Transaction,
     key: RateKey,
     oldValue: string | null,
     newValue: string,
     changedBy: string | null,
     noticeId: string | null,
   ): Promise<void> {
-    return this.rates.set(this.database.handle.db, key, oldValue, newValue, changedBy, noticeId);
+    return this.rates.set(tx, key, oldValue, newValue, changedBy, noticeId);
   }
 
   async history(key: RateKey): Promise<RateHistoryEntry[]> {
@@ -107,28 +113,37 @@ export class DrizzleRateStore implements RateStore {
   }
 }
 
-/** Database-backed platform wallet numbers (BIL-02/BAL-03). Platform-wide, no transaction or tenant context. */
+/** Database-backed platform wallet numbers (BIL-02/BAL-03). Platform-wide, no tenant context. */
 @Injectable()
 export class DrizzlePlatformWalletsStore implements PlatformWalletsStore {
   constructor(
     @Inject(DatabaseService) private readonly database: Pick<DatabaseService, 'handle'>,
+    @Inject(TransactionRunner) private readonly transactions: TransactionRunner,
     @Inject(PlatformWalletsRepository) private readonly wallets: PlatformWalletsRepository,
   ) {}
+
+  run<T>(work: (tx: Transaction) => Promise<T>): Promise<T> {
+    return this.transactions.run(this.database.handle.db, work);
+  }
 
   list(enabledOnly: boolean): Promise<PlatformWallet[]> {
     return this.wallets.list(this.database.handle.db, enabledOnly);
   }
 
-  create(values: NewPlatformWalletValues): Promise<PlatformWallet> {
-    return this.wallets.insert(this.database.handle.db, values);
+  create(tx: Transaction, values: NewPlatformWalletValues): Promise<PlatformWallet> {
+    return this.wallets.insert(tx, values);
   }
 
-  update(id: string, values: UpdatePlatformWalletValues): Promise<PlatformWallet | null> {
-    return this.wallets.update(this.database.handle.db, id, values);
+  update(
+    tx: Transaction,
+    id: string,
+    values: UpdatePlatformWalletValues,
+  ): Promise<PlatformWallet | null> {
+    return this.wallets.update(tx, id, values);
   }
 
-  remove(id: string): Promise<void> {
-    return this.wallets.remove(this.database.handle.db, id);
+  remove(tx: Transaction, id: string): Promise<void> {
+    return this.wallets.remove(tx, id);
   }
 }
 
