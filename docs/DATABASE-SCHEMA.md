@@ -719,6 +719,31 @@ CREATE TABLE tenant.category_attributes (           -- ATL-05 / ATR-02: suggesti
 - `stock_levels.low_notified` carries INV-08's once-per-crossing state; `batch_id`, `stock_batches`, serials,
   reservations and stock checks arrive in Slices 2b, 3 and 5.
 
+**Built in Phase 3 Slice 5a (migration 0062, 2026-10-20):** `stock_reservations`, `reservation_status`,
+`stock_levels.short_notified`, the platform setting `reservation_expiry_minutes` (default 30) and an index on
+`stock_movements (tenant_id, reference_type, reference_id)` (INV-15, INV-16), with these decisions against the design
+below:
+- **The database keeps `reserved`.** A reservation's trigger raises its level's `reserved` when it is made and lowers it
+  when it is resolved; nothing else may change it (the level's guard), so INV-05's reserved half holds by construction.
+  A reservation is made `active`, holds stock of a tracked product on the live variant that holds it (the stock holder
+  for a size of a shared stock, recording the size, its pack amount and the packs ordered), never more than is free
+  (on hand less reserved less expired), in whole units unless measured. It is resolved once, to `consumed` (shipped)
+  or `released`, and then never changes; it is deleted only by LIF-19's day-60 deletion. `order_id` and
+  `order_line_id` carry no foreign key until Phase 4's orders; a line holds each variant once at a time.
+- **Expiry may leave held units short; nothing else may.** `available` is `GREATEST(on_hand - reserved - unsellable,
+  0)`, and the old check that it never falls below zero is replaced by `reserved <= on_hand`. The movement trigger
+  refuses a movement taking stock that is free below zero, except two that take nothing free: expired stock leaving (a
+  write-off, refused only while what stays on hand would not cover what is held), and a sale naming the reservation it
+  ships (`reference_type = 'reservation'`), which takes that reservation's units, never more, once it is `consumed`.
+  A commit-time check holds a consumed reservation to having shipped exactly its quantity. The daily expiry pass tells
+  the shop once about a level short of what it holds (`short_notified`), and resets that once it recovers.
+- **Held stock is kept.** While a variant holds or was ordered on an active reservation it is not retired or deleted;
+  its product is not switched to made to order (`keep_held_variants`). The day-60 deletion removes reservations before
+  the catalogue.
+- **One lock order for every stock writer:** the products, in id order (`FOR NO KEY UPDATE`), then the levels, in
+  variant order, then the reservations, then each level's batches and serials. A writer may then update its product
+  (the public stock state) without waiting on another writer holding the same product.
+
 **Built in Phase 3 Slice 3b (migration 0059, 2026-10-20):** `serial_numbers`, `serial_status`,
 `products.serial_format` and `business_type_presets.default_serial_format` (INV-14, INV-23), with these decisions against
 the design below:
@@ -785,9 +810,12 @@ CREATE TABLE tenant.stock_levels (                  -- INV-01, one row per track
     on_hand         numeric(14,3) NOT NULL DEFAULT 0 CHECK (on_hand >= 0),
     reserved        numeric(14,3) NOT NULL DEFAULT 0 CHECK (reserved >= 0),
     unsellable      numeric(14,3) NOT NULL DEFAULT 0 CHECK (unsellable >= 0),  -- INV-13 expired, not yet written off
-    available       numeric(14,3) GENERATED ALWAYS AS (on_hand - reserved - unsellable) STORED,
+    available       numeric(14,3) GENERATED ALWAYS AS (GREATEST(on_hand - reserved - unsellable, 0)) STORED,
+    low_notified    boolean NOT NULL DEFAULT false,  -- INV-08
+    short_notified  boolean NOT NULL DEFAULT false,  -- INV-13/INV-15: expiry left held units short, shop told
     PRIMARY KEY (tenant_id, variant_id),
-    CHECK (on_hand - reserved - unsellable >= 0),  -- overselling is impossible at the data layer
+    CHECK (reserved <= on_hand),  -- overselling is impossible at the data layer: the triggers refuse taking more
+                                  -- than is free; only expiry can leave held units without sellable stock
     FOREIGN KEY (tenant_id, variant_id) REFERENCES tenant.product_variants(tenant_id, id)
 );
 
@@ -849,20 +877,29 @@ CREATE UNIQUE INDEX ON tenant.serial_numbers (tenant_id, serial) WHERE status IN
 
 CREATE TYPE tenant.reservation_status AS ENUM ('active', 'consumed', 'released');
 
-CREATE TABLE tenant.stock_reservations (            -- INV-15, INV-16
+CREATE TABLE tenant.stock_reservations (            -- INV-15, INV-16 (built in Slice 5a)
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id       uuid NOT NULL,
-    variant_id      uuid NOT NULL,
     order_id        uuid NOT NULL,                -- FK added in Phase 4 when tenant.orders exists
-    quantity        numeric(14,3) NOT NULL CHECK (quantity > 0),
+    order_line_id   uuid NOT NULL,                -- likewise
+    product_id      uuid NOT NULL,                -- held by value, like movements
+    variant_id      uuid NOT NULL,                -- the variant holding the stock (a shared stock's holder)
+    sold_variant_id uuid NOT NULL,                -- the variant ordered
+    ordered         numeric(14,3) NOT NULL CHECK (ordered > 0),   -- units, or packs of a shared stock
+    pack_amount     numeric(14,3) CHECK (pack_amount > 0),        -- INV-24, null unless shared
+    quantity        numeric(14,3) NOT NULL CHECK (quantity > 0),  -- held, in the stock's unit
     status          tenant.reservation_status NOT NULL DEFAULT 'active',
     expires_at      timestamptz,                  -- set only while awaiting online payment
     created_at      timestamptz NOT NULL DEFAULT now(),
     resolved_at     timestamptz,
-    FOREIGN KEY (tenant_id, variant_id) REFERENCES tenant.product_variants(tenant_id, id)
+    UNIQUE (tenant_id, id),
+    CHECK ((status = 'active') = (resolved_at IS NULL))
 );
-CREATE INDEX ON tenant.stock_reservations (expires_at) WHERE status = 'active' AND expires_at IS NOT NULL;
--- INV-05: stock_levels.reserved = SUM(quantity) of this variant's active reservations.
+CREATE UNIQUE INDEX ON tenant.stock_reservations (tenant_id, order_line_id, sold_variant_id) WHERE status = 'active';
+CREATE INDEX ON tenant.stock_reservations (tenant_id, variant_id) WHERE status = 'active';
+CREATE INDEX ON tenant.stock_reservations (tenant_id, expires_at) WHERE status = 'active' AND expires_at IS NOT NULL;
+CREATE INDEX ON tenant.stock_reservations (tenant_id, order_id);
+-- INV-05: stock_levels.reserved = SUM(quantity) of this variant's active reservations, kept by the trigger.
 
 CREATE TABLE tenant.stock_checks (                  -- INV-07: groups one stock check's recount movements
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),

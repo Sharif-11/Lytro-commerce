@@ -9,14 +9,12 @@ import type { CatalogueTransactions } from '../src/modules/catalogue/ports/catal
 import { CATALOGUE_TRANSACTIONS } from '../src/modules/catalogue/tokens';
 import { BatchExpiryService } from '../src/modules/inventory/services/batch-expiry.service';
 import { InventoryLedger } from '../src/modules/inventory/services/inventory-ledger';
-import type { BatchExpiryNotifier } from '../src/modules/inventory/ports/stock-batch-store';
-import type { LowStockNotifier } from '../src/modules/inventory/ports/stock-store';
 import { BATCH_EXPIRY_NOTIFIER, LOW_STOCK_NOTIFIER } from '../src/modules/inventory/tokens';
-import type { BatchExpiryNotice, LowStockNotice } from '../src/modules/inventory/types/inventory';
 import { DAY_MS, dhakaDate } from '../src/common/time';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase } from './support/database';
+import { ExpiryCapture, LowStockCapture } from './support/inventory-notices';
 import { getJson, postJson, putJson } from './support/http';
 import {
   errorOf,
@@ -35,34 +33,6 @@ import { SmsCapture } from './support/sms-capture';
 const ADMIN_URL = process.env['DATABASE_TEST_ADMIN_URL'];
 const DB_NAME = 'lytronix_inventory_test';
 const describeIfDatabase = ADMIN_URL ? describe : describe.skip;
-
-/** Keeps every low-stock notice, in place of the console stand-in. */
-class LowStockCapture implements LowStockNotifier {
-  readonly notices: LowStockNotice[] = [];
-
-  lowStock(notice: LowStockNotice): Promise<void> {
-    this.notices.push(notice);
-    return Promise.resolve();
-  }
-
-  for(variantId: string): LowStockNotice[] {
-    return this.notices.filter((notice) => notice.variantId === variantId);
-  }
-}
-
-/** Keeps every expiry notice, in place of the console stand-in. */
-class ExpiryCapture implements BatchExpiryNotifier {
-  readonly notices: BatchExpiryNotice[] = [];
-
-  expiringSoon(notice: BatchExpiryNotice): Promise<void> {
-    this.notices.push(notice);
-    return Promise.resolve();
-  }
-
-  for(batchId: string): BatchExpiryNotice[] {
-    return this.notices.filter((notice) => notice.batchId === batchId);
-  }
-}
 
 let app: INestApplication;
 let port: number;

@@ -1,8 +1,11 @@
 import type {
+  NewReservation,
   NewSerial,
   NewStockBatch,
   NewStockMovement,
   SelectSerialNumber,
+  SelectStockReservation,
+  ShortfallRow,
   OutgoingRow,
   SelectStockBatch,
   StockBatchListRow,
@@ -28,11 +31,14 @@ import type {
 export type MovementRecord = SelectStockMovement;
 export type StockBatchRecord = SelectStockBatch;
 export type SerialRecord = SelectSerialNumber;
+export type ReservationRecord = SelectStockReservation;
 export type {
+  NewReservation,
   NewSerial,
   NewStockBatch,
   NewStockMovement,
   OutgoingRow,
+  ShortfallRow,
   StockBatchListRow,
   StockCheckLineRow,
   StockCheckRow,
@@ -72,6 +78,42 @@ export interface StockChange {
    * decimals); the database takes it into the average cost. Null or left out when not known.
    */
   unitCost?: string | null;
+  /** INV-14: on a sale, the order its units went to; the serials leaving with it are sold to that order. */
+  orderId?: string | null;
+}
+
+/**
+ * INV-15: one order line to hold stock for. `quantity` is what was ordered, in the product's unit, or for a size
+ * drawing on a shared stock, in whole packs (INV-24).
+ */
+export interface ReservationLine {
+  orderLineId: string;
+  variantId: string;
+  quantity: string;
+}
+
+/** INV-15, INV-16: an order's lines to hold stock for; one awaiting online payment holds it only for a while. */
+export interface ReservationRequest {
+  orderId: string;
+  awaitingPayment: boolean;
+  lines: ReservationLine[];
+}
+
+/** INV-15, INV-14: one reservation shipping whole, with the serial of each unit on a serial-numbered product. */
+export interface Shipment {
+  reservationId: string;
+  serials?: string[] | null;
+}
+
+/** INV-13, INV-15: expiry has left units held for orders with nothing sellable under them. */
+export interface HeldStockExpiredNotice {
+  tenantId: string;
+  productId: string;
+  productName: string;
+  variantId: string;
+  reserved: string;
+  /** How many of the held units are expired, with nothing sellable to ship in their place. */
+  short: string;
 }
 
 /** INV-14: one serial-numbered unit, as the shop sees it. */
@@ -160,6 +202,11 @@ export interface VariantStockView {
   reserved: string | null;
   /** INV-13: stock in expired batches, held but never sold until written off; null like onHand. */
   unsellable: string | null;
+  /**
+   * INV-13, INV-15: units held for orders that expiry left with nothing sellable under them, so those orders cannot
+   * ship as they are; zero when none, null like onHand.
+   */
+  reservedExpired: string | null;
   /** For a variant drawing on a shared stock, the whole packs of it the shared stock makes (INV-24). */
   available: string;
   /** INV-14: on a serial-numbered product, how many units held have no serial yet; null otherwise. */
@@ -183,6 +230,8 @@ export interface SharedStockView {
   onHand: string;
   reserved: string;
   unsellable: string;
+  /** INV-13, INV-15: units held for orders that expiry left with nothing sellable under them. */
+  reservedExpired: string;
   available: string;
   /** PUR-05: ordered and not yet received on placed, open purchases, in the product's unit. */
   incoming: string;

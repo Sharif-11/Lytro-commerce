@@ -29,6 +29,8 @@ const DESCRIPTIONS: Record<PlatformSettingKey, string> = {
     'How many days after read-only a lapsed tenant stays locked (LIF-26, 2.3).',
   [PlatformSettingKey.ArchivedDays]:
     'How many days after locked a lapsed tenant stays archived before deletion (LIF-26, 2.3).',
+  [PlatformSettingKey.ReservationExpiryMinutes]:
+    'How many minutes an order awaiting online payment holds its stock (INV-16).',
 };
 
 // A positive-int check, the only shape any key needs today; slice 7 extends this map, not a switch, as more
@@ -44,6 +46,7 @@ const VALIDATORS: Record<PlatformSettingKey, (value: unknown) => boolean> = {
   [PlatformSettingKey.ReadOnlyDays]: isPositiveInt,
   [PlatformSettingKey.LockedDays]: isPositiveInt,
   [PlatformSettingKey.ArchivedDays]: isPositiveInt,
+  [PlatformSettingKey.ReservationExpiryMinutes]: isPositiveInt,
 };
 
 function validate(key: PlatformSettingKey, value: unknown): void {

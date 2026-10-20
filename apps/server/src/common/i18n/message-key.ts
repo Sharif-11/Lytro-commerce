@@ -282,6 +282,14 @@ export const MESSAGE_KEYS = [
   'SerialHasLeft',
   'PeriodEndsBeforeItStarts',
 
+  // Reservations (Phase 3 Slice 5a)
+  'NotEnoughStockForOrder',
+  'UnitsHeldForOrders',
+  'ReservationNotFound',
+  'ReservationResolved',
+  'SerialPerUnitShipped',
+  'ReservedStockExpired',
+
   // Purchasing (Phase 3 Slice 4a)
   'SupplierNotFound',
   'SupplierNameTaken',

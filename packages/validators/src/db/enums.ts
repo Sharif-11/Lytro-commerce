@@ -319,6 +319,8 @@ export enum QueueName {
   // INV-13: the daily expiry pass, a cron like LifecycleTick: warns of batches about to expire and takes expired ones
   // out of available stock.
   InventoryExpiryTick = 'inventory_expiry_tick',
+  // INV-16: every minute, releases the stock held for orders whose online payment never came.
+  ReservationExpiryTick = 'reservation_expiry_tick',
 }
 
 // Who performed the action (AUD-02). `system` is the platform itself (a scheduled job); `platform_support` is an
@@ -440,6 +442,9 @@ export enum PlatformSettingKey {
   ReadOnlyDays = 'read_only_days',
   LockedDays = 'locked_days',
   ArchivedDays = 'archived_days',
+  // INV-16, D3-6: how long stock stays held for an order awaiting online payment before it is released. Phase 5 sets
+  // it from the payment session's own lifetime.
+  ReservationExpiryMinutes = 'reservation_expiry_minutes',
 }
 
 // D2-1: what a control.plan_payments row is for -- a purchase, a renewal, an upgrade, or a balance top-up.
@@ -537,6 +542,14 @@ export enum SerialStatus {
   Sold = 'sold',
   Returned = 'returned',
   WrittenOff = 'written_off',
+}
+
+// INV-15: where stock held for an order line stands: held (active), shipped (consumed) or let go (released). Only an
+// active reservation counts in a level's reserved stock.
+export enum ReservationStatus {
+  Active = 'active',
+  Consumed = 'consumed',
+  Released = 'released',
 }
 
 // INV-12, INV-13: where a batch stands against its expiry date: expired (past its last sellable day, never sold, waiting

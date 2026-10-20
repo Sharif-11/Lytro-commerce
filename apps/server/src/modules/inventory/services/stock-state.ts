@@ -44,6 +44,20 @@ export function sharedVariantState(
   return StockState.In;
 }
 
+/**
+ * INV-13, INV-15: of the units held for orders, how many expiry left with nothing sellable under them -- what is held
+ * beyond the stock on hand that has not expired. Zero when what is held is covered.
+ */
+export function reservedExpired(level: {
+  onHand: string;
+  reserved: string;
+  unsellable: string;
+}): string {
+  return quantityOf(
+    Math.max(milli(level.reserved) + milli(level.unsellable) - milli(level.onHand), 0),
+  );
+}
+
 /** INV-24: a whole number of packs of `packAmount`, in the shared stock's unit. Exact, since `packs` is whole. */
 export function packsToStock(packs: string, packAmount: string): string {
   return quantityOf((milli(packs) / 1000) * milli(packAmount));

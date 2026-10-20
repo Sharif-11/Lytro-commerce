@@ -71,6 +71,8 @@ const SHARED_SWITCH_CHECK = 'shared_stock_switch_needs_empty';
 const BATCHES_OFF_CHECK = 'batches_off_after_write_off';
 // INV-14: serial tracking turned off while a unit holds a serial (migration 0059).
 const SERIALS_OFF_CHECK = 'serials_off_needs_none';
+// INV-15: a variant retired or deleted, or a product turned made to order, while units are held for orders (0062).
+const HELD_FOR_ORDERS_CHECK = 'stock_held_for_orders';
 
 /** One transaction per unit of catalogue work. Each repository call sets the shop's tenant context itself. */
 @Injectable()
@@ -399,12 +401,21 @@ export class DrizzleProductStore implements ProductStore {
         throw new StockRefused('expired_waiting');
       if (this.transactions.isCheckViolation(error, SERIALS_OFF_CHECK))
         throw new StockRefused('serials_held');
+      if (this.transactions.isCheckViolation(error, HELD_FOR_ORDERS_CHECK))
+        throw new StockRefused('held');
       throw error;
     }
   }
 
-  deleteProduct(tx: Transaction, tenantId: string, id: string): Promise<void> {
-    return this.products.deleteProduct(tx, tenantId, id);
+  async deleteProduct(tx: Transaction, tenantId: string, id: string): Promise<void> {
+    try {
+      await this.products.deleteProduct(tx, tenantId, id);
+    } catch (error) {
+      if (this.transactions.isCheckViolation(error, HELD_FOR_ORDERS_CHECK)) {
+        throw new StockRefused('held');
+      }
+      throw error;
+    }
   }
 
   listProducts(
@@ -551,8 +562,15 @@ export class DrizzleProductStore implements ProductStore {
     }
   }
 
-  retireVariants(tx: Transaction, tenantId: string, ids: string[]): Promise<void> {
-    return this.variants.retireVariants(tx, tenantId, ids);
+  async retireVariants(tx: Transaction, tenantId: string, ids: string[]): Promise<void> {
+    try {
+      await this.variants.retireVariants(tx, tenantId, ids);
+    } catch (error) {
+      if (this.transactions.isCheckViolation(error, HELD_FOR_ORDERS_CHECK)) {
+        throw new StockRefused('held');
+      }
+      throw error;
+    }
   }
 
   findStockHolder(

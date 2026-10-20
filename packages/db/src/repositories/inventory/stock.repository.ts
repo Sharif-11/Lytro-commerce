@@ -88,6 +88,19 @@ export interface OutgoingRow {
   unknownCost: number;
 }
 
+/**
+ * INV-13, INV-15: a level where expiry has left units held for orders with nothing sellable under them (`short` above
+ * zero), or one the shop was told about that has since recovered.
+ */
+export interface ShortfallRow {
+  variantId: string;
+  productId: string;
+  productName: string;
+  reserved: string;
+  short: string;
+  shortNotified: boolean;
+}
+
 /** One line of a variant's stock history, with who made it and, for a batch, its code and expiry (INV-12). */
 export interface StockHistoryRow extends SelectStockMovement {
   actorName: string | null;
@@ -254,11 +267,33 @@ export class StockRepository {
   }
 
   /**
+   * The stock lock order: these products, in id order, before any of their levels. A writer holding a product's lock
+   * may update it (its public stock state) without waiting on another writer that holds the same product and waits
+   * for a level, which is how two writers sharing the product row would deadlock.
+   */
+  async lockProducts(tx: Transaction, tenantId: string, productIds: string[]): Promise<void> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    if (productIds.length === 0) return;
+    await tx
+      .select({ id: products.id })
+      .from(products)
+      .where(and(eq(products.tenantId, tenantId), inArray(products.id, productIds)))
+      .orderBy(asc(products.id))
+      .for('no key update');
+  }
+
+  /**
    * INV-06: the variant's on-hand stock, its level made (empty) if it has none and locked until the transaction ends,
-   * so a stock edit works out its difference from a number no other write can change underneath it.
+   * so a stock edit works out its difference from a number no other write can change underneath it. Its product is
+   * locked first, as every stock writer locks; a writer touching several products locks them all first.
    */
   async lockLevel(tx: Transaction, tenantId: string, variantId: string): Promise<string> {
     await this.transactions.setTenantContext(tx, tenantId);
+    await tx.execute(sql`
+      SELECT p.id FROM ${products} p
+      JOIN ${productVariants} v ON v.tenant_id = p.tenant_id AND v.product_id = p.id
+      WHERE v.tenant_id = ${tenantId} AND v.id = ${variantId}
+      FOR NO KEY UPDATE OF p`);
     await tx
       .insert(stockLevels)
       .values({ tenantId, variantId })
@@ -283,6 +318,58 @@ export class StockRepository {
     await tx
       .update(stockLevels)
       .set({ lowNotified: notified, updatedAt: new Date() })
+      .where(and(eq(stockLevels.tenantId, tenantId), inArray(stockLevels.variantId, variantIds)));
+  }
+
+  /** INV-13, INV-15: the shop's levels short of what they hold for orders, and those still marked as told. */
+  async listShortfalls(tx: Transaction, tenantId: string): Promise<ShortfallRow[]> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const short = sql<string>`GREATEST(${stockLevels.reserved} + ${stockLevels.unsellable} - ${stockLevels.onHand}, 0)`;
+    return tx
+      .select({
+        variantId: stockLevels.variantId,
+        productId: productVariants.productId,
+        productName: products.name,
+        reserved: stockLevels.reserved,
+        short: short.mapWith(String),
+        shortNotified: stockLevels.shortNotified,
+      })
+      .from(stockLevels)
+      .innerJoin(
+        productVariants,
+        and(
+          eq(productVariants.tenantId, stockLevels.tenantId),
+          eq(productVariants.id, stockLevels.variantId),
+        ),
+      )
+      .innerJoin(
+        products,
+        and(
+          eq(products.tenantId, productVariants.tenantId),
+          eq(products.id, productVariants.productId),
+        ),
+      )
+      .where(
+        and(
+          eq(stockLevels.tenantId, tenantId),
+          sql`(${stockLevels.reserved} + ${stockLevels.unsellable} > ${stockLevels.onHand} OR ${stockLevels.shortNotified})`,
+        ),
+      )
+      .orderBy(asc(stockLevels.variantId));
+  }
+
+  /** INV-13, INV-15: marks these levels as told (or not) about their current shortfall. */
+  async setShortNotified(
+    tx: Transaction,
+    tenantId: string,
+    variantIds: string[],
+    notified: boolean,
+  ): Promise<void> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    if (variantIds.length === 0) return;
+    await tx
+      .update(stockLevels)
+      .set({ shortNotified: notified, updatedAt: new Date() })
       .where(and(eq(stockLevels.tenantId, tenantId), inArray(stockLevels.variantId, variantIds)));
   }
 

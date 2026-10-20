@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { BatchExpiryNotifier } from '../ports/stock-batch-store';
-import type { BatchExpiryNotice } from '../types/inventory';
+import type { BatchExpiryNotice, HeldStockExpiredNotice } from '../types/inventory';
 
 /**
  * INV-13, D3-5: the stand-in until Phase 7's notification module delivers in-app and push notices. It only logs; the
@@ -13,6 +13,13 @@ export class ConsoleBatchExpiryNotifier implements BatchExpiryNotifier {
   expiringSoon(notice: BatchExpiryNotice): Promise<void> {
     this.logger.log(
       `tenant ${notice.tenantId}: "${notice.productName}" batch ${notice.batchCode ?? notice.batchId} (${notice.quantity}) expires ${notice.expiresOn}`,
+    );
+    return Promise.resolve();
+  }
+
+  heldStockExpired(notice: HeldStockExpiredNotice): Promise<void> {
+    this.logger.log(
+      `tenant ${notice.tenantId}: "${notice.productName}" has ${notice.short} of ${notice.reserved} units held for orders expired`,
     );
     return Promise.resolve();
   }

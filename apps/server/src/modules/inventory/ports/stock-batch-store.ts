@@ -1,6 +1,7 @@
 import type { Transaction } from '@lytronix/db';
 import type {
   BatchExpiryNotice,
+  HeldStockExpiredNotice,
   NewStockBatch,
   StockBatchListRow,
   StockBatchRecord,
@@ -38,14 +39,16 @@ export interface StockBatchStore {
   markNotified(tx: Transaction, tenantId: string, batchIds: string[]): Promise<void>;
   /** Works each level's unsellable stock out again from its expired batches; the variants whose figure changed. */
   refreshUnsellable(tx: Transaction, tenantId: string): Promise<string[]>;
-  /** Every shop not yet deleted, for the daily pass. */
+  /** Every shop not yet deleted, for the daily pass and the reservation expiry pass. */
   listShopIds(): Promise<string[]>;
 }
 
 /**
- * INV-13, D3-5: tells the shop a batch is about to expire, once per batch. A console stand-in until Phase 7's
- * notification module replaces the adapter; the once-per-batch rule is the expiry pass's.
+ * INV-13, D3-5: tells the shop a batch is about to expire, once per batch, and that expiry has left units held for
+ * orders short, once per shortfall. A console stand-in until Phase 7's notification module replaces the adapter; the
+ * once-only rules are the expiry pass's.
  */
 export interface BatchExpiryNotifier {
   expiringSoon(notice: BatchExpiryNotice): Promise<void>;
+  heldStockExpired(notice: HeldStockExpiredNotice): Promise<void>;
 }

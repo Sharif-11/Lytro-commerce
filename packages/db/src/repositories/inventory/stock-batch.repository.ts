@@ -166,18 +166,29 @@ export class StockBatchRepository {
   }
 
   /**
-   * INV-13: works out again, under each level's lock, the unsellable stock of every variant with a dated batch or with
-   * stock already set aside; returns the variants whose figure changed.
+   * INV-13: works out again, under each level's lock, the unsellable stock of every variant with an expired batch or
+   * with stock already set aside; returns the variants whose figure changed. Their products are locked first, in id
+   * order, as every stock writer locks, along with those of levels marked short (INV-15) that the pass may reset.
    */
   async refreshUnsellable(tx: Transaction, tenantId: string): Promise<string[]> {
     await this.transactions.setTenantContext(tx, tenantId);
+    const candidates = sql`
+      SELECT b.variant_id FROM ${stockBatches} b
+      WHERE b.tenant_id = ${tenantId} AND b.closed_at IS NULL AND b.quantity > 0
+        AND b.expires_on < tenant.dhaka_today()
+      UNION
+      SELECT l.variant_id FROM ${stockLevels} l
+      WHERE l.tenant_id = ${tenantId} AND (l.unsellable <> 0 OR l.short_notified)`;
+    await tx.execute(sql`
+      SELECT p.id FROM ${products} p
+      WHERE p.tenant_id = ${tenantId} AND p.id IN (
+        SELECT v.product_id FROM ${productVariants} v
+        WHERE v.tenant_id = ${tenantId} AND v.id IN (${candidates})
+      )
+      ORDER BY p.id
+      FOR NO KEY UPDATE`);
     const rows = await tx.execute<{ variant_id: string }>(sql`
-      SELECT c.variant_id FROM (
-        SELECT DISTINCT b.variant_id FROM ${stockBatches} b
-        WHERE b.tenant_id = ${tenantId} AND b.closed_at IS NULL AND b.expires_on IS NOT NULL AND b.quantity > 0
-        UNION
-        SELECT l.variant_id FROM ${stockLevels} l WHERE l.tenant_id = ${tenantId} AND l.unsellable <> 0
-      ) c
+      SELECT c.variant_id FROM (${candidates}) c
       WHERE tenant.refresh_unsellable(${tenantId}, c.variant_id)`);
     return rows.rows.map((row) => row.variant_id);
   }

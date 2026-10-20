@@ -600,6 +600,31 @@ their backend ships earlier.
   consecutive numbers.
 
 ### Slice 5: stock reservations — *checkpoint "3A" after this slice (D3-10)*
+- **Status (2026-10-20):** eight decisions agreed with the user before any code; built as two PRs, 5a (reservations,
+  migration 0062) and 5b (returns, INV-17).
+  - **Decisions:** a reservation is a service Phase 4's orders call, with no route of its own. It names its order and
+    order line (no foreign key until Phase 4), one per line and variant at a time, and holds a quantity; a size of a
+    shared stock records the size, its pack amount and the packs ordered, and holds pack x quantity on the shared
+    stock. The database keeps `reserved` equal to the active reservations, and nothing else changes it. Expired stock
+    under a reservation records the shortfall: it stays unsellable, available floors at 0, the stock view shows the
+    units held for orders that expired, and the shop is told once; only expiry can create a shortfall, and shipping
+    those units fails clearly for Phase 4 to decide the order's fate. Shipping (consume) is one sale through the
+    ledger, earliest expiry first and never expired, the whole reservation at once; a serial-numbered product names
+    one serial per unit, and those are sold to the order. Release frees the whole reservation, with no movement. An
+    order awaiting online payment holds stock for `reservation_expiry_minutes` (default 30); a job every minute lets
+    expired ones go; cash-on-delivery and staff orders never expire. Made to order holds nothing and is never
+    refused. While units are held, a product is not switched to made to order, nor a variant retired, nor a product
+    deleted for good. Returns (5b): per unit, sellable back into the batch it left or damaged and written off, at the
+    sale's unit cost.
+  - **5a (migration 0062):** built as decided, with two refinements found while building it, both in the PR:
+    - **Shipping takes the units held for it.** A sale naming its reservation takes those units even while expiry has
+      left the level short, so the first order to ship is filled from the sellable stock and only the order left
+      uncovered fails. Without this, one expired batch would block every order of the product.
+    - **One lock order for every stock writer:** products first, then levels, reservations, batches and serials.
+      The concurrency test found that two writers on one product could deadlock (KNOWN-GAPS §75).
+    - **Also built:** the minute pass (KNOWN-GAPS §74 notes how it scales); the daily pass's one notice per shortfall;
+      the guards on held stock, in the database too; the day-60 deletion; INV-05 checked after every step; the golden
+      path as one test.
 - **Depends on:** Slice 2 (and Slice 3, for consuming against batches and serials).
 - **Delivers:** reserve / consume / release services; the expiry job and its platform setting (D3-6); the
   restock-or-damaged return service; **the inventory golden-path test** (exit criterion 3).

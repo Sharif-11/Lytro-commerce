@@ -740,6 +740,30 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'The start date is after the end date. Choose an earlier start.',
     bn: 'শুরুর তারিখ শেষের তারিখের পরে। আগের একটি তারিখ বেছে নিন।',
   },
+  NotEnoughStockForOrder: {
+    en: (p) => `There is not enough "${String(p.product)}" in stock for this order.`,
+    bn: (p) => `এই অর্ডারের জন্য স্টকে যথেষ্ট "${String(p.product)}" নেই।`,
+  },
+  UnitsHeldForOrders: {
+    en: 'Some units of this product are held for orders. Ship or cancel those orders first.',
+    bn: 'এই প্রোডাক্টের কিছু ইউনিট অর্ডারের জন্য হোল্ড করা আছে। আগে সেই অর্ডারগুলো শিপ বা ক্যানসেল করুন।',
+  },
+  ReservationNotFound: {
+    en: 'That stock hold was not found.',
+    bn: 'স্টক হোল্ডটি পাওয়া যায়নি।',
+  },
+  ReservationResolved: {
+    en: 'This stock hold has already been shipped or released.',
+    bn: 'এই স্টক হোল্ড আগেই শিপ বা রিলিজ করা হয়েছে।',
+  },
+  SerialPerUnitShipped: {
+    en: 'Give the serial number of every unit being shipped.',
+    bn: 'শিপ করা প্রতিটি ইউনিটের সিরিয়াল নম্বর দিন।',
+  },
+  ReservedStockExpired: {
+    en: 'Some units held for this order have expired, so it cannot ship as it is.',
+    bn: 'এই অর্ডারের জন্য হোল্ড করা কিছু ইউনিট এক্সপায়ার হয়ে গেছে, তাই এভাবে শিপ করা যাবে না।',
+  },
   SupplierNotFound: {
     en: 'That supplier was not found.',
     bn: 'সাপ্লায়ারটি পাওয়া যায়নি।',
