@@ -714,6 +714,29 @@ their backend ships earlier.
   compressed size.
 
 ### Slice 7: media Worker and bandwidth metering
+- **Status (2026-10-21):** ten decisions agreed with the user before any code; built as two PRs, 7a (the Worker) and
+  7b (the server's side: totals, warnings, the shared store, the bandwidth API).
+  - **The address:** `media.lytro.app`, whose paths are the objects' keys (`/tenants/<shop>/<media id>/<file>`),
+    the links the server already makes. A path outside one shop's prefix is no media (MED-01).
+  - **Reading R2:** through its S3 API with an Object Read only token, not a binding, which R2 cannot make read-only:
+    a write fails at R2 itself (MED-07). KNOWN-GAPS §78 (the processing key can likely delete) is accepted as a risk.
+  - **Counting:** one Analytics Engine data point per response -- the shop, the bytes its body actually sent, counted
+    as they stream, so a range counts only its bytes and an aborted download only what went (BND-01). The server
+    totals them each minute (7b).
+  - **Blocking:** the server writes one blocked list to a KV store each minute (7b); the Worker reads it at most every
+    15 seconds. A shop over its bandwidth gets 429 with `X-Quota: bandwidth` and no body; an offline shop
+    (`read_only`, `locked`, `archived`, `suspended`, deleted) gets 403 -- both before the cache or R2 are read --
+    except to the dashboard and the operator console. Auto-buy (BND-04) arrives with add-ons (Slice 10a).
+  - **Private links:** files under `tenants/<shop>/private/` only through a link signed with a secret the server and
+    the Worker share, for 15 minutes, never cached (BND-07); the server's signer arrives with its first private file.
+  - **CORS:** a script may read a shop's media only from its registered website addresses and the dashboard, which
+    the server keeps in the KV store (MED-13).
+  - **Caching:** after metering, the Worker's cache, then R2 on a miss; a public file is kept a year; a range that
+    missed is read alone and not kept.
+  - **Code and tests:** `apps/media-worker`, built with wrangler, tested inside the Workers runtime with
+    `@cloudflare/vitest-plugin` (the renamed `vitest-pool-workers`), which needs Vitest 4, so that package alone uses
+    it. CI moved from Node 20 (end of life) to Node 24.
+  - **7a built as decided.** The media Worker's one-time Cloudflare setup is in DEPLOYMENT.md §8.
 - **Depends on:** Slice 6.
 - **Delivers:** `apps/media-worker` (count requests and bytes including ranges, check tenant state and
   the blocked list, then cache, then R2); per-period counters aggregated within a minute; 429

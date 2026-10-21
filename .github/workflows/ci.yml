@@ -32,9 +32,11 @@ jobs:
 
       - uses: pnpm/action-setup@v4
 
+      # Node 24, the active LTS (Node 20 reached its end of life in April 2026); the media Worker's tests run in
+      # Miniflare, which needs Node 22 or later.
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
