@@ -184,7 +184,7 @@ The tenant's brand owns this surface. Lytro provides the defaults a new shop sta
 **Free and paid.** Every shop shows its own name and logo, or a monogram, on Lytro's defaults (TEN-16). The shop's own colours, fonts, shape and spacing need the brand identity add-on (BRN-02, BRN-05).
 
 ### 8.4 Operator console (`apps/operator`, `admin.lytro.app`)
-Inverted so an operator never confuses it with a tenant's dashboard: chrome `#061211`, surfaces `#132725`, text neutral-100, primary teal-400 with ink text, accent marigold-300. An "OPERATOR" eyebrow in marigold sits above the wordmark in the sidebar. Favicon and icon use `icon-operator.svg` (ink tile, marigold mark). Copy is English-leaning and exact.
+Amended 2026-10-21 (OPERATOR-CONSOLE-DESIGN.md v2): the console is light, with the same surfaces, text and primary as the tenant dashboard, so tables and forms read the same way everywhere. What tells it apart is one cue: an ink `#061211` band at the top on phones and an ink sidebar head on desktop, carrying the "OPERATOR" eyebrow in marigold-300 above the wordmark, plus marigold count badges. The fully inverted chrome of the first design (chrome `#061211`, surfaces `#132725`) is retired. Favicon and icon still use `icon-operator.svg` (ink tile, marigold mark). Copy is English-leaning and exact, with the Bangla toggle.
 
 ### 8.5 Android listener
 App name "Lytro Listener". Launcher icon `icon-listener.svg` (ink tile, white mark, marigold signal arcs). Status bar notification icon is the white-only mark on the 24 dp grid. Screens are dark: background `#0c1a19`, pairing code boxes in marigold-300 with ink digits, a single status line in Bangla at the top ("চালু আছে" in teal-400, "পেয়ার করা নেই" in marigold-300, "সাবস্ক্রিপশন ইনঅ্যাক্টিভ" in danger). Persistent notification text: "Lytro Listener চালু আছে। পেমেন্ট SMS মিলছে।"
@@ -231,7 +231,8 @@ Used for manual payments only. A wallet whose gateway the seller has connected s
 | `lytro-onboarding.html`, `lytro-site-pages.html`, `lytro-support-legal.html` | The first onboarding flow (its screens are superseded by `lytro-dashboard.html`; its flow and decisions stay in ONBOARDING-FLOW-DESIGN.md), the site pages and the support and legal pages, self-contained prototypes (SITE-PAGES-DESIGN.md, SUPPORT-LEGAL-PAGES-DESIGN.md). |
 | `lytro-dashboard.html` | The whole seller journey as of Phase 3 Slice 3: sign-in and onboarding, every hub and sheet of the dashboard, the lifecycle states, and the later-phase designs under their own group; phone, tablet and desktop; self-contained prototype (TENANT-DASHBOARD-DESIGN.md). Supersedes `lytro-dashboard-sections.html` and the screens of `lytro-onboarding.html`. |
 | `lytro-payment-page.html` | The hosted manual-payment page (`pay.lytro.app`): a panel per wallet in its official colours, every account type and session state, self-contained prototype (PAYMENT-PAGE-DESIGN.md). |
-| `lytro-dashboard-sections.html`, `lytro-operator.html` | The earlier Phase 1–2 dashboard sections (superseded, kept for history) and the operator console, self-contained prototypes (DASHBOARD-SECTIONS-DESIGN.md, OPERATOR-CONSOLE-DESIGN.md). |
+| `lytro-operator.html` | The operator console as of Phase 3 Slice 9: sign-in, Today, the payment queue, shops and their actions, plans and prices, billing terms, rates, settings, wallets, the catalogue library screens, the account page, and the later work under its own group; phone, tablet and desktop; English and Bangla; self-contained prototype (OPERATOR-CONSOLE-DESIGN.md v2, 2026-10-21). Replaces the first, dark operator sketch. |
+| `lytro-dashboard-sections.html` | The earlier Phase 1–2 dashboard sections (superseded, kept for history), self-contained prototype (DASHBOARD-SECTIONS-DESIGN.md). |
 
 ---
 
