@@ -490,7 +490,7 @@ describeIfDatabase('the pay-as-you-go product fee (PYG-16)', () => {
     const shop = await openShop(port, texts, 'payg');
     await admin.query(
       `UPDATE control.tenants SET state = 'pay_as_you_go',
-         plan_id = (SELECT id FROM control.plans WHERE name = 'Pay-as-you-go')
+         plan_id = (SELECT id FROM control.plans WHERE name = 'Pay-as-you-go'), plan_snapshot = (SELECT limits FROM control.plans WHERE name = 'Pay-as-you-go')
        WHERE id = $1`,
       [shop.tenantId],
     );

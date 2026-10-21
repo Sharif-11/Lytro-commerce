@@ -79,7 +79,7 @@ function shopCall(who: Owner): Record<string, string> {
 async function staffSession(who: Owner): Promise<Record<string, string>> {
   // A trial has one seat (the owner's); a Starter plan has room to hire.
   await admin.query(
-    `UPDATE control.tenants SET plan_id = (SELECT id FROM control.plans WHERE name = 'Starter')
+    `UPDATE control.tenants SET plan_id = (SELECT id FROM control.plans WHERE name = 'Starter'), plan_snapshot = (SELECT limits FROM control.plans WHERE name = 'Starter')
      WHERE id = $1`,
     [who.tenantId],
   );
@@ -118,7 +118,7 @@ async function staffSession(who: Owner): Promise<Record<string, string>> {
 async function makePayAsYouGo(tenantId: string): Promise<void> {
   await admin.query(
     `UPDATE control.tenants SET state = 'pay_as_you_go',
-       plan_id = (SELECT id FROM control.plans WHERE name = 'Pay-as-you-go'),
+       plan_id = (SELECT id FROM control.plans WHERE name = 'Pay-as-you-go'), plan_snapshot = (SELECT limits FROM control.plans WHERE name = 'Pay-as-you-go'),
        period_start = now(), period_end = NULL, last_activity_at = now()
      WHERE id = $1`,
     [tenantId],

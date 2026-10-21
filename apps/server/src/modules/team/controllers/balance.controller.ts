@@ -13,7 +13,7 @@ import {
 import { ApiBody, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { IdempotencyInterceptor } from '../../../common/idempotency/idempotency.interceptor';
 import { ZodResponse } from 'nestjs-zod';
-import { LedgerEntryType, Permission } from '@lytronix/validators';
+import { LedgerEntryType, limitOf, Permission } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import { Dashboard } from '../../../common/decorators/dashboard';
 import { RequirePermission } from '../../../common/decorators/require-permission';
@@ -27,7 +27,6 @@ import { BalanceService } from '../../balance/services/balance.service';
 import { RateService } from '../../balance/services/rate.service';
 import { TopUpService } from '../../balance/services/top-up.service';
 import { EssentialSmsUsageService } from '../../sms-usage/services/essential-sms-usage.service';
-import { PlanLimitOverridesService } from '../../billing/services/plan-limit-overrides.service';
 import type { BalanceSnapshot, LedgerPage } from '../../balance/types/ledger-entry';
 import type { RateValue } from '../../balance/types/rate';
 import type { PlanPaymentRecord } from '../../payments/types/plan-payment';
@@ -65,7 +64,6 @@ export class BalanceController {
     @Inject(RateService) private readonly rates: RateService,
     @Inject(TopUpService) private readonly topUp: TopUpService,
     @Inject(EssentialSmsUsageService) private readonly smsUsage: EssentialSmsUsageService,
-    @Inject(PlanLimitOverridesService) private readonly limitOverrides: PlanLimitOverridesService,
   ) {}
 
   @Get()
@@ -161,16 +159,13 @@ export class BalanceController {
   }> {
     const tenantId = this.tenantIdOf(request);
     const usage = await this.smsUsage.currentUsage(tenantId, new Date());
-    // PLN-11: a per-tenant override (e.g. free essential SMS) must win over the plan snapshot here too.
-    const limits = await this.limitOverrides.effectiveLimits(
-      tenantId,
-      request.tenant?.planLimits ?? null,
-    );
+    // PLN-11: the shop's own limits, its overrides laid over its snapshot (e.g. extra free essential SMS).
+    const limits = request.tenant?.planLimits ?? null;
     return {
       monthlyUsed: usage.monthly,
       totalUsed: usage.total,
-      monthlyLimit: limits?.essential_sms_monthly ?? null,
-      totalLimit: limits?.essential_sms_total ?? null,
+      monthlyLimit: limitOf(limits, 'essential_sms_monthly'),
+      totalLimit: limitOf(limits, 'essential_sms_total'),
     };
   }
 

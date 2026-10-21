@@ -1,7 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { EdgeShopRow, Transaction } from '@lytronix/db';
 import type { MediaBlockReason, MediaBlockedList } from '@lytronix/shared-types';
-import { withOverrides, type PlanLimits } from '@lytronix/validators';
+import { limitOf, withOverrides, type PlanLimits, type UsageLimitKey } from '@lytronix/validators';
 import { DAY_MS, MINUTE_MS, dhakaDate, usageCycleStart } from '../../../common/time';
 import { warningDue } from '../../../common/usage-warnings';
 import { CLOSED_STATES } from '../../tenancy/services/tenant-resolver.service';
@@ -29,7 +29,7 @@ const LONGEST_CYCLE_MS = 31 * DAY_MS;
 // LIF-19: a deleted shop's files go in the deletion job after it; the shop stays blocked this long, so none is
 // served while the job runs or is retried.
 const DELETED_BLOCKED_MS = 30 * DAY_MS;
-const BANDWIDTH_KEY: keyof PlanLimits = 'bandwidth_gb';
+const BANDWIDTH_KEY: UsageLimitKey = 'bandwidth_gb';
 
 /** What the minute's pass needs that only the server's settings know. */
 export interface BandwidthSettings {
@@ -42,7 +42,7 @@ function limitBytes(
   snapshot: PlanLimits | null,
   overrides: readonly LimitOverrideRow[],
 ): number | null {
-  const gb = withOverrides(snapshot, overrides)?.bandwidth_gb ?? null;
+  const gb = limitOf(withOverrides(snapshot, overrides), BANDWIDTH_KEY);
   return gb === null ? null : gb * GB;
 }
 

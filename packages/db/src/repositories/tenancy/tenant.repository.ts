@@ -12,12 +12,19 @@ import {
   notIlike,
   or,
   lte,
+  sql,
 } from 'drizzle-orm';
 import type { Database } from '../../client';
 import type { Executor } from '../../transactions';
 import { escapeLike } from '../like';
 import { plans, tenantDomains, tenants } from '../../schema';
-import { DomainStatus, KycStatus, TenantState, type PlanLimits } from '@lytronix/validators';
+import {
+  DomainStatus,
+  KycStatus,
+  TenantState,
+  withOverrides,
+  type PlanLimits,
+} from '@lytronix/validators';
 
 // LIF-21: "the old subdomain shall stay reserved for 30 days" after deletion.
 const SLUG_RESERVATION_MS = 30 * 24 * 60 * 60 * 1000;
@@ -39,12 +46,43 @@ export interface TenantSummaryRow {
   suspendedAt: Date | null;
   planId: string | null;
   planName: string | null;
+  /** PLN-05, PLN-06, PLN-11: the shop's own limits: its plan snapshot with its overrides laid over it. */
   planLimits: PlanLimits | null;
+  /** UPG-10, PYG-19: with the state and creation date, what the shop's usage cycles are counted from. */
+  periodStart: Date | null;
   periodEnd: Date | null;
+  createdAt: Date;
   /** TEN-31: the account that owns the shop, for the dashboard's membership check. */
   ownerSubscriberId: string;
   /** PST-01: the shop's main business type (a preset key), which sets new products' defaults; null until chosen. */
   businessType: string | null;
+}
+
+// PLN-11: a shop's overrides as one object, read with the shop itself.
+const overridesOfShop = sql<Record<string, unknown> | null>`(
+  SELECT jsonb_object_agg(o.limit_key, o.value)
+  FROM control.plan_limit_overrides o
+  WHERE o.tenant_id = ${tenants.id}
+)`;
+
+/**
+ * PLN-05, PLN-06: the limits a shop is held to are the snapshot frozen when it bought its plan, never the live plan's,
+ * which an operator's edit would otherwise change in the middle of a period already paid for.
+ */
+function limitsOf(
+  snapshot: PlanLimits | null,
+  overrides: Record<string, unknown> | null,
+): PlanLimits | null {
+  const list = Object.entries(overrides ?? {}).map(([limitKey, value]) => ({ limitKey, value }));
+  return withOverrides(snapshot, list);
+}
+
+/** A summary as read, with the shop's own limits worked out from its snapshot and overrides. */
+function summaryOf<
+  R extends { planSnapshot: PlanLimits | null; overrides: Record<string, unknown> | null },
+>(row: R): Omit<R, 'planSnapshot' | 'overrides'> & { planLimits: PlanLimits | null } {
+  const { planSnapshot, overrides, ...rest } = row;
+  return { ...rest, planLimits: limitsOf(planSnapshot, overrides) };
 }
 
 // LIF-24: the operator's own keyset cursor for search() -- the latest-created tenant the caller has already
@@ -54,9 +92,7 @@ export interface TenantSearchCursor {
   id: string;
 }
 
-export interface TenantSearchRow extends TenantSummaryRow {
-  createdAt: Date;
-}
+export type TenantSearchRow = TenantSummaryRow;
 
 export class TenantRepository {
   /** INV-13, INV-16, MED-04: every shop not yet deleted, for the daily passes that visit each one. */
@@ -71,13 +107,13 @@ export class TenantRepository {
 
   async findSummaryById(db: Database, id: string): Promise<TenantSummaryRow | null> {
     const rows = await this.summaryQuery(db).where(eq(tenants.id, id)).limit(1);
-    return rows[0] ?? null;
+    return rows[0] ? summaryOf(rows[0]) : null;
   }
 
   /** TEN-31: the shop a dashboard page names by its slug. */
   async findSummaryBySlug(db: Database, slug: string): Promise<TenantSummaryRow | null> {
     const rows = await this.summaryQuery(db).where(eq(tenants.slug, slug)).limit(1);
-    return rows[0] ?? null;
+    return rows[0] ? summaryOf(rows[0]) : null;
   }
 
   private summaryQuery(db: Database) {
@@ -90,8 +126,11 @@ export class TenantRepository {
         suspendedAt: tenants.suspendedAt,
         planId: tenants.planId,
         planName: plans.name,
-        planLimits: plans.limits,
+        planSnapshot: tenants.planSnapshot,
+        overrides: overridesOfShop,
+        periodStart: tenants.periodStart,
         periodEnd: tenants.periodEnd,
+        createdAt: tenants.createdAt,
         ownerSubscriberId: tenants.subscriberId,
         businessType: tenants.businessType,
       })
@@ -121,7 +160,7 @@ export class TenantRepository {
         ),
       );
     }
-    return db
+    const rows = await db
       .select({
         id: tenants.id,
         slug: tenants.slug,
@@ -130,17 +169,20 @@ export class TenantRepository {
         suspendedAt: tenants.suspendedAt,
         planId: tenants.planId,
         planName: plans.name,
-        planLimits: plans.limits,
+        planSnapshot: tenants.planSnapshot,
+        overrides: overridesOfShop,
+        periodStart: tenants.periodStart,
         periodEnd: tenants.periodEnd,
+        createdAt: tenants.createdAt,
         ownerSubscriberId: tenants.subscriberId,
         businessType: tenants.businessType,
-        createdAt: tenants.createdAt,
       })
       .from(tenants)
       .leftJoin(plans, eq(plans.id, tenants.planId))
       .where(conditions.length > 0 ? and(...conditions) : undefined)
       .orderBy(desc(tenants.createdAt), desc(tenants.id))
       .limit(limit);
+    return rows.map(summaryOf);
   }
 
   /** Finds a shop by its address label, e.g. `fashion-house` for fashion-house.<platform domain>. */

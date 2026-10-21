@@ -5,9 +5,7 @@ import {
   AuditResult,
   PlatformActorType,
   PlatformAuditAction,
-  type PlanLimits,
   FieldProblemCode,
-  withOverrides,
 } from '@lytronix/validators';
 import { FieldsError } from '../../../common/api-error';
 import { AuditService } from '../../audit/services/audit.service';
@@ -72,15 +70,6 @@ export class PlanLimitOverridesService {
 
   listForTenant(tenantId: string): Promise<PlanLimitOverrideRecord[]> {
     return this.store.run((tx) => this.store.listForTenant(tx, tenantId));
-  }
-
-  /**
-   * PLN-11: "the override applies over the snapshot" -- every enforcement or display path that reads a
-   * tenant's plan limits must call this instead of reading the snapshot directly, so a per-tenant override
-   * actually takes effect rather than only existing in the operator's own CRUD screen.
-   */
-  async effectiveLimits(tenantId: string, snapshot: PlanLimits | null): Promise<PlanLimits | null> {
-    return withOverrides(snapshot, await this.listForTenant(tenantId));
   }
 
   /** Removing the override restores the plan snapshot's own value (PLN-11). */

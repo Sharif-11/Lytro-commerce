@@ -1,6 +1,10 @@
 import 'dotenv/config';
 import { sql } from 'drizzle-orm';
-import { DELETION_AUDIT_ACTIONS, MONEY_RELATED_AUDIT_ACTIONS } from '@lytronix/validators';
+import {
+  ACTIVITY_RETENTION_DAYS_WHEN_UNSET,
+  DELETION_AUDIT_ACTIONS,
+  MONEY_RELATED_AUDIT_ACTIONS,
+} from '@lytronix/validators';
 import { DatabaseConnector } from './client';
 
 // AUD-07: a money-related entry is kept this long regardless of the plan's own retention setting; LIF-19: so is every
@@ -8,7 +12,8 @@ import { DatabaseConnector } from './client';
 const MONEY_RETENTION_MONTHS = 24;
 
 /**
- * Deletes activity log entries past each shop's plan retention (AUD-06), except a money-related entry
+ * Deletes activity log entries past each shop's retention (AUD-06) -- its operator override, else its plan snapshot,
+ * never the live plan, whose edit must not reach a period already paid for (PLN-06, PLN-11) -- except a money-related entry
  * (payment, wallet, credential, plan, balance -- AUD-07's own four categories, as `MONEY_RELATED_AUDIT_ACTIONS`),
  * which is kept for 24 months regardless of plan. DWN-11: a downgrade that shortens retention doesn't lower
  * the floor used here until `tenants.retention_floor_until` (set by `DowngradeService.apply`, 14 days after
@@ -39,6 +44,11 @@ export class ActivityLogPurger {
         new Set([...MONEY_RELATED_AUDIT_ACTIONS, ...DELETION_AUDIT_ACTIONS]),
       );
       const kept = sql.raw(`interval '${String(MONEY_RETENTION_MONTHS)} months'`);
+      // PLN-11: an override wins over the snapshot; PLN-19's table gives the days when neither sets any.
+      const retention = sql`COALESCE(
+        (o.value #>> '{}')::int,
+        (t.plan_snapshot ->> 'activity_retention_days')::int
+      )`;
       const result = await handle.db.transaction(async (tx) => {
         await tx.execute(
           sql`ALTER TABLE tenant.activity_log DISABLE TRIGGER activity_log_insert_only`,
@@ -47,7 +57,8 @@ export class ActivityLogPurger {
           return await tx.execute(sql`
             DELETE FROM tenant.activity_log al
             USING control.tenants t
-            LEFT JOIN control.plans p ON p.id = t.plan_id
+            LEFT JOIN control.plan_limit_overrides o
+              ON o.tenant_id = t.id AND o.limit_key = 'activity_retention_days'
             WHERE al.tenant_id = t.id
               AND (
                 (
@@ -60,10 +71,10 @@ export class ActivityLogPurger {
                     COALESCE(
                       CASE
                         WHEN t.retention_floor_until IS NOT NULL AND now() < t.retention_floor_until
-                          THEN GREATEST(t.retention_floor_days, (p.limits ->> 'activity_retention_days')::int)
-                        ELSE (p.limits ->> 'activity_retention_days')::int
+                          THEN GREATEST(t.retention_floor_days, ${retention})
+                        ELSE ${retention}
                       END,
-                      30
+                      ${ACTIVITY_RETENTION_DAYS_WHEN_UNSET}
                     ) || ' days'
                   )::interval
                   AND (al.action NOT IN (${moneyActions}) OR al.created_at < now() - ${kept})

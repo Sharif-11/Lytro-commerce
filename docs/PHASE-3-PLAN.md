@@ -847,6 +847,31 @@ their backend ships earlier.
   Manager accepts the feed URL, and after regeneration the old URL returns 404.
 
 ### Slice 10: limits, usage and downgrade integration
+- **Status (2026-10-21):** seven decisions agreed with the user before any code, the third extended:
+  - **Usage endpoint:** `GET /usage`, for `payments:read`: products, seats, storage, bandwidth with its days, this
+    cycle's API requests and the free essential SMS (a total on a trial, a month's on a plan), each used against its
+    limit (null is unlimited), with whether it starts again each cycle and the cycle's start and end.
+  - **One definition of every limit:** a shop's limits are its snapshot with its overrides, read with the shop
+    itself, never the live plan's (KNOWN-GAPS §83). One table says what an unset limit means: unlimited for
+    products, orders, storage, bandwidth and SMS; one seat (the owner's); one listener device; Trial's 20,000 API
+    requests. The activity-log purge reads the override, then the snapshot, then 30 days.
+  - **Warnings:** 50, 80 and 95 percent for products, storage, seats and SMS too, once a cycle each, checked right
+    after the write, through one usage notifier. Every limit that is enforced suggests a suitable add-on (from
+    Slice 10a) or plan -- in its warnings, on the usage page, and when an action is refused. The bandwidth and
+    request warnings also give a run-out estimate from the daily figures, offer auto-buy and a one-tap pack, go by
+    email and a dashboard banner, and add a free SMS at 100%. A [110] percent grace keeps media and the API serving
+    while the 100 percent notice goes out, never charged (BND-03 and RTE-03 amended with the code). With them, the
+    fast-spend alert of KNOWN-GAPS §82.
+  - **Downgrade preview:** products and storage join it, judged by the target plan's limits with the shop's
+    overrides.
+  - **The 30 days after a downgrade:** a live checklist on `GET /billing/downgrade` (DWN-12) and one final warning
+    from the lifecycle job (DWN-14), with `downgraded_at` and `downgrade_final_warning_at` on the shop.
+  - **Done-when test:** 340 products downgraded to 100 stay listed and public; a new one is refused; storage alike.
+  - **Built first:** the usage endpoint and the one definition of every limit, with §83's fix. Found while building
+    it: test set-ups moved a shop to another plan by its plan id alone, which worked only because limits came from
+    the live plan; they now write the plan's snapshot too, as a purchase does. TRL-05's refusal of a trial's ninth
+    essential SMS waits for the first essential SMS that is not a sign-in code (Phase 4's order messages): the
+    sign-in code is the only one today, and TRL-05 says it is never refused.
 - **Depends on:** Slices 1, 6, 7, 8.
 - **Delivers:** the usage API (every metric that exists against its limit); threshold notices; products
   and storage added to the downgrade over-limit list and final warning; "unlimited" honoured across all

@@ -91,6 +91,12 @@ export class RequestQuota implements OnModuleInit, OnModuleDestroy, BeforeApplic
     return true;
   }
 
+  /** LIM-02: the shop's requests in the cycle: those stored, and those this server has not stored yet. */
+  async used(tenantId: string, cycleStart: Date, now: Date): Promise<number> {
+    const stored = await this.storedTotal(tenantId, cycleStart, now);
+    return stored + (this.pending.get(cycleKey(tenantId, cycleStart))?.count ?? 0);
+  }
+
   /**
    * RTE-06, KNOWN-GAPS §82: counts a request the per-visitor limit refused against the shop's cycle, and its visitor
    * once a cycle. This server alone remembers the visitors, so after a restart one may be counted again, until Phase 9

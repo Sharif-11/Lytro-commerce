@@ -1,20 +1,17 @@
 import { Injectable, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
-import type { PlanLimits } from '@lytronix/validators';
+import { limitOf, type PlanLimits } from '@lytronix/validators';
 import { MINUTE_MS } from '../../../common/time';
 import { SlidingWindow, type WindowVerdict } from './sliding-window';
-
-// PLN-19: a limit a plan does not set falls back to the consumer's own figure. A plan an operator made before this
-// limit existed is held to the Trial plan's (2.1) until the operator sets its own; every seeded plan and every shop's
-// snapshot carries it (migration 0064).
-const MONTHLY_NOT_SET = 20_000;
 
 /** A limit as the API applies it: a number, or null for unlimited (PLN-19). */
 export type AppliedLimit = number | null;
 
-/** RTE-03, RTE-10: the shop's requests per billing cycle, from its snapshot and overrides. */
+/**
+ * RTE-03, RTE-10: the shop's requests per billing cycle, from its snapshot and overrides. A plan made before this
+ * limit existed is held to the Trial plan's (PLN-19's table); every seeded plan and snapshot carries it (migration 0064).
+ */
 export function monthlyLimit(limits: PlanLimits | null): AppliedLimit {
-  const value = limits?.requests_monthly;
-  return value === undefined ? MONTHLY_NOT_SET : value;
+  return limitOf(limits, 'requests_monthly');
 }
 
 // How often the windows drop buckets nobody is using.

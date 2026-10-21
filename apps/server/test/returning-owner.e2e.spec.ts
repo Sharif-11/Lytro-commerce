@@ -204,7 +204,7 @@ describeIfDatabase('an owner whose shop was deleted opens a new one (LIF-21)', (
 
     // A staff member who may read payments sees only this shop's invoices.
     await admin.query(
-      `UPDATE control.tenants SET plan_id = (SELECT id FROM control.plans WHERE name = 'Starter')
+      `UPDATE control.tenants SET plan_id = (SELECT id FROM control.plans WHERE name = 'Starter'), plan_snapshot = (SELECT limits FROM control.plans WHERE name = 'Starter')
         WHERE id = $1`,
       [newTenantId],
     );

@@ -27,6 +27,7 @@ import {
   type SaveProductAttributesInput,
   type SaveVariantsInput,
   type UpdateProductInput,
+  limitOf,
 } from '@lytronix/validators';
 import { ApiError, FieldsError, type InvalidField } from '../../../common/api-error';
 import { MissingReference } from '../../../common/errors/missing-reference';
@@ -174,6 +175,11 @@ export class ProductService {
     @Inject(CATALOGUE_IMAGE_STORE) private readonly photos: CatalogueImageStore,
     @Inject(CatalogueImages) private readonly images: CatalogueImages,
   ) {}
+
+  /** LIM-02, PRD-04: the products the shop's limit counts. */
+  liveCount(tenantId: string): Promise<number> {
+    return this.transactions.run((tx) => this.products.countLiveProducts(tx, tenantId));
+  }
 
   /** PRD-12: the dashboard's list, 20 to a page by default, archived products left out. */
   list(tenantId: string, query: ListProductsQuery): Promise<ProductPage> {
@@ -832,9 +838,9 @@ export class ProductService {
 
   /** PRD-04, ATR-12, DWN-07, PLN-19, TRL-03: one more product only while the shop is under its limit. */
   private async refuseOverLimit(tx: Transaction, shop: CatalogueShop): Promise<void> {
-    const limit = shop.planLimits?.products;
-    // null is unlimited (PLN-19); a plan that sets no product limit at all caps nothing either.
-    if (limit === null || limit === undefined) return;
+    const limit = limitOf(shop.planLimits, 'products');
+    // null is unlimited (PLN-19), and so is a plan that sets no product limit at all.
+    if (limit === null) return;
     const live = await this.products.countLiveProducts(tx, shop.id);
     if (live >= limit) {
       throw new ApiError(

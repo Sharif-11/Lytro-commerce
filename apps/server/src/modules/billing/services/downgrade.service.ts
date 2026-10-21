@@ -5,6 +5,7 @@ import {
   AuditAction,
   AuditResult,
   LAPSED_TENANT_STATES,
+  limitOf,
   MONEY_RELATED_AUDIT_ACTIONS,
   type PlanLimits,
   ScheduledPlanChangeKind,
@@ -17,7 +18,7 @@ import type { AuditEntry } from '../../audit/types/activity';
 import { BalanceService } from '../../balance/services/balance.service';
 import { MailService } from '../../shared/mail/services/mail.service';
 import { MessagingService } from '../../shared/messaging/services/messaging.service';
-import { DEFAULT_SEATS, StaffService } from '../../staff/services/staff.service';
+import { StaffService } from '../../staff/services/staff.service';
 import { TenantCache } from '../../tenancy/services/tenant-cache';
 import { TenantService } from '../../tenancy/services/tenant.service';
 import type { ScheduledPlanChangesStore } from '../ports/scheduled-plan-changes-store';
@@ -172,9 +173,8 @@ export class DowngradeService {
   /** DWN-03: every limit the target plan would already be over, today -- only what's actually trackable. */
   async preview(tenantId: string, planId: string): Promise<OverLimitItem[]> {
     const targetPlan = await this.plans.findById(planId);
-    const staffLimit = targetPlan.limits.staff;
     // PLN-19: null means unlimited seats on the target plan, never over-limit.
-    const seatLimit = staffLimit === null ? null : (staffLimit ?? DEFAULT_SEATS);
+    const seatLimit = limitOf(targetPlan.limits, 'staff');
     const { seats } = await this.staff.list({ id: tenantId, planLimits: targetPlan.limits });
 
     const items: OverLimitItem[] = [];
@@ -349,7 +349,7 @@ export class DowngradeService {
       await this.sendRetentionShrinkNotice(tenantId, now, retentionShrink);
     }
     // PLN-19: null means unlimited seats on the plan being applied, nothing to enforce.
-    const seatLimit = limits.staff === null ? null : (limits.staff ?? DEFAULT_SEATS);
+    const seatLimit = limitOf(limits, 'staff');
     await this.staff.enforceSeatLimit({ id: tenantId, planLimits: limits }, seatLimit, now);
   }
 

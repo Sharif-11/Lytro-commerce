@@ -999,7 +999,7 @@ describeIfDatabase('LIF-21: the old shop identity is revoked 30 days after delet
     const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, slug, 'trial');
     const planId = await seedPlan((nextRank += 1));
     await admin.query(
-      `UPDATE control.tenants SET plan_id = $1,
+      `UPDATE control.tenants SET plan_id = $1, plan_snapshot = (SELECT limits FROM control.plans WHERE id = $1),
          contact_phone = '01711111111', contact_email = 'owner@example.com',
          business_address = '123 Main Road', suspended_reason = 'past policy note',
          kyc_status = 'verified'

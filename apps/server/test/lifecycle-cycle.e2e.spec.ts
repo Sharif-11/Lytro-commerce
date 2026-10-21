@@ -131,10 +131,10 @@ describeIfDatabase(
 
       // --- BIL-11: a tenant whose own plan already lapsed 5 days ago. Purchasing (renewing the same plan)
       // after the period ended restarts a full fresh period from confirmation time, not an extension. ---
-      await admin.query('UPDATE control.tenants SET plan_id = $1 WHERE id = $2', [
-        starterId,
-        tenantId,
-      ]);
+      await admin.query(
+        'UPDATE control.tenants SET plan_id = $1, plan_snapshot = (SELECT limits FROM control.plans WHERE id = $1) WHERE id = $2',
+        [starterId, tenantId],
+      );
       await backdatePeriodEnd(tenantId, 5);
       const beforePurchase = Date.now();
       const purchaseQuote = await purchase.quote(tenantId, starterId, starterTermId);

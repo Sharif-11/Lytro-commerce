@@ -115,7 +115,7 @@ async function tenantIdOf(slug: string): Promise<string> {
 
 async function viewerSession(who: Owner): Promise<Record<string, string>> {
   await admin.query(
-    `UPDATE control.tenants SET plan_id = (SELECT id FROM control.plans WHERE name = 'Starter')
+    `UPDATE control.tenants SET plan_id = (SELECT id FROM control.plans WHERE name = 'Starter'), plan_snapshot = (SELECT limits FROM control.plans WHERE name = 'Starter')
      WHERE slug = $1`,
     [who.slug],
   );
