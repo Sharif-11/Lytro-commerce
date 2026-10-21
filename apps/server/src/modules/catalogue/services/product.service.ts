@@ -28,8 +28,10 @@ import {
   type SaveVariantsInput,
   type UpdateProductInput,
   limitOf,
+  UsageMetric,
 } from '@lytronix/validators';
 import { ApiError, FieldsError, type InvalidField } from '../../../common/api-error';
+import { UsageWarnings } from '../../usage-warnings/services/usage-warnings';
 import { MissingReference } from '../../../common/errors/missing-reference';
 import { StockRefused } from '../../../common/errors/stock-refused';
 import { UniqueViolation } from '../../../common/errors/unique-violation';
@@ -174,6 +176,7 @@ export class ProductService {
     @Inject(CatalogueActivity) private readonly activity: CatalogueActivity,
     @Inject(CATALOGUE_IMAGE_STORE) private readonly photos: CatalogueImageStore,
     @Inject(CatalogueImages) private readonly images: CatalogueImages,
+    @Inject(UsageWarnings) private readonly warnings: UsageWarnings,
   ) {}
 
   /** LIM-02, PRD-04: the products the shop's limit counts. */
@@ -846,13 +849,20 @@ export class ProductService {
       throw new ApiError(
         'plan_limit_reached',
         'ProductLimitReached',
-        { products: limit },
+        { metric: UsageMetric.Products, products: limit },
         undefined,
         {
           products: limit,
         },
       );
     }
+    // LIM-01: the one this makes, warned of with its write.
+    await this.warnings.check(tx, {
+      tenantId: shop.id,
+      metric: UsageMetric.Products,
+      used: live + 1,
+      limit,
+    });
   }
 
   private async checkCategories(

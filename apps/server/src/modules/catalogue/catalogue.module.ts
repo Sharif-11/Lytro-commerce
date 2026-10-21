@@ -17,6 +17,7 @@ import { AuditModule } from '../audit/audit.module';
 import { BalanceModule } from '../balance/balance.module';
 import { StaffModule } from '../staff/staff.module';
 import { TenancyModule } from '../tenancy/tenancy.module';
+import { UsageWarningsModule } from '../usage-warnings/usage-warnings.module';
 import { AttributeService } from './services/attribute.service';
 import { CatalogueActivity } from './services/catalogue-activity';
 import { CatalogueEraser } from './services/catalogue-eraser';
@@ -48,7 +49,7 @@ import {
 // balance (the pay-as-you-go product fee joins the creation's transaction, PYG-16), audit, staff (naming the owner)
 // and tenancy (the shop's business type); nothing in those depends back on it. Inventory (Slice 2) will.
 @Module({
-  imports: [AuditModule, BalanceModule, StaffModule, TenancyModule],
+  imports: [AuditModule, BalanceModule, StaffModule, TenancyModule, UsageWarningsModule],
   providers: [
     { provide: CATALOGUE_TRANSACTIONS, useClass: DrizzleCatalogueTransactions },
     { provide: ATTRIBUTE_STORE, useClass: DrizzleAttributeStore },

@@ -10,6 +10,7 @@ import {
   Permission,
   QueueName,
   ServerFieldProblemCode,
+  UsageMetric,
   type MediaListQuery,
   type StartUploadInput,
 } from '@lytronix/validators';
@@ -308,7 +309,7 @@ export class MediaService {
       throw new ApiError(
         'plan_limit_reached',
         'StorageLimitReached',
-        { storage_mb: limitMb },
+        { metric: UsageMetric.Storage, storage_mb: limitMb },
         undefined,
         { mb: limitMb },
       );

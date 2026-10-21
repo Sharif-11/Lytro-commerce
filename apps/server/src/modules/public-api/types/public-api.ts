@@ -6,7 +6,6 @@ import type {
   SelectApiKey,
 } from '@lytronix/db';
 import type { ApiKeyType, PlanLimits } from '@lytronix/validators';
-import type { UsageWarning } from '../../../common/usage-warnings';
 
 // The stored rows, as aliases of the shared types (ENGINEERING-STANDARDS §4), never copies.
 export type ApiKeyRecord = SelectApiKey;
@@ -45,15 +44,6 @@ export interface ApiShop {
   row: ApiShopRow;
   /** PLN-11: the snapshot with the shop's overrides over it. */
   limits: PlanLimits | null;
-}
-
-/** RTE-03: a shop's keys have made this share of the requests its billing cycle allows. */
-export interface RequestQuotaNotice {
-  tenantId: string;
-  cycleStart: Date;
-  percent: UsageWarning;
-  requests: number;
-  limit: number;
 }
 
 /** GET /v1/shop: the shop a key belongs to, as anyone holding the key may see it. */

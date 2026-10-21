@@ -30,6 +30,7 @@ interface Figure {
   limit: number | null;
   unit: string;
   perCycle: boolean;
+  level: number | string | null;
 }
 
 interface UsageBody {
@@ -103,14 +104,14 @@ describeIfDatabase('the usage page (LIM-02)', () => {
     }
 
     const body = await usageOf(shop);
-    // A trial's limits (TRL-03), its free SMS a total rather than a month's.
+    // A trial's limits (TRL-03), its free SMS a total rather than a month's; its one seat is the owner's, all in use.
     expect(byMetric(body)).toEqual({
-      products: { used: 2, limit: 20, unit: 'count', perCycle: false },
-      seats: { used: 1, limit: 1, unit: 'count', perCycle: false },
-      storage: { used: 0, limit: 200 * MB, unit: 'bytes', perCycle: false },
-      bandwidth: { used: 0, limit: 5 * GB, unit: 'bytes', perCycle: true },
-      requests: { used: 3, limit: 20_000, unit: 'count', perCycle: true },
-      essential_sms_total: { used: 0, limit: 8, unit: 'count', perCycle: false },
+      products: { used: 2, limit: 20, unit: 'count', perCycle: false, level: null },
+      seats: { used: 1, limit: 1, unit: 'count', perCycle: false, level: 100 },
+      storage: { used: 0, limit: 200 * MB, unit: 'bytes', perCycle: false, level: null },
+      bandwidth: { used: 0, limit: 5 * GB, unit: 'bytes', perCycle: true, level: null },
+      requests: { used: 3, limit: 20_000, unit: 'count', perCycle: true, level: null },
+      essential_sms_total: { used: 0, limit: 8, unit: 'count', perCycle: false, level: null },
     });
     // The cycle is a month long and running now.
     const start = new Date(body.cycleStart).getTime();
@@ -182,6 +183,7 @@ describeIfDatabase('the usage page (LIM-02)', () => {
       limit: 10,
       unit: 'count',
       perCycle: true,
+      level: null,
     });
   });
 });

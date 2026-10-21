@@ -2,7 +2,13 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Inject, Injectable } from '@nestjs/common';
-import { MediaKind, MediaObjectRole, MediaStatus, QueueName } from '@lytronix/validators';
+import {
+  MediaKind,
+  MediaObjectRole,
+  MediaStatus,
+  QueueName,
+  UsageMetric,
+} from '@lytronix/validators';
 import { MediaRefused } from '../../../common/errors/media-refused';
 import { mediaKeys } from '../../../common/media-links';
 import type { JobQueue } from '../../shared/queue/ports/job-queue';
@@ -13,6 +19,7 @@ import type { MediaStore } from '../ports/media-store';
 import { MEDIA_NOTIFIER, MEDIA_STORAGE, MEDIA_STORE } from '../tokens';
 import type { MediaRecord } from '../types/media';
 import { ImageProcessor } from './image-processor';
+import { UsageWarnings } from '../../usage-warnings/services/usage-warnings';
 import { MB, MediaLimits } from './media-limits';
 import type { MediaDeletePayload } from './media.service';
 import { VideoProcessor } from './video-processor';
@@ -50,6 +57,7 @@ export class MediaProcessor {
     @Inject(ImageProcessor) private readonly images: ImageProcessor,
     @Inject(VideoProcessor) private readonly videos: VideoProcessor,
     @Inject(MediaLimits) private readonly limits: MediaLimits,
+    @Inject(UsageWarnings) private readonly warnings: UsageWarnings,
   ) {}
 
   async process(tenantId: string, mediaId: string): Promise<void> {
@@ -171,7 +179,8 @@ export class MediaProcessor {
         return 'gone';
       }
       const limitMb = await this.limits.storageMb(tx, tenantId);
-      if (limitMb !== null && (await this.store.storedBytes(tx, tenantId)) + bytes > limitMb * MB) {
+      const stored = await this.store.storedBytes(tx, tenantId);
+      if (limitMb !== null && stored + bytes > limitMb * MB) {
         await this.store.finish(tx, tenantId, mediaId, {
           status: MediaStatus.Failed,
           failure: 'storage_full',
@@ -196,6 +205,13 @@ export class MediaProcessor {
         height: prepared.height,
         durationMs: prepared.durationMs,
         hash: prepared.hash,
+      });
+      // LIM-01: the storage this file now takes, warned of with its write.
+      await this.warnings.check(tx, {
+        tenantId,
+        metric: UsageMetric.Storage,
+        used: stored + bytes,
+        limit: limitMb === null ? null : limitMb * MB,
       });
       return 'ready';
     });

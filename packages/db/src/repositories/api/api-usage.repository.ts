@@ -8,6 +8,8 @@ export interface ApiUsageRow {
   cycleStart: Date;
   requests: number;
   warnedPercent: number;
+  /** RTE-12: when the last fast-spend alert of the cycle went out, if one did. */
+  fastSpendAlertedAt: Date | null;
 }
 
 /** What one server counted for a shop's cycle since it last added its counts. */
@@ -45,6 +47,7 @@ export class ApiUsageRepository {
         cycleStart: apiUsage.cycleStart,
         requests: apiUsage.requests,
         warnedPercent: apiUsage.warnedPercent,
+        fastSpendAlertedAt: apiUsage.fastSpendAlertedAt,
       });
     if (!row) throw new Error('upsert returned no api usage row');
     return row;
@@ -57,11 +60,25 @@ export class ApiUsageRepository {
         cycleStart: apiUsage.cycleStart,
         requests: apiUsage.requests,
         warnedPercent: apiUsage.warnedPercent,
+        fastSpendAlertedAt: apiUsage.fastSpendAlertedAt,
       })
       .from(apiUsage)
       .where(and(eq(apiUsage.tenantId, tenantId), eq(apiUsage.cycleStart, cycleStart)))
       .limit(1);
     return rows[0] ?? null;
+  }
+
+  /** RTE-12: records that the cycle's fast-spend alert went out. */
+  async setFastSpendAlerted(
+    db: Executor,
+    tenantId: string,
+    cycleStart: Date,
+    at: Date,
+  ): Promise<void> {
+    await db
+      .update(apiUsage)
+      .set({ fastSpendAlertedAt: at })
+      .where(and(eq(apiUsage.tenantId, tenantId), eq(apiUsage.cycleStart, cycleStart)));
   }
 
   /** RTE-03: records the highest warning sent for the cycle, so each is sent once. */

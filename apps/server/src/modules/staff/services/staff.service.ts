@@ -7,10 +7,12 @@ import {
   limitOf,
   type PlanLimits,
   ServerFieldProblemCode,
+  UsageMetric,
 } from '@lytronix/validators';
 import { ApiError, FieldsError } from '../../../common/api-error';
 import { UniqueViolation } from '../../../common/errors/unique-violation';
 import { AuditService } from '../../audit/services/audit.service';
+import { UsageWarnings } from '../../usage-warnings/services/usage-warnings';
 import type { RoleStore } from '../ports/role-store';
 import type { StaffPasswordHasher } from '../ports/staff-password-hasher';
 import type { StaffShop, StaffStore } from '../ports/staff-store';
@@ -40,6 +42,7 @@ export class StaffService {
     @Inject(ROLE_STORE) private readonly roles: RoleStore,
     @Inject(STAFF_ACCOUNTS) private readonly accounts: StaffAccounts,
     @Inject(AuditService) private readonly audit: AuditService,
+    @Inject(UsageWarnings) private readonly warnings: UsageWarnings,
   ) {}
 
   /** The names of several staff rows at once, keyed by id (no N+1 per audit entry). */
@@ -387,10 +390,21 @@ export class StaffService {
     if (total === null) return; // PLN-19: unlimited seats never refuse.
     const used = await this.store.countActive(tx, tenant.id);
     if (used >= total) {
-      throw new ApiError('plan_limit_reached', 'SeatLimitReached', { seats: total }, undefined, {
-        seats: total,
-      });
+      throw new ApiError(
+        'plan_limit_reached',
+        'SeatLimitReached',
+        { metric: UsageMetric.Seats, seats: total },
+        undefined,
+        { seats: total },
+      );
     }
+    // LIM-01: the seat this takes, warned of with its write.
+    await this.warnings.check(tx, {
+      tenantId: tenant.id,
+      metric: UsageMetric.Seats,
+      used: used + 1,
+      limit: total,
+    });
   }
 
   // PLN-19: null means unlimited seats; a plan that sets none has the owner's one (STF-02).

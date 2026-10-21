@@ -399,6 +399,8 @@ export enum QueueName {
   MediaReconcileTick = 'media_reconcile_tick',
   // BND-02, MED-10: every minute, the media Worker's usage is totalled and its shared store brought up to date.
   MediaBandwidthTick = 'media_bandwidth_tick',
+  // LIM-01: a usage warning to write and send, queued in the transaction that crossed its share of a limit.
+  UsageNotice = 'usage_notice',
 }
 
 // Who performed the action (AUD-02). `system` is the platform itself (a scheduled job); `platform_support` is an
@@ -474,6 +476,8 @@ export enum PlatformAuditAction {
   PlatformOptionSetCreated = 'platform_option_set_created',
   PlatformOptionSetUpdated = 'platform_option_set_updated',
   PlatformOptionSetDeleted = 'platform_option_set_deleted',
+  // RTE-12: a shop spent a fast share of its cycle's API requests in one hour; the operators were told.
+  UsageFastSpendAlerted = 'usage_fast_spend_alerted',
 }
 
 // BAL-02: what a balance-ledger entry is for. One list, shared by every module that ever charges or credits a
@@ -548,6 +552,12 @@ export enum PlatformSettingKey {
   // RTE-06 (editable, KNOWN-GAPS §82): how many requests one visitor may make to one shop in any minute, through its
   // public keys and its catalog feed.
   PublicRequestsPerVisitorPerMinute = 'public_requests_per_visitor_per_minute',
+  // BND-03, RTE-03 (editable): how far past 100 percent of its bandwidth or API requests a shop is still served while
+  // its owner is told, as a percent of the limit, before they stop.
+  UsageGracePercent = 'usage_grace_percent',
+  // RTE-12 (editable, KNOWN-GAPS §82): the share of a cycle's API requests that, spent in one hour, tells the owner and
+  // the operator. Nothing is refused.
+  FastSpendPercent = 'fast_spend_percent',
 }
 
 // D2-1: what a control.plan_payments row is for -- a purchase, a renewal, an upgrade, or a balance top-up.

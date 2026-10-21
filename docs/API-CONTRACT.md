@@ -352,7 +352,7 @@ lapsed one, chooses it with `billing/pay-as-you-go` (PYG-10, LIF-15).
 | | | | Switching *from* pay-as-you-go *to* a subscription plan (PYG-11) has no endpoint of its own — it is a plain `billing/quote` + `billing/purchase` call (§8) at full price, no credit line, exactly as any other purchase. |
 | GET | `/api/v1/addons` | session | Priced catalogue (PLN-13). Deferred by Phase 2 (`PHASE-2-PLAN.md` D2-4); scheduled 2026-10-18 for Phase 3, Slice 10a. |
 | POST | `/api/v1/addons/:key/purchase` | session, `balance:manage` | Prorated; from the balance it takes effect at once, paid directly it takes effect on confirmation (PLN-14). Phase 3, Slice 10a. |
-| GET | `/api/v1/usage` | session, `payments:read` | Every metric against its limit, for the usage page (LIM-02): products, seats, storage, bandwidth (with each day), the cycle's API requests and the free essential SMS, each `{ metric, used, limit, unit, perCycle }` with `limit: null` for unlimited, plus the cycle's start and end. |
+| GET | `/api/v1/usage` | session, `payments:read` | Every metric against its limit, for the usage page (LIM-02): products, seats, storage, bandwidth (with each day), the cycle's API requests and the free essential SMS, each `{ metric, used, limit, unit, perCycle, level }` with `limit: null` for unlimited and `level` the highest share reached (50, 80, 95, 100, or `stopped` past the grace) for the banner; the cycle's start and end; `suggestions` (`{ first, alternative }`, each a plan with its price and term, or `contact`) once any metric is at 80% or more; and `fastSpendAlertedAt` (RTE-12). A `plan_limit_reached` refusal for products, seats or storage carries the same `suggestions` in its `details`, beside its `metric`. |
 
 ## 12. SMS and notifications
 

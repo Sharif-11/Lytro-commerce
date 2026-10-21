@@ -6,10 +6,14 @@ import {
   type OnModuleDestroy,
   type OnModuleInit,
 } from '@nestjs/common';
-import { DAY_MS, MINUTE_MS, SECOND_MS, usageCycleStart } from '../../../common/time';
-import { warningDue } from '../../../common/usage-warnings';
-import type { ApiUsageStore, RequestQuotaNotifier } from '../ports/api-key-store';
-import { API_USAGE_STORE, REQUEST_QUOTA_NOTIFIER } from '../tokens';
+import { UsageMetric } from '@lytronix/validators';
+import { DAY_MS, HOUR_MS, MINUTE_MS, SECOND_MS, usageCycleStart } from '../../../common/time';
+import { levelOf, pastGrace, servingShares, warningDue } from '../../../common/usage-warnings';
+import type { UsageNotices } from '../../usage-warnings/ports/usage-notices';
+import { UsageSettings } from '../../usage-warnings/services/usage-settings';
+import { USAGE_NOTICES } from '../../usage-warnings/tokens';
+import type { ApiUsageStore } from '../ports/api-key-store';
+import { API_USAGE_STORE } from '../tokens';
 import type { ApiShop, ApiUsageCounts } from '../types/public-api';
 import { monthlyLimit } from './request-limits';
 import { ExpiringCache } from './expiring-cache';
@@ -23,6 +27,8 @@ const STORED_TOTAL_ENTRIES = 10_000;
 // so a flood from very many addresses costs bounded memory. A cycle's are forgotten once it must have ended.
 const REFUSED_VISITORS_REMEMBERED = 10_000;
 const REFUSED_VISITORS_KEPT_MS = 32 * DAY_MS;
+// RTE-12: a shop's fast-spend alert goes out at most this often.
+const FAST_SPEND_ALERT_EVERY_MS = DAY_MS;
 
 interface Pending {
   tenantId: string;
@@ -41,10 +47,11 @@ function cycleKey(tenantId: string, cycleStart: Date): string {
 }
 
 /**
- * RTE-03, D3-2: each shop's requests per billing cycle. A request is counted here as it is let through, and refused
- * once the stored total plus this server's unflushed count reaches the cycle's limit. Counts reach PostgreSQL every
- * minute; there the shop is warned at 50, 80 and 95 percent, once each. A new cycle -- a new period, an upgrade
- * (UPG-10) -- starts from zero. The requests the per-visitor limit refused are counted here too (RTE-06).
+ * RTE-03, RTE-12, D3-2: each shop's requests per billing cycle. A request is counted here as it is let through, and
+ * refused once the stored total plus this server's unflushed count is past the cycle's limit and the grace after it.
+ * Counts reach PostgreSQL every minute; there the shop is told at 50, 80, 95 and 100 percent and at its stop, once
+ * each, and of an hour that spent a fast share of the cycle, at most once a day. A new cycle -- a new period, an
+ * upgrade (UPG-10) -- starts from zero. The requests the per-visitor limit refused are counted here too (RTE-06).
  */
 @Injectable()
 export class RequestQuota implements OnModuleInit, OnModuleDestroy, BeforeApplicationShutdown {
@@ -52,11 +59,14 @@ export class RequestQuota implements OnModuleInit, OnModuleDestroy, BeforeApplic
   private readonly pending = new Map<string, Pending>();
   private readonly stored = new ExpiringCache<number>(STORED_TOTAL_MS, STORED_TOTAL_ENTRIES);
   private readonly refusedVisitors = new Map<string, { cycleStart: Date; visitors: Set<string> }>();
+  // RTE-12: each shop's requests in the clock hour now running, as this server let them through.
+  private readonly hours = new Map<string, { hour: number; count: number }>();
   private flusher: NodeJS.Timeout | null = null;
 
   constructor(
     @Inject(API_USAGE_STORE) private readonly store: ApiUsageStore,
-    @Inject(REQUEST_QUOTA_NOTIFIER) private readonly notifier: RequestQuotaNotifier,
+    @Inject(USAGE_NOTICES) private readonly notices: UsageNotices,
+    @Inject(UsageSettings) private readonly settings: UsageSettings,
   ) {}
 
   onModuleInit(): void {
@@ -78,16 +88,26 @@ export class RequestQuota implements OnModuleInit, OnModuleDestroy, BeforeApplic
     await this.flush();
   }
 
-  /** Counts the request against the shop's cycle; false when the cycle's requests are used up. */
+  /**
+   * Counts the request against the shop's cycle; false once the cycle's requests and the grace after them are used up
+   * (RTE-03): past 100 percent the shop is still served while its owner is told.
+   */
   async take(shop: ApiShop, now: Date): Promise<boolean> {
     const limit = monthlyLimit(shop.limits);
     const cycleStart = usageCycleStart(shop.row, now);
     const key = cycleKey(shop.row.id, cycleStart);
-    const stored = limit === null ? 0 : await this.storedTotal(shop.row.id, cycleStart, now);
+    const [stored, grace] =
+      limit === null
+        ? [0, 0]
+        : await Promise.all([
+            this.storedTotal(shop.row.id, cycleStart, now),
+            this.settings.gracePercent(),
+          ]);
     // Read after the wait, so two requests arriving together are judged one after the other.
     const pending = this.pendingOf(key, shop.row.id, cycleStart);
-    if (limit !== null && stored + pending.count >= limit) return false;
+    if (pastGrace(stored + pending.count, limit, grace)) return false;
     this.pending.set(key, { ...pending, count: pending.count + 1, limit });
+    this.countHour(shop.row.id, now);
     return true;
   }
 
@@ -95,6 +115,11 @@ export class RequestQuota implements OnModuleInit, OnModuleDestroy, BeforeApplic
   async used(tenantId: string, cycleStart: Date, now: Date): Promise<number> {
     const stored = await this.storedTotal(tenantId, cycleStart, now);
     return stored + (this.pending.get(cycleKey(tenantId, cycleStart))?.count ?? 0);
+  }
+
+  /** RTE-12: when the cycle's last fast-spend alert went out, if one did. */
+  async fastSpendAlertedAt(tenantId: string, cycleStart: Date): Promise<Date | null> {
+    return (await this.store.find(tenantId, cycleStart))?.fastSpendAlertedAt ?? null;
   }
 
   /**
@@ -116,12 +141,18 @@ export class RequestQuota implements OnModuleInit, OnModuleDestroy, BeforeApplic
   }
 
   /**
-   * Adds this server's counts to the stored totals, and warns each shop that crossed a share of its cycle. A count
-   * stays in the unflushed figure until it is stored, so a request arriving mid-flush is judged on the full total;
-   * one that fails to store is kept for the next flush.
+   * Adds this server's counts to the stored totals, and queues the notices now due in the same transaction, so a flush
+   * that fails tells no one (SCL-08). A count stays in the unflushed figure until it is stored, so a request arriving
+   * mid-flush is judged on the full total; one that fails to store is kept for the next flush.
    */
   async flush(): Promise<void> {
-    this.forgetEndedCycles(Date.now());
+    const now = new Date();
+    this.forgetEndedCycles(now.getTime());
+    const [grace, fastPercent] = await Promise.all([
+      this.settings.gracePercent(),
+      this.settings.fastSpendPercent(),
+    ]);
+    const shares = servingShares(grace);
     for (const [key, entry] of [...this.pending.entries()]) {
       const flushing: ApiUsageCounts = {
         requests: entry.count,
@@ -130,23 +161,37 @@ export class RequestQuota implements OnModuleInit, OnModuleDestroy, BeforeApplic
       };
       const limit = entry.limit;
       try {
-        const { requests, warn } = await this.store.run(async (tx) => {
+        const requests = await this.store.run(async (tx) => {
           const row = await this.store.add(tx, entry.tenantId, entry.cycleStart, flushing);
-          const reached = warningDue(row.requests, limit, row.warnedPercent);
-          if (reached === null) return { requests: row.requests, warn: null };
-          await this.store.setWarned(tx, entry.tenantId, entry.cycleStart, reached);
-          return { requests: row.requests, warn: reached };
+          if (limit === null) return row.requests;
+          const notice = {
+            tenantId: entry.tenantId,
+            metric: UsageMetric.Requests,
+            limit,
+            cycleStart: entry.cycleStart.toISOString(),
+          };
+          const reached = warningDue(row.requests, limit, row.warnedPercent, shares);
+          if (reached !== null) {
+            await this.store.setWarned(tx, entry.tenantId, entry.cycleStart, reached);
+            await this.notices.queue(tx, {
+              ...notice,
+              level: levelOf(reached),
+              used: row.requests,
+            });
+          }
+          // RTE-12: an hour that spent a fast share of the cycle, told of at most once a day.
+          const hour = this.hours.get(entry.tenantId)?.count ?? 0;
+          const alerted = row.fastSpendAlertedAt;
+          if (
+            hour * 100 >= limit * fastPercent &&
+            (alerted === null || now.getTime() - alerted.getTime() >= FAST_SPEND_ALERT_EVERY_MS)
+          ) {
+            await this.store.setFastSpendAlerted(tx, entry.tenantId, entry.cycleStart, now);
+            await this.notices.queue(tx, { ...notice, level: 'fast_spend', used: hour });
+          }
+          return row.requests;
         });
         this.settle(key, flushing, requests);
-        if (warn !== null && limit !== null) {
-          await this.notifier.quotaWarning({
-            tenantId: entry.tenantId,
-            cycleStart: entry.cycleStart,
-            percent: warn,
-            requests,
-            limit,
-          });
-        }
       } catch (error) {
         this.logger.error(
           `could not store API request counts for ${entry.tenantId}`,
@@ -154,6 +199,7 @@ export class RequestQuota implements OnModuleInit, OnModuleDestroy, BeforeApplic
         );
       }
     }
+    this.forgetEndedHours(now);
   }
 
   /** A flushed count moves from the unflushed figure into the stored total in one step. */
@@ -186,6 +232,24 @@ export class RequestQuota implements OnModuleInit, OnModuleDestroy, BeforeApplic
         limit: null,
       }
     );
+  }
+
+  /** RTE-12: one more request in the shop's clock hour; a new hour starts again from one. */
+  private countHour(tenantId: string, now: Date): void {
+    const hour = Math.floor(now.getTime() / HOUR_MS);
+    const counted = this.hours.get(tenantId);
+    this.hours.set(tenantId, {
+      hour,
+      count: counted?.hour === hour ? counted.count + 1 : 1,
+    });
+  }
+
+  /** The hours that ended are let go once flushed, so memory follows the shops busy now. */
+  private forgetEndedHours(now: Date): void {
+    const hour = Math.floor(now.getTime() / HOUR_MS);
+    for (const [tenantId, counted] of [...this.hours.entries()]) {
+      if (counted.hour < hour) this.hours.delete(tenantId);
+    }
   }
 
   /** True the first time this cycle the visitor is refused, as far as this server remembers. */

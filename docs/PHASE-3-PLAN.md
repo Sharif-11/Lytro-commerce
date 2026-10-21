@@ -872,6 +872,20 @@ their backend ships earlier.
     the live plan; they now write the plan's snapshot too, as a purchase does. TRL-05's refusal of a trial's ninth
     essential SMS waits for the first essential SMS that is not a sign-in code (Phase 4's order messages): the
     sign-in code is the only one today, and TRL-05 says it is never refused.
+  - **Built second:** the warnings, to point 3 as extended (LIM-01, BND-03, BND-05, RTE-03 amended; RTE-12 added;
+    migration 0071).
+    - **Deciding:** one small module below every counter decides 50, 80 and 95 percent in the transaction of the
+      write that crossed it -- a product, a seat, a processed file, a counted SMS -- and records it in
+      `control.usage_warnings`. Bandwidth and API requests decide their own, adding their limit and their stop.
+    - **Sending:** the notice is queued with the write and composed afterwards by a worker, with the shop's usage as
+      it is then: how much is used, the pace through the cycle, what happens to shoppers, and the suggestions.
+    - **Suggestions:** the cheapest plan a month that leaves every metric under 80 percent, and the next; never one
+      below the shop's own; the operator for the largest. They also come with each refusal at a limit (an
+      interceptor reads the usage), and on `GET /usage` with each metric's level for the banner.
+    - **The grace** is the platform setting `usage_grace_percent` (10), and the fast-spend share `fast_spend_percent`
+      (5), counted per clock hour on each server and told of at most once a day.
+    - **Waits for Slice 10a:** add-ons and packs among the suggestions, the one-tap pack and the auto-buy offer, and
+      the next plan after packs two cycles running.
 - **Depends on:** Slices 1, 6, 7, 8.
 - **Delivers:** the usage API (every metric that exists against its limit); threshold notices; products
   and storage added to the downgrade over-limit list and final warning; "unlimited" honoured across all

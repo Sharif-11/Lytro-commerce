@@ -1529,8 +1529,20 @@ CREATE TABLE control.api_usage (                          -- RTE-03 (built in Sl
     updated_at      timestamptz NOT NULL DEFAULT now(),
     refused_requests bigint NOT NULL DEFAULT 0,           -- RTE-06: refused by the per-visitor limit
     refused_visitors integer NOT NULL DEFAULT 0,          -- RTE-06: the visitors those came from, each once a cycle
+    fast_spend_alerted_at timestamptz,                    -- RTE-12: the cycle's last fast-spend alert, at most daily
     PRIMARY KEY (tenant_id, cycle_start)
 );
+
+CREATE TABLE control.usage_warnings (                     -- LIM-01 (built in Slice 10, migration 0071)
+    tenant_id       uuid NOT NULL REFERENCES control.tenants(id),
+    metric          text NOT NULL,                        -- products, seats, storage, essential_sms_*
+    cycle_start     timestamptz NOT NULL,
+    warned_percent  integer NOT NULL DEFAULT 0,           -- the highest share sent this cycle
+    updated_at      timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (tenant_id, metric, cycle_start)
+);
+-- Bandwidth and API requests keep their warned share beside their counts (media_bandwidth, api_usage), where it now
+-- also reaches 100 and the stop past the grace (100 + usage_grace_percent).
 
 ```
 

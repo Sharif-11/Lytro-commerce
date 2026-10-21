@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuditModule } from '../audit/audit.module';
+import { UsageWarningsModule } from '../usage-warnings/usage-warnings.module';
 import { DrizzleRoleStore } from '../../database/adapters/role.adapter';
 import { DrizzleStaffAccounts } from '../../database/adapters/staff-accounts.adapter';
 import { DrizzleStaffStore } from '../../database/adapters/staff.adapter';
@@ -9,7 +10,7 @@ import { StaffService } from './services/staff.service';
 import { ROLE_STORE, STAFF_ACCOUNTS, STAFF_PASSWORD_HASHER, STAFF_STORE } from './tokens';
 
 @Module({
-  imports: [AuditModule],
+  imports: [AuditModule, UsageWarningsModule],
   providers: [
     { provide: STAFF_STORE, useClass: DrizzleStaffStore },
     { provide: ROLE_STORE, useClass: DrizzleRoleStore },

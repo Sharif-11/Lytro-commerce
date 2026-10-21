@@ -3,26 +3,26 @@ import { createHash, randomUUID } from 'node:crypto';
 import { type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import pg from 'pg';
-import { PlatformSettingKey } from '@lytronix/validators';
+import { PlatformSettingKey, UsageMetric } from '@lytronix/validators';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from '../src/app/app.module';
 import { ClientIp } from '../src/common/client-ip';
 import { headerValue, type HttpRequest } from '../src/common/http';
 import type { MessageKey } from '../src/common/i18n/message-key';
 import { translate } from '../src/common/i18n/messages';
-import type { RequestQuotaNotifier } from '../src/modules/public-api/ports/api-key-store';
 import { PublicApiEraser } from '../src/modules/public-api/services/public-api-eraser';
 import { RequestQuota } from '../src/modules/public-api/services/request-quota';
-import { API_CLOCK, REQUEST_QUOTA_NOTIFIER } from '../src/modules/public-api/tokens';
-import type { RequestQuotaNotice } from '../src/modules/public-api/types/public-api';
+import { API_CLOCK } from '../src/modules/public-api/tokens';
 import { PlanLimitOverridesService } from '../src/modules/billing/services/plan-limit-overrides.service';
 import { PlatformSettingsService } from '../src/modules/platform-settings/services/platform-settings.service';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
+import { USAGE_NOTICES } from '../src/modules/usage-warnings/tokens';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase } from './support/database';
 import { getJson, sendExact, type HttpResult } from './support/http';
 import { errorOf, fieldsOf, openShop, staffWith, type ShopClient } from './support/shop-client';
 import { SmsCapture } from './support/sms-capture';
+import { UsageNoticeCapture } from './support/usage-notice-capture';
 
 // Phase 3 Slice 8: public API keys made and revoked from the dashboard, and the public API host's gate -- the key,
 // its website addresses, CORS and preflight, the per-visitor limit (the operator's figure; a key has no per-minute
@@ -32,20 +32,6 @@ import { SmsCapture } from './support/sms-capture';
 const ADMIN_URL = process.env['DATABASE_TEST_ADMIN_URL'];
 const DB_NAME = 'lytronix_api_keys_test';
 const describeIfDatabase = ADMIN_URL ? describe : describe.skip;
-
-/** Keeps every quota warning, in place of the console stand-in. */
-class QuotaCapture implements RequestQuotaNotifier {
-  readonly notices: RequestQuotaNotice[] = [];
-
-  quotaWarning(notice: RequestQuotaNotice): Promise<void> {
-    this.notices.push(notice);
-    return Promise.resolve();
-  }
-
-  for(tenantId: string): number[] {
-    return this.notices.filter((notice) => notice.tenantId === tenantId).map((n) => n.percent);
-  }
-}
 
 /** Lets a test play several visitors: the address is the `x-test-visitor` header's, else the socket's. */
 const visitorIp = {
@@ -64,7 +50,7 @@ let app: INestApplication;
 let port: number;
 let admin: pg.Client;
 const texts = new SmsCapture();
-const quota = new QuotaCapture();
+const notices = new UsageNoticeCapture();
 // The limits' clock: the tests move it past a window instead of waiting a minute.
 let clockOffsetMs = 0;
 
@@ -79,8 +65,8 @@ beforeAll(async () => {
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(SMS_PROVIDER)
     .useValue(texts.provider)
-    .overrideProvider(REQUEST_QUOTA_NOTIFIER)
-    .useValue(quota)
+    .overrideProvider(USAGE_NOTICES)
+    .useValue(notices)
     .overrideProvider(API_CLOCK)
     .useValue(() => new Date(Date.now() + clockOffsetMs))
     .overrideProvider(ClientIp)
@@ -432,32 +418,41 @@ describeIfDatabase('request limits (RTE-02 to RTE-07, RTE-10)', () => {
     }
   });
 
-  it("counts a shop's requests per cycle, warns once at 50, 80 and 95 percent, and refuses past the limit", async () => {
+  it("counts a shop's requests per cycle, tells it at each share and its limit, serves through the grace, then refuses (RTE-03)", async () => {
     const shop = await openShop(port, texts, 'quota');
     await overrideLimit(shop.tenantId, 'requests_monthly', 5);
     const { key } = await makeKey(shop);
     const flush = () => app.get(RequestQuota).flush();
+    // The fast-spend alert has its own case below.
+    const told = () =>
+      notices
+        .levelsFor(shop.tenantId, UsageMetric.Requests)
+        .filter((level) => level !== 'fast_spend');
     for (let index = 0; index < 3; index += 1)
       expect((await callApi('/v1/shop', key)).status).toBe(200);
     await flush();
-    expect(quota.for(shop.tenantId)).toEqual([50]);
+    expect(told()).toEqual([50]);
     expect((await callApi('/v1/shop', key)).status).toBe(200);
     await flush();
     expect((await callApi('/v1/shop', key)).status).toBe(200);
     await flush();
-    expect(quota.for(shop.tenantId)).toEqual([50, 80, 95]);
+    expect(told()).toEqual([50, 80, 100]);
+    // The operator's 10 percent of grace: half a request past five rounds up to one more.
+    expect((await callApi('/v1/shop', key)).status).toBe(200);
+    await flush();
+    expect(told()).toEqual([50, 80, 100, 'stopped']);
     const refused = await callApi('/v1/shop', key);
     expect(refused.status).toBe(429);
     expect(errorOf(refused).code).toBe('quota_exceeded');
     expect(errorOf(refused).message).toBe(said('RequestsUsedUp'));
     await flush();
-    // Refused requests are not counted, and no warning is sent twice.
-    expect(quota.for(shop.tenantId)).toEqual([50, 80, 95]);
+    // Refused requests are not counted, and nothing is told twice.
+    expect(told()).toEqual([50, 80, 100, 'stopped']);
     const stored = await admin.query<{ requests: string; warned_percent: number }>(
       'SELECT requests::text, warned_percent FROM control.api_usage WHERE tenant_id = $1',
       [shop.tenantId],
     );
-    expect(stored.rows).toEqual([{ requests: '5', warned_percent: 95 }]);
+    expect(stored.rows).toEqual([{ requests: '6', warned_percent: 110 }]);
 
     // Unlimited (PLN-19): counted, never refused.
     const open = await openShop(port, texts, 'quota-open');
@@ -472,7 +467,38 @@ describeIfDatabase('request limits (RTE-02 to RTE-07, RTE-10)', () => {
       [open.tenantId],
     );
     expect(counted.rows[0]?.requests).toBe('3');
-    expect(quota.for(open.tenantId)).toEqual([]);
+    expect(notices.levelsFor(open.tenantId)).toEqual([]);
+  });
+
+  it('tells the owner and the operators once a day of an hour that spent a fast share of the cycle, refusing nothing (RTE-12)', async () => {
+    const shop = await openShop(port, texts, 'fast');
+    // The operator's 5 percent of 100 is 5 requests in one hour.
+    await overrideLimit(shop.tenantId, 'requests_monthly', 100);
+    const { key } = await makeKey(shop);
+    const flush = () => app.get(RequestQuota).flush();
+    const fast = () =>
+      notices.notices.filter((n) => n.tenantId === shop.tenantId && n.level === 'fast_spend');
+    for (let index = 0; index < 4; index += 1) {
+      expect((await callApi('/v1/shop', key)).status).toBe(200);
+    }
+    await flush();
+    expect(fast()).toEqual([]);
+    expect((await callApi('/v1/shop', key)).status).toBe(200);
+    await flush();
+    expect(fast()).toEqual([
+      expect.objectContaining({ metric: 'requests', used: 5, limit: 100 }) as unknown,
+    ]);
+    // The same hour, and the next: not again within a day.
+    for (let index = 0; index < 5; index += 1) {
+      expect((await callApi('/v1/shop', key)).status).toBe(200);
+    }
+    await flush();
+    expect(fast()).toHaveLength(1);
+    const stored = await admin.query<{ alerted: boolean }>(
+      'SELECT fast_spend_alerted_at IS NOT NULL AS alerted FROM control.api_usage WHERE tenant_id = $1',
+      [shop.tenantId],
+    );
+    expect(stored.rows).toEqual([{ alerted: true }]);
   });
 
   it("reads every plan's monthly requests from the plan, and every shop's from its snapshot, with no per-minute figure (RTE-10)", async () => {
