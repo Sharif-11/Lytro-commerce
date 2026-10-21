@@ -326,9 +326,9 @@ Steps: upload a valid 4 MB JPEG; a 6 MB JPEG; a `.exe` renamed `.jpg`; a valid 1
 Expected: valid image resized/converted to WebP with thumbnail; oversized image and disguised executable rejected; oversized video and disguised non-video rejected; HTML and scripted SVG rejected outright.
 Covers: `STO-04`, `STO-05`, `STO-06`, `SEC-06`.
 
-**S04-03 Rate limits, headers, and the public-key-IP overlap.**
-Steps: 1) Send 61 requests/minute on a Starter public key. 2) Inspect `X-RateLimit-*` headers on every response. 3) From one IP, send 11 order creations in a minute using a key still under its own limit; 6 OTP requests; 121 total requests.
-Expected: 61st key request is 429; headers present and consistent; 11th IP-level order creation, 6th OTP, 121st total request are each 429 independently of the key's own remaining quota.
+**S04-03 Rate limits, headers, and the per-visitor limit.**
+Steps: 1) Send 121 requests in a minute on a Starter secret key. 2) From three IPs, send 100 requests each in a minute on a Starter public key. 3) Inspect `X-RateLimit-*` headers on every response. 4) From one IP, send 11 order creations in a minute on a public key; 6 OTP requests; 121 total requests. 5) Set the operator's per-visitor figure to 5 and send 6 requests from one IP.
+Expected: the 121st secret-key request is 429; all 300 public-key requests succeed, with each IP's own count in the headers; the 11th order creation, 6th OTP and 121st total request from one IP are each 429; after the change the 6th request is 429; the refused requests and their visitors appear in the shop's `control.api_usage` row after the next flush.
 Covers: `RTE-01`, `RTE-02`, `RTE-06`.
 
 **S04-04 Monthly quota and warnings.**

@@ -1494,9 +1494,11 @@ CREATE TABLE tenant.balance_ledger (
 - **Website addresses** are exact origins, normalised when stored; a GIN index over the live keys' addresses answers
   a preflight, which carries no key (API-23).
 - **`control.api_usage`** holds each shop's requests per billing cycle, flushed from the server's own counts every
-  minute (D3-2, RED-04's pattern), and the highest quota warning sent for the cycle (RTE-03).
-- Two plan limits, `requests_per_minute_public` and `requests_monthly`, are seeded on every plan from 2.1 and filled
-  into each shop's snapshot from its plan.
+  minute (D3-2, RED-04's pattern), and the highest quota warning sent for the cycle (RTE-03). Since migration 0070
+  it also holds the requests the per-visitor limit refused and how many visitors they came from (RTE-06).
+- The plan limit `requests_monthly` is seeded on every plan from 2.1 and filled into each shop's snapshot from its
+  plan. `requests_per_minute_public` was too, until migration 0070 removed it from every plan, snapshot and
+  override (KNOWN-GAPS §82); a plan's earlier versions and past invoices keep it as the record of what was sold.
 
 ```sql
 CREATE TYPE control.api_key_type AS ENUM ('public');      -- 'secret' arrives in Phase 8
@@ -1525,6 +1527,8 @@ CREATE TABLE control.api_usage (                          -- RTE-03 (built in Sl
     requests        bigint NOT NULL DEFAULT 0,
     warned_percent  integer NOT NULL DEFAULT 0,           -- 0, 50, 80 or 95: the highest warning sent
     updated_at      timestamptz NOT NULL DEFAULT now(),
+    refused_requests bigint NOT NULL DEFAULT 0,           -- RTE-06: refused by the per-visitor limit
+    refused_visitors integer NOT NULL DEFAULT 0,          -- RTE-06: the visitors those came from, each once a cycle
     PRIMARY KEY (tenant_id, cycle_start)
 );
 

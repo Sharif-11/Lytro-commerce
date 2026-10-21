@@ -36,6 +36,7 @@ import { PublicApiHost } from './services/public-api-host';
 import { PublicCatalogue } from './services/public-catalogue';
 import { RequestLimits } from './services/request-limits';
 import { RequestQuota } from './services/request-quota';
+import { VisitorLimit } from './services/visitor-limit';
 import {
   AD_TRACKING_STORE,
   API_CLOCK,
@@ -50,10 +51,10 @@ import {
 } from './tokens';
 
 // D3-1, D3-2, D3-7: the public API -- a shop's public keys, the gate every public API route sits behind (key,
-// website, shop open, per-minute and per-cycle limits), the API host itself, and the public catalogue with its memory
+// website, shop open, per-visitor and per-cycle limits), the API host itself, and the public catalogue with its memory
 // cache, ad tracking and the Meta catalog feed (Slice 9). Depends on tenancy (hosts), catalogue (the activity log a
-// key's changes are written to, and the products it shows) and platform settings (the cache lifetimes); billing reaches
-// it for the day-60 deletion.
+// key's changes are written to, and the products it shows) and platform settings (the cache lifetimes and the
+// per-visitor limit); billing reaches it for the day-60 deletion.
 @Module({
   imports: [TenancyModule, CatalogueModule, PlatformSettingsModule],
   controllers: [PublicShopController, PublicCatalogueController, PublicFeedController],
@@ -88,6 +89,7 @@ import {
     PublicApiEraser,
     RequestLimits,
     RequestQuota,
+    VisitorLimit,
     PublicKeyGuard,
     PublicApiHost,
   ],

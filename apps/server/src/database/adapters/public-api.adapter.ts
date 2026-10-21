@@ -10,6 +10,7 @@ import type { ApiKeyStore, ApiUsageStore } from '../../modules/public-api/ports/
 import type {
   ApiKeyRecord,
   ApiShopRow,
+  ApiUsageCounts,
   ApiUsageRow,
   NewApiKey,
 } from '../../modules/public-api/types/public-api';
@@ -102,8 +103,13 @@ export class DrizzleApiUsageStore implements ApiUsageStore {
     return this.transactions.run(this.database.handle.db, work);
   }
 
-  add(tx: Transaction, tenantId: string, cycleStart: Date, requests: number): Promise<ApiUsageRow> {
-    return this.usage.add(tx, tenantId, cycleStart, requests);
+  add(
+    tx: Transaction,
+    tenantId: string,
+    cycleStart: Date,
+    counts: ApiUsageCounts,
+  ): Promise<ApiUsageRow> {
+    return this.usage.add(tx, tenantId, cycleStart, counts);
   }
 
   find(tenantId: string, cycleStart: Date): Promise<ApiUsageRow | null> {

@@ -105,7 +105,11 @@ export {
   type ApiShopRow,
   type NewApiKey,
 } from './repositories/api/api-key.repository';
-export { ApiUsageRepository, type ApiUsageRow } from './repositories/api/api-usage.repository';
+export {
+  ApiUsageRepository,
+  type ApiUsageCounts,
+  type ApiUsageRow,
+} from './repositories/api/api-usage.repository';
 export {
   PlatformWalletsRepository,
   type NewPlatformWallet,

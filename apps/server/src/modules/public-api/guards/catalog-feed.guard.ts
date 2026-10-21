@@ -1,12 +1,11 @@
 import { CanActivate, ExecutionContext, Inject, Injectable } from '@nestjs/common';
 import { ApiError } from '../../../common/api-error';
-import { ClientIp } from '../../../common/client-ip';
-import { SECOND_MS } from '../../../common/time';
+import type { HttpResponse } from '../../../common/http';
 import { CLOSED_STATES } from '../../tenancy/services/tenant-resolver.service';
 import { ApiKeyAuthenticator } from '../services/api-key-authenticator';
 import { CatalogFeedService } from '../services/catalog-feed.service';
-import { RequestLimits } from '../services/request-limits';
 import { RequestQuota } from '../services/request-quota';
+import { VisitorLimit } from '../services/visitor-limit';
 import { API_CLOCK } from '../tokens';
 import type { PublicApiRequest } from './public-key.guard';
 
@@ -28,14 +27,14 @@ export class CatalogFeedGuard implements CanActivate {
   constructor(
     @Inject(CatalogFeedService) private readonly feeds: CatalogFeedService,
     @Inject(ApiKeyAuthenticator) private readonly authenticator: ApiKeyAuthenticator,
-    @Inject(RequestLimits) private readonly limits: RequestLimits,
+    @Inject(VisitorLimit) private readonly visitors: VisitorLimit,
     @Inject(RequestQuota) private readonly quota: RequestQuota,
-    @Inject(ClientIp) private readonly clientIp: ClientIp,
     @Inject(API_CLOCK) private readonly clock: () => Date,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<FeedRequest>();
+    const response = context.switchToHttp().getResponse<HttpResponse>();
     const now = this.clock();
     const token = FEED_FILE.exec(request.params['file'] ?? '')?.[1] ?? '';
     const tenantId = await this.feeds.tenantOfToken(token);
@@ -43,19 +42,7 @@ export class CatalogFeedGuard implements CanActivate {
     if (!shop || CLOSED_STATES.has(shop.row.state) || shop.row.suspendedAt !== null) {
       throw new ApiError('not_found', 'PageNotFound', {});
     }
-    const visitor = this.limits.perVisitor(
-      shop.row.id,
-      this.clientIp.resolve(request) ?? 'unknown',
-      now,
-    );
-    if (!visitor.allowed) {
-      throw new ApiError(
-        'rate_limited',
-        'TooManyRequests',
-        {},
-        Math.max(Math.ceil(visitor.resetMs / SECOND_MS), 1),
-      );
-    }
+    await this.visitors.admit(shop, request, response, now);
     if (!(await this.quota.take(shop, now))) {
       throw new ApiError('quota_exceeded', 'RequestsUsedUp', {});
     }

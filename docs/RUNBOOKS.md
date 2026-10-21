@@ -143,3 +143,22 @@ sealed it (a 4-byte fingerprint), so a second key can be brought in while the fi
 - **If a key is lost:** values sealed with it cannot be opened. The dashboard answers "make a new link" for the
   feed (the old link keeps working for Meta, found by its hash, until the shop makes a new one), and the token must
   be entered again.
+
+## 4. Is the per-visitor limit refusing real shoppers? (RTE-06)
+
+**What this is:** a public key has no per-minute limit of its own (KNOWN-GAPS §82). One visitor -- one IP address --
+may make [120] requests a minute to one shop. Many phones on one mobile carrier, or one office's Wi-Fi, can share an
+address, and then real shoppers meet that figure together.
+
+- **Look:** each shop's refusals this cycle, flushed every minute.
+  ```sql
+  SELECT t.slug, u.cycle_start, u.requests, u.refused_requests, u.refused_visitors
+  FROM control.api_usage u JOIN control.tenants t ON t.id = u.tenant_id
+  WHERE u.refused_requests > 0
+  ORDER BY u.refused_visitors DESC, u.refused_requests DESC;
+  ```
+- **Read it:** many refused requests from one or two visitors is a scraper or a broken script, and the limit is doing
+  its job. Refusals spread over many visitors, a few each, are likely real shoppers sharing addresses: raise the
+  figure. A server restart may count a visitor again, so the visitor figure can run a little high.
+- **Change it:** `PATCH /operator/settings/public_requests_per_visitor_per_minute` with `{ "value": 200 }`. It takes
+  effect within 5 seconds, without a deploy, and is in the platform audit log.

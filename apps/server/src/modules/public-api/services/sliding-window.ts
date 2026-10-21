@@ -7,9 +7,9 @@ export interface WindowVerdict {
 }
 
 /**
- * RTE-01, D3-2: an exact sliding window, in memory: each bucket keeps the times of the requests it let through in
- * the last window, so a limit of 60 a minute means 60 in any 60 seconds, not 60 per clock minute. Exact while there
- * is one server; Phase 9 moves the buckets to the shared Redis behind the same calls.
+ * RTE-06, D3-2: an exact sliding window, in memory: each bucket keeps the times of the requests it let through in
+ * the last window, so a limit of 120 a minute means 120 in any 60 seconds, not 120 per clock minute. Exact while
+ * there is one server; Phase 9 moves the buckets to the shared Redis behind the same calls.
  */
 export class SlidingWindow {
   private readonly buckets = new Map<string, number[]>();
