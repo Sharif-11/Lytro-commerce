@@ -11,20 +11,11 @@ import {
   StockTracking,
   StockUnit,
 } from '@lytronix/validators';
+import { imageViewSchema, videoViewSchema } from '../../../common/dto/media-views.dto';
+
+export { imageViewSchema, videoViewSchema };
 
 const scope = z.enum(['platform', 'shop']);
-
-// MED-08: a ready image as every screen shows it: which item it is, and where its picture and thumbnail are read from.
-export const imageViewSchema = z.object({
-  id: z.string(),
-  urls: z.object({ main: z.string(), thumbnail: z.string() }),
-});
-
-// PRD-11, STO-09: a ready video as a product shows it: the MP4 and its poster.
-export const videoViewSchema = z.object({
-  id: z.string(),
-  urls: z.object({ video: z.string(), poster: z.string() }),
-});
 
 const productDefaultsFields = {
   stockUnit: z.nativeEnum(StockUnit),
@@ -184,6 +175,7 @@ export const productDetailSchema = z.object({
       unitKind: z.string().nullable(),
       role: z.enum([AttributeRole.Informational, AttributeRole.CapturedAtOrder]),
       optionIds: z.array(z.string()),
+      optionValues: z.array(z.string()),
       textValue: z.string().nullable(),
       numberValue: z.string().nullable(),
       boolValue: z.boolean().nullable(),
@@ -203,6 +195,7 @@ export const productDetailSchema = z.object({
       effectiveDeliveryMode: z.nativeEnum(DeliveryMode),
       packAmount: z.string().nullable(),
       active: z.boolean(),
+      stockState: z.nativeEnum(StockState),
     }),
   ),
   sizeChart: z

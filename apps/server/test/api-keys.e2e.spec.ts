@@ -257,15 +257,15 @@ describeIfDatabase('the public API host (API-03 to API-05, API-08, API-14, API-2
     const shop = await openShop(port, texts, 'pub-host');
     const { key } = await makeKey(shop);
     const auth = { authorization: `Bearer ${key}`, origin: SITE };
-    expect((await getJson(port, '/shop', { ...auth, host: 'localhost' })).status).toBe(404);
-    expect((await getJson(port, '/shop', { ...auth, host: `${shop.slug}.localhost` })).status).toBe(
-      404,
-    );
+    expect((await getJson(port, '/public/shop', { ...auth, host: 'localhost' })).status).toBe(404);
+    expect(
+      (await getJson(port, '/public/shop', { ...auth, host: `${shop.slug}.localhost` })).status,
+    ).toBe(404);
     expect((await callApi('/v1/me', key)).status).toBe(404);
     // Not even a route that needs no shop: the API host takes key authentication only.
     expect((await getJson(port, '/plans', { host: 'localhost' })).status).toBe(200);
     expect((await callApi('/v1/plans', key)).status).toBe(404);
-    expect((await callApi('/api/v1/shop', key)).status).toBe(404);
+    expect((await callApi('/api/v1/public/shop', key)).status).toBe(404);
     expect((await callApi('/shop', key)).status).toBe(404);
   });
 

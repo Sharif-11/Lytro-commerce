@@ -17,14 +17,26 @@ export class CatalogueVersion {
     return this.products.bumpVersion(tx, tenantId);
   }
 
-  /** CCH-08, INV-19: sets a product's public stock state and moves the version; the caller only calls on a change. */
-  async setStockState(
+  /**
+   * CCH-08, INV-19: sets the public stock state of a product (null leaves it) and of the variants named, and moves the
+   * version once when anything changed.
+   */
+  async setStockStates(
     tx: Transaction,
     tenantId: string,
     productId: string,
-    state: StockState,
+    change: {
+      product: StockState | null;
+      variants: readonly { variantId: string; state: StockState }[];
+    },
   ): Promise<void> {
-    await this.products.updateProduct(tx, tenantId, productId, { stockState: state });
+    if (change.product === null && change.variants.length === 0) return;
+    if (change.product !== null) {
+      await this.products.updateProduct(tx, tenantId, productId, { stockState: change.product });
+    }
+    if (change.variants.length > 0) {
+      await this.products.setVariantStockStates(tx, tenantId, change.variants);
+    }
     await this.products.bumpVersion(tx, tenantId);
   }
 }

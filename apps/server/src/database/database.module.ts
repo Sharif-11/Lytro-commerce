@@ -44,6 +44,7 @@ import {
   CategoryRepository,
   ProductRepository,
   VariantRepository,
+  PublicCatalogueRepository,
   PresetRepository,
   SizeChartRepository,
   OptionSetRepository,
@@ -117,6 +118,11 @@ import { DatabaseService } from './database.service';
       provide: VariantRepository,
       inject: [TransactionRunner],
       useFactory: (transactions: TransactionRunner) => new VariantRepository(transactions),
+    },
+    {
+      provide: PublicCatalogueRepository,
+      inject: [TransactionRunner],
+      useFactory: (transactions: TransactionRunner) => new PublicCatalogueRepository(transactions),
     },
     { provide: PresetRepository, useFactory: () => new PresetRepository() },
     {
@@ -286,6 +292,7 @@ import { DatabaseService } from './database.service';
     CategoryRepository,
     ProductRepository,
     VariantRepository,
+    PublicCatalogueRepository,
     PresetRepository,
     SizeChartRepository,
     OptionSetRepository,

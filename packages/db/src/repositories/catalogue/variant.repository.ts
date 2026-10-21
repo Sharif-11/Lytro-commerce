@@ -1,5 +1,7 @@
-import { and, asc, eq, inArray, isNull } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm';
+import { StockState } from '@lytronix/validators';
 import {
+  products,
   productVariants,
   variantAttributeValues,
   type InsertProductVariant,
@@ -123,12 +125,23 @@ export class VariantRepository {
       );
   }
 
+  /**
+   * A new variant starts as its product does (CCH-08): in when the product's stock is not counted, else out until
+   * stock arrives through the stock ledger, which keeps both exact from then on.
+   */
   async insertVariant(
     tx: Transaction,
     values: InsertProductVariant & { tenantId: string },
   ): Promise<SelectProductVariant> {
     await this.transactions.setTenantContext(tx, values.tenantId);
-    const rows = await tx.insert(productVariants).values(values).returning();
+    const stockState =
+      values.stockState ??
+      sql`(SELECT CASE WHEN ${products.stockTracking} = 'not_tracked' THEN ${StockState.In} ELSE ${StockState.Out} END
+        FROM ${products} WHERE ${products.tenantId} = ${values.tenantId} AND ${products.id} = ${values.productId})::tenant.stock_state`;
+    const rows = await tx
+      .insert(productVariants)
+      .values({ ...values, stockState })
+      .returning();
     const row = rows[0];
     if (!row) throw new Error('insert returned no variant row');
     return row;
@@ -168,6 +181,22 @@ export class VariantRepository {
       .update(productVariants)
       .set({ deletedAt: new Date() })
       .where(and(eq(productVariants.tenantId, tenantId), inArray(productVariants.id, ids)));
+  }
+
+  /** CCH-08: each variant's public stock state, as the stock ledger worked it out. */
+  async setStockStates(
+    tx: Transaction,
+    tenantId: string,
+    states: readonly { variantId: string; state: StockState }[],
+  ): Promise<void> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    for (const state of new Set(states.map((row) => row.state))) {
+      const ids = states.filter((row) => row.state === state).map((row) => row.variantId);
+      await tx
+        .update(productVariants)
+        .set({ stockState: state })
+        .where(and(eq(productVariants.tenantId, tenantId), inArray(productVariants.id, ids)));
+    }
   }
 
   async insertVariantValues(

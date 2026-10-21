@@ -19,7 +19,7 @@ import {
   type SizeChartOwner,
   type Transaction,
 } from '@lytronix/db';
-import type { MediaKind } from '@lytronix/validators';
+import type { MediaKind, StockState } from '@lytronix/validators';
 import { MediaNotAttachable } from '../../common/errors/media-refused';
 import { MissingReference } from '../../common/errors/missing-reference';
 import { StockRefused } from '../../common/errors/stock-refused';
@@ -365,6 +365,14 @@ export class DrizzleProductStore implements ProductStore {
 
   bumpVersion(tx: Transaction, tenantId: string): Promise<number> {
     return this.products.bumpVersion(tx, tenantId);
+  }
+
+  setVariantStockStates(
+    tx: Transaction,
+    tenantId: string,
+    states: readonly { variantId: string; state: StockState }[],
+  ): Promise<void> {
+    return this.variants.setStockStates(tx, tenantId, states);
   }
 
   countLiveProducts(tx: Transaction, tenantId: string): Promise<number> {
@@ -780,6 +788,10 @@ export class DrizzlePlatformLibraryStore implements PlatformLibraryStore {
         throw new UniqueViolation('value');
       throw error;
     }
+  }
+
+  bumpVersion(tx: Transaction): Promise<void> {
+    return this.library.bumpVersion(tx);
   }
 
   listAttributes(tx: Transaction): Promise<AttributeRecord[]> {

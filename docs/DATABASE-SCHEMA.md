@@ -476,7 +476,19 @@ later slice needs arrive with it: `image_id`, `video_id` and `tenant.product_ima
 **Slice 6a (migration 0065, 2026-10-21)** added `categories.image_id`, `attribute_options.swatch_image_id`, the size
 chart's `image_id` and `tenant.product_images`, each pointing at `tenant.media` (§3.5). **Slice 6b (migration 0066,
 2026-10-21)** added `products.video_id`, a ready video of the shop's (`media_ready_video`), cleared when the video is
-deleted. `product_variants.image_id` is not built: no SRS row asks for a variant's own photo.
+deleted. `product_variants.image_id` is not built: no SRS row asks for a variant's own photo. **Slice 9a (migration
+0068, 2026-10-21)** added what the public catalogue reads:
+- `product_variants.stock_state`, each variant's own in, low or out, kept with its product's by the stock ledger, so
+  a size selling out moves the catalogue version even while another keeps the product in stock (CCH-08). A product's
+  state is now its best variant on sale; an inactive variant keeps its state but no longer counts toward it. The
+  migration worked out every existing variant's state by the ledger's rules.
+- `products.search_vector`, generated from the name and description with the `simple` configuration (PostgreSQL has no
+  Bangla stemmer), with a GIN index, and a trigram GIN index on the name (`pg_trgm`, a new extension). A search matches
+  whole words and word starts first, and falls back to trigram similarity only when nothing matches (CCH-12).
+- One index per public order over the products the public catalogue shows (active, not archived), so any page of a
+  long list starts where the last ended (CCH-11): featured (the position, then newest), newest, and price.
+- `control.platform_catalogue_state`, one row, the platform attribute library's version, bumped by the operator's
+  edits to it and part of every public cache key (KNOWN-GAPS §66).
 
 ```sql
 CREATE TABLE tenant.catalogue_state (
@@ -485,6 +497,13 @@ CREATE TABLE tenant.catalogue_state (
 );
 -- CCH-02/INV-19: incremented in the same transaction as any write that changes public catalogue
 -- output, including a stock-state change (in/low/out). Read on every cache-key build.
+
+CREATE TABLE control.platform_catalogue_state (      -- CCH-02, KNOWN-GAPS §66 (built in Slice 9a, 0068)
+    id              smallint PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+    version         bigint NOT NULL DEFAULT 1
+);
+-- The platform library's version: an operator's rename, re-colour or retirement of a platform attribute or value
+-- bumps it, and every shop's public cache keys carry it beside the shop's own version.
 
 CREATE TABLE tenant.categories (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -541,6 +560,10 @@ CREATE TABLE tenant.products (
     min_price           numeric(10,2),
     max_price           numeric(10,2),
     stock_state         tenant.stock_state NOT NULL DEFAULT 'out',
+    -- CCH-12 (built in Slice 9a): name weighted A, description B, every word whole in both languages
+    search_vector       tsvector GENERATED ALWAYS AS (
+                          setweight(to_tsvector('simple', coalesce(name, '')), 'A')
+                          || setweight(to_tsvector('simple', coalesce(description, '')), 'B')) STORED,
     created_at          timestamptz NOT NULL DEFAULT now(),
     updated_at          timestamptz NOT NULL DEFAULT now(),
     deleted_at          timestamptz,                       -- PRD-13 soft delete
@@ -552,7 +575,14 @@ CREATE TABLE tenant.products (
     FOREIGN KEY (tenant_id, primary_category_id) REFERENCES tenant.categories(tenant_id, id)
 );
 CREATE INDEX ON tenant.products (tenant_id, primary_category_id, sort_order) WHERE deleted_at IS NULL;
--- CCH-12 / DAT-13: full-text and trigram search indexes on name/description.
+-- CCH-11 (built in Slice 9a): one index per public order over the products shown.
+CREATE INDEX products_public_featured_idx ON tenant.products (tenant_id, (-sort_order), created_at, id)
+    WHERE active AND deleted_at IS NULL;
+CREATE INDEX products_public_newest_idx ON tenant.products (tenant_id, created_at, id) WHERE active AND deleted_at IS NULL;
+CREATE INDEX products_public_price_idx ON tenant.products (tenant_id, min_price, id) WHERE active AND deleted_at IS NULL;
+-- CCH-12 / DAT-13 (built in Slice 9a): full-text words and the name's trigrams (pg_trgm).
+CREATE INDEX products_search_idx ON tenant.products USING gin (search_vector) WHERE active AND deleted_at IS NULL;
+CREATE INDEX products_name_trgm_idx ON tenant.products USING gin (name gin_trgm_ops) WHERE active AND deleted_at IS NULL;
 
 CREATE TABLE tenant.product_categories (            -- PRD-15; the primary one is products.primary_category_id
     tenant_id       uuid NOT NULL,
@@ -592,6 +622,7 @@ CREATE TABLE tenant.product_variants (
     pack_amount     numeric(14,3) CHECK (pack_amount > 0),  -- INV-24: shared-stock units per unit sold
     is_stock_holder boolean NOT NULL DEFAULT false,         -- INV-24: the hidden variant holding a shared stock
     active          boolean NOT NULL DEFAULT true,
+    stock_state     tenant.stock_state NOT NULL DEFAULT 'out',  -- CCH-08 (built in Slice 9a): its own in/low/out
     deleted_at      timestamptz,
     UNIQUE (tenant_id, id),
     UNIQUE (product_id, combination_key),         -- ATR-06 / ATL-04, a real constraint

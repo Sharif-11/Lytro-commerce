@@ -193,5 +193,10 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   // Phase 3 Slice 7b, checked in test/media-bandwidth.e2e.spec.ts.
   'GET /media/bandwidth': "counts only the session shop's own cycle and days",
   // The public API (API-10, TEN-02): the shop comes from the key alone, whatever the request names.
-  'GET /shop': "answers the key's own shop only; a shop id sent with the request is ignored",
+  'GET /public/shop': "answers the key's own shop only; a shop id sent with the request is ignored",
+  // Phase 3 Slice 9a, checked in test/public-catalogue.e2e.spec.ts: the catalogue of the key's shop only.
+  'GET /public/catalogue/version': "the key's own shop's version only",
+  'GET /public/catalogue/products': "lists and searches only the key's own shop's active products",
+  'GET /public/catalogue/products/:slug': "another shop's product, by its link, is not found",
+  'GET /public/catalogue/categories': "only the key's own shop's visible categories",
 };

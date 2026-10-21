@@ -136,6 +136,13 @@ export {
   type ProductPatch,
 } from './repositories/catalogue/product.repository';
 export { VariantRepository, type VariantPatch } from './repositories/catalogue/variant.repository';
+export {
+  PublicCatalogueRepository,
+  prefixQuery,
+  type CatalogueVersions,
+  type PublicProductFilter,
+  type PublicProductRow,
+} from './repositories/catalogue/public-catalogue.repository';
 export { PresetRepository, type PresetPatch } from './repositories/catalogue/preset.repository';
 export {
   SizeChartRepository,

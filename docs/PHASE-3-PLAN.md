@@ -784,6 +784,35 @@ their backend ships earlier.
   unregistered origin gets 403; a revoked key fails within 5 s; a cache hit still decrements the count.
 
 ### Slice 9: public catalogue and layered caching
+- **Status (2026-10-21):** ten decisions agreed with the user before any code; built as two PRs, 9a (the catalogue
+  and its caching) and 9b (ad tracking and the Meta feed).
+  - **Counting over edge caching:** Cloudflare stores no API answer (`Cache-Control: private`), so every request
+    passes the public key's gate and is counted, as RTE-04 says (CCH-01, CCH-03 and CCH-13 amended). Cloudflare's
+    plain cache is free, but a cached answer would skip the gate; counting is what makes the request limit a plan
+    feature, and the limit's size is where a plan is generous. Edge caching returns with the storefront's own pages
+    (Slice 12).
+  - **Routes** (on `api.lytro.app/v1`): `catalogue/version`, `catalogue/products` (category with its subcategories,
+    search, sort, cursor, 24 a page, 60 at most), `catalogue/products/:slug` (an old slug answers with the current
+    one), `catalogue/categories`; the pixel ID joins `shop` in 9b.
+  - **Sold-out variants** are listed, marked unavailable, and can't be ordered (ATR-07 amended). Each variant keeps
+    its own stock state, and any change moves the version (CCH-08).
+  - **Memory cache:** `lru-cache`, 100 MB by answer size, at most 60 s, misses merged; keys name the shop's and the
+    platform library's versions (read at most every 2 s) and the request with unknown parameters dropped; an ETag
+    from the key, 304 still counted; browser lifetimes as operator settings; the hit ratio logged each minute.
+  - **Platform library version:** one row the operator's edits bump (KNOWN-GAPS §66).
+  - **Search:** PostgreSQL full-text (`simple`, so Bangla words stay whole) and trigrams, behind one interface; a
+    50,000-product timing test.
+  - **Ad tracking** (an AES-256-GCM helper for the Conversions API token) and the **Meta feed** (a 256-bit token
+    stored as is, so the dashboard can show the link) are 9b.
+  - **9a built as decided** (migration 0068), with four things settled while building it:
+    - The routes follow API-CONTRACT.md's `catalogue/...` names, and the search parameter is `search`.
+    - The public routes live under `/api/v1/public/...` inside the server, which the API host's `/v1/...` maps to,
+      so `/v1/catalogue/products` can never collide with the dashboard's `/products`.
+    - A search matches whole words and word starts first, and uses trigram similarity only when nothing matches
+      (a typo, a piece of a word); scoring every broad match by similarity cost 200 ms. On 50,000 products, pages
+      took 41 ms and searches 226 ms at the 95th percentile.
+    - A product's stock state is now its best variant on sale; an inactive variant no longer counts toward it. A
+      new variant starts as its product does: in when its stock is not counted, else out until stock arrives.
 - **Depends on:** Slices 1, 2 (stock state), 6 (thumbnails) and 8 (public keys, rate-limit ordering).
 - **Delivers:** public list, detail, category tree and search endpoints returning public fields only;
   keyset pagination; slim list payload from denormalised columns; the catalogue-version endpoint;

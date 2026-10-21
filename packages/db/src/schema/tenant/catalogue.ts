@@ -3,6 +3,7 @@ import {
   bigint,
   boolean,
   check,
+  customType,
   foreignKey,
   index,
   integer,
@@ -33,6 +34,13 @@ import { createdAt, tenant } from '../shared';
 // DATABASE-SCHEMA §3.2 (catalogue). Every table carries tenant_id behind the tenant_isolation policy, and
 // same-tenant references use composite (tenant_id, id) keys (DAT-02). The media, stock and combo columns of the
 // design arrive with the slices that use them (Slices 2 and 6, Phase 4).
+
+// CCH-12: PostgreSQL's own full-text document type, for the generated search column.
+const tsvector = customType<{ data: string }>({
+  dataType() {
+    return 'tsvector';
+  },
+});
 
 export const stockUnit = tenant.enum('stock_unit', enumTuple(Object.values(StockUnit)));
 export const stockTracking = tenant.enum('stock_tracking', enumTuple(Object.values(StockTracking)));
@@ -117,6 +125,11 @@ export const products = tenant.table(
     minPrice: numeric('min_price', { precision: 10, scale: 2 }),
     maxPrice: numeric('max_price', { precision: 10, scale: 2 }),
     stockState: stockState('stock_state').notNull().default(StockState.Out),
+    // CCH-12, DAT-13: the name and description as words, the name weighted higher. `simple` keeps every word whole in
+    // both languages, since PostgreSQL has no Bangla stemmer.
+    searchVector: tsvector('search_vector').generatedAlwaysAs(
+      sql`setweight(to_tsvector('simple', coalesce("name", '')), 'A') || setweight(to_tsvector('simple', coalesce("description", '')), 'B')`,
+    ),
     createdAt: createdAt(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
     // PRD-13: archived. Still counted by nothing (PRD-04) and listed nowhere, but queryable.
@@ -159,6 +172,25 @@ export const products = tenant.table(
     index('products_tenant_created_idx')
       .on(t.tenantId, t.createdAt)
       .where(sql`${t.deletedAt} IS NULL`),
+    // CCH-11: one index per public order, over the products the public catalogue shows, so any page of a long list
+    // starts where the last one ended. Featured is the shop's order then newest; negating the position lets one
+    // backward scan serve it.
+    index('products_public_featured_idx')
+      .on(t.tenantId, sql`(-${t.sortOrder})`, t.createdAt, t.id)
+      .where(sql`${t.active} AND ${t.deletedAt} IS NULL`),
+    index('products_public_newest_idx')
+      .on(t.tenantId, t.createdAt, t.id)
+      .where(sql`${t.active} AND ${t.deletedAt} IS NULL`),
+    index('products_public_price_idx')
+      .on(t.tenantId, t.minPrice, t.id)
+      .where(sql`${t.active} AND ${t.deletedAt} IS NULL`),
+    // CCH-12: the words, and the name's three-letter pieces for partial words and typos (pg_trgm).
+    index('products_search_idx')
+      .using('gin', t.searchVector)
+      .where(sql`${t.active} AND ${t.deletedAt} IS NULL`),
+    index('products_name_trgm_idx')
+      .using('gin', t.name.op('gin_trgm_ops'))
+      .where(sql`${t.active} AND ${t.deletedAt} IS NULL`),
   ],
 );
 
@@ -212,6 +244,9 @@ export const productVariants = tenant.table(
     // listed with the product's variants, never counted against the variant limit.
     isStockHolder: boolean('is_stock_holder').notNull().default(false),
     active: boolean('active').notNull().default(true),
+    // CCH-08, ATR-07: the variant's own coarse public state, kept with its product's by the stock ledger, so a size
+    // selling out moves the catalogue version even while another keeps the product in stock.
+    stockState: stockState('stock_state').notNull().default(StockState.Out),
     createdAt: createdAt(),
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
   },

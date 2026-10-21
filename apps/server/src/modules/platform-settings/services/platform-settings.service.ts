@@ -33,6 +33,16 @@ const DESCRIPTIONS: Record<PlatformSettingKey, string> = {
     'How many minutes an order awaiting online payment holds its stock (INV-16).',
   [PlatformSettingKey.MediaImageMaxMb]: 'The largest image one upload may be, in MB (STO-04).',
   [PlatformSettingKey.MediaVideoMaxMb]: 'The largest video one upload may be, in MB (STO-05).',
+  [PlatformSettingKey.CatalogueListMaxAgeSeconds]:
+    "How long a shopper's browser keeps a product list, in seconds (CCH-03).",
+  [PlatformSettingKey.CatalogueListStaleSeconds]:
+    'How long an older product list may still be shown while it is fetched again, in seconds (CCH-03).',
+  [PlatformSettingKey.CatalogueDetailMaxAgeSeconds]:
+    "How long a shopper's browser keeps a product page, in seconds (CCH-03).",
+  [PlatformSettingKey.CatalogueSearchMaxAgeSeconds]:
+    "How long a shopper's browser keeps search results, in seconds (CCH-03).",
+  [PlatformSettingKey.CatalogueCategoriesMaxAgeSeconds]:
+    "How long a shopper's browser keeps the category tree, in seconds (CCH-03).",
 };
 
 // A positive-int check, the only shape any key needs today; slice 7 extends this map, not a switch, as more
@@ -51,6 +61,11 @@ const VALIDATORS: Record<PlatformSettingKey, (value: unknown) => boolean> = {
   [PlatformSettingKey.ReservationExpiryMinutes]: isPositiveInt,
   [PlatformSettingKey.MediaImageMaxMb]: isPositiveInt,
   [PlatformSettingKey.MediaVideoMaxMb]: isPositiveInt,
+  [PlatformSettingKey.CatalogueListMaxAgeSeconds]: isPositiveInt,
+  [PlatformSettingKey.CatalogueListStaleSeconds]: isPositiveInt,
+  [PlatformSettingKey.CatalogueDetailMaxAgeSeconds]: isPositiveInt,
+  [PlatformSettingKey.CatalogueSearchMaxAgeSeconds]: isPositiveInt,
+  [PlatformSettingKey.CatalogueCategoriesMaxAgeSeconds]: isPositiveInt,
 };
 
 function validate(key: PlatformSettingKey, value: unknown): void {

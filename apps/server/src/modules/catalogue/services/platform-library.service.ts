@@ -202,6 +202,8 @@ export class PlatformLibraryService {
         throw error;
       }
       if (!row) throw new ApiError('not_found', 'AttributeNotFound', {});
+      // KNOWN-GAPS §66: a renamed or retired platform attribute shows differently in every shop using it.
+      await this.library.bumpVersion(tx);
       await this.audit(
         tx,
         operator,
@@ -283,6 +285,8 @@ export class PlatformLibraryService {
         throw error;
       }
       if (!updated) throw new ApiError('not_found', 'OptionNotFound', {});
+      // KNOWN-GAPS §66: so does a platform value renamed, re-coloured or retired.
+      await this.library.bumpVersion(tx);
       await this.audit(
         tx,
         operator,

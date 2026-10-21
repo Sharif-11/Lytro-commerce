@@ -1134,6 +1134,10 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'Shop retrieved.',
     bn: 'দোকানের তথ্য পাওয়া গেছে।',
   },
+  CatalogueVersionRetrieved: {
+    en: 'Catalogue version retrieved.',
+    bn: 'ক্যাটালগ ভার্সন পাওয়া গেছে।',
+  },
   SupplierUpdated: {
     en: 'Supplier saved.',
     bn: 'সাপ্লায়ার সেভ হয়েছে।',
