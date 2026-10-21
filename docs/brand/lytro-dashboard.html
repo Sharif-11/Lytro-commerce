@@ -381,7 +381,7 @@ svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.75;str
       <optgroup label="Shop · Slices 1 to 3"><option value="products">Products</option><option value="product">Product editor</option><option value="sh-category">· pick categories (sheet)</option><option value="sh-attribute">· add attribute (sheet)</option><option value="sh-options">· options and swatches (sheet)</option><option value="sh-sizechart">· size chart (sheet)</option><option value="sh-link">· product link and slug (sheet)</option><option value="sh-deliversto">· delivers to (sheet)</option><option value="sh-policy">· payment policy (sheet)</option><option value="sh-delete">· archive or delete (dialog)</option><option value="categories">Categories</option><option value="sh-category-edit">· edit category (sheet)</option><option value="sh-category-new">· new category (sheet)</option><option value="sh-category-sub">· add sub-category (sheet)</option><option value="sh-category-menu">· row menu (sheet)</option><option value="sh-category-parent">· move: pick parent (sheet)</option><option value="sh-category-attrs">· suggested attributes (sheet)</option><option value="sh-category-chart">· category size chart (sheet)</option><option value="sh-category-delete">· delete with products (dialog)</option><option value="sh-category-delete-children">· delete refused: sub-categories (dialog)</option><option value="sh-category-delete-empty">· delete empty (dialog)</option><option value="categories-added">· after adding "Shirts"</option><option value="categories-deleted">· after deleting "Kids"</option><option value="categories-seeded">· day one: suggested categories added</option><option value="sh-category-new-product">· new category from the product editor (sheet)</option><option value="attributes">Attributes</option><option value="sh-attr-new">· new attribute (sheet)</option><option value="sh-attr-edit">· edit attribute (sheet)</option><option value="option-sets">Option sets</option><option value="stock">Stock</option><option value="stock-add">· add stock (sheet)</option><option value="stock-edit">· edit stock (sheet)</option><option value="sh-history">· stock history (sheet)</option><option value="sh-cost">· average cost (sheet)</option><option value="sh-batches">· batches (sheet)</option><option value="sh-serials">· IMEI / serials (sheet)</option><option value="sh-serials-add">· add serials (sheet)</option><option value="stock-checks">Stock checks</option><option value="stock-check">· new stock check</option><option value="stock-check-detail">· stock check detail</option><option value="expiring">Expiring batches</option><option value="delivery">Delivery</option><option value="sh-homearea">· home area (sheet)</option><option value="sh-zone">· zone (sheet)</option></optgroup>
       <optgroup label="Product form by shop type · Slices 1 to 9"><option value="pf-clothing">Clothing · new product</option><option value="pf-shoes_bags">Shoes and bags · new product</option><option value="pf-cosmetics">Cosmetics · new product</option><option value="pf-sh-batch">· opening batch (sheet)</option><option value="pf-electronics">Electronics · new product</option><option value="pf-mobiles_gadgets">Mobiles and gadgets · new product</option><option value="pf-sh-serials">· opening serials, IMEI (sheet)</option><option value="pf-grocery">Grocery · new product</option><option value="pf-food_bakery">Food and bakery · new product</option><option value="pf-books_stationery">Books and stationery · new product</option><option value="pf-pharmacy">Pharmacy · new product</option><option value="pf-home_decor">Home and décor · new product</option><option value="pf-media-states">· photos and video uploading (Slice 6)</option><option value="pf-defaults-changed">· category changed the defaults (PST-06)</option><option value="pf-errors">· errors: no name, serials on kg</option><option value="pf-edit-mobile">Edit · a phone with serials held</option><option value="pf-edit-grocery">Edit · rice with shared stock</option><option value="pf-saved">· saved (toast)</option></optgroup>
       <optgroup label="Money · Phase 2"><option value="balance">Balance</option><option value="topup">· top up (sheet)</option><option value="balance-pending">· top-up being checked</option><option value="balance-credited">· top-up credited</option><option value="plan">Plan</option><option value="paysheet">· how to pay (sheet)</option><option value="plan-pending">· payment being checked</option><option value="plan-paid">· renewed</option><option value="plan-upgraded">· upgraded to Growth</option><option value="upgrade">· upgrade (sheet)</option><option value="downgrade">· downgrade (sheet)</option><option value="invoices">Invoices</option></optgroup>
-      <optgroup label="Menu"><option value="menu">Menu</option><option value="team">Team</option><option value="staff">· add staff (sheet)</option><option value="roles">Roles</option><option value="activity">Activity</option><option value="settings">Settings</option><option value="shopdetails">· shop details</option><option value="exports">· data export</option><option value="account">Account</option></optgroup>
+      <optgroup label="Menu"><option value="menu">Menu</option><option value="team">Team</option><option value="staff">· add staff (sheet)</option><option value="roles">Roles</option><option value="activity">Activity</option><option value="settings">Settings</option><option value="shopdetails">· shop details</option><option value="storefront">· storefront: slides as a carousel</option><option value="storefront-tiles">· storefront: one banner and two tiles</option><option value="storefront-empty">· storefront: no slides yet</option><option value="sh-slide">· slide editor with the focal point (sheet)</option><option value="sh-slide-new">· new slide (sheet)</option><option value="sh-slide-preview">· both crops (sheet)</option><option value="sh-slide-delete">· remove slide (dialog)</option><option value="storefront-saved">· slide saved (toast)</option><option value="exports">· data export</option><option value="account">Account</option></optgroup>
       <optgroup label="Payment page (pay.lytro.app, embedded)"><option value="pay-checkout">Pay for the plan at checkout · ৳4,741</option><option value="pay-topup">Pay a top-up · ৳500</option><option value="pay-renew">Pay a renewal · ৳449</option><option value="pay-upgrade">Pay an upgrade · ৳400</option></optgroup>
       <optgroup label="Lifecycle"><option value="renew">Renew (locked or archived)</option><option value="unavailable">Unavailable (suspended)</option></optgroup>
       <optgroup label="Later phases (design only)"><option value="orders">Orders</option><option value="order">Order detail</option><option value="order-book">Book courier (sheet)</option><option value="order-new">New order</option><option value="customers">Customers</option><option value="customer">Customer detail</option><option value="payments">Payments</option><option value="methods">Payment methods</option><option value="usage">Usage</option><option value="notices">Notices</option><option value="purchases">Purchases (Slice 4)</option><option value="sms">SMS events</option><option value="notifications">Notifications (sheet)</option><option value="search">Search</option></optgroup>
@@ -1365,6 +1365,107 @@ SCREENS['pf-sh-batch'] = { ...SCREENS['pf-cosmetics'], base: 'pf-cosmetics', she
 
 /* saved: the toast after the first product of a shop */
 SCREENS['pf-saved'] = { ...SCREENS['pf-mobiles_gadgets'], base: 'products', render: () => SCREENS.products.render() + `<div class="toast ok">${t('pf_saved', { p: 'Galaxy A16' })}</div>` };
+</script>
+<style>
+/* ---------- storefront settings: the hero slot's slides (sketch only) ---------- */
+.slide-row .th{width:88px;height:56px;border-radius:8px;flex:none;position:relative;overflow:hidden;background:linear-gradient(135deg,var(--teal-200),var(--teal-700))}
+.slide-row .th.b{background:linear-gradient(135deg,#f8cf6e,#9a6004)}
+.slide-row .th.c{background:linear-gradient(135deg,#d5dfde,#5b6e6d)}
+.slide-row .th .fp{position:absolute;width:10px;height:10px;border-radius:50%;background:#fff;box-shadow:0 0 0 2px var(--ink)}
+.slide-row .grip{color:var(--n400);cursor:grab}
+.slide-row .l1,.slide-row .l2{white-space:normal;overflow:visible;text-overflow:clip}
+.slide-row .th{width:72px;height:48px}
+@container (min-width:640px){ .slide-row .th{width:88px;height:56px} }
+.layoutseg{display:flex;border:1px solid var(--line-strong);border-radius:8px;overflow:hidden}
+.layoutseg span{flex:1;text-align:center;padding:10px 8px;font-size:14px;font-weight:500;color:var(--n700);border-left:1px solid var(--line);display:flex;flex-direction:column;align-items:center;gap:6px}
+.layoutseg span:first-child{border-left:0}
+.layoutseg span.on{background:var(--teal-50);color:var(--teal-800);font-weight:600}
+.layoutseg i{display:block;width:64px;height:28px;border-radius:4px;border:1px solid currentColor;position:relative;opacity:.8}
+.layoutseg i.tiles::after{content:"";position:absolute;left:50%;top:0;bottom:0;width:1px;background:currentColor}
+.layoutseg i.car::after{content:"· · ·";position:absolute;left:0;right:0;bottom:-2px;font-size:10px;text-align:center;line-height:1}
+.prev{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--n50)}
+.prev .bar{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--line);background:#fff;font-size:13px}
+.prev .seg{display:inline-flex;border:1px solid var(--line-strong);border-radius:6px;overflow:hidden}
+.prev .seg span{padding:4px 10px;font-size:12px;font-weight:500}
+.prev .seg span.on{background:var(--ink);color:#fff}
+.prev .ph{padding:12px}
+.hero-sk{border-radius:12px;position:relative;overflow:hidden;color:#fff;display:flex;flex-direction:column;justify-content:flex-end;padding:14px;gap:4px;background:linear-gradient(135deg,var(--teal-200),var(--teal-700))}
+.hero-sk.b{background:linear-gradient(135deg,#f8cf6e,#9a6004)}
+.hero-sk::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 30%,rgba(16,32,31,.72))}
+.hero-sk>*{position:relative}
+.hero-sk .h{font-family:var(--font-display);font-weight:800;font-size:18px;line-height:1.2}
+.hero-sk .s{font-size:12px;opacity:.9}
+.hero-sk .btn-sk{align-self:flex-start;background:#fff;color:var(--ink);border-radius:999px;padding:5px 10px;font-size:12px;font-weight:700;margin-top:4px}
+.hero-sk .dots{position:absolute;bottom:8px;right:12px;display:flex;gap:4px}
+.hero-sk .dots i{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.5)}
+.hero-sk .dots i.on{background:#fff;width:14px;border-radius:3px}
+.hero-sk.phone{aspect-ratio:4/3}
+.hero-sk.desk{aspect-ratio:3/1}
+.tiles-sk{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.tiles-sk .hero-sk{aspect-ratio:4/3;padding:10px}
+.tiles-sk .hero-sk .h{font-size:14px}
+.focal{position:relative;border-radius:10px;overflow:hidden;aspect-ratio:2/1;background:linear-gradient(135deg,var(--teal-200),var(--teal-700));cursor:crosshair}
+.focal .grid{position:absolute;inset:0;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr)}
+.focal .grid i{border:1px solid rgba(255,255,255,.35)}
+.focal .fp{position:absolute;width:22px;height:22px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 2px rgba(16,32,31,.6);transform:translate(-50%,-50%)}
+.focal .crop{position:absolute;border:2px dashed rgba(255,255,255,.85);border-radius:4px;pointer-events:none}
+.focal .crop b{position:absolute;left:4px;top:2px;font-size:10px;color:#fff;font-weight:600;text-shadow:0 1px 2px rgba(0,0,0,.6)}
+.crops{display:grid;grid-template-columns:1fr;gap:12px}
+.crops .c{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--muted)}
+.crops .hero-sk{color:#fff}
+@container (min-width:640px){ .crops{grid-template-columns:1fr 1fr} }
+</style>
+<script>
+Object.assign(S, {
+  sfTitle: ['স্টোরফ্রন্ট', 'Storefront'], sfDesc: ['হোম পেজের ব্যানার, মৌসুমি লাইন আর সাজানো', 'The home page banner, the seasonal line and how it shows'],
+  sfBand: ['হোম পেজের লাইন', 'Home page line'], sfBandHelp: ['স্লাইড না থাকলে দোকানের নামের নিচে এই লাইনটা ব্যানার হয়ে দেখায়।', 'With no slides, this line shows under the shop name as the banner.'], sfBandPh: ['যেমন: ঈদের নতুন কালেকশন এসে গেছে', 'e.g. The Eid collection is here'],
+  sfSlides: ['স্লাইড', 'Slides'], sfSlidesHelp: ['সর্বোচ্চ ৩টি; নিজের ব্র্যান্ড চালু থাকলে ৫টি আর সময়সূচি। প্রথমটাই সবাই দেখে, বাকিগুলো বোনাস।', 'Up to 3; 5 and scheduling with your own brand switched on. Everyone sees the first; the rest are a bonus.'], sfAdd: ['স্লাইড যোগ', 'Add slide'],
+  sfLayout: ['কীভাবে দেখাবে', 'How they show'], sfCarousel: ['ক্যারোসেল', 'Carousel'], sfTiles: ['একটা ব্যানার + দুটো টাইল', 'One banner + two tiles'], sfLayoutHelp: ['ক্যারোসেল ঘোরে; টাইলে দুটো বার্তা একসাথে দেখা যায়।', 'A carousel rotates; tiles show two messages at once.'],
+  sfLive: ['চালু', 'Live'], sfScheduled: ['{d} থেকে', 'from {d}'], sfEnded: ['শেষ', 'Ended'], sfHidden: ['লুকানো', 'Hidden'], sfPreview: ['প্রিভিউ', 'Preview'], sfPhone: ['ফোন', 'Phone'], sfDesk: ['ডেস্কটপ', 'Desktop'],
+  sfEmpty: ['এখনো কোনো স্লাইড নেই', 'No slides yet'], sfEmptyHint: ['দোকানের নাম আর নিচের লাইনটাই এখন ব্যানার। একটা ছবি দিলে সেটাই দেখাবে।', 'Your shop name and the line below are the banner for now. Add a picture and it takes over.'],
+  slTitle: ['স্লাইড', 'Slide'], slNew: ['নতুন স্লাইড', 'New slide'], slImage: ['ছবি', 'Picture'], slImageHelp: ['১২০০×৬০০ বা বড়, ৫ MB পর্যন্ত। ফোন আর ডেস্কটপের কাট আমরা করি; গুরুত্বপূর্ণ জায়গায় ট্যাপ করুন।', '1200×600 or larger, up to 5 MB. We cut the phone and desktop crops; tap the part that matters.'], slFocal: ['মূল জায়গা', 'Focal point'],
+  slHead: ['শিরোনাম (ঐচ্ছিক)', 'Headline (optional)'], slSub: ['এক লাইন (ঐচ্ছিক)', 'One line (optional)'], slBtn: ['বোতামের লেখা', 'Button label'], slTarget: ['বোতাম যেখানে নেবে', 'Where the button goes'], tgCat: ['ক্যাটাগরি: পাঞ্জাবি', 'Category: Panjabi'], tgProd: ['প্রোডাক্ট: কটন পাঞ্জাবি', 'Product: Cotton Panjabi'], tgLanding: ['ল্যান্ডিং পেজ', 'Landing page'], tgNone: ['কোথাও না', 'Nowhere'],
+  slFrom: ['দেখানো শুরু', 'Show from'], slUntil: ['দেখানো শেষ', 'Show until'], slSchedHelp: ['খালি রাখলে এখন থেকে, যতদিন না সরান। সময়সূচি নিজের ব্র্যান্ডের সাথে আসে।', 'Empty means from now until you remove it. Scheduling comes with your own brand.'], slVisible: ['দেখানো হবে', 'Shown'], slTextNote: ['লেখার রং ছবি দেখে নিজে থেকে ঠিক হয়, যেন সবসময় পড়া যায়।', 'The text colour is picked from the picture so it always reads.'],
+  slPreviewTitle: ['দুই কাট', 'Both crops'], slPhoneCrop: ['ফোন · ৪:৩', 'Phone · 4:3'], slDeskCrop: ['ডেস্কটপ · ৩:১', 'Desktop · 3:1'], slDelete: ['স্লাইড সরান', 'Remove slide'], slDeleteCons: ['হোম পেজ থেকে সাথে সাথে চলে যাবে; ছবিটা স্টোরেজ থেকেও মুছবে।', 'It leaves the home page at once; the picture is removed from storage too.'],
+  slSaved: ['স্লাইড সেভ হয়েছে। হোম পেজে এক মিনিটে দেখাবে।', 'Slide saved. It shows on the home page within a minute.'],
+});
+const SLIDES = [
+  { cls: '', h: ['ঈদের নতুন কালেকশন', 'The Eid collection'], s: ['পাঞ্জাবি, শাড়ি, থ্রি-পিস', 'Panjabi, sarees, three-piece'], b: ['নতুন যা এসেছে', 'New arrivals'], st: 'live', fp: [62, 40] },
+  { cls: 'b', h: ['শাড়িতে ১৫% ছাড়', '15% off sarees'], s: ['শুক্রবার পর্যন্ত', 'Until Friday'], b: ['শাড়ি দেখুন', 'See sarees'], st: 'live', fp: [30, 55] },
+  { cls: 'c', h: ['পহেলা বৈশাখ', 'Pohela Boishakh'], s: ['লাল-সাদা কালেকশন', 'The red and white collection'], b: ['দেখুন', 'Shop'], st: 'scheduled', fp: [50, 50] },
+];
+const slideStatus = (s) => s.st === 'live' ? `<span class="st ok">${t('sfLive')}</span>` : s.st === 'scheduled' ? `<span class="st neu">${t('sfScheduled', { d: L('১ এপ্রিল', '1 Apr') })}</span>` : s.st === 'hidden' ? `<span class="st neu">${t('sfHidden')}</span>` : `<span class="st neu">${t('sfEnded')}</span>`;
+const heroSk = (s, cls, dots) => `<div class="hero-sk ${s.cls} ${cls || ''}"><div class="h">${L(...s.h)}</div><div class="s">${L(...s.s)}</div><span class="btn-sk">${L(...s.b)}</span>${dots ? '<div class="dots"><i class="on"></i><i></i><i></i></div>' : ''}</div>`;
+const sfPreview = (o) => { o = o || {}; const desk = o.desk; return `<div class="prev"><div class="bar"><span>${t('sfPreview')}</span><span class="seg"><span class="${desk ? '' : 'on'}">${t('sfPhone')}</span><span class="${desk ? 'on' : ''}">${t('sfDesk')}</span></span></div><div class="ph">${o.tiles ? `${heroSk(SLIDES[0], desk ? 'desk' : 'phone')}<div class="tiles-sk">${heroSk(SLIDES[1])}${heroSk(SLIDES[2])}</div>` : heroSk(SLIDES[0], desk ? 'desk' : 'phone', true)}</div></div>`; };
+function storefrontPage(o) {
+  o = o || {};
+  const list = o.empty ? `<div class="empty" style="padding:28px 16px">${ic('image')}<p><b>${t('sfEmpty')}</b><br>${t('sfEmptyHint')}</p>${isRO() ? '' : btn('p sm', ic('plus') + ' ' + t('sfAdd'), "onclick=\"go('sh-slide-new')\"")}</div>`
+    : `<div class="list">${SLIDES.map((s, i) => `<div class="row slide-row" onclick="go('sh-slide')" style="cursor:pointer"><span class="grip">${ic('more')}</span><span class="th ${s.cls}"><span class="fp" style="left:${s.fp[0]}%;top:${s.fp[1]}%"></span></span><span class="body"><span class="l1" style="font-size:15px">${L(...s.h)}</span><span class="l2">${L(...s.s)} · ${L(...s.b)} → ${i === 1 ? t('tgCat') : t('tgProd')}</span></span>${slideStatus(s)}</div>`).join('')}</div>`;
+  return `${title('sfTitle')}<div class="two"><div style="display:flex;flex-direction:column;gap:16px">
+  <div class="card" style="display:flex;flex-direction:column;gap:12px"><div class="sechead"><h3 style="margin:0">${t('sfSlides')}</h3>${o.empty || isRO() ? '' : btn('o xs', ic('plus') + ' ' + t('sfAdd'), "onclick=\"go('sh-slide-new')\"")}</div><p class="hint">${t('sfSlidesHelp')}</p><div class="card flush" style="margin:0">${list}</div></div>
+  <div class="card" style="display:flex;flex-direction:column;gap:12px"><h3>${t('sfLayout')}</h3><div class="layoutseg"><span class="${o.tiles ? '' : 'on'}" onclick="go('storefront')"><i class="car"></i>${t('sfCarousel')}</span><span class="${o.tiles ? 'on' : ''}" onclick="go('storefront-tiles')"><i class="tiles"></i>${t('sfTiles')}</span></div><p class="hint">${t('sfLayoutHelp')}</p></div>
+  <div class="card" style="display:flex;flex-direction:column;gap:12px"><h3>${t('sfBand')}</h3>${field(t('sfBand'), o.empty ? L('ঈদের নতুন কালেকশন এসে গেছে', 'The Eid collection is here') : null, { ph: t('sfBandPh'), help: t('sfBandHelp') })}</div>
+  </div><div>${sfPreview({ tiles: o.tiles, desk: ST.device === 'desktop' })}</div></div>${isRO() ? '' : actionbar(btn('p', t('save')))}`;
+}
+const SF_BASE = { hub: 'menu', sec: 'settings', title: 'sfTitle', back: true, base: 'settings', path: '/settings/storefront' };
+SCREENS.storefront = { ...SF_BASE, render: () => storefrontPage() };
+SCREENS['storefront-tiles'] = { ...SF_BASE, render: () => storefrontPage({ tiles: true }) };
+SCREENS['storefront-empty'] = { ...SF_BASE, render: () => storefrontPage({ empty: true }) };
+SCREENS['storefront-saved'] = { ...SF_BASE, render: () => storefrontPage() + `<div class="toast ok">${t('slSaved')}</div>` };
+const slideSheet = (isNew) => { const s = SLIDES[0]; return sheet(isNew ? t('slNew') : t('slTitle'), `
+  <div class="field"><label>${t('slImage')}</label>${isNew ? `<button class="thumb lg" style="width:100%;height:120px;border:1px dashed var(--line-strong);background:#fff;color:var(--primary);flex-direction:column;font-size:13px;gap:4px">${ic('camera')}${t('addPhoto')}</button>` : `<div class="focal"><div class="grid">${'<i></i>'.repeat(9)}</div><div class="crop" style="left:34%;top:4%;width:40%;height:92%"><b>${t('slPhoneCrop')}</b></div><div class="crop" style="left:2%;top:26%;width:96%;height:48%"><b>${t('slDeskCrop')}</b></div><span class="fp" style="left:${s.fp[0]}%;top:${s.fp[1]}%"></span></div>`}<div class="help">${t('slImageHelp')}</div></div>
+  ${field(t('slHead'), isNew ? null : L(...s.h), { ph: t('sfBandPh') })}${field(t('slSub'), isNew ? null : L(...s.s))}<div class="grid2">${field(t('slBtn'), isNew ? null : L(...s.b))}${field(t('slTarget'), isNew ? t('tgNone') : t('tgProd'), { trail: ic('down') })}</div>
+  <div class="grid2">${field(t('slFrom'), null, { ph: L('এখন', 'now'), trail: ic('calendar') })}${field(t('slUntil'), null, { ph: '—', trail: ic('calendar') })}</div><p class="hint">${t('slSchedHelp')}</p>
+  <div class="row" style="padding:4px 0;min-height:40px"><span class="switch on"></span><span class="body"><span class="l1" style="font-size:15px">${t('slVisible')}</span></span></div><p class="hint">${t('slTextNote')}</p>
+  ${isNew ? '' : `<div class="actions" style="display:flex;gap:8px;flex-wrap:wrap">${btn('o sm', ic('image') + ' ' + t('slPreviewTitle'), "onclick=\"go('sh-slide-preview')\"")}${btn('o sm', ic('trash') + ' ' + t('slDelete'), "onclick=\"go('sh-slide-delete')\"")}</div>`}`,
+  btn('p', t('save'), "onclick=\"go('storefront-saved')\"")); };
+SCREENS['sh-slide'] = { ...SF_BASE, base: 'storefront', render: () => storefrontPage(), sheet: () => slideSheet(false) };
+SCREENS['sh-slide-new'] = { ...SF_BASE, base: 'storefront', render: () => storefrontPage(), sheet: () => slideSheet(true) };
+SCREENS['sh-slide-preview'] = { ...SF_BASE, base: 'storefront', render: () => storefrontPage(), sheet: () => sheet(t('slPreviewTitle'), `<div class="crops"><div class="c"><span>${t('slPhoneCrop')}</span>${heroSk(SLIDES[0], 'phone', true)}</div><div class="c"><span>${t('slDeskCrop')}</span>${heroSk(SLIDES[0], 'desk', true)}</div></div><p class="hint">${t('slImageHelp')}</p>`, btn('p', t('done'), "onclick=\"go('sh-slide')\"")) };
+SCREENS['sh-slide-delete'] = { ...SF_BASE, base: 'storefront', render: () => storefrontPage(), sheet: () => sheet(t('slDelete'), `<p>${t('slDeleteCons')}</p>`, btn('d', t('slDelete'), "onclick=\"go('storefront')\"")) };
+/* the settings list gains the row; the "store" row stays under Coming later for the on/off switch and the custom domain */
+const _settingsRender = SCREENS.settings.render;
+SCREENS.settings.render = () => _settingsRender().replace(`${menuRow('download', 'sExport', t('sExportD'), 'exports')}`, `${menuRow('image', 'sfTitle', t('sfDesc'), 'storefront')}${menuRow('download', 'sExport', t('sExportD'), 'exports')}`);
 </script>
 <script type="text/template" id="paytpl">
 <!doctype html>
