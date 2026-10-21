@@ -1208,6 +1208,28 @@ document.querySelectorAll('#segLang button').forEach(b => b.addEventListener('cl
 .gw .demo .row{display:flex;gap:8px;flex-wrap:wrap}
 .gw .demo .row .btn{flex:1 1 140px;min-width:0;padding:0 8px;font-size:13px}
 .wlogo img{height:22px;display:block}
+/* slides: the picture fills the slot, cropped around the shop's focal point; the text sits on a gradient so it always reads */
+.carousel{position:relative;border-radius:var(--r-card);overflow:hidden}
+.carousel .track{display:flex}
+.slide{position:relative;aspect-ratio:4/3;border-radius:var(--r-card);overflow:hidden;display:flex;align-items:flex-end;padding:18px;color:#fff;cursor:pointer;flex:0 0 100%}
+.slide.a{background:linear-gradient(135deg,#7fdcd3,#0e6b66)}
+.slide.b{background:linear-gradient(135deg,#f8cf6e,#9a6004)}
+.slide.c{background:linear-gradient(135deg,#c8323b,#5a0f14)}
+.slide::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 35%,rgba(16,32,31,.75))}
+.slide .txt{position:relative;display:flex;flex-direction:column;gap:6px;max-width:520px}
+.slide .h{font-family:var(--font-display);font-size:26px;font-weight:800;letter-spacing:-.02em;line-height:1.15}
+.slide .s{font-size:14px;opacity:.92}
+.slide .cta{align-self:flex-start;margin-top:4px;background:#fff;color:var(--ink);border-radius:var(--r-pill);height:38px;padding:0 14px;font-weight:700;font-size:14px;display:inline-flex;align-items:center;gap:4px}
+.carousel .arr{display:none}
+.carousel .dots{position:absolute;bottom:12px;right:16px;display:flex;gap:6px}
+.carousel .dots i{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.55)}
+.carousel .dots i.on{background:#fff;width:18px;border-radius:3px}
+.tiles{display:grid;grid-template-columns:1fr;gap:12px;margin-top:12px}
+.slide.tile{aspect-ratio:2/1;padding:14px}
+.slide.tile .h{font-size:19px}
+.slide.tile .cta{height:32px;font-size:13px;padding:0 12px}
+@container (min-width:640px){ .tiles{grid-template-columns:1fr 1fr} .slide{aspect-ratio:3/1;padding:32px} .slide .h{font-size:34px} .slide.tile{aspect-ratio:2/1;padding:20px} }
+@container (min-width:1024px){ .carousel .arr{display:flex;position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.9);color:var(--ink);align-items:center;justify-content:center;box-shadow:var(--shadow)} .carousel .arr.l{left:16px} .carousel .arr.r{right:16px} .slide{min-height:300px} }
 .wlogo.txt{font-weight:800;font-size:15px;letter-spacing:-.01em;background:transparent;padding:0}
 </style>
 <script>
@@ -1248,6 +1270,18 @@ def('pay-gateway', { group: 'Paying (Phase 5)', label: 'To bKash\'s own checkout
 def('landing-advance', { group: 'Landing page', label: 'Landing page · product with a ৳200 advance: method chooser (LND-10)', url: 'megh.lytro.app/l/lawn-three-piece', render: () => { const p = P[2]; const q = 1; const total = p.price * q; return shell({ hdr: { minimal: true }, landing: true }, `<div class="pdp">${gallery(p)}<div class="buy"><div class="top"><div class="eyebrow">${shopName()}</div><h1 class="pt">${pName(p)}</h1><div class="pricerow"><span class="price">${money(p.price)}</span>${stChip('low')}</div></div><div class="opt"><div class="lb"><span>${t('size')}: <b>L</b></span></div><div class="vals">${['S', 'M', 'L', 'XL'].map((s) => `<span class="vb ${s === 'L' ? 'on' : ''}">${s}</span>`).join('')}</div></div><div class="opt"><div class="lb"><span>${t('qty')}</span></div>${qty(1)}</div><div class="line">${I.cash}<span><b>${t('pay_adv', { n: 200 })}</b> · ${t('pay_adv_hint', { n: 200 })}</span></div></div></div>
   <div class="two"><div class="ofrm" style="display:flex;flex-direction:column;gap:16px">${orderForm({ name: L('রুমানা আক্তার', 'Rumana Akter'), phone: '01711 223344', district: 'dhaka', thana: 'dhanmondi', address: L('বাসা ৫, রোড ৭, ধানমন্ডি', 'House 5, Road 7, Dhanmondi') })}<div class="card2"><h3>${t('co_payment')} · ${t('adv_now')} ${money(200)}</h3><label class="radio on" onclick="PAY_METHOD='bkash'"><span class="dot"></span><span class="b"><span class="l1">${LOGOS.bkash}<span>bKash</span></span><span class="l2">${t('pm_gateway_hint')}</span></span></label><label class="radio" onclick="PAY_METHOD='nagad'"><span class="dot"></span><span class="b"><span class="l1">${LOGOS.nagad}<span>Nagad</span></span><span class="l2">${t('pm_manual_hint')}</span></span></label><label class="radio"><span class="dot"></span><span class="b"><span class="l1">${LOGOS.rocket}</span><span class="l2">${t('pm_manual_hint')}</span></span></label></div></div>
   <div class="side"><div class="card2"><h3>${t('co_summary')}</h3><div class="cl"><span class="th">${pName(p).slice(0, 1)}</span><div class="b"><div class="nm">${pName(p)}</div><div class="vr">L × ${q}</div></div></div><div class="sum"><div class="r"><span class="k">${t('item_total')}</span><span>${money(total)}</span></div><div class="r"><span class="k">${t('delivery')} · ${L(ZONE.inside.bn, ZONE.inside.en)}</span><span>${money(70)}</span></div><div class="r total"><span>${t('grand_total')}</span><span class="price">${money(total + 70)}</span></div><div class="r"><span class="k">${t('adv_now')}</span><span class="price">${money(200)}</span></div><div class="r"><span class="k">${t('cod_rem')}</span><span>${money(total + 70 - 200)}</span></div></div><button class="btn primary lg block" onclick="go('confirm-advance')">${t('place_adv', { n: 200 })}</button><div class="sub" style="font-size:12px;text-align:center">${t('idem_note')}</div></div></div></div>`, landingBar(p)); } });
+
+/* ---------- the hero slot filled by the shop's slides: a carousel, or one banner with two tiles (sketch only) ---------- */
+Object.assign(S, { sl1h: ['ঈদের নতুন কালেকশন', 'The Eid collection'], sl1s: ['পাঞ্জাবি, শাড়ি, থ্রি-পিস — ঢাকায় ৭০ টাকায় ডেলিভারি', 'Panjabi, sarees, three-piece. ৳70 delivery in Dhaka'], sl1b: ['নতুন যা এসেছে', 'New arrivals'], sl2h: ['শাড়িতে ১৫% ছাড়', '15% off sarees'], sl2s: ['শুক্রবার পর্যন্ত', 'Until Friday'], sl2b: ['শাড়ি দেখুন', 'See sarees'], sl3h: ['পহেলা বৈশাখ', 'Pohela Boishakh'], sl3s: ['লাল-সাদা কালেকশন', 'The red and white collection'], sl3b: ['দেখুন', 'Shop'] });
+const SLIDES = [{ cls: 'a', h: 'sl1h', s: 'sl1s', b: 'sl1b' }, { cls: 'b', h: 'sl2h', s: 'sl2s', b: 'sl2b' }, { cls: 'c', h: 'sl3h', s: 'sl3s', b: 'sl3b' }];
+const slide = (s, o) => { o = o || {}; return `<div class="slide ${s.cls} ${o.tile ? 'tile' : ''}" onclick="go('category')"><div class="txt"><div class="h">${t(s.h)}</div>${o.tile ? '' : `<div class="s">${t(s.s)}</div>`}<span class="cta">${t(s.b)} ${I.chev}</span></div></div>`; };
+const carousel = () => `<div class="carousel"><div class="track">${slide(SLIDES[0])}</div><button class="arr l">${I.back}</button><button class="arr r">${I.chev}</button><div class="dots"><i class="on"></i><i></i><i></i></div></div>`;
+const tiles = () => `${slide(SLIDES[0])}<div class="tiles">${slide(SLIDES[1], { tile: true })}${slide(SLIDES[2], { tile: true })}</div>`;
+const homeWith = (heroHtml) => `${heroHtml}${trust()}
+  <section class="sec"><div class="sechead"><h2>${t('shop_by')}</h2><span class="lnk" onclick="go('category')">${t('see_all')}${I.chev}</span></div><div class="cats">${CATS.map((c) => `<div class="cat" onclick="go('category')"><span class="img">${L(c.bn, c.en).slice(0, 1)}</span><span>${L(c.bn, c.en)}</span></div>`).join('')}</div></section>
+  <section class="sec"><div class="sechead"><h2>${t('new_in')}</h2><span class="lnk" onclick="go('category')">${t('see_all')}${I.chev}</span></div>${grid(P.slice(0, 4))}</section>`;
+def('home-carousel', { group: 'Browse', label: 'Home · the shop\'s slides as a carousel', url: 'megh.lytro.app', render: () => shell({}, homeWith(carousel())) });
+def('home-tiles', { group: 'Browse', label: 'Home · one banner and two tiles', url: 'megh.lytro.app', render: () => shell({}, homeWith(tiles())) });
 
 /* ---------- toolbar ---------- */
 (function init() {
