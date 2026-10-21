@@ -1607,6 +1607,23 @@ platform setting `public_requests_per_visitor_per_minute`; and `control.api_usag
 their visitors (RUNBOOKS §4). **Still to build:** the fast-spend alert, with Slice 10's usage warnings, and the
 storefront server passing each shopper's IP, in Slice 12.
 
+## 83. `PLN-05`, `PLN-06`, `PLN-11`: product and seat limits came from the live plan, not the shop's snapshot — found and fixed 2026-10-21
+
+Found while reading for Phase 3 Slice 10a. The dashboard's shop summary joined the live plan and carried its limits
+(`plans.limits`), and every dashboard check read them from there: the product limit, the seat limit, the
+permission checks and the free-SMS figures. So an operator's edit to a plan changed every shop on it at once, in the
+middle of a period already paid for -- PLN-06's own example, the other way round. The media and API limits already
+read the shop's snapshot. The activity-log purge had the same fault, and ignored the shop's overrides too.
+
+**Fixed:** the summary now carries the shop's own limits -- its snapshot with its overrides laid over it, read in
+the same query -- so the three places that laid overrides over the live plan themselves no longer need to. The purge
+reads the override, then the snapshot. One table (`LIMIT_WHEN_UNSET` with `limitOf`, next to `withOverrides`) says
+what a limit means when a shop's limits do not set it, replacing each check's own fallback. Proven by
+`usage.e2e.spec.ts`: with Trial's live limits changed to 1 product and 5 seats, an existing trial shop still makes
+a second product and is still refused a second seat, while a shop opened afterwards gets the new figures. A purge
+case in `activity.e2e.spec.ts` keeps a 10-day-old entry under the snapshot's 30 days while the live plan says 7, and
+purges it under an override of 7. Both cases failed before the fix.
+
 ## Not a bug, just noting it so it isn't mistaken for one later
 
 The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data

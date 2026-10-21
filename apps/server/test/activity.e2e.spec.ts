@@ -71,7 +71,7 @@ function shopCall(who: Owner): Record<string, string> {
 
 async function moveToPlan(slug: string, planName: string): Promise<void> {
   await admin.query(
-    `UPDATE control.tenants SET plan_id = (SELECT id FROM control.plans WHERE name = $1) WHERE slug = $2`,
+    `UPDATE control.tenants SET plan_id = (SELECT id FROM control.plans WHERE name = $1), plan_snapshot = (SELECT limits FROM control.plans WHERE name = $1) WHERE slug = $2`,
     [planName, slug],
   );
 }
@@ -476,16 +476,16 @@ describeIfDatabase('the activity log (AUD-01, AUD-02, AUD-04)', () => {
     );
     const tenantId = tenantRow.rows[0]?.id;
 
-    // The tenant's live plan already says 7 days (as if a downgrade just applied), but a still-active
-    // 90-day floor (DowngradeService.apply's own write) is what should actually decide this.
+    // The tenant's plan already says 7 days (as if a downgrade just applied, snapshot and all), but a
+    // still-active 90-day floor (DowngradeService.apply's own write) is what should actually decide this.
     const plan = await admin.query<{ id: string }>(
       `INSERT INTO control.plans (name, rank, for_sale, limits)
        VALUES ('Test Post-Downgrade Plan', 999, false, '{"activity_retention_days": 7}')
        RETURNING id`,
     );
     await admin.query(
-      `UPDATE control.tenants SET plan_id = $1, retention_floor_days = 90,
-         retention_floor_until = now() + interval '10 days' WHERE id = $2`,
+      `UPDATE control.tenants SET plan_id = $1, plan_snapshot = '{"activity_retention_days": 7}',
+         retention_floor_days = 90, retention_floor_until = now() + interval '10 days' WHERE id = $2`,
       [plan.rows[0]?.id, tenantId],
     );
     await admin.query(
@@ -501,7 +501,7 @@ describeIfDatabase('the activity log (AUD-01, AUD-02, AUD-04)', () => {
     );
     expect(whileActive.rows.map((r) => r.summary?.marker)).toContain('protected-by-floor');
 
-    // The floor has now lapsed (as it would 10 days later) -- the live plan's own 7-day retention applies.
+    // The floor has now lapsed (as it would 10 days later) -- the shop's own 7-day retention applies.
     await admin.query(
       `UPDATE control.tenants SET retention_floor_until = now() - interval '1 day' WHERE id = $1`,
       [tenantId],
@@ -544,10 +544,12 @@ describeIfDatabase('the activity log (AUD-01, AUD-02, AUD-04)', () => {
        VALUES ('Test Short Retention', 999, false, '{"activity_retention_days": 7}')
        RETURNING id`,
     );
-    await admin.query('UPDATE control.tenants SET plan_id = $1 WHERE slug = $2', [
-      plan.rows[0]?.id,
-      shortRetention.slug,
-    ]);
+    // As a plan change does: the plan and its snapshot together.
+    await admin.query(
+      `UPDATE control.tenants SET plan_id = $1, plan_snapshot = '{"activity_retention_days": 7}'
+       WHERE slug = $2`,
+      [plan.rows[0]?.id, shortRetention.slug],
+    );
     // longRetention keeps its default (trial) plan, whose own retention is unaffected by the row above.
 
     for (const who of [shortRetention, longRetention]) {
@@ -572,5 +574,43 @@ describeIfDatabase('the activity log (AUD-01, AUD-02, AUD-04)', () => {
     // tenant's own setting decided its own entry, with no cross-tenant effect either way.
     expect(shortSummaries.join(' ')).not.toContain('TenMinusDays');
     expect(longSummaries.join(' ')).toContain('TenMinusDays');
+  });
+
+  it("follows the shop's override and its snapshot, never an edit to the live plan (PLN-06, PLN-11, AUD-06)", async () => {
+    const overridden = await owner();
+    const untouched = await owner();
+    const idOf = async (slug: string) =>
+      (await admin.query<{ id: string }>('SELECT id FROM control.tenants WHERE slug = $1', [slug]))
+        .rows[0]?.id;
+    await admin.query(
+      `INSERT INTO control.plan_limit_overrides (tenant_id, limit_key, value, reason, set_by)
+       VALUES ($1, 'activity_retention_days', '7', 'retention test', gen_random_uuid())`,
+      [await idOf(overridden.slug)],
+    );
+    // Both shops are on Trial, its 30 days frozen in their snapshots; the live plan now says 7.
+    await admin.query(
+      `UPDATE control.plans SET limits = limits || '{"activity_retention_days": 7}' WHERE name = 'Trial'`,
+    );
+    try {
+      for (const who of [overridden, untouched]) {
+        await admin.query(
+          `INSERT INTO tenant.activity_log (tenant_id, actor_type, actor_id, action, result, summary, created_at)
+           VALUES ($1, 'user', NULL, 'role_created', 'success', '{"name":"TenDaysOld"}', now() - interval '10 days')`,
+          [await idOf(who.slug)],
+        );
+      }
+      await new ActivityLogPurger().run(activityAdminUrl);
+    } finally {
+      await admin.query(
+        `UPDATE control.plans SET limits = limits || '{"activity_retention_days": 30}' WHERE name = 'Trial'`,
+      );
+    }
+    const kept = async (who: Owner) =>
+      ((await activityOf(who)).body as { entries: ActivityEntry[] }).entries
+        .map((e) => JSON.stringify(e.summary))
+        .join(' ');
+    // The override's 7 days purged one; the snapshot's 30 kept the other, whatever the live plan says.
+    expect(await kept(overridden)).not.toContain('TenDaysOld');
+    expect(await kept(untouched)).toContain('TenDaysOld');
   });
 });

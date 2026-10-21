@@ -4,6 +4,7 @@ import {
   ActorType,
   AuditAction,
   AuditResult,
+  limitOf,
   type PlanLimits,
   ServerFieldProblemCode,
 } from '@lytronix/validators';
@@ -17,9 +18,6 @@ import type { StaffAccounts } from '../ports/staff-accounts';
 import { ROLE_STORE, STAFF_ACCOUNTS, STAFF_PASSWORD_HASHER, STAFF_STORE } from '../tokens';
 import type { StaffCredentials, StaffList, StaffMember, StaffRecord } from '../types/staff';
 import type { OwnerContact } from '../types/owner-contact';
-
-// STF-02: a plan without a staff limit has one seat, the owner's own.
-export const DEFAULT_SEATS = 1;
 
 // LOG-02, AUD-02: a phone number never appears whole in a log or an activity entry, even to someone with
 // audit:read on this shop — only enough to tell entries apart at a glance.
@@ -117,6 +115,11 @@ export class StaffService {
     values: { tenantId: string; phone: string | null; email: string | null; name: string },
   ): Promise<void> {
     return this.store.insertOwner(tx, values);
+  }
+
+  /** LIM-02, STF-02: the seats in use, the owner's among them. */
+  seatsUsed(tenantId: string): Promise<number> {
+    return this.store.run(tenantId, (tx) => this.store.countActive(tx, tenantId));
   }
 
   list(tenant: StaffTenant): Promise<StaffList> {
@@ -390,10 +393,9 @@ export class StaffService {
     }
   }
 
-  // PLN-19: null means unlimited seats, distinct from "not set" falling back to DEFAULT_SEATS.
+  // PLN-19: null means unlimited seats; a plan that sets none has the owner's one (STF-02).
   private seatsOf(tenant: StaffTenant): number | null {
-    const staff = tenant.planLimits?.staff;
-    return staff === null ? null : (staff ?? DEFAULT_SEATS);
+    return limitOf(tenant.planLimits, 'staff');
   }
 
   /**

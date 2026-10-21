@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Transaction } from '@lytronix/db';
-import { MediaKind, PlatformSettingKey, withOverrides } from '@lytronix/validators';
+import { limitOf, MediaKind, PlatformSettingKey, withOverrides } from '@lytronix/validators';
 import { PlatformSettingsService } from '../../platform-settings/services/platform-settings.service';
 import type { MediaStore } from '../ports/media-store';
 import { MEDIA_STORE } from '../tokens';
@@ -41,6 +41,6 @@ export class MediaLimits {
    */
   async storageMb(tx: Transaction, tenantId: string): Promise<number | null> {
     const { snapshot, overrides } = await this.store.planLimits(tx, tenantId);
-    return withOverrides(snapshot, overrides)?.storage_mb ?? null;
+    return limitOf(withOverrides(snapshot, overrides), 'storage_mb');
   }
 }

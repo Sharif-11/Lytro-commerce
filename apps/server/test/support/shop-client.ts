@@ -116,7 +116,7 @@ export async function staffWith(
   permissions: string[],
 ): Promise<Record<string, string>> {
   await admin.query(
-    "UPDATE control.tenants SET plan_id = (SELECT id FROM control.plans WHERE name = 'Starter') WHERE id = $1",
+    "UPDATE control.tenants SET plan_id = (SELECT id FROM control.plans WHERE name = 'Starter'), plan_snapshot = (SELECT limits FROM control.plans WHERE name = 'Starter') WHERE id = $1",
     [shop.tenantId],
   );
   const role = (await shop.post('/roles', { name: permissions.join(' '), permissions })).body as {

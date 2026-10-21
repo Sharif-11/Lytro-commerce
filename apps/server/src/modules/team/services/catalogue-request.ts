@@ -3,7 +3,6 @@ import { catalogueIdSchema, type Permission } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import { ClientIp } from '../../../common/client-ip';
 import type { MessageKey } from '../../../common/i18n/message-key';
-import { PlanLimitOverridesService } from '../../billing/services/plan-limit-overrides.service';
 import type { CatalogueActor, CatalogueShop, OperatorActor } from '../../catalogue/types/catalogue';
 import type { DashboardRequest } from '../../identity/guards/dashboard.guard';
 import type { OperatorSessionRequest } from '../../operator/guards/operator-session.guard';
@@ -13,7 +12,6 @@ import { StaffService } from '../../staff/services/staff.service';
 @Injectable()
 export class CatalogueRequest {
   constructor(
-    @Inject(PlanLimitOverridesService) private readonly limitOverrides: PlanLimitOverridesService,
     @Inject(ClientIp) private readonly clientIp: ClientIp,
     @Inject(StaffService) private readonly staff: StaffService,
   ) {}
@@ -40,16 +38,16 @@ export class CatalogueRequest {
     return tenant.id;
   }
 
-  /** PLN-11: the product limit must reflect a per-tenant override, not just the plan snapshot. */
-  async shopOf(request: DashboardRequest): Promise<CatalogueShop> {
+  /** The shop, with its own limits: its snapshot with its overrides (PLN-11), as its summary carries them. */
+  shopOf(request: DashboardRequest): Promise<CatalogueShop> {
     const tenant = request.tenant;
     if (!tenant) throw new ApiError('forbidden', 'CreateShopToContinue', { next: 'create-shop' });
-    return {
+    return Promise.resolve({
       id: tenant.id,
       state: tenant.state,
-      planLimits: await this.limitOverrides.effectiveLimits(tenant.id, tenant.planLimits),
+      planLimits: tenant.planLimits,
       businessType: tenant.businessType,
-    };
+    });
   }
 
   /** The acting staff member, or null for the owner's own session (AUD-02), and the client address. */

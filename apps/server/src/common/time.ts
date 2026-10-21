@@ -48,13 +48,23 @@ export function daysUntil(now: Date, to: Date): number {
  * count back from it.
  */
 export function monthlyCycleStart(anchor: Date, now: Date): Date {
+  return addMonths(anchor, cycleIndex(anchor, now));
+}
+
+/** Where the month-long cycle `now` falls in ends: the next one's start, counted from `anchor` the same way. */
+export function monthlyCycleEnd(anchor: Date, now: Date): Date {
+  return addMonths(anchor, cycleIndex(anchor, now) + 1);
+}
+
+/** How many whole months from `anchor` the cycle `now` falls in starts. */
+function cycleIndex(anchor: Date, now: Date): number {
   const from = new Date(anchor.getTime() + DHAKA_OFFSET_MS);
   const to = new Date(now.getTime() + DHAKA_OFFSET_MS);
   let months =
     (to.getUTCFullYear() - from.getUTCFullYear()) * 12 + (to.getUTCMonth() - from.getUTCMonth());
   // The calendar-month difference is right or one too many; step back until the cycle has started.
   while (addMonths(anchor, months) > now) months -= 1;
-  return addMonths(anchor, months);
+  return months;
 }
 
 /**
@@ -62,15 +72,26 @@ export function monthlyCycleStart(anchor: Date, now: Date): Date {
  * API requests) runs in months from the paid period's start, so a purchase, a restart after lapse or an upgrade (each
  * a new period) starts it again from zero. Pay-as-you-go has no period, so it counts from the shop's creation date.
  */
-export function usageCycleStart(
-  tenant: { state: TenantState; periodStart: Date | null; createdAt: Date },
-  now: Date,
-): Date {
-  const anchor =
-    tenant.state === TenantState.PayAsYouGo
-      ? tenant.createdAt
-      : (tenant.periodStart ?? tenant.createdAt);
-  return monthlyCycleStart(anchor, now);
+export function usageCycleStart(tenant: CycleTenant, now: Date): Date {
+  return monthlyCycleStart(usageAnchor(tenant), now);
+}
+
+/** LIM-02: when the shop's usage cycle `now` falls in ends, and its per-cycle counts start again. */
+export function usageCycleEnd(tenant: CycleTenant, now: Date): Date {
+  return monthlyCycleEnd(usageAnchor(tenant), now);
+}
+
+/** What a shop's usage cycle is counted from. */
+interface CycleTenant {
+  state: TenantState;
+  periodStart: Date | null;
+  createdAt: Date;
+}
+
+function usageAnchor(tenant: CycleTenant): Date {
+  return tenant.state === TenantState.PayAsYouGo
+    ? tenant.createdAt
+    : (tenant.periodStart ?? tenant.createdAt);
 }
 
 /** BIL-14: the start (00:00) of the Asia/Dhaka calendar day `date` falls on, same offset trick as `addMonths`. */

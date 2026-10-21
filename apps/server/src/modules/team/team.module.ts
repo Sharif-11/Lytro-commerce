@@ -47,6 +47,8 @@ import { InventoryModule } from '../inventory/inventory.module';
 import { PurchasingModule } from '../purchasing/purchasing.module';
 import { MediaModule } from '../media/media.module';
 import { MediaController } from './controllers/media.controller';
+import { UsageController } from './controllers/usage.controller';
+import { UsageModule } from '../usage/usage.module';
 import {
   ProductPurchasesController,
   PurchaseOrdersController,
@@ -96,6 +98,7 @@ import { CatalogueRequest } from './services/catalogue-request';
     PurchasingModule,
     PublicApiModule,
     MediaModule,
+    UsageModule,
   ],
   controllers: [
     StaffController,
@@ -139,6 +142,7 @@ import { CatalogueRequest } from './services/catalogue-request';
     PurchaseOrdersController,
     ProductPurchasesController,
     MediaController,
+    UsageController,
   ],
   providers: [
     StaffSigninService,

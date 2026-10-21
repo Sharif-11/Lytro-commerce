@@ -505,6 +505,18 @@ export enum RateKey {
   SmsUnitSizeChars = 'sms_unit_size_chars',
 }
 
+// LIM-02: what the usage page shows, each against the shop's limit. Essential SMS is per cycle on a paid plan and in
+// total on a trial (TRL-03), whichever the shop's limits set.
+export enum UsageMetric {
+  Products = 'products',
+  Seats = 'seats',
+  Storage = 'storage',
+  Bandwidth = 'bandwidth',
+  Requests = 'requests',
+  EssentialSmsMonthly = 'essential_sms_monthly',
+  EssentialSmsTotal = 'essential_sms_total',
+}
+
 // LIF-26: every platform-wide editable value that isn't a per-use rate (those are RateKey above). Add a key
 // here before any code reads or writes it. Trial length is the first; slice 7 adds the grace/read-only/
 // locked stage lengths to this same list.
