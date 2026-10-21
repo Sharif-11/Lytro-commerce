@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { BillingInfoRow, Transaction } from '@lytronix/db';
 import {
+  ACTIVITY_RETENTION_DAYS_WHEN_UNSET,
   ActorType,
   AuditAction,
   AuditResult,
@@ -10,12 +11,16 @@ import {
   type PlanLimits,
   ScheduledPlanChangeKind,
   TenantState,
+  withOverrides,
 } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import { DAY_MS } from '../../../common/time';
 import { AuditService } from '../../audit/services/audit.service';
 import type { AuditEntry } from '../../audit/types/activity';
 import { BalanceService } from '../../balance/services/balance.service';
+import { ProductService } from '../../catalogue/services/product.service';
+import { MB } from '../../media/services/media-limits';
+import { MediaService } from '../../media/services/media.service';
 import { MailService } from '../../shared/mail/services/mail.service';
 import { MessagingService } from '../../shared/messaging/services/messaging.service';
 import { StaffService } from '../../staff/services/staff.service';
@@ -24,12 +29,30 @@ import { TenantService } from '../../tenancy/services/tenant.service';
 import type { ScheduledPlanChangesStore } from '../ports/scheduled-plan-changes-store';
 import { CLOCK, SCHEDULED_PLAN_CHANGES_STORE } from '../tokens';
 import type { ScheduledPlanChangeRecord } from '../types/scheduled-plan-change';
+import { PlanLimitOverridesService } from './plan-limit-overrides.service';
 import { PlansService } from './plans.service';
 
+/** DWN-03: one limit the shop holds more than, by its plan-limit key (`staff`, `products`, `storage_mb`). */
 export interface OverLimitItem {
   key: string;
   used: number;
   limit: number;
+}
+
+/** DWN-12: one limit a downgrade left the shop over, as it stands now. */
+export interface ChecklistItem extends OverLimitItem {
+  fixed: boolean;
+}
+
+/**
+ * DWN-12, DWN-14: the 30 days after a downgrade -- when it took effect, when the countdown ends, each limit it left the
+ * shop over ticked off as it is fixed, and when the final warning went out.
+ */
+export interface DowngradeChecklist {
+  downgradedAt: Date;
+  endsAt: Date;
+  items: ChecklistItem[];
+  finalWarningAt: Date | null;
 }
 
 /** PYG-01, PYG-10, LIF-15: what choosing pay-as-you-go did -- scheduled for the paid period's end, or done now. */
@@ -39,8 +62,30 @@ export interface PayAsYouGoChoice {
   effectiveAt: Date | null;
 }
 
-// LIF-26 2.3, AUD-06: the purge job's own fallback when a plan sets no `activity_retention_days`.
-const DEFAULT_ACTIVITY_RETENTION_DAYS = 30;
+// DWN-12, DWN-14: how long the checklist counts down after a downgrade, before the final warning.
+const CHECKLIST_DAYS = 30;
+
+// What each checklist limit is called in the final warning.
+const ITEM_NAMES: Readonly<Record<string, string>> = {
+  staff: 'seats',
+  products: 'products',
+  storage_mb: 'MB of storage',
+};
+
+/** DWN-14: the final warning's words: each limit still over, that nothing is lost, and the export (LIF-16). */
+function finalWarningText(open: readonly OverLimitItem[]): string {
+  const over = open
+    .map(
+      (item) => `${String(item.used)} of ${String(item.limit)} ${ITEM_NAMES[item.key] ?? item.key}`,
+    )
+    .join(', ');
+  return (
+    `Since your shop's plan changed 30 days ago, it is still over its limits: ${over}. Nothing has been deleted or ` +
+    'hidden, and everything already there keeps selling and showing. Adding more stays blocked until the shop is ' +
+    "within its limits, or on a plan that fits. You can download all of your shop's data from Settings, Export, at " +
+    'any time.'
+  );
+}
 
 // DWN-11: the shorter retention a downgrade brings never applies sooner than this many days after notice.
 const RETENTION_NOTICE_DAYS = 14;
@@ -77,6 +122,9 @@ export class DowngradeService {
     @Inject(TenantCache) private readonly tenantCache: TenantCache,
     @Inject(BalanceService) private readonly balance: BalanceService,
     @Inject(StaffService) private readonly staff: StaffService,
+    @Inject(ProductService) private readonly products: ProductService,
+    @Inject(MediaService) private readonly media: MediaService,
+    @Inject(PlanLimitOverridesService) private readonly overrides: PlanLimitOverridesService,
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(MessagingService) private readonly sms: MessagingService,
     @Inject(MailService) private readonly mail: MailService,
@@ -170,18 +218,81 @@ export class DowngradeService {
     return { effective: 'now', effectiveAt: null };
   }
 
-  /** DWN-03: every limit the target plan would already be over, today -- only what's actually trackable. */
+  /**
+   * DWN-03: every limit the target plan would already leave the shop over, today -- seats, products and storage --
+   * judged by the target's limits with the shop's own overrides laid over them, as they would apply after it.
+   */
   async preview(tenantId: string, planId: string): Promise<OverLimitItem[]> {
     const targetPlan = await this.plans.findById(planId);
-    // PLN-19: null means unlimited seats on the target plan, never over-limit.
-    const seatLimit = limitOf(targetPlan.limits, 'staff');
-    const { seats } = await this.staff.list({ id: tenantId, planLimits: targetPlan.limits });
+    const limits = withOverrides(targetPlan.limits, await this.overrides.listForTenant(tenantId));
+    return (await this.measure(tenantId, limits)).filter((item) => item.used > item.limit);
+  }
 
-    const items: OverLimitItem[] = [];
-    if (seatLimit !== null && seats.used > seatLimit) {
-      items.push({ key: 'staff', used: seats.used, limit: seatLimit });
+  /**
+   * DWN-12: the checklist of the last downgrade, live: each limit it left the shop over, ticked off once the shop is
+   * within it. Null when no downgrade left anything over, or once the 30 days have passed with everything fixed.
+   */
+  async checklist(tenantId: string, now: Date): Promise<DowngradeChecklist | null> {
+    const info = await this.tenants.runStandalone((tx) =>
+      this.tenants.findBillingInfo(tx, tenantId),
+    );
+    if (!info?.downgradedAt || !info.downgradeOverLimit?.length) return null;
+    const limits = withOverrides(info.planSnapshot, await this.overrides.listForTenant(tenantId));
+    const measured = await this.measure(tenantId, limits);
+    // A limit made unlimited since (an override) is fixed, and leaves the list.
+    const items = info.downgradeOverLimit.flatMap((key) => {
+      const item = measured.find((candidate) => candidate.key === key);
+      return item ? [{ ...item, fixed: item.used <= item.limit }] : [];
+    });
+    const endsAt = new Date(info.downgradedAt.getTime() + CHECKLIST_DAYS * DAY_MS);
+    if (now >= endsAt && items.every((item) => item.fixed)) return null;
+    return {
+      downgradedAt: info.downgradedAt,
+      endsAt,
+      items,
+      finalWarningAt: info.downgradeFinalWarningAt,
+    };
+  }
+
+  /**
+   * DWN-14: once the 30 days after a downgrade have passed, a final warning -- once -- to each shop still over a limit
+   * it left: nothing is deleted or hidden, adding more stays blocked, and its data can be exported. How many were sent.
+   */
+  async sendFinalWarnings(now: Date): Promise<number> {
+    const due = await this.tenants.runStandalone((tx) =>
+      this.tenants.listDowngradeWarningsDue(tx, new Date(now.getTime() - CHECKLIST_DAYS * DAY_MS)),
+    );
+    let sent = 0;
+    for (const tenantId of due) {
+      const open = ((await this.checklist(tenantId, now))?.items ?? []).filter(
+        (item) => !item.fixed,
+      );
+      const contact = open.length > 0 ? await this.staff.ownerContact(tenantId) : null;
+      await this.tenants.runStandalone(async (tx) => {
+        await this.tenants.setDowngradeFinalWarning(tx, tenantId, now);
+        if (open.length === 0) return;
+        if (contact?.email) {
+          await this.mail.queueLifecycleNotice(
+            tx,
+            contact.email,
+            "Your shop is still over its plan's limits",
+            finalWarningText(open),
+          );
+        }
+        await this.audit.record(tx, {
+          tenantId,
+          actorType: ActorType.System,
+          actorId: null,
+          action: AuditAction.DowngradeFinalWarningSent,
+          targetType: 'tenant',
+          targetId: tenantId,
+          result: AuditResult.Success,
+          summary: { items: open.map(({ key, used, limit }) => ({ key, used, limit })) },
+        });
+      });
+      if (open.length > 0) sent += 1;
     }
-    return items;
+    return sent;
   }
 
   /** DWN-02: the banner data -- null when nothing is scheduled. */
@@ -312,10 +423,10 @@ export class DowngradeService {
     // expired; an expired floor offers no protection.
     const floorActive = info.retentionFloorUntil !== null && info.retentionFloorUntil > now;
     const oldDays = Math.max(
-      info.planSnapshot?.activity_retention_days ?? DEFAULT_ACTIVITY_RETENTION_DAYS,
+      info.planSnapshot?.activity_retention_days ?? ACTIVITY_RETENTION_DAYS_WHEN_UNSET,
       floorActive ? (info.retentionFloorDays ?? 0) : 0,
     );
-    const newDays = swap.limits.activity_retention_days ?? DEFAULT_ACTIVITY_RETENTION_DAYS;
+    const newDays = swap.limits.activity_retention_days ?? ACTIVITY_RETENTION_DAYS_WHEN_UNSET;
 
     await this.tenants.applyPlanAssignment(tx, tenantId, {
       planId: swap.planId,
@@ -335,9 +446,10 @@ export class DowngradeService {
   }
 
   /**
-   * After a swap commits: DWN-11's notice when retention shrank, and DWN-08's seat limit. Separate from the
-   * swap's own transaction -- seat enforcement is tenant-schema (row-level security), the swap control-schema,
-   * the same boundary every other cross-cutting action in this codebase respects.
+   * After a swap commits: DWN-11's notice when retention shrank, DWN-08's seat limit, then DWN-12's record of what the
+   * new limits leave the shop over, for its checklist. Separate from the swap's own transaction -- seat enforcement is
+   * tenant-schema (row-level security), the swap control-schema, the same boundary every other cross-cutting action in
+   * this codebase respects.
    */
   private async afterSwap(
     tenantId: string,
@@ -351,6 +463,34 @@ export class DowngradeService {
     // PLN-19: null means unlimited seats on the plan being applied, nothing to enforce.
     const seatLimit = limitOf(limits, 'staff');
     await this.staff.enforceSeatLimit({ id: tenantId, planLimits: limits }, seatLimit, now);
+    const shopLimits = withOverrides(limits, await this.overrides.listForTenant(tenantId));
+    const over = (await this.measure(tenantId, shopLimits)).filter(
+      (item) => item.used > item.limit,
+    );
+    await this.tenants.runStandalone((tx) =>
+      this.tenants.setDowngraded(
+        tx,
+        tenantId,
+        now,
+        over.map((item) => item.key),
+      ),
+    );
+  }
+
+  /** DWN-03, DWN-12: what the shop holds against these limits today: seats, products, and storage in whole MB. */
+  private async measure(tenantId: string, limits: PlanLimits | null): Promise<OverLimitItem[]> {
+    const [seats, products, storage] = await Promise.all([
+      this.staff.seatsUsed(tenantId),
+      this.products.liveCount(tenantId),
+      this.media.usage(tenantId),
+    ]);
+    const held: [string, number, number | null][] = [
+      ['staff', seats, limitOf(limits, 'staff')],
+      ['products', products, limitOf(limits, 'products')],
+      ['storage_mb', Math.ceil(storage.usedBytes / MB), limitOf(limits, 'storage_mb')],
+    ];
+    // PLN-19: an unlimited limit is never over.
+    return held.flatMap(([key, used, limit]) => (limit === null ? [] : [{ key, used, limit }]));
   }
 
   /** DWN-04, UPG-13: the activity entry for a scheduled change that will now never happen. */

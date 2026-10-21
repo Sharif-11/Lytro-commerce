@@ -145,6 +145,9 @@ CREATE TABLE control.tenants (
     state               control.tenant_state NOT NULL DEFAULT 'trial',
     plan_id             uuid REFERENCES control.plans(id),
     plan_snapshot        jsonb,                            -- PLN-02: frozen limits/features at purchase
+    downgraded_at        timestamptz,                      -- DWN-12: the last downgrade or switch to
+    downgrade_over_limit jsonb,                            -- pay-as-you-go, the limit keys it left over then,
+    downgrade_final_warning_at timestamptz,                -- and DWN-14's warning; any later plan clears them
     period_start         timestamptz,
     period_end            timestamptz,
     balance_amount        numeric(12,2) NOT NULL DEFAULT 0,  -- BAL-01: one balance per subscriber; since

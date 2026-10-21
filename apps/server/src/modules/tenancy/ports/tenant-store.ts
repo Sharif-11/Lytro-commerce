@@ -73,6 +73,16 @@ export interface TenantStore {
     tenantId: string,
     floor: { days: number; until: Date },
   ): Promise<void>;
+  /** DWN-12: records the downgrade that just took effect, and the limits it left the shop over. */
+  setDowngraded(
+    tx: Transaction,
+    tenantId: string,
+    at: Date,
+    overLimit: readonly string[],
+  ): Promise<void>;
+  /** DWN-14: the shops whose downgrade took effect by `before` and have had no final warning yet. */
+  listDowngradeWarningsDue(tx: Transaction, before: Date): Promise<string[]>;
+  setDowngradeFinalWarning(tx: Transaction, tenantId: string, at: Date): Promise<void>;
   /** D2-11: moves the cached last-activity timestamp. The balance itself moves only through a ledger entry. */
   touchActivity(tx: Transaction, tenantId: string, at: Date): Promise<void>;
   /** LIF-03/04/23, PYG-09: the state write; entering `archived` records `at`. Plan, period and balance are untouched. */

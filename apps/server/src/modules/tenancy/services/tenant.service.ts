@@ -129,6 +129,26 @@ export class TenantService {
     return this.store.setRetentionFloor(tx, tenantId, floor);
   }
 
+  /** DWN-12: records the downgrade that just took effect, and the limits it left the shop over. */
+  setDowngraded(
+    tx: Transaction,
+    tenantId: string,
+    at: Date,
+    overLimit: readonly string[],
+  ): Promise<void> {
+    return this.store.setDowngraded(tx, tenantId, at, overLimit);
+  }
+
+  /** DWN-14: the shops whose downgrade took effect by `before` and have had no final warning yet. */
+  listDowngradeWarningsDue(tx: Transaction, before: Date): Promise<string[]> {
+    return this.store.listDowngradeWarningsDue(tx, before);
+  }
+
+  /** DWN-14: the final warning went out (or was not needed), so it is never looked at again. */
+  setDowngradeFinalWarning(tx: Transaction, tenantId: string, at: Date): Promise<void> {
+    return this.store.setDowngradeFinalWarning(tx, tenantId, at);
+  }
+
   /** TRL-07: the plan a trial converts to at day 30 with no purchase. */
   findPayAsYouGoPlan(tx: Transaction): Promise<{
     id: string;
