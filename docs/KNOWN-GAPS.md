@@ -1567,7 +1567,7 @@ is sealed again, and today that means each shop regenerating its feed link and r
 A job that re-seals every value with the current key should come with courier and gateway credentials (Phases 5-6),
 when there are more of them.
 
-## 82. `RTE-01`, `SFT-11`, `SFT-15`: a plan's per-minute key limit caps a whole storefront — decided 2026-10-21, not yet built
+## 82. `RTE-01`, `SFT-11`, `SFT-15`: a plan's per-minute key limit caps a whole storefront — decided 2026-10-21, partly built
 
 Found while working out what a very busy shop costs (Phase 3 Slice 10's read). RTE-01 counts every request against
 its key's per-minute limit, and a shop's storefront -- the platform's own (Slice 12) or the shop's own website --
@@ -1600,6 +1600,12 @@ undone with an operator override (PLN-11) at almost no cost, while a refused bus
 
 Kept as they are: the per-visitor limit, the monthly quota and its warnings (RTE-03), and the per-minute order and
 payment-session limits (RTE-08).
+
+**Built 2026-10-21:** the first three points. A public key has no per-minute limit; `requests_per_minute_public` left
+every plan, snapshot and override (migration 0070); the rate headers describe the visitor's minute; the 120 is the
+platform setting `public_requests_per_visitor_per_minute`; and `control.api_usage` counts the refused requests and
+their visitors (RUNBOOKS §4). **Still to build:** the fast-spend alert, with Slice 10's usage warnings, and the
+storefront server passing each shopper's IP, in Slice 12.
 
 ## Not a bug, just noting it so it isn't mistaken for one later
 
