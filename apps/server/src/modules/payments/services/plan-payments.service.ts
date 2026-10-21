@@ -66,15 +66,11 @@ export class PlanPaymentsService {
     paymentId: string,
     tenantId: string,
     input: { transactionId: string; senderNumber: string; amountPaid: string },
-    expectedKind?: PlanPaymentKind,
+    expectedKinds: readonly PlanPaymentKind[],
   ): Promise<PlanPaymentRecord> {
     await this.store.run(async (tx) => {
       const payment = await this.store.findByIdForUpdate(tx, paymentId);
-      if (
-        !payment ||
-        payment.tenantId !== tenantId ||
-        (expectedKind !== undefined && payment.kind !== expectedKind)
-      ) {
+      if (!payment || payment.tenantId !== tenantId || !expectedKinds.includes(payment.kind)) {
         throw new ApiError('not_found', 'PlanPaymentNotFound', {});
       }
       await this.recordSubmission(tx, paymentId, {

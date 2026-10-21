@@ -512,6 +512,13 @@
       "when": 1792603650899,
       "tag": "0072_downgrade_checklist",
       "breakpoints": true
+    },
+    {
+      "idx": 73,
+      "version": "7",
+      "when": 1792607171878,
+      "tag": "0073_addons",
+      "breakpoints": true
     }
   ]
 }

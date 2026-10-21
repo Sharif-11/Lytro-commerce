@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { DrizzleAddonsStore } from '../../database/adapters/addons.adapter';
 import {
   DrizzleBillingTermsStore,
   DrizzlePlanAssignmentsStore,
@@ -22,6 +23,8 @@ import { PaymentsModule } from '../payments/payments.module';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
 import { TenancyModule } from '../tenancy/tenancy.module';
 import { PlansService } from './services/plans.service';
+import { AddonCatalogueService } from './services/addon-catalogue.service';
+import { AddonPurchaseService } from './services/addon-purchase.service';
 import { BillingTermsService } from './services/billing-terms.service';
 import { DowngradeService } from './services/downgrade.service';
 import { LifecycleService } from './services/lifecycle.service';
@@ -30,9 +33,11 @@ import { PlanLimitOverridesService } from './services/plan-limit-overrides.servi
 import { PaymentQueueService } from './services/payment-queue.service';
 import { PlanInvoicingService } from './services/plan-invoicing.service';
 import { PurchaseService } from './services/purchase.service';
+import { ShopLimitsService } from './services/shop-limits.service';
 import { TrialLifecycleService } from './services/trial-lifecycle.service';
 import { UpgradeService } from './services/upgrade.service';
 import {
+  ADDONS_STORE,
   BILLING_TERMS_STORE,
   CLOCK,
   PLAN_ASSIGNMENTS_STORE,
@@ -70,11 +75,15 @@ import {
     { provide: PLAN_ASSIGNMENTS_STORE, useClass: DrizzlePlanAssignmentsStore },
     { provide: PLAN_LIMIT_OVERRIDES_STORE, useClass: DrizzlePlanLimitOverridesStore },
     { provide: SCHEDULED_PLAN_CHANGES_STORE, useClass: DrizzleScheduledPlanChangesStore },
+    { provide: ADDONS_STORE, useClass: DrizzleAddonsStore },
     { provide: CLOCK, useValue: (): Date => new Date() },
     PlansService,
     BillingTermsService,
     PlanAssignmentService,
     PlanLimitOverridesService,
+    ShopLimitsService,
+    AddonCatalogueService,
+    AddonPurchaseService,
     TrialLifecycleService,
     PlanInvoicingService,
     PurchaseService,
@@ -88,6 +97,9 @@ import {
     BillingTermsService,
     PlanAssignmentService,
     PlanLimitOverridesService,
+    ShopLimitsService,
+    AddonCatalogueService,
+    AddonPurchaseService,
     TrialLifecycleService,
     PurchaseService,
     UpgradeService,

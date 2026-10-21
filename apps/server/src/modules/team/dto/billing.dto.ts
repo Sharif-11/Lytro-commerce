@@ -1,9 +1,12 @@
 import {
   assignPlanSchema,
+  confirmAddonSchema,
   confirmPurchaseSchema,
   confirmUpgradeSchema,
+  createAddonSchema,
   createBillingTermSchema,
   createPlanSchema,
+  quoteAddonSchema,
   quotePurchaseSchema,
   quoteUpgradeSchema,
   listPaymentQueueSchema,
@@ -12,6 +15,7 @@ import {
   setPlanLimitOverrideSchema,
   setPlanPriceSchema,
   targetDowngradePlanSchema,
+  updateAddonSchema,
   updateBillingTermSchema,
   updatePlanSchema,
 } from '@lytronix/validators';
@@ -33,3 +37,7 @@ export class QuoteUpgradeDto extends createZodDto(quoteUpgradeSchema) {}
 export class ConfirmUpgradeDto extends createZodDto(confirmUpgradeSchema) {}
 export class TargetDowngradePlanDto extends createZodDto(targetDowngradePlanSchema) {}
 export class SetAutoRenewDto extends createZodDto(setAutoRenewSchema) {}
+export class CreateAddonDto extends createZodDto(createAddonSchema) {}
+export class UpdateAddonDto extends createZodDto(updateAddonSchema) {}
+export class QuoteAddonDto extends createZodDto(quoteAddonSchema) {}
+export class ConfirmAddonDto extends createZodDto(confirmAddonSchema) {}

@@ -86,6 +86,6 @@ export class TopUpService {
     tenantId: string,
     input: { transactionId: string; senderNumber: string; amountPaid: string },
   ): Promise<PlanPaymentRecord> {
-    return this.payments.submitWalletPayment(paymentId, tenantId, input, PlanPaymentKind.TopUp);
+    return this.payments.submitWalletPayment(paymentId, tenantId, input, [PlanPaymentKind.TopUp]);
   }
 }

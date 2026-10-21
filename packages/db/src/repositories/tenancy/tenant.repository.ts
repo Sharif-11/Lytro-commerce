@@ -22,9 +22,10 @@ import {
   DomainStatus,
   KycStatus,
   TenantState,
-  withOverrides,
+  shopLimitsOf,
   type PlanLimits,
 } from '@lytronix/validators';
+import { addonUnitList, addonUnitsOf } from '../billing/addon-purchase.repository';
 
 // LIF-21: "the old subdomain shall stay reserved for 30 days" after deletion.
 const SLUG_RESERVATION_MS = 30 * 24 * 60 * 60 * 1000;
@@ -46,7 +47,7 @@ export interface TenantSummaryRow {
   suspendedAt: Date | null;
   planId: string | null;
   planName: string | null;
-  /** PLN-05, PLN-06, PLN-11: the shop's own limits: its plan snapshot with its overrides laid over it. */
+  /** PLN-05, PLN-06, PLN-11, PLN-13: the shop's own limits: its plan snapshot, its overrides, its active add-ons. */
   planLimits: PlanLimits | null;
   /** UPG-10, PYG-19: with the state and creation date, what the shop's usage cycles are counted from. */
   periodStart: Date | null;
@@ -66,23 +67,29 @@ const overridesOfShop = sql<Record<string, unknown> | null>`(
 )`;
 
 /**
- * PLN-05, PLN-06: the limits a shop is held to are the snapshot frozen when it bought its plan, never the live plan's,
- * which an operator's edit would otherwise change in the middle of a period already paid for.
+ * PLN-05, PLN-06, PLN-13: the limits a shop is held to are the snapshot frozen when it bought its plan, never the live
+ * plan's, which an operator's edit would otherwise change in the middle of a period already paid for -- with its
+ * overrides over it, and its active add-ons on top.
  */
 function limitsOf(
   snapshot: PlanLimits | null,
   overrides: Record<string, unknown> | null,
+  addons: Record<string, number> | null,
 ): PlanLimits | null {
   const list = Object.entries(overrides ?? {}).map(([limitKey, value]) => ({ limitKey, value }));
-  return withOverrides(snapshot, list);
+  return shopLimitsOf(snapshot, list, addonUnitList(addons));
 }
 
-/** A summary as read, with the shop's own limits worked out from its snapshot and overrides. */
+/** A summary as read, with the shop's own limits worked out from its snapshot, overrides and add-ons. */
 function summaryOf<
-  R extends { planSnapshot: PlanLimits | null; overrides: Record<string, unknown> | null },
->(row: R): Omit<R, 'planSnapshot' | 'overrides'> & { planLimits: PlanLimits | null } {
-  const { planSnapshot, overrides, ...rest } = row;
-  return { ...rest, planLimits: limitsOf(planSnapshot, overrides) };
+  R extends {
+    planSnapshot: PlanLimits | null;
+    overrides: Record<string, unknown> | null;
+    addons: Record<string, number> | null;
+  },
+>(row: R): Omit<R, 'planSnapshot' | 'overrides' | 'addons'> & { planLimits: PlanLimits | null } {
+  const { planSnapshot, overrides, addons, ...rest } = row;
+  return { ...rest, planLimits: limitsOf(planSnapshot, overrides, addons) };
 }
 
 // LIF-24: the operator's own keyset cursor for search() -- the latest-created tenant the caller has already
@@ -128,6 +135,7 @@ export class TenantRepository {
         planName: plans.name,
         planSnapshot: tenants.planSnapshot,
         overrides: overridesOfShop,
+        addons: addonUnitsOf(tenants.id),
         periodStart: tenants.periodStart,
         periodEnd: tenants.periodEnd,
         createdAt: tenants.createdAt,
@@ -171,6 +179,7 @@ export class TenantRepository {
         planName: plans.name,
         planSnapshot: tenants.planSnapshot,
         overrides: overridesOfShop,
+        addons: addonUnitsOf(tenants.id),
         periodStart: tenants.periodStart,
         periodEnd: tenants.periodEnd,
         createdAt: tenants.createdAt,
@@ -621,6 +630,7 @@ export class TenantRepository {
         autoRenewEnabled: tenants.autoRenewEnabled,
         cancelledAt: tenants.cancelledAt,
         planSnapshot: tenants.planSnapshot,
+        featureSnapshot: tenants.featureSnapshot,
         retentionFloorDays: tenants.retentionFloorDays,
         retentionFloorUntil: tenants.retentionFloorUntil,
         createdAt: tenants.createdAt,
@@ -700,6 +710,8 @@ export interface BillingInfoRow {
   autoRenewEnabled: boolean;
   cancelledAt: Date | null;
   planSnapshot: PlanLimits | null;
+  // PLN-02: the features the plan switched on when assigned; BRN-05 reads brand identity from it.
+  featureSnapshot: Record<string, boolean> | null;
   retentionFloorDays: number | null;
   retentionFloorUntil: Date | null;
   createdAt: Date;

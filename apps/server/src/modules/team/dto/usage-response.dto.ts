@@ -11,6 +11,19 @@ const suggestionSchema = z.discriminatedUnion('kind', [
     months: z.number(),
     monthly: z.number(),
   }),
+  z.object({
+    kind: z.literal('addons'),
+    items: z.array(
+      z.object({
+        addonId: z.string(),
+        key: z.string(),
+        name: z.string(),
+        quantity: z.number(),
+        monthly: z.number(),
+      }),
+    ),
+    monthly: z.number(),
+  }),
   z.object({ kind: z.literal('contact') }),
 ]);
 

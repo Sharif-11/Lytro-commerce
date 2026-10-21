@@ -153,7 +153,7 @@ due one changes plan).
 itself defers the real wiring to Phase 3/4; noted inline on the SRS rows since they're otherwise tagged as
 independently `API`-testable today, which they aren't yet.
 
-## 12. Add-on catalogue (PLN-13/14/15, UPG-14) has zero implementation
+## 12. Add-on catalogue (PLN-13/14/15, UPG-14) had zero implementation — partly built 2026-10-22
 
 No store, service, controller, DTO or test references an add-on concept anywhere. Already deferred past
 Phase 2's exit criteria by `PHASE-2-PLAN.md` D2-4 — this is just making that explicit on the SRS requirement
@@ -161,6 +161,11 @@ rows themselves, which are tagged with concrete `API`/`E2E` verification types a
 
 **Scheduled 2026-10-18:** Phase 3, Slice 10a (`PHASE-3-PLAN.md`), with PLN-13 and PLN-14 raised to Must
 because the brand identity add-on (BRN-05) depends on them.
+
+**Partly built 2026-10-22:** Slice 10a.1 built the catalogue, with its operator routes; limit and feature add-ons
+bought from the balance into the running paid period, each with its invoice; the limits every reader holds a shop
+to; and the add-ons the usage suggestions offer. Paying by wallet, renewal, the lapse and its warnings, pay-as-you-go
+and no-expiry periods, and the upgrade extension (UPG-14) are Slice 10a.2; packs and auto-buy (PLN-15) are 10a.3.
 
 ## 13. Data export (LIF-16/LIF-17) — built 2026-10-16
 
@@ -1623,6 +1628,35 @@ what a limit means when a shop's limits do not set it, replacing each check's ow
 a second product and is still refused a second seat, while a shop opened afterwards gets the new figures. A purge
 case in `activity.e2e.spec.ts` keeps a 10-day-old entry under the snapshot's 30 days while the live plan says 7, and
 purges it under an override of 7. Both cases failed before the fix.
+
+## 84. `UPG-03`: an upgrade's credit was the newest invoice of any kind, net of an earlier credit, in floating point — found and fixed 2026-10-22
+
+Found while reading for Phase 3 Slice 10a. The upgrade quote took "the price paid" from the shop's newest invoice,
+whatever it was for, and prorated it over the current period's days in floating point. Three faults. Once add-ons
+exist, an add-on's invoice is often the newest, and its price would have become the plan's. An earlier upgrade's
+invoice states its amount after its own credit, so a second upgrade credited less than the period cost. And the sum
+was a float, against DAT-05.
+
+**Fixed:** the credit is the unused value of the plan time the shop holds now -- from its newest purchase or upgrade
+(an upgrade already took the time before it as its credit) through every renewal after it. Each period counts at
+what it cost, an upgrade's own credit added back, for the whole days left in it, and a period renewed early counts
+in full. It is worked in paisa and rounded half up to whole taka, and an add-on's invoice is never part of it.
+Proven by five cases in `addons.spec.ts`, two upgrades in a row and an early renewal among them, and by
+`addons.e2e.spec.ts`, where a shop that bought an add-on is still credited 449 x 20/30 = 299 TK. The SRS's Examples
+A and B in `plan-upgrade.e2e.spec.ts` are unchanged. Both new cases failed with the old reading.
+
+## 85. `DWN-08`: a downgrade cut seats to the bare plan's limit, not the shop's own — found and fixed 2026-10-22
+
+Found while reading for Phase 3 Slice 10a.1. When a downgrade or a switch to pay-as-you-go took effect, staff beyond
+the new plan's seats were switched off by the plan's own figure, while every other reader of a shop's seats -- the
+staff page, the seat check, the checklist -- lays the shop's overrides over it (PLN-11). A shop that support had
+given four seats, downgraded to a plan of two, lost two staff it was still entitled to.
+
+**Fixed:** the seat cut, the checklist and the record of what a downgrade left over all read the shop's own limits:
+the new plan with the shop's overrides and its add-ons, through the one `shopLimitsOf`. Proven by
+`addons.e2e.spec.ts`: a shop with four seats and an override of 4 keeps all four after a downgrade to a plan of
+two, where before the fix it kept two; and a checklist item is ticked off once an add-on brings the shop within the
+limit.
 
 ## Not a bug, just noting it so it isn't mistaken for one later
 

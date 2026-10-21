@@ -359,6 +359,7 @@
       "order_fee": "Order fee",
       "product_fee": "Product fee",
       "plan_payment": "Plan payment",
+      "addon": "Add-on",
       "adjustment": "Adjustment by Lytro",
       "reversal": "Reversal",
       "carry_over": "Carried over from the earlier shop"
@@ -614,6 +615,7 @@
       "plan_renewed": "renewed the plan",
       "plan_upgraded": "upgraded the plan",
       "balance_topped_up": "topped up the balance",
+      "addon_purchased": "bought an add-on",
       "downgrade_scheduled": "scheduled a downgrade",
       "downgrade_cancelled": "cancelled the scheduled downgrade",
       "downgrade_applied": "applied the downgrade",

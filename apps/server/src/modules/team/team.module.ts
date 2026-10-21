@@ -19,6 +19,7 @@ import { OperatorRatesController } from './controllers/operator-rates.controller
 import { OperatorBalanceController } from './controllers/operator-balance.controller';
 import { OperatorTenantLifecycleController } from './controllers/operator-tenant-lifecycle.controller';
 import { PlansController } from './controllers/plans.controller';
+import { OperatorAddonsController } from './controllers/operator-addons.controller';
 import { OperatorPlansController } from './controllers/operator-plans.controller';
 import {
   OperatorBillingTermsController,
@@ -28,6 +29,7 @@ import { OperatorPlanLimitOverridesController } from './controllers/operator-pla
 import { OperatorPlatformWalletsController } from './controllers/operator-platform-wallets.controller';
 import { PlatformWalletsController } from './controllers/platform-wallets.controller';
 import { OperatorSettingsController } from './controllers/operator-settings.controller';
+import { AddonsController } from './controllers/addons.controller';
 import { BillingController } from './controllers/billing.controller';
 import { OperatorPaymentQueueController } from './controllers/operator-payment-queue.controller';
 import { ShopSettingsController } from './controllers/shop-settings.controller';
@@ -113,6 +115,7 @@ import { CatalogueRequest } from './services/catalogue-request';
     OperatorTenantLifecycleController,
     PlansController,
     OperatorPlansController,
+    OperatorAddonsController,
     OperatorBillingTermsController,
     OperatorPlanPricesController,
     OperatorPlanLimitOverridesController,
@@ -120,6 +123,7 @@ import { CatalogueRequest } from './services/catalogue-request';
     PlatformWalletsController,
     OperatorSettingsController,
     BillingController,
+    AddonsController,
     OperatorPaymentQueueController,
     ShopSettingsController,
     ApiKeysController,

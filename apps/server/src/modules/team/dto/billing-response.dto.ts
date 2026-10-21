@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
-import { PLAN_PAYMENT_METHODS, planLimitsSchema } from '@lytronix/validators';
+import { InvoiceLineKind, PLAN_PAYMENT_METHODS, planLimitsSchema } from '@lytronix/validators';
 
 export const billingTermSchema = z.object({
   id: z.string(),
@@ -105,10 +105,11 @@ export const invoiceSchema = z.object({
   tenantId: z.string(),
   number: z.number(),
   kind: z.string(),
-  planSnapshot: planLimitsSchema,
+  // Null on an add-on's own invoice (PLN-14), as are the term label, plan name and version.
+  planSnapshot: planLimitsSchema.nullable(),
   amount: z.string(),
   creditAmount: z.string(),
-  billingTermLabel: z.string(),
+  billingTermLabel: z.string().nullable(),
   // BIL-12: null only on invoices issued before these fields existed.
   shopName: z.string().nullable(),
   ownerName: z.string().nullable(),
@@ -122,6 +123,15 @@ export const invoiceSchema = z.object({
   issuedAt: z.date(),
   // LIF-21: true for an invoice of the owner's earlier, deleted shop, listed alongside this shop's own.
   earlierShop: z.boolean(),
+  // BIL-12, PLN-14: line by line -- the plan, each add-on, an upgrade's credit (negative); none on older invoices.
+  lines: z.array(
+    z.object({
+      kind: z.nativeEnum(InvoiceLineKind),
+      description: z.string(),
+      quantity: z.number(),
+      amount: z.string(),
+    }),
+  ),
 });
 export class InvoiceDto extends createZodDto(invoiceSchema) {}
 export class InvoiceListDto extends createZodDto(invoiceSchema.array()) {}
