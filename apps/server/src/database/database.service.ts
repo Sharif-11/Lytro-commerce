@@ -1,11 +1,14 @@
-import { Inject, Injectable, type OnModuleDestroy } from '@nestjs/common';
+import { Inject, Injectable, type OnApplicationShutdown } from '@nestjs/common';
 import { DatabaseConnector, type DatabaseHandle } from '@lytronix/db';
 import { ENV } from '../config/tokens';
 import type { Env } from '../config/env';
 
-/** Owns the connection pool for the application role. Closed when the application shuts down. */
+/**
+ * Owns the connection pool for the application role. Closed at the very last step of shutting down, so whatever
+ * still writes while the modules stop (the API request counts' last flush, RED-04) finds it open.
+ */
 @Injectable()
-export class DatabaseService implements OnModuleDestroy {
+export class DatabaseService implements OnApplicationShutdown {
   readonly handle: DatabaseHandle;
 
   constructor(@Inject(ENV) env: Env) {
@@ -17,7 +20,7 @@ export class DatabaseService implements OnModuleDestroy {
     });
   }
 
-  onModuleDestroy(): Promise<void> {
+  onApplicationShutdown(): Promise<void> {
     return this.handle.close();
   }
 }

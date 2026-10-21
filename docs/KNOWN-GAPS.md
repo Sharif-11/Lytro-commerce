@@ -1539,7 +1539,7 @@ less than it sent; nothing is ever counted twice. Measure it on the real account
 then poll the SQL API until they appear. If points ever take longer than about 30 seconds, raise `SETTLE_MS`; each
 extra minute there adds a minute to how long an over-limit shop takes to be blocked (BND-02's "about 2 minutes").
 
-## 80. `RED-04`, `RTE-03`: the request counts not yet stored are lost when the server stops — open, found 2026-10-21
+## 80. `RED-04`, `RTE-03`: the request counts not yet stored are lost when the server stops — found and fixed 2026-10-21
 
 Found while building Phase 3 Slice 9a. `RequestQuota` stores its counts every minute and once more on shutdown, so
 "what is counted here is not lost when the server stops" (RED-04). But that last flush runs in
@@ -1550,6 +1550,11 @@ restart or deploy. The fix is ordering alone -- flush before the pool closes (fo
 and reads the stored count. Separately, `api-keys.e2e.spec.ts`'s "answers a registered website" test reads a key's
 `lastUsedAt` straight after the request, while the write is deliberately not awaited (API-01); under a loaded full run
 it can read before the write lands. It passes alone; the test should wait for the write.
+
+Fixed: `DatabaseService` closes its pool in `onApplicationShutdown`, the last step of shutting down, and
+`RequestQuota`'s last flush runs in `beforeApplicationShutdown`, after every module has stopped taking work and before
+the pool closes. `request-quota-shutdown.e2e.spec.ts` counts requests, stops the application and finds them stored.
+The `lastUsedAt` check now waits for the write (`expect.poll`).
 
 ## 81. `SEC-10`: no secrets manager is chosen, and nothing seals every stored value again after a rotation — open, found 2026-10-21
 
