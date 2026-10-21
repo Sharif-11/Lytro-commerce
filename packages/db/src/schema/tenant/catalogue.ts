@@ -109,6 +109,8 @@ export const products = tenant.table(
     paymentPolicy: paymentPolicy('payment_policy'),
     advanceAmount: numeric('advance_amount', { precision: 10, scale: 2 }),
     primaryCategoryId: uuid('primary_category_id'),
+    // PRD-11: its one video, a ready video of the shop's; deleting the video clears it.
+    videoId: uuid('video_id'),
     active: boolean('active').notNull().default(true),
     sortOrder: integer('sort_order').notNull().default(0),
     // CCH-11: kept in step with the variants in the same transaction, for list pages.

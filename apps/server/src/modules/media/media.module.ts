@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import ffmpegPath from 'ffmpeg-static';
 import type { Env } from '../../config/env';
 import { ENV } from '../../config/tokens';
 import { DrizzleMediaStore } from '../../database/adapters/media.adapter';
@@ -8,13 +9,25 @@ import { QueueModule } from '../shared/queue/queue.module';
 import type { MediaStorage } from './ports/media-storage';
 import { S3MediaStorage } from './providers/s3-media-storage';
 import { UnconfiguredMediaStorage } from './providers/unconfigured-media-storage';
+import { ConsoleMediaNotifier } from './services/console-media-notifier';
 import { ImageProcessor } from './services/image-processor';
 import { MediaDeleter } from './services/media-deleter';
 import { MediaEraser } from './services/media-eraser';
 import { MediaLimits } from './services/media-limits';
 import { MediaProcessor } from './services/media-processor';
+import { MediaReconciler } from './services/media-reconciler';
 import { MediaService } from './services/media.service';
-import { MEDIA_STORAGE, MEDIA_STORE } from './tokens';
+import { VideoProcessor, type FfmpegSettings } from './services/video-processor';
+import { FFMPEG, MEDIA_CLOCK, MEDIA_NOTIFIER, MEDIA_STORAGE, MEDIA_STORE } from './tokens';
+
+// Slice 6 design point 3: x264's medium pace on two threads, leaving the server's other cores to the API and the
+// database (a 1-minute 1080p clip took about 70 s on a laptop core); a run past 15 minutes is stopped.
+const FFMPEG_SETTINGS: FfmpegSettings = {
+  path: ffmpegPath,
+  threads: 2,
+  preset: 'medium',
+  timeoutMs: 15 * 60 * 1000,
+};
 
 /** D3-4: the S3-compatible store when one is set up (all its keys are then required, env.ts); else none. */
 function mediaStorage(env: Env): MediaStorage {
@@ -44,18 +57,24 @@ function mediaStorage(env: Env): MediaStorage {
   providers: [
     { provide: MEDIA_STORAGE, inject: [ENV], useFactory: mediaStorage },
     { provide: MEDIA_STORE, useClass: DrizzleMediaStore },
+    { provide: MEDIA_NOTIFIER, useClass: ConsoleMediaNotifier },
+    { provide: FFMPEG, useValue: FFMPEG_SETTINGS },
+    { provide: MEDIA_CLOCK, useValue: () => new Date() },
     ImageProcessor,
+    VideoProcessor,
     MediaLimits,
     MediaService,
     MediaProcessor,
     MediaDeleter,
     MediaEraser,
+    MediaReconciler,
   ],
   exports: [
     MediaService,
-    // For the processing and deletion workers.
+    // For the processing, deletion and nightly workers.
     MediaProcessor,
     MediaDeleter,
+    MediaReconciler,
     // For the day-60 deletion (LIF-19).
     MediaEraser,
   ],

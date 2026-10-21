@@ -20,6 +20,7 @@ export const mediaViewSchema = z.object({
   purpose: z.nativeEnum(MediaPurpose),
   width: z.number().nullable(),
   height: z.number().nullable(),
+  durationMs: z.number().nullable(),
   bytes: z.number(),
   urls: imageViewSchema.shape.urls.nullable(),
   failure: z.string().nullable(),
@@ -30,6 +31,7 @@ export class MediaViewDto extends createZodDto(mediaViewSchema) {}
 export const mediaDetailSchema = mediaViewSchema.extend({
   uses: z.object({
     products: z.number(),
+    videos: z.number(),
     categories: z.number(),
     swatches: z.number(),
     sizeCharts: z.number(),

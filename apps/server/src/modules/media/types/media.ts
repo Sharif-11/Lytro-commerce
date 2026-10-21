@@ -1,4 +1,5 @@
 import type {
+  InsertMediaReconciliation,
   MediaOutcome,
   MediaUses,
   NewMedia,
@@ -13,6 +14,8 @@ import type { MediaUrls } from '../../../common/media-links';
 // The stored rows, as aliases of the shared types (ENGINEERING-STANDARDS §4), never copies.
 export type MediaRecord = SelectMedia;
 export type MediaObjectRecord = SelectMediaObject;
+/** MED-04: what one night's comparison found for a shop whose rows and R2 differ. */
+export type MediaReconciliation = Omit<InsertMediaReconciliation, 'id' | 'createdAt'>;
 export type { MediaOutcome, MediaUses, NewMedia, NewMediaObject, ProductImageRow };
 
 /** MED-03, MED-09: one item as the shop sees it. */
@@ -23,11 +26,16 @@ export interface MediaView {
   purpose: MediaPurpose;
   width: number | null;
   height: number | null;
+  /** STO-09: a video's length, once ready. */
+  durationMs: number | null;
   /** STO-01: the bytes it stores, every file of it; 0 until it is ready. */
   bytes: number;
-  /** Present once it is ready. */
+  /** Present once it is ready: the file, and its thumbnail (an image) or poster (a video). */
   urls: MediaUrls | null;
-  /** Why it was refused, once refused: not_supported, too_large, unreadable, not_uploaded, storage_full. */
+  /**
+   * Why it was refused, once refused: not_supported, too_large, unreadable, not_uploaded, storage_full, or
+   * processing_failed when the nightly run found it stuck.
+   */
   failure: string | null;
   createdAt: Date;
 }

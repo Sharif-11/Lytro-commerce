@@ -19,6 +19,7 @@ import {
   type SizeChartOwner,
   type Transaction,
 } from '@lytronix/db';
+import type { MediaKind } from '@lytronix/validators';
 import { MediaNotAttachable } from '../../common/errors/media-refused';
 import { MissingReference } from '../../common/errors/missing-reference';
 import { StockRefused } from '../../common/errors/stock-refused';
@@ -55,7 +56,7 @@ import type {
   VariantValueRecord,
 } from '../../modules/catalogue/types/catalogue';
 import { DatabaseService } from '../database.service';
-import { MEDIA_READY_IMAGE } from './media.adapter';
+import { MEDIA_READY_IMAGE, MEDIA_READY_VIDEO } from './media.adapter';
 
 // The unique indexes a catalogue write can run into, by what they protect.
 const ATTRIBUTE_NAME_INDEX = 'attributes_tenant_name_idx';
@@ -426,6 +427,8 @@ export class DrizzleProductStore implements ProductStore {
         throw new StockRefused('serials_held');
       if (this.transactions.isCheckViolation(error, HELD_FOR_ORDERS_CHECK))
         throw new StockRefused('held');
+      if (this.transactions.isCheckViolation(error, MEDIA_READY_VIDEO))
+        throw new MediaNotAttachable();
       throw error;
     }
   }
@@ -878,12 +881,13 @@ export class DrizzleCatalogueImageStore implements CatalogueImageStore {
     @Inject(MediaRepository) private readonly media: MediaRepository,
   ) {}
 
-  readyImages(
+  readyMedia(
     tx: Transaction,
     tenantId: string,
     ids: string[],
+    kind: MediaKind,
   ): Promise<{ id: string; hash: string }[]> {
-    return this.media.readyImages(tx, tenantId, ids);
+    return this.media.readyMedia(tx, tenantId, ids, kind);
   }
 
   listProductImages(

@@ -266,6 +266,8 @@ export enum AuditAction {
   ProductImagesSaved = 'product_images_saved',
   ShopLogoSaved = 'shop_logo_saved',
   MediaDeleted = 'media_deleted',
+  // Phase 3 Slice 6b: a product's video set or removed (PRD-11).
+  ProductVideoSaved = 'product_video_saved',
   // Phase 3 Slice 8: a public API key made, its name or website addresses changed, or revoked (API-01, API-21).
   ApiKeyCreated = 'api_key_created',
   ApiKeyUpdated = 'api_key_updated',
@@ -375,7 +377,11 @@ export enum QueueName {
   // MED-03: an uploaded file to validate and turn into what is stored; MED-07, MED-09: stored files to delete, with the
   // deletion job's own key.
   MediaProcess = 'media_process',
+  // Slice 6 design point 2: videos have their own queue, so one runs at a time while images run two.
+  MediaProcessVideo = 'media_process_video',
   MediaDelete = 'media_delete',
+  // MED-04: the nightly comparison of each shop's recorded files with what R2 holds.
+  MediaReconcileTick = 'media_reconcile_tick',
 }
 
 // Who performed the action (AUD-02). `system` is the platform itself (a scheduled job); `platform_support` is an

@@ -1,8 +1,9 @@
 import type { Transaction } from '@lytronix/db';
-import type { MediaKind, PlanLimits } from '@lytronix/validators';
+import type { MediaKind, MediaPurpose, PlanLimits } from '@lytronix/validators';
 import type {
   MediaObjectRecord,
   MediaOutcome,
+  MediaReconciliation,
   MediaRecord,
   MediaUses,
   NewMedia,
@@ -44,4 +45,19 @@ export interface MediaStore {
   /** TEN-16: sets the logo; a media id that is not a ready image of the shop's is refused as MediaNotAttachable. */
   setShopLogo(tx: Transaction, tenantId: string, mediaId: string | null): Promise<void>;
   deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void>;
+
+  /** MED-04: every shop not yet deleted, for the nightly run. */
+  listShopIds(): Promise<string[]>;
+  /** MED-04: uploads started before this time and never finished; their rows go. How many. */
+  deleteAbandoned(tx: Transaction, tenantId: string, before: Date): Promise<number>;
+  /** MED-04: items started before this time and still processing are refused for this reason; which ones. */
+  failStuck(
+    tx: Transaction,
+    tenantId: string,
+    before: Date,
+    failure: string,
+  ): Promise<{ id: string; kind: MediaKind; purpose: MediaPurpose }[]>;
+  /** MED-04: every file the shop's rows record. */
+  listRecordedFiles(tx: Transaction, tenantId: string): Promise<{ key: string; bytes: number }[]>;
+  insertReconciliation(tx: Transaction, row: MediaReconciliation): Promise<void>;
 }

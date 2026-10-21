@@ -1,8 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { MediaKind } from '@lytronix/validators';
 import type { Env } from '../config/env';
 import { ENV } from '../config/tokens';
 
-/** MED-08: where a ready image is read from: the picture and its thumbnail. */
+/**
+ * MED-08: where a ready item is read from: the file itself (a picture, or a video), and its small picture (an image's
+ * thumbnail, a video's poster).
+ */
 export interface MediaUrls {
   main: string;
   thumbnail: string;
@@ -14,18 +18,28 @@ export interface ImageView {
   urls: MediaUrls;
 }
 
+/** PRD-11, STO-09: a ready video as a product shows it: the MP4, and its poster. */
+export interface VideoView {
+  id: string;
+  urls: { video: string; poster: string };
+}
+
 /**
- * MED-01, MED-08: the stored names of a ready image -- under its shop's prefix, and named by its content's
- * fingerprint, so another picture always gets another link. The one place these names are made: the processing job
- * writes them and every screen reads them.
+ * MED-01, MED-08: the stored names of a ready item -- under its shop's prefix, and named by its content's
+ * fingerprint, so other content always gets another link. An image is a WebP and its thumbnail; a video is an MP4 and
+ * its WebP poster (STO-09). The one place these names are made: the processing job writes them and every screen
+ * reads them.
  */
-export function imageKeys(
+export function mediaKeys(
+  kind: MediaKind,
   tenantId: string,
   mediaId: string,
   hash: string,
 ): { main: string; thumbnail: string } {
   const stem = `tenants/${tenantId}/${mediaId}/${hash}`;
-  return { main: `${stem}.webp`, thumbnail: `${stem}.thumb.webp` };
+  return kind === MediaKind.Video
+    ? { main: `${stem}.mp4`, thumbnail: `${stem}.poster.webp` }
+    : { main: `${stem}.webp`, thumbnail: `${stem}.thumb.webp` };
 }
 
 /** MED-01, MED-04: everything a shop stores is under this prefix. */
@@ -49,11 +63,17 @@ export class MediaLinks {
     return `${this.base}/${key}`;
   }
 
+  urls(kind: MediaKind, tenantId: string, mediaId: string, hash: string): MediaUrls {
+    const keys = mediaKeys(kind, tenantId, mediaId, hash);
+    return { main: this.url(keys.main), thumbnail: this.url(keys.thumbnail) };
+  }
+
   image(tenantId: string, mediaId: string, hash: string): ImageView {
-    const keys = imageKeys(tenantId, mediaId, hash);
-    return {
-      id: mediaId,
-      urls: { main: this.url(keys.main), thumbnail: this.url(keys.thumbnail) },
-    };
+    return { id: mediaId, urls: this.urls(MediaKind.Image, tenantId, mediaId, hash) };
+  }
+
+  video(tenantId: string, mediaId: string, hash: string): VideoView {
+    const urls = this.urls(MediaKind.Video, tenantId, mediaId, hash);
+    return { id: mediaId, urls: { video: urls.main, poster: urls.thumbnail } };
   }
 }

@@ -1,5 +1,8 @@
 import 'dotenv/config';
 import { randomUUID } from 'node:crypto';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { S3MediaStorage, type StorageKey } from '../src/modules/media/providers/s3-media-storage';
 
@@ -58,8 +61,17 @@ describeIfStorage('the media store (D3-4, MED-01, MED-03)', () => {
     expect(await put(signed.url, file, 'text/html')).toBe(403);
     expect(await put(signed.url, file, 'image/jpeg')).toBe(200);
     expect((await storage.readUpload(key))?.equals(file)).toBe(true);
+    // STO-09: a video is streamed to disk rather than held in memory.
+    const dir = mkdtempSync(join(tmpdir(), 'lytro-store-test-'));
+    try {
+      expect(await storage.saveUpload(key, join(dir, 'upload'))).toBe(true);
+      expect(readFileSync(join(dir, 'upload')).equals(file)).toBe(true);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
     await storage.removeUpload(key);
     expect(await storage.readUpload(key)).toBeNull();
+    expect(await storage.saveUpload(key, join(tmpdir(), randomUUID()))).toBe(false);
   });
 
   it('keeps processed media under its prefix, lists it with its size, and deletes it', async () => {
@@ -72,10 +84,16 @@ describeIfStorage('the media store (D3-4, MED-01, MED-03)', () => {
       'image/webp',
     );
     const listed = await storage.listMedia(prefix);
-    expect(listed.sort((x, y) => x.key.localeCompare(y.key))).toEqual([
+    expect(
+      listed.map(({ key, bytes }) => ({ key, bytes })).sort((x, y) => x.key.localeCompare(y.key)),
+    ).toEqual([
       { key: `${prefix}a.thumb.webp`, bytes: 40 },
       { key: `${prefix}a.webp`, bytes: 300 },
     ]);
+    // MED-04: each comes with when it was written, which the nightly run reads.
+    for (const object of listed) {
+      expect(Math.abs(object.lastModified.getTime() - Date.now())).toBeLessThan(10 * 60 * 1000);
+    }
     await storage.deleteMedia(listed.map((object) => object.key));
     expect(await storage.listMedia(prefix)).toEqual([]);
   });

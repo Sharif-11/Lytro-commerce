@@ -22,6 +22,7 @@ import {
   type ListProductsQuery,
   type ProductDeliveryZonesInput,
   type ProductImagesInput,
+  type ProductVideoInput,
   type SaveProductAttributesInput,
   type SaveVariantsInput,
   type UpdateProductInput,
@@ -349,6 +350,8 @@ export class ProductService {
         paymentPolicy: source.paymentPolicy,
         advanceAmount: source.advanceAmount,
         primaryCategoryId: source.primaryCategoryId,
+        // PRD-11, PRD-18: the copy shows the same video, one item in the library.
+        videoId: source.videoId,
         sortOrder: source.sortOrder,
         active: false,
         stockState:
@@ -466,6 +469,29 @@ export class ProductService {
       }
       await this.record(tx, shop.id, who, AuditAction.ProductImagesSaved, productId, {
         mediaIds: input.mediaIds,
+      });
+      await this.products.bumpVersion(tx, shop.id);
+      return this.detail(tx, shop.id, productId);
+    });
+  }
+
+  /** PRD-11: the product's one video, a ready video of the shop's, or none. Removing it keeps it in the library. */
+  async setVideo(
+    shop: CatalogueShop,
+    productId: string,
+    input: ProductVideoInput,
+    actor: CatalogueActor,
+  ): Promise<ProductDetail> {
+    const who = await this.activity.resolve(shop.id, actor);
+    return this.transactions.run(async (tx) => {
+      await this.findLive(tx, shop.id, productId);
+      try {
+        await this.products.updateProduct(tx, shop.id, productId, { videoId: input.mediaId });
+      } catch (error) {
+        refuseUnattachable(error, 'mediaId');
+      }
+      await this.record(tx, shop.id, who, AuditAction.ProductVideoSaved, productId, {
+        mediaId: input.mediaId,
       });
       await this.products.bumpVersion(tx, shop.id);
       return this.detail(tx, shop.id, productId);
@@ -1804,6 +1830,7 @@ export class ProductService {
       variants: variantViews,
       sizeChart: await this.sizeChartOf(tx, tenantId, product),
       images: (await this.images.ofProducts(tx, tenantId, [productId])).get(productId) ?? [],
+      video: await this.images.videoOf(tx, tenantId, product.videoId),
       deliveryZoneIds: await this.products.listDeliveryZoneIds(tx, tenantId, productId),
       createdAt: product.createdAt,
       updatedAt: product.updatedAt,

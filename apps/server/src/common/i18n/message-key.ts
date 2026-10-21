@@ -404,7 +404,7 @@ export const MESSAGE_KEYS = [
   // Media (Phase 3 Slice 6)
   'MediaNotFound',
   'ImageTooLarge',
-  'VideoUploadsNotOpen',
+  'VideoTooLarge',
   'StorageLimitReached',
   'StorageUnavailable',
   'MediaNotAttachable',
@@ -416,6 +416,7 @@ export const MESSAGE_KEYS = [
   'MediaDeleted',
   'ProductImagesSaved',
   'ShopLogoSaved',
+  'ProductVideoSaved',
 ] as const;
 
 export type MessageKey = (typeof MESSAGE_KEYS)[number];

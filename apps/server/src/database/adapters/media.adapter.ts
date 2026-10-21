@@ -7,12 +7,13 @@ import {
   TransactionRunner,
   type Transaction,
 } from '@lytronix/db';
-import type { MediaKind, PlanLimits } from '@lytronix/validators';
+import type { MediaKind, MediaPurpose, PlanLimits } from '@lytronix/validators';
 import { MediaNotAttachable } from '../../common/errors/media-refused';
 import type { MediaStore } from '../../modules/media/ports/media-store';
 import type {
   MediaObjectRecord,
   MediaOutcome,
+  MediaReconciliation,
   MediaRecord,
   MediaUses,
   NewMedia,
@@ -20,8 +21,10 @@ import type {
 } from '../../modules/media/types/media';
 import { DatabaseService } from '../database.service';
 
-// The trigger that keeps anything attached a ready image of the shop's own (migration 0065).
+// The triggers that keep anything attached a ready image (migration 0065), and a product's video a ready video
+// (migration 0066), of the shop's own.
 export const MEDIA_READY_IMAGE = 'media_ready_image';
+export const MEDIA_READY_VIDEO = 'media_ready_video';
 
 /** tenant.media, tenant.media_objects, where media is attached, and the shop's logo (MED-03, MED-04, TEN-16). */
 @Injectable()
@@ -126,5 +129,30 @@ export class DrizzleMediaStore implements MediaStore {
 
   deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void> {
     return this.media.deleteAllForTenant(tx, tenantId);
+  }
+
+  listShopIds(): Promise<string[]> {
+    return this.tenants.listLiveIds(this.database.handle.db);
+  }
+
+  deleteAbandoned(tx: Transaction, tenantId: string, before: Date): Promise<number> {
+    return this.media.deleteAbandoned(tx, tenantId, before);
+  }
+
+  failStuck(
+    tx: Transaction,
+    tenantId: string,
+    before: Date,
+    failure: string,
+  ): Promise<{ id: string; kind: MediaKind; purpose: MediaPurpose }[]> {
+    return this.media.failStuck(tx, tenantId, before, failure);
+  }
+
+  listRecordedFiles(tx: Transaction, tenantId: string): Promise<{ key: string; bytes: number }[]> {
+    return this.media.listRecordedFiles(tx, tenantId);
+  }
+
+  insertReconciliation(tx: Transaction, row: MediaReconciliation): Promise<void> {
+    return this.media.insertReconciliation(tx, row);
   }
 }

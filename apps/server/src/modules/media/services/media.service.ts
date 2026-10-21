@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { Transaction } from '@lytronix/db';
 import {
   AuditAction,
@@ -80,6 +80,8 @@ const TARGETS: Partial<
  */
 @Injectable()
 export class MediaService {
+  private readonly logger = new Logger('Media');
+
   constructor(
     @Inject(MEDIA_STORE) private readonly store: MediaStore,
     @Inject(MEDIA_STORAGE) private readonly storage: MediaStorage,
@@ -96,19 +98,14 @@ export class MediaService {
     input: StartUploadInput,
     actor: CatalogueActor,
   ): Promise<UploadStarted> {
-    // STO-05, STO-09: videos arrive with their processing (Slice 6b).
-    if (input.kind === MediaKind.Video) {
-      throw new FieldsError([
-        { field: 'kind', problem: FieldProblemCode.NotAllowed, messageKey: 'VideoUploadsNotOpen' },
-      ]);
-    }
+    // STO-04, STO-05: the largest file of its kind.
     const maxMb = await this.limits.maxMb(input.kind);
     if (input.bytes > maxMb * MB) {
       throw new FieldsError([
         {
           field: 'bytes',
           problem: FieldProblemCode.TooLarge,
-          messageKey: 'ImageTooLarge',
+          messageKey: input.kind === MediaKind.Video ? 'VideoTooLarge' : 'ImageTooLarge',
           params: { mb: maxMb },
           max: maxMb * MB,
         },
@@ -148,7 +145,10 @@ export class MediaService {
       }
       await this.store.markProcessing(tx, tenantId, id);
       const payload: MediaProcessPayload = { tenantId, mediaId: id };
-      await this.jobs.enqueue(tx, QueueName.MediaProcess, payload, { singletonKey: id });
+      // Design point 2: videos queue apart, so one compresses at a time while images go two at a time.
+      const queue =
+        row.kind === MediaKind.Video ? QueueName.MediaProcessVideo : QueueName.MediaProcess;
+      await this.jobs.enqueue(tx, queue, payload, { singletonKey: id });
       return this.view(tenantId, { ...row, status: MediaStatus.Processing }, []);
     });
   }
@@ -239,7 +239,8 @@ export class MediaService {
       );
       // CCH-02: what the public pages show changed only when it showed somewhere.
       const shown =
-        uses.products + uses.categories + uses.swatches + uses.sizeCharts > 0 || uses.logo;
+        uses.products + uses.videos + uses.categories + uses.swatches + uses.sizeCharts > 0 ||
+        uses.logo;
       if (shown) await this.version.bump(tx, tenantId);
     });
   }
@@ -320,6 +321,10 @@ export class MediaService {
       return await this.storage.signUpload(key, contentType, bytes, UPLOAD_LINK_SECONDS);
     } catch (error) {
       if (error instanceof StorageUnavailable) {
+        // MED-11: operator alert, as a log line until alerting exists (OD-43): the media store cannot be reached.
+        this.logger.error(
+          `media storage unreachable while starting an upload: ${String(error.cause)}`,
+        );
         throw new ApiError('service_unavailable', 'StorageUnavailable', {}, RETRY_AFTER_SECONDS);
       }
       throw error;
@@ -327,9 +332,9 @@ export class MediaService {
   }
 
   private view(tenantId: string, row: MediaRecord, objects: MediaObjectRecord[]): MediaView {
-    const image =
-      row.status === MediaStatus.Ready && row.kind === MediaKind.Image && row.hash !== null
-        ? this.links.image(tenantId, row.id, row.hash)
+    const urls =
+      row.status === MediaStatus.Ready && row.hash !== null
+        ? this.links.urls(row.kind, tenantId, row.id, row.hash)
         : null;
     return {
       id: row.id,
@@ -339,7 +344,8 @@ export class MediaService {
       width: row.width,
       height: row.height,
       bytes: objects.reduce((sum, object) => sum + object.bytes, 0),
-      urls: image?.urls ?? null,
+      durationMs: row.durationMs,
+      urls,
       failure: row.failure,
       createdAt: row.createdAt,
     };

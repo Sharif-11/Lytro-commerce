@@ -7,6 +7,7 @@ import {
   StockBatchRepository,
   StockCheckRepository,
   StockRepository,
+  TenantRepository,
   TransactionRunner,
   type Transaction,
 } from '@lytronix/db';
@@ -255,6 +256,7 @@ export class DrizzleStockBatchStore implements StockBatchStore {
   constructor(
     @Inject(DatabaseService) private readonly database: Pick<DatabaseService, 'handle'>,
     @Inject(StockBatchRepository) private readonly batches: StockBatchRepository,
+    @Inject(TenantRepository) private readonly tenants: TenantRepository,
   ) {}
 
   findBatches(tx: Transaction, tenantId: string, batchIds: string[]): Promise<StockBatchRecord[]> {
@@ -307,7 +309,7 @@ export class DrizzleStockBatchStore implements StockBatchStore {
   }
 
   listShopIds(): Promise<string[]> {
-    return this.batches.listShopIds(this.database.handle.db);
+    return this.tenants.listLiveIds(this.database.handle.db);
   }
 }
 

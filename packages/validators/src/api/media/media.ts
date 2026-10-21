@@ -102,3 +102,7 @@ export type ProductImagesInput = z.infer<typeof productImagesSchema>;
 // PUT shop-settings/logo (TEN-16): the shop's logo, one of its ready images, or null for its monogram.
 export const shopLogoSchema = z.object({ mediaId: catalogueIdSchema.nullable() });
 export type ShopLogoInput = z.infer<typeof shopLogoSchema>;
+
+// PUT products/:id/video (PRD-11): the product's one video, a ready video of the shop's, or null for none.
+export const productVideoSchema = z.object({ mediaId: catalogueIdSchema.nullable() });
+export type ProductVideoInput = z.infer<typeof productVideoSchema>;

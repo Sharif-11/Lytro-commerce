@@ -7,10 +7,11 @@ import { MEDIA_STORE } from '../tokens';
 
 export const MB = 1024 * 1024;
 
-// STO-04, STO-05: the largest file of each kind, unless the operator has set another (2.1, "editable").
+// STO-04, STO-05: the largest file of each kind, unless the operator has set another (2.1, "editable"). A video may be
+// 150 MB (STO-05, amended 2026-10-21), so a 1-minute 1080p phone clip fits.
 const DEFAULT_MAX_MB: Readonly<Record<MediaKind, number>> = {
   [MediaKind.Image]: 5,
-  [MediaKind.Video]: 100,
+  [MediaKind.Video]: 150,
 };
 const MAX_MB_SETTING: Readonly<Record<MediaKind, PlatformSettingKey>> = {
   [MediaKind.Image]: PlatformSettingKey.MediaImageMaxMb,

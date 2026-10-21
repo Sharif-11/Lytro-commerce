@@ -15,6 +15,10 @@ export class UnconfiguredMediaStorage implements MediaStorage {
     return Promise.reject(new StorageUnavailable());
   }
 
+  saveUpload(): Promise<boolean> {
+    return Promise.reject(new StorageUnavailable());
+  }
+
   removeUpload(): Promise<void> {
     return Promise.resolve();
   }

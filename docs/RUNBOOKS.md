@@ -60,3 +60,53 @@ once a second operator account exists.
   signed in and still holding either the TOTP device or one valid backup code) is the lighter-weight path
   for an operator who still has *one* working factor and just wants a fresh set — this break-glass procedure
   is only for the case where both factors are gone.
+
+---
+
+## 2. Media storage keys: inventory and rotation (MED-07)
+
+**What this is:** the record MED-07 asks for — every key that reaches the media buckets, what it may do, where it is
+kept and when it was last rotated — and the steps to rotate one. Keys never go in the repository or in chat; they live
+in `apps/server/.env` on each server and in the CI secrets.
+
+**The keys.** One per job, each with the least it needs. Fill in the dates when a key is made or rotated; each is due
+again 90 days later.
+
+| Key (env names) | R2 permission and buckets | Used by | Made / last rotated | Next due |
+| --- | --- | --- | --- | --- |
+| `MEDIA_SIGNER_*` | Object Read & Write, the uploads bucket only | signing browser uploads (`S3MediaStorage.signUpload`) | — | — |
+| `MEDIA_PROCESSOR_*` | Object Read & Write, the uploads and media buckets | the processing job: reading and clearing uploads, writing media, listing for the nightly run | — | — |
+| `MEDIA_DELETER_*` | Object Read & Write, the media bucket only | the deletion job only (`MediaDeleter`) | — | — |
+| Worker binding (Slice 7) | read only, the media bucket | serving media | — | — |
+
+**Likely limit: R2 may not split writing from deleting.** R2 tokens come only as read, or read and write, per bucket,
+and Cloudflare does not say that read and write leaves deleting out. If it does not, the processor's key could delete
+media. No code path does: only `MediaDeleter` deletes, and the processor sends its own leftovers to it. The check below
+shows what each key really may do; run it once the keys exist and record the answer here. If the processor can delete,
+the split rests on the code alone until the media Worker (Slice 7) can take over writes, so the server needs no key
+that can delete. The risk register's entry for media loss (SRS.md §17) relies on this split.
+
+**Check a key's scope** — after making or rotating one, from a machine with that `.env`:
+
+```
+pnpm --filter @lytronix/server exec tsx scripts/media-key-check.ts
+```
+
+It writes one small object under `key-check/` in the media bucket (outside every shop's prefix) and removes it, and
+prints, for example:
+
+```
+signer writes to the media bucket: no
+processor writes to the media bucket: yes
+processor deletes from the media bucket: YES (R2 cannot split write from delete)
+```
+
+**Rotate a key** (every 90 days, or at once if one may have leaked):
+1. In the Cloudflare dashboard (R2 → Manage API tokens), make a new token with the same permission and buckets as the
+   table says.
+2. Put its access key and secret in `apps/server/.env` on each server, and in the CI secrets, under the same names.
+3. Restart the server, and run the check above.
+4. Revoke the old token in the dashboard, and write today's date in the table.
+
+**Budget (MED-12).** In the Cloudflare dashboard, set a billing notification at 80% of the month's R2 budget. Each
+shop's stored bytes are the sum of its rows in `tenant.media_objects`; Worker requests per shop arrive with Slice 7.

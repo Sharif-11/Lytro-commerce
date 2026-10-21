@@ -6,15 +6,9 @@ import pg from 'pg';
 import sharp from 'sharp';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from '../src/app/app.module';
-import { StorageUnavailable } from '../src/common/errors/media-refused';
 import type { MessageKey } from '../src/common/i18n/message-key';
 import { translate } from '../src/common/i18n/messages';
 import { PlanLimitOverridesService } from '../src/modules/billing/services/plan-limit-overrides.service';
-import type {
-  MediaStorage,
-  SignedUpload,
-  StoredObject,
-} from '../src/modules/media/ports/media-storage';
 import { MediaDeleter } from '../src/modules/media/services/media-deleter';
 import { MediaEraser } from '../src/modules/media/services/media-eraser';
 import { MediaProcessor } from '../src/modules/media/services/media-processor';
@@ -22,6 +16,7 @@ import type { MediaDeletePayload } from '../src/modules/media/services/media.ser
 import { MEDIA_STORAGE } from '../src/modules/media/tokens';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { listenOn } from './support/bootstrap';
+import { MemoryStorage } from './support/memory-storage';
 import { prepareTestDatabase } from './support/database';
 import { getJson, postJson, type HttpResult } from './support/http';
 import { errorOf, fieldsOf, openShop, staffWith, type ShopClient } from './support/shop-client';
@@ -39,70 +34,6 @@ const DB_NAME = 'lytronix_media_test';
 // Image work on one thread here, so this file leaves the other spec files their share of the machine.
 sharp.concurrency(1);
 const describeIfDatabase = ADMIN_URL ? describe : describe.skip;
-
-/** R2 as the server sees it, in memory: a signed link takes exactly the file it was signed for (MED-03). */
-class MemoryStorage implements MediaStorage {
-  readonly uploads = new Map<string, Buffer>();
-  readonly media = new Map<string, Buffer>();
-  private readonly signed = new Map<string, { contentType: string; bytes: number }>();
-  /** MED-11: while true, the store cannot be reached. */
-  down = false;
-
-  signUpload(
-    key: string,
-    contentType: string,
-    bytes: number,
-    expiresInSeconds: number,
-  ): Promise<SignedUpload> {
-    if (this.down) return Promise.reject(new StorageUnavailable());
-    this.signed.set(key, { contentType, bytes });
-    return Promise.resolve({
-      url: `memory://uploads/${key}`,
-      method: 'PUT',
-      headers: { 'content-type': contentType },
-      expiresAt: new Date(Date.now() + expiresInSeconds * 1000),
-    });
-  }
-
-  /** The browser's PUT to a signed link: 200, or 403 for any other size or type. */
-  send(url: string, body: Buffer, contentType: string): number {
-    const key = url.replace('memory://uploads/', '');
-    const signed = this.signed.get(key);
-    if (!signed || signed.bytes !== body.length || signed.contentType !== contentType) return 403;
-    this.uploads.set(key, body);
-    return 200;
-  }
-
-  readUpload(key: string): Promise<Buffer | null> {
-    if (this.down) return Promise.reject(new StorageUnavailable());
-    return Promise.resolve(this.uploads.get(key) ?? null);
-  }
-
-  removeUpload(key: string): Promise<void> {
-    this.uploads.delete(key);
-    return Promise.resolve();
-  }
-
-  putMedia(key: string, body: Buffer): Promise<void> {
-    if (this.down) return Promise.reject(new StorageUnavailable());
-    this.media.set(key, body);
-    return Promise.resolve();
-  }
-
-  deleteMedia(keys: string[]): Promise<void> {
-    if (this.down) return Promise.reject(new StorageUnavailable());
-    for (const key of keys) this.media.delete(key);
-    return Promise.resolve();
-  }
-
-  listMedia(prefix: string): Promise<StoredObject[]> {
-    return Promise.resolve(
-      [...this.media.entries()]
-        .filter(([key]) => key.startsWith(prefix))
-        .map(([key, body]) => ({ key, bytes: body.length })),
-    );
-  }
-}
 
 interface MediaView {
   id: string;
@@ -319,19 +250,6 @@ describeIfDatabase('uploading and processing an image (MED-03, STO-04)', () => {
     expect(again.status).toBe(201);
     expect(again.body).toMatchObject({ status: 'ready', bytes: ready.bytes });
     expect(await storage.listMedia(`tenants/${shop.tenantId}/`)).toHaveLength(2);
-  });
-
-  it('turns videos away until their processing arrives (Slice 6b)', async () => {
-    const shop = await openShop(port, texts, 'media');
-    const started = await shop.post('/media/uploads', {
-      kind: 'video',
-      contentType: 'video/mp4',
-      bytes: 1000,
-      purpose: 'product_video',
-    });
-    expect(started.status).toBe(400);
-    expect(fieldsOf(started)).toEqual({ kind: 'not_allowed' });
-    expect(errorOf(started).message).toBe(said('VideoUploadsNotOpen'));
   });
 
   it('checks the place an upload names, and that the type matches what the place takes', async () => {
@@ -558,6 +476,7 @@ describeIfDatabase('deleting media (MED-09, STO-07, LIF-19)', () => {
     const detail = (await shop.get(`/media/${image.id}`)).body as { uses: Record<string, unknown> };
     expect(detail.uses).toEqual({
       products: 1,
+      videos: 0,
       categories: 1,
       swatches: 0,
       sizeCharts: 1,

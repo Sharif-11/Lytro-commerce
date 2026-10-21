@@ -16,10 +16,9 @@ import {
   products,
   stockBatches,
   stockLevels,
-  tenants,
   type SelectStockBatch,
 } from '../../schema';
-import type { Executor, Transaction, TransactionRunner } from '../../transactions';
+import type { Transaction, TransactionRunner } from '../../transactions';
 
 /** A batch with the product and variant it belongs to, for lists and notices. */
 export interface StockBatchListRow extends SelectStockBatch {
@@ -191,16 +190,6 @@ export class StockBatchRepository {
       SELECT c.variant_id FROM (${candidates}) c
       WHERE tenant.refresh_unsellable(${tenantId}, c.variant_id)`);
     return rows.rows.map((row) => row.variant_id);
-  }
-
-  /** INV-13: the shops the daily expiry pass looks at: every one not yet deleted. */
-  async listShopIds(db: Executor): Promise<string[]> {
-    const rows = await db
-      .select({ id: tenants.id })
-      .from(tenants)
-      .where(isNull(tenants.deletedAt))
-      .orderBy(asc(tenants.id));
-    return rows.map((row) => row.id);
   }
 
   private async listWhere(

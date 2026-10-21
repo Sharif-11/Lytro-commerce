@@ -1,26 +1,44 @@
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { Inject, Injectable } from '@nestjs/common';
 import { MediaKind, MediaObjectRole, MediaStatus, QueueName } from '@lytronix/validators';
 import { MediaRefused } from '../../../common/errors/media-refused';
-import { imageKeys } from '../../../common/media-links';
+import { mediaKeys } from '../../../common/media-links';
 import type { JobQueue } from '../../shared/queue/ports/job-queue';
 import { JOB_QUEUE } from '../../shared/queue/tokens';
+import type { MediaNotifier } from '../ports/media-notifier';
 import type { MediaStorage } from '../ports/media-storage';
 import type { MediaStore } from '../ports/media-store';
-import { MEDIA_STORAGE, MEDIA_STORE } from '../tokens';
+import { MEDIA_NOTIFIER, MEDIA_STORAGE, MEDIA_STORE } from '../tokens';
+import type { MediaRecord } from '../types/media';
 import { ImageProcessor } from './image-processor';
 import { MB, MediaLimits } from './media-limits';
 import type { MediaDeletePayload } from './media.service';
+import { VideoProcessor } from './video-processor';
 
 const WEBP = 'image/webp';
+const MP4 = 'video/mp4';
 
 /** Why an item was refused, as the shop is told: the file's own fault, never sent, or no room left (STO-03). */
 type Refusal = MediaRefused['kind'] | 'not_uploaded' | 'storage_full';
 
+/** What processing made of an item: the files to store, and what it is once ready. */
+interface Prepared {
+  files: { role: MediaObjectRole; key: string; body: Buffer; contentType: string }[];
+  width: number;
+  height: number;
+  durationMs: number | null;
+  hash: string;
+}
+
 /**
- * MED-03, STO-03, STO-04, STO-06: the processing job. It reads the sent file from the temporary area, judges it by its
- * content, writes the picture and its thumbnail under the shop's prefix, and keeps them only if they still fit the
- * shop's storage, weighed with their real sizes under the shop's storage lock. A refused file stores and counts
- * nothing. The temporary file is cleared either way. A store that is away throws, so the job tries again.
+ * MED-03, STO-03 to STO-06, STO-09: the processing job. It reads the sent file from the temporary area and judges it by
+ * its content: an image becomes a WebP and its thumbnail, a video an MP4 and its poster. It writes them under the
+ * shop's prefix and keeps them only if they still fit the shop's storage, weighed with their real sizes under the
+ * shop's storage lock. A refused file stores and counts nothing, and a refused video is told to the shop, which has
+ * likely left the upload screen by then. The temporary file is cleared either way. A store that is away throws, so the
+ * job tries again.
  */
 @Injectable()
 export class MediaProcessor {
@@ -28,7 +46,9 @@ export class MediaProcessor {
     @Inject(MEDIA_STORE) private readonly store: MediaStore,
     @Inject(MEDIA_STORAGE) private readonly storage: MediaStorage,
     @Inject(JOB_QUEUE) private readonly jobs: JobQueue,
+    @Inject(MEDIA_NOTIFIER) private readonly notifier: MediaNotifier,
     @Inject(ImageProcessor) private readonly images: ImageProcessor,
+    @Inject(VideoProcessor) private readonly videos: VideoProcessor,
     @Inject(MediaLimits) private readonly limits: MediaLimits,
   ) {}
 
@@ -37,40 +57,118 @@ export class MediaProcessor {
     // Deleted meanwhile, already finished by an earlier try, or not sent yet: nothing to do.
     if (!row || row.status !== MediaStatus.Processing || row.uploadKey === null) return;
     const uploadKey = row.uploadKey;
-    if (row.kind !== MediaKind.Image) {
-      await this.refuse(tenantId, mediaId, 'not_supported', uploadKey);
-      return;
-    }
 
-    const sent = await this.storage.readUpload(uploadKey);
-    if (!sent) {
-      await this.refuse(tenantId, mediaId, 'not_uploaded', uploadKey);
-      return;
-    }
-    let processed;
+    let prepared: Prepared | null;
     try {
-      processed = await this.images.process(sent, (await this.limits.maxMb(MediaKind.Image)) * MB);
+      prepared =
+        row.kind === MediaKind.Video
+          ? await this.prepareVideo(row, uploadKey)
+          : await this.prepareImage(row, uploadKey);
     } catch (error) {
       if (error instanceof MediaRefused) {
-        await this.refuse(tenantId, mediaId, error.kind, uploadKey);
+        await this.refuse(row, error.kind, uploadKey);
         return;
       }
       throw error;
     }
+    if (!prepared) {
+      await this.refuse(row, 'not_uploaded', uploadKey);
+      return;
+    }
 
-    const keys = imageKeys(tenantId, mediaId, processed.hash);
-    await this.storage.putMedia(keys.main, processed.main.body, WEBP);
-    await this.storage.putMedia(keys.thumbnail, processed.thumbnail.body, WEBP);
-    const bytes = processed.main.bytes + processed.thumbnail.bytes;
+    const kept = await this.keep(row, prepared);
+    await this.storage.removeUpload(uploadKey);
+    if (kept === 'storage_full') await this.tell(row, 'storage_full');
+  }
 
-    await this.store.run(async (tx) => {
+  private async prepareImage(row: MediaRecord, uploadKey: string): Promise<Prepared | null> {
+    const sent = await this.storage.readUpload(uploadKey);
+    if (!sent) return null;
+    const processed = await this.images.process(
+      sent,
+      (await this.limits.maxMb(MediaKind.Image)) * MB,
+    );
+    const keys = mediaKeys(MediaKind.Image, row.tenantId, row.id, processed.hash);
+    return {
+      files: [
+        {
+          role: MediaObjectRole.Main,
+          key: keys.main,
+          body: processed.main.body,
+          contentType: WEBP,
+        },
+        {
+          role: MediaObjectRole.Thumbnail,
+          key: keys.thumbnail,
+          body: processed.thumbnail.body,
+          contentType: WEBP,
+        },
+      ],
+      width: processed.main.width,
+      height: processed.main.height,
+      durationMs: null,
+      hash: processed.hash,
+    };
+  }
+
+  /** STO-09: a video is worked on as files on disk, never whole in memory; the folder goes when it is done. */
+  private async prepareVideo(row: MediaRecord, uploadKey: string): Promise<Prepared | null> {
+    const workDir = await mkdtemp(join(tmpdir(), 'lytro-video-'));
+    try {
+      const input = join(workDir, 'upload');
+      if (!(await this.storage.saveUpload(uploadKey, input))) return null;
+      const processed = await this.videos.process(
+        input,
+        workDir,
+        (await this.limits.maxMb(MediaKind.Video)) * MB,
+      );
+      const keys = mediaKeys(MediaKind.Video, row.tenantId, row.id, processed.hash);
+      return {
+        files: [
+          {
+            role: MediaObjectRole.Main,
+            key: keys.main,
+            body: await readFile(processed.video.path),
+            contentType: MP4,
+          },
+          {
+            role: MediaObjectRole.Poster,
+            key: keys.thumbnail,
+            body: processed.poster.body,
+            contentType: WEBP,
+          },
+        ],
+        width: processed.video.width,
+        height: processed.video.height,
+        durationMs: processed.video.durationMs,
+        hash: processed.hash,
+      };
+    } finally {
+      await rm(workDir, { recursive: true, force: true });
+    }
+  }
+
+  /**
+   * STO-01, STO-03: writes the files, then records them only if they still fit the shop's storage; otherwise, or when
+   * the item was deleted meanwhile, the deletion job removes what was just written.
+   */
+  private async keep(
+    row: MediaRecord,
+    prepared: Prepared,
+  ): Promise<'ready' | 'storage_full' | 'gone'> {
+    const { tenantId, id: mediaId } = row;
+    for (const file of prepared.files) {
+      await this.storage.putMedia(file.key, file.body, file.contentType);
+    }
+    const bytes = prepared.files.reduce((sum, file) => sum + file.body.length, 0);
+    const unwritten: MediaDeletePayload = { keys: prepared.files.map((file) => file.key) };
+
+    return this.store.run(async (tx) => {
       await this.store.lockStorage(tx, tenantId);
       const current = await this.store.lockMedia(tx, tenantId, mediaId);
-      const unwritten: MediaDeletePayload = { keys: [keys.main, keys.thumbnail] };
       if (!current || current.status !== MediaStatus.Processing) {
-        // Deleted while it was processing: what was just written goes too.
         await this.jobs.enqueue(tx, QueueName.MediaDelete, unwritten);
-        return;
+        return 'gone';
       }
       const limitMb = await this.limits.storageMb(tx, tenantId);
       if (limitMb !== null && (await this.store.storedBytes(tx, tenantId)) + bytes > limitMb * MB) {
@@ -79,44 +177,48 @@ export class MediaProcessor {
           failure: 'storage_full',
         });
         await this.jobs.enqueue(tx, QueueName.MediaDelete, unwritten);
-        return;
+        return 'storage_full';
       }
-      await this.store.insertObjects(tx, tenantId, [
-        {
+      await this.store.insertObjects(
+        tx,
+        tenantId,
+        prepared.files.map((file) => ({
           mediaId,
-          role: MediaObjectRole.Main,
-          key: keys.main,
-          bytes: processed.main.bytes,
-          contentType: WEBP,
-        },
-        {
-          mediaId,
-          role: MediaObjectRole.Thumbnail,
-          key: keys.thumbnail,
-          bytes: processed.thumbnail.bytes,
-          contentType: WEBP,
-        },
-      ]);
+          role: file.role,
+          key: file.key,
+          bytes: file.body.length,
+          contentType: file.contentType,
+        })),
+      );
       await this.store.finish(tx, tenantId, mediaId, {
         status: MediaStatus.Ready,
-        width: processed.main.width,
-        height: processed.main.height,
-        hash: processed.hash,
+        width: prepared.width,
+        height: prepared.height,
+        durationMs: prepared.durationMs,
+        hash: prepared.hash,
       });
+      return 'ready';
     });
-    await this.storage.removeUpload(uploadKey);
   }
 
   /** MED-03: a refused file is recorded as refused, and its temporary copy is cleared. */
-  private async refuse(
-    tenantId: string,
-    mediaId: string,
-    why: Refusal,
-    uploadKey: string,
-  ): Promise<void> {
+  private async refuse(row: MediaRecord, why: Refusal, uploadKey: string): Promise<void> {
     await this.store.run((tx) =>
-      this.store.finish(tx, tenantId, mediaId, { status: MediaStatus.Failed, failure: why }),
+      this.store.finish(tx, row.tenantId, row.id, { status: MediaStatus.Failed, failure: why }),
     );
     await this.storage.removeUpload(uploadKey);
+    await this.tell(row, why);
+  }
+
+  /** STO-09: a refused video is told to the shop; an image's refusal shows on the upload screen still open. */
+  private async tell(row: MediaRecord, why: Refusal): Promise<void> {
+    if (row.kind !== MediaKind.Video) return;
+    await this.notifier.mediaFailed({
+      tenantId: row.tenantId,
+      mediaId: row.id,
+      kind: row.kind,
+      purpose: row.purpose,
+      failure: why,
+    });
   }
 }

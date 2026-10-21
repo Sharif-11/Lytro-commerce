@@ -24,7 +24,7 @@ import type {
   StockUnit,
   TenantState,
 } from '@lytronix/validators';
-import type { ImageView } from '../../../common/media-links';
+import type { ImageView, VideoView } from '../../../common/media-links';
 
 // The stored rows, as aliases of the shared types (ENGINEERING-STANDARDS §4), never copies.
 export type CategoryRecord = SelectCategory;
@@ -248,6 +248,8 @@ export interface ProductDetail {
   sizeChart: SizeChartView | null;
   /** PRD-11: its photos, in the order shown (up to 10). */
   images: ImageView[];
+  /** PRD-11: its one video, or null. */
+  video: VideoView | null;
   /** DLV-07: the zones it may be delivered to; empty means wherever the shop delivers. */
   deliveryZoneIds: string[];
   createdAt: Date;

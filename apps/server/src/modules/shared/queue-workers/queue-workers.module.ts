@@ -12,7 +12,9 @@ import { DataExportWorker } from './services/data-export-worker';
 import { InventoryExpiryTickWorker } from './services/inventory-expiry-tick-worker';
 import { ReservationExpiryTickWorker } from './services/reservation-expiry-tick-worker';
 import { MediaDeleteWorker } from './services/media-delete-worker';
+import { MediaProcessVideoWorker } from './services/media-process-video-worker';
 import { MediaProcessWorker } from './services/media-process-worker';
+import { MediaReconcileTickWorker } from './services/media-reconcile-tick-worker';
 
 // D27/D2-6: registers pg-boss queues and their work handlers. Kept apart from QueueModule (the queue mechanism
 // itself, SCL-08, D25) and from MessagingModule/BillingModule (the delivery/lifecycle business rules), so
@@ -35,7 +37,9 @@ import { MediaProcessWorker } from './services/media-process-worker';
     InventoryExpiryTickWorker,
     ReservationExpiryTickWorker,
     MediaProcessWorker,
+    MediaProcessVideoWorker,
     MediaDeleteWorker,
+    MediaReconcileTickWorker,
   ],
 })
 export class QueueWorkersModule {}

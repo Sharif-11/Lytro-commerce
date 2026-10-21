@@ -206,7 +206,7 @@ Storage, media bandwidth, API requests and payment sessions have strict per-plan
 | Growth | 4 GB | 16,000 | 5.6 h |
 | Pro | 8 GB | 32,000 | 11 h |
 
-- **STO-1** Images are compressed and resized on upload. Per-file limits: 5 MB per image, 100 MB per video (editable).
+- **STO-1** Images are compressed and resized on upload. Per-file limits: 5 MB per image, 150 MB per video (editable).
 - **STO-2** Media is stored in Cloudflare R2 under a per-tenant path. There is no separate backup copy of media (decided); its durability relies on R2.
 
 **Media bandwidth.** Counts bytes of media delivered from the platform to visitors, per tenant and billing period.
