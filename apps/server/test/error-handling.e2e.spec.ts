@@ -27,6 +27,8 @@ beforeAll(async () => {
   process.env['PLATFORM_DOMAIN'] = 'localhost';
   process.env['TRUSTED_EDGE_SECRET'] = EDGE_SECRET;
   process.env['NODE_ENV'] = 'production';
+  // SEC-10: production starts only with the key credentials are sealed with.
+  process.env['DATA_ENCRYPTION_KEY'] = Buffer.alloc(32, 3).toString('base64');
 
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
   ({ app, port } = await listenOn(moduleRef));

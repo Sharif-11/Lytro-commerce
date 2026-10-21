@@ -204,6 +204,10 @@ for `active`) with zero infrastructure work on this platform's side per tenant.
    shop's bandwidth and writes the blocked list and each shop's website addresses. Without the token, nothing is
    counted or blocked.
 
+**The credential sealing key** (Phase 3 Slice 9b): set `DATA_ENCRYPTION_KEY` (32 random bytes, base64) on the server
+from a secrets manager, never from a committed file; the server refuses to start in production without it. Its
+rotation is RUNBOOKS §3.
+
 ## 9. Fits the existing CI/CD pipeline (`ENGINEERING-STANDARDS.md` §7) without changing it
 
 That section already specifies build-once/promote-with-a-smoke-test/manual-production-approval. This section

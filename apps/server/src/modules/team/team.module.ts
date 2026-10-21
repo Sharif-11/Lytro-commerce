@@ -30,7 +30,9 @@ import { OperatorSettingsController } from './controllers/operator-settings.cont
 import { BillingController } from './controllers/billing.controller';
 import { OperatorPaymentQueueController } from './controllers/operator-payment-queue.controller';
 import { ShopSettingsController } from './controllers/shop-settings.controller';
+import { AdTrackingController } from './controllers/ad-tracking.controller';
 import { ApiKeysController } from './controllers/api-keys.controller';
+import { CatalogFeedController } from './controllers/catalog-feed.controller';
 import { PublicApiModule } from '../public-api/public-api.module';
 import { DataExportController } from './controllers/data-export.controller';
 import { DataExportModule } from '../data-export/data-export.module';
@@ -116,6 +118,8 @@ import { CatalogueRequest } from './services/catalogue-request';
     OperatorPaymentQueueController,
     ShopSettingsController,
     ApiKeysController,
+    AdTrackingController,
+    CatalogFeedController,
     DataExportController,
     CatalogueSetupController,
     AttributesController,

@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { API_LABEL } from '../../../common/shop-address';
 import { SlugFormat } from './slug-format';
 import { PLATFORM_DOMAIN } from '../tokens';
 
@@ -8,8 +9,6 @@ import { PLATFORM_DOMAIN } from '../tokens';
 // TEN-08: the platform's own hosts under its domain -- the dashboard (TEN-31), the operator console, the payment page
 // and www. They are reserved slugs too (TEN-26), but they are never even looked up as shops.
 const PLATFORM_LABELS: ReadonlySet<string> = new Set(['app', 'admin', 'pay', 'www']);
-// API-14: the public API's own host, which takes the shop from the key, never the host.
-const API_LABEL = 'api';
 
 const HOSTNAME_PATTERN =
   /^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$/;

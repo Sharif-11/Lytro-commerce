@@ -13,12 +13,15 @@ import { CATALOGUE_CACHE_SETTINGS } from '../tokens';
 export interface CatalogueCacheSettings {
   /** Bytes, by each answer's encoded size. */
   maxBytes: number;
+  /** The largest one answer kept; a larger one (a big shop's feed) is built for every request instead. */
+  maxEntryBytes: number;
   /** At least 1. */
   versionMs: number;
 }
 
 export const CATALOGUE_CACHE_DEFAULTS: CatalogueCacheSettings = {
   maxBytes: 100 * 1024 * 1024,
+  maxEntryBytes: 10 * 1024 * 1024,
   versionMs: 2 * SECOND_MS,
 };
 
@@ -53,6 +56,7 @@ export class CatalogueCache implements OnModuleInit, OnModuleDestroy {
   constructor(@Inject(CATALOGUE_CACHE_SETTINGS) settings: CatalogueCacheSettings) {
     this.entries = new LRUCache<string, Entry, Build>({
       maxSize: settings.maxBytes,
+      maxEntrySize: settings.maxEntryBytes,
       sizeCalculation: (entry) => entry.bytes,
       ttl: LONGEST_MS,
       fetchMethod: async (_key, _stale, { context }) => {

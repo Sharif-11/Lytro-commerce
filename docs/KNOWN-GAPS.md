@@ -1551,6 +1551,17 @@ and reads the stored count. Separately, `api-keys.e2e.spec.ts`'s "answers a regi
 `lastUsedAt` straight after the request, while the write is deliberately not awaited (API-01); under a loaded full run
 it can read before the write lands. It passes alone; the test should wait for the write.
 
+## 81. `SEC-10`: no secrets manager is chosen, and nothing seals every stored value again after a rotation — open, found 2026-10-21
+
+Found while building Phase 3 Slice 9b, the first stored credentials (a shop's Conversions API token, its catalog feed
+link). The server reads its sealing key from `DATA_ENCRYPTION_KEY` and refuses to start in production without it,
+but SEC-10 asks for more than the code can give: the key held in a secrets manager, read only by the application's
+runtime identity, a human retrieval a logged break-glass action. Which manager (and its cost) is a deployment
+decision not yet made. Separately, a rotation keeps the old key as `DATA_ENCRYPTION_PREVIOUS_KEY` until every value
+is sealed again, and today that means each shop regenerating its feed link and re-entering its token (RUNBOOKS §3).
+A job that re-seals every value with the current key should come with courier and gateway credentials (Phases 5-6),
+when there are more of them.
+
 ## Not a bug, just noting it so it isn't mistaken for one later
 
 The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data

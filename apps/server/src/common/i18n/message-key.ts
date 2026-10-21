@@ -399,6 +399,12 @@ export const MESSAGE_KEYS = [
   'ApiKeyCreated',
   'ApiKeyUpdated',
   'ApiKeyRevoked',
+  'AdTrackingRetrieved',
+  'AdTrackingSaved',
+  'AdTrackingRemoved',
+  'CatalogFeedRetrieved',
+  'CatalogFeedRegenerated',
+  'CatalogFeedUnreadable',
   'ShopRetrieved',
   'CatalogueVersionRetrieved',
 

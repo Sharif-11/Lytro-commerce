@@ -13,6 +13,7 @@ import {
 import {
   AttributeRole,
   DeliveryMode,
+  ItemCondition,
   MEASURED_STOCK_UNITS,
   PaymentPolicy,
   SerialFormat,
@@ -57,6 +58,8 @@ const productFields = {
   paymentPolicy: z.nativeEnum(PaymentPolicy).nullable().optional(),
   advanceAmount: priceField.nullable().optional(),
   active: z.boolean().optional(),
+  // FED-02: new unless the shop says otherwise.
+  condition: z.nativeEnum(ItemCondition).optional(),
   categoryIds: z.array(catalogueIdSchema).max(CATEGORIES_PER_PRODUCT_MAX).optional(),
   primaryCategoryId: catalogueIdSchema.nullable().optional(),
 };

@@ -15,6 +15,7 @@ import type {
   AttributeDataType,
   AttributeRole,
   DeliveryMode,
+  ItemCondition,
   PaymentPolicy,
   PlanLimits,
   ProductFormField,
@@ -240,6 +241,8 @@ export interface ProductDetail {
   effectiveAdvanceAmount: string | null;
   active: boolean;
   archived: boolean;
+  /** FED-02: new, refurbished or used, for Meta's catalog. */
+  condition: ItemCondition;
   categoryIds: string[];
   primaryCategoryId: string | null;
   minPrice: string | null;

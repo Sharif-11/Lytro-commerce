@@ -813,6 +813,18 @@ their backend ships earlier.
       took 41 ms and searches 226 ms at the 95th percentile.
     - A product's stock state is now its best variant on sale; an inactive variant no longer counts toward it. A
       new variant starts as its product does: in when its stock is not counted, else out until stock arrives.
+  - **9b built** (migration 0069), with one decision revisited at its read (2026-10-21): the feed token is not kept
+    as is, as point 9 first said, but as DATABASE-SCHEMA designed it -- its SHA-256 hash for lookup and a sealed copy
+    for the dashboard -- in `control.catalog_feeds`, since a feed request is matched before the shop is known.
+    - **Secret box:** AES-256-GCM, a fresh nonce per value, the key's fingerprint and the shop and purpose bound in;
+      `DATA_ENCRYPTION_KEY` (required in production) and `DATA_ENCRYPTION_PREVIOUS_KEY` for a rotation. The pattern
+      courier and gateway credentials reuse (Phases 5-6).
+    - **Ad tracking:** `GET`, `PUT` and `DELETE /ad-tracking` (`settings:manage`); the token goes in and never
+      out; every change in the activity log, kept 24 months as a credential's (AUD-07); the Pixel ID on
+      `GET /v1/shop`. Sending Purchase events server-side (LND-16) arrives with orders.
+    - **Feed:** `GET /catalog-feed` (the link, made on first asking), `POST /catalog-feed/regenerate`;
+      `/v1/feeds/meta/<token>.csv`, served from the catalogue cache by version (an answer over 10 MB is built per
+      fetch), counted toward the month, 404 for a wrong token or an offline shop; products gained `condition`.
 - **Depends on:** Slices 1, 2 (stock state), 6 (thumbnails) and 8 (public keys, rate-limit ordering).
 - **Delivers:** public list, detail, category tree and search endpoints returning public fields only;
   keyset pagination; slim list payload from denormalised columns; the catalogue-version endpoint;

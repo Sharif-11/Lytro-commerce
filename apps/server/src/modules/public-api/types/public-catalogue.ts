@@ -1,4 +1,10 @@
-import type { AttributeDataType, PaymentPolicy, StockState, StockUnit } from '@lytronix/validators';
+import type {
+  AttributeDataType,
+  ItemCondition,
+  PaymentPolicy,
+  StockState,
+  StockUnit,
+} from '@lytronix/validators';
 import type { ImageView, VideoView } from '../../../common/media-links';
 
 /** CCH-04: what the public catalogue shows now, as one value: the shop's version and the platform library's. */
@@ -72,6 +78,8 @@ export interface PublicProductDetail {
   maxPrice: string | null;
   stockState: StockState;
   stockUnit: StockUnit;
+  /** FED-02: new, refurbished or used. */
+  condition: ItemCondition;
   primaryCategoryId: string | null;
   categoryIds: string[];
   images: ImageView[];

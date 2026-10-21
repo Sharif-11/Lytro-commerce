@@ -135,6 +135,7 @@ describeIfDatabase('route inventory against the application (SEC-02)', () => {
   it('lists the shop-owned routes, and the registry agrees', () => {
     const routes = listTenantRoutes(app);
     expect(routes).toEqual([
+      'DELETE /ad-tracking',
       'DELETE /categories/:id',
       'DELETE /categories/:id/size-chart',
       'DELETE /delivery-zones/:id',
@@ -147,6 +148,7 @@ describeIfDatabase('route inventory against the application (SEC-02)', () => {
       'DELETE /purchase-orders/:id',
       'DELETE /roles/:id',
       'GET /activity',
+      'GET /ad-tracking',
       'GET /api-keys',
       'GET /attributes',
       'GET /balance',
@@ -159,6 +161,7 @@ describeIfDatabase('route inventory against the application (SEC-02)', () => {
       'GET /billing/downgrade',
       'GET /billing/invoices',
       'GET /billing/invoices/:id',
+      'GET /catalog-feed',
       'GET /categories',
       'GET /delivery-zones',
       'GET /delivery-zones/resolve',
@@ -187,6 +190,7 @@ describeIfDatabase('route inventory against the application (SEC-02)', () => {
       'GET /public/catalogue/products',
       'GET /public/catalogue/products/:slug',
       'GET /public/catalogue/version',
+      'GET /public/feeds/meta/:file',
       'GET /public/shop',
       'GET /purchase-orders',
       'GET /purchase-orders/:id',
@@ -228,6 +232,7 @@ describeIfDatabase('route inventory against the application (SEC-02)', () => {
       'POST /billing/quote',
       'POST /billing/upgrade/confirm',
       'POST /billing/upgrade/quote',
+      'POST /catalog-feed/regenerate',
       'POST /categories',
       'POST /delivery-zones',
       'POST /exports',
@@ -252,6 +257,7 @@ describeIfDatabase('route inventory against the application (SEC-02)', () => {
       'POST /staff/:id/password',
       'POST /stock-checks',
       'POST /suppliers',
+      'PUT /ad-tracking',
       'PUT /business-type',
       'PUT /categories/:id/attributes',
       'PUT /categories/:id/size-chart',

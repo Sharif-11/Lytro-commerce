@@ -54,4 +54,19 @@ export interface RequestQuotaNotice {
 export interface PublicShopView {
   name: string;
   slug: string;
+  /** LND-15: the Meta Pixel its pages load; null when none is connected. */
+  metaPixelId: string | null;
+}
+
+/** LND-15 to LND-17: the shop's ad tracking as the dashboard sees it: never the Conversions API token. */
+export interface AdTrackingView {
+  metaPixelId: string | null;
+  conversionsApiConnected: boolean;
+  updatedAt: Date | null;
+}
+
+/** FED-01, FED-06: the shop's Meta catalog feed link, and when it was last replaced. */
+export interface CatalogFeedView {
+  url: string;
+  regeneratedAt: Date;
 }

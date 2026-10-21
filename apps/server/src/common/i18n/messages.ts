@@ -1130,6 +1130,21 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'API key revoked. It stops working within a few seconds.',
     bn: 'API কি বাতিল হয়েছে। কয়েক সেকেন্ডের মধ্যে এটি কাজ করা বন্ধ করবে।',
   },
+  AdTrackingRetrieved: { en: 'Ad tracking retrieved.', bn: 'অ্যাড ট্র্যাকিং পাওয়া গেছে।' },
+  AdTrackingSaved: { en: 'Ad tracking saved.', bn: 'অ্যাড ট্র্যাকিং সেভ হয়েছে।' },
+  AdTrackingRemoved: { en: 'Ad tracking removed.', bn: 'অ্যাড ট্র্যাকিং রিমুভ হয়েছে।' },
+  CatalogFeedRetrieved: {
+    en: 'Catalog feed link retrieved.',
+    bn: 'ক্যাটালগ ফিড লিংক পাওয়া গেছে।',
+  },
+  CatalogFeedRegenerated: {
+    en: 'New catalog feed link made. The old link no longer works.',
+    bn: 'নতুন ক্যাটালগ ফিড লিংক তৈরি হয়েছে। পুরনো লিংক আর কাজ করবে না।',
+  },
+  CatalogFeedUnreadable: {
+    en: 'This feed link can no longer be shown. Make a new one; the old one keeps working until you do.',
+    bn: 'এই ফিড লিংকটি আর দেখানো যাচ্ছে না। নতুন একটি লিংক তৈরি করুন; তার আগ পর্যন্ত পুরনো লিংক কাজ করবে।',
+  },
   ShopRetrieved: {
     en: 'Shop retrieved.',
     bn: 'দোকানের তথ্য পাওয়া গেছে।',

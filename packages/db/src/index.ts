@@ -136,10 +136,15 @@ export {
   type ProductPatch,
 } from './repositories/catalogue/product.repository';
 export { VariantRepository, type VariantPatch } from './repositories/catalogue/variant.repository';
+export { AdTrackingRepository } from './repositories/api/ad-tracking.repository';
+export { CatalogFeedRepository } from './repositories/api/catalog-feed.repository';
 export {
   PublicCatalogueRepository,
   prefixQuery,
   type CatalogueVersions,
+  type FeedAttributeRow,
+  type FeedImageRow,
+  type FeedVariantRow,
   type PublicProductFilter,
   type PublicProductRow,
 } from './repositories/catalogue/public-catalogue.repository';

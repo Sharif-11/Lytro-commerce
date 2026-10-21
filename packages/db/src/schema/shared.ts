@@ -1,11 +1,16 @@
 // Shared database building blocks. Every schema area imports from here.
 import { sql } from 'drizzle-orm';
-import { pgSchema, timestamp } from 'drizzle-orm/pg-core';
+import { customType, pgSchema, timestamp } from 'drizzle-orm/pg-core';
 
 // DATABASE-SCHEMA §1: one database, two schemas. `control` is platform-wide and has no row-level security.
 // `tenant` holds every tenant's rows, and row-level security enforces isolation there (DAT-03).
 export const control = pgSchema('control');
 export const tenant = pgSchema('tenant');
+
+// Raw bytes: a stored file, or a value sealed by the server's secret box (SEC-10).
+export const bytea = customType<{ data: Buffer }>({
+  dataType: () => 'bytea',
+});
 
 export const createdAt = () =>
   timestamp('created_at', { withTimezone: true }).notNull().defaultNow();

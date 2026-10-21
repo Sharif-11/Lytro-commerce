@@ -1,15 +1,11 @@
-import { bigint, customType, index, text, timestamp, uuid } from 'drizzle-orm/pg-core';
-import { createdAt, tenant } from '../shared';
+import { bigint, index, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { bytea, createdAt, tenant } from '../shared';
 
 // LIF-16/17: a zip of the owner's own data, generated asynchronously and downloadable for 24 hours after
 // it's ready. `fileContent` holds the actual bytes -- no object storage (R2/S3) exists in this codebase yet
 // (that's MED-*'s Phase 3 scope), so the file lives directly in Postgres rather than inventing that
 // infrastructure early for one feature. Deleted at day 60 alongside the rest of the tenant's business data
 // (LIF-19).
-const bytea = customType<{ data: Buffer }>({
-  dataType: () => 'bytea',
-});
-
 export const dataExports = tenant.table(
   'data_exports',
   {

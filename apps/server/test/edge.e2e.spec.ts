@@ -35,6 +35,8 @@ beforeAll(async () => {
   process.env['TRUSTED_EDGE_SECRET'] = EDGE_SECRET;
   process.env['TRUSTED_EDGE_SECRET_NEXT'] = NEXT_SECRET;
   process.env['NODE_ENV'] = 'production';
+  // SEC-10: production starts only with the key credentials are sealed with.
+  process.env['DATA_ENCRYPTION_KEY'] = Buffer.alloc(32, 3).toString('base64');
 
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(SMS_PROVIDER)
