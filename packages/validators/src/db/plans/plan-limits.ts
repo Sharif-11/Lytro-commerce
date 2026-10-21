@@ -19,9 +19,9 @@ export const planLimitsSchema = z.object({
   bandwidth_gb: unlimitedInt(),
   essential_sms_total: unlimitedInt(),
   essential_sms_monthly: unlimitedInt(),
-  // RTE-01, RTE-03 (2.1): requests a public key may make in any 60 seconds, and requests the shop's keys may make in a
-  // billing cycle (a month from the period's start; pay-as-you-go from its creation date).
-  requests_per_minute_public: unlimitedInt(),
+  // RTE-03 (2.1): requests the shop's keys may make in a billing cycle (a month from the period's start; pay-as-you-go
+  // from its creation date). A public key has no per-minute figure of its own: one visitor is held by RTE-06, and a
+  // shop-wide count would refuse a busy shop's real shoppers (KNOWN-GAPS §82).
   requests_monthly: unlimitedInt(),
   // How many days an activity log entry is kept before the retention job purges it (AUD-06). A retention
   // period, not a usage cap -- PLN-19's "unlimited" concept does not apply here, so this stays non-nullable.

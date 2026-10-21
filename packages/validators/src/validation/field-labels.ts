@@ -144,10 +144,6 @@ export const FIELD_LABELS: Readonly<Record<string, Translation | null>> = {
   rejected: { en: 'Rejected', bn: 'রিজেক্টেড' },
   rejectReason: { en: 'Reason for rejecting', bn: 'রিজেক্টের কারণ' },
   requests_monthly: { en: 'API requests per billing period', bn: 'বিলিং পিরিয়ডে API রিকোয়েস্ট' },
-  requests_per_minute_public: {
-    en: 'API requests per minute (public key)',
-    bn: 'মিনিটে API রিকোয়েস্ট (পাবলিক কি)',
-  },
   retired: { en: 'Retired', bn: 'রিটায়ার্ড' },
   role: { en: 'Attribute use', bn: 'অ্যাট্রিবিউটের ব্যবহার' },
   roleIds: { en: 'Roles', bn: 'রোল' },

@@ -533,6 +533,9 @@ export enum PlatformSettingKey {
   CatalogueDetailMaxAgeSeconds = 'catalogue_detail_max_age_seconds',
   CatalogueSearchMaxAgeSeconds = 'catalogue_search_max_age_seconds',
   CatalogueCategoriesMaxAgeSeconds = 'catalogue_categories_max_age_seconds',
+  // RTE-06 (editable, KNOWN-GAPS §82): how many requests one visitor may make to one shop in any minute, through its
+  // public keys and its catalog feed.
+  PublicRequestsPerVisitorPerMinute = 'public_requests_per_visitor_per_minute',
 }
 
 // D2-1: what a control.plan_payments row is for -- a purchase, a renewal, an upgrade, or a balance top-up.

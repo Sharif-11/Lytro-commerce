@@ -1,10 +1,16 @@
-import type { ApiShopRow, ApiUsageRow, NewApiKey, SelectApiKey } from '@lytronix/db';
+import type {
+  ApiShopRow,
+  ApiUsageCounts,
+  ApiUsageRow,
+  NewApiKey,
+  SelectApiKey,
+} from '@lytronix/db';
 import type { ApiKeyType, PlanLimits } from '@lytronix/validators';
 import type { UsageWarning } from '../../../common/usage-warnings';
 
 // The stored rows, as aliases of the shared types (ENGINEERING-STANDARDS §4), never copies.
 export type ApiKeyRecord = SelectApiKey;
-export type { ApiShopRow, ApiUsageRow, NewApiKey };
+export type { ApiShopRow, ApiUsageCounts, ApiUsageRow, NewApiKey };
 
 /** API-01: a key as the shop sees it: never its value, which was shown once. */
 export interface ApiKeyView {

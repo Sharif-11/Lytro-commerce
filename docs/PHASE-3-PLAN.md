@@ -770,6 +770,9 @@ their backend ships earlier.
   - **Plan limits:** `requests_per_minute_public` and `requests_monthly` are seeded on every plan from 2.1, filled
     into every snapshot, and overridable.
   - **Built as decided.** When a flush crosses more than one warning, only the highest is sent.
+  - **Changed after Slice 9 (KNOWN-GAPS §82):** the key's per-minute limit held back a busy shop's shoppers
+    together, so it was removed, with `requests_per_minute_public` (migration 0070). The visitor's 120 became an
+    operator setting, the rate headers describe the visitor's minute, and its refusals are counted per cycle.
   - **Found while building it:** an operator's override to unlimited (`null`) failed with a server error (KNOWN-GAPS
     §76).
 - **Depends on:** none in this phase (can run in parallel with Slices 1–7).
@@ -847,7 +850,8 @@ their backend ships earlier.
 - **Depends on:** Slices 1, 6, 7, 8.
 - **Delivers:** the usage API (every metric that exists against its limit); threshold notices; products
   and storage added to the downgrade over-limit list and final warning; "unlimited" honoured across all
-  of this phase's counters.
+  of this phase's counters; the fast-spend alert decided in KNOWN-GAPS §82 (more than [5]% of a cycle's
+  requests in an hour tells the owner and the operator, refusing nothing), with its requirement.
 - **Requirements completed:** LIM-01, LIM-03.
 - **Partial:** LIM-02, LIM-04, DWN-12, DWN-14, TRL-03, PLN-19.
 - **Done when:** after hitting each limit, all existing records and files remain; a tenant downgraded to

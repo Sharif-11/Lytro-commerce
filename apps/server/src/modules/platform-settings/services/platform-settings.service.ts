@@ -43,6 +43,8 @@ const DESCRIPTIONS: Record<PlatformSettingKey, string> = {
     "How long a shopper's browser keeps search results, in seconds (CCH-03).",
   [PlatformSettingKey.CatalogueCategoriesMaxAgeSeconds]:
     "How long a shopper's browser keeps the category tree, in seconds (CCH-03).",
+  [PlatformSettingKey.PublicRequestsPerVisitorPerMinute]:
+    'How many requests one visitor may make to one shop in a minute, through its public keys (RTE-06).',
 };
 
 // A positive-int check, the only shape any key needs today; slice 7 extends this map, not a switch, as more
@@ -66,6 +68,7 @@ const VALIDATORS: Record<PlatformSettingKey, (value: unknown) => boolean> = {
   [PlatformSettingKey.CatalogueDetailMaxAgeSeconds]: isPositiveInt,
   [PlatformSettingKey.CatalogueSearchMaxAgeSeconds]: isPositiveInt,
   [PlatformSettingKey.CatalogueCategoriesMaxAgeSeconds]: isPositiveInt,
+  [PlatformSettingKey.PublicRequestsPerVisitorPerMinute]: isPositiveInt,
 };
 
 function validate(key: PlatformSettingKey, value: unknown): void {

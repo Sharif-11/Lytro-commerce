@@ -10,22 +10,35 @@ export interface ApiUsageRow {
   warnedPercent: number;
 }
 
+/** What one server counted for a shop's cycle since it last added its counts. */
+export interface ApiUsageCounts {
+  requests: number;
+  /** RTE-06: the requests the per-visitor limit refused, and the visitors they came from not counted before. */
+  refusedRequests: number;
+  refusedVisitors: number;
+}
+
 // RTE-03, D3-2: each shop's requests per billing cycle. The servers count in memory and add their counts here every
 // minute; enforcement reads this total and adds what is not flushed yet.
 export class ApiUsageRepository {
-  /** Adds requests to the cycle's count, under its row lock; the count as it now is. */
+  /** Adds the counts to the cycle's, under its row lock; the cycle's requests as they now are. */
   async add(
     db: Executor,
     tenantId: string,
     cycleStart: Date,
-    requests: number,
+    counts: ApiUsageCounts,
   ): Promise<ApiUsageRow> {
     const [row] = await db
       .insert(apiUsage)
-      .values({ tenantId, cycleStart, requests })
+      .values({ tenantId, cycleStart, ...counts })
       .onConflictDoUpdate({
         target: [apiUsage.tenantId, apiUsage.cycleStart],
-        set: { requests: sql`${apiUsage.requests} + ${requests}`, updatedAt: new Date() },
+        set: {
+          requests: sql`${apiUsage.requests} + ${counts.requests}`,
+          refusedRequests: sql`${apiUsage.refusedRequests} + ${counts.refusedRequests}`,
+          refusedVisitors: sql`${apiUsage.refusedVisitors} + ${counts.refusedVisitors}`,
+          updatedAt: new Date(),
+        },
       })
       .returning({
         tenantId: apiUsage.tenantId,

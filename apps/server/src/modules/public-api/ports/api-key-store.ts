@@ -2,6 +2,7 @@ import type { Transaction } from '@lytronix/db';
 import type {
   ApiKeyRecord,
   ApiShopRow,
+  ApiUsageCounts,
   ApiUsageRow,
   NewApiKey,
   RequestQuotaNotice,
@@ -43,7 +44,12 @@ export interface ApiKeyStore {
 /** RTE-03, D3-2: each shop's requests per billing cycle, kept in PostgreSQL. */
 export interface ApiUsageStore {
   run<T>(work: (tx: Transaction) => Promise<T>): Promise<T>;
-  add(tx: Transaction, tenantId: string, cycleStart: Date, requests: number): Promise<ApiUsageRow>;
+  add(
+    tx: Transaction,
+    tenantId: string,
+    cycleStart: Date,
+    counts: ApiUsageCounts,
+  ): Promise<ApiUsageRow>;
   find(tenantId: string, cycleStart: Date): Promise<ApiUsageRow | null>;
   setWarned(tx: Transaction, tenantId: string, cycleStart: Date, percent: number): Promise<void>;
 }

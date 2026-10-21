@@ -3,8 +3,11 @@ import { createHash, randomUUID } from 'node:crypto';
 import { type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import pg from 'pg';
+import { PlatformSettingKey } from '@lytronix/validators';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from '../src/app/app.module';
+import { ClientIp } from '../src/common/client-ip';
+import { headerValue, type HttpRequest } from '../src/common/http';
 import type { MessageKey } from '../src/common/i18n/message-key';
 import { translate } from '../src/common/i18n/messages';
 import type { RequestQuotaNotifier } from '../src/modules/public-api/ports/api-key-store';
@@ -13,6 +16,7 @@ import { RequestQuota } from '../src/modules/public-api/services/request-quota';
 import { API_CLOCK, REQUEST_QUOTA_NOTIFIER } from '../src/modules/public-api/tokens';
 import type { RequestQuotaNotice } from '../src/modules/public-api/types/public-api';
 import { PlanLimitOverridesService } from '../src/modules/billing/services/plan-limit-overrides.service';
+import { PlatformSettingsService } from '../src/modules/platform-settings/services/platform-settings.service';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase } from './support/database';
@@ -21,9 +25,10 @@ import { errorOf, fieldsOf, openShop, staffWith, type ShopClient } from './suppo
 import { SmsCapture } from './support/sms-capture';
 
 // Phase 3 Slice 8: public API keys made and revoked from the dashboard, and the public API host's gate -- the key,
-// its website addresses, CORS and preflight, the per-minute and per-visitor limits and the monthly quota, each read
-// from the shop's snapshot and overrides. API-01 to API-05, API-08, API-10, API-14, API-21, API-23, API-24; RTE-01 to
-// RTE-07, RTE-10. Runs only when DATABASE_TEST_ADMIN_URL is set.
+// its website addresses, CORS and preflight, the per-visitor limit (the operator's figure; a key has no per-minute
+// limit of its own, KNOWN-GAPS §82) and the monthly quota, read from the shop's snapshot and overrides. API-01 to
+// API-05, API-08, API-10, API-14, API-21, API-23, API-24; RTE-02 to RTE-07, RTE-10. Runs only when
+// DATABASE_TEST_ADMIN_URL is set.
 const ADMIN_URL = process.env['DATABASE_TEST_ADMIN_URL'];
 const DB_NAME = 'lytronix_api_keys_test';
 const describeIfDatabase = ADMIN_URL ? describe : describe.skip;
@@ -41,6 +46,19 @@ class QuotaCapture implements RequestQuotaNotifier {
     return this.notices.filter((notice) => notice.tenantId === tenantId).map((n) => n.percent);
   }
 }
+
+/** Lets a test play several visitors: the address is the `x-test-visitor` header's, else the socket's. */
+const visitorIp = {
+  resolve(request: HttpRequest): string | null {
+    return headerValue(request.headers['x-test-visitor']) ?? request.ip ?? null;
+  },
+  context(request: HttpRequest): { userAgent: string | null; ip: string | null } {
+    return {
+      userAgent: headerValue(request.headers['user-agent']) ?? null,
+      ip: visitorIp.resolve(request),
+    };
+  },
+};
 
 let app: INestApplication;
 let port: number;
@@ -65,6 +83,8 @@ beforeAll(async () => {
     .useValue(quota)
     .overrideProvider(API_CLOCK)
     .useValue(() => new Date(Date.now() + clockOffsetMs))
+    .overrideProvider(ClientIp)
+    .useValue(visitorIp)
     .compile();
   ({ app, port } = await listenOn(moduleRef));
 });
@@ -224,8 +244,8 @@ describeIfDatabase('the public API host (API-03 to API-05, API-08, API-14, API-2
     expect(answer.body).toEqual({ name: `Shop ${shop.slug}`, slug: shop.slug, metaPixelId: null });
     expect(answer.headers['access-control-allow-origin']).toBe(SITE);
     expect(answer.headers['vary']).toContain('Origin');
-    expect(answer.headers['x-ratelimit-limit']).toBe('60');
-    expect(answer.headers['x-ratelimit-remaining']).toBe('59');
+    expect(answer.headers['x-ratelimit-limit']).toBe('120');
+    expect(answer.headers['x-ratelimit-remaining']).toBe('119');
     expect(Number(answer.headers['x-ratelimit-reset'])).toBeGreaterThan(0);
     // API-01: the list shows when the key was last used. The request never waits for that write, so neither may this.
     await expect
@@ -344,50 +364,72 @@ describeIfDatabase('the public API host (API-03 to API-05, API-08, API-14, API-2
   });
 });
 
-describeIfDatabase('request limits (RTE-01 to RTE-07, RTE-10)', () => {
-  it('lets 60 requests a minute through on a key and refuses the 61st with Retry-After, until the window moves', async () => {
+describeIfDatabase('request limits (RTE-02 to RTE-07, RTE-10)', () => {
+  it('holds a public key to no shop-wide minute: many visitors pass together, each counted alone (KNOWN-GAPS §82)', async () => {
+    // A Trial shop: its key was once held to 60 a minute for all of its shoppers together.
     const shop = await openShop(port, texts, 'rate');
     const { key } = await makeKey(shop);
-    const other = await makeKey(shop, { name: 'Other' });
-    let last: HttpResult | undefined;
-    for (let index = 0; index < 60; index += 1) {
-      last = await callApi('/v1/shop', key);
-      expect(last.status).toBe(200);
-    }
-    expect(last?.headers['x-ratelimit-remaining']).toBe('0');
-    const refused = await callApi('/v1/shop', key);
-    expect(refused.status).toBe(429);
-    expect(errorOf(refused).code).toBe('rate_limited');
-    expect(Number(refused.headers['retry-after'])).toBeGreaterThan(0);
-    expect(refused.headers['x-ratelimit-remaining']).toBe('0');
-    // Each key has its own window, and the dashboard its own bucket (RTE-05).
-    expect((await callApi('/v1/shop', other.key)).status).toBe(200);
-    expect((await shop.get('/api-keys')).status).toBe(200);
-    // A minute later, the window has moved on.
-    clockOffsetMs += 61_000;
-    try {
-      expect((await callApi('/v1/shop', key)).status).toBe(200);
-    } finally {
-      clockOffsetMs -= 61_000;
+    for (const visitor of ['203.0.113.1', '203.0.113.2', '203.0.113.3']) {
+      let last: HttpResult | undefined;
+      for (let index = 0; index < 50; index += 1) {
+        last = await callApi('/v1/shop', key, SITE, { 'x-test-visitor': visitor });
+        expect(last.status).toBe(200);
+      }
+      // RTE-02: the headers tell each visitor where it stands in its own minute.
+      expect(last?.headers['x-ratelimit-limit']).toBe('120');
+      expect(last?.headers['x-ratelimit-remaining']).toBe('70');
     }
   });
 
-  it('takes the per-minute limit from an override, and holds one visitor to 120 a minute', async () => {
-    const shop = await openShop(port, texts, 'rate-ip');
-    await overrideLimit(shop.tenantId, 'requests_per_minute_public', 1000);
-    const { key } = await makeKey(shop);
-    let last: HttpResult | undefined;
-    for (let index = 0; index < 120; index += 1) {
-      last = await callApi('/v1/shop', key);
-      expect(last.status).toBe(200);
+  it("holds one visitor to the operator's figure, per shop, until the window moves, and counts who was refused", async () => {
+    const settings = app.get(PlatformSettingsService);
+    await settings.set(PlatformSettingKey.PublicRequestsPerVisitorPerMinute, 3, randomUUID());
+    try {
+      const shop = await openShop(port, texts, 'rate-ip');
+      const { key } = await makeKey(shop);
+      const from = (visitor: string, apiKey = key) =>
+        callApi('/v1/shop', apiKey, SITE, { 'x-test-visitor': visitor });
+      const first = '198.51.100.1';
+      const second = '198.51.100.2';
+      for (let index = 0; index < 3; index += 1) expect((await from(first)).status).toBe(200);
+      const refused = await from(first);
+      expect(refused.status).toBe(429);
+      expect(errorOf(refused).code).toBe('rate_limited');
+      expect(Number(refused.headers['retry-after'])).toBeGreaterThan(0);
+      expect(refused.headers['x-ratelimit-limit']).toBe('3');
+      expect(refused.headers['x-ratelimit-remaining']).toBe('0');
+      expect((await from(first)).status).toBe(429);
+      // Another visitor of the shop is not held back, nor the same visitor on another shop, nor the dashboard
+      // (RTE-05).
+      expect((await from(second)).status).toBe(200);
+      const elsewhere = await openShop(port, texts, 'rate-ip-2');
+      expect((await from(first, (await makeKey(elsewhere)).key)).status).toBe(200);
+      expect((await shop.get('/api-keys')).status).toBe(200);
+      // A minute later, the window has moved on.
+      clockOffsetMs += 61_000;
+      try {
+        expect((await from(first)).status).toBe(200);
+      } finally {
+        clockOffsetMs -= 61_000;
+      }
+      for (let index = 0; index < 2; index += 1) expect((await from(second)).status).toBe(200);
+      expect((await from(second)).status).toBe(429);
+
+      // Stored with the cycle's requests: three refused, from two visitors, the first counted once.
+      await app.get(RequestQuota).flush();
+      const stored = await admin.query<{
+        requests: string;
+        refused_requests: string;
+        refused_visitors: number;
+      }>(
+        `SELECT requests::text, refused_requests::text, refused_visitors
+         FROM control.api_usage WHERE tenant_id = $1`,
+        [shop.tenantId],
+      );
+      expect(stored.rows).toEqual([{ requests: '7', refused_requests: '3', refused_visitors: 2 }]);
+    } finally {
+      await settings.set(PlatformSettingKey.PublicRequestsPerVisitorPerMinute, 120, randomUUID());
     }
-    expect(last?.headers['x-ratelimit-limit']).toBe('1000');
-    const refused = await callApi('/v1/shop', key);
-    expect(refused.status).toBe(429);
-    expect(errorOf(refused).code).toBe('rate_limited');
-    // The visitor's count is per shop: the same visitor on another shop's key is not held back.
-    const elsewhere = await openShop(port, texts, 'rate-ip-2');
-    expect((await callApi('/v1/shop', (await makeKey(elsewhere)).key)).status).toBe(200);
   });
 
   it("counts a shop's requests per cycle, warns once at 50, 80 and 95 percent, and refuses past the limit", async () => {
@@ -433,25 +475,25 @@ describeIfDatabase('request limits (RTE-01 to RTE-07, RTE-10)', () => {
     expect(quota.for(open.tenantId)).toEqual([]);
   });
 
-  it("reads every plan's limits from the plan, and every shop's from its snapshot (RTE-10)", async () => {
-    const plans = await admin.query<{ name: string; minute: number; cycle: number }>(
-      `SELECT name, (limits->>'requests_per_minute_public')::int AS minute,
+  it("reads every plan's monthly requests from the plan, and every shop's from its snapshot, with no per-minute figure (RTE-10)", async () => {
+    const plans = await admin.query<{ name: string; minute: boolean; cycle: number }>(
+      `SELECT name, limits ? 'requests_per_minute_public' AS minute,
               (limits->>'requests_monthly')::int AS cycle
        FROM control.plans WHERE name IN ('Trial', 'Pay-as-you-go', 'Starter') ORDER BY name`,
     );
     expect(plans.rows).toEqual([
-      { name: 'Pay-as-you-go', minute: 60, cycle: 100_000 },
-      { name: 'Starter', minute: 60, cycle: 200_000 },
-      { name: 'Trial', minute: 60, cycle: 20_000 },
+      { name: 'Pay-as-you-go', minute: false, cycle: 100_000 },
+      { name: 'Starter', minute: false, cycle: 200_000 },
+      { name: 'Trial', minute: false, cycle: 20_000 },
     ]);
     const shop = await openShop(port, texts, 'snapshot');
-    const snapshot = await admin.query<{ minute: number; cycle: number }>(
-      `SELECT (plan_snapshot->>'requests_per_minute_public')::int AS minute,
+    const snapshot = await admin.query<{ minute: boolean; cycle: number }>(
+      `SELECT plan_snapshot ? 'requests_per_minute_public' AS minute,
               (plan_snapshot->>'requests_monthly')::int AS cycle
        FROM control.tenants WHERE id = $1`,
       [shop.tenantId],
     );
-    expect(snapshot.rows[0]).toEqual({ minute: 60, cycle: 20_000 });
+    expect(snapshot.rows[0]).toEqual({ minute: false, cycle: 20_000 });
   });
 });
 

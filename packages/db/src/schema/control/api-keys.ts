@@ -59,6 +59,10 @@ export const apiUsage = control.table(
     cycleStart: timestamp('cycle_start', { withTimezone: true }).notNull(),
     requests: bigint('requests', { mode: 'number' }).notNull().default(0),
     warnedPercent: integer('warned_percent').notNull().default(0),
+    // RTE-06, KNOWN-GAPS §82: the requests the per-visitor limit refused this cycle, and how many visitors they came
+    // from, so the operator can see whether many real shoppers behind one address meet the limit.
+    refusedRequests: bigint('refused_requests', { mode: 'number' }).notNull().default(0),
+    refusedVisitors: integer('refused_visitors').notNull().default(0),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [primaryKey({ name: 'api_usage_pkey', columns: [t.tenantId, t.cycleStart] })],
