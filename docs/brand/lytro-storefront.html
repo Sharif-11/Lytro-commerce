@@ -229,6 +229,13 @@ h1.pt{font-family:var(--font-display);font-size:24px;font-weight:700;letter-spac
 .inwrap .input{padding-left:46px}
 .grid2{display:grid;grid-template-columns:1fr;gap:12px}
 .form{display:flex;flex-direction:column;gap:14px}
+/* one box per digit; typing moves to the next box, backspace to the previous, a pasted code fills all six */
+.otp{display:flex;gap:8px}
+.otp span{flex:1;height:56px;border:1.5px solid var(--line-strong);border-radius:var(--r-control);background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:600;font-variant-numeric:tabular-nums}
+.otp span.on{border-color:var(--text);box-shadow:0 0 0 3px var(--accent-soft)}
+.otp span.on::after{content:"";width:2px;height:26px;background:var(--text);animation:blink 1s steps(2) infinite}
+@keyframes blink{to{opacity:0}}
+.otp span.bad{border-color:var(--danger)}
 .radio{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border:1.5px solid var(--line);border-radius:var(--r-card);cursor:pointer;background:var(--surface)}
 .radio.on{border-color:var(--text)}
 .radio .dot{width:20px;height:20px;border-radius:50%;border:2px solid var(--line-strong);flex:none;margin-top:1px;display:flex;align-items:center;justify-content:center}
@@ -298,8 +305,8 @@ h1.pt{font-family:var(--font-display);font-size:24px;font-weight:700;letter-spac
 .slist button .c{margin-left:auto;color:var(--subtle);font-size:13px}
 
 /* footer and contact (SFT-21) */
-.foot{margin:12px -16px -120px;padding:28px 16px 36px;background:var(--sunken);display:flex;flex-direction:column;gap:18px;border-top:1px solid var(--line)}
-.page.tight .foot{margin-bottom:-40px}
+.foot{margin:12px -16px -120px;padding:28px 16px 124px;background:var(--sunken);display:flex;flex-direction:column;gap:18px;border-top:1px solid var(--line)}
+.page.tight .foot{margin-bottom:-40px;padding-bottom:36px}
 .foot .fshop{display:flex;align-items:center;gap:10px;font-family:var(--font-display);font-weight:700;font-size:17px}
 .foot .fshop .logo{width:32px;height:32px;border-radius:9px;background:var(--accent);color:var(--on-accent);display:inline-flex;align-items:center;justify-content:center;font-size:15px}
 .foot .contact{display:flex;flex-direction:column;gap:8px;font-size:14px;color:var(--muted)}
@@ -513,13 +520,20 @@ const S = {
   cf_h: ['অর্ডার হয়ে গেছে', 'Order placed'], cf_p: ['অর্ডার নম্বর {o}। কনফার্মেশন SMS যাচ্ছে {ph}-এ।', 'Order {o}. A confirmation SMS is on its way to {ph}.'], cf_track: ['অর্ডার ট্র্যাক করুন', 'Track the order'], cf_next: ['এরপর কী', 'What happens next'], cf_n1: ['আমরা কল করে কনফার্ম করব', 'We call to confirm'], cf_n2: ['কুরিয়ারে পাঠালে SMS-এ ট্র্যাকিং লিংক পাবেন', 'You get a tracking link by SMS when it ships'], cf_n3: ['ডেলিভারিতে ৳{t} দেবেন', 'Pay ৳{t} on delivery'],
   cf_adv_h: ['এখন ৳{n} পাঠান', 'Now send ৳{n}'], cf_adv_p: ['অর্ডার {o} ৩০ মিনিটের জন্য ধরে রাখা হয়েছে। bKash বা Nagad-এ পাঠিয়ে TrxID দিন।', 'Order {o} is held for 30 minutes. Send by bKash or Nagad and enter the TrxID.'], cf_pay_btn: ['পেমেন্ট পেজে যান', 'Go to the payment page'], cf_pay_note: ['পেমেন্ট পেজ pay.lytro.app-এ, Lytro-র সুরক্ষায়', 'The payment page is at pay.lytro.app, secured by Lytro'],
   pc_h: ['পেমেন্ট হয়নি', 'Payment not completed'], pc_p: ['অর্ডার {o} এখনো {m} মিনিট ধরে রাখা আছে। আবার চেষ্টা করুন বা ক্যাশ অন ডেলিভারিতে বদলান।', 'Order {o} is still held for {m} minutes. Try again, or switch to cash on delivery.'], retry: ['আবার পেমেন্ট করুন', 'Try the payment again'], switch_cod: ['ক্যাশ অন ডেলিভারিতে বদলান', 'Switch to cash on delivery'],
+  pm_gateway_hint: ['bKash-এর নিজের পেজে পেমেন্ট; টাকা কাটলেই অর্ডার কনফার্ম', 'Pay on bKash\'s own page; the order confirms the moment it goes through'], pm_manual_hint: ['সেন্ড মানি করে TrxID দিন; আমরা মিলিয়ে কনফার্ম করি', 'Send money and enter the TrxID; we match it and confirm'], pm_route_note: ['কোন ওয়ালেট কীভাবে নেয়, তা দোকান ঠিক করে: কোনোটা নিজের পেজে, কোনোটা সেন্ড মানিতে।', 'How each wallet pays is the shop\'s setting: some on the wallet\'s own page, some by send money.'],
+  cf_route_gateway: ['bKash-এর নিজের পেমেন্ট পেজে যাবেন; টাকা কাটলেই ফিরে আসবেন', 'You go to bKash\'s own payment page and come straight back once it goes through'], cf_route_hosted: ['Nagad-এ সেন্ড মানি করে TrxID দেবেন, Lytro-র সুরক্ষিত পেমেন্ট পেজে', 'Send money by Nagad and enter the TrxID on Lytro\'s secure payment page'], cf_go_gateway: ['bKash-এ পেমেন্ট করুন', 'Pay with bKash'], cf_gateway_note: ['bKash-এর পেজে পেমেন্ট, তারপর pay.lytro.app হয়ে ফেরা', 'Paid on bKash\'s page, returned through pay.lytro.app'],
+  cf_paid_h: ['পেমেন্ট পেয়েছি, অর্ডার কনফার্ম', 'Payment received, order confirmed'], cf_paid_p: ['৳{n} অগ্রিম জমা হয়েছে। অর্ডার {o} এখন প্রসেসিং-এ যাবে; SMS আসছে।', '৳{n} advance received. Order {o} moves to processing; an SMS is on its way.'], cf_paid_line: ['অগ্রিম পেয়েছি', 'Advance received'],
+  cf_checking_h: ['পেমেন্ট মিলিয়ে দেখছি', 'Checking your payment'], cf_checking_p: ['TrxID পেয়েছি। কয়েক মিনিটে মিলিয়ে কনফার্ম করব; অর্ডার {o} ততক্ষণ ধরে রাখা থাকবে।', 'We have the TrxID. It is matched within minutes; order {o} stays held meanwhile.'],
+  gw_title: ['bKash-এ যাচ্ছেন', 'Taking you to bKash'], gw_p: ['bKash-এর নিজের পেমেন্ট পেজ খুলছে। সেখানে নম্বর, PIN ও OTP দিয়ে ৳{n} পাঠান।', 'bKash\'s own payment page is opening. Enter your number, PIN and OTP there to pay ৳{n}.'], gw_continue: ['bKash-এ যান', 'Continue to bKash'], gw_cancel: ['বাতিল', 'Cancel'], gw_demo: ['স্কেচে: নিচের বোতামগুলো bKash-এর ফলাফল সাজায়', 'In the sketch: the buttons below stand in for bKash\'s result'], gw_ok: ['পেমেন্ট সফল', 'Payment succeeded'], gw_fail: ['বাতিল / ব্যর্থ', 'Cancelled or failed'],
   // tracking and account
   tr_title: ['অর্ডার ট্র্যাক', 'Track order'], tr_id: ['ট্র্যাকিং আইডি', 'Tracking ID'], tr_find: ['খুঁজুন', 'Find'], tr_items: ['আইটেম', 'Items'], tr_placed: ['অর্ডার হয়েছে', 'Placed'], tr_confirmed: ['কনফার্ম', 'Confirmed'], tr_processing: ['প্রসেসিং', 'Processing'], tr_shipped: ['কুরিয়ারে', 'Shipped'], tr_delivered: ['ডেলিভারি হয়েছে', 'Delivered'], tr_courier: ['কুরিয়ার: {c} · {code}', 'Courier: {c} · {code}'], tr_phone: ['ফোন নম্বর দিয়ে সব অর্ডার', 'All your orders by phone'],
   ac_signin: ['সাইন ইন', 'Sign in'], ac_hint: ['আপনার মোবাইলে ৬ অঙ্কের কোড যাবে। পাসওয়ার্ড লাগে না।', 'A 6-digit code goes to your mobile. No password.'], ac_send: ['কোড পাঠান', 'Send code'], ac_code: ['৬ অঙ্কের কোড', '6-digit code'], ac_sent: ['{ph}-এ কোড পাঠানো হয়েছে · ৫ মিনিট', 'Code sent to {ph} · valid 5 minutes'], ac_resend: ['আবার পাঠান', 'Resend'], ac_verify: ['যাচাই করুন', 'Verify'],
+  ac_otp_help: ['SMS থেকে কোডটা নিজে থেকেই বসে যাবে; না বসলে ৬টি অঙ্ক টাইপ করুন', 'The code fills itself from the SMS; if not, type the six digits'],
   ac_orders: ['আমার অর্ডার', 'My orders'], ac_addresses: ['সেভ করা ঠিকানা', 'Saved addresses'], ac_default: ['ডিফল্ট', 'Default'], ac_add_addr: ['ঠিকানা যোগ', 'Add address'], ac_signout: ['সাইন আউট', 'Sign out'], ac_hello: ['হ্যালো, {n}', 'Hello, {n}'],
   // combo and chat
   inside: ['ভেতরে যা আছে', 'What\'s inside'], pick_each: ['প্রতিটি বেছে নিন', 'Pick each one'], chat_h: ['{s}-এর সাথে কথা বলুন', 'Chat with {s}'], chat_hint: ['সাধারণত ১০ মিনিটে উত্তর', 'Usually replies in 10 minutes'], chat_ph: ['মেসেজ লিখুন…', 'Write a message…'],
   // footer
+  browse_shop: ['পুরো দোকান ঘুরে দেখুন', 'Browse the whole shop'],
   contact_us: ['যোগাযোগ', 'Contact us'], track: ['অর্ডার ট্র্যাক', 'Track order'], account: ['অ্যাকাউন্ট', 'Account'], language: ['English', 'বাংলা'], powered: ['Powered by', 'Powered by'],
   phase4: ['ফেজ ৪', 'Phase 4'], phase5: ['ফেজ ৫', 'Phase 5'], phase7: ['ফেজ ৭', 'Phase 7'],
 };
@@ -582,7 +596,7 @@ function hdr(o) {
 }
 function foot(o) {
   o = o || {};
-  const links = o.landing ? `<div class="links"><a href="#" onclick="go('tracking');return false">${t('track')}</a><a href="#" onclick="setLang(ST.lang==='bn'?'en':'bn');return false">${t('language')}</a></div>`
+  const links = o.landing ? `<div class="links"><a href="#" onclick="go('home');return false">${t('browse_shop')}</a><a href="#" onclick="go('tracking');return false">${t('track')}</a><a href="#" onclick="setLang(ST.lang==='bn'?'en':'bn');return false">${t('language')}</a></div>`
     : `<div class="links"><a href="#" onclick="go('category');return false">${t('categories')}</a><a href="#" onclick="go('tracking');return false">${t('track')}</a><a href="#" onclick="go('account-signin');return false">${t('account')}</a><a href="#" onclick="setLang(ST.lang==='bn'?'en':'bn');return false">${t('language')}</a></div>`;
   return `<footer class="foot"><div class="cols">
     <div style="display:flex;flex-direction:column;gap:10px"><div class="fshop">${logo()}<span>${shopName()}</span></div><div class="contact"><div>${I.phone}<span>${SHOP.phone}</span></div><div>${I.mail}<span>${SHOP.email}</span></div><div>${I.pin}<span>${L(...SHOP.address)}</span></div></div></div>
@@ -746,14 +760,15 @@ def('store-off', { group: 'Browse', label: 'Storefront switched off (SFT-16): no
 const later = (k) => `<span class="st info plain">${t(k)}</span>`;
 function checkoutPage(o) {
   o = o || {}; const sub = cartSub(); const d = 70; const adv = o.adv ? 200 : 0; const total = sub + d;
-  const pm = (id, label, hint, on, logoColor) => `<label class="radio ${on ? 'on' : ''}"><span class="dot"></span><span class="b"><span class="l1">${logoColor ? `<span class="wlogo" style="background:${logoColor}">${label}</span>` : ''}${label}</span><span class="l2">${hint}</span></span></label>`;
+  /* the official marks from docs/brand/third-party, never recoloured; Rocket and Upay as text in their colours until their marks are fetched */
+  const pm = (id, label, hint, on, logoHtml) => `<label class="radio ${on ? 'on' : ''}" onclick="PAY_METHOD='${id}'"><span class="dot"></span><span class="b"><span class="l1">${logoHtml || ''}<span>${label}</span></span><span class="l2">${hint}</span></span></label>`;
   return `
   <div><h1 class="pt">${t('co_title')} ${later('phase4')}</h1><div class="steps"><i class="on"></i><i class="on"></i><i class="${o.step3 ? 'on' : ''}"></i></div></div>
   ${o.errors ? `<div class="banner bad">${I.warn}<span>${t('err_fix', { n: 3 })}</span></div>` : ''}
   <div class="two"><div style="display:flex;flex-direction:column;gap:16px">
     <div class="card2"><div class="sechead"><h2><span class="stepnum done">1</span>${t('co_contact')}</h2><span class="lnk" onclick="go('account-signin')">${t('co_signin_lnk')}</span></div>${field(t('name'), input(o.errors ? '' : L('রুমানা আক্তার', 'Rumana Akter'), L('যেমন: রুমানা আক্তার', 'e.g. Rumana Akter')))}${field(t('phone_'), input(o.errors ? '0171' : '01711 223344', '01XXXXXXXXX', 'inputmode=tel', o.errors), o.errors ? null : t('co_phone_help'), o.errors ? t('err_phone') : null)}</div>
     <div class="card2"><div class="sechead"><h2><span class="stepnum ${o.errors ? '' : 'done'}">2</span>${t('co_address')}</h2></div><div class="grid2">${field(t('district'), select([['', '—'], ...LOC.districts.map(([k, b, e]) => [k, L(b, e)])], o.nodelivery ? 'bandarban' : 'dhaka'))}${field(t('thana'), select([['', '—'], ...((o.nodelivery ? LOC.thanas.bandarban : LOC.thanas.dhaka)).map(([k, b, e]) => [k, L(b, e)])], o.errors ? '' : (o.nodelivery ? 'ruma' : 'mirpur'), o.errors), null, o.errors ? t('err_thana') : null)}</div>${field(t('courier_area'), select([['', '—'], ['mirpur-10', 'Mirpur 10'], ['mirpur-11', 'Mirpur 11']], 'mirpur-10'), L('স্টেডফাস্ট কুরিয়ারের এরিয়া; না জানলে খালি রাখুন', 'Steadfast\'s area; leave it if unsure'))}${field(t('address'), textarea(o.errors ? '' : L('বাসা ১২/বি, রোড ৩, মিরপুর ১০', 'House 12/B, Road 3, Mirpur 10'), t('address_ph')), null, o.errors ? t('err_addr') : null)}${o.nodelivery ? `<div class="banner bad">${I.warn}<span><b>${t('no_delivery', { a: L('বান্দরবান', 'Bandarban') })}</b><br>${t('no_delivery_hint')}</span></div>` : ''}${o.limited ? `<div class="banner bad">${I.warn}<span>${t('limited_hint', { p: pName(P[6]), z: L(ZONE.inside.bn, ZONE.inside.en) })}</span></div>` : ''}<label class="line" style="cursor:pointer">${I.check}<span>${t('co_save_addr')}</span></label></div>
-    <div class="card2"><div class="sechead"><h2><span class="stepnum">3</span>${t('co_payment')}</h2></div>${adv ? `<div class="banner warn">${I.info}<span>${t('pm_adv_note', { n: adv, r: total - adv })}</span></div>` : ''}${adv ? '' : pm('cod', t('pay_cod'), t('pay_cod_hint'), true)}${pm('bkash', 'bKash', t('pm_bkash_hint'), !!adv, '#CF2772')}${pm('nagad', 'Nagad', t('pm_bkash_hint'), false, '#D71E22')}${pm('bank', t('pm_bank'), L('ব্যাংক অ্যাকাউন্টে পাঠিয়ে TrxID দিন', 'Transfer to the bank account and enter the reference'), false)}</div>
+    <div class="card2"><div class="sechead"><h2><span class="stepnum">3</span>${t('co_payment')}</h2></div>${adv ? `<div class="banner warn">${I.info}<span>${t('pm_adv_note', { n: adv, r: total - adv })}</span></div>` : ''}${adv ? '' : pm('cod', t('pay_cod'), t('pay_cod_hint'), true, `<span class="wlogo" style="background:var(--sunken);color:var(--text);height:24px">${I.cash}</span>`)}${pm('bkash', 'bKash', t('pm_gateway_hint'), !!adv && (PAY_METHOD === 'bkash'), LOGOS.bkash)}${pm('nagad', 'Nagad', t('pm_manual_hint'), !!adv && PAY_METHOD === 'nagad', LOGOS.nagad)}${pm('rocket', '', t('pm_manual_hint'), false, LOGOS.rocket)}${pm('bank', t('pm_bank'), L('ব্যাংক অ্যাকাউন্টে পাঠিয়ে রেফারেন্স দিন', 'Transfer to the bank account and enter the reference'), false, LOGOS.bank)}<div class="sub" style="font-size:12px">${t('pm_route_note')}</div></div>
   </div>
   <div class="side"><div class="card2"><h3>${t('co_summary')}</h3>${CART.map((l) => `<div class="cl"><span class="th">${pName(l.p).slice(0, 1)}</span><div class="b"><div class="nm">${pName(l.p)}</div><div class="vr">${L(l.vbn, l.v)} × ${l.qty}</div><div class="row"><span></span><span class="price">${money(l.p.price * l.qty)}</span></div></div></div>`).join('')}<div class="sum"><div class="r"><span class="k">${t('subtotal')}</span><span>${money(sub)}</span></div><div class="r"><span class="k">${t('delivery')} · ${L(ZONE.inside.bn, ZONE.inside.en)}</span><span>${money(d)}</span></div><div class="r total"><span>${t('grand_total')}</span><span class="price">${money(total)}</span></div>${adv ? `<div class="r"><span class="k">${t('adv_now')}</span><span class="price">${money(adv)}</span></div><div class="r"><span class="k">${t('cod_rem')}</span><span>${money(total - adv)}</span></div>` : ''}</div><button class="btn primary lg block" onclick="go('${adv ? 'confirm-advance' : 'confirm-cod'}')" ${o.nodelivery || o.limited ? 'disabled' : ''}>${adv ? t('place_adv', { n: adv }) : t('place', { t: money(total) })}</button><div class="sub" style="font-size:12px;text-align:center">${t('idem_note')}</div></div></div></div>`;
 }
@@ -766,13 +781,18 @@ def('checkout-limited', { group: 'Later phases (design only)', label: 'Checkout 
 
 function confirmPage(o) {
   o = o || {}; const no = 'ORD-20261021-0042'; const track = 'K7F2M9QX';
-  if (o.adv) return `<div class="bare" style="position:static;padding:32px 16px;min-height:100%"><div class="box"><span class="logo" style="background:var(--warning-soft);color:var(--warning)">${I.clock}</span><h1>${t('cf_adv_h', { n: 200 })}</h1><p>${t('cf_adv_p', { o: no })}</p><button class="btn primary lg block" onclick="go('pay-cancelled')">${t('cf_pay_btn')} ${I.chev}</button><div class="line" style="justify-content:center">${I.lock}<span>${t('cf_pay_note')}</span></div><div class="sum" style="width:100%;text-align:left"><div class="r"><span class="k">${t('adv_now')}</span><span class="price">${money(200)}</span></div><div class="r"><span class="k">${t('cod_rem')}</span><span>${money(cartSub() + 70 - 200)}</span></div></div></div></div>`;
+  if (o.adv) { const gw = o.method === 'bkash'; const logoHtml = LOGOS[o.method || 'bkash']; return `<div class="bare" style="position:static;padding:32px 16px;min-height:100%"><div class="box"><span class="logo" style="background:var(--warning-soft);color:var(--warning)">${I.clock}</span><h1>${t('cf_adv_h', { n: 200 })}</h1><p>${t('cf_adv_p', { o: no })}</p><div class="card2" style="width:100%;flex-direction:row;align-items:center;gap:12px;text-align:left">${logoHtml}<span style="flex:1;font-size:14px;color:var(--muted)">${gw ? t('cf_route_gateway') : t('cf_route_hosted')}</span><span class="lnk" style="color:var(--accent-text);font-weight:600;cursor:pointer;font-size:13px" onclick="go('checkout-advance')">${t('change')}</span></div><button class="btn primary lg block" onclick="go('${gw ? 'pay-gateway' : 'pay-hosted'}')">${gw ? t('cf_go_gateway') : t('cf_pay_btn')} ${I.chev}</button><div class="line" style="justify-content:center">${I.lock}<span>${gw ? t('cf_gateway_note') : t('cf_pay_note')}</span></div><div class="sum" style="width:100%;text-align:left"><div class="r"><span class="k">${t('adv_now')}</span><span class="price">${money(200)}</span></div><div class="r"><span class="k">${t('cod_rem')}</span><span>${money(cartSub() + 70 - 200)}</span></div></div></div></div>`; }
+  if (o.paid) return `<div class="bare" style="position:static;padding:32px 16px;min-height:100%"><div class="box"><span class="logo" style="background:var(--success-soft);color:var(--success)">${I.check}</span><h1>${t('cf_paid_h')} ${later('phase5')}</h1><p>${t('cf_paid_p', { n: 200, o: no })}</p><button class="btn primary lg block" onclick="go('tracking')">${t('cf_track')} · ${track}</button><div class="sum" style="width:100%;text-align:left"><div class="r"><span class="k">${t('cf_paid_line')}</span><span class="price">${money(200)}</span></div><div class="r"><span class="k">${t('cod_rem')}</span><span>${money(cartSub() + 70 - 200)}</span></div></div></div></div>`;
+  if (o.checking) return `<div class="bare" style="position:static;padding:32px 16px;min-height:100%"><div class="box"><span class="logo" style="background:var(--accent-soft);color:var(--accent-text)">${I.refresh}</span><h1>${t('cf_checking_h')} ${later('phase5')}</h1><p>${t('cf_checking_p', { o: no })}</p><button class="btn ghost block" onclick="go('tracking')">${t('cf_track')} · ${track}</button></div></div>`;
   if (o.cancelled) return `<div class="bare" style="position:static;padding:32px 16px;min-height:100%"><div class="box"><span class="logo" style="background:var(--danger-soft);color:var(--danger)">${I.warn}</span><h1>${t('pc_h')} ${later('phase5')}</h1><p>${t('pc_p', { o: no, m: 22 })}</p><button class="btn primary lg block" onclick="go('confirm-advance')">${t('retry')}</button><button class="btn ghost block" onclick="go('confirm-cod')">${t('switch_cod')}</button></div></div>`;
   return `<div class="bare" style="position:static;padding:32px 16px;min-height:100%"><div class="box"><span class="logo" style="background:var(--success-soft);color:var(--success)">${I.check}</span><h1>${t('cf_h')} ${later('phase4')}</h1><p>${t('cf_p', { o: no, ph: '01711 223344' })}</p><button class="btn primary lg block" onclick="go('tracking')">${t('cf_track')} · ${track}</button><div class="card2" style="width:100%;text-align:left"><h3>${t('cf_next')}</h3><div class="tl"><div class="s done"><div class="t">${t('cf_n1')}</div></div><div class="s todo"><div class="t">${t('cf_n2')}</div></div><div class="s todo"><div class="t">${t('cf_n3', { t: (cartSub() + 70).toLocaleString('en-US') })}</div></div></div></div>${pwaPrompt().replace('class="pwa"', 'class="pwa" style="position:static;width:100%"')}</div></div>`;
 }
 def('confirm-cod', { group: 'Later phases (design only)', label: 'Order placed · cash on delivery (Phase 4)', url: 'megh.lytro.app/order/K7F2M9QX', render: () => shell({ hdr: { minimal: true }, tight: true, nofoot: true }, confirmPage()) });
-def('confirm-advance', { group: 'Later phases (design only)', label: 'Order held · go pay ৳200 (Phase 5)', url: 'megh.lytro.app/order/K7F2M9QX', render: () => shell({ hdr: { minimal: true }, tight: true, nofoot: true }, confirmPage({ adv: true })) });
-def('pay-cancelled', { group: 'Later phases (design only)', label: 'Back from the payment page · not paid (PAY-08)', url: 'megh.lytro.app/order/K7F2M9QX?pay=cancelled', render: () => shell({ hdr: { minimal: true }, tight: true, nofoot: true }, confirmPage({ cancelled: true })) });
+def('confirm-advance', { group: 'Paying (Phase 5)', label: 'Order held · bKash chosen, its gateway is on (PAY-06)', url: 'megh.lytro.app/order/K7F2M9QX', render: () => shell({ hdr: { minimal: true }, tight: true, nofoot: true }, confirmPage({ adv: true, method: PAY_METHOD === 'nagad' ? 'nagad' : 'bkash' })) });
+def('confirm-advance-manual', { group: 'Paying (Phase 5)', label: 'Order held · Nagad chosen, manual: the hosted page', url: 'megh.lytro.app/order/K7F2M9QX', render: () => { PAY_METHOD = 'nagad'; return shell({ hdr: { minimal: true }, tight: true, nofoot: true }, confirmPage({ adv: true, method: 'nagad' })); } });
+def('confirm-paid', { group: 'Paying (Phase 5)', label: 'Back from payment · paid, order confirmed', url: 'megh.lytro.app/order/K7F2M9QX?pay=verified', render: () => shell({ hdr: { minimal: true }, tight: true, nofoot: true }, confirmPage({ paid: true })) });
+def('confirm-checking', { group: 'Paying (Phase 5)', label: 'Back from payment · still being checked (PAY-17)', url: 'megh.lytro.app/order/K7F2M9QX?pay=checking', render: () => shell({ hdr: { minimal: true }, tight: true, nofoot: true }, confirmPage({ checking: true })) });
+def('pay-cancelled', { group: 'Paying (Phase 5)', label: 'Back from payment · not paid (PAY-08)', url: 'megh.lytro.app/order/K7F2M9QX?pay=cancelled', render: () => shell({ hdr: { minimal: true }, tight: true, nofoot: true }, confirmPage({ cancelled: true })) });
 
 /* tracking (ORD-17, ORD-18, SFT-08) */
 function trackingPage(o) {
@@ -787,7 +807,7 @@ def('tracking', { group: 'Later phases (design only)', label: 'Tracking page (Ph
 
 /* shopper account (CUS-03 to CUS-06, SFT-09) */
 def('account-signin', { group: 'Later phases (design only)', label: 'Account · OTP sign-in (Phase 4)', url: 'megh.lytro.app/sign-in', render: () => shell({ hdr: { back: 'home', title: t('ac_signin') }, tight: true }, `<div style="max-width:440px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:16px"><div><h1 class="pt">${t('ac_signin')} ${later('phase4')}</h1><div class="sub">${t('ac_hint')}</div></div><div class="card2">${field(t('phone_'), input('01711 223344', '01XXXXXXXXX', 'inputmode=tel'))}<button class="btn primary lg block" onclick="go('account-otp')">${t('ac_send')}</button></div></div>`) });
-def('account-otp', { group: 'Later phases (design only)', label: 'Account · enter the code', url: 'megh.lytro.app/sign-in', render: () => shell({ hdr: { back: 'account-signin', title: t('ac_signin') }, tight: true }, `<div style="max-width:440px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:16px"><div><h1 class="pt">${t('ac_code')}</h1><div class="sub">${t('ac_sent', { ph: '01711 223344' })}</div></div><div class="card2">${field(t('ac_code'), input('', '000000', 'inputmode=numeric style="font-size:24px;letter-spacing:.3em;text-align:center;height:56px"'))}<button class="btn primary lg block" onclick="go('account-orders')">${t('ac_verify')}</button><button class="btn quiet">${t('ac_resend')}</button></div></div>`) });
+def('account-otp', { group: 'Later phases (design only)', label: 'Account · enter the code', url: 'megh.lytro.app/sign-in', render: () => shell({ hdr: { back: 'account-signin', title: t('ac_signin') }, tight: true }, `<div style="max-width:440px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:16px"><div><h1 class="pt">${t('ac_code')}</h1><div class="sub">${t('ac_sent', { ph: '01711 223344' })}</div></div><div class="card2">${field(t('ac_code'), `<div class="otp" role="group" aria-label="${t('ac_code')}"><span>4</span><span>8</span><span>1</span><span class="on"></span><span></span><span></span></div>`, t('ac_otp_help'))}<button class="btn primary lg block" onclick="go('account-orders')">${t('ac_verify')}</button><button class="btn quiet">${t('ac_resend')} · 0:42</button></div></div>`) });
 def('account-orders', { group: 'Later phases (design only)', label: 'Account · my orders', url: 'megh.lytro.app/account', render: () => shell({ hdr: { back: 'home', title: t('account') } }, `<div><h1 class="pt">${t('ac_hello', { n: L('রুমানা', 'Rumana') })}</h1><div class="sub">01711 223344 · <a href="#" onclick="go('home');return false">${t('ac_signout')}</a></div></div>
   <div class="chips"><span class="chip on">${t('ac_orders')}</span><span class="chip" onclick="go('account-addresses')">${t('ac_addresses')}</span></div>
   <div class="card2" style="padding:0">${[['ORD-20261021-0042', '21 Oct 2026', 'tr_processing', cartSub() + 70, 'low'], ['ORD-20261003-0017', '3 Oct 2026', 'tr_delivered', 1320, 'in'], ['ORD-20260914-0008', '14 Sep 2026', 'tr_delivered', 450, 'in']].map(([no, d, s, tot, c]) => `<div class="cl" style="padding:14px 16px;cursor:pointer" onclick="go('tracking')"><div class="b"><div class="nm" style="font-family:ui-monospace,Menlo,monospace;font-size:14px">${no}</div><div class="vr">${d}</div></div><div style="text-align:right;display:flex;flex-direction:column;gap:4px;align-items:flex-end">${stChip(c).replace(c === 'low' ? t('low') : t('in_stock'), t(s))}<span class="price">${money(tot)}</span></div></div>`).join('')}</div>`) });
@@ -816,6 +836,420 @@ function render() {
   document.getElementById('root').innerHTML = scr.render();
   document.getElementById('caption').innerHTML = `<b>${scr.group} · ${scr.label}</b> — ${scr.url || ''}`;
 }
+(function init() {
+  const sel = document.getElementById('selScreen'); const groups = {};
+  for (const [id, s] of Object.entries(SCREENS)) (groups[s.group] = groups[s.group] || []).push([id, s.label]);
+  for (const [g, items] of Object.entries(groups)) { const og = document.createElement('optgroup'); og.label = g; for (const [id, label] of items) { const o = document.createElement('option'); o.value = id; o.textContent = label; og.appendChild(o); } sel.appendChild(og); }
+  sel.value = ST.screen;
+  sel.addEventListener('change', () => { ST.screen = sel.value; render(); });
+  document.querySelectorAll('#segDevice button').forEach((b) => b.addEventListener('click', () => { ST.device = b.dataset.v; document.querySelectorAll('#segDevice button').forEach((x) => x.classList.toggle('on', x === b)); render(); }));
+  document.querySelectorAll('#segLang button').forEach((b) => b.addEventListener('click', () => setLang(b.dataset.v)));
+  document.querySelectorAll('#segBrand button').forEach((b) => b.addEventListener('click', () => { ST.brand = b.dataset.v; document.querySelectorAll('#segBrand button').forEach((x) => x.classList.toggle('on', x === b)); render(); }));
+  render();
+})();
+</script>
+
+<script type="text/template" id="paytpl">
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lytro payment page prototype</title>
+<meta name="description" content="Hosted manual-payment page prototype for Lytro (pay.lytro.app), matched to the reference layout: wallet picker, per-wallet coloured card with the transaction-ID box and instructions, fixed verify button; 320 px full-bleed and a 672 px centred card from 640 px. Spec: docs/PAYMENT-PAGE-DESIGN.md.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&display=swap">
+<style>
+/* Tailwind values the reference page uses, written out: sky-50/100/900, gray-100/200/500/600/900, yellow-50/100/300. */
+:root{
+  --sky-50:#f0f9ff;--sky-100:#e0f2fe;--sky-900:#0c4a6e;--blue:#1e8fe0;
+  --g100:#f3f4f6;--g200:#e5e7eb;--g300:#d1d5db;--g500:#6b7280;--g600:#4b5563;--g900:#111827;
+  --y50:#fefce8;--y100:#fef9c3;--y300:#fde047;
+  --sh-sm:0 1px 2px rgba(0,0,0,.05);--sh-md:0 4px 6px -1px rgba(0,0,0,.1),0 2px 4px -2px rgba(0,0,0,.1);--sh-lg:0 10px 15px -3px rgba(0,0,0,.1),0 4px 6px -4px rgba(0,0,0,.1);--sh-xl:0 20px 25px -5px rgba(0,0,0,.1),0 8px 10px -6px rgba(0,0,0,.1);
+  --font:'Hind Siliguri',ui-sans-serif,system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);color:var(--g900);background:#e6ebea;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+svg.i{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+/* harness (not product UI) */
+.tb{position:sticky;top:0;z-index:50;background:#10201f;color:#eaf0ef;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;padding:10px 16px;font-size:13px;font-family:Inter,system-ui,sans-serif}
+.tb .brand{font-weight:800;letter-spacing:-.03em;font-size:16px;color:#fff;margin-right:8px}
+.tb label{display:flex;align-items:center;gap:6px;color:#a9b9b8}
+.tb select{background:#1a3230;color:#fff;border:1px solid #335450;border-radius:6px;padding:5px 8px;font-size:13px}
+.tb .seg{display:inline-flex;border:1px solid #335450;border-radius:6px;overflow:hidden}
+.tb .seg button{padding:5px 10px;color:#a9b9b8}
+.tb .seg button.on{background:#3ec4b9;color:#10201f;font-weight:600}
+.tb .note{margin-left:auto;color:#7e8f8e}
+.stage{display:flex;justify-content:center;padding:28px 16px 48px}
+.frame{container-type:inline-size;background:var(--sky-50);overflow:hidden;position:relative;box-shadow:0 20px 60px rgba(16,32,31,.25)}
+.frame.small{width:320px;height:616px;border-radius:28px;border:8px solid #0b1514}
+.frame.phone{width:390px;height:844px;border-radius:40px;border:8px solid #0b1514}
+.frame.desktop{width:1280px;height:820px;border-radius:12px;border:1px solid #c9d3d2}
+.statusbar{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font-size:14px;font-weight:600;background:var(--sky-50)}
+.frame.desktop .statusbar{display:none}
+.urlbar{display:none;height:40px;align-items:center;gap:10px;padding:0 14px;background:#f1f4f3;border-bottom:1px solid #d5dfde;font-size:13px;color:#2c3f3e;font-family:Inter,system-ui,sans-serif}
+.frame.desktop .urlbar{display:flex}
+.urlbar .dots i{display:inline-block;width:10px;height:10px;border-radius:50%;background:#d5dfde;margin-right:6px}
+.urlbar .url{background:#fff;border:1px solid #d5dfde;border-radius:6px;padding:4px 10px;flex:1;max-width:520px}
+.caption{max-width:1280px;margin:0 auto;padding:0 16px 40px;color:#2c3f3e;font-size:13px;line-height:1.6;font-family:Inter,system-ui,sans-serif}
+.caption b{color:#10201f}
+
+/* page: root → card → topbar + content; fixed bar */
+.pp{position:absolute;left:0;right:0;bottom:0;top:44px;overflow:auto;background:var(--sky-50)}
+.frame.desktop .pp{top:40px}
+.root{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0}
+.card{position:relative;width:100%;min-height:100%;padding:0 16px;background:transparent}
+.topbar{margin:8px;padding:8px;border-radius:12px;border:1px solid var(--sky-100);background:rgba(255,255,255,.65);box-shadow:0 8px 24px rgba(2,132,199,.08);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:space-between}
+.topbar button{width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;color:var(--g900)}
+.topbar svg.i{width:28px;height:28px;stroke-width:2.5}
+.content{padding-bottom:16px;font-size:14px;font-weight:400;line-height:1.625}
+.content.has-fixed{padding-bottom:96px}
+
+/* picker */
+.brandrow{display:flex;align-items:center;justify-content:center;gap:16px;margin-top:24px}
+.brandrow .logo{width:56px;height:56px;border-radius:50%;border:1px solid var(--g200);background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:var(--sh-sm)}
+.brandrow .logo .mono{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#0e6b66;color:#fff;font-weight:700;font-size:22px}
+.brandrow .nm{font-size:18px;font-weight:700;line-height:1.3}
+.brandrow .pill{margin-top:4px;height:28px;padding:0 14px;border-radius:999px;border:1px solid var(--g300);background:#fff;font-size:13px;font-weight:500;box-shadow:var(--sh-sm);display:inline-flex;align-items:center}
+.contacts{display:flex;justify-content:center;gap:12px;margin-top:32px}
+.contacts button{width:48px;height:48px;border-radius:12px;border:1px solid var(--g200);background:#fff;box-shadow:var(--sh-sm);display:inline-flex;align-items:center;justify-content:center}
+.contacts svg.i{width:24px;height:24px}
+.sect{margin:24px 16px 0;padding:8px 12px;border-radius:8px;background:var(--blue);color:#fff;font-size:18px;font-weight:700;text-align:center;line-height:26px}
+.tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;padding:0 20px;margin-top:32px}
+.tile{height:70px;border-radius:12px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.tile img{max-height:32px;max-width:110px;display:block}
+.tile .txt{font-weight:700;font-size:22px;letter-spacing:-.01em}
+.paybar{margin:16px 16px 0;padding:12px;border-radius:8px;background:var(--sky-100);color:var(--sky-900);font-size:20px;font-weight:700;text-align:center;line-height:28px}
+
+/* wallet panel */
+.whead{margin-top:12px;padding:12px;border-radius:16px;background:#fff;border:1px solid var(--g100);box-shadow:var(--sh-sm);display:flex;align-items:center;justify-content:space-between}
+.whead .lbox{width:96px;height:56px;border-radius:8px;background:var(--g100);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.whead .lbox img{max-height:30px;max-width:80px;display:block}
+.whead .lbox .txt{font-weight:700;font-size:18px}
+.whead .amt{display:flex;align-items:center;gap:16px}
+.whead .amt i{display:block;width:1px;height:32px;background:var(--g200)}
+.whead .amt b{font-size:24px;font-weight:700;padding-right:12px;white-space:nowrap}
+.note{margin-top:16px;padding:6px 8px;border-radius:4px;background:var(--y50);border:1px solid var(--y100);color:var(--g600);font-weight:300;font-size:12px;text-align:center;opacity:.5;line-height:20px}
+.note b{font-weight:700}
+.ccard{margin-top:8px;padding:24px;border-radius:12px;color:#fff;box-shadow:var(--sh-md);margin-bottom:12px}
+.ccard .ctitle{text-align:center;font-size:16px;font-weight:500;opacity:.95;margin-bottom:8px;line-height:24px}
+.ccard .inp{height:44px;border-radius:8px;background:#fff;color:var(--g500);display:flex;align-items:center;justify-content:center;font-size:15px;padding:0 12px;box-shadow:var(--sh-sm)}
+.ccard .inp.val{color:var(--g900);font-weight:600;letter-spacing:.04em}
+.ccard .inp.bad{box-shadow:0 0 0 2px var(--y300)}
+.ccard .ierr{margin-top:6px;font-size:12px;font-weight:600;color:var(--y300);text-align:center}
+.ccard .ihead{margin-top:16px;padding-bottom:4px;margin-bottom:8px;border-bottom:1px solid rgba(0,0,0,.15);font-weight:700;font-size:14px;letter-spacing:.05em;text-transform:uppercase;display:flex;align-items:center;justify-content:space-between}
+.ilist{list-style:none;font-size:12px;font-weight:300}
+.ilist li{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid rgba(0,0,0,.15)}
+.ilist li:last-child{border-bottom:0}
+.ilist li::before{content:"";width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.85);flex:none}
+.ilist .hl{font-weight:700;color:var(--y300);font-size:16px;line-height:1.3}
+.ilist .copy{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:8px;background:var(--g900);color:#fff;font-size:14px;font-weight:500;margin-left:8px;vertical-align:middle;box-shadow:var(--sh-sm)}
+.ilist .copy svg.i{width:16px;height:16px}
+.ilist li span{flex:1;min-width:0}
+.legal{margin-top:4px;font-size:12px;color:var(--g500);text-align:center;line-height:1.6}
+.legal a{color:var(--g600);text-decoration:underline}
+.fixedbar{position:absolute;left:0;right:0;bottom:0;margin:0 auto;width:100%;padding:28px 16px max(14px, env(safe-area-inset-bottom));z-index:10;background:linear-gradient(to top,var(--sky-50) 60%,rgba(240,249,255,0))}
+.fixedbar .vbtn{display:flex;align-items:center;justify-content:center;width:100%;height:52px;border-radius:12px;color:#fff;font-size:16px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;box-shadow:var(--sh-lg)}
+.fixedbar .vbtn.disabled{background:var(--sky-100);color:var(--sky-900)}
+
+/* status states, in the same language */
+.scard{margin-top:12px;padding:32px 24px;border-radius:16px;background:#fff;border:1px solid var(--g100);box-shadow:var(--sh-sm);display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center}
+.scard .ic{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.scard .ic svg{width:40px;height:40px}
+.scard h2{font-size:20px;font-weight:700}
+.scard p{font-size:14px;color:var(--g600);max-width:320px}
+.scard .det{width:100%;background:var(--g100);border-radius:8px;padding:4px 12px;margin-top:4px}
+.scard .kv{display:flex;justify-content:space-between;gap:12px;padding:8px 0;font-size:14px}
+.scard .kv + .kv{border-top:1px solid var(--g200)}
+.scard .kv .k{color:var(--g600)}
+.scard .kv .v{font-weight:600}
+.ring{position:relative;width:72px;height:72px}
+.ring svg{width:72px;height:72px;transform:rotate(-90deg)}
+.ring circle{fill:none;stroke-width:6}
+.ring .bg{stroke:var(--g100)}
+.ring .fg{stroke:var(--blue);stroke-linecap:round;stroke-dasharray:201;stroke-dashoffset:120}
+.ring .t{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px}
+.tick{width:72px;height:72px;border-radius:50%;background:#dcfce7;display:flex;align-items:center;justify-content:center}
+.tick svg{width:40px;height:40px;stroke:#15803d;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.tick path{stroke-dasharray:40;stroke-dashoffset:40;animation:draw .4s ease-out forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+.toast{position:absolute;left:16px;right:16px;bottom:100px;background:var(--g900);color:#fff;padding:12px 16px;border-radius:10px;font-size:14px;display:flex;align-items:center;gap:10px;z-index:30;box-shadow:var(--sh-lg)}
+.toast svg.i{width:18px;height:18px;color:#86efac}
+.scrim{position:absolute;inset:0;background:rgba(17,24,39,.45);z-index:20;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:#fff;border-radius:16px 16px 0 0;width:100%;max-height:92%;display:flex;flex-direction:column;box-shadow:0 -8px 32px rgba(0,0,0,.2)}
+.sheet .sh{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 16px 8px}
+.sheet .sh h2{font-size:18px;font-weight:700}
+.sheet .sb{overflow:auto;padding:4px 16px 16px;display:flex;flex-direction:column;gap:4px}
+.sheet .sf{padding:12px 16px 16px;border-top:1px solid var(--g200)}
+.opt{display:flex;align-items:center;gap:12px;padding:10px 0;font-size:15px}
+.radio{width:22px;height:22px;border-radius:50%;border:2px solid var(--g300);flex:none}
+.radio.on{border-color:var(--blue);border-width:7px}
+.sheet .btn{display:flex;align-items:center;justify-content:center;width:100%;height:48px;border-radius:12px;background:var(--blue);color:#fff;font-size:16px;font-weight:700}
+.sheet .inp{height:44px;border:1px solid var(--g300);border-radius:8px;display:flex;align-items:center;padding:0 12px;color:var(--g500);margin-top:8px}
+
+/* 640 and up: the centred card, exactly as the reference's sm: classes */
+@container (min-width: 640px){
+  .root{padding:0 16px;min-height:100%}
+  .card{min-height:0;height:max-content;max-width:672px;border-radius:8px;box-shadow:var(--sh-xl);background:#fff;backdrop-filter:blur(4px);margin:24px auto}
+  .topbar{margin:12px;padding:12px}
+  .content{padding-bottom:32px}
+  .content.has-fixed{padding-bottom:32px}
+  .tiles{grid-template-columns:repeat(4,1fr)}
+  .note{font-size:14px}
+  .ilist{font-size:14px}
+  .ilist .hl{font-size:18px}
+  .fixedbar{max-width:672px}
+  .scrim{align-items:center}
+  .sheet{width:440px;border-radius:16px;max-height:80%}
+  .toast{left:50%;transform:translateX(-50%);width:360px;right:auto}
+}
+.brandrow .ref{font-size:13px;color:var(--g600);margin-top:2px}
+/* embedded inside the dashboard prototype: no toolbar, the page fills the iframe */
+body.embedded{background:var(--sky-50)}
+.embedded .tb,.embedded .caption{display:none}
+.embedded .stage{padding:0}
+.embedded .frame{width:100%;height:100vh;border:0;border-radius:0;box-shadow:none}
+.embedded .statusbar,.embedded .urlbar{display:none}
+.embedded .pp{top:0}
+@media (prefers-reduced-motion: reduce){.tick path{animation:none;stroke-dashoffset:0}}
+</style>
+</head>
+<body>
+<div class="tb">
+  <span class="brand">lytro · payment page prototype</span>
+  <label>State
+    <select id="selScreen">
+      <optgroup label="Choose"><option value="pick">Method picker</option></optgroup>
+      <optgroup label="Wallet panels"><option value="bkash">bKash · Send Money</option><option value="bkash-agent">bKash · agent (Cash Out)</option><option value="bkash-merchant">bKash · merchant (Payment)</option><option value="nagad">Nagad · Send Money</option><option value="rocket">Rocket · Send Money</option><option value="upay">Upay · Send Money</option><option value="dup">bKash · duplicate TrxID error</option><option value="copied">bKash · number copied (toast)</option></optgroup>
+      <optgroup label="After verify"><option value="checking">Checking, listener online (12 s)</option><option value="checking-late">Checking, past 30 s</option><option value="manual">Manual check (listener offline)</option><option value="verified">Verified</option><option value="review">Needs review</option><option value="rejected">Rejected with a reason</option><option value="expired">Expired</option><option value="paid">Already paid</option><option value="cancelled">Cancelled</option><option value="suspended">Page suspended</option></optgroup>
+      <optgroup label="Other"><option value="platform">Platform payment (Lytro, plan)</option><option value="report">Report this page (sheet)</option></optgroup>
+    </select>
+  </label>
+  <label>Device <span class="seg" id="segDevice"><button data-v="small">Small 320</button><button data-v="phone" class="on">Phone 390</button><button data-v="desktop">Desktop 1280</button></span></label>
+  <label>Language <span class="seg" id="segLang"><button data-v="bn" class="on">বাংলা</button><button data-v="en">EN</button></span></label>
+  <span class="note">Spec: docs/PAYMENT-PAGE-DESIGN.md</span>
+</div>
+<div class="stage"><div id="frame" class="frame phone" data-lang="bn"></div></div>
+<p class="caption"><b>How to read this.</b> The layout follows the reference page element for element, with the same spacing values its markup uses: a frosted top bar with back and close; on the picker the shop's logo and name with "View Details", three contact buttons, the blue "Mobile Banking" bar, four logo tiles and the light "Pay" bar; on a wallet's screen the logo-and-amount header, the faded yellow note, the wallet-coloured card with the centred transaction-ID box and the INSTRUCTIONS list with yellow highlights and the black Copy button, and the fixed VERIFY TRANSACTION button. Below 640 px the page is full-bleed; from 640 px it is a 672 px white card centred on the page. bKash and Nagad use the official marks from <code>docs/brand/third-party/</code>; Rocket and Upay are text stand-ins until their marks are fetched. "Secured by Lytro", the PIN notice and "Report" are the one line the SRS adds under the card.</p>
+<script>
+const I = {
+  back:'<path d="M19 12H5"/><path d="m12 19-7-7 7-7"/>',
+  x:'<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+  copy:'<rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
+  headset:'<path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H3z"/><path d="M21 14h-3a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h3z"/><path d="M3 14v-2a9 9 0 0 1 18 0v2"/><path d="M21 19a3 3 0 0 1-3 3h-3"/>',
+  chat:'<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.5 9.5c0 2.5 3 5.5 5.5 5.5l1.5-1.5-2-1.5-1 1a4.5 4.5 0 0 1-2.5-2.5l1-1-1.5-2Z"/>',
+  phone:'<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/>',
+  check:'<path d="M20 6 9 17l-5-5"/>', clock:'<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+  search:'<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>', lock:'<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  user:'<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+};
+const ic = (n, s, sw) => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true" style="${s ? `width:${s}px;height:${s}px;` : ''}${sw ? `stroke-width:${sw}` : ''}">${I[n]}</svg>`;
+
+const S = {
+  viewDetails:['View Details','View Details'],mobileBanking:['Mobile Banking','Mobile Banking'],pay:['Pay {a} BDT','Pay {a} BDT'],
+  note:['<b>নোট:</b> টাকা পাঠানোর ৫-১০ সেকেন্ড পর ভেরিফাই করবেন।','<b>Note:</b> verify 5 to 10 seconds after sending the money.'],
+  enterTrx:['ট্রান্সজেকশন আইডি দিন','Enter the transaction ID'],instructions:['INSTRUCTIONS','INSTRUCTIONS'],copy:['Copy','Copy'],verify:['VERIFY TRANSACTION','VERIFY TRANSACTION'],
+  dupErr:['এই ট্রান্সেকশন আইডি ইতিমধ্যে ব্যবহৃত হয়েছে','This transaction ID has already been used'],
+  legal:['🔒 Secured by Lytro · এই পেজ কখনো PIN বা OTP চায় না · <a href="#" onclick="go(\'report\');return false">রিপোর্ট করুন</a>','🔒 Secured by Lytro · This page never asks for your PIN or OTP · <a href="#" onclick="go(\'report\');return false">Report this page</a>'],
+  copiedNo:['নম্বর কপি হয়েছে: {n}','Number copied: {n}'],
+  checkingT:['SMS মেলানো হচ্ছে…','Matching the SMS…'],checkingP:['সাধারণত ১০ সেকেন্ড লাগে। এই পেজে থাকুন।','Usually about 10 seconds. Stay on this page.'],
+  lateT:['আমরা শিগগিরই কনফার্ম করব','We will confirm shortly'],lateP:['এই পেজ বন্ধ করলেও হবে। কনফার্ম হলে SMS পাবেন, আর দোকান জানবে।','You can close this page. You get an SMS when it is confirmed, and the shop is told.'],
+  manualT:['দোকান চেক করে কনফার্ম করবে','The shop will check and confirm'],manualP:['সাধারণত কিছুক্ষণের মধ্যে। কনফার্ম হলে SMS পাবেন।','Usually within a short while. You get an SMS when it is confirmed.'],
+  verifiedT:['পেমেন্ট হয়েছে','Paid'],verifiedP:['{s} সেকেন্ডে দোকানে ফিরছেন।','Returning to the shop in {s} seconds.'],
+  reviewT:['টাকা মিলছে না','The payment did not match'],reviewP:['SMS-এ ৳{a} এসেছে, পাঠানোর কথা ৳{b}। দোকান দেখে জানাবে; আপনার কিছু করতে হবে না।','The SMS shows ৳{a}, the amount was ৳{b}. The shop will check and let you know; nothing to do now.'],
+  rejectedT:['পেমেন্ট কনফার্ম হয়নি','Payment not confirmed'],rejectedReason:['দোকান বলেছে: "{r}"','The shop said: "{r}"'],
+  expiredT:['সময় শেষ হয়ে গেছে','This payment link has expired'],expiredP:['টাকা পাঠিয়ে থাকলে দোকানকে ট্রান্সজেকশন আইডি জানান। না পাঠিয়ে থাকলে দোকানে ফিরে আবার শুরু করুন।','If you already sent the money, give the shop the transaction ID. If not, go back and start again.'],
+  paidT:['এই পেমেন্ট আগেই হয়েছে','This payment was already made'],cancelledT:['এই পেমেন্ট ক্যানসেল করা হয়েছে','This payment was cancelled'],cancelledP:['দোকান পেমেন্টটি বাতিল করেছে। নতুন করে অর্ডার করতে দোকানে ফিরুন।','The shop cancelled this payment. Go back to the shop to order again.'],
+  suspendedT:['এই পেমেন্ট পেজ এখন বন্ধ আছে','This payment page is closed right now'],
+  amount:['টাকা','Amount'],method:['মেথড','Method'],trx:['ট্রান্সজেকশন আইডি','Transaction ID'],time:['সময়','Time'],
+  backShop:['BACK TO SHOP','BACK TO SHOP'],retry:['TRY AGAIN','TRY AGAIN'],wrongTrx:['CHANGE TRANSACTION ID','CHANGE TRANSACTION ID'],
+  reportTitle:['এই পেজ রিপোর্ট করুন','Report this page'],r1:['এটা আমার দোকান নয়','This is not the shop I ordered from'],r2:['টাকার পরিমাণ ভুল','The amount is wrong'],r3:['আমার PIN চেয়েছে','It asked for my PIN'],r4:['অন্য কিছু','Something else'],rNote:['কী হয়েছে, এক লাইনে (ঐচ্ছিক)','What happened, in a line (optional)'],sendReport:['রিপোর্ট পাঠান','Send report'],
+};
+let LANG = 'bn';
+const t = (k, v) => { let s = S[k] ? S[k][LANG === 'bn' ? 0 : 1] : k; if (v) for (const [a, b] of Object.entries(v)) s = s.split('{' + a + '}').join(b); return s; };
+const L = (bn, en) => LANG === 'bn' ? bn : en;
+
+/* wallets: colours sampled from the reference page (bKash from its markup, the rest from the screenshots); confirm against each merchant kit */
+const W = {
+  bkash: { name: 'bKash', up: 'BKASH', col: '#CF2772', ussd: '*247#', logo: '<img src="third-party/bkash.png" alt="bKash">' },
+  nagad: { name: 'Nagad', up: 'NAGAD', col: '#D71E22', ussd: '*167#', logo: '<img src="third-party/nagad.png" alt="Nagad">' },
+  rocket: { name: 'Rocket', up: 'ROCKET', col: '#892C8C', ussd: '*322#', logo: '<span class="txt" style="color:#892C8C">Rocket</span>' },
+  upay: { name: 'Upay', up: 'UPAY', col: '#1F4E98', ussd: '*268#', logo: '<span class="txt" style="color:#1F4E98">উপায়</span>' },
+};
+const VERB = { personal: 'Send Money', agent: 'Cash Out', merchant: 'Payment' };
+const PAY_INIT = window.PAY_INIT || null;
+const CTX = Object.assign({ platform: false, amount: 250, ref: null, no: '01712345678', screen: 'pick', lang: 'bn' }, PAY_INIT || {});
+const SHOP = { name: ['মেঘ ফ্যাশন', 'Megh Fashion'], no: CTX.no, amount: CTX.amount };
+const ST = { device: 'phone', lang: CTX.lang, screen: CTX.screen, wallet: null };
+const go = (s) => { ST.screen = s; const sel = document.getElementById('selScreen'); if (sel) sel.value = s; render(); };
+/* the host (the dashboard prototype) is told where the shopper went; standalone, the page just restarts */
+const payReturn = (status) => { if (window.parent && window.parent !== window) window.parent.postMessage({ type: 'pay-return', status }, '*'); else go('pick'); };
+/* the demo verify: checking, then verified after the listener's usual few seconds */
+const payVerify = () => { go('checking'); clearTimeout(ST.t); ST.t = setTimeout(() => { if (ST.screen === 'checking') go('verified'); }, 2500); };
+const ACT = { checking: "go(ST.wallet || 'bkash')", rejected: "go(ST.wallet || 'bkash')", verified: "payReturn('verified')", 'checking-late': "payReturn('checking')", manual: "payReturn('checking')", review: "payReturn('review')", expired: "payReturn('expired')", paid: "payReturn('paid')", cancelled: "payReturn('cancelled')" };
+
+/* ---------- pieces ---------- */
+const topbar = (back) => `<div class="topbar"><button aria-label="back" ${back ? `onclick="go('${back}')"` : ''}>${ic('back', 28, 2.5)}</button><button aria-label="close" onclick="payReturn('cancelled')">${ic('x', 28, 2.5)}</button></div>`;
+const legal = () => `<p class="legal">${t('legal')}</p>`;
+const picker = (o) => `
+  <div class="brandrow"><span class="logo">${o.platform ? `<span class="mono" style="background:#063b38"><svg viewBox="0 0 64 64" width="28" height="28"><path d="M15 15V49H31L49 29" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/></svg></span>` : `<span class="mono">${L('ম', 'M')}</span>`}</span><div><div class="nm">${o.platform ? 'Lytro' : L(...SHOP.name)}</div>${CTX.ref ? `<div class="ref">${CTX.ref}</div>` : ''}<button class="pill">${t('viewDetails')}</button></div></div>
+  <div class="contacts"><button aria-label="support" style="color:var(--blue)">${ic('headset')}</button><button aria-label="whatsapp" style="color:#25D366">${ic('chat')}</button><button aria-label="call" style="color:var(--blue)">${ic('phone')}</button></div>
+  <div class="sect">${t('mobileBanking')}</div>
+  <div class="tiles">${['bkash', 'nagad', 'rocket', 'upay'].map(k => `<button class="tile" onclick="go('${k}')">${W[k].logo}</button>`).join('')}</div>
+  <div class="paybar">${t('pay', { a: Number(o.amount || SHOP.amount).toLocaleString('en-US') })}</div>`;
+
+function stepsFor(k, ty, no, amount) {
+  const w = W[k]; const hl = (s) => `<b class="hl">${s}</b>`; const verb = hl(`"${VERB[ty]}"`);
+  const numLine = (lead) => `${lead} ${hl(no)}<button class="copy" onclick="go('copied')">${ic('copy', 16)}${t('copy')}</button>`;
+  const amtLine = L(`পরিমাণ: ${hl(Number(amount).toLocaleString('en-US'))} টাকা দিয়ে ${hl('SUBMIT')} করুন।`, `Amount: ${hl(Number(amount).toLocaleString('en-US'))} taka, then ${hl('SUBMIT')}.`);
+  const verifyLine = L(`${hl('Transaction ID')} দিয়ে ${hl('VERIFY')} করুন।`, `Enter the ${hl('Transaction ID')} and ${hl('VERIFY')}.`);
+  if (k === 'bkash') return [
+    L(`${hl(w.ussd)} ডায়াল করে আপনার ${hl(w.up)} মোবাইল মেনুতে যান অথবা ${hl(w.up)} অ্যাপে যান।`, `Dial ${hl(w.ussd)} to open your ${hl(w.up)} mobile menu, or open the ${hl(w.up)} app.`),
+    L(`${verb} -এ ক্লিক করুন।`, `Tap ${verb}.`),
+    numLine(L(ty === 'agent' ? 'এজেন্ট নম্বর হিসেবে এই নম্বরটি লিখুন:' : ty === 'merchant' ? 'মার্চেন্ট নম্বর হিসেবে এই নম্বরটি লিখুন:' : 'প্রাপক নম্বর হিসেবে এই নম্বরটি লিখুন:', ty === 'agent' ? 'Enter this as the agent number:' : ty === 'merchant' ? 'Enter this as the merchant number:' : 'Enter this as the recipient number:')),
+    amtLine,
+    L(`এখন উপরের বক্সে আপনার ${hl('Transaction ID')} দিন এবং ${hl('VERIFY')} করুন।`, `Now enter your ${hl('Transaction ID')} in the box above and ${hl('VERIFY')}.`),
+  ];
+  if (k === 'nagad') return [
+    L(`${hl(w.ussd)} ডায়াল করে আপনার ${hl(w.up)} মোবাইল মেনুতে যান অথবা অ্যাপে যান।`, `Dial ${hl(w.ussd)} to open your ${hl(w.up)} mobile menu, or open the app.`),
+    L(`${verb} এ ক্লিক করুন।`, `Tap ${verb}.`),
+    numLine(L('প্রাপক নম্বর:', 'Recipient number:')), amtLine, verifyLine,
+  ];
+  return [
+    L(`${hl(w.ussd)} অথবা ${hl(w.up)} অ্যাপে যান।`, `Dial ${hl(w.ussd)} or open the ${hl(w.up)} app.`),
+    L(k === 'rocket' ? `${verb} নির্বাচন করুন।` : `${verb} সিলেক্ট করুন।`, `Select ${verb}.`),
+    numLine(L('প্রাপক নম্বর:', 'Recipient number:')), amtLine, verifyLine,
+  ];
+}
+function panel(k, ty, o = {}) {
+  const w = W[k]; const no = o.no || SHOP.no; const amount = o.amount || SHOP.amount;
+  return `<div class="whead"><span class="lbox">${w.logo}</span><span class="amt"><i></i><b>${Number(amount).toLocaleString('en-US')} ৳</b></span></div>
+  <div class="note">${t('note')}</div>
+  <div class="ccard" style="background:${w.col}"><p class="ctitle">${t('enterTrx')}</p><div class="inp ${o.dup ? 'val bad' : ''}">${o.dup ? '9F2KQ7' : t('enterTrx')}</div>${o.dup ? `<div class="ierr">${t('dupErr')}</div>` : ''}
+    <div class="ihead"><span>${t('instructions')}</span></div>
+    <ul class="ilist">${stepsFor(k, ty, no, amount).map(s => `<li><span>${s}</span></li>`).join('')}</ul></div>
+  ${legal()}`;
+}
+const det = (rows) => `<div class="det">${rows.map(([k, v]) => `<div class="kv"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('')}</div>`;
+const scard = (icon, title, p, extra) => `<div class="scard">${icon}<h2>${title}</h2>${p ? `<p>${p}</p>` : ''}${extra || ''}</div>${legal()}`;
+const ring = (s) => `<div class="ring"><svg viewBox="0 0 72 72"><circle class="bg" cx="36" cy="36" r="32"/><circle class="fg" cx="36" cy="36" r="32"/></svg><span class="t">${s}s</span></div>`;
+const bigIcon = (n, bg, col) => `<span class="ic" style="background:${bg};color:${col}">${ic(n, 40, 2)}</span>`;
+const tick = () => `<span class="tick"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>`;
+const trxRows = () => [[t('amount'), '250 ৳'], [t('method'), 'bKash · Send Money'], [t('trx'), '9F2KQ7X1']];
+
+/* ---------- screens: [content, fixed button label, button colour, back target] ---------- */
+const SC = {
+  pick: () => [picker({ platform: CTX.platform }), null],
+  bkash: () => [panel('bkash', 'personal'), t('verify'), W.bkash.col],
+  'bkash-agent': () => [panel('bkash', 'agent'), t('verify'), W.bkash.col],
+  'bkash-merchant': () => [panel('bkash', 'merchant'), t('verify'), W.bkash.col],
+  nagad: () => [panel('nagad', 'personal', { no: '01812345678' }), t('verify'), W.nagad.col],
+  rocket: () => [panel('rocket', 'personal', { no: '017123456789' }), t('verify'), W.rocket.col],
+  upay: () => [panel('upay', 'personal'), t('verify'), W.upay.col],
+  dup: () => [panel('bkash', 'personal', { dup: true }), t('verify'), W.bkash.col],
+  copied: () => [panel('bkash', 'personal'), t('verify'), W.bkash.col],
+  report: () => [panel('bkash', 'personal'), t('verify'), W.bkash.col],
+  platform: () => [panel('bkash', 'personal', { no: '01700000000', amount: 449 }), t('verify'), W.bkash.col],
+  checking: () => [scard(ring(12), t('checkingT'), t('checkingP'), det(trxRows())), t('wrongTrx'), 'var(--g500)'],
+  'checking-late': () => [scard(bigIcon('clock', 'var(--sky-100)', 'var(--sky-900)'), t('lateT'), t('lateP'), det(trxRows())), t('backShop'), 'var(--blue)'],
+  manual: () => [scard(bigIcon('user', 'var(--sky-100)', 'var(--sky-900)'), t('manualT'), t('manualP'), det(trxRows())), t('backShop'), 'var(--blue)'],
+  verified: () => [scard(tick(), t('verifiedT'), t('verifiedP', { s: 5 }), det([...trxRows(), [t('time'), L('আজ সকাল 11:48', 'Today 11:48 am')]])), t('backShop'), '#15803d'],
+  review: () => [scard(bigIcon('search', 'var(--y50)', '#a16207'), t('reviewT'), t('reviewP', { a: 240, b: 250 }), det(trxRows())), t('backShop'), 'var(--blue)'],
+  rejected: () => [scard(bigIcon('x', '#fee2e2', '#b91c1c'), t('rejectedT'), t('rejectedReason', { r: L('এই TrxID-র টাকা আমাদের নম্বরে আসেনি', 'No money arrived on our number for this TrxID') }), det(trxRows())), t('retry'), W.bkash.col],
+  expired: () => [scard(bigIcon('clock', 'var(--g100)', 'var(--g600)'), t('expiredT'), t('expiredP')), t('backShop'), 'var(--blue)'],
+  paid: () => [scard(bigIcon('check', '#dcfce7', '#15803d'), t('paidT'), '', det([[t('amount'), '250 ৳'], [t('method'), 'bKash'], [t('time'), L('আজ সকাল 11:48', 'Today 11:48 am')]])), t('backShop'), 'var(--blue)'],
+  cancelled: () => [scard(bigIcon('x', 'var(--g100)', 'var(--g600)'), t('cancelledT'), t('cancelledP')), t('backShop'), 'var(--blue)'],
+  suspended: () => [scard(bigIcon('lock', 'var(--g100)', 'var(--g600)'), t('suspendedT'), ''), null],
+};
+const BACK = { pick: null };
+function render() {
+  LANG = ST.lang;
+  const f = document.getElementById('frame');
+  f.className = 'frame ' + ST.device; f.dataset.lang = ST.lang;
+  const chrome = `<div class="statusbar"><span>9:41</span><span>●●● ᯤ ▮</span></div><div class="urlbar"><span class="dots"><i></i><i></i><i></i></span><span class="url">🔒 pay.lytro.app/8f2kq7x1a9z3</span></div>`;
+  if (['bkash', 'nagad', 'rocket', 'upay'].includes(ST.screen)) ST.wallet = ST.screen;
+  const [content, label, col] = SC[ST.screen]();
+  const act = ACT[ST.screen] || 'payVerify()';
+  const isPanel = !['pick', 'checking', 'checking-late', 'manual', 'verified', 'review', 'rejected', 'expired', 'paid', 'cancelled', 'suspended'].includes(ST.screen);
+  const fixed = label ? `<div class="fixedbar"><button class="vbtn" style="background:${col}" onclick="${act}">${label}</button></div>` : '';
+  const sheet = ST.screen === 'report' ? `<div class="scrim" onclick="go('bkash')"><div class="sheet" onclick="event.stopPropagation()"><div class="sh"><h2>${t('reportTitle')}</h2><button onclick="go('bkash')">${ic('x', 22)}</button></div><div class="sb">${[['r1', false], ['r2', false], ['r3', true], ['r4', false]].map(([k, on]) => `<div class="opt"><span class="radio ${on ? 'on' : ''}"></span>${t(k)}</div>`).join('')}<div class="inp">${t('rNote')}</div></div><div class="sf"><button class="btn">${t('sendReport')}</button></div></div></div>` : '';
+  const toast = ST.screen === 'copied' ? `<div class="toast">${ic('check', 18)}${t('copiedNo', { n: SHOP.no })}</div>` : '';
+  f.innerHTML = chrome + `<div class="pp"><div class="root"><div class="card">${topbar(isPanel ? 'pick' : null)}<div class="content ${label ? 'has-fixed' : ''}">${content}</div></div></div>${fixed}</div>${sheet}${toast}`;
+  if (PAY_INIT && ST.screen === 'verified') { clearTimeout(ST.t2); ST.t2 = setTimeout(() => { if (ST.screen === 'verified') payReturn('verified'); }, 5000); }
+}
+function setLang(l) { ST.lang = l; document.querySelectorAll('#segLang button').forEach(b => b.classList.toggle('on', b.dataset.v === l)); render(); }
+document.getElementById('selScreen').addEventListener('change', e => { ST.screen = e.target.value; render(); });
+document.querySelectorAll('#segDevice button').forEach(b => b.addEventListener('click', () => { ST.device = b.dataset.v; document.querySelectorAll('#segDevice button').forEach(x => x.classList.toggle('on', x === b)); render(); }));
+document.querySelectorAll('#segLang button').forEach(b => b.addEventListener('click', () => setLang(b.dataset.v)));
+(function init() { if (PAY_INIT) { document.body.classList.add('embedded'); } else { const h = location.hash.replace('#', ''); if (h && SC[h]) { ST.screen = h; document.getElementById('selScreen').value = h; } } render(); })();
+<\/script>
+</body>
+</html>
+
+</script>
+<style>
+.payhost{position:absolute;inset:0;background:#eef5fb}
+.frame.phone .payhost,.frame.tablet .payhost{top:44px}
+.frame.desktop .payhost{top:40px}
+.payhost iframe{width:100%;height:100%;border:0;display:block}
+.gw{position:absolute;inset:0;background:#fff;display:flex;align-items:center;justify-content:center;padding:24px}
+.frame.phone .gw,.frame.tablet .gw{top:44px}
+.frame.desktop .gw{top:40px}
+.gw .box{max-width:400px;width:100%;display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center}
+.gw .mark{height:44px;display:flex;align-items:center}
+.gw .mark img{height:44px}
+.gw h1{font-family:var(--font-display);font-size:22px;font-weight:700}
+.gw p{color:var(--muted);font-size:15px;line-height:1.55}
+.gw .demo{width:100%;border-top:1px dashed var(--line-strong);padding-top:14px;display:flex;flex-direction:column;gap:8px}
+.gw .demo .sub{font-size:12px}
+.gw .demo .row{display:flex;gap:8px;flex-wrap:wrap}
+.gw .demo .row .btn{flex:1 1 140px;min-width:0;padding:0 8px;font-size:13px}
+.wlogo img{height:22px;display:block}
+.wlogo.txt{font-weight:800;font-size:15px;letter-spacing:-.01em;background:transparent;padding:0}
+</style>
+<script>
+/* ---------- the wallets' marks, as the hosted page draws them (docs/brand/third-party) ---------- */
+const LOGOS = {
+  bkash: '<span class="wlogo"><img src="third-party/bkash.png" alt="bKash"></span>',
+  nagad: '<span class="wlogo"><img src="third-party/nagad.png" alt="Nagad"></span>',
+  rocket: '<span class="wlogo txt" style="color:#892C8C">Rocket</span>',
+  upay: '<span class="wlogo txt" style="color:#1F4E98">উপায়</span>',
+  bank: `<span class="wlogo" style="background:var(--sunken);color:var(--text);height:24px">${I.box}</span>`,
+};
+let PAY_METHOD = 'bkash';
+
+/* ---------- the hosted page (pay.lytro.app) opened in a frame for a manual method (SFT-07, LND-10, PAY-01) ---------- */
+const PAYDOC = document.getElementById('paytpl').textContent.replace(/<\\\/script>/g, '<\/script>');
+const baseHref = () => location.href.replace(/[^/]*$/, '');
+const payDoc = (ctx) => PAYDOC.replace('<head>', `<head><base href="${baseHref()}">`).replace('<body>', '<body class="embedded"><script>window.PAY_INIT=' + JSON.stringify(ctx) + '<\/script>');
+/* where the page sends the shopper back to, by the status it reports (PAY-08) */
+const PAYRET = { verified: 'confirm-paid', paid: 'confirm-paid', checking: 'confirm-checking', review: 'confirm-checking', cancelled: 'pay-cancelled', expired: 'pay-cancelled', default: 'confirm-checking' };
+def('pay-hosted', { group: 'Paying (Phase 5)', label: 'The hosted page for the advance · Nagad (manual, PAY-05)', url: '🔒 pay.lytro.app/8f2kq7x1a9z3', render: () => `<div class="payhost"><iframe id="payframe" title="pay.lytro.app"></iframe></div>` });
+const _render5 = render;
+render = function () {
+  _render5();
+  const pf = document.getElementById('payframe');
+  if (!pf) return;
+  pf.srcdoc = payDoc({ platform: false, amount: 200, ref: 'ORD-20261021-0042', no: '01812345678', screen: PAY_METHOD === 'nagad' ? 'nagad' : 'bkash', lang: ST.lang });
+};
+window.addEventListener('message', (e) => {
+  if (!e.data || e.data.type !== 'pay-return') return;
+  if (ST.screen !== 'pay-hosted') return;
+  go(PAYRET[e.data.status] || PAYRET.default);
+});
+
+/* ---------- the wallet's own checkout for a gateway method (PAY-06): an interstitial, never a copy of bKash's page ---------- */
+def('pay-gateway', { group: 'Paying (Phase 5)', label: 'To bKash\'s own checkout · gateway (PAY-06)', url: 'checkout.pay.bka.sh/…', render: () => `<div class="gw"><div class="box"><span class="mark">${LOGOS.bkash}</span><h1>${t('gw_title')}</h1><p>${t('gw_p', { n: 200 })}</p><div class="sum" style="width:100%"><div class="r"><span class="k">${shopName()}</span><span>ORD-20261021-0042</span></div><div class="r total"><span>${t('adv_now')}</span><span class="price">${money(200)}</span></div></div><button class="btn primary lg block" style="background:#CF2772">${t('gw_continue')} ${I.chev}</button><button class="btn quiet" onclick="go('pay-cancelled')">${t('gw_cancel')}</button><div class="line" style="justify-content:center">${I.lock}<span>${t('cf_gateway_note')}</span></div><div class="demo"><div class="sub">${t('gw_demo')}</div><div class="row"><button class="btn ghost sm" onclick="go('confirm-paid')">${I.check}${t('gw_ok')}</button><button class="btn ghost sm" onclick="go('pay-cancelled')">${I.x}${t('gw_fail')}</button></div></div></div></div>` });
+
+/* ---------- a landing-page order with an advance: the method chooser sits in the form, the rest is the same path (LND-10) ---------- */
+def('landing-advance', { group: 'Landing page', label: 'Landing page · product with a ৳200 advance: method chooser (LND-10)', url: 'megh.lytro.app/l/lawn-three-piece', render: () => { const p = P[2]; const q = 1; const total = p.price * q; return shell({ hdr: { minimal: true }, landing: true }, `<div class="pdp">${gallery(p)}<div class="buy"><div class="top"><div class="eyebrow">${shopName()}</div><h1 class="pt">${pName(p)}</h1><div class="pricerow"><span class="price">${money(p.price)}</span>${stChip('low')}</div></div><div class="opt"><div class="lb"><span>${t('size')}: <b>L</b></span></div><div class="vals">${['S', 'M', 'L', 'XL'].map((s) => `<span class="vb ${s === 'L' ? 'on' : ''}">${s}</span>`).join('')}</div></div><div class="opt"><div class="lb"><span>${t('qty')}</span></div>${qty(1)}</div><div class="line">${I.cash}<span><b>${t('pay_adv', { n: 200 })}</b> · ${t('pay_adv_hint', { n: 200 })}</span></div></div></div>
+  <div class="two"><div class="ofrm" style="display:flex;flex-direction:column;gap:16px">${orderForm({ name: L('রুমানা আক্তার', 'Rumana Akter'), phone: '01711 223344', district: 'dhaka', thana: 'dhanmondi', address: L('বাসা ৫, রোড ৭, ধানমন্ডি', 'House 5, Road 7, Dhanmondi') })}<div class="card2"><h3>${t('co_payment')} · ${t('adv_now')} ${money(200)}</h3><label class="radio on" onclick="PAY_METHOD='bkash'"><span class="dot"></span><span class="b"><span class="l1">${LOGOS.bkash}<span>bKash</span></span><span class="l2">${t('pm_gateway_hint')}</span></span></label><label class="radio" onclick="PAY_METHOD='nagad'"><span class="dot"></span><span class="b"><span class="l1">${LOGOS.nagad}<span>Nagad</span></span><span class="l2">${t('pm_manual_hint')}</span></span></label><label class="radio"><span class="dot"></span><span class="b"><span class="l1">${LOGOS.rocket}</span><span class="l2">${t('pm_manual_hint')}</span></span></label></div></div>
+  <div class="side"><div class="card2"><h3>${t('co_summary')}</h3><div class="cl"><span class="th">${pName(p).slice(0, 1)}</span><div class="b"><div class="nm">${pName(p)}</div><div class="vr">L × ${q}</div></div></div><div class="sum"><div class="r"><span class="k">${t('item_total')}</span><span>${money(total)}</span></div><div class="r"><span class="k">${t('delivery')} · ${L(ZONE.inside.bn, ZONE.inside.en)}</span><span>${money(70)}</span></div><div class="r total"><span>${t('grand_total')}</span><span class="price">${money(total + 70)}</span></div><div class="r"><span class="k">${t('adv_now')}</span><span class="price">${money(200)}</span></div><div class="r"><span class="k">${t('cod_rem')}</span><span>${money(total + 70 - 200)}</span></div></div><button class="btn primary lg block" onclick="go('confirm-advance')">${t('place_adv', { n: 200 })}</button><div class="sub" style="font-size:12px;text-align:center">${t('idem_note')}</div></div></div></div>`, landingBar(p)); } });
+
+/* ---------- toolbar ---------- */
 (function init() {
   const sel = document.getElementById('selScreen'); const groups = {};
   for (const [id, s] of Object.entries(SCREENS)) (groups[s.group] = groups[s.group] || []).push([id, s.label]);

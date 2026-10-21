@@ -7,8 +7,8 @@ Status: v1, 2026-10-21. The shared storefront every shop gets at its subdomain o
 API serves today (Slice 9: shop, categories, product lists, product detail, catalogue version). The
 interactive sketch is `docs/brand/lytro-storefront.html`: every screen on phone, tablet and desktop, Bangla
 with the English toggle, on Lytro's default identity and on a shop's own brand identity, with the flows of
-later phases (checkout, confirmation, payment return, tracking, account, combos, chat) drawn in full under
-their own group so the whole journey can be walked today.
+later phases (checkout, the payment hand-over to the hosted page or the wallet's checkout and its return,
+tracking, account, combos, chat) drawn in full under their own groups so the whole journey can be walked today.
 
 **Who and where.** A shopper on a phone, arriving from a Facebook post, a Messenger reply or a shared
 WhatsApp link, usually to one product, often for the first time, paying cash on delivery. They decide in a
@@ -119,8 +119,9 @@ grand total and the payment line, then "Confirm order" with "Tapping twice never
 A `?v=` link opens with that variant selected (LND-06). A gone product is a branded 404 (LND-03). On
 phones a pinned bar carries the product's price and "Order now", which scrolls to the form, so a shopper
 arriving from an ad never has to hunt for it; on desktop the form sits beside the product and the bar is
-not shown. The landing footer keeps the shop's contact, the tracking link, the language and "Powered by
-Lytro", and drops the category links, since the page offers no catalogue navigation (LND-01).
+not shown. The landing footer keeps the shop's contact, one small "Browse the whole shop" link to the
+storefront's home, the tracking link, the language and "Powered by Lytro"; there is no category
+navigation on the page itself (LND-01), only that one way out at the bottom.
 
 ## 7. Offline, switched off, not found
 
@@ -140,11 +141,46 @@ line, and "All your orders by phone" for a signed-in shopper (ORD-17, ORD-18, SF
 sign-in in two steps, my orders, saved addresses with a default (CUS-03 to CUS-06, SFT-09). **Combo pack**:
 the price with "Save ৳170", "What's inside" with a choice part the shopper picks per unit (CMB-06, CMB-09).
 
-Phase 5, payments: **order held** with "Now send ৳200", the 30-minute hold and the button to the hosted
-page at pay.lytro.app, "secured by Lytro" (LND-10, PAY-01, PAY-03); **back from the payment page, not paid**
-with the minutes left, "Try the payment again" and "Switch to cash on delivery" (PAY-08).
+Phase 5, payments: the whole path from the method chooser to the return, in §8a.
 
 Phase 7, chat: the bubble with an unread count and the widget on the product page (CHT-01).
+
+### 8a. Paying: from the method chooser to the return
+
+The storefront never collects a payment (SFT-07). It chooses, hands over and receives the result.
+
+**Choosing.** The payment block of the checkout, and of a landing page whose product needs an advance,
+lists what the shop has enabled (SFT-10, WAL-05, WAL-15): cash on delivery when the policy allows it,
+then each wallet with its official mark from `docs/brand/third-party` in its own colours, never
+recoloured (bKash and Nagad today; Rocket and Upay as text in their colours until their marks are
+fetched), then bank transfer. The sentence under each wallet says how it pays, because the shop decides
+that per wallet (WAL-10): "Pay on bKash's own page; the order confirms the moment it goes through" for a
+wallet whose gateway is on, "Send money and enter the TrxID; we match it and confirm" for a manual one.
+With an advance the summary splits "Advance now" from "Pay on delivery" and the button reads "Place order
+and pay ৳200" (PRD-08, ORD-16).
+
+**Order held.** The order is created and its stock reserved with a 30-minute expiry (LND-10, INV-16). The
+page shows the chosen wallet's mark, the route it will take and "change", then one button: "Pay with
+bKash" for a gateway wallet, "Go to the payment page" for a manual one, with the lock line naming
+pay.lytro.app.
+
+**Handing over.** A manual wallet opens the hosted page (PAYMENT-PAGE-DESIGN.md), the session already on
+that wallet's panel rather than the picker, with the shop as payee, the order number as the reference and
+the shop's active wallet number (PAY-01, PAY-05). A gateway wallet shows an interstitial, "Taking you to
+bKash", with the shop, the order number and the amount, and continues to the wallet's own checkout; the
+sketch never redraws the wallet's page (PAY-06). The sketch embeds the hosted page in a frame, exactly as
+the tenant sketch does for plan payments, so the hand-over can be walked.
+
+**Returning** (PAY-08, PAY-17). `verified` or `paid`: "Payment received, order confirmed", the advance
+received, the cash-on-delivery remainder, the tracking link. `checking` or `review`: "Checking your
+payment", the TrxID is matched within minutes and the order stays held. `cancelled` or `expired`: "Payment
+not completed" with the minutes left on the hold, "Try the payment again" and "Switch to cash on
+delivery". A gateway wallet comes back through pay.lytro.app to the same three states.
+
+| Where the shopper is | Served today | Still needed |
+| --- | --- | --- |
+| Method chooser | the product's payment policy and advance (public catalogue) | the shop's enabled methods with each wallet's level (Phase 5, WAL-06) |
+| Order held, hand-over, return | nothing | order creation with a payment session, the session's address and status, the return address on the shop's allow-list (Phase 4 and 5, ORD-02, PAY-01 to PAY-04) |
 
 ---
 
@@ -176,5 +212,5 @@ the shell and recently viewed catalogue responses (CCH-10). Copy lives in one di
 `docs/brand/lytro-storefront.html` is self-contained. Its toolbar picks the screen (Browse, Product, Cart,
 Landing page, Later phases), the device (phone 390, tablet 820, desktop 1280), the language and the brand
 (Lytro default, or the shop's own identity). Every button that leads somewhere in the design leads there in
-the sketch. It renders 44 screens with no horizontal overflow at any width and no missing strings in either
+the sketch. It renders 50 screens with no horizontal overflow at any width and no missing strings in either
 language.
