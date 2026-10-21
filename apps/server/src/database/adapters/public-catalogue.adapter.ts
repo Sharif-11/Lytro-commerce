@@ -4,6 +4,9 @@ import {
   PublicCatalogueRepository,
   TransactionRunner,
   type CatalogueVersions,
+  type FeedAttributeRow,
+  type FeedImageRow,
+  type FeedVariantRow,
   type PublicProductFilter,
   type PublicProductRow,
   type Transaction,
@@ -42,6 +45,22 @@ export class DrizzlePublicCatalogueStore implements PublicCatalogueStore {
 
   listCategories(tx: Transaction, tenantId: string): Promise<CategoryRecord[]> {
     return this.categories.listCategories(tx, tenantId);
+  }
+
+  listFeedVariants(tx: Transaction, tenantId: string): Promise<FeedVariantRow[]> {
+    return this.catalogue.listFeedVariants(tx, tenantId);
+  }
+
+  listFeedImages(tx: Transaction, tenantId: string): Promise<FeedImageRow[]> {
+    return this.catalogue.listFeedImages(tx, tenantId);
+  }
+
+  listFeedAttributes(
+    tx: Transaction,
+    tenantId: string,
+    names: readonly string[],
+  ): Promise<FeedAttributeRow[]> {
+    return this.catalogue.listFeedAttributes(tx, tenantId, names);
   }
 }
 

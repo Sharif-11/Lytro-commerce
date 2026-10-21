@@ -551,7 +551,7 @@ CREATE TABLE tenant.products (
     delivery_mode       tenant.delivery_mode NOT NULL DEFAULT 'default',
     payment_policy      tenant.payment_policy,             -- null => shop_settings.default_payment_policy
     advance_amount      numeric(10,2) CHECK (advance_amount >= 0),   -- partial_advance only
-    item_condition      text NOT NULL DEFAULT 'new' CHECK (item_condition IN ('new', 'refurbished', 'used')),  -- FED-02
+    item_condition      tenant.item_condition NOT NULL DEFAULT 'new',  -- FED-02: new | refurbished | used (built in 9b)
     video_id            uuid,                              -- one video (PRD-11; built in 6b, 0066)
     primary_category_id uuid,
     active              boolean NOT NULL DEFAULT true,
@@ -1113,12 +1113,14 @@ CREATE TABLE tenant.product_slug_redirects (       -- LND-04: an old slug keeps 
 -- here, and a new product may not take a slug still held here. Public lookup: products.slug first,
 -- then this table (answering 301 to the product's current slug).
 
-CREATE TABLE tenant.ad_tracking_settings (          -- LND-15 to LND-17, one row per tenant
+CREATE TABLE tenant.ad_tracking_settings (          -- LND-15 to LND-17, one row per tenant (built in 9b, 0069)
     tenant_id             uuid PRIMARY KEY,
-    meta_pixel_id         text,                      -- public; rendered into landing pages
-    meta_capi_token_enc   bytea,                     -- Conversions API token, encrypted (SEC-10), never returned
+    meta_pixel_id         text,                      -- public; rendered into landing pages, on GET /v1/shop
+    meta_capi_token_enc   bytea,                     -- Conversions API token, sealed (SEC-10), never returned
     updated_at            timestamptz NOT NULL DEFAULT now()
 );
+-- Sealed by the server's secret box: AES-256-GCM with a fresh nonce, the key's fingerprint, and the shop and the
+-- purpose bound in, so a value copied to another shop's row does not open (DATA_ENCRYPTION_KEY, RUNBOOKS §2).
 ```
 
 Orders created from a landing page carry `source = 'landing_page'` on `tenant.orders` (Phase 4, LND-09);
@@ -1210,14 +1212,15 @@ CREATE TABLE tenant.option_sets (                   -- ATR-16; tenant_id NULL = 
 -- "Shoe 38–44" (shoes_bags) and "Common colors", whose values are the platform Color options seeded with
 -- their swatches (ATR-18).
 
-CREATE TABLE tenant.catalog_feeds (                 -- FED-01, FED-05: one row per tenant
-    tenant_id       uuid PRIMARY KEY,
-    token_hash      bytea NOT NULL UNIQUE,          -- SHA-256 of the 128-bit URL token, for lookup
-    token_enc       bytea NOT NULL,                 -- encrypted (SEC-10) so the dashboard can show the URL (FED-06)
+CREATE TABLE control.catalog_feeds (                -- FED-01, FED-05: one row per tenant (built in 9b, 0069)
+    tenant_id       uuid PRIMARY KEY REFERENCES control.tenants(id),
+    token_hash      bytea NOT NULL UNIQUE,          -- SHA-256 of the 256-bit URL token, for lookup
+    token_enc       bytea NOT NULL,                 -- sealed (SEC-10) so the dashboard can show the URL (FED-06)
     rotated_at      timestamptz NOT NULL DEFAULT now()
 );
--- The feed is rendered from the public catalogue read model and cached by catalogue version (FED-04);
--- it has no table of its own beyond the token.
+-- In control, not tenant (decided in Slice 9b): a feed request names only its token, so the row is found by its
+-- hash before the shop is known, as API keys are. The feed is rendered from the public catalogue and cached by
+-- catalogue version (FED-04); it has no table of its own beyond the token.
 ```
 
 #### Combo packs (CMB) — Phase 4

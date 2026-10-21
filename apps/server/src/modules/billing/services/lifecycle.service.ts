@@ -20,7 +20,7 @@ import { CatalogueEraser } from '../../catalogue/services/catalogue-eraser';
 import { DeliveryZoneService } from '../../delivery/services/delivery-zone.service';
 import { InventoryEraser } from '../../inventory/services/inventory-eraser';
 import { PurchasingEraser } from '../../purchasing/services/purchasing-eraser';
-import { ApiKeyEraser } from '../../public-api/services/api-key-eraser';
+import { PublicApiEraser } from '../../public-api/services/public-api-eraser';
 import { MediaEraser } from '../../media/services/media-eraser';
 import { DataExportService } from '../../data-export/services/data-export.service';
 import { MailService } from '../../shared/mail/services/mail.service';
@@ -81,7 +81,7 @@ export class LifecycleService {
     @Inject(PurchasingEraser) private readonly purchasing: PurchasingEraser,
     @Inject(InventoryEraser) private readonly inventory: InventoryEraser,
     @Inject(CatalogueEraser) private readonly catalogue: CatalogueEraser,
-    @Inject(ApiKeyEraser) private readonly apiKeys: ApiKeyEraser,
+    @Inject(PublicApiEraser) private readonly publicSide: PublicApiEraser,
     @Inject(MediaEraser) private readonly media: MediaEraser,
     @Inject(DeliveryZoneService) private readonly deliveryZones: DeliveryZoneService,
     @Inject(PurchaseService) private readonly purchase: PurchaseService,
@@ -285,7 +285,7 @@ export class LifecycleService {
     await this.catalogue.deleteAllForTenant(tenantId);
     await this.media.deleteAllForTenant(tenantId);
     await this.deliveryZones.deleteAllForTenant(tenantId);
-    await this.apiKeys.deleteAllForTenant(tenantId);
+    await this.publicSide.deleteAllForTenant(tenantId);
     await this.tenants.runStandalone(async (tx) => {
       await this.tenants.markDeleted(tx, tenantId, now);
       await this.audit.record(tx, {

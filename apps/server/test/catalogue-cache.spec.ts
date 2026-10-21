@@ -11,7 +11,7 @@ import {
 const KB = 1024;
 
 function cacheOf(maxBytes: number): CatalogueCache {
-  return new CatalogueCache({ maxBytes, versionMs: 1 });
+  return new CatalogueCache({ maxBytes, maxEntryBytes: maxBytes, versionMs: 1 });
 }
 
 describe('the catalogue memory cache (CCH-05, CCH-06)', () => {
@@ -53,6 +53,19 @@ describe('the catalogue memory cache (CCH-05, CCH-06)', () => {
       cache.get('failing', 30_000, () => Promise.reject(new Error('not found'))),
     ).rejects.toThrow('not found');
     expect(await cache.get('failing', 30_000, () => Promise.resolve('built'))).toBe('built');
+  });
+
+  it('answers with, but never keeps, one answer over the largest kept (a big feed, FED-04)', async () => {
+    const cache = new CatalogueCache({ maxBytes: 100 * KB, maxEntryBytes: 2 * KB, versionMs: 1 });
+    let builds = 0;
+    const build = () => {
+      builds += 1;
+      return Promise.resolve('x'.repeat(5 * KB));
+    };
+    expect(await cache.get('feed', 30_000, build)).toHaveLength(5 * KB);
+    expect(await cache.get('feed', 30_000, build)).toHaveLength(5 * KB);
+    expect(builds).toBe(2);
+    expect(cache.size().entries).toBe(0);
   });
 
   it('keeps an answer no longer than its lifetime', async () => {

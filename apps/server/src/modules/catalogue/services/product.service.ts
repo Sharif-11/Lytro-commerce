@@ -13,6 +13,7 @@ import {
   normalizeSerial,
   SerialFormat,
   ServerFieldProblemCode,
+  ItemCondition,
   StockState,
   StockTracking,
   TenantState,
@@ -354,6 +355,7 @@ export class ProductService {
         videoId: source.videoId,
         sortOrder: source.sortOrder,
         active: false,
+        itemCondition: source.itemCondition,
         stockState:
           source.stockTracking === StockTracking.NotTracked ? StockState.In : StockState.Out,
       });
@@ -1220,6 +1222,7 @@ export class ProductService {
       paymentPolicy: input.paymentPolicy ?? null,
       advanceAmount: money(input.advanceAmount) ?? null,
       active: input.active ?? true,
+      itemCondition: input.condition ?? ItemCondition.New,
       // Slice 2's stock ledger keeps this exact; until then a counted product holds nothing yet.
       stockState: untracked ? StockState.In : StockState.Out,
     };
@@ -1240,6 +1243,7 @@ export class ProductService {
     if (input.weightKg !== undefined) change.weightKg = money(input.weightKg) ?? null;
     if (input.deliveryMode !== undefined) change.deliveryMode = input.deliveryMode;
     if (input.active !== undefined) change.active = input.active;
+    if (input.condition !== undefined) change.itemCondition = input.condition;
 
     if (
       input.stockTracking !== undefined ||
@@ -1826,6 +1830,7 @@ export class ProductService {
       ...(await this.effectivePolicy(tx, tenantId, product)),
       active: product.active,
       archived: product.deletedAt !== null,
+      condition: product.itemCondition,
       categoryIds: links.map((link) => link.categoryId),
       primaryCategoryId: product.primaryCategoryId,
       minPrice: product.minPrice,

@@ -1,5 +1,5 @@
 import { sql, type SQL } from 'drizzle-orm';
-import { PublicProductSort, type StockState } from '@lytronix/validators';
+import { PublicProductSort, type ItemCondition, type StockState } from '@lytronix/validators';
 import type { Transaction, TransactionRunner } from '../../transactions';
 import { escapeLike } from '../like';
 
@@ -19,6 +19,34 @@ export interface PublicProductRow {
   stockState: StockState;
   /** This row's place in the order asked for, as text, so the next page starts exactly after it. */
   position: string[];
+}
+
+/** FED-01, FED-02: one variant on sale of an active product, as a catalog feed row reads it. */
+export interface FeedVariantRow {
+  productId: string;
+  productSlug: string;
+  name: string;
+  description: string | null;
+  condition: ItemCondition;
+  variantId: string;
+  /** Its own price, or the product's. */
+  price: string;
+  stockState: StockState;
+}
+
+/** FED-02: one of an active product's ready photos, in the order shown. */
+export interface FeedImageRow {
+  productId: string;
+  mediaId: string;
+  hash: string;
+}
+
+/** FED-02: a value of one of the named attributes, the product's own (no variant) or one variant's. */
+export interface FeedAttributeRow {
+  productId: string;
+  variantId: string | null;
+  name: string;
+  value: string;
 }
 
 /** PRD-09, CCH-11, CCH-12: which of the shop's public products, in what order, from where. */
@@ -174,6 +202,98 @@ export class PublicCatalogueRepository {
       condition: sql`(p.name ILIKE ${`%${escapeLike(search)}%`} OR ${search} <% p.name)`,
       score: sql`word_similarity(${search}, p.name)::float8`,
     };
+  }
+
+  /** FED-01: every variant on sale of every active product, newest product first, each product's variants in order. */
+  async listFeedVariants(tx: Transaction, tenantId: string): Promise<FeedVariantRow[]> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const result = await tx.execute<{
+      product_id: string;
+      slug: string;
+      name: string;
+      description: string | null;
+      item_condition: ItemCondition;
+      variant_id: string;
+      price: string;
+      stock_state: StockState;
+    }>(sql`
+      SELECT p.id AS product_id, p.slug, p.name, p.description, p.item_condition, v.id AS variant_id,
+        coalesce(v.price, p.base_price)::text AS price, v.stock_state
+      FROM tenant.products p
+      JOIN tenant.product_variants v ON v.tenant_id = p.tenant_id AND v.product_id = p.id
+      WHERE p.tenant_id = ${tenantId} AND p.active AND p.deleted_at IS NULL
+        AND v.active AND v.deleted_at IS NULL AND NOT v.is_stock_holder
+      ORDER BY p.created_at DESC, p.id, v.created_at, v.id`);
+    return result.rows.map((row) => ({
+      productId: row.product_id,
+      productSlug: row.slug,
+      name: row.name,
+      description: row.description,
+      condition: row.item_condition,
+      variantId: row.variant_id,
+      price: row.price,
+      stockState: row.stock_state,
+    }));
+  }
+
+  /** FED-02: the ready photos of every active product, each product's in the order shown. */
+  async listFeedImages(tx: Transaction, tenantId: string): Promise<FeedImageRow[]> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const result = await tx.execute<{ product_id: string; media_id: string; hash: string }>(sql`
+      SELECT pi.product_id, m.id AS media_id, m.hash
+      FROM tenant.product_images pi
+      JOIN tenant.media m ON m.tenant_id = pi.tenant_id AND m.id = pi.media_id AND m.status = 'ready'
+      JOIN tenant.products p ON p.tenant_id = pi.tenant_id AND p.id = pi.product_id
+        AND p.active AND p.deleted_at IS NULL
+      WHERE pi.tenant_id = ${tenantId}
+      ORDER BY pi.product_id, pi.sort_order`);
+    return result.rows.map((row) => ({
+      productId: row.product_id,
+      mediaId: row.media_id,
+      hash: row.hash,
+    }));
+  }
+
+  /**
+   * FED-02: the values of the attributes with these names (lower case), the platform's or the shop's own -- a
+   * product's own, and each variant's.
+   */
+  async listFeedAttributes(
+    tx: Transaction,
+    tenantId: string,
+    names: readonly string[],
+  ): Promise<FeedAttributeRow[]> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const wanted = sql`ARRAY[${sql.join(
+      names.map((name) => sql`${name}`),
+      sql`, `,
+    )}]::text[]`;
+    const result = await tx.execute<{
+      product_id: string;
+      variant_id: string | null;
+      name: string;
+      value: string;
+    }>(sql`
+      SELECT pav.product_id, NULL::uuid AS variant_id, lower(a.name) AS name,
+        coalesce(o.value, pav.text_value) AS value, coalesce(o.sort_order, 0) AS position
+      FROM tenant.product_attribute_values pav
+      JOIN tenant.attributes a ON a.id = pav.attribute_id
+      LEFT JOIN tenant.attribute_options o ON o.id = pav.option_id
+      WHERE pav.tenant_id = ${tenantId} AND lower(a.name) = ANY(${wanted})
+        AND coalesce(o.value, pav.text_value) IS NOT NULL
+      UNION ALL
+      SELECT vav.product_id, vav.variant_id, lower(a.name), o.value, o.sort_order
+      FROM tenant.variant_attribute_values vav
+      JOIN tenant.attributes a ON a.id = vav.attribute_id
+      JOIN tenant.attribute_options o ON o.id = vav.option_id
+      WHERE vav.tenant_id = ${tenantId} AND lower(a.name) = ANY(${wanted})
+      ORDER BY 1, 2 NULLS FIRST, 3, 5, 4`);
+    return result.rows.map((row) => ({
+      productId: row.product_id,
+      variantId: row.variant_id,
+      name: row.name,
+      value: row.value,
+    }));
   }
 
   /** LND-04: the active product a link names, by its current slug or an old one; with its current slug. */

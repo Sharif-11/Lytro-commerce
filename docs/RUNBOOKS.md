@@ -120,3 +120,26 @@ With the token unset, nothing is totalled at all, then or later.
 **Budget (MED-12).** In the Cloudflare dashboard, set a billing notification at 80% of the month's R2 budget. Each
 shop's stored bytes are the sum of its rows in `tenant.media_objects`; the bytes and requests the media Worker sent
 for it each cycle are its row in `control.media_bandwidth` (Slice 7b).
+
+---
+
+## 3. The credential sealing key: `DATA_ENCRYPTION_KEY` (SEC-01, SEC-10)
+
+**What this is:** the key the server seals stored credentials with -- a shop's Meta Conversions API token and its
+catalog feed link today, courier and gateway credentials from Phases 5-6. Each sealed value names the key that
+sealed it (a 4-byte fingerprint), so a second key can be brought in while the first is retired.
+
+- **Where it lives:** set from a secrets manager on real servers, as the application's own runtime secret, never in
+  a file in the repository or a build artifact (SEC-10). The server refuses to start in production without it.
+  Outside production, left unset, the server makes a key at start-up that is gone at the next: sealed values do not
+  outlive the process there, and a feed link made with it must be made again.
+- **Make one:** `openssl rand -base64 32`.
+- **Rotate it** (once a year, or at once if it may have leaked):
+  1. Set `DATA_ENCRYPTION_PREVIOUS_KEY` to the current key, and `DATA_ENCRYPTION_KEY` to a new one. Restart.
+     New values are sealed with the new key; values sealed with the old one still open.
+  2. Have each value sealed again: a shop's feed link by `POST /catalog-feed/regenerate`, a Conversions API token by
+     entering it again. There is no job that does this for every shop yet (KNOWN-GAPS §81).
+  3. Once no value names the old key, unset `DATA_ENCRYPTION_PREVIOUS_KEY` and restart.
+- **If a key is lost:** values sealed with it cannot be opened. The dashboard answers "make a new link" for the
+  feed (the old link keeps working for Meta, found by its hash, until the shop makes a new one), and the token must
+  be entered again.

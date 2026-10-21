@@ -272,6 +272,18 @@ export enum AuditAction {
   ApiKeyCreated = 'api_key_created',
   ApiKeyUpdated = 'api_key_updated',
   ApiKeyRevoked = 'api_key_revoked',
+  // Phase 3 Slice 9b: the Meta Pixel ID or the Conversions API token set, changed or removed (LND-17), and the catalog
+  // feed's link replaced (FED-05).
+  AdTrackingUpdated = 'ad_tracking_updated',
+  AdTrackingRemoved = 'ad_tracking_removed',
+  CatalogFeedRegenerated = 'catalog_feed_regenerated',
+}
+
+// FED-02: what a product is, for Meta's catalog: new unless the shop says otherwise.
+export enum ItemCondition {
+  New = 'new',
+  Refurbished = 'refurbished',
+  Used = 'used',
 }
 
 // API-01, D3-1: the kinds of API key. A public key is for a browser, from registered website addresses; secret keys
@@ -321,6 +333,9 @@ export const MONEY_RELATED_AUDIT_ACTIONS: ReadonlySet<AuditAction> = new Set([
   AuditAction.ApiKeyCreated,
   AuditAction.ApiKeyUpdated,
   AuditAction.ApiKeyRevoked,
+  // LND-17: so is the Conversions API token.
+  AuditAction.AdTrackingUpdated,
+  AuditAction.AdTrackingRemoved,
   AuditAction.PasswordReset,
   AuditAction.PlanAssigned,
   AuditAction.PlanPurchased,

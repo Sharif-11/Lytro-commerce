@@ -25,6 +25,7 @@ import type {
   PublicProductDetail,
   PublicProductPage,
 } from '../types/public-catalogue';
+import { CatalogFeedCsv } from './catalog-feed-csv';
 import { CatalogueCache } from './catalogue-cache';
 import { listRequestOf, cursorOf, positionOf, type ListRequest } from './catalogue-query';
 import { CatalogueVersionReader } from './catalogue-version-reader';
@@ -33,6 +34,8 @@ import { CatalogueVersionReader } from './catalogue-version-reader';
 const ANSWER_FORMAT = 1;
 // CCH-04: the version endpoint itself is kept at most this long.
 const VERSION_MAX_AGE_SECONDS = 5;
+// FED-04: a feed is fetched on Meta's schedule; its answer is kept no longer than a product page.
+const FEED_MAX_AGE_SECONDS = 60;
 // CCH-03: the lifetimes when the operator has set none.
 const DEFAULT_SECONDS: Readonly<Partial<Record<PlatformSettingKey, number>>> = {
   [PlatformSettingKey.CatalogueListMaxAgeSeconds]: 30,
@@ -65,6 +68,7 @@ export class PublicCatalogue {
     @Inject(PlatformSettingsService) private readonly settings: PlatformSettingsService,
     @Inject(ProductService) private readonly products: ProductService,
     @Inject(CatalogueImages) private readonly images: CatalogueImages,
+    @Inject(CatalogFeedCsv) private readonly feedCsv: CatalogFeedCsv,
   ) {}
 
   /** CCH-04: the one small answer a caller reads first, to put the version in the addresses after it. */
@@ -145,6 +149,13 @@ export class PublicCatalogue {
         }
         return { categories: children.get(null) ?? [] };
       }),
+    );
+  }
+
+  /** FED-04: the shop's Meta catalog feed, from the same cache as every other answer, by the same versions. */
+  feed(shop: ApiShop): Promise<CatalogueAnswer<string>> {
+    return this.answer(shop, 'en', ['feed'], FEED_MAX_AGE_SECONDS, null, () =>
+      this.feedCsv.build(shop.row.id, shop.row.slug),
     );
   }
 
@@ -257,6 +268,7 @@ function publicDetail(detail: ProductDetail): PublicProductDetail {
     maxPrice: detail.maxPrice,
     stockState: detail.stockState,
     stockUnit: detail.stockUnit,
+    condition: detail.condition,
     primaryCategoryId: detail.primaryCategoryId,
     categoryIds: detail.categoryIds,
     images: detail.images,

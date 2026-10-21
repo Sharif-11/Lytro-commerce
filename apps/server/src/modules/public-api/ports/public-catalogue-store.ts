@@ -1,5 +1,8 @@
 import type {
   CatalogueVersions,
+  FeedAttributeRow,
+  FeedImageRow,
+  FeedVariantRow,
   PublicProductFilter,
   PublicProductRow,
   Transaction,
@@ -18,6 +21,14 @@ export interface PublicCatalogueStore {
     slug: string,
   ): Promise<{ productId: string; slug: string } | null>;
   listCategories(tx: Transaction, tenantId: string): Promise<CategoryRecord[]>;
+  /** FED-01, FED-02: every variant on sale of every active product, its photos, and the named attributes' values. */
+  listFeedVariants(tx: Transaction, tenantId: string): Promise<FeedVariantRow[]>;
+  listFeedImages(tx: Transaction, tenantId: string): Promise<FeedImageRow[]>;
+  listFeedAttributes(
+    tx: Transaction,
+    tenantId: string,
+    names: readonly string[],
+  ): Promise<FeedAttributeRow[]>;
 }
 
 /**

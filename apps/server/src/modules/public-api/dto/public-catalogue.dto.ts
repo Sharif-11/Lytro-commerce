@@ -2,6 +2,7 @@ import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 import {
   AttributeDataType,
+  ItemCondition,
   PaymentPolicy,
   StockState,
   StockUnit,
@@ -40,6 +41,7 @@ export class PublicProductDetailDto extends createZodDto(
     maxPrice: z.string().nullable(),
     stockState: z.nativeEnum(StockState),
     stockUnit: z.nativeEnum(StockUnit),
+    condition: z.nativeEnum(ItemCondition),
     primaryCategoryId: z.string().nullable(),
     categoryIds: z.array(z.string()),
     images: z.array(imageViewSchema),

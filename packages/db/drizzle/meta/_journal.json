@@ -484,6 +484,13 @@
       "when": 1792577476790,
       "tag": "0068_public_catalogue",
       "breakpoints": true
+    },
+    {
+      "idx": 69,
+      "version": "7",
+      "when": 1792582035682,
+      "tag": "0069_ad_tracking_and_feed",
+      "breakpoints": true
     }
   ]
 }

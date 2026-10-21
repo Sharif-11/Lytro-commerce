@@ -8,7 +8,7 @@ import { AppModule } from '../src/app/app.module';
 import type { MessageKey } from '../src/common/i18n/message-key';
 import { translate } from '../src/common/i18n/messages';
 import type { RequestQuotaNotifier } from '../src/modules/public-api/ports/api-key-store';
-import { ApiKeyEraser } from '../src/modules/public-api/services/api-key-eraser';
+import { PublicApiEraser } from '../src/modules/public-api/services/public-api-eraser';
 import { RequestQuota } from '../src/modules/public-api/services/request-quota';
 import { API_CLOCK, REQUEST_QUOTA_NOTIFIER } from '../src/modules/public-api/tokens';
 import type { RequestQuotaNotice } from '../src/modules/public-api/types/public-api';
@@ -201,7 +201,11 @@ describeIfDatabase('public API keys in the dashboard (API-01, API-02, API-21)', 
     expect((await other.post(`/api-keys/${made.id}/revoke`, {})).status).toBe(404);
     // API-10: the key's shop answers, whatever shop the request names.
     const answer = await callApi('/v1/shop', made.key, SITE, { 'x-lytro-shop': other.slug });
-    expect(answer.body).toEqual({ name: `Shop ${owner.slug}`, slug: owner.slug });
+    expect(answer.body).toEqual({
+      name: `Shop ${owner.slug}`,
+      slug: owner.slug,
+      metaPixelId: null,
+    });
   });
 
   it('lets only a holder of keys:manage see or make keys', async () => {
@@ -217,7 +221,7 @@ describeIfDatabase('the public API host (API-03 to API-05, API-08, API-14, API-2
     const { key } = await makeKey(shop);
     const answer = await callApi('/v1/shop', key);
     expect(answer.status, JSON.stringify(answer.body)).toBe(200);
-    expect(answer.body).toEqual({ name: `Shop ${shop.slug}`, slug: shop.slug });
+    expect(answer.body).toEqual({ name: `Shop ${shop.slug}`, slug: shop.slug, metaPixelId: null });
     expect(answer.headers['access-control-allow-origin']).toBe(SITE);
     expect(answer.headers['vary']).toContain('Origin');
     expect(answer.headers['x-ratelimit-limit']).toBe('60');
@@ -456,7 +460,7 @@ describeIfDatabase('the day-60 deletion (LIF-19)', () => {
     const { key } = await makeKey(shop);
     expect((await callApi('/v1/shop', key)).status).toBe(200);
     await app.get(RequestQuota).flush();
-    await app.get(ApiKeyEraser).deleteAllForTenant(shop.tenantId);
+    await app.get(PublicApiEraser).deleteAllForTenant(shop.tenantId);
     const left = await admin.query<{ keys: string; usage: string }>(
       `SELECT (SELECT count(*) FROM control.api_keys WHERE tenant_id = $1)::text AS keys,
               (SELECT count(*) FROM control.api_usage WHERE tenant_id = $1)::text AS usage`,

@@ -199,4 +199,12 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'GET /public/catalogue/products': "lists and searches only the key's own shop's active products",
   'GET /public/catalogue/products/:slug': "another shop's product, by its link, is not found",
   'GET /public/catalogue/categories': "only the key's own shop's visible categories",
+  // Phase 3 Slice 9b, checked in test/ad-tracking-feed.e2e.spec.ts.
+  'GET /ad-tracking': "shows only the session shop's own ad tracking",
+  'PUT /ad-tracking': "sets only the session shop's own ad tracking",
+  'DELETE /ad-tracking': "removes only the session shop's own ad tracking",
+  'GET /catalog-feed': "shows only the session shop's own feed link",
+  'POST /catalog-feed/regenerate': "replaces only the session shop's own feed link",
+  'GET /public/feeds/meta/:file':
+    "a feed is the token's own shop's only; another token or none is not found",
 };

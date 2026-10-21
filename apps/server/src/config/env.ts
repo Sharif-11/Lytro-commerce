@@ -1,5 +1,15 @@
 import { z } from 'zod';
 
+// SEC-10: a key for the secret box, 32 bytes written in base64.
+const encryptionKey = z
+  .string()
+  .refine(
+    (value) => /^[A-Za-z0-9+/]{43}=$/.test(value) && Buffer.from(value, 'base64').length === 32,
+    {
+      message: 'must be 32 random bytes, base64 (openssl rand -base64 32)',
+    },
+  );
+
 // Every setting the server reads, validated once at startup (ENGINEERING-STANDARDS §2).
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -96,6 +106,10 @@ const envSchema = z.object({
     .string()
     .regex(/^[A-Za-z_][A-Za-z0-9_]*$/)
     .default('lytro_media_usage'),
+  // SEC-01, SEC-10: the key credentials are sealed with (32 random bytes, base64), set from a secrets manager on real
+  // servers, never from a file in the repository; and the key before it, while a rotation moves values over.
+  DATA_ENCRYPTION_KEY: encryptionKey.optional(),
+  DATA_ENCRYPTION_PREVIOUS_KEY: encryptionKey.optional(),
 });
 
 const envWithEdgeRule = envSchema.superRefine((value, ctx) => {
@@ -151,6 +165,13 @@ const envWithEdgeRule = envSchema.superRefine((value, ctx) => {
         });
       }
     }
+  }
+  if (value.NODE_ENV === 'production' && !value.DATA_ENCRYPTION_KEY) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['DATA_ENCRYPTION_KEY'],
+      message: 'required in production: 32 random bytes, base64',
+    });
   }
   if (value.TRUSTED_EDGE_SECRET_NEXT && !value.TRUSTED_EDGE_SECRET) {
     ctx.addIssue({

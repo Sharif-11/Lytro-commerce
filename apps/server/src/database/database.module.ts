@@ -62,6 +62,8 @@ import {
   PurchaseReceiptRepository,
   MediaRepository,
   MediaBandwidthRepository,
+  AdTrackingRepository,
+  CatalogFeedRepository,
 } from '@lytronix/db';
 import { EnvironmentParser } from '../config/env';
 import { ENV } from '../config/tokens';
@@ -124,6 +126,12 @@ import { DatabaseService } from './database.service';
       inject: [TransactionRunner],
       useFactory: (transactions: TransactionRunner) => new PublicCatalogueRepository(transactions),
     },
+    {
+      provide: AdTrackingRepository,
+      inject: [TransactionRunner],
+      useFactory: (transactions: TransactionRunner) => new AdTrackingRepository(transactions),
+    },
+    { provide: CatalogFeedRepository, useFactory: () => new CatalogFeedRepository() },
     { provide: PresetRepository, useFactory: () => new PresetRepository() },
     {
       provide: SizeChartRepository,
@@ -293,6 +301,8 @@ import { DatabaseService } from './database.service';
     ProductRepository,
     VariantRepository,
     PublicCatalogueRepository,
+    AdTrackingRepository,
+    CatalogFeedRepository,
     PresetRepository,
     SizeChartRepository,
     OptionSetRepository,

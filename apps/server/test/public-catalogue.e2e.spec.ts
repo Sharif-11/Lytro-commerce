@@ -104,7 +104,7 @@ beforeAll(async () => {
     .useValue(texts.provider)
     // The version is read again on every request here, so an edit shows at once instead of within two seconds.
     .overrideProvider(CATALOGUE_CACHE_SETTINGS)
-    .useValue({ maxBytes: 100 * 1024 * 1024, versionMs: 1 })
+    .useValue({ maxBytes: 100 * 1024 * 1024, maxEntryBytes: 10 * 1024 * 1024, versionMs: 1 })
     .overrideProvider(CATALOGUE_SEARCH)
     .useFactory({
       factory: (repository: PublicCatalogueRepository) => {

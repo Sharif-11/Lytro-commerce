@@ -22,6 +22,7 @@ import {
   CATEGORY_NAME_MAX_LENGTH,
   DeliveryMode,
   enumTuple,
+  ItemCondition,
   PaymentPolicy,
   PRODUCT_NAME_MAX_LENGTH,
   SerialFormat,
@@ -48,6 +49,7 @@ export const stockState = tenant.enum('stock_state', enumTuple(Object.values(Sto
 export const deliveryMode = tenant.enum('delivery_mode', enumTuple(Object.values(DeliveryMode)));
 export const serialFormat = tenant.enum('serial_format', enumTuple(Object.values(SerialFormat)));
 export const paymentPolicy = tenant.enum('payment_policy', enumTuple(Object.values(PaymentPolicy)));
+export const itemCondition = tenant.enum('item_condition', enumTuple(Object.values(ItemCondition)));
 
 // CCH-02, INV-19: bumped in the same transaction as any write that changes what the public catalogue shows.
 export const catalogueState = tenant.table('catalogue_state', {
@@ -120,6 +122,8 @@ export const products = tenant.table(
     // PRD-11: its one video, a ready video of the shop's; deleting the video clears it.
     videoId: uuid('video_id'),
     active: boolean('active').notNull().default(true),
+    // FED-02: what Meta's catalog says it is.
+    itemCondition: itemCondition('item_condition').notNull().default(ItemCondition.New),
     sortOrder: integer('sort_order').notNull().default(0),
     // CCH-11: kept in step with the variants in the same transaction, for list pages.
     minPrice: numeric('min_price', { precision: 10, scale: 2 }),

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { EnvironmentParser } from '../src/config/env';
 
 const SECRET = 'x'.repeat(32);
+const DATA_KEY = Buffer.alloc(32, 7).toString('base64');
 const BASE = { DATABASE_URL: 'postgres://db', OTP_SECRET: SECRET };
 
 describe('loadEnv platform settings', () => {
@@ -34,6 +35,7 @@ describe('loadEnv platform settings', () => {
       ...BASE,
       NODE_ENV: 'production',
       TRUSTED_EDGE_SECRET: SECRET,
+      DATA_ENCRYPTION_KEY: DATA_KEY,
     });
     expect(env.TRUSTED_EDGE_SECRET).toBe(SECRET);
   });
@@ -113,6 +115,26 @@ describe('edge settings (D14)', () => {
       MEDIA_EDGE_KV_NAMESPACE_ID: 'namespace',
     });
     expect(env.MEDIA_USAGE_DATASET).toBe('lytro_media_usage');
+  });
+
+  it('refuses production without the key credentials are sealed with, and a key of the wrong size (SEC-10)', () => {
+    expect(() =>
+      new EnvironmentParser().parse({
+        ...BASE,
+        NODE_ENV: 'production',
+        TRUSTED_EDGE_SECRET: SECRET,
+      }),
+    ).toThrow(/DATA_ENCRYPTION_KEY/);
+    expect(() =>
+      new EnvironmentParser().parse({
+        ...BASE,
+        DATA_ENCRYPTION_KEY: Buffer.alloc(16, 7).toString('base64'),
+      }),
+    ).toThrow(/DATA_ENCRYPTION_KEY/);
+    expect(
+      new EnvironmentParser().parse({ ...BASE, DATA_ENCRYPTION_PREVIOUS_KEY: DATA_KEY })
+        .DATA_ENCRYPTION_PREVIOUS_KEY,
+    ).toBe(DATA_KEY);
   });
 
   it('refuses a usage dataset name that is not a plain name, since it is written into a query', () => {

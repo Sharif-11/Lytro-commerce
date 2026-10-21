@@ -18,6 +18,7 @@ export * from './api/purchasing/supplier';
 export * from './api/purchasing/purchase-order';
 export * from './api/purchasing/receipt';
 export * from './api/api-keys/api-key';
+export * from './api/api-keys/ad-tracking';
 export * from './api/media/media';
 export * from './api/staff/staff/staff-create';
 export * from './api/staff/staff/staff-password';

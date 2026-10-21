@@ -9,6 +9,7 @@ import { HealthController } from '../modules/health/health.controller';
 import { ThrowTestController } from '../modules/health/throw-test.controller';
 import { AuditModule } from '../modules/audit/audit.module';
 import { QueueModule } from '../modules/shared/queue/queue.module';
+import { SecretsModule } from '../modules/shared/secrets/secrets.module';
 import { QueueWorkersModule } from '../modules/shared/queue-workers/queue-workers.module';
 import { TeamModule } from '../modules/team/team.module';
 import { IdentityModule } from '../modules/identity/identity.module';
@@ -29,6 +30,7 @@ const shutdownImports: DynamicModule[] =
   imports: [
     ...shutdownImports,
     DatabaseModule,
+    SecretsModule,
     TenancyModule,
     IdentityModule,
     OperatorModule,

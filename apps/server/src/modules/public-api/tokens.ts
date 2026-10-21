@@ -7,3 +7,7 @@ export const API_CLOCK = Symbol('API_CLOCK');
 export const PUBLIC_CATALOGUE_STORE = Symbol('PUBLIC_CATALOGUE_STORE');
 export const CATALOGUE_SEARCH = Symbol('CATALOGUE_SEARCH');
 export const CATALOGUE_CACHE_SETTINGS = Symbol('CATALOGUE_CACHE_SETTINGS');
+// LND-15 to LND-17, FED-01 to FED-05: ad tracking, the feed links, and where a feed and a shop's pages are.
+export const AD_TRACKING_STORE = Symbol('AD_TRACKING_STORE');
+export const CATALOG_FEED_STORE = Symbol('CATALOG_FEED_STORE');
+export const CATALOG_FEED_SETTINGS = Symbol('CATALOG_FEED_SETTINGS');
