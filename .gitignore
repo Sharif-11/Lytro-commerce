@@ -18,3 +18,10 @@ Thumbs.db
 **/.tanstack/
 test-results/
 playwright-report/
+
+# The media Worker (apps/media-worker): wrangler dev secrets and local state.
+.dev.vars
+.wrangler/
+
+# Vite leaves its bundled config behind when a build stops part-way.
+*.timestamp-*.mjs

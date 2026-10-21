@@ -79,6 +79,7 @@ implement the earlier path-split layout (the dashboard on the apex and on every 
 | `admin.lytro.app` | VPS IP | operator console (`apps/operator`, its own build, D3-12) |
 | `api.lytro.app` | VPS IP | the public API at `/v1/...` (`apps/server`), API keys only (API-14) |
 | `pay.lytro.app` | VPS IP | the hosted payment page for manual payments, and the return address for wallet gateways (PAY-01, PAY-06); Phase 5 |
+| `media.lytro.app` | the media Worker (a Cloudflare Workers custom domain, not the VPS) | every shop's media (`apps/media-worker`, MED-02, BND-01): metered, then the Worker's cache, then R2. No Cloudflare cache rule sits in front of it. The media bucket's own public address stays off in production, or requests would skip the metering |
 | `*.lytro.app` (wildcard) | VPS IP | every shop's public pages: storefront and landing pages (`apps/storefront`) only. Covers every tenant automatically; no per-shop DNS entry is ever created. `app`, `admin` and `www` are reserved labels (TEN-26), so no shop can take them. |
 
 ## 5. Routing rules
@@ -185,6 +186,18 @@ for `active`) with zero infrastructure work on this platform's side per tenant.
 | `apps/operator` | `admin.lytro.app` | `vite build` → static `dist/` | **none** — Caddy serves the files directly | The operator console's own build, kept apart from the sellers' app (D3-12) |
 | `apps/website` | `lytro.app` | Next.js, a standard server build (not a static export) | Node container, `next start` | Content is expected to grow (testimonials, a blog later per the landing-page plan); starting server-rendered avoids re-architecting the moment something dynamic is added, and costs little extra on a VPS already running two other Node processes |
 | `apps/storefront` | `*.lytro.app`, custom domains | Next.js, standalone server build | Node container, `next start` | Must render dynamically per request — SFT-01 requires one shared app serving every tenant differently based on the request's `Host`, which a static export cannot do |
+| `apps/media-worker` | `media.lytro.app` | `wrangler deploy --dry-run` → bundled `dist/` | **Cloudflare Workers**, deployed with `wrangler deploy` | Metering has to happen in front of every media request, cached or not (MED-02), at Cloudflare's edge, near R2 |
+
+**The media Worker's setup** (once, in Cloudflare; Phase 3 Slice 7):
+1. The Workers Paid plan. The free plan's 100,000 requests a day cannot carry shop traffic.
+2. A KV namespace for the shared store; put its id in `apps/media-worker/wrangler.jsonc` (`MEDIA_EDGE`).
+3. An Analytics Engine dataset named `lytro_media_usage` (`MEDIA_USAGE`); it is made on the first deploy.
+4. An R2 API token, **Object Read only**, on the media bucket only. Set it and the rest as the Worker's secrets:
+   `wrangler secret put R2_ENDPOINT` (the account's S3 address), `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, and
+   `MEDIA_LINK_SECRET` (a long random value, shared with the server). Record the token in RUNBOOKS §2.
+5. `wrangler deploy` from `apps/media-worker`. It takes `media.lytro.app` as the Worker's custom domain.
+6. Turn the media bucket's public r2.dev address off, and set the server's `MEDIA_PUBLIC_BASE_URL` to
+   `https://media.lytro.app`.
 
 ## 9. Fits the existing CI/CD pipeline (`ENGINEERING-STANDARDS.md` §7) without changing it
 

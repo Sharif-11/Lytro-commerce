@@ -1,0 +1,22 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // MED-02, BND-01: the media address, in front of the media bucket. Every request for a shop's media is metered here.
+  "name": "lytro-media",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": false,
+  "send_metrics": false,
+  // MED-02: the Worker answers the media address itself; no cache rule sits in front of it.
+  "routes": [{ "pattern": "media.lytro.app", "custom_domain": true }],
+  // MED-10, MED-13: the shared store the server writes. Set the namespace's id once it is made in Cloudflare.
+  "kv_namespaces": [{ "binding": "MEDIA_EDGE", "id": "set-the-media-edge-namespace-id" }],
+  // BND-01: one data point per response, totalled by the server each minute.
+  "analytics_engine_datasets": [{ "binding": "MEDIA_USAGE", "dataset": "lytro_media_usage" }],
+  "vars": {
+    "R2_BUCKET": "lytro-media",
+    "DASHBOARD_ORIGINS": "https://app.lytro.app,https://admin.lytro.app",
+  },
+  // Secrets, set with `wrangler secret put` (or `.dev.vars` for `wrangler dev`), never written here (MED-07):
+  // R2_ENDPOINT, R2_ACCESS_KEY_ID and R2_SECRET_ACCESS_KEY (an Object Read only token), and MEDIA_LINK_SECRET.
+  "observability": { "enabled": true },
+}

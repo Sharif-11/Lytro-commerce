@@ -77,14 +77,16 @@ again 90 days later.
 | `MEDIA_SIGNER_*` | Object Read & Write, the uploads bucket only | signing browser uploads (`S3MediaStorage.signUpload`) | — | — |
 | `MEDIA_PROCESSOR_*` | Object Read & Write, the uploads and media buckets | the processing job: reading and clearing uploads, writing media, listing for the nightly run | — | — |
 | `MEDIA_DELETER_*` | Object Read & Write, the media bucket only | the deletion job only (`MediaDeleter`) | — | — |
-| Worker binding (Slice 7) | read only, the media bucket | serving media | — | — |
+| Media Worker's `R2_*` secrets | **Object Read only**, the media bucket only | serving media (`apps/media-worker`, `S3Origin`); a write fails at R2 itself | — | — |
+| `MEDIA_LINK_SECRET` (the Worker's secret and the server's setting) | signs and checks private links (BND-07) | the server signs, the Worker checks | — | — |
 
-**Likely limit: R2 may not split writing from deleting.** R2 tokens come only as read, or read and write, per bucket,
-and Cloudflare does not say that read and write leaves deleting out. If it does not, the processor's key could delete
-media. No code path does: only `MediaDeleter` deletes, and the processor sends its own leftovers to it. The check below
-shows what each key really may do; run it once the keys exist and record the answer here. If the processor can delete,
-the split rests on the code alone until the media Worker (Slice 7) can take over writes, so the server needs no key
-that can delete. The risk register's entry for media loss (SRS.md §17) relies on this split.
+**Accepted limit: R2 likely cannot split writing from deleting** (decided 2026-10-21, KNOWN-GAPS §78). R2 tokens
+come only as read, or read and write, per bucket, and Cloudflare does not say that read and write leaves deleting out;
+a Worker's R2 binding allows both too. So the processor's key can likely delete media, though no code path does: only
+`MediaDeleter` deletes, and the processor sends its own leftovers to it. The media Worker cannot write at all (its
+token is read only). The check below shows what each key really may do; run it once the keys exist and record the
+answer here. If R2 refuses the processor's delete, §78 closes; if not, it stays an accepted risk next to the media
+loss entry in the risk register (SRS.md §17).
 
 **Check a key's scope** — after making or rotating one, from a machine with that `.env`:
 

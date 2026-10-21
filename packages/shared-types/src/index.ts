@@ -63,3 +63,6 @@ export interface ApiErrorBody {
 }
 
 export type ApiResponseBody<T = unknown> = ApiSuccessBody<T> | ApiErrorBody;
+
+// MED-01, MED-02, MED-08, MED-10, MED-13, BND-01, BND-07: the media Worker's contract with the server.
+export * from './media-edge.js';
