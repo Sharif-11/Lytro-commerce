@@ -1567,6 +1567,40 @@ is sealed again, and today that means each shop regenerating its feed link and r
 A job that re-seals every value with the current key should come with courier and gateway credentials (Phases 5-6),
 when there are more of them.
 
+## 82. `RTE-01`, `SFT-11`, `SFT-15`: a plan's per-minute key limit caps a whole storefront — decided 2026-10-21, not yet built
+
+Found while working out what a very busy shop costs (Phase 3 Slice 10's read). RTE-01 counts every request against
+its key's per-minute limit, and a shop's storefront -- the platform's own (Slice 12) or the shop's own website --
+sends every shopper's requests with the shop's one public key (SFT-11, SFT-15). So the plan's
+`requests_per_minute_public` caps the whole shop, not one visitor: 60 a minute on Trial, pay-as-you-go and Starter
+(one a second), 180 on Growth, 600 on Pro. At about four API calls a page, Starter serves about 15 page views a
+minute across all of its shoppers. A popular shop's busy evening, or a celebrity's live post, would answer shoppers
+429 within seconds while its monthly quota is far from used. One abusive visitor is already held back by the
+per-visitor limit (RTE-06, 120 a minute per IP).
+
+To decide before Slice 12 builds the storefront, since either way RTE-01's wording changes: raise the per-key
+limits well above a shop's real peak, or apply the per-minute limit per visitor for public keys and leave the plan's
+own lever to the monthly quota (RTE-03), which grows with the plan's price. Money is not the reason: a shop serving
+900 GB of media and 3.6 million API calls a month costs about 650 TK at most in Cloudflare charges, since Cloudflare
+bills requests, not bytes.
+
+**Decided:** no shop-wide per-minute limit for public keys. A shop-wide count cannot tell a busy hour from an attack,
+and it refused real shoppers in the common cases: a busy evening (40 shoppers is about 640 calls a minute), and even
+one scraper, whose 120 calls the per-visitor limit allows fill Starter's 60 on their own. The one thing only it did --
+slowing how fast a flood from many IPs spends the shop's month -- is left to a person: such an attack is rare and is
+undone with an operator override (PLN-11) at almost no cost, while a refused busy hour cannot be undone. So:
+- RTE-01 applies to secret keys only; `requests_per_minute_public` leaves the plans and every shop's snapshot.
+- RTE-02's rate headers on a public-key answer describe the visitor's own minute (RTE-06).
+- RTE-06's [120] a minute becomes an operator platform setting, and the visitors it refuses are counted, to show
+  whether many real shoppers behind one carrier or office IP meet it.
+- A fast-spend alert, which refuses nothing: a shop spending more than [5]% of its monthly requests in an hour tells
+  its owner and the operator.
+- The storefront's server (Slice 12) passes each shopper's IP in a way the API can trust; otherwise every shopper is
+  one visitor, and 120 a minute caps the whole storefront.
+
+Kept as they are: the per-visitor limit, the monthly quota and its warnings (RTE-03), and the per-minute order and
+payment-session limits (RTE-08).
+
 ## Not a bug, just noting it so it isn't mistaken for one later
 
 The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data

@@ -910,6 +910,8 @@ their backend ships earlier.
 
 ### Slice 12: shared storefront and product landing pages
 - **Depends on:** Slices 0, 0b, 7 and 9 (and branding from Phase 1).
+- **Decided first:** KNOWN-GAPS §82 -- no shop-wide per-minute limit for public keys, and the storefront's server
+  passes each shopper's IP, so the per-visitor limit sees shoppers, not the server.
 - **Delivers:**
   - **Storefront:** the new storefront design; category navigation, search, pagination; product page
     with the variant picker and stock state; client-side cart without reservation; branding; footer and
