@@ -890,6 +890,121 @@ def('tenant-override', { base: 'tenant', nav: 'tenants', label: '· add override
 </script>
 
 <script>
+/* ---------- Slice 10a: the add-on catalogue, a shop's add-ons, an add-on payment in the queue, the two new settings ---------- */
+Object.assign(S, {
+  addons: ['Add-ons', 'অ্যাড-অন'],
+  ao_sub: ['What a shop can buy on top of its plan: limit add-ons, packs and features (PLN-13). Prices are per month; a retired item cannot be bought, and ones already bought run to their end.', 'প্ল্যানের উপরে দোকান যা কিনতে পারে: লিমিট অ্যাড-অন, প্যাক আর ফিচার (PLN-13)। দাম মাস হিসেবে; বন্ধ করা আইটেম আর কেনা যায় না, কেনা থাকলে মেয়াদ পর্যন্ত চলে।'],
+  ao_new: ['New item', 'নতুন আইটেম'], c_item: ['Item', 'আইটেম'], c_kind: ['Kind', 'ধরন'], c_raises: ['Raises', 'বাড়ায়'], c_unit: ['Unit', 'ইউনিট'], c_price: ['Price / month', 'দাম / মাস'], c_running: ['Running', 'চালু'],
+  k_limit: ['Limit', 'লিমিট'], k_pack: ['Pack', 'প্যাক'], k_feature: ['Feature', 'ফিচার'], k_allowance: ['Allowance', 'অ্যালাউন্স'],
+  ao_retired: ['Retired', 'বন্ধ'], ao_running: ['{n} running', '{n}টা চালু'], ao_bought: ['{n} bought this month', 'এ মাসে {n}টা কেনা'], ao_none: ['No add-ons yet', 'এখনো কোনো অ্যাড-অন নেই'],
+  ao_rule: ['A limit add-on and a feature renew with the plan unless the shop turns renewal off; a pack adds once and carries over until used. Pay-as-you-go shops renew in 30-day periods from the balance (PLN-14). Allowances arrive with Phase 7 (PLN-20).', 'লিমিট অ্যাড-অন আর ফিচার প্ল্যানের সাথে রিনিউ হয়, দোকান বন্ধ না করলে; প্যাক একবার যোগ হয়, শেষ না হওয়া পর্যন্ত থাকে। পে-অ্যাজ-ইউ-গো দোকানে ৩০ দিনের মেয়াদে ব্যালেন্স থেকে রিনিউ (PLN-14)। অ্যালাউন্স আসবে ফেজ ৭-এ (PLN-20)।'],
+  ae_title: ['Edit {name}', '{name} এডিট'], ae_new: ['New add-on', 'নতুন অ্যাড-অন'],
+  ae_cons: ['A price change applies to new purchases and to renewals from now on; an add-on already running keeps its price to its end.', 'দাম বদলালে এখন থেকে নতুন কেনা আর রিনিউতে লাগবে; চালু থাকা অ্যাড-অন মেয়াদ পর্যন্ত আগের দামে চলবে।'],
+  ae_name_en: ['Name (English)', 'নাম (ইংরেজি)'], ae_name_bn: ['Name (Bangla)', 'নাম (বাংলা)'], ae_kind: ['Kind', 'ধরন'], ae_limit_key: ['Raises which limit', 'কোন লিমিট বাড়ায়'], ae_unit_size: ['Unit size', 'ইউনিটের মাপ'],
+  ae_unit_help: ['What one bought unit adds: 500 products, 1 seat, 1 GB, 10 GB, 100,000 requests. A feature has none.', 'একটা কিনলে কতটা যোগ হয়: ৫০০ প্রোডাক্ট, ১ সিট, ১ GB, ১০ GB, ১,০০,০০০ রিকোয়েস্ট। ফিচারের কোনো মাপ নেই।'],
+  ae_price: ['Price per month', 'মাসে দাম'], ae_price_help: ['Whole taka. A longer term is monthly × months; mid-period it is prorated by the days left (PLN-14). A pack is a one-off at this price.', 'পুরো টাকায়। লম্বা মেয়াদে মাসিক × মাস; মাঝপথে বাকি দিনে ভাগ (PLN-14)। প্যাক এই দামে একবার।'],
+  ae_max: ['Most a shop may buy at once', 'একবারে বড়জোর'], ae_forsale: ['For sale', 'বিক্রি হচ্ছে'], ae_retire: ['Retire', 'বন্ধ করুন'],
+  ar_title: ['Retire {name}?', '{name} বন্ধ করবেন?'], ar_cons: ['No shop can buy it from now. The {n} running ones continue to their end and will not renew; their owners are told at the 7-day warning (PLN-13).', 'এখন থেকে কোনো দোকান কিনতে পারবে না। চালু থাকা {n}টা মেয়াদ পর্যন্ত চলবে, রিনিউ হবে না; ৭ দিন আগের সতর্কবার্তায় মালিকরা জানবেন (PLN-13)।'],
+  ar_btn: ['Retire', 'বন্ধ করুন'],
+  ta_title: ['Add-ons', 'অ্যাড-অন'], ta_hint: ['Active add-ons raise this shop\'s limits on top of the plan snapshot and the overrides; packs are used up as they go (PLN-13, UPG-14).', 'চালু অ্যাড-অন স্ন্যাপশট আর ওভাররাইডের উপরে এই দোকানের লিমিট বাড়ায়; প্যাক খরচ হতে হতে ফুরোয় (PLN-13, UPG-14)।'],
+  ta_ends: ['until {d}', '{d} পর্যন্ত'], ta_renew: ['renews with the plan', 'প্ল্যানের সাথে রিনিউ'], ta_norenew: ['renewal off', 'রিনিউ বন্ধ'], ta_paid: ['paid from the balance', 'ব্যালেন্স থেকে'], ta_paid_page: ['paid on the payment page', 'পেমেন্ট পেজে'],
+  ta_packs: ['Packs this cycle', 'এই সাইকেলে প্যাক'], ta_pack_line: ['{n} × 10 GB bandwidth · {a} by auto-buy · {left} GB left', '{n} × ১০ GB ব্যান্ডউইথ · অটো-বাই {a}টা · {left} GB বাকি'],
+  ta_auto: ['Auto-buy', 'অটো-বাই'], ta_auto_v: ['bandwidth on · requests off · at most {c} packs a cycle', 'ব্যান্ডউইথ চালু · রিকোয়েস্ট বন্ধ · সাইকেলে বড়জোর {c} প্যাক'],
+  ta_effective: ['Effective limits', 'কার্যকর লিমিট'], ta_eff_hint: ['snapshot + override + add-ons; what every check reads (KNOWN-GAPS §83)', 'স্ন্যাপশট + ওভাররাইড + অ্যাড-অন; প্রতিটা চেক এটাই পড়ে (KNOWN-GAPS §83)'],
+  ta_eff_products: ['Products', 'প্রোডাক্ট'], ta_eff_staff: ['Seats', 'সিট'], ta_eff_storage: ['Storage', 'স্টোরেজ'], ta_eff_bw: ['Bandwidth', 'ব্যান্ডউইথ'],
+  addon: ['Add-on', 'অ্যাড-অন'], qa_line: ['{name} ×{q} · {n} days to {d}', '{name} ×{q} · {d} পর্যন্ত {n} দিন'],
+  qa_activate: ['Approving activates the add-on at once and raises the limit; the invoice follows. Rejecting leaves the shop as it is.', 'অ্যাপ্রুভ করলে অ্যাড-অন এখনই চালু হয়, লিমিট বাড়ে; ইনভয়েস তারপর। রিজেক্ট করলে দোকান যেমন আছে তেমনই।'],
+  qa_kind: ['Add-on (Slice 10a.2)', 'অ্যাড-অন (স্লাইস 10a.2)'],
+  sn_metered_grace_percent: ['Grace past a metered limit', 'মিটারড লিমিটের পরের গ্রেস'], sn_auto_buy_packs_per_cycle: ['Auto-buy packs per cycle', 'সাইকেলে অটো-বাই প্যাক'],
+});
+NAV[1].items.push(['addons', 'addons', 'dollar']);
+SETTINGS.push(
+  { key: 'metered_grace_percent', value: 110, group: 1, unit: '%', desc: 'How far past 100% media and the API keep serving while the stop notice goes out; the extra is never charged (BND-03, RTE-03).', updatedAt: '2026-10-21', by: 'ops@lytro.app' },
+  { key: 'auto_buy_packs_per_cycle', value: 3, group: 1, unit: 'packs', desc: 'How many packs auto-buy may buy for one shop in a cycle before it stops and tells the owner (PLN-15).', updatedAt: '2026-10-22', by: 'ops@lytro.app' },
+);
+
+const ADDON_ITEMS = [
+  { key: 'products_500', en: 'Extra 500 products', bn: 'আরও ৫০০ প্রোডাক্ট', kind: 'limit', limit: 'products', unit: 500, price: 149, max: 10, running: 41, forSale: true },
+  { key: 'seat', en: 'One seat', bn: 'একটা সিট', kind: 'limit', limit: 'staff', unit: 1, price: 49, max: 10, running: 118, forSale: true },
+  { key: 'storage_1gb', en: '1 GB storage', bn: '১ GB স্টোরেজ', kind: 'limit', limit: 'storage_mb', unit: 1024, price: 29, max: 10, running: 63, forSale: true },
+  { key: 'bandwidth_10gb', en: '10 GB bandwidth', bn: '১০ GB ব্যান্ডউইথ', kind: 'pack', limit: 'bandwidth_gb', unit: 10, price: 30, max: 10, running: 212, forSale: true, month: true },
+  { key: 'requests_100k', en: '100,000 requests', bn: '১,০০,০০০ রিকোয়েস্ট', kind: 'pack', limit: 'requests_monthly', unit: 100000, price: 20, max: 10, running: 37, forSale: true, month: true },
+  { key: 'brand_identity', en: 'Brand identity', bn: 'ব্র্যান্ড আইডেন্টিটি', kind: 'feature', limit: null, unit: null, price: 149, max: 1, running: 26, forSale: true },
+  { key: 'storage_500mb', en: '500 MB storage', bn: '৫০০ MB স্টোরেজ', kind: 'limit', limit: 'storage_mb', unit: 512, price: 19, max: 10, running: 4, forSale: false, retiredAt: '2026-10-20' },
+];
+const aoName = (a) => (L.lang === 'bn' ? a.bn : a.en);
+const kindChip = (k) => st(k === 'limit' ? 'info plain' : k === 'pack' ? 'warn plain' : 'ok plain', t('k_' + k));
+const fmtUnit = (a) => (a.unit === null ? '—' : a.limit === 'storage_mb' ? `${a.unit / 1024} GB` : a.limit === 'bandwidth_gb' ? `${a.unit} GB` : a.unit.toLocaleString('en-US'));
+function addonsPage() {
+  const cols = [
+    { k: 'item', label: t('c_item'), w: 'minmax(180px,1.4fr)', cls: 'main' },
+    { k: 'kind', label: t('c_kind'), w: '110px' },
+    { k: 'raises', label: t('c_raises'), w: 'minmax(140px,1fr)' },
+    { k: 'unit', label: t('c_unit'), w: '100px', cls: 'r' },
+    { k: 'price', label: t('c_price'), w: '120px', cls: 'r' },
+    { k: 'running', label: t('c_running'), w: '110px', cls: 'r' },
+    { k: 'acts', label: '', w: '150px', cls: 'acts' },
+  ];
+  const rows = ADDON_ITEMS.map((a) => ({ cls: a.forSale ? '' : 'faded', on: "go('addon-edit')", cells: {
+    item: `<div class="pn">${aoName(a)}</div><div class="pm mono" style="font-size:12px">${a.key}${a.forSale ? '' : ` · ${st('mute plain', t('ao_retired'))}`}</div>`,
+    kind: kindChip(a.kind), raises: a.limit ? limitLabel(a.limit) : `<span style="color:var(--subtle)">${t('k_feature')}</span>`,
+    unit: `<span class="num">${fmtUnit(a)}</span>`, price: `<span class="money">${money(a.price)}</span>${a.kind === 'pack' ? '' : `<span style="color:var(--subtle);font-size:12px">/${L.lang === 'bn' ? 'মাস' : 'mo'}</span>`}`,
+    running: `<span class="num">${a.kind === 'pack' ? t('ao_bought', { n: a.running }) : t('ao_running', { n: a.running })}</span>`,
+    acts: `${btn(t('edit'), 'ghost sm', "event.stopPropagation();go('addon-edit')")}${a.forSale ? btn(t('ae_retire'), 'quiet sm', "event.stopPropagation();go('addon-retire')") : ''}`,
+  } }));
+  return `<div class="ttl"><div><h1>${t('addons')}</h1><div class="sub">${t('ao_sub')}</div></div><div class="actions">${btn(I.plus + t('ao_new'), 'primary', "go('addon-new')")}</div></div>${table(cols, rows, emptyBox(t('ao_none'), '', 'inbox'))}<div class="note">${t('ao_rule')}</div>`;
+}
+const LIMIT_KEYS = ['products', 'staff', 'storage_mb', 'bandwidth_gb', 'requests_monthly', 'orders_handled_monthly'];
+function addonEditor(a, isNew) {
+  const x = a || ADDON_ITEMS[0];
+  return sheet(isNew ? t('ae_new') : t('ae_title', { name: aoName(x) }), isNew ? null : `${x.key} · ${t('ao_running', { n: x.running })}`, `
+    ${isNew ? '' : consequence(t('ae_cons'))}
+    <div class="grid2">${field(t('ae_name_en'), input(isNew ? '' : x.en))}${field(t('ae_name_bn'), input(isNew ? '' : x.bn))}</div>
+    <div class="grid2">${field(t('ae_kind'), select([['limit', t('k_limit')], ['pack', t('k_pack')], ['feature', t('k_feature')], ['allowance', t('k_allowance') + ' · ' + t('soon')]], isNew ? 'limit' : x.kind))}${field(t('ae_limit_key'), select(LIMIT_KEYS.map((k) => [k, limitLabel(k)]), isNew ? 'products' : x.limit || 'products'))}</div>
+    <div class="grid2">${field(t('ae_unit_size'), input(isNew ? '' : x.unit ?? '', 'mono', '500', 'inputmode=numeric'), t('ae_unit_help'))}${field(t('ae_price'), `<div class="inwrap"><span class="pre">৳</span>${input(isNew ? '' : x.price, 'mono', '', 'inputmode=numeric')}</div>`, t('ae_price_help'))}</div>
+    <div class="grid2">${field(t('ae_max'), input(isNew ? 10 : x.max, 'mono', '', 'inputmode=numeric'))}${field(t('ae_forsale'), sw(isNew ? true : x.forSale, x.forSale || isNew ? t('ae_forsale') : t('ao_retired')))}</div>
+    ${reasonField()}`, `${btn(t('cancel'), 'ghost', "go('addons')")}${btn(t('save'), 'primary', "go('addons')")}`, { row: true, close: 'addons' });
+}
+def('addons', { nav: 'addons', label: 'Add-on catalogue (Slice 10a)', group: 'Pricing', url: 'admin.lytro.app/addons', bandTitle: 'addons', render: addonsPage });
+def('addon-edit', { base: 'addons', nav: 'addons', label: '· edit an item (sheet)', group: 'Pricing', url: 'admin.lytro.app/addons/products_500', bandTitle: 'addons', render: addonsPage, sheet: () => addonEditor(ADDON_ITEMS[0], false) });
+def('addon-new', { base: 'addons', nav: 'addons', label: '· new item (sheet)', group: 'Pricing', url: 'admin.lytro.app/addons/new', bandTitle: 'addons', render: addonsPage, sheet: () => addonEditor(null, true) });
+def('addon-retire', { base: 'addons', nav: 'addons', label: '· retire (dialog)', group: 'Pricing', url: 'admin.lytro.app/addons/seat', bandTitle: 'addons', render: addonsPage, sheet: () => sheet(t('ar_title', { name: aoName(ADDON_ITEMS[1]) }), ADDON_ITEMS[1].key, `${consequence(t('ar_cons', { n: ADDON_ITEMS[1].running }), 'danger')}${reasonField()}`, `${btn(t('cancel'), 'ghost', "go('addons')")}${btn(t('ar_btn'), 'danger', "go('addons')")}`, { row: true, close: 'addons' }) });
+
+/* a shop's add-ons on its page */
+function addonsCard(x) {
+  const active = [
+    { a: ADDON_ITEMS[0], q: 1, end: '2026-11-14', renew: true, paid: 'ta_paid' },
+    { a: ADDON_ITEMS[1], q: 1, end: '2026-11-14', renew: false, paid: 'ta_paid_page' },
+    { a: ADDON_ITEMS[5], q: 1, end: '2026-11-14', renew: true, paid: 'ta_paid' },
+  ];
+  const eff = (k, snap, ov, ao, fmt) => `<div class="row wrap" style="min-height:40px;padding:6px 16px"><span class="body"><span class="l1">${t(k)}: <b>${fmt(snap + ov + ao)}</b></span><span class="l2 num">${fmt(snap)} + ${fmt(ov)} + ${fmt(ao)}</span></span></div>`;
+  const n = (v) => Number(v).toLocaleString('en-US');
+  return `<div class="grid2">
+    <div class="card"><div class="sechead"><h3>${t('ta_title')}</h3><span class="lnk" onclick="go('addons')">${t('addons')}</span></div><div class="hint">${t('ta_hint')}</div>
+      <div class="list" style="margin:8px -16px 0">${active.map((r) => `<div class="row wrap"><span class="body"><span class="l1">${aoName(r.a)} <span class="num" style="color:var(--subtle);font-weight:400">×${r.q}</span> ${kindChip(r.a.kind)}</span><span class="l2">${t('ta_ends', { d: dateS(r.end) })} · ${r.renew ? t('ta_renew') : `<span style="color:var(--warning)">${t('ta_norenew')}</span>`} · ${t(r.paid)} · ${money(r.a.price)}/${L.lang === 'bn' ? 'মাস' : 'mo'}</span></span></div>`).join('')}
+      <div class="row wrap"><span class="body"><span class="l1">${t('ta_packs')}</span><span class="l2 num">${t('ta_pack_line', { n: 2, a: 1, left: 6.2 })}</span></span></div>
+      <div class="row wrap"><span class="body"><span class="l1">${t('ta_auto')}</span><span class="l2">${t('ta_auto_v', { c: 3 })}</span></span></div></div></div>
+    <div class="card"><div class="sechead"><h3>${t('ta_effective')}</h3></div><div class="hint">${t('ta_eff_hint')}</div><div class="list" style="margin:8px -16px -16px">
+      ${eff('ta_eff_products', 100, 0, 500, n)}${eff('ta_eff_staff', 2, 0, 1, n)}${eff('ta_eff_storage', 2048, 0, 0, (v) => (v / 1024) + ' GB')}${eff('ta_eff_bw', 30, 0, 20, (v) => v + ' GB')}</div></div>
+  </div>`;
+}
+def('tenant-addons', { base: 'tenants', nav: 'tenants', label: 'Shop · its add-ons and effective limits (10a)', group: 'Daily', url: 'admin.lytro.app/shops/rahim-fashion', bandTitle: 'tenants', back: 'tenants', render: () => tenantPage(T1).replace('<div class="grid2">', addonsCard(T1) + '<div class="grid2">') });
+
+/* an add-on paid on the payment page sits in the queue like a plan payment (10a.2) */
+const PA = { id: 'pay-9110', tenantId: 'ten-0001', kind: 'addon', amount: 99, credit: 99, status: 'pending', sender: '01811 998877', trx: 'BKH6M2N8P1', quotedAt: '2026-10-21T12:48:00+06:00', createdAt: '2026-10-21T12:55:00+06:00', wallet: 'bKash' };
+def('queue-addon', { base: 'queue', nav: 'queue', label: '· an add-on payment (sheet, 10a.2)', group: 'Daily', url: 'admin.lytro.app/queue/pay-9110', bandTitle: 'queue', render: queuePage, sheet: () => { const p = PA; const ten = tenantOf(p.tenantId);
+  return sheet(`${money(p.credit)} · ${t('addon')}`, ten.name, `
+    <div class="banner info" style="background:var(--info-soft,#eef5ff)">${I.info}<div>${t('qa_activate')}</div></div>
+    <div class="kv"><span class="k">${t('c_shop')}</span><span class="v">${ten.name} · <a href="#" onclick="go('tenant-addons');return false">${ten.slug}.lytro.app</a></span>
+    <span class="k">${t('qa_kind')}</span><span class="v">${t('qa_line', { name: aoName(ADDON_ITEMS[0]), q: 1, n: 20, d: dateS('2026-11-14') })}</span>
+    <span class="k">${t('c_sender')}</span><span class="v mono">${p.sender} · ${p.wallet}</span>
+    <span class="k">${t('c_trx')}</span><span class="v mono">${p.trx} <button class="iconbtn" style="width:28px;height:28px">${I.copy}</button></span>
+    <span class="k">${t('pay_quoted_at')}</span><span class="v">${dateT(p.quotedAt)} · ${money(p.amount)}</span>
+    <span class="k">${t('pay_submitted')}</span><span class="v">${dateT(p.createdAt)} · ${ago(p.createdAt)}</span></div>
+    <div class="note">${t('pay_statement')}</div>`, `${btn(t('reject'), 'ghost', "go('queue')")}${btn(t('ap_btn', { a: money(p.credit) }), 'primary', "go('queue-approved')")}`, { row: true }); } });
+</script>
+
+<script>
 /* ---------- plans and prices ---------- */
 function plansPage(opts) {
   const o = opts || {};
