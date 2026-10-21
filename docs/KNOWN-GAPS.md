@@ -1349,7 +1349,7 @@ loosened later. Planned with Slice 11. The console's policy, and the harness tha
 every screen loaded under the policy with no violation, plus a check that an injected script, a foreign fetch
 and framing are refused.
 
-## 66. `CCH-02`: an operator's edit to the platform library moves no shop's catalogue version — open, found 2026-10-19
+## 66. `CCH-02`: an operator's edit to the platform library moves no shop's catalogue version — found 2026-10-19, fixed 2026-10-21
 
 Slice 1b lets the operator rename, re-colour or retire a platform attribute or value (PST-04, ATL-01, ATR-18), and
 every shop using it shows the change. `CCH-02` keys each shop's caches on that shop's own
@@ -1358,6 +1358,11 @@ scopes `catalogue_state` to one shop, and one platform edit could touch thousand
 public catalogue yet, so nothing serves a stale page today. Slice 9, which builds the public catalogue and its
 cache keys, must add a platform library version to the key (one row the operator's writes bump), so a platform
 edit is visible within `PRD-10`'s window. A shop's own edits already move its version, swatches included.
+
+Fixed in Slice 9a (migration 0068): `control.platform_catalogue_state` holds the platform library's version, bumped in
+the same transaction as the operator's rename, re-colour or retirement of a platform attribute or value, and every
+public cache key and ETag names it beside the shop's own version. A test edits a platform attribute and sees two
+shops' versions change.
 
 ## 67. `LIF-19`: the day-60 deletion left Phase 3's catalogue and delivery data in place — found and fixed 2026-10-19
 
@@ -1533,6 +1538,18 @@ how soon a point can be queried. A point that arrives later than that is never c
 less than it sent; nothing is ever counted twice. Measure it on the real account: send requests through the Worker,
 then poll the SQL API until they appear. If points ever take longer than about 30 seconds, raise `SETTLE_MS`; each
 extra minute there adds a minute to how long an over-limit shop takes to be blocked (BND-02's "about 2 minutes").
+
+## 80. `RED-04`, `RTE-03`: the request counts not yet stored are lost when the server stops — open, found 2026-10-21
+
+Found while building Phase 3 Slice 9a. `RequestQuota` stores its counts every minute and once more on shutdown, so
+"what is counted here is not lost when the server stops" (RED-04). But that last flush runs in
+`onApplicationShutdown`, and `DatabaseService` closes its pool earlier, in `onModuleDestroy`: the flush fails with
+"Cannot use a pool after calling end on the pool" and up to a minute of each shop's requests goes uncounted at every
+restart or deploy. The fix is ordering alone -- flush before the pool closes (for example, the flush in
+`beforeApplicationShutdown` and the pool closed in `onApplicationShutdown`) -- with a test that stops the application
+and reads the stored count. Separately, `api-keys.e2e.spec.ts`'s "answers a registered website" test reads a key's
+`lastUsedAt` straight after the request, while the write is deliberately not awaited (API-01); under a loaded full run
+it can read before the write lands. It passes alone; the test should wait for the write.
 
 ## Not a bug, just noting it so it isn't mistaken for one later
 

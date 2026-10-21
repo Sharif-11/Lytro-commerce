@@ -12,7 +12,7 @@ import {
   sql,
   type SQL,
 } from 'drizzle-orm';
-import { StockReason } from '@lytronix/validators';
+import { StockReason, type StockState } from '@lytronix/validators';
 import {
   productVariants,
   products,
@@ -65,6 +65,10 @@ export interface VariantStockRow {
   packAmount: string | null;
   sku: string | null;
   avgCost: string | null;
+  /** ATR-07: offered for sale; an inactive variant keeps its state but no longer counts toward its product's. */
+  active: boolean;
+  /** CCH-08: the public state last worked out for it. */
+  stockState: StockState;
   onHand: string;
   reserved: string;
   /** INV-13: stock in its expired batches, out of what is available until written off. */
@@ -244,6 +248,8 @@ export class StockRepository {
         packAmount: productVariants.packAmount,
         sku: productVariants.sku,
         avgCost: productVariants.avgCost,
+        active: productVariants.active,
+        stockState: productVariants.stockState,
         onHand: stockLevels.onHand,
         reserved: stockLevels.reserved,
         unsellable: stockLevels.unsellable,
@@ -271,6 +277,8 @@ export class StockRepository {
       packAmount: row.packAmount,
       sku: row.sku,
       avgCost: row.avgCost,
+      active: row.active,
+      stockState: row.stockState,
       onHand: row.onHand ?? '0.000',
       reserved: row.reserved ?? '0.000',
       unsellable: row.unsellable ?? '0.000',

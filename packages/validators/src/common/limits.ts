@@ -41,6 +41,9 @@ export const MAX_VARIANTS_PER_PRODUCT = 100;
 // PRD-12: the dashboard's product list pages.
 export const PRODUCT_PAGE_SIZE = 20;
 export const LIST_PAGE_SIZE_MAX = 100;
+// PRD-09, CCH-11: the public catalogue's list pages.
+export const PUBLIC_PAGE_SIZE = 24;
+export const PUBLIC_PAGE_SIZE_MAX = 60;
 // LND-04: a product's link slug. Letters (Bangla included), digits and hyphens, no leading or trailing hyphen.
 export const PRODUCT_SLUG_MAX_LENGTH = 120;
 export const PRODUCT_SLUG_PATTERN = /^[\p{L}\p{M}\p{N}]+(?:-[\p{L}\p{M}\p{N}]+)*$/u;

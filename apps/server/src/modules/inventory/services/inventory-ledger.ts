@@ -211,9 +211,9 @@ export class InventoryLedger {
   }
 
   /**
-   * CCH-08, INV-19: works the products' public stock state out again from their live variants, moving the catalogue
-   * version only for a product whose state changed. With `notify`, also applies INV-08's once-per-crossing notice:
-   * per variant, or for a product sharing its stock, on the shared stock.
+   * CCH-08, INV-19, ATR-07: works out again the public stock state of each live variant and of its product (its best
+   * variant on sale), moving the catalogue version only when one changed. With `notify`, also applies INV-08's
+   * once-per-crossing notice: per variant, or for a product sharing its stock, on the shared stock.
    */
   async refresh(
     tx: Transaction,
@@ -237,14 +237,24 @@ export class InventoryLedger {
     for (const productId of productIds) {
       const product = products.get(productId)?.product;
       if (!product) continue;
-      const tracked = product.stockTracking === StockTracking.Tracked;
       const live = stock.filter((row) => row.productId === productId && !row.retired);
-      const { state, watched } = tracked
-        ? this.stateOf(live, product.sharedStock, product.lowStockThreshold)
-        : { state: StockState.In, watched: [] };
-      if (state !== product.stockState) {
-        await this.version.setStockState(tx, tenantId, productId, state);
-      }
+      const { states, watched } = this.statesOf(live, product);
+      const changed = live.flatMap((row) => {
+        const state = states.get(row.variantId);
+        return state !== undefined && state !== row.stockState
+          ? [{ variantId: row.variantId, state }]
+          : [];
+      });
+      const state = productState(
+        live.flatMap((row) => {
+          const own = row.active ? states.get(row.variantId) : undefined;
+          return own === undefined ? [] : [own];
+        }),
+      );
+      await this.version.setStockStates(tx, tenantId, productId, {
+        product: state === product.stockState ? null : state,
+        variants: changed,
+      });
       if (!notify) continue;
       for (const row of watched) {
         if (!row.hasLevel) continue;
@@ -380,28 +390,38 @@ export class InventoryLedger {
   }
 
   /**
-   * CCH-08, INV-24: a product's public state is its best variant's. Without shared stock each variant holds its own
-   * and is watched for INV-08; with it, each variant's state comes from the shared stock, and only that is watched.
+   * CCH-08, INV-24: each sellable variant's public state, and the stock INV-08 watches. A product whose stock is not
+   * counted is in throughout. Without shared stock each variant holds its own and is watched; with it, each variant's
+   * state comes from the shared stock, and only that is watched.
    */
-  private stateOf(
+  private statesOf(
     live: VariantStockRow[],
-    shared: boolean,
-    threshold: string,
-  ): { state: StockState; watched: VariantStockRow[] } {
-    if (!shared) {
+    product: StockVariantRow['product'],
+  ): { states: Map<string, StockState>; watched: VariantStockRow[] } {
+    const sizes = live.filter((row) => !row.isStockHolder);
+    const threshold = product.lowStockThreshold;
+    if (product.stockTracking !== StockTracking.Tracked) {
+      return { states: new Map(sizes.map((row) => [row.variantId, StockState.In])), watched: [] };
+    }
+    if (!product.sharedStock) {
       return {
-        state: productState(live.map((row) => variantState(row.available, threshold))),
+        states: new Map(
+          sizes.map((row) => [row.variantId, variantState(row.available, threshold)]),
+        ),
         watched: live,
       };
     }
     const pool = live.find((row) => row.isStockHolder);
-    if (!pool) return { state: StockState.Out, watched: [] };
-    const sizes = live.filter((row) => !row.isStockHolder);
     return {
-      state: productState(
-        sizes.map((row) => sharedVariantState(pool.available, row.packAmount ?? '0', threshold)),
+      states: new Map(
+        sizes.map((row) => [
+          row.variantId,
+          pool
+            ? sharedVariantState(pool.available, row.packAmount ?? '0', threshold)
+            : StockState.Out,
+        ]),
       ),
-      watched: [pool],
+      watched: pool ? [pool] : [],
     };
   }
 }

@@ -511,6 +511,13 @@ export enum PlatformSettingKey {
   // STO-04, STO-05 (2.1, "editable"): the largest image and video one upload may be, in MB.
   MediaImageMaxMb = 'media_image_max_mb',
   MediaVideoMaxMb = 'media_video_max_mb',
+  // CCH-03 (editable): how long a shopper's browser may keep each kind of public catalogue answer, in seconds, and how
+  // long a product list may still be shown while it is fetched again.
+  CatalogueListMaxAgeSeconds = 'catalogue_list_max_age_seconds',
+  CatalogueListStaleSeconds = 'catalogue_list_stale_seconds',
+  CatalogueDetailMaxAgeSeconds = 'catalogue_detail_max_age_seconds',
+  CatalogueSearchMaxAgeSeconds = 'catalogue_search_max_age_seconds',
+  CatalogueCategoriesMaxAgeSeconds = 'catalogue_categories_max_age_seconds',
 }
 
 // D2-1: what a control.plan_payments row is for -- a purchase, a renewal, an upgrade, or a balance top-up.

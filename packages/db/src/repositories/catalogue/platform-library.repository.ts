@@ -3,6 +3,7 @@ import {
   attributeOptions,
   attributes,
   optionSets,
+  platformCatalogueState,
   type SelectAttribute,
   type SelectAttributeOption,
   type SelectOptionSet,
@@ -226,5 +227,16 @@ export class PlatformLibraryRepository {
       .where(and(isNull(optionSets.tenantId), eq(optionSets.id, id)))
       .returning();
     return rows[0] ?? null;
+  }
+
+  /**
+   * CCH-02, KNOWN-GAPS §66: one more platform library version, in the transaction of the write that changed what
+   * shops show, so every shop's public cache keys change at once.
+   */
+  async bumpVersion(tx: Transaction): Promise<void> {
+    await tx
+      .update(platformCatalogueState)
+      .set({ version: sql`${platformCatalogueState.version} + 1` })
+      .where(eq(platformCatalogueState.id, 1));
   }
 }

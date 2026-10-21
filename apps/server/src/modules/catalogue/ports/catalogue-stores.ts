@@ -6,7 +6,7 @@ import type {
   SizeChartOwner,
   Transaction,
 } from '@lytronix/db';
-import type { MediaKind } from '@lytronix/validators';
+import type { MediaKind, StockState } from '@lytronix/validators';
 import type {
   AttributeRecord,
   CategoryRecord,
@@ -218,6 +218,12 @@ export type VariantChange = Partial<
 export interface ProductStore {
   lockCatalogue(tx: Transaction, tenantId: string): Promise<void>;
   bumpVersion(tx: Transaction, tenantId: string): Promise<number>;
+  /** CCH-08: each variant's public stock state, as the stock ledger worked it out. */
+  setVariantStockStates(
+    tx: Transaction,
+    tenantId: string,
+    states: readonly { variantId: string; state: StockState }[],
+  ): Promise<void>;
   countLiveProducts(tx: Transaction, tenantId: string): Promise<number>;
   slugsLike(tx: Transaction, tenantId: string, base: string): Promise<string[]>;
   slugHolder(
@@ -428,6 +434,8 @@ export interface OptionSetStore {
  * platform's option sets. Names and values already taken come back as UniqueViolation('name') or ('value').
  */
 export interface PlatformLibraryStore {
+  /** CCH-02, KNOWN-GAPS §66: one more platform library version, with the write that changed what shops show. */
+  bumpVersion(tx: Transaction): Promise<void>;
   listAttributes(tx: Transaction): Promise<AttributeRecord[]>;
   findAttribute(tx: Transaction, id: string): Promise<AttributeRecord | null>;
   findAttributeByName(tx: Transaction, name: string): Promise<AttributeRecord | null>;

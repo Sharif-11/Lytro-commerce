@@ -6,8 +6,10 @@ import { HostClassifier } from '../../tenancy/services/host-classifier';
 import { ApiKeyAuthenticator } from './api-key-authenticator';
 import { allowPreflight } from './cors';
 
-// API-14: the public API's own paths, versioned by their first segment.
+// API-14: the public API's own paths, versioned by their first segment, and where its routes live inside the server,
+// apart from every dashboard route, so /v1/products is never the dashboard's /products.
 const PUBLIC_PATH = /^\/v1(\/|\?|$)/;
+const PUBLIC_ROUTES = '/api/v1/public';
 
 /** The parts of an Express request and response this middleware reads and writes. */
 interface RawRequest extends HttpRequest {
@@ -22,10 +24,10 @@ interface RawResponse extends HttpResponse {
 }
 
 /**
- * API-14, API-23: the public API host, `api.<platform domain>`. Its /v1/... paths are served by the same routes the
- * platform's own hosts reach at /api/v1/..., marked as having come in that way (so the public routes answer there
- * only); and a preflight is answered here, before any route, since it carries no key: it is allowed when its
- * website is registered on a live public key.
+ * API-14, API-23: the public API host, `api.<platform domain>`. Its /v1/... paths are served by the public routes
+ * under /api/v1/public/..., marked as having come in that way (so those routes answer there only); and a preflight is
+ * answered here, before any route, since it carries no key: it is allowed when its website is registered on a live
+ * public key.
  */
 @Injectable()
 export class PublicApiHost {
@@ -54,7 +56,7 @@ export class PublicApiHost {
       return;
     }
     if (PUBLIC_PATH.test(request.url)) {
-      request.url = `/api${request.url}`;
+      request.url = `${PUBLIC_ROUTES}${request.url.slice('/v1'.length)}`;
       request.publicApi = true;
     }
     if (request.method !== 'OPTIONS') {

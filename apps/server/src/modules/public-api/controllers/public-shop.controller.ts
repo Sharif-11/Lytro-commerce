@@ -14,10 +14,10 @@ export const PublicApi = (): ClassDecorator & MethodDecorator =>
 const publicShopViewSchema = z.object({ name: z.string(), slug: z.string() });
 class PublicShopViewDto extends createZodDto(publicShopViewSchema) {}
 
-// D3-1, API-07: the public API's first route: which shop a public key belongs to. The catalogue arrives in Slice 9,
-// behind the same gate.
+// D3-1, API-07: the public API's first route: which shop a public key belongs to. The catalogue's routes sit behind the
+// same gate (public-catalogue.controller.ts).
 @ApiTags('Public API')
-@Controller('shop')
+@Controller('public/shop')
 @PublicApi()
 export class PublicShopController {
   @Get()

@@ -1756,6 +1756,7 @@ export class ProductService {
         const attribute = attributes.get(row.attributeId);
         if (!attribute || row.role === AttributeRole.VariantDefining) return [];
         const own = values.filter((value) => value.attributeId === row.attributeId);
+        const chosen = own.flatMap((value) => (value.optionId ? [value.optionId] : []));
         return [
           {
             attributeId: attribute.id,
@@ -1763,7 +1764,11 @@ export class ProductService {
             dataType: attribute.dataType,
             unitKind: attribute.unitKind,
             role: row.role,
-            optionIds: own.flatMap((value) => (value.optionId ? [value.optionId] : [])),
+            optionIds: chosen,
+            optionValues: chosen.flatMap((id) => {
+              const option = options.get(id);
+              return option ? [option.value] : [];
+            }),
             textValue: own.find((value) => value.textValue !== null)?.textValue ?? null,
             numberValue: own.find((value) => value.numberValue !== null)?.numberValue ?? null,
             boolValue: own.find((value) => value.boolValue !== null)?.boolValue ?? null,
@@ -1794,6 +1799,7 @@ export class ProductService {
         effectiveDeliveryMode: effectiveMode(weight, mode),
         packAmount: variant.packAmount,
         active: variant.active,
+        stockState: variant.stockState,
       };
     });
 

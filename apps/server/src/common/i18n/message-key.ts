@@ -400,6 +400,7 @@ export const MESSAGE_KEYS = [
   'ApiKeyUpdated',
   'ApiKeyRevoked',
   'ShopRetrieved',
+  'CatalogueVersionRetrieved',
 
   // Media (Phase 3 Slice 6)
   'MediaNotFound',

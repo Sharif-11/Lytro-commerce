@@ -184,6 +184,8 @@ export interface ProductAttributeView {
   unitKind: string | null;
   role: Exclude<AttributeRole, 'variant_defining'>;
   optionIds: string[];
+  /** The chosen values as written, in the order of `optionIds`. */
+  optionValues: string[];
   textValue: string | null;
   numberValue: string | null;
   boolValue: boolean | null;
@@ -205,6 +207,8 @@ export interface VariantView {
   /** INV-24: how much of the product's shared stock one unit of it uses; null unless the product shares its stock. */
   packAmount: string | null;
   active: boolean;
+  /** CCH-08: in, low or out, as its own stock (or the shared stock) stands. */
+  stockState: StockState;
 }
 
 export interface ProductDetail {
