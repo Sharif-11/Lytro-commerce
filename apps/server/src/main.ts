@@ -33,9 +33,10 @@ class Application {
     SwaggerModule.setup('swagger', app, cleanedDocument);
 
     // On SIGTERM/SIGINT (every container stop/restart/deploy): stop accepting new requests, let
-    // in-flight ones finish, run every onModuleDestroy hook (DatabaseService's pool, PgBossClient,
-    // the mail/SMS workers), then force-close any still-open keep-alive socket after 10s so a stuck
-    // shutdown never blocks a deploy. GracefulShutdownModule (app.module.ts) enables the shutdown
+    // in-flight ones finish, run every onModuleDestroy hook (PgBossClient, the mail/SMS workers),
+    // then RequestQuota's last flush (beforeApplicationShutdown), then close DatabaseService's pool
+    // (onApplicationShutdown, the last step), then force-close any still-open keep-alive socket
+    // after 10s so a stuck shutdown never blocks a deploy. GracefulShutdownModule (app.module.ts) enables the shutdown
     // hooks itself -- calling enableShutdownHooks() here too would double-register them.
     setupGracefulShutdown({ app });
 

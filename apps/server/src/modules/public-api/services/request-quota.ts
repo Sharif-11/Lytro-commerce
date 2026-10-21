@@ -2,7 +2,7 @@ import {
   Inject,
   Injectable,
   Logger,
-  type OnApplicationShutdown,
+  type BeforeApplicationShutdown,
   type OnModuleDestroy,
   type OnModuleInit,
 } from '@nestjs/common';
@@ -35,7 +35,7 @@ interface Pending {
  * (UPG-10) -- starts from zero.
  */
 @Injectable()
-export class RequestQuota implements OnModuleInit, OnModuleDestroy, OnApplicationShutdown {
+export class RequestQuota implements OnModuleInit, OnModuleDestroy, BeforeApplicationShutdown {
   private readonly logger = new Logger('RequestQuota');
   private readonly pending = new Map<string, Pending>();
   private readonly stored = new ExpiringCache<number>(STORED_TOTAL_MS, STORED_TOTAL_ENTRIES);
@@ -57,8 +57,11 @@ export class RequestQuota implements OnModuleInit, OnModuleDestroy, OnApplicatio
     if (this.flusher) clearInterval(this.flusher);
   }
 
-  /** RED-04: what is counted here is not lost when the server stops. */
-  async onApplicationShutdown(): Promise<void> {
+  /**
+   * RED-04: what is counted here is not lost when the server stops. After every module has stopped taking work and
+   * before the database pool closes, which DatabaseService leaves to the very last step of shutting down.
+   */
+  async beforeApplicationShutdown(): Promise<void> {
     await this.flush();
   }
 

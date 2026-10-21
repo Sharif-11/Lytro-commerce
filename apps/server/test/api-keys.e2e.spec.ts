@@ -227,9 +227,10 @@ describeIfDatabase('the public API host (API-03 to API-05, API-08, API-14, API-2
     expect(answer.headers['x-ratelimit-limit']).toBe('60');
     expect(answer.headers['x-ratelimit-remaining']).toBe('59');
     expect(Number(answer.headers['x-ratelimit-reset'])).toBeGreaterThan(0);
-    // API-01: the list shows when the key was last used.
-    const listed = (await shop.get('/api-keys')).body as KeyView[];
-    expect(listed[0]?.lastUsedAt).not.toBeNull();
+    // API-01: the list shows when the key was last used. The request never waits for that write, so neither may this.
+    await expect
+      .poll(async () => ((await shop.get('/api-keys')).body as KeyView[])[0]?.lastUsedAt ?? null)
+      .not.toBeNull();
   });
 
   it('refuses a missing, malformed or unknown key, or a session cookie in its place, with 401', async () => {
