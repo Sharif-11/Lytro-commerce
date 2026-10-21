@@ -1567,6 +1567,23 @@ is sealed again, and today that means each shop regenerating its feed link and r
 A job that re-seals every value with the current key should come with courier and gateway credentials (Phases 5-6),
 when there are more of them.
 
+## 82. `RTE-01`, `SFT-11`, `SFT-15`: a plan's per-minute key limit caps a whole storefront — open, found 2026-10-21
+
+Found while working out what a very busy shop costs (Phase 3 Slice 10's read). RTE-01 counts every request against
+its key's per-minute limit, and a shop's storefront -- the platform's own (Slice 12) or the shop's own website --
+sends every shopper's requests with the shop's one public key (SFT-11, SFT-15). So the plan's
+`requests_per_minute_public` caps the whole shop, not one visitor: 60 a minute on Trial, pay-as-you-go and Starter
+(one a second), 180 on Growth, 600 on Pro. At about four API calls a page, Starter serves about 15 page views a
+minute across all of its shoppers. A popular shop's busy evening, or a celebrity's live post, would answer shoppers
+429 within seconds while its monthly quota is far from used. One abusive visitor is already held back by the
+per-visitor limit (RTE-06, 120 a minute per IP).
+
+To decide before Slice 12 builds the storefront, since either way RTE-01's wording changes: raise the per-key
+limits well above a shop's real peak, or apply the per-minute limit per visitor for public keys and leave the plan's
+own lever to the monthly quota (RTE-03), which grows with the plan's price. Money is not the reason: a shop serving
+900 GB of media and 3.6 million API calls a month costs about 650 TK at most in Cloudflare charges, since Cloudflare
+bills requests, not bytes.
+
 ## Not a bug, just noting it so it isn't mistaken for one later
 
 The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data
