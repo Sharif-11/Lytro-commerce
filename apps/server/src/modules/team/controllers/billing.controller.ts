@@ -25,6 +25,7 @@ import { PermissionGuard } from '../guards/permission.guard';
 import { OkDto } from '../../../common/dto/ok.dto';
 import {
   DowngradeService,
+  type DowngradeChecklist,
   type OverLimitItem,
   type PayAsYouGoChoice,
 } from '../../billing/services/downgrade.service';
@@ -46,6 +47,7 @@ import {
 } from '../dto/billing.dto';
 import {
   CancellationStatusDto,
+  DowngradeChecklistDto,
   InvoiceDto,
   InvoiceListDto,
   OverLimitItemListDto,
@@ -227,6 +229,20 @@ export class BillingController {
   async closePayAsYouGo(@Req() request: DashboardRequest): Promise<{ ok: true }> {
     await this.lifecycle.closePayAsYouGo(this.tenantIdOf(request), this.clientIp.resolve(request));
     return { ok: true };
+  }
+
+  @Get('downgrade/checklist')
+  @RequirePermission(Permission.PaymentsRead)
+  @ResponseMessage('DowngradeChecklistRetrieved')
+  @ApiOperation({
+    summary:
+      "The last downgrade's checklist: each limit it left the shop over, ticked off as it is fixed (DWN-12, DWN-14)",
+  })
+  @ZodResponse({ type: DowngradeChecklistDto })
+  async downgradeChecklist(
+    @Req() request: DashboardRequest,
+  ): Promise<{ checklist: DowngradeChecklist | null }> {
+    return { checklist: await this.downgrade.checklist(this.tenantIdOf(request), new Date()) };
   }
 
   @Get('downgrade')

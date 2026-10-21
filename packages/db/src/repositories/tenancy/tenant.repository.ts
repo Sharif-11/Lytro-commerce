@@ -345,6 +345,10 @@ export class TenantRepository {
         // one this tenant happened to start with last time.
         lapseScheduleSnapshot: null,
         archivedAt: null, // LIF-15: a plan or pay-as-you-go always leaves `archived`
+        // DWN-12: a new plan starts without a downgrade's checklist; a downgrade records its own after this.
+        downgradedAt: null,
+        downgradeOverLimit: null,
+        downgradeFinalWarningAt: null,
         ...(values.billingTermId !== undefined ? { billingTermId: values.billingTermId } : {}),
       })
       .where(eq(tenants.id, tenantId));
@@ -622,11 +626,48 @@ export class TenantRepository {
         createdAt: tenants.createdAt,
         suspendedAt: tenants.suspendedAt,
         archivedAt: tenants.archivedAt,
+        downgradedAt: tenants.downgradedAt,
+        downgradeOverLimit: tenants.downgradeOverLimit,
+        downgradeFinalWarningAt: tenants.downgradeFinalWarningAt,
       })
       .from(tenants)
       .where(eq(tenants.id, id))
       .limit(1);
     return rows[0] ?? null;
+  }
+
+  /** DWN-12: records the downgrade that just took effect, and the limits it left the shop over. */
+  async setDowngraded(
+    tx: Executor,
+    tenantId: string,
+    at: Date,
+    overLimit: readonly string[],
+  ): Promise<void> {
+    await tx
+      .update(tenants)
+      .set({ downgradedAt: at, downgradeOverLimit: [...overLimit], downgradeFinalWarningAt: null })
+      .where(eq(tenants.id, tenantId));
+  }
+
+  /** DWN-14: the shops whose downgrade took effect by `before` and have had no final warning yet. */
+  async listDowngradeWarningsDue(tx: Executor, before: Date): Promise<string[]> {
+    const rows = await tx
+      .select({ id: tenants.id })
+      .from(tenants)
+      .where(
+        and(
+          lte(tenants.downgradedAt, before),
+          isNull(tenants.downgradeFinalWarningAt),
+          isNull(tenants.deletedAt),
+        ),
+      )
+      .orderBy(asc(tenants.downgradedAt));
+    return rows.map((row) => row.id);
+  }
+
+  /** DWN-14: the final warning went out (or was not needed), so it is never looked at again. */
+  async setDowngradeFinalWarning(tx: Executor, tenantId: string, at: Date): Promise<void> {
+    await tx.update(tenants).set({ downgradeFinalWarningAt: at }).where(eq(tenants.id, tenantId));
   }
 
   /** BIL-17: toggles the owner's own "renew automatically from balance" setting. */
@@ -664,6 +705,10 @@ export interface BillingInfoRow {
   createdAt: Date;
   suspendedAt: Date | null;
   archivedAt: Date | null;
+  /** DWN-12, DWN-14: the last downgrade, the limits it left the shop over, and its final warning. */
+  downgradedAt: Date | null;
+  downgradeOverLimit: string[] | null;
+  downgradeFinalWarningAt: Date | null;
 }
 
 export interface BalanceRow {

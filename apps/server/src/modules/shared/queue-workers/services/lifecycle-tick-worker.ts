@@ -36,6 +36,7 @@ export class LifecycleTickWorker implements OnModuleInit {
       const now = new Date();
       await this.trials.convertExpiredTrials();
       await this.downgrade.applyDueChanges(now);
+      await this.downgrade.sendFinalWarnings(now);
       await this.lifecycle.runTick(now);
       await this.planPayments.expireStalePending(now);
     });

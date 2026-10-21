@@ -427,6 +427,10 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   DowngradeCancelled: { en: 'Downgrade cancelled.', bn: 'ডাউনগ্রেড বাতিল হয়েছে।' },
   DowngradePreviewed: { en: 'Downgrade preview retrieved.', bn: 'ডাউনগ্রেড প্রিভিউ পাওয়া গেছে।' },
   DowngradeRetrieved: { en: 'Scheduled change retrieved.', bn: 'নির্ধারিত পরিবর্তন পাওয়া গেছে।' },
+  DowngradeChecklistRetrieved: {
+    en: 'Downgrade checklist retrieved.',
+    bn: 'ডাউনগ্রেডের চেকলিস্ট পাওয়া গেছে।',
+  },
   SubscriptionCancelled: {
     en: 'Subscription cancelled, effective at period end.',
     bn: 'সাবস্ক্রিপশন বাতিল হয়েছে, মেয়াদ শেষে কার্যকর হবে।',

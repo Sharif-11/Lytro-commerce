@@ -409,7 +409,7 @@ Rule: the new plan starts at confirmation, the tenant gets credit for the unused
 | --- | --- | --- | --- | --- |
 | DWN-01 | An `active` owner shall be able to schedule a downgrade to a plan with a lower rank. | The schedule is stored and shows the effective date (period end). | M | E2E |
 | DWN-02 | Nothing shall change, and nothing shall be charged or refunded, before the effective date. | Limits, price and dates are unchanged until then; a banner shows the scheduled change with Cancel. | M | E2E |
-| DWN-03 | Before confirming, the owner shall see a preview listing every limit that would be exceeded, with counts. | For 340 products against a limit of 100 it shows "products 340 of 100"; same for seats, storage, domain. | M | E2E |
+| DWN-03 | Amended 2026-10-21 (the shop's overrides): before confirming, the owner shall see a preview listing every limit that would be exceeded, with counts, judged by the target plan's limits with the shop's own overrides laid over them, as they would apply after the change. | For 340 products against a limit of 100 it shows "products 340 of 100"; same for seats, storage, domain. | M | E2E |
 | DWN-04 | The owner shall be able to cancel a scheduled downgrade before it takes effect. | The banner disappears; the audit shows the cancellation. | M | E2E |
 | DWN-05 | The renewal screen shall show the lower plan's price once a downgrade is scheduled. | It shows the lower price, and paying it starts the lower plan. | M | E2E |
 | DWN-06 | When the effective date passes and the renewal is paid, the snapshot shall switch to the lower plan and counters reset. | Limits equal the lower plan's snapshot. | M | JOB |

@@ -105,6 +105,12 @@ export const tenants = control.table(
     // no separate "notice sent at" column is needed.
     retentionFloorDays: integer('retention_floor_days'),
     retentionFloorUntil: timestamp('retention_floor_until', { withTimezone: true }),
+    // DWN-12, DWN-14: when the last downgrade (or switch to pay-as-you-go) took effect, the limits it left the shop
+    // over then (`staff`, `products`, `storage_mb`), and when the final warning about them went out. Any later plan
+    // assignment clears all three.
+    downgradedAt: timestamp('downgraded_at', { withTimezone: true }),
+    downgradeOverLimit: jsonb('downgrade_over_limit').$type<string[]>(),
+    downgradeFinalWarningAt: timestamp('downgrade_final_warning_at', { withTimezone: true }),
     // LIF-26: the platform's grace/read-only/locked/archived stage lengths, frozen the first tick this
     // tenant is found lapsing -- a later change to the live platform settings must not alter the schedule
     // an already-lapsed tenant started with. Null while active (or never yet lapsed); cleared back to null
