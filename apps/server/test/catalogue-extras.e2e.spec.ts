@@ -320,7 +320,7 @@ describeIfDatabase('duplicating a product (PRD-18)', () => {
     const payg = await openShop(port, texts, 'dup-payg');
     await admin.query(
       `UPDATE control.tenants SET state = 'pay_as_you_go',
-         plan_id = (SELECT id FROM control.plans WHERE name = 'Pay-as-you-go')
+         plan_id = (SELECT id FROM control.plans WHERE name = 'Pay-as-you-go'), plan_snapshot = (SELECT limits FROM control.plans WHERE name = 'Pay-as-you-go')
        WHERE id = $1`,
       [payg.tenantId],
     );

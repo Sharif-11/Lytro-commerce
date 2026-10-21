@@ -192,6 +192,8 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'PUT /shop-settings/logo': "sets only the session shop's logo; another shop's image is not_found",
   // Phase 3 Slice 7b, checked in test/media-bandwidth.e2e.spec.ts.
   'GET /media/bandwidth': "counts only the session shop's own cycle and days",
+  // Phase 3 Slice 10, checked in test/usage.e2e.spec.ts.
+  'GET /usage': "counts only the session shop's own products, seats, media, requests and SMS",
   // The public API (API-10, TEN-02): the shop comes from the key alone, whatever the request names.
   'GET /public/shop': "answers the key's own shop only; a shop id sent with the request is ignored",
   // Phase 3 Slice 9a, checked in test/public-catalogue.e2e.spec.ts: the catalogue of the key's shop only.

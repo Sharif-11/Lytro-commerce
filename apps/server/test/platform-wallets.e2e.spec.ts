@@ -85,7 +85,7 @@ function shopCall(who: Owner): Record<string, string> {
 async function moveToPlan(slug: string, planName: string): Promise<void> {
   await admin.query(
     `UPDATE control.tenants
-       SET plan_id = (SELECT id FROM control.plans WHERE name = $1)
+       SET plan_id = (SELECT id FROM control.plans WHERE name = $1), plan_snapshot = (SELECT limits FROM control.plans WHERE name = $1)
      WHERE slug = $2`,
     [planName, slug],
   );

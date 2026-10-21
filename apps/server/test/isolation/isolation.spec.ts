@@ -201,6 +201,7 @@ describeIfDatabase('route inventory against the application (SEC-02)', () => {
       'GET /stock-checks/:id',
       'GET /suppliers',
       'GET /suppliers/:id',
+      'GET /usage',
       'PATCH /api-keys/:id',
       'PATCH /attributes/:id',
       'PATCH /attributes/:id/options/:optionId',

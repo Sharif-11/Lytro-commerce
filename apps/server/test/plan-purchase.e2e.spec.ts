@@ -513,11 +513,10 @@ describeIfDatabase(
       const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'active');
       const { planId, termId } = await seedPlanAndTerm(1, '100.00');
       const oldPeriodEnd = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000); // 10 days from now
-      await admin.query('UPDATE control.tenants SET plan_id = $1, period_end = $2 WHERE id = $3', [
-        planId,
-        oldPeriodEnd,
-        tenantId,
-      ]);
+      await admin.query(
+        'UPDATE control.tenants SET plan_id = $1, plan_snapshot = (SELECT limits FROM control.plans WHERE id = $1), period_end = $2 WHERE id = $3',
+        [planId, oldPeriodEnd, tenantId],
+      );
       await balance.creditStandalone({ tenantId, amount: '1000.00', type: LedgerEntryType.TopUp });
 
       const quote = await purchase.quote(tenantId, planId, termId);
@@ -535,11 +534,10 @@ describeIfDatabase(
       const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'grace');
       const { planId, termId } = await seedPlanAndTerm(1, '100.00');
       const pastPeriodEnd = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000);
-      await admin.query('UPDATE control.tenants SET plan_id = $1, period_end = $2 WHERE id = $3', [
-        planId,
-        pastPeriodEnd,
-        tenantId,
-      ]);
+      await admin.query(
+        'UPDATE control.tenants SET plan_id = $1, plan_snapshot = (SELECT limits FROM control.plans WHERE id = $1), period_end = $2 WHERE id = $3',
+        [planId, pastPeriodEnd, tenantId],
+      );
       await balance.creditStandalone({ tenantId, amount: '1000.00', type: LedgerEntryType.TopUp });
 
       const before = Date.now();
