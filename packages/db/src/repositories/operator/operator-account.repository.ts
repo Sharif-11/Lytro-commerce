@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { asc, eq, isNotNull } from 'drizzle-orm';
 import type { Executor } from '../../transactions';
 import { operatorAccounts } from '../../schema';
 
@@ -18,6 +18,16 @@ export class OperatorAccountRepository {
     const [row] = await db.insert(operatorAccounts).values(values).returning();
     if (!row) throw new Error('insert returned no operator account row');
     return row;
+  }
+
+  /** RTE-12: where to email the operators -- every account that finished enrolling (ADM-01). */
+  async enrolledEmails(db: Executor): Promise<string[]> {
+    const rows = await db
+      .select({ email: operatorAccounts.email })
+      .from(operatorAccounts)
+      .where(isNotNull(operatorAccounts.twoFactorConfirmedAt))
+      .orderBy(asc(operatorAccounts.email));
+    return rows.map((row) => row.email);
   }
 
   async findByEmail(db: Executor, email: string): Promise<OperatorAccountRow | null> {

@@ -110,6 +110,7 @@ export {
   type ApiUsageCounts,
   type ApiUsageRow,
 } from './repositories/api/api-usage.repository';
+export { UsageWarningRepository } from './repositories/usage/usage-warning.repository';
 export {
   PlatformWalletsRepository,
   type NewPlatformWallet,

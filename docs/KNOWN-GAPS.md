@@ -1604,8 +1604,8 @@ payment-session limits (RTE-08).
 **Built 2026-10-21:** the first three points. A public key has no per-minute limit; `requests_per_minute_public` left
 every plan, snapshot and override (migration 0070); the rate headers describe the visitor's minute; the 120 is the
 platform setting `public_requests_per_visitor_per_minute`; and `control.api_usage` counts the refused requests and
-their visitors (RUNBOOKS §4). **Still to build:** the fast-spend alert, with Slice 10's usage warnings, and the
-storefront server passing each shopper's IP, in Slice 12.
+their visitors (RUNBOOKS §4). The fast-spend alert was built with Slice 10's usage warnings (RTE-12, RUNBOOKS §5).
+**Still to build:** the storefront server passing each shopper's IP, in Slice 12.
 
 ## 83. `PLN-05`, `PLN-06`, `PLN-11`: product and seat limits came from the live plan, not the shop's snapshot — found and fixed 2026-10-21
 

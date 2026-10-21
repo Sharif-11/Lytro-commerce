@@ -5,7 +5,6 @@ import type {
   ApiUsageCounts,
   ApiUsageRow,
   NewApiKey,
-  RequestQuotaNotice,
 } from '../types/public-api';
 
 /**
@@ -52,12 +51,5 @@ export interface ApiUsageStore {
   ): Promise<ApiUsageRow>;
   find(tenantId: string, cycleStart: Date): Promise<ApiUsageRow | null>;
   setWarned(tx: Transaction, tenantId: string, cycleStart: Date, percent: number): Promise<void>;
-}
-
-/**
- * RTE-03, D3-5: tells the shop its keys have used half, four fifths or nearly all of the cycle's requests, once each.
- * A console stand-in until Phase 7's notification module replaces the adapter; the once-each rule is the quota's.
- */
-export interface RequestQuotaNotifier {
-  quotaWarning(notice: RequestQuotaNotice): Promise<void>;
+  setFastSpendAlerted(tx: Transaction, tenantId: string, cycleStart: Date, at: Date): Promise<void>;
 }

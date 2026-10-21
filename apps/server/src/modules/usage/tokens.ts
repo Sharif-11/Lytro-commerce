@@ -1,0 +1,2 @@
+export const USAGE_NOTICE_STORE = Symbol('USAGE_NOTICE_STORE');
+export const USAGE_NOTICE_CLOCK = Symbol('USAGE_NOTICE_CLOCK');

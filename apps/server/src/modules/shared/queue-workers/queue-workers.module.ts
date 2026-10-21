@@ -16,6 +16,8 @@ import { MediaProcessVideoWorker } from './services/media-process-video-worker';
 import { MediaProcessWorker } from './services/media-process-worker';
 import { MediaBandwidthTickWorker } from './services/media-bandwidth-tick-worker';
 import { MediaReconcileTickWorker } from './services/media-reconcile-tick-worker';
+import { UsageModule } from '../../usage/usage.module';
+import { UsageNoticeWorker } from './services/usage-notice-worker';
 
 // D27/D2-6: registers pg-boss queues and their work handlers. Kept apart from QueueModule (the queue mechanism
 // itself, SCL-08, D25) and from MessagingModule/BillingModule (the delivery/lifecycle business rules), so
@@ -30,6 +32,7 @@ import { MediaReconcileTickWorker } from './services/media-reconcile-tick-worker
     PaymentsModule,
     InventoryModule,
     MediaModule,
+    UsageModule,
   ],
   providers: [
     SmsRetryWorker,
@@ -42,6 +45,7 @@ import { MediaReconcileTickWorker } from './services/media-reconcile-tick-worker
     MediaDeleteWorker,
     MediaReconcileTickWorker,
     MediaBandwidthTickWorker,
+    UsageNoticeWorker,
   ],
 })
 export class QueueWorkersModule {}

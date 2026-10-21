@@ -13,6 +13,7 @@ import { DataExportModule } from '../data-export/data-export.module';
 import { DeliveryModule } from '../delivery/delivery.module';
 import { InventoryModule } from '../inventory/inventory.module';
 import { MediaModule } from '../media/media.module';
+import { UsageWarningsModule } from '../usage-warnings/usage-warnings.module';
 import { PublicApiModule } from '../public-api/public-api.module';
 import { PurchasingModule } from '../purchasing/purchasing.module';
 import { MailModule } from '../shared/mail/mail.module';
@@ -53,14 +54,15 @@ import {
     MessagingModule,
     MailModule,
     PlatformSettingsModule,
-    // LIF-19: the day-60 deletion removes the shop's purchases, stock, catalogue, media, delivery zones and API keys
-    // too.
+    // LIF-19: the day-60 deletion removes the shop's purchases, stock, catalogue, media, delivery zones, API keys and
+    // usage warnings too.
     PurchasingModule,
     InventoryModule,
     CatalogueModule,
     DeliveryModule,
     PublicApiModule,
     MediaModule,
+    UsageWarningsModule,
   ],
   providers: [
     { provide: PLANS_STORE, useClass: DrizzlePlansStore },

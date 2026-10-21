@@ -5,6 +5,7 @@ import { ENV } from '../../config/tokens';
 import { shopOrigin } from '../../common/shop-address';
 import { DrizzleBandwidthStore, DrizzleMediaStore } from '../../database/adapters/media.adapter';
 import { CatalogueModule } from '../catalogue/catalogue.module';
+import { UsageWarningsModule } from '../usage-warnings/usage-warnings.module';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
 import { QueueModule } from '../shared/queue/queue.module';
 import type { MediaEdge } from './ports/media-edge';
@@ -13,7 +14,6 @@ import { CloudflareMediaEdge } from './providers/cloudflare-media-edge';
 import { S3MediaStorage } from './providers/s3-media-storage';
 import { UnconfiguredMediaEdge } from './providers/unconfigured-media-edge';
 import { UnconfiguredMediaStorage } from './providers/unconfigured-media-storage';
-import { ConsoleBandwidthNotifier } from './services/console-bandwidth-notifier';
 import { ConsoleMediaNotifier } from './services/console-media-notifier';
 import { ImageProcessor } from './services/image-processor';
 import { MediaBandwidth, type BandwidthSettings } from './services/media-bandwidth';
@@ -25,7 +25,6 @@ import { MediaReconciler } from './services/media-reconciler';
 import { MediaService } from './services/media.service';
 import { VideoProcessor, type FfmpegSettings } from './services/video-processor';
 import {
-  BANDWIDTH_NOTIFIER,
   BANDWIDTH_SETTINGS,
   BANDWIDTH_STORE,
   FFMPEG,
@@ -84,7 +83,7 @@ function mediaEdge(env: Env): MediaEdge {
 // deleting. It depends on catalogue (a deletion changes what the public pages show, CCH-02, and is logged like a
 // catalogue change), platform settings (the per-file limits) and the queue; nothing in those depends back on it.
 @Module({
-  imports: [CatalogueModule, PlatformSettingsModule, QueueModule],
+  imports: [CatalogueModule, PlatformSettingsModule, QueueModule, UsageWarningsModule],
   providers: [
     { provide: MEDIA_STORAGE, inject: [ENV], useFactory: mediaStorage },
     { provide: MEDIA_STORE, useClass: DrizzleMediaStore },
@@ -93,7 +92,6 @@ function mediaEdge(env: Env): MediaEdge {
     { provide: MEDIA_CLOCK, useValue: () => new Date() },
     { provide: MEDIA_EDGE, inject: [ENV], useFactory: mediaEdge },
     { provide: BANDWIDTH_STORE, useClass: DrizzleBandwidthStore },
-    { provide: BANDWIDTH_NOTIFIER, useClass: ConsoleBandwidthNotifier },
     {
       provide: BANDWIDTH_SETTINGS,
       inject: [ENV],

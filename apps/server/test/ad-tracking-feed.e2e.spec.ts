@@ -400,9 +400,11 @@ describeIfDatabase('the Meta catalog feed (FED-01 to FED-05)', () => {
     const url = await feedLink(shop);
     expect((await fetchFeed(url)).status).toBe(200);
     expect((await fetchFeed(url)).status).toBe(200);
-    const third = await fetchFeed(url);
-    expect(third.status).toBe(429);
-    expect(codeOf(third)).toBe('quota_exceeded');
+    // RTE-03: the operator's 10 percent of grace past the limit serves one more, then the cycle stops.
+    expect((await fetchFeed(url)).status).toBe(200);
+    const fourth = await fetchFeed(url);
+    expect(fourth.status).toBe(429);
+    expect(codeOf(fourth)).toBe('quota_exceeded');
   });
 
   it("deletes a lapsed shop's ad tracking and feed link at day 60 (LIF-19)", async () => {

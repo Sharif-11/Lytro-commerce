@@ -162,3 +162,17 @@ address, and then real shoppers meet that figure together.
   figure. A server restart may count a visitor again, so the visitor figure can run a little high.
 - **Change it:** `PATCH /operator/settings/public_requests_per_visitor_per_minute` with `{ "value": 200 }`. It takes
   effect within 5 seconds, without a deploy, and is in the platform audit log.
+
+## 5. A fast-spend alert arrived (RTE-12)
+
+**What this is:** an email to every operator that a shop's public API requests in one clock hour reached [5]% of its
+cycle's limit. Nothing was refused; the shop's owner was told too. It goes out at most once a day per shop.
+
+- **Look:** the shop's requests and refusals this cycle (RUNBOOKS §4's query), and the platform audit log's
+  `usage_fast_spend_alerted` entries for how often it happens.
+- **Read it:** a busy sale or a live post is real shoppers -- nothing to do. Steady traffic at night, or many requests
+  refused by the per-visitor limit, is a scraper or an attack.
+- **Act:** the shop keeps being served until its month and the grace after it are spent. If an attack spent it, give
+  the shop room again with an override of `requests_monthly` (PLN-11), with the reason. The share is the setting
+  `fast_spend_percent`, and the grace past every limit `usage_grace_percent`, both changed with
+  `PATCH /operator/settings/<key>`.

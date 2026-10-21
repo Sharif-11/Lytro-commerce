@@ -7,10 +7,6 @@ import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from '../src/app/app.module';
 import { dhakaDate } from '../src/common/time';
-import type {
-  BandwidthNotice,
-  BandwidthNotifier,
-} from '../src/modules/media/ports/bandwidth-notifier';
 import {
   EdgeUnavailable,
   type EdgeStoreChanges,
@@ -19,21 +15,19 @@ import {
 } from '../src/modules/media/ports/media-edge';
 import { GB, MediaBandwidth } from '../src/modules/media/services/media-bandwidth';
 import { MediaEraser } from '../src/modules/media/services/media-eraser';
-import {
-  BANDWIDTH_NOTIFIER,
-  MEDIA_CLOCK,
-  MEDIA_EDGE,
-  MEDIA_STORAGE,
-} from '../src/modules/media/tokens';
+import { MEDIA_CLOCK, MEDIA_EDGE, MEDIA_STORAGE } from '../src/modules/media/tokens';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
+import { USAGE_NOTICES } from '../src/modules/usage-warnings/tokens';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase } from './support/database';
 import { MemoryStorage } from './support/memory-storage';
 import { openShop, type ShopClient } from './support/shop-client';
 import { SmsCapture } from './support/sms-capture';
+import { UsageNoticeCapture } from './support/usage-notice-capture';
 
 // Phase 3 Slice 7b: the server's side of the media Worker -- each minute the Worker's usage is added to each shop's
-// cycle and day, once; the shop is warned at 50, 80 and 95 percent; the shared store gets the blocked list and each
+// cycle and day, once; the shop is told at 50, 80, 95 and 100 percent and at its stop past the grace (Slice 10); the
+// shared store gets the blocked list and each
 // shop's website addresses; the dashboard reads the cycle and its days. BND-01 to BND-03, BND-05, BND-06, BND-08,
 // MED-10, MED-13. Cloudflare is a memory stand-in and the pass's clock is the test's. Runs only when
 // DATABASE_TEST_ADMIN_URL is set.
@@ -88,20 +82,6 @@ class MemoryEdge implements MediaEdge {
   }
 }
 
-/** Keeps every warning, in place of the console stand-in. */
-class WarningCapture implements BandwidthNotifier {
-  readonly notices: BandwidthNotice[] = [];
-
-  bandwidthWarning(notice: BandwidthNotice): Promise<void> {
-    this.notices.push(notice);
-    return Promise.resolve();
-  }
-
-  percentsFor(tenantId: string): number[] {
-    return this.notices.filter((notice) => notice.tenantId === tenantId).map((n) => n.percent);
-  }
-}
-
 interface Usage {
   cycleStart: string;
   usedBytes: number;
@@ -115,7 +95,7 @@ let port: number;
 let admin: pg.Client;
 const texts = new SmsCapture();
 const edge = new MemoryEdge();
-const warnings = new WarningCapture();
+const warnings = new UsageNoticeCapture();
 // The pass's clock, ahead of real time so every minute the tests record comes after the shops were made; the tests
 // move it on instead of waiting. The cron the app runs reads the same clock, so it can only do what a test would.
 let clockMs = Date.now() + 10 * MINUTE_MS;
@@ -182,7 +162,7 @@ beforeAll(async () => {
     .useValue(new MemoryStorage())
     .overrideProvider(MEDIA_EDGE)
     .useValue(edge)
-    .overrideProvider(BANDWIDTH_NOTIFIER)
+    .overrideProvider(USAGE_NOTICES)
     .useValue(warnings)
     .overrideProvider(MEDIA_CLOCK)
     .useValue(() => new Date(clockMs))
@@ -274,30 +254,34 @@ describeIfDatabase('media bandwidth (BND-01, BND-02, BND-08)', () => {
 });
 
 describeIfDatabase('bandwidth warnings and blocking (BND-03, BND-05, BND-06, MED-10)', () => {
-  it('warns at 50, 80 and 95 percent once each, and blocks at 100 percent', async () => {
+  it('tells at 50, 80, 95 and 100 percent once each, serves through the grace, and blocks past it (BND-03)', async () => {
     const shop = await openShop(port, texts, 'bw-warn');
     await setBandwidth(shop, '1');
 
     await serve(shop, 0.4 * GB);
-    expect(warnings.percentsFor(shop.tenantId)).toEqual([]);
+    expect(warnings.levelsFor(shop.tenantId)).toEqual([]);
     // Exactly half: 429,496,730 and 107,374,182 bytes.
     await serve(shop, 0.1 * GB);
-    expect(warnings.percentsFor(shop.tenantId)).toEqual([50]);
+    expect(warnings.levelsFor(shop.tenantId)).toEqual([50]);
     await serve(shop, 0.05 * GB);
-    expect(warnings.percentsFor(shop.tenantId)).toEqual([50]);
+    expect(warnings.levelsFor(shop.tenantId)).toEqual([50]);
     await serve(shop, 0.3 * GB);
-    expect(warnings.percentsFor(shop.tenantId)).toEqual([50, 80]);
+    expect(warnings.levelsFor(shop.tenantId)).toEqual([50, 80]);
     await serve(shop, 0.11 * GB);
-    expect(warnings.percentsFor(shop.tenantId)).toEqual([50, 80, 95]);
+    expect(warnings.levelsFor(shop.tenantId)).toEqual([50, 80, 95]);
     expect(edge.blocked()[shop.tenantId]).toBeUndefined();
 
+    // Past 100 percent the media is still served, through the operator's 10 percent of grace.
     await serve(shop, 0.05 * GB);
+    expect(warnings.levelsFor(shop.tenantId)).toEqual([50, 80, 95, 100]);
+    expect(edge.blocked()[shop.tenantId]).toBeUndefined();
+    await serve(shop, 0.1 * GB);
     expect(edge.blocked()[shop.tenantId]).toBe('bandwidth');
     await serve(shop, 0.5 * GB);
-    expect(warnings.percentsFor(shop.tenantId)).toEqual([50, 80, 95]);
-    expect(warnings.notices.find((notice) => notice.tenantId === shop.tenantId)).toMatchObject({
-      limitBytes: GB,
-    });
+    expect(warnings.levelsFor(shop.tenantId)).toEqual([50, 80, 95, 100, 'stopped']);
+    expect(warnings.notices.filter((notice) => notice.tenantId === shop.tenantId)[3]).toMatchObject(
+      { metric: 'bandwidth', level: 100, limit: GB },
+    );
   });
 
   it('starts a new cycle at zero: unblocked, and warned again (BND-06)', async () => {
@@ -323,7 +307,7 @@ describeIfDatabase('bandwidth warnings and blocking (BND-03, BND-05, BND-06, MED
 
     await serve(shop, 0.6 * GB);
     expect((await usageOf(shop)).usedBytes).toBe(Math.round(0.6 * GB));
-    expect(warnings.percentsFor(shop.tenantId)).toEqual([95, 50]);
+    expect(warnings.levelsFor(shop.tenantId)).toEqual(['stopped', 50]);
   });
 
   it('never blocks or warns an unlimited shop (PLN-19)', async () => {
@@ -331,7 +315,7 @@ describeIfDatabase('bandwidth warnings and blocking (BND-03, BND-05, BND-06, MED
     await setBandwidth(shop, 'null');
     await serve(shop, 50 * GB);
     expect(edge.blocked()[shop.tenantId]).toBeUndefined();
-    expect(warnings.percentsFor(shop.tenantId)).toEqual([]);
+    expect(warnings.levelsFor(shop.tenantId)).toEqual([]);
     expect(await usageOf(shop)).toMatchObject({ usedBytes: 50 * GB, limitBytes: null });
   });
 
@@ -346,7 +330,7 @@ describeIfDatabase('bandwidth warnings and blocking (BND-03, BND-05, BND-06, MED
       readOnly.tenantId,
     ]);
     await setBandwidth(both, '1');
-    await serve(both, GB);
+    await serve(both, 1.2 * GB);
 
     const blocked = edge.blocked();
     expect(blocked[suspended.tenantId]).toBe('offline');

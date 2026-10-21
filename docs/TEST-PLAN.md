@@ -331,10 +331,10 @@ Steps: 1) Send 121 requests in a minute on a Starter secret key. 2) From three I
 Expected: the 121st secret-key request is 429; all 300 public-key requests succeed, with each IP's own count in the headers; the 11th order creation, 6th OTP and 121st total request from one IP are each 429; after the change the 6th request is 429; the refused requests and their visitors appear in the shop's `control.api_usage` row after the next flush.
 Covers: `RTE-01`, `RTE-02`, `RTE-06`.
 
-**S04-04 Monthly quota and warnings.**
-Steps: drive a Starter key to 50%, 80%, 95%, then 100% (200,001st request) of its monthly quota.
-Expected: three warnings sent at the thresholds; the 200,001st request returns 429 `quota_exceeded`.
-Covers: `RTE-03`.
+**S04-04 Monthly quota, warnings and the grace.**
+Steps: drive a Starter key to 50%, 80%, 95%, 100% and then past the 10% grace (220,001st request) of its monthly quota; separately, send 5% of a cycle's requests within one hour.
+Expected: one notice at each of 50%, 80%, 95% and 100% and one at the stop; requests up to 220,000 are served and the 220,001st returns 429 `quota_exceeded`; the fast hour alerts the owner and every operator once, refusing nothing.
+Covers: `RTE-03`, `RTE-12`, `LIM-01`.
 
 **S04-05 Order handling limit vs. unlimited creation.**
 Steps: on a trial tenant, create 50 orders, then attempt to book/mark-shipped the 41st handled order.

@@ -119,4 +119,13 @@ export class DrizzleApiUsageStore implements ApiUsageStore {
   setWarned(tx: Transaction, tenantId: string, cycleStart: Date, percent: number): Promise<void> {
     return this.usage.setWarned(tx, tenantId, cycleStart, percent);
   }
+
+  setFastSpendAlerted(
+    tx: Transaction,
+    tenantId: string,
+    cycleStart: Date,
+    at: Date,
+  ): Promise<void> {
+    return this.usage.setFastSpendAlerted(tx, tenantId, cycleStart, at);
+  }
 }

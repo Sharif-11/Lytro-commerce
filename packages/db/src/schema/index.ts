@@ -40,3 +40,4 @@ export * from './control/media-reconciliations';
 export * from './control/media-bandwidth';
 export * from './control/platform-catalogue';
 export * from './control/catalog-feeds';
+export * from './control/usage-warnings';

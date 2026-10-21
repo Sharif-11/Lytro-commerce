@@ -63,6 +63,8 @@ export const apiUsage = control.table(
     // from, so the operator can see whether many real shoppers behind one address meet the limit.
     refusedRequests: bigint('refused_requests', { mode: 'number' }).notNull().default(0),
     refusedVisitors: integer('refused_visitors').notNull().default(0),
+    // RTE-12: when the operators were last told of a fast hour's spending, so they are told at most once a day.
+    fastSpendAlertedAt: timestamp('fast_spend_alerted_at', { withTimezone: true }),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [primaryKey({ name: 'api_usage_pkey', columns: [t.tenantId, t.cycleStart] })],

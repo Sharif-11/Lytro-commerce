@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { AuditModule } from '../audit/audit.module';
 import { IdentityModule } from '../identity/identity.module';
 import { StaffModule } from '../staff/staff.module';
@@ -48,6 +49,7 @@ import { PurchasingModule } from '../purchasing/purchasing.module';
 import { MediaModule } from '../media/media.module';
 import { MediaController } from './controllers/media.controller';
 import { UsageController } from './controllers/usage.controller';
+import { LimitSuggestionsInterceptor } from './interceptors/limit-suggestions.interceptor';
 import { UsageModule } from '../usage/usage.module';
 import {
   ProductPurchasesController,
@@ -150,6 +152,8 @@ import { CatalogueRequest } from './services/catalogue-request';
     ClientIp,
     ShopSettingsService,
     CatalogueRequest,
+    // LIM-01: a refusal at a plan limit says what would give the shop room.
+    { provide: APP_INTERCEPTOR, useClass: LimitSuggestionsInterceptor },
   ],
 })
 export class TeamModule {}

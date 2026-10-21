@@ -25,6 +25,7 @@ import { MailService } from '../src/modules/shared/mail/services/mail.service';
 import type { JobQueue } from '../src/modules/shared/queue/ports/job-queue';
 import type { EssentialSmsUsageStore } from '../src/modules/sms-usage/ports/essential-sms-usage-store';
 import { EssentialSmsUsageService } from '../src/modules/sms-usage/services/essential-sms-usage.service';
+import type { UsageWarnings } from '../src/modules/usage-warnings/services/usage-warnings';
 
 // AUTH-05 to AUTH-07, tested through the real service with fake ports. Codes of every kind share these rules.
 const SECRET = 's'.repeat(32);
@@ -184,7 +185,12 @@ function build(state: World) {
     sumPartsSince: () => Promise.resolve(0),
     findCycleTenant: () => Promise.resolve(null),
   };
-  const essentialSms = new EssentialSmsUsageService(essentialSmsUsageStore);
+  // LIM-01: the allowance's warnings are the usage warnings' own spec; here they decide nothing.
+  const quietWarnings = {
+    check: () => Promise.resolve(),
+    limitsOf: () => Promise.resolve(null),
+  } as unknown as UsageWarnings;
+  const essentialSms = new EssentialSmsUsageService(essentialSmsUsageStore, quietWarnings);
 
   const gateway = { run: <T>(work: (tx: Transaction) => Promise<T>) => work(TX) };
   const codes = new OneTimeCodeService(
