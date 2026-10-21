@@ -285,11 +285,11 @@ CREATE TABLE control.invoices (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id       uuid NOT NULL REFERENCES control.tenants(id),
     number          bigint NOT NULL UNIQUE,      -- gap-free, from a locked counter row, not a sequence (DAT-07)
-    kind            text NOT NULL, -- purchase | renewal | upgrade (BIL-12) -- no default: every insert supplies it explicitly
-    plan_snapshot   jsonb NOT NULL,
+    kind            text NOT NULL CHECK (kind IN ('purchase', 'renewal', 'upgrade', 'addon')), -- BIL-12, PLN-14; no default
+    plan_snapshot   jsonb,                       -- null on an add-on's own invoice (PLN-14), which names no plan
     amount          numeric(10,2) NOT NULL,
     credit_amount   numeric(10,2) NOT NULL DEFAULT 0, -- UPG-03/UPG-15: the credit line shown on an upgrade invoice
-    billing_term_label text NOT NULL,
+    billing_term_label text,                     -- null on an add-on's own invoice
     -- BIL-12: copied at issue, so a later rename or plan edit never changes an issued invoice. Null on
     -- invoices issued before migration 0045.
     shop_name       text,
@@ -302,6 +302,19 @@ CREATE TABLE control.invoices (
     payment_method  text,                        -- balance | wallet
     payment_reference text,                      -- the wallet transaction ID; null for a balance payment
     issued_at       timestamptz NOT NULL DEFAULT now()
+);
+
+-- BIL-12, PLN-14: what an invoice is for, line by line -- the plan at its term's full price, each add-on, an
+-- upgrade's credit (negative) -- adding up to its amount. Invoices issued before migration 0073 have none.
+CREATE TABLE control.invoice_lines (
+    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    invoice_id      uuid NOT NULL REFERENCES control.invoices(id),
+    position        integer NOT NULL,
+    kind            text NOT NULL CHECK (kind IN ('plan', 'addon', 'credit')),
+    description     text NOT NULL,
+    quantity        integer NOT NULL DEFAULT 1,
+    amount          numeric(10,2) NOT NULL,
+    UNIQUE (invoice_id, position)
 );
 
 CREATE TABLE control.invoice_counters (
@@ -1458,7 +1471,8 @@ CREATE TABLE tenant.courier_connections (
 
 CREATE TYPE tenant.ledger_entry_type AS ENUM ('top_up', 'sms', 'ai', 'extraction', 'fraud_check',
     'order_fee', 'product_fee', 'plan_payment', 'adjustment', 'reversal',
-    'carry_over');                                      -- carry_over: LIF-21, a deleted shop's balance moved to the new one
+    'carry_over',                                       -- carry_over: LIF-21, a deleted shop's balance moved to the new one
+    'addon');                                           -- addon: PLN-14, an add-on paid from the balance
 
 CREATE TABLE tenant.balance_ledger (
     id              bigserial PRIMARY KEY,
@@ -1734,8 +1748,8 @@ CREATE TABLE control.plan_limit_overrides (
 CREATE TABLE control.plan_payments (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id       uuid NOT NULL REFERENCES control.tenants(id),
-    kind            text NOT NULL,                  -- purchase | renewal | upgrade | top_up
-    plan_id         uuid REFERENCES control.plans(id),       -- null for a top_up
+    kind            text NOT NULL,                  -- purchase | renewal | upgrade | top_up | addon (PLN-14)
+    plan_id         uuid REFERENCES control.plans(id),       -- null for a top_up or an add-on
     billing_term_id uuid REFERENCES control.billing_terms(id), -- null for a top_up
     amount          numeric(10,2) NOT NULL,         -- the amount due/quoted (BIL-09's 30-minute hold window)
     credit_amount   numeric(10,2) NOT NULL DEFAULT 0, -- UPG-03, for kind = 'upgrade'
@@ -1764,31 +1778,42 @@ CREATE TABLE control.plan_assignments (
     assigned_at     timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE TABLE control.addons (                      -- PLN-13
+CREATE TABLE control.addons (                      -- PLN-13, migration 0073
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    key             text NOT NULL UNIQUE,           -- extra_orders | extra_products | extra_seat | extra_storage | extra_bandwidth | extra_requests | brand_identity | fraud_check_allowance | extraction_allowance
+    key             text NOT NULL UNIQUE,           -- seeded: extra_products | extra_seat | extra_storage | brand_identity | bandwidth_pack | request_pack
     kind            text NOT NULL CHECK (kind IN ('limit', 'pack', 'feature', 'allowance')),  -- PLN-13, amended 2026-10-18; allowance: PLN-20
-    unit_size       numeric(12,2),                  -- null for a feature add-on
-    price           numeric(10,2) NOT NULL,
-    retired_at      timestamptz
+    limit_key       text,                           -- the plan limit a limit add-on or a pack raises (products, staff, storage_mb, ...); null for a feature
+    unit_size       integer,                        -- how much one adds, in that limit's own unit; null for a feature
+    price           numeric(10,2) NOT NULL,         -- whole taka: a month of a limit or feature add-on, or one pack
+    label_en        text NOT NULL,
+    label_bn        text NOT NULL,
+    retired_at      timestamptz,                    -- no longer for sale; what was bought runs to its end
+    created_at      timestamptz NOT NULL DEFAULT now()
 );
+-- A feature add-on's key names the plan feature it switches on (brand_identity: BRN-05), so a plan may include it too.
 
 CREATE TABLE control.addon_purchases (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id       uuid NOT NULL REFERENCES control.tenants(id),
     addon_id        uuid NOT NULL REFERENCES control.addons(id),
-    quantity        integer NOT NULL DEFAULT 1,
+    kind            text NOT NULL,                  -- copied from the catalogue when bought, with limit_key and
+    limit_key       text,                           -- unit_size, so a later catalogue edit never changes what
+    unit_size       integer,                        -- was bought (PLN-13)
+    quantity        integer NOT NULL DEFAULT 1 CHECK (quantity > 0),  -- up to [10] a purchase; a feature is one
+    price           numeric(10,2) NOT NULL,         -- what it cost, prorated to the period's end (PLN-14)
     status          text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'lapsed')),
-    paid_from       text NOT NULL CHECK (paid_from IN ('balance', 'payment')),  -- PLN-14: balance (BIL-08) or directly
-    plan_payment_id uuid REFERENCES control.plan_payments(id),  -- set when paid directly (BIL-03)
+    paid_from       text NOT NULL CHECK (paid_from IN ('balance', 'wallet')),  -- PLN-14: the balance (BIL-08), or a wallet from Slice 10a.2
+    plan_payment_id uuid REFERENCES control.plan_payments(id),  -- the quote it was bought by (kind addon, BIL-09's hold)
     renews          boolean NOT NULL DEFAULT true,   -- PLN-14: renews with the plan unless switched off
     purchased_at    timestamptz NOT NULL DEFAULT now(),
     starts_at       timestamptz,                     -- set when it takes effect (at once from balance, on confirmation if paid directly)
-    uses_left       integer CHECK (uses_left >= 0),  -- PLN-20: an allowance's uses left this period; null for other kinds
     expires_at      timestamptz NOT NULL            -- PLN-14: end of the plan period, or a [30]-day period for pay-as-you-go
+    -- uses_left integer (PLN-20): an allowance's uses left this period, added with the allowances
 );
--- Limits are calculated as plan snapshot + operator overrides (PLN-11) + active limit add-ons. A pack is
--- consumed rather than expiring; the tenant's auto-buy opt-in (PLN-15) is a setting on the tenant.
+CREATE INDEX ON control.addon_purchases (tenant_id, status, expires_at);
+-- Limits are the plan snapshot + operator overrides (PLN-11) + active limit add-ons, in one function
+-- (`shopLimitsOf`); an add-on counts only while active, from starts_at until expires_at, whatever any job has done.
+-- A pack is consumed rather than expiring; the tenant's auto-buy opt-in (PLN-15) is a setting on the tenant.
 -- An allowance (PLN-20) is used before the balance: each fake-order check or order read takes one from
 -- uses_left in the same transaction as the check or read; at 0, or after expires_at, it is charged from
 -- the balance again. A renewal sets uses_left back to the full number.

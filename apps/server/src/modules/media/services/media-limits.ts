@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Transaction } from '@lytronix/db';
-import { limitOf, MediaKind, PlatformSettingKey, withOverrides } from '@lytronix/validators';
+import { limitOf, MediaKind, PlatformSettingKey, shopLimitsOf } from '@lytronix/validators';
 import { PlatformSettingsService } from '../../platform-settings/services/platform-settings.service';
 import type { MediaStore } from '../ports/media-store';
 import { MEDIA_STORE } from '../tokens';
@@ -36,11 +36,11 @@ export class MediaLimits {
   }
 
   /**
-   * The shop's storage limit in MB, overrides laid over its plan; null is unlimited (PLN-19), and so is a plan that
-   * sets none -- the same reading the product limit has.
+   * The shop's storage limit in MB, overrides laid over its plan and its storage add-ons on top (PLN-13); null is
+   * unlimited (PLN-19), and so is a plan that sets none -- the same reading the product limit has.
    */
   async storageMb(tx: Transaction, tenantId: string): Promise<number | null> {
-    const { snapshot, overrides } = await this.store.planLimits(tx, tenantId);
-    return limitOf(withOverrides(snapshot, overrides), 'storage_mb');
+    const { snapshot, overrides, addons } = await this.store.planLimits(tx, tenantId);
+    return limitOf(shopLimitsOf(snapshot, overrides, addons), 'storage_mb');
   }
 }

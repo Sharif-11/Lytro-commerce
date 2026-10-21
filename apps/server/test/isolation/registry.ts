@@ -196,6 +196,13 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'GET /usage': "counts only the session shop's own products, seats, media, requests and SMS",
   // Phase 3 Slice 10, checked in test/downgrade-checklist.e2e.spec.ts.
   'GET /billing/downgrade/checklist': "shows only the session shop's own downgrade and counts",
+  // Phase 3 Slice 10a.1, checked in test/addons.e2e.spec.ts: the catalogue is platform-wide, the prices and purchases the
+  // shop's own.
+  'GET /addons':
+    "prices the platform-wide catalogue against the session shop's own period and limits",
+  'GET /addons/mine': "lists only the session shop's own add-ons",
+  'POST /addons/quote': 'creates an add-on quote scoped to the session shop only',
+  'POST /addons/purchase': "another shop's payment id answers not_found",
   // The public API (API-10, TEN-02): the shop comes from the key alone, whatever the request names.
   'GET /public/shop': "answers the key's own shop only; a shop id sent with the request is ignored",
   // Phase 3 Slice 9a, checked in test/public-catalogue.e2e.spec.ts: the catalogue of the key's shop only.

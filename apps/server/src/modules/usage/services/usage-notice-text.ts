@@ -52,6 +52,16 @@ function day(date: Date): string {
 
 function option(suggestion: Suggestion): string {
   if (suggestion.kind === 'contact') return 'contact Lytro for a custom plan';
+  if (suggestion.kind === 'addons') {
+    const items = suggestion.items
+      .map((item) =>
+        item.quantity === 1
+          ? `the ${item.name} add-on`
+          : `${String(item.quantity)} ${item.name} add-ons`,
+      )
+      .join(' and ');
+    return `add ${items} to your plan, ${String(suggestion.monthly)} TK a month`;
+  }
   const term = suggestion.months === 1 ? 'a month' : `${String(suggestion.months)} months`;
   const monthly = suggestion.months === 1 ? '' : ` (${String(suggestion.monthly)} TK a month)`;
   return `${suggestion.name}, ${String(suggestion.price)} TK for ${term}${monthly}`;

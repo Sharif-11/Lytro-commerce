@@ -24,10 +24,15 @@ export interface MediaStore {
   /** STO-03: one writer at a time weighs the shop's storage against its limit. */
   lockStorage(tx: Transaction, tenantId: string): Promise<void>;
   /** PLN-11: the shop's plan snapshot and its overrides, for its storage limit. */
+  /** PLN-11, PLN-13: what the shop's storage is judged by: its snapshot, overrides and active add-ons. */
   planLimits(
     tx: Transaction,
     tenantId: string,
-  ): Promise<{ snapshot: PlanLimits | null; overrides: { limitKey: string; value: unknown }[] }>;
+  ): Promise<{
+    snapshot: PlanLimits | null;
+    overrides: { limitKey: string; value: unknown }[];
+    addons: { limitKey: string; units: number }[];
+  }>;
   listReady(
     tx: Transaction,
     tenantId: string,

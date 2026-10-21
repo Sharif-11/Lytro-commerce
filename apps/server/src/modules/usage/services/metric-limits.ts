@@ -13,10 +13,15 @@ const METRIC_LIMITS: Readonly<Record<UsageMetric, { key: UsageLimitKey; unit: nu
   [UsageMetric.EssentialSmsTotal]: { key: 'essential_sms_total', unit: 1 },
 };
 
+/** LIM-02: the limit a metric is judged against, and how many of the metric's units one of the limit's is. */
+export function metricLimitKey(metric: UsageMetric): { key: UsageLimitKey; unit: number } {
+  return METRIC_LIMITS[metric];
+}
+
 /** PLN-19: a metric's limit under these limits, in the metric's own unit (bytes for storage and bandwidth); null is
  * unlimited. */
 export function metricLimit(limits: PlanLimits | null, metric: UsageMetric): number | null {
-  const { key, unit } = METRIC_LIMITS[metric];
+  const { key, unit } = metricLimitKey(metric);
   const limit = limitOf(limits, key);
   return limit === null ? null : limit * unit;
 }

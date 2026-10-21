@@ -119,8 +119,23 @@ export {
 export {
   InvoiceCountersRepository,
   InvoicesRepository,
+  type InvoiceLine,
   type NewInvoice,
 } from './repositories/billing/invoices.repository';
+export {
+  AddonRepository,
+  type AddonEdit,
+  type AddonRow,
+  type NewAddonValues,
+} from './repositories/billing/addon.repository';
+export {
+  AddonPurchaseRepository,
+  addonUnitList,
+  type ActiveAddonRow,
+  type AddonPurchaseRow,
+  type AddonUnits,
+  type NewAddonPurchaseValues,
+} from './repositories/billing/addon-purchase.repository';
 export {
   PlanPaymentsRepository,
   UsedTransactionIdsRepository,

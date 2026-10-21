@@ -57,9 +57,33 @@ export const LIMIT_WHEN_UNSET: Readonly<Record<UsageLimitKey, number | null>> = 
 export const ACTIVITY_RETENTION_DAYS_WHEN_UNSET = 30;
 
 /** PLN-19: one limit of a shop as every check applies it: its number, or null for unlimited. */
+/** Whether a stored limit key (an override's, an add-on's) is one of the limits that cap a use. */
+export function isUsageLimitKey(key: string): key is UsageLimitKey {
+  return key in LIMIT_WHEN_UNSET;
+}
+
 export function limitOf(limits: PlanLimits | null, key: UsageLimitKey): number | null {
   const value = limits?.[key];
   return value === undefined ? LIMIT_WHEN_UNSET[key] : value;
+}
+
+/**
+ * PLN-13: a shop's limits with its active limit add-ons added on top -- after its overrides, so an add-on raises
+ * whatever the shop's limit is. Unlimited stays unlimited; a limit the shop's limits do not set counts from PLN-19's
+ * table. The one place that adds them, beside `withOverrides`.
+ */
+export function withAddons(
+  limits: PlanLimits | null,
+  addons: readonly { limitKey: string; units: number }[],
+): PlanLimits | null {
+  if (addons.length === 0) return limits;
+  const raised: Record<string, unknown> = { ...(limits ?? {}) };
+  for (const { limitKey, units } of addons) {
+    if (!isUsageLimitKey(limitKey)) continue;
+    const current = limitOf(raised, limitKey);
+    if (current !== null) raised[limitKey] = current + units;
+  }
+  return raised;
 }
 
 /**
@@ -76,4 +100,16 @@ export function withOverrides(
     merged[override.limitKey] = override.value;
   }
   return merged;
+}
+
+/**
+ * PLN-05, PLN-11, PLN-13: what a shop is held to -- its plan snapshot, its overrides laid over it, its active add-ons
+ * on top. Every reader of a shop's limits goes through this, so none adds them its own way.
+ */
+export function shopLimitsOf(
+  snapshot: PlanLimits | null,
+  overrides: readonly { limitKey: string; value: unknown }[],
+  addons: readonly { limitKey: string; units: number }[],
+): PlanLimits | null {
+  return withAddons(withOverrides(snapshot, overrides), addons);
 }

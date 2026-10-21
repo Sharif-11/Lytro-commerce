@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
+  AddonPurchaseRepository,
   ApiKeyRepository,
   MediaBandwidthRepository,
   MediaRepository,
@@ -7,6 +8,7 @@ import {
   ShopSettingsRepository,
   TenantRepository,
   TransactionRunner,
+  type AddonUnits,
   type BandwidthCycleRow,
   type BandwidthDayRow,
   type BillingInfoRow,
@@ -43,6 +45,7 @@ export class DrizzleMediaStore implements MediaStore {
     @Inject(TenantRepository) private readonly tenants: TenantRepository,
     @Inject(PlanLimitOverridesRepository) private readonly overrides: PlanLimitOverridesRepository,
     @Inject(ShopSettingsRepository) private readonly settings: ShopSettingsRepository,
+    @Inject(AddonPurchaseRepository) private readonly addonPurchases: AddonPurchaseRepository,
   ) {}
 
   run<T>(work: (tx: Transaction) => Promise<T>): Promise<T> {
@@ -88,12 +91,17 @@ export class DrizzleMediaStore implements MediaStore {
   async planLimits(
     tx: Transaction,
     tenantId: string,
-  ): Promise<{ snapshot: PlanLimits | null; overrides: { limitKey: string; value: unknown }[] }> {
-    const [info, overrides] = await Promise.all([
+  ): Promise<{
+    snapshot: PlanLimits | null;
+    overrides: { limitKey: string; value: unknown }[];
+    addons: AddonUnits[];
+  }> {
+    const [info, overrides, addons] = await Promise.all([
       this.tenants.findBillingInfo(tx, tenantId),
       this.overrides.listForTenant(tx, tenantId),
+      this.addonPurchases.activeUnits(tx, tenantId),
     ]);
-    return { snapshot: info?.planSnapshot ?? null, overrides };
+    return { snapshot: info?.planSnapshot ?? null, overrides, addons };
   }
 
   listReady(

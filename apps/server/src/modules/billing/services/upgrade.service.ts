@@ -11,7 +11,7 @@ import {
   TenantState,
 } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
-import { addMonths, daysBetween, daysUntil, HOUR_MS } from '../../../common/time';
+import { addMonths, HOUR_MS } from '../../../common/time';
 import { AuditService } from '../../audit/services/audit.service';
 import { BalanceService } from '../../balance/services/balance.service';
 import { fromPaisa, toPaisa } from '../../balance/services/money';
@@ -25,6 +25,7 @@ import { BillingTermsService } from './billing-terms.service';
 import { DowngradeService } from './downgrade.service';
 import { PlanInvoicingService } from './plan-invoicing.service';
 import { PlansService } from './plans.service';
+import { unusedPlanValue } from './plan-credit';
 
 // UPG-07: a quote's price is held for 15 minutes (shorter than a purchase's 30, S-priority but the same
 // hold-then-expire shape as BIL-09 -- past the window the tenant re-quotes rather than silently re-pricing).
@@ -87,12 +88,8 @@ export class UpgradeService {
     const newPrice = await this.terms.findPrice(planId, billingTermId);
     if (newPrice === null) throw new ApiError('not_found', 'PriceNotFound', {});
 
-    const latestInvoice = (await this.invoices.listForTenant(tenantId))[0];
-    const pricePaid = latestInvoice?.amount ?? '0';
-
-    const totalDays = daysBetween(info.periodStart, info.periodEnd);
-    const remainingDays = daysUntil(now, info.periodEnd);
-    const credit = Math.round((Number(pricePaid) * remainingDays) / totalDays);
+    // UPG-03 (KNOWN-GAPS §84): the plan time paid for and not used, never an add-on's invoice.
+    const credit = unusedPlanValue(await this.invoices.listForTenant(tenantId), now);
     const amountDue = Number(newPrice) - credit;
     if (amountDue <= 0) {
       throw new ApiError('validation_error', 'UpgradeNotWorthwhile', {});
@@ -114,7 +111,7 @@ export class UpgradeService {
     tenantId: string,
     input: { transactionId: string; senderNumber: string; amountPaid: string },
   ): Promise<PlanPaymentRecord> {
-    return this.payments.submitWalletPayment(paymentId, tenantId, input, PlanPaymentKind.Upgrade);
+    return this.payments.submitWalletPayment(paymentId, tenantId, input, [PlanPaymentKind.Upgrade]);
   }
 
   /** UPG-16's balance path: atomic, instant, no operator -- the same shape as a purchase's. */
