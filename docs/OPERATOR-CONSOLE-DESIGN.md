@@ -38,7 +38,10 @@ the seller and takes its reason in the same panel.
    lands.
 
 **Look.** Lytro tokens unchanged: ink text on white and neutral-50, teal-700 primary, marigold for the one
-accent and the operator eyebrow, status colours with one meaning each. Inter and Noto Sans Bengali for text,
+accent and the operator eyebrow, status colours with one meaning each. The brand lockup is the real one
+from `docs/brand`: the operator icon tile (`icon-operator.svg`, teal-900 tile with the marigold mark) beside
+the OPERATOR eyebrow over the wordmark (`lytro-wordmark-dark.svg` on the band and sidebar head, where the
+mark is the first letter in teal-400 and "ytro" is white; `lytro-wordmark.svg` on the sign-in page). Inter and Noto Sans Bengali for text,
 Plus Jakarta Sans for figures and titles, JetBrains Mono for ids. English by default with the Bangla toggle
 in the top bar; Bangla copy uses the commerce vernacular the dashboard uses.
 
