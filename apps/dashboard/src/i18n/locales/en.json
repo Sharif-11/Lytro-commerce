@@ -674,7 +674,8 @@
       "api_key_revoked": "revoked an API key",
       "product_images_saved": "changed a product's photos",
       "shop_logo_saved": "changed the shop logo",
-      "media_deleted": "deleted a photo"
+      "media_deleted": "deleted a photo",
+      "product_video_saved": "changed a product's video"
     }
   },
   "settings": {

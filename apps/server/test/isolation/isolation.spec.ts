@@ -260,6 +260,7 @@ describeIfDatabase('route inventory against the application (SEC-02)', () => {
       'PUT /products/:id/variants',
       'PUT /products/:id/variants/:variantId/cost',
       'PUT /products/:id/variants/:variantId/stock',
+      'PUT /products/:id/video',
       'PUT /shop-settings/logo',
     ]);
     expect(compareWithRegistry(routes, ISOLATION_REGISTRY)).toEqual({ uncovered: [], stale: [] });

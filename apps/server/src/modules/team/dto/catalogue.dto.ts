@@ -11,6 +11,7 @@ import {
   createShopOptionSchema,
   productDeliveryZonesSchema,
   productImagesSchema,
+  productVideoSchema,
   saveProductAttributesSchema,
   saveVariantsSchema,
   setBusinessTypeSchema,
@@ -44,6 +45,7 @@ export class ChangeProductSlugDto extends createZodDto(changeProductSlugSchema) 
 export class SizeChartDto extends createZodDto(sizeChartSchema) {}
 export class ProductDeliveryZonesDto extends createZodDto(productDeliveryZonesSchema) {}
 export class ProductImagesDto extends createZodDto(productImagesSchema) {}
+export class ProductVideoDto extends createZodDto(productVideoSchema) {}
 export class AddOptionsDto extends createZodDto(addOptionsSchema) {}
 export class CreateOptionSetDto extends createZodDto(createOptionSetSchema) {}
 export class UpdatePresetDto extends createZodDto(updatePresetSchema) {}

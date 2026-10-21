@@ -1,9 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Transaction } from '@lytronix/db';
-import { ServerFieldProblemCode } from '@lytronix/validators';
+import { MediaKind, ServerFieldProblemCode } from '@lytronix/validators';
 import { FieldsError } from '../../../common/api-error';
 import { MediaNotAttachable } from '../../../common/errors/media-refused';
-import { MediaLinks, type ImageView } from '../../../common/media-links';
+import { MediaLinks, type ImageView, type VideoView } from '../../../common/media-links';
 import type { CatalogueImageStore } from '../ports/catalogue-stores';
 import { CATALOGUE_IMAGE_STORE } from '../tokens';
 
@@ -36,8 +36,15 @@ export class CatalogueImages {
   ): Promise<Map<string, ImageView>> {
     const wanted = [...new Set(ids.filter((id): id is string => typeof id === 'string'))];
     if (wanted.length === 0) return new Map();
-    const ready = await this.store.readyImages(tx, tenantId, wanted);
+    const ready = await this.store.readyMedia(tx, tenantId, wanted, MediaKind.Image);
     return new Map(ready.map((row) => [row.id, this.links.image(tenantId, row.id, row.hash)]));
+  }
+
+  /** PRD-11: a product's video, when it names a ready one. */
+  async videoOf(tx: Transaction, tenantId: string, id: string | null): Promise<VideoView | null> {
+    if (id === null) return null;
+    const [ready] = await this.store.readyMedia(tx, tenantId, [id], MediaKind.Video);
+    return ready ? this.links.video(tenantId, ready.id, ready.hash) : null;
   }
 
   /** PRD-11: each product's photos, in the order shown. */

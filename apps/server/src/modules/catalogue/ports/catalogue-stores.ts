@@ -6,6 +6,7 @@ import type {
   SizeChartOwner,
   Transaction,
 } from '@lytronix/db';
+import type { MediaKind } from '@lytronix/validators';
 import type {
   AttributeRecord,
   CategoryRecord,
@@ -389,12 +390,13 @@ export interface SizeChartStore {
   deleteChart(tx: Transaction, tenantId: string, owner: SizeChartOwner): Promise<boolean>;
 }
 
-/** MED-08, PRD-11: which images are ready to show, and the photos of products, in order. */
+/** MED-08, PRD-11: which images and videos are ready to show, and the photos of products, in order. */
 export interface CatalogueImageStore {
-  readyImages(
+  readyMedia(
     tx: Transaction,
     tenantId: string,
     ids: string[],
+    kind: MediaKind,
   ): Promise<{ id: string; hash: string }[]>;
   listProductImages(
     tx: Transaction,

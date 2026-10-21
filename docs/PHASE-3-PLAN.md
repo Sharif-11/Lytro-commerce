@@ -667,7 +667,7 @@ their backend ships earlier.
   - **Images** are judged by content (JPEG, PNG, WebP), turned upright and stripped of metadata, stored as a WebP of at
     most 1600 px at q80 and a 300 px thumbnail; the uploaded file is not kept. Public names carry the content's
     fingerprint, under the item's own id (`tenants/<shop>/<media id>/<hash>.webp`), so two identical uploads never
-    share a name. The per-file limits (5 MB, 100 MB) are platform settings.
+    share a name. The per-file limits (5 MB; 150 MB for videos since 6b) are platform settings.
   - **Attaching:** a product's photos, up to 10 in order (`PUT /products/:id/images`); a category's banner (the slice's
     text names categories; the design points had left them out); an image swatch on a shop's own value, a colour or
     an image, never both; an image size chart in place of a table; the shop's logo (`PUT /shop-settings/logo`). The
@@ -676,8 +676,27 @@ their backend ships earlier.
   - **Deleting** removes the item from everywhere at once and drops usage; its files go in the deletion job, the only
     one holding the deleting key. The past-orders warning shows 0 until orders arrive (Phase 4). Day 60 wipes the
     rows and every file under the shop's prefix.
-  - **Built as decided in 6a**, with videos turned away until 6b. An item whose processing runs out of retries while
-    the store is away stays `processing` until 6b's nightly sweep.
+  - **Built as decided in 6a** (#177), with videos turned away until 6b.
+  - **6b's seven points, agreed before code** (migration 0066):
+    - **Video size:** STO-05 said 100 MB, while STO-09's own test is a 1-minute 1080p phone clip of about 130 MB, so
+      the cap is 150 MB (STO-05 amended; still an editable setting).
+    - **Probing:** the pinned `ffmpeg-static` (ffmpeg 6.1.1, GPL, run on our servers only) both reads a file and
+      compresses it; `ffprobe-static` is years stale.
+    - **Compressing:** libx264 `medium` on 2 threads, one video at a time, on a queue of its own. A 1-minute 1080p
+      clip took about 70 s on a laptop core, well inside STO-09's 5 minutes.
+    - **Keeping an original:** an H.264 MP4 within 1280 px that every browser plays, with AAC or no sound, smaller than
+      the compressed copy, is kept with its own streams, re-wrapped to start fast. Metadata is stripped either way.
+    - **The nightly run:** at 03:00 Dhaka, shop by shop. It deletes uploads never finished after a day and refuses
+      items stuck processing after an hour. It records shops whose rows and R2 differ in
+      `control.media_reconciliations`, deletes stray files over a day old, reports missing ones only, and logs an
+      operator alert above 0.5%.
+    - **Telling the shop:** a refused video, and anything the run finds stuck, goes through a console stand-in until
+      Phase 7's notices (D3-5).
+    - **Keys:** the inventory and rotation steps are in RUNBOOKS §2, with `scripts/media-key-check.ts` to show what
+      each key may really do; R2 likely cannot split writing from deleting (KNOWN-GAPS §78).
+  - **Built as decided in 6b.** A product's one video is `PUT /products/:id/video`; storage being away is logged as an
+    operator alert (MED-11) until alerting exists (OD-43). The query for every live shop moved to `TenantRepository`
+    so the inventory passes and the nightly media run share it.
 - **Depends on:** Slice 1 (media attaches to products, categories and the shop logo).
 - **Delivers:** the storage port (D3-4); signed direct uploads to a temporary area; the processing job
   (content validation, resize to 1600 px, WebP q80, 300 px thumbnail, video validation, and FFmpeg video

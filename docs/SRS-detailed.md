@@ -67,7 +67,7 @@ Version 1.0 draft · updated 2026-10-03 · companion to `SRS.md` (overview). Thi
 | Payment sessions per cycle (independent of the order-handling limit above, RTE-09) | 20 | 2 × the tenant's own recent order-creation volume | 600 | 3,000 | 12,000 |
 | Activity log and chat retention † | [30 days] (raised 2026-10-02 to match the extended trial length — it was [7 days] when the trial was 7 days) | 30 days | 30 days | 90 days | 365 days |
 
-Per-file limits: image 5 MB, video 100 MB (editable). Couriers connectable: unlimited on every plan.
+Per-file limits: image 5 MB, video 150 MB (editable). Couriers connectable: unlimited on every plan.
 
 **`PLN-19`** (added 2026-10-16) generalizes "unlimited" from these two unconditional special cases (order
 creation, couriers connectable) into an operator-configurable property any limit above can have, on any
@@ -513,11 +513,11 @@ State names and timings are in 2.3. "Day N" means N × 24 hours after the paid p
 | STO-02 | Usage shall update within [1] minute of an upload or delete. | The usage page reflects a new upload within a minute. | M | E2E |
 | STO-03 | An upload that would exceed the limit shall be refused with `plan_limit_reached`; existing files shall stay available. | At 1.99 GB of 2 GB, a 20 MB upload fails; existing images still load. | M | API |
 | STO-04 | Images shall be JPEG, PNG or WebP up to 5 MB; the server shall resize to a long edge of [1600] px, convert to WebP at quality [80], and create a [300] px thumbnail. | A 4 MB JPEG is stored smaller; a 6 MB image and a `.exe` renamed `.jpg` are rejected. | M | API |
-| STO-05 | Videos shall be MP4 or WebM up to 100 MB, validated by content and not by file name, then compressed per STO-09 before being stored. | A 101 MB video and a non-video file named `.mp4` are rejected. | M | API |
+| STO-05 | Amended 2026-10-21 (from 100 MB, so a 1-minute 1080p phone clip fits): videos shall be MP4 or WebM up to [150] MB, validated by content and not by file name, then compressed per STO-09 before being stored. | A 151 MB video and a non-video file named `.mp4` are rejected. | M | API |
 | STO-06 | Executables, HTML and scripted SVG uploads shall be rejected. | Each returns `validation_error`. | M | API |
 | STO-07 | Deleting media shall reduce usage. | Usage drops by the deleted size. | M | API |
 | STO-08 | *Withdrawn: media has no separate backup copy (see MED-06).* | — | — | — |
-| STO-09 | Added 2026-10-17. The processing job (MED-03) shall compress every accepted video to visually lossless H.264 video with AAC audio in an MP4 container: long edge at most [1280] px (never upscaled), constant quality (CRF [23]), audio at [128] kbps, fast-start enabled so playback begins before the download completes, plus a poster image. Only the compressed file and its poster shall be stored and counted toward storage (STO-01); the original shall be deleted once compression succeeds, except when the original is already an H.264 MP4 within the size bound and smaller than the compressed result, in which case it is kept unchanged. A video up to 100 MB shall finish processing within [5] minutes; a failed compression shall leave nothing stored or counted, and the tenant shall be told. | A 1-minute 1080p phone video of about 130 MB is stored as a 720p MP4 of about 11–19 MB with a poster image, and usage rises only by those; a WebM upload is served as MP4; an already-compressed 12 MB MP4 is kept as is. | M | API |
+| STO-09 | Added 2026-10-17. The processing job (MED-03) shall compress every accepted video to visually lossless H.264 video with AAC audio in an MP4 container: long edge at most [1280] px (never upscaled), constant quality (CRF [23]), audio at [128] kbps, fast-start enabled so playback begins before the download completes, plus a poster image. Only the compressed file and its poster shall be stored and counted toward storage (STO-01); the original shall be deleted once compression succeeds, except when the original is already an H.264 MP4 within the size bound and smaller than the compressed result, in which case it is kept unchanged. A video up to the size limit (STO-05) shall finish processing within [5] minutes; a failed compression shall leave nothing stored or counted, and the tenant shall be told. | A 1-minute 1080p phone video of about 130 MB is stored as a 720p MP4 of about 11–19 MB with a poster image, and usage rises only by those; a WebM upload is served as MP4; an already-compressed 12 MB MP4 is kept as is. | M | API |
 
 ### 13.2 Media bandwidth
 

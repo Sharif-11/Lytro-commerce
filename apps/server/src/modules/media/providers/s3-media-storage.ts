@@ -9,6 +9,9 @@ import {
   S3ServiceException,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { createWriteStream } from 'node:fs';
+import { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
 import { StorageUnavailable } from '../../../common/errors/media-refused';
 import type { MediaStorage, SignedUpload, StoredObject } from '../ports/media-storage';
 
@@ -88,6 +91,20 @@ export class S3MediaStorage implements MediaStorage {
     }
   }
 
+  async saveUpload(key: string, path: string): Promise<boolean> {
+    try {
+      const object = await this.processor.send(
+        new GetObjectCommand({ Bucket: this.settings.uploadsBucket, Key: key }),
+      );
+      if (!object.Body) return false;
+      await pipeline(Readable.from(object.Body.transformToWebStream()), createWriteStream(path));
+      return true;
+    } catch (error) {
+      if (error instanceof NoSuchKey) return false;
+      throw this.unavailable(error);
+    }
+  }
+
   async removeUpload(key: string): Promise<void> {
     try {
       await this.processor.send(
@@ -143,7 +160,13 @@ export class S3MediaStorage implements MediaStorage {
           }),
         );
         for (const item of page.Contents ?? []) {
-          if (item.Key !== undefined) objects.push({ key: item.Key, bytes: item.Size ?? 0 });
+          if (item.Key !== undefined) {
+            objects.push({
+              key: item.Key,
+              bytes: item.Size ?? 0,
+              lastModified: item.LastModified ?? new Date(0),
+            });
+          }
         }
         token = page.IsTruncated ? page.NextContinuationToken : undefined;
       } catch (error) {

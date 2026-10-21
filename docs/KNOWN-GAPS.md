@@ -1512,6 +1512,16 @@ the Asia/Dhaka calendar (TRM-09). Ten days from 00:02 on 21 October, Dhaka time,
 a day apart. The server was right; the test now uses the server's own `addMonths`. It could fail only in the first
 six hours of a Dhaka day whose date ten days on is the 31st.
 
+## 78. `MED-07`: R2 likely cannot stop the processing key deleting media — open, found 2026-10-21
+
+Found while designing Phase 3 Slice 6b. MED-07 wants only the deletion job's key able to delete media. R2's tokens
+come only as read, or read and write, per bucket, and Cloudflare does not say that read and write leaves deleting out,
+so the processing key, which must write media, can likely delete it too. The code keeps the split: only `MediaDeleter`
+deletes, and the processor sends its own leftovers to it. `scripts/media-key-check.ts` shows what each real key may
+do; run it once the R2 keys exist and record the answer in RUNBOOKS §2. If the processor can delete, close this when
+the media Worker (Slice 7) takes over writes through a binding that cannot delete, so the server holds no key that
+can.
+
 ## Not a bug, just noting it so it isn't mistaken for one later
 
 The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data

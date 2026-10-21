@@ -20,6 +20,12 @@ export const imageViewSchema = z.object({
   urls: z.object({ main: z.string(), thumbnail: z.string() }),
 });
 
+// PRD-11, STO-09: a ready video as a product shows it: the MP4 and its poster.
+export const videoViewSchema = z.object({
+  id: z.string(),
+  urls: z.object({ video: z.string(), poster: z.string() }),
+});
+
 const productDefaultsFields = {
   stockUnit: z.nativeEnum(StockUnit),
   stockTracking: z.nativeEnum(StockTracking),
@@ -208,6 +214,7 @@ export const productDetailSchema = z.object({
     })
     .nullable(),
   images: z.array(imageViewSchema),
+  video: videoViewSchema.nullable(),
   deliveryZoneIds: z.array(z.string()),
   createdAt: z.date(),
   updatedAt: z.date(),

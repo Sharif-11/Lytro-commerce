@@ -1192,9 +1192,9 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: (p) => `An image can be up to ${String(p.mb)} MB.`,
     bn: (p) => `ছবি সর্বোচ্চ ${String(p.mb)} MB হতে পারে।`,
   },
-  VideoUploadsNotOpen: {
-    en: 'Video uploads are coming soon; upload a photo for now.',
-    bn: 'ভিডিও আপলোড শীঘ্রই আসছে; আপাতত ছবি আপলোড করুন।',
+  VideoTooLarge: {
+    en: (p) => `A video can be up to ${String(p.mb)} MB.`,
+    bn: (p) => `ভিডিও সর্বোচ্চ ${String(p.mb)} MB হতে পারে।`,
   },
   StorageLimitReached: {
     en: (p) =>
@@ -1224,6 +1224,7 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   MediaDeleted: { en: 'Deleted from your media.', bn: 'মিডিয়া থেকে ডিলিট করা হয়েছে।' },
   ProductImagesSaved: { en: 'Product photos saved.', bn: 'প্রোডাক্টের ছবি সেভ হয়েছে।' },
   ShopLogoSaved: { en: 'Logo saved.', bn: 'লোগো সেভ হয়েছে।' },
+  ProductVideoSaved: { en: 'Product video saved.', bn: 'প্রোডাক্টের ভিডিও সেভ হয়েছে।' },
 };
 
 export function translate(key: MessageKey, lang: Language, params: MessageParams = {}): string {

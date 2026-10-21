@@ -474,8 +474,9 @@ later slice needs arrive with it: `image_id`, `video_id` and `tenant.product_ima
 **Slice 1b (migration 0052, 2026-10-19)** added `categories.behaves_like` (PST-06), `attribute_options.swatch_color`
 (ATR-18), `tenant.size_charts` and `tenant.option_sets` (below) and `business_type_presets.up_front_fields` (PST-05).
 **Slice 6a (migration 0065, 2026-10-21)** added `categories.image_id`, `attribute_options.swatch_image_id`, the size
-chart's `image_id` and `tenant.product_images`, each pointing at `tenant.media` (§3.5); `products.video_id` arrives
-with video in Slice 6b. `product_variants.image_id` is not built: no SRS row asks for a variant's own photo.
+chart's `image_id` and `tenant.product_images`, each pointing at `tenant.media` (§3.5). **Slice 6b (migration 0066,
+2026-10-21)** added `products.video_id`, a ready video of the shop's (`media_ready_video`), cleared when the video is
+deleted. `product_variants.image_id` is not built: no SRS row asks for a variant's own photo.
 
 ```sql
 CREATE TABLE tenant.catalogue_state (
@@ -532,7 +533,7 @@ CREATE TABLE tenant.products (
     payment_policy      tenant.payment_policy,             -- null => shop_settings.default_payment_policy
     advance_amount      numeric(10,2) CHECK (advance_amount >= 0),   -- partial_advance only
     item_condition      text NOT NULL DEFAULT 'new' CHECK (item_condition IN ('new', 'refurbished', 'used')),  -- FED-02
-    video_id            uuid,                              -- one video (PRD-11)
+    video_id            uuid,                              -- one video (PRD-11; built in 6b, 0066)
     primary_category_id uuid,
     active              boolean NOT NULL DEFAULT true,
     sort_order          integer NOT NULL DEFAULT 0,
@@ -1501,10 +1502,11 @@ decisions:
   -- `uploading`, `processing`, then `ready` or `failed` -- and what it is never changes once it ends (a trigger,
   `media_moves_forward`). A refused item keeps why, and stores and counts nothing.
 - **One `tenant.media_objects` row per stored file**, with its exact size; a shop's storage use is their live sum
-  (STO-01), and the daily reconciliation against R2 (MED-04) arrives in Slice 6b. Files are written only while the
-  item is processing (`media_objects_while_processing`), and every key is under `tenants/<tenant_id>/`.
+  (STO-01), compared with R2 every night (MED-04, below). Files are written only while the item is processing
+  (`media_objects_while_processing`), and every key is under `tenants/<tenant_id>/`.
 - **Public names carry the content's fingerprint** (MED-08): `tenants/<tenant>/<media id>/<hash>.webp` and
-  `.thumb.webp`. The uploaded original is not kept.
+  `.thumb.webp` for an image, `<hash>.mp4` and `.poster.webp` for a video (Slice 6b). The uploaded original is not
+  kept, except a video already small enough (STO-09), whose own streams are stored re-wrapped.
 - **What is attached anywhere is a ready image of the shop's** -- a product's photo, a category's banner, a swatch, a
   size chart, the logo. One trigger function, `tenant.check_attached_image()`, checks each (`media_ready_image`).
 - **Deleting an item removes it from everywhere at once**: product photos go (cascade), an image size chart goes
@@ -1555,6 +1557,23 @@ CREATE TABLE tenant.media_objects (                        -- MED-01, MED-04, ST
     FOREIGN KEY (tenant_id, media_id) REFERENCES tenant.media(tenant_id, id) ON DELETE CASCADE
 );
 -- The app may insert and delete these rows, never change one (a file's size is what it was stored at).
+
+CREATE TABLE control.media_reconciliations (               -- MED-04 (built in Slice 6b, migration 0066)
+    id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id        uuid NOT NULL REFERENCES control.tenants(id),
+    recorded_bytes   bigint NOT NULL,                       -- what the shop's media_objects rows record
+    stored_bytes     bigint NOT NULL,                       -- what R2 holds under its prefix, written over an hour ago
+    missing_files    integer NOT NULL,                      -- recorded, not in R2: reported only
+    stray_files      integer NOT NULL,                      -- in R2, recorded nowhere
+    strays_deleted   integer NOT NULL,                      -- of those, over a day old: sent to the deletion job
+    mismatch_percent numeric(9,3) NOT NULL,                 -- above 0.5 is an operator alert
+    created_at       timestamptz NOT NULL DEFAULT now(),
+    CHECK (strays_deleted BETWEEN 0 AND stray_files)
+);
+CREATE INDEX ON control.media_reconciliations (tenant_id, created_at DESC);
+-- One row per shop per night, only for a shop where the two differ. The same run deletes uploads started over a day
+-- ago and never finished, and refuses items still processing an hour after they started (failure
+-- `processing_failed`), telling the shop. Day 60 deletes a lapsed shop's rows with its media.
 
 CREATE TABLE tenant.activity_log (
     id              bigserial PRIMARY KEY,

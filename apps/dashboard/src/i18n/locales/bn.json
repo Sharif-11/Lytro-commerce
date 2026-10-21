@@ -674,7 +674,8 @@
       "api_key_revoked": "API কি বাতিল করেছেন",
       "product_images_saved": "প্রোডাক্টের ছবি বদলেছেন",
       "shop_logo_saved": "শপের লোগো বদলেছেন",
-      "media_deleted": "একটি ছবি ডিলিট করেছেন"
+      "media_deleted": "একটি ছবি ডিলিট করেছেন",
+      "product_video_saved": "প্রোডাক্টের ভিডিও বদলেছেন"
     }
   },
   "settings": {

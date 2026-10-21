@@ -1,20 +1,22 @@
-import { and, asc, count, desc, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm';
-import { MediaKind, MediaStatus } from '@lytronix/validators';
+import { and, asc, count, desc, eq, inArray, isNull, lt, sql } from 'drizzle-orm';
+import { MediaStatus, type MediaKind, type MediaPurpose } from '@lytronix/validators';
 import {
   attributeOptions,
   categories,
   media,
   mediaObjects,
+  mediaReconciliations,
   productImages,
   products,
   shopSettings,
   sizeCharts,
   type InsertMedia,
   type InsertMediaObject,
+  type InsertMediaReconciliation,
   type SelectMedia,
   type SelectMediaObject,
 } from '../../schema';
-import type { Transaction, TransactionRunner } from '../../transactions';
+import type { Executor, Transaction, TransactionRunner } from '../../transactions';
 
 /** A new item, its upload link about to be given out. */
 export type NewMedia = Omit<
@@ -33,14 +35,22 @@ export type NewMedia = Omit<
 /** A stored file of an item. */
 export type NewMediaObject = Omit<InsertMediaObject, 'id' | 'tenantId' | 'createdAt'>;
 
-/** What an item finished as: ready, with its picture's size and fingerprint, or refused and why. */
+/** What an item finished as: ready, with its picture's size, a video's length, and its fingerprint; or refused and why. */
 export type MediaOutcome =
-  | { status: MediaStatus.Ready; width: number; height: number; hash: string }
+  | {
+      status: MediaStatus.Ready;
+      width: number;
+      height: number;
+      durationMs: number | null;
+      hash: string;
+    }
   | { status: MediaStatus.Failed; failure: string };
 
 /** MED-09: the places an item is attached, counted, so its deletion can say what it leaves. */
 export interface MediaUses {
   products: number;
+  /** PRD-11: products showing it as their video. */
+  videos: number;
   categories: number;
   swatches: number;
   sizeCharts: number;
@@ -123,6 +133,7 @@ export class MediaRepository {
               status: outcome.status,
               width: outcome.width,
               height: outcome.height,
+              durationMs: outcome.durationMs,
               hash: outcome.hash,
               readyAt: new Date(),
               uploadKey: null,
@@ -170,11 +181,12 @@ export class MediaRepository {
     );
   }
 
-  /** MED-08: which of these items are ready images of the shop's, with the fingerprint their links are named by. */
-  async readyImages(
+  /** MED-08: which of these items are ready media of this kind, with the fingerprint their links are named by. */
+  async readyMedia(
     tx: Transaction,
     tenantId: string,
     ids: string[],
+    kind: MediaKind,
   ): Promise<{ id: string; hash: string }[]> {
     await this.transactions.setTenantContext(tx, tenantId);
     if (ids.length === 0) return [];
@@ -186,7 +198,7 @@ export class MediaRepository {
           eq(media.tenantId, tenantId),
           inArray(media.id, ids),
           eq(media.status, MediaStatus.Ready),
-          eq(media.kind, MediaKind.Image),
+          eq(media.kind, kind),
         ),
       );
     return rows.flatMap((row) => (row.hash === null ? [] : [{ id: row.id, hash: row.hash }]));
@@ -222,12 +234,18 @@ export class MediaRepository {
     await this.transactions.setTenantContext(tx, tenantId);
     const counted = async (query: Promise<{ n: number }[]>): Promise<number> =>
       (await query)[0]?.n ?? 0;
-    const [products, cats, swatches, charts, logos] = await Promise.all([
+    const [photos, videos, cats, swatches, charts, logos] = await Promise.all([
       counted(
         tx
           .select({ n: count() })
           .from(productImages)
           .where(and(eq(productImages.tenantId, tenantId), eq(productImages.mediaId, id))),
+      ),
+      counted(
+        tx
+          .select({ n: count() })
+          .from(products)
+          .where(and(eq(products.tenantId, tenantId), eq(products.videoId, id))),
       ),
       counted(
         tx
@@ -256,17 +274,14 @@ export class MediaRepository {
           .where(and(eq(shopSettings.tenantId, tenantId), eq(shopSettings.logoMediaId, id))),
       ),
     ]);
-    return { products, categories: cats, swatches, sizeCharts: charts, logo: logos > 0 };
-  }
-
-  /** The products this item is a photo of, for their catalogue version (CCH-02). */
-  async productsShowing(tx: Transaction, tenantId: string, id: string): Promise<string[]> {
-    await this.transactions.setTenantContext(tx, tenantId);
-    const rows = await tx
-      .select({ productId: productImages.productId })
-      .from(productImages)
-      .where(and(eq(productImages.tenantId, tenantId), eq(productImages.mediaId, id)));
-    return rows.map((row) => row.productId);
+    return {
+      products: photos,
+      videos,
+      categories: cats,
+      swatches,
+      sizeCharts: charts,
+      logo: logos > 0,
+    };
   }
 
   /**
@@ -331,21 +346,67 @@ export class MediaRepository {
     return row?.n ?? 0;
   }
 
-  /** Items still waiting on their upload or processing, oldest first, for the sweep of abandoned uploads. */
-  async listUnfinished(tx: Transaction, tenantId: string, before: Date): Promise<SelectMedia[]> {
+  /**
+   * MED-04: uploads started before this time and never finished. Their links expired long ago and the temporary bucket
+   * clears their files itself, so the rows go; they stored and counted nothing.
+   */
+  async deleteAbandoned(tx: Transaction, tenantId: string, before: Date): Promise<number> {
     await this.transactions.setTenantContext(tx, tenantId);
-    return tx
-      .select()
-      .from(media)
+    const rows = await tx
+      .delete(media)
       .where(
         and(
           eq(media.tenantId, tenantId),
-          inArray(media.status, [MediaStatus.Uploading, MediaStatus.Processing]),
-          sql`${media.createdAt} < ${before}`,
-          isNotNull(media.uploadKey),
+          eq(media.status, MediaStatus.Uploading),
+          lt(media.createdAt, before),
         ),
       )
-      .orderBy(asc(media.createdAt));
+      .returning({ id: media.id });
+    return rows.length;
+  }
+
+  /**
+   * MED-04, STO-09: items started before this time and still processing -- their job gave up -- are refused, so the shop
+   * can be told and try again. The items, as they were.
+   */
+  async failStuck(
+    tx: Transaction,
+    tenantId: string,
+    before: Date,
+    failure: string,
+  ): Promise<{ id: string; kind: MediaKind; purpose: MediaPurpose }[]> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    return tx
+      .update(media)
+      .set({ status: MediaStatus.Failed, failure, uploadKey: null })
+      .where(
+        and(
+          eq(media.tenantId, tenantId),
+          eq(media.status, MediaStatus.Processing),
+          lt(media.createdAt, before),
+        ),
+      )
+      .returning({ id: media.id, kind: media.kind, purpose: media.purpose });
+  }
+
+  /** MED-04: every file the shop's rows record, for the nightly comparison with R2. */
+  async listRecordedFiles(
+    tx: Transaction,
+    tenantId: string,
+  ): Promise<{ key: string; bytes: number }[]> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    return tx
+      .select({ key: mediaObjects.key, bytes: mediaObjects.bytes })
+      .from(mediaObjects)
+      .where(eq(mediaObjects.tenantId, tenantId));
+  }
+
+  /** MED-04: what one night's comparison found for a shop whose rows and R2 differ. */
+  async insertReconciliation(
+    db: Executor,
+    row: Omit<InsertMediaReconciliation, 'id' | 'createdAt'>,
+  ): Promise<void> {
+    await db.insert(mediaReconciliations).values(row);
   }
 
   /** MED-03: whether an upload's place exists: a live product of the shop's, a category, or one of its own options. */
@@ -384,9 +445,10 @@ export class MediaRepository {
     return found.length > 0;
   }
 
-  /** LIF-19: a lapsed shop's media rows, at day 60; its stored files go by its prefix. */
+  /** LIF-19: a lapsed shop's media rows and their nightly findings, at day 60; its stored files go by its prefix. */
   async deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void> {
     await this.transactions.setTenantContext(tx, tenantId);
     await tx.delete(media).where(eq(media.tenantId, tenantId));
+    await tx.delete(mediaReconciliations).where(eq(mediaReconciliations.tenantId, tenantId));
   }
 }

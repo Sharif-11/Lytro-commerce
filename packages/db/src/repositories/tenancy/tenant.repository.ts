@@ -1,5 +1,6 @@
 import {
   and,
+  asc,
   desc,
   eq,
   gt,
@@ -58,6 +59,16 @@ export interface TenantSearchRow extends TenantSummaryRow {
 }
 
 export class TenantRepository {
+  /** INV-13, INV-16, MED-04: every shop not yet deleted, for the daily passes that visit each one. */
+  async listLiveIds(db: Executor): Promise<string[]> {
+    const rows = await db
+      .select({ id: tenants.id })
+      .from(tenants)
+      .where(isNull(tenants.deletedAt))
+      .orderBy(asc(tenants.id));
+    return rows.map((row) => row.id);
+  }
+
   async findSummaryById(db: Database, id: string): Promise<TenantSummaryRow | null> {
     const rows = await this.summaryQuery(db).where(eq(tenants.id, id)).limit(1);
     return rows[0] ?? null;

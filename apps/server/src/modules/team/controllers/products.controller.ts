@@ -37,6 +37,7 @@ import {
   CreateProductDto,
   ProductDeliveryZonesDto,
   ProductImagesDto,
+  ProductVideoDto,
   SaveProductAttributesDto,
   SaveVariantsDto,
   SizeChartDto,
@@ -97,6 +98,28 @@ export class ProductsController {
     @Req() request: DashboardRequest,
   ): Promise<ProductDetail> {
     return this.products.setImages(
+      await this.catalogue.shopOf(request),
+      this.catalogue.idOf(id, 'ProductNotFound'),
+      body,
+      this.catalogue.actorOf(request),
+    );
+  }
+
+  @Put(':id/video')
+  @RequirePermission(Permission.ProductsManage)
+  @ResponseMessage('ProductVideoSaved')
+  @ApiOperation({
+    summary:
+      "Set the product's one video from the shop's ready videos, or null to remove it (PRD-11)",
+  })
+  @ApiBody({ type: ProductVideoDto })
+  @ZodResponse({ type: ProductDetailDto })
+  async setVideo(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(ProductVideoDto.schema)) body: ProductVideoDto,
+    @Req() request: DashboardRequest,
+  ): Promise<ProductDetail> {
+    return this.products.setVideo(
       await this.catalogue.shopOf(request),
       this.catalogue.idOf(id, 'ProductNotFound'),
       body,
