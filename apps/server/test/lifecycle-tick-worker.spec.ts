@@ -66,7 +66,7 @@ describe('LifecycleTickWorker (D2-6)', () => {
     ]);
   });
 
-  it('calls trial conversion, due downgrades, the lifecycle tick and the payment sweep every time the queue fires (TRL-01/07, DWN-06/08/15/17, BIL-15)', async () => {
+  it('calls trial conversion, due downgrades, their final warnings, the lifecycle tick and the payment sweep every time the queue fires (TRL-01/07, DWN-06/08/14/15/17, BIL-15)', async () => {
     const { client, runWork } = fakePgBoss();
     const order: string[] = [];
     const lifecycle = {
@@ -86,6 +86,10 @@ describe('LifecycleTickWorker (D2-6)', () => {
         order.push('downgrade');
         return Promise.resolve(0);
       },
+      sendFinalWarnings: () => {
+        order.push('downgrade-final-warnings');
+        return Promise.resolve(0);
+      },
     } as unknown as DowngradeService;
     const planPayments = {
       expireStalePending: () => {
@@ -98,6 +102,12 @@ describe('LifecycleTickWorker (D2-6)', () => {
     await worker.onModuleInit();
     await runWork();
 
-    expect(order).toEqual(['trials', 'downgrade', 'lifecycle', 'payment-sweep']);
+    expect(order).toEqual([
+      'trials',
+      'downgrade',
+      'downgrade-final-warnings',
+      'lifecycle',
+      'payment-sweep',
+    ]);
   });
 });

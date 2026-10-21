@@ -143,6 +143,23 @@ export class DrizzleTenantStore implements TenantStore {
     return this.tenants.setRetentionFloor(tx, tenantId, floor);
   }
 
+  setDowngraded(
+    tx: Transaction,
+    tenantId: string,
+    at: Date,
+    overLimit: readonly string[],
+  ): Promise<void> {
+    return this.tenants.setDowngraded(tx, tenantId, at, overLimit);
+  }
+
+  listDowngradeWarningsDue(tx: Transaction, before: Date): Promise<string[]> {
+    return this.tenants.listDowngradeWarningsDue(tx, before);
+  }
+
+  setDowngradeFinalWarning(tx: Transaction, tenantId: string, at: Date): Promise<void> {
+    return this.tenants.setDowngradeFinalWarning(tx, tenantId, at);
+  }
+
   touchActivity(tx: Transaction, tenantId: string, at: Date): Promise<void> {
     return this.tenants.touchActivity(tx, tenantId, at);
   }

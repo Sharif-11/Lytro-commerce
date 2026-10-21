@@ -189,6 +189,7 @@ export const MESSAGE_KEYS = [
   'DowngradeCancelled',
   'DowngradePreviewed',
   'DowngradeRetrieved',
+  'DowngradeChecklistRetrieved',
   'SubscriptionCancelled',
   'SubscriptionCancellationUndone',
   'AutoRenewUpdated',

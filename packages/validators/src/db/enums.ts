@@ -180,6 +180,8 @@ export enum AuditAction {
   // DWN-06/08/17: the system applying an already-scheduled downgrade at its effective date -- D2-5 puts
   // this on the tenant's own log only, the same split TRL-07's trial-conversion job already established.
   DowngradeApplied = 'downgrade_applied',
+  // DWN-14: the final warning, 30 days after a downgrade, that the shop is still over the limits it left.
+  DowngradeFinalWarningSent = 'downgrade_final_warning_sent',
   // PYG-01, PYG-10, LIF-15: the owner choosing pay-as-you-go -- scheduled for the period's end while a paid
   // period runs (and cancellable like a downgrade), or applied at once to a lapsed shop; the system applying
   // a scheduled one at its effective date writes PayAsYouGoApplied too.
@@ -345,6 +347,7 @@ export const MONEY_RELATED_AUDIT_ACTIONS: ReadonlySet<AuditAction> = new Set([
   AuditAction.DowngradeScheduled,
   AuditAction.DowngradeCancelled,
   AuditAction.DowngradeApplied,
+  AuditAction.DowngradeFinalWarningSent,
   AuditAction.PayAsYouGoScheduled,
   AuditAction.PayAsYouGoCancelled,
   AuditAction.PayAsYouGoApplied,

@@ -886,13 +886,24 @@ their backend ships earlier.
       (5), counted per clock hour on each server and told of at most once a day.
     - **Waits for Slice 10a:** add-ons and packs among the suggestions, the one-tap pack and the auto-buy offer, and
       the next plan after packs two cycles running.
+  - **Built third:** the downgrade points (4 to 6), migration 0072.
+    - **Preview:** seats, products and storage (in whole MB), judged by the target plan with the shop's overrides
+      (DWN-03 amended).
+    - **Checklist:** a downgrade, or a switch to pay-as-you-go, records when it took effect and the limits it left the
+      shop over; `GET /billing/downgrade/checklist` lists them for 30 days, ticked off live as each is fixed. It is a
+      route of its own, not part of `GET /billing/downgrade`, which the dashboard already reads as the scheduled change
+      or null. Any later plan assignment clears it.
+    - **Final warning:** the lifecycle tick sends it once, by email, after the 30 days, only to a shop still over a
+      limit, naming what is over, that nothing is deleted or hidden, and the data export.
+    - **Done when, as a test:** 340 products moved to a plan of 100 stay listed and on the public catalogue, and the
+      341st is refused; the shop's photo stays and a new upload is refused.
 - **Depends on:** Slices 1, 6, 7, 8.
 - **Delivers:** the usage API (every metric that exists against its limit); threshold notices; products
   and storage added to the downgrade over-limit list and final warning; "unlimited" honoured across all
   of this phase's counters; the fast-spend alert decided in KNOWN-GAPS §82 (more than [5]% of a cycle's
   requests in an hour tells the owner and the operator, refusing nothing), with its requirement.
-- **Requirements completed:** LIM-01, LIM-03.
-- **Partial:** LIM-02, LIM-04, DWN-12, DWN-14, TRL-03, PLN-19.
+- **Requirements completed:** LIM-01, LIM-03, DWN-03, DWN-12.
+- **Partial:** LIM-02, LIM-04, DWN-14 (push, with Phase 7's notifications), TRL-03, PLN-19.
 - **Done when:** after hitting each limit, all existing records and files remain; a tenant downgraded to
   100 products with 340 sees them listed on the banner and can still sell all 340.
 

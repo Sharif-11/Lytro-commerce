@@ -157,3 +157,17 @@ export const overLimitItemSchema = z.object({
   limit: z.number(),
 });
 export class OverLimitItemListDto extends createZodDto(overLimitItemSchema.array()) {}
+
+// DWN-12, DWN-14: GET /billing/downgrade/checklist -- null when no downgrade left the shop over a limit, or once its 30
+// days have passed with everything fixed.
+export const downgradeChecklistSchema = z.object({
+  checklist: z
+    .object({
+      downgradedAt: z.date(),
+      endsAt: z.date(),
+      items: z.array(overLimitItemSchema.extend({ fixed: z.boolean() })),
+      finalWarningAt: z.date().nullable(),
+    })
+    .nullable(),
+});
+export class DowngradeChecklistDto extends createZodDto(downgradeChecklistSchema) {}
