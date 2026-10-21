@@ -67,3 +67,22 @@ export interface StorageUsage {
   usedBytes: number;
   limitBytes: number | null;
 }
+
+/** BND-08: one Asia/Dhaka calendar day of the cycle's bandwidth. */
+export interface BandwidthDay {
+  day: string;
+  bytes: number;
+  requests: number;
+}
+
+/**
+ * BND-01, BND-06, BND-08: the shop's media bandwidth this cycle -- the bytes sent and the requests answered -- its
+ * limit (null is unlimited, PLN-19), and its days, which total the cycle.
+ */
+export interface BandwidthUsage {
+  cycleStart: Date;
+  usedBytes: number;
+  requests: number;
+  limitBytes: number | null;
+  days: BandwidthDay[];
+}

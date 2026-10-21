@@ -190,6 +190,8 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'PUT /products/:id/video':
     "another shop's product answers 404; another shop's video is not_found",
   'PUT /shop-settings/logo': "sets only the session shop's logo; another shop's image is not_found",
+  // Phase 3 Slice 7b, checked in test/media-bandwidth.e2e.spec.ts.
+  'GET /media/bandwidth': "counts only the session shop's own cycle and days",
   // The public API (API-10, TEN-02): the shop comes from the key alone, whatever the request names.
   'GET /shop': "answers the key's own shop only; a shop id sent with the request is ignored",
 };

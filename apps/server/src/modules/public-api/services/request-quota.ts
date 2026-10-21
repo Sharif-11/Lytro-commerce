@@ -7,6 +7,7 @@ import {
   type OnModuleInit,
 } from '@nestjs/common';
 import { MINUTE_MS, SECOND_MS, usageCycleStart } from '../../../common/time';
+import { warningDue } from '../../../common/usage-warnings';
 import type { ApiUsageStore, RequestQuotaNotifier } from '../ports/api-key-store';
 import { API_USAGE_STORE, REQUEST_QUOTA_NOTIFIER } from '../tokens';
 import type { ApiShop } from '../types/public-api';
@@ -18,8 +19,6 @@ import { ExpiringCache } from './expiring-cache';
 const FLUSH_EVERY_MS = MINUTE_MS;
 const STORED_TOTAL_MS = 15 * SECOND_MS;
 const STORED_TOTAL_ENTRIES = 10_000;
-// RTE-03: the shares of a cycle's requests at which the shop is warned, once each.
-const WARNINGS = [50, 80, 95] as const;
 
 interface Pending {
   tenantId: string;
@@ -93,13 +92,8 @@ export class RequestQuota implements OnModuleInit, OnModuleDestroy, OnApplicatio
       try {
         const { requests, warn } = await this.store.run(async (tx) => {
           const row = await this.store.add(tx, entry.tenantId, entry.cycleStart, flushing);
-          const reached =
-            limit === null || limit === 0
-              ? undefined
-              : WARNINGS.filter((percent) => row.requests * 100 >= limit * percent).pop();
-          if (reached === undefined || reached <= row.warnedPercent) {
-            return { requests: row.requests, warn: null };
-          }
+          const reached = warningDue(row.requests, limit, row.warnedPercent);
+          if (reached === null) return { requests: row.requests, warn: null };
           await this.store.setWarned(tx, entry.tenantId, entry.cycleStart, reached);
           return { requests: row.requests, warn: reached };
         });

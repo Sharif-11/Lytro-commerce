@@ -470,6 +470,13 @@
       "when": 1792562498426,
       "tag": "0066_media_video",
       "breakpoints": true
+    },
+    {
+      "idx": 67,
+      "version": "7",
+      "when": 1792569556746,
+      "tag": "0067_media_bandwidth",
+      "breakpoints": true
     }
   ]
 }

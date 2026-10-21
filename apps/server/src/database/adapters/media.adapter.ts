@@ -1,14 +1,21 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
+  ApiKeyRepository,
+  MediaBandwidthRepository,
   MediaRepository,
   PlanLimitOverridesRepository,
   ShopSettingsRepository,
   TenantRepository,
   TransactionRunner,
+  type BandwidthCycleRow,
+  type BandwidthDayRow,
+  type BillingInfoRow,
+  type EdgeShopRow,
   type Transaction,
 } from '@lytronix/db';
 import type { MediaKind, MediaPurpose, PlanLimits } from '@lytronix/validators';
 import { MediaNotAttachable } from '../../common/errors/media-refused';
+import type { BandwidthStore, LimitOverrideRow } from '../../modules/media/ports/bandwidth-store';
 import type { MediaStore } from '../../modules/media/ports/media-store';
 import type {
   MediaObjectRecord,
@@ -154,5 +161,80 @@ export class DrizzleMediaStore implements MediaStore {
 
   insertReconciliation(tx: Transaction, row: MediaReconciliation): Promise<void> {
     return this.media.insertReconciliation(tx, row);
+  }
+}
+
+/**
+ * control.media_bandwidth, control.media_bandwidth_daily and control.media_usage_pull (BND-01, BND-02, BND-08), and
+ * what the media Worker's shared store is worked out from: every shop, its overrides and its live keys' websites.
+ */
+@Injectable()
+export class DrizzleBandwidthStore implements BandwidthStore {
+  constructor(
+    @Inject(DatabaseService) private readonly database: Pick<DatabaseService, 'handle'>,
+    @Inject(TransactionRunner) private readonly transactions: TransactionRunner,
+    @Inject(MediaBandwidthRepository) private readonly bandwidth: MediaBandwidthRepository,
+    @Inject(TenantRepository) private readonly tenants: TenantRepository,
+    @Inject(PlanLimitOverridesRepository) private readonly overrides: PlanLimitOverridesRepository,
+    @Inject(ApiKeyRepository) private readonly keys: ApiKeyRepository,
+  ) {}
+
+  run<T>(work: (tx: Transaction) => Promise<T>): Promise<T> {
+    return this.transactions.run(this.database.handle.db, work);
+  }
+
+  lockPulledUntil(tx: Transaction): Promise<Date> {
+    return this.bandwidth.lockPulledUntil(tx);
+  }
+
+  setPulledUntil(tx: Transaction, at: Date): Promise<void> {
+    return this.bandwidth.setPulledUntil(tx, at);
+  }
+
+  add(
+    tx: Transaction,
+    usage: { tenantId: string; cycleStart: Date; day: string; bytes: number; requests: number },
+  ): Promise<BandwidthCycleRow> {
+    return this.bandwidth.add(tx, usage);
+  }
+
+  setWarned(tx: Transaction, tenantId: string, cycleStart: Date, percent: number): Promise<void> {
+    return this.bandwidth.setWarned(tx, tenantId, cycleStart, percent);
+  }
+
+  findCycle(tenantId: string, cycleStart: Date): Promise<BandwidthCycleRow | null> {
+    return this.bandwidth.findCycle(this.database.handle.db, tenantId, cycleStart);
+  }
+
+  listCyclesSince(since: Date): Promise<BandwidthCycleRow[]> {
+    return this.bandwidth.listCyclesSince(this.database.handle.db, since);
+  }
+
+  listDays(tenantId: string, cycleStart: Date): Promise<BandwidthDayRow[]> {
+    return this.bandwidth.listDays(this.database.handle.db, tenantId, cycleStart);
+  }
+
+  listEdgeShops(deletedSince: Date): Promise<EdgeShopRow[]> {
+    return this.bandwidth.listEdgeShops(this.database.handle.db, deletedSince);
+  }
+
+  listOverridesFor(limitKey: string): Promise<LimitOverrideRow[]> {
+    return this.overrides.listForKey(this.database.handle.db, limitKey);
+  }
+
+  listShopOverrides(tenantId: string): Promise<LimitOverrideRow[]> {
+    return this.overrides.listForTenant(this.database.handle.db, tenantId);
+  }
+
+  findBillingShop(tenantId: string): Promise<BillingInfoRow | null> {
+    return this.tenants.findBillingInfo(this.database.handle.db, tenantId);
+  }
+
+  listLiveWebsites(now: Date): Promise<{ tenantId: string; websites: string[] }[]> {
+    return this.keys.listLiveWebsites(this.database.handle.db, now);
+  }
+
+  deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void> {
+    return this.bandwidth.deleteAllForTenant(tx, tenantId);
   }
 }

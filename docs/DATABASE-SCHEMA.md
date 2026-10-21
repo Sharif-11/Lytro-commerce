@@ -1574,6 +1574,47 @@ CREATE INDEX ON control.media_reconciliations (tenant_id, created_at DESC);
 -- One row per shop per night, only for a shop where the two differ. The same run deletes uploads started over a day
 -- ago and never finished, and refuses items still processing an hour after they started (failure
 -- `processing_failed`), telling the shop. Day 60 deletes a lapsed shop's rows with its media.
+```
+
+**Built in Phase 3 Slice 7b (migration 0067, 2026-10-21):** media bandwidth (BND-01, BND-02, BND-05, BND-06, BND-08),
+with these decisions:
+- **The media Worker records; the server totals.** The Worker writes one Analytics Engine data point per response
+  (Slice 7a); every minute the server reads the minutes not yet totalled, a minute after each ends, and adds them here.
+  `control.media_usage_pull` is how far it has read, locked while a minute is added, so no minute is added twice.
+- **One row per shop per billing cycle**, as `control.api_usage` is, with the highest warning sent; a new cycle (a new
+  period, an upgrade) starts a new row at 0 (BND-06).
+- **One row per Asia/Dhaka day of each cycle** for the dashboard's chart; a day belongs to its cycle, so a cycle that
+  starts part-way through a day still has days that total exactly its row (BND-08).
+- Who is blocked is not stored: it is worked out each minute from these rows, the shop's state and its limit, and
+  written to the Worker's KV store (MED-10). Day 60 deletes a lapsed shop's rows with its media.
+
+```sql
+CREATE TABLE control.media_bandwidth (                     -- BND-01, BND-05, BND-06 (built in Slice 7b)
+    tenant_id       uuid NOT NULL REFERENCES control.tenants(id),
+    cycle_start     timestamptz NOT NULL,                  -- the billing cycle's start (UPG-10, PYG-19)
+    bytes           bigint NOT NULL DEFAULT 0,             -- what the response bodies sent, ranges by their bytes
+    requests        bigint NOT NULL DEFAULT 0,
+    warned_percent  integer NOT NULL DEFAULT 0,            -- 0, 50, 80 or 95: the highest warning sent
+    updated_at      timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (tenant_id, cycle_start),
+    CHECK (bytes >= 0 AND requests >= 0)
+);
+
+CREATE TABLE control.media_bandwidth_daily (               -- BND-08 (built in Slice 7b)
+    tenant_id       uuid NOT NULL REFERENCES control.tenants(id),
+    cycle_start     timestamptz NOT NULL,
+    day             date NOT NULL,                         -- the Asia/Dhaka calendar day
+    bytes           bigint NOT NULL DEFAULT 0,
+    requests        bigint NOT NULL DEFAULT 0,
+    PRIMARY KEY (tenant_id, cycle_start, day),
+    CHECK (bytes >= 0 AND requests >= 0)
+);
+
+CREATE TABLE control.media_usage_pull (                    -- BND-02 (built in Slice 7b)
+    id              smallint PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+    pulled_until    timestamptz NOT NULL                   -- the Worker's usage is totalled up to here
+);
+-- One row, seeded when the migration runs, so usage is totalled from then on.
 
 CREATE TABLE tenant.activity_log (
     id              bigserial PRIMARY KEY,
