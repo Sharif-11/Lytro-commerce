@@ -1,0 +1,827 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lytro storefront prototype</title>
+<meta name="description" content="Shopper storefront design prototype for Lytro: one shared layout per shop, phone-first, Bangla with an English toggle, the shop's name and logo on Lytro's defaults or on its own brand identity; browsing, product, cart, landing page, and the later checkout, tracking and account flows. Spec: docs/STOREFRONT-DESIGN.md">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600&family=Noto+Sans+Bengali:wght@400;500;600;700&family=Hind+Siliguri:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap">
+<style>
+/* ---------- Lytro default identity (docs/brand/tokens.css), BRN-01 ---------- */
+:root{
+  --teal-50:#effaf8;--teal-100:#ddf5f2;--teal-700:#0e6b66;--teal-800:#0a4f4b;--teal-900:#063b38;
+  --mar-100:#fdf0d1;--mar-500:#f2a516;--mar-700:#9a6004;
+  --ink:#10201f;--n700:#2c3f3e;--n500:#5b6e6d;--n400:#7e8f8e;--n300:#a9b9b8;--n200:#d5dfde;--n100:#eaf0ef;--n50:#f6f9f8;--white:#fff;
+  --success:#1b7a43;--success-soft:#e3f3e9;--warning:#9a6004;--warning-soft:#fdf0d1;--danger:#c8323b;--danger-soft:#fbe7e8;--info:#0e6b66;--info-soft:#ddf5f2;
+  /* the shop's identity: these are the only values BRN-02 may change (colours, fonts, shape, spacing) */
+  --bg:#fff;--surface:#fff;--sunken:var(--n50);--line:var(--n200);--line-strong:var(--n300);--text:var(--ink);--muted:var(--n700);--subtle:var(--n500);
+  --accent:var(--teal-700);--accent-hover:var(--teal-800);--on-accent:#fff;--accent-soft:var(--teal-50);--accent-text:var(--teal-700);
+  --font-ui:'Inter','Noto Sans Bengali',ui-sans-serif,system-ui,sans-serif;--font-display:'Plus Jakarta Sans','Inter','Noto Sans Bengali',sans-serif;
+  --r-control:8px;--r-card:12px;--r-sheet:18px;--r-pill:999px;--space:1;
+  --shadow:0 1px 2px rgba(16,32,31,.06),0 4px 12px rgba(16,32,31,.06);--shadow-pop:0 12px 40px rgba(16,32,31,.22);
+}
+/* the shop's own identity switched on (BRN-02): maroon, cream, Hind Siliguri with a serif display, round corners */
+.frame[data-brand=own]{
+  --bg:#fcf8f3;--surface:#fff;--sunken:#f5ede3;--line:#e9dccd;--line-strong:#d6c3ad;--text:#2a1b17;--muted:#5a4740;--subtle:#7a6660;
+  --accent:#7a1f25;--accent-hover:#5e161b;--on-accent:#fff;--accent-soft:#f6e6e3;--accent-text:#7a1f25;
+  --font-ui:'Hind Siliguri','Inter',ui-sans-serif,system-ui,sans-serif;--font-display:'Fraunces','Hind Siliguri',serif;
+  --r-control:12px;--r-card:18px;--r-sheet:24px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:var(--font-ui);color:#10201f;background:#e6ebea;font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+input,select,textarea{font:inherit;color:inherit}
+a{color:var(--accent-text)}
+svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+.price{font-family:var(--font-display);font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+
+/* ---------- Harness (not product UI) ---------- */
+.tb{position:sticky;top:0;z-index:50;background:#10201f;color:#eaf0ef;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;padding:10px 16px;font-size:13px}
+.tb .brand{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;letter-spacing:-.03em;font-size:16px;color:#fff;margin-right:8px}
+.tb .brand em{font-style:normal;color:#3ec4b9;font-size:11px;letter-spacing:.08em;margin-left:6px;vertical-align:middle}
+.tb label{display:flex;align-items:center;gap:6px;color:#a9b9b8}
+.tb select{background:#1a3230;color:#fff;border:1px solid #335450;border-radius:6px;padding:5px 8px;font-size:13px;max-width:360px}
+.tb .seg{display:inline-flex;border:1px solid #335450;border-radius:6px;overflow:hidden}
+.tb .seg button{padding:5px 10px;color:#a9b9b8}
+.tb .seg button.on{background:#3ec4b9;color:#10201f;font-weight:600}
+.tb .note{margin-left:auto;color:#7e8f8e}
+.stage{display:flex;justify-content:center;padding:28px 16px 48px}
+.frame{container-type:inline-size;background:var(--bg);color:var(--text);font-family:var(--font-ui);overflow:hidden;position:relative;box-shadow:0 20px 60px rgba(16,32,31,.25)}
+.frame.phone{width:390px;height:844px;border-radius:40px;border:8px solid #0b1514}
+.frame.tablet{width:820px;height:1000px;border-radius:24px;border:8px solid #0b1514}
+.frame.desktop{width:1280px;height:860px;border-radius:12px;border:1px solid #c9d3d2}
+.frame .statusbar{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font-size:14px;font-weight:600;background:var(--surface)}
+.frame.desktop .statusbar{display:none}
+.frame .urlbar{display:none;height:40px;align-items:center;gap:10px;padding:0 14px;background:#f1f4f3;border-bottom:1px solid #d5dfde;font-size:13px;color:#2c3f3e;font-family:Inter,sans-serif}
+.frame.desktop .urlbar{display:flex}
+.frame .urlbar .dots i{display:inline-block;width:10px;height:10px;border-radius:50%;background:#d5dfde;margin-right:6px}
+.frame .urlbar .url{background:#fff;border:1px solid #d5dfde;border-radius:6px;padding:4px 10px;flex:1;max-width:520px}
+.caption{max-width:1280px;margin:0 auto;padding:0 16px 40px;color:#2c3f3e;font-size:13px;line-height:1.6}
+.caption b{color:#10201f}
+.frame[data-lang=bn] .page,.frame[data-lang=bn] .sheet,.frame[data-lang=bn] .hdr{line-height:1.6}
+
+/* ---------- Shell ---------- */
+.shell{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--bg)}
+.frame.phone .shell,.frame.tablet .shell{top:44px}
+.frame.desktop .shell{top:40px}
+.scroll{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;min-height:0}
+.hdr{flex:none;background:var(--surface);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;padding:0 8px 0 16px;height:60px;position:relative;z-index:5}
+.hdr .shop{display:flex;align-items:center;gap:10px;min-width:0;flex:1;cursor:pointer}
+.hdr .logo{width:36px;height:36px;border-radius:10px;background:var(--accent);color:var(--on-accent);display:inline-flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:18px;flex:none}
+.frame[data-brand=own] .hdr .logo{border-radius:50%}
+.hdr .name{font-family:var(--font-display);font-weight:700;font-size:17px;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hdr .ib{width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:10px;color:var(--text);position:relative}
+.hdr .ib .badge{position:absolute;top:5px;right:4px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--accent);color:var(--on-accent);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.hdr .nav{display:none}
+.hdr .dsearch{display:none}
+.hdr .shop.donly{display:none}
+.hdr.minimal{justify-content:center}
+.hdr.minimal .shop{flex:0 1 auto}
+.hdr .back{width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;margin-left:-8px}
+.hdr .ttl{font-weight:600;font-size:16px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.langpill{height:30px;padding:0 10px;border-radius:var(--r-pill);border:1px solid var(--line-strong);font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:4px;color:var(--muted);cursor:pointer}
+
+/* ---------- Page ---------- */
+.page{display:flex;flex-direction:column;gap:20px;padding:16px 16px 120px;min-height:100%}
+.page.tight{padding-bottom:40px}
+.sec{display:flex;flex-direction:column;gap:12px}
+.sechead{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.sechead h2{font-family:var(--font-display);font-size:19px;font-weight:700;letter-spacing:-.01em}
+.sechead .lnk{font-size:14px;color:var(--accent-text);font-weight:600;white-space:nowrap;display:inline-flex;align-items:center;gap:2px;cursor:pointer}
+.sechead .lnk svg.i{width:16px;height:16px}
+h1.pt{font-family:var(--font-display);font-size:24px;font-weight:700;letter-spacing:-.015em;line-height:1.25}
+.sub{font-size:14px;color:var(--muted)}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-text)}
+.frame[data-lang=bn] .eyebrow{text-transform:none;letter-spacing:0;font-size:13px}
+.chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:2px 16px}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;height:36px;padding:0 14px;border-radius:var(--r-pill);border:1px solid var(--line);background:var(--surface);font-size:14px;font-weight:500;color:var(--text);display:inline-flex;align-items:center;gap:6px;white-space:nowrap;cursor:pointer}
+.chip.on{background:var(--text);border-color:var(--text);color:var(--bg)}
+.chip svg.i{width:16px;height:16px}
+
+/* hero band: the shop's greeting, data-driven (name, logo, category count); never a custom banner (SFT-01) */
+.hero{background:var(--accent);color:var(--on-accent);border-radius:var(--r-card);padding:22px 20px;display:flex;flex-direction:column;gap:8px;position:relative;overflow:hidden}
+.hero::after{content:"";position:absolute;right:-40px;top:-40px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.12)}
+.hero h1{font-family:var(--font-display);font-size:26px;font-weight:800;letter-spacing:-.02em;line-height:1.15;position:relative}
+.hero p{font-size:14px;opacity:.9;position:relative;max-width:420px}
+.hero .cta{align-self:flex-start;margin-top:6px;background:#fff;color:var(--accent);border-radius:var(--r-pill);height:40px;padding:0 16px;font-weight:700;display:inline-flex;align-items:center;gap:6px;position:relative}
+.frame[data-brand=own] .hero .cta{color:var(--accent)}
+.trust{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:0 16px}
+.trust::-webkit-scrollbar{display:none}
+.trust span{flex:none;display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);background:var(--sunken);border-radius:var(--r-pill);padding:7px 12px;white-space:nowrap}
+.trust span svg.i{width:16px;height:16px;color:var(--accent-text)}
+
+/* category tiles and product cards */
+.cats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.cat{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;font-weight:500;text-align:center;cursor:pointer}
+.cat .img{width:100%;aspect-ratio:1;border-radius:var(--r-card);background:var(--sunken);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:20px;color:var(--accent-text);position:relative;overflow:hidden}
+.cat .img::after{content:"";position:absolute;inset:0;background:linear-gradient(160deg,rgba(255,255,255,.5),transparent 60%)}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px 12px}
+.card{display:flex;flex-direction:column;gap:8px;cursor:pointer;min-width:0}
+.card .img{aspect-ratio:4/5;border-radius:var(--r-card);background:var(--sunken);position:relative;overflow:hidden;display:flex;align-items:flex-end;justify-content:flex-start}
+.card .img .ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:34px;color:var(--accent-text);opacity:.35}
+.card .img .ph::after{content:"";position:absolute;inset:0;background:linear-gradient(165deg,rgba(255,255,255,.55),transparent 55%)}
+.card .img .tag{position:relative;margin:8px;height:24px;padding:0 8px;border-radius:var(--r-pill);background:rgba(16,32,31,.78);color:#fff;font-size:11px;font-weight:600;display:inline-flex;align-items:center;gap:4px}
+.card .img .tag.out{background:rgba(255,255,255,.9);color:var(--muted)}
+.card .img .tag.low{background:var(--mar-500);color:#10201f}
+.card .img .tag.save{background:var(--success);color:#fff}
+.card.out .img{opacity:.6}
+.card .nm{font-size:14px;font-weight:500;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card .pr{display:flex;align-items:baseline;gap:8px}
+.card .pr .price{font-size:15px}
+.card .pr .was{font-size:12px;color:var(--subtle);text-decoration:line-through}
+.card .sw{display:flex;gap:4px}
+.card .sw i{width:12px;height:12px;border-radius:50%;border:1px solid rgba(0,0,0,.15)}
+.rail{display:flex;gap:12px;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:0 16px}
+.rail::-webkit-scrollbar{display:none}
+.rail .card{flex:0 0 150px}
+
+/* product page */
+.gallery{position:relative;margin:0 -16px}
+.gallery .main{aspect-ratio:4/5;background:var(--sunken);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.gallery .main .ph{font-family:var(--font-display);font-weight:800;font-size:64px;color:var(--accent-text);opacity:.3}
+.gallery .main .ph::after{content:"";position:absolute;inset:0;background:linear-gradient(165deg,rgba(255,255,255,.55),transparent 55%)}
+.gallery .dots{position:absolute;bottom:12px;left:0;right:0;display:flex;justify-content:center;gap:6px}
+.gallery .dots i{width:6px;height:6px;border-radius:50%;background:rgba(16,32,31,.3)}
+.gallery .dots i.on{background:var(--text);width:18px;border-radius:3px}
+.gallery .vid{position:absolute;right:12px;bottom:12px;height:30px;padding:0 10px;border-radius:var(--r-pill);background:rgba(16,32,31,.78);color:#fff;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:6px}
+.gallery .vid svg.i{width:14px;height:14px}
+.gallery .fav{position:absolute;right:12px;top:12px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.9);display:flex;align-items:center;justify-content:center}
+.thumbs{display:none}
+.buy{display:flex;flex-direction:column;gap:14px}
+.buy .top{display:flex;flex-direction:column;gap:6px}
+.buy .pricerow{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.buy .pricerow .price{font-size:26px}
+.buy .pricerow .unit{font-size:14px;color:var(--muted)}
+.st{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px;border-radius:var(--r-pill);font-size:12px;font-weight:600;white-space:nowrap;vertical-align:middle}
+.st::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.st.ok{background:var(--success-soft);color:var(--success)}
+.st.low{background:var(--warning-soft);color:var(--warning)}
+.st.out{background:var(--n100);color:var(--n700)}
+.st.info{background:var(--accent-soft);color:var(--accent-text)}
+.st.plain::before{display:none}
+.opt{display:flex;flex-direction:column;gap:8px}
+.opt .lb{font-size:14px;font-weight:600;display:flex;justify-content:space-between;align-items:center}
+.opt .lb .lnk{font-weight:500;color:var(--accent-text);font-size:13px;cursor:pointer}
+.opt .vals{display:flex;flex-wrap:wrap;gap:8px}
+.vb{min-width:44px;height:40px;padding:0 14px;border-radius:var(--r-control);border:1.5px solid var(--line-strong);font-size:14px;font-weight:500;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;background:var(--surface);position:relative}
+.vb.on{border-color:var(--text);background:var(--text);color:var(--bg)}
+.vb.off{color:var(--subtle);border-style:dashed;background:transparent}
+.vb.off::after{content:"";position:absolute;left:8px;right:8px;top:50%;height:1.5px;background:var(--n300);transform:rotate(-14deg)}
+.swb{width:36px;height:36px;border-radius:50%;border:2px solid transparent;padding:2px;cursor:pointer;position:relative}
+.swb i{display:block;width:100%;height:100%;border-radius:50%;border:1px solid rgba(0,0,0,.15)}
+.swb.on{border-color:var(--text)}
+.swb.off{opacity:.4}
+.swb.off::after{content:"";position:absolute;left:6px;right:6px;top:50%;height:2px;background:var(--text);transform:rotate(-45deg)}
+.qty{display:inline-flex;align-items:center;border:1.5px solid var(--line-strong);border-radius:var(--r-control);height:40px}
+.qty button{width:40px;height:100%;display:inline-flex;align-items:center;justify-content:center;font-size:18px}
+.qty span{min-width:36px;text-align:center;font-weight:600}
+.line{display:flex;gap:10px;align-items:flex-start;font-size:14px;color:var(--muted);line-height:1.5}
+.line svg.i{width:18px;height:18px;color:var(--accent-text);margin-top:2px}
+.line b{color:var(--text);font-weight:600}
+.line .lnk{color:var(--accent-text);font-weight:600;cursor:pointer;white-space:nowrap}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-size:14px}
+.kv .k{color:var(--muted)}
+.kv .v{font-weight:500}
+.desc{font-size:15px;line-height:1.65;white-space:pre-line}
+.acc{border-top:1px solid var(--line)}
+.acc details{border-bottom:1px solid var(--line)}
+.acc summary{display:flex;justify-content:space-between;align-items:center;padding:14px 0;font-weight:600;font-size:15px;cursor:pointer;list-style:none}
+.acc summary::-webkit-details-marker{display:none}
+.acc .body{padding:0 0 14px;color:var(--muted);font-size:14px;line-height:1.6}
+.share{display:flex;gap:8px}
+.share .btn{flex:1}
+.buybar{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding:10px 16px calc(10px + env(safe-area-inset-bottom));display:flex;align-items:center;gap:12px;z-index:6}
+.buybar .tot{display:flex;flex-direction:column;line-height:1.15;min-width:0}
+.buybar .tot .k{font-size:12px;color:var(--muted)}
+.buybar .tot .price{font-size:20px}
+.buybar .btn{flex:1;height:48px;font-size:15px}
+.frame.desktop .buybar{display:none}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 16px;border-radius:var(--r-control);font-size:15px;font-weight:600;border:1.5px solid transparent;white-space:nowrap;cursor:pointer}
+.btn.primary{background:var(--accent);color:var(--on-accent)}
+.btn.ghost{background:var(--surface);border-color:var(--line-strong);color:var(--text)}
+.btn.soft{background:var(--accent-soft);color:var(--accent-text)}
+.btn.dark{background:var(--text);color:var(--bg)}
+.btn.quiet{color:var(--accent-text)}
+.btn.sm{height:36px;padding:0 12px;font-size:14px}
+.btn.lg{height:52px;font-size:16px;border-radius:calc(var(--r-control) + 2px)}
+.btn.block{width:100%}
+.btn[disabled]{opacity:.45;cursor:default}
+.btn svg.i{width:18px;height:18px}
+
+/* forms */
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:13px;font-weight:600;color:var(--muted)}
+.field .help{font-size:13px;color:var(--subtle)}
+.field .err{font-size:13px;color:var(--danger);font-weight:500}
+.input,.select,.textarea{height:48px;border:1.5px solid var(--line-strong);border-radius:var(--r-control);padding:0 14px;background:var(--surface);font-size:16px;width:100%;color:var(--text)}
+.input.bad,.select.bad{border-color:var(--danger)}
+.textarea{height:auto;min-height:84px;padding:12px 14px;resize:vertical;line-height:1.5}
+.select{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%232c3f3e' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");background-repeat:no-repeat;background-position:right 14px center;padding-right:40px}
+.inwrap{position:relative}
+.inwrap .pre{position:absolute;left:14px;top:0;height:48px;display:flex;align-items:center;color:var(--subtle);font-weight:500}
+.inwrap .input{padding-left:46px}
+.grid2{display:grid;grid-template-columns:1fr;gap:12px}
+.form{display:flex;flex-direction:column;gap:14px}
+.radio{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border:1.5px solid var(--line);border-radius:var(--r-card);cursor:pointer;background:var(--surface)}
+.radio.on{border-color:var(--text)}
+.radio .dot{width:20px;height:20px;border-radius:50%;border:2px solid var(--line-strong);flex:none;margin-top:1px;display:flex;align-items:center;justify-content:center}
+.radio.on .dot{border-color:var(--text)}
+.radio.on .dot::after{content:"";width:10px;height:10px;border-radius:50%;background:var(--text)}
+.radio .b{flex:1;min-width:0}
+.radio .b .l1{font-weight:600;font-size:15px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.radio .b .l2{font-size:13px;color:var(--muted);margin-top:2px}
+.radio .wlogo{display:inline-flex;align-items:center;justify-content:center;height:20px;padding:0 6px;border-radius:4px;font-size:11px;font-weight:800;color:#fff;letter-spacing:.02em}
+.banner{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:var(--r-card);font-size:14px;border:1px solid;line-height:1.5}
+.banner.bad{background:var(--danger-soft);border-color:#f3c3c6;color:#7a1f25}
+.banner.warn{background:var(--warning-soft);border-color:#f1d996;color:#6a4203}
+.banner.info{background:var(--accent-soft);border-color:transparent;color:var(--accent-text)}
+.banner.ok{background:var(--success-soft);border-color:#bfe3cb;color:#155c33}
+.banner svg.i{width:18px;height:18px;margin-top:1px}
+.card2{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);padding:16px;display:flex;flex-direction:column;gap:12px}
+.card2 h3{font-size:16px;font-weight:700}
+.sum{display:flex;flex-direction:column;gap:8px;font-size:14px}
+.sum .r{display:flex;justify-content:space-between;gap:12px}
+.sum .r .k{color:var(--muted)}
+.sum .r.total{border-top:1px solid var(--line);padding-top:10px;font-size:16px;font-weight:700}
+.sum .r.total .price{font-size:20px}
+.steps{display:flex;gap:6px;align-items:center}
+.steps i{flex:1;height:4px;border-radius:2px;background:var(--line)}
+.steps i.on{background:var(--accent)}
+.stepnum{width:28px;height:28px;border-radius:50%;background:var(--text);color:var(--bg);display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex:none}
+.stepnum.done{background:var(--success)}
+.sechead h2 .stepnum{margin-right:8px;vertical-align:middle}
+
+/* cart lines */
+.cl{display:flex;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+.cl:first-child{border-top:0}
+.cl .th{width:72px;height:90px;border-radius:10px;background:var(--sunken);flex:none;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:24px;color:var(--accent-text);opacity:.8}
+.cl .b{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.cl .nm{font-weight:600;font-size:15px;line-height:1.3}
+.cl .vr{font-size:13px;color:var(--muted)}
+.cl .row{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:auto}
+.cl .rm{font-size:13px;color:var(--subtle);cursor:pointer}
+.cl .qty{height:34px}
+.cl .qty button{width:34px}
+
+/* timeline */
+.tl{display:flex;flex-direction:column;position:relative;padding-left:26px}
+.tl::before{content:"";position:absolute;left:9px;top:10px;bottom:10px;width:2px;background:var(--line)}
+.tl .s{position:relative;padding:0 0 18px}
+.tl .s::before{content:"";position:absolute;left:-26px;top:3px;width:20px;height:20px;border-radius:50%;background:var(--surface);border:2px solid var(--line-strong)}
+.tl .s.done::before{background:var(--success);border-color:var(--success)}
+.tl .s.now::before{border-color:var(--accent);border-width:5px;background:var(--surface)}
+.tl .s .t{font-weight:600;font-size:15px}
+.tl .s .d{font-size:13px;color:var(--muted)}
+.tl .s.todo .t{color:var(--subtle);font-weight:500}
+
+/* search overlay */
+.sover{position:absolute;inset:0;background:var(--bg);z-index:8;display:flex;flex-direction:column}
+.frame.phone .sover,.frame.tablet .sover{top:44px}
+.frame.desktop .sover{top:40px}
+.sover .sbar{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line);background:var(--surface)}
+.sbox{flex:1;display:flex;align-items:center;gap:8px;height:44px;border:1.5px solid var(--text);border-radius:var(--r-pill);padding:0 14px;background:var(--surface)}
+.sbox svg.i{width:18px;height:18px;color:var(--subtle)}
+.sbox input{flex:1;border:0;outline:0;background:transparent;font-size:16px;min-width:0;color:var(--text)}
+.sbox.q{border-color:var(--line-strong)}
+.sbox.q span{color:var(--subtle);flex:1;font-size:15px}
+.slist{display:flex;flex-direction:column}
+.slist button{display:flex;align-items:center;gap:12px;padding:12px 16px;text-align:left;font-size:15px;border-top:1px solid var(--line)}
+.slist button:first-child{border-top:0}
+.slist button svg.i{color:var(--subtle)}
+.slist button .c{margin-left:auto;color:var(--subtle);font-size:13px}
+
+/* footer and contact (SFT-21) */
+.foot{margin:12px -16px -120px;padding:28px 16px 36px;background:var(--sunken);display:flex;flex-direction:column;gap:18px;border-top:1px solid var(--line)}
+.page.tight .foot{margin-bottom:-40px}
+.foot .fshop{display:flex;align-items:center;gap:10px;font-family:var(--font-display);font-weight:700;font-size:17px}
+.foot .fshop .logo{width:32px;height:32px;border-radius:9px;background:var(--accent);color:var(--on-accent);display:inline-flex;align-items:center;justify-content:center;font-size:15px}
+.foot .contact{display:flex;flex-direction:column;gap:8px;font-size:14px;color:var(--muted)}
+.foot .contact div{display:flex;gap:8px;align-items:center}
+.foot .contact svg.i{width:16px;height:16px;color:var(--accent-text)}
+.foot .links{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:13px}
+.foot .links a{color:var(--muted);text-decoration:none}
+.foot .pb{display:flex;align-items:center;justify-content:space-between;gap:12px;color:var(--subtle);font-size:12px}
+.foot .pb svg{height:16px;width:auto;color:var(--subtle)}
+
+/* sheet (bottom on phone, centred dialog on desktop) */
+.scrim{position:absolute;inset:0;background:rgba(16,32,31,.45);z-index:20;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--surface);width:100%;max-height:92%;border-radius:var(--r-sheet) var(--r-sheet) 0 0;display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--shadow-pop);color:var(--text)}
+.sheet .grab{width:36px;height:4px;border-radius:2px;background:var(--n300);margin:10px auto 0}
+.sheet .sh{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px 8px}
+.sheet .sh h2{font-family:var(--font-display);font-size:18px;font-weight:700}
+.sheet .sh .x{width:36px;height:36px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:var(--sunken)}
+.sheet .sb{overflow:auto;padding:4px 16px 16px;display:flex;flex-direction:column;gap:14px}
+.sheet .sf{padding:12px 16px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--line);display:flex;gap:8px;background:var(--surface)}
+.sheet .sf .btn{flex:1}
+.drawer .sheet{height:100%;max-height:100%;border-radius:var(--r-sheet) var(--r-sheet) 0 0}
+.toast{position:absolute;left:16px;right:16px;bottom:88px;background:var(--text);color:var(--bg);padding:12px 16px;border-radius:12px;font-size:14px;z-index:30;box-shadow:var(--shadow-pop);display:flex;align-items:center;gap:10px}
+.toast .btn{height:32px;padding:0 10px;font-size:13px;background:rgba(255,255,255,.15);color:var(--bg);margin-left:auto}
+.matrix{border-collapse:collapse;width:100%;font-size:14px}
+.matrix th,.matrix td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:center;white-space:nowrap}
+.matrix th{font-size:12px;color:var(--muted);font-weight:600}
+.matrix td:first-child,.matrix th:first-child{text-align:left;font-weight:600}
+.bare{position:absolute;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px;text-align:center}
+.frame.phone .bare,.frame.tablet .bare{top:44px}
+.frame.desktop .bare{top:40px}
+.bare .box{max-width:400px;display:flex;flex-direction:column;align-items:center;gap:12px}
+.bare .box .logo{width:56px;height:56px;border-radius:16px;background:var(--accent);color:var(--on-accent);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:26px}
+.bare .box h1{font-family:var(--font-display);font-size:22px;font-weight:700}
+.bare .box p{color:var(--muted);font-size:15px;line-height:1.55}
+.pwa{position:absolute;left:12px;right:12px;bottom:12px;background:var(--text);color:var(--bg);border-radius:16px;padding:14px;display:flex;gap:12px;align-items:center;z-index:25;box-shadow:var(--shadow-pop)}
+.pwa .ic{width:44px;height:44px;border-radius:12px;background:var(--accent);color:var(--on-accent);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:20px;flex:none}
+.pwa .b{flex:1;min-width:0;font-size:13px;line-height:1.4}
+.pwa .b b{display:block;font-size:14px}
+.pwa .btn{height:36px;padding:0 12px;background:var(--bg);color:var(--text);font-size:13px}
+.chatfab{position:absolute;right:16px;bottom:96px;width:52px;height:52px;border-radius:50%;background:var(--accent);color:var(--on-accent);display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-pop);z-index:7}
+.chatfab .n{position:absolute;top:-2px;right:-2px;width:18px;height:18px;border-radius:50%;background:var(--mar-500);color:#10201f;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.chatbox{position:absolute;right:12px;bottom:96px;width:calc(100% - 24px);max-width:360px;height:420px;background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow-pop);display:flex;flex-direction:column;overflow:hidden;z-index:9}
+.chatbox .ch{background:var(--accent);color:var(--on-accent);padding:12px 14px;display:flex;align-items:center;gap:10px;font-weight:600}
+.chatbox .msgs{flex:1;padding:12px;display:flex;flex-direction:column;gap:8px;overflow:auto;font-size:14px}
+.chatbox .m{max-width:80%;padding:8px 12px;border-radius:14px;background:var(--sunken)}
+.chatbox .m.me{align-self:flex-end;background:var(--accent-soft);color:var(--accent-text)}
+.chatbox .in{display:flex;gap:8px;padding:10px;border-top:1px solid var(--line)}
+.chatbox .in .input{height:40px;font-size:14px}
+.combo{display:flex;flex-direction:column;gap:8px}
+.combo .part{display:flex;gap:10px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:var(--r-card)}
+.combo .part .th{width:48px;height:56px;border-radius:8px;background:var(--sunken);flex:none}
+.combo .part .b{flex:1;min-width:0;font-size:14px}
+.combo .part .b .l2{font-size:13px;color:var(--muted)}
+
+/* ---------- tablet and desktop ---------- */
+@container (min-width: 640px){
+  .page{padding:24px 24px 48px;max-width:1200px;width:100%;margin:0 auto;gap:28px}
+  .chips,.trust,.rail{margin:0;padding:0}
+  .grid{grid-template-columns:repeat(3,1fr);gap:20px 16px}
+  .cats{grid-template-columns:repeat(8,1fr)}
+  .rail .card{flex:0 0 200px}
+  .grid2{grid-template-columns:1fr 1fr}
+  .gallery{margin:0}
+  .gallery .main{border-radius:var(--r-card)}
+  .foot{margin:12px -24px -48px;padding:36px 24px 40px}
+  .scrim{align-items:center}
+  .sheet{width:520px;max-height:86%;border-radius:var(--r-sheet)}
+  .sheet .grab{display:none}
+  .drawer{align-items:stretch;justify-content:flex-end}
+  .drawer .sheet{width:440px;height:100%;max-height:100%;border-radius:0}
+  .toast{left:50%;right:auto;transform:translateX(-50%);min-width:360px;bottom:28px}
+  .pwa{left:auto;right:16px;bottom:16px;width:360px}
+}
+@container (min-width: 1024px){
+  .hdr{height:68px;padding:0 32px;gap:20px}
+  .hdr .shop{flex:0 0 auto}
+  .hdr .shop.donly{display:flex}
+  .hdr .nav{display:flex;gap:4px;margin-left:8px}
+  .hdr .nav button{height:38px;padding:0 12px;border-radius:var(--r-control);font-size:14px;font-weight:500;color:var(--muted)}
+  .hdr .nav button.on,.hdr .nav button:hover{background:var(--sunken);color:var(--text)}
+  .hdr .dsearch{display:flex;flex:1;max-width:420px;margin-left:auto}
+  .hdr .dsearch .sbox{height:40px}
+  .hdr .msearch{display:none}
+  .hdr .back{display:none}
+  .hdr .ttl{display:none}
+  .page{padding:32px 32px 64px;gap:36px}
+  .grid{grid-template-columns:repeat(4,1fr);gap:28px 20px}
+  .hero{padding:40px 36px;min-height:220px;justify-content:center}
+  .hero h1{font-size:36px}
+  .pdp{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:40px;align-items:start}
+  .pdp .gal{position:sticky;top:0;display:grid;grid-template-columns:72px 1fr;gap:12px}
+  .thumbs{display:flex;flex-direction:column;gap:8px}
+  .thumbs i{display:block;width:72px;height:90px;border-radius:8px;background:var(--sunken);border:2px solid transparent}
+  .thumbs i.on{border-color:var(--text)}
+  .buy .top h1.pt{font-size:28px}
+  .buy .dbtns{display:flex;gap:10px}
+  .buy .dbtns .btn{flex:1;height:52px}
+  .foot{margin:12px -32px -64px;padding:40px 32px 44px}
+  .foot .cols{display:grid;grid-template-columns:2fr 1fr 1fr;gap:24px}
+  .two{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:32px;align-items:start}
+  .two .side{position:sticky;top:0}
+  .sover{inset:auto;top:68px;left:0;right:0;bottom:0;background:rgba(16,32,31,.35)}
+  .frame.desktop .sover{top:108px}
+  .sover .sbar{display:none}
+  .sover .spanel{background:var(--surface);max-width:720px;margin:0 auto;border-radius:0 0 var(--r-card) var(--r-card);box-shadow:var(--shadow-pop)}
+  .cats{grid-template-columns:repeat(8,1fr)}
+}
+.sover .spanel{display:flex;flex-direction:column;overflow:auto}
+.buy .dbtns{display:none}
+@container (min-width: 1024px){ .buy .dbtns{display:flex} }
+</style>
+</head>
+<body>
+<div class="tb">
+  <span class="brand">Lytro <em>STOREFRONT · prototype</em></span>
+  <label>Screen <select id="selScreen"></select></label>
+  <label>Device <span class="seg" id="segDevice"><button data-v="phone" class="on">Phone 390</button><button data-v="tablet">Tablet 820</button><button data-v="desktop">Desktop 1280</button></span></label>
+  <label>Language <span class="seg" id="segLang"><button data-v="bn" class="on">বাংলা</button><button data-v="en">EN</button></span></label>
+  <label>Brand <span class="seg" id="segBrand"><button data-v="default" class="on">Lytro default</button><button data-v="own">Shop's own (BRN-02)</button></span></label>
+  <span class="note">Spec: docs/STOREFRONT-DESIGN.md</span>
+</div>
+<div class="stage"><div class="frame phone" id="frame" data-lang="bn" data-brand="default">
+  <div class="statusbar"><span>9:41</span><span>●●● ⌁ ▮</span></div>
+  <div class="urlbar"><span class="dots"><i></i><i></i><i></i></span><span class="url" id="urlbar">megh.lytro.app</span></div>
+  <div id="root"></div>
+</div></div>
+<div class="caption" id="caption"></div>
+
+<script>
+/* ---------- icons ---------- */
+const I = {
+  search: '<svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>',
+  bag: '<svg class="i" viewBox="0 0 24 24"><path d="M6 8h12l1 13H5z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>',
+  back: '<svg class="i" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>',
+  chev: '<svg class="i" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>',
+  down: '<svg class="i" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>',
+  x: '<svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  check: '<svg class="i" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>',
+  plus: '<svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
+  minus: '<svg class="i" viewBox="0 0 24 24"><path d="M5 12h14"/></svg>',
+  heart: '<svg class="i" viewBox="0 0 24 24"><path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/></svg>',
+  truck: '<svg class="i" viewBox="0 0 24 24"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>',
+  cash: '<svg class="i" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M7 12h.01M17 12h.01"/></svg>',
+  shield: '<svg class="i" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>',
+  pin: '<svg class="i" viewBox="0 0 24 24"><path d="M12 21s-6-5.5-6-11a6 6 0 0 1 12 0c0 5.5-6 11-6 11z"/><circle cx="12" cy="10" r="2.5"/></svg>',
+  phone: '<svg class="i" viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>',
+  mail: '<svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>',
+  share: '<svg class="i" viewBox="0 0 24 24"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.2 10.8l7.6-4.4M8.2 13.2l7.6 4.4"/></svg>',
+  copy: '<svg class="i" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a1 1 0 0 1 1-1h10"/></svg>',
+  play: '<svg class="i" viewBox="0 0 24 24"><path d="M7 4l12 8-12 8z"/></svg>',
+  ruler: '<svg class="i" viewBox="0 0 24 24"><path d="M3 17l14-14 4 4L7 21z"/><path d="M8 8l2 2M11 5l2 2M14 11l2 2"/></svg>',
+  clock: '<svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+  info: '<svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>',
+  warn: '<svg class="i" viewBox="0 0 24 24"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18h.01"/></svg>',
+  user: '<svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>',
+  box: '<svg class="i" viewBox="0 0 24 24"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/></svg>',
+  trend: '<svg class="i" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>',
+  history: '<svg class="i" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 8v4l3 2"/></svg>',
+  chat: '<svg class="i" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg>',
+  globe: '<svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>',
+  logout: '<svg class="i" viewBox="0 0 24 24"><path d="M10 17l5-5-5-5M15 12H3M13 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6"/></svg>',
+  home: '<svg class="i" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>',
+  wa: '<svg class="i" viewBox="0 0 24 24"><path d="M4 20l1.3-3.8A8 8 0 1 1 8.4 19z"/><path d="M9 9c0 3 3 6 6 6l1.5-1.5-2-1-1 1a5 5 0 0 1-2.5-2.5l1-1-1-2z"/></svg>',
+  fb: '<svg class="i" viewBox="0 0 24 24"><path d="M14 8h3V4h-3a4 4 0 0 0-4 4v3H7v4h3v6h4v-6h3l1-4h-4V8z"/></svg>',
+  filter: '<svg class="i" viewBox="0 0 24 24"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></svg>',
+  sort: '<svg class="i" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg>',
+  camera: '<svg class="i" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>',
+  star: '<svg class="i" viewBox="0 0 24 24"><path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3 6.4 20.2l1.1-6.2L3 9.6l6.2-.9z"/></svg>',
+  lock: '<svg class="i" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
+  wifi: '<svg class="i" viewBox="0 0 24 24"><path d="M2 9a16 16 0 0 1 20 0M5 13a11 11 0 0 1 14 0M8.5 16.5a6 6 0 0 1 7 0"/><circle cx="12" cy="20" r="1"/></svg>',
+  refresh: '<svg class="i" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/></svg>',
+  sparkle: '<svg class="i" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 16l.7 2.3L22 19l-2.3.7L19 22l-.7-2.3L16 19l2.3-.7z"/></svg>',
+  pb: '<svg viewBox="0 0 150 24" aria-label="Powered by Lytro"><text x="0" y="17" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-weight="500" font-size="12" fill="currentColor" opacity="0.85">Powered by</text><path d="M15 15V49H31L49 29" transform="translate(67.6 4.04) scale(0.24)" fill="none" stroke="currentColor" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/><text x="82" y="17" font-family="\'Plus Jakarta Sans\', Inter, ui-sans-serif, system-ui, sans-serif" font-weight="800" font-size="14" letter-spacing="-0.4" fill="currentColor">ytro</text></svg>',
+};
+
+/* ---------- strings: [bn, en]; Bangla is the default (I18N-01) ---------- */
+const S = {
+  search: ['খুঁজুন', 'Search'], search_ph: ['কী খুঁজছেন? যেমন: পাঞ্জাবি, শাড়ি', 'What are you looking for? e.g. panjabi, saree'], cart: ['কার্ট', 'Cart'], menu: ['মেনু', 'Menu'], home: ['হোম', 'Home'], all: ['সব', 'All'], categories: ['ক্যাটাগরি', 'Categories'], see_all: ['সব দেখুন', 'See all'],
+  hero_h: ['ঈদের নতুন কালেকশন এসে গেছে', 'The Eid collection is here'], hero_p: ['পাঞ্জাবি, শাড়ি, থ্রি-পিস — ঢাকার ভেতরে ৭০ টাকায় ডেলিভারি, ক্যাশ অন ডেলিভারি।', 'Panjabi, sarees, three-piece. ৳70 delivery inside Dhaka, cash on delivery.'], hero_cta: ['নতুন যা এসেছে', 'New arrivals'],
+  trust_cod: ['ক্যাশ অন ডেলিভারি', 'Cash on delivery'], trust_pay: ['bKash · Nagad', 'bKash · Nagad'], trust_dhaka: ['ঢাকায় ৭০ টাকা, বাইরে ১৩০', '৳70 in Dhaka, ৳130 outside'], trust_courier: ['সারাদেশে কুরিয়ার', 'Courier nationwide'],
+  shop_by: ['ক্যাটাগরি দেখুন', 'Shop by category'], new_in: ['নতুন এসেছে', 'New arrivals'], popular: ['বেশি বিক্রি হচ্ছে', 'Bestsellers'], also_like: ['আরও দেখুন', 'You may also like'],
+  in_stock: ['স্টকে আছে', 'In stock'], low: ['অল্প আছে', 'Few left'], out: ['শেষ', 'Sold out'], new_: ['নতুন', 'New'], save: ['৳{n} সাশ্রয়', 'Save ৳{n}'], from: ['{p} থেকে', 'from {p}'],
+  products_n: ['{n}টি প্রোডাক্ট', '{n} products'], sort: ['সাজান', 'Sort'], sort_rel: ['মিল অনুযায়ী', 'Relevance'], sort_new: ['নতুন আগে', 'Newest'], sort_lo: ['কম দাম আগে', 'Price: low to high'], sort_hi: ['বেশি দাম আগে', 'Price: high to low'], instock_only: ['শুধু স্টকে আছে', 'In stock only'], load_more: ['আরও দেখুন', 'Show more'],
+  recent: ['সম্প্রতি খুঁজেছেন', 'Recent'], suggestions: ['এখান থেকে শুরু করুন', 'Start here'], results_for: ['"{q}" এর ফলাফল', 'Results for "{q}"'], no_results: ['কিছু পাওয়া যায়নি', 'Nothing found'], no_results_hint: ['অন্য বানানে বা ছোট শব্দে খুঁজুন, বা ক্যাটাগরি থেকে দেখুন।', 'Try another spelling or a shorter word, or browse a category.'], browse_cats: ['ক্যাটাগরি দেখুন', 'Browse categories'],
+  // product
+  colour: ['রং', 'Colour'], size: ['সাইজ', 'Size'], qty: ['পরিমাণ', 'Quantity'], size_chart: ['সাইজ চার্ট', 'Size chart'], add: ['কার্টে রাখুন', 'Add to cart'], buy_now: ['এখনই কিনুন', 'Buy now'], added: ['কার্টে রাখা হয়েছে', 'Added to cart'], view_cart: ['কার্ট দেখুন', 'View cart'],
+  unavailable: ['এই কম্বিনেশন নেই', 'This combination is unavailable'], unavailable_hint: ['নেভি রঙে L সাইজ শেষ। অন্য সাইজ বা রং বেছে নিন।', 'L in Navy is sold out. Pick another size or colour.'],
+  deliv_est: ['ডেলিভারি চার্জ', 'Delivery'], deliv_range: ['৳70 ঢাকা শহরে · ৳130 বাইরে', '৳70 in Dhaka city · ৳130 outside'], deliv_area: ['আপনার এলাকা দিন', 'Set your area'], deliv_to: ['{a}: ৳{n}', '{a}: ৳{n}'], change: ['বদলান', 'change'], deliv_days: ['ঢাকায় ১–২ দিন, বাইরে ২–৪ দিন', '1 to 2 days in Dhaka, 2 to 4 outside'],
+  delivers_only: ['শুধু {z}-এ ডেলিভারি হয়', 'Delivers to {z} only'], pay_cod: ['ক্যাশ অন ডেলিভারি', 'Cash on delivery'], pay_cod_hint: ['পণ্য হাতে পেয়ে টাকা দিন', 'Pay when it arrives'], pay_adv: ['৳{n} অগ্রিম, বাকিটা ডেলিভারিতে', '৳{n} advance, the rest on delivery'], pay_adv_hint: ['অর্ডার কনফার্ম করতে bKash বা Nagad-এ ৳{n} পাঠাতে হবে', 'Send ৳{n} by bKash or Nagad to confirm the order'], pay_full: ['পুরো টাকা অগ্রিম', 'Full payment in advance'], pay_dc: ['ডেলিভারি চার্জ অগ্রিম', 'Delivery charge in advance'],
+  cond_used: ['ব্যবহৃত', 'Used'], cond_refurb: ['রিফার্বিশড', 'Refurbished'], video: ['ভিডিও', 'Video'], details: ['বিস্তারিত', 'Details'], description: ['বর্ণনা', 'Description'], care: ['যত্ন ও ফেরত', 'Care and returns'], care_text: ['রিটার্ন বা বদল: ডেলিভারির ২৪ ঘণ্টার মধ্যে জানালে। যোগাযোগ: ০১৭১১-২২৩৩৪৪।', 'Returns or exchange: tell us within 24 hours of delivery. Contact: 01711-223344.'],
+  share: ['শেয়ার', 'Share'], copy_link: ['লিংক কপি', 'Copy link'], copied: ['কপি হয়েছে', 'Copied'], whatsapp: ['WhatsApp', 'WhatsApp'], facebook: ['Facebook', 'Facebook'],
+  sc_title: ['সাইজ চার্ট', 'Size chart'], sc_hint: ['মাপ ইঞ্চিতে। সন্দেহ হলে এক সাইজ বড় নিন।', 'Measurements in inches. When in doubt, take one size up.'], chest: ['বুক', 'Chest'], length: ['লম্বা', 'Length'], sleeve: ['হাতা', 'Sleeve'],
+  // area and cart
+  area_title: ['আপনার এলাকা', 'Your area'], area_hint: ['জেলা ও থানা বাছলে ঠিক ডেলিভারি চার্জ দেখাবে।', 'Pick the district and thana to see the exact delivery charge.'], district: ['জেলা', 'District'], thana: ['থানা / উপজেলা', 'Thana / upazila'], area_save: ['এলাকা ঠিক করুন', 'Set area'],
+  cart_title: ['কার্ট', 'Your cart'], cart_n: ['{n}টি আইটেম', '{n} items'], subtotal: ['পণ্যের দাম', 'Items'], delivery: ['ডেলিভারি', 'Delivery'], total: ['মোট', 'Total'], checkout: ['অর্ডার করুন', 'Checkout'], continue_: ['আরও কেনাকাটা', 'Keep shopping'], remove: ['সরান', 'Remove'],
+  cart_empty: ['কার্ট খালি', 'Your cart is empty'], cart_empty_hint: ['পছন্দের জিনিস কার্টে রাখুন, স্টক ধরা হয় না — অর্ডার করলে তবেই।', 'Add what you like; nothing is held until you order.'], cart_est_note: ['ডেলিভারি চার্জ অর্ডারের সময় যেটা হবে, এখানেও সেটাই — একই হিসাব।', 'The delivery charge here is the one the order will carry, from the same calculation.'],
+  no_delivery: ['{a}-এ আমরা ডেলিভারি দিই না', 'We do not deliver to {a}'], no_delivery_hint: ['অন্য ঠিকানা দিন, বা ০১৭১১-২২৩৩৪৪-এ কথা বলুন।', 'Try another address, or call 01711-223344.'], limited_hint: ['{p} শুধু {z}-এ যায়; এই ঠিকানায় অর্ডার হবে না।', '{p} delivers to {z} only; it cannot go to this address.'],
+  // landing
+  order_now: ['অর্ডার করুন', 'Order now'], confirm_order: ['অর্ডার কনফার্ম করুন', 'Confirm order'], your_details: ['আপনার তথ্য', 'Your details'], name: ['নাম', 'Name'], phone_: ['মোবাইল নম্বর', 'Mobile number'], address: ['পুরো ঠিকানা', 'Full address'], address_ph: ['বাসা/রোড/এলাকা, যেন কুরিয়ার খুঁজে পায়', 'House, road, area, so the courier can find you'], comments: ['মন্তব্য (ঐচ্ছিক)', 'Comments (optional)'], courier_area: ['কুরিয়ার এরিয়া (ঐচ্ছিক)', 'Courier area (optional)'],
+  item_total: ['পণ্যের দাম', 'Item total'], grand_total: ['সর্বমোট', 'Grand total'], cod_rem: ['ডেলিভারিতে দেবেন', 'Pay on delivery'], adv_now: ['এখন অগ্রিম', 'Advance now'], landing_soon: ['অর্ডার নেওয়া শুরু হবে ফেজ ৪-এ; ফর্মটা এখন সাজানো, জমা হয় না।', 'Ordering opens in Phase 4; the form is laid out, not submittable yet.'],
+  gone_h: ['এই প্রোডাক্টটি আর নেই', 'This product is no longer available'], gone_p: ['লিংকটা পুরোনো, বা পণ্যটি শেষ হয়ে গেছে। দোকানে আরও দেখুন।', 'The link is old or the item is gone. See what else the shop has.'], go_shop: ['দোকানে যান', 'Go to the shop'],
+  // offline
+  off_h: ['একটু পরে আসুন', 'Back soon'], off_p: ['{s} এই মুহূর্তে বন্ধ আছে। কিছুক্ষণ পরে আবার চেষ্টা করুন।', '{s} is temporarily unavailable. Please try again a little later.'], nf_h: ['এখানে কিছু নেই', 'Nothing here'], nf_p: ['এই ঠিকানায় কোনো দোকান নেই।', 'There is no shop at this address.'],
+  pwa_t: ['{s} হোম স্ক্রিনে রাখুন', 'Add {s} to your home screen'], pwa_p: ['অ্যাপের মতো খুলবে, অফলাইনেও দেখা যাবে', 'Opens like an app and works offline'], pwa_btn: ['রাখুন', 'Add'],
+  // checkout (Phase 4)
+  co_title: ['চেকআউট', 'Checkout'], co_contact: ['যোগাযোগ', 'Contact'], co_address: ['ডেলিভারি ঠিকানা', 'Delivery address'], co_payment: ['পেমেন্ট', 'Payment'], co_summary: ['অর্ডার সামারি', 'Order summary'], place: ['অর্ডার দিন · {t}', 'Place order · {t}'], place_adv: ['অর্ডার দিয়ে ৳{n} পাঠান', 'Place order and pay ৳{n}'],
+  co_phone_help: ['অর্ডারের SMS এই নম্বরে যাবে', 'Order updates go to this number by SMS'], co_save_addr: ['এই ঠিকানা সেভ রাখুন', 'Save this address'], co_signin: ['আগে অর্ডার করেছেন?', 'Ordered before?'], co_signin_lnk: ['OTP দিয়ে সাইন ইন', 'Sign in with OTP'],
+  pm_bkash: ['bKash', 'bKash'], pm_bkash_hint: ['সেন্ড মানি, পরের পেজে নম্বর ও ধাপ', 'Send money; the number and steps on the next page'], pm_nagad: ['Nagad', 'Nagad'], pm_bank: ['ব্যাংক ট্রান্সফার', 'Bank transfer'], pm_adv_note: ['এই অর্ডারে ৳{n} অগ্রিম লাগবে (থ্রি-পিস)। বাকি ৳{r} ডেলিভারিতে।', 'This order needs ৳{n} in advance (the three-piece). The remaining ৳{r} on delivery.'],
+  err_phone: ['সঠিক মোবাইল নম্বর দিন (01XXXXXXXXX)', 'Enter a valid mobile number (01XXXXXXXXX)'], err_thana: ['থানা বাছুন', 'Pick a thana'], err_addr: ['ঠিকানা লাগবে', 'Address is needed'], err_fix: ['{n}টি জিনিস ঠিক করুন', 'Fix {n} things'],
+  idem_note: ['দুবার চাপলেও একটাই অর্ডার হবে।', 'Tapping twice never creates two orders.'],
+  cf_h: ['অর্ডার হয়ে গেছে', 'Order placed'], cf_p: ['অর্ডার নম্বর {o}। কনফার্মেশন SMS যাচ্ছে {ph}-এ।', 'Order {o}. A confirmation SMS is on its way to {ph}.'], cf_track: ['অর্ডার ট্র্যাক করুন', 'Track the order'], cf_next: ['এরপর কী', 'What happens next'], cf_n1: ['আমরা কল করে কনফার্ম করব', 'We call to confirm'], cf_n2: ['কুরিয়ারে পাঠালে SMS-এ ট্র্যাকিং লিংক পাবেন', 'You get a tracking link by SMS when it ships'], cf_n3: ['ডেলিভারিতে ৳{t} দেবেন', 'Pay ৳{t} on delivery'],
+  cf_adv_h: ['এখন ৳{n} পাঠান', 'Now send ৳{n}'], cf_adv_p: ['অর্ডার {o} ৩০ মিনিটের জন্য ধরে রাখা হয়েছে। bKash বা Nagad-এ পাঠিয়ে TrxID দিন।', 'Order {o} is held for 30 minutes. Send by bKash or Nagad and enter the TrxID.'], cf_pay_btn: ['পেমেন্ট পেজে যান', 'Go to the payment page'], cf_pay_note: ['পেমেন্ট পেজ pay.lytro.app-এ, Lytro-র সুরক্ষায়', 'The payment page is at pay.lytro.app, secured by Lytro'],
+  pc_h: ['পেমেন্ট হয়নি', 'Payment not completed'], pc_p: ['অর্ডার {o} এখনো {m} মিনিট ধরে রাখা আছে। আবার চেষ্টা করুন বা ক্যাশ অন ডেলিভারিতে বদলান।', 'Order {o} is still held for {m} minutes. Try again, or switch to cash on delivery.'], retry: ['আবার পেমেন্ট করুন', 'Try the payment again'], switch_cod: ['ক্যাশ অন ডেলিভারিতে বদলান', 'Switch to cash on delivery'],
+  // tracking and account
+  tr_title: ['অর্ডার ট্র্যাক', 'Track order'], tr_id: ['ট্র্যাকিং আইডি', 'Tracking ID'], tr_find: ['খুঁজুন', 'Find'], tr_items: ['আইটেম', 'Items'], tr_placed: ['অর্ডার হয়েছে', 'Placed'], tr_confirmed: ['কনফার্ম', 'Confirmed'], tr_processing: ['প্রসেসিং', 'Processing'], tr_shipped: ['কুরিয়ারে', 'Shipped'], tr_delivered: ['ডেলিভারি হয়েছে', 'Delivered'], tr_courier: ['কুরিয়ার: {c} · {code}', 'Courier: {c} · {code}'], tr_phone: ['ফোন নম্বর দিয়ে সব অর্ডার', 'All your orders by phone'],
+  ac_signin: ['সাইন ইন', 'Sign in'], ac_hint: ['আপনার মোবাইলে ৬ অঙ্কের কোড যাবে। পাসওয়ার্ড লাগে না।', 'A 6-digit code goes to your mobile. No password.'], ac_send: ['কোড পাঠান', 'Send code'], ac_code: ['৬ অঙ্কের কোড', '6-digit code'], ac_sent: ['{ph}-এ কোড পাঠানো হয়েছে · ৫ মিনিট', 'Code sent to {ph} · valid 5 minutes'], ac_resend: ['আবার পাঠান', 'Resend'], ac_verify: ['যাচাই করুন', 'Verify'],
+  ac_orders: ['আমার অর্ডার', 'My orders'], ac_addresses: ['সেভ করা ঠিকানা', 'Saved addresses'], ac_default: ['ডিফল্ট', 'Default'], ac_add_addr: ['ঠিকানা যোগ', 'Add address'], ac_signout: ['সাইন আউট', 'Sign out'], ac_hello: ['হ্যালো, {n}', 'Hello, {n}'],
+  // combo and chat
+  inside: ['ভেতরে যা আছে', 'What\'s inside'], pick_each: ['প্রতিটি বেছে নিন', 'Pick each one'], chat_h: ['{s}-এর সাথে কথা বলুন', 'Chat with {s}'], chat_hint: ['সাধারণত ১০ মিনিটে উত্তর', 'Usually replies in 10 minutes'], chat_ph: ['মেসেজ লিখুন…', 'Write a message…'],
+  // footer
+  contact_us: ['যোগাযোগ', 'Contact us'], track: ['অর্ডার ট্র্যাক', 'Track order'], account: ['অ্যাকাউন্ট', 'Account'], language: ['English', 'বাংলা'], powered: ['Powered by', 'Powered by'],
+  phase4: ['ফেজ ৪', 'Phase 4'], phase5: ['ফেজ ৫', 'Phase 5'], phase7: ['ফেজ ৭', 'Phase 7'],
+};
+const ST = { screen: 'home', device: 'phone', lang: 'bn', brand: 'default' };
+const L = (bn, en) => (ST.lang === 'bn' ? bn : en);
+function t(k, vars) { const e = S[k]; let s = e ? (ST.lang === 'bn' ? e[0] : e[1]) : k; if (vars) for (const [a, b] of Object.entries(vars)) s = s.split('{' + a + '}').join(b); return s; }
+const money = (n) => '৳' + Number(n).toLocaleString('en-US');
+
+/* ---------- fixtures: Megh Fashion, the clothing shop of the dashboard sketch ---------- */
+const SHOP = { bn: 'মেঘ ফ্যাশন', en: 'Megh Fashion', mono: ['ম', 'M'], slug: 'megh', phone: '01711-223344', email: 'hello@meghfashion.com', address: ['শপ ১২, রাপা প্লাজা, ধানমন্ডি, ঢাকা', 'Shop 12, Rapa Plaza, Dhanmondi, Dhaka'] };
+const shopName = () => L(SHOP.bn, SHOP.en);
+const CATS = [
+  { slug: 'panjabi', bn: 'পাঞ্জাবি', en: 'Panjabi', n: 24 }, { slug: 'sarees', bn: 'শাড়ি', en: 'Sarees', n: 18 }, { slug: 'three-piece', bn: 'থ্রি-পিস', en: 'Three-piece', n: 31 }, { slug: 't-shirts', bn: 'টি-শার্ট', en: 'T-shirts', n: 12 },
+  { slug: 'shirts', bn: 'শার্ট', en: 'Shirts', n: 9 }, { slug: 'kids', bn: 'বাচ্চাদের', en: 'Kids', n: 15 }, { slug: 'hijab', bn: 'হিজাব', en: 'Hijab', n: 7 }, { slug: 'lungi', bn: 'লুঙ্গি', en: 'Lungi', n: 6 },
+];
+const P = [
+  { slug: 'cotton-panjabi', bn: 'কটন পাঞ্জাবি', en: 'Cotton Panjabi', cat: 'panjabi', price: 1250, stock: 'in', sw: ['#fff', '#1f2f5c'], tag: 'new', video: true },
+  { slug: 'jamdani-saree', bn: 'জামদানি শাড়ি', en: 'Jamdani Saree', cat: 'sarees', price: 3200, stock: 'in', sw: ['#7a1f25'], video: true },
+  { slug: 'lawn-three-piece', bn: 'লন থ্রি-পিস', en: 'Lawn Three-piece', cat: 'three-piece', price: 1850, stock: 'low', sw: ['#2a6f4e', '#c96a7a'], adv: 200 },
+  { slug: 'cotton-t-shirt', bn: 'কটন টি-শার্ট', en: 'Cotton T-shirt', cat: 't-shirts', price: 450, max: 490, stock: 'in', sw: ['#10201f', '#1d4ed8'] },
+  { slug: 'kids-frock', bn: 'বাচ্চাদের ফ্রক', en: 'Kids Frock', cat: 'kids', price: 690, stock: 'out', sw: ['#f2a516'] },
+  { slug: 'chiffon-hijab', bn: 'শিফন হিজাব', en: 'Chiffon Hijab', cat: 'hijab', price: 350, stock: 'in', sw: ['#10201f', '#5b6e6d', '#7a1f25'] },
+  { slug: 'check-lungi', bn: 'চেক লুঙ্গি', en: 'Check Lungi', cat: 'lungi', price: 420, stock: 'in', sw: ['#1f2f5c', '#2a6f4e'], limited: true },
+  { slug: 'silk-saree', bn: 'সিল্ক শাড়ি', en: 'Silk Saree', cat: 'sarees', price: 4500, stock: 'in', sw: ['#9b1b30', '#d4a017'], tag: 'new' },
+  { slug: 'linen-shirt', bn: 'লিনেন শার্ট', en: 'Linen Shirt', cat: 'shirts', price: 1150, stock: 'in', sw: ['#fff', '#7fc8f8'] },
+  { slug: 'eid-combo', bn: 'ঈদ কম্বো: পাঞ্জাবি + লুঙ্গি', en: 'Eid Combo: Panjabi + Lungi', cat: 'panjabi', price: 1500, stock: 'in', sw: ['#fff', '#1f2f5c'], combo: true, saveN: 170 },
+];
+const pName = (p) => L(p.bn, p.en);
+const catName = (slug) => { const c = CATS.find((x) => x.slug === slug); return c ? L(c.bn, c.en) : ''; };
+const byCat = (slug) => P.filter((p) => p.cat === slug);
+const LOC = {
+  districts: [['dhaka', 'ঢাকা', 'Dhaka'], ['gazipur', 'গাজীপুর', 'Gazipur'], ['chattogram', 'চট্টগ্রাম', 'Chattogram'], ['sylhet', 'সিলেট', 'Sylhet'], ['rajshahi', 'রাজশাহী', 'Rajshahi'], ['cumilla', 'কুমিল্লা', 'Cumilla'], ['bandarban', 'বান্দরবান', 'Bandarban']],
+  thanas: { dhaka: [['gulshan', 'গুলশান', 'Gulshan'], ['dhanmondi', 'ধানমন্ডি', 'Dhanmondi'], ['mirpur', 'মিরপুর', 'Mirpur'], ['uttara', 'উত্তরা', 'Uttara'], ['mohammadpur', 'মোহাম্মদপুর', 'Mohammadpur'], ['badda', 'বাড্ডা', 'Badda'], ['savar', 'সাভার', 'Savar'], ['dhamrai', 'ধামরাই', 'Dhamrai']], gazipur: [['gazipur-sadar', 'গাজীপুর সদর', 'Gazipur Sadar'], ['tongi', 'টঙ্গী', 'Tongi']], bandarban: [['bandarban-sadar', 'বান্দরবান সদর', 'Bandarban Sadar'], ['ruma', 'রুমা', 'Ruma']] },
+};
+const ZONE = { inside: { bn: 'ঢাকা শহর', en: 'Dhaka city', charge: 70 }, outside: { bn: 'ঢাকার বাইরে', en: 'Outside Dhaka', charge: 130 } };
+const CART = [
+  { p: P[0], v: 'M · ' + 'White', vbn: 'M · সাদা', qty: 1 },
+  { p: P[2], v: 'L · Green', vbn: 'L · সবুজ', qty: 1 },
+  { p: P[5], v: 'Black', vbn: 'কালো', qty: 2 },
+];
+const cartItems = () => CART.reduce((a, l) => a + l.qty, 0);
+const cartSub = () => CART.reduce((a, l) => a + l.p.price * l.qty, 0);
+</script>
+
+<script>
+/* ---------- shell and small components ---------- */
+const SCREENS = {};
+const def = (id, o) => { SCREENS[id] = o; };
+const go = (id) => { if (!SCREENS[id]) return; ST.screen = id; const sel = document.getElementById('selScreen'); if (sel) sel.value = id; render(); };
+const logo = (cls) => `<span class="logo ${cls || ''}">${L(SHOP.mono[0], SHOP.mono[1])}</span>`;
+const langBtn = () => `<button class="langpill" onclick="setLang(ST.lang==='bn'?'en':'bn')">${I.globe}${t('language')}</button>`;
+function hdr(o) {
+  o = o || {};
+  const cart = `<button class="ib" onclick="go('cart')">${I.bag}${cartItems() ? `<span class="badge">${cartItems()}</span>` : ''}</button>`;
+  if (o.minimal) return `<div class="hdr minimal"><span class="shop" onclick="go('home')">${logo()}<span class="name">${shopName()}</span></span>${langBtn()}</div>`;
+  const nav = `<nav class="nav">${CATS.slice(0, 6).map((c) => `<button class="${o.cat === c.slug ? 'on' : ''}" onclick="go('category')">${L(c.bn, c.en)}</button>`).join('')}</nav>`;
+  const dsearch = `<div class="dsearch"><div class="sbox q" onclick="go('search')">${I.search}<span>${t('search_ph')}</span></div></div>`;
+  if (o.back) return `<div class="hdr"><button class="back" onclick="go('${o.back}')">${I.back}</button><span class="ttl">${o.title || ''}</span><span class="shop donly" onclick="go('home')">${logo()}<span class="name">${shopName()}</span></span>${nav}${dsearch}${cart}</div>`;
+  return `<div class="hdr"><span class="shop" onclick="go('home')">${logo()}<span class="name">${shopName()}</span></span>${nav}${dsearch}<button class="ib msearch" onclick="go('search')">${I.search}</button>${cart}</div>`;
+}
+function foot() {
+  return `<footer class="foot"><div class="cols">
+    <div style="display:flex;flex-direction:column;gap:10px"><div class="fshop">${logo()}<span>${shopName()}</span></div><div class="contact"><div>${I.phone}<span>${SHOP.phone}</span></div><div>${I.mail}<span>${SHOP.email}</span></div><div>${I.pin}<span>${L(...SHOP.address)}</span></div></div></div>
+    <div class="links"><a href="#" onclick="go('category');return false">${t('categories')}</a><a href="#" onclick="go('tracking');return false">${t('track')}</a><a href="#" onclick="go('account-signin');return false">${t('account')}</a><a href="#" onclick="setLang(ST.lang==='bn'?'en':'bn');return false">${t('language')}</a></div>
+    <div class="pb"><span>© 2026 ${shopName()}</span>${I.pb}</div></div></footer>`;
+}
+function shell(o, inner, extra) {
+  return `<div class="shell">${hdr(o.hdr || {})}<div class="scroll"><div class="page ${o.tight ? 'tight' : ''}">${inner}${o.nofoot ? '' : foot()}</div></div>${extra || ''}</div>`;
+}
+function sheet(title, body, footHtml, o) {
+  o = o || {}; const close = o.close || SCREENS[ST.screen].base || 'home';
+  return `<div class="scrim ${o.drawer ? 'drawer' : ''}" onclick="if(event.target===this)go('${close}')"><div class="sheet"><div class="grab"></div><div class="sh"><h2>${title}</h2><button class="x" onclick="go('${close}')">${I.x}</button></div><div class="sb">${body}</div>${footHtml ? `<div class="sf">${footHtml}</div>` : ''}</div></div>`;
+}
+const toast = (msg, btnHtml) => `<div class="toast">${I.check}<span>${msg}</span>${btnHtml || ''}</div>`;
+const stChip = (s) => s === 'out' ? `<span class="st out">${t('out')}</span>` : s === 'low' ? `<span class="st low">${t('low')}</span>` : `<span class="st ok">${t('in_stock')}</span>`;
+function card(p) {
+  const tag = p.stock === 'out' ? `<span class="tag out">${t('out')}</span>` : p.stock === 'low' ? `<span class="tag low">${t('low')}</span>` : p.combo ? `<span class="tag save">${t('save', { n: p.saveN })}</span>` : p.tag === 'new' ? `<span class="tag">${I.sparkle}${t('new_')}</span>` : '';
+  const target = p.stock === 'out' ? 'product-out' : p.combo ? 'combo' : p.adv ? 'product-advance' : p.slug === 'jamdani-saree' ? 'product-saree' : 'product';
+  return `<div class="card ${p.stock === 'out' ? 'out' : ''}" onclick="go('${target}')"><div class="img"><span class="ph">${pName(p).slice(0, 1)}</span>${tag}</div><div class="nm">${pName(p)}</div><div class="pr"><span class="price">${p.max ? t('from', { p: money(p.price) }) : money(p.price)}</span></div>${p.sw ? `<div class="sw">${p.sw.map((c) => `<i style="background:${c}"></i>`).join('')}</div>` : ''}</div>`;
+}
+const grid = (list) => `<div class="grid">${list.map(card).join('')}</div>`;
+const rail = (list) => `<div class="rail">${list.map(card).join('')}</div>`;
+const trust = () => `<div class="trust"><span>${I.cash}${t('trust_cod')}</span><span>${I.shield}${t('trust_pay')}</span><span>${I.truck}${t('trust_dhaka')}</span><span>${I.box}${t('trust_courier')}</span></div>`;
+const field = (label, control, help, err) => `<div class="field"><label>${label}</label>${control}${help ? `<div class="help">${help}</div>` : ''}${err ? `<div class="err">${err}</div>` : ''}</div>`;
+const input = (v, ph, extra, bad) => `<input class="input ${bad ? 'bad' : ''}" value="${v ?? ''}" placeholder="${ph || ''}" ${extra || ''}>`;
+const select = (opts, v, bad) => `<select class="select ${bad ? 'bad' : ''}">${opts.map(([a, b]) => `<option value="${a}" ${a === v ? 'selected' : ''}>${b}</option>`).join('')}</select>`;
+const textarea = (v, ph) => `<textarea class="textarea" placeholder="${ph || ''}">${v || ''}</textarea>`;
+const qty = (n) => `<span class="qty"><button>${I.minus}</button><span>${n}</span><button>${I.plus}</button></span>`;
+const pwaPrompt = () => `<div class="pwa"><span class="ic">${L(SHOP.mono[0], SHOP.mono[1])}</span><span class="b"><b>${t('pwa_t', { s: shopName() })}</b>${t('pwa_p')}</span><button class="btn">${t('pwa_btn')}</button></div>`;
+
+/* ---------- home ---------- */
+function homePage() {
+  return `
+  <section class="hero"><span class="eyebrow" style="color:inherit;opacity:.85">${shopName()}</span><h1>${t('hero_h')}</h1><p>${t('hero_p')}</p><button class="cta" onclick="go('category')">${t('hero_cta')} ${I.chev}</button></section>
+  ${trust()}
+  <section class="sec"><div class="sechead"><h2>${t('shop_by')}</h2><span class="lnk" onclick="go('category')">${t('see_all')}${I.chev}</span></div><div class="cats">${CATS.map((c) => `<div class="cat" onclick="go('category')"><span class="img">${L(c.bn, c.en).slice(0, 1)}</span><span>${L(c.bn, c.en)}</span></div>`).join('')}</div></section>
+  <section class="sec"><div class="sechead"><h2>${t('new_in')}</h2><span class="lnk" onclick="go('category')">${t('see_all')}${I.chev}</span></div>${grid(P.slice(0, 4))}</section>
+  <section class="sec"><div class="sechead"><h2>${t('popular')}</h2></div>${rail([P[3], P[5], P[7], P[8], P[6]])}</section>`;
+}
+def('home', { group: 'Browse', label: 'Home', url: 'megh.lytro.app', render: () => shell({}, homePage()) });
+def('home-pwa', { group: 'Browse', label: '· install prompt (PWA, SFT-14)', url: 'megh.lytro.app', render: () => shell({}, homePage(), pwaPrompt()) });
+
+/* ---------- category ---------- */
+function categoryPage(o) {
+  o = o || {}; const list = P.filter((p) => p.cat === 'panjabi' || p.cat === 'sarees' || p.cat === 'three-piece' || p.cat === 't-shirts' || p.cat === 'shirts' || p.cat === 'kids');
+  return `
+  <div><h1 class="pt">${catName('panjabi')}</h1><div class="sub">${t('products_n', { n: 24 })}</div></div>
+  <div class="chips"><span class="chip on">${t('all')}</span>${CATS.slice(0, 6).map((c) => `<span class="chip" onclick="go('category')">${L(c.bn, c.en)}</span>`).join('')}</div>
+  <div style="display:flex;gap:8px;align-items:center;justify-content:space-between"><span class="chip" onclick="go('category-sort')">${I.sort}${t('sort')}: ${t('sort_rel')}</span><span class="chip ${o.instock ? 'on' : ''}">${I.check}${t('instock_only')}</span></div>
+  ${grid(list)}
+  <div style="text-align:center"><button class="btn ghost">${t('load_more')} · 18</button></div>`;
+}
+def('category', { group: 'Browse', label: 'Category · Panjabi', url: 'megh.lytro.app/c/panjabi', render: () => shell({ hdr: { back: 'home', title: catName('panjabi'), cat: 'panjabi' } }, categoryPage()) });
+def('category-sort', { base: 'category', group: 'Browse', label: '· sort (sheet)', url: 'megh.lytro.app/c/panjabi', render: () => shell({ hdr: { back: 'home', title: catName('panjabi'), cat: 'panjabi' } }, categoryPage(), sheet(t('sort'), `<div class="slist" style="margin:0 -16px">${[['sort_rel', true], ['sort_new'], ['sort_lo'], ['sort_hi']].map(([k, on]) => `<button onclick="go('category')"><span>${t(k)}</span>${on ? `<span class="c">${I.check}</span>` : ''}</button>`).join('')}</div>`)) });
+
+/* ---------- search ---------- */
+function searchOverlay(o) {
+  o = o || {};
+  const body = o.results ? `<div class="page tight" style="padding-top:12px"><div class="sub">${t('results_for', { q: o.q })}</div>${grid([P[0], P[9], P[8]])}</div>`
+    : o.empty ? `<div class="page tight" style="align-items:center;text-align:center;padding-top:48px">${I.search.replace('class="i"', 'class="i" style="width:40px;height:40px;color:var(--n300)"')}<b style="font-size:17px">${t('no_results')}</b><p class="sub">${t('no_results_hint')}</p><button class="btn ghost" onclick="go('category')">${t('browse_cats')}</button></div>`
+    : `<div class="slist"><div style="padding:12px 16px 4px" class="eyebrow">${t('recent')}</div>${[['পাঞ্জাবি', 'panjabi'], ['শাড়ি', 'saree']].map(([b, e]) => `<button onclick="go('search-results')">${I.history}<span>${L(b, e)}</span></button>`).join('')}<div style="padding:12px 16px 4px" class="eyebrow">${t('suggestions')}</div>${CATS.slice(0, 5).map((c) => `<button onclick="go('category')">${I.chev}<span>${L(c.bn, c.en)}</span><span class="c">${c.n}</span></button>`).join('')}</div>`;
+  return `<div class="sover"><div class="sbar"><div class="sbox">${I.search}<input value="${o.q || ''}" placeholder="${t('search_ph')}" autofocus>${o.q ? `<button>${I.x}</button>` : ''}</div><button class="btn quiet sm" onclick="go('home')">${L('বাতিল', 'Cancel')}</button></div><div class="spanel">${body}</div></div>`;
+}
+def('search', { group: 'Browse', label: 'Search · open', url: 'megh.lytro.app/search', render: () => shell({}, homePage(), searchOverlay()) });
+def('search-results', { group: 'Browse', label: '· results', url: 'megh.lytro.app/search?q=panjabi', render: () => shell({}, homePage(), searchOverlay({ results: true, q: L('পাঞ্জাবি', 'panjabi') })) });
+def('search-empty', { group: 'Browse', label: '· nothing found', url: 'megh.lytro.app/search?q=xyz', render: () => shell({}, homePage(), searchOverlay({ empty: true, q: 'xyz' })) });
+
+/* ---------- product page ---------- */
+const PRODUCT = { p: P[0], sizes: ['S', 'M', 'L', 'XL', 'XXL'], colours: [['#fff', 'সাদা', 'White'], ['#1f2f5c', 'নেভি', 'Navy']], attrs: [['কাপড়', 'Fabric', 'কটন', 'Cotton'], ['ফিট', 'Fit', 'রেগুলার', 'Regular'], ['কলার', 'Collar', 'ব্যান্ড', 'Band']], desc: ['১০০% কটন, প্রি-শ্রাঙ্ক। ধোয়ার পর সাইজ বদলায় না।\nঈদের জন্য হালকা এমব্রয়ডারি, রেগুলার ফিট।', '100% cotton, pre-shrunk. Keeps its size after washing.\nLight embroidery for Eid, regular fit.'] };
+function gallery(p, o) {
+  o = o || {};
+  return `<div class="gal"><div class="thumbs"><i class="on"></i><i></i><i></i>${p.video ? '<i></i>' : ''}</div><div class="gallery"><div class="main"><span class="ph">${pName(p).slice(0, 1)}</span>${p.video ? `<span class="vid">${I.play}${t('video')}</span>` : ''}<button class="fav">${I.heart}</button><div class="dots"><i class="on"></i><i></i><i></i>${p.video ? '<i></i>' : ''}</div></div></div></div>`;
+}
+function buyBox(p, o) {
+  o = o || {}; const sel = o.sel || { size: 'M', colour: 0 };
+  const sizes = `<div class="opt"><div class="lb"><span>${t('size')}: <b>${sel.size}</b></span><span class="lnk" onclick="go('product-size-chart')">${I.ruler} ${t('size_chart')}</span></div><div class="vals">${PRODUCT.sizes.map((s) => `<span class="vb ${s === sel.size ? 'on' : ''} ${o.offSizes && o.offSizes.includes(s) ? 'off' : ''}">${s}</span>`).join('')}</div></div>`;
+  const colours = `<div class="opt"><div class="lb"><span>${t('colour')}: <b>${L(PRODUCT.colours[sel.colour][1], PRODUCT.colours[sel.colour][2])}</b></span></div><div class="vals">${PRODUCT.colours.map((c, i) => `<span class="swb ${i === sel.colour ? 'on' : ''}"><i style="background:${c[0]}"></i></span>`).join('')}</div></div>`;
+  const deliv = o.area ? `<div class="line">${I.truck}<span><b>${t('deliv_est')}</b>: ${t('deliv_to', { a: L(ZONE.inside.bn, ZONE.inside.en), n: 70 })} · ${t('deliv_days')} <span class="lnk" onclick="go('product-delivery')">${t('change')}</span></span></div>`
+    : `<div class="line">${I.truck}<span><b>${t('deliv_est')}</b>: ${t('deliv_range')} · <span class="lnk" onclick="go('product-delivery')">${t('deliv_area')}</span></span></div>`;
+  const pay = p.adv ? `<div class="line">${I.cash}<span><b>${t('pay_adv', { n: p.adv })}</b> · ${t('pay_adv_hint', { n: p.adv })}</span></div>` : `<div class="line">${I.cash}<span><b>${t('pay_cod')}</b> · ${t('pay_cod_hint')}</span></div>`;
+  const limited = p.limited ? `<div class="line">${I.pin}<span><b>${t('delivers_only', { z: L(ZONE.inside.bn, ZONE.inside.en) })}</b></span></div>` : '';
+  return `<div class="buy">
+    <div class="top"><div class="eyebrow">${catName(p.cat)}</div><h1 class="pt">${pName(p)}</h1><div class="pricerow"><span class="price">${money(o.price || p.price)}</span>${p.max ? `<span class="unit">– ${money(p.max)}</span>` : ''}${stChip(o.stock || p.stock)}${p.cond ? `<span class="st info plain">${t('cond_' + p.cond)}</span>` : ''}</div></div>
+    ${o.single ? '' : sizes}${o.single ? '' : colours}
+    ${o.unavailable ? `<div class="banner warn">${I.warn}<span><b>${t('unavailable')}</b><br>${t('unavailable_hint')}</span></div>` : ''}
+    <div class="opt"><div class="lb"><span>${t('qty')}</span></div>${qty(1)}</div>
+    <div style="display:flex;flex-direction:column;gap:10px">${deliv}${pay}${limited}</div>
+    <div class="dbtns">${btn2(o)}</div>
+    <div class="acc"><details open><summary>${t('description')}${I.down}</summary><div class="body desc">${L(...PRODUCT.desc)}</div></details><details><summary>${t('details')}${I.down}</summary><div class="body"><div class="kv">${PRODUCT.attrs.map((a) => `<span class="k">${L(a[0], a[1])}</span><span class="v">${L(a[2], a[3])}</span>`).join('')}</div></div></details><details><summary>${t('care')}${I.down}</summary><div class="body">${t('care_text')}</div></details></div>
+    <div class="share"><button class="btn ghost sm" onclick="go('product-share')">${I.share}${t('share')}</button><button class="btn ghost sm">${I.wa}${t('whatsapp')}</button><button class="btn ghost sm">${I.fb}${t('facebook')}</button></div>
+  </div>`;
+}
+const btn2 = (o) => (o.out ? `<button class="btn ghost lg" disabled>${t('out')}</button>` : o.unavailable ? `<button class="btn primary lg" disabled>${t('add')}</button>` : `<button class="btn ghost lg" onclick="go('product-added')">${t('add')}</button><button class="btn primary lg" onclick="go('checkout')">${t('buy_now')}</button>`);
+function productPage(p, o) {
+  o = o || {};
+  return `<div class="pdp">${gallery(p, o)}${buyBox(p, o)}</div><section class="sec"><div class="sechead"><h2>${t('also_like')}</h2></div>${rail([P[8], P[3], P[2], P[7]])}</section>`;
+}
+const buybar = (p, o) => { o = o || {}; return `<div class="buybar"><span class="tot"><span class="k">${o.out ? t('out') : t('total')}</span><span class="price">${money(o.price || p.price)}</span></span>${o.out ? `<button class="btn ghost" disabled>${t('out')}</button>` : o.unavailable ? `<button class="btn primary" disabled>${t('add')}</button>` : `<button class="btn ghost" onclick="go('product-added')">${I.bag}</button><button class="btn primary" onclick="go('product-added')">${t('add')}</button>`}</div>`; };
+const pHdr = (p) => ({ hdr: { back: 'category', title: pName(p) } });
+def('product', { group: 'Product', label: 'Product · Cotton Panjabi', url: 'megh.lytro.app/p/cotton-panjabi', render: () => shell(pHdr(P[0]), productPage(P[0]), buybar(P[0])) });
+def('product-area', { group: 'Product', label: '· with the area set (exact delivery)', url: 'megh.lytro.app/p/cotton-panjabi', render: () => shell(pHdr(P[0]), productPage(P[0], { area: true }), buybar(P[0])) });
+def('product-unavailable', { group: 'Product', label: '· L in Navy sold out (ATR-07)', url: 'megh.lytro.app/p/cotton-panjabi', render: () => shell(pHdr(P[0]), productPage(P[0], { sel: { size: 'L', colour: 1 }, offSizes: ['L', 'XXL'], unavailable: true }), buybar(P[0], { unavailable: true })) });
+def('product-added', { base: 'product', group: 'Product', label: '· added to cart (toast)', url: 'megh.lytro.app/p/cotton-panjabi', render: () => shell(pHdr(P[0]), productPage(P[0]), buybar(P[0]) + toast(t('added'), `<button class="btn" onclick="go('cart')">${t('view_cart')}</button>`)) });
+def('product-advance', { group: 'Product', label: 'Product · Three-piece with ৳200 advance (PRD-08)', url: 'megh.lytro.app/p/lawn-three-piece', render: () => shell(pHdr(P[2]), productPage(P[2], { stock: 'low' }), buybar(P[2])) });
+def('product-saree', { group: 'Product', label: 'Product · Saree, one variant, video', url: 'megh.lytro.app/p/jamdani-saree', render: () => shell(pHdr(P[1]), productPage(P[1], { single: true }), buybar(P[1])) });
+def('product-out', { group: 'Product', label: 'Product · sold out (Kids Frock)', url: 'megh.lytro.app/p/kids-frock', render: () => shell(pHdr(P[4]), productPage(P[4], { single: true, out: true }), buybar(P[4], { out: true })) });
+def('product-limited', { group: 'Product', label: 'Product · delivers to Dhaka city only (DLV-07)', url: 'megh.lytro.app/p/check-lungi', render: () => shell(pHdr(P[6]), productPage(P[6], { single: true }), buybar(P[6])) });
+def('product-size-chart', { base: 'product', group: 'Product', label: '· size chart (sheet, PRD-17)', url: 'megh.lytro.app/p/cotton-panjabi', render: () => shell(pHdr(P[0]), productPage(P[0]), buybar(P[0]) + sheet(t('sc_title'), `<div class="sub">${t('sc_hint')}</div><table class="matrix"><thead><tr><th>${t('size')}</th><th>${t('chest')}</th><th>${t('length')}</th><th>${t('sleeve')}</th></tr></thead><tbody>${[['S', 38, 40, 24], ['M', 40, 41, 24.5], ['L', 42, 42, 25], ['XL', 44, 43, 25.5], ['XXL', 46, 44, 26]].map((r) => `<tr>${r.map((c) => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table>`)) });
+def('product-delivery', { base: 'product', group: 'Product', label: '· set your area (sheet, SFT-20)', url: 'megh.lytro.app/p/cotton-panjabi', render: () => shell(pHdr(P[0]), productPage(P[0]), buybar(P[0]) + sheet(t('area_title'), `<div class="sub">${t('area_hint')}</div>${field(t('district'), select(LOC.districts.map(([k, b, e]) => [k, L(b, e)]), 'dhaka'))}${field(t('thana'), select(LOC.thanas.dhaka.map(([k, b, e]) => [k, L(b, e)]), 'dhanmondi'))}<div class="banner info">${I.truck}<span>${t('deliv_to', { a: L(ZONE.inside.bn, ZONE.inside.en), n: 70 })} · ${t('deliv_days')}</span></div>`, `<button class="btn primary" onclick="go('product-area')">${t('area_save')}</button>`)) });
+def('product-share', { base: 'product', group: 'Product', label: '· share (sheet)', url: 'megh.lytro.app/p/cotton-panjabi', render: () => shell(pHdr(P[0]), productPage(P[0]), buybar(P[0]) + sheet(t('share'), `<div class="card2" style="flex-direction:row;align-items:center;gap:10px"><span style="flex:1;font-size:14px;word-break:break-all">megh.lytro.app/p/cotton-panjabi</span><button class="btn ghost sm">${I.copy}${t('copy_link')}</button></div><div style="display:flex;gap:8px"><button class="btn ghost" style="flex:1">${I.wa}${t('whatsapp')}</button><button class="btn ghost" style="flex:1">${I.fb}${t('facebook')}</button></div>`)) });
+
+/* ---------- cart ---------- */
+function cartLines() { return `<div>${CART.map((l) => `<div class="cl"><span class="th">${pName(l.p).slice(0, 1)}</span><div class="b"><div class="nm">${pName(l.p)}</div><div class="vr">${L(l.vbn, l.v)}${l.p.adv ? ` · ${t('pay_adv', { n: l.p.adv })}` : ''}</div><div class="row">${qty(l.qty)}<span class="price">${money(l.p.price * l.qty)}</span></div><span class="rm">${t('remove')}</span></div></div>`).join('')}</div>`; }
+function cartSummary(o) {
+  o = o || {}; const d = o.area ? 70 : null; const sub = cartSub();
+  return `<div class="sum"><div class="r"><span class="k">${t('subtotal')} · ${t('cart_n', { n: cartItems() })}</span><span class="price">${money(sub)}</span></div><div class="r"><span class="k">${t('delivery')}${o.area ? ` · ${L(ZONE.inside.bn, ZONE.inside.en)} <span class="lnk" style="color:var(--accent-text);cursor:pointer" onclick="go('cart-area')">${t('change')}</span>` : ''}</span><span>${d !== null ? money(d) : `<span class="lnk" style="color:var(--accent-text);cursor:pointer;font-weight:600" onclick="go('cart-area')">${t('deliv_area')}</span>`}</span></div>${o.area ? '' : `<div class="r" style="font-size:12px;color:var(--subtle)"><span>${t('deliv_range')}</span></div>`}<div class="r total"><span>${t('total')}</span><span class="price">${d !== null ? money(sub + d) : `${money(sub + 70)} – ${money(sub + 130)}`}</span></div></div><div class="sub" style="font-size:12px">${t('cart_est_note')}</div>`;
+}
+function cartSheet(o) {
+  o = o || {};
+  const body = CART.length && !o.empty ? `${cartLines()}${cartSummary(o)}${o.nodelivery ? `<div class="banner bad">${I.warn}<span><b>${t('no_delivery', { a: L('বান্দরবান', 'Bandarban') })}</b><br>${t('no_delivery_hint')}</span></div>` : ''}` : `<div style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;padding:32px 0">${I.bag.replace('class="i"', 'class="i" style="width:40px;height:40px;color:var(--n300)"')}<b style="font-size:17px">${t('cart_empty')}</b><p class="sub">${t('cart_empty_hint')}</p><button class="btn ghost" onclick="go('home')">${t('continue_')}</button></div>`;
+  const footHtml = CART.length && !o.empty ? `<button class="btn ghost" onclick="go('home')">${t('continue_')}</button><button class="btn primary" onclick="go('checkout')" ${o.nodelivery ? 'disabled' : ''}>${t('checkout')}</button>` : null;
+  return sheet(`${t('cart_title')}${!o.empty ? ` · ${t('cart_n', { n: cartItems() })}` : ''}`, body, footHtml, { drawer: true, close: 'product' });
+}
+def('cart', { base: 'product', group: 'Cart', label: 'Cart (drawer)', url: 'megh.lytro.app/cart', render: () => shell(pHdr(P[0]), productPage(P[0]), cartSheet()) });
+def('cart-area', { base: 'cart', group: 'Cart', label: '· set the area for the exact charge (sheet)', url: 'megh.lytro.app/cart', render: () => shell(pHdr(P[0]), productPage(P[0]), sheet(t('area_title'), `<div class="sub">${t('area_hint')}</div>${field(t('district'), select(LOC.districts.map(([k, b, e]) => [k, L(b, e)]), 'dhaka'))}${field(t('thana'), select(LOC.thanas.dhaka.map(([k, b, e]) => [k, L(b, e)]), 'mirpur'))}<div class="banner info">${I.truck}<span>${t('deliv_to', { a: L(ZONE.inside.bn, ZONE.inside.en), n: 70 })}</span></div>`, `<button class="btn primary" onclick="go('cart-exact')">${t('area_save')}</button>`, { close: 'cart' })) });
+def('cart-exact', { base: 'product', group: 'Cart', label: '· exact delivery charge', url: 'megh.lytro.app/cart', render: () => shell(pHdr(P[0]), productPage(P[0]), cartSheet({ area: true })) });
+def('cart-nodelivery', { base: 'product', group: 'Cart', label: '· no delivery to that area (DLV-06)', url: 'megh.lytro.app/cart', render: () => shell(pHdr(P[0]), productPage(P[0]), cartSheet({ area: true, nodelivery: true })) });
+def('cart-empty', { base: 'product', group: 'Cart', label: '· empty', url: 'megh.lytro.app/cart', render: () => shell(pHdr(P[0]), productPage(P[0]), cartSheet({ empty: true })) });
+
+/* ---------- landing page /l/<slug> (LND) ---------- */
+function orderForm(o) {
+  o = o || {};
+  return `<div class="card2"><h3>${t('your_details')}</h3>${field(t('name'), input(o.name || '', L('যেমন: রুমানা আক্তার', 'e.g. Rumana Akter')))}${field(t('phone_'), input(o.phone || '', '01XXXXXXXXX', 'inputmode=tel', o.errPhone), null, o.errPhone ? t('err_phone') : null)}<div class="grid2">${field(t('district'), select([['', '—'], ...LOC.districts.map(([k, b, e]) => [k, L(b, e)])], o.district || ''))}${field(t('thana'), select([['', '—'], ...(o.district ? LOC.thanas[o.district] || [] : []).map(([k, b, e]) => [k, L(b, e)])], o.thana || '', o.errThana), null, o.errThana ? t('err_thana') : null)}</div>${o.courier ? field(t('courier_area'), select([['', '—'], ['mirpur-10', 'Mirpur 10'], ['mirpur-11', 'Mirpur 11'], ['pallabi', 'Pallabi']], ''), L('স্টেডফাস্ট কুরিয়ারের এরিয়া; না জানলে খালি রাখুন', 'Steadfast\'s area; leave it if unsure')) : ''}${field(t('address'), textarea(o.address || '', t('address_ph')), null, o.errAddr ? t('err_addr') : null)}${field(t('comments'), textarea('', ''))}</div>`;
+}
+function landingPage(o) {
+  o = o || {}; const p = P[0]; const q = o.qty || 1; const total = p.price * q;
+  return `<div class="pdp">${gallery(p)}<div class="buy">
+    <div class="top"><div class="eyebrow">${shopName()}</div><h1 class="pt">${pName(p)}</h1><div class="pricerow"><span class="price">${money(p.price)}</span>${stChip(p.stock)}</div></div>
+    <div class="opt"><div class="lb"><span>${t('size')}: <b>${o.size || 'M'}</b></span><span class="lnk" onclick="go('product-size-chart')">${I.ruler} ${t('size_chart')}</span></div><div class="vals">${PRODUCT.sizes.map((s) => `<span class="vb ${s === (o.size || 'M') ? 'on' : ''}">${s}</span>`).join('')}</div></div>
+    <div class="opt"><div class="lb"><span>${t('colour')}: <b>${L(PRODUCT.colours[o.colour || 0][1], PRODUCT.colours[o.colour || 0][2])}</b></span></div><div class="vals">${PRODUCT.colours.map((c, i) => `<span class="swb ${i === (o.colour || 0) ? 'on' : ''}"><i style="background:${c[0]}"></i></span>`).join('')}</div></div>
+    <div class="opt"><div class="lb"><span>${t('qty')}</span></div>${qty(q)}</div>
+    <div class="desc" style="font-size:14px;color:var(--muted)">${L(...PRODUCT.desc)}</div>
+    <div class="acc"><details><summary>${t('details')}${I.down}</summary><div class="body"><div class="kv">${PRODUCT.attrs.map((a) => `<span class="k">${L(a[0], a[1])}</span><span class="v">${L(a[2], a[3])}</span>`).join('')}</div></div></details></div>
+  </div></div>
+  <div class="two"><div style="display:flex;flex-direction:column;gap:16px">${o.soon ? `<div class="banner info">${I.info}<span>${t('landing_soon')}</span></div>` : ''}${orderForm(o)}</div>
+  <div class="side"><div class="card2"><h3>${t('co_summary')}</h3><div class="cl"><span class="th">${pName(p).slice(0, 1)}</span><div class="b"><div class="nm">${pName(p)}</div><div class="vr">${o.size || 'M'} · ${L(PRODUCT.colours[o.colour || 0][1], PRODUCT.colours[o.colour || 0][2])} × ${q}</div></div></div><div class="sum"><div class="r"><span class="k">${t('item_total')}</span><span>${money(total)}</span></div><div class="r"><span class="k">${t('delivery')}${o.thana ? ` · ${L(ZONE.inside.bn, ZONE.inside.en)}` : ''}</span><span>${o.thana ? money(70) : `৳70 – ৳130`}</span></div><div class="r total"><span>${t('grand_total')}</span><span class="price">${o.thana ? money(total + 70) : `${money(total + 70)} – ${money(total + 130)}`}</span></div></div><div class="line">${I.cash}<span><b>${t('pay_cod')}</b> · ${t('pay_cod_hint')}</span></div><button class="btn primary lg block" onclick="go('${o.soon ? 'landing' : 'confirm-cod'}')" ${o.soon ? 'disabled' : ''}>${t('confirm_order')}</button><div class="sub" style="font-size:12px;text-align:center">${t('idem_note')}</div></div></div></div>`;
+}
+def('landing', { group: 'Landing page', label: 'Landing page /l/cotton-panjabi (form laid out, Slice 12)', url: 'megh.lytro.app/l/cotton-panjabi', render: () => shell({ hdr: { minimal: true }, tight: true }, landingPage({ soon: true })) });
+def('landing-variant', { group: 'Landing page', label: '· opened with ?v= (XL Navy preselected, LND-06)', url: 'megh.lytro.app/l/cotton-panjabi?v=var_xl_navy', render: () => shell({ hdr: { minimal: true }, tight: true }, landingPage({ soon: true, size: 'XL', colour: 1 })) });
+def('landing-gone', { group: 'Landing page', label: '· no longer available (404, LND-03)', url: 'megh.lytro.app/l/old-panjabi', render: () => `<div class="bare"><div class="box">${logo()}<h1>${t('gone_h')}</h1><p>${t('gone_p')}</p><button class="btn primary" onclick="go('home')">${t('go_shop')}</button><div style="color:var(--subtle)">${I.pb}</div></div></div>` });
+
+/* ---------- offline and not found ---------- */
+def('offline', { group: 'Browse', label: 'Temporarily unavailable (SFT-12)', url: 'megh.lytro.app', render: () => `<div class="bare"><div class="box">${logo()}<h1>${t('off_h')}</h1><p>${t('off_p', { s: shopName() })}</p><div style="color:var(--subtle)">${I.pb}</div></div></div>` });
+def('store-off', { group: 'Browse', label: 'Storefront switched off (SFT-16): not found', url: 'megh.lytro.app', render: () => `<div class="bare"><div class="box"><span class="logo" style="background:var(--n200);color:var(--n700)">?</span><h1>${t('nf_h')}</h1><p>${t('nf_p')}</p><div style="color:var(--subtle)">${I.pb}</div></div></div>` });
+</script>
+
+<script>
+/* ---------- later phases, drawn in full: checkout and confirmation (Phase 4), payment return (Phase 5), tracking and account (Phase 4), combos (Phase 4), chat (Phase 7) ---------- */
+const later = (k) => `<span class="st info plain">${t(k)}</span>`;
+function checkoutPage(o) {
+  o = o || {}; const sub = cartSub(); const d = 70; const adv = o.adv ? 200 : 0; const total = sub + d;
+  const pm = (id, label, hint, on, logoColor) => `<label class="radio ${on ? 'on' : ''}"><span class="dot"></span><span class="b"><span class="l1">${logoColor ? `<span class="wlogo" style="background:${logoColor}">${label}</span>` : ''}${label}</span><span class="l2">${hint}</span></span></label>`;
+  return `
+  <div><h1 class="pt">${t('co_title')} ${later('phase4')}</h1><div class="steps"><i class="on"></i><i class="on"></i><i class="${o.step3 ? 'on' : ''}"></i></div></div>
+  ${o.errors ? `<div class="banner bad">${I.warn}<span>${t('err_fix', { n: 3 })}</span></div>` : ''}
+  <div class="two"><div style="display:flex;flex-direction:column;gap:16px">
+    <div class="card2"><div class="sechead"><h2><span class="stepnum done">1</span>${t('co_contact')}</h2><span class="lnk" onclick="go('account-signin')">${t('co_signin_lnk')}</span></div>${field(t('name'), input(o.errors ? '' : L('রুমানা আক্তার', 'Rumana Akter'), L('যেমন: রুমানা আক্তার', 'e.g. Rumana Akter')))}${field(t('phone_'), input(o.errors ? '0171' : '01711 223344', '01XXXXXXXXX', 'inputmode=tel', o.errors), o.errors ? null : t('co_phone_help'), o.errors ? t('err_phone') : null)}</div>
+    <div class="card2"><div class="sechead"><h2><span class="stepnum ${o.errors ? '' : 'done'}">2</span>${t('co_address')}</h2></div><div class="grid2">${field(t('district'), select([['', '—'], ...LOC.districts.map(([k, b, e]) => [k, L(b, e)])], o.nodelivery ? 'bandarban' : 'dhaka'))}${field(t('thana'), select([['', '—'], ...((o.nodelivery ? LOC.thanas.bandarban : LOC.thanas.dhaka)).map(([k, b, e]) => [k, L(b, e)])], o.errors ? '' : (o.nodelivery ? 'ruma' : 'mirpur'), o.errors), null, o.errors ? t('err_thana') : null)}</div>${field(t('courier_area'), select([['', '—'], ['mirpur-10', 'Mirpur 10'], ['mirpur-11', 'Mirpur 11']], 'mirpur-10'), L('স্টেডফাস্ট কুরিয়ারের এরিয়া; না জানলে খালি রাখুন', 'Steadfast\'s area; leave it if unsure'))}${field(t('address'), textarea(o.errors ? '' : L('বাসা ১২/বি, রোড ৩, মিরপুর ১০', 'House 12/B, Road 3, Mirpur 10'), t('address_ph')), null, o.errors ? t('err_addr') : null)}${o.nodelivery ? `<div class="banner bad">${I.warn}<span><b>${t('no_delivery', { a: L('বান্দরবান', 'Bandarban') })}</b><br>${t('no_delivery_hint')}</span></div>` : ''}${o.limited ? `<div class="banner bad">${I.warn}<span>${t('limited_hint', { p: pName(P[6]), z: L(ZONE.inside.bn, ZONE.inside.en) })}</span></div>` : ''}<label class="line" style="cursor:pointer">${I.check}<span>${t('co_save_addr')}</span></label></div>
+    <div class="card2"><div class="sechead"><h2><span class="stepnum">3</span>${t('co_payment')}</h2></div>${adv ? `<div class="banner warn">${I.info}<span>${t('pm_adv_note', { n: adv, r: total - adv })}</span></div>` : ''}${adv ? '' : pm('cod', t('pay_cod'), t('pay_cod_hint'), true)}${pm('bkash', 'bKash', t('pm_bkash_hint'), !!adv, '#CF2772')}${pm('nagad', 'Nagad', t('pm_bkash_hint'), false, '#D71E22')}${pm('bank', t('pm_bank'), L('ব্যাংক অ্যাকাউন্টে পাঠিয়ে TrxID দিন', 'Transfer to the bank account and enter the reference'), false)}</div>
+  </div>
+  <div class="side"><div class="card2"><h3>${t('co_summary')}</h3>${CART.map((l) => `<div class="cl"><span class="th">${pName(l.p).slice(0, 1)}</span><div class="b"><div class="nm">${pName(l.p)}</div><div class="vr">${L(l.vbn, l.v)} × ${l.qty}</div><div class="row"><span></span><span class="price">${money(l.p.price * l.qty)}</span></div></div></div>`).join('')}<div class="sum"><div class="r"><span class="k">${t('subtotal')}</span><span>${money(sub)}</span></div><div class="r"><span class="k">${t('delivery')} · ${L(ZONE.inside.bn, ZONE.inside.en)}</span><span>${money(d)}</span></div><div class="r total"><span>${t('grand_total')}</span><span class="price">${money(total)}</span></div>${adv ? `<div class="r"><span class="k">${t('adv_now')}</span><span class="price">${money(adv)}</span></div><div class="r"><span class="k">${t('cod_rem')}</span><span>${money(total - adv)}</span></div>` : ''}</div><button class="btn primary lg block" onclick="go('${adv ? 'confirm-advance' : 'confirm-cod'}')" ${o.nodelivery || o.limited ? 'disabled' : ''}>${adv ? t('place_adv', { n: adv }) : t('place', { t: money(total) })}</button><div class="sub" style="font-size:12px;text-align:center">${t('idem_note')}</div></div></div></div>`;
+}
+const coHdr = { hdr: { back: 'cart', title: t('co_title') }, tight: true };
+def('checkout', { group: 'Later phases (design only)', label: 'Checkout · cash on delivery (Phase 4)', url: 'megh.lytro.app/checkout', render: () => shell(coHdr, checkoutPage()) });
+def('checkout-advance', { group: 'Later phases (design only)', label: 'Checkout · ৳200 advance by bKash (PRD-08)', url: 'megh.lytro.app/checkout', render: () => shell(coHdr, checkoutPage({ adv: true })) });
+def('checkout-errors', { group: 'Later phases (design only)', label: 'Checkout · field errors', url: 'megh.lytro.app/checkout', render: () => shell(coHdr, checkoutPage({ errors: true })) });
+def('checkout-nodelivery', { group: 'Later phases (design only)', label: 'Checkout · no delivery to Bandarban (DLV-06)', url: 'megh.lytro.app/checkout', render: () => shell(coHdr, checkoutPage({ nodelivery: true })) });
+def('checkout-limited', { group: 'Later phases (design only)', label: 'Checkout · a product that only goes to Dhaka city (DLV-07)', url: 'megh.lytro.app/checkout', render: () => shell(coHdr, checkoutPage({ limited: true })) });
+
+function confirmPage(o) {
+  o = o || {}; const no = 'ORD-20261021-0042'; const track = 'K7F2M9QX';
+  if (o.adv) return `<div class="bare" style="position:static;padding:32px 16px;min-height:100%"><div class="box"><span class="logo" style="background:var(--warning-soft);color:var(--warning)">${I.clock}</span><h1>${t('cf_adv_h', { n: 200 })}</h1><p>${t('cf_adv_p', { o: no })}</p><button class="btn primary lg block" onclick="go('pay-cancelled')">${t('cf_pay_btn')} ${I.chev}</button><div class="line" style="justify-content:center">${I.lock}<span>${t('cf_pay_note')}</span></div><div class="sum" style="width:100%;text-align:left"><div class="r"><span class="k">${t('adv_now')}</span><span class="price">${money(200)}</span></div><div class="r"><span class="k">${t('cod_rem')}</span><span>${money(cartSub() + 70 - 200)}</span></div></div></div></div>`;
+  if (o.cancelled) return `<div class="bare" style="position:static;padding:32px 16px;min-height:100%"><div class="box"><span class="logo" style="background:var(--danger-soft);color:var(--danger)">${I.warn}</span><h1>${t('pc_h')} ${later('phase5')}</h1><p>${t('pc_p', { o: no, m: 22 })}</p><button class="btn primary lg block" onclick="go('confirm-advance')">${t('retry')}</button><button class="btn ghost block" onclick="go('confirm-cod')">${t('switch_cod')}</button></div></div>`;
+  return `<div class="bare" style="position:static;padding:32px 16px;min-height:100%"><div class="box"><span class="logo" style="background:var(--success-soft);color:var(--success)">${I.check}</span><h1>${t('cf_h')} ${later('phase4')}</h1><p>${t('cf_p', { o: no, ph: '01711 223344' })}</p><button class="btn primary lg block" onclick="go('tracking')">${t('cf_track')} · ${track}</button><div class="card2" style="width:100%;text-align:left"><h3>${t('cf_next')}</h3><div class="tl"><div class="s done"><div class="t">${t('cf_n1')}</div></div><div class="s todo"><div class="t">${t('cf_n2')}</div></div><div class="s todo"><div class="t">${t('cf_n3', { t: (cartSub() + 70).toLocaleString('en-US') })}</div></div></div></div>${pwaPrompt().replace('class="pwa"', 'class="pwa" style="position:static;width:100%"')}</div></div>`;
+}
+def('confirm-cod', { group: 'Later phases (design only)', label: 'Order placed · cash on delivery (Phase 4)', url: 'megh.lytro.app/order/K7F2M9QX', render: () => shell({ hdr: { minimal: true }, tight: true, nofoot: true }, confirmPage()) });
+def('confirm-advance', { group: 'Later phases (design only)', label: 'Order held · go pay ৳200 (Phase 5)', url: 'megh.lytro.app/order/K7F2M9QX', render: () => shell({ hdr: { minimal: true }, tight: true, nofoot: true }, confirmPage({ adv: true })) });
+def('pay-cancelled', { group: 'Later phases (design only)', label: 'Back from the payment page · not paid (PAY-08)', url: 'megh.lytro.app/order/K7F2M9QX?pay=cancelled', render: () => shell({ hdr: { minimal: true }, tight: true, nofoot: true }, confirmPage({ cancelled: true })) });
+
+/* tracking (ORD-17, ORD-18, SFT-08) */
+function trackingPage(o) {
+  o = o || {};
+  const steps = [['tr_placed', '21 Oct, 14:32', 'done'], ['tr_confirmed', '21 Oct, 15:10', 'done'], ['tr_processing', '22 Oct, 09:40', 'now'], ['tr_shipped', '', 'todo'], ['tr_delivered', '', 'todo']];
+  return `<div><h1 class="pt">${t('tr_title')} ${later('phase4')}</h1></div>
+  <div class="sbox">${I.search}<input value="K7F2M9QX" placeholder="${t('tr_id')}" style="font-family:ui-monospace,Menlo,monospace;letter-spacing:.08em"><button class="btn sm dark">${t('tr_find')}</button></div>
+  <div class="two"><div class="card2"><div class="sechead"><h3>ORD-20261021-0042</h3>${stChip('in').replace(t('in_stock'), t('tr_processing'))}</div><div class="tl">${steps.map(([k, d, c]) => `<div class="s ${c}"><div class="t">${t(k)}</div>${d ? `<div class="d">${d}</div>` : ''}</div>`).join('')}</div><div class="line">${I.truck}<span>${t('tr_courier', { c: 'Steadfast', code: 'SF-88213' })}</span></div></div>
+  <div class="side card2"><h3>${t('tr_items')}</h3>${CART.map((l) => `<div class="cl"><span class="th">${pName(l.p).slice(0, 1)}</span><div class="b"><div class="nm">${pName(l.p)}</div><div class="vr">${L(l.vbn, l.v)} × ${l.qty}</div></div></div>`).join('')}<div class="sum"><div class="r"><span class="k">${t('subtotal')}</span><span>${money(cartSub())}</span></div><div class="r"><span class="k">${t('delivery')}</span><span>${money(70)}</span></div><div class="r total"><span>${t('cod_rem')}</span><span class="price">${money(cartSub() + 70)}</span></div></div><button class="btn ghost block" onclick="go('account-signin')">${I.user}${t('tr_phone')}</button></div></div>`;
+}
+def('tracking', { group: 'Later phases (design only)', label: 'Tracking page (Phase 4)', url: 'megh.lytro.app/track/K7F2M9QX', render: () => shell({ hdr: { back: 'home', title: t('tr_title') } }, trackingPage()) });
+
+/* shopper account (CUS-03 to CUS-06, SFT-09) */
+def('account-signin', { group: 'Later phases (design only)', label: 'Account · OTP sign-in (Phase 4)', url: 'megh.lytro.app/sign-in', render: () => shell({ hdr: { back: 'home', title: t('ac_signin') }, tight: true }, `<div style="max-width:440px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:16px"><div><h1 class="pt">${t('ac_signin')} ${later('phase4')}</h1><div class="sub">${t('ac_hint')}</div></div><div class="card2">${field(t('phone_'), input('01711 223344', '01XXXXXXXXX', 'inputmode=tel'))}<button class="btn primary lg block" onclick="go('account-otp')">${t('ac_send')}</button></div></div>`) });
+def('account-otp', { group: 'Later phases (design only)', label: 'Account · enter the code', url: 'megh.lytro.app/sign-in', render: () => shell({ hdr: { back: 'account-signin', title: t('ac_signin') }, tight: true }, `<div style="max-width:440px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:16px"><div><h1 class="pt">${t('ac_code')}</h1><div class="sub">${t('ac_sent', { ph: '01711 223344' })}</div></div><div class="card2">${field(t('ac_code'), input('', '000000', 'inputmode=numeric style="font-size:24px;letter-spacing:.3em;text-align:center;height:56px"'))}<button class="btn primary lg block" onclick="go('account-orders')">${t('ac_verify')}</button><button class="btn quiet">${t('ac_resend')}</button></div></div>`) });
+def('account-orders', { group: 'Later phases (design only)', label: 'Account · my orders', url: 'megh.lytro.app/account', render: () => shell({ hdr: { back: 'home', title: t('account') } }, `<div><h1 class="pt">${t('ac_hello', { n: L('রুমানা', 'Rumana') })}</h1><div class="sub">01711 223344 · <a href="#" onclick="go('home');return false">${t('ac_signout')}</a></div></div>
+  <div class="chips"><span class="chip on">${t('ac_orders')}</span><span class="chip" onclick="go('account-addresses')">${t('ac_addresses')}</span></div>
+  <div class="card2" style="padding:0">${[['ORD-20261021-0042', '21 Oct 2026', 'tr_processing', cartSub() + 70, 'low'], ['ORD-20261003-0017', '3 Oct 2026', 'tr_delivered', 1320, 'in'], ['ORD-20260914-0008', '14 Sep 2026', 'tr_delivered', 450, 'in']].map(([no, d, s, tot, c]) => `<div class="cl" style="padding:14px 16px;cursor:pointer" onclick="go('tracking')"><div class="b"><div class="nm" style="font-family:ui-monospace,Menlo,monospace;font-size:14px">${no}</div><div class="vr">${d}</div></div><div style="text-align:right;display:flex;flex-direction:column;gap:4px;align-items:flex-end">${stChip(c).replace(c === 'low' ? t('low') : t('in_stock'), t(s))}<span class="price">${money(tot)}</span></div></div>`).join('')}</div>`) });
+def('account-addresses', { group: 'Later phases (design only)', label: 'Account · saved addresses (CUS-06)', url: 'megh.lytro.app/account/addresses', render: () => shell({ hdr: { back: 'home', title: t('account') } }, `<div><h1 class="pt">${t('ac_hello', { n: L('রুমানা', 'Rumana') })}</h1></div>
+  <div class="chips"><span class="chip" onclick="go('account-orders')">${t('ac_orders')}</span><span class="chip on">${t('ac_addresses')}</span></div>
+  <div style="display:flex;flex-direction:column;gap:10px">${[[L('বাসা', 'Home'), L('বাসা ১২/বি, রোড ৩, মিরপুর ১০, ঢাকা', 'House 12/B, Road 3, Mirpur 10, Dhaka'), true], [L('অফিস', 'Office'), L('লেভেল ৫, কাওরান বাজার, ঢাকা', 'Level 5, Kawran Bazar, Dhaka'), false]].map(([n, a, d]) => `<div class="card2" style="flex-direction:row;align-items:flex-start;gap:12px">${I.pin}<div style="flex:1"><b>${n}</b> ${d ? `<span class="st info plain">${t('ac_default')}</span>` : ''}<div class="sub">${a}</div></div><button class="btn quiet sm">${L('এডিট', 'Edit')}</button></div>`).join('')}<button class="btn ghost">${I.plus}${t('ac_add_addr')}</button></div>`) });
+
+/* combo product page (CMB-09, Phase 4) */
+def('combo', { group: 'Later phases (design only)', label: 'Combo pack · what\'s inside (CMB-09, Phase 4)', url: 'megh.lytro.app/p/eid-combo', render: () => { const p = P[9]; return shell(pHdr(p), `<div class="pdp">${gallery(p)}<div class="buy">
+    <div class="top"><div class="eyebrow">${catName('panjabi')} · ${later('phase4')}</div><h1 class="pt">${pName(p)}</h1><div class="pricerow"><span class="price">${money(p.price)}</span><span class="unit" style="text-decoration:line-through">${money(1670)}</span><span class="st ok plain">${t('save', { n: 170 })}</span>${stChip('in')}</div></div>
+    <div class="opt"><div class="lb"><span>${t('inside')}</span></div><div class="combo"><div class="part"><span class="th"></span><div class="b">${pName(P[0])} × 1<div class="l2">${t('pick_each')}: ${t('size')} <b>M</b> · ${t('colour')} <b>${L('সাদা', 'White')}</b> <span class="lnk" style="color:var(--accent-text)">${t('change')}</span></div></div></div><div class="part"><span class="th"></span><div class="b">${pName(P[6])} × 1<div class="l2">${L('নেভি চেক', 'Navy check')}</div></div></div></div></div>
+    <div class="opt"><div class="lb"><span>${t('qty')}</span></div>${qty(1)}</div>
+    <div class="line">${I.truck}<span><b>${t('deliv_est')}</b>: ${t('deliv_range')}</span></div>
+    <div class="dbtns">${btn2({})}</div></div></div>`, buybar(p)); } });
+
+/* chat widget (CHT-01, Phase 7) */
+def('chat', { group: 'Later phases (design only)', label: 'Chat widget (CHT-01, Phase 7)', url: 'megh.lytro.app/p/cotton-panjabi', render: () => shell(pHdr(P[0]), productPage(P[0]), buybar(P[0]) + `<div class="chatbox"><div class="ch">${logo()}<span style="flex:1">${t('chat_h', { s: shopName() })}<div style="font-size:12px;font-weight:400;opacity:.85">${t('chat_hint')} · ${later('phase7')}</div></span><button class="x" style="color:inherit">${I.x}</button></div><div class="msgs"><div class="m me">${L('XL সাইজে নেভি কি আছে?', 'Do you have XL in navy?')}</div><div class="m">${L('জি, আছে। আজ অর্ডার করলে কালই পাবেন।', 'Yes, we do. Order today and it arrives tomorrow.')}</div></div><div class="in"><input class="input" placeholder="${t('chat_ph')}"><button class="btn primary sm">${I.chev}</button></div></div>`) });
+def('chat-fab', { group: 'Later phases (design only)', label: 'Chat bubble on the product page', url: 'megh.lytro.app/p/cotton-panjabi', render: () => shell(pHdr(P[0]), productPage(P[0]), buybar(P[0]) + `<button class="chatfab" onclick="go('chat')">${I.chat}<span class="n">1</span></button>`) });
+
+/* ---------- render ---------- */
+function setLang(l) { ST.lang = l; document.querySelectorAll('#segLang button').forEach((b) => b.classList.toggle('on', b.dataset.v === l)); render(); }
+function render() {
+  const f = document.getElementById('frame'); const scr = SCREENS[ST.screen] || SCREENS.home;
+  f.className = 'frame ' + ST.device; f.dataset.lang = ST.lang; f.dataset.brand = ST.brand;
+  document.getElementById('urlbar').textContent = scr.url || 'megh.lytro.app';
+  document.getElementById('root').innerHTML = scr.render();
+  document.getElementById('caption').innerHTML = `<b>${scr.group} · ${scr.label}</b> — ${scr.url || ''}`;
+}
+(function init() {
+  const sel = document.getElementById('selScreen'); const groups = {};
+  for (const [id, s] of Object.entries(SCREENS)) (groups[s.group] = groups[s.group] || []).push([id, s.label]);
+  for (const [g, items] of Object.entries(groups)) { const og = document.createElement('optgroup'); og.label = g; for (const [id, label] of items) { const o = document.createElement('option'); o.value = id; o.textContent = label; og.appendChild(o); } sel.appendChild(og); }
+  sel.value = ST.screen;
+  sel.addEventListener('change', () => { ST.screen = sel.value; render(); });
+  document.querySelectorAll('#segDevice button').forEach((b) => b.addEventListener('click', () => { ST.device = b.dataset.v; document.querySelectorAll('#segDevice button').forEach((x) => x.classList.toggle('on', x === b)); render(); }));
+  document.querySelectorAll('#segLang button').forEach((b) => b.addEventListener('click', () => setLang(b.dataset.v)));
+  document.querySelectorAll('#segBrand button').forEach((b) => b.addEventListener('click', () => { ST.brand = b.dataset.v; document.querySelectorAll('#segBrand button').forEach((x) => x.classList.toggle('on', x === b)); render(); }));
+  render();
+})();
+</script>
+</body>
+</html>
