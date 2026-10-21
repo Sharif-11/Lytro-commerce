@@ -116,7 +116,11 @@ district, thana, the courier's area when the shop's default courier books by are
 comments (LND-07), and the summary with item total, delivery as a range until the thana is chosen, the
 grand total and the payment line, then "Confirm order" with "Tapping twice never creates two orders"
 (LND-09). Until Phase 4 the form is laid out and the button disabled, with a sentence saying so (Slice 12).
-A `?v=` link opens with that variant selected (LND-06). A gone product is a branded 404 (LND-03).
+A `?v=` link opens with that variant selected (LND-06). A gone product is a branded 404 (LND-03). On
+phones a pinned bar carries the product's price and "Order now", which scrolls to the form, so a shopper
+arriving from an ad never has to hunt for it; on desktop the form sits beside the product and the bar is
+not shown. The landing footer keeps the shop's contact, the tracking link, the language and "Powered by
+Lytro", and drops the category links, since the page offers no catalogue navigation (LND-01).
 
 ## 7. Offline, switched off, not found
 

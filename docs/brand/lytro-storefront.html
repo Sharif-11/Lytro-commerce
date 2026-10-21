@@ -580,14 +580,17 @@ function hdr(o) {
   if (o.back) return `<div class="hdr"><button class="back" onclick="go('${o.back}')">${I.back}</button><span class="ttl">${o.title || ''}</span><span class="shop donly" onclick="go('home')">${logo()}<span class="name">${shopName()}</span></span>${nav}${dsearch}${cart}</div>`;
   return `<div class="hdr"><span class="shop" onclick="go('home')">${logo()}<span class="name">${shopName()}</span></span>${nav}${dsearch}<button class="ib msearch" onclick="go('search')">${I.search}</button>${cart}</div>`;
 }
-function foot() {
+function foot(o) {
+  o = o || {};
+  const links = o.landing ? `<div class="links"><a href="#" onclick="go('tracking');return false">${t('track')}</a><a href="#" onclick="setLang(ST.lang==='bn'?'en':'bn');return false">${t('language')}</a></div>`
+    : `<div class="links"><a href="#" onclick="go('category');return false">${t('categories')}</a><a href="#" onclick="go('tracking');return false">${t('track')}</a><a href="#" onclick="go('account-signin');return false">${t('account')}</a><a href="#" onclick="setLang(ST.lang==='bn'?'en':'bn');return false">${t('language')}</a></div>`;
   return `<footer class="foot"><div class="cols">
     <div style="display:flex;flex-direction:column;gap:10px"><div class="fshop">${logo()}<span>${shopName()}</span></div><div class="contact"><div>${I.phone}<span>${SHOP.phone}</span></div><div>${I.mail}<span>${SHOP.email}</span></div><div>${I.pin}<span>${L(...SHOP.address)}</span></div></div></div>
-    <div class="links"><a href="#" onclick="go('category');return false">${t('categories')}</a><a href="#" onclick="go('tracking');return false">${t('track')}</a><a href="#" onclick="go('account-signin');return false">${t('account')}</a><a href="#" onclick="setLang(ST.lang==='bn'?'en':'bn');return false">${t('language')}</a></div>
+    ${links}
     <div class="pb"><span>© 2026 ${shopName()}</span>${I.pb}</div></div></footer>`;
 }
 function shell(o, inner, extra) {
-  return `<div class="shell">${hdr(o.hdr || {})}<div class="scroll"><div class="page ${o.tight ? 'tight' : ''}">${inner}${o.nofoot ? '' : foot()}</div></div>${extra || ''}</div>`;
+  return `<div class="shell">${hdr(o.hdr || {})}<div class="scroll"><div class="page ${o.tight ? 'tight' : ''}">${inner}${o.nofoot ? '' : foot({ landing: o.landing })}</div></div>${extra || ''}</div>`;
 }
 function sheet(title, body, footHtml, o) {
   o = o || {}; const close = o.close || SCREENS[ST.screen].base || 'home';
@@ -724,11 +727,13 @@ function landingPage(o) {
     <div class="desc" style="font-size:14px;color:var(--muted)">${L(...PRODUCT.desc)}</div>
     <div class="acc"><details><summary>${t('details')}${I.down}</summary><div class="body"><div class="kv">${PRODUCT.attrs.map((a) => `<span class="k">${L(a[0], a[1])}</span><span class="v">${L(a[2], a[3])}</span>`).join('')}</div></div></details></div>
   </div></div>
-  <div class="two"><div style="display:flex;flex-direction:column;gap:16px">${o.soon ? `<div class="banner info">${I.info}<span>${t('landing_soon')}</span></div>` : ''}${orderForm(o)}</div>
+  <div class="two"><div class="ofrm" style="display:flex;flex-direction:column;gap:16px">${o.soon ? `<div class="banner info">${I.info}<span>${t('landing_soon')}</span></div>` : ''}${orderForm(o)}</div>
   <div class="side"><div class="card2"><h3>${t('co_summary')}</h3><div class="cl"><span class="th">${pName(p).slice(0, 1)}</span><div class="b"><div class="nm">${pName(p)}</div><div class="vr">${o.size || 'M'} · ${L(PRODUCT.colours[o.colour || 0][1], PRODUCT.colours[o.colour || 0][2])} × ${q}</div></div></div><div class="sum"><div class="r"><span class="k">${t('item_total')}</span><span>${money(total)}</span></div><div class="r"><span class="k">${t('delivery')}${o.thana ? ` · ${L(ZONE.inside.bn, ZONE.inside.en)}` : ''}</span><span>${o.thana ? money(70) : `৳70 – ৳130`}</span></div><div class="r total"><span>${t('grand_total')}</span><span class="price">${o.thana ? money(total + 70) : `${money(total + 70)} – ${money(total + 130)}`}</span></div></div><div class="line">${I.cash}<span><b>${t('pay_cod')}</b> · ${t('pay_cod_hint')}</span></div><button class="btn primary lg block" onclick="go('${o.soon ? 'landing' : 'confirm-cod'}')" ${o.soon ? 'disabled' : ''}>${t('confirm_order')}</button><div class="sub" style="font-size:12px;text-align:center">${t('idem_note')}</div></div></div></div>`;
 }
-def('landing', { group: 'Landing page', label: 'Landing page /l/cotton-panjabi (form laid out, Slice 12)', url: 'megh.lytro.app/l/cotton-panjabi', render: () => shell({ hdr: { minimal: true }, tight: true }, landingPage({ soon: true })) });
-def('landing-variant', { group: 'Landing page', label: '· opened with ?v= (XL Navy preselected, LND-06)', url: 'megh.lytro.app/l/cotton-panjabi?v=var_xl_navy', render: () => shell({ hdr: { minimal: true }, tight: true }, landingPage({ soon: true, size: 'XL', colour: 1 })) });
+/* the phone's pinned bar: the price and "Order now", which scrolls to the form; hidden on desktop where the form is beside the product */
+const landingBar = (p) => `<div class="buybar"><span class="tot"><span class="k">${pName(p)}</span><span class="price">${money(p.price)}</span></span><button class="btn primary" onclick="var s=document.querySelector('#frame .scroll'),f=document.querySelector('#frame .ofrm');if(s&&f)s.scrollTo({top:f.offsetTop-72,behavior:'smooth'})">${t('order_now')} ${I.down}</button></div>`;
+def('landing', { group: 'Landing page', label: 'Landing page /l/cotton-panjabi (form laid out, Slice 12)', url: 'megh.lytro.app/l/cotton-panjabi', render: () => shell({ hdr: { minimal: true }, landing: true }, landingPage({ soon: true }), landingBar(P[0])) });
+def('landing-variant', { group: 'Landing page', label: '· opened with ?v= (XL Navy preselected, LND-06)', url: 'megh.lytro.app/l/cotton-panjabi?v=var_xl_navy', render: () => shell({ hdr: { minimal: true }, landing: true }, landingPage({ soon: true, size: 'XL', colour: 1 }), landingBar(P[0])) });
 def('landing-gone', { group: 'Landing page', label: '· no longer available (404, LND-03)', url: 'megh.lytro.app/l/old-panjabi', render: () => `<div class="bare"><div class="box">${logo()}<h1>${t('gone_h')}</h1><p>${t('gone_p')}</p><button class="btn primary" onclick="go('home')">${t('go_shop')}</button><div style="color:var(--subtle)">${I.pb}</div></div></div>` });
 
 /* ---------- offline and not found ---------- */
