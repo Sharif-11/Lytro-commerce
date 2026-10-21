@@ -1,6 +1,6 @@
 # Tenant dashboard: the full design
 
-Status: v2.1, 2026-10-20. One design for the whole seller journey: sign-in and onboarding, and the
+Status: v2.2, 2026-10-21 (v2.1 of 2026-10-20 plus §7.4a, the product form by shop type). One design for the whole seller journey: sign-in and onboarding, and the
 dashboard (`apps/dashboard`, served at `app.lytro.app/<shop>`). It replaces the screen designs in
 `DASHBOARD-SECTIONS-DESIGN.md` and the shell and screen visuals in `ONBOARDING-FLOW-DESIGN.md` (that
 document's flow, decisions and routing rules still hold and are referenced below). The interactive
@@ -289,6 +289,64 @@ limit with "See plans" (PRD-04).
 
 **Content.** `GET /product-defaults?categoryId=`, `POST /products`, `PATCH`, `PUT …/variants`,
 `…/attributes`, `…/slug`, `…/size-chart`, `…/delivery-zones`, `POST …/duplicate`, `DELETE` (built).
+
+### 7.4a The product form by shop type (`/products/new`)
+
+Added 2026-10-21. One form, ten starting points. The shop type never adds a different form: it sets the
+defaults a new product starts with and decides which optional block is shown up front, exactly as the
+presets seed them (PST-02, PST-05; `control.business_type_presets`, migrations 0051, 0052, 0059). The
+sketch draws every default type with a realistic product, so each kind of seller can check that the first
+product takes the fewest taps for their trade.
+
+**What every type shares.** The title "New product" with the line *Defaults: Clothing · change* under it
+(the link opens the category picker, since a category that "behaves like" another type is what changes
+the defaults, PST-06). Then the cards of §7.4 in this order: Basics (photos and the one video with the
+Slice 6 upload states, name, price, category, description), the type's up-front block, Options and
+variants with the type's suggested attributes as links (ATR-02), Stock and delivery, More settings, the
+sticky Save. On desktop a right-hand card, *What this shop type sets*, lists the unit, tracking, batches,
+serials, low-stock alert, suggested attributes and up-front fields with the sentence that it is a starting
+point only (PST-02), so the adaptive behaviour is visible rather than magic.
+
+| Type | Starts with | Up front | The sketch's product and what it shows |
+| --- | --- | --- | --- |
+| Clothing | piece, counted, low at 5; Size, Color, Fabric | Size chart | Cotton Panjabi: Size (S to XXL in one tap, ATR-16) and Colour split it; Fabric describes; the chart line reads "Uses the category's chart" (PRD-17); the matrix takes price, opening stock and SKU per variant. |
+| Shoes and bags | piece, counted; Size, Color, Material | Size chart | Leather Loafers: EU sizes 38 to 44 in one tap; its own chart. |
+| Cosmetics | piece, counted, batches on; Shade, Size, Skin type | Batches and expiry | Matte Lipstick: shades with swatches (ATR-18); the opening stock of each shade is a batch with an optional code, expiry and unit cost (INV-12, INV-10), entered in the *Opening batch* sheet. |
+| Electronics | piece, counted, serials on, any code; Brand, Warranty, Compatible models | Serial numbers, Condition | Rechargeable Table Fan: no variants; opening stock 5 with "serials later" (INV-14); condition New, Used, Refurbished as a segmented control (FED-02). |
+| Mobiles and gadgets | piece, counted, serials on, IMEI; Storage, RAM, Color | Serial numbers, Condition | Galaxy A16: Storage and Colour split it, RAM describes; the matrix carries an *Opening serials* column ("3 / 5") opening the serials sheet: Scan, Paste a list or Type, each IMEI checked for 15 digits and for duplicates in the shop, the rest allowed later (INV-14, INV-23). |
+| Grocery | kg, counted, batches on; Pack size, Brand | Batches and expiry | Miniket Rice at ৳78 per kg: Pack size splits it (5, 10, 25 kg) and *Sizes share one stock* is on, so the matrix has a *Pack holds* column and one opening stock in kg with its batch (INV-24, UOM-03); the unit line says decimals are allowed. |
+| Food and bakery | piece, made to order; Size, Flavour | Stock tracking | Chocolate Cake: *Made to order: always available* up front, so no unit, threshold or opening stock fields (INV-02); Size splits the price, Flavour is asked when ordering (ATL-02); payment policy "Advance ৳200" (PRD-08). |
+| Books and stationery | piece, counted; Author, Publisher, Edition | nothing | Pather Panchali: the plain form; three describing attributes; one default variant with opening stock 12 (ATR-04). |
+| Pharmacy | box, counted, batches on; Strength, Pack size | Batches and expiry | Napa Extra at ৳36 per box: Strength and Pack size describe; the opening stock is a batch with an expiry. |
+| Home and décor | piece, counted; Color, Material, Size | nothing | Wooden Wall Clock: Colour splits it, Material and Size describe; the plain form. |
+
+Every up-front block is a switch or a control with one sentence under it that says what it does: serials
+("A serial number on every unit · IMEI"), batches ("Each arrival takes a batch code and an expiry, both
+optional; the earliest expiry sells first"), made to order ("No stock count, no low-stock alerts, never
+refused for stock"). What a type does not show up front sits under More settings unchanged, so a bakery
+can still turn serials on and a bookshop can still add a size chart (PST-05).
+
+**Three more states.**
+- *Category changed the defaults* (PST-06): choosing "Phones" on a clothing shop's form shows the banner
+  "Filed under Phones, which behaves like Mobiles and gadgets: serials turned on (IMEI) and condition came
+  up front", with Undo. Existing products never change (PST-03).
+- *Photos and video uploading* (Slice 6): tiles for uploading with a progress bar, preparing ("about
+  30 s", a video "about 5 min"), refused ("6 MB · limit 5 MB"), and the storage line under them (STO-04,
+  STO-09, MED-03).
+- *Errors*: a missing name, and serials switched on for a product counted in kg, which the database refuses
+  ("use piece as the unit or turn serials off"); the Save button reads "Fix 2 things to save".
+
+**Editing.** A phone that already holds stock shows the stock chip, the Stock card with "Serials: 10 held,
+2 missing · Add the missing ones", a *Serials* column in the matrix instead of opening stock, and More
+settings open with Duplicate and Archive (PRD-18, PRD-13). Rice with shared stock shows the sharing switch
+locked with "Can be switched off only once the stock is 0" (INV-24) and the on-hand line "240 kg across 3
+batches · earliest expiry 12 Jan 2027".
+
+**Content.** `GET /product-defaults?categoryId=` (the preset's defaults and up-front fields for the chosen
+category or the shop), `POST /products` with `variantAttributes`, `variants` (opening stock, opening batch,
+opening serials per variant, or `sharedOpeningStock` with its batch), `attributes`; media through Slice 6's
+signed uploads; all built. **Prototype:** the group "Product form by shop type · Slices 1 to 9" in the
+toolbar of `docs/brand/lytro-dashboard.html`.
 
 ### 7.5 Categories (`/categories`)
 
