@@ -22,6 +22,11 @@ export class PlanLimitOverridesRepository {
     return row;
   }
 
+  /** PLN-11: every shop's override of one limit, for a pass that judges every shop at once. */
+  async listForKey(db: Executor, limitKey: string): Promise<SelectPlanLimitOverride[]> {
+    return db.select().from(planLimitOverrides).where(eq(planLimitOverrides.limitKey, limitKey));
+  }
+
   async listForTenant(db: Executor, tenantId: string): Promise<SelectPlanLimitOverride[]> {
     return db.select().from(planLimitOverrides).where(eq(planLimitOverrides.tenantId, tenantId));
   }

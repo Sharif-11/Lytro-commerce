@@ -79,6 +79,7 @@ again 90 days later.
 | `MEDIA_DELETER_*` | Object Read & Write, the media bucket only | the deletion job only (`MediaDeleter`) | — | — |
 | Media Worker's `R2_*` secrets | **Object Read only**, the media bucket only | serving media (`apps/media-worker`, `S3Origin`); a write fails at R2 itself | — | — |
 | `MEDIA_LINK_SECRET` (the Worker's secret and the server's setting) | signs and checks private links (BND-07) | the server signs, the Worker checks | — | — |
+| `CLOUDFLARE_API_TOKEN` (with `CLOUDFLARE_ACCOUNT_ID` and `MEDIA_EDGE_KV_NAMESPACE_ID`) | an account API token, not an R2 one: **Account Analytics: Read** and **Workers KV Storage: Edit**, this account only | the minute's bandwidth pass (`CloudflareMediaEdge`): reading the Worker's usage, writing the blocked list and each shop's website addresses to its KV store | — | — |
 
 **Accepted limit: R2 likely cannot split writing from deleting** (decided 2026-10-21, KNOWN-GAPS §78). R2 tokens
 come only as read, or read and write, per bucket, and Cloudflare does not say that read and write leaves deleting out;
@@ -110,5 +111,12 @@ processor deletes from the media bucket: YES (R2 cannot split write from delete)
 3. Restart the server, and run the check above.
 4. Revoke the old token in the dashboard, and write today's date in the table.
 
+The `CLOUDFLARE_API_TOKEN` is made and rolled under My Profile → API Tokens instead, with the two permissions the
+table names. After a restart with the new value, the server log shows no `MediaBandwidth` error within two minutes;
+then revoke the old one. While the token is refused, bandwidth is not totalled and the blocked list is not written;
+the Worker keeps serving with the last list it read, and the minutes missed are totalled once the token works again.
+With the token unset, nothing is totalled at all, then or later.
+
 **Budget (MED-12).** In the Cloudflare dashboard, set a billing notification at 80% of the month's R2 budget. Each
-shop's stored bytes are the sum of its rows in `tenant.media_objects`; Worker requests per shop arrive with Slice 7.
+shop's stored bytes are the sum of its rows in `tenant.media_objects`; the bytes and requests the media Worker sent
+for it each cycle are its row in `control.media_bandwidth` (Slice 7b).

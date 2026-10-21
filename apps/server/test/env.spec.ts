@@ -101,4 +101,23 @@ describe('edge settings (D14)', () => {
       /CLIENT_IP_FORMAT/,
     );
   });
+
+  it("needs the media Worker's account and store with its Cloudflare token (MED-10)", () => {
+    expect(() => new EnvironmentParser().parse({ ...BASE, CLOUDFLARE_API_TOKEN: 'token' })).toThrow(
+      /CLOUDFLARE_ACCOUNT_ID[\s\S]*MEDIA_EDGE_KV_NAMESPACE_ID|MEDIA_EDGE_KV_NAMESPACE_ID[\s\S]*CLOUDFLARE_ACCOUNT_ID/,
+    );
+    const env = new EnvironmentParser().parse({
+      ...BASE,
+      CLOUDFLARE_API_TOKEN: 'token',
+      CLOUDFLARE_ACCOUNT_ID: 'account',
+      MEDIA_EDGE_KV_NAMESPACE_ID: 'namespace',
+    });
+    expect(env.MEDIA_USAGE_DATASET).toBe('lytro_media_usage');
+  });
+
+  it('refuses a usage dataset name that is not a plain name, since it is written into a query', () => {
+    expect(() =>
+      new EnvironmentParser().parse({ ...BASE, MEDIA_USAGE_DATASET: 'usage; DROP' }),
+    ).toThrow(/MEDIA_USAGE_DATASET/);
+  });
 });

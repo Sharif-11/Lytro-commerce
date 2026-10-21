@@ -198,6 +198,11 @@ for `active`) with zero infrastructure work on this platform's side per tenant.
 5. `wrangler deploy` from `apps/media-worker`. It takes `media.lytro.app` as the Worker's custom domain.
 6. Turn the media bucket's public r2.dev address off, and set the server's `MEDIA_PUBLIC_BASE_URL` to
    `https://media.lytro.app`.
+7. For the server's side (Slice 7b): an account API token with **Account Analytics: Read** and **Workers KV Storage:
+   Edit**. Set it in `apps/server/.env` as `CLOUDFLARE_API_TOKEN`, with `CLOUDFLARE_ACCOUNT_ID` and the KV
+   namespace's id as `MEDIA_EDGE_KV_NAMESPACE_ID`; record it in RUNBOOKS §2. Every minute the server then totals each
+   shop's bandwidth and writes the blocked list and each shop's website addresses. Without the token, nothing is
+   counted or blocked.
 
 ## 9. Fits the existing CI/CD pipeline (`ENGINEERING-STANDARDS.md` §7) without changing it
 

@@ -737,6 +737,12 @@ their backend ships earlier.
     `@cloudflare/vitest-plugin` (the renamed `vitest-pool-workers`), which needs Vitest 4, so that package alone uses
     it. CI moved from Node 20 (end of life) to Node 24.
   - **7a built as decided.** The media Worker's one-time Cloudflare setup is in DEPLOYMENT.md §8.
+  - **7b built as decided** (migration 0067), with four choices made while building it. Each minute is totalled a
+    minute after it ends, since Cloudflare names no delay for its usage data (KNOWN-GAPS §79). The KV store is written
+    with its bulk call, so a restart that writes every shop's website addresses is a few calls, not one a shop. A shop
+    over its bandwidth and also offline is blocked for bandwidth, so the dashboard is refused too (BND-03). A deleted
+    shop stays blocked for 30 days, while the deletion job removes its files. The dashboard reads
+    `GET /media/bandwidth`; its chart is the UI slice's.
 - **Depends on:** Slice 6.
 - **Delivers:** `apps/media-worker` (count requests and bytes including ranges, check tenant state and
   the blocked list, then cache, then R2); per-period counters aggregated within a minute; 429

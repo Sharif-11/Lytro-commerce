@@ -120,6 +120,19 @@ export class ApiKeyRepository {
     return rows.length > 0;
   }
 
+  /** MED-13: every live key's website addresses, by shop, for the media Worker's shared store. */
+  async listLiveWebsites(
+    db: Executor,
+    now: Date,
+  ): Promise<{ tenantId: string; websites: string[] }[]> {
+    return db
+      .select({ tenantId: apiKeys.tenantId, websites: apiKeys.websites })
+      .from(apiKeys)
+      .where(
+        and(isNull(apiKeys.revokedAt), or(isNull(apiKeys.expiresAt), gt(apiKeys.expiresAt, now))),
+      );
+  }
+
   /** What the public API needs about the shop a key belongs to. */
   async findShop(db: Executor, tenantId: string): Promise<ApiShopRow | null> {
     const rows = await db

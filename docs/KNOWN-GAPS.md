@@ -1525,6 +1525,15 @@ writes to a Worker would not help. The media Worker itself reads through a read-
 check shows R2 refuses the processor's delete, this closes; otherwise it stands next to the media-loss entry in the
 risk register (SRS.md §17).
 
+## 79. `BND-01`, `BND-02`: how soon Cloudflare's usage data can be read is not measured — open, found 2026-10-21
+
+Found while building Phase 3 Slice 7b. The media Worker writes one Analytics Engine data point per response, and the
+server totals each minute a minute after it ends (`SETTLE_MS` in `MediaBandwidth`). Cloudflare publishes no figure for
+how soon a point can be queried. A point that arrives later than that is never counted, so a shop is charged a little
+less than it sent; nothing is ever counted twice. Measure it on the real account: send requests through the Worker,
+then poll the SQL API until they appear. If points ever take longer than about 30 seconds, raise `SETTLE_MS`; each
+extra minute there adds a minute to how long an over-limit shop takes to be blocked (BND-02's "about 2 minutes").
+
 ## Not a bug, just noting it so it isn't mistaken for one later
 
 The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data

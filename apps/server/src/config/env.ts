@@ -85,6 +85,17 @@ const envSchema = z.object({
   MEDIA_DELETER_SECRET_KEY: z.string().min(1).optional(),
   // MED-08: where public media is read from (the media Worker's address, Slice 7; the local store in development).
   MEDIA_PUBLIC_BASE_URL: z.string().url().optional(),
+  // MED-10, MED-13, BND-01, BND-02: the media Worker's side of Cloudflare -- one API token that may read the usage
+  // dataset (Account Analytics: Read) and write the shared store (Workers KV Storage: Edit), the account it is in,
+  // the store's namespace and the dataset's name. Left unset, bandwidth is neither counted nor enforced, and nothing
+  // else changes.
+  CLOUDFLARE_ACCOUNT_ID: z.string().min(1).optional(),
+  CLOUDFLARE_API_TOKEN: z.string().min(1).optional(),
+  MEDIA_EDGE_KV_NAMESPACE_ID: z.string().min(1).optional(),
+  MEDIA_USAGE_DATASET: z
+    .string()
+    .regex(/^[A-Za-z_][A-Za-z0-9_]*$/)
+    .default('lytro_media_usage'),
 });
 
 const envWithEdgeRule = envSchema.superRefine((value, ctx) => {
@@ -125,6 +136,18 @@ const envWithEdgeRule = envSchema.superRefine((value, ctx) => {
           code: z.ZodIssueCode.custom,
           path: [key],
           message: 'required when MEDIA_STORAGE_ENDPOINT is set',
+        });
+      }
+    }
+  }
+  // MED-10, BND-02: the media Worker's Cloudflare side is on only with its account and store as well as its token.
+  if (value.CLOUDFLARE_API_TOKEN) {
+    for (const key of ['CLOUDFLARE_ACCOUNT_ID', 'MEDIA_EDGE_KV_NAMESPACE_ID'] as const) {
+      if (!value[key]) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [key],
+          message: 'required when CLOUDFLARE_API_TOKEN is set',
         });
       }
     }

@@ -382,6 +382,8 @@ export enum QueueName {
   MediaDelete = 'media_delete',
   // MED-04: the nightly comparison of each shop's recorded files with what R2 holds.
   MediaReconcileTick = 'media_reconcile_tick',
+  // BND-02, MED-10: every minute, the media Worker's usage is totalled and its shared store brought up to date.
+  MediaBandwidthTick = 'media_bandwidth_tick',
 }
 
 // Who performed the action (AUD-02). `system` is the platform itself (a scheduled job); `platform_support` is an

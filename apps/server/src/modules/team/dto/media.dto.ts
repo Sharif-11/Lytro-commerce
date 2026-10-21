@@ -66,3 +66,12 @@ export const storageUsageSchema = z.object({
   limitBytes: z.number().nullable(),
 });
 export class StorageUsageDto extends createZodDto(storageUsageSchema) {}
+
+export const bandwidthUsageSchema = z.object({
+  cycleStart: z.date(),
+  usedBytes: z.number(),
+  requests: z.number(),
+  limitBytes: z.number().nullable(),
+  days: z.array(z.object({ day: z.string(), bytes: z.number(), requests: z.number() })),
+});
+export class BandwidthUsageDto extends createZodDto(bandwidthUsageSchema) {}

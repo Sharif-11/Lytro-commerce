@@ -36,3 +36,4 @@ export * from './tenant/purchasing';
 export * from './tenant/media';
 export * from './control/api-keys';
 export * from './control/media-reconciliations';
+export * from './control/media-bandwidth';

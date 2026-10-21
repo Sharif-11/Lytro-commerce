@@ -14,6 +14,7 @@ import { ReservationExpiryTickWorker } from './services/reservation-expiry-tick-
 import { MediaDeleteWorker } from './services/media-delete-worker';
 import { MediaProcessVideoWorker } from './services/media-process-video-worker';
 import { MediaProcessWorker } from './services/media-process-worker';
+import { MediaBandwidthTickWorker } from './services/media-bandwidth-tick-worker';
 import { MediaReconcileTickWorker } from './services/media-reconcile-tick-worker';
 
 // D27/D2-6: registers pg-boss queues and their work handlers. Kept apart from QueueModule (the queue mechanism
@@ -40,6 +41,7 @@ import { MediaReconcileTickWorker } from './services/media-reconcile-tick-worker
     MediaProcessVideoWorker,
     MediaDeleteWorker,
     MediaReconcileTickWorker,
+    MediaBandwidthTickWorker,
   ],
 })
 export class QueueWorkersModule {}
