@@ -28,6 +28,16 @@ input,select,textarea{font:inherit;color:inherit}
 a{color:var(--primary)}
 svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex:none}
 .num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+/* brand lockup: the operator icon tile (icon-operator.svg) and the wordmark (lytro-wordmark*.svg) */
+svg.mk{stroke-width:10}
+.tile{background:var(--teal-900);color:var(--mar-500);border-radius:22%;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.tile svg.i{width:66%;height:66%}
+.wm{display:inline-flex;align-items:baseline;font-family:var(--font-display);font-weight:800;letter-spacing:-.03em;line-height:1;white-space:nowrap}
+.wm svg{height:.75em;width:.75em;margin-right:.07em;flex:none}
+.wm.light svg{color:var(--teal-700)}
+.wm.light span{color:var(--ink)}
+.wm.dark svg{color:var(--teal-400)}
+.wm.dark span{color:#fff}
 .mono{font-family:var(--font-mono);font-size:13px;letter-spacing:0;font-variant-numeric:tabular-nums}
 .money{font-family:var(--font-display);font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
 
@@ -65,11 +75,11 @@ svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.75;str
 /* identity band: the one cue that this is the operator's console, never a seller's dashboard */
 .band{flex:none;height:52px;background:var(--band);color:#fff;display:flex;align-items:center;gap:12px;padding:0 12px 0 16px}
 .band .id{display:flex;align-items:center;gap:10px;min-width:0}
-.band .tile{width:30px;height:30px;border-radius:7px;background:#0f2422;border:1px solid #1d3b38;display:flex;align-items:center;justify-content:center;color:var(--mar-300);flex:none}
-.band .tile svg.i{width:18px;height:18px;stroke-width:2}
-.band .words{display:flex;flex-direction:column;line-height:1.1}
+.band .tile{width:32px;height:32px}
+.band .words{display:flex;flex-direction:column;line-height:1.1;gap:2px}
 .band .eyebrow-op{font-size:10px;font-weight:700;letter-spacing:.12em;color:var(--mar-300)}
 .band .word{font-family:var(--font-display);font-weight:800;font-size:16px;letter-spacing:-.02em;color:#fff}
+.band .wm{font-size:17px}
 .band .ib{width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;color:#d5dfde;position:relative}
 .band .spacer{flex:1}
 .band .env{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#a9b9b8;border:1px solid #2a4542;border-radius:999px;padding:3px 8px}
@@ -288,9 +298,9 @@ svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.75;str
 .frame.desktop .bare{top:40px}
 .auth{max-width:440px;width:100%;margin:0 auto;padding:24px 16px 40px;display:flex;flex-direction:column;gap:16px}
 .auth .brandrow{display:flex;align-items:center;gap:12px;padding:8px 0 4px}
-.auth .brandrow .tile{width:40px;height:40px;border-radius:9px;background:var(--band);display:flex;align-items:center;justify-content:center;color:var(--mar-300)}
-.auth .brandrow .eyebrow-op{font-size:11px;font-weight:700;letter-spacing:.12em;color:var(--accent-text)}
-.auth .brandrow .word{font-family:var(--font-display);font-weight:800;font-size:20px;letter-spacing:-.02em}
+.auth .brandrow .tile{width:44px;height:44px}
+.auth .brandrow .eyebrow-op{font-size:11px;font-weight:700;letter-spacing:.12em;color:var(--accent-text);margin-bottom:2px}
+.auth .brandrow .wm{font-size:24px}
 .auth h1{font-size:22px;font-weight:700}
 .auth .lead{font-size:14px;color:var(--muted)}
 .steps{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--subtle)}
@@ -332,11 +342,10 @@ svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.75;str
   .body{flex-direction:row}
   .sidebar{display:flex;flex-direction:column;width:248px;flex:none;background:var(--surface);border-right:1px solid var(--line);min-height:0}
   .sidebar .head{height:64px;background:var(--band);color:#fff;display:flex;align-items:center;gap:10px;padding:0 16px;flex:none}
-  .sidebar .head .tile{width:32px;height:32px;border-radius:7px;background:#0f2422;border:1px solid #1d3b38;display:flex;align-items:center;justify-content:center;color:var(--mar-300);flex:none}
-  .sidebar .head .tile svg.i{width:18px;height:18px;stroke-width:2}
-  .sidebar .head .words{display:flex;flex-direction:column;line-height:1.1}
+  .sidebar .head .tile{width:36px;height:36px}
+  .sidebar .head .words{display:flex;flex-direction:column;line-height:1.1;gap:2px}
   .sidebar .head .eyebrow-op{font-size:10px;font-weight:700;letter-spacing:.12em;color:var(--mar-300)}
-  .sidebar .head .word{font-family:var(--font-display);font-weight:800;font-size:17px;letter-spacing:-.02em}
+  .sidebar .head .wm{font-size:19px}
   .sidebar .nav{flex:1;overflow:auto;padding:12px 10px}
   .sidebar .grp{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--subtle);padding:12px 10px 6px}
   .frame[data-lang=bn] .sidebar .grp{text-transform:none;letter-spacing:0;font-size:12px}
@@ -383,7 +392,8 @@ svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.75;str
 <script>
 /* ---------- icons (Lucide-style strokes) ---------- */
 const I = {
-  mark: '<svg class="i" viewBox="0 0 24 24"><path d="M5 4v16h14"/><path d="M9 4v9h6"/></svg>',
+  /* docs/brand/lytro-mark.svg: an L whose foot rises into a tick, one stroke, round caps; currentColor as in lytro-mark-mono.svg */
+  mark: '<svg class="i mk" viewBox="0 0 64 64" aria-label="Lytro"><path d="M15 15V49H31L49 29" fill="none" stroke="currentColor" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   home: '<svg class="i" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>',
   queue: '<svg class="i" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/><path d="M7 15h4"/></svg>',
   store: '<svg class="i" viewBox="0 0 24 24"><path d="M3 9l1.5-5h15L21 9"/><path d="M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0"/><path d="M5 11v9h14v-9"/><path d="M10 20v-5h4v5"/></svg>',
@@ -430,6 +440,10 @@ const I = {
   edit: '<svg class="i" viewBox="0 0 24 24"><path d="M4 20h4l10-10-4-4L4 16z"/><path d="M13 7l4 4"/></svg>',
   history: '<svg class="i" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 8v4l3 2"/></svg>',
 };
+
+/* docs/brand/lytro-wordmark.svg and lytro-wordmark-dark.svg: the mark is the first letter, then "ytro" in Plus Jakarta Sans
+   ExtraBold at -0.03em; teal-700 mark with ink text on light, teal-400 mark with white text on dark. */
+const wordmark = (tone) => `<span class="wm ${tone || 'light'}" aria-label="Lytro"><svg viewBox="10 10 44 44" aria-hidden="true"><path d="M15 15V49H31L49 29" fill="none" stroke="currentColor" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/></svg><span>ytro</span></span>`;
 
 /* ---------- strings: [en, bn] ---------- */
 const S = {
@@ -658,7 +672,7 @@ const NAV = [
 const queueCount = () => (ST.data === 'busy' ? PAYMENTS.length : 0);
 function sidebar(active) {
   return `<aside class="sidebar">
-    <div class="head"><span class="tile">${I.mark}</span><span class="words"><span class="eyebrow-op">${t('eyebrow')}</span><span class="word">${t('word')}</span></span></div>
+    <div class="head"><span class="tile">${I.mark}</span><span class="words"><span class="eyebrow-op">${t('eyebrow')}</span>${wordmark('dark')}</span></div>
     <nav class="nav">${NAV.map((g) => `<div class="grp">${t(g.grp)}</div>${g.items.map(([k, scr, ic]) => g.later
       ? `<button class="it later" onclick="go('${scr}')">${I[ic]}<span>${t(k)}</span><span class="soon">${t('soon')}</span></button>`
       : `<button class="it ${active === k ? 'on' : ''}" onclick="go('${scr}')">${I[ic]}<span>${t(k)}</span>${k === 'queue' && queueCount() ? `<span class="cnt">${queueCount()}</span>` : ''}</button>`).join('')}`).join('')}</nav>
@@ -669,7 +683,7 @@ function topbar() {
   return `<div class="topbar"><div class="search">${I.search}<input placeholder="${t('search_ph')}" onfocus="go('tenants')"><span class="kbd">/</span></div><span class="spacer"></span><span class="env">${t('env')}</span><button class="lang" onclick="setLang(L.lang==='en'?'bn':'en')">${L.lang === 'en' ? 'বাংলা' : 'English'}</button></div>`;
 }
 function band(title, backTo) {
-  return `<div class="band">${backTo ? `<button class="ib" onclick="go('${backTo}')">${I.back}</button>` : `<span class="id"><span class="tile">${I.mark}</span><span class="words"><span class="eyebrow-op">${t('eyebrow')}</span><span class="word">${title || t('word')}</span></span></span>`}${backTo ? `<span class="words" style="min-width:0"><span class="word" style="font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${title}</span></span>` : ''}<span class="spacer"></span><button class="ib" onclick="go('tenants')">${I.search}</button><button class="ib" onclick="go('more')">${I.menu}</button></div>`;
+  return `<div class="band">${backTo ? `<button class="ib" onclick="go('${backTo}')">${I.back}</button>` : `<span class="id"><span class="tile">${I.mark}</span><span class="words"><span class="eyebrow-op">${t('eyebrow')}</span>${title ? `<span class="word">${title}</span>` : wordmark('dark')}</span></span>`}${backTo ? `<span class="words" style="min-width:0"><span class="word" style="font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${title}</span></span>` : ''}<span class="spacer"></span><button class="ib" onclick="go('tenants')">${I.search}</button><button class="ib" onclick="go('more')">${I.menu}</button></div>`;
 }
 function tabbar(active) {
   const tabs = [['today', 'today', 'home'], ['queue', 'queue', 'queue'], ['tenants', 'tenants', 'store'], ['more', 'more', 'menu']];
@@ -709,7 +723,7 @@ def('more', { base: 'today', nav: 'more', label: 'More (phone menu)', group: 'Sh
 
 /* ---------- sign-in ---------- */
 function authFrame(inner) {
-  return `<div class="bare"><div class="auth"><div class="brandrow"><span class="tile">${I.mark}</span><span><div class="eyebrow-op">${t('eyebrow')}</div><div class="word">${t('word')}</div></span></div>${inner}</div></div>`;
+  return `<div class="bare"><div class="auth"><div class="brandrow"><span class="tile">${I.mark}</span><span><div class="eyebrow-op">${t('eyebrow')}</div>${wordmark('light')}</span></div>${inner}</div></div>`;
 }
 def('signin', { bare: true, label: 'Sign-in · credentials', group: 'Sign-in', url: 'admin.lytro.app/sign-in', render: () => authFrame(`
   <div><h1>${t('si_title')}</h1><div class="lead">${t('si_lead')}</div></div>
