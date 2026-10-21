@@ -146,6 +146,15 @@ four platform payments, passing the payee (Lytro), the amount, the reference and
 reports where the shopper went (`verified`, `checking`, `cancelled`, `expired`, …) and the dashboard
 returns to the matching state. The standalone file stays the reference for the page itself.
 
+`docs/brand/lytro-storefront.html` (STOREFRONT-DESIGN.md §8a, 2026-10-21) embeds it the same way for a
+shopper's advance or full prepayment: the session opens on the wallet the shopper already chose at
+checkout rather than on the picker, with the shop as payee, the order number as the reference and the
+shop's own wallet number; `verified` and `paid` return to "Payment received, order confirmed",
+`checking` and `review` to "Checking your payment", `cancelled` and `expired` to "Payment not completed"
+with retry or a switch to cash on delivery. A wallet whose gateway the shop has selected never reaches
+this page: the storefront shows an interstitial and hands the shopper to the wallet's own checkout
+(PAY-06), which returns through `pay.lytro.app` to the same three states.
+
 ## 3. Widths checked
 
 320 × 616 (the reference's small view), 390 × 844 and the 1280 px desktop, in Bangla and English, for the
