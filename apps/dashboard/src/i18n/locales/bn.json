@@ -359,6 +359,7 @@
       "order_fee": "অর্ডার ফি",
       "product_fee": "প্রোডাক্ট ফি",
       "plan_payment": "প্ল্যান পেমেন্ট",
+      "addon": "অ্যাড-অন",
       "adjustment": "Lytro-র সমন্বয়",
       "reversal": "ফেরত",
       "carry_over": "আগের দোকান থেকে"
@@ -614,6 +615,7 @@
       "plan_renewed": "প্ল্যান রিনিউ করেছেন",
       "plan_upgraded": "প্ল্যান আপগ্রেড করেছেন",
       "balance_topped_up": "ব্যালেন্স টপ-আপ করেছেন",
+      "addon_purchased": "অ্যাড-অন কিনেছেন",
       "downgrade_scheduled": "ডাউনগ্রেড ঠিক করেছেন",
       "downgrade_cancelled": "ঠিক করা ডাউনগ্রেড বাতিল করেছেন",
       "downgrade_applied": "ডাউনগ্রেড কার্যকর হয়েছে",

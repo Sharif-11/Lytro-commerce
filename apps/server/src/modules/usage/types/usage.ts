@@ -18,9 +18,22 @@ export interface UsageFigure {
   level: Exclude<UsageLevel, 'fast_spend'> | null;
 }
 
-/** LIM-01: one way to more room -- a plan, by its price for its shortest term and a month -- or the operator. */
+/** PLN-13, LIM-01: one limit add-on to buy, how many, and what they cost a month together (whole taka). */
+export interface SuggestedAddon {
+  addonId: string;
+  key: string;
+  name: string;
+  quantity: number;
+  monthly: number;
+}
+
+/**
+ * LIM-01: one way to more room -- a plan, by its price for its shortest term and a month; limit add-ons on the shop's
+ * own plan, by what they add a month; or the operator.
+ */
 export type Suggestion =
   | { kind: 'plan'; planId: string; name: string; price: number; months: number; monthly: number }
+  | { kind: 'addons'; items: SuggestedAddon[]; monthly: number }
   | { kind: 'contact' };
 
 /** LIM-01: the cheapest fix for every metric near its limit, and the next cheapest. */

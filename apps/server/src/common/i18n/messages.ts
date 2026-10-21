@@ -152,6 +152,30 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'No scheduled change was found for this shop.',
     bn: 'এই দোকানের জন্য কোনো নির্ধারিত পরিবর্তন পাওয়া যায়নি।',
   },
+  AddonNotAvailable: {
+    en: 'Add-ons can be bought while a paid plan is active.',
+    bn: 'পেইড প্ল্যান চালু থাকলেই অ্যাড-অন কেনা যায়।',
+  },
+  AddonNotFound: {
+    en: 'This add-on is not available.',
+    bn: 'এই অ্যাড-অনটি পাওয়া যাচ্ছে না।',
+  },
+  AddonOnlyOne: {
+    en: 'This add-on is bought one at a time.',
+    bn: 'এই অ্যাড-অন একবারে একটিই কেনা যায়।',
+  },
+  AddonAlreadyActive: {
+    en: 'Your shop already has this add-on.',
+    bn: 'আপনার দোকানে এই অ্যাড-অন আগে থেকেই চালু আছে।',
+  },
+  AddonLimitUnlimited: {
+    en: 'Your plan has no limit here, so this add-on is not needed.',
+    bn: 'আপনার প্ল্যানে এখানে কোনো লিমিট নেই, তাই এই অ্যাড-অন লাগবে না।',
+  },
+  AddonKeyTaken: {
+    en: 'Another add-on already uses this key.',
+    bn: 'অন্য একটি অ্যাড-অন এই কী ব্যবহার করছে।',
+  },
 
   FacebookSignInNotConfirmed: {
     en: 'Facebook did not confirm your sign-in.',
@@ -421,6 +445,16 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   UpgradeQuoted: { en: 'Upgrade quote created.', bn: 'আপগ্রেড কোট তৈরি হয়েছে।' },
   UpgradeSubmitted: { en: 'Upgrade payment submitted.', bn: 'আপগ্রেড পেমেন্ট জমা দেওয়া হয়েছে।' },
   UpgradeConfirmed: { en: 'Upgrade confirmed.', bn: 'আপগ্রেড নিশ্চিত হয়েছে।' },
+  AddonsListed: { en: 'Add-ons retrieved.', bn: 'অ্যাড-অনগুলো পাওয়া গেছে।' },
+  AddonCreated: { en: 'Add-on created.', bn: 'অ্যাড-অন তৈরি হয়েছে।' },
+  AddonUpdated: { en: 'Add-on updated.', bn: 'অ্যাড-অন আপডেট হয়েছে।' },
+  AddonRetired: { en: 'Add-on retired.', bn: 'অ্যাড-অন বিক্রি বন্ধ হয়েছে।' },
+  AddonQuoted: { en: 'Add-on quote created.', bn: 'অ্যাড-অন কোট তৈরি হয়েছে।' },
+  AddonPurchased: { en: 'Add-on bought.', bn: 'অ্যাড-অন কেনা হয়েছে।' },
+  ShopAddonsRetrieved: {
+    en: "Your shop's add-ons retrieved.",
+    bn: 'আপনার দোকানের অ্যাড-অনগুলো পাওয়া গেছে।',
+  },
   DowngradeScheduled: { en: 'Downgrade scheduled.', bn: 'ডাউনগ্রেড নির্ধারিত হয়েছে।' },
   PayAsYouGoChosen: { en: 'Pay-as-you-go chosen.', bn: 'পে-অ্যাজ-ইউ-গো বেছে নেওয়া হয়েছে।' },
   ShopClosed: { en: 'Shop closed.', bn: 'দোকান বন্ধ করা হয়েছে।' },

@@ -3,7 +3,7 @@ import type { Transaction } from '@lytronix/db';
 import { ApiError } from '../../../common/api-error';
 import type { InvoicesStore, NewInvoiceValues } from '../ports/invoices-store';
 import { INVOICES_STORE } from '../tokens';
-import type { InvoiceRecord } from '../types/invoice';
+import type { InvoiceLine, InvoiceRecord } from '../types/invoice';
 
 /**
  * BIL-12/13, DAT-07: issues a gap-free numbered invoice and lists a tenant's own. `issue` always joins the
@@ -14,9 +14,13 @@ import type { InvoiceRecord } from '../types/invoice';
 export class InvoicesService {
   constructor(@Inject(INVOICES_STORE) private readonly store: InvoicesStore) {}
 
-  async issue(tx: Transaction, values: NewInvoiceValues): Promise<InvoiceRecord> {
+  async issue(
+    tx: Transaction,
+    values: NewInvoiceValues,
+    lines: readonly InvoiceLine[],
+  ): Promise<InvoiceRecord> {
     const number = await this.store.takeNextNumber(tx);
-    return this.store.insert(tx, number, values);
+    return this.store.insert(tx, number, values, lines);
   }
 
   /** BIL-13: available in every tenant state, even after business-data deletion -- control-schema, no RLS. */

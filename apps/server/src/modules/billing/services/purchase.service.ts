@@ -27,6 +27,13 @@ import { PlansService } from './plans.service';
 // BIL-09: a quote's price is held for 30 minutes.
 const QUOTE_HOLD_MS = HOUR_MS / 2;
 
+// The payments this service confirms: a plan bought or renewed -- never an upgrade, a top-up or an add-on, which each
+// have their own.
+const PURCHASE_KINDS: readonly PlanPaymentKind[] = [
+  PlanPaymentKind.Purchase,
+  PlanPaymentKind.Renewal,
+];
+
 export type ConfirmPurchaseInput =
   | { method: 'balance' }
   | { method: 'wallet'; transactionId: string; senderNumber: string; amountPaid: string };
@@ -94,7 +101,7 @@ export class PurchaseService {
     tenantId: string,
     input: { transactionId: string; senderNumber: string; amountPaid: string },
   ): Promise<PlanPaymentRecord> {
-    return this.payments.submitWalletPayment(paymentId, tenantId, input);
+    return this.payments.submitWalletPayment(paymentId, tenantId, input, PURCHASE_KINDS);
   }
 
   /** BIL-08: pay from balance -- atomic, instant, no transaction ID, no operator. */
@@ -106,7 +113,7 @@ export class PurchaseService {
     const now = this.clock();
     return this.tenants.runStandalone(async (tx) => {
       const payment = await this.payments.findForUpdate(tx, paymentId);
-      if (!payment || payment.tenantId !== tenantId) {
+      if (!payment || payment.tenantId !== tenantId || !PURCHASE_KINDS.includes(payment.kind)) {
         throw new ApiError('not_found', 'PlanPaymentNotFound', {});
       }
       if (payment.status !== PlanPaymentStatus.Pending) {

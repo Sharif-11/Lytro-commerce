@@ -31,6 +31,7 @@ import { CLOCK, SCHEDULED_PLAN_CHANGES_STORE } from '../tokens';
 import type { ScheduledPlanChangeRecord } from '../types/scheduled-plan-change';
 import { PlanLimitOverridesService } from './plan-limit-overrides.service';
 import { PlansService } from './plans.service';
+import { ShopLimitsService } from './shop-limits.service';
 
 /** DWN-03: one limit the shop holds more than, by its plan-limit key (`staff`, `products`, `storage_mb`). */
 export interface OverLimitItem {
@@ -125,6 +126,7 @@ export class DowngradeService {
     @Inject(ProductService) private readonly products: ProductService,
     @Inject(MediaService) private readonly media: MediaService,
     @Inject(PlanLimitOverridesService) private readonly overrides: PlanLimitOverridesService,
+    @Inject(ShopLimitsService) private readonly shopLimits: ShopLimitsService,
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(MessagingService) private readonly sms: MessagingService,
     @Inject(MailService) private readonly mail: MailService,
@@ -220,7 +222,8 @@ export class DowngradeService {
 
   /**
    * DWN-03: every limit the target plan would already leave the shop over, today -- seats, products and storage --
-   * judged by the target's limits with the shop's own overrides laid over them, as they would apply after it.
+   * judged by the target's limits with the shop's own overrides laid over them, as they would apply after it. Its
+   * add-ons are not counted: each ends with the period the downgrade waits for (PLN-14).
    */
   async preview(tenantId: string, planId: string): Promise<OverLimitItem[]> {
     const targetPlan = await this.plans.findById(planId);
@@ -237,8 +240,10 @@ export class DowngradeService {
       this.tenants.findBillingInfo(tx, tenantId),
     );
     if (!info?.downgradedAt || !info.downgradeOverLimit?.length) return null;
-    const limits = withOverrides(info.planSnapshot, await this.overrides.listForTenant(tenantId));
-    const measured = await this.measure(tenantId, limits);
+    const measured = await this.measure(
+      tenantId,
+      await this.shopLimits.of(tenantId, info.planSnapshot),
+    );
     // A limit made unlimited since (an override) is fixed, and leaves the list.
     const items = info.downgradeOverLimit.flatMap((key) => {
       const item = measured.find((candidate) => candidate.key === key);
@@ -460,10 +465,14 @@ export class DowngradeService {
     if (retentionShrink) {
       await this.sendRetentionShrinkNotice(tenantId, now, retentionShrink);
     }
-    // PLN-19: null means unlimited seats on the plan being applied, nothing to enforce.
-    const seatLimit = limitOf(limits, 'staff');
-    await this.staff.enforceSeatLimit({ id: tenantId, planLimits: limits }, seatLimit, now);
-    const shopLimits = withOverrides(limits, await this.overrides.listForTenant(tenantId));
+    // DWN-08 (KNOWN-GAPS §85): the seats the shop holds on the new plan -- its overrides and add-ons with it, never
+    // the bare plan's. PLN-19: null is unlimited seats, nothing to enforce.
+    const shopLimits = await this.shopLimits.of(tenantId, limits);
+    await this.staff.enforceSeatLimit(
+      { id: tenantId, planLimits: shopLimits },
+      limitOf(shopLimits, 'staff'),
+      now,
+    );
     const over = (await this.measure(tenantId, shopLimits)).filter(
       (item) => item.used > item.limit,
     );

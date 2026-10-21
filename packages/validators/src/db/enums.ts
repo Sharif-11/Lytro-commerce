@@ -172,6 +172,8 @@ export enum AuditAction {
   PlanRenewed = 'plan_renewed',
   // UPG-15: a confirmed upgrade -- tenant-caused, records old plan, new plan and both amounts.
   PlanUpgraded = 'plan_upgraded',
+  // PLN-13, PLN-14: an add-on bought, paid from the balance.
+  AddonPurchased = 'addon_purchased',
   // BAL-03/BAL-05: a verified top-up credits the balance -- tenant-caused.
   BalanceToppedUp = 'balance_topped_up',
   // DWN-01/04/17: the owner's own scheduling actions.
@@ -343,6 +345,7 @@ export const MONEY_RELATED_AUDIT_ACTIONS: ReadonlySet<AuditAction> = new Set([
   AuditAction.PlanPurchased,
   AuditAction.PlanRenewed,
   AuditAction.PlanUpgraded,
+  AuditAction.AddonPurchased,
   AuditAction.BalanceToppedUp,
   AuditAction.DowngradeScheduled,
   AuditAction.DowngradeCancelled,
@@ -450,6 +453,10 @@ export enum PlatformAuditAction {
   // PLN-11: a per-tenant limit override, set or removed.
   PlanLimitOverrideSet = 'plan_limit_override_set',
   PlanLimitOverrideRemoved = 'plan_limit_override_removed',
+  // PLN-13: the add-on catalogue, edited by the operator.
+  AddonCreated = 'addon_created',
+  AddonUpdated = 'addon_updated',
+  AddonRetired = 'addon_retired',
   // BIL-02/BAL-03: the platform's own wallet numbers, by the operator who changed them.
   PlatformWalletAdded = 'platform_wallet_added',
   PlatformWalletUpdated = 'platform_wallet_updated',
@@ -498,6 +505,8 @@ export enum LedgerEntryType {
   Reversal = 'reversal',
   // LIF-21, BAL-18: a deleted shop's remaining balance moved into the owner's new shop, one entry on each side.
   CarryOver = 'carry_over',
+  // PLN-13, PLN-14: an add-on bought from the balance.
+  Addon = 'addon',
 }
 
 // RAT-01: the platform-wide, per-use rates control.rates holds. Add a key here before any code reads or writes
@@ -563,12 +572,14 @@ export enum PlatformSettingKey {
   FastSpendPercent = 'fast_spend_percent',
 }
 
-// D2-1: what a control.plan_payments row is for -- a purchase, a renewal, an upgrade, or a balance top-up.
+// D2-1: what a control.plan_payments row is for -- a purchase, a renewal, an upgrade, a balance top-up, or an add-on
+// (PLN-14).
 export enum PlanPaymentKind {
   Purchase = 'purchase',
   Renewal = 'renewal',
   Upgrade = 'upgrade',
   TopUp = 'top_up',
+  Addon = 'addon',
 }
 
 // D2-1: BIL-04/BIL-06's pending -> needs_review/verified/rejected state machine; `expired` is BIL-15's
@@ -591,6 +602,42 @@ export enum InvoiceKind {
   Purchase = 'purchase',
   Renewal = 'renewal',
   Upgrade = 'upgrade',
+  // PLN-14: an add-on bought on its own.
+  Addon = 'addon',
+}
+
+// BIL-12, PLN-14: one line of an invoice -- the plan, an add-on, or an upgrade's credit (negative).
+export enum InvoiceLineKind {
+  Plan = 'plan',
+  Addon = 'addon',
+  Credit = 'credit',
+}
+
+// PLN-13: what an add-on is. A limit add-on raises a limit for the period; a pack is used up as it is consumed
+// (Slice 10a.3); a feature add-on switches a feature on for the period; an allowance covers a number of uses of a
+// pay-per-use service (PLN-20, Phase 7).
+export enum AddonKind {
+  Limit = 'limit',
+  Pack = 'pack',
+  Feature = 'feature',
+  Allowance = 'allowance',
+}
+
+// PLN-13: the add-on kinds a shop can buy so far; packs follow in Slice 10a.3 and allowances in Phase 7.
+export const BUYABLE_ADDON_KINDS: readonly AddonKind[] = [AddonKind.Limit, AddonKind.Feature];
+
+// BRN-05: the feature add-on that switches a shop's own brand identity on.
+export const BRAND_IDENTITY_ADDON = 'brand_identity';
+
+// PLN-14 (agreed for Slice 10a): the most of one add-on a single purchase may buy; a feature add-on is only ever one.
+export const ADDON_QUANTITY_MAX = 10;
+
+// PLN-14: what became of a bought add-on. Pending while its payment is quoted; active from when it takes effect;
+// lapsed once it is no longer renewed (Slice 10a.2).
+export enum AddonPurchaseStatus {
+  Pending = 'pending',
+  Active = 'active',
+  Lapsed = 'lapsed',
 }
 
 // DWN-01, PYG-10: what a control.scheduled_plan_changes row is for -- a downgrade, or a switch from a plan to

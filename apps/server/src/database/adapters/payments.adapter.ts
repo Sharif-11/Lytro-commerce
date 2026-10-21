@@ -5,11 +5,13 @@ import {
   PlanPaymentsRepository,
   TransactionRunner,
   UsedTransactionIdsRepository,
+  type SelectInvoice,
   type Transaction,
 } from '@lytronix/db';
 import { PlanPaymentKind } from '@lytronix/validators';
 import { UniqueViolation } from '../../common/errors/unique-violation';
 import type { InvoicesStore, NewInvoiceValues } from '../../modules/payments/ports/invoices-store';
+import type { InvoiceLine, InvoiceRecord } from '../../modules/payments/types/invoice';
 import type {
   NewPlanPaymentValues,
   PlanPaymentsStore,
@@ -35,20 +37,37 @@ export class DrizzleInvoicesStore implements InvoicesStore {
     return this.counters.takeNext(tx);
   }
 
-  insert(tx: Transaction, number: number, values: NewInvoiceValues) {
-    return this.invoices.insert(tx, { ...values, number });
+  async insert(
+    tx: Transaction,
+    number: number,
+    values: NewInvoiceValues,
+    lines: readonly InvoiceLine[],
+  ): Promise<InvoiceRecord> {
+    const row = await this.invoices.insert(tx, { ...values, number });
+    await this.invoices.insertLines(tx, row.id, lines);
+    return { ...row, lines: [...lines] };
   }
 
-  findById(tx: Transaction, id: string) {
-    return this.invoices.findById(tx, id);
+  async findById(tx: Transaction, id: string): Promise<InvoiceRecord | null> {
+    const row = await this.invoices.findById(tx, id);
+    return row ? ((await this.withLines(tx, [row]))[0] ?? null) : null;
   }
 
-  listForTenant(tx: Transaction, tenantId: string) {
-    return this.invoices.listForTenant(tx, tenantId);
+  async listForTenant(tx: Transaction, tenantId: string): Promise<InvoiceRecord[]> {
+    return this.withLines(tx, await this.invoices.listForTenant(tx, tenantId));
   }
 
-  listForTenants(tx: Transaction, tenantIds: string[]) {
-    return this.invoices.listForTenants(tx, tenantIds);
+  async listForTenants(tx: Transaction, tenantIds: string[]): Promise<InvoiceRecord[]> {
+    return this.withLines(tx, await this.invoices.listForTenants(tx, tenantIds));
+  }
+
+  /** BIL-12: each invoice with its lines, read in one query. */
+  private async withLines(tx: Transaction, rows: SelectInvoice[]): Promise<InvoiceRecord[]> {
+    const lines = await this.invoices.linesOf(
+      tx,
+      rows.map((row) => row.id),
+    );
+    return rows.map((row) => ({ ...row, lines: lines.get(row.id) ?? [] }));
   }
 }
 

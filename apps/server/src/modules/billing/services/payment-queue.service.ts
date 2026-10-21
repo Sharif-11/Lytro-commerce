@@ -70,8 +70,14 @@ export class PaymentQueueService {
         });
       } else if (payment.kind === PlanPaymentKind.Upgrade) {
         await this.upgrade.activate(tx, payment, now, ip);
-      } else {
+      } else if (
+        payment.kind === PlanPaymentKind.Purchase ||
+        payment.kind === PlanPaymentKind.Renewal
+      ) {
         await this.purchase.activate(tx, payment, now, ip);
+      } else {
+        // PLN-14: an add-on is paid from the balance only until Slice 10a.2; no wallet payment can be for one yet.
+        throw new Error(`a ${payment.kind} payment cannot be approved from the queue`);
       }
 
       await this.platformAudit.recordWithin(tx, {

@@ -922,6 +922,32 @@ their backend ships earlier.
   - Packs: bought by hand, or by opt-in auto-buy at 100% (bandwidth, API requests).
   - Feature add-ons: the brand identity entitlement, reverting to the default with settings kept on a lapse.
   - Add-ons kept across plan changes.
+  - **Agreed 2026-10-21 and 2026-10-22:** three pull requests -- 10a.1 the catalogue, the limits, buying from the
+    balance, invoice lines and the upgrade credit; 10a.2 paying by wallet, renewal, the lapse and its warnings,
+    pay-as-you-go and no-expiry periods, and the upgrade extension; 10a.3 packs and auto-buy.
+  - **Built first (10a.1),** migration 0073:
+    - **Catalogue:** `control.addons`, seeded with OD-04's placeholders -- 500 products at 149 TK a month, a seat at
+      49, 1 GB of storage at 29, brand identity at 149; packs of 10 GB at 30 and 100,000 requests at 20, sold from
+      10a.3. The operator lists, adds, edits and retires items (`/operator/addons`), each change in the platform
+      audit log.
+    - **Buying:** an active paid plan with a running period buys a limit or feature add-on to that period's end.
+      It is quoted like a plan (a `plan_payments` row of kind `addon`, held 30 minutes) and paid from the balance at
+      once (ledger type `addon`). A period costs the monthly price times its term's months, and part of one its
+      share of the days left, rounded half up. Up to [10] of one add-on a purchase, a feature only once, and none
+      for a limit already unlimited. A wallet payment is refused until 10a.2, since the operator queue would
+      otherwise take it for a plan purchase.
+    - **Limits:** every reader holds the shop to its snapshot, its overrides and its active limit add-ons through
+      one function (`shopLimitsOf`): the dashboard summary, media storage and the downgrade. An add-on counts until
+      its own end, whatever any job has done.
+    - **Invoices:** `control.invoice_lines` -- the plan at its full price and an upgrade's credit, or the add-on --
+      and an add-on's own invoice, naming no plan. Older invoices keep no lines.
+    - **Brand identity:** `GET /addons/mine` says whether the shop may switch it on: the add-on, or a plan that
+      includes the feature (BRN-05 amended).
+    - **Suggestions:** limit add-ons on the shop's own plan join the plans, judged by the plan's price a month with
+      theirs added.
+    - **Found and fixed:** the upgrade credit's price paid (KNOWN-GAPS §84) and the downgrade's seat cut (§85).
+    - **Left for 10a.2:** the downgrade preview counts no add-on, since each ends with the period the downgrade
+      waits for; once add-ons renew with the plan, it counts the ones that will.
 - **Requirements completed:** PLN-13. *(PLN-14, PLN-15, UPG-14, BND-04, RTE-11 and BRN-05 finish in Slice 11,
   with their screens.)*
 - **Done when:** extra products bought on day 10 of 30 raise the limit at once for two thirds of a period's

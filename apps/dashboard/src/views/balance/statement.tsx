@@ -30,7 +30,7 @@ const TYPE_CHIPS: { key: string; types: LedgerEntryType[] }[] = [
     key: 'fees',
     types: [LedgerEntryType.FraudCheck, LedgerEntryType.OrderFee, LedgerEntryType.ProductFee],
   },
-  { key: 'plan', types: [LedgerEntryType.PlanPayment] },
+  { key: 'plan', types: [LedgerEntryType.PlanPayment, LedgerEntryType.Addon] },
   {
     key: 'other',
     types: [LedgerEntryType.Adjustment, LedgerEntryType.Reversal, LedgerEntryType.CarryOver],
@@ -46,6 +46,7 @@ const ICONS: Record<LedgerEntryType, IconName> = {
   [LedgerEntryType.OrderFee]: 'truck',
   [LedgerEntryType.ProductFee]: 'box',
   [LedgerEntryType.PlanPayment]: 'tag',
+  [LedgerEntryType.Addon]: 'tag',
   [LedgerEntryType.Adjustment]: 'pen',
   [LedgerEntryType.Reversal]: 'back',
   [LedgerEntryType.CarryOver]: 'store',

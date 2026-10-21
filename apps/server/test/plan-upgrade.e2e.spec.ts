@@ -96,6 +96,11 @@ async function seedRunningPlan(
     periodEnd,
     tenantId,
   ]);
+  // UPG-03 (KNOWN-GAPS §84): the credit is the unused part of the period the invoice paid for, so it moves too.
+  await admin.query(
+    'UPDATE control.invoices SET period_start = $1, period_end = $2 WHERE tenant_id = $3',
+    [periodStart, periodEnd, tenantId],
+  );
 }
 
 beforeAll(async () => {

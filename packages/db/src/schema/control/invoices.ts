@@ -8,9 +8,15 @@ import {
   smallint,
   text,
   timestamp,
+  unique,
   uuid,
 } from 'drizzle-orm/pg-core';
-import { InvoiceKind, type PlanLimits, type PlanPaymentMethod } from '@lytronix/validators';
+import {
+  InvoiceKind,
+  InvoiceLineKind,
+  type PlanLimits,
+  type PlanPaymentMethod,
+} from '@lytronix/validators';
 import { control } from '../shared';
 import { tenants } from './tenancy';
 
@@ -35,11 +41,12 @@ export const invoices = control.table(
       .references(() => tenants.id),
     number: bigint('number', { mode: 'number' }).notNull().unique(),
     kind: text('kind').$type<InvoiceKind>().notNull(),
-    planSnapshot: jsonb('plan_snapshot').$type<PlanLimits>().notNull(),
+    // Null on an add-on's own invoice (PLN-14), which names no plan.
+    planSnapshot: jsonb('plan_snapshot').$type<PlanLimits>(),
     amount: numeric('amount', { precision: 10, scale: 2 }).notNull(),
     // UPG-03/UPG-15: the credit line on an upgrade invoice; zero for a purchase/renewal.
     creditAmount: numeric('credit_amount', { precision: 10, scale: 2 }).notNull().default('0'),
-    billingTermLabel: text('billing_term_label').notNull(),
+    billingTermLabel: text('billing_term_label'),
     // BIL-12: the rest of what the invoice states, copied at issue so a later rename, plan edit or deletion
     // never changes a past invoice (TRM-15's rule for the term label, applied to every field). Null only on
     // invoices issued before these columns existed.
@@ -61,6 +68,34 @@ export const invoices = control.table(
       'invoices_kind_check',
       sql`${t.kind} in (${sql.raw(
         Object.values(InvoiceKind)
+          .map((v) => `'${v}'`)
+          .join(','),
+      )})`,
+    ),
+  ],
+);
+
+// BIL-12, PLN-14: what an invoice is for, line by line -- the plan, each add-on, an upgrade's credit (negative) --
+// copied at issue like the rest. Invoices issued before lines existed have none; their header says it all.
+export const invoiceLines = control.table(
+  'invoice_lines',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    invoiceId: uuid('invoice_id')
+      .notNull()
+      .references(() => invoices.id),
+    position: integer('position').notNull(),
+    kind: text('kind').$type<InvoiceLineKind>().notNull(),
+    description: text('description').notNull(),
+    quantity: integer('quantity').notNull().default(1),
+    amount: numeric('amount', { precision: 10, scale: 2 }).notNull(),
+  },
+  (t) => [
+    unique('invoice_lines_position_key').on(t.invoiceId, t.position),
+    check(
+      'invoice_lines_kind_check',
+      sql`${t.kind} in (${sql.raw(
+        Object.values(InvoiceLineKind)
           .map((v) => `'${v}'`)
           .join(','),
       )})`,
