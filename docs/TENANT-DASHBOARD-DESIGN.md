@@ -729,9 +729,12 @@ that every change is in the activity log. **Content.** `GET`, `PUT`, `DELETE /ad
 to read (BRN-01 to BRN-07).
 
 **Layout.** **Use my brand** with its state: on, with the add-on's end; or off, everyone seeing the Lytro
-default. Logos on light, on dark, and the square icon (uploaded as §7.23 does). Colours: main, accent and
-background, with the three pairs checked as ratios with ✓ or ✗ (text on main, text on accent buttons, text on
-background); the text colours are derived. Fonts from the approved list, Bangla and Latin. Corners: square, soft,
+default. Logos on light (the shop's own logo), on dark, and the square icon, at least 512 px (uploaded as §7.23
+does). Colours: main, accent and background, with the three pairs checked as ratios with ✓ or ✗ (text on main, text
+on accent buttons, text on background); the text colours are derived, and the check also holds the main colour
+against the background and keeps the status colours readable on it. Fonts: one for headings and one for body text,
+each a curated pair of a Bangla face and its Latin face (agreed 2026-10-22; Galada with Playfair Display for headings
+only); the font card is re-sketched for this before Slice 11.12. Corners: square, soft,
 round. Spacing: compact, comfortable, airy. The line on what never changes (BRN-04). The preview, with Storefront,
 Landing and Dashboard tabs, changing as the settings change (BRN-06). **Apply**, and Save without switching on.
 
@@ -813,7 +816,7 @@ brand identity.
 | The units by stock unit, and the split by top-level category, on `GET /inventory/figures`, and each loss reason's units | inventory | §7.22 | built (11.1a) |
 | The units and outstanding units of each purchase in the list, and the "coming" total | purchasing | §7.21 (PUR-05) | built (11.1a) |
 | A supplier's last purchase | purchasing | §7.21 | built (11.1a) |
-| The brand identity: its storage, the approved fonts, the contrast check shared with the editor, the switch held to the add-on or the plan, and the tokens the dashboard and the storefront read | branding | §7.28 (BRN-02, 03, 07) | Slice 11 |
+| The brand identity: its storage, the approved fonts, the contrast check shared with the editor, the switch held to the add-on or the plan, and the tokens the dashboard and the storefront read | brand | §7.28 (BRN-02, 03, 07) | built (11.2) |
 | `GET /usage`, media upload, add-ons and packs, API keys, purchases and suppliers, Meta | | §7.21 to §7.27 | built |
 | Invoice PDF | billing | BIL-13 | later |
 | Pay-as-you-go estimate | billing | PYG-12 (needs order history) | later |

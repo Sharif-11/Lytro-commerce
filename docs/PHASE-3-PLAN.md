@@ -1093,6 +1093,29 @@ their backend ships earlier.
     no separate app-icon upload. Left to the screens: Shop details says a square logo of 512 px or more makes the
     best icon; the brand identity's square icon replaces the logo when switched on (11.2); an installed iPhone icon
     keeps the one it was installed with.
+- **11.2, the brand backend, agreed 2026-10-22** (10 points) **and built:**
+  1. One saved identity per shop: three colours, a heading and a body font, corners, spacing, the logo on dark and the
+     square icon. The logo on light is the shop's own logo, so a shop never keeps two.
+  2. No draft on the server: the preview is the browser's (BRN-06). Saving while on applies at once; Apply is a save
+     that switches on.
+  3. One contrast check, in `@lytronix/validators`, for the server and the editor. Text colours are derived (ink or
+     white). The pairs: text on main, on accent and on background at 4.5:1; the main colour on the background at
+     3:1, which is what refuses a pale yellow main (BRN-03's own test); the fixed status colours on the background at
+     4.5:1 (BRN-04). A failing colour comes with its nearest passing shade. Failing colours may be saved while off,
+     never switched on or saved while on.
+  4. Fonts: a heading and a body pick, each from seven curated Bangla and Latin pairs on Google Fonts (the user chose
+     this over one Bangla and one Latin face); Galada with Playfair Display sets headings only. No font uploads.
+  5. Corners and spacing are stored as preset names; `packages/ui` holds their sizes (11.12).
+  6. Switching on needs the add-on or a plan with the feature (one `featureOn`, shared with billing). A trial shop
+     saves but does not switch on. The switch survives a lapse; whether the identity shows is read on every request,
+     so a lapse reverts at once and holding the add-on again restores it without a tap.
+  7. `GET`/`PUT /brand` and `PUT /brand/switch` for settings managers; the live identity as tokens on `/me` and on the
+     public `GET /v1/shop`, with a version for caching (BRN-07).
+  8. The square icon is square and at least 512 px. While the identity shows, the installed app's icons come from
+     it (edge to edge; 80% of a maskable one) and the manifest takes its main and background colours. The
+     link-preview image and its replacement belong to the storefront (Slice 12).
+  9. The manifest is cached for a minute, BRN-02's [1].
+  10. The activity log records a save, switching on and switching off.
 
 ### Slice 12: shared storefront and product landing pages
 - **Depends on:** Slices 0, 0b, 7 and 9 (and branding from Phase 1).

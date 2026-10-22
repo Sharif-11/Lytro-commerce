@@ -17,6 +17,10 @@ const ICONS: Record<ShopIconFile, { size: number; fill: number }> = {
 // A monogram letter fills less of its tile than a logo, the way the Install card draws it.
 const LETTER_SHARE = 0.62;
 
+// BRN-02: a brand's square icon is drawn to be an app icon; inside a maskable icon it keeps most of the tile, so only its
+// very corners fall to the phone's mask.
+const MASKABLE_ICON_FILL = 0.8;
+
 const WHITE = { r: 255, g: 255, b: 255, alpha: 1 };
 
 /** A colour all four corners of the logo share closely enough to fill the icon around it with. */
@@ -39,16 +43,14 @@ export class ShopIcons {
 
   async fromLogo(logo: Buffer, file: ShopIconFile): Promise<Buffer> {
     const { size, fill } = ICONS[file];
-    const background = await this.edgeColour(logo);
-    const inner = Math.round(size * fill);
-    const fitted = await sharp(logo)
-      .resize(inner, inner, { fit: 'contain', background })
-      .png()
-      .toBuffer();
-    return sharp({ create: { width: size, height: size, channels: 4, background } })
-      .composite([{ input: fitted, gravity: 'center' }])
-      .png()
-      .toBuffer();
+    return this.centred(logo, size, fill);
+  }
+
+  /** BRN-02: the brand identity's square icon -- edge to edge, or most of a maskable icon on its own colour. */
+  async fromIcon(icon: Buffer, file: ShopIconFile): Promise<Buffer> {
+    const { size } = ICONS[file];
+    if (file === ShopIconFile.Maskable512) return this.centred(icon, size, MASKABLE_ICON_FILL);
+    return sharp(icon).resize(size, size, { fit: 'cover' }).png().toBuffer();
   }
 
   async fromLetter(letter: string, file: ShopIconFile): Promise<Buffer> {
@@ -74,6 +76,20 @@ export class ShopIcons {
       create: { width: size, height: size, channels: 4, background: MONOGRAM_COLORS.tile },
     })
       .composite([{ input: glyph, gravity: 'center' }])
+      .png()
+      .toBuffer();
+  }
+
+  /** An image fitted inside a share of the tile, on the image's own background colour. */
+  private async centred(image: Buffer, size: number, fill: number): Promise<Buffer> {
+    const background = await this.edgeColour(image);
+    const inner = Math.round(size * fill);
+    const fitted = await sharp(image)
+      .resize(inner, inner, { fit: 'contain', background })
+      .png()
+      .toBuffer();
+    return sharp({ create: { width: size, height: size, channels: 4, background } })
+      .composite([{ input: fitted, gravity: 'center' }])
       .png()
       .toBuffer();
   }

@@ -88,6 +88,10 @@ export {
 export { RatesRepository } from './repositories/balance/rates.repository';
 export { ShopSettingsRepository } from './repositories/balance/shop-settings.repository';
 export {
+  BrandIdentityRepository,
+  type BrandIdentityValues,
+} from './repositories/brand/brand-identity.repository';
+export {
   PlansRepository,
   type NewPlan,
   type PlanEdit,

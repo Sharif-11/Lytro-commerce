@@ -65,6 +65,7 @@ import {
   PurchaseReceiptRepository,
   MediaRepository,
   MediaBandwidthRepository,
+  BrandIdentityRepository,
   AdTrackingRepository,
   CatalogFeedRepository,
 } from '@lytronix/db';
@@ -199,6 +200,11 @@ import { DatabaseService } from './database.service';
     },
     { provide: MediaBandwidthRepository, useFactory: () => new MediaBandwidthRepository() },
     {
+      provide: BrandIdentityRepository,
+      inject: [TransactionRunner],
+      useFactory: (transactions: TransactionRunner) => new BrandIdentityRepository(transactions),
+    },
+    {
       provide: CatalogueDataRepository,
       inject: [TransactionRunner],
       useFactory: (transactions: TransactionRunner) => new CatalogueDataRepository(transactions),
@@ -329,6 +335,7 @@ import { DatabaseService } from './database.service';
     PurchaseReceiptRepository,
     MediaRepository,
     MediaBandwidthRepository,
+    BrandIdentityRepository,
   ],
 })
 export class DatabaseModule {}

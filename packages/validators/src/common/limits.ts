@@ -62,8 +62,8 @@ export const SIZE_CHART_CELL_MAX_LENGTH = 40;
 // ATR-16: an option set's name and how many values it holds.
 export const OPTION_SET_NAME_MAX_LENGTH = 60;
 export const OPTION_SET_MAX_OPTIONS = 50;
-// ATR-18: an option's colour swatch, as #RRGGBB.
-export const SWATCH_COLOR_PATTERN = /^#[0-9A-Fa-f]{6}$/;
+// ATR-18, BRN-02: a colour, as #RRGGBB -- an option's swatch, a brand identity's colours.
+export const HEX_COLOR_PATTERN = /^#[0-9A-Fa-f]{6}$/;
 // DLV-01: delivery zones. A shop starts with "Inside Dhaka city" at 70 TK and the fallback at 130 TK, and may hold
 // up to 20 zones in all. A zone's areas are capped by what exists: 64 zillas, 11 cities, every thana.
 export const DELIVERY_ZONE_NAME_MAX_LENGTH = 60;

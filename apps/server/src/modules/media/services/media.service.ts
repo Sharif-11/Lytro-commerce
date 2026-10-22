@@ -265,7 +265,27 @@ export class MediaService {
    */
   async logoImage(tenantId: string): Promise<{ hash: string; body: Buffer } | null> {
     const record = await this.store.run((tx) => this.logoRecord(tx, tenantId));
-    if (!record) return null;
+    return record ? this.storedImage(tenantId, record) : null;
+  }
+
+  /**
+   * TEN-17, BRN-02: one of the shop's ready images as stored (the processed WebP), for an installed app's icon; null
+   * when it is not a ready image of the shop's, or its file cannot be found.
+   */
+  async imageFile(
+    tenantId: string,
+    mediaId: string,
+  ): Promise<{ hash: string; body: Buffer } | null> {
+    const media = await this.store.run((tx) => this.store.findMedia(tx, tenantId, mediaId));
+    if (media?.status !== MediaStatus.Ready || media.kind !== MediaKind.Image || !media.hash)
+      return null;
+    return this.storedImage(tenantId, { id: media.id, hash: media.hash });
+  }
+
+  private async storedImage(
+    tenantId: string,
+    record: { id: string; hash: string },
+  ): Promise<{ hash: string; body: Buffer } | null> {
     const body = await this.storage.readMedia(
       mediaKeys(MediaKind.Image, tenantId, record.id, record.hash).main,
     );

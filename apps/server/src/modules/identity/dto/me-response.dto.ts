@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
 import { TenantState } from '@lytronix/validators';
+import { liveBrandSchema } from '../../../common/dto/brand.dto';
 
 export const meResponseSchema = z.object({
   subscriber: z.object({ id: z.string() }),
@@ -19,6 +20,8 @@ export const meResponseSchema = z.object({
       periodEnd: z.string().nullable(),
       // BIL-17: whether the plan renews itself from the balance.
       autoRenewEnabled: z.boolean(),
+      // BRN-07: the identity the dashboard applies; null for Lytro's default.
+      brand: liveBrandSchema.nullable(),
     })
     .nullable(),
   // TEN-31: every shop the signed-in person may open -- one opens directly, several show the picker.

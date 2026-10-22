@@ -293,6 +293,10 @@ export enum AuditAction {
   AdTrackingUpdated = 'ad_tracking_updated',
   AdTrackingRemoved = 'ad_tracking_removed',
   CatalogFeedRegenerated = 'catalog_feed_regenerated',
+  // Phase 3 Slice 11.2: the shop's brand identity saved, and switched on or off (BRN-02).
+  BrandSaved = 'brand_saved',
+  BrandSwitchedOn = 'brand_switched_on',
+  BrandSwitchedOff = 'brand_switched_off',
 }
 
 // FED-02: what a product is, for Meta's catalog: new unless the shop says otherwise.
@@ -642,6 +646,43 @@ export const BUYABLE_ADDON_KINDS: readonly AddonKind[] = [AddonKind.Limit, Addon
 
 // BRN-05: the feature add-on that switches a shop's own brand identity on.
 export const BRAND_IDENTITY_ADDON = 'brand_identity';
+
+// BRN-02 (agreed for Slice 11.2): the curated typefaces a brand identity's headings and its body text are set in, each
+// a Bangla face with the Latin face that suits it, all from Google Fonts. Galada with Playfair Display is for headings
+// only. The faces themselves are in BRAND_FONTS.
+export enum BrandFont {
+  NotoSansBengaliInter = 'noto_sans_bengali_inter',
+  HindSiliguriPlusJakartaSans = 'hind_siliguri_plus_jakarta_sans',
+  AnekBanglaDmSans = 'anek_bangla_dm_sans',
+  BalooDa2Poppins = 'baloo_da_2_poppins',
+  TiroBanglaLora = 'tiro_bangla_lora',
+  NotoSerifBengaliFraunces = 'noto_serif_bengali_fraunces',
+  GaladaPlayfairDisplay = 'galada_playfair_display',
+}
+
+// BRN-02: a brand identity's corners and spacing, as presets; packages/ui holds what each measures.
+export enum BrandCorners {
+  Square = 'square',
+  Soft = 'soft',
+  Round = 'round',
+}
+
+export enum BrandSpacing {
+  Compact = 'compact',
+  Comfortable = 'comfortable',
+  Airy = 'airy',
+}
+
+// BRN-03, BRN-04: the colour pairs a brand identity is checked on -- the text on its main colour, on its accent and on
+// its background; the main colour itself on the background (an icon, a heading); and the fixed status colours on the
+// background.
+export enum BrandPair {
+  TextOnMain = 'text_on_main',
+  TextOnAccent = 'text_on_accent',
+  TextOnBackground = 'text_on_background',
+  MainOnBackground = 'main_on_background',
+  StatusOnBackground = 'status_on_background',
+}
 
 // PLN-14 (agreed for Slice 10a): the most of one add-on a single purchase may buy; a feature add-on is only ever one.
 export const ADDON_QUANTITY_MAX = 10;

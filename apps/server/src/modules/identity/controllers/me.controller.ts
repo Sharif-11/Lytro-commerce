@@ -6,6 +6,8 @@ import { ResponseMessage } from '../../../common/decorators/response-message';
 import { MeResponseDto } from '../dto/me-response.dto';
 import { DashboardGuard, type DashboardRequest } from '../guards/dashboard.guard';
 import { SessionGuard } from '../guards/session.guard';
+import { BrandService } from '../../brand/services/brand.service';
+import type { LiveBrand } from '../../brand/types/brand';
 import { StaffService } from '../../staff/services/staff.service';
 import { ShopMemberships, type ShopListing } from '../services/shop-memberships';
 import type { TenantSummary } from '../../tenancy/types/tenant-summary';
@@ -28,6 +30,8 @@ export interface MeResponse {
     periodEnd: string | null;
     /** BIL-17: the plan page's auto-renew switch reads its state here. */
     autoRenewEnabled: boolean;
+    /** BRN-07: the shop's own identity, which the dashboard applies; null for Lytro's default. */
+    brand: LiveBrand | null;
   } | null;
   shops: ShopListing[];
 }
@@ -43,6 +47,7 @@ export class MeController {
   constructor(
     @Inject(StaffService) private readonly staff: StaffService,
     @Inject(ShopMemberships) private readonly memberships: ShopMemberships,
+    @Inject(BrandService) private readonly brand: BrandService,
   ) {}
 
   @Get()
@@ -57,6 +62,7 @@ export class MeController {
       isOwner || tenant === null ? [] : ((await this.staff.permissionsOf(tenant, userId)) ?? []);
     const signedIn = request.signedIn ?? request.session;
     const shops = signedIn ? await this.memberships.list(signedIn) : [];
+    const brand = tenant === null ? null : await this.brand.live(tenant.id);
     return {
       subscriber: { id: request.session?.subscriberId ?? '' },
       isOwner,
@@ -73,6 +79,7 @@ export class MeController {
               planName: tenant.planName,
               periodEnd: tenant.periodEnd?.toISOString() ?? null,
               autoRenewEnabled: tenant.autoRenewEnabled,
+              brand,
             },
       shops,
     };

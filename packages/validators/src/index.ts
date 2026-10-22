@@ -20,6 +20,7 @@ export * from './api/purchasing/receipt';
 export * from './api/api-keys/api-key';
 export * from './api/api-keys/ad-tracking';
 export * from './api/media/media';
+export * from './api/brand/brand';
 export * from './api/staff/staff/staff-create';
 export * from './api/staff/staff/staff-password';
 export * from './api/audit/activity/activity-list';

@@ -10,6 +10,7 @@ import {
   AuditResult,
   BRAND_IDENTITY_ADDON,
   BUYABLE_ADDON_KINDS,
+  featureOn,
   InvoiceKind,
   isUsageLimitKey,
   LedgerEntryType,
@@ -84,11 +85,6 @@ interface Paying {
   purchase: AddonPurchaseRecord;
   addon: AddonRecord;
   info: BillingInfoRow | null;
-}
-
-/** BRN-05, PLN-13: a feature add-on switches on the plan feature named by its key -- bought, or in the plan itself. */
-function featureOn(key: string, holdings: Omit<Holdings, 'limits'>): boolean {
-  return holdings.features?.[key] === true || holdings.active.some((addon) => addon.key === key);
 }
 
 /**

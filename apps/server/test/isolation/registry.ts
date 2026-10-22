@@ -226,4 +226,8 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'POST /catalog-feed/regenerate': "replaces only the session shop's own feed link",
   'GET /public/feeds/meta/:file':
     "a feed is the token's own shop's only; another token or none is not found",
+  // Phase 3 Slice 11.2, checked in test/brand.e2e.spec.ts.
+  'GET /brand': "reads only the session shop's own brand identity",
+  'PUT /brand': "saves only the session shop's identity; another shop's image is not_found",
+  'PUT /brand/switch': "switches only the session shop's own identity",
 };

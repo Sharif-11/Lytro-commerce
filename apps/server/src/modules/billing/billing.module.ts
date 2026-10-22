@@ -14,6 +14,7 @@ import { DataExportModule } from '../data-export/data-export.module';
 import { DeliveryModule } from '../delivery/delivery.module';
 import { InventoryModule } from '../inventory/inventory.module';
 import { MediaModule } from '../media/media.module';
+import { BrandModule } from '../brand/brand.module';
 import { UsageWarningsModule } from '../usage-warnings/usage-warnings.module';
 import { PublicApiModule } from '../public-api/public-api.module';
 import { PurchasingModule } from '../purchasing/purchasing.module';
@@ -71,6 +72,7 @@ import {
     PublicApiModule,
     MediaModule,
     UsageWarningsModule,
+    BrandModule,
   ],
   providers: [
     { provide: PLANS_STORE, useClass: DrizzlePlansStore },
