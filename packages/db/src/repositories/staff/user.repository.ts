@@ -34,6 +34,23 @@ export class UserRepository {
     await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${tenantId}, 0))`);
   }
 
+  // STF-13, AUTH-31: the active staff who have not yet chosen their own password since the owner set one.
+  async countMustSetPassword(tx: Transaction, tenantId: string): Promise<number> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const rows = await tx
+      .select({ total: count() })
+      .from(users)
+      .where(
+        and(
+          eq(users.tenantId, tenantId),
+          eq(users.active, true),
+          eq(users.isOwner, false),
+          eq(users.mustSetPassword, true),
+        ),
+      );
+    return rows[0]?.total ?? 0;
+  }
+
   // STF-02: the seats in use are the active users of the shop, the owner included.
   async countActive(tx: Transaction, tenantId: string): Promise<number> {
     await this.transactions.setTenantContext(tx, tenantId);
@@ -128,6 +145,8 @@ export class UserRepository {
         name: values.name,
         passwordHash: values.passwordHash,
         isOwner: false,
+        // AUTH-31: the owner chose this first password, so the first sign-in asks the member for their own.
+        mustSetPassword: true,
       })
       .returning();
     const row = rows[0];

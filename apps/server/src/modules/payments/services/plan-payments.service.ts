@@ -53,6 +53,17 @@ export class PlanPaymentsService {
     return this.store.run((tx) => this.store.listPending(tx, kind));
   }
 
+  /**
+   * BAL-03, BIL-04: how many of the shop's payments of these kinds were submitted and are being checked by the
+   * operator, and for how much in all -- Home's "being checked" rows.
+   */
+  beingChecked(
+    tenantId: string,
+    kinds: PlanPaymentKind[],
+  ): Promise<{ count: number; amount: string }> {
+    return this.store.run((tx) => this.store.submittedForTenant(tx, tenantId, kinds));
+  }
+
   /** UPG-08: whether this tenant already has an undecided row of this kind, submitted or not. */
   findActiveForTenant(tenantId: string, kind: PlanPaymentKind): Promise<PlanPaymentRecord | null> {
     return this.store.run((tx) => this.store.findActiveForTenant(tx, tenantId, kind));

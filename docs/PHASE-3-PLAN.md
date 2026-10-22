@@ -1080,6 +1080,15 @@ their backend ships earlier.
     11. delivery;
     12. the brand editor and the themed dashboard;
     13. the policy (KNOWN-GAPS §65) and the walkthrough.
+- **The backend reads, agreed 2026-10-22** (13 points), in two parts:
+  - **11.1a, built:** `/me`'s `autoRenewEnabled`; the top-up bounds on `/balance`; the upgrade quote's period;
+    `mustSetPassword` on `/staff` and, fixing AUTH-31 (KNOWN-GAPS §89), a new member's first sign-in asking for their
+    own password; `GET /home` with each part held to the caller's permissions and the owner's checklist as SUP-01
+    lists it, and `POST /home/link-shared`; `GET /shops/address-check`; stock value by unit and top-level category
+    and each loss's units; each purchase's units and what is still coming; a supplier's last purchase; the batch
+    list's total leaving out archived products; and the API contract brought up to the code.
+  - **11.1b, next:** the per-shop app manifest and icons (KNOWN-GAPS §88), and the edge config sending `/api` to
+    the server before the dashboard's fallback (KNOWN-GAPS §90).
 
 ### Slice 12: shared storefront and product landing pages
 - **Depends on:** Slices 0, 0b, 7 and 9 (and branding from Phase 1).

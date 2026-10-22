@@ -889,16 +889,35 @@ describeIfDatabase('inventory figures (INV-18, D3-9)', () => {
     await setStock(shop, jar.product.id, jar.variantId, { onHand: 5, reason: 'new_stock' });
 
     const figures = await figuresOf(shop);
-    // Lamp 4 x 120.50 = 482.00; the jars have no cost, so they are counted, not valued.
-    expect(figures.stockValue).toEqual({ value: '482.00', unknownCost: 1 });
+    // Lamp 4 x 120.50 = 482.00; the jars have no cost, so they are counted, not valued. Both are in no category, and
+    // both count in pieces: 4 lamps and 5 jars (D3-9).
+    const held = [{ unit: 'piece', quantity: '9.000' }];
+    expect(figures.stockValue).toEqual({
+      value: '482.00',
+      unknownCost: 1,
+      units: held,
+      byCategory: [{ categoryId: null, name: null, value: '482.00', unknownCost: 1, units: held }],
+    });
     expect(figures.costOfGoodsSold).toEqual({ value: '241.00', movements: 1, unknownCost: 0 });
     expect(figures.losses).toEqual({
       value: '482.00',
       movements: 3,
       unknownCost: 1,
       byReason: [
-        { reason: 'damaged', value: '361.50', movements: 2, unknownCost: 1 },
-        { reason: 'recount', value: '120.50', movements: 1, unknownCost: 0 },
+        {
+          reason: 'damaged',
+          value: '361.50',
+          movements: 2,
+          unknownCost: 1,
+          units: [{ unit: 'piece', quantity: '4.000' }],
+        },
+        {
+          reason: 'recount',
+          value: '120.50',
+          movements: 1,
+          unknownCost: 0,
+          units: [{ unit: 'piece', quantity: '1.000' }],
+        },
       ],
     });
 

@@ -17,6 +17,7 @@ import { PayAsYouGoBillingService } from './services/payg-billing.service';
 import { PlatformWalletsService } from './services/platform-wallets.service';
 import { RateService } from './services/rate.service';
 import { ShopDeliveryRateService } from './services/shop-delivery-rate.service';
+import { ShopLinkSharing } from './services/shop-link-sharing';
 import { TopUpService } from './services/top-up.service';
 import {
   BALANCE_LEDGER_STORE,
@@ -49,6 +50,7 @@ import {
     BalanceService,
     RateService,
     ShopDeliveryRateService,
+    ShopLinkSharing,
     PayAsYouGoBillingService,
     TopUpService,
     PlatformWalletsService,
@@ -57,6 +59,7 @@ import {
     BalanceService,
     RateService,
     ShopDeliveryRateService,
+    ShopLinkSharing,
     PayAsYouGoBillingService,
     TopUpService,
     PlatformWalletsService,

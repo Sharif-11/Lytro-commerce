@@ -98,6 +98,13 @@ export const planPaymentSchema = z.object({
 });
 export class PlanPaymentDto extends createZodDto(planPaymentSchema) {}
 
+// UPG-06: an upgrade's quote, with the period it would run were it confirmed now (UPG-09 starts it at confirmation).
+export const upgradeQuoteSchema = planPaymentSchema.extend({
+  periodStart: z.coerce.date(),
+  periodEnd: z.coerce.date(),
+});
+export class UpgradeQuoteDto extends createZodDto(upgradeQuoteSchema) {}
+
 // ADM-06: a payment in the operator's queue, with the add-ons it pays for (PLN-14) -- an add-on's own, or those a
 // renewal or an upgrade carries -- so the operator sees what the money is for.
 export const queuedPaymentSchema = planPaymentSchema.extend({

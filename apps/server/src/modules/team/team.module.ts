@@ -28,6 +28,8 @@ import {
 import { OperatorPlanLimitOverridesController } from './controllers/operator-plan-limit-overrides.controller';
 import { OperatorPlatformWalletsController } from './controllers/operator-platform-wallets.controller';
 import { PlatformWalletsController } from './controllers/platform-wallets.controller';
+import { HomeController } from './controllers/home.controller';
+import { HomeService } from './services/home.service';
 import { OperatorSettingsController } from './controllers/operator-settings.controller';
 import { AddonsController } from './controllers/addons.controller';
 import { BillingController } from './controllers/billing.controller';
@@ -149,12 +151,14 @@ import { CatalogueRequest } from './services/catalogue-request';
     ProductPurchasesController,
     MediaController,
     UsageController,
+    HomeController,
   ],
   providers: [
     StaffSigninService,
     ActivityListService,
     ClientIp,
     ShopSettingsService,
+    HomeService,
     CatalogueRequest,
     // LIM-01: a refusal at a plan limit says what would give the shop room.
     { provide: APP_INTERCEPTOR, useClass: LimitSuggestionsInterceptor },

@@ -11,6 +11,7 @@ import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase } from './support/database';
 import { SmsCapture } from './support/sms-capture';
 import { cookieFrom, getJson, type HttpResult, patchJson, postJson } from './support/http';
+import { passFirstSignIn } from './support/shop-client';
 
 // The activity log over real HTTP and the real database (AUD-01 to AUD-08). Runs only when
 // DATABASE_TEST_ADMIN_URL is set.
@@ -268,6 +269,10 @@ describeIfDatabase('the activity log (AUD-01, AUD-02, AUD-04)', () => {
       { phone: readerPhone, password: STAFF_PASSWORD },
       { host: 'localhost', 'x-lytro-shop': who.slug },
     );
+    await passFirstSignIn(port, readerSignIn, STAFF_PASSWORD, {
+      host: 'localhost',
+      'x-lytro-shop': who.slug,
+    });
     const readerCall = {
       cookie: cookieFrom(readerSignIn),
       'x-csrf-token': (readerSignIn.body as { csrfToken: string }).csrfToken,
@@ -296,6 +301,10 @@ describeIfDatabase('the activity log (AUD-01, AUD-02, AUD-04)', () => {
       { host: 'localhost', 'x-lytro-shop': other.slug },
     );
     expect(auditorSignIn.status).toBe(200);
+    await passFirstSignIn(port, auditorSignIn, STAFF_PASSWORD, {
+      host: 'localhost',
+      'x-lytro-shop': other.slug,
+    });
     const auditorCall = {
       cookie: cookieFrom(auditorSignIn),
       'x-csrf-token': (auditorSignIn.body as { csrfToken: string }).csrfToken,

@@ -12,7 +12,7 @@ import {
   sql,
   type SQL,
 } from 'drizzle-orm';
-import { StockReason, type StockState } from '@lytronix/validators';
+import { StockReason, type StockState, type StockUnit } from '@lytronix/validators';
 import {
   productVariants,
   products,
@@ -78,16 +78,27 @@ export interface VariantStockRow {
   hasLevel: boolean;
 }
 
-/** INV-18: the stock held now at average cost; variants holding stock with no cost add nothing and are counted. */
+/**
+ * INV-18, D3-9: the stock held now of one primary category (null: none) in one stock unit -- how much, its worth at
+ * average cost, and how many variants holding it have no cost (they add nothing and are counted).
+ */
 export interface StockValueRow {
+  categoryId: string | null;
+  stockUnit: StockUnit;
+  units: string;
   value: string;
   unknownCost: number;
 }
 
-/** INV-18: one reason's outgoing movements in a period, valued at the cost each recorded. */
+/**
+ * INV-18: one reason's outgoing movements in a period in one stock unit, valued at the cost each recorded. A
+ * movement whose product has since been deleted for good has no unit; it still counts in the value and movements.
+ */
 export interface OutgoingRow {
   reason: StockReason;
+  stockUnit: StockUnit | null;
   movements: number;
+  units: string;
   value: string;
   unknownCost: number;
 }
@@ -475,13 +486,17 @@ export class StockRepository {
   }
 
   /**
-   * INV-18: what the stock held now is worth at average cost, and how many variants holding stock have no cost yet
-   * (counted at nothing, so the value is a floor, never a guess).
+   * INV-18, D3-9: the stock held now, by each product's primary category and stock unit: how much, its worth at average
+   * cost, and how many variants holding stock have no cost yet (counted at nothing, so a value is a floor, never a
+   * guess). The shop's whole stock value is the sum of these.
    */
-  async stockValue(tx: Transaction, tenantId: string): Promise<StockValueRow> {
+  async stockValue(tx: Transaction, tenantId: string): Promise<StockValueRow[]> {
     await this.transactions.setTenantContext(tx, tenantId);
-    const rows = await tx
+    return tx
       .select({
+        categoryId: products.primaryCategoryId,
+        stockUnit: products.stockUnit,
+        units: sql<string>`sum(${stockLevels.onHand})::numeric(14, 3)::text`,
         value: sql<string>`coalesce(round(sum(${stockLevels.onHand} * ${productVariants.avgCost}), 2), 0)::numeric(14, 2)::text`,
         unknownCost: sql<number>`count(*) FILTER (WHERE ${productVariants.avgCost} IS NULL)::int`,
       })
@@ -493,8 +508,15 @@ export class StockRepository {
           eq(productVariants.id, stockLevels.variantId),
         ),
       )
-      .where(and(eq(stockLevels.tenantId, tenantId), sql`${stockLevels.onHand} > 0`));
-    return rows[0] ?? { value: '0.00', unknownCost: 0 };
+      .innerJoin(
+        products,
+        and(
+          eq(products.tenantId, productVariants.tenantId),
+          eq(products.id, productVariants.productId),
+        ),
+      )
+      .where(and(eq(stockLevels.tenantId, tenantId), sql`${stockLevels.onHand} > 0`))
+      .groupBy(products.primaryCategoryId, products.stockUnit);
   }
 
   /**
@@ -507,24 +529,43 @@ export class StockRepository {
     period: { from: Date; to: Date },
   ): Promise<OutgoingRow[]> {
     await this.transactions.setTenantContext(tx, tenantId);
-    return tx
-      .select({
-        reason: stockMovements.reason,
-        movements: sql<number>`count(*)::int`,
-        value: sql<string>`coalesce(round(sum(-${stockMovements.quantityDelta} * ${stockMovements.unitCost}), 2), 0)::numeric(14, 2)::text`,
-        unknownCost: sql<number>`count(*) FILTER (WHERE ${stockMovements.unitCost} IS NULL)::int`,
-      })
-      .from(stockMovements)
-      .where(
-        and(
-          eq(stockMovements.tenantId, tenantId),
-          sql`${stockMovements.quantityDelta} < 0`,
-          gte(stockMovements.createdAt, period.from),
-          lt(stockMovements.createdAt, period.to),
-        ),
-      )
-      .groupBy(stockMovements.reason)
-      .orderBy(asc(stockMovements.reason));
+    return (
+      tx
+        .select({
+          reason: stockMovements.reason,
+          stockUnit: products.stockUnit,
+          movements: sql<number>`count(*)::int`,
+          units: sql<string>`sum(-${stockMovements.quantityDelta})::numeric(14, 3)::text`,
+          value: sql<string>`coalesce(round(sum(-${stockMovements.quantityDelta} * ${stockMovements.unitCost}), 2), 0)::numeric(14, 2)::text`,
+          unknownCost: sql<number>`count(*) FILTER (WHERE ${stockMovements.unitCost} IS NULL)::int`,
+        })
+        .from(stockMovements)
+        // A movement holds its variant by value: once its product is deleted for good it has no unit, and still counts.
+        .leftJoin(
+          productVariants,
+          and(
+            eq(productVariants.tenantId, stockMovements.tenantId),
+            eq(productVariants.id, stockMovements.variantId),
+          ),
+        )
+        .leftJoin(
+          products,
+          and(
+            eq(products.tenantId, productVariants.tenantId),
+            eq(products.id, productVariants.productId),
+          ),
+        )
+        .where(
+          and(
+            eq(stockMovements.tenantId, tenantId),
+            sql`${stockMovements.quantityDelta} < 0`,
+            gte(stockMovements.createdAt, period.from),
+            lt(stockMovements.createdAt, period.to),
+          ),
+        )
+        .groupBy(stockMovements.reason, products.stockUnit)
+        .orderBy(asc(stockMovements.reason), asc(products.stockUnit))
+    );
   }
 
   /** The movements naming this record, oldest first, each with its batch. */

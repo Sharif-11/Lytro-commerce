@@ -1,5 +1,5 @@
 import { and, asc, count, desc, eq, inArray, sql } from 'drizzle-orm';
-import { PurchaseStatus, type StockUnit } from '@lytronix/validators';
+import { OPEN_PURCHASE_STATUSES, type PurchaseStatus, type StockUnit } from '@lytronix/validators';
 import {
   productVariants,
   products,
@@ -27,6 +27,17 @@ export interface PurchaseOrderSummaryRow extends PurchaseOrderRow {
   unknownCost: number;
 }
 
+/**
+ * PUR-05: what one purchase (or, with no purchase, the shop's open purchases) orders in one stock unit, and how much of
+ * it is still to come. Null unit: the product has since been deleted for good.
+ */
+export interface PurchaseUnitsRow {
+  purchaseOrderId: string;
+  stockUnit: StockUnit | null;
+  ordered: string;
+  outstanding: string;
+}
+
 /** One item bought, with the names it is shown by; null where the product has since been deleted for good. */
 export interface PurchaseLineRow extends SelectPurchaseOrderLine {
   productName: string | null;
@@ -48,10 +59,13 @@ export type PurchaseLinePatch = Partial<
 >;
 
 // PUR-05: the purchases whose outstanding quantity is on its way.
-const OPEN_STATUSES = [PurchaseStatus.Ordered, PurchaseStatus.PartiallyReceived];
+const OPEN_STATUSES = [...OPEN_PURCHASE_STATUSES];
 
 // An item's quantity at its cost, rounded to the paisa the way each item is shown.
 const lineTotal = sql`round(${purchaseOrderLines.quantityOrdered} * ${purchaseOrderLines.unitCost}, 2)`;
+
+// PUR-04, PUR-05: what an item still awaits -- ordered less received, never below nothing.
+const OUTSTANDING = sql`greatest(${purchaseOrderLines.quantityOrdered} - ${purchaseOrderLines.quantityReceived}, 0)`;
 
 // PUR-02, PUR-03, PUR-05: a shop's purchases, the items each buys, and the counter that numbers them. Every method sets
 // the shop's tenant context. The database keeps a number once given and keeps a placed purchase (a trigger); the
@@ -267,6 +281,104 @@ export class PurchaseOrderRepository {
     };
   }
 
+  /** PUR-05: what each of these purchases orders, and still awaits, in each stock unit. */
+  async unitsOf(
+    tx: Transaction,
+    tenantId: string,
+    purchaseOrderIds: string[],
+  ): Promise<PurchaseUnitsRow[]> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    if (purchaseOrderIds.length === 0) return [];
+    return tx
+      .select({
+        purchaseOrderId: purchaseOrderLines.purchaseOrderId,
+        stockUnit: products.stockUnit,
+        ordered: sql<string>`sum(${purchaseOrderLines.quantityOrdered})::numeric(14, 3)::text`,
+        outstanding: sql<string>`sum(${OUTSTANDING})::numeric(14, 3)::text`,
+      })
+      .from(purchaseOrderLines)
+      .leftJoin(
+        productVariants,
+        and(
+          eq(productVariants.tenantId, purchaseOrderLines.tenantId),
+          eq(productVariants.id, purchaseOrderLines.variantId),
+        ),
+      )
+      .leftJoin(
+        products,
+        and(
+          eq(products.tenantId, productVariants.tenantId),
+          eq(products.id, productVariants.productId),
+        ),
+      )
+      .where(
+        and(
+          eq(purchaseOrderLines.tenantId, tenantId),
+          inArray(purchaseOrderLines.purchaseOrderId, purchaseOrderIds),
+        ),
+      )
+      .groupBy(purchaseOrderLines.purchaseOrderId, products.stockUnit)
+      .orderBy(asc(products.stockUnit));
+  }
+
+  /**
+   * PUR-05: what the shop's placed, open purchases still await, in each stock unit, and from how many purchases (those
+   * with something still to come).
+   */
+  async coming(
+    tx: Transaction,
+    tenantId: string,
+  ): Promise<{ units: { stockUnit: StockUnit | null; quantity: string }[]; purchases: number }> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const open = and(
+      eq(purchaseOrderLines.tenantId, tenantId),
+      inArray(purchaseOrders.status, OPEN_STATUSES),
+      sql`${OUTSTANDING} > 0`,
+    );
+    const units = await tx
+      .select({
+        stockUnit: products.stockUnit,
+        quantity: sql<string>`sum(${OUTSTANDING})::numeric(14, 3)::text`,
+      })
+      .from(purchaseOrderLines)
+      .innerJoin(
+        purchaseOrders,
+        and(
+          eq(purchaseOrders.tenantId, purchaseOrderLines.tenantId),
+          eq(purchaseOrders.id, purchaseOrderLines.purchaseOrderId),
+        ),
+      )
+      .leftJoin(
+        productVariants,
+        and(
+          eq(productVariants.tenantId, purchaseOrderLines.tenantId),
+          eq(productVariants.id, purchaseOrderLines.variantId),
+        ),
+      )
+      .leftJoin(
+        products,
+        and(
+          eq(products.tenantId, productVariants.tenantId),
+          eq(products.id, productVariants.productId),
+        ),
+      )
+      .where(open)
+      .groupBy(products.stockUnit)
+      .orderBy(asc(products.stockUnit));
+    const purchases = await tx
+      .select({ total: sql<number>`count(DISTINCT ${purchaseOrderLines.purchaseOrderId})::int` })
+      .from(purchaseOrderLines)
+      .innerJoin(
+        purchaseOrders,
+        and(
+          eq(purchaseOrders.tenantId, purchaseOrderLines.tenantId),
+          eq(purchaseOrders.id, purchaseOrderLines.purchaseOrderId),
+        ),
+      )
+      .where(open);
+    return { units, purchases: purchases[0]?.total ?? 0 };
+  }
+
   /**
    * PUR-05: each variant's incoming stock, what is ordered and not yet received on placed, open purchases. A variant
    * with none is left out.
@@ -281,7 +393,7 @@ export class PurchaseOrderRepository {
     return tx
       .select({
         variantId: purchaseOrderLines.variantId,
-        incoming: sql<string>`sum(greatest(${purchaseOrderLines.quantityOrdered} - ${purchaseOrderLines.quantityReceived}, 0))::numeric(14, 3)::text`,
+        incoming: sql<string>`sum(${OUTSTANDING})::numeric(14, 3)::text`,
       })
       .from(purchaseOrderLines)
       .innerJoin(
@@ -299,9 +411,7 @@ export class PurchaseOrderRepository {
         ),
       )
       .groupBy(purchaseOrderLines.variantId)
-      .having(
-        sql`sum(greatest(${purchaseOrderLines.quantityOrdered} - ${purchaseOrderLines.quantityReceived}, 0)) > 0`,
-      );
+      .having(sql`sum(${OUTSTANDING}) > 0`);
   }
 
   /** LIF-19: a lapsed shop's purchases, their items and its counter, at day 60. */

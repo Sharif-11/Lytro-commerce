@@ -53,6 +53,12 @@ export type {
   VariantStockRow,
 };
 
+/** UOM-01: an amount of stock in one unit -- 12 pieces, 240.500 kg. */
+export interface UnitQuantity {
+  unit: StockUnit;
+  quantity: string;
+}
+
 /** INV-12: a new batch arriving: an optional lot code and expiry date (its last sellable day, YYYY-MM-DD). */
 export interface BatchDescription {
   batchCode?: string;
@@ -372,13 +378,25 @@ export interface MovedFigure extends ValuedFigure {
   movements: number;
 }
 
+/** D3-9: stock held of one top-level category (null: products in none), its worth and its amounts by unit. */
+export interface CategoryStockValue extends ValuedFigure {
+  categoryId: string | null;
+  name: string | null;
+  units: UnitQuantity[];
+}
+
 export interface InventoryFigures {
   /** The period, whole Asia/Dhaka days, both ends included. */
   dateFrom: string;
   dateTo: string;
-  /** What the stock held now is worth, whatever the period. */
-  stockValue: ValuedFigure;
+  /**
+   * What the stock held now is worth, whatever the period, with its amounts by unit and the same split by each
+   * product's top-level category -- the parts add up to the whole, to the paisa.
+   */
+  stockValue: ValuedFigure & { units: UnitQuantity[]; byCategory: CategoryStockValue[] };
   costOfGoodsSold: MovedFigure;
-  /** Every outgoing movement that was not a sale, together and by reason. */
-  losses: MovedFigure & { byReason: (MovedFigure & { reason: StockReason })[] };
+  /** Every outgoing movement that was not a sale, together and by reason, each reason with the amounts it took. */
+  losses: MovedFigure & {
+    byReason: (MovedFigure & { reason: StockReason; units: UnitQuantity[] })[];
+  };
 }

@@ -19,4 +19,6 @@ export interface TenantSummary {
   ownerSubscriberId: string;
   /** PST-01: the shop's main business type (a preset key), which sets new products' defaults; null until chosen. */
   businessType: string | null;
+  /** BIL-17: whether the plan renews itself from the balance at the period's end. */
+  autoRenewEnabled: boolean;
 }

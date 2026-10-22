@@ -10,6 +10,7 @@ import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase, seedBalance } from './support/database';
 import { SmsCapture } from './support/sms-capture';
 import { cookieFrom, getJson, postJson } from './support/http';
+import { passFirstSignIn } from './support/shop-client';
 
 // LIF-20, LIF-21, BIL-13, BAL-18: an owner whose shop was deleted signs in again, is sent to create-shop, and
 // opens a new shop on the same account -- the old shop's balance moves in, and its invoices stay the owner's.
@@ -222,13 +223,13 @@ describeIfDatabase('an owner whose shop was deleted opens a new one (LIF-21)', (
       call(back, slug),
     );
     expect(hired.status).toBe(201);
-    const staff = sessionFrom(
-      await post(
-        '/auth/staff/signin',
-        { phone: staffPhone, password: STAFF_PASSWORD },
-        { host: PLATFORM },
-      ),
+    const staffSignIn = await post(
+      '/auth/staff/signin',
+      { phone: staffPhone, password: STAFF_PASSWORD },
+      { host: PLATFORM },
     );
+    await passFirstSignIn(port, staffSignIn, STAFF_PASSWORD, { host: PLATFORM });
+    const staff = sessionFrom(staffSignIn);
     const staffList = await get('/billing/invoices', call(staff, slug));
     expect(staffList.status).toBe(200);
     expect((staffList.body as { id: string }[]).map((invoice) => invoice.id)).toEqual([ownInvoice]);

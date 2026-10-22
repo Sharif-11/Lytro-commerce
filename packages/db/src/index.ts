@@ -159,6 +159,7 @@ export {
   ProductRepository,
   type ProductListFilter,
   type ProductListRow,
+  type ProductStateCounts,
   type ProductPatch,
 } from './repositories/catalogue/product.repository';
 export { VariantRepository, type VariantPatch } from './repositories/catalogue/variant.repository';
@@ -226,6 +227,7 @@ export {
 } from './repositories/inventory/stock-check.repository';
 export {
   SupplierRepository,
+  type SupplierListRow,
   type SupplierPatch,
 } from './repositories/purchasing/supplier.repository';
 export {
@@ -235,6 +237,7 @@ export {
   type PurchaseOrderPatch,
   type PurchaseOrderRow,
   type PurchaseOrderSummaryRow,
+  type PurchaseUnitsRow,
 } from './repositories/purchasing/purchase-order.repository';
 export {
   PurchaseReceiptRepository,

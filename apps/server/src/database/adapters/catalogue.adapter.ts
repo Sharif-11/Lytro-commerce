@@ -15,6 +15,7 @@ import {
   type PlatformOptionSetPatch,
   type PresetPatch,
   type ProductImageRow,
+  type ProductStateCounts,
   type SizeChartContent,
   type SizeChartOwner,
   type Transaction,
@@ -377,6 +378,10 @@ export class DrizzleProductStore implements ProductStore {
 
   countLiveProducts(tx: Transaction, tenantId: string): Promise<number> {
     return this.products.countLiveProducts(tx, tenantId);
+  }
+
+  countByState(tx: Transaction, tenantId: string): Promise<ProductStateCounts> {
+    return this.products.countByState(tx, tenantId);
   }
 
   slugsLike(tx: Transaction, tenantId: string, base: string): Promise<string[]> {

@@ -357,6 +357,9 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     bn: 'এই লগইন মাধ্যমটি রিমুভ হয়েছে।',
   },
   ProfileRetrieved: { en: 'Profile retrieved.', bn: 'প্রোফাইল পাওয়া গেছে।' },
+  HomeRetrieved: { en: 'Home retrieved.', bn: 'হোম পাওয়া গেছে।' },
+  LinkShareRecorded: { en: 'Link share recorded.', bn: 'লিংক শেয়ার করা হয়েছে।' },
+  AddressChecked: { en: 'Address checked.', bn: 'ঠিকানা দেখা হয়েছে।' },
   OauthProvidersListed: { en: 'Sign-in options retrieved.', bn: 'লগইন অপশনগুলো পাওয়া গেছে।' },
   ShopCreated: { en: 'Shop created successfully.', bn: 'দোকান সফলভাবে তৈরি হয়েছে।' },
 

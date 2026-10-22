@@ -12,6 +12,7 @@ import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase } from './support/database';
 import { SmsCapture } from './support/sms-capture';
 import { cookieFrom, getJson, postJson, type HttpResult } from './support/http';
+import { passFirstSignIn } from './support/shop-client';
 
 // The download route sends raw bytes, not the JSON envelope every other route uses -- support/http.ts's own
 // helpers JSON.parse the body unconditionally, so this route needs its own raw reader (status/headers/a real
@@ -142,6 +143,10 @@ async function viewerSession(who: Owner): Promise<Record<string, string>> {
     },
   );
   expect(signedIn.status).toBe(200);
+  await passFirstSignIn(port, signedIn, STAFF_PASSWORD, {
+    host: 'localhost',
+    'x-lytro-shop': who.slug,
+  });
   return {
     cookie: cookieFrom(signedIn),
     'x-csrf-token': (signedIn.body as { csrfToken: string }).csrfToken,

@@ -150,13 +150,35 @@ const movedFigureSchema = z.object({
   unknownCost: z.number(),
 });
 
+// UOM-01: an amount of stock in one unit.
+export const unitQuantitySchema = z.object({ unit: z.nativeEnum(StockUnit), quantity: z.string() });
+
 export const inventoryFiguresSchema = z.object({
   dateFrom: z.string(),
   dateTo: z.string(),
-  stockValue: z.object({ value: z.string(), unknownCost: z.number() }),
+  // D3-9: the whole, its amounts by unit, and the same by top-level category (null: products in none).
+  stockValue: z.object({
+    value: z.string(),
+    unknownCost: z.number(),
+    units: z.array(unitQuantitySchema),
+    byCategory: z.array(
+      z.object({
+        categoryId: z.string().nullable(),
+        name: z.string().nullable(),
+        value: z.string(),
+        unknownCost: z.number(),
+        units: z.array(unitQuantitySchema),
+      }),
+    ),
+  }),
   costOfGoodsSold: movedFigureSchema,
   losses: movedFigureSchema.extend({
-    byReason: z.array(movedFigureSchema.extend({ reason: z.nativeEnum(StockReason) })),
+    byReason: z.array(
+      movedFigureSchema.extend({
+        reason: z.nativeEnum(StockReason),
+        units: z.array(unitQuantitySchema),
+      }),
+    ),
   }),
 });
 export class InventoryFiguresDto extends createZodDto(inventoryFiguresSchema) {}

@@ -1,7 +1,7 @@
 import { Injectable, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
 import { limitOf, type PlanLimits } from '@lytronix/validators';
 import { MINUTE_MS } from '../../../common/time';
-import { SlidingWindow, type WindowVerdict } from './sliding-window';
+import { SlidingWindow, type WindowVerdict } from '../../../common/sliding-window';
 
 /** A limit as the API applies it: a number, or null for unlimited (PLN-19). */
 export type AppliedLimit = number | null;

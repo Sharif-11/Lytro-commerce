@@ -243,10 +243,13 @@ requests went in the last hour, from the "Website" key. Nothing is blocked; chec
 (`home-fast-spend`).
 
 Then **Right now**: four tiles: Products (with the active count), Low stock (with the out count), Balance
-(with the free SMS used), Plan days left (with the date). Then the **set-up checklist** (SUP-01): shop
-created, delivery charges, add the first product, share the link, ticked by the server; "Later, when you need
-them" names the items that wait for later phases (connect a courier, choose SMS events, pair a listener phone).
-Then the **shop link** card with Copy, Facebook and WhatsApp. On desktop the queue takes two thirds and the
+(with the free SMS used), Plan days left (with the date). Then the **set-up checklist** (SUP-01), the owner's
+alone, each item ticked by the server: "Get your shop ready" -- shop created and delivery charges (done from the
+start, with their amounts), add the first product, upload your logo, share the shop link (done once any shop or
+product link is copied or shared, on any device), and "add a wallet number" greyed until Phase 5; "Later, when you
+need them" -- create an API key (ticked once one is live), and connect a courier, choose SMS events and pair a
+listener phone, greyed with their phases. The checklist folds away once the first group is done, remembered per
+device, and can be opened again from Settings. Then the **shop link** card with Copy, Facebook and WhatsApp. On desktop the queue takes two thirds and the
 tiles, checklist and link the right third.
 
 **Content.** `GET /home` (a Slice 11 addition, §10): the queue's counts and the checklist in one read, with
@@ -800,16 +803,16 @@ brand identity.
 
 | Need | Where | For | When |
 | --- | --- | --- | --- |
-| `autoRenewEnabled` on `/me`'s tenant | billing | the auto-renew switch's read (BIL-17) | Slice 11 |
-| Top-up bounds on `GET /balance` | balance | the sheet's hint before a refused quote (BAL-04) | Slice 11 |
-| `periodStart` / `periodEnd` on the upgrade quote | billing | UPG-06 | Slice 11 |
-| `mustSetPassword` on each `/staff` row | staff | the Home queue row and the team list (STF-13) | Slice 11 |
-| `GET /home`: low and out counts, expiring batches, a top-up or plan payment being checked, a balance under ৳50, the plan's end, staff without a password, and the set-up checklist with "link shared" kept by the server | several | §7.1 in one read (SUP-01) | Slice 11 |
-| Whether a shop address is free, with a suggestion | identity | create-shop's live verdict (AUTH-11, §6) | Slice 11 |
+| `autoRenewEnabled` on `/me`'s tenant | billing | the auto-renew switch's read (BIL-17) | built (11.1a) |
+| Top-up bounds on `GET /balance` | balance | the sheet's hint before a refused quote (BAL-04) | built (11.1a) |
+| `periodStart` / `periodEnd` on the upgrade quote | billing | UPG-06 | built (11.1a) |
+| `mustSetPassword` on each `/staff` row, and a new member's first sign-in asking for their own password | staff | the Home queue row and the team list (STF-13, AUTH-31, KNOWN-GAPS §89) | built (11.1a) |
+| `GET /home`: low and out counts, expiring batches, a top-up or plan payment being checked, a balance under ৳50, staff without a password, the fast-spend alert, and the set-up checklist with "link shared" kept by the server (`POST /home/link-shared`) | several | §7.1 in one read (SUP-01); the plan's end stays on `/me` | built (11.1a) |
+| Whether a shop address is free, with a suggestion (`GET /shops/address-check`) | identity | create-shop's live verdict (AUTH-11, §6) | built (11.1a) |
 | A per-shop app manifest and its icons, scoped to `/<shop>/` | tenancy | installing the dashboard as the shop's own app (TEN-17, KNOWN-GAPS §88) | Slice 11 |
-| The units, and the split by category, on `GET /inventory/figures` | inventory | §7.22 | Slice 11 |
-| The units and outstanding units of each purchase in the list, and the "coming" total | purchasing | §7.21 (PUR-05) | Slice 11 |
-| A supplier's last purchase | purchasing | §7.21 | Slice 11 |
+| The units by stock unit, and the split by top-level category, on `GET /inventory/figures`, and each loss reason's units | inventory | §7.22 | built (11.1a) |
+| The units and outstanding units of each purchase in the list, and the "coming" total | purchasing | §7.21 (PUR-05) | built (11.1a) |
+| A supplier's last purchase | purchasing | §7.21 | built (11.1a) |
 | The brand identity: its storage, the approved fonts, the contrast check shared with the editor, the switch held to the add-on or the plan, and the tokens the dashboard and the storefront read | branding | §7.28 (BRN-02, 03, 07) | Slice 11 |
 | `GET /usage`, media upload, add-ons and packs, API keys, purchases and suppliers, Meta | | §7.21 to §7.27 | built |
 | Invoice PDF | billing | BIL-13 | later |

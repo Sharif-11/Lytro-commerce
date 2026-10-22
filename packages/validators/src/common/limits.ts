@@ -27,6 +27,9 @@ export const BUSINESS_ADDRESS_MAX_LENGTH = 300;
 // one place every such amount is defined, not rediscovered per field.
 export const MONEY_AMOUNT_MAX = 9_999_999_999.99;
 
+// BAL-13: a balance at or below this many taka is low -- the owner is told once per crossing, and Home says so.
+export const LOW_BALANCE_AMOUNT = 50;
+
 // Catalogue (SRS-detailed §14). A product's name and description (PRD-01), a category's name and depth (PRD-03),
 // an attribute's name and an option's value (ATL-01), and the variant limits (ATR-14), enforced by the request
 // shapes here and again by the database (ATL-03).

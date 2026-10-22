@@ -8,6 +8,8 @@ export const staffMemberSchema = z.object({
   isOwner: z.boolean(),
   active: z.boolean(),
   createdAt: z.date(),
+  // STF-13, AUTH-31: "Password not set" until the member chooses their own.
+  mustSetPassword: z.boolean(),
   roleIds: z.array(z.string()),
 });
 export class StaffMemberDto extends createZodDto(staffMemberSchema) {}

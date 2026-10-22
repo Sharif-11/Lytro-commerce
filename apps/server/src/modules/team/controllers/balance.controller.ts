@@ -27,12 +27,12 @@ import { BalanceService } from '../../balance/services/balance.service';
 import { RateService } from '../../balance/services/rate.service';
 import { TopUpService } from '../../balance/services/top-up.service';
 import { EssentialSmsUsageService } from '../../sms-usage/services/essential-sms-usage.service';
-import type { BalanceSnapshot, LedgerPage } from '../../balance/types/ledger-entry';
+import type { BalanceView, LedgerPage } from '../../balance/types/ledger-entry';
 import type { RateValue } from '../../balance/types/rate';
 import type { PlanPaymentRecord } from '../../payments/types/plan-payment';
 import { ConfirmTopUpDto, ExportLedgerDto, ListLedgerDto, QuoteTopUpDto } from '../dto/balance.dto';
 import {
-  BalanceSnapshotDto,
+  BalanceViewDto,
   EssentialSmsUsageDto,
   LedgerPageDto,
   RateValueDto,
@@ -71,9 +71,13 @@ export class BalanceController {
   @RequirePermission(Permission.BalanceRead)
   @ResponseMessage('BalanceRetrieved')
   @ApiOperation({ summary: "Get the shop's current balance" })
-  @ZodResponse({ type: BalanceSnapshotDto })
-  current(@Req() request: DashboardRequest): Promise<BalanceSnapshot> {
-    return this.balance.current(this.tenantIdOf(request));
+  @ZodResponse({ type: BalanceViewDto })
+  async current(@Req() request: DashboardRequest): Promise<BalanceView> {
+    const [snapshot, bounds] = await Promise.all([
+      this.balance.current(this.tenantIdOf(request)),
+      this.topUp.bounds(),
+    ]);
+    return { ...snapshot, topUpMin: bounds.min, topUpMax: bounds.max };
   }
 
   @Get('ledger')

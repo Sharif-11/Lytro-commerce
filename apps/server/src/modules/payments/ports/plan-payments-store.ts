@@ -33,6 +33,12 @@ export interface PlanPaymentsStore {
     tenantId: string,
     kind: PlanPaymentKind,
   ): Promise<PlanPaymentRecord | null>;
+  /** BAL-03, BIL-04: one shop's submitted payments of these kinds still waiting for a decision. */
+  submittedForTenant(
+    tx: Transaction,
+    tenantId: string,
+    kinds: PlanPaymentKind[],
+  ): Promise<{ count: number; amount: string }>;
   setStatus(tx: Transaction, id: string, values: PlanPaymentStatusValues): Promise<void>;
   /** BIL-07/BAL-05: true if this transaction ID has ever been used, by any tenant, including deleted ones. */
   transactionIdUsed(tx: Transaction, transactionId: string): Promise<boolean>;

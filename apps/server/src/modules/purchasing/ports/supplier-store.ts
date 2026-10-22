@@ -1,5 +1,5 @@
 import type { SupplierPatch, Transaction } from '@lytronix/db';
-import type { SupplierRecord } from '../types/purchasing';
+import type { SupplierListRecord, SupplierRecord } from '../types/purchasing';
 
 /**
  * PUR-01: a shop's suppliers. A name already taken by a live supplier, ignoring case, is a `UniqueViolation('name')`.
@@ -31,6 +31,6 @@ export interface SupplierStore {
     tenantId: string,
     filter: { archived: boolean; search: string | null },
     page: { offset: number; limit: number },
-  ): Promise<{ rows: SupplierRecord[]; total: number }>;
+  ): Promise<{ rows: SupplierListRecord[]; total: number }>;
   deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void>;
 }

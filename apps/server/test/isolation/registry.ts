@@ -77,6 +77,9 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   // Checked in test/data-export.e2e.spec.ts: a shop's own export requests and files only (LIF-16/17).
   'POST /exports': 'creates an export request scoped to the session shop only',
   'GET /exports': "lists only the session shop's own export requests",
+  // Slice 11, checked in test/dashboard-reads.e2e.spec.ts: Home counts and the checklist's tick are the session shop's.
+  'GET /home': "counts only the session shop's own products, batches, balance, payments and staff",
+  'POST /home/link-shared': "records the share on the session shop's own settings only",
   'GET /exports/:id/download': "another shop's export id answers not_found, never its content",
   // Checked in test/catalogue-products.e2e.spec.ts and test/catalogue-library.e2e.spec.ts (Phase 3 Slice 1), and at the
   // data layer in test/catalogue-db.e2e.spec.ts. GET /presets is platform data, the same for every shop.

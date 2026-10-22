@@ -105,6 +105,10 @@ export class DrizzlePlanPaymentsStore implements PlanPaymentsStore {
     return this.payments.findActiveForTenant(tx, tenantId, kind);
   }
 
+  submittedForTenant(tx: Transaction, tenantId: string, kinds: PlanPaymentKind[]) {
+    return this.payments.submittedForTenant(tx, tenantId, kinds);
+  }
+
   async setStatus(tx: Transaction, id: string, values: PlanPaymentStatusValues) {
     try {
       await this.payments.setStatus(tx, id, values);

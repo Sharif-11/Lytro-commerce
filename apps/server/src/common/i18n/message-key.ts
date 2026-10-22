@@ -124,6 +124,9 @@ export const MESSAGE_KEYS = [
   'OauthRedirectReady',
   'IdentityRemoved',
   'ProfileRetrieved',
+  'HomeRetrieved',
+  'LinkShareRecorded',
+  'AddressChecked',
   'OauthProvidersListed',
   'ShopCreated',
 

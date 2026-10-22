@@ -275,7 +275,8 @@ CREATE TABLE tenant.shop_settings (
     extra_delivery_charge_per_kg    numeric(10,2) NOT NULL DEFAULT 0,
     default_payment_policy          tenant.payment_policy NOT NULL DEFAULT 'none',  -- PRD-08 shop default
     default_advance_amount          numeric(10,2) CHECK (default_advance_amount >= 0),
-    logo_media_id                   uuid             -- TEN-16: a ready image of the shop's; null shows its monogram
+    logo_media_id                   uuid,            -- TEN-16: a ready image of the shop's; null shows its monogram
+    link_shared_at                  timestamptz      -- SUP-01 (0077): when a shop or product link was first shared
 );
 -- PRD-08's two columns were built in Phase 3 Slice 1c (0053), with the products' own rule as a check: a partial
 -- advance needs its amount, and no other policy takes one. The logo (Slice 6a, 0065) is cleared when its image is

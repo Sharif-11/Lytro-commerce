@@ -105,6 +105,30 @@ export function fieldsOf(result: HttpResult): Record<string, string> {
 const STAFF_PASSWORD = 'staff-pass-2468';
 
 /**
+ * AUTH-31: a staff member's first sign-in must choose their own password before any other route opens. A helper that
+ * signs staff in to call routes as them passes that step, choosing the same password (a forced change allows it).
+ */
+export async function passFirstSignIn(
+  port: number,
+  signedIn: HttpResult,
+  password: string,
+  headers: Record<string, string>,
+): Promise<void> {
+  if ((signedIn.body as { next?: string }).next !== 'set-password') return;
+  const chosen = await postJson(
+    port,
+    '/auth/staff/password',
+    { newPassword: password },
+    {
+      cookie: cookieFrom(signedIn),
+      'x-csrf-token': (signedIn.body as { csrfToken: string }).csrfToken,
+      ...headers,
+    },
+  );
+  expect(chosen.status, JSON.stringify(chosen.body)).toBe(200);
+}
+
+/**
  * INV-20, D3-9: a staff member of the shop holding only these permissions, signed in; the headers to call as them. The
  * shop moves to the Starter plan first, so it has a seat for them.
  */
@@ -131,6 +155,10 @@ export async function staffWith(
     { phone, password: STAFF_PASSWORD },
     { host: 'localhost', 'x-lytro-shop': shop.slug },
   );
+  await passFirstSignIn(port, signedIn, STAFF_PASSWORD, {
+    host: 'localhost',
+    'x-lytro-shop': shop.slug,
+  });
   return {
     cookie: cookieFrom(signedIn),
     'x-csrf-token': (signedIn.body as { csrfToken: string }).csrfToken,

@@ -1695,6 +1695,19 @@ Planned with Slice 11's backend reads: a manifest per shop, with icons made from
 for `app.lytro.app/<shop>/`, and the dashboard pointing at it (`TENANT-DASHBOARD-DESIGN.md` §7.18, §10). It is
 proven when two shops installed from their paths show two names and two icons.
 
+## 89. `AUTH-31`: a new staff member's first sign-in did not ask for their own password — found and fixed 2026-10-22
+
+Found while reading for Phase 3 Slice 11. AUTH-31 asks that a staff member's first sign-in, and the first after the
+owner resets their password, require a new password before the dashboard opens. Only the reset did: a new staff
+member was created with nothing pending, so they could keep the password the owner chose and typed for them for as
+long as they liked, and the team list had nothing to say who had not yet chosen their own.
+
+**Fixed:** a new staff member starts with their own password to choose, so the first sign-in answers
+`next: 'set-password'` and every route but the password change is refused until they do; `GET /staff` says
+`mustSetPassword` for each member, and Home counts them for the owner. Proven by `staff.e2e.spec.ts`: a new member's
+first sign-in asks for a password, `/me` is refused until one is chosen, the owner's list says so until then, and
+the next sign-in opens the dashboard. Before the fix the first sign-in went straight to the dashboard.
+
 ## Not a bug, just noting it so it isn't mistaken for one later
 
 The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data

@@ -5,12 +5,17 @@ import type {
   PurchaseOrderSummaryRow,
   PurchaseReceiptLineRow,
   PurchaseReceiptRow,
+  PurchaseUnitsRow,
   SelectSupplier,
+  SupplierListRow,
 } from '@lytronix/db';
 import type { PurchaseStatus, StockUnit } from '@lytronix/validators';
+import type { UnitQuantity } from '../../inventory/types/inventory';
 
 // The stored rows, as aliases of the shared types (ENGINEERING-STANDARDS §4), never copies.
 export type SupplierRecord = SelectSupplier;
+export type SupplierListRecord = SupplierListRow;
+export type { PurchaseUnitsRow };
 export type {
   PurchaseHistoryRow,
   PurchaseLineRow,
@@ -34,8 +39,13 @@ export interface SupplierView {
   updatedAt: Date;
 }
 
+/** PUR-01: a supplier as the list shows it, with when it was last bought from. */
+export interface SupplierListView extends SupplierView {
+  lastPurchaseAt: Date | null;
+}
+
 export interface SupplierPage {
-  suppliers: SupplierView[];
+  suppliers: SupplierListView[];
   page: number;
   limit: number;
   total: number;
@@ -122,6 +132,9 @@ export interface PurchaseOrderSummaryView {
   createdAt: Date;
   orderedAt: Date | null;
   items: number;
+  /** PUR-05: what it orders, unit by unit, and -- while it is placed and open -- what is still to come. */
+  units: UnitQuantity[];
+  outstanding: UnitQuantity[];
   total?: string;
   unknownCost?: number;
 }
@@ -132,6 +145,8 @@ export interface PurchaseOrderPage {
   limit: number;
   total: number;
   pages: number;
+  /** PUR-05: what the shop's placed, open purchases still bring, unit by unit, and from how many purchases. */
+  coming: { units: UnitQuantity[]; purchases: number };
 }
 
 /** PUR-09: one delivery of a variant, as its purchase history shows it. Cost only with inventory:manage (D3-9). */

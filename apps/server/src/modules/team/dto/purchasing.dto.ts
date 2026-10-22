@@ -10,6 +10,7 @@ import {
   updatePurchaseOrderSchema,
   updateSupplierSchema,
 } from '@lytronix/validators';
+import { unitQuantitySchema } from './inventory.dto';
 
 // DTO classes built from the shared schemas, so each request shape is written once (ENGINEERING §4).
 export class CreateSupplierDto extends createZodDto(createSupplierSchema) {}
@@ -35,7 +36,8 @@ const supplierViewSchema = z.object({
 export class SupplierViewDto extends createZodDto(supplierViewSchema) {}
 
 const supplierPageSchema = z.object({
-  suppliers: z.array(supplierViewSchema),
+  // PUR-01: each with when it was last bought from (a placed purchase not cancelled), or null.
+  suppliers: z.array(supplierViewSchema.extend({ lastPurchaseAt: z.date().nullable() })),
   page: z.number(),
   limit: z.number(),
   total: z.number(),
@@ -113,6 +115,9 @@ const purchaseOrderPageSchema = z.object({
       createdAt: z.date(),
       orderedAt: z.date().nullable(),
       items: z.number(),
+      // PUR-05: what it orders, unit by unit, and (placed and open) what is still to come.
+      units: z.array(unitQuantitySchema),
+      outstanding: z.array(unitQuantitySchema),
       total: z.string().optional(),
       unknownCost: z.number().optional(),
     }),
@@ -121,6 +126,8 @@ const purchaseOrderPageSchema = z.object({
   limit: z.number(),
   total: z.number(),
   pages: z.number(),
+  // PUR-05: what the shop's placed, open purchases still bring, unit by unit, and from how many.
+  coming: z.object({ units: z.array(unitQuantitySchema), purchases: z.number() }),
 });
 export class PurchaseOrderPageDto extends createZodDto(purchaseOrderPageSchema) {}
 

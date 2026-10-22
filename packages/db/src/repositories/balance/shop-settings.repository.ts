@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { shopSettings, type SelectShopSettings } from '../../schema';
 import type { Transaction, TransactionRunner } from '../../transactions';
 
@@ -41,6 +41,18 @@ export class ShopSettingsRepository {
       .insert(shopSettings)
       .values({ tenantId, logoMediaId })
       .onConflictDoUpdate({ target: shopSettings.tenantId, set: { logoMediaId } });
+  }
+
+  /** SUP-01: the first time a shop or product link was copied or shared; a later share keeps the first time. */
+  async markLinkShared(tx: Transaction, tenantId: string, at: Date): Promise<void> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    await tx
+      .insert(shopSettings)
+      .values({ tenantId, linkSharedAt: at })
+      .onConflictDoUpdate({
+        target: shopSettings.tenantId,
+        set: { linkSharedAt: sql`coalesce(${shopSettings.linkSharedAt}, excluded.link_shared_at)` },
+      });
   }
 
   /** PRD-08: the shop-wide default payment policy, with the advance a partial-advance default asks. */

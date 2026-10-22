@@ -26,6 +26,8 @@ export interface MeResponse {
     suspended: boolean;
     planName: string | null;
     periodEnd: string | null;
+    /** BIL-17: the plan page's auto-renew switch reads its state here. */
+    autoRenewEnabled: boolean;
   } | null;
   shops: ShopListing[];
 }
@@ -70,6 +72,7 @@ export class MeController {
               suspended: tenant.suspendedAt !== null,
               planName: tenant.planName,
               periodEnd: tenant.periodEnd?.toISOString() ?? null,
+              autoRenewEnabled: tenant.autoRenewEnabled,
             },
       shops,
     };

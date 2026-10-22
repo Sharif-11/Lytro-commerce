@@ -69,6 +69,19 @@ function fromFine(fine: bigint): string {
   return `${sign}${(magnitude / FINE_SCALE).toString()}.${fraction}`;
 }
 
+/** UOM-03: stock quantities added exactly, as a quantity is stored: three decimal places. */
+export function sumQuantities(quantities: readonly string[]): string {
+  const scale = 10n ** BigInt(QUANTITY_DECIMALS);
+  const total = quantities.reduce(
+    (sum, quantity) => sum + toScaled(quantity, QUANTITY_DECIMALS),
+    0n,
+  );
+  const sign = total < 0n ? '-' : '';
+  const magnitude = total < 0n ? -total : total;
+  const fraction = (magnitude % scale).toString().padStart(QUANTITY_DECIMALS, '0');
+  return `${sign}${(magnitude / scale).toString()}.${fraction}`;
+}
+
 /** INV-24: the cost of one pack of `packAmount` at a unit cost, to four decimals like the cost itself, rounded. */
 export function packCost(packAmount: string, unitCost: string): string {
   return fromFine(
