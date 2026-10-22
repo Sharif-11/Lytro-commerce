@@ -1,6 +1,7 @@
 import { z } from 'zod';
-import { ADDON_QUANTITY_MAX, AddonKind } from '../../db/enums';
+import { ADDON_QUANTITY_MAX, AddonKind, PLAN_PAYMENT_METHODS } from '../../db/enums';
 import { planLimitsSchema } from '../../db/plans/plan-limits';
+import { requireWalletFields } from './purchase';
 
 // PLN-13: the limit a limit add-on raises (and, from Slice 10a.3, a pack tops up): any usage limit of 2.1.
 const limitKeys = Object.keys(planLimitsSchema.shape).filter(
@@ -55,8 +56,21 @@ export const quoteAddonSchema = z.object({
 });
 export type QuoteAddonInput = z.infer<typeof quoteAddonSchema>;
 
-// POST /addons/purchase (PLN-14, BIL-08): pays a quoted add-on from the balance. Paying by wallet follows in 10a.2.
-export const confirmAddonSchema = z.object({
-  paymentId: z.string().uuid(),
-});
+// POST /addons/purchase (PLN-14, BIL-02, BIL-08): pays a quoted add-on from the balance, or submits a wallet payment
+// for the operator's queue -- the same shape as a plan purchase. The balance when no method is named.
+export const confirmAddonSchema = z
+  .object({
+    paymentId: z.string().uuid(),
+    method: z.enum(PLAN_PAYMENT_METHODS).default('balance'),
+    transactionId: z.string().trim().min(1).optional(),
+    senderNumber: z.string().trim().min(1).optional(),
+    amountPaid: z.coerce.number().positive().optional(),
+  })
+  .superRefine(requireWalletFields);
 export type ConfirmAddonInput = z.infer<typeof confirmAddonSchema>;
+
+// PATCH /addons/mine/:id (PLN-14): whether the add-on renews with the plan.
+export const setAddonRenewalSchema = z.object({
+  renews: z.boolean(),
+});
+export type SetAddonRenewalInput = z.infer<typeof setAddonRenewalSchema>;

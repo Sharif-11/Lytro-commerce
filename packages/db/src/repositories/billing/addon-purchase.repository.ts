@@ -1,4 +1,4 @@
-import { and, asc, eq, gt, lte, sql, type SQL, type SQLWrapper } from 'drizzle-orm';
+import { and, asc, eq, gt, inArray, lte, sql, type SQL, type SQLWrapper } from 'drizzle-orm';
 import { AddonKind, AddonPurchaseStatus, type PlanPaymentMethod } from '@lytronix/validators';
 import { addonPurchases, addons, type SelectAddonPurchase } from '../../schema';
 import type { Executor } from '../../transactions';
@@ -15,6 +15,51 @@ export interface NewAddonPurchaseValues {
   price: string;
   paidFrom: PlanPaymentMethod;
   planPaymentId: string;
+  /** Known at the quote only for an upgrade's extension, which starts where the add-on it extends ends. */
+  startsAt?: Date | null;
+  expiresAt: Date;
+  /** PLN-14: a renewal or an extension keeps the purchase time of the add-on it continues, so it stays as old. */
+  purchasedAt?: Date;
+}
+
+/** PLN-14: how a payment's add-on takes effect -- from when, until when, and how it was paid. */
+export interface AddonActivation {
+  startsAt: Date;
+  expiresAt: Date;
+  paidFrom: PlanPaymentMethod;
+}
+
+/**
+ * PLN-14, UPG-14: an add-on of the period about to be renewed or replaced, with what the catalogue says of its item
+ * now: the monthly price it renews at, and whether it is still for sale.
+ */
+export interface RenewingAddonRow {
+  id: string;
+  tenantId: string;
+  addonId: string;
+  key: string;
+  kind: AddonKind;
+  labelEn: string;
+  limitKey: string | null;
+  unitSize: number | null;
+  quantity: number;
+  purchasedAt: Date;
+  expiresAt: Date;
+  price: string;
+  retiredAt: Date | null;
+}
+
+/** BIL-12, ADM-06: an add-on a payment pays for, as its invoice line and the operator's queue name it. */
+export interface PaymentAddonRow {
+  id: string;
+  planPaymentId: string;
+  key: string;
+  labelEn: string;
+  labelBn: string;
+  quantity: number;
+  price: string;
+  status: AddonPurchaseStatus;
+  startsAt: Date | null;
   expiresAt: Date;
 }
 
@@ -38,6 +83,8 @@ export interface ActiveAddonRow {
   startsAt: Date | null;
   expiresAt: Date;
   renews: boolean;
+  /** When the catalogue stopped selling its item; a retired item never renews. */
+  retiredAt: Date | null;
 }
 
 /** PLN-13, PLN-14: an add-on counts only while active, from its start until its end -- whatever any job has done. */
@@ -94,12 +141,100 @@ export class AddonPurchaseRepository {
     return rows[0] ?? null;
   }
 
-  /** PLN-14: it takes effect now. */
-  async activate(db: Executor, id: string, startsAt: Date): Promise<void> {
+  /** PLN-14: it takes effect, for the period its payment landed in. */
+  async activate(db: Executor, id: string, activation: AddonActivation): Promise<void> {
     await db
       .update(addonPurchases)
-      .set({ status: AddonPurchaseStatus.Active, startsAt })
+      .set({ status: AddonPurchaseStatus.Active, ...activation })
       .where(eq(addonPurchases.id, id));
+  }
+
+  /** PLN-14: its payment will never activate it. */
+  async cancel(db: Executor, id: string): Promise<void> {
+    await db
+      .update(addonPurchases)
+      .set({ status: AddonPurchaseStatus.Cancelled })
+      .where(eq(addonPurchases.id, id));
+  }
+
+  /** BIL-12, ADM-06: the add-ons these payments pay for, each payment's in the order they were added. */
+  async listForPayments(db: Executor, planPaymentIds: string[]): Promise<PaymentAddonRow[]> {
+    if (planPaymentIds.length === 0) return [];
+    const rows = await db
+      .select({
+        id: addonPurchases.id,
+        planPaymentId: addonPurchases.planPaymentId,
+        key: addons.key,
+        labelEn: addons.labelEn,
+        labelBn: addons.labelBn,
+        quantity: addonPurchases.quantity,
+        price: addonPurchases.price,
+        status: addonPurchases.status,
+        startsAt: addonPurchases.startsAt,
+        expiresAt: addonPurchases.expiresAt,
+      })
+      .from(addonPurchases)
+      .innerJoin(addons, eq(addons.id, addonPurchases.addonId))
+      .where(inArray(addonPurchases.planPaymentId, planPaymentIds))
+      .orderBy(asc(addonPurchases.purchasedAt), asc(addonPurchases.id));
+    return rows.flatMap(({ planPaymentId, ...row }) =>
+      planPaymentId === null ? [] : [{ planPaymentId, ...row }],
+    );
+  }
+
+  /**
+   * PLN-14, UPG-14: the add-ons set to renew that end with the period ending at `periodEnd`, oldest first -- what a
+   * renewal carries into the next period and an upgrade extends. Compared to the millisecond, the precision the
+   * server writes both with.
+   */
+  async listRenewing(db: Executor, tenantId: string, periodEnd: Date): Promise<RenewingAddonRow[]> {
+    return db
+      .select({
+        id: addonPurchases.id,
+        tenantId: addonPurchases.tenantId,
+        addonId: addonPurchases.addonId,
+        key: addons.key,
+        kind: addonPurchases.kind,
+        labelEn: addons.labelEn,
+        limitKey: addonPurchases.limitKey,
+        unitSize: addonPurchases.unitSize,
+        quantity: addonPurchases.quantity,
+        purchasedAt: addonPurchases.purchasedAt,
+        expiresAt: addonPurchases.expiresAt,
+        price: addons.price,
+        retiredAt: addons.retiredAt,
+      })
+      .from(addonPurchases)
+      .innerJoin(addons, eq(addons.id, addonPurchases.addonId))
+      .where(
+        and(
+          eq(addonPurchases.tenantId, tenantId),
+          eq(addonPurchases.status, AddonPurchaseStatus.Active),
+          eq(addonPurchases.renews, true),
+          sql`date_trunc('milliseconds', ${addonPurchases.expiresAt}) = ${periodEnd}`,
+        ),
+      )
+      .orderBy(asc(addonPurchases.purchasedAt), asc(addonPurchases.id));
+  }
+
+  /** One of this shop's purchases, locked for a change to it. */
+  async findForTenantForUpdate(
+    db: Executor,
+    tenantId: string,
+    id: string,
+  ): Promise<AddonPurchaseRow | null> {
+    const rows = await db
+      .select()
+      .from(addonPurchases)
+      .where(and(eq(addonPurchases.id, id), eq(addonPurchases.tenantId, tenantId)))
+      .limit(1)
+      .for('update');
+    return rows[0] ?? null;
+  }
+
+  /** PLN-14: the add-on's renewal switch. */
+  async setRenews(db: Executor, id: string, renews: boolean): Promise<void> {
+    await db.update(addonPurchases).set({ renews }).where(eq(addonPurchases.id, id));
   }
 
   /** PLN-13: the shop's active limit add-ons, limit by limit. */
@@ -126,6 +261,7 @@ export class AddonPurchaseRepository {
         startsAt: addonPurchases.startsAt,
         expiresAt: addonPurchases.expiresAt,
         renews: addonPurchases.renews,
+        retiredAt: addons.retiredAt,
       })
       .from(addonPurchases)
       .innerJoin(addons, eq(addons.id, addonPurchases.addonId))

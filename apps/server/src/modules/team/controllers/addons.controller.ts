@@ -3,6 +3,8 @@ import {
   Controller,
   Get,
   Inject,
+  Param,
+  Patch,
   Post,
   Req,
   UseGuards,
@@ -34,7 +36,7 @@ import {
   AddonQuoteDto,
   ShopAddonsDto,
 } from '../dto/addons-response.dto';
-import { ConfirmAddonDto, QuoteAddonDto } from '../dto/billing.dto';
+import { ConfirmAddonDto, QuoteAddonDto, SetAddonRenewalDto } from '../dto/billing.dto';
 
 // PLN-13, PLN-14, BRN-05: a shop's add-ons -- what is for sale and at what price, buying one from the balance, and
 // what the shop has now. Paying by wallet follows in Slice 10a.2.
@@ -82,15 +84,47 @@ export class AddonsController {
   @UseInterceptors(IdempotencyInterceptor)
   @RequirePermission(Permission.PaymentsManage)
   @ResponseMessage('AddonPurchased')
-  @ApiOperation({ summary: 'Pay a quoted add-on from the balance' })
+  @ApiOperation({
+    summary: 'Pay a quoted add-on from the balance, or submit a wallet payment for review',
+  })
   @ZodResponse({ type: AddonPurchaseResultDto })
-  purchase(
+  async purchase(
     @Body(new ZodValidationPipe(ConfirmAddonDto.schema)) body: ConfirmAddonDto,
     @Req() request: DashboardRequest,
   ): Promise<AddonPurchaseResult> {
-    return this.addons.confirmFromBalance(
-      body.paymentId,
+    const tenantId = this.tenantIdOf(request);
+    if (body.method === 'balance') {
+      return this.addons.confirmFromBalance(
+        body.paymentId,
+        tenantId,
+        this.clientIp.resolve(request),
+      );
+    }
+    if (!body.transactionId || !body.senderNumber || body.amountPaid === undefined) {
+      throw new ApiError('validation_error', 'TransactionIdRequired', {});
+    }
+    const payment = await this.addons.submitWalletPayment(body.paymentId, tenantId, {
+      transactionId: body.transactionId,
+      senderNumber: body.senderNumber,
+      amountPaid: body.amountPaid.toFixed(2),
+    });
+    return { payment, invoice: null };
+  }
+
+  @Patch('mine/:id')
+  @RequirePermission(Permission.PaymentsManage)
+  @ResponseMessage('AddonRenewalUpdated')
+  @ApiOperation({ summary: 'Switch an add-on’s renewal on or off' })
+  @ZodResponse({ type: ShopAddonsDto })
+  setRenewal(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(SetAddonRenewalDto.schema)) body: SetAddonRenewalDto,
+    @Req() request: DashboardRequest,
+  ): Promise<ShopAddons> {
+    return this.addons.setRenewal(
       this.tenantIdOf(request),
+      id,
+      body.renews,
       this.clientIp.resolve(request),
     );
   }

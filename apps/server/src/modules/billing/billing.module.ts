@@ -25,6 +25,7 @@ import { TenancyModule } from '../tenancy/tenancy.module';
 import { PlansService } from './services/plans.service';
 import { AddonCatalogueService } from './services/addon-catalogue.service';
 import { AddonPurchaseService } from './services/addon-purchase.service';
+import { AddonRenewalService } from './services/addon-renewal.service';
 import { BillingTermsService } from './services/billing-terms.service';
 import { DowngradeService } from './services/downgrade.service';
 import { LifecycleService } from './services/lifecycle.service';
@@ -84,6 +85,7 @@ import {
     ShopLimitsService,
     AddonCatalogueService,
     AddonPurchaseService,
+    AddonRenewalService,
     TrialLifecycleService,
     PlanInvoicingService,
     PurchaseService,

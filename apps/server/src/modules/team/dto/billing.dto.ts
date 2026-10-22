@@ -9,6 +9,7 @@ import {
   quoteAddonSchema,
   quotePurchaseSchema,
   quoteUpgradeSchema,
+  setAddonRenewalSchema,
   listPaymentQueueSchema,
   rejectPaymentSchema,
   setAutoRenewSchema,
@@ -41,3 +42,4 @@ export class CreateAddonDto extends createZodDto(createAddonSchema) {}
 export class UpdateAddonDto extends createZodDto(updateAddonSchema) {}
 export class QuoteAddonDto extends createZodDto(quoteAddonSchema) {}
 export class ConfirmAddonDto extends createZodDto(confirmAddonSchema) {}
+export class SetAddonRenewalDto extends createZodDto(setAddonRenewalSchema) {}

@@ -9,12 +9,15 @@ import { UniqueViolation } from '../../common/errors/unique-violation';
 import type { AddonsStore } from '../../modules/billing/ports/addons-store';
 import type {
   ActiveAddon,
+  AddonActivation,
   AddonEdit,
   AddonPurchaseRecord,
   AddonRecord,
   AddonUnits,
   NewAddonPurchaseValues,
   NewAddonValues,
+  PaymentAddon,
+  RenewingAddon,
 } from '../../modules/billing/types/addon';
 import { DatabaseService } from '../database.service';
 
@@ -73,8 +76,32 @@ export class DrizzleAddonsStore implements AddonsStore {
     return this.purchases.findByPaymentForUpdate(tx, planPaymentId);
   }
 
-  activatePurchase(tx: Transaction, id: string, startsAt: Date): Promise<void> {
-    return this.purchases.activate(tx, id, startsAt);
+  activatePurchase(tx: Transaction, id: string, activation: AddonActivation): Promise<void> {
+    return this.purchases.activate(tx, id, activation);
+  }
+
+  cancelPurchase(tx: Transaction, id: string): Promise<void> {
+    return this.purchases.cancel(tx, id);
+  }
+
+  listForPayments(tx: Transaction, planPaymentIds: string[]): Promise<PaymentAddon[]> {
+    return this.purchases.listForPayments(tx, planPaymentIds);
+  }
+
+  listRenewing(tx: Transaction, tenantId: string, periodEnd: Date): Promise<RenewingAddon[]> {
+    return this.purchases.listRenewing(tx, tenantId, periodEnd);
+  }
+
+  findPurchaseForTenantForUpdate(
+    tx: Transaction,
+    tenantId: string,
+    id: string,
+  ): Promise<AddonPurchaseRecord | null> {
+    return this.purchases.findForTenantForUpdate(tx, tenantId, id);
+  }
+
+  setRenews(tx: Transaction, id: string, renews: boolean): Promise<void> {
+    return this.purchases.setRenews(tx, id, renews);
   }
 
   activeUnits(tx: Transaction, tenantId: string): Promise<AddonUnits[]> {

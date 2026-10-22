@@ -12,9 +12,10 @@ import {
   type OperatorSessionRequest,
 } from '../../operator/guards/operator-session.guard';
 import { PaymentQueueService } from '../../billing/services/payment-queue.service';
+import type { QueuedPayment } from '../../billing/types/addon';
 import type { PlanPaymentRecord } from '../../payments/types/plan-payment';
 import { ListPaymentQueueDto, RejectPaymentDto } from '../dto/billing.dto';
-import { PlanPaymentDto, PlanPaymentListDto } from '../dto/billing-response.dto';
+import { PlanPaymentDto, QueuedPaymentListDto } from '../dto/billing-response.dto';
 
 // D2-1/ADM-06: the one operator queue for every pending plan_payments row -- the manual stand-in for Phase 5's
 // real hosted-page/gateway verification. Approving activates the plan or credits the balance exactly once.
@@ -32,10 +33,10 @@ export class OperatorPaymentQueueController {
   @ResponseMessage('PaymentQueueListed')
   @ApiOperation({ summary: 'List payments awaiting review' })
   @ApiQuery({ name: 'kind', required: false, enum: PlanPaymentKind })
-  @ZodResponse({ type: PlanPaymentListDto })
+  @ZodResponse({ type: QueuedPaymentListDto })
   list(
     @Query(new ZodValidationPipe(ListPaymentQueueDto.schema)) query: ListPaymentQueueDto,
-  ): Promise<PlanPaymentRecord[]> {
+  ): Promise<QueuedPayment[]> {
     return this.queue.listPending(query.kind);
   }
 

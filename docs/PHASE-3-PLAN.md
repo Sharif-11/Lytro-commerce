@@ -947,7 +947,29 @@ their backend ships earlier.
       theirs added.
     - **Found and fixed:** the upgrade credit's price paid (KNOWN-GAPS §84) and the downgrade's seat cut (§85).
     - **Left for 10a.2:** the downgrade preview counts no add-on, since each ends with the period the downgrade
-      waits for; once add-ons renew with the plan, it counts the ones that will.
+      waits for; once add-ons renew with the plan, it counts the ones that will. Done in 10a.2's first part.
+  - **10a.2 agreed 2026-10-22,** all twelve points as proposed, in two parts: first wallet, renewal, auto-renew, the
+    renewal switch and the upgrade extension; then grace, the lapse step, the warnings and the 30-day periods.
+  - **Built second (10a.2, first part),** migration 0074:
+    - **Wallet:** `POST /addons/purchase` takes a plan purchase's wallet shape, and the operator's queue approves an
+      add-on, each queued payment listing the add-ons it pays for. Approval activates the add-on into the period
+      running then, never shorter than quoted and never re-priced; when the shop can no longer take it, the amount
+      goes to its balance as a top-up, the purchase is `cancelled` (a new status), and the owner is told why.
+    - **Renewal:** a renewal quote carries every add-on of the period it renews that is set to renew, at the
+      catalogue's price now times its quantity and the term's months, as pending purchases on the same payment that
+      start with the new period -- during grace too. Retired items, and add-ons the plan leaves nothing to raise or
+      switch on, are left out. From the balance, the payment is two ledger entries, `plan_payment` and `addon`, and
+      the invoice has a line for each add-on.
+    - **Auto-renew:** the plan first, then add-ons oldest first for as long as the balance reaches; the owner is
+      emailed which were left and the shortfall, and the shop's log keeps it (`addon_not_renewed`).
+    - **The switch:** `PATCH /addons/mine/:id` sets an add-on's renewal, audited; `GET /addons/mine` says how each
+      will renew -- with the plan, from the balance, off, retired or unlimited.
+    - **Upgrade:** the quote extends each add-on set to renew from its own end to the new period's end at the new
+      term's rate, paid in the same payment; the others keep their end.
+    - **Downgrade preview:** counts the add-ons set to renew onto the smaller plan.
+    - **Found while building:** add-ons attached to one payment share a purchase time, so their order fell back to
+      random ids; a renewal or extension now keeps the purchase time of the add-on it continues, so oldest first holds
+      from one period to the next.
 - **Requirements completed:** PLN-13. *(PLN-14, PLN-15, UPG-14, BND-04, RTE-11 and BRN-05 finish in Slice 11,
   with their screens.)*
 - **Done when:** extra products bought on day 10 of 30 raise the limit at once for two thirds of a period's

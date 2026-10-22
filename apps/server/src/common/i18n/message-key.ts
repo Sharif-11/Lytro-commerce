@@ -62,6 +62,7 @@ export const MESSAGE_KEYS = [
   'AddonAlreadyActive',
   'AddonLimitUnlimited',
   'AddonKeyTaken',
+  'AddonEnded',
 
   // Identity / sign-in / codes
   'FacebookSignInNotConfirmed',
@@ -196,6 +197,7 @@ export const MESSAGE_KEYS = [
   'AddonQuoted',
   'AddonPurchased',
   'ShopAddonsRetrieved',
+  'AddonRenewalUpdated',
   'DowngradeScheduled',
   'PayAsYouGoChosen',
   'ShopClosed',

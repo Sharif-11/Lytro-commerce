@@ -176,6 +176,10 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'Another add-on already uses this key.',
     bn: 'অন্য একটি অ্যাড-অন এই কী ব্যবহার করছে।',
   },
+  AddonEnded: {
+    en: 'This add-on has already ended.',
+    bn: 'এই অ্যাড-অনের মেয়াদ শেষ হয়ে গেছে।',
+  },
 
   FacebookSignInNotConfirmed: {
     en: 'Facebook did not confirm your sign-in.',
@@ -450,7 +454,11 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   AddonUpdated: { en: 'Add-on updated.', bn: 'অ্যাড-অন আপডেট হয়েছে।' },
   AddonRetired: { en: 'Add-on retired.', bn: 'অ্যাড-অন বিক্রি বন্ধ হয়েছে।' },
   AddonQuoted: { en: 'Add-on quote created.', bn: 'অ্যাড-অন কোট তৈরি হয়েছে।' },
-  AddonPurchased: { en: 'Add-on bought.', bn: 'অ্যাড-অন কেনা হয়েছে।' },
+  AddonPurchased: { en: 'Add-on payment received.', bn: 'অ্যাড-অনের পেমেন্ট পাওয়া গেছে।' },
+  AddonRenewalUpdated: {
+    en: 'Add-on renewal updated.',
+    bn: 'অ্যাড-অনের রিনিউ আপডেট হয়েছে।',
+  },
   ShopAddonsRetrieved: {
     en: "Your shop's add-ons retrieved.",
     bn: 'আপনার দোকানের অ্যাড-অনগুলো পাওয়া গেছে।',
