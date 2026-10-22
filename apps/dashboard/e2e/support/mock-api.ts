@@ -89,12 +89,15 @@ function categories(language: Language): unknown {
   return [{ id: 'c-jackets', parentId: null, name: language === 'bn' ? 'জ্যাকেট' : 'Jackets' }];
 }
 
-// What the first build's Balance reads, for the + menu's Top up, which opens there.
-const BALANCE_READS: Record<string, unknown> = {
+// What the first build's screens read: Balance, for the + menu's Top up, which opens there; and Menu's live lines.
+const FIRST_BUILD_READS: Record<string, unknown> = {
   '/balance': { amount: '412.50', frozen: false },
   '/balance/essential-sms': { monthlyUsed: 6, totalUsed: 6, monthlyLimit: 10, totalLimit: null },
   '/balance/current-rates': [],
   '/balance/ledger': { entries: [], nextCursor: null },
+  '/billing/invoices': [],
+  '/me/identities': { identities: [{ id: 'i-1', kind: 'phone', value: '+8801711234567' }] },
+  '/staff': { seats: { used: 2, total: 2 }, staff: [] },
 };
 
 /**
@@ -129,7 +132,7 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<void> 
             ? products(state.language, url.searchParams.get('search') ?? '')
             : path === '/categories'
               ? categories(state.language)
-              : (BALANCE_READS[path] ?? {});
+              : (FIRST_BUILD_READS[path] ?? {});
     await route.fulfill({ status: 200, contentType: 'application/json', body: envelope(body) });
   });
 }

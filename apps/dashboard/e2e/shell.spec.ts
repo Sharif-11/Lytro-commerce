@@ -62,6 +62,20 @@ test("goes to a hub's first section and shows its sections, with where you are",
   await expect(page.getByText('স্টক নতুন করে তৈরি হচ্ছে')).toBeVisible();
 });
 
+test("opens the Menu hub's own page, where the old More address now leads too", async ({
+  page,
+}) => {
+  await open(page, '/orders');
+  await hubs(page).getByRole('link', { name: 'মেনু' }).click();
+  await expect(page).toHaveURL(`/${SLUG}/menu`);
+  await expect(page.getByText('2টির 2 সিট')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'লগআউট' })).toBeVisible();
+
+  await page.goto(`/${SLUG}/more`);
+  await expect(page).toHaveURL(`/${SLUG}/menu`);
+  await expect(page.getByText('2টির 2 সিট')).toBeVisible();
+});
+
 test('shows a staff member only what their role reaches, and turns a deep link away (STF-11)', async ({
   page,
 }) => {
