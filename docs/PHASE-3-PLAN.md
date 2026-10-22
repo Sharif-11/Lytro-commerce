@@ -1087,8 +1087,12 @@ their backend ships earlier.
     lists it, and `POST /home/link-shared`; `GET /shops/address-check`; stock value by unit and top-level category
     and each loss's units; each purchase's units and what is still coming; a supplier's last purchase; the batch
     list's total leaving out archived products; and the API contract brought up to the code.
-  - **11.1b, next:** the per-shop app manifest and icons (KNOWN-GAPS §88), and the edge config sending `/api` to
-    the server before the dashboard's fallback (KNOWN-GAPS §90).
+  - **11.1b, built:** the per-shop app manifest and icons (KNOWN-GAPS §88), and the edge config sending `/api` to
+    the server before the dashboard's fallback (KNOWN-GAPS §90). Agreed 2026-10-22: the manifest and icons are
+    public; the icon is the logo on its own edge colour, or the monogram drawn from the server's own fonts; there is
+    no separate app-icon upload. Left to the screens: Shop details says a square logo of 512 px or more makes the
+    best icon; the brand identity's square icon replaces the logo when switched on (11.2); an installed iPhone icon
+    keeps the one it was installed with.
 
 ### Slice 12: shared storefront and product landing pages
 - **Depends on:** Slices 0, 0b, 7 and 9 (and branding from Phase 1).

@@ -809,7 +809,7 @@ brand identity.
 | `mustSetPassword` on each `/staff` row, and a new member's first sign-in asking for their own password | staff | the Home queue row and the team list (STF-13, AUTH-31, KNOWN-GAPS §89) | built (11.1a) |
 | `GET /home`: low and out counts, expiring batches, a top-up or plan payment being checked, a balance under ৳50, staff without a password, the fast-spend alert, and the set-up checklist with "link shared" kept by the server (`POST /home/link-shared`) | several | §7.1 in one read (SUP-01); the plan's end stays on `/me` | built (11.1a) |
 | Whether a shop address is free, with a suggestion (`GET /shops/address-check`) | identity | create-shop's live verdict (AUTH-11, §6) | built (11.1a) |
-| A per-shop app manifest and its icons, scoped to `/<shop>/` | tenancy | installing the dashboard as the shop's own app (TEN-17, KNOWN-GAPS §88) | Slice 11 |
+| A per-shop app manifest and its icons, scoped to `/<shop>/` | shop app | installing the dashboard as the shop's own app (TEN-17, KNOWN-GAPS §88) | built (11.1b) |
 | The units by stock unit, and the split by top-level category, on `GET /inventory/figures`, and each loss reason's units | inventory | §7.22 | built (11.1a) |
 | The units and outstanding units of each purchase in the list, and the "coming" total | purchasing | §7.21 (PUR-05) | built (11.1a) |
 | A supplier's last purchase | purchasing | §7.21 | built (11.1a) |

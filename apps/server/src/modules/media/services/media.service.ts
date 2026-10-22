@@ -17,7 +17,7 @@ import {
 import { ApiError, FieldsError } from '../../../common/api-error';
 import { StorageUnavailable } from '../../../common/errors/media-refused';
 import type { MessageKey } from '../../../common/i18n/message-key';
-import { MediaLinks, type ImageView } from '../../../common/media-links';
+import { MediaLinks, mediaKeys, type ImageView } from '../../../common/media-links';
 import { CatalogueActivity } from '../../catalogue/services/catalogue-activity';
 import { CatalogueImages, refuseUnattachable } from '../../catalogue/services/catalogue-images';
 import { CatalogueVersion } from '../../catalogue/services/catalogue-version';
@@ -254,6 +254,24 @@ export class MediaService {
     });
   }
 
+  /** TEN-16, TEN-17: the fingerprint of the shop's logo as stored, or null for its monogram. */
+  logoFingerprint(tenantId: string): Promise<string | null> {
+    return this.store.run(async (tx) => (await this.logoRecord(tx, tenantId))?.hash ?? null);
+  }
+
+  /**
+   * TEN-17: the shop's logo as stored (the processed WebP) with its fingerprint, for the installed app's icon; null for
+   * its monogram, or when the file cannot be found.
+   */
+  async logoImage(tenantId: string): Promise<{ hash: string; body: Buffer } | null> {
+    const record = await this.store.run((tx) => this.logoRecord(tx, tenantId));
+    if (!record) return null;
+    const body = await this.storage.readMedia(
+      mediaKeys(MediaKind.Image, tenantId, record.id, record.hash).main,
+    );
+    return body ? { hash: record.hash, body } : null;
+  }
+
   /** TEN-16: sets the shop's logo to one of its ready images, or none. */
   async setLogo(
     tenantId: string,
@@ -280,6 +298,17 @@ export class MediaService {
         ? null
         : ((await this.images.viewsOf(tx, tenantId, [mediaId])).get(mediaId) ?? null);
     });
+  }
+
+  /** The shop's logo record with its fingerprint, or null when it has none. */
+  private async logoRecord(
+    tx: Transaction,
+    tenantId: string,
+  ): Promise<{ id: string; hash: string } | null> {
+    const id = await this.store.shopLogo(tx, tenantId);
+    if (id === null) return null;
+    const media = await this.store.findMedia(tx, tenantId, id);
+    return media?.hash ? { id, hash: media.hash } : null;
   }
 
   private async refuseMissingTarget(

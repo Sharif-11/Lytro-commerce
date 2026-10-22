@@ -144,6 +144,39 @@ export function sendExact(
   });
 }
 
+/** A response's body exactly as sent -- a file (a PNG, a download) rather than the JSON envelope. */
+export interface BinaryResult {
+  status: number;
+  headers: Record<string, string | string[] | undefined>;
+  body: Buffer;
+}
+
+/** A GET whose answer is kept as raw bytes, for the routes that send a file rather than JSON. */
+export function getBinary(
+  port: number,
+  path: string,
+  headers: Record<string, string> = {},
+): Promise<BinaryResult> {
+  return new Promise((resolve, reject) => {
+    const req = httpRequest(
+      { host: '127.0.0.1', port, path: withApiPrefix(path), method: 'GET', headers },
+      (res) => {
+        const chunks: Buffer[] = [];
+        res.on('data', (chunk: Buffer) => chunks.push(chunk));
+        res.on('end', () => {
+          resolve({
+            status: res.statusCode ?? 0,
+            headers: res.headers,
+            body: Buffer.concat(chunks),
+          });
+        });
+      },
+    );
+    req.on('error', reject);
+    req.end();
+  });
+}
+
 /** The session cookie as a browser would send it back: the name=value pair from Set-Cookie. */
 export function cookieFrom(result: HttpResult): string {
   const raw = result.headers['set-cookie'];

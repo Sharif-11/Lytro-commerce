@@ -1684,7 +1684,7 @@ packs come on top of that limit (PLN-15). Proven by `addon-packs.e2e.spec.ts`: a
 add-on is served at 2.15 GB, and one with 10 requests and an add-on of 10 is served 22 requests; before the fix both
 were stopped at the plan's grace.
 
-## 88. `TEN-17`: the dashboard installs as "Lytro", not as the shop's own app — open, found 2026-10-22
+## 88. `TEN-17`: the dashboard installs as "Lytro", not as the shop's own app — server part fixed 2026-10-22, the dashboard's link is open
 
 Found while reading for Phase 3 Slice 11. Slice 0 lists TEN-17 as completed, but the dashboard ships one
 fixed manifest, named "Lytro" with Lytro's icons and starting at `/`, so every shop installs as the same app and
@@ -1694,6 +1694,19 @@ and the shop's path, so that two shops installed on one phone are two apps.
 Planned with Slice 11's backend reads: a manifest per shop, with icons made from the logo or the monogram, served
 for `app.lytro.app/<shop>/`, and the dashboard pointing at it (`TENANT-DASHBOARD-DESIGN.md` §7.18, §10). It is
 proven when two shops installed from their paths show two names and two icons.
+
+**Server part fixed (Slice 11.1b):** `GET /api/v1/shops/<shop>/manifest.webmanifest` answers each shop's own
+manifest, without a session, for any shop not deleted. It carries the shop's name, a home-screen name of up to 12
+characters cut at a word, and `/<shop>/` as its id, start and scope. Its icons are 192 and 512 px and a maskable
+512; a 180 px icon for iPhones is at `icons/apple-180.png`. An icon is the shop's logo, on the logo's own
+background colour (white when it is see-through), or its monogram, drawn by the server from its own fonts, Bangla
+included. The icon links carry a version made from the name and the logo, so a new logo or name gives new links at
+once. Proven by `shop-app.e2e.spec.ts`: two shops answer two names, two paths and two sets of icons; a solid logo
+sits on its own colour and a see-through one on white; a Bangla name draws its Bangla letter; a deleted shop has
+no app. Before the fix no such route existed.
+
+**Still open:** the dashboard still links its one fixed manifest. Slice 11.3's shell points each shop's pages at
+their own. The brand identity's square icon takes the logo's place when it is switched on (BRN-02, Slice 11.2).
 
 ## 89. `AUTH-31`: a new staff member's first sign-in did not ask for their own password — found and fixed 2026-10-22
 
@@ -1707,6 +1720,20 @@ long as they liked, and the team list had nothing to say who had not yet chosen 
 `mustSetPassword` for each member, and Home counts them for the owner. Proven by `staff.e2e.spec.ts`: a new member's
 first sign-in asks for a password, `/me` is refused until one is chosen, the owner's list says so until then, and
 the next sign-in opens the dashboard. Before the fix the first sign-in went straight to the dashboard.
+
+## 90. API calls on the dashboard and operator hosts were answered with the app's page, not by the server — found and fixed 2026-10-22
+
+Found while building Phase 3 Slice 11.1b. On `app.lytro.app` and `admin.lytro.app`, `deploy/Caddyfile` checks
+`/api/*` first in a `handle` block and sends it to the server (DEPLOYMENT §5). Beside it, at the top level, sat the
+app's files and their fallback to `index.html`. Caddy runs `try_files`, a rewrite, before any `handle`. So every
+request with no file of its own, every API call among them, was first rewritten to `/index.html`, and `/api/*` never
+matched: the dashboard and the console would have got their own page back for every call. It has not been seen
+because no server runs this file yet (the deploy workflow is still a placeholder). In development each app's Vite
+server forwards `/api` itself.
+
+**Fixed:** each app's files sit in their own catch-all `handle` block. Caddy tries `handle` blocks most specific
+first and runs only one, so only what `/api/*` did not take reaches `try_files`. Checked with `caddy adapt`: on both
+hosts the `/api/*` route comes first, and the app's rewrite is inside the catch-all route.
 
 ## Not a bug, just noting it so it isn't mistaken for one later
 
