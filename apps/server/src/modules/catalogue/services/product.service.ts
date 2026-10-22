@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { SizeChartContent, Transaction } from '@lytronix/db';
+import type { ProductStateCounts, SizeChartContent, Transaction } from '@lytronix/db';
 import {
   AttributeDataType,
   AttributeRole,
@@ -182,6 +182,14 @@ export class ProductService {
   /** LIM-02, PRD-04: the products the shop's limit counts. */
   liveCount(tenantId: string): Promise<number> {
     return this.transactions.run((tx) => this.products.countLiveProducts(tx, tenantId));
+  }
+
+  /**
+   * PRD-12, INV-08: Home's product figures -- the products not archived, the active ones, and the active ones low or
+   * out of stock.
+   */
+  stateCounts(tenantId: string): Promise<ProductStateCounts> {
+    return this.transactions.run((tx) => this.products.countByState(tx, tenantId));
   }
 
   /** PRD-12: the dashboard's list, 20 to a page by default, archived products left out. */

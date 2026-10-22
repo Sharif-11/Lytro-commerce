@@ -30,6 +30,20 @@ import { unusedPlanValue } from './plan-credit';
 // hold-then-expire shape as BIL-09 -- past the window the tenant re-quotes rather than silently re-pricing).
 const QUOTE_HOLD_MS = HOUR_MS / 4;
 
+/** UPG-06: an upgrade's quote, with the period it would run were it confirmed now. */
+export interface UpgradeQuote extends PlanPaymentRecord {
+  periodStart: Date;
+  periodEnd: Date;
+}
+
+/**
+ * UPG-09: the period an upgrade runs -- it starts when it is confirmed and lasts the new term's months. The quote shows
+ * it as of now, and the confirmation sets it as of then.
+ */
+function upgradePeriod(confirmedAt: Date, months: number): { start: Date; end: Date } {
+  return { start: confirmedAt, end: addMonths(confirmedAt, months) };
+}
+
 export interface ConfirmUpgradeResult {
   payment: PlanPaymentRecord;
   invoice: InvoiceRecord | null;
@@ -60,7 +74,7 @@ export class UpgradeService {
    * UPG-01 to UPG-05: eligibility, rank, the prorated credit/amount-due math, and the one-pending check. UPG-14: the
    * add-ons set to renew are extended to the new period's end in the same payment, each a pending purchase on it.
    */
-  async quote(tenantId: string, planId: string, billingTermId: string): Promise<PlanPaymentRecord> {
+  async quote(tenantId: string, planId: string, billingTermId: string): Promise<UpgradeQuote> {
     const now = this.clock();
     const info = await this.tenants.runStandalone((tx) =>
       this.tenants.findBillingInfo(tx, tenantId),
@@ -97,7 +111,9 @@ export class UpgradeService {
       throw new ApiError('validation_error', 'UpgradeNotWorthwhile', {});
     }
 
-    const periodEnd = addMonths(now, term.months);
+    // UPG-06: the period it would run, were it confirmed now.
+    const period = upgradePeriod(now, term.months);
+    const periodEnd = period.end;
     const extensions = await this.renewals.extensions(
       tenantId,
       info.periodEnd,
@@ -117,7 +133,7 @@ export class UpgradeService {
         expiresAt: periodEnd,
         extending: true,
       });
-      return payment;
+      return { ...payment, periodStart: period.start, periodEnd: period.end };
     });
   }
 
@@ -183,8 +199,7 @@ export class UpgradeService {
     const plan = await this.plans.findById(payment.planId);
     const term = await this.terms.findById(payment.billingTermId);
 
-    const periodStart = now;
-    const periodEnd = addMonths(periodStart, term.months);
+    const { start: periodStart, end: periodEnd } = upgradePeriod(now, term.months);
 
     await this.tenants.applyPlanAssignment(tx, payment.tenantId, {
       planId: plan.id,

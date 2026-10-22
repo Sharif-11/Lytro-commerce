@@ -12,6 +12,7 @@ import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase } from './support/database';
 import { SmsCapture } from './support/sms-capture';
 import { cookieFrom, postJson, type HttpResult } from './support/http';
+import { passFirstSignIn } from './support/shop-client';
 
 // PYG-09: the owner closing a pay-as-you-go shop, and an operator suspending one -- both archive it at once, with
 // no grace or read-only stage, and its deletion clock (LIF-18, LIF-19) runs from that moment. Runs only when
@@ -106,6 +107,10 @@ async function staffSession(who: Owner): Promise<Record<string, string>> {
     { host: 'localhost', 'x-lytro-shop': who.slug },
   );
   expect(signedIn.status).toBe(200);
+  await passFirstSignIn(port, signedIn, STAFF_PASSWORD, {
+    host: 'localhost',
+    'x-lytro-shop': who.slug,
+  });
   return {
     cookie: cookieFrom(signedIn),
     'x-csrf-token': (signedIn.body as { csrfToken: string }).csrfToken,

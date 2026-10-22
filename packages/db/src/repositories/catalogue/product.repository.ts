@@ -32,6 +32,14 @@ export type ProductPatch = Partial<
   Omit<InsertProduct, 'id' | 'tenantId' | 'slug' | 'createdAt' | 'minPrice' | 'maxPrice'>
 >;
 
+/** PRD-12, INV-08: a shop's products not archived, the active ones, and the active ones low or out of stock. */
+export interface ProductStateCounts {
+  total: number;
+  active: number;
+  low: number;
+  out: number;
+}
+
 export interface ProductListFilter {
   search?: string;
   /** A category id, or 'uncategorized' for products filed in none (PRD-03). */
@@ -94,6 +102,24 @@ export class ProductRepository {
       .from(products)
       .where(and(eq(products.tenantId, tenantId), isNull(products.deletedAt)));
     return rows[0]?.total ?? 0;
+  }
+
+  /**
+   * PRD-12, INV-08: the shop's products not archived, how many are active, and how many active ones are low or out of
+   * stock (a product's state is its best variant's, CCH-08) -- the counts Home shows.
+   */
+  async countByState(tx: Transaction, tenantId: string): Promise<ProductStateCounts> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const rows = await tx
+      .select({
+        total: sql<number>`count(*)::int`,
+        active: sql<number>`count(*) FILTER (WHERE ${products.active})::int`,
+        low: sql<number>`count(*) FILTER (WHERE ${products.active} AND ${products.stockState} = 'low')::int`,
+        out: sql<number>`count(*) FILTER (WHERE ${products.active} AND ${products.stockState} = 'out')::int`,
+      })
+      .from(products)
+      .where(and(eq(products.tenantId, tenantId), isNull(products.deletedAt)));
+    return rows[0] ?? { total: 0, active: 0, low: 0, out: 0 };
   }
 
   /** PRD-02, LND-04: every slug that is `base` or `base-<n>`, current or kept as a redirect. */

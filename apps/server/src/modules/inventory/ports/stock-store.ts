@@ -71,7 +71,12 @@ export interface StockStore {
     avgCost: string | null,
   ): Promise<void>;
   /** INV-18: the stock held now, at average cost. */
-  stockValue(tx: Transaction, tenantId: string): Promise<StockValueRow>;
+  stockValue(tx: Transaction, tenantId: string): Promise<StockValueRow[]>;
+  /** D3-9: the shop's categories, each with its parent, for rolling a figure up to the top level. */
+  categoryTree(
+    tx: Transaction,
+    tenantId: string,
+  ): Promise<{ id: string; parentId: string | null; name: string }[]>;
   /** The movements naming this record (a reservation, a receipt), oldest first, each with its batch as it is now. */
   listReferencing(
     tx: Transaction,

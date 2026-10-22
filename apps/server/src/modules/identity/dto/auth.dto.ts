@@ -1,4 +1,5 @@
 import {
+  addressCheckQuerySchema,
   createShopSchema,
   forgotPasswordSchema,
   passwordSigninSchema,
@@ -22,4 +23,5 @@ export class SetPasswordDto extends createZodDto(setPasswordSchema) {}
 export class RequestEmailCodeDto extends createZodDto(requestEmailCodeSchema) {}
 export class VerifyEmailCodeDto extends createZodDto(verifyEmailCodeSchema) {}
 export class CreateShopDto extends createZodDto(createShopSchema) {}
+export class AddressCheckQueryDto extends createZodDto(addressCheckQuerySchema) {}
 export class OauthCallbackDto extends createZodDto(oauthCallbackSchema) {}

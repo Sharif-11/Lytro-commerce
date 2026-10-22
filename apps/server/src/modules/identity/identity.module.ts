@@ -38,6 +38,7 @@ import { PasswordService } from './services/password.service';
 import { PasswordSigninService } from './services/password-signin.service';
 import { PhoneNumberFormat } from './services/phone-number-format';
 import { SignInLockout } from './services/sign-in-lockout';
+import { AddressChecks } from './services/address-checks';
 import { SignupRateLimiter } from './services/signup-rate-limiter';
 import { TrialLimiter } from './services/trial-limiter';
 import { SignedInSession } from './services/signed-in-session';
@@ -123,6 +124,7 @@ import {
         env.SIGNUP_RATE_LIMIT_PER_IP ?? (env.NODE_ENV === 'production' ? 10 : 1000),
     },
     SignupRateLimiter,
+    AddressChecks,
     { provide: TRIAL_CREATION_STORE, useClass: DrizzleTrialCreationStore },
     {
       provide: TRIAL_LIMIT_PER_IDENTITY,

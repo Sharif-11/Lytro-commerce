@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { ReservationStatus, SerialStatus } from '@lytronix/validators';
 import {
+  CategoryRepository,
   PurchaseOrderRepository,
   ReservationRepository,
   SerialRepository,
@@ -63,6 +64,7 @@ export class DrizzleStockStore implements StockStore {
     @Inject(TransactionRunner) private readonly transactions: TransactionRunner,
     @Inject(StockRepository) private readonly stock: StockRepository,
     @Inject(PurchaseOrderRepository) private readonly purchases: PurchaseOrderRepository,
+    @Inject(CategoryRepository) private readonly categories: CategoryRepository,
   ) {}
 
   findVariants(
@@ -169,8 +171,16 @@ export class DrizzleStockStore implements StockStore {
     return this.stock.setAvgCost(tx, tenantId, variantId, avgCost);
   }
 
-  stockValue(tx: Transaction, tenantId: string): Promise<StockValueRow> {
+  stockValue(tx: Transaction, tenantId: string): Promise<StockValueRow[]> {
     return this.stock.stockValue(tx, tenantId);
+  }
+
+  async categoryTree(
+    tx: Transaction,
+    tenantId: string,
+  ): Promise<{ id: string; parentId: string | null; name: string }[]> {
+    const rows = await this.categories.listCategories(tx, tenantId);
+    return rows.map((row) => ({ id: row.id, parentId: row.parentId, name: row.name }));
   }
 
   listReferencing(

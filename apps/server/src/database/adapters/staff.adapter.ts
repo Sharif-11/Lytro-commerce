@@ -36,6 +36,7 @@ function toRecord(row: SelectUser): StaffRecord {
     isOwner: row.isOwner,
     active: row.active,
     createdAt: row.createdAt,
+    mustSetPassword: row.mustSetPassword,
   };
 }
 
@@ -70,6 +71,10 @@ export class DrizzleStaffStore implements StaffStore {
 
   async listStaff(tx: Transaction, tenantId: string): Promise<StaffRecord[]> {
     return (await this.users.listUsers(tx, tenantId)).map(toRecord);
+  }
+
+  countMustSetPassword(tx: Transaction, tenantId: string): Promise<number> {
+    return this.users.countMustSetPassword(tx, tenantId);
   }
 
   countActive(tx: Transaction, tenantId: string): Promise<number> {

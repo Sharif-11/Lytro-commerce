@@ -2,11 +2,14 @@ import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
 import { LedgerEntryType, RateKey, TenantState } from '@lytronix/validators';
 
-export const balanceSnapshotSchema = z.object({
+// BAL-01, BAL-04: the balance, and the top-up bounds the sheet states before a quote (the quote still holds to them).
+export const balanceViewSchema = z.object({
   amount: z.string(),
   frozen: z.boolean(),
+  topUpMin: z.number(),
+  topUpMax: z.number(),
 });
-export class BalanceSnapshotDto extends createZodDto(balanceSnapshotSchema) {}
+export class BalanceViewDto extends createZodDto(balanceViewSchema) {}
 
 // AUTH-21: the shop's own essential-SMS usage against its plan's allowance. `null` limits mean unlimited
 // (PLN-19's convention) -- a plan that never set either field falls back to the same `null`, since there's

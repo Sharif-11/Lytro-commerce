@@ -1,8 +1,14 @@
-import { and, asc, count, eq, isNotNull, isNull, sql } from 'drizzle-orm';
-import { suppliers, type InsertSupplier, type SelectSupplier } from '../../schema';
+import { and, asc, count, eq, isNotNull, isNull, ne, sql } from 'drizzle-orm';
+import { PurchaseStatus } from '@lytronix/validators';
+import { purchaseOrders, suppliers, type InsertSupplier, type SelectSupplier } from '../../schema';
 import type { Transaction, TransactionRunner } from '../../transactions';
 import { escapeLike } from '../like';
 import { isEmptyPatch } from '../patch';
+
+/** PUR-01: a supplier as the list shows it, with when it was last bought from (a placed purchase not cancelled). */
+export interface SupplierListRow extends SelectSupplier {
+  lastPurchaseAt: Date | null;
+}
 
 /** The details a supplier's update may change; `archivedAt` archives it (a time) or brings it back (null). */
 export type SupplierPatch = Partial<
@@ -93,7 +99,7 @@ export class SupplierRepository {
     tenantId: string,
     filter: { archived: boolean; search: string | null },
     page: { offset: number; limit: number },
-  ): Promise<{ rows: SelectSupplier[]; total: number }> {
+  ): Promise<{ rows: SupplierListRow[]; total: number }> {
     await this.transactions.setTenantContext(tx, tenantId);
     const conditions = [
       eq(suppliers.tenantId, tenantId),
@@ -103,15 +109,37 @@ export class SupplierRepository {
       conditions.push(sql`${suppliers.name} ILIKE ${`%${escapeLike(filter.search)}%`}`);
     }
     const where = and(...conditions);
+    // A draft has no ordered time, so only placed purchases count; a cancelled one was never bought.
+    const lastPurchases = tx
+      .select({
+        supplierId: purchaseOrders.supplierId,
+        lastPurchaseAt: sql<Date>`max(${purchaseOrders.orderedAt})`
+          .mapWith(purchaseOrders.orderedAt)
+          .as('last_purchase_at'),
+      })
+      .from(purchaseOrders)
+      .where(
+        and(
+          eq(purchaseOrders.tenantId, tenantId),
+          isNotNull(purchaseOrders.orderedAt),
+          ne(purchaseOrders.status, PurchaseStatus.Cancelled),
+        ),
+      )
+      .groupBy(purchaseOrders.supplierId)
+      .as('last_purchases');
     const rows = await tx
-      .select()
+      .select({ supplier: suppliers, lastPurchaseAt: lastPurchases.lastPurchaseAt })
       .from(suppliers)
+      .leftJoin(lastPurchases, eq(lastPurchases.supplierId, suppliers.id))
       .where(where)
       .orderBy(asc(sql`lower(${suppliers.name})`), asc(suppliers.id))
       .offset(page.offset)
       .limit(page.limit);
     const counted = await tx.select({ total: count() }).from(suppliers).where(where);
-    return { rows, total: counted[0]?.total ?? 0 };
+    return {
+      rows: rows.map((row) => ({ ...row.supplier, lastPurchaseAt: row.lastPurchaseAt })),
+      total: counted[0]?.total ?? 0,
+    };
   }
 
   /** LIF-19: a lapsed shop's suppliers, at day 60, after its purchases. */

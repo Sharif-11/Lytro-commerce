@@ -163,12 +163,18 @@ export class DrizzleShopSettingsStore implements ShopSettingsStore {
   async get(
     tx: Transaction,
     tenantId: string,
-  ): Promise<{ extraDeliveryChargePerKg: string } | null> {
+  ): Promise<{ extraDeliveryChargePerKg: string; linkSharedAt: Date | null } | null> {
     const row = await this.settings.get(tx, tenantId);
-    return row ? { extraDeliveryChargePerKg: row.extraDeliveryChargePerKg } : null;
+    return row
+      ? { extraDeliveryChargePerKg: row.extraDeliveryChargePerKg, linkSharedAt: row.linkSharedAt }
+      : null;
   }
 
   set(tx: Transaction, tenantId: string, extraDeliveryChargePerKg: string): Promise<void> {
     return this.settings.set(tx, tenantId, extraDeliveryChargePerKg);
+  }
+
+  markLinkShared(tx: Transaction, tenantId: string, at: Date): Promise<void> {
+    return this.settings.markLinkShared(tx, tenantId, at);
   }
 }

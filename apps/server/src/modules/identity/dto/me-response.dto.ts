@@ -17,6 +17,8 @@ export const meResponseSchema = z.object({
       suspended: z.boolean(),
       planName: z.string().nullable(),
       periodEnd: z.string().nullable(),
+      // BIL-17: whether the plan renews itself from the balance.
+      autoRenewEnabled: z.boolean(),
     })
     .nullable(),
   // TEN-31: every shop the signed-in person may open -- one opens directly, several show the picker.

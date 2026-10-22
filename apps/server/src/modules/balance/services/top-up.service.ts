@@ -37,6 +37,21 @@ export class TopUpService {
     @Inject(TenantService) private readonly tenants: TenantService,
   ) {}
 
+  /**
+   * BAL-04: the lowest and highest top-up the platform takes now -- what the top-up sheet says before a quote, and
+   * what a quote is held to.
+   */
+  async bounds(): Promise<{ min: number; max: number }> {
+    const [min, max] = await Promise.all([
+      this.settings.current(PlatformSettingKey.TopUpMinAmount),
+      this.settings.current(PlatformSettingKey.TopUpMaxAmount),
+    ]);
+    return {
+      min: typeof min?.value === 'number' ? min.value : DEFAULT_MIN_AMOUNT,
+      max: typeof max?.value === 'number' ? max.value : DEFAULT_MAX_AMOUNT,
+    };
+  }
+
   async quote(tenantId: string, amount: string): Promise<PlanPaymentRecord> {
     const info = await this.tenants.runStandalone((tx) =>
       this.tenants.findBillingInfo(tx, tenantId),
@@ -46,12 +61,7 @@ export class TopUpService {
       throw new ApiError('tenant_offline', 'TopUpNotAvailable', {});
     }
 
-    const [min, max] = await Promise.all([
-      this.settings.current(PlatformSettingKey.TopUpMinAmount),
-      this.settings.current(PlatformSettingKey.TopUpMaxAmount),
-    ]);
-    const minAmount = typeof min?.value === 'number' ? min.value : DEFAULT_MIN_AMOUNT;
-    const maxAmount = typeof max?.value === 'number' ? max.value : DEFAULT_MAX_AMOUNT;
+    const { min: minAmount, max: maxAmount } = await this.bounds();
     const requested = Number(amount);
     if (requested < minAmount || requested > maxAmount) {
       throw new FieldsError(

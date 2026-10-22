@@ -17,6 +17,7 @@ import {
   patchJson,
   postJson,
 } from './support/http';
+import { passFirstSignIn } from './support/shop-client';
 
 // Staff accounts and seats over real HTTP and the real database (STF-01 to STF-05, STF-12, AUTH-19 staff case
 // is not covered here). Runs only when DATABASE_TEST_ADMIN_URL is set.
@@ -537,23 +538,55 @@ async function staffSignIn(phone: string, password: string): Promise<HttpResult>
   return post('/auth/staff/signin', { phone, password }, PLATFORM);
 }
 
+/** A staff sign-in past AUTH-31's first-password step (the same password chosen), ready to call routes. */
+async function staffReady(phone: string, password: string): Promise<HttpResult> {
+  const signedIn = await staffSignIn(phone, password);
+  expect(signedIn.status).toBe(200);
+  await passFirstSignIn(port, signedIn, password, PLATFORM);
+  return signedIn;
+}
+
 /** A staff session's request on one shop's dashboard page (TEN-31). */
 function onShop(cookie: string, slug: string): Record<string, string> {
   return { cookie, host: 'localhost', 'x-lytro-shop': slug };
 }
 
 describeIfDatabase('staff sign-in on the staff page (AUTH-31, AUTH-12, AUTH-13, STF-05)', () => {
-  it('signs a staff member in with their own password, opening their shop and no other', async () => {
+  it('asks a new staff member for their own password first, then opens their shop and no other', async () => {
     const who = await owner();
     const stranger = await owner();
     await moveToPlan(who.slug, 'Starter');
     const phone = texts.freshPhone();
-    expect((await addStaffWithPassword(who, phone, STAFF_PASSWORD)).status).toBe(201);
+    const hired = await addStaffWithPassword(who, phone, STAFF_PASSWORD);
+    expect(hired.status).toBe(201);
+    // STF-13: the owner's list says so until the member chooses their own.
+    expect(hired.body).toMatchObject({ mustSetPassword: true });
 
+    // AUTH-31: the owner chose this first password, so the first sign-in asks for the member's own before anything.
     const signedIn = await staffSignIn(phone, STAFF_PASSWORD);
     expect(signedIn.status).toBe(200);
-    expect(signedIn.body).toMatchObject({ next: 'dashboard' });
+    expect(signedIn.body).toMatchObject({ next: 'set-password' });
     const cookie = cookieFrom(signedIn);
+    const pending = {
+      ...onShop(cookie, who.slug),
+      'x-csrf-token': (signedIn.body as { csrfToken: string }).csrfToken,
+    };
+    const blocked = await get('/me', onShop(cookie, who.slug));
+    expect(blocked.status).toBe(403);
+    expect(errorOf(blocked)).toMatchObject({ details: { next: 'set-password' } });
+    // A forced change needs no current password.
+    expect(
+      (await post('/auth/staff/password', { newPassword: 'their-own-1357' }, pending)).status,
+    ).toBe(200);
+    const listed = (await listStaff(who)).body as {
+      staff: { phone: string; mustSetPassword: boolean }[];
+    };
+    expect(listed.staff.find((member) => member.phone === phone)).toMatchObject({
+      mustSetPassword: false,
+    });
+    // The next sign-in, with their own password, goes straight to the dashboard.
+    expect((await staffSignIn(phone, 'their-own-1357')).body).toMatchObject({ next: 'dashboard' });
+
     const me = await get('/me', onShop(cookie, who.slug));
     expect(me.status).toBe(200);
     expect(me.body).toMatchObject({
@@ -663,7 +696,7 @@ describeIfDatabase("/me reflects who is signed in (D32's permission-gated nav)",
     );
     expect(hired.status).toBe(201);
 
-    const signedIn = await staffSignIn(phone, STAFF_PASSWORD);
+    const signedIn = await staffReady(phone, STAFF_PASSWORD);
     const me = await get('/me', {
       cookie: cookieFrom(signedIn),
       host: 'localhost',
@@ -723,7 +756,7 @@ describeIfDatabase('one sign-in across a person’s shops (TEN-31)', () => {
   it('a staff sign-in, with the password the employer set, never opens the shop the person owns', async () => {
     const { employer, phone, own } = await staffWhoOwnsAShop();
 
-    const cookie = cookieFrom(await staffSignIn(phone, STAFF_PASSWORD));
+    const cookie = cookieFrom(await staffReady(phone, STAFF_PASSWORD));
     expect((await get('/me', onShop(cookie, employer.slug))).status).toBe(200);
     expect((await get('/me', onShop(cookie, own.slug))).status).toBe(404);
     expect((await get('/me', onShop(cookie, employer.slug))).body).toMatchObject({
@@ -759,8 +792,7 @@ describeIfDatabase('permissions checked on each request (STF-10, STF-11)', () =>
       shopCall(who),
     );
     expect(hired.status).toBe(201);
-    const signed = await staffSignIn(phone, STAFF_PASSWORD);
-    expect(signed.status).toBe(200);
+    const signed = await staffReady(phone, STAFF_PASSWORD);
     return {
       call: {
         cookie: cookieFrom(signed),
@@ -874,7 +906,7 @@ describeIfDatabase('staff passwords (STF-13, AUTH-19, AUTH-20)', () => {
     await moveToPlan(who.slug, 'Starter');
     const phone = texts.freshPhone();
     expect((await addStaffWithPassword(who, phone, STAFF_PASSWORD)).status).toBe(201);
-    const signed = await staffSignIn(phone, STAFF_PASSWORD);
+    const signed = await staffReady(phone, STAFF_PASSWORD);
     const call = {
       cookie: cookieFrom(signed),
       'x-csrf-token': (signed.body as { csrfToken: string }).csrfToken,
@@ -930,7 +962,7 @@ describeIfDatabase('staff passwords (STF-13, AUTH-19, AUTH-20)', () => {
         )
       ).status,
     ).toBe(201);
-    const reader = await staffSignIn(readerPhone, STAFF_PASSWORD);
+    const reader = await staffReady(readerPhone, STAFF_PASSWORD);
     const readerCall = {
       cookie: cookieFrom(reader),
       'x-csrf-token': (reader.body as { csrfToken: string }).csrfToken,

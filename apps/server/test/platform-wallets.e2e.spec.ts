@@ -11,6 +11,7 @@ import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase } from './support/database';
 import { SmsCapture } from './support/sms-capture';
+import { passFirstSignIn } from './support/shop-client';
 import {
   cookieFrom,
   deleteJson,
@@ -96,11 +97,16 @@ async function addStaffWithPassword(who: Owner, phone: string): Promise<HttpResu
 }
 
 async function staffSignIn(slug: string, phone: string): Promise<HttpResult> {
-  return post(
+  const signedIn = await post(
     '/auth/staff/signin',
     { phone, password: STAFF_PASSWORD },
     { host: 'localhost', 'x-lytro-shop': slug },
   );
+  await passFirstSignIn(port, signedIn, STAFF_PASSWORD, {
+    host: 'localhost',
+    'x-lytro-shop': slug,
+  });
+  return signedIn;
 }
 
 async function createOperator(email: string): Promise<void> {

@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { PurchaseStatus } from '@lytronix/validators';
+import type { PurchaseStatus, StockUnit } from '@lytronix/validators';
 import {
   PurchaseOrderRepository,
   PurchaseReceiptRepository,
@@ -28,6 +28,8 @@ import type {
   PurchaseOrderSummaryRow,
   PurchaseReceiptLineRow,
   PurchaseReceiptRow,
+  PurchaseUnitsRow,
+  SupplierListRecord,
   SupplierRecord,
 } from '../../modules/purchasing/types/purchasing';
 
@@ -101,7 +103,7 @@ export class DrizzleSupplierStore implements SupplierStore {
     tenantId: string,
     filter: { archived: boolean; search: string | null },
     page: { offset: number; limit: number },
-  ): Promise<{ rows: SupplierRecord[]; total: number }> {
+  ): Promise<{ rows: SupplierListRecord[]; total: number }> {
     return this.suppliers.listSuppliers(tx, tenantId, filter, page);
   }
 
@@ -218,6 +220,17 @@ export class DrizzlePurchaseOrderStore implements PurchaseOrderStore {
     page: { offset: number; limit: number },
   ): Promise<{ rows: PurchaseOrderSummaryRow[]; total: number }> {
     return this.orders.listOrders(tx, tenantId, filter, page);
+  }
+
+  unitsOf(tx: Transaction, tenantId: string, orderIds: string[]): Promise<PurchaseUnitsRow[]> {
+    return this.orders.unitsOf(tx, tenantId, orderIds);
+  }
+
+  coming(
+    tx: Transaction,
+    tenantId: string,
+  ): Promise<{ units: { stockUnit: StockUnit | null; quantity: string }[]; purchases: number }> {
+    return this.orders.coming(tx, tenantId);
   }
 
   deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void> {

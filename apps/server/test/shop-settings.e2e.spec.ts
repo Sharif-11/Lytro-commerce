@@ -10,6 +10,7 @@ import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase } from './support/database';
 import { SmsCapture } from './support/sms-capture';
 import { cookieFrom, getJson, patchJson, postJson, type HttpResult } from './support/http';
+import { passFirstSignIn } from './support/shop-client';
 
 // TEN-30: a tenant's own contact phone/email/business address, over real HTTP and the real database. Runs
 // only when DATABASE_TEST_ADMIN_URL is set.
@@ -104,6 +105,10 @@ async function viewerSession(who: Owner, permissions: string[]): Promise<Record<
     },
   );
   expect(signedIn.status).toBe(200);
+  await passFirstSignIn(port, signedIn, STAFF_PASSWORD, {
+    host: 'localhost',
+    'x-lytro-shop': who.slug,
+  });
   return {
     cookie: cookieFrom(signedIn),
     'x-csrf-token': (signedIn.body as { csrfToken: string }).csrfToken,

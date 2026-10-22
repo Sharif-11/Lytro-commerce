@@ -4,12 +4,13 @@ import type {
   StockVariantRow,
   Transaction,
 } from '@lytronix/db';
-import type { PurchaseStatus } from '@lytronix/validators';
+import type { PurchaseStatus, StockUnit } from '@lytronix/validators';
 import type {
   NewPurchaseLine,
   PurchaseLineRow,
   PurchaseOrderRow,
   PurchaseOrderSummaryRow,
+  PurchaseUnitsRow,
 } from '../types/purchasing';
 
 /**
@@ -67,5 +68,12 @@ export interface PurchaseOrderStore {
     filter: { status: PurchaseStatus | null; supplierId: string | null },
     page: { offset: number; limit: number },
   ): Promise<{ rows: PurchaseOrderSummaryRow[]; total: number }>;
+  /** PUR-05: what each of these purchases orders, and still awaits, unit by unit. */
+  unitsOf(tx: Transaction, tenantId: string, orderIds: string[]): Promise<PurchaseUnitsRow[]>;
+  /** PUR-05: what the shop's placed, open purchases still await, unit by unit, and from how many purchases. */
+  coming(
+    tx: Transaction,
+    tenantId: string,
+  ): Promise<{ units: { stockUnit: StockUnit | null; quantity: string }[]; purchases: number }>;
   deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void>;
 }

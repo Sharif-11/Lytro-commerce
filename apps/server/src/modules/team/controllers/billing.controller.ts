@@ -31,7 +31,7 @@ import {
 } from '../../billing/services/downgrade.service';
 import { LifecycleService } from '../../billing/services/lifecycle.service';
 import { PurchaseService } from '../../billing/services/purchase.service';
-import { UpgradeService } from '../../billing/services/upgrade.service';
+import { UpgradeService, type UpgradeQuote } from '../../billing/services/upgrade.service';
 import type { ScheduledPlanChangeRecord } from '../../billing/types/scheduled-plan-change';
 import { InvoicesService } from '../../payments/services/invoices.service';
 import { TenantService } from '../../tenancy/services/tenant.service';
@@ -53,6 +53,7 @@ import {
   OverLimitItemListDto,
   PayAsYouGoChoiceDto,
   PlanPaymentDto,
+  UpgradeQuoteDto,
   ScheduledPlanChangeDto,
 } from '../dto/billing-response.dto';
 
@@ -127,11 +128,11 @@ export class BillingController {
   @RequirePermission(Permission.PaymentsManage)
   @ResponseMessage('UpgradeQuoted')
   @ApiOperation({ summary: 'Quote an upgrade to a higher-ranked plan' })
-  @ZodResponse({ type: PlanPaymentDto })
+  @ZodResponse({ type: UpgradeQuoteDto })
   quoteUpgrade(
     @Body(new ZodValidationPipe(QuoteUpgradeDto.schema)) body: QuoteUpgradeDto,
     @Req() request: DashboardRequest,
-  ): Promise<PlanPaymentRecord> {
+  ): Promise<UpgradeQuote> {
     return this.upgrade.quote(this.tenantIdOf(request), body.planId, body.billingTermId);
   }
 

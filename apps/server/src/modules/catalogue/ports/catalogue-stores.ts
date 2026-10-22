@@ -2,6 +2,7 @@ import type {
   PlatformOptionSetPatch,
   PresetPatch,
   ProductImageRow,
+  ProductStateCounts,
   SizeChartContent,
   SizeChartOwner,
   Transaction,
@@ -225,6 +226,8 @@ export interface ProductStore {
     states: readonly { variantId: string; state: StockState }[],
   ): Promise<void>;
   countLiveProducts(tx: Transaction, tenantId: string): Promise<number>;
+  /** PRD-12, INV-08: the products not archived, the active ones, and the active ones low or out of stock. */
+  countByState(tx: Transaction, tenantId: string): Promise<ProductStateCounts>;
   slugsLike(tx: Transaction, tenantId: string, base: string): Promise<string[]>;
   slugHolder(
     tx: Transaction,

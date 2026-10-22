@@ -16,7 +16,13 @@ import { CATALOGUE_TRANSACTIONS } from '../../catalogue/tokens';
 import type { CatalogueActor } from '../../catalogue/types/catalogue';
 import type { SupplierStore } from '../ports/supplier-store';
 import { SUPPLIER_STORE } from '../tokens';
-import type { SupplierPage, SupplierRecord, SupplierView } from '../types/purchasing';
+import type {
+  SupplierListRecord,
+  SupplierListView,
+  SupplierPage,
+  SupplierRecord,
+  SupplierView,
+} from '../types/purchasing';
 
 function viewOf(row: SupplierRecord): SupplierView {
   return {
@@ -30,6 +36,11 @@ function viewOf(row: SupplierRecord): SupplierView {
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
+}
+
+/** PUR-01: a supplier as the list shows it, with when it was last bought from. */
+function listViewOf(row: SupplierListRecord): SupplierListView {
+  return { ...viewOf(row), lastPurchaseAt: row.lastPurchaseAt };
 }
 
 /**
@@ -54,7 +65,7 @@ export class SupplierService {
         { offset: (query.page - 1) * query.limit, limit: query.limit },
       );
       return {
-        suppliers: rows.map(viewOf),
+        suppliers: rows.map(listViewOf),
         page: query.page,
         limit: query.limit,
         total,

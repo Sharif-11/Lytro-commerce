@@ -125,6 +125,11 @@ export class StaffService {
     return this.store.run(tenantId, (tx) => this.store.countActive(tx, tenantId));
   }
 
+  /** STF-13, AUTH-31: the active staff who have not yet chosen their own password -- a Home row. */
+  countWithoutPassword(tenantId: string): Promise<number> {
+    return this.store.run(tenantId, (tx) => this.store.countMustSetPassword(tx, tenantId));
+  }
+
   list(tenant: StaffTenant): Promise<StaffList> {
     return this.store.run(tenant.id, async (tx) => ({
       seats: {

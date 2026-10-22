@@ -1,0 +1,1 @@
+ALTER TABLE "tenant"."shop_settings" ADD COLUMN "link_shared_at" timestamp with time zone;

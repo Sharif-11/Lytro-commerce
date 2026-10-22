@@ -5,6 +5,7 @@ import {
   AuditAction,
   AuditResult,
   LedgerEntryType,
+  LOW_BALANCE_AMOUNT,
   PlatformActorType,
   PlatformAuditAction,
   FieldProblemCode,
@@ -28,7 +29,7 @@ const ACTIVITY_TYPES: ReadonlySet<LedgerEntryType> = new Set([
 
 // BAL-13: low-balance thresholds, in paisa. A charge crosses one when it brings the balance from above it to it or
 // below -- reaching exactly 0 counts, since BAL-10 stops most charges there -- never repeated while already past.
-const LOW_BALANCE_THRESHOLDS_PAISA: readonly bigint[] = [5000n, 0n];
+const LOW_BALANCE_THRESHOLDS_PAISA: readonly bigint[] = [BigInt(LOW_BALANCE_AMOUNT) * 100n, 0n];
 
 // BAL-14: a CSV covers the whole filtered range, not one page -- capped so one tenant's statement can't
 // produce an unbounded response.

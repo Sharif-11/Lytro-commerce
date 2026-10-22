@@ -789,6 +789,12 @@ export enum PurchaseStatus {
   Cancelled = 'cancelled',
 }
 
+// PUR-05: the placed purchases still open, whose outstanding items are on their way ("coming").
+export const OPEN_PURCHASE_STATUSES: readonly PurchaseStatus[] = [
+  PurchaseStatus.Ordered,
+  PurchaseStatus.PartiallyReceived,
+];
+
 // INV-04: why on-hand stock changed. Every stock movement carries one.
 export enum StockReason {
   Initial = 'initial',

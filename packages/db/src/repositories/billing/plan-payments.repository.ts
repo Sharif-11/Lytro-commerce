@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, isNotNull, isNull, lt } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNotNull, isNull, lt, sql } from 'drizzle-orm';
 import {
   planPayments,
   usedTransactionIds,
@@ -44,6 +44,32 @@ export class PlanPaymentsRepository {
     );
     const conditions = kind ? and(base, eq(planPayments.kind, kind)) : base;
     return tx.select().from(planPayments).where(conditions).orderBy(desc(planPayments.quotedAt));
+  }
+
+  /**
+   * BAL-03, BIL-04: one shop's payments of these kinds that were submitted (a transaction ID attached) and still wait
+   * for the operator's decision -- how many, and for how much in all.
+   */
+  async submittedForTenant(
+    tx: Executor,
+    tenantId: string,
+    kinds: PlanPaymentKind[],
+  ): Promise<{ count: number; amount: string }> {
+    const rows = await tx
+      .select({
+        count: sql<number>`count(*)::int`,
+        amount: sql<string>`coalesce(sum(${planPayments.amount}), 0)::numeric(12, 2)::text`,
+      })
+      .from(planPayments)
+      .where(
+        and(
+          eq(planPayments.tenantId, tenantId),
+          inArray(planPayments.kind, kinds),
+          inArray(planPayments.status, [PlanPaymentStatus.Pending, PlanPaymentStatus.NeedsReview]),
+          isNotNull(planPayments.transactionId),
+        ),
+      );
+    return rows[0] ?? { count: 0, amount: '0.00' };
   }
 
   /** UPG-08: any not-yet-decided row of this kind for this tenant, submitted or not -- the one-pending check. */

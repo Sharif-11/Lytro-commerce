@@ -4,6 +4,7 @@ import {
   AuditAction,
   FieldProblemCode,
   MEASURED_STOCK_UNITS,
+  OPEN_PURCHASE_STATUSES,
   PurchaseStatus,
   ServerFieldProblemCode,
   StockTracking,
@@ -22,6 +23,7 @@ import { optionIdsOfKey } from '../../catalogue/services/variant-matrix';
 import { CATALOGUE_TRANSACTIONS } from '../../catalogue/tokens';
 import type { CatalogueActor } from '../../catalogue/types/catalogue';
 import { milli, quantityOf } from '../../inventory/services/stock-state';
+import { unitTotals } from '../../inventory/services/unit-quantities';
 import type { PurchaseOrderStore } from '../ports/purchase-order-store';
 import type { PurchaseReceiptStore } from '../ports/purchase-receipt-store';
 import { PURCHASE_ORDER_STORE, PURCHASE_RECEIPT_STORE } from '../tokens';
@@ -41,6 +43,9 @@ const FINISHED: readonly PurchaseStatus[] = [
   PurchaseStatus.ClosedShort,
   PurchaseStatus.Cancelled,
 ];
+
+// PUR-05: a purchase whose outstanding items are still coming.
+const OPEN: ReadonlySet<PurchaseStatus> = new Set(OPEN_PURCHASE_STATUSES);
 
 /** One item as entered or as stored: the variant and how much of it. */
 interface ItemEntry {
@@ -110,22 +115,46 @@ export class PurchaseOrderService {
         { status: query.status ?? null, supplierId: query.supplierId ?? null },
         { offset: (query.page - 1) * query.limit, limit: query.limit },
       );
+      const units = await this.orders.unitsOf(
+        tx,
+        tenantId,
+        rows.map((row) => row.id),
+      );
+      const coming = await this.orders.coming(tx, tenantId);
       return {
-        purchaseOrders: rows.map((row) => ({
-          id: row.id,
-          number: row.number,
-          status: row.status,
-          supplier: supplierOf(row),
-          expectedOn: row.expectedOn,
-          createdAt: row.createdAt,
-          orderedAt: row.orderedAt,
-          items: row.items,
-          ...(canSeeCost ? { total: row.total, unknownCost: row.unknownCost } : {}),
-        })),
+        purchaseOrders: rows.map((row) => {
+          const own = units.filter((line) => line.purchaseOrderId === row.id);
+          return {
+            id: row.id,
+            number: row.number,
+            status: row.status,
+            supplier: supplierOf(row),
+            expectedOn: row.expectedOn,
+            createdAt: row.createdAt,
+            orderedAt: row.orderedAt,
+            items: row.items,
+            // Units are not cost: they show to anyone who may see purchases (D3-9 gates the money only).
+            units: unitTotals(
+              own.map((line) => ({ unit: line.stockUnit, quantity: line.ordered })),
+            ),
+            outstanding: OPEN.has(row.status)
+              ? unitTotals(
+                  own.map((line) => ({ unit: line.stockUnit, quantity: line.outstanding })),
+                )
+              : [],
+            ...(canSeeCost ? { total: row.total, unknownCost: row.unknownCost } : {}),
+          };
+        }),
         page: query.page,
         limit: query.limit,
         total,
         pages: Math.ceil(total / query.limit),
+        coming: {
+          units: unitTotals(
+            coming.units.map((line) => ({ unit: line.stockUnit, quantity: line.quantity })),
+          ),
+          purchases: coming.purchases,
+        },
       };
     });
   }

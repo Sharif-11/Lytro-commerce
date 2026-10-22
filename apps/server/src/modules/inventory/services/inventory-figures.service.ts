@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import type { Transaction } from '@lytronix/db';
 import { FieldProblemCode, StockReason, type InventoryFiguresQuery } from '@lytronix/validators';
 import { FieldsError } from '../../../common/api-error';
 import { DAY_MS, dhakaDate, dhakaDayStart } from '../../../common/time';
@@ -7,12 +8,52 @@ import type { CatalogueTransactions } from '../../catalogue/ports/catalogue-stor
 import { CATALOGUE_TRANSACTIONS } from '../../catalogue/tokens';
 import type { StockStore } from '../ports/stock-store';
 import { STOCK_STORE } from '../tokens';
-import type { InventoryFigures, MovedFigure, OutgoingRow } from '../types/inventory';
+import type {
+  CategoryStockValue,
+  InventoryFigures,
+  MovedFigure,
+  OutgoingRow,
+  StockValueRow,
+} from '../types/inventory';
+import { unitTotals } from './unit-quantities';
 
 const NOTHING: MovedFigure = { value: '0.00', movements: 0, unknownCost: 0 };
 
-function figureOf(row: OutgoingRow): MovedFigure {
-  return { value: row.value, movements: row.movements, unknownCost: row.unknownCost };
+/** One reason's movements in every unit, as one figure; the value is added in paisa. */
+function figureOf(rows: OutgoingRow[]): MovedFigure {
+  return {
+    value: fromPaisa(rows.reduce((sum, row) => sum + toPaisa(row.value), 0n)),
+    movements: rows.reduce((sum, row) => sum + row.movements, 0),
+    unknownCost: rows.reduce((sum, row) => sum + row.unknownCost, 0),
+  };
+}
+
+/** The stock-value rows' worth added in paisa, their uncosted variants counted, and their amounts by unit. */
+function valueOf(rows: StockValueRow[]): {
+  value: string;
+  unknownCost: number;
+  units: CategoryStockValue['units'];
+} {
+  return {
+    value: fromPaisa(rows.reduce((sum, row) => sum + toPaisa(row.value), 0n)),
+    unknownCost: rows.reduce((sum, row) => sum + row.unknownCost, 0),
+    units: unitTotals(rows.map((row) => ({ unit: row.stockUnit, quantity: row.units }))),
+  };
+}
+
+/** Each category's top-level ancestor (a top-level category is its own). */
+function topLevelOf(tree: { id: string; parentId: string | null }[]): (id: string) => string {
+  const parentOf = new Map(tree.map((category) => [category.id, category.parentId]));
+  return (id) => {
+    let current = id;
+    // A tree is at most four levels (PRD-03); the bound only guards against a broken parent link.
+    for (let step = 0; step < tree.length; step += 1) {
+      const parent = parentOf.get(current) ?? null;
+      if (parent === null) return current;
+      current = parent;
+    }
+    return current;
+  };
 }
 
 /** INV-17: sales less what came back, in paisa; the returns' movements and unknown costs are counted too. */
@@ -47,6 +88,40 @@ export class InventoryFiguresService {
     @Inject(STOCK_STORE) private readonly stock: StockStore,
   ) {}
 
+  /**
+   * D3-9: the stock value split by each product's top-level category, the most valuable first and products in no
+   * category last.
+   */
+  private async byCategory(
+    tx: Transaction,
+    tenantId: string,
+    held: StockValueRow[],
+  ): Promise<CategoryStockValue[]> {
+    const tree = held.some((row) => row.categoryId !== null)
+      ? await this.stock.categoryTree(tx, tenantId)
+      : [];
+    const topLevel = topLevelOf(tree);
+    const names = new Map(tree.map((category) => [category.id, category.name]));
+    const groups = new Map<string | null, StockValueRow[]>();
+    for (const row of held) {
+      const key = row.categoryId === null ? null : topLevel(row.categoryId);
+      groups.set(key, [...(groups.get(key) ?? []), row]);
+    }
+    return [...groups.entries()]
+      .map(([categoryId, rows]) => ({
+        categoryId,
+        name: categoryId === null ? null : (names.get(categoryId) ?? null),
+        ...valueOf(rows),
+      }))
+      .sort((a, b) =>
+        a.categoryId === null
+          ? 1
+          : b.categoryId === null
+            ? -1
+            : Number(toPaisa(b.value) - toPaisa(a.value)),
+      );
+  }
+
   figures(
     tenantId: string,
     query: InventoryFiguresQuery,
@@ -69,18 +144,28 @@ export class InventoryFiguresService {
       to: new Date(dhakaDayStart(dateTo).getTime() + DAY_MS),
     };
     return this.transactions.run(async (tx) => {
-      const stockValue = await this.stock.stockValue(tx, tenantId);
+      const held = await this.stock.stockValue(tx, tenantId);
       const outgoing = await this.stock.outgoingByReason(tx, tenantId, period);
-      const sales = outgoing.find((row) => row.reason === StockReason.Sale);
+      const sales = outgoing.filter((row) => row.reason === StockReason.Sale);
       const returned = await this.stock.returnedInPeriod(tx, tenantId, period);
-      const byReason = outgoing
-        .filter((row) => row.reason !== StockReason.Sale)
-        .map((row) => ({ reason: row.reason, ...figureOf(row) }));
+      const reasons = [
+        ...new Set(
+          outgoing.filter((row) => row.reason !== StockReason.Sale).map((row) => row.reason),
+        ),
+      ];
+      const byReason = reasons.map((reason) => {
+        const rows = outgoing.filter((row) => row.reason === reason);
+        return {
+          reason,
+          ...figureOf(rows),
+          units: unitTotals(rows.map((row) => ({ unit: row.stockUnit, quantity: row.units }))),
+        };
+      });
       return {
         dateFrom,
         dateTo,
-        stockValue,
-        costOfGoodsSold: lessReturns(sales ? figureOf(sales) : NOTHING, returned),
+        stockValue: { ...valueOf(held), byCategory: await this.byCategory(tx, tenantId, held) },
+        costOfGoodsSold: lessReturns(sales.length > 0 ? figureOf(sales) : NOTHING, returned),
         losses: { ...total(byReason), byReason },
       };
     });

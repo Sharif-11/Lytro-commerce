@@ -129,10 +129,32 @@ export class StockBatchRepository {
       sql`${stockBatches.quantity} > 0`,
     );
     const rows = await this.listWhere(tx, tenantId, which, page);
+    // Counted as the rows are listed: an archived product's batches are left out of both.
     const totals = await tx
       .select({ total: count() })
       .from(stockBatches)
-      .where(and(eq(stockBatches.tenantId, tenantId), isNull(stockBatches.closedAt), which));
+      .innerJoin(
+        productVariants,
+        and(
+          eq(productVariants.tenantId, stockBatches.tenantId),
+          eq(productVariants.id, stockBatches.variantId),
+        ),
+      )
+      .innerJoin(
+        products,
+        and(
+          eq(products.tenantId, productVariants.tenantId),
+          eq(products.id, productVariants.productId),
+        ),
+      )
+      .where(
+        and(
+          eq(stockBatches.tenantId, tenantId),
+          isNull(stockBatches.closedAt),
+          isNull(products.deletedAt),
+          which,
+        ),
+      );
     return { rows, total: totals[0]?.total ?? 0 };
   }
 
