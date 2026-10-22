@@ -377,7 +377,7 @@ svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.75;str
   <label>Screen
     <select id="selScreen">
       <optgroup label="Onboarding and sign-in"><option value="ob-signin">Sign-in (code)</option><option value="ob-signin-pw">Sign-in (password)</option><option value="ob-verify">Verify code</option><option value="ob-verify-wrong">Verify code · wrong code</option><option value="ob-oauth">OAuth return</option><option value="ob-create">Create shop</option><option value="ob-create-taken">Create shop · link taken</option><option value="ob-create-refused">Create shop · refused (AUTH-30)</option><option value="ob-create-returning">Create shop · after deletion</option><option value="ob-checkout">Checkout (plan picked)</option><option value="ob-checkout-done">Checkout · submitted</option><option value="ob-checkout-paid">Checkout · plan activated</option><option value="ob-password">Set password (optional)</option><option value="ob-password-fb">Set password · Facebook-only</option><option value="ob-password-required">Set password · required</option><option value="ob-setup">Set up your shop</option><option value="ob-staff">Staff sign-in</option><option value="ob-staff-password">Staff · new password</option><option value="ob-forgot">Forgot password</option><option value="ob-forgot-code">Forgot password · code</option><option value="ob-shops-opening">Opening your shop</option><option value="shops">Shop picker</option></optgroup>
-      <optgroup label="Home"><option value="home" selected>Home</option><option value="plus">+ menu (sheet)</option><option value="orders-soon">Orders tab (Phase 4 placeholder)</option></optgroup>
+      <optgroup label="Home"><option value="home" selected>Home</option><option value="plus">+ menu (sheet)</option><option value="notifications">Notifications · panel from the bell (top right)</option><option value="notifications-empty">· nothing yet</option><option value="notifications-read">· all read (toast)</option><option value="notifications-all">Notifications · full page</option><option value="orders-soon">Orders tab (Phase 4 placeholder)</option></optgroup>
       <optgroup label="Shop · Slices 1 to 3"><option value="products">Products</option><option value="product">Product editor</option><option value="sh-category">· pick categories (sheet)</option><option value="sh-attribute">· add attribute (sheet)</option><option value="sh-options">· options and swatches (sheet)</option><option value="sh-sizechart">· size chart (sheet)</option><option value="sh-link">· product link and slug (sheet)</option><option value="sh-deliversto">· delivers to (sheet)</option><option value="sh-policy">· payment policy (sheet)</option><option value="sh-delete">· archive or delete (dialog)</option><option value="categories">Categories</option><option value="sh-category-edit">· edit category (sheet)</option><option value="sh-category-new">· new category (sheet)</option><option value="sh-category-sub">· add sub-category (sheet)</option><option value="sh-category-menu">· row menu (sheet)</option><option value="sh-category-parent">· move: pick parent (sheet)</option><option value="sh-category-attrs">· suggested attributes (sheet)</option><option value="sh-category-chart">· category size chart (sheet)</option><option value="sh-category-delete">· delete with products (dialog)</option><option value="sh-category-delete-children">· delete refused: sub-categories (dialog)</option><option value="sh-category-delete-empty">· delete empty (dialog)</option><option value="categories-added">· after adding "Shirts"</option><option value="categories-deleted">· after deleting "Kids"</option><option value="categories-seeded">· day one: suggested categories added</option><option value="sh-category-new-product">· new category from the product editor (sheet)</option><option value="attributes">Attributes</option><option value="sh-attr-new">· new attribute (sheet)</option><option value="sh-attr-edit">· edit attribute (sheet)</option><option value="option-sets">Option sets</option><option value="stock">Stock</option><option value="stock-add">· add stock (sheet)</option><option value="stock-edit">· edit stock (sheet)</option><option value="sh-history">· stock history (sheet)</option><option value="sh-cost">· average cost (sheet)</option><option value="sh-batches">· batches (sheet)</option><option value="sh-serials">· IMEI / serials (sheet)</option><option value="sh-serials-add">· add serials (sheet)</option><option value="stock-checks">Stock checks</option><option value="stock-check">· new stock check</option><option value="stock-check-detail">· stock check detail</option><option value="expiring">Expiring batches</option><option value="delivery">Delivery</option><option value="sh-homearea">· home area (sheet)</option><option value="sh-zone">· zone (sheet)</option></optgroup>
       <optgroup label="Slices 4 to 10 · what Slice 11 still needed"><option value="purchases">Purchases · open (Slice 4)</option><option value="purchases-drafts">· drafts</option><option value="purchases-all">· all</option><option value="purchase-new">· order from supplier (sheet)</option><option value="purchase-draft">· a draft</option><option value="purchase">· placed, nothing arrived yet</option><option value="sh-receive">· it arrived (sheet)</option><option value="purchase-partial">· partly received</option><option value="sh-close-short">· close short (dialog)</option><option value="sh-cancel-purchase">· cancel (dialog)</option><option value="purchase-closed">· closed short</option><option value="suppliers">Suppliers</option><option value="sh-supplier">· supplier (sheet)</option><option value="sh-supplier-new">· new supplier (sheet)</option><option value="stock-shortfall">Stock · units held for expired orders (5a)</option><option value="sh-return">· take shipped stock back (5b, sheet)</option><option value="stock-value">Stock value and losses (D3-9)</option><option value="sh-media">Product · photos and video manager (Slice 6, sheet)</option><option value="usage">Usage (Slice 10)</option><option value="usage-warning">· bandwidth at 95% (warning)</option><option value="products-limit">Products · plan limit reached (refused)</option><option value="downgrade-checklist">Plan · 30 days after a downgrade (DWN-12)</option><option value="addons">Add-ons · catalogue (Slice 10a)</option></optgroup>
       <optgroup label="Phase 0 to 3 · flows the audit found undrawn (2026-10-22)"><option value="sh-password">Account · change password (sheet, AUTH-20)</option><option value="sh-identity-email">· add an email (sheet, AUTH-26)</option><option value="sh-identity-code">· the email code (sheet)</option><option value="account-email-added">· email added (toast)</option><option value="account-connected">· Facebook connected (toast)</option><option value="sh-identity-remove">· remove Google (dialog)</option><option value="sh-identity-last">· remove refused: the only way in (dialog)</option><option value="sh-staff-edit">Team · edit staff (sheet, STF-03)</option><option value="sh-staff-deactivate">· deactivate (dialog, STF-05)</option><option value="team-deactivated">· deactivated, seat freed (toast)</option><option value="sh-staff-reactivate-full">· reactivate refused: seats full (dialog, STF-04)</option><option value="sh-staff-password">· reset a password (sheet, STF-13)</option><option value="sh-role-delete-used">Roles · delete refused: in use (dialog, STF-09)</option><option value="sh-cancel">Plan · cancel at period end (sheet, LIF-01)</option><option value="plan-cancelled">· cancellation pending with Undo</option><option value="plan-downgrade-scheduled">· downgrade scheduled, Keep Growth (DWN-02)</option><option value="sh-payg-switch">· switch to pay-as-you-go (sheet, PYG-10)</option><option value="plan-payg">Plan · a pay-as-you-go shop (PYG-01, PYG-12)</option><option value="sh-close-shop">· close the shop (dialog, PYG-09)</option><option value="sh-writeoff">Stock · write off a batch (sheet, INV-13)</option><option value="sh-serial-fix">· fix or remove a serial (sheet, INV-14)</option><option value="sh-key-edit">API keys · edit a key (sheet, API-01)</option><option value="usage-80">Usage · bandwidth at 80%: run-out and auto-buy offer</option><option value="usage-stopped">· stopped at 110%: images off, one-tap pack</option><option value="home-fast-spend">Home · fast-spend alert (KNOWN-GAPS §82)</option><option value="balance-low">Balance · low-balance notice (BAL-13)</option><option value="sh-media-full">Product · upload refused: storage full</option><option value="addons-trial">Add-ons · on the trial: needs a plan</option><option value="sh-addon-buy">· buy extra products (sheet, PLN-14)</option><option value="sh-addon-buy-low">· buy: not enough balance</option><option value="addons-bought">· bought, limit raised (toast)</option><option value="sh-addon-renew-off">· turn renewal off (dialog)</option><option value="addons-lapsing">· lapse warning, 7 days (banner)</option><option value="sh-pack-buy">· buy a pack, auto-buy switches (sheet, PLN-15)</option><option value="brand">Brand identity · editor with preview (BRN-02, BRN-06)</option><option value="brand-landing">· preview: landing page</option><option value="brand-dash">· preview: dashboard</option><option value="brand-round">· round corners, compact spacing</option><option value="brand-contrast">· contrast fails AA, Apply disabled (BRN-03)</option><option value="brand-trial">· on the trial: design, cannot switch on (BRN-05)</option><option value="brand-lapsed">· add-on lapsed: default shown, settings kept</option><option value="menu-install">Menu · install the app (TEN-17)</option></optgroup>
@@ -386,7 +386,7 @@ svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.75;str
       <optgroup label="Menu"><option value="menu">Menu</option><option value="team">Team</option><option value="staff">· add staff (sheet)</option><option value="roles">Roles</option><option value="activity">Activity</option><option value="settings">Settings</option><option value="shopdetails">· shop details</option><option value="storefront">· storefront: slides as a carousel</option><option value="storefront-tiles">· storefront: one banner and two tiles</option><option value="storefront-empty">· storefront: no slides yet</option><option value="sh-slide">· slide editor with the focal point (sheet)</option><option value="sh-slide-new">· new slide (sheet)</option><option value="sh-slide-preview">· both crops (sheet)</option><option value="sh-slide-delete">· remove slide (dialog)</option><option value="storefront-saved">· slide saved (toast)</option><option value="api-keys">API keys (Slice 8)</option><option value="sh-key-new">· new key (sheet)</option><option value="sh-key-created">· key shown once (sheet)</option><option value="sh-key-revoke">· revoke (dialog)</option><option value="meta">Facebook and Meta (Slice 9b)</option><option value="meta-empty">· nothing connected</option><option value="sh-feed-regenerate">· new feed link (dialog)</option><option value="exports">· data export</option><option value="account">Account</option></optgroup>
       <optgroup label="Payment page (pay.lytro.app, embedded)"><option value="pay-checkout">Pay for the plan at checkout · ৳4,741</option><option value="pay-topup">Pay a top-up · ৳500</option><option value="pay-renew">Pay a renewal · ৳449</option><option value="pay-upgrade">Pay an upgrade · ৳400</option></optgroup>
       <optgroup label="Lifecycle"><option value="renew">Renew (locked or archived)</option><option value="unavailable">Unavailable (suspended)</option></optgroup>
-      <optgroup label="Later phases (design only)"><option value="orders">Orders</option><option value="order">Order detail</option><option value="order-book">Book courier (sheet)</option><option value="order-new">New order</option><option value="customers">Customers</option><option value="customer">Customer detail</option><option value="payments">Payments</option><option value="methods">Payment methods</option><option value="usage">Usage</option><option value="notices">Notices</option><option value="purchases">Purchases (Slice 4)</option><option value="sms">SMS events</option><option value="notifications">Notifications (sheet)</option><option value="search">Search</option></optgroup>
+      <optgroup label="Later phases (design only)"><option value="orders">Orders</option><option value="order">Order detail</option><option value="order-book">Book courier (sheet)</option><option value="order-new">New order</option><option value="customers">Customers</option><option value="customer">Customer detail</option><option value="payments">Payments</option><option value="methods">Payment methods</option><option value="usage">Usage</option><option value="notices">Notices</option><option value="purchases">Purchases (Slice 4)</option><option value="sms">SMS events</option><option value="search">Search</option></optgroup>
     </select>
   </label>
   <label>Device <span class="seg" id="segDevice"><button data-v="phone" class="on">Phone 390</button><button data-v="tablet">Tablet 820</button><button data-v="desktop">Desktop 1280</button></span></label>
@@ -1968,6 +1968,112 @@ SCREENS.settings.render = () => _settingsRender3().replace(`<div class="row late
 
 /* ---------- install the dashboard as an app (TEN-17) ---------- */
 SCREENS['menu-install'] = { ...SCREENS.menu, render: () => SCREENS.menu.render().replace(`${title('hubMenu')}`, `${title('hubMenu')}<div class="install"><span class="ap">${L('ম', 'M')}</span><span class="b">${t('inTitle', { s: L(...SHOP.name) })}<span class="l2">${t('inSub')}</span></span>${btn('p sm', t('inBtn'))}</div>`) };
+</script>
+<style>
+/* ---------- the bell and its panel: a notification bar that drops from the top-right corner ---------- */
+.scrim.top{align-items:flex-start;justify-content:flex-end;background:rgba(16,32,31,.28)}
+.npop{width:calc(100% - 16px);margin:62px 8px 0;max-height:calc(100% - 78px);background:var(--surface);border-radius:14px;box-shadow:0 24px 60px -20px rgba(16,32,31,.45),0 0 0 1px var(--line);display:flex;flex-direction:column;overflow:hidden;position:relative}
+.npop::before{content:"";position:absolute;right:24px;top:-7px;width:14px;height:14px;background:var(--surface);transform:rotate(45deg);border-left:1px solid var(--line);border-top:1px solid var(--line)}
+.npop .nh{display:flex;align-items:center;gap:8px;padding:14px 12px 10px 16px;border-bottom:1px solid var(--line)}
+.npop .nh h2{font-size:17px;font-weight:700;flex:1;min-width:0;display:flex;align-items:center;gap:8px}
+.npop .nh .lnk{font-size:13px;font-weight:600;color:var(--primary);padding:6px 8px;border-radius:8px}
+.npop .nh .ib{width:36px;height:36px;border:0}
+.npop .nb{overflow:auto;padding:4px 0 6px}
+.npop .grp{padding:10px 16px 4px;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--n700)}
+.nrow{display:flex;align-items:flex-start;gap:12px;width:100%;text-align:left;padding:10px 14px 10px 16px;border:0;background:transparent;font:inherit;color:inherit;position:relative;cursor:pointer}
+.nrow:hover{background:var(--n50)}
+.nrow .lead{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;flex:none;background:var(--n100);color:var(--n700)}
+.nrow .lead svg{width:18px;height:18px}
+.nrow .body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.nrow .l1{font-size:14px;font-weight:600;line-height:1.4}
+.nrow .l2{font-size:13px;color:var(--n700);line-height:1.4}
+.nrow .tm{font-size:12px;color:var(--n700);white-space:nowrap;padding-top:2px}
+.nrow.unread{background:var(--teal-50)}
+.nrow.unread::before{content:"";position:absolute;left:6px;top:50%;width:6px;height:6px;border-radius:50%;background:var(--accent);transform:translateY(-50%)}
+.nrow.unread .l1{font-weight:700}
+.nrow .act{margin-top:6px;display:flex;gap:6px}
+.npop .nf{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px 10px 16px;border-top:1px solid var(--line);background:var(--surface)}
+.npop .nf .lnk{font-size:14px;font-weight:600;color:var(--primary)}
+.npop .nf .hint{font-size:12px}
+.npop .nempty{padding:32px 20px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px}
+.npop .nempty .ico{width:56px;height:56px;border-radius:50%;background:var(--teal-50);color:var(--teal-700);display:grid;place-items:center}
+.npop .nempty .ico svg{width:26px;height:26px}
+.npop .nempty b{font-size:15px}
+.npop .nempty p{font-size:13px;color:var(--n700);max-width:30ch}
+@container (min-width: 1024px){
+  .npop{width:400px;margin:72px 28px 0;max-height:calc(100% - 96px)}
+  .npop::before{right:60px}
+}
+.npage .nrow{padding:12px 16px 12px 18px}
+.npage .card.flush .nrow{border-top:1px solid var(--line)} .npage .card.flush .nrow:first-child{border-top:0}
+</style>
+<script>
+Object.assign(S, {
+  ntTitle: ['নোটিফিকেশন', 'Notifications'], ntNew: ['{n}টি নতুন', '{n} new'], ntMarkAll: ['সব পড়া', 'Mark all read'], ntToday: ['আজ', 'Today'], ntEarlier: ['আগে', 'Earlier'],
+  ntSeeAll: ['সব দেখুন', 'See all'], ntSettings: ['কোনগুলো পাবেন', 'Which ones you get'], ntSettingsLater: ['ফেজ ৭', 'Phase 7'],
+  ntEmpty: ['এখনো কিছু নেই', 'Nothing yet'], ntEmptyHint: ['পেমেন্ট, স্টক, প্ল্যান আর লিমিটের খবর এখানে আসবে, ইমেইলের সাথে সাথে।', 'Payment, stock, plan and limit news lands here, alongside the email.'],
+  ntAllRead: ['সব পড়া হয়েছে', 'All read'],
+  ntTopup: ['টপ-আপ ৳500 ব্যালেন্সে যোগ হয়েছে', 'Top-up ৳500 added to the balance'], ntTopupS: ['bKash TrxID BKH9Z1C4T7 · ব্যালেন্স এখন ৳912.50', 'bKash TrxID BKH9Z1C4T7 · balance now ৳912.50'],
+  ntBw: ['ব্যান্ডউইথ ৮০%: ২৪ / ৩০ GB', 'Bandwidth at 80%: 24 of 30 GB'], ntBwS: ['এই গতিতে ৪ নভেম্বর শেষ, মেয়াদ ৩১ অক্টোবর। অটো-বাই চালু করুন বা ১০ GB প্যাক নিন।', 'At this pace it runs out on 4 Nov, the cycle ends 31 Oct. Turn on auto-buy or take a 10 GB pack.'],
+  ntBwAct: ['১০ GB প্যাক · ৳৩০', '10 GB pack · ৳30'],
+  ntLow: ['কুর্তি · L · মেরুন স্টক কম', 'Kurti · L · Maroon is low'], ntLowS: ['২টা বাকি, এই সপ্তাহে ১৪টা বিক্রি। স্টক যোগ করুন।', '2 left, 14 sold this week. Add stock.'],
+  ntRenew: ['প্ল্যান ৭ দিনে রিনিউ হবে · ৳449', 'The plan renews in 7 days · ৳449'], ntRenewS: ['Starter · ৯ নভেম্বর। ব্যালেন্স থেকে অটো-রিনিউ বন্ধ আছে।', 'Starter · 9 Nov. Auto-renew from the balance is off.'],
+  ntExpiry: ['ফেস ক্রিম ৫০ ml: ব্যাচ B2 ১২ নভেম্বর মেয়াদ শেষ', 'Face cream 50 ml: batch B2 expires 12 Nov'], ntExpiryS: ['১২ ইউনিট বাকি। আগে এই ব্যাচ বিক্রি হবে।', '12 units left. This batch sells first.'],
+  ntExport: ['ডেটা এক্সপোর্ট তৈরি', 'Your data export is ready'], ntExportS: ['ইনভয়েস, অ্যাক্টিভিটি, প্রোডাক্ট আর স্টক · 18 MB · ৭ দিন থাকবে', 'Invoices, activity, products and stock · 18 MB · kept 7 days'],
+  ntAddon: ['"একটা সিট" ৭ দিন পর শেষ, রিনিউ বন্ধ', '"One seat" ends in 7 days, renewal is off'], ntAddonS: ['চালু রাখুন, নয়তো ৯ নভেম্বর কাউকে ডিঅ্যাকটিভ করতে হবে।', 'Keep it, or someone must be deactivated on 9 Nov.'],
+  ntSeats: ['সিট সব ভরা: ২ / ২', 'Seats are full: 2 of 2'], ntSeatsS: ['নতুন স্টাফ নিতে একটা সিট কিনুন (৳49/মাস) বা Growth-এ যান।', 'Buy a seat (৳49/month) or move to Growth to add staff.'],
+  ntNotice: ['Lytro থেকে: Steadfast বুকিং এখন লাইভ', 'From Lytro: Steadfast booking is live'], ntNoticeS: ['সেটিংস › কুরিয়ার থেকে নিজের অ্যাকাউন্ট যোগ করুন।', 'Add your own account under Settings › Couriers.'],
+  ntFAll: ['সব', 'All'], ntFUnread: ['না পড়া', 'Unread'], ntFMoney: ['টাকা', 'Money'], ntFStock: ['স্টক', 'Stock'], ntFPlan: ['প্ল্যান ও লিমিট', 'Plan and limits'],
+  ntYesterday: ['গতকাল', 'Yesterday'], ntWeek: ['এই সপ্তাহে', 'This week'], ntPageLead: ['শেষ ৩০ দিনের নোটিফিকেশন। প্রতিটা একই খবরের ইমেইলের সাথে মেলে।', 'The last 30 days. Each one matches the email that carried the same news.'],
+  t1142: ['সকাল 11:42', '11:42 am'], t1016: ['সকাল 10:16', '10:16 am'], t0905: ['সকাল 9:05', '9:05 am'], tYest: ['গতকাল', 'Yesterday'], t2d: ['২ দিন আগে', '2 days ago'], t3d: ['৩ দিন আগে', '3 days ago'], t5d: ['৫ দিন আগে', '5 days ago'],
+});
+
+/* notifications are current now: the bell stays in both bars, with its unread count */
+LATER.delete('notifications');
+const NT_UNREAD = () => (ST.screen === 'notifications-read' || ST.screen === 'notifications-empty' || isNew() ? 0 : 4);
+const bellBtn = () => `<button class="ib" onclick="go('notifications')" aria-label="${t('ntTitle')}">${ic('bell')}${NT_UNREAD() ? `<span class="badge">${NT_UNREAD()}</span>` : ''}</button>`;
+appbar = function (scr) {
+  const back = scr.back ? `<button class="ib" onclick="go('${scr.base || scr.hub}')">${ic('left')}</button>` : '';
+  const shop = scr.back ? `<div class="shop"><span class="name">${scr.title ? t(scr.title) : ''}</span></div>` : `<div class="shop"><span class="mono">${L('ম', 'M')}</span><span class="name">${L(...SHOP.name)}</span></div>`;
+  return `<div class="appbar">${back}${shop}<button class="ib" onclick="go('search')">${ic('search')}</button><button class="ib" onclick="go('plus')">${ic('plus')}</button>${bellBtn()}</div>`;
+};
+header = function (scr) {
+  return `<div class="header"><h1>${scr.title ? t(scr.title) : L(...SHOP.name)}</h1>${searchBox()}<button class="ib" onclick="go('plus')">${ic('plus')}</button><button class="lang" onclick="setLang(LANG==='bn'?'en':'bn')">${LANG === 'bn' ? 'EN' : 'বাং'}</button>${bellBtn()}<span class="avatar">${L('রু', 'R')}</span></div>`;
+};
+
+/* the rows: what the backend already sends by email (Slice 10 warnings, lifecycle, batches, exports, add-ons) and, later, Lytro's notices */
+const NT_TODAY = [
+  { i: 'banknote', c: 'success', k: 'ntTopup', s: 'ntTopupS', tm: 't1142', go: 'balance', unread: true },
+  { i: 'trend', c: 'warn', k: 'ntBw', s: 'ntBwS', tm: 't1016', go: 'usage', unread: true, act: 'ntBwAct', actGo: 'sh-pack-buy' },
+  { i: 'box', c: 'danger', k: 'ntLow', s: 'ntLowS', tm: 't0905', go: 'stock', unread: true },
+  { i: 'megaphone', c: 'mari', k: 'ntNotice', s: 'ntNoticeS', tm: 't0905', go: 'notices', unread: true, later: true },
+];
+const NT_EARLIER = [
+  { i: 'calendar', c: 'info', k: 'ntRenew', s: 'ntRenewS', tm: 'tYest', go: 'plan' },
+  { i: 'clock', c: 'warn', k: 'ntExpiry', s: 'ntExpiryS', tm: 'tYest', go: 'expiring' },
+  { i: 'users', c: 'warn', k: 'ntSeats', s: 'ntSeatsS', tm: 't2d', go: 'team' },
+  { i: 'download', c: 'success', k: 'ntExport', s: 'ntExportS', tm: 't3d', go: 'exports' },
+  { i: 'key', c: 'warn', k: 'ntAddon', s: 'ntAddonS', tm: 't5d', go: 'addons-lapsing' },
+];
+const NT_TONE = { success: 'background:var(--success-soft);color:var(--success)', warn: 'background:var(--warning-soft);color:var(--warning)', danger: 'background:var(--danger-soft);color:var(--danger)', info: 'background:var(--info-soft);color:var(--info)', mari: 'background:var(--mari-100, #fdf0d1);color:var(--mari-700, #9a6004)' };
+const nrow = (n, read) => `<div class="nrow ${n.unread && !read ? 'unread' : ''}" role="button" tabindex="0" onclick="go('${n.go}')"><span class="lead" style="${NT_TONE[n.c]}">${ic(n.i)}</span><span class="body"><span class="l1">${t(n.k)}${n.later ? ` <span class="st neu" style="height:18px;font-size:11px;vertical-align:middle">${t('ntSettingsLater')}</span>` : ''}</span><span class="l2">${t(n.s)}</span>${n.act ? `<span class="act">${btn('p xs', t(n.act), `onclick="event.stopPropagation();go('${n.actGo}')"`)}</span>` : ''}</span><span class="tm">${t(n.tm)}</span></div>`;
+function notifPanel(o = {}) {
+  const unread = o.read || o.empty ? 0 : 4;
+  const body = o.empty
+    ? `<div class="nempty"><span class="ico">${ic('bell')}</span><b>${t('ntEmpty')}</b><p>${t('ntEmptyHint')}</p></div>`
+    : `<div class="grp">${t('ntToday')}</div>${NT_TODAY.map((n) => nrow(n, o.read)).join('')}<div class="grp">${t('ntEarlier')}</div>${NT_EARLIER.map((n) => nrow(n, true)).join('')}`;
+  return `<div class="scrim top" onclick="go(SCREENS[ST.screen].base||'home')"><div class="npop" onclick="event.stopPropagation()">
+    <div class="nh"><h2>${t('ntTitle')}${unread ? `<span class="st info">${t('ntNew', { n: unread })}</span>` : ''}</h2>${unread ? `<button class="lnk" onclick="go('notifications-read')">${t('ntMarkAll')}</button>` : ''}<button class="ib" title="${t('ntSettings')} · ${t('ntSettingsLater')}">${ic('settings')}</button></div>
+    <div class="nb">${body}</div>
+    <div class="nf"><a href="#" class="lnk" onclick="go('notifications-all');return false">${t('ntSeeAll')}</a><span class="hint">${t('ntSettings')} · ${t('ntSettingsLater')}</span></div></div></div>`;
+}
+SCREENS.notifications = { ...SCREENS.home, base: 'home', sheet: () => notifPanel() };
+SCREENS['notifications-empty'] = { ...SCREENS.home, base: 'home', sheet: () => notifPanel({ empty: true }) };
+SCREENS['notifications-read'] = { ...SCREENS.home, base: 'home', sheet: () => notifPanel({ read: true }), toast: () => `${ic('check')} ${t('ntAllRead')}` };
+SCREENS['notifications-all'] = { hub: 'menu', title: 'ntTitle', back: true, base: 'menu', path: '/notifications', render: () => `${title('ntTitle', btn('o sm', t('ntMarkAll')))}<p class="hint">${t('ntPageLead')}</p>${chips([{ l: t('ntFAll'), on: true }, { l: t('ntFUnread'), c: 4 }, { l: t('ntFMoney') }, { l: t('ntFStock') }, { l: t('ntFPlan') }])}
+  <div class="npage"><div class="eyebrow" style="margin-bottom:8px">${t('ntToday')}</div><div class="card flush">${NT_TODAY.map((n) => nrow(n)).join('')}</div>
+  <div class="eyebrow" style="margin:16px 0 8px">${t('ntYesterday')}</div><div class="card flush">${NT_EARLIER.slice(0, 2).map((n) => nrow(n, true)).join('')}</div>
+  <div class="eyebrow" style="margin:16px 0 8px">${t('ntWeek')}</div><div class="card flush">${NT_EARLIER.slice(2).map((n) => nrow(n, true)).join('')}</div></div>` };
 </script>
 <script type="text/template" id="paytpl">
 <!doctype html>
