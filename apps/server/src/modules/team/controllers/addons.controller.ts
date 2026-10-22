@@ -20,12 +20,14 @@ import { RequirePermission } from '../../../common/decorators/require-permission
 import { ResponseMessage } from '../../../common/decorators/response-message';
 import { IdempotencyInterceptor } from '../../../common/idempotency/idempotency.interceptor';
 import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
+import { AddonPackService } from '../../billing/services/addon-pack.service';
 import { AddonPurchaseService } from '../../billing/services/addon-purchase.service';
 import type {
   AddonOffer,
   AddonPurchaseResult,
   AddonQuote,
   ShopAddons,
+  ShopPack,
 } from '../../billing/types/addon';
 import { DashboardGuard, type DashboardRequest } from '../../identity/guards/dashboard.guard';
 import { SessionGuard } from '../../identity/guards/session.guard';
@@ -35,8 +37,15 @@ import {
   AddonPurchaseResultDto,
   AddonQuoteDto,
   ShopAddonsDto,
+  ShopPackListDto,
 } from '../dto/addons-response.dto';
-import { ConfirmAddonDto, QuoteAddonDto, SetAddonRenewalDto } from '../dto/billing.dto';
+import {
+  BuyPacksDto,
+  ConfirmAddonDto,
+  QuoteAddonDto,
+  SetAddonRenewalDto,
+  SetPackAutoBuyDto,
+} from '../dto/billing.dto';
 
 // PLN-13, PLN-14, BRN-05: a shop's add-ons -- what is for sale and at what price, buying one from the balance, and
 // what the shop has now. Paying by wallet follows in Slice 10a.2.
@@ -47,6 +56,7 @@ import { ConfirmAddonDto, QuoteAddonDto, SetAddonRenewalDto } from '../dto/billi
 export class AddonsController {
   constructor(
     @Inject(AddonPurchaseService) private readonly addons: AddonPurchaseService,
+    @Inject(AddonPackService) private readonly packs: AddonPackService,
     @Inject(ClientIp) private readonly clientIp: ClientIp,
   ) {}
 
@@ -109,6 +119,31 @@ export class AddonsController {
       amountPaid: body.amountPaid.toFixed(2),
     });
     return { payment, invoice: null };
+  }
+
+  @Post('packs')
+  @UseInterceptors(IdempotencyInterceptor)
+  @RequirePermission(Permission.PaymentsManage)
+  @ResponseMessage('AddonPurchased')
+  @ApiOperation({ summary: 'Buy bandwidth or request packs from the balance, at once' })
+  @ZodResponse({ type: AddonPurchaseResultDto })
+  buyPacks(
+    @Body(new ZodValidationPipe(BuyPacksDto.schema)) body: BuyPacksDto,
+    @Req() request: DashboardRequest,
+  ): Promise<AddonPurchaseResult> {
+    return this.packs.buy(this.tenantIdOf(request), body, this.clientIp.resolve(request));
+  }
+
+  @Patch('auto-buy')
+  @RequirePermission(Permission.PaymentsManage)
+  @ResponseMessage('PackAutoBuyUpdated')
+  @ApiOperation({ summary: 'Switch auto-buy of bandwidth or request packs on or off' })
+  @ZodResponse({ type: ShopPackListDto })
+  setAutoBuy(
+    @Body(new ZodValidationPipe(SetPackAutoBuyDto.schema)) body: SetPackAutoBuyDto,
+    @Req() request: DashboardRequest,
+  ): Promise<ShopPack[]> {
+    return this.packs.setAutoBuy(this.tenantIdOf(request), body, this.clientIp.resolve(request));
   }
 
   @Patch('mine/:id')

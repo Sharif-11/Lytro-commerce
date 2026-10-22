@@ -620,6 +620,8 @@
       "addon_not_renewed": "said which add-ons did not renew",
       "addon_lapsed": "ended an add-on",
       "addon_ending_warned": "warned that an add-on ends soon",
+      "pack_auto_buy_set": "changed pack auto-buy",
+      "pack_auto_buy_failed": "could not auto-buy a pack",
       "downgrade_scheduled": "scheduled a downgrade",
       "downgrade_cancelled": "cancelled the scheduled downgrade",
       "downgrade_applied": "applied the downgrade",

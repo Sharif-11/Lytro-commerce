@@ -41,7 +41,16 @@ const PRO = plan('Pro', 3, 999, {
 const PLANS = [PRO, STARTER, GROWTH];
 
 function figure(metric: UsageMetric, used: number, limit: number | null): UsageFigure {
-  return { metric, used, limit, unit: 'count', perCycle: false, level: null };
+  return {
+    metric,
+    used,
+    limit,
+    packLeft: null,
+    stopAt: null,
+    unit: 'count',
+    perCycle: false,
+    level: null,
+  };
 }
 
 describe('what a shop near its limit is offered (LIM-01)', () => {
@@ -120,6 +129,7 @@ function usage(overrides: Partial<ShopUsage> = {}): ShopUsage {
     bandwidthDays: [],
     suggestions: null,
     fastSpendAlertedAt: null,
+    packs: [],
     ...overrides,
   };
 }

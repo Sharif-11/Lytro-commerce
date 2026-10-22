@@ -36,7 +36,10 @@ export const shopUsageSchema = z.object({
     z.object({
       metric: z.nativeEnum(UsageMetric),
       used: z.number(),
+      // BND-04, RTE-11: for bandwidth and API requests, the cycle's allowance -- the shop's own limit, then its packs.
       limit: z.number().nullable(),
+      packLeft: z.number().nullable(),
+      stopAt: z.number().nullable(),
       unit: z.enum(['count', 'bytes']),
       perCycle: z.boolean(),
       level: z
@@ -49,5 +52,15 @@ export const shopUsageSchema = z.object({
     .object({ first: suggestionSchema, alternative: suggestionSchema.nullable() })
     .nullable(),
   fastSpendAlertedAt: z.date().nullable(),
+  // BND-04, RTE-11, PLN-15: the pack for sale and how auto-buy stands, for bandwidth and API requests.
+  packs: z.array(
+    z.object({
+      metric: z.enum([UsageMetric.Bandwidth, UsageMetric.Requests]),
+      offer: z.object({ addonId: z.string(), name: z.string(), price: z.number() }).nullable(),
+      autoBuy: z.boolean(),
+      autoPacks: z.number(),
+      autoBuyFailed: z.boolean(),
+    }),
+  ),
 });
 export class ShopUsageDto extends createZodDto(shopUsageSchema) {}

@@ -6,9 +6,11 @@ import {
   integer,
   primaryKey,
   smallint,
+  text,
   timestamp,
   uuid,
 } from 'drizzle-orm/pg-core';
+import type { PackAutoBuyState } from '@lytronix/validators';
 import { control } from '../shared';
 import { tenants } from './tenancy';
 
@@ -25,10 +27,22 @@ export const mediaBandwidth = control.table(
     bytes: bigint('bytes', { mode: 'number' }).notNull().default(0),
     requests: bigint('requests', { mode: 'number' }).notNull().default(0),
     warnedPercent: integer('warned_percent').notNull().default(0),
+    // BND-04, PLN-15: what the cycle took from the shop's bandwidth packs, in bytes -- its use past the limit, as far as
+    // the packs reach -- and the grace use written off when a pack was bought past the allowance. What a pack holds is
+    // what it bought less what every cycle took, so packs carry over until used.
+    packUsed: bigint('pack_used', { mode: 'number' }).notNull().default(0),
+    packFree: bigint('pack_free', { mode: 'number' }).notNull().default(0),
+    // BND-04: packs auto-buy bought this cycle (at most PACK_AUTO_BUY_CAP), and one asked for or one the balance failed.
+    autoPacks: integer('auto_packs').notNull().default(0),
+    autoBuyState: text('auto_buy_state').$type<PackAutoBuyState>(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     primaryKey({ name: 'media_bandwidth_pkey', columns: [t.tenantId, t.cycleStart] }),
+    check(
+      'media_bandwidth_packs_check',
+      sql`${t.packUsed} >= 0 AND ${t.packFree} >= 0 AND ${t.autoPacks} >= 0 AND (${t.autoBuyState} IS NULL OR ${t.autoBuyState} IN ('requested', 'failed'))`,
+    ),
     check('media_bandwidth_counts_check', sql`${t.bytes} >= 0 AND ${t.requests} >= 0`),
   ],
 );

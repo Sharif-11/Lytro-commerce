@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { withOverrides } from '@lytronix/validators';
+import { shopLimitsOf } from '@lytronix/validators';
 import type { ApiKeyStore } from '../ports/api-key-store';
 import { API_CLOCK, API_KEY_STORE } from '../tokens';
 import type { ApiShop, AuthenticatedKey } from '../types/public-api';
@@ -64,14 +64,24 @@ export class ApiKeyAuthenticator {
     return registered;
   }
 
-  /** The shop a key acts for, with its snapshot and overrides laid over it (PLN-11); null when there is none. */
+  /**
+   * The shop a key acts for, with its own limits -- its snapshot with its overrides and limit add-ons (PLN-11, PLN-13),
+   * the one composition every limit reader uses; null when there is none.
+   */
   async shopOf(tenantId: string): Promise<ApiShop | null> {
     const now = this.clock().getTime();
     const cached = this.shops.get(tenantId, now);
     if (cached !== undefined) return cached;
     const row = await this.store.findShop(tenantId);
     const shop = row
-      ? { row, limits: withOverrides(row.planSnapshot, await this.store.listOverrides(tenantId)) }
+      ? {
+          row,
+          limits: shopLimitsOf(
+            row.planSnapshot,
+            await this.store.listOverrides(tenantId),
+            await this.store.listAddonUnits(tenantId),
+          ),
+        }
       : null;
     this.shops.set(tenantId, shop, now);
     return shop;

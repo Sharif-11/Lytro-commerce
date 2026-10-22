@@ -120,6 +120,15 @@ export class TenantService {
     return this.store.setAutoRenew(tx, tenantId, enabled);
   }
 
+  /** PLN-15: the shop's auto-buy switches for bandwidth and request packs, either or both. */
+  setPackAutoBuy(
+    tx: Transaction,
+    tenantId: string,
+    values: { autoBuyBandwidth?: boolean; autoBuyRequests?: boolean },
+  ): Promise<void> {
+    return this.store.setPackAutoBuy(tx, tenantId, values);
+  }
+
   /** DWN-11: protects the tenant's pre-downgrade retention until `until`. */
   setRetentionFloor(
     tx: Transaction,

@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import {
   bigint,
   char,
+  check,
   index,
   integer,
   primaryKey,
@@ -10,6 +11,7 @@ import {
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
+import type { PackAutoBuyState } from '@lytronix/validators';
 import { API_KEY_NAME_MAX_LENGTH, ApiKeyType, enumTuple } from '@lytronix/validators';
 import { control, createdAt } from '../shared';
 import { tenants } from './tenancy';
@@ -65,9 +67,21 @@ export const apiUsage = control.table(
     refusedVisitors: integer('refused_visitors').notNull().default(0),
     // RTE-12: when the operators were last told of a fast hour's spending, so they are told at most once a day.
     fastSpendAlertedAt: timestamp('fast_spend_alerted_at', { withTimezone: true }),
+    // RTE-11, PLN-15: what the cycle took from the shop's request packs, and the grace use written off when a pack was
+    // bought past the allowance; packs auto-buy bought this cycle, and one asked for or failed -- as media_bandwidth.
+    packUsed: bigint('pack_used', { mode: 'number' }).notNull().default(0),
+    packFree: bigint('pack_free', { mode: 'number' }).notNull().default(0),
+    autoPacks: integer('auto_packs').notNull().default(0),
+    autoBuyState: text('auto_buy_state').$type<PackAutoBuyState>(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [primaryKey({ name: 'api_usage_pkey', columns: [t.tenantId, t.cycleStart] })],
+  (t) => [
+    primaryKey({ name: 'api_usage_pkey', columns: [t.tenantId, t.cycleStart] }),
+    check(
+      'api_usage_packs_check',
+      sql`${t.packUsed} >= 0 AND ${t.packFree} >= 0 AND ${t.autoPacks} >= 0 AND (${t.autoBuyState} IS NULL OR ${t.autoBuyState} IN ('requested', 'failed'))`,
+    ),
+  ],
 );
 
 export type SelectApiKey = typeof apiKeys.$inferSelect;

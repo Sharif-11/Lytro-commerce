@@ -2,7 +2,9 @@ import type {
   BandwidthCycleRow,
   BandwidthDayRow,
   BillingInfoRow,
+  CyclePackFields,
   EdgeShopRow,
+  TenantTotal,
   Transaction,
 } from '@lytronix/db';
 
@@ -27,6 +29,21 @@ export interface BandwidthStore {
     usage: { tenantId: string; cycleStart: Date; day: string; bytes: number; requests: number },
   ): Promise<BandwidthCycleRow>;
   setWarned(tx: Transaction, tenantId: string, cycleStart: Date, percent: number): Promise<void>;
+  /** BND-04: changes the cycle's warning or pack figures. */
+  updateCycle(
+    tx: Transaction,
+    tenantId: string,
+    cycleStart: Date,
+    values: Partial<CyclePackFields & { warnedPercent: number }>,
+  ): Promise<void>;
+  /** BND-04: the shop's cycle, made at nothing used if it has none yet, locked for a change to its packs. */
+  lockCycle(tx: Transaction, tenantId: string, cycleStart: Date): Promise<BandwidthCycleRow>;
+  /** PLN-13: every shop's active limit add-ons for its bandwidth, in GB -- or one shop's, in `tx` when given. */
+  listLimitAddons(tenantId?: string, tx?: Transaction): Promise<TenantTotal[]>;
+  /** BND-04: the bandwidth packs every shop bought, in GB -- or one shop's, in `tx` when given. */
+  listPacksBought(tenantId?: string, tx?: Transaction): Promise<TenantTotal[]>;
+  /** BND-04: what every shop's cycles took from its bandwidth packs, in bytes -- or one shop's. */
+  listPacksTaken(tenantId?: string, tx?: Transaction): Promise<TenantTotal[]>;
   findCycle(tenantId: string, cycleStart: Date): Promise<BandwidthCycleRow | null>;
   listCyclesSince(since: Date): Promise<BandwidthCycleRow[]>;
   listDays(tenantId: string, cycleStart: Date): Promise<BandwidthDayRow[]>;

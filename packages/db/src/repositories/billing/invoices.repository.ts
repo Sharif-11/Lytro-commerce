@@ -34,8 +34,8 @@ export interface NewInvoice {
   ownerName: string | null;
   planName: string | null;
   planVersion: number | null;
-  periodStart: Date;
-  periodEnd: Date;
+  periodStart: Date | null;
+  periodEnd: Date | null;
   discountAmount: string;
   paymentMethod: SelectInvoice['paymentMethod'];
   paymentReference: string | null;

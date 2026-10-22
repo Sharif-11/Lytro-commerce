@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { AddonKind, isUsageLimitKey } from '@lytronix/validators';
-import { AddonPurchaseService } from '../../billing/services/addon-purchase.service';
+import { AddonPackService } from '../../billing/services/addon-pack.service';
 import { BillingTermsService } from '../../billing/services/billing-terms.service';
 import { PlansService } from '../../billing/services/plans.service';
 import type { AddonOffer } from '../../billing/types/addon';
@@ -8,11 +8,14 @@ import type { TenantSummary } from '../../tenancy/types/tenant-summary';
 import type { Suggestions, UsageFigure } from '../types/usage';
 import { anyNear, suggest, type AddonOption, type PlanOption } from './suggest';
 
-/** PLN-13: the limit add-ons the shop can buy now -- each offered with a price -- by their monthly price. */
+/**
+ * PLN-13, BND-04, RTE-11: the limit add-ons and packs the shop can buy now -- each offered with a price -- by their price
+ * a month (a pack's, a cycle's need of it).
+ */
 function addonOptions(offers: readonly AddonOffer[]): AddonOption[] {
   return offers.flatMap(({ addon, price }) =>
     price !== null &&
-    addon.kind === AddonKind.Limit &&
+    (addon.kind === AddonKind.Limit || addon.kind === AddonKind.Pack) &&
     addon.limitKey !== null &&
     isUsageLimitKey(addon.limitKey) &&
     addon.unitSize !== null
@@ -24,6 +27,7 @@ function addonOptions(offers: readonly AddonOffer[]): AddonOption[] {
             limitKey: addon.limitKey,
             unitSize: addon.unitSize,
             monthly: Math.round(Number(addon.price)),
+            pack: addon.kind === AddonKind.Pack,
           },
         ]
       : [],
@@ -40,15 +44,21 @@ export class UsageSuggestions {
   constructor(
     @Inject(PlansService) private readonly plans: PlansService,
     @Inject(BillingTermsService) private readonly terms: BillingTermsService,
-    @Inject(AddonPurchaseService) private readonly addons: AddonPurchaseService,
+    @Inject(AddonPackService) private readonly packs: AddonPackService,
   ) {}
 
-  async for(tenant: TenantSummary, figures: readonly UsageFigure[]): Promise<Suggestions | null> {
+  /** The suggestions, from the offers the usage already read (`offers`). */
+  async for(
+    tenant: TenantSummary,
+    figures: readonly UsageFigure[],
+    offers: readonly AddonOffer[],
+    now: Date,
+  ): Promise<Suggestions | null> {
     if (!anyNear(figures)) return null;
-    const [plans, terms, offers] = await Promise.all([
+    const [plans, terms, packsTwoCycles] = await Promise.all([
       this.plans.listForSale(),
       this.terms.listVisibleFor(tenant.id),
-      this.addons.offers(tenant.id),
+      this.packs.boughtTwoCyclesRunning(tenant, now),
     ]);
     const shortestFirst = [...terms].sort((a, b) => a.months - b.months);
     const options: PlanOption[] = [];
@@ -75,7 +85,9 @@ export class UsageSuggestions {
       figures,
       { rank: current?.rank ?? null },
       options,
-      own ? { planMonthly: own.price / own.months, addons: addonOptions(offers) } : null,
+      own
+        ? { planMonthly: own.price / own.months, addons: addonOptions(offers), packsTwoCycles }
+        : null,
     );
   }
 }

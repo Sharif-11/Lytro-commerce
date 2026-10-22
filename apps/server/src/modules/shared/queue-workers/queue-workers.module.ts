@@ -17,6 +17,7 @@ import { MediaProcessWorker } from './services/media-process-worker';
 import { MediaBandwidthTickWorker } from './services/media-bandwidth-tick-worker';
 import { MediaReconcileTickWorker } from './services/media-reconcile-tick-worker';
 import { UsageModule } from '../../usage/usage.module';
+import { PackAutoBuyWorker } from './services/pack-auto-buy-worker';
 import { UsageNoticeWorker } from './services/usage-notice-worker';
 
 // D27/D2-6: registers pg-boss queues and their work handlers. Kept apart from QueueModule (the queue mechanism
@@ -46,6 +47,7 @@ import { UsageNoticeWorker } from './services/usage-notice-worker';
     MediaReconcileTickWorker,
     MediaBandwidthTickWorker,
     UsageNoticeWorker,
+    PackAutoBuyWorker,
   ],
 })
 export class QueueWorkersModule {}

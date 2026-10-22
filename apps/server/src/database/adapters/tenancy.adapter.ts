@@ -135,6 +135,14 @@ export class DrizzleTenantStore implements TenantStore {
     return this.tenants.setAutoRenew(tx, tenantId, enabled);
   }
 
+  setPackAutoBuy(
+    tx: Transaction,
+    tenantId: string,
+    values: { autoBuyBandwidth?: boolean; autoBuyRequests?: boolean },
+  ): Promise<void> {
+    return this.tenants.setPackAutoBuy(tx, tenantId, values);
+  }
+
   setRetentionFloor(
     tx: Transaction,
     tenantId: string,
