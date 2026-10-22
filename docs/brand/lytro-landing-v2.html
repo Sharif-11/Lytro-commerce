@@ -70,22 +70,26 @@
 
   /* ---------- navbar: a floating capsule ---------- */
   .nav{position:fixed;inset:0 0 auto;z-index:50;padding:calc(10px + env(safe-area-inset-top,0px)) var(--gutter-r) 0 var(--gutter)}
-  .navbar{max-width:1140px;margin:0 auto;height:var(--nav-h);border-radius:999px;display:flex;align-items:center;gap:8px;padding:0 6px 0 16px;background:rgba(4,40,38,.58);backdrop-filter:blur(18px) saturate(150%);-webkit-backdrop-filter:blur(18px) saturate(150%);border:1px solid rgba(255,255,255,.14);box-shadow:0 12px 34px -18px rgba(0,0,0,.65);--wm-text:#fff;--wm-mark:var(--teal-400);color:#fff;transition:background .25s,border-color .25s,color .25s,box-shadow .25s}
+  .navbar{max-width:1140px;margin:0 auto;height:var(--nav-h);border-radius:999px;display:flex;align-items:center;gap:6px;padding:0 6px 0 14px;min-width:0;background:rgba(4,40,38,.58);backdrop-filter:blur(18px) saturate(150%);-webkit-backdrop-filter:blur(18px) saturate(150%);border:1px solid rgba(255,255,255,.14);box-shadow:0 12px 34px -18px rgba(0,0,0,.65);--wm-text:#fff;--wm-mark:var(--teal-400);color:#fff;transition:background .25s,border-color .25s,color .25s,box-shadow .25s}
   .nav.scrolled .navbar{background:rgba(255,255,255,.9);border-color:var(--line);box-shadow:var(--shadow-md);--wm-text:var(--ink);--wm-mark:var(--teal-700);color:var(--ink)}
-  .nav .spacer{flex:1}
+  .navbar>*{flex:none;min-width:0} .nav .spacer{flex:1 1 auto}
+  .navbar .wm{min-width:0}
   .nav-links{display:none}
   .lang{display:inline-flex;align-items:center;height:36px;padding:3px;border-radius:999px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.14);transition:background .25s,border-color .25s}
+  .navbar .lang{display:none}
   .nav.scrolled .lang{background:var(--n50);border-color:var(--line)}
   .lang button{height:28px;min-width:40px;padding:0 10px;border:0;border-radius:999px;background:transparent;color:inherit;font-weight:600;font-size:.8125rem;cursor:pointer;font-family:var(--font-ui)}
   .lang button[aria-pressed="true"]{background:var(--white);color:var(--ink);box-shadow:var(--shadow-sm)}
   .nav.scrolled .lang button[aria-pressed="true"]{background:var(--ink);color:var(--white)}
   .login{display:none}
-  .cta-top{min-height:40px;padding:8px 14px;font-size:.9375rem}
+  .cta-top{min-height:38px;min-width:38px;padding:8px 12px;font-size:.875rem;gap:6px}
   .cta-top span.long{display:none}
   .burger{width:40px;height:40px;border-radius:50%;border:0;background:transparent;color:inherit;display:grid;place-items:center;cursor:pointer}
   .burger .ic-x{display:none} .burger[aria-expanded="true"] .ic-x{display:block} .burger[aria-expanded="true"] .ic-menu{display:none}
   .mobile-menu{position:fixed;inset:0;z-index:49;background:var(--teal-950);color:#fff;padding:calc(var(--nav-h) + 40px) var(--gutter) 32px;display:none;overflow:auto}
   .mobile-menu.open{display:block}
+  .mobile-menu .sheet-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;color:var(--teal-100);font-size:.9375rem}
+  .mobile-menu .lang{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.16)} .mobile-menu .lang button[aria-pressed="true"]{background:#fff;color:var(--ink)}
   .mobile-menu nav{display:grid;gap:4px} .mobile-menu nav a{display:flex;align-items:center;justify-content:space-between;min-height:56px;font-size:1.5rem;font-weight:700;border-bottom:1px solid rgba(255,255,255,.1)}
   .mobile-menu nav a svg{width:20px;height:20px;color:var(--teal-300)}
   .mobile-menu .acts{display:grid;gap:10px;margin-top:22px} .mobile-menu .note{color:var(--teal-100);font-size:.9375rem;text-align:center;margin-top:6px}
@@ -300,9 +304,11 @@
   .sticky-cta{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:40;display:flex;align-items:center;gap:10px;background:rgba(16,32,31,.94);color:#fff;border-radius:999px;padding:8px 8px 8px 18px;box-shadow:0 20px 40px -16px rgba(0,0,0,.7);transform:translateY(120%);opacity:0;transition:transform .25s ease-out,opacity .25s}
   .sticky-cta.show{transform:none;opacity:1} .sticky-cta .sub{flex:1;min-width:0;line-height:1.25} .sticky-cta b{display:block;font-size:.9375rem} .sticky-cta span{font-size:.75rem;color:var(--teal-100)} .sticky-cta .btn{min-height:40px;padding:8px 16px;font-size:.9375rem}
 
+  @media (max-width:359px){ .cta-top .short{display:none} .cta-top{padding:8px 10px} .nav{padding-left:12px;padding-right:12px} }
   /* 640 and up */
   @media (min-width:640px){
     :root{--sec:76px}
+    .navbar{gap:8px;padding:0 6px 0 16px} .navbar .lang{display:inline-flex} .cta-top{min-height:40px;padding:8px 14px;font-size:.9375rem}
     .claim{grid-template-columns:1fr auto} .claim .btn{width:auto;padding-inline:26px}
     .scene{max-width:480px}
     .pair{grid-template-columns:1fr 1fr} .pair .mid{display:none}
@@ -319,11 +325,11 @@
     :root{--sec:100px;--nav-h:64px}
     .navbar{padding:0 8px 0 22px;gap:4px}
     .nav-links{display:flex;align-items:center;gap:2px;margin-left:18px}
-    .nav-links a{position:relative;display:inline-flex;align-items:center;height:40px;padding:0 13px;border-radius:999px;font-size:.9375rem;font-weight:600;color:inherit;opacity:.88}
+    .nav-links a{position:relative;display:inline-flex;align-items:center;height:40px;padding:0 11px;border-radius:999px;font-size:.9375rem;font-weight:600;color:inherit;opacity:.88}
     .nav-links a::after{content:"";position:absolute;left:50%;bottom:4px;width:5px;height:5px;border-radius:50%;background:var(--mari-500);transform:translateX(-50%) scale(0);transition:transform .15s}
     .nav-links a:hover{opacity:1} .nav-links a:hover::after{transform:translateX(-50%) scale(1)}
     .nav.scrolled .nav-links a{color:var(--n700)} .nav.scrolled .nav-links a:hover{color:var(--ink)}
-    .login{display:inline-flex;align-items:center;height:40px;padding:0 12px;font-weight:600;font-size:.9375rem;opacity:.9;border-radius:999px} .login:hover{opacity:1;background:rgba(255,255,255,.08)} .nav.scrolled .login:hover{background:var(--n50)}
+    .login{display:none;align-items:center;height:40px;padding:0 12px;font-weight:600;font-size:.9375rem;opacity:.9;border-radius:999px} .login:hover{opacity:1;background:rgba(255,255,255,.08)} .nav.scrolled .login:hover{background:var(--n50)}
     .cta-top{min-height:44px;padding:9px 18px} .cta-top span.long{display:inline} .cta-top span.short{display:none}
     .burger,.mobile-menu,.sticky-cta{display:none}
     .hero{padding:calc(var(--nav-h) + 86px) 0 120px}
@@ -347,7 +353,7 @@
     .final{padding-block:108px} .final .btn{padding:15px 28px;font-size:1.0625rem}
     .fgrid2{grid-template-columns:1.5fr 2fr;gap:32px} footer .cols{grid-column:auto} footer{padding-bottom:36px}
   }
-  @media (min-width:1100px){ .pgrid{grid-template-columns:repeat(4,1fr);gap:18px} .plan{padding:26px 24px} }
+  @media (min-width:1100px){ .pgrid{grid-template-columns:repeat(4,1fr);gap:18px} .plan{padding:26px 24px} .login{display:inline-flex} .nav-links a{padding:0 13px} }
   @media (prefers-reduced-motion:no-preference){ .draw path{stroke-dasharray:90;stroke-dashoffset:90;animation:draw .8s ease-out .2s forwards} @keyframes draw{to{stroke-dashoffset:0}} }
   @media (prefers-reduced-motion:reduce){ .btn,.card,.phone,.sticky-cta,summary svg,.navbar{transition:none} html{scroll-behavior:auto} }
 </style>
@@ -397,8 +403,8 @@
     </nav>
     <span class="spacer"></span>
     <div class="lang" role="group" aria-label="Language">
-      <button type="button" id="lang-bn" aria-pressed="true">বাং</button>
-      <button type="button" id="lang-en" aria-pressed="false">EN</button>
+      <button type="button" id="lang-bn" data-lang-set="bn" aria-pressed="true">বাং</button>
+      <button type="button" id="lang-en" data-lang-set="en" aria-pressed="false">EN</button>
     </div>
     <a href="#" class="login" data-en="Log in">লগইন</a>
     <a href="#" class="btn btn-accent cta-top"><svg><use href="#mark"/></svg><span class="long" data-en="Open a free shop">ফ্রি দোকান খুলুন</span><span class="short" data-en="Start">শুরু করুন</span></a>
@@ -406,6 +412,7 @@
   </div>
 </header>
 <div class="mobile-menu" id="mobile-menu">
+  <div class="sheet-top"><span data-en="Language">ভাষা</span><div class="lang" role="group" aria-label="Language"><button type="button" data-lang-set="bn" aria-pressed="true">বাং</button><button type="button" data-lang-set="en" aria-pressed="false">EN</button></div></div>
   <nav aria-label="Mobile">
     <a href="#features"><span data-en="Features">ফিচার</span><svg><use href="#arrow"/></svg></a>
     <a href="#why"><span data-en="Why Lytro">কেন Lytro</span><svg><use href="#arrow"/></svg></a>
@@ -849,13 +856,11 @@
         else if (el.hasAttribute('data-en')) el.textContent = el.getAttribute(lang === 'en' ? 'data-en' : 'data-bn');
         if (el.hasAttribute('data-en-placeholder')) el.setAttribute('placeholder', el.getAttribute(lang === 'en' ? 'data-en-placeholder' : 'data-bn-placeholder'));
       });
-      document.getElementById('lang-bn').setAttribute('aria-pressed', lang === 'bn');
-      document.getElementById('lang-en').setAttribute('aria-pressed', lang === 'en');
+      document.querySelectorAll('[data-lang-set]').forEach(function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-lang-set') === lang ? 'true' : 'false'); });
       applyTerm();
       try { localStorage.setItem('lytro-lang', lang); } catch (e) {}
     }
-    document.getElementById('lang-bn').addEventListener('click', function () { setLang('bn'); });
-    document.getElementById('lang-en').addEventListener('click', function () { setLang('en'); });
+    document.querySelectorAll('[data-lang-set]').forEach(function (b) { b.addEventListener('click', function () { setLang(b.getAttribute('data-lang-set')); }); });
     document.getElementById('term-m').addEventListener('click', function () { term = 'm'; this.setAttribute('aria-pressed', 'true'); document.getElementById('term-y').setAttribute('aria-pressed', 'false'); applyTerm(); });
     document.getElementById('term-y').addEventListener('click', function () { term = 'y'; this.setAttribute('aria-pressed', 'true'); document.getElementById('term-m').setAttribute('aria-pressed', 'false'); applyTerm(); });
 
