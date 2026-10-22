@@ -2,7 +2,6 @@ import 'dotenv/config';
 import { type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { randomUUID } from 'node:crypto';
-import { request as httpRequest } from 'node:http';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from '../src/app/app.module';
@@ -11,42 +10,8 @@ import { DataExportService } from '../src/modules/data-export/services/data-expo
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase } from './support/database';
 import { SmsCapture } from './support/sms-capture';
-import { cookieFrom, getJson, postJson, type HttpResult } from './support/http';
+import { cookieFrom, getBinary, getJson, postJson, type HttpResult } from './support/http';
 import { passFirstSignIn } from './support/shop-client';
-
-// The download route sends raw bytes, not the JSON envelope every other route uses -- support/http.ts's own
-// helpers JSON.parse the body unconditionally, so this route needs its own raw reader (status/headers/a real
-// Buffer), kept local to this one file rather than changing a shared helper every other spec also relies on.
-interface BinaryResult {
-  status: number;
-  headers: Record<string, string | string[] | undefined>;
-  body: Buffer;
-}
-
-function getBinary(
-  portNumber: number,
-  path: string,
-  headers: Record<string, string>,
-): Promise<BinaryResult> {
-  return new Promise((resolve, reject) => {
-    const req = httpRequest(
-      { host: '127.0.0.1', port: portNumber, path: `/api/v1${path}`, method: 'GET', headers },
-      (res) => {
-        const chunks: Buffer[] = [];
-        res.on('data', (chunk: Buffer) => chunks.push(chunk));
-        res.on('end', () => {
-          resolve({
-            status: res.statusCode ?? 0,
-            headers: res.headers,
-            body: Buffer.concat(chunks),
-          });
-        });
-      },
-    );
-    req.on('error', reject);
-    req.end();
-  });
-}
 
 // LIF-16/17: the owner's own export of payments and the activity log. White-box for generation (the same
 // direct-service-call pattern test/plan-downgrade.e2e.spec.ts and test/queue.e2e.spec.ts already use) --

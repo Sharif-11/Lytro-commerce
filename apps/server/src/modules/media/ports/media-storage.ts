@@ -34,6 +34,8 @@ export interface MediaStorage {
   removeUpload(key: string): Promise<void>;
   /** A processed object, under its shop's prefix, cached for as long as its content-hashed name stays the same. */
   putMedia(key: string, body: Buffer, contentType: string): Promise<void>;
+  /** TEN-17: a processed object read back by the server itself (no shopper bandwidth), or null when it is gone. */
+  readMedia(key: string): Promise<Buffer | null>;
   deleteMedia(keys: string[]): Promise<void>;
   /** Every object under a prefix, for the daily reconciliation and the day-60 wipe. */
   listMedia(prefix: string): Promise<StoredObject[]>;

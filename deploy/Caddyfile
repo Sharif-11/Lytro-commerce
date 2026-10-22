@@ -34,17 +34,23 @@
 }
 
 # A static SPA build: no process, Caddy serves dist/ directly (§8), falling back to index.html for any
-# unmatched path so the client-side router takes over.
+# unmatched path so the client-side router takes over. Inside its own `handle`, so it only ever sees what /api/*
+# did not take: Caddy runs `try_files` (a rewrite) before any `handle`, so at the top level it rewrote every API
+# call to index.html first (KNOWN-GAPS §90). `handle` blocks are tried most specific first, one only.
 (dashboard_spa) {
-	root * {$DASHBOARD_DIST_PATH:/srv/dashboard/dist}
-	try_files {path} /index.html
-	file_server
+	handle {
+		root * {$DASHBOARD_DIST_PATH:/srv/dashboard/dist}
+		try_files {path} /index.html
+		file_server
+	}
 }
 
 (operator_spa) {
-	root * {$OPERATOR_DIST_PATH:/srv/operator/dist}
-	try_files {path} /index.html
-	file_server
+	handle {
+		root * {$OPERATOR_DIST_PATH:/srv/operator/dist}
+		try_files {path} /index.html
+		file_server
+	}
 }
 
 # The operator console's own strict Content Security Policy (DEPLOYMENT.md §5, D3-12): every script, style,

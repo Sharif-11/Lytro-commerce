@@ -115,6 +115,19 @@ export class S3MediaStorage implements MediaStorage {
     }
   }
 
+  async readMedia(key: string): Promise<Buffer | null> {
+    try {
+      const object = await this.processor.send(
+        new GetObjectCommand({ Bucket: this.settings.mediaBucket, Key: key }),
+      );
+      if (!object.Body) return null;
+      return Buffer.from(await object.Body.transformToByteArray());
+    } catch (error) {
+      if (error instanceof NoSuchKey) return null;
+      throw this.unavailable(error);
+    }
+  }
+
   async putMedia(key: string, body: Buffer, contentType: string): Promise<void> {
     try {
       await this.processor.send(

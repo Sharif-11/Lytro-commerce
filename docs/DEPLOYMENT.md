@@ -97,6 +97,9 @@ One `Caddyfile`, with a rule checked first on the two app hosts, `app.lytro.app`
   the dashboard and the operator console reach the backend: same-origin, relative fetches to `/api/v1/...` on
   their own host. **Updated 2026-10-14 (API-14):** the backend itself serves every route under `/api/v1/...`
   (the exact prefix the apps call), so Caddy strips nothing — a plain `handle`, not `handle_path`.
+  **Corrected 2026-10-22 (KNOWN-GAPS §90):** each app's files and their `index.html` fallback sit in their own
+  catch-all `handle`, so the `/api/*` rule is really checked first; at the top level Caddy's `try_files` had rewritten
+  every API call to `index.html` before any `handle` ran.
 - **Not on any other host (D3-11).** The apex serves the marketing site only, and a shop's host serves its
   public pages only, the storefront owning every path there (`TEN-08`, `SFT-02`), so neither forwards `/api`.
   The storefront and the website call the backend server-side, inside the deployment (§6), and code running
@@ -203,6 +206,10 @@ for `active`) with zero infrastructure work on this platform's side per tenant.
    namespace's id as `MEDIA_EDGE_KV_NAMESPACE_ID`; record it in RUNBOOKS §2. Every minute the server then totals each
    shop's bandwidth and writes the blocked list and each shop's website addresses. Without the token, nothing is
    counted or blocked.
+
+**The server's fonts** (Phase 3 Slice 11.1b): the server draws each shop's app-icon monogram from the fonts in
+`apps/server/assets/fonts` (TEN-17), found three folders above `dist/modules/shop-app`. The server's image carries
+`apps/server/assets` beside `dist`.
 
 **The credential sealing key** (Phase 3 Slice 9b): set `DATA_ENCRYPTION_KEY` (32 random bytes, base64) on the server
 from a secrets manager, never from a committed file; the server refuses to start in production without it. Its

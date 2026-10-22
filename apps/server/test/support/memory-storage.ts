@@ -68,6 +68,11 @@ export class MemoryStorage implements MediaStorage {
     return Promise.resolve();
   }
 
+  readMedia(key: string): Promise<Buffer | null> {
+    if (this.down) return Promise.reject(new StorageUnavailable());
+    return Promise.resolve(this.media.get(key) ?? null);
+  }
+
   deleteMedia(keys: string[]): Promise<void> {
     if (this.down) return Promise.reject(new StorageUnavailable());
     for (const key of keys) {
