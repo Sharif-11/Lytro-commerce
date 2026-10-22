@@ -13,6 +13,7 @@ import {
 } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import { DAY_MS, daysBetween, dhakaDate, startOfDayDhaka } from '../../../common/time';
+import { toPaisa } from '../../balance/services/money';
 import { AuditService } from '../../audit/services/audit.service';
 import { PlatformAuditService } from '../../audit/services/platform-audit.service';
 import { BalanceService } from '../../balance/services/balance.service';
@@ -32,6 +33,7 @@ import { TenantCache } from '../../tenancy/services/tenant-cache';
 import { TenantService } from '../../tenancy/services/tenant.service';
 import { CLOCK } from '../tokens';
 import { DowngradeService } from './downgrade.service';
+import { AddonRenewalService, addonsTotal, withinBudget } from './addon-renewal.service';
 import { PurchaseService } from './purchase.service';
 
 // LIF-26, 2.3: defaults, each a day-count *within* that stage, not cumulative from period end.
@@ -87,6 +89,7 @@ export class LifecycleService {
     @Inject(MediaEraser) private readonly media: MediaEraser,
     @Inject(DeliveryZoneService) private readonly deliveryZones: DeliveryZoneService,
     @Inject(PurchaseService) private readonly purchase: PurchaseService,
+    @Inject(AddonRenewalService) private readonly renewals: AddonRenewalService,
     @Inject(DowngradeService) private readonly downgrade: DowngradeService,
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(PlatformAuditService) private readonly platformAudit: PlatformAuditService,
@@ -230,6 +233,9 @@ export class LifecycleService {
    * toggle is off, there's no plan/term to renew into, LIF-01's cancellation intent is set (the owner's
    * explicit "don't renew" always wins over the toggle), the plan/price changed under it, or the balance is
    * insufficient (`ApiError` from `BalanceService.charge`/`PurchaseService`).
+   *
+   * PLN-14: the plan first, then its add-ons oldest first for as long as the balance reaches; the owner is told which
+   * were left to end, and by how much the balance was short.
    */
   private async tryAutoRenew(tenantId: string): Promise<boolean> {
     const info = await this.tenants.runStandalone((tx) =>
@@ -239,8 +245,15 @@ export class LifecycleService {
       return false;
     }
     try {
-      const payment = await this.purchase.quote(tenantId, info.planId, info.billingTermId);
+      const offer = await this.purchase.renewalOffer(tenantId, info.planId, info.billingTermId);
+      const balance = toPaisa((await this.balance.current(tenantId)).amount);
+      const { kept, dropped } = withinBudget(offer.carries, balance - toPaisa(offer.price));
+      const payment = await this.purchase.quote(tenantId, info.planId, info.billingTermId, kept);
       await this.purchase.confirmFromBalance(payment.id, tenantId);
+      if (dropped.length > 0) {
+        const short = toPaisa(offer.price) + addonsTotal(offer.carries) - balance;
+        await this.renewals.tellNotRenewed(tenantId, dropped, short);
+      }
       return true;
     } catch (error) {
       if (error instanceof ApiError) return false; // expected: price gone, insufficient balance, etc.

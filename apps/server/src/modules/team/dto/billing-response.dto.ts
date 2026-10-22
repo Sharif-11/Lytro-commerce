@@ -97,7 +97,25 @@ export const planPaymentSchema = z.object({
   createdAt: z.coerce.date(),
 });
 export class PlanPaymentDto extends createZodDto(planPaymentSchema) {}
-export class PlanPaymentListDto extends createZodDto(planPaymentSchema.array()) {}
+
+// ADM-06: a payment in the operator's queue, with the add-ons it pays for (PLN-14) -- an add-on's own, or those a
+// renewal or an upgrade carries -- so the operator sees what the money is for.
+export const queuedPaymentSchema = planPaymentSchema.extend({
+  addons: z.array(
+    z.object({
+      id: z.string(),
+      key: z.string(),
+      labelEn: z.string(),
+      labelBn: z.string(),
+      quantity: z.number(),
+      price: z.string(),
+      status: z.string(),
+      startsAt: z.date().nullable(),
+      expiresAt: z.date(),
+    }),
+  ),
+});
+export class QueuedPaymentListDto extends createZodDto(queuedPaymentSchema.array()) {}
 
 // BIL-12: control.invoices.
 export const invoiceSchema = z.object({

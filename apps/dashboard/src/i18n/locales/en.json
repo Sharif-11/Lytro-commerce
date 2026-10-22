@@ -616,6 +616,8 @@
       "plan_upgraded": "upgraded the plan",
       "balance_topped_up": "topped up the balance",
       "addon_purchased": "bought an add-on",
+      "addon_renewal_set": "changed an add-on's renewal",
+      "addon_not_renewed": "said which add-ons did not renew",
       "downgrade_scheduled": "scheduled a downgrade",
       "downgrade_cancelled": "cancelled the scheduled downgrade",
       "downgrade_applied": "applied the downgrade",

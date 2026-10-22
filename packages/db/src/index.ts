@@ -132,9 +132,12 @@ export {
   AddonPurchaseRepository,
   addonUnitList,
   type ActiveAddonRow,
+  type AddonActivation,
   type AddonPurchaseRow,
   type AddonUnits,
   type NewAddonPurchaseValues,
+  type PaymentAddonRow,
+  type RenewingAddonRow,
 } from './repositories/billing/addon-purchase.repository';
 export {
   PlanPaymentsRepository,

@@ -64,6 +64,7 @@ export const addonPurchases = control.table(
     paidFrom: text('paid_from').$type<'balance' | 'wallet'>().notNull(),
     planPaymentId: uuid('plan_payment_id').references(() => planPayments.id),
     renews: boolean('renews').notNull().default(true),
+    // When the add-on was first bought: a renewal or an extension carries it over, so oldest first stays true.
     purchasedAt: timestamp('purchased_at', { withTimezone: true }).notNull().defaultNow(),
     startsAt: timestamp('starts_at', { withTimezone: true }),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),

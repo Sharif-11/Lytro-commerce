@@ -172,8 +172,12 @@ export enum AuditAction {
   PlanRenewed = 'plan_renewed',
   // UPG-15: a confirmed upgrade -- tenant-caused, records old plan, new plan and both amounts.
   PlanUpgraded = 'plan_upgraded',
-  // PLN-13, PLN-14: an add-on bought, paid from the balance.
+  // PLN-13, PLN-14: an add-on bought, paid from the balance or approved from the queue.
   AddonPurchased = 'addon_purchased',
+  // PLN-14: the owner switching an add-on's renewal on or off.
+  AddonRenewalSet = 'addon_renewal_set',
+  // PLN-14, BIL-17: auto-renew renewed the plan, but the balance did not reach this add-on, which ends with its period.
+  AddonNotRenewed = 'addon_not_renewed',
   // BAL-03/BAL-05: a verified top-up credits the balance -- tenant-caused.
   BalanceToppedUp = 'balance_topped_up',
   // DWN-01/04/17: the owner's own scheduling actions.
@@ -633,11 +637,24 @@ export const BRAND_IDENTITY_ADDON = 'brand_identity';
 export const ADDON_QUANTITY_MAX = 10;
 
 // PLN-14: what became of a bought add-on. Pending while its payment is quoted; active from when it takes effect;
-// lapsed once it is no longer renewed (Slice 10a.2).
+// lapsed once it is no longer renewed; cancelled when its payment never activated it -- the quote expired or was
+// turned down, or the shop could take no add-on when the payment was approved, and the amount went to its balance.
 export enum AddonPurchaseStatus {
   Pending = 'pending',
   Active = 'active',
   Lapsed = 'lapsed',
+  Cancelled = 'cancelled',
+}
+
+// PLN-14: how an add-on the shop has will renew -- in the plan's renewal payment; from the balance at the end of its
+// own 30 days (pay-as-you-go and no-expiry plans); not at all because the owner switched it off; or never, because its
+// item is retired or the limit it raises is unlimited on the shop's plan.
+export enum AddonRenewal {
+  WithPlan = 'with_plan',
+  FromBalance = 'from_balance',
+  Off = 'off',
+  Retired = 'retired',
+  Unlimited = 'unlimited',
 }
 
 // DWN-01, PYG-10: what a control.scheduled_plan_changes row is for -- a downgrade, or a switch from a plan to

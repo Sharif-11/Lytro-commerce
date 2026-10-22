@@ -11,7 +11,7 @@ import {
   type PlanLimits,
   ScheduledPlanChangeKind,
   TenantState,
-  withOverrides,
+  withAddons,
 } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import { DAY_MS } from '../../../common/time';
@@ -29,7 +29,7 @@ import { TenantService } from '../../tenancy/services/tenant.service';
 import type { ScheduledPlanChangesStore } from '../ports/scheduled-plan-changes-store';
 import { CLOCK, SCHEDULED_PLAN_CHANGES_STORE } from '../tokens';
 import type { ScheduledPlanChangeRecord } from '../types/scheduled-plan-change';
-import { PlanLimitOverridesService } from './plan-limit-overrides.service';
+import { AddonRenewalService } from './addon-renewal.service';
 import { PlansService } from './plans.service';
 import { ShopLimitsService } from './shop-limits.service';
 
@@ -125,7 +125,7 @@ export class DowngradeService {
     @Inject(StaffService) private readonly staff: StaffService,
     @Inject(ProductService) private readonly products: ProductService,
     @Inject(MediaService) private readonly media: MediaService,
-    @Inject(PlanLimitOverridesService) private readonly overrides: PlanLimitOverridesService,
+    @Inject(AddonRenewalService) private readonly renewals: AddonRenewalService,
     @Inject(ShopLimitsService) private readonly shopLimits: ShopLimitsService,
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(MessagingService) private readonly sms: MessagingService,
@@ -222,13 +222,22 @@ export class DowngradeService {
 
   /**
    * DWN-03: every limit the target plan would already leave the shop over, today -- seats, products and storage --
-   * judged by the target's limits with the shop's own overrides laid over them, as they would apply after it. Its
-   * add-ons are not counted: each ends with the period the downgrade waits for (PLN-14).
+   * judged by the target's limits with the shop's own overrides laid over them and the add-ons set to renew added on,
+   * as they would apply after it: each add-on ends with the period the downgrade waits for, and the ones set to renew
+   * come back with the renewal onto the smaller plan (PLN-14).
    */
   async preview(tenantId: string, planId: string): Promise<OverLimitItem[]> {
     const targetPlan = await this.plans.findById(planId);
-    const limits = withOverrides(targetPlan.limits, await this.overrides.listForTenant(tenantId));
-    return (await this.measure(tenantId, limits)).filter((item) => item.used > item.limit);
+    const info = await this.tenants.runStandalone((tx) =>
+      this.tenants.findBillingInfo(tx, tenantId),
+    );
+    const plan = await this.renewals.planFor(tenantId, targetPlan);
+    const renewing = info?.periodEnd
+      ? await this.renewals.renewingUnits(tenantId, info.periodEnd, plan)
+      : [];
+    return (await this.measure(tenantId, withAddons(plan.limits, renewing))).filter(
+      (item) => item.used > item.limit,
+    );
   }
 
   /**

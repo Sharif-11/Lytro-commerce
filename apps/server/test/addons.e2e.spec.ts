@@ -378,10 +378,12 @@ describeIfDatabase('buying an add-on from the balance (PLN-14, BIL-08, BIL-12)',
     const upgradeQuote = await upgrade.quote(shop.tenantId, bigPlanId, bigTermId);
     expect(upgradeQuote.creditAmount).toBe('299.00');
 
-    // BIL-12: each invoice says what it is for, line by line, and the lines add up to what was paid.
+    // BIL-12: each invoice says what it is for, line by line, and the lines add up to what was paid -- here with the
+    // extension of the products add-on, set to renew, to the new period's end (UPG-14).
     const upgraded = await upgrade.confirmFromBalance(upgradeQuote.id, shop.tenantId);
+    const extension = upgraded.invoice?.lines[2];
     expect(upgraded.invoice).toMatchObject({
-      amount: '400.00',
+      amount: (400 + Number(extension?.amount)).toFixed(2),
       lines: [
         { kind: 'plan', description: 'Big, Big month', quantity: 1, amount: '699.00' },
         {
@@ -390,6 +392,7 @@ describeIfDatabase('buying an add-on from the balance (PLN-14, BIL-08, BIL-12)',
           quantity: 1,
           amount: '-299.00',
         },
+        { kind: 'addon', quantity: 2 },
       ],
     });
     const listed = (await shop.get('/billing/invoices')).body as {

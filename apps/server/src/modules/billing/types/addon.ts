@@ -1,12 +1,16 @@
 import type {
   ActiveAddonRow,
+  AddonActivation,
   AddonEdit,
   AddonPurchaseRow,
   AddonRow,
   AddonUnits,
   NewAddonPurchaseValues,
   NewAddonValues,
+  PaymentAddonRow,
+  RenewingAddonRow,
 } from '@lytronix/db';
+import type { AddonRenewal } from '@lytronix/validators';
 import type { PlanPaymentRecord } from '../../payments/types/plan-payment';
 import type { InvoiceRecord } from '../../payments/types/invoice';
 
@@ -14,7 +18,16 @@ import type { InvoiceRecord } from '../../payments/types/invoice';
 export type AddonRecord = AddonRow;
 export type AddonPurchaseRecord = AddonPurchaseRow;
 export type ActiveAddon = ActiveAddonRow;
-export type { AddonEdit, AddonUnits, NewAddonPurchaseValues, NewAddonValues };
+export type RenewingAddon = RenewingAddonRow;
+export type PaymentAddon = PaymentAddonRow;
+export type { AddonActivation, AddonEdit, AddonUnits, NewAddonPurchaseValues, NewAddonValues };
+
+/** PLN-14, UPG-14: one add-on carried into a new period -- the purchase it continues, and what carrying it costs. */
+export interface AddonCarry {
+  from: RenewingAddon;
+  /** Whole taka, as a money string. */
+  price: string;
+}
 
 /** PLN-13, PLN-14: an add-on for sale, with what one costs for the rest of the shop's period. */
 export interface AddonOffer {
@@ -33,14 +46,23 @@ export interface AddonQuote {
   expiresAt: Date;
 }
 
-/** PLN-14: an add-on paid for: its payment and its invoice (BIL-12). */
+/**
+ * PLN-14: an add-on paid for: its payment and its invoice (BIL-12) -- or, for a wallet payment waiting in the
+ * operator's queue, no invoice yet.
+ */
 export interface AddonPurchaseResult {
   payment: PlanPaymentRecord;
-  invoice: InvoiceRecord;
+  invoice: InvoiceRecord | null;
 }
+
+/** PLN-14: an add-on the shop has, and how it will renew. */
+export type ShopAddon = ActiveAddon & { renewal: AddonRenewal };
 
 /** PLN-14, BRN-05: what the shop has now, and what that switches on. */
 export interface ShopAddons {
-  addons: ActiveAddon[];
+  addons: ShopAddon[];
   brandIdentity: boolean;
 }
+
+/** ADM-06: a payment waiting in the operator's queue, with the add-ons it pays for. */
+export type QueuedPayment = PlanPaymentRecord & { addons: PaymentAddon[] };

@@ -519,6 +519,13 @@
       "when": 1792607171878,
       "tag": "0073_addons",
       "breakpoints": true
+    },
+    {
+      "idx": 74,
+      "version": "7",
+      "when": 1792644972590,
+      "tag": "0074_addon_cancelled",
+      "breakpoints": true
     }
   ]
 }

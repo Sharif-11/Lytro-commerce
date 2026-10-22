@@ -15,14 +15,18 @@ import { PlanPaymentsService } from '../../payments/services/plan-payments.servi
 import type { PlanPaymentRecord } from '../../payments/types/plan-payment';
 import { TenantService } from '../../tenancy/services/tenant.service';
 import { CLOCK } from '../tokens';
+import type { QueuedPayment } from '../types/addon';
+import { AddonPurchaseService } from './addon-purchase.service';
+import { AddonRenewalService } from './addon-renewal.service';
 import { PurchaseService } from './purchase.service';
 import { UpgradeService } from './upgrade.service';
 
 /**
  * D2-1/ADM-06: the operator's one queue for every pending plan_payments row. Approving a top-up credits the
- * balance; approving a purchase/renewal/upgrade activates the plan via `PurchaseService.activate` -- both in
- * the same transaction as `PlanPaymentsService.approve`'s state-machine change and transaction-ID
- * registration, so a rejected/failed activation never leaves a verified-but-not-applied payment behind.
+ * balance; approving a purchase/renewal/upgrade activates the plan via `PurchaseService.activate`, and an add-on via
+ * `AddonPurchaseService.activate` (PLN-14) -- each in the same transaction as `PlanPaymentsService.approve`'s
+ * state-machine change and transaction-ID registration, so a rejected/failed activation never leaves a
+ * verified-but-not-applied payment behind.
  */
 @Injectable()
 export class PaymentQueueService {
@@ -30,6 +34,8 @@ export class PaymentQueueService {
     @Inject(PlanPaymentsService) private readonly payments: PlanPaymentsService,
     @Inject(PurchaseService) private readonly purchase: PurchaseService,
     @Inject(UpgradeService) private readonly upgrade: UpgradeService,
+    @Inject(AddonPurchaseService) private readonly addons: AddonPurchaseService,
+    @Inject(AddonRenewalService) private readonly renewals: AddonRenewalService,
     @Inject(BalanceService) private readonly balance: BalanceService,
     @Inject(TenantService) private readonly tenants: TenantService,
     @Inject(AuditService) private readonly audit: AuditService,
@@ -37,8 +43,11 @@ export class PaymentQueueService {
     @Inject(CLOCK) private readonly clock: () => Date,
   ) {}
 
-  listPending(kind?: PlanPaymentKind): Promise<PlanPaymentRecord[]> {
-    return this.payments.listPending(kind);
+  /** ADM-06: each payment waiting, with the add-ons it pays for, so the operator sees what the money is for. */
+  async listPending(kind?: PlanPaymentKind): Promise<QueuedPayment[]> {
+    const pending = await this.payments.listPending(kind);
+    const addons = await this.renewals.forPayments(pending.map((payment) => payment.id));
+    return pending.map((payment) => ({ ...payment, addons: addons.get(payment.id) ?? [] }));
   }
 
   async approve(
@@ -76,8 +85,8 @@ export class PaymentQueueService {
       ) {
         await this.purchase.activate(tx, payment, now, ip);
       } else {
-        // PLN-14: an add-on is paid from the balance only until Slice 10a.2; no wallet payment can be for one yet.
-        throw new Error(`a ${payment.kind} payment cannot be approved from the queue`);
+        // PLN-14: the last kind, an add-on's own payment.
+        await this.addons.activate(tx, payment, now, ip);
       }
 
       await this.platformAudit.recordWithin(tx, {

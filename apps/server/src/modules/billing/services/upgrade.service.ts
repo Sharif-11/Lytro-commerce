@@ -5,7 +5,6 @@ import {
   AuditAction,
   AuditResult,
   InvoiceKind,
-  LedgerEntryType,
   PlanPaymentKind,
   PlanPaymentStatus,
   TenantState,
@@ -13,7 +12,6 @@ import {
 import { ApiError } from '../../../common/api-error';
 import { addMonths, HOUR_MS } from '../../../common/time';
 import { AuditService } from '../../audit/services/audit.service';
-import { BalanceService } from '../../balance/services/balance.service';
 import { fromPaisa, toPaisa } from '../../balance/services/money';
 import { InvoicesService } from '../../payments/services/invoices.service';
 import { PlanPaymentsService } from '../../payments/services/plan-payments.service';
@@ -21,6 +19,7 @@ import type { InvoiceRecord } from '../../payments/types/invoice';
 import type { PlanPaymentRecord } from '../../payments/types/plan-payment';
 import { TenantService } from '../../tenancy/services/tenant.service';
 import { CLOCK } from '../tokens';
+import { AddonRenewalService, addonsTotal } from './addon-renewal.service';
 import { BillingTermsService } from './billing-terms.service';
 import { DowngradeService } from './downgrade.service';
 import { PlanInvoicingService } from './plan-invoicing.service';
@@ -51,13 +50,16 @@ export class UpgradeService {
     @Inject(InvoicesService) private readonly invoices: InvoicesService,
     @Inject(PlanInvoicingService) private readonly invoicing: PlanInvoicingService,
     @Inject(TenantService) private readonly tenants: TenantService,
-    @Inject(BalanceService) private readonly balance: BalanceService,
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(DowngradeService) private readonly downgrade: DowngradeService,
+    @Inject(AddonRenewalService) private readonly renewals: AddonRenewalService,
     @Inject(CLOCK) private readonly clock: () => Date,
   ) {}
 
-  /** UPG-01 to UPG-05: eligibility, rank, the prorated credit/amount-due math, and the one-pending check. */
+  /**
+   * UPG-01 to UPG-05: eligibility, rank, the prorated credit/amount-due math, and the one-pending check. UPG-14: the
+   * add-ons set to renew are extended to the new period's end in the same payment, each a pending purchase on it.
+   */
   async quote(tenantId: string, planId: string, billingTermId: string): Promise<PlanPaymentRecord> {
     const now = this.clock();
     const info = await this.tenants.runStandalone((tx) =>
@@ -95,13 +97,27 @@ export class UpgradeService {
       throw new ApiError('validation_error', 'UpgradeNotWorthwhile', {});
     }
 
-    return this.payments.quoteStandalone({
+    const periodEnd = addMonths(now, term.months);
+    const extensions = await this.renewals.extensions(
       tenantId,
-      kind: PlanPaymentKind.Upgrade,
-      planId,
-      billingTermId,
-      amount: amountDue.toFixed(2),
-      creditAmount: credit.toFixed(2),
+      info.periodEnd,
+      { start: now, end: periodEnd, months: term.months },
+      await this.renewals.planFor(tenantId, targetPlan),
+    );
+    return this.tenants.runStandalone(async (tx) => {
+      const payment = await this.payments.quote(tx, {
+        tenantId,
+        kind: PlanPaymentKind.Upgrade,
+        planId,
+        billingTermId,
+        amount: fromPaisa(toPaisa(amountDue.toFixed(2)) + addonsTotal(extensions)),
+        creditAmount: credit.toFixed(2),
+      });
+      await this.renewals.attach(tx, payment, extensions, {
+        expiresAt: periodEnd,
+        extending: true,
+      });
+      return payment;
     });
   }
 
@@ -133,12 +149,7 @@ export class UpgradeService {
         throw new ApiError('conflict', 'QuoteExpired', {});
       }
 
-      await this.balance.charge(tx, {
-        tenantId,
-        type: LedgerEntryType.PlanPayment,
-        amount: payment.amount,
-        reference: { planPaymentId: payment.id },
-      });
+      await this.renewals.charge(tx, payment);
       await this.payments.markVerifiedDirect(tx, payment.id, now);
       const invoice = await this.activate(tx, payment, now, ip);
       return {
@@ -186,6 +197,11 @@ export class UpgradeService {
       billingTermId: term.id, // BIL-17: the term auto-renewal will reuse at the next period end.
     });
     await this.downgrade.cancelIfScheduled(tx, payment.tenantId);
+    // UPG-14: the add-ons it extended run on from their own ends to the new period's end.
+    const addons = await this.renewals.activate(tx, payment, {
+      start: periodStart,
+      end: periodEnd,
+    });
 
     // UPG-13: an upgrade also supersedes a pending non-renewal intent -- paying to upgrade is inconsistent
     // with "don't renew", and a stale cancelledAt would otherwise block BIL-17's own auto-renewal at the
@@ -210,11 +226,15 @@ export class UpgradeService {
       payment,
       plan,
       term,
-      // UPG-04: the amount due is the term's price less the credit, so the two together are the price quoted.
-      fullPrice: fromPaisa(toPaisa(payment.amount) + toPaisa(payment.creditAmount)),
+      // UPG-04: the amount due is the term's price less the credit, so the two together are the price quoted; the
+      // extended add-ons are lines of their own.
+      fullPrice: fromPaisa(
+        toPaisa(payment.amount) - addonsTotal(addons) + toPaisa(payment.creditAmount),
+      ),
       periodStart,
       periodEnd,
       shopName: info.shopName,
+      addons,
     });
 
     await this.audit.record(tx, {

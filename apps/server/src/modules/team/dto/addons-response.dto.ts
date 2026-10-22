@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
-import { AddonKind } from '@lytronix/validators';
+import { AddonKind, AddonRenewal } from '@lytronix/validators';
 import { invoiceSchema, planPaymentSchema } from './billing-response.dto';
 
 // PLN-13: control.addons, one item of the catalogue.
@@ -36,10 +36,10 @@ export const addonQuoteSchema = z.object({
 });
 export class AddonQuoteDto extends createZodDto(addonQuoteSchema) {}
 
-// PLN-14, BIL-12: an add-on paid for.
+// PLN-14, BIL-12: an add-on paid for -- with no invoice yet while a wallet payment waits for the operator (BIL-02).
 export const addonPurchaseResultSchema = z.object({
   payment: planPaymentSchema,
-  invoice: invoiceSchema.omit({ earlierShop: true }),
+  invoice: invoiceSchema.omit({ earlierShop: true }).nullable(),
 });
 export class AddonPurchaseResultDto extends createZodDto(addonPurchaseResultSchema) {}
 
@@ -59,6 +59,7 @@ export const shopAddonsSchema = z.object({
       startsAt: z.date().nullable(),
       expiresAt: z.date(),
       renews: z.boolean(),
+      renewal: z.nativeEnum(AddonRenewal),
     })
     .array(),
   brandIdentity: z.boolean(),

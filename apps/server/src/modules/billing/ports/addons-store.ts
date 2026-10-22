@@ -1,12 +1,15 @@
 import type { Transaction } from '@lytronix/db';
 import type {
   ActiveAddon,
+  AddonActivation,
   AddonEdit,
   AddonPurchaseRecord,
   AddonRecord,
   AddonUnits,
   NewAddonPurchaseValues,
   NewAddonValues,
+  PaymentAddon,
+  RenewingAddon,
 } from '../types/addon';
 
 /** control.addons and control.addon_purchases (PLN-13, PLN-14). Writes take the caller's transaction. */
@@ -22,7 +25,16 @@ export interface AddonsStore {
     tx: Transaction,
     planPaymentId: string,
   ): Promise<AddonPurchaseRecord | null>;
-  activatePurchase(tx: Transaction, id: string, startsAt: Date): Promise<void>;
+  activatePurchase(tx: Transaction, id: string, activation: AddonActivation): Promise<void>;
+  cancelPurchase(tx: Transaction, id: string): Promise<void>;
+  listForPayments(tx: Transaction, planPaymentIds: string[]): Promise<PaymentAddon[]>;
+  listRenewing(tx: Transaction, tenantId: string, periodEnd: Date): Promise<RenewingAddon[]>;
+  findPurchaseForTenantForUpdate(
+    tx: Transaction,
+    tenantId: string,
+    id: string,
+  ): Promise<AddonPurchaseRecord | null>;
+  setRenews(tx: Transaction, id: string, renews: boolean): Promise<void>;
   activeUnits(tx: Transaction, tenantId: string): Promise<AddonUnits[]>;
   listActive(tx: Transaction, tenantId: string): Promise<ActiveAddon[]>;
 }

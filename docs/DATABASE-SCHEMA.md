@@ -1801,18 +1801,23 @@ CREATE TABLE control.addon_purchases (
     unit_size       integer,                        -- was bought (PLN-13)
     quantity        integer NOT NULL DEFAULT 1 CHECK (quantity > 0),  -- up to [10] a purchase; a feature is one
     price           numeric(10,2) NOT NULL,         -- what it cost, prorated to the period's end (PLN-14)
-    status          text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'lapsed')),
-    paid_from       text NOT NULL CHECK (paid_from IN ('balance', 'wallet')),  -- PLN-14: the balance (BIL-08), or a wallet from Slice 10a.2
-    plan_payment_id uuid REFERENCES control.plan_payments(id),  -- the quote it was bought by (kind addon, BIL-09's hold)
+    status          text NOT NULL DEFAULT 'pending'
+                    CHECK (status IN ('pending', 'active', 'lapsed', 'cancelled')),  -- cancelled (0074): its payment never activated it
+    paid_from       text NOT NULL CHECK (paid_from IN ('balance', 'wallet')),  -- PLN-14: the balance (BIL-08), or a wallet (BIL-02)
+    plan_payment_id uuid REFERENCES control.plan_payments(id),  -- the payment it was bought by: its own (kind addon), or the
+                                                     -- renewal or upgrade that carried it into a new period
     renews          boolean NOT NULL DEFAULT true,   -- PLN-14: renews with the plan unless switched off
-    purchased_at    timestamptz NOT NULL DEFAULT now(),
-    starts_at       timestamptz,                     -- set when it takes effect (at once from balance, on confirmation if paid directly)
+    purchased_at    timestamptz NOT NULL DEFAULT now(),  -- when first bought; a renewal or extension keeps it, so oldest first holds
+    starts_at       timestamptz,                     -- set when it takes effect; an upgrade's extension starts where the add-on it extends ends
     expires_at      timestamptz NOT NULL            -- PLN-14: end of the plan period, or a [30]-day period for pay-as-you-go
     -- uses_left integer (PLN-20): an allowance's uses left this period, added with the allowances
 );
 CREATE INDEX ON control.addon_purchases (tenant_id, status, expires_at);
 -- Limits are the plan snapshot + operator overrides (PLN-11) + active limit add-ons, in one function
 -- (`shopLimitsOf`); an add-on counts only while active, from starts_at until expires_at, whatever any job has done.
+-- A renewal (PLN-14) or an upgrade (UPG-14) carries each add-on set to renew into the new period as a new row on its
+-- own payment, so every row is one period of one add-on; paid from the balance, the payment is two ledger entries,
+-- `plan_payment` and `addon`.
 -- A pack is consumed rather than expiring; the tenant's auto-buy opt-in (PLN-15) is a setting on the tenant.
 -- An allowance (PLN-20) is used before the balance: each fake-order check or order read takes one from
 -- uses_left in the same transaction as the check or read; at 0, or after expires_at, it is charged from

@@ -1,0 +1,2 @@
+ALTER TABLE "control"."addon_purchases" DROP CONSTRAINT "addon_purchases_status_check";--> statement-breakpoint
+ALTER TABLE "control"."addon_purchases" ADD CONSTRAINT "addon_purchases_status_check" CHECK ("control"."addon_purchases"."status" in ('pending','active','lapsed','cancelled'));

@@ -6,6 +6,7 @@ import { InvoicesService } from '../../payments/services/invoices.service';
 import { fromPaisa, toPaisa } from '../../balance/services/money';
 import type { InvoiceLine, InvoiceRecord } from '../../payments/types/invoice';
 import type { PlanPaymentRecord } from '../../payments/types/plan-payment';
+import type { PaymentAddon } from '../types/addon';
 import { MailService } from '../../shared/mail/services/mail.service';
 import { MessagingService } from '../../shared/messaging/services/messaging.service';
 import { StaffService } from '../../staff/services/staff.service';
@@ -23,11 +24,28 @@ export interface PlanInvoiceInput {
   periodStart: Date;
   periodEnd: Date;
   shopName: string;
+  /** PLN-14, UPG-14: the add-ons the payment renewed or extended to the period's end. */
+  addons: readonly PaymentAddon[];
+}
+
+/** BIL-12, PLN-14: an add-on's invoice line -- what it is and until when, how many, and what they cost together. */
+export function addonLine(
+  label: string,
+  quantity: number,
+  amount: string,
+  until: Date,
+): InvoiceLine {
+  return {
+    kind: InvoiceLineKind.Addon,
+    description: `${label}, until ${dhakaDate(until)}`,
+    quantity,
+    amount,
+  };
 }
 
 /**
- * BIL-12, UPG-15: a plan invoice's lines -- the plan at its term's full price, and an upgrade's credit taken off it, so
- * the lines add up to what was paid.
+ * BIL-12, UPG-15: a plan invoice's lines -- the plan at its term's full price, an upgrade's credit taken off it, and
+ * each add-on the payment carried, so the lines add up to what was paid.
  */
 function planLines(input: PlanInvoiceInput): InvoiceLine[] {
   const lines: InvoiceLine[] = [
@@ -45,6 +63,9 @@ function planLines(input: PlanInvoiceInput): InvoiceLine[] {
       quantity: 1,
       amount: fromPaisa(-toPaisa(input.payment.creditAmount)),
     });
+  }
+  for (const addon of input.addons) {
+    lines.push(addonLine(addon.labelEn, addon.quantity, addon.price, input.periodEnd));
   }
   return lines;
 }
