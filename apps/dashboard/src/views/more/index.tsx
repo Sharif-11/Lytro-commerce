@@ -37,7 +37,7 @@ type SectionPath =
  */
 export function More(): React.JSX.Element {
   const { t, i18n } = useTranslation();
-  const { shop } = useParams({ from: '/$shop/more' });
+  const { shop } = useParams({ from: '/$shop/menu' });
   const me = useMe();
   const signOut = useSignOut();
   const data = me.data;
