@@ -181,7 +181,11 @@ CREATE TABLE control.tenants (
     -- (LIF-21) and the 30-day backup-retention window (LIF-22).
     deleted_at            timestamptz,
     kyc_status             text NOT NULL DEFAULT 'unverified'   -- KYC-16: unverified | pending | verified | revoked
-                           CHECK (kyc_status IN ('unverified', 'pending', 'verified', 'revoked'))
+                           CHECK (kyc_status IN ('unverified', 'pending', 'verified', 'revoked')),
+    -- PLN-15: the auto-buy switches for bandwidth and request packs, off by default. Added by migration
+    -- 0076_addon_packs.sql.
+    auto_buy_bandwidth     boolean NOT NULL DEFAULT false,
+    auto_buy_requests      boolean NOT NULL DEFAULT false
 );
 CREATE INDEX ON control.tenants (subscriber_id);
 CREATE INDEX ON control.tenants (state);
@@ -1547,6 +1551,11 @@ CREATE TABLE control.api_usage (                          -- RTE-03 (built in Sl
     refused_requests bigint NOT NULL DEFAULT 0,           -- RTE-06: refused by the per-visitor limit
     refused_visitors integer NOT NULL DEFAULT 0,          -- RTE-06: the visitors those came from, each once a cycle
     fast_spend_alerted_at timestamptz,                    -- RTE-12: the cycle's last fast-spend alert, at most daily
+    -- RTE-11, PLN-15 (migration 0076): what packs mean to this cycle -- as media_bandwidth's
+    pack_used       bigint NOT NULL DEFAULT 0,            -- taken from the shop's packs: past its own limit and pack_free
+    pack_free       bigint NOT NULL DEFAULT 0,            -- the grace used before a pack was bought, never taken from it
+    auto_packs      integer NOT NULL DEFAULT 0,           -- packs auto-buy bought this cycle, at most [3]
+    auto_buy_state  text CHECK (auto_buy_state IN ('requested', 'failed')),  -- null, asked for one, or the balance was short
     PRIMARY KEY (tenant_id, cycle_start)
 );
 
@@ -1663,6 +1672,11 @@ CREATE TABLE control.media_bandwidth (                     -- BND-01, BND-05, BN
     requests        bigint NOT NULL DEFAULT 0,
     warned_percent  integer NOT NULL DEFAULT 0,            -- 0, 50, 80 or 95: the highest warning sent
     updated_at      timestamptz NOT NULL DEFAULT now(),
+    -- BND-04, PLN-15 (migration 0076): what packs mean to this cycle, in bytes
+    pack_used       bigint NOT NULL DEFAULT 0,             -- taken from the shop's packs: past its own limit and pack_free
+    pack_free       bigint NOT NULL DEFAULT 0,             -- the grace used before a pack was bought, never taken from it
+    auto_packs      integer NOT NULL DEFAULT 0,            -- packs auto-buy bought this cycle, at most [3]
+    auto_buy_state  text CHECK (auto_buy_state IN ('requested', 'failed')),  -- null, asked for one, or the balance was short
     PRIMARY KEY (tenant_id, cycle_start),
     CHECK (bytes >= 0 AND requests >= 0)
 );
@@ -1827,7 +1841,12 @@ CREATE INDEX ON control.addon_purchases (continues_id);
 -- A renewal (PLN-14) or an upgrade (UPG-14) carries each add-on set to renew into the new period as a new row on its
 -- own payment, so every row is one period of one add-on; paid from the balance, the payment is two ledger entries,
 -- `plan_payment` and `addon`.
--- A pack is consumed rather than expiring; the tenant's auto-buy opt-in (PLN-15) is a setting on the tenant.
+-- A pack is consumed rather than expiring (PLN-13): its row is active from its purchase with expires_at 9999-12-31,
+-- and is bought from the balance at once, with no quote. What is left of a shop's packs for a metric is what it bought
+-- less what every cycle took (pack_used on media_bandwidth and api_usage), so it carries over with no job to settle it.
+-- A cycle's allowance is the shop's own limit, its pack_free and what is left; a pack bought past the allowance moves
+-- the grace already used into pack_free. The tenant's auto-buy switches (PLN-15) are on the tenant; at the allowance
+-- the counting pass sets auto_buy_state 'requested' and queues one pack for the pack_auto_buy job.
 -- An allowance (PLN-20) is used before the balance: each fake-order check or order read takes one from
 -- uses_left in the same transaction as the check or read; at 0, or after expires_at, it is charged from
 -- the balance again. A renewal sets uses_left back to the full number.

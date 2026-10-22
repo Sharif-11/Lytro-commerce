@@ -459,6 +459,7 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'Add-on renewal updated.',
     bn: 'অ্যাড-অনের রিনিউ আপডেট হয়েছে।',
   },
+  PackAutoBuyUpdated: { en: 'Auto-buy updated.', bn: 'অটো-বাই আপডেট হয়েছে।' },
   ShopAddonsRetrieved: {
     en: "Your shop's add-ons retrieved.",
     bn: 'আপনার দোকানের অ্যাড-অনগুলো পাওয়া গেছে।',

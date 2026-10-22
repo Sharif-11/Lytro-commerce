@@ -1671,6 +1671,19 @@ add-on warnings use the same rule, keyed by the add-on period itself. Proven by 
 shop whose log holds last period's 7-day reminders gets this period's, and one with a reminder from an hour before
 the change gets no second one. The first case failed before the fix.
 
+## 87. `BND-03`, `RTE-03`, `PLN-11`: bandwidth and API requests were held to the plan without its add-ons — found and fixed 2026-10-22
+
+Found while reading for Phase 3 Slice 10a.3. The usage page reads a shop's limits with its overrides and its limit
+add-ons, but the two places that stop service did not: the minute bandwidth pass that fills the media Worker's
+blocked list, and the API key check that hands the request quota its limit, both laid only the overrides over the
+plan. The catalogue lets an operator make a limit add-on for bandwidth or requests, so a shop could buy one, see the
+larger limit on its usage page, and still be stopped at the plan's.
+
+**Fixed:** both read the shop's limits through the one `shopLimitsOf`, with its limit add-ons, as the page does;
+packs come on top of that limit (PLN-15). Proven by `addon-packs.e2e.spec.ts`: a shop with a 1 GB plan and a 1 GB
+add-on is served at 2.15 GB, and one with 10 requests and an add-on of 10 is served 22 requests; before the fix both
+were stopped at the plan's grace.
+
 ## Not a bug, just noting it so it isn't mistaken for one later
 
 The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data

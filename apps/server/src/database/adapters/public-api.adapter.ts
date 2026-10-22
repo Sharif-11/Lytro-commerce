@@ -1,12 +1,19 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
+  AddonPurchaseRepository,
   ApiKeyRepository,
   ApiUsageRepository,
   PlanLimitOverridesRepository,
   TransactionRunner,
+  type AddonUnits,
+  type CyclePackFields,
   type Transaction,
 } from '@lytronix/db';
-import type { ApiKeyStore, ApiUsageStore } from '../../modules/public-api/ports/api-key-store';
+import {
+  totalOf,
+  type ApiKeyStore,
+  type ApiUsageStore,
+} from '../../modules/public-api/ports/api-key-store';
 import type {
   ApiKeyRecord,
   ApiShopRow,
@@ -14,6 +21,7 @@ import type {
   ApiUsageRow,
   NewApiKey,
 } from '../../modules/public-api/types/public-api';
+import type { UsageLimitKey } from '@lytronix/validators';
 import { DatabaseService } from '../database.service';
 
 /** control.api_keys (API-01 to API-05, API-08, API-23), and the shop a key belongs to with its overrides. */
@@ -24,6 +32,7 @@ export class DrizzleApiKeyStore implements ApiKeyStore {
     @Inject(TransactionRunner) private readonly transactions: TransactionRunner,
     @Inject(ApiKeyRepository) private readonly keys: ApiKeyRepository,
     @Inject(PlanLimitOverridesRepository) private readonly overrides: PlanLimitOverridesRepository,
+    @Inject(AddonPurchaseRepository) private readonly addons: AddonPurchaseRepository,
   ) {}
 
   run<T>(work: (tx: Transaction) => Promise<T>): Promise<T> {
@@ -85,6 +94,10 @@ export class DrizzleApiKeyStore implements ApiKeyStore {
     return this.overrides.listForTenant(this.database.handle.db, tenantId);
   }
 
+  listAddonUnits(tenantId: string): Promise<AddonUnits[]> {
+    return this.addons.activeUnits(this.database.handle.db, tenantId);
+  }
+
   deleteAllForTenant(tenantId: string): Promise<void> {
     return this.keys.deleteAllForTenant(this.database.handle.db, tenantId);
   }
@@ -97,6 +110,7 @@ export class DrizzleApiUsageStore implements ApiUsageStore {
     @Inject(DatabaseService) private readonly database: Pick<DatabaseService, 'handle'>,
     @Inject(TransactionRunner) private readonly transactions: TransactionRunner,
     @Inject(ApiUsageRepository) private readonly usage: ApiUsageRepository,
+    @Inject(AddonPurchaseRepository) private readonly addons: AddonPurchaseRepository,
   ) {}
 
   run<T>(work: (tx: Transaction) => Promise<T>): Promise<T> {
@@ -128,4 +142,29 @@ export class DrizzleApiUsageStore implements ApiUsageStore {
   ): Promise<void> {
     return this.usage.setFastSpendAlerted(tx, tenantId, cycleStart, at);
   }
+
+  updateCycle(
+    tx: Transaction,
+    tenantId: string,
+    cycleStart: Date,
+    values: Partial<CyclePackFields & { warnedPercent: number }>,
+  ): Promise<void> {
+    return this.usage.updateCycle(tx, tenantId, cycleStart, values);
+  }
+
+  lockCycle(tx: Transaction, tenantId: string, cycleStart: Date): Promise<ApiUsageRow> {
+    return this.usage.lockCycle(tx, tenantId, cycleStart);
+  }
+
+  async packsBought(tenantId: string, tx?: Transaction): Promise<number> {
+    const db = tx ?? this.database.handle.db;
+    return totalOf(await this.addons.packTotals(db, REQUESTS_LIMIT_KEY, tenantId));
+  }
+
+  async packsTaken(tenantId: string, tx?: Transaction): Promise<number> {
+    return totalOf(await this.usage.packUsedTotals(tx ?? this.database.handle.db, tenantId));
+  }
 }
+
+// RTE-11: the limit a request pack tops up.
+const REQUESTS_LIMIT_KEY: UsageLimitKey = 'requests_monthly';

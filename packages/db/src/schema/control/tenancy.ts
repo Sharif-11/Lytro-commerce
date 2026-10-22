@@ -99,6 +99,10 @@ export const tenants = control.table(
     billingTermId: uuid('billing_term_id'),
     // BIL-17: "renew automatically from balance", off by default (an assumption the row itself names).
     autoRenewEnabled: boolean('auto_renew_enabled').notNull().default(false),
+    // PLN-15, BND-04, RTE-11: buy a bandwidth or a request pack from the balance at 100% of the cycle's allowance; both
+    // off by default.
+    autoBuyBandwidth: boolean('auto_buy_bandwidth').notNull().default(false),
+    autoBuyRequests: boolean('auto_buy_requests').notNull().default(false),
     // DWN-11: a downgrade that shortens activity-log retention doesn't take effect until 14 days after the
     // owner was notified -- until then the purge job must still honor the longer, pre-downgrade retention.
     // `retentionFloorUntil` non-null (and in the future) is itself the proof a notice already went out, so

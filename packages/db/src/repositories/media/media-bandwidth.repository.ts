@@ -2,9 +2,10 @@ import { and, asc, eq, gte, isNull, or, sql } from 'drizzle-orm';
 import type { PlanLimits, TenantState } from '@lytronix/validators';
 import { mediaBandwidth, mediaBandwidthDaily, mediaUsagePull, tenants } from '../../schema';
 import type { Executor } from '../../transactions';
+import type { CyclePackFields, TenantTotal } from '../billing/addon-purchase.repository';
 
 /** One shop's media bandwidth in one billing cycle, as the database holds it. */
-export interface BandwidthCycleRow {
+export interface BandwidthCycleRow extends CyclePackFields {
   tenantId: string;
   cycleStart: Date;
   bytes: number;
@@ -29,6 +30,8 @@ export interface EdgeShopRow {
   createdAt: Date;
   planSnapshot: PlanLimits | null;
   deletedAt: Date | null;
+  /** PLN-15, BND-04: buy a bandwidth pack at 100% of the cycle's allowance. */
+  autoBuyBandwidth: boolean;
 }
 
 const CYCLE = {
@@ -37,6 +40,10 @@ const CYCLE = {
   bytes: mediaBandwidth.bytes,
   requests: mediaBandwidth.requests,
   warnedPercent: mediaBandwidth.warnedPercent,
+  packUsed: mediaBandwidth.packUsed,
+  packFree: mediaBandwidth.packFree,
+  autoPacks: mediaBandwidth.autoPacks,
+  autoBuyState: mediaBandwidth.autoBuyState,
 };
 
 // BND-01, BND-02, BND-05, BND-06, BND-08: each shop's media bandwidth per billing cycle and per day, totalled every
@@ -107,6 +114,43 @@ export class MediaBandwidthRepository {
       .where(and(eq(mediaBandwidth.tenantId, tenantId), eq(mediaBandwidth.cycleStart, cycleStart)));
   }
 
+  /** BND-04, PLN-15: changes the cycle's warning or pack figures. */
+  async updateCycle(
+    db: Executor,
+    tenantId: string,
+    cycleStart: Date,
+    values: Partial<CyclePackFields & { warnedPercent: number }>,
+  ): Promise<void> {
+    await db
+      .update(mediaBandwidth)
+      .set(values)
+      .where(and(eq(mediaBandwidth.tenantId, tenantId), eq(mediaBandwidth.cycleStart, cycleStart)));
+  }
+
+  /** The shop's cycle, made at nothing used if it has none yet, and locked for a change to its packs. */
+  async lockCycle(db: Executor, tenantId: string, cycleStart: Date): Promise<BandwidthCycleRow> {
+    await db.insert(mediaBandwidth).values({ tenantId, cycleStart }).onConflictDoNothing();
+    const [row] = await db
+      .select(CYCLE)
+      .from(mediaBandwidth)
+      .where(and(eq(mediaBandwidth.tenantId, tenantId), eq(mediaBandwidth.cycleStart, cycleStart)))
+      .for('update');
+    if (!row) throw new Error('no media bandwidth row after making it');
+    return row;
+  }
+
+  /** BND-04: what every shop's cycles took from its bandwidth packs, in bytes, by shop. */
+  async packUsedTotals(db: Executor, tenantId?: string): Promise<TenantTotal[]> {
+    return db
+      .select({
+        tenantId: mediaBandwidth.tenantId,
+        units: sql<number>`SUM(${mediaBandwidth.packUsed})::bigint`.mapWith(Number),
+      })
+      .from(mediaBandwidth)
+      .where(tenantId === undefined ? undefined : eq(mediaBandwidth.tenantId, tenantId))
+      .groupBy(mediaBandwidth.tenantId);
+  }
+
   async findCycle(
     db: Executor,
     tenantId: string,
@@ -158,6 +202,7 @@ export class MediaBandwidthRepository {
         createdAt: tenants.createdAt,
         planSnapshot: tenants.planSnapshot,
         deletedAt: tenants.deletedAt,
+        autoBuyBandwidth: tenants.autoBuyBandwidth,
       })
       .from(tenants)
       .where(or(isNull(tenants.deletedAt), gte(tenants.deletedAt, deletedSince)));

@@ -205,6 +205,9 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'POST /addons/purchase': "another shop's payment id answers not_found",
   // Phase 3 Slice 10a.2, checked in test/addon-renewal.e2e.spec.ts.
   'PATCH /addons/mine/:id': "another shop's add-on answers not_found",
+  // Phase 3 Slice 10a.3, checked in test/addon-packs.e2e.spec.ts: packs and the switches are the session shop's own.
+  'POST /addons/packs': "buys into the session shop's own balance and cycle only",
+  'PATCH /addons/auto-buy': "sets only the session shop's own auto-buy switches",
   // The public API (API-10, TEN-02): the shop comes from the key alone, whatever the request names.
   'GET /public/shop': "answers the key's own shop only; a shop id sent with the request is ignored",
   // Phase 3 Slice 9a, checked in test/public-catalogue.e2e.spec.ts: the catalogue of the key's shop only.

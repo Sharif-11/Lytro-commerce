@@ -135,9 +135,12 @@ export {
   type AddonActivation,
   type AddonPurchaseRow,
   type AddonUnits,
+  type CyclePackFields,
   type NewAddonPurchaseValues,
+  type PackPurchaseRow,
   type PaymentAddonRow,
   type RenewingAddonRow,
+  type TenantTotal,
 } from './repositories/billing/addon-purchase.repository';
 export {
   PlanPaymentsRepository,

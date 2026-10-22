@@ -10,7 +10,7 @@ import type {
   PaymentAddonRow,
   RenewingAddonRow,
 } from '@lytronix/db';
-import type { AddonRenewal } from '@lytronix/validators';
+import type { AddonRenewal, UsageMetric } from '@lytronix/validators';
 import type { PlanPaymentRecord } from '../../payments/types/plan-payment';
 import type { InvoiceRecord } from '../../payments/types/invoice';
 
@@ -61,10 +61,19 @@ export interface AddonPurchaseResult {
  */
 export type ShopAddon = ActiveAddon & { renewal: AddonRenewal; endsSoon: boolean };
 
-/** PLN-14, BRN-05: what the shop has now, and what that switches on. */
+/** BND-04, RTE-11, PLN-15: what is left of the shop's packs for one metric, and whether auto-buy is on for it. */
+export interface ShopPack {
+  metric: UsageMetric.Bandwidth | UsageMetric.Requests;
+  /** In the metric's own unit: bytes of bandwidth, or requests. */
+  left: number;
+  autoBuy: boolean;
+}
+
+/** PLN-14, BRN-05, PLN-15: what the shop has now, what that switches on, and its packs. */
 export interface ShopAddons {
   addons: ShopAddon[];
   brandIdentity: boolean;
+  packs: ShopPack[];
 }
 
 /** ADM-06: a payment waiting in the operator's queue, with the add-ons it pays for. */

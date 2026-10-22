@@ -1,19 +1,39 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import type { EdgeShopRow, Transaction } from '@lytronix/db';
+import type {
+  BandwidthCycleRow,
+  BillingInfoRow,
+  EdgeShopRow,
+  TenantTotal,
+  Transaction,
+} from '@lytronix/db';
 import type { MediaBlockReason, MediaBlockedList } from '@lytronix/shared-types';
 import {
   limitOf,
+  PACK_AUTO_BUY_CAP,
+  PackAutoBuyState,
+  shopLimitsOf,
   UsageMetric,
-  withOverrides,
   type PlanLimits,
   type UsageLimitKey,
 } from '@lytronix/validators';
 import { DAY_MS, MINUTE_MS, dhakaDate, usageCycleStart } from '../../../common/time';
-import { levelOf, pastGrace, servingShares, warningDue } from '../../../common/usage-warnings';
+import {
+  allowanceOf,
+  cyclePacks,
+  levelOf,
+  packTaken,
+  passedShare,
+  pastGrace,
+  recordedShare,
+  servingShares,
+  warningDue,
+  type CyclePacks,
+} from '../../../common/usage-warnings';
 import { CLOSED_STATES } from '../../tenancy/services/tenant-resolver.service';
+import type { PackAutoBuys } from '../../usage-warnings/ports/pack-auto-buys';
 import type { UsageNotices } from '../../usage-warnings/ports/usage-notices';
 import { UsageSettings } from '../../usage-warnings/services/usage-settings';
-import { USAGE_NOTICES } from '../../usage-warnings/tokens';
+import { PACK_AUTO_BUYS, USAGE_NOTICES } from '../../usage-warnings/tokens';
 import type { BandwidthStore, LimitOverrideRow } from '../ports/bandwidth-store';
 import type { MediaEdge, MediaUsageTotal, ShopOrigins } from '../ports/media-edge';
 import { BANDWIDTH_SETTINGS, BANDWIDTH_STORE, MEDIA_CLOCK, MEDIA_EDGE } from '../tokens';
@@ -31,7 +51,7 @@ const LONGEST_CYCLE_MS = 31 * DAY_MS;
 // LIF-19: a deleted shop's files go in the deletion job after it; the shop stays blocked this long, so none is
 // served while the job runs or is retried.
 const DELETED_BLOCKED_MS = 30 * DAY_MS;
-const BANDWIDTH_KEY: UsageLimitKey = 'bandwidth_gb';
+export const BANDWIDTH_KEY: UsageLimitKey = 'bandwidth_gb';
 
 /** What the minute's pass needs that only the server's settings know. */
 export interface BandwidthSettings {
@@ -39,13 +59,33 @@ export interface BandwidthSettings {
   shopOrigin: (slug: string) => string;
 }
 
-/** PLN-11, PLN-19: the shop's bandwidth for a cycle in bytes, its overrides laid over its plan; null is unlimited. */
+/**
+ * PLN-11, PLN-13, PLN-19: the shop's own bandwidth for a cycle in bytes -- its plan with its overrides and limit add-ons,
+ * the one composition every limit reader uses (`shopLimitsOf`); packs come on top (`allowanceOf`). Null is unlimited.
+ */
 function limitBytes(
   snapshot: PlanLimits | null,
   overrides: readonly LimitOverrideRow[],
+  addonGb: number,
 ): number | null {
-  const gb = limitOf(withOverrides(snapshot, overrides), BANDWIDTH_KEY);
+  const addons = addonGb > 0 ? [{ limitKey: BANDWIDTH_KEY, units: addonGb }] : [];
+  const gb = limitOf(shopLimitsOf(snapshot, overrides, addons), BANDWIDTH_KEY);
   return gb === null ? null : gb * GB;
+}
+
+/** What a shop's bandwidth is judged by beyond its plan: its overrides, its limit add-ons and its packs. */
+interface Allowances {
+  overrides: Map<string, LimitOverrideRow[]>;
+  /** Limit add-ons, in GB. */
+  addons: Map<string, number>;
+  /** Packs bought, in bytes. */
+  bought: Map<string, number>;
+  /** What the shop's cycles took from its packs, in bytes. */
+  taken: Map<string, number>;
+}
+
+function totals(rows: readonly TenantTotal[], unit = 1): Map<string, number> {
+  return new Map(rows.map((row) => [row.tenantId, row.units * unit]));
 }
 
 function cycleKey(tenantId: string, cycleStart: Date): string {
@@ -86,6 +126,7 @@ export class MediaBandwidth {
     @Inject(BANDWIDTH_STORE) private readonly store: BandwidthStore,
     @Inject(MEDIA_EDGE) private readonly edge: MediaEdge,
     @Inject(USAGE_NOTICES) private readonly notices: UsageNotices,
+    @Inject(PACK_AUTO_BUYS) private readonly autoBuys: PackAutoBuys,
     @Inject(UsageSettings) private readonly usageSettings: UsageSettings,
     @Inject(BANDWIDTH_SETTINGS) private readonly settings: BandwidthSettings,
     @Inject(MEDIA_CLOCK) private readonly clock: () => Date,
@@ -124,8 +165,8 @@ export class MediaBandwidth {
   async count(now: Date): Promise<number> {
     const until = new Date(Math.floor((now.getTime() - SETTLE_MS) / MINUTE_MS) * MINUTE_MS);
     const shops = new Map((await this.store.listEdgeShops(now)).map((shop) => [shop.id, shop]));
-    const overrides = byShop(await this.store.listOverridesFor(BANDWIDTH_KEY));
-    const shares = servingShares(await this.usageSettings.gracePercent());
+    const allowances = await this.allowancesOf();
+    const grace = await this.usageSettings.gracePercent();
     let counted = 0;
     for (;;) {
       const step = await this.store.run(async (tx) => {
@@ -133,7 +174,7 @@ export class MediaBandwidth {
         if (from >= until) return null;
         const to = new Date(Math.min(until.getTime(), from.getTime() + STEP_MS));
         const usage = await this.edge.usageByMinute(from, to);
-        await this.add(tx, usage, shops, overrides, shares, now);
+        await this.add(tx, usage, shops, allowances, grace, now);
         await this.store.setPulledUntil(tx, to);
         return usage.length;
       });
@@ -147,21 +188,20 @@ export class MediaBandwidth {
    * website addresses (its own address and its live keys' websites).
    */
   async publish(now: Date): Promise<{ blocked: number; written: number }> {
-    const [shops, cycles, overrides, websites, grace] = await Promise.all([
+    const [shops, cycles, allowances, websites, grace] = await Promise.all([
       this.store.listEdgeShops(new Date(now.getTime() - DELETED_BLOCKED_MS)),
       this.store.listCyclesSince(new Date(now.getTime() - LONGEST_CYCLE_MS)),
-      this.store.listOverridesFor(BANDWIDTH_KEY),
+      this.allowancesOf(),
       this.store.listLiveWebsites(now),
       this.usageSettings.gracePercent(),
     ]);
-    const used = new Map(cycles.map((row) => [cycleKey(row.tenantId, row.cycleStart), row.bytes]));
-    const limits = byShop(overrides);
+    const byCycle = new Map(cycles.map((row) => [cycleKey(row.tenantId, row.cycleStart), row]));
     const sites = byShop(websites);
     const reasons: [string, MediaBlockReason][] = [];
     const origins: ShopOrigins[] = [];
     for (const shop of shops) {
-      const usedBytes = used.get(cycleKey(shop.id, usageCycleStart(shop, now))) ?? 0;
-      const reason = this.blockReason(shop, usedBytes, limits.get(shop.id) ?? [], grace);
+      const cycle = byCycle.get(cycleKey(shop.id, usageCycleStart(shop, now)));
+      const reason = this.blockReason(shop, cycle ?? null, allowances, grace);
       if (reason !== null) reasons.push([shop.id, reason]);
       if (shop.deletedAt !== null) continue;
       const list = [
@@ -188,25 +228,126 @@ export class MediaBandwidth {
     return { blocked: reasons.length, written: origins.length + (blockedChanged ? 1 : 0) };
   }
 
-  /** BND-01, BND-06, BND-08: the shop's bandwidth this cycle, its limit, and its days in order. */
+  /**
+   * BND-01, BND-04, BND-06, BND-08: the shop's bandwidth this cycle, its allowance (its own limit, then its packs) and
+   * what is left of its packs, whether auto-buy is on, and its days in order.
+   */
   async usage(tenantId: string): Promise<BandwidthUsage> {
     const now = this.clock();
-    const [shop, overrides] = await Promise.all([
-      this.store.findBillingShop(tenantId),
-      this.store.listShopOverrides(tenantId),
-    ]);
+    const shop = await this.store.findBillingShop(tenantId);
     if (!shop) throw new Error(`no shop ${tenantId}`);
     const cycleStart = usageCycleStart(shop, now);
-    const [cycle, days] = await Promise.all([
+    const [cycle, days, allowances] = await Promise.all([
       this.store.findCycle(tenantId, cycleStart),
       this.store.listDays(tenantId, cycleStart),
+      this.allowancesOf(tenantId),
     ]);
+    const used = cycle?.bytes ?? 0;
+    const { limit, packs } = this.cycleOf(tenantId, shop.planSnapshot, cycle, allowances);
     return {
       cycleStart,
-      usedBytes: cycle?.bytes ?? 0,
+      usedBytes: used,
       requests: cycle?.requests ?? 0,
-      limitBytes: limitBytes(shop.planSnapshot, overrides),
+      limitBytes: allowanceOf(limit, packs),
+      ownLimitBytes: limit,
+      packs,
+      packLeftBytes: packs.available - packTaken(used, limit, packs),
+      autoBuy: shop.autoBuyBandwidth,
+      autoPacks: cycle?.autoPacks ?? 0,
+      autoBuyState: cycle?.autoBuyState ?? null,
       days,
+    };
+  }
+
+  /**
+   * BND-04, PLN-15: a bandwidth pack of `addedBytes` was just bought, in `tx`. A pack bought past the allowance -- in the
+   * grace, or after the stop -- adds its full amount on top of what is used: the grace use so far is written off, never
+   * taken from the pack (BND-03: nothing past the limit is charged). The warnings start again against the new allowance,
+   * and a failed auto-buy may try again.
+   */
+  async packBought(
+    tx: Transaction,
+    tenantId: string,
+    shop: Pick<BillingInfoRow, 'state' | 'planSnapshot' | 'periodStart' | 'createdAt'>,
+    addedBytes: number,
+    now: Date,
+  ): Promise<void> {
+    const cycleStart = usageCycleStart(shop, now);
+    const cycle = await this.store.lockCycle(tx, tenantId, cycleStart);
+    const allowances = await this.allowancesOf(tenantId, tx);
+    const { limit, packs } = this.cycleOf(tenantId, shop.planSnapshot, cycle, allowances);
+    const after = allowanceOf(limit, packs);
+    if (after === null) return;
+    const before = after - addedBytes;
+    const free = cycle.packFree + Math.max(cycle.bytes - before, 0);
+    const allowance = after + (free - cycle.packFree);
+    await this.store.updateCycle(tx, tenantId, cycleStart, {
+      packFree: free,
+      warnedPercent: passedShare(cycle.bytes, allowance),
+      autoBuyState: cycle.autoBuyState === PackAutoBuyState.Failed ? null : cycle.autoBuyState,
+    });
+  }
+
+  /** BND-04: how auto-buy stands in the shop's cycle, locked for the purchase that settles it. */
+  async autoBuyOf(
+    tx: Transaction,
+    tenantId: string,
+    cycleStart: Date,
+  ): Promise<Pick<BandwidthCycleRow, 'autoPacks' | 'autoBuyState'>> {
+    const cycle = await this.store.lockCycle(tx, tenantId, cycleStart);
+    return { autoPacks: cycle.autoPacks, autoBuyState: cycle.autoBuyState };
+  }
+
+  /** BND-04: auto-buy's asked-for pack is settled -- bought (one more this cycle), failed for the balance, or not due. */
+  async autoBuyDone(
+    tx: Transaction,
+    tenantId: string,
+    cycleStart: Date,
+    outcome: 'bought' | 'failed' | 'skipped',
+  ): Promise<void> {
+    const cycle = await this.store.lockCycle(tx, tenantId, cycleStart);
+    await this.store.updateCycle(tx, tenantId, cycleStart, {
+      autoPacks: cycle.autoPacks + (outcome === 'bought' ? 1 : 0),
+      autoBuyState: outcome === 'failed' ? PackAutoBuyState.Failed : null,
+    });
+  }
+
+  /** Every shop's overrides, limit add-ons and packs -- or one shop's, in `tx` when given. */
+  private async allowancesOf(tenantId?: string, tx?: Transaction): Promise<Allowances> {
+    const [overrides, addons, bought, taken] = await Promise.all([
+      tenantId === undefined
+        ? this.store.listOverridesFor(BANDWIDTH_KEY)
+        : this.store.listShopOverrides(tenantId),
+      this.store.listLimitAddons(tenantId, tx),
+      this.store.listPacksBought(tenantId, tx),
+      this.store.listPacksTaken(tenantId, tx),
+    ]);
+    return {
+      overrides: byShop(overrides.filter((row) => row.limitKey === BANDWIDTH_KEY)),
+      addons: totals(addons),
+      bought: totals(bought, GB),
+      taken: totals(taken),
+    };
+  }
+
+  /** The shop's own limit for the cycle, and what its packs hold for it. */
+  private cycleOf(
+    tenantId: string,
+    snapshot: PlanLimits | null,
+    cycle: Pick<BandwidthCycleRow, 'packUsed' | 'packFree'> | null,
+    allowances: Allowances,
+  ): { limit: number | null; packs: CyclePacks } {
+    return {
+      limit: limitBytes(
+        snapshot,
+        allowances.overrides.get(tenantId) ?? [],
+        allowances.addons.get(tenantId) ?? 0,
+      ),
+      packs: cyclePacks(
+        allowances.bought.get(tenantId) ?? 0,
+        allowances.taken.get(tenantId) ?? 0,
+        cycle ?? { packUsed: 0, packFree: 0 },
+      ),
     };
   }
 
@@ -218,8 +359,8 @@ export class MediaBandwidth {
     tx: Transaction,
     usage: readonly MediaUsageTotal[],
     shops: ReadonlyMap<string, EdgeShopRow>,
-    overrides: ReadonlyMap<string, LimitOverrideRow[]>,
-    shares: readonly number[],
+    allowances: Allowances,
+    grace: number,
     now: Date,
   ): Promise<void> {
     const sums = new Map<string, DaySum>();
@@ -240,18 +381,48 @@ export class MediaBandwidth {
       const row = await this.store.add(tx, { tenantId: shop.id, cycleStart, day, bytes, requests });
       // BND-05: warnings belong to the cycle running now; minutes caught up from an earlier one warn no one.
       if (cycleStart.getTime() !== usageCycleStart(shop, now).getTime()) continue;
-      const limit = limitBytes(shop.planSnapshot, overrides.get(shop.id) ?? []);
-      const reached = warningDue(row.bytes, limit, row.warnedPercent, shares);
-      if (reached === null || limit === null) continue;
-      await this.store.setWarned(tx, shop.id, cycleStart, reached);
-      await this.notices.queue(tx, {
-        tenantId: shop.id,
-        metric: UsageMetric.Bandwidth,
-        level: levelOf(reached),
-        used: row.bytes,
-        limit,
-        cycleStart: cycleStart.toISOString(),
-      });
+      const { limit, packs } = this.cycleOf(shop.id, shop.planSnapshot, row, allowances);
+      // BND-04: what the cycle has taken from the packs follows its use past the limit, as far as they reach.
+      const taken = packTaken(row.bytes, limit, packs);
+      if (taken !== row.packUsed) {
+        await this.store.updateCycle(tx, shop.id, cycleStart, { packUsed: taken });
+        allowances.taken.set(shop.id, (allowances.taken.get(shop.id) ?? 0) - row.packUsed + taken);
+      }
+      const allowance = allowanceOf(limit, packs);
+      if (allowance === null) continue;
+      const reached = warningDue(
+        row.bytes,
+        allowance,
+        row.warnedPercent,
+        servingShares(grace, limit, allowance),
+      );
+      if (reached !== null) {
+        await this.store.setWarned(tx, shop.id, cycleStart, recordedShare(reached));
+        await this.notices.queue(tx, {
+          tenantId: shop.id,
+          metric: UsageMetric.Bandwidth,
+          level: levelOf(reached),
+          used: row.bytes,
+          limit: allowance,
+          cycleStart: cycleStart.toISOString(),
+        });
+      }
+      // BND-04, PLN-15: at the allowance, auto-buy asks for one pack -- once at a time, up to the cycle's cap.
+      if (
+        shop.autoBuyBandwidth &&
+        row.bytes >= allowance &&
+        row.autoPacks < PACK_AUTO_BUY_CAP &&
+        row.autoBuyState === null
+      ) {
+        await this.store.updateCycle(tx, shop.id, cycleStart, {
+          autoBuyState: PackAutoBuyState.Requested,
+        });
+        await this.autoBuys.queue(tx, {
+          tenantId: shop.id,
+          metric: UsageMetric.Bandwidth,
+          cycleStart: cycleStart.toISOString(),
+        });
+      }
     }
   }
 
@@ -262,14 +433,13 @@ export class MediaBandwidth {
    */
   private blockReason(
     shop: EdgeShopRow,
-    usedBytes: number,
-    overrides: readonly LimitOverrideRow[],
+    cycle: BandwidthCycleRow | null,
+    allowances: Allowances,
     gracePercent: number,
   ): MediaBlockReason | null {
     if (shop.deletedAt !== null) return 'offline';
-    if (pastGrace(usedBytes, limitBytes(shop.planSnapshot, overrides), gracePercent)) {
-      return 'bandwidth';
-    }
+    const { limit, packs } = this.cycleOf(shop.id, shop.planSnapshot, cycle, allowances);
+    if (pastGrace(cycle?.bytes ?? 0, limit, gracePercent, packs)) return 'bandwidth';
     return CLOSED_STATES.has(shop.state) || shop.suspendedAt !== null ? 'offline' : null;
   }
 }

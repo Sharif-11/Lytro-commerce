@@ -2,7 +2,6 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { BillingInfoRow, Transaction } from '@lytronix/db';
 import {
   ActorType,
-  ADDON_PERIOD_DAYS,
   ADDON_WARNING_DAYS,
   AddonKind,
   AddonPurchaseStatus,
@@ -17,7 +16,6 @@ import {
   limitOf,
   PlanPaymentKind,
   PlanPaymentStatus,
-  TenantState,
   type PlanLimits,
   type QuoteAddonInput,
 } from '@lytronix/validators';
@@ -47,6 +45,8 @@ import type {
   RenewingAddon,
   ShopAddons,
 } from '../types/addon';
+import { canTake, periodEndFor } from './addon-eligibility';
+import { AddonPackService } from './addon-pack.service';
 import { addonPrice, type AddonPeriod } from './addon-price';
 import { AddonRenewalService, NOT_RENEWING, type OwnPeriod } from './addon-renewal.service';
 import { BillingTermsService } from './billing-terms.service';
@@ -89,20 +89,6 @@ interface Paying {
 /** BRN-05, PLN-13: a feature add-on switches on the plan feature named by its key -- bought, or in the plan itself. */
 function featureOn(key: string, holdings: Omit<Holdings, 'limits'>): boolean {
   return holdings.features?.[key] === true || holdings.active.some((addon) => addon.key === key);
-}
-
-/** PLN-14: whether the shop has a paid period running, which is what an add-on is bought into. */
-function canTake(info: BillingInfoRow | null, now: Date): info is BillingInfoRow {
-  if (info?.state === TenantState.PayAsYouGo) return true;
-  return (
-    info?.state === TenantState.Active &&
-    (info.periodEnd === null || (info.periodStart !== null && info.periodEnd > now))
-  );
-}
-
-/** PLN-14: where a fresh add-on ends -- with the shop's paid period, or its own 30 days when it has none. */
-function periodEndFor(info: BillingInfoRow, now: Date): Date {
-  return info.periodEnd ?? new Date(now.getTime() + ADDON_PERIOD_DAYS * DAY_MS);
 }
 
 /**
@@ -153,6 +139,7 @@ export class AddonPurchaseService {
     @Inject(BillingTermsService) private readonly terms: BillingTermsService,
     @Inject(ShopLimitsService) private readonly shopLimits: ShopLimitsService,
     @Inject(AddonRenewalService) private readonly renewals: AddonRenewalService,
+    @Inject(AddonPackService) private readonly packs: AddonPackService,
     @Inject(PlanPaymentsService) private readonly payments: PlanPaymentsService,
     @Inject(BalanceService) private readonly balance: BalanceService,
     @Inject(InvoicesService) private readonly invoices: InvoicesService,
@@ -175,16 +162,21 @@ export class AddonPurchaseService {
       this.buyingOf(tenantId, now),
     ]);
     const holdings = buying ? await this.holdingsOf(tenantId, buying.info) : null;
-    return catalogue
-      .filter((addon) => BUYABLE_ADDON_KINDS.includes(addon.kind))
-      .map((addon) => {
-        const open = buying && holdings && refusalOf(addon, 1, holdings) === null;
-        return {
+    return catalogue.flatMap((addon) => {
+      // PLN-15: a pack's price is fixed and it has no end; it is bought by `POST /addons/packs`.
+      if (addon.kind === AddonKind.Pack) {
+        return [{ addon, price: buying ? Number(addon.price) : null, expiresAt: null }];
+      }
+      if (!BUYABLE_ADDON_KINDS.includes(addon.kind)) return [];
+      const open = buying && holdings && refusalOf(addon, 1, holdings) === null;
+      return [
+        {
           addon,
           price: open ? this.priceOf(addon, 1, buying.period, now) : null,
           expiresAt: open ? buying.period.end : null,
-        };
-      });
+        },
+      ];
+    });
   }
 
   /** PLN-14, BIL-09: prices the add-on to the period's end and holds the price for 30 minutes. */
@@ -377,6 +369,7 @@ export class AddonPurchaseService {
         active: addons,
         features: info?.featureSnapshot ?? null,
       }),
+      packs: await this.packs.packsOf(tenantId),
     };
   }
 

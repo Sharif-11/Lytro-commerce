@@ -42,7 +42,7 @@ export interface AuthenticatedKey {
 /** The shop a key acts for, as the public API needs it: whether it is open, its limits and its billing cycle. */
 export interface ApiShop {
   row: ApiShopRow;
-  /** PLN-11: the snapshot with the shop's overrides over it. */
+  /** PLN-11, PLN-13: the snapshot with the shop's overrides over it and its limit add-ons on top. */
   limits: PlanLimits | null;
 }
 

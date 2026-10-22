@@ -143,7 +143,16 @@ const EXTRA_SEAT: AddonOption = {
 const ADDONS = { planMonthly: 449, addons: [EXTRA_PRODUCTS, EXTRA_SEAT] };
 
 function figure(metric: UsageMetric, used: number, limit: number | null): UsageFigure {
-  return { metric, used, limit, unit: 'count', perCycle: false, level: null };
+  return {
+    metric,
+    used,
+    limit,
+    packLeft: null,
+    stopAt: null,
+    unit: 'count',
+    perCycle: false,
+    level: null,
+  };
 }
 
 describe('the add-ons a shop near its limit is offered beside the plans (LIM-01, PLN-13)', () => {
@@ -236,6 +245,7 @@ describe('the add-ons a shop near its limit is offered beside the plans (LIM-01,
         bandwidthDays: [],
         suggestions: offered,
         fastSpendAlertedAt: null,
+        packs: [],
       },
       NOW,
       10,

@@ -182,6 +182,10 @@ export enum AuditAction {
   AddonLapsed = 'addon_lapsed',
   // PLN-14: the 7- or 1-day warning that an add-on will not renew (`summary.day`). Email only, never SMS.
   AddonEndingWarned = 'addon_ending_warned',
+  // PLN-15, BND-04, RTE-11: the owner switching auto-buy of bandwidth or request packs on or off.
+  PackAutoBuySet = 'pack_auto_buy_set',
+  // BND-04: auto-buy reached the cycle's allowance but the balance was short of a pack. System-caused.
+  PackAutoBuyFailed = 'pack_auto_buy_failed',
   // BAL-03/BAL-05: a verified top-up credits the balance -- tenant-caused.
   BalanceToppedUp = 'balance_topped_up',
   // DWN-01/04/17: the owner's own scheduling actions.
@@ -415,6 +419,8 @@ export enum QueueName {
   MediaBandwidthTick = 'media_bandwidth_tick',
   // LIM-01: a usage warning to write and send, queued in the transaction that crossed its share of a limit.
   UsageNotice = 'usage_notice',
+  // BND-04, RTE-11: a pack to buy from the balance, queued by the minute's count that reached the cycle's allowance.
+  PackAutoBuy = 'pack_auto_buy',
 }
 
 // Who performed the action (AUD-02). `system` is the platform itself (a scheduled job); `platform_support` is an
@@ -646,6 +652,24 @@ export const ADDON_PERIOD_DAYS = 30;
 
 // PLN-14: how many days before an add-on ends the owner is warned that it will not renew.
 export const ADDON_WARNING_DAYS: readonly number[] = [7, 1];
+
+// PLN-15 (agreed for Slice 10a.3): the most packs auto-buy buys for one metric in one cycle; past it, the grace and the
+// stop apply as without auto-buy.
+export const PACK_AUTO_BUY_CAP = 3;
+
+// BND-04, RTE-11: a pack has no end -- it is used up, not outlived (PLN-13) -- so its purchase row's end is this, after
+// every period there will be.
+export const PACK_NEVER_ENDS = new Date('9999-12-31T00:00:00.000Z');
+
+// BND-04, RTE-11: what a pack tops up, by the limit it raises -- media bandwidth or API requests.
+export const PACK_LIMIT_KEYS = ['bandwidth_gb', 'requests_monthly'] as const;
+export type PackLimitKey = (typeof PACK_LIMIT_KEYS)[number];
+
+// BND-04: how auto-buy stands in a cycle -- a pack asked for and not yet bought, or one the balance could not pay.
+export enum PackAutoBuyState {
+  Requested = 'requested',
+  Failed = 'failed',
+}
 
 // PLN-14: what became of a bought add-on. Pending while its payment is quoted; active from when it takes effect;
 // lapsed once it ended with nothing continuing it; cancelled when its payment never activated it -- the quote was

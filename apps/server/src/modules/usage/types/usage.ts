@@ -2,11 +2,18 @@ import type { UsageMetric } from '@lytronix/validators';
 import type { UsageLevel } from '../../../common/usage-warnings';
 import type { BandwidthDay } from '../../media/types/media';
 
-/** LIM-02: one metric against the shop's limit; null is unlimited (PLN-19). */
+/**
+ * LIM-02: one metric against the shop's limit; null is unlimited (PLN-19). For bandwidth and API requests the limit is
+ * the cycle's allowance -- the shop's own limit, then its packs (BND-04, RTE-11).
+ */
 export interface UsageFigure {
   metric: UsageMetric;
   used: number;
   limit: number | null;
+  /** BND-04, RTE-11: what is left of the shop's packs for the metric; null for a metric with no packs. */
+  packLeft: number | null;
+  /** BND-03, RTE-03: where a metric that serves shoppers stops -- the allowance and the grace after it; else null. */
+  stopAt: number | null;
   /** Bytes for storage and bandwidth, a count for everything else. */
   unit: 'count' | 'bytes';
   /** Whether it starts again each cycle (bandwidth, requests, monthly SMS) or is a running total. */
@@ -42,6 +49,18 @@ export interface Suggestions {
   alternative: Suggestion | null;
 }
 
+/**
+ * BND-04, RTE-11, PLN-15: for a metric with packs, the pack for sale and its price (whole taka; null when the shop
+ * cannot buy one), and how auto-buy stands this cycle -- what the page and its notices offer.
+ */
+export interface UsagePack {
+  metric: UsageMetric.Bandwidth | UsageMetric.Requests;
+  offer: { addonId: string; name: string; price: number } | null;
+  autoBuy: boolean;
+  autoPacks: number;
+  autoBuyFailed: boolean;
+}
+
 /** LIM-02: what the usage page shows: every metric, the cycle the per-cycle ones belong to, and each day's bandwidth. */
 export interface ShopUsage {
   cycleStart: Date;
@@ -52,4 +71,6 @@ export interface ShopUsage {
   suggestions: Suggestions | null;
   /** RTE-12: when the cycle's last fast-spend alert went out, for the banner. */
   fastSpendAlertedAt: Date | null;
+  /** BND-04, RTE-11, PLN-15: the packs on sale and auto-buy, for bandwidth and API requests. */
+  packs: UsagePack[];
 }

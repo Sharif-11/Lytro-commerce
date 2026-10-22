@@ -71,7 +71,11 @@ export const bandwidthUsageSchema = z.object({
   cycleStart: z.date(),
   usedBytes: z.number(),
   requests: z.number(),
+  // BND-04: the cycle's allowance -- the shop's own limit, then its packs -- and what is left of its packs.
   limitBytes: z.number().nullable(),
+  packLeftBytes: z.number(),
+  // PLN-15: whether auto-buy buys a bandwidth pack at the allowance.
+  autoBuy: z.boolean(),
   days: z.array(z.object({ day: z.string(), bytes: z.number(), requests: z.number() })),
 });
 export class BandwidthUsageDto extends createZodDto(bandwidthUsageSchema) {}

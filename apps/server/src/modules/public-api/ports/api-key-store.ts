@@ -1,4 +1,4 @@
-import type { Transaction } from '@lytronix/db';
+import type { AddonUnits, CyclePackFields, TenantTotal, Transaction } from '@lytronix/db';
 import type {
   ApiKeyRecord,
   ApiShopRow,
@@ -37,6 +37,8 @@ export interface ApiKeyStore {
   /** The shop, and its overrides (PLN-11), for the public API. */
   findShop(tenantId: string): Promise<ApiShopRow | null>;
   listOverrides(tenantId: string): Promise<{ limitKey: string; value: unknown }[]>;
+  /** PLN-13: the shop's active limit add-ons, limit by limit. */
+  listAddonUnits(tenantId: string): Promise<AddonUnits[]>;
   deleteAllForTenant(tenantId: string): Promise<void>;
 }
 
@@ -52,4 +54,21 @@ export interface ApiUsageStore {
   find(tenantId: string, cycleStart: Date): Promise<ApiUsageRow | null>;
   setWarned(tx: Transaction, tenantId: string, cycleStart: Date, percent: number): Promise<void>;
   setFastSpendAlerted(tx: Transaction, tenantId: string, cycleStart: Date, at: Date): Promise<void>;
+  /** RTE-11: changes the cycle's warning or pack figures. */
+  updateCycle(
+    tx: Transaction,
+    tenantId: string,
+    cycleStart: Date,
+    values: Partial<CyclePackFields & { warnedPercent: number }>,
+  ): Promise<void>;
+  /** RTE-11: the shop's cycle, made at nothing used if it has none yet, locked for a change to its packs. */
+  lockCycle(tx: Transaction, tenantId: string, cycleStart: Date): Promise<ApiUsageRow>;
+  /** RTE-11: the request packs the shop bought, and what its cycles took from them -- in `tx` when given. */
+  packsBought(tenantId: string, tx?: Transaction): Promise<number>;
+  packsTaken(tenantId: string, tx?: Transaction): Promise<number>;
+}
+
+/** One shop's total, or 0 when it has none. */
+export function totalOf(rows: readonly TenantTotal[]): number {
+  return rows[0]?.units ?? 0;
 }

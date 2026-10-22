@@ -6,12 +6,26 @@ import {
   type OnModuleDestroy,
   type OnModuleInit,
 } from '@nestjs/common';
-import { UsageMetric } from '@lytronix/validators';
+import type { ApiUsageRow, BillingInfoRow, Transaction } from '@lytronix/db';
+import { PACK_AUTO_BUY_CAP, PackAutoBuyState, UsageMetric } from '@lytronix/validators';
 import { DAY_MS, HOUR_MS, MINUTE_MS, SECOND_MS, usageCycleStart } from '../../../common/time';
-import { levelOf, pastGrace, servingShares, warningDue } from '../../../common/usage-warnings';
+import {
+  allowanceOf,
+  cyclePacks,
+  levelOf,
+  NO_PACKS,
+  packTaken,
+  passedShare,
+  pastGrace,
+  recordedShare,
+  servingShares,
+  warningDue,
+  type CyclePacks,
+} from '../../../common/usage-warnings';
+import type { PackAutoBuys } from '../../usage-warnings/ports/pack-auto-buys';
 import type { UsageNotices } from '../../usage-warnings/ports/usage-notices';
 import { UsageSettings } from '../../usage-warnings/services/usage-settings';
-import { USAGE_NOTICES } from '../../usage-warnings/tokens';
+import { PACK_AUTO_BUYS, USAGE_NOTICES } from '../../usage-warnings/tokens';
 import type { ApiUsageStore } from '../ports/api-key-store';
 import { API_USAGE_STORE } from '../tokens';
 import type { ApiShop, ApiUsageCounts } from '../types/public-api';
@@ -39,6 +53,14 @@ interface Pending {
   refusedVisitors: number;
   /** The cycle's limit when last counted, for the warnings at the next flush. */
   limit: number | null;
+  /** PLN-15: whether the shop had auto-buy of request packs on when last counted. */
+  autoBuy: boolean;
+}
+
+/** RTE-03, RTE-11: a cycle's stored requests, and what the shop's packs hold for it. */
+interface StoredCycle {
+  requests: number;
+  packs: CyclePacks;
 }
 
 /** The cycle a shop's counts belong to. */
@@ -57,7 +79,7 @@ function cycleKey(tenantId: string, cycleStart: Date): string {
 export class RequestQuota implements OnModuleInit, OnModuleDestroy, BeforeApplicationShutdown {
   private readonly logger = new Logger('RequestQuota');
   private readonly pending = new Map<string, Pending>();
-  private readonly stored = new ExpiringCache<number>(STORED_TOTAL_MS, STORED_TOTAL_ENTRIES);
+  private readonly stored = new ExpiringCache<StoredCycle>(STORED_TOTAL_MS, STORED_TOTAL_ENTRIES);
   private readonly refusedVisitors = new Map<string, { cycleStart: Date; visitors: Set<string> }>();
   // RTE-12: each shop's requests in the clock hour now running, as this server let them through.
   private readonly hours = new Map<string, { hour: number; count: number }>();
@@ -66,6 +88,7 @@ export class RequestQuota implements OnModuleInit, OnModuleDestroy, BeforeApplic
   constructor(
     @Inject(API_USAGE_STORE) private readonly store: ApiUsageStore,
     @Inject(USAGE_NOTICES) private readonly notices: UsageNotices,
+    @Inject(PACK_AUTO_BUYS) private readonly autoBuys: PackAutoBuys,
     @Inject(UsageSettings) private readonly settings: UsageSettings,
   ) {}
 
@@ -89,8 +112,9 @@ export class RequestQuota implements OnModuleInit, OnModuleDestroy, BeforeApplic
   }
 
   /**
-   * Counts the request against the shop's cycle; false once the cycle's requests and the grace after them are used up
-   * (RTE-03): past 100 percent the shop is still served while its owner is told.
+   * Counts the request against the shop's cycle; false once the cycle's allowance -- its own requests, then its packs
+   * (RTE-11) -- and the grace after it are used up (RTE-03): past the allowance the shop is still served while its owner
+   * is told.
    */
   async take(shop: ApiShop, now: Date): Promise<boolean> {
     const limit = monthlyLimit(shop.limits);
@@ -98,23 +122,101 @@ export class RequestQuota implements OnModuleInit, OnModuleDestroy, BeforeApplic
     const key = cycleKey(shop.row.id, cycleStart);
     const [stored, grace] =
       limit === null
-        ? [0, 0]
+        ? [{ requests: 0, packs: NO_PACKS }, 0]
         : await Promise.all([
-            this.storedTotal(shop.row.id, cycleStart, now),
+            this.storedCycle(shop.row.id, cycleStart, now),
             this.settings.gracePercent(),
           ]);
     // Read after the wait, so two requests arriving together are judged one after the other.
     const pending = this.pendingOf(key, shop.row.id, cycleStart);
-    if (pastGrace(stored + pending.count, limit, grace)) return false;
-    this.pending.set(key, { ...pending, count: pending.count + 1, limit });
+    if (pastGrace(stored.requests + pending.count, limit, grace, stored.packs)) return false;
+    this.pending.set(key, {
+      ...pending,
+      count: pending.count + 1,
+      limit,
+      autoBuy: shop.row.autoBuyRequests,
+    });
     this.countHour(shop.row.id, now);
     return true;
   }
 
   /** LIM-02: the shop's requests in the cycle: those stored, and those this server has not stored yet. */
   async used(tenantId: string, cycleStart: Date, now: Date): Promise<number> {
-    const stored = await this.storedTotal(tenantId, cycleStart, now);
-    return stored + (this.pending.get(cycleKey(tenantId, cycleStart))?.count ?? 0);
+    const stored = await this.storedCycle(tenantId, cycleStart, now);
+    return stored.requests + (this.pending.get(cycleKey(tenantId, cycleStart))?.count ?? 0);
+  }
+
+  /**
+   * LIM-02, RTE-11, PLN-15: what the shop's request packs hold for the cycle, and how auto-buy stands in it -- for the
+   * usage page and its notices.
+   */
+  async packsOf(
+    tenantId: string,
+    cycleStart: Date,
+  ): Promise<{ packs: CyclePacks; autoPacks: number; autoBuyState: PackAutoBuyState | null }> {
+    const [row, bought, taken] = await Promise.all([
+      this.store.find(tenantId, cycleStart),
+      this.store.packsBought(tenantId),
+      this.store.packsTaken(tenantId),
+    ]);
+    return {
+      packs: cyclePacks(bought, taken, row ?? { packUsed: 0, packFree: 0 }),
+      autoPacks: row?.autoPacks ?? 0,
+      autoBuyState: row?.autoBuyState ?? null,
+    };
+  }
+
+  /**
+   * RTE-11, PLN-15: a request pack of `added` requests was just bought, in `tx`. As for bandwidth (BND-04), a pack bought
+   * past the allowance adds its full amount on top of what is used -- this server's unstored count with the stored one
+   * -- the warnings start again against the new allowance, and a failed auto-buy may try again.
+   */
+  async packBought(
+    tx: Transaction,
+    tenantId: string,
+    shop: Pick<BillingInfoRow, 'state' | 'periodStart' | 'createdAt'>,
+    limit: number | null,
+    added: number,
+    now: Date,
+  ): Promise<void> {
+    const cycleStart = usageCycleStart(shop, now);
+    const key = cycleKey(tenantId, cycleStart);
+    const cycle = await this.store.lockCycle(tx, tenantId, cycleStart);
+    this.stored.delete(key);
+    const packs = await this.cyclePacksIn(tx, tenantId, cycle);
+    const after = allowanceOf(limit, packs);
+    if (after === null) return;
+    const used = cycle.requests + (this.pending.get(key)?.count ?? 0);
+    const free = cycle.packFree + Math.max(used - (after - added), 0);
+    await this.store.updateCycle(tx, tenantId, cycleStart, {
+      packFree: free,
+      warnedPercent: passedShare(used, after + (free - cycle.packFree)),
+      autoBuyState: cycle.autoBuyState === PackAutoBuyState.Failed ? null : cycle.autoBuyState,
+    });
+  }
+
+  /** RTE-11: how auto-buy stands in the shop's cycle, locked for the purchase that settles it. */
+  async autoBuyOf(
+    tx: Transaction,
+    tenantId: string,
+    cycleStart: Date,
+  ): Promise<Pick<ApiUsageRow, 'autoPacks' | 'autoBuyState'>> {
+    const cycle = await this.store.lockCycle(tx, tenantId, cycleStart);
+    return { autoPacks: cycle.autoPacks, autoBuyState: cycle.autoBuyState };
+  }
+
+  /** RTE-11: auto-buy's asked-for pack is settled -- bought (one more this cycle), failed for the balance, or not due. */
+  async autoBuyDone(
+    tx: Transaction,
+    tenantId: string,
+    cycleStart: Date,
+    outcome: 'bought' | 'failed' | 'skipped',
+  ): Promise<void> {
+    const cycle = await this.store.lockCycle(tx, tenantId, cycleStart);
+    await this.store.updateCycle(tx, tenantId, cycleStart, {
+      autoPacks: cycle.autoPacks + (outcome === 'bought' ? 1 : 0),
+      autoBuyState: outcome === 'failed' ? PackAutoBuyState.Failed : null,
+    });
   }
 
   /** RTE-12: when the cycle's last fast-spend alert went out, if one did. */
@@ -152,7 +254,6 @@ export class RequestQuota implements OnModuleInit, OnModuleDestroy, BeforeApplic
       this.settings.gracePercent(),
       this.settings.fastSpendPercent(),
     ]);
-    const shares = servingShares(grace);
     for (const [key, entry] of [...this.pending.entries()]) {
       const flushing: ApiUsageCounts = {
         requests: entry.count,
@@ -161,22 +262,56 @@ export class RequestQuota implements OnModuleInit, OnModuleDestroy, BeforeApplic
       };
       const limit = entry.limit;
       try {
-        const requests = await this.store.run(async (tx) => {
+        const stored = await this.store.run(async (tx): Promise<StoredCycle> => {
           const row = await this.store.add(tx, entry.tenantId, entry.cycleStart, flushing);
-          if (limit === null) return row.requests;
+          if (limit === null) return { requests: row.requests, packs: NO_PACKS };
+          const packs = await this.cyclePacksIn(tx, entry.tenantId, row);
+          // RTE-11: what the cycle has taken from the packs follows its use past the limit, as far as they reach.
+          const taken = packTaken(row.requests, limit, packs);
+          if (taken !== row.packUsed) {
+            await this.store.updateCycle(tx, entry.tenantId, entry.cycleStart, { packUsed: taken });
+          }
+          const allowance = allowanceOf(limit, packs) ?? limit;
           const notice = {
             tenantId: entry.tenantId,
             metric: UsageMetric.Requests,
-            limit,
+            limit: allowance,
             cycleStart: entry.cycleStart.toISOString(),
           };
-          const reached = warningDue(row.requests, limit, row.warnedPercent, shares);
+          const reached = warningDue(
+            row.requests,
+            allowance,
+            row.warnedPercent,
+            servingShares(grace, limit, allowance),
+          );
           if (reached !== null) {
-            await this.store.setWarned(tx, entry.tenantId, entry.cycleStart, reached);
+            await this.store.setWarned(
+              tx,
+              entry.tenantId,
+              entry.cycleStart,
+              recordedShare(reached),
+            );
             await this.notices.queue(tx, {
               ...notice,
               level: levelOf(reached),
               used: row.requests,
+            });
+          }
+          // RTE-11, PLN-15: at the allowance, auto-buy asks for one pack -- once at a time, up to the cycle's cap. The
+          // cycle's row is locked by the add, so two servers never both ask.
+          if (
+            entry.autoBuy &&
+            row.requests >= allowance &&
+            row.autoPacks < PACK_AUTO_BUY_CAP &&
+            row.autoBuyState === null
+          ) {
+            await this.store.updateCycle(tx, entry.tenantId, entry.cycleStart, {
+              autoBuyState: PackAutoBuyState.Requested,
+            });
+            await this.autoBuys.queue(tx, {
+              tenantId: entry.tenantId,
+              metric: UsageMetric.Requests,
+              cycleStart: entry.cycleStart.toISOString(),
             });
           }
           // RTE-12: an hour that spent a fast share of the cycle, told of at most once a day.
@@ -187,11 +322,11 @@ export class RequestQuota implements OnModuleInit, OnModuleDestroy, BeforeApplic
             (alerted === null || now.getTime() - alerted.getTime() >= FAST_SPEND_ALERT_EVERY_MS)
           ) {
             await this.store.setFastSpendAlerted(tx, entry.tenantId, entry.cycleStart, now);
-            await this.notices.queue(tx, { ...notice, level: 'fast_spend', used: hour });
+            await this.notices.queue(tx, { ...notice, limit, level: 'fast_spend', used: hour });
           }
-          return row.requests;
+          return { requests: row.requests, packs };
         });
-        this.settle(key, flushing, requests);
+        this.settle(key, flushing, stored);
       } catch (error) {
         this.logger.error(
           `could not store API request counts for ${entry.tenantId}`,
@@ -203,7 +338,7 @@ export class RequestQuota implements OnModuleInit, OnModuleDestroy, BeforeApplic
   }
 
   /** A flushed count moves from the unflushed figure into the stored total in one step. */
-  private settle(key: string, flushed: ApiUsageCounts, storedNow: number): void {
+  private settle(key: string, flushed: ApiUsageCounts, storedNow: StoredCycle): void {
     const pending = this.pending.get(key);
     if (pending) {
       const left = {
@@ -230,8 +365,22 @@ export class RequestQuota implements OnModuleInit, OnModuleDestroy, BeforeApplic
         refused: 0,
         refusedVisitors: 0,
         limit: null,
+        autoBuy: false,
       }
     );
+  }
+
+  /** RTE-11: what the shop's packs hold for this cycle, read in `tx` so a pack just bought counts. */
+  private async cyclePacksIn(
+    tx: Transaction,
+    tenantId: string,
+    cycle: Pick<ApiUsageRow, 'packUsed' | 'packFree'>,
+  ): Promise<CyclePacks> {
+    const [bought, taken] = await Promise.all([
+      this.store.packsBought(tenantId, tx),
+      this.store.packsTaken(tenantId, tx),
+    ]);
+    return cyclePacks(bought, taken, cycle);
   }
 
   /** RTE-12: one more request in the shop's clock hour; a new hour starts again from one. */
@@ -268,13 +417,14 @@ export class RequestQuota implements OnModuleInit, OnModuleDestroy, BeforeApplic
     }
   }
 
-  private async storedTotal(tenantId: string, cycleStart: Date, now: Date): Promise<number> {
+  private async storedCycle(tenantId: string, cycleStart: Date, now: Date): Promise<StoredCycle> {
     const key = cycleKey(tenantId, cycleStart);
     const cached = this.stored.get(key, now.getTime());
     if (cached !== undefined) return cached;
+    const { packs } = await this.packsOf(tenantId, cycleStart);
     const row = await this.store.find(tenantId, cycleStart);
-    const total = row?.requests ?? 0;
-    this.stored.set(key, total, now.getTime());
-    return total;
+    const stored = { requests: row?.requests ?? 0, packs };
+    this.stored.set(key, stored, now.getTime());
+    return stored;
   }
 }

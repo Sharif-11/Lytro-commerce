@@ -21,17 +21,90 @@ export const DEFAULT_USAGE_GRACE_PERCENT = 10;
 // RTE-12: the share of a cycle's API requests that, spent in one hour, alerts the owner and the operator.
 export const DEFAULT_FAST_SPEND_PERCENT = 5;
 
-/** BND-03, RTE-03: whether `used` is past the limit and its grace, where a metric serving shoppers stops. */
-export function pastGrace(used: number, limit: number | null, gracePercent: number): boolean {
-  return limit !== null && used * 100 >= limit * (100 + gracePercent);
+/**
+ * BND-04, RTE-11, PLN-15: what a cycle's packs add to the shop's own limit -- what its packs hold for this cycle (what is
+ * left of them, and what this cycle took already) and the grace use written off at a pack bought past the allowance.
+ */
+export interface CyclePacks {
+  available: number;
+  free: number;
+}
+
+export const NO_PACKS: CyclePacks = { available: 0, free: 0 };
+
+/**
+ * BND-04, PLN-15: a cycle's packs, from what the shop bought, what all its cycles took (this one's `packUsed` among
+ * them) and this cycle's write-off. Packs carry over: what other cycles did not take is this one's.
+ */
+export function cyclePacks(
+  bought: number,
+  takenByAllCycles: number,
+  cycle: { packUsed: number; packFree: number },
+): CyclePacks {
+  return {
+    available: Math.max(bought - (takenByAllCycles - cycle.packUsed), 0),
+    free: cycle.packFree,
+  };
+}
+
+/** BND-04, RTE-11: what the shop may use in the cycle -- its own limit, then its packs; null is unlimited (PLN-19). */
+export function allowanceOf(limit: number | null, packs: CyclePacks = NO_PACKS): number | null {
+  return limit === null ? null : limit + packs.free + packs.available;
 }
 
 /**
- * BND-03, BND-05, RTE-03: the shares at which a metric that keeps serving shoppers past its limit is told of: the three
- * warnings, its limit, and its stop once the grace is used too.
+ * BND-04, PLN-15: what the cycle takes from the shop's packs -- its use past its own limit, less what a pack bought past
+ * the allowance wrote off, as far as the packs reach.
  */
-export function servingShares(gracePercent: number): readonly number[] {
-  return [...USAGE_WARNINGS, 100, 100 + gracePercent];
+export function packTaken(used: number, limit: number | null, packs: CyclePacks): number {
+  if (limit === null) return 0;
+  return Math.min(Math.max(used - limit - packs.free, 0), packs.available);
+}
+
+/**
+ * BND-03, RTE-03: whether `used` is past the allowance and the grace after it, where a metric serving shoppers stops.
+ * The grace is a share of the shop's own limit; packs never widen it.
+ */
+export function pastGrace(
+  used: number,
+  limit: number | null,
+  gracePercent: number,
+  packs: CyclePacks = NO_PACKS,
+): boolean {
+  const allowance = allowanceOf(limit, packs);
+  return (
+    limit !== null && allowance !== null && used * 100 >= allowance * 100 + limit * gracePercent
+  );
+}
+
+/**
+ * BND-03, BND-05, RTE-03: the shares of the cycle's allowance at which a metric that keeps serving shoppers past it is
+ * told of: the three warnings, the allowance, and the stop once the grace -- a share of the shop's own limit -- is used
+ * too. Without packs the allowance is the limit, and the stop is at 100 plus the grace.
+ */
+export function servingShares(
+  gracePercent: number,
+  limit: number | null = null,
+  allowance: number | null = null,
+): readonly number[] {
+  const stop =
+    limit !== null && allowance !== null && allowance > 0
+      ? 100 + (gracePercent * limit) / allowance
+      : 100 + gracePercent;
+  return [...USAGE_WARNINGS, 100, stop];
+}
+
+/**
+ * BND-04, RTE-11: after a pack, the highest of the warnings and the allowance that `used` has already passed against the
+ * new allowance -- what the cycle records as sent, so the ones still ahead are sent again.
+ */
+export function passedShare(used: number, allowance: number): number {
+  return [...USAGE_WARNINGS, 100].filter((share) => used * 100 >= allowance * share).pop() ?? 0;
+}
+
+/** The share a cycle records as sent: a stop share may fall between whole percents, and is kept rounded up. */
+export function recordedShare(share: number): number {
+  return Math.ceil(share);
 }
 
 /**

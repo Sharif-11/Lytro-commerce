@@ -15,8 +15,9 @@ export interface NewInvoiceValues {
   ownerName: string | null;
   planName: string | null;
   planVersion: number | null;
-  periodStart: Date;
-  periodEnd: Date;
+  /** Null for a pack (PLN-15), which is used up rather than run for a period. */
+  periodStart: Date | null;
+  periodEnd: Date | null;
   discountAmount: string;
   paymentMethod: PlanPaymentMethod;
   paymentReference: string | null;

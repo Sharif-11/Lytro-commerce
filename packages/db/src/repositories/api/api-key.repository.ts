@@ -15,6 +15,8 @@ export interface ApiShopRow extends TenantLookupRow {
   planSnapshot: (typeof tenants.$inferSelect)['planSnapshot'];
   periodStart: Date | null;
   createdAt: Date;
+  /** PLN-15, RTE-11: buy a request pack at 100% of the cycle's allowance. */
+  autoBuyRequests: boolean;
 }
 
 // API-01 to API-05, API-08, API-23: a shop's API keys, in the control schema (the API finds a key before it knows
@@ -145,6 +147,7 @@ export class ApiKeyRepository {
         planSnapshot: tenants.planSnapshot,
         periodStart: tenants.periodStart,
         createdAt: tenants.createdAt,
+        autoBuyRequests: tenants.autoBuyRequests,
       })
       .from(tenants)
       .where(eq(tenants.id, tenantId))
