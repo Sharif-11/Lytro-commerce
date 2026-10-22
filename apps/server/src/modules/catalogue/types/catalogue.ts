@@ -253,7 +253,7 @@ export interface ProductDetail {
   variants: VariantView[];
   /** PRD-17: its own chart, else its primary category's or the nearest one above it; null for none. */
   sizeChart: SizeChartView | null;
-  /** PRD-11: its photos, in the order shown (up to 10). */
+  /** PRD-11: its photos, in the order shown (up to 50). */
   images: ImageView[];
   /** PRD-11: its one video, or null. */
   video: VideoView | null;

@@ -649,7 +649,7 @@ Slice 11 additions (§10).
 **Job.** Add, order and remove a product's photos and its one video, and know how much storage is left.
 
 **Layout.** From the editor's Photos card, a sheet: the tiles in order, the first marked Cover, drag to reorder,
-up to [10] photos and one video with its length, size and poster, Replace; the storage line (used of the limit,
+up to [50] photos and one video with its length, size and poster, Replace; the storage line (used of the limit,
 and this product's share); the line that deleting frees storage and that past orders show a placeholder where it
 was (MED-09). **Upload states** (also in §7.4a): uploading with its progress, preparing with how long it takes (a
 photo about 30 s, a video about 5 min), refused with the reason ("6 MB · limit 5 MB"). **Storage full**: the

@@ -5,6 +5,7 @@ import { Test } from '@nestjs/testing';
 import pg from 'pg';
 import sharp from 'sharp';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { PRODUCT_IMAGES_MAX } from '@lytronix/validators';
 import { AppModule } from '../src/app/app.module';
 import type { MessageKey } from '../src/common/i18n/message-key';
 import { translate } from '../src/common/i18n/messages';
@@ -364,7 +365,7 @@ describeIfDatabase('attaching images (PRD-11, PRD-17, ATR-18, TEN-16)', () => {
     expect(((await shop.get('/media')).body as { total: number }).total).toBe(2);
   });
 
-  it('attaches only ready images of the shop, at most ten, each once', async () => {
+  it('attaches only ready images of the shop, up to the limit, each once', async () => {
     const shop = await openShop(port, texts, 'media');
     const other = await openShop(port, texts, 'media');
     const id = await product(shop);
@@ -379,11 +380,19 @@ describeIfDatabase('attaching images (PRD-11, PRD-17, ATR-18, TEN-16)', () => {
     const mine = await upload(shop, await photo());
     const twice = await shop.put(`/products/${id}/images`, { mediaIds: [mine.id, mine.id] });
     expect(twice.status).toBe(400);
-    const eleven = await shop.put(`/products/${id}/images`, {
-      mediaIds: Array.from({ length: 11 }, () => randomUUID()),
+    // PRD-11 (raised to 50 on 2026-10-22): more photos than the old ten are taken, and one more than the limit is not.
+    const eleven: string[] = [];
+    for (let width = 80; eleven.length < 11; width += 1) {
+      eleven.push((await upload(shop, await photo(width, 60))).id);
+    }
+    const taken = await shop.put(`/products/${id}/images`, { mediaIds: eleven });
+    expect(taken.status, JSON.stringify(taken.body)).toBe(200);
+    expect((taken.body as { images: unknown[] }).images).toHaveLength(11);
+    const tooMany = await shop.put(`/products/${id}/images`, {
+      mediaIds: Array.from({ length: PRODUCT_IMAGES_MAX + 1 }, () => randomUUID()),
     });
-    expect(eleven.status).toBe(400);
-    expect(fieldsOf(eleven)).toEqual({ mediaIds: 'too_many' });
+    expect(tooMany.status).toBe(400);
+    expect(fieldsOf(tooMany)).toEqual({ mediaIds: 'too_many' });
   });
 
   it('gives a category a banner and an image size chart, a product an image chart, and an option an image swatch', async () => {
