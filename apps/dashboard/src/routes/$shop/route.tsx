@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router';
 import { tenantSession } from '@/session/tenant-session';
-import { ShopShell } from '@/components/layout/shop-shell';
+import { AppShell } from '@/shell/app-shell';
 
 // TEN-31: every dashboard screen lives under /<shop slug>. This one layout route does the session guard for
 // all of them (ENGINEERING-STANDARDS §4); the shell checks that the slug is the signed-in person's shop and
@@ -18,8 +18,8 @@ export const Route = createFileRoute('/$shop')({
 function ShopLayout(): React.JSX.Element {
   const { shop } = Route.useParams();
   return (
-    <ShopShell slug={shop}>
+    <AppShell slug={shop}>
       <Outlet />
-    </ShopShell>
+    </AppShell>
   );
 }

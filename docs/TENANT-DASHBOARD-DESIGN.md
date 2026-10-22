@@ -836,7 +836,7 @@ Decided 2026-10-22.
 | Look | The values of §5 (radii 6, 10 and 16 px; background neutral-50) through the dashboard's own theme, `packages/ui` `light.css` roles. The shared base and the operator console's look do not change, proven by before-and-after captures. |
 | Components | Shell (app bar, tab bar, rail, header, side column, banners, + menu, search), sheet, dialog, list row, chips, segmented control, switch, stat tile, banner, toast, empty state, skeleton, field, quantity stepper, timeline, variant matrix, category tree, bar chart. In `packages/ui` where the console uses the same shape, else `apps/dashboard/src/components`. |
 | Words | `i18n/locales/{bn,en}.json`, one namespace per hub, taken from the prototype's Bangla and English (the vocabulary of `BRAND-IDENTITY.md` §7); Western digits throughout. |
-| Libraries | The bandwidth and request charts drawn as plain SVG; IMEI scanning with the browser's BarcodeDetector, and `@zxing/browser` loaded only where it is missing; Lucide icons. |
+| Libraries | The bandwidth and request charts drawn as plain SVG; IMEI scanning with the browser's BarcodeDetector, and `@zxing/browser` loaded only where it is missing; the prototype's own line icons (Lucide in shape), carried as drawn in `components/icon.tsx`, so every icon matches the sketch; Lytro's fonts served with the app, Google Fonts only for a shop's brand fonts. |
 | Tests | Playwright in `apps/dashboard`: every screen's states (empty, loading, error, read-only, no permission) against a mocked API, on phone and desktop, in Bangla and English; the slice's walkthrough (clothing, cosmetics and grocery: a product, stock added, a stock check, a purchase) against a real server and database in CI. Each pull request shows its screens beside the prototype's. |
 | Security | The dashboard's Content Security Policy (KNOWN-GAPS §65) in `deploy/Caddyfile`, its media and upload origins from the environment, checked as the console's was. |
 | Order | This document; the backend reads (§10); the brand backend; the foundation and the shell; onboarding and Home; Money; Menu; products and media; categories and attributes; stock; purchasing; delivery; the brand editor and the themed dashboard; last, the policy and the walkthrough. |
@@ -845,8 +845,8 @@ Decided 2026-10-22.
 
 ## 12. Open questions
 
-1. Whether the tab bar should carry four hubs and a centre **+** instead of five hubs; the prototype uses
-   five with **+** in the app bar so the destinations stay stable as phases arrive.
+1. Answered 2026-10-23 (Slice 11.3): five hubs, with **+** in the app bar, as the prototype draws them, so the
+   destinations stay stable as phases arrive.
 2. Whether Customers earns its own hub once Phase 4 ships and the list is used daily.
 3. Answered 2026-10-22: the rail keeps its icons and labels at every desktop width, and the side column shows
    from 1280 px, the section chips below it.

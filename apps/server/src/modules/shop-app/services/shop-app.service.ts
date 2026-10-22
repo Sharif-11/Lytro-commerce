@@ -1,14 +1,14 @@
 import { createHash } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
 import { LYTRO_APP_COLORS } from '@lytronix/shared-types';
-import { TenantState } from '@lytronix/validators';
+import { monogramLetter, TenantState } from '@lytronix/validators';
 import { BrandService } from '../../brand/services/brand.service';
 import type { LiveBrand } from '../../brand/types/brand';
 import { MediaService } from '../../media/services/media.service';
 import { TenantSummaries } from '../../tenancy/services/tenant-summaries.service';
 import type { TenantSummary } from '../../tenancy/types/tenant-summary';
 import { ShopIconFile, type ShopManifest } from '../types/shop-app';
-import { monogramLetter, ShopIcons } from './shop-icons';
+import { ShopIcons } from './shop-icons';
 
 // What a home screen shows under the icon has little room; a longer name is cut at a word.
 const SHORT_NAME_LENGTH = 12;

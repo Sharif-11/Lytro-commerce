@@ -53,6 +53,17 @@ export class StaffService {
     });
   }
 
+  /** The signed-in person's own name in this shop -- the owner's row when there is no staff id; null when unnamed. */
+  nameOf(tenant: StaffTenant, userId: string | null): Promise<string | null> {
+    return this.store.run(tenant.id, async (tx) => {
+      const row =
+        userId === null
+          ? await this.store.findOwner(tx, tenant.id)
+          : (await this.store.findByIds(tx, tenant.id, [userId]))[0];
+      return row?.name ?? null;
+    });
+  }
+
   /** The owner's own staff row id, for an audit entry the owner performs (AUD-02). */
   ownerId(tenantId: string): Promise<string | null> {
     return this.store.run(

@@ -108,7 +108,11 @@ describeIfDatabase(
   () => {
     it("reads auto-renew's state on /me, after the switch", async () => {
       const shop = await onStarter();
-      expect((await shop.get('/me')).body).toMatchObject({ tenant: { autoRenewEnabled: false } });
+      // The header's initial: the signed-in person's own name (create-shop's owner name).
+      expect((await shop.get('/me')).body).toMatchObject({
+        name: 'Owner',
+        tenant: { autoRenewEnabled: false },
+      });
       expect((await shop.post('/billing/auto-renew', { enabled: true })).status).toBe(201);
       expect((await shop.get('/me')).body).toMatchObject({ tenant: { autoRenewEnabled: true } });
     });

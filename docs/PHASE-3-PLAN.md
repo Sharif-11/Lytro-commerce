@@ -1116,6 +1116,27 @@ their backend ships earlier.
      link-preview image and its replacement belong to the storefront (Slice 12).
   9. The manifest is cached for a minute, BRN-02's [1].
   10. The activity log records a save, switching on and switching off.
+- **11.3, the foundation and the shell, agreed 2026-10-23** (8 points; "follow the sketch pixel perfect if there is
+  no fix for the UI or UX") **and built:**
+  1. Five tabs on a phone, with **+** in the app bar (the design doc's first open question).
+  2. The new shell replaces the first build's now. Its working screens (Home, Balance, Plan, Invoices, Team, Roles,
+     Activity, Settings, Account and the onboarding) stay reachable inside it, as they were, until their own pull
+     request; the shell adds the banner and the section chips above them. Shop's sections and Usage say they are
+     being rebuilt; `/more` and `/customers` lead to Menu and Orders.
+  3. Lytro's fonts are served with the app; Google Fonts only for a shop's brand fonts (11.12).
+  4. No app-wide manifest: each shop's pages link the shop's own (KNOWN-GAPS §88, closed); nothing to install
+     outside a shop; the service worker stays and never keeps API answers.
+  5. Playwright (Chromium) against a mocked API, on a phone and a desktop, with an accessibility check, in CI;
+     each screen beside the prototype's, saved as pictures, no committed pixel baselines.
+  6. The shell and the generic pieces now (sheet, dialog, list row, chips, switch, stat tile, banner, toast, empty
+     state, skeleton, field, status tag); the screen-specific ones with their screens. The dashboard's roles in
+     `light.css` take the prototype's values; the operator console's build is unchanged (its CSS byte-identical,
+     its pages pixel-identical).
+  7. Search (products) and the + menu (Top up; New order shown for Phase 4; Add product and Add stock with
+     11.7 and 11.9).
+  8. Counts from `GET /home`; what a person may not open is hidden; a deep link to it lands on Home with a word.
+  The shell needed two reads `/me` lacked: the shop's logo (TEN-16, for the bars) and the person's own name (the
+  header's initial).
 
 ### Slice 12: shared storefront and product landing pages
 - **Depends on:** Slices 0, 0b, 7 and 9 (and branding from Phase 1).

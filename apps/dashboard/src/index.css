@@ -2,3 +2,5 @@
 /* Lytro's tokens and the dashboard's light theme (packages/ui, BRAND-IDENTITY §4, §8.2). */
 @import '@lytronix/ui/base.css';
 @import '@lytronix/ui/light.css';
+/* Lytro's own fonts, served with the app (src/fonts). */
+@import './styles/fonts.css';

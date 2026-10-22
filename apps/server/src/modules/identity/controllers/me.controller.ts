@@ -8,6 +8,8 @@ import { DashboardGuard, type DashboardRequest } from '../guards/dashboard.guard
 import { SessionGuard } from '../guards/session.guard';
 import { BrandService } from '../../brand/services/brand.service';
 import type { LiveBrand } from '../../brand/types/brand';
+import type { ImageView } from '../../../common/media-links';
+import { MediaService } from '../../media/services/media.service';
 import { StaffService } from '../../staff/services/staff.service';
 import { ShopMemberships, type ShopListing } from '../services/shop-memberships';
 import type { TenantSummary } from '../../tenancy/types/tenant-summary';
@@ -20,6 +22,8 @@ export interface MeResponse {
   /** Only meaningful when `isOwner` is false — the permission strings this signed-in staff member holds
       right now (STF-10/11), for client-side nav filtering (D32). Always `[]` for the owner. */
   permissions: string[];
+  /** The signed-in person's own name in the shop the call names, for the header's initial; null when unnamed. */
+  name: string | null;
   tenant: {
     id: string;
     slug: string;
@@ -30,6 +34,8 @@ export interface MeResponse {
     periodEnd: string | null;
     /** BIL-17: the plan page's auto-renew switch reads its state here. */
     autoRenewEnabled: boolean;
+    /** TEN-16: the shop's logo, which the dashboard's navigation shows; null for its monogram. */
+    logo: ImageView | null;
     /** BRN-07: the shop's own identity, which the dashboard applies; null for Lytro's default. */
     brand: LiveBrand | null;
   } | null;
@@ -48,6 +54,7 @@ export class MeController {
     @Inject(StaffService) private readonly staff: StaffService,
     @Inject(ShopMemberships) private readonly memberships: ShopMemberships,
     @Inject(BrandService) private readonly brand: BrandService,
+    @Inject(MediaService) private readonly media: MediaService,
   ) {}
 
   @Get()
@@ -63,10 +70,13 @@ export class MeController {
     const signedIn = request.signedIn ?? request.session;
     const shops = signedIn ? await this.memberships.list(signedIn) : [];
     const brand = tenant === null ? null : await this.brand.live(tenant.id);
+    const logo = tenant === null ? null : await this.media.logoOf(tenant.id);
+    const name = tenant === null ? null : await this.staff.nameOf(tenant, userId);
     return {
       subscriber: { id: request.session?.subscriberId ?? '' },
       isOwner,
       permissions,
+      name,
       tenant:
         tenant === null
           ? null
@@ -79,6 +89,7 @@ export class MeController {
               planName: tenant.planName,
               periodEnd: tenant.periodEnd?.toISOString() ?? null,
               autoRenewEnabled: tenant.autoRenewEnabled,
+              logo,
               brand,
             },
       shops,

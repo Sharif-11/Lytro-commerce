@@ -23,6 +23,7 @@
   --color-surface-hover: #1f3d3a;
   --color-fg: #eaf0ef;
   --color-fg-muted: #c8d6d4;
+  --color-fg-subtle: var(--color-neutral-400);
   --color-fg-muted-hover: var(--color-fg);
   --color-placeholder: var(--color-neutral-400);
   --color-field: var(--color-surface-alt);

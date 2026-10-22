@@ -76,3 +76,9 @@ export function groupByDay<T>(items: T[], isoOf: (item: T) => string): DayGroup<
 export function todayInputValue(): string {
   return dayKey(new Date().toISOString());
 }
+
+/** LIF-05: whole days since a moment that has passed ("the plan ended 2 days ago"); 0 on the day itself. */
+export function daysSince(iso: string | null, now = Date.now()): number | null {
+  if (!iso) return null;
+  return Math.max(0, Math.floor((now - new Date(iso).getTime()) / (24 * 60 * 60 * 1000)));
+}

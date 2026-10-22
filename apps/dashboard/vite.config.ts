@@ -16,27 +16,10 @@ export default defineConfig({
       includeAssets: ['logo.svg'],
       // No dev-mode service worker: vite-plugin-pwa's dev worker can keep serving a stale build after a
       // code change. Test installability with a real build: `pnpm build && pnpm preview`.
-      manifest: {
-        name: 'Lytro',
-        short_name: 'Lytro',
-        description: 'আপনার দোকান, আপনার হাতে। Run your shop from your phone.',
-        lang: 'bn',
-        theme_color: '#0e6b66',
-        background_color: '#f6f9f8',
-        display: 'standalone',
-        start_url: '/',
-        icons: [
-          { src: 'pwa-64x64.png', sizes: '64x64', type: 'image/png' },
-          { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
-          { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png' },
-          {
-            src: 'maskable-icon-512x512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'maskable',
-          },
-        ],
-      },
+      // TEN-17 (KNOWN-GAPS §88): no app-wide manifest. Each shop's pages link that shop's own, served by the server
+      // (/api/v1/shops/<shop>/manifest.webmanifest), so every shop installs as its own app; the service worker below
+      // still keeps the app's files for offline starts.
+      manifest: false,
       workbox: {
         // API calls are never cached offline — a stale /me or /auth response is worse than a network error.
         navigateFallbackDenylist: [/^\/api\//],
@@ -72,6 +55,7 @@ export default defineConfig({
   test: {
     // jsdom, not Node: the session holder reads sessionStorage and window.location.
     environment: 'jsdom',
-    exclude: [...configDefaults.exclude],
+    // e2e/ is Playwright's (playwright.config.ts), run against the built app, not by Vitest.
+    exclude: [...configDefaults.exclude, 'e2e/**'],
   },
 });

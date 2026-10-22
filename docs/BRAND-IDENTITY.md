@@ -172,7 +172,7 @@ Full brand. Hero on teal-900 chrome: wordmark top left, language toggle and a ma
 ### 8.2 Tenant dashboard, PWA and native (`apps/dashboard`, today `apps/admin`)
 Chrome: sidebar on teal-900 with teal-800 active state and white text; content on neutral-50 with white cards. The navigation header shows the tenant's shop name and uploaded logo, not Lytro's (TEN-8). "Powered by Lytro" sits at the bottom of the sidebar at 16 px, monochrome, non-removable. Primary buttons teal-700; the single accent button per screen (confirm order, book courier) marigold with ink text. Status chips use the status colours only.
 
-PWA manifest: name "Lytro", theme colour teal-800 `#0a4f4b`, background neutral-50, icon `icon-dashboard.svg`. When a tenant uploads a logo, the installed app's icon, name and splash take the tenant's identity and the Lytro icon is the fallback. Native wrapper: status bar teal-900, adaptive icon with the mark as foreground on a teal-700 background, splash on teal-900 with the white mark centred at 96 dp.
+PWA manifest: amended 2026-10-23 (TEN-17, KNOWN-GAPS §88): one per shop, served by the server and linked from the shop's own pages -- the shop's name, its logo on the logo's own colour or its monogram on ink as the icon, scoped to `/<shop>/`, theme teal-700 and background neutral-50 (the brand identity's colours and square icon while it shows). Pages outside a shop offer no install. Native wrapper: status bar teal-900, adaptive icon with the mark as foreground on a teal-700 background, splash on teal-900 with the white mark centred at 96 dp.
 
 **Support view** (ADM-05): a full-width banner on every screen, in the operator console's ink and marigold so it can never pass for the shop's own interface, naming the operator and the time left.
 

@@ -218,22 +218,22 @@ apps/dashboard/src/
     shops.tsx               lands on the person's shop (TEN-31)
     staff-sign-in.tsx, staff-set-password.tsx, forgot-password/, unavailable.tsx
     $shop/
-      route.tsx              the layout route: the one session guard, renders ShopShell around an Outlet
-      index.tsx              the dashboard home
-      orders.tsx, products.tsx, customers.tsx, more.tsx
-      plan.tsx, balance.tsx, invoices.tsx, team.tsx, team_.roles.tsx, activity.tsx, settings.tsx, account.tsx
-                             the Phase 1–2 sections (DASHBOARD-SECTIONS-DESIGN.md), gated per permission in the view;
-                             team_.roles is a sibling of team, not a child, so People needs no Outlet
+      route.tsx              the layout route: the one session guard, renders the AppShell around an Outlet
+      *.tsx                  one per screen of TENANT-DASHBOARD-DESIGN §3, each declaring its `staticData.screen`
+                             (hub, section, title, back; `legacy` for a first-build screen the shell frames until
+                             its own pull request rebuilds it); team_.roles is a sibling of team, not a child
   views/<screen>/
     index.tsx                the real page; sibling files are view-local pieces (checkout/plan-picker.tsx)
+  shell/                     the frame of TENANT-DASHBOARD-DESIGN §4: app-shell.tsx (container, reads /me and
+                             /home) over the app bar, tab bar, rail, header, side column, section chips, banner and
+                             the + menu; hubs.ts is the one list of hubs, sections and who sees them; shell-page.tsx
+                             frames a rebuilt screen (banner, title, chips)
   components/
-    ui/                      the primitives only the dashboard uses: otp-input, sheet, toast, step-frame (the
-                             onboarding shell with the progress bar); the rest come from @lytronix/ui
+    icon.tsx                 the prototype's own line icons, as drawn
+    ui/                      the dashboard's primitives, at the prototype's values: button, card, chips, list row,
+                             stat tile, switch, banner, toast, empty state, skeleton, field, status tag, sheet,
+                             dialog, page parts, the shop's mark; otp-input and step-frame for the onboarding
     brand/                   the Google and Facebook marks (Lytro's own mark and wordmark are in @lytronix/ui)
-    layout/                  the shop shell, split on ENGINEERING-STANDARDS.md §2a's container/presentational
-                             line: shop-shell.tsx (container, reads /me) over sidebar.tsx, bottom-nav.tsx,
-                             shop-header.tsx, lifecycle-banner.tsx (presentational); nav-items.ts is the one
-                             list both navs render
   api/
     me.ts, auth.ts, billing.ts, balance.ts, staff.ts, activity.ts, shop-settings.ts, identities.ts
                              query/mutation hooks per backend module; a view calls useMe(), never the client
@@ -246,7 +246,12 @@ apps/dashboard/src/
   lib/                       pure helpers with injected settings: app-config, slug, phone, pricing-table, dates
                              (times within a day, grouping by day)
   hooks/                     generic hooks: use-document-title, use-countdown, use-copy-to-clipboard
-  i18n/                      @lytronix/ui's startLanguage with Bangla first and its own key; bn.json and en.json
+  i18n/                      @lytronix/ui's startLanguage with Bangla first and its own key; one namespace per hub
+                             from the prototype's words as each is rebuilt (`shell` so far), the first build's in
+                             bn.json and en.json until then
+  fonts/                     Lytro's fonts, the website's own files (styles/fonts.css declares them)
+apps/dashboard/e2e/          Playwright against the built app and a mocked API (support/mock-api.ts), on a phone and
+                             a desktop; compare.spec.ts saves each screen beside the prototype's
   types/                     structural duplicates of server response shapes (me, auth, billing)
 ```
 

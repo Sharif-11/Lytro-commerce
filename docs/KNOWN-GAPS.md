@@ -1684,7 +1684,7 @@ packs come on top of that limit (PLN-15). Proven by `addon-packs.e2e.spec.ts`: a
 add-on is served at 2.15 GB, and one with 10 requests and an add-on of 10 is served 22 requests; before the fix both
 were stopped at the plan's grace.
 
-## 88. `TEN-17`: the dashboard installs as "Lytro", not as the shop's own app — server part fixed 2026-10-22, the dashboard's link is open
+## 88. `TEN-17`: the dashboard installs as "Lytro", not as the shop's own app — found 2026-10-22, fixed 2026-10-23
 
 Found while reading for Phase 3 Slice 11. Slice 0 lists TEN-17 as completed, but the dashboard ships one
 fixed manifest, named "Lytro" with Lytro's icons and starting at `/`, so every shop installs as the same app and
@@ -1705,8 +1705,12 @@ once. Proven by `shop-app.e2e.spec.ts`: two shops answer two names, two paths an
 sits on its own colour and a see-through one on white; a Bangla name draws its Bangla letter; a deleted shop has
 no app. Before the fix no such route existed.
 
-**Still open:** the dashboard still links its one fixed manifest. Slice 11.3's shell points each shop's pages at
-their own. The brand identity's square icon takes the logo's place when it is switched on (BRN-02, Slice 11.2).
+**Dashboard part fixed (Slice 11.3):** the dashboard no longer ships a manifest of its own. Each shop's pages link
+that shop's manifest and iPhone icon (`useShopManifest` in the shell), and pages outside a shop link none, so there
+is nothing to install but a shop. The service worker still keeps the app's files. The brand identity's square icon
+takes the logo's place while it shows (BRN-02, Slice 11.2). Proven by the dashboard's `e2e/shell.spec.ts`, on a
+phone and a desktop: a shop's page links `/api/v1/shops/<shop>/manifest.webmanifest` and its `apple-180.png`.
+Before the fix the page linked the one "Lytro" manifest.
 
 ## 89. `AUTH-31`: a new staff member's first sign-in did not ask for their own password — found and fixed 2026-10-22
 
