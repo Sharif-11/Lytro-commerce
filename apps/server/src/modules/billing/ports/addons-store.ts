@@ -1,4 +1,5 @@
 import type { Transaction } from '@lytronix/db';
+import type { AddonPurchaseStatus } from '@lytronix/validators';
 import type {
   ActiveAddon,
   AddonActivation,
@@ -35,6 +36,11 @@ export interface AddonsStore {
     id: string,
   ): Promise<AddonPurchaseRecord | null>;
   setRenews(tx: Transaction, id: string, renews: boolean): Promise<void>;
+  listEnded(tx: Transaction, continuedBy: AddonPurchaseStatus[]): Promise<RenewingAddon[]>;
+  listEndingBy(tx: Transaction, horizon: Date): Promise<RenewingAddon[]>;
+  lapse(tx: Transaction, id: string): Promise<void>;
+  cancelForPayment(tx: Transaction, planPaymentId: string): Promise<void>;
+  cancelForStalePayments(tx: Transaction): Promise<number>;
   activeUnits(tx: Transaction, tenantId: string): Promise<AddonUnits[]>;
   listActive(tx: Transaction, tenantId: string): Promise<ActiveAddon[]>;
 }

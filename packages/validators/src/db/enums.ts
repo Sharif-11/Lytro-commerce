@@ -178,6 +178,10 @@ export enum AuditAction {
   AddonRenewalSet = 'addon_renewal_set',
   // PLN-14, BIL-17: auto-renew renewed the plan, but the balance did not reach this add-on, which ends with its period.
   AddonNotRenewed = 'addon_not_renewed',
+  // PLN-14: an add-on ended with nothing continuing it -- not renewed, or its shop's grace over. System-caused.
+  AddonLapsed = 'addon_lapsed',
+  // PLN-14: the 7- or 1-day warning that an add-on will not renew (`summary.day`). Email only, never SMS.
+  AddonEndingWarned = 'addon_ending_warned',
   // BAL-03/BAL-05: a verified top-up credits the balance -- tenant-caused.
   BalanceToppedUp = 'balance_topped_up',
   // DWN-01/04/17: the owner's own scheduling actions.
@@ -636,9 +640,17 @@ export const BRAND_IDENTITY_ADDON = 'brand_identity';
 // PLN-14 (agreed for Slice 10a): the most of one add-on a single purchase may buy; a feature add-on is only ever one.
 export const ADDON_QUANTITY_MAX = 10;
 
+// PLN-14 (agreed for Slice 10a.2): how long an add-on runs when the shop has no plan period to align it with -- on
+// pay-as-you-go or a no-expiry plan -- each renewed from the balance at its own end.
+export const ADDON_PERIOD_DAYS = 30;
+
+// PLN-14: how many days before an add-on ends the owner is warned that it will not renew.
+export const ADDON_WARNING_DAYS: readonly number[] = [7, 1];
+
 // PLN-14: what became of a bought add-on. Pending while its payment is quoted; active from when it takes effect;
-// lapsed once it is no longer renewed; cancelled when its payment never activated it -- the quote expired or was
-// turned down, or the shop could take no add-on when the payment was approved, and the amount went to its balance.
+// lapsed once it ended with nothing continuing it; cancelled when its payment never activated it -- the quote was
+// turned down, or expired (an expired quote paid late and approved still activates it, BIL-15), or the shop could
+// take no add-on when the payment was approved, and the amount went to its balance.
 export enum AddonPurchaseStatus {
   Pending = 'pending',
   Active = 'active',
@@ -655,6 +667,8 @@ export enum AddonRenewal {
   Off = 'off',
   Retired = 'retired',
   Unlimited = 'unlimited',
+  // Set to renew from the balance, which is too short of its price today.
+  BalanceShort = 'balance_short',
 }
 
 // DWN-01, PYG-10: what a control.scheduled_plan_changes row is for -- a downgrade, or a switch from a plan to

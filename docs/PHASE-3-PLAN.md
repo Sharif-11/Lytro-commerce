@@ -970,6 +970,26 @@ their backend ships earlier.
     - **Found while building:** add-ons attached to one payment share a purchase time, so their order fell back to
       random ids; a renewal or extension now keeps the purchase time of the add-on it continues, so oldest first holds
       from one period to the next.
+  - **10a.2's second part, read 2026-10-22,** found the plan reminders' gap (KNOWN-GAPS §86), that a quote expired by
+    BIL-15 can still be paid late, that PLN-18 forbade prompting a no-expiry shop to pay, and that ending an add-on
+    needs to know what continues it. All agreed as proposed, with five details.
+  - **Built third (10a.2, second part),** migration 0075:
+    - **Grace:** an add-on that ends with the shop's period keeps counting while the shop is active or in grace,
+      through the one counting rule every limit reader shares.
+    - **The add-ons' tick,** after the plans' own: quotes no one is waiting on are cancelled (a late approval still
+      starts them, and a rejection cancels at once); an add-on with its own period is renewed from the balance at
+      its end, or left to lapse when the balance is short, with the shortfall emailed; an add-on that ended with
+      nothing continuing it lapses (a new `continues_id` links each renewal to what it continues), logged, the
+      shop's cached limits dropped.
+    - **Warnings:** 7 and 1 days before an add-on ends that will not renew -- off, retired, nothing to raise, or the
+      balance short (with auto-renew, as far as the balance reaches after the plan) -- by email, once per add-on
+      period; `GET /addons/mine` gains `endsSoon` and the `balance_short` renewal state.
+    - **Own periods:** pay-as-you-go and no-expiry shops buy add-ons for their own 30 days at the full monthly price,
+      renewed from the balance. Switching to pay-as-you-go carries a plan's renewing add-ons into them; a plan bought
+      later joins them to its period at their next renewal, prorated (PLN-14 and PLN-18 amended).
+    - **Downgrade:** the seat cut and the over-limit record count only the add-ons that will renew, as the preview
+      does.
+    - **Found and fixed:** the plan reminders after a shop's first period (KNOWN-GAPS §86).
 - **Requirements completed:** PLN-13. *(PLN-14, PLN-15, UPG-14, BND-04, RTE-11 and BRN-05 finish in Slice 11,
   with their screens.)*
 - **Done when:** extra products bought on day 10 of 30 raise the limit at once for two thirds of a period's

@@ -371,18 +371,29 @@ export class LifecycleService {
     let sent = 0;
     for (const candidate of upcoming) {
       const daysUntilPeriodEnd = daysBetween(now, candidate.periodEnd);
-      if (await this.sendPreRenewalReminderIfDue(candidate.id, daysUntilPeriodEnd)) sent += 1;
+      if (
+        await this.sendPreRenewalReminderIfDue(
+          candidate.id,
+          daysUntilPeriodEnd,
+          candidate.periodEnd,
+        )
+      ) {
+        sent += 1;
+      }
     }
     return sent;
   }
 
   /**
-   * BIL-14: sends the 7/3/1-day-out reminder at most once per threshold, the exact same audit-log
+   * BIL-14: sends the 7/3/1-day-out reminder at most once per threshold in each period, the same audit-log
    * existence check `sendDeletionWarningIfDue` uses, just counting down to period end instead of up from it.
+   * KNOWN-GAPS §86: only this period's reminders count -- each names the period end it was for, and one written
+   * before they did counts only when recent enough to have been for this period.
    */
   private async sendPreRenewalReminderIfDue(
     tenantId: string,
     daysUntilPeriodEnd: number,
+    periodEnd: Date,
   ): Promise<boolean> {
     // PYG-10: a shop switching to pay-as-you-go at this period's end has nothing to renew.
     const scheduled = await this.downgrade.getScheduled(tenantId);
@@ -393,16 +404,24 @@ export class LifecycleService {
       null,
       50,
     );
+    const period = periodEnd.toISOString();
+    const earliest = periodEnd.getTime() - (Math.max(...RENEWAL_REMINDER_DAYS) + 1) * DAY_MS;
     const sentDays = new Set(
-      already.entries
-        .map((entry) => (entry.summary as { day?: number } | null)?.day)
-        .filter((day): day is number => day !== undefined),
+      already.entries.flatMap((entry) => {
+        const summary = entry.summary as { day?: number; periodEnd?: string } | null;
+        if (summary?.day === undefined) return [];
+        const forThisPeriod =
+          summary.periodEnd === undefined
+            ? entry.createdAt.getTime() >= earliest
+            : summary.periodEnd === period;
+        return forThisPeriod ? [summary.day] : [];
+      }),
     );
     const due = RENEWAL_REMINDER_DAYS.find(
       (day) => daysUntilPeriodEnd <= day && !sentDays.has(day),
     );
     if (due === undefined) return false;
-    await this.sendRenewalReminderNotice(tenantId, { day: due }, due);
+    await this.sendRenewalReminderNotice(tenantId, { day: due, periodEnd: period }, due);
     return true;
   }
 

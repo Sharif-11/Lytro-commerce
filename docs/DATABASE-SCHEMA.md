@@ -1809,12 +1809,21 @@ CREATE TABLE control.addon_purchases (
     renews          boolean NOT NULL DEFAULT true,   -- PLN-14: renews with the plan unless switched off
     purchased_at    timestamptz NOT NULL DEFAULT now(),  -- when first bought; a renewal or extension keeps it, so oldest first holds
     starts_at       timestamptz,                     -- set when it takes effect; an upgrade's extension starts where the add-on it extends ends
-    expires_at      timestamptz NOT NULL            -- PLN-14: end of the plan period, or a [30]-day period for pay-as-you-go
+    expires_at      timestamptz NOT NULL,           -- PLN-14: end of the plan period, or its own [30] days on pay-as-you-go
+                                                     -- and no-expiry plans
+    continues_id    uuid REFERENCES control.addon_purchases(id)  -- 0075: the add-on this row continues into a new period
+                                                     -- (renewed, extended, or another 30 days); what tells renewed from ended
     -- uses_left integer (PLN-20): an allowance's uses left this period, added with the allowances
 );
 CREATE INDEX ON control.addon_purchases (tenant_id, status, expires_at);
+CREATE INDEX ON control.addon_purchases (status, expires_at);   -- the lifecycle tick's scans across shops
+CREATE INDEX ON control.addon_purchases (continues_id);
 -- Limits are the plan snapshot + operator overrides (PLN-11) + active limit add-ons, in one function
--- (`shopLimitsOf`); an add-on counts only while active, from starts_at until expires_at, whatever any job has done.
+-- (`shopLimitsOf`); an add-on counts only while active, from starts_at until expires_at, whatever any job has done --
+-- and, when it ends with its shop's period, on while the shop is active or in grace (LIF-05). The lifecycle tick
+-- renews an add-on with its own period from the balance, marks one that ended with nothing continuing it `lapsed`,
+-- cancels the pending ones of expired or rejected quotes (a late-approved quote still activates them), and warns 7
+-- and 1 days before an add-on ends that will not renew.
 -- A renewal (PLN-14) or an upgrade (UPG-14) carries each add-on set to renew into the new period as a new row on its
 -- own payment, so every row is one period of one add-on; paid from the balance, the payment is two ledger entries,
 -- `plan_payment` and `addon`.

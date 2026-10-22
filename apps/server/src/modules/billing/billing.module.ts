@@ -24,6 +24,7 @@ import { PlatformSettingsModule } from '../platform-settings/platform-settings.m
 import { TenancyModule } from '../tenancy/tenancy.module';
 import { PlansService } from './services/plans.service';
 import { AddonCatalogueService } from './services/addon-catalogue.service';
+import { AddonLifecycleService } from './services/addon-lifecycle.service';
 import { AddonPurchaseService } from './services/addon-purchase.service';
 import { AddonRenewalService } from './services/addon-renewal.service';
 import { BillingTermsService } from './services/billing-terms.service';
@@ -86,6 +87,7 @@ import {
     AddonCatalogueService,
     AddonPurchaseService,
     AddonRenewalService,
+    AddonLifecycleService,
     TrialLifecycleService,
     PlanInvoicingService,
     PurchaseService,
@@ -102,6 +104,7 @@ import {
     ShopLimitsService,
     AddonCatalogueService,
     AddonPurchaseService,
+    AddonLifecycleService,
     TrialLifecycleService,
     PurchaseService,
     UpgradeService,

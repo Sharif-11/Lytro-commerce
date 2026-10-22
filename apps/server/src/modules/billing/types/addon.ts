@@ -55,8 +55,11 @@ export interface AddonPurchaseResult {
   invoice: InvoiceRecord | null;
 }
 
-/** PLN-14: an add-on the shop has, and how it will renew. */
-export type ShopAddon = ActiveAddon & { renewal: AddonRenewal };
+/**
+ * PLN-14: an add-on the shop has, how it will renew, and whether it ends within the warning days without renewing --
+ * what the dashboard's banner shows.
+ */
+export type ShopAddon = ActiveAddon & { renewal: AddonRenewal; endsSoon: boolean };
 
 /** PLN-14, BRN-05: what the shop has now, and what that switches on. */
 export interface ShopAddons {
