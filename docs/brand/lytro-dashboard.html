@@ -1665,21 +1665,21 @@ SCREENS.addons = { hub: 'money', sec: 'usage', title: 'aoTitle', back: true, bas
 </script>
 <style>
 /* ---------- Phase 0 to 3 flows the audit found undrawn: account and staff sheets, plan lifecycle states, write-off and serials, the warning family, the add-on flow, the brand identity editor ---------- */
-.stepper{display:inline-flex;align-items:center;border:1px solid var(--line-strong);border-radius:8px;overflow:hidden}
-.stepper button{width:40px;height:40px;background:#fff;border:0;color:var(--primary);display:flex;align-items:center;justify-content:center}
-.stepper span{min-width:44px;text-align:center;font-weight:700;font-size:16px;border-left:1px solid var(--line);border-right:1px solid var(--line);height:40px;line-height:40px}
+.qty{display:inline-flex;align-items:center;border:1px solid var(--line-strong);border-radius:8px;overflow:hidden}
+.qty button{width:40px;height:40px;background:#fff;border:0;color:var(--primary);display:flex;align-items:center;justify-content:center}
+.qty span{min-width:44px;text-align:center;font-weight:700;font-size:16px;border-left:1px solid var(--line);border-right:1px solid var(--line);height:40px;line-height:40px}
 .aogrp{padding:12px 16px 4px;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--n700)}
 .aogrp:not(:first-child){border-top:1px solid var(--line);margin-top:4px}
 .addon .meta{display:flex;flex-wrap:wrap;gap:6px 10px;font-size:13px;color:var(--muted);margin-top:2px}
 .addon .meta .st{height:20px;font-size:11px}
-.tl{display:flex;flex-direction:column;gap:0;margin-top:8px}
-.tl div{display:grid;grid-template-columns:18px 1fr;gap:10px;align-items:start;font-size:14px;padding:4px 0}
-.tl div i{width:10px;height:10px;border-radius:50%;background:var(--n300);margin-top:6px;margin-left:4px;position:relative}
-.tl div i::after{content:"";position:absolute;left:4px;top:12px;width:2px;height:22px;background:var(--n200)}
-.tl div:last-child i::after{display:none}
-.tl div i.bad{background:var(--danger)}
-.tl div i.warn{background:var(--warning)}
-.tl b{display:block}
+.lapse-tl{display:flex;flex-direction:column;gap:0;margin-top:8px}
+.lapse-tl div{display:grid;grid-template-columns:18px 1fr;gap:10px;align-items:start;font-size:14px;padding:4px 0}
+.lapse-tl div i{width:10px;height:10px;border-radius:50%;background:var(--n300);margin-top:6px;margin-left:4px;position:relative}
+.lapse-tl div i::after{content:"";position:absolute;left:4px;top:12px;width:2px;height:22px;background:var(--n200)}
+.lapse-tl div:last-child i::after{display:none}
+.lapse-tl div i.bad{background:var(--danger)}
+.lapse-tl div i.warn{background:var(--warning)}
+.lapse-tl b{display:block}
 .sws{display:flex;gap:8px;flex-wrap:wrap}
 .sws .swb{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;color:var(--n700)}
 .sws .swb .sw{width:40px;height:40px;border-radius:10px;border:1px solid rgba(0,0,0,.08);display:block}
@@ -1722,7 +1722,7 @@ SCREENS.addons = { hub: 'money', sec: 'usage', title: 'aoTitle', back: true, bas
 <script>
 Object.assign(S, {
   /* account: password and identities (AUTH-20, AUTH-26, AUTH-27) */
-  pwTitle: ['পাসওয়ার্ড বদলান', 'Change password'], pwCurrent: ['বর্তমান পাসওয়ার্ড', 'Current password'], pwNew: ['নতুন পাসওয়ার্ড', 'New password'], pwAgain: ['আবার লিখুন', 'Type it again'],
+  chpwTitle: ['পাসওয়ার্ড বদলান', 'Change password'], pwCurrent: ['বর্তমান পাসওয়ার্ড', 'Current password'], pwNew: ['নতুন পাসওয়ার্ড', 'New password'], pwAgain: ['আবার লিখুন', 'Type it again'],
   pwForgotLink: ['বর্তমানটা মনে নেই? ফোনে কোড পাঠান', 'Forgot the current one? Send a code to the phone'], pwSaveBtn: ['পাসওয়ার্ড বদলান', 'Change password'],
   pwOthersOut: ['বদলালে অন্য সব ডিভাইস থেকে সাইন-আউট হয়ে যাবে; এটা থাকবে।', 'Changing it signs out every other device; this one stays.'],
   idEmailTitle: ['ইমেইল যোগ করুন', 'Add an email'], idEmailLead: ['এই ইমেইল দিয়েও সাইন-ইন করা যাবে, আর পাসওয়ার্ড ভুলে গেলে কোড এখানেও আসবে।', 'You can sign in with this email too, and a reset code can go here if you forget the password.'],
@@ -1764,7 +1764,7 @@ Object.assign(S, {
   pyAddons: ['অ্যাড-অন ৩০ দিনের মেয়াদে চলে, ব্যালেন্স থেকে রিনিউ হয়।', 'Add-ons run in 30-day periods and renew from the balance.'],
   pyCloseTitle: ['দোকান বন্ধ করা', 'Closing the shop'], pyCloseNote: ['পে-অ্যাজ-ইউ-গো-তে মেয়াদ নেই, তাই বন্ধ করা মানে এখনই আর্কাইভ: স্টোরফ্রন্ট আর API অফ, ৬০ দিন পর ডেটা মুছে যায়। শুধু মালিক পারেন।', 'Pay-as-you-go has no period, so closing archives the shop at once: storefront and API go offline, data is deleted after 60 days. Only the owner can.'],
   pyCloseBtn: ['দোকান বন্ধ করুন', 'Close the shop'],
-  csTitle: ['{s} বন্ধ করবেন?', 'Close {s}?'], csCons1: ['এখনই: স্টোরফ্রন্ট, পেমেন্ট পেজ আর API অফ; স্টাফ ঢুকতে পারবে না।', 'Now: storefront, payment page and API go offline; staff cannot sign in.'],
+  closeShopTitle: ['{s} বন্ধ করবেন?', 'Close {s}?'], csCons1: ['এখনই: স্টোরফ্রন্ট, পেমেন্ট পেজ আর API অফ; স্টাফ ঢুকতে পারবে না।', 'Now: storefront, payment page and API go offline; staff cannot sign in.'],
   csCons2: ['৬০ দিন পর: প্রোডাক্ট, অর্ডার, কাস্টমার, ছবি মুছে যাবে। ব্যালেন্স, ইনভয়েস আর আপনার অ্যাকাউন্ট থাকবে।', 'After 60 days: products, orders, customers and photos are deleted. The balance, invoices and your account stay.'],
   csCons3: ['তার আগে প্ল্যান কিনলে বা আবার পে-অ্যাজ-ইউ-গো নিলে সব আগের মতো ফিরে আসে (LIF-15)।', 'Buying a plan or taking pay-as-you-go again before then brings everything back as it was (LIF-15).'],
   csExport: ['আগে ডেটা এক্সপোর্ট করুন', 'Export the data first'], csBtn: ['বন্ধ করুন', 'Close the shop'],
@@ -1830,7 +1830,7 @@ const codeBoxes = (filled, bad) => `<div class="otp">${[0, 1, 2, 3, 4, 5].map((i
 const switchRow = (l1, l2, on, extra) => `<div class="row" style="padding:10px 0;min-height:44px"><span class="body"><span class="l1" style="font-size:15px">${l1}</span>${l2 ? `<span class="l2">${l2}</span>` : ''}</span><span class="switch ${on ? 'on' : ''}" ${extra || ''}></span></div>`;
 
 /* ---------- account: change password, add an email, connect, remove (AUTH-20, AUTH-26) ---------- */
-SCREENS['sh-password'] = { ...SCREENS.account, base: 'account', sheet: () => sheet(t('pwTitle'), `${field(t('pwCurrent'), '••••••••')}<p class="hint" style="margin:-4px 0 12px"><a href="#" onclick="go('ob-forgot');return false">${t('pwForgotLink')}</a></p>${field(t('pwNew'), null, { ph: '8+ ' + L('অক্ষর', 'characters') })}${field(t('pwAgain'), null)}
+SCREENS['sh-password'] = { ...SCREENS.account, base: 'account', sheet: () => sheet(t('chpwTitle'), `${field(t('pwCurrent'), '••••••••')}<p class="hint" style="margin:-4px 0 12px"><a href="#" onclick="go('ob-forgot');return false">${t('pwForgotLink')}</a></p>${field(t('pwNew'), null, { ph: '8+ ' + L('অক্ষর', 'characters') })}${field(t('pwAgain'), null)}
   <ul class="hint" style="padding-left:18px;margin:4px 0 8px"><li>${t('r1')}</li><li>${t('r2')}</li><li>${t('r3')}</li></ul><p class="hint">${t('pwOthersOut')}</p>`, btn('p', t('pwSaveBtn'), "onclick=\"go('account')\"")) };
 SCREENS['sh-identity-email'] = { ...SCREENS.account, base: 'account', sheet: () => sheet(t('idEmailTitle'), `<p class="hint">${t('idEmailLead')}</p>${field(t('idEmailL'), 'rumana@gmail.com')}`, btn('p', t('idSendCode'), "onclick=\"go('sh-identity-code')\"")) };
 SCREENS['sh-identity-code'] = { ...SCREENS.account, base: 'account', sheet: () => sheet(t('idCodeTitle'), `<p class="hint">${t('idCodeLead', { e: 'rumana@gmail.com' })}</p>${codeBoxes(3)}<p class="hint" style="margin-top:12px">${t('idCodeValid')}</p>`, btn('p', t('idVerify'), "onclick=\"go('account-email-added')\"") + `<p class="hint num" style="text-align:center;margin-top:10px">${t('idResendIn', { s: 42 })}</p>`) };
@@ -1853,7 +1853,7 @@ SCREENS['sh-role-delete-used'] = { ...SCREENS.roles, base: 'roles', sheet: () =>
 
 /* ---------- plan lifecycle: cancel and undo, a scheduled downgrade, the pay-as-you-go switch and page, closing the shop ---------- */
 const planWith = (html) => SCREENS.plan.render().replace(secChips('money', 'plan'), secChips('money', 'plan') + html);
-SCREENS['sh-cancel'] = { ...SCREENS.plan, base: 'plan', sheet: () => sheet(t('cnTitle'), `<p class="hint">${t('cnShop', { s: L(...SHOP.name), d: '9 Nov' })}</p><div class="tl"><div><i class="warn"></i><span>${t('cnStep1', { d: '9 Nov' })}</span></div><div><i class="warn"></i><span>${t('cnStep2')}</span></div><div><i class="bad"></i><span>${t('cnStep3')}</span></div><div><i class="bad"></i><span>${t('cnStep4')}</span></div></div><p class="hint" style="margin-top:10px">${t('cnUndo', { d: '9 Nov' })}</p>`, btn('o', t('keep'), "onclick=\"go('plan')\"") + btn('d', t('cnBtn', { d: '9 Nov' }), "onclick=\"go('plan-cancelled')\"")) };
+SCREENS['sh-cancel'] = { ...SCREENS.plan, base: 'plan', sheet: () => sheet(t('cnTitle'), `<p class="hint">${t('cnShop', { s: L(...SHOP.name), d: '9 Nov' })}</p><div class="lapse-tl"><div><i class="warn"></i><span>${t('cnStep1', { d: '9 Nov' })}</span></div><div><i class="warn"></i><span>${t('cnStep2')}</span></div><div><i class="bad"></i><span>${t('cnStep3')}</span></div><div><i class="bad"></i><span>${t('cnStep4')}</span></div></div><p class="hint" style="margin-top:10px">${t('cnUndo', { d: '9 Nov' })}</p>`, btn('o', t('keep'), "onclick=\"go('plan')\"") + btn('d', t('cnBtn', { d: '9 Nov' }), "onclick=\"go('plan-cancelled')\"")) };
 SCREENS['plan-cancelled'] = { ...SCREENS.plan, render: () => planWith(`<div class="banner warn">${ic('alert')}<span class="b">${t('cnBanner', { d: '9 Nov' })}</span><a href="#" onclick="go('plan');return false">${t('cnUndoBtn')}</a></div>`).replace(`${btn('a', t('renewFor', { n: 449 }), "onclick=\"go('paysheet')\"")}`, btn('a', t('keep'), "onclick=\"go('plan')\"")) };
 SCREENS['plan-downgrade-scheduled'] = { ...SCREENS.plan, render: () => planRender({ cur: 'Growth', days: 20, end: '9 Nov' }).replace(secChips('money', 'plan'), secChips('money', 'plan') + `<div class="banner warn">${ic('alert')}<span class="b">${t('dsBanner', { d: '9 Nov', n: 2 })}<br><span class="num">${t('dsOver')}</span></span><a href="#" onclick="go('plan');return false">${t('dsKeep')}</a></div>`) };
 SCREENS['sh-payg-switch'] = { ...SCREENS.plan, base: 'plan', sheet: () => sheet(t('pgTitle'), `<p>${t('pgWhen', { d: '9 Nov' })}</p><div class="card" style="background:var(--n50);margin:10px 0"><p style="font-size:14px">${t('pgFees')}</p></div><p class="hint num">${t('pgLimits', { a: 100, b: 2 })}</p><p class="hint" style="margin-top:8px">${t('pgOverNote')}</p>`, btn('o', t('keep'), "onclick=\"go('plan')\"") + btn('p', t('pgBtn', { d: '9 Nov' }), "onclick=\"go('plan-payg')\"")) };
@@ -1873,7 +1873,7 @@ function paygPage() {
   <details class="card"><summary style="cursor:pointer;font-weight:600">${t('pyCloseTitle')}</summary><p class="hint" style="margin:8px 0 12px">${t('pyCloseNote')}</p>${btn('o sm', `<span style="color:var(--danger)">${t('pyCloseBtn')}</span>`, "onclick=\"go('sh-close-shop')\"")}</details></div></div>`;
 }
 SCREENS['plan-payg'] = { ...SCREENS.plan, render: paygPage };
-SCREENS['sh-close-shop'] = { ...SCREENS.plan, base: 'plan-payg', render: paygPage, sheet: () => dlg(t('csTitle', { s: L(...SHOP.name) }), `${t('csCons1')}<br><br>${t('csCons2')}<br><br>${t('csCons3')}`, btn('o', t('csExport'), "onclick=\"go('exports')\"") + btn('d', t('csBtn'), "onclick=\"go('renew')\""), 'plan-payg') };
+SCREENS['sh-close-shop'] = { ...SCREENS.plan, base: 'plan-payg', render: paygPage, sheet: () => dlg(t('closeShopTitle', { s: L(...SHOP.name) }), `${t('csCons1')}<br><br>${t('csCons2')}<br><br>${t('csCons3')}`, btn('o', t('csExport'), "onclick=\"go('exports')\"") + btn('d', t('csBtn'), "onclick=\"go('renew')\""), 'plan-payg') };
 
 /* ---------- write off a batch; fix a serial (INV-11, INV-13, INV-14) ---------- */
 SCREENS['sh-writeoff'] = { ...SCREENS.expiring, base: 'expiring', sheet: () => sheet(t('woTitle'), `${kv(t('woBatch'), 'LOT-0918 · ' + L('মেয়াদ', 'exp.') + ' 20 Oct 2026')}${kv(t('woLeft'), '12 ' + L('ইউনিট', 'units'))}<div class="field" style="margin-top:12px"><label>${t('woReason')}</label>${chips([{ l: t('woExpired'), on: true }, { l: t('woDamaged') }, { l: t('woLost') }])}</div>${field(t('note'), null, { ph: L('ঐচ্ছিক', 'optional') })}<p class="hint">${t('woCost', { n: 1440 })}</p>`, btn('d', t('woBtn', { n: 12 }), "onclick=\"go('expiring')\"")) };
@@ -1920,7 +1920,7 @@ SCREENS.addons = { hub: 'money', sec: 'usage', title: 'aoTitle', back: true, bas
 SCREENS['addons-trial'] = { ...SCREENS.addons, render: () => addonsPage({ trial: true }) };
 SCREENS['addons-lapsing'] = { ...SCREENS.addons, render: () => addonsPage({ active: true, lapsing: true }) };
 SCREENS['addons-bought'] = { ...SCREENS.addons, render: () => addonsPage({ active: true, bought: true }), toast: () => `${ic('check')} ${t('abBought', { a: t('aoProducts') })} · ${t('abInvoice', { n: 99 })}` };
-const addonBuy = (o = {}) => sheet(t('abTitle', { a: t('aoProducts') }), `<div class="row" style="padding:0 0 12px;min-height:44px"><span class="body"><span class="l1" style="font-size:15px">${t('abQty')}</span><span class="l2">${t('abEach', { p: 149 })}</span></span><span class="stepper"><button>${ic('minus')}</button><span class="num">1</span><button>${ic('plus')}</button></span></div>
+const addonBuy = (o = {}) => sheet(t('abTitle', { a: t('aoProducts') }), `<div class="row" style="padding:0 0 12px;min-height:44px"><span class="body"><span class="l1" style="font-size:15px">${t('abQty')}</span><span class="l2">${t('abEach', { p: 149 })}</span></span><span class="qty"><button>${ic('minus')}</button><span class="num">1</span><button>${ic('plus')}</button></span></div>
   ${kv(t('abLimit'), '100 → 600 ' + L('প্রোডাক্ট', 'products'))}${kv(t('abNow'), money(99), 'total')}<p class="hint num">${t('abNowNote', { n: 20, d: '9 Nov', p: 149 })}</p>
   <div class="card" style="background:var(--n50);margin-top:12px"><div class="row" style="padding:0"><span class="radio ${o.low ? '' : 'on'}"></span><span class="body"><span class="l1" style="font-size:15px">${t('abBalance')}</span><span class="l2">${t('balanceHas', { n: o.low ? 48 : '412.50' })}</span></span></div><div class="row" style="padding:10px 0 0"><span class="radio ${o.low ? 'on' : ''}"></span><span class="body"><span class="l1" style="font-size:15px">${t('abPage')} <span class="st neu">${t('abPageLater')}</span></span><span class="l2">${t('psPageSub')}</span></span></div></div>
   ${o.low ? `<div class="banner bad" style="margin-top:12px">${ic('alert')}<span class="b">${t('abLow', { b: 48, n: 99 })}</span><a href="#" onclick="go('topup');return false">${t('abTopup')}</a></div>` : ''}
