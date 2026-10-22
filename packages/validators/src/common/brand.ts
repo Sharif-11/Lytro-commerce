@@ -82,5 +82,15 @@ export const DEFAULT_BRAND: Readonly<BrandDesign> = {
   spacing: BrandSpacing.Comfortable,
 };
 
+/**
+ * TEN-16: a shop's monogram letter -- the first letter or digit of its name (a Bangla letter alone, without its
+ * signs), or of the fallback (its address) when the name has none. One rule for the dashboard's tile and the
+ * installed app's icon.
+ */
+export function monogramLetter(shopName: string, fallback: string): string {
+  const letter = Array.from(shopName).find((character) => /[\p{L}\p{N}]/u.test(character));
+  return (letter ?? fallback.charAt(0)).toLocaleUpperCase('en');
+}
+
 // BRN-02: the square icon an installed app is drawn from is at least this many pixels a side.
 export const BRAND_ICON_MIN_PX = 512;

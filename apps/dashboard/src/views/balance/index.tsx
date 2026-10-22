@@ -17,14 +17,15 @@ import { TopUpSheet } from './top-up-sheet';
  * Balance (DASHBOARD-SECTIONS-DESIGN §2): the amount and the one thing to do first, then the statement, with
  * the current rates beside it from 900 px. Container: owns the queries and whether the top-up sheet is open.
  */
-export function Balance(): React.JSX.Element {
+export function Balance({ openTopUp = false }: { openTopUp?: boolean }): React.JSX.Element {
   const { t } = useTranslation();
   const me = useMe();
   const canTopUp = hasPermission(me.data, Permission.BalanceManage);
   const balance = useBalance();
   const sms = useEssentialSms();
   const rates = useCurrentRates();
-  const [topUpOpen, setTopUpOpen] = useState(false);
+  // The + menu's Top up arrives with the sheet already open (TENANT-DASHBOARD-DESIGN §4.5).
+  const [topUpOpen, setTopUpOpen] = useState(openTopUp && canTopUp);
   const [pendingTopUp, setPendingTopUp] = useState<string | null>(null);
   const toast = useToast();
 

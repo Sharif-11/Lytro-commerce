@@ -208,20 +208,6 @@
     "more": "More",
     "notices": "Notices"
   },
-  "lifecycle": {
-    "trialDaysLeft_one": "{{count}} day left in your trial.",
-    "trialDaysLeft_other": "{{count}} days left in your trial.",
-    "trialNoEnd": "You are on the trial.",
-    "trialWhatHappens": "At day 30 you continue on pay-as-you-go; nothing is lost.",
-    "seePlans": "See plans",
-    "graceNotice": "Your plan has lapsed.",
-    "renewByDays_one": "Renew within {{count}} day to avoid restrictions.",
-    "renewByDays_other": "Renew within {{count}} days to avoid restrictions.",
-    "renewNow": "Renew now",
-    "readOnlyNotice": "Your shop is read-only until you renew: you can view and export, not change.",
-    "lockedNotice": "Your shop is locked. Only the owner can sign in, to renew or export.",
-    "archivedNotice": "Your shop is archived. Take a plan or choose pay-as-you-go to bring it back."
-  },
   "shop": {
     "notFound": {
       "title": "Shop not found",
@@ -268,24 +254,6 @@
       "sales": "Sales",
       "toConfirm": "To confirm",
       "empty": "Your first order will appear here. Share the link on your page."
-    }
-  },
-  "sections": {
-    "orders": {
-      "emptyTitle": "No orders yet",
-      "emptyLead": "When the first order arrives, you confirm it and book the courier here."
-    },
-    "products": {
-      "emptyTitle": "No products yet",
-      "emptyLead": "The add-product form is coming to this section; you will add your first product from here."
-    },
-    "customers": {
-      "emptyTitle": "No customers yet",
-      "emptyLead": "Your customer list builds here after the first order."
-    },
-    "balance": {
-      "emptyTitle": "Balance ৳0",
-      "emptyLead": "Top-ups for SMS and paid features are coming to this section."
     }
   },
   "dates": {

@@ -9,8 +9,13 @@
   --color-danger: #c8323b;
   --color-danger-soft: #fbe7e8;
 
-  --color-line: rgba(16, 32, 31, 0.08);
-  --color-line-strong: rgba(16, 32, 31, 0.14);
+  /* Amended 2026-10-23 (Slice 11.3): the v2 prototype's hairlines, radii, soft primary and info pair
+     (TENANT-DASHBOARD-DESIGN §5, docs/brand/lytro-dashboard.html). */
+  --color-line: var(--color-neutral-200);
+  --color-line-strong: var(--color-neutral-300);
+  --radius-control: 6px;
+  --radius-card: 10px;
+  --radius-sheet: 16px;
 
   --color-sidebar: #063b38;
   --color-sidebar-alt: #0a4f4b;
@@ -27,11 +32,12 @@
   --color-surface-hover: var(--color-brand-50);
   --color-fg: var(--color-ink);
   --color-fg-muted: var(--color-neutral-700);
+  --color-fg-subtle: var(--color-neutral-500);
   --color-fg-muted-hover: var(--color-neutral-700);
   --color-placeholder: var(--color-neutral-500);
   --color-field: #ffffff;
   --color-control: #ffffff;
-  --color-control-line: var(--color-neutral-200);
+  --color-control-line: var(--color-neutral-300);
   --color-line-active: var(--color-brand-700);
   --color-focus: var(--color-brand-500);
   --color-focus-offset: #ffffff;
@@ -41,15 +47,15 @@
   --color-primary: var(--color-brand-700);
   --color-primary-hover: var(--color-brand-800);
   --color-on-primary: #ffffff;
-  --color-primary-soft: var(--color-brand-100);
+  --color-primary-soft: var(--color-brand-50);
   --color-primary-text: var(--color-brand-800);
   --color-accent: var(--color-accent-500);
   --color-accent-hover: #e0970f;
   --color-on-accent: var(--color-ink);
   --color-accent-soft: var(--color-accent-100);
   --color-accent-text: var(--color-accent-700);
-  --color-info: var(--color-brand-900);
-  --color-info-soft: var(--color-brand-50);
+  --color-info: var(--color-brand-700);
+  --color-info-soft: var(--color-brand-100);
   --color-danger-fill: var(--color-danger);
   --color-on-danger-fill: #ffffff;
   --color-danger-fill-hover: #a9262e;

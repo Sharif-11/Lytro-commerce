@@ -15,6 +15,7 @@ import { MessagingModule } from '../shared/messaging/messaging.module';
 import { AuditModule } from '../audit/audit.module';
 import { BalanceModule } from '../balance/balance.module';
 import { BrandModule } from '../brand/brand.module';
+import { MediaModule } from '../media/media.module';
 import { SmsUsageModule } from '../sms-usage/sms-usage.module';
 import { StaffModule } from '../staff/staff.module';
 import { TenancyModule } from '../tenancy/tenancy.module';
@@ -82,8 +83,9 @@ import {
     StaffModule,
     SmsUsageModule,
     BalanceModule,
-    // TEN-16, BRN-07: /me carries the identity the dashboard applies.
+    // TEN-16, BRN-07: /me carries the shop's logo and the identity the dashboard applies.
     BrandModule,
+    MediaModule,
   ],
   controllers: [
     AuthController,

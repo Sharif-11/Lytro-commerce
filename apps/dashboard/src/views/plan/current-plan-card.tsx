@@ -49,7 +49,7 @@ export function CurrentPlanCard({
 }: CurrentPlanCardProps): React.JSX.Element {
   const { t, i18n } = useTranslation();
   const setAutoRenew = useSetAutoRenew();
-  const [autoRenew, setAutoRenewLocal] = useState(tenant.autoRenewEnabled ?? false);
+  const [autoRenew, setAutoRenewLocal] = useState(tenant.autoRenewEnabled);
   const state = tenant.state;
   const days = daysUntil(tenant.periodEnd);
   const ended = tenant.periodEnd !== null && new Date(tenant.periodEnd).getTime() < Date.now();

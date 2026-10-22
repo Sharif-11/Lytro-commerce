@@ -460,11 +460,16 @@ describeIfDatabase('attaching images (PRD-11, PRD-17, ATR-18, TEN-16)', () => {
     expect(saved.status, JSON.stringify(saved.body)).toBe(200);
     expect(saved.body).toMatchObject({ logo: { id: logo.id, urls: logo.urls } });
     expect((await shop.get('/shop-settings')).body).toMatchObject({ logo: { id: logo.id } });
+    // TEN-16: the dashboard's navigation shows it, for every member.
+    expect((await shop.get('/me')).body).toMatchObject({
+      tenant: { logo: { id: logo.id, urls: logo.urls } },
+    });
     const refused = await shop.put('/shop-settings/logo', { mediaId: randomUUID() });
     expect(fieldsOf(refused)).toEqual({ mediaId: 'not_found' });
     expect((await shop.put('/shop-settings/logo', { mediaId: null })).body).toMatchObject({
       logo: null,
     });
+    expect((await shop.get('/me')).body).toMatchObject({ tenant: { logo: null } });
     const activity = (await shop.get('/activity')).body as { entries: { action: string }[] };
     expect(activity.entries.map((entry) => entry.action)).toContain('shop_logo_saved');
   });

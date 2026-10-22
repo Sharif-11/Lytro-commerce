@@ -56,5 +56,21 @@ jobs:
       - name: Build all apps
         run: pnpm build
 
-      # The browser E2E suite returns with apps/dashboard's own Playwright tests; apps/admin's suite left
-      # with that app (docs/PHASE-3-PLAN.md D3-12).
+      # The dashboard's screens in a real browser against a mocked API, on a phone and a desktop
+      # (TENANT-DASHBOARD-DESIGN §11), and each one beside the prototype's drawing of it, kept as pictures for the
+      # pull request. The walkthrough against a real server joins in Slice 11.13.
+      - name: Dashboard browser tests
+        working-directory: apps/dashboard
+        run: |
+          pnpm exec playwright install --with-deps chromium
+          pnpm exec playwright test
+
+      - name: Keep the dashboard's pictures and report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dashboard-browser-tests
+          path: |
+            apps/dashboard/test-results/
+            apps/dashboard/playwright-report/
+          retention-days: 14

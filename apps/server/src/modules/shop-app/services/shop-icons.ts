@@ -26,12 +26,6 @@ const WHITE = { r: 255, g: 255, b: 255, alpha: 1 };
 /** A colour all four corners of the logo share closely enough to fill the icon around it with. */
 type Rgba = typeof WHITE;
 
-/** TEN-16: a shop's monogram letter -- the first letter of its name (a Bangla letter alone, without its signs). */
-export function monogramLetter(shopName: string, fallback: string): string {
-  const letter = Array.from(shopName).find((character) => /[\p{L}\p{N}]/u.test(character));
-  return (letter ?? fallback.charAt(0)).toLocaleUpperCase('en');
-}
-
 /**
  * TEN-17: the icons an installed shop app shows -- its logo on a square, or its monogram on an ink tile -- drawn as
  * PNGs. A logo with a solid background is set on that colour, so the icon reads as one piece; a transparent one on

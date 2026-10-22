@@ -27,6 +27,8 @@
     "zod": "^3"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
+    "@playwright/test": "1.64.0",
     "@tailwindcss/vite": "^4.3.3",
     "@tanstack/router-cli": "^1.167.40",
     "@tanstack/router-plugin": "^1",

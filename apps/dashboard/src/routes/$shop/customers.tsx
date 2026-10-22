@@ -1,6 +1,8 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { SectionEmpty } from '@/views/sections/section-empty';
+import { createFileRoute, redirect } from '@tanstack/react-router';
 
+// Customers joins the Orders hub with Phase 4 (TENANT-DASHBOARD-DESIGN §3); an old link lands on Orders.
 export const Route = createFileRoute('/$shop/customers')({
-  component: () => <SectionEmpty section="customers" />,
+  beforeLoad: ({ params }) => {
+    throw redirect({ to: '/$shop/orders', params: { shop: params.shop } });
+  },
 });
