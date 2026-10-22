@@ -668,11 +668,11 @@ their backend ships earlier.
     most 1600 px at q80 and a 300 px thumbnail; the uploaded file is not kept. Public names carry the content's
     fingerprint, under the item's own id (`tenants/<shop>/<media id>/<hash>.webp`), so two identical uploads never
     share a name. The per-file limits (5 MB; 150 MB for videos since 6b) are platform settings.
-  - **Attaching:** a product's photos, up to 10 in order (`PUT /products/:id/images`); a category's banner (the slice's
-    text names categories; the design points had left them out); an image swatch on a shop's own value, a colour or
-    an image, never both; an image size chart in place of a table; the shop's logo (`PUT /shop-settings/logo`). The
-    database keeps each a ready image of the shop's own. Catalogue managers handle the catalogue's media, and settings
-    managers handle the logo.
+  - **Attaching:** a product's photos, up to 10 in order (50 since 2026-10-22) (`PUT /products/:id/images`); a
+    category's banner (the slice's text names categories; the design points had left them out); an image swatch on
+    a shop's own value, a colour or an image, never both; an image size chart in place of a table; the shop's logo
+    (`PUT /shop-settings/logo`). The database keeps each a ready image of the shop's own. Catalogue managers handle
+    the catalogue's media, and settings managers handle the logo.
   - **Deleting** removes the item from everywhere at once and drops usage; its files go in the deletion job, the only
     one holding the deleting key. The past-orders warning shows 0 until orders arrive (Phase 4). Day 60 wipes the
     rows and every file under the shop's prefix.
