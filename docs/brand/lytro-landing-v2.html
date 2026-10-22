@@ -260,12 +260,27 @@
   .proof .q .t{font-size:1.0625rem;color:var(--teal-50);font-style:italic} .proof .q .who{display:flex;align-items:center;gap:12px} .proof .q .who i{width:40px;height:40px;border-radius:12px;background:var(--mari-500);color:var(--ink);display:grid;place-items:center;font-style:normal;font-weight:800;font-family:var(--font-display)} .proof .q .who b{display:block} .proof .q .who span{font-size:.875rem;color:var(--teal-100)}
 
   /* risk, faq, contact */
-  .rgrid{display:grid;gap:12px} .rcard{padding:18px;display:grid;grid-template-columns:44px 1fr;gap:4px 14px;align-items:start} .rcard .ic{grid-row:span 2;background:var(--mari-100);color:var(--mari-700)} .rcard h3{font-size:1.0625rem} .rcard p{color:var(--muted);font-size:.9375rem}
-  .faq{display:grid;gap:10px;max-width:760px;margin:0 auto}
-  .faq details{background:#fff;border:1px solid var(--line);border-radius:14px;padding:0 18px;box-shadow:var(--shadow-sm)}
-  .faq summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:58px;padding:12px 0;font-weight:700;font-size:1.0625rem} .faq summary::-webkit-details-marker{display:none}
-  .faq summary svg{width:22px;height:22px;color:var(--teal-700);flex:none;transition:transform .2s} .faq details[open] summary svg{transform:rotate(45deg)}
-  .faq details p{padding:0 0 16px;color:var(--muted);font-size:.9375rem}
+  .pledge{position:relative;overflow:hidden;background:#fff;border:1px solid var(--line);border-radius:24px;padding:24px 20px;display:grid;gap:22px;box-shadow:var(--shadow-md);isolation:isolate}
+  .pledge::before{content:"";position:absolute;z-index:-1;inset:-40% auto auto -30%;width:70%;aspect-ratio:1;border-radius:50%;background:radial-gradient(closest-side,rgba(242,165,22,.22),transparent 70%)}
+  .pledge::after{content:"";position:absolute;z-index:-1;inset:auto -20% -50% auto;width:60%;aspect-ratio:1;border-radius:50%;background:radial-gradient(closest-side,rgba(62,196,185,.18),transparent 70%)}
+  .pl-head{display:grid;gap:12px;justify-items:start} .pl-head h2{font-size:clamp(1.6rem,4.4vw,2.3rem)} .pl-head p{color:var(--muted);font-size:1.0625rem;max-width:34ch}
+  .seal{display:inline-flex;align-items:center;gap:10px;margin-top:6px;padding:8px 16px 8px 8px;border-radius:999px;border:2px dashed var(--mari-500);color:var(--mari-700);font-weight:700;line-height:1.2;transform:rotate(-2.5deg);background:#fff}
+  .seal i{width:36px;height:36px;border-radius:50%;background:var(--mari-500);color:var(--ink);display:grid;place-items:center;font-style:normal} .seal svg{width:20px;height:20px} .seal small{display:block;font-weight:600;font-size:.75rem;color:var(--n700)}
+  .pl-list{list-style:none;margin:0;padding:0;display:grid;gap:12px;counter-reset:pl}
+  .pl-list li{display:grid;grid-template-columns:44px 1fr;gap:4px 14px;align-items:start;padding:16px;border-radius:16px;background:var(--n50);border:1px solid var(--line)}
+  .pl-list .tick{grid-row:span 2;width:44px;height:44px;border-radius:50%;background:var(--mari-500);color:var(--ink);display:grid;place-items:center;box-shadow:0 10px 20px -12px rgba(242,165,22,.9)} .pl-list .tick svg{width:22px;height:22px}
+  .pl-list h3{font-size:1.0625rem} .pl-list p{color:var(--muted);font-size:.9375rem}
+  .faq-wrap{display:grid;gap:28px}
+  .faq-head{display:grid;gap:12px;justify-items:start} .faq-head h2{font-size:clamp(1.75rem,4.6vw,2.6rem)} .faq-head p{color:var(--muted);font-size:1.0625rem;max-width:36ch}
+  .faq-head .btn{margin-top:6px}
+  .faq-list{display:grid;border-top:1px solid var(--line-strong)}
+  .faq-list details{border-bottom:1px solid var(--line-strong)}
+  .faq-list summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:34px 1fr 38px;gap:12px;align-items:center;min-height:68px;padding:14px 0} .faq-list summary::-webkit-details-marker{display:none}
+  .faq-list .n{font-family:var(--font-ui);font-size:.8125rem;font-weight:700;color:var(--mari-700);letter-spacing:.04em} .faq-list .q{font-size:1.125rem;font-weight:700;line-height:1.4}
+  .faq-list .tg{width:38px;height:38px;border-radius:50%;border:1px solid var(--line-strong);background:#fff;color:var(--teal-700);display:grid;place-items:center;transition:background .15s,color .15s} .faq-list .tg svg{width:20px;height:20px;transition:transform .2s}
+  .faq-list details[open] .tg{background:var(--teal-700);color:#fff;border-color:var(--teal-700)} .faq-list details[open] .tg svg{transform:rotate(45deg)}
+  .faq-list details[open] summary .q{color:var(--teal-800)}
+  .faq-list .a{padding:0 0 22px 46px} .faq-list .a p{color:var(--n700);font-size:1rem;border-left:3px solid var(--teal-300);padding-left:14px}
   .cgrid{display:grid;gap:12px} .ccard{padding:20px;display:grid;gap:8px} .ccard h3{font-size:1.125rem} .ccard .val{font-family:var(--font-ui);font-weight:600} .ccard p{color:var(--muted);font-size:.9375rem} .ccard .btn{margin-top:6px;justify-self:start}
 
   /* final + footer + sticky */
@@ -296,7 +311,7 @@
     .fgrid{grid-template-columns:repeat(2,1fr);gap:16px} .wgrid{grid-template-columns:repeat(2,1fr);gap:16px}
     .hgrid{grid-template-columns:repeat(3,1fr)} .step{grid-template-columns:1fr;gap:10px;padding:22px} .step .n{grid-row:auto}
     .pscroll{margin-inline:0;padding:16px 0 0;overflow:visible} .pgrid{grid-auto-flow:row;grid-template-columns:repeat(2,1fr);grid-auto-columns:auto;gap:16px} .pdots{display:none}
-    .rgrid{grid-template-columns:repeat(2,1fr)} .cgrid{grid-template-columns:repeat(3,1fr)}
+    .pledge{padding:30px 28px} .pl-list{grid-template-columns:1fr 1fr} .cgrid{grid-template-columns:repeat(3,1fr)}
     .final .acts{display:flex;justify-content:center;max-width:none} .fgrid2{grid-template-columns:1fr 1fr} footer .cols{grid-column:1/-1;grid-template-columns:repeat(3,1fr)} footer .legal{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px 16px}
   }
   /* 900 and up: desktop nav, side-by-side hero, the tilted scene */
@@ -326,7 +341,8 @@
     .fgrid{grid-template-columns:repeat(3,1fr);gap:20px} .wgrid{grid-template-columns:repeat(3,1fr);gap:20px}
     .show{grid-template-columns:1.15fr .85fr;gap:24px}
     .hgrid{gap:20px} .hgrid::before{content:"";position:absolute;left:16%;right:16%;top:44px;border-top:2px dashed var(--n200);z-index:0} .step{position:relative;z-index:1}
-    .rgrid{grid-template-columns:repeat(4,1fr);gap:16px} .rcard{grid-template-columns:1fr;gap:8px;padding:20px} .rcard .ic{grid-row:auto;margin-bottom:4px}
+    .pledge{grid-template-columns:.9fr 1.3fr;gap:40px;padding:40px 44px;align-items:center} .pl-list{gap:16px} .pl-list li{grid-template-columns:1fr;gap:8px;padding:20px} .pl-list .tick{grid-row:auto;margin-bottom:4px}
+    .faq-wrap{grid-template-columns:.8fr 1.2fr;gap:56px;align-items:start} .faq-head{position:sticky;top:calc(var(--nav-h) + 32px)} .faq-list summary{min-height:76px} .faq-list .q{font-size:1.1875rem}
     .proof .wrap{grid-template-columns:1.05fr .95fr;gap:40px;align-items:center} .proof .wm{width:380px;right:-50px;bottom:-70px}
     .final{padding-block:108px} .final .btn{padding:15px 28px;font-size:1.0625rem}
     .fgrid2{grid-template-columns:1.5fr 2fr;gap:32px} footer .cols{grid-column:auto} footer{padding-bottom:36px}
@@ -723,32 +739,38 @@
 
   <section class="sec" id="risk">
     <div class="wrap">
-      <div class="sec-head center" style="margin-bottom:24px">
-        <span class="eyebrow"><i></i><span data-en="Zero risk">ঝুঁকি শূন্য</span></span>
-        <h2 data-en="Nothing to lose by trying">চেষ্টা করে দেখতে কিছু হারাবেন না</h2>
-      </div>
-      <div class="rgrid">
-        <div class="rcard card"><div class="ic"><svg><use href="#card"/></svg></div><h3 data-en="No card to start">শুরু করতে কার্ড লাগে না</h3><p data-en="A phone number and a code. That is the whole sign-up.">একটা ফোন নম্বর আর একটা কোড। এটাই পুরো সাইন-আপ।</p></div>
-        <div class="rcard card"><div class="ic"><svg><use href="#power"/></svg></div><h3 data-en="Cancel any time">যেকোনো সময় ক্যানসেল</h3><p data-en="Stop a plan from the dashboard. No call, no form.">ড্যাশবোর্ড থেকেই প্ল্যান বন্ধ। কল নেই, ফর্ম নেই।</p></div>
-        <div class="rcard card"><div class="ic"><svg><use href="#lock"/></svg></div><h3 data-en="Your data stays yours">ডেটা আপনারই থাকে</h3><p data-en="Only your shop can see its orders and customers.">আপনার অর্ডার আর কাস্টমার শুধু আপনার দোকানই দেখে।</p></div>
-        <div class="rcard card"><div class="ic"><svg><use href="#clock"/></svg></div><h3 data-en="Trial never locks you out">ট্রায়াল শেষে তালা পড়ে না</h3><p data-en="After 30 days you continue on pay-as-you-go with everything intact.">৩০ দিন পর সব ঠিক রেখেই পে-অ্যাজ-ইউ-গো-তে চলে যাবেন।</p></div>
+      <div class="pledge">
+        <div class="pl-head">
+          <span class="eyebrow"><i></i><span data-en="Zero risk">ঝুঁকি শূন্য</span></span>
+          <h2 data-en="Nothing to lose by trying">চেষ্টা করে দেখতে কিছু হারাবেন না</h2>
+          <p data-en="Four short promises, each one written into the product, not just said here.">চারটা ছোট কথা, প্রতিটা প্রোডাক্টের ভেতরে লেখা, শুধু এখানে বলা নয়।</p>
+          <span class="seal" aria-hidden="true"><i><svg><use href="#mark"/></svg></i><span><span data-en="30-day free trial">৩০ দিন ফ্রি ট্রায়াল</span><small data-en="no card, no monthly fee">কার্ড নেই, মাসিক ফি নেই</small></span></span>
+        </div>
+        <ol class="pl-list">
+          <li><span class="tick"><svg><use href="#check"/></svg></span><h3 data-en="No card to start">শুরু করতে কার্ড লাগে না</h3><p data-en="A phone number and a code. That is the whole sign-up.">একটা ফোন নম্বর আর একটা কোড। এটাই পুরো সাইন-আপ।</p></li>
+          <li><span class="tick"><svg><use href="#check"/></svg></span><h3 data-en="Cancel any time">যেকোনো সময় ক্যানসেল</h3><p data-en="Stop a plan from the dashboard. No call, no form.">ড্যাশবোর্ড থেকেই প্ল্যান বন্ধ। কল নেই, ফর্ম নেই।</p></li>
+          <li><span class="tick"><svg><use href="#check"/></svg></span><h3 data-en="Your data stays yours">ডেটা আপনারই থাকে</h3><p data-en="Only your shop can see its orders and customers.">আপনার অর্ডার আর কাস্টমার শুধু আপনার দোকানই দেখে।</p></li>
+          <li><span class="tick"><svg><use href="#check"/></svg></span><h3 data-en="Trial never locks you out">ট্রায়াল শেষে তালা পড়ে না</h3><p data-en="After 30 days you continue on pay-as-you-go with everything intact.">৩০ দিন পর সব ঠিক রেখেই পে-অ্যাজ-ইউ-গো-তে চলে যাবেন।</p></li>
+        </ol>
       </div>
     </div>
   </section>
 
   <section class="sec tint" id="faq">
-    <div class="wrap">
-      <div class="sec-head center">
+    <div class="wrap faq-wrap">
+      <div class="faq-head">
         <span class="eyebrow"><i></i><span data-en="Questions">প্রশ্ন থাকতে পারে</span></span>
         <h2 data-en="Straight answers">সোজা উত্তর</h2>
+        <p data-en="The questions sellers ask us in DMs, answered the way we answer there. Anything else, write to us on WhatsApp.">DM-এ সেলাররা যা জিজ্ঞেস করেন, সেগুলোরই উত্তর, যেভাবে ওখানে দিই সেভাবে। আরও কিছু জানতে চাইলে WhatsApp-এ লিখুন।</p>
+        <a href="#contact" class="btn btn-outline btn-sm"><svg><use href="#chat"/></svg><span data-en="Ask on WhatsApp">WhatsApp-এ জিজ্ঞেস করুন</span></a>
       </div>
-      <div class="faq">
-        <details open><summary><span data-en="Do I have to pay a monthly fee?">মাসিক ফি দিতে হবে?</span><svg><use href="#plus"/></svg></summary><p data-en="No. On pay-as-you-go, opening the shop is free and a small fee is charged only when an order is delivered. You can move to a fixed plan later if that works out cheaper for you.">না। পে-অ্যাজ-ইউ-গো-তে দোকান খোলা ফ্রি, শুধু অর্ডার ডেলিভার হলেই ছোট একটা ফি কাটে। পরে ফিক্সড প্ল্যান সস্তা পড়লে সেখানে যেতে পারবেন।</p></details>
-        <details><summary><span data-en="I sell from a Facebook page. Do I need a website?">আমি ফেসবুক পেজ থেকে বিক্রি করি। ওয়েবসাইট লাগবে?</span><svg><use href="#plus"/></svg></summary><p data-en="No. Keep selling on your page. Lytro gives you one place to confirm orders, book couriers and match payments. The storefront is there when you want it, and you can switch it off.">না। পেজেই বিক্রি করুন। Lytro শুধু অর্ডার কনফার্ম, কুরিয়ার বুক আর পেমেন্ট মেলানোর এক জায়গা দেয়। স্টোরফ্রন্ট চাইলে আছে, না চাইলে বন্ধ রাখা যায়।</p></details>
-        <details><summary><span data-en="Which couriers and payments are supported?">কোন কুরিয়ার আর পেমেন্ট সাপোর্ট করে?</span><svg><use href="#plus"/></svg></summary><p data-en="bKash and Nagad for payments, Steadfast and Pathao for courier booking at launch, each on your own account. More are added as they go live, and we only list what works today.">পেমেন্টে বিকাশ আর নগদ, কুরিয়ারে লঞ্চে Steadfast আর Pathao, সবই আপনার নিজের অ্যাকাউন্টে। নতুনগুলো লাইভ হলে যোগ হয়, আজ যা কাজ করে শুধু সেটাই লেখা থাকে।</p></details>
-        <details><summary><span data-en="Is my data safe from other shops?">আমার ডেটা কি অন্য দোকান দেখতে পায়?</span><svg><use href="#plus"/></svg></summary><p data-en="No. Your orders, customers and payments belong to your shop only. Every request is checked against your shop, and every change is logged with who made it.">না। আপনার অর্ডার, কাস্টমার আর পেমেন্ট শুধু আপনার দোকানের। প্রতিটা রিকোয়েস্ট আপনার দোকানের সাথে মিলিয়ে দেখা হয়, আর কে কী বদলালো তার লগ থাকে।</p></details>
-        <details><summary><span data-en="What happens when the trial ends?">ট্রায়াল শেষ হলে কী হয়?</span><svg><use href="#plus"/></svg></summary><p data-en="Nothing is lost. After 30 days you simply continue on pay-as-you-go with wider limits. There is no paywall and no data deletion.">কিছু হারায় না। ৩০ দিন পর এমনিতেই পে-অ্যাজ-ইউ-গো-তে চলে যাবেন, লিমিট আরও বড় হয়ে। কোনো পেওয়াল নেই, ডেটা মোছা নেই।</p></details>
-        <details><summary><span data-en="Can I add staff?">স্টাফ যোগ করা যাবে?</span><svg><use href="#plus"/></svg></summary><p data-en="Yes. Add staff with their own phone number and give each a role: orders only, products only, or everything. You decide who sees what.">হ্যাঁ। স্টাফের নিজের ফোন নম্বর দিয়ে যোগ করুন আর রোল দিন: শুধু অর্ডার, শুধু প্রোডাক্ট, বা সব। কে কী দেখবে সেটা আপনার হাতে।</p></details>
+      <div class="faq-list">
+        <details open><summary><span class="n">01</span><span class="q" data-en="Do I have to pay a monthly fee?">মাসিক ফি দিতে হবে?</span><span class="tg"><svg><use href="#plus"/></svg></span></summary><div class="a"><p data-en="No. On pay-as-you-go, opening the shop is free and a small fee is charged only when an order is delivered. You can move to a fixed plan later if that works out cheaper for you.">না। পে-অ্যাজ-ইউ-গো-তে দোকান খোলা ফ্রি, শুধু অর্ডার ডেলিভার হলেই ছোট একটা ফি কাটে। পরে ফিক্সড প্ল্যান সস্তা পড়লে সেখানে যেতে পারবেন।</p></div></details>
+        <details><summary><span class="n">02</span><span class="q" data-en="I sell from a Facebook page. Do I need a website?">আমি ফেসবুক পেজ থেকে বিক্রি করি। ওয়েবসাইট লাগবে?</span><span class="tg"><svg><use href="#plus"/></svg></span></summary><div class="a"><p data-en="No. Keep selling on your page. Lytro gives you one place to confirm orders, book couriers and match payments. The storefront is there when you want it, and you can switch it off.">না। পেজেই বিক্রি করুন। Lytro শুধু অর্ডার কনফার্ম, কুরিয়ার বুক আর পেমেন্ট মেলানোর এক জায়গা দেয়। স্টোরফ্রন্ট চাইলে আছে, না চাইলে বন্ধ রাখা যায়।</p></div></details>
+        <details><summary><span class="n">03</span><span class="q" data-en="Which couriers and payments are supported?">কোন কুরিয়ার আর পেমেন্ট সাপোর্ট করে?</span><span class="tg"><svg><use href="#plus"/></svg></span></summary><div class="a"><p data-en="bKash and Nagad for payments, Steadfast and Pathao for courier booking at launch, each on your own account. More are added as they go live, and we only list what works today.">পেমেন্টে বিকাশ আর নগদ, কুরিয়ারে লঞ্চে Steadfast আর Pathao, সবই আপনার নিজের অ্যাকাউন্টে। নতুনগুলো লাইভ হলে যোগ হয়, আজ যা কাজ করে শুধু সেটাই লেখা থাকে।</p></div></details>
+        <details><summary><span class="n">04</span><span class="q" data-en="Is my data safe from other shops?">আমার ডেটা কি অন্য দোকান দেখতে পায়?</span><span class="tg"><svg><use href="#plus"/></svg></span></summary><div class="a"><p data-en="No. Your orders, customers and payments belong to your shop only. Every request is checked against your shop, and every change is logged with who made it.">না। আপনার অর্ডার, কাস্টমার আর পেমেন্ট শুধু আপনার দোকানের। প্রতিটা রিকোয়েস্ট আপনার দোকানের সাথে মিলিয়ে দেখা হয়, আর কে কী বদলালো তার লগ থাকে।</p></div></details>
+        <details><summary><span class="n">05</span><span class="q" data-en="What happens when the trial ends?">ট্রায়াল শেষ হলে কী হয়?</span><span class="tg"><svg><use href="#plus"/></svg></span></summary><div class="a"><p data-en="Nothing is lost. After 30 days you simply continue on pay-as-you-go with wider limits. There is no paywall and no data deletion.">কিছু হারায় না। ৩০ দিন পর এমনিতেই পে-অ্যাজ-ইউ-গো-তে চলে যাবেন, লিমিট আরও বড় হয়ে। কোনো পেওয়াল নেই, ডেটা মোছা নেই।</p></div></details>
+        <details><summary><span class="n">06</span><span class="q" data-en="Can I add staff?">স্টাফ যোগ করা যাবে?</span><span class="tg"><svg><use href="#plus"/></svg></span></summary><div class="a"><p data-en="Yes. Add staff with their own phone number and give each a role: orders only, products only, or everything. You decide who sees what.">হ্যাঁ। স্টাফের নিজের ফোন নম্বর দিয়ে যোগ করুন আর রোল দিন: শুধু অর্ডার, শুধু প্রোডাক্ট, বা সব। কে কী দেখবে সেটা আপনার হাতে।</p></div></details>
       </div>
     </div>
   </section>
