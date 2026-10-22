@@ -1,16 +1,19 @@
 # Tenant dashboard: the full design
 
-Status: v2.2, 2026-10-21 (v2.1 of 2026-10-20 plus §7.4a, the product form by shop type). One design for the whole seller journey: sign-in and onboarding, and the
-dashboard (`apps/dashboard`, served at `app.lytro.app/<shop>`). It replaces the screen designs in
+Status: v2.3, 2026-10-22 (v2.2 of 2026-10-21 brought up to the prototype as it stands after Slice 10a: the screens
+of Slices 4 to 10a get their sections in §7, the decisions of 2026-10-22 for Phase 3 Slice 11 are recorded in §2,
+§10 and §11, and the prototype's faults are fixed). One design for the whole seller journey: sign-in and onboarding,
+and the dashboard (`apps/dashboard`, served at `app.lytro.app/<shop>`). It replaces the screen designs in
 `DASHBOARD-SECTIONS-DESIGN.md` and the shell and screen visuals in `ONBOARDING-FLOW-DESIGN.md` (that
 document's flow, decisions and routing rules still hold and are referenced below). The interactive
 prototype is **one document**, `docs/brand/lytro-dashboard.html` (open in a browser; needs internet for
-Google Fonts): every screen of the journey as the product stands after **Phase 3 Slice 3**, with the
-onboarding steps, the Phase 1 to 2 money and team sections, and the Slice 1 to 3 catalogue, delivery and
-inventory screens; Bangla with the EN toggle; phone, tablet and desktop; the shop's lifecycle states
-switchable. Screens designed for later phases (orders, customers, payments, usage, notices, purchases,
-SMS) are kept in the same document under "Later phases (design only)" so the architecture stays whole,
-and they do not appear in the navigation of the current state.
+Google Fonts): every screen of the journey as the product stands after **Phase 3 Slice 10a**, with the
+onboarding steps, the Phase 1 to 2 money and team sections, and the Slice 1 to 10a catalogue, stock, purchasing,
+delivery, media, usage, add-on, key, Meta and brand screens; Bangla with the EN toggle; phone, tablet and desktop;
+the shop's lifecycle states switchable. Screens designed for later phases (orders, customers, payments, notices,
+the bell and its notifications, storefront settings, shortfall and returns, SMS) are kept in the same document
+under "Later phases (design only)" so the architecture stays whole, and they do not appear in the navigation of
+the current state. Phase 3 Slice 11 builds the dashboard to this document, from scratch (§11).
 
 Designed from `SRS-detailed.md` (sections 3 to 14 and 19 to 23), `BRAND-IDENTITY.md`, `PHASE-3-PLAN.md`
 §6, `API-CONTRACT.md` §2 to §4 and §8, and the routes `apps/server/src/modules/team/controllers` expose
@@ -53,23 +56,25 @@ Ten rules follow from this. They are checked against every screen in §7 and §8
 
 ---
 
-## 2. Scope of the current state (Phase 0 to Phase 3 Slice 3)
+## 2. Scope of the current state (Phase 0 to Phase 3 Slice 10a)
 
-What the prototype's navigation shows today, and what it holds back.
+What the prototype's navigation shows today, and what it holds back. Decided 2026-10-22 for Slice 11: the bell
+waits for Phase 7; storefront settings wait for Slice 12; shortfall, returns and profit wait for Phase 4.
 
 | Area | In the current state | Held for later (and where it sits in the prototype) |
 | --- | --- | --- |
 | Onboarding and sign-in | every step of §6 | nothing |
-| Home | the job queue from stock, batches, balance and plan; the "Right now" tiles; the checklist with the items that exist; the shop link | the order and payment job rows and the sales tiles (Phase 4, 5) |
-| Shop hub | Products, Categories, Attributes, Stock, Delivery, with every sheet of §7.6 to §7.12 | Purchases (Slice 4, "Later phases") |
-| Money hub | Balance, Plan, Invoices | Payments, Payment methods, Usage (Phase 5, Slice 10) |
-| Menu | Team, Activity, Settings (shop details, delivery, data export), Account | Notices (Phase 7); the settings rows for payments, couriers, listener, SMS, notifications, API keys, ad tracking, brand identity and storefront are listed under "Coming later" with their phase |
-| Shell | app bar with search and **+** (Add product, Add stock, Top up); tab bar Home, Orders, Shop, Money, Menu; rail and secondary column on desktop | the bell and notifications (Phase 7); the Orders tab opens a placeholder that says orders arrive in Phase 4; the + menu shows "New order" greyed with its phase |
+| Home | the job queue from stock, batches, money being checked, low balance, the plan's end and staff without a password; the fast-spend banner; the "Right now" tiles; the set-up checklist; the shop link | the order and payment job rows and the sales tiles (Phase 4, 5) |
+| Shop hub | Products (with photos and video), Categories, Attributes, Stock (checks, expiring, value and losses), Purchases (with suppliers), Delivery | shortfall, returns and profit (Phase 4, "Later phases") |
+| Money hub | Balance, Plan, Invoices, Usage, Add-ons | Payments, Payment methods (Phase 5); the hosted payment page (Phase 5, §7.19) |
+| Menu | Team, Activity, Settings (shop details, delivery, brand identity, API keys, Facebook and Meta, data export), Account; install the app, language, help, sign out | Notices (Phase 7); storefront settings and its banner slides (Slice 12); the settings rows for payment methods, couriers, listener, SMS and notifications under "Coming later" with their phase |
+| Shell | app bar with search (products) and **+** (Add product, Add stock, Top up); tab bar Home, Orders, Shop, Money, Menu; on desktop the rail, the header and, from 1280 px, the side column | the bell and notifications (Phase 7); the Orders tab opens a placeholder that says orders arrive in Phase 4; the + menu shows "New order" greyed with its phase |
 
 The "Later phases (design only)" group of the prototype keeps the Orders, Customers, Payments, Payment
-methods, Usage, Notices, Purchases, SMS, Notifications and Search designs exactly as §8 describes them.
-When one of them opens, the navigation switches to the full information architecture of §3 so the design
-can be judged in its own context.
+methods, Notices, SMS and order-and-customer Search designs exactly as §8 describes them, and since 2026-10-22 the
+bell with its panel and page, storefront settings with its slides, and the shortfall and return screens. When one of
+them opens, the navigation switches to the full information architecture of §3 so the design can be judged in its
+own context.
 
 ---
 
@@ -80,11 +85,11 @@ of the business, not the platform's module names. Routes are under `app.lytro.ap
 
 | Hub | Sections (route) | Needs | Backend today |
 | --- | --- | --- | --- |
-| **Home** `/` | The queue, "Right now" tiles, set-up checklist, banners | any member | `/me`, `/balance`, `/products`, `/batches` (built); order and payment counts later |
+| **Home** `/` | The queue, "Right now" tiles, set-up checklist, banners | any member | `GET /home` (Slice 11, §10) and `/me`; order and payment counts later |
 | **Orders** `/orders` | Orders, one order, new order, Customers | `orders:*`, `customers:read` | later (Phase 4); the tab opens the placeholder |
-| **Shop** `/products` | Products `/products`, one product `/products/:id`, new `/products/new`, Categories `/categories`, Attributes `/attributes` (with Option sets), Stock `/stock`, Stock checks `/stock/checks`, Expiring `/stock/expiring`, Delivery `/delivery`; Purchases `/purchases` later | `products:*`, `inventory:*`, `settings:manage` (delivery, business type) | built (Slices 1 to 3) |
-| **Money** `/balance` | Balance `/balance`, Plan `/plan`, Invoices `/invoices`; Payments, Payment methods, Usage later | `balance:*`, `payments:read/manage` | built (Phase 2) |
-| **Menu** `/menu` | Team `/team` (+ `/team/roles`), Activity `/activity`, Settings `/settings/*`, Account `/account`, Help, Language, Sign out; Notices later | per row | built |
+| **Shop** `/products` | Products `/products`, one product `/products/:id`, new `/products/new`, Categories `/categories`, Attributes `/attributes` (with Option sets), Stock `/stock`, Stock checks `/stock/checks`, Expiring `/stock/expiring`, Stock value `/stock/value`, Purchases `/purchases` (one purchase `/purchases/:id`, Suppliers `/purchases/suppliers`), Delivery `/delivery` | `products:*`, `inventory:*` (costs and value only with `inventory:manage`, D3-9), `settings:manage` (delivery, business type) | built (Slices 1 to 9) |
+| **Money** `/balance` | Balance `/balance`, Plan `/plan`, Invoices `/invoices`, Usage `/usage`, Add-ons `/addons`; Payments, Payment methods later | `balance:*`, `payments:read/manage` | built (Phase 2, Slices 10 and 10a) |
+| **Menu** `/menu` | Team `/team` (+ `/team/roles`), Activity `/activity`, Settings `/settings` (Shop details `/settings/shop`, Brand identity `/settings/brand`, API keys `/settings/api-keys`, Facebook and Meta `/settings/meta`, Data export `/settings/export`), Account `/account`, Help, Language, Sign out; Notices later | per row: `keys:manage` for API keys, `settings:manage` for the rest of Settings, the owner alone for the export | built; the brand identity's backend is Slice 11 (§10) |
 
 Rows and sections a staff member lacks the permission for are **hidden, never disabled** (STF-11). The owner
 sees everything. A hub whose every section is hidden disappears from the navigation.
@@ -98,6 +103,10 @@ the seller changes them beside the products, and the product editor's "Delivers 
 
 **Why Payments and Balance will share a hub.** Both are money the seller watches daily. Until Phase 5 the
 hub's first section is Balance.
+
+**Why Usage and Add-ons sit in Money.** Room costs money: a usage warning ends in a pack, an add-on or a plan,
+and every one of those is paid from the balance or like a plan. The add-ons screen is also reached from Usage,
+Plan, the brand editor and a refusal at a limit.
 
 ---
 
@@ -126,15 +135,19 @@ The phone shell with more room: forms gain a second column, stat tiles sit four 
 
 - **Rail**, 72 px, teal-900: the five hub icons with 11 px labels, teal-800 active, the shop's monogram and
   "Powered by Lytro" at the foot (TEN-18). The only chrome-coloured surface.
-- **Secondary column**, 224 px, white, from 1280 px: the hub's sections as text rows with counts.
-- **Header**, 64 px: page title left; search (320 px), **+**, language, the person's initial on the right.
+- **Side column** (secondary column), 224 px, white, from 1280 px: the shop's name and address, the hub's label,
+  and its sections as text rows with counts; it replaces the section chips. Kept on 2026-10-22, once the
+  prototype's frame showed it.
+- **Header**, 64 px: page title left; search (320 px), **+**, language, the person's initial on the right; the
+  bell joins in Phase 7.
 - **List and detail split** for Products from 1024 px (and for Orders and Customers later).
 - **Sheets** are a 480 px right panel over a scrim.
 
 ### 4.4 Global search
 
 One field for an order number, a phone number, a customer name or a product name, grouped results with the
-same rows the lists use. Products search is `GET /products?search=` today; orders and customers are Phase 4.
+same rows the lists use. Products search is `GET /products?search=` today; orders and customers are Phase 4, so
+until then the results hold the Products group alone (`search-products` in the prototype).
 
 ### 4.5 The + menu
 
@@ -144,7 +157,8 @@ member cannot do are hidden.
 ### 4.6 Banners
 
 Under the app bar, one at a time: support view (ADM-05, ink and marigold, never dismissable), urgent notice
-(NTC-04, Phase 7), lifecycle (§7.24), offline.
+(NTC-04, Phase 7), lifecycle (§7.20), offline. A screen's own warning sits at the top of its content: a usage
+level (§7.24), the low balance (§7.11), a key spending fast (Home, §7.1), an add-on ending (§7.25).
 
 ---
 
@@ -221,20 +235,24 @@ comes from), **Actions**, **States**.
 4. A plan payment being checked (BIL-04) → `/plan`
 5. Balance under ৳50 (BAL-13) → `/balance`
 6. Trial or plan ending inside 7 days (TRL-08, BIL-14) → `/plan`
+7. A staff member who has not set a password yet (STF-13) → `/team`
 
 Phase 4 and 5 add payments to verify, orders to confirm, orders to book and unverified orders at the top of
-the queue, and staff without a password once `/staff` returns it (§10).
+the queue. A key spending fast (RTE-12) is a banner above the queue, not a row: "More than 5% of this cycle's
+requests went in the last hour, from the "Website" key. Nothing is blocked; check the key", with See keys
+(`home-fast-spend`).
 
 Then **Right now**: four tiles: Products (with the active count), Low stock (with the out count), Balance
 (with the free SMS used), Plan days left (with the date). Then the **set-up checklist** (SUP-01): shop
-created, delivery charges, add the first product, share the link; the items that wait for later slices (logo,
-wallet number, courier, SMS events, listener, API key) are listed greyed with their phase. Then the **shop
-link** card with Copy, Facebook and WhatsApp. On desktop the queue takes two thirds and the tiles, checklist
-and link the right third.
+created, delivery charges, add the first product, share the link, ticked by the server; "Later, when you need
+them" names the items that wait for later phases (connect a courier, choose SMS events, pair a listener phone).
+Then the **shop link** card with Copy, Facebook and WhatsApp. On desktop the queue takes two thirds and the
+tiles, checklist and link the right third.
 
-**Content.** `GET /products` stock states, `GET /batches?state=expiring`, `GET /balance` (balance, free SMS,
-pending top-up), `/me` (plan, period end). **States.** Day one: the checklist opens first and the tiles read
-zero with the trial days; a queue with nothing says so in one line.
+**Content.** `GET /home` (a Slice 11 addition, §10): the queue's counts and the checklist in one read, with
+"link shared" recorded by the server rather than on one phone; `/me` for the plan and its end; `GET /balance`
+for the tile. **States.** Day one: the checklist opens first and the tiles read zero with the trial days; a queue
+with nothing says so in one line.
 
 ### 7.2 Orders tab (placeholder)
 
@@ -250,8 +268,9 @@ Inactive, Low stock, Out. **Add product** in the header. Rows: thumbnail or mono
 · category", the price or range above the stock chip. Desktop: a table with the same columns.
 
 **Content.** `GET /products?search=&categoryId=&page=`, `GET /categories`. **States.** Empty with the trial's
-product limit line (TRL-03); at the plan limit the server's `plan_limit_reached` becomes a sheet naming the
-limit with "See plans" (PRD-04).
+product limit line (TRL-03); at the plan limit the server's `plan_limit_reached` becomes a banner over the list:
+the limit, that everything already listed keeps selling, and the cheapest ways to room (the next plan or the
+add-on, LIM-01), with See plans (PRD-04, `products-limit`).
 
 ### 7.4 Product editor (`/products/new`, `/products/:id`)
 
@@ -259,8 +278,8 @@ limit with "See plans" (PRD-04).
 
 **Layout.** Four cards and a sticky **Save**:
 
-1. **Basics**: photos (reorder, delete, one video; upload waits for Slice 6), name, price, category (opens
-   the picker sheet), description (plain text, PRD-01).
+1. **Basics**: photos and the one video (the media sheet, §7.23), name, price, category (opens the picker
+   sheet), description (plain text, PRD-01).
 2. **Options and variants** (ATR-11): "Add attribute" (sheet), each attribute as a mini card with its role
    chip, its options with swatch dots, the option-set chips; "Sizes share one stock" (INV-24); the variant
    matrix with Price and Stock columns and "Fill all" (ATR-17); the limits line (ATR-14).
@@ -288,7 +307,8 @@ limit with "See plans" (PRD-04).
 - *Remove*: archive (default) or delete for good, each with its consequence (PRD-13).
 
 **Content.** `GET /product-defaults?categoryId=`, `POST /products`, `PATCH`, `PUT …/variants`,
-`…/attributes`, `…/slug`, `…/size-chart`, `…/delivery-zones`, `POST …/duplicate`, `DELETE` (built).
+`…/attributes`, `…/slug`, `…/size-chart`, `…/delivery-zones`, `…/images`, `…/video`, `POST …/duplicate`,
+`DELETE` (built).
 
 ### 7.4a The product form by shop type (`/products/new`)
 
@@ -397,15 +417,17 @@ delete for the shop's own (ATR-16). Built: `GET/POST/PATCH /attributes`, `…/op
 words (INV-22).
 
 **Layout.** Header actions **Check stock** and **Add stock**. The figures row for `inventory:manage`
-(D3-9): stock value, cost of goods sold this month, losses by reason, expiring batches (INV-18). Search and
-the segments All, Low, Out. Each product is a card with its variants as rows: three figures (**Can sell**,
-**Waiting to ship**, **On hand**), the stock chip, "Add stock" and "Edit". Slice 4 adds "Coming" (PUR-05).
-A made-to-order product shows one line. A variant row opens the sheets below.
+(D3-9): stock value, cost of goods sold this month, losses by reason, expiring batches (INV-18); the first
+three open Stock value and losses (§7.22). Search and the segments All, Low, Out. Each product is a card with
+its average cost and its variants as rows: the figures **Can sell**, **Waiting to ship** and **On hand**, and
+**Coming** when a placed purchase brings more (PUR-05), the stock chip, "Add stock" and "Edit". A made-to-order
+product shows one line. A variant row opens the sheets below.
 
 **Sheets.**
-- *Add stock* (`POST …/stock-additions`): variant, quantity in the unit, unit cost, supplier name typed
-  (the purchase record arrives with Slice 4), batch code and expiry on a batch-tracked product (INV-12),
-  serials on a serial-tracked one with "add later" (INV-14).
+- *Add stock* (`POST …/stock-additions`): variant, quantity in the unit, unit cost, the supplier picked or
+  typed (a new name makes a supplier, PUR-01; the arrival is recorded as a purchase received in full), batch
+  code and expiry on a batch-tracked product (INV-12), serials on a serial-tracked one with "add later"
+  (INV-14).
 - *Edit stock* (`PUT …/stock`, INV-06): the number with steppers, the four reason chips, a note.
 - *Stock history* (`GET …/stock-history`, INV-09): a timeline in everyday words with the actor and the
   on-hand after.
@@ -428,7 +450,9 @@ difference, the note that differences are recorded as "counted again", Save. **D
 ### 7.9 Expiring (`/stock/expiring`)
 
 Batches within 30 days then expired, soonest first, each with the product, code, expiry, quantity and Write
-off once expired (`GET /batches?state=`, INV-13). Built.
+off once expired (`GET /batches?state=`, INV-13). The **write-off sheet** shows the batch, the units left, the
+reason (expired) and the loss at average cost; damaged or lost stock goes through Edit stock with its reason, as
+`POST …/write-off` takes an expired batch only (`sh-writeoff`). Built.
 
 ### 7.10 Delivery (`/delivery`)
 
@@ -449,21 +473,25 @@ names). Built: `GET/POST/PATCH/DELETE /delivery-zones`, `PUT …/home-area`, `�
 
 A plain card: the amount in 36 px, the "frozen" chip when frozen (BAL-08), this month's free SMS as a bar,
 **Top up** (marigold, `balance:manage`), "Current rates". The statement grouped by day with units × rate
-and the balance after, segments by type, dates, CSV; the rates card. The **top-up sheet** (BAL-03, 04): the amount with quick chips and "buys about n SMS", the four wallet
-marks, and **পেমেন্ট পেজে যান · ৳500**, which opens the hosted payment page for that amount (§7.19).
-Coming back, the Balance screen shows the "৳500 top-up is being checked" banner until it matches, then
-the credited toast and the ledger row. Built today as `POST /balance/top-up/quote` then `/confirm`; the
-page replaces the inline wallet step in Phase 5.
+and the balance after, segments by type, dates, CSV; the rates card. Below ৳50, a warning banner says what may
+stop and offers Top up (BAL-13, `balance-low`). The **top-up sheet** (BAL-03, 04): the amount with quick chips
+and "buys about n SMS", the platform's lowest and highest amounts said before quoting (`GET /balance` gains them,
+§10), the four wallet marks, and **পেমেন্ট পেজে যান · ৳500**, which opens the hosted payment page for that amount
+(§7.19). Coming back, the Balance screen shows the "৳500 top-up is being checked" banner until it matches, then
+the credited toast and the ledger row. Built today as `POST /balance/top-up/quote` then `/confirm`; the page
+replaces the in-dashboard wallet step in Phase 5, and until then Slice 11 keeps that step (sender number and
+transaction ID), drawn in this design (decided 2026-10-22).
 
 ### 7.12 Plan (`/plan`)
 
 Banners first (a scheduled downgrade or pay-as-you-go switch with "Keep Growth", a pending cancellation with
-Undo, the lapsed state line). The **current plan** card: name and state chip, term, three figures (days left,
-next payment, orders handled), the one action for the state (Renew for ৳…, Pick a plan, Keep the plan),
-"See invoices", the auto-renew switch (BIL-17; its read is a backend addition). **Change plan**: term chips
-(TRM-12), plan cards (price, monthly equivalent, three limits, the one allowed move), the dashed
-pay-as-you-go card. Add-ons as a card that says what will be bought here (Slice 10a). Stop the subscription
-as a disclosure at the foot.
+Undo, the lapsed state line, and for 30 days after a downgrade its checklist). The **current plan** card: name
+and state chip, term, the figures days left and next payment (orders handled joins in Phase 4), the one action
+for the state (Renew for ৳…, Pick a plan, Keep the plan), "See invoices", the auto-renew switch (BIL-17; its
+read is a backend addition, §10). **Change plan**: term chips (TRM-12), plan cards (price, monthly equivalent,
+four limits, the one allowed move), the dashed pay-as-you-go card. The **add-ons** card: what is active, what
+renews with the plan and for how much, the packs left, See all (§7.25). Stop the subscription as a disclosure at
+the foot.
 
 **Sheets.** *How to pay* (BIL-02, BIL-08): from the balance when it covers the price, else greyed with
 the reason, or on the payment page with the four wallet marks; the line that nothing changes before the
@@ -473,7 +501,17 @@ balance (enough here) or on the payment page, the 15-minute validity and no-refu
 (DWN-03): the effective date first, the over-limit list, one sentence per consequence, the new price,
 "Move down on 9 Nov". Coming back from the page, Plan shows the "payment being checked" banner (nothing
 changes until it is confirmed), then "Renewed · runs until 9 Dec" or "Growth is on" with the new figures.
-Built.
+
+*Stop the subscription* (LIF-01, `sh-cancel`): everything runs until the period's end, then the dated steps
+(grace, view only, locked, deletion after day 60, with the balance and invoices kept), and "you can undo any time
+before 9 Nov"; afterwards the banner with Undo (`plan-cancelled`). *Downgrade scheduled* (DWN-02): the banner with
+Keep Growth (`plan-downgrade-scheduled`). *Switch to pay-as-you-go* (PYG-10, `sh-payg-switch`): the date, the
+fees, the limits that fall, what happens to what is over. *A pay-as-you-go shop* (PYG-01, `plan-payg`): the plan
+that would cost less against the fees paid this month (from the ledger), Take Growth, add-ons in their own 30-day
+periods, and Closing the shop: *Close the shop* (PYG-09, `sh-close-shop`) says what goes offline now, what is
+deleted after 60 days, and that a plan or pay-as-you-go brings it back (LIF-15), with Export the data first.
+*30 days after a downgrade* (DWN-12, `downgrade-checklist`): each limit over with its fix and Open, and the final
+warning's date (`GET /billing/downgrade/checklist`). Built.
 
 ### 7.13 Invoices (`/invoices`)
 
@@ -484,9 +522,18 @@ snapshot. PDF is later. Built.
 ### 7.14 Team (`/team`, `/team/roles`)
 
 Seats line with the bar (STF-02) and the two ways out when full; the owner pinned; staff rows with role
-chips and "Off"; the staff sheet with the generated first password (STF-13, AUTH-19), the active switch with
-its consequence and the roles as a checklist; roles with holders and permission chips, the editor as plain
-sentences with "Spends the balance" where it applies, delete disabled with the holder count (STF-09). Built.
+chips, "Off", and "Password not set" until they choose their own (STF-13; the flag is a backend addition, §10);
+the staff sheet with the generated first password (STF-13, AUTH-19), the active switch with its consequence and
+the roles as a checklist; roles with holders and permission chips, the editor as plain sentences with "Spends
+the balance" where it applies, listing the permissions of the sections that exist (products, stock, API keys,
+staff, balance, payments, activity, settings; the rest join with their phases), delete disabled with the holder
+count (STF-09).
+
+*Edit staff* (STF-03, `sh-staff-edit`): name, the phone that cannot change, roles, Reset password, Deactivate.
+*Deactivate* (STF-05): signed out at once, the seat frees, history stays; the toast. *Reactivate* refused when
+every seat is in use names the three ways out: deactivate someone, buy a seat (the add-on), or the next plan
+(STF-04). *Reset the password* (STF-13): a new first password shown once with Copy. *Delete a role* refused while
+someone holds it (STF-09). Built.
 
 ### 7.15 Activity (`/activity`)
 
@@ -496,24 +543,39 @@ line (AUD-06). Built.
 
 ### 7.16 Settings (`/settings`)
 
-Rows into pages: **Shop details** (name, logo with the monogram preview, business type with "existing
-products do not change" (PST-01, 03, `PUT /business-type`), contact phone, email and street address
-(TEN-30)); **Delivery** (§7.10); **Data export** (LIF-16: request, the list with preparing, download and
-failed states, "lasts 24 hours", owner only). Under "Coming later", greyed with their phase: payment
-methods, couriers, listener phone, SMS, notifications, API keys, ad tracking and feed, brand identity,
-storefront.
+Rows into pages: **Shop details** (name, logo uploaded as §7.23 does with the monogram until then
+(`PUT /shop-settings/logo`), business type with "existing products do not change" (PST-01, 03,
+`PUT /business-type`), contact phone, email and street address (TEN-30)); **Delivery** (§7.10); **Brand
+identity** (§7.28); **API keys** (§7.26); **Facebook and Meta** (§7.27); **Data export** (LIF-16: request, the
+list with preparing, download and failed states, "lasts 24 hours", owner only). Under "Coming later", greyed with
+their phase: payment methods (Phase 5), couriers (Phase 6), listener phone (Phase 5), SMS (Phase 7),
+notifications (Phase 7), storefront (Slices 12 to 13).
 
 ### 7.17 Account (`/account`)
 
 The identities as rows with the provider's mark and the action per row (AUTH-26, AUTH-27), the language
-toggle (I18N-02), Sign out. Built.
+toggle (I18N-02), Sign out. *Change password* (AUTH-20, `sh-password`): the current one with "send a code to the
+phone" when forgotten, the new one with its rules, and the line that every other device is signed out. *Add an
+email* (AUTH-26): the address, the six-digit code, the toast. *Connect* Facebook or Google, with the toast.
+*Remove* asks first and says nothing in the shop changes; removing the only way in is refused with "add another
+first". Built.
+
+### 7.18 Menu (`/menu`)
+
+The shop card (name, address, the person's role); Team with the seats, Activity, Settings; Account; Language,
+which switches at once; Help with the WhatsApp hours; Sign out; "Powered by Lytro". On a phone browser that can
+install, an **Install** card heads the page: "Install Megh Fashion on this phone · an icon on the home screen,
+opens full screen, with your logo" (TEN-17, `menu-install`); the installed app takes the shop's name and logo,
+scoped to `/<shop>/`, from a per-shop manifest (a Slice 11 addition, §10). Notices joins in Phase 7.
 
 ### 7.19 Paying the platform through the hosted page
 
 Every payment to Lytro (a plan at checkout, a renewal, an upgrade, a top-up) goes through the hosted
 payment page of `PAYMENT-PAGE-DESIGN.md` with Lytro as the payee, the platform's wallet numbers, the exact
-amount and the reference (PAY-21, BIL-03, BAL-03). The dashboard never shows a wallet number or asks for a
-transaction ID itself. The wiring:
+amount and the reference (PAY-21, BIL-03, BAL-03). From then on the dashboard never shows a wallet number or
+asks for a transaction ID itself. Until the page exists (Phase 5), the dashboard keeps today's wallet step (the
+platform's wallet numbers, then the sender number and transaction ID, confirmed by an operator), drawn in this
+design (decided 2026-10-22). The wiring, once the page exists:
 
 | Where the seller taps | The page opens with | Coming back |
 | --- | --- | --- |
@@ -539,6 +601,148 @@ group with each of the four contexts.
 | suspended | `/unavailable` with support; the owner's Balance and Top up still reachable | LIF-24 |
 | support view | The ink-and-marigold bar on every screen, never dismissable | ADM-05 |
 
+### 7.21 Purchases and suppliers (`/purchases`, `/purchases/:id`, `/purchases/suppliers`)
+
+**Job.** Know what is coming from suppliers and record it when it arrives, in plain words (PUR-01 to PUR-07).
+
+**Layout.** **Order from supplier** in the header. A "Coming" line: the units on order and in how many purchases.
+Segments Open, Drafts (count), All, and Suppliers (count). Rows: the number and the supplier, "units · items ·
+date · expected on", and the status chip: Draft, Ordered, Partly received, Received, Closed short, Cancelled.
+
+**The flow.**
+- *Order from supplier* (sheet, `POST /purchase-orders`): the supplier typed (an existing one is found, a new one
+  is made), the expected date and notes (optional), items with quantity and unit cost (optional); **Place with
+  supplier** gives the purchase its number and counts it as coming, or Save draft. Items can change until the
+  first delivery.
+- *A draft* (`PATCH`, `POST …/place`, `DELETE`): everything editable; Place with supplier, Save draft, Delete
+  draft.
+- *A placed purchase* (`GET /purchase-orders/:id`): per item ordered, received, outstanding and unit cost; the
+  total at known costs with the count of items without one (costs only with `inventory:manage`); the deliveries;
+  **It arrived**, and Cancel purchase while nothing has arrived (`POST …/cancel`; the number is never reused).
+- *It arrived* (sheet, `POST …/receipts`): per item accepted and rejected, the unit cost, the batch code and
+  expiry on a batch-tracked product and the serials on a serial-tracked one, a note; accepted units enter stock
+  and set the average cost, rejected ones stay outstanding (PUR-04).
+- *Partly received*: each delivery with its date, who took it and its batch; **Close short** drops what is still
+  outstanding with its reason kept (`POST …/close`). A closed purchase shows the reason.
+- *Suppliers* (`GET`, `POST`, `PATCH /suppliers`): name, phone and last purchase; the sheet edits the name, phone,
+  email, address and notes, and archives (an archived supplier is not offered for new purchases and is never
+  deleted, PUR-01); "Show archived".
+
+**Content.** The routes above; the units per purchase, the "coming" total and a supplier's last purchase are
+Slice 11 additions (§10). **States.** Empty: "Nothing on order" with Order from supplier; without
+`inventory:manage` the costs and totals are absent; read-only shows no actions.
+
+### 7.22 Stock value and losses (`/stock/value`)
+
+**Job.** See what the stock is worth and what was lost, for those who may see costs (D3-9, `inventory:manage`).
+
+**Layout.** Stock on hand at average cost with its units, then by category; losses this month by reason
+(damaged, expired, missing at a count, written off) with units and value; the line "Profit arrives with orders
+(Phase 4)". **Content.** `GET /inventory/figures?dateFrom=&dateTo=`; the units and the split by category are
+Slice 11 additions (§10).
+
+### 7.23 Photos and video (the media sheet)
+
+**Job.** Add, order and remove a product's photos and its one video, and know how much storage is left.
+
+**Layout.** From the editor's Photos card, a sheet: the tiles in order, the first marked Cover, drag to reorder,
+up to [10] photos and one video with its length, size and poster, Replace; the storage line (used of the limit,
+and this product's share); the line that deleting frees storage and that past orders show a placeholder where it
+was (MED-09). **Upload states** (also in §7.4a): uploading with its progress, preparing with how long it takes (a
+photo about 30 s, a video about 5 min), refused with the reason ("6 MB · limit 5 MB"). **Storage full**: the
+banner with what was refused and the ways out, Buy 1 GB (the add-on, §7.25) or the next plan (`sh-media-full`).
+
+**Content.** `POST /media/uploads` (answers a signed upload address the browser sends the file to),
+`POST /media/:id/finish`, `GET /media/:id` while it prepares, `PUT /products/:id/images` and `…/video`,
+`DELETE /media/:id`, `GET /media/usage`. The same upload serves the shop logo, category images, swatches and
+size-chart images.
+
+### 7.24 Usage (`/usage`)
+
+**Job.** See how close the shop is to each limit, and get room before anything stops (LIM-01, LIM-02).
+
+**Layout.** The cycle's dates. One card per metric: products, seats and storage (totals), bandwidth, API requests
+and free SMS (each cycle), each "used / limit" with its bar; for bandwidth and requests the run-out date at the
+current pace, worked out from the daily figures; and "To raise it:" naming the add-on or pack and the plan that
+would give room. The auto-buy switch for packs at 100% (BND-04, RTE-11). Bandwidth and requests a day as bar
+charts (BND-08). A banner by level: at 80% the run-out date with Turn on auto-buy (`usage-80`); at 95% with Buy
+10 GB · ৳30 (`usage-warning`); past the grace what has stopped (images on the storefront, or the catalogue API),
+that nothing past the limit is charged, and the one-tap pack (`usage-stopped`). A refusal at a limit (products,
+seats, storage) is the banner of §7.3; the 30 days after a downgrade sit on Plan (§7.12).
+
+**Content.** `GET /usage` (each metric with its allowance, packs left and stop, the daily bandwidth, the
+suggestions, the packs on offer and auto-buy), `GET /addons` for the per-metric line, `PATCH /addons/auto-buy`,
+`POST /addons/packs`.
+
+### 7.25 Add-ons and packs (`/addons`)
+
+**Job.** Raise one limit, top up bandwidth or requests, or switch on the brand, without changing plans (PLN-13 to
+PLN-15, BRN-05).
+
+**Layout.** The line "3 add-ons active · renew with the plan on 9 Nov for ৳347". Groups: **Raise a limit**
+(products, a seat, storage), **Packs** (bandwidth, requests: "adds once and carries over until used", with what
+is left), **Features** (brand identity, with Set up). Each row: its price a month or per pack, then Active with
+its end and how it renews, or Buy. The **auto-buy** switches with "at most 3 packs a cycle by themselves; with no
+balance it stops".
+
+**Sheets.** *Buy* (`POST /addons/quote`, then `POST /addons/purchase`): how many (up to [10], a feature once), the
+limit before and after, due now for the days left and then the price with the plan; from the balance (active at
+once) or by the wallet step until Phase 5 (active when confirmed); the renewal switch; a short balance names the
+shortfall with Top up. *Buy a pack* (`POST /addons/packs`): the two packs, from the balance only, with the
+auto-buy switches. *Turn renewal off* (`PATCH /addons/mine/:id`): when it ends and what happens to what is over
+the limit (LIM-03). **Banners and toasts:** an add-on ending in 7 days with renewal off, with Turn renewal on; the
+toast after a purchase with the new limit and the invoice. **States:** on the trial every row reads "Needs a
+plan", and the brand can be designed but not switched on.
+
+**Content.** `GET /addons`, `GET /addons/mine`, and the routes above.
+
+### 7.26 API keys (`/settings/api-keys`)
+
+**Job.** Give the shop's own website or app a key, and change or revoke it without breaking the site (API-01,
+RTE-12).
+
+**Layout.** What keys are for and that up to [20] can be live. Rows: name, the key's start, its websites, last
+used, expiry, Revoke; a revoked key with its chip. The cycle's requests against the limit (from `/usage`); the
+rotation line. **Sheets.** *New key*: name, websites as exact https origins (up to 10), expiry (optional). *Key
+made*: shown this once, Copy, Download, and what to do if it is lost. *Edit key*: name and websites; the value is
+never shown again. *Revoke*: it stops at once and a site using it breaks; put the new key in first. Home's
+fast-spend banner links here. **Content.** `GET`, `POST`, `PATCH /api-keys`, `POST /api-keys/:id/revoke`
+(`keys:manage`).
+
+### 7.27 Facebook and Meta (`/settings/meta`)
+
+**Job.** Connect the Meta Pixel and the Conversions API once, and hand the catalogue to Commerce Manager (LND-15
+to LND-17, FED-01 to FED-06).
+
+**Layout.** The Pixel ID with Connected or Not connected and the events it sends; the Conversions API token,
+entered once and then "Token set · hidden" with Replace and Remove; the catalogue feed link with Copy, when it was
+made and New link (the old link answers 404 at once, FED-05); the four steps in Commerce Manager; Save; the line
+that every change is in the activity log. **Content.** `GET`, `PUT`, `DELETE /ad-tracking`, `GET /catalog-feed`,
+`POST /catalog-feed/regenerate` (`settings:manage`).
+
+### 7.28 Brand identity (`/settings/brand`)
+
+**Job.** Make the storefront, the landing pages and the dashboard the shop's own, without ever making them hard
+to read (BRN-01 to BRN-07).
+
+**Layout.** **Use my brand** with its state: on, with the add-on's end; or off, everyone seeing the Lytro
+default. Logos on light, on dark, and the square icon (uploaded as §7.23 does). Colours: main, accent and
+background, with the three pairs checked as ratios with ✓ or ✗ (text on main, text on accent buttons, text on
+background); the text colours are derived. Fonts from the approved list, Bangla and Latin. Corners: square, soft,
+round. Spacing: compact, comfortable, airy. The line on what never changes (BRN-04). The preview, with Storefront,
+Landing and Dashboard tabs, changing as the settings change (BRN-06). **Apply**, and Save without switching on.
+
+**States.** A failing pair names the pair and its ratio, Apply stays off until every pair passes, and the nearest
+passing shade is offered (BRN-03, `brand-contrast`). On the trial: design and preview, with "Buy the add-on to
+switch on" (`brand-trial`). After the add-on lapses: the default shows, the settings are kept and Buy again
+restores them (`brand-lapsed`).
+
+**The dashboard themed.** With the identity on, the dashboard takes its colours, fonts, corners and spacing through
+the same tokens as the storefront (BRN-07); the status colours, "Powered by Lytro" and the layout never change.
+
+**Content.** The identity's storage, the contrast check, the font list and the switch are Slice 11's brand backend
+(§10); whether the shop may switch it on comes from `GET /addons/mine` (`brandIdentity`).
+
 ---
 
 ## 8. Screens designed for later phases
@@ -558,11 +762,16 @@ architecture is whole when each phase arrives. Their endpoints do not exist yet.
 - **Payments** (Phase 5): To verify first (PAY-14) with the mismatch line, Approve and Reject, proof image;
   listener health (VER-07); the verified list. **Payment methods**: one card per type with accounts, the one
   active radio, gateway credentials (WAL-01 to 13).
-- **Usage** (Slice 10): every metric against its limit with thresholds and the bandwidth chart (LIM-02,
-  BND-08). **Notices** (Phase 7): pinned first, category chips, "I understand" (NTC-03 to 05).
-- **Purchases** (Slice 4): purchase orders with status chips, "Order from supplier", "It arrived",
-  suppliers (PUR-01 to 06). **SMS events** (Phase 7): switches with the estimated monthly cost and the
-  template link (SMS-02, 10, 12). **Notifications** and **Search**: §4.4 and §4.6.
+- **Notices** (Phase 7): pinned first, category chips, "I understand" (NTC-03 to 05). **SMS events** (Phase
+  7): switches with the estimated monthly cost and the template link (SMS-02, 10, 12).
+- **The bell and notifications** (Phase 7, decided 2026-10-22): the bell in both bars with its unread count; the
+  panel from the top right with Today and Earlier, an icon per kind, unread rows marked, a row's own action, Mark
+  all read; nothing yet; all read; the full page with filters (NTF-01). The dashboard has no bell before then.
+- **Storefront settings** (Slice 12): the home page's banner slides as a carousel or one banner with two tiles,
+  the slide editor with the focal point and both crops, the home page line (`storefront`, `sh-slide`).
+- **Shortfall, returns and profit** (Phase 4): units held for orders whose payment ran out (5a,
+  `stock-shortfall`); taking shipped stock back, sellable or damaged (INV-17, `sh-return`); profit beside stock
+  value. **Search** for orders and customers (Phase 4, §4.4).
 
 ---
 
@@ -572,7 +781,7 @@ architecture is whole when each phase arrives. Their endpoints do not exist yet.
 | --- | --- |
 | Loading | Skeleton rows in the list's own shape; the title and chips drawn at once. |
 | Empty | One sentence on what will appear and the one button that starts it. |
-| Error | The server's `message` in one sentence with Retry; never a code. `plan_limit_reached` becomes a sheet naming the limit with "See plans"; `tenant_offline` becomes the lifecycle banner. |
+| Error | The server's `message` in one sentence with Retry; never a code. `plan_limit_reached` becomes the banner of §7.3 naming the limit and the way to room; `tenant_offline` becomes the lifecycle banner. |
 | Offline | The offline banner; lists show what was loaded; forms keep what was typed. |
 | No permission | The section is not in the navigation; a deep link lands on Home with a toast. |
 | Read-only | Controls that write are absent, not disabled; the banner explains once. |
@@ -585,31 +794,46 @@ Western digits; English is a full toggle stored per device (I18N-01, 02).
 
 ## 10. What the backend must add for this design
 
-| Need | Where | For |
-| --- | --- | --- |
-| `autoRenewEnabled` on `/me`'s tenant | billing | the auto-renew switch's read (BIL-17) |
-| `GET /usage`: every counter against its limit, plus the daily bandwidth series | limits | §8 Usage, Home's tiles (LIM-02, BND-08) |
-| Top-up bounds on `GET /balance` | balance | the sheet's hint before a refused quote (BAL-04) |
-| `periodStart` / `periodEnd` on the upgrade quote | billing | UPG-06 |
-| `mustSetPassword` on each `/staff` row | staff | the Home queue row and the People list (STF-13) |
-| A one-call Home read (`GET /home`): low-stock and expiring counts, pending top-up and plan payment, and later the order and payment counts | several | §7.1 without six list calls |
-| Invoice PDF | billing | BIL-13 |
-| Pay-as-you-go estimate | billing | PYG-12 |
-| Media upload | Slice 6 | product photos and the shop logo (§7.4, §7.16) |
-| Orders, customers, payments, couriers, SMS, notifications, notices, keys, add-ons, purchases | Phases 4 to 8, Slices 4, 10a | §8 |
+Checked on 2026-10-22 against every figure the prototype draws ("nothing drawn that the server cannot return").
+The Slice 11 rows are built before the screens that need them, in two pull requests: the smaller reads, then the
+brand identity.
+
+| Need | Where | For | When |
+| --- | --- | --- | --- |
+| `autoRenewEnabled` on `/me`'s tenant | billing | the auto-renew switch's read (BIL-17) | Slice 11 |
+| Top-up bounds on `GET /balance` | balance | the sheet's hint before a refused quote (BAL-04) | Slice 11 |
+| `periodStart` / `periodEnd` on the upgrade quote | billing | UPG-06 | Slice 11 |
+| `mustSetPassword` on each `/staff` row | staff | the Home queue row and the team list (STF-13) | Slice 11 |
+| `GET /home`: low and out counts, expiring batches, a top-up or plan payment being checked, a balance under ৳50, the plan's end, staff without a password, and the set-up checklist with "link shared" kept by the server | several | §7.1 in one read (SUP-01) | Slice 11 |
+| Whether a shop address is free, with a suggestion | identity | create-shop's live verdict (AUTH-11, §6) | Slice 11 |
+| A per-shop app manifest and its icons, scoped to `/<shop>/` | tenancy | installing the dashboard as the shop's own app (TEN-17, KNOWN-GAPS §88) | Slice 11 |
+| The units, and the split by category, on `GET /inventory/figures` | inventory | §7.22 | Slice 11 |
+| The units and outstanding units of each purchase in the list, and the "coming" total | purchasing | §7.21 (PUR-05) | Slice 11 |
+| A supplier's last purchase | purchasing | §7.21 | Slice 11 |
+| The brand identity: its storage, the approved fonts, the contrast check shared with the editor, the switch held to the add-on or the plan, and the tokens the dashboard and the storefront read | branding | §7.28 (BRN-02, 03, 07) | Slice 11 |
+| `GET /usage`, media upload, add-ons and packs, API keys, purchases and suppliers, Meta | | §7.21 to §7.27 | built |
+| Invoice PDF | billing | BIL-13 | later |
+| Pay-as-you-go estimate | billing | PYG-12 (needs order history) | later |
+| The notifications feed behind the bell | notifications | §8 (NTF-01) | Phase 7 |
+| Orders, customers, payments, couriers, SMS, notices; storefront settings | Phases 4 to 8; Slice 12 | §8 | later |
 
 ---
 
-## 11. Mapping onto `apps/dashboard` (for the UI slice, not built here)
+## 11. Building it (Phase 3 Slice 11)
 
-| Piece | Where |
+Decided 2026-10-22.
+
+| Piece | How |
 | --- | --- |
-| Onboarding screens of §6 | `views/sign-in`, `verify-code`, `oauth-callback`, `create-shop`, `checkout`, `set-password`, `set-up`, `staff-sign-in`, `staff-set-password`, `forgot-password`, `shops` (the routes already exist; the views are rebuilt to this design) |
-| Shell: app bar, tab bar, rail, secondary column, banners, + menu, search | `components/shell/*` |
-| Components of §5 | `packages/ui` (shared with the operator console where it uses the same shape) |
-| Hubs | `routes/$shop/{index,orders,products,balance,menu}.tsx` with their sections as child routes |
-| Screens | `views/<section>/*` as container plus presentational files, hooks in `api/*` |
-| Dictionaries | `i18n/locales/{bn,en}.json`, one namespace per hub, the vocabulary of `BRAND-IDENTITY.md` §7 |
+| The app | Rebuilt from scratch to this document: a new `apps/dashboard`, same package, port and paths. The views of the first build are a reference for behaviour and API calls only, never for layout. |
+| Routes | §3 under `app.lytro.app/<shop>`: `routes/$shop/` with a file per hub and its sections as child routes; onboarding (§6) at the top level as today. |
+| Look | The values of §5 (radii 6, 10 and 16 px; background neutral-50) through the dashboard's own theme, `packages/ui` `light.css` roles. The shared base and the operator console's look do not change, proven by before-and-after captures. |
+| Components | Shell (app bar, tab bar, rail, header, side column, banners, + menu, search), sheet, dialog, list row, chips, segmented control, switch, stat tile, banner, toast, empty state, skeleton, field, quantity stepper, timeline, variant matrix, category tree, bar chart. In `packages/ui` where the console uses the same shape, else `apps/dashboard/src/components`. |
+| Words | `i18n/locales/{bn,en}.json`, one namespace per hub, taken from the prototype's Bangla and English (the vocabulary of `BRAND-IDENTITY.md` §7); Western digits throughout. |
+| Libraries | The bandwidth and request charts drawn as plain SVG; IMEI scanning with the browser's BarcodeDetector, and `@zxing/browser` loaded only where it is missing; Lucide icons. |
+| Tests | Playwright in `apps/dashboard`: every screen's states (empty, loading, error, read-only, no permission) against a mocked API, on phone and desktop, in Bangla and English; the slice's walkthrough (clothing, cosmetics and grocery: a product, stock added, a stock check, a purchase) against a real server and database in CI. Each pull request shows its screens beside the prototype's. |
+| Security | The dashboard's Content Security Policy (KNOWN-GAPS §65) in `deploy/Caddyfile`, its media and upload origins from the environment, checked as the console's was. |
+| Order | This document; the backend reads (§10); the brand backend; the foundation and the shell; onboarding and Home; Money; Menu; products and media; categories and attributes; stock; purchasing; delivery; the brand editor and the themed dashboard; last, the policy and the walkthrough. |
 
 ---
 
@@ -618,7 +842,7 @@ Western digits; English is a full toggle stored per device (I18N-01, 02).
 1. Whether the tab bar should carry four hubs and a centre **+** instead of five hubs; the prototype uses
    five with **+** in the app bar so the destinations stay stable as phases arrive.
 2. Whether Customers earns its own hub once Phase 4 ships and the list is used daily.
-3. Whether the desktop rail should collapse to icons only below 1280 px (as drawn) or keep labels and drop
-   the secondary column instead.
+3. Answered 2026-10-22: the rail keeps its icons and labels at every desktop width, and the side column shows
+   from 1280 px, the section chips below it.
 4. The order of the Home queue once real volumes are seen; the order here puts money before parcels because
    a payment to verify blocks an order from being booked (CRR-09).
