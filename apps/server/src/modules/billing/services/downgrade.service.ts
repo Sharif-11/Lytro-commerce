@@ -231,13 +231,8 @@ export class DowngradeService {
     const info = await this.tenants.runStandalone((tx) =>
       this.tenants.findBillingInfo(tx, tenantId),
     );
-    const plan = await this.renewals.planFor(tenantId, targetPlan);
-    const renewing = info?.periodEnd
-      ? await this.renewals.renewingUnits(tenantId, info.periodEnd, plan)
-      : [];
-    return (await this.measure(tenantId, withAddons(plan.limits, renewing))).filter(
-      (item) => item.used > item.limit,
-    );
+    const limits = await this.limitsAfter(tenantId, targetPlan, info?.periodEnd ?? null);
+    return (await this.measure(tenantId, limits)).filter((item) => item.used > item.limit);
   }
 
   /**
@@ -344,7 +339,7 @@ export class DowngradeService {
     if (!change.targetPlanId) throw new Error('a downgrade change is missing its target plan');
     const plan = await this.plans.findById(change.targetPlanId);
 
-    const retentionShrink = await this.tenants.runStandalone(async (tx) => {
+    const { shrink: retentionShrink, periodEnd } = await this.tenants.runStandalone(async (tx) => {
       const info = await this.tenants.findBillingInfo(tx, change.tenantId);
       if (!info || !info.periodStart || !info.periodEnd) {
         throw new Error('a downgrading tenant is missing its running period');
@@ -368,10 +363,10 @@ export class DowngradeService {
         result: AuditResult.Success,
         summary: { newPlanId: plan.id },
       });
-      return shrink;
+      return { shrink, periodEnd: info.periodEnd };
     });
 
-    await this.afterSwap(change.tenantId, now, plan.limits, retentionShrink);
+    await this.afterSwap(change.tenantId, now, plan, periodEnd, retentionShrink);
   }
 
   /**
@@ -388,7 +383,7 @@ export class DowngradeService {
     const payg = await this.tenants.runStandalone((tx) => this.tenants.findPayAsYouGoPlan(tx));
     if (!payg) throw new Error('the Pay-as-you-go plan is not seeded');
 
-    const retentionShrink = await this.tenants.runStandalone(async (tx) => {
+    const { shrink: retentionShrink, periodEnd } = await this.tenants.runStandalone(async (tx) => {
       const info = await this.tenants.findBillingInfo(tx, tenantId);
       if (!info) throw new Error('a tenant switching to pay-as-you-go no longer exists');
       const shrink = await this.swapPlan(tx, tenantId, info, now, {
@@ -413,10 +408,10 @@ export class DowngradeService {
         result: AuditResult.Success,
         summary: { from: info.state },
       });
-      return shrink;
+      return { shrink, periodEnd: info.periodEnd };
     });
 
-    await this.afterSwap(tenantId, now, payg.limits, retentionShrink);
+    await this.afterSwap(tenantId, now, payg, periodEnd, retentionShrink);
     this.tenantCache.invalidateTenant(tenantId);
   }
 
@@ -468,15 +463,16 @@ export class DowngradeService {
   private async afterSwap(
     tenantId: string,
     now: Date,
-    limits: PlanLimits,
+    plan: { limits: PlanLimits; features: Record<string, boolean> },
+    periodEnd: Date | null,
     retentionShrink: RetentionShrink | null,
   ): Promise<void> {
     if (retentionShrink) {
       await this.sendRetentionShrinkNotice(tenantId, now, retentionShrink);
     }
-    // DWN-08 (KNOWN-GAPS §85): the seats the shop holds on the new plan -- its overrides and add-ons with it, never
-    // the bare plan's. PLN-19: null is unlimited seats, nothing to enforce.
-    const shopLimits = await this.shopLimits.of(tenantId, limits);
+    // DWN-08 (KNOWN-GAPS §85): the seats the shop holds on the new plan -- its overrides and the add-ons that renew
+    // onto it with it, never the bare plan's. PLN-19: null is unlimited seats, nothing to enforce.
+    const shopLimits = await this.limitsAfter(tenantId, plan, periodEnd);
     await this.staff.enforceSeatLimit(
       { id: tenantId, planLimits: shopLimits },
       limitOf(shopLimits, 'staff'),
@@ -493,6 +489,21 @@ export class DowngradeService {
         over.map((item) => item.key),
       ),
     );
+  }
+
+  /**
+   * DWN-03, DWN-08, DWN-12: a plan's limits as they hold after a change onto it -- the shop's overrides laid over them
+   * and the add-ons set to renew at the period's end (`periodEnd`) added on: those come back with the renewal, while
+   * the rest end with the period, however long grace keeps them counting (PLN-14).
+   */
+  private async limitsAfter(
+    tenantId: string,
+    plan: { limits: PlanLimits | null; features: Record<string, boolean> },
+    periodEnd: Date | null,
+  ): Promise<PlanLimits | null> {
+    const onto = await this.renewals.planFor(tenantId, plan);
+    const renewing = periodEnd ? await this.renewals.renewingUnits(tenantId, periodEnd, onto) : [];
+    return withAddons(onto.limits, renewing);
   }
 
   /** DWN-03, DWN-12: what the shop holds against these limits today: seats, products, and storage in whole MB. */

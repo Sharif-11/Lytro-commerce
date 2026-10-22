@@ -8,6 +8,7 @@ import {
   text,
   timestamp,
   uuid,
+  type AnyPgColumn,
 } from 'drizzle-orm/pg-core';
 import { AddonKind, AddonPurchaseStatus, PLAN_PAYMENT_METHODS } from '@lytronix/validators';
 import { control, createdAt } from '../shared';
@@ -40,7 +41,8 @@ export const addons = control.table(
 
 // PLN-14: an add-on a shop bought. It keeps what the catalogue said when it was bought -- its kind, the limit it raises
 // and how much one unit adds -- so a later catalogue edit never changes it. Pending while its payment is quoted;
-// counted only while active and between its start and its end.
+// counted only while active and between its start and its end, or through grace when it ends with the shop's period.
+// One row is one period of one add-on; a renewal or an extension is a new row that continues the one before.
 export const addonPurchases = control.table(
   'addon_purchases',
   {
@@ -68,9 +70,15 @@ export const addonPurchases = control.table(
     purchasedAt: timestamp('purchased_at', { withTimezone: true }).notNull().defaultNow(),
     startsAt: timestamp('starts_at', { withTimezone: true }),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    // PLN-14: the add-on this one continues -- renewed with the plan, extended by an upgrade, or renewed for another
+    // 30 days; null for one bought on its own. What tells an add-on renewed from one that ended for good.
+    continuesId: uuid('continues_id').references((): AnyPgColumn => addonPurchases.id),
   },
   (t) => [
     index('addon_purchases_tenant_idx').on(t.tenantId, t.status, t.expiresAt),
+    // The lifecycle tick's scans: active add-ons by when they end, across shops.
+    index('addon_purchases_ending_idx').on(t.status, t.expiresAt),
+    index('addon_purchases_continues_idx').on(t.continuesId),
     check(
       'addon_purchases_status_check',
       sql`${t.status} in (${oneOf(Object.values(AddonPurchaseStatus))})`,

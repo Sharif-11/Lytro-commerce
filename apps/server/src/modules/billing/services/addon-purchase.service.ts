@@ -2,6 +2,8 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { BillingInfoRow, Transaction } from '@lytronix/db';
 import {
   ActorType,
+  ADDON_PERIOD_DAYS,
+  ADDON_WARNING_DAYS,
   AddonKind,
   AddonPurchaseStatus,
   AddonRenewal,
@@ -21,7 +23,7 @@ import {
 } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import type { MessageKey } from '../../../common/i18n/message-key';
-import { HOUR_MS } from '../../../common/time';
+import { DAY_MS, HOUR_MS } from '../../../common/time';
 import { AuditService } from '../../audit/services/audit.service';
 import { BalanceService } from '../../balance/services/balance.service';
 import { InvoicesService } from '../../payments/services/invoices.service';
@@ -42,10 +44,11 @@ import type {
   AddonPurchaseResult,
   AddonQuote,
   AddonRecord,
+  RenewingAddon,
   ShopAddons,
 } from '../types/addon';
 import { addonPrice, type AddonPeriod } from './addon-price';
-import { renewalBar } from './addon-renewal.service';
+import { AddonRenewalService, NOT_RENEWING, type OwnPeriod } from './addon-renewal.service';
 import { BillingTermsService } from './billing-terms.service';
 import { addonLine } from './plan-invoicing.service';
 import { ShopLimitsService } from './shop-limits.service';
@@ -89,13 +92,17 @@ function featureOn(key: string, holdings: Omit<Holdings, 'limits'>): boolean {
 }
 
 /** PLN-14: whether the shop has a paid period running, which is what an add-on is bought into. */
-function running(info: BillingInfoRow | null, now: Date): info is BillingInfoRow {
+function canTake(info: BillingInfoRow | null, now: Date): info is BillingInfoRow {
+  if (info?.state === TenantState.PayAsYouGo) return true;
   return (
     info?.state === TenantState.Active &&
-    info.periodStart !== null &&
-    info.periodEnd !== null &&
-    info.periodEnd > now
+    (info.periodEnd === null || (info.periodStart !== null && info.periodEnd > now))
   );
+}
+
+/** PLN-14: where a fresh add-on ends -- with the shop's paid period, or its own 30 days when it has none. */
+function periodEndFor(info: BillingInfoRow, now: Date): Date {
+  return info.periodEnd ?? new Date(now.getTime() + ADDON_PERIOD_DAYS * DAY_MS);
 }
 
 /**
@@ -132,20 +139,6 @@ function refusalOf(addon: AddonRecord, quantity: number, holdings: Holdings): Ap
   return takeRefusal(addon, holdings);
 }
 
-/** PLN-14: how an add-on the shop has will renew. A feature its plan includes has nothing left to switch on. */
-function renewalOf(
-  addon: ActiveAddon,
-  limits: PlanLimits | null,
-  features: Record<string, boolean> | null,
-  periodEnd: Date | null,
-): AddonRenewal {
-  if (!addon.renews) return AddonRenewal.Off;
-  return (
-    renewalBar(addon, { limits, features: features ?? {} }) ??
-    (periodEnd === null ? AddonRenewal.FromBalance : AddonRenewal.WithPlan)
-  );
-}
-
 /**
  * PLN-13, PLN-14, BRN-05: buying add-ons. An add-on is bought into the shop's running paid period and ends with it,
  * priced for what is left of it; it is quoted like a plan (a held `plan_payments` row with a pending purchase) and
@@ -159,6 +152,7 @@ export class AddonPurchaseService {
     @Inject(TenantService) private readonly tenants: TenantService,
     @Inject(BillingTermsService) private readonly terms: BillingTermsService,
     @Inject(ShopLimitsService) private readonly shopLimits: ShopLimitsService,
+    @Inject(AddonRenewalService) private readonly renewals: AddonRenewalService,
     @Inject(PlanPaymentsService) private readonly payments: PlanPaymentsService,
     @Inject(BalanceService) private readonly balance: BalanceService,
     @Inject(InvoicesService) private readonly invoices: InvoicesService,
@@ -292,18 +286,23 @@ export class AddonPurchaseService {
     payment: PlanPaymentRecord,
     now: Date,
     ip?: string | null,
+    actorType: ActorType = ActorType.User,
   ): Promise<InvoiceRecord | null> {
     const paying = await this.payingOf(tx, payment);
     const refusal = await this.refusalAt(paying, now);
     const { purchase, addon, info } = paying;
-    if (refusal || !info?.periodEnd) {
+    if (refusal || !info) {
       await this.creditInstead(tx, payment, paying, refusal, ip);
       return null;
     }
-    const expiresAt = info.periodEnd > purchase.expiresAt ? info.periodEnd : purchase.expiresAt;
+    // A renewal for another period keeps its own window; a fresh purchase runs from now to the shop's period end, or
+    // its own 30 days, never shorter than quoted.
+    const startsAt = purchase.startsAt ?? now;
+    const runsTo = purchase.startsAt ? purchase.expiresAt : periodEndFor(info, now);
+    const expiresAt = runsTo > purchase.expiresAt ? runsTo : purchase.expiresAt;
     const paidByWallet = payment.transactionId !== null;
     await this.store.activatePurchase(tx, purchase.id, {
-      startsAt: now,
+      startsAt,
       expiresAt,
       paidFrom: paidByWallet ? 'wallet' : 'balance',
     });
@@ -322,7 +321,7 @@ export class AddonPurchaseService {
         ownerName: owner?.name ?? null,
         planName: null,
         planVersion: null,
-        periodStart: now,
+        periodStart: startsAt,
         periodEnd: expiresAt,
         discountAmount: '0',
         paymentMethod: paidByWallet ? 'wallet' : 'balance',
@@ -333,7 +332,7 @@ export class AddonPurchaseService {
 
     await this.audit.record(tx, {
       tenantId: payment.tenantId,
-      actorType: ActorType.User,
+      actorType,
       actorId: null,
       action: AuditAction.AddonPurchased,
       ip: ip ?? null,
@@ -351,21 +350,75 @@ export class AddonPurchaseService {
     return invoice;
   }
 
-  /** PLN-14, BRN-05: the add-ons the shop has now, how each will renew, and whether its brand identity may be on. */
+  /**
+   * PLN-14, BRN-05: the add-ons the shop has now, how each will renew and whether it ends within the warning days without
+   * renewing (the dashboard's banner), and whether its brand identity may be on.
+   */
   async mine(tenantId: string): Promise<ShopAddons> {
+    const now = this.clock();
     const [addons, info] = await Promise.all([
       this.store.run((tx) => this.store.listActive(tx, tenantId)),
       this.tenants.runStandalone((tx) => this.tenants.findBillingInfo(tx, tenantId)),
     ]);
-    const plan = await this.shopLimits.planOf(tenantId, info?.planSnapshot ?? null);
-    const features = info?.featureSnapshot ?? null;
+    const outlook = await this.renewals.outlook(
+      tenantId,
+      info,
+      addons.map((addon) => ({ ...addon, price: addon.monthlyPrice })),
+      now,
+    );
+    const warnFrom = Math.max(...ADDON_WARNING_DAYS) * DAY_MS;
     return {
-      addons: addons.map((addon) => ({
-        ...addon,
-        renewal: renewalOf(addon, plan, features, info?.periodEnd ?? null),
-      })),
-      brandIdentity: featureOn(BRAND_IDENTITY_ADDON, { active: addons, features }),
+      addons: addons.map((addon) => {
+        const renewal = outlook.get(addon.id) ?? AddonRenewal.WithPlan;
+        const endsIn = addon.expiresAt.getTime() - now.getTime();
+        return { ...addon, renewal, endsSoon: NOT_RENEWING.has(renewal) && endsIn <= warnFrom };
+      }),
+      brandIdentity: featureOn(BRAND_IDENTITY_ADDON, {
+        active: addons,
+        features: info?.featureSnapshot ?? null,
+      }),
     };
+  }
+
+  /**
+   * PLN-14: an add-on that does not renew with the plan, renewed from the balance for its next period (the lifecycle
+   * tick): its own payment, charge and invoice, continuing the add-on it renews. Throws when the balance is short
+   * (`quota_exceeded`), and nothing is kept.
+   */
+  async renewFromBalance(from: RenewingAddon, next: OwnPeriod, now: Date): Promise<void> {
+    const tenantId = from.tenantId;
+    await this.tenants.runStandalone(async (tx) => {
+      const payment = await this.payments.quote(tx, {
+        tenantId,
+        kind: PlanPaymentKind.Addon,
+        planId: null,
+        billingTermId: null,
+        amount: next.price,
+        creditAmount: '0',
+      });
+      await this.store.insertPurchase(tx, {
+        tenantId,
+        addonId: from.addonId,
+        kind: from.kind,
+        limitKey: from.limitKey,
+        unitSize: from.unitSize,
+        quantity: from.quantity,
+        price: next.price,
+        paidFrom: 'balance',
+        planPaymentId: payment.id,
+        startsAt: next.start,
+        expiresAt: next.end,
+        continuesId: from.id,
+      });
+      await this.balance.charge(tx, {
+        tenantId,
+        type: LedgerEntryType.Addon,
+        amount: next.price,
+        reference: { planPaymentId: payment.id },
+      });
+      await this.payments.markVerifiedDirect(tx, payment.id, now);
+      await this.activate(tx, payment, now, null, ActorType.System);
+    });
   }
 
   /** PLN-14: the owner switches one add-on's renewal on or off, until it ends. The add-ons as they now stand. */
@@ -410,11 +463,15 @@ export class AddonPurchaseService {
     const info = await this.tenants.runStandalone((tx) =>
       this.tenants.findBillingInfo(tx, tenantId),
     );
-    if (!running(info, now) || !info.periodStart || !info.periodEnd) return null;
-    const months = info.billingTermId
-      ? (await this.terms.findById(info.billingTermId)).months
-      : null;
-    return { info, period: { start: info.periodStart, end: info.periodEnd, months } };
+    if (!canTake(info, now)) return null;
+    if (info.periodStart && info.periodEnd) {
+      const months = info.billingTermId
+        ? (await this.terms.findById(info.billingTermId)).months
+        : null;
+      return { info, period: { start: info.periodStart, end: info.periodEnd, months } };
+    }
+    // PLN-14: nothing to align with -- the add-on runs its own 30 days, at the full monthly price.
+    return { info, period: { start: now, end: periodEndFor(info, now), months: 1 } };
   }
 
   private async holdingsOf(tenantId: string, info: BillingInfoRow): Promise<Holdings> {
@@ -438,7 +495,7 @@ export class AddonPurchaseService {
    * switch on. A paid add-on whose item has since been retired is still taken: what was bought runs (PLN-13).
    */
   private async refusalAt(paying: Paying, now: Date): Promise<ApiError | null> {
-    if (!running(paying.info, now)) {
+    if (!canTake(paying.info, now)) {
       return new ApiError('plan_feature_unavailable', 'AddonNotAvailable', {});
     }
     return takeRefusal(paying.addon, await this.holdingsOf(paying.purchase.tenantId, paying.info));

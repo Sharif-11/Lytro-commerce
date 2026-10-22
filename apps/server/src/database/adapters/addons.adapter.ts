@@ -5,6 +5,7 @@ import {
   TransactionRunner,
   type Transaction,
 } from '@lytronix/db';
+import type { AddonPurchaseStatus } from '@lytronix/validators';
 import { UniqueViolation } from '../../common/errors/unique-violation';
 import type { AddonsStore } from '../../modules/billing/ports/addons-store';
 import type {
@@ -102,6 +103,26 @@ export class DrizzleAddonsStore implements AddonsStore {
 
   setRenews(tx: Transaction, id: string, renews: boolean): Promise<void> {
     return this.purchases.setRenews(tx, id, renews);
+  }
+
+  listEnded(tx: Transaction, continuedBy: AddonPurchaseStatus[]): Promise<RenewingAddon[]> {
+    return this.purchases.listEnded(tx, continuedBy);
+  }
+
+  listEndingBy(tx: Transaction, horizon: Date): Promise<RenewingAddon[]> {
+    return this.purchases.listEndingBy(tx, horizon);
+  }
+
+  lapse(tx: Transaction, id: string): Promise<void> {
+    return this.purchases.lapse(tx, id);
+  }
+
+  cancelForPayment(tx: Transaction, planPaymentId: string): Promise<void> {
+    return this.purchases.cancelForPayment(tx, planPaymentId);
+  }
+
+  cancelForStalePayments(tx: Transaction): Promise<number> {
+    return this.purchases.cancelForStalePayments(tx);
   }
 
   activeUnits(tx: Transaction, tenantId: string): Promise<AddonUnits[]> {

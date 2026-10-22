@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { QueueName } from '@lytronix/validators';
 import { LifecycleTickWorker } from '../src/modules/shared/queue-workers/services/lifecycle-tick-worker';
+import type { AddonLifecycleService } from '../src/modules/billing/services/addon-lifecycle.service';
 import type { DowngradeService } from '../src/modules/billing/services/downgrade.service';
 import type { LifecycleService } from '../src/modules/billing/services/lifecycle.service';
 import type { TrialLifecycleService } from '../src/modules/billing/services/trial-lifecycle.service';
@@ -55,7 +56,15 @@ describe('LifecycleTickWorker (D2-6)', () => {
     const planPayments = {
       expireStalePending: () => Promise.resolve(0),
     } as unknown as PlanPaymentsService;
-    const worker = new LifecycleTickWorker(client, lifecycle, trials, downgrade, planPayments);
+    const addons = { runTick: () => Promise.resolve({}) } as unknown as AddonLifecycleService;
+    const worker = new LifecycleTickWorker(
+      client,
+      lifecycle,
+      trials,
+      downgrade,
+      planPayments,
+      addons,
+    );
 
     await worker.onModuleInit();
 
@@ -66,7 +75,7 @@ describe('LifecycleTickWorker (D2-6)', () => {
     ]);
   });
 
-  it('calls trial conversion, due downgrades, their final warnings, the lifecycle tick and the payment sweep every time the queue fires (TRL-01/07, DWN-06/08/14/15/17, BIL-15)', async () => {
+  it('calls trial conversion, due downgrades, their final warnings, the lifecycle tick, the payment sweep and the add-ons every time the queue fires (TRL-01/07, DWN-06/08/14/15/17, BIL-15, PLN-14)', async () => {
     const { client, runWork } = fakePgBoss();
     const order: string[] = [];
     const lifecycle = {
@@ -97,7 +106,20 @@ describe('LifecycleTickWorker (D2-6)', () => {
         return Promise.resolve(0);
       },
     } as unknown as PlanPaymentsService;
-    const worker = new LifecycleTickWorker(client, lifecycle, trials, downgrade, planPayments);
+    const addons = {
+      runTick: () => {
+        order.push('addons');
+        return Promise.resolve({});
+      },
+    } as unknown as AddonLifecycleService;
+    const worker = new LifecycleTickWorker(
+      client,
+      lifecycle,
+      trials,
+      downgrade,
+      planPayments,
+      addons,
+    );
 
     await worker.onModuleInit();
     await runWork();
@@ -108,6 +130,7 @@ describe('LifecycleTickWorker (D2-6)', () => {
       'downgrade-final-warnings',
       'lifecycle',
       'payment-sweep',
+      'addons',
     ]);
   });
 });

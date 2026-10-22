@@ -1658,6 +1658,19 @@ the new plan with the shop's overrides and its add-ons, through the one `shopLim
 two, where before the fix it kept two; and a checklist item is ticked off once an add-on brings the shop within the
 limit.
 
+## 86. `BIL-14`: renewal reminders went out only for a shop's first period — found and fixed 2026-10-22
+
+Found while reading for Phase 3 Slice 10a.2. The 7-, 3- and 1-day reminders before a period ends were sent once per
+threshold, judged by whether the shop's activity log already held a reminder for that day -- from any period. So
+after a shop's first period, its next period's reminders were skipped for as long as the earlier ones stayed in the
+log, which is longer than a period on any plan that keeps its log for more than a month.
+
+**Fixed:** each reminder names the period end it was for, and only this period's count. A reminder written before
+they named one counts only when recent enough to have been for this period, so none goes twice at the change. The
+add-on warnings use the same rule, keyed by the add-on period itself. Proven by `addon-lifecycle.e2e.spec.ts`: a
+shop whose log holds last period's 7-day reminders gets this period's, and one with a reminder from an hour before
+the change gets no second one. The first case failed before the fix.
+
 ## Not a bug, just noting it so it isn't mistaken for one later
 
 The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data

@@ -60,6 +60,7 @@ export const shopAddonsSchema = z.object({
       expiresAt: z.date(),
       renews: z.boolean(),
       renewal: z.nativeEnum(AddonRenewal),
+      endsSoon: z.boolean(),
     })
     .array(),
   brandIdentity: z.boolean(),

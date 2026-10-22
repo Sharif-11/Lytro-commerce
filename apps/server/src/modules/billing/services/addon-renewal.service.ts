@@ -1,7 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { Transaction } from '@lytronix/db';
+import type { BillingInfoRow, Transaction } from '@lytronix/db';
 import {
   ActorType,
+  ADDON_PERIOD_DAYS,
   AddonKind,
   AddonPurchaseStatus,
   AddonRenewal,
@@ -10,8 +11,10 @@ import {
   isUsageLimitKey,
   LedgerEntryType,
   limitOf,
+  TenantState,
   type PlanLimits,
 } from '@lytronix/validators';
+import { DAY_MS } from '../../../common/time';
 import { AuditService } from '../../audit/services/audit.service';
 import { BalanceService } from '../../balance/services/balance.service';
 import { fromPaisa, toPaisa } from '../../balance/services/money';
@@ -23,6 +26,7 @@ import type { AddonsStore } from '../ports/addons-store';
 import { ADDONS_STORE } from '../tokens';
 import type { AddonCarry, PaymentAddon, RenewingAddon } from '../types/addon';
 import { addonPrice, type AddonPeriod } from './addon-price';
+import { BillingTermsService } from './billing-terms.service';
 import { ShopLimitsService } from './shop-limits.service';
 
 /** The plan a renewal or an upgrade lands the shop on, as the add-ons it carries are judged against it. */
@@ -35,6 +39,42 @@ export interface CarryPlan {
 export interface BudgetedCarries {
   kept: AddonCarry[];
   dropped: AddonCarry[];
+}
+
+/** PLN-14: the next period of an add-on not tied to the plan's renewal, and what it costs, whole taka as money. */
+export interface OwnPeriod {
+  start: Date;
+  end: Date;
+  price: string;
+}
+
+/** What an add-on's renewal is judged by: the add-on, with the catalogue's monthly price for its item now. */
+export interface OutlookAddon {
+  id: string;
+  kind: AddonKind;
+  key: string;
+  limitKey: string | null;
+  retiredAt: Date | null;
+  renews: boolean;
+  quantity: number;
+  expiresAt: Date;
+  price: string;
+}
+
+// PLN-14: the states in which an add-on will not renew, and is warned of (7 and 1 days before) and flagged.
+export const NOT_RENEWING: ReadonlySet<AddonRenewal> = new Set([
+  AddonRenewal.Off,
+  AddonRenewal.Retired,
+  AddonRenewal.Unlimited,
+  AddonRenewal.BalanceShort,
+]);
+
+/** Whether an add-on ends with the shop's plan period, and so renews with the plan rather than on its own. */
+export function withPlanPeriod(addon: { expiresAt: Date }, info: BillingInfoRow | null): boolean {
+  const periodEnd = info?.periodEnd;
+  return periodEnd !== null && periodEnd !== undefined
+    ? addon.expiresAt.getTime() === periodEnd.getTime()
+    : false;
 }
 
 /**
@@ -85,6 +125,7 @@ export class AddonRenewalService {
   constructor(
     @Inject(ADDONS_STORE) private readonly store: AddonsStore,
     @Inject(ShopLimitsService) private readonly shopLimits: ShopLimitsService,
+    @Inject(BillingTermsService) private readonly terms: BillingTermsService,
     @Inject(BalanceService) private readonly balance: BalanceService,
     @Inject(TenantService) private readonly tenants: TenantService,
     @Inject(StaffService) private readonly staff: StaffService,
@@ -165,16 +206,108 @@ export class AddonRenewalService {
         planPaymentId: payment.id,
         startsAt: ends.extending ? from.expiresAt : null,
         expiresAt: ends.expiresAt,
-        purchasedAt: from.purchasedAt,
+        continuesId: from.id,
       });
     }
   }
 
-  /** The add-ons a payment still has to activate. */
+  /**
+   * The add-ons a payment still has to activate -- pending, or cancelled by the stale-quote sweep: a quote expired by
+   * BIL-15 can still be paid late and approved, and then its add-ons take effect after all.
+   */
   async pendingFor(tx: Transaction, paymentId: string): Promise<PaymentAddon[]> {
     return (await this.store.listForPayments(tx, [paymentId])).filter(
-      (addon) => addon.status === AddonPurchaseStatus.Pending,
+      (addon) =>
+        addon.status === AddonPurchaseStatus.Pending ||
+        addon.status === AddonPurchaseStatus.Cancelled,
     );
+  }
+
+  /** ADM-06: a payment turned down activates nothing, so its add-ons are cancelled at once. */
+  cancelFor(tx: Transaction, paymentId: string): Promise<void> {
+    return this.store.cancelForPayment(tx, paymentId);
+  }
+
+  /**
+   * PLN-14: the next period of an add-on that does not renew with the plan, from its end (or now, if later): up to the
+   * plan period's end while one runs past it, prorated (UPG-03's rule), so it joins the plan's renewals; otherwise --
+   * pay-as-you-go or a no-expiry plan -- its own 30 days at the full monthly price. Null for a shop that can take none.
+   */
+  async nextOwnPeriod(
+    info: BillingInfoRow | null,
+    from: { expiresAt: Date; price: string; quantity: number },
+    now: Date,
+  ): Promise<OwnPeriod | null> {
+    const start = from.expiresAt > now ? from.expiresAt : now;
+    const periodEnd = info?.periodEnd;
+    if (info?.state === TenantState.Active && periodEnd && info.periodStart && periodEnd > start) {
+      const months = info.billingTermId
+        ? (await this.terms.findById(info.billingTermId)).months
+        : null;
+      const price = addonPrice(
+        from.price,
+        from.quantity,
+        { start: info.periodStart, end: periodEnd, months },
+        start,
+      );
+      return { start, end: periodEnd, price: Math.max(price, 1).toFixed(2) };
+    }
+    const ownPeriods =
+      info?.state === TenantState.PayAsYouGo ||
+      (info?.state === TenantState.Active && periodEnd === null);
+    if (!ownPeriods) return null;
+    return {
+      start,
+      end: new Date(start.getTime() + ADDON_PERIOD_DAYS * DAY_MS),
+      price: fromPaisa(toPaisa(from.price) * BigInt(from.quantity)),
+    };
+  }
+
+  /**
+   * PLN-14: how each of these add-ons will renew, as things stand today. One the owner switched off, a retired item
+   * and one the plan leaves nothing to raise never do. One ending with the plan's period renews with the plan -- with
+   * the owner's renewal, or with auto-renew while the balance after the plan reaches it, oldest first (BIL-17). Any other
+   * renews from the balance at its end, while the balance covers its next period. In purchase order.
+   */
+  async outlook(
+    tenantId: string,
+    info: BillingInfoRow | null,
+    addons: readonly OutlookAddon[],
+    now: Date,
+  ): Promise<Map<string, AddonRenewal>> {
+    const plan = await this.planFor(tenantId, {
+      limits: info?.planSnapshot ?? null,
+      features: info?.featureSnapshot ?? {},
+    });
+    const balance = toPaisa((await this.balance.current(tenantId)).amount);
+    let budget = await this.autoRenewBudget(info, balance);
+    const months = info?.billingTermId ? (await this.terms.findById(info.billingTermId)).months : 1;
+    const outlook = new Map<string, AddonRenewal>();
+    for (const addon of addons) {
+      if (!addon.renews) {
+        outlook.set(addon.id, AddonRenewal.Off);
+        continue;
+      }
+      const bar = renewalBar(addon, plan);
+      if (bar) {
+        outlook.set(addon.id, bar);
+      } else if (withPlanPeriod(addon, info)) {
+        if (budget !== null) budget -= toPaisa(addon.price) * BigInt(addon.quantity * months);
+        outlook.set(
+          addon.id,
+          budget !== null && budget < 0n ? AddonRenewal.BalanceShort : AddonRenewal.WithPlan,
+        );
+      } else {
+        const next = await this.nextOwnPeriod(info, addon, now);
+        outlook.set(
+          addon.id,
+          next && toPaisa(next.price) > balance
+            ? AddonRenewal.BalanceShort
+            : AddonRenewal.FromBalance,
+        );
+      }
+    }
+    return outlook;
   }
 
   /** ADM-06: the add-ons each of these payments pays for, by payment. */
@@ -231,8 +364,8 @@ export class AddonRenewalService {
   }
 
   /**
-   * PLN-14, BIL-17: auto-renew renewed the plan but its balance did not reach these add-ons, which ended with the period.
-   * The owner is told by email how much the balance was short, and the shop's log says which were left.
+   * PLN-14, BIL-17: the balance did not reach these add-ons -- after auto-renew paid the plan, or at the end of their own
+   * period -- and they ended. The owner is told by email how much the balance was short, and the shop's log says which.
    */
   async tellNotRenewed(
     tenantId: string,
@@ -246,9 +379,8 @@ export class AddonRenewalService {
       )
       .join(', ');
     const body =
-      `Your plan renewed from your balance, but these add-ons did not: ${names}. Your balance was ` +
-      `${fromPaisa(short)} TK short of renewing them too. They ended with your last period; you can buy them again ` +
-      'from the add-ons page.';
+      `These add-ons did not renew from your balance: ${names}. Your balance was ${fromPaisa(short)} TK short ` +
+      'of renewing them. They have ended; you can buy them again from the add-ons page.';
     await this.tenants.runStandalone(async (tx) => {
       if (contact?.email) {
         await this.mail.queueLifecycleNotice(tx, contact.email, 'Some add-ons did not renew', body);
@@ -279,6 +411,21 @@ export class AddonRenewalService {
     plan: { limits: PlanLimits | null; features: Record<string, boolean> },
   ): Promise<CarryPlan> {
     return { limits: await this.shopLimits.planOf(tenantId, plan.limits), features: plan.features };
+  }
+
+  /**
+   * BIL-17: what the balance has left for add-ons once auto-renew has paid the plan, in paisa -- or null when the plan
+   * renews by the owner's own payment, not from the balance.
+   */
+  private async autoRenewBudget(
+    info: BillingInfoRow | null,
+    balance: bigint,
+  ): Promise<bigint | null> {
+    if (!info?.autoRenewEnabled || !info.planId || !info.billingTermId || info.cancelledAt) {
+      return null;
+    }
+    const price = await this.terms.findPrice(info.planId, info.billingTermId);
+    return price === null ? null : balance - toPaisa(price);
   }
 
   /** The add-ons set to renew that end at `periodEnd` and that the plan still leaves something to raise or switch on. */

@@ -526,6 +526,13 @@
       "when": 1792644972590,
       "tag": "0074_addon_cancelled",
       "breakpoints": true
+    },
+    {
+      "idx": 75,
+      "version": "7",
+      "when": 1792648957367,
+      "tag": "0075_addon_continues",
+      "breakpoints": true
     }
   ]
 }
