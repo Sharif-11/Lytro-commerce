@@ -446,6 +446,12 @@ export const MESSAGE_KEYS = [
   'ProductImagesSaved',
   'ShopLogoSaved',
   'ProductVideoSaved',
+  // Phase 3 Slice 11.2: the brand identity (BRN-02, BRN-03, BRN-05).
+  'BrandRetrieved',
+  'BrandSaved',
+  'BrandNeedsAddon',
+  'BrandContrastLow',
+  'BrandIconNotSquare',
 ] as const;
 
 export type MessageKey = (typeof MESSAGE_KEYS)[number];

@@ -211,6 +211,7 @@ describeIfDatabase('public API keys in the dashboard (API-01, API-02, API-21)', 
       name: `Shop ${owner.slug}`,
       slug: owner.slug,
       metaPixelId: null,
+      brand: null,
     });
   });
 
@@ -227,7 +228,12 @@ describeIfDatabase('the public API host (API-03 to API-05, API-08, API-14, API-2
     const { key } = await makeKey(shop);
     const answer = await callApi('/v1/shop', key);
     expect(answer.status, JSON.stringify(answer.body)).toBe(200);
-    expect(answer.body).toEqual({ name: `Shop ${shop.slug}`, slug: shop.slug, metaPixelId: null });
+    expect(answer.body).toEqual({
+      name: `Shop ${shop.slug}`,
+      slug: shop.slug,
+      metaPixelId: null,
+      brand: null,
+    });
     expect(answer.headers['access-control-allow-origin']).toBe(SITE);
     expect(answer.headers['vary']).toContain('Origin');
     expect(answer.headers['x-ratelimit-limit']).toBe('120');

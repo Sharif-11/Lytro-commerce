@@ -19,8 +19,9 @@ function isIconFile(file: string): file is ShopIconFile {
   return ICON_FILES.has(file);
 }
 
-// A browser asks for the manifest again now and then; an icon's link changes with what it shows.
-const MANIFEST_CACHE = 'public, max-age=300';
+// A browser asks for the manifest again now and then -- after a minute at most, so a brand switched on or off reaches
+// the installed app within BRN-02's minute; an icon's link changes with what it shows.
+const MANIFEST_CACHE = 'public, max-age=60';
 const ICON_CACHE = 'public, max-age=86400';
 
 // TEN-17: a shop's installable app -- its manifest and icons, on the dashboard host, for any browser (no session: a

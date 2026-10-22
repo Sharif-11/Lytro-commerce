@@ -6,6 +6,7 @@ import type {
   SelectApiKey,
 } from '@lytronix/db';
 import type { ApiKeyType, PlanLimits } from '@lytronix/validators';
+import type { LiveBrand } from '../../brand/types/brand';
 
 // The stored rows, as aliases of the shared types (ENGINEERING-STANDARDS §4), never copies.
 export type ApiKeyRecord = SelectApiKey;
@@ -52,6 +53,8 @@ export interface PublicShopView {
   slug: string;
   /** LND-15: the Meta Pixel its pages load; null when none is connected. */
   metaPixelId: string | null;
+  /** BRN-07: the shop's own identity as tokens; null for Lytro's default. */
+  brand: LiveBrand | null;
 }
 
 /** LND-15 to LND-17: the shop's ad tracking as the dashboard sees it: never the Conversions API token. */

@@ -2,7 +2,7 @@ import { z } from 'zod';
 import {
   ATTRIBUTE_NAME_MAX_LENGTH,
   OPTION_VALUE_MAX_LENGTH,
-  SWATCH_COLOR_PATTERN,
+  HEX_COLOR_PATTERN,
 } from '../../common/limits';
 import { AttributeDataType, UnitKind } from '../../db/enums';
 import { FieldProblemCode } from '../../validation/field-problem';
@@ -46,7 +46,7 @@ export const updateAttributeSchema = z.object({
 export type UpdateAttributeInput = z.infer<typeof updateAttributeSchema>;
 
 // ATR-18: an option's colour swatch, #RRGGBB; null clears it.
-const swatchColorField = z.string().trim().regex(SWATCH_COLOR_PATTERN).nullable().optional();
+const swatchColorField = z.string().trim().regex(HEX_COLOR_PATTERN).nullable().optional();
 
 // POST attributes/:id/options: a shop's own value of an attribute with options, its own or the platform's, with an
 // optional colour swatch (ATR-18).

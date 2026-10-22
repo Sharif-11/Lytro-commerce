@@ -103,6 +103,20 @@ export function withOverrides(
 }
 
 /**
+ * BRN-05, PLN-13: whether a shop has a plan feature -- in its plan's feature snapshot, or from a feature add-on it holds
+ * now, whose key names the feature. Every reader of a feature goes through this.
+ */
+export function featureOn(
+  key: string,
+  holdings: {
+    features: Readonly<Record<string, boolean>> | null;
+    active: readonly { key: string }[];
+  },
+): boolean {
+  return holdings.features?.[key] === true || holdings.active.some((addon) => addon.key === key);
+}
+
+/**
  * PLN-05, PLN-11, PLN-13: what a shop is held to -- its plan snapshot, its overrides laid over it, its active add-ons
  * on top. Every reader of a shop's limits goes through this, so none adds them its own way.
  */

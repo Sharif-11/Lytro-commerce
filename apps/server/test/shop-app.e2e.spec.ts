@@ -182,7 +182,7 @@ describeIfDatabase("each shop's own installable app (TEN-17)", () => {
     const answer = await fetchManifest(first.slug);
     expect(answer.status).toBe(200);
     expect(String(answer.headers['content-type'])).toMatch(/^application\/manifest\+json/);
-    expect(answer.headers['cache-control']).toBe('public, max-age=300');
+    expect(answer.headers['cache-control']).toBe('public, max-age=60');
     const path = `/${first.slug}/`;
     const manifest = answer.body as Manifest;
     expect(manifest).toMatchObject({

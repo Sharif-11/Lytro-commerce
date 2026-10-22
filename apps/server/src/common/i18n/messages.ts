@@ -1299,6 +1299,22 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   ProductImagesSaved: { en: 'Product photos saved.', bn: 'প্রোডাক্টের ছবি সেভ হয়েছে।' },
   ShopLogoSaved: { en: 'Logo saved.', bn: 'লোগো সেভ হয়েছে।' },
   ProductVideoSaved: { en: 'Product video saved.', bn: 'প্রোডাক্টের ভিডিও সেভ হয়েছে।' },
+  BrandRetrieved: { en: 'Brand identity loaded.', bn: 'ব্র্যান্ড আইডেন্টিটি লোড হয়েছে।' },
+  BrandSaved: { en: 'Brand identity saved.', bn: 'ব্র্যান্ড আইডেন্টিটি সেভ হয়েছে।' },
+  BrandNeedsAddon: {
+    en: 'Buy the brand identity add-on to switch your brand on.',
+    bn: 'ব্র্যান্ড চালু করতে ব্র্যান্ড আইডেন্টিটি অ্যাড-অন কিনুন।',
+  },
+  BrandContrastLow: {
+    en: (p) =>
+      `Not enough contrast: ${String(p.ratio)}:1, and ${String(p.needs)}:1 is needed. Try ${String(p.suggestion)}.`,
+    bn: (p) =>
+      `কনট্রাস্ট কম: ${String(p.ratio)}:1, লাগবে ${String(p.needs)}:1। ${String(p.suggestion)} দিয়ে দেখুন।`,
+  },
+  BrandIconNotSquare: {
+    en: (p) => `Choose a square image at least ${String(p.min)} px wide for the icon.`,
+    bn: (p) => `আইকনের জন্য অন্তত ${String(p.min)} px-এর একটা চৌকো ছবি দিন।`,
+  },
 };
 
 export function translate(key: MessageKey, lang: Language, params: MessageParams = {}): string {

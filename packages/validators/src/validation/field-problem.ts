@@ -43,6 +43,8 @@ export enum ServerFieldProblemCode {
   Expired = 'expired',
   NotFound = 'not_found',
   OutOfRange = 'out_of_range',
+  // BRN-03: a colour whose pair does not reach WCAG AA, said with the nearest shade that does.
+  LowContrast = 'low_contrast',
 }
 
 /**

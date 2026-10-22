@@ -2,8 +2,10 @@ import { applyDecorators, Controller, Get, Inject, Req, UseGuards } from '@nestj
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { createZodDto, ZodResponse } from 'nestjs-zod';
 import { z } from 'zod';
+import { liveBrandSchema } from '../../../common/dto/brand.dto';
 import { PublicApiRoute } from '../../../common/decorators/public-api';
 import { ResponseMessage } from '../../../common/decorators/response-message';
+import { BrandService } from '../../brand/services/brand.service';
 import { PublicKeyGuard, type PublicApiRequest } from '../guards/public-key.guard';
 import { AdTrackingService } from '../services/ad-tracking.service';
 import type { PublicShopView } from '../types/public-api';
@@ -16,6 +18,8 @@ const publicShopViewSchema = z.object({
   name: z.string(),
   slug: z.string(),
   metaPixelId: z.string().nullable(),
+  // BRN-07: the shop's own identity as tokens, for the storefront and the shop's own site; null for Lytro's default.
+  brand: liveBrandSchema.nullable(),
 });
 class PublicShopViewDto extends createZodDto(publicShopViewSchema) {}
 
@@ -25,13 +29,16 @@ class PublicShopViewDto extends createZodDto(publicShopViewSchema) {}
 @Controller('public/shop')
 @PublicApi()
 export class PublicShopController {
-  constructor(@Inject(AdTrackingService) private readonly adTracking: AdTrackingService) {}
+  constructor(
+    @Inject(AdTrackingService) private readonly adTracking: AdTrackingService,
+    @Inject(BrandService) private readonly brand: BrandService,
+  ) {}
 
   @Get()
   @ResponseMessage('ShopRetrieved')
   @ApiOperation({
     summary:
-      'The shop this public key belongs to, and the Meta Pixel its pages load (API-05, API-07, LND-15)',
+      "The shop this public key belongs to, the Meta Pixel its pages load, and its brand identity's tokens (API-05, API-07, LND-15, BRN-07)",
   })
   @ZodResponse({ type: PublicShopViewDto })
   async shop(@Req() request: PublicApiRequest): Promise<PublicShopView> {
@@ -41,6 +48,7 @@ export class PublicShopController {
       name: shop.row.shopName,
       slug: shop.row.slug,
       metaPixelId: await this.adTracking.pixelOf(shop.row.id),
+      brand: await this.brand.live(shop.row.id),
     };
   }
 }

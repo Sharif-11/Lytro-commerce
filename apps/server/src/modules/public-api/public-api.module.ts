@@ -15,6 +15,7 @@ import {
   DrizzleApiKeyStore,
   DrizzleApiUsageStore,
 } from '../../database/adapters/public-api.adapter';
+import { BrandModule } from '../brand/brand.module';
 import { CatalogueModule } from '../catalogue/catalogue.module';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
 import { TenancyModule } from '../tenancy/tenancy.module';
@@ -55,7 +56,13 @@ import {
 // key's changes are written to, and the products it shows) and platform settings (the cache lifetimes and the
 // per-visitor limit); billing reaches it for the day-60 deletion.
 @Module({
-  imports: [TenancyModule, CatalogueModule, PlatformSettingsModule, UsageWarningsModule],
+  imports: [
+    TenancyModule,
+    CatalogueModule,
+    PlatformSettingsModule,
+    UsageWarningsModule,
+    BrandModule,
+  ],
   controllers: [PublicShopController, PublicCatalogueController, PublicFeedController],
   providers: [
     { provide: API_KEY_STORE, useClass: DrizzleApiKeyStore },

@@ -7,6 +7,7 @@ import { TenancyModule } from '../tenancy/tenancy.module';
 import { OperatorModule } from '../operator/operator.module';
 import { BalanceModule } from '../balance/balance.module';
 import { BillingModule } from '../billing/billing.module';
+import { BrandModule } from '../brand/brand.module';
 import { PaymentsModule } from '../payments/payments.module';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
 import { ClientIp } from '../../common/client-ip';
@@ -35,6 +36,7 @@ import { AddonsController } from './controllers/addons.controller';
 import { BillingController } from './controllers/billing.controller';
 import { OperatorPaymentQueueController } from './controllers/operator-payment-queue.controller';
 import { ShopSettingsController } from './controllers/shop-settings.controller';
+import { BrandController } from './controllers/brand.controller';
 import { AdTrackingController } from './controllers/ad-tracking.controller';
 import { ApiKeysController } from './controllers/api-keys.controller';
 import { CatalogFeedController } from './controllers/catalog-feed.controller';
@@ -105,6 +107,7 @@ import { CatalogueRequest } from './services/catalogue-request';
     PublicApiModule,
     MediaModule,
     UsageModule,
+    BrandModule,
   ],
   controllers: [
     StaffController,
@@ -128,6 +131,7 @@ import { CatalogueRequest } from './services/catalogue-request';
     AddonsController,
     OperatorPaymentQueueController,
     ShopSettingsController,
+    BrandController,
     ApiKeysController,
     AdTrackingController,
     CatalogFeedController,
