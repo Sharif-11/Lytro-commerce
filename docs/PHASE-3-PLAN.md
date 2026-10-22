@@ -1047,6 +1047,39 @@ their backend ships earlier.
 - **Done when:** a non-technical walkthrough (clothing, cosmetics and grocery presets) completes product
   creation, add stock, stock check and planned purchase without anyone seeing an inventory term or an
   unwanted field.
+- **Decided 2026-10-22** (`TENANT-DASHBOARD-DESIGN.md` v2.3, §2, §10 and §11):
+  - **Scope:** the dashboard is rebuilt from scratch, Phase 0 to Phase 3, to the prototype
+    `docs/brand/lytro-dashboard.html`.
+  - **Held for later:** the bell and its notifications wait for Phase 7; storefront settings and its banner
+    slides for Slice 12; stock shortfall, returns and profit for Phase 4. Paying Lytro keeps the in-dashboard
+    wallet step until Phase 5's hosted page.
+  - **Desktop:** the side column shows from 1280 px.
+  - **Backend first,** in two pull requests:
+    - the smaller reads of §10: auto-renew's state, the top-up bounds, the upgrade quote's period, staff
+      without a password, one Home read with the checklist, the address check, the per-shop manifest (KNOWN-GAPS
+      §88), and the stock value, purchase and supplier figures;
+    - the brand identity.
+  - **How it is built:**
+    - the operator console's look stays as it is;
+    - the dictionaries come from the prototype, with Western digits;
+    - charts are plain SVG, and IMEI scanning uses the browser's barcode reader with a fallback;
+    - the role editor lists the permissions of the built sections;
+    - search finds products until Phase 4;
+    - Playwright tests the screens against a mocked API, and the walkthrough runs against a real server in CI.
+  - **Order of the pull requests,** after this document:
+    1. the backend reads;
+    2. the brand backend;
+    3. the foundation and shell;
+    4. onboarding and Home;
+    5. Money;
+    6. Menu;
+    7. products and media;
+    8. categories and attributes;
+    9. stock;
+    10. purchasing;
+    11. delivery;
+    12. the brand editor and the themed dashboard;
+    13. the policy (KNOWN-GAPS §65) and the walkthrough.
 
 ### Slice 12: shared storefront and product landing pages
 - **Depends on:** Slices 0, 0b, 7 and 9 (and branding from Phase 1).

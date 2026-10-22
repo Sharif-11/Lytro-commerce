@@ -1684,6 +1684,17 @@ packs come on top of that limit (PLN-15). Proven by `addon-packs.e2e.spec.ts`: a
 add-on is served at 2.15 GB, and one with 10 requests and an add-on of 10 is served 22 requests; before the fix both
 were stopped at the plan's grace.
 
+## 88. `TEN-17`: the dashboard installs as "Lytro", not as the shop's own app — open, found 2026-10-22
+
+Found while reading for Phase 3 Slice 11. Slice 0 lists TEN-17 as completed, but the dashboard ships one
+fixed manifest, named "Lytro" with Lytro's icons and starting at `/`, so every shop installs as the same app and
+none is scoped to its own `/<shop>/` path. TEN-17 asks for the shop's name and logo (or its brand icon, BRN-02)
+and the shop's path, so that two shops installed on one phone are two apps.
+
+Planned with Slice 11's backend reads: a manifest per shop, with icons made from the logo or the monogram, served
+for `app.lytro.app/<shop>/`, and the dashboard pointing at it (`TENANT-DASHBOARD-DESIGN.md` §7.18, §10). It is
+proven when two shops installed from their paths show two names and two icons.
+
 ## Not a bug, just noting it so it isn't mistaken for one later
 
 The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data
