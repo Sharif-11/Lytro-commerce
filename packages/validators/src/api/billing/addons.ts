@@ -69,6 +69,26 @@ export const confirmAddonSchema = z
   .superRefine(requireWalletFields);
 export type ConfirmAddonInput = z.infer<typeof confirmAddonSchema>;
 
+// POST /addons/packs (PLN-15, BND-04, RTE-11): buys packs from the balance at once -- a pack's price is fixed, so there
+// is no quote to hold.
+export const buyPacksSchema = z.object({
+  addonId: z.string().uuid(),
+  quantity: z.number().int().min(1).max(ADDON_QUANTITY_MAX).default(1),
+});
+export type BuyPacksInput = z.infer<typeof buyPacksSchema>;
+
+// PATCH /addons/auto-buy (PLN-15): the two auto-buy switches, either or both.
+export const setPackAutoBuySchema = z
+  .object({
+    bandwidth: z.boolean().optional(),
+    requests: z.boolean().optional(),
+  })
+  .refine((value) => value.bandwidth !== undefined || value.requests !== undefined, {
+    message: 'Name bandwidth, requests or both.',
+    path: ['bandwidth'],
+  });
+export type SetPackAutoBuyInput = z.infer<typeof setPackAutoBuySchema>;
+
 // PATCH /addons/mine/:id (PLN-14): whether the add-on renews with the plan.
 export const setAddonRenewalSchema = z.object({
   renews: z.boolean(),

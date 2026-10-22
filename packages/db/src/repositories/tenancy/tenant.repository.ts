@@ -639,11 +639,22 @@ export class TenantRepository {
         downgradedAt: tenants.downgradedAt,
         downgradeOverLimit: tenants.downgradeOverLimit,
         downgradeFinalWarningAt: tenants.downgradeFinalWarningAt,
+        autoBuyBandwidth: tenants.autoBuyBandwidth,
+        autoBuyRequests: tenants.autoBuyRequests,
       })
       .from(tenants)
       .where(eq(tenants.id, id))
       .limit(1);
     return rows[0] ?? null;
+  }
+
+  /** PLN-15: the shop's auto-buy switches, either or both. */
+  async setPackAutoBuy(
+    tx: Executor,
+    tenantId: string,
+    values: { autoBuyBandwidth?: boolean; autoBuyRequests?: boolean },
+  ): Promise<void> {
+    await tx.update(tenants).set(values).where(eq(tenants.id, tenantId));
   }
 
   /** DWN-12: records the downgrade that just took effect, and the limits it left the shop over. */
@@ -721,6 +732,9 @@ export interface BillingInfoRow {
   downgradedAt: Date | null;
   downgradeOverLimit: string[] | null;
   downgradeFinalWarningAt: Date | null;
+  /** PLN-15: the auto-buy switches for bandwidth and request packs. */
+  autoBuyBandwidth: boolean;
+  autoBuyRequests: boolean;
 }
 
 export interface BalanceRow {

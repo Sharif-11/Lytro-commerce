@@ -67,6 +67,11 @@ export interface TenantStore {
   ): Promise<void>;
   /** BIL-17: toggles the owner's own "renew automatically from balance" setting. */
   setAutoRenew(tx: Transaction, tenantId: string, enabled: boolean): Promise<void>;
+  setPackAutoBuy(
+    tx: Transaction,
+    tenantId: string,
+    values: { autoBuyBandwidth?: boolean; autoBuyRequests?: boolean },
+  ): Promise<void>;
   /** DWN-11: protects the tenant's pre-downgrade retention until `until`. */
   setRetentionFloor(
     tx: Transaction,

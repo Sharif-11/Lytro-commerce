@@ -1,4 +1,4 @@
-import { UsageMetric } from '@lytronix/validators';
+import { PACK_AUTO_BUY_CAP, UsageMetric } from '@lytronix/validators';
 import { DAY_MS } from '../../../common/time';
 import type { UsageNotice } from '../../usage-warnings/types/usage-notice';
 import { GB } from '../../media/services/media-bandwidth';
@@ -67,6 +67,30 @@ function option(suggestion: Suggestion): string {
   return `${suggestion.name}, ${String(suggestion.price)} TK for ${term}${monthly}`;
 }
 
+/**
+ * BND-04, RTE-11, PLN-15: what the notice at the allowance or the stop says of packs -- the one-tap pack and auto-buy,
+ * or what auto-buy is doing, or why it could not.
+ */
+function packLine(notice: UsageNotice, usage: ShopUsage): string {
+  const pack = usage.packs.find((each) => each.metric === notice.metric);
+  if (!pack) return '';
+  const offer = pack.offer;
+  if (pack.autoBuy) {
+    if (pack.autoBuyFailed) {
+      return ' Auto-buy could not buy a pack: your balance is too short. Top up to buy one.';
+    }
+    if (pack.autoPacks >= PACK_AUTO_BUY_CAP) {
+      return ` Auto-buy has already bought its ${String(PACK_AUTO_BUY_CAP)} packs this cycle.`;
+    }
+    return offer
+      ? ` Auto-buy is buying a ${offer.name} for ${String(offer.price)} TK from your balance.`
+      : '';
+  }
+  return offer
+    ? ` Buy a ${offer.name} for ${String(offer.price)} TK from your dashboard in one tap, or switch on auto-buy.`
+    : '';
+}
+
 /** LIM-01: the cheapest fix and the alternative, in a sentence; nothing when no metric is near its limit. */
 function roomLine(suggestions: Suggestions | null): string {
   if (!suggestions) return '';
@@ -117,28 +141,31 @@ export function noticeText(
       sms: `Lytro: ${shopName} made ${used} API requests in one hour. Check your dashboard.`,
     };
   }
+  const packs = served ? packLine(notice, usage) : '';
   if (notice.level === 'stopped' && served) {
     return {
       subject: `${shopName}: your ${served.stopped}`,
       body:
         `${shopName} has used its ${name} for this cycle (${limit}) and the ${String(gracePercent)}% after it, so its ` +
-        `${served.stopped}. They come back when the cycle ends on ${resets}, or as soon as it has more room.${room}`,
+        `${served.stopped}. They come back when the cycle ends on ${resets}, or as soon as it has more room.` +
+        `${packs}${room}`,
       sms: `Lytro: ${shopName}'s ${served.stopped}: its ${name} is used up. Get more room from your dashboard.`,
     };
   }
   if (notice.level === 100 && served) {
-    const until = amount(
-      notice.metric,
-      Math.floor((notice.limit * (100 + gracePercent)) / 100),
-      notice.limit,
-    );
+    // BND-03, RTE-03: the grace is a share of the shop's own limit, so with packs it is a smaller share of the allowance.
+    const stopAt =
+      usage.metrics.find((figure) => figure.metric === notice.metric)?.stopAt ??
+      (notice.limit * (100 + gracePercent)) / 100;
+    const until = amount(notice.metric, Math.floor(stopAt), notice.limit);
+    const upTo = Math.round((stopAt * 100) / notice.limit);
     return {
       subject: `${shopName}: your ${name} is used up`,
       body:
         `${shopName} has used all ${limit} of its ${name} for this cycle. Its ${served.what} for now, up to ` +
-        `${until}; then they stop until the cycle ends on ${resets}, unless it has more room.${room}`,
+        `${until}; then they stop until the cycle ends on ${resets}, unless it has more room.${packs}${room}`,
       sms:
-        `Lytro: ${shopName} has used all its ${name}. It keeps working up to ${String(100 + gracePercent)}%, ` +
+        `Lytro: ${shopName} has used all its ${name}. It keeps working up to ${String(upTo)}%, ` +
         'then stops. Get more room from your dashboard.',
     };
   }

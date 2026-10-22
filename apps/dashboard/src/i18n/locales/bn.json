@@ -620,6 +620,8 @@
       "addon_not_renewed": "কোন অ্যাড-অন রিনিউ হয়নি তা জানিয়েছে",
       "addon_lapsed": "একটি অ্যাড-অনের মেয়াদ শেষ করেছে",
       "addon_ending_warned": "অ্যাড-অনের মেয়াদ শেষ হওয়ার আগে জানিয়েছে",
+      "pack_auto_buy_set": "প্যাক অটো-বাই বদলেছেন",
+      "pack_auto_buy_failed": "প্যাক অটো-বাই করতে পারেনি",
       "downgrade_scheduled": "ডাউনগ্রেড ঠিক করেছেন",
       "downgrade_cancelled": "ঠিক করা ডাউনগ্রেড বাতিল করেছেন",
       "downgrade_applied": "ডাউনগ্রেড কার্যকর হয়েছে",

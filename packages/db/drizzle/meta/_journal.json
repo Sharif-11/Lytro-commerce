@@ -533,6 +533,13 @@
       "when": 1792648957367,
       "tag": "0075_addon_continues",
       "breakpoints": true
+    },
+    {
+      "idx": 76,
+      "version": "7",
+      "when": 1792652846000,
+      "tag": "0076_addon_packs",
+      "breakpoints": true
     }
   ]
 }

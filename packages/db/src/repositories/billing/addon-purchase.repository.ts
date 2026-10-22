@@ -1,9 +1,23 @@
-import { and, asc, eq, gt, inArray, lte, or, sql, type SQL, type SQLWrapper } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  eq,
+  gt,
+  gte,
+  inArray,
+  lte,
+  ne,
+  or,
+  sql,
+  type SQL,
+  type SQLWrapper,
+} from 'drizzle-orm';
 import {
   AddonKind,
   AddonPurchaseStatus,
   PlanPaymentStatus,
   TenantState,
+  type PackAutoBuyState,
   type PlanPaymentMethod,
 } from '@lytronix/validators';
 import {
@@ -16,6 +30,29 @@ import {
 import type { Executor } from '../../transactions';
 
 export type AddonPurchaseRow = SelectAddonPurchase;
+
+/**
+ * BND-04, RTE-11, PLN-15: what a bandwidth or request cycle records of the shop's packs -- what it took from them, the
+ * grace use written off at a pack bought past the allowance, and how auto-buy stands -- the same on both cycle tables.
+ */
+export interface CyclePackFields {
+  packUsed: number;
+  packFree: number;
+  autoPacks: number;
+  autoBuyState: PackAutoBuyState | null;
+}
+
+/** A shop's total of one kind of thing, by shop. */
+export interface TenantTotal {
+  tenantId: string;
+  units: number;
+}
+
+/** PLN-14, LIM-01: one pack bought, by the limit it tops up and when. */
+export interface PackPurchaseRow {
+  limitKey: string;
+  purchasedAt: Date;
+}
 
 export interface NewAddonPurchaseValues {
   tenantId: string;
@@ -389,7 +426,68 @@ export class AddonPurchaseRepository {
     return addonUnitList(rows.rows[0]?.units ?? null);
   }
 
-  /** PLN-14: what the shop has now, every kind, with the catalogue's names. */
+  /** BND-04, RTE-11: every shop's pack units bought for one limit, in that limit's unit. */
+  async packTotals(db: Executor, limitKey: string, tenantId?: string): Promise<TenantTotal[]> {
+    return db
+      .select({
+        tenantId: addonPurchases.tenantId,
+        units:
+          sql<number>`SUM(${addonPurchases.quantity} * ${addonPurchases.unitSize})::bigint`.mapWith(
+            Number,
+          ),
+      })
+      .from(addonPurchases)
+      .where(
+        and(
+          eq(addonPurchases.kind, AddonKind.Pack),
+          eq(addonPurchases.status, AddonPurchaseStatus.Active),
+          eq(addonPurchases.limitKey, limitKey),
+          tenantId === undefined ? undefined : eq(addonPurchases.tenantId, tenantId),
+        ),
+      )
+      .groupBy(addonPurchases.tenantId);
+  }
+
+  /** PLN-13: every shop's active limit add-ons for one limit -- what the minute's passes add to it. */
+  async limitUnitsFor(db: Executor, limitKey: string): Promise<TenantTotal[]> {
+    return db
+      .select({
+        tenantId: addonPurchases.tenantId,
+        units:
+          sql<number>`SUM(${addonPurchases.quantity} * ${addonPurchases.unitSize})::bigint`.mapWith(
+            Number,
+          ),
+      })
+      .from(addonPurchases)
+      .where(
+        and(
+          eq(addonPurchases.kind, AddonKind.Limit),
+          eq(addonPurchases.limitKey, limitKey),
+          counting(),
+        ),
+      )
+      .groupBy(addonPurchases.tenantId);
+  }
+
+  /** LIM-01: the packs the shop bought since this time, for the suggestion two cycles running. */
+  async listPackPurchases(db: Executor, tenantId: string, since: Date): Promise<PackPurchaseRow[]> {
+    const rows = await db
+      .select({ limitKey: addonPurchases.limitKey, purchasedAt: addonPurchases.purchasedAt })
+      .from(addonPurchases)
+      .where(
+        and(
+          eq(addonPurchases.tenantId, tenantId),
+          eq(addonPurchases.kind, AddonKind.Pack),
+          eq(addonPurchases.status, AddonPurchaseStatus.Active),
+          gte(addonPurchases.purchasedAt, since),
+        ),
+      );
+    return rows.flatMap(({ limitKey, purchasedAt }) =>
+      limitKey === null ? [] : [{ limitKey, purchasedAt }],
+    );
+  }
+
+  /** PLN-14: what the shop has now, every kind but packs (which are used up, not outlived), with the catalogue's names. */
   async listActive(db: Executor, tenantId: string): Promise<ActiveAddonRow[]> {
     return db
       .select({
@@ -410,7 +508,13 @@ export class AddonPurchaseRepository {
       })
       .from(addonPurchases)
       .innerJoin(addons, eq(addons.id, addonPurchases.addonId))
-      .where(and(eq(addonPurchases.tenantId, tenantId), counting()))
+      .where(
+        and(
+          eq(addonPurchases.tenantId, tenantId),
+          ne(addonPurchases.kind, AddonKind.Pack),
+          counting(),
+        ),
+      )
       .orderBy(asc(addonPurchases.purchasedAt));
   }
 }

@@ -274,14 +274,16 @@ describeIfDatabase('the add-on catalogue (PLN-13, ADM-08)', () => {
 });
 
 describeIfDatabase('buying an add-on from the balance (PLN-14, BIL-08, BIL-12)', () => {
-  it('offers none to a trial shop, nor packs to anyone yet', async () => {
+  it('offers a trial shop nothing at a price', async () => {
     const shop = await openShop(port, texts, 'addons');
     const offers = await offersOf(shop);
     expect(offers.map((offer) => offer.addon.key).sort()).toEqual([
+      'bandwidth_pack',
       'brand_identity',
       'extra_products',
       'extra_seat',
       'extra_storage',
+      'request_pack',
     ]);
     expect(offers.every((offer) => offer.price === null && offer.expiresAt === null)).toBe(true);
     const quote = await shop.post('/addons/quote', { addonId: await addonId('extra_seat') });
@@ -456,7 +458,7 @@ describeIfDatabase('buying an add-on from the balance (PLN-14, BIL-08, BIL-12)',
       addons: unknown[];
       brandIdentity: boolean;
     };
-    expect(mine).toEqual({ addons: [], brandIdentity: true });
+    expect(mine).toMatchObject({ addons: [], brandIdentity: true });
     expect(
       (await offersOf(shop)).find((offer) => offer.addon.key === 'brand_identity')?.price,
     ).toBe(null);

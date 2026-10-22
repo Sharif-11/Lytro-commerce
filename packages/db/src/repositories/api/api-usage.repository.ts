@@ -1,9 +1,22 @@
 import { and, eq, sql } from 'drizzle-orm';
 import { apiUsage } from '../../schema';
 import type { Executor } from '../../transactions';
+import type { CyclePackFields, TenantTotal } from '../billing/addon-purchase.repository';
+
+const ROW = {
+  tenantId: apiUsage.tenantId,
+  cycleStart: apiUsage.cycleStart,
+  requests: apiUsage.requests,
+  warnedPercent: apiUsage.warnedPercent,
+  fastSpendAlertedAt: apiUsage.fastSpendAlertedAt,
+  packUsed: apiUsage.packUsed,
+  packFree: apiUsage.packFree,
+  autoPacks: apiUsage.autoPacks,
+  autoBuyState: apiUsage.autoBuyState,
+};
 
 /** One shop's requests in one billing cycle, as the database holds them. */
-export interface ApiUsageRow {
+export interface ApiUsageRow extends CyclePackFields {
   tenantId: string;
   cycleStart: Date;
   requests: number;
@@ -42,26 +55,51 @@ export class ApiUsageRepository {
           updatedAt: new Date(),
         },
       })
-      .returning({
-        tenantId: apiUsage.tenantId,
-        cycleStart: apiUsage.cycleStart,
-        requests: apiUsage.requests,
-        warnedPercent: apiUsage.warnedPercent,
-        fastSpendAlertedAt: apiUsage.fastSpendAlertedAt,
-      });
+      .returning(ROW);
     if (!row) throw new Error('upsert returned no api usage row');
     return row;
   }
 
-  async find(db: Executor, tenantId: string, cycleStart: Date): Promise<ApiUsageRow | null> {
-    const rows = await db
+  /** RTE-11, PLN-15: changes the cycle's warning or pack figures. */
+  async updateCycle(
+    db: Executor,
+    tenantId: string,
+    cycleStart: Date,
+    values: Partial<CyclePackFields & { warnedPercent: number }>,
+  ): Promise<void> {
+    await db
+      .update(apiUsage)
+      .set(values)
+      .where(and(eq(apiUsage.tenantId, tenantId), eq(apiUsage.cycleStart, cycleStart)));
+  }
+
+  /** The shop's cycle, made at nothing used if it has none yet, and locked for a change to its packs. */
+  async lockCycle(db: Executor, tenantId: string, cycleStart: Date): Promise<ApiUsageRow> {
+    await db.insert(apiUsage).values({ tenantId, cycleStart }).onConflictDoNothing();
+    const [row] = await db
+      .select(ROW)
+      .from(apiUsage)
+      .where(and(eq(apiUsage.tenantId, tenantId), eq(apiUsage.cycleStart, cycleStart)))
+      .for('update');
+    if (!row) throw new Error('no api usage row after making it');
+    return row;
+  }
+
+  /** RTE-11: what the shop's cycles took from its request packs. */
+  async packUsedTotals(db: Executor, tenantId?: string): Promise<TenantTotal[]> {
+    return db
       .select({
         tenantId: apiUsage.tenantId,
-        cycleStart: apiUsage.cycleStart,
-        requests: apiUsage.requests,
-        warnedPercent: apiUsage.warnedPercent,
-        fastSpendAlertedAt: apiUsage.fastSpendAlertedAt,
+        units: sql<number>`SUM(${apiUsage.packUsed})::bigint`.mapWith(Number),
       })
+      .from(apiUsage)
+      .where(tenantId === undefined ? undefined : eq(apiUsage.tenantId, tenantId))
+      .groupBy(apiUsage.tenantId);
+  }
+
+  async find(db: Executor, tenantId: string, cycleStart: Date): Promise<ApiUsageRow | null> {
+    const rows = await db
+      .select(ROW)
       .from(apiUsage)
       .where(and(eq(apiUsage.tenantId, tenantId), eq(apiUsage.cycleStart, cycleStart)))
       .limit(1);

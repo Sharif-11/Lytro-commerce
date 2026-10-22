@@ -1,4 +1,4 @@
-import type { Transaction } from '@lytronix/db';
+import type { PackPurchaseRow, Transaction } from '@lytronix/db';
 import type { AddonPurchaseStatus } from '@lytronix/validators';
 import type {
   ActiveAddon,
@@ -41,6 +41,7 @@ export interface AddonsStore {
   lapse(tx: Transaction, id: string): Promise<void>;
   cancelForPayment(tx: Transaction, planPaymentId: string): Promise<void>;
   cancelForStalePayments(tx: Transaction): Promise<number>;
+  listPackPurchases(tx: Transaction, tenantId: string, since: Date): Promise<PackPurchaseRow[]>;
   activeUnits(tx: Transaction, tenantId: string): Promise<AddonUnits[]>;
   listActive(tx: Transaction, tenantId: string): Promise<ActiveAddon[]>;
 }

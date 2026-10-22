@@ -1,4 +1,9 @@
-import { ADDON_QUANTITY_MAX, type PlanLimits, type UsageLimitKey } from '@lytronix/validators';
+import {
+  ADDON_QUANTITY_MAX,
+  type PlanLimits,
+  type UsageLimitKey,
+  type UsageMetric,
+} from '@lytronix/validators';
 import type { SuggestedAddon, Suggestion, Suggestions, UsageFigure } from '../types/usage';
 import { metricLimit, metricLimitKey } from './metric-limits';
 
@@ -29,12 +34,19 @@ export interface AddonOption {
   limitKey: UsageLimitKey;
   unitSize: number;
   monthly: number;
+  /** BND-04, RTE-11: a pack -- bandwidth or API requests -- bought as a cycle needs it; its price counts per cycle. */
+  pack?: boolean;
 }
 
 /** PLN-13: what staying on the shop's plan with add-ons is judged by -- the plan's price a month, and its add-ons. */
 export interface AddonChoice {
   planMonthly: number;
   addons: readonly AddonOption[];
+  /**
+   * LIM-01 (agreed in Slice 10): the metrics the shop bought packs for in each of its last two cycles -- for those, the
+   * next plan leads and packs are the alternative.
+   */
+  packsTwoCycles?: ReadonlySet<UsageMetric>;
 }
 
 /** A fix, by what the shop would pay a month with it, and its rank for a tie. */
@@ -76,19 +88,22 @@ function planSuggestion(plan: PlanOption): Suggestion {
 }
 
 /**
- * PLN-13, LIM-01: the fewest of each limit add-on that leave every metric near its limit clear of it again, on the
- * shop's own plan; null when one of them has no add-on, or would need more than one purchase buys.
+ * PLN-13, LIM-01: the fewest of each limit add-on or pack that leave every metric near its limit clear of it again, on
+ * the shop's own plan; null when one of them has none, or would need more than one purchase buys. With it, whether a
+ * pack in it is for a metric the shop bought packs for two cycles running.
  */
 function addonSuggestion(
   figures: readonly UsageFigure[],
-  addons: readonly AddonOption[],
-): Extract<Suggestion, { kind: 'addons' }> | null {
+  choice: AddonChoice,
+): { bundle: Extract<Suggestion, { kind: 'addons' }>; packsAgain: boolean } | null {
   const items: SuggestedAddon[] = [];
+  let packsAgain = false;
   for (const figure of figures) {
     if (!near(figure) || figure.limit === null) continue;
     const { key, unit } = metricLimitKey(figure.metric);
-    const addon = addons.find((option) => option.limitKey === key);
+    const addon = choice.addons.find((option) => option.limitKey === key);
     if (!addon) return null;
+    if (addon.pack && choice.packsTwoCycles?.has(figure.metric)) packsAgain = true;
     // The least n with the use under 80 percent of (limit + n units).
     const size = addon.unitSize * unit;
     const quantity =
@@ -103,15 +118,19 @@ function addonSuggestion(
     });
   }
   if (items.length === 0) return null;
-  return { kind: 'addons', items, monthly: items.reduce((sum, item) => sum + item.monthly, 0) };
+  return {
+    bundle: { kind: 'addons', items, monthly: items.reduce((sum, item) => sum + item.monthly, 0) },
+    packsAgain,
+  };
 }
 
 /**
  * LIM-01 (the rule agreed for Slice 10): when any metric is near its limit, the cheapest way a month to room for every
  * metric the shop uses -- not only the one that warned -- and the next cheapest as the alternative. A plan that would
  * leave any metric near its limit again is no fix, so it is skipped; one below the shop's own is never offered. Limit
- * add-ons on the shop's own plan (Slice 10a) are one more fix, judged by the plan's price a month with theirs added,
- * and preferred on a tie. When nothing fits, the operator: a custom plan.
+ * add-ons and packs on the shop's own plan (Slice 10a) are one more fix, judged by the plan's price a month with theirs
+ * added, and preferred on a tie -- except that once the shop has bought packs for a metric two cycles running, the
+ * cheapest plan that fits leads and the packs are the alternative. When nothing fits, the operator: a custom plan.
  */
 export function suggest(
   figures: readonly UsageFigure[],
@@ -124,15 +143,20 @@ export function suggest(
     .filter((plan) => current.rank === null || plan.rank > current.rank)
     .filter((plan) => fits(plan, figures))
     .map((plan) => ({ suggestion: planSuggestion(plan), monthly: monthly(plan), rank: plan.rank }));
-  const bundle = addons && addonSuggestion(figures, addons.addons);
-  if (addons && bundle) {
+  options.sort((a, b) => a.monthly - b.monthly || a.rank - b.rank);
+  const found = addons && addonSuggestion(figures, addons);
+  if (addons && found) {
+    const cheapestPlan = options[0];
+    if (found.packsAgain && cheapestPlan) {
+      return { first: cheapestPlan.suggestion, alternative: found.bundle };
+    }
     options.push({
-      suggestion: bundle,
-      monthly: addons.planMonthly + bundle.monthly,
+      suggestion: found.bundle,
+      monthly: addons.planMonthly + found.bundle.monthly,
       rank: current.rank ?? 0,
     });
+    options.sort((a, b) => a.monthly - b.monthly || a.rank - b.rank);
   }
-  options.sort((a, b) => a.monthly - b.monthly || a.rank - b.rank);
   const [first, second] = options;
   if (!first) return { first: { kind: 'contact' }, alternative: null };
   return { first: first.suggestion, alternative: second?.suggestion ?? null };

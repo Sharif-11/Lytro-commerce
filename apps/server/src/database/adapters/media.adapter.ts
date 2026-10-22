@@ -12,13 +12,16 @@ import {
   type BandwidthCycleRow,
   type BandwidthDayRow,
   type BillingInfoRow,
+  type CyclePackFields,
   type EdgeShopRow,
+  type TenantTotal,
   type Transaction,
 } from '@lytronix/db';
 import type { MediaKind, MediaPurpose, PlanLimits } from '@lytronix/validators';
 import { MediaNotAttachable } from '../../common/errors/media-refused';
 import type { BandwidthStore, LimitOverrideRow } from '../../modules/media/ports/bandwidth-store';
 import type { MediaStore } from '../../modules/media/ports/media-store';
+import { BANDWIDTH_KEY as BANDWIDTH_LIMIT_KEY } from '../../modules/media/services/media-bandwidth';
 import type {
   MediaObjectRecord,
   MediaOutcome,
@@ -185,10 +188,40 @@ export class DrizzleBandwidthStore implements BandwidthStore {
     @Inject(TenantRepository) private readonly tenants: TenantRepository,
     @Inject(PlanLimitOverridesRepository) private readonly overrides: PlanLimitOverridesRepository,
     @Inject(ApiKeyRepository) private readonly keys: ApiKeyRepository,
+    @Inject(AddonPurchaseRepository) private readonly addons: AddonPurchaseRepository,
   ) {}
 
   run<T>(work: (tx: Transaction) => Promise<T>): Promise<T> {
     return this.transactions.run(this.database.handle.db, work);
+  }
+
+  updateCycle(
+    tx: Transaction,
+    tenantId: string,
+    cycleStart: Date,
+    values: Partial<CyclePackFields & { warnedPercent: number }>,
+  ): Promise<void> {
+    return this.bandwidth.updateCycle(tx, tenantId, cycleStart, values);
+  }
+
+  lockCycle(tx: Transaction, tenantId: string, cycleStart: Date): Promise<BandwidthCycleRow> {
+    return this.bandwidth.lockCycle(tx, tenantId, cycleStart);
+  }
+
+  listLimitAddons(tenantId?: string, tx?: Transaction): Promise<TenantTotal[]> {
+    return this.addons
+      .limitUnitsFor(tx ?? this.database.handle.db, BANDWIDTH_LIMIT_KEY)
+      .then((rows) =>
+        tenantId === undefined ? rows : rows.filter((row) => row.tenantId === tenantId),
+      );
+  }
+
+  listPacksBought(tenantId?: string, tx?: Transaction): Promise<TenantTotal[]> {
+    return this.addons.packTotals(tx ?? this.database.handle.db, BANDWIDTH_LIMIT_KEY, tenantId);
+  }
+
+  listPacksTaken(tenantId?: string, tx?: Transaction): Promise<TenantTotal[]> {
+    return this.bandwidth.packUsedTotals(tx ?? this.database.handle.db, tenantId);
   }
 
   lockPulledUntil(tx: Transaction): Promise<Date> {

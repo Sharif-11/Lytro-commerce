@@ -198,6 +198,7 @@ export const MESSAGE_KEYS = [
   'AddonPurchased',
   'ShopAddonsRetrieved',
   'AddonRenewalUpdated',
+  'PackAutoBuyUpdated',
   'DowngradeScheduled',
   'PayAsYouGoChosen',
   'ShopClosed',

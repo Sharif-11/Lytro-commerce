@@ -990,6 +990,24 @@ their backend ships earlier.
     - **Downgrade:** the seat cut and the over-limit record count only the add-ons that will renew, as the preview
       does.
     - **Found and fixed:** the plan reminders after a shop's first period (KNOWN-GAPS §86).
+  - **10a.3 read 2026-10-22,** found that bandwidth and API requests were enforced without the shop's limit add-ons,
+    which the usage page counts (KNOWN-GAPS §87), and proposed eight points; agreed as proposed.
+  - **Built fourth (10a.3),** migration 0076:
+    - **Buying:** `POST /addons/packs` buys up to [10] packs from the balance at once, with no quote, by the shop that
+      may buy add-ons; an invoice with one line and no period, and the shop's log entry. Packs never expire.
+    - **The allowance:** a cycle's allowance is the shop's own limit and what is left of its packs. What a cycle uses
+      past its own limit is recorded on its row as taken from packs, so what is left carries over with no job to
+      settle it. The stop is past the allowance and the grace of the shop's own limit, and a pack bought in the grace
+      adds its full amount on top of what is used; the warnings start again against the new allowance.
+    - **Auto-buy:** `PATCH /addons/auto-buy` sets a switch for each metric, off by default and audited. At the
+      allowance the minute bandwidth pass or the request flush asks for one pack, in the same transaction as the
+      count; the `pack_auto_buy` job buys it, up to [3] a cycle, and emails the owner. A short balance buys none,
+      logs it and emails the owner; auto-buy asks again once a pack is bought.
+    - **The usage page and its notices:** each metric with packs shows its allowance, what is left and where it
+      stops, and the page lists the pack for sale and how auto-buy stands; the notices at the limit and the stop offer
+      the pack in one tap and auto-buy. Packs join the suggestions, and after packs two cycles running the next plan
+      leads.
+    - **Found and fixed:** bandwidth and request enforcement read the shop's limit add-ons (KNOWN-GAPS §87).
 - **Requirements completed:** PLN-13. *(PLN-14, PLN-15, UPG-14, BND-04, RTE-11 and BRN-05 finish in Slice 11,
   with their screens.)*
 - **Done when:** extra products bought on day 10 of 30 raise the limit at once for two thirds of a period's

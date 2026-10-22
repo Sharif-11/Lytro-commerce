@@ -28,6 +28,8 @@ interface Figure {
   metric: string;
   used: number;
   limit: number | null;
+  packLeft: number | null;
+  stopAt: number | null;
   unit: string;
   perCycle: boolean;
   level: number | string | null;
@@ -106,12 +108,61 @@ describeIfDatabase('the usage page (LIM-02)', () => {
     const body = await usageOf(shop);
     // A trial's limits (TRL-03), its free SMS a total rather than a month's; its one seat is the owner's, all in use.
     expect(byMetric(body)).toEqual({
-      products: { used: 2, limit: 20, unit: 'count', perCycle: false, level: null },
-      seats: { used: 1, limit: 1, unit: 'count', perCycle: false, level: 100 },
-      storage: { used: 0, limit: 200 * MB, unit: 'bytes', perCycle: false, level: null },
-      bandwidth: { used: 0, limit: 5 * GB, unit: 'bytes', perCycle: true, level: null },
-      requests: { used: 3, limit: 20_000, unit: 'count', perCycle: true, level: null },
-      essential_sms_total: { used: 0, limit: 8, unit: 'count', perCycle: false, level: null },
+      products: {
+        used: 2,
+        limit: 20,
+        packLeft: null,
+        stopAt: null,
+        unit: 'count',
+        perCycle: false,
+        level: null,
+      },
+      seats: {
+        used: 1,
+        limit: 1,
+        packLeft: null,
+        stopAt: null,
+        unit: 'count',
+        perCycle: false,
+        level: 100,
+      },
+      storage: {
+        used: 0,
+        limit: 200 * MB,
+        packLeft: null,
+        stopAt: null,
+        unit: 'bytes',
+        perCycle: false,
+        level: null,
+      },
+      // BND-04, RTE-11: no packs yet; served up to the limit and its 10% grace.
+      bandwidth: {
+        used: 0,
+        limit: 5 * GB,
+        packLeft: 0,
+        stopAt: 5.5 * GB,
+        unit: 'bytes',
+        perCycle: true,
+        level: null,
+      },
+      requests: {
+        used: 3,
+        limit: 20_000,
+        packLeft: 0,
+        stopAt: 22_000,
+        unit: 'count',
+        perCycle: true,
+        level: null,
+      },
+      essential_sms_total: {
+        used: 0,
+        limit: 8,
+        packLeft: null,
+        stopAt: null,
+        unit: 'count',
+        perCycle: false,
+        level: null,
+      },
     });
     // The cycle is a month long and running now.
     const start = new Date(body.cycleStart).getTime();
@@ -181,6 +232,8 @@ describeIfDatabase('the usage page (LIM-02)', () => {
     expect(byMetric(answer.body)['essential_sms_monthly']).toEqual({
       used: 0,
       limit: 10,
+      packLeft: null,
+      stopAt: null,
       unit: 'count',
       perCycle: true,
       level: null,

@@ -3,6 +3,7 @@ import {
   AddonPurchaseRepository,
   AddonRepository,
   TransactionRunner,
+  type PackPurchaseRow,
   type Transaction,
 } from '@lytronix/db';
 import type { AddonPurchaseStatus } from '@lytronix/validators';
@@ -123,6 +124,10 @@ export class DrizzleAddonsStore implements AddonsStore {
 
   cancelForStalePayments(tx: Transaction): Promise<number> {
     return this.purchases.cancelForStalePayments(tx);
+  }
+
+  listPackPurchases(tx: Transaction, tenantId: string, since: Date): Promise<PackPurchaseRow[]> {
+    return this.purchases.listPackPurchases(tx, tenantId, since);
   }
 
   activeUnits(tx: Transaction, tenantId: string): Promise<AddonUnits[]> {
