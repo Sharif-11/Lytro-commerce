@@ -23,6 +23,7 @@ import type { AddonCarry } from '../types/addon';
 import type { BillingTermRecord } from '../types/billing-term';
 import type { PlanRecord } from '../types/plan';
 import { AddonRenewalService, addonsTotal } from './addon-renewal.service';
+import { assertAmountSeen } from './amount-seen';
 import { BillingTermsService } from './billing-terms.service';
 import { DowngradeService } from './downgrade.service';
 import { PlanInvoicingService } from './plan-invoicing.service';
@@ -54,6 +55,30 @@ export interface RenewalOffer {
 }
 
 /**
+ * BIL-01, BIL-10, PLN-14: what paying for a plan and term would be for this shop now -- a renewal of its own plan,
+ * carrying the add-ons that renew with it, or a new purchase -- worked out once for the prices read and the request.
+ */
+export interface PurchaseOffer {
+  kind: PlanPaymentKind.Purchase | PlanPaymentKind.Renewal;
+  plan: PlanRecord;
+  term: BillingTermRecord;
+  /** The plan's price for the term. */
+  price: string;
+  carries: AddonCarry[];
+  /** The plan's price and the add-ons it carries. */
+  amount: string;
+  /** Where the period would end were it paid now. */
+  endsAt: Date;
+}
+
+export interface QuotePurchaseOptions {
+  /** Auto-renew's own choice of add-ons: the ones the balance reaches (BIL-17). */
+  carries?: readonly AddonCarry[];
+  /** The amount the seller was shown (`assertAmountSeen`). */
+  seen?: number;
+}
+
+/**
  * BIL-01 to BIL-11: quoting and confirming a plan purchase or renewal. Paying from balance (BIL-08) is
  * atomic and instant, with no operator step; paying by wallet is the tenant's "I have paid" submission,
  * which only enters the operator's payment-queue (D2-1) -- activation happens later, from there.
@@ -74,39 +99,37 @@ export class PurchaseService {
   ) {}
 
   /**
-   * BIL-01: the price and saving shown to the tenant; held for 30 minutes (BIL-09). A renewal carries the add-ons of the
-   * period it renews (PLN-14) in the same payment, each a pending purchase on it -- every one set to renew, or, from
-   * auto-renew, the ones the balance reaches (`carries`).
+   * BIL-01: the payment request, made when the seller commits; its price held for 30 minutes (BIL-09). A renewal carries
+   * the add-ons of the period it renews (PLN-14) in the same payment, each a pending purchase on it -- every one set to
+   * renew, or, from auto-renew, the ones the balance reaches (`carries`).
    */
   async quote(
     tenantId: string,
     planId: string,
     billingTermId: string,
-    carries?: readonly AddonCarry[],
+    options: QuotePurchaseOptions = {},
   ): Promise<PlanPaymentRecord> {
     const now = this.clock();
-    const { plan, term, price } = await this.priced(planId, billingTermId);
-    const info = await this.tenants.runStandalone((tx) =>
-      this.tenants.findBillingInfo(tx, tenantId),
-    );
-    const isRenewal = await this.isRenewal(tenantId, planId, info);
-    const carried = isRenewal
-      ? (carries ?? (await this.carriesFor(tenantId, plan, term, info)))
-      : [];
-    // Where the period would end if paid now; written again from the period it lands in once it is paid.
-    const periodEnd = info?.periodEnd;
-    const endsAt = addMonths(periodEnd && periodEnd > now ? periodEnd : now, term.months);
+    const offer = await this.offer(tenantId, planId, billingTermId, options.carries);
+    assertAmountSeen(options.seen, offer.amount);
 
     return this.tenants.runStandalone(async (tx) => {
-      const payment = await this.payments.quote(tx, {
-        tenantId,
-        kind: isRenewal ? PlanPaymentKind.Renewal : PlanPaymentKind.Purchase,
-        planId,
-        billingTermId,
-        amount: fromPaisa(toPaisa(price) + addonsTotal(carried)),
-        creditAmount: '0',
+      const payment = await this.payments.quote(
+        tx,
+        {
+          tenantId,
+          kind: offer.kind,
+          planId,
+          billingTermId,
+          amount: offer.amount,
+          creditAmount: '0',
+        },
+        now,
+      );
+      await this.renewals.attach(tx, payment, offer.carries, {
+        expiresAt: offer.endsAt,
+        extending: false,
       });
-      await this.renewals.attach(tx, payment, carried, { expiresAt: endsAt, extending: false });
       return payment;
     });
   }
@@ -117,12 +140,40 @@ export class PurchaseService {
     planId: string,
     billingTermId: string,
   ): Promise<RenewalOffer> {
+    const { price, carries } = await this.offer(tenantId, planId, billingTermId);
+    return { price, carries };
+  }
+
+  /**
+   * What paying for this plan and term would be now, without making a payment: the prices read shows it and `quote`
+   * makes the request from it -- one calculation for both.
+   */
+  async offer(
+    tenantId: string,
+    planId: string,
+    billingTermId: string,
+    carries?: readonly AddonCarry[],
+  ): Promise<PurchaseOffer> {
+    const now = this.clock();
     const { plan, term, price } = await this.priced(planId, billingTermId);
     const info = await this.tenants.runStandalone((tx) =>
       this.tenants.findBillingInfo(tx, tenantId),
     );
     const isRenewal = await this.isRenewal(tenantId, planId, info);
-    return { price, carries: isRenewal ? await this.carriesFor(tenantId, plan, term, info) : [] };
+    const carried = isRenewal
+      ? [...(carries ?? (await this.carriesFor(tenantId, plan, term, info)))]
+      : [];
+    // Where the period would end if paid now; written again from the period it lands in once it is paid.
+    const periodEnd = info?.periodEnd;
+    return {
+      kind: isRenewal ? PlanPaymentKind.Renewal : PlanPaymentKind.Purchase,
+      plan,
+      term,
+      price,
+      carries: carried,
+      amount: fromPaisa(toPaisa(price) + addonsTotal(carried)),
+      endsAt: addMonths(periodEnd && periodEnd > now ? periodEnd : now, term.months),
+    };
   }
 
   /** BIL-02/16: the tenant's "I have paid" wallet submission -- enters the queue, nothing activates yet. */

@@ -370,8 +370,8 @@ export class AddonPurchaseRepository {
   }
 
   /**
-   * BIL-15: the add-ons of quotes that expired or were turned down. An expired quote paid late and approved still
-   * activates them (`AddonRenewalService`), so this only tidies what no one is waiting on. How many.
+   * BIL-15, BIL-19: the add-ons of payments that expired, were turned down or were closed before anything was sent --
+   * none of them can be paid any more, so this tidies what no one is waiting on. How many.
    */
   async cancelForStalePayments(db: Executor): Promise<number> {
     const rows = await db
@@ -389,6 +389,7 @@ export class AddonPurchaseRepository {
                 inArray(planPayments.status, [
                   PlanPaymentStatus.Expired,
                   PlanPaymentStatus.Rejected,
+                  PlanPaymentStatus.Cancelled,
                 ]),
               ),
           ),

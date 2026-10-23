@@ -566,6 +566,13 @@ list already loaded, which carries everything the payment screen shows: on the p
 | `verified` | Paid (পেইড) | success | green |
 | `rejected` | Rejected (রিজেক্টেড) | danger | red |
 | `expired` | Expired (মেয়াদ শেষ) | neutral | grey |
+| `cancelled` (by the shop, or replaced by its newer request) | Cancelled (বাতিল) | neutral | grey |
+
+A request is made only when the seller commits to paying (BIL-09, decided 2026-10-23): from the balance on that tap,
+by a wallet when the wallet step opens, and once Phase 5's page exists, when it opens. Every price shown before then
+comes from `GET /billing/prices`, which makes no payment, so browsing plans never leaves a request behind. A new
+request of the same kind (a plan bought or renewed, an upgrade, an add-on, a top-up) closes the open one nothing was
+sent for; it is listed as Cancelled and never warned about.
 
 **The payment.** A card: the name and the state chip, the amount in 32 px, the state's own line, the facts (For:
 "Starter · 1 month · 10 Nov – 9 Dec 2026" or "৳500 added to the balance"; Paid by, with the TrxID; Sent from;
@@ -580,12 +587,20 @@ with the invoice, rejected by Lytro support with the note, or lapsed after 24 ho
   invoice and offers See statement instead.
 - *Rejected* (`billing-rejected`): the red banner with **support's note** as written (AUD-08), the line that nothing
   was activated and the plan and balance are as they were, then **Pay again** (marigold; opens How to pay with the
-  same plan and term, or the top-up sheet) and Contact support. The same transaction ID may be submitted again: an ID
-  is locked only when a payment is approved (BIL-07).
+  same plan and term, or the top-up sheet) and Contact support. The same transaction ID may be submitted again on the
+  new request: a rejected payment lets go of its ID, and only an approval locks one for good (BIL-07, amended
+  2026-10-23).
 - *Expired* (`billing-expired`): "No payment arrived within 24 hours, so the request lapsed. Nothing was charged."
   Pay again.
 - *Awaiting payment* (`billing-awaiting`): the marigold banner with the hours left and **Finish paying**, which
-  reopens the payment page for the same request (§7.19).
+  reopens the payment step for the same request (the wallet step until Phase 5, the payment page after, §7.19), and
+  **Cancel this payment**, which closes it at once (decided 2026-10-23; nothing was sent, so nothing is charged).
+- *Cancelled*: "You cancelled this payment, or started a new one in its place. Nothing was charged." Pay again.
+
+A transaction ID goes only on an open request (BIL-15, amended 2026-10-23). Sent for one that expired, was cancelled
+or was replaced, it is refused with the way on: start the payment again, or add money already sent to the balance with
+Top up; when Top up cannot take it (under its lowest amount, or a read-only, locked or archived shop), Contact support,
+who credits the balance (ADM-04).
 
 **Elsewhere.** A rejected or lapsed payment is a red row at the top of Home's queue, "৳449 payment rejected · see
 why" (`home-rejected`), and a red banner on Plan (`plan-rejected`) or Balance (`balance-rejected`) quoting the
@@ -597,11 +612,8 @@ sees a top-up's state on Balance.
 **States.** Day one: "Your payments to Lytro and their invoices appear here. The first comes with a plan or a
 top-up." (`billing` with the shop switch on day one). A lapsed shop keeps the list, as it kept its invoices
 (BIL-13). **Content.** `GET /billing/payments` (§10), one route: its rows carry everything the payment screen
-shows; the invoice from `GET /billing/invoices/:id`. **Requirement to add** (BIL-19, proposed with this sketch, for `SRS-detailed.md`
-once agreed): a user with `payments:read` shall see every payment the shop made to the platform, whatever its
-outcome, with its kind, amount, method, transaction ID, state, times, the note on a rejection and the invoice it
-produced, in every lifecycle state; a rejected or lapsed payment shall be shown on Home and where it was made until
-the seller pays again or [7] days pass. Slice 11.6 builds the screen to this section once the list exists.
+shows; the invoice from `GET /billing/invoices/:id`; `POST /billing/payments/:id/cancel`, and
+`POST /balance/top-up/:id/cancel` for a top-up. BIL-19 is in `SRS-detailed.md`; Slice 11.5 builds the screen.
 
 ### 7.14 Team (`/team`, `/team/roles`)
 
@@ -902,8 +914,9 @@ brand identity.
 | The brand identity: its storage, the approved fonts, the contrast check shared with the editor, the switch held to the add-on or the plan, and the tokens the dashboard and the storefront read | brand | §7.28 (BRN-02, 03, 07) | built (11.2) |
 | `hasDeletedShop` on `/me` | identity | create-shop's carry-over note (LIF-21) | built (11.4a) |
 | `GET /usage`, media upload, add-ons and packs, API keys, purchases and suppliers, Meta | | §7.21 to §7.27 | built |
-| `GET /billing/payments`, one route: every payment the shop made to the platform (purchase, renewal, upgrade, add-on, top-up) with kind, amount, method, transaction ID, state, the requested, submitted and decided times, support's note and the invoice it produced, newest first and pageable; open in every lifecycle state, as the invoices are | billing | §7.13 (BIL-19, proposed) and the Plan and Balance banners | Slice 11, before 11.6 |
-| The payment needing the seller (rejected or lapsed, not yet paid again) on `GET /home` | billing | the Home queue row (§7.1) | Slice 11, before 11.6 |
+| `GET /billing/payments`, one route: every payment the shop made to the platform (purchase, renewal, upgrade, add-on, top-up) with kind, amount, method, transaction ID, state, the requested, submitted and decided times, support's note and the invoice it produced, newest first and pageable; open in every lifecycle state, as the invoices are | billing | §7.13 (BIL-19) and the Plan and Balance banners | built (#213) |
+| The payment needing the seller (rejected or lapsed, not yet paid again) on `GET /home` | billing | the Home queue row (§7.1) | built (#213) |
+| `GET /billing/prices?billingTermId=`: each plan's move and amount for the shop now, exactly as its request would make it, with no payment made; the amount the seller saw sent with each request, refused when it differs; Cancel; one open request per kind | billing | §7.11 to §7.13, §7.18, the Renew page (BIL-09, BIL-19, UPG-08) | built (11.5a.1) |
 | Invoice PDF | billing | BIL-13 | later |
 | Pay-as-you-go estimate | billing | PYG-12 (needs order history) | later |
 | The notifications feed behind the bell | notifications | §8 (NTF-01) | Phase 7 |
@@ -938,7 +951,7 @@ Decided 2026-10-22.
    from 1280 px, the section chips below it.
 4. The order of the Home queue once real volumes are seen; the order here puts money before parcels because
    a payment to verify blocks an order from being booked (CRR-09).
-5. The section's name. Billing (বিলিং) was chosen on 2026-10-23 over "Payments", which Phase 5 needs for the shop's
-   incoming payments, and over "Invoices", which a rejected payment is not (§3). To confirm.
-6. Whether a seller may cancel a request that is awaiting payment before it lapses at 24 hours (BIL-15). No route
-   exists; the sketch offers none.
+5. Answered 2026-10-23: Billing (বিলিং), over "Payments", which Phase 5 needs for the shop's incoming payments, and
+   over "Invoices", which a rejected payment is not (§3).
+6. Answered 2026-10-23: yes. A request nothing was sent for may be cancelled by the shop (§7.13), and a new request of
+   the same kind closes the open one by itself.

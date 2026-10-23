@@ -4,7 +4,7 @@ import type {
   TenantPaymentRow,
   Transaction,
 } from '@lytronix/db';
-import type { PlanPaymentKind, PlanPaymentStatus } from '@lytronix/validators';
+import type { PaymentCancelReason, PlanPaymentKind, PlanPaymentStatus } from '@lytronix/validators';
 import type { PlanPaymentRecord } from '../types/plan-payment';
 
 export interface NewPlanPaymentValues {
@@ -24,22 +24,33 @@ export interface PlanPaymentStatusValues {
   verifiedAt?: Date | null;
   submittedAt?: Date | null;
   note?: string | null;
+  cancelReason?: PaymentCancelReason | null;
 }
 
 /** control.plan_payments / control.used_transaction_ids (D2-1, BIL-04 to BIL-07, BAL-03 to BAL-05). */
 export interface PlanPaymentsStore {
   run<T>(work: (tx: Transaction) => Promise<T>): Promise<T>;
+  /** Throws `UniqueViolation('openUpgrade')` when the shop already has an open upgrade (UPG-08). */
   insert(tx: Transaction, values: NewPlanPaymentValues): Promise<PlanPaymentRecord>;
   findById(tx: Transaction, id: string): Promise<PlanPaymentRecord | null>;
   /** Locks the row for the rest of the transaction -- a confirm/reject reads-then-writes it atomically. */
   findByIdForUpdate(tx: Transaction, id: string): Promise<PlanPaymentRecord | null>;
   listPending(tx: Transaction, kind?: PlanPaymentKind): Promise<PlanPaymentRecord[]>;
-  /** UPG-08: any not-yet-decided row of this kind for this tenant, submitted or not. */
-  findActiveForTenant(
+  /** UPG-08: a submitted row of this kind for this tenant still waiting for the operator. */
+  findSubmittedOpen(
     tx: Transaction,
     tenantId: string,
     kind: PlanPaymentKind,
   ): Promise<PlanPaymentRecord | null>;
+  /** BIL-19: closes the open, unsubmitted requests of these kinds (just `id`, when given); the ids it closed. */
+  closeOpen(
+    tx: Transaction,
+    tenantId: string,
+    kinds: PlanPaymentKind[],
+    reason: PaymentCancelReason,
+    now: Date,
+    id?: string,
+  ): Promise<string[]>;
   /** BAL-03, BIL-04: one shop's submitted payments of these kinds still waiting for a decision. */
   submittedForTenant(
     tx: Transaction,

@@ -213,6 +213,8 @@ export enum AuditAction {
   // BIL-17: the owner's own "renew automatically from balance" toggle. The renewal itself, once triggered,
   // reuses PlanRenewed (PurchaseService.activate already writes it) -- no separate action needed for that.
   AutoRenewToggled = 'auto_renew_toggled',
+  // BIL-19: a payment request the shop closed itself before sending anything (BIL-15 would have lapsed it at 24 hours).
+  PlanPaymentCancelled = 'plan_payment_cancelled',
   // LIF-18: a day-45/57 deletion warning. System-caused, tenant's own log (same split as LifecycleStateChanged).
   DeletionWarningSent = 'deletion_warning_sent',
   // BIL-14: a renewal reminder -- 7/3/1 days before period end while still `active`, then once per calendar
@@ -601,13 +603,22 @@ export enum PlanPaymentKind {
 }
 
 // D2-1: BIL-04/BIL-06's pending -> needs_review/verified/rejected state machine; `expired` is BIL-15's
-// 24-hour pending-purchase timeout (the sweep itself is slice 7's job, this value is just the resting state).
+// 24-hour pending-purchase timeout (the sweep itself is slice 7's job, this value is just the resting state);
+// `cancelled` is a request closed before anything was sent -- by the shop, or by its next request of the same kind.
 export enum PlanPaymentStatus {
   Pending = 'pending',
   NeedsReview = 'needs_review',
   Verified = 'verified',
   Rejected = 'rejected',
   Expired = 'expired',
+  Cancelled = 'cancelled',
+}
+
+// BIL-19: who closed a payment request before anything was sent: the shop's own Cancel, or a newer request of the same
+// kind taking its place (one open request per kind).
+export enum PaymentCancelReason {
+  Seller = 'seller',
+  Replaced = 'replaced',
 }
 
 // BIL-19: a payment as the shop reads it -- the status and whether a transaction ID was ever submitted, folded into
@@ -616,11 +627,13 @@ export enum PlanPaymentStatus {
 export enum BillingPaymentState {
   /** Quoted, nothing submitted yet; lapses 24 hours after the quote (BIL-15). */
   Awaiting = 'awaiting',
-  /** Submitted with a transaction ID and waiting for the operator (BIL-04, BIL-06), a late submission included. */
+  /** Submitted with a transaction ID and waiting for the operator (BIL-04, BIL-06). */
   Checking = 'checking',
   Paid = 'paid',
   Rejected = 'rejected',
   Expired = 'expired',
+  /** Closed before anything was sent: cancelled by the shop, or replaced by its newer request. */
+  Cancelled = 'cancelled',
 }
 
 export function billingPaymentStateOf(
@@ -634,6 +647,8 @@ export function billingPaymentStateOf(
       return BillingPaymentState.Rejected;
     case PlanPaymentStatus.Expired:
       return BillingPaymentState.Expired;
+    case PlanPaymentStatus.Cancelled:
+      return BillingPaymentState.Cancelled;
     default:
       return transactionId === null ? BillingPaymentState.Awaiting : BillingPaymentState.Checking;
   }

@@ -19,7 +19,9 @@ import type { InvoiceRecord } from '../../payments/types/invoice';
 import type { PlanPaymentRecord } from '../../payments/types/plan-payment';
 import { TenantService } from '../../tenancy/services/tenant.service';
 import { CLOCK } from '../tokens';
+import type { AddonCarry } from '../types/addon';
 import { AddonRenewalService, addonsTotal } from './addon-renewal.service';
+import { assertAmountSeen } from './amount-seen';
 import { BillingTermsService } from './billing-terms.service';
 import { DowngradeService } from './downgrade.service';
 import { PlanInvoicingService } from './plan-invoicing.service';
@@ -32,6 +34,21 @@ const QUOTE_HOLD_MS = HOUR_MS / 4;
 
 /** UPG-06: an upgrade's quote, with the period it would run were it confirmed now. */
 export interface UpgradeQuote extends PlanPaymentRecord {
+  periodStart: Date;
+  periodEnd: Date;
+}
+
+/**
+ * UPG-03 to UPG-06, UPG-14: what upgrading to this plan and term would be for this shop now -- the new price less the
+ * credit for the plan time not used, with the add-ons it extends -- worked out once for the prices read and the request.
+ */
+export interface UpgradeOffer {
+  /** The new plan's price for the term. */
+  price: string;
+  credit: string;
+  extensions: AddonCarry[];
+  /** What is due: the price less the credit, and the add-ons it extends. */
+  amount: string;
   periodStart: Date;
   periodEnd: Date;
 }
@@ -71,10 +88,50 @@ export class UpgradeService {
   ) {}
 
   /**
-   * UPG-01 to UPG-05: eligibility, rank, the prorated credit/amount-due math, and the one-pending check. UPG-14: the
-   * add-ons set to renew are extended to the new period's end in the same payment, each a pending purchase on it.
+   * UPG-01 to UPG-05: the request, made when the seller commits, from `offer`'s eligibility, rank and prorated credit.
+   * UPG-08: an upgrade the shop submitted and the operator has not decided refuses a new one; an unsubmitted one is
+   * closed by it (BIL-19). UPG-14: the add-ons set to renew are extended to the new period's end in the same payment,
+   * each a pending purchase on it.
    */
-  async quote(tenantId: string, planId: string, billingTermId: string): Promise<UpgradeQuote> {
+  async quote(
+    tenantId: string,
+    planId: string,
+    billingTermId: string,
+    seen?: number,
+  ): Promise<UpgradeQuote> {
+    const now = this.clock();
+    const offer = await this.offer(tenantId, planId, billingTermId);
+    assertAmountSeen(seen, offer.amount);
+    return this.tenants.runStandalone(async (tx) => {
+      if (await this.payments.findSubmittedOpen(tx, tenantId, PlanPaymentKind.Upgrade)) {
+        throw new ApiError('conflict', 'UpgradePending', {});
+      }
+      const payment = await this.payments.quote(
+        tx,
+        {
+          tenantId,
+          kind: PlanPaymentKind.Upgrade,
+          planId,
+          billingTermId,
+          amount: offer.amount,
+          creditAmount: offer.credit,
+        },
+        now,
+      );
+      await this.renewals.attach(tx, payment, offer.extensions, {
+        expiresAt: offer.periodEnd,
+        extending: true,
+      });
+      return { ...payment, periodStart: offer.periodStart, periodEnd: offer.periodEnd };
+    });
+  }
+
+  /**
+   * What upgrading to this plan and term would be now, without making a payment: the prices read shows it and `quote`
+   * makes the request from it -- one calculation for both. Refuses as the request would: only an active shop, only to
+   * a higher plan for sale, only when something is due.
+   */
+  async offer(tenantId: string, planId: string, billingTermId: string): Promise<UpgradeOffer> {
     const now = this.clock();
     const info = await this.tenants.runStandalone((tx) =>
       this.tenants.findBillingInfo(tx, tenantId),
@@ -89,9 +146,6 @@ export class UpgradeService {
       throw new ApiError('plan_feature_unavailable', 'UpgradeNotAvailable', {});
     }
     if (!info.planId) throw new ApiError('plan_feature_unavailable', 'UpgradeNotAvailable', {});
-
-    const existing = await this.payments.findActiveForTenant(tenantId, PlanPaymentKind.Upgrade);
-    if (existing) throw new ApiError('conflict', 'UpgradePending', {});
 
     const currentPlan = await this.plans.findById(info.planId);
     const targetPlan = await this.plans.findById(planId);
@@ -113,28 +167,20 @@ export class UpgradeService {
 
     // UPG-06: the period it would run, were it confirmed now.
     const period = upgradePeriod(now, term.months);
-    const periodEnd = period.end;
     const extensions = await this.renewals.extensions(
       tenantId,
       info.periodEnd,
-      { start: now, end: periodEnd, months: term.months },
+      { start: now, end: period.end, months: term.months },
       await this.renewals.planFor(tenantId, targetPlan),
     );
-    return this.tenants.runStandalone(async (tx) => {
-      const payment = await this.payments.quote(tx, {
-        tenantId,
-        kind: PlanPaymentKind.Upgrade,
-        planId,
-        billingTermId,
-        amount: fromPaisa(toPaisa(amountDue.toFixed(2)) + addonsTotal(extensions)),
-        creditAmount: credit.toFixed(2),
-      });
-      await this.renewals.attach(tx, payment, extensions, {
-        expiresAt: periodEnd,
-        extending: true,
-      });
-      return { ...payment, periodStart: period.start, periodEnd: period.end };
-    });
+    return {
+      price: newPrice,
+      credit: credit.toFixed(2),
+      extensions,
+      amount: fromPaisa(toPaisa(amountDue.toFixed(2)) + addonsTotal(extensions)),
+      periodStart: period.start,
+      periodEnd: period.end,
+    };
   }
 
   /** UPG-16's wallet path: the tenant's "I have paid" submission -- enters the queue, nothing activates yet. */

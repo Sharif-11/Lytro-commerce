@@ -212,18 +212,16 @@ export class AddonRenewalService {
   }
 
   /**
-   * The add-ons a payment still has to activate -- pending, or cancelled by the stale-quote sweep: a quote expired by
-   * BIL-15 can still be paid late and approved, and then its add-ons take effect after all.
+   * The add-ons a payment still has to activate. Only a payment still open can be paid -- a transaction ID is taken
+   * only on an open request (BIL-15, amended 2026-10-23) -- so the stale-quote sweep never cancels one it needs.
    */
   async pendingFor(tx: Transaction, paymentId: string): Promise<PaymentAddon[]> {
     return (await this.store.listForPayments(tx, [paymentId])).filter(
-      (addon) =>
-        addon.status === AddonPurchaseStatus.Pending ||
-        addon.status === AddonPurchaseStatus.Cancelled,
+      (addon) => addon.status === AddonPurchaseStatus.Pending,
     );
   }
 
-  /** ADM-06: a payment turned down activates nothing, so its add-ons are cancelled at once. */
+  /** ADM-06, BIL-19: a payment turned down or cancelled activates nothing, so its add-ons are cancelled at once. */
   cancelFor(tx: Transaction, paymentId: string): Promise<void> {
     return this.store.cancelForPayment(tx, paymentId);
   }

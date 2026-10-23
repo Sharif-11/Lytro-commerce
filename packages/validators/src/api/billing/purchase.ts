@@ -25,10 +25,13 @@ export function requireWalletFields(
   }
 }
 
-// POST /billing/quote (BIL-01): the plan and billing term the tenant wants to price.
+// POST /billing/quote (BIL-01): the plan and billing term the tenant wants to pay for, made when the seller commits.
 export const quotePurchaseSchema = z.object({
   planId: z.string().uuid(),
   billingTermId: z.string().uuid(),
+  // BIL-09, UPG-07: the amount the seller was shown. The server works the amount out again and refuses the quote
+  // (AmountChanged, with the new amount) when it differs, so nothing is ever charged that was not shown.
+  amount: z.coerce.number().positive().optional(),
 });
 export type QuotePurchaseInput = z.infer<typeof quotePurchaseSchema>;
 

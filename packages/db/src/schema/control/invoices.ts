@@ -9,6 +9,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
 import {
@@ -19,7 +20,6 @@ import {
 } from '@lytronix/validators';
 import { control } from '../shared';
 import { tenants } from './tenancy';
-import { planPayments } from './plan-payments';
 
 // DAT-07/BIL-12: a single platform-wide counter row, locked (`SELECT ... FOR UPDATE`) in the same transaction
 // as the control.invoices insert that consumes it. A native sequence is deliberately not used -- DAT-07
@@ -62,8 +62,10 @@ export const invoices = control.table(
     paymentMethod: text('payment_method').$type<PlanPaymentMethod>(),
     // The wallet transaction ID; null for a payment from the balance.
     paymentReference: text('payment_reference'),
-    // BIL-19: the payment this invoice is the receipt of; null on invoices issued before it was recorded.
-    planPaymentId: uuid('plan_payment_id').references(() => planPayments.id),
+    // BIL-19: the payment this invoice is the receipt of, copied at issue like the rest -- a plain id, not a foreign key
+    // (decided 2026-10-23), one invoice per payment. Null on invoices issued before it was recorded that no transaction
+    // ID matched.
+    planPaymentId: uuid('plan_payment_id'),
     issuedAt: timestamp('issued_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -75,6 +77,9 @@ export const invoices = control.table(
           .join(','),
       )})`,
     ),
+    uniqueIndex('invoices_plan_payment_id_idx')
+      .on(t.planPaymentId)
+      .where(sql`${t.planPaymentId} IS NOT NULL`),
   ],
 );
 

@@ -14,8 +14,11 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
 import {
   billingPaymentListQuerySchema,
+  billingPricesQuerySchema,
   Permission,
+  PlanPaymentKind,
   type BillingPaymentListQuery,
+  type BillingPricesQuery,
 } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import { ClientIp } from '../../../common/client-ip';
@@ -30,12 +33,17 @@ import { PermissionGuard } from '../guards/permission.guard';
 import { OkDto } from '../../../common/dto/ok.dto';
 import { AddonRenewalService } from '../../billing/services/addon-renewal.service';
 import {
+  BillingPricesService,
+  type PlanPriceOption,
+} from '../../billing/services/billing-prices.service';
+import {
   DowngradeService,
   type DowngradeChecklist,
   type OverLimitItem,
   type PayAsYouGoChoice,
 } from '../../billing/services/downgrade.service';
 import { LifecycleService } from '../../billing/services/lifecycle.service';
+import { PaymentCancellationService } from '../../billing/services/payment-cancellation.service';
 import { PurchaseService } from '../../billing/services/purchase.service';
 import { UpgradeService, type UpgradeQuote } from '../../billing/services/upgrade.service';
 import type { PaymentAddon } from '../../billing/types/addon';
@@ -55,6 +63,7 @@ import {
 } from '../dto/billing.dto';
 import {
   BillingPaymentPageDto,
+  BillingPriceListDto,
   CancellationStatusDto,
   DowngradeChecklistDto,
   InvoiceDto,
@@ -92,6 +101,8 @@ export class BillingController {
     @Inject(InvoicesService) private readonly invoices: InvoicesService,
     @Inject(PlanPaymentsService) private readonly payments: PlanPaymentsService,
     @Inject(AddonRenewalService) private readonly renewals: AddonRenewalService,
+    @Inject(PaymentCancellationService) private readonly cancellation: PaymentCancellationService,
+    @Inject(BillingPricesService) private readonly billingPrices: BillingPricesService,
     @Inject(TenantService) private readonly tenants: TenantService,
     @Inject(ClientIp) private readonly clientIp: ClientIp,
   ) {}
@@ -106,7 +117,9 @@ export class BillingController {
     @Body(new ZodValidationPipe(QuotePurchaseDto.schema)) body: QuotePurchaseDto,
     @Req() request: DashboardRequest,
   ): Promise<PlanPaymentRecord> {
-    return this.purchase.quote(this.tenantIdOf(request), body.planId, body.billingTermId);
+    return this.purchase.quote(this.tenantIdOf(request), body.planId, body.billingTermId, {
+      seen: body.amount,
+    });
   }
 
   @Post('purchase')
@@ -147,7 +160,12 @@ export class BillingController {
     @Body(new ZodValidationPipe(QuoteUpgradeDto.schema)) body: QuoteUpgradeDto,
     @Req() request: DashboardRequest,
   ): Promise<UpgradeQuote> {
-    return this.upgrade.quote(this.tenantIdOf(request), body.planId, body.billingTermId);
+    return this.upgrade.quote(
+      this.tenantIdOf(request),
+      body.planId,
+      body.billingTermId,
+      body.amount,
+    );
   }
 
   @Post('upgrade/confirm')
@@ -389,6 +407,46 @@ export class BillingController {
       total,
       pages: Math.ceil(total / query.limit),
     };
+  }
+
+  // BIL-19 (decided 2026-10-23): the shop closes a plan, upgrade or add-on request it has sent nothing for. A top-up
+  // request is closed at `POST /balance/top-up/:id/cancel`, under the balance's own permission.
+  @Post('payments/:id/cancel')
+  @Dashboard({ lapsed: true, suspendedOwner: true, readOnlyWrite: true })
+  @RequirePermission(Permission.PaymentsManage)
+  @ResponseMessage('PaymentCancelled')
+  @ApiOperation({ summary: 'Cancel a payment request nothing was sent for (BIL-19)' })
+  @ZodResponse({ type: PlanPaymentDto })
+  cancelPayment(
+    @Param('id') id: string,
+    @Req() request: DashboardRequest,
+  ): Promise<PlanPaymentRecord> {
+    return this.cancellation.cancel(
+      this.tenantIdOf(request),
+      id,
+      [
+        PlanPaymentKind.Purchase,
+        PlanPaymentKind.Renewal,
+        PlanPaymentKind.Upgrade,
+        PlanPaymentKind.Addon,
+      ],
+      this.clientIp.resolve(request),
+    );
+  }
+
+  // BIL-01, UPG-03, PLN-14 (decided 2026-10-23): what each plan would cost the shop now on one term, read without making
+  // a payment -- the plan screens and the Renew page show it; the payment is quoted when the seller commits.
+  @Get('prices')
+  @Dashboard({ lapsed: true, suspendedOwner: true })
+  @RequirePermission(Permission.PaymentsRead)
+  @ResponseMessage('BillingPricesRetrieved')
+  @ApiOperation({ summary: 'What each plan would cost the shop now on one billing term' })
+  @ZodResponse({ type: BillingPriceListDto })
+  prices(
+    @Query(new ZodValidationPipe(billingPricesQuerySchema)) query: BillingPricesQuery,
+    @Req() request: DashboardRequest,
+  ): Promise<PlanPriceOption[]> {
+    return this.billingPrices.forTerm(this.tenantIdOf(request), query.billingTermId);
   }
 
   private listed(

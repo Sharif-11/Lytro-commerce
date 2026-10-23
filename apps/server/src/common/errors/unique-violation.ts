@@ -16,7 +16,8 @@ export class UniqueViolation extends Error {
       | 'value'
       | 'area'
       | 'serial'
-      | 'key',
+      | 'key'
+      | 'openUpgrade',
   ) {
     super(`unique violation: ${target}`);
     this.name = 'UniqueViolation';

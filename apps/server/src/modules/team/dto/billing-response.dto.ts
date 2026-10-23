@@ -3,6 +3,7 @@ import { createZodDto } from 'nestjs-zod';
 import {
   BillingPaymentState,
   InvoiceLineKind,
+  PaymentCancelReason,
   PLAN_PAYMENT_METHODS,
   planLimitsSchema,
 } from '@lytronix/validators';
@@ -102,6 +103,8 @@ export const planPaymentSchema = z.object({
   // BIL-19: when the transaction ID was submitted, and the operator's note on a rejection.
   submittedAt: z.coerce.date().nullable(),
   note: z.string().nullable(),
+  // BIL-19: on a cancelled request, who closed it -- the shop, or its newer request of the same kind.
+  cancelReason: z.nativeEnum(PaymentCancelReason).nullable(),
   createdAt: z.coerce.date(),
 });
 export class PlanPaymentDto extends createZodDto(planPaymentSchema) {}
@@ -152,6 +155,27 @@ export const billingPaymentPageSchema = z.object({
   pages: z.number(),
 });
 export class BillingPaymentPageDto extends createZodDto(billingPaymentPageSchema) {}
+
+// BIL-01, UPG-03, PLN-14: what each plan would cost the shop now on one term, read without making a payment.
+export const billingPriceSchema = z.object({
+  planId: z.string(),
+  planName: z.string(),
+  move: z.enum(['renewal', 'purchase', 'upgrade', 'downgrade']),
+  price: z.string(),
+  amount: z.string().nullable(),
+  credit: z.string().nullable(),
+  addons: z.array(
+    z.object({
+      addonId: z.string(),
+      key: z.string(),
+      labelEn: z.string(),
+      quantity: z.number(),
+      amount: z.string(),
+    }),
+  ),
+  blockedBy: z.string().nullable(),
+});
+export class BillingPriceListDto extends createZodDto(billingPriceSchema.array()) {}
 
 // BIL-12: control.invoices.
 export const invoiceSchema = z.object({

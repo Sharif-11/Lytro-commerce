@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Inject,
+  Param,
   Post,
   Query,
   Req,
@@ -13,8 +14,9 @@ import {
 import { ApiBody, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { IdempotencyInterceptor } from '../../../common/idempotency/idempotency.interceptor';
 import { ZodResponse } from 'nestjs-zod';
-import { LedgerEntryType, limitOf, Permission } from '@lytronix/validators';
+import { LedgerEntryType, limitOf, Permission, PlanPaymentKind } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
+import { ClientIp } from '../../../common/client-ip';
 import { Dashboard } from '../../../common/decorators/dashboard';
 import { RequirePermission } from '../../../common/decorators/require-permission';
 import { ResponseMessage } from '../../../common/decorators/response-message';
@@ -26,6 +28,7 @@ import { PermissionGuard } from '../guards/permission.guard';
 import { BalanceService } from '../../balance/services/balance.service';
 import { RateService } from '../../balance/services/rate.service';
 import { TopUpService } from '../../balance/services/top-up.service';
+import { PaymentCancellationService } from '../../billing/services/payment-cancellation.service';
 import { EssentialSmsUsageService } from '../../sms-usage/services/essential-sms-usage.service';
 import type { BalanceView, LedgerPage } from '../../balance/types/ledger-entry';
 import type { RateValue } from '../../balance/types/rate';
@@ -64,6 +67,8 @@ export class BalanceController {
     @Inject(RateService) private readonly rates: RateService,
     @Inject(TopUpService) private readonly topUp: TopUpService,
     @Inject(EssentialSmsUsageService) private readonly smsUsage: EssentialSmsUsageService,
+    @Inject(PaymentCancellationService) private readonly cancellation: PaymentCancellationService,
+    @Inject(ClientIp) private readonly clientIp: ClientIp,
   ) {}
 
   @Get()
@@ -204,6 +209,25 @@ export class BalanceController {
       senderNumber: body.senderNumber,
       amountPaid: body.amountPaid.toFixed(2),
     });
+  }
+
+  // BIL-19 (decided 2026-10-23): the shop closes a top-up request it has sent nothing for.
+  @Post('top-up/:id/cancel')
+  @Dashboard({ suspendedOwner: true })
+  @RequirePermission(Permission.BalanceManage)
+  @ResponseMessage('PaymentCancelled')
+  @ApiOperation({ summary: 'Cancel a top-up request nothing was sent for (BIL-19)' })
+  @ZodResponse({ type: PlanPaymentDto })
+  cancelTopUp(
+    @Param('id') id: string,
+    @Req() request: DashboardRequest,
+  ): Promise<PlanPaymentRecord> {
+    return this.cancellation.cancel(
+      this.tenantIdOf(request),
+      id,
+      [PlanPaymentKind.TopUp],
+      this.clientIp.resolve(request),
+    );
   }
 
   private tenantIdOf(request: DashboardRequest): string {

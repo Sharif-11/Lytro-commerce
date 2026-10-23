@@ -250,7 +250,9 @@ export class LifecycleService {
       const offer = await this.purchase.renewalOffer(tenantId, info.planId, info.billingTermId);
       const balance = toPaisa((await this.balance.current(tenantId)).amount);
       const { kept, dropped } = withinBudget(offer.carries, balance - toPaisa(offer.price));
-      const payment = await this.purchase.quote(tenantId, info.planId, info.billingTermId, kept);
+      const payment = await this.purchase.quote(tenantId, info.planId, info.billingTermId, {
+        carries: kept,
+      });
       await this.purchase.confirmFromBalance(payment.id, tenantId);
       if (dropped.length > 0) {
         const short = toPaisa(offer.price) + addonsTotal(offer.carries) - balance;

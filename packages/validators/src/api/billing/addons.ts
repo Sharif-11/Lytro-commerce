@@ -53,6 +53,9 @@ export type UpdateAddonInput = z.infer<typeof updateAddonSchema>;
 export const quoteAddonSchema = z.object({
   addonId: z.string().uuid(),
   quantity: z.number().int().min(1).max(ADDON_QUANTITY_MAX).default(1),
+  // BIL-09, UPG-07: the amount the seller was shown. The server works the amount out again and refuses the quote
+  // (AmountChanged, with the new amount) when it differs, so nothing is ever charged that was not shown.
+  amount: z.coerce.number().positive().optional(),
 });
 export type QuoteAddonInput = z.infer<typeof quoteAddonSchema>;
 

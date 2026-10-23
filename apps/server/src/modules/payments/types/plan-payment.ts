@@ -1,5 +1,6 @@
 import type {
   BillingPaymentState,
+  PaymentCancelReason,
   PlanPaymentKind,
   PlanPaymentMethod,
   PlanPaymentStatus,
@@ -23,6 +24,8 @@ export interface PlanPaymentRecord {
   submittedAt: Date | null;
   /** ADM-06, BIL-19: the operator's note on a rejection; null otherwise. */
   note: string | null;
+  /** BIL-19: on a cancelled request, who closed it -- the shop, or its newer request of the same kind. */
+  cancelReason: PaymentCancelReason | null;
   createdAt: Date;
 }
 

@@ -50,6 +50,7 @@ import { canTake, periodEndFor } from './addon-eligibility';
 import { AddonPackService } from './addon-pack.service';
 import { addonPrice, type AddonPeriod } from './addon-price';
 import { AddonRenewalService, NOT_RENEWING, type OwnPeriod } from './addon-renewal.service';
+import { assertAmountSeen } from './amount-seen';
 import { BillingTermsService } from './billing-terms.service';
 import { addonLine } from './plan-invoicing.service';
 import { ShopLimitsService } from './shop-limits.service';
@@ -175,7 +176,10 @@ export class AddonPurchaseService {
     });
   }
 
-  /** PLN-14, BIL-09: prices the add-on to the period's end and holds the price for 30 minutes. */
+  /**
+   * PLN-14, BIL-09: prices the add-on to the period's end and holds the price for 30 minutes -- the request, made when
+   * the seller commits, refused when the price is no longer the one shown (`assertAmountSeen`).
+   */
   async quote(tenantId: string, input: QuoteAddonInput): Promise<AddonQuote> {
     const now = this.clock();
     const buying = await this.buyingOf(tenantId, now);
@@ -186,15 +190,20 @@ export class AddonPurchaseService {
     if (refusal) throw refusal;
 
     const amount = this.priceOf(addon, input.quantity, buying.period, now).toFixed(2);
+    assertAmountSeen(input.amount, amount);
     return this.store.run(async (tx) => {
-      const payment = await this.payments.quote(tx, {
-        tenantId,
-        kind: PlanPaymentKind.Addon,
-        planId: null,
-        billingTermId: null,
-        amount,
-        creditAmount: '0',
-      });
+      const payment = await this.payments.quote(
+        tx,
+        {
+          tenantId,
+          kind: PlanPaymentKind.Addon,
+          planId: null,
+          billingTermId: null,
+          amount,
+          creditAmount: '0',
+        },
+        now,
+      );
       // It keeps what the catalogue says now, so a later edit never changes what was bought (PLN-13).
       await this.store.insertPurchase(tx, {
         tenantId,

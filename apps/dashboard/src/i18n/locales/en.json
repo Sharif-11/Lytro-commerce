@@ -423,6 +423,7 @@
       "shop_closed": "closed the shop",
       "subscription_cancellation_undone": "undid the cancellation",
       "auto_renew_toggled": "changed auto-renew",
+      "plan_payment_cancelled": "cancelled a payment",
       "deletion_warning_sent": "sent a deletion warning",
       "renewal_reminder_sent": "sent a renewal reminder",
       "tenant_deleted": "deleted the shop's data",

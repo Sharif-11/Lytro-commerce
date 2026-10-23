@@ -18,7 +18,7 @@ import { PlanPaymentsService } from '../src/modules/payments/services/plan-payme
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase } from './support/database';
-import { cookieFrom, postJson, type HttpResult } from './support/http';
+import { cookieFrom, postJson } from './support/http';
 import { openShop, type ShopClient } from './support/shop-client';
 import { SmsCapture } from './support/sms-capture';
 
@@ -259,10 +259,6 @@ function payByWallet(shop: ShopClient, path: string, paymentId: string, amount: 
   });
 }
 
-function approve(paymentId: string): Promise<HttpResult> {
-  return postJson(port, `/operator/payment-queue/${paymentId}/approve`, {}, operator);
-}
-
 async function giveOwnerEmail(shop: ShopClient): Promise<string> {
   const email = `owner.${randomUUID().slice(0, 8)}@example.com`;
   await admin.query('UPDATE tenant.users SET email = $2 WHERE tenant_id = $1 AND is_owner', [
@@ -346,7 +342,7 @@ describeIfDatabase('add-ons through grace, and their lapse (LIF-05, PLN-14)', ()
 });
 
 describeIfDatabase('quotes no one is waiting on (BIL-15)', () => {
-  it("cancels an expired quote's add-ons, and still starts them when it is paid late and approved", async () => {
+  it("cancels an expired quote's add-ons, and takes no transaction ID for it afterwards", async () => {
     const shop = await onPaidPlan(smallPlanId, smallTermId);
     await buy(shop, 'extra_products');
     const renewal = (
@@ -362,12 +358,12 @@ describeIfDatabase('quotes no one is waiting on (BIL-15)', () => {
       purchasesOf(shop).then((rows) => rows.filter((row) => row.plan_payment_id === renewal.id));
     expect((await carried()).map((row) => row.status)).toEqual(['cancelled']);
 
-    // The money arrives late (needs review), and the operator approves it: the add-on comes back.
-    expect(
-      (await payByWallet(shop, '/billing/purchase', renewal.id, Number(renewal.amount))).status,
-    ).toBe(201);
-    expect((await approve(renewal.id)).status).toBe(201);
-    expect((await carried()).map((row) => row.status)).toEqual(['active']);
+    // BIL-15 (amended 2026-10-23): a transaction ID goes only on an open request -- the seller starts again, or adds
+    // money already sent with Top up. The add-on stays cancelled.
+    const late = await payByWallet(shop, '/billing/purchase', renewal.id, Number(renewal.amount));
+    expect(late.status).toBe(409);
+    expect((late.body as { error: { code: string } }).error.code).toBe('conflict');
+    expect((await carried()).map((row) => row.status)).toEqual(['cancelled']);
   });
 
   it("cancels a turned-down payment's add-on at once", async () => {

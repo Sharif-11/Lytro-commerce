@@ -29,11 +29,13 @@ import { AddonLifecycleService } from './services/addon-lifecycle.service';
 import { AddonPackService } from './services/addon-pack.service';
 import { AddonPurchaseService } from './services/addon-purchase.service';
 import { AddonRenewalService } from './services/addon-renewal.service';
+import { BillingPricesService } from './services/billing-prices.service';
 import { BillingTermsService } from './services/billing-terms.service';
 import { DowngradeService } from './services/downgrade.service';
 import { LifecycleService } from './services/lifecycle.service';
 import { PlanAssignmentService } from './services/plan-assignment.service';
 import { PlanLimitOverridesService } from './services/plan-limit-overrides.service';
+import { PaymentCancellationService } from './services/payment-cancellation.service';
 import { PaymentQueueService } from './services/payment-queue.service';
 import { PlanInvoicingService } from './services/plan-invoicing.service';
 import { PurchaseService } from './services/purchase.service';
@@ -99,6 +101,8 @@ import {
     DowngradeService,
     LifecycleService,
     PaymentQueueService,
+    PaymentCancellationService,
+    BillingPricesService,
   ],
   exports: [
     PlansService,
@@ -117,6 +121,8 @@ import {
     LifecycleService,
     PaymentQueueService,
     AddonRenewalService,
+    PaymentCancellationService,
+    BillingPricesService,
   ],
 })
 export class BillingModule {}
