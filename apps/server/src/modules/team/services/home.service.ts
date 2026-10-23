@@ -61,8 +61,14 @@ export class HomeService {
     const may = (permission: Permission): boolean => held === null || held.has(permission);
     const counts = may(Permission.ProductsRead) || may(Permission.InventoryRead);
 
-    const [states, expiring, balance, freeSms, topUps, plans, staff, fastSpend] = await Promise.all(
-      [
+    // BIL-19: the payment needing the seller, among the kinds they may read.
+    const attentionKinds = [
+      ...(may(Permission.BalanceRead) ? TOP_UP_KINDS : []),
+      ...(may(Permission.PaymentsRead) ? PLAN_KINDS : []),
+    ];
+
+    const [states, expiring, balance, freeSms, topUps, plans, needingYou, staff, fastSpend] =
+      await Promise.all([
         counts ? this.products.stateCounts(tenant.id) : null,
         may(Permission.InventoryRead)
           ? this.batches.shopBatches(tenant.id, { state: BatchState.Expiring, page: 1, limit: 1 })
@@ -71,12 +77,14 @@ export class HomeService {
         may(Permission.BalanceRead) ? this.sms.currentUsage(tenant.id, now) : null,
         may(Permission.BalanceRead) ? this.payments.beingChecked(tenant.id, TOP_UP_KINDS) : null,
         may(Permission.PaymentsRead) ? this.payments.beingChecked(tenant.id, PLAN_KINDS) : null,
+        attentionKinds.length > 0
+          ? this.payments.needingAttention(tenant.id, attentionKinds, now)
+          : null,
         may(Permission.StaffRead) ? this.staff.countWithoutPassword(tenant.id) : null,
         may(Permission.KeysManage)
           ? this.requests.fastSpendAlertedAt(tenant.id, usageCycleStart(tenant, now))
           : null,
-      ],
-    );
+      ]);
 
     return {
       products:
@@ -100,6 +108,7 @@ export class HomeService {
           : null,
       topUpsBeingChecked: topUps,
       paymentsBeingChecked: plans,
+      paymentNeedingYou: needingYou,
       staffWithoutPassword: staff,
       fastSpendAlertedAt: fastSpend,
       checklist:

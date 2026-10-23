@@ -1,4 +1,9 @@
-import type { Transaction } from '@lytronix/db';
+import type {
+  PaymentNeedingAttentionRow,
+  TenantPaymentFilter,
+  TenantPaymentRow,
+  Transaction,
+} from '@lytronix/db';
 import type { PlanPaymentKind, PlanPaymentStatus } from '@lytronix/validators';
 import type { PlanPaymentRecord } from '../types/plan-payment';
 
@@ -17,6 +22,8 @@ export interface PlanPaymentStatusValues {
   transactionId?: string | null;
   verifiedBy?: string | null;
   verifiedAt?: Date | null;
+  submittedAt?: Date | null;
+  note?: string | null;
 }
 
 /** control.plan_payments / control.used_transaction_ids (D2-1, BIL-04 to BIL-07, BAL-03 to BAL-05). */
@@ -39,6 +46,19 @@ export interface PlanPaymentsStore {
     tenantId: string,
     kinds: PlanPaymentKind[],
   ): Promise<{ count: number; amount: string }>;
+  /** BIL-19: these shops' payments, newest first, with names and invoice; `total` counts the whole filter. */
+  listForTenants(
+    tx: Transaction,
+    tenantIds: string[],
+    filter: TenantPaymentFilter,
+  ): Promise<{ payments: TenantPaymentRow[]; total: number }>;
+  /** BIL-19: the newest rejected or lapsed payment of these kinds since `since` that was not paid again. */
+  needingAttention(
+    tx: Transaction,
+    tenantId: string,
+    kinds: PlanPaymentKind[],
+    since: Date,
+  ): Promise<PaymentNeedingAttentionRow | null>;
   setStatus(tx: Transaction, id: string, values: PlanPaymentStatusValues): Promise<void>;
   /** BIL-07/BAL-05: true if this transaction ID has ever been used, by any tenant, including deleted ones. */
   transactionIdUsed(tx: Transaction, transactionId: string): Promise<boolean>;

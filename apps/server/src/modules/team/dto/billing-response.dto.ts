@@ -1,6 +1,11 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
-import { InvoiceLineKind, PLAN_PAYMENT_METHODS, planLimitsSchema } from '@lytronix/validators';
+import {
+  BillingPaymentState,
+  InvoiceLineKind,
+  PLAN_PAYMENT_METHODS,
+  planLimitsSchema,
+} from '@lytronix/validators';
 
 export const billingTermSchema = z.object({
   id: z.string(),
@@ -94,6 +99,9 @@ export const planPaymentSchema = z.object({
   transactionId: z.string().nullable(),
   verifiedBy: z.string().nullable(),
   verifiedAt: z.coerce.date().nullable(),
+  // BIL-19: when the transaction ID was submitted, and the operator's note on a rejection.
+  submittedAt: z.coerce.date().nullable(),
+  note: z.string().nullable(),
   createdAt: z.coerce.date(),
 });
 export class PlanPaymentDto extends createZodDto(planPaymentSchema) {}
@@ -107,22 +115,43 @@ export class UpgradeQuoteDto extends createZodDto(upgradeQuoteSchema) {}
 
 // ADM-06: a payment in the operator's queue, with the add-ons it pays for (PLN-14) -- an add-on's own, or those a
 // renewal or an upgrade carries -- so the operator sees what the money is for.
+export const paymentAddonSchema = z.object({
+  id: z.string(),
+  key: z.string(),
+  labelEn: z.string(),
+  labelBn: z.string(),
+  quantity: z.number(),
+  price: z.string(),
+  status: z.string(),
+  startsAt: z.date().nullable(),
+  expiresAt: z.date(),
+});
 export const queuedPaymentSchema = planPaymentSchema.extend({
-  addons: z.array(
-    z.object({
-      id: z.string(),
-      key: z.string(),
-      labelEn: z.string(),
-      labelBn: z.string(),
-      quantity: z.number(),
-      price: z.string(),
-      status: z.string(),
-      startsAt: z.date().nullable(),
-      expiresAt: z.date(),
-    }),
-  ),
+  addons: z.array(paymentAddonSchema),
 });
 export class QueuedPaymentListDto extends createZodDto(queuedPaymentSchema.array()) {}
+
+// BIL-19: a payment as the shop's Billing section lists it -- its state and method, what it names, the add-ons it
+// pays for, its invoice once paid, and whether it is the owner's earlier, deleted shop's (LIF-21).
+export const billingPaymentSchema = planPaymentSchema.extend({
+  state: z.nativeEnum(BillingPaymentState),
+  method: z.enum(PLAN_PAYMENT_METHODS).nullable(),
+  planName: z.string().nullable(),
+  billingTerm: z
+    .object({ labelEn: z.string(), labelBn: z.string(), months: z.number() })
+    .nullable(),
+  invoice: z.object({ id: z.string(), number: z.number() }).nullable(),
+  addons: z.array(paymentAddonSchema),
+  earlierShop: z.boolean(),
+});
+export const billingPaymentPageSchema = z.object({
+  payments: z.array(billingPaymentSchema),
+  page: z.number(),
+  limit: z.number(),
+  total: z.number(),
+  pages: z.number(),
+});
+export class BillingPaymentPageDto extends createZodDto(billingPaymentPageSchema) {}
 
 // BIL-12: control.invoices.
 export const invoiceSchema = z.object({
@@ -145,6 +174,8 @@ export const invoiceSchema = z.object({
   discountAmount: z.string(),
   paymentMethod: z.enum(PLAN_PAYMENT_METHODS).nullable(),
   paymentReference: z.string().nullable(),
+  // BIL-19: the payment it is the receipt of; null on invoices issued before it was recorded.
+  planPaymentId: z.string().nullable(),
   issuedAt: z.date(),
   // LIF-21: true for an invoice of the owner's earlier, deleted shop, listed alongside this shop's own.
   earlierShop: z.boolean(),

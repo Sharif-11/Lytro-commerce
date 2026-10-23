@@ -99,6 +99,9 @@ export const SUPPLIER_PAGE_SIZE = 20;
 export const PURCHASE_LINES_MAX = 200;
 export const PURCHASE_NOTES_MAX_LENGTH = 1000;
 export const PURCHASE_PAGE_SIZE = 20;
+// BIL-19: a page of the shop's payments to the platform, and how long a rejected or lapsed one stays on Home.
+export const BILLING_PAYMENT_PAGE_SIZE = 20;
+export const PAYMENT_ATTENTION_DAYS = 7;
 // PUR-04, PUR-06: why units were rejected on a delivery, or why a purchase was closed short; and a page of a variant's
 // purchase history (PUR-09).
 export const PURCHASE_REASON_MAX_LENGTH = 200;

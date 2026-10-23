@@ -164,6 +164,7 @@ describeIfDatabase('route inventory against the application (SEC-02)', () => {
       'GET /billing/downgrade/checklist',
       'GET /billing/invoices',
       'GET /billing/invoices/:id',
+      'GET /billing/payments',
       'GET /brand',
       'GET /catalog-feed',
       'GET /categories',

@@ -1,12 +1,22 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { Transaction } from '@lytronix/db';
-import { PlanPaymentKind, PlanPaymentStatus, ServerFieldProblemCode } from '@lytronix/validators';
+import type { TenantPaymentFilter, TenantPaymentRow, Transaction } from '@lytronix/db';
+import {
+  billingPaymentStateOf,
+  PAYMENT_ATTENTION_DAYS,
+  PlanPaymentKind,
+  PlanPaymentStatus,
+  ServerFieldProblemCode,
+} from '@lytronix/validators';
 import { ApiError, FieldsError } from '../../../common/api-error';
-import { HOUR_MS } from '../../../common/time';
+import { DAY_MS, HOUR_MS } from '../../../common/time';
 import { UniqueViolation } from '../../../common/errors/unique-violation';
 import type { NewPlanPaymentValues, PlanPaymentsStore } from '../ports/plan-payments-store';
 import { PLAN_PAYMENTS_STORE } from '../tokens';
-import type { PlanPaymentRecord } from '../types/plan-payment';
+import type {
+  PaymentNeedingAttention,
+  PlanPaymentRecord,
+  TenantPaymentRecord,
+} from '../types/plan-payment';
 
 const PENDING_LIKE: readonly PlanPaymentStatus[] = [
   PlanPaymentStatus.Pending,
@@ -15,6 +25,31 @@ const PENDING_LIKE: readonly PlanPaymentStatus[] = [
 
 // BIL-15: an unsubmitted quote expires this long after it was first quoted.
 export const PENDING_PURCHASE_EXPIRY_MS = 24 * HOUR_MS;
+
+/** BIL-19: the stored row as the shop reads it -- its state and method folded from the status and transaction ID. */
+function asTenantPayment(row: TenantPaymentRow): TenantPaymentRecord {
+  const { planName, termLabelEn, termLabelBn, termMonths, invoiceId, invoiceNumber, ...payment } =
+    row;
+  return {
+    ...payment,
+    state: billingPaymentStateOf(payment.status, payment.transactionId),
+    method:
+      payment.transactionId !== null
+        ? 'wallet'
+        : payment.status === PlanPaymentStatus.Verified
+          ? 'balance'
+          : null,
+    planName,
+    billingTerm:
+      termLabelEn !== null && termLabelBn !== null && termMonths !== null
+        ? { labelEn: termLabelEn, labelBn: termLabelBn, months: termMonths }
+        : null,
+    invoice:
+      invoiceId !== null && invoiceNumber !== null
+        ? { id: invoiceId, number: invoiceNumber }
+        : null,
+  };
+}
 
 /**
  * D2-1: control.plan_payments, the stand-in confirmation row for a purchase, renewal, upgrade or top-up. This
@@ -69,6 +104,38 @@ export class PlanPaymentsService {
     return this.store.run((tx) => this.store.findActiveForTenant(tx, tenantId, kind));
   }
 
+  /** BIL-19: these shops' payments to the platform, as Billing lists them, newest first. */
+  async listForTenants(
+    tenantIds: string[],
+    filter: TenantPaymentFilter,
+  ): Promise<{ payments: TenantPaymentRecord[]; total: number }> {
+    const page = await this.store.run((tx) => this.store.listForTenants(tx, tenantIds, filter));
+    return { payments: page.payments.map(asTenantPayment), total: page.total };
+  }
+
+  /**
+   * BIL-19: the rejected or lapsed payment Home shows -- the newest of these kinds decided within the attention
+   * days, unless the shop has since started a new payment of the same kind.
+   */
+  async needingAttention(
+    tenantId: string,
+    kinds: PlanPaymentKind[],
+    now = new Date(),
+  ): Promise<PaymentNeedingAttention | null> {
+    const since = new Date(now.getTime() - PAYMENT_ATTENTION_DAYS * DAY_MS);
+    const row = await this.store.run((tx) =>
+      this.store.needingAttention(tx, tenantId, kinds, since),
+    );
+    return row
+      ? {
+          id: row.id,
+          kind: row.kind,
+          amount: row.amount,
+          state: billingPaymentStateOf(row.status, row.transactionId),
+        }
+      : null;
+  }
+
   /**
    * The shared "I have paid" wallet step every kind of payment uses: verifies the payment belongs to this
    * tenant, then records the submission (BIL-02/BAL-03). Nothing activates until an operator later approves it.
@@ -78,17 +145,23 @@ export class PlanPaymentsService {
     tenantId: string,
     input: { transactionId: string; senderNumber: string; amountPaid: string },
     expectedKinds: readonly PlanPaymentKind[],
+    now = new Date(),
   ): Promise<PlanPaymentRecord> {
     await this.store.run(async (tx) => {
       const payment = await this.store.findByIdForUpdate(tx, paymentId);
       if (!payment || payment.tenantId !== tenantId || !expectedKinds.includes(payment.kind)) {
         throw new ApiError('not_found', 'PlanPaymentNotFound', {});
       }
-      await this.recordSubmission(tx, paymentId, {
-        transactionId: input.transactionId,
-        senderNumber: input.senderNumber,
-        matchesQuoted: input.amountPaid === payment.amount,
-      });
+      await this.recordSubmission(
+        tx,
+        paymentId,
+        {
+          transactionId: input.transactionId,
+          senderNumber: input.senderNumber,
+          matchesQuoted: input.amountPaid === payment.amount,
+        },
+        now,
+      );
     });
     return this.find(paymentId);
   }
@@ -105,6 +178,7 @@ export class PlanPaymentsService {
     tx: Transaction,
     id: string,
     values: { transactionId: string; senderNumber: string; matchesQuoted: boolean },
+    now = new Date(),
   ): Promise<void> {
     const payment = await this.store.findByIdForUpdate(tx, id);
     if (!payment) throw new ApiError('not_found', 'PlanPaymentNotFound', {});
@@ -123,6 +197,7 @@ export class PlanPaymentsService {
             : PlanPaymentStatus.Pending,
         transactionId: values.transactionId,
         senderNumber: values.senderNumber,
+        submittedAt: now,
       });
     } catch (error) {
       if (error instanceof UniqueViolation && error.target === 'transactionId') {
@@ -175,11 +250,13 @@ export class PlanPaymentsService {
     };
   }
 
+  /** ADM-06: turned down, with the operator's note kept on the row so the shop can read why (BIL-19). */
   async reject(
     tx: Transaction,
     id: string,
     operatorId: string,
     now: Date,
+    note: string,
   ): Promise<PlanPaymentRecord> {
     const payment = await this.store.findByIdForUpdate(tx, id);
     if (!payment) throw new ApiError('not_found', 'PlanPaymentNotFound', {});
@@ -190,12 +267,14 @@ export class PlanPaymentsService {
       status: PlanPaymentStatus.Rejected,
       verifiedBy: operatorId,
       verifiedAt: now,
+      note,
     });
     return {
       ...payment,
       status: PlanPaymentStatus.Rejected,
       verifiedBy: operatorId,
       verifiedAt: now,
+      note,
     };
   }
 

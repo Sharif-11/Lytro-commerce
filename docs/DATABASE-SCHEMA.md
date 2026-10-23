@@ -306,6 +306,7 @@ CREATE TABLE control.invoices (
     discount_amount numeric(10,2) NOT NULL DEFAULT 0, -- saving against the shortest visible term (TRM-12)
     payment_method  text,                        -- balance | wallet
     payment_reference text,                      -- the wallet transaction ID; null for a balance payment
+    plan_payment_id uuid REFERENCES control.plan_payments(id), -- BIL-19: the payment this is the receipt of; null before migration 0079
     issued_at       timestamptz NOT NULL DEFAULT now()
 );
 
@@ -1773,9 +1774,12 @@ CREATE TABLE control.plan_payments (
     sender_number   text,
     transaction_id  text,
     verified_by     uuid,                           -- operator account id
-    verified_at     timestamptz,
+    verified_at     timestamptz,                    -- when it was decided: approved, paid from the balance, or rejected
+    submitted_at    timestamptz,                    -- BIL-19: when the shop submitted its transaction ID
+    note            text,                           -- ADM-06, BIL-19: the operator's note on a rejection
     created_at      timestamptz NOT NULL DEFAULT now()
 );
+CREATE INDEX ON control.plan_payments (tenant_id, quoted_at); -- BIL-19: a shop's payments, newest first
 -- BIL-07/PAY-16: the transaction_id uniqueness guarantee is platform-wide via
 -- control.used_transaction_ids (section 2.4/3.4), the same registry tenant.payments shares,
 -- so a plan payment and a shopper payment can never collide on the same transaction ID either.

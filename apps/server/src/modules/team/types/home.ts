@@ -1,3 +1,5 @@
+import type { PaymentNeedingAttention } from '../../payments/types/plan-payment';
+
 /** BAL-03, BIL-04: payments the shop submitted that the operator is still checking. */
 export interface BeingChecked {
   count: number;
@@ -33,6 +35,11 @@ export interface HomeView {
   topUpsBeingChecked: BeingChecked | null;
   /** BIL-04, PLN-14: plan and add-on payments being checked -- payments:read. */
   paymentsBeingChecked: BeingChecked | null;
+  /**
+   * BIL-19: the rejected or lapsed payment to act on, until the shop pays again or the attention days pass -- a
+   * top-up with balance:read, the rest with payments:read; null also when there is none.
+   */
+  paymentNeedingYou: PaymentNeedingAttention | null;
   /** STF-13, AUTH-31: active staff who have not yet chosen their own password -- staff:read. */
   staffWithoutPassword: number | null;
   /** RTE-12: this cycle's last fast-spend alert -- keys:manage; null also when there was none. */

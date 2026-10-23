@@ -41,6 +41,7 @@ export * from './api/billing/purchase';
 export * from './api/billing/upgrade';
 export * from './api/billing/downgrade';
 export * from './api/billing/payment-queue';
+export * from './api/billing/billing-payments';
 export * from './api/billing/addons';
 export * from './api/platform/settings-update';
 export * from './api/platform/tenant-search';

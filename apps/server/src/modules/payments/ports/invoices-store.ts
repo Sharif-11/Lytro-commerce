@@ -21,6 +21,8 @@ export interface NewInvoiceValues {
   discountAmount: string;
   paymentMethod: PlanPaymentMethod;
   paymentReference: string | null;
+  /** BIL-19: the payment this invoice is the receipt of. */
+  planPaymentId: string | null;
 }
 
 /** control.invoices / control.invoice_counters (BIL-12/13, DAT-07). */

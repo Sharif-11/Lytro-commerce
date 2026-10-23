@@ -23,6 +23,8 @@ export interface InvoiceRecord {
   discountAmount: string;
   paymentMethod: PlanPaymentMethod | null;
   paymentReference: string | null;
+  /** BIL-19: the payment it is the receipt of; null on invoices issued before it was recorded. */
+  planPaymentId: string | null;
   issuedAt: Date;
   /** BIL-12, PLN-14: what it is for, line by line; none on invoices issued before lines existed. */
   lines: InvoiceLine[];

@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { numeric, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import { index, numeric, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 import { PlanPaymentKind, PlanPaymentStatus } from '@lytronix/validators';
 import { control, createdAt } from '../shared';
 import { billingTerms } from './billing-terms';
@@ -28,13 +28,19 @@ export const planPayments = control.table(
     senderNumber: text('sender_number'),
     transactionId: text('transaction_id'),
     verifiedBy: uuid('verified_by'), // operator account id
+    // When it was decided: approved, paid from the balance, or rejected (BIL-19 reads it as the decision's time).
     verifiedAt: timestamp('verified_at', { withTimezone: true }),
+    // BIL-19: when the shop submitted its transaction ID, and the operator's note on a rejection (ADM-06).
+    submittedAt: timestamp('submitted_at', { withTimezone: true }),
+    note: text('note'),
     createdAt: createdAt(),
   },
   (t) => [
     uniqueIndex('plan_payments_transaction_id_idx')
       .on(t.transactionId)
       .where(sql`${t.transactionId} is not null`),
+    // BIL-19: a shop's payments, newest first.
+    index('plan_payments_tenant_quoted_idx').on(t.tenantId, t.quotedAt),
   ],
 );
 
