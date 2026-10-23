@@ -5,8 +5,6 @@
     "somethingWentWrong": "কিছু একটা সমস্যা হয়েছে। আবার চেষ্টা করুন।",
     "language": "ভাষা",
     "continue": "এগিয়ে যান",
-    "copy": "কপি করুন",
-    "copied": "কপি হয়েছে",
     "signOut": "লগআউট",
     "cancel": "ক্যানসেল",
     "close": "বন্ধ করুন",
@@ -54,21 +52,6 @@
   "setPassword": {
     "ruleLength": "{{min}} থেকে {{max}} অক্ষর"
   },
-  "setUp": {
-    "areas": {
-      "dhaka_city": "ঢাকা শহর",
-      "chattogram_city": "চট্টগ্রাম শহর",
-      "sylhet_city": "সিলেট শহর",
-      "khulna_city": "খুলনা শহর",
-      "rajshahi_city": "রাজশাহী শহর",
-      "barishal_city": "বরিশাল শহর",
-      "rangpur_city": "রংপুর শহর",
-      "mymensingh_city": "ময়মনসিংহ শহর",
-      "cumilla_district": "কুমিল্লা জেলা",
-      "gazipur_district": "গাজীপুর জেলা",
-      "narayanganj_district": "নারায়ণগঞ্জ জেলা"
-    }
-  },
   "nav": {
     "primary": "মূল মেনু",
     "home": "হোম",
@@ -99,32 +82,6 @@
       "title": "রিনিউ করলে দোকান আবার খুলবে",
       "lead": "আপনার ডেটা সবই আছে। একটা প্ল্যান নিন বা পে-অ্যাজ-ইউ-গো বেছে নিন।",
       "renew": "প্ল্যান দেখুন"
-    }
-  },
-  "home": {
-    "title": "হোম",
-    "paymentBeingChecked": "আপনার পেমেন্ট যাচাই হচ্ছে। চালু হলে এখানে প্ল্যানের নাম দেখাবে।",
-    "checklist": {
-      "title": "দোকান প্রস্তুত করুন",
-      "shopCreated": "দোকান তৈরি",
-      "deliveryCharges": "ডেলিভারি চার্জ",
-      "deliveryDetail": "{{area}}-এর ভেতরে {{inside}} · বাইরে {{outside}}",
-      "shareLink": "দোকানের লিংক শেয়ার করুন",
-      "open": "খুলুন",
-      "moreLater": "প্রোডাক্ট, লোগো, পেমেন্ট নম্বর আর কুরিয়ারের ধাপ ফিচার চালু হলে এখানে যুক্ত হবে।"
-    },
-    "link": {
-      "title": "আপনার দোকানের লিংক",
-      "facebook": "ফেসবুকে শেয়ার",
-      "whatsapp": "WhatsApp-এ শেয়ার",
-      "shareText": "আমার দোকান দেখুন: {{url}}"
-    },
-    "today": {
-      "title": "আজ",
-      "orders": "অর্ডার",
-      "sales": "বিক্রি",
-      "toConfirm": "কনফার্ম বাকি",
-      "empty": "আপনার প্রথম অর্ডারটা এখানে দেখাবে। লিংকটা পেজে শেয়ার করুন।"
     }
   },
   "dates": {

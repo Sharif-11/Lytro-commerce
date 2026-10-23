@@ -1156,6 +1156,25 @@ their backend ships earlier.
   7. The shop picker (KNOWN-GAPS §92): one shop opens at once, several show the picker, none goes to create-shop.
   8. The fonts are declared at the weights the sketch loads (Inter 400 to 600, Noto Sans Bengali 400, 600 and 700),
      so every screen sets its type as the drawing does.
+- **11.4b, Home, agreed 2026-10-23** (7 points; "yes i agree") **and built:**
+  1. `GET /home`'s checklist names the home area its two delivery zones are named after ("Inside Dhaka city
+     ৳70 · outside ৳130").
+  2. The checklist's items stay ticked by the server where their screen is not rebuilt yet: the first product
+     opens Products (rebuilt in 11.7); the logo and the API key show but open nothing until 11.6.
+  3. All seven of §7.1's queue rows, in its order; the five the sketch does not draw use its job row, the icon's tone
+     by kind and the count pill only on rows that count. The rows open the list they are about (Stock's filters come
+     with its rebuild).
+  4. Right now's tiles by permission; Low stock hidden while there are no products; "Trial days left" on a trial;
+     no days tile on pay-as-you-go.
+  5. The checklist folds into the sketch's one row once its first group (shop, delivery, first product, logo, link
+     shared) is done; tapping the row opens the list for that visit.
+  6. The link card (Copy, Facebook, WhatsApp) for every member; each records the link as shared on the server, so
+     the share-link tick no longer lives in one browser.
+  7. A key spending fast is a banner above it all, without the key's name, with See keys.
+  Also: the side column's shop address is cut with an ellipsis and shown whole on hover; below 1024 px Home's two
+  columns stack 16 px apart where the sketch leaves none (a named fix); the figures row takes the keyboard's focus,
+  so a phone's hidden tiles can be scrolled to without a pointer. The first build's Home, its local share-link store
+  and checkout's payment-being-checked note went with it.
 
 ### Slice 12: shared storefront and product landing pages
 - **Depends on:** Slices 0, 0b, 7 and 9 (and branding from Phase 1).

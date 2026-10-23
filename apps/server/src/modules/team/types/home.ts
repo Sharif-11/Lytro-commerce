@@ -10,7 +10,8 @@ export interface BeingChecked {
  * number, a courier, SMS events, a listener phone) are the dashboard's to grey out.
  */
 export interface SetupChecklist {
-  deliveryCharges: { inside: string; outside: string };
+  /** The two zones' charges, and the home area they are named after ("Inside Dhaka city"). */
+  deliveryCharges: { area: { en: string; bn: string }; inside: string; outside: string };
   firstProduct: boolean;
   logo: boolean;
   linkShared: boolean;

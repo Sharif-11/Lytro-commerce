@@ -127,7 +127,11 @@ export class HomeService {
     const inside = delivery.zones.find((zone) => zone.isHome);
     const outside = delivery.zones.find((zone) => zone.isFallback);
     return {
-      deliveryCharges: { inside: inside?.charge ?? '0.00', outside: outside?.charge ?? '0.00' },
+      deliveryCharges: {
+        area: delivery.homeArea.label,
+        inside: inside?.charge ?? '0.00',
+        outside: outside?.charge ?? '0.00',
+      },
       firstProduct,
       logo: logo !== null,
       linkShared,

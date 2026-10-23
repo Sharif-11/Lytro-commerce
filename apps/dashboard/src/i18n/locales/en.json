@@ -5,8 +5,6 @@
     "somethingWentWrong": "Something went wrong. Please try again.",
     "language": "Language",
     "continue": "Continue",
-    "copy": "Copy",
-    "copied": "Copied",
     "signOut": "Sign out",
     "cancel": "Cancel",
     "close": "Close",
@@ -54,21 +52,6 @@
   "setPassword": {
     "ruleLength": "{{min}} to {{max}} characters"
   },
-  "setUp": {
-    "areas": {
-      "dhaka_city": "Dhaka city",
-      "chattogram_city": "Chattogram city",
-      "sylhet_city": "Sylhet city",
-      "khulna_city": "Khulna city",
-      "rajshahi_city": "Rajshahi city",
-      "barishal_city": "Barishal city",
-      "rangpur_city": "Rangpur city",
-      "mymensingh_city": "Mymensingh city",
-      "cumilla_district": "Cumilla district",
-      "gazipur_district": "Gazipur district",
-      "narayanganj_district": "Narayanganj district"
-    }
-  },
   "nav": {
     "primary": "Main menu",
     "home": "Home",
@@ -99,32 +82,6 @@
       "title": "Renew and the shop opens again",
       "lead": "All your data is here. Take a plan or choose pay-as-you-go.",
       "renew": "See plans"
-    }
-  },
-  "home": {
-    "title": "Home",
-    "paymentBeingChecked": "Your payment is being checked. The plan name appears here once it is active.",
-    "checklist": {
-      "title": "Get your shop ready",
-      "shopCreated": "Shop created",
-      "deliveryCharges": "Delivery charges",
-      "deliveryDetail": "Inside {{area}} {{inside}} · outside {{outside}}",
-      "shareLink": "Share your shop link",
-      "open": "Open",
-      "moreLater": "Products, logo, payment numbers and couriers join this list as those features go live."
-    },
-    "link": {
-      "title": "Your shop link",
-      "facebook": "Share on Facebook",
-      "whatsapp": "Share on WhatsApp",
-      "shareText": "See my shop: {{url}}"
-    },
-    "today": {
-      "title": "Today",
-      "orders": "Orders",
-      "sales": "Sales",
-      "toConfirm": "To confirm",
-      "empty": "Your first order will appear here. Share the link on your page."
     }
   },
   "dates": {

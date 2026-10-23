@@ -13,12 +13,14 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 export interface ShopState {
   language?: Language;
   /** The tenant's lifecycle state and how far its period end is, in days (negative: in the past). */
-  state?: 'trial' | 'active' | 'grace' | 'read_only' | 'locked';
+  state?: 'trial' | 'pay_as_you_go' | 'active' | 'grace' | 'read_only' | 'locked';
   periodEndDays?: number;
   isOwner?: boolean;
   permissions?: string[];
   /** GET /home's stock part; null when the person may not see stock. */
   stock?: { low: number; out: number } | null;
+  /** GET /home's other parts where they differ from the working shop's. */
+  home?: Record<string, unknown>;
 }
 
 export function envelope(data: unknown, statusCode = 200): string {
@@ -63,6 +65,17 @@ export function me(state: Required<ShopState>): unknown {
   };
 }
 
+const DHAKA_CITY = { en: 'Dhaka city', bn: 'ঢাকা সিটি' };
+
+/** SUP-01's first group, all done: the working shop's checklist folds into the side column. */
+const READY = {
+  deliveryCharges: { area: DHAKA_CITY, inside: '70.00', outside: '130.00' },
+  firstProduct: true,
+  logo: true,
+  linkShared: true,
+  apiKey: false,
+};
+
 function home(state: Required<ShopState>): unknown {
   return {
     products: { total: 6, active: 5 },
@@ -72,9 +85,24 @@ function home(state: Required<ShopState>): unknown {
     paymentsBeingChecked: null,
     staffWithoutPassword: 0,
     fastSpendAlertedAt: null,
-    checklist: null,
+    // The checklist is the owner's alone (SUP-01).
+    checklist: state.isOwner ? READY : null,
+    ...state.home,
   };
 }
+
+/** The prototype's "new shop, day one": a trial with 27 days left, nothing made or sold yet, two items ticked. */
+export const DAY_ONE: ShopState = {
+  state: 'trial',
+  periodEndDays: 27,
+  stock: { low: 0, out: 0 },
+  home: {
+    products: { total: 0, active: 0 },
+    balance: { amount: '0.00', low: false, freeSms: { used: 0, limit: 10 } },
+    topUpsBeingChecked: { count: 0, amount: '0.00' },
+    checklist: { ...READY, firstProduct: false, logo: false, linkShared: false },
+  },
+};
 
 function products(language: Language, search: string): unknown {
   const jacket = {
@@ -119,6 +147,7 @@ export function shopState(given: ShopState = {}): Required<ShopState> {
     isOwner: true,
     permissions: [],
     stock: { low: 1, out: 1 },
+    home: {},
     ...given,
   };
 }

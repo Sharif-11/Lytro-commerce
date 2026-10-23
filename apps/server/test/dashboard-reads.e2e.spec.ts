@@ -212,7 +212,12 @@ describeIfDatabase('Home in one read (TENANT-DASHBOARD-DESIGN §7.1, SUP-01, STF
       staffWithoutPassword: 0,
       fastSpendAlertedAt: null,
       checklist: {
-        deliveryCharges: { inside: '70.00', outside: '130.00' },
+        // The home area every shop starts with (DLV-01), which the line names.
+        deliveryCharges: {
+          area: { en: 'Dhaka city', bn: 'ঢাকা সিটি' },
+          inside: '70.00',
+          outside: '130.00',
+        },
         firstProduct: true,
         logo: false,
         linkShared: false,
