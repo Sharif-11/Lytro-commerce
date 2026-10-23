@@ -51,6 +51,8 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   // Checked in test/plan-purchase.e2e.spec.ts: a shop's quotes, invoices and top-ups are its own.
   'POST /balance/top-up/quote': 'creates a top-up quote scoped to the session shop only',
   'POST /balance/top-up/confirm': "another shop's top-up payment id answers not_found",
+  // Checked in test/payment-requests.e2e.spec.ts: a shop closes only its own request (BIL-19).
+  'POST /balance/top-up/:id/cancel': "another shop's top-up payment id answers not_found",
   'POST /billing/quote': 'creates a purchase quote scoped to the session shop only',
   'POST /billing/auto-renew': "toggles only the session shop's own auto-renew setting",
   'POST /billing/purchase': "another shop's payment id answers not_found",
@@ -59,6 +61,9 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   // Checked in test/billing-payments.e2e.spec.ts: a shop's payments to the platform are its own (BIL-19).
   'GET /billing/payments':
     "lists only the session shop's own payments (and its owner's earlier shops')",
+  // Checked in test/payment-requests.e2e.spec.ts: a shop closes only its own request, and prices only its own plan.
+  'POST /billing/payments/:id/cancel': "another shop's payment id answers not_found",
+  'GET /billing/prices': "prices against the session shop's own plan and add-ons only",
   'POST /billing/upgrade/quote': 'creates an upgrade quote scoped to the session shop only',
   'POST /billing/upgrade/confirm': "another shop's payment id answers not_found",
   // Checked in test/plan-downgrade.e2e.spec.ts: a shop schedules, previews, cancels and reads only its own.

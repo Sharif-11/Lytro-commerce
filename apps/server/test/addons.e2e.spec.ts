@@ -420,28 +420,48 @@ describeIfDatabase('buying an add-on from the balance (PLN-14, BIL-08, BIL-12)',
     expect((await shop.post('/media/uploads', upload)).status).toBe(201);
   });
 
-  it('sells brand identity once, whichever of two quotes is paid first (BRN-05)', async () => {
+  it('sells brand identity once: a newer quote replaces an unpaid one, and money sent for a second is credited back (BRN-05)', async () => {
     const shop = await onPaidPlan(smallPlanId, smallTermId);
     const id = await addonId('brand_identity');
     const two = await shop.post('/addons/quote', { addonId: id, quantity: 2 });
     expect(two.status).toBe(400);
     expect(errorOf(two).code).toBe('validation_error');
+    type Quoted = { payment: { id: string; amount: string } };
 
-    const first = (await shop.post('/addons/quote', { addonId: id })).body as {
-      payment: { id: string };
-    };
-    const second = (await shop.post('/addons/quote', { addonId: id })).body as {
-      payment: { id: string };
-    };
-    expect((await shop.post('/addons/purchase', { paymentId: first.payment.id })).status).toBe(201);
+    // BIL-19: a second quote closes the first, which nothing was sent for.
+    const replaced = (await shop.post('/addons/quote', { addonId: id })).body as Quoted;
+    const byWallet = (await shop.post('/addons/quote', { addonId: id })).body as Quoted;
+    const stale = await shop.post('/addons/purchase', { paymentId: replaced.payment.id });
+    expect(stale.status).toBe(409);
+    expect(errorOf(stale).code).toBe('conflict');
+
+    // A quote paid by wallet stays open, so another can be paid from the balance while it is checked...
+    const submitted = await shop.post('/addons/purchase', {
+      paymentId: byWallet.payment.id,
+      method: 'wallet',
+      transactionId: `TX${randomUUID().replace(/-/g, '').slice(0, 12)}`,
+      senderNumber: '01711111111',
+      amountPaid: Number(byWallet.payment.amount),
+    });
+    expect(submitted.status).toBe(201);
+    const fromBalance = (await shop.post('/addons/quote', { addonId: id })).body as Quoted;
+    expect(
+      (await shop.post('/addons/purchase', { paymentId: fromBalance.payment.id })).status,
+    ).toBe(201);
     const mine = (await shop.get('/addons/mine')).body as { brandIdentity: boolean };
     expect(mine.brandIdentity).toBe(true);
 
-    const before = await balanceOf(shop);
-    const twice = await shop.post('/addons/purchase', { paymentId: second.payment.id });
-    expect(twice.status).toBe(409);
-    expect(errorOf(twice).code).toBe('conflict');
-    expect(await balanceOf(shop)).toBe(before);
+    // ...and approving the wallet payment then credits its money to the balance, never selling it twice.
+    const before = Number(await balanceOf(shop));
+    const operator = await operatorHeaders();
+    const approved = await postJson(
+      port,
+      `/operator/payment-queue/${byWallet.payment.id}/approve`,
+      {},
+      operator,
+    );
+    expect(approved.status, JSON.stringify(approved.body)).toBe(201);
+    expect(Number(await balanceOf(shop))).toBe(before + Number(byWallet.payment.amount));
     expect(
       (await offersOf(shop)).find((offer) => offer.addon.key === 'brand_identity')?.price,
     ).toBe(null);

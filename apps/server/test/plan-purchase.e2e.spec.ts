@@ -572,11 +572,9 @@ describeIfDatabase('BIL-15: 24-hour pending-purchase expiry', () => {
     const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
     const { planId, termId } = await seedPlanAndTerm(1, '449.00');
 
-    const staleQuote = await purchase.quote(tenantId, planId, termId);
-    await backdateQuote(staleQuote.id, new Date(Date.now() - 25 * 60 * 60 * 1000));
-
     // Submitted on time -- the sweep must leave it alone no matter how old the quote itself now is,
-    // since the clock is about the tenant's own window to act, not the operator's review speed.
+    // since the clock is about the tenant's own window to act, not the operator's review speed. (Made first: a newer
+    // request closes an older one nothing was submitted for, BIL-19.)
     const submittedQuote = await purchase.quote(tenantId, planId, termId);
     await purchase.submitWalletPayment(submittedQuote.id, tenantId, {
       transactionId: `TXN-${randomUUID()}`,
@@ -585,6 +583,9 @@ describeIfDatabase('BIL-15: 24-hour pending-purchase expiry', () => {
     });
     await backdateQuote(submittedQuote.id, new Date(Date.now() - 25 * 60 * 60 * 1000));
 
+    const staleQuote = await purchase.quote(tenantId, planId, termId);
+    await backdateQuote(staleQuote.id, new Date(Date.now() - 25 * 60 * 60 * 1000));
+
     const expiredCount = await planPayments.expireStalePending(new Date());
     expect(expiredCount).toBe(1);
 
@@ -592,7 +593,7 @@ describeIfDatabase('BIL-15: 24-hour pending-purchase expiry', () => {
     expect((await paymentRow(submittedQuote.id))?.status).toBe(PlanPaymentStatus.Pending);
   });
 
-  it('a late submission after expiry lands in needs_review regardless of amount match', async () => {
+  it('BIL-15 (amended 2026-10-23): takes no transaction ID for an expired request; a new request takes it', async () => {
     const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
     const { planId, termId } = await seedPlanAndTerm(1, '449.00');
     const quote = await purchase.quote(tenantId, planId, termId);
@@ -601,15 +602,20 @@ describeIfDatabase('BIL-15: 24-hour pending-purchase expiry', () => {
     await planPayments.expireStalePending(new Date());
     expect((await paymentRow(quote.id))?.status).toBe(PlanPaymentStatus.Expired);
 
-    const submitted = await purchase.submitWalletPayment(quote.id, tenantId, {
-      transactionId: `TXN-${randomUUID()}`,
-      senderNumber: '01710000000',
-      amountPaid: '449.00', // matches exactly -- still needs_review since it arrived after expiry
+    const transactionId = `TXN-${randomUUID()}`;
+    const wallet = { transactionId, senderNumber: '01710000000', amountPaid: '449.00' };
+    await expect(purchase.submitWalletPayment(quote.id, tenantId, wallet)).rejects.toMatchObject({
+      code: 'conflict',
+      messageKey: 'PaymentClosed',
     });
-    expect(submitted.status).toBe(PlanPaymentStatus.NeedsReview);
+    expect((await paymentRow(quote.id))?.status).toBe(PlanPaymentStatus.Expired);
+    expect((await tenantRow(tenantId))?.state).toBe('trial');
 
-    const tenant = await tenantRow(tenantId);
-    expect(tenant?.state).toBe('trial'); // never activates off a late submission alone
+    // The seller starts again; the money already sent goes on the new request, checked as usual.
+    const again = await purchase.quote(tenantId, planId, termId);
+    const submitted = await purchase.submitWalletPayment(again.id, tenantId, wallet);
+    expect(submitted.status).toBe(PlanPaymentStatus.Pending);
+    expect(submitted.transactionId).toBe(transactionId);
   });
 
   it('a quote still inside its 24h window is untouched by the sweep', async () => {

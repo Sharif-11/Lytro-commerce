@@ -1781,7 +1781,50 @@ one's receipt, a rejected payment on Home and as a banner on Plan and Balance. *
 `GET /billing/payments`, one route (each payment with its plan, term, add-ons, method, note and invoice; open in
 lapsed states like the invoices; the owner's earlier shops' rows marked; no one-payment route, the list carries it
 all), the rejection note and the submission time kept on `control.plan_payments`, the invoice's
-`plan_payment_id`, and the payment needing the seller on `GET /home`; then the screen, in Slice 11.6.
+`plan_payment_id`, and the payment needing the seller on `GET /home`; then the screen, in Slice 11.5 (the Money hub).
+**Built:** the backend in #213; the invoice's link kept as a plain id, not a foreign key (decided 2026-10-23), in §94's
+pull request.
+
+## 94. `BIL-09`, `BIL-15`, `UPG-07`, `UPG-08`, `BIL-07`: payment requests made to show a price, and rules that refused each other — found and fixed 2026-10-23
+
+Found while reading Slice 11.5 against BIL-19. Every price a screen showed was a payment request: checkout quoted on
+each plan or term chip, the plan sheets when they opened, top-up before the wallet step. Each left a `pending` row
+that lapsed silently 24 hours later (BIL-15) -- invisible until BIL-19 listed every request, when browsing three plans
+would leave three "expired" rows and a warning on Home. Behind it, four contradictions:
+
+- UPG-07 says an upgrade quote is "recomputed at payment; if the amount changed the owner shall reconfirm". Paying from
+  the balance refused a quote over 15 minutes old without a new one, and a wallet submission never checked its age.
+- UPG-07 against UPG-08: an unsubmitted upgrade quote past its 15 minutes could not be paid from the balance, yet still
+  counted as "the one pending upgrade" until the sweep closed it at 24 hours. Closing the sheet, a phone call or a
+  reload left the owner able neither to pay it nor to ask for a new one, for up to a day. The check ran in one
+  transaction and the insert in another, so two taps at once could also open two upgrades.
+- One quote held its price for 30 minutes paid from the balance (BIL-09) and for 24 hours paid by wallet, then went to
+  review after that (BIL-15), so how long a price held depended on how it was paid.
+- `TENANT-DASHBOARD-DESIGN.md` §7.13 (#211) said a rejected payment's transaction ID may be submitted again, but BIL-07
+  and the unique index locked an ID at submission, rejected or not.
+
+**Decided 2026-10-23 and fixed:** a payment request is made only when the seller commits (BIL-09, amended): from the
+balance on that tap, by a wallet when the wallet step opens; every price shown before then comes from
+`GET /billing/prices`, which makes none, from the same calculation the request uses. Each request carries the amount
+the seller saw and is refused (`AmountChanged`, with the new amount) when it differs -- UPG-07's rule for every payment.
+A new request closes the open one of its kind nothing was submitted for (`cancelled`, `replaced`), the database holds
+one open upgrade per shop, and only a submitted upgrade refuses a new one (UPG-08, amended). The shop may cancel a
+request itself (BIL-19, amended; #211's open question 6). A transaction ID goes only on an open request; one sent for a
+closed request is refused with the way on -- start again, or add the money with Top up, or ask support, who can credit
+the balance (BIL-15, amended). A rejected payment lets go of its ID (BIL-07, amended). Left as it is, decided the same
+day: a wallet upgrade's credit is fixed at the quote while its period starts at approval, which can credit the seller
+one day more; it only ever favours the seller. The dashboard's screens move to the new reads in Slice 11.5b.
+
+## 95. Migrations 0009 and 0010 never replaced `verification_challenges`' indexes — found 2026-10-23
+
+Found while writing migration 0080. drizzle-kit writes `DROP INDEX IF EXISTS "<name>"` without the schema, and every
+table here is in `control`, so such a drop finds nothing and the `CREATE INDEX IF NOT EXISTS` after it, meeting the old
+index's name, adds nothing either. 0009 meant to drop `verification_challenges_phone_idx`, and 0010 to rebuild
+`verification_challenges_destination_idx` with `channel`: a database migrated from scratch still has the old phone
+index, a duplicate of `(destination, created_at)`, and the destination index without `channel`. Sign-in codes work --
+a lookup by destination still finds its rows -- so the cost is one redundant index and a less exact one. 0080 names
+the schema in its own drop. **Open:** a migration that drops the two by their schema and builds the index 0010
+intended; and a look at any drizzle-kit `DROP INDEX` before it is committed.
 
 ## Not a bug, just noting it so it isn't mistaken for one later
 

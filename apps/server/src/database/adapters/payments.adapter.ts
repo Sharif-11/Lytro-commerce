@@ -9,7 +9,7 @@ import {
   type TenantPaymentFilter,
   type Transaction,
 } from '@lytronix/db';
-import { PlanPaymentKind } from '@lytronix/validators';
+import { PaymentCancelReason, PlanPaymentKind } from '@lytronix/validators';
 import { UniqueViolation } from '../../common/errors/unique-violation';
 import type { InvoicesStore, NewInvoiceValues } from '../../modules/payments/ports/invoices-store';
 import type { InvoiceLine, InvoiceRecord } from '../../modules/payments/types/invoice';
@@ -86,8 +86,15 @@ export class DrizzlePlanPaymentsStore implements PlanPaymentsStore {
     return this.transactions.run(this.database.handle.db, work);
   }
 
-  insert(tx: Transaction, values: NewPlanPaymentValues) {
-    return this.payments.insert(tx, values);
+  async insert(tx: Transaction, values: NewPlanPaymentValues) {
+    try {
+      return await this.payments.insert(tx, values);
+    } catch (error) {
+      if (this.transactions.isUniqueViolation(error, 'plan_payments_one_open_upgrade_idx')) {
+        throw new UniqueViolation('openUpgrade');
+      }
+      throw error;
+    }
   }
 
   findById(tx: Transaction, id: string) {
@@ -102,8 +109,19 @@ export class DrizzlePlanPaymentsStore implements PlanPaymentsStore {
     return this.payments.listPending(tx, kind);
   }
 
-  findActiveForTenant(tx: Transaction, tenantId: string, kind: PlanPaymentKind) {
-    return this.payments.findActiveForTenant(tx, tenantId, kind);
+  findSubmittedOpen(tx: Transaction, tenantId: string, kind: PlanPaymentKind) {
+    return this.payments.findSubmittedOpen(tx, tenantId, kind);
+  }
+
+  closeOpen(
+    tx: Transaction,
+    tenantId: string,
+    kinds: PlanPaymentKind[],
+    reason: PaymentCancelReason,
+    now: Date,
+    id?: string,
+  ) {
+    return this.payments.closeOpen(tx, tenantId, kinds, reason, now, id);
   }
 
   submittedForTenant(tx: Transaction, tenantId: string, kinds: PlanPaymentKind[]) {

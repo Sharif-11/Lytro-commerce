@@ -3,6 +3,7 @@ import type { TenantPaymentFilter, TenantPaymentRow, Transaction } from '@lytron
 import {
   billingPaymentStateOf,
   PAYMENT_ATTENTION_DAYS,
+  PaymentCancelReason,
   PlanPaymentKind,
   PlanPaymentStatus,
   ServerFieldProblemCode,
@@ -23,8 +24,28 @@ const PENDING_LIKE: readonly PlanPaymentStatus[] = [
   PlanPaymentStatus.NeedsReview,
 ];
 
+// BIL-15, BIL-19: a request that can no longer be paid: lapsed, closed before anything was sent, or turned down.
+const CLOSED: readonly PlanPaymentStatus[] = [
+  PlanPaymentStatus.Expired,
+  PlanPaymentStatus.Cancelled,
+  PlanPaymentStatus.Rejected,
+];
+
 // BIL-15: an unsubmitted quote expires this long after it was first quoted.
 export const PENDING_PURCHASE_EXPIRY_MS = 24 * HOUR_MS;
+
+// BIL-19: the kinds that share one open request -- a plan bought or renewed (one route prices both), an upgrade, an
+// add-on, a top-up. A new request closes the open one of its family that nothing was submitted for.
+const FAMILIES: readonly (readonly PlanPaymentKind[])[] = [
+  [PlanPaymentKind.Purchase, PlanPaymentKind.Renewal],
+  [PlanPaymentKind.Upgrade],
+  [PlanPaymentKind.Addon],
+  [PlanPaymentKind.TopUp],
+];
+
+function familyOf(kind: PlanPaymentKind): PlanPaymentKind[] {
+  return [...(FAMILIES.find((family) => family.includes(kind)) ?? [kind])];
+}
 
 /** BIL-19: the stored row as the shop reads it -- its state and method folded from the status and transaction ID. */
 function asTenantPayment(row: TenantPaymentRow): TenantPaymentRecord {
@@ -61,12 +82,62 @@ function asTenantPayment(row: TenantPaymentRow): TenantPaymentRecord {
 export class PlanPaymentsService {
   constructor(@Inject(PLAN_PAYMENTS_STORE) private readonly store: PlanPaymentsStore) {}
 
-  quote(tx: Transaction, values: NewPlanPaymentValues): Promise<PlanPaymentRecord> {
-    return this.store.insert(tx, values);
+  /**
+   * Makes the payment request, once the seller commits to paying (decided 2026-10-23). It first closes the shop's open
+   * request of the same family that nothing was submitted for, so an abandoned one never blocks the next (UPG-08) nor
+   * lingers to lapse. A second open upgrade racing this one is refused by the database (`UpgradePending`).
+   */
+  async quote(
+    tx: Transaction,
+    values: NewPlanPaymentValues,
+    now = new Date(),
+  ): Promise<PlanPaymentRecord> {
+    await this.store.closeOpen(
+      tx,
+      values.tenantId,
+      familyOf(values.kind),
+      PaymentCancelReason.Replaced,
+      now,
+    );
+    try {
+      return await this.store.insert(tx, values);
+    } catch (error) {
+      if (error instanceof UniqueViolation && error.target === 'openUpgrade') {
+        throw new ApiError('conflict', 'UpgradePending', {});
+      }
+      throw error;
+    }
   }
 
   quoteStandalone(values: NewPlanPaymentValues): Promise<PlanPaymentRecord> {
     return this.store.run((tx) => this.quote(tx, values));
+  }
+
+  /**
+   * BIL-19 (decided 2026-10-23): the shop closes its own request before sending anything. A submitted one cannot be
+   * cancelled -- money may have moved, so only the operator decides it.
+   */
+  async cancel(
+    tx: Transaction,
+    tenantId: string,
+    id: string,
+    kinds: readonly PlanPaymentKind[],
+    now: Date,
+  ): Promise<PlanPaymentRecord> {
+    const payment = await this.store.findByIdForUpdate(tx, id);
+    if (!payment || payment.tenantId !== tenantId || !kinds.includes(payment.kind)) {
+      throw new ApiError('not_found', 'PlanPaymentNotFound', {});
+    }
+    if (payment.status !== PlanPaymentStatus.Pending || payment.transactionId !== null) {
+      throw new ApiError('conflict', 'PaymentNotCancellable', {});
+    }
+    await this.store.closeOpen(tx, tenantId, [payment.kind], PaymentCancelReason.Seller, now, id);
+    return {
+      ...payment,
+      status: PlanPaymentStatus.Cancelled,
+      cancelReason: PaymentCancelReason.Seller,
+      verifiedAt: now,
+    };
   }
 
   async find(id: string): Promise<PlanPaymentRecord> {
@@ -99,9 +170,13 @@ export class PlanPaymentsService {
     return this.store.run((tx) => this.store.submittedForTenant(tx, tenantId, kinds));
   }
 
-  /** UPG-08: whether this tenant already has an undecided row of this kind, submitted or not. */
-  findActiveForTenant(tenantId: string, kind: PlanPaymentKind): Promise<PlanPaymentRecord | null> {
-    return this.store.run((tx) => this.store.findActiveForTenant(tx, tenantId, kind));
+  /** UPG-08: a row of this kind the shop submitted that still waits for the operator. */
+  findSubmittedOpen(
+    tx: Transaction,
+    tenantId: string,
+    kind: PlanPaymentKind,
+  ): Promise<PlanPaymentRecord | null> {
+    return this.store.findSubmittedOpen(tx, tenantId, kind);
   }
 
   /** BIL-19: these shops' payments to the platform, as Billing lists them, newest first. */
@@ -169,10 +244,9 @@ export class PlanPaymentsService {
   /**
    * BIL-02/BAL-03: a wallet payment's "I have paid" step. `matchesQuoted` decides which bucket it lands in
    * (BIL-06) -- either way nothing activates until an operator later calls `approve`. Refuses a row that was
-   * already submitted or has moved past `pending`/`expired`, so a tenant can't resubmit over an operator's
-   * decision. BIL-15: a submission arriving after the sweep already marked the row `expired` is still
-   * accepted -- but always goes to `needs_review`, regardless of amount match, never the normal `pending`
-   * bucket a timely submission would land in.
+   * already submitted, so a tenant can't resubmit over an operator's decision. BIL-15 (amended 2026-10-23): a
+   * transaction ID goes only on an open request -- one that expired, was cancelled or replaced, or was turned down is
+   * refused (`PaymentClosed`), and the seller starts the payment again, or adds the money sent with Top up.
    */
   async recordSubmission(
     tx: Transaction,
@@ -182,19 +256,13 @@ export class PlanPaymentsService {
   ): Promise<void> {
     const payment = await this.store.findByIdForUpdate(tx, id);
     if (!payment) throw new ApiError('not_found', 'PlanPaymentNotFound', {});
-    const isLate = payment.status === PlanPaymentStatus.Expired;
-    if (
-      (payment.status !== PlanPaymentStatus.Pending && !isLate) ||
-      payment.transactionId !== null
-    ) {
+    if (CLOSED.includes(payment.status)) throw new ApiError('conflict', 'PaymentClosed', {});
+    if (payment.status !== PlanPaymentStatus.Pending || payment.transactionId !== null) {
       throw new ApiError('conflict', 'PlanPaymentNotPending', {});
     }
     try {
       await this.store.setStatus(tx, id, {
-        status:
-          isLate || !values.matchesQuoted
-            ? PlanPaymentStatus.NeedsReview
-            : PlanPaymentStatus.Pending,
+        status: values.matchesQuoted ? PlanPaymentStatus.Pending : PlanPaymentStatus.NeedsReview,
         transactionId: values.transactionId,
         senderNumber: values.senderNumber,
         submittedAt: now,

@@ -108,6 +108,18 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'This quote has expired. Please request a new one.',
     bn: 'এই কোটের মেয়াদ শেষ হয়ে গেছে। অনুগ্রহ করে নতুন একটি চান।',
   },
+  AmountChanged: {
+    en: (p) => `The amount is now ৳${String(p.amount)}. Check it and pay again.`,
+    bn: (p) => `অ্যামাউন্ট এখন ৳${String(p.amount)}। দেখে নিয়ে আবার পেমেন্ট করুন।`,
+  },
+  PaymentClosed: {
+    en: 'This payment request is closed, so it cannot take a transaction ID. Start the payment again; to keep money you already sent, add it to your balance with Top up.',
+    bn: 'এই পেমেন্টের অনুরোধটা বন্ধ হয়ে গেছে, তাই এতে আর TrxID দেওয়া যাবে না। আবার পেমেন্ট শুরু করুন; যে টাকা পাঠিয়েছেন সেটা রাখতে টপ-আপ দিয়ে ব্যালেন্সে যোগ করুন।',
+  },
+  PaymentNotCancellable: {
+    en: 'This payment cannot be cancelled: it was already sent for checking, or has been decided.',
+    bn: 'এই পেমেন্টটা বাতিল করা যাবে না: এটা চেক করতে পাঠানো হয়েছে, বা সিদ্ধান্ত হয়ে গেছে।',
+  },
   AmountOutOfRange: {
     en: (p) => `Enter an amount between ${String(p.min)} and ${String(p.max)} TK.`,
     bn: (p) => `${String(p.min)} থেকে ${String(p.max)} টাকার মধ্যে একটি অ্যামাউন্ট দিন।`,
@@ -125,8 +137,8 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     bn: 'আপনি শুধুমাত্র উচ্চতর প্ল্যানে আপগ্রেড করতে পারবেন।',
   },
   UpgradePending: {
-    en: 'An upgrade is already pending for this shop.',
-    bn: 'এই দোকানের জন্য একটি আপগ্রেড ইতিমধ্যে পেন্ডিং আছে।',
+    en: 'An upgrade payment for this shop is still open. A new one can start once it is decided.',
+    bn: 'এই দোকানের একটা আপগ্রেড পেমেন্ট এখনো খোলা আছে। সেটার সিদ্ধান্ত হলে নতুনটা শুরু করা যাবে।',
   },
   UpgradeNotWorthwhile: {
     en: 'The credit for your remaining days covers this plan and term. Please choose a longer term.',
@@ -447,6 +459,8 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   InvoicesListed: { en: 'Invoices retrieved.', bn: 'ইনভয়েসগুলো পাওয়া গেছে।' },
   InvoiceRetrieved: { en: 'Invoice retrieved.', bn: 'ইনভয়েস পাওয়া গেছে।' },
   BillingPaymentsListed: { en: 'Payments retrieved.', bn: 'পেমেন্টগুলো পাওয়া গেছে।' },
+  BillingPricesRetrieved: { en: 'Prices retrieved.', bn: 'দামগুলো পাওয়া গেছে।' },
+  PaymentCancelled: { en: 'Payment cancelled.', bn: 'পেমেন্ট বাতিল হয়েছে।' },
   PaymentQueueListed: { en: 'Payment queue retrieved.', bn: 'পেমেন্ট কিউ পাওয়া গেছে।' },
   PaymentApproved: { en: 'Payment approved.', bn: 'পেমেন্ট অনুমোদিত হয়েছে।' },
   PaymentRejected: { en: 'Payment rejected.', bn: 'পেমেন্ট বাতিল হয়েছে।' },

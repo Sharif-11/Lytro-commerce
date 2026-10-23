@@ -1175,6 +1175,25 @@ their backend ships earlier.
   columns stack 16 px apart where the sketch leaves none (a named fix); the figures row takes the keyboard's focus,
   so a phone's hidden tiles can be scrolled to without a pointer. The first build's Home, its local share-link store
   and checkout's payment-being-checked note went with it.
+- **11.5, Money, agreed 2026-10-23** (the read's points with Billing from #211; "i agree with you"), in three parts:
+  11.5a the backend, 11.5b Balance, Plan, Billing, Renew and Unavailable (and Home's rejected-payment row), 11.5c Usage
+  and Add-ons. Agreed with it:
+  1. A payment request is made only when the seller commits -- from the balance on that tap, by a wallet when the
+     wallet step opens; every price shown before then is read without making one (`GET /billing/prices`).
+  2. Each request carries the amount the seller saw and is refused with the new amount when it differs, for every kind
+     (UPG-07's rule).
+  3. A new request closes the open one of its kind nothing was sent for; the shop may cancel one itself (#211's
+     question 6: yes); a transaction ID goes only on an open request; a rejected payment lets go of its ID.
+  4. The invoice keeps its payment's id as a plain copy, not a foreign key, one invoice per payment.
+  5. A wallet upgrade's credit stays fixed at the quote (it only ever favours the seller).
+  6. The section keeps the name Billing (#211's question 5).
+  The screens follow the sketch's final drawings with the wallet step in place of Phase 5's page; the pay-as-you-go
+  estimate (PYG-12) and "orders shipped" wait; Renew is a page of its own at `/$shop/renew`.
+  - **11.5a.1, the payment requests, built:** `GET /billing/prices`; the amount-seen check on the plan, upgrade and
+    add-on requests; the `cancelled` status, `POST /billing/payments/:id/cancel` and `POST /balance/top-up/:id/cancel`;
+    one open request per kind and one open upgrade per shop in the database; transaction IDs only on open requests,
+    and freed by a rejection; the invoice's `plan_payment_id` as a plain id, filled for older invoices by their
+    transaction ID (KNOWN-GAPS §94, §95).
 
 ### Slice 12: shared storefront and product landing pages
 - **Depends on:** Slices 0, 0b, 7 and 9 (and branding from Phase 1).

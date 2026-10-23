@@ -8,6 +8,7 @@ import {
   isNotNull,
   isNull,
   lt,
+  ne,
   notExists,
   sql,
   type SQL,
@@ -22,7 +23,12 @@ import {
   type SelectPlanPayment,
   type SelectUsedTransactionId,
 } from '../../schema';
-import { BillingPaymentState, PlanPaymentStatus, type PlanPaymentKind } from '@lytronix/validators';
+import {
+  BillingPaymentState,
+  PlanPaymentStatus,
+  type PaymentCancelReason,
+  type PlanPaymentKind,
+} from '@lytronix/validators';
 import type { Executor } from '../../transactions';
 
 export interface NewPlanPayment {
@@ -80,13 +86,15 @@ function stateCondition(state: BillingPaymentState): SQL | undefined {
       return eq(planPayments.status, PlanPaymentStatus.Rejected);
     case BillingPaymentState.Expired:
       return eq(planPayments.status, PlanPaymentStatus.Expired);
+    case BillingPaymentState.Cancelled:
+      return eq(planPayments.status, PlanPaymentStatus.Cancelled);
   }
 }
 
 // BIL-19, BIL-15: when a payment was decided -- or, never submitted, when it lapsed, 24 hours after its quote.
 const decidedAt = sql`coalesce(${planPayments.verifiedAt}, ${planPayments.quotedAt} + interval '24 hours')`;
 
-// D2-1: control.plan_payments -- the pending -> needs_review/verified/rejected/expired state machine.
+// D2-1: control.plan_payments -- the pending -> needs_review/verified/rejected/expired/cancelled state machine.
 export class PlanPaymentsRepository {
   async insert(tx: Executor, values: NewPlanPayment): Promise<SelectPlanPayment> {
     const [row] = await tx.insert(planPayments).values(values).returning();
@@ -141,8 +149,11 @@ export class PlanPaymentsRepository {
     return rows[0] ?? { count: 0, amount: '0.00' };
   }
 
-  /** UPG-08: any not-yet-decided row of this kind for this tenant, submitted or not -- the one-pending check. */
-  async findActiveForTenant(
+  /**
+   * UPG-08: a row of this kind the shop submitted (a transaction ID attached) that still waits for the operator. An
+   * unsubmitted one never blocks: the next request of its kind closes it (`closeOpen`).
+   */
+  async findSubmittedOpen(
     tx: Executor,
     tenantId: string,
     kind: PlanPaymentKind,
@@ -155,10 +166,40 @@ export class PlanPaymentsRepository {
           eq(planPayments.tenantId, tenantId),
           eq(planPayments.kind, kind),
           inArray(planPayments.status, [PlanPaymentStatus.Pending, PlanPaymentStatus.NeedsReview]),
+          isNotNull(planPayments.transactionId),
         ),
       )
       .limit(1);
     return rows[0] ?? null;
+  }
+
+  /**
+   * BIL-19: closes the shop's open requests of these kinds that nothing was submitted for -- the shop's own Cancel for
+   * one, or every one a newer request of the same kind replaces. A submitted row is never touched: money may have
+   * moved. The ids it closed.
+   */
+  async closeOpen(
+    tx: Executor,
+    tenantId: string,
+    kinds: PlanPaymentKind[],
+    reason: PaymentCancelReason,
+    now: Date,
+    id?: string,
+  ): Promise<string[]> {
+    const rows = await tx
+      .update(planPayments)
+      .set({ status: PlanPaymentStatus.Cancelled, cancelReason: reason, verifiedAt: now })
+      .where(
+        and(
+          eq(planPayments.tenantId, tenantId),
+          inArray(planPayments.kind, kinds),
+          eq(planPayments.status, PlanPaymentStatus.Pending),
+          isNull(planPayments.transactionId),
+          id === undefined ? undefined : eq(planPayments.id, id),
+        ),
+      )
+      .returning({ id: planPayments.id });
+    return rows.map((row) => row.id);
   }
 
   async setStatus(
@@ -172,6 +213,7 @@ export class PlanPaymentsRepository {
       verifiedAt?: Date | null;
       submittedAt?: Date | null;
       note?: string | null;
+      cancelReason?: PaymentCancelReason | null;
     },
   ): Promise<void> {
     await tx.update(planPayments).set(values).where(eq(planPayments.id, id));
@@ -229,6 +271,7 @@ export class PlanPaymentsRepository {
   /**
    * BIL-19: the payment the shop should act on -- its newest rejected or expired payment of these kinds, decided (or
    * lapsed) since `since`, with no later payment of the same kind, which would mean the shop has already paid again.
+   * A later request the shop cancelled is not paying again.
    */
   async needingAttention(
     tx: Executor,
@@ -262,6 +305,7 @@ export class PlanPaymentsRepository {
                   eq(later.tenantId, planPayments.tenantId),
                   eq(later.kind, planPayments.kind),
                   gt(later.quotedAt, planPayments.quotedAt),
+                  ne(later.status, PlanPaymentStatus.Cancelled),
                 ),
               ),
           ),

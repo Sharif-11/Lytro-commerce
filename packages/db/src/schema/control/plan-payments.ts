@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { index, numeric, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
-import { PlanPaymentKind, PlanPaymentStatus } from '@lytronix/validators';
+import { PaymentCancelReason, PlanPaymentKind, PlanPaymentStatus } from '@lytronix/validators';
 import { control, createdAt } from '../shared';
 import { billingTerms } from './billing-terms';
 import { plans } from './plans';
@@ -33,12 +33,21 @@ export const planPayments = control.table(
     // BIL-19: when the shop submitted its transaction ID, and the operator's note on a rejection (ADM-06).
     submittedAt: timestamp('submitted_at', { withTimezone: true }),
     note: text('note'),
+    // BIL-19: on a `cancelled` row, who closed it -- the shop, or its newer request of the same kind.
+    cancelReason: text('cancel_reason').$type<PaymentCancelReason>(),
     createdAt: createdAt(),
   },
   (t) => [
+    // BIL-07: a transaction ID belongs to one payment -- but a rejected payment lets go of it, so the shop can submit
+    // the same ID again once support's note is dealt with (decided 2026-10-23). An approval locks it for good in
+    // used_transaction_ids.
     uniqueIndex('plan_payments_transaction_id_idx')
       .on(t.transactionId)
-      .where(sql`${t.transactionId} is not null`),
+      .where(sql`${t.transactionId} IS NOT NULL AND ${t.status} <> 'rejected'`),
+    // UPG-08: one open upgrade per shop, held by the database so two taps at once cannot both open one.
+    uniqueIndex('plan_payments_one_open_upgrade_idx')
+      .on(t.tenantId)
+      .where(sql`${t.kind} = 'upgrade' AND ${t.status} IN ('pending', 'needs_review')`),
     // BIL-19: a shop's payments, newest first.
     index('plan_payments_tenant_quoted_idx').on(t.tenantId, t.quotedAt),
   ],

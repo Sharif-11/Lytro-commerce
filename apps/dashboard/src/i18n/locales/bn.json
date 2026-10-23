@@ -423,6 +423,7 @@
       "shop_closed": "দোকান বন্ধ করেছেন",
       "subscription_cancellation_undone": "বন্ধ করা বাতিল করেছেন",
       "auto_renew_toggled": "অটো-রিনিউ বদলেছেন",
+      "plan_payment_cancelled": "একটা পেমেন্ট বাতিল করেছেন",
       "deletion_warning_sent": "ডিলিটের সতর্কতা পাঠিয়েছে",
       "renewal_reminder_sent": "রিনিউয়ের রিমাইন্ডার পাঠিয়েছে",
       "tenant_deleted": "দোকানের ডেটা মুছেছে",

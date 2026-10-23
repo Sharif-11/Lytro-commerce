@@ -192,12 +192,42 @@ describeIfDatabase('upgrade proration math, literally (UPG-02 to UPG-05)', () =>
     });
   });
 
-  it('UPG-08: only one upgrade may be pending per tenant', async () => {
+  it('UPG-08: one open upgrade per tenant -- a new request replaces an unsent one, a submitted one blocks', async () => {
     const { tenantId, growthId, growthTermId } = await seedExampleA();
-    await upgrade.quote(tenantId, growthId, growthTermId);
+    const unsent = await upgrade.quote(tenantId, growthId, growthTermId);
+    // BIL-19: nothing was sent for it, so the next request closes it rather than being refused (the deadlock of a
+    // quote too old to pay from the balance and still counted as pending is gone).
+    const sent = await upgrade.quote(tenantId, growthId, growthTermId);
+    const closed = await admin.query<{ status: string; cancel_reason: string }>(
+      'SELECT status, cancel_reason FROM control.plan_payments WHERE id = $1',
+      [unsent.id],
+    );
+    expect(closed.rows[0]).toEqual({ status: 'cancelled', cancel_reason: 'replaced' });
+
+    await upgrade.submitWalletPayment(sent.id, tenantId, {
+      transactionId: `TXN-${randomUUID()}`,
+      senderNumber: '01710000000',
+      amountPaid: sent.amount,
+    });
     await expect(upgrade.quote(tenantId, growthId, growthTermId)).rejects.toMatchObject({
       code: 'conflict',
+      messageKey: 'UpgradePending',
     });
+  });
+
+  it('UPG-08: two upgrade requests at once leave one open, held by the database', async () => {
+    const { tenantId, growthId, growthTermId } = await seedExampleA();
+    await Promise.allSettled([
+      upgrade.quote(tenantId, growthId, growthTermId),
+      upgrade.quote(tenantId, growthId, growthTermId),
+      upgrade.quote(tenantId, growthId, growthTermId),
+    ]);
+    const open = await admin.query<{ open: number }>(
+      `SELECT count(*)::int AS open FROM control.plan_payments
+       WHERE tenant_id = $1 AND kind = 'upgrade' AND status IN ('pending', 'needs_review')`,
+      [tenantId],
+    );
+    expect(open.rows[0]?.open).toBe(1);
   });
 
   it('UPG-01: unavailable to a trial tenant', async () => {
