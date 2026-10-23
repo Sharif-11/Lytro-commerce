@@ -3,6 +3,8 @@ import { ERROR_MESSAGE_KEYS } from '@lytronix/api-client';
 import { UI_DICTIONARY_KEYS } from '@lytronix/ui';
 import bn from '../src/i18n/locales/bn.json';
 import en from '../src/i18n/locales/en.json';
+import homeBn from '../src/i18n/locales/home/bn.json';
+import homeEn from '../src/i18n/locales/home/en.json';
 import onboardingBn from '../src/i18n/locales/onboarding/bn.json';
 import onboardingEn from '../src/i18n/locales/onboarding/en.json';
 import shellBn from '../src/i18n/locales/shell/bn.json';
@@ -29,6 +31,7 @@ describe('dictionaries', () => {
   it('say everything in both languages, in each rebuilt namespace (I18N-01)', () => {
     for (const [bangla, english] of [
       [shellBn, shellEn],
+      [homeBn, homeEn],
       [onboardingBn, onboardingEn],
       [walletBn, walletEn],
     ]) {

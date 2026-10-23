@@ -77,6 +77,15 @@ export function todayInputValue(): string {
   return dayKey(new Date().toISOString());
 }
 
+/** A day as the prototype writes it beside a figure, in either language: "9 Nov" (Dhaka's calendar). */
+export function formatDayMonth(iso: string): string {
+  return new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    timeZone: DHAKA,
+  }).format(new Date(iso));
+}
+
 /** LIF-05: whole days since a moment that has passed ("the plan ended 2 days ago"); 0 on the day itself. */
 export function daysSince(iso: string | null, now = Date.now()): number | null {
   if (!iso) return null;

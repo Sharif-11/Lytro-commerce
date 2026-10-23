@@ -26,7 +26,13 @@ export function SideColumn(): React.JSX.Element | null {
         <ShopMark shopName={tenant.shopName} slug={slug} logo={tenant.logo} size={40} />
         <div className="min-w-0">
           <div className="text-[15px] leading-[1.3] font-semibold">{tenant.shopName}</div>
-          <div className="text-[12px] text-fg-subtle">{appConfig.shopHost(slug)}</div>
+          {/* A long address stays on one line, cut, and shows whole on hover (found with real data, Slice 11.4b). */}
+          <div
+            title={appConfig.shopHost(slug)}
+            className="overflow-hidden text-[12px] text-ellipsis whitespace-nowrap text-fg-subtle"
+          >
+            {appConfig.shopHost(slug)}
+          </div>
         </div>
       </div>
       <div className="px-2 pt-2 pb-1 text-[12px] font-semibold tracking-[0.06em] text-fg-subtle uppercase [html[lang=bn]_&]:text-[13px] [html[lang=bn]_&]:tracking-normal [html[lang=bn]_&]:normal-case">

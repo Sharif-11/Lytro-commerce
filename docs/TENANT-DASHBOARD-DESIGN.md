@@ -239,23 +239,36 @@ comes from), **Actions**, **States**.
 
 Phase 4 and 5 add payments to verify, orders to confirm, orders to book and unverified orders at the top of
 the queue. A key spending fast (RTE-12) is a banner above the queue, not a row: "More than 5% of this cycle's
-requests went in the last hour, from the "Website" key. Nothing is blocked; check the key", with See keys
-(`home-fast-spend`).
+requests went in the last hour. Nothing is blocked; check the keys", with See keys (`home-fast-spend`). `GET /home`
+carries only when the alert was raised, so the banner names no key (decided 2026-10-23).
 
-Then **Right now**: four tiles: Products (with the active count), Low stock (with the out count), Balance
-(with the free SMS used), Plan days left (with the date). Then the **set-up checklist** (SUP-01), the owner's
-alone, each item ticked by the server: "Get your shop ready" -- shop created and delivery charges (done from the
-start, with their amounts), add the first product, upload your logo, share the shop link (done once any shop or
-product link is copied or shared, on any device), and "add a wallet number" greyed until Phase 5; "Later, when you
-need them" -- create an API key (ticked once one is live), and connect a courier, choose SMS events and pair a
-listener phone, greyed with their phases. The checklist folds away once the first group is done, remembered per
-device, and can be opened again from Settings. Then the **shop link** card with Copy, Facebook and WhatsApp. On desktop the queue takes two thirds and the
-tiles, checklist and link the right third.
+The rows the prototype does not draw use its job row: the icon's tone by kind (stock and a low balance red,
+batches, payments being checked and an ending plan marigold, staff teal), and the count pill only on rows that
+count things (decided 2026-10-23).
 
-**Content.** `GET /home` (a Slice 11 addition, §10): the queue's counts and the checklist in one read, with
-"link shared" recorded by the server rather than on one phone; `/me` for the plan and its end; `GET /balance`
-for the tile. **States.** Day one: the checklist opens first and the tiles read zero with the trial days; a queue
-with nothing says so in one line.
+Then **Right now**: four tiles: Products (with the active count), Low stock (with the out count), Balance (with the
+free SMS used), Plan days left (with the date). Each shows only to whoever may see it (`products:read`,
+`inventory:read`, `balance:read`, `payments:read`); Low stock hides while the shop has no products, the days read
+"Trial days left" on a trial, and pay-as-you-go, which has no period, has no days tile. Then the **set-up
+checklist** (SUP-01), the owner's alone, each item ticked by the server: "Get your shop ready" -- shop created and
+delivery charges (done from the start, with their amounts), add the first product, upload your logo, share the shop
+link (done once any shop or product link is copied or shared, on any device), and "add a wallet number" greyed
+until Phase 5; "Later, when you need them" -- create an API key (ticked once one is live), and connect a courier,
+choose SMS events and pair a listener phone, greyed with their phases. The first group is the shop, its delivery, a
+first product, the logo and the link shared (the wallet number counts from Phase 5). Once it is done the checklist
+folds into one row in the side column, "Get your shop ready · 5 of 5 done", naming what is left for later; tapping
+it opens the list again for that visit (decided 2026-10-23). An item whose screen is not rebuilt yet is still
+ticked by the server: the first product opens Products, and the logo and the API key show without a way there until
+Slice 11.6. Then the **shop link** card with Copy, Facebook and WhatsApp, for every member; each records the link
+as shared. On desktop the queue takes two thirds and the tiles, checklist and link the right third; below 1024 px
+the two columns stack 16 px apart, as the items inside each column are (the prototype's `.two` leaves no space
+there).
+
+**Content.** `GET /home` (a Slice 11 addition, §10): the queue's counts, the tiles' figures and the checklist in
+one read, with "link shared" recorded by the server rather than on one phone, and the delivery item named after
+the shop's home area; `/me` for the plan and its end. **States.** Day one: the checklist opens first and the
+tiles read zero with the trial days; a queue with nothing says so in one line; a failed read says so with Try
+again.
 
 ### 7.2 Orders tab (placeholder)
 

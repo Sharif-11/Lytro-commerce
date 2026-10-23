@@ -16,7 +16,8 @@ export interface HomeView {
   staffWithoutPassword: number | null;
   fastSpendAlertedAt: string | null;
   checklist: {
-    deliveryCharges: { inside: string; outside: string };
+    /** The two zones' charges, and the home area they are named after ("Inside Dhaka city"). */
+    deliveryCharges: { area: { en: string; bn: string }; inside: string; outside: string };
     firstProduct: boolean;
     logo: boolean;
     linkShared: boolean;

@@ -227,6 +227,8 @@ test("signs a staff member in, has them choose their own password, and opens the
   await mockOnboarding(page);
   await page.goto('/sign-in');
   await page.getByRole('link', { name: 'স্টাফ? এখানে লগইন করুন' }).click();
+  // The owner's page has a phone field too: wait for the staff page before typing, or a slow load types into the old one.
+  await expect(page.getByRole('heading', { name: 'স্টাফ লগইন' })).toBeVisible();
   await page.getByLabel('ফোন নম্বর').fill('1811223344');
   await page.getByLabel('পাসওয়ার্ড').fill('owner-set-1');
   await page.getByRole('button', { name: 'লগইন করুন' }).click();

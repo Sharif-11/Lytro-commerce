@@ -28,10 +28,24 @@ export function StatTile({
   );
 }
 
-/** A row of figures: a sideways scroll on a phone, a grid of 150 px columns from 640 px. */
-export function StatRow({ children }: { children: ReactNode }): React.JSX.Element {
+/**
+ * A row of figures: a sideways scroll on a phone, a grid of 150 px columns from 640 px. It takes the keyboard's focus,
+ * so the figures past a phone's edge can be scrolled to without a pointer (WCAG 2.1.1).
+ */
+export function StatRow({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}): React.JSX.Element {
   return (
-    <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-0.5 [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-[repeat(auto-fit,minmax(150px,1fr))] sm:px-0 [&::-webkit-scrollbar]:hidden">
+    <div
+      role="group"
+      aria-label={label}
+      tabIndex={0}
+      className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-0.5 [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-[repeat(auto-fit,minmax(150px,1fr))] sm:px-0 [&::-webkit-scrollbar]:hidden"
+    >
       {children}
     </div>
   );

@@ -1,8 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { DashboardHome } from '@/views/dashboard-home';
+import { Home } from '@/views/home';
 
-// The first build's Home, framed by the new shell until Slice 11.4 rebuilds it.
+// TENANT-DASHBOARD-DESIGN §7.1: Home, every member's first screen in a shop; its parts follow their permissions.
 export const Route = createFileRoute('/$shop/')({
-  staticData: { screen: { hub: 'home', legacy: true } },
-  component: DashboardHome,
+  staticData: { screen: { hub: 'home', title: 'hubHome' } },
+  component: Home,
 });

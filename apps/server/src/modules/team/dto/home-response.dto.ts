@@ -22,7 +22,11 @@ export const homeViewSchema = z.object({
   // SUP-01: the owner's set-up checklist, as far as the server can tell it.
   checklist: z
     .object({
-      deliveryCharges: z.object({ inside: z.string(), outside: z.string() }),
+      deliveryCharges: z.object({
+        area: z.object({ en: z.string(), bn: z.string() }),
+        inside: z.string(),
+        outside: z.string(),
+      }),
       firstProduct: z.boolean(),
       logo: z.boolean(),
       linkShared: z.boolean(),

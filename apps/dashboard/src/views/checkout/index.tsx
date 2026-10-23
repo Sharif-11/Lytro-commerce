@@ -22,9 +22,6 @@ import { PricingTable, type PricedOption } from '@/lib/pricing-table';
 import { signUpIntent } from '@/session/sign-up-intent';
 import type { PlanPayment } from '@/types/billing';
 
-// Until Slice 11.4b rebuilds Home, the first build's Home reads this to say a payment is being checked.
-export const PENDING_PAYMENT_KEY = 'lytro.checkout.pending';
-
 /**
  * Step 2b (AUTH-29; TENANT-DASHBOARD-DESIGN §6 and §7.19, the prototype's `ob-checkout` as drawn before Phase 5's
  * hosted page): the plan and term picked on the pricing page, changeable; the price, its monthly equivalent and the
@@ -173,11 +170,6 @@ export function Checkout(): React.JSX.Element {
                   { paymentId: quote.id, method: 'wallet', ...values },
                   {
                     onSuccess: () => {
-                      try {
-                        sessionStorage.setItem(PENDING_PAYMENT_KEY, quote.planId ?? '');
-                      } catch {
-                        // The first build's Home note is a courtesy only.
-                      }
                       setSubmitted(true);
                     },
                   },

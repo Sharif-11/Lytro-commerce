@@ -1,7 +1,7 @@
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { test, type Page } from '@playwright/test';
-import { mockApi, SLUG, type Language } from './support/mock-api';
+import { DAY_ONE, mockApi, SLUG, type Language, type ShopState } from './support/mock-api';
 import {
   mockOnboarding,
   STARTER,
@@ -41,7 +41,11 @@ interface Pair {
   intent?: { shop?: string; planId?: string; termId?: string };
   /** What to do in the prototype before its picture. */
   draw?: (page: Page) => Promise<void>;
+  /** The prototype's shop state and the mocked shop drawn the same (a day-one shop); the working shop if left out. */
+  shop?: { drawn: string; state: ShopState };
 }
+
+const NEW_SHOP = { drawn: 'new', state: DAY_ONE };
 
 /**
  * The prototype's checkout as drawn before Phase 5's hosted page (its first `ob-checkout`, which a later part of the
@@ -58,6 +62,25 @@ async function drawWalletCheckout(page: Page): Promise<void> {
 }
 
 const PAIRS: Pair[] = [
+  { name: 'home', screen: 'home', device: 'phone', language: 'bn', path: '' },
+  { name: 'home', screen: 'home', device: 'tablet', language: 'bn', path: '' },
+  { name: 'home', screen: 'home', device: 'desktop', language: 'en', path: '' },
+  {
+    name: 'home-day-one',
+    screen: 'home',
+    device: 'phone',
+    language: 'bn',
+    path: '',
+    shop: NEW_SHOP,
+  },
+  {
+    name: 'home-day-one',
+    screen: 'home',
+    device: 'desktop',
+    language: 'bn',
+    path: '',
+    shop: NEW_SHOP,
+  },
   { name: 'orders', screen: 'orders-soon', device: 'phone', language: 'bn', path: '/orders' },
   { name: 'orders', screen: 'orders-soon', device: 'tablet', language: 'bn', path: '/orders' },
   { name: 'orders', screen: 'orders-soon', device: 'desktop', language: 'en', path: '/orders' },
@@ -238,6 +261,7 @@ test.describe('the built shell beside the prototype', () => {
       await drawing.click(`#segLang button[data-v="${pair.language}"]`);
       await drawing.click(`#segDevice button[data-v="${pair.device}"]`);
       if (pair.draw) await pair.draw(drawing);
+      if (pair.shop) await drawing.selectOption('#selState', pair.shop.drawn);
       await drawing.selectOption('#selScreen', pair.screen);
       await drawing.waitForTimeout(400);
       await drawing.locator('#frame .shell').screenshot({ path: `${out}-prototype.png` });
@@ -256,7 +280,7 @@ test.describe('the built shell beside the prototype', () => {
         await mockOnboarding(app, { language: pair.language, ...pair.journey });
         await app.goto(pair.path);
       } else {
-        await mockApi(app, { language: pair.language });
+        await mockApi(app, { ...pair.shop?.state, language: pair.language });
         await app.goto(`/${SLUG}${pair.path}`);
       }
       await app.waitForLoadState('networkidle');
