@@ -1,27 +1,26 @@
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
-import { Button } from '@lytronix/ui';
-import { StepFrame } from '@/components/ui/step-frame';
+import { OnboardingFrame, StepLinks } from '@/components/onboarding/frame';
+import { buttonClass } from '@/components/ui/classes';
 import { appConfig } from '@/lib/app-config';
 
-/** LIF-24's wording for a shop that is not available, with a support button and no reason. */
+/**
+ * LIF-24's wording for a shop that is not available, with a support button and no reason. In the onboarding frame
+ * until Slice 11.5 draws it as the prototype's `unavailable`, beside the Renew page.
+ */
 export function Unavailable(): React.JSX.Element {
   const { t } = useTranslation();
+  const { t: tOnboarding } = useTranslation('onboarding');
   return (
-    <StepFrame
-      title={t('shop.suspended.title')}
-      lead={t('shop.suspended.lead')}
-      footer={
-        <Link to="/sign-in" search={{}} className="font-semibold text-brand-800 underline">
-          {t('forgotPassword.backToSignIn')}
-        </Link>
-      }
-    >
-      <a href={appConfig.contactUrl()} className="block">
-        <Button type="button" tone="outline">
-          {t('shop.suspended.contactSupport')}
-        </Button>
+    <OnboardingFrame title={t('shop.suspended.title')} lead={t('shop.suspended.lead')}>
+      <a href={appConfig.contactUrl()} className={buttonClass('outline', 'md', true)}>
+        {t('shop.suspended.contactSupport')}
       </a>
-    </StepFrame>
+      <StepLinks>
+        <Link to="/sign-in" search={{}}>
+          {tOnboarding('backSignIn')}
+        </Link>
+      </StepLinks>
+    </OnboardingFrame>
   );
 }

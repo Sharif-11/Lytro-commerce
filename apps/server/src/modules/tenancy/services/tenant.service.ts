@@ -271,6 +271,12 @@ export class TenantService {
     return this.store.findDeletedShopsOf(tx, subscriberId);
   }
 
+  /** LIF-21: whether the account owns a deleted shop, whose balance its next shop takes over. */
+  async hasDeletedShop(subscriberId: string): Promise<boolean> {
+    const shops = await this.runStandalone((tx) => this.store.findDeletedShopsOf(tx, subscriberId));
+    return shops.length > 0;
+  }
+
   /** TEN-30: the owner's own contact phone/email/business address. */
   findContactDetails(tx: Transaction, tenantId: string): Promise<ContactDetailsRow | null> {
     return this.store.findContactDetails(tx, tenantId);

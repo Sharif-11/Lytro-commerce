@@ -1,5 +1,5 @@
 import type { ButtonHTMLAttributes, HTMLAttributes, ReactNode } from 'react';
-import { chipClass } from './classes';
+import { chipClass, type ChipSize } from './classes';
 
 /** A row of chips that scrolls sideways on a phone and sits in the page's padding from 640 px. */
 export function ChipRow({ className, ...rest }: HTMLAttributes<HTMLDivElement>): React.JSX.Element {
@@ -39,14 +39,14 @@ export function ChipCount({
 interface ChipProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   on?: boolean;
   count?: number | null;
-  compact?: boolean;
+  size?: ChipSize;
 }
 
 /** A filter or choice chip (the prototype's `.chip`); a chip that goes somewhere is a link with `chipClass`. */
 export function Chip({
   on = false,
   count = null,
-  compact = false,
+  size = 'md',
   className,
   children,
   type = 'button',
@@ -56,7 +56,7 @@ export function Chip({
     <button
       type={type}
       aria-pressed={on}
-      className={[chipClass(on, compact), className].filter(Boolean).join(' ')}
+      className={[chipClass(on, size), className].filter(Boolean).join(' ')}
       {...rest}
     >
       {children}

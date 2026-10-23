@@ -23,7 +23,7 @@ import {
   useVerifyIdentity,
 } from '@/api/identities';
 import { FacebookIcon, GoogleIcon } from '@/components/brand/oauth-icons';
-import { OtpInput } from '@/components/ui/otp-input';
+import { CodeBoxes } from '@/components/ui/code-boxes';
 import { Sheet } from '@/components/ui/sheet';
 import { Toast } from '@/components/ui/toast';
 import { useToast } from '@/hooks/use-toast';
@@ -293,7 +293,7 @@ export function Account(): React.JSX.Element {
                     : adding.value,
               })}
             </p>
-            <OtpInput value={code} onChange={setCode} />
+            <CodeBoxes value={code} onChange={setCode} label={t('account.confirmCode')} />
             {verify.isError ? <ErrorBanner message={errorMessage(verify.error, t)} /> : null}
             <Button
               type="button"

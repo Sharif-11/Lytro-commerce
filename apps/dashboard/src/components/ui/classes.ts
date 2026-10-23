@@ -36,11 +36,16 @@ export function buttonClass(
     .join(' ');
 }
 
-/** A chip's classes: 36 px, or 32 px for a hub's section chips. */
-export function chipClass(on: boolean, compact = false): string {
+/** A chip's height: 32 px for a hub's section chips, 36 px for filters, 40 px for a step's answers. */
+export type ChipSize = 'sm' | 'md' | 'lg';
+
+const CHIP_HEIGHTS: Record<ChipSize, string> = { sm: 'h-8', md: 'h-9', lg: 'h-10' };
+
+/** A chip's classes. */
+export function chipClass(on: boolean, size: ChipSize = 'md'): string {
   return [
     'inline-flex flex-none items-center gap-1.5 rounded-full border px-3.5 text-[14px] font-medium whitespace-nowrap',
-    compact ? 'h-8' : 'h-9',
+    CHIP_HEIGHTS[size],
     on ? 'border-primary bg-primary text-white' : 'border-line bg-surface text-fg-muted',
   ].join(' ');
 }

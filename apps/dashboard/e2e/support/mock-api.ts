@@ -21,15 +21,24 @@ export interface ShopState {
   stock?: { low: number; out: number } | null;
 }
 
-function envelope(data: unknown, statusCode = 200): string {
+export function envelope(data: unknown, statusCode = 200): string {
   return JSON.stringify({ success: true, statusCode, message: 'OK', data });
+}
+
+/** A refusal in the server's error envelope (API-CONTRACT §2.6), with its message already worded. */
+export function refusal(
+  code: string,
+  message: string,
+  details: Record<string, unknown> = {},
+): string {
+  return JSON.stringify({ success: false, statusCode: 0, message, errors: { code, details } });
 }
 
 function shopName(language: Language): string {
   return language === 'bn' ? 'মেঘ ফ্যাশন' : 'Megh Fashion';
 }
 
-function me(state: Required<ShopState>): unknown {
+export function me(state: Required<ShopState>): unknown {
   return {
     subscriber: { id: 'sub-1' },
     isOwner: state.isOwner,
@@ -50,6 +59,7 @@ function me(state: Required<ShopState>): unknown {
     shops: [
       { slug: SLUG, shopName: shopName(state.language), role: state.isOwner ? 'owner' : 'staff' },
     ],
+    hasDeletedShop: false,
   };
 }
 
@@ -100,12 +110,9 @@ const FIRST_BUILD_READS: Record<string, unknown> = {
   '/staff': { seats: { used: 2, total: 2 }, staff: [] },
 };
 
-/**
- * Signs the browser in (the CSRF copy a reload keeps, SEC-14), sets its language, and answers every /api/v1 call:
- * /me, /home, products and categories from the fixtures, and anything else with an empty success.
- */
-export async function mockApi(page: Page, given: ShopState = {}): Promise<void> {
-  const state: Required<ShopState> = {
+/** The shop's state with every field filled in: the prototype's working shop unless a test says otherwise. */
+export function shopState(given: ShopState = {}): Required<ShopState> {
+  return {
     language: 'bn',
     state: 'active',
     periodEndDays: 20,
@@ -114,25 +121,42 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<void> 
     stock: { low: 1, out: 1 },
     ...given,
   };
-  await page.addInitScript((language: string) => {
-    sessionStorage.setItem('lytro.tenant.csrf', 'csrf-e2e');
-    // The test's language on the first load only, so a switch the test makes survives a reload (I18N-02).
+}
+
+/** What a signed-in shop's call answers: /me, /home, products and categories from the fixtures, else an empty success. */
+export function shopAnswer(path: string, url: URL, state: Required<ShopState>): unknown {
+  if (path === '/me') return me(state);
+  if (path === '/home') return home(state);
+  if (path === '/products') return products(state.language, url.searchParams.get('search') ?? '');
+  if (path === '/categories') return categories(state.language);
+  return FIRST_BUILD_READS[path] ?? {};
+}
+
+/** Sets the browser's language on the first load only, so a switch the test makes survives a reload (I18N-02). */
+export async function startIn(page: Page, language: Language): Promise<void> {
+  await page.addInitScript((each: string) => {
     if (localStorage.getItem('lytro.language') === null)
-      localStorage.setItem('lytro.language', language);
-  }, state.language);
+      localStorage.setItem('lytro.language', each);
+  }, language);
+}
+
+/**
+ * Signs the browser in (the CSRF copy a reload keeps, SEC-14), sets its language, and answers every /api/v1 call
+ * as the shop does.
+ */
+export async function mockApi(page: Page, given: ShopState = {}): Promise<void> {
+  const state = shopState(given);
+  await page.addInitScript(() => {
+    sessionStorage.setItem('lytro.tenant.csrf', 'csrf-e2e');
+  });
+  await startIn(page, state.language);
   await page.route('**/api/v1/**', async (route: Route) => {
     const url = new URL(route.request().url());
     const path = url.pathname.replace(/^\/api\/v1/, '');
-    const body =
-      path === '/me'
-        ? me(state)
-        : path === '/home'
-          ? home(state)
-          : path === '/products'
-            ? products(state.language, url.searchParams.get('search') ?? '')
-            : path === '/categories'
-              ? categories(state.language)
-              : (FIRST_BUILD_READS[path] ?? {});
-    await route.fulfill({ status: 200, contentType: 'application/json', body: envelope(body) });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: envelope(shopAnswer(path, url, state)),
+    });
   });
 }

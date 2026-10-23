@@ -200,18 +200,18 @@ Lytro" at the foot. Every field is 48 px, every button full width, every message
 
 | Screen (route) | What it shows | States drawn | SRS |
 | --- | --- | --- | --- |
-| Sign-in `/sign-in` | the held address and picked plan as chips when the visitor came from the site; phone with `+880`; **এগিয়ে যান**; "use a password instead"; the free-SMS line; Google and Facebook with their marks; the terms line; the staff link | code mode; password mode with "forgot your password?" | AUTH-01, 12, 21, 24, 28, 29, LEG-01 |
-| Verify code `/verify-code` | six boxes, "works for 5 minutes", resend countdown, change number, use a password | three digits typed; wrong code with tries left and the 15-minute lock line | AUTH-05 to 07, 13, 14 |
+| Sign-in `/sign-in` | the address brought from the site ("Your link: megh.lytro.app", promising nothing: create-shop checks it) and the picked plan as chips; phone with `+880`; **এগিয়ে যান**; "use a password instead"; the free-SMS line; Google and Facebook with their marks; the terms line; the staff link | code mode; password mode with "forgot your password?" | AUTH-01, 12, 21, 24, 28, 29, LEG-01 |
+| Verify code `/verify-code` | six boxes, "works for 5 minutes", resend countdown, change number, use a password (password sign-in with the number kept) | three digits typed; wrong code with tries left and the 15-minute lock line | AUTH-05 to 07, 13, 14 |
 | OAuth return `/auth/oauth/:p/callback` | a spinner and "back to sign-in" | | AUTH-24 |
-| Create shop `/create-shop` | shop name (any script, 60); the link with the `.lytro.app` suffix and the live verdict; both addresses previewed; owner name; the final-address line; **দোকান তৈরি করুন** | available; taken with the `megh-2` chip; refused (AUTH-30) with everything kept; after a deleted shop, the carry-over note | AUTH-10, 11, 23, 30, TEN-19, 26, 31 |
+| Create shop `/create-shop` | shop name (any script, 60); the link with the `.lytro.app` suffix, filled from the name's Latin letters as it is typed until the owner edits it, and the live verdict (`GET /shops/address-check`) with the server's next free one as a chip; both addresses previewed; owner name; the final-address line; **দোকান তৈরি করুন** | available; taken with the `megh-2` chip (the final-address line only for a free one); refused (AUTH-30) with everything kept; after a deleted shop, the carry-over note (`/me`'s `hasDeletedShop`) | AUTH-10, 11, 23, 30, TEN-19, 26, 31 |
 | Checkout `/checkout` | plan and term chips; price, monthly equivalent and saving; the no-refund line; the four wallet marks; **পেমেন্ট পেজে যান · ৳4,741**, which opens the hosted payment page with Lytro as the payee (§7.19); "continue without paying" | before; returned while the payment is still being checked ("your shop runs on the trial meanwhile"); returned paid ("Starter is on", the period, invoice, SMS and email) | AUTH-29, BIL-01, 02, 03, 04, 18, TRM-12, PAY-21 |
-| Set password `/set-password` | the new password with three live rules; Save; Skip | optional; Facebook-only account with the recovery note; required (no Skip) after a reset or an owner-set staff password | AUTH-19, 20, 27 |
-| Set up `/set-up` | the eleven shop types as chips; the home area as chips with a search; the two-zone preview (৳70 inside, ৳130 outside); Save or Skip | | AUTH-28, PST-01, DLV-01 |
+| Set password `/set-password` | the new password with three live rules (8 to 20 characters, a digit, not a phone number), held on the screen; the server keeps AUTH-03's length (decided 2026-10-23); Save; Skip | optional; Facebook-only account with the recovery note; required (no Skip) after a reset or an owner-set staff password | AUTH-19, 20, 27 |
+| Set up `/set-up` | the shop types as chips, from `GET /presets`; the home area as eight chips (five cities, three districts) with a search over every city and district, named as the server names them ("ঢাকা সিটি"); the two-zone preview (৳70 inside, ৳130 outside); Save sends only what differs, Skip nothing | | AUTH-28, PST-01, DLV-01 |
 | Staff sign-in `/staff-sign-in` | phone and the owner-set password; the "ask the owner" line; the owner link | | AUTH-31 |
 | Staff new password `/staff-set-password` | the required password screen with the staff lead | | AUTH-19, STF-13 |
 | Forgot password `/forgot-password`, `/verify` | phone; the same-reply line; the reset code boxes; then the required password screen | | AUTH-17, 18 |
 | Opening your shop `/shops` | a spinner while `/me` answers | | TEN-31 |
-| Shop picker `/shops` | the person's shops with role and address; no "new shop" | | TEN-15, TEN-31 |
+| Shop picker `/shops` | the person's shops from `/me`, with role and address; no "new shop"; one opens at once | | TEN-15, TEN-31 |
 
 The set-up answers reach the dashboard's defaults: the business type through `PUT /business-type` and the
 home area through `PUT /delivery-zones/home-area` (both built).
@@ -817,6 +817,7 @@ brand identity.
 | The units and outstanding units of each purchase in the list, and the "coming" total | purchasing | §7.21 (PUR-05) | built (11.1a) |
 | A supplier's last purchase | purchasing | §7.21 | built (11.1a) |
 | The brand identity: its storage, the approved fonts, the contrast check shared with the editor, the switch held to the add-on or the plan, and the tokens the dashboard and the storefront read | brand | §7.28 (BRN-02, 03, 07) | built (11.2) |
+| `hasDeletedShop` on `/me` | identity | create-shop's carry-over note (LIF-21) | built (11.4a) |
 | `GET /usage`, media upload, add-ons and packs, API keys, purchases and suppliers, Meta | | §7.21 to §7.27 | built |
 | Invoice PDF | billing | BIL-13 | later |
 | Pay-as-you-go estimate | billing | PYG-12 (needs order history) | later |

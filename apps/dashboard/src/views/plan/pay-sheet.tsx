@@ -13,7 +13,7 @@ import { Button, ErrorBanner, formatTaka } from '@lytronix/ui';
 import { Sheet } from '@/components/ui/sheet';
 import type { PricingTable } from '@/lib/pricing-table';
 import type { Plan, PlanPayment } from '@/types/billing';
-import { WalletStep } from '@/views/billing/wallet-step';
+import { WalletStep } from '@/components/wallet-step';
 
 export interface PayIntent {
   kind: 'purchase' | 'upgrade';

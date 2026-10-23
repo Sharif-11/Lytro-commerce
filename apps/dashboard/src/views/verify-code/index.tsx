@@ -2,17 +2,22 @@ import { useState, type SyntheticEvent } from 'react';
 import { Link, useSearch } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { useRequestSigninCode, useVerifyCode } from '@/api/auth';
-import { errorMessage } from '@lytronix/api-client';
-import { Button, ErrorBanner } from '@lytronix/ui';
-import { OtpInput } from '@/components/ui/otp-input';
-import { StepFrame } from '@/components/ui/step-frame';
+import { OnboardingFrame, StepLinks } from '@/components/onboarding/frame';
+import { Banner } from '@/components/ui/banner';
+import { Button } from '@/components/ui/button';
+import { CodeBoxes } from '@/components/ui/code-boxes';
 import { useCountdown } from '@/hooks/use-countdown';
+import { useErrorText } from '@/hooks/use-error-text';
 import { bangladeshiPhone } from '@/lib/phone';
 
-/** Step 1b (AUTH-05..07, 13, 14): six boxes, five-minute validity, resend after 60 s, the server's own
-    wrong-code message with tries left, and the password alternative for accounts that have one. */
+/**
+ * Step 1b (AUTH-05 to 07, 13, 14; the prototype's `ob-verify`): six boxes, how long the code works, resend after its
+ * wait, a different number, or a password instead. A wrong code turns the boxes red with the server's own line of
+ * tries left, and says what five wrong codes do.
+ */
 export function VerifyCode(): React.JSX.Element {
-  const { t } = useTranslation();
+  const { t } = useTranslation('onboarding');
+  const errorText = useErrorText();
   const search = useSearch({ from: '/verify-code' });
   const [expiresInSeconds, setExpiresInSeconds] = useState(search.expiresInSeconds);
   const [resendAfterSeconds, setResendAfterSeconds] = useState(search.resendAfterSeconds);
@@ -27,71 +32,72 @@ export function VerifyCode(): React.JSX.Element {
   function handleSubmit(event: SyntheticEvent<HTMLFormElement>): void {
     event.preventDefault();
     if (!/^\d{6}$/.test(code)) {
-      setFormError(t('verify.invalidCode'));
+      setFormError(t('invalidCode'));
       return;
     }
     setFormError(null);
     verify.mutate({ phone: search.phone, code });
   }
 
+  const wrong = verify.isError ? errorText(verify.error) : null;
+  const boxesError = formError ?? wrong ?? (expiresIn === 0 ? t('codeExpired') : null);
+
   return (
-    <StepFrame
-      step="identity"
-      title={t('verify.title')}
-      lead={t('verify.lead', { phone: bangladeshiPhone.display(search.phone) })}
-      footer={
-        <div className="flex flex-wrap gap-x-5 gap-y-1">
-          <Link
-            to="/sign-in"
-            search={{}}
-            className="min-h-10 font-semibold text-brand-800 underline"
-          >
-            {t('verify.changeNumber')}
-          </Link>
-          <Link
-            to="/sign-in"
-            search={{}}
-            className="min-h-10 font-semibold text-neutral-700 underline"
-          >
-            {t('verify.usePassword')}
-          </Link>
-        </div>
-      }
+    <OnboardingFrame
+      step={0}
+      title={t('vTitle')}
+      lead={t('vLead', { phone: bangladeshiPhone.international(search.phone) })}
     >
-      <form className="space-y-5" onSubmit={handleSubmit}>
-        <OtpInput
+      <form className="flex flex-col gap-3.5" onSubmit={handleSubmit} noValidate>
+        <CodeBoxes
           value={code}
-          onChange={setCode}
-          disabled={verify.isPending}
-          error={formError ?? (expiresIn === 0 ? t('verify.expired') : undefined)}
-        />
-        {expiresIn > 0 ? (
-          <p className="num text-center text-[14px] text-neutral-700">
-            {t('verify.validFor', { minutes: Math.ceil(expiresIn / 60) })}
-          </p>
-        ) : null}
-        {verify.isError ? <ErrorBanner message={errorMessage(verify.error, t)} /> : null}
-        <Button type="submit" loading={verify.isPending} disabled={expiresIn === 0}>
-          {t('verify.submit')}
-        </Button>
-        <Button
-          type="button"
-          tone="ghost"
-          disabled={resendIn > 0 || resend.isPending}
-          onClick={() => {
-            resend.mutate(search.phone, {
-              onSuccess: (data) => {
-                setCode('');
-                setExpiresInSeconds(data.expiresInSeconds);
-                setResendAfterSeconds(data.resendAfterSeconds);
-              },
-            });
+          onChange={(next) => {
+            setCode(next);
+            setFormError(null);
           }}
-        >
-          {resendIn > 0 ? t('verify.resendIn', { seconds: resendIn }) : t('verify.resend')}
+          error={boxesError}
+          disabled={verify.isPending}
+          label={t('vTitle')}
+        />
+        {boxesError ? null : (
+          <p className="text-[14px] text-fg-muted">
+            {t('vValid', { minutes: Math.ceil(search.expiresInSeconds / 60) })}
+          </p>
+        )}
+        <Button type="submit" wide busy={verify.isPending} disabled={expiresIn === 0}>
+          {t('vSubmit')}
         </Button>
-        {resend.isError ? <ErrorBanner message={errorMessage(resend.error, t)} /> : null}
       </form>
-    </StepFrame>
+      <StepLinks>
+        {resendIn > 0 ? (
+          <span className="num text-fg-muted">{t('vResendIn', { s: resendIn })}</span>
+        ) : (
+          <button
+            type="button"
+            disabled={resend.isPending}
+            onClick={() => {
+              resend.mutate(search.phone, {
+                onSuccess: (data) => {
+                  setCode('');
+                  verify.reset();
+                  setExpiresInSeconds(data.expiresInSeconds);
+                  setResendAfterSeconds(data.resendAfterSeconds);
+                },
+              });
+            }}
+          >
+            {t('vResend')}
+          </button>
+        )}
+        <Link to="/sign-in" search={{}}>
+          {t('vChange')}
+        </Link>
+        <Link to="/sign-in" search={{ mode: 'password', phone: search.phone }}>
+          {t('usePw')}
+        </Link>
+      </StepLinks>
+      {resend.isError ? <Banner tone="bad">{errorText(resend.error)}</Banner> : null}
+      {wrong ? <p className="text-[14px] text-fg-muted">{t('vLocked')}</p> : null}
+    </OnboardingFrame>
   );
 }

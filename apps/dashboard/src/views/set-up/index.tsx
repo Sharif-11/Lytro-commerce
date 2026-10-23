@@ -1,126 +1,174 @@
 import { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
+import { DEFAULT_FALLBACK_ZONE_CHARGE, DEFAULT_HOME_ZONE_CHARGE } from '@lytronix/validators';
+import { formatTaka } from '@lytronix/ui';
 import { useMe } from '@/api/me';
-import { Button, Chip, formatTaka } from '@lytronix/ui';
-import { StepFrame } from '@/components/ui/step-frame';
+import { useLocations, usePresets, useSetBusinessType, useSetHomeArea } from '@/api/shop-setup';
+import { Icon } from '@/components/icon';
+import { OnboardingFrame, StepLinks } from '@/components/onboarding/frame';
+import { Banner } from '@/components/ui/banner';
+import { Button } from '@/components/ui/button';
+import { Chip } from '@/components/ui/chips';
+import { useErrorText } from '@/hooks/use-error-text';
+import { AreaSearchSheet } from './area-search-sheet';
 import {
-  DEFAULT_ZONE_CHARGES,
-  HOME_AREAS,
-  SHOP_TYPES,
-  shopSetupStore,
+  DEFAULT_HOME_AREA,
+  featuredAreas,
+  homeAreaInput,
+  sameArea,
   type HomeArea,
-  type ShopType,
-} from '@/session/shop-setup-store';
+} from './home-areas';
 
 /**
- * Step 4 (AUTH-28): what the shop mainly sells (PST-01) and where it delivers from (DLV-01), both skippable
- * and changeable later. The two default zones preview as the owner picks, so the shop sells with no
- * further setup. Skipping keeps the defaults. The answers are held on this device until the Phase 3
- * endpoints exist (session/shop-setup-store.ts).
+ * Step 4 (AUTH-28, PST-01, DLV-01; the prototype's `ob-setup`): what the shop mainly sells, from the operator's list
+ * of shop types, and where it delivers from, as one city or one district -- the prototype's eight, or any other by
+ * search -- with the two zones it makes previewed at the server's own charges. Both are skippable and changeable
+ * later; Save sends only what differs from the shop's start (no type yet, Dhaka city), and Skip sends nothing.
  */
 export function SetUp(): React.JSX.Element {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation('onboarding');
+  const errorText = useErrorText();
   const navigate = useNavigate();
   const me = useMe();
-  const [shopType, setShopType] = useState<ShopType | null>(null);
-  const [homeArea, setHomeArea] = useState<HomeArea>('dhaka_city');
+  const presets = usePresets();
+  const locations = useLocations();
+  const setBusinessType = useSetBusinessType();
+  const setHomeArea = useSetHomeArea();
+  const [shopType, setShopType] = useState<string | null>(null);
+  const [area, setArea] = useState<HomeArea>(DEFAULT_HOME_AREA);
+  const [searching, setSearching] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<unknown>(null);
 
-  const slug = me.data?.tenant?.slug ?? null;
+  const bn = i18n.language === 'bn';
+  const nameOf = (each: HomeArea): string => {
+    if (each.kind === 'city') {
+      const city = locations.data?.cities.find((item) => item.code === each.code);
+      return city ? (bn ? city.nameBn : city.nameEn) : each.code;
+    }
+    const zilla = locations.data?.zillas.find((item) => item.id === each.id);
+    return zilla ? t('districtName', { name: bn ? zilla.nameBn : zilla.nameEn }) : '';
+  };
 
-  function finish(save: boolean): void {
-    if (slug) {
-      shopSetupStore.update(slug, {
-        shopType: save ? shopType : null,
-        homeArea: save ? homeArea : 'dhaka_city',
-        setUpDone: true,
-      });
-      void navigate({ to: '/$shop', params: { shop: slug } });
-    } else {
-      void navigate({ to: '/shops' });
+  const featured = locations.data ? featuredAreas(locations.data) : [];
+  // An area picked by search joins the chips, chosen.
+  const chips = featured.some((each) => sameArea(each, area)) ? featured : [...featured, area];
+
+  function finish(): void {
+    const slug = me.data?.tenant?.slug;
+    if (slug) void navigate({ to: '/$shop', params: { shop: slug } });
+    else void navigate({ to: '/shops' });
+  }
+
+  async function save(): Promise<void> {
+    setSaving(true);
+    setError(null);
+    try {
+      await Promise.all([
+        shopType === null ? null : setBusinessType.mutateAsync(shopType),
+        sameArea(area, DEFAULT_HOME_AREA) ? null : setHomeArea.mutateAsync(homeAreaInput(area)),
+      ]);
+      finish();
+    } catch (failure) {
+      setError(failure);
+      setSaving(false);
     }
   }
 
-  const areaName = t(`setUp.areas.${homeArea}`);
+  const areaName = nameOf(area);
 
   return (
-    <StepFrame
-      step="setUp"
-      title={t('setUp.title')}
-      lead={t('setUp.lead')}
-      footer={
-        <button
-          type="button"
-          className="min-h-10 font-semibold text-brand-800 underline"
-          onClick={() => {
-            finish(false);
-          }}
-        >
-          {t('setUp.skip')}
+    <OnboardingFrame step={3} title={t('suTitle')} lead={t('suLead')}>
+      <section>
+        <h2 className="text-[16px] font-bold">{t('suQ1')}</h2>
+        <p className="mt-0.5 mb-2.5 text-[14px] text-fg-muted">{t('suH1')}</p>
+        <div className="flex flex-wrap gap-2">
+          {(presets.data ?? []).map((preset) => (
+            <Chip
+              key={preset.key}
+              size="lg"
+              on={shopType === preset.key}
+              onClick={() => {
+                setShopType(shopType === preset.key ? null : preset.key);
+              }}
+            >
+              {bn ? preset.labelBn : preset.labelEn}
+            </Chip>
+          ))}
+        </div>
+      </section>
+      <section>
+        <h2 className="text-[16px] font-bold">{t('suQ2')}</h2>
+        <p className="mt-0.5 mb-2.5 text-[14px] text-fg-muted">{t('suH2')}</p>
+        <div className="flex flex-wrap gap-2">
+          {chips.map((each) => (
+            <Chip
+              key={each.kind === 'city' ? `c-${each.code}` : `z-${String(each.id)}`}
+              size="lg"
+              on={sameArea(each, area)}
+              onClick={() => {
+                setArea(each);
+              }}
+            >
+              {nameOf(each)}
+            </Chip>
+          ))}
+          {locations.data ? (
+            <Chip
+              size="lg"
+              onClick={() => {
+                setSearching(true);
+              }}
+            >
+              <Icon name="search" size={16} />
+              {t('haSearch')}
+            </Chip>
+          ) : null}
+        </div>
+        <div className="num mt-2.5 flex flex-col gap-1.5 rounded-[8px] border border-line bg-neutral-50 px-3 py-2.5 text-[14px]">
+          <span>
+            <span className="text-[13px] text-fg-muted">{t('inside', { a: areaName })}</span>
+            <br />
+            <span className="font-semibold">{formatTaka(DEFAULT_HOME_ZONE_CHARGE)}</span>
+          </span>
+          <span>
+            <span className="text-[13px] text-fg-muted">{t('outside', { a: areaName })}</span>
+            <br />
+            <span className="font-semibold">{formatTaka(DEFAULT_FALLBACK_ZONE_CHARGE)}</span>
+          </span>
+        </div>
+        <p className="mt-0.5 mb-2.5 text-[14px] text-fg-muted">{t('suNote')}</p>
+      </section>
+      {error ? <Banner tone="bad">{errorText(error)}</Banner> : null}
+      <Button
+        wide
+        busy={saving}
+        onClick={() => {
+          void save();
+        }}
+      >
+        {t('suSubmit')}
+      </Button>
+      <StepLinks>
+        <button type="button" onClick={finish}>
+          {t('pwSkip')}
         </button>
-      }
-    >
-      <div className="space-y-7">
-        <section>
-          <h2 className="text-[16px] font-bold text-ink">{t('setUp.shopTypeQuestion')}</h2>
-          <p className="mt-1 text-[14px] text-neutral-700">{t('setUp.shopTypeHint')}</p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {SHOP_TYPES.map((type) => (
-              <Chip
-                key={type}
-                selected={shopType === type}
-                onClick={() => {
-                  setShopType(shopType === type ? null : type);
-                }}
-              >
-                {t(`setUp.types.${type}`)}
-              </Chip>
-            ))}
-          </div>
-        </section>
-
-        <section>
-          <h2 className="text-[16px] font-bold text-ink">{t('setUp.homeAreaQuestion')}</h2>
-          <p className="mt-1 text-[14px] text-neutral-700">{t('setUp.homeAreaHint')}</p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {HOME_AREAS.map((area) => (
-              <Chip
-                key={area}
-                selected={homeArea === area}
-                onClick={() => {
-                  setHomeArea(area);
-                }}
-              >
-                {t(`setUp.areas.${area}`)}
-              </Chip>
-            ))}
-          </div>
-          <dl className="num mt-4 grid grid-cols-2 gap-2 text-[14px]">
-            <div className="rounded-card border border-line bg-neutral-50 px-3.5 py-3">
-              <dt className="text-neutral-700">{t('setUp.insideZone', { area: areaName })}</dt>
-              <dd className="mt-1 text-[20px] font-bold text-ink">
-                {formatTaka(DEFAULT_ZONE_CHARGES.inside)}
-              </dd>
-            </div>
-            <div className="rounded-card border border-line bg-neutral-50 px-3.5 py-3">
-              <dt className="text-neutral-700">{t('setUp.outsideZone', { area: areaName })}</dt>
-              <dd className="mt-1 text-[20px] font-bold text-ink">
-                {formatTaka(DEFAULT_ZONE_CHARGES.outside)}
-              </dd>
-            </div>
-          </dl>
-          <p className="mt-2 text-[13px] text-neutral-700">{t('setUp.zonesNote')}</p>
-        </section>
-
-        <Button
-          type="button"
-          onClick={() => {
-            finish(true);
+      </StepLinks>
+      {locations.data ? (
+        <AreaSearchSheet
+          open={searching}
+          locations={locations.data}
+          nameOf={nameOf}
+          onPick={(picked) => {
+            setArea(picked);
+            setSearching(false);
           }}
-        >
-          {t('setUp.submit')}
-        </Button>
-      </div>
-    </StepFrame>
+          onClose={() => {
+            setSearching(false);
+          }}
+        />
+      ) : null}
+    </OnboardingFrame>
   );
 }
