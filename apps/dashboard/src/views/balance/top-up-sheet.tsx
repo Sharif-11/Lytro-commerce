@@ -8,7 +8,7 @@ import { Button, Chip, ErrorBanner, formatTaka, Icon } from '@lytronix/ui';
 import { Sheet, Stepper } from '@/components/ui/sheet';
 import type { RateValue } from '@/types/balance';
 import type { PlanPayment } from '@/types/billing';
-import { WalletStep } from '@/views/billing/wallet-step';
+import { WalletStep } from '@/components/wallet-step';
 
 const QUICK_AMOUNTS = [200, 500, 1000, 2000];
 

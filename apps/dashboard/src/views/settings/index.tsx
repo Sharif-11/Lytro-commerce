@@ -7,12 +7,16 @@ import { useShopSettings, useUpdateShopSettings } from '@/api/shop-settings';
 import { Toast } from '@/components/ui/toast';
 import { useToast } from '@/hooks/use-toast';
 import { appConfig } from '@/lib/app-config';
-import { DEFAULT_ZONE_CHARGES, shopSetupStore } from '@/session/shop-setup-store';
+import { useBusinessType, useDeliverySettings, usePresets } from '@/api/shop-setup';
 
 /** Shop settings (TEN-30, RAT-14): grouped cards, each with its own Save, and a toast on success. */
 export function ShopSettingsView(): React.JSX.Element {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const me = useMe();
+  // The shop type and the zones' charges are the server's (PST-01, DLV-01) -- what set-up saved.
+  const businessType = useBusinessType();
+  const presets = usePresets();
+  const delivery = useDeliverySettings();
   const settings = useShopSettings();
   const update = useUpdateShopSettings();
   const toast = useToast();
@@ -31,7 +35,10 @@ export function ShopSettingsView(): React.JSX.Element {
   }, [settings.data]);
 
   const tenant = me.data?.tenant ?? null;
-  const setup = tenant ? shopSetupStore.read(tenant.slug) : null;
+  const zones = delivery.data?.zones ?? [];
+  const homeCharge = zones.find((zone) => zone.isHome)?.charge ?? null;
+  const fallbackCharge = zones.find((zone) => zone.isFallback)?.charge ?? null;
+  const preset = presets.data?.find((each) => each.key === businessType.data) ?? null;
 
   function saveContact(event: SyntheticEvent<HTMLFormElement>): void {
     event.preventDefault();
@@ -137,7 +144,7 @@ export function ShopSettingsView(): React.JSX.Element {
               <TextField
                 label={t('settings.insideCity')}
                 name="insideCity"
-                value={formatTaka(DEFAULT_ZONE_CHARGES.inside)}
+                value={homeCharge === null ? '' : formatTaka(homeCharge)}
                 disabled
                 readOnly
                 hint={t('settings.zonesHint')}
@@ -145,7 +152,7 @@ export function ShopSettingsView(): React.JSX.Element {
               <TextField
                 label={t('settings.outsideCity')}
                 name="outsideCity"
-                value={formatTaka(DEFAULT_ZONE_CHARGES.outside)}
+                value={fallbackCharge === null ? '' : formatTaka(fallbackCharge)}
                 disabled
                 readOnly
               />
@@ -194,10 +201,12 @@ export function ShopSettingsView(): React.JSX.Element {
                 <dt className="text-neutral-700">{t('settings.address')}</dt>
                 <dd className="num font-semibold text-ink">{appConfig.shopHost(tenant.slug)}</dd>
               </div>
-              {setup?.shopType ? (
+              {preset ? (
                 <div className="flex justify-between gap-3 py-2">
                   <dt className="text-neutral-700">{t('settings.type')}</dt>
-                  <dd className="font-semibold text-ink">{t(`setUp.types.${setup.shopType}`)}</dd>
+                  <dd className="font-semibold text-ink">
+                    {i18n.language === 'bn' ? preset.labelBn : preset.labelEn}
+                  </dd>
                 </div>
               ) : null}
             </dl>

@@ -64,4 +64,15 @@ export interface MeResponse {
   /** The signed-in person's own name in this shop, for the header's initial; null when unnamed. */
   name: string | null;
   tenant: MeTenant | null;
+  /** TEN-31: every shop the person may open -- one opens directly, several show the picker (TEN-15). */
+  shops: ShopListing[];
+  /** LIF-21: no shop open yet, and a deleted one whose balance the new shop takes over (create-shop's note). */
+  hasDeletedShop: boolean;
+}
+
+/** One shop on the picker. */
+export interface ShopListing {
+  slug: string;
+  shopName: string;
+  role: 'owner' | 'staff';
 }

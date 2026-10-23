@@ -1,11 +1,36 @@
 /* Lytro's own typefaces, served with the app (src/fonts/README.md). The unicode ranges are the ones Google Fonts and
    Fontsource give each subset, so a browser fetches only what a page's text needs: Inter for Latin and digits, Noto
-   Sans Bengali for Bangla and ৳, Plus Jakarta Sans for display. */
+   Sans Bengali for Bangla and ৳, Plus Jakarta Sans for display.
+   Each variable file is declared at the weights the prototype loads (Inter 400, 500 and 600; Noto Sans Bengali 400, 600
+   and 700; Plus Jakarta Sans 700 and 800), so every other weight falls back as it does in the drawing: Bangla at 500
+   is set at 400, Latin at 700 at 600 (Slice 11.4a, pixel for pixel to the sketch). */
 @font-face {
   font-family: 'Inter';
   font-style: normal;
   font-display: swap;
-  font-weight: 100 900;
+  font-weight: 400;
+  src: url('../fonts/inter-latin-wght-normal.woff2') format('woff2-variations');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url('../fonts/inter-latin-wght-normal.woff2') format('woff2-variations');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
   src: url('../fonts/inter-latin-wght-normal.woff2') format('woff2-variations');
   unicode-range:
     U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
@@ -16,7 +41,7 @@
   font-family: 'Noto Sans Bengali';
   font-style: normal;
   font-display: swap;
-  font-weight: 100 900;
+  font-weight: 400;
   src: url('../fonts/noto-sans-bengali-bengali-wght-normal.woff2') format('woff2-variations');
   unicode-range:
     U+0951-0952, U+0964-0965, U+0980-09FE, U+1CD0, U+1CD2, U+1CD5-1CD6, U+1CD8, U+1CE1, U+1CEA,
@@ -27,7 +52,51 @@
   font-family: 'Noto Sans Bengali';
   font-style: normal;
   font-display: swap;
-  font-weight: 100 900;
+  font-weight: 600;
+  src: url('../fonts/noto-sans-bengali-bengali-wght-normal.woff2') format('woff2-variations');
+  unicode-range:
+    U+0951-0952, U+0964-0965, U+0980-09FE, U+1CD0, U+1CD2, U+1CD5-1CD6, U+1CD8, U+1CE1, U+1CEA,
+    U+1CED, U+1CF2, U+1CF5-1CF7, U+200C-200D, U+20B9, U+25CC, U+A8F1;
+}
+
+@font-face {
+  font-family: 'Noto Sans Bengali';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url('../fonts/noto-sans-bengali-bengali-wght-normal.woff2') format('woff2-variations');
+  unicode-range:
+    U+0951-0952, U+0964-0965, U+0980-09FE, U+1CD0, U+1CD2, U+1CD5-1CD6, U+1CD8, U+1CE1, U+1CEA,
+    U+1CED, U+1CF2, U+1CF5-1CF7, U+200C-200D, U+20B9, U+25CC, U+A8F1;
+}
+
+@font-face {
+  font-family: 'Noto Sans Bengali';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url('../fonts/noto-sans-bengali-latin-wght-normal.woff2') format('woff2-variations');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Noto Sans Bengali';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url('../fonts/noto-sans-bengali-latin-wght-normal.woff2') format('woff2-variations');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Noto Sans Bengali';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
   src: url('../fonts/noto-sans-bengali-latin-wght-normal.woff2') format('woff2-variations');
   unicode-range:
     U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
@@ -38,7 +107,18 @@
   font-family: 'Plus Jakarta Sans';
   font-style: normal;
   font-display: swap;
-  font-weight: 200 800;
+  font-weight: 700;
+  src: url('../fonts/plus-jakarta-sans-latin-wght-normal.woff2') format('woff2-variations');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 800;
   src: url('../fonts/plus-jakarta-sans-latin-wght-normal.woff2') format('woff2-variations');
   unicode-range:
     U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,

@@ -1,0 +1,15 @@
+{
+  "amount": "Amount you sent",
+  "amountNote": "If you sent a different amount, we check it before the plan starts.",
+  "back": "Back",
+  "copied": "Copied",
+  "copy": "Copy",
+  "fillAll": "Fill in all three fields.",
+  "from": "Lytro",
+  "invalidSender": "Check the number you sent from.",
+  "noWallets": "No payment numbers are set yet. Contact support, or take a plan later from the dashboard.",
+  "send": "Send {{a}} to this number:",
+  "sender": "Number you sent from",
+  "submit": "Submit the payment",
+  "trx": "Transaction ID (TrxID)"
+}

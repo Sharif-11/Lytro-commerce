@@ -1,22 +1,30 @@
 import { useRef, type ClipboardEvent, type KeyboardEvent } from 'react';
+import { Icon } from '@/components/icon';
 
-interface OtpInputProps {
-  length?: number;
+interface CodeBoxesProps {
   value: string;
   onChange: (value: string) => void;
-  error?: string;
+  /** Turns every box red and says why under them (a wrong or expired code). */
+  error?: string | null;
   disabled?: boolean;
+  /** Names the boxes for assistive technology ("Code, digit 1 of 6"). */
+  label: string;
+  length?: number;
 }
 
-/** Six boxes, auto-advance, backspace back, and a pasted full code fills every box (AUTH-05). */
-export function OtpInput({
-  length = 6,
+/**
+ * A one-time code's six boxes (AUTH-05, the prototype's `.otp`): 52 px boxes that advance as each digit is typed,
+ * step back on Backspace, and take a whole pasted code at once; red, with the reason under them, when it was wrong.
+ */
+export function CodeBoxes({
   value,
   onChange,
   error,
   disabled = false,
-}: OtpInputProps): React.JSX.Element {
-  const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
+  label,
+  length = 6,
+}: CodeBoxesProps): React.JSX.Element {
+  const boxes = useRef<(HTMLInputElement | null)[]>([]);
   const digits = Array.from({ length }, (_, index) => value[index] ?? '');
 
   function setDigitAt(index: number, digit: string): void {
@@ -28,12 +36,12 @@ export function OtpInput({
   function handleChange(index: number, raw: string): void {
     const digit = raw.replace(/\D/g, '').slice(-1);
     setDigitAt(index, digit);
-    if (digit !== '' && index < length - 1) inputsRef.current[index + 1]?.focus();
+    if (digit !== '' && index < length - 1) boxes.current[index + 1]?.focus();
   }
 
   function handleKeyDown(index: number, event: KeyboardEvent<HTMLInputElement>): void {
     if (event.key === 'Backspace' && digits[index] === '' && index > 0) {
-      inputsRef.current[index - 1]?.focus();
+      boxes.current[index - 1]?.focus();
     }
   }
 
@@ -42,17 +50,17 @@ export function OtpInput({
     if (pasted === '') return;
     event.preventDefault();
     onChange(pasted);
-    inputsRef.current[Math.min(pasted.length, length - 1)]?.focus();
+    boxes.current[Math.min(pasted.length, length - 1)]?.focus();
   }
 
   return (
-    <div>
+    <div className="flex flex-col gap-3.5">
       <div className="flex justify-between gap-2">
         {digits.map((digit, index) => (
           <input
             key={index}
-            ref={(el) => {
-              inputsRef.current[index] = el;
+            ref={(element) => {
+              boxes.current[index] = element;
             }}
             type="text"
             inputMode="numeric"
@@ -60,6 +68,8 @@ export function OtpInput({
             maxLength={1}
             value={digit}
             disabled={disabled}
+            aria-label={`${label} ${String(index + 1)}/${String(length)}`}
+            aria-invalid={error ? true : undefined}
             onChange={(event) => {
               handleChange(index, event.target.value);
             }}
@@ -67,18 +77,17 @@ export function OtpInput({
               handleKeyDown(index, event);
             }}
             onPaste={handlePaste}
-            aria-label={`${String(index + 1)}/${String(length)}`}
-            className={`num h-14 min-w-0 flex-1 rounded-control border bg-white text-center text-[22px] font-bold text-ink transition focus:ring-2 focus:outline-none ${
-              error
-                ? 'border-danger focus:ring-danger/25'
-                : 'border-neutral-200 focus:border-brand-700 focus:ring-brand-500/25'
-            }`}
+            className={[
+              'num h-[52px] w-0 min-w-0 flex-1 rounded-[8px] border bg-surface text-center text-[22px] font-semibold outline-none focus:border-2',
+              error ? 'border-danger' : 'border-line-strong focus:border-primary',
+            ].join(' ')}
           />
         ))}
       </div>
       {error ? (
-        <p role="alert" className="mt-2 text-center text-[13px] font-semibold text-danger">
-          {error}
+        <p role="alert" className="text-[13px] font-medium text-danger">
+          <Icon name="alert" className="inline align-baseline" />
+          <span>{error}</span>
         </p>
       ) : null}
     </div>

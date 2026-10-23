@@ -1739,6 +1739,30 @@ server forwards `/api` itself.
 first and runs only one, so only what `/api/*` did not take reaches `try_files`. Checked with `caddy adapt`: on both
 hosts the `/api/*` route comes first, and the app's rewrite is inside the catch-all route.
 
+## 91. `AUTH-28`, `PST-01`, `DLV-01`: the set-up step's answers never reached the server — found and fixed 2026-10-23
+
+Found while building Phase 3 Slice 11.4a. The dashboard's set-up step (what the shop mainly sells, where it delivers
+from) kept both answers in the browser's storage, "until the Phase 3 endpoints exist". The endpoints came with Phase 3
+(`PUT /business-type`, Slice 1; `PUT /delivery-zones/home-area`, Slice 1c), but the step was never pointed at them. So
+a new shop's product form never took its type's defaults, and its two zones stayed on Dhaka city whatever the owner
+picked; the first build's Settings showed the answers from the same browser storage, so nothing looked wrong on the
+device that answered.
+
+**Fixed:** set-up sends the type and the home area to the server, only what differs from the shop's start (no type,
+Dhaka city), and Skip sends nothing. Its choices are the server's own: the shop types from `GET /presets` (PST-04), the
+cities and districts from `GET /locations`. The browser store is no longer written; the first build's Settings reads
+the type from `GET /product-defaults` and the charges from `GET /delivery-zones`.
+
+## 92. `TEN-15`, `TEN-31`: a person with several shops always landed on one — found and fixed 2026-10-23
+
+Found while building Phase 3 Slice 11.4a. `/shops`, the landing after every sign-in, opened the shop `/me` named and
+never showed a picker, waiting for "the memberships field on `/me`". `/me` has listed every shop the person may open
+since TEN-31, but the dashboard's type for `/me` never carried it, so the picker was never built. An owner who is also
+staff at another shop could only reach the second by typing its address.
+
+**Fixed:** `/shops` reads `/me`'s shops: one opens at once, several show the picker (each shop's address and the
+person's role there, and no "new shop", TEN-15), none goes to create-shop.
+
 ## Not a bug, just noting it so it isn't mistaken for one later
 
 The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data

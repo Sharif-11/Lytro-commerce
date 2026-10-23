@@ -3,10 +3,12 @@ import { Link, useLocation, useMatches, useNavigate } from '@tanstack/react-rout
 import { useTranslation } from 'react-i18next';
 import { Permission, TenantState } from '@lytronix/validators';
 import { ApiClientError, errorMessage } from '@lytronix/api-client';
-import { Button, ErrorBanner } from '@lytronix/ui';
+import { ErrorBanner } from '@lytronix/ui';
 import { useHome } from '@/api/home';
 import { useMe, useSignOut } from '@/api/me';
-import { StepFrame } from '@/components/ui/step-frame';
+import { OnboardingFrame } from '@/components/onboarding/frame';
+import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/classes';
 import { Toast } from '@/components/ui/toast';
 import { useDocumentTitle } from '@/hooks/use-document-title';
 import { useToast } from '@/hooks/use-toast';
@@ -50,18 +52,18 @@ export function AppShell({ slug, children }: AppShellProps): React.JSX.Element {
   // AUTH-22, LIF-11: staff on a locked, archived or suspended shop are refused by /me itself.
   if (me.isError && me.error instanceof ApiClientError && me.error.code === 'tenant_offline') {
     return (
-      <StepFrame title={t('shop.offline.title')} lead={t('shop.offline.lead')}>
+      <OnboardingFrame title={t('shop.offline.title')} lead={t('shop.offline.lead')}>
         <Button
-          type="button"
           tone="outline"
-          loading={signOut.isPending}
+          wide
+          busy={signOut.isPending}
           onClick={() => {
             signOut.mutate();
           }}
         >
           {t('common.signOut')}
         </Button>
-      </StepFrame>
+      </OnboardingFrame>
     );
   }
 
@@ -75,38 +77,36 @@ export function AppShell({ slug, children }: AppShellProps): React.JSX.Element {
 
   if (!tenant || tenant.slug !== slug) {
     return (
-      <StepFrame title={t('shop.notFound.title')} lead={t('shop.notFound.lead')}>
-        <Link to="/shops" className="block">
-          <Button type="button" tone="outline">
-            {t('shop.notFound.goToMyShop')}
-          </Button>
+      <OnboardingFrame title={t('shop.notFound.title')} lead={t('shop.notFound.lead')}>
+        <Link to="/shops" className={buttonClass('outline', 'md', true)}>
+          {t('shop.notFound.goToMyShop')}
         </Link>
-      </StepFrame>
+      </OnboardingFrame>
     );
   }
 
   // LIF-24: a suspended owner sees one screen with the support button and no reason.
   if (tenant.suspended) {
     return (
-      <StepFrame title={t('shop.suspended.title')} lead={t('shop.suspended.lead')}>
-        <div className="space-y-3">
-          <Link to="/$shop/balance" params={{ shop: slug }} className="block">
-            <Button type="button" tone="outline">
-              {t('shop.suspended.balance')}
-            </Button>
-          </Link>
-          <Button
-            type="button"
-            tone="ghost"
-            loading={signOut.isPending}
-            onClick={() => {
-              signOut.mutate();
-            }}
-          >
-            {t('common.signOut')}
-          </Button>
-        </div>
-      </StepFrame>
+      <OnboardingFrame title={t('shop.suspended.title')} lead={t('shop.suspended.lead')}>
+        <Link
+          to="/$shop/balance"
+          params={{ shop: slug }}
+          className={buttonClass('outline', 'md', true)}
+        >
+          {t('shop.suspended.balance')}
+        </Link>
+        <Button
+          tone="ghost"
+          wide
+          busy={signOut.isPending}
+          onClick={() => {
+            signOut.mutate();
+          }}
+        >
+          {t('common.signOut')}
+        </Button>
+      </OnboardingFrame>
     );
   }
 
@@ -219,8 +219,12 @@ function LockedOut({ slug }: { slug: string }): React.JSX.Element {
     <div className="mx-auto max-w-[520px] px-4 py-10 text-center sm:px-6">
       <h1 className="heading text-[22px] text-ink">{t('shop.lockedOut.title')}</h1>
       <p className="mt-2 text-[15px] text-neutral-700">{t('shop.lockedOut.lead')}</p>
-      <Link to="/$shop/plan" params={{ shop: slug }} className="mt-6 block">
-        <Button type="button">{t('shop.lockedOut.renew')}</Button>
+      <Link
+        to="/$shop/plan"
+        params={{ shop: slug }}
+        className={`mt-6 ${buttonClass('primary', 'md', true)}`}
+      >
+        {t('shop.lockedOut.renew')}
       </Link>
     </div>
   );

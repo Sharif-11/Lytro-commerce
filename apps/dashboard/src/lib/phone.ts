@@ -15,9 +15,29 @@ export class BangladeshiPhone {
 
   /** `+8801712345678` → `01712-345678` for display. */
   display(value: string): string {
-    const digits = value.replace(/\D/g, '').replace(/^880/, '');
-    const local = digits.startsWith('0') ? digits : `0${digits}`;
+    const local = this.local(value);
     return local.length === 11 ? `${local.slice(0, 5)}-${local.slice(5)}` : value;
+  }
+
+  /** `+8801712345678` → `01712 345 678`, as a number to send money to is written. */
+  grouped(value: string): string {
+    const local = this.local(value);
+    return local.length === 11
+      ? `${local.slice(0, 5)} ${local.slice(5, 8)} ${local.slice(8)}`
+      : value;
+  }
+
+  /** `+8801712345678` → `+880 1712 345 678`, as the number a code went to is written. */
+  international(value: string): string {
+    const local = this.local(value);
+    return local.length === 11
+      ? `+880 ${local.slice(1, 5)} ${local.slice(5, 8)} ${local.slice(8)}`
+      : value;
+  }
+
+  private local(value: string): string {
+    const digits = value.replace(/\D/g, '').replace(/^880/, '');
+    return digits.startsWith('0') ? digits : `0${digits}`;
   }
 }
 

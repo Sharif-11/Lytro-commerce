@@ -132,6 +132,11 @@ describeIfDatabase('an owner whose shop was deleted opens a new one (LIF-21)', (
     const signedIn = await post('/auth/signin', { phone: who.phone, password: PASSWORD });
     expect(signedIn.body).toMatchObject({ next: 'create-shop' });
     const back = sessionFrom(signedIn);
+    // Create-shop says the earlier shop's balance comes along.
+    expect((await get('/me', call(back))).body).toMatchObject({
+      tenant: null,
+      hasDeletedShop: true,
+    });
 
     const slug = freshSlug();
     const shop = await post(
@@ -142,6 +147,7 @@ describeIfDatabase('an owner whose shop was deleted opens a new one (LIF-21)', (
     expect(shop.status).toBe(201);
     const newTenantId = (shop.body as { tenantId: string }).tenantId;
     expect(newTenantId).not.toBe(who.tenantId);
+    expect((await get('/me', call(back, slug))).body).toMatchObject({ hasDeletedShop: false });
 
     // One entry on each side, each a mirror of the other (BAL-02).
     expect(await carryOvers([who.tenantId, newTenantId])).toEqual([
@@ -158,6 +164,18 @@ describeIfDatabase('an owner whose shop was deleted opens a new one (LIF-21)', (
       call(back),
     );
     expect(again.status).toBe(409);
+  });
+
+  it('tells a new account with no earlier shop nothing about one', async () => {
+    const phone = texts.freshPhone();
+    await post('/auth/phone/code', { phone });
+    const entered = sessionFrom(
+      await post('/auth/phone/verify', { phone, code: texts.codeFor(phone) }),
+    );
+    expect((await get('/me', call(entered))).body).toMatchObject({
+      tenant: null,
+      hasDeletedShop: false,
+    });
   });
 
   it('moves nothing when the deleted shop held no balance', async () => {

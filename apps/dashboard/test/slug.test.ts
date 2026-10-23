@@ -21,16 +21,13 @@ describe('ShopSlug', () => {
     expect(slug.normaliseTyping('MEGH--2')).toBe('megh-2');
   });
 
-  it('judges format and reserved names the way the server does', () => {
-    expect(slug.verdict('')).toBe('empty');
-    expect(slug.verdict('ab')).toBe('invalid');
-    expect(slug.verdict('-megh')).toBe('invalid');
-    expect(slug.verdict('admin')).toBe('reserved');
-    expect(slug.verdict('megh')).toBe('ok');
-  });
-
-  it('offers the next free suggestion without stacking suffixes', () => {
-    expect(slug.nextSuggestion('megh')).toBe('megh-2');
-    expect(slug.nextSuggestion('megh-2')).toBe('megh-3');
+  it("knows the address's own shape, and leaves whether it is free to the server", () => {
+    expect(slug.isWellFormed('')).toBe(false);
+    expect(slug.isWellFormed('ab')).toBe(false);
+    expect(slug.isWellFormed('-megh')).toBe(false);
+    expect(slug.isWellFormed('megh-')).toBe(false);
+    expect(slug.isWellFormed('megh')).toBe(true);
+    // Reserved names are well formed; the server's check says they are not free (TEN-26).
+    expect(slug.isWellFormed('admin')).toBe(true);
   });
 });

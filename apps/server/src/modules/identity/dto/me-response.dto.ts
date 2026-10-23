@@ -33,5 +33,7 @@ export const meResponseSchema = z.object({
   shops: z.array(
     z.object({ slug: z.string(), shopName: z.string(), role: z.enum(['owner', 'staff']) }),
   ),
+  // LIF-21: no shop open yet, and a deleted one whose balance the next shop takes over (create-shop's note).
+  hasDeletedShop: z.boolean(),
 });
 export class MeResponseDto extends createZodDto(meResponseSchema) {}

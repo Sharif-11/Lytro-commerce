@@ -2,16 +2,18 @@ import { useState, type SyntheticEvent } from 'react';
 import { Link, useSearch } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { useResendPasswordReset, useVerifyForgotPassword } from '@/api/auth';
-import { errorMessage } from '@lytronix/api-client';
-import { Button, ErrorBanner } from '@lytronix/ui';
-import { OtpInput } from '@/components/ui/otp-input';
-import { StepFrame } from '@/components/ui/step-frame';
+import { OnboardingFrame, StepLinks } from '@/components/onboarding/frame';
+import { Banner } from '@/components/ui/banner';
+import { Button } from '@/components/ui/button';
+import { CodeBoxes } from '@/components/ui/code-boxes';
 import { useCountdown } from '@/hooks/use-countdown';
+import { useErrorText } from '@/hooks/use-error-text';
 import { bangladeshiPhone } from '@/lib/phone';
 
-/** AUTH-18/19: the reset code; success opens a must-set-password session. */
+/** AUTH-18 and AUTH-19 (the prototype's `ob-forgot-code`): the reset code; it opens a session that must set a password. */
 export function ForgotPasswordVerify(): React.JSX.Element {
-  const { t } = useTranslation();
+  const { t } = useTranslation('onboarding');
+  const errorText = useErrorText();
   const search = useSearch({ from: '/forgot-password/verify' });
   const [expiresInSeconds, setExpiresInSeconds] = useState(search.expiresInSeconds);
   const [resendAfterSeconds, setResendAfterSeconds] = useState(search.resendAfterSeconds);
@@ -26,55 +28,69 @@ export function ForgotPasswordVerify(): React.JSX.Element {
   function handleSubmit(event: SyntheticEvent<HTMLFormElement>): void {
     event.preventDefault();
     if (!/^\d{6}$/.test(code)) {
-      setFormError(t('verify.invalidCode'));
+      setFormError(t('invalidCode'));
       return;
     }
     setFormError(null);
     verify.mutate({ phone: search.phone, code });
   }
 
+  const boxesError =
+    formError ??
+    (verify.isError ? errorText(verify.error) : null) ??
+    (expiresIn === 0 ? t('codeExpired') : null);
+
   return (
-    <StepFrame
-      title={t('forgotPassword.verifyTitle')}
-      lead={t('verify.lead', { phone: bangladeshiPhone.display(search.phone) })}
-      footer={
-        <Link
-          to="/forgot-password"
-          className="inline-flex min-h-10 items-center font-semibold text-brand-800 underline"
-        >
-          {t('verify.changeNumber')}
-        </Link>
-      }
+    <OnboardingFrame
+      title={t('fpVerify')}
+      lead={t('vLead', { phone: bangladeshiPhone.international(search.phone) })}
     >
-      <form className="space-y-5" onSubmit={handleSubmit}>
-        <OtpInput
+      <form className="flex flex-col gap-3.5" onSubmit={handleSubmit} noValidate>
+        <CodeBoxes
           value={code}
-          onChange={setCode}
-          disabled={verify.isPending}
-          error={formError ?? (expiresIn === 0 ? t('verify.expired') : undefined)}
-        />
-        {verify.isError ? <ErrorBanner message={errorMessage(verify.error, t)} /> : null}
-        <Button type="submit" loading={verify.isPending} disabled={expiresIn === 0}>
-          {t('verify.submit')}
-        </Button>
-        <Button
-          type="button"
-          tone="ghost"
-          disabled={resendIn > 0 || resend.isPending}
-          onClick={() => {
-            resend.mutate(search.phone, {
-              onSuccess: (data) => {
-                setCode('');
-                setExpiresInSeconds(data.expiresInSeconds);
-                setResendAfterSeconds(data.resendAfterSeconds);
-              },
-            });
+          onChange={(next) => {
+            setCode(next);
+            setFormError(null);
           }}
-        >
-          {resendIn > 0 ? t('verify.resendIn', { seconds: resendIn }) : t('verify.resend')}
+          error={boxesError}
+          disabled={verify.isPending}
+          label={t('fpVerify')}
+        />
+        {boxesError ? null : (
+          <p className="text-[14px] text-fg-muted">
+            {t('vValid', { minutes: Math.ceil(search.expiresInSeconds / 60) })}
+          </p>
+        )}
+        <Button type="submit" wide busy={verify.isPending} disabled={expiresIn === 0}>
+          {t('vSubmit')}
         </Button>
-        {resend.isError ? <ErrorBanner message={errorMessage(resend.error, t)} /> : null}
       </form>
-    </StepFrame>
+      <StepLinks>
+        {resendIn > 0 ? (
+          <span className="num text-fg-muted">{t('vResendIn', { s: resendIn })}</span>
+        ) : (
+          <button
+            type="button"
+            disabled={resend.isPending}
+            onClick={() => {
+              resend.mutate(search.phone, {
+                onSuccess: (data) => {
+                  setCode('');
+                  verify.reset();
+                  setExpiresInSeconds(data.expiresInSeconds);
+                  setResendAfterSeconds(data.resendAfterSeconds);
+                },
+              });
+            }}
+          >
+            {t('vResend')}
+          </button>
+        )}
+        <Link to="/sign-in" search={{}}>
+          {t('backSignIn')}
+        </Link>
+      </StepLinks>
+      {resend.isError ? <Banner tone="bad">{errorText(resend.error)}</Banner> : null}
+    </OnboardingFrame>
   );
 }

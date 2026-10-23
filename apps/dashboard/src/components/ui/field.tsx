@@ -4,6 +4,8 @@ interface FieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'prefix
   label: ReactNode;
   /** Shown before the value, inside the control (`+880`, `৳`). */
   prefix?: ReactNode;
+  /** Shown after the value, inside the control (`.lytro.app`, a Copy button). */
+  suffix?: ReactNode;
   help?: ReactNode;
   /** The server's or the form's own wording; the control turns red. */
   error?: ReactNode;
@@ -13,6 +15,7 @@ interface FieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'prefix
 export function Field({
   label,
   prefix,
+  suffix,
   help,
   error,
   id,
@@ -41,6 +44,9 @@ export function Field({
           className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-fg-subtle"
           {...rest}
         />
+        {suffix ? (
+          <span className="font-medium whitespace-nowrap text-fg-muted">{suffix}</span>
+        ) : null}
       </div>
       {error ? (
         <p id={noteId} className="text-[13px] font-medium text-danger">

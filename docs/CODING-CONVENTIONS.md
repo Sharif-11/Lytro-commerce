@@ -223,7 +223,7 @@ apps/dashboard/src/
                              (hub, section, title, back; `legacy` for a first-build screen the shell frames until
                              its own pull request rebuilds it); team_.roles is a sibling of team, not a child
   views/<screen>/
-    index.tsx                the real page; sibling files are view-local pieces (checkout/plan-picker.tsx)
+    index.tsx                the real page; sibling files are view-local pieces (set-up/area-search-sheet.tsx)
   shell/                     the frame of TENANT-DASHBOARD-DESIGN §4: app-shell.tsx (container, reads /me and
                              /home) over the app bar, tab bar, rail, header, side column, section chips, banner and
                              the + menu; hubs.ts is the one list of hubs, sections and who sees them; shell-page.tsx
@@ -232,22 +232,26 @@ apps/dashboard/src/
     icon.tsx                 the prototype's own line icons, as drawn
     ui/                      the dashboard's primitives, at the prototype's values: button, card, chips, list row,
                              stat tile, switch, banner, toast, empty state, skeleton, field, status tag, sheet,
-                             dialog, page parts, the shop's mark; otp-input and step-frame for the onboarding
+                             dialog, page parts, the shop's mark, the code boxes
+    onboarding/              the steps before a shop (§6): the frame, its notice and the password rules
+    wallet-step.tsx          the wallet payment every payment to Lytro ends with until Phase 5's hosted page
     brand/                   the Google and Facebook marks (Lytro's own mark and wordmark are in @lytronix/ui)
   api/
-    me.ts, auth.ts, billing.ts, balance.ts, staff.ts, activity.ts, shop-settings.ts, identities.ts
+    me.ts, auth.ts, billing.ts, balance.ts, staff.ts, activity.ts, shop-settings.ts, shop-setup.ts, identities.ts
                              query/mutation hooks per backend module; a view calls useMe(), never the client
   session/
     tenant-session.ts        the CSRF token, the last /me and the ApiClient; the auth-init gate guards wait on
     shop-of-path.ts          the shop a page belongs to (TEN-31), which the client names on every call
     sign-up-intent.ts        the claimed address and picked plan, carried through step 1 (AUTH-28/29)
-    shop-setup-store.ts      the set-up answers and the share-link tick, per device until the endpoints exist
+    shop-setup-store.ts      the share-link tick the first build's Home reads, until Slice 11.4b reads GET /home
     next-step.ts             NextStep → route, exhaustive
-  lib/                       pure helpers with injected settings: app-config, slug, phone, pricing-table, dates
+  lib/                       pure helpers with injected settings: app-config, slug, phone, pricing-table, dates,
+                             password-rules, wallet-marks
                              (times within a day, grouping by day)
-  hooks/                     generic hooks: use-document-title, use-countdown, use-copy-to-clipboard
+  hooks/                     generic hooks: use-document-title, use-countdown, use-copy-to-clipboard,
+                             use-debounced-value, use-error-text
   i18n/                      @lytronix/ui's startLanguage with Bangla first and its own key; one namespace per hub
-                             from the prototype's words as each is rebuilt (`shell` so far), the first build's in
+                             from the prototype's words as each is rebuilt (`shell`, `onboarding`, `wallet` so far), the first build's in
                              bn.json and en.json until then
   fonts/                     Lytro's fonts, the website's own files (styles/fonts.css declares them)
 apps/dashboard/e2e/          Playwright against the built app and a mocked API (support/mock-api.ts), on a phone and

@@ -1137,6 +1137,25 @@ their backend ships earlier.
   8. Counts from `GET /home`; what a person may not open is hidden; a deep link to it lands on Home with a word.
   The shell needed two reads `/me` lacked: the shop's logo (TEN-16, for the bars) and the person's own name (the
   header's initial).
+- **11.4a, onboarding, agreed 2026-10-23** (13 points for 11.4, split in two; "yes") **and built:**
+  1. One onboarding frame from the sketch (one 480 px column, the wordmark and the language, the owner's four-step
+     progress from create-shop on, one card, "Powered by Lytro"); the shell's own exits take it too. The sketch's
+     Unavailable and Renew pages come with 11.5.
+  2. Set-up saves to the server (KNOWN-GAPS §91): the shop types from `GET /presets`, the home area as the sketch's
+     eight chips or any city or district by search, named as the server names them; only what differs is sent.
+  3. Checkout keeps the wallet step (decided 2026-10-22), drawn as the sketch's first checkout: one row per enabled
+     platform number with its mark and Copy, and the amount sent, filled in and changeable, since a different amount
+     waits for the operator's check (BIL-06). The same wallet step now ends the first build's Top up and Renew.
+  4. Create-shop asks the server as the owner pauses, and offers its next free address; the link fills from the
+     name's Latin letters until the owner edits it (AUTH-11 as written: a Bangla-only name leaves it empty, asked
+     2026-10-23). `/me` tells create-shop when an earlier shop was deleted, for its carry-over note (LIF-21).
+  5. The sign-in chip names the address it was given and promises nothing; providers show only when the server has
+     them; "use a password" keeps the number.
+  6. The three password rules are checked on the screen, which holds Save until they pass; the server keeps AUTH-03's
+     length rule (asked 2026-10-23: screen only).
+  7. The shop picker (KNOWN-GAPS §92): one shop opens at once, several show the picker, none goes to create-shop.
+  8. The fonts are declared at the weights the sketch loads (Inter 400 to 600, Noto Sans Bengali 400, 600 and 700),
+     so every screen sets its type as the drawing does.
 
 ### Slice 12: shared storefront and product landing pages
 - **Depends on:** Slices 0, 0b, 7 and 9 (and branding from Phase 1).

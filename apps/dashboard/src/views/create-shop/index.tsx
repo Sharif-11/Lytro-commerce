@@ -1,183 +1,199 @@
 import { useState, type SyntheticEvent } from 'react';
-import { useTranslation } from 'react-i18next';
-import { createShopSchema } from '@lytronix/validators';
+import { Trans, useTranslation } from 'react-i18next';
+import { NAME_MAX_LENGTH, SLUG_MAX_LENGTH, SLUG_MIN_LENGTH } from '@lytronix/validators';
+import { ApiClientError } from '@lytronix/api-client';
 import { useCreateShop } from '@/api/auth';
-import { ApiClientError, errorMessage } from '@lytronix/api-client';
-import { Button, Chip, ErrorBanner, Icon, Notice, TextField } from '@lytronix/ui';
-import { StepFrame } from '@/components/ui/step-frame';
+import { useMe } from '@/api/me';
+import { useAddressCheck } from '@/api/shop-setup';
+import { Icon } from '@/components/icon';
+import { OnboardingFrame } from '@/components/onboarding/frame';
+import { Notice } from '@/components/onboarding/notice';
+import { Banner } from '@/components/ui/banner';
+import { Button } from '@/components/ui/button';
+import { Chip } from '@/components/ui/chips';
+import { Field } from '@/components/ui/field';
+import { useDebouncedValue } from '@/hooks/use-debounced-value';
+import { useErrorText } from '@/hooks/use-error-text';
 import { appConfig } from '@/lib/app-config';
 import { shopSlug } from '@/lib/slug';
 import { signUpIntent } from '@/session/sign-up-intent';
 
+// How long typing rests before the address is asked about (AUTH-11's live verdict).
+const TYPING_REST_MS = 400;
+
 /**
- * Step 2 (AUTH-10, 11, 28; TEN-26, 31): shop name, the link pre-filled from the claimed address or the
- * name's Latin letters with both addresses previewed, owner name, optional address. A taken link comes
- * back as a field error with the next free suggestion as a one-tap chip; the AUTH-30 refusal is one plain
- * message that keeps everything typed. Availability is checked by the server at submit: the backend has no
- * live-check endpoint yet, so the client checks format and reserved names as the owner types.
+ * Step 2 (AUTH-10, 11, 23, 28, 30; TEN-26, 31; the prototype's `ob-create`): the shop's name in any script, and its
+ * link -- filled from the name's Latin letters as it is typed, until the owner edits it or brought one from the
+ * website -- checked with the server as the owner pauses: free, or taken with the server's next free one to tap.
+ * Both addresses are previewed. A refusal keeps everything typed (AUTH-30); an owner whose earlier shop was deleted is
+ * told its balance comes along (LIF-21).
  */
 export function CreateShop(): React.JSX.Element {
-  const { t } = useTranslation();
+  const { t } = useTranslation('onboarding');
+  const errorText = useErrorText();
+  const me = useMe();
   const claimed = signUpIntent.read().shop;
   const [shopName, setShopName] = useState('');
   const [ownerName, setOwnerName] = useState('');
   const [address, setAddress] = useState(claimed ?? '');
-  // Once the owner edits the link, the name's live suggestion stops overwriting it.
+  // Once the owner edits the link, or brought one from the website, the name stops filling it.
   const [addressTouched, setAddressTouched] = useState(claimed !== null);
+  const [tried, setTried] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [suggestion, setSuggestion] = useState<string | null>(null);
 
-  const mutation = useCreateShop();
-  const verdict = shopSlug.verdict(address);
+  const settled = useDebouncedValue(address, TYPING_REST_MS);
+  const wellFormed = shopSlug.isWellFormed(settled);
+  const check = useAddressCheck(settled, { enabled: wellFormed });
+  const create = useCreateShop();
+
+  const resting = settled === address;
+  const verdict = check.data && resting ? check.data : null;
+  const free = verdict?.available === true;
+  const taken = verdict?.available === false && verdict.reason === 'unavailable';
+  const suggestion = taken ? verdict.suggestion : null;
 
   function handleSubmit(event: SyntheticEvent<HTMLFormElement>): void {
     event.preventDefault();
-    const input = {
-      ownerName: ownerName.trim(),
-      shopName: shopName.trim(),
-      address: address === '' ? undefined : address,
-    };
+    setTried(true);
     const errors: Record<string, string> = {};
-    if (input.shopName.length === 0) errors.shopName = t('createShop.required');
-    if (input.ownerName.length === 0) errors.ownerName = t('createShop.required');
-    if (verdict === 'invalid') errors.address = t('createShop.linkInvalid');
-    if (verdict === 'reserved') errors.address = t('createShop.linkReserved');
-    if (Object.keys(errors).length === 0 && !createShopSchema.safeParse(input).success) {
-      errors.shopName = t('createShop.tooLong');
-    }
+    if (shopName.trim() === '') errors.shopName = t('required');
+    if (ownerName.trim() === '') errors.ownerName = t('required');
+    if (address === '') errors.address = t('required');
     setFieldErrors(errors);
-    if (Object.keys(errors).length > 0) return;
-    setSuggestion(null);
-    mutation.mutate(input, {
-      onError: (error) => {
-        if (error instanceof ApiClientError) {
-          const problems = error.fieldProblems();
+    if (Object.keys(errors).length > 0 || !shopSlug.isWellFormed(address) || taken) return;
+    create.mutate(
+      { ownerName: ownerName.trim(), shopName: shopName.trim(), address },
+      {
+        onError: (error) => {
+          // The address went between the check and the press: the field says so, and the check asks again.
+          const problems = error instanceof ApiClientError ? error.fieldProblems() : {};
           if (problems.address) {
             setFieldErrors({ address: problems.address });
-            setSuggestion(shopSlug.nextSuggestion(address));
+            void check.refetch();
           }
-        }
+        },
       },
-    });
+    );
   }
 
-  const refused =
-    mutation.isError &&
-    mutation.error instanceof ApiClientError &&
-    (mutation.error.code === 'rate_limited' || mutation.error.code === 'forbidden');
-  const taken =
-    mutation.isError &&
-    mutation.error instanceof ApiClientError &&
-    mutation.error.code === 'conflict';
-  const otherError = mutation.isError && !refused && !fieldErrors.address && !taken;
+  const failure = create.error instanceof ApiClientError ? create.error : null;
+  const refused = failure?.code === 'rate_limited' || failure?.code === 'forbidden';
+  const otherFailure =
+    create.isError && !refused && Object.keys(failure?.fieldProblems() ?? {}).length === 0;
+
+  const rule = t('csRule', { min: SLUG_MIN_LENGTH, max: SLUG_MAX_LENGTH });
+  const addressError =
+    fieldErrors.address ??
+    (taken ? t('csTaken') : null) ??
+    (tried && address !== '' && !shopSlug.isWellFormed(address) ? rule : null);
+  const addressHelp = free ? (
+    <>
+      <span className="font-medium text-success">
+        <Icon name="check" size={14} className="inline align-baseline" /> {t('csGood')}
+      </span>{' '}
+      · {rule}
+    </>
+  ) : wellFormed && (check.isFetching || !resting) ? (
+    t('checking')
+  ) : (
+    rule
+  );
 
   return (
-    <StepFrame step="shop" title={t('createShop.title')} lead={t('createShop.lead')}>
-      <form className="space-y-5" onSubmit={handleSubmit}>
-        <TextField
-          label={t('createShop.shopNameLabel')}
+    <OnboardingFrame step={1} title={t('csTitle')} lead={t('csLead')}>
+      <form className="flex flex-col gap-3.5" onSubmit={handleSubmit} noValidate>
+        {me.data?.hasDeletedShop ? <Notice tone="info">{t('csReturning')}</Notice> : null}
+        <Field
+          label={t('csName')}
           name="shopName"
           autoComplete="organization"
-          maxLength={60}
+          maxLength={NAME_MAX_LENGTH}
           value={shopName}
+          error={fieldErrors.shopName}
+          help={t('csNameHelp', { max: NAME_MAX_LENGTH })}
           onChange={(event) => {
             const value = event.target.value;
             setShopName(value);
             if (!addressTouched) setAddress(shopSlug.suggest(value));
           }}
-          error={fieldErrors.shopName}
         />
-
-        <div>
-          <TextField
-            label={t('createShop.linkLabel')}
-            name="address"
-            autoCapitalize="none"
-            autoCorrect="off"
-            spellCheck={false}
-            inputMode="url"
-            placeholder="your-shop"
-            suffix={`.${appConfig.platformDomain}`}
-            value={address}
-            onChange={(event) => {
-              setAddressTouched(true);
-              setSuggestion(null);
-              setAddress(shopSlug.normaliseTyping(event.target.value));
-            }}
-            error={fieldErrors.address}
-            hint={
-              verdict === 'ok' ? (
-                <span className="inline-flex items-center gap-1 font-semibold text-success">
-                  <Icon name="check" size={14} strokeWidth={3} />
-                  {t('createShop.linkLooksGood')}
-                </span>
-              ) : verdict === 'reserved' ? (
-                t('createShop.linkReserved')
-              ) : verdict === 'invalid' ? (
-                t('createShop.linkRule')
-              ) : (
-                t('createShop.linkRule')
-              )
-            }
-          />
-          {suggestion ? (
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-[14px] text-neutral-700">
-              {t('createShop.tryInstead')}
-              <Chip
-                onClick={() => {
-                  setAddress(suggestion);
-                  setSuggestion(null);
-                  setFieldErrors({});
-                }}
-              >
-                {suggestion}
-              </Chip>
-            </div>
-          ) : null}
-          {address.length > 0 ? (
-            <dl className="num mt-3 space-y-1 rounded-control bg-neutral-50 px-3.5 py-3 text-[14px]">
-              <div className="flex flex-wrap justify-between gap-x-3">
-                <dt className="text-neutral-700">{t('createShop.customerAddress')}</dt>
-                <dd className="font-semibold break-all text-ink">{appConfig.shopHost(address)}</dd>
-              </div>
-              <div className="flex flex-wrap justify-between gap-x-3">
-                <dt className="text-neutral-700">{t('createShop.dashboardAddress')}</dt>
-                <dd className="font-semibold break-all text-ink">
-                  {appConfig.dashboardAddress(address)}
-                </dd>
-              </div>
-            </dl>
-          ) : null}
-        </div>
-
-        <TextField
-          label={t('createShop.ownerNameLabel')}
+        <Field
+          label={t('csLink')}
+          name="address"
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
+          inputMode="url"
+          suffix={`.${appConfig.platformDomain}`}
+          value={address}
+          error={addressError}
+          help={addressHelp}
+          onChange={(event) => {
+            setAddressTouched(true);
+            setFieldErrors((errors) => {
+              const rest = { ...errors };
+              delete rest.address;
+              return rest;
+            });
+            setAddress(shopSlug.normaliseTyping(event.target.value));
+          }}
+        />
+        {suggestion ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[14px] text-fg-muted">{t('csTry')}</span>
+            <Chip
+              on
+              onClick={() => {
+                setAddressTouched(true);
+                setFieldErrors({});
+                setAddress(suggestion);
+              }}
+            >
+              {suggestion}
+            </Chip>
+          </div>
+        ) : null}
+        {address !== '' ? (
+          <div className="num flex flex-col gap-1.5 rounded-[8px] border border-line bg-neutral-50 px-3 py-2.5 text-[14px]">
+            <span>
+              <span className="text-[13px] text-fg-muted">{t('csCust')}</span>
+              <br />
+              <span className="font-semibold break-all">{appConfig.shopHost(address)}</span>
+            </span>
+            <span>
+              <span className="text-[13px] text-fg-muted">{t('csDash')}</span>
+              <br />
+              <span className="font-semibold break-all">{appConfig.dashboardAddress(address)}</span>
+            </span>
+          </div>
+        ) : null}
+        <Field
+          label={t('csOwner')}
           name="ownerName"
           autoComplete="name"
-          maxLength={60}
+          maxLength={NAME_MAX_LENGTH}
           value={ownerName}
+          error={fieldErrors.ownerName}
           onChange={(event) => {
             setOwnerName(event.target.value);
           }}
-          error={fieldErrors.ownerName}
         />
-
-        {refused ? <Notice tone="warning">{t('createShop.refused')}</Notice> : null}
-        {taken ? <Notice tone="warning">{t('createShop.alreadyHasShop')}</Notice> : null}
-        {otherError ? <ErrorBanner message={errorMessage(mutation.error, t)} /> : null}
-
-        {address.length > 0 && verdict === 'ok' ? (
-          <p className="num text-[14px] text-neutral-700">
-            {t('createShop.finalAddress')}{' '}
-            <strong className="text-ink">{appConfig.shopHost(address)}</strong>{' '}
-            {t('createShop.finalAddressNote')}
+        {refused ? <Notice tone="warn">{t('csRefused')}</Notice> : null}
+        {otherFailure ? <Banner tone="bad">{errorText(create.error)}</Banner> : null}
+        {free ? (
+          <p className="num text-[14px] text-fg-muted">
+            <Trans
+              t={t}
+              i18nKey="csFinal"
+              values={{ host: appConfig.shopHost(address) }}
+              components={{ b: <b className="break-all" /> }}
+            />
           </p>
         ) : null}
-
-        <Button type="submit" loading={mutation.isPending}>
-          {t('createShop.submit')}
+        <Button type="submit" wide busy={create.isPending}>
+          {t('csSubmit')}
         </Button>
       </form>
-    </StepFrame>
+    </OnboardingFrame>
   );
 }

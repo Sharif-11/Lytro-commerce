@@ -1,37 +1,57 @@
 import { useEffect } from 'react';
-import { useNavigate } from '@tanstack/react-router';
+import { Link, useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { useMe } from '@/api/me';
-import { errorMessage } from '@lytronix/api-client';
-import { ErrorBanner } from '@lytronix/ui';
-import { StepFrame } from '@/components/ui/step-frame';
+import { Icon } from '@/components/icon';
+import { BareFrame, OnboardingFrame, Spinner } from '@/components/onboarding/frame';
+import { Banner } from '@/components/ui/banner';
+import { RowList, RowText, rowClass } from '@/components/ui/list-row';
+import { ShopMark } from '@/components/ui/shop-mark';
+import { useErrorText } from '@/hooks/use-error-text';
+import { appConfig } from '@/lib/app-config';
 
 /**
- * TEN-31: the landing after any sign-in. /me names the person's shop, so this goes straight there; with no
- * shop it goes to create-shop (AUTH-12). The picker for a person who belongs to several shops arrives with
- * the memberships field on /me; until then there is never more than one.
+ * TEN-31, TEN-15: the landing after any sign-in. `/me` lists the shops the person may open: one opens at once,
+ * several show the picker (the prototype's `shops`, with each shop's address and the person's role there, and no "new
+ * shop"), none goes to create-shop (AUTH-12). "Opening your shop" shows while `/me` answers.
  */
 export function Shops(): React.JSX.Element {
-  const { t } = useTranslation();
+  const { t } = useTranslation('onboarding');
+  const errorText = useErrorText();
   const navigate = useNavigate();
   const me = useMe();
+  const shops = me.data?.shops ?? null;
+  const only = shops?.length === 1 ? shops[0] : null;
 
   useEffect(() => {
-    if (!me.data) return;
-    if (me.data.tenant) {
-      void navigate({ to: '/$shop', params: { shop: me.data.tenant.slug }, replace: true });
-    } else {
-      void navigate({ to: '/create-shop', replace: true });
-    }
-  }, [me.data, navigate]);
+    if (!shops) return;
+    if (only) void navigate({ to: '/$shop', params: { shop: only.slug }, replace: true });
+    else if (shops.length === 0) void navigate({ to: '/create-shop', replace: true });
+  }, [shops, only, navigate]);
+
+  if (shops && shops.length > 1) {
+    return (
+      <BareFrame>
+        <h1 className="text-center text-[22px] font-bold">{t('shopsTitle')}</h1>
+        <RowList className="overflow-hidden rounded-card border border-line bg-surface">
+          {shops.map((shop) => (
+            <Link key={shop.slug} to="/$shop" params={{ shop: shop.slug }} className={rowClass}>
+              <ShopMark shopName={shop.shopName} slug={shop.slug} logo={null} size={40} />
+              <RowText
+                title={shop.shopName}
+                sub={`${appConfig.shopHost(shop.slug)} · ${shop.role === 'owner' ? t('roleOwner') : t('roleStaff')}`}
+              />
+              <Icon name="right" />
+            </Link>
+          ))}
+        </RowList>
+      </BareFrame>
+    );
+  }
 
   return (
-    <StepFrame title={t('shops.title')}>
-      {me.isError ? (
-        <ErrorBanner message={errorMessage(me.error, t)} />
-      ) : (
-        <p className="text-[15px] text-neutral-700">{t('common.loading')}</p>
-      )}
-    </StepFrame>
+    <OnboardingFrame title={t('shopsOpening')}>
+      {me.isError ? <Banner tone="bad">{errorText(me.error)}</Banner> : <Spinner />}
+    </OnboardingFrame>
   );
 }

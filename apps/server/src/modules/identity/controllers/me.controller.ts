@@ -12,6 +12,7 @@ import type { ImageView } from '../../../common/media-links';
 import { MediaService } from '../../media/services/media.service';
 import { StaffService } from '../../staff/services/staff.service';
 import { ShopMemberships, type ShopListing } from '../services/shop-memberships';
+import { TenantService } from '../../tenancy/services/tenant.service';
 import type { TenantSummary } from '../../tenancy/types/tenant-summary';
 
 export interface MeResponse {
@@ -40,6 +41,9 @@ export interface MeResponse {
     brand: LiveBrand | null;
   } | null;
   shops: ShopListing[];
+  /** LIF-21: the person has no shop open yet and owns a deleted one, whose balance the new shop takes over -- for
+      create-shop's note. False whenever a shop is open, and for staff. */
+  hasDeletedShop: boolean;
 }
 
 // The dashboard shell's account summary.
@@ -55,6 +59,7 @@ export class MeController {
     @Inject(ShopMemberships) private readonly memberships: ShopMemberships,
     @Inject(BrandService) private readonly brand: BrandService,
     @Inject(MediaService) private readonly media: MediaService,
+    @Inject(TenantService) private readonly tenants: TenantService,
   ) {}
 
   @Get()
@@ -72,6 +77,11 @@ export class MeController {
     const brand = tenant === null ? null : await this.brand.live(tenant.id);
     const logo = tenant === null ? null : await this.media.logoOf(tenant.id);
     const name = tenant === null ? null : await this.staff.nameOf(tenant, userId);
+    const subscriberId = request.session?.subscriberId ?? null;
+    const hasDeletedShop =
+      tenant === null && isOwner && subscriberId !== null
+        ? await this.tenants.hasDeletedShop(subscriberId)
+        : false;
     return {
       subscriber: { id: request.session?.subscriberId ?? '' },
       isOwner,
@@ -93,6 +103,7 @@ export class MeController {
               brand,
             },
       shops,
+      hasDeletedShop,
     };
   }
 }

@@ -26,7 +26,7 @@ export function SectionChips(): React.JSX.Element | null {
             to={section.path}
             params={{ shop: slug }}
             aria-current={on ? 'page' : undefined}
-            className={chipClass(on, true)}
+            className={chipClass(on, 'sm')}
           >
             {t(section.label)}
             {count ? <ChipCount on={on}>{count}</ChipCount> : null}
