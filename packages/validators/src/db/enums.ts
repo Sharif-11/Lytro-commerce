@@ -610,6 +610,35 @@ export enum PlanPaymentStatus {
   Expired = 'expired',
 }
 
+// BIL-19: a payment as the shop reads it -- the status and whether a transaction ID was ever submitted, folded into
+// one word. The dashboard's Billing section filters and labels by it; `billingPaymentStateOf` is its one definition,
+// and the list query's SQL twin lives beside the repository.
+export enum BillingPaymentState {
+  /** Quoted, nothing submitted yet; lapses 24 hours after the quote (BIL-15). */
+  Awaiting = 'awaiting',
+  /** Submitted with a transaction ID and waiting for the operator (BIL-04, BIL-06), a late submission included. */
+  Checking = 'checking',
+  Paid = 'paid',
+  Rejected = 'rejected',
+  Expired = 'expired',
+}
+
+export function billingPaymentStateOf(
+  status: PlanPaymentStatus,
+  transactionId: string | null,
+): BillingPaymentState {
+  switch (status) {
+    case PlanPaymentStatus.Verified:
+      return BillingPaymentState.Paid;
+    case PlanPaymentStatus.Rejected:
+      return BillingPaymentState.Rejected;
+    case PlanPaymentStatus.Expired:
+      return BillingPaymentState.Expired;
+    default:
+      return transactionId === null ? BillingPaymentState.Awaiting : BillingPaymentState.Checking;
+  }
+}
+
 // BIL-02, BIL-12: how a plan payment was paid -- from the shop's balance, or a wallet transfer the operator
 // verified. One list for the purchase and upgrade requests and the invoice that records it.
 export const PLAN_PAYMENT_METHODS = ['balance', 'wallet'] as const;

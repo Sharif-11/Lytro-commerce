@@ -150,6 +150,9 @@ export {
   PlanPaymentsRepository,
   UsedTransactionIdsRepository,
   type NewPlanPayment,
+  type PaymentNeedingAttentionRow,
+  type TenantPaymentFilter,
+  type TenantPaymentRow,
 } from './repositories/billing/plan-payments.repository';
 export { IdempotencyKeysRepository } from './repositories/platform/idempotency-keys.repository';
 export {

@@ -56,6 +56,9 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'POST /billing/purchase': "another shop's payment id answers not_found",
   'GET /billing/invoices': "lists only the session shop's own invoices",
   'GET /billing/invoices/:id': "another shop's invoice id answers not_found",
+  // Checked in test/billing-payments.e2e.spec.ts: a shop's payments to the platform are its own (BIL-19).
+  'GET /billing/payments':
+    "lists only the session shop's own payments (and its owner's earlier shops')",
   'POST /billing/upgrade/quote': 'creates an upgrade quote scoped to the session shop only',
   'POST /billing/upgrade/confirm': "another shop's payment id answers not_found",
   // Checked in test/plan-downgrade.e2e.spec.ts: a shop schedules, previews, cancels and reads only its own.

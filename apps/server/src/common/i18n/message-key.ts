@@ -187,6 +187,7 @@ export const MESSAGE_KEYS = [
   'TopUpConfirmed',
   'InvoicesListed',
   'InvoiceRetrieved',
+  'BillingPaymentsListed',
   'PaymentQueueListed',
   'PaymentApproved',
   'PaymentRejected',

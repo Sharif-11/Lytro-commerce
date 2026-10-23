@@ -446,6 +446,7 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   TopUpConfirmed: { en: 'Top-up confirmed.', bn: 'টপ-আপ নিশ্চিত হয়েছে।' },
   InvoicesListed: { en: 'Invoices retrieved.', bn: 'ইনভয়েসগুলো পাওয়া গেছে।' },
   InvoiceRetrieved: { en: 'Invoice retrieved.', bn: 'ইনভয়েস পাওয়া গেছে।' },
+  BillingPaymentsListed: { en: 'Payments retrieved.', bn: 'পেমেন্টগুলো পাওয়া গেছে।' },
   PaymentQueueListed: { en: 'Payment queue retrieved.', bn: 'পেমেন্ট কিউ পাওয়া গেছে।' },
   PaymentApproved: { en: 'Payment approved.', bn: 'পেমেন্ট অনুমোদিত হয়েছে।' },
   PaymentRejected: { en: 'Payment rejected.', bn: 'পেমেন্ট বাতিল হয়েছে।' },

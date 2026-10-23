@@ -39,6 +39,7 @@ export interface NewInvoice {
   discountAmount: string;
   paymentMethod: SelectInvoice['paymentMethod'];
   paymentReference: string | null;
+  planPaymentId: string | null;
 }
 
 /** BIL-12, PLN-14: one line of an invoice, in its order. */

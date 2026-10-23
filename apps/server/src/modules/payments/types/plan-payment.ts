@@ -1,4 +1,9 @@
-import type { PlanPaymentKind, PlanPaymentStatus } from '@lytronix/validators';
+import type {
+  BillingPaymentState,
+  PlanPaymentKind,
+  PlanPaymentMethod,
+  PlanPaymentStatus,
+} from '@lytronix/validators';
 
 export interface PlanPaymentRecord {
   id: string;
@@ -14,5 +19,27 @@ export interface PlanPaymentRecord {
   transactionId: string | null;
   verifiedBy: string | null;
   verifiedAt: Date | null;
+  /** BIL-19: when the shop submitted its transaction ID; null until it does. */
+  submittedAt: Date | null;
+  /** ADM-06, BIL-19: the operator's note on a rejection; null otherwise. */
+  note: string | null;
   createdAt: Date;
+}
+
+/** BIL-19: a payment as the shop reads it in Billing: its state, how it was paid, what it names, and its invoice. */
+export interface TenantPaymentRecord extends PlanPaymentRecord {
+  state: BillingPaymentState;
+  /** 'wallet' once a transaction ID was submitted, 'balance' when paid from the balance, null before either. */
+  method: PlanPaymentMethod | null;
+  planName: string | null;
+  billingTerm: { labelEn: string; labelBn: string; months: number } | null;
+  invoice: { id: string; number: number } | null;
+}
+
+/** BIL-19: the rejected or lapsed payment the shop should act on, as Home shows it. */
+export interface PaymentNeedingAttention {
+  id: string;
+  kind: PlanPaymentKind;
+  amount: string;
+  state: BillingPaymentState;
 }

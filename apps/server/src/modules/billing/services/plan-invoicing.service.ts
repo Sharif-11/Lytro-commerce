@@ -113,6 +113,7 @@ export class PlanInvoicingService {
         // A wallet payment carries the transaction ID the operator verified; a balance payment has none.
         paymentMethod: payment.transactionId === null ? 'balance' : 'wallet',
         paymentReference: payment.transactionId,
+        planPaymentId: payment.id,
       },
       planLines(input),
     );

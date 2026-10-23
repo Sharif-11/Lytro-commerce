@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
+import { BillingPaymentState } from '@lytronix/validators';
 
 // BAL-03, BIL-04: submitted payments the operator is still checking.
 const beingCheckedSchema = z.object({ count: z.number(), amount: z.string() });
@@ -17,6 +18,15 @@ export const homeViewSchema = z.object({
     .nullable(),
   topUpsBeingChecked: beingCheckedSchema.nullable(),
   paymentsBeingChecked: beingCheckedSchema.nullable(),
+  // BIL-19: the rejected or lapsed payment to act on, if any.
+  paymentNeedingYou: z
+    .object({
+      id: z.string(),
+      kind: z.string(),
+      amount: z.string(),
+      state: z.nativeEnum(BillingPaymentState),
+    })
+    .nullable(),
   staffWithoutPassword: z.number().nullable(),
   fastSpendAlertedAt: z.date().nullable(),
   // SUP-01: the owner's set-up checklist, as far as the server can tell it.

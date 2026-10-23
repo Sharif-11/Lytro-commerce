@@ -6,6 +6,7 @@ import {
   TransactionRunner,
   UsedTransactionIdsRepository,
   type SelectInvoice,
+  type TenantPaymentFilter,
   type Transaction,
 } from '@lytronix/db';
 import { PlanPaymentKind } from '@lytronix/validators';
@@ -107,6 +108,14 @@ export class DrizzlePlanPaymentsStore implements PlanPaymentsStore {
 
   submittedForTenant(tx: Transaction, tenantId: string, kinds: PlanPaymentKind[]) {
     return this.payments.submittedForTenant(tx, tenantId, kinds);
+  }
+
+  listForTenants(tx: Transaction, tenantIds: string[], filter: TenantPaymentFilter) {
+    return this.payments.listForTenants(tx, tenantIds, filter);
+  }
+
+  needingAttention(tx: Transaction, tenantId: string, kinds: PlanPaymentKind[], since: Date) {
+    return this.payments.needingAttention(tx, tenantId, kinds, since);
   }
 
   async setStatus(tx: Transaction, id: string, values: PlanPaymentStatusValues) {

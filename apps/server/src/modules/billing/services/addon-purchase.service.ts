@@ -314,6 +314,7 @@ export class AddonPurchaseService {
         discountAmount: '0',
         paymentMethod: paidByWallet ? 'wallet' : 'balance',
         paymentReference: payment.transactionId,
+        planPaymentId: payment.id,
       },
       [addonLine(addon.labelEn, purchase.quantity, payment.amount, expiresAt)],
     );

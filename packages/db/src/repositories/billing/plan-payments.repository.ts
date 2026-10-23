@@ -1,11 +1,28 @@
-import { and, desc, eq, inArray, isNotNull, isNull, lt, sql } from 'drizzle-orm';
 import {
+  and,
+  desc,
+  eq,
+  getTableColumns,
+  gt,
+  inArray,
+  isNotNull,
+  isNull,
+  lt,
+  notExists,
+  sql,
+  type SQL,
+} from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
+import {
+  billingTerms,
+  invoices,
   planPayments,
+  plans,
   usedTransactionIds,
   type SelectPlanPayment,
   type SelectUsedTransactionId,
 } from '../../schema';
-import { PlanPaymentStatus, type PlanPaymentKind } from '@lytronix/validators';
+import { BillingPaymentState, PlanPaymentStatus, type PlanPaymentKind } from '@lytronix/validators';
 import type { Executor } from '../../transactions';
 
 export interface NewPlanPayment {
@@ -16,6 +33,58 @@ export interface NewPlanPayment {
   amount: string;
   creditAmount: string;
 }
+
+/** BIL-19: a payment as the shop's Billing section lists it: the row, the names it shows, and its invoice. */
+export type TenantPaymentRow = SelectPlanPayment & {
+  planName: string | null;
+  termLabelEn: string | null;
+  termLabelBn: string | null;
+  termMonths: number | null;
+  invoiceId: string | null;
+  invoiceNumber: number | null;
+};
+
+/** BIL-19: what the shop's payments may be listed by, and what the list returns. */
+export interface TenantPaymentFilter {
+  state?: BillingPaymentState;
+  kind?: PlanPaymentKind;
+  page: number;
+  limit: number;
+}
+
+/** BIL-19: the rejected or lapsed payment the shop should act on. */
+export interface PaymentNeedingAttentionRow {
+  id: string;
+  kind: PlanPaymentKind;
+  amount: string;
+  status: PlanPaymentStatus;
+  transactionId: string | null;
+}
+
+// BIL-19: each seller-facing state as the rows it covers -- the SQL twin of `billingPaymentStateOf`.
+function stateCondition(state: BillingPaymentState): SQL | undefined {
+  switch (state) {
+    case BillingPaymentState.Awaiting:
+      return and(
+        eq(planPayments.status, PlanPaymentStatus.Pending),
+        isNull(planPayments.transactionId),
+      );
+    case BillingPaymentState.Checking:
+      return and(
+        inArray(planPayments.status, [PlanPaymentStatus.Pending, PlanPaymentStatus.NeedsReview]),
+        isNotNull(planPayments.transactionId),
+      );
+    case BillingPaymentState.Paid:
+      return eq(planPayments.status, PlanPaymentStatus.Verified);
+    case BillingPaymentState.Rejected:
+      return eq(planPayments.status, PlanPaymentStatus.Rejected);
+    case BillingPaymentState.Expired:
+      return eq(planPayments.status, PlanPaymentStatus.Expired);
+  }
+}
+
+// BIL-19, BIL-15: when a payment was decided -- or, never submitted, when it lapsed, 24 hours after its quote.
+const decidedAt = sql`coalesce(${planPayments.verifiedAt}, ${planPayments.quotedAt} + interval '24 hours')`;
 
 // D2-1: control.plan_payments -- the pending -> needs_review/verified/rejected/expired state machine.
 export class PlanPaymentsRepository {
@@ -101,6 +170,8 @@ export class PlanPaymentsRepository {
       transactionId?: string | null;
       verifiedBy?: string | null;
       verifiedAt?: Date | null;
+      submittedAt?: Date | null;
+      note?: string | null;
     },
   ): Promise<void> {
     await tx.update(planPayments).set(values).where(eq(planPayments.id, id));
@@ -124,6 +195,99 @@ export class PlanPaymentsRepository {
       )
       .returning({ id: planPayments.id });
     return rows.length;
+  }
+
+  /**
+   * BIL-19: these shops' payments to the platform (a shop's own, and its owner's earlier shops', LIF-21), newest
+   * first, each with the plan and term it names and the invoice it produced; optionally one state or kind.
+   */
+  async listForTenants(
+    tx: Executor,
+    tenantIds: string[],
+    filter: TenantPaymentFilter,
+  ): Promise<{ payments: TenantPaymentRow[]; total: number }> {
+    if (tenantIds.length === 0) return { payments: [], total: 0 };
+    const where = and(
+      inArray(planPayments.tenantId, tenantIds),
+      filter.kind ? eq(planPayments.kind, filter.kind) : undefined,
+      filter.state ? stateCondition(filter.state) : undefined,
+    );
+    const [payments, counted] = await Promise.all([
+      this.selectWithNames(tx)
+        .where(where)
+        .orderBy(desc(planPayments.quotedAt), desc(planPayments.id))
+        .limit(filter.limit)
+        .offset((filter.page - 1) * filter.limit),
+      tx
+        .select({ total: sql<number>`count(*)::int` })
+        .from(planPayments)
+        .where(where),
+    ]);
+    return { payments, total: counted[0]?.total ?? 0 };
+  }
+
+  /**
+   * BIL-19: the payment the shop should act on -- its newest rejected or expired payment of these kinds, decided (or
+   * lapsed) since `since`, with no later payment of the same kind, which would mean the shop has already paid again.
+   */
+  async needingAttention(
+    tx: Executor,
+    tenantId: string,
+    kinds: PlanPaymentKind[],
+    since: Date,
+  ): Promise<PaymentNeedingAttentionRow | null> {
+    if (kinds.length === 0) return null;
+    const later = alias(planPayments, 'later');
+    const rows = await tx
+      .select({
+        id: planPayments.id,
+        kind: planPayments.kind,
+        amount: planPayments.amount,
+        status: planPayments.status,
+        transactionId: planPayments.transactionId,
+      })
+      .from(planPayments)
+      .where(
+        and(
+          eq(planPayments.tenantId, tenantId),
+          inArray(planPayments.kind, kinds),
+          inArray(planPayments.status, [PlanPaymentStatus.Rejected, PlanPaymentStatus.Expired]),
+          sql`${decidedAt} >= ${since}`,
+          notExists(
+            tx
+              .select({ one: sql`1` })
+              .from(later)
+              .where(
+                and(
+                  eq(later.tenantId, planPayments.tenantId),
+                  eq(later.kind, planPayments.kind),
+                  gt(later.quotedAt, planPayments.quotedAt),
+                ),
+              ),
+          ),
+        ),
+      )
+      .orderBy(desc(decidedAt))
+      .limit(1);
+    return rows[0] ?? null;
+  }
+
+  /** The row with the plan's and term's names and the invoice's id and number beside it. */
+  private selectWithNames(tx: Executor) {
+    return tx
+      .select({
+        ...getTableColumns(planPayments),
+        planName: plans.name,
+        termLabelEn: billingTerms.labelEn,
+        termLabelBn: billingTerms.labelBn,
+        termMonths: billingTerms.months,
+        invoiceId: invoices.id,
+        invoiceNumber: invoices.number,
+      })
+      .from(planPayments)
+      .leftJoin(plans, eq(plans.id, planPayments.planId))
+      .leftJoin(billingTerms, eq(billingTerms.id, planPayments.billingTermId))
+      .leftJoin(invoices, eq(invoices.planPaymentId, planPayments.id));
   }
 }
 

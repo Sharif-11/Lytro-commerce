@@ -5,13 +5,18 @@ import {
   Inject,
   Param,
   Post,
+  Query,
   Req,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
-import { Permission } from '@lytronix/validators';
+import {
+  billingPaymentListQuerySchema,
+  Permission,
+  type BillingPaymentListQuery,
+} from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import { ClientIp } from '../../../common/client-ip';
 import { Dashboard } from '../../../common/decorators/dashboard';
@@ -23,6 +28,7 @@ import { DashboardGuard, type DashboardRequest } from '../../identity/guards/das
 import { SessionGuard } from '../../identity/guards/session.guard';
 import { PermissionGuard } from '../guards/permission.guard';
 import { OkDto } from '../../../common/dto/ok.dto';
+import { AddonRenewalService } from '../../billing/services/addon-renewal.service';
 import {
   DowngradeService,
   type DowngradeChecklist,
@@ -32,11 +38,13 @@ import {
 import { LifecycleService } from '../../billing/services/lifecycle.service';
 import { PurchaseService } from '../../billing/services/purchase.service';
 import { UpgradeService, type UpgradeQuote } from '../../billing/services/upgrade.service';
+import type { PaymentAddon } from '../../billing/types/addon';
 import type { ScheduledPlanChangeRecord } from '../../billing/types/scheduled-plan-change';
 import { InvoicesService } from '../../payments/services/invoices.service';
+import { PlanPaymentsService } from '../../payments/services/plan-payments.service';
 import { TenantService } from '../../tenancy/services/tenant.service';
 import type { InvoiceRecord } from '../../payments/types/invoice';
-import type { PlanPaymentRecord } from '../../payments/types/plan-payment';
+import type { PlanPaymentRecord, TenantPaymentRecord } from '../../payments/types/plan-payment';
 import {
   ConfirmPurchaseDto,
   ConfirmUpgradeDto,
@@ -46,6 +54,7 @@ import {
   TargetDowngradePlanDto,
 } from '../dto/billing.dto';
 import {
+  BillingPaymentPageDto,
   CancellationStatusDto,
   DowngradeChecklistDto,
   InvoiceDto,
@@ -59,6 +68,9 @@ import {
 
 /** An invoice as the billing screen lists it: this shop's own, or one from the owner's earlier shop. */
 type ListedInvoice = InvoiceRecord & { earlierShop: boolean };
+
+/** BIL-19: a payment as Billing lists it: with the add-ons it pays for, and whether it is an earlier shop's. */
+type ListedPayment = TenantPaymentRecord & { addons: PaymentAddon[]; earlierShop: boolean };
 
 // BIL-01 to BIL-13: a tenant's own purchase/renewal flow and invoices.
 // LIF-11/LIF-12: `quote`, `purchase` and both invoice routes carry `lapsed: true` so a locked/archived/deleted
@@ -78,6 +90,8 @@ export class BillingController {
     @Inject(DowngradeService) private readonly downgrade: DowngradeService,
     @Inject(LifecycleService) private readonly lifecycle: LifecycleService,
     @Inject(InvoicesService) private readonly invoices: InvoicesService,
+    @Inject(PlanPaymentsService) private readonly payments: PlanPaymentsService,
+    @Inject(AddonRenewalService) private readonly renewals: AddonRenewalService,
     @Inject(TenantService) private readonly tenants: TenantService,
     @Inject(ClientIp) private readonly clientIp: ClientIp,
   ) {}
@@ -341,6 +355,52 @@ export class BillingController {
       return { ...invoice, earlierShop: true };
     }
     throw new ApiError('not_found', 'InvoiceNotFound', {});
+  }
+
+  // BIL-19: the shop's own payments to the platform, every one from its quote on, in one route: each row carries
+  // everything the payment screen shows. Open in every lifecycle state, as the invoices are; the owner's earlier
+  // shops' payments are listed with this shop's and marked (LIF-21).
+  @Get('payments')
+  @Dashboard({ lapsed: true })
+  @RequirePermission(Permission.PaymentsRead)
+  @ResponseMessage('BillingPaymentsListed')
+  @ApiOperation({
+    summary: "The shop's payments to the platform, newest first, with their state (BIL-19)",
+  })
+  @ZodResponse({ type: BillingPaymentPageDto })
+  async listPayments(
+    @Query(new ZodValidationPipe(billingPaymentListQuerySchema)) query: BillingPaymentListQuery,
+    @Req() request: DashboardRequest,
+  ): Promise<{
+    payments: ListedPayment[];
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  }> {
+    const tenantId = this.tenantIdOf(request);
+    const earlier = await this.earlierShopsOf(request, tenantId);
+    const { payments, total } = await this.payments.listForTenants([tenantId, ...earlier], query);
+    const addons = await this.renewals.forPayments(payments.map((payment) => payment.id));
+    return {
+      payments: payments.map((payment) => this.listed(payment, tenantId, addons)),
+      page: query.page,
+      limit: query.limit,
+      total,
+      pages: Math.ceil(total / query.limit),
+    };
+  }
+
+  private listed(
+    payment: TenantPaymentRecord,
+    tenantId: string,
+    addons: Map<string, PaymentAddon[]>,
+  ): ListedPayment {
+    return {
+      ...payment,
+      addons: addons.get(payment.id) ?? [],
+      earlierShop: payment.tenantId !== tenantId,
+    };
   }
 
   /** BIL-13, LIF-21: the owner's earlier, deleted shops, whose invoices stay the owner's. Staff see none. */

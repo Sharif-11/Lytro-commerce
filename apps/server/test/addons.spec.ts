@@ -58,6 +58,7 @@ function invoice(
     tenantId: 't',
     number: nextNumber++,
     kind,
+    planPaymentId: null,
     planSnapshot: kind === InvoiceKind.Addon ? null : {},
     amount,
     creditAmount,

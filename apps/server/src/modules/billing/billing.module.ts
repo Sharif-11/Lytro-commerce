@@ -116,6 +116,7 @@ import {
     DowngradeService,
     LifecycleService,
     PaymentQueueService,
+    AddonRenewalService,
   ],
 })
 export class BillingModule {}

@@ -112,7 +112,7 @@ export class PaymentQueueService {
   ): Promise<PlanPaymentRecord> {
     const now = this.clock();
     return this.tenants.runStandalone(async (tx) => {
-      const payment = await this.payments.reject(tx, paymentId, operatorId, now);
+      const payment = await this.payments.reject(tx, paymentId, operatorId, now, note);
       // PLN-14: a payment turned down activates nothing; the add-ons it carried are cancelled with it.
       await this.renewals.cancelFor(tx, payment.id);
       // AUD-08, ADM-04: the shop learns its payment was turned down, and why, as "Platform support".

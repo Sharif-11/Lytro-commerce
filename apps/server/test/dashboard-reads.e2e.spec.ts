@@ -252,6 +252,7 @@ describeIfDatabase('Home in one read (TENANT-DASHBOARD-DESIGN §7.1, SUP-01, STF
       balance: null,
       topUpsBeingChecked: null,
       paymentsBeingChecked: null,
+      paymentNeedingYou: null,
       staffWithoutPassword: null,
       fastSpendAlertedAt: null,
       checklist: null,

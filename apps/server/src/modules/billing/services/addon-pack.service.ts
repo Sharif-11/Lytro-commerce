@@ -315,6 +315,7 @@ export class AddonPackService {
         discountAmount: '0',
         paymentMethod: 'balance',
         paymentReference: null,
+        planPaymentId: payment.id,
       },
       [{ kind: InvoiceLineKind.Addon, description: addon.labelEn, quantity, amount }],
     );
