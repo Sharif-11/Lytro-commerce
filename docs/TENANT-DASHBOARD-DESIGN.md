@@ -1,8 +1,9 @@
 # Tenant dashboard: the full design
 
-Status: v2.3, 2026-10-22 (v2.2 of 2026-10-21 brought up to the prototype as it stands after Slice 10a: the screens
-of Slices 4 to 10a get their sections in §7, the decisions of 2026-10-22 for Phase 3 Slice 11 are recorded in §2,
-§10 and §11, and the prototype's faults are fixed). One design for the whole seller journey: sign-in and onboarding,
+Status: v2.4, 2026-10-23 (Billing, §7.13, replaces the Invoices section: every payment the shop made to Lytro with
+its state, the invoice as a paid one's receipt, the rejected-payment row on Home and the banners on Plan and Balance,
+and the backend list it needs in §10; v2.3 of 2026-10-22 brought the document up to the prototype after Slice 10a and
+recorded the Slice 11 decisions in §2, §10 and §11). One design for the whole seller journey: sign-in and onboarding,
 and the dashboard (`apps/dashboard`, served at `app.lytro.app/<shop>`). It replaces the screen designs in
 `DASHBOARD-SECTIONS-DESIGN.md` and the shell and screen visuals in `ONBOARDING-FLOW-DESIGN.md` (that
 document's flow, decisions and routing rules still hold and are referenced below). The interactive
@@ -64,9 +65,9 @@ waits for Phase 7; storefront settings wait for Slice 12; shortfall, returns and
 | Area | In the current state | Held for later (and where it sits in the prototype) |
 | --- | --- | --- |
 | Onboarding and sign-in | every step of §6 | nothing |
-| Home | the job queue from stock, batches, money being checked, low balance, the plan's end and staff without a password; the fast-spend banner; the "Right now" tiles; the set-up checklist; the shop link | the order and payment job rows and the sales tiles (Phase 4, 5) |
+| Home | the job queue from stock, batches, money being checked or rejected, low balance, the plan's end and staff without a password; the fast-spend banner; the "Right now" tiles; the set-up checklist; the shop link | the order and payment job rows and the sales tiles (Phase 4, 5) |
 | Shop hub | Products (with photos and video), Categories, Attributes, Stock (checks, expiring, value and losses), Purchases (with suppliers), Delivery | shortfall, returns and profit (Phase 4, "Later phases") |
-| Money hub | Balance, Plan, Invoices, Usage, Add-ons | Payments, Payment methods (Phase 5); the hosted payment page (Phase 5, §7.19) |
+| Money hub | Balance, Plan, Billing (the shop's payments to Lytro, with their invoices), Usage, Add-ons | Payments (the shop's incoming payments) and Payment methods (Phase 5); the hosted payment page (Phase 5, §7.19) |
 | Menu | Team, Activity, Settings (shop details, delivery, brand identity, API keys, Facebook and Meta, data export), Account; install the app, language, help, sign out | Notices (Phase 7); storefront settings and its banner slides (Slice 12); the settings rows for payment methods, couriers, listener, SMS and notifications under "Coming later" with their phase |
 | Shell | app bar with search (products) and **+** (Add product, Add stock, Top up); tab bar Home, Orders, Shop, Money, Menu; on desktop the rail, the header and, from 1280 px, the side column | the bell and notifications (Phase 7); the Orders tab opens a placeholder that says orders arrive in Phase 4; the + menu shows "New order" greyed with its phase |
 
@@ -88,7 +89,7 @@ of the business, not the platform's module names. Routes are under `app.lytro.ap
 | **Home** `/` | The queue, "Right now" tiles, set-up checklist, banners | any member | `GET /home` (Slice 11, §10) and `/me`; order and payment counts later |
 | **Orders** `/orders` | Orders, one order, new order, Customers | `orders:*`, `customers:read` | later (Phase 4); the tab opens the placeholder |
 | **Shop** `/products` | Products `/products`, one product `/products/:id`, new `/products/new`, Categories `/categories`, Attributes `/attributes` (with Option sets), Stock `/stock`, Stock checks `/stock/checks`, Expiring `/stock/expiring`, Stock value `/stock/value`, Purchases `/purchases` (one purchase `/purchases/:id`, Suppliers `/purchases/suppliers`), Delivery `/delivery` | `products:*`, `inventory:*` (costs and value only with `inventory:manage`, D3-9), `settings:manage` (delivery, business type) | built (Slices 1 to 9) |
-| **Money** `/balance` | Balance `/balance`, Plan `/plan`, Invoices `/invoices`, Usage `/usage`, Add-ons `/addons`; Payments, Payment methods later | `balance:*`, `payments:read/manage` | built (Phase 2, Slices 10 and 10a) |
+| **Money** `/balance` | Balance `/balance`, Plan `/plan`, Billing `/billing` (a payment opens from its row; on the phone at `/billing/:id`, drawn from the list), Usage `/usage`, Add-ons `/addons`; Payments, Payment methods later | `balance:*`, `payments:read/manage` | built (Phase 2, Slices 10 and 10a); the billing list is a Slice 11 addition (§10) |
 | **Menu** `/menu` | Team `/team` (+ `/team/roles`), Activity `/activity`, Settings `/settings` (Shop details `/settings/shop`, Brand identity `/settings/brand`, API keys `/settings/api-keys`, Facebook and Meta `/settings/meta`, Data export `/settings/export`), Account `/account`, Help, Language, Sign out; Notices later | per row: `keys:manage` for API keys, `settings:manage` for the rest of Settings, the owner alone for the export | built; the brand identity's backend is Slice 11 (§10) |
 
 Rows and sections a staff member lacks the permission for are **hidden, never disabled** (STF-11). The owner
@@ -103,6 +104,12 @@ the seller changes them beside the products, and the product editor's "Delivers 
 
 **Why Payments and Balance will share a hub.** Both are money the seller watches daily. Until Phase 5 the
 hub's first section is Balance.
+
+**Why Billing, not Invoices or Payments.** The section holds every payment the seller made to Lytro, whatever
+became of it, so a rejected or lapsed payment is found where the seller looks for money, not in the Activity log.
+"Invoices" names only the paid ones, and "Payments" is what Phase 5 needs for the shop's incoming payments: to a
+seller, a "payment" is money a customer sent. Billing (বিলিং) is the word a seller already uses for what a service
+charges them.
 
 **Why Usage and Add-ons sit in Money.** Room costs money: a usage warning ends in a pack, an add-on or a plan,
 and every one of those is paid from the balance or like a plan. The add-ons screen is also reached from Usage,
@@ -231,11 +238,12 @@ comes from), **Actions**, **States**.
 
 1. Low or out-of-stock products (INV-08) → `/stock?state=low`
 2. Batches expiring within 30 days (INV-13) → `/stock/expiring`
-3. A top-up being checked (BAL-03) → `/balance`
-4. A plan payment being checked (BIL-04) → `/plan`
-5. Balance under ৳50 (BAL-13) → `/balance`
-6. Trial or plan ending inside 7 days (TRL-08, BIL-14) → `/plan`
-7. A staff member who has not set a password yet (STF-13) → `/team`
+3. A payment to Lytro that was rejected or lapsed, "see why" (BIL-19, §7.13) → `/billing/:id` (`home-rejected`)
+4. A top-up being checked (BAL-03) → `/balance`
+5. A plan payment being checked (BIL-04) → `/plan`
+6. Balance under ৳50 (BAL-13) → `/balance`
+7. Trial or plan ending inside 7 days (TRL-08, BIL-14) → `/plan`
+8. A staff member who has not set a password yet (STF-13) → `/team`
 
 Phase 4 and 5 add payments to verify, orders to confirm, orders to book and unverified orders at the top of
 the queue. A key spending fast (RTE-12) is a banner above the queue, not a row: "More than 5% of this cycle's
@@ -264,8 +272,8 @@ as shared. On desktop the queue takes two thirds and the tiles, checklist and li
 the two columns stack 16 px apart, as the items inside each column are (the prototype's `.two` leaves no space
 there).
 
-**Content.** `GET /home` (a Slice 11 addition, §10): the queue's counts, the tiles' figures and the checklist in
-one read, with "link shared" recorded by the server rather than on one phone, and the delivery item named after
+**Content.** `GET /home` (a Slice 11 addition, §10): the queue's counts, the payment needing the seller (§7.13), the tiles' figures and
+the checklist in one read, with "link shared" recorded by the server rather than on one phone, and the delivery item named after
 the shop's home area; `/me` for the plan and its end. **States.** Day one: the checklist opens first and the
 tiles read zero with the trial days; a queue with nothing says so in one line; a failed read says so with Try
 again.
@@ -494,7 +502,9 @@ stop and offers Top up (BAL-13, `balance-low`). The **top-up sheet** (BAL-03, 04
 and "buys about n SMS", the platform's lowest and highest amounts said before quoting (`GET /balance` gains them,
 §10), the four wallet marks, and **পেমেন্ট পেজে যান · ৳500**, which opens the hosted payment page for that amount
 (§7.19). Coming back, the Balance screen shows the "৳500 top-up is being checked" banner until it matches, then
-the credited toast and the ledger row. Built today as `POST /balance/top-up/quote` then `/confirm`; the page
+the credited toast and the ledger row. The banner reads the shop's payments (§7.13), not the device, so it holds
+across a reload and a second phone; a rejected top-up shows the red banner with support's note and Details
+(`balance-rejected`). Built today as `POST /balance/top-up/quote` then `/confirm`; the page
 replaces the in-dashboard wallet step in Phase 5, and until then Slice 11 keeps that step (sender number and
 transaction ID), drawn in this design (decided 2026-10-22).
 
@@ -503,7 +513,7 @@ transaction ID), drawn in this design (decided 2026-10-22).
 Banners first (a scheduled downgrade or pay-as-you-go switch with "Keep Growth", a pending cancellation with
 Undo, the lapsed state line, and for 30 days after a downgrade its checklist). The **current plan** card: name
 and state chip, term, the figures days left and next payment (orders handled joins in Phase 4), the one action
-for the state (Renew for ৳…, Pick a plan, Keep the plan), "See invoices", the auto-renew switch (BIL-17; its
+for the state (Renew for ৳…, Pick a plan, Keep the plan), "See billing" (§7.13), the auto-renew switch (BIL-17; its
 read is a backend addition, §10). **Change plan**: term chips (TRM-12), plan cards (price, monthly equivalent,
 four limits, the one allowed move), the dashed pay-as-you-go card. The **add-ons** card: what is active, what
 renews with the plan and for how much, the packs left, See all (§7.25). Stop the subscription as a disclosure at
@@ -516,7 +526,9 @@ UPG-16): new price, credit for unused days, amount due, the new period, the limi
 balance (enough here) or on the payment page, the 15-minute validity and no-refund lines. *Downgrade*
 (DWN-03): the effective date first, the over-limit list, one sentence per consequence, the new price,
 "Move down on 9 Nov". Coming back from the page, Plan shows the "payment being checked" banner (nothing
-changes until it is confirmed), then "Renewed · runs until 9 Dec" or "Growth is on" with the new figures.
+changes until it is confirmed), then "Renewed · runs until 9 Dec" or "Growth is on" with the new figures. A rejected
+payment shows the red banner with support's note and Details, which opens the payment in Billing (`plan-rejected`);
+both banners read the payments list (§7.13), never the browser's memory.
 
 *Stop the subscription* (LIF-01, `sh-cancel`): everything runs until the period's end, then the dated steps
 (grace, view only, locked, deletion after day 60, with the balance and invoices kept), and "you can undo any time
@@ -529,11 +541,67 @@ deleted after 60 days, and that a plan or pay-as-you-go brings it back (LIF-15),
 *30 days after a downgrade* (DWN-12, `downgrade-checklist`): each limit over with its fix and Open, and the final
 warning's date (`GET /billing/downgrade/checklist`). Built.
 
-### 7.13 Invoices (`/invoices`)
+### 7.13 Billing (`/billing`)
 
-Rows with number, plan and term, date, amount and method; "Earlier shop" chip (BIL-13); the detail with
-issued and period dates, plan and version, price, discount, credit, paid by, billed to and the limits
-snapshot. PDF is later. Built.
+**Job.** Did my payment to Lytro go through, and where is the receipt? Every payment the shop made to the platform
+(a plan at checkout, a renewal, an upgrade, an add-on or pack, a top-up) is a row here from the moment it is
+requested, whatever becomes of it, so a seller never has to find a rejection in the Activity log. Added 2026-10-23
+in place of the Invoices section of v2.3: an invoice is the receipt of a paid row and opens from it (BIL-12, BIL-13),
+and the Phase 5 "Payments" section (§8) keeps its name for the shop's incoming payments.
+
+**Layout.** Filter chips (All, Being checked, Paid, Rejected). The list grouped by month, newest first, in the
+statement's shape (§7.11): a lead icon tinted by the state, the payment's name ("Starter · 1 month · renewal",
+"Balance top-up", "Upgrade to Growth", "Add-on · 100 products"), the date, the method ("bKash", "From the balance";
+the transaction ID is in the payment) or "No payment submitted", the invoice number when there is one and,
+while a request awaits payment, the hours before it lapses; on the right the amount with the **state chip** under
+it; the "Earlier shop" chip on a deleted shop's rows (BIL-13); "Show earlier". A row opens the payment from the
+list already loaded, which carries everything the payment screen shows: on the phone its own screen with Back
+(`/billing/:id`; opened cold, it loads the list first), on desktop the right column beside the list, the row marked
+(the order detail's split, §8). The Billing section chip carries a count while a payment needs the seller.
+
+| Server state | The seller reads | Chip | Lead |
+| --- | --- | --- | --- |
+| `pending`, no transaction ID yet | Awaiting payment (পেমেন্ট বাকি), "lapses in n h" (BIL-15) | neutral | marigold |
+| `pending` or `needs_review` with a transaction ID | Being checked (চেক হচ্ছে) | info | teal |
+| `verified` | Paid (পেইড) | success | green |
+| `rejected` | Rejected (রিজেক্টেড) | danger | red |
+| `expired` | Expired (মেয়াদ শেষ) | neutral | grey |
+
+**The payment.** A card: the name and the state chip, the amount in 32 px, the state's own line, the facts (For:
+"Starter · 1 month · 10 Nov – 9 Dec 2026" or "৳500 added to the balance"; Paid by, with the TrxID; Sent from;
+Submitted, or Requested when nothing was submitted, with the time; Invoice) and the one action for the state. Under
+it **What happened**, a timeline newest first: requested, submitted (method and TrxID), then checking, confirmed
+with the invoice, rejected by Lytro support with the note, or lapsed after 24 hours.
+
+- *Being checked* (`billing-checking`): "Lytro support is matching the payment, usually within an hour. Nothing
+  changes before it is confirmed; we will tell you when it is." The only action is Contact support.
+- *Paid* (`billing-paid`): the invoice card as v2.3 drew it (number, PDF later, issued and period dates, plan and
+  version, price, discount, total, paid by, billed to, the limits snapshot under a disclosure). A paid top-up has no
+  invoice and offers See statement instead.
+- *Rejected* (`billing-rejected`): the red banner with **support's note** as written (AUD-08), the line that nothing
+  was activated and the plan and balance are as they were, then **Pay again** (marigold; opens How to pay with the
+  same plan and term, or the top-up sheet) and Contact support. The same transaction ID may be submitted again: an ID
+  is locked only when a payment is approved (BIL-07).
+- *Expired* (`billing-expired`): "No payment arrived within 24 hours, so the request lapsed. Nothing was charged."
+  Pay again.
+- *Awaiting payment* (`billing-awaiting`): the marigold banner with the hours left and **Finish paying**, which
+  reopens the payment page for the same request (§7.19).
+
+**Elsewhere.** A rejected or lapsed payment is a red row at the top of Home's queue, "৳449 payment rejected · see
+why" (`home-rejected`), and a red banner on Plan (`plan-rejected`) or Balance (`balance-rejected`) quoting the
+note, with Details; the "being checked" banners of §7.11 and §7.12 read the same list, so they hold across reloads
+and phones. "See billing" replaces "See invoices" on the plan card. Staff with `payments:read` see the list;
+`payments:manage` pays a plan again and `balance:manage` a top-up; a staff member with `balance:read` alone still
+sees a top-up's state on Balance.
+
+**States.** Day one: "Your payments to Lytro and their invoices appear here. The first comes with a plan or a
+top-up." (`billing` with the shop switch on day one). A lapsed shop keeps the list, as it kept its invoices
+(BIL-13). **Content.** `GET /billing/payments` (§10), one route: its rows carry everything the payment screen
+shows; the invoice from `GET /billing/invoices/:id`. **Requirement to add** (BIL-19, proposed with this sketch, for `SRS-detailed.md`
+once agreed): a user with `payments:read` shall see every payment the shop made to the platform, whatever its
+outcome, with its kind, amount, method, transaction ID, state, times, the note on a rejection and the invoice it
+produced, in every lifecycle state; a rejected or lapsed payment shall be shown on Home and where it was made until
+the seller pays again or [7] days pass. Slice 11.6 builds the screen to this section once the list exists.
 
 ### 7.14 Team (`/team`, `/team/roles`)
 
@@ -588,7 +656,8 @@ scoped to `/<shop>/`, from a per-shop manifest (a Slice 11 addition, §10). Noti
 
 Every payment to Lytro (a plan at checkout, a renewal, an upgrade, a top-up) goes through the hosted
 payment page of `PAYMENT-PAGE-DESIGN.md` with Lytro as the payee, the platform's wallet numbers, the exact
-amount and the reference (PAY-21, BIL-03, BAL-03). From then on the dashboard never shows a wallet number or
+amount and the reference (PAY-21, BIL-03, BAL-03); every attempt, whatever its end, is a row in Billing
+(§7.13). From then on the dashboard never shows a wallet number or
 asks for a transaction ID itself. Until the page exists (Phase 5), the dashboard keeps today's wallet step (the
 platform's wallet numbers, then the sender number and transaction ID, confirmed by an operator), drawn in this
 design (decided 2026-10-22). The wiring, once the page exists:
@@ -778,7 +847,8 @@ architecture is whole when each phase arrives. Their endpoints do not exist yet.
   fill (CUS-01) and the zone line (DLV-05), items with the variant chooser, payment, the sticky Create.
 - **Customers**: search by name or last digits, rows with orders and spend, the detail with the fraud level,
   addresses, orders and the privacy delete (CUS-02, 06, 09).
-- **Payments** (Phase 5): To verify first (PAY-14) with the mismatch line, Approve and Reject, proof image;
+- **Payments** (Phase 5), the shop's incoming payments (its own payments to Lytro are Billing, §7.13): To verify
+  first (PAY-14) with the mismatch line, Approve and Reject, proof image;
   listener health (VER-07); the verified list. **Payment methods**: one card per type with accounts, the one
   active radio, gateway credentials (WAL-01 to 13).
 - **Notices** (Phase 7): pinned first, category chips, "I understand" (NTC-03 to 05). **SMS events** (Phase
@@ -832,6 +902,8 @@ brand identity.
 | The brand identity: its storage, the approved fonts, the contrast check shared with the editor, the switch held to the add-on or the plan, and the tokens the dashboard and the storefront read | brand | §7.28 (BRN-02, 03, 07) | built (11.2) |
 | `hasDeletedShop` on `/me` | identity | create-shop's carry-over note (LIF-21) | built (11.4a) |
 | `GET /usage`, media upload, add-ons and packs, API keys, purchases and suppliers, Meta | | §7.21 to §7.27 | built |
+| `GET /billing/payments`, one route: every payment the shop made to the platform (purchase, renewal, upgrade, add-on, top-up) with kind, amount, method, transaction ID, state, the requested, submitted and decided times, support's note and the invoice it produced, newest first and pageable; open in every lifecycle state, as the invoices are | billing | §7.13 (BIL-19, proposed) and the Plan and Balance banners | Slice 11, before 11.6 |
+| The payment needing the seller (rejected or lapsed, not yet paid again) on `GET /home` | billing | the Home queue row (§7.1) | Slice 11, before 11.6 |
 | Invoice PDF | billing | BIL-13 | later |
 | Pay-as-you-go estimate | billing | PYG-12 (needs order history) | later |
 | The notifications feed behind the bell | notifications | §8 (NTF-01) | Phase 7 |
@@ -866,3 +938,7 @@ Decided 2026-10-22.
    from 1280 px, the section chips below it.
 4. The order of the Home queue once real volumes are seen; the order here puts money before parcels because
    a payment to verify blocks an order from being booked (CRR-09).
+5. The section's name. Billing (বিলিং) was chosen on 2026-10-23 over "Payments", which Phase 5 needs for the shop's
+   incoming payments, and over "Invoices", which a rejected payment is not (§3). To confirm.
+6. Whether a seller may cancel a request that is awaiting payment before it lapses at 24 hours (BIL-15). No route
+   exists; the sketch offers none.

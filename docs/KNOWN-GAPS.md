@@ -1763,6 +1763,26 @@ staff at another shop could only reach the second by typing its address.
 **Fixed:** `/shops` reads `/me`'s shops: one opens at once, several show the picker (each shop's address and the
 person's role there, and no "new shop", TEN-15), none goes to create-shop.
 
+## 93. `BIL-19`: a shop could not see the payments it made to Lytro, nor what became of them — found 2026-10-23
+
+Found by the owner while reviewing the Money hub. A shop pays Lytro through `control.plan_payments` (a plan at
+checkout, a renewal, an upgrade, an add-on or pack, a top-up), and the only traces a seller could reach were: the
+invoice, created only once a payment is confirmed (BIL-12); the balance statement, which shows a top-up only once it
+is credited; Home's "being checked" counts; and, for a rejection, one Activity entry ("Platform support rejected a
+plan payment", AUD-08). No route listed a shop's own payments, nothing showed a rejection or its note where the
+payment was made, and an expired request (BIL-15) left no trace a seller could see. The dashboard's "being checked"
+notices lived in the browser (sessionStorage on Home, component state on Balance), so they vanished on a reload or
+a second phone. No requirement asked for the list: BIL-04, BIL-13, BIL-15 and ADM-06 describe the states and the
+operator's queue, and PAY-19's payments list is the shop's incoming payments, not its own.
+
+**Decided 2026-10-23:** BIL-19 added to `SRS-detailed.md`. The Money hub's Invoices section becomes Billing
+(`TENANT-DASHBOARD-DESIGN.md` v2.4 §7.13, prototype Part 8): every payment with its state, the invoice as a paid
+one's receipt, a rejected payment on Home and as a banner on Plan and Balance. **To build, backend first:**
+`GET /billing/payments`, one route (each payment with its plan, term, add-ons, method, note and invoice; open in
+lapsed states like the invoices; the owner's earlier shops' rows marked; no one-payment route, the list carries it
+all), the rejection note and the submission time kept on `control.plan_payments`, the invoice's
+`plan_payment_id`, and the payment needing the seller on `GET /home`; then the screen, in Slice 11.6.
+
 ## Not a bug, just noting it so it isn't mistaken for one later
 
 The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data
