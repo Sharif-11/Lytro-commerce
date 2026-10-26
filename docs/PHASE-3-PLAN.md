@@ -1277,6 +1277,10 @@ their backend ships earlier.
     on a phone hid the pack and the metric; dates and figures are written as the other Money screens write them ("6 Oct",
     "100,000"), where Part 10's Bangla sample used month names and "1,00,000"; "To raise it" names the catalogue's own
     add-ons ("Extra 500 products").
+  - **The Money screens' Bangla, revised by the owner (2026-10-26):** the 68 lines the dashboard writes itself on Plan,
+    Balance, Billing and Renew (the prototype's own lines are unchanged) take the owner's fuller wording, written with
+    Western digits as everywhere else; the English is unchanged. Each Bangla line now names the same values as its
+    English one, checked when the words are made.
 
 ### Slice 12: shared storefront and product landing pages
 - **Depends on:** Slices 0, 0b, 7 and 9 (and branding from Phase 1).

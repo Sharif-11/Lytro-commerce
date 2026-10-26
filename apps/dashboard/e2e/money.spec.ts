@@ -50,13 +50,13 @@ test('shows the balance, its statement with each row named, and the chips that r
   await open(page, { money: { payments: settled } });
   await expect(main(page).getByText('৳412').first()).toBeVisible();
   await expect(main(page).getByText('6 / 10')).toBeVisible();
-  await expect(main(page).getByText('টপ-আপ · TrxID 9F2KQ7')).toBeVisible();
+  await expect(main(page).getByText('ব্যালেন্সে টাকা যোগ · TrxID 9F2KQ7')).toBeVisible();
   await expect(main(page).getByText('1 × ৳0.55', { exact: false }).first()).toBeVisible();
   await expect(main(page).getByText('পরে −৳85.85')).toBeVisible();
 
   await main(page).getByRole('button', { name: 'ফি', exact: true }).click();
   await expect(main(page).getByText('মেসেজ থেকে অর্ডার পড়া')).toBeVisible();
-  await expect(main(page).getByText('টপ-আপ · TrxID 9F2KQ7')).toHaveCount(0);
+  await expect(main(page).getByText('ব্যালেন্সে টাকা যোগ · TrxID 9F2KQ7')).toHaveCount(0);
   const last = new URL(requests.at(-1) ?? '');
   expect(last.searchParams.get('type')).toBe('order_fee,product_fee,extraction,fraud_check');
   await expect(main(page).getByRole('link', { name: 'CSV' })).toHaveAttribute(
@@ -110,7 +110,7 @@ test('tops up: the amount, then the request on Continue and the wallet step', as
   await sheet(page).getByLabel('যে নম্বর থেকে পাঠিয়েছেন').fill('1711000231');
   await sheet(page).getByRole('button', { name: 'পেমেন্ট জমা দিন' }).click();
   await expect(
-    page.getByRole('status').filter({ hasText: 'পেমেন্ট চেক করতে পাঠানো হয়েছে' }),
+    page.getByRole('status').filter({ hasText: 'আপনার পেমেন্ট যাচাই করা হচ্ছে' }),
   ).toBeVisible();
   expect(log.sent('POST', '/balance/top-up/confirm')).toMatchObject({
     paymentId: 'payment-1',
@@ -186,7 +186,9 @@ test('a request nothing was sent for: Finish paying by wallet, or Cancel it, cha
     { money: { payments: [AWAITING_RENEWAL, ...settled] } },
     `/billing/${AWAITING_RENEWAL.id}`,
   );
-  await expect(main(page).getByText(/ঘণ্টার মধ্যে দিন, না হলে অনুরোধ বাতিল হবে/)).toBeVisible();
+  await expect(
+    main(page).getByText(/ঘণ্টার মধ্যে পেমেন্ট করুন, না হলে অনুরোধটি বাতিল হবে/),
+  ).toBeVisible();
   await main(page).getByRole('button', { name: 'পেমেন্ট শেষ করুন' }).click();
   await sheet(page).getByLabel(/TrxID/).fill('9HA3RC11');
   await sheet(page).getByLabel('যে নম্বর থেকে পাঠিয়েছেন').fill('1711000231');
@@ -212,7 +214,9 @@ test('a payment not among the recent ones says so; /invoices leads to Billing', 
   page,
 }) => {
   await open(page, {}, '/billing/pay_unknown');
-  await expect(main(page).getByText('এই পেমেন্টটা সাম্প্রতিকগুলোর মধ্যে নেই।')).toBeVisible();
+  await expect(
+    main(page).getByText('এই পেমেন্টটি সাম্প্রতিক পেমেন্টের তালিকায় নেই।'),
+  ).toBeVisible();
   await expect(main(page).getByRole('link', { name: 'সব পেমেন্ট দেখুন' })).toHaveAttribute(
     'href',
     `/${SLUG}/billing`,

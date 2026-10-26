@@ -48,7 +48,11 @@ test("shows a paid plan's card, its term, and each plan's one move, without aski
   await expect(main(page).getByRole('button', { name: 'আপগ্রেড · ৳400 দিতে হবে' })).toBeVisible();
   await expect(main(page).getByRole('button', { name: 'আপগ্রেড · ৳700 দিতে হবে' })).toBeVisible();
   await expect(main(page).getByRole('button', { name: 'মেয়াদ শেষে বদলান' })).toBeVisible();
-  await expect(main(page).getByText('অর্ডারে ৳20 বা 1.5% · প্রোডাক্টে ৳10')).toBeVisible();
+  await expect(
+    main(page).getByText(
+      'প্রতি অর্ডারে ৳20 বা অর্ডার মূল্যের 1.5%—যেটি বেশি · প্রতি নতুন প্রোডাক্টে ৳10',
+    ),
+  ).toBeVisible();
   await expect(main(page).getByText('25টি প্রোডাক্ট')).toBeVisible();
   // Choosing another term reads that term's figures, still without a request.
   await main(page).getByRole('button', { name: '3 মাস · 5% ছাড়' }).click();
@@ -65,7 +69,9 @@ test('renews by wallet: the request is made on Continue, with the amount shown',
   // ৳412.50 does not cover ৳449, so the balance is greyed with why and the wallets are chosen.
   const fromBalance = sheet(page).getByRole('radio', { name: /ব্যালেন্স থেকে/ });
   await expect(fromBalance).toHaveAttribute('aria-disabled', 'true');
-  await expect(fromBalance).toContainText('যথেষ্ট নেই; টপ-আপ করুন বা bKash বা Nagad দিয়ে দিন');
+  await expect(fromBalance).toContainText(
+    'আপনার ব্যালেন্স পর্যাপ্ত নয়। ব্যালেন্সে টাকা যোগ করুন অথবা bKash বা Nagad দিয়ে পেমেন্ট করুন।',
+  );
   await expect(sheet(page).getByRole('radio', { name: /^bKash বা Nagad দিয়ে/ })).toHaveAttribute(
     'aria-checked',
     'true',
@@ -83,7 +89,7 @@ test('renews by wallet: the request is made on Continue, with the amount shown',
   await sheet(page).getByLabel('যে নম্বর থেকে পাঠিয়েছেন').fill('1711234567');
   await sheet(page).getByRole('button', { name: 'পেমেন্ট জমা দিন' }).click();
   await expect(
-    page.getByRole('status').filter({ hasText: 'পেমেন্ট চেক করতে পাঠানো হয়েছে' }),
+    page.getByRole('status').filter({ hasText: 'আপনার পেমেন্ট যাচাই করা হচ্ছে' }),
   ).toBeVisible();
   expect(log.sent('POST', '/billing/purchase')).toMatchObject({
     paymentId: 'payment-1',
@@ -114,9 +120,9 @@ test('upgrades, and says so when the amount changed before the tap, charging not
 }) => {
   const log = await open(page, { money: { balance: '900.00', amountChangedTo: '415.00' } });
   await main(page).getByRole('button', { name: 'আপগ্রেড · ৳400 দিতে হবে' }).click();
-  await expect(sheet(page).getByText('Starter-এর বাকি 20 দিনের ক্রেডিট')).toBeVisible();
+  await expect(sheet(page).getByText('Starter প্ল্যানের অব্যবহৃত 20 দিনের ক্রেডিট')).toBeVisible();
   await expect(
-    sheet(page).getByText('প্রোডাক্ট 100 → 1,000 · সিট 2 → 5 · অর্ডার 300 → 1,500'),
+    sheet(page).getByText('প্রোডাক্ট: 100 → 1,000 · স্টাফ সিট: 2 → 5 · মাসিক অর্ডার: 300 → 1,500'),
   ).toBeVisible();
   await sheet(page).getByRole('button', { name: 'ব্যালেন্স থেকে ৳400 দিন' }).click();
 
@@ -127,7 +133,9 @@ test('upgrades, and says so when the amount changed before the tap, charging not
   expect(log.calls.some((call) => call.path === '/billing/upgrade/confirm')).toBe(false);
 
   await sheet(page).getByRole('button', { name: 'ব্যালেন্স থেকে ৳415 দিন' }).click();
-  await expect(page.getByRole('status').filter({ hasText: 'Growth চালু হয়েছে' })).toBeVisible();
+  await expect(
+    page.getByRole('status').filter({ hasText: 'Growth প্ল্যান চালু হয়েছে' }),
+  ).toBeVisible();
   expect(log.sent('POST', '/billing/upgrade/quote')).toMatchObject({ planId: GROWTH, amount: 415 });
   expect(log.sent('POST', '/billing/upgrade/confirm')).toEqual({
     paymentId: 'payment-1',
@@ -148,10 +156,12 @@ test('moves down at the period end, after saying what would be over the limit', 
     },
   });
   await main(page).getByRole('button', { name: 'মেয়াদ শেষে নামুন' }).click();
-  await expect(sheet(page).getByRole('heading', { name: 'Starter-এ নামুন' })).toBeVisible();
+  await expect(
+    sheet(page).getByRole('heading', { name: 'Starter-এ ডাউনগ্রেড করুন' }),
+  ).toBeVisible();
   await expect(sheet(page).getByText('340 / 100')).toBeVisible();
   await expect(sheet(page).getByText('4 / 2')).toBeVisible();
-  await expect(sheet(page).getByText(/100-র মধ্যে আসে/)).toBeVisible();
+  await expect(sheet(page).getByText(/100-এর মধ্যে আনতে হবে/)).toBeVisible();
   await sheet(page)
     .getByRole('button', { name: /-এ নামুন$/ })
     .click();
@@ -163,13 +173,15 @@ test("stops the subscription at the period's end, naming each step's day", async
   const log = await open(page);
   await main(page).getByText('সাবস্ক্রিপশন বন্ধ করতে চান?').click();
   await expect(
-    main(page).getByText(/3 দিন পর শুধু দেখা যাবে, 60 দিন পর ডেটা মুছে যাবে/),
+    main(page).getByText(
+      /3 দিন পর শুধু দেখা যাবে, কোনো পরিবর্তন করা যাবে না। 60 দিন পর দোকানের ডেটা মুছে ফেলা হবে/,
+    ),
   ).toBeVisible();
   await main(page).getByRole('button', { name: 'মেয়াদ শেষে ক্যানসেল' }).click();
   for (const step of [
-    /মেয়াদ শেষ, 3 দিন গ্রেস/,
+    /প্ল্যানের মেয়াদ শেষ · 3 দিনের অতিরিক্ত সময়/,
     /^3 দিন পর: শুধু দেখা যাবে/,
-    /^7 দিন পর: লক/,
+    /^7 দিন পর: দোকান লক হবে/,
     /^60 দিন পর: দোকানের ডেটা/,
   ]) {
     await expect(sheet(page).getByText(step)).toBeVisible();
@@ -191,7 +203,9 @@ test('a stopping subscription says when it ends, and is undone from the banner o
   await expect(main(page).getByRole('button', { name: 'রাখুন' })).toBeVisible();
   await expect(main(page).getByText('ব্যালেন্স থেকে অটো-রিনিউ')).toHaveCount(0);
   await main(page).getByRole('button', { name: 'ফিরিয়ে নিন' }).click();
-  await expect(page.getByRole('status').filter({ hasText: 'ফিরিয়ে নেওয়া হয়েছে' })).toBeVisible();
+  await expect(
+    page.getByRole('status').filter({ hasText: 'পরিবর্তন বাতিল করা হয়েছে' }),
+  ).toBeVisible();
   expect(log.calls.some((call) => call.path === '/billing/cancel/undo')).toBe(true);
 });
 
@@ -206,10 +220,12 @@ test('a scheduled move down says what will be over the limit, and keeps the plan
     },
   });
   const banner = main(page).getByRole('alert');
-  await expect(banner).toContainText('Growth থেকে Starter-এ নামছে · 1টা লিমিটের উপরে থাকবে');
-  await expect(banner).toContainText('প্রোডাক্ট 340 / 100');
-  await banner.getByRole('button', { name: 'Growth রাখুন' }).click();
-  await expect(page.getByRole('status').filter({ hasText: 'Growth থাকছে' })).toBeVisible();
+  await expect(banner).toContainText(
+    'Growth থেকে Starter প্ল্যানে যাচ্ছেন · 1টি লিমিটের বেশি ব্যবহার রয়েছে',
+  );
+  await expect(banner).toContainText('প্রোডাক্ট: 340 / 100');
+  await banner.getByRole('button', { name: 'Growth প্ল্যান রাখুন' }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Growth প্ল্যানই থাকছে' })).toBeVisible();
   expect(log.calls.some((call) => call.path === '/billing/downgrade/cancel')).toBe(true);
 });
 
@@ -218,7 +234,7 @@ test('switches to pay-as-you-go at the period end, with the limits that fall', a
   await main(page).getByRole('button', { name: 'মেয়াদ শেষে বদলান' }).click();
   await expect(
     sheet(page).getByText(
-      'লিমিট নামবে: প্রোডাক্ট 100 → 25 · সিট 2 → 1 · স্টোরেজ 2 GB → 250 MB · ব্যান্ডউইথ 30 GB → 10 GB',
+      'লিমিট কমবে: প্রোডাক্ট: 100 → 25 · স্টাফ সিট: 2 → 1 · স্টোরেজ: 2 GB → 250 MB · ব্যান্ডউইথ: 30 GB → 10 GB',
     ),
   ).toBeVisible();
   await sheet(page)
@@ -273,7 +289,9 @@ test('a locked shop has only Renew, which renews, takes pay-as-you-go or exports
 
   await page.getByRole('button', { name: 'ডেটা এক্সপোর্ট করুন' }).click();
   await expect(
-    page.getByRole('button', { name: 'এক্সপোর্ট তৈরি হচ্ছে · ইমেইলে জানাবো' }),
+    page.getByRole('button', {
+      name: 'এক্সপোর্ট তৈরি হচ্ছে… · তৈরি হলে ইমেইলে জানানো হবে',
+    }),
   ).toBeDisabled();
   expect(log.calls.some((call) => call.method === 'POST' && call.path === '/exports')).toBe(true);
 
@@ -315,7 +333,9 @@ test("an archived shop's Renew says until when its data is kept, and offers a re
     page.getByText(/^প্ল্যান 20 দিন আগে শেষ হয়েছে। ডেটা \d+ \S+ \d{4} পর্যন্ত রাখা আছে/),
   ).toBeVisible();
   await expect(
-    page.getByRole('link', { name: 'এক্সপোর্ট ডাউনলোড করুন (18 MB) · 24 ঘণ্টা থাকবে' }),
+    page.getByRole('link', {
+      name: 'এক্সপোর্ট ডাউনলোড করুন (18 MB) · 24 ঘণ্টা পর্যন্ত পাওয়া যাবে',
+    }),
   ).toHaveAttribute('href', '/api/v1/exports/export-9/download');
   await expect(page.getByRole('button', { name: 'লগআউট' })).toBeVisible();
 });
