@@ -1,6 +1,7 @@
 import type { UsageMetric } from '@lytronix/validators';
 import type { UsageLevel } from '../../../common/usage-warnings';
 import type { BandwidthDay } from '../../media/types/media';
+import type { ApiUsageDay } from '../../public-api/types/public-api';
 
 /**
  * LIM-02: one metric against the shop's limit; null is unlimited (PLN-19). For bandwidth and API requests the limit is
@@ -61,12 +62,17 @@ export interface UsagePack {
   autoBuyFailed: boolean;
 }
 
-/** LIM-02: what the usage page shows: every metric, the cycle the per-cycle ones belong to, and each day's bandwidth. */
+/**
+ * LIM-02: what the usage page shows: every metric, the cycle the per-cycle ones belong to, and each day's bandwidth and
+ * API requests.
+ */
 export interface ShopUsage {
   cycleStart: Date;
   cycleEnd: Date;
   metrics: UsageFigure[];
   bandwidthDays: BandwidthDay[];
+  /** Each day's API requests, for the chart and the run-out date (Slice 11.5a.2). */
+  requestDays: ApiUsageDay[];
   /** LIM-01: what would give the shop room, when any metric is near its limit. */
   suggestions: Suggestions | null;
   /** RTE-12: when the cycle's last fast-spend alert went out, for the banner. */

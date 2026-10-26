@@ -11,6 +11,7 @@ import {
   FieldProblemCode,
 } from '@lytronix/validators';
 import { ApiError, FieldsError } from '../../../common/api-error';
+import { startOfMonthDhaka } from '../../../common/time';
 import { AuditService } from '../../audit/services/audit.service';
 import { PlatformAuditService } from '../../audit/services/platform-audit.service';
 import { TenantService } from '../../tenancy/services/tenant.service';
@@ -26,6 +27,12 @@ const ACTIVITY_TYPES: ReadonlySet<LedgerEntryType> = new Set([
   LedgerEntryType.ProductFee,
   LedgerEntryType.TopUp,
 ]);
+
+// PYG-02, PYG-16: the fees a pay-as-you-go shop pays -- for an order shipped, for a product created.
+const PAY_AS_YOU_GO_FEES: LedgerEntryType[] = [
+  LedgerEntryType.OrderFee,
+  LedgerEntryType.ProductFee,
+];
 
 // BAL-13: low-balance thresholds, in paisa. A charge crosses one when it brings the balance from above it to it or
 // below -- reaching exactly 0 counts, since BAL-10 stops most charges there -- never repeated while already past.
@@ -211,6 +218,18 @@ export class BalanceService {
       if (!row) throw new Error('tenant not found');
       return { amount: row.amount, frozen: row.frozen };
     });
+  }
+
+  /**
+   * PYG-02, PYG-16: the pay-as-you-go fees -- for orders shipped and products created -- charged since the 1st of this
+   * month in Asia/Dhaka, as a positive amount: the pay-as-you-go page's "Fees this month" (Slice 11.5a.2).
+   */
+  async feesThisMonth(tenantId: string): Promise<string> {
+    const since = startOfMonthDhaka(this.clock());
+    const total = await this.runStandalone(tenantId, (tx) =>
+      this.ledger.sumSince(tx, tenantId, PAY_AS_YOU_GO_FEES, since),
+    );
+    return fromPaisa(-toPaisa(total));
   }
 
   /** BAL-14: the statement, newest first, keyset-paginated. */

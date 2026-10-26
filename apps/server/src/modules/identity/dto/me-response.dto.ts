@@ -27,6 +27,12 @@ export const meResponseSchema = z.object({
       logo: imageViewSchema.nullable(),
       // BRN-07: the identity the dashboard applies; null for Lytro's default.
       brand: liveBrandSchema.nullable(),
+      // TRM-12: the term a paid plan runs on; null on a trial or pay-as-you-go.
+      billingTerm: z
+        .object({ id: z.string(), labelEn: z.string(), labelBn: z.string(), months: z.number() })
+        .nullable(),
+      // LIF-12, LIF-19: once lapsed, when the shop's business data would be deleted; null otherwise.
+      deletesAt: z.string().nullable(),
     })
     .nullable(),
   // TEN-31: every shop the signed-in person may open -- one opens directly, several show the picker.

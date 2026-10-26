@@ -1564,6 +1564,14 @@ CREATE TABLE control.api_usage (                          -- RTE-03 (built in Sl
     PRIMARY KEY (tenant_id, cycle_start)
 );
 
+CREATE TABLE control.api_usage_daily (                    -- BND-08's twin for requests (Slice 11.5a.2, migration 0081)
+    tenant_id       uuid NOT NULL REFERENCES control.tenants(id),
+    cycle_start     timestamptz NOT NULL,                 -- the cycle the day belongs to, as api_usage's
+    day             date NOT NULL,                        -- the Asia/Dhaka day the minute's flush added them on
+    requests        bigint NOT NULL DEFAULT 0 CHECK (requests >= 0),
+    PRIMARY KEY (tenant_id, cycle_start, day)             -- a cycle's days total its api_usage row
+);
+
 CREATE TABLE control.usage_warnings (                     -- LIM-01 (built in Slice 10, migration 0071)
     tenant_id       uuid NOT NULL REFERENCES control.tenants(id),
     metric          text NOT NULL,                        -- products, seats, storage, essential_sms_*

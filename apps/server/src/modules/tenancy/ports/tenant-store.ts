@@ -4,6 +4,7 @@ import type {
   ContactDetailsRow,
   DeletedShopRow,
   LapsingCandidateRow,
+  LifecycleFactsRow,
   PaygCandidateRow,
   RevocationCandidateRow,
   StageLengthsSnapshot,
@@ -125,6 +126,8 @@ export interface TenantStore {
   findPaygInactiveCandidates(tx: Transaction): Promise<PaygCandidateRow[]>;
   /** PYG-21/LIF-19: tenants already archived by the inactivity pass, awaiting their own day-60 deletion. */
   findPaygArchivedCandidates(tx: Transaction): Promise<PaygCandidateRow[]>;
+  /** LIF-12, LIF-19: one shop's lifecycle facts, for the date its business data would be deleted. */
+  findLifecycleFacts(tx: Transaction, tenantId: string): Promise<LifecycleFactsRow | null>;
   /** LIF-20/21: an account's deleted shops, with whatever balance each still holds. */
   findDeletedShopsOf(tx: Transaction, subscriberId: string): Promise<DeletedShopRow[]>;
   /** TEN-30: the owner's own contact phone/email/business address. */

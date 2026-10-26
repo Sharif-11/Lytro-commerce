@@ -1,5 +1,12 @@
 import { and, count, desc, eq, gt, isNull, or, sql } from 'drizzle-orm';
-import { apiKeys, apiUsage, tenants, type InsertApiKey, type SelectApiKey } from '../../schema';
+import {
+  apiKeys,
+  apiUsage,
+  apiUsageDaily,
+  tenants,
+  type InsertApiKey,
+  type SelectApiKey,
+} from '../../schema';
 import type { Executor } from '../../transactions';
 import type { TenantLookupRow } from '../tenancy/tenant.repository';
 
@@ -157,6 +164,7 @@ export class ApiKeyRepository {
 
   /** LIF-19: a lapsed shop's keys and request counts, at day 60. */
   async deleteAllForTenant(db: Executor, tenantId: string): Promise<void> {
+    await db.delete(apiUsageDaily).where(eq(apiUsageDaily.tenantId, tenantId));
     await db.delete(apiUsage).where(eq(apiUsage.tenantId, tenantId));
     await db.delete(apiKeys).where(eq(apiKeys.tenantId, tenantId));
   }

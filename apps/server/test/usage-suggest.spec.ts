@@ -127,6 +127,7 @@ function usage(overrides: Partial<ShopUsage> = {}): ShopUsage {
     cycleEnd: new Date(NOW.getTime() + 20 * DAY_MS),
     metrics: [],
     bandwidthDays: [],
+    requestDays: [],
     suggestions: null,
     fastSpendAlertedAt: null,
     packs: [],

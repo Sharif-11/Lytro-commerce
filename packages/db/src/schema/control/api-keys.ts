@@ -3,6 +3,7 @@ import {
   bigint,
   char,
   check,
+  date,
   index,
   integer,
   primaryKey,
@@ -81,6 +82,25 @@ export const apiUsage = control.table(
       'api_usage_packs_check',
       sql`${t.packUsed} >= 0 AND ${t.packFree} >= 0 AND ${t.autoPacks} >= 0 AND (${t.autoBuyState} IS NULL OR ${t.autoBuyState} IN ('requested', 'failed'))`,
     ),
+  ],
+);
+
+// BND-08's twin for API requests (Slice 11.5a.2, agreed 2026-10-23): a shop's requests on each Asia/Dhaka day of a
+// cycle, added in the same minute's flush as the cycle's own total, so the usage page can draw them and pace the run-out
+// date. Together a cycle's days total its row in api_usage.
+export const apiUsageDaily = control.table(
+  'api_usage_daily',
+  {
+    tenantId: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    cycleStart: timestamp('cycle_start', { withTimezone: true }).notNull(),
+    day: date('day', { mode: 'string' }).notNull(),
+    requests: bigint('requests', { mode: 'number' }).notNull().default(0),
+  },
+  (t) => [
+    primaryKey({ name: 'api_usage_daily_pkey', columns: [t.tenantId, t.cycleStart, t.day] }),
+    check('api_usage_daily_requests_check', sql`${t.requests} >= 0`),
   ],
 );
 

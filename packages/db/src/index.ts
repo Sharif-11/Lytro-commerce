@@ -16,6 +16,7 @@ export {
   type BalanceRow,
   type BillingInfoRow,
   type LapsingCandidateRow,
+  type LifecycleFactsRow,
   type StageLengthsSnapshot,
   type PaygCandidateRow,
   type DeletedShopRow,
@@ -112,6 +113,7 @@ export {
 export {
   ApiUsageRepository,
   type ApiUsageCounts,
+  type ApiUsageDayRow,
   type ApiUsageRow,
 } from './repositories/api/api-usage.repository';
 export { UsageWarningRepository } from './repositories/usage/usage-warning.repository';

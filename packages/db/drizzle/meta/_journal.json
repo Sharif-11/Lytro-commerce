@@ -568,6 +568,13 @@
       "when": 1792753600915,
       "tag": "0080_payment_requests",
       "breakpoints": true
+    },
+    {
+      "idx": 81,
+      "version": "7",
+      "when": 1793018750798,
+      "tag": "0081_api_usage_daily",
+      "breakpoints": true
     }
   ]
 }

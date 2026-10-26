@@ -8,6 +8,7 @@ import { LedgerEntryType } from '@lytronix/validators';
 import { AppModule } from '../src/app/app.module';
 import { addMonths, DAY_MS, dhakaDate } from '../src/common/time';
 import { BalanceService } from '../src/modules/balance/services/balance.service';
+import { TenantCache } from '../src/modules/tenancy/services/tenant-cache';
 import { PurchaseService } from '../src/modules/billing/services/purchase.service';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { listenOn } from './support/bootstrap';
@@ -103,6 +104,92 @@ async function made(
 
 const day = (offset: number): string => dhakaDate(new Date(Date.now() + offset * DAY_MS));
 
+interface Standing {
+  billingTerm: { id: string; labelEn: string; labelBn: string; months: number } | null;
+  deletesAt: string | null;
+}
+
+async function standingOf(shop: ShopClient): Promise<Standing> {
+  const me = (await shop.get('/me')).body as { tenant: Standing };
+  return { billingTerm: me.tenant.billingTerm, deletesAt: me.tenant.deletesAt };
+}
+
+/** Moves the shop's lifecycle by hand, and drops the cached copy the next request would read. */
+async function setLifecycle(shop: ShopClient, sets: string, ...params: unknown[]): Promise<void> {
+  await admin.query(`UPDATE control.tenants SET ${sets} WHERE id = $1`, [shop.tenantId, ...params]);
+  app.get(TenantCache).invalidateTenant(shop.tenantId);
+}
+
+describeIfDatabase('the Money reads (Slice 11.5a.2: TRM-12, LIF-12, LIF-19, PYG-02)', () => {
+  it("names a paid plan's term on /me, and none on a trial", async () => {
+    const trial = await openShop(port, texts, 'reads');
+    expect(await standingOf(trial)).toEqual({ billingTerm: null, deletesAt: null });
+    const paid = await onStarter();
+    expect(await standingOf(paid)).toEqual({
+      billingTerm: { id: monthTermId, labelEn: 'Reads month', labelBn: 'মাস', months: 1 },
+      deletesAt: null,
+    });
+  });
+
+  it("says when a lapsed shop's data would be deleted, on the schedule its lapse keeps", async () => {
+    const shop = await onStarter();
+    const ended = new Date(Date.now() - 20 * DAY_MS);
+    // Today's stages: grace 3, read-only 4, locked 8, archived 45 -- deleted 60 days after the period's end.
+    await setLifecycle(shop, `state = 'locked', period_end = $2`, ended);
+    expect((await standingOf(shop)).deletesAt).toBe(
+      new Date(ended.getTime() + 60 * DAY_MS).toISOString(),
+    );
+    // A lapse keeps the schedule it started with (LIF-26).
+    await setLifecycle(
+      shop,
+      `lapse_schedule_snapshot = $2`,
+      JSON.stringify({ grace: 1, readOnly: 2, locked: 3, archived: 4 }),
+    );
+    expect((await standingOf(shop)).deletesAt).toBe(
+      new Date(ended.getTime() + 10 * DAY_MS).toISOString(),
+    );
+  });
+
+  it('dates an archived pay-as-you-go shop from its archival', async () => {
+    const shop = await openShop(port, texts, 'reads');
+    const archived = new Date(Date.now() - 5 * DAY_MS);
+    await setLifecycle(shop, `state = 'archived', period_end = NULL, archived_at = $2`, archived);
+    expect(await standingOf(shop)).toEqual({
+      billingTerm: null,
+      deletesAt: new Date(archived.getTime() + 60 * DAY_MS).toISOString(),
+    });
+  });
+
+  it("sums this month's pay-as-you-go fees on the balance, and nothing else", async () => {
+    const shop = await openShop(port, texts, 'reads');
+    const balance = app.get(BalanceService);
+    await balance.creditStandalone({
+      tenantId: shop.tenantId,
+      amount: '500.00',
+      type: LedgerEntryType.TopUp,
+    });
+    await balance.chargeStandalone({
+      tenantId: shop.tenantId,
+      amount: '10.00',
+      type: LedgerEntryType.ProductFee,
+    });
+    await balance.chargeStandalone({
+      tenantId: shop.tenantId,
+      amount: '20.00',
+      type: LedgerEntryType.OrderFee,
+    });
+    await balance.chargeStandalone({
+      tenantId: shop.tenantId,
+      amount: '0.55',
+      type: LedgerEntryType.Sms,
+    });
+    expect((await shop.get('/balance')).body).toMatchObject({
+      amount: '469.45',
+      feesThisMonth: '30.00',
+    });
+  });
+});
+
 describeIfDatabase(
   'auto-renew, top-up bounds and an upgrade period (BIL-17, BAL-04, UPG-06)',
   () => {
@@ -124,6 +211,7 @@ describeIfDatabase(
         frozen: false,
         topUpMin: 100,
         topUpMax: 50000,
+        feesThisMonth: '0.00',
       });
     });
 
