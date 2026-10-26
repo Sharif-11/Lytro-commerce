@@ -68,18 +68,29 @@ export class UsageService {
   async usage(tenant: TenantSummary, now: Date): Promise<ShopUsage> {
     const limits = tenant.planLimits;
     const cycleStart = usageCycleStart(tenant, now);
-    const [products, seats, storage, bandwidth, requests, requestPacks, sms, fastSpend, grace] =
-      await Promise.all([
-        this.products.liveCount(tenant.id),
-        this.staff.seatsUsed(tenant.id),
-        this.media.usage(tenant.id),
-        this.bandwidth.usage(tenant.id),
-        this.requests.used(tenant.id, cycleStart, now),
-        this.requests.packsOf(tenant.id, cycleStart),
-        this.sms.currentUsage(tenant.id, now),
-        this.requests.fastSpendAlertedAt(tenant.id, cycleStart),
-        this.settings.gracePercent(),
-      ]);
+    const [
+      products,
+      seats,
+      storage,
+      bandwidth,
+      requests,
+      requestDays,
+      requestPacks,
+      sms,
+      fastSpend,
+      grace,
+    ] = await Promise.all([
+      this.products.liveCount(tenant.id),
+      this.staff.seatsUsed(tenant.id),
+      this.media.usage(tenant.id),
+      this.bandwidth.usage(tenant.id),
+      this.requests.used(tenant.id, cycleStart, now),
+      this.requests.days(tenant.id, cycleStart),
+      this.requests.packsOf(tenant.id, cycleStart),
+      this.sms.currentUsage(tenant.id, now),
+      this.requests.fastSpendAlertedAt(tenant.id, cycleStart),
+      this.settings.gracePercent(),
+    ]);
     const [offers, billing] = await Promise.all([
       this.addons.offers(tenant.id),
       this.tenants.runStandalone((tx) => this.tenants.findBillingInfo(tx, tenant.id)),
@@ -142,6 +153,7 @@ export class UsageService {
       cycleEnd: usageCycleEnd(tenant, now),
       metrics,
       bandwidthDays: bandwidth.days,
+      requestDays,
       suggestions: await this.suggestions.for(tenant, metrics, offers, now),
       fastSpendAlertedAt: fastSpend,
       packs,

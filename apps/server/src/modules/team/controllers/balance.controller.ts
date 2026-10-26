@@ -78,11 +78,13 @@ export class BalanceController {
   @ApiOperation({ summary: "Get the shop's current balance" })
   @ZodResponse({ type: BalanceViewDto })
   async current(@Req() request: DashboardRequest): Promise<BalanceView> {
-    const [snapshot, bounds] = await Promise.all([
-      this.balance.current(this.tenantIdOf(request)),
+    const tenantId = this.tenantIdOf(request);
+    const [snapshot, bounds, feesThisMonth] = await Promise.all([
+      this.balance.current(tenantId),
       this.topUp.bounds(),
+      this.balance.feesThisMonth(tenantId),
     ]);
-    return { ...snapshot, topUpMin: bounds.min, topUpMax: bounds.max };
+    return { ...snapshot, topUpMin: bounds.min, topUpMax: bounds.max, feesThisMonth };
   }
 
   @Get('ledger')

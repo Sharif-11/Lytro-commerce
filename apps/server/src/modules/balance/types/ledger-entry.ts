@@ -18,10 +18,14 @@ export interface LedgerPage {
 }
 
 /** BAL-01, BAL-08: what the dashboard and the charge/credit flow both need. */
-/** BAL-01, BAL-04: the balance as its page shows it, with the lowest and highest top-up the platform takes now. */
+/**
+ * BAL-01, BAL-04: the balance as its page shows it, with the lowest and highest top-up the platform takes now, and the
+ * pay-as-you-go fees charged this month (PYG-02, PYG-16).
+ */
 export interface BalanceView extends BalanceSnapshot {
   topUpMin: number;
   topUpMax: number;
+  feesThisMonth: string;
 }
 
 export interface BalanceSnapshot {

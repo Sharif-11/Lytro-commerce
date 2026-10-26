@@ -1,5 +1,5 @@
-import { and, eq, sql } from 'drizzle-orm';
-import { apiUsage } from '../../schema';
+import { and, asc, eq, sql } from 'drizzle-orm';
+import { apiUsage, apiUsageDaily } from '../../schema';
 import type { Executor } from '../../transactions';
 import type { CyclePackFields, TenantTotal } from '../billing/addon-purchase.repository';
 
@@ -25,6 +25,12 @@ export interface ApiUsageRow extends CyclePackFields {
   fastSpendAlertedAt: Date | null;
 }
 
+/** A shop's requests on one Asia/Dhaka day of a cycle (YYYY-MM-DD). */
+export interface ApiUsageDayRow {
+  day: string;
+  requests: number;
+}
+
 /** What one server counted for a shop's cycle since it last added its counts. */
 export interface ApiUsageCounts {
   requests: number;
@@ -36,13 +42,26 @@ export interface ApiUsageCounts {
 // RTE-03, D3-2: each shop's requests per billing cycle. The servers count in memory and add their counts here every
 // minute; enforcement reads this total and adds what is not flushed yet.
 export class ApiUsageRepository {
-  /** Adds the counts to the cycle's, under its row lock; the cycle's requests as they now are. */
+  /**
+   * Adds the counts to the cycle's, under its row lock, and its requests to the day's; the cycle's requests as they now
+   * are.
+   */
   async add(
     db: Executor,
     tenantId: string,
     cycleStart: Date,
     counts: ApiUsageCounts,
+    day: string,
   ): Promise<ApiUsageRow> {
+    if (counts.requests > 0) {
+      await db
+        .insert(apiUsageDaily)
+        .values({ tenantId, cycleStart, day, requests: counts.requests })
+        .onConflictDoUpdate({
+          target: [apiUsageDaily.tenantId, apiUsageDaily.cycleStart, apiUsageDaily.day],
+          set: { requests: sql`${apiUsageDaily.requests} + ${counts.requests}` },
+        });
+    }
     const [row] = await db
       .insert(apiUsage)
       .values({ tenantId, cycleStart, ...counts })
@@ -58,6 +77,15 @@ export class ApiUsageRepository {
       .returning(ROW);
     if (!row) throw new Error('upsert returned no api usage row');
     return row;
+  }
+
+  /** The days of the shop's cycle, in order; together they total the cycle's requests. */
+  async listDays(db: Executor, tenantId: string, cycleStart: Date): Promise<ApiUsageDayRow[]> {
+    return db
+      .select({ day: apiUsageDaily.day, requests: apiUsageDaily.requests })
+      .from(apiUsageDaily)
+      .where(and(eq(apiUsageDaily.tenantId, tenantId), eq(apiUsageDaily.cycleStart, cycleStart)))
+      .orderBy(asc(apiUsageDaily.day));
   }
 
   /** RTE-11, PLN-15: changes the cycle's warning or pack figures. */

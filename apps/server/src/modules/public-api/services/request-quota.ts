@@ -8,7 +8,14 @@ import {
 } from '@nestjs/common';
 import type { ApiUsageRow, BillingInfoRow, Transaction } from '@lytronix/db';
 import { PACK_AUTO_BUY_CAP, PackAutoBuyState, UsageMetric } from '@lytronix/validators';
-import { DAY_MS, HOUR_MS, MINUTE_MS, SECOND_MS, usageCycleStart } from '../../../common/time';
+import {
+  DAY_MS,
+  dhakaDate,
+  HOUR_MS,
+  MINUTE_MS,
+  SECOND_MS,
+  usageCycleStart,
+} from '../../../common/time';
 import {
   allowanceOf,
   cyclePacks,
@@ -28,7 +35,7 @@ import { UsageSettings } from '../../usage-warnings/services/usage-settings';
 import { PACK_AUTO_BUYS, USAGE_NOTICES } from '../../usage-warnings/tokens';
 import type { ApiUsageStore } from '../ports/api-key-store';
 import { API_USAGE_STORE } from '../tokens';
-import type { ApiShop, ApiUsageCounts } from '../types/public-api';
+import type { ApiShop, ApiUsageCounts, ApiUsageDay } from '../types/public-api';
 import { monthlyLimit } from './request-limits';
 import { ExpiringCache } from './expiring-cache';
 
@@ -219,6 +226,14 @@ export class RequestQuota implements OnModuleInit, OnModuleDestroy, BeforeApplic
     });
   }
 
+  /**
+   * LIM-02: the shop's requests on each day of the cycle, as stored -- for the usage page's chart and the run-out date
+   * at the current pace (Slice 11.5a.2). This server's unflushed minute is not in them yet.
+   */
+  days(tenantId: string, cycleStart: Date): Promise<ApiUsageDay[]> {
+    return this.store.listDays(tenantId, cycleStart);
+  }
+
   /** RTE-12: when the cycle's last fast-spend alert went out, if one did. */
   async fastSpendAlertedAt(tenantId: string, cycleStart: Date): Promise<Date | null> {
     return (await this.store.find(tenantId, cycleStart))?.fastSpendAlertedAt ?? null;
@@ -263,7 +278,14 @@ export class RequestQuota implements OnModuleInit, OnModuleDestroy, BeforeApplic
       const limit = entry.limit;
       try {
         const stored = await this.store.run(async (tx): Promise<StoredCycle> => {
-          const row = await this.store.add(tx, entry.tenantId, entry.cycleStart, flushing);
+          // BND-08's twin: a minute's requests go to the Asia/Dhaka day they are added on.
+          const row = await this.store.add(
+            tx,
+            entry.tenantId,
+            entry.cycleStart,
+            flushing,
+            dhakaDate(now),
+          );
           if (limit === null) return { requests: row.requests, packs: NO_PACKS };
           const packs = await this.cyclePacksIn(tx, entry.tenantId, row);
           // RTE-11: what the cycle has taken from the packs follows its use past the limit, as far as they reach.

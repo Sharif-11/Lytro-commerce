@@ -18,6 +18,7 @@ import type {
   ApiKeyRecord,
   ApiShopRow,
   ApiUsageCounts,
+  ApiUsageDay,
   ApiUsageRow,
   NewApiKey,
 } from '../../modules/public-api/types/public-api';
@@ -122,12 +123,17 @@ export class DrizzleApiUsageStore implements ApiUsageStore {
     tenantId: string,
     cycleStart: Date,
     counts: ApiUsageCounts,
+    day: string,
   ): Promise<ApiUsageRow> {
-    return this.usage.add(tx, tenantId, cycleStart, counts);
+    return this.usage.add(tx, tenantId, cycleStart, counts, day);
   }
 
   find(tenantId: string, cycleStart: Date): Promise<ApiUsageRow | null> {
     return this.usage.find(this.database.handle.db, tenantId, cycleStart);
+  }
+
+  listDays(tenantId: string, cycleStart: Date): Promise<ApiUsageDay[]> {
+    return this.usage.listDays(this.database.handle.db, tenantId, cycleStart);
   }
 
   setWarned(tx: Transaction, tenantId: string, cycleStart: Date, percent: number): Promise<void> {

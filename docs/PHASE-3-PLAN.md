@@ -1194,6 +1194,10 @@ their backend ships earlier.
     one open request per kind and one open upgrade per shop in the database; transaction IDs only on open requests,
     and freed by a rejection; the invoice's `plan_payment_id` as a plain id, filled for older invoices by their
     transaction ID (KNOWN-GAPS §94, §95).
+  - **11.5a.2, the other Money reads, built:** each day's API requests (`control.api_usage_daily`, added in the same
+    minute's flush as the cycle's total) on `GET /usage`; the term a paid plan runs on and a lapsed shop's deletion date
+    on `/me`, the date worked out by the lifecycle's own rules; the pay-as-you-go fees charged this month on
+    `GET /balance`.
 
 ### Slice 12: shared storefront and product landing pages
 - **Depends on:** Slices 0, 0b, 7 and 9 (and branding from Phase 1).

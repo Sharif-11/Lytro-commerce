@@ -8,6 +8,8 @@ export const balanceViewSchema = z.object({
   frozen: z.boolean(),
   topUpMin: z.number(),
   topUpMax: z.number(),
+  // PYG-02, PYG-16: the pay-as-you-go fees charged since the 1st of this month in Asia/Dhaka.
+  feesThisMonth: z.string(),
 });
 export class BalanceViewDto extends createZodDto(balanceViewSchema) {}
 

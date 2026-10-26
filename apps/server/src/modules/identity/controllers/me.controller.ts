@@ -1,11 +1,16 @@
 import { Controller, Get, Inject, Req, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
+import { LAPSED_TENANT_STATES, TenantState } from '@lytronix/validators';
+import { ApiError } from '../../../common/api-error';
 import { Dashboard } from '../../../common/decorators/dashboard';
 import { ResponseMessage } from '../../../common/decorators/response-message';
 import { MeResponseDto } from '../dto/me-response.dto';
 import { DashboardGuard, type DashboardRequest } from '../guards/dashboard.guard';
 import { SessionGuard } from '../guards/session.guard';
+import { BillingTermsService } from '../../billing/services/billing-terms.service';
+import { LifecycleService } from '../../billing/services/lifecycle.service';
+import type { BillingTermRecord } from '../../billing/types/billing-term';
 import { BrandService } from '../../brand/services/brand.service';
 import type { LiveBrand } from '../../brand/types/brand';
 import type { ImageView } from '../../../common/media-links';
@@ -25,25 +30,36 @@ export interface MeResponse {
   permissions: string[];
   /** The signed-in person's own name in the shop the call names, for the header's initial; null when unnamed. */
   name: string | null;
-  tenant: {
-    id: string;
-    slug: string;
-    shopName: string;
-    state: TenantSummary['state'];
-    suspended: boolean;
-    planName: string | null;
-    periodEnd: string | null;
-    /** BIL-17: the plan page's auto-renew switch reads its state here. */
-    autoRenewEnabled: boolean;
-    /** TEN-16: the shop's logo, which the dashboard's navigation shows; null for its monogram. */
-    logo: ImageView | null;
-    /** BRN-07: the shop's own identity, which the dashboard applies; null for Lytro's default. */
-    brand: LiveBrand | null;
-  } | null;
+  tenant:
+    | ({
+        id: string;
+        slug: string;
+        shopName: string;
+        state: TenantSummary['state'];
+        suspended: boolean;
+        planName: string | null;
+        periodEnd: string | null;
+        /** BIL-17: the plan page's auto-renew switch reads its state here. */
+        autoRenewEnabled: boolean;
+        /** TEN-16: the shop's logo, which the dashboard's navigation shows; null for its monogram. */
+        logo: ImageView | null;
+        /** BRN-07: the shop's own identity, which the dashboard applies; null for Lytro's default. */
+        brand: LiveBrand | null;
+      } & ShopStanding)
+    | null;
   shops: ShopListing[];
   /** LIF-21: the person has no shop open yet and owns a deleted one, whose balance the new shop takes over -- for
       create-shop's note. False whenever a shop is open, and for staff. */
   hasDeletedShop: boolean;
+}
+
+/**
+ * TRM-12, LIF-12: where a paid shop stands -- the term its plan runs on (the plan card's "Starter · monthly", and the
+ * term the plan page opens on) and, once lapsed, when its business data would be deleted (the Renew page).
+ */
+export interface ShopStanding {
+  billingTerm: { id: string; labelEn: string; labelBn: string; months: number } | null;
+  deletesAt: string | null;
 }
 
 // The dashboard shell's account summary.
@@ -60,6 +76,8 @@ export class MeController {
     @Inject(BrandService) private readonly brand: BrandService,
     @Inject(MediaService) private readonly media: MediaService,
     @Inject(TenantService) private readonly tenants: TenantService,
+    @Inject(BillingTermsService) private readonly terms: BillingTermsService,
+    @Inject(LifecycleService) private readonly lifecycle: LifecycleService,
   ) {}
 
   @Get()
@@ -101,9 +119,38 @@ export class MeController {
               autoRenewEnabled: tenant.autoRenewEnabled,
               logo,
               brand,
+              ...(await this.standingOf(tenant)),
             },
       shops,
       hasDeletedShop,
     };
+  }
+
+  /** The term a paid plan runs on (none on a trial or pay-as-you-go), and a lapsed shop's deletion date. */
+  private async standingOf(tenant: TenantSummary): Promise<ShopStanding> {
+    const paid = tenant.state !== TenantState.Trial && tenant.state !== TenantState.PayAsYouGo;
+    const info = paid
+      ? await this.tenants.runStandalone((tx) => this.tenants.findBillingInfo(tx, tenant.id))
+      : null;
+    const term = info?.billingTermId ? await this.termOf(info.billingTermId) : null;
+    const deletesAt = LAPSED_TENANT_STATES.includes(tenant.state)
+      ? await this.lifecycle.deletionDateOf(tenant.id)
+      : null;
+    return {
+      billingTerm: term
+        ? { id: term.id, labelEn: term.labelEn, labelBn: term.labelBn, months: term.months }
+        : null,
+      deletesAt: deletesAt?.toISOString() ?? null,
+    };
+  }
+
+  /** The term by its id; none when it has since been deleted. */
+  private async termOf(id: string): Promise<BillingTermRecord | null> {
+    try {
+      return await this.terms.findById(id);
+    } catch (error) {
+      if (error instanceof ApiError && error.code === 'not_found') return null;
+      throw error;
+    }
   }
 }
