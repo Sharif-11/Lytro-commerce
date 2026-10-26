@@ -5,6 +5,8 @@ import bn from '../src/i18n/locales/bn.json';
 import en from '../src/i18n/locales/en.json';
 import homeBn from '../src/i18n/locales/home/bn.json';
 import homeEn from '../src/i18n/locales/home/en.json';
+import moneyBn from '../src/i18n/locales/money/bn.json';
+import moneyEn from '../src/i18n/locales/money/en.json';
 import onboardingBn from '../src/i18n/locales/onboarding/bn.json';
 import onboardingEn from '../src/i18n/locales/onboarding/en.json';
 import shellBn from '../src/i18n/locales/shell/bn.json';
@@ -32,6 +34,7 @@ describe('dictionaries', () => {
     for (const [bangla, english] of [
       [shellBn, shellEn],
       [homeBn, homeEn],
+      [moneyBn, moneyEn],
       [onboardingBn, onboardingEn],
       [walletBn, walletEn],
     ]) {

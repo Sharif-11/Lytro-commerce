@@ -50,6 +50,16 @@ interface RawResponse {
   send(body: string): void;
 }
 
+// The statement's `type` filter: one ledger type or several, comma-separated (`type=order_fee,product_fee`).
+const LEDGER_TYPES_QUERY = {
+  name: 'type',
+  required: false,
+  enum: LedgerEntryType,
+  isArray: true,
+  style: 'form',
+  explode: false,
+} as const;
+
 // BAL-01, BAL-08, BAL-14, RAT-06: a tenant's own balance, statement and current rates.
 // BAL-18: `current` carries `lapsed: true` so the frozen balance is still shown to the owner after lapse or
 // deletion; DashboardGuard's own lapsed carve-out already restricts this to the owner session, never staff.
@@ -91,7 +101,7 @@ export class BalanceController {
   @RequirePermission(Permission.BalanceRead)
   @ResponseMessage('LedgerRetrieved')
   @ApiOperation({ summary: "Get the shop's balance statement" })
-  @ApiQuery({ name: 'type', required: false, enum: LedgerEntryType })
+  @ApiQuery(LEDGER_TYPES_QUERY)
   @ApiQuery({ name: 'dateFrom', required: false, type: String })
   @ApiQuery({ name: 'dateTo', required: false, type: String })
   @ApiQuery({ name: 'cursor', required: false, type: Number })
@@ -103,7 +113,7 @@ export class BalanceController {
   ): Promise<LedgerPage> {
     return this.balance.statement(
       this.tenantIdOf(request),
-      { type: query.type, dateFrom: query.dateFrom, dateTo: query.dateTo },
+      { types: query.type, dateFrom: query.dateFrom, dateTo: query.dateTo },
       query.cursor ?? null,
       query.limit,
     );
@@ -112,7 +122,7 @@ export class BalanceController {
   @Get('ledger/export')
   @RequirePermission(Permission.BalanceRead)
   @ApiOperation({ summary: "Download the shop's balance statement as CSV (BAL-14)" })
-  @ApiQuery({ name: 'type', required: false, enum: LedgerEntryType })
+  @ApiQuery(LEDGER_TYPES_QUERY)
   @ApiQuery({ name: 'dateFrom', required: false, type: String })
   @ApiQuery({ name: 'dateTo', required: false, type: String })
   async exportLedger(
@@ -121,7 +131,7 @@ export class BalanceController {
     @Res() response: RawResponse,
   ): Promise<void> {
     const entries = await this.balance.statementAll(this.tenantIdOf(request), {
-      type: query.type,
+      types: query.type,
       dateFrom: query.dateFrom,
       dateTo: query.dateTo,
     });

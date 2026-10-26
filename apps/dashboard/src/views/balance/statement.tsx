@@ -1,263 +1,224 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { LedgerEntryType } from '@lytronix/validators';
-import { ledgerExportUrl, useLedger, type LedgerFilters } from '@/api/balance';
-import { errorMessage } from '@lytronix/api-client';
-import {
-  Button,
-  Chip,
-  EmptyLine,
-  ErrorBanner,
-  formatDate,
-  formatRate,
-  formatTakaExact,
-  Icon,
-  type IconName,
-  TextField,
-} from '@lytronix/ui';
+import { ledgerExportUrl, useLedger } from '@/api/balance';
+import { Icon } from '@/components/icon';
+import { Banner } from '@/components/ui/banner';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Chip, ChipRow } from '@/components/ui/chips';
+import { buttonClass } from '@/components/ui/classes';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Field } from '@/components/ui/field';
 import { Sheet } from '@/components/ui/sheet';
-import { dayLabel, formatTime, groupByDay } from '@/lib/dates';
-import { readLedgerReference } from '@/lib/ledger-reference';
+import { SkeletonRows } from '@/components/ui/skeleton';
+import { Taka } from '@/components/ui/taka';
+import { useErrorText } from '@/hooks/use-error-text';
+import { dayLabel, formatDayMonthYear, formatTime, groupByDay } from '@/lib/dates';
+import { signedTaka } from '@/lib/money';
 import type { LedgerEntry } from '@/types/balance';
+import type { BillingPayment } from '@/types/billing';
+import {
+  entryDetail,
+  entryIcon,
+  entryTitle,
+  paymentIdOf,
+  STATEMENT_CHIPS,
+} from './statement-words';
 
-/** The filter chips: one per group of entry types, "All" first. */
-const TYPE_CHIPS: { key: string; types: LedgerEntryType[] }[] = [
-  { key: 'all', types: [] },
-  { key: 'topUps', types: [LedgerEntryType.TopUp] },
-  { key: 'sms', types: [LedgerEntryType.Sms] },
-  { key: 'ai', types: [LedgerEntryType.Ai, LedgerEntryType.Extraction] },
-  {
-    key: 'fees',
-    types: [LedgerEntryType.FraudCheck, LedgerEntryType.OrderFee, LedgerEntryType.ProductFee],
-  },
-  { key: 'plan', types: [LedgerEntryType.PlanPayment, LedgerEntryType.Addon] },
-  {
-    key: 'other',
-    types: [LedgerEntryType.Adjustment, LedgerEntryType.Reversal, LedgerEntryType.CarryOver],
-  },
-];
-
-const ICONS: Record<LedgerEntryType, IconName> = {
-  [LedgerEntryType.TopUp]: 'arrow',
-  [LedgerEntryType.Sms]: 'sms',
-  [LedgerEntryType.Ai]: 'signal',
-  [LedgerEntryType.Extraction]: 'orders',
-  [LedgerEntryType.FraudCheck]: 'shield',
-  [LedgerEntryType.OrderFee]: 'truck',
-  [LedgerEntryType.ProductFee]: 'box',
-  [LedgerEntryType.PlanPayment]: 'tag',
-  [LedgerEntryType.Addon]: 'tag',
-  [LedgerEntryType.Adjustment]: 'pen',
-  [LedgerEntryType.Reversal]: 'back',
-  [LedgerEntryType.CarryOver]: 'store',
-};
-
-/**
- * BAL-14: the statement grouped by day, each row with an icon by type, a detail line from the units, the
- * rate and the reference, the signed amount and the balance after. The API filters one type at a time, so
- * a chip that groups several types fetches without a type filter and narrows on the client.
- */
-export function Statement(): React.JSX.Element {
-  const { t, i18n } = useTranslation();
-  const [chip, setChip] = useState('all');
-  const [dates, setDates] = useState<{ from: string; to: string }>({ from: '', to: '' });
-  const [datesOpen, setDatesOpen] = useState(false);
-  const [draftDates, setDraftDates] = useState(dates);
-
-  const selected = TYPE_CHIPS.find((option) => option.key === chip) ?? TYPE_CHIPS[0];
-  const filters: LedgerFilters = {
-    type: selected && selected.types.length === 1 ? selected.types[0] : undefined,
-    dateFrom: dates.from || undefined,
-    dateTo: dates.to || undefined,
-  };
-  const ledger = useLedger(filters);
-  const entries = (ledger.data?.pages ?? [])
-    .flatMap((page) => page.entries)
-    .filter(
-      (entry) => !selected || selected.types.length <= 1 || selected.types.includes(entry.type),
-    );
-  const groups = groupByDay(entries, (entry) => entry.createdAt);
-
-  function heading(iso: string): string {
-    const label = dayLabel(iso);
-    if (label.kind === 'today') return t('dates.today');
-    if (label.kind === 'yesterday') return t('dates.yesterday');
-    return formatDate(label.iso, i18n.language);
-  }
-
+/** One entry (the prototype's `ledger` row): its lead, what it was, units at the rate and the time; the amount and the
+    balance after it. */
+function Entry({
+  entry,
+  payment,
+}: {
+  entry: LedgerEntry;
+  payment: BillingPayment | undefined;
+}): React.JSX.Element {
+  const { t, i18n } = useTranslation('money');
+  const credit = Number(entry.amount) > 0;
   return (
-    <section className="min-w-0">
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-[17px] font-bold text-ink">{t('balance.statement')}</h2>
-        <div className="flex gap-1.5">
-          <Button
-            type="button"
-            tone="outline"
-            fit
-            className="min-h-10! px-3! text-[14px]!"
-            onClick={() => {
-              setDraftDates(dates);
-              setDatesOpen(true);
-            }}
-          >
-            <Icon name="calendar" size={16} />
-            {dates.from || dates.to ? t('balance.datesSet') : t('balance.dates')}
-          </Button>
-          <a
-            href={ledgerExportUrl(filters)}
-            className="inline-flex min-h-10 items-center gap-2 rounded-control border border-line-strong bg-white px-3 text-[14px] font-semibold text-ink"
-          >
-            <Icon name="share" size={16} />
-            CSV
-          </a>
-        </div>
-      </div>
-      <div className="-mx-4 mb-3 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0">
-        {TYPE_CHIPS.map((option) => (
-          <Chip
-            key={option.key}
-            selected={option.key === chip}
-            className="shrink-0 min-h-10!"
-            onClick={() => {
-              setChip(option.key);
-            }}
-          >
-            {t(`balance.typeChips.${option.key}`)}
-          </Chip>
-        ))}
-      </div>
-
-      <div className="overflow-hidden rounded-card border border-line bg-white shadow-card">
-        {ledger.isLoading ? <EmptyLine>{t('common.loading')}</EmptyLine> : null}
-        {ledger.isError ? (
-          <div className="p-4">
-            <ErrorBanner message={errorMessage(ledger.error, t)} />
-          </div>
-        ) : null}
-        {ledger.data && entries.length === 0 ? <EmptyLine>{t('balance.noneYet')}</EmptyLine> : null}
-        {groups.map((group) => (
-          <div key={group.key}>
-            <p className="border-t border-line bg-neutral-50 px-4 pt-2.5 pb-1 text-[12px] font-bold text-neutral-700 first:border-t-0">
-              {heading(group.iso)}
-            </p>
-            {group.items.map((entry) => (
-              <Row key={entry.id} entry={entry} language={i18n.language} />
-            ))}
-          </div>
-        ))}
-        {ledger.hasNextPage ? (
-          <div className="flex justify-center border-t border-line p-2">
-            <Button
-              type="button"
-              tone="ghost"
-              fit
-              loading={ledger.isFetchingNextPage}
-              onClick={() => {
-                void ledger.fetchNextPage();
-              }}
-            >
-              {t('balance.showEarlier')}
-            </Button>
-          </div>
-        ) : null}
-      </div>
-
-      <Sheet
-        open={datesOpen}
-        title={t('balance.dates')}
-        onClose={() => {
-          setDatesOpen(false);
-        }}
-        footer={
-          <div className="grid gap-2 sm:grid-cols-2">
-            <Button
-              type="button"
-              tone="outline"
-              onClick={() => {
-                setDates({ from: '', to: '' });
-                setDatesOpen(false);
-              }}
-            >
-              {t('balance.clearDates')}
-            </Button>
-            <Button
-              type="button"
-              onClick={() => {
-                setDates(draftDates);
-                setDatesOpen(false);
-              }}
-            >
-              {t('balance.applyDates')}
-            </Button>
-          </div>
-        }
+    <div className="flex min-h-14 items-center gap-3 px-4 py-3">
+      <span
+        className={[
+          'flex size-10 flex-none items-center justify-center rounded-[8px]',
+          credit ? 'bg-success-soft text-success' : 'bg-neutral-100 text-neutral-700',
+        ].join(' ')}
       >
-        <div className="grid gap-3">
-          <TextField
-            label={t('balance.dateFrom')}
-            name="dateFrom"
-            type="date"
-            value={draftDates.from}
-            onChange={(event) => {
-              setDraftDates((current) => ({ ...current, from: event.target.value }));
-            }}
-          />
-          <TextField
-            label={t('balance.dateTo')}
-            name="dateTo"
-            type="date"
-            value={draftDates.to}
-            onChange={(event) => {
-              setDraftDates((current) => ({ ...current, to: event.target.value }));
-            }}
-          />
-        </div>
-      </Sheet>
-    </section>
+        <Icon name={entryIcon(entry)} />
+      </span>
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="truncate text-[15px] font-medium">
+          {entryTitle(entry, t, i18n.language, payment)}
+        </span>
+        <span className="num truncate text-[14px] text-fg-muted">
+          {entryDetail(entry, t, formatTime(entry.createdAt, i18n.language))}
+        </span>
+      </span>
+      <span className="flex flex-none flex-col items-end gap-1 text-right sm:flex-row sm:items-center sm:gap-4">
+        <span className={`num text-[16px] font-semibold ${credit ? 'text-success' : ''}`}>
+          <Taka amount={entry.amount} plus />
+        </span>
+        <span className="num text-[13px] text-fg-subtle sm:min-w-[60px]">
+          {t('after', { amount: signedTaka(entry.balanceAfter) })}
+        </span>
+      </span>
+    </div>
   );
 }
 
-function Row({ entry, language }: { entry: LedgerEntry; language: string }): React.JSX.Element {
-  const { t } = useTranslation();
-  const positive = Number(entry.amount) > 0;
-  const reference = readLedgerReference(entry.reference);
-  const details: string[] = [];
-  if (reference.orderId)
-    details.push(t('balance.ref.order', { id: reference.orderId.slice(0, 8) }));
-  if (reference.productId) details.push(t('balance.ref.product'));
-  if (reference.reason) details.push(reference.reason);
-  if (entry.units !== null && entry.rateUsed !== null) {
-    details.push(
-      t('balance.ref.unitsAtRate', {
-        units: formatRate(entry.units),
-        rate: formatRate(entry.rateUsed),
-      }),
-    );
+/**
+ * The statement (TENANT-DASHBOARD-DESIGN §7.11, BAL-14): the entries grouped by day, newest first, with the chips that
+ * read several types at once, dates, the CSV of what is shown, and Show earlier. A top-up's, a plan's or an add-on's row
+ * names its payment from Billing's list when that payment is in it.
+ */
+export function Statement({
+  payments,
+}: {
+  payments: readonly BillingPayment[];
+}): React.JSX.Element {
+  const { t, i18n } = useTranslation('money');
+  const { t: tDefault } = useTranslation();
+  const errorText = useErrorText();
+  const [chip, setChip] = useState('all');
+  const [dates, setDates] = useState({ from: '', to: '' });
+  const [draft, setDraft] = useState(dates);
+  const [picking, setPicking] = useState(false);
+  const types = STATEMENT_CHIPS.find((each) => each.key === chip)?.types ?? [];
+  const filters = { types, dateFrom: dates.from || undefined, dateTo: dates.to || undefined };
+  const ledger = useLedger(filters);
+  const entries = (ledger.data?.pages ?? []).flatMap((page) => page.entries);
+  const paymentOf = (entry: LedgerEntry): BillingPayment | undefined => {
+    const id = paymentIdOf(entry);
+    return id ? payments.find((payment) => payment.id === id) : undefined;
+  };
+
+  function heading(iso: string): string {
+    const label = dayLabel(iso);
+    if (label.kind === 'today') return t('today');
+    if (label.kind === 'yesterday') return t('yesterday');
+    return formatDayMonthYear(label.iso);
   }
-  details.push(formatTime(entry.createdAt, language));
 
   return (
-    <div className="flex items-center gap-3 border-t border-line px-4 py-2.5">
-      <span
-        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] ${
-          positive ? 'bg-success-soft text-success' : 'bg-neutral-100 text-neutral-700'
-        }`}
+    <Card flush>
+      <div className="flex items-baseline justify-between gap-3 px-4 pt-4 pb-2">
+        <h2 className="text-[17px] font-semibold">{t('statement')}</h2>
+        <span className="flex gap-2">
+          <Button
+            tone="outline"
+            size="xs"
+            onClick={() => {
+              setDraft(dates);
+              setPicking(true);
+            }}
+          >
+            <Icon name="calendar" />
+            {t('dates')}
+          </Button>
+          <a href={ledgerExportUrl(filters)} className={buttonClass('outline', 'xs')}>
+            <Icon name="download" />
+            CSV
+          </a>
+        </span>
+      </div>
+      <div className="px-4 pb-2">
+        <ChipRow>
+          {STATEMENT_CHIPS.map((each) => (
+            <Chip
+              key={each.key}
+              on={each.key === chip}
+              onClick={() => {
+                setChip(each.key);
+              }}
+            >
+              {each.key === 'sms' ? t('row.sms') : t(each.key)}
+            </Chip>
+          ))}
+        </ChipRow>
+      </div>
+      {ledger.isLoading ? <SkeletonRows count={3} /> : null}
+      {ledger.isError ? (
+        <div className="px-4 pb-4">
+          <Banner tone="bad">{errorText(ledger.error)}</Banner>
+        </div>
+      ) : null}
+      {ledger.isSuccess && entries.length === 0 ? (
+        <EmptyState icon="banknote">{t('nothingYet')}</EmptyState>
+      ) : null}
+      {groupByDay(entries, (entry) => entry.createdAt).map((group) => (
+        <div key={group.key}>
+          <div className="bg-neutral-50 px-4 pt-3 pb-1 text-[13px] font-semibold text-neutral-700">
+            {heading(group.iso)}
+          </div>
+          <div className="flex flex-col [&>*+*]:border-t [&>*+*]:border-line">
+            {group.items.map((entry) => (
+              <Entry key={entry.id} entry={entry} payment={paymentOf(entry)} />
+            ))}
+          </div>
+        </div>
+      ))}
+      {ledger.hasNextPage ? (
+        <div className="px-4 pt-2 pb-3">
+          <Button
+            tone="outline"
+            size="sm"
+            wide
+            busy={ledger.isFetchingNextPage}
+            onClick={() => {
+              void ledger.fetchNextPage();
+            }}
+          >
+            {t('showEarlier')}
+          </Button>
+        </div>
+      ) : null}
+      <Sheet
+        open={picking}
+        title={t('dates')}
+        onClose={() => {
+          setPicking(false);
+        }}
+        footer={
+          <>
+            <Button
+              tone="outline"
+              onClick={() => {
+                setDates({ from: '', to: '' });
+                setPicking(false);
+              }}
+            >
+              {tDefault('balance.clearDates')}
+            </Button>
+            <Button
+              onClick={() => {
+                setDates(draft);
+                setPicking(false);
+              }}
+            >
+              {tDefault('balance.applyDates')}
+            </Button>
+          </>
+        }
       >
-        <Icon name={ICONS[entry.type]} size={18} />
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="text-[15px] font-semibold text-ink">{t(`balance.type.${entry.type}`)}</p>
-        <p className="num truncate text-[13px] text-neutral-700">{details.join(' · ')}</p>
-      </div>
-      <div className="num shrink-0 text-right">
-        <p className={`text-[15px] font-bold ${positive ? 'text-success' : 'text-ink'}`}>
-          {positive ? '+' : ''}
-          {formatTakaExact(entry.amount)}
-        </p>
-        <p className="text-[12px] text-neutral-700">
-          {t('balance.after', { amount: formatTakaExact(entry.balanceAfter) })}
-        </p>
-      </div>
-    </div>
+        <Field
+          label={tDefault('balance.dateFrom')}
+          type="date"
+          value={draft.from}
+          lang={i18n.language}
+          onChange={(event) => {
+            setDraft((current) => ({ ...current, from: event.target.value }));
+          }}
+        />
+        <Field
+          label={tDefault('balance.dateTo')}
+          type="date"
+          value={draft.to}
+          lang={i18n.language}
+          onChange={(event) => {
+            setDraft((current) => ({ ...current, to: event.target.value }));
+          }}
+        />
+      </Sheet>
+    </Card>
   );
 }

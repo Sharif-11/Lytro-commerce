@@ -77,13 +77,68 @@ export function todayInputValue(): string {
   return dayKey(new Date().toISOString());
 }
 
-/** A day as the prototype writes it beside a figure, in either language: "9 Nov" (Dhaka's calendar). */
-export function formatDayMonth(iso: string): string {
-  return new Intl.DateTimeFormat('en-GB', {
+/** A date's day, three-letter month and year in Dhaka. The month is en-US's: en-GB writes September "Sept". */
+function dayMonthYear(iso: string): { day: string; month: string; year: string } {
+  const parts = new Intl.DateTimeFormat('en-US', {
     day: 'numeric',
     month: 'short',
+    year: 'numeric',
+    timeZone: DHAKA,
+  }).formatToParts(new Date(iso));
+  const part = (type: Intl.DateTimeFormatPartTypes): string =>
+    parts.find((each) => each.type === type)?.value ?? '';
+  return { day: part('day'), month: part('month'), year: part('year') };
+}
+
+/** A day as the prototype writes it beside a figure, in either language: "9 Nov" (Dhaka's calendar). */
+export function formatDayMonth(iso: string): string {
+  const { day, month } = dayMonthYear(iso);
+  return `${day} ${month}`;
+}
+
+/** A day with its year, as the prototype's toasts write it in either language: "9 Dec 2026" (Dhaka's calendar). */
+export function formatDayMonthYear(iso: string): string {
+  const { day, month, year } = dayMonthYear(iso);
+  return `${day} ${month} ${year}`;
+}
+
+/**
+ * A date in a sentence: "7 Dec 2026", or in Bangla the month's own name with Western digits, "7 ডিসেম্বর 2026"
+ * (BRAND-IDENTITY §5).
+ */
+export function formatLongDate(iso: string, language: string): string {
+  if (language !== 'bn') return formatDayMonthYear(iso);
+  const date = new Date(iso);
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric',
+    year: 'numeric',
+    timeZone: DHAKA,
+  }).formatToParts(date);
+  const part = (type: Intl.DateTimeFormatPartTypes): string =>
+    parts.find((each) => each.type === type)?.value ?? '';
+  const month = new Intl.DateTimeFormat('bn-BD', { month: 'long', timeZone: DHAKA }).format(date);
+  return `${part('day')} ${month} ${part('year')}`;
+}
+
+/** A month's own name in the visitor's language: "October", "অক্টোবর" (Dhaka's calendar). */
+export function formatMonth(iso: string, language: string): string {
+  return new Intl.DateTimeFormat(language === 'bn' ? 'bn-BD' : 'en-GB', {
+    month: 'long',
     timeZone: DHAKA,
   }).format(new Date(iso));
+}
+
+/** A month with its year, for a list grouped by month: "October 2026", "অক্টোবর 2026" (Western digits). */
+export function formatMonthYear(iso: string, language: string): string {
+  const year = new Intl.DateTimeFormat('en-GB', { year: 'numeric', timeZone: DHAKA }).format(
+    new Date(iso),
+  );
+  return `${formatMonth(iso, language)} ${year}`;
+}
+
+/** The month an ISO moment falls in, in Dhaka: the key a list is grouped by. */
+export function monthKey(iso: string): string {
+  return dayKey(iso).slice(0, 7);
 }
 
 /** LIF-05: whole days since a moment that has passed ("the plan ended 2 days ago"); 0 on the day itself. */

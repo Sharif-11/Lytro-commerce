@@ -106,13 +106,21 @@ const day = (offset: number): string => dhakaDate(new Date(Date.now() + offset *
 
 interface Standing {
   billingTerm: { id: string; labelEn: string; labelBn: string; months: number } | null;
+  lapseStages: { grace: number; readOnly: number; locked: number; archived: number } | null;
   deletesAt: string | null;
 }
 
 async function standingOf(shop: ShopClient): Promise<Standing> {
   const me = (await shop.get('/me')).body as { tenant: Standing };
-  return { billingTerm: me.tenant.billingTerm, deletesAt: me.tenant.deletesAt };
+  return {
+    billingTerm: me.tenant.billingTerm,
+    lapseStages: me.tenant.lapseStages,
+    deletesAt: me.tenant.deletesAt,
+  };
 }
+
+// LIF-26's defaults, with no operator setting: grace 3, read-only 4, locked 8, archived 45.
+const TODAY_STAGES = { grace: 3, readOnly: 4, locked: 8, archived: 45 };
 
 /** Moves the shop's lifecycle by hand, and drops the cached copy the next request would read. */
 async function setLifecycle(shop: ShopClient, sets: string, ...params: unknown[]): Promise<void> {
@@ -121,14 +129,33 @@ async function setLifecycle(shop: ShopClient, sets: string, ...params: unknown[]
 }
 
 describeIfDatabase('the Money reads (Slice 11.5a.2: TRM-12, LIF-12, LIF-19, PYG-02)', () => {
-  it("names a paid plan's term on /me, and none on a trial", async () => {
+  it("names a paid plan's term and its lapse's stages on /me, and neither on a trial", async () => {
     const trial = await openShop(port, texts, 'reads');
-    expect(await standingOf(trial)).toEqual({ billingTerm: null, deletesAt: null });
+    expect(await standingOf(trial)).toEqual({
+      billingTerm: null,
+      lapseStages: null,
+      deletesAt: null,
+    });
     const paid = await onStarter();
     expect(await standingOf(paid)).toEqual({
       billingTerm: { id: monthTermId, labelEn: 'Reads month', labelBn: 'মাস', months: 1 },
+      lapseStages: TODAY_STAGES,
       deletesAt: null,
     });
+  });
+
+  it('names the stages a begun lapse keeps (LIF-26), and none once the shop is locked', async () => {
+    const shop = await onStarter();
+    const kept = { grace: 1, readOnly: 2, locked: 3, archived: 4 };
+    await setLifecycle(
+      shop,
+      `state = 'grace', period_end = $2, lapse_schedule_snapshot = $3`,
+      new Date(Date.now() - DAY_MS),
+      JSON.stringify(kept),
+    );
+    expect((await standingOf(shop)).lapseStages).toEqual(kept);
+    await setLifecycle(shop, `state = 'locked'`);
+    expect((await standingOf(shop)).lapseStages).toBeNull();
   });
 
   it("says when a lapsed shop's data would be deleted, on the schedule its lapse keeps", async () => {
@@ -156,6 +183,7 @@ describeIfDatabase('the Money reads (Slice 11.5a.2: TRM-12, LIF-12, LIF-19, PYG-
     await setLifecycle(shop, `state = 'archived', period_end = NULL, archived_at = $2`, archived);
     expect(await standingOf(shop)).toEqual({
       billingTerm: null,
+      lapseStages: null,
       deletesAt: new Date(archived.getTime() + 60 * DAY_MS).toISOString(),
     });
   });

@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { Permission, TenantState } from '@lytronix/validators';
+import {
+  BillingPaymentState,
+  Permission,
+  PlanPaymentKind,
+  TenantState,
+} from '@lytronix/validators';
 import type { Viewer } from '../src/shell/hubs';
 import type { HomeView } from '../src/types/home';
 import type { MeTenant } from '../src/types/me';
@@ -19,6 +24,7 @@ const QUIET: HomeView = {
   balance: { amount: '480.50', low: false, freeSms: { used: 0, limit: 100 } },
   topUpsBeingChecked: { count: 0, amount: '0' },
   paymentsBeingChecked: { count: 0, amount: '0' },
+  paymentNeedingYou: null,
   staffWithoutPassword: 0,
   fastSpendAlertedAt: null,
   checklist: null,
@@ -36,6 +42,9 @@ function tenant(state: TenantState, daysLeft: number): MeTenant {
     autoRenewEnabled: false,
     logo: null,
     brand: null,
+    billingTerm: null,
+    lapseStages: null,
+    deletesAt: null,
   };
 }
 
@@ -45,6 +54,27 @@ const ACTIVE = tenant(TenantState.Active, 30);
 describe('the jobs on Home', () => {
   it('has no rows when nothing needs the person', () => {
     expect(jobsOf(QUIET, { t, viewer: OWNER, tenant: ACTIVE, now: NOW })).toEqual([]);
+  });
+
+  it('heads the queue with a rejected or lapsed payment, which opens it in Billing (BIL-19)', () => {
+    for (const [state, key] of [
+      [BillingPaymentState.Rejected, 'jobPayRejected'],
+      [BillingPaymentState.Expired, 'jobPayExpired'],
+    ] as const) {
+      const home: HomeView = {
+        ...QUIET,
+        stock: { low: 2, out: 0, expiringBatches: 0 },
+        paymentNeedingYou: { id: 'pay-1', kind: PlanPaymentKind.Renewal, amount: '449.00', state },
+      };
+      const [first, second] = jobsOf(home, { t, viewer: OWNER, tenant: ACTIVE, now: NOW });
+      expect(first).toMatchObject({
+        key: 'paymentNeedingYou',
+        tone: 'red',
+        text: `${key} {"amount":"৳449"}`,
+        paymentId: 'pay-1',
+      });
+      expect(second?.key).toBe('low');
+    }
   });
 
   it('lists every row in the design order, counting things and naming amounts', () => {

@@ -1,112 +1,84 @@
-import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDowngradePreview, useScheduleDowngrade } from '@/api/billing';
-import { errorMessage } from '@lytronix/api-client';
-import { Button, ErrorBanner, formatDate, formatTaka } from '@lytronix/ui';
+import { Banner } from '@/components/ui/banner';
+import { Button } from '@/components/ui/button';
+import { Kv } from '@/components/ui/kv';
+import { Eyebrow } from '@/components/ui/page';
 import { Sheet } from '@/components/ui/sheet';
-import type { Plan } from '@/types/billing';
+import { useErrorText } from '@/hooks/use-error-text';
+import { formatDayMonth } from '@/lib/dates';
+import { sentenceCase } from '@/lib/limits';
+import type { PlanPriceOption } from '@/types/billing';
+import { overLimits } from './figures';
+import { taka } from './words';
 
 interface DowngradeSheetProps {
-  target: Plan | null;
-  price: number | null;
+  option: PlanPriceOption;
   periodEnd: string | null;
   onClose: () => void;
-  onScheduled: () => void;
+  onDone: () => void;
 }
 
-/** DWN-01/03: the effective date in the first sentence, every over-limit item with its counts, one sentence
-    per consequence (DWN-07/08), the new price, and the button named for the date. */
+/**
+ * Move down (TENANT-DASHBOARD-DESIGN §7.12, the prototype's `downgrade`, DWN-01, DWN-03): the date first, then what the
+ * smaller plan would leave over its limits with the figures, one sentence for each consequence, the new price, and the
+ * button named for the date. Nothing changes or is charged before it.
+ */
 export function DowngradeSheet({
-  target,
-  price,
+  option,
   periodEnd,
   onClose,
-  onScheduled,
+  onDone,
 }: DowngradeSheetProps): React.JSX.Element {
-  const { t, i18n } = useTranslation();
-  const preview = useDowngradePreview();
+  const { t } = useTranslation('money');
+  const errorText = useErrorText();
+  const preview = useDowngradePreview(option.planId);
   const schedule = useScheduleDowngrade();
-  const date = periodEnd ? formatDate(periodEnd, i18n.language) : '';
-
-  const requestPreview = preview.mutate;
-  useEffect(() => {
-    if (target) requestPreview({ planId: target.id });
-  }, [target, requestPreview]);
-
-  function close(): void {
-    onClose();
-    preview.reset();
-    schedule.reset();
-  }
-
-  const over = preview.data ?? [];
+  const date = periodEnd ? formatDayMonth(periodEnd) : '';
+  const over = overLimits(preview.data ?? []);
+  const products = over.find((item) => item.key === 'products');
+  const seats = over.find((item) => item.key === 'staff');
 
   return (
     <Sheet
-      open={target !== null}
-      title={target ? t('plan.downgradeTo', { plan: target.name }) : ''}
-      onClose={close}
+      open
+      title={t('dgTitle', { plan: option.planName })}
+      onClose={onClose}
       footer={
-        target ? (
-          <div className="grid gap-2">
-            <Button
-              type="button"
-              loading={schedule.isPending}
-              onClick={() => {
-                schedule.mutate({ planId: target.id }, { onSuccess: onScheduled });
-              }}
-            >
-              {t('plan.downgradeOn', { date })}
-            </Button>
-            <Button type="button" tone="ghost" onClick={close}>
-              {t('plan.keepCurrentPlan')}
-            </Button>
-          </div>
-        ) : null
+        <Button
+          busy={schedule.isPending}
+          onClick={() => {
+            schedule.mutate({ planId: option.planId }, { onSuccess: onDone });
+          }}
+        >
+          {t('dgConfirm', { date })}
+        </Button>
       }
     >
-      <div className="space-y-4">
-        <p className="text-[15px] text-neutral-700">
-          {t('plan.downgradeHappens', { plan: target?.name ?? '', date })}
-        </p>
-        {preview.isPending ? (
-          <p className="text-[14px] text-neutral-700">{t('common.loading')}</p>
-        ) : null}
-        {preview.isError ? <ErrorBanner message={errorMessage(preview.error, t)} /> : null}
-        {over.length > 0 ? (
-          <>
-            <p className="rounded-control border-l-[3px] border-accent-500 bg-accent-100 px-3.5 py-2.5 text-[14px] font-bold text-ink">
-              {t('plan.overLimitCount', { count: over.length, plan: target?.name ?? '' })}
-            </p>
-            <ul className="space-y-1.5">
-              {over.map((item) => (
-                <li
-                  key={item.key}
-                  className="flex justify-between gap-3 rounded-control border border-accent-700/30 bg-accent-100 px-3 py-2 text-[14px]"
-                >
-                  <span>{t(`plan.limit.${item.key}`, { defaultValue: item.key })}</span>
-                  <b className="num">
-                    {item.used.toLocaleString('en-US')}{' '}
-                    <span className="font-normal text-neutral-700">
-                      / {item.limit.toLocaleString('en-US')}
-                    </span>
-                  </b>
-                </li>
-              ))}
-            </ul>
-            <p className="text-[14px] text-neutral-700">{t('plan.overLimitConsequence')}</p>
-          </>
-        ) : preview.data ? (
-          <p className="text-[14px] text-neutral-700">{t('plan.nothingOver')}</p>
-        ) : null}
-        {schedule.isError ? <ErrorBanner message={errorMessage(schedule.error, t)} /> : null}
-        {price !== null ? (
-          <div className="flex justify-between gap-3 border-t border-line pt-3 text-[15px]">
-            <span className="text-neutral-700">{t('plan.fromDate', { date })}</span>
-            <b className="num text-ink">{formatTaka(price)}</b>
+      <p className="text-[15px]">{t('dgWhen', { date })}</p>
+      {preview.isError ? <Banner tone="bad">{errorText(preview.error)}</Banner> : null}
+      {over.length > 0 ? (
+        <>
+          <Eyebrow>{t('dgOver')}</Eyebrow>
+          <div className="rounded-card bg-warning-soft px-3 py-1">
+            {over.map((item) => (
+              <Kv
+                key={item.key}
+                label={sentenceCase(t(`lim.${item.key}`, { defaultValue: item.key }))}
+                value={`${item.usedText} / ${item.limitText}`}
+              />
+            ))}
           </div>
-        ) : null}
-      </div>
+          {products ? (
+            <p className="text-[14px] text-fg-muted">
+              {t('dgNote1', { limit: products.limitText })}
+            </p>
+          ) : null}
+          {seats ? <p className="text-[14px] text-fg-muted">{t('dgNote2')}</p> : null}
+        </>
+      ) : null}
+      <Kv label={t('dgPrice')} value={taka(option.price)} total />
+      {schedule.isError ? <Banner tone="bad">{errorText(schedule.error)}</Banner> : null}
     </Sheet>
   );
 }

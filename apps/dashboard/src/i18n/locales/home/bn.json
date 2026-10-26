@@ -21,6 +21,8 @@
   "jobExpiring_other": "{{count}}টি ব্যাচ 30 দিনে মেয়াদ শেষ",
   "jobLow_one": "{{count}}টি প্রোডাক্টের স্টক কম বা শেষ",
   "jobLow_other": "{{count}}টি প্রোডাক্টের স্টক কম বা শেষ",
+  "jobPayRejected": "{{amount}} পেমেন্ট রিজেক্ট হয়েছে · কারণ দেখুন",
+  "jobPayExpired": "{{amount}} পেমেন্টের অনুরোধ বাতিল হয়েছে · আবার দিন",
   "jobPlan_one": "প্ল্যান {{count}} দিনে শেষ",
   "jobPlan_other": "প্ল্যান {{count}} দিনে শেষ",
   "jobPlanPay": "প্ল্যানের পেমেন্ট চেক হচ্ছে",

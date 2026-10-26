@@ -160,6 +160,7 @@ export const MESSAGE_KEYS = [
   'LimitOverrideSet',
   'LimitOverrideRemoved',
   'PlansListed',
+  'PayAsYouGoPlanRetrieved',
   'PlanCreated',
   'PlanVersionsRetrieved',
   'PlanUpdated',

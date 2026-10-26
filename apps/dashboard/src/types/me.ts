@@ -53,6 +53,27 @@ export interface MeTenant {
   logo: ImageView | null;
   /** BRN-07: the shop's own identity; null for Lytro's default. */
   brand: LiveBrand | null;
+  /** TRM-12: the term a paid plan runs on; null on a trial or pay-as-you-go. */
+  billingTerm: MeBillingTerm | null;
+  /** LIF-26: the days of each stage a lapse would take the plan through; null on a trial, pay-as-you-go and once locked. */
+  lapseStages: LapseStages | null;
+  /** LIF-12, LIF-19: once lapsed, when the shop's business data would be deleted. */
+  deletesAt: string | null;
+}
+
+export interface MeBillingTerm {
+  id: string;
+  labelEn: string;
+  labelBn: string;
+  months: number;
+}
+
+/** Days within each stage, not counted from the period's end (LIF-04). */
+export interface LapseStages {
+  grace: number;
+  readOnly: number;
+  locked: number;
+  archived: number;
 }
 
 export interface MeResponse {

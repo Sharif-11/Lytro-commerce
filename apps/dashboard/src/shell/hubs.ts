@@ -12,7 +12,7 @@ export type SectionId =
   | 'delivery'
   | 'balance'
   | 'plan'
-  | 'invoices'
+  | 'billing'
   | 'usage'
   | 'team'
   | 'activity'
@@ -90,7 +90,7 @@ export const HUBS: readonly Hub[] = [
     sections: [
       section('balance', [Permission.BalanceRead]),
       section('plan', [Permission.PaymentsRead]),
-      section('invoices', [Permission.PaymentsRead]),
+      section('billing', [Permission.PaymentsRead]),
       section('usage', [Permission.PaymentsRead]),
     ],
   },

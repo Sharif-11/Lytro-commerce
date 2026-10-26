@@ -1202,6 +1202,38 @@ their backend ships earlier.
     minute's flush as the cycle's total) on `GET /usage`; the term a paid plan runs on and a lapsed shop's deletion date
     on `/me`, the date worked out by the lifecycle's own rules; the pay-as-you-go fees charged this month on
     `GET /balance`.
+  - **11.5a.3, the last three reads, built:** `type` on `GET /balance/ledger` and its export takes one ledger type or
+    several, comma-separated, so a chip such as Fees covers order, product, extraction and fraud-check fees in one read;
+    the public `GET /plans/pay-as-you-go`, whose limits the pay-as-you-go card and switch sheet show; and `lapseStages`
+    on `/me`, the days of each stage a lapse would take the plan through, for the stop sheet's dated steps (agreed
+    2026-10-26).
+  - **11.5b, the screens, agreed 2026-10-26** (the read's 11 points, "yes, as proposed"; one pull request in three
+    commits, the reads of 11.5a.3 first): how to pay offers the balance (greyed with why when short) or the platform's
+    wallets, whose step opens in the sheet, the request made only on that tap with the amount shown; a changed amount is
+    said and asked again; the statement's chips read several ledger types at once; a suspended owner's Balance opens
+    without the shell with the balance and Top up, never the statement (the server keeps it from them, LIF-24); Renew's
+    export is one button in three states, read again every 30 seconds while it is made, "we'll email you" only when the
+    owner has an email; Billing opened cold pages its list; the banners read the payments list; the section is
+    `billing`, `/invoices` leading there; the add-ons card on Plan waits for 11.5c.
+  - **11.5b's Plan side, built:** Plan for a trial and a paid plan with its sheets (how to pay, upgrade, move down,
+    stop, switch to pay-as-you-go), its banners (stopping, a scheduled move, the 30 days after a move down), the
+    pay-as-you-go page with closing the shop, Renew and Unavailable without the shell, and checkout's request made on
+    Continue. Named fixes: how to pay names the platform's own wallets with their marks ("By bKash or Nagad"); the
+    requirement ids the sketch writes into a few lines are left out; the stop sheet's Bangla second step says day 3, as
+    its English and the lifecycle do; the auto-renew switch hides while the subscription is stopping, since nothing
+    renews; the upgrade's balance button greys when the new amount is more than the balance; the dialog takes the
+    sketch's left-aligned buttons and phone position. Orders handled waits for Phase 4.
+  - **11.5b's money side, built:** Balance with its statement (chips read several types at once, each row named from
+    its payment when Billing has it, units at the rate, the balance after), Current rates, and the top-up sheet whose
+    request is made on Continue; the low-balance, being-checked and rejected banners; a suspended owner's Balance
+    without the shell; Billing, `/billing` with `/billing/:id` (a payment opened cold found in the list's first five
+    pages), every state with its action -- Pay again, Finish paying, Cancel -- "What happened" and the invoice; Home's
+    row for a rejected or lapsed payment and the Billing chip's count; Plan's being-checked and rejected banners;
+    `/invoices` leading to Billing. Named fixes: which wallet a payment went by is not recorded until Phase 5's page,
+    so a payment says its TrxID ("TrxID 9F2KQ7", not "bKash · TrxID 9F2KQ7"); an awaiting request says nothing was
+    submitted rather than that a payment page was opened; Plan's being-checked banner leaves out the new end date, which
+    the payment does not carry; amounts below zero read "−৳85.85"; dates write September "Sep", as the sketch does,
+    not en-GB's "Sept" (Home's figures too).
 
 ### Slice 12: shared storefront and product landing pages
 - **Depends on:** Slices 0, 0b, 7 and 9 (and branding from Phase 1).

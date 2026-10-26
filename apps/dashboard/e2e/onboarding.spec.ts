@@ -44,7 +44,15 @@ test('walks a new owner from the website to Home: code, shop, checkout, password
     'true',
   );
   await expect(page.getByText('৳4,741').first()).toBeVisible();
+  // The payment request is made on Continue, with the amount shown, never for each chip (BIL-09).
+  expect(log.calls.some((call) => call.path === '/billing/quote')).toBe(false);
+  await page.getByRole('button', { name: 'এগিয়ে যান · ৳4,741' }).click();
   await expect(page.getByText('01700 000 000')).toBeVisible();
+  expect(log.sent('POST', '/billing/quote')).toEqual({
+    planId: STARTER,
+    billingTermId: TWELVE_MONTHS,
+    amount: 4741,
+  });
   await page.getByLabel('ট্রানজ্যাকশন আইডি (TrxID)').fill('9F2KQ7X1');
   await page.getByLabel('যে নম্বর থেকে পাঠিয়েছেন').fill('1811223344');
   await page.getByRole('button', { name: 'পেমেন্ট জমা দিন' }).click();

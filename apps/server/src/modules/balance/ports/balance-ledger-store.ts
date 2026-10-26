@@ -13,7 +13,7 @@ export interface NewLedgerEntry {
 }
 
 export interface LedgerFilters {
-  type?: LedgerEntryType;
+  types?: LedgerEntryType[];
   dateFrom?: Date;
   dateTo?: Date;
 }

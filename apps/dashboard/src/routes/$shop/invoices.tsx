@@ -1,8 +1,8 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { Invoices } from '@/views/invoices';
+import { createFileRoute, redirect } from '@tanstack/react-router';
 
-// The first build's screen, framed by the new shell until its own pull request of Slice 11 rebuilds it.
+// The first build's Invoices is Billing now (TENANT-DASHBOARD-DESIGN §7.13); an old link lands there.
 export const Route = createFileRoute('/$shop/invoices')({
-  staticData: { screen: { hub: 'money', section: 'invoices', title: 'secInvoices', legacy: true } },
-  component: Invoices,
+  beforeLoad: ({ params }) => {
+    throw redirect({ to: '/$shop/billing', params: { shop: params.shop } });
+  },
 });

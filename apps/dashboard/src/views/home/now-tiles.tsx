@@ -1,26 +1,13 @@
 import { useTranslation } from 'react-i18next';
 import { Permission, TenantState } from '@lytronix/validators';
-import { daysUntil, formatTaka } from '@lytronix/ui';
+import { daysUntil } from '@lytronix/ui';
 import { SectionHead } from '@/components/ui/page';
 import { StatRow, StatTile } from '@/components/ui/stat-tile';
+import { Taka } from '@/components/ui/taka';
 import { formatDayMonth } from '@/lib/dates';
 import { allows } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
 import type { HomeView } from '@/types/home';
-
-/** The balance as the prototype's tile writes it: whole taka, the paisa smaller after, when there are any. */
-function Taka({ amount }: { amount: string }): React.JSX.Element {
-  const paisa = amount.split('.')[1] ?? '00';
-  const whole = formatTaka(Math.trunc(Number(amount)));
-  return (
-    <>
-      {whole}
-      {paisa === '00' ? null : (
-        <small className="text-[14px] font-medium text-fg-muted">.{paisa}</small>
-      )}
-    </>
-  );
-}
 
 /**
  * "Right now" (TENANT-DASHBOARD-DESIGN §7.1): products with the active count, low stock with the out count, the balance
@@ -63,7 +50,9 @@ export function NowTiles({ home }: { home: HomeView }): React.JSX.Element | null
       <StatTile
         key="balance"
         label={t('stBalance')}
-        value={<Taka amount={balance.amount} />}
+        value={
+          <Taka amount={balance.amount} paisaClassName="text-[14px] font-medium text-fg-muted" />
+        }
         note={
           balance.freeSms.used > 0 && balance.freeSms.limit !== null
             ? `${String(balance.freeSms.used)}/${String(balance.freeSms.limit)} SMS`

@@ -23,7 +23,9 @@ import { ShellContext, type ShellState } from './shell-context';
 import { LegacyPage } from './shell-page';
 import { SideColumn } from './side-column';
 import { TabBar } from './tab-bar';
+import { LeadTo } from './lead-to';
 import { useShopManifest } from './use-shop-manifest';
+import { Unavailable } from '@/views/unavailable';
 
 interface AppShellProps {
   slug: string;
@@ -85,41 +87,66 @@ export function AppShell({ slug, children }: AppShellProps): React.JSX.Element {
     );
   }
 
-  // LIF-24: a suspended owner sees one screen with the support button and no reason.
+  // LIF-24 (TENANT-DASHBOARD-DESIGN §7.20): a suspended shop's owner sees Unavailable, with no reason, and may still
+  // open Balance to settle what is owed; nothing else.
   if (tenant.suspended) {
     return (
-      <OnboardingFrame title={t('shop.suspended.title')} lead={t('shop.suspended.lead')}>
-        <Link
-          to="/$shop/balance"
-          params={{ shop: slug }}
-          className={buttonClass('outline', 'md', true)}
-        >
-          {t('shop.suspended.balance')}
-        </Link>
-        <Button
-          tone="ghost"
-          wide
-          busy={signOut.isPending}
-          onClick={() => {
-            signOut.mutate();
-          }}
-        >
-          {t('common.signOut')}
-        </Button>
-      </OnboardingFrame>
+      <BareShell slug={slug} me={me.data} tenant={tenant}>
+        {location.pathname.endsWith('/balance') ? children : <Unavailable />}
+      </BareShell>
     );
   }
 
-  // LIF-11/12: a locked or archived shop shows only the way back; the plan screen is that way back, so it is the
-  // one route that still renders. Slice 11.5 turns this into the Renew page (TENANT-DASHBOARD-DESIGN §7.20).
-  const lockedOut =
-    (tenant.state === TenantState.Locked || tenant.state === TenantState.Archived) &&
-    !location.pathname.endsWith('/plan');
+  // LIF-11/12: a locked or archived shop has one page, Renew, without the shell; any other path leads there.
+  if (tenant.state === TenantState.Locked || tenant.state === TenantState.Archived) {
+    if (!location.pathname.endsWith('/renew')) {
+      return <LeadTo slug={slug} page="renew" />;
+    }
+    return (
+      <BareShell slug={slug} me={me.data} tenant={tenant}>
+        {children}
+      </BareShell>
+    );
+  }
 
   return (
-    <ShellFrame slug={slug} me={me.data} tenant={tenant} lockedOut={lockedOut}>
+    <ShellFrame slug={slug} me={me.data} tenant={tenant}>
       {children}
     </ShellFrame>
+  );
+}
+
+/**
+ * The shop and the person for a page without the shell (Renew, Unavailable, a suspended owner's Balance): the same
+ * context a shell page reads, and its toasts, with no bars around it.
+ */
+function BareShell({
+  slug,
+  me,
+  tenant,
+  children,
+}: {
+  slug: string;
+  me: MeResponse;
+  tenant: MeTenant;
+  children: ReactNode;
+}): React.JSX.Element {
+  const toast = useToast();
+  const shell: ShellState = {
+    slug,
+    tenant,
+    viewer: { isOwner: me.isOwner, permissions: me.permissions },
+    personName: me.name,
+    screen: undefined,
+    counts: { stock: null, billing: null },
+    showToast: toast.show,
+    openPlus: () => undefined,
+  };
+  return (
+    <ShellContext.Provider value={shell}>
+      {children}
+      <Toast message={toast.message} />
+    </ShellContext.Provider>
   );
 }
 
@@ -135,7 +162,6 @@ interface ShellFrameProps {
   slug: string;
   me: MeResponse;
   tenant: MeTenant;
-  lockedOut: boolean;
   children: ReactNode;
 }
 
@@ -143,13 +169,13 @@ interface ShellFrameProps {
  * The shell (TENANT-DASHBOARD-DESIGN §4, the prototype's `.shell`): under 1024 px the app bar over the page and the
  * tab bar under it; from 1024 px the rail, the header and, from 1280 px, the side column. The page scrolls inside it.
  */
-function ShellFrame({ slug, me, tenant, lockedOut, children }: ShellFrameProps): React.JSX.Element {
+function ShellFrame({ slug, me, tenant, children }: ShellFrameProps): React.JSX.Element {
   const { t } = useTranslation('shell');
   const navigate = useNavigate();
   const matches = useMatches();
   const screen = [...matches].reverse().find((match) => match.staticData.screen)?.staticData.screen;
   const viewer: Viewer = { isOwner: me.isOwner, permissions: me.permissions };
-  const home = useHome({ enabled: !lockedOut });
+  const home = useHome();
   const toast = useToast();
   const [plusOpen, setPlusOpen] = useState(false);
   useShopManifest(slug);
@@ -170,14 +196,14 @@ function ShellFrame({ slug, me, tenant, lockedOut, children }: ShellFrameProps):
     viewer,
     personName: me.name,
     screen,
-    counts: { stock },
+    counts: { stock, billing: home.data?.paymentNeedingYou ? 1 : null },
     showToast,
     openPlus: () => {
       setPlusOpen(true);
     },
   };
   const canSearch = allows(viewer, [Permission.ProductsRead]);
-  const canAdd = !lockedOut && hasPlusActions(viewer);
+  const canAdd = hasPlusActions(viewer);
 
   return (
     <ShellContext.Provider value={shell}>
@@ -189,13 +215,7 @@ function ShellFrame({ slug, me, tenant, lockedOut, children }: ShellFrameProps):
             <AppBar canSearch={canSearch} canAdd={canAdd} />
             <DeskHeader canSearch={canSearch} canAdd={canAdd} />
             <main className="min-h-0 flex-1 overflow-auto [-webkit-overflow-scrolling:touch]">
-              {lockedOut ? (
-                <LockedOut slug={slug} />
-              ) : screen?.legacy ? (
-                <LegacyPage>{children}</LegacyPage>
-              ) : allowed ? (
-                children
-              ) : null}
+              {screen?.legacy ? <LegacyPage>{children}</LegacyPage> : allowed ? children : null}
             </main>
             <TabBar />
           </div>
@@ -209,23 +229,5 @@ function ShellFrame({ slug, me, tenant, lockedOut, children }: ShellFrameProps):
         <Toast message={toast.message} />
       </div>
     </ShellContext.Provider>
-  );
-}
-
-/** LIF-11/12: a locked or archived shop shows only the way back, never the working dashboard. */
-function LockedOut({ slug }: { slug: string }): React.JSX.Element {
-  const { t } = useTranslation();
-  return (
-    <div className="mx-auto max-w-[520px] px-4 py-10 text-center sm:px-6">
-      <h1 className="heading text-[22px] text-ink">{t('shop.lockedOut.title')}</h1>
-      <p className="mt-2 text-[15px] text-neutral-700">{t('shop.lockedOut.lead')}</p>
-      <Link
-        to="/$shop/plan"
-        params={{ shop: slug }}
-        className={`mt-6 ${buttonClass('primary', 'md', true)}`}
-      >
-        {t('shop.lockedOut.renew')}
-      </Link>
-    </div>
   );
 }

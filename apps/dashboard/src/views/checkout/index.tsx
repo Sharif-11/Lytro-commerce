@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { formatTaka } from '@lytronix/ui';
@@ -16,17 +16,20 @@ import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Chip, ChipRow } from '@/components/ui/chips';
 import { StatusTag } from '@/components/ui/status-tag';
+import { WalletMarks } from '@/components/wallet-marks';
 import { WalletStep } from '@/components/wallet-step';
 import { useErrorText } from '@/hooks/use-error-text';
 import { PricingTable, type PricedOption } from '@/lib/pricing-table';
 import { signUpIntent } from '@/session/sign-up-intent';
 import type { PlanPayment } from '@/types/billing';
+import { changedAmount } from '@/views/plan/words';
 
 /**
  * Step 2b (AUTH-29; TENANT-DASHBOARD-DESIGN §6 and §7.19, the prototype's `ob-checkout` as drawn before Phase 5's
  * hosted page): the plan and term picked on the pricing page, changeable; the price, its monthly equivalent and the
- * saving; the no-refund line (BIL-18); then the wallet step (BIL-02, BIL-03), or "continue without paying", which
- * leaves the shop on its trial. Either way the password step follows. Paid at once ("Starter is on") waits for the
+ * saving; the no-refund line (BIL-18); then Continue, which makes the payment request with the amount shown (BIL-09,
+ * decided 2026-10-23: never one per chip) and opens the wallet step (BIL-02, BIL-03), or "continue without paying",
+ * which leaves the shop on its trial. Either way the password step follows. Paid at once ("Starter is on") waits for the
  * hosted page; until then a payment is checked, and the trial runs meanwhile.
  */
 export function Checkout(): React.JSX.Element {
@@ -36,7 +39,9 @@ export function Checkout(): React.JSX.Element {
   const intent = signUpIntent.read();
   const [planId, setPlanId] = useState<string | null>(intent.planId);
   const [termId, setTermId] = useState<string | null>(intent.termId);
+  const { t: tMoney } = useTranslation('money');
   const [quote, setQuote] = useState<PlanPayment | null>(null);
+  const [changed, setChanged] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
 
   const plans = usePlans();
@@ -46,7 +51,6 @@ export function Checkout(): React.JSX.Element {
   );
   const wallets = usePlatformWallets();
   const quotePurchase = useQuotePurchase();
-  const requestQuote = quotePurchase.mutate;
   const confirmPurchase = useConfirmPurchase();
 
   const table = useMemo(
@@ -54,12 +58,30 @@ export function Checkout(): React.JSX.Element {
     [plans.data, terms.data, prices.prices],
   );
 
-  // Re-quote whenever the choice changes (BIL-01); the quote is ephemeral until confirmed.
-  useEffect(() => {
-    if (!planId || !termId || !table.option(planId, termId)) return;
+  /** A new choice drops the request made for the last one; the next is made only on Continue. */
+  function choose(nextPlanId: string, nextTermId: string): void {
+    setPlanId(nextPlanId);
+    setTermId(nextTermId);
     setQuote(null);
-    requestQuote({ planId, billingTermId: termId }, { onSuccess: setQuote });
-  }, [planId, termId, table, requestQuote]);
+    setChanged(null);
+    quotePurchase.reset();
+  }
+
+  // BIL-09 (decided 2026-10-23): the request is made when the seller commits, with the amount they saw; a changed
+  // amount is said and asked again, nothing charged.
+  function commit(amount: string): void {
+    if (!planId || !termId) return;
+    setChanged(null);
+    quotePurchase.mutate(
+      { planId, billingTermId: termId, amount: Number(amount) },
+      {
+        onSuccess: setQuote,
+        onError: (error) => {
+          setChanged(changedAmount(error));
+        },
+      },
+    );
+  }
 
   function continueToPassword(): void {
     signUpIntent.clearPlan();
@@ -104,8 +126,7 @@ export function Checkout(): React.JSX.Element {
                 onClick={() => {
                   const first = table.defaultOption(plan.id);
                   if (!first) return;
-                  setPlanId(plan.id);
-                  setTermId(first.term.id);
+                  choose(plan.id, first.term.id);
                 }}
               >
                 {plan.name}
@@ -122,7 +143,7 @@ export function Checkout(): React.JSX.Element {
                     key={term.id}
                     on={term.id === termId}
                     onClick={() => {
-                      setTermId(term.id);
+                      choose(planId, term.id);
                     }}
                   >
                     {priced && priced.savingPercent > 0
@@ -155,7 +176,9 @@ export function Checkout(): React.JSX.Element {
               <p className="mt-1.5 text-[14px] text-fg-muted">{t('coNoRefund')}</p>
             </div>
           ) : null}
-          {quotePurchase.isError ? (
+          {changed ? (
+            <Banner tone="warn">{tMoney('amountChanged', { amount: formatTaka(changed) })}</Banner>
+          ) : quotePurchase.isError ? (
             <Banner tone="bad">{errorText(quotePurchase.error)}</Banner>
           ) : null}
           {quote ? (
@@ -176,8 +199,20 @@ export function Checkout(): React.JSX.Element {
                 );
               }}
             />
-          ) : quotePurchase.isPending ? (
-            <p className="text-[14px] text-fg-muted">{t('loading')}</p>
+          ) : option ? (
+            <>
+              <WalletMarks wallets={wallets.data ?? []} />
+              <Button
+                tone="accent"
+                wide
+                busy={quotePurchase.isPending}
+                onClick={() => {
+                  commit(changed ?? String(option.price));
+                }}
+              >
+                {tMoney('continueAmount', { amount: formatTaka(changed ?? option.price) })}
+              </Button>
+            </>
           ) : null}
         </>
       )}

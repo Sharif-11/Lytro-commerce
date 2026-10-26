@@ -31,6 +31,16 @@ export const meResponseSchema = z.object({
       billingTerm: z
         .object({ id: z.string(), labelEn: z.string(), labelBn: z.string(), months: z.number() })
         .nullable(),
+      // LIF-26: the days of each stage a lapse would take a paid plan through, the ones its lapse keeps once begun;
+      // null on a trial, on pay-as-you-go and once locked.
+      lapseStages: z
+        .object({
+          grace: z.number(),
+          readOnly: z.number(),
+          locked: z.number(),
+          archived: z.number(),
+        })
+        .nullable(),
       // LIF-12, LIF-19: once lapsed, when the shop's business data would be deleted; null otherwise.
       deletesAt: z.string().nullable(),
     })

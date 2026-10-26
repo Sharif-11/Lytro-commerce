@@ -17,13 +17,12 @@ const TONES: Record<JobTone, string> = {
 };
 
 /** One job (the prototype's `.job`): what needs the person, opening the list it is about. */
+const JOB_ROW =
+  'flex min-h-[60px] w-full items-center gap-3 px-4 py-3 text-left no-underline hover:bg-neutral-50';
+
 function JobRow({ job, slug }: { job: Job; slug: string }): React.JSX.Element {
-  return (
-    <Link
-      to={job.to}
-      params={{ shop: slug }}
-      className="flex min-h-[60px] w-full items-center gap-3 px-4 py-3 text-left no-underline hover:bg-neutral-50"
-    >
+  const inside = (
+    <>
       <span
         className={`flex size-10 flex-none items-center justify-center rounded-[10px] ${TONES[job.tone]}`}
       >
@@ -36,6 +35,19 @@ function JobRow({ job, slug }: { job: Job; slug: string }): React.JSX.Element {
         </span>
       ) : null}
       <Icon name="right" />
+    </>
+  );
+  return job.paymentId ? (
+    <Link
+      to="/$shop/billing/$paymentId"
+      params={{ shop: slug, paymentId: job.paymentId }}
+      className={JOB_ROW}
+    >
+      {inside}
+    </Link>
+  ) : (
+    <Link to={job.to} params={{ shop: slug }} className={JOB_ROW}>
+      {inside}
     </Link>
   );
 }

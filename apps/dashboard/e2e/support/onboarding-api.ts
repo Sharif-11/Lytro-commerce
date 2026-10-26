@@ -1,4 +1,5 @@
 import type { Page, Route } from '@playwright/test';
+import { plans, prices, priceOf, STARTER, terms, TWELVE_MONTHS } from './catalogue';
 import { envelope, refusal, shopAnswer, shopState, SLUG, startIn, type Language } from './mock-api';
 
 // The sign-in and sign-up steps against a mocked API (TENANT-DASHBOARD-DESIGN §6): a journey that starts signed out
@@ -6,22 +7,7 @@ import { envelope, refusal, shopAnswer, shopState, SLUG, startIn, type Language 
 // point. The figures are the prototype's own -- Starter at ৳449 a month, ৳4,741 for 12 months -- so a step can be
 // set beside its drawing. Once the shop exists, the shop's own calls are answered as the shell's tests answer them.
 
-export const STARTER = '00000000-0000-4000-8000-000000000001';
-export const TWELVE_MONTHS = '00000000-0000-4000-8000-000000000012';
-const GROWTH = '00000000-0000-4000-8000-000000000002';
-const PRO = '00000000-0000-4000-8000-000000000003';
-const TERMS: [string, number][] = [
-  ['00000000-0000-4000-8000-000000000101', 1],
-  ['00000000-0000-4000-8000-000000000103', 3],
-  ['00000000-0000-4000-8000-000000000106', 6],
-  [TWELVE_MONTHS, 12],
-];
-// Each plan's price for 1, 3, 6 and 12 months: 5, 8 and 12 percent off the monthly price (TRM-12).
-const PRICES: Record<string, number[]> = {
-  [STARTER]: [449, 1280, 2478, 4741],
-  [GROWTH]: [699, 1992, 3858, 7381],
-  [PRO]: [999, 2847, 5514, 10549],
-};
+export { STARTER, TWELVE_MONTHS } from './catalogue';
 
 export interface Journey {
   language?: Language;
@@ -55,42 +41,14 @@ export interface JourneyLog {
   sent: (method: string, path: string) => unknown;
 }
 
-function plans(): unknown {
-  return [
-    [STARTER, 'Starter', 1],
-    [GROWTH, 'Growth', 2],
-    [PRO, 'Pro', 3],
-  ].map(([id, name, rank]) => ({ id, name, rank, description: null, forSale: true, limits: {} }));
-}
-
-function terms(): unknown {
-  return TERMS.map(([id, months], index) => ({
-    id,
-    months,
-    labelBn: `${String(months)} মাস`,
-    labelEn: months === 1 ? '1 month' : `${String(months)} months`,
-    visible: true,
-    displayOrder: index,
-  }));
-}
-
-function prices(planId: string): unknown {
-  return TERMS.map(([billingTermId], index) => ({
-    planId,
-    billingTermId,
-    price: `${String(PRICES[planId]?.[index] ?? 0)}.00`,
-  }));
-}
-
 function quote(body: { planId: string; billingTermId: string }): unknown {
-  const index = TERMS.findIndex(([id]) => id === body.billingTermId);
   return {
     id: 'payment-1',
     tenantId: 'tenant-1',
     kind: 'purchase',
     planId: body.planId,
     billingTermId: body.billingTermId,
-    amount: `${String(PRICES[body.planId]?.[index] ?? 0)}.00`,
+    amount: `${String(priceOf(body.planId, body.billingTermId))}.00`,
     creditAmount: '0.00',
     quotedAt: new Date().toISOString(),
     status: 'quoted',
