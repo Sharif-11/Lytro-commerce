@@ -56,6 +56,8 @@ export const quoteAddonSchema = z.object({
   // BIL-09, UPG-07: the amount the seller was shown. The server works the amount out again and refuses the quote
   // (AmountChanged, with the new amount) when it differs, so nothing is ever charged that was not shown.
   amount: z.coerce.number().positive().optional(),
+  // PLN-14 (Slice 11.5c): whether it renews -- the Buy sheet's switch, set with the request rather than after it.
+  renews: z.boolean().default(true),
 });
 export type QuoteAddonInput = z.infer<typeof quoteAddonSchema>;
 
@@ -77,6 +79,8 @@ export type ConfirmAddonInput = z.infer<typeof confirmAddonSchema>;
 export const buyPacksSchema = z.object({
   addonId: z.string().uuid(),
   quantity: z.number().int().min(1).max(ADDON_QUANTITY_MAX).default(1),
+  // BIL-09 (Slice 11.5c): the amount the seller was shown, refused (AmountChanged) when the price has changed since.
+  amount: z.coerce.number().positive().optional(),
 });
 export type BuyPacksInput = z.infer<typeof buyPacksSchema>;
 

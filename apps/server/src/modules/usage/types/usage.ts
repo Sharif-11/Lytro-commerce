@@ -24,13 +24,22 @@ export interface UsageFigure {
    * dashboard's banner; null below half or when unlimited.
    */
   level: Exclude<UsageLevel, 'fast_spend'> | null;
+  /**
+   * LIM-01: for bandwidth and requests, when the cycle's pace uses the allowance up before the cycle ends -- the same
+   * figure the email gives; null when it lasts the cycle, is already used up, or for any other metric (Slice 11.5c).
+   */
+  runsOutAt: Date | null;
 }
 
-/** PLN-13, LIM-01: one limit add-on to buy, how many, and what they cost a month together (whole taka). */
+/**
+ * PLN-13, LIM-01: one limit add-on to buy, how many, and what they cost a month together (whole taka); with the metric
+ * it gives room to, so the usage page names it under that metric (Slice 11.5c).
+ */
 export interface SuggestedAddon {
   addonId: string;
   key: string;
   name: string;
+  metric: UsageMetric;
   quantity: number;
   monthly: number;
 }

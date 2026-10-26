@@ -2,6 +2,7 @@ import { UsageMetric, type PlanLimits } from '@lytronix/validators';
 import { describe, expect, it } from 'vitest';
 import { DAY_MS } from '../src/common/time';
 import { GB } from '../src/modules/media/services/media-bandwidth';
+import { runOutDate } from '../src/modules/usage/services/pace';
 import { suggest, type PlanOption } from '../src/modules/usage/services/suggest';
 import { noticeText, smsDue } from '../src/modules/usage/services/usage-notice-text';
 import type { ShopUsage, UsageFigure } from '../src/modules/usage/types/usage';
@@ -50,6 +51,7 @@ function figure(metric: UsageMetric, used: number, limit: number | null): UsageF
     unit: 'count',
     perCycle: false,
     level: null,
+    runsOutAt: null,
   };
 }
 
@@ -183,6 +185,15 @@ describe('what a usage notice says (LIM-01, BND-03, RTE-03, RTE-12)', () => {
     );
     expect(text.body).toContain('has used 0.8 GB of its 1.0 GB media bandwidth (80%).');
     expect(text.body).toContain("At this cycle's pace it runs out in about 3 days");
+  });
+
+  it('dates the run-out at the pace of the cycle so far, the figure the usage page shows too (Slice 11.5c)', () => {
+    const tenDaysIn = new Date(NOW.getTime() - 10 * DAY_MS);
+    // 20 of 25 in 10 days is 2 a day: the last 5 last 2.5 days.
+    expect(runOutDate(20, 25, tenDaysIn, NOW)).toEqual(new Date(NOW.getTime() + 2.5 * DAY_MS));
+    // Inside the cycle's first day, the day counts as a whole one: 10 a day, 90 left.
+    expect(runOutDate(10, 100, NOW, NOW)).toEqual(new Date(NOW.getTime() + 9 * DAY_MS));
+    expect(runOutDate(0, 100, tenDaysIn, NOW)).toBeNull();
   });
 
   it('tells of the limit, the grace still served, and the stop', () => {

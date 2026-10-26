@@ -302,6 +302,27 @@ describeIfDatabase('buying packs in one tap (PLN-15, BIL-12)', () => {
     expect(quoted.status).toBe(404);
   });
 
+  it('refuses packs whose price changed since it was shown, charging nothing (BIL-09, Slice 11.5c)', async () => {
+    const shop = await onSmall();
+    const id = await addonId('test_request_pack');
+    const offers = (await shop.get('/addons')).body as {
+      addon: { key: string };
+      amounts: number[];
+      daysLeft: number | null;
+    }[];
+    // A pack's price is whole, so each quantity is that many of it.
+    expect(
+      offers.find((offer) => offer.addon.key === 'test_request_pack')?.amounts.slice(0, 3),
+    ).toEqual([5, 10, 15]);
+    const before = ((await shop.get('/balance')).body as { amount: string }).amount;
+    const changed = await shop.post('/addons/packs', { addonId: id, quantity: 2, amount: 8 });
+    expect(changed.status).toBe(409);
+    expect(errorOf(changed)).toMatchObject({ code: 'conflict', details: { amount: '10.00' } });
+    expect(((await shop.get('/balance')).body as { amount: string }).amount).toBe(before);
+    const bought = await shop.post('/addons/packs', { addonId: id, quantity: 2, amount: 10 });
+    expect(bought.status, JSON.stringify(bought.body)).toBe(201);
+  });
+
   it('sells a trial shop no pack', async () => {
     const trial = await openShop(port, texts, 'packs');
     const refused = await trial.post('/addons/packs', {

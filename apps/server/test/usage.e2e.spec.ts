@@ -33,6 +33,7 @@ interface Figure {
   unit: string;
   perCycle: boolean;
   level: number | string | null;
+  runsOutAt: string | null;
 }
 
 interface UsageBody {
@@ -116,6 +117,7 @@ describeIfDatabase('the usage page (LIM-02)', () => {
         unit: 'count',
         perCycle: false,
         level: null,
+        runsOutAt: null,
       },
       seats: {
         used: 1,
@@ -125,6 +127,7 @@ describeIfDatabase('the usage page (LIM-02)', () => {
         unit: 'count',
         perCycle: false,
         level: 100,
+        runsOutAt: null,
       },
       storage: {
         used: 0,
@@ -134,6 +137,7 @@ describeIfDatabase('the usage page (LIM-02)', () => {
         unit: 'bytes',
         perCycle: false,
         level: null,
+        runsOutAt: null,
       },
       // BND-04, RTE-11: no packs yet; served up to the limit and its 10% grace.
       bandwidth: {
@@ -144,6 +148,7 @@ describeIfDatabase('the usage page (LIM-02)', () => {
         unit: 'bytes',
         perCycle: true,
         level: null,
+        runsOutAt: null,
       },
       requests: {
         used: 3,
@@ -153,6 +158,7 @@ describeIfDatabase('the usage page (LIM-02)', () => {
         unit: 'count',
         perCycle: true,
         level: null,
+        runsOutAt: null,
       },
       essential_sms_total: {
         used: 0,
@@ -162,6 +168,7 @@ describeIfDatabase('the usage page (LIM-02)', () => {
         unit: 'count',
         perCycle: false,
         level: null,
+        runsOutAt: null,
       },
     });
     // The cycle is a month long and running now.
@@ -220,6 +227,32 @@ describeIfDatabase('the usage page (LIM-02)', () => {
     }
   });
 
+  it("dates the run-out of requests at the cycle's pace, as the email does, until they are used up (LIM-01, Slice 11.5c)", async () => {
+    const shop = await openShop(port, texts, 'usage-pace');
+    await overrideLimit(shop.tenantId, 'requests_monthly', 10);
+    const { key } = (await shop.post('/api-keys', { name: 'Website', websites: [SITE] })).body as {
+      key: string;
+    };
+    const call = (): Promise<unknown> =>
+      sendExact(port, 'GET', '/v1/shop', undefined, {
+        host: 'api.localhost',
+        authorization: `Bearer ${key}`,
+        origin: SITE,
+      });
+    for (let made = 0; made < 3; made += 1) await call();
+    // 3 on the cycle's first day, a whole day at least: 3 a day, the 7 left last 7/3 days.
+    const paced = byMetric(await usageOf(shop));
+    const runsOut = Date.parse(paced['requests']?.runsOutAt ?? '');
+    expect(runsOut - Date.now()).toBeGreaterThan((7 / 3) * DAY_MS - 60_000);
+    expect(runsOut - Date.now()).toBeLessThan((7 / 3) * DAY_MS + 60_000);
+    // Only the metrics that serve shoppers have one; bandwidth is unused, so it lasts.
+    expect(paced['products']?.runsOutAt).toBeNull();
+    expect(paced['bandwidth']?.runsOutAt).toBeNull();
+    // Used up, there is nothing left to run out.
+    for (let made = 3; made < 10; made += 1) await call();
+    expect(byMetric(await usageOf(shop))['requests']).toMatchObject({ used: 10, runsOutAt: null });
+  });
+
   it("is for whoever may see the shop's billing (payments:read)", async () => {
     const refused = await openShop(port, texts, 'usage-staff');
     const clerk = await staffWith(port, texts, admin, refused, ['products:read']);
@@ -237,6 +270,7 @@ describeIfDatabase('the usage page (LIM-02)', () => {
       unit: 'count',
       perCycle: true,
       level: null,
+      runsOutAt: null,
     });
   });
 });

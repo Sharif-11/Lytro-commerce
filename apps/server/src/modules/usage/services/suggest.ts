@@ -113,6 +113,7 @@ function addonSuggestion(
       addonId: addon.addonId,
       key: addon.key,
       name: addon.name,
+      metric: figure.metric,
       quantity,
       monthly: addon.monthly * quantity,
     });

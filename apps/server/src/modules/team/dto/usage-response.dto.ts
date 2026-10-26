@@ -18,6 +18,7 @@ const suggestionSchema = z.discriminatedUnion('kind', [
         addonId: z.string(),
         key: z.string(),
         name: z.string(),
+        metric: z.nativeEnum(UsageMetric),
         quantity: z.number(),
         monthly: z.number(),
       }),
@@ -45,6 +46,8 @@ export const shopUsageSchema = z.object({
       level: z
         .union([z.literal(50), z.literal(80), z.literal(95), z.literal(100), z.literal('stopped')])
         .nullable(),
+      // LIM-01 (Slice 11.5c): bandwidth and requests only, when the cycle's pace uses the allowance up before its end.
+      runsOutAt: z.date().nullable(),
     }),
   ),
   bandwidthDays: z.array(z.object({ day: z.string(), bytes: z.number(), requests: z.number() })),

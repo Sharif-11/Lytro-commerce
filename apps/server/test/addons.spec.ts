@@ -1,7 +1,7 @@
 import { InvoiceKind, UsageMetric, type PlanLimits } from '@lytronix/validators';
 import { describe, expect, it } from 'vitest';
 import { DAY_MS } from '../src/common/time';
-import { addonPrice } from '../src/modules/billing/services/addon-price';
+import { addonPrice, renewalPrice } from '../src/modules/billing/services/addon-price';
 import { unusedPlanValue } from '../src/modules/billing/services/plan-credit';
 import type { InvoiceRecord } from '../src/modules/payments/types/invoice';
 import { suggest, type AddonOption, type PlanOption } from '../src/modules/usage/services/suggest';
@@ -41,6 +41,12 @@ describe('what an add-on costs for the rest of the period (PLN-14)', () => {
     expect(addonPrice('149.00', 1, { start: days(-5), end: days(45), months: null }, NOW)).toBe(
       224,
     );
+  });
+
+  it("costs a whole next period at its price times the quantity and the term's months, one on its own (Slice 11.5c)", () => {
+    // Two renewed with a 3-month plan; one in its own 30 days, on pay-as-you-go.
+    expect(renewalPrice('149.00', 2, 3)).toBe('894.00');
+    expect(renewalPrice('49.00', 1, 1)).toBe('49.00');
   });
 });
 
@@ -153,6 +159,7 @@ function figure(metric: UsageMetric, used: number, limit: number | null): UsageF
     unit: 'count',
     perCycle: false,
     level: null,
+    runsOutAt: null,
   };
 }
 
@@ -168,6 +175,7 @@ describe('the add-ons a shop near its limit is offered beside the plans (LIM-01,
             addonId: 'a1',
             key: 'extra_products',
             name: 'Extra products',
+            metric: UsageMetric.Products,
             quantity: 1,
             monthly: 149,
           },
@@ -185,7 +193,7 @@ describe('the add-ons a shop near its limit is offered beside the plans (LIM-01,
     });
   });
 
-  it('buys enough of each to leave every near metric under 80 percent again', () => {
+  it('buys enough of each to leave every near metric under 80 percent again, each named by its metric', () => {
     // 1,400 products on 600 (a plan of 100 with one add-on already): two more make 1,600, still 87.5 percent; three.
     const offered = suggest(
       [figure(UsageMetric.Products, 1400, 600), figure(UsageMetric.Seats, 2, 2)],
@@ -196,8 +204,8 @@ describe('the add-ons a shop near its limit is offered beside the plans (LIM-01,
     expect(offered?.first).toMatchObject({
       kind: 'addons',
       items: [
-        { key: 'extra_products', quantity: 3, monthly: 447 },
-        { key: 'extra_seat', quantity: 1, monthly: 49 },
+        { key: 'extra_products', metric: UsageMetric.Products, quantity: 3, monthly: 447 },
+        { key: 'extra_seat', metric: UsageMetric.Seats, quantity: 1, monthly: 49 },
       ],
       monthly: 496,
     });

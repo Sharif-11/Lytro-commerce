@@ -1259,6 +1259,12 @@ their backend ships earlier.
     a seat and brand identity, an add-on payment being checked or rejected, and the pay-as-you-go page's add-ons
     renewing from the balance. The copy leaves out the requirement ids and the stale "Slice 10a.2" chip; the default
     usage sample now has the products banner as its worst metric, which the one-banner rule needs.
+  - **11.5c's reads, built:** each offer on `GET /addons` says why it cannot be bought now (`blockedBy`, the key its
+    quote would refuse with), what each quantity up to 10 costs as its request would work it out (`amounts`), its days
+    left and what one costs for a whole next period (`renewalPrice`); the add-on request takes `renews`; a pack purchase
+    takes the amount shown and is refused when the price has changed; `GET /usage` gives bandwidth and requests a
+    `runsOutAt`, from the same pace rule as the usage email (now one function, `runOutDate`), and each suggested add-on
+    its `metric`. The renewal price of an add-on is one function too (`renewalPrice`), where three places worked it out.
 
 ### Slice 12: shared storefront and product landing pages
 - **Depends on:** Slices 0, 0b, 7 and 9 (and branding from Phase 1).
