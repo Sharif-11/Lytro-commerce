@@ -3,6 +3,7 @@ import type {
   ApiKeyRecord,
   ApiShopRow,
   ApiUsageCounts,
+  ApiUsageDay,
   ApiUsageRow,
   NewApiKey,
 } from '../types/public-api';
@@ -45,13 +46,17 @@ export interface ApiKeyStore {
 /** RTE-03, D3-2: each shop's requests per billing cycle, kept in PostgreSQL. */
 export interface ApiUsageStore {
   run<T>(work: (tx: Transaction) => Promise<T>): Promise<T>;
+  /** Adds the counts to the cycle's and its requests to `day`'s (YYYY-MM-DD, Asia/Dhaka). */
   add(
     tx: Transaction,
     tenantId: string,
     cycleStart: Date,
     counts: ApiUsageCounts,
+    day: string,
   ): Promise<ApiUsageRow>;
   find(tenantId: string, cycleStart: Date): Promise<ApiUsageRow | null>;
+  /** The cycle's days in order; together they total its requests. */
+  listDays(tenantId: string, cycleStart: Date): Promise<ApiUsageDay[]>;
   setWarned(tx: Transaction, tenantId: string, cycleStart: Date, percent: number): Promise<void>;
   setFastSpendAlerted(tx: Transaction, tenantId: string, cycleStart: Date, at: Date): Promise<void>;
   /** RTE-11: changes the cycle's warning or pack figures. */

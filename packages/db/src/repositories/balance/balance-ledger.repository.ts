@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, lt, lte } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, lt, lte, sql } from 'drizzle-orm';
 import type { LedgerEntryType } from '@lytronix/validators';
 import { balanceLedger, type InsertBalanceLedger, type SelectBalanceLedger } from '../../schema';
 import type { Transaction, TransactionRunner } from '../../transactions';
@@ -25,6 +25,29 @@ export class BalanceLedgerRepository {
     const [row] = await tx.insert(balanceLedger).values(values).returning();
     if (!row) throw new Error('insert returned no ledger row');
     return row;
+  }
+
+  /** What the shop's entries of these types came to since `since`, as a signed amount (a charge is negative). */
+  async sumSince(
+    tx: Transaction,
+    tenantId: string,
+    types: LedgerEntryType[],
+    since: Date,
+  ): Promise<string> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const [row] = await tx
+      .select({
+        total: sql<string>`coalesce(sum(${balanceLedger.amount}), 0)::numeric(14, 2)::text`,
+      })
+      .from(balanceLedger)
+      .where(
+        and(
+          eq(balanceLedger.tenantId, tenantId),
+          inArray(balanceLedger.type, types),
+          gte(balanceLedger.createdAt, since),
+        ),
+      );
+    return row?.total ?? '0.00';
   }
 
   /** Newest first, keyset-paginated on id (BAL-14's statement). */

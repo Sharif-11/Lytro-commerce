@@ -14,6 +14,7 @@ import { MailModule } from '../shared/mail/mail.module';
 import { MessagingModule } from '../shared/messaging/messaging.module';
 import { AuditModule } from '../audit/audit.module';
 import { BalanceModule } from '../balance/balance.module';
+import { BillingModule } from '../billing/billing.module';
 import { BrandModule } from '../brand/brand.module';
 import { MediaModule } from '../media/media.module';
 import { SmsUsageModule } from '../sms-usage/sms-usage.module';
@@ -86,6 +87,8 @@ import {
     // TEN-16, BRN-07: /me carries the shop's logo and the identity the dashboard applies.
     BrandModule,
     MediaModule,
+    // TRM-12, LIF-12: /me carries the plan's term and a lapsed shop's deletion date.
+    BillingModule,
   ],
   controllers: [
     AuthController,

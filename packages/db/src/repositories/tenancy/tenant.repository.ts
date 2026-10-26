@@ -586,6 +586,29 @@ export class TenantRepository {
       );
   }
 
+  /**
+   * LIF-12, LIF-19: what decides when one shop's business data is deleted -- its state and period end with the schedule
+   * its lapse keeps, or, for pay-as-you-go, its idle clock and archival. Null for no such shop.
+   */
+  async findLifecycleFacts(tx: Executor, tenantId: string): Promise<LifecycleFactsRow | null> {
+    const rows = await tx
+      .select({
+        id: tenants.id,
+        state: tenants.state,
+        periodEnd: tenants.periodEnd,
+        lapseScheduleSnapshot: tenants.lapseScheduleSnapshot,
+        lastActivityAt: tenants.lastActivityAt,
+        periodStart: tenants.periodStart,
+        createdAt: tenants.createdAt,
+        archivedAt: tenants.archivedAt,
+        deletedAt: tenants.deletedAt,
+      })
+      .from(tenants)
+      .where(eq(tenants.id, tenantId))
+      .limit(1);
+    return rows[0] ?? null;
+  }
+
   /** TEN-30: the owner's own contact phone/email/business address, read for the shop-settings screen. */
   async findContactDetails(tx: Executor, tenantId: string): Promise<ContactDetailsRow | null> {
     const rows = await tx
@@ -777,6 +800,14 @@ export interface PaygCandidateRow {
   createdAt: Date;
   /** PYG-09: when it was archived; null while still pay-as-you-go, or for one archived before this was kept. */
   archivedAt: Date | null;
+}
+
+/** LIF-12, LIF-19: one shop's lifecycle facts, for the date its business data would be deleted. */
+export interface LifecycleFactsRow extends PaygCandidateRow {
+  state: TenantState;
+  periodEnd: Date | null;
+  lapseScheduleSnapshot: StageLengthsSnapshot | null;
+  deletedAt: Date | null;
 }
 
 /** LIF-20/21: a deleted shop of an account, with whatever balance it still holds. */

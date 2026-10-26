@@ -101,6 +101,14 @@ export function startOfDayDhaka(date: Date): Date {
   return new Date(local.getTime() - DHAKA_OFFSET_MS);
 }
 
+/** PYG-01: the start (00:00 on the 1st) of the Asia/Dhaka calendar month `date` falls in. */
+export function startOfMonthDhaka(date: Date): Date {
+  const local = new Date(date.getTime() + DHAKA_OFFSET_MS);
+  local.setUTCDate(1);
+  local.setUTCHours(0, 0, 0, 0);
+  return new Date(local.getTime() - DHAKA_OFFSET_MS);
+}
+
 /** INV-18: the start (00:00) of the Asia/Dhaka calendar day written YYYY-MM-DD. */
 export function dhakaDayStart(day: string): Date {
   return new Date(Date.parse(`${day}T00:00:00Z`) - DHAKA_OFFSET_MS);

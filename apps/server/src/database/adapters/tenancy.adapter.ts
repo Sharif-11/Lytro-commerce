@@ -10,6 +10,7 @@ import {
   type ContactDetailsRow,
   type DeletedShopRow,
   type LapsingCandidateRow,
+  type LifecycleFactsRow,
   type StageLengthsSnapshot,
   type PaygCandidateRow,
   type RevocationCandidateRow,
@@ -219,6 +220,10 @@ export class DrizzleTenantStore implements TenantStore {
 
   findLapsingCandidates(tx: Transaction, now: Date): Promise<LapsingCandidateRow[]> {
     return this.tenants.findLapsingCandidates(tx, now);
+  }
+
+  findLifecycleFacts(tx: Transaction, tenantId: string): Promise<LifecycleFactsRow | null> {
+    return this.tenants.findLifecycleFacts(tx, tenantId);
   }
 
   findUpcomingRenewalCandidates(

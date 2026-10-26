@@ -1,6 +1,7 @@
 import type {
   ApiShopRow,
   ApiUsageCounts,
+  ApiUsageDayRow,
   ApiUsageRow,
   NewApiKey,
   SelectApiKey,
@@ -11,6 +12,8 @@ import type { LiveBrand } from '../../brand/types/brand';
 // The stored rows, as aliases of the shared types (ENGINEERING-STANDARDS §4), never copies.
 export type ApiKeyRecord = SelectApiKey;
 export type { ApiShopRow, ApiUsageCounts, ApiUsageRow, NewApiKey };
+/** A shop's requests on one Asia/Dhaka day of a cycle (YYYY-MM-DD). */
+export type ApiUsageDay = ApiUsageDayRow;
 
 /** API-01: a key as the shop sees it: never its value, which was shown once. */
 export interface ApiKeyView {

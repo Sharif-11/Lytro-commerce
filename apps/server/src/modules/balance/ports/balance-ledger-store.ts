@@ -30,4 +30,11 @@ export interface BalanceLedgerStore {
     cursor: number | null,
     limit: number,
   ): Promise<LedgerEntry[]>;
+  /** What the shop's entries of these types came to since `since`, signed (a charge is negative). */
+  sumSince(
+    tx: Transaction,
+    tenantId: string,
+    types: LedgerEntryType[],
+    since: Date,
+  ): Promise<string>;
 }

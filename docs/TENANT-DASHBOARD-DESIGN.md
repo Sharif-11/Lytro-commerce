@@ -927,6 +927,7 @@ brand identity.
 | `GET /billing/payments`, one route: every payment the shop made to the platform (purchase, renewal, upgrade, add-on, top-up) with kind, amount, method, transaction ID, state, the requested, submitted and decided times, support's note and the invoice it produced, newest first and pageable; open in every lifecycle state, as the invoices are | billing | §7.13 (BIL-19) and the Plan and Balance banners | built (#213) |
 | The payment needing the seller (rejected or lapsed, not yet paid again) on `GET /home` | billing | the Home queue row (§7.1) | built (#213) |
 | `GET /billing/prices?billingTermId=`: each plan's move and amount for the shop now, exactly as its request would make it, with no payment made; the amount the seller saw sent with each request, refused when it differs; Cancel; one open request per kind | billing | §7.11 to §7.13, §7.18, the Renew page (BIL-09, BIL-19, UPG-08) | built (11.5a.1) |
+| The term a paid plan runs on and a lapsed shop's deletion date on `/me`; the pay-as-you-go fees this month on `GET /balance`; each day's API requests on `GET /usage` | identity, balance, usage | §7.12 (the plan card, the pay-as-you-go page), §7.20's Renew page, §7.24's requests chart and run-out date | built (11.5a.2) |
 | Invoice PDF | billing | BIL-13 | later |
 | Pay-as-you-go estimate | billing | PYG-12 (needs order history) | later |
 | The notifications feed behind the bell | notifications | §8 (NTF-01) | Phase 7 |

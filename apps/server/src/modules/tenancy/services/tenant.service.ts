@@ -263,6 +263,14 @@ export class TenantService {
     return this.store.findPaygArchivedCandidates(tx);
   }
 
+  /** LIF-12, LIF-19: one shop's lifecycle facts, for the date its business data would be deleted. */
+  findLifecycleFacts(
+    tx: Transaction,
+    tenantId: string,
+  ): Promise<Awaited<ReturnType<TenantStore['findLifecycleFacts']>>> {
+    return this.store.findLifecycleFacts(tx, tenantId);
+  }
+
   /** LIF-20/21: an account's deleted shops -- their invoices stay the owner's, their balance moves on. */
   findDeletedShopsOf(
     tx: Transaction,

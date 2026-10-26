@@ -7,7 +7,7 @@ import {
   TransactionRunner,
   type Transaction,
 } from '@lytronix/db';
-import type { RateKey } from '@lytronix/validators';
+import type { LedgerEntryType, RateKey } from '@lytronix/validators';
 import type {
   BalanceLedgerStore,
   LedgerFilters,
@@ -58,6 +58,15 @@ export class DrizzleBalanceLedgerStore implements BalanceLedgerStore {
     limit: number,
   ): Promise<LedgerEntry[]> {
     return this.ledger.list(tx, tenantId, filters, cursor ? { id: cursor } : null, limit);
+  }
+
+  sumSince(
+    tx: Transaction,
+    tenantId: string,
+    types: LedgerEntryType[],
+    since: Date,
+  ): Promise<string> {
+    return this.ledger.sumSince(tx, tenantId, types, since);
   }
 }
 

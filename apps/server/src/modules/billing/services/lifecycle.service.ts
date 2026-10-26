@@ -4,6 +4,7 @@ import {
   ActorType,
   AuditAction,
   AuditResult,
+  LAPSED_TENANT_STATES,
   PlatformActorType,
   PlatformAuditAction,
   PlatformSettingKey,
@@ -115,6 +116,29 @@ export class LifecycleService {
 
   deletionDayOf(stages: StageLengths): number {
     return stages.grace + stages.readOnly + stages.locked + stages.archived;
+  }
+
+  /**
+   * LIF-12, LIF-19: when the shop's business data will be deleted unless it comes back (LIF-15) -- the dates the job
+   * itself acts on: a lapsed plan's period end plus its stages (the schedule its lapse keeps, else today's, LIF-26), or
+   * an archived pay-as-you-go shop's archival plus 60 days (PYG-09, PYG-21). Null for a shop on neither path: trial,
+   * active, pay-as-you-go still running, or already deleted. The Renew page says it (Slice 11.5a.2).
+   */
+  async deletionDateOf(tenantId: string): Promise<Date | null> {
+    const facts = await this.tenants.runStandalone((tx) =>
+      this.tenants.findLifecycleFacts(tx, tenantId),
+    );
+    if (!facts || facts.deletedAt !== null) return null;
+    if (LAPSED_TENANT_STATES.includes(facts.state) && facts.periodEnd !== null) {
+      const stages = facts.lapseScheduleSnapshot ?? (await this.stageLengths());
+      return new Date(facts.periodEnd.getTime() + this.deletionDayOf(stages) * DAY_MS);
+    }
+    if (facts.state === TenantState.Archived) {
+      const archivedAt =
+        facts.archivedAt ?? new Date(this.idleSince(facts).getTime() + PAYG_ARCHIVE_DAYS * DAY_MS);
+      return new Date(archivedAt.getTime() + PAYG_DELETION_DAYS_AFTER_ARCHIVAL * DAY_MS);
+    }
+    return null;
   }
 
   /** LIF-26: today's stage lengths, each falling back to its documented default if never set by an operator. */

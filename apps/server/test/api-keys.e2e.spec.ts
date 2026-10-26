@@ -7,6 +7,7 @@ import { PlatformSettingKey, UsageMetric } from '@lytronix/validators';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from '../src/app/app.module';
 import { ClientIp } from '../src/common/client-ip';
+import { dhakaDate } from '../src/common/time';
 import { headerValue, type HttpRequest } from '../src/common/http';
 import type { MessageKey } from '../src/common/i18n/message-key';
 import { translate } from '../src/common/i18n/messages';
@@ -419,6 +420,15 @@ describeIfDatabase('request limits (RTE-02 to RTE-07, RTE-10)', () => {
         [shop.tenantId],
       );
       expect(stored.rows).toEqual([{ requests: '7', refused_requests: '3', refused_visitors: 2 }]);
+      // BND-08's twin (Slice 11.5a.2): the minute's requests are on today's day too, and the usage page reads them.
+      const today = dhakaDate(new Date());
+      const days = await admin.query<{ day: string; requests: string }>(
+        'SELECT day::text, requests::text FROM control.api_usage_daily WHERE tenant_id = $1',
+        [shop.tenantId],
+      );
+      expect(days.rows).toEqual([{ day: today, requests: '7' }]);
+      const usage = (await shop.get('/usage')).body as { requestDays: unknown };
+      expect(usage.requestDays).toEqual([{ day: today, requests: 7 }]);
     } finally {
       await settings.set(PlatformSettingKey.PublicRequestsPerVisitorPerMinute, 120, randomUUID());
     }
@@ -536,11 +546,12 @@ describeIfDatabase('the day-60 deletion (LIF-19)', () => {
     expect((await callApi('/v1/shop', key)).status).toBe(200);
     await app.get(RequestQuota).flush();
     await app.get(PublicApiEraser).deleteAllForTenant(shop.tenantId);
-    const left = await admin.query<{ keys: string; usage: string }>(
+    const left = await admin.query<{ keys: string; usage: string; days: string }>(
       `SELECT (SELECT count(*) FROM control.api_keys WHERE tenant_id = $1)::text AS keys,
-              (SELECT count(*) FROM control.api_usage WHERE tenant_id = $1)::text AS usage`,
+              (SELECT count(*) FROM control.api_usage WHERE tenant_id = $1)::text AS usage,
+              (SELECT count(*) FROM control.api_usage_daily WHERE tenant_id = $1)::text AS days`,
       [shop.tenantId],
     );
-    expect(left.rows[0]).toEqual({ keys: '0', usage: '0' });
+    expect(left.rows[0]).toEqual({ keys: '0', usage: '0', days: '0' });
   });
 });

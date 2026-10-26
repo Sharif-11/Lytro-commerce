@@ -48,6 +48,8 @@ export const shopUsageSchema = z.object({
     }),
   ),
   bandwidthDays: z.array(z.object({ day: z.string(), bytes: z.number(), requests: z.number() })),
+  // Each Asia/Dhaka day's API requests in the cycle, for the chart and the run-out date (Slice 11.5a.2).
+  requestDays: z.array(z.object({ day: z.string(), requests: z.number() })),
   suggestions: z
     .object({ first: suggestionSchema, alternative: suggestionSchema.nullable() })
     .nullable(),
