@@ -1265,6 +1265,18 @@ their backend ships earlier.
     takes the amount shown and is refused when the price has changed; `GET /usage` gives bandwidth and requests a
     `runsOutAt`, from the same pace rule as the usage email (now one function, `runOutDate`), and each suggested add-on
     its `metric`. The renewal price of an add-on is one function too (`renewalPrice`), where three places worked it out.
+  - **11.5c's Usage, built:** the cycle's dates; the one banner for the metric nearest its stop, worded by metric and
+    level, its way out a pack, an add-on, auto-buy or a top-up (none for read-only staff), "an email went too" only for
+    an owner with an email address and the free SMS only for bandwidth and requests at 100% and at the stop; each metric
+    against its limit, bytes in the unit of the limit as the email writes them, the run-out date from the server, and
+    from 80% "To raise it" naming that metric's add-on or pack from the server's suggestion and the suggested plan; the
+    two auto-buy switches with what auto-buy did, shown while the shop can buy packs; bandwidth and requests a day.
+    "To raise it" opens the add-on's or the pack's sheet (`/addons?buy=`, `?pack=`) or the plan's own sheet on Plan
+    (`/plan?plan=<id>`, its upgrade or how to take it). Named fixes: below 1024 px the two charts stack 16 px apart (the
+    sketch's `.two` leaves none, as it did on Home); the auto-buy switches' words wrap rather than being cut short, which
+    on a phone hid the pack and the metric; dates and figures are written as the other Money screens write them ("6 Oct",
+    "100,000"), where Part 10's Bangla sample used month names and "1,00,000"; "To raise it" names the catalogue's own
+    add-ons ("Extra 500 products").
 
 ### Slice 12: shared storefront and product landing pages
 - **Depends on:** Slices 0, 0b, 7 and 9 (and branding from Phase 1).

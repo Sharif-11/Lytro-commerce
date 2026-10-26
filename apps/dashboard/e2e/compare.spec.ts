@@ -14,6 +14,7 @@ import {
 } from './support/payments';
 import { DAY_ONE, mockApi, SLUG, type Language, type ShopState } from './support/mock-api';
 import { mockOnboarding, TWELVE_MONTHS, typeCode, type Journey } from './support/onboarding-api';
+import type { UsageFixture } from './support/usage';
 
 // TENANT-DASHBOARD-DESIGN §11: each built screen beside the prototype's drawing of it, at the prototype's own frame
 // sizes, saved to test-results/compare for the pull request and CI's artifacts. No pixel baseline is committed: a
@@ -303,7 +304,58 @@ const MONEY: Pair[] = [
     state: { money: { suspended: true } },
   },
   ...balanceAndBilling(),
+  ...usagePairs(),
 ];
+
+/** Usage (§7.24, Slice 11.5c), each of the prototype's Part 10 states, its owner told by email. */
+function usagePairs(): Pair[] {
+  const one = (
+    screen: string,
+    usage: UsageFixture,
+    device: Device = 'phone',
+    language: Language = 'bn',
+  ): Pair => ({
+    name: screen,
+    screen,
+    device,
+    language,
+    path: '/usage',
+    state: { money: { hasEmail: true, usage } },
+  });
+  const quiet = { products: 70 };
+  return [
+    one('usage', {}),
+    one('usage', {}, 'tablet'),
+    one('usage', {}, 'desktop', 'en'),
+    one('usage-80', { used: { ...quiet, bandwidth: 24 }, runsOutDays: { bandwidth: 5 } }),
+    one('usage-warning', { used: { ...quiet, bandwidth: 28.5 }, runsOutDays: { bandwidth: 1 } }),
+    one(
+      'usage-warning',
+      { used: { ...quiet, bandwidth: 28.5 }, runsOutDays: { bandwidth: 1 } },
+      'desktop',
+      'en',
+    ),
+    one('usage-100', { used: { ...quiet, bandwidth: 31 } }),
+    one('usage-stopped', { used: { ...quiet, bandwidth: 33 } }),
+    one('usage-requests-95', {
+      used: { ...quiet, requests: 190_000 },
+      runsOutDays: { requests: 1 },
+    }),
+    one('usage-seats-full', { used: { ...quiet, seats: 2 } }),
+    one('usage-storage-full', { used: { ...quiet, storage: 2 } }),
+    one('usage-sms-used', { used: { ...quiet, essential_sms_monthly: 10 } }),
+    one('usage-autobuy-failed', {
+      used: { ...quiet, bandwidth: 30.4 },
+      autoBuy: { bandwidth: true, failed: true },
+    }),
+    one('usage-autobuy-capped', {
+      used: { ...quiet, bandwidth: 57 },
+      limits: { bandwidth: 60 },
+      runsOutDays: { bandwidth: 1 },
+      autoBuy: { bandwidth: true, packs: 3 },
+    }),
+  ];
+}
 
 /** Balance, Billing and the places a payment's state shows (§7.11, §7.13), each as the prototype draws it. */
 function balanceAndBilling(): Pair[] {

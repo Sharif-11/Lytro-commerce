@@ -11,6 +11,7 @@ import {
   termOf,
   terms,
 } from './catalogue';
+import { addonOffers, usageAnswer, type UsageFixture } from './usage';
 import {
   drawnLedger,
   drawnPayments,
@@ -63,6 +64,8 @@ export interface MoneyState {
   closed?: boolean;
   /** LIF-12: an archived or locked shop's deletion date, in days from now. */
   deletesInDays?: number | null;
+  /** GET /usage and GET /addons where they differ from the drawn shop's (Slice 11.5c). */
+  usage?: UsageFixture;
 }
 
 export interface ShopState {
@@ -349,6 +352,9 @@ export function shopAnswer(path: string, url: URL, state: Required<ShopState>): 
       nextCursor: null,
     };
   }
+  const trial = state.state === 'trial';
+  if (path === '/usage') return usageAnswer({ trial, ...money.usage });
+  if (path === '/addons') return addonOffers({ trial, ...money.usage });
   if (path === '/me/identities') {
     return {
       identities: [
@@ -480,6 +486,13 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
       // The list read after it holds the new request, being made.
       money.exports = [requested, ...(money.exports ?? [])];
       return ok(requested);
+    }
+    if (method === 'PATCH' && path === '/addons/auto-buy') {
+      // PLN-15: the usage read after it shows the switch as set.
+      const usage = (money.usage ??= {});
+      const wanted = (request.postDataJSON() as { bandwidth?: unknown } | null)?.bandwidth;
+      if (typeof wanted === 'boolean') usage.autoBuy = { ...usage.autoBuy, bandwidth: wanted };
+      return ok([]);
     }
     if (method === 'POST' && path.startsWith('/billing/')) return ok({ ok: true });
     return ok(shopAnswer(path, url, state));
