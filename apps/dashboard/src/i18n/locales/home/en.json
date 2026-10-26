@@ -21,6 +21,8 @@
   "jobExpiring_other": "{{count}} batches expire within 30 days",
   "jobLow_one": "1 product low or out of stock",
   "jobLow_other": "{{count}} products low or out of stock",
+  "jobPayRejected": "{{amount}} payment rejected · see why",
+  "jobPayExpired": "{{amount}} payment request lapsed · pay again",
   "jobPlan_one": "Plan ends in {{count}} day",
   "jobPlan_other": "Plan ends in {{count}} days",
   "jobPlanPay": "Plan payment being checked",

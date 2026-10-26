@@ -11,6 +11,13 @@ import {
   termOf,
   terms,
 } from './catalogue';
+import {
+  drawnLedger,
+  drawnPayments,
+  invoiceOf,
+  payment as listedPayment,
+  type PaymentFixture,
+} from './payments';
 
 // The dashboard against a mocked API: each /api/v1 call answered from these fixtures, in the server's own envelope
 // ({ success, statusCode, message, data }), so a screen's every state can be shown without a server. The figures
@@ -40,6 +47,12 @@ export interface MoneyState {
   credit?: number;
   /** BIL-09: the server works out this amount instead of the one shown, and says so once. */
   amountChangedTo?: string | null;
+  /** BIL-19: the shop's payments to Lytro, newest first; the prototype's list when left out. */
+  payments?: PaymentFixture[];
+  /** GET /home's rejected or lapsed payment, for Home's row and the Billing chip's count. */
+  needing?: { id: string; kind: string; amount: string; state: string } | null;
+  /** BAL-14: the statement's entries, newest first; the prototype's when left out. */
+  ledger?: unknown[];
   /** LIF-16: the owner's export requests, newest first. */
   exports?: unknown[];
   /** Whether the owner has an email the server writes to. */
@@ -147,6 +160,7 @@ function home(state: Required<ShopState>): unknown {
     balance: { amount: '412.50', low: false, freeSms: { used: 6, limit: 10 } },
     topUpsBeingChecked: { count: 1, amount: '500.00' },
     paymentsBeingChecked: null,
+    paymentNeedingYou: state.money.needing ?? null,
     staffWithoutPassword: 0,
     fastSpendAlertedAt: null,
     // The checklist is the owner's alone (SUP-01).
@@ -195,6 +209,7 @@ function categories(language: Language): unknown {
 const RATES = [
   ['sms_per_unit', '0.5500'],
   ['fraud_check', '3.0000'],
+  ['ai_reply', '0.4000'],
   ['payg_order_fee_min', '20.0000'],
   ['payg_order_fee_pct', '1.5000'],
   ['payg_product_fee', '10.0000'],
@@ -215,7 +230,6 @@ function wallets(language: Language): unknown {
 // What the first build's screens read: Menu's live lines.
 const FIRST_BUILD_READS: Record<string, unknown> = {
   '/balance/essential-sms': { monthlyUsed: 6, totalUsed: 6, monthlyLimit: 10, totalLimit: null },
-  '/balance/ledger': { entries: [], nextCursor: null },
   '/billing/invoices': [],
   '/staff': { seats: { used: 2, total: 2 }, staff: [] },
 };
@@ -319,6 +333,22 @@ export function shopAnswer(path: string, url: URL, state: Required<ShopState>): 
   if (path === '/balance/current-rates') return RATES;
   if (path === '/platform-wallets') return wallets(state.language);
   if (path === '/exports') return money.exports ?? [];
+  if (path === '/billing/payments') {
+    const wanted = url.searchParams.get('state');
+    const all = (money.payments ??= drawnPayments());
+    const payments = wanted ? all.filter((each) => each.state === wanted) : all;
+    return { payments, page: 1, limit: 20, total: payments.length, pages: 1 };
+  }
+  const invoice = /^\/billing\/invoices\/([^/]+)$/.exec(path);
+  if (invoice) return invoiceOf(invoice[1] ?? '');
+  if (path === '/balance/ledger') {
+    const types = url.searchParams.get('type')?.split(',') ?? [];
+    const entries = (money.ledger ?? drawnLedger()) as { type: string }[];
+    return {
+      entries: types.length ? entries.filter((each) => types.includes(each.type)) : entries,
+      nextCursor: null,
+    };
+  }
   if (path === '/me/identities') {
     return {
       identities: [
@@ -408,6 +438,33 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
       });
     }
     if (method === 'POST' && path === '/billing/downgrade/preview') return ok(money.over ?? []);
+    if (method === 'POST' && path === '/balance/top-up/quote') {
+      return ok(
+        listedPayment({
+          id: 'payment-1',
+          kind: 'top_up',
+          state: 'awaiting',
+          amount: `${String(body?.amount ?? 0)}.00`,
+        }),
+      );
+    }
+    if (method === 'POST' && path === '/balance/top-up/confirm') return ok({ ok: true });
+    const cancelled = /^\/(?:billing\/payments|balance\/top-up)\/([^/]+)\/cancel$/.exec(path);
+    if (method === 'POST' && cancelled) {
+      // BIL-19: the list read after it shows the request cancelled by the shop.
+      money.payments = (money.payments ?? drawnPayments()).map((each) =>
+        each.id === cancelled[1]
+          ? {
+              ...each,
+              state: 'cancelled',
+              status: 'cancelled',
+              cancelReason: 'seller',
+              verifiedAt: new Date().toISOString(),
+            }
+          : each,
+      );
+      return ok({ ok: true });
+    }
     if (method === 'POST' && path === '/exports') {
       const requested = {
         id: 'export-1',

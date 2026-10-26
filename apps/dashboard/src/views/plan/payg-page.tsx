@@ -18,6 +18,8 @@ import { limitFigure, megabytes } from '@/lib/limits';
 import { allows } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
 import { ShellPage } from '@/shell/shell-page';
+import { usePaymentNotices } from '@/views/billing/notices';
+import { PaymentBanner } from '@/views/billing/payment-banner';
 import { HowToPaySheet } from './how-to-pay-sheet';
 import { CurrentCard, Disclosure, PlanCard, PlanRow, TightStat, TightStats } from './parts';
 import { taka, useLimitLines } from './words';
@@ -50,6 +52,7 @@ export function PaygPage(): React.JSX.Element {
   const payg = usePayAsYouGoPlan();
   const fees = usePaygFees();
   const limitLines = useLimitLines();
+  const notices = usePaymentNotices();
   const [choice, setChoice] = useState<string | null>(null);
   const chosen = catalogue.options.find((option) => option.planId === choice);
   const [closing, setClosing] = useState(false);
@@ -58,6 +61,7 @@ export function PaygPage(): React.JSX.Element {
 
   return (
     <ShellPage>
+      {notices.plan ? <PaymentBanner notice={notices.plan} about="plan" /> : null}
       <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[1fr_340px] lg:items-start lg:gap-6">
         <div className="flex min-w-0 flex-col gap-4">
           <CurrentCard>
@@ -94,7 +98,7 @@ export function PaygPage(): React.JSX.Element {
                 </Button>
               ) : null}
               <Link
-                to="/$shop/invoices"
+                to="/$shop/billing"
                 params={{ shop: slug }}
                 className={buttonClass('ghost', 'md')}
               >

@@ -40,7 +40,8 @@ export function SideColumn(): React.JSX.Element | null {
       </div>
       {sections.map((section) => {
         const on = screen.section === section.id;
-        const count = section.id === 'stock' ? counts.stock : null;
+        const count =
+          section.id === 'stock' ? counts.stock : section.id === 'billing' ? counts.billing : null;
         return (
           <Link
             key={section.id}

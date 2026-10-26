@@ -88,70 +88,16 @@
     "supportSub": "WhatsApp, 9 am to 10 pm"
   },
   "balance": {
-    "topUp": "Top up",
-    "frozen": "Frozen",
-    "frozenNote": "The shop is closed, so the balance is frozen. Take a plan or choose pay-as-you-go to use it again.",
-    "freeSmsMonth": "Free SMS this month",
-    "pendingTopUp": "{{amount}} top-up being checked",
-    "pendingTopUpNote": "It is added once the payment is matched, usually within an hour. We will tell you.",
-    "submitted": "Top-up submitted",
-    "statement": "Statement",
     "dates": "Dates",
     "datesSet": "Dates set",
     "dateFrom": "From",
     "dateTo": "To",
     "clearDates": "Clear",
     "applyDates": "Apply",
-    "typeChips": {
-      "all": "All",
-      "topUps": "Top-ups",
-      "sms": "SMS",
-      "ai": "Chat AI",
-      "fees": "Fees",
-      "plan": "Plan",
-      "other": "Other"
-    },
-    "noneYet": "No entries yet.",
-    "showEarlier": "Show earlier",
-    "after": "after {{amount}}",
-    "ref": {
-      "order": "Order {{id}}",
-      "product": "New product",
-      "unitsAtRate": "{{units}} × ৳{{rate}}"
-    },
-    "type": {
-      "top_up": "Top-up",
-      "sms": "SMS to customer",
-      "ai": "Chat AI reply",
-      "extraction": "Order read from text",
-      "fraud_check": "Fake-order check",
-      "order_fee": "Order fee",
-      "product_fee": "Product fee",
-      "plan_payment": "Plan payment",
-      "addon": "Add-on",
-      "adjustment": "Adjustment by Lytro",
-      "reversal": "Reversal",
-      "carry_over": "Carried over from the earlier shop"
-    },
-    "rates": {
-      "title": "Current rates",
-      "perPart": "per {{chars}}-character part",
-      "aiReply": "Chat AI reply",
-      "fraudCheck": "Fake-order check",
-      "paygOrderFee": "Pay-as-you-go order fee",
-      "paygOrderFeeMin": "minimum ৳{{min}}",
-      "paygProductFee": "Pay-as-you-go product fee",
-      "since": "Rates since {{date}}. A change shows here first; past entries never change."
-    },
-    "howMuch": "How much?",
-    "boundsHint": "Added once the payment is matched. The platform sets a minimum and a maximum per top-up.",
-    "buys": "{{amount}} covers about {{sms}} SMS parts, or {{ai}} chat replies.",
-    "iHaveSent": "I have sent {{amount}}",
-    "beingChecked": "{{amount}} is being checked"
+    "showEarlier": "Show earlier"
   },
   "plan": {
     "noPlan": "No plan",
-    "unlimited": "Unlimited",
     "state": {
       "trial": "Trial",
       "pay_as_you_go": "Pay-as-you-go",
@@ -161,39 +107,10 @@
       "locked": "Locked",
       "archived": "Archived",
       "deleted": "Deleted"
-    },
-    "limit": {
-      "products": "Products",
-      "orders_total": "Orders (total)",
-      "orders_handled_monthly": "Orders handled a month",
-      "staff": "Staff seats",
-      "paired_devices": "Paired phones",
-      "storage_mb": "Storage (MB)",
-      "bandwidth_gb": "Bandwidth (GB)",
-      "essential_sms_total": "Free SMS (total)",
-      "essential_sms_monthly": "Free SMS a month",
-      "activity_retention_days": "Activity kept (days)"
     }
   },
   "invoices": {
-    "title": "Invoices",
-    "noneYet": "No invoices yet.",
-    "earlierShop": "Earlier shop",
-    "method": {
-      "balance": "from balance",
-      "wallet": "wallet"
-    },
-    "issued": "Issued",
-    "period": "Period",
-    "plan": "Plan",
-    "price": "Price",
-    "discount": "Discount",
-    "credit": "Credit",
-    "paid": "Paid",
-    "paidBy": "Paid by",
-    "billedTo": "Billed to",
-    "limitsOnInvoice": "Limits on this invoice",
-    "pdfLater": "Download as PDF arrives with the next billing update."
+    "title": "Invoices"
   },
   "team": {
     "title": "Team",

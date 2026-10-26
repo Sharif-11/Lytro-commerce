@@ -1,5 +1,7 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { ConfirmTopUpInput, QuoteTopUpInput } from '@lytronix/validators';
+import type { ConfirmTopUpInput, LedgerEntryType, QuoteTopUpInput } from '@lytronix/validators';
+import { HOME_QUERY_KEY } from '@/api/home';
+import { PAYMENTS_QUERY_KEY } from '@/api/payment-keys';
 import { tenantSession } from '@/session/tenant-session';
 import type { BalanceSnapshot, EssentialSmsUsage, LedgerPage, RateValue } from '@/types/balance';
 import type { PlanPayment } from '@/types/billing';
@@ -17,50 +19,55 @@ export function useBalance(options: { enabled?: boolean } = {}) {
 }
 
 export interface LedgerFilters {
-  type?: string;
+  /** The entry types to show, all when empty: a chip may cover several (Slice 11.5a.3). */
+  types?: readonly LedgerEntryType[];
   dateFrom?: string;
   dateTo?: string;
 }
 
+function ledgerParams(filters: LedgerFilters): URLSearchParams {
+  const params = new URLSearchParams();
+  if (filters.types?.length) params.set('type', filters.types.join(','));
+  if (filters.dateFrom) params.set('dateFrom', filters.dateFrom);
+  if (filters.dateTo) params.set('dateTo', filters.dateTo);
+  return params;
+}
+
 /** GET /balance/ledger is cursor-paginated on the last row's numeric id (BAL-14). */
-export function useLedger(filters: LedgerFilters) {
+export function useLedger(filters: LedgerFilters, options: { enabled?: boolean } = {}) {
   return useInfiniteQuery({
     queryKey: [...LEDGER_QUERY_KEY, filters],
     queryFn: ({ pageParam }) => {
-      const params = new URLSearchParams();
-      if (filters.type) params.set('type', filters.type);
-      if (filters.dateFrom) params.set('dateFrom', filters.dateFrom);
-      if (filters.dateTo) params.set('dateTo', filters.dateTo);
+      const params = ledgerParams(filters);
       params.set('limit', String(PAGE_SIZE));
       if (pageParam !== undefined) params.set('cursor', String(pageParam));
       return tenantSession.client.get<LedgerPage>(`/balance/ledger?${params.toString()}`);
     },
     initialPageParam: undefined as number | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+    enabled: options.enabled ?? true,
   });
 }
 
 /** GET /balance/ledger/export: a CSV download, opened by the browser directly with the session cookie. */
 export function ledgerExportUrl(filters: LedgerFilters): string {
-  const params = new URLSearchParams();
-  if (filters.type) params.set('type', filters.type);
-  if (filters.dateFrom) params.set('dateFrom', filters.dateFrom);
-  if (filters.dateTo) params.set('dateTo', filters.dateTo);
-  const query = params.toString();
+  const query = ledgerParams(filters).toString();
   return `/api/v1/balance/ledger/export${query ? `?${query}` : ''}`;
 }
 
-export function useCurrentRates() {
+export function useCurrentRates(options: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: ['balance', 'current-rates'],
     queryFn: () => tenantSession.client.get<RateValue[]>('/balance/current-rates'),
+    enabled: options.enabled ?? true,
   });
 }
 
-export function useEssentialSms() {
+export function useEssentialSms(options: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: ['balance', 'essential-sms'],
     queryFn: () => tenantSession.client.get<EssentialSmsUsage>('/balance/essential-sms'),
+    enabled: options.enabled ?? true,
   });
 }
 
@@ -80,6 +87,8 @@ export function useConfirmTopUp() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: BALANCE_QUERY_KEY });
       void queryClient.invalidateQueries({ queryKey: LEDGER_QUERY_KEY });
+      void queryClient.invalidateQueries({ queryKey: PAYMENTS_QUERY_KEY });
+      void queryClient.invalidateQueries({ queryKey: HOME_QUERY_KEY });
     },
   });
 }

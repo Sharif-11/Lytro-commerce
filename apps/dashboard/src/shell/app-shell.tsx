@@ -138,7 +138,7 @@ function BareShell({
     viewer: { isOwner: me.isOwner, permissions: me.permissions },
     personName: me.name,
     screen: undefined,
-    counts: { stock: null },
+    counts: { stock: null, billing: null },
     showToast: toast.show,
     openPlus: () => undefined,
   };
@@ -196,7 +196,7 @@ function ShellFrame({ slug, me, tenant, children }: ShellFrameProps): React.JSX.
     viewer,
     personName: me.name,
     screen,
-    counts: { stock },
+    counts: { stock, billing: home.data?.paymentNeedingYou ? 1 : null },
     showToast,
     openPlus: () => {
       setPlusOpen(true);

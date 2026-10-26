@@ -12,8 +12,9 @@ export interface ShellState {
   personName: string | null;
   /** The screen the shell frames now, from its route. */
   screen: ScreenMeta | undefined;
-  /** The counts the navigation carries: the Shop tab's pill and the side column (GET /home). */
-  counts: { stock: number | null };
+  /** The counts the navigation carries (GET /home): the Shop tab's pill and its section's count, and Billing's while a
+      payment needs the person (BIL-19). */
+  counts: { stock: number | null; billing: number | null };
   showToast: (message: string) => void;
   openPlus: () => void;
 }

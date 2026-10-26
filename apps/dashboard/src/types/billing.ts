@@ -1,6 +1,9 @@
 import type {
+  BillingPaymentState,
+  PaymentCancelReason,
   PlanLimits,
   PlanPaymentKind,
+  PlanPaymentMethod,
   PlanPaymentStatus,
   ScheduledPlanChangeKind,
 } from '@lytronix/validators';
@@ -46,7 +49,42 @@ export interface PlanPayment {
   transactionId: string | null;
   verifiedBy: string | null;
   verifiedAt: string | null;
+  /** BIL-19: when the transaction ID was sent, support's note on a rejection, and who closed a cancelled request. */
+  submittedAt?: string | null;
+  note?: string | null;
+  cancelReason?: PaymentCancelReason | null;
   createdAt: string;
+}
+
+/** PLN-14: an add-on a payment pays for (its own, or one a renewal or an upgrade carries). */
+export interface PaymentAddon {
+  id: string;
+  key: string;
+  labelEn: string;
+  labelBn: string;
+  quantity: number;
+  price: string;
+  status: string;
+}
+
+/** GET /billing/payments (BIL-19): a payment as Billing lists it, with everything its screen shows. */
+export interface BillingPayment extends PlanPayment {
+  state: BillingPaymentState;
+  method: PlanPaymentMethod | null;
+  planName: string | null;
+  billingTerm: { labelEn: string; labelBn: string; months: number } | null;
+  invoice: { id: string; number: number } | null;
+  addons: PaymentAddon[];
+  /** LIF-21: the owner's earlier, deleted shop's. */
+  earlierShop: boolean;
+}
+
+export interface BillingPaymentPage {
+  payments: BillingPayment[];
+  page: number;
+  limit: number;
+  total: number;
+  pages: number;
 }
 
 /** POST /billing/upgrade/quote: the request, with the period it would run were it confirmed now (UPG-06). */
@@ -124,10 +162,11 @@ export interface Invoice {
   tenantId: string;
   number: number;
   kind: string;
-  planSnapshot: PlanLimits;
+  /** Null on an add-on's own invoice (PLN-14), as are the term, plan name and version. */
+  planSnapshot: PlanLimits | null;
   amount: string;
   creditAmount: string;
-  billingTermLabel: string;
+  billingTermLabel: string | null;
   issuedAt: string;
   earlierShop?: boolean;
   shopName?: string | null;

@@ -2,6 +2,16 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { test, type Page } from '@playwright/test';
 import { GROWTH, STARTER } from './support/catalogue';
+import {
+  AWAITING_RENEWAL,
+  CHECKING_TOP_UP,
+  drawnPayments,
+  EXPIRED_RENEWAL,
+  PAID_RENEWAL,
+  payment,
+  rejectedRenewal,
+  type PaymentFixture,
+} from './support/payments';
 import { DAY_ONE, mockApi, SLUG, type Language, type ShopState } from './support/mock-api';
 import { mockOnboarding, TWELVE_MONTHS, typeCode, type Journey } from './support/onboarding-api';
 
@@ -292,7 +302,96 @@ const MONEY: Pair[] = [
     path: '',
     state: { money: { suspended: true } },
   },
+  ...balanceAndBilling(),
 ];
+
+/** Balance, Billing and the places a payment's state shows (§7.11, §7.13), each as the prototype draws it. */
+function balanceAndBilling(): Pair[] {
+  const settled = drawnPayments().slice(1);
+  const withFirst = (first: PaymentFixture): ShopState => ({
+    money: { payments: [first, ...settled] },
+  });
+  const rejectedTopUp = payment({
+    ...CHECKING_TOP_UP,
+    id: 'pay_tu_rejected',
+    state: 'rejected',
+    status: 'rejected',
+    note: 'এই TrxID-র কোনো SMS আমাদের নম্বরে আসেনি। TrxID মিলিয়ে আবার জমা দিন।',
+  });
+  const checkingRenewal = payment({
+    ...CHECKING_TOP_UP,
+    id: 'pay_renew_checking',
+    kind: 'renewal',
+    planId: STARTER,
+    planName: 'Starter',
+    amount: '449.00',
+  });
+  const one = (
+    name: string,
+    screen: string,
+    path: string,
+    state: ShopState,
+    device: Device = 'phone',
+    language: Language = 'bn',
+  ): Pair => ({ name, screen, device, language, path, state });
+  return [
+    one('balance', 'balance', '/balance', { money: { payments: settled } }),
+    one('balance', 'balance', '/balance', { money: { payments: settled } }, 'desktop', 'en'),
+    one('balance-pending', 'balance-pending', '/balance', {}),
+    one('balance-rejected', 'balance-rejected', '/balance', withFirst(rejectedTopUp)),
+    one('balance-low', 'balance-low', '/balance', {
+      money: { payments: settled, balance: '48.00' },
+    }),
+    {
+      ...one('topup', 'topup', '/balance?topup=1', { money: { payments: settled } }),
+    },
+    one('billing', 'billing', '/billing', {}),
+    one('billing', 'billing', '/billing', {}, 'desktop', 'en'),
+    one('billing-checking', 'billing-checking', `/billing/${CHECKING_TOP_UP.id}`, {}),
+    one('billing-paid', 'billing-paid', `/billing/${PAID_RENEWAL.id}`, {}),
+    one('billing-paid', 'billing-paid', `/billing/${PAID_RENEWAL.id}`, {}, 'desktop', 'en'),
+    one(
+      'billing-rejected',
+      'billing-rejected',
+      '/billing/pay_8m3pqr',
+      withFirst(rejectedRenewal('bn')),
+    ),
+    one(
+      'billing-expired',
+      'billing-expired',
+      `/billing/${EXPIRED_RENEWAL.id}`,
+      withFirst(EXPIRED_RENEWAL),
+    ),
+    one(
+      'billing-awaiting',
+      'billing-awaiting',
+      `/billing/${AWAITING_RENEWAL.id}`,
+      withFirst(AWAITING_RENEWAL),
+    ),
+    one('billing-cancelled', 'billing-cancelled', `/billing/${AWAITING_RENEWAL.id}`, {
+      money: {
+        payments: [
+          {
+            ...AWAITING_RENEWAL,
+            state: 'cancelled',
+            status: 'cancelled',
+            cancelReason: 'seller',
+            verifiedAt: new Date().toISOString(),
+          },
+          ...settled,
+        ],
+      },
+    }),
+    one('home-rejected', 'home-rejected', '', {
+      money: {
+        payments: [rejectedRenewal('bn'), ...settled],
+        needing: { id: 'pay_8m3pqr', kind: 'renewal', amount: '449.00', state: 'rejected' },
+      },
+    }),
+    one('plan-pending', 'plan-pending', '/plan', withFirst(checkingRenewal)),
+    one('plan-rejected', 'plan-rejected', '/plan', withFirst(rejectedRenewal('bn'))),
+  ];
+}
 
 const PLAN = { shop: 'megh', planId: STARTER, termId: TWELVE_MONTHS };
 const VERIFY = '/verify-code?phone=%2B8801711234567&expiresInSeconds=300';

@@ -77,23 +77,29 @@ export function todayInputValue(): string {
   return dayKey(new Date().toISOString());
 }
 
-/** A day as the prototype writes it beside a figure, in either language: "9 Nov" (Dhaka's calendar). */
-export function formatDayMonth(iso: string): string {
-  return new Intl.DateTimeFormat('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    timeZone: DHAKA,
-  }).format(new Date(iso));
-}
-
-/** A day with its year, as the prototype's toasts write it in either language: "9 Dec 2026" (Dhaka's calendar). */
-export function formatDayMonthYear(iso: string): string {
-  return new Intl.DateTimeFormat('en-GB', {
+/** A date's day, three-letter month and year in Dhaka. The month is en-US's: en-GB writes September "Sept". */
+function dayMonthYear(iso: string): { day: string; month: string; year: string } {
+  const parts = new Intl.DateTimeFormat('en-US', {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
     timeZone: DHAKA,
-  }).format(new Date(iso));
+  }).formatToParts(new Date(iso));
+  const part = (type: Intl.DateTimeFormatPartTypes): string =>
+    parts.find((each) => each.type === type)?.value ?? '';
+  return { day: part('day'), month: part('month'), year: part('year') };
+}
+
+/** A day as the prototype writes it beside a figure, in either language: "9 Nov" (Dhaka's calendar). */
+export function formatDayMonth(iso: string): string {
+  const { day, month } = dayMonthYear(iso);
+  return `${day} ${month}`;
+}
+
+/** A day with its year, as the prototype's toasts write it in either language: "9 Dec 2026" (Dhaka's calendar). */
+export function formatDayMonthYear(iso: string): string {
+  const { day, month, year } = dayMonthYear(iso);
+  return `${day} ${month} ${year}`;
 }
 
 /**
@@ -120,6 +126,19 @@ export function formatMonth(iso: string, language: string): string {
     month: 'long',
     timeZone: DHAKA,
   }).format(new Date(iso));
+}
+
+/** A month with its year, for a list grouped by month: "October 2026", "অক্টোবর 2026" (Western digits). */
+export function formatMonthYear(iso: string, language: string): string {
+  const year = new Intl.DateTimeFormat('en-GB', { year: 'numeric', timeZone: DHAKA }).format(
+    new Date(iso),
+  );
+  return `${formatMonth(iso, language)} ${year}`;
+}
+
+/** The month an ISO moment falls in, in Dhaka: the key a list is grouped by. */
+export function monthKey(iso: string): string {
+  return dayKey(iso).slice(0, 7);
 }
 
 /** LIF-05: whole days since a moment that has passed ("the plan ended 2 days ago"); 0 on the day itself. */

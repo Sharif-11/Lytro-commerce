@@ -24,6 +24,8 @@ import { formatDayMonth } from '@/lib/dates';
 import { allows } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
 import { ShellPage } from '@/shell/shell-page';
+import { usePaymentNotices } from '@/views/billing/notices';
+import { PaymentBanner } from '@/views/billing/payment-banner';
 import type { PlanPriceOption } from '@/types/billing';
 import type { MeTenant } from '@/types/me';
 import { TermChips } from './change-plan';
@@ -75,6 +77,7 @@ export function PlanPage(): React.JSX.Element {
   const fees = usePaygFees();
   const limitLines = useLimitLines();
   const paygLines = usePaygLines(fees);
+  const notices = usePaymentNotices();
   const [sheet, setSheet] = useState<OpenSheet | null>(null);
 
   const state = tenant.state;
@@ -164,6 +167,7 @@ export function PlanPage(): React.JSX.Element {
 
   return (
     <ShellPage>
+      {notices.plan ? <PaymentBanner notice={notices.plan} about="plan" /> : null}
       {change && tenant.planName ? (
         <ScheduledBanner
           change={change}
@@ -272,7 +276,7 @@ export function PlanPage(): React.JSX.Element {
                   </Button>
                 ) : null}
                 <Link
-                  to="/$shop/invoices"
+                  to="/$shop/billing"
                   params={{ shop: slug }}
                   className={buttonClass('ghost', 'md')}
                 >

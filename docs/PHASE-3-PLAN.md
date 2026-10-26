@@ -1223,6 +1223,17 @@ their backend ships earlier.
     its English and the lifecycle do; the auto-renew switch hides while the subscription is stopping, since nothing
     renews; the upgrade's balance button greys when the new amount is more than the balance; the dialog takes the
     sketch's left-aligned buttons and phone position. Orders handled waits for Phase 4.
+  - **11.5b's money side, built:** Balance with its statement (chips read several types at once, each row named from
+    its payment when Billing has it, units at the rate, the balance after), Current rates, and the top-up sheet whose
+    request is made on Continue; the low-balance, being-checked and rejected banners; a suspended owner's Balance
+    without the shell; Billing, `/billing` with `/billing/:id` (a payment opened cold found in the list's first five
+    pages), every state with its action -- Pay again, Finish paying, Cancel -- "What happened" and the invoice; Home's
+    row for a rejected or lapsed payment and the Billing chip's count; Plan's being-checked and rejected banners;
+    `/invoices` leading to Billing. Named fixes: which wallet a payment went by is not recorded until Phase 5's page,
+    so a payment says its TrxID ("TrxID 9F2KQ7", not "bKash · TrxID 9F2KQ7"); an awaiting request says nothing was
+    submitted rather than that a payment page was opened; Plan's being-checked banner leaves out the new end date, which
+    the payment does not carry; amounts below zero read "−৳85.85"; dates write September "Sep", as the sketch does,
+    not en-GB's "Sept" (Home's figures too).
 
 ### Slice 12: shared storefront and product landing pages
 - **Depends on:** Slices 0, 0b, 7 and 9 (and branding from Phase 1).

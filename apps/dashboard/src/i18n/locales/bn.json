@@ -88,70 +88,16 @@
     "supportSub": "WhatsApp, সকাল ৯টা থেকে রাত ১০টা"
   },
   "balance": {
-    "topUp": "টপ-আপ",
-    "frozen": "ফ্রোজেন",
-    "frozenNote": "দোকান বন্ধ, তাই ব্যালেন্স আটকে আছে। প্ল্যান নিলে বা পে-অ্যাজ-ইউ-গো বাছলে আবার চলবে।",
-    "freeSmsMonth": "এই মাসে ফ্রি SMS",
-    "pendingTopUp": "{{amount}} টপ-আপ চেক হচ্ছে",
-    "pendingTopUpNote": "পেমেন্ট মিললে যোগ হবে, সাধারণত এক ঘণ্টার মধ্যে। আমরা জানাবো।",
-    "submitted": "টপ-আপ জমা হয়েছে",
-    "statement": "স্টেটমেন্ট",
     "dates": "তারিখ",
     "datesSet": "তারিখ বাছা",
     "dateFrom": "শুরু",
     "dateTo": "শেষ",
     "clearDates": "মুছুন",
     "applyDates": "দেখুন",
-    "typeChips": {
-      "all": "সব",
-      "topUps": "টপ-আপ",
-      "sms": "SMS",
-      "ai": "চ্যাট AI",
-      "fees": "ফি",
-      "plan": "প্ল্যান",
-      "other": "অন্যান্য"
-    },
-    "noneYet": "এখনো কোনো লেনদেন নেই।",
-    "showEarlier": "আগেরগুলো দেখুন",
-    "after": "পরে {{amount}}",
-    "ref": {
-      "order": "অর্ডার {{id}}",
-      "product": "নতুন প্রোডাক্ট",
-      "unitsAtRate": "{{units}} × ৳{{rate}}"
-    },
-    "type": {
-      "top_up": "টপ-আপ",
-      "sms": "কাস্টমারকে SMS",
-      "ai": "চ্যাট AI উত্তর",
-      "extraction": "টেক্সট থেকে অর্ডার পড়া",
-      "fraud_check": "ফেক অর্ডার চেক",
-      "order_fee": "অর্ডার ফি",
-      "product_fee": "প্রোডাক্ট ফি",
-      "plan_payment": "প্ল্যান পেমেন্ট",
-      "addon": "অ্যাড-অন",
-      "adjustment": "Lytro-র সমন্বয়",
-      "reversal": "ফেরত",
-      "carry_over": "আগের দোকান থেকে"
-    },
-    "rates": {
-      "title": "এখনকার রেট",
-      "perPart": "প্রতি {{chars}} অক্ষরের অংশ",
-      "aiReply": "চ্যাট AI উত্তর",
-      "fraudCheck": "ফেক অর্ডার চেক",
-      "paygOrderFee": "পে-অ্যাজ-ইউ-গো অর্ডার ফি",
-      "paygOrderFeeMin": "ন্যূনতম ৳{{min}}",
-      "paygProductFee": "পে-অ্যাজ-ইউ-গো প্রোডাক্ট ফি",
-      "since": "রেট {{date}} থেকে। বদলালে আগে এখানে দেখাবে; আগের এন্ট্রি বদলায় না।"
-    },
-    "howMuch": "কত টাকা?",
-    "boundsHint": "পেমেন্ট মিললে যোগ হয়। প্রতি টপ-আপে একটা ন্যূনতম আর সর্বোচ্চ আছে।",
-    "buys": "{{amount}}-এ প্রায় {{sms}} SMS অংশ, বা {{ai}} চ্যাট উত্তর হয়।",
-    "iHaveSent": "{{amount}} পাঠিয়েছি",
-    "beingChecked": "{{amount}} চেক হচ্ছে"
+    "showEarlier": "আগেরগুলো দেখুন"
   },
   "plan": {
     "noPlan": "কোনো প্ল্যান নেই",
-    "unlimited": "সীমাহীন",
     "state": {
       "trial": "ট্রায়াল",
       "pay_as_you_go": "পে-অ্যাজ-ইউ-গো",
@@ -161,39 +107,10 @@
       "locked": "লকড",
       "archived": "আর্কাইভ",
       "deleted": "মুছে ফেলা"
-    },
-    "limit": {
-      "products": "প্রোডাক্ট",
-      "orders_total": "অর্ডার (মোট)",
-      "orders_handled_monthly": "মাসে অর্ডার হ্যান্ডলিং",
-      "staff": "স্টাফ সিট",
-      "paired_devices": "পেয়ার করা ফোন",
-      "storage_mb": "স্টোরেজ (MB)",
-      "bandwidth_gb": "ব্যান্ডউইথ (GB)",
-      "essential_sms_total": "ফ্রি SMS (মোট)",
-      "essential_sms_monthly": "মাসে ফ্রি SMS",
-      "activity_retention_days": "অ্যাক্টিভিটি রাখা হয় (দিন)"
     }
   },
   "invoices": {
-    "title": "ইনভয়েস",
-    "noneYet": "এখনো কোনো ইনভয়েস নেই।",
-    "earlierShop": "আগের দোকান",
-    "method": {
-      "balance": "ব্যালেন্স থেকে",
-      "wallet": "ওয়ালেট"
-    },
-    "issued": "ইস্যু",
-    "period": "মেয়াদ",
-    "plan": "প্ল্যান",
-    "price": "দাম",
-    "discount": "ছাড়",
-    "credit": "ক্রেডিট",
-    "paid": "দেওয়া হয়েছে",
-    "paidBy": "পেমেন্ট",
-    "billedTo": "যার নামে",
-    "limitsOnInvoice": "এই ইনভয়েসের লিমিট",
-    "pdfLater": "PDF ডাউনলোড পরের বিলিং আপডেটে আসবে।"
+    "title": "ইনভয়েস"
   },
   "team": {
     "title": "টিম",

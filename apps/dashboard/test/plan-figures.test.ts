@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { PlanLimits } from '@lytronix/validators';
-import { formatDayMonthYear, formatLongDate, formatMonth } from '../src/lib/dates';
+import { formatDayMonth, formatDayMonthYear, formatLongDate, formatMonth } from '../src/lib/dates';
 import { fileSize, limitFigure, megabytes, sentenceCase } from '../src/lib/limits';
 import {
   lapseDays,
@@ -102,6 +102,9 @@ describe('dates in sentences (BRAND-IDENTITY §5)', () => {
 
   it("writes a day with its year as the sketch's toasts do, in Dhaka's calendar", () => {
     expect(formatDayMonthYear(iso)).toBe('7 Dec 2026');
+    // September is "Sep", as the sketch writes it, not en-GB's "Sept".
+    expect(formatDayMonthYear('2026-09-10T06:00:00.000Z')).toBe('10 Sep 2026');
+    expect(formatDayMonth('2026-09-10T06:00:00.000Z')).toBe('10 Sep');
   });
 
   it('names the month in Bangla with Western digits', () => {
