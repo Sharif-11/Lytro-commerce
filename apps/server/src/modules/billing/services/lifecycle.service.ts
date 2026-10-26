@@ -141,6 +141,17 @@ export class LifecycleService {
     return null;
   }
 
+  /**
+   * LIF-26: the stages a shop's lapse keeps once it has begun, else the ones it would follow from today -- the dated steps
+   * the plan page's stop sheet names (Slice 11.5b).
+   */
+  async lapseStagesOf(tenantId: string): Promise<StageLengths> {
+    const facts = await this.tenants.runStandalone((tx) =>
+      this.tenants.findLifecycleFacts(tx, tenantId),
+    );
+    return facts?.lapseScheduleSnapshot ?? (await this.stageLengths());
+  }
+
   /** LIF-26: today's stage lengths, each falling back to its documented default if never set by an operator. */
   async stageLengths(): Promise<StageLengths> {
     const read = async (key: PlatformSettingKey, fallback: number): Promise<number> => {

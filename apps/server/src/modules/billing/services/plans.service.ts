@@ -60,6 +60,13 @@ export class PlansService {
     return this.store.run((tx) => this.store.listAll(tx));
   }
 
+  /** PYG-01: the plan a pay-as-you-go shop is on, never for sale, whose limits are shown beside the plans that are. */
+  async findPayAsYouGo(): Promise<PlanRecord> {
+    const plan = await this.store.run((tx) => this.store.findPayAsYouGo(tx));
+    if (!plan) throw new ApiError('not_found', 'PlanNotFound', {});
+    return plan;
+  }
+
   async findById(id: string): Promise<PlanRecord> {
     const plan = await this.store.run((tx) => this.store.findById(tx, id));
     if (!plan) throw new ApiError('not_found', 'PlanNotFound', {});

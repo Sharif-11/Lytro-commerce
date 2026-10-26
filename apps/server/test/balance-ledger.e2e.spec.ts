@@ -691,6 +691,36 @@ describeIfDatabase('balance and rates over HTTP (controller wiring)', () => {
     expect(otherResponse.body.trim().split('\n').length).toBe(1); // header only
   });
 
+  it('BAL-14: filters the statement by one type or several, comma-separated', async () => {
+    const who = await owner();
+    const tenantId = await tenantIdOf(who.slug);
+    await balance.creditStandalone({ tenantId, amount: '100.00', type: LedgerEntryType.TopUp });
+    for (const [type, amount] of [
+      [LedgerEntryType.OrderFee, '5.00'],
+      [LedgerEntryType.ProductFee, '2.00'],
+      [LedgerEntryType.Sms, '1.00'],
+      [LedgerEntryType.FraudCheck, '1.50'],
+    ] as const) {
+      await balance.chargeStandalone({ tenantId, type, amount });
+    }
+    const typesOf = (body: unknown): string[] =>
+      (body as { entries: { type: string }[] }).entries.map((entry) => entry.type).sort();
+
+    const fees = await get('/balance/ledger?type=order_fee,product_fee,fraud_check', shopCall(who));
+    expect(fees.status).toBe(200);
+    expect(typesOf(fees.body)).toEqual(['fraud_check', 'order_fee', 'product_fee']);
+
+    const topUps = await get('/balance/ledger?type=top_up', shopCall(who));
+    expect(typesOf(topUps.body)).toEqual(['top_up']);
+
+    const unknown = await get('/balance/ledger?type=order_fee,refund', shopCall(who));
+    expect(unknown.status).toBe(400);
+
+    const csv = await getText('/balance/ledger/export?type=order_fee,product_fee', shopCall(who));
+    const rows = csv.body.trim().split('\n').slice(1);
+    expect(rows.map((row) => row.split(',')[1]).sort()).toEqual(['order_fee', 'product_fee']);
+  });
+
   it(
     'lets an operator read and change a rate, and adjust a balance',
     async () => {

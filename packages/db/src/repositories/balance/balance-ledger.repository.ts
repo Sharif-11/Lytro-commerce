@@ -4,7 +4,7 @@ import { balanceLedger, type InsertBalanceLedger, type SelectBalanceLedger } fro
 import type { Transaction, TransactionRunner } from '../../transactions';
 
 export interface LedgerFilters {
-  type?: LedgerEntryType;
+  types?: LedgerEntryType[];
   dateFrom?: Date;
   dateTo?: Date;
 }
@@ -60,7 +60,7 @@ export class BalanceLedgerRepository {
   ): Promise<SelectBalanceLedger[]> {
     await this.transactions.setTenantContext(tx, tenantId);
     const conditions = [eq(balanceLedger.tenantId, tenantId)];
-    if (filters.type) conditions.push(eq(balanceLedger.type, filters.type));
+    if (filters.types?.length) conditions.push(inArray(balanceLedger.type, filters.types));
     if (filters.dateFrom) conditions.push(gte(balanceLedger.createdAt, filters.dateFrom));
     if (filters.dateTo) conditions.push(lte(balanceLedger.createdAt, filters.dateTo));
     if (cursor) conditions.push(lt(balanceLedger.id, cursor.id));

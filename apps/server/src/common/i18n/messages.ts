@@ -411,6 +411,10 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   LimitOverrideSet: { en: 'Limit override set.', bn: 'লিমিট ওভাররাইড সেট হয়েছে।' },
   LimitOverrideRemoved: { en: 'Limit override removed.', bn: 'লিমিট ওভাররাইড রিমুভ হয়েছে।' },
   PlansListed: { en: 'Plans retrieved.', bn: 'প্ল্যানগুলো পাওয়া গেছে।' },
+  PayAsYouGoPlanRetrieved: {
+    en: 'Pay-as-you-go plan retrieved.',
+    bn: 'পে-অ্যাজ-ইউ-গো প্ল্যান পাওয়া গেছে।',
+  },
   PlanCreated: { en: 'Plan created.', bn: 'প্ল্যান তৈরি হয়েছে।' },
   PlanVersionsRetrieved: {
     en: 'Plan versions retrieved.',

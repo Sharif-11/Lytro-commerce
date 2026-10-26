@@ -1202,6 +1202,11 @@ their backend ships earlier.
     minute's flush as the cycle's total) on `GET /usage`; the term a paid plan runs on and a lapsed shop's deletion date
     on `/me`, the date worked out by the lifecycle's own rules; the pay-as-you-go fees charged this month on
     `GET /balance`.
+  - **11.5a.3, the last three reads, built:** `type` on `GET /balance/ledger` and its export takes one ledger type or
+    several, comma-separated, so a chip such as Fees covers order, product, extraction and fraud-check fees in one read;
+    the public `GET /plans/pay-as-you-go`, whose limits the pay-as-you-go card and switch sheet show; and `lapseStages`
+    on `/me`, the days of each stage a lapse would take the plan through, for the stop sheet's dated steps (agreed
+    2026-10-26).
 
 ### Slice 12: shared storefront and product landing pages
 - **Depends on:** Slices 0, 0b, 7 and 9 (and branding from Phase 1).

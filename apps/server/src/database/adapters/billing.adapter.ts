@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
   BillingTermsRepository,
+  PAYG_PLAN_NAME,
   PlanAssignmentsRepository,
   PlanLimitOverridesRepository,
   PlanPricesRepository,
@@ -63,6 +64,11 @@ export class DrizzlePlansStore implements PlansStore {
 
   listAll(tx: Transaction) {
     return this.plans.listAll(tx);
+  }
+
+  async findPayAsYouGo(tx: Transaction) {
+    const plans = await this.plans.listAll(tx);
+    return plans.find((plan) => plan.name === PAYG_PLAN_NAME) ?? null;
   }
 
   async update(tx: Transaction, id: string, edit: PlanEditValues) {

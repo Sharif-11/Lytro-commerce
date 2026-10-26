@@ -28,6 +28,8 @@ export interface PlansStore {
   findById(tx: Transaction, id: string): Promise<PlanRecord | null>;
   listForSale(tx: Transaction): Promise<PlanRecord[]>;
   listAll(tx: Transaction): Promise<PlanRecord[]>;
+  /** PYG-01: the seeded plan a pay-as-you-go shop is on, never for sale; null before the seed. */
+  findPayAsYouGo(tx: Transaction): Promise<PlanRecord | null>;
   update(tx: Transaction, id: string, edit: PlanEditValues): Promise<PlanRecord | null>;
   isReferenced(tx: Transaction, id: string): Promise<boolean>;
   delete(tx: Transaction, id: string): Promise<void>;

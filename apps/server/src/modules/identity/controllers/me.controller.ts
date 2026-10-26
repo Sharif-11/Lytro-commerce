@@ -9,7 +9,7 @@ import { MeResponseDto } from '../dto/me-response.dto';
 import { DashboardGuard, type DashboardRequest } from '../guards/dashboard.guard';
 import { SessionGuard } from '../guards/session.guard';
 import { BillingTermsService } from '../../billing/services/billing-terms.service';
-import { LifecycleService } from '../../billing/services/lifecycle.service';
+import { LifecycleService, type StageLengths } from '../../billing/services/lifecycle.service';
 import type { BillingTermRecord } from '../../billing/types/billing-term';
 import { BrandService } from '../../brand/services/brand.service';
 import type { LiveBrand } from '../../brand/types/brand';
@@ -54,13 +54,22 @@ export interface MeResponse {
 }
 
 /**
- * TRM-12, LIF-12: where a paid shop stands -- the term its plan runs on (the plan card's "Starter · monthly", and the
- * term the plan page opens on) and, once lapsed, when its business data would be deleted (the Renew page).
+ * TRM-12, LIF-12, LIF-26: where a paid shop stands -- the term its plan runs on (the plan card's "Starter · monthly", and
+ * the term the plan page opens on), the days of each stage a lapse would take it through (the stop sheet's dated
+ * steps) and, once lapsed, when its business data would be deleted (the Renew page).
  */
 export interface ShopStanding {
   billingTerm: { id: string; labelEn: string; labelBn: string; months: number } | null;
+  lapseStages: StageLengths | null;
   deletesAt: string | null;
 }
+
+// LIF-04: a paid plan's states with a lapse's dated steps still ahead of them; a locked shop has only the Renew page.
+const STEPS_AHEAD: readonly TenantState[] = [
+  TenantState.Active,
+  TenantState.Grace,
+  TenantState.ReadOnly,
+];
 
 // The dashboard shell's account summary.
 // LIF-24 (decided 2026-10-16): also carries `suspendedOwner: true` -- the owner needs /me to succeed while
@@ -126,7 +135,10 @@ export class MeController {
     };
   }
 
-  /** The term a paid plan runs on (none on a trial or pay-as-you-go), and a lapsed shop's deletion date. */
+  /**
+   * The term a paid plan runs on (none on a trial or pay-as-you-go), the stages its lapse would follow while some are
+   * still ahead, and a lapsed shop's deletion date.
+   */
   private async standingOf(tenant: TenantSummary): Promise<ShopStanding> {
     const paid = tenant.state !== TenantState.Trial && tenant.state !== TenantState.PayAsYouGo;
     const info = paid
@@ -139,6 +151,9 @@ export class MeController {
     return {
       billingTerm: term
         ? { id: term.id, labelEn: term.labelEn, labelBn: term.labelBn, months: term.months }
+        : null,
+      lapseStages: STEPS_AHEAD.includes(tenant.state)
+        ? await this.lifecycle.lapseStagesOf(tenant.id)
         : null,
       deletesAt: deletesAt?.toISOString() ?? null,
     };

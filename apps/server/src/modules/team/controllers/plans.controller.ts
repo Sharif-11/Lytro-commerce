@@ -9,7 +9,12 @@ import { BillingTermsService } from '../../billing/services/billing-terms.servic
 import type { PlanRecord } from '../../billing/types/plan';
 import type { BillingTermRecord } from '../../billing/types/billing-term';
 import type { PlanPriceRecord } from '../../billing/types/billing-term';
-import { BillingTermListDto, PlanListDto, PlanPriceListDto } from '../dto/billing-response.dto';
+import {
+  BillingTermListDto,
+  PlanDto,
+  PlanListDto,
+  PlanPriceListDto,
+} from '../dto/billing-response.dto';
 
 // PLN-10, TRM-02/13, D2-12: platform-wide data, reachable by an anonymous marketing-site visitor and a
 // signed-in tenant alike -- no key or session, the same reason sign-up endpoints skip tenant resolution.
@@ -28,6 +33,16 @@ export class PlansController {
   @ZodResponse({ type: PlanListDto })
   listPlans(): Promise<PlanRecord[]> {
     return this.plans.listForSale();
+  }
+
+  // PYG-01, PYG-10: what a shop has on pay-as-you-go -- the plan page's pay-as-you-go card and its switch sheet show
+  // these limits beside the plans for sale. Public for the same reason as the list above.
+  @Get('plans/pay-as-you-go')
+  @ResponseMessage('PayAsYouGoPlanRetrieved')
+  @ApiOperation({ summary: 'Get the pay-as-you-go plan, with its limits' })
+  @ZodResponse({ type: PlanDto })
+  payAsYouGo(): Promise<PlanRecord> {
+    return this.plans.findPayAsYouGo();
   }
 
   @Get('billing-terms')

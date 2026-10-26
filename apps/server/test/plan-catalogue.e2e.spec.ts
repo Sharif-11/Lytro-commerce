@@ -177,6 +177,18 @@ describeIfDatabase('plans (PLN-01 to PLN-12, PLN-16)', () => {
     BCRYPT_TIMEOUT_MS,
   );
 
+  it('PYG-01: GET /plans/pay-as-you-go names the seeded plan and its limits, with no session', async () => {
+    const response = await get('/plans/pay-as-you-go');
+    expect(response.status).toBe(200);
+    const plan = response.body as PlanBody & {
+      name: string;
+      limits: Record<string, number | null>;
+    };
+    expect(plan).toMatchObject({ name: 'Pay-as-you-go', forSale: false });
+    expect(plan.limits.products).toBeTypeOf('number');
+    expect(plan.limits.staff).toBeTypeOf('number');
+  });
+
   it(
     'PLN-02/D2-3: editing a plan increments its version and the previous version is retrievable',
     async () => {
