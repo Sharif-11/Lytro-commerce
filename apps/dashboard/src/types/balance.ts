@@ -4,6 +4,11 @@ import type { LedgerEntryType, RateKey } from '@lytronix/validators';
 export interface BalanceSnapshot {
   amount: string;
   frozen: boolean;
+  /** BAL-04: the lowest and highest top-up the platform takes now, in whole taka. */
+  topUpMin: number;
+  topUpMax: number;
+  /** PYG-02: the pay-as-you-go fees charged since the 1st of this month, a positive amount. */
+  feesThisMonth: string;
 }
 
 export interface LedgerEntry {

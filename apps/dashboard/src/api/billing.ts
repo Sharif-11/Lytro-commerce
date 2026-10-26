@@ -13,13 +13,16 @@ import { BALANCE_QUERY_KEY, LEDGER_QUERY_KEY } from '@/api/balance';
 import type {
   BillingTerm,
   CancellationStatus,
+  DowngradeChecklist,
   Invoice,
   OverLimitItem,
   Plan,
   PlanPayment,
   PlanPrice,
+  PlanPriceOption,
   PlatformWallet,
   ScheduledPlanChange,
+  UpgradeQuote,
 } from '@/types/billing';
 
 export const PLANS_QUERY_KEY = ['plans'] as const;
@@ -27,6 +30,8 @@ export const BILLING_TERMS_QUERY_KEY = ['billing-terms'] as const;
 export const SCHEDULED_CHANGE_QUERY_KEY = ['billing', 'downgrade'] as const;
 export const CANCELLATION_QUERY_KEY = ['billing', 'cancellation'] as const;
 export const INVOICES_QUERY_KEY = ['billing', 'invoices'] as const;
+export const BILLING_PRICES_QUERY_KEY = ['billing', 'prices'] as const;
+export const DOWNGRADE_CHECKLIST_QUERY_KEY = ['billing', 'downgrade', 'checklist'] as const;
 const planPricesKey = (planId: string) => ['plans', planId, 'prices'] as const;
 
 // PLN-10/TRM-02: the same public, keyless catalogue the marketing site reads.
@@ -34,6 +39,29 @@ export function usePlans() {
   return useQuery({
     queryKey: PLANS_QUERY_KEY,
     queryFn: () => tenantSession.client.get<Plan[]>('/plans'),
+  });
+}
+
+/** PYG-01: the plan a pay-as-you-go shop is on, never for sale, for its card's and switch sheet's limits. */
+export function usePayAsYouGoPlan() {
+  return useQuery({
+    queryKey: [...PLANS_QUERY_KEY, 'pay-as-you-go'],
+    queryFn: () => tenantSession.client.get<Plan>('/plans/pay-as-you-go'),
+  });
+}
+
+/**
+ * BIL-09 (decided 2026-10-23): what each plan would cost the shop now on a term, read without making a payment. Every
+ * price the plan screens show comes from here; the request is made only when the seller commits.
+ */
+export function useBillingPrices(billingTermId: string | null) {
+  return useQuery({
+    queryKey: [...BILLING_PRICES_QUERY_KEY, billingTermId],
+    queryFn: () =>
+      tenantSession.client.get<PlanPriceOption[]>(
+        `/billing/prices?billingTermId=${encodeURIComponent(billingTermId ?? '')}`,
+      ),
+    enabled: billingTermId !== null,
   });
 }
 
@@ -74,6 +102,16 @@ function useInvalidateBilling() {
     void queryClient.invalidateQueries({ queryKey: BALANCE_QUERY_KEY });
     void queryClient.invalidateQueries({ queryKey: LEDGER_QUERY_KEY });
     void queryClient.invalidateQueries({ queryKey: INVOICES_QUERY_KEY });
+    void queryClient.invalidateQueries({ queryKey: BILLING_PRICES_QUERY_KEY });
+    void queryClient.invalidateQueries({ queryKey: DOWNGRADE_CHECKLIST_QUERY_KEY });
+  };
+}
+
+/** The figures changed under the seller (AmountChanged): read them again. */
+export function useRefreshPrices() {
+  const queryClient = useQueryClient();
+  return () => {
+    void queryClient.invalidateQueries({ queryKey: BILLING_PRICES_QUERY_KEY });
   };
 }
 
@@ -102,7 +140,7 @@ export function useConfirmPurchase() {
 export function useQuoteUpgrade() {
   return useMutation({
     mutationFn: (input: QuoteUpgradeInput) =>
-      tenantSession.client.post<PlanPayment>('/billing/upgrade/quote', input),
+      tenantSession.client.post<UpgradeQuote>('/billing/upgrade/quote', input),
   });
 }
 
@@ -117,10 +155,29 @@ export function useConfirmUpgrade() {
 
 // --- Downgrade (DWN-01..05) and pay-as-you-go (PYG-01, LIF-15) ---
 
-export function useDowngradePreview() {
-  return useMutation({
-    mutationFn: (input: TargetDowngradePlanInput) =>
-      tenantSession.client.post<OverLimitItem[]>('/billing/downgrade/preview', input),
+/** DWN-03: what a move down to this plan would leave the shop over; a read, though the route is a POST. */
+export function useDowngradePreview(planId: string | null) {
+  return useQuery({
+    queryKey: ['billing', 'downgrade', 'preview', planId],
+    queryFn: () =>
+      tenantSession.client.post<OverLimitItem[]>('/billing/downgrade/preview', {
+        planId: planId ?? '',
+      } satisfies TargetDowngradePlanInput),
+    enabled: planId !== null,
+  });
+}
+
+/** DWN-12, DWN-14: the last downgrade's checklist, for 30 days; null when there is none. */
+export function useDowngradeChecklist(options: { enabled?: boolean } = {}) {
+  return useQuery({
+    queryKey: DOWNGRADE_CHECKLIST_QUERY_KEY,
+    queryFn: async () =>
+      (
+        await tenantSession.client.get<{ checklist: DowngradeChecklist | null }>(
+          '/billing/downgrade/checklist',
+        )
+      ).checklist,
+    enabled: options.enabled ?? true,
   });
 }
 

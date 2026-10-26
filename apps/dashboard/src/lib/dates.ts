@@ -86,6 +86,42 @@ export function formatDayMonth(iso: string): string {
   }).format(new Date(iso));
 }
 
+/** A day with its year, as the prototype's toasts write it in either language: "9 Dec 2026" (Dhaka's calendar). */
+export function formatDayMonthYear(iso: string): string {
+  return new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: DHAKA,
+  }).format(new Date(iso));
+}
+
+/**
+ * A date in a sentence: "7 Dec 2026", or in Bangla the month's own name with Western digits, "7 ডিসেম্বর 2026"
+ * (BRAND-IDENTITY §5).
+ */
+export function formatLongDate(iso: string, language: string): string {
+  if (language !== 'bn') return formatDayMonthYear(iso);
+  const date = new Date(iso);
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric',
+    year: 'numeric',
+    timeZone: DHAKA,
+  }).formatToParts(date);
+  const part = (type: Intl.DateTimeFormatPartTypes): string =>
+    parts.find((each) => each.type === type)?.value ?? '';
+  const month = new Intl.DateTimeFormat('bn-BD', { month: 'long', timeZone: DHAKA }).format(date);
+  return `${part('day')} ${month} ${part('year')}`;
+}
+
+/** A month's own name in the visitor's language: "October", "অক্টোবর" (Dhaka's calendar). */
+export function formatMonth(iso: string, language: string): string {
+  return new Intl.DateTimeFormat(language === 'bn' ? 'bn-BD' : 'en-GB', {
+    month: 'long',
+    timeZone: DHAKA,
+  }).format(new Date(iso));
+}
+
 /** LIF-05: whole days since a moment that has passed ("the plan ended 2 days ago"); 0 on the day itself. */
 export function daysSince(iso: string | null, now = Date.now()): number | null {
   if (!iso) return null;

@@ -49,6 +49,49 @@ export interface PlanPayment {
   createdAt: string;
 }
 
+/** POST /billing/upgrade/quote: the request, with the period it would run were it confirmed now (UPG-06). */
+export interface UpgradeQuote extends PlanPayment {
+  periodStart: string;
+  periodEnd: string;
+}
+
+/** What paying for a plan on a term would be for the shop now (GET /billing/prices). */
+export type PriceMove = 'renewal' | 'purchase' | 'upgrade' | 'downgrade';
+
+/** PLN-14, UPG-14: an add-on the payment would carry or extend. */
+export interface PricedAddon {
+  addonId: string;
+  key: string;
+  labelEn: string;
+  quantity: number;
+  amount: string;
+}
+
+/**
+ * GET /billing/prices (BIL-09): one plan's figures on the term, read without making a payment -- the same `offer` its
+ * request is made from, so what is shown is what is charged.
+ */
+export interface PlanPriceOption {
+  planId: string;
+  planName: string;
+  move: PriceMove;
+  price: string;
+  /** What the payment would hold; null for a move down, which charges nothing now, and an upgrade not open now. */
+  amount: string | null;
+  credit: string | null;
+  addons: PricedAddon[];
+  /** Why it cannot be paid now (the server's message key); null when it can. */
+  blockedBy: string | null;
+}
+
+/** GET /billing/downgrade/checklist (DWN-12, DWN-14): what the last downgrade left the shop over, live. */
+export interface DowngradeChecklist {
+  downgradedAt: string;
+  endsAt: string;
+  items: (OverLimitItem & { fixed: boolean })[];
+  finalWarningAt: string | null;
+}
+
 /** GET /platform-wallets: where a manual wallet payment is sent (BIL-02). */
 export interface PlatformWallet {
   id: string;

@@ -39,16 +39,6 @@
   "signIn": {
     "invalidPhone": "Enter a valid Bangladeshi mobile number"
   },
-  "checkout": {
-    "perMonth": "/ month",
-    "perTerm": "/ {{months}} months",
-    "monthlyEquivalent": "{{amount}} a month",
-    "noRefund": "A started period is not refunded.",
-    "quoting": "Working out the price…",
-    "submitted": "Payment submitted. The plan starts once it is verified; we will let you know.",
-    "noPlans": "No plan is on sale right now. Your shop continues on the trial.",
-    "balanceTooLow": "The balance does not cover it; send from a wallet below."
-  },
   "setPassword": {
     "ruleLength": "{{min}} to {{max}} characters"
   },
@@ -71,17 +61,6 @@
     "offline": {
       "title": "The shop is not open right now",
       "lead": "Talk to the shop's owner."
-    },
-    "suspended": {
-      "title": "Your shop is not available right now",
-      "lead": "Contact support for help.",
-      "contactSupport": "Contact support",
-      "balance": "See balance or top up"
-    },
-    "lockedOut": {
-      "title": "Renew and the shop opens again",
-      "lead": "All your data is here. Take a plan or choose pay-as-you-go.",
-      "renew": "See plans"
     }
   },
   "dates": {
@@ -172,19 +151,7 @@
   },
   "plan": {
     "noPlan": "No plan",
-    "yourPlan": "Your plan",
-    "noPeriod": "No period",
-    "endsOn": "Ends {{date}}",
     "unlimited": "Unlimited",
-    "current": "Current",
-    "scheduled": "Scheduled",
-    "youAreHere": "You are here",
-    "pickPlan": "Pick a plan",
-    "changePlan": "Change plan",
-    "keepPlan": "Keep the plan",
-    "renewFor": "Renew for {{amount}}",
-    "seeInvoices": "See invoices",
-    "termChip": "{{labelEn}}",
     "state": {
       "trial": "Trial",
       "pay_as_you_go": "Pay-as-you-go",
@@ -195,36 +162,6 @@
       "archived": "Archived",
       "deleted": "Deleted"
     },
-    "figures": {
-      "daysLeft": "days left",
-      "daysSinceEnd": "days since it ended",
-      "noPeriodFees": "no period; fees per order",
-      "paygAfterTrial": "pay-as-you-go in {{days}} days",
-      "nextPayment": "next payment, {{date}}",
-      "nextPaymentNone": "next payment",
-      "renewFromNow": "renew: a new period from now",
-      "noPayment": "no payment",
-      "productsAllowed": "products allowed"
-    },
-    "autoRenew": "Renew from balance automatically",
-    "autoRenewNote": "On {{date}}, {{amount}} is taken from your balance if it covers it.",
-    "autoRenewNoteShort": "Taken from your balance at period end if it covers it.",
-    "autoRenewOn": "Auto-renew is on",
-    "autoRenewOff": "Auto-renew is off",
-    "banner": {
-      "downgradeOn": "Moving to {{plan}} on {{date}}",
-      "paygOn": "Moving to pay-as-you-go on {{date}}",
-      "nothingBefore": "Nothing changes before then.",
-      "keepCurrent": "Keep {{plan}}",
-      "endsOn": "Your plan ends on {{date}}",
-      "afterEnd": "After that the shop goes read-only, then locks. Nothing is deleted for 60 days.",
-      "undo": "Undo",
-      "locked": "Shop locked · day {{days}} after the period ended",
-      "archived": "Shop archived · day {{days}} after the period ended",
-      "reopens": "Customers see a closed sign. Renew, or choose pay-as-you-go, and it reopens within a minute."
-    },
-    "scheduleCancelled": "The scheduled change is cancelled",
-    "undoSuccess": "The cancellation is undone",
     "limit": {
       "products": "Products",
       "orders_total": "Orders (total)",
@@ -236,54 +173,7 @@
       "essential_sms_total": "Free SMS (total)",
       "essential_sms_monthly": "Free SMS a month",
       "activity_retention_days": "Activity kept (days)"
-    },
-    "action": {
-      "upgradeNow": "Upgrade now",
-      "downgradeAtEnd": "Move down at period end",
-      "take": "Take {{plan}}",
-      "choosePayg": "Choose pay-as-you-go",
-      "switchPaygAtEnd": "Switch at period end"
-    },
-    "paygFees": "{{pct}}% per delivered order (min ৳{{min}}), ৳{{product}} per product",
-    "paygLimitsNote": "Smaller limits than Starter; no monthly fee and no period.",
-    "paygNow": "Pay-as-you-go is on. The shop is open again.",
-    "paygAtPeriodEnd": "You move to pay-as-you-go when the current period ends.",
-    "upgradeTo": "Upgrade to {{plan}}",
-    "takePlan": "Take {{plan}}",
-    "creditLine": "Credit for the unused days",
-    "dueNow": "Due now",
-    "upgradeStarts": "The new plan starts the moment the payment is confirmed and runs {{months}} months from then. Limits rise at once.",
-    "purchaseStarts": "The plan starts once the payment is confirmed.",
-    "payFromBalance": "Pay {{amount}} from balance",
-    "available": "{{amount}} available",
-    "orWallet": "or send by wallet",
-    "payByWallet": "Send {{amount}} by wallet",
-    "quoteHolds15": "This quote holds for 15 minutes.",
-    "quoteHolds30": "This quote holds for 30 minutes.",
-    "upgradePaid": "Upgraded. The new limits apply now.",
-    "purchasePaid": "Paid from the balance. The plan is active.",
-    "downgradeTo": "Move down to {{plan}}",
-    "downgradeHappens": "Happens on {{date}}, when the current plan ends. Nothing changes and nothing is charged before then.",
-    "overLimitCount_one": "{{count}} thing is over {{plan}}'s limits",
-    "overLimitCount_other": "{{count}} things are over {{plan}}'s limits",
-    "overLimitConsequence": "Existing products keep selling; you cannot add new ones until you are under the limit. You choose which staff stay active; nobody is deleted.",
-    "nothingOver": "Everything you use fits the new limits.",
-    "fromDate": "From {{date}}, per term",
-    "downgradeOn": "Move down on {{date}}",
-    "keepCurrentPlan": "Keep the current plan",
-    "downgradeScheduled": "The downgrade is scheduled",
-    "stopTitle": "Stop the subscription",
-    "stopLead": "The plan runs until {{date}} either way. After that the shop goes read-only, then locks, and is deleted after 60 days unless you come back.",
-    "cancelAtEnd": "Cancel at period end",
-    "cancelConfirmTitle": "Cancel {{shop}}'s plan?",
-    "cancelConfirmLead": "It ends on {{date}}. You can undo this any time before then.",
-    "cancelSuccess": "The plan ends when the period does",
-    "closeShopTitle": "Close the shop",
-    "closeShopLead": "Pay-as-you-go has no period. Closing archives the shop at once and freezes the balance; come back within 60 days and everything is kept.",
-    "closeShop": "Close the shop",
-    "closeConfirmTitle": "Close {{shop}}?",
-    "closeConfirmLead": "The shop is archived at once and the balance is frozen. Taking a plan or choosing pay-as-you-go within 60 days brings it back.",
-    "closed": "The shop is closed"
+    }
   },
   "invoices": {
     "title": "Invoices",
