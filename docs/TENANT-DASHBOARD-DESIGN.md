@@ -1,9 +1,10 @@
 # Tenant dashboard: the full design
 
-Status: v2.4, 2026-10-23 (Billing, §7.13, replaces the Invoices section: every payment the shop made to Lytro with
-its state, the invoice as a paid one's receipt, the rejected-payment row on Home and the banners on Plan and Balance,
-and the backend list it needs in §10; v2.3 of 2026-10-22 brought the document up to the prototype after Slice 10a and
-recorded the Slice 11 decisions in §2, §10 and §11). One design for the whole seller journey: sign-in and onboarding,
+Status: v2.5, 2026-10-26 (the states Slice 11.5b builds that v2.4 left undrawn, prototype Part 9: Billing's Cancelled
+state and the Cancel on an awaiting request, the upgrade sheet when the amount changed, the Renew page of an archived
+shop with its deletion date, Sign out on the two shell-less pages, and the pay-as-you-go page as built; v2.4 of
+2026-10-23 made Billing, §7.13, replace the Invoices section; v2.3 of 2026-10-22 brought the document up to the
+prototype after Slice 10a and recorded the Slice 11 decisions in §2, §10 and §11). One design for the whole seller journey: sign-in and onboarding,
 and the dashboard (`apps/dashboard`, served at `app.lytro.app/<shop>`). It replaces the screen designs in
 `DASHBOARD-SECTIONS-DESIGN.md` and the shell and screen visuals in `ONBOARDING-FLOW-DESIGN.md` (that
 document's flow, decisions and routing rules still hold and are referenced below). The interactive
@@ -523,7 +524,9 @@ the foot.
 the reason, or on the payment page with the four wallet marks; the line that nothing changes before the
 payment is confirmed and that the request lapses after 24 hours (BIL-04, BIL-15). *Upgrade* (UPG-06,
 UPG-16): new price, credit for unused days, amount due, the new period, the limits that change, pay from
-balance (enough here) or on the payment page, the 15-minute validity and no-refund lines. *Downgrade*
+balance (enough here) or on the payment page, the 15-minute validity and no-refund lines; when the amount worked out
+as the seller commits differs from the one shown (a day of credit less), the sheet says the new amount and asks
+again, nothing charged (`upgrade-amount-changed`, BIL-09). *Downgrade*
 (DWN-03): the effective date first, the over-limit list, one sentence per consequence, the new price,
 "Move down on 9 Nov". Coming back from the page, Plan shows the "payment being checked" banner (nothing
 changes until it is confirmed), then "Renewed · runs until 9 Dec" or "Growth is on" with the new figures. A rejected
@@ -534,9 +537,10 @@ both banners read the payments list (§7.13), never the browser's memory.
 (grace, view only, locked, deletion after day 60, with the balance and invoices kept), and "you can undo any time
 before 9 Nov"; afterwards the banner with Undo (`plan-cancelled`). *Downgrade scheduled* (DWN-02): the banner with
 Keep Growth (`plan-downgrade-scheduled`). *Switch to pay-as-you-go* (PYG-10, `sh-payg-switch`): the date, the
-fees, the limits that fall, what happens to what is over. *A pay-as-you-go shop* (PYG-01, `plan-payg`): the plan
-that would cost less against the fees paid this month (from the ledger), Take Growth, add-ons in their own 30-day
-periods, and Closing the shop: *Close the shop* (PYG-09, `sh-close-shop`) says what goes offline now, what is
+fees, the limits that fall, what happens to what is over. *A pay-as-you-go shop* (PYG-01, `plan-payg`): the fees
+paid this month (from the ledger, `GET /balance`) and the balance; the plan cards to take a plan -- the estimate of
+what each would have cost at this volume waits for PYG-12, and "orders shipped" for Phase 4 (drawn so since
+2026-10-26); add-ons in their own 30-day periods, and Closing the shop: *Close the shop* (PYG-09, `sh-close-shop`) says what goes offline now, what is
 deleted after 60 days, and that a plan or pay-as-you-go brings it back (LIF-15), with Export the data first.
 *30 days after a downgrade* (DWN-12, `downgrade-checklist`): each limit over with its fix and Open, and the final
 warning's date (`GET /billing/downgrade/checklist`). Built.
@@ -594,8 +598,11 @@ with the invoice, rejected by Lytro support with the note, or lapsed after 24 ho
   Pay again.
 - *Awaiting payment* (`billing-awaiting`): the marigold banner with the hours left and **Finish paying**, which
   reopens the payment step for the same request (the wallet step until Phase 5, the payment page after, §7.19), and
-  **Cancel this payment**, which closes it at once (decided 2026-10-23; nothing was sent, so nothing is charged).
-- *Cancelled*: "You cancelled this payment, or started a new one in its place. Nothing was charged." Pay again.
+  **Cancel this payment**, which closes it at once (decided 2026-10-23; nothing was sent, so nothing is charged) with
+  the toast "Payment cancelled. Nothing was charged." (`billing-cancelled-now`).
+- *Cancelled* (`billing-cancelled`): the neutral chip and grey lead; "You cancelled this payment, or started a new one
+  in its place. Nothing was charged."; the facts For and Requested; Pay again; in What happened, "Cancelled by you ·
+  No payment submitted" over Requested.
 
 A transaction ID goes only on an open request (BIL-15, amended 2026-10-23). Sent for one that expired, was cancelled
 or was replaced, it is refused with the way on: start the payment again, or add money already sent to the balance with
@@ -694,9 +701,12 @@ group with each of the four contexts.
 | `grace` | Warning banner "Plan ended n days ago. Renew to keep selling." Everything works | LIF-05 |
 | `read_only` | Neutral banner; every create, edit and delete control absent; export offered | LIF-06 |
 | `locked` | No shell: the **Renew** page (plan picker, pay-as-you-go, export); staff refused | LIF-11, 15 |
-| `archived` | The Renew page with the deletion date and export | LIF-12, 18 |
-| suspended | `/unavailable` with support; the owner's Balance and Top up still reachable | LIF-24 |
+| `archived` | The Renew page, "Shop is archived", with the deletion date (`deletesAt` on `/me`, §10) and export (`renew-archived`) | LIF-12, 18 |
+| suspended | `/unavailable` with support, See balance and Sign out; the owner's Balance and Top up still reachable | LIF-24 |
 | support view | The ink-and-marigold bar on every screen, never dismissable | ADM-05 |
+
+The two pages without a shell, Renew and Unavailable, end with Sign out (added 2026-10-26): with no shell there is
+otherwise no way out of them.
 
 ### 7.21 Purchases and suppliers (`/purchases`, `/purchases/:id`, `/purchases/suppliers`)
 

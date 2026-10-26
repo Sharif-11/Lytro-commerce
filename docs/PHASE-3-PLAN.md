@@ -1189,6 +1189,10 @@ their backend ships earlier.
   6. The section keeps the name Billing (#211's question 5).
   The screens follow the sketch's final drawings with the wallet step in place of Phase 5's page; the pay-as-you-go
   estimate (PYG-12) and "orders shipped" wait; Renew is a page of its own at `/$shop/renew`.
+  - **11.5b's sketch, 2026-10-26** (prototype Part 9, design doc v2.5), the states the screens need that were not
+    drawn: Billing's Cancelled state and the Cancel on an awaiting request; the upgrade sheet when the amount changed
+    since it was shown; the Renew page of an archived shop with its deletion date; Sign out on the two shell-less
+    pages; the pay-as-you-go page without the PYG-12 estimate and the Phase 4 "orders shipped" tile.
   - **11.5a.1, the payment requests, built:** `GET /billing/prices`; the amount-seen check on the plan, upgrade and
     add-on requests; the `cancelled` status, `POST /billing/payments/:id/cancel` and `POST /balance/top-up/:id/cancel`;
     one open request per kind and one open upgrade per shop in the database; transaction IDs only on open requests,
