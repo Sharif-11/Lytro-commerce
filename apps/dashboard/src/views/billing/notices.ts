@@ -23,11 +23,15 @@ function noticeOf(payment: BillingPayment | undefined): PaymentNotice | null {
 }
 
 /**
- * The being-checked and rejected banners of Plan and Balance (TENANT-DASHBOARD-DESIGN §7.11, §7.12), read from the
- * payments list, never the browser's memory, so they hold across a reload and a second phone. Each looks at the
- * newest payment of its own kinds only: a newer one makes an older rejection history.
+ * The being-checked and rejected banners of Plan, Balance and Add-ons (TENANT-DASHBOARD-DESIGN §7.11, §7.12, §7.25),
+ * read from the payments list, never the browser's memory, so they hold across a reload and a second phone. Each
+ * looks at the newest payment of its own kinds only: a newer one makes an older rejection history.
  */
-export function usePaymentNotices(): { plan: PaymentNotice | null; topUp: PaymentNotice | null } {
+export function usePaymentNotices(): {
+  plan: PaymentNotice | null;
+  topUp: PaymentNotice | null;
+  addon: PaymentNotice | null;
+} {
   const { viewer, tenant } = useShell();
   // A suspended shop's owner may not read the list (LIF-24): no banner then.
   const payments = useBillingPayments(null, {
@@ -37,5 +41,6 @@ export function usePaymentNotices(): { plan: PaymentNotice | null; topUp: Paymen
   return {
     plan: noticeOf(first.find((payment) => PLAN_KINDS.includes(payment.kind))),
     topUp: noticeOf(first.find((payment) => payment.kind === PlanPaymentKind.TopUp)),
+    addon: noticeOf(first.find((payment) => payment.kind === PlanPaymentKind.Addon)),
   };
 }

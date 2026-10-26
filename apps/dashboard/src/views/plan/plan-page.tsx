@@ -28,6 +28,7 @@ import { usePaymentNotices } from '@/views/billing/notices';
 import { PaymentBanner } from '@/views/billing/payment-banner';
 import type { PlanPriceOption } from '@/types/billing';
 import type { MeTenant } from '@/types/me';
+import { AddonsCard } from '@/views/addons/addons-card';
 import { TermChips } from './change-plan';
 import { DowngradeSheet } from './downgrade-sheet';
 import { lapseDays, termLabel } from './figures';
@@ -362,6 +363,7 @@ export function PlanPage({ openPlanId }: { openPlanId: string | null }): React.J
           </div>
         </div>
         <div className="flex min-w-0 flex-col gap-4">
+          <AddonsCard />
           {active && canManage && !cancelled && change === null ? (
             <Disclosure title={t('stopTitle')}>
               <p className="mt-2 mb-3 text-[14px] text-fg-muted">

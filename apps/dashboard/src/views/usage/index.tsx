@@ -1,13 +1,7 @@
 import { useTranslation } from 'react-i18next';
-import {
-  IdentityKind,
-  PACK_AUTO_BUY_CAP,
-  Permission,
-  RateKey,
-  UsageMetric,
-} from '@lytronix/validators';
+import { IdentityKind, Permission, RateKey, UsageMetric } from '@lytronix/validators';
 import { formatTakaExact } from '@lytronix/ui';
-import { useAddonOffers, useSetAutoBuy } from '@/api/addons';
+import { useAddonOffers } from '@/api/addons';
 import { useCurrentRates } from '@/api/balance';
 import { useIdentities } from '@/api/identities';
 import { useUsage } from '@/api/usage';
@@ -20,17 +14,9 @@ import { allows } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
 import { ShellPage } from '@/shell/shell-page';
 import type { ShopUsage } from '@/types/usage';
-import { BannerLinkTo, DayChart, MetricRow, SwitchNote, SwitchRow } from './usage-parts';
-import {
-  bannerOf,
-  cycleDays,
-  lastDayOf,
-  packOffer,
-  packSize,
-  raiseItems,
-  type Channels,
-  type PackMetric,
-} from './usage-words';
+import { AutoBuyCard } from './auto-buy-card';
+import { BannerLinkTo, DayChart, MetricRow } from './usage-parts';
+import { bannerOf, cycleDays, lastDayOf, raiseItems, type Channels } from './usage-words';
 
 /**
  * Usage (TENANT-DASHBOARD-DESIGN §7.24, the prototype's `usage` with Part 10's states): the cycle's dates, the one
@@ -94,66 +80,11 @@ export function UsageView(): React.JSX.Element {
               />
             ))}
           </Card>
-          <AutoBuyCard usage={data} canManage={canManage} />
+          <AutoBuyCard usage={data} canManage={canManage} help="uAutoBuyHelp" />
           <DayCharts usage={data} />
         </>
       ) : null}
     </ShellPage>
-  );
-}
-
-/**
- * PLN-15, BND-04, RTE-11 (agreed for Slice 11.5c): a switch for each metric with packs, as the server keeps them, each
- * naming its pack, with what auto-buy did this cycle under it. Shown while the shop can buy packs.
- */
-function AutoBuyCard({
-  usage,
-  canManage,
-}: {
-  usage: ShopUsage;
-  canManage: boolean;
-}): React.JSX.Element | null {
-  const { t } = useTranslation('money');
-  const errorText = useErrorText();
-  const offers = useAddonOffers();
-  const setAutoBuy = useSetAutoBuy();
-  const rows = usage.packs.filter((pack) => pack.offer !== null);
-  if (rows.length === 0) return null;
-  const words: Record<PackMetric, string> = {
-    [UsageMetric.Bandwidth]: 'pkAutoBw',
-    [UsageMetric.Requests]: 'pkAutoReq',
-  };
-  return (
-    <Card className="flex flex-col gap-1">
-      <h3 className="mb-1 text-[17px] font-semibold">{t('pkAuto')}</h3>
-      {rows.map((pack) => {
-        const offer = packOffer(offers.data ?? [], pack.metric);
-        const label = t(words[pack.metric], { size: offer ? packSize(offer.addon) : '' });
-        return (
-          <div key={pack.metric}>
-            <SwitchRow
-              label={label}
-              checked={pack.autoBuy}
-              disabled={!canManage || setAutoBuy.isPending}
-              onChange={(next) => {
-                setAutoBuy.mutate(
-                  pack.metric === UsageMetric.Bandwidth ? { bandwidth: next } : { requests: next },
-                );
-              }}
-            />
-            {pack.autoBuy && pack.autoBuyFailed ? (
-              <SwitchNote bad>{t('uAbFailedShort')}</SwitchNote>
-            ) : pack.autoBuy && pack.autoPacks >= PACK_AUTO_BUY_CAP ? (
-              <SwitchNote bad={false}>
-                {t('uAbCapped', { cap: PACK_AUTO_BUY_CAP, date: formatDayMonth(usage.cycleEnd) })}
-              </SwitchNote>
-            ) : null}
-          </div>
-        );
-      })}
-      {setAutoBuy.isError ? <Banner tone="bad">{errorText(setAutoBuy.error)}</Banner> : null}
-      <p className="text-[14px] text-fg-muted">{t('uAutoBuyHelp')}</p>
-    </Card>
   );
 }
 

@@ -15,7 +15,7 @@ interface ShellPageProps {
 
 /**
  * A rebuilt screen's page, as the prototype draws every one: the banner that applies, the title, the hub's section
- * chips, then the screen's own blocks.
+ * chips, then the screen's own blocks. A screen below its section (Add-ons, below Usage) draws no chips.
  */
 export function ShellPage({ title, actions, children }: ShellPageProps): React.JSX.Element {
   const { t } = useTranslation('shell');
@@ -28,7 +28,7 @@ export function ShellPage({ title, actions, children }: ShellPageProps): React.J
           {title ?? (screen?.title ? t(screen.title) : tenant.shopName)}
         </PageTitle>
       )}
-      <SectionChips />
+      {screen?.back ? null : <SectionChips />}
       {children}
     </PageFrame>
   );

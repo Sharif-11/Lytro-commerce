@@ -91,8 +91,28 @@ function levelOf(used: number, limit: number | null, serving: boolean): number |
   return [100, 95, 80, 50].find((step) => share >= step) ?? null;
 }
 
-/** GET /usage for the fixture: the drawn shop where it says nothing else. */
-export function usageAnswer(fixture: UsageFixture = {}): unknown {
+// The metric each limit add-on raises, and by how much of the metric's own unit one adds (LIM-02).
+const RAISED_BY: Record<string, { metric: Metric; per: (unitSize: number) => number }> = {
+  products: { metric: 'products', per: (unitSize) => unitSize },
+  staff: { metric: 'seats', per: (unitSize) => unitSize },
+  storage_mb: { metric: 'storage', per: (unitSize) => unitSize / 1024 },
+};
+
+/** What the add-ons the shop has add to a metric's limit, as the server counts them in. */
+function addedBy(owned: readonly OwnedFixture[], metric: Metric): number {
+  return owned.reduce((sum, each) => {
+    const item = CATALOGUE.find((entry) => entry.key === each.key);
+    const raises = item?.limitKey ? RAISED_BY[item.limitKey] : undefined;
+    if (!item || !raises || raises.metric !== metric) return sum;
+    return sum + raises.per(item.unitSize ?? 0) * (each.quantity ?? 1);
+  }, 0);
+}
+
+/**
+ * GET /usage for the fixture: the drawn shop where it says nothing else, its limits raised by the add-ons it has
+ * unless a test gives the limit whole.
+ */
+export function usageAnswer(fixture: UsageFixture & AddonsFixture = {}): unknown {
   const firstDay = dhakaDay(Date.now() - 20 * DAY_MS);
   const cycleStart = new Date(`${firstDay}T00:00:00+06:00`).toISOString();
   const cycleEnd = new Date(Date.parse(cycleStart) + 31 * DAY_MS).toISOString();
@@ -103,7 +123,10 @@ export function usageAnswer(fixture: UsageFixture = {}): unknown {
     const scale = BYTES.has(metric) ? GB : 1;
     const used = (fixture.used?.[metric] ?? DRAWN_USED[metric]) * scale;
     const given = fixture.limits?.[metric];
-    const limit = given === null ? null : (given ?? DRAWN_LIMITS[metric]) * scale;
+    const limit =
+      given === null
+        ? null
+        : (given ?? DRAWN_LIMITS[metric] + addedBy(fixture.owned ?? [], metric)) * scale;
     const serving = SERVING.has(metric);
     const days = serving ? fixture.runsOutDays?.[metric as 'bandwidth' | 'requests'] : undefined;
     return {
@@ -259,19 +282,115 @@ export const CATALOGUE: CatalogueItem[] = [
   },
 ];
 
+/** An add-on the shop has (GET /addons/mine), by its catalogue key. */
+export interface OwnedFixture {
+  key: string;
+  quantity?: number;
+  /** How it renews: with_plan, from_balance, off, retired, unlimited or balance_short. */
+  renewal?: string;
+  /** Days to its end; 20, the drawn shop's period, when left out. */
+  endsInDays?: number;
+  /** Within 7 days of an end it will not renew past. */
+  endsSoon?: boolean;
+}
+
+/** The add-ons screen's state (Slice 11.5c), where a test needs it to differ from a shop with none. */
+export interface AddonsFixture {
+  owned?: OwnedFixture[];
+  /** What is left of the packs: GB of bandwidth, requests. */
+  packsLeft?: { bandwidth?: number; requests?: number };
+  /** An item's reason it cannot be bought, by key (a limit already unlimited on Pro, say). */
+  blocked?: Record<string, string>;
+  /** BIL-09: the server works out this amount for the next request instead of the one shown, and says so once. */
+  amountChangedTo?: string | null;
+}
+
+/** Where the shop stands, as the add-on routes see it: a trial and grace buy none, pay-as-you-go its own 30 days. */
+export interface Standing {
+  trial?: boolean;
+  grace?: boolean;
+  payg?: boolean;
+}
+
+function itemOf(key: string): CatalogueItem {
+  const item = CATALOGUE.find((each) => each.key === key);
+  if (!item) throw new Error(`no add-on ${key}`);
+  return item;
+}
+
+/** GET /addons/mine for the fixture. */
+export function shopAddonsAnswer(fixture: AddonsFixture & UsageFixture = {}): unknown {
+  const owned = (fixture.owned ?? []).map((each) => {
+    const item = itemOf(each.key);
+    const renewal = each.renewal ?? 'with_plan';
+    return {
+      id: `p-${each.key}`,
+      addonId: item.id,
+      key: item.key,
+      kind: item.kind,
+      labelEn: item.labelEn,
+      labelBn: item.labelBn,
+      limitKey: item.limitKey,
+      unitSize: item.unitSize,
+      quantity: each.quantity ?? 1,
+      startsAt: new Date(Date.now() - 10 * DAY_MS).toISOString(),
+      expiresAt: new Date(Date.now() + (each.endsInDays ?? 20) * DAY_MS).toISOString(),
+      renews: renewal !== 'off',
+      renewal,
+      endsSoon: each.endsSoon ?? false,
+    };
+  });
+  return {
+    addons: owned,
+    brandIdentity: owned.some((each) => each.key === 'brand_identity'),
+    packs: [
+      {
+        metric: 'bandwidth',
+        left: Math.round((fixture.packsLeft?.bandwidth ?? 0) * GB),
+        autoBuy: fixture.autoBuy?.bandwidth ?? false,
+      },
+      { metric: 'requests', left: fixture.packsLeft?.requests ?? 0, autoBuy: false },
+    ],
+  };
+}
+
+/** UPG-14: what the plan's renewal carries -- every add-on set to renew with it -- as GET /billing/prices lists it. */
+export function renewingAddons(fixture: AddonsFixture = {}): unknown[] {
+  return (fixture.owned ?? [])
+    .filter((each) => ['with_plan', 'balance_short', undefined].includes(each.renewal))
+    .map((each) => {
+      const item = itemOf(each.key);
+      const quantity = each.quantity ?? 1;
+      return {
+        addonId: item.id,
+        key: item.key,
+        labelEn: item.labelEn,
+        quantity,
+        amount: `${String(item.price * quantity)}.00`,
+      };
+    });
+}
+
 /**
  * GET /addons: each item priced as the server prices it -- 20 of the period's 30 days left, each quantity rounded once
- * on its total; a pack its whole price -- or, on a trial, nothing for sale and why.
+ * on its total; on pay-as-you-go a whole month for its own 30 days; a pack its whole price -- or no price and why: a
+ * trial or grace buys none, a feature the shop has is not sold twice.
  */
-export function addonOffers(fixture: UsageFixture = {}): unknown {
+export function addonOffers(fixture: AddonsFixture & UsageFixture & Standing = {}): unknown {
   return CATALOGUE.map((item) => {
     const addon = { ...item, price: `${String(item.price)}.00`, retiredAt: null };
-    if (fixture.trial) {
+    const has = (fixture.owned ?? []).some((each) => each.key === item.key);
+    const blockedBy =
+      fixture.trial || fixture.grace
+        ? 'AddonNotAvailable'
+        : (fixture.blocked?.[item.key] ??
+          (item.kind === 'feature' && has ? 'AddonAlreadyActive' : null));
+    if (blockedBy) {
       return {
         addon,
         price: null,
         expiresAt: null,
-        blockedBy: 'AddonNotAvailable',
+        blockedBy,
         amounts: [],
         daysLeft: null,
         renewalPrice: null,
@@ -279,16 +398,18 @@ export function addonOffers(fixture: UsageFixture = {}): unknown {
     }
     const pack = item.kind === 'pack';
     const most = item.kind === 'feature' ? 1 : 10;
+    const share = fixture.payg ? 1 : 20 / 30;
     const amounts = Array.from({ length: most }, (_, index) =>
-      pack ? item.price * (index + 1) : Math.round((item.price * (index + 1) * 20) / 30),
+      pack ? item.price * (index + 1) : Math.round(item.price * (index + 1) * share),
     );
+    const days = fixture.payg ? 30 : 20;
     return {
       addon,
       price: amounts[0],
-      expiresAt: pack ? null : new Date(Date.now() + 20 * DAY_MS).toISOString(),
+      expiresAt: pack ? null : new Date(Date.now() + days * DAY_MS).toISOString(),
       blockedBy: null,
       amounts,
-      daysLeft: pack ? null : 20,
+      daysLeft: pack ? null : days,
       renewalPrice: pack ? null : item.price,
     };
   });

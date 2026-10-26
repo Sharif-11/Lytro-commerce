@@ -1281,6 +1281,27 @@ their backend ships earlier.
     Balance, Billing and Renew (the prototype's own lines are unchanged) take the owner's fuller wording, written with
     Western digits as everywhere else; the English is unchanged. Each Bangla line now names the same values as its
     English one, checked when the words are made.
+  - **11.5c's Add-ons, built:** the first line says which add-ons renew with the plan, on which day and for how much
+    (the server's own list of what the renewal carries), or on pay-as-you-go that each renews from the balance at its
+    own end; a banner that needs the seller takes its place -- the trial, grace with Renew, an add-on payment being
+    checked or rejected, an add-on ending within 7 days with renewal off (by kind, with the limit it returns to, and
+    Turn renewal on) -- and on pay-as-you-go a balance too short for the next renewal says so under it, with Top up.
+    Raise a limit, Packs and Features list each item with its price and one action: Buy, the renewal switch (turning
+    it off first says when it ends and what happens to what is over the limit then), Needs a plan, Renew first, or
+    none; an add-on no longer sold stays listed until it ends. The Buy sheet: how many, up to 10; the limit before and
+    after; due now as the server works it out for that many and the days left, then what it renews for; from the
+    balance, greyed with Top up when short, or by the platform's wallets, whose step opens in the sheet; the renewal
+    switch goes with the request. The pack sheet: the two packs, from the balance only, with both auto-buy switches. A
+    changed amount is said and asked again, nothing charged (BIL-09). Plan and the pay-as-you-go page carry an add-ons
+    card with what the shop has and the way to all of them. The Bangla follows the owner's style (familiar terms
+    transliterated, explanations as plain sentences). Named fixes: the trial banner leaves out designing the brand now,
+    and an active brand identity's row has its renewal switch, both until the brand editor (11.12) brings Set up; the
+    wallet choice names the platform's own wallets; the shell's trial and grace banners show above the page's own, as
+    on every screen; in grace a row names no end of its own, the banner giving the grace's; the products ending banner
+    names its limit as the storage one is drawn to; the quantity's minus greys at one; the wallet step's amount note
+    says the add-on, not the plan, turns on once a different amount is checked. Two shared fixes the screens showed: a
+    page below its section (Add-ons, below Usage) draws no section chips, and on a phone a dialog now sits where the
+    sketch puts it whatever its height (centred above the 40% margin), where since 11.5b it sat 40% above the bottom.
 
 ### Slice 12: shared storefront and product landing pages
 - **Depends on:** Slices 0, 0b, 7 and 9 (and branding from Phase 1).

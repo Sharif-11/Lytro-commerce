@@ -1,4 +1,5 @@
-import type { AddonKind } from '@lytronix/validators';
+import type { AddonKind, AddonRenewal, UsageMetric } from '@lytronix/validators';
+import type { Invoice, PlanPayment } from './billing';
 
 /** Mirrors `AddonRecord` in apps/server/src/modules/billing/types/addon.ts: one item of the catalogue (PLN-13). */
 export interface Addon {
@@ -28,4 +29,51 @@ export interface AddonOffer {
   daysLeft: number | null;
   /** Whole taka one costs for a whole next period. */
   renewalPrice: number | null;
+}
+
+/** GET /addons/mine: an add-on the shop has now, how it will renew, and whether its end is near without renewing. */
+export interface ShopAddon {
+  /** The purchase's id, which its renewal switch names. */
+  id: string;
+  addonId: string;
+  key: string;
+  kind: AddonKind;
+  labelEn: string;
+  labelBn: string;
+  limitKey: string | null;
+  unitSize: number | null;
+  quantity: number;
+  startsAt: string | null;
+  expiresAt: string;
+  renews: boolean;
+  renewal: AddonRenewal;
+  endsSoon: boolean;
+}
+
+/** What is left of the shop's packs for a metric (bytes of bandwidth, or requests), and its auto-buy switch. */
+export interface ShopPack {
+  metric: UsageMetric.Bandwidth | UsageMetric.Requests;
+  left: number;
+  autoBuy: boolean;
+}
+
+/** GET /addons/mine (PLN-14, BRN-05, PLN-15). */
+export interface ShopAddons {
+  addons: ShopAddon[];
+  brandIdentity: boolean;
+  packs: ShopPack[];
+}
+
+/** POST /addons/quote: the request, made when the seller commits (BIL-09). */
+export interface AddonQuote {
+  payment: PlanPayment;
+  addon: Addon;
+  quantity: number;
+  expiresAt: string;
+}
+
+/** POST /addons/purchase and /addons/packs: the payment, and its invoice once paid (none while a wallet's is checked). */
+export interface AddonPurchaseResult {
+  payment: PlanPayment;
+  invoice: Invoice | null;
 }

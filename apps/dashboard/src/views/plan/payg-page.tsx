@@ -20,6 +20,7 @@ import { useShell } from '@/shell/shell-context';
 import { ShellPage } from '@/shell/shell-page';
 import { usePaymentNotices } from '@/views/billing/notices';
 import { PaymentBanner } from '@/views/billing/payment-banner';
+import { AddonsCard } from '@/views/addons/addons-card';
 import { HowToPaySheet } from './how-to-pay-sheet';
 import { CurrentCard, Disclosure, PlanCard, PlanRow, TightStat, TightStats } from './parts';
 import { taka, useLimitLines } from './words';
@@ -175,6 +176,7 @@ export function PaygPage({ openPlanId }: { openPlanId: string | null }): React.J
           </div>
         </div>
         <div className="flex min-w-0 flex-col gap-4">
+          <AddonsCard />
           {viewer.isOwner ? (
             <Disclosure title={t('pyCloseTitle')}>
               <p className="mt-2 mb-3 text-[14px] text-fg-muted">{t('pyCloseNote')}</p>
