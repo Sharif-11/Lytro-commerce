@@ -1234,6 +1234,31 @@ their backend ships earlier.
     submitted rather than that a payment page was opened; Plan's being-checked banner leaves out the new end date, which
     the payment does not carry; amounts below zero read "−৳85.85"; dates write September "Sep", as the sketch does,
     not en-GB's "Sept" (Home's figures too).
+  - **11.5c, Usage and Add-ons, agreed 2026-10-26** (the read's ten points, "yes, as proposed"): the states the
+    screens need that were not drawn are sketched first; then one pull request in three commits -- the server's
+    additions, Usage, then Add-ons with the add-ons cards on Plan and the pay-as-you-go page. Agreed with it:
+    1. `GET /addons` says why an item cannot be bought now (trial, grace, a limit the plan no longer has, a feature
+       already on), its amount due for each quantity up to 10 (the price is rounded once on the total, so two are not
+       always twice one), its days left and its renewal price; the add-on request takes the renewal switch; a pack
+       purchase carries the amount shown and is refused when it differs, as every other request is (BIL-09).
+    2. `GET /usage` gives the run-out date of bandwidth and requests, worked out by the same rule as the email's, and
+       each suggested add-on names its metric, so "To raise it" is per metric.
+    3. An add-on is paid from the balance or by bKash or Nagad, whose wallet step opens in the sheet, until Phase 5's
+       page, as plans are.
+    4. Usage shows both auto-buy switches, with what auto-buy did; one banner, for the metric nearest its stop, says
+       an email went only when the owner has an email address, and an SMS only where one goes.
+    5. `/addons?buy=<key>` and `/addons?pack=bandwidth|requests` open the sheets; brand identity can be bought now
+       and its Set up comes with the brand editor (11.12); an active add-on's row keeps its switch, as drawn.
+  - **11.5c's sketch, 2026-10-26** (prototype Part 10, design doc v2.6), the states the screens need that were not
+    drawn: Usage's banner for each metric and level (requests at 95%, bandwidth at 100% while it still serves, seats
+    and storage full, the free SMS used up), the run-out date only when the allowance runs out inside the cycle, "To
+    raise it" with the suggested plan beside each add-on, the two auto-buy switches, auto-buy that could not pay and
+    auto-buy at its cap; an add-on renewing from the balance, a balance too short to renew it, one no longer sold or
+    not needed after a move to Pro, buying in grace, paying by bKash or Nagad with the wallet step, a changed amount
+    and a changed pack price, a pack with a short balance, the ending banner and the renewal-off dialog for storage,
+    a seat and brand identity, an add-on payment being checked or rejected, and the pay-as-you-go page's add-ons
+    renewing from the balance. The copy leaves out the requirement ids and the stale "Slice 10a.2" chip; the default
+    usage sample now has the products banner as its worst metric, which the one-banner rule needs.
 
 ### Slice 12: shared storefront and product landing pages
 - **Depends on:** Slices 0, 0b, 7 and 9 (and branding from Phase 1).

@@ -1,6 +1,10 @@
 # Tenant dashboard: the full design
 
-Status: v2.5, 2026-10-26 (the states Slice 11.5b builds that v2.4 left undrawn, prototype Part 9: Billing's Cancelled
+Status: v2.6, 2026-10-26 (Usage and Add-ons as Slice 11.5c builds them, prototype Part 10: one usage banner by metric
+and level, the run-out date and "To raise it" per metric from the server, the two auto-buy switches and what auto-buy
+did, each way an add-on renews or ends, buying in grace, paying for an add-on by bKash or Nagad, a changed amount or
+pack price, a pack with a short balance, the ending banner and the renewal-off dialog by kind, an add-on payment being
+checked or rejected; v2.5 of 2026-10-26 drew the states Slice 11.5b builds: Billing's Cancelled
 state and the Cancel on an awaiting request, the upgrade sheet when the amount changed, the Renew page of an archived
 shop with its deletion date, Sign out on the two shell-less pages, and the pay-as-you-go page as built; v2.4 of
 2026-10-23 made Billing, §7.13, replace the Invoices section; v2.3 of 2026-10-22 brought the document up to the
@@ -517,8 +521,8 @@ and state chip, term, the figures days left and next payment (orders handled joi
 for the state (Renew for ৳…, Pick a plan, Keep the plan), "See billing" (§7.13), the auto-renew switch (BIL-17; its
 read is a backend addition, §10). **Change plan**: term chips (TRM-12), plan cards (price, monthly equivalent,
 four limits, the one allowed move), the dashed pay-as-you-go card. The **add-ons** card: what is active, what
-renews with the plan and for how much, the packs left, See all (§7.25). Stop the subscription as a disclosure at
-the foot.
+renews with the plan and for how much, the packs left, See all (§7.25); on the pay-as-you-go page each add-on
+renews from the balance. Stop the subscription as a disclosure at the foot.
 
 **Sheets.** *How to pay* (BIL-02, BIL-08): from the balance when it covers the price, else greyed with
 the reason, or on the payment page with the four wallet marks; the line that nothing changes before the
@@ -769,39 +773,75 @@ size-chart images.
 **Job.** See how close the shop is to each limit, and get room before anything stops (LIM-01, LIM-02).
 
 **Layout.** The cycle's dates. One card per metric: products, seats and storage (totals), bandwidth, API requests
-and free SMS (each cycle), each "used / limit" with its bar; for bandwidth and requests the run-out date at the
-current pace, worked out from the daily figures; and "To raise it:" naming the add-on or pack and the plan that
-would give room. The auto-buy switch for packs at 100% (BND-04, RTE-11). Bandwidth and requests a day as bar
-charts (BND-08). A banner by level: at 80% the run-out date with Turn on auto-buy (`usage-80`); at 95% with Buy
-10 GB · ৳30 (`usage-warning`); past the grace what has stopped (images on the storefront, or the catalogue API),
-that nothing past the limit is charged, and the one-tap pack (`usage-stopped`). A refusal at a limit (products,
-seats, storage) is the banner of §7.3; the 30 days after a downgrade sit on Plan (§7.12).
+and free SMS (each cycle), each "used / limit" with its bar (amber from 80%, red from 95%). For bandwidth and
+requests, when the cycle's pace would use the allowance before the cycle ends, the date it runs out ("at this pace,
+runs out 22 Oct"): the server's figure, the same one the email gives. From 80%, "To raise it:" names that metric's
+add-on or pack, taken from the server's suggestion, and the suggested plan (free SMS has no add-on, so the plan
+alone; talking to Lytro when no plan fits); each opens its sheet or the upgrade. **Auto-buy**: the two switches,
+bandwidth and requests, with what auto-buy did this cycle -- could not buy because the balance was short, or has
+bought its 3 packs (BND-04, RTE-11). Bandwidth and requests a day as bar charts (BND-08).
 
-**Content.** `GET /usage` (each metric with its allowance, packs left and stop, the daily bandwidth, the
-suggestions, the packs on offer and auto-buy), `GET /addons` for the per-metric line, `PATCH /addons/auto-buy`,
-`POST /addons/packs`.
+**The banner** is one, for the metric nearest its stop -- past the grace, then 100%, 95% and 80%; a tie goes to the
+card order -- worded by metric and level (prototype Part 10):
+- at 80% or 95% of a total, the room left (`usage`); of bandwidth or requests, the run-out date or that the allowance
+  lasts the cycle, with Turn on auto-buy at 80% (`usage-80`) and the one-tap pack at 95% (`usage-warning`,
+  `usage-requests-95`);
+- bandwidth or requests at 100%, how far it keeps serving and that the extra is never charged, with the pack
+  (`usage-100`); past the grace, what has stopped (`usage-stopped`);
+- a full total, what is blocked, with its add-on (`usage-seats-full`, `usage-storage-full`); the free SMS used up,
+  what further essential SMS cost from the balance (`usage-sms-used`);
+- auto-buy that could not pay, with Top up (`usage-autobuy-failed`), or at its cap (`usage-autobuy-capped`).
+"An email went too" only when the owner has an email address; "a free SMS" only for bandwidth and requests at 100%
+and at the stop, the notices that go by SMS (LIM-01). Read-only staff see the banner without its link. A refusal at a
+limit (products, seats, storage) is the banner of §7.3; the 30 days after a downgrade sit on Plan (§7.12).
+
+**Content.** `GET /usage` (each metric with its allowance, packs left, stop and run-out date; the daily bandwidth and
+requests; the suggestions, each add-on in them with its metric; the packs on offer and auto-buy),
+`PATCH /addons/auto-buy`, `POST /addons/packs`.
 
 ### 7.25 Add-ons and packs (`/addons`)
 
 **Job.** Raise one limit, top up bandwidth or requests, or switch on the brand, without changing plans (PLN-13 to
 PLN-15, BRN-05).
 
-**Layout.** The line "3 add-ons active · renew with the plan on 9 Nov for ৳347". Groups: **Raise a limit**
-(products, a seat, storage), **Packs** (bandwidth, requests: "adds once and carries over until used", with what
-is left), **Features** (brand identity, with Set up). Each row: its price a month or per pack, then Active with
-its end and how it renews, or Buy. The **auto-buy** switches with "at most 3 packs a cycle by themselves; with no
-balance it stops".
+**Layout.** The line "3 add-ons active · renew with the plan on 9 Nov for ৳347": the add-ons that renew with the plan
+and what their renewal adds; on pay-as-you-go, "each renews from the balance at its own end". Groups: **Raise a
+limit** (products, a seat, storage), **Packs** (bandwidth, requests: "adds once and carries over until used", with
+what is left), **Features** (brand identity, with Set up). Each row: its price a month or per pack, then Active with
+its end and how it renews, or Buy. How an add-on renews: with the plan; from the balance, every 30 days, on
+pay-as-you-go or a plan with no end (`addons-payg`); "balance too short to renew"; renewal off, with its end. One that
+is no longer sold, or not needed on the plan the shop moved to, ends without renewing and has no switch
+(`addons-ending`). An active add-on's row keeps its switch; more of it comes from Usage's "To raise it". The
+**auto-buy** switches with "at most 3 packs a cycle by themselves; with no balance it stops".
 
 **Sheets.** *Buy* (`POST /addons/quote`, then `POST /addons/purchase`): how many (up to [10], a feature once), the
-limit before and after, due now for the days left and then the price with the plan; from the balance (active at
-once) or by the wallet step until Phase 5 (active when confirmed); the renewal switch; a short balance names the
-shortfall with Top up. *Buy a pack* (`POST /addons/packs`): the two packs, from the balance only, with the
-auto-buy switches. *Turn renewal off* (`PATCH /addons/mine/:id`): when it ends and what happens to what is over
-the limit (LIM-03). **Banners and toasts:** an add-on ending in 7 days with renewal off, with Turn renewal on; the
-toast after a purchase with the new limit and the invoice. **States:** on the trial every row reads "Needs a
-plan", and the brand can be designed but not switched on.
+limit before and after, due now for the days left -- the server's own amount for that quantity, since the price is
+rounded once on the total -- and then the price with the plan (on pay-as-you-go, from the balance every 30 days,
+`sh-addon-buy-payg`); from the balance (active at once) or by bKash or Nagad, whose wallet step opens in the sheet
+(active when confirmed, `sh-addon-wallet`) until Phase 5's page; the renewal switch, sent with the request. A short
+balance greys the balance and names the shortfall with Top up (`sh-addon-buy-low`). When the amount worked out as
+the seller commits differs from the one shown, the sheet says the new amount and asks again, nothing charged
+(`sh-addon-buy-changed`, BIL-09). *Buy a pack* (`POST /addons/packs`, with the amount shown): the two packs, from the
+balance only, with the auto-buy switches; a short balance says so with Top up and the button greys
+(`sh-pack-buy-low`); a price changed since it was shown is said as above (`sh-pack-buy-changed`). *Turn renewal off*
+(`PATCH /addons/mine/:id`): when it ends and what happens to what is over the limit, by kind (LIM-03;
+`sh-addon-renew-off`, `sh-addon-renew-off-seat`, `sh-addon-renew-off-brand`).
 
-**Content.** `GET /addons`, `GET /addons/mine`, and the routes above.
+**Banners and toasts:** an add-on ending in 7 days with renewal off, with Turn renewal on, saying what happens by
+kind (`addons-lapsing`, `addons-lapsing-storage`, `addons-lapsing-brand`); one set to renew from a balance too short
+for it, with Top up (`addons-payg`); an add-on paid by wallet being checked, or rejected with support's note and
+Details (`addons-checking`, `addons-rejected`), read from the payments list as Plan's banners are; the toast after a
+purchase with the new limit and the invoice, or after a wallet payment is sent (`addons-sent`). **States:** on the
+trial every row reads "Needs a plan", and the brand can be designed but not switched on; in grace every Buy reads
+"Renew first" and what the shop has keeps working until the grace ends (`addons-grace`). Read-only staff see the
+rows without Buy or the switches.
+
+**Links.** `/addons?buy=<key>` opens the Buy sheet and `/addons?pack=bandwidth|requests` the pack sheet; Usage, Plan
+and the pay-as-you-go page link there now, and Team, the media sheet and the brand editor will when they are built.
+Brand identity's Set up opens the brand editor once it exists (Slice 11.12).
+
+**Content.** `GET /addons` (each item with why it cannot be bought now, the amount due for each quantity, the days
+left and the renewal price), `GET /addons/mine`, and the routes above.
 
 ### 7.26 API keys (`/settings/api-keys`)
 
@@ -928,6 +968,7 @@ brand identity.
 | The payment needing the seller (rejected or lapsed, not yet paid again) on `GET /home` | billing | the Home queue row (§7.1) | built (#213) |
 | `GET /billing/prices?billingTermId=`: each plan's move and amount for the shop now, exactly as its request would make it, with no payment made; the amount the seller saw sent with each request, refused when it differs; Cancel; one open request per kind | billing | §7.11 to §7.13, §7.18, the Renew page (BIL-09, BIL-19, UPG-08) | built (11.5a.1) |
 | The term a paid plan runs on and a lapsed shop's deletion date on `/me`; the pay-as-you-go fees this month on `GET /balance`; each day's API requests on `GET /usage` | identity, balance, usage | §7.12 (the plan card, the pay-as-you-go page), §7.20's Renew page, §7.24's requests chart and run-out date | built (11.5a.2) |
+| On `GET /addons`, why an item cannot be bought now, the amount due for each quantity, the days left and the renewal price; the renewal switch on the add-on request; the amount seen on `POST /addons/packs`; on `GET /usage`, the run-out date of bandwidth and requests (the email's own rule) and the metric of each suggested add-on | billing, usage | §7.24, §7.25 (PLN-14, PLN-15, BIL-09, LIM-01) | 11.5c |
 | Invoice PDF | billing | BIL-13 | later |
 | Pay-as-you-go estimate | billing | PYG-12 (needs order history) | later |
 | The notifications feed behind the bell | notifications | §8 (NTF-01) | Phase 7 |
