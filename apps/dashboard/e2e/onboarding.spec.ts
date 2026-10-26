@@ -46,7 +46,7 @@ test('walks a new owner from the website to Home: code, shop, checkout, password
   await expect(page.getByText('৳4,741').first()).toBeVisible();
   // The payment request is made on Continue, with the amount shown, never for each chip (BIL-09).
   expect(log.calls.some((call) => call.path === '/billing/quote')).toBe(false);
-  await page.getByRole('button', { name: 'এগিয়ে যান · ৳4,741' }).click();
+  await page.getByRole('button', { name: 'কন্টিনিউ করুন · ৳4,741' }).click();
   await expect(page.getByText('01700 000 000')).toBeVisible();
   expect(log.sent('POST', '/billing/quote')).toEqual({
     planId: STARTER,

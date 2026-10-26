@@ -733,7 +733,7 @@ const STEPS: Pair[] = [
     draw: drawWalletCheckout,
     // The request is made on Continue (BIL-09), which opens the wallet step the sketch draws.
     then: async (page) => {
-      await page.getByRole('button', { name: 'এগিয়ে যান · ৳4,741' }).click();
+      await page.getByRole('button', { name: 'কন্টিনিউ করুন · ৳4,741' }).click();
       await page.getByLabel(/TrxID/).waitFor();
     },
   },

@@ -1302,6 +1302,10 @@ their backend ships earlier.
     says the add-on, not the plan, turns on once a different amount is checked. Two shared fixes the screens showed: a
     page below its section (Add-ons, below Usage) draws no section chips, and on a phone a dialog now sits where the
     sketch puts it whatever its height (centred above the 40% margin), where since 11.5b it sat 40% above the bottom.
+  - **The Money screens' Bangla, the owner's second revision (2026-10-27):** 44 of the lines the dashboard writes
+    itself on Plan, Balance, Billing and Renew take the owner's style -- familiar terms transliterated (শপ, রিকোয়েস্ট,
+    ভেরিফাই, অ্যাক্টিভ, টপ-আপ, গ্রেস পিরিয়ড), explanations kept as plain sentences; Western digits, the English and
+    every line's values unchanged.
 
 ### Slice 12: shared storefront and product landing pages
 - **Depends on:** Slices 0, 0b, 7 and 9 (and branding from Phase 1).

@@ -50,12 +50,12 @@ test("shows a paid plan's card, its term, and each plan's one move, without aski
   await expect(main(page).getByRole('button', { name: 'মেয়াদ শেষে বদলান' })).toBeVisible();
   await expect(
     main(page).getByText(
-      'প্রতি অর্ডারে ৳20 বা অর্ডার মূল্যের 1.5%—যেটি বেশি · প্রতি নতুন প্রোডাক্টে ৳10',
+      'প্রতি অর্ডারে ৳20 বা অর্ডার ভ্যালুর 1.5%—যেটি বেশি · প্রতি নতুন প্রোডাক্টে ৳10',
     ),
   ).toBeVisible();
   await expect(main(page).getByText('25টি প্রোডাক্ট')).toBeVisible();
   // Choosing another term reads that term's figures, still without a request.
-  await main(page).getByRole('button', { name: '3 মাস · 5% ছাড়' }).click();
+  await main(page).getByRole('button', { name: '3 মাস · 5% ডিসকাউন্ট' }).click();
   await expect(main(page).getByText('৳1,280', { exact: true }).first()).toBeVisible();
   expect(quoted(log)).toBe(false);
   expect(log.calls.some((call) => call.path === '/billing/prices')).toBe(true);
@@ -70,7 +70,7 @@ test('renews by wallet: the request is made on Continue, with the amount shown',
   const fromBalance = sheet(page).getByRole('radio', { name: /ব্যালেন্স থেকে/ });
   await expect(fromBalance).toHaveAttribute('aria-disabled', 'true');
   await expect(fromBalance).toContainText(
-    'আপনার ব্যালেন্স পর্যাপ্ত নয়। ব্যালেন্সে টাকা যোগ করুন অথবা bKash বা Nagad দিয়ে পেমেন্ট করুন।',
+    'আপনার ব্যালেন্স পর্যাপ্ত নেই। ব্যালেন্স টপ-আপ করুন অথবা bKash বা Nagad দিয়ে পেমেন্ট করুন।',
   );
   await expect(sheet(page).getByRole('radio', { name: /^bKash বা Nagad দিয়ে/ })).toHaveAttribute(
     'aria-checked',
@@ -78,7 +78,7 @@ test('renews by wallet: the request is made on Continue, with the amount shown',
   );
   expect(quoted(log)).toBe(false);
 
-  await sheet(page).getByRole('button', { name: 'এগিয়ে যান · ৳449' }).click();
+  await sheet(page).getByRole('button', { name: 'কন্টিনিউ করুন · ৳449' }).click();
   await expect(sheet(page).getByLabel(/TrxID/)).toBeVisible();
   expect(log.sent('POST', '/billing/quote')).toEqual({
     planId: STARTER,
@@ -89,7 +89,7 @@ test('renews by wallet: the request is made on Continue, with the amount shown',
   await sheet(page).getByLabel('যে নম্বর থেকে পাঠিয়েছেন').fill('1711234567');
   await sheet(page).getByRole('button', { name: 'পেমেন্ট জমা দিন' }).click();
   await expect(
-    page.getByRole('status').filter({ hasText: 'আপনার পেমেন্ট যাচাই করা হচ্ছে' }),
+    page.getByRole('status').filter({ hasText: 'আপনার পেমেন্ট ভেরিফাই করা হচ্ছে' }),
   ).toBeVisible();
   expect(log.sent('POST', '/billing/purchase')).toMatchObject({
     paymentId: 'payment-1',
@@ -134,7 +134,7 @@ test('upgrades, and says so when the amount changed before the tap, charging not
 
   await sheet(page).getByRole('button', { name: 'ব্যালেন্স থেকে ৳415 দিন' }).click();
   await expect(
-    page.getByRole('status').filter({ hasText: 'Growth প্ল্যান চালু হয়েছে' }),
+    page.getByRole('status').filter({ hasText: 'Growth প্ল্যান অ্যাক্টিভ হয়েছে' }),
   ).toBeVisible();
   expect(log.sent('POST', '/billing/upgrade/quote')).toMatchObject({ planId: GROWTH, amount: 415 });
   expect(log.sent('POST', '/billing/upgrade/confirm')).toEqual({
@@ -174,15 +174,15 @@ test("stops the subscription at the period's end, naming each step's day", async
   await main(page).getByText('সাবস্ক্রিপশন বন্ধ করতে চান?').click();
   await expect(
     main(page).getByText(
-      /3 দিন পর শুধু দেখা যাবে, কোনো পরিবর্তন করা যাবে না। 60 দিন পর দোকানের ডেটা মুছে ফেলা হবে/,
+      /3 দিন পর শুধু দেখা যাবে, কোনো পরিবর্তন করা যাবে না। 60 দিন পর শপের ডেটা ডিলিট হবে/,
     ),
   ).toBeVisible();
   await main(page).getByRole('button', { name: 'মেয়াদ শেষে ক্যানসেল' }).click();
   for (const step of [
-    /প্ল্যানের মেয়াদ শেষ · 3 দিনের অতিরিক্ত সময়/,
+    /প্ল্যান এক্সপায়ার হবে · 3 দিনের গ্রেস পিরিয়ড/,
     /^3 দিন পর: শুধু দেখা যাবে/,
-    /^7 দিন পর: দোকান লক হবে/,
-    /^60 দিন পর: দোকানের ডেটা/,
+    /^7 দিন পর: শপ লক হবে/,
+    /^60 দিন পর: শপের ডেটা/,
   ]) {
     await expect(sheet(page).getByText(step)).toBeVisible();
   }
@@ -204,7 +204,7 @@ test('a stopping subscription says when it ends, and is undone from the banner o
   await expect(main(page).getByText('ব্যালেন্স থেকে অটো-রিনিউ')).toHaveCount(0);
   await main(page).getByRole('button', { name: 'ফিরিয়ে নিন' }).click();
   await expect(
-    page.getByRole('status').filter({ hasText: 'পরিবর্তন বাতিল করা হয়েছে' }),
+    page.getByRole('status').filter({ hasText: 'চেঞ্জ ক্যানসেল করা হয়েছে' }),
   ).toBeVisible();
   expect(log.calls.some((call) => call.path === '/billing/cancel/undo')).toBe(true);
 });
@@ -221,7 +221,7 @@ test('a scheduled move down says what will be over the limit, and keeps the plan
   });
   const banner = main(page).getByRole('alert');
   await expect(banner).toContainText(
-    'Growth থেকে Starter প্ল্যানে যাচ্ছেন · 1টি লিমিটের বেশি ব্যবহার রয়েছে',
+    'Growth থেকে Starter প্ল্যানে ডাউনগ্রেড হবে · 1টি লিমিটের বেশি ইউজেজ রয়েছে',
   );
   await expect(banner).toContainText('প্রোডাক্ট: 340 / 100');
   await banner.getByRole('button', { name: 'Growth প্ল্যান রাখুন' }).click();
