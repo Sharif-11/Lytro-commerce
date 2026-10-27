@@ -125,6 +125,8 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'DELETE /categories/:id/size-chart': "another shop's category answers 404",
   'POST /products/:id/duplicate':
     "another shop's product answers 404; the copy is the session shop's own",
+  // Phase 3 Slice 11.7a, checked in test/catalogue-products.e2e.spec.ts.
+  'POST /products/:id/restore': "another shop's product answers 404 and stays archived",
   'PUT /products/:id/size-chart': "another shop's product answers 404",
   'DELETE /products/:id/size-chart': "another shop's product answers 404",
   'GET /option-sets': "lists the platform's option sets and only the session shop's own",

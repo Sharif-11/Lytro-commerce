@@ -1399,6 +1399,21 @@ their backend ships earlier.
     (Low and Out among the active ones, INV-08) by the one query both use. A product's `images` and `video` carry
     `bytes`, what each takes from the shop's storage as `/media` counts it, and the video its `durationMs` (STO-01,
     STO-09), for the media sheet's "this product 3.2 MB" and "Video · 0:42 · 14 MB".
+  - **11.7a, what the read missed, agreed 2026-10-27** (all as recommended):
+    1. Archiving keeps the drawn promise that a product can come back: the server restores an archived product,
+       counted against the limit again; an Archived chip after the five segments lists them, and an archived
+       product's page has Restore.
+    2. The media sheet's × takes a photo or the video off the product on Save, and deletes it when nothing else shows
+       it, so storage frees (PRD-11); a copy that shares it keeps it (PRD-18). What was uploaded and then left unsaved
+       is deleted too.
+    3. At the product limit, Add product and Duplicate show the limit banner at once, from the shop's usage, as a full
+       seat does; a refusal that races keeps what was typed and shows the banner in the editor.
+    Done without a question: the desktop list is the drawn rows (the read's "table" meant the same columns); the upload
+    limits come from the server, as the operator sets them (a video may be 150 MB; the sketch still says 100); and the
+    list's and editor's undrawn states are sketched in Part 13 before they are built.
+  - **11.7a's second reads, built:** `GET /products?archived=true` lists the archived products, and `counts` gains
+    `archived`; `POST /products/:id/restore` brings one back, refused with `plan_limit_reached` at the limit and in the
+    activity log (PRD-13, amended); `GET /media/usage` gives `imageMaxMb` and `videoMaxMb`.
 
 
 ### Slice 12: shared storefront and product landing pages

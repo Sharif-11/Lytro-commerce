@@ -125,7 +125,13 @@ export const productPageSchema = z.object({
   limit: z.number(),
   total: z.number(),
   pages: z.number(),
-  counts: z.object({ total: z.number(), active: z.number(), low: z.number(), out: z.number() }),
+  counts: z.object({
+    total: z.number(),
+    active: z.number(),
+    low: z.number(),
+    out: z.number(),
+    archived: z.number(),
+  }),
 });
 export class ProductPageDto extends createZodDto(productPageSchema) {}
 

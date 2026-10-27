@@ -59,6 +59,7 @@
     "product_created": "{{actor}} প্রোডাক্ট যোগ করেছেন",
     "product_deleted": "{{actor}} প্রোডাক্ট ডিলিট করেছেন",
     "product_images_saved": "{{actor}} প্রোডাক্টের ছবি বদলেছেন",
+    "product_restored": "{{actor}} আর্কাইভ থেকে প্রোডাক্ট ফিরিয়ে এনেছেন",
     "product_slug_changed": "{{actor}} প্রোডাক্টের লিংক বদলেছেন",
     "product_updated": "{{actor}} প্রোডাক্ট এডিট করেছেন",
     "product_variants_saved": "{{actor}} প্রোডাক্টের ভ্যারিয়েন্ট সেভ করেছেন",

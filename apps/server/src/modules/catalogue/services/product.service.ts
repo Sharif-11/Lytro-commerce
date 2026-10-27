@@ -198,6 +198,7 @@ export class ProductService {
       const { rows, total, counts } = await this.products.listProducts(tx, tenantId, {
         search: query.search,
         categoryId: query.categoryId,
+        archived: query.archived,
         active: query.active,
         stockState: query.stock,
         offset: (query.page - 1) * query.limit,
@@ -835,6 +836,32 @@ export class ProductService {
         hard,
       });
       await this.products.bumpVersion(tx, shop.id);
+    });
+  }
+
+  /**
+   * PRD-13: an archived product back in the list and on sale as it was, counted against the plan's limit again
+   * (PRD-04); one not archived is left as it is.
+   */
+  async restore(
+    shop: CatalogueShop,
+    productId: string,
+    actor: CatalogueActor,
+  ): Promise<ProductDetail> {
+    const who = await this.activity.resolve(shop.id, actor);
+    return this.transactions.run(async (tx) => {
+      await this.products.lockCatalogue(tx, shop.id);
+      const product = await this.products.findProduct(tx, shop.id, productId, true);
+      if (!product) throw new ApiError('not_found', 'ProductNotFound', {});
+      if (product.deletedAt !== null) {
+        await this.refuseOverLimit(tx, shop);
+        await this.products.updateProduct(tx, shop.id, productId, { deletedAt: null });
+        await this.record(tx, shop.id, who, AuditAction.ProductRestored, productId, {
+          name: product.name,
+        });
+        await this.products.bumpVersion(tx, shop.id);
+      }
+      return this.detail(tx, shop.id, productId);
     });
   }
 

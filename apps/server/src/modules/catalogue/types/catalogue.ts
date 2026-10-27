@@ -302,8 +302,8 @@ export interface ProductPage {
   total: number;
   pages: number;
   /**
-   * PRD-12, INV-08: the Products page's segments -- every product the search and category pick, the active ones, and
-   * the active ones low or out of stock -- whatever `active` and `stock` narrowed the page to.
+   * PRD-12, INV-08, PRD-13: the Products page's segments -- every product the search and category pick, the active
+   * ones, the active ones low or out of stock, and the archived ones -- whatever the page was narrowed to.
    */
   counts: ProductStateCounts;
 }

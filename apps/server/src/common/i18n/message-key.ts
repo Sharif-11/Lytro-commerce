@@ -378,6 +378,7 @@ export const MESSAGE_KEYS = [
   'ProductSlugChanged',
   'ProductDeleted',
   'ProductDuplicated',
+  'ProductRestored',
   'SizeChartSaved',
   'SizeChartRemoved',
   'OptionsAdded',

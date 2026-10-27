@@ -1055,6 +1055,10 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'Product copied. The copy stays hidden until you turn it on.',
     bn: 'প্রোডাক্ট কপি হয়েছে। চালু না করা পর্যন্ত কপিটি দোকানে দেখাবে না।',
   },
+  ProductRestored: {
+    en: 'Product restored. It is back in the list.',
+    bn: 'প্রোডাক্ট ফিরিয়ে আনা হয়েছে। এটা আবার লিস্টে আছে।',
+  },
   SizeChartSaved: {
     en: 'Size chart saved.',
     bn: 'সাইজ চার্ট সেভ হয়েছে।',

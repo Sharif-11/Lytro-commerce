@@ -63,10 +63,15 @@ export interface MediaPage {
   pages: number;
 }
 
-/** STO-01, STO-02: the shop's storage, now. A null limit is unlimited (PLN-19). */
+/**
+ * STO-01, STO-02: the shop's storage, now. A null limit is unlimited (PLN-19). With the largest file of each kind
+ * (STO-04, STO-05), which the operator may change, for the line under the upload.
+ */
 export interface StorageUsage {
   usedBytes: number;
   limitBytes: number | null;
+  imageMaxMb: number;
+  videoMaxMb: number;
 }
 
 /** BND-08: one Asia/Dhaka calendar day of the cycle's bandwidth. */

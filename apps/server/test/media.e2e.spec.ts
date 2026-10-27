@@ -5,7 +5,7 @@ import { Test } from '@nestjs/testing';
 import pg from 'pg';
 import sharp from 'sharp';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { PRODUCT_IMAGES_MAX } from '@lytronix/validators';
+import { PlatformSettingKey, PRODUCT_IMAGES_MAX } from '@lytronix/validators';
 import { AppModule } from '../src/app/app.module';
 import type { MessageKey } from '../src/common/i18n/message-key';
 import { translate } from '../src/common/i18n/messages';
@@ -15,6 +15,7 @@ import { MediaEraser } from '../src/modules/media/services/media-eraser';
 import { MediaProcessor } from '../src/modules/media/services/media-processor';
 import type { MediaDeletePayload } from '../src/modules/media/services/media.service';
 import { MEDIA_STORAGE } from '../src/modules/media/tokens';
+import { PlatformSettingsService } from '../src/modules/platform-settings/services/platform-settings.service';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { listenOn } from './support/bootstrap';
 import { MemoryStorage } from './support/memory-storage';
@@ -141,8 +142,15 @@ async function upload(
   return (await shop.get(`/media/${media.id}`)).body as MediaView;
 }
 
-async function usage(shop: ShopClient): Promise<{ usedBytes: number; limitBytes: number | null }> {
-  return (await shop.get('/media/usage')).body as { usedBytes: number; limitBytes: number | null };
+interface StorageUsage {
+  usedBytes: number;
+  limitBytes: number | null;
+  imageMaxMb: number;
+  videoMaxMb: number;
+}
+
+async function usage(shop: ShopClient): Promise<StorageUsage> {
+  return (await shop.get('/media/usage')).body as StorageUsage;
 }
 
 /** The deletion jobs enqueued for the shop's files, run as the worker would (MED-07). */
@@ -210,6 +218,20 @@ describeIfDatabase('uploading and processing an image (MED-03, STO-04)', () => {
     expect(fieldsOf(started)).toEqual({ bytes: 'too_large' });
     expect(errorOf(started).message).toBe(said('ImageTooLarge', { mb: 5 }));
     expect(((await shop.get('/media')).body as { total: number }).total).toBe(0);
+  });
+
+  it('names the largest image and video an upload may be, as the operator last set them (STO-04, STO-05)', async () => {
+    const shop = await openShop(port, texts, 'media');
+    expect(await usage(shop)).toMatchObject({ imageMaxMb: 5, videoMaxMb: 150 });
+    const settings = app.get(PlatformSettingsService);
+    try {
+      await settings.set(PlatformSettingKey.MediaImageMaxMb, 7, randomUUID());
+      await settings.set(PlatformSettingKey.MediaVideoMaxMb, 120, randomUUID());
+      expect(await usage(shop)).toMatchObject({ imageMaxMb: 7, videoMaxMb: 120 });
+    } finally {
+      await settings.set(PlatformSettingKey.MediaImageMaxMb, 5, randomUUID());
+      await settings.set(PlatformSettingKey.MediaVideoMaxMb, 150, randomUUID());
+    }
   });
 
   it('refuses a renamed executable by its content, storing and counting nothing', async () => {

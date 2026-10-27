@@ -59,6 +59,7 @@
     "product_created": "{{actor}} added a product",
     "product_deleted": "{{actor}} deleted a product",
     "product_images_saved": "{{actor}} changed a product’s photos",
+    "product_restored": "{{actor}} restored an archived product",
     "product_slug_changed": "{{actor}} changed a product’s link",
     "product_updated": "{{actor}} edited a product",
     "product_variants_saved": "{{actor}} saved a product’s variants",
