@@ -9,6 +9,7 @@ import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
 import { AddressCheckQueryDto, CreateShopDto } from '../dto/auth.dto';
 import { AddressCheckDto, ShopCreatedDto } from '../dto/shop-response.dto';
 import type { SessionRecord } from '../ports/session-store';
+import { OwnAccountGuard } from '../guards/own-account.guard';
 import { SessionGuard } from '../guards/session.guard';
 import { AddressChecks } from '../services/address-checks';
 import { ShopCreationService } from '../services/shop-creation.service';
@@ -41,8 +42,9 @@ export class ShopsController {
     return this.addresses.check(request.session.subscriberId, query.address);
   }
 
+  // A shop is opened in the account's own name, so never from a staff sign-in (TEN-31).
   @Post()
-  @UseGuards(SessionGuard)
+  @UseGuards(SessionGuard, OwnAccountGuard)
   @ResponseMessage('ShopCreated')
   @ApiOperation({ summary: "Create the signed-in account's shop" })
   @ApiBody({ type: CreateShopDto })

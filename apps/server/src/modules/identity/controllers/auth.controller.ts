@@ -19,6 +19,7 @@ import {
   VerifySigninCodeDto,
 } from '../dto/auth.dto';
 import { CodeIssuedDto, PhoneSignedInBodyDto, SignedInBodyDto } from '../dto/auth-response.dto';
+import { OwnAccountGuard } from '../guards/own-account.guard';
 import { SessionGuard } from '../guards/session.guard';
 import type { SessionRecord } from '../ports/session-store';
 import { ForgotPasswordService } from '../services/forgot-password.service';
@@ -221,10 +222,11 @@ export class AuthController {
     return { next: result.next, tenantId: result.tenantId, csrfToken: result.csrfToken };
   }
 
+  // The account's own password; a staff member's is POST auth/staff/password (TEN-31).
   @Post('password')
   @HttpCode(200)
   @AllowPendingPassword()
-  @UseGuards(SessionGuard)
+  @UseGuards(SessionGuard, OwnAccountGuard)
   @ResponseMessage('PasswordSet')
   @ApiOperation({ summary: 'Set a password for the signed-in account' })
   @ApiBody({ type: SetPasswordDto })

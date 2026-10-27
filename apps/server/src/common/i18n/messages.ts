@@ -346,6 +346,10 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'Only a staff member changes a staff password here.',
     bn: 'এখানে শুধু একজন স্টাফ মেম্বার তার পাসওয়ার্ড পরিবর্তন করতে পারবেন।',
   },
+  OwnAccountNeedsOwnSignIn: {
+    en: 'To change your own account, sign in with your own phone, email or Google, not the staff password.',
+    bn: 'নিজের অ্যাকাউন্ট বদলাতে স্টাফ পাসওয়ার্ড নয়, নিজের ফোন, ইমেইল বা Google দিয়ে সাইন-ইন করুন।',
+  },
 
   // --- Success ---
   CodeSent: { en: 'A verification code has been sent.', bn: 'একটি ভেরিফিকেশন কোড পাঠানো হয়েছে।' },

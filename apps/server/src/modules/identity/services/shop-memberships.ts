@@ -5,6 +5,7 @@ import type { TenantSummary } from '../../tenancy/types/tenant-summary';
 import type { SignupGateway } from '../ports/signup-gateway';
 import type { SessionRecord } from '../ports/session-store';
 import { SIGNUP_GATEWAY } from '../tokens';
+import { isStaffSignIn } from './staff-sign-in';
 
 /** A shop the signed-in person may work on, and who they act as there: the owner, or their staff row. */
 export interface ShopMembership {
@@ -51,7 +52,7 @@ export class ShopMemberships {
 
   /** Every shop the person may open, for the shop picker: their own first, then the one they work in. */
   async list(session: SessionRecord): Promise<ShopListing[]> {
-    if (this.isStaffSignIn(session)) {
+    if (isStaffSignIn(session)) {
       const tenant = session.tenantId ? await this.summaries.findById(session.tenantId) : null;
       return tenant ? [this.listing(tenant, 'staff')] : [];
     }
@@ -73,7 +74,7 @@ export class ShopMemberships {
     session: SessionRecord,
     tenant: TenantSummary,
   ): Promise<ShopMembership | null> {
-    if (this.isStaffSignIn(session)) {
+    if (isStaffSignIn(session)) {
       return tenant.id === session.tenantId ? { tenant, userId: session.userId } : null;
     }
     // A deleted shop is still its owner's: its invoices and frozen balance stay readable (BIL-13, BAL-18), and the
@@ -84,11 +85,6 @@ export class ShopMemberships {
     return staffShop?.active === true && staffShop.tenantId === tenant.id
       ? { tenant, userId: staffShop.userId }
       : null;
-  }
-
-  /** A staff sign-in carries its staff row from the moment it opens; the person's own sign-in carries none. */
-  private isStaffSignIn(session: SessionRecord): boolean {
-    return session.userId !== null;
   }
 
   private listing(tenant: TenantSummary, role: ShopListing['role']): ShopListing {
