@@ -157,6 +157,7 @@ export const FIELD_LABELS: Readonly<Record<string, Translation | null>> = {
   renews: { en: 'Renews', bn: 'রিনিউ হবে' },
   requests: { en: 'API request auto-buy', bn: 'API রিকোয়েস্ট অটো-বাই' },
   requests_monthly: { en: 'API requests per billing period', bn: 'বিলিং পিরিয়ডে API রিকোয়েস্ট' },
+  result: { en: 'Result', bn: 'রেজাল্ট' },
   retired: { en: 'Retired', bn: 'রিটায়ার্ড' },
   role: { en: 'Attribute use', bn: 'অ্যাট্রিবিউটের ব্যবহার' },
   roleIds: { en: 'Roles', bn: 'রোল' },
