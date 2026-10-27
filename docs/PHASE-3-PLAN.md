@@ -1371,6 +1371,15 @@ their backend ships earlier.
     link after saying the old one stops working. One Save for the pixel and a new token. Where it differs from the
     drawing, on purpose: the requirement ids leave the copy (Part 11's rule), and "the old link answers 404" says the
     old link stops working.
+  - **11.6's Account, built:** for the person's own sign-in, the ways to sign in with each one's action (the phone with
+    Change password; Google and Facebook connected or offered where the server has them; an email added by its code or
+    removed), never the last way in, then language and Sign out; for a sign-in made on the staff page, the phone and its
+    password only, its change on the staff route and "ask the owner" when forgotten (TEN-31). `/me` gains `phone`, the
+    phone a staff sign-in was made with (null otherwise), since such a sign-in may not read the identities. A provider
+    connected from Account now comes back to that shop's Account with "connected", where the callback took it for a
+    sign-in before. Where it differs from the drawing, on purpose: Google and Facebook rows carry the providers' names and
+    marks, not the sign-in button's "Continue with Google"; the password's rules tick as typed and Save waits for them,
+    as on the password step; and the email code's Resend line sits under Verify, as its centring intends.
 
 
 ### Slice 12: shared storefront and product landing pages

@@ -4,6 +4,7 @@ import type {
   OauthProvider,
   VerifyAddIdentityInput,
 } from '@lytronix/validators';
+import { attachReturn } from '@/session/attach-return';
 import { tenantSession } from '@/session/tenant-session';
 import type { CodeIssued } from '@/types/auth';
 import type { Identity } from '@/types/identity';
@@ -38,11 +39,13 @@ export function useVerifyIdentity() {
   });
 }
 
-/** Sends the browser to the provider to attach a Google or Facebook account. */
-export function useAttachOauth() {
+/** Sends the browser to the provider to attach a Google or Facebook account, back to this shop's Account after. */
+export function useAttachOauth(slug: string) {
   return useMutation({
-    mutationFn: (provider: OauthProvider) =>
-      tenantSession.client.post<{ url: string }>(`/me/identities/oauth/${provider}/start`),
+    mutationFn: (provider: OauthProvider) => {
+      attachReturn.remember(slug);
+      return tenantSession.client.post<{ url: string }>(`/me/identities/oauth/${provider}/start`);
+    },
     onSuccess: (data) => {
       window.location.href = data.url;
     },

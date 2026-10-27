@@ -91,6 +91,8 @@ export interface MeResponse {
   signIn: SignInKind;
   /** The roles the person holds in this shop, for the Menu's card; none for the owner. */
   roles: string[];
+  /** TEN-31: the phone a staff sign-in was made with; null for the person's own sign-in. */
+  phone: string | null;
   tenant: MeTenant | null;
   /** TEN-31: every shop the person may open -- one opens directly, several show the picker (TEN-15). */
   shops: ShopListing[];

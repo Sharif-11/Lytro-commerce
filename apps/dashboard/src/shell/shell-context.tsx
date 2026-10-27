@@ -14,6 +14,8 @@ export interface ShellState {
   signIn: SignInKind;
   /** The roles the person holds in the shop, for the Menu's card. */
   roles: string[];
+  /** The phone a staff sign-in was made with, for its Account; null for the person's own sign-in. */
+  staffPhone: string | null;
   /** The screen the shell frames now, from its route. */
   screen: ScreenMeta | undefined;
   /** The counts the navigation carries (GET /home): the Shop tab's pill and its section's count, and Billing's while a

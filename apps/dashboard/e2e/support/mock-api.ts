@@ -20,6 +20,7 @@ import {
   type AddonsFixture,
   type UsageFixture,
 } from './usage';
+import { accountWrite, OAUTH_PAGE, ownIdentities, type IdentityFixture } from './account';
 import { drawnKeys, keysWrite, type KeyFixture } from './api-keys';
 import { drawnMeta, metaAnswer, metaWrite, type MetaFixture } from './meta';
 import { activityAnswer, drawnActivity, earlierActivity, type ActivityFixture } from './activity';
@@ -107,6 +108,8 @@ export interface ShopState {
   keys?: KeyFixture[] | null;
   /** Facebook and Meta where it differs from the prototype's connected shop; the page's writes change it. */
   meta?: MetaFixture | null;
+  /** The person's ways to sign in where they differ from a phone (and an email with `money.hasEmail`). */
+  identities?: IdentityFixture[] | null;
   /** GET /home's stock part; null when the person may not see stock. */
   stock?: { low: number; out: number } | null;
   /** GET /home's other parts where they differ from the working shop's. */
@@ -145,6 +148,7 @@ export function me(state: Required<ShopState>): unknown {
     permissions: state.permissions,
     signIn: state.signIn,
     roles: state.roles,
+    phone: state.signIn === 'staff' ? '+8801611222333' : null,
     name: state.isOwner
       ? state.language === 'bn'
         ? 'রুমানা'
@@ -291,6 +295,7 @@ export function shopState(given: ShopState = {}): Required<ShopState> {
     settings: null,
     keys: null,
     meta: null,
+    identities: null,
     stock: { low: 1, out: 1 },
     home: {},
     ...given,
@@ -429,13 +434,9 @@ export function shopAnswer(path: string, url: URL, state: Required<ShopState>): 
     return activityAnswer(url, activity.entries, activity.earlier);
   }
   if (path === '/me/identities') {
-    return {
-      identities: [
-        { id: 'i-1', kind: 'phone', value: '+8801711234567' },
-        ...(money.hasEmail ? [{ id: 'i-2', kind: 'email', value: 'rumana@example.com' }] : []),
-      ],
-    };
+    return { identities: state.identities ?? ownIdentities(money.hasEmail ?? false) };
   }
+  if (path === '/auth/providers') return { providers: ['google', 'facebook'] };
   return FIRST_BUILD_READS[path] ?? {};
 }
 
@@ -464,6 +465,11 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
   const settings = (state.settings ??= drawnSettings(state.language));
   const keys = (state.keys ??= drawnKeys());
   const meta = (state.meta ??= drawnMeta());
+  const identities = (state.identities ??= ownIdentities(money.hasEmail ?? false));
+  // A connect leaves for the provider (AUTH-27); a blank page stands in for it.
+  await page.route(`**${OAUTH_PAGE}**`, (route: Route) =>
+    route.fulfill({ status: 200, contentType: 'text/html', body: '<p>provider</p>' }),
+  );
   // The browser sends an upload's file to the link it was given (R2 in production).
   await page.route(`**${UPLOAD_PATH}`, (route: Route) => route.fulfill({ status: 200 }));
   const log: ApiLog = {
@@ -727,6 +733,21 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
       });
     }
     if (met) return ok(met.data);
+    const accounted = accountWrite(
+      method,
+      path,
+      request.postDataJSON() as Record<string, unknown> | null,
+      identities,
+    );
+    if (accounted && 'refused' in accounted) {
+      const { status, code, message, details } = accounted.refused;
+      return route.fulfill({
+        status,
+        contentType: 'application/json',
+        body: refusal(code, message, details),
+      });
+    }
+    if (accounted) return ok(accounted.data);
     if (method === 'POST' && path.startsWith('/billing/')) return ok({ ok: true });
     return ok(shopAnswer(path, url, state));
   });

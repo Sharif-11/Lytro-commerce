@@ -14,6 +14,7 @@ import {
 } from './support/payments';
 import { drawnActivity } from './support/activity';
 import { BILLING_STAFF, offerInstall, onAnIphone } from './support/menu';
+import { drawnIdentities } from './support/account';
 import { emptyMeta } from './support/meta';
 import { drawnExports } from './support/settings';
 import { drawnPasswords, drawnTeam } from './support/team';
@@ -343,6 +344,91 @@ function settingsPairs(): Pair[] {
     ),
     ...keyPairs(),
     ...metaPairs(),
+    ...accountPairs(),
+  ];
+}
+
+/** Account (§7.17): the person's own, each of its sheets and dialogs, and a staff sign-in's (Part 11). */
+function accountPairs(): Pair[] {
+  // Each pair its own list: a pair's writes (an email added) never reach the next one's drawing.
+  const one = (
+    name: string,
+    more: Partial<Pair> = {},
+    device: Device = 'phone',
+    language: Language = 'bn',
+  ): Pair => ({
+    name,
+    screen: name,
+    device,
+    language,
+    path: '/account',
+    state: { identities: drawnIdentities() },
+    ...more,
+  });
+  const click = (label: string) => async (page: Page) => {
+    await page.getByRole('button', { name: label, exact: true }).first().click();
+  };
+  const toCode = async (page: Page) => {
+    await click('ইমেইল যোগ')(page);
+    await page.getByRole('dialog').getByLabel('ইমেইল').fill('rumana@gmail.com');
+    await click('কোড পাঠান')(page);
+  };
+  const staff = (): ShopState => ({ ...BILLING_STAFF, identities: drawnIdentities() });
+  return [
+    one('account'),
+    one('account', {}, 'desktop', 'en'),
+    one('sh-password', { then: click('পাসওয়ার্ড বদলান') }),
+    one('sh-identity-email', {
+      then: async (page) => {
+        await click('ইমেইল যোগ')(page);
+        await page.getByRole('dialog').getByLabel('ইমেইল').fill('rumana@gmail.com');
+      },
+    }),
+    one('sh-identity-code', {
+      then: async (page) => {
+        await toCode(page);
+        await typeCode(page, '123');
+      },
+    }),
+    one('account-email-added', {
+      then: async (page) => {
+        await toCode(page);
+        await typeCode(page, '123456');
+        await click('ভেরিফাই করুন')(page);
+        await page.getByRole('status').waitFor();
+      },
+    }),
+    one('account-connected', {
+      path: '/account?connected=facebook',
+      state: {
+        identities: [...drawnIdentities(), { id: 'i-4', kind: 'facebook', value: 'Rumana Akter' }],
+      },
+    }),
+    one('sh-identity-remove', {
+      then: async (page) => {
+        await page.getByRole('button', { name: 'সরান', exact: true }).first().click();
+      },
+    }),
+    one('sh-identity-last', {
+      then: async (page) => {
+        await page.route('**/api/v1/me/identities/i-3', (route) =>
+          route.fulfill({
+            status: 409,
+            contentType: 'application/json',
+            body: JSON.stringify({
+              success: false,
+              statusCode: 409,
+              message: 'Only way in.',
+              errors: { code: 'conflict', details: {} },
+            }),
+          }),
+        );
+        await page.getByRole('button', { name: 'সরান', exact: true }).first().click();
+        await page.getByRole('dialog').getByRole('button', { name: 'সরান', exact: true }).click();
+      },
+    }),
+    one('account-staff', { state: staff() }),
+    one('sh-password-staff', { state: staff(), then: click('পাসওয়ার্ড বদলান') }),
   ];
 }
 

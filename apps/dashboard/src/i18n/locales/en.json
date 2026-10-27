@@ -36,12 +36,6 @@
     "notFound": "We could not find that.",
     "planLimited": "This is not available on your current plan."
   },
-  "signIn": {
-    "invalidPhone": "Enter a valid Bangladeshi mobile number"
-  },
-  "setPassword": {
-    "ruleLength": "{{min}} to {{max}} characters"
-  },
   "nav": {
     "primary": "Main menu",
     "home": "Home",
@@ -86,42 +80,5 @@
       "archived": "Archived",
       "deleted": "Deleted"
     }
-  },
-  "team": {
-    "phone": "Phone number"
-  },
-  "account": {
-    "title": "Sign-in and security",
-    "lead": "The ways into your account. Keep two, so you are never locked out.",
-    "kind": {
-      "phone": "Phone",
-      "email": "Email",
-      "google": "Google",
-      "facebook": "Facebook"
-    },
-    "noPhone": "No phone yet",
-    "phoneSub": "Phone · code by SMS · password",
-    "noPhoneSub": "Codes by SMS could also come here",
-    "changePassword": "Change password",
-    "noEmail": "No email yet",
-    "emailSub": "Email · code by email",
-    "noEmailSub": "Codes and invoices could also go here",
-    "notConnected": "Not connected",
-    "add": "Add",
-    "connect": "Connect",
-    "remove": "Remove",
-    "keepOne": "Keep at least one way in",
-    "removeTitle": "Remove this sign-in method?",
-    "removed": "Removed",
-    "added": "Added",
-    "addPhone": "Add a phone",
-    "addEmail": "Add an email",
-    "email": "Email",
-    "sendCode": "Send a code",
-    "codeNotePhone": "A 6-digit code arrives by SMS; enter it here and the number is yours.",
-    "codeNoteEmail": "A 6-digit code arrives in the email; enter it here and the address is yours.",
-    "codeSentTo": "A 6-digit code was sent to {{value}}.",
-    "confirmCode": "Confirm",
-    "recoveryNote": "Forgot your password? A code goes to your phone by SMS or to your email. With only Facebook, Facebook is the only way back."
   }
 }

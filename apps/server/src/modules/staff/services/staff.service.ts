@@ -53,14 +53,20 @@ export class StaffService {
     });
   }
 
-  /** The signed-in person's own name in this shop -- the owner's row when there is no staff id; null when unnamed. */
-  nameOf(tenant: StaffTenant, userId: string | null): Promise<string | null> {
+  /**
+   * The signed-in person's own row in this shop -- the owner's when there is no staff id: their name (null when
+   * unnamed) and the phone their staff sign-in uses (TEN-31).
+   */
+  personOf(
+    tenant: StaffTenant,
+    userId: string | null,
+  ): Promise<{ name: string | null; phone: string | null }> {
     return this.store.run(tenant.id, async (tx) => {
       const row =
         userId === null
           ? await this.store.findOwner(tx, tenant.id)
           : (await this.store.findByIds(tx, tenant.id, [userId]))[0];
-      return row?.name ?? null;
+      return { name: row?.name ?? null, phone: row?.phone ?? null };
     });
   }
 

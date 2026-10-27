@@ -1,3 +1,4 @@
+import type { IdentityKind } from '@lytronix/validators';
 /**
  * Mirrors the server's identity response shapes (apps/server/src/modules/identity/) — deliberate structural
  * duplicates, since only request schemas and error codes are exported from shared packages.
@@ -26,6 +27,11 @@ export interface ShopCreated {
     is created with no email (AUTH-27). */
 export interface OauthSignedIn extends SignedInBody {
   recovery: 'facebook-only' | null;
+}
+
+/** The callback's answer when it connected a provider to the account already signed in (AUTH-27). */
+export interface OauthAttached {
+  attached: IdentityKind;
 }
 
 /** POST auth/staff/signin: a staff member can only be sent to a forced password change or the dashboard. */

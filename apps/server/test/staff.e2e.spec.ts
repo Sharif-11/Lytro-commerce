@@ -763,6 +763,7 @@ describeIfDatabase('one sign-in across a person’s shops (TEN-31)', () => {
       signIn: 'own',
       isOwner: true,
       roles: [],
+      phone: null,
     });
     expect((await get('/me', onShop(own.cookie, employer.slug))).body).toMatchObject({
       signIn: 'own',
@@ -782,6 +783,8 @@ describeIfDatabase('one sign-in across a person’s shops (TEN-31)', () => {
       signIn: 'staff',
       isOwner: false,
       roles: ['Billing staff'],
+      // The one thing the staff sign-in's Account shows of it.
+      phone,
     });
   });
 
