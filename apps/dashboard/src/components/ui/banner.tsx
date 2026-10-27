@@ -7,7 +7,8 @@ const TONES: Record<BannerTone, string> = {
   info: 'bg-info-soft text-brand-900',
   warn: 'bg-warning-soft text-accent-700',
   neutral: 'bg-neutral-100 text-fg-muted',
-  bad: 'bg-danger-soft text-danger',
+  // The drawn red on its pink is 4.45:1, under AA; the darker role, as Activity's Failed tag (Slice 11.6).
+  bad: 'bg-danger-soft text-danger-text',
 };
 
 interface BannerProps {

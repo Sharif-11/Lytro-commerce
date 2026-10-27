@@ -1416,6 +1416,16 @@ their backend ships earlier.
     activity log (PRD-13, amended); `GET /media/usage` gives `imageMaxMb` and `videoMaxMb`; and `GET /products` gives
     `productLimit`, the shop's own limit, so the list knows a new product will not fit for anyone who may read products,
     as Team knows its seats, where `/usage` is only for those who may see payments.
+  - **11.7a's Products list, built:** the search and the category filter (the tree, one choice, the category then a
+    chip that clears it); the five segments asked of the server with its counts, and Archived after them once something
+    is archived; the rows with the first photo, Inactive, the variants and category, the price over the stock chip;
+    Show more past 20 with how many are shown; nothing matching with Show all; a new shop's empty list with the trial's
+    limit; and Add product, which at the limit shows the banner before anything is typed, with Usage's ways to more room
+    for someone who may pay and "the owner can raise it" for anyone else. The search, segment and category sit in the
+    address, so Back from a product returns to the same list. Global search shows the same row, opening the product.
+    Where it differs from the drawing, on purpose: a bad banner's red is the darker `danger-text`, as the drawn red on
+    its pink is 4.45:1, under AA (every bad banner, not only this one); the banner's ways to more room are the server's
+    suggestion in its order, worded as Usage words them; and its title says লিমিট, as the style guide does.
 
 
 ### Slice 12: shared storefront and product landing pages

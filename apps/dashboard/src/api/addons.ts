@@ -16,10 +16,11 @@ export const ADDONS_QUERY_KEY = ['addons'] as const;
 const MINE_QUERY_KEY = [...ADDONS_QUERY_KEY, 'mine'] as const;
 
 /** PLN-13, PLN-14: what is for sale to the shop and what it costs now -- the names in both languages too. */
-export function useAddonOffers() {
+export function useAddonOffers(options: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: ADDONS_QUERY_KEY,
     queryFn: () => tenantSession.client.get<AddonOffer[]>('/addons'),
+    enabled: options.enabled ?? true,
   });
 }
 

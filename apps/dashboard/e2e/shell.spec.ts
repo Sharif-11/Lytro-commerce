@@ -157,8 +157,8 @@ test('searches the products by name, and says when nothing matches (§4.4)', asy
   );
   await expect(page.getByRole('link', { name: /ডেনিম জ্যাকেট/ })).toContainText('৳1,890');
   await expect(page.getByRole('link', { name: /ডেনিম জ্যাকেট/ })).toContainText('স্টক কম');
-  await page.getByRole('main').getByRole('searchbox').fill('শাড়ি');
-  await expect(page.getByText('"শাড়ি" মেলে এমন কোনো প্রোডাক্ট নেই।')).toBeVisible();
+  await page.getByRole('main').getByRole('searchbox').fill('ঘড়ি');
+  await expect(page.getByText('"ঘড়ি" মেলে এমন কোনো প্রোডাক্ট নেই।')).toBeVisible();
 });
 
 test("links each shop's own manifest and iPhone icon, so it installs as its own app (TEN-17)", async ({

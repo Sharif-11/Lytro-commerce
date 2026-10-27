@@ -210,7 +210,10 @@ test('edits a person: their name, cleared or changed, and their roles', async ({
   await main(page).getByRole('button', { name: /Kamal/ }).click();
   await sheet(page).getByLabel('Name (optional)').fill('');
   await sheet(page).getByRole('button', { name: 'Save' }).click();
-  expect((log.sent('PATCH', '/staff/u-kamal') as { name: unknown }).name).toBeNull();
+  // The second save's request, once it is sent.
+  await expect
+    .poll(() => (log.sent('PATCH', '/staff/u-kamal') as { name: unknown }).name)
+    .toBeNull();
 });
 
 test('deactivates after asking, and Keep it changes nothing', async ({ page }) => {

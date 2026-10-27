@@ -13,6 +13,8 @@ import onboardingBn from '../src/i18n/locales/onboarding/bn.json';
 import onboardingEn from '../src/i18n/locales/onboarding/en.json';
 import shellBn from '../src/i18n/locales/shell/bn.json';
 import shellEn from '../src/i18n/locales/shell/en.json';
+import shopBn from '../src/i18n/locales/shop/bn.json';
+import shopEn from '../src/i18n/locales/shop/en.json';
 import walletBn from '../src/i18n/locales/wallet/bn.json';
 import walletEn from '../src/i18n/locales/wallet/en.json';
 
@@ -37,6 +39,7 @@ describe('dictionaries', () => {
       [shellBn, shellEn],
       [homeBn, homeEn],
       [menuBn, menuEn],
+      [shopBn, shopEn],
       [moneyBn, moneyEn],
       [onboardingBn, onboardingEn],
       [walletBn, walletEn],
