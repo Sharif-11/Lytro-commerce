@@ -21,6 +21,13 @@ import {
   type UsageFixture,
 } from './usage';
 import { activityAnswer, drawnActivity, earlierActivity, type ActivityFixture } from './activity';
+import {
+  drawnSettings,
+  settingsAnswer,
+  settingsWrite,
+  UPLOAD_PATH,
+  type SettingsFixture,
+} from './settings';
 import { drawnTeam, teamAnswer, teamWrite, type TeamFixture } from './team';
 import {
   drawnLedger,
@@ -92,6 +99,8 @@ export interface ShopState {
   activity?: { entries: ActivityFixture[]; earlier: ActivityFixture[] } | null;
   /** Team's people, roles and seats where they differ from the prototype's; the writes change it. */
   team?: TeamFixture | null;
+  /** The shop's own settings where they differ from the prototype's; Shop details' writes change them. */
+  settings?: SettingsFixture | null;
   /** GET /home's stock part; null when the person may not see stock. */
   stock?: { low: number; out: number } | null;
   /** GET /home's other parts where they differ from the working shop's. */
@@ -140,7 +149,7 @@ export function me(state: Required<ShopState>): unknown {
     tenant: {
       id: 'tenant-1',
       slug: SLUG,
-      shopName: shopName(state.language),
+      shopName: state.settings?.shopName ?? shopName(state.language),
       state: state.state,
       suspended: state.money.suspended ?? false,
       planName:
@@ -152,7 +161,7 @@ export function me(state: Required<ShopState>): unknown {
           ? null
           : new Date(Date.now() + state.periodEndDays * DAY_MS).toISOString(),
       autoRenewEnabled: false,
-      logo: null,
+      logo: state.settings?.logo ?? null,
       brand: null,
       billingTerm: paid ? termOf(ONE_MONTH) : null,
       lapseStages: STEPS_AHEAD.includes(state.state)
@@ -273,6 +282,7 @@ export function shopState(given: ShopState = {}): Required<ShopState> {
     roles: [],
     activity: null,
     team: null,
+    settings: null,
     stock: { low: 1, out: 1 },
     home: {},
     ...given,
@@ -398,6 +408,8 @@ export function shopAnswer(path: string, url: URL, state: Required<ShopState>): 
   if (path === '/addons/mine') return shopAddonsAnswer(money.usage);
   const team = teamAnswer(path, state.team ?? drawnTeam(state.language));
   if (team !== undefined) return team;
+  const own = settingsAnswer(path, state.settings ?? drawnSettings(state.language));
+  if (own !== undefined) return own;
   if (path === '/activity') {
     const activity = state.activity ?? {
       entries: drawnActivity(state.language),
@@ -438,6 +450,9 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
   const state = shopState(given);
   const money = state.money;
   const team = (state.team ??= drawnTeam(state.language));
+  const settings = (state.settings ??= drawnSettings(state.language));
+  // The browser sends an upload's file to the link it was given (R2 in production).
+  await page.route(`**${UPLOAD_PATH}`, (route: Route) => route.fulfill({ status: 200 }));
   const log: ApiLog = {
     calls: [],
     sent: (method, path) =>
@@ -662,6 +677,13 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
       });
     }
     if (written) return ok(written.data);
+    const saved = settingsWrite(
+      method,
+      path,
+      request.postDataJSON() as Record<string, unknown> | null,
+      settings,
+    );
+    if (saved) return ok(saved.data);
     if (method === 'POST' && path.startsWith('/billing/')) return ok({ ok: true });
     return ok(shopAnswer(path, url, state));
   });

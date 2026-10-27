@@ -90,26 +90,6 @@
   "team": {
     "phone": "Phone number"
   },
-  "settings": {
-    "title": "Shop settings",
-    "contact": "Contact",
-    "contactLead": "Shown in the shop's footer and on its contact page.",
-    "contactPhone": "Support phone (optional)",
-    "contactEmail": "Support email (optional)",
-    "businessAddress": "Shop address (optional)",
-    "delivery": "Delivery",
-    "insideCity": "Inside the city",
-    "outsideCity": "Outside",
-    "zonesHint": "Set at sign-up; the editor arrives with the delivery section.",
-    "extraPerKg": "Extra per added kg",
-    "extraPerKgHint": "Added per kilogram past the first, only for products with weight-based delivery. 0 adds nothing.",
-    "shop": "Shop",
-    "name": "Name",
-    "address": "Address",
-    "type": "Type",
-    "brandingLater": "Name, logo and shop type move here with the branding section.",
-    "saved": "Saved"
-  },
   "account": {
     "title": "Sign-in and security",
     "lead": "The ways into your account. Keep two, so you are never locked out.",

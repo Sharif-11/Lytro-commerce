@@ -14,6 +14,7 @@ import {
 } from './support/payments';
 import { drawnActivity } from './support/activity';
 import { BILLING_STAFF, offerInstall, onAnIphone } from './support/menu';
+import { drawnExports } from './support/settings';
 import { drawnPasswords, drawnTeam } from './support/team';
 import { DAY_ONE, mockApi, SLUG, type Language, type ShopState } from './support/mock-api';
 import { mockOnboarding, TWELVE_MONTHS, typeCode, type Journey } from './support/onboarding-api';
@@ -313,7 +314,34 @@ const MONEY: Pair[] = [
   ...addonPairs(),
   ...menuPairs(),
   ...teamPairs(),
+  ...settingsPairs(),
 ];
+
+/** Settings (§7.16, Slice 11.6): its list, Shop details, Brand identity until its editor, and Data export. */
+function settingsPairs(): Pair[] {
+  const one = (
+    name: string,
+    path: string,
+    more: Partial<Pair> = {},
+    device: Device = 'phone',
+    language: Language = 'bn',
+  ): Pair => ({ name, screen: name, device, language, path, ...more });
+  return [
+    one('settings', '/settings'),
+    one('settings', '/settings', {}, 'desktop', 'en'),
+    one('shopdetails', '/settings/shop'),
+    one('shopdetails', '/settings/shop', {}, 'desktop', 'en'),
+    one('brand-soon', '/settings/brand'),
+    one('exports', '/settings/export', { state: { money: { exports: drawnExports() } } }),
+    one(
+      'exports',
+      '/settings/export',
+      { state: { money: { exports: drawnExports() } } },
+      'desktop',
+      'en',
+    ),
+  ];
+}
 
 /**
  * Team (§7.14, Slice 11.6), People and Roles with Parts 11 and 12's states, each reached as a person would. A sheet

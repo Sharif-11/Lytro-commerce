@@ -2,6 +2,16 @@
 // formatDate and formatDateTime in @lytronix/ui, shared with the console.
 const DHAKA = 'Asia/Dhaka';
 
+/** `22:03` in Dhaka, in either language: the clock of a stamp written beside its date (an export's request). */
+export function formatClock(iso: string): string {
+  return new Intl.DateTimeFormat('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: DHAKA,
+  }).format(new Date(iso));
+}
+
 /** `11:42 am` in English; in Bangla, Western digits with the period word (BRAND-IDENTITY §5: সকাল, দুপুর,
     বিকাল, রাত), for rows already grouped under their day. */
 export function formatTime(iso: string, language: string): string {

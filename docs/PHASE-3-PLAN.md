@@ -1349,6 +1349,17 @@ their backend ships earlier.
     inactive person is marked by the Off tag and a grey initial, not faded, as a 60% fade puts their phone and role
     under AA; stacked cards keep the page's 16 px on a phone, as the other rebuilt pages do; and a staff member's status
     follows the style guide (ইনঅ্যাক্টিভ, অ্যাক্টিভ) where the drawing still says বন্ধ and ডিঅ্যাকটিভ.
+  - **11.6's toasts and Settings, built** (agreed 2026-10-27: every toast takes the drawn check; the logo is uploaded
+    from 11.6; the extra delivery charge per kg waits for Delivery in 11.11, kept and applied meanwhile): Settings lists
+    Shop details, Delivery, Brand identity and Data export as their permissions allow (the export the owner's), then
+    what comes later with its phase. Shop details saves the name (the dashboard follows at once; the link never
+    changes), what the shop mainly sells (sent only when changed), and the contact details, with one Save held at the
+    foot on a phone; the logo is uploaded through the media pipeline -- asked for, sent, prepared, then set -- by a
+    small helper the media manager (11.7) reuses. Brand identity opens a short page with the add-on until its editor.
+    Data export lists each request, made, ready for 24 hours, or failed with a way to ask again. Where it differs from
+    the drawing, on purpose: the card with the shop's web address is "Shop link", since the contact card's street
+    address already says "Shop address".
+
 
 ### Slice 12: shared storefront and product landing pages
 - **Depends on:** Slices 0, 0b, 7 and 9 (and branding from Phase 1).

@@ -31,7 +31,7 @@ interface ItemProps {
   label: string;
   detail?: string;
   /** Where the item is done, while it is not; none for an item whose screen is not built yet. */
-  to?: '/$shop/products';
+  to?: '/$shop/products' | '/$shop/settings/shop';
   /** A place on this page instead (the link card). */
   href?: string;
 }
@@ -88,8 +88,8 @@ function Later({ label, phase }: { label: string; phase: number }): React.JSX.El
  * SUP-01's set-up checklist (TENANT-DASHBOARD-DESIGN §7.1), the owner's alone, each item ticked by the server: the
  * shop and its delivery done from the start, a first product, the link shared, the logo, and a wallet number greyed
  * until Phase 5; then "later, when you need them": a courier, SMS events and a listener phone greyed with their
- * phases, and an API key. The logo and the API key are ticked here but open nothing until their screens are rebuilt
- * (Slice 11.6, decided 2026-10-23).
+ * phases, and an API key. The logo opens Shop details, where it is uploaded (Slice 11.6); the API key opens nothing
+ * until its screen is rebuilt.
  */
 export function SetupChecklist({
   checklist,
@@ -133,7 +133,7 @@ export function SetupChecklist({
         />
         <Item done={checklist.firstProduct} label={t('ckProduct')} to="/$shop/products" />
         <Item done={checklist.linkShared} label={t('ckShare')} href={`#${shareTarget}`} />
-        <Item done={checklist.logo} label={t('ckLogo')} />
+        <Item done={checklist.logo} label={t('ckLogo')} to="/$shop/settings/shop" />
         <Later label={t('ckWallet')} phase={5} />
         <div className="bg-neutral-50 px-4 pt-3 pb-1 text-[13px] font-semibold text-fg-muted">
           {t('setupLater')}

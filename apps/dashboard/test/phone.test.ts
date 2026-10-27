@@ -19,4 +19,10 @@ describe('BangladeshiPhone', () => {
   it('shows the local form with a hyphen', () => {
     expect(phone.display('+8801712345678')).toBe('01712-345678');
   });
+
+  it('writes the part after a fixed +880 prefix in groups, and the whole number with it', () => {
+    expect(phone.localPart('+8801711234567')).toBe('1711 234 567');
+    expect(phone.international('+8801711234567')).toBe('+880 1711 234 567');
+    expect(phone.localPart('+88017')).toBe('+88017');
+  });
 });

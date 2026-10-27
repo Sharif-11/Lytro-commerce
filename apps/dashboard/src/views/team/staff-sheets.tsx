@@ -6,6 +6,7 @@ import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { CheckRow } from '@/components/ui/check-row';
+import { CopyButton } from '@/components/ui/copy-button';
 import { Dialog } from '@/components/ui/dialog';
 import { Field } from '@/components/ui/field';
 import { RowList } from '@/components/ui/list-row';
@@ -29,7 +30,6 @@ import {
 /** A password to read out, with Copy (the prototype's first-password field). */
 function PasswordField({ password, help }: { password: string; help?: string }): React.JSX.Element {
   const { t } = useTranslation('menu');
-  const [copied, setCopied] = useState(false);
   return (
     <Field
       label={t('firstPw')}
@@ -37,20 +37,7 @@ function PasswordField({ password, help }: { password: string; help?: string }):
       readOnly
       value={password}
       help={help}
-      suffix={
-        <Button
-          type="button"
-          tone="outline"
-          size="xs"
-          onClick={() => {
-            void navigator.clipboard.writeText(password).then(() => {
-              setCopied(true);
-            });
-          }}
-        >
-          {copied ? t('copied') : t('copy')}
-        </Button>
-      }
+      suffix={<CopyButton text={password} />}
     />
   );
 }
@@ -319,7 +306,7 @@ export function EditStaffSheet({
       { id: member.id, name: trimmed === '' ? null : trimmed, roleIds },
       {
         onSuccess: () => {
-          onDone(t('staffSaved'));
+          onDone(t('saved'));
         },
       },
     );

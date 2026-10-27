@@ -19,6 +19,9 @@
   "secActivity": "Activity",
   "secSettings": "Settings",
   "secAccount": "Account",
+  "sShop": "Shop details",
+  "sBrand": "Brand identity",
+  "sExport": "Data export",
   "searchPh": "Order no., phone, customer, product",
   "search": "Search",
   "srchProducts": "Products",
@@ -61,5 +64,6 @@
   "noAccess": "That page is not part of your role.",
   "arrivingT": "{{s}} is being rebuilt",
   "arrivingL": "This screen arrives with the next update of the dashboard.",
+  "copy": "Copy",
   "copied": "Copied"
 }

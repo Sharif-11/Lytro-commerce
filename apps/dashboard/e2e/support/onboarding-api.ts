@@ -1,6 +1,7 @@
 import type { Page, Route } from '@playwright/test';
 import { plans, prices, priceOf, STARTER, terms, TWELVE_MONTHS } from './catalogue';
 import { envelope, refusal, shopAnswer, shopState, SLUG, startIn, type Language } from './mock-api';
+import { PRESETS } from './presets';
 
 // The sign-in and sign-up steps against a mocked API (TENANT-DASHBOARD-DESIGN §6): a journey that starts signed out
 // or part way, remembers what the person did (signed in, created the shop), and answers as the server would at each
@@ -57,20 +58,6 @@ function quote(body: { planId: string; billingTermId: string }): unknown {
     verifiedBy: null,
   };
 }
-
-const PRESETS: [string, string, string][] = [
-  ['clothing', 'পোশাক', 'Clothing'],
-  ['shoes_bags', 'জুতা ও ব্যাগ', 'Shoes and bags'],
-  ['cosmetics', 'কসমেটিক্স', 'Cosmetics'],
-  ['electronics', 'ইলেকট্রনিক্স', 'Electronics'],
-  ['mobiles_gadgets', 'মোবাইল ও গ্যাজেট', 'Mobiles and gadgets'],
-  ['grocery', 'মুদি', 'Grocery'],
-  ['food_bakery', 'খাবার ও বেকারি', 'Food and bakery'],
-  ['books_stationery', 'বই ও স্টেশনারি', 'Books and stationery'],
-  ['pharmacy', 'ফার্মেসি', 'Pharmacy'],
-  ['home_decor', 'হোম ও ডেকোর', 'Home and décor'],
-  ['other', 'অন্যান্য', 'Other'],
-];
 
 // The 11 city areas as the seed has them (packages/db), and the zillas the steps use.
 const CITIES: [string, string, string][] = [
