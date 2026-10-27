@@ -1,7 +1,9 @@
 # Tenant dashboard: the full design
 
-Status: v2.8, 2026-10-27 (making and renaming a role, prototype Part 12: the role's name in the editor, Create a role,
-a shop with no roles yet, and a role made from inside Add staff; v2.7 of 2026-10-27 drew the Menu hub as Slice 11.6
+Status: v2.9, 2026-10-27 (leaving the product editor with changes unsaved, prototype Part 13: a small dialog that asks
+first, for a product being edited and a new one; v2.8 of 2026-10-27 drew making and renaming a role, prototype Part 12:
+the role's name in the editor, Create a role, a shop with no roles yet, and a role made from inside Add staff; v2.7 of
+2026-10-27 drew the Menu hub as Slice 11.6
 builds it, prototype Part 11: a staff member's Menu with its rows
 by permission, Account for a sign-in made with the staff password, adding staff with every seat in use, Activity with
 nothing yet or nothing under a filter, installing on an iPhone, the role editor with today's permissions in words, and
@@ -340,6 +342,13 @@ add-on, LIM-01), with See plans (PRD-04, `products-limit`).
 - *Payment policy*: shop default, no advance, delivery charge in advance, partial advance with its amount,
   full prepayment (PRD-08).
 - *Remove*: archive (default) or delete for good, each with its consequence (PRD-13).
+
+*Leaving with changes unsaved* (Part 13, agreed 2026-10-27): Back, a tab, a section chip or the browser's back, while
+something typed is not saved, asks first in a small dialog, "Leave without saving?": a product being edited is named
+("Your changes to Cotton T-shirt are not saved yet", `sh-leave`), a new one is "this new product" (`sh-leave-new`).
+Keep editing stays with everything typed; Leave drops it and goes. Nothing asks when nothing changed or once Save has
+finished; a sheet the editor opens is part of the editor, so closing one never asks. Closing or reloading the browser
+tab asks with the browser's own question, whose words a page cannot set.
 
 **Content.** `GET /product-defaults?categoryId=`, `POST /products`, `PATCH`, `PUT …/variants`,
 `…/attributes`, `…/slug`, `…/size-chart`, `…/delivery-zones`, `…/images`, `…/video`, `POST …/duplicate`,
