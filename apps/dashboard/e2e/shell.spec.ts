@@ -136,6 +136,10 @@ test('opens the + menu with what can be started, and Top up opens the top-up she
   const sheet = page.getByRole('dialog', { name: 'নতুন' });
   await expect(sheet.getByRole('button', { name: 'টপ-আপ' })).toBeVisible();
   await expect(sheet.getByText('ফেজ 4-এ আসছে')).toBeVisible();
+  // Slice 11.7a: Add product opens a new product.
+  await sheet.getByRole('button', { name: 'প্রোডাক্ট যোগ' }).click();
+  await expect(page).toHaveURL(`/${SLUG}/products/new`);
+  await page.getByRole('button', { name: 'নতুন' }).filter({ visible: true }).click();
   await sheet.getByRole('button', { name: 'টপ-আপ' }).click();
   await expect(page).toHaveURL(`/${SLUG}/balance?topup=1`);
   await expect(page.getByRole('dialog')).toBeVisible();
