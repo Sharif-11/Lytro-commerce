@@ -31,7 +31,7 @@ interface ItemProps {
   label: string;
   detail?: string;
   /** Where the item is done, while it is not; none for an item whose screen is not built yet. */
-  to?: '/$shop/products' | '/$shop/settings/shop';
+  to?: '/$shop/products' | '/$shop/settings/shop' | '/$shop/settings/api-keys';
   /** A place on this page instead (the link card). */
   href?: string;
 }
@@ -88,8 +88,7 @@ function Later({ label, phase }: { label: string; phase: number }): React.JSX.El
  * SUP-01's set-up checklist (TENANT-DASHBOARD-DESIGN §7.1), the owner's alone, each item ticked by the server: the
  * shop and its delivery done from the start, a first product, the link shared, the logo, and a wallet number greyed
  * until Phase 5; then "later, when you need them": a courier, SMS events and a listener phone greyed with their
- * phases, and an API key. The logo opens Shop details, where it is uploaded (Slice 11.6); the API key opens nothing
- * until its screen is rebuilt.
+ * phases, and an API key. The logo opens Shop details, where it is uploaded, and the API key its page (Slice 11.6).
  */
 export function SetupChecklist({
   checklist,
@@ -141,7 +140,7 @@ export function SetupChecklist({
         <Later label={t('ckCourier')} phase={6} />
         <Later label={t('ckSms')} phase={7} />
         <Later label={t('ckListener')} phase={5} />
-        <Item done={checklist.apiKey} label={t('ckApi')} />
+        <Item done={checklist.apiKey} label={t('ckApi')} to="/$shop/settings/api-keys" />
       </div>
     </Card>
   );

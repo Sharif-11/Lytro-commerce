@@ -1359,6 +1359,12 @@ their backend ships earlier.
     Data export lists each request, made, ready for 24 hours, or failed with a way to ask again. Where it differs from
     the drawing, on purpose: the card with the shop's web address is "Shop link", since the contact card's street
     address already says "Shop address".
+  - **11.6's API keys, built:** the keys with their first characters, websites, last use and expiry, a revoked one kept
+    and greyed; New key with its websites one a line (the server's check under the field) and an optional last day,
+    the value shown once with Copy and Download; a live key's name and websites edited; Revoke after saying what it
+    does. The requests counted this cycle show to whoever may read the shop's usage. Settings and Home's "Create an API
+    key" lead here. Where it differs from the drawing, on purpose: a key shows its first characters only, as the server
+    keeps no more of it to show; and the expiry is picked with the browser's own date field.
 
 
 ### Slice 12: shared storefront and product landing pages

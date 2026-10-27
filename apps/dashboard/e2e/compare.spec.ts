@@ -340,6 +340,38 @@ function settingsPairs(): Pair[] {
       'desktop',
       'en',
     ),
+    ...keyPairs(),
+  ];
+}
+
+/** API keys (§7.26): the list, and each sheet as a person reaches it. */
+function keyPairs(): Pair[] {
+  const one = (
+    name: string,
+    then?: (page: Page) => Promise<void>,
+    device: Device = 'phone',
+    language: Language = 'bn',
+  ): Pair => ({ name, screen: name, device, language, path: '/settings/api-keys', then });
+  const newKey = async (page: Page) => {
+    await page.getByRole('button', { name: 'নতুন কী' }).click();
+    await page.getByRole('dialog').getByLabel('ওয়েবসাইট (অরিজিন)').fill('https://meghfashion.com');
+  };
+  return [
+    one('api-keys'),
+    one('api-keys', undefined, 'desktop', 'en'),
+    one('sh-key-new', newKey),
+    one('sh-key-created', async (page) => {
+      await newKey(page);
+      await page.getByRole('dialog').getByLabel('নাম').fill('Website');
+      await page.getByRole('button', { name: 'কী তৈরি' }).click();
+      await page.getByRole('dialog').getByText('lytro_pk_').waitFor();
+    }),
+    one('sh-key-revoke', async (page) => {
+      await page.getByRole('button', { name: 'বাতিল' }).first().click();
+    }),
+    one('sh-key-edit', async (page) => {
+      await page.getByRole('button', { name: /^Website/ }).click();
+    }),
   ];
 }
 

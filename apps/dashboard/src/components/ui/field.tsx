@@ -96,7 +96,7 @@ export function AreaField({
         aria-invalid={error ? true : undefined}
         aria-describedby={error || help ? noteId : undefined}
         className={[
-          'min-h-24 resize-y rounded-control border bg-surface p-3 text-[16px] outline-none placeholder:text-fg-subtle focus:outline-2 focus:outline-offset-1 focus:outline-focus',
+          'min-h-24 resize-none rounded-control border bg-surface p-3 text-[16px] outline-none placeholder:text-fg-subtle focus:outline-2 focus:outline-offset-1 focus:outline-focus',
           error ? 'border-danger' : 'border-line-strong',
         ].join(' ')}
         {...rest}
