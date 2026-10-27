@@ -710,36 +710,32 @@ describeIfDatabase("/me reflects who is signed in (D32's permission-gated nav)",
   });
 });
 
+/** Staff of `employer`, who then signs in with their own phone code and opens a shop of their own. */
+async function staffWhoOwnsAShop(): Promise<{
+  employer: Owner;
+  phone: string;
+  own: { slug: string; cookie: string };
+}> {
+  const employer = await owner();
+  await moveToPlan(employer.slug, 'Starter');
+  const phone = texts.freshPhone();
+  expect((await addStaffWithPassword(employer, phone, STAFF_PASSWORD)).status).toBe(201);
+
+  await post('/auth/phone/code', { phone }, PLATFORM);
+  const entered = await post('/auth/phone/verify', { phone, code: texts.codeFor(phone) }, PLATFORM);
+  const cookie = cookieFrom(entered);
+  const csrfToken = (entered.body as { csrfToken: string }).csrfToken;
+  const slug = `own-${randomUUID().replace(/-/g, '').slice(0, 10)}`;
+  const shop = await post(
+    '/shops',
+    { ownerName: 'Staff Owner', shopName: `Shop ${slug}`, address: slug },
+    { cookie, 'x-csrf-token': csrfToken, host: 'localhost' },
+  );
+  expect(shop.status).toBe(201);
+  return { employer, phone, own: { slug, cookie } };
+}
+
 describeIfDatabase('one sign-in across a person’s shops (TEN-31)', () => {
-  /** Staff of `employer`, who then signs in with their own phone code and opens a shop of their own. */
-  async function staffWhoOwnsAShop(): Promise<{
-    employer: Owner;
-    phone: string;
-    own: { slug: string; cookie: string };
-  }> {
-    const employer = await owner();
-    await moveToPlan(employer.slug, 'Starter');
-    const phone = texts.freshPhone();
-    expect((await addStaffWithPassword(employer, phone, STAFF_PASSWORD)).status).toBe(201);
-
-    await post('/auth/phone/code', { phone }, PLATFORM);
-    const entered = await post(
-      '/auth/phone/verify',
-      { phone, code: texts.codeFor(phone) },
-      PLATFORM,
-    );
-    const cookie = cookieFrom(entered);
-    const csrfToken = (entered.body as { csrfToken: string }).csrfToken;
-    const slug = `own-${randomUUID().replace(/-/g, '').slice(0, 10)}`;
-    const shop = await post(
-      '/shops',
-      { ownerName: 'Staff Owner', shopName: `Shop ${slug}`, address: slug },
-      { cookie, 'x-csrf-token': csrfToken, host: 'localhost' },
-    );
-    expect(shop.status).toBe(201);
-    return { employer, phone, own: { slug, cookie } };
-  }
-
   it("the person's own sign-in opens both shops: their own as owner, the other as staff", async () => {
     const { employer, own } = await staffWhoOwnsAShop();
 
@@ -776,6 +772,78 @@ describeIfDatabase('one sign-in across a person’s shops (TEN-31)', () => {
     expect((await get('/me', onShop(own.cookie, employer.slug))).status).toBe(404);
   });
 });
+
+describeIfDatabase(
+  "a staff sign-in never changes the person's own account (TEN-31, AUTH-20, AUTH-26)",
+  () => {
+    // The employer knows the staff password -- it set the first one, and sets another on every reset (STF-13) -- so a
+    // staff sign-in may act in the employer's shop only, never on the account the person signs in to their own shops with.
+    it("an employer's reset password cannot set the person's own account password", async () => {
+      const { employer, phone } = await staffWhoOwnsAShop();
+      const list = await get('/staff', shopCall(employer));
+      const member = (list.body as { staff: { id: string; isOwner: boolean }[] }).staff.find(
+        (row) => !row.isOwner,
+      );
+      const reset = await post(
+        `/staff/${member?.id ?? ''}/password`,
+        { newPassword: 'reset-by-employer-1' },
+        shopCall(employer),
+      );
+      expect(reset.status).toBe(200);
+      const signedIn = await staffSignIn(phone, 'reset-by-employer-1');
+      expect(signedIn.body).toMatchObject({ next: 'set-password' });
+      const pending = {
+        cookie: cookieFrom(signedIn),
+        'x-csrf-token': (signedIn.body as { csrfToken: string }).csrfToken,
+        host: 'localhost',
+      };
+
+      const refused = await post('/auth/password', { newPassword: 'taken-over-2468' }, pending);
+      expect(refused.status).toBe(403);
+      expect(errorOf(refused)).toMatchObject({ code: 'forbidden' });
+      // The person's own account is untouched: that password signs nobody in.
+      expect(
+        (await post('/auth/signin', { phone, password: 'taken-over-2468' }, PLATFORM)).status,
+      ).toBe(401);
+      // The staff password is still set on its own route.
+      expect(
+        (await post('/auth/staff/password', { newPassword: 'staff-own-1357' }, pending)).status,
+      ).toBe(200);
+    });
+
+    it("cannot read, add or remove the person's sign-in methods, nor open a shop in their name", async () => {
+      const { employer, phone, own } = await staffWhoOwnsAShop();
+      const signed = await staffReady(phone, STAFF_PASSWORD);
+      const call = {
+        ...onShop(cookieFrom(signed), employer.slug),
+        'x-csrf-token': (signed.body as { csrfToken: string }).csrfToken,
+      };
+      for (const attempt of [
+        await get('/me/identities', call),
+        await post('/me/identities/code', { kind: 'email', value: 'employer@example.com' }, call),
+        await post(
+          '/me/identities/verify',
+          { kind: 'email', value: 'employer@example.com', code: '123456' },
+          call,
+        ),
+        await post('/me/identities/oauth/google/start', {}, call),
+        await del(`/me/identities/${randomUUID()}`, call),
+        await post('/auth/password', { newPassword: 'taken-over-2468' }, call),
+        await post(
+          '/shops',
+          { ownerName: 'Not Them', shopName: 'Not Theirs', address: freshSlug() },
+          call,
+        ),
+      ]) {
+        expect(attempt.status).toBe(403);
+        expect(errorOf(attempt)).toMatchObject({ code: 'forbidden' });
+      }
+      // The person's own sign-in still reaches their account, on either shop's page.
+      expect((await get('/me/identities', onShop(own.cookie, employer.slug))).status).toBe(200);
+      expect((await get('/me/identities', onShop(own.cookie, own.slug))).status).toBe(200);
+    });
+  },
+);
 
 describeIfDatabase('permissions checked on each request (STF-10, STF-11)', () => {
   /** A staff member holding one viewing role, signed in on the shop host. */

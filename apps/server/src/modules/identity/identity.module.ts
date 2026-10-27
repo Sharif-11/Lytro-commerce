@@ -32,6 +32,7 @@ import { MeController } from './controllers/me.controller';
 import { ShopsController } from './controllers/shops.controller';
 import { ClientIp } from '../../common/client-ip';
 import { DashboardGuard } from './guards/dashboard.guard';
+import { OwnAccountGuard } from './guards/own-account.guard';
 import { SessionGuard } from './guards/session.guard';
 import { ForgotPasswordService } from './services/forgot-password.service';
 import { OneTimeCodeService } from './services/one-time-code.service';
@@ -180,6 +181,7 @@ import {
     PasswordHasher,
     SessionService,
     SessionGuard,
+    OwnAccountGuard,
     ShopMemberships,
     DashboardGuard,
     ClientIp,
