@@ -61,7 +61,9 @@ export function Sheet({ open, title, onClose, children, footer }: SheetProps): R
           {children}
         </div>
         {footer ? (
-          <div className="flex shrink-0 gap-2 border-t border-line bg-surface px-4 pt-3 pb-[max(16px,env(safe-area-inset-bottom))] [&>*]:flex-1">
+          // Its buttons share the row equally, as drawn; one whose words need more takes it from the other rather than
+          // wrapping them ("16 Nov-এ বন্ধ করুন"), up to the whole row.
+          <div className="flex shrink-0 gap-2 border-t border-line bg-surface px-4 pt-3 pb-[max(16px,env(safe-area-inset-bottom))] [&>*]:min-w-fit [&>*]:flex-1">
             {footer}
           </div>
         ) : null}
