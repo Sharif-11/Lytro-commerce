@@ -1,4 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { AttributeDataType, AttributeRole } from '@lytronix/validators';
+import type { Description, SplitAttribute, VariantRow } from '../src/lib/variant-matrix';
+import type { ProductDetail } from '../src/types/product';
 import {
   changedParts,
   createBody,
@@ -12,6 +15,7 @@ import {
 } from '../src/lib/product-form';
 
 const SAVED: ProductForm = {
+  ...NEW_PRODUCT,
   name: 'Cotton T-shirt',
   price: '450',
   description: '100% cotton.',
@@ -20,6 +24,37 @@ const SAVED: ProductForm = {
   active: true,
   imageIds: ['m-1', 'm-2'],
   videoId: null,
+};
+
+const SIZE: SplitAttribute = {
+  attributeId: 'a-size',
+  name: 'Size',
+  dataType: AttributeDataType.EnumSingle,
+  unitKind: null,
+  options: [
+    { id: 'o-1lb', value: '1 lb', swatchColor: null, swatchImage: null },
+    { id: 'o-2lb', value: '2 lb', swatchColor: null, swatchImage: null },
+  ],
+};
+const ROW: VariantRow = {
+  optionIds: [],
+  id: null,
+  price: '',
+  sku: '',
+  openingStock: '',
+  packAmount: '',
+};
+const MESSAGE: Description = {
+  attributeId: 'a-msg',
+  name: 'Message on the cake',
+  dataType: AttributeDataType.Text,
+  unitKind: null,
+  role: AttributeRole.CapturedAtOrder,
+  optionIds: [],
+  optionValues: [],
+  text: '',
+  number: '',
+  bool: null,
 };
 
 describe('the product form (TENANT-DASHBOARD-DESIGN §7.4)', () => {
@@ -90,5 +125,95 @@ describe('the product form (TENANT-DASHBOARD-DESIGN §7.4)', () => {
       categoryIds: [],
       primaryCategoryId: null,
     });
+  });
+  it('makes a new product with its options, variants and descriptions in the same request (ATR-11)', () => {
+    const typed: ProductForm = {
+      ...NEW_PRODUCT,
+      name: 'Cake',
+      price: '850',
+      splits: [SIZE],
+      variants: [
+        { ...ROW, optionIds: ['o-1lb'], price: '850', openingStock: '' },
+        { ...ROW, optionIds: ['o-2lb'], price: '1600', sku: ' CK-2 ', openingStock: '3' },
+      ],
+      descriptions: [MESSAGE],
+    };
+    expect(createBody(typed)).toMatchObject({
+      variantAttributes: [{ attributeId: 'a-size', optionIds: ['o-1lb', 'o-2lb'] }],
+      variants: [
+        { optionIds: ['o-1lb'], price: 850, sku: null },
+        { optionIds: ['o-2lb'], price: 1600, sku: 'CK-2', openingStock: 3 },
+      ],
+      attributes: [{ attributeId: 'a-msg', role: AttributeRole.CapturedAtOrder }],
+    });
+    // A product made to order has no stock on the shelf to open with (INV-02).
+    expect(
+      (createBody(typed, { opening: false }) as { variants: object[] }).variants[1],
+    ).not.toHaveProperty('openingStock');
+    // INV-24: sharing, each variant says how much it uses and the stock opens in the product's unit.
+    expect(
+      createBody({
+        ...typed,
+        sharedStock: true,
+        sharedOpeningStock: '240',
+        variants: typed.variants.map((row) => ({ ...row, packAmount: '5' })),
+      }),
+    ).toMatchObject({
+      sharedStock: true,
+      sharedOpeningStock: 240,
+      variants: [{ packAmount: 5 }, { packAmount: 5 }],
+    });
+  });
+
+  it('saves changed options and descriptions as two more parts, the variants first (Slice 11.7b)', () => {
+    const saved: ProductForm = {
+      ...SAVED,
+      splits: [SIZE],
+      variants: [
+        { ...ROW, optionIds: ['o-1lb'], id: 'v-1' },
+        { ...ROW, optionIds: ['o-2lb'], id: 'v-2' },
+      ],
+    };
+    expect(changedParts(saved, saved)).toEqual([]);
+    const typed: ProductForm = {
+      ...saved,
+      variants: [
+        saved.variants[0] ?? ROW,
+        { ...ROW, optionIds: ['o-2lb'], id: 'v-2', price: '1650' },
+      ],
+      descriptions: [MESSAGE],
+    };
+    expect(changedParts(saved, typed)).toEqual([
+      {
+        part: 'variants',
+        body: {
+          variantAttributes: [{ attributeId: 'a-size', optionIds: ['o-1lb', 'o-2lb'] }],
+          variants: [
+            { optionIds: ['o-1lb'], price: null, sku: null },
+            { optionIds: ['o-2lb'], price: 1650, sku: null },
+          ],
+        },
+      },
+      {
+        part: 'attributes',
+        body: { attributes: [{ attributeId: 'a-msg', role: AttributeRole.CapturedAtOrder }] },
+      },
+    ]);
+    // Taking every splitting attribute away leaves the one default variant.
+    expect(changedParts(saved, { ...saved, splits: [], variants: [] })).toEqual([
+      { part: 'variants', body: { variantAttributes: [] } },
+    ]);
+  });
+
+  it('gives the variants a save made their ids', () => {
+    const typed: ProductForm = {
+      ...SAVED,
+      splits: [SIZE],
+      variants: [{ ...ROW, optionIds: ['o-1lb'] }],
+    };
+    const product = { variants: [{ id: 'v-9', optionIds: ['o-1lb'] }] } as unknown as ProductDetail;
+    expect(withSaved(SAVED, typed, ['variants'], product).variants).toEqual([
+      { ...ROW, optionIds: ['o-1lb'], id: 'v-9' },
+    ]);
   });
 });

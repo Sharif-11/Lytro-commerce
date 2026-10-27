@@ -1,6 +1,10 @@
 # Tenant dashboard: the full design
 
-Status: v2.9, 2026-10-27 (the Products list's and the editor's states Slice 11.7a builds, prototype Part 13: leaving
+Status: v3.0, 2026-10-27 (the options and variants Slice 11.7b builds, prototype Part 14: the bakery's Flavour splits
+and its message is asked when ordering, a describing value entered by its type, a swatch per option with the library's
+colours fixed, New attribute as a step, Show all past 6 variants, Fill all for one option's variants, the 3 and 100
+limits, removing an option that holds stock, and an existing product's variants with what each can sell; v2.9 of
+2026-10-27 drew the Products list's and the editor's states Slice 11.7a builds, prototype Part 13: leaving
 with changes unsaved, the category filter, nothing matching, Show more, archived products and Restore, the limit before
 typing, a part not saved, removing the video, the toasts; v2.8 of 2026-10-27 drew making and renaming a role, prototype Part 12:
 the role's name in the editor, Create a role, a shop with no roles yet, and a role made from inside Add staff; v2.7 of
@@ -329,7 +333,8 @@ the limit, Add product and Duplicate show the banner at once instead of the edit
    sheet), description (plain text, PRD-01).
 2. **Options and variants** (ATR-11): "Add attribute" (sheet), each attribute as a mini card with its role
    chip, its options with swatch dots, the option-set chips; "Sizes share one stock" (INV-24); the variant
-   matrix with Price and Stock columns and "Fill all" (ATR-17); the limits line (ATR-14).
+   matrix with Price and Stock columns and "Fill all" (ATR-17); the limits line (ATR-14). Part 14 below draws how
+   each part is edited.
 3. **Stock and delivery**: tracked or made to order (INV-02), unit (UOM-01), low-stock threshold (INV-08),
    weight, delivery charge and mode (PRD-16, DLV-03), "Delivers to" (sheet, DLV-07), payment policy (sheet,
    PRD-08).
@@ -352,6 +357,34 @@ the limit, Add product and Duplicate show the banner at once instead of the edit
 - *Payment policy*: shop default, no advance, delivery charge in advance, partial advance with its amount,
   full prepayment (PRD-08).
 - *Remove*: archive (default) or delete for good, each with its consequence (PRD-13).
+
+*Options and variants* (Part 14, agreed in the 11.7b read, 2026-10-27):
+- **Roles.** A mini card's chip names its role in one word: splits, describes, asked at order. Only an attribute
+  with options (one option, or a number in a unit) splits a product, at most 3 of them (ATR-14, ATL-02); several
+  options only describe; text and a number may be asked when ordering, never options (ATR-08). So the bakery's
+  Flavour splits the cake into variants, and "Message on the cake" is asked when ordering (`pf-food_bakery`).
+- **Add attribute.** A role the picked attribute's type cannot take shows greyed, saying why ("Only for text or a
+  number"; "Already split by 3: Size, Colour, Fit", `sh-attribute-full`). "Create …" opens *New attribute* as a step
+  with a way back: the name, the type (Options, Several options, Number, Text, Yes/no), for a number what it measures
+  (weight in g or kg, volume in ml or L, a count), and that the type cannot change later (`sh-attribute-new`,
+  `sh-attribute-new-number`). Create and pick returns to the first step with the new one picked (`sh-attribute-picked`).
+- **A describing value.** Tapping a describing or asked card opens its sheet, entered by its type: text as typed
+  (`sh-desc-text`), one option (`sh-desc-pick`), several (`sh-desc-multi`), a number with its unit (`sh-desc-number`),
+  yes or no (`sh-desc-bool`); an asked attribute only says what the shopper fills in (`sh-asked`). Each has Remove from
+  this product. Empty is allowed (ATR-03).
+- **Swatches.** A swatch belongs to one option: the circle beside it, dashed when it has none (`sh-options`). Tapping it
+  opens that option's palette under the row: the six drawn colours, Other colour (the browser's colour picker), From a
+  photo (a small picture of the shop's as the swatch, MED-03; no sampling) and None. A library colour's swatch is fixed,
+  "Library colour · fixed", since it shows the same in every shop (ATR-18, `sh-options-colour`).
+- **The table.** The first 6 variants show, then "Show all n" (`pf-clothing`). Fill all, under Price and Opening stock,
+  opens a sheet: the value and which variants, all or those of one option, each with its count (ATR-17, `sh-fill`).
+  On a product that exists, Stock is "Can sell", read-only (`GET /products/:id/stock`); stock is added from the Stock
+  card. A variant added later starts at 0, marked New, and the table opens in full (`product-size-added`).
+- **Limits.** Past 100 variants the table gives way to a banner naming what multiplies to how many, with what to do,
+  and Save reads "Fix 1 thing to save" (`pf-variants-over`). A 4th splitting attribute is greyed in Add attribute.
+- **Removing.** An option's × removes it at once, unless its variants hold stock: then "Remove Blue?" says how much
+  they hold, that they stop selling once saved, and that the stock stays and comes back with the option
+  (`sh-remove-option`; retire keeps stock).
 
 *Leaving with changes unsaved* (Part 13, agreed 2026-10-27): Back, a tab, a section chip or the browser's back, while
 something typed is not saved, asks first in a small dialog, "Leave without saving?": a product being edited is named

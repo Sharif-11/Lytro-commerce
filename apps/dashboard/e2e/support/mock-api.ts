@@ -43,6 +43,7 @@ import {
   storageAnswer,
   type ProductsFixture,
 } from './products';
+import { variantRead } from './variants';
 import { PRESETS } from './presets';
 import { drawnTeam, teamAnswer, teamWrite, type TeamFixture } from './team';
 import {
@@ -688,7 +689,7 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
     if (method === 'GET' && one && one[1] !== 'new') {
       const product = products.products.find((each) => each.id === one[1]);
       return product
-        ? ok(productDetail(product, state.language))
+        ? ok(productDetail(product, state.language, products))
         : route.fulfill({
             status: 404,
             contentType: 'application/json',
@@ -696,6 +697,9 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
           });
     }
     if (method === 'GET' && path === '/media/usage') return ok(storageAnswer(products));
+    // Slice 11.7b: the attributes, option sets, a new product's defaults and a product's stock.
+    const read = method === 'GET' ? variantRead(path, products) : undefined;
+    if (read !== undefined) return ok(read);
     const item = /^\/media\/([^/]+)$/.exec(path);
     const detail = item ? mediaDetail(products, item[1] ?? '') : null;
     if (item && detail && method === 'GET') return ok(detail);

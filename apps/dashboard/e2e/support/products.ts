@@ -1,4 +1,13 @@
 import type { Language } from './mock-api';
+import {
+  createdMatrix,
+  drawnTshirt,
+  variantPart,
+  variantWrite,
+  type AttributeFixture,
+  type DescriptionFixture,
+  type MatrixFixture,
+} from './variants';
 
 // Products and the product editor against a mocked API (Slice 11.7a): the prototype's six products of Megh Fashion
 // and its category tree, with Part 13's two archived products. GET /products filters and counts them as the server
@@ -22,6 +31,13 @@ export interface ProductFixture {
   options?: string[][];
   imageIds?: string[];
   videoId?: string | null;
+  /** Slice 11.7b: its variants as saved; made from `options` when left out. */
+  matrix?: MatrixFixture;
+  descriptions?: DescriptionFixture[];
+  stockTracking?: 'tracked' | 'not_tracked';
+  stockUnit?: string;
+  serialTracked?: boolean;
+  sharedStock?: boolean;
 }
 
 /** A category: its id, its parent, and its name in both languages. */
@@ -42,8 +58,12 @@ export interface ProductsFixture {
   media?: Record<string, MediaFixture>;
   /** Storage: full refuses every upload (STO-03). */
   storage?: { full?: boolean; usedBytes?: number; limitBytes?: number | null };
-  /** What the server refuses, for the tests that need a refusal: the photos (storage full), a name, a link. */
-  refuse?: { images?: boolean; name?: string; slug?: string };
+  /** What the server refuses, for the tests that need a refusal: the photos (storage full), a name, a link, an SKU. */
+  refuse?: { images?: boolean; name?: string; slug?: string; sku?: string };
+  /** Slice 11.7b: the attributes the shop sees, its option sets, and a new product's defaults where they differ. */
+  library?: AttributeFixture[];
+  optionSets?: unknown[];
+  defaults?: Record<string, unknown>;
 }
 
 // In the shop's order (the prototype's `CATS`).
@@ -94,6 +114,8 @@ export function drawnProducts(): ProductsFixture {
           ['S', 'M', 'L', 'XL', 'XXL'],
           ['Black', 'Blue'],
         ],
+        matrix: drawnTshirt(),
+        descriptions: [{ attributeId: 'a-3', role: 'informational', textValue: '100% cotton' }],
         imageIds: ['m-1', 'm-2', 'm-3'],
       },
       {
@@ -211,36 +233,12 @@ function summary(product: ProductFixture, language: Language): unknown {
   };
 }
 
-/** GET /products/:id: what the editor reads (the server's ProductDetail, as far as Slice 11.7a reads it). */
-export function productDetail(product: ProductFixture, language: Language): unknown {
-  const options =
-    product.options ??
-    (product.variantCount > 1
-      ? [Array.from({ length: product.variantCount }, (_, index) => `V${String(index + 1)}`)]
-      : []);
-  const attributes = options.map((values, index) => ({
-    attributeId: `a-${String(index + 1)}`,
-    name: index === 0 ? 'Size' : 'Colour',
-    dataType: 'enum_single',
-    unitKind: null,
-    options: values.map((value) => ({
-      id: `o-${String(index + 1)}-${value}`,
-      value,
-      swatchColor: null,
-      swatchImage: null,
-    })),
-  }));
-  const combinations = attributes.reduce<string[][]>(
-    (all, attribute) =>
-      all.flatMap((ids) => attribute.options.map((option) => [...ids, option.id])),
-    [[]],
-  );
-  const variants = combinations.map((optionIds, index) => ({
-    id: `${product.id}-v${String(index + 1)}`,
-    optionIds,
-    active: true,
-    stockState: product.stockState,
-  }));
+/** GET /products/:id: what the editor reads (the server's ProductDetail, as far as Slice 11.7b reads it). */
+export function productDetail(
+  product: ProductFixture,
+  language: Language,
+  fixture: ProductsFixture,
+): unknown {
   const categoryIds =
     product.categoryIds ?? (product.primaryCategoryId ? [product.primaryCategoryId] : []);
   return {
@@ -249,8 +247,7 @@ export function productDetail(product: ProductFixture, language: Language): unkn
     description: product.description ?? null,
     archived: product.archived ?? false,
     categoryIds,
-    variantAttributes: attributes,
-    variants,
+    ...variantPart(product, fixture),
     images: (product.imageIds ?? []).map((id) => ({
       id,
       urls: { main: picture(id), thumbnail: picture(id) },
@@ -396,10 +393,16 @@ export function productWrite(
   language: Language,
 ): { data: unknown } | { refused: ProductRefusal } | undefined {
   const named = (value: unknown): [string, string] => [String(value), String(value)];
+  const variants = variantWrite(method, path, body, fixture, (product) =>
+    productDetail(product, language, fixture),
+  );
+  if (variants) return variants;
   if (method === 'POST' && path === '/media/uploads') {
     // The logo's upload is Settings' own (support/settings.ts).
     const purpose = body?.purpose;
-    if (purpose !== 'product_image' && purpose !== 'product_video') return undefined;
+    if (purpose !== 'product_image' && purpose !== 'product_video' && purpose !== 'swatch_image') {
+      return undefined;
+    }
     if (fixture.storage?.full) {
       return {
         refused: {
@@ -466,14 +469,15 @@ export function productWrite(
       imageIds: (body?.imageIds as string[] | undefined) ?? [],
       videoId: (body?.videoId as string | undefined) ?? null,
     };
+    if (body) createdMatrix(product, body, fixture);
     fixture.products.unshift(product);
-    return { data: productDetail(product, language) };
+    return { data: productDetail(product, language, fixture) };
   }
   const match = /^\/products\/([^/]+)(\/[a-z-]+)?$/.exec(path);
   const product = fixture.products.find((each) => each.id === match?.[1]);
   if (!match || !product) return undefined;
   const part = match[2] ?? '';
-  const answer = (): { data: unknown } => ({ data: productDetail(product, language) });
+  const answer = (): { data: unknown } => ({ data: productDetail(product, language, fixture) });
   if (method === 'PATCH' && part === '') {
     if (fixture.refuse?.name && body?.name === fixture.refuse.name) {
       return { refused: fieldRefusal('name', 'A product already has that name.') };
@@ -523,7 +527,7 @@ export function productWrite(
       active: false,
     };
     fixture.products.unshift(copy);
-    return { data: productDetail(copy, language) };
+    return { data: productDetail(copy, language, fixture) };
   }
   if (method === 'POST' && part === '/restore') {
     if (product.archived && full(fixture)) return { refused: LIMIT_REACHED(fixture) };

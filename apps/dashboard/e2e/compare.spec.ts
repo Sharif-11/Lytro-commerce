@@ -1,6 +1,6 @@
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { test, type Page } from '@playwright/test';
+import { test, type Locator, type Page } from '@playwright/test';
 import { GROWTH, PRO, STARTER } from './support/catalogue';
 import {
   AWAITING_RENEWAL,
@@ -17,7 +17,8 @@ import { BILLING_STAFF, offerInstall, onAnIphone } from './support/menu';
 import { drawnIdentities } from './support/account';
 import { emptyMeta } from './support/meta';
 import { drawnExports } from './support/settings';
-import { drawnProducts, manyProducts } from './support/products';
+import { drawnProducts, manyProducts, type ProductsFixture } from './support/products';
+import { drawnLibrary } from './support/variants';
 import { drawnPasswords, drawnTeam } from './support/team';
 import { DAY_ONE, mockApi, SLUG, type Language, type ShopState } from './support/mock-api';
 import { mockOnboarding, TWELVE_MONTHS, typeCode, type Journey } from './support/onboarding-api';
@@ -60,6 +61,8 @@ interface Pair {
   shop?: { drawn: string; state: ShopState };
   /** The mocked shop where the prototype draws the state on its own screen (a locked shop's Renew page). */
   state?: ShopState;
+  /** A heading both pictures are scrolled to, for a card below the first screen (the options and variants). */
+  scroll?: RegExp;
 }
 
 const NEW_SHOP = { drawn: 'new', state: DAY_ONE };
@@ -359,6 +362,218 @@ function productPairs(): Pair[] {
       name: 'products-new',
     },
     ...editorPairs(),
+    ...variantPairs(),
+  ];
+}
+
+/**
+ * Options and variants (§7.4, Slice 11.7b, Part 14): the T-shirt's card and table, a size added, the option and colour
+ * sheets, Add attribute and its New attribute step, a describing value, Fill all, removing an option holding stock, the
+ * bakery made to order, and past 100 variants.
+ */
+function variantPairs(): Pair[] {
+  const card = /^(অপশন ও ভ্যারিয়েন্ট|Options and variants)$/;
+  const one = (
+    name: string,
+    path: string,
+    more: Partial<Pair> = {},
+    device: Device = 'phone',
+    language: Language = 'bn',
+  ): Pair => ({ name, screen: name, device, language, path, ...more });
+  const main = (page: Page) => page.getByRole('main');
+  const sheet = (page: Page) => page.getByRole('dialog').last();
+  const options = (nth: number) => async (page: Page) => {
+    await main(page).getByRole('button', { name: 'অপশন যোগ' }).nth(nth).click();
+  };
+  const insert = async (page: Page, value: string) => {
+    await sheet(page).getByLabel('অপশন যোগ', { exact: true }).fill(value);
+    await sheet(page).getByRole('button', { name: 'বসান' }).click();
+    await sheet(page).getByText(value, { exact: true }).waitFor();
+  };
+  const create = (name: string) => async (page: Page) => {
+    await main(page).getByRole('button', { name: 'অ্যাট্রিবিউট যোগ করুন' }).click();
+    await sheet(page).getByRole('searchbox').fill(name);
+    await sheet(page)
+      .getByRole('button', { name: `"${name}" তৈরি করুন` })
+      .click();
+  };
+  const hundred: ProductsFixture = (() => {
+    const products = drawnProducts();
+    const library = drawnLibrary();
+    const sizes = Array.from({ length: 10 }, (_, index) => `S${String(index + 1)}`);
+    const colours = Array.from({ length: 10 }, (_, index) => `C${String(index + 1)}`);
+    const size = library.find((each) => each.id === 'a-1');
+    const colour = library.find((each) => each.id === 'a-2');
+    if (size) size.options = sizes.map((value) => ({ id: `o-1-${value}`, value, scope: 'shop' }));
+    if (colour)
+      colour.options = colours.map((value) => ({ id: `o-2-${value}`, value, scope: 'shop' }));
+    const shirt = products.products[0];
+    if (shirt) {
+      shirt.matrix = {
+        splits: [
+          { attributeId: 'a-1', optionIds: sizes.map((value) => `o-1-${value}`) },
+          { attributeId: 'a-2', optionIds: colours.map((value) => `o-2-${value}`) },
+        ],
+        rows: sizes.flatMap((a, i) =>
+          colours.map((b, j) => ({
+            id: `p-1-v${String(i * 10 + j + 1)}`,
+            optionIds: [`o-1-${a}`, `o-2-${b}`],
+            price: null,
+            sku: null,
+            onHand: 0,
+          })),
+        ),
+      };
+    }
+    return { ...products, library };
+  })();
+  const threeSplits: ProductsFixture = (() => {
+    const products = drawnProducts();
+    const shirt = products.products[0];
+    if (shirt?.matrix) {
+      shirt.matrix.splits.push({ attributeId: 'a-4', optionIds: ['o-4-Regular'] });
+      for (const row of shirt.matrix.rows) row.optionIds.push('o-4-Regular');
+    }
+    return products;
+  })();
+  const bakery: ProductsFixture = {
+    ...drawnProducts(),
+    defaults: { presetKey: 'food_bakery', stockTracking: 'not_tracked', suggestedAttributeIds: [] },
+  };
+  return [
+    { ...one('product', '/products/p-1', { scroll: card }), name: 'product-variants' },
+    {
+      ...one('product', '/products/p-1', { scroll: card }, 'desktop', 'en'),
+      name: 'product-variants',
+    },
+    one('product-size-added', '/products/p-1', {
+      scroll: card,
+      then: async (page) => {
+        await options(0)(page);
+        await insert(page, '3XL');
+        await sheet(page).getByRole('button', { name: 'ঠিক আছে' }).click();
+      },
+    }),
+    one('sh-options', '/products/p-1', { then: options(0) }),
+    one('sh-options-colour', '/products/p-1', {
+      then: async (page) => {
+        await options(1)(page);
+        await insert(page, 'Sky');
+        await sheet(page).getByRole('button', { name: 'Sky-এর সোয়াচ' }).click();
+      },
+    }),
+    one(
+      'sh-options-colour',
+      '/products/p-1',
+      {
+        then: async (page) => {
+          await main(page).getByRole('button', { name: 'Add option' }).nth(1).click();
+          await sheet(page).getByLabel('Add option', { exact: true }).fill('Sky');
+          await sheet(page).getByRole('button', { name: 'Insert' }).click();
+          await sheet(page).getByRole('button', { name: 'Swatch of Sky' }).click();
+        },
+      },
+      'desktop',
+      'en',
+    ),
+    one('sh-attribute', '/products/p-1', {
+      then: async (page) => {
+        await main(page).getByRole('button', { name: 'অ্যাট্রিবিউট যোগ করুন' }).click();
+        await sheet(page).getByRole('searchbox').fill('Fi');
+      },
+    }),
+    one('sh-attribute-new', '/products/p-1', { then: create('Finish') }),
+    one('sh-attribute-picked', '/products/p-1', {
+      then: async (page) => {
+        await create('Finish')(page);
+        await sheet(page).getByRole('button', { name: 'তৈরি করে বেছে নিন' }).click();
+        await sheet(page).getByText('এইমাত্র তৈরি', { exact: false }).waitFor();
+      },
+    }),
+    one('sh-attribute-full', '/products/p-1', {
+      state: { products: threeSplits },
+      then: async (page) => {
+        await main(page).getByRole('button', { name: 'অ্যাট্রিবিউট যোগ করুন' }).click();
+        await sheet(page).getByRole('searchbox').fill('Sleeve');
+        await sheet(page)
+          .getByRole('button', { name: /^Sleeve/ })
+          .click();
+      },
+    }),
+    one('sh-desc-text', '/products/p-1', {
+      then: async (page) => {
+        await main(page)
+          .getByRole('button', { name: /^Material/ })
+          .click();
+      },
+    }),
+    one('sh-fill', '/products/p-1', {
+      then: async (page) => {
+        await main(page).getByRole('button', { name: 'সবগুলোতে বসান' }).click();
+        await sheet(page).getByRole('button', { name: /^L/ }).click();
+      },
+    }),
+    one('sh-remove-option', '/products/p-1', {
+      scroll: card,
+      then: async (page) => {
+        await main(page).getByRole('button', { name: 'Blue সরান' }).click();
+      },
+    }),
+    one(
+      'pf-food_bakery',
+      '/products/new',
+      {
+        scroll: card,
+        state: { products: bakery },
+        then: async (page) => {
+          for (const [name, values] of [
+            ['Size', ['1 lb', '2 lb', '3 lb']],
+            ['Flavour', ['Chocolate', 'Vanilla', 'Red velvet']],
+          ] as const) {
+            await main(page).getByRole('button', { name: 'Add attribute' }).click();
+            await sheet(page).getByRole('searchbox').fill(name);
+            const made = sheet(page).getByRole('button', { name: `Create "${name}"` });
+            if (await made.count()) {
+              await made.click();
+              await sheet(page).getByRole('button', { name: 'Create and pick' }).click();
+            } else
+              await sheet(page)
+                .getByRole('button', { name: new RegExp(`^${name}`) })
+                .click();
+            await sheet(page)
+              .getByRole('radio', { name: /^Splits into variants/ })
+              .click();
+            await sheet(page).getByRole('button', { name: 'Done' }).click();
+            for (const value of values) {
+              await sheet(page).getByLabel('Add option', { exact: true }).fill(value);
+              await sheet(page).getByRole('button', { name: 'Insert' }).click();
+              await sheet(page).getByText(value, { exact: true }).waitFor();
+            }
+            await sheet(page).getByRole('button', { name: 'Done' }).click();
+          }
+          await main(page).getByRole('button', { name: 'Add attribute' }).click();
+          await sheet(page).getByRole('searchbox').fill('Message on the cake');
+          await sheet(page).getByRole('button', { name: 'Create "Message on the cake"' }).click();
+          await sheet(page).getByRole('button', { name: 'Text', exact: true }).click();
+          await sheet(page).getByRole('button', { name: 'Create and pick' }).click();
+          await sheet(page)
+            .getByRole('radio', { name: /^Asked when ordering/ })
+            .click();
+          await sheet(page).getByRole('button', { name: 'Done' }).click();
+        },
+      },
+      'desktop',
+      'en',
+    ),
+    one('pf-variants-over', '/products/p-1', {
+      scroll: card,
+      state: { products: hundred },
+      then: async (page) => {
+        await options(0)(page);
+        await insert(page, 'S11');
+        await sheet(page).getByRole('button', { name: 'ঠিক আছে' }).click();
+      },
+    }),
   ];
 }
 
@@ -1242,6 +1457,16 @@ const STEPS: Pair[] = [
   },
 ];
 
+/** Scrolls a heading to the top of its scrolling page, behind any open sheet. */
+async function scrollTo(within: Locator, heading: RegExp): Promise<void> {
+  await within
+    .getByRole('heading', { name: heading })
+    .first()
+    .evaluate((element) => {
+      element.scrollIntoView({ block: 'start' });
+    });
+}
+
 test.describe('the built shell beside the prototype', () => {
   for (const pair of [...PAIRS, ...MONEY, ...STEPS]) {
     test(`${pair.name} on a ${pair.device} in ${pair.language}`, async ({ browser }) => {
@@ -1257,6 +1482,7 @@ test.describe('the built shell beside the prototype', () => {
       if (pair.shop) await drawing.selectOption('#selState', pair.shop.drawn);
       await drawing.selectOption('#selScreen', pair.screen);
       await drawing.waitForTimeout(400);
+      if (pair.scroll) await scrollTo(drawing.locator('#frame .shell'), pair.scroll);
       await drawing.locator('#frame .shell').screenshot({ path: `${out}-prototype.png` });
       await drawing.close();
 
@@ -1280,6 +1506,7 @@ test.describe('the built shell beside the prototype', () => {
       await app.waitForLoadState('networkidle');
       await app.evaluate(() => document.fonts.ready);
       if (pair.then) await pair.then(app);
+      if (pair.scroll) await scrollTo(app.getByRole('main'), pair.scroll);
       await app.waitForTimeout(300);
       await app.screenshot({ path: `${out}-app.png` });
       await app.close();

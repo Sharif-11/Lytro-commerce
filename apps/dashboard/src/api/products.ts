@@ -46,6 +46,8 @@ export interface EditOutcome {
 
 const PART_PATH: Record<EditPart['part'], string> = {
   fields: '',
+  variants: '/variants',
+  attributes: '/attributes',
   images: '/images',
   video: '/video',
 };
