@@ -15,7 +15,7 @@ import { Toast } from '@/components/ui/toast';
 import { useErrorText } from '@/hooks/use-error-text';
 import { useToast } from '@/hooks/use-toast';
 import { appConfig } from '@/lib/app-config';
-import { isImageFile, UploadRefused } from '@/lib/image-upload';
+import { isImageFile, UploadRefused } from '@/lib/media-upload';
 import { bangladeshiPhone } from '@/lib/phone';
 import { useShell } from '@/shell/shell-context';
 import { ShellPage } from '@/shell/shell-page';

@@ -156,3 +156,9 @@ export function daysSince(iso: string | null, now = Date.now()): number | null {
   if (!iso) return null;
   return Math.max(0, Math.floor((now - new Date(iso).getTime()) / (24 * 60 * 60 * 1000)));
 }
+
+/** STO-09: a video's length as its card writes it, minutes and seconds ("0:42", "12:05"). */
+export function formatDuration(ms: number): string {
+  const seconds = Math.round(ms / 1000);
+  return `${String(Math.floor(seconds / 60))}:${String(seconds % 60).padStart(2, '0')}`;
+}

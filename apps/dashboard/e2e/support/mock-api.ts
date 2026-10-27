@@ -34,10 +34,13 @@ import {
 import {
   categoryList,
   drawnProducts,
+  MEDIA_UPLOAD_PREFIX,
+  mediaDetail,
   productDetail,
   productList,
   productRemove,
   productWrite,
+  storageAnswer,
   type ProductsFixture,
 } from './products';
 import { PRESETS } from './presets';
@@ -469,6 +472,7 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
   );
   // The browser sends an upload's file to the link it was given (R2 in production).
   await page.route(`**${UPLOAD_PATH}`, (route: Route) => route.fulfill({ status: 200 }));
+  await page.route(`**${MEDIA_UPLOAD_PREFIX}**`, (route: Route) => route.fulfill({ status: 200 }));
   const log: ApiLog = {
     calls: [],
     sent: (method, path) =>
@@ -690,6 +694,14 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
             contentType: 'application/json',
             body: refusal('not_found', 'This product was not found.'),
           });
+    }
+    if (method === 'GET' && path === '/media/usage') return ok(storageAnswer(products));
+    const item = /^\/media\/([^/]+)$/.exec(path);
+    const detail = item ? mediaDetail(products, item[1] ?? '') : null;
+    if (item && detail && method === 'GET') return ok(detail);
+    if (item && detail && method === 'DELETE') {
+      delete products.media?.[item[1] ?? ''];
+      return ok({ ok: true });
     }
     if (method === 'DELETE' && one) {
       productRemove(products, one[1] ?? '', url.searchParams.get('hard') === 'true');

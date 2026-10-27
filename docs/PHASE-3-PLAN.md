@@ -1443,6 +1443,16 @@ their backend ships earlier.
     do, where the drawing writes `?v=m-black`; the line under the product link reads as a link, since it opens the
     link's sheet; and New category is a step of the picker's sheet with a way back, as Add staff's New role is. The
     photos and video are added and arranged in the media sheet, the next commit.
+  - **11.7a's photos and video, built:** Add photo and Add video in Basics, each upload a tile with how much has gone
+    (sent by XMLHttpRequest, agreed point 5), then preparing with how long that takes, or refused with why ("6 MB ·
+    limit 5 MB", the limit the server names); storage full is a banner with Usage's ways to more room. The media sheet:
+    the photos in order, the first the cover, dragged to reorder by touch, mouse or keyboard (`@dnd-kit`, agreed
+    point 4), each with its remove; the video with its length, size and poster, Replace and Remove; the storage line
+    with this product's share. A photo or the video let go of -- removed, replaced, or with its product deleted for good
+    -- is deleted once saved when nothing else shows it, and what a visit uploaded and left unsaved is deleted on
+    leaving (agreed 2026-10-27); leaving while an upload is under way asks first. The logo's upload is the same helper.
+    Where it differs from the drawing, on purpose: the storage line writes what is used in the limit's unit ("0.2 GB of
+    2 GB"), as Usage does.
 
 
 ### Slice 12: shared storefront and product landing pages

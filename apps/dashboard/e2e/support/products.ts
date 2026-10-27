@@ -27,11 +27,21 @@ export interface ProductFixture {
 /** A category: its id, its parent, and its name in both languages. */
 export type CategoryFixture = [string, string | null, string, string];
 
+/** An uploaded item: its kind and its bytes. */
+export interface MediaFixture {
+  kind: 'image' | 'video';
+  bytes: number;
+}
+
 /** The shop's products where they differ from the prototype's, its product limit (null for none), and its tree. */
 export interface ProductsFixture {
   products: ProductFixture[];
   limit: number | null;
   categories?: CategoryFixture[];
+  /** The items uploaded beyond the drawn photos, by id. */
+  media?: Record<string, MediaFixture>;
+  /** Storage: full refuses every upload (STO-03). */
+  storage?: { full?: boolean; usedBytes?: number; limitBytes?: number | null };
   /** What the server refuses, for the tests that need a refusal: the photos (storage full), a name, a link. */
   refuse?: { images?: boolean; name?: string; slug?: string };
 }
@@ -325,6 +335,58 @@ const full = (fixture: ProductsFixture): boolean =>
 
 let made = 0;
 
+const MB = 1024 * 1024;
+/** Where the browser sends an upload's file; the mock takes it. */
+export const MEDIA_UPLOAD_PREFIX = '/__upload/';
+
+function mediaView(id: string, item: MediaFixture, status: string): unknown {
+  const ready = status === 'ready';
+  return {
+    id,
+    kind: item.kind,
+    status,
+    purpose: item.kind === 'video' ? 'product_video' : 'product_image',
+    width: ready ? 1600 : null,
+    height: ready ? 1600 : null,
+    durationMs: ready && item.kind === 'video' ? 42_000 : null,
+    bytes: ready ? item.bytes : 0,
+    urls: ready ? { main: picture(id), thumbnail: picture(id) } : null,
+    failure: null,
+    createdAt: new Date().toISOString(),
+  };
+}
+
+/** GET /media/usage, as the server answers it (STO-01, STO-04, STO-05). */
+export function storageAnswer(fixture: ProductsFixture): unknown {
+  const limit = fixture.storage?.limitBytes;
+  return {
+    usedBytes: fixture.storage?.usedBytes ?? 180 * MB,
+    limitBytes: limit === undefined ? 2048 * MB : limit,
+    imageMaxMb: 5,
+    videoMaxMb: 150,
+  };
+}
+
+/** GET /media/:id for a product's item: the item and where it still shows (MED-09); null for one the mock never made. */
+export function mediaDetail(fixture: ProductsFixture, id: string): unknown {
+  // The drawn photos (m-1, m-2, ...) are the shop's whether or not a product still shows them.
+  const drawn = /^m-\d+$/.test(id);
+  const item = fixture.media?.[id] ?? (drawn ? { kind: 'image' as const, bytes: 820_000 } : null);
+  if (!item) return null;
+  return {
+    ...(mediaView(id, item, 'ready') as object),
+    uses: {
+      products: fixture.products.filter((each) => each.imageIds?.includes(id)).length,
+      videos: fixture.products.filter((each) => each.videoId === id).length,
+      categories: 0,
+      swatches: 0,
+      sizeCharts: 0,
+      logo: false,
+      pastOrders: 0,
+    },
+  };
+}
+
 /** The editor's writes (§7.4): the fixture changes as the server's rows would. */
 export function productWrite(
   method: string,
@@ -334,6 +396,47 @@ export function productWrite(
   language: Language,
 ): { data: unknown } | { refused: ProductRefusal } | undefined {
   const named = (value: unknown): [string, string] => [String(value), String(value)];
+  if (method === 'POST' && path === '/media/uploads') {
+    // The logo's upload is Settings' own (support/settings.ts).
+    const purpose = body?.purpose;
+    if (purpose !== 'product_image' && purpose !== 'product_video') return undefined;
+    if (fixture.storage?.full) {
+      return {
+        refused: {
+          status: 402,
+          code: 'plan_limit_reached',
+          message: 'Storage is full.',
+          details: { metric: 'storage' },
+        },
+      };
+    }
+    const kind = purpose === 'product_video' ? 'video' : 'image';
+    const bytes = Number(body?.bytes ?? 0);
+    if (kind === 'image' && bytes > 5 * MB) {
+      return { refused: fieldRefusal('bytes', 'An image may be 5 MB at most.') };
+    }
+    const id = `m-up-${String((made += 1))}`;
+    const item: MediaFixture = { kind, bytes };
+    (fixture.media ??= {})[id] = item;
+    return {
+      data: {
+        media: mediaView(id, item, 'uploading'),
+        upload: {
+          url: `${MEDIA_UPLOAD_PREFIX}${id}`,
+          method: 'PUT',
+          headers: {
+            'content-type': typeof body?.contentType === 'string' ? body.contentType : '',
+          },
+          expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+        },
+      },
+    };
+  }
+  const finished = /^\/media\/([^/]+)\/finish$/.exec(path);
+  const uploaded = fixture.media?.[finished?.[1] ?? ''];
+  if (method === 'POST' && finished && uploaded) {
+    return { data: mediaView(finished[1] ?? '', uploaded, 'ready') };
+  }
   if (method === 'POST' && path === '/categories') {
     const id = `c-new-${String((made += 1))}`;
     const name = typeof body?.name === 'string' ? body.name : '';

@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { useBlocker, useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { ApiClientError } from '@lytronix/api-client';
-import { Permission } from '@lytronix/validators';
+import { MediaKind, Permission } from '@lytronix/validators';
 import { useProductRoom } from '@/api/catalogue';
+import { unusedMedia } from '@/api/media';
 import {
   useCreateProduct,
   useDuplicateProduct,
@@ -38,6 +39,10 @@ import { StockTag } from '@/views/products/product-row';
 import { ArchivedProduct } from './archived-product';
 import { BasicsCard } from './basics-card';
 import { LinkCard } from './link-card';
+import { MediaSheet } from './media-sheet';
+import { PhotoStrip } from './photo-strip';
+import { useProductMedia } from './product-media';
+import { StorageFullBanner } from './storage-full-banner';
 import { MoreSettings } from './more-settings';
 import { RemoveDialog } from './remove-dialog';
 
@@ -101,8 +106,34 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
   const remove = useRemoveProduct(product?.id ?? '');
   // Set once the page itself leaves (after a save, a copy or a removal), so nothing asks first.
   const leaving = useRef(false);
+  const [mediaOpen, setMediaOpen] = useState(false);
+  // MED-03: each item joins the photos, or becomes the video, once prepared.
+  const media = useProductMedia(product, (item) => {
+    setForm((current) =>
+      item.kind === MediaKind.Video
+        ? { ...current, videoId: item.id }
+        : { ...current, imageIds: [...current.imageIds, item.id] },
+    );
+  });
+  const photos = form.imageIds.flatMap((id) => {
+    const item = media.items.get(id);
+    return item ? [item] : [];
+  });
+  const video = (form.videoId ? media.items.get(form.videoId) : undefined) ?? null;
+  const uploading = media.uploads.some((each) => each.stage !== 'refused');
 
-  const dirty = isDirty(saved, form);
+  /**
+   * PRD-11, agreed 2026-10-27: what the product let go of, and what this visit uploaded and left unsaved, deleted when
+   * nothing else shows it; `keep` is what the product still has or the form still holds.
+   */
+  function forget(keep: readonly (string | null)[], from: readonly (string | null)[]): void {
+    const kept = new Set(keep);
+    void unusedMedia.forget(
+      [...from, ...media.madeHere].filter((id): id is string => id !== null && !kept.has(id)),
+    );
+  }
+
+  const dirty = isDirty(saved, form) || uploading;
   const blocker = useBlocker({
     shouldBlockFn: () => !leaving.current && dirty,
     enableBeforeUnload: () => !leaving.current && dirty,
@@ -155,6 +186,7 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
     if (product === null) {
       create.mutate(createBody(form), {
         onSuccess: (made) => {
+          forget([...made.images.map((image) => image.id), made.video?.id ?? null], []);
           showToast(savedWords(made));
           leaveTo('/$shop/products');
         },
@@ -171,12 +203,15 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
     save.mutate(parts, {
       onSuccess: (outcome) => {
         const refused = new Set(outcome.refused.map((each) => each.part));
-        setSaved(
-          withSaved(
-            saved,
-            form,
-            parts.map((each) => each.part).filter((part) => !refused.has(part)),
-          ),
+        const next = withSaved(
+          saved,
+          form,
+          parts.map((each) => each.part).filter((part) => !refused.has(part)),
+        );
+        setSaved(next);
+        forget(
+          [...next.imageIds, next.videoId, ...form.imageIds, form.videoId],
+          [...saved.imageIds, saved.videoId],
         );
         const fields = outcome.refused.find((each) => each.part === 'fields');
         if (fields?.error instanceof ApiClientError)
@@ -239,6 +274,7 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
       {count > 0 ? (
         <Banner tone="bad">{count === 1 ? t('fixOne') : t('fixMany', { n: count })}</Banner>
       ) : null}
+      {media.storageFull && media.storage ? <StorageFullBanner storage={media.storage} /> : null}
       {create.isError && !(create.error instanceof ApiClientError) ? (
         <Banner tone="bad">{errorText(create.error)}</Banner>
       ) : null}
@@ -246,10 +282,24 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
         <div className="flex flex-col gap-4">
           <BasicsCard
             form={form}
-            product={product}
             problems={problems}
             readOnly={!mayManage}
             onChange={update}
+            strip={
+              <PhotoStrip
+                photos={photos}
+                video={video}
+                uploads={media.uploads}
+                storage={media.storage}
+                readOnly={!mayManage}
+                onOpen={() => {
+                  setMediaOpen(true);
+                }}
+                onAddPhotos={media.addPhotos}
+                onAddVideo={media.addVideo}
+                onDismiss={media.dismiss}
+              />
+            }
           />
           {product ? (
             <MoreSettings
@@ -287,6 +337,7 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
           onRemove={(hard) => {
             remove.mutate(hard, {
               onSuccess: () => {
+                if (hard) forget([], [...saved.imageIds, saved.videoId]);
                 setRemoving(null);
                 showToast(t(hard ? 'peDeletedToast' : 'peArchivedToast', { name: product.name }));
                 leaveTo('/$shop/products');
@@ -296,6 +347,28 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
           error={remove.isError ? errorText(remove.error) : null}
         />
       ) : null}
+      <MediaSheet
+        open={mediaOpen}
+        photos={photos}
+        video={video}
+        uploads={media.uploads}
+        storage={media.storage}
+        storageFull={media.storageFull}
+        readOnly={!mayManage}
+        onReorder={(imageIds) => {
+          update({ imageIds });
+        }}
+        onRemove={(id) => {
+          if (id === form.videoId) update({ videoId: null });
+          else update({ imageIds: form.imageIds.filter((each) => each !== id) });
+        }}
+        onDismiss={media.dismiss}
+        onAddPhotos={media.addPhotos}
+        onAddVideo={media.addVideo}
+        onClose={() => {
+          setMediaOpen(false);
+        }}
+      />
       <Dialog
         open={blocker.status === 'blocked'}
         title={t('lvTitle')}
@@ -316,6 +389,7 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
               tone="danger"
               onClick={() => {
                 leaving.current = true;
+                forget([...saved.imageIds, saved.videoId], []);
                 if (blocker.status === 'blocked') blocker.proceed();
               }}
             >

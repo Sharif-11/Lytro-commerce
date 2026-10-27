@@ -15,7 +15,10 @@ import { useShell } from '@/shell/shell-context';
 import { ShellPage } from '@/shell/shell-page';
 import type { ProductDetail } from '@/types/product';
 import { ProductLimitBanner } from '@/views/products/product-limit-banner';
+import { unusedMedia } from '@/api/media';
 import { BasicsCard } from './basics-card';
+import { PhotoStrip } from './photo-strip';
+import { itemsOf } from './product-media';
 import { RemoveDialog } from './remove-dialog';
 
 /**
@@ -86,7 +89,21 @@ export function ArchivedProduct({ product }: { product: ProductDetail }): React.
       <div className="lg:grid lg:grid-cols-[1fr_340px] lg:items-start lg:gap-6">
         <BasicsCard
           form={formOf(product)}
-          product={product}
+          strip={
+            <PhotoStrip
+              photos={product.images.flatMap((image) => {
+                const item = itemsOf(product).get(image.id);
+                return item ? [item] : [];
+              })}
+              video={product.video ? (itemsOf(product).get(product.video.id) ?? null) : null}
+              uploads={[]}
+              storage={undefined}
+              readOnly
+              onAddPhotos={() => undefined}
+              onAddVideo={() => undefined}
+              onDismiss={() => undefined}
+            />
+          }
           problems={{}}
           readOnly
           onChange={() => undefined}
@@ -103,6 +120,11 @@ export function ArchivedProduct({ product }: { product: ProductDetail }): React.
         onRemove={() => {
           remove.mutate(true, {
             onSuccess: () => {
+              // PRD-11, agreed 2026-10-27: its photos and video go too, unless something else shows them.
+              void unusedMedia.forget([
+                ...product.images.map((image) => image.id),
+                ...(product.video ? [product.video.id] : []),
+              ]);
               showToast(t('peDeletedToast', { name: product.name }));
               toList();
             },

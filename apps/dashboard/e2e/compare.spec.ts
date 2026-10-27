@@ -17,7 +17,7 @@ import { BILLING_STAFF, offerInstall, onAnIphone } from './support/menu';
 import { drawnIdentities } from './support/account';
 import { emptyMeta } from './support/meta';
 import { drawnExports } from './support/settings';
-import { manyProducts } from './support/products';
+import { drawnProducts, manyProducts } from './support/products';
 import { drawnPasswords, drawnTeam } from './support/team';
 import { DAY_ONE, mockApi, SLUG, type Language, type ShopState } from './support/mock-api';
 import { mockOnboarding, TWELVE_MONTHS, typeCode, type Journey } from './support/onboarding-api';
@@ -410,6 +410,32 @@ function editorPairs(): Pair[] {
       },
     }),
     one('pf-errors', '/products/new', { then: tap('সেভ করুন') }),
+    one('sh-media', '/products/p-1', { then: tap('ছবি 1') }),
+    one('sh-media', '/products/p-1', { then: tap('Photo 1') }, 'desktop', 'en'),
+    one('sh-media-full', '/products/p-1', {
+      state: {
+        products: { ...drawnProducts(), storage: { full: true, usedBytes: 2048 * 1024 * 1024 } },
+      },
+      then: async (page) => {
+        await page
+          .getByRole('main')
+          .locator('input[type=file][accept^="image"]')
+          .first()
+          .setInputFiles({ name: 'a.png', mimeType: 'image/png', buffer: Buffer.alloc(2048, 1) });
+        await page.getByRole('main').getByRole('alert').first().waitFor();
+        await tap('ছবি 1')(page);
+      },
+    }),
+    one('product-partial', '/products/p-1', {
+      state: { products: { ...drawnProducts(), refuse: { images: true } } },
+      then: async (page) => {
+        await tap('ছবি 1')(page);
+        await page.getByRole('dialog').getByRole('button', { name: 'ছবি 3 সরান' }).click();
+        await page.getByRole('dialog').getByRole('button', { name: 'ঠিক আছে' }).click();
+        await tap('সেভ করুন')(page);
+        await page.getByRole('main').getByRole('alert').first().waitFor();
+      },
+    }),
   ];
 }
 
