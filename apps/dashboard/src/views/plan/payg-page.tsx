@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { Permission } from '@lytronix/validators';
@@ -20,6 +20,7 @@ import { useShell } from '@/shell/shell-context';
 import { ShellPage } from '@/shell/shell-page';
 import { usePaymentNotices } from '@/views/billing/notices';
 import { PaymentBanner } from '@/views/billing/payment-banner';
+import { AddonsCard } from '@/views/addons/addons-card';
 import { HowToPaySheet } from './how-to-pay-sheet';
 import { CurrentCard, Disclosure, PlanCard, PlanRow, TightStat, TightStats } from './parts';
 import { taka, useLimitLines } from './words';
@@ -41,7 +42,7 @@ function FeeLine({ label, value }: { label: string; value: React.ReactNode }): R
  * PYG-01): the fees this month and the balance, the fee rates with pay-as-you-go's own limits, the plan cards to take a
  * plan (the estimate of what each would cost waits for PYG-12), and closing the shop at the foot (PYG-09).
  */
-export function PaygPage(): React.JSX.Element {
+export function PaygPage({ openPlanId }: { openPlanId: string | null }): React.JSX.Element {
   const { t, i18n } = useTranslation('money');
   const errorText = useErrorText();
   const navigate = useNavigate();
@@ -55,6 +56,14 @@ export function PaygPage(): React.JSX.Element {
   const notices = usePaymentNotices();
   const [choice, setChoice] = useState<string | null>(null);
   const chosen = catalogue.options.find((option) => option.planId === choice);
+
+  // Usage's "To raise it" names a plan: how to take it opens once its price is read, and the link's mark is dropped.
+  const asked = catalogue.options.find((option) => option.planId === openPlanId);
+  useEffect(() => {
+    if (!asked) return;
+    if (canManage && asked.amount !== null) setChoice(asked.planId);
+    void navigate({ to: '/$shop/plan', params: { shop: slug }, search: {}, replace: true });
+  }, [asked, canManage, navigate, slug]);
   const [closing, setClosing] = useState(false);
   const term = catalogue.term;
   const limits = payg.data?.limits;
@@ -167,6 +176,7 @@ export function PaygPage(): React.JSX.Element {
           </div>
         </div>
         <div className="flex min-w-0 flex-col gap-4">
+          <AddonsCard />
           {viewer.isOwner ? (
             <Disclosure title={t('pyCloseTitle')}>
               <p className="mt-2 mb-3 text-[14px] text-fg-muted">{t('pyCloseNote')}</p>

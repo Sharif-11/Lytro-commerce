@@ -10,17 +10,22 @@ const TONES: Record<StatusTone, string> = {
   neutral: 'bg-neutral-100 text-fg-muted',
 };
 
-/** A status in a pill (the prototype's `.st`): only status colours carry status (BRN-04). */
+/**
+ * A status in a pill (the prototype's `.st`): only status colours carry status (BRN-04). `small` is the 20 px pill a
+ * row's line of facts carries (the prototype's `.addon .meta .st`).
+ */
 export function StatusTag({
   tone,
+  small = false,
   children,
 }: {
   tone: StatusTone;
+  small?: boolean;
   children: ReactNode;
 }): React.JSX.Element {
   return (
     <span
-      className={`inline-flex h-[22px] items-center rounded-full px-2 text-[12px] font-semibold whitespace-nowrap ${TONES[tone]}`}
+      className={`inline-flex items-center rounded-full px-2 font-semibold whitespace-nowrap ${small ? 'h-5 text-[11px]' : 'h-[22px] text-[12px]'} ${TONES[tone]}`}
     >
       {children}
     </span>

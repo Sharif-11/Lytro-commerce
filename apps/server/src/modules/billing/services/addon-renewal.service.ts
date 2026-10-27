@@ -25,7 +25,7 @@ import { TenantService } from '../../tenancy/services/tenant.service';
 import type { AddonsStore } from '../ports/addons-store';
 import { ADDONS_STORE } from '../tokens';
 import type { AddonCarry, PaymentAddon, RenewingAddon } from '../types/addon';
-import { addonPrice, type AddonPeriod } from './addon-price';
+import { addonPrice, renewalPrice, type AddonPeriod } from './addon-price';
 import { BillingTermsService } from './billing-terms.service';
 import { ShopLimitsService } from './shop-limits.service';
 
@@ -145,7 +145,7 @@ export class AddonRenewalService {
   ): Promise<AddonCarry[]> {
     return (await this.carried(tenantId, periodEnd, plan)).map((from) => ({
       from,
-      price: fromPaisa(toPaisa(from.price) * BigInt(from.quantity * months)),
+      price: renewalPrice(from.price, from.quantity, months),
     }));
   }
 
@@ -257,7 +257,7 @@ export class AddonRenewalService {
     return {
       start,
       end: new Date(start.getTime() + ADDON_PERIOD_DAYS * DAY_MS),
-      price: fromPaisa(toPaisa(from.price) * BigInt(from.quantity)),
+      price: renewalPrice(from.price, from.quantity, 1),
     };
   }
 
@@ -290,7 +290,7 @@ export class AddonRenewalService {
       if (bar) {
         outlook.set(addon.id, bar);
       } else if (withPlanPeriod(addon, info)) {
-        if (budget !== null) budget -= toPaisa(addon.price) * BigInt(addon.quantity * months);
+        if (budget !== null) budget -= toPaisa(renewalPrice(addon.price, addon.quantity, months));
         outlook.set(
           addon.id,
           budget !== null && budget < 0n ? AddonRenewal.BalanceShort : AddonRenewal.WithPlan,

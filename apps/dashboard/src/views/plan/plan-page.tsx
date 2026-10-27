@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link } from '@tanstack/react-router';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { Permission, TenantState } from '@lytronix/validators';
 import { daysUntil } from '@lytronix/ui';
@@ -28,6 +28,7 @@ import { usePaymentNotices } from '@/views/billing/notices';
 import { PaymentBanner } from '@/views/billing/payment-banner';
 import type { PlanPriceOption } from '@/types/billing';
 import type { MeTenant } from '@/types/me';
+import { AddonsCard } from '@/views/addons/addons-card';
 import { TermChips } from './change-plan';
 import { DowngradeSheet } from './downgrade-sheet';
 import { lapseDays, termLabel } from './figures';
@@ -61,9 +62,10 @@ const PLAN_CARDS = 'plan-cards';
  * each with the one move it allows, and stopping the subscription as a disclosure at the foot. Every figure is read
  * without making a payment (GET /billing/prices); a request is made only in a sheet, on the tap that commits.
  */
-export function PlanPage(): React.JSX.Element {
+export function PlanPage({ openPlanId }: { openPlanId: string | null }): React.JSX.Element {
   const { t, i18n } = useTranslation('money');
   const errorText = useErrorText();
+  const navigate = useNavigate();
   const { tenant, viewer, slug, showToast } = useShell();
   const canManage = allows(viewer, [Permission.PaymentsManage]);
   const catalogue = usePlanCatalogue(tenant.billingTerm?.id ?? null);
@@ -110,6 +112,18 @@ export function PlanPage(): React.JSX.Element {
     if (option.amount === null) return;
     setSheet({ kind: 'pay', planId: option.planId });
   }
+
+  // Usage's "To raise it" names a plan: its upgrade, or how to take it, opens once its price is read, and the link's
+  // mark is dropped so the sheet does not open again.
+  const asked = options.find((option) => option.planId === openPlanId);
+  useEffect(() => {
+    if (!asked) return;
+    if (canManage && asked.amount !== null && asked.blockedBy === null) {
+      if (asked.move === 'upgrade') setSheet({ kind: 'upgrade', planId: asked.planId });
+      if (asked.move === 'purchase') setSheet({ kind: 'pay', planId: asked.planId });
+    }
+    void navigate({ to: '/$shop/plan', params: { shop: slug }, search: {}, replace: true });
+  }, [asked, canManage, navigate, slug]);
 
   function action(option: PlanPriceOption): React.JSX.Element | null {
     if (option.move === 'renewal' && !trial) return <YouAreHere />;
@@ -349,6 +363,7 @@ export function PlanPage(): React.JSX.Element {
           </div>
         </div>
         <div className="flex min-w-0 flex-col gap-4">
+          <AddonsCard />
           {active && canManage && !cancelled && change === null ? (
             <Disclosure title={t('stopTitle')}>
               <p className="mt-2 mb-3 text-[14px] text-fg-muted">

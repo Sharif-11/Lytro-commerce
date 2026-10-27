@@ -36,6 +36,7 @@ import type { AddonsStore } from '../ports/addons-store';
 import { ADDONS_STORE, CLOCK } from '../tokens';
 import type { AddonPurchaseResult, AddonRecord, ShopPack } from '../types/addon';
 import { canTake } from './addon-eligibility';
+import { assertAmountSeen } from './amount-seen';
 import { ShopLimitsService } from './shop-limits.service';
 
 /** The metered limit a pack tops up, for each metric that has packs. */
@@ -52,6 +53,11 @@ function metricOf(addon: AddonRecord): PackMetric | null {
   return addon.limitKey in PACK_METRICS
     ? PACK_METRICS[addon.limitKey as keyof typeof PACK_METRICS]
     : null;
+}
+
+/** PLN-15: what `quantity` packs cost -- a pack's price is fixed -- as money; whole taka, so nothing is rounded. */
+export function packPrice(addon: AddonRecord, quantity: number): string {
+  return fromPaisa(toPaisa(addon.price) * BigInt(quantity));
 }
 
 /** A whole-taka price as a notice says it: 30, not 30.00. */
@@ -90,6 +96,7 @@ export class AddonPackService {
   /**
    * PLN-15: buys packs from the balance at once -- a pack's price is fixed, so there is no quote to hold -- with its
    * invoice and the shop's log entry. A shop that may buy add-ons may buy packs (PLN-14); the balance pays, never a wallet.
+   * Refused when the price is no longer the one the seller was shown (BIL-09, Slice 11.5c).
    */
   async buy(
     tenantId: string,
@@ -104,6 +111,7 @@ export class AddonPackService {
     const info = await this.billingOf(tenantId);
     if (!canTake(info, now))
       throw new ApiError('plan_feature_unavailable', 'AddonNotAvailable', {});
+    assertAmountSeen(input.amount, packPrice(addon, input.quantity));
     return this.tenants.runStandalone((tx) =>
       this.purchase(tx, tenantId, info, addon, input.quantity, now, ActorType.User, ip ?? null),
     );
@@ -247,7 +255,7 @@ export class AddonPackService {
     actorType: ActorType,
     ip: string | null,
   ): Promise<AddonPurchaseResult> {
-    const amount = fromPaisa(toPaisa(addon.price) * BigInt(quantity));
+    const amount = packPrice(addon, quantity);
     const payment = await this.payments.quote(tx, {
       tenantId,
       kind: PlanPaymentKind.Addon,

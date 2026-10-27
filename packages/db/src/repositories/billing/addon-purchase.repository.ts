@@ -72,6 +72,8 @@ export interface NewAddonPurchaseValues {
    * to the microsecond, so it stays exactly as old and oldest first holds from one period to the next.
    */
   continuesId?: string | null;
+  /** PLN-14: whether it renews; on unless the seller switched it off when buying. */
+  renews?: boolean;
 }
 
 /** PLN-14: how a payment's add-on takes effect -- from when, until when, and how it was paid. */

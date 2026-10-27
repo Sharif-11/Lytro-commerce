@@ -24,6 +24,8 @@ interface WalletStepProps {
   error: string | null;
   /** The button's words; the prototype's "Submit the payment" when left out. */
   submitLabel?: string;
+  /** What a different amount waits for; the plan's start when left out. */
+  amountNote?: string;
   onSubmit: (values: WalletPaymentValues) => void;
   onBack?: () => void;
   /** Inside an onboarding step, whose cards are roomier (the prototype's `.ob .card`); a sheet's are not. */
@@ -75,6 +77,7 @@ export function WalletStep({
   pending,
   error,
   submitLabel,
+  amountNote,
   onSubmit,
   onBack,
   spacious = false,
@@ -155,7 +158,7 @@ export function WalletStep({
           inputMode="decimal"
           prefix="৳"
           value={amountSent}
-          help={t('amountNote')}
+          help={amountNote ?? t('amountNote')}
           onChange={(event) => {
             setAmountSent(event.target.value.replace(/[^\d.,]/g, ''));
           }}

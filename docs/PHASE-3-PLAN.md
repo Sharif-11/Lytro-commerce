@@ -1259,6 +1259,53 @@ their backend ships earlier.
     a seat and brand identity, an add-on payment being checked or rejected, and the pay-as-you-go page's add-ons
     renewing from the balance. The copy leaves out the requirement ids and the stale "Slice 10a.2" chip; the default
     usage sample now has the products banner as its worst metric, which the one-banner rule needs.
+  - **11.5c's reads, built:** each offer on `GET /addons` says why it cannot be bought now (`blockedBy`, the key its
+    quote would refuse with), what each quantity up to 10 costs as its request would work it out (`amounts`), its days
+    left and what one costs for a whole next period (`renewalPrice`); the add-on request takes `renews`; a pack purchase
+    takes the amount shown and is refused when the price has changed; `GET /usage` gives bandwidth and requests a
+    `runsOutAt`, from the same pace rule as the usage email (now one function, `runOutDate`), and each suggested add-on
+    its `metric`. The renewal price of an add-on is one function too (`renewalPrice`), where three places worked it out.
+  - **11.5c's Usage, built:** the cycle's dates; the one banner for the metric nearest its stop, worded by metric and
+    level, its way out a pack, an add-on, auto-buy or a top-up (none for read-only staff), "an email went too" only for
+    an owner with an email address and the free SMS only for bandwidth and requests at 100% and at the stop; each metric
+    against its limit, bytes in the unit of the limit as the email writes them, the run-out date from the server, and
+    from 80% "To raise it" naming that metric's add-on or pack from the server's suggestion and the suggested plan; the
+    two auto-buy switches with what auto-buy did, shown while the shop can buy packs; bandwidth and requests a day.
+    "To raise it" opens the add-on's or the pack's sheet (`/addons?buy=`, `?pack=`) or the plan's own sheet on Plan
+    (`/plan?plan=<id>`, its upgrade or how to take it). Named fixes: below 1024 px the two charts stack 16 px apart (the
+    sketch's `.two` leaves none, as it did on Home); the auto-buy switches' words wrap rather than being cut short, which
+    on a phone hid the pack and the metric; dates and figures are written as the other Money screens write them ("6 Oct",
+    "100,000"), where Part 10's Bangla sample used month names and "1,00,000"; "To raise it" names the catalogue's own
+    add-ons ("Extra 500 products").
+  - **The Money screens' Bangla, revised by the owner (2026-10-26):** the 68 lines the dashboard writes itself on Plan,
+    Balance, Billing and Renew (the prototype's own lines are unchanged) take the owner's fuller wording, written with
+    Western digits as everywhere else; the English is unchanged. Each Bangla line now names the same values as its
+    English one, checked when the words are made.
+  - **11.5c's Add-ons, built:** the first line says which add-ons renew with the plan, on which day and for how much
+    (the server's own list of what the renewal carries), or on pay-as-you-go that each renews from the balance at its
+    own end; a banner that needs the seller takes its place -- the trial, grace with Renew, an add-on payment being
+    checked or rejected, an add-on ending within 7 days with renewal off (by kind, with the limit it returns to, and
+    Turn renewal on) -- and on pay-as-you-go a balance too short for the next renewal says so under it, with Top up.
+    Raise a limit, Packs and Features list each item with its price and one action: Buy, the renewal switch (turning
+    it off first says when it ends and what happens to what is over the limit then), Needs a plan, Renew first, or
+    none; an add-on no longer sold stays listed until it ends. The Buy sheet: how many, up to 10; the limit before and
+    after; due now as the server works it out for that many and the days left, then what it renews for; from the
+    balance, greyed with Top up when short, or by the platform's wallets, whose step opens in the sheet; the renewal
+    switch goes with the request. The pack sheet: the two packs, from the balance only, with both auto-buy switches. A
+    changed amount is said and asked again, nothing charged (BIL-09). Plan and the pay-as-you-go page carry an add-ons
+    card with what the shop has and the way to all of them. The Bangla follows the owner's style (familiar terms
+    transliterated, explanations as plain sentences). Named fixes: the trial banner leaves out designing the brand now,
+    and an active brand identity's row has its renewal switch, both until the brand editor (11.12) brings Set up; the
+    wallet choice names the platform's own wallets; the shell's trial and grace banners show above the page's own, as
+    on every screen; in grace a row names no end of its own, the banner giving the grace's; the products ending banner
+    names its limit as the storage one is drawn to; the quantity's minus greys at one; the wallet step's amount note
+    says the add-on, not the plan, turns on once a different amount is checked. Two shared fixes the screens showed: a
+    page below its section (Add-ons, below Usage) draws no section chips, and on a phone a dialog now sits where the
+    sketch puts it whatever its height (centred above the 40% margin), where since 11.5b it sat 40% above the bottom.
+  - **The Money screens' Bangla, the owner's second revision (2026-10-27):** 44 of the lines the dashboard writes
+    itself on Plan, Balance, Billing and Renew take the owner's style -- familiar terms transliterated (শপ, রিকোয়েস্ট,
+    ভেরিফাই, অ্যাক্টিভ, টপ-আপ, গ্রেস পিরিয়ড), explanations kept as plain sentences; Western digits, the English and
+    every line's values unchanged.
 
 ### Slice 12: shared storefront and product landing pages
 - **Depends on:** Slices 0, 0b, 7 and 9 (and branding from Phase 1).

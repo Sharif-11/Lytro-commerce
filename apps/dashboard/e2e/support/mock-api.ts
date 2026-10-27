@@ -12,6 +12,15 @@ import {
   terms,
 } from './catalogue';
 import {
+  addonOffers,
+  CATALOGUE,
+  renewingAddons,
+  shopAddonsAnswer,
+  usageAnswer,
+  type AddonsFixture,
+  type UsageFixture,
+} from './usage';
+import {
   drawnLedger,
   drawnPayments,
   invoiceOf,
@@ -63,6 +72,8 @@ export interface MoneyState {
   closed?: boolean;
   /** LIF-12: an archived or locked shop's deletion date, in days from now. */
   deletesInDays?: number | null;
+  /** GET /usage, GET /addons and GET /addons/mine where they differ from the drawn shop's (Slice 11.5c). */
+  usage?: UsageFixture & AddonsFixture;
 }
 
 export interface ShopState {
@@ -297,11 +308,16 @@ export function shopAnswer(path: string, url: URL, state: Required<ShopState>): 
   const priced = /^\/plans\/([^/]+)\/prices$/.exec(path);
   if (priced) return prices(priced[1] ?? '');
   if (path === '/billing/prices') {
-    return billingPrices(
-      url.searchParams.get('billingTermId') ?? ONE_MONTH,
-      ownPlan(state),
-      state.state === 'active',
-      money.credit ?? 299,
+    // UPG-14: the plan's renewal carries the add-ons set to renew with it.
+    return (
+      billingPrices(
+        url.searchParams.get('billingTermId') ?? ONE_MONTH,
+        ownPlan(state),
+        state.state === 'active',
+        money.credit ?? 299,
+      ) as { move: string }[]
+    ).map((option) =>
+      option.move === 'renewal' ? { ...option, addons: renewingAddons(money.usage) } : option,
     );
   }
   if (path === '/billing/downgrade') {
@@ -349,6 +365,17 @@ export function shopAnswer(path: string, url: URL, state: Required<ShopState>): 
       nextCursor: null,
     };
   }
+  const trial = state.state === 'trial';
+  if (path === '/usage') return usageAnswer({ trial, ...money.usage });
+  if (path === '/addons') {
+    return addonOffers({
+      trial,
+      grace: state.state === 'grace',
+      payg: state.state === 'pay_as_you_go',
+      ...money.usage,
+    });
+  }
+  if (path === '/addons/mine') return shopAddonsAnswer(money.usage);
   if (path === '/me/identities') {
     return {
       identities: [
@@ -390,6 +417,8 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
     sessionStorage.setItem('lytro.tenant.csrf', 'csrf-e2e');
   });
   await startIn(page, state.language);
+  // The add-on request a purchase pays for (Slice 11.5c).
+  let quoted: { key: string; quantity: number; amount: string; renews: boolean } | null = null;
   await page.route('**/api/v1/**', async (route: Route) => {
     const request = route.request();
     const url = new URL(request.url());
@@ -480,6 +509,113 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
       // The list read after it holds the new request, being made.
       money.exports = [requested, ...(money.exports ?? [])];
       return ok(requested);
+    }
+    if (method === 'POST' && (path === '/addons/quote' || path === '/addons/packs')) {
+      // BIL-09: a price changed since it was shown is refused once, with the new amount.
+      const usage = (money.usage ??= {});
+      const changedTo = usage.amountChangedTo;
+      if (changedTo && Number(body?.amount) !== Number(changedTo)) {
+        return route.fulfill({
+          status: 409,
+          contentType: 'application/json',
+          body: refusal('conflict', 'The amount changed.', { amount: changedTo }),
+        });
+      }
+      const item = CATALOGUE.find((each) => each.id === body?.addonId) ?? CATALOGUE[0];
+      const amount = `${String(body?.amount ?? 0)}.00`;
+      const quantity = Number(body?.quantity ?? 1);
+      if (path === '/addons/packs') {
+        const left = usage.packsLeft ?? {};
+        usage.packsLeft =
+          item?.limitKey === 'bandwidth_gb'
+            ? { ...left, bandwidth: (left.bandwidth ?? 0) + (item.unitSize ?? 0) * quantity }
+            : { ...left, requests: (left.requests ?? 0) + (item?.unitSize ?? 0) * quantity };
+        return ok({
+          payment: { ...(payment('addon', null, null, amount) as object), status: 'verified' },
+          invoice: { id: 'invoice-216', number: 216, amount },
+        });
+      }
+      quoted = {
+        key: item?.key ?? '',
+        quantity,
+        amount,
+        renews: (request.postDataJSON() as { renews?: unknown } | null)?.renews !== false,
+      };
+      return ok({
+        payment: payment('addon', null, null, amount),
+        addon: { ...item, price: `${String(item?.price ?? 0)}.00`, retiredAt: null },
+        quantity,
+        expiresAt: new Date(Date.now() + 20 * DAY_MS).toISOString(),
+      });
+    }
+    if (method === 'POST' && path === '/addons/purchase' && quoted) {
+      const usage = (money.usage ??= {});
+      const bought = quoted;
+      if (body?.method === 'wallet') {
+        // BIL-02: the payment waits in the operator's queue; the list read after it shows it being checked.
+        const item = CATALOGUE.find((each) => each.key === bought.key);
+        money.payments = [
+          listedPayment({
+            id: 'pay_addon_1',
+            kind: 'addon',
+            state: 'checking',
+            amount: bought.amount,
+            planId: null,
+            billingTermId: null,
+            planName: null,
+            billingTerm: null,
+            method: 'wallet',
+            transactionId: String(body.transactionId ?? ''),
+            submittedAt: new Date().toISOString(),
+            addons: item
+              ? [
+                  {
+                    id: 'pa-1',
+                    key: item.key,
+                    labelEn: item.labelEn,
+                    labelBn: item.labelBn,
+                    quantity: bought.quantity,
+                    price: bought.amount,
+                    status: 'pending',
+                  },
+                ]
+              : [],
+          }),
+          ...(money.payments ?? drawnPayments()),
+        ];
+        return ok({
+          payment: { ...(payment('addon', null, null, bought.amount) as object) },
+          invoice: null,
+        });
+      }
+      usage.owned = [
+        ...(usage.owned ?? []),
+        {
+          key: bought.key,
+          quantity: bought.quantity,
+          renewal: bought.renews ? 'with_plan' : 'off',
+        },
+      ];
+      return ok({
+        payment: { ...(payment('addon', null, null, bought.amount) as object), status: 'verified' },
+        invoice: { id: 'invoice-215', number: 215, amount: bought.amount },
+      });
+    }
+    const renewal = /^\/addons\/mine\/p-([^/]+)$/.exec(path);
+    if (method === 'PATCH' && renewal) {
+      const usage = (money.usage ??= {});
+      const renews = (request.postDataJSON() as { renews?: unknown } | null)?.renews === true;
+      usage.owned = (usage.owned ?? []).map((each) =>
+        each.key === renewal[1] ? { ...each, renewal: renews ? 'with_plan' : 'off' } : each,
+      );
+      return ok(shopAddonsAnswer(usage));
+    }
+    if (method === 'PATCH' && path === '/addons/auto-buy') {
+      // PLN-15: the usage read after it shows the switch as set.
+      const usage = (money.usage ??= {});
+      const wanted = (request.postDataJSON() as { bandwidth?: unknown } | null)?.bandwidth;
+      if (typeof wanted === 'boolean') usage.autoBuy = { ...usage.autoBuy, bandwidth: wanted };
+      return ok([]);
     }
     if (method === 'POST' && path.startsWith('/billing/')) return ok({ ok: true });
     return ok(shopAnswer(path, url, state));

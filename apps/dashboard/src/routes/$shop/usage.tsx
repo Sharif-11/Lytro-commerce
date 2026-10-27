@@ -1,8 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { Arriving } from '@/views/arriving';
+import { UsageView } from '@/views/usage';
 
-// Built in its own pull request of Slice 11; until then the hub's navigation reaches it and says so.
+// TENANT-DASHBOARD-DESIGN §7.24: Usage, every limit against its use (LIM-01, LIM-02).
 export const Route = createFileRoute('/$shop/usage')({
   staticData: { screen: { hub: 'money', section: 'usage', title: 'secUsage' } },
-  component: () => <Arriving icon="trend" />,
+  component: UsageView,
 });

@@ -24,6 +24,21 @@ export function megabytes(value: number): string {
   return `${Number.isInteger(gb) ? gb.toLocaleString('en-US') : gb.toFixed(1)} GB`;
 }
 
+const BYTES_PER_MB = 1024 * 1024;
+const BYTES_PER_GB = 1024 * BYTES_PER_MB;
+
+/**
+ * Bytes as the usage page writes them, in the unit of the limit they are read against, as the usage email does:
+ * gigabytes from a 1 GB limit, to one decimal where there is one ("0.9 GB", "28.5 GB", "30 GB"), else whole megabytes.
+ */
+export function usageSize(bytes: number, against: number | null): string {
+  if ((against ?? bytes) < BYTES_PER_GB) {
+    return `${Math.round(bytes / BYTES_PER_MB).toLocaleString('en-US')} MB`;
+  }
+  const gb = Math.round((bytes / BYTES_PER_GB) * 10) / 10;
+  return `${Number.isInteger(gb) ? gb.toLocaleString('en-US') : gb.toFixed(1)} GB`;
+}
+
 /** A file's size as the export row writes it: "18 MB". */
 export function fileSize(bytes: number): string {
   const mb = bytes / (1024 * 1024);

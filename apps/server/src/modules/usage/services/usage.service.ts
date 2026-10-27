@@ -21,6 +21,7 @@ import type { TenantSummary } from '../../tenancy/types/tenant-summary';
 import { UsageSettings } from '../../usage-warnings/services/usage-settings';
 import type { ShopUsage, UsageFigure, UsagePack } from '../types/usage';
 import { metricLimit, SERVING_METRICS } from './metric-limits';
+import { runOutDate } from './pace';
 import { UsageSuggestions } from './usage-suggestions';
 
 // LIM-01: the shares a figure's banner shows, its limit the last.
@@ -95,6 +96,7 @@ export class UsageService {
       this.addons.offers(tenant.id),
       this.tenants.runStandalone((tx) => this.tenants.findBillingInfo(tx, tenant.id)),
     ]);
+    const cycleEnd = usageCycleEnd(tenant, now);
     const figure = (
       metric: UsageMetric,
       used: number,
@@ -104,6 +106,12 @@ export class UsageService {
     ): UsageFigure => {
       const own = metricLimit(limits, metric);
       const allowance = allowanceOf(own, packs ?? NO_PACKS);
+      const serving = SERVING_METRICS.has(metric);
+      // LIM-01 (Slice 11.5c): the email's own figure, while the allowance is not used up yet and runs out in the cycle.
+      const runsOut =
+        serving && allowance !== null && used < allowance
+          ? runOutDate(used, allowance, cycleStart, now)
+          : null;
       const counted = {
         metric,
         used,
@@ -113,9 +121,8 @@ export class UsageService {
         packLeft: packs ? packs.available - packTaken(used, own, packs) : null,
         // BND-03, RTE-03: the grace after the allowance is a share of the shop's own limit.
         stopAt:
-          SERVING_METRICS.has(metric) && own !== null && allowance !== null
-            ? allowance + (own * grace) / 100
-            : null,
+          serving && own !== null && allowance !== null ? allowance + (own * grace) / 100 : null,
+        runsOutAt: runsOut !== null && runsOut < cycleEnd ? runsOut : null,
       };
       return { ...counted, level: levelOf(counted) };
     };
@@ -150,7 +157,7 @@ export class UsageService {
     }
     return {
       cycleStart,
-      cycleEnd: usageCycleEnd(tenant, now),
+      cycleEnd,
       metrics,
       bandwidthDays: bandwidth.days,
       requestDays,

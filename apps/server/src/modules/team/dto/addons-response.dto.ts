@@ -19,11 +19,16 @@ export const addonSchema = z.object({
 export class AddonDto extends createZodDto(addonSchema) {}
 export class AddonListDto extends createZodDto(addonSchema.array()) {}
 
-// PLN-14: an add-on for sale to this shop; the price is whole taka for one, to the period's end, or null.
+// PLN-14: an add-on for sale to this shop; the price is whole taka for one, to the period's end, or null. Slice 11.5c:
+// why it can't be bought now, the amount for each quantity one request buys, the days left and a next period's price.
 export const addonOfferSchema = z.object({
   addon: addonSchema,
   price: z.number().nullable(),
   expiresAt: z.date().nullable(),
+  blockedBy: z.string().nullable(),
+  amounts: z.array(z.number()),
+  daysLeft: z.number().nullable(),
+  renewalPrice: z.number().nullable(),
 });
 export class AddonOfferListDto extends createZodDto(addonOfferSchema.array()) {}
 

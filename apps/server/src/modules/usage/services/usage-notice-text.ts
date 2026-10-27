@@ -5,6 +5,7 @@ import { GB } from '../../media/services/media-bandwidth';
 import { MB } from '../../media/services/media-limits';
 import type { ShopUsage, Suggestion, Suggestions } from '../types/usage';
 import { SERVING_METRICS } from './metric-limits';
+import { runOutDate } from './pace';
 
 /** One notice as the owner reads it: by email, and the short form an SMS carries. */
 export interface NoticeText {
@@ -101,10 +102,8 @@ function roomLine(suggestions: Suggestions | null): string {
 
 /** LIM-01: when a per-cycle metric runs out at the pace of the cycle so far, or that it lasts the cycle. */
 function paceLine(notice: UsageNotice, usage: ShopUsage, now: Date): string {
-  const elapsedDays = Math.max((now.getTime() - usage.cycleStart.getTime()) / DAY_MS, 1);
-  const perDay = notice.used / elapsedDays;
-  if (perDay <= 0) return '';
-  const runsOut = new Date(now.getTime() + ((notice.limit - notice.used) / perDay) * DAY_MS);
+  const runsOut = runOutDate(notice.used, notice.limit, usage.cycleStart, now);
+  if (!runsOut) return '';
   if (runsOut >= usage.cycleEnd) {
     return ` At this cycle's pace it lasts until the cycle ends on ${day(usage.cycleEnd)}.`;
   }

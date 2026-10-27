@@ -11,6 +11,7 @@ import type {
   RenewingAddonRow,
 } from '@lytronix/db';
 import type { AddonRenewal, UsageMetric } from '@lytronix/validators';
+import type { MessageKey } from '../../../common/i18n/message-key';
 import type { PlanPaymentRecord } from '../../payments/types/plan-payment';
 import type { InvoiceRecord } from '../../payments/types/invoice';
 
@@ -36,6 +37,23 @@ export interface AddonOffer {
   price: number | null;
   /** Until when it would run: the plan period's end; null with no price. */
   expiresAt: Date | null;
+  /**
+   * Why the shop can't buy it now -- no running paid period (a trial, grace, a lapsed shop), a limit already unlimited,
+   * a feature it already has -- as the quote would refuse it; null when it can (Slice 11.5c).
+   */
+  blockedBy: MessageKey | null;
+  /**
+   * BIL-09: whole taka for 1, 2, ... up to the most one request buys (one of a feature), each worked out on its own total
+   * as its request would be -- the price is rounded once, so two are not always twice one. Empty with no price.
+   */
+  amounts: number[];
+  /** The days left to its end that the price is for; null for a pack, which never ends, or with no price. */
+  daysLeft: number | null;
+  /**
+   * PLN-14, UPG-14: whole taka one costs for a whole next period -- the term's months when it renews with the plan, its
+   * own 30 days otherwise; null for a pack or with no price.
+   */
+  renewalPrice: number | null;
 }
 
 /** PLN-14: a quoted add-on, held like a plan quote (BIL-09), paid by confirming its payment. */

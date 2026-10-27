@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { BillingInfoRow, Transaction } from '@lytronix/db';
 import {
   ActorType,
+  ADDON_QUANTITY_MAX,
   ADDON_WARNING_DAYS,
   AddonKind,
   AddonPurchaseStatus,
@@ -22,7 +23,7 @@ import {
 } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import type { MessageKey } from '../../../common/i18n/message-key';
-import { DAY_MS, HOUR_MS } from '../../../common/time';
+import { DAY_MS, daysUntil, HOUR_MS } from '../../../common/time';
 import { AuditService } from '../../audit/services/audit.service';
 import { BalanceService } from '../../balance/services/balance.service';
 import { InvoicesService } from '../../payments/services/invoices.service';
@@ -47,8 +48,8 @@ import type {
   ShopAddons,
 } from '../types/addon';
 import { canTake, periodEndFor } from './addon-eligibility';
-import { AddonPackService } from './addon-pack.service';
-import { addonPrice, type AddonPeriod } from './addon-price';
+import { AddonPackService, packPrice } from './addon-pack.service';
+import { addonPrice, renewalPrice, type AddonPeriod } from './addon-price';
 import { AddonRenewalService, NOT_RENEWING, type OwnPeriod } from './addon-renewal.service';
 import { assertAmountSeen } from './amount-seen';
 import { BillingTermsService } from './billing-terms.service';
@@ -108,6 +109,11 @@ function takeRefusal(addon: AddonRecord, holdings: Holdings): ApiError | null {
   return null;
 }
 
+/** 1, 2, ... up to `most`: the quantities one request may buy. */
+function upTo(most: number): number[] {
+  return Array.from({ length: most }, (_, index) => index + 1);
+}
+
 /**
  * PLN-14: why `quantity` of this add-on cannot be bought now, or null when it can: an item no longer for sale, more than
  * one of a feature, or one the shop cannot take.
@@ -149,8 +155,10 @@ export class AddonPurchaseService {
   ) {}
 
   /**
-   * PLN-13, PLN-14: every add-on for sale, with what one costs for the rest of the period -- or no price where the
-   * shop can't buy it now (no running paid period, an unlimited limit, a feature it already has).
+   * PLN-13, PLN-14: every add-on for sale, with what it costs for the rest of the period -- for each quantity one request
+   * buys, worked out as that request would be (BIL-09) -- its days left, and what a whole next period of one costs. Where
+   * the shop can't buy it now, no price and the reason its quote would give: no running paid period, an unlimited limit,
+   * a feature it already has.
    */
   async offers(tenantId: string): Promise<AddonOffer[]> {
     const now = this.clock();
@@ -159,18 +167,51 @@ export class AddonPurchaseService {
       this.buyingOf(tenantId, now),
     ]);
     const holdings = buying ? await this.holdingsOf(tenantId, buying.info) : null;
-    return catalogue.flatMap((addon) => {
-      // PLN-15: a pack's price is fixed and it has no end; it is bought by `POST /addons/packs`.
-      if (addon.kind === AddonKind.Pack) {
-        return [{ addon, price: buying ? Number(addon.price) : null, expiresAt: null }];
+    return catalogue.flatMap((addon): AddonOffer[] => {
+      const pack = addon.kind === AddonKind.Pack;
+      if (!pack && !BUYABLE_ADDON_KINDS.includes(addon.kind)) return [];
+      const blockedBy: MessageKey | null =
+        !buying || !holdings
+          ? 'AddonNotAvailable'
+          : pack
+            ? null
+            : (refusalOf(addon, 1, holdings)?.messageKey ?? null);
+      if (blockedBy !== null || !buying) {
+        return [
+          {
+            addon,
+            price: null,
+            expiresAt: null,
+            blockedBy,
+            amounts: [],
+            daysLeft: null,
+            renewalPrice: null,
+          },
+        ];
       }
-      if (!BUYABLE_ADDON_KINDS.includes(addon.kind)) return [];
-      const open = buying && holdings && refusalOf(addon, 1, holdings) === null;
+      // PLN-15: a pack's price is fixed and it has no end; it is bought by `POST /addons/packs`.
+      if (pack) {
+        const amounts = upTo(ADDON_QUANTITY_MAX).map((quantity) =>
+          Number(packPrice(addon, quantity)),
+        );
+        const price = amounts[0] ?? null;
+        return [
+          { addon, price, expiresAt: null, blockedBy, amounts, daysLeft: null, renewalPrice: null },
+        ];
+      }
+      const most = addon.kind === AddonKind.Feature ? 1 : ADDON_QUANTITY_MAX;
+      const amounts = upTo(most).map((quantity) =>
+        this.priceOf(addon, quantity, buying.period, now),
+      );
       return [
         {
           addon,
-          price: open ? this.priceOf(addon, 1, buying.period, now) : null,
-          expiresAt: open ? buying.period.end : null,
+          price: amounts[0] ?? null,
+          expiresAt: buying.period.end,
+          blockedBy,
+          amounts,
+          daysLeft: daysUntil(now, buying.period.end),
+          renewalPrice: Number(renewalPrice(addon.price, 1, buying.period.months ?? 1)),
         },
       ];
     });
@@ -216,6 +257,7 @@ export class AddonPurchaseService {
         paidFrom: 'balance',
         planPaymentId: payment.id,
         expiresAt: buying.period.end,
+        renews: input.renews,
       });
       return { payment, addon, quantity: input.quantity, expiresAt: buying.period.end };
     });

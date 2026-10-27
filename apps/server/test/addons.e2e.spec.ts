@@ -45,6 +45,10 @@ interface Offer {
   addon: Addon;
   price: number | null;
   expiresAt: string | null;
+  blockedBy: string | null;
+  amounts: number[];
+  daysLeft: number | null;
+  renewalPrice: number | null;
 }
 
 let app: INestApplication;
@@ -286,6 +290,16 @@ describeIfDatabase('buying an add-on from the balance (PLN-14, BIL-08, BIL-12)',
       'request_pack',
     ]);
     expect(offers.every((offer) => offer.price === null && offer.expiresAt === null)).toBe(true);
+    // Slice 11.5c: why, as the quote would refuse it, and no figures to show.
+    expect(
+      offers.every(
+        (offer) =>
+          offer.blockedBy === 'AddonNotAvailable' &&
+          offer.amounts.length === 0 &&
+          offer.daysLeft === null &&
+          offer.renewalPrice === null,
+      ),
+    ).toBe(true);
     const quote = await shop.post('/addons/quote', { addonId: await addonId('extra_seat') });
     expect(quote.status).toBe(402);
     expect(errorOf(quote).code).toBe('plan_feature_unavailable');
@@ -301,15 +315,43 @@ describeIfDatabase('buying an add-on from the balance (PLN-14, BIL-08, BIL-12)',
     ).rows[0]?.period_end;
 
     // 149 a month, 20 of 30 days left: 99.33 for one.
-    const offer = (await offersOf(shop)).find((each) => each.addon.key === 'extra_products');
-    expect(offer).toMatchObject({ price: 99, expiresAt: periodEnd?.toISOString() });
+    const offers = await offersOf(shop);
+    const offer = offers.find((each) => each.addon.key === 'extra_products');
+    expect(offer).toMatchObject({
+      price: 99,
+      expiresAt: periodEnd?.toISOString(),
+      blockedBy: null,
+      daysLeft: 20,
+      // PLN-14: renewed with a one-month plan, a whole month.
+      renewalPrice: 149,
+    });
+    // BIL-09 (Slice 11.5c): each quantity's own total, rounded once, as its request makes it -- two are 199, not 2 x 99.
+    expect(offer?.amounts).toEqual([99, 199, 298, 397, 497, 596, 695, 795, 894, 993]);
+    // A feature is bought once; a pack's price is whole and it never ends.
+    expect(offers.find((each) => each.addon.key === 'brand_identity')).toMatchObject({
+      amounts: [99],
+      daysLeft: 20,
+      renewalPrice: 149,
+    });
+    expect(offers.find((each) => each.addon.key === 'bandwidth_pack')).toMatchObject({
+      price: 30,
+      amounts: [30, 60, 90, 120, 150, 180, 210, 240, 270, 300],
+      expiresAt: null,
+      daysLeft: null,
+      renewalPrice: null,
+      blockedBy: null,
+    });
 
     expect((await makeProduct(shop, 'First')).status).toBe(201);
     const refused = await makeProduct(shop, 'Second');
     expect(refused.status).toBe(402);
     // LIM-01: the refusal offers the add-on first -- 449 + 149 a month, under Big's 699 -- and Big beside it.
     expect(errorOf(refused).details['suggestions']).toMatchObject({
-      first: { kind: 'addons', items: [{ key: 'extra_products', quantity: 1 }], monthly: 149 },
+      first: {
+        kind: 'addons',
+        items: [{ key: 'extra_products', metric: 'products', quantity: 1 }],
+        monthly: 149,
+      },
       alternative: { kind: 'plan', name: 'Big' },
     });
 
@@ -420,6 +462,51 @@ describeIfDatabase('buying an add-on from the balance (PLN-14, BIL-08, BIL-12)',
     expect((await shop.post('/media/uploads', upload)).status).toBe(201);
   });
 
+  it("prices a longer term's add-on by its months, and a next period at all of them (PLN-14, Slice 11.5c)", async () => {
+    const term =
+      (
+        await admin.query<{ id: string }>(
+          `INSERT INTO control.billing_terms (label_bn, label_en, months, visible, display_order)
+           VALUES ('3 মাস', 'Small quarter', 3, true, 1) RETURNING id`,
+        )
+      ).rows[0]?.id ?? '';
+    await admin.query(
+      'INSERT INTO control.plan_prices (plan_id, billing_term_id, price) VALUES ($1, $2, $3)',
+      [smallPlanId, term, '1200.00'],
+    );
+    const shop = await onPaidPlan(smallPlanId, term);
+    // 149 x 3 months x 20 of the period's 30 days = 298; renewed with the plan, a whole next period is three months.
+    expect(
+      (await offersOf(shop)).find((each) => each.addon.key === 'extra_products'),
+    ).toMatchObject({
+      price: 298,
+      daysLeft: 20,
+      renewalPrice: 447,
+    });
+  });
+
+  it('keeps the renewal switch the seller set when buying (Slice 11.5c)', async () => {
+    const shop = await onPaidPlan(smallPlanId, smallTermId);
+    const quote = await shop.post('/addons/quote', {
+      addonId: await addonId('extra_seat'),
+      renews: false,
+    });
+    expect(quote.status, JSON.stringify(quote.body)).toBe(201);
+    const paid = await shop.post('/addons/purchase', {
+      paymentId: (quote.body as { payment: { id: string } }).payment.id,
+    });
+    expect(paid.status, JSON.stringify(paid.body)).toBe(201);
+    type Mine = { addons: { key: string; renews: boolean; renewal: string }[] };
+    const mine = (await shop.get('/addons/mine')).body as Mine;
+    expect(mine.addons).toEqual([
+      expect.objectContaining({ key: 'extra_seat', renews: false, renewal: 'off' }),
+    ]);
+    // Left out, it renews, as before.
+    expect((await buy(shop, 'extra_products')).status).toBe(201);
+    const after = (await shop.get('/addons/mine')).body as Mine;
+    expect(after.addons.find((addon) => addon.key === 'extra_products')?.renews).toBe(true);
+  });
+
   it('sells brand identity once: a newer quote replaces an unpaid one, and money sent for a second is credited back (BRN-05)', async () => {
     const shop = await onPaidPlan(smallPlanId, smallTermId);
     const id = await addonId('brand_identity');
@@ -463,8 +550,8 @@ describeIfDatabase('buying an add-on from the balance (PLN-14, BIL-08, BIL-12)',
     expect(approved.status, JSON.stringify(approved.body)).toBe(201);
     expect(Number(await balanceOf(shop))).toBe(before + Number(byWallet.payment.amount));
     expect(
-      (await offersOf(shop)).find((offer) => offer.addon.key === 'brand_identity')?.price,
-    ).toBe(null);
+      (await offersOf(shop)).find((offer) => offer.addon.key === 'brand_identity'),
+    ).toMatchObject({ price: null, blockedBy: 'AddonAlreadyActive', amounts: [] });
     expect((await shop.post('/addons/quote', { addonId: id })).status).toBe(409);
   });
 
@@ -495,6 +582,7 @@ describeIfDatabase('buying an add-on from the balance (PLN-14, BIL-08, BIL-12)',
     );
     const offer = (await offersOf(shop)).find((each) => each.addon.key === 'extra_products');
     expect(offer?.price).toBeNull();
+    expect(offer?.blockedBy).toBe('AddonLimitUnlimited');
     const quote = await shop.post('/addons/quote', { addonId: await addonId('extra_products') });
     expect(quote.status).toBe(409);
     expect(errorOf(quote).code).toBe('conflict');

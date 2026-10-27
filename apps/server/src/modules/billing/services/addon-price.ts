@@ -1,5 +1,5 @@
 import { daysBetween, daysUntil } from '../../../common/time';
-import { divideRounded, toPaisa } from '../../balance/services/money';
+import { divideRounded, fromPaisa, toPaisa } from '../../balance/services/money';
 
 /** The plan period an add-on is bought into: it runs from now to the period's end. */
 export interface AddonPeriod {
@@ -34,4 +34,13 @@ export function addonPrice(
           BigInt(Math.max(daysBetween(period.start, period.end), 1)),
         );
   return Number(divideRounded(paisa, 100n));
+}
+
+/**
+ * PLN-14, UPG-14: what `quantity` of an add-on priced `monthly` costs for a whole new period of `months` -- the term's
+ * months when it renews with the plan, one for its own 30 days (pay-as-you-go, a plan with no end) -- as money. Whole
+ * taka times whole numbers, so nothing is rounded.
+ */
+export function renewalPrice(monthly: string, quantity: number, months: number): string {
+  return fromPaisa(toPaisa(monthly) * BigInt(quantity * months));
 }
