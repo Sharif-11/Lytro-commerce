@@ -1380,6 +1380,25 @@ their backend ships earlier.
     sign-in before. Where it differs from the drawing, on purpose: Google and Facebook rows carry the providers' names and
     marks, not the sign-in button's "Continue with Google"; the password's rules tick as typed and Save waits for them,
     as on the password step; and the email code's Resend line sits under Verify, as its centring intends.
+  - **11.7, Products, agreed 2026-10-27** (the read, "as proposed"): three pull requests -- 11.7a the list (segments
+    with counts, search, the category filter, the desktop table, empty, the limit banner) with Basics (photos and the
+    video, name, price, the category picker, description), the media sheet, the product link, Duplicate, Archive and
+    Delete, and saving with its errors; 11.7b options and variants; 11.7c stock and delivery, More settings, the form by
+    shop type, the opening batch and serials, and the edit states. Agreed with it:
+    1. The server's reads come first: the list's segments filtered and counted on the server, and each product photo's
+       and video's bytes with the video's length.
+    2. What the editor opens is built with it (the category picker and New category, the attribute sheets, adding or
+       fixing serials, batches); the Categories, Attributes and Stock pages stay in 11.8 and 11.9.
+    3. Photos are reordered by drag on touch and keyboard (`@dnd-kit`); the shared upload shows its progress and takes
+       a video too; IMEIs are scanned by the camera where the browser can (BarcodeDetector, a lazy fallback elsewhere).
+    4. One Save sends only what changed, part by part, and a part refused leaves the rest saved and is named; a new
+       product is one request. Leaving with changes unsaved asks first, in a small dialog sketched before it is built.
+    5. Product links show as drawn; the landing page they open is Slice 12's, before launch.
+  - **11.7a's reads, built:** `GET /products` takes `active` and `stock` and gives `counts { total, active, low, out }`,
+    the Products page's five segments over every product the search and category pick, counted as Home counts them
+    (Low and Out among the active ones, INV-08) by the one query both use. A product's `images` and `video` carry
+    `bytes`, what each takes from the shop's storage as `/media` counts it, and the video its `durationMs` (STO-01,
+    STO-09), for the media sheet's "this product 3.2 MB" and "Video · 0:42 · 14 MB".
 
 
 ### Slice 12: shared storefront and product landing pages

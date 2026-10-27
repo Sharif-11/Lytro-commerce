@@ -195,9 +195,11 @@ export class ProductService {
   /** PRD-12: the dashboard's list, 20 to a page by default, archived products left out. */
   list(tenantId: string, query: ListProductsQuery): Promise<ProductPage> {
     return this.transactions.run(async (tx) => {
-      const { rows, total } = await this.products.listProducts(tx, tenantId, {
+      const { rows, total, counts } = await this.products.listProducts(tx, tenantId, {
         search: query.search,
         categoryId: query.categoryId,
+        active: query.active,
+        stockState: query.stock,
         offset: (query.page - 1) * query.limit,
         limit: query.limit,
       });
@@ -227,6 +229,7 @@ export class ProductService {
         limit: query.limit,
         total,
         pages: Math.ceil(total / query.limit),
+        counts,
       };
     });
   }
@@ -1864,8 +1867,7 @@ export class ProductService {
       attributes: described,
       variants: variantViews,
       sizeChart: await this.sizeChartOf(tx, tenantId, product),
-      images: (await this.images.ofProducts(tx, tenantId, [productId])).get(productId) ?? [],
-      video: await this.images.videoOf(tx, tenantId, product.videoId),
+      ...(await this.images.ofProduct(tx, tenantId, productId, product.videoId)),
       deliveryZoneIds: await this.products.listDeliveryZoneIds(tx, tenantId, productId),
       createdAt: product.createdAt,
       updatedAt: product.updatedAt,

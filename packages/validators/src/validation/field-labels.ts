@@ -180,6 +180,7 @@ export const FIELD_LABELS: Readonly<Record<string, Translation | null>> = {
   staff: { en: 'Seats', bn: 'সিট' },
   state: null,
   status: { en: 'Status', bn: 'স্ট্যাটাস' },
+  stock: { en: 'Stock', bn: 'স্টক' },
   stockTracking: { en: 'Stock tracking', bn: 'স্টক ট্র্যাকিং' },
   stockUnit: { en: 'Stock unit', bn: 'স্টক ইউনিট' },
   storage_mb: { en: 'Storage (MB)', bn: 'স্টোরেজ (MB)' },

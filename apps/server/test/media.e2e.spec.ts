@@ -343,9 +343,14 @@ describeIfDatabase('attaching images (PRD-11, PRD-17, ATR-18, TEN-16)', () => {
     const second = await upload(shop, await photo(400, 400));
     const saved = await shop.put(`/products/${id}/images`, { mediaIds: [second.id, first.id] });
     expect(saved.status, JSON.stringify(saved.body)).toBe(200);
-    const detail = saved.body as { images: { id: string; urls: { main: string } }[] };
+    const detail = saved.body as {
+      images: { id: string; urls: { main: string }; bytes: number }[];
+    };
     expect(detail.images.map((image) => image.id)).toEqual([second.id, first.id]);
     expect(detail.images[0]?.urls.main).toBe(second.urls?.main);
+    // STO-01: each with the bytes /media counts for it, every file of it, so the media sheet's share agrees with Usage.
+    expect(first.bytes).toBeGreaterThan(0);
+    expect(detail.images.map((image) => image.bytes)).toEqual([second.bytes, first.bytes]);
     const list = (await shop.get('/products')).body as {
       products: { id: string; image: { id: string } | null }[];
     };

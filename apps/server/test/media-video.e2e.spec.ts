@@ -387,10 +387,15 @@ describeIfDatabase("a product's video (PRD-11)", () => {
     );
     const saved = await shop.put(`/products/${productId}/video`, { mediaId: video.id });
     expect(saved.status, JSON.stringify(saved.body)).toBe(200);
+    // STO-01, STO-09: with the bytes and the length /media gives it, for the media sheet's "0:02 · 1 MB".
+    expect(video.bytes).toBeGreaterThan(0);
+    expect(video.durationMs).toBeGreaterThan(0);
     expect(saved.body).toMatchObject({
       video: {
         id: video.id,
         urls: { video: video.urls?.main, poster: video.urls?.thumbnail },
+        bytes: video.bytes,
+        durationMs: video.durationMs,
       },
     });
     const copy = (await shop.post(`/products/${productId}/duplicate`, {})).body as {

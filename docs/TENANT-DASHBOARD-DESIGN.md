@@ -301,7 +301,8 @@ button. The Orders designs themselves are in §8.
 Inactive, Low stock, Out. **Add product** in the header. Rows: thumbnail or monogram tile, name, "n variants
 · category", the price or range above the stock chip. Desktop: a table with the same columns.
 
-**Content.** `GET /products?search=&categoryId=&page=`, `GET /categories`. **States.** Empty with the trial's
+**Content.** `GET /products?search=&categoryId=&active=&stock=&page=`, with each segment's count (`counts`, over
+what the search and category pick), `GET /categories`. **States.** Empty with the trial's
 product limit line (TRL-03); at the plan limit the server's `plan_limit_reached` becomes a banner over the list:
 the limit, that everything already listed keeps selling, and the cheapest ways to room (the next plan or the
 add-on, LIM-01), with See plans (PRD-04, `products-limit`).
@@ -1011,6 +1012,7 @@ brand identity.
 | `GET /billing/prices?billingTermId=`: each plan's move and amount for the shop now, exactly as its request would make it, with no payment made; the amount the seller saw sent with each request, refused when it differs; Cancel; one open request per kind | billing | §7.11 to §7.13, §7.18, the Renew page (BIL-09, BIL-19, UPG-08) | built (11.5a.1) |
 | The term a paid plan runs on and a lapsed shop's deletion date on `/me`; the pay-as-you-go fees this month on `GET /balance`; each day's API requests on `GET /usage` | identity, balance, usage | §7.12 (the plan card, the pay-as-you-go page), §7.20's Renew page, §7.24's requests chart and run-out date | built (11.5a.2) |
 | On `GET /addons`, why an item cannot be bought now, the amount due for each quantity, the days left and the renewal price; the renewal switch on the add-on request; the amount seen on `POST /addons/packs`; on `GET /usage`, the run-out date of bandwidth and requests (the email's own rule) and the metric of each suggested add-on | billing, usage | §7.24, §7.25 (PLN-14, PLN-15, BIL-09, LIM-01) | 11.5c |
+| The Products page's segments on the server (`active`, `stock`) with their counts; each product photo's and video's bytes, and the video's length, on the product | catalogue | §7.3, §7.23 (PRD-12, STO-01, STO-09) | built (11.7a) |
 | Invoice PDF | billing | BIL-13 | later |
 | Pay-as-you-go estimate | billing | PYG-12 (needs order history) | later |
 | The notifications feed behind the bell | notifications | §8 (NTF-01) | Phase 7 |

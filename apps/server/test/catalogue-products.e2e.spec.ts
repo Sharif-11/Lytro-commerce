@@ -612,6 +612,48 @@ describeIfDatabase('editing, links and deleting (PRD-05, PRD-13, LND-04, CCH-02)
       ((await shop.get('/products?search=cell&page=2')).body as { products: unknown[] }).products,
     ).toHaveLength(2);
   });
+
+  it('filters by the segments, counting each over what the search and category pick (PRD-12, INV-08)', async () => {
+    const shop = await openShop(port, texts, 'segments');
+    const shelf = (await shop.post('/categories', { name: 'Shelf' })).body as { id: string };
+    // Thresholds 5: in, low, out, an inactive one, another low one the search leaves out, and an archived one.
+    const stocked = (name: string, openingStock: number, extra: Record<string, unknown> = {}) =>
+      create(shop, { name, basePrice: 1, variants: [{ optionIds: [], openingStock }], ...extra });
+    await stocked('Plenty tea', 20, { categoryIds: [shelf.id] });
+    await stocked('Few tea', 2);
+    await stocked('No tea', 0, { categoryIds: [shelf.id] });
+    await stocked('Resting tea', 1, { active: false });
+    await stocked('Sugar', 1);
+    const old = await stocked('Old tea', 1);
+    expect((await shop.delete(`/products/${old.id}`)).status).toBe(200);
+
+    interface Page {
+      products: { name: string }[];
+      total: number;
+      counts: { total: number; active: number; low: number; out: number };
+    }
+    const page = async (query: string) => (await shop.get(`/products?${query}`)).body as Page;
+    const names = async (query: string) =>
+      (await page(query)).products.map((row) => row.name).sort();
+
+    expect(await names('search=tea&active=true')).toEqual(['Few tea', 'No tea', 'Plenty tea']);
+    expect(await names('search=tea&active=false')).toEqual(['Resting tea']);
+    expect(await names('search=tea&active=true&stock=low')).toEqual(['Few tea']);
+    expect(await names('search=tea&active=true&stock=out')).toEqual(['No tea']);
+    // The counts are the segments', whatever segment the page shows; Low and Out count active products, as Home does.
+    const lowOnly = await page('search=tea&active=true&stock=low');
+    expect(lowOnly.total).toBe(1);
+    expect(lowOnly.counts).toEqual({ total: 4, active: 3, low: 1, out: 1 });
+    expect((await page('')).counts).toEqual({ total: 5, active: 4, low: 2, out: 1 });
+    expect((await page(`categoryId=${shelf.id}`)).counts).toEqual({
+      total: 2,
+      active: 2,
+      low: 0,
+      out: 1,
+    });
+    expect((await shop.get('/products?stock=plenty')).status).toBe(400);
+    expect((await shop.get('/products?active=yes')).status).toBe(400);
+  });
 });
 
 describeIfDatabase("one shop never reaches another's catalogue (SEC-02, TEN-03)", () => {

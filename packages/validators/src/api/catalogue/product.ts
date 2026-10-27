@@ -17,6 +17,7 @@ import {
   MEASURED_STOCK_UNITS,
   PaymentPolicy,
   SerialFormat,
+  StockState,
   StockTracking,
   StockUnit,
 } from '../../db/enums';
@@ -398,10 +399,13 @@ export const changeProductSlugSchema = z.object({
 export type ChangeProductSlugInput = z.infer<typeof changeProductSlugSchema>;
 
 // GET products (PRD-12): search by name, filter by category ("uncategorized" for products filed in none),
-// 20 to a page by default (API-17).
+// 20 to a page by default (API-17). The Products page's segments filter on the server too: Active and Inactive by
+// `active`, Low stock and Out by `stock` on the active ones (`active=true&stock=low`), as Home counts them (INV-08).
 export const listProductsSchema = z.object({
   search: z.string().trim().min(1).max(PRODUCT_NAME_MAX_LENGTH).optional(),
   categoryId: z.union([catalogueIdSchema, z.literal('uncategorized')]).optional(),
+  active: queryFlag,
+  stock: z.nativeEnum(StockState).optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(LIST_PAGE_SIZE_MAX).default(PRODUCT_PAGE_SIZE),
 });
