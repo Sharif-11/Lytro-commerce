@@ -1,6 +1,10 @@
 # Tenant dashboard: the full design
 
-Status: v3.0, 2026-10-27 (the options and variants Slice 11.7b builds, prototype Part 14: the bakery's Flavour splits
+Status: v3.1, 2026-10-28 (stock and delivery as Slice 11.7c builds them, prototype Part 15: the size chart as a table
+with its names typed or a picture, Adjust by weight, the question before making a product holding stock to order,
+serials typed and the camera missing or blocked, the variant sheet, SKU and barcode under More settings for a product
+with no options, and a saved product's defaults line without "change"; v3.0 of 2026-10-27 drew the options and variants
+Slice 11.7b builds, prototype Part 14: the bakery's Flavour splits
 and its message is asked when ordering, a describing value entered by its type, a swatch per option with the library's
 colours fixed, New attribute as a step, Show all past 6 variants, Fill all for one option's variants, the 3 and 100
 limits, removing an option that holds stock, and an existing product's variants with what each can sell; v2.9 of
@@ -385,6 +389,31 @@ the limit, Add product and Duplicate show the banner at once instead of the edit
 - **Removing.** An option's × removes it at once, unless its variants hold stock: then "Remove Blue?" says how much
   they hold, that they stop selling once saved, and that the stock stays and comes back with the option
   (`sh-remove-option`; retire keeps stock).
+
+*Stock and delivery* (Part 15, agreed in the 11.7c read, 2026-10-27, and its supplement, 2026-10-28):
+- **Size chart.** The product's own chart is a table or a picture (PRD-17): a Table/Picture choice under the two
+  sources. The table's first row names the measures and its first column the sizes, typed like any cell
+  (`sh-sizechart`); a picture shows with Replace and Remove (`sh-sizechart-picture`).
+- **Adjust by weight.** With a weight, a switch under the delivery charge, on by default, says each kg after the first
+  adds the shop's per-kg charge; turned off, the charge stays as it is. With no weight there is no switch (PRD-16).
+- **Made to order.** Choosing it for a product that holds stock asks first, naming how much is written off and that
+  counting again starts at 0 (`sh-made-to-order`, INV-02).
+- **Serials.** Scan, Paste a list and Type, as drawn; Type takes one at a time with Add, and a USB or Bluetooth barcode
+  scanner types there too (`pf-sh-serials-type`). With no camera, Scan says so and points to the other two
+  (`pf-sh-serials-nocamera`); a camera the browser blocks says how to allow it, with Try again
+  (`pf-sh-serials-blocked`). A product with serials shows Opening serials in its table where others show SKU; its SKU is
+  in the variant sheet.
+- **The variant sheet.** A variant's name in the table opens what it sets for itself: SKU, barcode, weight and delivery
+  charge (empty follows the product, its value as the hint), Adjust by weight, and On sale (`sh-variant`; ATR-05,
+  ATR-13).
+- **One variant.** A product with no options keeps its SKU and barcode under More settings, shown only while it has none
+  (`pf-books_stationery`).
+- **Opening cost.** The opening batch sheet's unit cost is saved as the variant's cost entered by hand (INV-10), with
+  the new product, in its one request.
+- **The defaults line.** On a saved product it names the shop type without "change": after saving, the category never
+  changes its settings (PST-06; `pf-edit-mobile`).
+- **The Stock card's sheets** (Add stock, Stock history, Batches, IMEI / serials, Fix a serial) open over the product,
+  as drawn over the Stock page; the Stock page (11.9) reuses them.
 
 *Leaving with changes unsaved* (Part 13, agreed 2026-10-27): Back, a tab, a section chip or the browser's back, while
 something typed is not saved, asks first in a small dialog, "Leave without saving?": a product being edited is named

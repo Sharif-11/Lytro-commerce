@@ -1490,6 +1490,21 @@ their backend ships earlier.
     a product whose variants hold stock by one more attribute asks first too, since every combination changes and the
     variants there stop selling (the agreed question, one case further); and the locked sharing switch says why either
     way ("Can be switched on only once the stock is 0", where the drawing has only the "off" line).
+  - **11.7c, stock and delivery, agreed 2026-10-27** (the read; one pull request, as the user chose):
+    1. The opening batch sheet's unit cost is built as drawn: `POST /products` takes each variant's opening unit cost
+       and saves it as the cost entered by hand (INV-10), in the same transaction.
+    2. A saved product's defaults line names the type without "change": after saving, its category never changes its
+       settings (PST-06).
+    Done without a question, each required by the SRS or an earlier decision: `/product-defaults` carries the shop's
+    default payment policy, for the policy sheet's "Now: cash on delivery" (`/shop-settings` needs `settings:manage`);
+    a shop-wide check of typed serials, so "already in the shop" shows before saving (INV-23); the size chart as a table
+    or a picture (PRD-17); Adjust by weight (PRD-16); asking before a product holding stock is made to order (INV-02);
+    the Stock card's sheets over the product (the 11.7 read, point 2); Scan, Paste and Type serial entry with the
+    camera's states; the shop type's defaults applied to what was not touched, with Undo (PST-06); the Stock card by
+    permission. Each variant's count of units without a serial is already in the stock read (`missingSerials`).
+  - **11.7c, what building 11.7b showed, agreed 2026-10-28:** a product with no options keeps its SKU and barcode under
+    More settings, shown only while it has none. Done without a question: a product with serials shows Opening serials
+    in its table where others show SKU, as drawn, its SKU in the variant sheet. Part 15 draws all of it first.
 
 
 ### Slice 12: shared storefront and product landing pages
