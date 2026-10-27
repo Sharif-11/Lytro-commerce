@@ -10,6 +10,12 @@ export const meResponseSchema = z.object({
   permissions: z.array(z.string()),
   // The signed-in person's own name in the shop the call names; null when unnamed.
   name: z.string().nullable(),
+  // TEN-31: how the person signed in -- `staff` on the staff page with the shop's password, else `own`.
+  signIn: z.enum(['own', 'staff']),
+  // The roles the person holds in the shop the call names; none for the owner.
+  roles: z.array(z.string()),
+  // TEN-31: the phone a staff sign-in was made with; null for the person's own sign-in.
+  phone: z.string().nullable(),
   tenant: z
     .object({
       id: z.string(),

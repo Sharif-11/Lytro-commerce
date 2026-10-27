@@ -10,11 +10,13 @@ import {
   verifyForgotPasswordSchema,
   verifySigninCodeSchema,
 } from '@lytronix/validators';
+import { attachReturn } from '@/session/attach-return';
 import { tenantSession } from '@/session/tenant-session';
 import { navigateForNextStep } from '@/session/next-step';
 import { signUpIntent } from '@/session/sign-up-intent';
 import type {
   CodeIssued,
+  OauthAttached,
   OauthSignedIn,
   ShopCreated,
   SignedInBody,
@@ -47,10 +49,24 @@ export function useOauthCallback() {
   const navigate = useNavigate();
   return useMutation({
     mutationFn: ({ provider, code, state }: { provider: string; code: string; state: string }) =>
-      tenantSession.client.get<OauthSignedIn>(
+      tenantSession.client.get<OauthSignedIn | OauthAttached>(
         `/auth/oauth/${provider}/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`,
       ),
     onSuccess: (data) => {
+      // AUTH-27: a provider connected from a shop's Account goes back there, saying so.
+      if ('attached' in data) {
+        const slug = attachReturn.take();
+        if (slug) {
+          void navigate({
+            to: '/$shop/account',
+            params: { shop: slug },
+            search: { connected: data.attached },
+          });
+        } else {
+          void navigate({ to: '/shops' });
+        }
+        return;
+      }
       tenantSession.setSignedIn(data.csrfToken);
       if (data.recovery === 'facebook-only') {
         try {
@@ -149,6 +165,14 @@ export function useSetPassword(onDone: () => void) {
   });
 }
 
+/** AUTH-20: the person changes their own password from Account, the current one asked; other devices sign out. */
+export function useChangePassword() {
+  return useMutation({
+    mutationFn: (input: { currentPassword: string; newPassword: string }) =>
+      tenantSession.client.post<{ ok: true }>('/auth/password', setPasswordSchema.parse(input)),
+  });
+}
+
 // --- Forgot password (AUTH-17 to AUTH-19) ---
 
 export function useRequestPasswordReset() {
@@ -206,6 +230,14 @@ export function useStaffSignIn() {
         void navigate({ to: '/shops' });
       }
     },
+  });
+}
+
+/** STF-13, AUTH-31: a staff sign-in changes the password the shop gave it, the current one asked. */
+export function useChangeStaffPassword() {
+  return useMutation({
+    mutationFn: (input: { currentPassword: string; newPassword: string }) =>
+      tenantSession.client.post<{ ok: true }>('/auth/staff/password', input),
   });
 }
 

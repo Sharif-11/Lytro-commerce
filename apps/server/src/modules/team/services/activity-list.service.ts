@@ -1,5 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { ActorType, type ListActivityQuery, FieldProblemCode } from '@lytronix/validators';
+import {
+  ActorType,
+  activityRetentionDays,
+  type ListActivityQuery,
+  FieldProblemCode,
+} from '@lytronix/validators';
 import { FieldsError } from '../../../common/api-error';
 import { AuditService } from '../../audit/services/audit.service';
 import type { ActivityCursor } from '../../audit/types/activity';
@@ -30,7 +35,8 @@ export class ActivityListService {
         dateFrom: query.dateFrom,
         dateTo: query.dateTo,
         actorId: query.actorId,
-        action: query.action,
+        actions: query.action,
+        result: query.result,
       },
       cursor,
       query.limit,
@@ -60,6 +66,7 @@ export class ActivityListService {
         };
       }),
       nextCursor: page.nextCursor ? this.encodeCursor(page.nextCursor) : null,
+      retentionDays: activityRetentionDays(tenant.planLimits),
     };
   }
 

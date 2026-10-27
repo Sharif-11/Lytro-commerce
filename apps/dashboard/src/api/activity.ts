@@ -9,7 +9,10 @@ export interface ActivityFilters {
   dateFrom?: string;
   dateTo?: string;
   actorId?: string;
-  action?: string;
+  /** One action or a chip's group of them (ACTIVITY_GROUPS), filtered on the server. */
+  actions?: readonly string[];
+  /** `failure` for "Failed only". */
+  result?: string;
 }
 
 /** GET /activity is cursor-paginated, newest first (AUD-04): each page's nextCursor becomes the next
@@ -22,7 +25,9 @@ export function useActivityList(filters: ActivityFilters) {
       if (filters.dateFrom) params.set('dateFrom', filters.dateFrom);
       if (filters.dateTo) params.set('dateTo', filters.dateTo);
       if (filters.actorId) params.set('actorId', filters.actorId);
-      if (filters.action) params.set('action', filters.action);
+      if (filters.actions && filters.actions.length > 0)
+        params.set('action', filters.actions.join(','));
+      if (filters.result) params.set('result', filters.result);
       params.set('limit', String(PAGE_SIZE));
       if (pageParam) params.set('cursor', pageParam);
       return tenantSession.client.get<ActivityPage>(`/activity?${params.toString()}`);

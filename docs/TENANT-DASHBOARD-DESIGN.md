@@ -1,6 +1,8 @@
 # Tenant dashboard: the full design
 
-Status: v2.7, 2026-10-27 (the Menu hub as Slice 11.6 builds it, prototype Part 11: a staff member's Menu with its rows
+Status: v2.8, 2026-10-27 (making and renaming a role, prototype Part 12: the role's name in the editor, Create a role,
+a shop with no roles yet, and a role made from inside Add staff; v2.7 of 2026-10-27 drew the Menu hub as Slice 11.6
+builds it, prototype Part 11: a staff member's Menu with its rows
 by permission, Account for a sign-in made with the staff password, adding staff with every seat in use, Activity with
 nothing yet or nothing under a filter, installing on an iPhone, the role editor with today's permissions in words, and
 Brand identity until its editor; v2.6 of 2026-10-26 drew Usage and Add-ons as Slice 11.5c builds them, prototype Part 10: one usage banner by metric
@@ -653,6 +655,15 @@ seat-full dialog at once, its ways out (a seat, the next plan) from the server's
 to deactivate someone, and that the owner can buy a seat or change the plan. *Edit staff* renames the member (a server
 addition of the slice). First passwords are random: two groups of four letters and digits without look-alikes
 (`k7m4-p9qx`), never the shop's name and four digits.
+
+*Making and renaming a role* (Part 12, STF-07): the editor names the role in a field, so a role is renamed where its
+permissions are changed. *Create a role* opens the editor empty, with Create the role and Cancel (`roles-new`); a shop
+with no roles yet opens Roles with it ready and says so in the list (`roles-empty`). *Add staff* with no roles yet says
+so and offers New role (`sh-staff-no-roles`); New role is a step of the sheet, with a way back, naming the role and
+picking what it may do (`sh-staff-role-new`); Create and choose returns to Add staff with the role ticked and the
+phone and name kept (`sh-staff-role-back`). A role has no description of its own: wherever a role is listed, its line
+says what it lets someone do from its permissions, in the editor's words, leaving out "see" where the role may also
+change the same thing.
 
 ### 7.15 Activity (`/activity`)
 

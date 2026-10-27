@@ -1310,6 +1310,77 @@ their backend ships earlier.
     between its buttons, as drawn, but a button whose words need more takes room from the other instead of wrapping;
     the stop sheet's "16 Nov-এ বন্ধ করুন" wrapped on a phone, and so did the pay-as-you-go switch's, which the sketch
     draws wrapped too.
+  - **11.6, Menu, agreed 2026-10-27** (the read, "yes, as proposed"): a security fix first, its own pull request (#221,
+    KNOWN-GAPS §96: a staff sign-in never changes the person's own account); then the undrawn states sketched (#223,
+    prototype Part 11, design doc v2.7); then one pull request in four commits -- the server's additions, Menu with
+    Activity, Team with its roles, Settings with Account. Agreed with it:
+    1. `/me` says how the person signed in (`own`, or `staff` on the staff page) and names a staff member's roles; the
+       Menu's card shows them, and Account for a staff sign-in shows the phone and its password only.
+    2. A staff member can be renamed; the shop's name can change (TEN-19), its address never.
+    3. Activity's chips filter on the server -- a group of actions and failures only -- so Failed never shows an empty
+       page while older failures exist; the page says how many days the plan keeps (AUD-06).
+    4. One sentence per action in Bangla and English; the role editor lists the permissions of the sections that exist,
+       in words, with "Spends the balance" under paying; adding staff with every seat in use opens the way out at once;
+       first passwords are random; Brand identity opens a short page until 11.12; Help's WhatsApp number comes from the
+       deployment; Install on an iPhone says how; the dashboard's Bangla follows the owner's second revision line by line.
+  - **11.6's reads, built:** `/me` gains `signIn` (`own`, `staff`) and `roles`; `PATCH /staff/:id` takes `name` (null
+    clears it); `/shop-settings` reads and takes `shopName`, which the dashboard, the tab title and new installs follow
+    at once, the shop's address unchanged; `GET /activity` takes one action or several, comma-separated, and `result`,
+    and gives `retentionDays`. The chips' groups (`ACTIVITY_GROUPS`) and the retention rule (`activityRetentionDays`)
+    are each defined once, in the shared validators.
+  - **11.6's Menu and Activity, built:** the Menu hub's own page replaces the first build's: the shop card with the
+    person's role and name, the sections their permissions open, Account, Language, Help and Sign out, and the install
+    card (the browser's offer, or the iPhone's steps). Activity is rebuilt: the chips ask the server, one sentence per
+    action in both languages, the failure tagged, Show earlier, and the plan's days. Where it differs from the
+    drawing, on purpose: an entry names the person, never "You", since the page cannot tell which person is the one
+    viewing it; the line under an entry says only what the entry records (a name, or a stock change's figures), so
+    the drawn TrxID and "seat freed" lines wait for entries that carry them; the Failed tag's red is darker
+    (`danger-text`), as the drawn red on its pink is 4.45:1, under AA; a staff member's tab bar and search follow
+    their permissions, as the shell already does; and Help shows only where the deployment names a WhatsApp number.
+  - **11.6's Team and Roles, built** (with prototype Part 12, design v2.8, for making and renaming a role): People with
+    the seats and their bar, the owner first, "Password not set" from the server's flag; Add staff with a random first
+    password (two groups of four, no look-alikes), each role saying what it lets someone do, and New role as a step of
+    the sheet that comes back with the role ticked (agreed 2026-10-27); Edit staff renames, changes roles, sets a new
+    first password shown once, and deactivates after asking over the Team page, or reactivates. With every seat in use,
+    Add staff and Reactivate open the ways out at once from the shop's usage (a seat, the next plan), and someone who
+    may not pay is told what they can do; the server's refusal opens the same dialog. Roles: the editor with the role's
+    name and the thirteen permissions in words, Create a role and Cancel, Delete once nobody holds the role and after
+    asking, the refusal for a role taken up meanwhile in words. Where it differs from the drawing, on purpose: an
+    inactive person is marked by the Off tag and a grey initial, not faded, as a 60% fade puts their phone and role
+    under AA; stacked cards keep the page's 16 px on a phone, as the other rebuilt pages do; and a staff member's status
+    follows the style guide (ইনঅ্যাক্টিভ, অ্যাক্টিভ) where the drawing still says বন্ধ and ডিঅ্যাকটিভ.
+  - **11.6's toasts and Settings, built** (agreed 2026-10-27: every toast takes the drawn check; the logo is uploaded
+    from 11.6; the extra delivery charge per kg waits for Delivery in 11.11, kept and applied meanwhile): Settings lists
+    Shop details, Delivery, Brand identity and Data export as their permissions allow (the export the owner's), then
+    what comes later with its phase. Shop details saves the name (the dashboard follows at once; the link never
+    changes), what the shop mainly sells (sent only when changed), and the contact details, with one Save held at the
+    foot on a phone; the logo is uploaded through the media pipeline -- asked for, sent, prepared, then set -- by a
+    small helper the media manager (11.7) reuses. Brand identity opens a short page with the add-on until its editor.
+    Data export lists each request, made, ready for 24 hours, or failed with a way to ask again. Where it differs from
+    the drawing, on purpose: the card with the shop's web address is "Shop link", since the contact card's street
+    address already says "Shop address".
+  - **11.6's API keys, built:** the keys with their first characters, websites, last use and expiry, a revoked one kept
+    and greyed; New key with its websites one a line (the server's check under the field) and an optional last day,
+    the value shown once with Copy and Download; a live key's name and websites edited; Revoke after saying what it
+    does. The requests counted this cycle show to whoever may read the shop's usage. Settings and Home's "Create an API
+    key" lead here. Where it differs from the drawing, on purpose: a key shows its first characters only, as the server
+    keeps no more of it to show; and the expiry is picked with the browser's own date field.
+  - **11.6's Facebook and Meta, built:** the Meta Pixel ID with whether it is connected; the Conversions API token
+    entered once and never shown again, Replace opening the same field a shop without one sees, Remove at once with
+    the pixel kept; the catalog feed link with Copy, when it was made and the four steps in Commerce Manager, and a new
+    link after saying the old one stops working. One Save for the pixel and a new token. Where it differs from the
+    drawing, on purpose: the requirement ids leave the copy (Part 11's rule), and "the old link answers 404" says the
+    old link stops working.
+  - **11.6's Account, built:** for the person's own sign-in, the ways to sign in with each one's action (the phone with
+    Change password; Google and Facebook connected or offered where the server has them; an email added by its code or
+    removed), never the last way in, then language and Sign out; for a sign-in made on the staff page, the phone and its
+    password only, its change on the staff route and "ask the owner" when forgotten (TEN-31). `/me` gains `phone`, the
+    phone a staff sign-in was made with (null otherwise), since such a sign-in may not read the identities. A provider
+    connected from Account now comes back to that shop's Account with "connected", where the callback took it for a
+    sign-in before. Where it differs from the drawing, on purpose: Google and Facebook rows carry the providers' names and
+    marks, not the sign-in button's "Continue with Google"; the password's rules tick as typed and Save waits for them,
+    as on the password step; and the email code's Resend line sits under Verify, as its centring intends.
+
 
 ### Slice 12: shared storefront and product landing pages
 - **Depends on:** Slices 0, 0b, 7 and 9 (and branding from Phase 1).

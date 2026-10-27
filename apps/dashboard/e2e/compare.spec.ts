@@ -12,6 +12,12 @@ import {
   rejectedRenewal,
   type PaymentFixture,
 } from './support/payments';
+import { drawnActivity } from './support/activity';
+import { BILLING_STAFF, offerInstall, onAnIphone } from './support/menu';
+import { drawnIdentities } from './support/account';
+import { emptyMeta } from './support/meta';
+import { drawnExports } from './support/settings';
+import { drawnPasswords, drawnTeam } from './support/team';
 import { DAY_ONE, mockApi, SLUG, type Language, type ShopState } from './support/mock-api';
 import { mockOnboarding, TWELVE_MONTHS, typeCode, type Journey } from './support/onboarding-api';
 import type { AddonsFixture, UsageFixture } from './support/usage';
@@ -41,6 +47,8 @@ interface Pair {
   path: string;
   /** What to do in the app once the page shows, before the picture (opening the + menu). */
   then?: (page: Page) => Promise<void>;
+  /** What to set in the app before it loads (an iPhone's browser). */
+  before?: (page: Page) => Promise<void>;
   /** A step outside a shop: the journey to mock, and `path` is the whole path. */
   journey?: Journey;
   /** What the guest brought from the website (the sign-up intent the sign-in page keeps). */
@@ -306,7 +314,323 @@ const MONEY: Pair[] = [
   ...balanceAndBilling(),
   ...usagePairs(),
   ...addonPairs(),
+  ...menuPairs(),
+  ...teamPairs(),
+  ...settingsPairs(),
 ];
+
+/** Settings (§7.16, Slice 11.6): its list, Shop details, Brand identity until its editor, and Data export. */
+function settingsPairs(): Pair[] {
+  const one = (
+    name: string,
+    path: string,
+    more: Partial<Pair> = {},
+    device: Device = 'phone',
+    language: Language = 'bn',
+  ): Pair => ({ name, screen: name, device, language, path, ...more });
+  return [
+    one('settings', '/settings'),
+    one('settings', '/settings', {}, 'desktop', 'en'),
+    one('shopdetails', '/settings/shop'),
+    one('shopdetails', '/settings/shop', {}, 'desktop', 'en'),
+    one('brand-soon', '/settings/brand'),
+    one('exports', '/settings/export', { state: { money: { exports: drawnExports() } } }),
+    one(
+      'exports',
+      '/settings/export',
+      { state: { money: { exports: drawnExports() } } },
+      'desktop',
+      'en',
+    ),
+    ...keyPairs(),
+    ...metaPairs(),
+    ...accountPairs(),
+  ];
+}
+
+/** Account (§7.17): the person's own, each of its sheets and dialogs, and a staff sign-in's (Part 11). */
+function accountPairs(): Pair[] {
+  // Each pair its own list: a pair's writes (an email added) never reach the next one's drawing.
+  const one = (
+    name: string,
+    more: Partial<Pair> = {},
+    device: Device = 'phone',
+    language: Language = 'bn',
+  ): Pair => ({
+    name,
+    screen: name,
+    device,
+    language,
+    path: '/account',
+    state: { identities: drawnIdentities() },
+    ...more,
+  });
+  const click = (label: string) => async (page: Page) => {
+    await page.getByRole('button', { name: label, exact: true }).first().click();
+  };
+  const toCode = async (page: Page) => {
+    await click('ইমেইল যোগ')(page);
+    await page.getByRole('dialog').getByLabel('ইমেইল').fill('rumana@gmail.com');
+    await click('কোড পাঠান')(page);
+  };
+  const staff = (): ShopState => ({ ...BILLING_STAFF, identities: drawnIdentities() });
+  return [
+    one('account'),
+    one('account', {}, 'desktop', 'en'),
+    one('sh-password', { then: click('পাসওয়ার্ড বদলান') }),
+    one('sh-identity-email', {
+      then: async (page) => {
+        await click('ইমেইল যোগ')(page);
+        await page.getByRole('dialog').getByLabel('ইমেইল').fill('rumana@gmail.com');
+      },
+    }),
+    one('sh-identity-code', {
+      then: async (page) => {
+        await toCode(page);
+        await typeCode(page, '123');
+      },
+    }),
+    one('account-email-added', {
+      then: async (page) => {
+        await toCode(page);
+        await typeCode(page, '123456');
+        await click('ভেরিফাই করুন')(page);
+        await page.getByRole('status').waitFor();
+      },
+    }),
+    one('account-connected', {
+      path: '/account?connected=facebook',
+      state: {
+        identities: [...drawnIdentities(), { id: 'i-4', kind: 'facebook', value: 'Rumana Akter' }],
+      },
+    }),
+    one('sh-identity-remove', {
+      then: async (page) => {
+        await page.getByRole('button', { name: 'সরান', exact: true }).first().click();
+      },
+    }),
+    one('sh-identity-last', {
+      then: async (page) => {
+        await page.route('**/api/v1/me/identities/i-3', (route) =>
+          route.fulfill({
+            status: 409,
+            contentType: 'application/json',
+            body: JSON.stringify({
+              success: false,
+              statusCode: 409,
+              message: 'Only way in.',
+              errors: { code: 'conflict', details: {} },
+            }),
+          }),
+        );
+        await page.getByRole('button', { name: 'সরান', exact: true }).first().click();
+        await page.getByRole('dialog').getByRole('button', { name: 'সরান', exact: true }).click();
+      },
+    }),
+    one('account-staff', { state: staff() }),
+    one('sh-password-staff', { state: staff(), then: click('পাসওয়ার্ড বদলান') }),
+  ];
+}
+
+/** Facebook and Meta (§7.27): connected, nothing connected yet, and the new feed link's sheet. */
+function metaPairs(): Pair[] {
+  const one = (
+    name: string,
+    more: Partial<Pair> = {},
+    device: Device = 'phone',
+    language: Language = 'bn',
+  ): Pair => ({
+    name,
+    screen: name,
+    device,
+    language,
+    path: '/settings/meta',
+    ...more,
+  });
+  return [
+    one('meta'),
+    one('meta', {}, 'desktop', 'en'),
+    one('meta-empty', { state: { meta: emptyMeta() } }),
+    one('sh-feed-regenerate', {
+      then: async (page) => {
+        await page.getByRole('button', { name: 'নতুন লিংক' }).click();
+      },
+    }),
+  ];
+}
+
+/** API keys (§7.26): the list, and each sheet as a person reaches it. */
+function keyPairs(): Pair[] {
+  const one = (
+    name: string,
+    then?: (page: Page) => Promise<void>,
+    device: Device = 'phone',
+    language: Language = 'bn',
+  ): Pair => ({ name, screen: name, device, language, path: '/settings/api-keys', then });
+  const newKey = async (page: Page) => {
+    await page.getByRole('button', { name: 'নতুন কী' }).click();
+    await page.getByRole('dialog').getByLabel('ওয়েবসাইট (অরিজিন)').fill('https://meghfashion.com');
+  };
+  return [
+    one('api-keys'),
+    one('api-keys', undefined, 'desktop', 'en'),
+    one('sh-key-new', newKey),
+    one('sh-key-created', async (page) => {
+      await newKey(page);
+      await page.getByRole('dialog').getByLabel('নাম').fill('Website');
+      await page.getByRole('button', { name: 'কী তৈরি' }).click();
+      await page.getByRole('dialog').getByText('lytro_pk_').waitFor();
+    }),
+    one('sh-key-revoke', async (page) => {
+      await page.getByRole('button', { name: 'বাতিল' }).first().click();
+    }),
+    one('sh-key-edit', async (page) => {
+      await page.getByRole('button', { name: /^Website/ }).click();
+    }),
+  ];
+}
+
+/**
+ * Team (§7.14, Slice 11.6), People and Roles with Parts 11 and 12's states, each reached as a person would. A sheet
+ * opened over People needs a free seat, so those draw three seats behind the scrim where the prototype has two.
+ */
+function teamPairs(): Pair[] {
+  const one = (
+    name: string,
+    path: string,
+    more: Partial<Pair> = {},
+    device: Device = 'phone',
+    language: Language = 'bn',
+  ): Pair => ({ name, screen: name, device, language, path, ...more });
+  const click = (label: string | RegExp) => async (page: Page) => {
+    await page.getByRole('button', { name: label }).first().click();
+  };
+  const steps =
+    (...each: ((page: Page) => Promise<void>)[]) =>
+    async (page: Page) => {
+      for (const step of each) await step(page);
+    };
+  const seatFree = drawnTeam('bn');
+  seatFree.seats = 3;
+  const noRoles = { ...drawnTeam('bn'), roles: [] };
+  noRoles.seats = 3;
+  const seatsFull = { money: { usage: { used: { seats: 2 } } } };
+  const typePerson = async (page: Page) => {
+    const sheet = page.getByRole('dialog');
+    await sheet.getByLabel('ফোন নম্বর').fill('1611 222 333');
+    await sheet.getByLabel('নাম (অপশনাল)').fill('কামাল');
+  };
+  const newBillingRole = async (page: Page) => {
+    await page.getByRole('dialog').getByLabel('রোলের নাম').fill('বিলিং স্টাফ');
+    for (const words of [
+      'ব্যালেন্স দেখা',
+      'ব্যালেন্স টপ-আপ করা',
+      'প্ল্যান ও বিলিং দেখা',
+      'প্ল্যান, অ্যাড-অন ও প্যাকের পেমেন্ট করা',
+      'অ্যাক্টিভিটি দেখা',
+    ]) {
+      await page.getByRole('checkbox', { name: words }).check();
+    }
+    // Ticking scrolled the sheet to the last; the drawing shows it from the top.
+    await page.evaluate(() => {
+      for (const body of document.querySelectorAll('dialog[open] .overflow-y-auto'))
+        body.scrollTop = 0;
+    });
+  };
+  const kamal = click(/কামাল হোসেন/);
+  return [
+    one('team', '/team'),
+    one('team', '/team', {}, 'desktop', 'en'),
+    one('staff-add', '/team', {
+      screen: 'staff',
+      state: { team: seatFree },
+      before: (page) => drawnPasswords(page, ['k7m4-p9qx']),
+      then: click('স্টাফ যোগ'),
+    }),
+    one('sh-staff-edit', '/team', { then: kamal }),
+    one('sh-staff-password', '/team', {
+      before: (page) => drawnPasswords(page, ['h3vd-8wqs']),
+      then: steps(kamal, click(/পাসওয়ার্ড রিসেট/)),
+    }),
+    one('sh-staff-deactivate', '/team', { then: steps(kamal, click(/ইনঅ্যাক্টিভ করুন/)) }),
+    one('team-deactivated', '/team', {
+      then: steps(kamal, click(/ইনঅ্যাক্টিভ করুন/), async (page) => {
+        await page
+          .getByRole('dialog', { name: /ইনঅ্যাক্টিভ করবেন/ })
+          .getByRole('button', { name: 'ইনঅ্যাক্টিভ করুন', exact: true })
+          .click();
+      }),
+    }),
+    one('sh-staff-reactivate-full', '/team', {
+      state: seatsFull,
+      then: steps(click(/সাবরিনা/), click(/আবার অ্যাক্টিভ করুন/)),
+    }),
+    one('team-full-add', '/team', { state: seatsFull, then: click('স্টাফ যোগ') }),
+    one('team-full-add-nopay', '/team', {
+      state: { ...seatsFull, isOwner: false, permissions: ['staff:read', 'staff:manage'] },
+      then: click('স্টাফ যোগ'),
+    }),
+    one('sh-staff-no-roles', '/team', {
+      state: { team: noRoles },
+      before: (page) => drawnPasswords(page, ['k7m4-p9qx']),
+      then: steps(click('স্টাফ যোগ'), typePerson),
+    }),
+    one('sh-staff-role-new', '/team', {
+      state: { team: { ...noRoles, roles: [] } },
+      before: (page) => drawnPasswords(page, ['k7m4-p9qx']),
+      then: steps(click('স্টাফ যোগ'), typePerson, click('নতুন রোল'), newBillingRole),
+    }),
+    one('sh-staff-role-back', '/team', {
+      state: { team: { ...noRoles, roles: [] } },
+      before: (page) => drawnPasswords(page, ['k7m4-p9qx']),
+      then: steps(
+        click('স্টাফ যোগ'),
+        typePerson,
+        click('নতুন রোল'),
+        newBillingRole,
+        click('তৈরি করে বেছে নিন'),
+      ),
+    }),
+    one('roles', '/team/roles'),
+    one('roles', '/team/roles', {}, 'desktop', 'en'),
+    one('roles-new', '/team/roles', { then: click('নতুন রোল') }),
+    one('roles-empty', '/team/roles', {
+      state: { team: { seats: 2, roles: [], staff: drawnTeam('bn').staff.slice(0, 1) } },
+    }),
+  ];
+}
+
+/** The Menu hub's own page and Activity (§7.18, §7.15, Slice 11.6), with Part 11's staff, install and empty states. */
+function menuPairs(): Pair[] {
+  const one = (
+    name: string,
+    path: string,
+    more: Partial<Pair> = {},
+    device: Device = 'phone',
+    language: Language = 'bn',
+  ): Pair => ({ name, screen: name, device, language, path, ...more });
+  const noFailures = drawnActivity('bn').filter((each) => each.result !== 'failure');
+  return [
+    one('menu', '/menu'),
+    one('menu', '/menu', {}, 'desktop', 'en'),
+    one('menu-staff', '/menu', { state: BILLING_STAFF }),
+    one('menu-install', '/menu', { then: offerInstall }),
+    one('menu-install-ios', '/menu', { before: onAnIphone }),
+    one('activity', '/activity'),
+    one('activity', '/activity', {}, 'desktop', 'en'),
+    one('activity-empty', '/activity', { state: { activity: { entries: [], earlier: [] } } }),
+    one('activity-filter-empty', '/activity', {
+      state: { activity: { entries: noFailures, earlier: [] } },
+      then: async (page) => {
+        await page.getByRole('button', { name: 'শুধু ফেইলড' }).click();
+        // The click scrolled the chips to it; the drawing shows them from the start.
+        await page.evaluate(() => {
+          for (const row of document.querySelectorAll('[role="group"]')) row.scrollLeft = 0;
+        });
+      },
+    }),
+  ];
+}
 
 /** Usage (§7.24, Slice 11.5c), each of the prototype's Part 10 states, its owner told by email. */
 function usagePairs(): Pair[] {
@@ -817,6 +1141,7 @@ test.describe('the built shell beside the prototype', () => {
       await drawing.close();
 
       const app = await browser.newPage({ viewport: AREA[pair.device] });
+      if (pair.before) await pair.before(app);
       if (pair.intent) {
         await app.addInitScript(
           (intent: string) => {

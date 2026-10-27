@@ -17,6 +17,7 @@ import type { ImageView } from '../../../common/media-links';
 import { MediaService } from '../../media/services/media.service';
 import { StaffService } from '../../staff/services/staff.service';
 import { ShopMemberships, type ShopListing } from '../services/shop-memberships';
+import { isStaffSignIn } from '../services/staff-sign-in';
 import { TenantService } from '../../tenancy/services/tenant.service';
 import type { TenantSummary } from '../../tenancy/types/tenant-summary';
 
@@ -30,6 +31,18 @@ export interface MeResponse {
   permissions: string[];
   /** The signed-in person's own name in the shop the call names, for the header's initial; null when unnamed. */
   name: string | null;
+  /**
+   * TEN-31, AUTH-31: `staff` for a sign-in made on the staff page with the password the shop set, which never changes
+   * the person's own account (KNOWN-GAPS §96); `own` for the person's own phone, email, password, Google or Facebook.
+   */
+  signIn: 'own' | 'staff';
+  /** The names of the roles the person holds in the shop the call names, for the Menu's card; none for the owner. */
+  roles: string[];
+  /**
+   * TEN-31: the phone a staff sign-in was made with, the one thing its Account shows of it; null for the person's own
+   * sign-in, whose own ways in are `/me/identities`.
+   */
+  phone: string | null;
   tenant:
     | ({
         id: string;
@@ -103,7 +116,10 @@ export class MeController {
     const shops = signedIn ? await this.memberships.list(signedIn) : [];
     const brand = tenant === null ? null : await this.brand.live(tenant.id);
     const logo = tenant === null ? null : await this.media.logoOf(tenant.id);
-    const name = tenant === null ? null : await this.staff.nameOf(tenant, userId);
+    const person =
+      tenant === null ? { name: null, phone: null } : await this.staff.personOf(tenant, userId);
+    const staffSignIn = signedIn ? isStaffSignIn(signedIn) : false;
+    const roles = tenant === null ? [] : await this.staff.roleNamesOf(tenant, userId);
     const subscriberId = request.session?.subscriberId ?? null;
     const hasDeletedShop =
       tenant === null && isOwner && subscriberId !== null
@@ -113,7 +129,10 @@ export class MeController {
       subscriber: { id: request.session?.subscriberId ?? '' },
       isOwner,
       permissions,
-      name,
+      name: person.name,
+      signIn: staffSignIn ? 'staff' : 'own',
+      roles,
+      phone: staffSignIn ? person.phone : null,
       tenant:
         tenant === null
           ? null

@@ -1,11 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { Roles } from '@/views/team/roles';
+import { RolesView } from '@/views/team/roles';
 
-// The Roles segment of Team: a sibling route, not a child, so the People screen needs no Outlet. The first build's,
-// framed by the new shell until Slice 11.6 rebuilds it.
+// The Roles half of Team: a sibling route, not a child, so the People screen needs no Outlet. Its back arrow leads to
+// People, and it keeps the hub's section chips, as the prototype's `roles` draws.
 export const Route = createFileRoute('/$shop/team_/roles')({
-  staticData: {
-    screen: { hub: 'menu', section: 'team', title: 'secTeam', back: '/$shop/team', legacy: true },
-  },
-  component: Roles,
+  staticData: { screen: { hub: 'menu', section: 'team', title: 'secTeam', back: '/$shop/team' } },
+  component: RolesView,
 });

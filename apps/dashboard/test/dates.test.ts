@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dayLabel, formatTime, groupByDay } from '../src/lib/dates';
+import { dayLabel, formatClock, formatTime, groupByDay } from '../src/lib/dates';
 
 describe('formatTime', () => {
   it('writes Bangla times with Western digits and the period word', () => {
@@ -11,6 +11,13 @@ describe('formatTime', () => {
 
   it('writes English times in 12-hour form', () => {
     expect(formatTime('2026-10-19T05:42:00Z', 'en')).toMatch(/11:42/);
+  });
+});
+
+describe('formatClock', () => {
+  it('writes a stamp’s clock in Dhaka on the 24-hour clock, in either language', () => {
+    expect(formatClock('2026-09-30T16:03:00.000Z')).toBe('22:03');
+    expect(formatClock('2026-10-12T03:14:00.000Z')).toBe('09:14');
   });
 });
 

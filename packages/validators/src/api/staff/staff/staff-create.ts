@@ -11,16 +11,22 @@ export const createStaffSchema = z.object({
 });
 export type CreateStaffInput = z.infer<typeof createStaffSchema>;
 
-// PATCH staff/:id: deactivate or reactivate a staff member (STF-03, STF-04), or change the roles they hold (STF-07).
+// PATCH staff/:id: deactivate or reactivate a staff member (STF-03, STF-04), change the roles they hold (STF-07), or
+// rename them -- null clears the name, as an unnamed member was added.
 export const updateStaffSchema = z
   .object({
     active: z.boolean().optional(),
     roleIds: z.array(z.string().uuid()).max(20).optional(),
+    name: z.string().trim().min(1).max(NAME_MAX_LENGTH).nullable().optional(),
   })
-  .refine((value) => value.active !== undefined || value.roleIds !== undefined, {
-    message: 'nothing to change',
-    params: { problem: FieldProblemCode.NothingToChange },
-  });
+  .refine(
+    (value) =>
+      value.active !== undefined || value.roleIds !== undefined || value.name !== undefined,
+    {
+      message: 'nothing to change',
+      params: { problem: FieldProblemCode.NothingToChange },
+    },
+  );
 export type UpdateStaffInput = z.infer<typeof updateStaffSchema>;
 
 // The staff id in PATCH staff/:id. Anything that is not an id is simply no such staff member.

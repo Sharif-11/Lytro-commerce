@@ -1,385 +1,339 @@
-import { useState, type SyntheticEvent } from 'react';
-import { Link } from '@tanstack/react-router';
+import { useEffect, useState } from 'react';
+import { useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
+import { ApiClientError } from '@lytronix/api-client';
 import { IdentityKind, OauthProvider } from '@lytronix/validators';
 import { useOauthProviders } from '@/api/auth';
-import { errorMessage } from '@lytronix/api-client';
-import {
-  Button,
-  ConfirmDialog,
-  EmptyLine,
-  ErrorBanner,
-  Icon,
-  Notice,
-  Page,
-  PageHeader,
-  TextField,
-} from '@lytronix/ui';
-import {
-  useAttachOauth,
-  useIdentities,
-  useRemoveIdentity,
-  useRequestIdentityCode,
-  useVerifyIdentity,
-} from '@/api/identities';
+import { useAttachOauth, useIdentities, useRemoveIdentity } from '@/api/identities';
 import { FacebookIcon, GoogleIcon } from '@/components/brand/oauth-icons';
-import { CodeBoxes } from '@/components/ui/code-boxes';
-import { Sheet } from '@/components/ui/sheet';
+import { Icon } from '@/components/icon';
+import { Banner } from '@/components/ui/banner';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Dialog } from '@/components/ui/dialog';
+import { RowList } from '@/components/ui/list-row';
 import { Toast } from '@/components/ui/toast';
+import { useErrorText } from '@/hooks/use-error-text';
 import { useToast } from '@/hooks/use-toast';
 import { bangladeshiPhone } from '@/lib/phone';
+import { useShell } from '@/shell/shell-context';
+import { ShellPage } from '@/shell/shell-page';
 import type { Identity } from '@/types/identity';
+import { IdentityRow, LanguageCard, MarkTile } from './account-parts';
+import { AddEmailSheet, ChangePasswordSheet } from './account-sheets';
 
-type Adding = {
-  kind: IdentityKind.Phone | IdentityKind.Email;
-  value: string;
-  sent: boolean;
-} | null;
+/** The name a way to sign in goes by in the dialogs and toasts. */
+function providerName(kind: IdentityKind, t: (key: string) => string): string {
+  switch (kind) {
+    case IdentityKind.Google:
+      return t('idGoogle');
+    case IdentityKind.Facebook:
+      return t('idFacebook');
+    case IdentityKind.Email:
+      return t('idEmailL');
+    default:
+      return t('phoneId');
+  }
+}
 
 /**
- * Sign-in and security (AUTH-26/27): the ways into the account as rows with the provider's mark, each with
- * its one action; the recovery note under them; adding a phone or email by code in a sheet.
+ * Account (TENANT-DASHBOARD-DESIGN §7.17): for the person's own sign-in, their ways to sign in with each one's action,
+ * the password, language and Sign out (the prototype's `account` and its sheets); for a sign-in made on the staff page,
+ * only the phone and its password (Part 11's `account-staff`, TEN-31), since such a sign-in never changes the person's
+ * own account. `connected` is a provider just connected, back from its callback (AUTH-27).
  */
-export function Account(): React.JSX.Element {
-  const { t } = useTranslation();
+export function AccountView({ connected }: { connected: IdentityKind | null }): React.JSX.Element {
+  const { signIn } = useShell();
+  return signIn === 'staff' ? <StaffAccount /> : <OwnAccount connected={connected} />;
+}
+
+function OwnAccount({ connected }: { connected: IdentityKind | null }): React.JSX.Element {
+  const { t } = useTranslation('menu');
+  const errorText = useErrorText();
+  const navigate = useNavigate();
+  const { slug } = useShell();
   const identities = useIdentities();
   const providers = useOauthProviders();
-  const requestCode = useRequestIdentityCode();
-  const verify = useVerifyIdentity();
-  const attach = useAttachOauth();
+  const attach = useAttachOauth(slug);
   const remove = useRemoveIdentity();
   const toast = useToast();
-  const [adding, setAdding] = useState<Adding>(null);
-  const [code, setCode] = useState('');
+  const [changing, setChanging] = useState(false);
+  const [adding, setAdding] = useState(false);
   const [removing, setRemoving] = useState<Identity | null>(null);
+  const [onlyWay, setOnlyWay] = useState(false);
+
+  // AUTH-27: back from a provider's callback, say it is connected, once.
+  useEffect(() => {
+    if (connected === null) return;
+    toast.show(t('idConnected', { provider: providerName(connected, t) }));
+    void navigate({ to: '/$shop/account', params: { shop: slug }, search: {}, replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connected]);
 
   const list = identities.data?.identities ?? [];
-  const has = (kind: IdentityKind): Identity | undefined =>
-    list.find((identity) => identity.kind === kind);
-  const offered = (provider: OauthProvider): boolean =>
-    providers.data?.providers.includes(provider) ?? false;
-  const canRemove = list.length > 1;
+  const of = (kind: IdentityKind) => list.filter((each) => each.kind === kind);
+  const offered = providers.data?.providers ?? [];
 
-  function openAdd(kind: IdentityKind.Phone | IdentityKind.Email): void {
-    requestCode.reset();
-    verify.reset();
-    setCode('');
-    setAdding({ kind, value: '', sent: false });
+  function askRemove(identity: Identity): void {
+    if (list.length <= 1) setOnlyWay(true);
+    else setRemoving(identity);
   }
 
-  function sendCode(event: SyntheticEvent<HTMLFormElement>): void {
-    event.preventDefault();
-    if (!adding) return;
-    const value =
-      adding.kind === IdentityKind.Phone
-        ? bangladeshiPhone.fromLocalPart(adding.value)
-        : adding.value.trim();
-    if (adding.kind === IdentityKind.Phone && !bangladeshiPhone.isValid(value)) return;
-    requestCode.mutate(
-      { kind: adding.kind, value },
-      {
-        onSuccess: () => {
-          setAdding({ ...adding, value, sent: true });
-        },
-      },
+  const removeButton = (identity: Identity) => (
+    <Button
+      tone="ghost"
+      size="xs"
+      onClick={() => {
+        askRemove(identity);
+      }}
+    >
+      {t('remove')}
+    </Button>
+  );
+
+  const providerRow = (kind: IdentityKind, provider: OauthProvider, mark: React.ReactNode) => {
+    const held = of(kind)[0];
+    if (!held && !offered.includes(provider)) return null;
+    return (
+      <IdentityRow
+        key={kind}
+        mark={<MarkTile tone="plain">{mark}</MarkTile>}
+        title={providerName(kind, t)}
+        value={held ? held.value : t('idNotConnected')}
+        action={
+          held ? (
+            removeButton(held)
+          ) : (
+            <Button
+              tone="outline"
+              size="xs"
+              busy={attach.isPending && attach.variables === provider}
+              onClick={() => {
+                attach.mutate(provider);
+              }}
+            >
+              {t('connect')}
+            </Button>
+          )
+        }
+      />
     );
-  }
+  };
 
-  function verifyCode(): void {
-    if (!adding || code.length < 6) return;
-    verify.mutate(
-      { kind: adding.kind, value: adding.value, code },
-      {
-        onSuccess: () => {
-          setAdding(null);
-          toast.show(t('account.added'));
-        },
-      },
-    );
-  }
-
-  const phone = has(IdentityKind.Phone);
-  const email = has(IdentityKind.Email);
-  const google = has(IdentityKind.Google);
-  const facebook = has(IdentityKind.Facebook);
-
+  const email = of(IdentityKind.Email)[0];
   return (
-    <Page narrow>
-      <PageHeader title={t('account.title')} lead={t('account.lead')} />
-      {identities.isLoading ? <EmptyLine>{t('common.loading')}</EmptyLine> : null}
-      {identities.isError ? <ErrorBanner message={errorMessage(identities.error, t)} /> : null}
-      {identities.data ? (
-        <div className="overflow-hidden rounded-card border border-line bg-white shadow-card">
-          <IdentityRow
-            mark={<Icon name="phone" size={20} />}
-            title={phone ? bangladeshiPhone.display(phone.value) : t('account.noPhone')}
-            sub={phone ? t('account.phoneSub') : t('account.noPhoneSub')}
-            present={phone !== undefined}
-            action={
-              phone ? (
-                <Link
-                  to="/set-password"
-                  search={{ required: false }}
-                  className="text-[14px] font-bold text-brand-800"
-                >
-                  {t('account.changePassword')}
-                </Link>
-              ) : (
+    <ShellPage>
+      {identities.isError ? <Banner tone="bad">{errorText(identities.error)}</Banner> : null}
+      {attach.isError ? <Banner tone="bad">{errorText(attach.error)}</Banner> : null}
+      <Card flush>
+        <div className="px-4 pt-4 pb-1">
+          <h3 className="mb-1 text-[17px] font-semibold">{t('identities')}</h3>
+        </div>
+        <RowList>
+          {of(IdentityKind.Phone).map((phone) => (
+            <IdentityRow
+              key={phone.id}
+              mark={
+                <MarkTile tone="info">
+                  <Icon name="phone" />
+                </MarkTile>
+              }
+              title={t('phoneId')}
+              value={bangladeshiPhone.international(phone.value)}
+              numeric
+              action={
                 <Button
-                  type="button"
                   tone="outline"
-                  fit
-                  className="min-h-9! text-[14px]!"
+                  size="xs"
                   onClick={() => {
-                    openAdd(IdentityKind.Phone);
+                    setChanging(true);
                   }}
                 >
-                  {t('account.add')}
+                  {t('changePw')}
                 </Button>
-              )
-            }
-          />
+              }
+            />
+          ))}
+          {providerRow(IdentityKind.Google, OauthProvider.Google, <GoogleIcon />)}
+          {providerRow(IdentityKind.Facebook, OauthProvider.Facebook, <FacebookIcon />)}
           <IdentityRow
-            mark={<Icon name="mail" size={20} />}
-            title={email ? email.value : t('account.noEmail')}
-            sub={email ? t('account.emailSub') : t('account.noEmailSub')}
-            present={email !== undefined}
+            mark={
+              <MarkTile tone="neutral">
+                <Icon name="sms" />
+              </MarkTile>
+            }
+            title={t('idEmailL')}
+            value={email ? email.value : t('idNone')}
             action={
               email ? (
-                <RemoveButton
-                  disabled={!canRemove}
-                  onClick={() => {
-                    setRemoving(email);
-                  }}
-                />
+                removeButton(email)
               ) : (
                 <Button
-                  type="button"
                   tone="outline"
-                  fit
-                  className="min-h-9! text-[14px]!"
+                  size="xs"
                   onClick={() => {
-                    openAdd(IdentityKind.Email);
+                    setAdding(true);
                   }}
                 >
-                  {t('account.add')}
+                  {t('addEmail')}
                 </Button>
               )
             }
           />
-          {google || offered(OauthProvider.Google) ? (
-            <IdentityRow
-              mark={<GoogleIcon />}
-              title={google ? google.value : 'Google'}
-              sub={google ? 'Google' : t('account.notConnected')}
-              present={google !== undefined}
-              action={
-                google ? (
-                  <RemoveButton
-                    disabled={!canRemove}
-                    onClick={() => {
-                      setRemoving(google);
-                    }}
-                  />
-                ) : (
-                  <Button
-                    type="button"
-                    tone="outline"
-                    fit
-                    className="min-h-9! text-[14px]!"
-                    loading={attach.isPending && attach.variables === OauthProvider.Google}
-                    onClick={() => {
-                      attach.mutate(OauthProvider.Google);
-                    }}
-                  >
-                    {t('account.connect')}
-                  </Button>
-                )
-              }
-            />
-          ) : null}
-          {facebook || offered(OauthProvider.Facebook) ? (
-            <IdentityRow
-              mark={<FacebookIcon />}
-              title={facebook ? facebook.value : 'Facebook'}
-              sub={facebook ? 'Facebook' : t('account.notConnected')}
-              present={facebook !== undefined}
-              action={
-                facebook ? (
-                  <RemoveButton
-                    disabled={!canRemove}
-                    onClick={() => {
-                      setRemoving(facebook);
-                    }}
-                  />
-                ) : (
-                  <Button
-                    type="button"
-                    tone="outline"
-                    fit
-                    className="min-h-9! text-[14px]!"
-                    loading={attach.isPending && attach.variables === OauthProvider.Facebook}
-                    onClick={() => {
-                      attach.mutate(OauthProvider.Facebook);
-                    }}
-                  >
-                    {t('account.connect')}
-                  </Button>
-                )
-              }
-            />
-          ) : null}
-        </div>
-      ) : null}
-      {attach.isError ? <ErrorBanner message={errorMessage(attach.error, t)} /> : null}
-      <Notice tone="info">{t('account.recoveryNote')}</Notice>
+        </RowList>
+        <p className="px-4 pt-2 pb-4 text-[14px] text-fg-muted">{t('recoveryNote')}</p>
+      </Card>
+      <LanguageCard />
 
-      <Sheet
-        open={adding !== null}
-        title={adding?.kind === IdentityKind.Phone ? t('account.addPhone') : t('account.addEmail')}
+      <ChangePasswordSheet
+        open={changing}
+        staff={false}
         onClose={() => {
-          setAdding(null);
+          setChanging(false);
         }}
-      >
-        {adding && !adding.sent ? (
-          <form onSubmit={sendCode} className="space-y-4">
-            {adding.kind === IdentityKind.Phone ? (
-              <TextField
-                label={t('team.phone')}
-                name="newPhone"
-                type="tel"
-                inputMode="numeric"
-                placeholder="1XXXXXXXXX"
-                leading="+880"
-                value={adding.value}
-                onChange={(event) => {
-                  setAdding({ ...adding, value: event.target.value.replace(/[^\d\s-]/g, '') });
-                }}
-              />
-            ) : (
-              <TextField
-                label={t('account.email')}
-                name="newEmail"
-                type="email"
-                inputMode="email"
-                placeholder="you@example.com"
-                required
-                value={adding.value}
-                onChange={(event) => {
-                  setAdding({ ...adding, value: event.target.value });
-                }}
-              />
-            )}
-            {requestCode.isError ? (
-              <ErrorBanner message={errorMessage(requestCode.error, t)} />
-            ) : null}
-            <Button type="submit" loading={requestCode.isPending}>
-              {t('account.sendCode')}
-            </Button>
-            <p className="text-[13px] text-neutral-700">
-              {adding.kind === IdentityKind.Phone
-                ? t('account.codeNotePhone')
-                : t('account.codeNoteEmail')}
-            </p>
-          </form>
-        ) : null}
-        {adding?.sent ? (
-          <div className="space-y-4">
-            <p className="text-[15px] text-neutral-700">
-              {t('account.codeSentTo', {
-                value:
-                  adding.kind === IdentityKind.Phone
-                    ? bangladeshiPhone.display(adding.value)
-                    : adding.value,
-              })}
-            </p>
-            <CodeBoxes value={code} onChange={setCode} label={t('account.confirmCode')} />
-            {verify.isError ? <ErrorBanner message={errorMessage(verify.error, t)} /> : null}
-            <Button
-              type="button"
-              loading={verify.isPending}
-              disabled={code.length < 6}
-              onClick={verifyCode}
-            >
-              {t('account.confirmCode')}
-            </Button>
-          </div>
-        ) : null}
-      </Sheet>
-
-      <ConfirmDialog
+        onChanged={() => {
+          setChanging(false);
+          toast.show(t('pwChanged'));
+        }}
+      />
+      <AddEmailSheet
+        open={adding}
+        onClose={() => {
+          setAdding(false);
+        }}
+        onAdded={(address) => {
+          setAdding(false);
+          toast.show(t('idEmailAdded', { email: address }));
+        }}
+      />
+      <Dialog
         open={removing !== null}
-        title={t('account.removeTitle')}
-        message={removing ? `${t(`account.kind.${removing.kind}`)} · ${removing.value}` : null}
-        error={remove.isError ? errorMessage(remove.error, t) : null}
-        confirmLabel={t('account.remove')}
-        danger
-        pending={remove.isPending}
-        onConfirm={() => {
-          if (!removing) return;
-          remove.mutate(removing.id, {
-            onSuccess: () => {
-              setRemoving(null);
-              toast.show(t('account.removed'));
-            },
-          });
-        }}
-        onCancel={() => {
+        title={t('idRemoveTitle', { provider: removing ? providerName(removing.kind, t) : '' })}
+        onClose={() => {
           setRemoving(null);
           remove.reset();
         }}
+        actions={
+          <>
+            <Button
+              tone="outline"
+              onClick={() => {
+                setRemoving(null);
+              }}
+            >
+              {t('keep')}
+            </Button>
+            <Button
+              tone="danger"
+              busy={remove.isPending}
+              onClick={() => {
+                if (!removing) return;
+                const name = providerName(removing.kind, t);
+                remove.mutate(removing.id, {
+                  onSuccess: () => {
+                    setRemoving(null);
+                    toast.show(t('idRemoved', { provider: name }));
+                  },
+                  onError: (error) => {
+                    // The server's own word that it is the only way in, raced or not.
+                    if (error instanceof ApiClientError && error.code === 'conflict') {
+                      setRemoving(null);
+                      setOnlyWay(true);
+                    }
+                  },
+                });
+              }}
+            >
+              {t('idRemoveBtn')}
+            </Button>
+          </>
+        }
+      >
+        {t('idRemoveCons', { provider: removing ? providerName(removing.kind, t) : '' })}
+        {remove.isError &&
+        !(remove.error instanceof ApiClientError && remove.error.code === 'conflict') ? (
+          <span className="mt-2 block text-danger">{errorText(remove.error)}</span>
+        ) : null}
+      </Dialog>
+      <Dialog
+        open={onlyWay}
+        title={t('idLastTitle')}
+        onClose={() => {
+          setOnlyWay(false);
+        }}
+        actions={
+          <Button
+            onClick={() => {
+              setOnlyWay(false);
+              setAdding(true);
+            }}
+          >
+            {t('idAddFirst')}
+          </Button>
+        }
+      >
+        {t('idLastCons')}
+      </Dialog>
+      <Toast message={toast.message} />
+    </ShellPage>
+  );
+}
+
+/**
+ * Account for a sign-in made on the staff page (TEN-31, AUTH-31; Part 11's `account-staff`): the phone the shop added
+ * and its password, never the person's own sign-in methods, and how to reach those: sign in with their own phone.
+ */
+function StaffAccount(): React.JSX.Element {
+  const { t } = useTranslation('menu');
+  const { tenant, staffPhone } = useShell();
+  const toast = useToast();
+  const [changing, setChanging] = useState(false);
+  return (
+    <ShellPage>
+      <Card flush>
+        <div className="px-4 pt-4 pb-1">
+          <h3 className="mb-1 text-[17px] font-semibold">
+            {t('acStaffTitle', { shop: tenant.shopName })}
+          </h3>
+        </div>
+        <RowList>
+          <IdentityRow
+            mark={
+              <MarkTile tone="info">
+                <Icon name="phone" />
+              </MarkTile>
+            }
+            title={t('phoneId')}
+            value={staffPhone ? bangladeshiPhone.international(staffPhone) : ''}
+            numeric
+            action={
+              <Button
+                tone="outline"
+                size="xs"
+                onClick={() => {
+                  setChanging(true);
+                }}
+              >
+                {t('changePw')}
+              </Button>
+            }
+          />
+        </RowList>
+        <p className="px-4 pt-2 pb-4 text-[14px] text-fg-muted">{t('acStaffNote')}</p>
+      </Card>
+      <LanguageCard />
+      <ChangePasswordSheet
+        open={changing}
+        staff
+        onClose={() => {
+          setChanging(false);
+        }}
+        onChanged={() => {
+          setChanging(false);
+          toast.show(t('pwChanged'));
+        }}
       />
       <Toast message={toast.message} />
-    </Page>
-  );
-}
-
-function IdentityRow({
-  mark,
-  title,
-  sub,
-  present,
-  action,
-}: {
-  mark: React.ReactNode;
-  title: string;
-  sub: string;
-  present: boolean;
-  action: React.ReactNode;
-}): React.JSX.Element {
-  return (
-    <div
-      className={`flex items-center gap-3 border-t border-line px-4 py-3 first:border-t-0 ${present ? '' : 'opacity-70'}`}
-    >
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-neutral-100 text-neutral-700">
-        {mark}
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="num truncate text-[15px] font-bold text-ink">{title}</p>
-        <p className="text-[13px] text-neutral-700">{sub}</p>
-      </div>
-      <div className="shrink-0">{action}</div>
-    </div>
-  );
-}
-
-function RemoveButton({
-  disabled,
-  onClick,
-}: {
-  disabled: boolean;
-  onClick: () => void;
-}): React.JSX.Element {
-  const { t } = useTranslation();
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={onClick}
-      title={disabled ? t('account.keepOne') : undefined}
-      className="text-[14px] font-bold text-danger disabled:opacity-40"
-    >
-      {t('account.remove')}
-    </button>
+    </ShellPage>
   );
 }

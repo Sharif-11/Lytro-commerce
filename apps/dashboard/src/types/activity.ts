@@ -16,4 +16,6 @@ export interface ActivityEntry {
 export interface ActivityPage {
   entries: ActivityEntry[];
   nextCursor: string | null;
+  /** AUD-06: the days the shop's plan keeps its activity. */
+  retentionDays: number;
 }

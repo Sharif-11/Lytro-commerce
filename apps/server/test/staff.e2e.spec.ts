@@ -253,6 +253,27 @@ describeIfDatabase('staff on the Starter plan (STF-01, STF-02, STF-03, STF-04)',
   });
 });
 
+describeIfDatabase('renaming a staff member (STF-03, Slice 11.6)', () => {
+  it('renames them, and clears the name with null', async () => {
+    const who = await owner();
+    await moveToPlan(who.slug, 'Starter');
+    const hired = await addStaff(who, texts.freshPhone());
+    const id = (hired.body as StaffBody).id;
+
+    const renamed = await patchJson(
+      port,
+      `/staff/${id}`,
+      { name: ' Kamal Hossain ' },
+      shopCall(who),
+    );
+    expect(renamed.status).toBe(200);
+    expect(renamed.body).toMatchObject({ name: 'Kamal Hossain' });
+    const cleared = await patchJson(port, `/staff/${id}`, { name: null }, shopCall(who));
+    expect(cleared.body).toMatchObject({ name: null });
+    expect((await patchJson(port, `/staff/${id}`, { name: '  ' }, shopCall(who))).status).toBe(400);
+  });
+});
+
 describeIfDatabase('an unlimited-seats plan never refuses a new seat (PLN-19)', () => {
   it('adds staff past what a numeric Starter-sized limit would have refused', async () => {
     const who = await owner();
@@ -736,6 +757,37 @@ async function staffWhoOwnsAShop(): Promise<{
 }
 
 describeIfDatabase('one sign-in across a person’s shops (TEN-31)', () => {
+  it("calls the person's own sign-in `own` on either shop's page, and the staff page's `staff`, with the roles held", async () => {
+    const { employer, phone, own } = await staffWhoOwnsAShop();
+    expect((await get('/me', onShop(own.cookie, own.slug))).body).toMatchObject({
+      signIn: 'own',
+      isOwner: true,
+      roles: [],
+      phone: null,
+    });
+    expect((await get('/me', onShop(own.cookie, employer.slug))).body).toMatchObject({
+      signIn: 'own',
+      isOwner: false,
+    });
+
+    const role = (await createRole(employer, 'Billing staff', ['balance:read'])).body as {
+      id: string;
+    };
+    const list = await get('/staff', shopCall(employer));
+    const member = (list.body as { staff: { id: string; isOwner: boolean }[] }).staff.find(
+      (row) => !row.isOwner,
+    );
+    await patchJson(port, `/staff/${member?.id ?? ''}`, { roleIds: [role.id] }, shopCall(employer));
+    const cookie = cookieFrom(await staffReady(phone, STAFF_PASSWORD));
+    expect((await get('/me', onShop(cookie, employer.slug))).body).toMatchObject({
+      signIn: 'staff',
+      isOwner: false,
+      roles: ['Billing staff'],
+      // The one thing the staff sign-in's Account shows of it.
+      phone,
+    });
+  });
+
   it("the person's own sign-in opens both shops: their own as owner, the other as staff", async () => {
     const { employer, own } = await staffWhoOwnsAShop();
 

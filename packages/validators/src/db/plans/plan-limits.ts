@@ -56,6 +56,13 @@ export const LIMIT_WHEN_UNSET: Readonly<Record<UsageLimitKey, number | null>> = 
 /** AUD-06: how many days an activity log entry is kept when the shop's limits set no retention period. */
 export const ACTIVITY_RETENTION_DAYS_WHEN_UNSET = 30;
 
+/** AUD-06: the days a shop's activity is kept on these limits -- its own figure, else the table's when none is set. */
+export function activityRetentionDays(
+  limits: Pick<PlanLimits, 'activity_retention_days'> | null,
+): number {
+  return limits?.activity_retention_days ?? ACTIVITY_RETENTION_DAYS_WHEN_UNSET;
+}
+
 /** PLN-19: one limit of a shop as every check applies it: its number, or null for unlimited. */
 /** Whether a stored limit key (an override's, an add-on's) is one of the limits that cap a use. */
 export function isUsageLimitKey(key: string): key is UsageLimitKey {

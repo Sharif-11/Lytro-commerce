@@ -1,8 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { ShopSettingsView } from '@/views/settings';
+import { SettingsView } from '@/views/settings';
 
-// The first build's screen, framed by the new shell until its own pull request of Slice 11 rebuilds it.
+// TENANT-DASHBOARD-DESIGN §7.16: the Menu hub's Settings section, its rows into the shop's own settings.
 export const Route = createFileRoute('/$shop/settings')({
-  staticData: { screen: { hub: 'menu', section: 'settings', title: 'secSettings', legacy: true } },
-  component: ShopSettingsView,
+  staticData: { screen: { hub: 'menu', section: 'settings', title: 'secSettings' } },
+  component: SettingsView,
 });

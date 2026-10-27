@@ -36,7 +36,7 @@ export class ShopSettingsService {
   async get(tenantId: string): Promise<ShopSettingsView> {
     const contact = await this.tenants.runStandalone(async (tx) => {
       const row = await this.tenants.findContactDetails(tx, tenantId);
-      return row ?? { contactPhone: null, contactEmail: null, businessAddress: null };
+      return row ?? { shopName: '', contactPhone: null, contactEmail: null, businessAddress: null };
     });
     const extraDeliveryChargePerKg = await this.deliveryRate.get(tenantId);
     return {
@@ -73,6 +73,7 @@ export class ShopSettingsService {
         : null;
 
     const values: Partial<ContactDetailsRow> = {};
+    if (input.shopName !== undefined) values.shopName = input.shopName;
     if ('contactPhone' in input) values.contactPhone = input.contactPhone ?? null;
     if ('contactEmail' in input) values.contactEmail = input.contactEmail ?? null;
     if ('businessAddress' in input) values.businessAddress = input.businessAddress ?? null;

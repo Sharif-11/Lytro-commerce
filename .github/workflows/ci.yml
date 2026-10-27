@@ -53,8 +53,12 @@ jobs:
       - name: Unit tests
         run: pnpm test
 
+      # The dashboard's Help row opens the support WhatsApp the deployment names, and shows only with one; the browser
+      # tests below check it with this number, which is not a real one and never deployed.
       - name: Build all apps
         run: pnpm build
+        env:
+          VITE_SUPPORT_WHATSAPP: '8801000000000'
 
       # The dashboard's screens in a real browser against a mocked API, on a phone and a desktop
       # (TENANT-DASHBOARD-DESIGN §11), and each one beside the prototype's drawing of it, kept as pictures for the

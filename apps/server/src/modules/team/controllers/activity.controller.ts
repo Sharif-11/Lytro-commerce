@@ -1,7 +1,7 @@
 import { Controller, Get, Inject, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
-import { AuditAction, Permission } from '@lytronix/validators';
+import { AuditResult, Permission } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import { Dashboard } from '../../../common/decorators/dashboard';
 import { RequirePermission } from '../../../common/decorators/require-permission';
@@ -30,7 +30,13 @@ export class ActivityController {
   @ApiQuery({ name: 'dateFrom', required: false, type: String })
   @ApiQuery({ name: 'dateTo', required: false, type: String })
   @ApiQuery({ name: 'actorId', required: false, type: String })
-  @ApiQuery({ name: 'action', required: false, enum: AuditAction })
+  @ApiQuery({
+    name: 'action',
+    required: false,
+    type: String,
+    description: 'One action or several, comma-separated',
+  })
+  @ApiQuery({ name: 'result', required: false, enum: AuditResult })
   @ApiQuery({ name: 'cursor', required: false, type: String })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ZodResponse({ type: ActivityPageDto })

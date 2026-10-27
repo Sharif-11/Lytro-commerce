@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { tenantSession } from '@/session/tenant-session';
 import type {
   AddressCheck,
@@ -46,9 +46,13 @@ export function useLocations() {
 
 /** PUT /business-type (PST-01): what the shop mainly sells; new products take its defaults. */
 export function useSetBusinessType() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (businessType: string) =>
       tenantSession.client.put<unknown>('/business-type', { businessType }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['business-type'] });
+    },
   });
 }
 

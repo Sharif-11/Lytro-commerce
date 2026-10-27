@@ -7,6 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from '../src/app/app.module';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { ActivityLogPurger } from '@lytronix/db';
+import { ACTIVITY_GROUPS } from '@lytronix/validators';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase } from './support/database';
 import { SmsCapture } from './support/sms-capture';
@@ -342,6 +343,35 @@ describeIfDatabase('the activity log (AUD-01, AUD-02, AUD-04)', () => {
     const byActor = await activityOf(who, `?actorId=${ownerActorId ?? ''}`);
     const actorEntries = (byActor.body as { entries: ActivityEntry[] }).entries;
     expect(actorEntries.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("narrows to a chip's group of actions, and to failures only, on the server (Slice 11.6)", async () => {
+    const who = await owner();
+    await post('/roles', { name: 'GroupA', permissions: [] }, shopCall(who));
+    // A wrong password: the shop's one failure.
+    expect(
+      (await post('/auth/signin', { phone: who.phone, password: 'not-the-password' })).status,
+    ).toBe(401);
+
+    const staff = await activityOf(who, `?action=${ACTIVITY_GROUPS.staff.join(',')}`);
+    expect((staff.body as { entries: ActivityEntry[] }).entries.map((e) => e.action)).toEqual([
+      'role_created',
+    ]);
+    const failed = await activityOf(who, '?result=failure');
+    expect((failed.body as { entries: ActivityEntry[] }).entries.map((e) => e.action)).toEqual([
+      'sign_in_failed',
+    ]);
+    expect((await activityOf(who, '?action=role_created,not_an_action')).status).toBe(400);
+  });
+
+  it("gives the days the shop's plan keeps its activity, for the page's line (AUD-06)", async () => {
+    const who = await owner();
+    expect((await activityOf(who)).body).toMatchObject({ retentionDays: 30 });
+    await admin.query(
+      `UPDATE control.tenants SET plan_snapshot = jsonb_set(plan_snapshot, '{activity_retention_days}', '90'::jsonb) WHERE slug = $1`,
+      [who.slug],
+    );
+    expect((await activityOf(who)).body).toMatchObject({ retentionDays: 90 });
   });
 
   it('pages with a cursor and never repeats or skips an entry', async () => {

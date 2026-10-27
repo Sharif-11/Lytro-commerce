@@ -385,6 +385,7 @@ svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.75;str
       <optgroup label="Money · Phase 2"><option value="balance">Balance</option><option value="topup">· top up (sheet)</option><option value="balance-pending">· top-up being checked</option><option value="balance-credited">· top-up credited</option><option value="plan">Plan</option><option value="paysheet">· how to pay (sheet)</option><option value="plan-pending">· payment being checked</option><option value="plan-paid">· renewed</option><option value="plan-upgraded">· upgraded to Growth</option><option value="upgrade">· upgrade (sheet)</option><option value="upgrade-amount-changed">· upgrade: the amount changed (sheet)</option><option value="downgrade">· downgrade (sheet)</option><option value="billing">Billing · payments to Lytro and their invoices</option><option value="billing-checking">· a payment being checked (detail)</option><option value="billing-paid">· paid: the invoice (detail)</option><option value="billing-rejected">· rejected, pay again (detail)</option><option value="billing-expired">· lapsed after 24 hours (detail)</option><option value="billing-awaiting">· awaiting payment, with Cancel (detail)</option><option value="billing-cancelled">· cancelled, pay again (detail)</option><option value="plan-rejected">Plan · payment rejected (banner)</option><option value="balance-rejected">Balance · top-up rejected (banner)</option><option value="home-rejected">Home · rejected payment in the queue</option></optgroup>
       <optgroup label="Menu"><option value="menu">Menu</option><option value="team">Team</option><option value="staff">· add staff (sheet)</option><option value="roles">Roles · today's permissions in words</option><option value="activity">Activity</option><option value="settings">Settings</option><option value="shopdetails">· shop details</option><option value="api-keys">API keys (Slice 8)</option><option value="sh-key-new">· new key (sheet)</option><option value="sh-key-created">· key shown once (sheet)</option><option value="sh-key-revoke">· revoke (dialog)</option><option value="meta">Facebook and Meta (Slice 9b)</option><option value="meta-empty">· nothing connected</option><option value="sh-feed-regenerate">· new feed link (dialog)</option><option value="exports">· data export</option><option value="account">Account</option></optgroup>
       <optgroup label="Menu · Slice 11.6 (Part 11)"><option value="menu-staff">Menu · a staff member: rows by permission</option><option value="account-staff">Account · signed in with the staff password</option><option value="sh-password-staff">· change the staff password (sheet)</option><option value="team-full-add">Team · add staff with every seat in use (dialog)</option><option value="team-full-add-nopay">· the same, for staff who may not pay (dialog)</option><option value="activity-empty">Activity · nothing yet</option><option value="activity-filter-empty">· nothing under a filter</option><option value="menu-install-ios">Menu · install on an iPhone</option><option value="brand-soon">Settings · brand identity until its editor (Slice 11.12)</option></optgroup>
+      <optgroup label="Team · Slice 11.6 (Part 12)"><option value="roles-new">Roles · create a role</option><option value="roles-empty">· no roles yet</option><option value="sh-staff-no-roles">Add staff · no roles yet (sheet)</option><option value="sh-staff-role-new">· its New role step</option><option value="sh-staff-role-back">· back, the role ticked</option></optgroup>
       <optgroup label="Payment page (pay.lytro.app, embedded)"><option value="pay-checkout">Pay for the plan at checkout · ৳4,741</option><option value="pay-topup">Pay a top-up · ৳500</option><option value="pay-renew">Pay a renewal · ৳449</option><option value="pay-upgrade">Pay an upgrade · ৳400</option></optgroup>
       <optgroup label="Lifecycle"><option value="renew">Renew (locked)</option><option value="renew-archived">Renew (archived, with the deletion date)</option><option value="unavailable">Unavailable (suspended)</option></optgroup>
       <optgroup label="Later phases (design only)"><option value="orders">Orders</option><option value="order">Order detail</option><option value="order-book">Book courier (sheet)</option><option value="order-new">New order</option><option value="customers">Customers</option><option value="customer">Customer detail</option><option value="payments">Payments</option><option value="methods">Payment methods</option><option value="notices">Notices</option><option value="sms">SMS events</option><option value="search">Search · orders and customers (Phase 4)</option><option value="notifications">Notifications · panel from the bell (Phase 7)</option><option value="notifications-empty">· nothing yet (Phase 7)</option><option value="notifications-read">· all read (Phase 7)</option><option value="notifications-all">Notifications · full page (Phase 7)</option><option value="storefront">Storefront settings · slides as a carousel (Slice 12)</option><option value="storefront-tiles">· one banner and two tiles (Slice 12)</option><option value="storefront-empty">· no slides yet (Slice 12)</option><option value="sh-slide">· slide editor with the focal point (Slice 12)</option><option value="sh-slide-new">· new slide (Slice 12)</option><option value="sh-slide-preview">· both crops (Slice 12)</option><option value="sh-slide-delete">· remove slide (Slice 12)</option><option value="storefront-saved">· slide saved (Slice 12)</option><option value="stock-shortfall">Stock · units held for expired orders (Phase 4)</option><option value="sh-return">· take shipped stock back (Phase 4)</option></optgroup>
@@ -3126,6 +3127,72 @@ SCREENS['menu-install-ios'] = { ...SCREENS.menu, render: () => SCREENS.menu.rend
 const settingsRender11 = SCREENS.settings.render;
 SCREENS.settings = { ...SCREENS.settings, render: () => settingsRender11().replace("go('brand')", "go('brand-soon')") };
 SCREENS['brand-soon'] = { hub: 'menu', sec: 'settings', title: 'sBrand', back: true, base: 'settings', path: '/settings/brand', render: () => `${title('sBrand')}<div class="card" style="display:flex;flex-direction:column;gap:10px;align-items:flex-start"><h3>${t('brSoonTitle')}</h3><p class="hint">${t('brSoonLead')}</p>${btn('o sm', t('brSoonAddon'), "onclick=\"go('addons')\"")}</div>` };
+
+/* ---------- Part 12: design doc v2.8 (2026-10-27), for Slice 11.6's Team. Making and renaming a role, which the earlier
+   parts left undrawn: the editor names the role in a field; Create a role opens it empty; a shop with no roles yet opens
+   Roles with it ready; and Add staff makes a role in a step of its own, then comes back with the role ticked and what
+   was typed kept. A role has no description of its own: its line says what it lets someone do, from its permissions,
+   leaving out "see" where the role may also change the same thing. ---------- */
+Object.assign(S, {
+  roleName: ['রোলের নাম', 'Role name'],
+  roleNamePh: ['যেমন: বিলিং স্টাফ', 'e.g. Billing staff'],
+  roleCreateBtn: ['রোল তৈরি করুন', 'Create the role'],
+  roleCreatePick: ['তৈরি করে বেছে নিন', 'Create and choose'],
+  roleNewTitle: ['নতুন রোল', 'New role'],
+  roleCancel: ['ক্যানসেল', 'Cancel'],
+  roleNone: ['এখনো কোনো রোল নেই। স্টাফ কী কী করতে পারবে, তা দিয়ে প্রথম রোলটা তৈরি করুন।', 'No roles yet. Make the first from what staff may do.'],
+  roleNoneSheet: ['এখনো কোনো রোল নেই। এই স্টাফকে দিতে একটা রোল তৈরি করুন।', 'No roles yet. Create one to give this person.'],
+  sheetBack: ['পেছনে', 'Back'],
+});
+
+// A role's line: the words of its permissions, "see" left out where it may also change the same thing.
+const roleLine12 = (perms) => PERMS11.filter(([, p]) => perms.includes(p) && !(p.endsWith(':read') && perms.includes(p.replace(':read', ':manage')))).map(([k]) => t(k)).join(' · ');
+const permRows12 = (perms) => PERMS11.map(([k, p, sub]) => { const on = perms.includes(p); return `<div class="row" style="padding:0;min-height:40px"><span class="checkbox ${on ? 'on' : ''}">${on ? ic('check') : ''}</span><span class="body"><span class="l1" style="font-size:15px;white-space:normal">${t(k)}</span>${sub ? `<span class="l2">${t(sub)}</span>` : ''}</span></div>`; }).join('');
+const [STOCK12, BILLING12] = ROLES11;
+
+/* STF-07, STF-09: Roles with the role's name in a field. `edit` is a role picked; `new` is Create a role pressed; `empty`
+   is a shop with no roles yet, the editor ready for the first. */
+const rolesPage12 = (mode) => {
+  const roles = mode === 'empty' ? [] : ROLES11;
+  const picked = mode === 'edit' ? STOCK12 : null;
+  const list = roles.length
+    ? `<div class="card flush list">${roles.map(([k, , n, perms]) => `<button class="row ${picked && picked[0] === k ? 'sel' : ''}" style="align-items:flex-start"><span class="body"><span class="l1">${t(k)}</span><span class="l2" style="white-space:normal">${t('holders', { n })} · ${roleLine12(perms)}</span></span>${ic('right')}</button>`).join('')}</div>`
+    : `<div class="card flush">${empty('users', t('roleNone'))}</div>`;
+  const actions = picked
+    ? `${btn('p sm', t('save'))}${btn('o sm', `<span style="color:var(--n500)">${L('ডিলিট', 'Delete')} · ${t('holders', { n: 1 })}</span>`, 'disabled')}`
+    : `${btn('p sm', t('roleCreateBtn'))}${mode === 'new' ? btn('o sm', t('roleCancel'), "onclick=\"go('roles')\"") : ''}`;
+  return `${title('secTeam', isRO() ? '' : btn('p sm', ic('plus') + ' ' + t('createRole'), "onclick=\"go('roles-new')\""))}${secChips('menu', 'team')}${chips([{ l: t('people'), c: mode === 'empty' ? 1 : 3, go: 'team' }, { l: t('rolesL'), on: true, c: roles.length }])}
+  <div class="two">${list}
+  <div class="card" style="display:flex;flex-direction:column;gap:10px">${field(t('roleName'), picked ? t(picked[0]) : null, { ph: t('roleNamePh') })}${permRows12(picked ? picked[3] : [])}<div class="actions" style="margin-top:6px">${actions}</div></div></div>`;
+};
+SCREENS.roles = { ...SCREENS.roles, render: () => rolesPage12('edit') };
+SCREENS['sh-role-delete-used'] = { ...SCREENS['sh-role-delete-used'], render: () => rolesPage12('edit') };
+SCREENS['roles-new'] = { ...SCREENS.roles, render: () => rolesPage12('new') };
+SCREENS['roles-empty'] = { ...SCREENS.roles, render: () => rolesPage12('empty') };
+
+// A role card in the staff sheets says what the role lets someone do, as the role list does.
+const roleLines12 = (html) => html
+  .split(`<span class="l2">${t('roleBillingD')}</span>`).join(`<span class="l2" style="white-space:normal">${roleLine12(BILLING12[3])}</span>`)
+  .split(`<span class="l2">${t('roleStockD')}</span>`).join(`<span class="l2" style="white-space:normal">${roleLine12(STOCK12[3])}</span>`)
+  .replace(`<button class="btn g sm" style="align-self:flex-start">`, `<button class="btn g sm" style="align-self:flex-start" onclick="go('sh-staff-role-new')">`);
+for (const s of Object.values(SCREENS)) {
+  if (s.hub !== 'menu' || s.sec !== 'team' || !s.sheet) continue;
+  const sh = s.sheet; s.sheet = () => roleLines12(sh());
+}
+
+/* A shop's first staff member: no roles yet, so Add staff offers to make one; its step names the role and picks what it
+   may do, with a way back; Create and choose returns to Add staff with the role ticked and the phone and name kept. */
+const ROLE_CARDS12 = /(<div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">)[\s\S]*?(<button class="btn g sm")/;
+const typed12 = (html) => html
+  .replace('<span class="ph">1XXXXXXXXX</span>', '<span class="val">1611 222 333</span>')
+  .replace(`<span class="ph">${L('যেমন: কামাল', 'e.g. Kamal')}</span>`, `<span class="val">${L('কামাল', 'Kamal')}</span>`);
+const roleCard12 = ([k, , , perms], on) => `<div class="card row" style="padding:12px;min-height:56px"><span class="checkbox ${on ? 'on' : ''}">${on ? ic('check') : ''}</span><span class="body"><span class="l1" style="font-size:15px">${t(k)}</span><span class="l2" style="white-space:normal">${roleLine12(perms)}</span></span></div>`;
+const sheetBack12 = (back, titleText, body, foot) => sheet(titleText, body, foot)
+  .replace('<div class="sh"><h2>', `<div class="sh"><span style="display:flex;align-items:center;gap:4px;margin-left:-8px"><button class="x" onclick="go('${back}')" aria-label="${t('sheetBack')}">${ic('left')}</button><h2>`)
+  .replace('</h2><button class="x"', '</h2></span><button class="x"');
+SCREENS['sh-staff-no-roles'] = { ...SCREENS.staff, sheet: () => typed12(SCREENS.staff.sheet()).replace(ROLE_CARDS12, `$1<p class="hint">${t('roleNoneSheet')}</p>$2`) };
+SCREENS['sh-staff-role-new'] = { ...SCREENS.staff, base: 'team', sheet: () => sheetBack12('sh-staff-no-roles', t('roleNewTitle'), `${field(t('roleName'), t('roleBilling'))}${permRows12(BILLING12[3])}`, btn('p', t('roleCreatePick'), "onclick=\"go('sh-staff-role-back')\"")) };
+SCREENS['sh-staff-role-back'] = { ...SCREENS.staff, sheet: () => typed12(SCREENS.staff.sheet()).replace(ROLE_CARDS12, `$1${roleCard12(BILLING12, true)}$2`) };
 
 (function init() { const h = location.hash.replace('#', ''); if (h && SCREENS[h]) { ST.screen = h; document.getElementById('selScreen').value = h; } render(); })();
 </script>

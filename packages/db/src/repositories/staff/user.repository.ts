@@ -184,6 +184,22 @@ export class UserRepository {
     return rows[0] ?? null;
   }
 
+  /** STF-03: renames a staff member; null clears the name. */
+  async setName(
+    tx: Transaction,
+    tenantId: string,
+    userId: string,
+    name: string | null,
+  ): Promise<SelectUser | null> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const rows = await tx
+      .update(users)
+      .set({ name })
+      .where(and(eq(users.tenantId, tenantId), eq(users.id, userId)))
+      .returning();
+    return rows[0] ?? null;
+  }
+
   /** LIF-19: deletes every staff row of the shop (business-data deletion). */
   async deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void> {
     await this.transactions.setTenantContext(tx, tenantId);

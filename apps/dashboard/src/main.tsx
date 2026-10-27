@@ -4,6 +4,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider } from '@tanstack/react-router';
 import './index.css';
 import './i18n';
+// TEN-17: catches the browser's install offer, which can come before the Menu opens.
+import './lib/install-prompt';
 import { router } from './router';
 import { tenantSession } from './session/tenant-session';
 

@@ -1,305 +1,163 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActorType, AuditAction, AuditResult } from '@lytronix/validators';
 import { useActivityList } from '@/api/activity';
-import { errorMessage } from '@lytronix/api-client';
-import {
-  Button,
-  Chip,
-  EmptyLine,
-  ErrorBanner,
-  formatDate,
-  Icon,
-  Page,
-  PageHeader,
-  Tag,
-  TextField,
-} from '@lytronix/ui';
-import { useMe } from '@/api/me';
-import { Sheet } from '@/components/ui/sheet';
-import { dayLabel, formatTime, groupByDay } from '@/lib/dates';
+import { Banner } from '@/components/ui/banner';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Chip, ChipRow } from '@/components/ui/chips';
+import { EmptyState } from '@/components/ui/empty-state';
+import { StatusTag } from '@/components/ui/status-tag';
+import { useErrorText } from '@/hooks/use-error-text';
+import { dayLabel, formatDayMonthYear, formatTime, groupByDay } from '@/lib/dates';
+import { initialOf } from '@/lib/initial';
+import { useShell } from '@/shell/shell-context';
+import { ShellPage } from '@/shell/shell-page';
 import type { ActivityEntry } from '@/types/activity';
-
-/** The action groups the chips offer; the API filters one action, so a group narrows on the client. */
-const GROUPS: { key: string; actions: string[] }[] = [
-  { key: 'all', actions: [] },
-  {
-    key: 'signIns',
-    actions: [
-      AuditAction.SignIn,
-      AuditAction.SignInFailed,
-      AuditAction.SignOut,
-      AuditAction.PasswordChanged,
-      AuditAction.PasswordReset,
-    ],
-  },
-  {
-    key: 'staffRoles',
-    actions: [
-      AuditAction.StaffCreated,
-      AuditAction.StaffUpdated,
-      AuditAction.StaffDeactivated,
-      AuditAction.StaffReactivated,
-      AuditAction.RoleCreated,
-      AuditAction.RoleUpdated,
-      AuditAction.RoleDeleted,
-    ],
-  },
-  { key: 'failed', actions: [] },
-];
-
-const SYSTEM: string = ActorType.System;
-const USER: string = ActorType.User;
-const PLATFORM: string = ActorType.PlatformSupport;
-const FAILURE: string = AuditResult.Failure;
+import {
+  ACTIVITY_CHIPS,
+  actorOf,
+  detailOf,
+  filterOf,
+  isFailure,
+  sentenceOf,
+  type ActivityChip,
+} from './activity-words';
 
 /**
- * Activity (AUD-04/08): one sentence per entry built from actor, action and target, grouped by day, with a
- * red avatar only on failure. Actor chips come from the loaded entries; the date range opens a sheet.
+ * Activity (TENANT-DASHBOARD-DESIGN §7.15, the prototype's `activity` and Part 11's empty states): the chips, filtered on
+ * the server; a timeline by day, one sentence an entry with what it was about, the result only on a failure; Show
+ * earlier; and how long the plan keeps it (AUD-04, AUD-06, AUD-08).
  */
-export function Activity(): React.JSX.Element {
-  const { t, i18n } = useTranslation();
-  const me = useMe();
-  const [actorId, setActorId] = useState<string | null>(null);
-  const [group, setGroup] = useState('all');
-  const [dates, setDates] = useState<{ from: string; to: string }>({ from: '', to: '' });
-  const [datesOpen, setDatesOpen] = useState(false);
-  const [draft, setDraft] = useState(dates);
-
-  const list = useActivityList({
-    actorId: actorId ?? undefined,
-    dateFrom: dates.from || undefined,
-    dateTo: dates.to || undefined,
-  });
-  const loaded = (list.data?.pages ?? []).flatMap((page) => page.entries);
-  const selected = GROUPS.find((option) => option.key === group) ?? GROUPS[0];
-  const entries = loaded.filter((entry) => {
-    if (!selected || selected.key === 'all') return true;
-    if (selected.key === 'failed') return entry.result === FAILURE;
-    return selected.actions.includes(entry.action);
-  });
-  const actors = new Map<string, string>();
-  for (const entry of loaded) {
-    if (entry.actorId && entry.actorName && !actors.has(entry.actorId)) {
-      actors.set(entry.actorId, entry.actorName);
-    }
-  }
-  const groups = groupByDay(entries, (entry) => entry.createdAt);
+export function ActivityView(): React.JSX.Element {
+  const { t, i18n } = useTranslation('menu');
+  const errorText = useErrorText();
+  const { tenant } = useShell();
+  const [chip, setChip] = useState<ActivityChip>('all');
+  const list = useActivityList(filterOf(chip));
+  const pages = list.data?.pages ?? [];
+  const entries = pages.flatMap((page) => page.entries);
+  const retentionDays = pages[0]?.retentionDays;
 
   function heading(iso: string): string {
     const label = dayLabel(iso);
-    if (label.kind === 'today') return t('dates.today');
-    if (label.kind === 'yesterday') return t('dates.yesterday');
-    return formatDate(label.iso, i18n.language);
+    if (label.kind === 'today') return t('dayToday');
+    if (label.kind === 'yesterday') return t('dayYesterday');
+    return formatDayMonthYear(label.iso);
   }
 
   return (
-    <Page narrow>
-      <PageHeader
-        title={t('activity.title')}
-        lead={t('activity.lead', { plan: me.data?.tenant?.planName ?? t('plan.state.trial') })}
-      />
-      {actors.size > 0 ? (
-        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0">
+    <ShellPage>
+      <ChipRow role="group">
+        {ACTIVITY_CHIPS.map((each) => (
           <Chip
-            selected={actorId === null}
-            className="shrink-0 min-h-10!"
+            key={each.chip}
+            on={chip === each.chip}
             onClick={() => {
-              setActorId(null);
+              setChip(each.chip);
             }}
           >
-            {t('activity.everyone')}
+            {t(each.label)}
           </Chip>
-          {[...actors.entries()].map(([id, name]) => (
-            <Chip
-              key={id}
-              selected={actorId === id}
-              className="shrink-0 min-h-10!"
-              onClick={() => {
-                setActorId(id);
-              }}
+        ))}
+      </ChipRow>
+      {list.isError ? <Banner tone="bad">{errorText(list.error)}</Banner> : null}
+      {list.isSuccess ? (
+        <Card flush>
+          {entries.length === 0 ? (
+            <EmptyState
+              icon={chip === 'all' ? 'activity' : 'check'}
+              action={
+                chip === 'all' ? undefined : (
+                  <Button
+                    tone="outline"
+                    size="sm"
+                    onClick={() => {
+                      setChip('all');
+                    }}
+                  >
+                    {t('actShowAll')}
+                  </Button>
+                )
+              }
             >
-              {name}
-            </Chip>
-          ))}
-        </div>
+              {chip === 'all'
+                ? t('actEmpty')
+                : chip === 'failed'
+                  ? t('actFailedEmpty')
+                  : t('actFilterEmpty')}
+            </EmptyState>
+          ) : (
+            groupByDay(entries, (entry) => entry.createdAt).map((group) => (
+              <div key={group.key}>
+                <div className="bg-neutral-50 px-4 pt-3 pb-1 text-[13px] font-semibold text-neutral-700">
+                  {heading(group.iso)}
+                </div>
+                <div className="flex flex-col px-4 pt-1 pb-2">
+                  {group.items.map((entry) => (
+                    <ActivityRow key={entry.id} entry={entry} language={i18n.language} />
+                  ))}
+                </div>
+              </div>
+            ))
+          )}
+        </Card>
       ) : null}
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap gap-1.5">
-          {GROUPS.map((option) => (
-            <Chip
-              key={option.key}
-              selected={group === option.key}
-              className="min-h-10!"
-              onClick={() => {
-                setGroup(option.key);
-              }}
-            >
-              {t(`activity.groups.${option.key}`)}
-            </Chip>
-          ))}
-        </div>
+      {list.hasNextPage ? (
         <Button
-          type="button"
           tone="outline"
-          fit
-          className="min-h-10! px-3! text-[14px]!"
+          wide
+          busy={list.isFetchingNextPage}
           onClick={() => {
-            setDraft(dates);
-            setDatesOpen(true);
+            void list.fetchNextPage();
           }}
         >
-          <Icon name="calendar" size={16} />
-          {dates.from || dates.to ? t('balance.datesSet') : t('balance.dates')}
+          {t('showEarlier')}
         </Button>
-      </div>
-
-      <div className="overflow-hidden rounded-card border border-line bg-white shadow-card">
-        {list.isLoading ? <EmptyLine>{t('common.loading')}</EmptyLine> : null}
-        {list.isError ? (
-          <div className="p-4">
-            <ErrorBanner message={errorMessage(list.error, t)} />
-          </div>
-        ) : null}
-        {list.data && entries.length === 0 ? <EmptyLine>{t('activity.noneYet')}</EmptyLine> : null}
-        {groups.map((day) => (
-          <div key={day.key}>
-            <p className="border-t border-line bg-neutral-50 px-4 pt-2.5 pb-1 text-[12px] font-bold text-neutral-700 first:border-t-0">
-              {heading(day.iso)}
-            </p>
-            {day.items.map((entry) => (
-              <Row key={entry.id} entry={entry} language={i18n.language} />
-            ))}
-          </div>
-        ))}
-        {list.hasNextPage ? (
-          <div className="flex justify-center border-t border-line p-2">
-            <Button
-              type="button"
-              tone="ghost"
-              fit
-              loading={list.isFetchingNextPage}
-              onClick={() => {
-                void list.fetchNextPage();
-              }}
-            >
-              {t('balance.showEarlier')}
-            </Button>
-          </div>
-        ) : null}
-      </div>
-
-      <Sheet
-        open={datesOpen}
-        title={t('balance.dates')}
-        onClose={() => {
-          setDatesOpen(false);
-        }}
-        footer={
-          <div className="grid gap-2 sm:grid-cols-2">
-            <Button
-              type="button"
-              tone="outline"
-              onClick={() => {
-                setDates({ from: '', to: '' });
-                setDatesOpen(false);
-              }}
-            >
-              {t('balance.clearDates')}
-            </Button>
-            <Button
-              type="button"
-              onClick={() => {
-                setDates(draft);
-                setDatesOpen(false);
-              }}
-            >
-              {t('balance.applyDates')}
-            </Button>
-          </div>
-        }
-      >
-        <div className="grid gap-3">
-          <TextField
-            label={t('balance.dateFrom')}
-            name="dateFrom"
-            type="date"
-            value={draft.from}
-            onChange={(event) => {
-              setDraft((current) => ({ ...current, from: event.target.value }));
-            }}
-          />
-          <TextField
-            label={t('balance.dateTo')}
-            name="dateTo"
-            type="date"
-            value={draft.to}
-            onChange={(event) => {
-              setDraft((current) => ({ ...current, to: event.target.value }));
-            }}
-          />
-        </div>
-      </Sheet>
-    </Page>
+      ) : null}
+      {retentionDays ? (
+        <p className="text-[14px] text-fg-muted">
+          {t('retention', { plan: tenant.planName ?? '', days: retentionDays })}
+        </p>
+      ) : null}
+    </ShellPage>
   );
 }
 
-function summaryDetail(summary: unknown): string | null {
-  if (typeof summary !== 'object' || summary === null) return null;
-  const record = summary as Record<string, unknown>;
-  const parts: string[] = [];
-  for (const key of ['name', 'phone', 'reason', 'note']) {
-    const value = record[key];
-    if (typeof value === 'string' && value !== '') parts.push(value);
-  }
-  return parts.length > 0 ? parts.join(' · ') : null;
-}
-
-function Row({ entry, language }: { entry: ActivityEntry; language: string }): React.JSX.Element {
-  const { t } = useTranslation();
-  const failed = entry.result === FAILURE;
-  const system = entry.actorType === SYSTEM;
-  const platform = entry.actorType === PLATFORM;
-  const actor = platform
-    ? t('activity.actor.platformSupport')
-    : system
-      ? t('activity.actor.system')
-      : (entry.actorName ??
-        // A signed-in actor without a staff row is the owner acting through their own account.
-        (entry.actorType === USER ? t('activity.actor.owner') : t('activity.actor.unknown')));
-  const target = entry.targetId ? entry.targetId.slice(0, 8) : '';
-  const sentence = t(`activity.sentence.${entry.action}`, { defaultValue: entry.action, target });
-  const detail = summaryDetail(entry.summary);
-
+/** One entry (the prototype's `act`): the actor's initial, or "!" on a failure; the sentence; the time. */
+function ActivityRow({
+  entry,
+  language,
+}: {
+  entry: ActivityEntry;
+  language: string;
+}): React.JSX.Element {
+  const { t } = useTranslation('menu');
+  const failed = isFailure(entry);
+  const detail = detailOf(entry);
   return (
-    <div className="flex items-start gap-3 border-t border-line px-4 py-2.5">
+    <div className="relative grid grid-cols-[28px_1fr_auto] gap-x-3 py-1.5 [&:not(:last-child)]:before:absolute [&:not(:last-child)]:before:top-[18px] [&:not(:last-child)]:before:-bottom-2 [&:not(:last-child)]:before:left-[9px] [&:not(:last-child)]:before:w-0.5 [&:not(:last-child)]:before:bg-neutral-100 [&:not(:last-child)]:before:content-['']">
       <span
-        className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[13px] font-bold ${
-          failed
-            ? 'bg-danger-soft text-danger'
-            : system || platform
-              ? 'bg-neutral-100 text-neutral-700'
-              : 'bg-brand-100 text-brand-800'
-        }`}
+        aria-hidden="true"
+        className={[
+          'flex size-7 items-center justify-center rounded-full text-[12px] font-semibold',
+          failed ? 'bg-danger-soft text-danger' : 'bg-brand-100 text-brand-800',
+        ].join(' ')}
       >
-        {platform ? (
-          <Icon name="signal" size={14} />
-        ) : system ? (
-          '⚙'
-        ) : (
-          actor.slice(0, 1).toUpperCase()
-        )}
+        {failed ? '!' : initialOf(actorOf(entry, t))}
       </span>
-      <div className="min-w-0 flex-1">
-        <p className="text-[15px] text-ink">
-          <b>{actor}</b> {sentence}{' '}
-          {failed ? <Tag tone="danger">{t('activity.failed')}</Tag> : null}
-        </p>
-        {detail ? <p className="text-[13px] text-neutral-700">{detail}</p> : null}
-      </div>
-      <time className="num shrink-0 pt-1 text-[12px] text-neutral-700">
+      <span className="text-[15px]">
+        {sentenceOf(entry, t)}
+        {failed ? (
+          <>
+            {' '}
+            <StatusTag tone="bad">{t('failed')}</StatusTag>
+          </>
+        ) : null}
+        {detail ? <small className="block text-[13px] text-fg-muted">{detail}</small> : null}
+      </span>
+      <span className="num text-[13px] whitespace-nowrap text-fg-subtle">
         {formatTime(entry.createdAt, language)}
-      </time>
+      </span>
     </div>
   );
 }

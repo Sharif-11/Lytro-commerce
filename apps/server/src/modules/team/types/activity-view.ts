@@ -18,4 +18,6 @@ export interface ActivityEntryView {
 export interface ActivityPageView {
   entries: ActivityEntryView[];
   nextCursor: string | null;
+  /** AUD-06: the days the shop's plan keeps its activity, for the page's retention line. */
+  retentionDays: number;
 }

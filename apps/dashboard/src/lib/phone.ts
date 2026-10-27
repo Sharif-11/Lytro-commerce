@@ -29,9 +29,15 @@ export class BangladeshiPhone {
 
   /** `+8801712345678` → `+880 1712 345 678`, as the number a code went to is written. */
   international(value: string): string {
+    const part = this.localPart(value);
+    return part === value ? value : `+880 ${part}`;
+  }
+
+  /** `+8801712345678` → `1712 345 678`: what a field with the fixed +880 prefix shows (the prototype's support phone). */
+  localPart(value: string): string {
     const local = this.local(value);
     return local.length === 11
-      ? `+880 ${local.slice(1, 5)} ${local.slice(5, 8)} ${local.slice(8)}`
+      ? `${local.slice(1, 5)} ${local.slice(5, 8)} ${local.slice(8)}`
       : value;
   }
 

@@ -8,6 +8,9 @@ export interface ActivityFilters {
   dateTo?: Date;
   actorId?: string;
   action?: string;
+  /** Any of these actions (an Activity chip's group). */
+  actions?: readonly string[];
+  result?: string;
 }
 
 export interface ActivityCursor {
