@@ -1337,6 +1337,18 @@ their backend ships earlier.
     the drawn TrxID and "seat freed" lines wait for entries that carry them; the Failed tag's red is darker
     (`danger-text`), as the drawn red on its pink is 4.45:1, under AA; a staff member's tab bar and search follow
     their permissions, as the shell already does; and Help shows only where the deployment names a WhatsApp number.
+  - **11.6's Team and Roles, built** (with prototype Part 12, design v2.8, for making and renaming a role): People with
+    the seats and their bar, the owner first, "Password not set" from the server's flag; Add staff with a random first
+    password (two groups of four, no look-alikes), each role saying what it lets someone do, and New role as a step of
+    the sheet that comes back with the role ticked (agreed 2026-10-27); Edit staff renames, changes roles, sets a new
+    first password shown once, and deactivates after asking over the Team page, or reactivates. With every seat in use,
+    Add staff and Reactivate open the ways out at once from the shop's usage (a seat, the next plan), and someone who
+    may not pay is told what they can do; the server's refusal opens the same dialog. Roles: the editor with the role's
+    name and the thirteen permissions in words, Create a role and Cancel, Delete once nobody holds the role and after
+    asking, the refusal for a role taken up meanwhile in words. Where it differs from the drawing, on purpose: an
+    inactive person is marked by the Off tag and a grey initial, not faded, as a 60% fade puts their phone and role
+    under AA; stacked cards keep the page's 16 px on a phone, as the other rebuilt pages do; and a staff member's status
+    follows the style guide (ইনঅ্যাক্টিভ, অ্যাক্টিভ) where the drawing still says বন্ধ and ডিঅ্যাকটিভ.
 
 ### Slice 12: shared storefront and product landing pages
 - **Depends on:** Slices 0, 0b, 7 and 9 (and branding from Phase 1).

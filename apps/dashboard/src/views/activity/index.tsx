@@ -9,6 +9,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { StatusTag } from '@/components/ui/status-tag';
 import { useErrorText } from '@/hooks/use-error-text';
 import { dayLabel, formatDayMonthYear, formatTime, groupByDay } from '@/lib/dates';
+import { initialOf } from '@/lib/initial';
 import { useShell } from '@/shell/shell-context';
 import { ShellPage } from '@/shell/shell-page';
 import type { ActivityEntry } from '@/types/activity';
@@ -17,7 +18,6 @@ import {
   actorOf,
   detailOf,
   filterOf,
-  initialOf,
   isFailure,
   sentenceOf,
   type ActivityChip,

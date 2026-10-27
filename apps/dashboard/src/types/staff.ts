@@ -7,6 +7,8 @@ export interface StaffMember {
   isOwner: boolean;
   active: boolean;
   createdAt: string;
+  /** STF-13, AUTH-31: the owner set the password and the member has not yet chosen their own. */
+  mustSetPassword: boolean;
   roleIds: string[];
 }
 

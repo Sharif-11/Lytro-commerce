@@ -21,6 +21,7 @@ import {
   type UsageFixture,
 } from './usage';
 import { activityAnswer, drawnActivity, earlierActivity, type ActivityFixture } from './activity';
+import { drawnTeam, teamAnswer, teamWrite, type TeamFixture } from './team';
 import {
   drawnLedger,
   drawnPayments,
@@ -89,6 +90,8 @@ export interface ShopState {
   roles?: string[];
   /** GET /activity's entries where they differ from the prototype's six, and the older page's. */
   activity?: { entries: ActivityFixture[]; earlier: ActivityFixture[] } | null;
+  /** Team's people, roles and seats where they differ from the prototype's; the writes change it. */
+  team?: TeamFixture | null;
   /** GET /home's stock part; null when the person may not see stock. */
   stock?: { low: number; out: number } | null;
   /** GET /home's other parts where they differ from the working shop's. */
@@ -256,7 +259,6 @@ function wallets(language: Language): unknown {
 const FIRST_BUILD_READS: Record<string, unknown> = {
   '/balance/essential-sms': { monthlyUsed: 6, totalUsed: 6, monthlyLimit: 10, totalLimit: null },
   '/billing/invoices': [],
-  '/staff': { seats: { used: 2, total: 2 }, staff: [] },
 };
 
 /** The shop's state with every field filled in: the prototype's working shop unless a test says otherwise. */
@@ -270,6 +272,7 @@ export function shopState(given: ShopState = {}): Required<ShopState> {
     signIn: 'own',
     roles: [],
     activity: null,
+    team: null,
     stock: { low: 1, out: 1 },
     home: {},
     ...given,
@@ -393,6 +396,8 @@ export function shopAnswer(path: string, url: URL, state: Required<ShopState>): 
     });
   }
   if (path === '/addons/mine') return shopAddonsAnswer(money.usage);
+  const team = teamAnswer(path, state.team ?? drawnTeam(state.language));
+  if (team !== undefined) return team;
   if (path === '/activity') {
     const activity = state.activity ?? {
       entries: drawnActivity(state.language),
@@ -432,6 +437,7 @@ export async function startIn(page: Page, language: Language): Promise<void> {
 export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog> {
   const state = shopState(given);
   const money = state.money;
+  const team = (state.team ??= drawnTeam(state.language));
   const log: ApiLog = {
     calls: [],
     sent: (method, path) =>
@@ -641,6 +647,21 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
       if (typeof wanted === 'boolean') usage.autoBuy = { ...usage.autoBuy, bandwidth: wanted };
       return ok([]);
     }
+    const written = teamWrite(
+      method,
+      path,
+      request.postDataJSON() as Record<string, unknown> | null,
+      team,
+    );
+    if (written && 'refused' in written) {
+      const { status, code, message, details } = written.refused;
+      return route.fulfill({
+        status,
+        contentType: 'application/json',
+        body: refusal(code, message, details),
+      });
+    }
+    if (written) return ok(written.data);
     if (method === 'POST' && path.startsWith('/billing/')) return ok({ ok: true });
     return ok(shopAnswer(path, url, state));
   });

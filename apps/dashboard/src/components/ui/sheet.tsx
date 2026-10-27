@@ -9,6 +9,8 @@ interface SheetProps {
   children: ReactNode;
   /** Buttons pinned under the scrolling body. */
   footer?: ReactNode;
+  /** A step of the sheet that goes back to the one before it (Add staff's New role): a back arrow before the title. */
+  onBack?: () => void;
 }
 
 /**
@@ -17,7 +19,14 @@ interface SheetProps {
  * dimmed page that stays where it was. Its action is pinned at its foot. A native dialog, so focus and Escape are
  * the browser's.
  */
-export function Sheet({ open, title, onClose, children, footer }: SheetProps): React.JSX.Element {
+export function Sheet({
+  open,
+  title,
+  onClose,
+  children,
+  footer,
+  onBack,
+}: SheetProps): React.JSX.Element {
   const { t } = useTranslation('shell');
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
@@ -45,9 +54,21 @@ export function Sheet({ open, title, onClose, children, footer }: SheetProps): R
       <div className="flex max-h-[92dvh] flex-col sm:h-full sm:max-h-none">
         <div className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-neutral-300 sm:hidden" />
         <div className="flex shrink-0 items-center justify-between gap-3 px-4 pt-3 pb-2 sm:pt-5">
-          <h2 id={titleId} className="text-[18px] font-bold">
-            {title}
-          </h2>
+          <span className={`flex min-w-0 items-center gap-1 ${onBack ? '-ml-2' : ''}`}>
+            {onBack ? (
+              <button
+                type="button"
+                aria-label={t('back')}
+                onClick={onBack}
+                className="inline-flex size-9 flex-none items-center justify-center rounded-[8px] text-fg-muted"
+              >
+                <Icon name="left" />
+              </button>
+            ) : null}
+            <h2 id={titleId} className="text-[18px] font-bold">
+              {title}
+            </h2>
+          </span>
           <button
             type="button"
             aria-label={t('close')}

@@ -14,6 +14,7 @@ import {
 } from './support/payments';
 import { drawnActivity } from './support/activity';
 import { BILLING_STAFF, offerInstall, onAnIphone } from './support/menu';
+import { drawnPasswords, drawnTeam } from './support/team';
 import { DAY_ONE, mockApi, SLUG, type Language, type ShopState } from './support/mock-api';
 import { mockOnboarding, TWELVE_MONTHS, typeCode, type Journey } from './support/onboarding-api';
 import type { AddonsFixture, UsageFixture } from './support/usage';
@@ -311,7 +312,118 @@ const MONEY: Pair[] = [
   ...usagePairs(),
   ...addonPairs(),
   ...menuPairs(),
+  ...teamPairs(),
 ];
+
+/**
+ * Team (§7.14, Slice 11.6), People and Roles with Parts 11 and 12's states, each reached as a person would. A sheet
+ * opened over People needs a free seat, so those draw three seats behind the scrim where the prototype has two.
+ */
+function teamPairs(): Pair[] {
+  const one = (
+    name: string,
+    path: string,
+    more: Partial<Pair> = {},
+    device: Device = 'phone',
+    language: Language = 'bn',
+  ): Pair => ({ name, screen: name, device, language, path, ...more });
+  const click = (label: string | RegExp) => async (page: Page) => {
+    await page.getByRole('button', { name: label }).first().click();
+  };
+  const steps =
+    (...each: ((page: Page) => Promise<void>)[]) =>
+    async (page: Page) => {
+      for (const step of each) await step(page);
+    };
+  const seatFree = drawnTeam('bn');
+  seatFree.seats = 3;
+  const noRoles = { ...drawnTeam('bn'), roles: [] };
+  noRoles.seats = 3;
+  const seatsFull = { money: { usage: { used: { seats: 2 } } } };
+  const typePerson = async (page: Page) => {
+    const sheet = page.getByRole('dialog');
+    await sheet.getByLabel('ফোন নম্বর').fill('1611 222 333');
+    await sheet.getByLabel('নাম (অপশনাল)').fill('কামাল');
+  };
+  const newBillingRole = async (page: Page) => {
+    await page.getByRole('dialog').getByLabel('রোলের নাম').fill('বিলিং স্টাফ');
+    for (const words of [
+      'ব্যালেন্স দেখা',
+      'ব্যালেন্স টপ-আপ করা',
+      'প্ল্যান ও বিলিং দেখা',
+      'প্ল্যান, অ্যাড-অন ও প্যাকের পেমেন্ট করা',
+      'অ্যাক্টিভিটি দেখা',
+    ]) {
+      await page.getByRole('checkbox', { name: words }).check();
+    }
+    // Ticking scrolled the sheet to the last; the drawing shows it from the top.
+    await page.evaluate(() => {
+      for (const body of document.querySelectorAll('dialog[open] .overflow-y-auto'))
+        body.scrollTop = 0;
+    });
+  };
+  const kamal = click(/কামাল হোসেন/);
+  return [
+    one('team', '/team'),
+    one('team', '/team', {}, 'desktop', 'en'),
+    one('staff-add', '/team', {
+      screen: 'staff',
+      state: { team: seatFree },
+      before: (page) => drawnPasswords(page, ['k7m4-p9qx']),
+      then: click('স্টাফ যোগ'),
+    }),
+    one('sh-staff-edit', '/team', { then: kamal }),
+    one('sh-staff-password', '/team', {
+      before: (page) => drawnPasswords(page, ['h3vd-8wqs']),
+      then: steps(kamal, click(/পাসওয়ার্ড রিসেট/)),
+    }),
+    one('sh-staff-deactivate', '/team', { then: steps(kamal, click(/ইনঅ্যাক্টিভ করুন/)) }),
+    one('team-deactivated', '/team', {
+      then: steps(kamal, click(/ইনঅ্যাক্টিভ করুন/), async (page) => {
+        await page
+          .getByRole('dialog', { name: /ইনঅ্যাক্টিভ করবেন/ })
+          .getByRole('button', { name: 'ইনঅ্যাক্টিভ করুন', exact: true })
+          .click();
+      }),
+    }),
+    one('sh-staff-reactivate-full', '/team', {
+      state: seatsFull,
+      then: steps(click(/সাবরিনা/), click(/আবার অ্যাক্টিভ করুন/)),
+    }),
+    one('team-full-add', '/team', { state: seatsFull, then: click('স্টাফ যোগ') }),
+    one('team-full-add-nopay', '/team', {
+      state: { ...seatsFull, isOwner: false, permissions: ['staff:read', 'staff:manage'] },
+      then: click('স্টাফ যোগ'),
+    }),
+    one('sh-staff-no-roles', '/team', {
+      state: { team: noRoles },
+      before: (page) => drawnPasswords(page, ['k7m4-p9qx']),
+      then: steps(click('স্টাফ যোগ'), typePerson),
+    }),
+    one('sh-staff-role-new', '/team', {
+      state: { team: { ...noRoles, roles: [] } },
+      before: (page) => drawnPasswords(page, ['k7m4-p9qx']),
+      then: steps(click('স্টাফ যোগ'), typePerson, click('নতুন রোল'), newBillingRole),
+    }),
+    one('sh-staff-role-back', '/team', {
+      state: { team: { ...noRoles, roles: [] } },
+      before: (page) => drawnPasswords(page, ['k7m4-p9qx']),
+      then: steps(
+        click('স্টাফ যোগ'),
+        typePerson,
+        click('নতুন রোল'),
+        newBillingRole,
+        click('তৈরি করে বেছে নিন'),
+      ),
+    }),
+    one('roles', '/team/roles'),
+    one('roles', '/team/roles', {}, 'desktop', 'en'),
+    one('roles-new', '/team/roles', { then: click('নতুন রোল') }),
+    one('roles-empty', '/team/roles', {
+      state: { team: { seats: 2, roles: [], staff: drawnTeam('bn').staff.slice(0, 1) } },
+    }),
+  ];
+}
 
 /** The Menu hub's own page and Activity (§7.18, §7.15, Slice 11.6), with Part 11's staff, install and empty states. */
 function menuPairs(): Pair[] {

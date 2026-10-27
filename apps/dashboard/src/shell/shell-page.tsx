@@ -10,6 +10,8 @@ interface ShellPageProps {
   title?: ReactNode | null;
   /** Beside the title on a phone; above the content from 1024 px, where the header carries the title. */
   actions?: ReactNode;
+  /** The hub's section chips; a screen below its section draws none unless its drawing has them (Team's Roles). */
+  sectionChips?: boolean;
   children: ReactNode;
 }
 
@@ -17,7 +19,12 @@ interface ShellPageProps {
  * A rebuilt screen's page, as the prototype draws every one: the banner that applies, the title, the hub's section
  * chips, then the screen's own blocks. A screen below its section (Add-ons, below Usage) draws no chips.
  */
-export function ShellPage({ title, actions, children }: ShellPageProps): React.JSX.Element {
+export function ShellPage({
+  title,
+  actions,
+  sectionChips,
+  children,
+}: ShellPageProps): React.JSX.Element {
   const { t } = useTranslation('shell');
   const { screen, tenant } = useShell();
   return (
@@ -28,7 +35,7 @@ export function ShellPage({ title, actions, children }: ShellPageProps): React.J
           {title ?? (screen?.title ? t(screen.title) : tenant.shopName)}
         </PageTitle>
       )}
-      {screen?.back ? null : <SectionChips />}
+      {(sectionChips ?? !screen?.back) ? <SectionChips /> : null}
       {children}
     </PageFrame>
   );

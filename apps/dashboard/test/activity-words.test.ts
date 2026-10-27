@@ -2,13 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { ACTIVITY_GROUPS, ActorType, AuditAction, AuditResult } from '@lytronix/validators';
 import bn from '../src/i18n/locales/menu/bn.json';
 import en from '../src/i18n/locales/menu/en.json';
+import { initialOf } from '../src/lib/initial';
 import type { ActivityEntry } from '../src/types/activity';
 import {
   ACTIVITY_CHIPS,
   actorOf,
   detailOf,
   filterOf,
-  initialOf,
   isFailure,
   sentenceOf,
 } from '../src/views/activity/activity-words';
