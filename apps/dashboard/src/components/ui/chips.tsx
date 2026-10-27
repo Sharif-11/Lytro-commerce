@@ -60,7 +60,7 @@ export function Chip({
       {...rest}
     >
       {children}
-      {count ? <ChipCount on={on}>{count}</ChipCount> : null}
+      {count === null ? null : <ChipCount on={on}>{count}</ChipCount>}
     </button>
   );
 }

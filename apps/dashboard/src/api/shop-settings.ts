@@ -4,13 +4,13 @@ import {
   type ShopSettings,
   type UpdateShopSettingsInput,
 } from '@lytronix/validators';
-import { ImageUpload } from '@/lib/image-upload';
+import { MediaUpload } from '@/lib/media-upload';
 import { tenantSession } from '@/session/tenant-session';
 import { ME_QUERY_KEY } from './me';
 
 export const SHOP_SETTINGS_QUERY_KEY = ['shop-settings'] as const;
 
-const imageUpload = new ImageUpload(tenantSession.client);
+const mediaUpload = new MediaUpload(tenantSession.client);
 
 /** TEN-30: the shop's contact details and its own extra-delivery-charge rate. */
 export function useShopSettings() {
@@ -38,7 +38,7 @@ export function useSetLogo() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (file: File) => {
-      const media = await imageUpload.upload(file, MediaPurpose.ShopLogo);
+      const media = await mediaUpload.upload(file, MediaPurpose.ShopLogo);
       return tenantSession.client.put<ShopSettings>('/shop-settings/logo', { mediaId: media.id });
     },
     onSuccess: () => {

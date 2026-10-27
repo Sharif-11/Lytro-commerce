@@ -243,6 +243,8 @@ export enum AuditAction {
   ProductVariantsSaved = 'product_variants_saved',
   ProductSlugChanged = 'product_slug_changed',
   ProductDeleted = 'product_deleted',
+  // PRD-13: an archived product brought back to the list, counted against the limit again.
+  ProductRestored = 'product_restored',
   CategoryCreated = 'category_created',
   CategoryUpdated = 'category_updated',
   CategoryDeleted = 'category_deleted',

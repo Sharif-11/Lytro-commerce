@@ -208,6 +208,7 @@ export { SerialRepository, type NewSerial } from './repositories/inventory/seria
 export {
   MediaRepository,
   type MediaOutcome,
+  type MediaSize,
   type MediaUses,
   type NewMedia,
   type NewMediaObject,

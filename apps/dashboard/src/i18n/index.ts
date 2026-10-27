@@ -12,6 +12,8 @@ import onboardingBn from './locales/onboarding/bn.json';
 import onboardingEn from './locales/onboarding/en.json';
 import shellBn from './locales/shell/bn.json';
 import shellEn from './locales/shell/en.json';
+import shopBn from './locales/shop/bn.json';
+import shopEn from './locales/shop/en.json';
 import walletBn from './locales/wallet/bn.json';
 import walletEn from './locales/wallet/en.json';
 
@@ -19,7 +21,8 @@ import walletEn from './locales/wallet/en.json';
 // persists per device (localStorage), not per account — no backend call needed for this.
 // TENANT-DASHBOARD-DESIGN §11: one namespace per hub, from the prototype's own words, as each is rebuilt; `shell`
 // holds the frame's (the bars, the rail, the side column, banners, search and the + menu); `home` Home's; `money` the
-// Money hub's, with the Renew and Unavailable pages; `menu` the Menu hub's; `onboarding` the sign-in and sign-up steps outside a shop; `wallet`
+// Money hub's, with the Renew and Unavailable pages; `menu` the Menu hub's; `shop` the Shop hub's (from Slice 11.7);
+// `onboarding` the sign-in and sign-up steps outside a shop; `wallet`
 // the wallet payment step every paying screen ends with. The first build's screens keep the default `translation` namespace until their own pull request rebuilds them.
 startLanguage(
   i18n,
@@ -31,6 +34,7 @@ startLanguage(
       home: homeBn,
       money: moneyBn,
       menu: menuBn,
+      shop: shopBn,
       onboarding: onboardingBn,
       wallet: walletBn,
     },
@@ -40,6 +44,7 @@ startLanguage(
       home: homeEn,
       money: moneyEn,
       menu: menuEn,
+      shop: shopEn,
       onboarding: onboardingEn,
       wallet: walletEn,
     },

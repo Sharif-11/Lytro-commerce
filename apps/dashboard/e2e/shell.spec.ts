@@ -136,6 +136,10 @@ test('opens the + menu with what can be started, and Top up opens the top-up she
   const sheet = page.getByRole('dialog', { name: 'নতুন' });
   await expect(sheet.getByRole('button', { name: 'টপ-আপ' })).toBeVisible();
   await expect(sheet.getByText('ফেজ 4-এ আসছে')).toBeVisible();
+  // Slice 11.7a: Add product opens a new product.
+  await sheet.getByRole('button', { name: 'প্রোডাক্ট যোগ' }).click();
+  await expect(page).toHaveURL(`/${SLUG}/products/new`);
+  await page.getByRole('button', { name: 'নতুন' }).filter({ visible: true }).click();
   await sheet.getByRole('button', { name: 'টপ-আপ' }).click();
   await expect(page).toHaveURL(`/${SLUG}/balance?topup=1`);
   await expect(page.getByRole('dialog')).toBeVisible();
@@ -157,8 +161,8 @@ test('searches the products by name, and says when nothing matches (§4.4)', asy
   );
   await expect(page.getByRole('link', { name: /ডেনিম জ্যাকেট/ })).toContainText('৳1,890');
   await expect(page.getByRole('link', { name: /ডেনিম জ্যাকেট/ })).toContainText('স্টক কম');
-  await page.getByRole('main').getByRole('searchbox').fill('শাড়ি');
-  await expect(page.getByText('"শাড়ি" মেলে এমন কোনো প্রোডাক্ট নেই।')).toBeVisible();
+  await page.getByRole('main').getByRole('searchbox').fill('ঘড়ি');
+  await expect(page.getByText('"ঘড়ি" মেলে এমন কোনো প্রোডাক্ট নেই।')).toBeVisible();
 });
 
 test("links each shop's own manifest and iPhone icon, so it installs as its own app (TEN-17)", async ({

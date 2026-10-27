@@ -458,12 +458,62 @@ describeIfDatabase('the plan limit (PRD-04, ATR-12, DWN-07, TRL-03, PLN-19)', ()
     expect(refused.status).toBe(402);
     expect(errorOf(refused).code).toBe('plan_limit_reached');
     expect(errorOf(refused).details).toMatchObject({ products: 20 });
+    expect((await shop.get('/products')).body).toMatchObject({
+      productLimit: 20,
+      counts: { total: 20 },
+    });
 
     const first = (
       (await shop.get('/products?search=Item%201&limit=1')).body as { products: { id: string }[] }
     ).products[0];
     expect((await shop.delete(`/products/${first?.id ?? ''}`)).status).toBe(200);
     expect((await shop.post('/products', { name: 'Item 21', basePrice: 21 })).status).toBe(201);
+  });
+
+  it('restores an archived product only while there is room, and logs it (PRD-13, PRD-04)', async () => {
+    const shop = await openShop(port, texts, 'restore');
+    await admin.query(
+      `INSERT INTO control.plan_limit_overrides (tenant_id, limit_key, value, reason, set_by)
+       VALUES ($1, 'products', '2', 'test', gen_random_uuid())`,
+      [shop.tenantId],
+    );
+    const kept = await create(shop, { name: 'Kept', basePrice: 1 });
+    const filed = await create(shop, { name: 'Filed', basePrice: 1 });
+    expect((await shop.delete(`/products/${filed.id}`)).status).toBe(200);
+    const later = await create(shop, { name: 'Later', basePrice: 1 });
+
+    const refused = await shop.post(`/products/${filed.id}/restore`, {});
+    expect(refused.status).toBe(402);
+    expect(errorOf(refused).code).toBe('plan_limit_reached');
+    expect((await shop.get(`/products/${filed.id}`)).body).toMatchObject({ archived: true });
+
+    expect((await shop.delete(`/products/${later.id}`)).status).toBe(200);
+    const restored = await shop.post(`/products/${filed.id}/restore`, {});
+    expect(restored.status, JSON.stringify(restored.body)).toBe(201);
+    expect(restored.body).toMatchObject({ id: filed.id, archived: false, slug: filed.slug });
+    const listed = (await shop.get('/products')).body as {
+      products: { id: string }[];
+      productLimit: number | null;
+    };
+    expect(listed.products.map((row) => row.id).sort()).toEqual([kept.id, filed.id].sort());
+    // PRD-04: the list names the shop's own limit, its override counted, so a full shop says so before typing.
+    expect(listed.productLimit).toBe(2);
+    const logged = await admin.query(
+      "SELECT summary FROM tenant.activity_log WHERE tenant_id = $1 AND action = 'product_restored'",
+      [shop.tenantId],
+    );
+    expect(logged.rows).toEqual([{ summary: { name: 'Filed' } }]);
+
+    // A product not archived is left as it is, and nothing more is logged.
+    expect((await shop.post(`/products/${kept.id}/restore`, {})).status).toBe(201);
+    expect(
+      (
+        await admin.query(
+          "SELECT 1 FROM tenant.activity_log WHERE tenant_id = $1 AND action = 'product_restored'",
+          [shop.tenantId],
+        )
+      ).rowCount,
+    ).toBe(1);
   });
 
   it('keeps products over a lowered limit listed while refusing new ones, and unlimited never refuses', async () => {
@@ -481,6 +531,7 @@ describeIfDatabase('the plan limit (PRD-04, ATR-12, DWN-07, TRL-03, PLN-19)', ()
       "UPDATE control.plan_limit_overrides SET value = 'null' WHERE tenant_id = $1 AND limit_key = 'products'",
       [shop.tenantId],
     );
+    expect((await shop.get('/products')).body).toMatchObject({ productLimit: null });
     expect((await shop.post('/products', { name: 'D', basePrice: 1 })).status).toBe(201);
   });
 });
@@ -612,6 +663,51 @@ describeIfDatabase('editing, links and deleting (PRD-05, PRD-13, LND-04, CCH-02)
       ((await shop.get('/products?search=cell&page=2')).body as { products: unknown[] }).products,
     ).toHaveLength(2);
   });
+
+  it('filters by the segments, counting each over what the search and category pick (PRD-12, INV-08)', async () => {
+    const shop = await openShop(port, texts, 'segments');
+    const shelf = (await shop.post('/categories', { name: 'Shelf' })).body as { id: string };
+    // Thresholds 5: in, low, out, an inactive one, another low one the search leaves out, and an archived one.
+    const stocked = (name: string, openingStock: number, extra: Record<string, unknown> = {}) =>
+      create(shop, { name, basePrice: 1, variants: [{ optionIds: [], openingStock }], ...extra });
+    await stocked('Plenty tea', 20, { categoryIds: [shelf.id] });
+    await stocked('Few tea', 2);
+    await stocked('No tea', 0, { categoryIds: [shelf.id] });
+    await stocked('Resting tea', 1, { active: false });
+    await stocked('Sugar', 1);
+    const old = await stocked('Old tea', 1);
+    expect((await shop.delete(`/products/${old.id}`)).status).toBe(200);
+
+    interface Page {
+      products: { name: string }[];
+      total: number;
+      counts: { total: number; active: number; low: number; out: number; archived: number };
+    }
+    const page = async (query: string) => (await shop.get(`/products?${query}`)).body as Page;
+    const names = async (query: string) =>
+      (await page(query)).products.map((row) => row.name).sort();
+
+    expect(await names('search=tea&active=true')).toEqual(['Few tea', 'No tea', 'Plenty tea']);
+    expect(await names('search=tea&active=false')).toEqual(['Resting tea']);
+    expect(await names('search=tea&active=true&stock=low')).toEqual(['Few tea']);
+    expect(await names('search=tea&active=true&stock=out')).toEqual(['No tea']);
+    // PRD-13: the archived ones, and only those, when asked for.
+    expect(await names('search=tea&archived=true')).toEqual(['Old tea']);
+    // The counts are the segments', whatever segment the page shows; Low and Out count active products, as Home does.
+    const lowOnly = await page('search=tea&active=true&stock=low');
+    expect(lowOnly.total).toBe(1);
+    expect(lowOnly.counts).toEqual({ total: 4, active: 3, low: 1, out: 1, archived: 1 });
+    expect((await page('')).counts).toEqual({ total: 5, active: 4, low: 2, out: 1, archived: 1 });
+    expect((await page(`categoryId=${shelf.id}`)).counts).toEqual({
+      total: 2,
+      active: 2,
+      low: 0,
+      out: 1,
+      archived: 0,
+    });
+    expect((await shop.get('/products?stock=plenty')).status).toBe(400);
+    expect((await shop.get('/products?active=yes')).status).toBe(400);
+  });
 });
 
 describeIfDatabase("one shop never reaches another's catalogue (SEC-02, TEN-03)", () => {
@@ -628,6 +724,7 @@ describeIfDatabase("one shop never reaches another's catalogue (SEC-02, TEN-03)"
     expect((await intruder.patch(`/products/${product.id}`, { name: 'Mine' })).status).toBe(404);
     expect((await intruder.delete(`/products/${product.id}?hard=true`)).status).toBe(404);
     expect((await intruder.put(`/products/${product.id}/slug`, { slug: 'mine' })).status).toBe(404);
+    expect((await intruder.post(`/products/${product.id}/restore`, {})).status).toBe(404);
     expect(
       (await intruder.put(`/products/${product.id}/variants`, { variantAttributes: [] })).status,
     ).toBe(404);

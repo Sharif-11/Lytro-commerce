@@ -31,7 +31,7 @@ interface ItemProps {
   label: string;
   detail?: string;
   /** Where the item is done, while it is not; none for an item whose screen is not built yet. */
-  to?: '/$shop/products' | '/$shop/settings/shop' | '/$shop/settings/api-keys';
+  to?: '/$shop/products/new' | '/$shop/settings/shop' | '/$shop/settings/api-keys';
   /** A place on this page instead (the link card). */
   href?: string;
 }
@@ -130,7 +130,7 @@ export function SetupChecklist({
             outside: formatTaka(charges.outside),
           })}
         />
-        <Item done={checklist.firstProduct} label={t('ckProduct')} to="/$shop/products" />
+        <Item done={checklist.firstProduct} label={t('ckProduct')} to="/$shop/products/new" />
         <Item done={checklist.linkShared} label={t('ckShare')} href={`#${shareTarget}`} />
         <Item done={checklist.logo} label={t('ckLogo')} to="/$shop/settings/shop" />
         <Later label={t('ckWallet')} phase={5} />

@@ -192,12 +192,19 @@ export class ProductService {
     return this.transactions.run((tx) => this.products.countByState(tx, tenantId));
   }
 
-  /** PRD-12: the dashboard's list, 20 to a page by default, archived products left out. */
-  list(tenantId: string, query: ListProductsQuery): Promise<ProductPage> {
+  /**
+   * PRD-12: the dashboard's list, 20 to a page by default, archived products left out; with the shop's product limit,
+   * so the list can say a new one will not fit before it is typed (PRD-04).
+   */
+  list(shop: CatalogueShop, query: ListProductsQuery): Promise<ProductPage> {
+    const tenantId = shop.id;
     return this.transactions.run(async (tx) => {
-      const { rows, total } = await this.products.listProducts(tx, tenantId, {
+      const { rows, total, counts } = await this.products.listProducts(tx, tenantId, {
         search: query.search,
         categoryId: query.categoryId,
+        archived: query.archived,
+        active: query.active,
+        stockState: query.stock,
         offset: (query.page - 1) * query.limit,
         limit: query.limit,
       });
@@ -227,6 +234,8 @@ export class ProductService {
         limit: query.limit,
         total,
         pages: Math.ceil(total / query.limit),
+        counts,
+        productLimit: limitOf(shop.planLimits, 'products'),
       };
     });
   }
@@ -287,6 +296,7 @@ export class ProductService {
         primaryCategoryId,
       });
       await this.products.replaceCategoryLinks(tx, shop.id, product.id, categoryIds);
+      await this.attachMedia(tx, shop.id, product.id, input);
       await this.writeMatrixAttributes(tx, shop.id, product.id, matrix, new Set());
       await this.writeDescriptions(tx, shop.id, product.id, described, matrix.attributes.length);
       await this.writeVariants(tx, shop.id, product.id, matrix.planned, [], input.variants, shared);
@@ -835,7 +845,59 @@ export class ProductService {
     });
   }
 
+  /**
+   * PRD-13: an archived product back in the list and on sale as it was, counted against the plan's limit again
+   * (PRD-04); one not archived is left as it is.
+   */
+  async restore(
+    shop: CatalogueShop,
+    productId: string,
+    actor: CatalogueActor,
+  ): Promise<ProductDetail> {
+    const who = await this.activity.resolve(shop.id, actor);
+    return this.transactions.run(async (tx) => {
+      await this.products.lockCatalogue(tx, shop.id);
+      const product = await this.products.findProduct(tx, shop.id, productId, true);
+      if (!product) throw new ApiError('not_found', 'ProductNotFound', {});
+      if (product.deletedAt !== null) {
+        await this.refuseOverLimit(tx, shop);
+        await this.products.updateProduct(tx, shop.id, productId, { deletedAt: null });
+        await this.record(tx, shop.id, who, AuditAction.ProductRestored, productId, {
+          name: product.name,
+        });
+        await this.products.bumpVersion(tx, shop.id);
+      }
+      return this.detail(tx, shop.id, productId);
+    });
+  }
+
   // --- Building blocks ---
+
+  /**
+   * PRD-11: a new product's photos and video, in its own transaction, so it is saved with them or not at all (agreed for
+   * Slice 11.7a); an id that is not a ready image, or video, of the shop's is refused by its field.
+   */
+  private async attachMedia(
+    tx: Transaction,
+    tenantId: string,
+    productId: string,
+    input: Pick<CreateProductInput, 'imageIds' | 'videoId'>,
+  ): Promise<void> {
+    if (input.imageIds && input.imageIds.length > 0) {
+      try {
+        await this.photos.setProductImages(tx, tenantId, productId, input.imageIds);
+      } catch (error) {
+        refuseUnattachable(error, 'imageIds');
+      }
+    }
+    if (input.videoId) {
+      try {
+        await this.products.updateProduct(tx, tenantId, productId, { videoId: input.videoId });
+      } catch (error) {
+        refuseUnattachable(error, 'videoId');
+      }
+    }
+  }
 
   private async findLive(
     tx: Transaction,
@@ -1864,8 +1926,7 @@ export class ProductService {
       attributes: described,
       variants: variantViews,
       sizeChart: await this.sizeChartOf(tx, tenantId, product),
-      images: (await this.images.ofProducts(tx, tenantId, [productId])).get(productId) ?? [],
-      video: await this.images.videoOf(tx, tenantId, product.videoId),
+      ...(await this.images.ofProduct(tx, tenantId, productId, product.videoId)),
       deliveryZoneIds: await this.products.listDeliveryZoneIds(tx, tenantId, productId),
       createdAt: product.createdAt,
       updatedAt: product.updatedAt,

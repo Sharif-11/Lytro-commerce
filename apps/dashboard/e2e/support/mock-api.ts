@@ -31,6 +31,19 @@ import {
   UPLOAD_PATH,
   type SettingsFixture,
 } from './settings';
+import {
+  categoryList,
+  drawnProducts,
+  MEDIA_UPLOAD_PREFIX,
+  mediaDetail,
+  productDetail,
+  productList,
+  productRemove,
+  productWrite,
+  storageAnswer,
+  type ProductsFixture,
+} from './products';
+import { PRESETS } from './presets';
 import { drawnTeam, teamAnswer, teamWrite, type TeamFixture } from './team';
 import {
   drawnLedger,
@@ -108,6 +121,8 @@ export interface ShopState {
   keys?: KeyFixture[] | null;
   /** Facebook and Meta where it differs from the prototype's connected shop; the page's writes change it. */
   meta?: MetaFixture | null;
+  /** The shop's products and product limit where they differ from the prototype's (Slice 11.7a). */
+  products?: ProductsFixture | null;
   /** The person's ways to sign in where they differ from a phone (and an email with `money.hasEmail`). */
   identities?: IdentityFixture[] | null;
   /** GET /home's stock part; null when the person may not see stock. */
@@ -229,29 +244,6 @@ export const DAY_ONE: ShopState = {
   },
 };
 
-function products(language: Language, search: string): unknown {
-  const jacket = {
-    id: 'p-2',
-    name: language === 'bn' ? 'ডেনিম জ্যাকেট' : 'Denim jacket',
-    slug: 'denim-jacket',
-    basePrice: '1890.00',
-    minPrice: '1890.00',
-    maxPrice: '1890.00',
-    active: true,
-    stockState: 'low',
-    primaryCategoryId: 'c-jackets',
-    variantCount: 4,
-    image: null,
-    createdAt: new Date().toISOString(),
-  };
-  const matches = /jack|জ্যাক/i.test(search) ? [jacket] : [];
-  return { products: matches, page: 1, limit: 20, total: matches.length, pages: 1 };
-}
-
-function categories(language: Language): unknown {
-  return [{ id: 'c-jackets', parentId: null, name: language === 'bn' ? 'জ্যাকেট' : 'Jackets' }];
-}
-
 /** RAT-01's pay-as-you-go fees and the other rates, as the platform sets them by default. */
 const RATES = [
   ['sms_per_unit', '0.5500'],
@@ -296,6 +288,7 @@ export function shopState(given: ShopState = {}): Required<ShopState> {
     keys: null,
     meta: null,
     identities: null,
+    products: null,
     stock: { low: 1, out: 1 },
     home: {},
     ...given,
@@ -343,8 +336,14 @@ export function shopAnswer(path: string, url: URL, state: Required<ShopState>): 
   const money = state.money;
   if (path === '/me') return me(state);
   if (path === '/home') return home(state);
-  if (path === '/products') return products(state.language, url.searchParams.get('search') ?? '');
-  if (path === '/categories') return categories(state.language);
+  if (path === '/products') {
+    return productList((state.products ??= drawnProducts()), url, state.language);
+  }
+  if (path === '/categories')
+    return categoryList((state.products ??= drawnProducts()), state.language);
+  if (path === '/presets') {
+    return PRESETS.map(([key, labelBn, labelEn]) => ({ key, labelBn, labelEn, defaults: {} }));
+  }
   if (path === '/plans') return plans();
   if (path === '/plans/pay-as-you-go') return paygPlan();
   if (path === '/billing-terms') return terms();
@@ -442,7 +441,8 @@ export function shopAnswer(path: string, url: URL, state: Required<ShopState>): 
 
 /** Every call the mock answered, for a test to check what was sent. */
 export interface ApiLog {
-  calls: { method: string; path: string; body: unknown }[];
+  /** Each call, with its query string (`?active=true`, or '' for none). */
+  calls: { method: string; path: string; query: string; body: unknown }[];
   sent: (method: string, path: string) => unknown;
 }
 
@@ -472,6 +472,7 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
   );
   // The browser sends an upload's file to the link it was given (R2 in production).
   await page.route(`**${UPLOAD_PATH}`, (route: Route) => route.fulfill({ status: 200 }));
+  await page.route(`**${MEDIA_UPLOAD_PREFIX}**`, (route: Route) => route.fulfill({ status: 200 }));
   const log: ApiLog = {
     calls: [],
     sent: (method, path) =>
@@ -489,7 +490,7 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
     const path = url.pathname.replace(/^\/api\/v1/, '');
     const method = request.method();
     const body = (request.postDataJSON() ?? null) as Record<string, string | number> | null;
-    log.calls.push({ method, path, body });
+    log.calls.push({ method, path, query: url.search, body });
     const ok = (data: unknown): Promise<void> =>
       route.fulfill({ status: 200, contentType: 'application/json', body: envelope(data) });
 
@@ -681,6 +682,47 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
       if (typeof wanted === 'boolean') usage.autoBuy = { ...usage.autoBuy, bandwidth: wanted };
       return ok([]);
     }
+    // Slice 11.7a: a product's own read, and the editor's writes.
+    const products = (state.products ??= drawnProducts());
+    const one = /^\/products\/([^/]+)$/.exec(path);
+    if (method === 'GET' && one && one[1] !== 'new') {
+      const product = products.products.find((each) => each.id === one[1]);
+      return product
+        ? ok(productDetail(product, state.language))
+        : route.fulfill({
+            status: 404,
+            contentType: 'application/json',
+            body: refusal('not_found', 'This product was not found.'),
+          });
+    }
+    if (method === 'GET' && path === '/media/usage') return ok(storageAnswer(products));
+    const item = /^\/media\/([^/]+)$/.exec(path);
+    const detail = item ? mediaDetail(products, item[1] ?? '') : null;
+    if (item && detail && method === 'GET') return ok(detail);
+    if (item && detail && method === 'DELETE') {
+      delete products.media?.[item[1] ?? ''];
+      return ok({ ok: true });
+    }
+    if (method === 'DELETE' && one) {
+      productRemove(products, one[1] ?? '', url.searchParams.get('hard') === 'true');
+      return ok({ ok: true });
+    }
+    const produced = productWrite(
+      method,
+      path,
+      request.postDataJSON() as Record<string, unknown> | null,
+      products,
+      state.language,
+    );
+    if (produced && 'refused' in produced) {
+      const { status, code, message, details } = produced.refused;
+      return route.fulfill({
+        status,
+        contentType: 'application/json',
+        body: refusal(code, message, details),
+      });
+    }
+    if (produced) return ok(produced.data);
     const written = teamWrite(
       method,
       path,

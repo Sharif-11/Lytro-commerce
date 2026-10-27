@@ -57,6 +57,13 @@ export interface MediaUses {
   logo: boolean;
 }
 
+/** STO-01, STO-09: what an item takes from the shop's storage, every file of it, and a video's length. */
+export interface MediaSize {
+  id: string;
+  bytes: number;
+  durationMs: number | null;
+}
+
 /** PRD-11: one photo of a product, in its place, with its stored files. */
 export interface ProductImageRow {
   productId: string;
@@ -161,6 +168,30 @@ export class MediaRepository {
       .select()
       .from(mediaObjects)
       .where(and(eq(mediaObjects.tenantId, tenantId), inArray(mediaObjects.mediaId, mediaIds)));
+  }
+
+  /** STO-01, STO-09: the bytes each of these items stores, every file of it, and a video's length. */
+  async sizesOf(tx: Transaction, tenantId: string, ids: string[]): Promise<MediaSize[]> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    if (ids.length === 0) return [];
+    const rows = await tx
+      .select({
+        id: media.id,
+        durationMs: media.durationMs,
+        bytes: sql<string>`coalesce(sum(${mediaObjects.bytes}), 0)::text`,
+      })
+      .from(media)
+      .leftJoin(
+        mediaObjects,
+        and(eq(mediaObjects.tenantId, media.tenantId), eq(mediaObjects.mediaId, media.id)),
+      )
+      .where(and(eq(media.tenantId, tenantId), inArray(media.id, ids)))
+      .groupBy(media.id);
+    return rows.map((row) => ({
+      id: row.id,
+      bytes: Number(row.bytes),
+      durationMs: row.durationMs,
+    }));
   }
 
   /** STO-01, STO-02: the bytes the shop stores now, every file of every item. */

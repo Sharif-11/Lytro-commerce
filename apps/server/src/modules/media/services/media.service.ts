@@ -207,11 +207,18 @@ export class MediaService {
   /** STO-01, STO-02: what the shop stores now, and its limit. */
   async usage(tenantId: string): Promise<StorageUsage> {
     return this.store.run(async (tx) => {
-      const [usedBytes, limitMb] = await Promise.all([
+      const [usedBytes, limitMb, imageMaxMb, videoMaxMb] = await Promise.all([
         this.store.storedBytes(tx, tenantId),
         this.limits.storageMb(tx, tenantId),
+        this.limits.maxMb(MediaKind.Image),
+        this.limits.maxMb(MediaKind.Video),
       ]);
-      return { usedBytes, limitBytes: limitMb === null ? null : limitMb * MB };
+      return {
+        usedBytes,
+        limitBytes: limitMb === null ? null : limitMb * MB,
+        imageMaxMb,
+        videoMaxMb,
+      };
     });
   }
 

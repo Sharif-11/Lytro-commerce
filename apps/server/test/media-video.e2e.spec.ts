@@ -387,10 +387,15 @@ describeIfDatabase("a product's video (PRD-11)", () => {
     );
     const saved = await shop.put(`/products/${productId}/video`, { mediaId: video.id });
     expect(saved.status, JSON.stringify(saved.body)).toBe(200);
+    // STO-01, STO-09: with the bytes and the length /media gives it, for the media sheet's "0:02 · 1 MB".
+    expect(video.bytes).toBeGreaterThan(0);
+    expect(video.durationMs).toBeGreaterThan(0);
     expect(saved.body).toMatchObject({
       video: {
         id: video.id,
         urls: { video: video.urls?.main, poster: video.urls?.thumbnail },
+        bytes: video.bytes,
+        durationMs: video.durationMs,
       },
     });
     const copy = (await shop.post(`/products/${productId}/duplicate`, {})).body as {
@@ -444,6 +449,28 @@ describeIfDatabase("a product's video (PRD-11)", () => {
       404,
     );
     expect((await shop.put(`/products/${productId}/video`, { mediaId: null })).status).toBe(200);
+
+    // A new product takes its video with it, in the one request, and the same refusals (PRD-11, Slice 11.7a).
+    const made = await shop.post('/products', {
+      name: 'Desk lamp',
+      basePrice: 60,
+      videoId: mine.id,
+    });
+    expect(made.status, JSON.stringify(made.body)).toBe(201);
+    expect(made.body).toMatchObject({ video: { id: mine.id, bytes: mine.bytes } });
+    const notAVideo = await shop.post('/products', {
+      name: 'Shade',
+      basePrice: 5,
+      videoId: pendingImage,
+    });
+    expect(fieldsOf(notAVideo)).toEqual({ videoId: 'not_found' });
+    const videoAsPhoto = await shop.post('/products', {
+      name: 'Shade',
+      basePrice: 5,
+      imageIds: [mine.id],
+    });
+    expect(fieldsOf(videoAsPhoto)).toEqual({ imageIds: 'not_found' });
+    expect(((await shop.get('/products?search=Shade')).body as { total: number }).total).toBe(0);
   });
 });
 

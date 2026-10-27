@@ -50,7 +50,7 @@ test('opens a new shop on its checklist, with nothing in the queue yet (SUP-01)'
   await expect(main(page).getByText('2/5 হয়েছে')).toBeVisible();
   await expect(main(page).getByRole('link', { name: 'প্রথম প্রোডাক্ট যোগ করুন' })).toHaveAttribute(
     'href',
-    `/${SLUG}/products`,
+    `/${SLUG}/products/new`,
   );
   await expect(main(page).getByRole('link', { name: 'দোকানের লিংক শেয়ার করুন' })).toHaveAttribute(
     'href',

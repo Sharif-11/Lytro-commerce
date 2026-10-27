@@ -35,8 +35,8 @@ function Tile({
 
 /**
  * TENANT-DASHBOARD-DESIGN §4.5, the prototype's `plus` sheet: the things a seller starts most, as tiles -- two to a
- * row on a phone, three from 640 px. Top up today; Add product and Add stock join with their screens (Slices 11.7
- * and 11.9), and New order shows what Phase 4 brings. Tiles a person cannot use are hidden (STF-11).
+ * row on a phone, three from 640 px. Add product (Slice 11.7a) and Top up today; Add stock joins with its screen (Slice
+ * 11.9), and New order shows what Phase 4 brings. Tiles a person cannot use are hidden (STF-11).
  */
 export function PlusMenu({
   open,
@@ -49,6 +49,15 @@ export function PlusMenu({
   const { slug, viewer } = useShell();
   const navigate = useNavigate();
   const actions: PlusAction[] = [];
+  if (allows(viewer, [Permission.ProductsManage])) {
+    actions.push({
+      icon: 'tag',
+      label: t('pProduct'),
+      run: () => {
+        void navigate({ to: '/$shop/products/new', params: { shop: slug } });
+      },
+    });
+  }
   if (allows(viewer, [Permission.BalanceManage])) {
     actions.push({
       icon: 'money',

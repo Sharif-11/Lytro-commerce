@@ -21,3 +21,27 @@ export interface UploadStarted {
   media: MediaView;
   upload: { url: string; method: 'PUT'; headers: Record<string, string>; expiresAt: string };
 }
+
+/** Mirrors `StorageUsage` (STO-01, STO-04, STO-05): storage used against the limit (null: none), and the largest files. */
+export interface StorageUsage {
+  usedBytes: number;
+  limitBytes: number | null;
+  imageMaxMb: number;
+  videoMaxMb: number;
+}
+
+/** Mirrors `MediaUses` (MED-09): the places an item still shows. */
+export interface MediaUses {
+  products: number;
+  videos: number;
+  categories: number;
+  swatches: number;
+  sizeCharts: number;
+  logo: boolean;
+  pastOrders: number;
+}
+
+/** Mirrors `MediaDetail`: one item, with where it shows. */
+export interface MediaDetail extends MediaView {
+  uses: MediaUses;
+}

@@ -17,6 +17,7 @@ import { BILLING_STAFF, offerInstall, onAnIphone } from './support/menu';
 import { drawnIdentities } from './support/account';
 import { emptyMeta } from './support/meta';
 import { drawnExports } from './support/settings';
+import { drawnProducts, manyProducts } from './support/products';
 import { drawnPasswords, drawnTeam } from './support/team';
 import { DAY_ONE, mockApi, SLUG, type Language, type ShopState } from './support/mock-api';
 import { mockOnboarding, TWELVE_MONTHS, typeCode, type Journey } from './support/onboarding-api';
@@ -317,7 +318,126 @@ const MONEY: Pair[] = [
   ...menuPairs(),
   ...teamPairs(),
   ...settingsPairs(),
+  ...productPairs(),
 ];
+
+/**
+ * Products (§7.3, Slice 11.7a): the list, the category filter, a filtered list, nothing matching, more than 20,
+ * Archived, the limit before typing, and a new shop's empty list (Part 13 for the states the earlier parts left undrawn).
+ */
+function productPairs(): Pair[] {
+  const one = (
+    name: string,
+    path: string,
+    more: Partial<Pair> = {},
+    device: Device = 'phone',
+    language: Language = 'bn',
+  ): Pair => ({ name, screen: name, device, language, path, ...more });
+  const full: ShopState = {
+    products: { ...manyProducts(6), limit: 6 },
+    money: { usage: { used: { products: 6 }, limits: { products: 6 } } },
+  };
+  return [
+    one('products', '/products'),
+    one('products', '/products', {}, 'desktop', 'en'),
+    one('sh-products-filter', '/products', {
+      then: async (page) => {
+        await page.getByRole('button', { name: 'ক্যাটাগরি দিয়ে ফিল্টার' }).click();
+      },
+    }),
+    one('products-filtered', '/products?cat=c-tshirts'),
+    one('products-none', `/products?q=${encodeURIComponent('পাঞ্জাবি')}&seg=low`),
+    one('products-none', '/products?q=panjabi&seg=low', {}, 'desktop', 'en'),
+    one('products-more', '/products', { state: { products: manyProducts(46) } }),
+    one('products-archived', '/products?seg=archived'),
+    one('products-limit-now', '/products?limit=true', { state: full }),
+    one('products-limit-now', '/products?limit=true', { state: full }, 'desktop', 'en'),
+    {
+      ...one('products', '/products', {
+        shop: { drawn: 'new', state: { ...DAY_ONE, products: { limit: 20, products: [] } } },
+      }),
+      name: 'products-new',
+    },
+    ...editorPairs(),
+  ];
+}
+
+/**
+ * The product editor (§7.4, Slice 11.7a): Basics with the link, the category picker and New category, the link sheet,
+ * removing, leaving unsaved, an archived product, the copy just made, and a new product's missing fields.
+ */
+function editorPairs(): Pair[] {
+  const one = (
+    name: string,
+    path: string,
+    more: Partial<Pair> = {},
+    device: Device = 'phone',
+    language: Language = 'bn',
+  ): Pair => ({ name, screen: name, device, language, path, ...more });
+  const tap = (label: string | RegExp) => async (page: Page) => {
+    await page.getByRole('main').getByRole('button', { name: label }).first().click();
+  };
+  const leave = async (page: Page) => {
+    await page.getByRole('main').getByLabel('নাম', { exact: true }).fill('কটন টি-শার্ট নতুন');
+    await page.getByRole('link', { name: 'হোম' }).first().click();
+  };
+  return [
+    one('product', '/products/p-1'),
+    one('product', '/products/p-1', {}, 'desktop', 'en'),
+    one('sh-category', '/products/p-1', { then: tap(/ক্যাটাগরি/) }),
+    one('sh-category-new-product', '/products/p-1', {
+      then: async (page) => {
+        await tap(/ক্যাটাগরি/)(page);
+        await page.getByRole('dialog').getByRole('button', { name: 'নতুন ক্যাটাগরি' }).click();
+        await page.getByRole('dialog').getByLabel('নাম', { exact: true }).fill('শার্ট');
+      },
+    }),
+    one('sh-link', '/products/p-1', { then: tap('ভ্যারিয়েন্ট বেছে লিংকে ?v= যোগ হয়।') }),
+    one('sh-delete', '/products/p-1', {
+      then: async (page) => {
+        await page.getByRole('main').getByText('আরও সেটিংস').click();
+        await tap('আর্কাইভ করুন')(page);
+      },
+    }),
+    one('sh-leave', '/products/p-1', { then: leave }),
+    one('product-archived', '/products/p-7'),
+    one('product-archived', '/products/p-7', {}, 'desktop', 'en'),
+    one('product-copied', '/products/p-1', {
+      then: async (page) => {
+        await page.getByRole('main').getByText('আরও সেটিংস').click();
+        await tap('কপি বানান')(page);
+        await page.getByRole('status').filter({ hasText: /./ }).waitFor();
+      },
+    }),
+    one('pf-errors', '/products/new', { then: tap('সেভ করুন') }),
+    one('sh-media', '/products/p-1', { then: tap('ছবি 1') }),
+    one('sh-media', '/products/p-1', { then: tap('Photo 1') }, 'desktop', 'en'),
+    one('sh-media-full', '/products/p-1', {
+      state: {
+        products: { ...drawnProducts(), storage: { full: true, usedBytes: 2048 * 1024 * 1024 } },
+      },
+      then: async (page) => {
+        await page
+          .getByRole('main')
+          .locator('input[type=file][accept^="image"]')
+          .first()
+          .setInputFiles({ name: 'a.png', mimeType: 'image/png', buffer: Buffer.alloc(2048, 1) });
+        await page.getByRole('main').getByRole('alert').first().waitFor();
+        await tap('ছবি 1')(page);
+      },
+    }),
+    one('product-partial', '/products/p-1', {
+      state: { products: { ...drawnProducts(), refuse: { images: true } } },
+      then: async (page) => {
+        await tap('ছবি 1')(page);
+        await page.getByRole('dialog').getByRole('button', { name: 'ছবি 3 সরান' }).click();
+        await page.getByRole('dialog').getByRole('button', { name: 'ঠিক আছে' }).click();
+        await tap('সেভ করুন')(page);
+        await page.getByRole('main').getByRole('alert').first().waitFor();
+      },
+    }),
+  ];
+}
 
 /** Settings (§7.16, Slice 11.6): its list, Shop details, Brand identity until its editor, and Data export. */
 function settingsPairs(): Pair[] {

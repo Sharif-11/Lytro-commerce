@@ -64,6 +64,8 @@ export class MediaPageDto extends createZodDto(mediaPageSchema) {}
 export const storageUsageSchema = z.object({
   usedBytes: z.number(),
   limitBytes: z.number().nullable(),
+  imageMaxMb: z.number(),
+  videoMaxMb: z.number(),
 });
 export class StorageUsageDto extends createZodDto(storageUsageSchema) {}
 

@@ -83,6 +83,22 @@ export class ProductsController {
     );
   }
 
+  @Post(':id/restore')
+  @RequirePermission(Permission.ProductsManage)
+  @ResponseMessage('ProductRestored')
+  @ApiOperation({
+    summary:
+      'Bring an archived product back to the list, counted against the limit again (PRD-13, PRD-04)',
+  })
+  @ZodResponse({ type: ProductDetailDto })
+  async restore(@Param('id') id: string, @Req() request: DashboardRequest): Promise<ProductDetail> {
+    return this.products.restore(
+      await this.catalogue.shopOf(request),
+      this.catalogue.idOf(id, 'ProductNotFound'),
+      this.catalogue.actorOf(request),
+    );
+  }
+
   @Put(':id/images')
   @RequirePermission(Permission.ProductsManage)
   @ResponseMessage('ProductImagesSaved')
@@ -193,11 +209,11 @@ export class ProductsController {
   @ResponseMessage('ProductsListed')
   @ApiOperation({ summary: 'Search and list products, 20 to a page (PRD-12)' })
   @ZodResponse({ type: ProductPageDto })
-  list(
+  async list(
     @Query(new ZodValidationPipe(listProductsSchema)) query: ListProductsQuery,
     @Req() request: DashboardRequest,
   ): Promise<ProductPage> {
-    return this.products.list(this.catalogue.tenantIdOf(request), query);
+    return this.products.list(await this.catalogue.shopOf(request), query);
   }
 
   @Post()

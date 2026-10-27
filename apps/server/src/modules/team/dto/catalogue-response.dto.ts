@@ -12,7 +12,12 @@ import {
   StockTracking,
   StockUnit,
 } from '@lytronix/validators';
-import { imageViewSchema, videoViewSchema } from '../../../common/dto/media-views.dto';
+import {
+  imageViewSchema,
+  productImageViewSchema,
+  productVideoViewSchema,
+  videoViewSchema,
+} from '../../../common/dto/media-views.dto';
 
 export { imageViewSchema, videoViewSchema };
 
@@ -120,6 +125,14 @@ export const productPageSchema = z.object({
   limit: z.number(),
   total: z.number(),
   pages: z.number(),
+  counts: z.object({
+    total: z.number(),
+    active: z.number(),
+    low: z.number(),
+    out: z.number(),
+    archived: z.number(),
+  }),
+  productLimit: z.number().nullable(),
 });
 export class ProductPageDto extends createZodDto(productPageSchema) {}
 
@@ -208,8 +221,8 @@ export const productDetailSchema = z.object({
       image: imageViewSchema.nullable(),
     })
     .nullable(),
-  images: z.array(imageViewSchema),
-  video: videoViewSchema.nullable(),
+  images: z.array(productImageViewSchema),
+  video: productVideoViewSchema.nullable(),
   deliveryZoneIds: z.array(z.string()),
   createdAt: z.date(),
   updatedAt: z.date(),

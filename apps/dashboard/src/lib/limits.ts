@@ -39,10 +39,11 @@ export function usageSize(bytes: number, against: number | null): string {
   return `${Number.isInteger(gb) ? gb.toLocaleString('en-US') : gb.toFixed(1)} GB`;
 }
 
-/** A file's size as the export row writes it: "18 MB". */
+/** A file's size as the export row and the media sheet write it: "18 MB", "3.2 MB", "820 KB". */
 export function fileSize(bytes: number): string {
   const mb = bytes / (1024 * 1024);
-  if (mb >= 1) return `${Math.round(mb).toLocaleString('en-US')} MB`;
+  if (mb >= 10) return `${Math.round(mb).toLocaleString('en-US')} MB`;
+  if (mb >= 1) return `${String(Math.round(mb * 10) / 10)} MB`;
   return `${Math.max(1, Math.round(bytes / 1024)).toLocaleString('en-US')} KB`;
 }
 

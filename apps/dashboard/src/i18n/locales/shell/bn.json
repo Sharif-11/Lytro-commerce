@@ -46,13 +46,6 @@
   "ordersSoonT": "এখনো কোনো অর্ডার নেই",
   "ordersSoonL": "অর্ডার ফেজ 4-এ আসছে। এলে এখান থেকে কনফার্ম আর কুরিয়ার বুক করবেন।",
   "shareLink": "লিংক শেয়ার করুন",
-  "variant1": "1টি ভ্যারিয়েন্ট",
-  "variantsN": "{{n}}টি ভ্যারিয়েন্ট",
-  "inactive": "ইনঅ্যাক্টিভ",
-  "inStock": "স্টক আছে",
-  "lowStock": "স্টক কম",
-  "outStock": "স্টক শেষ",
-  "uncategorized": "ক্যাটাগরি ছাড়া",
   "phase4": "ফেজ 4",
   "langToggle": "EN",
   "langToggleLabel": "Switch to English",
@@ -68,5 +61,7 @@
   "arrivingT": "{{s}} নতুন করে তৈরি হচ্ছে",
   "arrivingL": "এই স্ক্রিন ড্যাশবোর্ডের পরের আপডেটে আসছে।",
   "copy": "কপি",
-  "copied": "কপি হয়েছে"
+  "copied": "কপি হয়েছে",
+  "facebook": "Facebook",
+  "whatsapp": "WhatsApp"
 }

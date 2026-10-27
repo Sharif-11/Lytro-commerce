@@ -5,7 +5,7 @@ import { Test } from '@nestjs/testing';
 import pg from 'pg';
 import sharp from 'sharp';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { PRODUCT_IMAGES_MAX } from '@lytronix/validators';
+import { PlatformSettingKey, PRODUCT_IMAGES_MAX } from '@lytronix/validators';
 import { AppModule } from '../src/app/app.module';
 import type { MessageKey } from '../src/common/i18n/message-key';
 import { translate } from '../src/common/i18n/messages';
@@ -15,6 +15,7 @@ import { MediaEraser } from '../src/modules/media/services/media-eraser';
 import { MediaProcessor } from '../src/modules/media/services/media-processor';
 import type { MediaDeletePayload } from '../src/modules/media/services/media.service';
 import { MEDIA_STORAGE } from '../src/modules/media/tokens';
+import { PlatformSettingsService } from '../src/modules/platform-settings/services/platform-settings.service';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { listenOn } from './support/bootstrap';
 import { MemoryStorage } from './support/memory-storage';
@@ -141,8 +142,15 @@ async function upload(
   return (await shop.get(`/media/${media.id}`)).body as MediaView;
 }
 
-async function usage(shop: ShopClient): Promise<{ usedBytes: number; limitBytes: number | null }> {
-  return (await shop.get('/media/usage')).body as { usedBytes: number; limitBytes: number | null };
+interface StorageUsage {
+  usedBytes: number;
+  limitBytes: number | null;
+  imageMaxMb: number;
+  videoMaxMb: number;
+}
+
+async function usage(shop: ShopClient): Promise<StorageUsage> {
+  return (await shop.get('/media/usage')).body as StorageUsage;
 }
 
 /** The deletion jobs enqueued for the shop's files, run as the worker would (MED-07). */
@@ -210,6 +218,20 @@ describeIfDatabase('uploading and processing an image (MED-03, STO-04)', () => {
     expect(fieldsOf(started)).toEqual({ bytes: 'too_large' });
     expect(errorOf(started).message).toBe(said('ImageTooLarge', { mb: 5 }));
     expect(((await shop.get('/media')).body as { total: number }).total).toBe(0);
+  });
+
+  it('names the largest image and video an upload may be, as the operator last set them (STO-04, STO-05)', async () => {
+    const shop = await openShop(port, texts, 'media');
+    expect(await usage(shop)).toMatchObject({ imageMaxMb: 5, videoMaxMb: 150 });
+    const settings = app.get(PlatformSettingsService);
+    try {
+      await settings.set(PlatformSettingKey.MediaImageMaxMb, 7, randomUUID());
+      await settings.set(PlatformSettingKey.MediaVideoMaxMb, 120, randomUUID());
+      expect(await usage(shop)).toMatchObject({ imageMaxMb: 7, videoMaxMb: 120 });
+    } finally {
+      await settings.set(PlatformSettingKey.MediaImageMaxMb, 5, randomUUID());
+      await settings.set(PlatformSettingKey.MediaVideoMaxMb, 150, randomUUID());
+    }
   });
 
   it('refuses a renamed executable by its content, storing and counting nothing', async () => {
@@ -343,9 +365,14 @@ describeIfDatabase('attaching images (PRD-11, PRD-17, ATR-18, TEN-16)', () => {
     const second = await upload(shop, await photo(400, 400));
     const saved = await shop.put(`/products/${id}/images`, { mediaIds: [second.id, first.id] });
     expect(saved.status, JSON.stringify(saved.body)).toBe(200);
-    const detail = saved.body as { images: { id: string; urls: { main: string } }[] };
+    const detail = saved.body as {
+      images: { id: string; urls: { main: string }; bytes: number }[];
+    };
     expect(detail.images.map((image) => image.id)).toEqual([second.id, first.id]);
     expect(detail.images[0]?.urls.main).toBe(second.urls?.main);
+    // STO-01: each with the bytes /media counts for it, every file of it, so the media sheet's share agrees with Usage.
+    expect(first.bytes).toBeGreaterThan(0);
+    expect(detail.images.map((image) => image.bytes)).toEqual([second.bytes, first.bytes]);
     const list = (await shop.get('/products')).body as {
       products: { id: string; image: { id: string } | null }[];
     };
@@ -363,6 +390,38 @@ describeIfDatabase('attaching images (PRD-11, PRD-17, ATR-18, TEN-16)', () => {
     expect(cleared.images).toEqual([]);
     // Removing a photo keeps it in the library.
     expect(((await shop.get('/media')).body as { total: number }).total).toBe(2);
+  });
+
+  it('saves a new product with its photos in one request, or not at all (PRD-11)', async () => {
+    const shop = await openShop(port, texts, 'media');
+    const first = await upload(shop, await photo());
+    const second = await upload(shop, await photo(400, 400));
+    const made = await shop.post('/products', {
+      name: 'Kurta',
+      basePrice: 900,
+      imageIds: [second.id, first.id],
+    });
+    expect(made.status, JSON.stringify(made.body)).toBe(201);
+    expect((made.body as { images: { id: string }[] }).images.map((image) => image.id)).toEqual([
+      second.id,
+      first.id,
+    ]);
+
+    // An id that is no ready image of the shop's, or a photo twice, leaves no product behind.
+    const refused = await shop.post('/products', {
+      name: 'Ghost',
+      basePrice: 1,
+      imageIds: [first.id, randomUUID()],
+    });
+    expect(refused.status).toBe(400);
+    expect(fieldsOf(refused)).toEqual({ imageIds: 'not_found' });
+    const twice = await shop.post('/products', {
+      name: 'Ghost',
+      basePrice: 1,
+      imageIds: [first.id, first.id],
+    });
+    expect(fieldsOf(twice)).toEqual({ imageIds: 'not_allowed' });
+    expect(((await shop.get('/products?search=Ghost')).body as { total: number }).total).toBe(0);
   });
 
   it('attaches only ready images of the shop, up to the limit, each once', async () => {

@@ -46,13 +46,6 @@
   "ordersSoonT": "No orders yet",
   "ordersSoonL": "Orders arrive in Phase 4. You will confirm and book couriers from here.",
   "shareLink": "Share the link",
-  "variant1": "1 variant",
-  "variantsN": "{{n}} variants",
-  "inactive": "Inactive",
-  "inStock": "In stock",
-  "lowStock": "Low stock",
-  "outStock": "Out of stock",
-  "uncategorized": "Uncategorized",
   "phase4": "Phase 4",
   "langToggle": "বাং",
   "langToggleLabel": "বাংলায় দেখুন",
@@ -68,5 +61,7 @@
   "arrivingT": "{{s}} is being rebuilt",
   "arrivingL": "This screen arrives with the next update of the dashboard.",
   "copy": "Copy",
-  "copied": "Copied"
+  "copied": "Copied",
+  "facebook": "Facebook",
+  "whatsapp": "WhatsApp"
 }

@@ -68,6 +68,54 @@ export function Field({
   );
 }
 
+/**
+ * A field that opens a choice of its own (the prototype's `.field` with a chevron: a product's category opens the
+ * picker sheet): the chosen value in the control, the chevron at its end.
+ */
+export function PickField({
+  label,
+  value,
+  error,
+  disabled = false,
+  onPick,
+}: {
+  label: ReactNode;
+  value: ReactNode;
+  error?: ReactNode;
+  disabled?: boolean;
+  onPick: () => void;
+}): React.JSX.Element {
+  const own = useId();
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span id={`${own}-label`} className="text-[14px] font-medium text-fg-muted">
+        {label}
+      </span>
+      <button
+        type="button"
+        aria-labelledby={`${own}-label ${own}-value`}
+        aria-haspopup="dialog"
+        disabled={disabled}
+        onClick={onPick}
+        className={[
+          'flex h-12 items-center gap-2 rounded-control border bg-surface px-3 text-left text-[16px] text-fg disabled:cursor-default',
+          error ? 'border-danger' : 'border-line-strong',
+        ].join(' ')}
+      >
+        <span id={`${own}-value`} className="min-w-0 flex-1 truncate">
+          {value}
+        </span>
+        {disabled ? null : (
+          <span className="text-neutral-500">
+            <Icon name="down" />
+          </span>
+        )}
+      </button>
+      {error ? <p className="text-[13px] font-medium text-danger">{error}</p> : null}
+    </div>
+  );
+}
+
 interface AreaFieldProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
   label: ReactNode;
   help?: ReactNode;

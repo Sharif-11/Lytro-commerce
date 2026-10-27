@@ -386,6 +386,7 @@ svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.75;str
       <optgroup label="Menu"><option value="menu">Menu</option><option value="team">Team</option><option value="staff">· add staff (sheet)</option><option value="roles">Roles · today's permissions in words</option><option value="activity">Activity</option><option value="settings">Settings</option><option value="shopdetails">· shop details</option><option value="api-keys">API keys (Slice 8)</option><option value="sh-key-new">· new key (sheet)</option><option value="sh-key-created">· key shown once (sheet)</option><option value="sh-key-revoke">· revoke (dialog)</option><option value="meta">Facebook and Meta (Slice 9b)</option><option value="meta-empty">· nothing connected</option><option value="sh-feed-regenerate">· new feed link (dialog)</option><option value="exports">· data export</option><option value="account">Account</option></optgroup>
       <optgroup label="Menu · Slice 11.6 (Part 11)"><option value="menu-staff">Menu · a staff member: rows by permission</option><option value="account-staff">Account · signed in with the staff password</option><option value="sh-password-staff">· change the staff password (sheet)</option><option value="team-full-add">Team · add staff with every seat in use (dialog)</option><option value="team-full-add-nopay">· the same, for staff who may not pay (dialog)</option><option value="activity-empty">Activity · nothing yet</option><option value="activity-filter-empty">· nothing under a filter</option><option value="menu-install-ios">Menu · install on an iPhone</option><option value="brand-soon">Settings · brand identity until its editor (Slice 11.12)</option></optgroup>
       <optgroup label="Team · Slice 11.6 (Part 12)"><option value="roles-new">Roles · create a role</option><option value="roles-empty">· no roles yet</option><option value="sh-staff-no-roles">Add staff · no roles yet (sheet)</option><option value="sh-staff-role-new">· its New role step</option><option value="sh-staff-role-back">· back, the role ticked</option></optgroup>
+      <optgroup label="Products · Slice 11.7 (Part 13)"><option value="sh-leave">Product editor · leave without saving (dialog)</option><option value="sh-leave-new">· a new product (dialog)</option><option value="sh-products-filter">Products · filter by category (sheet)</option><option value="products-filtered">· filtered by a category</option><option value="products-none">· nothing matches</option><option value="products-more">· more than 20</option><option value="products-archived">· Archived</option><option value="products-archived-toast">· archived (toast)</option><option value="products-deleted-toast">· deleted for good (toast)</option><option value="products-restored">· restored (toast)</option><option value="products-limit-now">· at the limit: Add product (banner)</option><option value="product-archived">Product editor · an archived product</option><option value="product-limit">· a save refused at the limit</option><option value="product-partial">· a part not saved</option><option value="product-copied">· the copy, just made (toast)</option><option value="product-saved-inactive">· saved, inactive (toast)</option></optgroup>
       <optgroup label="Payment page (pay.lytro.app, embedded)"><option value="pay-checkout">Pay for the plan at checkout · ৳4,741</option><option value="pay-topup">Pay a top-up · ৳500</option><option value="pay-renew">Pay a renewal · ৳449</option><option value="pay-upgrade">Pay an upgrade · ৳400</option></optgroup>
       <optgroup label="Lifecycle"><option value="renew">Renew (locked)</option><option value="renew-archived">Renew (archived, with the deletion date)</option><option value="unavailable">Unavailable (suspended)</option></optgroup>
       <optgroup label="Later phases (design only)"><option value="orders">Orders</option><option value="order">Order detail</option><option value="order-book">Book courier (sheet)</option><option value="order-new">New order</option><option value="customers">Customers</option><option value="customer">Customer detail</option><option value="payments">Payments</option><option value="methods">Payment methods</option><option value="notices">Notices</option><option value="sms">SMS events</option><option value="search">Search · orders and customers (Phase 4)</option><option value="notifications">Notifications · panel from the bell (Phase 7)</option><option value="notifications-empty">· nothing yet (Phase 7)</option><option value="notifications-read">· all read (Phase 7)</option><option value="notifications-all">Notifications · full page (Phase 7)</option><option value="storefront">Storefront settings · slides as a carousel (Slice 12)</option><option value="storefront-tiles">· one banner and two tiles (Slice 12)</option><option value="storefront-empty">· no slides yet (Slice 12)</option><option value="sh-slide">· slide editor with the focal point (Slice 12)</option><option value="sh-slide-new">· new slide (Slice 12)</option><option value="sh-slide-preview">· both crops (Slice 12)</option><option value="sh-slide-delete">· remove slide (Slice 12)</option><option value="storefront-saved">· slide saved (Slice 12)</option><option value="stock-shortfall">Stock · units held for expired orders (Phase 4)</option><option value="sh-return">· take shipped stock back (Phase 4)</option></optgroup>
@@ -3193,6 +3194,89 @@ const sheetBack12 = (back, titleText, body, foot) => sheet(titleText, body, foot
 SCREENS['sh-staff-no-roles'] = { ...SCREENS.staff, sheet: () => typed12(SCREENS.staff.sheet()).replace(ROLE_CARDS12, `$1<p class="hint">${t('roleNoneSheet')}</p>$2`) };
 SCREENS['sh-staff-role-new'] = { ...SCREENS.staff, base: 'team', sheet: () => sheetBack12('sh-staff-no-roles', t('roleNewTitle'), `${field(t('roleName'), t('roleBilling'))}${permRows12(BILLING12[3])}`, btn('p', t('roleCreatePick'), "onclick=\"go('sh-staff-role-back')\"")) };
 SCREENS['sh-staff-role-back'] = { ...SCREENS.staff, sheet: () => typed12(SCREENS.staff.sheet()).replace(ROLE_CARDS12, `$1${roleCard12(BILLING12, true)}$2`) };
+
+/* ---------- Part 13: design doc v2.9 (2026-10-27), for Slice 11.7's product editor. Leaving with changes unsaved asks
+   first (agreed in the 11.7 read): Back, a tab, a section chip or the browser's back, while something typed is not
+   saved. Keep editing stays with all of it; Leave drops it and goes. A product being edited is named; a new one is
+   "this new product". ---------- */
+Object.assign(S, {
+  lvTitle: ['সেভ না করে বের হবেন?', 'Leave without saving?'],
+  lvEdit: ['{p}-এ যা বদলেছেন, তা এখনো সেভ হয়নি। এখন বের হলে বদলগুলো হারিয়ে যাবে।', 'Your changes to {p} are not saved yet. If you leave now, they are lost.'],
+  lvNew: ['নতুন প্রোডাক্টটি এখনো সেভ হয়নি। এখন বের হলে যা লিখেছেন, তা হারিয়ে যাবে।', 'This new product is not saved yet. If you leave now, what you entered is lost.'],
+  lvStay: ['এডিট চালিয়ে যান', 'Keep editing'],
+  lvLeave: ['বের হন', 'Leave'],
+});
+const leave13 = (text, back) => dlg(t('lvTitle'), text, btn('o', t('lvStay'), `onclick="go('${back}')"`) + btn('d', t('lvLeave'), "onclick=\"go('products')\""), back);
+SCREENS['sh-leave'] = { ...SCREENS.product, base: 'product', sheet: () => leave13(t('lvEdit', { p: L('কটন টি-শার্ট', 'Cotton T-shirt') }), 'product') };
+SCREENS['sh-leave-new'] = { ...SCREENS['pf-clothing'], base: 'pf-clothing', sheet: () => leave13(t('lvNew'), 'pf-clothing') };
+
+/* The list's states (§7.3): the category filter, a sheet of the tree with one choice; the list filtered by a category,
+   the filter marked and the category a chip that clears it; nothing matching, with Show all; Show more past 20; and
+   Archived, a sixth chip once something is archived, where each product opens its page with Restore. */
+Object.assign(S, {
+  plFilterTitle: ['ক্যাটাগরি দিয়ে ফিল্টার', 'Filter by category'],
+  plAllCats: ['সব ক্যাটাগরি', 'All categories'],
+  plNone: ['এমন কোনো প্রোডাক্ট নেই।', 'No products match.'],
+  plShowAll: ['সব প্রোডাক্ট দেখুন', 'Show all products'],
+  plMore: ['আরও দেখুন', 'Show more'],
+  plShown: ['{t}টির মধ্যে {n}টি দেখাচ্ছে', 'Showing {n} of {t}'],
+  plArchived: ['আর্কাইভড', 'Archived'],
+  peArchived: ['এই প্রোডাক্ট আর্কাইভ করা আছে: বিক্রি হচ্ছে না, লিমিটেও গোনা হচ্ছে না।', 'This product is archived: it is not for sale and does not count against your limit.'],
+  peRestore: ['ফিরিয়ে আনুন', 'Restore'],
+  peRestored: ['{p} আবার লিস্টে ফিরেছে', '{p} is back in the list'],
+  peArchivedToast: ['{p} আর্কাইভ হয়েছে · "আর্কাইভড"-এ পাবেন', '{p} archived · find it under Archived'],
+  peDeletedToast: ['{p} ডিলিট হয়েছে', '{p} deleted'],
+  peCopied: ['কপি হয়েছে · চালু না করা পর্যন্ত ইনঅ্যাক্টিভ', 'Copied · inactive until you turn it on'],
+  peSaved: ['সেভ হয়েছে', 'Saved'],
+  pePartTitle: ['ছবিগুলো সেভ হয়নি।', 'The photos were not saved.'],
+  pePartBody: ['স্টোরেজ ভরে গেছে: 2 / 2 GB। বাকি সব সেভ হয়েছে; জায়গা হলে আবার সেভ করুন।', 'Storage is full: 2 of 2 GB. Everything else was saved; save again once there is room.'],
+  lrBodyNow: ['100টি প্রোডাক্ট হয়ে গেছে, তাই নতুন প্রোডাক্ট যোগ করা যাবে না। যা আছে সব বিক্রি হচ্ছে। বাড়াতে: Growth প্ল্যান বা +50 প্রোডাক্ট অ্যাড-অন।', 'You have 100, so a new product cannot be added. Everything you have keeps selling. To raise it: the Growth plan or the +50 products add-on.'],
+  mmRemove: ['সরান', 'Remove'],
+});
+const SEGS13 = (on, c) => chips([['all', t('all')], ['active', t('active')], ['inactive', t('inactive')], ['low', t('lowStock')], ['out', t('outStock')], ['archived', t('plArchived')]].filter(([k], i) => i < 5 || c[5]).map(([k, l], i) => ({ l, on: on === k, c: c[i] })));
+const ARCHIVED13 = [
+  { n: ['লিনেন পাঞ্জাবি', 'Linen panjabi'], v: 4, cat: ['পাঞ্জাবি', 'Panjabi'], min: 1450, st: 'in', active: true },
+  { n: ['উলের মাফলার', 'Wool muffler'], v: 1, cat: ['অ্যাক্সেসরিজ', 'Accessories'], min: 380, st: 'out', active: true },
+];
+const archRow13 = (p) => prodRow(p).replace(`onclick="go('product')"`, `onclick="go('product-archived')"`).replace(/<span class="trail">[\s\S]*<\/span><\/button>$/, `<span class="trail"><span class="amt num">${money(p.min)}</span><span class="st neu">${t('plArchived')}</span></span></button>`);
+const list13 = (o) => `${title('secProducts', isRO() ? '' : btn('p sm', ic('plus') + ' ' + t('addProduct'), "onclick=\"go('products-limit-now')\""))}${secChips('shop', 'products')}${o.banner || ''}
+  <div class="toolrow">${o.search ? `<div class="search">${ic('search')}<span style="color:var(--text)">${o.search}</span></div>` : searchBox(L('প্রোডাক্টের নাম', 'Product name'))}<button class="iconbtn" onclick="go('sh-products-filter')" ${o.cat ? 'style="border-color:var(--primary);color:var(--primary);background:var(--primary-soft)"' : ''}>${ic('filter')}</button></div>
+  ${o.cat ? `<div class="chips" style="margin:0"><button class="chip on">${o.cat} ${ic('x', 14)}</button></div>` : ''}${SEGS13(o.on || 'all', o.counts || [6, 5, 1, 1, 1, 2])}${o.body}${o.after || ''}`;
+const rows13 = (list) => `<div class="card flush list">${list.join('')}</div>`;
+const LIST13 = { hub: 'shop', sec: 'products', title: 'secProducts', path: '/products' };
+
+SCREENS['sh-products-filter'] = { ...SCREENS.products, base: 'products', sheet: () => sheet(t('plFilterTitle'), `<div class="card flush list">${[[0, t('plAllCats'), null, true], ...CATS.map(([d, bn, en]) => [d, L(bn, en), en, false])].map(([d, l, , on]) => `<button class="row" style="min-height:52px;padding-left:${16 + d * 24}px" onclick="go('products-filtered')"><span class="radio ${on ? 'on' : ''}"></span><span class="body"><span class="l1" style="font-size:15px">${l}</span></span></button>`).join('')}</div>`) };
+SCREENS['products-filtered'] = { ...LIST13, render: () => list13({ cat: L('টি-শার্ট', 'T-shirts'), counts: [1, 1, 0, 0, 0, 0], body: rows13([prodRow(PRODUCTS[0])]) }) };
+SCREENS['products-none'] = { ...LIST13, render: () => list13({ search: L('পাঞ্জাবি', 'panjabi'), on: 'low', counts: [0, 0, 0, 0, 0, 1], body: `<div class="card">${empty('search', t('plNone'), btn('o sm', t('plShowAll'), "onclick=\"go('products')\""))}</div>` }) };
+SCREENS['products-more'] = { ...LIST13, render: () => list13({ counts: [46, 44, 2, 3, 1, 2], body: rows13(PRODUCTS.map(prodRow)), after: `<div style="display:flex;flex-direction:column;gap:8px;align-items:stretch">${btn('o', t('plMore'))}<p class="hint" style="text-align:center">${t('plShown', { n: 20, t: 46 })}</p></div>` }) };
+SCREENS['products-archived'] = { ...LIST13, render: () => list13({ on: 'archived', body: rows13(ARCHIVED13.map(archRow13)) }) };
+SCREENS['products-restored'] = { ...SCREENS.products, toast: () => `${ic('check')} ${t('peRestored', { p: L('লিনেন পাঞ্জাবি', 'Linen panjabi') })}` };
+SCREENS['products-archived-toast'] = { ...LIST13, render: () => list13({ counts: [5, 4, 1, 1, 1, 3], body: rows13(PRODUCTS.slice(1).map(prodRow)) }), toast: () => `${ic('check')} ${t('peArchivedToast', { p: L('কটন টি-শার্ট', 'Cotton T-shirt') })}` };
+SCREENS['products-deleted-toast'] = { ...LIST13, render: () => list13({ counts: [5, 4, 1, 1, 1, 2], body: rows13(PRODUCTS.slice(1).map(prodRow)) }), toast: () => `${ic('check')} ${t('peDeletedToast', { p: L('কটন টি-শার্ট', 'Cotton T-shirt') })}` };
+// The limit, before typing: Add product (and Duplicate) at the limit shows the banner instead of the editor.
+SCREENS['products-limit-now'] = { ...LIST13, render: () => list13({ banner: `<div class="banner bad">${ic('alert')}<span class="b"><b>${t('lrTitle')}</b> ${t('lrBodyNow')}</span><a href="#" onclick="go('upgrade');return false">${t('lrUpgrade')}</a></div>`, body: rows13(PRODUCTS.map(prodRow)) }) };
+
+/* The editor's states (§7.4): an archived product's page says so and offers Restore and Delete for good, its fields
+   only shown, no Save; a save that raced the limit keeps what was typed under the drawn banner; a part refused names
+   itself while the rest is saved; the copy opens with a toast; an inactive product's save says Saved, not that it is
+   on the storefront. */
+const editorBody13 = () => SCREENS.product.render();
+const withBanner13 = (html, banner) => html.replace('<div class="two">', `${banner}<div class="two">`);
+// An archived product's page shows its own fields as they were; nothing on it changes until it is restored.
+const archivedBody13 = () => editorBody13()
+  .split(`<span class="val">${L('কটন টি-শার্ট', 'Cotton T-shirt')}</span>`).join(`<span class="val">${L('লিনেন পাঞ্জাবি', 'Linen panjabi')}</span>`)
+  .replace('<span class="val">450</span>', '<span class="val">1450</span>')
+  .replace(/<button class="thumb lg"[\s\S]*?<\/button>/, '')
+  .replace(/(<h3>${t('secStock')}<\/h3>[\s\S]*?)<div class="actions" style="margin-top:12px">[\s\S]*?<\/div>/, '$1');
+SCREENS['product-archived'] = { ...SCREENS.product, base: 'products-archived', path: '/products/linen-panjabi', render: () => withBanner13(archivedBody13().replace(/<div class="ttl"><h1>[^<]*<\/h1>[\s\S]*?<\/div>/, `<div class="ttl"><h1>${L('লিনেন পাঞ্জাবি', 'Linen panjabi')}</h1><span class="st neu">${t('plArchived')}</span></div>`).replace(/<div class="actionbar[\s\S]*$/, ''), `<div class="banner warn">${ic('alert')}<span class="b">${t('peArchived')}</span></div><div class="actions" style="margin-top:-4px">${btn('p sm', t('peRestore'), "onclick=\"go('products-restored')\"")}${btn('o sm', `<span style="color:var(--danger)">${t('deleteForever')}</span>`)}</div>`) };
+SCREENS['product-limit'] = { ...SCREENS.product, render: () => withBanner13(editorBody13(), `<div class="banner bad">${ic('alert')}<span class="b"><b>${t('lrTitle')}</b> ${t('lrBody')}</span><a href="#" onclick="go('upgrade');return false">${t('lrUpgrade')}</a></div>`) };
+SCREENS['product-partial'] = { ...SCREENS.product, render: () => withBanner13(editorBody13(), `<div class="banner bad">${ic('alert')}<span class="b"><b>${t('pePartTitle')}</b> ${t('pePartBody')}</span><a href="#" onclick="go('sh-addon-buy');return false">${t('wBuyGb')}</a></div>`) };
+SCREENS['product-copied'] = { ...SCREENS.product, render: () => editorBody13().replace(/<div class="ttl"><h1>[^<]*<\/h1>[\s\S]*?<\/div>/, `<div class="ttl"><h1>${L('কটন টি-শার্ট (copy)', 'Cotton T-shirt (copy)')}</h1><span class="st neu">${t('inactive')}</span></div>`), toast: () => `${ic('check')} ${t('peCopied')}` };
+SCREENS['product-saved-inactive'] = { ...SCREENS.product, toast: () => `${ic('check')} ${t('peSaved')}` };
+
+// The media sheet: the video goes with Remove, beside Replace (the photos' tiles carry their own remove).
+const _media13 = SCREENS['sh-media'].sheet;
+SCREENS['sh-media'] = { ...SCREENS['sh-media'], sheet: () => _media13().replace(`${btn('o xs', t('mmReplace'))}</div>`, `<span class="actions" style="flex-wrap:nowrap">${btn('o xs', t('mmReplace'))}${btn('g xs', `<span style="color:var(--danger)">${t('mmRemove')}</span>`)}</span></div>`) };
 
 (function init() { const h = location.hash.replace('#', ''); if (h && SCREENS[h]) { ST.screen = h; document.getElementById('selScreen').value = h; } render(); })();
 </script>

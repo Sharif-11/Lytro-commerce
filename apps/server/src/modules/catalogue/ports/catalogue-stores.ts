@@ -1,7 +1,9 @@
 import type {
+  MediaSize,
   PlatformOptionSetPatch,
   PresetPatch,
   ProductImageRow,
+  ProductListFilter,
   ProductStateCounts,
   SizeChartContent,
   SizeChartOwner,
@@ -256,8 +258,12 @@ export interface ProductStore {
   listProducts(
     tx: Transaction,
     tenantId: string,
-    filter: { search?: string; categoryId?: string; offset: number; limit: number },
-  ): Promise<{ rows: { product: ProductRecord; variantCount: number }[]; total: number }>;
+    filter: ProductListFilter,
+  ): Promise<{
+    rows: { product: ProductRecord; variantCount: number }[];
+    total: number;
+    counts: ProductStateCounts;
+  }>;
   listCategoryLinks(
     tx: Transaction,
     tenantId: string,
@@ -407,6 +413,8 @@ export interface CatalogueImageStore {
     ids: string[],
     kind: MediaKind,
   ): Promise<{ id: string; hash: string }[]>;
+  /** STO-01, STO-09: what each of these items stores, every file of it, and a video's length. */
+  sizesOf(tx: Transaction, tenantId: string, ids: string[]): Promise<MediaSize[]>;
   listProductImages(
     tx: Transaction,
     tenantId: string,

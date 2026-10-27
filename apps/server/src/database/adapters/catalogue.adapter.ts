@@ -15,6 +15,8 @@ import {
   type PlatformOptionSetPatch,
   type PresetPatch,
   type ProductImageRow,
+  type MediaSize,
+  type ProductListFilter,
   type ProductStateCounts,
   type SizeChartContent,
   type SizeChartOwner,
@@ -460,8 +462,12 @@ export class DrizzleProductStore implements ProductStore {
   listProducts(
     tx: Transaction,
     tenantId: string,
-    filter: { search?: string; categoryId?: string; offset: number; limit: number },
-  ): Promise<{ rows: { product: ProductRecord; variantCount: number }[]; total: number }> {
+    filter: ProductListFilter,
+  ): Promise<{
+    rows: { product: ProductRecord; variantCount: number }[];
+    total: number;
+    counts: ProductStateCounts;
+  }> {
     return this.products.listProducts(tx, tenantId, filter);
   }
 
@@ -905,6 +911,10 @@ export class DrizzleCatalogueImageStore implements CatalogueImageStore {
     kind: MediaKind,
   ): Promise<{ id: string; hash: string }[]> {
     return this.media.readyMedia(tx, tenantId, ids, kind);
+  }
+
+  sizesOf(tx: Transaction, tenantId: string, ids: string[]): Promise<MediaSize[]> {
+    return this.media.sizesOf(tx, tenantId, ids);
   }
 
   listProductImages(

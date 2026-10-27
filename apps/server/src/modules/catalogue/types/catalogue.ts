@@ -1,4 +1,5 @@
 import type {
+  ProductStateCounts,
   SelectAttribute,
   SelectAttributeOption,
   SelectBusinessTypePreset,
@@ -254,9 +255,9 @@ export interface ProductDetail {
   /** PRD-17: its own chart, else its primary category's or the nearest one above it; null for none. */
   sizeChart: SizeChartView | null;
   /** PRD-11: its photos, in the order shown (up to 50). */
-  images: ImageView[];
+  images: ProductImageView[];
   /** PRD-11: its one video, or null. */
-  video: VideoView | null;
+  video: ProductVideoView | null;
   /** DLV-07: the zones it may be delivered to; empty means wherever the shop delivers. */
   deliveryZoneIds: string[];
   createdAt: Date;
@@ -279,6 +280,20 @@ export interface ProductListItem {
   createdAt: Date;
 }
 
+/**
+ * PRD-11, STO-01: a product's photo as its editor shows it, with the bytes it takes from the shop's storage, every file
+ * of it (the media sheet's "this product 3.2 MB").
+ */
+export interface ProductImageView extends ImageView {
+  bytes: number;
+}
+
+/** PRD-11, STO-01, STO-09: a product's video as its editor shows it, with its bytes and its length. */
+export interface ProductVideoView extends VideoView {
+  bytes: number;
+  durationMs: number | null;
+}
+
 /** API-17: one page of a list, with how many there are in all. */
 export interface ProductPage {
   products: ProductListItem[];
@@ -286,4 +301,11 @@ export interface ProductPage {
   limit: number;
   total: number;
   pages: number;
+  /**
+   * PRD-12, INV-08, PRD-13: the Products page's segments -- every product the search and category pick, the active
+   * ones, the active ones low or out of stock, and the archived ones -- whatever the page was narrowed to.
+   */
+  counts: ProductStateCounts;
+  /** PRD-04: the most products the shop may have, its add-ons and overrides counted; null for no limit (PLN-19). */
+  productLimit: number | null;
 }

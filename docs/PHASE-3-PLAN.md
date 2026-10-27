@@ -1380,6 +1380,79 @@ their backend ships earlier.
     sign-in before. Where it differs from the drawing, on purpose: Google and Facebook rows carry the providers' names and
     marks, not the sign-in button's "Continue with Google"; the password's rules tick as typed and Save waits for them,
     as on the password step; and the email code's Resend line sits under Verify, as its centring intends.
+  - **11.7, Products, agreed 2026-10-27** (the read, "as proposed"): three pull requests -- 11.7a the list (segments
+    with counts, search, the category filter, the desktop table, empty, the limit banner) with Basics (photos and the
+    video, name, price, the category picker, description), the media sheet, the product link, Duplicate, Archive and
+    Delete, and saving with its errors; 11.7b options and variants; 11.7c stock and delivery, More settings, the form by
+    shop type, the opening batch and serials, and the edit states. Agreed with it:
+    1. The server's reads come first: the list's segments filtered and counted on the server, and each product photo's
+       and video's bytes with the video's length.
+    2. What the editor opens is built with it (the category picker and New category, the attribute sheets, adding or
+       fixing serials, batches); the Categories, Attributes and Stock pages stay in 11.8 and 11.9.
+    3. Photos are reordered by drag on touch and keyboard (`@dnd-kit`); the shared upload shows its progress and takes
+       a video too; IMEIs are scanned by the camera where the browser can (BarcodeDetector, a lazy fallback elsewhere).
+    4. One Save sends only what changed, part by part, and a part refused leaves the rest saved and is named; a new
+       product is one request. Leaving with changes unsaved asks first, in a small dialog sketched before it is built.
+    5. Product links show as drawn; the landing page they open is Slice 12's, before launch.
+  - **11.7a's reads, built:** `GET /products` takes `active` and `stock` and gives `counts { total, active, low, out }`,
+    the Products page's five segments over every product the search and category pick, counted as Home counts them
+    (Low and Out among the active ones, INV-08) by the one query both use. A product's `images` and `video` carry
+    `bytes`, what each takes from the shop's storage as `/media` counts it, and the video its `durationMs` (STO-01,
+    STO-09), for the media sheet's "this product 3.2 MB" and "Video · 0:42 · 14 MB".
+  - **11.7a, what the read missed, agreed 2026-10-27** (all as recommended):
+    1. Archiving keeps the drawn promise that a product can come back: the server restores an archived product,
+       counted against the limit again; an Archived chip after the five segments lists them, and an archived
+       product's page has Restore.
+    2. The media sheet's × takes a photo or the video off the product on Save, and deletes it when nothing else shows
+       it, so storage frees (PRD-11); a copy that shares it keeps it (PRD-18). What was uploaded and then left unsaved
+       is deleted too.
+    3. At the product limit, Add product and Duplicate show the limit banner at once, from the shop's usage, as a full
+       seat does; a refusal that races keeps what was typed and shows the banner in the editor.
+    Done without a question: the desktop list is the drawn rows (the read's "table" meant the same columns); the upload
+    limits come from the server, as the operator sets them (a video may be 150 MB; the sketch still says 100); and the
+    list's and editor's undrawn states are sketched in Part 13 before they are built.
+  - **11.7a's second reads, built:** `GET /products?archived=true` lists the archived products, and `counts` gains
+    `archived`; `POST /products/:id/restore` brings one back, refused with `plan_limit_reached` at the limit and in the
+    activity log (PRD-13, amended); `GET /media/usage` gives `imageMaxMb` and `videoMaxMb`; and `GET /products` gives
+    `productLimit`, the shop's own limit, so the list knows a new product will not fit for anyone who may read products,
+    as Team knows its seats, where `/usage` is only for those who may see payments.
+  - **11.7a's Products list, built:** the search and the category filter (the tree, one choice, the category then a
+    chip that clears it); the five segments asked of the server with its counts, and Archived after them once something
+    is archived; the rows with the first photo, Inactive, the variants and category, the price over the stock chip;
+    Show more past 20 with how many are shown; nothing matching with Show all; a new shop's empty list with the trial's
+    limit; and Add product, which at the limit shows the banner before anything is typed, with Usage's ways to more room
+    for someone who may pay and "the owner can raise it" for anyone else. The search, segment and category sit in the
+    address, so Back from a product returns to the same list. Global search shows the same row, opening the product.
+    Where it differs from the drawing, on purpose: a bad banner's red is the darker `danger-text`, as the drawn red on
+    its pink is 4.45:1, under AA (every bad banner, not only this one); the banner's ways to more room are the server's
+    suggestion in its order, worded as Usage words them; and its title says লিমিট, as the style guide does.
+  - **11.7a's one-request create, built:** `POST /products` takes `imageIds` and `videoId`, saved in the product's own
+    transaction and refused by their field when not a ready image or video of the shop's, so a new product with its
+    photos is one request, as the read agreed (point 7), where photos could before be set only once it existed.
+  - **11.7a's product editor, built:** Basics -- the photos and video shown, the name, the price as typed, the
+    categories (the picker with the primary, Make primary, Uncategorized for none, and New category as a step of the
+    sheet with where it sits, the storefront switch and the shop type it behaves like), the description kept as typed;
+    More settings with on sale, Duplicate (the copy opens, inactive), and Archive or Delete for good after asking; the
+    product link with Copy, Facebook and WhatsApp, a variant for it and Change the link. One Save sends only what
+    changed, part by part: a refused field is said under it and Save counts what is left to fix, a refused part is named
+    with the rest saved. A new product is one request and returns to the list with Saved (Saved alone when it is not on
+    sale). Leaving with something unsaved asks first; closing the tab asks with the browser's own question. An archived
+    product opens its own page with Restore and Delete for good. A new product, a copy and a restore at the limit show
+    the limit's banner before anything is sent. Home's link card and the product's share one link part. Where it differs
+    from the drawing, on purpose: a variant's link carries the variant's id (`?v=<id>`), as the catalog feed's links
+    do, where the drawing writes `?v=m-black`; the line under the product link reads as a link, since it opens the
+    link's sheet; and New category is a step of the picker's sheet with a way back, as Add staff's New role is. The
+    photos and video are added and arranged in the media sheet, the next commit.
+  - **11.7a's photos and video, built:** Add photo and Add video in Basics, each upload a tile with how much has gone
+    (sent by XMLHttpRequest, agreed point 5), then preparing with how long that takes, or refused with why ("6 MB ·
+    limit 5 MB", the limit the server names); storage full is a banner with Usage's ways to more room. The media sheet:
+    the photos in order, the first the cover, dragged to reorder by touch, mouse or keyboard (`@dnd-kit`, agreed
+    point 4), each with its remove; the video with its length, size and poster, Replace and Remove; the storage line
+    with this product's share. A photo or the video let go of -- removed, replaced, or with its product deleted for good
+    -- is deleted once saved when nothing else shows it, and what a visit uploaded and left unsaved is deleted on
+    leaving (agreed 2026-10-27); leaving while an upload is under way asks first. The logo's upload is the same helper.
+    Where it differs from the drawing, on purpose: the storage line writes what is used in the limit's unit ("0.2 GB of
+    2 GB"), as Usage does.
 
 
 ### Slice 12: shared storefront and product landing pages

@@ -76,6 +76,7 @@ export const ACTIVITY_GROUPS = {
     AuditAction.ProductVariantsSaved,
     AuditAction.ProductSlugChanged,
     AuditAction.ProductDeleted,
+    AuditAction.ProductRestored,
     AuditAction.ProductImagesSaved,
     AuditAction.ProductVideoSaved,
     AuditAction.MediaDeleted,

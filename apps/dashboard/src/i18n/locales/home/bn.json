@@ -12,9 +12,6 @@
   "ckShop": "দোকান তৈরি",
   "ckSms": "SMS ইভেন্ট বাছুন",
   "ckWallet": "পেমেন্টের জন্য ওয়ালেট নম্বর দিন",
-  "copied": "কপি হয়েছে",
-  "copy": "কপি",
-  "facebook": "Facebook",
   "fastSpend": "গত এক ঘণ্টায় এই সাইকেলের 5%-এর বেশি রিকোয়েস্ট গেছে। কিছু আটকানো হয়নি; কী-গুলো দেখে নিন।",
   "jobBalance": "ব্যালেন্স {{amount}}, SMS বন্ধ হতে পারে",
   "jobExpiring_one": "{{count}}টি ব্যাচ 30 দিনে মেয়াদ শেষ",
@@ -46,6 +43,5 @@
   "stProducts": "প্রোডাক্ট",
   "todayJobs": "আজকের কাজ",
   "trialDaysLeft": "ট্রায়ালের দিন বাকি",
-  "whatsapp": "WhatsApp",
   "wSeeKeys": "কী দেখুন"
 }

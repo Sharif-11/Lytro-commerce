@@ -5,6 +5,7 @@ import {
   desc,
   eq,
   inArray,
+  isNotNull,
   isNull,
   notExists,
   exists,
@@ -32,18 +33,28 @@ export type ProductPatch = Partial<
   Omit<InsertProduct, 'id' | 'tenantId' | 'slug' | 'createdAt' | 'minPrice' | 'maxPrice'>
 >;
 
-/** PRD-12, INV-08: a shop's products not archived, the active ones, and the active ones low or out of stock. */
+/**
+ * PRD-12, INV-08, PRD-13: a shop's products not archived, the active ones, the active ones low or out of stock, and
+ * the archived ones.
+ */
 export interface ProductStateCounts {
   total: number;
   active: number;
   low: number;
   out: number;
+  archived: number;
 }
 
 export interface ProductListFilter {
   search?: string;
   /** A category id, or 'uncategorized' for products filed in none (PRD-03). */
   categoryId?: string;
+  /** PRD-13: the archived ones instead of the rest. */
+  archived?: boolean;
+  /** PRD-12: the active ones, or the inactive ones; both when left out. */
+  active?: boolean;
+  /** INV-08: the ones in this stock state, a product's being its best variant's (CCH-08). */
+  stockState?: SelectProduct['stockState'];
   offset: number;
   limit: number;
 }
@@ -106,20 +117,30 @@ export class ProductRepository {
 
   /**
    * PRD-12, INV-08: the shop's products not archived, how many are active, and how many active ones are low or out of
-   * stock (a product's state is its best variant's, CCH-08) -- the counts Home shows.
+   * stock (a product's state is its best variant's, CCH-08) -- the counts Home shows -- and how many are archived.
    */
   async countByState(tx: Transaction, tenantId: string): Promise<ProductStateCounts> {
     await this.transactions.setTenantContext(tx, tenantId);
+    return this.stateCounts(tx, eq(products.tenantId, tenantId));
+  }
+
+  /**
+   * The counts by state of the products `where` picks, archived or not: Home's, and the Products page's segments
+   * (PRD-12, PRD-13).
+   */
+  private async stateCounts(tx: Transaction, where: SQL | undefined): Promise<ProductStateCounts> {
+    const live = sql`${products.deletedAt} IS NULL`;
     const rows = await tx
       .select({
-        total: sql<number>`count(*)::int`,
-        active: sql<number>`count(*) FILTER (WHERE ${products.active})::int`,
-        low: sql<number>`count(*) FILTER (WHERE ${products.active} AND ${products.stockState} = 'low')::int`,
-        out: sql<number>`count(*) FILTER (WHERE ${products.active} AND ${products.stockState} = 'out')::int`,
+        total: sql<number>`count(*) FILTER (WHERE ${live})::int`,
+        active: sql<number>`count(*) FILTER (WHERE ${live} AND ${products.active})::int`,
+        low: sql<number>`count(*) FILTER (WHERE ${live} AND ${products.active} AND ${products.stockState} = 'low')::int`,
+        out: sql<number>`count(*) FILTER (WHERE ${live} AND ${products.active} AND ${products.stockState} = 'out')::int`,
+        archived: sql<number>`count(*) FILTER (WHERE ${products.deletedAt} IS NOT NULL)::int`,
       })
       .from(products)
-      .where(and(eq(products.tenantId, tenantId), isNull(products.deletedAt)));
-    return rows[0] ?? { total: 0, active: 0, low: 0, out: 0 };
+      .where(where);
+    return rows[0] ?? { total: 0, active: 0, low: 0, out: 0, archived: 0 };
   }
 
   /** PRD-02, LND-04: every slug that is `base` or `base-<n>`, current or kept as a redirect. */
@@ -208,17 +229,18 @@ export class ProductRepository {
     await tx.delete(products).where(and(eq(products.tenantId, tenantId), eq(products.id, id)));
   }
 
-  /** PRD-12: the dashboard's list, newest first within the shop's own order, archived ones left out. */
+  /**
+   * PRD-12, PRD-13: the dashboard's list, newest first within the shop's own order, archived ones left out unless they
+   * are asked for; with the counts by state of every product the search and category pick, whatever `archived`,
+   * `active` and `stockState` narrow the rows to.
+   */
   async listProducts(
     tx: Transaction,
     tenantId: string,
     filter: ProductListFilter,
-  ): Promise<{ rows: ProductListRow[]; total: number }> {
+  ): Promise<{ rows: ProductListRow[]; total: number; counts: ProductStateCounts }> {
     await this.transactions.setTenantContext(tx, tenantId);
-    const conditions: (SQL | undefined)[] = [
-      eq(products.tenantId, tenantId),
-      isNull(products.deletedAt),
-    ];
+    const conditions: (SQL | undefined)[] = [eq(products.tenantId, tenantId)];
     if (filter.search) {
       conditions.push(sql`${products.name} ILIKE ${`%${escapeLike(filter.search)}%`}`);
     }
@@ -236,8 +258,13 @@ export class ProductRepository {
       );
     if (filter.categoryId === 'uncategorized') conditions.push(notExists(filed));
     else if (filter.categoryId) conditions.push(exists(filed));
+    const counted = and(...conditions);
+    conditions.push(filter.archived ? isNotNull(products.deletedAt) : isNull(products.deletedAt));
+    if (filter.active !== undefined) conditions.push(eq(products.active, filter.active));
+    if (filter.stockState) conditions.push(eq(products.stockState, filter.stockState));
     const where = and(...conditions);
 
+    const counts = await this.stateCounts(tx, counted);
     const totals = await tx.select({ total: count() }).from(products).where(where);
     const rows = await tx
       .select()
@@ -246,7 +273,7 @@ export class ProductRepository {
       .orderBy(asc(products.sortOrder), desc(products.createdAt), asc(products.id))
       .limit(filter.limit)
       .offset(filter.offset);
-    const counts =
+    const variantCounts =
       rows.length === 0
         ? []
         : await tx
@@ -264,10 +291,11 @@ export class ProductRepository {
               ),
             )
             .groupBy(productVariants.productId);
-    const variantsOf = new Map(counts.map((row) => [row.productId, row.total]));
+    const variantsOf = new Map(variantCounts.map((row) => [row.productId, row.total]));
     return {
       rows: rows.map((product) => ({ product, variantCount: variantsOf.get(product.id) ?? 0 })),
       total: totals[0]?.total ?? 0,
+      counts,
     };
   }
 
