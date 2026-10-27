@@ -1453,6 +1453,43 @@ their backend ships earlier.
     leaving (agreed 2026-10-27); leaving while an upload is under way asks first. The logo's upload is the same helper.
     Where it differs from the drawing, on purpose: the storage line writes what is used in the limit's unit ("0.2 GB of
     2 GB"), as Usage does.
+  - **11.7b, options and variants, agreed 2026-10-27** (the read, all as recommended; every read and write it needs
+    already exists):
+    1. "Asked when ordering" stays text or a number (ATR-08, ATL-02), so the sketch's bakery is fixed: Flavour splits
+       the cake into variants, and "Message on the cake" is asked when ordering.
+    2. On a product that exists, the table's stock column is what each variant can sell, read-only; a variant added
+       later starts at 0, and stock is added from the Stock card (11.7c) or the Stock page (11.9). A new product's
+       opening stock is typed per variant, with Fill all.
+    3. A variant's barcode, weight, delivery charge and mode and on-sale go in a variant sheet, built in 11.7c and
+       sketched first; 11.7b's table stays as drawn.
+    4. Removing an option whose variants hold stock asks first: they stop selling once saved, and their stock stays.
+    Done without a question: Part 14 drawn first (the bakery fixed, a describing value entered by its type, a swatch
+    per option with the library's colours fixed, New attribute as a step, Show all past 6 variants, Fill all for one
+    option's variants, the 3 and 100 limits, the remove question, the table of a product that exists); the palette is
+    the six drawn colours, the browser's colour picker, and "From a photo" as a picture swatch, never a sampled colour;
+    the variants and the descriptions are two more Save parts, and a new product stays one request.
+  - **11.7b's options and variants, built:** the second card -- Add attribute (the library and the shop's own, the
+    category's suggestions, Create … as a step with the name, the type and what a number measures; a role the type
+    cannot take, or a 4th splitting attribute, greyed with why), each attribute as a mini card with its role: splitting
+    ones with their options and swatches, the option sets that fit them inserted in one tap; describing ones with their
+    value, entered in a sheet by type (text, one option, several, a number in its unit, yes or no); asked ones with
+    what the shopper writes. The options sheet adds an option typed (a number in its unit) or a set, gives the shop's
+    own option a swatch (six colours, Other colour, From a photo, None) saved at once for every product using it,
+    saves the options as a set, and takes the attribute off the product. "Sizes share one stock" with each pack's
+    amount and the opening stock in the product's unit (INV-24), locked while stock is held. The table: the price
+    (empty sells at the product's), a new product's opening stock or a saved one's "Can sell" (with `inventory:read`),
+    the SKU, Fill all for every variant or one option's, the first 6 then Show all; past 100 variants a banner instead,
+    and Save says what is left to fix. Removing an option or the attribute whose variants hold stock asks first, naming
+    how much. A refused SKU is said on its row. A new product sends its variants and descriptions in its one request;
+    an edit saves them as two more parts, the variants first. Where it differs from the drawing, on purpose: the table
+    lists variants in the server's order, the first attribute's options outermost, as the bakery draws them (the
+    T-shirt draws its first column changing fastest); a row selling at the product's price shows that price greyed, as
+    a hint, rather than written in; the option sets a card and the sheet offer are those sharing a value with the
+    attribute's options, or every set while it has none (the drawing lists all of them under Size); a splitting
+    attribute is taken off the product from its options sheet, as a describing one is from its value sheet; splitting
+    a product whose variants hold stock by one more attribute asks first too, since every combination changes and the
+    variants there stop selling (the agreed question, one case further); and the locked sharing switch says why either
+    way ("Can be switched on only once the stock is 0", where the drawing has only the "off" line).
 
 
 ### Slice 12: shared storefront and product landing pages

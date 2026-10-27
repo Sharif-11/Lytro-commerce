@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useBlocker, useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { ApiClientError } from '@lytronix/api-client';
-import { MediaKind, Permission } from '@lytronix/validators';
+import { MediaKind, Permission, StockTracking, StockUnit } from '@lytronix/validators';
+import { useProductDefaults, useProductStock } from '@/api/attributes';
 import { useProductRoom } from '@/api/catalogue';
 import { unusedMedia } from '@/api/media';
 import {
@@ -27,9 +28,11 @@ import {
   isDirty,
   NEW_PRODUCT,
   problemsOf,
+  withIds,
   withSaved,
   type ProductForm,
 } from '@/lib/product-form';
+import { overLimit } from '@/lib/variant-matrix';
 import { allows } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
 import { ShellPage } from '@/shell/shell-page';
@@ -45,11 +48,13 @@ import { useProductMedia } from './product-media';
 import { StorageFullBanner } from './storage-full-banner';
 import { MoreSettings } from './more-settings';
 import { RemoveDialog } from './remove-dialog';
+import { VariantsCard, type StockKind } from './variants-card';
 
 /**
- * The product editor (TENANT-DASHBOARD-DESIGN §7.4, the prototype's `product` and Part 13's states), Slice 11.7a's
- * part of it: Basics, More settings with Duplicate, Archive and Delete, the product link, one Save, and the question
- * before leaving with something unsaved. An archived product opens its own page with Restore.
+ * The product editor (TENANT-DASHBOARD-DESIGN §7.4, the prototype's `product` and Parts 13 and 14's states): Basics,
+ * More settings with Duplicate, Archive and Delete, the product link, one Save, and the question before leaving with
+ * something unsaved (Slice 11.7a); options and variants (Slice 11.7b). An archived product opens its own page with
+ * Restore.
  */
 export function ProductEditor({ productId }: { productId: string | null }): React.JSX.Element {
   const { t } = useTranslation('shop');
@@ -97,9 +102,28 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
   const [form, setForm] = useState<ProductForm>(saved);
   const [tried, setTried] = useState(false);
   const [serverProblems, setServerProblems] = useState<Record<string, string>>({});
+  // The server's problems with the options, variants and descriptions, by field ("variants.2.sku").
+  const [matrixProblems, setMatrixProblems] = useState<Record<string, string>>({});
   const [stop, setStop] = useState<Stop | null>(null);
   const [removing, setRemoving] = useState<'archive' | 'hard' | null>(null);
   const room = useProductRoom();
+  // PST-02, PST-06: a new product is what its primary category's type, or the shop's, makes it; either way, its
+  // suggested attributes come from there.
+  const defaults = useProductDefaults(form.primaryCategoryId);
+  const stock = useProductStock(product?.id ?? null, {
+    enabled: allows(viewer, [Permission.InventoryRead]),
+  });
+  const kind: StockKind = product
+    ? {
+        tracked: product.stockTracking === StockTracking.Tracked,
+        serial: product.serialTracked,
+        unit: product.stockUnit,
+      }
+    : {
+        tracked: (defaults.data?.stockTracking ?? StockTracking.Tracked) === StockTracking.Tracked,
+        serial: defaults.data?.serialTracked ?? false,
+        unit: defaults.data?.stockUnit ?? StockUnit.Piece,
+      };
   const create = useCreateProduct();
   const save = useSaveProduct(product?.id ?? '');
   const duplicate = useDuplicateProduct(product?.id ?? '');
@@ -162,12 +186,19 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
         : serverProblems.basePrice,
     description: serverProblems.description,
     category: serverProblems.categoryIds ?? serverProblems.primaryCategoryId,
+    // ATR-14: past 100 variants at once; a splitting attribute with no option yet once Save is tried.
+    variants:
+      overLimit(form.splits) || (tried && form.splits.some((each) => each.options.length === 0))
+        ? 'variants'
+        : undefined,
+    rows: Object.keys(matrixProblems).length > 0 ? 'rows' : undefined,
   };
   const count = Object.values(problems).filter(Boolean).length;
 
   function update(patch: Partial<ProductForm>): void {
     setForm((current) => ({ ...current, ...patch }));
     setServerProblems({});
+    setMatrixProblems({});
   }
 
   function leaveTo(to: '/$shop/products' | '/$shop/products/$productId', productId?: string): void {
@@ -182,9 +213,10 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
   function submit(): void {
     setTried(true);
     setStop(null);
-    if (own.name || own.price) return;
+    if (own.name || own.price || overLimit(form.splits)) return;
+    if (form.splits.some((each) => each.options.length === 0)) return;
     if (product === null) {
-      create.mutate(createBody(form), {
+      create.mutate(createBody(form, { opening: kind.tracked }), {
         onSuccess: (made) => {
           forget([...made.images.map((image) => image.id), made.video?.id ?? null], []);
           showToast(savedWords(made));
@@ -193,7 +225,11 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
         onError: (error) => {
           if (error instanceof ApiClientError && error.code === 'plan_limit_reached') {
             setStop({ kind: 'limit', refused: true });
-          } else if (error instanceof ApiClientError) setServerProblems(error.fieldProblems());
+          } else if (error instanceof ApiClientError) {
+            const fields = error.fieldProblems();
+            setServerProblems(fields);
+            setMatrixProblems(matrixOf(fields));
+          }
         },
       });
       return;
@@ -207,8 +243,14 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
           saved,
           form,
           parts.map((each) => each.part).filter((part) => !refused.has(part)),
+          outcome.product,
         );
         setSaved(next);
+        // The variants this save made are saved ones now.
+        setForm((current) => ({
+          ...current,
+          variants: withIds(current.variants, outcome.product),
+        }));
         forget(
           [...next.imageIds, next.videoId, ...form.imageIds, form.videoId],
           [...saved.imageIds, saved.videoId],
@@ -216,10 +258,20 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
         const fields = outcome.refused.find((each) => each.part === 'fields');
         if (fields?.error instanceof ApiClientError)
           setServerProblems(fields.error.fieldProblems());
+        setMatrixProblems(
+          Object.assign(
+            {},
+            ...outcome.refused
+              .filter((each) => each.part === 'variants' || each.part === 'attributes')
+              .map((each) =>
+                each.error instanceof ApiClientError ? matrixOf(each.error.fieldProblems()) : {},
+              ),
+          ) as Record<string, string>,
+        );
         const named = outcome.refused.filter(
           (each) =>
             !(
-              each.part === 'fields' &&
+              (each.part === 'fields' || each.part === 'variants' || each.part === 'attributes') &&
               each.error instanceof ApiClientError &&
               Object.keys(each.error.fieldProblems()).length > 0
             ),
@@ -300,6 +352,17 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
                 onDismiss={media.dismiss}
               />
             }
+          />
+          <VariantsCard
+            form={form}
+            saved={saved}
+            product={product}
+            kind={kind}
+            suggestedIds={defaults.data?.suggestedAttributeIds ?? []}
+            stock={stock.data}
+            readOnly={!mayManage}
+            problems={matrixProblems}
+            onChange={update}
           />
           {product ? (
             <MoreSettings
@@ -407,6 +470,21 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
 /** A part the server refused, by name (Part 13's `product-partial`). */
 const PART_WORDS: Record<string, string> = {
   fields: 'partFields',
+  variants: 'partVariants',
+  attributes: 'partAttributes',
   images: 'partImages',
   video: 'partVideo',
 };
+
+/** The server's problems with the options, variants and descriptions, out of all it found. */
+function matrixOf(fields: Record<string, string>): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(fields).filter(
+      ([field]) =>
+        field.startsWith('variants') ||
+        field.startsWith('variantAttributes') ||
+        field.startsWith('attributes') ||
+        field.startsWith('sharedOpeningStock'),
+    ),
+  );
+}
