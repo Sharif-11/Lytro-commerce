@@ -22,6 +22,7 @@ import {
   StockUnit,
 } from '../../db/enums';
 import { serialsField } from '../inventory/stock';
+import { productPhotoIdsField } from '../media/media';
 import { FieldProblemCode } from '../../validation/field-problem';
 import { newBatchField } from '../inventory/stock';
 import {
@@ -313,6 +314,9 @@ export const createProductSchema = z
     variantAttributes: variantAttributesField.optional(),
     variants: newVariantsField.optional(),
     attributes: attributesField.optional(),
+    // PRD-11: its photos and its one video, saved with it (agreed for Slice 11.7a: a new product is one request).
+    imageIds: productPhotoIdsField.optional(),
+    videoId: catalogueIdSchema.optional(),
   })
   .superRefine((value, ctx) => {
     checkFields(value, ctx);

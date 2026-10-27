@@ -1426,6 +1426,9 @@ their backend ships earlier.
     Where it differs from the drawing, on purpose: a bad banner's red is the darker `danger-text`, as the drawn red on
     its pink is 4.45:1, under AA (every bad banner, not only this one); the banner's ways to more room are the server's
     suggestion in its order, worded as Usage words them; and its title says লিমিট, as the style guide does.
+  - **11.7a's one-request create, built:** `POST /products` takes `imageIds` and `videoId`, saved in the product's own
+    transaction and refused by their field when not a ready image or video of the shop's, so a new product with its
+    photos is one request, as the read agreed (point 7), where photos could before be set only once it existed.
 
 
 ### Slice 12: shared storefront and product landing pages

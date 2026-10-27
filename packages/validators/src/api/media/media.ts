@@ -81,22 +81,23 @@ export const mediaListQuerySchema = z.object({
 });
 export type MediaListQuery = z.infer<typeof mediaListQuerySchema>;
 
-// PUT products/:id/images (PRD-11): the product's photos, in the order shown, each a ready image of the shop's; an
-// empty list removes them all. A photo is listed once.
-export const productImagesSchema = z.object({
-  mediaIds: z
-    .array(catalogueIdSchema)
-    .max(PRODUCT_IMAGES_MAX)
-    .superRefine((ids, ctx) => {
-      if (new Set(ids).size !== ids.length) {
-        ctx.addIssue({
-          code: 'custom',
-          message: 'List each photo once.',
-          params: { problem: FieldProblemCode.NotAllowed },
-        });
-      }
-    }),
-});
+// PRD-11: a product's photos, in the order shown, each a ready image of the shop's, up to 50, each listed once -- for
+// PUT products/:id/images and a new product alike.
+export const productPhotoIdsField = z
+  .array(catalogueIdSchema)
+  .max(PRODUCT_IMAGES_MAX)
+  .superRefine((ids, ctx) => {
+    if (new Set(ids).size !== ids.length) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'List each photo once.',
+        params: { problem: FieldProblemCode.NotAllowed },
+      });
+    }
+  });
+
+// PUT products/:id/images (PRD-11): the product's photos; an empty list removes them all.
+export const productImagesSchema = z.object({ mediaIds: productPhotoIdsField });
 export type ProductImagesInput = z.infer<typeof productImagesSchema>;
 
 // PUT shop-settings/logo (TEN-16): the shop's logo, one of its ready images, or null for its monogram.

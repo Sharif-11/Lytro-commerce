@@ -392,6 +392,38 @@ describeIfDatabase('attaching images (PRD-11, PRD-17, ATR-18, TEN-16)', () => {
     expect(((await shop.get('/media')).body as { total: number }).total).toBe(2);
   });
 
+  it('saves a new product with its photos in one request, or not at all (PRD-11)', async () => {
+    const shop = await openShop(port, texts, 'media');
+    const first = await upload(shop, await photo());
+    const second = await upload(shop, await photo(400, 400));
+    const made = await shop.post('/products', {
+      name: 'Kurta',
+      basePrice: 900,
+      imageIds: [second.id, first.id],
+    });
+    expect(made.status, JSON.stringify(made.body)).toBe(201);
+    expect((made.body as { images: { id: string }[] }).images.map((image) => image.id)).toEqual([
+      second.id,
+      first.id,
+    ]);
+
+    // An id that is no ready image of the shop's, or a photo twice, leaves no product behind.
+    const refused = await shop.post('/products', {
+      name: 'Ghost',
+      basePrice: 1,
+      imageIds: [first.id, randomUUID()],
+    });
+    expect(refused.status).toBe(400);
+    expect(fieldsOf(refused)).toEqual({ imageIds: 'not_found' });
+    const twice = await shop.post('/products', {
+      name: 'Ghost',
+      basePrice: 1,
+      imageIds: [first.id, first.id],
+    });
+    expect(fieldsOf(twice)).toEqual({ imageIds: 'not_allowed' });
+    expect(((await shop.get('/products?search=Ghost')).body as { total: number }).total).toBe(0);
+  });
+
   it('attaches only ready images of the shop, up to the limit, each once', async () => {
     const shop = await openShop(port, texts, 'media');
     const other = await openShop(port, texts, 'media');

@@ -296,6 +296,7 @@ export class ProductService {
         primaryCategoryId,
       });
       await this.products.replaceCategoryLinks(tx, shop.id, product.id, categoryIds);
+      await this.attachMedia(tx, shop.id, product.id, input);
       await this.writeMatrixAttributes(tx, shop.id, product.id, matrix, new Set());
       await this.writeDescriptions(tx, shop.id, product.id, described, matrix.attributes.length);
       await this.writeVariants(tx, shop.id, product.id, matrix.planned, [], input.variants, shared);
@@ -871,6 +872,32 @@ export class ProductService {
   }
 
   // --- Building blocks ---
+
+  /**
+   * PRD-11: a new product's photos and video, in its own transaction, so it is saved with them or not at all (agreed for
+   * Slice 11.7a); an id that is not a ready image, or video, of the shop's is refused by its field.
+   */
+  private async attachMedia(
+    tx: Transaction,
+    tenantId: string,
+    productId: string,
+    input: Pick<CreateProductInput, 'imageIds' | 'videoId'>,
+  ): Promise<void> {
+    if (input.imageIds && input.imageIds.length > 0) {
+      try {
+        await this.photos.setProductImages(tx, tenantId, productId, input.imageIds);
+      } catch (error) {
+        refuseUnattachable(error, 'imageIds');
+      }
+    }
+    if (input.videoId) {
+      try {
+        await this.products.updateProduct(tx, tenantId, productId, { videoId: input.videoId });
+      } catch (error) {
+        refuseUnattachable(error, 'videoId');
+      }
+    }
+  }
 
   private async findLive(
     tx: Transaction,
