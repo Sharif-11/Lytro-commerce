@@ -11,7 +11,7 @@ import {
   STOCK_NOTE_MAX_LENGTH,
   SUPPLIER_NAME_MAX_LENGTH,
 } from '../../common/limits';
-import { BatchState, SerialStatus, StockEditReason } from '../../db/enums';
+import { BatchState, SerialFormat, SerialStatus, StockEditReason } from '../../db/enums';
 import { FieldProblemCode } from '../../validation/field-problem';
 import {
   catalogueIdSchema,
@@ -123,6 +123,14 @@ export type BatchListQuery = z.infer<typeof batchListQuerySchema>;
 // POST products/:id/variants/:variantId/serials (INV-14): serials for units already held that have none yet.
 export const addSerialsSchema = z.object({ serials: serialsField });
 export type AddSerialsInput = z.infer<typeof addSerialsSchema>;
+
+// POST serials/check (INV-23): which of the serials being entered a unit the shop holds already has, so the entry says
+// so before anything is saved. Read as the product's serials are (an IMEI keeps only its digits).
+export const checkSerialsSchema = z.object({
+  serials: serialsField,
+  format: z.nativeEnum(SerialFormat),
+});
+export type CheckSerialsInput = z.infer<typeof checkSerialsSchema>;
 
 // PATCH products/:id/serials/:serialId (INV-14): a serial typed wrong, corrected while its unit is in stock.
 export const correctSerialSchema = z.object({ serial: serialField });

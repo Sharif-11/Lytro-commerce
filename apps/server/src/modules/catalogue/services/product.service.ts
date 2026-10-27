@@ -315,6 +315,9 @@ export class ProductService {
           variantId: holderId,
           quantity: String(input.sharedOpeningStock),
           ...(input.sharedOpeningBatch ? { batch: input.sharedOpeningBatch } : {}),
+          ...(input.sharedOpeningUnitCost !== undefined
+            ? { unitCost: String(input.sharedOpeningUnitCost) }
+            : {}),
         });
       }
       if (opening.length > 0) {
@@ -1235,8 +1238,8 @@ export class ProductService {
   }
 
   /**
-   * INV-03, INV-12, INV-14: the opening stock each new variant was given, by the variant it became, with its batch and
-   * the serials of its units, as stored.
+   * INV-03, INV-10, INV-12, INV-14: the opening stock each new variant was given, by the variant it became, with its
+   * batch, the serials of its units, as stored, and what each unit cost.
    */
   private async openingLines(
     tx: Transaction,
@@ -1257,6 +1260,7 @@ export class ProductService {
       const variantId = ids.get(plan.key);
       const batch = plan.spec?.openingBatch;
       const serials = plan.spec?.openingSerials?.map((raw) => normalizeSerial(raw, format));
+      const cost = plan.spec?.openingUnitCost;
       return variantId
         ? [
             {
@@ -1264,6 +1268,7 @@ export class ProductService {
               quantity: String(plan.spec?.openingStock ?? 0),
               ...(batch ? { batch } : {}),
               ...(serials ? { serials } : {}),
+              ...(cost !== undefined ? { unitCost: String(cost) } : {}),
             },
           ]
         : [];

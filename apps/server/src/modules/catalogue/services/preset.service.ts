@@ -23,8 +23,10 @@ import type {
   PresetRecord,
   PresetView,
   ProductDefaults,
+  ProductFormDefaults,
 } from '../types/catalogue';
 import { CatalogueActivity } from './catalogue-activity';
+import { ShopPaymentPolicyService } from './shop-payment-policy.service';
 
 // A shop that has not chosen a type gets what "Other" gives: pieces, counted, no batches or serials.
 const FALLBACK_TYPE = 'other';
@@ -86,6 +88,7 @@ export class PresetService {
     @Inject(ATTRIBUTE_STORE) private readonly attributes: AttributeStore,
     @Inject(TenantService) private readonly tenants: TenantService,
     @Inject(CatalogueActivity) private readonly activity: CatalogueActivity,
+    @Inject(ShopPaymentPolicyService) private readonly shopPolicy: ShopPaymentPolicyService,
   ) {}
 
   async list(): Promise<PresetView[]> {
@@ -103,15 +106,18 @@ export class PresetService {
     };
   }
 
-  /** PST-02, PST-06: what a new product filed under this category starts with; a category the shop lacks is 404. */
+  /**
+   * PST-02, PST-06, PRD-08: what a new product filed under this category starts with, and the shop's default payment
+   * policy the form shows; a category the shop lacks is 404.
+   */
   productDefaults(
     shop: { id: string; businessType: string | null },
     categoryId: string | null,
-  ): Promise<ProductDefaults> {
+  ): Promise<ProductFormDefaults> {
     return this.transactions.run(async (tx) => {
       const defaults = await this.defaultsWithin(tx, shop, categoryId);
       if (!defaults) throw new ApiError('not_found', 'CategoryNotFound', {});
-      return defaults;
+      return { ...defaults, shopPaymentPolicy: await this.shopPolicy.within(tx, shop.id) };
     });
   }
 

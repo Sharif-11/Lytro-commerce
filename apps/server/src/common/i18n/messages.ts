@@ -1171,6 +1171,10 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'Serial numbers added.',
     bn: 'সিরিয়াল নম্বর যোগ হয়েছে।',
   },
+  SerialsChecked: {
+    en: 'Serial numbers checked.',
+    bn: 'সিরিয়াল নম্বর মিলিয়ে দেখা হয়েছে।',
+  },
   SerialCorrected: {
     en: 'Serial number corrected.',
     bn: 'সিরিয়াল নম্বর ঠিক করা হয়েছে।',

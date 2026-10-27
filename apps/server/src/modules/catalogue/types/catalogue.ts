@@ -132,6 +132,15 @@ export interface ProductDefaults extends PresetDefaults {
   fromCategoryId: string | null;
 }
 
+/**
+ * The product form's defaults (GET /product-defaults): the type's, with the shop's default payment policy, which a
+ * product with no policy of its own follows (PRD-08). Read with `products:read`, where `/shop-settings` needs
+ * `settings:manage`.
+ */
+export interface ProductFormDefaults extends ProductDefaults {
+  shopPaymentPolicy: ShopPaymentPolicy;
+}
+
 export interface PresetView {
   key: string;
   labelBn: string;

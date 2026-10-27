@@ -1505,6 +1505,13 @@ their backend ships earlier.
   - **11.7c, what building 11.7b showed, agreed 2026-10-28:** a product with no options keeps its SKU and barcode under
     More settings, shown only while it has none. Done without a question: a product with serials shows Opening serials
     in its table where others show SKU, as drawn, its SKU in the variant sheet. Part 15 draws all of it first.
+  - **11.7c's server additions, built:** `POST /products` takes each variant's `openingUnitCost` and the shared stock's
+    `sharedOpeningUnitCost`: the opening movement carries it and the variant keeps it as its cost entered by hand, which
+    a purchase receipt carrying a cost then averages (INV-10); refused without opening stock, and on a size of a shared
+    stock. `POST /serials/check` says which of the serials being entered a unit the shop holds already has, read as the
+    product's serials are, for anyone who may enter them (`products:manage` or `inventory:manage`), so the entry flags
+    them before saving (INV-23). `GET /product-defaults` carries `shopPaymentPolicy`, the shop's default, for anyone who
+    may read products (PRD-08).
 
 
 ### Slice 12: shared storefront and product landing pages

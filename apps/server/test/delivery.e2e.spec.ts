@@ -7,7 +7,8 @@ import { AppModule } from '../src/app/app.module';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase } from './support/database';
-import { errorOf, fieldsOf, openShop, type ShopClient } from './support/shop-client';
+import { getJson } from './support/http';
+import { errorOf, fieldsOf, openShop, staffWith, type ShopClient } from './support/shop-client';
 import { SmsCapture } from './support/sms-capture';
 
 // Phase 3 Slice 1c: the canonical location list (CUS-08), delivery zones around the home area (DLV-01 to DLV-04,
@@ -525,6 +526,27 @@ describeIfDatabase("the shop's default payment policy (PRD-08)", () => {
     expect(none.body).toMatchObject({ defaultPaymentPolicy: 'none', defaultAdvanceAmount: null });
     const stray = await shop.patch('/shop-settings', { defaultAdvanceAmount: 100 });
     expect(fieldsOf(stray)).toEqual({ defaultAdvanceAmount: 'not_allowed' });
+  });
+
+  it("gives the product form the shop's default, to someone who may only read products", async () => {
+    const shop = await openShop(port, texts, 'policy-form');
+    expect((await shop.get('/product-defaults')).body).toMatchObject({
+      shopPaymentPolicy: { defaultPaymentPolicy: 'none', defaultAdvanceAmount: null },
+    });
+    await shop.patch('/shop-settings', {
+      defaultPaymentPolicy: 'partial_advance',
+      defaultAdvanceAmount: 200,
+    });
+    const reader = await staffWith(port, texts, admin, shop, ['products:read']);
+    const seen = await getJson(port, '/product-defaults', reader);
+    expect(seen.status).toBe(200);
+    expect(seen.body).toMatchObject({
+      shopPaymentPolicy: {
+        defaultPaymentPolicy: 'partial_advance',
+        defaultAdvanceAmount: '200.00',
+      },
+    });
+    expect((await getJson(port, '/shop-settings', reader)).status).toBe(403);
   });
 
   it("shows each product the policy that applies: its own, else the shop's default", async () => {

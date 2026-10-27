@@ -43,6 +43,15 @@ export const productDefaultsSchema = z.object({
 });
 export class ProductDefaultsDto extends createZodDto(productDefaultsSchema) {}
 
+// PRD-08: the product form's defaults, with the shop's default payment policy.
+export const productFormDefaultsSchema = productDefaultsSchema.extend({
+  shopPaymentPolicy: z.object({
+    defaultPaymentPolicy: z.nativeEnum(PaymentPolicy),
+    defaultAdvanceAmount: z.string().nullable(),
+  }),
+});
+export class ProductFormDefaultsDto extends createZodDto(productFormDefaultsSchema) {}
+
 export const presetViewSchema = z.object({
   key: z.string(),
   labelBn: z.string(),

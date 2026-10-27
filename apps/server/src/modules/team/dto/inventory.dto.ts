@@ -3,6 +3,7 @@ import { createZodDto } from 'nestjs-zod';
 import {
   addSerialsSchema,
   addStockSchema,
+  checkSerialsSchema,
   correctSerialSchema,
   SerialStatus,
   BatchState,
@@ -20,6 +21,7 @@ export class SetStockDto extends createZodDto(setStockSchema) {}
 export class AddStockDto extends createZodDto(addStockSchema) {}
 export class AddSerialsDto extends createZodDto(addSerialsSchema) {}
 export class CorrectSerialDto extends createZodDto(correctSerialSchema) {}
+export class CheckSerialsDto extends createZodDto(checkSerialsSchema) {}
 export class VariantCostDto extends createZodDto(variantCostSchema) {}
 export class RecordStockCheckDto extends createZodDto(recordStockCheckSchema) {}
 
@@ -231,3 +233,7 @@ export const serialPageSchema = z.object({
   pages: z.number(),
 });
 export class SerialPageDto extends createZodDto(serialPageSchema) {}
+
+// INV-23: the entered serials a unit the shop holds already has, as stored.
+export const serialCheckSchema = z.object({ taken: z.array(z.string()) });
+export class SerialCheckDto extends createZodDto(serialCheckSchema) {}
