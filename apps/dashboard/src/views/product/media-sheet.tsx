@@ -6,6 +6,7 @@ import {
   TouchSensor,
   useSensor,
   useSensors,
+  type Announcements,
   type DragEndEvent,
 } from '@dnd-kit/core';
 import {
@@ -78,6 +79,22 @@ export function MediaSheet({
     photos.length + uploads.filter((each) => each.kind === MediaKind.Image).length <
     PRODUCT_IMAGES_MAX;
 
+  // Where a photo is, counted from 1, for what a screen reader hears while it moves.
+  const placeOf = (id: string | number | undefined): number => ids.indexOf(String(id)) + 1;
+  const announcements: Announcements = {
+    onDragStart: ({ active }) => t('mmPicked', { n: placeOf(active.id) }),
+    // Its own place, as it is picked up, says nothing new.
+    onDragOver: ({ active, over }) =>
+      over && over.id !== active.id
+        ? t('mmOver', { n: placeOf(active.id), place: placeOf(over.id) })
+        : undefined,
+    onDragEnd: ({ active, over }) =>
+      over
+        ? t('mmDropped', { n: placeOf(active.id), place: placeOf(over.id) })
+        : t('mmBack', { n: placeOf(active.id) }),
+    onDragCancel: ({ active }) => t('mmBack', { n: placeOf(active.id) }),
+  };
+
   function moved(event: DragEndEvent): void {
     const from = ids.indexOf(String(event.active.id));
     const to = event.over ? ids.indexOf(String(event.over.id)) : -1;
@@ -98,7 +115,15 @@ export function MediaSheet({
       <div className="flex flex-col gap-3">
         {storageFull && storage ? <StorageFullBanner storage={storage} /> : null}
         <p className="text-[14px] text-fg-muted">{t('mmDragHint', { max: PRODUCT_IMAGES_MAX })}</p>
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={moved}>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={moved}
+          accessibility={{
+            announcements,
+            screenReaderInstructions: { draggable: t('mmDragHelp') },
+          }}
+        >
           <SortableContext items={ids} strategy={rectSortingStrategy}>
             <div className="grid grid-cols-3 gap-2">
               {photos.map((photo, index) => (

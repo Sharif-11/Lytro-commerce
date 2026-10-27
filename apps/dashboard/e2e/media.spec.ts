@@ -99,10 +99,15 @@ test('the media sheet: the cover, storage with this product’s share, reorderin
   ).toBeVisible();
   await expectAccessible(page);
 
+  // Each key waits for what a screen reader hears, so a slow browser moves the photo as a person would.
+  const heard = page.locator('[id^="DndLiveRegion"]');
   await sheet(page).getByRole('button', { name: 'Move photo 2', exact: true }).focus();
   await page.keyboard.press('Space');
+  await expect(heard).toHaveText('Photo 2 picked up.');
   await page.keyboard.press('ArrowLeft');
+  await expect(heard).toHaveText('Photo 2 is over place 1.');
   await page.keyboard.press('Space');
+  await expect(heard).toHaveText('Photo 2 dropped in place 1.');
   await sheet(page).getByRole('button', { name: 'Done' }).click();
   await save(page).click();
   await expect(toast(page)).toBeVisible();
