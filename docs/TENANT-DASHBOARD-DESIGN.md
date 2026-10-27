@@ -1,6 +1,9 @@
 # Tenant dashboard: the full design
 
-Status: v2.6, 2026-10-26 (Usage and Add-ons as Slice 11.5c builds them, prototype Part 10: one usage banner by metric
+Status: v2.7, 2026-10-27 (the Menu hub as Slice 11.6 builds it, prototype Part 11: a staff member's Menu with its rows
+by permission, Account for a sign-in made with the staff password, adding staff with every seat in use, Activity with
+nothing yet or nothing under a filter, installing on an iPhone, the role editor with today's permissions in words, and
+Brand identity until its editor; v2.6 of 2026-10-26 drew Usage and Add-ons as Slice 11.5c builds them, prototype Part 10: one usage banner by metric
 and level, the run-out date and "To raise it" per metric from the server, the two auto-buy switches and what auto-buy
 did, each way an add-on renews or ends, buying in grace, paying for an add-on by bKash or Nagad, a changed amount or
 pack price, a pack with a short balance, the ending banner and the renewal-off dialog by kind, an add-on payment being
@@ -642,11 +645,24 @@ every seat is in use names the three ways out: deactivate someone, buy a seat (t
 (STF-04). *Reset the password* (STF-13): a new first password shown once with Copy. *Delete a role* refused while
 someone holds it (STF-09). Built.
 
+*Slice 11.6* (Part 11): the editor lists the permissions of the sections that exist today -- products, stock, API keys,
+staff, balance, payments, activity, settings, thirteen in all -- as plain sentences, with "Spends the balance" under
+paying for the plan, add-ons and packs; the role list says in words what each role may do, never its permission codes;
+the drawn second role is Billing staff, made of today's permissions. *Add staff* with every seat in use opens the
+seat-full dialog at once, its ways out (a seat, the next plan) from the server's refusal; staff who may not pay are told
+to deactivate someone, and that the owner can buy a seat or change the plan. *Edit staff* renames the member (a server
+addition of the slice). First passwords are random: two groups of four letters and digits without look-alikes
+(`k7m4-p9qx`), never the shop's name and four digits.
+
 ### 7.15 Activity (`/activity`)
 
 A timeline grouped by day; one sentence per entry with the detail line; the result chip only on failure;
 "Lytro support" or "System" for platform actors (AUD-08); filters by actor and action group; the retention
 line (AUD-06). Built.
+
+*Slice 11.6* (Part 11): the chips filter on the server -- the action groups and Failed -- so Failed never shows an empty
+page while older failures exist; nothing yet, and nothing under a filter with Show all, have their own states; the
+retention line reads the plan's own retention from the server.
 
 ### 7.16 Settings (`/settings`)
 
@@ -658,6 +674,11 @@ list with preparing, download and failed states, "lasts 24 hours", owner only). 
 their phase: payment methods (Phase 5), couriers (Phase 6), listener phone (Phase 5), SMS (Phase 7),
 notifications (Phase 7), storefront (Slices 12 to 13).
 
+*Slice 11.6* (Part 11): the shop's name is editable in Shop details (TEN-19: the dashboard, the tab title and new installs
+follow within a minute; the address never changes); Brand identity opens a short page until the brand editor (Slice
+11.12), with the add-on on sale; Data export shows to the owner alone; API keys' request count shows to those who may
+read usage.
+
 ### 7.17 Account (`/account`)
 
 The identities as rows with the provider's mark and the action per row (AUTH-26, AUTH-27), the language
@@ -667,6 +688,11 @@ email* (AUTH-26): the address, the six-digit code, the toast. *Connect* Facebook
 *Remove* asks first and says nothing in the shop changes; removing the only way in is refused with "add another
 first". Built.
 
+*Slice 11.6* (Part 11): a sign-in made on the staff page, with the password the shop set (AUTH-31), shows the phone and
+its password only, never the person's own sign-in methods, and says how to reach them: sign in with your own phone. The
+server refuses that sign-in any change to the person's own account (TEN-31, KNOWN-GAPS §96). Its Change password asks
+the current password and, when it is forgotten, points to the owner, who resets it (STF-13).
+
 ### 7.18 Menu (`/menu`)
 
 The shop card (name, address, the person's role); Team with the seats, Activity, Settings; Account; Language,
@@ -674,6 +700,11 @@ which switches at once; Help with the WhatsApp hours; Sign out; "Powered by Lytr
 install, an **Install** card heads the page: "Install Megh Fashion on this phone · an icon on the home screen,
 opens full screen, with your logo" (TEN-17, `menu-install`); the installed app takes the shop's name and logo,
 scoped to `/<shop>/`, from a per-shop manifest (a Slice 11 addition, §10). Notices joins in Phase 7.
+
+*Slice 11.6* (Part 11): the shop card names a staff member's roles; the rows follow the person's permissions (a billing
+role sees Activity, not Team or Settings), and so do the Menu hub's section chips. On an iPhone, which offers no install
+button, the card says to tap Share, then Add to Home Screen, and that the icon stays as installed. Help shows only when
+the support WhatsApp number is configured.
 
 ### 7.19 Paying the platform through the hosted page
 
