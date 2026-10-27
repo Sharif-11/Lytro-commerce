@@ -25,6 +25,7 @@ import { serialsField } from '../inventory/stock';
 import { productPhotoIdsField } from '../media/media';
 import { FieldProblemCode } from '../../validation/field-problem';
 import { newBatchField } from '../inventory/stock';
+import { productDeliveryZonesSchema, sizeChartSchema } from './extras';
 import {
   catalogueIdSchema,
   positiveQuantityField,
@@ -363,6 +364,10 @@ export const createProductSchema = z
     // PRD-11: its photos and its one video, saved with it (agreed for Slice 11.7a: a new product is one request).
     imageIds: productPhotoIdsField.optional(),
     videoId: catalogueIdSchema.optional(),
+    // DLV-07, PRD-17: the zones it may be delivered to (none: wherever the shop delivers) and its own size chart, saved
+    // with it too (Slice 11.7c keeps a new product one request).
+    deliveryZoneIds: productDeliveryZonesSchema.shape.zoneIds.optional(),
+    sizeChart: sizeChartSchema.optional(),
   })
   .superRefine((value, ctx) => {
     checkFields(value, ctx);

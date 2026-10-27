@@ -482,6 +482,30 @@ describeIfDatabase("a product's delivery limit (DLV-07)", () => {
     expect((lifted.body as { deliveryZoneIds: string[] }).deliveryZoneIds).toEqual([]);
   });
 
+  it('takes the limit with a new product, in its one request, and refuses a zone the shop lacks', async () => {
+    const shop = await openShop(port, texts, 'limit-new');
+    const homeZone = home(await settings(shop));
+    const created = await shop.post('/products', {
+      name: 'Frozen prawns',
+      basePrice: 900,
+      deliveryZoneIds: [homeZone.id, homeZone.id],
+    });
+    expect(created.status, JSON.stringify(created.body)).toBe(201);
+    expect((created.body as { deliveryZoneIds: string[] }).deliveryZoneIds).toEqual([homeZone.id]);
+
+    const other = await openShop(port, texts, 'limit-new-other');
+    const theirs = await addZone(other, 'Theirs', 80, { cityCodes: ['khulna'] });
+    const refused = await shop.post('/products', {
+      name: 'Frozen squid',
+      basePrice: 900,
+      deliveryZoneIds: [theirs.id],
+    });
+    expect(fieldsOf(refused)).toEqual({ deliveryZoneIds: 'not_found' });
+    // Refused, nothing was made.
+    const listed = (await shop.get('/products?search=squid')).body as { products: unknown[] };
+    expect(listed.products).toEqual([]);
+  });
+
   it("refuses another shop's zone in a product's limit", async () => {
     const shop = await openShop(port, texts, 'limit-own');
     const other = await openShop(port, texts, 'limit-other');

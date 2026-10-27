@@ -1511,7 +1511,9 @@ their backend ships earlier.
     stock. `POST /serials/check` says which of the serials being entered a unit the shop holds already has, read as the
     product's serials are, for anyone who may enter them (`products:manage` or `inventory:manage`), so the entry flags
     them before saving (INV-23). `GET /product-defaults` carries `shopPaymentPolicy`, the shop's default, for anyone who
-    may read products (PRD-08).
+    may read products (PRD-08). And so a new product stays one request (11.7a's point 7) with the form's delivery limit
+    and size chart: `POST /products` takes `deliveryZoneIds` and `sizeChart`, saved in its own transaction, each refused
+    by its field.
 
 
 ### Slice 12: shared storefront and product landing pages

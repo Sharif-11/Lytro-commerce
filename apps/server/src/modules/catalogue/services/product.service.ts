@@ -81,6 +81,7 @@ import { CatalogueImages, refuseUnattachable } from './catalogue-images';
 import { settlePaymentPolicy } from './payment-policy';
 import { PresetService } from './preset.service';
 import { ShopPaymentPolicyService } from './shop-payment-policy.service';
+import { SizeChartService } from './size-chart.service';
 import { nextFreeSlug, slugOf } from './slug';
 import { planVariants, type MatrixProblem, type PlannedVariant } from './variant-matrix';
 
@@ -177,6 +178,7 @@ export class ProductService {
     @Inject(CATALOGUE_IMAGE_STORE) private readonly photos: CatalogueImageStore,
     @Inject(CatalogueImages) private readonly images: CatalogueImages,
     @Inject(UsageWarnings) private readonly warnings: UsageWarnings,
+    @Inject(SizeChartService) private readonly sizeCharts: SizeChartService,
   ) {}
 
   /** LIM-02, PRD-04: the products the shop's limit counts. */
@@ -297,6 +299,24 @@ export class ProductService {
       });
       await this.products.replaceCategoryLinks(tx, shop.id, product.id, categoryIds);
       await this.attachMedia(tx, shop.id, product.id, input);
+      if (input.deliveryZoneIds && input.deliveryZoneIds.length > 0) {
+        await this.limitDeliveryZones(
+          tx,
+          shop.id,
+          product.id,
+          input.deliveryZoneIds,
+          'deliveryZoneIds',
+        );
+      }
+      if (input.sizeChart) {
+        await this.sizeCharts.putOnProductWithin(
+          tx,
+          shop.id,
+          product.id,
+          input.sizeChart,
+          'sizeChart.imageId',
+        );
+      }
       await this.writeMatrixAttributes(tx, shop.id, product.id, matrix, new Set());
       await this.writeDescriptions(tx, shop.id, product.id, described, matrix.attributes.length);
       await this.writeVariants(tx, shop.id, product.id, matrix.planned, [], input.variants, shared);
@@ -540,27 +560,41 @@ export class ProductService {
     const who = await this.activity.resolve(shop.id, actor);
     return this.transactions.run(async (tx) => {
       await this.findLive(tx, shop.id, productId);
-      const zoneIds = [...new Set(input.zoneIds)];
-      try {
-        await this.products.replaceDeliveryZones(tx, shop.id, productId, zoneIds);
-      } catch (error) {
-        if (error instanceof MissingReference) {
-          throw new FieldsError([
-            {
-              field: 'zoneIds',
-              problem: ServerFieldProblemCode.NotFound,
-              messageKey: 'DeliveryZoneNotFound',
-            },
-          ]);
-        }
-        throw error;
-      }
+      const zoneIds = await this.limitDeliveryZones(
+        tx,
+        shop.id,
+        productId,
+        input.zoneIds,
+        'zoneIds',
+      );
       await this.record(tx, shop.id, who, AuditAction.ProductUpdated, productId, {
         deliveryZoneIds: zoneIds,
       });
       await this.products.bumpVersion(tx, shop.id);
       return this.detail(tx, shop.id, productId);
     });
+  }
+
+  /** DLV-07: the zones a product may be delivered to, each once; one the shop does not have is refused by `field`. */
+  private async limitDeliveryZones(
+    tx: Transaction,
+    tenantId: string,
+    productId: string,
+    requested: readonly string[],
+    field: string,
+  ): Promise<string[]> {
+    const zoneIds = [...new Set(requested)];
+    try {
+      await this.products.replaceDeliveryZones(tx, tenantId, productId, zoneIds);
+    } catch (error) {
+      if (error instanceof MissingReference) {
+        throw new FieldsError([
+          { field, problem: ServerFieldProblemCode.NotFound, messageKey: 'DeliveryZoneNotFound' },
+        ]);
+      }
+      throw error;
+    }
+    return zoneIds;
   }
 
   /** PRD-01, PRD-05: the product's own fields. The slug stays (LND-04); a price change records old and new. */
