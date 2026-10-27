@@ -15,6 +15,7 @@ type SettingsPath =
   | '/$shop/delivery'
   | '/$shop/settings/brand'
   | '/$shop/settings/api-keys'
+  | '/$shop/settings/meta'
   | '/$shop/settings/export';
 
 // What each row is (its title the page's own, from the shell), where it goes, and who sees it (STF-11: hidden, never disabled; LIF-16: the export is the owner's).
@@ -52,6 +53,13 @@ const ROWS: readonly {
     sub: 'sApiD',
     to: '/$shop/settings/api-keys',
     anyOf: [Permission.KeysManage],
+  },
+  {
+    icon: 'trend',
+    title: 'sAds',
+    sub: 'sAdsD',
+    to: '/$shop/settings/meta',
+    anyOf: [Permission.SettingsManage],
   },
   {
     icon: 'download',

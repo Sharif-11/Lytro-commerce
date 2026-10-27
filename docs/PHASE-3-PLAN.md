@@ -1365,6 +1365,12 @@ their backend ships earlier.
     does. The requests counted this cycle show to whoever may read the shop's usage. Settings and Home's "Create an API
     key" lead here. Where it differs from the drawing, on purpose: a key shows its first characters only, as the server
     keeps no more of it to show; and the expiry is picked with the browser's own date field.
+  - **11.6's Facebook and Meta, built:** the Meta Pixel ID with whether it is connected; the Conversions API token
+    entered once and never shown again, Replace opening the same field a shop without one sees, Remove at once with
+    the pixel kept; the catalog feed link with Copy, when it was made and the four steps in Commerce Manager, and a new
+    link after saying the old one stops working. One Save for the pixel and a new token. Where it differs from the
+    drawing, on purpose: the requirement ids leave the copy (Part 11's rule), and "the old link answers 404" says the
+    old link stops working.
 
 
 ### Slice 12: shared storefront and product landing pages

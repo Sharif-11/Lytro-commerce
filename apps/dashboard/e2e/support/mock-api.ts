@@ -21,6 +21,7 @@ import {
   type UsageFixture,
 } from './usage';
 import { drawnKeys, keysWrite, type KeyFixture } from './api-keys';
+import { drawnMeta, metaAnswer, metaWrite, type MetaFixture } from './meta';
 import { activityAnswer, drawnActivity, earlierActivity, type ActivityFixture } from './activity';
 import {
   drawnSettings,
@@ -104,6 +105,8 @@ export interface ShopState {
   settings?: SettingsFixture | null;
   /** The shop's API keys where they differ from the prototype's three; the page's writes change them. */
   keys?: KeyFixture[] | null;
+  /** Facebook and Meta where it differs from the prototype's connected shop; the page's writes change it. */
+  meta?: MetaFixture | null;
   /** GET /home's stock part; null when the person may not see stock. */
   stock?: { low: number; out: number } | null;
   /** GET /home's other parts where they differ from the working shop's. */
@@ -287,6 +290,7 @@ export function shopState(given: ShopState = {}): Required<ShopState> {
     team: null,
     settings: null,
     keys: null,
+    meta: null,
     stock: { low: 1, out: 1 },
     home: {},
     ...given,
@@ -415,6 +419,8 @@ export function shopAnswer(path: string, url: URL, state: Required<ShopState>): 
   const own = settingsAnswer(path, state.settings ?? drawnSettings(state.language));
   if (own !== undefined) return own;
   if (path === '/api-keys') return state.keys ?? drawnKeys();
+  const meta = metaAnswer(path, state.meta ?? drawnMeta());
+  if (meta !== undefined) return meta;
   if (path === '/activity') {
     const activity = state.activity ?? {
       entries: drawnActivity(state.language),
@@ -457,6 +463,7 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
   const team = (state.team ??= drawnTeam(state.language));
   const settings = (state.settings ??= drawnSettings(state.language));
   const keys = (state.keys ??= drawnKeys());
+  const meta = (state.meta ??= drawnMeta());
   // The browser sends an upload's file to the link it was given (R2 in production).
   await page.route(`**${UPLOAD_PATH}`, (route: Route) => route.fulfill({ status: 200 }));
   const log: ApiLog = {
@@ -705,6 +712,21 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
       });
     }
     if (keyed) return ok(keyed.data);
+    const met = metaWrite(
+      method,
+      path,
+      request.postDataJSON() as Record<string, unknown> | null,
+      meta,
+    );
+    if (met && 'refused' in met) {
+      const { status, code, message, details } = met.refused;
+      return route.fulfill({
+        status,
+        contentType: 'application/json',
+        body: refusal(code, message, details),
+      });
+    }
+    if (met) return ok(met.data);
     if (method === 'POST' && path.startsWith('/billing/')) return ok({ ok: true });
     return ok(shopAnswer(path, url, state));
   });

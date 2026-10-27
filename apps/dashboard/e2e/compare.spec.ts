@@ -14,6 +14,7 @@ import {
 } from './support/payments';
 import { drawnActivity } from './support/activity';
 import { BILLING_STAFF, offerInstall, onAnIphone } from './support/menu';
+import { emptyMeta } from './support/meta';
 import { drawnExports } from './support/settings';
 import { drawnPasswords, drawnTeam } from './support/team';
 import { DAY_ONE, mockApi, SLUG, type Language, type ShopState } from './support/mock-api';
@@ -341,6 +342,34 @@ function settingsPairs(): Pair[] {
       'en',
     ),
     ...keyPairs(),
+    ...metaPairs(),
+  ];
+}
+
+/** Facebook and Meta (§7.27): connected, nothing connected yet, and the new feed link's sheet. */
+function metaPairs(): Pair[] {
+  const one = (
+    name: string,
+    more: Partial<Pair> = {},
+    device: Device = 'phone',
+    language: Language = 'bn',
+  ): Pair => ({
+    name,
+    screen: name,
+    device,
+    language,
+    path: '/settings/meta',
+    ...more,
+  });
+  return [
+    one('meta'),
+    one('meta', {}, 'desktop', 'en'),
+    one('meta-empty', { state: { meta: emptyMeta() } }),
+    one('sh-feed-regenerate', {
+      then: async (page) => {
+        await page.getByRole('button', { name: 'নতুন লিংক' }).click();
+      },
+    }),
   ];
 }
 

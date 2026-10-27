@@ -228,7 +228,7 @@ export function RolesView(): React.JSX.Element {
                             setPicked(null);
                           }}
                         >
-                          {t('roleCancel')}
+                          {t('cancel')}
                         </Button>
                       ) : null}
                     </>
