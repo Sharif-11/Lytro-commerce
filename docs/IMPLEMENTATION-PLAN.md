@@ -114,7 +114,13 @@ code fix).
 
 **Delivers:** the core commerce loop — a shopper (or staff) can create an order, and it moves through the two-axis status model.
 
-- `ORD-01` to `ORD-47` — order creation, the `payment_status`/`fulfillment_status` two-axis model, extraction from text (`AI`-adjacent, see Phase 7 for the AI provider itself). Order lines hold stock through Phase 3's reservation primitive (`INV-15`/`INV-16`) and returns call its restock-or-damaged service (`INV-17`); the order-line halves of `PRD-06/07/08/13`, `ATR-07/08/09/13/15`, `ATL-06` and `UOM-04` finish here (`PHASE-3-PLAN.md` §3.2).
+**Detailed plan: `PHASE-4-PLAN.md`** (2026-10-27) — nine slices, built after Phase 3's Slices 11–13. Scope changes made there, summarised:
+- **The order flow follows Bangladeshi sellers:** a confirming call before shipping, every call logged, a reason for every cancellation (`confirmed`, ORD-51, ORD-52); order numbers `YYMMDD-NNNN` (ORD-04 amended).
+- **Shoppers order cash on delivery only until Phase 5**; staff record an advance they received (ORD-22).
+- **Moved to Phase 7:** extraction from text (ORD-30–34), with the AI provider. Courier booking and areas stay in Phase 6; fraud checks and order SMS in Phase 7.
+- **Added from Phase 3's hand-over:** the storefront's checkout, tracking, shopper account and delivery estimate (`SFT-06`, `SFT-08`, `SFT-09`, `SFT-20`) and the per-shop order-creation limit (`RTE-08`).
+
+- `ORD-01` to `ORD-52` — order creation, the confirming call and its log, the `payment_status`/`fulfillment_status` two-axis model; extraction from text (ORD-30–34) moved to Phase 7. Order lines hold stock through Phase 3's reservation primitive (`INV-15`/`INV-16`) and returns call its restock-or-damaged service (`INV-17`); the order-line halves of `PRD-06/07/08/13`, `ATR-07/08/09/13/15`, `ATL-06` and `UOM-04` finish here (`PHASE-3-PLAN.md` §3.2).
 - `QTA-01` to `QTA-07` (moved here from Phase 3, D3-3) — counted at order handling; this phase's manual mark-shipped trigger first, Phase 6's courier booking second.
 - `TAX-*`, `MNU-*` (adopted 2026-10-17) — need order lines; land with or right after this phase.
 - `ORD-06a` (amended 2026-10-17) and `DLV-03`/`DLV-04` — delivery charge by the order's zone, once per order, with product overrides and Adjustable-mode weight extras on top; `PRD-08`'s "delivery charge only" advance and the shop-wide default policy; `SFT-20`/`LND-08` estimates use the same function.
