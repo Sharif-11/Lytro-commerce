@@ -458,6 +458,10 @@ describeIfDatabase('the plan limit (PRD-04, ATR-12, DWN-07, TRL-03, PLN-19)', ()
     expect(refused.status).toBe(402);
     expect(errorOf(refused).code).toBe('plan_limit_reached');
     expect(errorOf(refused).details).toMatchObject({ products: 20 });
+    expect((await shop.get('/products')).body).toMatchObject({
+      productLimit: 20,
+      counts: { total: 20 },
+    });
 
     const first = (
       (await shop.get('/products?search=Item%201&limit=1')).body as { products: { id: string }[] }
@@ -487,8 +491,13 @@ describeIfDatabase('the plan limit (PRD-04, ATR-12, DWN-07, TRL-03, PLN-19)', ()
     const restored = await shop.post(`/products/${filed.id}/restore`, {});
     expect(restored.status, JSON.stringify(restored.body)).toBe(201);
     expect(restored.body).toMatchObject({ id: filed.id, archived: false, slug: filed.slug });
-    const listed = (await shop.get('/products')).body as { products: { id: string }[] };
+    const listed = (await shop.get('/products')).body as {
+      products: { id: string }[];
+      productLimit: number | null;
+    };
     expect(listed.products.map((row) => row.id).sort()).toEqual([kept.id, filed.id].sort());
+    // PRD-04: the list names the shop's own limit, its override counted, so a full shop says so before typing.
+    expect(listed.productLimit).toBe(2);
     const logged = await admin.query(
       "SELECT summary FROM tenant.activity_log WHERE tenant_id = $1 AND action = 'product_restored'",
       [shop.tenantId],
@@ -522,6 +531,7 @@ describeIfDatabase('the plan limit (PRD-04, ATR-12, DWN-07, TRL-03, PLN-19)', ()
       "UPDATE control.plan_limit_overrides SET value = 'null' WHERE tenant_id = $1 AND limit_key = 'products'",
       [shop.tenantId],
     );
+    expect((await shop.get('/products')).body).toMatchObject({ productLimit: null });
     expect((await shop.post('/products', { name: 'D', basePrice: 1 })).status).toBe(201);
   });
 });

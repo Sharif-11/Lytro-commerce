@@ -306,4 +306,6 @@ export interface ProductPage {
    * ones, the active ones low or out of stock, and the archived ones -- whatever the page was narrowed to.
    */
   counts: ProductStateCounts;
+  /** PRD-04: the most products the shop may have, its add-ons and overrides counted; null for no limit (PLN-19). */
+  productLimit: number | null;
 }

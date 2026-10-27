@@ -192,8 +192,12 @@ export class ProductService {
     return this.transactions.run((tx) => this.products.countByState(tx, tenantId));
   }
 
-  /** PRD-12: the dashboard's list, 20 to a page by default, archived products left out. */
-  list(tenantId: string, query: ListProductsQuery): Promise<ProductPage> {
+  /**
+   * PRD-12: the dashboard's list, 20 to a page by default, archived products left out; with the shop's product limit,
+   * so the list can say a new one will not fit before it is typed (PRD-04).
+   */
+  list(shop: CatalogueShop, query: ListProductsQuery): Promise<ProductPage> {
+    const tenantId = shop.id;
     return this.transactions.run(async (tx) => {
       const { rows, total, counts } = await this.products.listProducts(tx, tenantId, {
         search: query.search,
@@ -231,6 +235,7 @@ export class ProductService {
         total,
         pages: Math.ceil(total / query.limit),
         counts,
+        productLimit: limitOf(shop.planLimits, 'products'),
       };
     });
   }

@@ -1413,7 +1413,9 @@ their backend ships earlier.
     list's and editor's undrawn states are sketched in Part 13 before they are built.
   - **11.7a's second reads, built:** `GET /products?archived=true` lists the archived products, and `counts` gains
     `archived`; `POST /products/:id/restore` brings one back, refused with `plan_limit_reached` at the limit and in the
-    activity log (PRD-13, amended); `GET /media/usage` gives `imageMaxMb` and `videoMaxMb`.
+    activity log (PRD-13, amended); `GET /media/usage` gives `imageMaxMb` and `videoMaxMb`; and `GET /products` gives
+    `productLimit`, the shop's own limit, so the list knows a new product will not fit for anyone who may read products,
+    as Team knows its seats, where `/usage` is only for those who may see payments.
 
 
 ### Slice 12: shared storefront and product landing pages

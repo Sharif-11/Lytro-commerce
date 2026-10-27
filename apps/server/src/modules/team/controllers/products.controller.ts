@@ -209,11 +209,11 @@ export class ProductsController {
   @ResponseMessage('ProductsListed')
   @ApiOperation({ summary: 'Search and list products, 20 to a page (PRD-12)' })
   @ZodResponse({ type: ProductPageDto })
-  list(
+  async list(
     @Query(new ZodValidationPipe(listProductsSchema)) query: ListProductsQuery,
     @Req() request: DashboardRequest,
   ): Promise<ProductPage> {
-    return this.products.list(this.catalogue.tenantIdOf(request), query);
+    return this.products.list(await this.catalogue.shopOf(request), query);
   }
 
   @Post()

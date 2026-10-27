@@ -132,6 +132,7 @@ export const productPageSchema = z.object({
     out: z.number(),
     archived: z.number(),
   }),
+  productLimit: z.number().nullable(),
 });
 export class ProductPageDto extends createZodDto(productPageSchema) {}
 

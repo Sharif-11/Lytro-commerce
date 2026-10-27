@@ -1042,7 +1042,7 @@ brand identity.
 | The term a paid plan runs on and a lapsed shop's deletion date on `/me`; the pay-as-you-go fees this month on `GET /balance`; each day's API requests on `GET /usage` | identity, balance, usage | §7.12 (the plan card, the pay-as-you-go page), §7.20's Renew page, §7.24's requests chart and run-out date | built (11.5a.2) |
 | On `GET /addons`, why an item cannot be bought now, the amount due for each quantity, the days left and the renewal price; the renewal switch on the add-on request; the amount seen on `POST /addons/packs`; on `GET /usage`, the run-out date of bandwidth and requests (the email's own rule) and the metric of each suggested add-on | billing, usage | §7.24, §7.25 (PLN-14, PLN-15, BIL-09, LIM-01) | 11.5c |
 | The Products page's segments on the server (`active`, `stock`) with their counts; each product photo's and video's bytes, and the video's length, on the product | catalogue | §7.3, §7.23 (PRD-12, STO-01, STO-09) | built (11.7a) |
-| Archived products listed (`archived=true`, with their count) and restored (`POST /products/:id/restore`); the largest image and video on `GET /media/usage` | catalogue, media | §7.3, §7.4, §7.23 (PRD-13, STO-04, STO-05) | built (11.7a) |
+| Archived products listed (`archived=true`, with their count) and restored (`POST /products/:id/restore`); the shop's product limit on the list (`productLimit`); the largest image and video on `GET /media/usage` | catalogue, media | §7.3, §7.4, §7.23 (PRD-13, STO-04, STO-05) | built (11.7a) |
 | Invoice PDF | billing | BIL-13 | later |
 | Pay-as-you-go estimate | billing | PYG-12 (needs order history) | later |
 | The notifications feed behind the bell | notifications | §8 (NTF-01) | Phase 7 |
