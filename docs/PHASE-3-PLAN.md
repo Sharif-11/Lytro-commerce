@@ -1306,6 +1306,10 @@ their backend ships earlier.
     itself on Plan, Balance, Billing and Renew take the owner's style -- familiar terms transliterated (শপ, রিকোয়েস্ট,
     ভেরিফাই, অ্যাক্টিভ, টপ-আপ, গ্রেস পিরিয়ড), explanations kept as plain sentences; Western digits, the English and
     every line's values unchanged.
+  - **A sheet's buttons keep their words on one line (named fix, 2026-10-27):** a sheet's foot shares its row equally
+    between its buttons, as drawn, but a button whose words need more takes room from the other instead of wrapping;
+    the stop sheet's "16 Nov-এ বন্ধ করুন" wrapped on a phone, and so did the pay-as-you-go switch's, which the sketch
+    draws wrapped too.
 
 ### Slice 12: shared storefront and product landing pages
 - **Depends on:** Slices 0, 0b, 7 and 9 (and branding from Phase 1).

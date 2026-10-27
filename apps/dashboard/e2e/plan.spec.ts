@@ -13,6 +13,33 @@ async function open(page: Page, state: ShopState = {}, path = '/plan'): Promise<
   return log;
 }
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Days from now to a period end whose day of the month has two digits ("16 Nov"), the widest a date is written. */
+function daysToTwoDigitDay(): number {
+  const dayOf = (days: number): number =>
+    Number(
+      new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Dhaka', day: 'numeric' }).format(
+        new Date(Date.now() + days * DAY_MS),
+      ),
+    );
+  let days = 20;
+  while (dayOf(days) < 10) days += 1;
+  return days;
+}
+
+/** How many lines a button's words take. */
+function linesOf(page: Page, name: RegExp): Promise<number> {
+  return page
+    .getByRole('dialog')
+    .getByRole('button', { name })
+    .evaluate((button) => {
+      const range = document.createRange();
+      range.selectNodeContents(button);
+      return new Set([...range.getClientRects()].map((rect) => Math.round(rect.top))).size;
+    });
+}
+
 function main(page: Page) {
   return page.getByRole('main');
 }
@@ -170,7 +197,7 @@ test('moves down at the period end, after saying what would be over the limit', 
 });
 
 test("stops the subscription at the period's end, naming each step's day", async ({ page }) => {
-  const log = await open(page);
+  const log = await open(page, { periodEndDays: daysToTwoDigitDay() });
   await main(page).getByText('সাবস্ক্রিপশন বন্ধ করতে চান?').click();
   await expect(
     main(page).getByText(
@@ -186,6 +213,10 @@ test("stops the subscription at the period's end, naming each step's day", async
   ]) {
     await expect(sheet(page).getByText(step)).toBeVisible();
   }
+  // A two-digit date keeps the button's words on one line beside Keep, even on a 360 px phone, a common Android width.
+  await page.setViewportSize({ width: 360, height: 800 });
+  expect(await linesOf(page, /-এ বন্ধ করুন$/)).toBe(1);
+  expect(await linesOf(page, /^রাখুন$/)).toBe(1);
   await sheet(page)
     .getByRole('button', { name: /-এ বন্ধ করুন$/ })
     .click();
