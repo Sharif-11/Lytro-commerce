@@ -15,6 +15,13 @@ const STOCK: Record<StockState, [StatusTone, string]> = {
   [StockState.Out]: ['bad', 'outStock'],
 };
 
+/** INV-08, CCH-08: a product's stock state in its chip (the prototype's `stockChip`). */
+export function StockTag({ state }: { state: StockState }): React.JSX.Element {
+  const { t } = useTranslation('shop');
+  const [tone, label] = STOCK[state];
+  return <StatusTag tone={tone}>{t(label)}</StatusTag>;
+}
+
 /**
  * One product as every list shows it (the prototype's `prodRow`): its first photo or the drawn tile, the name with
  * Inactive when it is, "n variants · category", the price over its stock chip; an archived one's chip says Archived

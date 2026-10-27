@@ -12,9 +12,6 @@
   "ckShop": "Shop created",
   "ckSms": "Choose SMS events",
   "ckWallet": "Add a wallet number for payments",
-  "copied": "Copied",
-  "copy": "Copy",
-  "facebook": "Facebook",
   "fastSpend": "More than 5% of this cycle's requests went in the last hour. Nothing is blocked; check your keys.",
   "jobBalance": "Balance {{amount}}, SMS may stop",
   "jobExpiring_one": "1 batch expires within 30 days",
@@ -46,6 +43,5 @@
   "stProducts": "Products",
   "todayJobs": "To do today",
   "trialDaysLeft": "Trial days left",
-  "whatsapp": "WhatsApp",
   "wSeeKeys": "See keys"
 }

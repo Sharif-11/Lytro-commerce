@@ -358,6 +358,58 @@ function productPairs(): Pair[] {
       }),
       name: 'products-new',
     },
+    ...editorPairs(),
+  ];
+}
+
+/**
+ * The product editor (§7.4, Slice 11.7a): Basics with the link, the category picker and New category, the link sheet,
+ * removing, leaving unsaved, an archived product, the copy just made, and a new product's missing fields.
+ */
+function editorPairs(): Pair[] {
+  const one = (
+    name: string,
+    path: string,
+    more: Partial<Pair> = {},
+    device: Device = 'phone',
+    language: Language = 'bn',
+  ): Pair => ({ name, screen: name, device, language, path, ...more });
+  const tap = (label: string | RegExp) => async (page: Page) => {
+    await page.getByRole('main').getByRole('button', { name: label }).first().click();
+  };
+  const leave = async (page: Page) => {
+    await page.getByRole('main').getByLabel('নাম', { exact: true }).fill('কটন টি-শার্ট নতুন');
+    await page.getByRole('link', { name: 'হোম' }).first().click();
+  };
+  return [
+    one('product', '/products/p-1'),
+    one('product', '/products/p-1', {}, 'desktop', 'en'),
+    one('sh-category', '/products/p-1', { then: tap(/ক্যাটাগরি/) }),
+    one('sh-category-new-product', '/products/p-1', {
+      then: async (page) => {
+        await tap(/ক্যাটাগরি/)(page);
+        await page.getByRole('dialog').getByRole('button', { name: 'নতুন ক্যাটাগরি' }).click();
+        await page.getByRole('dialog').getByLabel('নাম', { exact: true }).fill('শার্ট');
+      },
+    }),
+    one('sh-link', '/products/p-1', { then: tap('ভ্যারিয়েন্ট বেছে লিংকে ?v= যোগ হয়।') }),
+    one('sh-delete', '/products/p-1', {
+      then: async (page) => {
+        await page.getByRole('main').getByText('আরও সেটিংস').click();
+        await tap('আর্কাইভ করুন')(page);
+      },
+    }),
+    one('sh-leave', '/products/p-1', { then: leave }),
+    one('product-archived', '/products/p-7'),
+    one('product-archived', '/products/p-7', {}, 'desktop', 'en'),
+    one('product-copied', '/products/p-1', {
+      then: async (page) => {
+        await page.getByRole('main').getByText('আরও সেটিংস').click();
+        await tap('কপি বানান')(page);
+        await page.getByRole('status').filter({ hasText: /./ }).waitFor();
+      },
+    }),
+    one('pf-errors', '/products/new', { then: tap('সেভ করুন') }),
   ];
 }
 

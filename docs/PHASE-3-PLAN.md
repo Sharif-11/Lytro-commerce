@@ -1429,6 +1429,20 @@ their backend ships earlier.
   - **11.7a's one-request create, built:** `POST /products` takes `imageIds` and `videoId`, saved in the product's own
     transaction and refused by their field when not a ready image or video of the shop's, so a new product with its
     photos is one request, as the read agreed (point 7), where photos could before be set only once it existed.
+  - **11.7a's product editor, built:** Basics -- the photos and video shown, the name, the price as typed, the
+    categories (the picker with the primary, Make primary, Uncategorized for none, and New category as a step of the
+    sheet with where it sits, the storefront switch and the shop type it behaves like), the description kept as typed;
+    More settings with on sale, Duplicate (the copy opens, inactive), and Archive or Delete for good after asking; the
+    product link with Copy, Facebook and WhatsApp, a variant for it and Change the link. One Save sends only what
+    changed, part by part: a refused field is said under it and Save counts what is left to fix, a refused part is named
+    with the rest saved. A new product is one request and returns to the list with Saved (Saved alone when it is not on
+    sale). Leaving with something unsaved asks first; closing the tab asks with the browser's own question. An archived
+    product opens its own page with Restore and Delete for good. A new product, a copy and a restore at the limit show
+    the limit's banner before anything is sent. Home's link card and the product's share one link part. Where it differs
+    from the drawing, on purpose: a variant's link carries the variant's id (`?v=<id>`), as the catalog feed's links
+    do, where the drawing writes `?v=m-black`; the line under the product link reads as a link, since it opens the
+    link's sheet; and New category is a step of the picker's sheet with a way back, as Add staff's New role is. The
+    photos and video are added and arranged in the media sheet, the next commit.
 
 
 ### Slice 12: shared storefront and product landing pages

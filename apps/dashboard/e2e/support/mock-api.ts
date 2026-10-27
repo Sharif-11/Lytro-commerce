@@ -31,7 +31,16 @@ import {
   UPLOAD_PATH,
   type SettingsFixture,
 } from './settings';
-import { categoryList, drawnProducts, productList, type ProductsFixture } from './products';
+import {
+  categoryList,
+  drawnProducts,
+  productDetail,
+  productList,
+  productRemove,
+  productWrite,
+  type ProductsFixture,
+} from './products';
+import { PRESETS } from './presets';
 import { drawnTeam, teamAnswer, teamWrite, type TeamFixture } from './team';
 import {
   drawnLedger,
@@ -327,7 +336,11 @@ export function shopAnswer(path: string, url: URL, state: Required<ShopState>): 
   if (path === '/products') {
     return productList((state.products ??= drawnProducts()), url, state.language);
   }
-  if (path === '/categories') return categoryList(state.language);
+  if (path === '/categories')
+    return categoryList((state.products ??= drawnProducts()), state.language);
+  if (path === '/presets') {
+    return PRESETS.map(([key, labelBn, labelEn]) => ({ key, labelBn, labelEn, defaults: {} }));
+  }
   if (path === '/plans') return plans();
   if (path === '/plans/pay-as-you-go') return paygPlan();
   if (path === '/billing-terms') return terms();
@@ -665,6 +678,39 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
       if (typeof wanted === 'boolean') usage.autoBuy = { ...usage.autoBuy, bandwidth: wanted };
       return ok([]);
     }
+    // Slice 11.7a: a product's own read, and the editor's writes.
+    const products = (state.products ??= drawnProducts());
+    const one = /^\/products\/([^/]+)$/.exec(path);
+    if (method === 'GET' && one && one[1] !== 'new') {
+      const product = products.products.find((each) => each.id === one[1]);
+      return product
+        ? ok(productDetail(product, state.language))
+        : route.fulfill({
+            status: 404,
+            contentType: 'application/json',
+            body: refusal('not_found', 'This product was not found.'),
+          });
+    }
+    if (method === 'DELETE' && one) {
+      productRemove(products, one[1] ?? '', url.searchParams.get('hard') === 'true');
+      return ok({ ok: true });
+    }
+    const produced = productWrite(
+      method,
+      path,
+      request.postDataJSON() as Record<string, unknown> | null,
+      products,
+      state.language,
+    );
+    if (produced && 'refused' in produced) {
+      const { status, code, message, details } = produced.refused;
+      return route.fulfill({
+        status,
+        contentType: 'application/json',
+        body: refusal(code, message, details),
+      });
+    }
+    if (produced) return ok(produced.data);
     const written = teamWrite(
       method,
       path,

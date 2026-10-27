@@ -61,5 +61,7 @@
   "arrivingT": "{{s}} is being rebuilt",
   "arrivingL": "This screen arrives with the next update of the dashboard.",
   "copy": "Copy",
-  "copied": "Copied"
+  "copied": "Copied",
+  "facebook": "Facebook",
+  "whatsapp": "WhatsApp"
 }

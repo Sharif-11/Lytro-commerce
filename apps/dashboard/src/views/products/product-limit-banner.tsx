@@ -12,9 +12,16 @@ import { raiseItems } from '@/views/usage/usage-words';
 /**
  * PRD-04, LIM-01 (Part 13's `products-limit-now`): the product limit, said before a product is typed -- how many there
  * are and that they keep selling; to someone who may pay, the ways to more room as Usage words them from the server's
- * suggestion, with See plans; to anyone else, that the owner can raise it.
+ * suggestion, with See plans; to anyone else, that the owner can raise it. `refused` is a save the limit refused after
+ * all, in the words the prototype's `products-limit` has for it ("the new one was not added").
  */
-export function ProductLimitBanner({ room }: { room: ProductRoom }): React.JSX.Element {
+export function ProductLimitBanner({
+  room,
+  lead = 'now',
+}: {
+  room: ProductRoom;
+  lead?: 'now' | 'refused';
+}): React.JSX.Element {
   const { t, i18n } = useTranslation('shop');
   const { t: money } = useTranslation('money');
   const { slug, viewer, tenant } = useShell();
@@ -46,7 +53,7 @@ export function ProductLimitBanner({ room }: { room: ProductRoom }): React.JSX.E
         ) : undefined
       }
     >
-      <b>{title}</b> {t('lrNowLead', { used: room.used })} {ways}
+      <b>{title}</b> {t(lead === 'now' ? 'lrNowLead' : 'lrRefusedLead', { used: room.used })} {ways}
     </Banner>
   );
 }
