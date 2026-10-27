@@ -1826,6 +1826,20 @@ a lookup by destination still finds its rows -- so the cost is one redundant ind
 the schema in its own drop. **Open:** a migration that drops the two by their schema and builds the index 0010
 intended; and a look at any drizzle-kit `DROP INDEX` before it is committed.
 
+## 96. `TEN-31`, `AUTH-20`, `AUTH-26`: a staff sign-in could change the person's own account — found and fixed 2026-10-27
+
+Found while reading Slice 11.6 (the Account screen). A staff sign-in, made on the staff page with the password the
+shop's owner set (STF-01, STF-13, AUTH-31), opens only that shop, because the owner knows that password (TEN-31). But
+the session belongs to the person's own account, and three routes acting on that account never asked how it was
+signed in: `POST /auth/password`, the `/me/identities` routes, and `POST /shops`. An owner could reset a staff
+member's password, sign in on the staff page with it, and -- the session needing a new password, so no current one
+was asked (AUTH-20) -- set the person's own account password, then sign in as them and open the shop they own. The same
+session could add the owner's email or Google to the person's account, remove their sign-in methods, or open a shop in
+their name, using up their trial (AUTH-09).
+
+**Fixed:** those routes refuse a staff sign-in with `forbidden` (`OwnAccountNeedsOwnSignIn`); a staff member's
+password stays on `POST /auth/staff/password`. The person's own sign-in is unchanged, also on an employer's page.
+
 ## Not a bug, just noting it so it isn't mistaken for one later
 
 The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data

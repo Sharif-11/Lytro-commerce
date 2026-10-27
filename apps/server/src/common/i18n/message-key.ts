@@ -112,6 +112,7 @@ export const MESSAGE_KEYS = [
   'SeatLimitReached',
   'PageLinkInvalid',
   'StaffPasswordChangeWrongPath',
+  'OwnAccountNeedsOwnSignIn',
 
   // Success -- auth
   'CodeSent',
