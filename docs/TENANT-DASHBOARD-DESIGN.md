@@ -1,7 +1,8 @@
 # Tenant dashboard: the full design
 
-Status: v2.9, 2026-10-27 (leaving the product editor with changes unsaved, prototype Part 13: a small dialog that asks
-first, for a product being edited and a new one; v2.8 of 2026-10-27 drew making and renaming a role, prototype Part 12:
+Status: v2.9, 2026-10-27 (the Products list's and the editor's states Slice 11.7a builds, prototype Part 13: leaving
+with changes unsaved, the category filter, nothing matching, Show more, archived products and Restore, the limit before
+typing, a part not saved, removing the video, the toasts; v2.8 of 2026-10-27 drew making and renaming a role, prototype Part 12:
 the role's name in the editor, Create a role, a shop with no roles yet, and a role made from inside Add staff; v2.7 of
 2026-10-27 drew the Menu hub as Slice 11.6
 builds it, prototype Part 11: a staff member's Menu with its rows
@@ -309,6 +310,15 @@ product limit line (TRL-03); at the plan limit the server's `plan_limit_reached`
 the limit, that everything already listed keeps selling, and the cheapest ways to room (the next plan or the
 add-on, LIM-01), with See plans (PRD-04, `products-limit`).
 
+*The list's other states* (Part 13, 2026-10-27): the filter button opens *Filter by category*, the tree with one choice,
+All categories first and Uncategorized last (`sh-products-filter`); a chosen category marks the button and shows as a
+chip that clears it, the segments counting within it (`products-filtered`); nothing matching says so, with Show all
+products (`products-none`); past 20, Show more and how many are shown (`products-more`). Once something is archived, an
+Archived chip follows the five, its products opening their page with Restore (`products-archived`; agreed 2026-10-27).
+Archiving, deleting for good and restoring each end on the list with a toast, archiving's saying where to find it. At
+the limit, Add product and Duplicate show the banner at once instead of the editor, worded for what is already there
+(`products-limit-now`; agreed 2026-10-27).
+
 ### 7.4 Product editor (`/products/new`, `/products/:id`)
 
 **Job.** Save a sellable product with the fewest fields and reach every setting when needed.
@@ -349,6 +359,12 @@ something typed is not saved, asks first in a small dialog, "Leave without savin
 Keep editing stays with everything typed; Leave drops it and goes. Nothing asks when nothing changed or once Save has
 finished; a sheet the editor opens is part of the editor, so closing one never asks. Closing or reloading the browser
 tab asks with the browser's own question, whose words a page cannot set.
+
+*The editor's other states* (Part 13): an archived product's page says so, with Restore and Delete for good, its own
+fields shown as they were and no Save (`product-archived`); a save the limit refused after all keeps everything typed
+under the drawn banner (`product-limit`); a part refused while the rest was saved names itself, with its way out
+(`product-partial`, the storage add-on for full storage); a copy opens at once, inactive, with a toast
+(`product-copied`); saving an inactive product says Saved, without "is on the storefront" (`product-saved-inactive`).
 
 **Content.** `GET /product-defaults?categoryId=`, `POST /products`, `PATCH`, `PUT …/variants`,
 `…/attributes`, `…/slug`, `…/size-chart`, `…/delivery-zones`, `…/images`, `…/video`, `POST …/duplicate`,
@@ -814,6 +830,10 @@ and this product's share); the line that deleting frees storage and that past or
 was (MED-09). **Upload states** (also in §7.4a): uploading with its progress, preparing with how long it takes (a
 photo about 30 s, a video about 5 min), refused with the reason ("6 MB · limit 5 MB"). **Storage full**: the
 banner with what was refused and the ways out, Buy 1 GB (the add-on, §7.25) or the next plan (`sh-media-full`).
+**Removing** (Part 13, agreed 2026-10-27): a photo's × and the video's Remove, beside Replace, take it off the product
+when it is saved, and delete it when nothing else shows it, so storage frees (PRD-11); a copy that shares it keeps it
+(PRD-18). What was uploaded and then left unsaved is deleted too. The limits under the upload are the operator's, from
+`GET /media/usage` (a video may be 150 MB, STO-05).
 
 **Content.** `POST /media/uploads` (answers a signed upload address the browser sends the file to),
 `POST /media/:id/finish`, `GET /media/:id` while it prepares, `PUT /products/:id/images` and `…/video`,
