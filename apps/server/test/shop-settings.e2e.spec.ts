@@ -253,6 +253,37 @@ describeIfDatabase('shop contact settings (TEN-30)', () => {
   });
 });
 
+describeIfDatabase("the shop's name (TEN-19)", () => {
+  it('renames the shop: the settings, the account summary and the activity follow; the address never changes', async () => {
+    const who = await owner();
+    expect((await get('/shop-settings', shopCall(who))).body).toMatchObject({
+      shopName: `Shop ${who.slug}`,
+    });
+
+    const renamed = await patch('/shop-settings', { shopName: '  Megh Fashion  ' }, shopCall(who));
+    expect(renamed.status).toBe(200);
+    expect(renamed.body).toMatchObject({ shopName: 'Megh Fashion' });
+    expect((await get('/me', shopCall(who))).body).toMatchObject({
+      tenant: { shopName: 'Megh Fashion', slug: who.slug },
+    });
+    const log = await get('/activity?action=shop_settings_updated', shopCall(who));
+    expect((log.body as { entries: { summary: unknown }[] }).entries[0]?.summary).toMatchObject({
+      shopName: 'Megh Fashion',
+    });
+  });
+
+  it('refuses an empty name and one too long, leaving the name as it was', async () => {
+    const who = await owner();
+    expect((await patch('/shop-settings', { shopName: '   ' }, shopCall(who))).status).toBe(400);
+    expect(
+      (await patch('/shop-settings', { shopName: 'x'.repeat(61) }, shopCall(who))).status,
+    ).toBe(400);
+    expect((await get('/shop-settings', shopCall(who))).body).toMatchObject({
+      shopName: `Shop ${who.slug}`,
+    });
+  });
+});
+
 describeIfDatabase("the tenant's own extra-delivery-charge-per-kg rate (RAT-14)", () => {
   it('defaults to 0.00 for a tenant that has never set it', async () => {
     const who = await owner();

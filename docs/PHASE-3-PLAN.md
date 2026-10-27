@@ -1310,6 +1310,24 @@ their backend ships earlier.
     between its buttons, as drawn, but a button whose words need more takes room from the other instead of wrapping;
     the stop sheet's "16 Nov-এ বন্ধ করুন" wrapped on a phone, and so did the pay-as-you-go switch's, which the sketch
     draws wrapped too.
+  - **11.6, Menu, agreed 2026-10-27** (the read, "yes, as proposed"): a security fix first, its own pull request (#221,
+    KNOWN-GAPS §96: a staff sign-in never changes the person's own account); then the undrawn states sketched (#223,
+    prototype Part 11, design doc v2.7); then one pull request in three commits -- the server's additions, Menu with Team
+    and Activity, Settings with Account. Agreed with it:
+    1. `/me` says how the person signed in (`own`, or `staff` on the staff page) and names a staff member's roles; the
+       Menu's card shows them, and Account for a staff sign-in shows the phone and its password only.
+    2. A staff member can be renamed; the shop's name can change (TEN-19), its address never.
+    3. Activity's chips filter on the server -- a group of actions and failures only -- so Failed never shows an empty
+       page while older failures exist; the page says how many days the plan keeps (AUD-06).
+    4. One sentence per action in Bangla and English; the role editor lists the permissions of the sections that exist,
+       in words, with "Spends the balance" under paying; adding staff with every seat in use opens the way out at once;
+       first passwords are random; Brand identity opens a short page until 11.12; Help's WhatsApp number comes from the
+       deployment; Install on an iPhone says how; the dashboard's Bangla follows the owner's second revision line by line.
+  - **11.6's reads, built:** `/me` gains `signIn` (`own`, `staff`) and `roles`; `PATCH /staff/:id` takes `name` (null
+    clears it); `/shop-settings` reads and takes `shopName`, which the dashboard, the tab title and new installs follow
+    at once, the shop's address unchanged; `GET /activity` takes one action or several, comma-separated, and `result`,
+    and gives `retentionDays`. The chips' groups (`ACTIVITY_GROUPS`) and the retention rule (`activityRetentionDays`)
+    are each defined once, in the shared validators.
 
 ### Slice 12: shared storefront and product landing pages
 - **Depends on:** Slices 0, 0b, 7 and 9 (and branding from Phase 1).

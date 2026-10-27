@@ -54,6 +54,13 @@ export interface StaffStore {
     userId: string,
     active: boolean,
   ): Promise<StaffRecord | null>;
+  /** STF-03: renames the staff member; null clears the name. */
+  setName(
+    tx: Transaction,
+    tenantId: string,
+    userId: string,
+    name: string | null,
+  ): Promise<StaffRecord | null>;
   /** Ends every live session of the staff member (STF-05). */
   revokeSessionsOf(tx: Transaction, userId: string, at: Date): Promise<void>;
   /** LIF-19: deletes every staff row of the shop. Call after RoleStore.deleteAllForTenant (FK order). */

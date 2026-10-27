@@ -118,6 +118,16 @@ export class DrizzleStaffStore implements StaffStore {
     return row ? toRecord(row) : null;
   }
 
+  async setName(
+    tx: Transaction,
+    tenantId: string,
+    userId: string,
+    name: string | null,
+  ): Promise<StaffRecord | null> {
+    const row = await this.users.setName(tx, tenantId, userId, name);
+    return row ? toRecord(row) : null;
+  }
+
   async findOwner(tx: Transaction, tenantId: string): Promise<StaffRecord | null> {
     const row = await this.users.findOwner(tx, tenantId);
     return row ? toRecord(row) : null;

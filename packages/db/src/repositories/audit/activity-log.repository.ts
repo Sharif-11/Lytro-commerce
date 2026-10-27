@@ -1,4 +1,4 @@
-import { and, count, desc, eq, gte, lt, lte, notInArray, or } from 'drizzle-orm';
+import { and, count, desc, eq, gte, inArray, lt, lte, notInArray, or } from 'drizzle-orm';
 import { activityLog, type InsertActivityLog, type SelectActivityLog } from '../../schema';
 import type { Transaction, TransactionRunner } from '../../transactions';
 
@@ -7,6 +7,9 @@ export interface ActivityFilters {
   dateTo?: Date;
   actorId?: string;
   action?: string;
+  /** Any of these actions (an Activity chip's group). */
+  actions?: readonly string[];
+  result?: string;
 }
 
 // The last row the caller saw, for keyset pagination (ENGINEERING-STANDARDS §5: never OFFSET).
@@ -39,6 +42,10 @@ export class ActivityLogRepository {
     if (filters.dateTo) conditions.push(lte(activityLog.createdAt, filters.dateTo));
     if (filters.actorId) conditions.push(eq(activityLog.actorId, filters.actorId));
     if (filters.action) conditions.push(eq(activityLog.action, filters.action));
+    if (filters.actions && filters.actions.length > 0) {
+      conditions.push(inArray(activityLog.action, [...filters.actions]));
+    }
+    if (filters.result) conditions.push(eq(activityLog.result, filters.result));
     if (cursor) {
       const cursorCondition = or(
         lt(activityLog.createdAt, cursor.createdAt),

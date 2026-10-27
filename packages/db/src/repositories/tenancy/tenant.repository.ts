@@ -609,10 +609,11 @@ export class TenantRepository {
     return rows[0] ?? null;
   }
 
-  /** TEN-30: the owner's own contact phone/email/business address, read for the shop-settings screen. */
+  /** TEN-19, TEN-30: the shop's name and its own contact phone/email/business address, for the shop-settings screen. */
   async findContactDetails(tx: Executor, tenantId: string): Promise<ContactDetailsRow | null> {
     const rows = await tx
       .select({
+        shopName: tenants.shopName,
         contactPhone: tenants.contactPhone,
         contactEmail: tenants.contactEmail,
         businessAddress: tenants.businessAddress,
@@ -623,8 +624,8 @@ export class TenantRepository {
     return rows[0] ?? null;
   }
 
-  /** TEN-30: updates whichever of the three contact fields the caller sent; an omitted key leaves its
-   * current value untouched (the caller builds this object from only the keys present in the request). */
+  /** TEN-19, TEN-30: updates whichever of the name and the three contact fields the caller sent; an omitted key leaves
+   * its current value untouched (the caller builds this object from only the keys present in the request). */
   async updateContactDetails(
     tx: Executor,
     tenantId: string,
@@ -818,6 +819,7 @@ export interface DeletedShopRow {
 
 /** TEN-30. Each field is independently nullable: null means "not set/cleared". */
 export interface ContactDetailsRow {
+  shopName: string;
   contactPhone: string | null;
   contactEmail: string | null;
   businessAddress: string | null;

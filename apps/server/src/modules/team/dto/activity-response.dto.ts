@@ -19,5 +19,6 @@ export const activityPageSchema = z.object({
     }),
   ),
   nextCursor: z.string().nullable(),
+  retentionDays: z.number(),
 });
 export class ActivityPageDto extends createZodDto(activityPageSchema) {}

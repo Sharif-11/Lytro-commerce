@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { emailField } from '../auth/auth-code';
 import { phoneField } from '../identity/phone-signup/phone-signup-common';
-import { BUSINESS_ADDRESS_MAX_LENGTH } from '../../common/limits';
+import { BUSINESS_ADDRESS_MAX_LENGTH, NAME_MAX_LENGTH } from '../../common/limits';
 import { nonNegativeMoneyField } from '../../common/money';
 import { PaymentPolicy } from '../../db/enums';
 
@@ -12,6 +12,8 @@ import { PaymentPolicy } from '../../db/enums';
 // (`tenant.shop_settings`) from the three contact fields above (`control.tenants`), but shares this same
 // "the shop's own settings" API shape -- the service layer hides that split, not the request/response shape.
 export const shopSettingsSchema = z.object({
+  // TEN-19: the shop's name, which the dashboard, the tab title and new installs follow; the address never changes.
+  shopName: z.string(),
   contactPhone: z.string().nullable(),
   contactEmail: z.string().nullable(),
   businessAddress: z.string().nullable(),
@@ -23,6 +25,7 @@ export const shopSettingsSchema = z.object({
 export type ShopSettings = z.infer<typeof shopSettingsSchema>;
 
 export const updateShopSettingsSchema = z.object({
+  shopName: z.string().trim().min(1).max(NAME_MAX_LENGTH).optional(),
   contactPhone: phoneField.nullable().optional(),
   contactEmail: emailField.nullable().optional(),
   businessAddress: z.string().trim().max(BUSINESS_ADDRESS_MAX_LENGTH).nullable().optional(),

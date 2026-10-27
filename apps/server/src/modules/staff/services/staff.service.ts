@@ -64,6 +64,21 @@ export class StaffService {
     });
   }
 
+  /**
+   * The names of the roles a staff member holds in the shop, for the Menu's shop card (Slice 11.6); none for the owner,
+   * who holds every permission without a role.
+   */
+  roleNamesOf(tenant: StaffTenant, userId: string | null): Promise<string[]> {
+    if (userId === null) return Promise.resolve([]);
+    return this.store.run(tenant.id, async (tx) => {
+      const held = (await this.roles.assignments(tx, tenant.id))
+        .filter((assignment) => assignment.userId === userId)
+        .map((assignment) => assignment.roleId);
+      const roles = await this.roles.findByIds(tx, tenant.id, held);
+      return roles.map((role) => role.name).sort((a, b) => a.localeCompare(b));
+    });
+  }
+
   /** The owner's own staff row id, for an audit entry the owner performs (AUD-02). */
   ownerId(tenantId: string): Promise<string | null> {
     return this.store.run(
@@ -216,11 +231,11 @@ export class StaffService {
     return created;
   }
 
-  /** Changes a staff member's status and/or roles. The owner row cannot change (STF-12). */
+  /** Changes a staff member's status, roles and/or name. The owner row cannot change (STF-12). */
   async update(
     tenant: StaffTenant,
     userId: string,
-    input: { active?: boolean; roleIds?: string[] },
+    input: { active?: boolean; roleIds?: string[]; name?: string | null },
     now: Date,
     actingUserId: string | null,
     ip?: string | null,
@@ -235,6 +250,11 @@ export class StaffService {
       if (roleIds !== undefined) {
         await this.requireRoles(tx, tenant.id, roleIds);
         await this.roles.replaceFor(tx, tenant.id, userId, roleIds);
+        activityAction = AuditAction.StaffUpdated;
+      }
+
+      if (input.name !== undefined && input.name !== member.name) {
+        await this.store.setName(tx, tenant.id, userId, input.name);
         activityAction = AuditAction.StaffUpdated;
       }
 
