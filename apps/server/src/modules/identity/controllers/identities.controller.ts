@@ -22,16 +22,18 @@ import { AddIdentityCodeDto, VerifyAddIdentityDto } from '../dto/identity.dto';
 import { CodeIssuedDto } from '../dto/auth-response.dto';
 import { IdentitiesListDto, OauthAttachedDto, OauthUrlDto } from '../dto/identities-response.dto';
 import { DashboardGuard, type DashboardRequest } from '../guards/dashboard.guard';
+import { OwnAccountGuard } from '../guards/own-account.guard';
 import { SessionGuard } from '../guards/session.guard';
 import { IdentitiesService } from '../services/identities.service';
 import type { OauthAttached } from '../types/oauth';
 import type { IdentityKind } from '@lytronix/validators';
 
-// The sign-in methods on the signed-in account (AUTH-26). Like the account summary, these work without a shop.
+// The sign-in methods on the signed-in account (AUTH-26). Like the account summary, these work without a shop; never
+// from a staff sign-in, whose password the shop's owner knows (TEN-31).
 @ApiTags('Identities')
 @Controller('me/identities')
 @Dashboard({ lapsed: true, withoutShop: true })
-@UseGuards(SessionGuard, DashboardGuard)
+@UseGuards(SessionGuard, OwnAccountGuard, DashboardGuard)
 export class IdentitiesController {
   constructor(@Inject(IdentitiesService) private readonly identities: IdentitiesService) {}
 
