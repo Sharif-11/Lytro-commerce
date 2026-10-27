@@ -1312,8 +1312,8 @@ their backend ships earlier.
     draws wrapped too.
   - **11.6, Menu, agreed 2026-10-27** (the read, "yes, as proposed"): a security fix first, its own pull request (#221,
     KNOWN-GAPS §96: a staff sign-in never changes the person's own account); then the undrawn states sketched (#223,
-    prototype Part 11, design doc v2.7); then one pull request in three commits -- the server's additions, Menu with Team
-    and Activity, Settings with Account. Agreed with it:
+    prototype Part 11, design doc v2.7); then one pull request in four commits -- the server's additions, Menu with
+    Activity, Team with its roles, Settings with Account. Agreed with it:
     1. `/me` says how the person signed in (`own`, or `staff` on the staff page) and names a staff member's roles; the
        Menu's card shows them, and Account for a staff sign-in shows the phone and its password only.
     2. A staff member can be renamed; the shop's name can change (TEN-19), its address never.
@@ -1328,6 +1328,15 @@ their backend ships earlier.
     at once, the shop's address unchanged; `GET /activity` takes one action or several, comma-separated, and `result`,
     and gives `retentionDays`. The chips' groups (`ACTIVITY_GROUPS`) and the retention rule (`activityRetentionDays`)
     are each defined once, in the shared validators.
+  - **11.6's Menu and Activity, built:** the Menu hub's own page replaces the first build's: the shop card with the
+    person's role and name, the sections their permissions open, Account, Language, Help and Sign out, and the install
+    card (the browser's offer, or the iPhone's steps). Activity is rebuilt: the chips ask the server, one sentence per
+    action in both languages, the failure tagged, Show earlier, and the plan's days. Where it differs from the
+    drawing, on purpose: an entry names the person, never "You", since the page cannot tell which person is the one
+    viewing it; the line under an entry says only what the entry records (a name, or a stock change's figures), so
+    the drawn TrxID and "seat freed" lines wait for entries that carry them; the Failed tag's red is darker
+    (`danger-text`), as the drawn red on its pink is 4.45:1, under AA; a staff member's tab bar and search follow
+    their permissions, as the shell already does; and Help shows only where the deployment names a WhatsApp number.
 
 ### Slice 12: shared storefront and product landing pages
 - **Depends on:** Slices 0, 0b, 7 and 9 (and branding from Phase 1).

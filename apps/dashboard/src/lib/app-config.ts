@@ -4,10 +4,18 @@ export class AppConfig {
   readonly platformDomain: string;
   readonly siteUrl: string;
   readonly apiBase = '/api/v1';
+  /** The support WhatsApp number, digits only; null where the deployment sets none. */
+  readonly supportWhatsapp: string | null;
 
   constructor(env: ImportMetaEnv = import.meta.env) {
     this.platformDomain = env.VITE_PLATFORM_DOMAIN ?? 'lytro.app';
     this.siteUrl = (env.VITE_SITE_URL ?? 'https://lytro.app').replace(/\/+$/, '');
+    this.supportWhatsapp = env.VITE_SUPPORT_WHATSAPP?.replace(/\D/g, '') || null;
+  }
+
+  /** Help's WhatsApp chat (TENANT-DASHBOARD-DESIGN §7.18); none where the deployment sets no number. */
+  supportChatUrl(): string | null {
+    return this.supportWhatsapp ? `https://wa.me/${this.supportWhatsapp}` : null;
   }
 
   /** A shop's public address (TEN-31). */

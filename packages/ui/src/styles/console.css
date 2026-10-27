@@ -51,6 +51,7 @@
   --color-on-danger-fill: var(--color-danger);
   --color-danger-fill-hover: color-mix(in oklab, var(--color-danger) 25%, transparent);
   --color-danger-ring: color-mix(in oklab, var(--color-danger) 40%, transparent);
+  --color-danger-text: var(--color-danger);
   --color-backdrop: color-mix(in oklab, var(--color-black) 60%, transparent);
   --shadow-dialog: var(--shadow-card);
 

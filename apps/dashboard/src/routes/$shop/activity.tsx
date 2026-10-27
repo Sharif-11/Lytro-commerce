@@ -1,8 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { Activity } from '@/views/activity';
+import { ActivityView } from '@/views/activity';
 
-// The first build's screen, framed by the new shell until its own pull request of Slice 11 rebuilds it.
+// TENANT-DASHBOARD-DESIGN §7.15: the Menu hub's Activity section.
 export const Route = createFileRoute('/$shop/activity')({
-  staticData: { screen: { hub: 'menu', section: 'activity', title: 'secActivity', legacy: true } },
-  component: Activity,
+  staticData: { screen: { hub: 'menu', section: 'activity', title: 'secActivity' } },
+  component: ActivityView,
 });

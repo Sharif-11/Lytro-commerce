@@ -12,6 +12,8 @@ import {
   rejectedRenewal,
   type PaymentFixture,
 } from './support/payments';
+import { drawnActivity } from './support/activity';
+import { BILLING_STAFF, offerInstall, onAnIphone } from './support/menu';
 import { DAY_ONE, mockApi, SLUG, type Language, type ShopState } from './support/mock-api';
 import { mockOnboarding, TWELVE_MONTHS, typeCode, type Journey } from './support/onboarding-api';
 import type { AddonsFixture, UsageFixture } from './support/usage';
@@ -41,6 +43,8 @@ interface Pair {
   path: string;
   /** What to do in the app once the page shows, before the picture (opening the + menu). */
   then?: (page: Page) => Promise<void>;
+  /** What to set in the app before it loads (an iPhone's browser). */
+  before?: (page: Page) => Promise<void>;
   /** A step outside a shop: the journey to mock, and `path` is the whole path. */
   journey?: Journey;
   /** What the guest brought from the website (the sign-up intent the sign-in page keeps). */
@@ -306,7 +310,40 @@ const MONEY: Pair[] = [
   ...balanceAndBilling(),
   ...usagePairs(),
   ...addonPairs(),
+  ...menuPairs(),
 ];
+
+/** The Menu hub's own page and Activity (§7.18, §7.15, Slice 11.6), with Part 11's staff, install and empty states. */
+function menuPairs(): Pair[] {
+  const one = (
+    name: string,
+    path: string,
+    more: Partial<Pair> = {},
+    device: Device = 'phone',
+    language: Language = 'bn',
+  ): Pair => ({ name, screen: name, device, language, path, ...more });
+  const noFailures = drawnActivity('bn').filter((each) => each.result !== 'failure');
+  return [
+    one('menu', '/menu'),
+    one('menu', '/menu', {}, 'desktop', 'en'),
+    one('menu-staff', '/menu', { state: BILLING_STAFF }),
+    one('menu-install', '/menu', { then: offerInstall }),
+    one('menu-install-ios', '/menu', { before: onAnIphone }),
+    one('activity', '/activity'),
+    one('activity', '/activity', {}, 'desktop', 'en'),
+    one('activity-empty', '/activity', { state: { activity: { entries: [], earlier: [] } } }),
+    one('activity-filter-empty', '/activity', {
+      state: { activity: { entries: noFailures, earlier: [] } },
+      then: async (page) => {
+        await page.getByRole('button', { name: 'শুধু ফেইলড' }).click();
+        // The click scrolled the chips to it; the drawing shows them from the start.
+        await page.evaluate(() => {
+          for (const row of document.querySelectorAll('[role="group"]')) row.scrollLeft = 0;
+        });
+      },
+    }),
+  ];
+}
 
 /** Usage (§7.24, Slice 11.5c), each of the prototype's Part 10 states, its owner told by email. */
 function usagePairs(): Pair[] {
@@ -817,6 +854,7 @@ test.describe('the built shell beside the prototype', () => {
       await drawing.close();
 
       const app = await browser.newPage({ viewport: AREA[pair.device] });
+      if (pair.before) await pair.before(app);
       if (pair.intent) {
         await app.addInitScript(
           (intent: string) => {

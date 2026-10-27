@@ -20,6 +20,7 @@ import {
   type AddonsFixture,
   type UsageFixture,
 } from './usage';
+import { activityAnswer, drawnActivity, earlierActivity, type ActivityFixture } from './activity';
 import {
   drawnLedger,
   drawnPayments,
@@ -83,6 +84,11 @@ export interface ShopState {
   periodEndDays?: number;
   isOwner?: boolean;
   permissions?: string[];
+  /** How the person signed in (TEN-31) and their roles' names; a staff member is Kamal, the owner Rumana. */
+  signIn?: 'own' | 'staff';
+  roles?: string[];
+  /** GET /activity's entries where they differ from the prototype's six, and the older page's. */
+  activity?: { entries: ActivityFixture[]; earlier: ActivityFixture[] } | null;
   /** GET /home's stock part; null when the person may not see stock. */
   stock?: { low: number; out: number } | null;
   /** GET /home's other parts where they differ from the working shop's. */
@@ -119,7 +125,15 @@ export function me(state: Required<ShopState>): unknown {
     subscriber: { id: 'sub-1' },
     isOwner: state.isOwner,
     permissions: state.permissions,
-    name: state.language === 'bn' ? 'রুমানা' : 'Rumana',
+    signIn: state.signIn,
+    roles: state.roles,
+    name: state.isOwner
+      ? state.language === 'bn'
+        ? 'রুমানা'
+        : 'Rumana'
+      : state.language === 'bn'
+        ? 'কামাল'
+        : 'Kamal',
     tenant: {
       id: 'tenant-1',
       slug: SLUG,
@@ -253,6 +267,9 @@ export function shopState(given: ShopState = {}): Required<ShopState> {
     periodEndDays: 20,
     isOwner: true,
     permissions: [],
+    signIn: 'own',
+    roles: [],
+    activity: null,
     stock: { low: 1, out: 1 },
     home: {},
     ...given,
@@ -376,6 +393,13 @@ export function shopAnswer(path: string, url: URL, state: Required<ShopState>): 
     });
   }
   if (path === '/addons/mine') return shopAddonsAnswer(money.usage);
+  if (path === '/activity') {
+    const activity = state.activity ?? {
+      entries: drawnActivity(state.language),
+      earlier: earlierActivity(state.language),
+    };
+    return activityAnswer(url, activity.entries, activity.earlier);
+  }
   if (path === '/me/identities') {
     return {
       identities: [

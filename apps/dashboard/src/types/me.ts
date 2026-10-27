@@ -84,12 +84,22 @@ export interface MeResponse {
   permissions: string[];
   /** The signed-in person's own name in this shop, for the header's initial; null when unnamed. */
   name: string | null;
+  /**
+   * TEN-31: `staff` for a sign-in made on the staff page with the password the shop set, which never reaches the
+   * person's own account; `own` for their own phone, email, password, Google or Facebook.
+   */
+  signIn: SignInKind;
+  /** The roles the person holds in this shop, for the Menu's card; none for the owner. */
+  roles: string[];
   tenant: MeTenant | null;
   /** TEN-31: every shop the person may open -- one opens directly, several show the picker (TEN-15). */
   shops: ShopListing[];
   /** LIF-21: no shop open yet, and a deleted one whose balance the new shop takes over (create-shop's note). */
   hasDeletedShop: boolean;
 }
+
+/** How the person signed in (TEN-31, AUTH-31). */
+export type SignInKind = 'own' | 'staff';
 
 /** One shop on the picker. */
 export interface ShopListing {

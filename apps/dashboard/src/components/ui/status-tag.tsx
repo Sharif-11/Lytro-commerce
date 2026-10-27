@@ -5,7 +5,7 @@ export type StatusTone = 'ok' | 'warn' | 'bad' | 'info' | 'neutral';
 const TONES: Record<StatusTone, string> = {
   ok: 'bg-success-soft text-success',
   warn: 'bg-warning-soft text-warning',
-  bad: 'bg-danger-soft text-danger',
+  bad: 'bg-danger-soft text-danger-text',
   info: 'bg-info-soft text-info',
   neutral: 'bg-neutral-100 text-fg-muted',
 };

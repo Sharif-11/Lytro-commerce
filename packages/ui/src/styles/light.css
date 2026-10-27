@@ -60,6 +60,8 @@
   --color-on-danger-fill: #ffffff;
   --color-danger-fill-hover: #a9262e;
   --color-danger-ring: transparent;
+  /* Danger as words on danger-soft (a Failed or Rejected tag): the swatch's own red there is 4.45:1, under AA. */
+  --color-danger-text: #a9262e;
   --color-backdrop: color-mix(in oklab, var(--color-ink) 40%, transparent);
   --shadow-dialog: var(--shadow-lift);
 
