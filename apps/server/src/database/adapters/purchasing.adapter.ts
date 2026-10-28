@@ -216,7 +216,7 @@ export class DrizzlePurchaseOrderStore implements PurchaseOrderStore {
   listOrders(
     tx: Transaction,
     tenantId: string,
-    filter: { status: PurchaseStatus | null; supplierId: string | null },
+    filter: { statuses: PurchaseStatus[] | null; supplierId: string | null },
     page: { offset: number; limit: number },
   ): Promise<{ rows: PurchaseOrderSummaryRow[]; total: number }> {
     return this.orders.listOrders(tx, tenantId, filter, page);

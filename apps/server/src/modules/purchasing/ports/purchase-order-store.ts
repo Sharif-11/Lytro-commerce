@@ -65,7 +65,7 @@ export interface PurchaseOrderStore {
   listOrders(
     tx: Transaction,
     tenantId: string,
-    filter: { status: PurchaseStatus | null; supplierId: string | null },
+    filter: { statuses: PurchaseStatus[] | null; supplierId: string | null },
     page: { offset: number; limit: number },
   ): Promise<{ rows: PurchaseOrderSummaryRow[]; total: number }>;
   /** PUR-05: what each of these purchases orders, and still awaits, unit by unit. */
