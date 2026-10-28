@@ -1864,6 +1864,19 @@ their name, using up their trial (AUTH-09).
 **Fixed:** those routes refuse a staff sign-in with `forbidden` (`OwnAccountNeedsOwnSignIn`); a staff member's
 password stays on `POST /auth/staff/password`. The person's own sign-in is unchanged, also on an employer's page.
 
+## 97. `MED-09`, `BRN-02`: a media item's uses leave out the brand identity's images — found 2026-10-29, open
+
+Found while building Slice 11.12a. MED-09's uses of a media item (`MediaRepository.usesOf`) count product photos,
+videos, categories, swatches, size charts and the shop logo, but not the brand identity's logo for dark backgrounds or
+its square icon (`brand_identities.dark_logo_media_id`, `icon_media_id`). Whatever deletes an item that nothing shows
+can therefore delete one the brand still shows. The product editor's clean-up (`UnusedMedia.forget`) is one: a brand
+image picked into a product's photos and later let go of there is deleted. The brand then loses it (the reference is
+cleared on delete): its storefront and dashboard fall back to the monogram, and the installed app to the shop logo.
+
+**Not fixed in 11.12a,** which was agreed without server changes; the editor itself deletes only pictures it uploaded
+and never saved. The fix is small: `usesOf` counts `brand_identities` too, `MediaUses` gains `brand`, and the
+dashboard's `inUse` reads it.
+
 ## Not a bug, just noting it so it isn't mistaken for one later
 
 The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data

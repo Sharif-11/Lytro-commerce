@@ -1167,7 +1167,8 @@ earlier brand screens redrawn on the same page):
   switch on) and **Save without switching on**. Turning the switch on is Apply; turning it off happens at once, keeps the
   identity and leaves the page's unsaved changes on the page. On the trial or without the add-on, only Save without
   switching on, with the banner and Buy the add-on. With the plan's feature, the line says "included in your plan". After
-  a lapse the banner names no date (the shop's add-ons list keeps only running ones); Buy again and Save remain. The
+  a lapse the banner names no date (the shop's add-ons list keeps only running ones) and its link says Buy again alone,
+  since a price beside the sentence squeezed it on a phone; the page's Buy again, with the price, and Save remain. The
   switch's line wraps on a phone, so the add-on's end is never cut off.
 - **The contrast check as the server makes it.** The text on each colour is ink or white, whichever reads better, so the
   three pairs drawn rarely fail. Two more checks show as rows only when they fail: the main colour on the background

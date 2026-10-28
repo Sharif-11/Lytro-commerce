@@ -3844,6 +3844,7 @@ Object.assign(S, {
   brTrialNote: ['ট্রায়ালে ব্র্যান্ড সাজিয়ে প্রিভিউ আর সেভ করতে পারেন। চালু করতে ব্র্যান্ড অ্যাড-অন লাগে (৳149/মাস), আর অ্যাড-অন কিনতে একটা প্ল্যান লাগে।', 'On the trial you can design, preview and save your brand. Switching it on needs the brand add-on (৳149/month), and buying it needs a plan.'],
   b23UseOnPlan: ['স্টোরফ্রন্ট, ল্যান্ডিং পেজ আর ড্যাশবোর্ডে চালু · আপনার প্ল্যানে আছে', 'On across the storefront, landing pages and dashboard · included in your plan'],
   b23NoAddon: ['ব্র্যান্ড চালু করতে ব্র্যান্ড আইডেন্টিটি অ্যাড-অন লাগে (৳149/মাস)। এখনই সাজিয়ে সেভ করে রাখতে পারেন।', 'Switching your brand on needs the brand identity add-on (৳149/month). You can design and save it now.'],
+  b23BuyAgainShort: ['আবার কিনুন', 'Buy again'],
   b23BuyAddon: ['অ্যাড-অন কিনুন', 'Buy the add-on'],
   b23Lapsed: ['ব্র্যান্ড অ্যাড-অন শেষ হয়ে গেছে, তাই স্টোরফ্রন্টে এখন Lytro-র ডিফল্ট দেখাচ্ছে। আপনার সেটিংস রাখা আছে; আবার কিনলে সব ফিরে আসবে।', 'The brand add-on has ended, so your storefront shows the Lytro default. Your settings are kept and come back when you buy it again.'],
   b23FailBanner: ['কিছু রং একসাথে পড়তে কষ্ট হবে। প্রতিটা জোড়া পাস না করা পর্যন্ত ব্র্যান্ড চালু করা যাবে না।', 'Some colours are hard to read together. Your brand cannot switch on until every pair passes.'],
@@ -3923,7 +3924,7 @@ function switch23(o) {
   return `<div class="card b23sw">${switchRow(t('brUse'), l2, on, blocked ? 'style="opacity:.45"' : on ? "onclick=\"go('brand-switched-off')\"" : "onclick=\"go('brand-applied')\"")}</div>`;
 }
 function banner23(o) {
-  if (o.state === 'lapsed') return `<div class="banner warn">${ic('alert')}<span class="b">${t('b23Lapsed')}</span><a href="#" onclick="go('sh-addon-buy');return false">${t('brBuyAgain')}</a></div>`;
+  if (o.state === 'lapsed') return `<div class="banner warn">${ic('alert')}<span class="b">${t('b23Lapsed')}</span><a href="#" onclick="go('sh-addon-buy');return false">${t('b23BuyAgainShort')}</a></div>`;
   if (o.state === 'trial') return `<div class="banner neu">${ic('info')}<span class="b">${t('brTrialNote')}</span></div>`;
   if (o.state === 'noaddon') return `<div class="banner neu">${ic('info')}<span class="b">${t('b23NoAddon')}</span><a href="#" onclick="go('sh-addon-buy');return false">${t('b23BuyAddon')}</a></div>`;
   if (o.fail) return `<div class="banner bad">${ic('alert')}<span class="b">${t('b23FailBanner')}</span></div>`;

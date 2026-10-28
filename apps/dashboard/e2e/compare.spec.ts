@@ -17,6 +17,8 @@ import { BILLING_STAFF, offerInstall, onAnIphone } from './support/menu';
 import { drawnIdentities } from './support/account';
 import { emptyMeta } from './support/meta';
 import { drawnExports } from './support/settings';
+import { brandImage, drawnBrand, type BrandFixture } from './support/brand';
+import { BrandCorners, BrandFont, BrandSpacing } from '@lytronix/validators';
 import { sketchedAttributes } from './support/attributes';
 import { drawnProducts, manyProducts, type ProductsFixture } from './support/products';
 import {
@@ -1872,7 +1874,7 @@ function editorPairs(): Pair[] {
   ];
 }
 
-/** Settings (§7.16, Slice 11.6): its list, Shop details, Brand identity until its editor, and Data export. */
+/** Settings (§7.16, Slice 11.6): its list, Shop details, Brand identity (Slice 11.12a), and Data export. */
 function settingsPairs(): Pair[] {
   const one = (
     name: string,
@@ -1886,7 +1888,7 @@ function settingsPairs(): Pair[] {
     one('settings', '/settings', {}, 'desktop', 'en'),
     one('shopdetails', '/settings/shop'),
     one('shopdetails', '/settings/shop', {}, 'desktop', 'en'),
-    one('brand-soon', '/settings/brand'),
+    ...brandPairs(),
     one('exports', '/settings/export', { state: { money: { exports: drawnExports() } } }),
     one(
       'exports',
@@ -1899,6 +1901,121 @@ function settingsPairs(): Pair[] {
     ...metaPairs(),
     ...accountPairs(),
   ];
+}
+
+/**
+ * Brand identity (§7.28, Slice 11.12a): the editor in each state Part 23 draws, its sheets, a contrast that fails, the
+ * logos set, leaving unsaved, and its toasts. The add-on is held where the drawing names its end.
+ */
+function brandPairs(): Pair[] {
+  const held = { owned: [{ key: 'brand_identity' }] };
+  const brand = (
+    change: Partial<BrandFixture> & { colours?: Partial<BrandFixture['identity']> } = {},
+  ) => {
+    const drawn = drawnBrand();
+    const { colours, ...rest } = change;
+    return { ...drawn, ...rest, identity: { ...drawn.identity, ...colours } };
+  };
+  const one = (
+    name: string,
+    state: ShopState,
+    more: Partial<Pair> = {},
+    device: Device = 'phone',
+    language: Language = 'bn',
+    screen = name,
+  ): Pair => ({ name, screen, device, language, path: '/settings/brand', state, ...more });
+  const on = { brand: brand(), money: { usage: held } };
+  const off = { brand: brand({ useBrand: false }), money: { usage: held } };
+  const pale = {
+    brand: brand({ useBrand: false, colours: { mainColor: '#f2d16b' } }),
+    money: { usage: held },
+  };
+  const logos = {
+    brand: brand({ colours: { darkLogo: brandImage('m-dark'), icon: brandImage('m-icon') } }),
+    money: { usage: held },
+  };
+  const colours = /^(Colours|রং)$/;
+  const tap = (name: RegExp) => async (page: Page) => {
+    await page.getByRole('button', { name }).first().click();
+  };
+  return [
+    one('brand', on),
+    one('brand', on, {}, 'desktop', 'en'),
+    one('brand-landing', on, { then: tap(/^(Landing|ল্যান্ডিং)$/) }, 'phone', 'en'),
+    one('brand-dash', on, { then: tap(/^(Dashboard|ড্যাশবোর্ড)$/) }, 'desktop', 'bn'),
+    one('brand-off', off),
+    one('brand-off', off, {}, 'desktop', 'en'),
+    one('brand-in-plan', { brand: brand() }, {}, 'phone', 'en'),
+    one('brand-trial', { state: 'trial', brand: brand({ useBrand: false, allowed: false }) }),
+    one('brand-no-addon', { brand: brand({ useBrand: false, allowed: false }) }, {}, 'phone', 'en'),
+    one('brand-lapsed', { brand: brand({ allowed: false }) }),
+    one('brand-contrast', pale, { scroll: colours }, 'desktop', 'en'),
+    one('brand-contrast', pale, { scroll: colours }),
+    one(
+      'brand-contrast-status',
+      {
+        brand: brand({ useBrand: false, colours: { backgroundColor: '#c9c2b0' } }),
+        money: { usage: held },
+      },
+      { scroll: colours },
+      'phone',
+      'en',
+    ),
+    one('brand-round', {
+      ...on,
+      brand: brand({ colours: { corners: BrandCorners.Round, spacing: BrandSpacing.Compact } }),
+    }),
+    one(
+      'brand-square-airy',
+      {
+        ...on,
+        brand: brand({ colours: { corners: BrandCorners.Square, spacing: BrandSpacing.Airy } }),
+      },
+      {},
+      'desktop',
+      'en',
+    ),
+    one('brand-colour-main', on, { then: tap(/^Main/) }, 'phone', 'en'),
+    one('brand-colour-accent', on, { then: tap(/^অ্যাকসেন্ট/) }),
+    one('brand-colour-bg', on, { then: tap(/^Background/) }, 'desktop', 'en'),
+    one('brand-colour-fail', pale, { then: tap(/^Main/) }, 'phone', 'en'),
+    one('brand-logos', logos, { scroll: /^(Logos|লোগো)$/ }, 'phone', 'en'),
+    one('brand-logo-dark', logos, { then: tapNth(/^Change$/, 1) }, 'phone', 'en'),
+    one('brand-icon', logos, { then: tapNth(/^বদলান$/, 2) }),
+    one('brand-font-heading', on, { then: tapNth(/^বদলান$/, 1) }),
+    one('brand-font-body', on, { then: tapNth(/^Change$/, 2) }, 'phone', 'en'),
+    one('brand-font-display', {
+      ...on,
+      brand: brand({ colours: { headingFont: BrandFont.GaladaPlayfairDisplay } }),
+    }),
+    one(
+      'brand-leave',
+      off,
+      {
+        then: async (page) => {
+          await page.getByRole('button', { name: 'Airy' }).click();
+          await page.getByRole('link', { name: /back/i }).first().click();
+        },
+      },
+      'phone',
+      'en',
+    ),
+    one('brand-applied', off, { then: tap(/^Apply$/) }, 'phone', 'en'),
+    one(
+      'brand-switched-off',
+      on,
+      { then: async (page) => page.getByRole('switch').click() },
+      'phone',
+      'en',
+    ),
+  ];
+}
+
+/** Taps the nth button with this name (from 0), for a page with several (each logo's Change, each font's). */
+function tapNth(name: RegExp, index: number): (page: Page) => Promise<void> {
+  return async (page) => {
+    await page.getByRole('button', { name }).nth(index).click();
+  };
 }
 
 /** Account (§7.17): the person's own, each of its sheets and dialogs, and a staff sign-in's (Part 11). */
