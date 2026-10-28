@@ -349,8 +349,17 @@ export function shopAnswer(path: string, url: URL, state: Required<ShopState>): 
   if (path === '/inventory/stock') {
     return stockPageAnswer((state.products ??= drawnProducts()), url, state.language);
   }
-  if (path === '/inventory/figures') return figuresAnswer((state.products ??= drawnProducts()));
-  if (path === '/batches') return shopBatchesAnswer((state.products ??= drawnProducts()), url);
+  if (path === '/inventory/figures') {
+    return figuresAnswer((state.products ??= drawnProducts()), state.language);
+  }
+  if (path === '/batches') {
+    return shopBatchesAnswer(
+      (state.products ??= drawnProducts()),
+      url,
+      state.language,
+      state.isOwner || state.permissions.includes('inventory:manage'),
+    );
+  }
   if (path === '/presets') {
     return PRESETS.map(([key, labelBn, labelEn]) => ({ key, labelBn, labelEn, defaults: {} }));
   }

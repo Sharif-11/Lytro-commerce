@@ -11,6 +11,8 @@
   "secStock": "Stock",
   "stockChecks": "Stock checks",
   "stockCheckNew": "Stock check",
+  "stockExpiring": "Expiring",
+  "stockValueTitle": "Stock value and losses",
   "secPurchases": "Purchases",
   "secDelivery": "Delivery",
   "secBalance": "Balance",

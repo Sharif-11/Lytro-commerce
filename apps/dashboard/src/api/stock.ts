@@ -10,10 +10,10 @@ import { BatchState, type SerialStatus, type StockEditReason } from '@lytronix/v
 import { tenantSession } from '@/session/tenant-session';
 import type { ProductStock } from '@/types/attribute';
 import type {
-  BatchCount,
   InventoryFigures,
   ProductBatches,
   SerialPage,
+  ShopBatchPage,
   StockHistoryPage,
   StockPage,
 } from '@/types/stock';
@@ -94,14 +94,30 @@ export function useInventoryFigures(options: { enabled: boolean }) {
   });
 }
 
-/** GET /batches?state=expiring (INV-13): how many of the shop's batches expire within 30 days. */
-export function useExpiringCount(options: { enabled: boolean }) {
+/** INV-13: the shop's batches that want seeing to, by how they stand: expiring within 30 days, or expired. */
+export type BatchWatch = BatchState.Expiring | BatchState.Expired;
+
+/** GET /batches?state= (INV-13): how many of the shop's batches stand so. */
+export function useBatchCount(state: BatchWatch, options: { enabled: boolean }) {
   return useQuery({
-    queryKey: [...PRODUCTS_QUERY_KEY, 'batches', BatchState.Expiring, 'count'],
-    queryFn: () =>
-      tenantSession.client.get<BatchCount>(`/batches?state=${BatchState.Expiring}&limit=1`),
+    queryKey: [...PRODUCTS_QUERY_KEY, 'shop-batches', state, 'count'],
+    queryFn: () => tenantSession.client.get<ShopBatchPage>(`/batches?state=${state}&limit=1`),
     select: (page) => page.total,
     enabled: options.enabled,
+  });
+}
+
+/**
+ * GET /batches (INV-13, Slice 11.9's Expiring): the shop's batches expiring or expired, soonest first, as many as
+ * one page holds; `null` asks for both.
+ */
+export function useShopBatches(state: BatchWatch | null) {
+  return useQuery({
+    queryKey: [...PRODUCTS_QUERY_KEY, 'shop-batches', state ?? 'all'],
+    queryFn: () =>
+      tenantSession.client.get<ShopBatchPage>(
+        `/batches?${new URLSearchParams({ ...(state ? { state } : {}), limit: String(WHOLE_PAGE) }).toString()}`,
+      ),
   });
 }
 

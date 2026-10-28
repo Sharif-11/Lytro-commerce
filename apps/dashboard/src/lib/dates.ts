@@ -162,3 +162,8 @@ export function formatDuration(ms: number): string {
   const seconds = Math.round(ms / 1000);
   return `${String(Math.floor(seconds / 60))}:${String(seconds % 60).padStart(2, '0')}`;
 }
+
+/** Whole days from today (Dhaka) to a day ("2026-11-02"): 13 when it is 13 days away, negative once past. */
+export function daysUntil(day: string): number {
+  return Math.round((Date.parse(day) - Date.parse(todayInputValue())) / (24 * 60 * 60 * 1000));
+}

@@ -11,6 +11,8 @@
   "secStock": "স্টক",
   "stockChecks": "স্টক গণনা",
   "stockCheckNew": "স্টক গুনুন",
+  "stockExpiring": "মেয়াদ শেষ হচ্ছে",
+  "stockValueTitle": "স্টকের দাম ও লোকসান",
   "secPurchases": "কেনাকাটা",
   "secDelivery": "ডেলিভারি",
   "secBalance": "ব্যালেন্স",

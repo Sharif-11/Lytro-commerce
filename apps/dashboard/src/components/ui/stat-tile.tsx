@@ -8,6 +8,8 @@ interface StatTileProps {
   noteTone?: 'plain' | 'good' | 'bad';
   /** In a tight row of three (the prototype's `.stats.tight`): smaller, as a stock check's figures are. */
   tight?: boolean;
+  /** Its own extra classes (a tile that is a link fills its link). */
+  className?: string;
 }
 
 const NOTE_TONE = { plain: 'text-fg-subtle', good: 'text-success', bad: 'text-danger' } as const;
@@ -19,10 +21,11 @@ export function StatTile({
   note,
   noteTone = 'plain',
   tight = false,
+  className,
 }: StatTileProps): React.JSX.Element {
   return (
     <div
-      className={`rounded-card border border-line bg-surface ${tight ? 'min-w-0 px-3 py-2.5' : 'flex-[0_0_150px] px-4 py-3.5 sm:flex-auto'}`}
+      className={`rounded-card border border-line bg-surface ${tight ? 'min-w-0 px-3 py-2.5' : 'flex-[0_0_150px] px-4 py-3.5 sm:flex-auto'} ${className ?? ''}`}
     >
       <div className={`${tight ? 'text-[12px]' : 'text-[13px]'} font-medium text-fg-muted`}>
         {label}

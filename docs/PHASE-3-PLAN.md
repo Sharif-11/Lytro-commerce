@@ -1544,8 +1544,11 @@ their backend ships earlier.
   ids, so a read listing them by attribute names it right (the Stock card's sheets too). Stock checks: Check stock
   opens the list of checks (agreed 2026-10-28, design v3.8), each with its own number, what it came to, and its page
   with the matched lines folded; New check picks products or a whole category (`GET /inventory/stock?categoryId=`),
-  counts a batch-kept product batch by batch, names the IMEIs a serial line is short, and takes a note. Expiring and
-  Stock value follow in the same pull request.
+  counts a batch-kept product batch by batch, names the IMEIs a serial line is short, and takes a note. Expiring: the
+  batches expiring within 30 days then those expired, each named with its variant and unit (`GET /batches` now carries
+  `stockUnit`, `avgCost` for managers and the products' splits), an expired one written off with its loss at average
+  cost; Expired alone on its own segment. Stock value and losses: the stock on hand at average cost in its units, by
+  category, and this month's losses by reason, for `inventory:manage` only. The Stock page's figures open them.
 
 
 ### Slice 12: shared storefront and product landing pages

@@ -19,7 +19,14 @@ import { emptyMeta } from './support/meta';
 import { drawnExports } from './support/settings';
 import { sketchedAttributes } from './support/attributes';
 import { drawnProducts, manyProducts, type ProductsFixture } from './support/products';
-import { creamShop, galaxyShop, phoneShop, SAMPLE_IMEIS, stockShop } from './support/stock';
+import {
+  creamShop,
+  expiringShop,
+  galaxyShop,
+  phoneShop,
+  SAMPLE_IMEIS,
+  stockShop,
+} from './support/stock';
 import { drawnLibrary } from './support/variants';
 import { drawnPasswords, drawnTeam } from './support/team';
 import { DAY_ONE, mockApi, SLUG, type Language, type ShopState } from './support/mock-api';
@@ -370,6 +377,7 @@ function productPairs(): Pair[] {
     ...stockCardPairs(),
     ...stockPagePairs(),
     ...stockCheckPairs(),
+    ...expiringPairs(),
     ...categoryPairs(),
     ...attributePairs(),
   ];
@@ -844,6 +852,44 @@ function stockCheckPairs(): Pair[] {
       },
     }),
     one('stock-check-detail', '/stock/checks/sc-12'),
+  ];
+}
+
+/**
+ * Expiring and Stock value (§7.9 and §7.22, Slice 11.9, the prototype's `expiring`, `sh-writeoff`, `stock-value` and
+ * Part 20's `expiring-empty`): the batches expiring then expired, a write-off, nothing expiring, and the stock's value
+ * with this month's losses.
+ */
+function expiringPairs(): Pair[] {
+  const one = (
+    name: string,
+    path: string,
+    more: Partial<Pair> = {},
+    device: Device = 'phone',
+    language: Language = 'bn',
+  ): Pair => ({
+    name,
+    screen: name,
+    device,
+    language,
+    path,
+    state: { products: expiringShop() },
+    ...more,
+  });
+  return [
+    one('expiring', '/stock/expiring'),
+    one('expiring-empty', '/stock/expiring', { state: { products: stockShop('bn') } }),
+    one('sh-writeoff', '/stock/expiring', {
+      name: 'sh-writeoff-expiring',
+      then: async (page) => {
+        await page
+          .getByRole('main')
+          .getByRole('button', { name: /^রাইট-অফ/ })
+          .click();
+      },
+    }),
+    one('stock-value', '/stock/value', { state: { products: stockShop('bn') } }),
+    one('stock-value', '/stock/value', { state: { products: stockShop('en') } }, 'desktop', 'en'),
   ];
 }
 

@@ -190,7 +190,7 @@ export function stockPageAnswer(fixture: ProductsFixture, url: URL, language: La
 }
 
 /** GET /inventory/figures (INV-18): the sketch's month, unless the fixture says otherwise. */
-export function figuresAnswer(fixture: ProductsFixture): unknown {
+export function figuresAnswer(fixture: ProductsFixture, language: Language): unknown {
   const figures = fixture.figures ?? {
     stockValue: '84350.00',
     costOfGoodsSold: '21680.00',
@@ -201,34 +201,123 @@ export function figuresAnswer(fixture: ProductsFixture): unknown {
     ],
   };
   const today = new Date().toISOString().slice(0, 10);
+  const pieces = (quantity: number) => [{ unit: 'piece', quantity: String(quantity) }];
   return {
     dateFrom: `${today.slice(0, 8)}01`,
     dateTo: today,
-    stockValue: { value: figures.stockValue, unknownCost: 0, units: [], byCategory: [] },
+    stockValue: {
+      value: figures.stockValue,
+      unknownCost: 0,
+      units: pieces(412),
+      byCategory: byCategoryOf(language),
+    },
     costOfGoodsSold: { value: figures.costOfGoodsSold, movements: 12, unknownCost: 0 },
     losses: {
       value: figures.losses,
       movements: figures.byReason.reduce((total, each) => total + each.movements, 0),
       unknownCost: 0,
-      byReason: figures.byReason.map((each) => ({
+      // The sketch's month: what each reason took, at average cost.
+      byReason: figures.byReason.map((each, at) => ({
         ...each,
-        value: '0.00',
+        value: at === 0 ? '1240.00' : '650.00',
         unknownCost: 0,
-        units: [],
+        units: pieces(each.movements),
       })),
     },
   };
 }
 
+/** The stock value by top-level category, as the sketch's `stock-value` gives it; null for the products in none. */
+function byCategoryOf(language: Language): unknown[] {
+  const bn = language === 'bn';
+  return (
+    [
+      ['c-jackets', 'জ্যাকেট', 'Jackets', '38500.00'],
+      ['c-sarees', 'শাড়ি', 'Sarees', '54000.00'],
+      ['c-tshirts', 'টি-শার্ট', 'T-shirts', '18200.00'],
+      [null, null, null, '11500.00'],
+    ] as const
+  ).map(([categoryId, nameBn, nameEn, value]) => ({
+    categoryId,
+    name: categoryId === null ? null : bn ? nameBn : nameEn,
+    value,
+    unknownCost: 0,
+    units: [],
+  }));
+}
+
 /** GET /batches?state= (INV-13): the shop's batches expiring or expired, as far as the page counts them. */
-export function shopBatchesAnswer(fixture: ProductsFixture, url: URL): unknown {
+export function shopBatchesAnswer(
+  fixture: ProductsFixture,
+  url: URL,
+  language: Language,
+  costs: boolean,
+): unknown {
   const state = url.searchParams.get('state');
-  const batches = fixture.products
-    .filter((product) => !product.archived)
-    .flatMap((product) => product.batches ?? [])
-    .filter((batch) => (state ? batch.state === state : batch.state !== 'fine'));
+  const live = fixture.products.filter((product) => !product.archived);
+  const batches = live
+    .flatMap((product) =>
+      (product.batches ?? []).map((batch) => ({
+        ...batch,
+        productId: product.id,
+        productName: nameIn(product, language),
+        stockUnit: product.stockUnit ?? 'piece',
+        ...(costs
+          ? { avgCost: rowsOf(product).find((row) => row.id === batch.variantId)?.avgCost ?? null }
+          : {}),
+      })),
+    )
+    .filter((batch) => (state ? batch.state === state : batch.state !== 'fine'))
+    .sort((a, b) => (a.expiresOn ?? '').localeCompare(b.expiresOn ?? ''));
   const { slice, ...rest } = page(batches, 1);
-  return { batches: slice, ...rest };
+  const listed = [...new Set(slice.map((batch) => batch.productId))];
+  return {
+    batches: slice,
+    products: live
+      .filter((product) => listed.includes(product.id))
+      .map((product) => ({
+        productId: product.id,
+        splits: variantPart(product, fixture).variantAttributes,
+      })),
+    ...rest,
+  };
+}
+
+/**
+ * Expiring as the prototype's `expiring` draws it: the face cream's FC-0921 in 13 days and FC-0702 expired, and a lip
+ * balm's LB-0818 in 25 days.
+ */
+export function expiringShop(): ProductsFixture {
+  const cream = creamShop();
+  const balm: ProductFixture = {
+    id: 'p-lb',
+    name: ['লিপ বাম', 'Lip balm'],
+    basePrice: '250.00',
+    active: true,
+    stockState: 'in',
+    primaryCategoryId: null,
+    variantCount: 1,
+    settings: { batchTracked: true },
+    matrix: {
+      splits: [],
+      rows: [{ id: 'p-lb-v1', optionIds: [], price: null, sku: null, onHand: 6, avgCost: '90.00' }],
+    },
+    batches: [
+      {
+        id: 'b-lb',
+        variantId: 'p-lb-v1',
+        optionIds: [],
+        batchCode: 'LB-0818',
+        expiresOn: dayFromNow(25),
+        quantity: '6',
+        state: 'expiring',
+      },
+    ],
+  };
+  return {
+    ...cream,
+    products: [...cream.products.filter((each) => each.id === 'p-fc'), balm],
+  };
 }
 
 /** The Stock card's writes; undefined for any other request. */

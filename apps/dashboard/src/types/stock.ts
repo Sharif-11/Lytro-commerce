@@ -1,4 +1,10 @@
-import type { BatchState, SerialFormat, SerialStatus, StockReason } from '@lytronix/validators';
+import type {
+  BatchState,
+  SerialFormat,
+  SerialStatus,
+  StockReason,
+  StockUnit,
+} from '@lytronix/validators';
 import type { ProductStock } from './attribute';
 import type { VariantAttribute } from './product';
 
@@ -92,18 +98,51 @@ export interface MovedFigure {
   unknownCost: number;
 }
 
-/** Mirrors `inventoryFiguresSchema` as far as the Stock page's figures read it (INV-18, D3-9). */
+/** UOM-01: an amount of stock in one unit, never added across units. */
+export interface UnitQuantity {
+  unit: StockUnit;
+  quantity: string;
+}
+
+/** Mirrors `inventoryFiguresSchema` (INV-18, D3-9): the Stock page's figures and the Stock value page. */
 export interface InventoryFigures {
   dateFrom: string;
   dateTo: string;
-  stockValue: { value: string; unknownCost: number };
+  stockValue: {
+    value: string;
+    unknownCost: number;
+    units: UnitQuantity[];
+    /** By top-level category; a null name is the products filed in none. */
+    byCategory: {
+      categoryId: string | null;
+      name: string | null;
+      value: string;
+      unknownCost: number;
+      units: UnitQuantity[];
+    }[];
+  };
   costOfGoodsSold: MovedFigure;
-  losses: MovedFigure & { byReason: (MovedFigure & { reason: StockReason })[] };
+  losses: MovedFigure & {
+    byReason: (MovedFigure & { reason: StockReason; units: UnitQuantity[] })[];
+  };
 }
 
-/** GET /batches: a page of the shop's batches expiring or expired, as far as its count is read. */
-export interface BatchCount {
+/** Mirrors `shopBatchPageSchema`'s batch (INV-13): one batch with its product, its unit, and its cost for managers. */
+export interface ShopBatch extends StockBatch {
+  productId: string;
+  productName: string;
+  stockUnit: StockUnit;
+  avgCost?: string | null;
+}
+
+/** GET /batches: the shop's batches expiring or expired, soonest first, with what names their variants. */
+export interface ShopBatchPage {
+  batches: ShopBatch[];
+  products: { productId: string; splits: VariantAttribute[] }[];
+  page: number;
+  limit: number;
   total: number;
+  pages: number;
 }
 
 /** Mirrors `StockCheckLineView` (INV-07, INV-12): one counted variant, or one batch of it. Costs only for managers. */
