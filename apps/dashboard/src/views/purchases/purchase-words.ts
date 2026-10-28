@@ -40,7 +40,8 @@ export function usePurchaseWords() {
   const item = (purchase: Pick<Purchase, 'products'>, line: PurchaseItem): string => {
     const product = line.productName ?? t('productGone');
     if (line.optionIds.length === 0) return product;
-    const splits = purchase.products.find((each) => each.productId === line.productId)?.splits ?? [];
+    const splits =
+      purchase.products.find((each) => each.productId === line.productId)?.splits ?? [];
     return `${product} · ${words.variant(line.optionIds, splitsOf({ variantAttributes: splits }))}`;
   };
 

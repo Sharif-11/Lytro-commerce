@@ -114,7 +114,9 @@ function PurchaseBody({ saved }: { saved: Purchase }): React.JSX.Element {
   const linesChanged = JSON.stringify(lines) !== JSON.stringify(first.lines);
   const changes: PurchaseDraft = {
     ...(itemsOpen && supplierChanged ? supplierBody(supplier) : {}),
-    ...(expectedOn === first.expectedOn ? {} : { expectedOn: expectedOn === '' ? null : expectedOn }),
+    ...(expectedOn === first.expectedOn
+      ? {}
+      : { expectedOn: expectedOn === '' ? null : expectedOn }),
     ...(notes.trim() === first.notes ? {} : { notes: notes.trim() === '' ? null : notes.trim() }),
     ...(itemsOpen && linesChanged ? { items: linesBody(lines) } : {}),
   };

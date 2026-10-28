@@ -122,7 +122,10 @@ export function SupplierSheet({
                   size="sm"
                   busy={update.isPending}
                   onClick={() => {
-                    update.mutate({ id: supplier.id, body: { archived: true } }, { onSuccess: onClose });
+                    update.mutate(
+                      { id: supplier.id, body: { archived: true } },
+                      { onSuccess: onClose },
+                    );
                   }}
                 >
                   {t('supArchive')}

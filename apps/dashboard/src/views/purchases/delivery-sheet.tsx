@@ -55,9 +55,7 @@ export function DeliverySheet({
                     </span>
                     <span className="text-[14px] text-fg-muted">
                       {[
-                        accepted
-                          ? t('dlvAccepted', { amount: amount(line.accepted, unit) })
-                          : null,
+                        accepted ? t('dlvAccepted', { amount: amount(line.accepted, unit) }) : null,
                         rejected
                           ? line.rejectReason
                             ? t('dlvRejectedWhy', {

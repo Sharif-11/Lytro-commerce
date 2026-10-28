@@ -153,7 +153,11 @@ describeIfDatabase('the Purchases pages’ reads and writes (Slice 11.10)', () =
 
   it('says how each item’s product keeps stock, with each product’s splits to name it', async () => {
     const shop = await openShop(port, texts, 'purchase-items');
-    const rows = (await shop.get('/attributes')).body as { id: string; name: string; scope: string }[];
+    const rows = (await shop.get('/attributes')).body as {
+      id: string;
+      name: string;
+      scope: string;
+    }[];
     const size = rows.find((row) => row.name === 'Size' && row.scope === 'platform')?.id ?? '';
     const made = (await shop.post(`/attributes/${size}/options/batch`, { values: ['S', 'M'] }))
       .body as { id: string }[];
@@ -167,7 +171,10 @@ describeIfDatabase('the Purchases pages’ reads and writes (Slice 11.10)', () =
     const phone = await simple(shop, 'Phone', { serialTracked: true, serialFormat: 'imei' });
     const purchase = await draft(shop, {
       items: [
-        { variantId: shirt.variants.find((each) => each.optionIds.includes(medium ?? ''))?.id, quantity: 4 },
+        {
+          variantId: shirt.variants.find((each) => each.optionIds.includes(medium ?? ''))?.id,
+          quantity: 4,
+        },
         { variantId: cream, quantity: 12 },
         { variantId: phone, quantity: 5 },
       ],

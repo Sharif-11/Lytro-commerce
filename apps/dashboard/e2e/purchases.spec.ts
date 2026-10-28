@@ -66,7 +66,9 @@ function keptOrder(): ProductsFixture {
       ...galaxyShop().products,
     ],
     purchasing: {
-      suppliers: [{ id: 's-rahim', name: ['রহিম ট্রেডার্স', 'Rahim Traders'], phone: null, archived: false }],
+      suppliers: [
+        { id: 's-rahim', name: ['রহিম ট্রেডার্স', 'Rahim Traders'], phone: null, archived: false },
+      ],
       purchases: [purchase],
     },
   };
@@ -166,7 +168,9 @@ test('a supplier typed new is sent as typed, and Save draft leaves it among the 
   await order.getByLabel('Notes').fill('Ask for the blue roll');
   await order.getByRole('button', { name: 'Add item' }).click();
   // A product with one variant joins at once.
-  await sheet(page, 'Add item').getByRole('button', { name: /^Silk saree/ }).click();
+  await sheet(page, 'Add item')
+    .getByRole('button', { name: /^Silk saree/ })
+    .click();
   await order.getByLabel('Quantity of Silk saree').fill('4');
   await order.getByRole('button', { name: 'Save draft' }).click();
   await expect(page).toHaveURL(`/${SLUG}/purchases?seg=drafts`);
@@ -198,7 +202,9 @@ test('a draft: everything changes, Save draft sends it, Place numbers it; anothe
   ]);
   await main(page).getByRole('button', { name: 'Place with supplier' }).click();
   await expect(main(page).getByText('Ordered', { exact: true })).toBeVisible();
-  expect(log.calls.filter((call) => call.path === '/purchase-orders/po-draft/place')).toHaveLength(1);
+  expect(log.calls.filter((call) => call.path === '/purchase-orders/po-draft/place')).toHaveLength(
+    1,
+  );
 
   await open(page, '/purchases/po-draft');
   await main(page).getByRole('button', { name: 'Delete draft' }).click();
@@ -215,7 +221,9 @@ test('a placed purchase changes its items until the first delivery, and is cance
   const log = await open(page, '/purchases/po-7');
   // Its number heads the page on a phone and the header from 1024 px (design v3.10).
   await expect(page.getByRole('heading', { level: 1, name: 'PO-0007' })).toBeVisible();
-  await expect(main(page)).toContainText('Until the first delivery the supplier and the items can change.');
+  await expect(main(page)).toContainText(
+    'Until the first delivery the supplier and the items can change.',
+  );
   await main(page).getByRole('button', { name: 'Remove Cotton T-shirt · M · Blue' }).click();
   await expect(main(page)).toContainText('Total, at known costs: ৳11,200');
   await main(page).getByRole('button', { name: 'Save changes' }).click();
@@ -244,13 +252,17 @@ test('It arrived: a rejection takes its reason, the rest is accepted; the delive
   await main(page).getByRole('button', { name: 'It arrived' }).click();
   const arrived = sheet(page, 'It arrived');
   await expect(arrived).toContainText('PO-0007 · Rahim Traders');
-  const first = arrived.locator('div.rounded-card').filter({ hasText: 'Cotton T-shirt · M · Black' });
+  const first = arrived
+    .locator('div.rounded-card')
+    .filter({ hasText: 'Cotton T-shirt · M · Black' });
   await expect(first.getByLabel('Accepted')).toHaveValue('20');
   await first.getByLabel('Accepted').fill('18');
   await first.getByLabel('Rejected').fill('2');
   await expect(arrived.getByRole('button', { name: 'Record delivery' })).toBeDisabled();
   await first.getByLabel('Reject reason').fill('torn seams');
-  const third = arrived.locator('div.rounded-card').filter({ hasText: 'Cotton T-shirt · M · Blue' });
+  const third = arrived
+    .locator('div.rounded-card')
+    .filter({ hasText: 'Cotton T-shirt · M · Blue' });
   await third.getByLabel('Accepted').fill('0');
   await expectAccessible(page);
   await arrived.getByRole('button', { name: 'Record delivery' }).click();
@@ -298,7 +310,9 @@ test('It arrived: a rejection takes its reason, the rest is accepted; the delive
   await expect(main(page)).toContainText('Reason: The rest is out of stock');
 });
 
-test('a delivery rejected in full leaves the purchase to close short, never to cancel', async ({ page }) => {
+test('a delivery rejected in full leaves the purchase to close short, never to cancel', async ({
+  page,
+}) => {
   await open(page, '/purchases/po-7');
   await main(page).getByRole('button', { name: 'It arrived' }).click();
   const arrived = sheet(page, 'It arrived');
@@ -402,12 +416,16 @@ test('Suppliers: each with its phone and last purchase; edited, made, archived a
   expect(sent(log, 'POST', '/suppliers')).toEqual([{ name: 'Nur Fabrics' }]);
   await expect(list).toHaveCount(4);
 
-  await main(page).getByRole('button', { name: /Karim Garments/ }).click();
+  await main(page)
+    .getByRole('button', { name: /Karim Garments/ })
+    .click();
   await sheet(page, 'Karim Garments').getByRole('button', { name: 'Archive' }).click();
   expect(sent(log, 'PATCH', '/suppliers/s-karim')).toEqual([{ archived: true }]);
   await expect(list).toHaveCount(3);
 
-  await main(page).getByRole('button', { name: /^Show archived/ }).click();
+  await main(page)
+    .getByRole('button', { name: /^Show archived/ })
+    .click();
   await expect(page).toHaveURL(`/${SLUG}/purchases/suppliers?archived=1`);
   await expect(main(page)).toContainText('Old Dealer');
   await expect(main(page)).toContainText('bring one back to offer it again');
@@ -415,7 +433,10 @@ test('Suppliers: each with its phone and last purchase; edited, made, archived a
   // A to Z: Karim Garments before Old Dealer.
   await expect(main(page).getByRole('button', { name: 'Bring back' })).toHaveCount(2);
   await main(page).getByRole('button', { name: 'Bring back' }).first().click();
-  expect(sent(log, 'PATCH', '/suppliers/s-karim')).toEqual([{ archived: true }, { archived: false }]);
+  expect(sent(log, 'PATCH', '/suppliers/s-karim')).toEqual([
+    { archived: true },
+    { archived: false },
+  ]);
   await expect(main(page)).not.toContainText('Karim Garments');
 });
 
@@ -443,14 +464,19 @@ test("a variant's Stock row names where it last came from, and opens which purch
 test('a shop with no purchase yet says so with Order from supplier; with no supplier, with New supplier', async ({
   page,
 }) => {
-  const products: ProductsFixture = { ...stockShop(), purchasing: { suppliers: [], purchases: [] } };
+  const products: ProductsFixture = {
+    ...stockShop(),
+    purchasing: { suppliers: [], purchases: [] },
+  };
   await open(page, '/purchases', { products });
   await expect(main(page)).toContainText(
     'No purchases yet. Order from a supplier; stock you add is recorded here too.',
   );
   await expect(main(page)).not.toContainText('Coming');
   await expect(main(page).getByRole('button', { name: 'Order from supplier' })).toHaveCount(2);
-  await main(page).getByRole('link', { name: /^Suppliers/ }).click();
+  await main(page)
+    .getByRole('link', { name: /^Suppliers/ })
+    .click();
   await expect(main(page)).toContainText('No suppliers yet.');
   await expect(main(page).getByRole('button', { name: 'New supplier' })).toHaveCount(2);
   await expect(main(page).getByRole('button', { name: /^Show archived/ })).toHaveCount(0);

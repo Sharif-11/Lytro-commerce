@@ -60,15 +60,13 @@ export const linesBody = (lines: readonly LineDraft[]): PurchaseLine[] =>
   }));
 
 /** A saved purchase's items as lines to edit, each named by `nameOf`. */
-export const draftsOf = (
-  purchase: Purchase,
-  nameOf: (item: PurchaseItem) => string,
-): LineDraft[] =>
+export const draftsOf = (purchase: Purchase, nameOf: (item: PurchaseItem) => string): LineDraft[] =>
   purchase.items.map((item) => ({
     variantId: item.variantId,
     name: nameOf(item),
     quantity: String(Number(item.quantityOrdered)),
-    cost: item.unitCost === undefined || item.unitCost === null ? '' : String(Number(item.unitCost)),
+    cost:
+      item.unitCost === undefined || item.unitCost === null ? '' : String(Number(item.unitCost)),
   }));
 
 /** The lines' total at the costs known, and how many have none (the prototype's "Total, at known costs"). */

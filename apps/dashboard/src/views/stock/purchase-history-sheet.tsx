@@ -46,7 +46,10 @@ export function PurchaseHistorySheet({
                 {entries.map((entry) => {
                   const number = purchaseNumber(entry.number);
                   return (
-                    <div key={entry.receiptId} className="flex min-h-16 items-center gap-3 px-4 py-3">
+                    <div
+                      key={entry.receiptId}
+                      className="flex min-h-16 items-center gap-3 px-4 py-3"
+                    >
                       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                         <span className="truncate text-[16px] font-medium">
                           {number ? (

@@ -238,7 +238,9 @@ export function drawnPurchases(language: Language): PurchaseFixture[] {
       36,
       [{ id: 'po-4-i1', variantId: 'p-5-v3', ordered: 30, received: 18, unitCost: '950.00' }],
       {
-        closeReason: bn ? 'সাপ্লায়ারের কাছে বাকি 12টি ছিল না' : 'The supplier could not fill the last 12',
+        closeReason: bn
+          ? 'সাপ্লায়ারের কাছে বাকি 12টি ছিল না'
+          : 'The supplier could not fill the last 12',
         receipts: [
           {
             id: 'r-4',
@@ -466,7 +468,11 @@ export function purchaseView(
           rejectReason: line.rejectReason,
           ...(costs ? { unitCost: line.unitCost } : {}),
           batch: line.batchCode
-            ? { id: `b-${receipt.id}`, batchCode: line.batchCode, expiresOn: line.expiresOn ?? null }
+            ? {
+                id: `b-${receipt.id}`,
+                batchCode: line.batchCode,
+                expiresOn: line.expiresOn ?? null,
+              }
             : null,
         })),
       })),
@@ -500,14 +506,19 @@ function supplierFor(
 }
 
 function itemsOf(body: Record<string, unknown>, purchase: PurchaseFixture): PurchaseItemFixture[] {
-  const asked = (body.items ?? []) as { variantId: string; quantity: number; unitCost?: number | null }[];
+  const asked = (body.items ?? []) as {
+    variantId: string;
+    quantity: number;
+    unitCost?: number | null;
+  }[];
   return asked.map((line, at) => ({
-    id: purchase.items.find((item) => item.variantId === line.variantId)?.id ?? `${purchase.id}-n${String(at)}`,
+    id:
+      purchase.items.find((item) => item.variantId === line.variantId)?.id ??
+      `${purchase.id}-n${String(at)}`,
     variantId: line.variantId,
     ordered: line.quantity,
     received: 0,
-    unitCost:
-      line.unitCost === undefined || line.unitCost === null ? null : money(line.unitCost),
+    unitCost: line.unitCost === undefined || line.unitCost === null ? null : money(line.unitCost),
   }));
 }
 
@@ -584,10 +595,13 @@ export function purchasingAnswer(
     const action = one[2];
     const touched = () => {
       // Each write moves the purchase on, as the server's updated_at does.
-      purchase.updatedAt = new Date(Math.max(Date.now(), Date.parse(purchase.updatedAt) + 1)).toISOString();
+      purchase.updatedAt = new Date(
+        Math.max(Date.now(), Date.parse(purchase.updatedAt) + 1),
+      ).toISOString();
       return { data: purchaseView(purchase, fixture, language, costs) };
     };
-    if (method === 'GET' && !action) return { data: purchaseView(purchase, fixture, language, costs) };
+    if (method === 'GET' && !action)
+      return { data: purchaseView(purchase, fixture, language, costs) };
     if (method === 'PATCH' && !action && body) {
       const supplierId = supplierFor(body, purchasing, language);
       if (supplierId !== undefined) purchase.supplierId = supplierId;
@@ -705,7 +719,9 @@ export function purchasingAnswer(
     const entries = purchases.flatMap((each) =>
       each.receipts.flatMap((receipt) =>
         receipt.items
-          .filter((line) => each.items.find((item) => item.id === line.itemId)?.variantId === history[2])
+          .filter(
+            (line) => each.items.find((item) => item.id === line.itemId)?.variantId === history[2],
+          )
           .map((line) => ({
             receiptId: `${receipt.id}-${line.itemId}`,
             purchaseOrderId: each.id,
