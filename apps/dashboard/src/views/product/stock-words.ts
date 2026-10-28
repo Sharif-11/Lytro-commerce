@@ -6,6 +6,7 @@ import {
   ProductFormField,
   type StockUnit,
 } from '@lytronix/validators';
+import type { OpeningBatch } from '@/lib/opening';
 
 /** PRD-08: a payment policy in the shop's words: its name, and a short line for a field ("Advance ৳200"). */
 export function usePolicyWords() {
@@ -29,6 +30,20 @@ export function usePolicyWords() {
         ? t('advanceOf', { amount: formatTaka(advance).replace('৳', '') })
         : name(policy);
   return { name, short };
+}
+
+/** A batch as a field or a table cell shows it: how much, then its expiry's month or its code ("24 · exp 2027-08"). */
+export function useBatchText(): (quantity: string, batch: OpeningBatch) => string {
+  const { t } = useTranslation('shop');
+  return (quantity, batch) =>
+    [
+      quantity.trim(),
+      batch.expiresOn
+        ? `${t('expShort')} ${batch.expiresOn.slice(0, 7)}`
+        : batch.code.trim() || null,
+    ]
+      .filter(Boolean)
+      .join(' · ');
 }
 
 /** UOM-03: a unit stock and orders may count in fractions of. */

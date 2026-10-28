@@ -74,6 +74,8 @@ export interface ProductsFixture {
   categoryDefaults?: Record<string, Record<string, unknown>>;
   /** Slice 11.7c: the categories' own charts (PRD-17), by category id. */
   charts?: Record<string, string[][]>;
+  /** Slice 11.7c: serials the shop's units already have, as stored (INV-23, POST /serials/check). */
+  takenSerials?: string[];
 }
 
 // In the shop's order (the prototype's `CATS`).
@@ -549,6 +551,10 @@ export function productWrite(
   const uploaded = fixture.media?.[finished?.[1] ?? ''];
   if (method === 'POST' && finished && uploaded) {
     return { data: mediaView(finished[1] ?? '', uploaded, 'ready') };
+  }
+  if (method === 'POST' && path === '/serials/check') {
+    const entered = (body?.serials as string[] | undefined) ?? [];
+    return { data: { taken: entered.filter((each) => fixture.takenSerials?.includes(each)) } };
   }
   if (method === 'POST' && path === '/categories') {
     const id = `c-new-${String((made += 1))}`;

@@ -116,6 +116,58 @@ describe('the product form (TENANT-DASHBOARD-DESIGN §7.4)', () => {
     ]);
   });
 
+  it("a new product's stock on the shelf carries its batch and cost, or its serials (INV-10, INV-12, INV-14)", () => {
+    const batched: ProductForm = {
+      ...NEW_PRODUCT,
+      name: 'Napa Extra',
+      price: '36',
+      settings: { ...NEW_PRODUCT.settings, batchTracked: true },
+      openingStock: '40',
+      openingBatch: { code: 'NP-1', expiresOn: '2028-02-01', unitCost: '30' },
+    };
+    expect(createBody(batched)).toMatchObject({
+      variants: [
+        {
+          optionIds: [],
+          openingStock: 40,
+          openingBatch: { batchCode: 'NP-1', expiresOn: '2028-02-01' },
+          openingUnitCost: 30,
+        },
+      ],
+    });
+    const serial: ProductForm = {
+      ...NEW_PRODUCT,
+      name: 'Table fan',
+      price: '3200',
+      settings: { ...NEW_PRODUCT.settings, serialTracked: true },
+      openingStock: '5',
+      openingSerials: [
+        { code: 'VF-1', flag: null },
+        { code: 'VF#2', flag: 'badChars' },
+      ],
+    };
+    expect(createBody(serial)).toMatchObject({
+      variants: [{ optionIds: [], openingStock: 5, openingSerials: ['VF-1'] }],
+    });
+    // A shared stock on the shelf is one batch, with its cost.
+    const shared: ProductForm = {
+      ...batched,
+      splits: [SIZE],
+      variants: SIZE.options.map((option) => ({
+        ...blankRow([option.id]),
+        packAmount: '1',
+      })),
+      sharedStock: true,
+      sharedOpeningStock: '240',
+      sharedOpeningBatch: { code: '2026-10', expiresOn: '', unitCost: '70' },
+    };
+    expect(createBody(shared)).toMatchObject({
+      sharedOpeningStock: 240,
+      sharedOpeningBatch: { batchCode: '2026-10' },
+      sharedOpeningUnitCost: 70,
+    });
+  });
+
   it('a new product takes its zones, chart and one variant in its one request (Slice 11.7c)', () => {
     const typed: ProductForm = {
       ...NEW_PRODUCT,

@@ -7,6 +7,7 @@ import {
   type UnitKind,
 } from '@lytronix/validators';
 import type { ProductAttribute, ProductDetail, UsedOption } from '@/types/product';
+import { NO_BATCH, openingExtras, type OpeningBatch, type SerialLine } from './opening';
 
 /** An attribute that splits the product into variants (ATR-04), with the options it uses, in their order. */
 export interface SplitAttribute {
@@ -28,6 +29,10 @@ export interface VariantRow {
   sku: string;
   /** A new product's stock already on the shelf, as typed (INV-03). */
   openingStock: string;
+  /** INV-12, INV-10: on a new batch-tracked product, the batch that stock is, with what each unit cost. */
+  openingBatch: OpeningBatch;
+  /** INV-14, INV-23: on a new serial-numbered product, the serials of that stock's units, each checked. */
+  openingSerials: SerialLine[];
   /** INV-24: how much of the shared stock one of it uses, as typed. */
   packAmount: string;
   /** ATR-05, ATR-13 (the variant sheet, Part 15): its own barcode, weight and delivery charge; empty follows the
@@ -91,6 +96,8 @@ export const blankRow = (optionIds: string[]): VariantRow => ({
   price: '',
   sku: '',
   openingStock: '',
+  openingBatch: NO_BATCH,
+  openingSerials: [],
   packAmount: '',
   barcode: '',
   weightKg: '',
@@ -161,6 +168,8 @@ export function rowOf(variant: ProductDetail['variants'][number]): VariantRow {
     price: typed(variant.price),
     sku: variant.sku ?? '',
     openingStock: '',
+    openingBatch: NO_BATCH,
+    openingSerials: [],
     packAmount: typed(variant.packAmount),
     barcode: variant.barcode ?? '',
     weightKg: typed(variant.weightKg),
@@ -214,12 +223,12 @@ export function splitsBody(splits: readonly SplitAttribute[]) {
 
 /**
  * ATR-05, ATR-17, INV-24: each variant's own price (null to sell at the product's) and SKU; on a product sharing its
- * stock, how much each uses; on a new one, the stock already on the shelf (packs, on a shared stock, are opened
- * through the shared stock instead).
+ * stock, how much each uses; on a new one, the stock already on the shelf with its batch or its serials (packs, on a
+ * shared stock, are opened through the shared stock instead).
  */
 export function variantsBody(
   rows: readonly VariantRow[],
-  options: { shared: boolean; opening: boolean },
+  options: { shared: boolean; opening: boolean; batch: boolean; serial: boolean },
 ) {
   return rows.map((row) => {
     const opening = options.opening && !options.shared ? amountOf(row.openingStock) : undefined;
@@ -239,6 +248,7 @@ export function variantsBody(
             : DeliveryMode.Default,
       active: row.active,
       ...(opening === undefined ? {} : { openingStock: opening }),
+      ...openingExtras(opening, row.openingBatch, row.openingSerials, options),
       ...(pack === undefined ? {} : { packAmount: pack }),
     };
   });

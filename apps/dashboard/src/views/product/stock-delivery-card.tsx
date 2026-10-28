@@ -5,16 +5,21 @@ import { useDeliverySettings } from '@/api/shop-setup';
 import { Card } from '@/components/ui/card';
 import { Field, PickField, SelectField } from '@/components/ui/field';
 import { Switch } from '@/components/ui/switch';
+import { keptOf, unitsOf } from '@/lib/opening';
 import type { ProductForm } from '@/lib/product-form';
 import type { ProductSettings } from '@/lib/product-settings';
 import type { ProductDefaults } from '@/types/attribute';
 import type { ProductDetail } from '@/types/product';
 import { ChoiceList, ChoiceRow } from './choice-list';
+import { OpeningBatchSheet } from './opening-batch-sheet';
+import { OpeningSerialsSheet } from './opening-serials-sheet';
 import { PolicySheet } from './policy-sheet';
-import { isMeasured, usePolicyWords } from './stock-words';
+import { isMeasured, useBatchText, usePolicyWords } from './stock-words';
 import { ZonesSheet } from './zones-sheet';
 
 const UNITS = Object.values(StockUnit);
+/** A product with no options has no other variants' serials. */
+const NONE: ReadonlySet<string> = new Set();
 
 /** PRD-16: with a weight, a switch says whether the charge grows with it (Part 15). */
 export function AdjustRow({
@@ -41,8 +46,9 @@ export function AdjustRow({
 /**
  * Stock and delivery (TENANT-DASHBOARD-DESIGN §7.4's third card, the prototype's `pfStock` and Part 15): counted or made
  * to order (INV-02, through `onTracking`, which asks first when stock is held), the unit and the low-stock alert
- * (UOM-01, INV-08), a new product's opening stock when it has no options (INV-03), the weight and delivery charge with
- * Adjust by weight (PRD-16), where it delivers (DLV-07) and its payment policy (PRD-08).
+ * (UOM-01, INV-08), a new product's opening stock when it has no options (INV-03) -- a batch in its sheet, or a count
+ * with its serials' sheet (INV-12, INV-14) -- the weight and delivery charge with Adjust by weight (PRD-16), where it
+ * delivers (DLV-07) and its payment policy (PRD-08).
  */
 export function StockDeliveryCard({
   form,
@@ -72,14 +78,13 @@ export function StockDeliveryCard({
   const delivery = useDeliverySettings();
   const [zonesOpen, setZonesOpen] = useState(false);
   const [policyOpen, setPolicyOpen] = useState(false);
+  const [openingSheet, setOpeningSheet] = useState<'batch' | 'serials' | null>(null);
+  const batchText = useBatchText();
   const settings = form.settings;
   const tracked = settings.stockTracking === StockTracking.Tracked;
-  const opening =
-    product === null &&
-    tracked &&
-    form.splits.length === 0 &&
-    !settings.batchTracked &&
-    !settings.serialTracked;
+  const opening = product === null && tracked && form.splits.length === 0;
+  const kept = keptOf(form.openingSerials).length;
+  const name = form.name.trim() || t('newProduct');
 
   const zoneNames = (delivery.data?.zones ?? [])
     .filter((zone) => form.deliveryZoneIds.includes(zone.id))
@@ -152,14 +157,44 @@ export function StockDeliveryCard({
           />
         </div>
       ) : null}
-      {opening ? (
+      {opening && settings.batchTracked ? (
+        // Part 15's `pf-pharmacy`: how much and its expiry, the batch's sheet behind "batch".
+        <PickField
+          label={t('openingStockL')}
+          value={batchText(form.openingStock, form.openingBatch)}
+          trail={t('batchLink')}
+          error={errors.opening}
+          onPick={() => {
+            setOpeningSheet('batch');
+          }}
+        />
+      ) : opening ? (
         <Field
           label={t('openingStockL')}
           inputMode="decimal"
           className="num"
           value={form.openingStock}
-          suffix={t(`su_${settings.stockUnit}`)}
-          help={t('openingHint')}
+          suffix={
+            settings.serialTracked ? (
+              // Part 15's `pf-electronics`: the serials' sheet behind "serials later", then "3 / 5".
+              <button
+                type="button"
+                aria-haspopup="dialog"
+                aria-label={t('serialsTitle')}
+                className="text-[14px]"
+                onClick={() => {
+                  setOpeningSheet('serials');
+                }}
+              >
+                {kept > 0
+                  ? t('serialsOf', { kept, units: form.openingStock.trim() || '0' })
+                  : t('serialsLater')}
+              </button>
+            ) : (
+              t(`su_${settings.stockUnit}`)
+            )
+          }
+          help={settings.serialTracked ? undefined : t('openingHint')}
           error={errors.opening}
           onChange={(event) => {
             onChange({ openingStock: event.target.value });
@@ -218,6 +253,35 @@ export function StockDeliveryCard({
         disabled={readOnly}
         onPick={() => {
           setPolicyOpen(true);
+        }}
+      />
+      <OpeningBatchSheet
+        open={openingSheet === 'batch'}
+        sub={name}
+        unit={settings.stockUnit}
+        quantity={form.openingStock}
+        batch={form.openingBatch}
+        onDone={(openingStock, openingBatch) => {
+          setOpeningSheet(null);
+          onChange({ openingStock, openingBatch });
+        }}
+        onClose={() => {
+          setOpeningSheet(null);
+        }}
+      />
+      <OpeningSerialsSheet
+        open={openingSheet === 'serials'}
+        name={name}
+        units={unitsOf(form.openingStock)}
+        format={settings.serialFormat}
+        lines={form.openingSerials}
+        others={NONE}
+        onDone={(openingSerials) => {
+          setOpeningSheet(null);
+          onChange({ openingSerials });
+        }}
+        onClose={() => {
+          setOpeningSheet(null);
         }}
       />
       <ZonesSheet

@@ -77,12 +77,18 @@ export function PickField({
   value,
   error,
   disabled = false,
+  chevron = 'down',
+  trail,
   onPick,
 }: {
   label: ReactNode;
   value: ReactNode;
   error?: ReactNode;
   disabled?: boolean;
+  /** Down for a choice; right for a sheet of its own fields (a product's opening batch). */
+  chevron?: 'down' | 'right';
+  /** Words at the end in place of the chevron, naming the sheet (a new product's opening stock: "batch"). */
+  trail?: ReactNode;
   onPick: () => void;
 }): React.JSX.Element {
   const own = useId();
@@ -105,9 +111,11 @@ export function PickField({
         <span id={`${own}-value`} className="min-w-0 flex-1 truncate">
           {value}
         </span>
-        {disabled ? null : (
+        {disabled ? null : trail ? (
+          <span className="text-[14px] font-medium whitespace-nowrap text-fg-muted">{trail}</span>
+        ) : (
           <span className="text-neutral-500">
-            <Icon name="down" />
+            <Icon name={chevron} />
           </span>
         )}
       </button>

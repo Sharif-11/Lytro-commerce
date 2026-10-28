@@ -147,7 +147,9 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
   });
   const kind: StockKind = {
     tracked: form.settings.stockTracking === StockTracking.Tracked,
+    batch: form.settings.batchTracked,
     serial: form.settings.serialTracked,
+    format: form.settings.serialFormat,
     unit: form.settings.stockUnit,
   };
   const create = useCreateProduct();
@@ -338,7 +340,10 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
       ? t('errSerialMeasured')
       : (serverProblems.stockUnit ?? serverProblems.serialTracked),
     low: serverProblems.lowStockThreshold,
-    opening: serverProblems['variants.0.openingStock'],
+    // The one variant's stock on the shelf, with its batch, cost or serials (INV-03, INV-12, INV-14).
+    opening: Object.entries(serverProblems).find(([key]) =>
+      key.startsWith('variants.0.opening'),
+    )?.[1],
     weight: serverProblems.weightKg,
     charge: serverProblems.deliveryCharge,
     zones: serverProblems.deliveryZoneIds ?? serverProblems.zoneIds,

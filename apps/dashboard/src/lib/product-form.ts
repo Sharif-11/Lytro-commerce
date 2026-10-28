@@ -1,6 +1,14 @@
 import { StockTracking } from '@lytronix/validators';
 import type { ProductDetail } from '@/types/product';
 import {
+  batchBody,
+  NO_BATCH,
+  openingExtras,
+  unitCostOf,
+  type OpeningBatch,
+  type SerialLine,
+} from './opening';
+import {
   BLANK_CHART,
   changedSettings,
   chartBody,
@@ -53,9 +61,14 @@ export interface ProductForm {
   sharedStock: boolean;
   /** INV-24: a new product's shared stock already on the shelf, in its unit, as typed. */
   sharedOpeningStock: string;
+  /** INV-12, INV-10: on a batch-tracked product, the batch the shared stock is, with what each unit cost. */
+  sharedOpeningBatch: OpeningBatch;
   settings: ProductSettings;
   /** INV-03: a new product with no options: its stock already on the shelf, as typed. */
   openingStock: string;
+  /** INV-12, INV-14: that stock's batch, or its units' serials, as the product counts them. */
+  openingBatch: OpeningBatch;
+  openingSerials: SerialLine[];
   single: SingleVariant;
   /** DLV-07: the zones it may be delivered to; none for wherever the shop delivers. */
   deliveryZoneIds: string[];
@@ -77,8 +90,11 @@ export const NEW_PRODUCT: ProductForm = {
   descriptions: [],
   sharedStock: false,
   sharedOpeningStock: '',
+  sharedOpeningBatch: NO_BATCH,
   settings: settingsFrom(undefined),
   openingStock: '',
+  openingBatch: NO_BATCH,
+  openingSerials: [],
   single: { sku: '', barcode: '' },
   deliveryZoneIds: [],
   chart: { own: false, mode: 'table', rows: BLANK_CHART, image: null },
@@ -109,8 +125,11 @@ export function formOf(product: ProductDetail): ProductForm {
     descriptions: product.attributes.map(descriptionOf),
     sharedStock: product.sharedStock,
     sharedOpeningStock: '',
+    sharedOpeningBatch: NO_BATCH,
     settings: settingsOf(product),
     openingStock: '',
+    openingBatch: NO_BATCH,
+    openingSerials: [],
     single: { sku: only?.sku ?? '', barcode: only?.barcode ?? '' },
     deliveryZoneIds: product.deliveryZoneIds,
     chart: chartOf(product.sizeChart),
@@ -142,15 +161,25 @@ function fieldsOf(form: ProductForm) {
 
 const textOf = (typed: string): string | null => (typed.trim() === '' ? null : typed.trim());
 
+/** What a new product's stock on the shelf carries: a batch-tracked one's batch, a serial-numbered one's serials. */
+const kindOf = (form: ProductForm) => {
+  const tracked = form.settings.stockTracking === StockTracking.Tracked;
+  return {
+    batch: tracked && form.settings.batchTracked,
+    serial: tracked && form.settings.serialTracked,
+  };
+};
+
 /**
  * ATR-11: the options and variants as one save takes them; with no splitting attribute, the one default variant, with
  * its SKU and barcode. `opening` says whether a new product counts its stock, so its variants carry what is already on
- * the shelf (INV-03).
+ * the shelf (INV-03), with its batch or serials (INV-12, INV-14).
  */
 function variantPartOf(form: ProductForm, opening: boolean) {
+  const kind = kindOf(form);
   if (form.splits.length === 0) {
     const shelf =
-      opening && form.openingStock.trim() !== '' ? Number(form.openingStock.trim()) : null;
+      opening && form.openingStock.trim() !== '' ? Number(form.openingStock.trim()) : undefined;
     return {
       variantAttributes: [],
       variants: [
@@ -158,14 +187,15 @@ function variantPartOf(form: ProductForm, opening: boolean) {
           optionIds: [],
           sku: textOf(form.single.sku),
           barcode: textOf(form.single.barcode),
-          ...(shelf === null ? {} : { openingStock: shelf }),
+          ...(shelf === undefined ? {} : { openingStock: shelf }),
+          ...openingExtras(shelf, form.openingBatch, form.openingSerials, kind),
         },
       ],
     };
   }
   return {
     variantAttributes: splitsBody(form.splits),
-    variants: variantsBody(form.variants, { shared: form.sharedStock, opening }),
+    variants: variantsBody(form.variants, { shared: form.sharedStock, opening, ...kind }),
   };
 }
 
@@ -184,6 +214,10 @@ export function createBody(form: ProductForm) {
   const shelf = form.sharedOpeningStock.trim();
   const shared = form.sharedStock && form.splits.length > 0;
   const chart = chartBody(form.chart);
+  // INV-12, INV-10: a shared stock on the shelf, on a batch-tracked product, is one batch with its unit cost.
+  const sharedShelf = shared && opening && shelf !== '' && Number(shelf) > 0;
+  const sharedBatch = sharedShelf && kindOf(form).batch ? batchBody(form.sharedOpeningBatch) : null;
+  const sharedCost = sharedShelf && kindOf(form).batch ? unitCostOf(form.sharedOpeningBatch) : null;
   return {
     ...fieldsOf(form),
     ...settingsBody(form.settings),
@@ -195,6 +229,8 @@ export function createBody(form: ProductForm) {
     ...(form.descriptions.length > 0 ? { attributes: descriptionsBody(form.descriptions) } : {}),
     ...(shared ? { sharedStock: true } : {}),
     ...(shared && opening && shelf !== '' ? { sharedOpeningStock: Number(shelf) } : {}),
+    ...(sharedBatch ? { sharedOpeningBatch: sharedBatch } : {}),
+    ...(sharedCost === null ? {} : { sharedOpeningUnitCost: sharedCost }),
     ...(form.deliveryZoneIds.length > 0 ? { deliveryZoneIds: form.deliveryZoneIds } : {}),
     ...(chart ? { sizeChart: chart } : {}),
   };

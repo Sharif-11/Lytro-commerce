@@ -364,6 +364,304 @@ function productPairs(): Pair[] {
     ...editorPairs(),
     ...variantPairs(),
     ...stockPairs(),
+    ...openingPairs(),
+  ];
+}
+
+/**
+ * A new product's stock on the shelf (§7.4, Slice 11.7c step 2, Part 15 and Part 16): the opening batch, and the
+ * opening serials by Scan (the camera reading, none, blocked), Paste a list and Type, each line checked, the list full.
+ */
+function openingPairs(): Pair[] {
+  const one = (
+    name: string,
+    more: Partial<Pair> = {},
+    device: Device = 'phone',
+    language: Language = 'bn',
+  ): Pair => ({ name, screen: name, device, language, path: '/products/new', ...more });
+  const main = (page: Page) => page.getByRole('main');
+  const sheet = (page: Page) => page.getByRole('dialog').last();
+  const shop = (defaults: Record<string, unknown>, taken: string[] = []): ShopState => ({
+    products: { ...drawnProducts(), defaults, takenSerials: taken },
+  });
+  const phones = shop(
+    {
+      presetKey: 'mobiles_gadgets',
+      serialTracked: true,
+      serialFormat: 'imei',
+      suggestedAttributeIds: [],
+      upFrontFields: ['serialTracked', 'itemCondition'],
+    },
+    ['356789104567928'],
+  );
+  /** The phone named, 5 on the shelf, its serials' sheet open. */
+  const serials = async (page: Page, name = 'Galaxy A16') => {
+    await main(page).getByLabel('নাম', { exact: true }).fill(name);
+    await main(page).getByLabel('শুরুর স্টক').fill('5');
+    await main(page).getByRole('button', { name: 'শুরুর সিরিয়াল' }).click();
+  };
+  /** Codes typed in the Type tab, each with Enter. */
+  const typeIn = async (page: Page, codes: string[], label = 'IMEI টাইপ করুন') => {
+    await sheet(page).getByRole('tab', { name: 'টাইপ' }).click();
+    for (const code of codes) {
+      await sheet(page).getByLabel(label).fill(code);
+      await sheet(page).getByLabel(label).press('Enter');
+    }
+  };
+  const noCamera = async (page: Page) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: undefined });
+    });
+  };
+  /** The product named and split by Size, in English, with its options typed. */
+  const split = async (page: Page, name: string, price: string, values: string[]) => {
+    await main(page).getByLabel('Name', { exact: true }).fill(name);
+    await main(page).getByLabel('Price', { exact: true }).fill(price);
+    await main(page).getByRole('button', { name: 'Add attribute' }).click();
+    await sheet(page).getByRole('searchbox').fill('Size');
+    await sheet(page).getByRole('button', { name: /^Size/ }).first().click();
+    await sheet(page)
+      .getByRole('radio', { name: /^Splits into variants/ })
+      .click();
+    await sheet(page).getByRole('button', { name: 'Done' }).click();
+    for (const value of values) {
+      await sheet(page).getByLabel('Add option', { exact: true }).fill(value);
+      await sheet(page).getByRole('button', { name: 'Insert' }).click();
+      await sheet(page).getByText(value, { exact: true }).waitFor();
+    }
+    await sheet(page).getByRole('button', { name: 'Done' }).click();
+  };
+  const variants = /^Options and variants$/;
+  return [
+    one(
+      'pf-cosmetics',
+      {
+        scroll: variants,
+        state: shop({
+          presetKey: 'cosmetics',
+          batchTracked: true,
+          suggestedAttributeIds: [],
+          upFrontFields: ['batchTracked'],
+        }),
+        then: async (page) => {
+          await split(page, 'Matte Lipstick', '650', ['Ruby', 'Rose', 'Maroon']);
+          await main(page).getByRole('button', { name: 'Opening batch of Ruby' }).click();
+          await sheet(page).getByLabel('Quantity').fill('24');
+          await sheet(page).getByLabel('Expiry date (optional)').fill('2027-08-31');
+          await sheet(page).getByRole('button', { name: 'Done' }).click();
+        },
+      },
+      'desktop',
+      'en',
+    ),
+    one(
+      'pf-mobiles_gadgets',
+      {
+        scroll: variants,
+        state: phones,
+        before: noCamera,
+        then: async (page) => {
+          await split(page, 'Galaxy A16', '21500', ['128 GB', '256 GB']);
+          await main(page).getByLabel('Opening stock of 128 GB').fill('5');
+          await main(page).getByLabel('Opening stock of 256 GB').fill('3');
+          await main(page).getByRole('button', { name: 'Opening serials of 128 GB' }).click();
+          await sheet(page).getByRole('tab', { name: 'Type' }).click();
+          for (const code of ['356789104567894', '356789104567902', '356789104567910']) {
+            await sheet(page).getByLabel('Type an IMEI').fill(code);
+            await sheet(page).getByLabel('Type an IMEI').press('Enter');
+          }
+          await sheet(page).getByRole('button', { name: 'Done' }).click();
+        },
+      },
+      'desktop',
+      'en',
+    ),
+    one('pf-sh-batch', {
+      state: shop({
+        presetKey: 'cosmetics',
+        batchTracked: true,
+        suggestedAttributeIds: [],
+        upFrontFields: ['batchTracked'],
+      }),
+      then: async (page) => {
+        await main(page).getByLabel('নাম', { exact: true }).fill('Matte Lipstick');
+        await main(page)
+          .getByRole('button', { name: /^শুরুর স্টক/ })
+          .click();
+        await sheet(page).getByLabel('পরিমাণ').fill('24');
+        await sheet(page).getByLabel('ব্যাচ কোড (অপশনাল)').fill('LS-2607');
+        await sheet(page).getByLabel('মেয়াদ (অপশনাল)').fill('2027-08-31');
+        await sheet(page).getByLabel('প্রতি ইউনিটের দাম (অপশনাল)').fill('410');
+      },
+    }),
+    one('pf-sh-serials', {
+      state: phones,
+      before: async (page) => {
+        await page.addInitScript(() => {
+          const queue = [
+            '356789104567894',
+            '356789104567902',
+            '356789104567910',
+            '35678910456',
+            '356789104567928',
+          ];
+          Object.defineProperty(navigator, 'mediaDevices', {
+            configurable: true,
+            value: {
+              getUserMedia: () => {
+                const canvas = document.createElement('canvas');
+                canvas.getContext('2d')?.fillRect(0, 0, 320, 240);
+                return Promise.resolve(canvas.captureStream());
+              },
+            },
+          });
+          Object.defineProperty(window, 'BarcodeDetector', {
+            configurable: true,
+            value: class {
+              static getSupportedFormats(): Promise<string[]> {
+                return Promise.resolve(['code_128']);
+              }
+              detect(): Promise<{ rawValue: string }[]> {
+                const next = queue.shift();
+                return Promise.resolve(next ? [{ rawValue: next }] : []);
+              }
+            },
+          });
+        });
+      },
+      then: async (page) => {
+        await serials(page);
+        await sheet(page).getByText('দোকানে আগেই আছে').waitFor();
+      },
+    }),
+    one('pf-sh-serials-type', {
+      state: phones,
+      before: noCamera,
+      then: async (page) => {
+        await serials(page);
+        await typeIn(page, ['356789104567894', '356789104567902']);
+        await sheet(page).getByLabel('IMEI টাইপ করুন').fill('35678910456791');
+      },
+    }),
+    one('pf-sh-serials-nocamera', {
+      state: phones,
+      before: noCamera,
+      then: async (page) => {
+        await serials(page);
+        await typeIn(page, ['356789104567894', '356789104567902']);
+        await sheet(page).getByRole('tab', { name: 'স্ক্যান' }).click();
+      },
+    }),
+    one('pf-sh-serials-blocked', {
+      state: phones,
+      before: async (page) => {
+        await page.addInitScript(() => {
+          Object.defineProperty(navigator, 'mediaDevices', {
+            configurable: true,
+            value: {
+              getUserMedia: () => Promise.reject(new DOMException('denied', 'NotAllowedError')),
+            },
+          });
+        });
+      },
+      then: async (page) => {
+        await serials(page);
+        await typeIn(page, ['356789104567894', '356789104567902']);
+        await sheet(page).getByRole('tab', { name: 'স্ক্যান' }).click();
+        await sheet(page).getByRole('button', { name: 'আবার ট্রাই করুন' }).waitFor();
+      },
+    }),
+    one('pf-sh-serials-paste', {
+      state: phones,
+      before: noCamera,
+      then: async (page) => {
+        await serials(page);
+        await typeIn(page, ['356789104567894', '356789104567902']);
+        await sheet(page).getByRole('tab', { name: 'লিস্ট পেস্ট' }).click();
+        await sheet(page)
+          .getByLabel('লিস্ট এখানে পেস্ট করুন')
+          .fill('356789104567910\n356789104567928\n35 678910 456793 3');
+      },
+    }),
+    one('pf-sh-serials-states', {
+      state: phones,
+      before: noCamera,
+      then: async (page) => {
+        await serials(page);
+        await typeIn(page, [
+          '356789104567894',
+          '35678910456',
+          '356789104567895',
+          '356789104567894',
+          '356789104567928',
+        ]);
+        await sheet(page).getByText('দোকানে আগেই আছে').waitFor();
+      },
+    }),
+    one(
+      'pf-sh-serials-states',
+      {
+        state: phones,
+        before: noCamera,
+        then: async (page) => {
+          await page.getByRole('main').getByLabel('Name', { exact: true }).fill('Galaxy A16');
+          await page.getByRole('main').getByLabel('Opening stock').fill('5');
+          await page.getByRole('main').getByRole('button', { name: 'Opening serials' }).click();
+          await sheet(page).getByRole('tab', { name: 'Type' }).click();
+          for (const code of [
+            '356789104567894',
+            '35678910456',
+            '356789104567895',
+            '356789104567894',
+            '356789104567928',
+          ]) {
+            await sheet(page).getByLabel('Type an IMEI').fill(code);
+            await sheet(page).getByLabel('Type an IMEI').press('Enter');
+          }
+          await sheet(page).getByText('already in the shop').waitFor();
+        },
+      },
+      'desktop',
+      'en',
+    ),
+    one('pf-sh-serials-any', {
+      state: shop({
+        presetKey: 'electronics',
+        serialTracked: true,
+        serialFormat: 'any',
+        suggestedAttributeIds: [],
+        upFrontFields: ['serialTracked', 'itemCondition'],
+      }),
+      before: noCamera,
+      then: async (page) => {
+        await serials(page, 'রিচার্জেবল টেবিল ফ্যান');
+        await typeIn(
+          page,
+          [
+            'VF-2026-0001',
+            'VF-2026-0002',
+            'VF#0003',
+            'VF-2026-0004-RECHARGEABLE-TABLE-FAN-12-INCH-8-HOURS-BACKUP-BLUE-B',
+          ],
+          'সিরিয়াল টাইপ করুন',
+        );
+      },
+    }),
+    one('pf-sh-serials-full', {
+      state: phones,
+      before: noCamera,
+      then: async (page) => {
+        await serials(page);
+        await typeIn(page, [
+          '356789104567894',
+          '356789104567902',
+          '356789104567910',
+          '356789104567936',
+          '356789104567944',
+        ]);
+        await sheet(page).getByRole('tab', { name: 'স্ক্যান' }).click();
+      },
+    }),
   ];
 }
 

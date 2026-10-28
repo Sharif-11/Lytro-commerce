@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiClientError } from '@lytronix/api-client';
+import type { SerialFormat } from '@lytronix/validators';
 import { tenantSession } from '@/session/tenant-session';
 import type { CategorySummary } from '@/types/catalogue';
 import type { ProductDetail } from '@/types/product';
@@ -88,6 +89,17 @@ export function useSaveProduct(id: string) {
     onSettled: (outcome) => {
       changed(outcome?.product ?? undefined);
     },
+  });
+}
+
+/**
+ * POST /serials/check (INV-23, agreed for Slice 11.7c): which of the serials being entered a unit the shop holds
+ * already has, as the server stores them, so each is flagged before saving.
+ */
+export function useCheckSerials() {
+  return useMutation({
+    mutationFn: (body: { serials: string[]; format: SerialFormat }) =>
+      tenantSession.client.post<{ taken: string[] }>('/serials/check', body),
   });
 }
 
