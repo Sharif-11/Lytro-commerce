@@ -64,6 +64,7 @@ import { MoreSettings } from './more-settings';
 import { useTrackingChoice } from './made-to-order';
 import { RemoveDialog } from './remove-dialog';
 import { SizeChartSheet } from './size-chart-sheet';
+import { StockCard, StockSheets, type StockSheet } from './stock-card';
 import { StockDeliveryCard } from './stock-delivery-card';
 import { isMeasured, useFieldNames } from './stock-words';
 import { DefaultsLine, TypeBanner, UpfrontCard, WhyCard } from './type-cards';
@@ -142,9 +143,11 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
   // PST-02, PST-06: a new product is what its primary category's type, or the shop's, makes it; either way, its
   // suggested attributes come from there.
   const defaults = useProductDefaults(form.primaryCategoryId);
-  const stock = useProductStock(product?.id ?? null, {
-    enabled: allows(viewer, [Permission.InventoryRead]),
-  });
+  // The Stock card follows stock's permissions (agreed in the 11.7c read).
+  const mayReadStock = allows(viewer, [Permission.InventoryRead]);
+  const mayManageStock = allows(viewer, [Permission.InventoryManage]);
+  const [stockSheet, setStockSheet] = useState<StockSheet | null>(null);
+  const stock = useProductStock(product?.id ?? null, { enabled: mayReadStock });
   const kind: StockKind = {
     tracked: form.settings.stockTracking === StockTracking.Tracked,
     batch: form.settings.batchTracked,
@@ -563,6 +566,13 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
             readOnly={!mayManage}
             problems={matrixProblems}
             onChange={update}
+            onHeldSerials={
+              mayReadStock
+                ? (variantId) => {
+                    setStockSheet({ kind: 'serials', variantId });
+                  }
+                : null
+            }
           />
           <StockDeliveryCard
             form={form}
@@ -598,6 +608,15 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
         </div>
         <div className="flex flex-col gap-4">
           {product ? <LinkCard product={product} readOnly={!mayManage} /> : null}
+          {product && mayReadStock && kind.tracked ? (
+            <StockCard
+              product={product}
+              stock={stock.data}
+              kind={kind}
+              mayManage={mayManageStock}
+              onOpen={setStockSheet}
+            />
+          ) : null}
           {defaults.data ? <WhyCard defaults={defaults.data} suggested={suggestedNames} /> : null}
         </div>
       </div>
@@ -626,6 +645,16 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
             });
           }}
           error={remove.isError ? errorText(remove.error) : null}
+        />
+      ) : null}
+      {product ? (
+        <StockSheets
+          sheet={stockSheet}
+          product={product}
+          stock={stock.data}
+          kind={kind}
+          mayManage={mayManageStock}
+          onSheet={setStockSheet}
         />
       ) : null}
       <SizeChartSheet

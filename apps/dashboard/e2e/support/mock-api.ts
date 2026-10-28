@@ -44,6 +44,7 @@ import {
   zonesAnswer,
   type ProductsFixture,
 } from './products';
+import { stockRead, stockWrite } from './stock';
 import { variantRead } from './variants';
 import { PRESETS } from './presets';
 import { drawnTeam, teamAnswer, teamWrite, type TeamFixture } from './team';
@@ -703,6 +704,24 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
     // Slice 11.7b: the attributes, option sets, a new product's defaults and a product's stock.
     const read = method === 'GET' ? variantRead(path, products, url) : undefined;
     if (read !== undefined) return ok(read);
+    // Slice 11.7c: the Stock card's history, batches and serials, and its writes.
+    const stocked = method === 'GET' ? stockRead(path, url, products) : undefined;
+    if (stocked !== undefined) return ok(stocked);
+    const changed = stockWrite(
+      method,
+      path,
+      request.postDataJSON() as Record<string, unknown> | null,
+      products,
+    );
+    if (changed && 'refused' in changed) {
+      const { status, code, message, details } = changed.refused;
+      return route.fulfill({
+        status,
+        contentType: 'application/json',
+        body: refusal(code, message, details),
+      });
+    }
+    if (changed) return ok(changed.data);
     const item = /^\/media\/([^/]+)$/.exec(path);
     const detail = item ? mediaDetail(products, item[1] ?? '') : null;
     if (item && detail && method === 'GET') return ok(detail);

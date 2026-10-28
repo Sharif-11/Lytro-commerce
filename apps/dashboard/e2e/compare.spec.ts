@@ -18,6 +18,7 @@ import { drawnIdentities } from './support/account';
 import { emptyMeta } from './support/meta';
 import { drawnExports } from './support/settings';
 import { drawnProducts, manyProducts, type ProductsFixture } from './support/products';
+import { creamShop, phoneShop, SAMPLE_IMEIS } from './support/stock';
 import { drawnLibrary } from './support/variants';
 import { drawnPasswords, drawnTeam } from './support/team';
 import { DAY_ONE, mockApi, SLUG, type Language, type ShopState } from './support/mock-api';
@@ -365,6 +366,120 @@ function productPairs(): Pair[] {
     ...variantPairs(),
     ...stockPairs(),
     ...openingPairs(),
+    ...stockCardPairs(),
+  ];
+}
+
+/**
+ * The Stock card over a saved product (§7.4, Slice 11.7c step 3, the Stock sheets and Part 18): a phone's card and
+ * table, Add stock with and without IMEIs, Stock history with its variant picked and the picker, Batches and a
+ * write-off, IMEI / serials with Fix, and Add serials.
+ */
+function stockCardPairs(): Pair[] {
+  const one = (
+    name: string,
+    path: string,
+    more: Partial<Pair> = {},
+    device: Device = 'phone',
+    language: Language = 'bn',
+  ): Pair => ({ name, screen: name, device, language, path, ...more });
+  const main = (page: Page) => page.getByRole('main');
+  const sheet = (page: Page) => page.getByRole('dialog').last();
+  const card = (page: Page) => main(page).getByRole('region', { name: 'স্টক', exact: true });
+  const tap = (name: string | RegExp) => async (page: Page) => {
+    await card(page).getByRole('button', { name }).click();
+  };
+  const pick = async (page: Page, variant: RegExp) => {
+    await sheet(page)
+      .getByRole('button', { name: /^প্রোডাক্ট · ভ্যারিয়েন্ট/ })
+      .click();
+    await sheet(page).getByRole('radio', { name: variant }).click();
+  };
+  const noCamera = async (page: Page) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: undefined });
+    });
+  };
+  const phones = { products: phoneShop() };
+  /** A phone variant's serials, from its cell in the table (`pf-edit-mobile`). */
+  const serialsOf128 = async (page: Page) => {
+    await main(page).getByRole('button', { name: '128 GB-এর IMEI / সিরিয়াল' }).click();
+  };
+  return [
+    one('pf-edit-mobile', '/products/p-ph', { state: phones }, 'desktop', 'en'),
+    one('stock-add', '/products/p-1', {
+      then: async (page) => {
+        await tap('স্টক যোগ')(page);
+        await pick(page, /^M · Black/);
+        await sheet(page).getByLabel('পরিমাণ').fill('10');
+        await sheet(page).getByLabel('প্রতি ইউনিটের দাম (অপশনাল)').fill('1250');
+        await sheet(page).getByLabel('সাপ্লায়ার (অপশনাল)').fill('রহিম ট্রেডার্স');
+      },
+    }),
+    one('stock-add-serials', '/products/p-ph', {
+      state: phones,
+      before: noCamera,
+      then: async (page) => {
+        await tap('স্টক যোগ')(page);
+        await sheet(page).getByLabel('পরিমাণ').fill('3');
+        await sheet(page).getByLabel('প্রতি ইউনিটের দাম (অপশনাল)').fill('19800');
+        await sheet(page).getByLabel('সাপ্লায়ার (অপশনাল)').fill('রহিম ট্রেডার্স');
+        await sheet(page)
+          .getByRole('button', { name: /^IMEI \/ সিরিয়াল/ })
+          .click();
+        await sheet(page).getByRole('tab', { name: 'টাইপ' }).click();
+        for (const code of [SAMPLE_IMEIS[2] ?? '', SAMPLE_IMEIS[3] ?? '']) {
+          await sheet(page).getByLabel('IMEI টাইপ করুন').fill(code);
+          await sheet(page).getByLabel('IMEI টাইপ করুন').press('Enter');
+        }
+        await sheet(page).getByRole('button', { name: 'ঠিক আছে' }).click();
+      },
+    }),
+    one('sh-history-product', '/products/p-1', {
+      then: async (page) => {
+        await tap('স্টক হিস্ট্রি')(page);
+        await pick(page, /^M · Black/);
+      },
+    }),
+    one('sh-pick-variant', '/products/p-1', {
+      then: async (page) => {
+        await tap('স্টক হিস্ট্রি')(page);
+        await pick(page, /^M · Black/);
+        await sheet(page)
+          .getByRole('button', { name: /^প্রোডাক্ট · ভ্যারিয়েন্ট/ })
+          .click();
+      },
+    }),
+    one('sh-batches', '/products/p-fc', { state: { products: creamShop() }, then: tap('ব্যাচ') }),
+    one('sh-writeoff', '/products/p-fc', {
+      state: { products: creamShop() },
+      then: async (page) => {
+        await tap('ব্যাচ')(page);
+        await sheet(page).getByRole('button', { name: 'রাইট-অফ' }).click();
+      },
+    }),
+    one('sh-serials-product', '/products/p-ph', { state: phones, then: serialsOf128 }),
+    one('sh-serial-fix', '/products/p-ph', {
+      state: phones,
+      then: async (page) => {
+        await serialsOf128(page);
+        await sheet(page)
+          .getByRole('button', { name: `ঠিক করুন ${SAMPLE_IMEIS[0] ?? ''}` })
+          .click();
+      },
+    }),
+    one('sh-serials-missing', '/products/p-ph', {
+      state: phones,
+      before: noCamera,
+      then: async (page) => {
+        await tap('বাকিগুলো দিন')(page);
+        await sheet(page).getByRole('tab', { name: 'টাইপ' }).click();
+        await sheet(page)
+          .getByLabel('IMEI টাইপ করুন')
+          .fill(SAMPLE_IMEIS[2] ?? '');
+        await sheet(page).getByLabel('IMEI টাইপ করুন').press('Enter');
+      },
+    }),
   ];
 }
 

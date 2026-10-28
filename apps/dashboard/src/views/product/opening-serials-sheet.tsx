@@ -24,7 +24,8 @@ const TABS: { tab: Tab; icon: 'scan' | 'list' | 'pencil'; label: string }[] = [
  * units on the shelf, by Scan, Paste a list or Type -- a USB or Bluetooth scanner types there too. Each line is checked
  * as it comes, by its format and against the list and the product's other variants, then against what the shop holds;
  * a flagged line has × and is left out. The list stops at the opening stock. Done keeps the lines; the product saves
- * the ones nothing is wrong with, the rest can come later.
+ * the ones nothing is wrong with, the rest can come later. Part 18 enters stock arriving's serials and the units held
+ * with none the same way: `entry` words those.
  */
 export function OpeningSerialsSheet({
   open,
@@ -33,18 +34,33 @@ export function OpeningSerialsSheet({
   format,
   lines,
   others,
+  entry,
+  busy = false,
+  error = null,
   onDone,
   onClose,
 }: {
   open: boolean;
   /** What the serials are of: the product and the variant ("Galaxy A16 · 128 GB · Black"). */
   name: string;
-  /** The opening stock: one serial each, at most. */
+  /** The units they are for: one serial each, at most. */
   units: number;
   format: SerialFormat;
   lines: readonly SerialLine[];
   /** The serials kept in the product's other variants: one there is twice in the product. */
   others: ReadonlySet<string>;
+  /** Where else they are entered from (Part 18): its title, its line under it, its words for none and for full, and
+   * its button for the serials kept; a new product's opening stock when left out. */
+  entry?: {
+    title: string;
+    sub: string;
+    none: string;
+    full: string;
+    done?: (kept: number) => string;
+  };
+  /** The serials are being saved; the server's words when they were refused. */
+  busy?: boolean;
+  error?: string | null;
   onDone: (lines: SerialLine[]) => void;
   onClose: () => void;
 }): React.JSX.Element {
@@ -94,26 +110,30 @@ export function OpeningSerialsSheet({
   }
 
   const imei = format === SerialFormat.Imei;
+  const title = entry?.title ?? t('serialsTitle');
   return (
     <Sheet
       open={open}
-      title={t('serialsTitle')}
+      title={title}
       onClose={onClose}
       footer={
         <Button
           wide
+          busy={busy}
           onClick={() => {
             onDone(latest.current);
           }}
         >
-          {t('done')}
+          {entry?.done ? entry.done(kept) : t('done')}
         </Button>
       }
     >
       {open ? (
         <div className="flex flex-col gap-3">
-          <p className="text-[14px] text-fg-muted">{t('serialsSub', { name, count: units })}</p>
-          <div role="tablist" aria-label={t('serialsTitle')} className="flex gap-1.5">
+          <p className="text-[14px] text-fg-muted">
+            {entry?.sub ?? t('serialsSub', { name, count: units })}
+          </p>
+          <div role="tablist" aria-label={title} className="flex gap-1.5">
             {TABS.map((each) => (
               <button
                 key={each.tab}
@@ -134,9 +154,9 @@ export function OpeningSerialsSheet({
             ))}
           </div>
           {units === 0 ? (
-            <Banner tone="info">{t('serialsNoUnits')}</Banner>
+            <Banner tone="info">{entry?.none ?? t('serialsNoUnits')}</Banner>
           ) : full ? (
-            <Banner tone="info">{t('serialsFull', { units })}</Banner>
+            <Banner tone="info">{entry?.full ?? t('serialsFull', { units })}</Banner>
           ) : tab === 'scan' ? (
             <SerialScanner
               onCode={(raw) => {
@@ -238,6 +258,7 @@ export function OpeningSerialsSheet({
             <p className="text-[14px] text-fg-muted">{t('serialsEntered', { kept, units })}</p>
           ) : null}
           {flagged > 0 ? <Banner tone="warn">{t('serialsLeftOut', { n: flagged })}</Banner> : null}
+          {error ? <Banner tone="bad">{error}</Banner> : null}
         </div>
       ) : null}
     </Sheet>

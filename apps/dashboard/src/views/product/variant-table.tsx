@@ -21,6 +21,8 @@ export interface TableColumns {
   batch: boolean;
   /** INV-14: a new serial-numbered product's opening serials, in their format, where others show the SKU. */
   serials: SerialFormat | null;
+  /** INV-14: a saved one's serials held of what each holds ("7 / 7"), by variant id; null when not shown. */
+  held: ReadonlyMap<string, string> | null;
   /** What each saved variant can sell, by its id (read-only, 11.7b read); null when not shown. */
   canSell: ReadonlyMap<string, string> | null;
   /** INV-24: the unit each variant's pack of the shared stock is in; null when the variants hold their own. */
@@ -149,6 +151,7 @@ export function VariantTable({
   onOpen,
   onBatch,
   onSerials,
+  onHeld,
 }: {
   rows: readonly VariantRow[];
   splits: readonly SplitAttribute[];
@@ -168,6 +171,8 @@ export function VariantTable({
   /** Opens a variant's opening batch, or its opening serials (Part 15's sheets). */
   onBatch: (index: number) => void;
   onSerials: (index: number) => void;
+  /** Opens a saved variant's serials (the Stock card's IMEI / serials sheet). */
+  onHeld: (index: number) => void;
 }): React.JSX.Element {
   const { t } = useTranslation('shop');
   const words = useVariantWords();
@@ -180,6 +185,7 @@ export function VariantTable({
     (columns.opening ? 1 : 0) +
     (columns.canSell ? 1 : 0) +
     (columns.serials ? 1 : 0) +
+    (columns.held ? 1 : 0) +
     (columns.sku ? 1 : 0);
   const fill = (column: FillColumn) =>
     readOnly || rows.length < 2 ? null : (
@@ -214,6 +220,7 @@ export function VariantTable({
             ) : null}
             {columns.canSell ? <Head>{t('canSell')}</Head> : null}
             {columns.serials ? <Head>{t('openingSerials')}</Head> : null}
+            {columns.held ? <Head>{t('heldSerialsTitle')}</Head> : null}
             {columns.sku ? <Head>{t('skuCol')}</Head> : null}
           </tr>
         </thead>
@@ -316,6 +323,18 @@ export function VariantTable({
                       onSerials(index);
                     }}
                   />
+                ) : null}
+                {columns.held && row.id !== null ? (
+                  <SheetCell
+                    text={columns.held.get(row.id) ?? ''}
+                    label={t('cellHeld', { variant: name })}
+                    invalid={false}
+                    onOpen={() => {
+                      onHeld(index);
+                    }}
+                  />
+                ) : columns.held ? (
+                  <td className="border-b border-line px-2.5 py-2" />
                 ) : null}
                 {columns.sku ? (
                   <Cell

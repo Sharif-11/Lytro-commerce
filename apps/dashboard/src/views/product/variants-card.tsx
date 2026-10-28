@@ -83,6 +83,7 @@ export function VariantsCard({
   readOnly,
   problems,
   onChange,
+  onHeldSerials,
 }: {
   form: ProductForm;
   saved: ProductForm;
@@ -95,6 +96,8 @@ export function VariantsCard({
   /** The server's problems with the options and variants, by field. */
   problems: Readonly<Record<string, string>>;
   onChange: (patch: Partial<ProductForm>) => void;
+  /** A saved serial-numbered variant's serials (`pf-edit-mobile`), for someone who may see stock; null otherwise. */
+  onHeldSerials: ((variantId: string) => void) | null;
 }): React.JSX.Element {
   const { t } = useTranslation('shop');
   const words = useVariantWords();
@@ -117,6 +120,13 @@ export function VariantsCard({
   const isNew = product === null;
   const shared = form.sharedStock && kind.tracked && !kind.serial;
   const productName = form.name.trim() || t('newProduct');
+  // `pf-edit-mobile`: each saved variant's serials held of what it holds ("7 / 7").
+  const held = new Map(
+    (stock?.variants ?? []).map((each): [string, string] => {
+      const onHand = Number(each.onHand ?? 0);
+      return [each.variantId, `${String(onHand - (each.missingSerials ?? 0))} / ${String(onHand)}`];
+    }),
+  );
   const batchRow = typeof batchAt === 'number' ? (form.variants[batchAt] ?? null) : null;
   const serialsRow = serialsAt === null ? null : (form.variants[serialsAt] ?? null);
   const sharedBatch = form.sharedOpeningBatch;
@@ -534,9 +544,10 @@ export function VariantsCard({
             batch: kind.batch,
             serials: isNew && kind.tracked && kind.serial ? kind.format : null,
             canSell,
+            held: !isNew && kind.tracked && kind.serial && onHeldSerials ? held : null,
             pack: shared ? kind.unit : null,
-            // A new product with serials shows its opening serials here; its SKU is in the variant sheet.
-            sku: kind.tracked && !(isNew && kind.serial),
+            // A product with serials shows them here, opening or held; its SKU is in the variant sheet.
+            sku: kind.tracked && !kind.serial,
           }}
           basePrice={form.price}
           isNew={isNew}
@@ -555,6 +566,10 @@ export function VariantsCard({
           onOpen={setVariantAt}
           onBatch={setBatchAt}
           onSerials={setSerialsAt}
+          onHeld={(index) => {
+            const id = form.variants[index]?.id;
+            if (id && onHeldSerials) onHeldSerials(id);
+          }}
         />
       ) : null}
       {isNew && shared && form.variants.length > 0 ? (

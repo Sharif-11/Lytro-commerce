@@ -1,4 +1,5 @@
 import type { ProductFixture, ProductRefusal, ProductsFixture } from './products';
+import type { SerialFixture } from './stock';
 
 // Options and variants against a mocked API (Slice 11.7b): the library's attributes and the shop's own, the option
 // sets, a new product's defaults, each variant's stock, and the writes -- attributes and options made, a swatch set, a
@@ -30,6 +31,10 @@ export interface VariantFixture {
   sku: string | null;
   packAmount?: string | null;
   onHand?: number;
+  /** Slice 11.7c: held for orders not shipped yet, its units' serials, and its average cost. */
+  reserved?: number;
+  serials?: SerialFixture[];
+  avgCost?: string | null;
   /** Slice 11.7c: what it sets of its own (the variant sheet). */
   barcode?: string | null;
   weightKg?: string | null;
@@ -350,28 +355,35 @@ export function stockAnswer(product: ProductFixture): unknown {
     shared: product.sharedStock
       ? {
           variantId: `${product.id}-shared`,
-          onHand: '0',
+          onHand: String(product.sharedOnHand ?? 0),
           reserved: '0',
-          available: '0',
+          available: String(product.sharedOnHand ?? 0),
           incoming: '0',
-          state: 'out',
+          state: (product.sharedOnHand ?? 0) > 0 ? 'in' : 'out',
+          avgCost: null,
         }
       : null,
-    variants: matrix.rows.map((row) => ({
-      variantId: row.id,
-      optionIds: row.optionIds,
-      sku: row.sku,
-      retired: false,
-      onHand: String(row.onHand ?? 0),
-      reserved: '0',
-      unsellable: '0',
-      reservedExpired: '0',
-      available: String(row.onHand ?? 0),
-      missingSerials: null,
-      incoming: '0',
-      packAmount: null,
-      state: (row.onHand ?? 0) > 0 ? 'in' : 'out',
-    })),
+    variants: matrix.rows.map((row) => {
+      const onHand = row.onHand ?? 0;
+      const held = (row.serials ?? []).filter((each) => each.status === 'in_stock').length;
+      return {
+        variantId: row.id,
+        optionIds: row.optionIds,
+        sku: row.sku,
+        retired: false,
+        onHand: String(onHand),
+        reserved: String(row.reserved ?? 0),
+        unsellable: '0',
+        reservedExpired: '0',
+        available: String(onHand - (row.reserved ?? 0)),
+        // INV-14: the units held with no serial yet.
+        missingSerials: product.serialTracked ? onHand - held : null,
+        incoming: '0',
+        packAmount: null,
+        state: onHand > 0 ? 'in' : 'out',
+        avgCost: row.avgCost ?? null,
+      };
+    }),
   };
 }
 

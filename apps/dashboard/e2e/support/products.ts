@@ -1,4 +1,5 @@
 import type { Language } from './mock-api';
+import type { BatchFixture, MovementFixture } from './stock';
 import {
   createdMatrix,
   drawnTshirt,
@@ -44,6 +45,10 @@ export interface ProductFixture {
   zoneIds?: string[];
   /** PRD-17: its own chart, a table or a picture. */
   chart?: { rows: string[][] } | { imageId: string } | null;
+  /** Slice 11.7c: its batches holding stock, its shared stock, and each variant's movements, newest first. */
+  batches?: BatchFixture[];
+  sharedOnHand?: number;
+  history?: Record<string, MovementFixture[]>;
 }
 
 /** A category: its id, its parent, and its name in both languages. */
