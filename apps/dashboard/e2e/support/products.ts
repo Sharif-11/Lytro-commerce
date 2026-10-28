@@ -226,8 +226,20 @@ const nameIn = (product: ProductFixture, language: Language): string =>
 const slugOf = (product: ProductFixture): string =>
   product.slug ?? product.name[1].toLowerCase().replaceAll(' ', '-');
 
+/** Where stored photos are read from in production; null draws them in the page instead. */
+let mediaOrigin: string | null = null;
+
+/**
+ * Serves the stored photos from a media address, as production does (MEDIA_PUBLIC_BASE_URL), for the Content Security
+ * Policy check (csp.spec.ts); null puts back the pictures drawn in the page, which every other test shows.
+ */
+export function servePicturesFrom(origin: string | null): void {
+  mediaOrigin = origin;
+}
+
 /** A picture the browser can show, standing in for a stored photo. */
 function picture(id: string): string {
+  if (mediaOrigin !== null) return `${mediaOrigin}/megh/${encodeURIComponent(id)}.png`;
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300"><rect width="300" height="300" fill="#b9ece6"/><text x="150" y="160" font-size="40" text-anchor="middle" fill="#0e6b66">${id}</text></svg>`;
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }

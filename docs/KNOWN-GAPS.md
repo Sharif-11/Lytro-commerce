@@ -1345,7 +1345,7 @@ Found in the 2026-10-18 check of validation errors:
 
 Verified with `error-messages.e2e.spec.ts` (new) and the updated assertions in `password`, `plan-catalogue`, `response-envelope`, `signup` and `staff`.
 
-## 65. `app.lytro.app` has no Content Security Policy of its own yet — open, found 2026-10-19
+## 65. `app.lytro.app` has no Content Security Policy of its own yet — found 2026-10-19, fixed 2026-10-28
 
 `DEPLOYMENT.md` §2 gives each static app its own policy. Slice 0b set the console's (`operator_csp` in
 `deploy/Caddyfile`); the dashboard's host still sends none. It waits for Slices 6 and 7, which decide where
@@ -1353,6 +1353,24 @@ shop images load from and where uploads go, so the policy is written once agains
 loosened later. Planned with Slice 11. The console's policy, and the harness that checked it, are the model:
 every screen loaded under the policy with no violation, plus a check that an injected script, a foreign fetch
 and framing are refused.
+
+**Fixed (Slice 11.13a, 2026-10-28):**
+- **The policy.** `(dashboard_csp)` in `deploy/Caddyfile`, imported by `app.lytro.app`. Everything comes from the
+  dashboard's own origin, with these exceptions:
+  - a shop's images and video from `MEDIA_PUBLIC_BASE_URL`;
+  - uploads to `MEDIA_STORAGE_ENDPOINT` (path-style);
+  - Google Fonts, for brand fonts;
+  - `blob:` video, for the barcode reader's fallback.
+- **Nothing inline.** No inline script or style, no plugin, no framing.
+- **A Permissions-Policy** keeps the camera for the dashboard's own pages and turns off the microphone,
+  geolocation and payment.
+- **The addresses** are the server's own settings, so Caddy reads the same values.
+- **The check is committed.** `apps/dashboard/e2e/csp.spec.ts` reads the block from the Caddyfile and sends it
+  with every page. It walks every path of the route tree with nothing refused, so new screens join it.
+- **It proves the refusals** of an injected script, a foreign fetch, a foreign image and framing. A control shows
+  the framing test fails without the policy.
+- **Break checks:** ten breaks of the block were each caught.
+- **Validated:** `caddy adapt` accepts the file.
 
 ## 66. `CCH-02`: an operator's edit to the platform library moves no shop's catalogue version — found 2026-10-19, fixed 2026-10-21
 
