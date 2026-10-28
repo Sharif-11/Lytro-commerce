@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ItemCondition, ProductFormField, SerialFormat, StockTracking } from '@lytronix/validators';
 import { Icon } from '@/components/icon';
 import { Card } from '@/components/ui/card';
+import { buttonClass } from '@/components/ui/classes';
 import { Switch } from '@/components/ui/switch';
 import { switchBatches, switchSerials, type ProductSettings } from '@/lib/product-settings';
 import type { ProductDefaults } from '@/types/attribute';
@@ -67,12 +68,17 @@ export function ConditionChoice({
   );
 }
 
-/** PRD-17: the chart field, what the product shows, and the way into its sheet. */
+/**
+ * PRD-17: the chart field, what the product shows, and the way into its sheet; a category's says Edit in a small outlined
+ * button, as the prototype's `sh-category-edit` draws it.
+ */
 export function ChartField({
   text,
+  edit = false,
   onOpen,
 }: {
   text: string;
+  edit?: boolean;
   onOpen: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('shop');
@@ -86,7 +92,11 @@ export function ChartField({
         className="flex h-12 items-center gap-2 rounded-control border border-line-strong bg-surface px-3 text-left text-[16px]"
       >
         <span className="min-w-0 flex-1 truncate">{text}</span>
-        <span className="text-[14px] font-semibold text-primary">{t('chartView')}</span>
+        {edit ? (
+          <span className={buttonClass('outline', 'xs')}>{t('edit')}</span>
+        ) : (
+          <span className="text-[14px] font-semibold text-primary">{t('chartView')}</span>
+        )}
       </button>
     </div>
   );

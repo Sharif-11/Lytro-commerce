@@ -17,6 +17,7 @@ import { BILLING_STAFF, offerInstall, onAnIphone } from './support/menu';
 import { drawnIdentities } from './support/account';
 import { emptyMeta } from './support/meta';
 import { drawnExports } from './support/settings';
+import { sketchedAttributes } from './support/attributes';
 import { drawnProducts, manyProducts, type ProductsFixture } from './support/products';
 import { creamShop, phoneShop, SAMPLE_IMEIS } from './support/stock';
 import { drawnLibrary } from './support/variants';
@@ -367,6 +368,237 @@ function productPairs(): Pair[] {
     ...stockPairs(),
     ...openingPairs(),
     ...stockCardPairs(),
+    ...categoryPairs(),
+    ...attributePairs(),
+  ];
+}
+
+/**
+ * Attributes and option sets (§7.6, Slice 11.8, Part 19): the page with the retired ones last, New attribute, a library
+ * attribute's sheet, the shop's own with a retired option, one option's step, Option sets and New set.
+ */
+function attributePairs(): Pair[] {
+  const one = (
+    name: string,
+    more: Partial<Pair> = {},
+    device: Device = 'phone',
+    language: Language = 'bn',
+  ): Pair => ({
+    name,
+    screen: name,
+    device,
+    language,
+    path: '/attributes',
+    state: { products: sketchedAttributes(language) },
+    ...more,
+  });
+  const main = (page: Page) => page.getByRole('main');
+  const sheet = (page: Page) => page.getByRole('dialog').last();
+  const open = (name: string) => async (page: Page) => {
+    await main(page)
+      .getByRole('button', { name: new RegExp(`^${name}`) })
+      .first()
+      .click();
+  };
+  return [
+    one('attributes'),
+    one('attributes', {}, 'desktop', 'en'),
+    one('sh-attr-new', {
+      then: async (page) => {
+        await main(page).getByRole('button', { name: 'নতুন অ্যাট্রিবিউট' }).click();
+      },
+    }),
+    one('sh-attr-library', { then: open('সাইজ') }),
+    one('sh-attr-edit-retired', { then: open('সুতির ধরন') }),
+    one('sh-attr-edit-retired', { then: open('Cotton type') }, 'phone', 'en'),
+    one('sh-attr-option', {
+      then: async (page) => {
+        await open('সুতির ধরন')(page);
+        await sheet(page).getByRole('button', { name: 'লিনেন এডিট' }).click();
+      },
+    }),
+    one('option-sets', { path: '/attributes/option-sets' }),
+    one('sh-optset-new', {
+      path: '/attributes/option-sets',
+      then: async (page) => {
+        await main(page).getByRole('button', { name: 'নতুন সেট' }).click();
+        await sheet(page).getByLabel('সেটের নাম').fill('বাচ্চাদের সাইজ');
+        for (const value of ['2–3', '4–5', '6–7', '8–9']) {
+          await sheet(page).getByLabel('অপশন যোগ').fill(value);
+          await sheet(page).getByLabel('অপশন যোগ').press('Enter');
+        }
+        await sheet(page).getByLabel('অপশন যোগ').fill('10–11');
+      },
+    }),
+  ];
+}
+
+/**
+ * Categories (§7.5, Slice 11.8, the prototype's categories flow and Part 19's chart): the tree, a new shop's suggestions,
+ * one added and one deleted, the ⋯ menu, New category and Add a sub-category with where it sits, a category's sheet with
+ * its suggestions and its own chart, and the three ways a delete goes.
+ */
+function categoryPairs(): Pair[] {
+  const one = (
+    name: string,
+    more: Partial<Pair> = {},
+    device: Device = 'phone',
+    language: Language = 'bn',
+  ): Pair => ({ name, screen: name, device, language, path: '/categories', ...more });
+  const main = (page: Page) => page.getByRole('main');
+  const sheet = (page: Page) => page.getByRole('dialog').last();
+  // The prototype's `CAT_ROWS`: each row's products, Kids behaving like clothing with Size and Colour suggested and its
+  // own chart, Accessories hidden.
+  const drawn: ProductsFixture = {
+    ...drawnProducts(),
+    categoryState: {
+      'c-tshirts': { productCount: 3 },
+      'c-men': { productCount: 2 },
+      'c-women': { productCount: 1 },
+      'c-jackets': { productCount: 2 },
+      'c-sarees': { productCount: 1 },
+      'c-kids': { productCount: 1, behavesLike: 'clothing', suggested: ['a-1', 'a-2'] },
+      'c-accessories': { productCount: 1, visible: false },
+    },
+    charts: {
+      'c-kids': [
+        ['', 'বুক', 'লম্বা'],
+        ['2–3', '22', '16'],
+        ['4–5', '24', '18'],
+        ['6–7', '26', '20'],
+      ],
+    },
+  };
+  const state = (fixture: ProductsFixture = drawn) => ({ state: { products: fixture } });
+  const menu = (name: string) => async (page: Page) => {
+    await main(page)
+      .getByRole('button', { name: `${name}: আরও` })
+      .click();
+  };
+  const edit = (name: string) => async (page: Page) => {
+    await main(page)
+      .getByRole('button', { name: new RegExp(`^${name}`) })
+      .first()
+      .click();
+  };
+  const remove = (name: string) => async (page: Page) => {
+    await menu(name)(page);
+    await sheet(page).getByRole('button', { name: 'ক্যাটাগরি ডিলিট' }).click();
+  };
+  const seeds = [
+    'টি-শার্ট',
+    'শার্ট',
+    'পাঞ্জাবি',
+    'শাড়ি',
+    'থ্রি-পিস',
+    'জিন্স',
+    'কিডস',
+    'অ্যাক্সেসরিজ',
+  ];
+  return [
+    one('categories', state()),
+    one('categories', state(), 'desktop', 'en'),
+    {
+      ...one('categories', {
+        shop: {
+          drawn: 'new',
+          state: {
+            ...DAY_ONE,
+            products: {
+              products: [],
+              limit: 20,
+              categories: [],
+              defaults: { suggestedCategories: seeds },
+            },
+          },
+        },
+      }),
+      name: 'categories-new',
+    },
+    one('categories-seeded', {
+      shop: {
+        drawn: 'new',
+        state: {
+          ...DAY_ONE,
+          products: {
+            products: [],
+            limit: 20,
+            categories: [],
+            defaults: { suggestedCategories: seeds },
+          },
+        },
+      },
+      then: async (page) => {
+        await main(page).getByRole('button', { name: 'এই 8টি যোগ করুন' }).click();
+        await page.waitForTimeout(600);
+      },
+    }),
+    one('categories-added', {
+      ...state(),
+      then: async (page) => {
+        await main(page).getByRole('button', { name: 'ক্যাটাগরি যোগ' }).first().click();
+        await sheet(page).getByLabel('নাম', { exact: true }).fill('শার্ট');
+        await sheet(page).getByRole('button', { name: 'সেভ করুন' }).click();
+      },
+    }),
+    one('categories-deleted', {
+      ...state(),
+      then: async (page) => {
+        await remove('কিডস')(page);
+        await page.getByRole('button', { name: 'প্রোডাক্ট সরিয়ে ডিলিট করুন' }).click();
+      },
+    }),
+    one('sh-category-menu', { ...state(), then: menu('কিডস') }),
+    one('sh-category-new', {
+      ...state(),
+      then: async (page) => {
+        await main(page).getByRole('button', { name: 'ক্যাটাগরি যোগ' }).first().click();
+        await sheet(page).getByLabel('নাম', { exact: true }).fill('শার্ট');
+      },
+    }),
+    one('sh-category-sub', {
+      ...state(),
+      then: async (page) => {
+        await menu('টি-শার্ট')(page);
+        await sheet(page).getByRole('button', { name: 'সাব-ক্যাটাগরি যোগ' }).click();
+      },
+    }),
+    one('sh-category-edit', { ...state(), then: edit('কিডস') }),
+    one('sh-category-edit', { ...state(), then: edit('Kids') }, 'desktop', 'en'),
+    one('sh-category-parent', {
+      ...state(),
+      then: async (page) => {
+        await edit('কিডস')(page);
+        await sheet(page)
+          .getByRole('button', { name: /^Parent|^প্যারেন্ট|^কোথায়/ })
+          .click();
+      },
+    }),
+    one('sh-category-attrs', {
+      ...state(),
+      then: async (page) => {
+        await edit('কিডস')(page);
+        await sheet(page).getByRole('button', { name: 'অ্যাট্রিবিউট যোগ করুন' }).click();
+      },
+    }),
+    one('sh-category-chart-19', {
+      ...state(),
+      then: async (page) => {
+        await edit('কিডস')(page);
+        await sheet(page)
+          .getByRole('button', { name: / এডিট$/ })
+          .click();
+      },
+    }),
+    one('sh-category-delete', { ...state(), then: remove('কিডস') }),
+    one('sh-category-delete-children', { ...state(), then: remove('টি-শার্ট') }),
+    one('sh-category-delete-empty', {
+      ...state({
+        ...drawn,
+        categoryState: { ...drawn.categoryState, 'c-accessories': { productCount: 0 } },
+      }),
+      then: remove('অ্যাক্সেসরিজ'),
+    }),
   ];
 }
 

@@ -148,8 +148,15 @@ test('picks categories: ticks, the primary, none, and a new one made in a step o
   await sheet(page).getByRole('button', { name: 'Save' }).click();
   await expect(sheet(page).getByText('A name is needed')).toBeVisible();
   await sheet(page).getByLabel('Name', { exact: true }).fill('Shirts');
-  await sheet(page).getByLabel('Parent').selectOption({ label: 'T-shirts' });
+  // Where it sits is a step of its own, as the Categories page has it (Slice 11.8).
+  await sheet(page)
+    .getByRole('button', { name: /^Parent/ })
+    .click();
+  await expect(sheet(page).getByRole('heading', { name: 'Where it sits' })).toBeVisible();
+  await sheet(page).getByRole('radio', { name: 'T-shirts' }).click();
   await expectAccessible(page);
+  await sheet(page).getByRole('button', { name: 'Done' }).click();
+  await expect(sheet(page).getByRole('button', { name: /^Parent/ })).toContainText('T-shirts');
   await sheet(page).getByRole('button', { name: 'Save' }).click();
   await expect(sheet(page).getByRole('checkbox', { name: 'Shirts', exact: true })).toBeChecked();
   expect(log.sent('POST', '/categories')).toEqual({

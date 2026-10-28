@@ -1,5 +1,5 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { AttributeDataType, UnitKind } from '@lytronix/validators';
+import { AttributeDataType, UnitKind } from '@lytronix/validators';
 import { tenantSession } from '@/session/tenant-session';
 import type {
   Attribute,
@@ -13,11 +13,16 @@ import { PRODUCTS_QUERY_KEY } from './catalogue';
 const ATTRIBUTES_QUERY_KEY = ['attributes'] as const;
 const OPTION_SETS_QUERY_KEY = ['option-sets'] as const;
 
-/** GET /attributes: the library's attributes and the shop's own, each with its options (ATL-01). */
-export function useAttributes(options: { enabled?: boolean } = {}) {
+/**
+ * GET /attributes: the library's attributes and the shop's own, each with its options (ATL-01); with the retired ones
+ * and their retired options when asked, as the Attributes page lists them (ATR-10).
+ */
+export function useAttributes(options: { enabled?: boolean; includeRetired?: boolean } = {}) {
+  const retired = options.includeRetired ?? false;
   return useQuery({
-    queryKey: ATTRIBUTES_QUERY_KEY,
-    queryFn: () => tenantSession.client.get<Attribute[]>('/attributes'),
+    queryKey: [...ATTRIBUTES_QUERY_KEY, retired ? 'all' : 'live'],
+    queryFn: () =>
+      tenantSession.client.get<Attribute[]>(`/attributes${retired ? '?includeRetired=true' : ''}`),
     enabled: options.enabled ?? true,
   });
 }
@@ -35,7 +40,7 @@ export function useOptionSets(options: { enabled?: boolean } = {}) {
  * GET /product-defaults?categoryId=: what a new product starts with, from its primary category's type or the shop's
  * (PST-02, PST-06), with the category's suggested attributes first.
  */
-export function useProductDefaults(categoryId: string | null) {
+export function useProductDefaults(categoryId: string | null, options: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: [...PRODUCTS_QUERY_KEY, 'defaults', categoryId ?? ''],
     queryFn: () =>
@@ -43,6 +48,7 @@ export function useProductDefaults(categoryId: string | null) {
         `/product-defaults${categoryId ? `?categoryId=${encodeURIComponent(categoryId)}` : ''}`,
       ),
     placeholderData: keepPreviousData,
+    enabled: options.enabled ?? true,
   });
 }
 
@@ -63,12 +69,28 @@ function useAttributesChanged(): () => void {
   };
 }
 
-/** POST /attributes: one of the shop's own, made the moment it is named on a product (ATR-01). */
+/** A new attribute as typed (Part 14's New attribute step): its name, its type, and what a number measures. */
+export interface AttributeDraft {
+  name: string;
+  dataType: AttributeDataType;
+  unitKind: UnitKind | null;
+}
+
+/**
+ * POST /attributes: one of the shop's own, made the moment it is named on a product or from the Attributes page
+ * (ATR-01); only a number names what it measures (UOM-02), a weight unless chosen.
+ */
 export function useCreateAttribute() {
   const changed = useAttributesChanged();
   return useMutation({
-    mutationFn: (body: { name: string; dataType: AttributeDataType; unitKind?: UnitKind }) =>
-      tenantSession.client.post<Attribute>('/attributes', body),
+    mutationFn: (draft: AttributeDraft) =>
+      tenantSession.client.post<Attribute>('/attributes', {
+        name: draft.name.trim(),
+        dataType: draft.dataType,
+        ...(draft.dataType === AttributeDataType.NumberWithUnit
+          ? { unitKind: draft.unitKind ?? UnitKind.Weight }
+          : {}),
+      }),
     onSuccess: changed,
   });
 }
@@ -88,35 +110,71 @@ export function useAddOptions() {
   });
 }
 
-/** PATCH /attributes/:id/options/:optionId: a swatch on one of the shop's own values (ATR-18); setting one clears the other. */
-export function useSetSwatch() {
+/** PATCH /attributes/:id (ATR-10): the shop's own attribute renamed, retired, or brought back. */
+export function useUpdateAttribute() {
+  const changed = useAttributesChanged();
+  return useMutation({
+    mutationFn: ({ id, body }: { id: string; body: { name?: string; retired?: boolean } }) =>
+      tenantSession.client.patch<Attribute>(`/attributes/${id}`, body),
+    onSuccess: changed,
+  });
+}
+
+/** What a shop may change on one of its own values: a swatch, as a colour or a picture, sets one and clears the other. */
+export type OptionChange = {
+  value?: string;
+  retired?: boolean;
+  swatchColor?: string | null;
+  swatchImageId?: string | null;
+};
+
+/**
+ * PATCH /attributes/:id/options/:optionId: one of the shop's own values renamed, given a swatch (ATR-18), retired or
+ * brought back (ATR-10).
+ */
+export function useUpdateOption() {
   const changed = useAttributesChanged();
   return useMutation({
     mutationFn: ({
       attributeId,
       optionId,
-      swatch,
+      body,
     }: {
       attributeId: string;
       optionId: string;
-      swatch: { swatchColor: string | null } | { swatchImageId: string | null };
+      body: OptionChange;
     }) =>
       tenantSession.client.patch<AttributeOption>(
         `/attributes/${attributeId}/options/${optionId}`,
-        swatch,
+        body,
       ),
     onSuccess: changed,
   });
 }
 
-/** POST /option-sets: the shop's own set, from an attribute's values, for the next product (ATR-16). */
-export function useSaveOptionSet() {
+/** The sets read again after one is made or deleted. */
+function useOptionSetsChanged(): () => void {
   const queryClient = useQueryClient();
+  return () => {
+    void queryClient.invalidateQueries({ queryKey: OPTION_SETS_QUERY_KEY });
+  };
+}
+
+/** POST /option-sets: the shop's own set, from an attribute's values or typed, for the next product (ATR-16). */
+export function useSaveOptionSet() {
+  const changed = useOptionSetsChanged();
   return useMutation({
     mutationFn: (body: { name: string; options: string[] }) =>
       tenantSession.client.post<OptionSet>('/option-sets', body),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: OPTION_SETS_QUERY_KEY });
-    },
+    onSuccess: changed,
+  });
+}
+
+/** DELETE /option-sets/:id: one of the shop's own sets; the library's stay (ATR-16). */
+export function useDeleteOptionSet() {
+  const changed = useOptionSetsChanged();
+  return useMutation({
+    mutationFn: (id: string) => tenantSession.client.delete<{ ok: true }>(`/option-sets/${id}`),
+    onSuccess: changed,
   });
 }

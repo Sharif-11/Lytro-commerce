@@ -1,6 +1,9 @@
 # Tenant dashboard: the full design
 
-Status: v3.4, 2026-10-29 (the Stock card's sheets over a product as Slice 11.7c builds them, prototype Part 18: Stock
+Status: v3.5, 2026-10-29 (the Categories and Attributes pages as Slice 11.8 builds them, prototype Part 19: the
+attributes searched with the retired ones last and Bring back, New attribute as Part 14 makes it, a library attribute's
+sheet, one option's step, a new option set, and a category's chart as a table or a picture; v3.4 of 2026-10-29 drew
+the Stock card's sheets over a product as Slice 11.7c builds them, prototype Part 18: Stock
 history and IMEI / serials pick their variant, Add stock takes a serial product's IMEIs, Add serials as Part 16 enters
 them; v3.3 of 2026-10-28 drew the brand editor's fonts as Slice 11.12a builds them, prototype Part 17: one choice for
 headings and one for body text, each a Bangla face with its Latin partner shown in its own faces, the seven pairs in a
@@ -554,6 +557,23 @@ are absent; the tree stays.
 swatches, and retires with the one-line consequence (ATR-10). "New attribute" asks the name and the type
 (options, number with a unit, text, yes/no). **Option sets**: the platform's sets and the shop's own, with
 delete for the shop's own (ATR-16). Built: `GET/POST/PATCH /attributes`, `…/options`, `/option-sets`.
+
+*Agreed in the 11.8 read, 2026-10-29 (Part 19):*
+- **Search.** A search box above the list; the Library and Yours chips stay on each row.
+- **Retired.** A retired attribute is listed last, greyed, with Bring back; so is a retired option at the end of its
+  attribute's sheet (`retired: false` brings either back). Retired, neither is suggested for new products; products
+  that use them keep them (ATR-10).
+- **New attribute** is the step Part 14 draws for the product editor: the name, the five types (one option, several,
+  a number with what it measures, text, yes/no), and that the type cannot change later; Create closes it.
+- **A library attribute's sheet**: its name is fixed (a lock, and why); the library's options are listed with their
+  chip and stay as they are; the shop's own values are added and edited like any of its own (`sh-attr-library`).
+- **One option** opens a step with a way back: its name, a swatch from Part 14's palette, and Retire this option with
+  its consequence (`sh-attr-option`, `sh-attr-edit-retired`).
+- **Option sets**: New set takes a name and its options, typed and inserted as an options sheet does; a set of the
+  shop's own is deleted from its row, never edited -- one with a typo is deleted and made again (`sh-optset-new`).
+
+*A category's size chart* (§7.5's category sheet) is Part 15's chart editor: a table or a picture, Remove the chart,
+and Done to keep it for the category sheet's Save (`sh-category-chart-19`).
 
 ### 7.7 Stock (`/stock`)
 

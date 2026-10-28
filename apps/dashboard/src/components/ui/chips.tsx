@@ -16,7 +16,10 @@ export function ChipRow({ className, ...rest }: HTMLAttributes<HTMLDivElement>):
   );
 }
 
-/** A chip's count. */
+/**
+ * A chip's count. On a chosen chip its pill is 12% white, not the sketch's 22%: white figures on 22% measured 3.9:1,
+ * under AA's 4.5:1 for 12 px text (Slice 11.8).
+ */
 export function ChipCount({
   on,
   children,
@@ -28,7 +31,7 @@ export function ChipCount({
     <span
       className={[
         'num inline-flex h-[18px] items-center rounded-full px-1.5 text-[12px] font-semibold',
-        on ? 'bg-white/22 text-white' : 'bg-neutral-100 text-fg-muted',
+        on ? 'bg-white/12 text-white' : 'bg-neutral-100 text-fg-muted',
       ].join(' ')}
     >
       {children}

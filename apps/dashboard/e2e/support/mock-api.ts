@@ -31,8 +31,8 @@ import {
   UPLOAD_PATH,
   type SettingsFixture,
 } from './settings';
+import { categoryList, categoryWrite } from './categories';
 import {
-  categoryList,
   drawnProducts,
   MEDIA_UPLOAD_PREFIX,
   mediaDetail,
@@ -733,6 +733,24 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
       productRemove(products, one[1] ?? '', url.searchParams.get('hard') === 'true');
       return ok({ ok: true });
     }
+    // Slice 11.8: the Categories page's writes, and the editor picker's new category.
+    const filed = categoryWrite(
+      method,
+      path,
+      url,
+      request.postDataJSON() as Record<string, unknown> | null,
+      products,
+      state.language,
+    );
+    if (filed && 'refused' in filed) {
+      const { status, code, message, details } = filed.refused;
+      return route.fulfill({
+        status,
+        contentType: 'application/json',
+        body: refusal(code, message, details),
+      });
+    }
+    if (filed) return ok(filed.data);
     const produced = productWrite(
       method,
       path,

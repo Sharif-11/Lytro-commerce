@@ -36,12 +36,14 @@ function trimmed(rows: string[][]): string[][] {
  * Size chart (§7.4's sheet, Part 15's `sh-sizechart` and `sh-sizechart-picture`; PRD-17): the category's chart, or the
  * product's own -- a table, its first row naming the measures and its first column the sizes, typed like any cell, or a
  * picture of the shop's. Up to 15 rows by 10 columns, 40 characters a cell. Rows and columns left empty are dropped.
- * Done keeps it; the product saves it with Save.
+ * Done keeps it; the product saves it with Save. A category's own chart (Part 19's `sh-category-chart-19`) is the same
+ * editor under the category's name, with what it is shown on and a way to remove it; the category sheet saves it.
  */
 export function SizeChartSheet({
   open,
   chart,
   category,
+  owner = null,
   readOnly,
   onDone,
   onClose,
@@ -50,6 +52,8 @@ export function SizeChartSheet({
   chart: ChartForm;
   /** The chart its category gives, by the category's name; null when none does. */
   category: { name: string } | null;
+  /** The category whose own chart this is, and its removal while it has one; null for a product's. */
+  owner?: { name: string; onRemove: (() => void) | null } | null;
   readOnly: boolean;
   onDone: (chart: ChartForm) => void;
   onClose: () => void;
@@ -99,7 +103,7 @@ export function SizeChartSheet({
   return (
     <Sheet
       open={open}
-      title={t('chartTitle')}
+      title={owner ? `${t('chartTitle')} · ${owner.name}` : t('chartTitle')}
       onClose={onClose}
       footer={
         readOnly ? undefined : (
@@ -117,25 +121,29 @@ export function SizeChartSheet({
     >
       {open ? (
         <div className="flex flex-col gap-3">
-          <ChoiceList label={t('chartTitle')}>
-            <ChoiceRow
-              on={!draft.own}
-              disabled={readOnly}
-              title={category ? `${t('chartUseCat')} · ${category.name}` : t('chartNone')}
-              onChoose={() => {
-                setDraft({ ...draft, own: false });
-              }}
-            />
-            <ChoiceRow
-              on={draft.own}
-              disabled={readOnly}
-              title={t('chartOwn')}
-              onChoose={() => {
-                setDraft({ ...draft, own: true });
-              }}
-            />
-          </ChoiceList>
-          {draft.own ? (
+          {owner ? (
+            <p className="text-[14px] text-fg-muted">{t('catChartHint')}</p>
+          ) : (
+            <ChoiceList label={t('chartTitle')}>
+              <ChoiceRow
+                on={!draft.own}
+                disabled={readOnly}
+                title={category ? `${t('chartUseCat')} · ${category.name}` : t('chartNone')}
+                onChoose={() => {
+                  setDraft({ ...draft, own: false });
+                }}
+              />
+              <ChoiceRow
+                on={draft.own}
+                disabled={readOnly}
+                title={t('chartOwn')}
+                onChoose={() => {
+                  setDraft({ ...draft, own: true });
+                }}
+              />
+            </ChoiceList>
+          )}
+          {owner || draft.own ? (
             <>
               <Segments
                 label={t('chartTitle')}
@@ -277,6 +285,17 @@ export function SizeChartSheet({
                 </>
               )}
             </>
+          ) : null}
+          {owner?.onRemove && !readOnly ? (
+            <p>
+              <button
+                type="button"
+                className="text-[14px] font-semibold text-danger-text underline"
+                onClick={owner.onRemove}
+              >
+                {t('chartRemove')}
+              </button>
+            </p>
           ) : null}
         </div>
       ) : null}
