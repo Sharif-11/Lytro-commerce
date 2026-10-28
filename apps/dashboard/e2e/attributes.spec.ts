@@ -186,6 +186,12 @@ test('option sets: the library’s and the shop’s own, deleted or made', async
   await expect(sheet(page).getByText('A name is needed')).toBeVisible();
   await expect(sheet(page).getByText('Give it at least one option')).toBeVisible();
   await sheet(page).getByLabel('Set name').fill('Shoe sizes');
+  // A name alone is not a set.
+  await sheet(page).getByRole('button', { name: 'Save' }).click();
+  await expect(sheet(page).getByText('Give it at least one option')).toBeVisible();
+  expect(log.calls.some((call) => call.method === 'POST' && call.path === '/option-sets')).toBe(
+    false,
+  );
   for (const value of ['39', '40', '41']) {
     await sheet(page).getByLabel('Add option').fill(value);
     await sheet(page).getByLabel('Add option').press('Enter');
