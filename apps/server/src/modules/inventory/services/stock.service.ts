@@ -10,6 +10,7 @@ import {
   type AddStockInput,
   type SetStockInput,
   type StockHistoryQuery,
+  type StockPageQuery,
   type VariantCostInput,
 } from '@lytronix/validators';
 import { ApiError, FieldsError } from '../../../common/api-error';
@@ -19,6 +20,8 @@ import type {
   ProductStockHooks,
 } from '../../catalogue/ports/catalogue-stores';
 import { CatalogueActivity, type ResolvedActor } from '../../catalogue/services/catalogue-activity';
+import { ProductService } from '../../catalogue/services/product.service';
+import { inProductOrder } from '../../catalogue/services/variant-attributes';
 import { optionIdsOfKey } from '../../catalogue/services/variant-matrix';
 import { CATALOGUE_TRANSACTIONS } from '../../catalogue/tokens';
 import type { CatalogueActor } from '../../catalogue/types/catalogue';
@@ -31,6 +34,7 @@ import type {
   ProductStockView,
   SharedStockView,
   StockHistoryPage,
+  StockPageView,
   StockVariantRow,
   VariantStockRow,
   VariantStockView,
@@ -57,6 +61,17 @@ const UNTRACKING_NOTE = 'Switched to made to order';
 
 /** INV-10: a unit cost as the ledger and the average keep it, to four decimals. */
 const costOf = (cost: string): string => Number(cost).toFixed(4);
+
+/** A product as its stock view reads it. */
+type StockedProduct = { id: string } & Pick<
+  StockVariantRow['product'],
+  | 'stockTracking'
+  | 'stockUnit'
+  | 'lowStockThreshold'
+  | 'stockState'
+  | 'sharedStock'
+  | 'serialTracked'
+>;
 
 /**
  * INV-06: the one-tap reason as the ledger records it. "New stock arrived" is a purchase received (PUR-07, recorded by
@@ -92,11 +107,74 @@ export class StockService implements ProductStockHooks {
     @Inject(InventoryLedger) private readonly ledger: InventoryLedger,
     @Inject(SerialEntryService) private readonly serialEntry: SerialEntryService,
     @Inject(CatalogueActivity) private readonly activity: CatalogueActivity,
+    @Inject(ProductService) private readonly catalogue: ProductService,
   ) {}
 
   /** INV-01, CCH-08: every live variant's stock, and each retired variant still holding some (ATR-11). */
   view(tenantId: string, productId: string, canSeeCost: boolean): Promise<ProductStockView> {
     return this.transactions.run((tx) => this.viewWithin(tx, tenantId, productId, canSeeCost));
+  }
+
+  /**
+   * The Stock page (Slice 11.9; INV-01, INV-08): a page of the shop's products found by name, out of stock first, then
+   * low, each with its stock as its own screen shows it, its name, whether it is on sale, how it keeps its stock (its
+   * sheets differ by it), and its variant-defining attributes, its variants' option ids in their order; All, Low and
+   * Out counted as the Products list counts them.
+   */
+  page(tenantId: string, query: StockPageQuery, canSeeCost: boolean): Promise<StockPageView> {
+    return this.transactions.run(async (tx) => {
+      const { rows, total, counts } = await this.store.listProducts(tx, tenantId, {
+        search: query.search,
+        categoryId: query.categoryId,
+        ...(query.stock ? { active: true, stockState: query.stock } : {}),
+        attentionFirst: true,
+        offset: (query.page - 1) * query.limit,
+        limit: query.limit,
+      });
+      const products = rows.map((row) => row.product);
+      const stock = await this.store.listVariantStock(
+        tx,
+        tenantId,
+        products.map((product) => product.id),
+      );
+      const views = await this.viewsOf(tx, tenantId, products, stock, canSeeCost);
+      const splits = await this.catalogue.variantAttributesWithin(
+        tx,
+        tenantId,
+        new Map(
+          products.map((product) => [
+            product.id,
+            stock
+              .filter((row) => row.productId === product.id && !row.isStockHolder)
+              .map((row) => row.variantId),
+          ]),
+        ),
+      );
+      return {
+        products: products.flatMap((product, index) => {
+          const view = views[index];
+          if (!view) return [];
+          const own = splits.get(product.id) ?? [];
+          return [
+            {
+              ...view,
+              name: product.name,
+              active: product.active,
+              batchTracked: product.batchTracked,
+              serialTracked: product.serialTracked,
+              serialFormat: product.serialFormat,
+              splits: own,
+              variants: inProductOrder(own, view.variants),
+            },
+          ];
+        }),
+        page: query.page,
+        limit: query.limit,
+        total,
+        pages: Math.ceil(total / query.limit),
+        counts: { all: counts.total, low: counts.low, out: counts.out },
+      };
+    });
   }
 
   /**
@@ -545,22 +623,67 @@ export class StockService implements ProductStockHooks {
     if (!first || first.product.deletedAt !== null) {
       throw new ApiError('not_found', 'ProductNotFound', {});
     }
-    const product = first.product;
-    const held = product.serialTracked
-      ? await this.serials.countHeld(
-          tx,
-          tenantId,
-          rows.map((row) => row.variantId),
-        )
-      : null;
-    const pool = product.sharedStock
-      ? rows.find((row) => row.isStockHolder && !row.retired)
-      : undefined;
+    const [view] = await this.viewsOf(
+      tx,
+      tenantId,
+      [{ id: productId, ...first.product }],
+      rows,
+      canSeeCost,
+    );
+    if (!view) throw new ApiError('not_found', 'ProductNotFound', {});
+    return view;
+  }
+
+  /**
+   * INV-01, INV-24: the stock views of several products from their variants' rows, reading the serials held and what is
+   * coming once for all of them. One product's stock screen and the Stock page both come from here.
+   */
+  private async viewsOf(
+    tx: Transaction,
+    tenantId: string,
+    products: readonly StockedProduct[],
+    rows: readonly VariantStockRow[],
+    canSeeCost: boolean,
+  ): Promise<ProductStockView[]> {
+    const serialTracked = new Set(
+      products.filter((product) => product.serialTracked).map((product) => product.id),
+    );
+    const counted = rows.filter((row) => serialTracked.has(row.productId));
+    const held =
+      counted.length > 0
+        ? await this.serials.countHeld(
+            tx,
+            tenantId,
+            counted.map((row) => row.variantId),
+          )
+        : new Map<string, number>();
     const incoming = await this.store.incoming(
       tx,
       tenantId,
       rows.map((row) => row.variantId),
     );
+    return products.map((product) =>
+      this.viewOf(
+        product,
+        rows.filter((row) => row.productId === product.id),
+        product.serialTracked ? held : null,
+        incoming,
+        canSeeCost,
+      ),
+    );
+  }
+
+  private viewOf(
+    product: StockedProduct,
+    rows: readonly VariantStockRow[],
+    held: ReadonlyMap<string, number> | null,
+    incoming: ReadonlyMap<string, string>,
+    canSeeCost: boolean,
+  ): ProductStockView {
+    const productId = product.id;
+    const pool = product.sharedStock
+      ? rows.find((row) => row.isStockHolder && !row.retired)
+      : undefined;
     const variants: VariantStockView[] = pool
       ? rows
           .filter((row) => !row.isStockHolder && !row.retired)

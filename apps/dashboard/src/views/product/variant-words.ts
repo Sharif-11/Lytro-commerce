@@ -24,11 +24,14 @@ export function useVariantWords() {
       ? measure(each.value, split.unitKind)
       : each.value;
 
-  /** A variant by its options, one of each splitting attribute ("M · Black"). */
+  /**
+   * A variant by its options, one of each splitting attribute, in the splits' order ("M · Black"). Each split's option is
+   * found among the ids by itself: a read may list them in another order (the stock reads list them by attribute).
+   */
   const variant = (optionIds: readonly string[], splits: Splits): string =>
     splits
-      .map((split, index) => {
-        const found = split.options.find((each) => each.id === optionIds[index]);
+      .map((split) => {
+        const found = split.options.find((each) => optionIds.includes(each.id));
         return found ? option(found, split) : '';
       })
       .join(' · ');

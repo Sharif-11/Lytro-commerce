@@ -2,6 +2,8 @@ import { z } from 'zod';
 import { calendarDayField } from '../../common/dates';
 import {
   LIST_PAGE_SIZE_MAX,
+  PRODUCT_NAME_MAX_LENGTH,
+  PRODUCT_PAGE_SIZE,
   SERIAL_MAX_LENGTH,
   SERIAL_PAGE_SIZE,
   SERIALS_PER_ENTRY_MAX,
@@ -11,10 +13,17 @@ import {
   STOCK_NOTE_MAX_LENGTH,
   SUPPLIER_NAME_MAX_LENGTH,
 } from '../../common/limits';
-import { BatchState, SerialFormat, SerialStatus, StockEditReason } from '../../db/enums';
+import {
+  BatchState,
+  SerialFormat,
+  SerialStatus,
+  StockEditReason,
+  StockState,
+} from '../../db/enums';
 import { FieldProblemCode } from '../../validation/field-problem';
 import {
   catalogueIdSchema,
+  categoryFilterField,
   positiveQuantityField,
   priceField,
   quantityField,
@@ -111,6 +120,18 @@ export const stockHistoryQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(LIST_PAGE_SIZE_MAX).default(STOCK_HISTORY_PAGE_SIZE),
 });
 export type StockHistoryQuery = z.infer<typeof stockHistoryQuerySchema>;
+
+// GET inventory/stock (INV-01, INV-08, Slice 11.9): the Stock page -- the shop's products found by name, out and low
+// first; Low and Out pick the active products in that state, as the Products list and Home count them.
+export const stockPageQuerySchema = z.object({
+  search: z.string().trim().min(1).max(PRODUCT_NAME_MAX_LENGTH).optional(),
+  // Design v3.8: a stock check counting a whole category reads its products here.
+  categoryId: categoryFilterField.optional(),
+  stock: z.enum([StockState.Low, StockState.Out]).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(LIST_PAGE_SIZE_MAX).default(PRODUCT_PAGE_SIZE),
+});
+export type StockPageQuery = z.infer<typeof stockPageQuerySchema>;
 
 // GET batches (INV-13): the shop's batches that are expiring soon or have expired, soonest first.
 export const batchListQuerySchema = z.object({

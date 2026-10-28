@@ -19,7 +19,14 @@ import { emptyMeta } from './support/meta';
 import { drawnExports } from './support/settings';
 import { sketchedAttributes } from './support/attributes';
 import { drawnProducts, manyProducts, type ProductsFixture } from './support/products';
-import { creamShop, phoneShop, SAMPLE_IMEIS } from './support/stock';
+import {
+  creamShop,
+  expiringShop,
+  galaxyShop,
+  phoneShop,
+  SAMPLE_IMEIS,
+  stockShop,
+} from './support/stock';
 import { drawnLibrary } from './support/variants';
 import { drawnPasswords, drawnTeam } from './support/team';
 import { DAY_ONE, mockApi, SLUG, type Language, type ShopState } from './support/mock-api';
@@ -368,6 +375,9 @@ function productPairs(): Pair[] {
     ...stockPairs(),
     ...openingPairs(),
     ...stockCardPairs(),
+    ...stockPagePairs(),
+    ...stockCheckPairs(),
+    ...expiringPairs(),
     ...categoryPairs(),
     ...attributePairs(),
   ];
@@ -607,6 +617,282 @@ function categoryPairs(): Pair[] {
  * table, Add stock with and without IMEIs, Stock history with its variant picked and the picker, Batches and a
  * write-off, IMEI / serials with Fix, and Add serials.
  */
+/**
+ * Stock (§7.7, Slice 11.9, the prototype's `stock` and Part 20): the page with its figures, someone who may only look,
+ * nothing low, the fine ones opened; a row's own sheet on a plain, a batch-kept and a serial-numbered product; Edit stock
+ * plain, down from a batch, up into a new one and down naming the IMEIs; Average cost; Add stock's product pick.
+ */
+function stockPagePairs(): Pair[] {
+  const one = (
+    name: string,
+    more: Partial<Pair> = {},
+    device: Device = 'phone',
+    language: Language = 'bn',
+  ): Pair => ({
+    name,
+    screen: name,
+    device,
+    language,
+    path: '/stock',
+    state: { products: stockShop(language) },
+    ...more,
+  });
+  const main = (page: Page) => page.getByRole('main');
+  const sheet = (page: Page) => page.getByRole('dialog').last();
+  const row = (name: RegExp) => async (page: Page) => {
+    await main(page).getByRole('button', { name }).first().click();
+  };
+  const edit = (name: string) => async (page: Page) => {
+    await main(page)
+      .getByRole('button', { name: `এডিট: ${name}`, exact: true })
+      .click();
+  };
+  const reason = async (page: Page, word: string) => {
+    await sheet(page).getByRole('button', { name: word }).click();
+  };
+  // The face cream alone, its stock fine, so its row is in "Stock is fine", opened first.
+  const cream = {
+    products: {
+      ...creamShop(),
+      products: creamShop().products.filter((each) => each.id === 'p-fc'),
+    },
+  };
+  const fine = async (page: Page) => {
+    await main(page)
+      .getByRole('button', { name: /স্টক ঠিক আছে/ })
+      .click();
+  };
+  return [
+    one('stock'),
+    one('stock', {}, 'desktop', 'en'),
+    one('stock', {}, 'tablet', 'bn'),
+    one('stock-staff', {
+      state: {
+        products: stockShop('bn'),
+        isOwner: false,
+        permissions: ['inventory:read', 'products:read'],
+      },
+    }),
+    one('stock-low-none', {
+      path: '/stock?seg=low',
+      state: {
+        products: {
+          ...stockShop('bn'),
+          products: stockShop('bn').products.filter((each) =>
+            ['p-3', 'p-5', 'p-6'].includes(each.id),
+          ),
+        },
+      },
+    }),
+    one('stock-fine-open', {
+      then: async (page) => {
+        await main(page)
+          .getByRole('button', { name: /স্টক ঠিক আছে/ })
+          .click();
+      },
+    }),
+    one('stock-row-sheet', { then: row(/^M স্টক কম/) }),
+    one('stock-row-sheet', { then: row(/^M Low stock/) }, 'phone', 'en'),
+    one('stock-row-sheet-batch', {
+      state: cream,
+      then: async (page) => {
+        await fine(page);
+        await row(/^— /)(page);
+      },
+    }),
+    one('stock-row-sheet-serial', {
+      state: { products: galaxyShop('bn', 2) },
+      then: row(/^128 GB · কালো/),
+    }),
+    one('stock-edit', {
+      then: async (page) => {
+        await edit('ডেনিম জ্যাকেট · M')(page);
+        await sheet(page).getByLabel('এখন কত আছে?').fill('4');
+        await reason(page, 'নষ্ট / হারিয়েছে');
+      },
+    }),
+    one('stock-edit-down-batch', {
+      state: cream,
+      then: async (page) => {
+        await fine(page);
+        await edit('Face cream 50 ml')(page);
+        await sheet(page).getByLabel('এখন কত আছে?').fill('37');
+        await reason(page, 'নষ্ট / হারিয়েছে');
+      },
+    }),
+    one('stock-edit-up-batch', {
+      state: cream,
+      then: async (page) => {
+        await fine(page);
+        await edit('Face cream 50 ml')(page);
+        await sheet(page).getByLabel('এখন কত আছে?').fill('45');
+        await reason(page, 'নতুন মাল এসেছে');
+        await sheet(page).getByLabel('ব্যাচ কোড (অপশনাল)').fill('FC-1209');
+        await sheet(page).getByLabel('মেয়াদ (অপশনাল)').fill('2027-06-30');
+      },
+    }),
+    one('stock-edit-down-serial', {
+      state: { products: galaxyShop('bn') },
+      then: async (page) => {
+        await edit('Galaxy A15 · 128 GB · কালো')(page);
+        await sheet(page).getByLabel('এখন কত আছে?').fill('3');
+        await reason(page, 'নষ্ট / হারিয়েছে');
+        await sheet(page).getByRole('checkbox').nth(1).check();
+        await sheet(page).getByRole('checkbox').nth(3).check();
+      },
+    }),
+    one('sh-cost', {
+      then: async (page) => {
+        await row(/^M স্টক কম/)(page);
+        await sheet(page)
+          .getByRole('button', { name: /^গড় খরচ/ })
+          .click();
+      },
+    }),
+    one('stock-add-pick', {
+      then: async (page) => {
+        await page.getByRole('button', { name: 'স্টক যোগ', exact: true }).click();
+      },
+    }),
+  ];
+}
+
+/**
+ * Stock checks (§7.8, Slice 11.9, the prototype's `stock-checks`, `stock-check`, `stock-check-detail` and Part 20): the
+ * list and its empty state, a new check before and after picking, the pick sheet both ways, counting with a note,
+ * batch by batch with an IMEI short, the IMEI not found, and one saved check.
+ */
+function stockCheckPairs(): Pair[] {
+  const one = (name: string, path: string, more: Partial<Pair> = {}): Pair => ({
+    name,
+    screen: name,
+    device: 'phone',
+    language: 'bn',
+    path,
+    state: { products: stockShop('bn') },
+    ...more,
+  });
+  const main = (page: Page) => page.getByRole('main');
+  const sheet = (page: Page) => page.getByRole('dialog').last();
+  const pick = async (page: Page, names: string[]) => {
+    await main(page).getByRole('button', { name: 'প্রোডাক্ট বা ক্যাটাগরি বাছুন' }).click();
+    for (const name of names) await sheet(page).getByRole('checkbox', { name }).check();
+  };
+  const count = async (page: Page) => {
+    await sheet(page)
+      .getByRole('button', { name: /লাইন গুনুন$/ })
+      .click();
+  };
+  const type = async (page: Page, name: string | RegExp, value: string) => {
+    await main(page)
+      .getByRole('textbox', { name: typeof name === 'string' ? `${name}: গুনে পেলাম` : name })
+      .fill(value);
+  };
+  const denim = async (page: Page) => {
+    await pick(page, ['ডেনিম জ্যাকেট', 'কটন টি-শার্ট']);
+    await count(page);
+    for (const [size, value] of [
+      ['S', '3'],
+      ['M', '4'],
+      ['L', '14'],
+      ['XL', '8'],
+    ] as const) {
+      await type(page, `ডেনিম জ্যাকেট · ${size}`, value);
+    }
+  };
+  // The face cream with its three batches, and the Galaxy with five IMEIs.
+  const kept = {
+    products: {
+      ...creamShop(),
+      products: [
+        ...creamShop().products.filter((each) => each.id === 'p-fc'),
+        ...galaxyShop('bn').products,
+      ],
+    },
+  };
+  const batches = async (page: Page) => {
+    await pick(page, ['Face cream 50 ml', 'Galaxy A15']);
+    await count(page);
+    await type(page, /^FC-0702/, '3');
+    await type(page, /^FC-0921/, '11');
+    await type(page, /^FC-1102/, '24');
+    await type(page, 'Galaxy A15 · 128 GB · কালো', '4');
+  };
+  return [
+    one('stock-checks', '/stock/checks'),
+    one('stock-checks-empty', '/stock/checks', {
+      state: { products: { ...stockShop('bn'), checks: [] } },
+    }),
+    one('stock-check-start', '/stock/checks/new'),
+    one('stock-check-pick', '/stock/checks/new', {
+      then: async (page) => {
+        await pick(page, ['ডেনিম জ্যাকেট', 'কটন টি-শার্ট', 'কিডস ফ্রক']);
+      },
+    }),
+    one('stock-check-pick-category', '/stock/checks/new', {
+      then: async (page) => {
+        await pick(page, []);
+        await sheet(page).getByRole('radio', { name: 'ক্যাটাগরি' }).click();
+        await sheet(page)
+          .getByRole('radio', { name: /^টি-শার্ট/ })
+          .click();
+      },
+    }),
+    one('stock-check', '/stock/checks/new', { then: denim }),
+    one('stock-check-note', '/stock/checks/new', { then: denim }),
+    one('stock-check-batches', '/stock/checks/new', { state: kept, then: batches }),
+    one('sh-check-missing', '/stock/checks/new', {
+      state: kept,
+      then: async (page) => {
+        await batches(page);
+        await main(page)
+          .getByRole('button', { name: 'যেটা পাওয়া যায়নি, তার IMEI বাছুন' })
+          .click();
+        await sheet(page).getByRole('checkbox').nth(2).check();
+      },
+    }),
+    one('stock-check-detail', '/stock/checks/sc-12'),
+  ];
+}
+
+/**
+ * Expiring and Stock value (§7.9 and §7.22, Slice 11.9, the prototype's `expiring`, `sh-writeoff`, `stock-value` and
+ * Part 20's `expiring-empty`): the batches expiring then expired, a write-off, nothing expiring, and the stock's value
+ * with this month's losses.
+ */
+function expiringPairs(): Pair[] {
+  const one = (
+    name: string,
+    path: string,
+    more: Partial<Pair> = {},
+    device: Device = 'phone',
+    language: Language = 'bn',
+  ): Pair => ({
+    name,
+    screen: name,
+    device,
+    language,
+    path,
+    state: { products: expiringShop() },
+    ...more,
+  });
+  return [
+    one('expiring', '/stock/expiring'),
+    one('expiring-empty', '/stock/expiring', { state: { products: stockShop('bn') } }),
+    one('sh-writeoff', '/stock/expiring', {
+      name: 'sh-writeoff-expiring',
+      then: async (page) => {
+        await page
+          .getByRole('main')
+          .getByRole('button', { name: /^রাইট-অফ/ })
+          .click();
+      },
+    }),
+    one('stock-value', '/stock/value', { state: { products: stockShop('bn') } }),
+    one('stock-value', '/stock/value', { state: { products: stockShop('en') } }, 'desktop', 'en'),
+  ];
+}
+
 function stockCardPairs(): Pair[] {
   const one = (
     name: string,

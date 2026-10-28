@@ -1,6 +1,13 @@
 # Tenant dashboard: the full design
 
-Status: v3.5, 2026-10-29 (the Categories and Attributes pages as Slice 11.8 builds them, prototype Part 19: the
+Status: v3.8, 2026-10-29 (stock checks as Slice 11.9 builds them, prototype Part 20: Check stock opens the list of
+checks, a new check starts with nothing picked, a category is counted whole, a check takes a note; v3.7 of 2026-10-29:
+the Stock page's Add stock picks its product first, and its folding and "+n more" rules
+said exactly, prototype Part 20; v3.6 of 2026-10-29 drew the Stock pages as Slice 11.9 builds them, prototype Part 20: a
+variant row's own sheets,
+the fine products opened in place and a made-to-order line, the Stock page for someone who may only look, Edit stock
+naming its batch or the IMEIs leaving, a stock check's picker with batch-by-batch lines and an IMEI not found, and the
+empty lists; v3.5 of 2026-10-29 drew the Categories and Attributes pages as Slice 11.8 builds them, prototype Part 19: the
 attributes searched with the retired ones last and Bring back, New attribute as Part 14 makes it, a library attribute's
 sheet, one option's step, a new option set, and a category's chart as a table or a picture; v3.4 of 2026-10-29 drew
 the Stock card's sheets over a product as Slice 11.7c builds them, prototype Part 18: Stock
@@ -604,6 +611,32 @@ product shows one line. A variant row opens the sheets below.
   (15-digit IMEI with its check digit, duplicates in the shop) before the button names how many will be
   added.
 
+*Agreed in the 11.9 read, 2026-10-28 (Part 20):*
+- **The list** comes from one read, `GET /inventory/stock`: a page of products, each variant with its figures (Can sell,
+  Waiting to ship, Coming, On hand, its state, and its average cost for those who may see costs) and its name, with
+  the All, Low and Out counts. Products with a variant low or out show in full first; the rest fold into one "Stock
+  is fine" row that opens them in place, with Show less. A product shows two variants, then "+n more". A made-to-order
+  product is one line: made when ordered, no stock counted.
+- **A variant row tapped** opens its own sheet: on hand and what can sell, then Stock history, Average cost (for those
+  who may see costs), Batches on a product kept in batches, and IMEI / serials on a serial-numbered one, each opening
+  the sheet above (`stock-row-sheet`, `-batch`, `-serial`).
+- **Someone who may only look** sees no figures row, no Check stock or Add stock, no Add stock and Edit on the rows,
+  and no average cost (`stock-staff`). Nothing low or out says so (`stock-low-none`).
+- **Edit stock** on a product kept in batches names the batch a fall leaves, the soonest to expire unless another is
+  chosen, and the batch a rise joins: a new one with its code and expiry, or one held (`stock-edit-down-batch`,
+  `stock-edit-up-batch`). On a serial-numbered product a fall names the IMEIs leaving when every unit has one; only
+  units without an IMEI may leave unnamed, as the server holds (`stock-edit-down-serial`).
+
+*Said exactly for the build, v3.7 (Part 20):*
+- **Which products want seeing to**: one out of stock, one low, or one with a variant on sale low or out though another
+  keeps it in stock (a size sold out). The read lists them first, out ones before the rest, and the page shows them in
+  full; the others fold into "Stock is fine". A search shows what it finds in full, folding nothing.
+- **"+n more"**: a product with up to four variants shows them all; past four, its first two in its own order and any
+  other low or out, the rest behind "+n more", which opens them in place.
+- **Add stock from the header or the + menu** picks its product first, found by name, each with its variants and what
+  it holds; made-to-order products count no stock and are not listed. Picked, Add stock opens on its first variant, and
+  its own "Product · variant" picks among the rest (`stock-add-pick`).
+
 ### 7.8 Stock checks (`/stock/checks`, `/stock/checks/new`, `/stock/checks/:id`)
 
 The list: number, date, who counted, lines and changed count, the value gained or lost (manage only).
@@ -611,12 +644,26 @@ The list: number, date, who counted, lines and changed count, the value gained o
 difference, the note that differences are recorded as "counted again", Save. **Detail**: the three figures
 (lines, gained, lost) and the line table. Built: `POST/GET /stock-checks`, `GET /stock-checks/:id`.
 
+*Agreed in the 11.9 read (Part 20):* each check has the shop's own number (#12), the older ones numbered by date. New
+check picks products or a category (`stock-check-pick`); a product kept in batches is counted batch by batch, each a
+line; a serial-numbered line counted short names the IMEI not found when every unit short had one
+(`stock-check-batches`, `sh-check-missing`). The lines name their variant ("Denim jacket · M"). No check yet says so
+(`stock-checks-empty`).
+
+*Said exactly for the build, v3.8 (Part 20):* the Stock page's **Check stock** opens this list, whose **New check**
+starts one, so every past check is reachable (agreed 2026-10-28). A new check starts with nothing picked
+(`stock-check-start`); the pick sheet's category side counts every product filed there (`stock-check-pick-category`),
+read from `GET /inventory/stock?categoryId=`. A check takes a note, which its list and detail show ("Month-end count",
+`stock-check-note`).
+
 ### 7.9 Expiring (`/stock/expiring`)
 
 Batches within 30 days then expired, soonest first, each with the product, code, expiry, quantity and Write
 off once expired (`GET /batches?state=`, INV-13). The **write-off sheet** shows the batch, the units left, the
 reason (expired) and the loss at average cost; damaged or lost stock goes through Edit stock with its reason, as
 `POST …/write-off` takes an expired batch only (`sh-writeoff`). Built.
+
+Nothing expiring within 30 days says so (`expiring-empty`).
 
 ### 7.10 Delivery (`/delivery`)
 

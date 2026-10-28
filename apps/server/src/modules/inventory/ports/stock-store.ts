@@ -1,4 +1,9 @@
-import type { Transaction } from '@lytronix/db';
+import type {
+  ProductListFilter,
+  ProductListRow,
+  ProductStateCounts,
+  Transaction,
+} from '@lytronix/db';
 import type {
   LowStockNotice,
   MovementRecord,
@@ -19,6 +24,12 @@ import type {
  * or a fraction of a whole-unit product ('whole_units').
  */
 export interface StockStore {
+  /** The Stock page (Slice 11.9): a page of the shop's products, picked as the Products list picks them, with its counts. */
+  listProducts(
+    tx: Transaction,
+    tenantId: string,
+    filter: ProductListFilter,
+  ): Promise<{ rows: ProductListRow[]; total: number; counts: ProductStateCounts }>;
   findVariants(tx: Transaction, tenantId: string, variantIds: string[]): Promise<StockVariantRow[]>;
   /** INV-24: the live stock-holder variant of each of these products that shares its stock. */
   findStockHolders(

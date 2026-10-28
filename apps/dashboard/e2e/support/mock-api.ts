@@ -44,7 +44,8 @@ import {
   zonesAnswer,
   type ProductsFixture,
 } from './products';
-import { stockRead, stockWrite } from './stock';
+import { figuresAnswer, shopBatchesAnswer, stockPageAnswer, stockRead, stockWrite } from './stock';
+import { checksAnswer } from './stock-checks';
 import { variantRead } from './variants';
 import { PRESETS } from './presets';
 import { drawnTeam, teamAnswer, teamWrite, type TeamFixture } from './team';
@@ -344,6 +345,21 @@ export function shopAnswer(path: string, url: URL, state: Required<ShopState>): 
   }
   if (path === '/categories')
     return categoryList((state.products ??= drawnProducts()), state.language);
+  // Slice 11.9: the Stock page, its figures and the batches expiring.
+  if (path === '/inventory/stock') {
+    return stockPageAnswer((state.products ??= drawnProducts()), url, state.language);
+  }
+  if (path === '/inventory/figures') {
+    return figuresAnswer((state.products ??= drawnProducts()), state.language);
+  }
+  if (path === '/batches') {
+    return shopBatchesAnswer(
+      (state.products ??= drawnProducts()),
+      url,
+      state.language,
+      state.isOwner || state.permissions.includes('inventory:manage'),
+    );
+  }
   if (path === '/presets') {
     return PRESETS.map(([key, labelBn, labelEn]) => ({ key, labelBn, labelEn, defaults: {} }));
   }
@@ -704,6 +720,16 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
     // Slice 11.7b: the attributes, option sets, a new product's defaults and a product's stock.
     const read = method === 'GET' ? variantRead(path, products, url) : undefined;
     if (read !== undefined) return ok(read);
+    // Slice 11.9: the stock checks, read and recorded; their costs only for someone who may see them (D3-9).
+    const checked = checksAnswer(
+      method,
+      path,
+      request.postDataJSON() as Record<string, unknown> | null,
+      products,
+      state.language,
+      state.isOwner || state.permissions.includes('inventory:manage'),
+    );
+    if (checked) return ok(checked.data);
     // Slice 11.7c: the Stock card's history, batches and serials, and its writes.
     const stocked = method === 'GET' ? stockRead(path, url, products) : undefined;
     if (stocked !== undefined) return ok(stocked);

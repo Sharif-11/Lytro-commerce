@@ -12,6 +12,7 @@ import {
   sql,
   type SQL,
 } from 'drizzle-orm';
+import { StockState } from '@lytronix/validators';
 import {
   catalogueState,
   productDeliveryZones,
@@ -55,6 +56,11 @@ export interface ProductListFilter {
   active?: boolean;
   /** INV-08: the ones in this stock state, a product's being its best variant's (CCH-08). */
   stockState?: SelectProduct['stockState'];
+  /**
+   * The Stock page (Slice 11.9): products out of stock first, then those low or with a variant on sale low or out,
+   * then the rest, each in the usual order.
+   */
+  attentionFirst?: boolean;
   offset: number;
   limit: number;
 }
@@ -266,11 +272,33 @@ export class ProductRepository {
 
     const counts = await this.stateCounts(tx, counted);
     const totals = await tx.select({ total: count() }).from(products).where(where);
+    const usual = [asc(products.sortOrder), desc(products.createdAt), asc(products.id)];
+    // A size sold out while another keeps the product in stock still wants seeing to (CCH-08 keeps each variant's).
+    const wanting = tx
+      .select({ one: sql`1` })
+      .from(productVariants)
+      .where(
+        and(
+          eq(productVariants.tenantId, products.tenantId),
+          eq(productVariants.productId, products.id),
+          isNull(productVariants.deletedAt),
+          eq(productVariants.active, true),
+          eq(productVariants.isStockHolder, false),
+          inArray(productVariants.stockState, [StockState.Low, StockState.Out]),
+        ),
+      );
     const rows = await tx
       .select()
       .from(products)
       .where(where)
-      .orderBy(asc(products.sortOrder), desc(products.createdAt), asc(products.id))
+      .orderBy(
+        ...(filter.attentionFirst
+          ? [
+              sql`CASE WHEN ${products.stockState} = 'out' THEN 0 WHEN ${products.stockState} = 'low' OR (${products.stockTracking} = 'tracked' AND ${exists(wanting)}) THEN 1 ELSE 2 END`,
+              ...usual,
+            ]
+          : usual),
+      )
       .limit(filter.limit)
       .offset(filter.offset);
     const variantCounts =
@@ -375,6 +403,26 @@ export class ProductRepository {
     await tx
       .insert(productCategories)
       .values(categoryIds.map((categoryId) => ({ tenantId, productId, categoryId })));
+  }
+
+  /** ATL-02: the attributes several products use, each product's in its own order (the Stock page, Slice 11.9). */
+  async listProductAttributesOf(
+    tx: Transaction,
+    tenantId: string,
+    productIds: string[],
+  ): Promise<SelectProductAttribute[]> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    if (productIds.length === 0) return [];
+    return tx
+      .select()
+      .from(productAttributes)
+      .where(
+        and(
+          eq(productAttributes.tenantId, tenantId),
+          inArray(productAttributes.productId, productIds),
+        ),
+      )
+      .orderBy(asc(productAttributes.productId), asc(productAttributes.sortOrder));
   }
 
   /** ATL-02: the attributes a product uses, with each one's role, in order. */

@@ -12,6 +12,7 @@ import { ApiError } from '../../../common/api-error';
 import { DAY_MS, dhakaDate } from '../../../common/time';
 import type { CatalogueTransactions } from '../../catalogue/ports/catalogue-stores';
 import { CatalogueActivity } from '../../catalogue/services/catalogue-activity';
+import { ProductService } from '../../catalogue/services/product.service';
 import { optionIdsOfKey } from '../../catalogue/services/variant-matrix';
 import { CATALOGUE_TRANSACTIONS } from '../../catalogue/tokens';
 import type { CatalogueActor } from '../../catalogue/types/catalogue';
@@ -72,6 +73,7 @@ export class BatchService {
     @Inject(STOCK_BATCH_STORE) private readonly batches: StockBatchStore,
     @Inject(InventoryLedger) private readonly ledger: InventoryLedger,
     @Inject(CatalogueActivity) private readonly activity: CatalogueActivity,
+    @Inject(ProductService) private readonly catalogue: ProductService,
   ) {}
 
   /** A product's open batches holding stock, in the picking order, each with where it stands against its expiry. */
@@ -80,7 +82,11 @@ export class BatchService {
   }
 
   /** INV-13: the shop's batches with stock that are expired, or expiring within the warning window, soonest first. */
-  shopBatches(tenantId: string, query: BatchListQuery): Promise<ShopBatchPage> {
+  shopBatches(
+    tenantId: string,
+    query: BatchListQuery,
+    canSeeCost: boolean,
+  ): Promise<ShopBatchPage> {
     const window = expiryWindow(new Date());
     const range =
       query.state === BatchState.Expired
@@ -96,12 +102,20 @@ export class BatchService {
         offset: (query.page - 1) * query.limit,
         limit: query.limit,
       });
+      const listed = new Map<string, string[]>();
+      for (const row of rows) {
+        listed.set(row.productId, [...(listed.get(row.productId) ?? []), row.variantId]);
+      }
+      const splits = await this.catalogue.variantAttributesWithin(tx, tenantId, listed);
       return {
         batches: rows.map((row) => ({
           ...viewOf(row, window),
           productId: row.productId,
           productName: row.productName,
+          stockUnit: row.stockUnit,
+          ...(canSeeCost ? { avgCost: row.avgCost } : {}),
         })),
+        products: [...splits].map(([productId, own]) => ({ productId, splits: own })),
         page: query.page,
         limit: query.limit,
         total,

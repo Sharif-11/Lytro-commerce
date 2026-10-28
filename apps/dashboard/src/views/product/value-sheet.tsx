@@ -13,7 +13,10 @@ import type { Description } from '@/lib/variant-matrix';
 import type { Attribute } from '@/types/attribute';
 import { useVariantWords } from './variant-words';
 
-/** Two or three choices side by side, one of them on (the prototype's `.seg3`). */
+/**
+ * Two or three choices side by side, one of them on (the prototype's `.seg3`). It never shrinks: in a sheet's scrolling
+ * column a long list below squeezed it to a hairline, its hidden overflow letting it give up its height.
+ */
 export function Segments<T extends string>({
   label,
   choices,
@@ -29,7 +32,7 @@ export function Segments<T extends string>({
     <div
       role="radiogroup"
       aria-label={label}
-      className="flex overflow-hidden rounded-control border border-line-strong bg-surface"
+      className="flex flex-none overflow-hidden rounded-control border border-line-strong bg-surface"
     >
       {choices.map((choice) => (
         <button

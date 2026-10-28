@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { ReservationStatus, SerialStatus } from '@lytronix/validators';
 import {
   CategoryRepository,
+  ProductRepository,
   PurchaseOrderRepository,
   ReservationRepository,
   SerialRepository,
@@ -10,6 +11,9 @@ import {
   StockRepository,
   TenantRepository,
   TransactionRunner,
+  type ProductListFilter,
+  type ProductListRow,
+  type ProductStateCounts,
   type Transaction,
 } from '@lytronix/db';
 import { StockRefused } from '../../common/errors/stock-refused';
@@ -65,7 +69,16 @@ export class DrizzleStockStore implements StockStore {
     @Inject(StockRepository) private readonly stock: StockRepository,
     @Inject(PurchaseOrderRepository) private readonly purchases: PurchaseOrderRepository,
     @Inject(CategoryRepository) private readonly categories: CategoryRepository,
+    @Inject(ProductRepository) private readonly products: ProductRepository,
   ) {}
+
+  listProducts(
+    tx: Transaction,
+    tenantId: string,
+    filter: ProductListFilter,
+  ): Promise<{ rows: ProductListRow[]; total: number; counts: ProductStateCounts }> {
+    return this.products.listProducts(tx, tenantId, filter);
+  }
 
   findVariants(
     tx: Transaction,

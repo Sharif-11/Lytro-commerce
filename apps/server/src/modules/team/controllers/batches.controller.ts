@@ -33,10 +33,14 @@ export class BatchesController {
     summary: "The shop's expiring and expired batches holding stock, soonest first (INV-13)",
   })
   @ZodResponse({ type: ShopBatchPageDto })
-  list(
+  async list(
     @Query(new ZodValidationPipe(batchListQuerySchema)) query: BatchListQuery,
     @Req() request: DashboardRequest,
   ): Promise<ShopBatchPage> {
-    return this.batches.shopBatches(this.catalogue.tenantIdOf(request), query);
+    return this.batches.shopBatches(
+      this.catalogue.tenantIdOf(request),
+      query,
+      await this.catalogue.holds(request, Permission.InventoryManage),
+    );
   }
 }

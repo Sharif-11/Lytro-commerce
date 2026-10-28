@@ -4,6 +4,9 @@ import type { ProductStock } from '@/types/attribute';
 import type { ProductDetail } from '@/types/product';
 import { useVariantWords } from './variant-words';
 
+/** What the Stock card's sheets read of a product: its id, its name and its variant-defining attributes. */
+export type StockedProduct = Pick<ProductDetail, 'id' | 'name' | 'variantAttributes'>;
+
 /**
  * What holds a product's stock, as its Stock card's sheets pick it (Part 18): each variant still on sale or still
  * holding stock, or, where the variants share one stock, that stock alone (INV-24) -- its packs hold none.
@@ -20,7 +23,7 @@ export interface StockHolder {
 }
 
 export function useStockHolders(
-  product: ProductDetail,
+  product: StockedProduct,
   stock: ProductStock | undefined,
 ): StockHolder[] {
   const { t } = useTranslation('shop');
@@ -56,4 +59,10 @@ export function useAmountText(): (amount: string, unit: string) => string {
     const figure = String(Number(amount));
     return unit === 'piece' ? figure : `${figure} ${t(`su_${unit}`)}`;
   };
+}
+
+/** A held amount with its unit always named, as a batch's line writes it: "3 pcs", "232 kg". */
+export function useCountedText(): (amount: string, unit: string) => string {
+  const { t } = useTranslation('shop');
+  return (amount, unit) => `${String(Number(amount))} ${t(`su_${unit}`)}`;
 }

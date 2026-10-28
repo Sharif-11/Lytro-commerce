@@ -1,4 +1,12 @@
-import type { BatchState, SerialStatus, StockReason } from '@lytronix/validators';
+import type {
+  BatchState,
+  SerialFormat,
+  SerialStatus,
+  StockReason,
+  StockUnit,
+} from '@lytronix/validators';
+import type { ProductStock } from './attribute';
+import type { VariantAttribute } from './product';
 
 /**
  * Mirrors `StockMovementView` in apps/server/src/modules/inventory/types/inventory.ts (INV-09): one change to a
@@ -54,6 +62,132 @@ export interface SerialUnit {
 /** GET /products/:id/variants/:variantId/serials: a page of a variant's serials. */
 export interface SerialPage {
   serials: SerialUnit[];
+  page: number;
+  limit: number;
+  total: number;
+  pages: number;
+}
+
+/**
+ * Mirrors `stockPageSchema` (Slice 11.9): a product as the Stock page shows it -- its stock, its name, whether it is on
+ * sale, how it keeps its stock, and its variant-defining attributes; its variants come in its own order.
+ */
+export interface StockPageProduct extends ProductStock {
+  name: string;
+  active: boolean;
+  batchTracked: boolean;
+  serialTracked: boolean;
+  serialFormat: SerialFormat;
+  splits: VariantAttribute[];
+}
+
+/** GET /inventory/stock: a page of products, out and low first, with All, Low and Out counted (INV-08). */
+export interface StockPage {
+  products: StockPageProduct[];
+  page: number;
+  limit: number;
+  total: number;
+  pages: number;
+  counts: { all: number; low: number; out: number };
+}
+
+/** INV-18: one figure, to the paisa, with how many movements made it and how many had no cost. */
+export interface MovedFigure {
+  value: string;
+  movements: number;
+  unknownCost: number;
+}
+
+/** UOM-01: an amount of stock in one unit, never added across units. */
+export interface UnitQuantity {
+  unit: StockUnit;
+  quantity: string;
+}
+
+/** Mirrors `inventoryFiguresSchema` (INV-18, D3-9): the Stock page's figures and the Stock value page. */
+export interface InventoryFigures {
+  dateFrom: string;
+  dateTo: string;
+  stockValue: {
+    value: string;
+    unknownCost: number;
+    units: UnitQuantity[];
+    /** By top-level category; a null name is the products filed in none. */
+    byCategory: {
+      categoryId: string | null;
+      name: string | null;
+      value: string;
+      unknownCost: number;
+      units: UnitQuantity[];
+    }[];
+  };
+  costOfGoodsSold: MovedFigure;
+  losses: MovedFigure & {
+    byReason: (MovedFigure & { reason: StockReason; units: UnitQuantity[] })[];
+  };
+}
+
+/** Mirrors `shopBatchPageSchema`'s batch (INV-13): one batch with its product, its unit, and its cost for managers. */
+export interface ShopBatch extends StockBatch {
+  productId: string;
+  productName: string;
+  stockUnit: StockUnit;
+  avgCost?: string | null;
+}
+
+/** GET /batches: the shop's batches expiring or expired, soonest first, with what names their variants. */
+export interface ShopBatchPage {
+  batches: ShopBatch[];
+  products: { productId: string; splits: VariantAttribute[] }[];
+  page: number;
+  limit: number;
+  total: number;
+  pages: number;
+}
+
+/** Mirrors `StockCheckLineView` (INV-07, INV-12): one counted variant, or one batch of it. Costs only for managers. */
+export interface StockCheckLine {
+  productId: string;
+  variantId: string;
+  /** Null where the product has since been deleted for good (PRD-13). */
+  productName: string | null;
+  optionIds: string[];
+  batch: { id: string; batchCode: string | null; expiresOn: string | null } | null;
+  expected: string;
+  counted: string;
+  difference: string;
+  unitCost?: string | null;
+  value?: string | null;
+}
+
+/** INV-07: how many lines were counted and changed, and (with cost) the value gained and lost. */
+export interface StockCheckTotals {
+  lines: number;
+  changed: number;
+  valueGained?: string;
+  valueLost?: string;
+  unknownCost?: number;
+}
+
+/** GET /stock-checks: one check as the list shows it, with the shop's own number (#12). */
+export interface StockCheckSummary {
+  id: string;
+  number: number;
+  note: string | null;
+  actor: { userId: string; name: string | null } | null;
+  createdAt: string;
+  totals: StockCheckTotals;
+}
+
+/** GET /stock-checks/:id: a check with its lines, and each counted product's splits to name them. */
+export interface StockCheck extends StockCheckSummary {
+  lines: StockCheckLine[];
+  products: { productId: string; splits: VariantAttribute[] }[];
+}
+
+/** GET /stock-checks: newest first, a page at a time. */
+export interface StockCheckPage {
+  checks: StockCheckSummary[];
   page: number;
   limit: number;
   total: number;

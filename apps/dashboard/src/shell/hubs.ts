@@ -21,7 +21,13 @@ export type SectionId =
 
 /** A path under `/$shop`, as the router knows it. */
 export type ShopPath =
-  '/$shop' | '/$shop/orders' | '/$shop/menu' | '/$shop/search' | `/$shop/${SectionId}`;
+  | '/$shop'
+  | '/$shop/orders'
+  | '/$shop/menu'
+  | '/$shop/search'
+  | `/$shop/${SectionId}`
+  // Below a section, where a screen's Back leads (a stock check returns to the list of checks).
+  | '/$shop/stock/checks';
 
 export interface Section {
   id: SectionId;

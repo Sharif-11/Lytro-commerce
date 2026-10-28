@@ -1527,6 +1527,28 @@ their backend ships earlier.
   The policy is `(dashboard_csp)` in `deploy/Caddyfile` (KNOWN-GAPS §65). `apps/dashboard/e2e/csp.spec.ts` is its
   committed check. It walks every path of the route tree under it with nothing refused, and proves that an injected
   script, a foreign fetch, a foreign image and framing are refused.
+- **11.9 read agreed 2026-10-28** (4 points; TENANT-DASHBOARD-DESIGN §7.7 to §7.9 and §7.22, prototype Part 20):
+  1. The Stock page reads one new route, `GET /inventory/stock`: a page of products, each variant's figures and name,
+     and the All, Low and Out counts.
+  2. A variant row tapped opens a short sheet: Stock history, Average cost (managers), Batches and IMEI / serials where
+     the product keeps them. The row keeps Add stock and Edit.
+  3. Stock checks count batch by batch; a serial line counted short names the IMEI not found when every unit short had
+     one, as the server holds.
+  4. Each shop numbers its own checks (#12); a migration numbers the existing ones by date.
+
+  **Built so far:** the read and the check numbers (migration `0082`), each product's batch and serial keeping on the
+  read, and a product with a variant low or out listed with the low ones (design v3.7). The Stock page: the figures for
+  `inventory:manage`, the search and segments, the products wanting seeing to in full and the rest folded into "Stock
+  is fine", a row's own sheet, Edit stock (the batch it leaves or joins, the IMEIs leaving), Average cost, and Add
+  stock from the header or the + menu picking its product first (`stock-add-pick`). A variant is named by its options'
+  ids, so a read listing them by attribute names it right (the Stock card's sheets too). Stock checks: Check stock
+  opens the list of checks (agreed 2026-10-28, design v3.8), each with its own number, what it came to, and its page
+  with the matched lines folded; New check picks products or a whole category (`GET /inventory/stock?categoryId=`),
+  counts a batch-kept product batch by batch, names the IMEIs a serial line is short, and takes a note. Expiring: the
+  batches expiring within 30 days then those expired, each named with its variant and unit (`GET /batches` now carries
+  `stockUnit`, `avgCost` for managers and the products' splits), an expired one written off with its loss at average
+  cost; Expired alone on its own segment. Stock value and losses: the stock on hand at average cost in its units, by
+  category, and this month's losses by reason, for `inventory:manage` only. The Stock page's figures open them.
 
 
 ### Slice 12: shared storefront and product landing pages

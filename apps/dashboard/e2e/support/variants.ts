@@ -37,6 +37,8 @@ export interface VariantFixture {
   onHand?: number;
   /** Slice 11.7c: held for orders not shipped yet, its units' serials, and its average cost. */
   reserved?: number;
+  /** Slice 11.9: ordered on a placed purchase and not yet received (PUR-05). */
+  incoming?: number;
   serials?: SerialFixture[];
   avgCost?: string | null;
   /** Slice 11.7c: what it sets of its own (the variant sheet). */
@@ -351,11 +353,12 @@ export function variantPart(
 /** GET /products/:id/stock: what each variant holds and can sell (INV-01). */
 export function stockAnswer(product: ProductFixture): unknown {
   const matrix = matrixOf(product);
+  const threshold = (product.settings?.lowStockThreshold as string | undefined) ?? '5';
   return {
     productId: product.id,
     stockTracking: product.stockTracking ?? 'tracked',
     stockUnit: product.stockUnit ?? 'piece',
-    lowStockThreshold: (product.settings?.lowStockThreshold as string | undefined) ?? '5',
+    lowStockThreshold: threshold,
     state: product.stockState,
     shared: product.sharedStock
       ? {
@@ -370,6 +373,7 @@ export function stockAnswer(product: ProductFixture): unknown {
       : null,
     variants: matrix.rows.map((row) => {
       const onHand = row.onHand ?? 0;
+      const available = onHand - (row.reserved ?? 0);
       const held = (row.serials ?? []).filter((each) => each.status === 'in_stock').length;
       return {
         variantId: row.id,
@@ -380,12 +384,13 @@ export function stockAnswer(product: ProductFixture): unknown {
         reserved: String(row.reserved ?? 0),
         unsellable: '0',
         reservedExpired: '0',
-        available: String(onHand - (row.reserved ?? 0)),
+        available: String(available),
         // INV-14: the units held with no serial yet.
         missingSerials: product.serialTracked ? onHand - held : null,
-        incoming: '0',
+        incoming: String(row.incoming ?? 0),
         packAmount: null,
-        state: onHand > 0 ? 'in' : 'out',
+        // INV-08: out with nothing available, low at or under the product's threshold.
+        state: available <= 0 ? 'out' : available <= Number(threshold) ? 'low' : 'in',
         avgCost: row.avgCost ?? null,
       };
     }),

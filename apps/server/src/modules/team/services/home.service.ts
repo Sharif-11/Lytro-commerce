@@ -71,7 +71,11 @@ export class HomeService {
       await Promise.all([
         counts ? this.products.stateCounts(tenant.id) : null,
         may(Permission.InventoryRead)
-          ? this.batches.shopBatches(tenant.id, { state: BatchState.Expiring, page: 1, limit: 1 })
+          ? this.batches.shopBatches(
+              tenant.id,
+              { state: BatchState.Expiring, page: 1, limit: 1 },
+              false,
+            )
           : null,
         may(Permission.BalanceRead) ? this.balance.current(tenant.id) : null,
         may(Permission.BalanceRead) ? this.sms.currentUsage(tenant.id, now) : null,

@@ -1,26 +1,18 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { formatTaka } from '@lytronix/ui';
 import { BatchState, type StockUnit } from '@lytronix/validators';
 import { useProductBatches, useWriteOff } from '@/api/stock';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
-import { Kv } from '@/components/ui/kv';
 import { Sheet } from '@/components/ui/sheet';
 import { StatusTag, type StatusTone } from '@/components/ui/status-tag';
 import { useErrorText } from '@/hooks/use-error-text';
-import { formatDayMonthYear, todayInputValue } from '@/lib/dates';
+import { daysUntil, formatDayMonthYear } from '@/lib/dates';
 import { splitsOf } from '@/lib/variant-matrix';
-import type { ProductDetail } from '@/types/product';
 import type { StockBatch } from '@/types/stock';
-import type { StockHolder } from './stock-holders';
+import { useCountedText, type StockedProduct, type StockHolder } from './stock-holders';
 import { useVariantWords } from './variant-words';
-
-const DAY_MS = 24 * 60 * 60 * 1000;
-
-/** Whole days from today (Dhaka) to an expiry. */
-const daysUntil = (expiresOn: string): number =>
-  Math.round((Date.parse(expiresOn) - Date.parse(todayInputValue())) / DAY_MS);
+import { WriteOffDetails } from './write-off';
 
 /**
  * Batches (the prototype's `sh-batches` and `sh-writeoff`; INV-12, INV-13): the product's batches holding stock, in the
@@ -36,7 +28,7 @@ export function BatchesSheet({
   onClose,
 }: {
   open: boolean;
-  product: ProductDetail;
+  product: StockedProduct;
   holders: readonly StockHolder[];
   unit: StockUnit;
   mayManage: boolean;
@@ -57,7 +49,8 @@ export function BatchesSheet({
   }, [open]);
 
   const splits = splitsOf(product);
-  const amount = (quantity: string) => `${String(Number(quantity))} ${t(`su_${unit}`)}`;
+  const counted = useCountedText();
+  const amount = (quantity: string) => counted(quantity, unit);
   const state = (batch: StockBatch): { tone: StatusTone; text: string } =>
     batch.state === BatchState.Expired
       ? { tone: 'bad', text: t('batchExpired') }
@@ -101,27 +94,7 @@ export function BatchesSheet({
     >
       {open && going ? (
         <div className="flex flex-col gap-1">
-          <Kv
-            label={t('woBatch')}
-            value={[
-              going.batchCode ?? '—',
-              going.expiresOn ? `${t('expShort')} ${formatDayMonthYear(going.expiresOn)}` : null,
-            ]
-              .filter(Boolean)
-              .join(' · ')}
-          />
-          <Kv label={t('woLeft')} value={amount(going.quantity)} />
-          <Kv label={t('woReason')} value={t('woExpired')} />
-          <p className="mt-2 text-[14px] text-fg-muted">
-            {t('woOnly', { edit: t('editStockWord') })}
-          </p>
-          {cost ? (
-            <p className="text-[14px] text-fg-muted">
-              {t('woCost', {
-                n: formatTaka(String(Number(cost) * Number(going.quantity))).replace('৳', ''),
-              })}
-            </p>
-          ) : null}
+          <WriteOffDetails batch={going} unit={unit} avgCost={cost ?? null} />
           {writeOff.isError ? <Banner tone="bad">{errorText(writeOff.error)}</Banner> : null}
         </div>
       ) : open ? (

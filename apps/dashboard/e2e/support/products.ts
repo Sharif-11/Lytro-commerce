@@ -1,6 +1,7 @@
 import { CATEGORIES, type CategoryFixture, type CategoryStateFixture } from './categories';
 import type { Language } from './mock-api';
 import type { BatchFixture, MovementFixture } from './stock';
+import type { CheckFixture } from './stock-checks';
 import {
   createdMatrix,
   drawnTshirt,
@@ -81,6 +82,18 @@ export interface ProductsFixture {
   charts?: Record<string, string[][]>;
   /** Slice 11.7c: serials the shop's units already have, as stored (INV-23, POST /serials/check). */
   takenSerials?: string[];
+  /** Slice 11.9: the Stock page's figures, where they differ from the sketch's. */
+  figures?: FiguresFixture;
+  /** Slice 11.9: the shop's stock checks; the sketch's three when left out. */
+  checks?: CheckFixture[];
+}
+
+/** INV-18: this month's figures as the Stock page's tiles read them; losses by reason, how many times each. */
+export interface FiguresFixture {
+  stockValue: string;
+  costOfGoodsSold: string;
+  losses: string;
+  byReason: { reason: string; movements: number }[];
 }
 
 /** The shop's zones as Delivery draws them (the prototype's `SCREENS.delivery`): two of its own, one it skips. */
@@ -220,7 +233,7 @@ export function manyProducts(count: number): ProductsFixture {
   return { limit: null, products: [...drawn, ...more] };
 }
 
-const nameIn = (product: ProductFixture, language: Language): string =>
+export const nameIn = (product: ProductFixture, language: Language): string =>
   language === 'bn' ? product.name[0] : product.name[1];
 
 const slugOf = (product: ProductFixture): string =>

@@ -5,16 +5,10 @@ import { useStockHistory } from '@/api/stock';
 import { Button } from '@/components/ui/button';
 import { Sheet } from '@/components/ui/sheet';
 import { TimelineRow } from '@/components/ui/timeline';
-import { dayLabel, formatDayMonth } from '@/lib/dates';
 import type { StockMovement } from '@/types/stock';
+import { signed, useMovementDay } from './movement-words';
 import type { StockHolder } from './stock-holders';
 import { VariantPicker } from './variant-picker';
-
-/** A change as the history writes it: its sign, and its size ("+10", "−3", with the true minus sign). */
-const signed = (delta: string): string => {
-  const amount = Number(delta);
-  return amount < 0 ? `−${String(-amount)}` : `+${String(amount)}`;
-};
 
 /**
  * Stock history (the prototype's `sh-history`, Part 18's `sh-history-product`; INV-09): a variant's movements, newest
@@ -45,16 +39,8 @@ export function HistorySheet({
   const history = useStockHistory(product.id, open ? variantId : null);
   const movements = history.data?.pages.flatMap((page) => page.movements) ?? [];
   const holder = holders.find((each) => each.variantId === variantId);
-
-  const when = (movement: StockMovement): string => {
-    const day = dayLabel(movement.createdAt);
-    // The day words are Money's, where a statement's days are named the same way.
-    return day.kind === 'today'
-      ? t('today', { ns: 'money' })
-      : day.kind === 'yesterday'
-        ? t('yesterday', { ns: 'money' })
-        : formatDayMonth(movement.createdAt);
-  };
+  const day = useMovementDay();
+  const when = (movement: StockMovement): string => day(movement.createdAt);
 
   return (
     <Sheet open={open} title={t('historyTitle')} onClose={onClose}>

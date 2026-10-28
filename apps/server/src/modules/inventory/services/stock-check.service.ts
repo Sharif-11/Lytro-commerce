@@ -15,6 +15,8 @@ import { ApiError, FieldsError, type InvalidField } from '../../../common/api-er
 import { fromPaisa, quantityTimesCost } from '../../balance/services/money';
 import type { CatalogueTransactions } from '../../catalogue/ports/catalogue-stores';
 import { CatalogueActivity } from '../../catalogue/services/catalogue-activity';
+import { ProductService } from '../../catalogue/services/product.service';
+import { optionIdsInOrder } from '../../catalogue/services/variant-attributes';
 import { optionIdsOfKey } from '../../catalogue/services/variant-matrix';
 import { CATALOGUE_TRANSACTIONS } from '../../catalogue/tokens';
 import type { CatalogueActor } from '../../catalogue/types/catalogue';
@@ -58,6 +60,7 @@ export class StockCheckService {
     @Inject(InventoryLedger) private readonly ledger: InventoryLedger,
     @Inject(SerialEntryService) private readonly serialEntry: SerialEntryService,
     @Inject(CatalogueActivity) private readonly activity: CatalogueActivity,
+    @Inject(ProductService) private readonly catalogue: ProductService,
   ) {}
 
   async record(
@@ -266,6 +269,7 @@ export class StockCheckService {
       return {
         checks: rows.map((row) => ({
           id: row.id,
+          number: row.number,
           note: row.note,
           actor: actorOf(row),
           createdAt: row.createdAt,
@@ -302,12 +306,19 @@ export class StockCheckService {
     const check = await this.checks.findCheck(tx, tenantId, checkId);
     if (!check) throw new ApiError('not_found', 'StockCheckNotFound', {});
     const rows = await this.checks.listLines(tx, tenantId, checkId);
+    // Slice 11.9: each line named as its product's screen names the variant.
+    const counted = new Map<string, string[]>();
+    for (const row of rows)
+      counted.set(row.productId, [...(counted.get(row.productId) ?? []), row.variantId]);
+    const splits = await this.catalogue.variantAttributesWithin(tx, tenantId, counted);
     return {
       id: check.id,
+      number: check.number,
       note: check.note,
       actor: actorOf(check),
       createdAt: check.createdAt,
       totals: this.totalsOf(rows, canSeeCost),
+      products: [...splits].map(([productId, own]) => ({ productId, splits: own })),
       lines: rows.map((row) => {
         const difference = quantityOf(milli(row.counted) - milli(row.expected));
         return {
@@ -321,7 +332,10 @@ export class StockCheckService {
           // A shared stock is named by its product alone.
           optionIds:
             row.combinationKey !== null && row.combinationKey !== STOCK_HOLDER_KEY
-              ? optionIdsOfKey(row.combinationKey)
+              ? optionIdsInOrder(
+                  splits.get(row.productId) ?? [],
+                  optionIdsOfKey(row.combinationKey),
+                )
               : [],
           expected: row.expected,
           counted: row.counted,

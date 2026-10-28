@@ -5,8 +5,10 @@ import {
   inventoryFiguresQuerySchema,
   Permission,
   stockCheckListQuerySchema,
+  stockPageQuerySchema,
   type InventoryFiguresQuery,
   type StockCheckListQuery,
+  type StockPageQuery,
 } from '@lytronix/validators';
 import { Dashboard } from '../../../common/decorators/dashboard';
 import { RequirePermission } from '../../../common/decorators/require-permission';
@@ -14,10 +16,12 @@ import { ResponseMessage } from '../../../common/decorators/response-message';
 import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
 import { InventoryFiguresService } from '../../inventory/services/inventory-figures.service';
 import { StockCheckService } from '../../inventory/services/stock-check.service';
+import { StockService } from '../../inventory/services/stock.service';
 import type {
   InventoryFigures,
   StockCheckPage,
   StockCheckView,
+  StockPageView,
 } from '../../inventory/types/inventory';
 import { DashboardGuard, type DashboardRequest } from '../../identity/guards/dashboard.guard';
 import { SessionGuard } from '../../identity/guards/session.guard';
@@ -26,6 +30,7 @@ import {
   RecordStockCheckDto,
   StockCheckPageDto,
   StockCheckViewDto,
+  StockPageDto,
 } from '../dto/inventory.dto';
 import { PermissionGuard } from '../guards/permission.guard';
 import { CatalogueRequest } from '../services/catalogue-request';
@@ -93,7 +98,8 @@ export class StockChecksController {
   }
 }
 
-// INV-18, D3-9: the inventory figures are all cost, so they need inventory:manage.
+// INV-18, D3-9: the inventory figures are all cost, so they need inventory:manage. The Stock page (Slice 11.9) needs
+// inventory:read, and its costs inventory:manage.
 @ApiTags('Inventory')
 @Controller('inventory')
 @Dashboard({})
@@ -101,8 +107,28 @@ export class StockChecksController {
 export class InventoryFiguresController {
   constructor(
     @Inject(InventoryFiguresService) private readonly figures: InventoryFiguresService,
+    @Inject(StockService) private readonly stock: StockService,
     @Inject(CatalogueRequest) private readonly catalogue: CatalogueRequest,
   ) {}
+
+  @Get('stock')
+  @RequirePermission(Permission.InventoryRead)
+  @ResponseMessage('StockRetrieved')
+  @ApiOperation({
+    summary:
+      "The Stock page: the shop's products with each variant's stock, out and low first (INV-01, INV-08)",
+  })
+  @ZodResponse({ type: StockPageDto })
+  async stockPage(
+    @Query(new ZodValidationPipe(stockPageQuerySchema)) query: StockPageQuery,
+    @Req() request: DashboardRequest,
+  ): Promise<StockPageView> {
+    return this.stock.page(
+      this.catalogue.tenantIdOf(request),
+      query,
+      await this.catalogue.holds(request, Permission.InventoryManage),
+    );
+  }
 
   @Get('figures')
   @RequirePermission(Permission.InventoryManage)

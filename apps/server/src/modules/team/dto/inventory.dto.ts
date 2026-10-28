@@ -8,6 +8,7 @@ import {
   SerialStatus,
   BatchState,
   recordStockCheckSchema,
+  SerialFormat,
   setStockSchema,
   StockReason,
   StockState,
@@ -15,6 +16,8 @@ import {
   StockUnit,
   variantCostSchema,
 } from '@lytronix/validators';
+
+import { variantAttributeViewSchema } from './catalogue-response.dto';
 
 // DTO classes built from the shared schemas, so each request shape is written once (ENGINEERING §4).
 export class SetStockDto extends createZodDto(setStockSchema) {}
@@ -78,6 +81,27 @@ export const productStockViewSchema = z.object({
 });
 export class ProductStockViewDto extends createZodDto(productStockViewSchema) {}
 
+// The Stock page (Slice 11.9): each product's stock, its name, whether it is on sale, how it keeps its stock and its
+// variant-defining attributes, its variants' option ids in their order; All, Low and Out counted.
+export const stockPageSchema = z.object({
+  products: z.array(
+    productStockViewSchema.extend({
+      name: z.string(),
+      active: z.boolean(),
+      batchTracked: z.boolean(),
+      serialTracked: z.boolean(),
+      serialFormat: z.nativeEnum(SerialFormat),
+      splits: z.array(variantAttributeViewSchema),
+    }),
+  ),
+  page: z.number(),
+  limit: z.number(),
+  total: z.number(),
+  pages: z.number(),
+  counts: z.object({ all: z.number(), low: z.number(), out: z.number() }),
+});
+export class StockPageDto extends createZodDto(stockPageSchema) {}
+
 export const stockHistoryPageSchema = z.object({
   movements: z.array(
     z.object({
@@ -112,6 +136,8 @@ const stockCheckTotalsSchema = z.object({
 
 const stockCheckSummarySchema = z.object({
   id: z.string(),
+  // Slice 11.9: the shop's own number for it (#12).
+  number: z.number(),
   note: z.string().nullable(),
   actor: actorSchema.nullable(),
   createdAt: z.date(),
@@ -132,6 +158,10 @@ export const stockCheckViewSchema = stockCheckSummarySchema.extend({
       unitCost: z.string().nullable().optional(),
       value: z.string().nullable().optional(),
     }),
+  ),
+  // Slice 11.9: each counted product's variant-defining attributes, so a line is named as its product's screen names it.
+  products: z.array(
+    z.object({ productId: z.string(), splits: z.array(variantAttributeViewSchema) }),
   ),
 });
 export class StockCheckViewDto extends createZodDto(stockCheckViewSchema) {}
@@ -205,7 +235,17 @@ export const productBatchesSchema = z.object({
 export class ProductBatchesDto extends createZodDto(productBatchesSchema) {}
 
 export const shopBatchPageSchema = z.object({
-  batches: z.array(batchViewSchema.extend({ productId: z.string(), productName: z.string() })),
+  batches: z.array(
+    batchViewSchema.extend({
+      productId: z.string(),
+      productName: z.string(),
+      stockUnit: z.nativeEnum(StockUnit),
+      avgCost: z.string().nullable().optional(),
+    }),
+  ),
+  products: z.array(
+    z.object({ productId: z.string(), splits: z.array(variantAttributeViewSchema) }),
+  ),
   page: z.number(),
   limit: z.number(),
   total: z.number(),

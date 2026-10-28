@@ -83,6 +83,7 @@ import { PresetService } from './preset.service';
 import { ShopPaymentPolicyService } from './shop-payment-policy.service';
 import { SizeChartService } from './size-chart.service';
 import { nextFreeSlug, slugOf } from './slug';
+import { variantAttributesOf } from './variant-attributes';
 import { planVariants, type MatrixProblem, type PlannedVariant } from './variant-matrix';
 
 type VariantSpec = NonNullable<CreateProductInput['variants']>[number];
@@ -1794,6 +1795,58 @@ export class ProductService {
     );
   }
 
+  /**
+   * The Stock page and a stock check's lines (Slice 11.9): each product's variant-defining attributes, named as its
+   * edit screen names them, with the options the given variants use -- a retired variant still holding stock among
+   * them -- in one read for several products, inside the caller's transaction.
+   */
+  async variantAttributesWithin(
+    tx: Transaction,
+    tenantId: string,
+    variantIdsByProduct: ReadonlyMap<string, readonly string[]>,
+  ): Promise<Map<string, VariantAttributeView[]>> {
+    const productIds = [...variantIdsByProduct.keys()];
+    if (productIds.length === 0) return new Map();
+    const productAttributes = await this.products.listProductAttributesOf(tx, tenantId, productIds);
+    const variantValues = await this.products.listVariantValues(tx, tenantId, [
+      ...new Set([...variantIdsByProduct.values()].flat()),
+    ]);
+    const attributes = new Map(
+      (
+        await this.attributes.findAttributes(tx, tenantId, [
+          ...new Set(productAttributes.map((row) => row.attributeId)),
+        ])
+      ).map((row) => [row.id, row]),
+    );
+    const options = new Map(
+      (
+        await this.attributes.findOptions(tx, tenantId, [
+          ...new Set(variantValues.map((row) => row.optionId)),
+        ])
+      ).map((row): [string, OptionRecord] => [row.id, row]),
+    );
+    const swatches = await this.images.viewsOf(
+      tx,
+      tenantId,
+      [...options.values()].map((option) => option.swatchImageId),
+    );
+    return new Map(
+      productIds.map((productId) => {
+        const own = new Set(variantIdsByProduct.get(productId));
+        return [
+          productId,
+          variantAttributesOf(
+            productAttributes.filter((row) => row.productId === productId),
+            attributes,
+            variantValues.filter((row) => own.has(row.variantId)),
+            options,
+            swatches,
+          ),
+        ];
+      }),
+    );
+  }
+
   /** Everything the product edit screen shows (ATR-11, ATR-17), in one read. */
   private async detail(
     tx: Transaction,
@@ -1840,44 +1893,14 @@ export class ProductService {
       tenantId,
       [...options.values()].map((option) => option.swatchImageId),
     );
-    const byOrder = (a: OptionRecord, b: OptionRecord, numeric: boolean) =>
-      numeric
-        ? Number(a.value) - Number(b.value)
-        : a.sortOrder - b.sortOrder || a.value.localeCompare(b.value);
-
     const splitting = productAttributes.filter((row) => row.role === AttributeRole.VariantDefining);
-    const variantAttributes: VariantAttributeView[] = splitting.flatMap((row) => {
-      const attribute = attributes.get(row.attributeId);
-      if (!attribute) return [];
-      const numeric = attribute.dataType === AttributeDataType.NumberWithUnit;
-      const used = [
-        ...new Set(
-          variantValues
-            .filter((value) => value.attributeId === row.attributeId)
-            .map((value) => value.optionId),
-        ),
-      ]
-        .flatMap((id) => {
-          const option = options.get(id);
-          return option ? [option] : [];
-        })
-        .sort((a, b) => byOrder(a, b, numeric));
-      return [
-        {
-          attributeId: attribute.id,
-          name: attribute.name,
-          dataType: attribute.dataType,
-          unitKind: attribute.unitKind,
-          options: used.map((option) => ({
-            id: option.id,
-            value: option.value,
-            swatchColor: option.swatchColor,
-            swatchImage:
-              option.swatchImageId === null ? null : (swatches.get(option.swatchImageId) ?? null),
-          })),
-        },
-      ];
-    });
+    const variantAttributes = variantAttributesOf(
+      splitting,
+      attributes,
+      variantValues,
+      options,
+      swatches,
+    );
 
     const described: ProductAttributeView[] = productAttributes
       .filter((row) => row.role !== AttributeRole.VariantDefining)

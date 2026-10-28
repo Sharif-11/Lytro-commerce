@@ -145,6 +145,25 @@ export const productPageSchema = z.object({
 });
 export class ProductPageDto extends createZodDto(productPageSchema) {}
 
+/**
+ * ATR-11, ATR-18: a product's variant-defining attribute with the options its variants use, as the edit screen, the
+ * Stock page and a stock check's lines name variants by it.
+ */
+export const variantAttributeViewSchema = z.object({
+  attributeId: z.string(),
+  name: z.string(),
+  dataType: z.nativeEnum(AttributeDataType),
+  unitKind: z.string().nullable(),
+  options: z.array(
+    z.object({
+      id: z.string(),
+      value: z.string(),
+      swatchColor: z.string().nullable(),
+      swatchImage: imageViewSchema.nullable(),
+    }),
+  ),
+});
+
 export const productDetailSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -175,22 +194,7 @@ export const productDetailSchema = z.object({
   minPrice: z.string().nullable(),
   maxPrice: z.string().nullable(),
   stockState: z.nativeEnum(StockState),
-  variantAttributes: z.array(
-    z.object({
-      attributeId: z.string(),
-      name: z.string(),
-      dataType: z.nativeEnum(AttributeDataType),
-      unitKind: z.string().nullable(),
-      options: z.array(
-        z.object({
-          id: z.string(),
-          value: z.string(),
-          swatchColor: z.string().nullable(),
-          swatchImage: imageViewSchema.nullable(),
-        }),
-      ),
-    }),
-  ),
+  variantAttributes: z.array(variantAttributeViewSchema),
   attributes: z.array(
     z.object({
       attributeId: z.string(),

@@ -496,6 +496,14 @@ export class DrizzleProductStore implements ProductStore {
     return this.products.listProductAttributes(tx, tenantId, productId);
   }
 
+  listProductAttributesOf(
+    tx: Transaction,
+    tenantId: string,
+    productIds: string[],
+  ): Promise<ProductAttributeRecord[]> {
+    return this.products.listProductAttributesOf(tx, tenantId, productIds);
+  }
+
   listAttributeValues(
     tx: Transaction,
     tenantId: string,

@@ -59,7 +59,14 @@ test("goes to a hub's first section and shows its sections, with where you are",
   );
   await sections.getByRole('link', { name: /স্টক/ }).click();
   await expect(page).toHaveURL(`/${SLUG}/stock`);
-  await expect(page.getByText('স্টক নতুন করে তৈরি হচ্ছে')).toBeVisible();
+  await expect(sections.getByRole('link', { name: /স্টক/ })).toHaveAttribute(
+    'aria-current',
+    'page',
+  );
+  // Slice 11.9 built Stock: its own page, where the placeholder was.
+  await expect(
+    page.getByRole('main').getByRole('searchbox', { name: 'প্রোডাক্ট সার্চ' }),
+  ).toBeVisible();
 });
 
 test("opens the Menu hub's own page, where the old More address now leads too", async ({
