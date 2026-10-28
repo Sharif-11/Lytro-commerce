@@ -1,6 +1,8 @@
 # Tenant dashboard: the full design
 
-Status: v3.6, 2026-10-29 (the Stock pages as Slice 11.9 builds them, prototype Part 20: a variant row's own sheets,
+Status: v3.7, 2026-10-29 (the Stock page's Add stock picks its product first, and its folding and "+n more" rules
+said exactly, prototype Part 20; v3.6 of 2026-10-29 drew the Stock pages as Slice 11.9 builds them, prototype Part 20: a
+variant row's own sheets,
 the fine products opened in place and a made-to-order line, the Stock page for someone who may only look, Edit stock
 naming its batch or the IMEIs leaving, a stock check's picker with batch-by-batch lines and an IMEI not found, and the
 empty lists; v3.5 of 2026-10-29 drew the Categories and Attributes pages as Slice 11.8 builds them, prototype Part 19: the
@@ -622,6 +624,16 @@ product shows one line. A variant row opens the sheets below.
   chosen, and the batch a rise joins: a new one with its code and expiry, or one held (`stock-edit-down-batch`,
   `stock-edit-up-batch`). On a serial-numbered product a fall names the IMEIs leaving when every unit has one; only
   units without an IMEI may leave unnamed, as the server holds (`stock-edit-down-serial`).
+
+*Said exactly for the build, v3.7 (Part 20):*
+- **Which products want seeing to**: one out of stock, one low, or one with a variant on sale low or out though another
+  keeps it in stock (a size sold out). The read lists them first, out ones before the rest, and the page shows them in
+  full; the others fold into "Stock is fine". A search shows what it finds in full, folding nothing.
+- **"+n more"**: a product with up to four variants shows them all; past four, its first two in its own order and any
+  other low or out, the rest behind "+n more", which opens them in place.
+- **Add stock from the header or the + menu** picks its product first, found by name, each with its variants and what
+  it holds; made-to-order products count no stock and are not listed. Picked, Add stock opens on its first variant, and
+  its own "Product · variant" picks among the rest (`stock-add-pick`).
 
 ### 7.8 Stock checks (`/stock/checks`, `/stock/checks/new`, `/stock/checks/:id`)
 
