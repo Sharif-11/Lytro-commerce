@@ -94,3 +94,16 @@ export function monogramLetter(shopName: string, fallback: string): string {
 
 // BRN-02: the square icon an installed app is drawn from is at least this many pixels a side.
 export const BRAND_ICON_MIN_PX = 512;
+
+// BRN-02: how far from square the icon may be, as a share of its longer side.
+export const BRAND_ICON_SQUARE_TOLERANCE = 0.02;
+
+/**
+ * BRN-02: whether a picture of this size may be the square icon -- square within the tolerance and at least
+ * BRAND_ICON_MIN_PX a side. The editor checks a file before it is sent; the server checks what was stored.
+ */
+export function brandIconFits(width: number, height: number): boolean {
+  const side = Math.min(width, height);
+  const longer = Math.max(width, height);
+  return side >= BRAND_ICON_MIN_PX && longer - side <= longer * BRAND_ICON_SQUARE_TOLERANCE;
+}

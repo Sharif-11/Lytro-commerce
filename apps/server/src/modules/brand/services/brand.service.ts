@@ -6,10 +6,11 @@ import {
   BRAND_FONTS,
   BRAND_ICON_MIN_PX,
   BRAND_IDENTITY_ADDON,
-  BrandPair,
+  BRAND_PAIR_COLOR,
   DEFAULT_BRAND,
   ServerFieldProblemCode,
   brandContrast,
+  brandIconFits,
   derivedBrandColors,
   featureOn,
   type BrandColors,
@@ -24,18 +25,6 @@ import type { CatalogueActor } from '../../catalogue/types/catalogue';
 import type { BrandStore } from '../ports/brand-store';
 import { BRAND_STORE } from '../tokens';
 import type { BrandEditorView, BrandRecord, BrandValues, LiveBrand } from '../types/brand';
-
-// BRN-03: the colour that answers for each pair -- the main colour for its pair with the background too.
-const PAIR_FIELD: Readonly<Record<BrandPair, keyof BrandColors>> = {
-  [BrandPair.TextOnMain]: 'mainColor',
-  [BrandPair.MainOnBackground]: 'mainColor',
-  [BrandPair.TextOnAccent]: 'accentColor',
-  [BrandPair.TextOnBackground]: 'backgroundColor',
-  [BrandPair.StatusOnBackground]: 'backgroundColor',
-};
-
-// BRN-02: how far from square the icon may be, as a share of its longer side.
-const SQUARE_TOLERANCE = 0.02;
 
 function designOf(from: BrandDesign): BrandDesign {
   return {
@@ -55,7 +44,7 @@ function refuseLowContrast(colors: BrandColors): void {
   if (check.passes) return;
   const fields = new Map<keyof BrandColors, InvalidField>();
   for (const pair of check.pairs) {
-    const field = PAIR_FIELD[pair.pair];
+    const field = BRAND_PAIR_COLOR[pair.pair];
     if (pair.passes || fields.has(field)) continue;
     fields.set(field, {
       field,
@@ -231,10 +220,8 @@ export class BrandService {
     }
     if (input.iconId !== null) {
       const size = await this.store.imageSize(tx, tenantId, input.iconId);
-      const side = Math.min(size?.width ?? 0, size?.height ?? 0);
-      const longer = Math.max(size?.width ?? 0, size?.height ?? 0);
       if (!size) fields.push(unattachable('iconId'));
-      else if (side < BRAND_ICON_MIN_PX || longer - side > longer * SQUARE_TOLERANCE) {
+      else if (!brandIconFits(size.width ?? 0, size.height ?? 0)) {
         fields.push({
           field: 'iconId',
           problem: ServerFieldProblemCode.OutOfRange,

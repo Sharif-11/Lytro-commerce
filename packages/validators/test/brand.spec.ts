@@ -9,6 +9,7 @@ import {
   BrandPair,
   DEFAULT_BRAND,
   brandContrast,
+  brandIconFits,
   contrastRatio,
   derivedBrandColors,
   featureOn,
@@ -138,6 +139,16 @@ describe('a saved identity (BRN-02)', () => {
     expect(display.success).toBe(false);
     expect(display.error?.issues[0]?.path).toEqual(['bodyFont']);
     expect(saveBrandSchema.safeParse({ ...identity, mainColor: 'teal' }).success).toBe(false);
+  });
+});
+
+describe('the square icon (BRN-02)', () => {
+  it('is square within 2% and at least 512 px a side', () => {
+    expect(brandIconFits(512, 512)).toBe(true);
+    expect(brandIconFits(1024, 1010)).toBe(true);
+    expect(brandIconFits(511, 511)).toBe(false);
+    expect(brandIconFits(800, 450)).toBe(false);
+    expect(brandIconFits(1000, 979)).toBe(false);
   });
 });
 
