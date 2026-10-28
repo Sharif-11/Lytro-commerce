@@ -62,6 +62,21 @@
 	header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
 }
 
+# The tenant dashboard's own Content Security Policy (KNOWN-GAPS §65, Slice 11.13a), on the console's model:
+# scripts, styles, fetches, the service worker and the shop's manifest from the dashboard's own origin. Beyond it:
+# - a shop's images and video from MEDIA_PUBLIC_BASE_URL, the media Worker's address (an origin, no path);
+# - uploads straight to MEDIA_STORAGE_ENDPOINT, addressed path-style (MEDIA_STORAGE_PATH_STYLE, true for R2);
+# - Google Fonts' stylesheet and font files, for a shop's brand fonts (Slice 11.2, BRN-02);
+# - blob: video, which only the barcode reader's fallback for old browsers uses.
+# Both addresses are the server's own settings, so one deployment file feeds the server and Caddy. No inline
+# script or style: a shop's theme sets its colours through the CSSOM, never a <style> element. No plugin, no
+# framing, no <base>. The Permissions-Policy keeps the camera for the dashboard's own IMEI scanning and turns
+# off what it never uses. apps/dashboard/e2e/csp.spec.ts reads this block and walks every screen under it.
+(dashboard_csp) {
+	header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' {$MEDIA_PUBLIC_BASE_URL}; media-src 'self' blob: {$MEDIA_PUBLIC_BASE_URL}; connect-src 'self' {$MEDIA_STORAGE_ENDPOINT}; manifest-src 'self'; worker-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+	header Permissions-Policy "camera=(self), microphone=(), geolocation=(), payment=()"
+}
+
 # lytro.app: the marketing site only (apps/website). www redirects to the apex.
 www.lytro.app {
 	redir https://lytro.app{uri} permanent
@@ -72,8 +87,9 @@ lytro.app {
 }
 
 # app.lytro.app: sign-up, sign-in, create-shop, the OAuth callback and every shop's dashboard at /<slug>
-# (apps/dashboard, TEN-31). The session cookie is host-only here (TEN-29).
+# (apps/dashboard, TEN-31), under its own Content Security Policy. The session cookie is host-only here (TEN-29).
 app.lytro.app {
+	import dashboard_csp
 	import api_proxy
 	import dashboard_spa
 }

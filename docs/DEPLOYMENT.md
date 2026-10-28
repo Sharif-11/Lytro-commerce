@@ -115,6 +115,22 @@ Then, per host, one rule each and no path lists:
   Google and Facebook send the browser back to `/auth/oauth/:provider/callback`, a route of the SPA, which
   reads `code`/`state` off its own URL and calls `/api/v1/auth/oauth/:provider/callback` itself, then routes
   on the response's `next` like a normal sign-in.
+  **Added 2026-10-28 (Slice 11.13a, KNOWN-GAPS §65):** under its own Content Security Policy
+  (`dashboard_csp`). Scripts, styles, fetches, the service worker and the shop's manifest come from the
+  dashboard's own origin. The exceptions:
+  - a shop's images and video from `MEDIA_PUBLIC_BASE_URL`;
+  - uploads to `MEDIA_STORAGE_ENDPOINT`;
+  - Google Fonts, for a shop's brand fonts;
+  - `blob:` video, for the barcode reader's fallback.
+
+  A Permissions-Policy keeps the camera for its own IMEI scanning and turns off the microphone, geolocation
+  and payment.
+
+  Caddy's environment therefore carries those two media settings, with the same values as the server's:
+  - `MEDIA_PUBLIC_BASE_URL` is an origin with no path;
+  - uploads are path-style, as R2 is used.
+
+  Left unset, Caddy writes nothing there and the media sources fall away, as media itself is off.
 - **`admin.lytro.app`** → serve `apps/operator`'s static build from its own directory, with a fallback to
   `index.html` for any unmatched path (the console's own router takes over), under its own strict Content
   Security Policy (`operator_csp` in `deploy/Caddyfile`). Scripts, styles, fetches, the service worker and the

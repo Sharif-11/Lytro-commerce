@@ -1514,6 +1514,19 @@ their backend ships earlier.
     may read products (PRD-08). And so a new product stays one request (11.7a's point 7) with the form's delivery limit
     and size chart: `POST /products` takes `deliveryZoneIds` and `sizeChart`, saved in its own transaction, each refused
     by its field.
+- **11.13 split, and 11.13a pulled forward, 2026-10-28.** The dashboard's Content Security Policy (11.13a) goes now,
+  beside 11.9. It depends only on where the dashboard loads from, which is settled. The real-server walkthrough
+  (11.13b) stays last: it needs 11.9's stock check and 11.10's planned purchase.
+  **11.13a agreed** (3 points) **and built:**
+  1. Caddy reads the media addresses from the server's own settings, `MEDIA_PUBLIC_BASE_URL` and
+     `MEDIA_STORAGE_ENDPOINT`, so one deployment file feeds both.
+  2. Google Fonts is allowed now, for the brand fonts 11.2 chose, so 11.12 leaves the policy as it is. A shop's theme
+     sets its colours through the CSSOM, never a `<style>` element, since no inline style is allowed.
+  3. A Permissions-Policy: the camera for the dashboard's own pages; the microphone, geolocation and payment off.
+
+  The policy is `(dashboard_csp)` in `deploy/Caddyfile` (KNOWN-GAPS §65). `apps/dashboard/e2e/csp.spec.ts` is its
+  committed check. It walks every path of the route tree under it with nothing refused, and proves that an injected
+  script, a foreign fetch, a foreign image and framing are refused.
 
 
 ### Slice 12: shared storefront and product landing pages
