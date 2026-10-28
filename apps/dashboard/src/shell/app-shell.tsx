@@ -144,6 +144,8 @@ function BareShell({
     counts: { stock: null, billing: null },
     showToast: toast.show,
     openPlus: () => undefined,
+    recordTitle: null,
+    setRecordTitle: () => undefined,
   };
   return (
     <ShellContext.Provider value={shell}>
@@ -181,6 +183,7 @@ function ShellFrame({ slug, me, tenant, children }: ShellFrameProps): React.JSX.
   const home = useHome();
   const toast = useToast();
   const [plusOpen, setPlusOpen] = useState(false);
+  const [recordTitle, setRecordTitle] = useState<string | null>(null);
   useShopManifest(slug);
 
   // §9: a deep link to a section this person may not open lands on Home, with a word on why.
@@ -207,6 +210,8 @@ function ShellFrame({ slug, me, tenant, children }: ShellFrameProps): React.JSX.
     openPlus: () => {
       setPlusOpen(true);
     },
+    recordTitle,
+    setRecordTitle,
   };
   const canSearch = allows(viewer, [Permission.ProductsRead]);
   const canAdd = hasPlusActions(viewer);

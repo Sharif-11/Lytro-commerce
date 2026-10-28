@@ -65,6 +65,8 @@ test('the checks newest first, each with what it came to; one opens with its lin
   await expectAccessible(page);
   await rows.nth(0).click();
   await expect(page).toHaveURL(`/${SLUG}/stock/checks/sc-12`);
+  // Its number heads the page on a phone and the header from 1024 px (design v3.10).
+  await expect(page.getByRole('heading', { level: 1, name: '#12' })).toBeVisible();
   const figures = main(page).getByRole('group', { name: 'Lines' });
   await expect(figures).toContainText('Lines242 changed');
   await expect(figures).toContainText('Gained৳1,240XL +1');

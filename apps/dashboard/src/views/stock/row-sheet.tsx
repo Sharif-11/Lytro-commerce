@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { formatTaka } from '@lytronix/ui';
+import { usePurchaseHistory } from '@/api/purchases';
 import { useProductBatches, useStockHistory } from '@/api/stock';
 import { Icon, type IconName } from '@/components/icon';
 import { RowList } from '@/components/ui/list-row';
@@ -11,7 +12,7 @@ import { useAmountText } from '../product/stock-holders';
 import { lineTitle, type StockLine } from './stock-lines';
 
 /** The sheets a row's own sheet opens. */
-export type RowSheetChoice = 'history' | 'cost' | 'batches' | 'serials';
+export type RowSheetChoice = 'history' | 'cost' | 'purchases' | 'batches' | 'serials';
 
 /** One of the sheet's rows (Part 20's `sheetRow20`): an icon, what it opens, a line of what is there. */
 function ChoiceButton({
@@ -45,8 +46,9 @@ function ChoiceButton({
 
 /**
  * A variant row tapped (Part 20's `stock-row-sheet`, `-batch`, `-serial`): what it holds and can sell, then Stock
- * history with its last change, Average cost for someone who may see costs, Batches on a product kept in them with the
- * earliest expiry, and IMEI / serials on a serial-numbered one with how many still have none.
+ * history with its last change, Average cost for someone who may see costs, Purchases with where it last came from
+ * (Part 21's `stock-row-sheet-purchases`, PUR-09), Batches on a product kept in them with the earliest expiry, and IMEI /
+ * serials on a serial-numbered one with how many still have none.
  */
 export function RowSheet({
   product,
@@ -69,7 +71,9 @@ export function RowSheet({
   const batches = useProductBatches(product?.productId ?? '', {
     enabled: open && product.batchTracked,
   });
+  const bought = usePurchaseHistory(product?.productId ?? '', open ? line.variantId : null);
   const last = history.data?.pages[0]?.movements[0];
+  const lastBought = bought.data?.pages[0]?.purchases[0];
   const own = (batches.data?.batches ?? []).filter((each) => each.variantId === line?.variantId);
   const earliest = own
     .map((each) => each.expiresOn)
@@ -116,6 +120,23 @@ export function RowSheet({
                   }}
                 />
               ) : null}
+              <ChoiceButton
+                icon="truck"
+                title={t('rowPurchases')}
+                sub={
+                  lastBought
+                    ? t('lastFrom', {
+                        supplier: lastBought.supplier?.name ?? t('noSupplier'),
+                        date: formatDayMonth(lastBought.receivedAt),
+                      })
+                    : bought.isSuccess
+                      ? t('purchasesNone')
+                      : ''
+                }
+                onChoose={() => {
+                  onChoose('purchases');
+                }}
+              />
               {product.batchTracked ? (
                 <ChoiceButton
                   icon="layers"

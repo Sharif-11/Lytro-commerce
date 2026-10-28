@@ -23,6 +23,9 @@ export interface ShellState {
   counts: { stock: number | null; billing: number | null };
   showToast: (message: string) => void;
   openPlus: () => void;
+  /** The one record a screen below its section names (a purchase's number), shown in the desktop header (v3.10). */
+  recordTitle: string | null;
+  setRecordTitle: (title: string | null) => void;
 }
 
 export const ShellContext = createContext<ShellState | null>(null);
