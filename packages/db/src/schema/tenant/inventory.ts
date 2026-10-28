@@ -7,6 +7,7 @@ import {
   date,
   foreignKey,
   index,
+  integer,
   numeric,
   primaryKey,
   text,
@@ -203,19 +204,29 @@ export const serialNumbers = tenant.table(
   ],
 );
 
+// INV-07, Slice 11.9: the last stock check number a shop gave, one row per shop, locked by the statement that takes the
+// next one, so a shop's checks are numbered 1, 2, 3 with no gap or repeat (PUR-03's counter, for checks).
+export const stockCheckCounters = tenant.table('stock_check_counters', {
+  tenantId: uuid('tenant_id').primaryKey(),
+  lastNumber: integer('last_number').notNull().default(0),
+});
+
 // INV-07: one stock check, the counts it recorded, and the recount movement behind each difference. A check is a
-// record of what was counted: never changed, deleted only with the rest of a lapsed shop's data (LIF-19).
+// record of what was counted: never changed, deleted only with the rest of a lapsed shop's data (LIF-19). Each has the
+// shop's own number (#12), which never changes.
 export const stockChecks = tenant.table(
   'stock_checks',
   {
     id: uuid('id').primaryKey().defaultRandom(),
     tenantId: uuid('tenant_id').notNull(),
+    number: integer('number').notNull(),
     actorUserId: uuid('actor_user_id'),
     note: varchar('note', { length: STOCK_NOTE_MAX_LENGTH }),
     createdAt: createdAt(),
   },
   (t) => [
     unique('stock_checks_tenant_id_key').on(t.tenantId, t.id),
+    uniqueIndex('stock_checks_tenant_number_idx').on(t.tenantId, t.number),
     index('stock_checks_tenant_created_idx').on(t.tenantId, t.createdAt.desc(), t.id.desc()),
   ],
 );

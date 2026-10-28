@@ -282,6 +282,12 @@ export interface ProductStore {
     tenantId: string,
     productId: string,
   ): Promise<ProductAttributeRecord[]>;
+  /** Several products' attributes, each product's in its own order. */
+  listProductAttributesOf(
+    tx: Transaction,
+    tenantId: string,
+    productIds: string[],
+  ): Promise<ProductAttributeRecord[]>;
   listAttributeValues(
     tx: Transaction,
     tenantId: string,

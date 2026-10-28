@@ -505,9 +505,13 @@ async function seedCatalogue(tenantId: string): Promise<void> {
     tenantId,
     variant,
   ]);
-  // Slice 2b: a stock check and the line it counted.
+  // Slice 2b: a stock check and the line it counted; Slice 11.9: its number, and the counter that gave it.
+  await admin.query(
+    'INSERT INTO tenant.stock_check_counters (tenant_id, last_number) VALUES ($1, 1)',
+    [tenantId],
+  );
   const check = await admin.query<{ id: string }>(
-    'INSERT INTO tenant.stock_checks (tenant_id) VALUES ($1) RETURNING id',
+    'INSERT INTO tenant.stock_checks (tenant_id, number) VALUES ($1, 1) RETURNING id',
     [tenantId],
   );
   await admin.query(

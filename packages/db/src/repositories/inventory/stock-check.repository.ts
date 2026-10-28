@@ -3,6 +3,7 @@ import {
   productVariants,
   products,
   stockBatches,
+  stockCheckCounters,
   stockCheckLines,
   stockChecks,
   users,
@@ -44,12 +45,28 @@ const lineValue = sql`round((${stockCheckLines.counted} - ${stockCheckLines.expe
 export class StockCheckRepository {
   constructor(private readonly transactions: TransactionRunner) {}
 
+  /**
+   * A check, with the shop's next check number (Slice 11.9). The counter row stays locked until the transaction ends,
+   * so a check saved at the same time waits and takes the number after; a rollback gives the number back.
+   */
   async insertCheck(
     tx: Transaction,
     values: { tenantId: string; actorUserId: string | null; note: string | null },
   ): Promise<SelectStockCheck> {
     await this.transactions.setTenantContext(tx, values.tenantId);
-    const [row] = await tx.insert(stockChecks).values(values).returning();
+    const [counter] = await tx
+      .insert(stockCheckCounters)
+      .values({ tenantId: values.tenantId, lastNumber: 1 })
+      .onConflictDoUpdate({
+        target: stockCheckCounters.tenantId,
+        set: { lastNumber: sql`${stockCheckCounters.lastNumber} + 1` },
+      })
+      .returning({ lastNumber: stockCheckCounters.lastNumber });
+    if (!counter) throw new Error('the stock check counter returned no number');
+    const [row] = await tx
+      .insert(stockChecks)
+      .values({ ...values, number: counter.lastNumber })
+      .returning();
     if (!row) throw new Error('insert returned no stock check row');
     return row;
   }
@@ -188,5 +205,6 @@ export class StockCheckRepository {
     await this.transactions.setTenantContext(tx, tenantId);
     await tx.delete(stockCheckLines).where(eq(stockCheckLines.tenantId, tenantId));
     await tx.delete(stockChecks).where(eq(stockChecks.tenantId, tenantId));
+    await tx.delete(stockCheckCounters).where(eq(stockCheckCounters.tenantId, tenantId));
   }
 }

@@ -28,6 +28,7 @@ import type {
   StockTracking,
   StockUnit,
 } from '@lytronix/validators';
+import type { VariantAttributeView } from '../../catalogue/types/catalogue';
 
 // The stored rows, as aliases of the shared types (ENGINEERING-STANDARDS §4), never copies.
 export type MovementRecord = SelectStockMovement;
@@ -278,6 +279,26 @@ export interface ProductStockView {
   variants: VariantStockView[];
 }
 
+/**
+ * The Stock page's product (Slice 11.9): its stock, its name and whether it is on sale, and its variant-defining
+ * attributes as its edit screen names them; each variant's option ids follow their order.
+ */
+export interface StockPageProductView extends ProductStockView {
+  name: string;
+  active: boolean;
+  splits: VariantAttributeView[];
+}
+
+/** The Stock page (Slice 11.9): a page of products, out and low first, with All, Low and Out counted (INV-08). */
+export interface StockPageView {
+  products: StockPageProductView[];
+  page: number;
+  limit: number;
+  total: number;
+  pages: number;
+  counts: { all: number; low: number; out: number };
+}
+
 export interface StockMovementView {
   id: number;
   delta: string;
@@ -345,15 +366,20 @@ export interface StockCheckTotals {
 
 export interface StockCheckView {
   id: string;
+  /** The shop's own number for it (#12). */
+  number: number;
   note: string | null;
   actor: StockActorView | null;
   createdAt: Date;
   totals: StockCheckTotals;
   lines: StockCheckLineView[];
+  /** Each counted product's variant-defining attributes, so a line is named as its product's screen names it. */
+  products: { productId: string; splits: VariantAttributeView[] }[];
 }
 
 export interface StockCheckSummary {
   id: string;
+  number: number;
   note: string | null;
   actor: StockActorView | null;
   createdAt: Date;

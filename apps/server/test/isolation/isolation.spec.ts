@@ -175,6 +175,7 @@ describeIfDatabase('route inventory against the application (SEC-02)', () => {
       'GET /exports/:id/download',
       'GET /home',
       'GET /inventory/figures',
+      'GET /inventory/stock',
       'GET /locations',
       'GET /me',
       'GET /me/identities',
