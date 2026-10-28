@@ -2,6 +2,7 @@ import {
   keepPreviousData,
   useInfiniteQuery,
   useMutation,
+  useQueries,
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
@@ -56,6 +57,34 @@ export function useStockPage(search: string, segment: StockSegment) {
   });
 }
 
+/** The most the server gives in one page, so a category's products come in as few reads as can be. */
+const WHOLE_PAGE = 100;
+
+/**
+ * GET /inventory/stock?categoryId= (design v3.8): every product filed in a category, for a stock check counting it
+ * whole; null asks for none.
+ */
+export function useCategoryStock(categoryId: string | null) {
+  return useQuery({
+    queryKey: [...PRODUCTS_QUERY_KEY, 'stock-page', 'category', categoryId ?? ''],
+    queryFn: async () => {
+      const products: StockPage['products'] = [];
+      for (let page = 1; ; page += 1) {
+        const read = await tenantSession.client.get<StockPage>(
+          `/inventory/stock?${new URLSearchParams({
+            categoryId: categoryId ?? '',
+            page: String(page),
+            limit: String(WHOLE_PAGE),
+          }).toString()}`,
+        );
+        products.push(...read.products);
+        if (read.page >= read.pages) return products;
+      }
+    },
+    enabled: categoryId !== null,
+  });
+}
+
 /** GET /inventory/figures (INV-18, D3-9): stock value now, and this month's cost of goods sold and losses. */
 export function useInventoryFigures(options: { enabled: boolean }) {
   return useQuery({
@@ -96,6 +125,16 @@ export function useProductBatches(productId: string, options: { enabled: boolean
     queryKey: [...stockKey(productId), 'batches'],
     queryFn: () => tenantSession.client.get<ProductBatches>(`/products/${productId}/batches`),
     enabled: options.enabled,
+  });
+}
+
+/** GET /products/:id/batches for several products at once (a stock check's batch-by-batch lines), as each one reads. */
+export function useBatchesOf(productIds: readonly string[]) {
+  return useQueries({
+    queries: productIds.map((productId) => ({
+      queryKey: [...stockKey(productId), 'batches'],
+      queryFn: () => tenantSession.client.get<ProductBatches>(`/products/${productId}/batches`),
+    })),
   });
 }
 

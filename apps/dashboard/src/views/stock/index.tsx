@@ -39,7 +39,8 @@ type Open =
  * Stock (TENANT-DASHBOARD-DESIGN §7.7, the prototype's `stock` and Part 20; INV-01, INV-06, INV-08, INV-10, INV-18):
  * the figures for someone who may manage stock, the search and the All, Low and Out segments, the products wanting
  * seeing to in full and the rest folded into "Stock is fine", a row's own sheet, Add stock, Edit stock and Average cost;
- * Add stock from the header or the + menu picks its product first. Someone who may only look sees the rows alone.
+ * Add stock from the header or the + menu picks its product first; Check stock opens the stock checks. Someone who may
+ * only look sees the rows alone.
  */
 export function StockView({
   search,
@@ -147,15 +148,26 @@ export function StockView({
     <ShellPage
       actions={
         mayManage ? (
-          <Button
-            size="sm"
-            onClick={() => {
-              setPicking(true);
-            }}
-          >
-            <Icon name="plus" />
-            {t('addStockBtn')}
-          </Button>
+          <>
+            {/* Design v3.8: Check stock opens the list of checks, whose New check starts one. */}
+            <Link
+              to="/$shop/stock/checks"
+              params={{ shop: slug }}
+              className={buttonClass('outline', 'sm')}
+            >
+              <Icon name="list" />
+              {t('checkStockBtn')}
+            </Link>
+            <Button
+              size="sm"
+              onClick={() => {
+                setPicking(true);
+              }}
+            >
+              <Icon name="plus" />
+              {t('addStockBtn')}
+            </Button>
+          </>
         ) : null
       }
     >

@@ -9,6 +9,8 @@
   "secAttributes": "অ্যাট্রিবিউট",
   "optionSets": "অপশন সেট",
   "secStock": "স্টক",
+  "stockChecks": "স্টক গণনা",
+  "stockCheckNew": "স্টক গুনুন",
   "secPurchases": "কেনাকাটা",
   "secDelivery": "ডেলিভারি",
   "secBalance": "ব্যালেন্স",

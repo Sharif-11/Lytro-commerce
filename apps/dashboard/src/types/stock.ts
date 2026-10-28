@@ -105,3 +105,52 @@ export interface InventoryFigures {
 export interface BatchCount {
   total: number;
 }
+
+/** Mirrors `StockCheckLineView` (INV-07, INV-12): one counted variant, or one batch of it. Costs only for managers. */
+export interface StockCheckLine {
+  productId: string;
+  variantId: string;
+  /** Null where the product has since been deleted for good (PRD-13). */
+  productName: string | null;
+  optionIds: string[];
+  batch: { id: string; batchCode: string | null; expiresOn: string | null } | null;
+  expected: string;
+  counted: string;
+  difference: string;
+  unitCost?: string | null;
+  value?: string | null;
+}
+
+/** INV-07: how many lines were counted and changed, and (with cost) the value gained and lost. */
+export interface StockCheckTotals {
+  lines: number;
+  changed: number;
+  valueGained?: string;
+  valueLost?: string;
+  unknownCost?: number;
+}
+
+/** GET /stock-checks: one check as the list shows it, with the shop's own number (#12). */
+export interface StockCheckSummary {
+  id: string;
+  number: number;
+  note: string | null;
+  actor: { userId: string; name: string | null } | null;
+  createdAt: string;
+  totals: StockCheckTotals;
+}
+
+/** GET /stock-checks/:id: a check with its lines, and each counted product's splits to name them. */
+export interface StockCheck extends StockCheckSummary {
+  lines: StockCheckLine[];
+  products: { productId: string; splits: VariantAttribute[] }[];
+}
+
+/** GET /stock-checks: newest first, a page at a time. */
+export interface StockCheckPage {
+  checks: StockCheckSummary[];
+  page: number;
+  limit: number;
+  total: number;
+  pages: number;
+}

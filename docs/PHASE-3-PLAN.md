@@ -1541,7 +1541,10 @@ their backend ships earlier.
   `inventory:manage`, the search and segments, the products wanting seeing to in full and the rest folded into "Stock
   is fine", a row's own sheet, Edit stock (the batch it leaves or joins, the IMEIs leaving), Average cost, and Add
   stock from the header or the + menu picking its product first (`stock-add-pick`). A variant is named by its options'
-  ids, so a read listing them by attribute names it right (the Stock card's sheets too). Stock checks, Expiring and
+  ids, so a read listing them by attribute names it right (the Stock card's sheets too). Stock checks: Check stock
+  opens the list of checks (agreed 2026-10-28, design v3.8), each with its own number, what it came to, and its page
+  with the matched lines folded; New check picks products or a whole category (`GET /inventory/stock?categoryId=`),
+  counts a batch-kept product batch by batch, names the IMEIs a serial line is short, and takes a note. Expiring and
   Stock value follow in the same pull request.
 
 

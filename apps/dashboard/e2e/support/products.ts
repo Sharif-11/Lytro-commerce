@@ -1,6 +1,7 @@
 import { CATEGORIES, type CategoryFixture, type CategoryStateFixture } from './categories';
 import type { Language } from './mock-api';
 import type { BatchFixture, MovementFixture } from './stock';
+import type { CheckFixture } from './stock-checks';
 import {
   createdMatrix,
   drawnTshirt,
@@ -83,6 +84,8 @@ export interface ProductsFixture {
   takenSerials?: string[];
   /** Slice 11.9: the Stock page's figures, where they differ from the sketch's. */
   figures?: FiguresFixture;
+  /** Slice 11.9: the shop's stock checks; the sketch's three when left out. */
+  checks?: CheckFixture[];
 }
 
 /** INV-18: this month's figures as the Stock page's tiles read them; losses by reason, how many times each. */

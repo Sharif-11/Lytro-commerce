@@ -153,10 +153,18 @@ function rankOf(product: ProductFixture): number {
 export function stockPageAnswer(fixture: ProductsFixture, url: URL, language: Language): unknown {
   const search = (url.searchParams.get('search') ?? '').toLowerCase();
   const stock = url.searchParams.get('stock');
+  const categoryId = url.searchParams.get('categoryId');
+  const filedIn = (product: ProductFixture) =>
+    categoryId === null ||
+    (categoryId === 'uncategorized'
+      ? product.primaryCategoryId === null
+      : (product.categoryIds ?? [product.primaryCategoryId]).includes(categoryId));
   const at = Number(url.searchParams.get('page') ?? 1);
   const live = fixture.products.filter((product) => !product.archived);
   const found = live.filter(
-    (product) => search === '' || product.name.some((name) => name.toLowerCase().includes(search)),
+    (product) =>
+      filedIn(product) &&
+      (search === '' || product.name.some((name) => name.toLowerCase().includes(search))),
   );
   const picked = found
     .filter((product) => stock === null || (product.active && product.stockState === stock))
@@ -476,6 +484,16 @@ const held = (
   more: Partial<VariantFixture> = {},
 ): VariantFixture => ({ id, optionIds, price: null, sku: null, onHand, ...more });
 
+/** Where the Stock page's products are filed, by id. */
+const FILED: Record<string, string> = {
+  'p-1': 'c-tshirts',
+  'p-2': 'c-jackets',
+  'p-3': 'c-sarees',
+  'p-4': 'c-kids',
+  'p-5': 'c-jackets',
+  'p-6': 'c-accessories',
+};
+
 /**
  * The Stock page as the prototype's `stock` and Part 20's `stock-fine-open` draw it (Slice 11.9): the denim jacket's S
  * and M low, the kids' frock out, the T-shirt's ten variants with M Black coming and XXL Blue low; the silk saree, the
@@ -515,7 +533,8 @@ export function stockShop(language: Language = 'en'): ProductsFixture {
     basePrice: '500.00',
     active: true,
     stockState: 'in',
-    primaryCategoryId: null,
+    // Filed as the drawn shop files them, so a stock check can count a category whole.
+    primaryCategoryId: FILED[id] ?? null,
     variantCount: rows.length,
     matrix: { splits, rows },
     ...more,

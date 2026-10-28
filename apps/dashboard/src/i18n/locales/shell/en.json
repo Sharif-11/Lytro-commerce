@@ -9,6 +9,8 @@
   "secAttributes": "Attributes",
   "optionSets": "Option sets",
   "secStock": "Stock",
+  "stockChecks": "Stock checks",
+  "stockCheckNew": "Stock check",
   "secPurchases": "Purchases",
   "secDelivery": "Delivery",
   "secBalance": "Balance",
