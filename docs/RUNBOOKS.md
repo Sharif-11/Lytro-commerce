@@ -81,13 +81,16 @@ again 90 days later.
 | `MEDIA_LINK_SECRET` (the Worker's secret and the server's setting) | signs and checks private links (BND-07) | the server signs, the Worker checks | — | — |
 | `CLOUDFLARE_API_TOKEN` (with `CLOUDFLARE_ACCOUNT_ID` and `MEDIA_EDGE_KV_NAMESPACE_ID`) | an account API token, not an R2 one: **Account Analytics: Read** and **Workers KV Storage: Edit**, this account only | the minute's bandwidth pass (`CloudflareMediaEdge`): reading the Worker's usage, writing the blocked list and each shop's website addresses to its KV store | — | — |
 
-**Accepted limit: R2 likely cannot split writing from deleting** (decided 2026-10-21, KNOWN-GAPS §78). R2 tokens
-come only as read, or read and write, per bucket, and Cloudflare does not say that read and write leaves deleting out;
-a Worker's R2 binding allows both too. So the processor's key can likely delete media, though no code path does: only
-`MediaDeleter` deletes, and the processor sends its own leftovers to it. The media Worker cannot write at all (its
-token is read only). The check below shows what each key really may do; run it once the keys exist and record the
-answer here. If R2 refuses the processor's delete, §78 closes; if not, it stays an accepted risk next to the media
-loss entry in the risk register (SRS.md §17).
+**Accepted limit: R2 cannot split writing from deleting** (decided 2026-10-21, confirmed 2026-10-28, KNOWN-GAPS §78).
+R2 tokens come only as read, or read and write, per bucket, and read and write includes deleting; a Worker's R2 binding
+allows both too. So the processor's key can delete media, though no code path does: only `MediaDeleter` deletes, and
+the processor sends its own leftovers to it. The media Worker cannot write at all (its token is read only). It stays an
+accepted risk next to the media loss entry in the risk register (SRS.md §17).
+
+**Checked on the development keys, 2026-10-28** (`lytro-dev-*` tokens on `lytro-dev-uploads` and `lytro-dev-media`):
+the signer cannot write media; the processor writes and also deletes media; the deleter deletes media; the Worker's
+token lists and reads the media bucket and is refused writing to it and reading the uploads bucket (403 each). Run the
+check again on the production keys when they are made, and add the date here.
 
 **Check a key's scope** — after making or rotating one, from a machine with that `.env`:
 
@@ -102,6 +105,7 @@ prints, for example:
 signer writes to the media bucket: no
 processor writes to the media bucket: yes
 processor deletes from the media bucket: YES (R2 cannot split write from delete)
+deleter deletes from the media bucket: yes
 ```
 
 **Rotate a key** (every 90 days, or at once if one may have leaked):

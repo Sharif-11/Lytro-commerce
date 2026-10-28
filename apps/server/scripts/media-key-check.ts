@@ -58,10 +58,18 @@ async function main(): Promise<void> {
     );
   const remove = (job: Job) => () =>
     clientFor(job).send(new DeleteObjectCommand({ Bucket: mediaBucket, Key: key }));
-  const present = async (): Promise<boolean> =>
-    allowed(() =>
-      clientFor('DELETER').send(new HeadObjectCommand({ Bucket: mediaBucket, Key: key })),
-    );
+  // Whether the test object is still there. A HEAD for a missing object answers 404 with no body, which is "gone",
+  // not a failure; any other refusal is.
+  const present = async (): Promise<boolean> => {
+    try {
+      await clientFor('DELETER').send(new HeadObjectCommand({ Bucket: mediaBucket, Key: key }));
+      return true;
+    } catch (error) {
+      if (error instanceof S3ServiceException && error.$metadata.httpStatusCode === 404)
+        return false;
+      throw error;
+    }
+  };
 
   const lines: string[] = [];
   lines.push(
@@ -74,11 +82,12 @@ async function main(): Promise<void> {
   lines.push(
     `processor deletes from the media bucket: ${processorDeleted ? 'YES (R2 cannot split write from delete)' : 'no'}`,
   );
-  if (!processorDeleted) {
-    if (!(await allowed(remove('DELETER'))))
-      throw new Error('the deleter key cannot delete media; it must');
-    lines.push('deleter deletes from the media bucket: yes');
-  }
+  // The deleter is checked either way: put the object back if the processor removed it, then the deleter removes it.
+  if (processorDeleted && !(await allowed(put('PROCESSOR'))))
+    throw new Error('the processor key cannot write media; it must');
+  if (!(await allowed(remove('DELETER'))) || (await present()))
+    throw new Error('the deleter key cannot delete media; it must');
+  lines.push('deleter deletes from the media bucket: yes');
   console.log(lines.join('\n'));
 }
 
