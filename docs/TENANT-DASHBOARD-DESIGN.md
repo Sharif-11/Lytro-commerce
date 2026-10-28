@@ -1,6 +1,10 @@
 # Tenant dashboard: the full design
 
-Status: v3.1, 2026-10-28 (stock and delivery as Slice 11.7c builds them, prototype Part 15: the size chart as a table
+Status: v3.3, 2026-10-28 (the brand editor's fonts as Slice 11.12a builds them, prototype Part 17: one choice for
+headings and one for body text, each a Bangla face with its Latin partner shown in its own faces, the seven pairs in a
+sheet with Galada + Playfair Display held to headings, and the preview set in the chosen fonts; v3.2, opening serials
+as prototype Part 16, comes with Slice 11.7c; v3.1 of 2026-10-28 drew stock and delivery as Slice 11.7c builds them,
+prototype Part 15: the size chart as a table
 with its names typed or a picture, Adjust by weight, the question before making a product holding stock to order,
 serials typed and the camera missing or blocked, the variant sheet, SKU and barcode under More settings for a product
 with no options, and a saved product's defaults line without "change"; v3.0 of 2026-10-27 drew the options and variants
@@ -1011,10 +1015,22 @@ default. Logos on light (the shop's own logo), on dark, and the square icon, at 
 does). Colours: main, accent and background, with the three pairs checked as ratios with ✓ or ✗ (text on main, text
 on accent buttons, text on background); the text colours are derived, and the check also holds the main colour
 against the background and keeps the status colours readable on it. Fonts: one for headings and one for body text,
-each a curated pair of a Bangla face and its Latin face (agreed 2026-10-22; Galada with Playfair Display for headings
-only); the font card is re-sketched for this before Slice 11.12. Corners: square, soft,
+each a curated pair of a Bangla face and its Latin face (agreed 2026-10-22), as below. Corners: square, soft,
 round. Spacing: compact, comfortable, airy. The line on what never changes (BRN-04). The preview, with Storefront,
-Landing and Dashboard tabs, changing as the settings change (BRN-06). **Apply**, and Save without switching on.
+Landing and Dashboard tabs, changing as the settings change (BRN-06), its headings and body text set in the chosen
+fonts. **Apply**, and Save without switching on.
+
+*The fonts* (Part 17, for Slice 11.12a, 2026-10-28; `brand`, `brand-font-heading`, `brand-font-body`,
+`brand-font-display`): two rows, **Headings** and **Body text**, each showing what it is set in now -- a line of Bangla
+and a line of English in those faces, the pair's two names under it ("Tiro Bangla + Lora"), and **Change**. Change
+opens a sheet of the pairs, each sample in its own faces with a radio, and Done: seven for headings, Lytro's own
+(Noto Sans Bengali + Inter) first and marked as the default, Galada + Playfair Display marked "Headings only"; six for
+body text, which leaves that pair out and says why under the list. The samples read the same in both languages, since
+the point is to see both faces; their digits are Western. Each script takes its own face: the Latin face is named
+first in the font stack and the Bangla face second, so Bangla letters fall through to it. Headings are set at 700, and
+a face with one weight (Tiro Bangla, Galada) stays regular -- the browser never bolds a face itself
+(`font-synthesis: none`). The brand fonts load from Google Fonts on this screen and for a shop whose identity is on;
+Lytro's own fonts are served with the app (11.3).
 
 **States.** A failing pair names the pair and its ratio, Apply stays off until every pair passes, and the nearest
 passing shade is offered (BRN-03, `brand-contrast`). On the trial: design and preview, with "Buy the add-on to
