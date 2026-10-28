@@ -8,8 +8,9 @@
   "send_metrics": false,
   // MED-02: the Worker answers the media address itself; no cache rule sits in front of it.
   "routes": [{ "pattern": "media.lytro.app", "custom_domain": true }],
-  // MED-10, MED-13: the shared store the server writes. Set the namespace's id once it is made in Cloudflare.
-  "kv_namespaces": [{ "binding": "MEDIA_EDGE", "id": "set-the-media-edge-namespace-id" }],
+  // MED-10, MED-13: the shared store the server writes (namespace `lytro-media-edge`). The server's
+  // MEDIA_EDGE_KV_NAMESPACE_ID is this same id. `wrangler dev` uses a local copy unless run with --remote.
+  "kv_namespaces": [{ "binding": "MEDIA_EDGE", "id": "04fe2245979a4ecb8c25f01a0dd03b1f" }],
   // BND-01: one data point per response, totalled by the server each minute.
   "analytics_engine_datasets": [{ "binding": "MEDIA_USAGE", "dataset": "lytro_media_usage" }],
   "vars": {
