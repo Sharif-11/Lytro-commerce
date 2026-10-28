@@ -5,6 +5,7 @@ import {
   TransactionRunner,
   type DeliveryZonePatch,
   type Transaction,
+  type ZoneLimitedProduct,
 } from '@lytronix/db';
 import { UniqueViolation } from '../../common/errors/unique-violation';
 import {
@@ -124,7 +125,7 @@ export class DrizzleDeliveryZoneStore implements DeliveryZoneStore {
     tx: Transaction,
     tenantId: string,
     zoneId: string,
-  ): Promise<{ id: string; name: string }[]> {
+  ): Promise<ZoneLimitedProduct[]> {
     return this.zones.productsLimitedTo(tx, tenantId, zoneId);
   }
 

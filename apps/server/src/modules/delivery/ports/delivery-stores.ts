@@ -1,4 +1,4 @@
-import type { DeliveryZonePatch, Transaction } from '@lytronix/db';
+import type { DeliveryZonePatch, Transaction, ZoneLimitedProduct } from '@lytronix/db';
 import type { LocationList, ZoneAreaRecord, ZoneAreas, ZoneRecord } from '../types/delivery';
 
 /** CUS-08: the platform's canonical zilla and thana list. */
@@ -38,7 +38,7 @@ export interface DeliveryZoneStore {
     tx: Transaction,
     tenantId: string,
     zoneId: string,
-  ): Promise<{ id: string; name: string }[]>;
+  ): Promise<ZoneLimitedProduct[]>;
   /** LIF-19: every zone of the shop, once its products' limits are gone. */
   deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void>;
 }

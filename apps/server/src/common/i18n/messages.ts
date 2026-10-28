@@ -681,7 +681,7 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   },
   DeliveryZoneFixed: {
     en: 'The inside and outside zones are always there and cannot be deleted.',
-    bn: 'ভিতরের আর বাইরের জোন সবসময় থাকে, ডিলিট করা যায় না।',
+    bn: 'ভেতরের আর বাইরের জোন সবসময় থাকে, ডিলিট করা যায় না।',
   },
   DeliveryZoneInUse: {
     en: 'Some products deliver only to this zone. Change their delivery zones first.',

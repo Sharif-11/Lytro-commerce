@@ -79,6 +79,7 @@ interface Settings {
   homeArea: { kind: string; label: { en: string; bn: string } };
   zones: Zone[];
   maxZones: number;
+  extraDeliveryChargePerKg: string;
 }
 
 let list: Locations | null = null;
@@ -200,7 +201,7 @@ describeIfDatabase('the two default zones and the home area (DLV-01)', () => {
     expect(view.zones).toHaveLength(2);
     expect(home(view)).toMatchObject({
       name: null,
-      label: { en: 'Inside Dhaka city', bn: 'ঢাকা সিটির ভিতরে' },
+      label: { en: 'Inside Dhaka city', bn: 'ঢাকা সিটির ভেতরে' },
       charge: '70.00',
       areas: { cities: [{ code: 'dhaka' }], zillas: [], thanas: [] },
     });
@@ -215,6 +216,19 @@ describeIfDatabase('the two default zones and the home area (DLV-01)', () => {
     );
   });
 
+  it('shows the extra charge per kg with the zones, to someone who may only read products (RAT-14)', async () => {
+    const shop = await openShop(port, texts, 'per-kg');
+    expect((await settings(shop)).extraDeliveryChargePerKg).toBe('0.00');
+    expect((await shop.patch('/shop-settings', { extraDeliveryChargePerKg: 15 })).status).toBe(200);
+    expect((await settings(shop)).extraDeliveryChargePerKg).toBe('15.00');
+    const reader = await staffWith(port, texts, admin, shop, ['products:read']);
+    const seen = await getJson(port, '/delivery-zones', reader);
+    expect(seen.status).toBe(200);
+    expect((seen.body as Settings).extraDeliveryChargePerKg).toBe('15.00');
+    // The settings it is changed in stay theirs who may change settings.
+    expect((await getJson(port, '/shop-settings', reader)).status).toBe(403);
+  });
+
   it('renames and refills the two zones from a new home area, keeping both charges and any name of its own', async () => {
     const shop = await openShop(port, texts, 'home-area');
     const before = await settings(shop);
@@ -225,7 +239,7 @@ describeIfDatabase('the two default zones and the home area (DLV-01)', () => {
     const view = moved.body as Settings;
     expect(home(view)).toMatchObject({
       id: home(before).id,
-      label: { en: 'Inside Chattogram city', bn: 'চট্টগ্রাম সিটির ভিতরে' },
+      label: { en: 'Inside Chattogram city', bn: 'চট্টগ্রাম সিটির ভেতরে' },
       charge: '70.00',
       areas: { cities: [{ code: 'chattogram' }] },
     });
@@ -255,7 +269,7 @@ describeIfDatabase('the two default zones and the home area (DLV-01)', () => {
       .body as Settings;
     expect(home(own).label).toEqual({
       en: 'Inside Mirpur, Pallabi and 1 more',
-      bn: 'মিরপুর, পল্লবী ও আরও 1টি এলাকার ভিতরে',
+      bn: 'মিরপুর, পল্লবী ও আরও 1টি এলাকার ভেতরে',
     });
     expect(own.homeArea.kind).toBe('thanas');
   });
@@ -471,7 +485,9 @@ describeIfDatabase("a product's delivery limit (DLV-07)", () => {
 
     const refused = await shop.delete(`/delivery-zones/${suburbs.id}`);
     expect(refused.status).toBe(409);
-    expect(errorOf(refused).details).toEqual({ products: [{ id: fish.id, name: 'Frozen fish' }] });
+    expect(errorOf(refused).details).toEqual({
+      products: [{ id: fish.id, name: 'Frozen fish', archived: false }],
+    });
 
     const copy = (await shop.post(`/products/${fish.id}/duplicate`, {})).body as {
       deliveryZoneIds: string[];
@@ -480,6 +496,26 @@ describeIfDatabase("a product's delivery limit (DLV-07)", () => {
 
     const lifted = await shop.put(`/products/${fish.id}/delivery-zones`, { zoneIds: [] });
     expect((lifted.body as { deliveryZoneIds: string[] }).deliveryZoneIds).toEqual([]);
+  });
+
+  it('names an archived product that still holds a zone, so it can be restored or changed first', async () => {
+    const shop = await openShop(port, texts, 'limit-archived');
+    const suburbs = await addZone(shop, 'Dhaka suburbs', 100, {
+      locationIds: [await thanaId(shop, 'Dhaka', 'Savar')],
+    });
+    const fish = (
+      await shop.post('/products', {
+        name: 'Frozen fish',
+        basePrice: 600,
+        deliveryZoneIds: [suburbs.id],
+      })
+    ).body as { id: string };
+    expect((await shop.delete(`/products/${fish.id}`)).status).toBe(200);
+    const refused = await shop.delete(`/delivery-zones/${suburbs.id}`);
+    expect(refused.status).toBe(409);
+    expect(errorOf(refused).details).toEqual({
+      products: [{ id: fish.id, name: 'Frozen fish', archived: true }],
+    });
   });
 
   it('takes the limit with a new product, in its one request, and refuses a zone the shop lacks', async () => {

@@ -45,6 +45,6 @@ export function homeAreaPhrase(kind: HomeAreaKind, areas: ZoneAreasView): AreaPh
 /** "Inside <home area>" or "Outside <home area>", in both languages. */
 export function zoneLabel(place: 'inside' | 'outside', phrase: AreaPhrase): Bilingual {
   return place === 'inside'
-    ? { en: `Inside ${phrase.en}`, bn: `${phrase.bnOf} ভিতরে` }
+    ? { en: `Inside ${phrase.en}`, bn: `${phrase.bnOf} ভেতরে` }
     : { en: `Outside ${phrase.en}`, bn: `${phrase.bnOf} বাইরে` };
 }
