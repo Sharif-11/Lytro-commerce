@@ -75,6 +75,7 @@ export function Field({
 export function PickField({
   label,
   value,
+  help,
   error,
   disabled = false,
   chevron = 'down',
@@ -83,6 +84,7 @@ export function PickField({
 }: {
   label: ReactNode;
   value: ReactNode;
+  help?: ReactNode;
   error?: ReactNode;
   disabled?: boolean;
   /** Down for a choice; right for a sheet of its own fields (a product's opening batch). */
@@ -119,7 +121,11 @@ export function PickField({
           </span>
         )}
       </button>
-      {error ? <p className="text-[13px] font-medium text-danger">{error}</p> : null}
+      {error ? (
+        <p className="text-[13px] font-medium text-danger">{error}</p>
+      ) : help ? (
+        <p className="text-[13px] text-fg-muted">{help}</p>
+      ) : null}
     </div>
   );
 }

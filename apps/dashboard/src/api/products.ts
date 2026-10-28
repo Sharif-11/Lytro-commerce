@@ -2,10 +2,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiClientError } from '@lytronix/api-client';
 import type { SerialFormat } from '@lytronix/validators';
 import { tenantSession } from '@/session/tenant-session';
-import type { CategorySummary } from '@/types/catalogue';
 import type { ProductDetail } from '@/types/product';
 import type { EditPart } from '@/lib/product-form';
-import { CATEGORIES_QUERY_KEY, PRODUCTS_QUERY_KEY } from './catalogue';
+import { PRODUCTS_QUERY_KEY } from './catalogue';
 
 const productKey = (id: string) => [...PRODUCTS_QUERY_KEY, 'detail', id] as const;
 
@@ -140,21 +139,5 @@ export function useRestoreProduct(id: string) {
   return useMutation({
     mutationFn: () => tenantSession.client.post<ProductDetail>(`/products/${id}/restore`),
     onSuccess: changed,
-  });
-}
-
-/** POST /categories: a category made from the editor's picker (§7.5's "From the product editor"). */
-export function useCreateCategory() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (body: {
-      name: string;
-      parentId: string | null;
-      visible: boolean;
-      behavesLike: string | null;
-    }) => tenantSession.client.post<CategorySummary>('/categories', body),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: CATEGORIES_QUERY_KEY });
-    },
   });
 }

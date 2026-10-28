@@ -13,11 +13,16 @@ import { PRODUCTS_QUERY_KEY } from './catalogue';
 const ATTRIBUTES_QUERY_KEY = ['attributes'] as const;
 const OPTION_SETS_QUERY_KEY = ['option-sets'] as const;
 
-/** GET /attributes: the library's attributes and the shop's own, each with its options (ATL-01). */
-export function useAttributes(options: { enabled?: boolean } = {}) {
+/**
+ * GET /attributes: the library's attributes and the shop's own, each with its options (ATL-01); with the retired ones
+ * and their retired options when asked, as the Attributes page lists them (ATR-10).
+ */
+export function useAttributes(options: { enabled?: boolean; includeRetired?: boolean } = {}) {
+  const retired = options.includeRetired ?? false;
   return useQuery({
-    queryKey: ATTRIBUTES_QUERY_KEY,
-    queryFn: () => tenantSession.client.get<Attribute[]>('/attributes'),
+    queryKey: [...ATTRIBUTES_QUERY_KEY, retired ? 'all' : 'live'],
+    queryFn: () =>
+      tenantSession.client.get<Attribute[]>(`/attributes${retired ? '?includeRetired=true' : ''}`),
     enabled: options.enabled ?? true,
   });
 }
@@ -35,7 +40,7 @@ export function useOptionSets(options: { enabled?: boolean } = {}) {
  * GET /product-defaults?categoryId=: what a new product starts with, from its primary category's type or the shop's
  * (PST-02, PST-06), with the category's suggested attributes first.
  */
-export function useProductDefaults(categoryId: string | null) {
+export function useProductDefaults(categoryId: string | null, options: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: [...PRODUCTS_QUERY_KEY, 'defaults', categoryId ?? ''],
     queryFn: () =>
@@ -43,6 +48,7 @@ export function useProductDefaults(categoryId: string | null) {
         `/product-defaults${categoryId ? `?categoryId=${encodeURIComponent(categoryId)}` : ''}`,
       ),
     placeholderData: keepPreviousData,
+    enabled: options.enabled ?? true,
   });
 }
 

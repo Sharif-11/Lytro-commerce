@@ -1,3 +1,4 @@
+import { CATEGORIES, type CategoryFixture, type CategoryStateFixture } from './categories';
 import type { Language } from './mock-api';
 import type { BatchFixture, MovementFixture } from './stock';
 import {
@@ -51,9 +52,6 @@ export interface ProductFixture {
   history?: Record<string, MovementFixture[]>;
 }
 
-/** A category: its id, its parent, and its name in both languages. */
-export type CategoryFixture = [string, string | null, string, string];
-
 /** An uploaded item: its kind and its bytes. */
 export interface MediaFixture {
   kind: 'image' | 'video';
@@ -65,6 +63,8 @@ export interface ProductsFixture {
   products: ProductFixture[];
   limit: number | null;
   categories?: CategoryFixture[];
+  /** Slice 11.8: what each category holds beyond its place and name, by id. */
+  categoryState?: Record<string, CategoryStateFixture>;
   /** The items uploaded beyond the drawn photos, by id. */
   media?: Record<string, MediaFixture>;
   /** Storage: full refuses every upload (STO-03). */
@@ -81,35 +81,6 @@ export interface ProductsFixture {
   charts?: Record<string, string[][]>;
   /** Slice 11.7c: serials the shop's units already have, as stored (INV-23, POST /serials/check). */
   takenSerials?: string[];
-}
-
-// In the shop's order (the prototype's `CATS`).
-const CATEGORIES: CategoryFixture[] = [
-  ['c-tshirts', null, 'টি-শার্ট', 'T-shirts'],
-  ['c-men', 'c-tshirts', 'ছেলেদের', 'Men'],
-  ['c-women', 'c-tshirts', 'মেয়েদের', 'Women'],
-  ['c-jackets', null, 'জ্যাকেট', 'Jackets'],
-  ['c-sarees', null, 'শাড়ি', 'Sarees'],
-  ['c-kids', null, 'কিডস', 'Kids'],
-  ['c-accessories', null, 'অ্যাক্সেসরিজ', 'Accessories'],
-];
-
-export function categoryList(fixture: ProductsFixture, language: Language): unknown {
-  return (fixture.categories ?? CATEGORIES).map(([id, parentId, bn, en], index) => ({
-    id,
-    parentId,
-    name: language === 'bn' ? bn : en,
-    slug: id.slice(2),
-    depth: parentId === null ? 1 : 2,
-    sortOrder: index,
-    visible: true,
-    productCount: 0,
-    suggestedAttributeIds: [],
-    behavesLike: null,
-    image: null,
-    sizeChart: fixture.charts?.[id] ?? null,
-    sizeChartImage: null,
-  }));
 }
 
 /** The shop's zones as Delivery draws them (the prototype's `SCREENS.delivery`): two of its own, one it skips. */
@@ -560,15 +531,6 @@ export function productWrite(
   if (method === 'POST' && path === '/serials/check') {
     const entered = (body?.serials as string[] | undefined) ?? [];
     return { data: { taken: entered.filter((each) => fixture.takenSerials?.includes(each)) } };
-  }
-  if (method === 'POST' && path === '/categories') {
-    const id = `c-new-${String((made += 1))}`;
-    const name = typeof body?.name === 'string' ? body.name : '';
-    fixture.categories = [
-      ...(fixture.categories ?? CATEGORIES),
-      [id, typeof body?.parentId === 'string' ? body.parentId : null, name, name],
-    ];
-    return { data: { id, parentId: body?.parentId ?? null, name, sortOrder: 99 } };
   }
   if (method === 'POST' && path === '/products') {
     if (full(fixture)) return { refused: LIMIT_REACHED(fixture) };

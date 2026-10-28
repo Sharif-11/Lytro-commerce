@@ -40,12 +40,22 @@ export interface ProductPage {
   productLimit: number | null;
 }
 
-/** Mirrors `categoryViewSchema`: the fields a list and the product form need (ATR-07, PRD-17). */
+/** Mirrors `categoryViewSchema` (PRD-03, ATR-02, ATR-07, PST-06, PRD-17). */
 export interface CategorySummary {
   id: string;
   parentId: string | null;
   name: string;
+  slug: string;
+  /** 1 at the top, 4 at most. */
+  depth: number;
   sortOrder: number;
+  visible: boolean;
+  /** Products not archived filed under it. */
+  productCount: number;
+  /** ATR-02: the attributes suggested for its new products, in order. */
+  suggestedAttributeIds: string[];
+  /** PST-06: the shop type its products behave like; null follows its parent, then the shop. */
+  behavesLike: string | null;
   /** PRD-17: its own chart, a table or a picture; null when it has none. */
   sizeChart: string[][] | null;
   sizeChartImage: ImageView | null;

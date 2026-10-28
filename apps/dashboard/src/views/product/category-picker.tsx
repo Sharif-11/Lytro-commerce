@@ -1,40 +1,30 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ApiClientError } from '@lytronix/api-client';
-import { CATEGORY_MAX_DEPTH, CATEGORY_NAME_MAX_LENGTH } from '@lytronix/validators';
 import { useCategories } from '@/api/catalogue';
-import { useCreateCategory } from '@/api/products';
-import { usePresets } from '@/api/shop-setup';
+import { NO_CATEGORY, useCreateCategory, type CategoryFields } from '@/api/categories';
 import { Icon } from '@/components/icon';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { CheckRow } from '@/components/ui/check-row';
-import { Field, SelectField } from '@/components/ui/field';
 import { RowList } from '@/components/ui/list-row';
 import { Sheet } from '@/components/ui/sheet';
 import { StatusTag } from '@/components/ui/status-tag';
-import { Switch } from '@/components/ui/switch';
 import { useErrorText } from '@/hooks/use-error-text';
 import { treeOrder } from '@/lib/category-tree';
 import { toggleCategory, type ProductForm } from '@/lib/product-form';
+import { CategoryForm, ParentChoice } from '../categories/category-form';
 
 type Chosen = Pick<ProductForm, 'categoryIds' | 'primaryCategoryId'>;
 
-/** The New category step's fields, as typed. */
-interface NewCategory {
-  name: string;
-  parentId: string;
-  visible: boolean;
-  behavesLike: string;
-}
-
-const NO_CATEGORY: NewCategory = { name: '', parentId: '', visible: true, behavesLike: '' };
+/** The sheet's steps: the tree, a new category's fields, and where the new one sits. */
+type Step = 'pick' | 'new' | 'parent';
 
 /**
  * Pick categories (TENANT-DASHBOARD-DESIGN §7.4's sheet, the prototype's `sh-category`; PRD-03, PRD-15): the tree with a
  * tick each, the primary marked and Make primary on the others ticked, Uncategorized last for none; New category first,
- * a step of the sheet with a way back that returns with the new one ticked (`sh-category-new-product`, §7.5). Done keeps
- * the choice; closing the sheet drops it.
+ * a step of the sheet with a way back that returns with the new one ticked (`sh-category-new-product`, §7.5), its
+ * parent a step of its own as the Categories page has it. Done keeps the choice; closing the sheet drops it.
  */
 export function CategoryPicker({
   open,
@@ -47,20 +37,19 @@ export function CategoryPicker({
   onDone: (chosen: Chosen) => void;
   onClose: () => void;
 }): React.JSX.Element {
-  const { t, i18n } = useTranslation('shop');
+  const { t } = useTranslation('shop');
   const errorText = useErrorText();
   const categories = useCategories({ enabled: open });
-  const presets = usePresets();
   const make = useCreateCategory();
   const [picked, setPicked] = useState<Chosen>(chosen);
-  const [making, setMaking] = useState(false);
-  const [draft, setDraft] = useState<NewCategory>(NO_CATEGORY);
+  const [step, setStep] = useState<Step>('pick');
+  const [draft, setDraft] = useState<CategoryFields>(NO_CATEGORY);
   const [tried, setTried] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     setPicked(chosen);
-    setMaking(false);
+    setStep('pick');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -68,47 +57,75 @@ export function CategoryPicker({
     setDraft(NO_CATEGORY);
     setTried(false);
     make.reset();
-    setMaking(true);
+    setStep('new');
   }
 
   function create(): void {
     setTried(true);
     if (draft.name.trim() === '') return;
     make.mutate(
-      {
-        name: draft.name.trim(),
-        parentId: draft.parentId || null,
-        visible: draft.visible,
-        behavesLike: draft.behavesLike || null,
-      },
+      { ...draft, name: draft.name.trim() },
       {
         onSuccess: (made) => {
           setPicked((current) =>
             current.categoryIds.includes(made.id) ? current : toggleCategory(current, made.id),
           );
-          setMaking(false);
+          setStep('pick');
         },
       },
     );
   }
 
-  const rows = treeOrder(categories.data ?? []);
+  const all = categories.data ?? [];
+  const rows = treeOrder(all);
   const problems = make.error instanceof ApiClientError ? make.error.fieldProblems() : {};
+
+  if (step === 'parent') {
+    return (
+      <Sheet
+        open={open}
+        title={t('catParentT')}
+        onClose={onClose}
+        onBack={() => {
+          setStep('new');
+        }}
+        footer={
+          <Button
+            wide
+            onClick={() => {
+              setStep('new');
+            }}
+          >
+            {t('done')}
+          </Button>
+        }
+      >
+        <ParentChoice
+          categories={all}
+          self={null}
+          chosen={draft.parentId}
+          onChoose={(parentId) => {
+            setDraft({ ...draft, parentId });
+          }}
+        />
+      </Sheet>
+    );
+  }
 
   return (
     <Sheet
       open={open}
-      title={making ? t('catNew') : t('pickCategory')}
+      title={step === 'new' ? t('catNew') : t('pickCategory')}
       onClose={onClose}
       onBack={
-        making
+        step === 'new'
           ? () => {
-              setMaking(false);
+              setStep('pick');
             }
           : undefined
       }
       footer={
-        making ? (
+        step === 'new' ? (
           <Button wide busy={make.isPending} onClick={create}>
             {t('save')}
           </Button>
@@ -124,59 +141,16 @@ export function CategoryPicker({
         )
       }
     >
-      {making ? (
+      {step === 'new' ? (
         <div className="flex flex-col gap-3">
-          <Field
-            label={t('catName')}
-            value={draft.name}
-            maxLength={CATEGORY_NAME_MAX_LENGTH}
-            placeholder={t('catNamePh')}
-            help={t('catNameHelp', { max: CATEGORY_NAME_MAX_LENGTH })}
-            error={tried && draft.name.trim() === '' ? t('errName') : problems.name}
-            onChange={(event) => {
-              setDraft({ ...draft, name: event.target.value });
-            }}
-          />
-          <SelectField
-            label={t('catParent')}
-            value={draft.parentId}
-            help={t('catDepthNote')}
-            options={[
-              { value: '', label: t('catTop') },
-              ...rows
-                .filter(({ depth }) => depth < CATEGORY_MAX_DEPTH)
-                .map(({ category, depth }) => ({
-                  value: category.id,
-                  label: `${'— '.repeat(depth - 1)}${category.name}`,
-                })),
-            ]}
-            onChange={(event) => {
-              setDraft({ ...draft, parentId: event.target.value });
-            }}
-          />
-          <div className="flex min-h-10 items-center gap-3">
-            <Switch
-              checked={draft.visible}
-              label={t('catVisible')}
-              onChange={(visible) => {
-                setDraft({ ...draft, visible });
-              }}
-            />
-            <span className="text-[15px] font-medium">{t('catVisible')}</span>
-          </div>
-          <SelectField
-            label={t('catBehaves')}
-            value={draft.behavesLike}
-            help={t('catBehavesHelp')}
-            options={[
-              { value: '', label: t('catFollow') },
-              ...(presets.data ?? []).map((preset) => ({
-                value: preset.key,
-                label: i18n.language === 'bn' ? preset.labelBn : preset.labelEn,
-              })),
-            ]}
-            onChange={(event) => {
-              setDraft({ ...draft, behavesLike: event.target.value });
+          <CategoryForm
+            draft={draft}
+            categories={all}
+            isNew
+            nameError={tried && draft.name.trim() === '' ? t('errName') : problems.name}
+            onChange={setDraft}
+            onPickParent={() => {
+              setStep('parent');
             }}
           />
           <p className="text-[14px] text-fg-muted">{t('catSlugNote')}</p>
