@@ -377,3 +377,66 @@ describeIfDatabase("a shop's own stock check numbers (Slice 11.9, INV-07)", () =
     expect(read.lines[0]?.optionIds).toEqual([blue, small]);
   });
 });
+
+describeIfDatabase("the shop's expiring batches (Slice 11.9, INV-13)", () => {
+  it('give each batch its unit and its variant’s names, and its cost only to someone who may manage stock', async () => {
+    const shop = await openShop(port, texts, 'stock-expiring');
+    const size = await platformId(shop, 'Size');
+    const [small, large] = await options(shop, size, ['S', 'L']);
+    const cream = await create(shop, {
+      name: 'Face cream',
+      basePrice: 850,
+      batchTracked: true,
+      variantAttributes: [{ attributeId: size, optionIds: [small, large] }],
+      variants: [{ optionIds: [small] }, { optionIds: [large] }],
+    });
+    const variantId = cream.variants.find((each) => each.optionIds.includes(large ?? ''))?.id;
+    const soon = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const added = await shop.post(
+      `/products/${cream.id}/variants/${variantId ?? ''}/stock-additions`,
+      {
+        quantity: 12,
+        unitCost: 120,
+        batch: { batchCode: 'FC-0921', expiresOn: soon },
+      },
+    );
+    expect(added.status, JSON.stringify(added.body)).toBe(200);
+
+    interface Batches {
+      batches: {
+        productName: string;
+        batchCode: string;
+        optionIds: string[];
+        stockUnit: string;
+        avgCost?: string | null;
+      }[];
+      products: { productId: string; splits: Split[] }[];
+    }
+    const page = (await shop.get('/batches?state=expiring')).body as Batches;
+    expect(page.batches).toEqual([
+      expect.objectContaining({
+        productName: 'Face cream',
+        batchCode: 'FC-0921',
+        optionIds: [large],
+        stockUnit: 'piece',
+      }),
+    ]);
+    expect(Number(page.batches[0]?.avgCost)).toBe(120);
+    expect(page.products).toEqual([
+      {
+        productId: cream.id,
+        splits: [
+          expect.objectContaining({
+            name: 'Size',
+            options: [expect.objectContaining({ value: 'L' })],
+          }),
+        ],
+      },
+    ]);
+
+    const reader = await signInStaffWith(port, texts, admin, shop, ['inventory:read']);
+    const seen = (await getJson(port, '/batches?state=expiring', reader)).body as Batches;
+    expect(seen.batches[0]).toHaveProperty('stockUnit', 'piece');
+    expect(seen.batches[0]).not.toHaveProperty('avgCost');
+  });
+});

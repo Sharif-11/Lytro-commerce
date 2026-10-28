@@ -235,7 +235,17 @@ export const productBatchesSchema = z.object({
 export class ProductBatchesDto extends createZodDto(productBatchesSchema) {}
 
 export const shopBatchPageSchema = z.object({
-  batches: z.array(batchViewSchema.extend({ productId: z.string(), productName: z.string() })),
+  batches: z.array(
+    batchViewSchema.extend({
+      productId: z.string(),
+      productName: z.string(),
+      stockUnit: z.nativeEnum(StockUnit),
+      avgCost: z.string().nullable().optional(),
+    }),
+  ),
+  products: z.array(
+    z.object({ productId: z.string(), splits: z.array(variantAttributeViewSchema) }),
+  ),
   page: z.number(),
   limit: z.number(),
   total: z.number(),

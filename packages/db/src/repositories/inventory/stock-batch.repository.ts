@@ -16,6 +16,7 @@ import {
   products,
   stockBatches,
   stockLevels,
+  type SelectProduct,
   type SelectStockBatch,
 } from '../../schema';
 import type { Transaction, TransactionRunner } from '../../transactions';
@@ -26,6 +27,10 @@ export interface StockBatchListRow extends SelectStockBatch {
   productName: string;
   combinationKey: string;
   isStockHolder: boolean;
+  /** UOM-01: the unit its quantity counts in. */
+  stockUnit: SelectProduct['stockUnit'];
+  /** INV-10: its variant's average cost; null is unknown. */
+  avgCost: string | null;
 }
 
 /** A new batch: a lot code and an expiry date, both optional, or the variant's one "no expiry" batch. */
@@ -228,6 +233,8 @@ export class StockBatchRepository {
         productName: products.name,
         combinationKey: productVariants.combinationKey,
         isStockHolder: productVariants.isStockHolder,
+        stockUnit: products.stockUnit,
+        avgCost: productVariants.avgCost,
       })
       .from(stockBatches)
       .innerJoin(
@@ -261,6 +268,8 @@ export class StockBatchRepository {
       productName: row.productName,
       combinationKey: row.combinationKey,
       isStockHolder: row.isStockHolder,
+      stockUnit: row.stockUnit,
+      avgCost: row.avgCost,
     }));
   }
 }

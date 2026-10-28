@@ -198,10 +198,16 @@ export interface ProductBatchesView {
 export interface ShopBatchView extends BatchView {
   productId: string;
   productName: string;
+  /** UOM-01: the unit its quantity counts in ("12 pcs"). */
+  stockUnit: StockUnit;
+  /** INV-10, D3-9: its variant's average cost, for someone who may see costs; null is unknown. */
+  avgCost?: string | null;
 }
 
 export interface ShopBatchPage {
   batches: ShopBatchView[];
+  /** Each listed product's variant-defining attributes, so a batch's variant is named as its product's screen names it. */
+  products: { productId: string; splits: VariantAttributeView[] }[];
   page: number;
   limit: number;
   total: number;
