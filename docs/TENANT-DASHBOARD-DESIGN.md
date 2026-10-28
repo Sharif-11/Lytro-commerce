@@ -1,6 +1,10 @@
 # Tenant dashboard: the full design
 
-Status: v3.8, 2026-10-29 (stock checks as Slice 11.9 builds them, prototype Part 20: Check stock opens the list of
+Status: v3.9, 2026-10-29 (Purchases and suppliers as Slice 11.10 builds them, prototype Part 21: Open on order, Coming
+in every unit, a supplier typed, Add item by product then variants, a placed purchase editable until its first delivery,
+It arrived with reasons, batches and IMEIs, Cancel or Close short by deliveries, the archived suppliers, a variant's
+purchases, the empty and look-only states; v3.8 of 2026-10-29: stock checks as Slice 11.9 builds them, prototype Part
+20: Check stock opens the list of
 checks, a new check starts with nothing picked, a category is counted whole, a check takes a note; v3.7 of 2026-10-29:
 the Stock page's Add stock picks its product first, and its folding and "+n more" rules
 said exactly, prototype Part 20; v3.6 of 2026-10-29 drew the Stock pages as Slice 11.9 builds them, prototype Part 20: a
@@ -957,6 +961,31 @@ date · expected on", and the status chip: Draft, Ordered, Partly received, Rece
 - *Suppliers* (`GET`, `POST`, `PATCH /suppliers`): name, phone and last purchase; the sheet edits the name, phone,
   email, address and notes, and archives (an archived supplier is not offered for new purchases and is never
   deleted, PUR-01); "Show archived".
+
+*Agreed in the 11.10 read, 2026-10-28 (Part 21):*
+- **Open** holds what is on order, ordered and partly received; drafts only under their own counted Drafts. **Coming**
+  names every unit ("70 pcs · 12.5 kg in 3 purchases") and hides when nothing is coming (`purchases-21`).
+- Add stock's arrivals are ordinary received purchases under All, "No supplier" where none was given
+  (`purchases-all-21`). The supplier is optional throughout.
+- **The supplier is typed**: matches offered as you type, or "as a new supplier"; the server finds it (ignoring case)
+  or makes it, the rule Add stock already uses (`sh-po-supplier`).
+- **Add item** picks a product, found by name, then ticks several of its variants at once, each a row with quantity,
+  cost and remove (`sh-po-add-item`, `sh-po-add-sizes`).
+- **A placed purchase** changes its supplier and items until its first delivery, then its expected date and notes only
+  (`purchase-edit-placed`).
+- **It arrived**, per item: accepted (filled with what is outstanding), rejected with its reason once above 0, the unit
+  cost (cleared is unknown), a batch's code and expiry on a batch-kept product, IMEIs on a serial-numbered one (Part
+  16's entry, the rest addable later); an item left at nothing is not sent (`sh-receive-full`).
+- **Cancel** while nothing was delivered; **Close short** once any delivery was recorded, even one rejected in full
+  (`purchase-rejected-only`). A delivery's row opens its items: accepted, rejected and why, batch, cost (`sh-delivery`).
+- Received and cancelled purchases (`purchase-received`, `purchase-cancelled`); a confirm before deleting a draft
+  (`sh-delete-draft`); someone who may only look sees no costs, totals or actions (`purchases-staff`, `purchase-staff`);
+  no purchase yet (`purchases-empty`).
+- **Suppliers**: Show archived lists the archived, each with Bring back; never deleted (`suppliers-archived`); none yet
+  (`suppliers-empty`). A supplier's own purchases wait for later.
+- **A variant's purchases** (PUR-09): its Stock row's sheet gains Purchases, opening which purchases brought it in, from
+  whom, when, accepted and rejected, at what cost (`stock-row-sheet-purchases`, `sh-purchase-history`).
+- Purchases are numbered "PO-0007"; entry is Shop › Purchases only.
 
 **Content.** The routes above; the units per purchase, the "coming" total and a supplier's last purchase are
 Slice 11 additions (§10). **States.** Empty: "Nothing on order" with Order from supplier; without
