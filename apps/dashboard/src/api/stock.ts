@@ -1,13 +1,26 @@
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { SerialStatus } from '@lytronix/validators';
+import {
+  keepPreviousData,
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
+import { BatchState, type SerialStatus, type StockEditReason } from '@lytronix/validators';
 import { tenantSession } from '@/session/tenant-session';
 import type { ProductStock } from '@/types/attribute';
-import type { ProductBatches, SerialPage, StockHistoryPage } from '@/types/stock';
+import type {
+  BatchCount,
+  InventoryFigures,
+  ProductBatches,
+  SerialPage,
+  StockHistoryPage,
+  StockPage,
+} from '@/types/stock';
 import { PRODUCTS_QUERY_KEY } from './catalogue';
 
 // A product's stock as the Stock card and its sheets read and change it (TENANT-DASHBOARD-DESIGN §7.4, Slice 11.7c;
 // INV-06, INV-09, INV-12 to INV-14). Viewing needs inventory:read, changing inventory:manage. The Stock page (11.9)
-// reuses them.
+// reuses them, and reads the shop's products a page at a time, its figures and its expiring batches (§7.7).
 
 const stockKey = (productId: string) => [...PRODUCTS_QUERY_KEY, 'stock', productId] as const;
 
@@ -18,6 +31,49 @@ function useStockChanged(productId: string): (stock?: ProductStock) => void {
     if (stock) queryClient.setQueryData(stockKey(productId), stock);
     void queryClient.invalidateQueries({ queryKey: PRODUCTS_QUERY_KEY });
   };
+}
+
+/** The Stock page's segments (INV-08): every product, or the active ones low or out, as the Products list counts them. */
+export const STOCK_SEGMENTS = ['all', 'low', 'out'] as const;
+export type StockSegment = (typeof STOCK_SEGMENTS)[number];
+
+/** GET /inventory/stock (Slice 11.9): the products found by name, out and low first, a page at a time ("Show more"). */
+export function useStockPage(search: string, segment: StockSegment) {
+  const found = search.trim();
+  return useInfiniteQuery({
+    queryKey: [...PRODUCTS_QUERY_KEY, 'stock-page', found, segment],
+    queryFn: ({ pageParam }) =>
+      tenantSession.client.get<StockPage>(
+        `/inventory/stock?${new URLSearchParams({
+          ...(found ? { search: found } : {}),
+          ...(segment === 'all' ? {} : { stock: segment }),
+          page: String(pageParam),
+        }).toString()}`,
+      ),
+    initialPageParam: 1,
+    getNextPageParam: (last) => (last.page < last.pages ? last.page + 1 : undefined),
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** GET /inventory/figures (INV-18, D3-9): stock value now, and this month's cost of goods sold and losses. */
+export function useInventoryFigures(options: { enabled: boolean }) {
+  return useQuery({
+    queryKey: [...PRODUCTS_QUERY_KEY, 'figures'],
+    queryFn: () => tenantSession.client.get<InventoryFigures>('/inventory/figures'),
+    enabled: options.enabled,
+  });
+}
+
+/** GET /batches?state=expiring (INV-13): how many of the shop's batches expire within 30 days. */
+export function useExpiringCount(options: { enabled: boolean }) {
+  return useQuery({
+    queryKey: [...PRODUCTS_QUERY_KEY, 'batches', BatchState.Expiring, 'count'],
+    queryFn: () =>
+      tenantSession.client.get<BatchCount>(`/batches?state=${BatchState.Expiring}&limit=1`),
+    select: (page) => page.total,
+    enabled: options.enabled,
+  });
 }
 
 /** GET …/stock-history (INV-09): a variant's movements, newest first, a page at a time ("Show earlier"). */
@@ -127,5 +183,44 @@ export function useRemoveSerial(productId: string) {
     onSuccess: () => {
       changed();
     },
+  });
+}
+
+/**
+ * What Edit stock sends (INV-06, INV-12, INV-14): the number now held, why it changed, a note; on a product kept in
+ * batches the batch a fall leaves or a rise joins (`batchId`), or the new batch a rise makes (`batch`); on a
+ * serial-numbered one the IMEIs leaving.
+ */
+export interface StockEdit {
+  onHand: number;
+  reason: StockEditReason;
+  note?: string;
+  batchId?: string;
+  batch?: { batchCode?: string; expiresOn?: string };
+  serials?: string[];
+}
+
+/** PUT …/stock (INV-06): the stock now held, its difference recorded as one movement. */
+export function useSetStock(productId: string) {
+  const changed = useStockChanged(productId);
+  return useMutation({
+    mutationFn: ({ variantId, body }: { variantId: string; body: StockEdit }) =>
+      tenantSession.client.put<ProductStock>(
+        `/products/${productId}/variants/${variantId}/stock`,
+        body,
+      ),
+    onSuccess: changed,
+  });
+}
+
+/** PUT …/cost (INV-10): the average cost typed by hand, until a purchase with a cost sets it; null is unknown. */
+export function useSetCost(productId: string) {
+  const changed = useStockChanged(productId);
+  return useMutation({
+    mutationFn: ({ variantId, avgCost }: { variantId: string; avgCost: number | null }) =>
+      tenantSession.client.put<ProductStock>(`/products/${productId}/variants/${variantId}/cost`, {
+        avgCost,
+      }),
+    onSuccess: changed,
   });
 }

@@ -32,6 +32,7 @@ export function ChoiceRow({
   sub,
   trail,
   bare = false,
+  roomy = false,
   disabled = false,
   later = false,
   indent = 0,
@@ -43,6 +44,8 @@ export function ChoiceRow({
   /** Beside the words: an amount, or a field (the partial advance). */
   trail?: ReactNode;
   bare?: boolean;
+  /** The prototype's `.row` radio (Part 20's batches): 52 px at least, 12 px above and below, its name medium. */
+  roomy?: boolean;
   disabled?: boolean;
   /** Greyed, as the prototype's `.later` draws it: a choice that cannot be made here, with why under it. */
   later?: boolean;
@@ -54,7 +57,9 @@ export function ChoiceRow({
     <div
       className={[
         'flex items-center gap-3',
-        bare ? 'min-h-10' : 'min-h-12 border-b border-line px-4 py-2 last:border-b-0',
+        bare
+          ? 'min-h-10'
+          : `${roomy ? 'min-h-[52px] py-3' : 'min-h-12 py-2'} border-b border-line px-4 last:border-b-0`,
       ].join(' ')}
       style={indent > 0 ? { paddingLeft: `${String(16 + indent)}px` } : undefined}
     >
@@ -70,9 +75,19 @@ export function ChoiceRow({
         <span className={later ? 'flex opacity-55' : 'flex'}>
           <RadioMark on={on} />
         </span>
-        <span className="flex min-w-0 flex-col">
-          <span className={later ? 'text-[15px] text-fg-muted' : 'text-[15px]'}>{title}</span>
-          {sub ? <span className="text-[13px] text-fg-muted">{sub}</span> : null}
+        <span className={`flex min-w-0 flex-col ${roomy ? 'gap-0.5' : ''}`}>
+          <span
+            className={[
+              'text-[15px]',
+              later ? 'text-fg-muted' : '',
+              roomy ? 'font-medium' : '',
+            ].join(' ')}
+          >
+            {title}
+          </span>
+          {sub ? (
+            <span className={`${roomy ? 'text-[14px]' : 'text-[13px]'} text-fg-muted`}>{sub}</span>
+          ) : null}
         </span>
       </button>
       {trail}

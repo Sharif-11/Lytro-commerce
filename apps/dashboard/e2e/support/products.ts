@@ -81,6 +81,16 @@ export interface ProductsFixture {
   charts?: Record<string, string[][]>;
   /** Slice 11.7c: serials the shop's units already have, as stored (INV-23, POST /serials/check). */
   takenSerials?: string[];
+  /** Slice 11.9: the Stock page's figures, where they differ from the sketch's. */
+  figures?: FiguresFixture;
+}
+
+/** INV-18: this month's figures as the Stock page's tiles read them; losses by reason, how many times each. */
+export interface FiguresFixture {
+  stockValue: string;
+  costOfGoodsSold: string;
+  losses: string;
+  byReason: { reason: string; movements: number }[];
 }
 
 /** The shop's zones as Delivery draws them (the prototype's `SCREENS.delivery`): two of its own, one it skips. */
@@ -220,7 +230,7 @@ export function manyProducts(count: number): ProductsFixture {
   return { limit: null, products: [...drawn, ...more] };
 }
 
-const nameIn = (product: ProductFixture, language: Language): string =>
+export const nameIn = (product: ProductFixture, language: Language): string =>
   language === 'bn' ? product.name[0] : product.name[1];
 
 const slugOf = (product: ProductFixture): string =>

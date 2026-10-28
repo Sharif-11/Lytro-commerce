@@ -44,7 +44,7 @@ import {
   zonesAnswer,
   type ProductsFixture,
 } from './products';
-import { stockRead, stockWrite } from './stock';
+import { figuresAnswer, shopBatchesAnswer, stockPageAnswer, stockRead, stockWrite } from './stock';
 import { variantRead } from './variants';
 import { PRESETS } from './presets';
 import { drawnTeam, teamAnswer, teamWrite, type TeamFixture } from './team';
@@ -344,6 +344,12 @@ export function shopAnswer(path: string, url: URL, state: Required<ShopState>): 
   }
   if (path === '/categories')
     return categoryList((state.products ??= drawnProducts()), state.language);
+  // Slice 11.9: the Stock page, its figures and the batches expiring.
+  if (path === '/inventory/stock') {
+    return stockPageAnswer((state.products ??= drawnProducts()), url, state.language);
+  }
+  if (path === '/inventory/figures') return figuresAnswer((state.products ??= drawnProducts()));
+  if (path === '/batches') return shopBatchesAnswer((state.products ??= drawnProducts()), url);
   if (path === '/presets') {
     return PRESETS.map(([key, labelBn, labelEn]) => ({ key, labelBn, labelEn, defaults: {} }));
   }

@@ -1,4 +1,6 @@
-import type { BatchState, SerialStatus, StockReason } from '@lytronix/validators';
+import type { BatchState, SerialFormat, SerialStatus, StockReason } from '@lytronix/validators';
+import type { ProductStock } from './attribute';
+import type { VariantAttribute } from './product';
 
 /**
  * Mirrors `StockMovementView` in apps/server/src/modules/inventory/types/inventory.ts (INV-09): one change to a
@@ -58,4 +60,48 @@ export interface SerialPage {
   limit: number;
   total: number;
   pages: number;
+}
+
+/**
+ * Mirrors `stockPageSchema` (Slice 11.9): a product as the Stock page shows it -- its stock, its name, whether it is on
+ * sale, how it keeps its stock, and its variant-defining attributes; its variants come in its own order.
+ */
+export interface StockPageProduct extends ProductStock {
+  name: string;
+  active: boolean;
+  batchTracked: boolean;
+  serialTracked: boolean;
+  serialFormat: SerialFormat;
+  splits: VariantAttribute[];
+}
+
+/** GET /inventory/stock: a page of products, out and low first, with All, Low and Out counted (INV-08). */
+export interface StockPage {
+  products: StockPageProduct[];
+  page: number;
+  limit: number;
+  total: number;
+  pages: number;
+  counts: { all: number; low: number; out: number };
+}
+
+/** INV-18: one figure, to the paisa, with how many movements made it and how many had no cost. */
+export interface MovedFigure {
+  value: string;
+  movements: number;
+  unknownCost: number;
+}
+
+/** Mirrors `inventoryFiguresSchema` as far as the Stock page's figures read it (INV-18, D3-9). */
+export interface InventoryFigures {
+  dateFrom: string;
+  dateTo: string;
+  stockValue: { value: string; unknownCost: number };
+  costOfGoodsSold: MovedFigure;
+  losses: MovedFigure & { byReason: (MovedFigure & { reason: StockReason })[] };
+}
+
+/** GET /batches: a page of the shop's batches expiring or expired, as far as its count is read. */
+export interface BatchCount {
+  total: number;
 }

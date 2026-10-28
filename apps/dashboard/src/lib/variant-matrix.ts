@@ -181,7 +181,7 @@ export function rowOf(variant: ProductDetail['variants'][number]): VariantRow {
 }
 
 /** The splitting attributes of a saved product, with the options its live variants use. */
-export function splitsOf(product: ProductDetail): SplitAttribute[] {
+export function splitsOf(product: Pick<ProductDetail, 'variantAttributes'>): SplitAttribute[] {
   return product.variantAttributes.map((attribute) => ({
     attributeId: attribute.attributeId,
     name: attribute.name,

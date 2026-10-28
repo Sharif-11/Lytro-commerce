@@ -3,6 +3,7 @@ import type {
   PaymentPolicy,
   ProductFormField,
   SerialFormat,
+  StockState,
   StockTracking,
   StockUnit,
   UnitKind,
@@ -71,6 +72,10 @@ export interface VariantStock {
   available: string;
   /** INV-14: on a serial-numbered product, how many units held have no serial yet; null otherwise. */
   missingSerials: number | null;
+  /** PUR-05: ordered on a placed purchase and not yet received ("Coming"); null on a pack of a shared stock. */
+  incoming: string | null;
+  /** INV-08: in, low or out against its product's threshold. */
+  state: StockState;
   /** INV-10, D3-9: present only for someone who may manage stock; null is unknown. */
   avgCost?: string | null;
 }
@@ -81,13 +86,19 @@ export interface SharedStock {
   onHand: string;
   reserved: string;
   available: string;
+  incoming: string;
+  state: StockState;
   avgCost?: string | null;
 }
 
-/** GET /products/:id/stock, as far as the editor and its Stock card read it (INV-01, Slice 11.7c). */
+/** GET /products/:id/stock, as the editor, its Stock card and the Stock page read it (INV-01, Slices 11.7c and 11.9). */
 export interface ProductStock {
   productId: string;
   stockUnit: StockUnit;
+  /** INV-02: a product made to order counts no stock. */
+  stockTracking: StockTracking;
+  /** CCH-08: its best variant's state. */
+  state: StockState;
   /** INV-24: the stock the variants share; null when each holds its own. */
   shared: SharedStock | null;
   variants: VariantStock[];

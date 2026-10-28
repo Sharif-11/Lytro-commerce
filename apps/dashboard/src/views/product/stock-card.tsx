@@ -14,7 +14,7 @@ import { BatchesSheet } from './batches-sheet';
 import { HeldSerialsSheet } from './held-serials-sheet';
 import { HistorySheet } from './history-sheet';
 import { MissingSerialsSheet } from './missing-serials-sheet';
-import { useAmountText, useStockHolders } from './stock-holders';
+import { useAmountText, useStockHolders, type StockedProduct } from './stock-holders';
 import type { StockKind } from './variants-card';
 
 /** One of the Stock card's sheets, on a variant (the first when none is named). */
@@ -176,7 +176,7 @@ export function StockSheets({
   onSheet,
 }: {
   sheet: StockSheet | null;
-  product: ProductDetail;
+  product: StockedProduct;
   stock: ProductStock | undefined;
   kind: StockKind;
   mayManage: boolean;

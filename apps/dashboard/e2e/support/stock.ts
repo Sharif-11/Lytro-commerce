@@ -1,14 +1,17 @@
+import type { Language } from './mock-api';
 import {
   drawnProducts,
+  nameIn,
   type ProductFixture,
   type ProductRefusal,
   type ProductsFixture,
 } from './products';
-import { matrixOf, stockAnswer, type VariantFixture } from './variants';
+import { matrixOf, stockAnswer, variantPart, type VariantFixture } from './variants';
 
 // A product's Stock card against a mocked API (Slice 11.7c step 3): each variant's movements, the product's batches,
 // a variant's serials by status, and the writes -- stock added, a batch written off, serials added, one fixed or
-// removed -- each changing the fixture, so the reads after them show what was done.
+// removed -- each changing the fixture, so the reads after them show what was done. The Stock page (Slice 11.9) reads
+// the products a page at a time with its figures and the batches expiring, and writes Edit stock and Average cost.
 
 export interface SerialFixture {
   id: string;
@@ -130,6 +133,96 @@ export function stockRead(path: string, url: URL, fixture: ProductsFixture): unk
   return undefined;
 }
 
+/** INV-06: what each one-tap reason records. */
+const EDIT_REASONS: Record<string, string> = {
+  new_stock: 'purchase_receipt',
+  counted_again: 'recount',
+  damaged_or_lost: 'damaged',
+  other: 'manual_adjustment',
+};
+
+/** Design v3.7: out first, then low or with a variant low or out, then the rest, each in the fixture's order. */
+function rankOf(product: ProductFixture): number {
+  if (product.stockState === 'out') return 0;
+  if (product.stockTracking === 'not_tracked') return 2;
+  const { variants } = stockAnswer(product) as { variants: { state: string }[] };
+  return product.stockState === 'low' || variants.some((each) => each.state !== 'in') ? 1 : 2;
+}
+
+/** GET /inventory/stock (Slice 11.9): the products found by name, out and low first, with All, Low and Out counted. */
+export function stockPageAnswer(fixture: ProductsFixture, url: URL, language: Language): unknown {
+  const search = (url.searchParams.get('search') ?? '').toLowerCase();
+  const stock = url.searchParams.get('stock');
+  const at = Number(url.searchParams.get('page') ?? 1);
+  const live = fixture.products.filter((product) => !product.archived);
+  const found = live.filter(
+    (product) => search === '' || product.name.some((name) => name.toLowerCase().includes(search)),
+  );
+  const picked = found
+    .filter((product) => stock === null || (product.active && product.stockState === stock))
+    .map((product, index) => ({ product, index }))
+    .sort((a, b) => rankOf(a.product) - rankOf(b.product) || a.index - b.index)
+    .map((each) => each.product);
+  const { slice, ...rest } = page(picked, at);
+  const counted = (state: string) =>
+    found.filter((product) => product.active && product.stockState === state).length;
+  return {
+    products: slice.map((product) => ({
+      ...(stockAnswer(product) as object),
+      name: nameIn(product, language),
+      active: product.active,
+      batchTracked: product.settings?.batchTracked === true,
+      serialTracked: product.serialTracked ?? false,
+      serialFormat: (product.settings?.serialFormat as string | undefined) ?? 'any',
+      splits: variantPart(product, fixture).variantAttributes,
+    })),
+    ...rest,
+    counts: { all: found.length, low: counted('low'), out: counted('out') },
+  };
+}
+
+/** GET /inventory/figures (INV-18): the sketch's month, unless the fixture says otherwise. */
+export function figuresAnswer(fixture: ProductsFixture): unknown {
+  const figures = fixture.figures ?? {
+    stockValue: '84350.00',
+    costOfGoodsSold: '21680.00',
+    losses: '1890.00',
+    byReason: [
+      { reason: 'damaged', movements: 2 },
+      { reason: 'lost', movements: 1 },
+    ],
+  };
+  const today = new Date().toISOString().slice(0, 10);
+  return {
+    dateFrom: `${today.slice(0, 8)}01`,
+    dateTo: today,
+    stockValue: { value: figures.stockValue, unknownCost: 0, units: [], byCategory: [] },
+    costOfGoodsSold: { value: figures.costOfGoodsSold, movements: 12, unknownCost: 0 },
+    losses: {
+      value: figures.losses,
+      movements: figures.byReason.reduce((total, each) => total + each.movements, 0),
+      unknownCost: 0,
+      byReason: figures.byReason.map((each) => ({
+        ...each,
+        value: '0.00',
+        unknownCost: 0,
+        units: [],
+      })),
+    },
+  };
+}
+
+/** GET /batches?state= (INV-13): the shop's batches expiring or expired, as far as the page counts them. */
+export function shopBatchesAnswer(fixture: ProductsFixture, url: URL): unknown {
+  const state = url.searchParams.get('state');
+  const batches = fixture.products
+    .filter((product) => !product.archived)
+    .flatMap((product) => product.batches ?? [])
+    .filter((batch) => (state ? batch.state === state : batch.state !== 'fine'));
+  const { slice, ...rest } = page(batches, 1);
+  return { batches: slice, ...rest };
+}
+
 /** The Stock card's writes; undefined for any other request. */
 export function stockWrite(
   method: string,
@@ -172,6 +265,52 @@ export function stockWrite(
     }
     record(ofAdded, variantId, quantity, row.onHand, 'purchase_receipt', note);
     return { data: stockAnswer(ofAdded) };
+  }
+  // Slice 11.9: Edit stock -- the number now held, the batch it leaves or joins, the serials leaving.
+  const set = /^\/products\/([^/]+)\/variants\/([^/]+)\/stock$/.exec(path);
+  const ofSet = productOf(fixture, set?.[1]);
+  const setRow = ofSet ? rowsOf(ofSet).find((each) => each.id === set?.[2]) : undefined;
+  if (method === 'PUT' && ofSet && setRow) {
+    const onHand = Number(body?.onHand ?? 0);
+    const change = onHand - (setRow.onHand ?? 0);
+    setRow.onHand = onHand;
+    const leaving = (body?.serials as string[] | undefined) ?? [];
+    for (const unit of setRow.serials ?? []) {
+      if (leaving.includes(unit.serial)) unit.status = 'written_off';
+    }
+    const own = (ofSet.batches ?? []).filter((each) => each.variantId === setRow.id);
+    const named = own.find((each) => each.id === body?.batchId);
+    const batch = body?.batch as { batchCode?: string; expiresOn?: string } | undefined;
+    const from = named ?? own[0];
+    if (change < 0 && from) {
+      from.quantity = String(Number(from.quantity) + change);
+    } else if (change > 0 && named) {
+      named.quantity = String(Number(named.quantity) + change);
+    } else if (change > 0 && ofSet.batches) {
+      ofSet.batches.push({
+        id: `b-new-${String((made += 1))}`,
+        variantId: setRow.id,
+        optionIds: setRow.optionIds,
+        batchCode: batch?.batchCode ?? null,
+        expiresOn: batch?.expiresOn ?? null,
+        quantity: String(change),
+        state: 'fine',
+      });
+    }
+    const note = typeof body?.note === 'string' ? body.note : null;
+    const asked = typeof body?.reason === 'string' ? body.reason : 'other';
+    const reason = EDIT_REASONS[asked] ?? 'manual_adjustment';
+    record(ofSet, setRow.id, change, onHand, reason, note);
+    return { data: stockAnswer(ofSet) };
+  }
+  // Slice 11.9: Average cost typed by hand; null is unknown.
+  const cost = /^\/products\/([^/]+)\/variants\/([^/]+)\/cost$/.exec(path);
+  const ofCost = productOf(fixture, cost?.[1]);
+  const costRow = ofCost ? rowsOf(ofCost).find((each) => each.id === cost?.[2]) : undefined;
+  if (method === 'PUT' && ofCost && costRow) {
+    const avgCost = body?.avgCost;
+    costRow.avgCost = typeof avgCost === 'number' ? avgCost.toFixed(2) : null;
+    return { data: stockAnswer(ofCost) };
   }
   const writeOff = /^\/products\/([^/]+)\/batches\/([^/]+)\/write-off$/.exec(path);
   const ofWriteOff = productOf(fixture, writeOff?.[1]);
@@ -327,4 +466,179 @@ export function creamShop(): ProductsFixture {
     ],
   };
   return { ...products, products: [cream, ...products.products] };
+}
+
+/** A variant of a fixture: its options, what it holds, what waits to ship and what is coming. */
+const held = (
+  id: string,
+  optionIds: string[],
+  onHand: number,
+  more: Partial<VariantFixture> = {},
+): VariantFixture => ({ id, optionIds, price: null, sku: null, onHand, ...more });
+
+/**
+ * The Stock page as the prototype's `stock` and Part 20's `stock-fine-open` draw it (Slice 11.9): the denim jacket's S
+ * and M low, the kids' frock out, the T-shirt's ten variants with M Black coming and XXL Blue low; the silk saree, the
+ * hoodie and the scarf fine; a custom panjabi made to order.
+ */
+export function stockShop(language: Language = 'en'): ProductsFixture {
+  // The colours as the shop typed them, in the sketch's language.
+  const word = (en: string, bn: string): string => (language === 'bn' ? bn : en);
+  const [black, blue, pink, red] = [
+    word('Black', 'কালো'),
+    word('Blue', 'নীল'),
+    word('Pink', 'গোলাপি'),
+    word('Red', 'লাল'),
+  ];
+  const sizes = ['S', 'M', 'L', 'XL', 'XXL'];
+  const tshirt: Record<string, [number, Partial<VariantFixture>?]> = {
+    [`S-${black}`]: [8],
+    [`M-${black}`]: [14, { reserved: 2, incoming: 20 }],
+    [`L-${black}`]: [9],
+    [`XL-${black}`]: [6],
+    [`XXL-${black}`]: [7],
+    [`S-${blue}`]: [9],
+    [`M-${blue}`]: [8],
+    [`L-${blue}`]: [6],
+    [`XL-${blue}`]: [7],
+    [`XXL-${blue}`]: [2],
+  };
+  const product = (
+    id: string,
+    name: [string, string],
+    splits: { attributeId: string; optionIds: string[] }[],
+    rows: VariantFixture[],
+    more: Partial<ProductFixture> = {},
+  ): ProductFixture => ({
+    id,
+    name,
+    basePrice: '500.00',
+    active: true,
+    stockState: 'in',
+    primaryCategoryId: null,
+    variantCount: rows.length,
+    matrix: { splits, rows },
+    ...more,
+  });
+  return {
+    limit: 100,
+    products: [
+      product(
+        'p-2',
+        ['ডেনিম জ্যাকেট', 'Denim jacket'],
+        [{ attributeId: 'a-1', optionIds: ['o-1-S', 'o-1-M', 'o-1-L', 'o-1-XL'] }],
+        [
+          held('p-2-v1', ['o-1-S'], 3, { avgCost: '1240.00' }),
+          held('p-2-v2', ['o-1-M'], 5, { reserved: 1, avgCost: '1240.00' }),
+          held('p-2-v3', ['o-1-L'], 14, { reserved: 2, avgCost: '1240.00' }),
+          held('p-2-v4', ['o-1-XL'], 7, { avgCost: '1240.00' }),
+        ],
+      ),
+      product(
+        'p-4',
+        ['কিডস ফ্রক', 'Kids frock'],
+        [
+          { attributeId: 'a-1', optionIds: ['o-1-2–3', 'o-1-4–5'] },
+          { attributeId: 'a-2', optionIds: [`o-2-${pink}`] },
+        ],
+        [
+          held('p-4-v1', ['o-1-2–3', `o-2-${pink}`], 0, { avgCost: '410.00' }),
+          held('p-4-v2', ['o-1-4–5', `o-2-${pink}`], 2, { reserved: 2, avgCost: '410.00' }),
+        ],
+        { stockState: 'out' },
+      ),
+      product(
+        'p-1',
+        ['কটন টি-শার্ট', 'Cotton T-shirt'],
+        [
+          { attributeId: 'a-1', optionIds: sizes.map((size) => `o-1-${size}`) },
+          { attributeId: 'a-2', optionIds: [`o-2-${black}`, `o-2-${blue}`] },
+        ],
+        [black, blue].flatMap((colour, shade) =>
+          sizes.map((size, at) => {
+            const [onHand, more] = tshirt[`${size}-${colour}`] ?? [0];
+            return held(
+              `p-1-v${String(shade * sizes.length + at + 1)}`,
+              [`o-1-${size}`, `o-2-${colour}`],
+              onHand,
+              { avgCost: '280.00', ...more },
+            );
+          }),
+        ),
+      ),
+      product(
+        'p-3',
+        ['সিল্ক শাড়ি', 'Silk saree'],
+        [],
+        [held('p-3-v1', [], 7, { reserved: 1, avgCost: '2450.00' })],
+      ),
+      product(
+        'p-5',
+        ['হুডি', 'Hoodie'],
+        [{ attributeId: 'a-1', optionIds: ['o-1-S', 'o-1-M', 'o-1-L', 'o-1-XL'] }],
+        ['S', 'M', 'L', 'XL'].map((size, at) =>
+          held(`p-5-v${String(at + 1)}`, [`o-1-${size}`], 8, { avgCost: '950.00' }),
+        ),
+        { active: false },
+      ),
+      product(
+        'p-6',
+        ['স্কার্ফ', 'Scarf'],
+        [{ attributeId: 'a-2', optionIds: [`o-2-${red}`, `o-2-${blue}`] }],
+        [
+          held('p-6-v1', [`o-2-${red}`], 14, { avgCost: '180.00' }),
+          held('p-6-v2', [`o-2-${blue}`], 9, { avgCost: '180.00' }),
+        ],
+      ),
+      product('p-9', ['কাস্টম পাঞ্জাবি', 'Custom panjabi'], [], [held('p-9-v1', [], 0)], {
+        stockTracking: 'not_tracked',
+      }),
+    ],
+  };
+}
+
+/**
+ * A gadget shop's Galaxy A15 in 128 GB Black (Part 20's `stock-row-sheet-serial`, `stock-edit-down-serial`): five on
+ * hand, `missing` of them without an IMEI yet, its average cost not set.
+ */
+export function galaxyShop(language: Language = 'en', missing = 0): ProductsFixture {
+  const black = language === 'bn' ? 'কালো' : 'Black';
+  const imeis = [
+    '357812094561234',
+    '357812094561242',
+    '357812094561259',
+    '357812094561267',
+    '357812094561275',
+  ];
+  return {
+    limit: 100,
+    products: [
+      {
+        id: 'p-ga',
+        name: ['Galaxy A15', 'Galaxy A15'],
+        basePrice: '18500.00',
+        active: true,
+        stockState: 'in',
+        primaryCategoryId: null,
+        variantCount: 1,
+        serialTracked: true,
+        settings: { serialFormat: 'imei' },
+        matrix: {
+          splits: [
+            { attributeId: 'a-1', optionIds: ['o-1-128 GB'] },
+            { attributeId: 'a-2', optionIds: [`o-2-${black}`] },
+          ],
+          rows: [
+            held('p-ga-v1', ['o-1-128 GB', `o-2-${black}`], 5, {
+              serials: imeis.slice(0, 5 - missing).map((serial, at) => ({
+                id: `sn-ga-${String(at + 1)}`,
+                serial,
+                status: 'in_stock' as const,
+              })),
+            }),
+          ],
+        },
+      },
+    ],
+  };
 }

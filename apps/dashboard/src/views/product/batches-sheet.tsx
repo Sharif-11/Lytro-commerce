@@ -11,9 +11,8 @@ import { StatusTag, type StatusTone } from '@/components/ui/status-tag';
 import { useErrorText } from '@/hooks/use-error-text';
 import { formatDayMonthYear, todayInputValue } from '@/lib/dates';
 import { splitsOf } from '@/lib/variant-matrix';
-import type { ProductDetail } from '@/types/product';
 import type { StockBatch } from '@/types/stock';
-import type { StockHolder } from './stock-holders';
+import { useCountedText, type StockedProduct, type StockHolder } from './stock-holders';
 import { useVariantWords } from './variant-words';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -36,7 +35,7 @@ export function BatchesSheet({
   onClose,
 }: {
   open: boolean;
-  product: ProductDetail;
+  product: StockedProduct;
   holders: readonly StockHolder[];
   unit: StockUnit;
   mayManage: boolean;
@@ -57,7 +56,8 @@ export function BatchesSheet({
   }, [open]);
 
   const splits = splitsOf(product);
-  const amount = (quantity: string) => `${String(Number(quantity))} ${t(`su_${unit}`)}`;
+  const counted = useCountedText();
+  const amount = (quantity: string) => counted(quantity, unit);
   const state = (batch: StockBatch): { tone: StatusTone; text: string } =>
     batch.state === BatchState.Expired
       ? { tone: 'bad', text: t('batchExpired') }
