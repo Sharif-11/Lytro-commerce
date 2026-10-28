@@ -2,9 +2,10 @@
 
 Status: v3.3, 2026-10-28 (the brand editor's fonts as Slice 11.12a builds them, prototype Part 17: one choice for
 headings and one for body text, each a Bangla face with its Latin partner shown in its own faces, the seven pairs in a
-sheet with Galada + Playfair Display held to headings, and the preview set in the chosen fonts; v3.2, opening serials
-as prototype Part 16, comes with Slice 11.7c; v3.1 of 2026-10-28 drew stock and delivery as Slice 11.7c builds them,
-prototype Part 15: the size chart as a table
+sheet with Galada + Playfair Display held to headings, and the preview set in the chosen fonts; v3.2 of 2026-10-29 drew
+opening serials as Slice 11.7c builds them, prototype Part 16: Paste a list, each line's check with its words for an
+IMEI and for any code, a code typed twice, the lines to fix left out on Done, and the sheet full at the opening stock;
+v3.1 of 2026-10-28 drew stock and delivery as Slice 11.7c builds them, prototype Part 15: the size chart as a table
 with its names typed or a picture, Adjust by weight, the question before making a product holding stock to order,
 serials typed and the camera missing or blocked, the variant sheet, SKU and barcode under More settings for a product
 with no options, and a saved product's defaults line without "change"; v3.0 of 2026-10-27 drew the options and variants
@@ -407,6 +408,15 @@ the limit, Add product and Duplicate show the banner at once instead of the edit
   (`pf-sh-serials-nocamera`); a camera the browser blocks says how to allow it, with Try again
   (`pf-sh-serials-blocked`). A product with serials shows Opening serials in its table where others show SKU; its SKU is
   in the variant sheet.
+- **Opening serials, line by line** (Part 16, agreed in the step-2 read, 2026-10-29). Paste a list takes one per line, or
+  separated by commas, semicolons or tabs; spaces inside an IMEI are dropped (`pf-sh-serials-paste`). Each line is
+  checked as it is added: an IMEI is 15 digits ("not 15 digits") with its check digit ("not a valid IMEI"); any other
+  code is letters, digits and dashes, at most 64 ("letters, digits and dashes only", "over 64 characters"); a code
+  already in the list is "twice in this list", one the shop holds is "already in the shop" (INV-23). A flagged line
+  has × to remove it; Done keeps the OK lines and leaves the flagged ones out, saying how many
+  (`pf-sh-serials-states`, `pf-sh-serials-any`). The camera ignores a code it has already read; each new one gives a
+  short vibration and a green flash, no sound. The sheet stops at the opening stock: "All 5 units have a serial", and
+  more need the opening stock raised first (`pf-sh-serials-full`).
 - **The variant sheet.** A variant's name in the table opens what it sets for itself: SKU, barcode, weight and delivery
   charge (empty follows the product, its value as the hint), Adjust by weight, and On sale (`sh-variant`; ATR-05,
   ATR-13).
