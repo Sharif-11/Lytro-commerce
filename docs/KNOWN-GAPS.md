@@ -1522,7 +1522,7 @@ the Asia/Dhaka calendar (TRM-09). Ten days from 00:02 on 21 October, Dhaka time,
 a day apart. The server was right; the test now uses the server's own `addMonths`. It could fail only in the first
 six hours of a Dhaka day whose date ten days on is the 31st.
 
-## 78. `MED-07`: R2 likely cannot stop the processing key deleting media — accepted 2026-10-21
+## 78. `MED-07`: R2 cannot stop the processing key deleting media — accepted 2026-10-21, confirmed 2026-10-28
 
 Found while designing Phase 3 Slice 6b. MED-07 wants only the deletion job's key able to delete media. R2's tokens
 come only as read, or read and write, per bucket, and Cloudflare does not say that read and write leaves deleting out,
@@ -1534,6 +1534,12 @@ Accepted as a risk on 2026-10-21, when Slice 7 was designed: a Worker's R2 bindi
 writes to a Worker would not help. The media Worker itself reads through a read-only token and cannot write. If the key
 check shows R2 refuses the processor's delete, this closes; otherwise it stands next to the media-loss entry in the
 risk register (SRS.md §17).
+
+**Confirmed 2026-10-28** on the development keys: the processor's key deleted the check's test object. It stays an
+accepted risk. The first run also showed the check itself was wrong: it asked R2 whether the deleted object was still
+there with a request that answers 404 for a missing object, and stopped on that 404 as a failure instead of reading it
+as "gone", at exactly the step that answers this question. It now reads 404 as gone, and tests the deleter every time
+rather than only when the processor is refused. Results in RUNBOOKS §2.
 
 ## 79. `BND-01`, `BND-02`: how soon Cloudflare's usage data can be read is not measured — open, found 2026-10-21
 
