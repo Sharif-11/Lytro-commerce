@@ -44,7 +44,7 @@ export function ChoiceRow({
   trail?: ReactNode;
   bare?: boolean;
   disabled?: boolean;
-  /** Greyed, as the prototype's `.later`: a choice that cannot be made here, with why under it. */
+  /** Greyed, as the prototype's `.later` draws it: a choice that cannot be made here, with why under it. */
   later?: boolean;
   /** How far in from the list's edge, past its padding: a category under another (the parent step). */
   indent?: number;
@@ -55,7 +55,6 @@ export function ChoiceRow({
       className={[
         'flex items-center gap-3',
         bare ? 'min-h-10' : 'min-h-12 border-b border-line px-4 py-2 last:border-b-0',
-        later ? 'opacity-55' : '',
       ].join(' ')}
       style={indent > 0 ? { paddingLeft: `${String(16 + indent)}px` } : undefined}
     >
@@ -67,9 +66,12 @@ export function ChoiceRow({
         onClick={onChoose}
         className="flex min-w-0 flex-1 items-center gap-3 text-left disabled:cursor-default"
       >
-        <RadioMark on={on} />
+        {/* Greyed by colour rather than opacity, so its words keep AA contrast. */}
+        <span className={later ? 'flex opacity-55' : 'flex'}>
+          <RadioMark on={on} />
+        </span>
         <span className="flex min-w-0 flex-col">
-          <span className="text-[15px]">{title}</span>
+          <span className={later ? 'text-[15px] text-fg-muted' : 'text-[15px]'}>{title}</span>
           {sub ? <span className="text-[13px] text-fg-muted">{sub}</span> : null}
         </span>
       </button>

@@ -12,6 +12,8 @@ export interface OptionFixture {
   scope: 'platform' | 'shop';
   swatchColor?: string | null;
   swatchImageId?: string | null;
+  /** Slice 11.8: retired, it is offered for no new product (ATR-10). */
+  retired?: boolean;
 }
 
 export interface AttributeFixture {
@@ -21,6 +23,8 @@ export interface AttributeFixture {
   unitKind?: 'weight' | 'volume' | 'count' | null;
   scope: 'platform' | 'shop';
   options: OptionFixture[];
+  /** Slice 11.8: retired, it is suggested for no new product (ATR-10). */
+  retired?: boolean;
 }
 
 /** A product's variant as saved, with what it holds. */
@@ -212,19 +216,20 @@ function optionView(option: OptionFixture): unknown {
         }
       : null,
     scope: option.scope,
-    retired: false,
+    retired: option.retired ?? false,
   };
 }
 
-function attributeView(attribute: AttributeFixture): unknown {
+/** An attribute as GET /attributes answers it; its retired options only when the retired are asked for (ATR-10). */
+function attributeView(attribute: AttributeFixture, withRetired = false): unknown {
   return {
     id: attribute.id,
     name: attribute.name,
     dataType: attribute.dataType,
     unitKind: attribute.unitKind ?? null,
     scope: attribute.scope,
-    retired: false,
-    options: attribute.options.map(optionView),
+    retired: attribute.retired ?? false,
+    options: attribute.options.filter((option) => withRetired || !option.retired).map(optionView),
   };
 }
 
@@ -414,7 +419,12 @@ export function defaultsAnswer(fixture: ProductsFixture, categoryId: string | nu
 
 /** The options-and-variants reads; undefined for any other path. */
 export function variantRead(path: string, fixture: ProductsFixture, url: URL): unknown {
-  if (path === '/attributes') return libraryOf(fixture).map(attributeView);
+  if (path === '/attributes') {
+    const withRetired = url.searchParams.get('includeRetired') === 'true';
+    return libraryOf(fixture)
+      .filter((attribute) => withRetired || !attribute.retired)
+      .map((attribute) => attributeView(attribute, withRetired));
+  }
   if (path === '/option-sets') return (fixture.optionSets ??= drawnOptionSets());
   if (path === '/product-defaults') {
     return defaultsAnswer(fixture, url.searchParams.get('categoryId'));
@@ -551,6 +561,8 @@ export function variantWrite(
     .find((each) => each.id === swatch?.[1])
     ?.options.find((each) => each.id === swatch?.[2]);
   if (method === 'PATCH' && option) {
+    if (typeof body?.value === 'string') option.value = body.value;
+    if (typeof body?.retired === 'boolean') option.retired = body.retired;
     if ('swatchColor' in (body ?? {})) {
       option.swatchColor = (body?.swatchColor as string | null) ?? null;
       option.swatchImageId = null;
@@ -560,6 +572,21 @@ export function variantWrite(
       option.swatchColor = null;
     }
     return { data: optionView(option) };
+  }
+  // Slice 11.8: the shop's own attribute renamed, retired or brought back; its own set deleted.
+  const renamed = /^\/attributes\/([^/]+)$/.exec(path);
+  const attribute = library.find((each) => each.id === renamed?.[1]);
+  if (method === 'PATCH' && attribute) {
+    if (typeof body?.name === 'string') attribute.name = body.name;
+    if (typeof body?.retired === 'boolean') attribute.retired = body.retired;
+    return { data: attributeView(attribute, true) };
+  }
+  const gone = /^\/option-sets\/([^/]+)$/.exec(path);
+  if (method === 'DELETE' && gone) {
+    fixture.optionSets = (fixture.optionSets ??= drawnOptionSets()).filter(
+      (each) => (each as { id: string }).id !== gone[1],
+    );
+    return { data: { ok: true } };
   }
   if (method === 'POST' && path === '/option-sets') {
     const set = {

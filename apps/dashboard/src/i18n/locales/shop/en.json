@@ -37,6 +37,7 @@
   "askedLong": "The shopper or staff writes it when ordering. It does not split the product into variants and holds no stock.",
   "askedType": "Asked when ordering · {{type}}",
   "attrName": "Name",
+  "attrNamePh": "e.g. Fit",
   "attrType": "Type",
   "backToProducts": "Back to products",
   "barcode": "Barcode",

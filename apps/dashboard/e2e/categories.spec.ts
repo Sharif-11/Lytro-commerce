@@ -140,6 +140,7 @@ test('edits a category: its name, where it sits, what it suggests and its own ch
   await expect(sheet(page).getByRole('radio', { name: /^T-shirts/ })).toContainText(
     'Cannot sit inside itself',
   );
+  await expectAccessible(page);
   await sheet(page).getByRole('button', { name: 'Back' }).click();
 
   // Suggestions: Size and Colour ticked from the list, Size taken off again from its chip.

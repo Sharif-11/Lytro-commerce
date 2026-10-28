@@ -17,6 +17,7 @@ import { BILLING_STAFF, offerInstall, onAnIphone } from './support/menu';
 import { drawnIdentities } from './support/account';
 import { emptyMeta } from './support/meta';
 import { drawnExports } from './support/settings';
+import { sketchedAttributes } from './support/attributes';
 import { drawnProducts, manyProducts, type ProductsFixture } from './support/products';
 import { creamShop, phoneShop, SAMPLE_IMEIS } from './support/stock';
 import { drawnLibrary } from './support/variants';
@@ -368,6 +369,67 @@ function productPairs(): Pair[] {
     ...openingPairs(),
     ...stockCardPairs(),
     ...categoryPairs(),
+    ...attributePairs(),
+  ];
+}
+
+/**
+ * Attributes and option sets (§7.6, Slice 11.8, Part 19): the page with the retired ones last, New attribute, a library
+ * attribute's sheet, the shop's own with a retired option, one option's step, Option sets and New set.
+ */
+function attributePairs(): Pair[] {
+  const one = (
+    name: string,
+    more: Partial<Pair> = {},
+    device: Device = 'phone',
+    language: Language = 'bn',
+  ): Pair => ({
+    name,
+    screen: name,
+    device,
+    language,
+    path: '/attributes',
+    state: { products: sketchedAttributes(language) },
+    ...more,
+  });
+  const main = (page: Page) => page.getByRole('main');
+  const sheet = (page: Page) => page.getByRole('dialog').last();
+  const open = (name: string) => async (page: Page) => {
+    await main(page)
+      .getByRole('button', { name: new RegExp(`^${name}`) })
+      .first()
+      .click();
+  };
+  return [
+    one('attributes'),
+    one('attributes', {}, 'desktop', 'en'),
+    one('sh-attr-new', {
+      then: async (page) => {
+        await main(page).getByRole('button', { name: 'নতুন অ্যাট্রিবিউট' }).click();
+      },
+    }),
+    one('sh-attr-library', { then: open('সাইজ') }),
+    one('sh-attr-edit-retired', { then: open('সুতির ধরন') }),
+    one('sh-attr-edit-retired', { then: open('Cotton type') }, 'phone', 'en'),
+    one('sh-attr-option', {
+      then: async (page) => {
+        await open('সুতির ধরন')(page);
+        await sheet(page).getByRole('button', { name: 'লিনেন এডিট' }).click();
+      },
+    }),
+    one('option-sets', { path: '/attributes/option-sets' }),
+    one('sh-optset-new', {
+      path: '/attributes/option-sets',
+      then: async (page) => {
+        await main(page).getByRole('button', { name: 'নতুন সেট' }).click();
+        await sheet(page).getByLabel('সেটের নাম').fill('বাচ্চাদের সাইজ');
+        for (const value of ['2–3', '4–5', '6–7', '8–9']) {
+          await sheet(page).getByLabel('অপশন যোগ').fill(value);
+          await sheet(page).getByLabel('অপশন যোগ').press('Enter');
+        }
+        await sheet(page).getByLabel('অপশন যোগ').fill('10–11');
+      },
+    }),
   ];
 }
 

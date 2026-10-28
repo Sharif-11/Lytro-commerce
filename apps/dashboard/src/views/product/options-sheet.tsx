@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AttributeDataType, MediaPurpose, OPTION_SET_NAME_MAX_LENGTH } from '@lytronix/validators';
-import { useAddOptions, useSaveOptionSet, useSetSwatch } from '@/api/attributes';
+import { AttributeDataType, OPTION_SET_NAME_MAX_LENGTH } from '@lytronix/validators';
+import { useAddOptions, useSaveOptionSet, useUpdateOption } from '@/api/attributes';
 import { Icon } from '@/components/icon';
 import { Button } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chips';
@@ -10,38 +10,12 @@ import { Eyebrow } from '@/components/ui/page';
 import { Sheet } from '@/components/ui/sheet';
 import { useErrorText } from '@/hooks/use-error-text';
 import { baseValueOf, MEASURE_UNITS, type MeasureUnit } from '@/lib/measure';
-import { MediaUpload } from '@/lib/media-upload';
 import { setsFor, type SplitAttribute } from '@/lib/variant-matrix';
-import { tenantSession } from '@/session/tenant-session';
 import type { Attribute, OptionSet } from '@/types/attribute';
 import type { OptionSwatch, UsedOption } from '@/types/product';
+import { SwatchDot, SwatchPalette, type SwatchChoice } from './swatch-palette';
 import { Segments } from './value-sheet';
 import { useVariantWords } from './variant-words';
-
-/** The six colours the palette draws; any other comes from the browser's colour picker (11.7b read). */
-const PALETTE = ['#10201F', '#1D4ED8', '#C8323B', '#1B7A43', '#F2A516', '#FFFFFF'];
-
-const sameColour = (a: string | null, b: string): boolean => a?.toUpperCase() === b;
-
-/** An option's swatch beside its name: dashed when it has none, a colour, or a small picture. */
-function SwatchDot({ swatch, on }: { swatch: OptionSwatch; on?: boolean }): React.JSX.Element {
-  return (
-    <span
-      className={[
-        'flex size-8 flex-none items-center justify-center overflow-hidden rounded-full',
-        on ? 'shadow-[0_0_0_2px_var(--color-surface),0_0_0_4px_var(--color-primary)]' : '',
-        swatch.swatchImage || swatch.swatchColor
-          ? 'border border-black/12'
-          : 'border-[1.5px] border-dashed border-line-strong bg-surface',
-      ].join(' ')}
-      style={swatch.swatchColor ? { background: swatch.swatchColor } : undefined}
-    >
-      {swatch.swatchImage ? (
-        <img src={swatch.swatchImage.urls.thumbnail} alt="" className="size-full object-cover" />
-      ) : null}
-    </span>
-  );
-}
 
 /**
  * A splitting attribute's options (§7.4's "Options and swatches", Part 14's `sh-options` and `sh-options-colour`;
@@ -76,16 +50,11 @@ export function OptionsSheet({
   const words = useVariantWords();
   const errorText = useErrorText();
   const add = useAddOptions();
-  const setSwatch = useSetSwatch();
+  const setSwatch = useUpdateOption();
   const saveSet = useSaveOptionSet();
-  const upload = useMemo(() => new MediaUpload(tenantSession.client), []);
-  const photoInput = useRef<HTMLInputElement>(null);
-  const colourInput = useRef<HTMLInputElement>(null);
   const [typed, setTyped] = useState('');
   const [unit, setUnit] = useState<MeasureUnit | null>(null);
   const [painting, setPainting] = useState<string | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
   const [naming, setNaming] = useState(false);
   const [setName, setSetName] = useState('');
   const [savedSet, setSavedSet] = useState<string | null>(null);
@@ -137,29 +106,23 @@ export function OptionsSheet({
     return number ? baseValueOf(value, chosenUnit) : value;
   }
 
-  function paint(swatch: { swatchColor: string | null } | { swatchImageId: string | null }): void {
+  function paint(choice: SwatchChoice): void {
     if (!split || !painted) return;
     setSwatch.mutate(
-      { attributeId: split.attributeId, optionId: painted.id, swatch },
+      {
+        attributeId: split.attributeId,
+        optionId: painted.id,
+        body:
+          'swatchImageId' in choice
+            ? { swatchImageId: choice.swatchImageId }
+            : { swatchColor: choice.swatchColor },
+      },
       {
         onSuccess: (saved) => {
           onSwatch(saved.id, { swatchColor: saved.swatchColor, swatchImage: saved.swatchImage });
         },
       },
     );
-  }
-
-  async function paintPhoto(file: File): Promise<void> {
-    setUploading(true);
-    setUploadError(null);
-    try {
-      const media = await upload.upload(file, MediaPurpose.SwatchImage);
-      paint({ swatchImageId: media.id });
-    } catch (error) {
-      setUploadError(errorText(error));
-    } finally {
-      setUploading(false);
-    }
   }
 
   const values = split?.options.map((option) => option.value) ?? [];
@@ -222,7 +185,7 @@ export function OptionsSheet({
                           aria-expanded={painting === option.id}
                           onClick={() => {
                             setPainting(painting === option.id ? null : option.id);
-                            setUploadError(null);
+                            setSwatch.reset();
                           }}
                         >
                           <SwatchDot swatch={option} on={painting === option.id} />
@@ -246,69 +209,14 @@ export function OptionsSheet({
                       </Button>
                     </div>
                     {painting === option.id ? (
-                      <div className="flex flex-col gap-2 px-4 pt-1 pb-3.5 sm:pl-[60px]">
-                        <Eyebrow>{t('swatchFor', { name: label })}</Eyebrow>
-                        <div className="flex flex-wrap gap-2">
-                          {PALETTE.map((colour) => (
-                            <Chip
-                              key={colour}
-                              size="lg"
-                              aria-label={colour}
-                              on={sameColour(option.swatchColor, colour)}
-                              disabled={setSwatch.isPending}
-                              onClick={() => {
-                                paint({ swatchColor: colour });
-                              }}
-                            >
-                              <span
-                                className="size-5 rounded-full border border-black/12"
-                                style={{ background: colour }}
-                              />
-                            </Chip>
-                          ))}
-                          <Chip
-                            size="lg"
-                            on={
-                              option.swatchColor !== null &&
-                              !PALETTE.some((colour) => sameColour(option.swatchColor, colour))
-                            }
-                            disabled={setSwatch.isPending}
-                            onClick={() => colourInput.current?.click()}
-                          >
-                            {option.swatchColor &&
-                            !PALETTE.some((colour) => sameColour(option.swatchColor, colour)) ? (
-                              <span
-                                className="size-5 rounded-full border border-black/12"
-                                style={{ background: option.swatchColor }}
-                              />
-                            ) : null}
-                            {t('otherColour')}
-                          </Chip>
-                          <Chip
-                            size="lg"
-                            on={option.swatchImage !== null}
-                            disabled={uploading || setSwatch.isPending}
-                            onClick={() => photoInput.current?.click()}
-                          >
-                            <Icon name="camera" size={16} />
-                            {t('fromPhoto')}
-                          </Chip>
-                          <Chip
-                            size="lg"
-                            on={option.swatchColor === null && option.swatchImage === null}
-                            disabled={setSwatch.isPending}
-                            onClick={() => {
-                              paint({ swatchColor: null });
-                            }}
-                          >
-                            {t('noSwatch')}
-                          </Chip>
-                        </div>
-                        {uploadError || setSwatch.isError ? (
-                          <p role="alert" className="text-[13px] font-medium text-danger-text">
-                            {uploadError ?? errorText(setSwatch.error)}
-                          </p>
-                        ) : null}
+                      <div className="px-4 pt-1 pb-3.5 sm:pl-[60px]">
+                        <SwatchPalette
+                          name={label}
+                          swatch={option}
+                          busy={setSwatch.isPending}
+                          error={setSwatch.isError ? errorText(setSwatch.error) : null}
+                          onPaint={paint}
+                        />
                       </div>
                     ) : null}
                   </div>
@@ -420,25 +328,6 @@ export function OptionsSheet({
               {t('removeFrom')}
             </button>
           </p>
-          <input
-            ref={photoInput}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            hidden
-            onChange={(event) => {
-              const file = event.target.files?.[0];
-              if (file) void paintPhoto(file);
-              event.target.value = '';
-            }}
-          />
-          <input
-            ref={colourInput}
-            type="color"
-            hidden
-            onChange={(event) => {
-              paint({ swatchColor: event.target.value.toUpperCase() });
-            }}
-          />
         </div>
       ) : null}
     </Sheet>

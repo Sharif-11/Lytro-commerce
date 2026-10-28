@@ -16,10 +16,10 @@ import { CheckRow } from '@/components/ui/check-row';
 import { Chip } from '@/components/ui/chips';
 import { SearchField } from '@/components/ui/search-field';
 import { Sheet } from '@/components/ui/sheet';
-import { StatusTag } from '@/components/ui/status-tag';
 import { useErrorText } from '@/hooks/use-error-text';
 import { BLANK_CHART, chartBody, type ChartForm } from '@/lib/product-settings';
 import type { CategorySummary } from '@/types/catalogue';
+import { ScopeTag } from '../attributes/scope-tag';
 import { SizeChartSheet } from '../product/size-chart-sheet';
 import { ChartField } from '../product/type-cards';
 import { CategoryForm, ParentChoice } from './category-form';
@@ -226,10 +226,7 @@ export function CategorySheet({
                   }}
                   title={
                     <>
-                      {each.name}{' '}
-                      <StatusTag tone={each.scope === 'shop' ? 'info' : 'neutral'}>
-                        {each.scope === 'shop' ? t('own') : t('library')}
-                      </StatusTag>
+                      {each.name} <ScopeTag scope={each.scope} />
                     </>
                   }
                 />

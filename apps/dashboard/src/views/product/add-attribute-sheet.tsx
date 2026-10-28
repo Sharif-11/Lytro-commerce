@@ -1,55 +1,26 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ApiClientError } from '@lytronix/api-client';
-import {
-  ATTRIBUTE_NAME_MAX_LENGTH,
-  AttributeDataType,
-  AttributeRole,
-  UnitKind,
-} from '@lytronix/validators';
-import { useCreateAttribute } from '@/api/attributes';
-import { Icon, type IconName } from '@/components/icon';
+import { AttributeDataType, AttributeRole } from '@lytronix/validators';
+import { useCreateAttribute, type AttributeDraft } from '@/api/attributes';
+import { Icon } from '@/components/icon';
 import { Button } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chips';
-import { Field } from '@/components/ui/field';
 import { Eyebrow } from '@/components/ui/page';
 import { SearchField } from '@/components/ui/search-field';
 import { Sheet } from '@/components/ui/sheet';
 import { useErrorText } from '@/hooks/use-error-text';
 import { roleRefusals, type RoleRefusal } from '@/lib/variant-matrix';
 import type { Attribute } from '@/types/attribute';
+import { ATTRIBUTE_ICONS } from './attribute-icons';
+import { NewAttributeFields } from './new-attribute-fields';
 import { useVariantWords } from './variant-words';
-
-const TYPES = [
-  AttributeDataType.EnumSingle,
-  AttributeDataType.EnumMulti,
-  AttributeDataType.NumberWithUnit,
-  AttributeDataType.Text,
-  AttributeDataType.Boolean,
-] as const;
-
-const KINDS = [UnitKind.Weight, UnitKind.Volume, UnitKind.Count] as const;
 
 const ROLES = [
   AttributeRole.Informational,
   AttributeRole.VariantDefining,
   AttributeRole.CapturedAtOrder,
 ] as const;
-
-const ICONS: Record<AttributeDataType, IconName> = {
-  [AttributeDataType.EnumSingle]: 'layers',
-  [AttributeDataType.EnumMulti]: 'layers',
-  [AttributeDataType.NumberWithUnit]: 'percent',
-  [AttributeDataType.Text]: 'file',
-  [AttributeDataType.Boolean]: 'check',
-};
-
-/** The New attribute step's fields, as typed. */
-interface Draft {
-  name: string;
-  dataType: AttributeDataType;
-  unitKind: UnitKind | null;
-}
 
 /**
  * Add attribute (§7.4's sheet, the prototype's `sh-attribute` and Part 14's states; ATR-01, ATR-02, ATR-11, ATL-02): a
@@ -88,7 +59,7 @@ export function AddAttributeSheet({
   const [query, setQuery] = useState('');
   const [picked, setPicked] = useState<Attribute | null>(null);
   const [role, setRole] = useState<AttributeRole>(AttributeRole.Informational);
-  const [draft, setDraft] = useState<Draft | null>(null);
+  const [draft, setDraft] = useState<AttributeDraft | null>(null);
   const [made, setMade] = useState<string | null>(null);
 
   useEffect(() => {
@@ -120,36 +91,28 @@ export function AddAttributeSheet({
 
   function make(): void {
     if (!draft || draft.name.trim() === '') return;
-    const measured = draft.dataType === AttributeDataType.NumberWithUnit;
-    create.mutate(
-      {
-        name: draft.name.trim(),
-        dataType: draft.dataType,
-        ...(measured ? { unitKind: draft.unitKind ?? UnitKind.Weight } : {}),
+    create.mutate(draft, {
+      onSuccess: (attribute) => {
+        setDraft(null);
+        setMade(attribute.id);
+        setQuery(attribute.name);
+        setPicked(attribute);
+        setRole(
+          roleRefusals(attribute.dataType, splitting)[AttributeRole.VariantDefining]
+            ? AttributeRole.Informational
+            : AttributeRole.VariantDefining,
+        );
       },
-      {
-        onSuccess: (attribute) => {
+      onError: (error) => {
+        // ATR-01: a name the shop already sees is that attribute, picked instead.
+        const id = error instanceof ApiClientError ? error.details.attributeId : undefined;
+        const known = attributes.find((each) => each.id === id);
+        if (known) {
           setDraft(null);
-          setMade(attribute.id);
-          setQuery(attribute.name);
-          setPicked(attribute);
-          setRole(
-            roleRefusals(attribute.dataType, splitting)[AttributeRole.VariantDefining]
-              ? AttributeRole.Informational
-              : AttributeRole.VariantDefining,
-          );
-        },
-        onError: (error) => {
-          // ATR-01: a name the shop already sees is that attribute, picked instead.
-          const id = error instanceof ApiClientError ? error.details.attributeId : undefined;
-          const known = attributes.find((each) => each.id === id);
-          if (known) {
-            setDraft(null);
-            pick(known);
-          }
-        },
+          pick(known);
+        }
       },
-    );
+    });
   }
 
   const refusalText = (refusal: RoleRefusal | undefined): string | null => {
@@ -171,18 +134,6 @@ export function AddAttributeSheet({
   };
 
   if (draft) {
-    const helps: Record<AttributeDataType, string> = {
-      [AttributeDataType.EnumSingle]: t('helpOne'),
-      [AttributeDataType.EnumMulti]: t('helpMany'),
-      [AttributeDataType.NumberWithUnit]: t('helpNumber'),
-      [AttributeDataType.Text]: t('helpText'),
-      [AttributeDataType.Boolean]: t('helpBool'),
-    };
-    const kinds: Record<UnitKind, string> = {
-      [UnitKind.Weight]: t('kindWeight'),
-      [UnitKind.Volume]: t('kindVolume'),
-      [UnitKind.Count]: t('kindCount'),
-    };
     return (
       <Sheet
         open={open}
@@ -197,62 +148,11 @@ export function AddAttributeSheet({
           </Button>
         }
       >
-        <div className="flex flex-col gap-3">
-          <Field
-            label={t('attrName')}
-            value={draft.name}
-            maxLength={ATTRIBUTE_NAME_MAX_LENGTH}
-            error={create.isError ? errorText(create.error) : undefined}
-            onChange={(event) => {
-              setDraft({ ...draft, name: event.target.value });
-            }}
-          />
-          <div className="flex flex-col gap-1.5">
-            <span className="text-[14px] font-medium text-fg-muted">{t('attrType')}</span>
-            <div className="flex flex-wrap gap-2">
-              {TYPES.map((type) => (
-                <Chip
-                  key={type}
-                  size="lg"
-                  on={draft.dataType === type}
-                  onClick={() => {
-                    setDraft({
-                      ...draft,
-                      dataType: type,
-                      unitKind:
-                        type === AttributeDataType.NumberWithUnit
-                          ? (draft.unitKind ?? UnitKind.Weight)
-                          : null,
-                    });
-                  }}
-                >
-                  {words.type(type)}
-                </Chip>
-              ))}
-            </div>
-            <p className="text-[13px] text-fg-muted">{helps[draft.dataType]}</p>
-          </div>
-          {draft.dataType === AttributeDataType.NumberWithUnit ? (
-            <div className="flex flex-col gap-1.5">
-              <span className="text-[14px] font-medium text-fg-muted">{t('measures')}</span>
-              <div className="flex flex-wrap gap-2">
-                {KINDS.map((kind) => (
-                  <Chip
-                    key={kind}
-                    size="lg"
-                    on={draft.unitKind === kind}
-                    onClick={() => {
-                      setDraft({ ...draft, unitKind: kind });
-                    }}
-                  >
-                    {kinds[kind]}
-                  </Chip>
-                ))}
-              </div>
-            </div>
-          ) : null}
-          <p className="text-[14px] text-fg-muted">{t('typeLater')}</p>
-        </div>
+        <NewAttributeFields
+          draft={draft}
+          error={create.isError ? errorText(create.error) : undefined}
+          onChange={setDraft}
+        />
       </Sheet>
     );
   }
@@ -322,7 +222,7 @@ export function AddAttributeSheet({
                 }}
               >
                 <span className="flex size-9 flex-none items-center justify-center rounded-[10px] bg-neutral-100 text-fg-muted">
-                  <Icon name={ICONS[each.dataType]} />
+                  <Icon name={ATTRIBUTE_ICONS[each.dataType]} />
                 </span>
                 <span className="flex min-w-0 flex-1 flex-col">
                   <span className="text-[15px]">{each.name}</span>
