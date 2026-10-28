@@ -41,10 +41,16 @@ export interface MovementFixture {
 
 const RUMANA = { userId: 'u-rumana', name: 'Rumana' };
 
-/** A day as an expiry is written (YYYY-MM-DD), so many days from today. */
-const dayFromNow = (days: number): string =>
-  new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 const DAY_MS = 24 * 60 * 60 * 1000;
+// Dhaka is six hours ahead of UTC all year.
+const DHAKA_MS = 6 * 60 * 60 * 1000;
+
+/**
+ * A day as an expiry is written (YYYY-MM-DD), so many days from today in Dhaka, as the dashboard counts days: a UTC day
+ * was one behind from midnight to 6 am there, and "13 days left" read 12.
+ */
+const dayFromNow = (days: number): string =>
+  new Date(Date.now() + DHAKA_MS + days * DAY_MS).toISOString().slice(0, 10);
 const PAGE = 20;
 let made = 0;
 
