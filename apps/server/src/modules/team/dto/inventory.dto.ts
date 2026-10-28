@@ -8,6 +8,7 @@ import {
   SerialStatus,
   BatchState,
   recordStockCheckSchema,
+  SerialFormat,
   setStockSchema,
   StockReason,
   StockState,
@@ -80,13 +81,16 @@ export const productStockViewSchema = z.object({
 });
 export class ProductStockViewDto extends createZodDto(productStockViewSchema) {}
 
-// The Stock page (Slice 11.9): each product's stock, its name, whether it is on sale and its variant-defining
-// attributes, its variants' option ids in their order; All, Low and Out counted.
+// The Stock page (Slice 11.9): each product's stock, its name, whether it is on sale, how it keeps its stock and its
+// variant-defining attributes, its variants' option ids in their order; All, Low and Out counted.
 export const stockPageSchema = z.object({
   products: z.array(
     productStockViewSchema.extend({
       name: z.string(),
       active: z.boolean(),
+      batchTracked: z.boolean(),
+      serialTracked: z.boolean(),
+      serialFormat: z.nativeEnum(SerialFormat),
       splits: z.array(variantAttributeViewSchema),
     }),
   ),

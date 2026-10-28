@@ -58,6 +58,9 @@ interface PageProduct {
   active: boolean;
   stockTracking: string;
   state: string;
+  batchTracked: boolean;
+  serialTracked: boolean;
+  serialFormat: string;
   splits: Split[];
   variants: {
     variantId: string;
@@ -179,6 +182,51 @@ describeIfDatabase('the Stock page (Slice 11.9, INV-01, INV-08)', () => {
     // A product with no options has no splits and one variant with none.
     expect(page.products[0]?.splits).toEqual([]);
     expect(page.products[0]?.variants[0]?.optionIds).toEqual([]);
+  });
+
+  it('puts a product with one size low among those wanting attention, though another keeps it in stock', async () => {
+    const shop = await openShop(port, texts, 'stock-attention');
+    const size = await platformId(shop, 'Size');
+    const [small, large] = await options(shop, size, ['S', 'L']);
+    await simple(shop, 'Scarf', 9);
+    await create(shop, {
+      name: 'Kurti',
+      basePrice: 900,
+      lowStockThreshold: 2,
+      variantAttributes: [{ attributeId: size, optionIds: [small, large] }],
+      variants: [
+        { optionIds: [small], openingStock: 1 },
+        { optionIds: [large], openingStock: 8 },
+      ],
+    });
+    await simple(shop, 'Lamp', 6);
+    const page = await stockPage(shop);
+    expect(page.products.map((product) => [product.name, product.state])).toEqual([
+      ['Kurti', 'in'],
+      ['Lamp', 'in'],
+      ['Scarf', 'in'],
+    ]);
+    // Low counts the products themselves, as the Products list does.
+    expect(page.counts).toEqual({ all: 3, low: 0, out: 0 });
+  });
+
+  it('says how each product keeps its stock, so a row opens the sheets it has', async () => {
+    const shop = await openShop(port, texts, 'stock-kept');
+    await simple(shop, 'Face cream', 4, { batchTracked: true });
+    await simple(shop, 'Phone', 0, { serialTracked: true, serialFormat: 'imei' });
+    await simple(shop, 'Mug', 3);
+    const page = await stockPage(shop);
+    const kept = Object.fromEntries(
+      page.products.map((product) => [
+        product.name,
+        [product.batchTracked, product.serialTracked, product.serialFormat],
+      ]),
+    );
+    expect(kept).toEqual({
+      'Face cream': [true, false, 'any'],
+      Phone: [false, true, 'imei'],
+      Mug: [false, false, 'any'],
+    });
   });
 
   it('finds by name, picks the active ones that are low or out, and pages them', async () => {

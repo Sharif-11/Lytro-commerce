@@ -117,8 +117,9 @@ export class StockService implements ProductStockHooks {
 
   /**
    * The Stock page (Slice 11.9; INV-01, INV-08): a page of the shop's products found by name, out of stock first, then
-   * low, each with its stock as its own screen shows it, its name, whether it is on sale, and its variant-defining
-   * attributes, its variants' option ids in their order; All, Low and Out counted as the Products list counts them.
+   * low, each with its stock as its own screen shows it, its name, whether it is on sale, how it keeps its stock (its
+   * sheets differ by it), and its variant-defining attributes, its variants' option ids in their order; All, Low and
+   * Out counted as the Products list counts them.
    */
   page(tenantId: string, query: StockPageQuery, canSeeCost: boolean): Promise<StockPageView> {
     return this.transactions.run(async (tx) => {
@@ -158,6 +159,9 @@ export class StockService implements ProductStockHooks {
               ...view,
               name: product.name,
               active: product.active,
+              batchTracked: product.batchTracked,
+              serialTracked: product.serialTracked,
+              serialFormat: product.serialFormat,
               splits: own,
               variants: inProductOrder(own, view.variants),
             },

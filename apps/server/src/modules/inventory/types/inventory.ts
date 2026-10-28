@@ -22,6 +22,7 @@ import type {
 } from '@lytronix/db';
 import type {
   BatchState,
+  SerialFormat,
   SerialStatus,
   StockReason,
   StockState,
@@ -280,12 +281,16 @@ export interface ProductStockView {
 }
 
 /**
- * The Stock page's product (Slice 11.9): its stock, its name and whether it is on sale, and its variant-defining
- * attributes as its edit screen names them; each variant's option ids follow their order.
+ * The Stock page's product (Slice 11.9): its stock, its name and whether it is on sale, how it keeps its stock (in
+ * batches, with serials), and its variant-defining attributes as its edit screen names them; each variant's option ids
+ * follow their order.
  */
 export interface StockPageProductView extends ProductStockView {
   name: string;
   active: boolean;
+  batchTracked: boolean;
+  serialTracked: boolean;
+  serialFormat: SerialFormat;
   splits: VariantAttributeView[];
 }
 
