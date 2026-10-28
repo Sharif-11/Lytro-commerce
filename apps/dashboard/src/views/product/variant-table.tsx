@@ -104,6 +104,7 @@ export function VariantTable({
   onShowAll,
   onRow,
   onFill,
+  onOpen,
 }: {
   rows: readonly VariantRow[];
   splits: readonly SplitAttribute[];
@@ -118,6 +119,8 @@ export function VariantTable({
   onShowAll: () => void;
   onRow: (index: number, patch: Partial<VariantRow>) => void;
   onFill: (column: FillColumn) => void;
+  /** Opens a variant's own settings (the variant sheet). */
+  onOpen: (index: number) => void;
 }): React.JSX.Element {
   const { t } = useTranslation('shop');
   const words = useVariantWords();
@@ -172,7 +175,16 @@ export function VariantTable({
             return (
               <tr key={keyOf(row.optionIds)}>
                 <td className="sticky left-0 z-[1] border-b border-line bg-surface px-2.5 py-2 whitespace-nowrap">
-                  {name}
+                  <button
+                    type="button"
+                    aria-label={t('openVariant', { variant: name })}
+                    className="text-left underline decoration-line-strong underline-offset-2"
+                    onClick={() => {
+                      onOpen(index);
+                    }}
+                  >
+                    {name}
+                  </button>
                 </td>
                 {columns.pack ? (
                   <Cell

@@ -34,5 +34,13 @@ export interface HomeAreaInput {
 /** The parts of GET /delivery-zones (DLV-05) the first build's Settings reads until Slice 11.6. */
 export interface DeliverySettings {
   homeArea: { kind: 'city' | 'zilla' | 'thanas'; label: Bilingual };
-  zones: { id: string; label: Bilingual; charge: string; isHome: boolean; isFallback: boolean }[];
+  zones: {
+    id: string;
+    label: Bilingual;
+    charge: string;
+    isHome: boolean;
+    isFallback: boolean;
+    /** DLV-06: a zone the shop does not deliver to. */
+    noDelivery: boolean;
+  }[];
 }

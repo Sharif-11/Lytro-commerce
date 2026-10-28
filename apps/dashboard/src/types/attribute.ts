@@ -1,5 +1,6 @@
 import type {
   AttributeDataType,
+  PaymentPolicy,
   ProductFormField,
   SerialFormat,
   StockTracking,
@@ -54,6 +55,8 @@ export interface ProductDefaults {
   suggestedAttributeIds: string[];
   suggestedCategories: string[];
   upFrontFields: ProductFormField[];
+  /** PRD-08: the shop's default, which a product with no policy of its own follows. */
+  shopPaymentPolicy: { defaultPaymentPolicy: PaymentPolicy; defaultAdvanceAmount: string | null };
 }
 
 /** Mirrors the variant rows of `GET /products/:id/stock` (INV-01, INV-24), the figures the variant table shows. */

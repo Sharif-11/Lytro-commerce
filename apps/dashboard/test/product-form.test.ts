@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { AttributeDataType, AttributeRole } from '@lytronix/validators';
-import type { Description, SplitAttribute, VariantRow } from '../src/lib/variant-matrix';
+import { AttributeDataType, AttributeRole, StockTracking } from '@lytronix/validators';
+import { settingsBody } from '../src/lib/product-settings';
+import {
+  blankRow,
+  type Description,
+  type SplitAttribute,
+  type VariantRow,
+} from '../src/lib/variant-matrix';
 import type { ProductDetail } from '../src/types/product';
 import {
   changedParts,
@@ -36,13 +42,15 @@ const SIZE: SplitAttribute = {
     { id: 'o-2lb', value: '2 lb', swatchColor: null, swatchImage: null },
   ],
 };
-const ROW: VariantRow = {
-  optionIds: [],
-  id: null,
-  price: '',
-  sku: '',
-  openingStock: '',
-  packAmount: '',
+const ROW: VariantRow = blankRow([]);
+/** A blank row as a save sends it: nothing of its own beyond its options. */
+const SENT = {
+  sku: null,
+  barcode: null,
+  weightKg: null,
+  deliveryCharge: null,
+  deliveryMode: null,
+  active: true,
 };
 const MESSAGE: Description = {
   attributeId: 'a-msg',
@@ -81,6 +89,7 @@ describe('the product form (TENANT-DASHBOARD-DESIGN §7.4)', () => {
       categoryIds: [],
       primaryCategoryId: null,
       active: true,
+      ...settingsBody(NEW_PRODUCT.settings),
     });
     expect(createBody({ ...SAVED, videoId: 'v-1' })).toMatchObject({
       imageIds: ['m-1', 'm-2'],
@@ -104,6 +113,50 @@ describe('the product form (TENANT-DASHBOARD-DESIGN §7.4)', () => {
       { part: 'fields', body: { description: null } },
       { part: 'images', body: { mediaIds: ['m-2', 'm-1'] } },
       { part: 'video', body: { mediaId: 'v-1' } },
+    ]);
+  });
+
+  it('a new product takes its zones, chart and one variant in its one request (Slice 11.7c)', () => {
+    const typed: ProductForm = {
+      ...NEW_PRODUCT,
+      name: 'Pather Panchali',
+      price: '320',
+      deliveryZoneIds: ['z-in'],
+      chart: { own: true, mode: 'table', rows: [['', 'Chest']], image: null },
+      single: { sku: ' PP-0320 ', barcode: '' },
+      openingStock: '12',
+    };
+    expect(createBody(typed)).toMatchObject({
+      deliveryZoneIds: ['z-in'],
+      sizeChart: { rows: [['', 'Chest']] },
+      variantAttributes: [],
+      variants: [{ optionIds: [], sku: 'PP-0320', barcode: null, openingStock: 12 }],
+    });
+    // Made to order, nothing opens on a shelf.
+    const made = {
+      ...typed,
+      settings: { ...typed.settings, stockTracking: StockTracking.NotTracked },
+    };
+    expect(createBody(made)).toMatchObject({
+      variants: [{ optionIds: [], sku: 'PP-0320', barcode: null }],
+    });
+    expect(JSON.stringify(createBody(made))).not.toContain('openingStock');
+  });
+
+  it('saves where it delivers and its chart as two more parts; a chart dropped is taken off', () => {
+    const own = { own: true, mode: 'table' as const, rows: [['', 'Chest']], image: null };
+    expect(changedParts(SAVED, { ...SAVED, deliveryZoneIds: ['z-in'], chart: own })).toEqual([
+      { part: 'zones', body: { zoneIds: ['z-in'] } },
+      { part: 'chart', body: { rows: [['', 'Chest']] } },
+    ]);
+    expect(changedParts({ ...SAVED, chart: own }, SAVED)).toEqual([{ part: 'chart', body: null }]);
+    expect(
+      changedParts(SAVED, {
+        ...SAVED,
+        settings: { ...SAVED.settings, weightKg: '0.4', lowStockThreshold: '3' },
+      }),
+    ).toEqual([
+      { part: 'fields', body: { lowStockThreshold: 3, weightKg: 0.4, deliveryMode: 'adjustable' } },
     ]);
   });
 
@@ -147,9 +200,13 @@ describe('the product form (TENANT-DASHBOARD-DESIGN §7.4)', () => {
       attributes: [{ attributeId: 'a-msg', role: AttributeRole.CapturedAtOrder }],
     });
     // A product made to order has no stock on the shelf to open with (INV-02).
-    expect(
-      (createBody(typed, { opening: false }) as { variants: object[] }).variants[1],
-    ).not.toHaveProperty('openingStock');
+    const madeToOrder = {
+      ...typed,
+      settings: { ...typed.settings, stockTracking: StockTracking.NotTracked },
+    };
+    expect((createBody(madeToOrder) as { variants: object[] }).variants[1]).not.toHaveProperty(
+      'openingStock',
+    );
     // INV-24: sharing, each variant says how much it uses and the stock opens in the product's unit.
     expect(
       createBody({
@@ -189,8 +246,8 @@ describe('the product form (TENANT-DASHBOARD-DESIGN §7.4)', () => {
         body: {
           variantAttributes: [{ attributeId: 'a-size', optionIds: ['o-1lb', 'o-2lb'] }],
           variants: [
-            { optionIds: ['o-1lb'], price: null, sku: null },
-            { optionIds: ['o-2lb'], price: 1650, sku: null },
+            { ...SENT, optionIds: ['o-1lb'], price: null },
+            { ...SENT, optionIds: ['o-2lb'], price: 1650 },
           ],
         },
       },
@@ -201,7 +258,10 @@ describe('the product form (TENANT-DASHBOARD-DESIGN §7.4)', () => {
     ]);
     // Taking every splitting attribute away leaves the one default variant.
     expect(changedParts(saved, { ...saved, splits: [], variants: [] })).toEqual([
-      { part: 'variants', body: { variantAttributes: [] } },
+      {
+        part: 'variants',
+        body: { variantAttributes: [], variants: [{ optionIds: [], sku: null, barcode: null }] },
+      },
     ]);
   });
 

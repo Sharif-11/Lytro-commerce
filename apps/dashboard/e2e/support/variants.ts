@@ -30,6 +30,12 @@ export interface VariantFixture {
   sku: string | null;
   packAmount?: string | null;
   onHand?: number;
+  /** Slice 11.7c: what it sets of its own (the variant sheet). */
+  barcode?: string | null;
+  weightKg?: string | null;
+  deliveryCharge?: string | null;
+  deliveryMode?: string | null;
+  active?: boolean;
 }
 
 /** A product's variants as saved: the attributes splitting it, with their options, and a row per variant. */
@@ -269,7 +275,7 @@ export function variantPart(
   return {
     stockUnit: product.stockUnit ?? 'piece',
     stockTracking: product.stockTracking ?? 'tracked',
-    batchTracked: false,
+    batchTracked: product.settings?.batchTracked === true,
     serialTracked: product.serialTracked ?? false,
     sharedStock: product.sharedStock ?? false,
     variantAttributes: matrix.splits.map((split, index) => {
@@ -318,15 +324,15 @@ export function variantPart(
       id: row.id,
       optionIds: row.optionIds,
       sku: row.sku,
-      barcode: null,
+      barcode: row.barcode ?? null,
       price: row.price,
       effectivePrice: row.price ?? product.basePrice,
-      weightKg: null,
-      deliveryCharge: null,
-      deliveryMode: null,
-      effectiveDeliveryMode: 'default',
+      weightKg: row.weightKg ?? null,
+      deliveryCharge: row.deliveryCharge ?? null,
+      deliveryMode: row.deliveryMode ?? null,
+      effectiveDeliveryMode: row.deliveryMode ?? 'default',
       packAmount: row.packAmount ?? null,
-      active: true,
+      active: row.active ?? true,
       stockState: (row.onHand ?? 0) > 0 ? product.stockState : 'out',
     })),
   };
@@ -339,7 +345,7 @@ export function stockAnswer(product: ProductFixture): unknown {
     productId: product.id,
     stockTracking: product.stockTracking ?? 'tracked',
     stockUnit: product.stockUnit ?? 'piece',
-    lowStockThreshold: '5',
+    lowStockThreshold: (product.settings?.lowStockThreshold as string | undefined) ?? '5',
     state: product.stockState,
     shared: product.sharedStock
       ? {
@@ -369,8 +375,12 @@ export function stockAnswer(product: ProductFixture): unknown {
   };
 }
 
-/** GET /product-defaults: a clothing shop's, unless the fixture is another kind of shop (PST-02). */
-export function defaultsAnswer(fixture: ProductsFixture): unknown {
+/**
+ * GET /product-defaults: a clothing shop's, unless the fixture is another kind of shop (PST-02), or the category asked
+ * about brings its own type's (PST-06).
+ */
+export function defaultsAnswer(fixture: ProductsFixture, categoryId: string | null): unknown {
+  const brought = categoryId ? fixture.categoryDefaults?.[categoryId] : undefined;
   return {
     businessType: 'clothing',
     presetKey: 'clothing',
@@ -384,15 +394,19 @@ export function defaultsAnswer(fixture: ProductsFixture): unknown {
     suggestedAttributeIds: ['a-1', 'a-2', 'a-10'],
     suggestedCategories: [],
     upFrontFields: ['sizeChart'],
+    shopPaymentPolicy: { defaultPaymentPolicy: 'none', defaultAdvanceAmount: null },
     ...fixture.defaults,
+    ...(brought ? { ...brought, fromCategoryId: categoryId } : {}),
   };
 }
 
 /** The options-and-variants reads; undefined for any other path. */
-export function variantRead(path: string, fixture: ProductsFixture): unknown {
+export function variantRead(path: string, fixture: ProductsFixture, url: URL): unknown {
   if (path === '/attributes') return libraryOf(fixture).map(attributeView);
   if (path === '/option-sets') return (fixture.optionSets ??= drawnOptionSets());
-  if (path === '/product-defaults') return defaultsAnswer(fixture);
+  if (path === '/product-defaults') {
+    return defaultsAnswer(fixture, url.searchParams.get('categoryId'));
+  }
   const stock = /^\/products\/([^/]+)\/stock$/.exec(path);
   const product = fixture.products.find((each) => each.id === stock?.[1]);
   return product ? stockAnswer(product) : undefined;
@@ -416,6 +430,11 @@ function saveVariants(
     price: number | null;
     sku: string | null;
     packAmount?: number;
+    barcode?: string | null;
+    weightKg?: number | null;
+    deliveryCharge?: number | null;
+    deliveryMode?: string | null;
+    active?: boolean;
   }[];
   const taken = listed.findIndex((each) => each.sku !== null && each.sku === fixture.refuse?.sku);
   if (taken >= 0) {
@@ -446,6 +465,15 @@ function saveVariants(
         sku: each.sku,
         packAmount: each.packAmount === undefined ? null : String(each.packAmount),
         onHand: kept?.onHand ?? 0,
+        barcode: each.barcode ?? null,
+        weightKg:
+          each.weightKg === undefined || each.weightKg === null ? null : String(each.weightKg),
+        deliveryCharge:
+          each.deliveryCharge === undefined || each.deliveryCharge === null
+            ? null
+            : String(each.deliveryCharge),
+        deliveryMode: each.deliveryMode ?? null,
+        active: each.active ?? true,
       };
     }),
   };

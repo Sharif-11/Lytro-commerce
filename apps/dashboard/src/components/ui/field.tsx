@@ -165,6 +165,8 @@ export function AreaField({
 interface SelectFieldProps extends SelectHTMLAttributes<HTMLSelectElement> {
   label: ReactNode;
   help?: ReactNode;
+  /** The form's or the server's wording; the control turns red. */
+  error?: ReactNode;
   options: readonly { value: string; label: string }[];
 }
 
@@ -172,6 +174,7 @@ interface SelectFieldProps extends SelectHTMLAttributes<HTMLSelectElement> {
 export function SelectField({
   label,
   help,
+  error,
   options,
   id,
   className,
@@ -188,8 +191,12 @@ export function SelectField({
       <span className="relative flex">
         <select
           id={inputId}
-          aria-describedby={help ? noteId : undefined}
-          className="h-12 w-full appearance-none rounded-control border border-line-strong bg-surface pr-10 pl-3 text-[16px] text-fg outline-none focus:outline-2 focus:outline-offset-1 focus:outline-focus"
+          aria-describedby={error || help ? noteId : undefined}
+          aria-invalid={error ? true : undefined}
+          className={[
+            'h-12 w-full appearance-none rounded-control border bg-surface pr-10 pl-3 text-[16px] text-fg outline-none focus:outline-2 focus:outline-offset-1 focus:outline-focus',
+            error ? 'border-danger' : 'border-line-strong',
+          ].join(' ')}
           {...rest}
         >
           {options.map((option) => (
@@ -202,7 +209,11 @@ export function SelectField({
           <Icon name="down" />
         </span>
       </span>
-      {help ? (
+      {error ? (
+        <p id={noteId} className="text-[13px] font-medium text-danger">
+          {error}
+        </p>
+      ) : help ? (
         <p id={noteId} className="text-[13px] text-fg-muted">
           {help}
         </p>

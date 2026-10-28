@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AttributeDataType, UnitKind } from '@lytronix/validators';
 import { tenantSession } from '@/session/tenant-session';
 import type {
@@ -42,6 +42,7 @@ export function useProductDefaults(categoryId: string | null) {
       tenantSession.client.get<ProductDefaults>(
         `/product-defaults${categoryId ? `?categoryId=${encodeURIComponent(categoryId)}` : ''}`,
       ),
+    placeholderData: keepPreviousData,
   });
 }
 

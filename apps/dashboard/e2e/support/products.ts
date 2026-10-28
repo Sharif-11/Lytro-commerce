@@ -38,6 +38,12 @@ export interface ProductFixture {
   stockUnit?: string;
   serialTracked?: boolean;
   sharedStock?: boolean;
+  /** Slice 11.7c: its other stock, delivery and payment settings as saved, where they differ from `SETTINGS`. */
+  settings?: Record<string, unknown>;
+  /** DLV-07: the zones it may be delivered to; none for wherever the shop delivers. */
+  zoneIds?: string[];
+  /** PRD-17: its own chart, a table or a picture. */
+  chart?: { rows: string[][] } | { imageId: string } | null;
 }
 
 /** A category: its id, its parent, and its name in both languages. */
@@ -64,6 +70,10 @@ export interface ProductsFixture {
   library?: AttributeFixture[];
   optionSets?: unknown[];
   defaults?: Record<string, unknown>;
+  /** Slice 11.7c: the defaults a category's own shop type brings (PST-06), by category id. */
+  categoryDefaults?: Record<string, Record<string, unknown>>;
+  /** Slice 11.7c: the categories' own charts (PRD-17), by category id. */
+  charts?: Record<string, string[][]>;
 }
 
 // In the shop's order (the prototype's `CATS`).
@@ -90,9 +100,36 @@ export function categoryList(fixture: ProductsFixture, language: Language): unkn
     suggestedAttributeIds: [],
     behavesLike: null,
     image: null,
-    sizeChart: null,
+    sizeChart: fixture.charts?.[id] ?? null,
     sizeChartImage: null,
   }));
+}
+
+/** The shop's zones as Delivery draws them (the prototype's `SCREENS.delivery`): two of its own, one it skips. */
+export function zonesAnswer(): unknown {
+  const zone = (
+    id: string,
+    en: string,
+    bn: string,
+    charge: string,
+    more: { isHome?: boolean; isFallback?: boolean; noDelivery?: boolean } = {},
+  ) => ({
+    id,
+    label: { en, bn },
+    charge,
+    isHome: more.isHome ?? false,
+    isFallback: more.isFallback ?? false,
+    noDelivery: more.noDelivery ?? false,
+  });
+  return {
+    homeArea: { kind: 'city', label: { en: 'Dhaka city', bn: 'ঢাকা সিটি' } },
+    zones: [
+      zone('z-in', 'Inside Dhaka city', 'ঢাকা সিটির ভেতরে', '70.00', { isHome: true }),
+      zone('z-out', 'Outside Dhaka city', 'ঢাকা সিটির বাইরে', '130.00', { isFallback: true }),
+      zone('z-ctg', 'Chattogram and Sylhet', 'চট্টগ্রাম ও সিলেট', '100.00'),
+      zone('z-hill', 'Hill districts', 'পার্বত্য এলাকা', '0.00', { noDelivery: true }),
+    ],
+  };
 }
 
 /** The prototype's six (`PRODUCTS`) and Part 13's two archived (`ARCHIVED13`). */
@@ -117,6 +154,8 @@ export function drawnProducts(): ProductsFixture {
         matrix: drawnTshirt(),
         descriptions: [{ attributeId: 'a-3', role: 'informational', textValue: '100% cotton' }],
         imageIds: ['m-1', 'm-2', 'm-3'],
+        // Part 15's `product`: a weight, the charge adjusting by it (PRD-16).
+        settings: { weightKg: '0.250', deliveryMode: 'adjustable' },
       },
       {
         id: 'p-2',
@@ -233,7 +272,63 @@ function summary(product: ProductFixture, language: Language): unknown {
   };
 }
 
-/** GET /products/:id: what the editor reads (the server's ProductDetail, as far as Slice 11.7b reads it). */
+/** A product's settings as a new one has them, unless it saved its own. */
+const SETTINGS: Record<string, unknown> = {
+  lowStockThreshold: '5.000',
+  serialFormat: 'any',
+  condition: 'new',
+  weightKg: null,
+  deliveryCharge: null,
+  deliveryMode: 'default',
+  paymentPolicy: null,
+  advanceAmount: null,
+};
+/** What a PATCH or POST /products may set of them, beside the product's own fields. */
+const SETTING_KEYS = [...Object.keys(SETTINGS), 'batchTracked'];
+
+/** PRD-17: its own chart, else the nearest category's, the primary one or one above it. */
+function chartView(product: ProductFixture, fixture: ProductsFixture): unknown {
+  const own = product.chart;
+  if (own) {
+    return {
+      source: 'product',
+      categoryId: null,
+      rows: 'rows' in own ? own.rows : null,
+      image:
+        'imageId' in own
+          ? {
+              id: own.imageId,
+              urls: { main: picture(own.imageId), thumbnail: picture(own.imageId) },
+            }
+          : null,
+    };
+  }
+  const tree = fixture.categories ?? CATEGORIES;
+  let id = product.primaryCategoryId;
+  while (id) {
+    const rows = fixture.charts?.[id];
+    if (rows) return { source: 'category', categoryId: id, rows, image: null };
+    id = tree.find((each) => each[0] === id)?.[1] ?? null;
+  }
+  return null;
+}
+
+/** A stored amount as the server answers it: a typed number is its decimal string. */
+const stored = (value: unknown): unknown => (typeof value === 'number' ? String(value) : value);
+
+/** The settings a PATCH or a POST /products sent, saved as the server's row would hold them. */
+function saveSettings(product: ProductFixture, body: Record<string, unknown>): void {
+  for (const key of SETTING_KEYS) {
+    if (key in body) (product.settings ??= {})[key] = stored(body[key]);
+  }
+  if (body.stockTracking === 'tracked' || body.stockTracking === 'not_tracked') {
+    product.stockTracking = body.stockTracking;
+  }
+  if (typeof body.stockUnit === 'string') product.stockUnit = body.stockUnit;
+  if (typeof body.serialTracked === 'boolean') product.serialTracked = body.serialTracked;
+}
+
+/** GET /products/:id: what the editor reads (the server's ProductDetail, as far as Slice 11.7c reads it). */
 export function productDetail(
   product: ProductFixture,
   language: Language,
@@ -248,6 +343,7 @@ export function productDetail(
     archived: product.archived ?? false,
     categoryIds,
     ...variantPart(product, fixture),
+    ...settingsPart(product, fixture),
     images: (product.imageIds ?? []).map((id) => ({
       id,
       urls: { main: picture(id), thumbnail: picture(id) },
@@ -262,6 +358,20 @@ export function productDetail(
         }
       : null,
     updatedAt: new Date().toISOString(),
+  };
+}
+
+/** The settings part of the detail: the saved ones, the policy in effect, the chart and the zones. */
+function settingsPart(product: ProductFixture, fixture: ProductsFixture): Record<string, unknown> {
+  const settings = { ...SETTINGS, ...product.settings };
+  const own = settings.paymentPolicy ?? null;
+  return {
+    ...settings,
+    batchTracked: settings.batchTracked === true,
+    effectivePaymentPolicy: own ?? 'none',
+    effectiveAdvanceAmount: own === null ? null : settings.advanceAmount,
+    sizeChart: chartView(product, fixture),
+    deliveryZoneIds: product.zoneIds ?? [],
   };
 }
 
@@ -468,8 +578,13 @@ export function productWrite(
       description: (body?.description as string | null | undefined) ?? null,
       imageIds: (body?.imageIds as string[] | undefined) ?? [],
       videoId: (body?.videoId as string | undefined) ?? null,
+      zoneIds: (body?.deliveryZoneIds as string[] | undefined) ?? [],
+      chart: (body?.sizeChart as ProductFixture['chart'] | undefined) ?? null,
     };
-    if (body) createdMatrix(product, body, fixture);
+    if (body) {
+      saveSettings(product, body);
+      createdMatrix(product, body, fixture);
+    }
     fixture.products.unshift(product);
     return { data: productDetail(product, language, fixture) };
   }
@@ -490,7 +605,21 @@ export function productWrite(
       product.primaryCategoryId = body.primaryCategoryId as string | null;
     }
     if (typeof body?.active === 'boolean') product.active = body.active;
+    if (body) saveSettings(product, body);
     return answer();
+  }
+  if (method === 'PUT' && part === '/delivery-zones') {
+    product.zoneIds = (body?.zoneIds as string[] | undefined) ?? [];
+    return answer();
+  }
+  // PRD-17: the chart's own routes answer the chart, not the product.
+  if (method === 'PUT' && part === '/size-chart') {
+    product.chart = body as ProductFixture['chart'];
+    return { data: chartView(product, fixture) };
+  }
+  if (method === 'DELETE' && part === '/size-chart') {
+    product.chart = null;
+    return { data: { ok: true } };
   }
   if (method === 'PUT' && part === '/images') {
     if (fixture.refuse?.images) {

@@ -19,6 +19,7 @@ import {
   fillAll,
   keyOf,
   overLimit,
+  blankRow,
   reconcile,
   setsFor,
   variantCount,
@@ -33,6 +34,7 @@ import { AddAttributeSheet } from './add-attribute-sheet';
 import { FillSheet } from './fill-sheet';
 import { OptionsSheet } from './options-sheet';
 import { ValueSheet } from './value-sheet';
+import { VariantSheet } from './variant-sheet';
 import { VariantTable } from './variant-table';
 import { useVariantWords } from './variant-words';
 
@@ -97,6 +99,7 @@ export function VariantsCard({
   const [filling, setFilling] = useState<FillColumn | null>(null);
   const [question, setQuestion] = useState<Question | null>(null);
   const [showAll, setShowAll] = useState(false);
+  const [variantAt, setVariantAt] = useState<number | null>(null);
   const titleId = useId();
   const library = attributes.data ?? [];
   const libraryOf = (id: string): Attribute | undefined => library.find((each) => each.id === id);
@@ -233,14 +236,7 @@ export function VariantsCard({
     const current: VariantRow[] =
       form.splits.length > 0
         ? form.variants
-        : (product?.variants ?? []).map((variant) => ({
-            optionIds: [],
-            id: variant.id,
-            price: '',
-            sku: '',
-            openingStock: '',
-            packAmount: '',
-          }));
+        : (product?.variants ?? []).map((variant) => ({ ...blankRow([]), id: variant.id }));
     const held = isNew || shared ? null : heldBy(current);
     if (held === null) {
       apply();
@@ -524,6 +520,7 @@ export function VariantsCard({
             });
           }}
           onFill={setFilling}
+          onOpen={setVariantAt}
         />
       ) : null}
       {isNew && shared && form.variants.length > 0 ? (
@@ -610,6 +607,26 @@ export function VariantsCard({
         }}
         onClose={() => {
           setValueOf(null);
+        }}
+      />
+      <VariantSheet
+        row={variantAt === null ? null : (form.variants[variantAt] ?? null)}
+        name={
+          variantAt === null
+            ? ''
+            : words.variant(form.variants[variantAt]?.optionIds ?? [], form.splits)
+        }
+        settings={form.settings}
+        readOnly={readOnly}
+        onChange={(patch) => {
+          onChange({
+            variants: form.variants.map((row, at) =>
+              at === variantAt ? { ...row, ...patch } : row,
+            ),
+          });
+        }}
+        onClose={() => {
+          setVariantAt(null);
         }}
       />
       <FillSheet

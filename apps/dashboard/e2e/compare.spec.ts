@@ -363,6 +363,151 @@ function productPairs(): Pair[] {
     },
     ...editorPairs(),
     ...variantPairs(),
+    ...stockPairs(),
+  ];
+}
+
+/**
+ * Stock and delivery (§7.4, §7.4a, Slice 11.7c, Part 15): the size chart as a table and as a picture, a variant's own
+ * settings, the question before making to order, Delivers to, the payment policy, a book's one variant with its SKU and
+ * barcode, and a category of another type changing the defaults.
+ */
+function stockPairs(): Pair[] {
+  const one = (
+    name: string,
+    path: string,
+    more: Partial<Pair> = {},
+    device: Device = 'phone',
+    language: Language = 'bn',
+  ): Pair => ({ name, screen: name, device, language, path, ...more });
+  const main = (page: Page) => page.getByRole('main');
+  const sheet = (page: Page) => page.getByRole('dialog').last();
+  /** The T-shirt with its own chart, as `sh-sizechart` and `sh-sizechart-picture` draw it. */
+  const charted = (chart: { rows: string[][] } | { imageId: string }): ShopState => {
+    const products = drawnProducts();
+    const shirt = products.products[0];
+    if (shirt) shirt.chart = chart;
+    return { products: { ...products, charts: { 'c-tshirts': [['', 'বুক']] } } };
+  };
+  const chartRows = [
+    ['', 'বুক', 'লম্বা', 'হাতা'],
+    ['S', '36', '27', '8'],
+    ['M', '38', '28', '8.5'],
+    ['L', '40', '29', '9'],
+    ['XL', '42', '30', '9.5'],
+  ];
+  const openChart = async (page: Page) => {
+    await main(page)
+      .getByRole('button', { name: /^নিজের চার্ট/ })
+      .click();
+  };
+  const tap = (name: string | RegExp) => async (page: Page) => {
+    await main(page).getByRole('button', { name }).first().click();
+  };
+  const books: ShopState = {
+    products: {
+      ...drawnProducts(),
+      defaults: { presetKey: 'books_stationery', suggestedAttributeIds: [], upFrontFields: [] },
+    },
+  };
+  const book =
+    (language: Language) =>
+    async (page: Page): Promise<void> => {
+      const bn = language === 'bn';
+      await main(page)
+        .getByLabel(bn ? 'নাম' : 'Name', { exact: true })
+        .fill(bn ? 'পথের পাঁচালী' : 'Pather Panchali');
+      await main(page)
+        .getByLabel(bn ? 'দাম' : 'Price', { exact: true })
+        .fill('320');
+      await main(page)
+        .getByLabel(bn ? 'শুরুর স্টক' : 'Opening stock')
+        .fill('12');
+      await main(page)
+        .getByLabel(bn ? 'ওজন (কেজি)' : 'Weight (kg)')
+        .fill('0.45');
+      await main(page)
+        .getByText(bn ? 'আরও সেটিংস' : 'More settings', { exact: true })
+        .click();
+      await main(page).getByLabel('SKU').fill('PP-0320');
+      await main(page)
+        .getByLabel(bn ? 'বারকোড' : 'Barcode')
+        .fill('9789845020181');
+      // Back to the top, where the drawing starts; a second pair scrolls both to Stock and delivery.
+      await page.evaluate(() => {
+        for (const each of document.querySelectorAll('*')) each.scrollTop = 0;
+        window.scrollTo(0, 0);
+      });
+    };
+  const phones: ShopState = {
+    products: {
+      ...drawnProducts(),
+      categories: [
+        ['c-tshirts', null, 'টি-শার্ট', 'T-shirts'],
+        ['c-phones', null, 'ফোন', 'Phones'],
+      ],
+      categoryDefaults: {
+        'c-phones': {
+          presetKey: 'mobiles_gadgets',
+          serialTracked: true,
+          serialFormat: 'imei',
+          lowStockThreshold: '2.000',
+          suggestedAttributeIds: [],
+          upFrontFields: ['serialTracked', 'itemCondition'],
+        },
+      },
+    },
+  };
+  return [
+    one('sh-sizechart', '/products/p-1', { state: charted({ rows: chartRows }), then: openChart }),
+    one('sh-sizechart-picture', '/products/p-1', {
+      state: charted({ imageId: 'm-9' }),
+      then: openChart,
+    }),
+    one('sh-variant', '/products/p-1', { then: tap('M · Black-এর সেটিংস') }),
+    one('sh-made-to-order', '/products/p-1', {
+      then: async (page) => {
+        await main(page).getByRole('radio', { name: 'অর্ডার পেলে বানানো (স্টক লাগে না)' }).click();
+      },
+    }),
+    one('sh-deliversto', '/products/p-1', {
+      then: async (page) => {
+        await tap(/^যেখানে ডেলিভারি হবে/)(page);
+        await sheet(page).getByRole('radio', { name: 'শুধু বাছা জোনে' }).click();
+        await sheet(page)
+          .getByRole('checkbox', { name: /ঢাকা সিটির ভেতরে/ })
+          .click();
+      },
+    }),
+    one('sh-policy', '/products/p-1', { then: tap(/^পেমেন্ট পলিসি/) }),
+    one('pf-books_stationery', '/products/new', { state: books, then: book('bn') }),
+    one(
+      'pf-books_stationery',
+      '/products/new',
+      { state: books, then: book('en') },
+      'desktop',
+      'en',
+    ),
+    {
+      ...one('pf-books_stationery', '/products/new', {
+        state: books,
+        then: book('bn'),
+        scroll: /^স্টক ও ডেলিভারি$/,
+      }),
+      name: 'pf-books_stationery-more',
+    },
+    one('pf-defaults-changed', '/products/new', {
+      state: phones,
+      then: async (page) => {
+        await tap('বদলান')(page);
+        await sheet(page).getByRole('checkbox', { name: 'ফোন' }).check();
+        await sheet(page).getByRole('button', { name: 'ঠিক আছে' }).click();
+        await main(page)
+          .getByText(/মোবাইল ও গ্যাজেট/)
+          .first()
+          .waitFor();
+      },
+    }),
   ];
 }
 

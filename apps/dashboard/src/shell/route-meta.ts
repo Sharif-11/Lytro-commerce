@@ -9,6 +9,11 @@ export interface ScreenMeta {
   needs?: readonly Permission[];
   /** The title's key in the shell dictionary; the shop's name when absent (a hub's own page). */
   title?: string;
+  /**
+   * The desktop header's title where the drawing names the screen itself rather than its section (a new product,
+   * `pf-*`), as a key with its namespace; `title` otherwise.
+   */
+  deskTitle?: string;
   /** A screen below its hub: the app bar trades the shop's name for back to here and the title. */
   back?: ShopPath;
   /**

@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCategories } from '@/api/catalogue';
 import { Card } from '@/components/ui/card';
@@ -15,6 +15,8 @@ export function BasicsCard({
   problems,
   readOnly,
   strip,
+  picking,
+  onPicking,
   onChange,
 }: {
   form: ProductForm;
@@ -22,11 +24,13 @@ export function BasicsCard({
   readOnly: boolean;
   /** The photos and video (the strip). */
   strip: ReactNode;
+  /** Whether the category picker is open; the defaults line's "change" opens it too (PST-06). */
+  picking: boolean;
+  onPicking: (open: boolean) => void;
   onChange: (patch: Partial<ProductForm>) => void;
 }): React.JSX.Element {
   const { t } = useTranslation('shop');
   const categories = useCategories();
-  const [picking, setPicking] = useState(false);
   const primary = categories.data?.find((each) => each.id === form.primaryCategoryId);
   const more = form.categoryIds.length - 1;
   const categoryText =
@@ -70,7 +74,7 @@ export function BasicsCard({
           disabled={readOnly}
           error={problems.category}
           onPick={() => {
-            setPicking(true);
+            onPicking(true);
           }}
         />
       </div>
@@ -88,11 +92,11 @@ export function BasicsCard({
         open={picking}
         chosen={{ categoryIds: form.categoryIds, primaryCategoryId: form.primaryCategoryId }}
         onDone={(chosen) => {
-          setPicking(false);
+          onPicking(false);
           onChange(chosen);
         }}
         onClose={() => {
-          setPicking(false);
+          onPicking(false);
         }}
       />
     </Card>

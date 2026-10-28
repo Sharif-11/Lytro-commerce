@@ -1,6 +1,7 @@
 import {
   AttributeDataType,
   AttributeRole,
+  DeliveryMode,
   MAX_VARIANT_ATTRIBUTES,
   MAX_VARIANTS_PER_PRODUCT,
   type UnitKind,
@@ -29,6 +30,15 @@ export interface VariantRow {
   openingStock: string;
   /** INV-24: how much of the shared stock one of it uses, as typed. */
   packAmount: string;
+  /** ATR-05, ATR-13 (the variant sheet, Part 15): its own barcode, weight and delivery charge; empty follows the
+   * product. */
+  barcode: string;
+  weightKg: string;
+  deliveryCharge: string;
+  /** PRD-16: whether its charge grows with its weight; null follows the product. */
+  adjustByWeight: boolean | null;
+  /** Whether it is on sale. */
+  active: boolean;
 }
 
 /** An attribute that describes the product, with its value as typed, or is asked when ordering (ATL-02, ATR-08). */
@@ -75,13 +85,18 @@ export function combinations(splits: readonly SplitAttribute[]): string[][] {
   );
 }
 
-const blankRow = (optionIds: string[]): VariantRow => ({
+export const blankRow = (optionIds: string[]): VariantRow => ({
   optionIds,
   id: null,
   price: '',
   sku: '',
   openingStock: '',
   packAmount: '',
+  barcode: '',
+  weightKg: '',
+  deliveryCharge: '',
+  adjustByWeight: null,
+  active: true,
 });
 
 /**
@@ -134,14 +149,26 @@ export function fillAll(
 /** The table's rows from a saved product, in the server's order. */
 export function rowsOf(product: ProductDetail): VariantRow[] {
   if (product.variantAttributes.length === 0) return [];
-  return product.variants.map((variant) => ({
+  return product.variants.map(rowOf);
+}
+
+/** One saved variant as the table holds it. */
+export function rowOf(variant: ProductDetail['variants'][number]): VariantRow {
+  const typed = (stored: string | null) => (stored === null ? '' : String(Number(stored)));
+  return {
     optionIds: variant.optionIds,
     id: variant.id,
-    price: variant.price === null ? '' : String(Number(variant.price)),
+    price: typed(variant.price),
     sku: variant.sku ?? '',
     openingStock: '',
-    packAmount: variant.packAmount === null ? '' : String(Number(variant.packAmount)),
-  }));
+    packAmount: typed(variant.packAmount),
+    barcode: variant.barcode ?? '',
+    weightKg: typed(variant.weightKg),
+    deliveryCharge: typed(variant.deliveryCharge),
+    adjustByWeight:
+      variant.deliveryMode === null ? null : variant.deliveryMode === DeliveryMode.Adjustable,
+    active: variant.active,
+  };
 }
 
 /** The splitting attributes of a saved product, with the options its live variants use. */
@@ -170,6 +197,9 @@ export function descriptionOf(attribute: ProductAttribute): Description {
   };
 }
 
+/** Typed text as the server takes it: trimmed, or null when empty. */
+const textOf = (typed: string): string | null => (typed.trim() === '' ? null : typed.trim());
+
 /** A typed amount as the server takes it: a number, or nothing when the cell is empty. */
 const amountOf = (typed: string): number | undefined =>
   typed.trim() === '' ? undefined : Number(typed.trim());
@@ -197,7 +227,17 @@ export function variantsBody(
     return {
       optionIds: row.optionIds,
       price: amountOf(row.price) ?? null,
-      sku: row.sku.trim() === '' ? null : row.sku.trim(),
+      sku: textOf(row.sku),
+      barcode: textOf(row.barcode),
+      weightKg: amountOf(row.weightKg) ?? null,
+      deliveryCharge: amountOf(row.deliveryCharge) ?? null,
+      deliveryMode:
+        row.adjustByWeight === null
+          ? null
+          : row.adjustByWeight
+            ? DeliveryMode.Adjustable
+            : DeliveryMode.Default,
+      active: row.active,
       ...(opening === undefined ? {} : { openingStock: opening }),
       ...(pack === undefined ? {} : { packAmount: pack }),
     };

@@ -40,10 +40,13 @@ export interface ProductPage {
   productLimit: number | null;
 }
 
-/** Mirrors `categoryViewSchema`: the fields a list needs (ATR-07). */
+/** Mirrors `categoryViewSchema`: the fields a list and the product form need (ATR-07, PRD-17). */
 export interface CategorySummary {
   id: string;
   parentId: string | null;
   name: string;
   sortOrder: number;
+  /** PRD-17: its own chart, a table or a picture; null when it has none. */
+  sizeChart: string[][] | null;
+  sizeChartImage: ImageView | null;
 }
