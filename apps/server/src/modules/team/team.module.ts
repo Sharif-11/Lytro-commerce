@@ -63,6 +63,7 @@ import {
 } from './controllers/purchase-orders.controller';
 import { SuppliersController } from './controllers/suppliers.controller';
 import { InventoryController } from './controllers/inventory.controller';
+import { SerialChecksController } from './controllers/serial-checks.controller';
 import {
   InventoryFiguresController,
   StockChecksController,
@@ -147,6 +148,7 @@ import { CatalogueRequest } from './services/catalogue-request';
     LocationsController,
     DeliveryZonesController,
     InventoryController,
+    SerialChecksController,
     StockChecksController,
     InventoryFiguresController,
     BatchesController,

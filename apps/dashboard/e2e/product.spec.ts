@@ -108,6 +108,19 @@ test('a new product says what is missing, then saves in one request and returns 
       categoryIds: ['c-jackets'],
       primaryCategoryId: 'c-jackets',
       active: true,
+      // Slice 11.7c: the settings the form showed, the shop type's (PST-02).
+      stockTracking: 'tracked',
+      stockUnit: 'piece',
+      lowStockThreshold: 5,
+      batchTracked: false,
+      serialTracked: false,
+      serialFormat: 'any',
+      condition: 'new',
+      weightKg: null,
+      deliveryCharge: null,
+      deliveryMode: 'default',
+      paymentPolicy: null,
+      advanceAmount: null,
     },
   ]);
   await expect(main(page).getByRole('link', { name: /Panjabi/ })).toBeVisible();

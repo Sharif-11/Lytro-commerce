@@ -11,11 +11,19 @@ import { RequirePermission } from '../../../common/decorators/require-permission
 import { ResponseMessage } from '../../../common/decorators/response-message';
 import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
 import { PresetService } from '../../catalogue/services/preset.service';
-import type { PresetView, ProductDefaults } from '../../catalogue/types/catalogue';
+import type {
+  PresetView,
+  ProductDefaults,
+  ProductFormDefaults,
+} from '../../catalogue/types/catalogue';
 import { DashboardGuard, type DashboardRequest } from '../../identity/guards/dashboard.guard';
 import { SessionGuard } from '../../identity/guards/session.guard';
 import { SetBusinessTypeDto } from '../dto/catalogue.dto';
-import { PresetViewDto, ProductDefaultsDto } from '../dto/catalogue-response.dto';
+import {
+  PresetViewDto,
+  ProductDefaultsDto,
+  ProductFormDefaultsDto,
+} from '../dto/catalogue-response.dto';
 import { PermissionGuard } from '../guards/permission.guard';
 import { CatalogueRequest } from '../services/catalogue-request';
 
@@ -47,13 +55,13 @@ export class CatalogueSetupController {
   @ResponseMessage('ProductDefaultsRetrieved')
   @ApiOperation({
     summary:
-      'What a new product starts with: from the category it is filed under when that behaves like a shop type, else the shop type (PST-02, PST-05, PST-06)',
+      "What a new product starts with: from the category it is filed under when that behaves like a shop type, else the shop type, with the shop's default payment policy (PST-02, PST-05, PST-06, PRD-08)",
   })
-  @ZodResponse({ type: ProductDefaultsDto })
+  @ZodResponse({ type: ProductFormDefaultsDto })
   async defaults(
     @Query(new ZodValidationPipe(productDefaultsQuerySchema)) query: ProductDefaultsQuery,
     @Req() request: DashboardRequest,
-  ): Promise<ProductDefaults> {
+  ): Promise<ProductFormDefaults> {
     return this.presets.productDefaults(
       await this.catalogue.shopOf(request),
       query.categoryId ?? null,

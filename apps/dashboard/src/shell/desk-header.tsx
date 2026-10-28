@@ -31,7 +31,11 @@ export function DeskHeader({ canSearch, canAdd }: DeskHeaderProps): React.JSX.El
   return (
     <header className="hidden h-16 flex-none items-center gap-3 border-b border-line bg-surface px-8 lg:flex">
       <h1 className="min-w-0 flex-1 overflow-hidden text-[20px] font-bold text-ellipsis whitespace-nowrap">
-        {screen?.title ? t(screen.title) : tenant.shopName}
+        {screen?.deskTitle
+          ? t(screen.deskTitle)
+          : screen?.title
+            ? t(screen.title)
+            : tenant.shopName}
       </h1>
       {canSearch ? (
         <form

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiClientError } from '@lytronix/api-client';
+import type { SerialFormat } from '@lytronix/validators';
 import { tenantSession } from '@/session/tenant-session';
 import type { CategorySummary } from '@/types/catalogue';
 import type { ProductDetail } from '@/types/product';
@@ -48,9 +49,23 @@ const PART_PATH: Record<EditPart['part'], string> = {
   fields: '',
   variants: '/variants',
   attributes: '/attributes',
+  zones: '/delivery-zones',
+  chart: '/size-chart',
   images: '/images',
   video: '/video',
 };
+
+/** One part's own request: the fields by PATCH, the size chart put or taken off, every other part put. */
+async function send(path: string, each: EditPart): Promise<ProductDetail | null> {
+  if (each.part === 'fields') return tenantSession.client.patch<ProductDetail>(path, each.body);
+  // PRD-17: the chart's own routes answer the chart, not the product.
+  if (each.part === 'chart') {
+    if (each.body === null) await tenantSession.client.delete<{ ok: true }>(path);
+    else await tenantSession.client.put<unknown>(path, each.body);
+    return null;
+  }
+  return tenantSession.client.put<ProductDetail>(path, each.body);
+}
 
 /**
  * Agreed for Slice 11.7a (point 7): one Save sends each changed part by its own request, in turn; a part refused
@@ -64,10 +79,7 @@ export function useSaveProduct(id: string) {
       for (const each of parts) {
         const path = `/products/${id}${PART_PATH[each.part]}`;
         try {
-          outcome.product =
-            each.part === 'fields'
-              ? await tenantSession.client.patch<ProductDetail>(path, each.body)
-              : await tenantSession.client.put<ProductDetail>(path, each.body);
+          outcome.product = (await send(path, each)) ?? outcome.product;
         } catch (error) {
           outcome.refused.push({ part: each.part, error });
         }
@@ -77,6 +89,17 @@ export function useSaveProduct(id: string) {
     onSettled: (outcome) => {
       changed(outcome?.product ?? undefined);
     },
+  });
+}
+
+/**
+ * POST /serials/check (INV-23, agreed for Slice 11.7c): which of the serials being entered a unit the shop holds
+ * already has, as the server stores them, so each is flagged before saving.
+ */
+export function useCheckSerials() {
+  return useMutation({
+    mutationFn: (body: { serials: string[]; format: SerialFormat }) =>
+      tenantSession.client.post<{ taken: string[] }>('/serials/check', body),
   });
 }
 

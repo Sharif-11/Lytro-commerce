@@ -219,6 +219,31 @@ describeIfDatabase('opening stock and the stock view (INV-01, INV-03, UOM-03)', 
     expect(lowStock.for(smallId)).toHaveLength(0);
   });
 
+  it('keeps an opening cost as the cost entered by hand, which a costed receipt then averages (INV-10)', async () => {
+    const shop = await openShop(port, texts, 'opening-cost');
+    const { product, variantId } = await simple(shop, 'Lipstick', 0, {
+      variants: [{ optionIds: [], openingStock: 10, openingUnitCost: 120.5 }],
+    });
+    expect(variant(await stockOf(shop, product.id), variantId).avgCost).toBe('120.5000');
+    expect((await history(shop, product.id, variantId))[0]).toMatchObject({
+      reason: 'initial',
+      unitCost: '120.5000',
+    });
+    const added = await shop.post(`/products/${product.id}/variants/${variantId}/stock-additions`, {
+      quantity: 10,
+      unitCost: 200,
+    });
+    expect(added.status, JSON.stringify(added.body)).toBe(200);
+    expect(variant(added.body as Stock, variantId).avgCost).toBe('160.2500');
+    // A cost is the cost of stock on the shelf.
+    const bare = await shop.post('/products', {
+      name: 'Bare',
+      basePrice: 1,
+      variants: [{ optionIds: [], openingUnitCost: 5 }],
+    });
+    expect(fieldsOf(bare)).toEqual({ 'variants.0.openingUnitCost': 'not_allowed' });
+  });
+
   it('refuses opening stock for a made-to-order product and a fraction of a piece, and takes one of a kilo', async () => {
     const shop = await openShop(port, texts, 'opening-bad');
     const madeToOrder = await shop.post('/products', {
@@ -1115,6 +1140,37 @@ describeIfDatabase('shared stock (INV-24, UOM-04)', () => {
     ]);
   });
 
+  it('keeps an opening cost on the shared stock, per unit of it, and none on a size', async () => {
+    const shop = await openShop(port, texts, 'perfume-cost');
+    const { size: sizeAttribute, ids } = await sizes(shop, ['50 ml', '100 ml']);
+    const body = {
+      name: 'Oud',
+      basePrice: 900,
+      stockUnit: 'ml',
+      sharedStock: true,
+      sharedOpeningStock: 500,
+      sharedOpeningUnitCost: 4.25,
+      variantAttributes: [{ attributeId: sizeAttribute, optionIds: ids }],
+      variants: [
+        { optionIds: [ids[0]], packAmount: 50 },
+        { optionIds: [ids[1]], packAmount: 100 },
+      ],
+    };
+    const created = await shop.post('/products', body);
+    expect(created.status, JSON.stringify(created.body)).toBe(201);
+    const view = await sharedOf(shop, (created.body as Detail).id);
+    expect((view.shared as SharedStock & { avgCost?: string }).avgCost).toBe('4.2500');
+    const sized = await shop.post('/products', {
+      ...body,
+      name: 'Oud 2',
+      variants: [
+        { optionIds: [ids[0]], packAmount: 50, openingStock: 1, openingUnitCost: 200 },
+        { optionIds: [ids[1]], packAmount: 100 },
+      ],
+    });
+    expect(fieldsOf(sized)).toEqual({ 'variants.0.openingUnitCost': 'not_allowed' });
+  });
+
   it('keeps the stock holder out of the catalogue: variants, their count, the price range and the variant limit', async () => {
     const shop = await openShop(port, texts, 'perfume-hidden');
     const { product } = await perfume(shop);
@@ -1864,6 +1920,39 @@ describeIfDatabase('serial numbers (INV-14, INV-23)', () => {
     const twice = await add(shop, product.id, variantId, { quantity: 1, serials: [b] });
     expect(twice.status).toBe(409);
     expect(fieldsOf(twice)).toEqual({ 'serials.0': 'taken' });
+  });
+
+  it('says which serials being entered the shop already holds, read as the product reads them, to whoever may enter them (INV-23)', async () => {
+    const shop = await openShop(port, texts, 'serial-check');
+    const { product, variantId } = await phone(shop);
+    const [a, b] = [imei(), imei()];
+    expect((await add(shop, product.id, variantId, { quantity: 1, serials: [a] })).status).toBe(
+      200,
+    );
+    const spaced = `${a.slice(0, 2)} ${a.slice(2, 8)} ${a.slice(8)}`;
+    const checked = await shop.post('/serials/check', { serials: [spaced, b], format: 'imei' });
+    expect(checked.status, JSON.stringify(checked.body)).toBe(200);
+    expect(checked.body).toEqual({ taken: [a] });
+
+    // Whoever may enter serials may check them: a product's maker as much as stock's keeper. A plan's two seats hold
+    // one staff member, so the one who may only read stock is another shop's.
+    const maker = await staffWith(shop, ['products:read', 'products:manage']);
+    const asMaker = await postJson(port, '/serials/check', { serials: [a], format: 'imei' }, maker);
+    expect(asMaker.status).toBe(200);
+    const other = await openShop(port, texts, 'serial-check-other');
+    const reader = await staffWith(other, ['products:read', 'inventory:read']);
+    const asReader = await postJson(
+      port,
+      '/serials/check',
+      { serials: [a], format: 'imei' },
+      reader,
+    );
+    expect(asReader.status).toBe(403);
+
+    // Another shop's units are not this shop's.
+    expect((await other.post('/serials/check', { serials: [a], format: 'imei' })).body).toEqual({
+      taken: [],
+    });
   });
 
   it('flags a bad check digit, a short number and a repeat line by line, saving nothing (INV-23)', async () => {

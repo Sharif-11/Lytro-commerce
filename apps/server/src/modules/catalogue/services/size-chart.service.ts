@@ -132,16 +132,28 @@ export class SizeChartService {
     });
   }
 
+  /** PRD-17: a new product's own chart, inside its creation's transaction; a bad image is refused by `field`. */
+  async putOnProductWithin(
+    tx: Transaction,
+    tenantId: string,
+    productId: string,
+    input: SizeChartInput,
+    field: string,
+  ): Promise<void> {
+    await this.put(tx, tenantId, { productId }, input, field);
+  }
+
   private async put(
     tx: Transaction,
     tenantId: string,
     owner: SizeChartOwner,
     input: SizeChartInput,
+    field = 'imageId',
   ): Promise<SizeChartRecord> {
     try {
       return await this.charts.putChart(tx, tenantId, owner, contentOf(input));
     } catch (error) {
-      refuseUnattachable(error, 'imageId');
+      refuseUnattachable(error, field);
     }
   }
 

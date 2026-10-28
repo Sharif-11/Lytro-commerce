@@ -7,7 +7,8 @@ import { AppModule } from '../src/app/app.module';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase } from './support/database';
-import { errorOf, fieldsOf, openShop, type ShopClient } from './support/shop-client';
+import { getJson } from './support/http';
+import { errorOf, fieldsOf, openShop, staffWith, type ShopClient } from './support/shop-client';
 import { SmsCapture } from './support/sms-capture';
 
 // Phase 3 Slice 1c: the canonical location list (CUS-08), delivery zones around the home area (DLV-01 to DLV-04,
@@ -481,6 +482,30 @@ describeIfDatabase("a product's delivery limit (DLV-07)", () => {
     expect((lifted.body as { deliveryZoneIds: string[] }).deliveryZoneIds).toEqual([]);
   });
 
+  it('takes the limit with a new product, in its one request, and refuses a zone the shop lacks', async () => {
+    const shop = await openShop(port, texts, 'limit-new');
+    const homeZone = home(await settings(shop));
+    const created = await shop.post('/products', {
+      name: 'Frozen prawns',
+      basePrice: 900,
+      deliveryZoneIds: [homeZone.id, homeZone.id],
+    });
+    expect(created.status, JSON.stringify(created.body)).toBe(201);
+    expect((created.body as { deliveryZoneIds: string[] }).deliveryZoneIds).toEqual([homeZone.id]);
+
+    const other = await openShop(port, texts, 'limit-new-other');
+    const theirs = await addZone(other, 'Theirs', 80, { cityCodes: ['khulna'] });
+    const refused = await shop.post('/products', {
+      name: 'Frozen squid',
+      basePrice: 900,
+      deliveryZoneIds: [theirs.id],
+    });
+    expect(fieldsOf(refused)).toEqual({ deliveryZoneIds: 'not_found' });
+    // Refused, nothing was made.
+    const listed = (await shop.get('/products?search=squid')).body as { products: unknown[] };
+    expect(listed.products).toEqual([]);
+  });
+
   it("refuses another shop's zone in a product's limit", async () => {
     const shop = await openShop(port, texts, 'limit-own');
     const other = await openShop(port, texts, 'limit-other');
@@ -525,6 +550,27 @@ describeIfDatabase("the shop's default payment policy (PRD-08)", () => {
     expect(none.body).toMatchObject({ defaultPaymentPolicy: 'none', defaultAdvanceAmount: null });
     const stray = await shop.patch('/shop-settings', { defaultAdvanceAmount: 100 });
     expect(fieldsOf(stray)).toEqual({ defaultAdvanceAmount: 'not_allowed' });
+  });
+
+  it("gives the product form the shop's default, to someone who may only read products", async () => {
+    const shop = await openShop(port, texts, 'policy-form');
+    expect((await shop.get('/product-defaults')).body).toMatchObject({
+      shopPaymentPolicy: { defaultPaymentPolicy: 'none', defaultAdvanceAmount: null },
+    });
+    await shop.patch('/shop-settings', {
+      defaultPaymentPolicy: 'partial_advance',
+      defaultAdvanceAmount: 200,
+    });
+    const reader = await staffWith(port, texts, admin, shop, ['products:read']);
+    const seen = await getJson(port, '/product-defaults', reader);
+    expect(seen.status).toBe(200);
+    expect(seen.body).toMatchObject({
+      shopPaymentPolicy: {
+        defaultPaymentPolicy: 'partial_advance',
+        defaultAdvanceAmount: '200.00',
+      },
+    });
+    expect((await getJson(port, '/shop-settings', reader)).status).toBe(403);
   });
 
   it("shows each product the policy that applies: its own, else the shop's default", async () => {

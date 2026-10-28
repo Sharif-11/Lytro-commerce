@@ -376,12 +376,18 @@ test('a new product made to order: two attributes split it, one is asked when or
   await expect(page).toHaveURL(`/${SLUG}/products`);
   const [body] = sent(log, 'POST', '/products');
   expect(body?.variantAttributes).toHaveLength(2);
-  expect(body?.variants).toEqual([
-    { optionIds: [expect.any(String), expect.any(String)], price: null, sku: null },
-    { optionIds: [expect.any(String), expect.any(String)], price: null, sku: null },
-    { optionIds: [expect.any(String), expect.any(String)], price: 1600, sku: null },
-    { optionIds: [expect.any(String), expect.any(String)], price: null, sku: null },
-  ]);
+  // Nothing of a variant's own beyond its price (Slice 11.7c's variant sheet).
+  const plain = {
+    optionIds: [expect.any(String), expect.any(String)],
+    price: null,
+    sku: null,
+    barcode: null,
+    weightKg: null,
+    deliveryCharge: null,
+    deliveryMode: null,
+    active: true,
+  };
+  expect(body?.variants).toEqual([plain, plain, { ...plain, price: 1600 }, plain]);
   expect(body?.attributes).toEqual([
     { attributeId: expect.any(String), role: 'captured_at_order' },
   ]);

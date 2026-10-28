@@ -25,6 +25,7 @@ import { serialsField } from '../inventory/stock';
 import { productPhotoIdsField } from '../media/media';
 import { FieldProblemCode } from '../../validation/field-problem';
 import { newBatchField } from '../inventory/stock';
+import { productDeliveryZonesSchema, sizeChartSchema } from './extras';
 import {
   catalogueIdSchema,
   positiveQuantityField,
@@ -112,6 +113,9 @@ const newVariantsField = z
       openingBatch: newBatchField.optional(),
       // INV-14: the serials of the opening stock's units, one per unit; fewer leaves the rest to add later.
       openingSerials: serialsField.optional(),
+      // INV-10: what each unit of the opening stock cost, kept as the variant's cost entered by hand (agreed for Slice
+      // 11.7c: the opening batch sheet's unit cost).
+      openingUnitCost: priceField.optional(),
     }),
   )
   .max(MAX_VARIANTS_PER_PRODUCT);
@@ -243,6 +247,47 @@ function checkSharing(
   }
 }
 
+/**
+ * INV-10: an opening cost is the cost of stock on the shelf, so it comes with opening stock. On a product sharing its
+ * stock the cost is the shared stock's, per unit of it, so a size's packs carry none of their own.
+ */
+function checkOpeningCost(
+  value: {
+    sharedStock?: boolean;
+    sharedOpeningStock?: number;
+    sharedOpeningUnitCost?: number;
+    variants?: { openingStock?: number; openingUnitCost?: number }[];
+  },
+  ctx: Ctx,
+): void {
+  value.variants?.forEach((variant, index) => {
+    if (variant.openingUnitCost === undefined) return;
+    if (value.sharedStock) {
+      refuse(
+        ctx,
+        ['variants', index, 'openingUnitCost'],
+        FieldProblemCode.NotAllowed,
+        'A product sharing one stock has its cost on the shared stock.',
+      );
+    } else if ((variant.openingStock ?? 0) <= 0) {
+      refuse(
+        ctx,
+        ['variants', index, 'openingUnitCost'],
+        FieldProblemCode.NotAllowed,
+        'Only stock on the shelf has a cost.',
+      );
+    }
+  });
+  if (value.sharedOpeningUnitCost !== undefined && (value.sharedOpeningStock ?? 0) <= 0) {
+    refuse(
+      ctx,
+      ['sharedOpeningUnitCost'],
+      FieldProblemCode.NotAllowed,
+      'Only stock on the shelf has a cost.',
+    );
+  }
+}
+
 /** The product's own field rules that need no stored data (INV-12/14, PRD-08, PRD-15). */
 function checkFields(value: Partial<z.infer<z.ZodObject<typeof productFields>>>, ctx: Ctx): void {
   if (
@@ -311,18 +356,25 @@ export const createProductSchema = z
     sharedStock: z.boolean().optional(),
     sharedOpeningStock: quantityField.optional(),
     sharedOpeningBatch: newBatchField.optional(),
+    // INV-10: what each unit of the shared opening stock cost.
+    sharedOpeningUnitCost: priceField.optional(),
     variantAttributes: variantAttributesField.optional(),
     variants: newVariantsField.optional(),
     attributes: attributesField.optional(),
     // PRD-11: its photos and its one video, saved with it (agreed for Slice 11.7a: a new product is one request).
     imageIds: productPhotoIdsField.optional(),
     videoId: catalogueIdSchema.optional(),
+    // DLV-07, PRD-17: the zones it may be delivered to (none: wherever the shop delivers) and its own size chart, saved
+    // with it too (Slice 11.7c keeps a new product one request).
+    deliveryZoneIds: productDeliveryZonesSchema.shape.zoneIds.optional(),
+    sizeChart: sizeChartSchema.optional(),
   })
   .superRefine((value, ctx) => {
     checkFields(value, ctx);
     checkMatrix(value, ctx);
     checkRoles(value, ctx);
     checkSharing({ ...value, sharedStock: value.sharedStock ?? false }, ctx);
+    checkOpeningCost(value, ctx);
     if (value.sharedStock && value.serialTracked) {
       refuse(
         ctx,

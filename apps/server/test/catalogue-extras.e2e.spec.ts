@@ -170,6 +170,22 @@ async function version(tenantId: string): Promise<number> {
 }
 
 describeIfDatabase('size charts (PRD-17)', () => {
+  it('takes its own chart with a new product, in its one request, a picture refused by its field', async () => {
+    const shop = await openShop(port, texts, 'charts-new');
+    const rows = [
+      ['', 'Chest'],
+      ['S', '36'],
+    ];
+    const tee = await create(shop, { name: 'Tee', basePrice: 450, sizeChart: { rows } });
+    expect(tee.sizeChart).toEqual({ source: 'product', categoryId: null, rows, image: null });
+    const refused = await shop.post('/products', {
+      name: 'Polo',
+      basePrice: 650,
+      sizeChart: { imageId: randomUUID() },
+    });
+    expect(fieldsOf(refused)).toEqual({ 'sizeChart.imageId': 'not_found' });
+  });
+
   it("shows a category's chart on its products and those below it, until a product sets its own", async () => {
     const shop = await openShop(port, texts, 'charts');
     const shoes = await category(shop, 'Shoes');

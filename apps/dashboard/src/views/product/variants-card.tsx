@@ -1,6 +1,6 @@
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AttributeRole, StockState, type StockUnit } from '@lytronix/validators';
+import { AttributeRole, StockState, type SerialFormat, type StockUnit } from '@lytronix/validators';
 import { useAddOptions, useAttributes, useOptionSets } from '@/api/attributes';
 import { Icon } from '@/components/icon';
 import { Banner } from '@/components/ui/banner';
@@ -9,9 +9,10 @@ import { Card } from '@/components/ui/card';
 import { ChipRow } from '@/components/ui/chips';
 import { chipClass } from '@/components/ui/classes';
 import { Dialog } from '@/components/ui/dialog';
-import { Field } from '@/components/ui/field';
+import { Field, PickField } from '@/components/ui/field';
 import { StatusTag } from '@/components/ui/status-tag';
 import { Switch } from '@/components/ui/switch';
+import { keptOf, unitsOf } from '@/lib/opening';
 import type { ProductForm } from '@/lib/product-form';
 import {
   combinations,
@@ -19,6 +20,7 @@ import {
   fillAll,
   keyOf,
   overLimit,
+  blankRow,
   reconcile,
   setsFor,
   variantCount,
@@ -31,15 +33,23 @@ import type { Attribute, ProductStock } from '@/types/attribute';
 import type { OptionSwatch, ProductDetail, UsedOption } from '@/types/product';
 import { AddAttributeSheet } from './add-attribute-sheet';
 import { FillSheet } from './fill-sheet';
+import { OpeningBatchSheet } from './opening-batch-sheet';
+import { OpeningSerialsSheet } from './opening-serials-sheet';
 import { OptionsSheet } from './options-sheet';
 import { ValueSheet } from './value-sheet';
+import { VariantSheet } from './variant-sheet';
 import { VariantTable } from './variant-table';
 import { useVariantWords } from './variant-words';
 
-/** What the product is, as far as its variant table goes: counted or made to order, with serials or not, in a unit. */
+/**
+ * What the product is, as far as its variant table goes: counted or made to order, in batches or with serials (and
+ * what they look like) or neither, in a unit.
+ */
 export interface StockKind {
   tracked: boolean;
+  batch: boolean;
   serial: boolean;
+  format: SerialFormat;
   unit: StockUnit;
 }
 
@@ -73,6 +83,7 @@ export function VariantsCard({
   readOnly,
   problems,
   onChange,
+  onHeldSerials,
 }: {
   form: ProductForm;
   saved: ProductForm;
@@ -85,6 +96,8 @@ export function VariantsCard({
   /** The server's problems with the options and variants, by field. */
   problems: Readonly<Record<string, string>>;
   onChange: (patch: Partial<ProductForm>) => void;
+  /** A saved serial-numbered variant's serials (`pf-edit-mobile`), for someone who may see stock; null otherwise. */
+  onHeldSerials: ((variantId: string) => void) | null;
 }): React.JSX.Element {
   const { t } = useTranslation('shop');
   const words = useVariantWords();
@@ -97,11 +110,40 @@ export function VariantsCard({
   const [filling, setFilling] = useState<FillColumn | null>(null);
   const [question, setQuestion] = useState<Question | null>(null);
   const [showAll, setShowAll] = useState(false);
+  const [variantAt, setVariantAt] = useState<number | null>(null);
+  // A variant's opening batch or serials (Part 15, Part 16); 'shared' for the shared stock's batch.
+  const [batchAt, setBatchAt] = useState<number | 'shared' | null>(null);
+  const [serialsAt, setSerialsAt] = useState<number | null>(null);
   const titleId = useId();
   const library = attributes.data ?? [];
   const libraryOf = (id: string): Attribute | undefined => library.find((each) => each.id === id);
   const isNew = product === null;
   const shared = form.sharedStock && kind.tracked && !kind.serial;
+  const productName = form.name.trim() || t('newProduct');
+  // `pf-edit-mobile`: each saved variant's serials held of what it holds ("7 / 7").
+  const held = new Map(
+    (stock?.variants ?? []).map((each): [string, string] => {
+      const onHand = Number(each.onHand ?? 0);
+      return [each.variantId, `${String(onHand - (each.missingSerials ?? 0))} / ${String(onHand)}`];
+    }),
+  );
+  const batchRow = typeof batchAt === 'number' ? (form.variants[batchAt] ?? null) : null;
+  const serialsRow = serialsAt === null ? null : (form.variants[serialsAt] ?? null);
+  const sharedBatch = form.sharedOpeningBatch;
+  // Part 15's `pf-grocery`: "Batch 2026-10 · no expiry".
+  const sharedBatchText =
+    sharedBatch.code.trim() === '' && sharedBatch.expiresOn === ''
+      ? t('addBatch')
+      : [
+          sharedBatch.code.trim() === ''
+            ? null
+            : t('batchNamed', { code: sharedBatch.code.trim() }),
+          sharedBatch.expiresOn === ''
+            ? t('noExpiry')
+            : `${t('expShort')} ${sharedBatch.expiresOn}`,
+        ]
+          .filter(Boolean)
+          .join(' · ');
 
   /** The splits as they now stand, the rows following; a variant added to a saved product opens the table in full. */
   function setSplits(splits: SplitAttribute[], extra: Partial<ProductForm> = {}): void {
@@ -233,14 +275,7 @@ export function VariantsCard({
     const current: VariantRow[] =
       form.splits.length > 0
         ? form.variants
-        : (product?.variants ?? []).map((variant) => ({
-            optionIds: [],
-            id: variant.id,
-            price: '',
-            sku: '',
-            openingStock: '',
-            packAmount: '',
-          }));
+        : (product?.variants ?? []).map((variant) => ({ ...blankRow([]), id: variant.id }));
     const held = isNew || shared ? null : heldBy(current);
     if (held === null) {
       apply();
@@ -506,9 +541,13 @@ export function VariantsCard({
           splits={form.splits}
           columns={{
             opening: isNew && kind.tracked && !shared,
+            batch: kind.batch,
+            serials: isNew && kind.tracked && kind.serial ? kind.format : null,
             canSell,
+            held: !isNew && kind.tracked && kind.serial && onHeldSerials ? held : null,
             pack: shared ? kind.unit : null,
-            sku: kind.tracked,
+            // A product with serials shows them here, opening or held; its SKU is in the variant sheet.
+            sku: kind.tracked && !kind.serial,
           }}
           basePrice={form.price}
           isNew={isNew}
@@ -524,18 +563,39 @@ export function VariantsCard({
             });
           }}
           onFill={setFilling}
+          onOpen={setVariantAt}
+          onBatch={setBatchAt}
+          onSerials={setSerialsAt}
+          onHeld={(index) => {
+            const id = form.variants[index]?.id;
+            if (id && onHeldSerials) onHeldSerials(id);
+          }}
         />
       ) : null}
       {isNew && shared && form.variants.length > 0 ? (
-        <Field
-          label={t('sharedOpening', { unit: t(`su_${kind.unit}`) })}
-          inputMode="decimal"
-          className="num"
-          value={form.sharedOpeningStock}
-          onChange={(event) => {
-            onChange({ sharedOpeningStock: event.target.value });
-          }}
-        />
+        <div className={kind.batch ? 'grid gap-3 sm:grid-cols-2' : 'contents'}>
+          <Field
+            label={t('sharedOpening', { unit: t(`su_${kind.unit}`) })}
+            inputMode="decimal"
+            className="num"
+            value={form.sharedOpeningStock}
+            onChange={(event) => {
+              onChange({ sharedOpeningStock: event.target.value });
+            }}
+          />
+          {kind.batch ? (
+            <PickField
+              label={t('openingBatch')}
+              value={sharedBatchText}
+              chevron="right"
+              error={problems.sharedOpeningBatch ?? problems.sharedOpeningUnitCost}
+              disabled={readOnly}
+              onPick={() => {
+                setBatchAt('shared');
+              }}
+            />
+          ) : null}
+        </div>
       ) : null}
       {rowProblems.length > 0 ? (
         <ul className="flex flex-col gap-1 text-[13px] font-medium text-danger-text">
@@ -610,6 +670,77 @@ export function VariantsCard({
         }}
         onClose={() => {
           setValueOf(null);
+        }}
+      />
+      <VariantSheet
+        row={variantAt === null ? null : (form.variants[variantAt] ?? null)}
+        name={
+          variantAt === null
+            ? ''
+            : words.variant(form.variants[variantAt]?.optionIds ?? [], form.splits)
+        }
+        settings={form.settings}
+        readOnly={readOnly}
+        onChange={(patch) => {
+          onChange({
+            variants: form.variants.map((row, at) =>
+              at === variantAt ? { ...row, ...patch } : row,
+            ),
+          });
+        }}
+        onClose={() => {
+          setVariantAt(null);
+        }}
+      />
+      <OpeningBatchSheet
+        open={batchAt !== null}
+        sub={[productName, batchRow ? words.variant(batchRow.optionIds, form.splits) : null]
+          .filter(Boolean)
+          .join(' · ')}
+        unit={kind.unit}
+        quantity={batchRow ? batchRow.openingStock : form.sharedOpeningStock}
+        batch={batchRow ? batchRow.openingBatch : form.sharedOpeningBatch}
+        onDone={(openingStock, openingBatch) => {
+          if (batchAt === 'shared') {
+            onChange({ sharedOpeningStock: openingStock, sharedOpeningBatch: openingBatch });
+          } else {
+            onChange({
+              variants: form.variants.map((row, at) =>
+                at === batchAt ? { ...row, openingStock, openingBatch } : row,
+              ),
+            });
+          }
+          setBatchAt(null);
+        }}
+        onClose={() => {
+          setBatchAt(null);
+        }}
+      />
+      <OpeningSerialsSheet
+        open={serialsRow !== null}
+        name={[productName, serialsRow ? words.variant(serialsRow.optionIds, form.splits) : null]
+          .filter(Boolean)
+          .join(' · ')}
+        units={unitsOf(serialsRow?.openingStock ?? '')}
+        format={kind.format}
+        lines={serialsRow?.openingSerials ?? []}
+        others={
+          new Set(
+            form.variants.flatMap((row, at) =>
+              at === serialsAt ? [] : keptOf(row.openingSerials),
+            ),
+          )
+        }
+        onDone={(openingSerials) => {
+          onChange({
+            variants: form.variants.map((row, at) =>
+              at === serialsAt ? { ...row, openingSerials } : row,
+            ),
+          });
+          setSerialsAt(null);
+        }}
+        onClose={() => {
+          setSerialsAt(null);
         }}
       />
       <FillSheet

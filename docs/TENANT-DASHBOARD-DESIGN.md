@@ -1,10 +1,13 @@
 # Tenant dashboard: the full design
 
-Status: v3.3, 2026-10-28 (the brand editor's fonts as Slice 11.12a builds them, prototype Part 17: one choice for
+Status: v3.4, 2026-10-29 (the Stock card's sheets over a product as Slice 11.7c builds them, prototype Part 18: Stock
+history and IMEI / serials pick their variant, Add stock takes a serial product's IMEIs, Add serials as Part 16 enters
+them; v3.3 of 2026-10-28 drew the brand editor's fonts as Slice 11.12a builds them, prototype Part 17: one choice for
 headings and one for body text, each a Bangla face with its Latin partner shown in its own faces, the seven pairs in a
-sheet with Galada + Playfair Display held to headings, and the preview set in the chosen fonts; v3.2, opening serials
-as prototype Part 16, comes with Slice 11.7c; v3.1 of 2026-10-28 drew stock and delivery as Slice 11.7c builds them,
-prototype Part 15: the size chart as a table
+sheet with Galada + Playfair Display held to headings, and the preview set in the chosen fonts; v3.2 of 2026-10-29 drew
+opening serials as Slice 11.7c builds them, prototype Part 16: Paste a list, each line's check with its words for an
+IMEI and for any code, a code typed twice, the lines to fix left out on Done, and the sheet full at the opening stock;
+v3.1 of 2026-10-28 drew stock and delivery as Slice 11.7c builds them, prototype Part 15: the size chart as a table
 with its names typed or a picture, Adjust by weight, the question before making a product holding stock to order,
 serials typed and the camera missing or blocked, the variant sheet, SKU and barcode under More settings for a product
 with no options, and a saved product's defaults line without "change"; v3.0 of 2026-10-27 drew the options and variants
@@ -407,6 +410,15 @@ the limit, Add product and Duplicate show the banner at once instead of the edit
   (`pf-sh-serials-nocamera`); a camera the browser blocks says how to allow it, with Try again
   (`pf-sh-serials-blocked`). A product with serials shows Opening serials in its table where others show SKU; its SKU is
   in the variant sheet.
+- **Opening serials, line by line** (Part 16, agreed in the step-2 read, 2026-10-29). Paste a list takes one per line, or
+  separated by commas, semicolons or tabs; spaces inside an IMEI are dropped (`pf-sh-serials-paste`). Each line is
+  checked as it is added: an IMEI is 15 digits ("not 15 digits") with its check digit ("not a valid IMEI"); any other
+  code is letters, digits and dashes, at most 64 ("letters, digits and dashes only", "over 64 characters"); a code
+  already in the list is "twice in this list", one the shop holds is "already in the shop" (INV-23). A flagged line
+  has × to remove it; Done keeps the OK lines and leaves the flagged ones out, saying how many
+  (`pf-sh-serials-states`, `pf-sh-serials-any`). The camera ignores a code it has already read; each new one gives a
+  short vibration and a green flash, no sound. The sheet stops at the opening stock: "All 5 units have a serial", and
+  more need the opening stock raised first (`pf-sh-serials-full`).
 - **The variant sheet.** A variant's name in the table opens what it sets for itself: SKU, barcode, weight and delivery
   charge (empty follows the product, its value as the hint), Adjust by weight, and On sale (`sh-variant`; ATR-05,
   ATR-13).
@@ -418,6 +430,12 @@ the limit, Add product and Duplicate show the banner at once instead of the edit
   changes its settings (PST-06; `pf-edit-mobile`).
 - **The Stock card's sheets** (Add stock, Stock history, Batches, IMEI / serials, Fix a serial) open over the product,
   as drawn over the Stock page; the Stock page (11.9) reuses them.
+- **The Stock card over a product** (Part 18, agreed in the step-3 read, 2026-10-29). Stock history and IMEI / serials
+  are a variant's, so each starts with the "Product · variant" field Add stock has, opening a list of the variants with
+  what each holds (`sh-pick-variant`, `sh-history-product`, `sh-serials-product`); a product with no options has no
+  field. Add stock on a serial product takes the arriving units' IMEIs as Part 16 enters them, up to the quantity, and
+  fewer leave the rest for later (`stock-add-serials`). Add serials uses that same sheet, its button "Add 1", rather than
+  the older chips and ticked list (`sh-serials-missing`). Editing a count stays on the Stock page (11.9).
 
 *Leaving with changes unsaved* (Part 13, agreed 2026-10-27): Back, a tab, a section chip or the browser's back, while
 something typed is not saved, asks first in a small dialog, "Leave without saving?": a product being edited is named

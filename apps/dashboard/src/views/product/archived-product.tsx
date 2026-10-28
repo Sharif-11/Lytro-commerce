@@ -88,6 +88,8 @@ export function ArchivedProduct({ product }: { product: ProductDetail }): React.
       ) : null}
       <div className="lg:grid lg:grid-cols-[1fr_340px] lg:items-start lg:gap-6">
         <BasicsCard
+          picking={false}
+          onPicking={() => undefined}
           form={formOf(product)}
           strip={
             <PhotoStrip

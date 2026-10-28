@@ -55,6 +55,9 @@ const NONE_INCOMING = '0.000';
 // What the note on a made-to-order switch's write-off says (INV-02).
 const UNTRACKING_NOTE = 'Switched to made to order';
 
+/** INV-10: a unit cost as the ledger and the average keep it, to four decimals. */
+const costOf = (cost: string): string => Number(cost).toFixed(4);
+
 /**
  * INV-06: the one-tap reason as the ledger records it. "New stock arrived" is a purchase received (PUR-07, recorded by
  * the stock arrivals); a reason that contradicts the change (new stock that lowers it, damage that raises it) is
@@ -356,6 +359,7 @@ export class StockService implements ProductStockHooks {
       quantity: string;
       batch?: BatchDescription;
       serials?: string[];
+      unitCost?: string;
     }[],
     who: ResolvedActor,
   ): Promise<void> {
@@ -368,9 +372,17 @@ export class StockService implements ProductStockHooks {
         reason: StockReason.Initial,
         batch: line.batch ?? null,
         serials: line.serials ?? null,
+        ...(line.unitCost !== undefined ? { unitCost: costOf(line.unitCost) } : {}),
       })),
       who,
     );
+    // INV-10: only a purchase receipt moves the average, so an opening cost is kept as the cost entered by hand, which
+    // a receipt carrying a cost takes over later.
+    for (const line of lines) {
+      if (line.unitCost !== undefined) {
+        await this.store.setAvgCost(tx, tenantId, line.variantId, costOf(line.unitCost));
+      }
+    }
   }
 
   /**

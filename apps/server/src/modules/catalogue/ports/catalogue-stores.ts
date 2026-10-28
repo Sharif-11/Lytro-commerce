@@ -46,6 +46,8 @@ export interface ProductStockHooks {
       batch?: { batchCode?: string; expiresOn?: string };
       /** INV-14: the serials of its units, as stored. */
       serials?: string[];
+      /** INV-10: what each unit cost, kept as the variant's cost entered by hand. */
+      unitCost?: string;
     }[],
     who: ResolvedActor,
   ): Promise<void>;

@@ -2,6 +2,9 @@ import type {
   AttributeDataType,
   AttributeRole,
   DeliveryMode,
+  ItemCondition,
+  PaymentPolicy,
+  SerialFormat,
   StockState,
   StockTracking,
   StockUnit,
@@ -76,9 +79,17 @@ export interface ProductVariant {
   stockState: StockState;
 }
 
+/** PRD-17: the chart a product shows, its own or the nearest category's, a table or a picture. */
+export interface SizeChartView {
+  source: 'product' | 'category';
+  categoryId: string | null;
+  rows: string[][] | null;
+  image: ImageView | null;
+}
+
 /**
  * Mirrors `ProductDetail` in apps/server/src/modules/catalogue/types/catalogue.ts, the fields the editor reads through
- * Slice 11.7b (TENANT-DASHBOARD-DESIGN §7.4).
+ * Slice 11.7c (TENANT-DASHBOARD-DESIGN §7.4).
  */
 export interface ProductDetail {
   id: string;
@@ -92,8 +103,24 @@ export interface ProductDetail {
   stockTracking: StockTracking;
   batchTracked: boolean;
   serialTracked: boolean;
+  /** INV-23: what its serials look like. */
+  serialFormat: SerialFormat;
   /** INV-24: whether its variants draw on one shared stock. */
   sharedStock: boolean;
+  lowStockThreshold: string;
+  deliveryCharge: string | null;
+  weightKg: string | null;
+  deliveryMode: DeliveryMode;
+  /** PRD-08: its own policy, or null to follow the shop's default. */
+  paymentPolicy: PaymentPolicy | null;
+  advanceAmount: string | null;
+  effectivePaymentPolicy: PaymentPolicy;
+  effectiveAdvanceAmount: string | null;
+  /** FED-02: new, refurbished or used. */
+  condition: ItemCondition;
+  sizeChart: SizeChartView | null;
+  /** DLV-07: the zones it may be delivered to; none for wherever the shop delivers. */
+  deliveryZoneIds: string[];
   active: boolean;
   archived: boolean;
   categoryIds: string[];

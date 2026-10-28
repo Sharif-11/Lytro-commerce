@@ -408,6 +408,7 @@ export const MESSAGE_KEYS = [
   'BatchWrittenOff',
   'SerialsRetrieved',
   'SerialsAdded',
+  'SerialsChecked',
   'SerialCorrected',
   'SerialRemoved',
   'SuppliersRetrieved',

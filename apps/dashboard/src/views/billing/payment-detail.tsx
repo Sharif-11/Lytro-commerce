@@ -19,6 +19,7 @@ import { Card } from '@/components/ui/card';
 import { buttonClass } from '@/components/ui/classes';
 import { Kv } from '@/components/ui/kv';
 import { Sheet } from '@/components/ui/sheet';
+import { TimelineRow } from '@/components/ui/timeline';
 import { WalletStep, type WalletPaymentValues } from '@/components/wallet-step';
 import { useErrorText } from '@/hooks/use-error-text';
 import { appConfig } from '@/lib/app-config';
@@ -60,21 +61,7 @@ function Step({ step, sameDay }: { step: TimelineStep; sameDay: string }): React
         ? formatTime(step.at, i18n.language)
         : `${formatDayMonth(step.at)} · ${formatTime(step.at, i18n.language)}`
       : '';
-  return (
-    <div className="relative grid grid-cols-[20px_1fr_auto] gap-x-3 py-1.5 [&:not(:last-child)]:before:absolute [&:not(:last-child)]:before:top-[18px] [&:not(:last-child)]:before:-bottom-2 [&:not(:last-child)]:before:left-[9px] [&:not(:last-child)]:before:w-0.5 [&:not(:last-child)]:before:bg-neutral-100 [&:not(:last-child)]:before:content-['']">
-      <span
-        className={[
-          'relative z-10 mx-auto mt-1.5 size-2.5 rounded-full',
-          step.dot === 'on' ? 'bg-primary' : step.dot === 'bad' ? 'bg-danger' : 'bg-neutral-300',
-        ].join(' ')}
-      />
-      <span className="text-[15px]">
-        {step.text}
-        {step.sub ? <small className="block text-[13px] text-fg-muted">{step.sub}</small> : null}
-      </span>
-      <span className="num text-[13px] whitespace-nowrap text-fg-subtle">{when}</span>
-    </div>
-  );
+  return <TimelineRow dot={step.dot} text={step.text} sub={step.sub} when={when} />;
 }
 
 /** A paid plan payment's receipt (BIL-12, the prototype's invoice card), its limits under a disclosure. */

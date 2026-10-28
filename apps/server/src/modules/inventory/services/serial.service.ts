@@ -9,6 +9,7 @@ import {
   ServerFieldProblemCode,
   StockTracking,
   type AddSerialsInput,
+  type CheckSerialsInput,
   type CorrectSerialInput,
   type SerialListQuery,
 } from '@lytronix/validators';
@@ -64,6 +65,18 @@ export class SerialService {
       // Readable whatever the product does now: a serial's history outlives its tracking.
       await this.variantOf(tx, tenantId, productId, variantId, false);
       return this.pageWithin(tx, tenantId, variantId, query);
+    });
+  }
+
+  /**
+   * INV-23: which of the serials being entered a unit the shop holds already has, read as the product's serials are,
+   * each once and in the order given, so the entry flags them before anything is saved. Saving checks again.
+   */
+  check(tenantId: string, input: CheckSerialsInput): Promise<{ taken: string[] }> {
+    return this.transactions.run(async (tx) => {
+      const serials = [...new Set(input.serials.map((raw) => normalizeSerial(raw, input.format)))];
+      const held = await this.entry.taken(tx, tenantId, serials);
+      return { taken: serials.filter((serial) => held.has(serial)) };
     });
   }
 

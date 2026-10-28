@@ -1,11 +1,13 @@
 import {
   AttributeDataType,
   AttributeRole,
+  DeliveryMode,
   MAX_VARIANT_ATTRIBUTES,
   MAX_VARIANTS_PER_PRODUCT,
   type UnitKind,
 } from '@lytronix/validators';
 import type { ProductAttribute, ProductDetail, UsedOption } from '@/types/product';
+import { NO_BATCH, openingExtras, type OpeningBatch, type SerialLine } from './opening';
 
 /** An attribute that splits the product into variants (ATR-04), with the options it uses, in their order. */
 export interface SplitAttribute {
@@ -27,8 +29,21 @@ export interface VariantRow {
   sku: string;
   /** A new product's stock already on the shelf, as typed (INV-03). */
   openingStock: string;
+  /** INV-12, INV-10: on a new batch-tracked product, the batch that stock is, with what each unit cost. */
+  openingBatch: OpeningBatch;
+  /** INV-14, INV-23: on a new serial-numbered product, the serials of that stock's units, each checked. */
+  openingSerials: SerialLine[];
   /** INV-24: how much of the shared stock one of it uses, as typed. */
   packAmount: string;
+  /** ATR-05, ATR-13 (the variant sheet, Part 15): its own barcode, weight and delivery charge; empty follows the
+   * product. */
+  barcode: string;
+  weightKg: string;
+  deliveryCharge: string;
+  /** PRD-16: whether its charge grows with its weight; null follows the product. */
+  adjustByWeight: boolean | null;
+  /** Whether it is on sale. */
+  active: boolean;
 }
 
 /** An attribute that describes the product, with its value as typed, or is asked when ordering (ATL-02, ATR-08). */
@@ -75,13 +90,20 @@ export function combinations(splits: readonly SplitAttribute[]): string[][] {
   );
 }
 
-const blankRow = (optionIds: string[]): VariantRow => ({
+export const blankRow = (optionIds: string[]): VariantRow => ({
   optionIds,
   id: null,
   price: '',
   sku: '',
   openingStock: '',
+  openingBatch: NO_BATCH,
+  openingSerials: [],
   packAmount: '',
+  barcode: '',
+  weightKg: '',
+  deliveryCharge: '',
+  adjustByWeight: null,
+  active: true,
 });
 
 /**
@@ -134,14 +156,28 @@ export function fillAll(
 /** The table's rows from a saved product, in the server's order. */
 export function rowsOf(product: ProductDetail): VariantRow[] {
   if (product.variantAttributes.length === 0) return [];
-  return product.variants.map((variant) => ({
+  return product.variants.map(rowOf);
+}
+
+/** One saved variant as the table holds it. */
+export function rowOf(variant: ProductDetail['variants'][number]): VariantRow {
+  const typed = (stored: string | null) => (stored === null ? '' : String(Number(stored)));
+  return {
     optionIds: variant.optionIds,
     id: variant.id,
-    price: variant.price === null ? '' : String(Number(variant.price)),
+    price: typed(variant.price),
     sku: variant.sku ?? '',
     openingStock: '',
-    packAmount: variant.packAmount === null ? '' : String(Number(variant.packAmount)),
-  }));
+    openingBatch: NO_BATCH,
+    openingSerials: [],
+    packAmount: typed(variant.packAmount),
+    barcode: variant.barcode ?? '',
+    weightKg: typed(variant.weightKg),
+    deliveryCharge: typed(variant.deliveryCharge),
+    adjustByWeight:
+      variant.deliveryMode === null ? null : variant.deliveryMode === DeliveryMode.Adjustable,
+    active: variant.active,
+  };
 }
 
 /** The splitting attributes of a saved product, with the options its live variants use. */
@@ -170,6 +206,9 @@ export function descriptionOf(attribute: ProductAttribute): Description {
   };
 }
 
+/** Typed text as the server takes it: trimmed, or null when empty. */
+const textOf = (typed: string): string | null => (typed.trim() === '' ? null : typed.trim());
+
 /** A typed amount as the server takes it: a number, or nothing when the cell is empty. */
 const amountOf = (typed: string): number | undefined =>
   typed.trim() === '' ? undefined : Number(typed.trim());
@@ -184,12 +223,12 @@ export function splitsBody(splits: readonly SplitAttribute[]) {
 
 /**
  * ATR-05, ATR-17, INV-24: each variant's own price (null to sell at the product's) and SKU; on a product sharing its
- * stock, how much each uses; on a new one, the stock already on the shelf (packs, on a shared stock, are opened
- * through the shared stock instead).
+ * stock, how much each uses; on a new one, the stock already on the shelf with its batch or its serials (packs, on a
+ * shared stock, are opened through the shared stock instead).
  */
 export function variantsBody(
   rows: readonly VariantRow[],
-  options: { shared: boolean; opening: boolean },
+  options: { shared: boolean; opening: boolean; batch: boolean; serial: boolean },
 ) {
   return rows.map((row) => {
     const opening = options.opening && !options.shared ? amountOf(row.openingStock) : undefined;
@@ -197,8 +236,19 @@ export function variantsBody(
     return {
       optionIds: row.optionIds,
       price: amountOf(row.price) ?? null,
-      sku: row.sku.trim() === '' ? null : row.sku.trim(),
+      sku: textOf(row.sku),
+      barcode: textOf(row.barcode),
+      weightKg: amountOf(row.weightKg) ?? null,
+      deliveryCharge: amountOf(row.deliveryCharge) ?? null,
+      deliveryMode:
+        row.adjustByWeight === null
+          ? null
+          : row.adjustByWeight
+            ? DeliveryMode.Adjustable
+            : DeliveryMode.Default,
+      active: row.active,
       ...(opening === undefined ? {} : { openingStock: opening }),
+      ...openingExtras(opening, row.openingBatch, row.openingSerials, options),
       ...(pack === undefined ? {} : { packAmount: pack }),
     };
   });

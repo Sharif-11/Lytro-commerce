@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { AttributeDataType, AttributeRole, UnitKind } from '@lytronix/validators';
 import { baseValueOf, measureOf } from '../src/lib/measure';
 import {
+  blankRow,
   combinations,
   describedValue,
   descriptionsBody,
@@ -33,12 +34,7 @@ const split = (attributeId: string, values: string[]): SplitAttribute => ({
 const SIZE = split('size', ['1lb', '2lb']);
 const FLAVOUR = split('flavour', ['choc', 'van', 'red']);
 const row = (optionIds: string[], patch: Partial<VariantRow> = {}): VariantRow => ({
-  optionIds,
-  id: null,
-  price: '',
-  sku: '',
-  openingStock: '',
-  packAmount: '',
+  ...blankRow(optionIds),
   ...patch,
 });
 
