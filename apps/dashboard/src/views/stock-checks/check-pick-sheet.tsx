@@ -96,7 +96,7 @@ export function CheckPickSheet({
             label={t('pickCountT')}
             choices={[
               { value: 'products', label: t('pickProducts') },
-              { value: 'category', label: t('pickCategory') },
+              { value: 'category', label: t('pickOneCategory') },
             ]}
             value={side}
             onChange={setSide}
@@ -153,7 +153,7 @@ export function CheckPickSheet({
               ) : null}
             </>
           ) : (
-            <ChoiceList label={t('pickCategory')}>
+            <ChoiceList label={t('pickOneCategory')}>
               {(categories.data ?? [])
                 .filter((category) => category.productCount > 0)
                 .map((category) => (
