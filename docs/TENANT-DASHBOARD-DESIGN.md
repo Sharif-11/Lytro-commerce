@@ -1,6 +1,7 @@
 # Tenant dashboard: the full design
 
-Status: v3.9, 2026-10-29 (Purchases and suppliers as Slice 11.10 builds them, prototype Part 21: Open on order, Coming
+Status: v3.10, 2026-10-29 (a screen that names one record, a purchase or a stock check, names it in the desktop
+header; v3.9 of 2026-10-29: Purchases and suppliers as Slice 11.10 builds them, prototype Part 21: Open on order, Coming
 in every unit, a supplier typed, Add item by product then variants, a placed purchase editable until its first delivery,
 It arrived with reasons, batches and IMEIs, Cancel or Close short by deliveries, the archived suppliers, a variant's
 purchases, the empty and look-only states; v3.8 of 2026-10-29: stock checks as Slice 11.9 builds them, prototype Part
@@ -189,6 +190,9 @@ The phone shell with more room: forms gain a second column, stat tiles sit four 
   prototype's frame showed it.
 - **Header**, 64 px: page title left; search (320 px), **+**, language, the person's initial on the right; the
   bell joins in Phase 7.
+  A screen below its section that names one record (a purchase's number or Draft, a stock check's number) puts
+  that name in the header in place of its section's, since the page's own title is hidden from 1024 px (agreed
+  2026-10-29, design v3.10: `purchase-edit-placed`, `stock-check-detail` and the purchase pages).
 - **List and detail split** for Products from 1024 px (and for Orders and Customers later).
 - **Sheets** are a 480 px right panel over a scrim.
 

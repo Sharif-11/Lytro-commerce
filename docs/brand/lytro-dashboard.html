@@ -3786,6 +3786,21 @@ SCREENS['suppliers-empty'] = { ...SCREENS.suppliers, render: () => `${title('sup
 /* PUR-09: a variant's purchases, from its Stock row's sheet (agreed in the 11.10 read). */
 SCREENS['stock-row-sheet-purchases'] = { ...SCREENS.stock, base: 'stock', sheet: () => rowSheet20(L('কটন টি-শার্ট · M · কালো', 'Cotton T-shirt · M · Black'), 14, 12, `${sheetRow20('clock', 'histTitle', t('sk20HistLast', { d: L('গতকাল', 'yesterday') }), 'sh-history')}${sheetRow20('money', 'costTitle', t('sk20CostUnit', { n: money(280) }), 'sh-cost')}${sheetRow20('truck', 'poTitle', t('sk21LastFrom', { s: L('করিম গার্মেন্টস', 'Karim Garments'), d: '15 Oct' }), 'sh-purchase-history')}`) };
 SCREENS['sh-purchase-history'] = { ...SCREENS.stock, base: 'stock-row-sheet-purchases', sheet: () => sheet(t('sk21HistT'), `<div class="hint">${L('কটন টি-শার্ট · M · কালো', 'Cotton T-shirt · M · Black')}</div><div class="card flush list">${[['PO-0006', L('করিম গার্মেন্টস', 'Karim Garments'), '15 Oct', 40, 2, L('সেলাই ছেঁড়া', 'torn seams'), 220], ['PO-0002', L('করিম গার্মেন্টস', 'Karim Garments'), '2 Sep', 20, 0, null, 210], ['PO-0001', t('sk21NoSupplier'), '12 Aug', 10, 0, null, null]].map(([no, sup, d, a, r, why, c]) => `<div class="row"><span class="body"><span class="l1"><span class="num ono">${no}</span>${sup}</span><span class="l2 num">${d} · ${t('sk21HistLine', { a })}${r ? ` · ${t('sk21HistRejected', { r, why })}` : ''}</span></span>${c ? `<span class="trail"><span class="num" style="font-weight:600">${t('sk21CostEach', { n: money(c) })}</span></span>` : ''}</div>`).join('')}</div>${btn('o w sm', t('showEarlier'))}`) };
+/* Design v3.10 (agreed 2026-10-29): a screen below its section that names one record -- a purchase, a stock check --
+   names it in the desktop header too, where its own title is hidden from 1024 px. */
+const _header310 = header;
+header = function (scr) {
+  const own = typeof scr.headTitle === 'function' ? scr.headTitle() : scr.headTitle;
+  return own ? _header310(scr).replace(/<h1>[^<]*<\/h1>/, `<h1>${own}</h1>`) : _header310(scr);
+};
+const draftHead = () => t('poDraft');
+Object.entries({
+  purchase: 'PO-0007', 'purchase-partial': 'PO-0006', 'purchase-closed': 'PO-0004', 'purchase-draft': draftHead,
+  'sh-receive': 'PO-0007', 'sh-close-short': 'PO-0006', 'sh-cancel-purchase': 'PO-0007',
+  'purchase-edit-placed': 'PO-0007', 'purchase-rejected-only': 'PO-0009', 'purchase-received': 'PO-0005',
+  'purchase-cancelled': 'PO-0003', 'purchase-staff': 'PO-0006', 'sh-delete-draft': draftHead, 'sh-receive-full': 'PO-0010',
+  'sh-delivery': 'PO-0006', 'stock-check-detail': '#12',
+}).forEach(([id, head]) => { if (SCREENS[id]) SCREENS[id].headTitle = head; });
 (function init() { const h = location.hash.replace('#', ''); if (h && SCREENS[h]) { ST.screen = h; document.getElementById('selScreen').value = h; } render(); })();
 </script>
 </body>
