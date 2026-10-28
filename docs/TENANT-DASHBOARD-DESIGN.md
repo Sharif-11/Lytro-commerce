@@ -1,6 +1,8 @@
 # Tenant dashboard: the full design
 
-Status: v3.3, 2026-10-28 (the brand editor's fonts as Slice 11.12a builds them, prototype Part 17: one choice for
+Status: v3.4, 2026-10-29 (the Stock card's sheets over a product as Slice 11.7c builds them, prototype Part 18: Stock
+history and IMEI / serials pick their variant, Add stock takes a serial product's IMEIs, Add serials as Part 16 enters
+them; v3.3 of 2026-10-28 drew the brand editor's fonts as Slice 11.12a builds them, prototype Part 17: one choice for
 headings and one for body text, each a Bangla face with its Latin partner shown in its own faces, the seven pairs in a
 sheet with Galada + Playfair Display held to headings, and the preview set in the chosen fonts; v3.2 of 2026-10-29 drew
 opening serials as Slice 11.7c builds them, prototype Part 16: Paste a list, each line's check with its words for an
@@ -428,6 +430,12 @@ the limit, Add product and Duplicate show the banner at once instead of the edit
   changes its settings (PST-06; `pf-edit-mobile`).
 - **The Stock card's sheets** (Add stock, Stock history, Batches, IMEI / serials, Fix a serial) open over the product,
   as drawn over the Stock page; the Stock page (11.9) reuses them.
+- **The Stock card over a product** (Part 18, agreed in the step-3 read, 2026-10-29). Stock history and IMEI / serials
+  are a variant's, so each starts with the "Product · variant" field Add stock has, opening a list of the variants with
+  what each holds (`sh-pick-variant`, `sh-history-product`, `sh-serials-product`); a product with no options has no
+  field. Add stock on a serial product takes the arriving units' IMEIs as Part 16 enters them, up to the quantity, and
+  fewer leave the rest for later (`stock-add-serials`). Add serials uses that same sheet, its button "Add 1", rather than
+  the older chips and ticked list (`sh-serials-missing`). Editing a count stays on the Stock page (11.9).
 
 *Leaving with changes unsaved* (Part 13, agreed 2026-10-27): Back, a tab, a section chip or the browser's back, while
 something typed is not saved, asks first in a small dialog, "Leave without saving?": a product being edited is named
