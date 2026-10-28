@@ -1,6 +1,8 @@
 # Tenant dashboard: the full design
 
-Status: v3.7, 2026-10-29 (the Stock page's Add stock picks its product first, and its folding and "+n more" rules
+Status: v3.8, 2026-10-29 (stock checks as Slice 11.9 builds them, prototype Part 20: Check stock opens the list of
+checks, a new check starts with nothing picked, a category is counted whole, a check takes a note; v3.7 of 2026-10-29:
+the Stock page's Add stock picks its product first, and its folding and "+n more" rules
 said exactly, prototype Part 20; v3.6 of 2026-10-29 drew the Stock pages as Slice 11.9 builds them, prototype Part 20: a
 variant row's own sheets,
 the fine products opened in place and a made-to-order line, the Stock page for someone who may only look, Edit stock
@@ -647,6 +649,12 @@ check picks products or a category (`stock-check-pick`); a product kept in batch
 line; a serial-numbered line counted short names the IMEI not found when every unit short had one
 (`stock-check-batches`, `sh-check-missing`). The lines name their variant ("Denim jacket · M"). No check yet says so
 (`stock-checks-empty`).
+
+*Said exactly for the build, v3.8 (Part 20):* the Stock page's **Check stock** opens this list, whose **New check**
+starts one, so every past check is reachable (agreed 2026-10-28). A new check starts with nothing picked
+(`stock-check-start`); the pick sheet's category side counts every product filed there (`stock-check-pick-category`),
+read from `GET /inventory/stock?categoryId=`. A check takes a note, which its list and detail show ("Month-end count",
+`stock-check-note`).
 
 ### 7.9 Expiring (`/stock/expiring`)
 
