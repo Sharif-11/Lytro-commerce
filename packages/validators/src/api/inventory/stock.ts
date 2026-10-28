@@ -23,6 +23,7 @@ import {
 import { FieldProblemCode } from '../../validation/field-problem';
 import {
   catalogueIdSchema,
+  categoryFilterField,
   positiveQuantityField,
   priceField,
   quantityField,
@@ -124,6 +125,8 @@ export type StockHistoryQuery = z.infer<typeof stockHistoryQuerySchema>;
 // first; Low and Out pick the active products in that state, as the Products list and Home count them.
 export const stockPageQuerySchema = z.object({
   search: z.string().trim().min(1).max(PRODUCT_NAME_MAX_LENGTH).optional(),
+  // Design v3.8: a stock check counting a whole category reads its products here.
+  categoryId: categoryFilterField.optional(),
   stock: z.enum([StockState.Low, StockState.Out]).optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(LIST_PAGE_SIZE_MAX).default(PRODUCT_PAGE_SIZE),

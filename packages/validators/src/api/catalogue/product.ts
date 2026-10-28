@@ -28,6 +28,7 @@ import { newBatchField } from '../inventory/stock';
 import { productDeliveryZonesSchema, sizeChartSchema } from './extras';
 import {
   catalogueIdSchema,
+  categoryFilterField,
   positiveQuantityField,
   priceField,
   quantityField,
@@ -460,7 +461,7 @@ export type ChangeProductSlugInput = z.infer<typeof changeProductSlugSchema>;
 // Archived by `archived=true`, the products archived and nothing else (PRD-13).
 export const listProductsSchema = z.object({
   search: z.string().trim().min(1).max(PRODUCT_NAME_MAX_LENGTH).optional(),
-  categoryId: z.union([catalogueIdSchema, z.literal('uncategorized')]).optional(),
+  categoryId: categoryFilterField.optional(),
   archived: queryFlag,
   active: queryFlag,
   stock: z.nativeEnum(StockState).optional(),

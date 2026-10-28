@@ -256,6 +256,23 @@ describeIfDatabase('the Stock page (Slice 11.9, INV-01, INV-08)', () => {
     expect((await shop.get('/inventory/stock?stock=in')).status).toBe(400);
   });
 
+  it('picks the products filed in a category, or in none, for a check counting it whole', async () => {
+    const shop = await openShop(port, texts, 'stock-category');
+    const made = await shop.post('/categories', { name: 'Sarees' });
+    const sarees = (made.body as { id: string }).id;
+    await simple(shop, 'Silk saree', 4, { categoryIds: [sarees] });
+    await simple(shop, 'Cotton saree', 6, { categoryIds: [sarees] });
+    await simple(shop, 'Lamp', 3);
+    const filed = await stockPage(shop, `?categoryId=${sarees}`);
+    expect(filed.products.map((product) => product.name).sort()).toEqual([
+      'Cotton saree',
+      'Silk saree',
+    ]);
+    const none = await stockPage(shop, '?categoryId=uncategorized');
+    expect(none.products.map((product) => product.name)).toEqual(['Lamp']);
+    expect((await shop.get('/inventory/stock?categoryId=sarees')).status).toBe(400);
+  });
+
   it('shows a made-to-order product as its own screen does', async () => {
     const shop = await openShop(port, texts, 'stock-made');
     await create(shop, {

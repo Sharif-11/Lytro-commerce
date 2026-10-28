@@ -125,6 +125,7 @@ export class StockService implements ProductStockHooks {
     return this.transactions.run(async (tx) => {
       const { rows, total, counts } = await this.store.listProducts(tx, tenantId, {
         search: query.search,
+        categoryId: query.categoryId,
         ...(query.stock ? { active: true, stockState: query.stock } : {}),
         attentionFirst: true,
         offset: (query.page - 1) * query.limit,

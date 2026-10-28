@@ -59,6 +59,9 @@ export const positiveQuantityField = z.coerce
 // Every catalogue id in a path or a body.
 export const catalogueIdSchema = z.string().uuid();
 
+// PRD-12: a list's category filter: a category's id, or "uncategorized" for the products filed in none.
+export const categoryFilterField = z.union([catalogueIdSchema, z.literal('uncategorized')]);
+
 // A "true"/"false" query flag. z.coerce.boolean() would read "false" as true.
 export const queryFlag = z
   .enum(['true', 'false'])
