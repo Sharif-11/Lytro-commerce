@@ -165,6 +165,8 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'POST /products/:id/variants/:variantId/serials': "another shop's product or variant answers 404",
   'PATCH /products/:id/serials/:serialId': "another shop's product or serial answers 404",
   'DELETE /products/:id/serials/:serialId': "another shop's product or serial answers 404",
+  // Phase 3 Slice 11.7c, checked in test/inventory.e2e.spec.ts.
+  'POST /serials/check': "only the session shop's units count as taken; another shop's never do",
   // Phase 3 Slice 4a, checked in test/purchasing.e2e.spec.ts.
   'GET /suppliers': "lists only the session shop's own suppliers",
   'POST /suppliers': 'creates a supplier in the session shop only; names are unique per shop',
