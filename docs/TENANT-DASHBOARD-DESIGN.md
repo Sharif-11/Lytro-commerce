@@ -1,7 +1,10 @@
 # Tenant dashboard: the full design
 
-Status: v3.10, 2026-10-29 (a screen that names one record, a purchase or a stock check, names it in the desktop
-header; v3.9 of 2026-10-29: Purchases and suppliers as Slice 11.10 builds them, prototype Part 21: Open on order, Coming
+Status: v3.12, 2026-10-29 (the brand editor as Slice 11.12a builds it, prototype Part 23: the buttons follow
+the switch, the contrast check as the server makes it with the nearest passing shade, a colour's sheet, the logos
+set, uploading and refused, a paid shop without the add-on, a plan that includes it, leaving unsaved, and a toast
+for each button; v3.10 of 2026-10-29: a screen that names one record, a purchase or a stock check, names it in the
+desktop header; v3.9 of 2026-10-29: Purchases and suppliers as Slice 11.10 builds them, prototype Part 21: Open on order, Coming
 in every unit, a supplier typed, Add item by product then variants, a placed purchase editable until its first delivery,
 It arrived with reasons, batches and IMEIs, Cancel or Close short by deliveries, the archived suppliers, a variant's
 purchases, the empty and look-only states; v3.8 of 2026-10-29: stock checks as Slice 11.9 builds them, prototype Part
@@ -1154,6 +1157,37 @@ Lytro's own fonts are served with the app (11.3).
 passing shade is offered (BRN-03, `brand-contrast`). On the trial: design and preview, with "Buy the add-on to
 switch on" (`brand-trial`). After the add-on lapses: the default shows, the settings are kept and Buy again
 restores them (`brand-lapsed`).
+
+*As Slice 11.12a builds it* (Part 23, v3.12, 2026-10-29, agreed in its read; `brand-off`, `brand-in-plan`,
+`brand-no-addon`, `brand-contrast-status`, `brand-square-airy`, `brand-colour-main`, `-accent`, `-bg`, `brand-colour-fail`,
+`brand-logos`, `brand-logo-dark`, `brand-icon`, `brand-uploading`, `brand-icon-refused`, `brand-leave` and the toasts; the
+earlier brand screens redrawn on the same page):
+
+- **The buttons follow the switch.** On: one **Save**, and the change shows within a minute. Off: **Apply** (save and
+  switch on) and **Save without switching on**. Turning the switch on is Apply; turning it off happens at once, keeps the
+  identity and leaves the page's unsaved changes on the page. On the trial or without the add-on, only Save without
+  switching on, with the banner and Buy the add-on. With the plan's feature, the line says "included in your plan". After
+  a lapse the banner names no date (the shop's add-ons list keeps only running ones); Buy again and Save remain. The
+  switch's line wraps on a phone, so the add-on's end is never cut off.
+- **The contrast check as the server makes it.** The text on each colour is ink or white, whichever reads better, so the
+  three pairs drawn rarely fail. Two more checks show as rows only when they fail: the main colour on the background
+  (3:1) and the status colours on the background (4.5:1). A failing row says what it needs and offers **Use #a08a47**, the
+  nearest shade that passes; a pale yellow main colour is the drawn case (`brand-contrast`), a kraft-paper background
+  the other (`brand-contrast-status`). Ratios are rounded down to one decimal. Failing colours may be saved while off;
+  Apply, and Save while on, stay off until every pair passes.
+- **A colour's sheet:** what the colour is for, the colour and its code, colours that work well (each passes with
+  Lytro's default colours), Other colour from the browser's picker, the checks that colour answers for, with Use when one
+  fails, and Done. Nothing is saved until Save or Apply.
+- **Logos.** The logo on light is the shop logo; its tile's Change opens Shop details, and a line under the logos says so.
+  The dark logo and the square icon upload as the shop logo does and show their progress on the tile; once set, Change
+  opens a sheet with Replace and Remove, and a removal takes effect on Save. The icon is checked before it is sent: square,
+  at least 512 × 512 px.
+- **Leaving with changes unsaved** asks first, as the product editor does. Each button's toast says what it did.
+- **Corners and spacing:** every preset is drawn (`brand-square-airy`); the preview takes the chosen colours, fonts,
+  corners and spacing, and its header shows the dark logo once set.
+- **Copy:** Apply reads অ্যাপ্লাই করুন, and the requirement ids leave the page's sentences.
+- **The way in** is Settings, Brand identity. The add-on row's Set up and the trial banner's line are not built in this
+  slice (decided in the read).
 
 **The dashboard themed.** With the identity on, the dashboard takes its colours, fonts, corners and spacing through
 the same tokens as the storefront (BRN-07); the status colours, "Powered by Lytro" and the layout never change.
