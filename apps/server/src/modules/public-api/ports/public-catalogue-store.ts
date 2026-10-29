@@ -1,10 +1,12 @@
 import type {
   CatalogueVersions,
+  CategoryProductCount,
   FeedAttributeRow,
   FeedImageRow,
   FeedVariantRow,
   PublicProductFilter,
   PublicProductRow,
+  PublicSwatchRow,
   Transaction,
 } from '@lytronix/db';
 import type { CategoryRecord } from '../../catalogue/types/catalogue';
@@ -21,6 +23,14 @@ export interface PublicCatalogueStore {
     slug: string,
   ): Promise<{ productId: string; slug: string } | null>;
   listCategories(tx: Transaction, tenantId: string): Promise<CategoryRecord[]>;
+  /** PRD-03, Slice 12b: each category's number of active products, its subcategories' included. */
+  countCategoryProducts(tx: Transaction, tenantId: string): Promise<CategoryProductCount[]>;
+  /** ATR-18, Slice 12b: the swatches of these products' list cards. */
+  listSwatches(
+    tx: Transaction,
+    tenantId: string,
+    productIds: readonly string[],
+  ): Promise<PublicSwatchRow[]>;
   /** FED-01, FED-02: every variant on sale of every active product, its photos, and the named attributes' values. */
   listFeedVariants(tx: Transaction, tenantId: string): Promise<FeedVariantRow[]>;
   listFeedImages(tx: Transaction, tenantId: string): Promise<FeedImageRow[]>;

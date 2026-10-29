@@ -2,13 +2,14 @@ import { PublicProductSort, type PublicProductListQuery } from '@lytronix/valida
 
 /**
  * CCH-03: a product list request as its cache entry is named -- the order resolved (relevance when searching, else
- * featured), the search's spacing and letter case folded, the version and every unknown parameter left out -- so two
- * requests asking the same thing in any order share one entry.
+ * featured), the search's spacing and letter case folded, the stock filter as true or false, the version and every
+ * unknown parameter left out -- so two requests asking the same thing in any order share one entry.
  */
 export interface ListRequest {
   category: string | null;
   search: string | null;
   sort: PublicProductSort;
+  inStock: boolean;
   cursor: string | null;
   limit: number;
 }
@@ -27,6 +28,7 @@ export function listRequestOf(query: PublicProductListQuery): ListRequest {
     category: query.category?.toLowerCase() ?? null,
     search,
     sort,
+    inStock: query.inStock ?? false,
     cursor: query.cursor ?? null,
     limit: query.limit,
   };

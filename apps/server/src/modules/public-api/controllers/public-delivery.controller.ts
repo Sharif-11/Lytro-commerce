@@ -2,7 +2,11 @@ import { Body, Controller, Get, HttpCode, Inject, Post, Req } from '@nestjs/comm
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { createZodDto, ZodResponse } from 'nestjs-zod';
 import { z } from 'zod';
-import { deliveryEstimateSchema, type DeliveryEstimateInput } from '@lytronix/validators';
+import {
+  StockState,
+  deliveryEstimateSchema,
+  type DeliveryEstimateInput,
+} from '@lytronix/validators';
 import { ResponseMessage } from '../../../common/decorators/response-message';
 import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
 import { LocationService } from '../../delivery/services/location.service';
@@ -29,6 +33,18 @@ class PublicLocationsDto extends createZodDto(
 class DeliveryEstimateBodyDto extends createZodDto(deliveryEstimateSchema) {}
 class DeliveryEstimateDto extends createZodDto(
   z.object({
+    lines: z.array(
+      z.object({
+        variantId: z.string(),
+        onSale: z.boolean(),
+        price: z.string().nullable(),
+        stockState: z.nativeEnum(StockState).nullable(),
+        available: z.boolean(),
+        itemTotal: z.string().nullable(),
+        advance: z.string().nullable(),
+      }),
+    ),
+    subtotal: z.string(),
     zone: z
       .object({ id: z.string(), name: bilingual, charge: z.string(), noDelivery: z.boolean() })
       .nullable(),
@@ -64,7 +80,7 @@ export class PublicDeliveryController {
   @ResponseMessage('DeliveryEstimated')
   @ApiOperation({
     summary:
-      "What these items' delivery would cost to a thana, or the range across the shop's zones before one is chosen (SFT-20, ORD-06a)",
+      "These items as they stand now, and what their delivery would cost to a thana, or the range across the shop's zones before one is chosen (SFT-20, ORD-06a)",
   })
   @ZodResponse({ type: DeliveryEstimateDto })
   estimate(

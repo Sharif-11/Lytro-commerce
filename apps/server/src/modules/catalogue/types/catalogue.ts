@@ -287,6 +287,8 @@ export interface OrderableVariant {
   active: boolean;
   /** PRD-13: the product is archived, so nothing more is ordered of it. */
   archived: boolean;
+  /** CCH-08: in stock, few left or sold out, as the storefront shows it (Slice 12b's cart check). */
+  stockState: StockState;
   stockUnit: StockUnit;
   stockTracking: StockTracking;
   /** INV-24: how much of the shared stock one unit uses; null unless the product shares its stock. */

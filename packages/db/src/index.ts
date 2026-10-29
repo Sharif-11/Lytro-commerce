@@ -187,6 +187,8 @@ export {
   type FeedVariantRow,
   type PublicProductFilter,
   type PublicProductRow,
+  type PublicSwatchRow,
+  type CategoryProductCount,
 } from './repositories/catalogue/public-catalogue.repository';
 export { PresetRepository, type PresetPatch } from './repositories/catalogue/preset.repository';
 export {

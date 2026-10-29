@@ -57,6 +57,8 @@ interface Card {
   maxPrice: string | null;
   stockState: string;
   image: unknown;
+  createdAt: string;
+  swatches: { id: string; value: string; swatchColor: string | null; swatchImage: unknown }[];
 }
 
 interface Page {
@@ -220,9 +222,90 @@ describeIfDatabase('the public product list (PRD-09, CCH-11, CCH-12)', () => {
     const products = (listed.body as Page).products;
     expect(products.map((card) => card.id)).toEqual([shown.id]);
     expect(Object.keys(products[0] ?? {}).sort()).toEqual(
-      ['id', 'image', 'maxPrice', 'minPrice', 'name', 'slug', 'stockState'].sort(),
+      [
+        'createdAt',
+        'id',
+        'image',
+        'maxPrice',
+        'minPrice',
+        'name',
+        'slug',
+        'stockState',
+        'swatches',
+      ].sort(),
     );
-    expect(products[0]).toMatchObject({ minPrice: '300.00', maxPrice: '300.00', image: null });
+    expect(products[0]).toMatchObject({
+      minPrice: '300.00',
+      maxPrice: '300.00',
+      image: null,
+      swatches: [],
+    });
+    expect(products[0]?.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+    expect(Date.now() - Date.parse(products[0]?.createdAt ?? '')).toBeLessThan(10 * 60_000);
+  });
+
+  it('keeps only what is in stock when asked, and refuses a flag it does not know (Slice 12b)', async () => {
+    const shop = await openShop(port, texts, 'pub-stock');
+    const key = await keyFor(shop);
+    const stocked = await simple(shop, 'Stocked', 300, {
+      variants: [{ optionIds: [], openingStock: 5 }],
+    });
+    const empty = await simple(shop, 'Empty', 300);
+
+    const ids = async (query: string) =>
+      (await page(key, query)).products.map((card) => card.id).sort();
+    expect(await ids('?inStock=true')).toEqual([stocked.id]);
+    expect(await ids('?inStock=false')).toEqual([stocked.id, empty.id].sort());
+    expect(await ids('')).toEqual([stocked.id, empty.id].sort());
+    expect(await ids('?inStock=true&search=stocked')).toEqual([stocked.id]);
+    expect(await ids('?inStock=true&search=empty')).toEqual([]);
+    expect((await callApi('/v1/catalogue/products?inStock=yes', key)).status).toBe(400);
+  });
+
+  it("shows a card's swatches: its first swatched choice's values on sale (ATR-18, Slice 12b)", async () => {
+    const shop = await openShop(port, texts, 'pub-swatch');
+    const key = await keyFor(shop);
+    const size = await platformId(shop, 'Size');
+    const [small, medium] = await optionIds(shop, size, ['S', 'M']);
+    const color = await platformId(shop, 'Color');
+    const colour = async (value: string, swatchColor?: string) => {
+      const made = await shop.post(`/attributes/${color}/options`, { value, swatchColor });
+      expect(made.status, JSON.stringify(made.body)).toBe(201);
+      return (made.body as { id: string }).id;
+    };
+    const brick = await colour('Brick', '#b5402a');
+    const navy = await colour('Navy blue', '#1f2f5c');
+    const jet = await colour('Jet', '#111111');
+    const moss = await colour('Moss');
+    const shirt = await create(shop, {
+      name: 'Swatched shirt',
+      basePrice: 450,
+      variantAttributes: [
+        { attributeId: size, optionIds: [small, medium] },
+        { attributeId: color, optionIds: [brick, navy, jet, moss] },
+      ],
+      variants: [
+        { optionIds: [small, brick], openingStock: 3 },
+        { optionIds: [medium, navy], openingStock: 0 },
+        { optionIds: [small, jet], openingStock: 3, active: false },
+        { optionIds: [medium, moss], openingStock: 3 },
+      ],
+    });
+    await simple(shop, 'Plain mug', 200);
+
+    const cards = (await page(key, '')).products;
+    const card = cards.find((row) => row.id === shirt.id);
+    // Size has no swatches, so Color's are shown; Jet is on no variant on sale, Moss has no swatch; a sold-out Navy
+    // variant is still on sale.
+    expect(
+      [...(card?.swatches ?? [])]
+        .sort((a, b) => a.value.localeCompare(b.value))
+        .map((swatch) => [swatch.id, swatch.value, swatch.swatchColor, swatch.swatchImage]),
+    ).toEqual([
+      [brick, 'Brick', '#B5402A', null],
+      [navy, 'Navy blue', '#1F2F5C', null],
+    ]);
+    expect(cards.find((row) => row.id !== shirt.id)?.swatches).toEqual([]);
   });
 
   it('pages through every product exactly once, in each order', async () => {
@@ -420,6 +503,40 @@ describeIfDatabase('the category tree (PRD-03)', () => {
       ['Bags', []],
       ['Clothing', [['Shirts', []]]],
     ]);
+  });
+
+  it("counts each category's products as its list shows them, its subcategories' included (Slice 12b)", async () => {
+    const shop = await openShop(port, texts, 'pub-count');
+    const key = await keyFor(shop);
+    const clothing = await category(shop, { name: 'Clothing' });
+    const shirts = await category(shop, { name: 'Shirts', parentId: clothing.id });
+    const formal = await category(shop, { name: 'Formal', parentId: shirts.id, visible: false });
+    const ties = await category(shop, { name: 'Ties', parentId: formal.id });
+    await category(shop, { name: 'Bags' });
+    await simple(shop, 'Tee', 300, { categoryIds: [shirts.id] });
+    await simple(shop, 'Silk tie', 600, { categoryIds: [ties.id] });
+    await simple(shop, 'Jacket', 2000, { categoryIds: [clothing.id, shirts.id] });
+    const off = await simple(shop, 'Old shirt', 100, { categoryIds: [shirts.id] });
+    expect((await shop.patch(`/products/${off.id}`, { active: false })).status).toBe(200);
+
+    interface Counted {
+      name: string;
+      productCount: number;
+      children: Counted[];
+    }
+    const counts = (nodes: Counted[]): unknown =>
+      nodes.map((node) => [node.name, node.productCount, counts(node.children)]);
+    const tree = (await callApi('/v1/catalogue/categories', key)).body as {
+      categories: Counted[];
+    };
+    // The hidden Formal and its Ties are not shown, but their tie counts in Shirts and Clothing, as their lists show it;
+    // the Jacket in both counts once; the inactive shirt not at all.
+    expect(counts(tree.categories)).toEqual([
+      ['Bags', 0, []],
+      ['Clothing', 3, [['Shirts', 3, []]]],
+    ]);
+    expect((await page(key, `?category=${clothing.slug}`)).products).toHaveLength(3);
+    expect((await page(key, `?category=${shirts.slug}`)).products).toHaveLength(3);
   });
 });
 

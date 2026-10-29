@@ -6,6 +6,7 @@ import {
   FulfilmentType,
   PaymentPolicy,
   ServerFieldProblemCode,
+  StockState,
   type DeliveryEstimateInput,
 } from '@lytronix/validators';
 import { FieldsError, type InvalidField } from '../../../common/api-error';
@@ -237,9 +238,11 @@ export class OrderPricing {
   }
 
   /**
-   * SFT-20, LND-08, CUS-08 (D4-9), pulled forward for the storefront: what delivering these items to a thana would cost,
-   * and whether they can go there (DLV-06, DLV-07); before a thana is chosen, the least and most any zone that
-   * delivers would charge. Only what is on sale is priced (PRD-06): anything else is refused, naming its item.
+   * SFT-20, LND-08, CUS-08 (D4-9), pulled forward for the storefront: each item as it stands now -- its price, its
+   * stock, whether it is still sold (Slice 12b: a cart checks its lines here) -- then what delivering the ones that can
+   * be ordered to a thana would cost, and whether they can go there (DLV-06, DLV-07); before a thana is chosen, the
+   * least and most any zone that delivers would charge. Only what is on sale and not sold out is priced (PRD-06,
+   * ATR-07); with none, nothing is.
    */
   async estimate(tenantId: string, input: DeliveryEstimateInput): Promise<DeliveryEstimate> {
     const location = input.locationId !== undefined ? await this.thanaOf(input.locationId) : null;
@@ -251,30 +254,71 @@ export class OrderPricing {
       );
       const lines: PricingLine[] = [];
       const products: OrderableVariant[] = [];
-      const problems: InvalidField[] = [];
-      input.items.forEach((item, index) => {
+      const items: EstimateLine[] = input.items.map((item) => {
         const variant = variants.get(item.variantId);
         if (!variant?.active) {
-          problems.push({
-            field: `items.${String(index)}.variantId`,
-            problem: ServerFieldProblemCode.NotFound,
-            messageKey: 'ProductNotFound',
-          });
-          return;
+          return {
+            variantId: item.variantId,
+            onSale: false,
+            price: null,
+            stockState: null,
+            available: false,
+            itemTotal: null,
+            advance: null,
+          };
         }
-        products.push(variant);
-        lines.push({
-          unitPrice: variant.price,
-          quantity: item.quantity.toFixed(3),
-          itemDiscount: '0.00',
-          weightKg: variant.weightKg,
-          ownDeliveryCharge: variant.deliveryCharge,
-          deliveryMode: variant.deliveryMode,
-          paymentPolicy: variant.paymentPolicy,
-          policyAdvance: variant.advanceAmount,
-        });
+        const available = variant.stockState !== StockState.Out;
+        if (available) {
+          products.push(variant);
+          lines.push({
+            unitPrice: variant.price,
+            quantity: item.quantity.toFixed(3),
+            itemDiscount: '0.00',
+            weightKg: variant.weightKg,
+            ownDeliveryCharge: variant.deliveryCharge,
+            deliveryMode: variant.deliveryMode,
+            paymentPolicy: variant.paymentPolicy,
+            policyAdvance: variant.advanceAmount,
+          });
+        }
+        return {
+          variantId: item.variantId,
+          onSale: true,
+          price: variant.price,
+          stockState: variant.stockState,
+          available,
+          itemTotal: null,
+          advance: null,
+        };
       });
-      if (problems.length > 0) throw new FieldsError(problems);
+      if (lines.length === 0) {
+        return {
+          lines: items,
+          subtotal: '0.00',
+          zone: null,
+          deliveryCharge: null,
+          range: null,
+          deliverable: false,
+          notDeliveredHere: [],
+        };
+      }
+      // The items' own totals and advances, which no zone changes.
+      const itemsOnly = priceOrder({
+        fulfilmentType: FulfilmentType.Delivery,
+        zoneCharge: null,
+        extraChargePerKg: '0.00',
+        lines,
+        discount: '0.00',
+        deliveryChargeByHand: null,
+      });
+      const pricedLines = itemsOnly.lines.values();
+      for (const item of items) {
+        if (!item.available) continue;
+        const priced = pricedLines.next().value;
+        item.itemTotal = priced?.itemTotal ?? null;
+        item.advance = priced?.advance ?? null;
+      }
+      const goods = { lines: items, subtotal: itemsOnly.subtotal };
       const chargeAt = (zoneCharge: string, extraChargePerKg: string): string =>
         priceOrder({
           fulfilmentType: FulfilmentType.Delivery,
@@ -297,6 +341,7 @@ export class OrderPricing {
         const { zone, extraChargePerKg } = await this.deliveryWithin(tx, tenantId, location);
         const notDeliveredHere = limitedAway(zone.id);
         return {
+          ...goods,
           zone: { id: zone.id, name: zone.label, charge: zone.charge, noDelivery: zone.noDelivery },
           deliveryCharge: chargeAt(zone.charge, extraChargePerKg),
           range: null,
@@ -312,6 +357,7 @@ export class OrderPricing {
       const from = charges[0];
       const to = charges.at(-1);
       return {
+        ...goods,
         zone: null,
         deliveryCharge: null,
         range: from !== undefined && to !== undefined ? { from, to } : null,
@@ -322,8 +368,27 @@ export class OrderPricing {
   }
 }
 
-/** SFT-20: a cart's delivery, to a thana or, before one is chosen, as a range. */
+/** SFT-20, Slice 12b: one item of an estimate as it stands now. */
+export interface EstimateLine {
+  variantId: string;
+  /** PRD-06: still sold; false for one removed, retired or taken off sale, whose other fields are then null. */
+  onSale: boolean;
+  /** Its price now, so a cart can show one that changed since it was added. */
+  price: string | null;
+  stockState: StockState | null;
+  /** ATR-07: on sale and not sold out; only these are priced, and only these could be ordered. */
+  available: boolean;
+  /** Its price times its quantity by the order's own rule; null when it is not available. */
+  itemTotal: string | null;
+  /** PRD-08: the advance its product asks before delivery; null when it is not available. */
+  advance: string | null;
+}
+
+/** SFT-20: a cart's items as they stand, and their delivery, to a thana or, before one is chosen, as a range. */
 export interface DeliveryEstimate {
+  lines: EstimateLine[];
+  /** The available items' total. */
+  subtotal: string;
   zone: {
     id: string;
     name: { en: string; bn: string };
