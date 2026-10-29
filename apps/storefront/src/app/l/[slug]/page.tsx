@@ -55,6 +55,7 @@ export default async function LandingPage({ params, searchParams }: Props) {
   return (
     <>
       <Shell
+        brand={page.info.brand}
         language={language}
         header={<Header shop={page.info} language={language} variant="minimal" />}
         footer={

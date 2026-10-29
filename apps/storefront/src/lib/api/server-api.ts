@@ -29,6 +29,13 @@ export interface ServerCall {
   body?: unknown;
 }
 
+/** A raw answer: its status, its type and its body, for what is not an envelope (an app icon). */
+export interface ServerBytes {
+  status: number;
+  contentType: string | null;
+  body: Buffer;
+}
+
 /** Sends calls to the server's address and unwraps its envelope. */
 export class ServerApi {
   private readonly base: URL;
@@ -37,7 +44,28 @@ export class ServerApi {
     this.base = new URL(serverUrl);
   }
 
-  send<T>(call: ServerCall): Promise<ServerAnswer<T>> {
+  async send<T>(call: ServerCall): Promise<ServerAnswer<T>> {
+    const answer = await this.exchange(call, 'application/json');
+    let envelope: Envelope | null = null;
+    try {
+      envelope = JSON.parse(answer.body.toString('utf8')) as Envelope;
+    } catch {
+      envelope = null;
+    }
+    return {
+      status: answer.status,
+      data: envelope?.success ? ((envelope.data ?? null) as T | null) : null,
+      code: envelope && !envelope.success ? (envelope.errors?.code ?? null) : null,
+      details: envelope?.errors?.details ?? {},
+    };
+  }
+
+  /** The answer as it came, unparsed: an image the storefront passes on (Slice 12c's app icons). */
+  bytes(call: ServerCall): Promise<ServerBytes> {
+    return this.exchange(call, '*/*');
+  }
+
+  private exchange(call: ServerCall, accept: string): Promise<ServerBytes> {
     const target = new URL(call.path, this.base);
     const payload = call.body === undefined ? undefined : JSON.stringify(call.body);
     const send = target.protocol === 'https:' ? httpsRequest : httpRequest;
@@ -49,7 +77,7 @@ export class ServerApi {
           headers: {
             ...call.headers,
             host: call.host,
-            accept: 'application/json',
+            accept,
             ...(payload === undefined
               ? {}
               : {
@@ -63,18 +91,10 @@ export class ServerApi {
           const chunks: Buffer[] = [];
           incoming.on('data', (chunk: Buffer) => chunks.push(chunk));
           incoming.on('end', () => {
-            const status = incoming.statusCode ?? 502;
-            let envelope: Envelope | null = null;
-            try {
-              envelope = JSON.parse(Buffer.concat(chunks).toString('utf8')) as Envelope;
-            } catch {
-              envelope = null;
-            }
             resolve({
-              status,
-              data: envelope?.success ? ((envelope.data ?? null) as T | null) : null,
-              code: envelope && !envelope.success ? (envelope.errors?.code ?? null) : null,
-              details: envelope?.errors?.details ?? {},
+              status: incoming.statusCode ?? 502,
+              contentType: incoming.headers['content-type'] ?? null,
+              body: Buffer.concat(chunks),
             });
           });
           incoming.on('error', reject);

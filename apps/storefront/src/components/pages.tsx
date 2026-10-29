@@ -1,4 +1,6 @@
+import type { PublicBrand } from '@/lib/api/storefront-api';
 import type { Words } from '@/lib/i18n/words';
+import { ReloadButton } from './reload-button';
 import type { ShopFace } from './shell';
 import { BarePage, Logo, UnknownMark } from './shell';
 
@@ -36,12 +38,13 @@ export function GonePage({
   storefrontOn,
 }: {
   words: Words;
-  shop: ShopFace;
+  shop: ShopFace & { brand: PublicBrand | null };
   storefrontOn: boolean;
 }) {
   return (
     <BarePage
       language={words.language}
+      brand={shop.brand}
       mark={<Logo shop={shop} />}
       title={words.t('gone_h')}
       text={words.t('gone_p')}
@@ -52,6 +55,27 @@ export function GonePage({
           </a>
         ) : null
       }
+    />
+  );
+}
+
+/** CCH-10 (Slice 12c, `offline-unsaved`): what the installed storefront shows, offline, for a page this phone never
+    saved -- kept by the service worker when it is installed, in the shop's own colours. */
+export function OfflineUnsavedPage({
+  words,
+  shop,
+}: {
+  words: Words;
+  shop: ShopFace & { brand: PublicBrand | null };
+}) {
+  return (
+    <BarePage
+      language={words.language}
+      brand={shop.brand}
+      mark={<Logo shop={shop} />}
+      title={words.t('nosave_h')}
+      text={words.t('nosave_p')}
+      action={<ReloadButton label={words.t('nosave_btn')} />}
     />
   );
 }

@@ -55,6 +55,43 @@ export const BRAND_FONTS: Readonly<Record<BrandFont, BrandFontPair>> = {
   },
 };
 
+// The serif pairs, whose stack ends on the browser's serif rather than its sans-serif.
+const SERIF_FONTS: ReadonlySet<BrandFont> = new Set([
+  BrandFont.TiroBanglaLora,
+  BrandFont.NotoSerifBengaliFraunces,
+  BrandFont.GaladaPlayfairDisplay,
+]);
+
+/** BRN-02: a pair's faces as a font stack: the Latin face first, so Bangla letters fall through to the Bangla face. */
+export function fontStack(font: BrandFont): string {
+  const pair = BRAND_FONTS[font];
+  return `'${pair.latin}', '${pair.bangla}', ${SERIF_FONTS.has(font) ? 'serif' : 'sans-serif'}`;
+}
+
+// The curated faces Google Fonts serves in one weight only, so they are asked for without one.
+const ONE_WEIGHT_FACES: ReadonlySet<string> = new Set(['Galada', 'Tiro Bangla']);
+
+/**
+ * BRN-02, Slice 12c: the Google Fonts stylesheet for these pairs' faces at 400 and 700, less the faces a page serves
+ * itself (`hosted`); null when nothing is left to ask for.
+ */
+export function brandFontsUrl(
+  fonts: readonly BrandFont[],
+  hosted: ReadonlySet<string>,
+): string | null {
+  const faces = [
+    ...new Set(fonts.flatMap((font) => [BRAND_FONTS[font].latin, BRAND_FONTS[font].bangla])),
+  ]
+    .filter((face) => !hosted.has(face))
+    .sort();
+  if (faces.length === 0) return null;
+  const families = faces.map((face) => {
+    const family = face.replace(/ /g, '+');
+    return ONE_WEIGHT_FACES.has(face) ? `family=${family}` : `family=${family}:wght@400;700`;
+  });
+  return `https://fonts.googleapis.com/css2?${families.join('&')}&display=swap`;
+}
+
 // TEN-17, SFT-14: what a home screen shows under an app's icon has little room; a longer name is cut at a word.
 export const APP_SHORT_NAME_LENGTH = 12;
 
@@ -65,6 +102,20 @@ export function shortNameOf(name: string, length = APP_SHORT_NAME_LENGTH): strin
   const cut = characters.slice(0, length).join('');
   const space = cut.lastIndexOf(' ');
   return (space > 0 ? cut.slice(0, space) : cut).trim();
+}
+
+// TEN-17, Slice 12c: the dashboard's installed app is the one marked, so a seller tells it from the shop's storefront
+// app, which takes the plain name (SFT-14).
+const DASHBOARD_APP_SUFFIX = ' Admin';
+
+/** TEN-17: the dashboard's installed app's name, "<shop> Admin". */
+export function dashboardAppName(shopName: string): string {
+  return `${shopName.trim()}${DASHBOARD_APP_SUFFIX}`;
+}
+
+/** TEN-17: its home-screen label: the name cut to leave room for " Admin". */
+export function dashboardAppShortName(shopName: string): string {
+  return `${shortNameOf(shopName, APP_SHORT_NAME_LENGTH - DASHBOARD_APP_SUFFIX.length)}${DASHBOARD_APP_SUFFIX}`;
 }
 
 /** BRN-02: the three colours a shop chooses, each #rrggbb. */

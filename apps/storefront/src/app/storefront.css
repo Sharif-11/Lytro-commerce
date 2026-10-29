@@ -14,6 +14,12 @@
   --r-control:8px;--r-card:12px;--r-sheet:18px;--r-pill:999px;--space:1;
   --shadow:0 1px 2px rgba(16,32,31,.06),0 4px 12px rgba(16,32,31,.06);--shadow-pop:0 12px 40px rgba(16,32,31,.22);
 }
+/* a shop's own identity (BRN-02, BRN-07): its colours and faces are set on the frame from its tokens (brandVars); its
+   corners and spacing are these presets. Soft is Lytro's own; status colours and the neutrals never change (BRN-04). */
+.frame[data-corners=square]{--r-control:2px;--r-card:4px;--r-sheet:8px;--r-pill:6px}
+.frame[data-corners=round]{--r-control:12px;--r-card:18px;--r-sheet:24px}
+.frame[data-spacing=compact]{--space:.75}
+.frame[data-spacing=airy]{--space:1.25}
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
 button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
@@ -32,6 +38,7 @@ svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.75;str
 .hdr{flex:none;background:var(--surface);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;padding:0 8px 0 16px;height:60px;position:relative;z-index:5}
 .hdr .shop{display:flex;align-items:center;gap:10px;min-width:0;flex:1;cursor:pointer}
 .hdr .logo{width:36px;height:36px;border-radius:10px;background:var(--accent);color:var(--on-accent);display:inline-flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:18px;flex:none}
+.frame[data-corners=round] .hdr .logo{border-radius:50%}
 .hdr .name{font-family:var(--font-display);font-weight:700;font-size:17px;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hdr .ib{width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:10px;color:var(--text);position:relative}
 .hdr .ib .badge{position:absolute;top:5px;right:4px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--accent);color:var(--on-accent);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
@@ -45,9 +52,9 @@ svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.75;str
 .langpill{height:30px;padding:0 10px;border-radius:var(--r-pill);border:1px solid var(--line-strong);font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:4px;color:var(--muted);cursor:pointer}
 
 /* ---------- Page ---------- */
-.page{display:flex;flex-direction:column;gap:20px;padding:16px 16px 120px;min-height:100%}
+.page{display:flex;flex-direction:column;gap:calc(20px * var(--space));padding:16px 16px 120px;min-height:100%}
 .page.tight{padding-bottom:40px}
-.sec{display:flex;flex-direction:column;gap:12px}
+.sec{display:flex;flex-direction:column;gap:calc(12px * var(--space))}
 .sechead{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
 .sechead h2{font-family:var(--font-display);font-size:19px;font-weight:700;letter-spacing:-.01em}
 .sechead .lnk{font-size:14px;color:var(--accent-text);font-weight:600;white-space:nowrap;display:inline-flex;align-items:center;gap:2px;cursor:pointer}
@@ -78,7 +85,7 @@ h1.pt{font-family:var(--font-display);font-size:24px;font-weight:700;letter-spac
 .cat{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;font-weight:500;text-align:center;cursor:pointer}
 .cat .img{width:100%;aspect-ratio:1;border-radius:var(--r-card);background:var(--sunken);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:20px;color:var(--accent-text);position:relative;overflow:hidden}
 .cat .img::after{content:"";position:absolute;inset:0;background:linear-gradient(160deg,rgba(255,255,255,.5),transparent 60%)}
-.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px 12px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:calc(14px * var(--space)) calc(12px * var(--space))}
 .card{display:flex;flex-direction:column;gap:8px;cursor:pointer;min-width:0}
 .card .img{aspect-ratio:4/5;border-radius:var(--r-card);background:var(--sunken);position:relative;overflow:hidden;display:flex;align-items:flex-end;justify-content:flex-start}
 .card .img .ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:34px;color:var(--accent-text);opacity:.35}
@@ -94,7 +101,7 @@ h1.pt{font-family:var(--font-display);font-size:24px;font-weight:700;letter-spac
 .card .pr .was{font-size:12px;color:var(--subtle);text-decoration:line-through}
 .card .sw{display:flex;gap:4px}
 .card .sw i{width:12px;height:12px;border-radius:50%;border:1px solid rgba(0,0,0,.15)}
-.rail{display:flex;gap:12px;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:0 16px}
+.rail{display:flex;gap:calc(12px * var(--space));overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:0 16px}
 .rail::-webkit-scrollbar{display:none}
 .rail .card{flex:0 0 150px}
 

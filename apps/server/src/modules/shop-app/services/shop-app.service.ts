@@ -2,9 +2,9 @@ import { createHash } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
 import { LYTRO_APP_COLORS } from '@lytronix/shared-types';
 import {
-  APP_SHORT_NAME_LENGTH,
+  dashboardAppName,
+  dashboardAppShortName,
   monogramLetter,
-  shortNameOf,
   TenantState,
 } from '@lytronix/validators';
 import { BrandService } from '../../brand/services/brand.service';
@@ -14,9 +14,6 @@ import { TenantSummaries } from '../../tenancy/services/tenant-summaries.service
 import type { TenantSummary } from '../../tenancy/types/tenant-summary';
 import { DASHBOARD_ICON_FILES, ShopIconFile, type ShopManifest } from '../types/shop-app';
 import { ShopIcons } from './shop-icons';
-
-// SFT-14, Slice 12c: the shop's storefront installs under its plain name, so its dashboard's app is the one marked.
-const ADMIN_SUFFIX = ' Admin';
 
 // Icons drawn and kept, the oldest let go first: a shop's few icons until its logo or name changes.
 const ICONS_KEPT = 300;
@@ -51,8 +48,8 @@ export class ShopAppService {
       `/api/v1/shops/${shop.slug}/icons/${file}?v=${version}`;
     return {
       id: path,
-      name: `${shop.shopName}${ADMIN_SUFFIX}`,
-      short_name: `${shortNameOf(shop.shopName, APP_SHORT_NAME_LENGTH - ADMIN_SUFFIX.length)}${ADMIN_SUFFIX}`,
+      name: dashboardAppName(shop.shopName),
+      short_name: dashboardAppShortName(shop.shopName),
       start_url: path,
       scope: path,
       display: 'standalone',
