@@ -129,18 +129,8 @@ export function colourOf(typed: string): string | null {
   return /^#[0-9a-f]{6}$/.test(full) ? full : null;
 }
 
-// The serif pairs, whose stack ends on the browser's serif rather than its sans-serif.
-const SERIF: ReadonlySet<BrandFont> = new Set([
-  BrandFont.TiroBanglaLora,
-  BrandFont.NotoSerifBengaliFraunces,
-  BrandFont.GaladaPlayfairDisplay,
-]);
-
-/** A pair's faces as a font stack: the Latin face first, so Bangla letters fall through to the Bangla face (Part 17). */
-export function fontStack(font: BrandFont): string {
-  const pair = BRAND_FONTS[font];
-  return `'${pair.latin}', '${pair.bangla}', ${SERIF.has(font) ? 'serif' : 'sans-serif'}`;
-}
+// A pair's faces as a font stack (Part 17): one definition, shared with the storefront (Slice 12c).
+export { fontStack } from '@lytronix/validators';
 
 // Part 17's samples: the same in both languages, since the point is to see both faces.
 export const FONT_SAMPLES = {
