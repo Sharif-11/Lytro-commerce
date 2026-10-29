@@ -274,6 +274,11 @@ h1.pt{font-family:var(--font-display);font-size:24px;font-weight:700;letter-spac
 .cl .vr{font-size:13px;color:var(--muted)}
 .cl .row{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:auto}
 .cl .rm{font-size:13px;color:var(--subtle);cursor:pointer}
+.cl .note{font-size:12px;font-weight:600;color:var(--warning)}
+.cl.off .th,.cl.off .nm,.cl.off .vr{opacity:.55}
+.cl.off .note{color:var(--n700)}
+.sheet .sf.soon{flex-wrap:wrap}
+.sheet .sf .soonline{flex-basis:100%;font-size:12px;color:var(--muted);text-align:center}
 .cl .qty{height:34px}
 .cl .qty button{width:34px}
 
@@ -503,6 +508,8 @@ const S = {
   area_title: ['আপনার এলাকা', 'Your area'], area_hint: ['জেলা ও থানা বাছলে ঠিক ডেলিভারি চার্জ দেখাবে।', 'Pick the district and thana to see the exact delivery charge.'], district: ['জেলা', 'District'], thana: ['থানা / উপজেলা', 'Thana / upazila'], area_save: ['এলাকা ঠিক করুন', 'Set area'],
   cart_title: ['কার্ট', 'Your cart'], cart_n: ['{n}টি আইটেম', '{n} items'], subtotal: ['পণ্যের দাম', 'Items'], delivery: ['ডেলিভারি', 'Delivery'], total: ['মোট', 'Total'], checkout: ['অর্ডার করুন', 'Checkout'], continue_: ['আরও কেনাকাটা', 'Keep shopping'], remove: ['সরান', 'Remove'],
   cart_empty: ['কার্ট খালি', 'Your cart is empty'], cart_empty_hint: ['পছন্দের জিনিস কার্টে রাখুন, স্টক ধরা হয় না — অর্ডার করলে তবেই।', 'Add what you like; nothing is held until you order.'], cart_est_note: ['ডেলিভারি চার্জ অর্ডারের সময় যেটা হবে, এখানেও সেটাই — একই হিসাব।', 'The delivery charge here is the one the order will carry, from the same calculation.'],
+  hero_welcome: ['স্বাগতম', 'Welcome'], hero_cats: ['{list} এবং আরও অনেক কিছু', '{list} and more'], trust_deliv: ['ডেলিভারি {r}', 'Delivery {r}'], sort_feat: ['ফিচার্ড', 'Featured'],
+  line_was: ['দাম বদলেছে, আগে ছিল {p}', 'Price changed, was {p}'], line_out: ['স্টক শেষ, মোট দামে ধরা হয়নি', 'Sold out, not in the total'], line_gone: ['আর বিক্রি হচ্ছে না, মোট দামে ধরা হয়নি', 'No longer sold, not in the total'], ordering_soon: ['অনলাইনে অর্ডার শিগগিরই চালু হবে।', 'Online ordering opens soon.'],
   no_delivery: ['{a}-এ আমরা ডেলিভারি দিই না', 'We do not deliver to {a}'], no_delivery_hint: ['অন্য ঠিকানা দিন, বা ০১৭১১-২২৩৩৪৪-এ কথা বলুন।', 'Try another address, or call 01711-223344.'], limited_hint: ['{p} শুধু {z}-এ যায়; এই ঠিকানায় অর্ডার হবে না।', '{p} delivers to {z} only; it cannot go to this address.'],
   // landing
   order_now: ['অর্ডার করুন', 'Order now'], confirm_order: ['অর্ডার কনফার্ম করুন', 'Confirm order'], your_details: ['আপনার তথ্য', 'Your details'], name: ['নাম', 'Name'], phone_: ['মোবাইল নম্বর', 'Mobile number'], address: ['পুরো ঠিকানা', 'Full address'], address_ph: ['বাসা/রোড/এলাকা, যেন কুরিয়ার খুঁজে পায়', 'House, road, area, so the courier can find you'], comments: ['মন্তব্য (ঐচ্ছিক)', 'Comments (optional)'], courier_area: ['কুরিয়ার এরিয়া (ঐচ্ছিক)', 'Courier area (optional)'],
@@ -608,7 +615,7 @@ function shell(o, inner, extra) {
 }
 function sheet(title, body, footHtml, o) {
   o = o || {}; const close = o.close || SCREENS[ST.screen].base || 'home';
-  return `<div class="scrim ${o.drawer ? 'drawer' : ''}" onclick="if(event.target===this)go('${close}')"><div class="sheet"><div class="grab"></div><div class="sh"><h2>${title}</h2><button class="x" onclick="go('${close}')">${I.x}</button></div><div class="sb">${body}</div>${footHtml ? `<div class="sf">${footHtml}</div>` : ''}</div></div>`;
+  return `<div class="scrim ${o.drawer ? 'drawer' : ''}" onclick="if(event.target===this)go('${close}')"><div class="sheet"><div class="grab"></div><div class="sh"><h2>${title}</h2><button class="x" onclick="go('${close}')">${I.x}</button></div><div class="sb">${body}</div>${footHtml ? `<div class="sf ${o.footClass || ''}">${footHtml}</div>` : ''}</div></div>`;
 }
 const toast = (msg, btnHtml) => `<div class="toast">${I.check}<span>${msg}</span>${btnHtml || ''}</div>`;
 const stChip = (s) => s === 'out' ? `<span class="st out">${t('out')}</span>` : s === 'low' ? `<span class="st low">${t('low')}</span>` : `<span class="st ok">${t('in_stock')}</span>`;
@@ -628,29 +635,35 @@ const qty = (n) => `<span class="qty"><button>${I.minus}</button><span>${n}</spa
 const pwaPrompt = () => `<div class="pwa"><span class="ic">${L(SHOP.mono[0], SHOP.mono[1])}</span><span class="b"><b>${t('pwa_t', { s: shopName() })}</b>${t('pwa_p')}</span><button class="btn">${t('pwa_btn')}</button></div>`;
 
 /* ---------- home ---------- */
-function homePage() {
+const heroCats = () => t('hero_cats', { list: CATS.slice(0, 3).map((c) => L(c.bn, c.en)).join(', ') });
+const trustNow = () => `<div class="trust"><span>${I.cash}${t('trust_cod')}</span><span>${I.truck}${t('trust_deliv', { r: `${money(ZONE.inside.charge)}–${money(ZONE.outside.charge)}` })}</span></div>`;
+function homePage(o) {
+  o = o || {};
   return `
-  <section class="hero"><span class="eyebrow" style="color:inherit;opacity:.85">${shopName()}</span><h1>${t('hero_h')}</h1><p>${t('hero_p')}</p><button class="cta" onclick="go('category')">${t('hero_cta')} ${I.chev}</button></section>
-  ${trust()}
-  <section class="sec"><div class="sechead"><h2>${t('shop_by')}</h2><span class="lnk" onclick="go('category')">${t('see_all')}${I.chev}</span></div><div class="cats">${CATS.map((c) => `<div class="cat" onclick="go('category')"><span class="img">${L(c.bn, c.en).slice(0, 1)}</span><span>${L(c.bn, c.en)}</span></div>`).join('')}</div></section>
-  <section class="sec"><div class="sechead"><h2>${t('new_in')}</h2><span class="lnk" onclick="go('category')">${t('see_all')}${I.chev}</span></div>${grid(P.slice(0, 4))}</section>
-  <section class="sec"><div class="sechead"><h2>${t('popular')}</h2></div>${rail([P[3], P[5], P[7], P[8], P[6]])}</section>`;
+  <section class="hero"><span class="eyebrow" style="color:inherit;opacity:.85">${t('hero_welcome')}</span><h1>${shopName()}</h1><p>${heroCats()}</p><button class="cta" onclick="go('new-arrivals')">${t('hero_cta')} ${I.chev}</button></section>
+  ${o.later ? trust() : trustNow()}
+  <section class="sec"><div class="sechead"><h2>${t('shop_by')}</h2></div><div class="cats">${CATS.map((c) => `<div class="cat" onclick="go('category')"><span class="img">${L(c.bn, c.en).slice(0, 1)}</span><span>${L(c.bn, c.en)}</span></div>`).join('')}</div></section>
+  <section class="sec"><div class="sechead"><h2>${t('new_in')}</h2><span class="lnk" onclick="go('new-arrivals')">${t('see_all')}${I.chev}</span></div>${grid(P.slice(0, 4))}</section>
+  ${o.later ? `<section class="sec"><div class="sechead"><h2>${t('popular')}</h2></div>${rail([P[3], P[5], P[7], P[8], P[6]])}</section>` : ''}`;
 }
 def('home', { group: 'Browse', label: 'Home', url: 'megh.lytro.app', render: () => shell({}, homePage()) });
 def('home-pwa', { group: 'Browse', label: '· install prompt (PWA, SFT-14)', url: 'megh.lytro.app', render: () => shell({}, homePage(), pwaPrompt()) });
 
 /* ---------- category ---------- */
 function categoryPage(o) {
-  o = o || {}; const list = P.filter((p) => p.cat === 'panjabi' || p.cat === 'sarees' || p.cat === 'three-piece' || p.cat === 't-shirts' || p.cat === 'shirts' || p.cat === 'kids');
+  o = o || {}; const list = o.newIn ? [P[7], P[0], P[3], P[1], P[5], P[2]] : P.filter((p) => p.cat === 'panjabi' || p.cat === 'sarees' || p.cat === 'three-piece' || p.cat === 't-shirts' || p.cat === 'shirts' || p.cat === 'kids');
+  const head = o.newIn ? `<div><h1 class="pt">${t('new_in')}</h1></div>`
+    : `<div><h1 class="pt">${catName('panjabi')}</h1><div class="sub">${t('products_n', { n: 24 })}</div></div>
+  <div class="chips">${CATS.slice(0, 6).map((c) => `<span class="chip ${c.slug === 'panjabi' ? 'on' : ''}" onclick="go('category')">${L(c.bn, c.en)}</span>`).join('')}</div>`;
+  const sortChip = o.newIn ? '<span></span>' : `<span class="chip" onclick="go('category-sort')">${I.sort}${t('sort')}: ${t('sort_feat')}</span>`;
   return `
-  <div><h1 class="pt">${catName('panjabi')}</h1><div class="sub">${t('products_n', { n: 24 })}</div></div>
-  <div class="chips"><span class="chip on">${t('all')}</span>${CATS.slice(0, 6).map((c) => `<span class="chip" onclick="go('category')">${L(c.bn, c.en)}</span>`).join('')}</div>
-  <div style="display:flex;gap:8px;align-items:center;justify-content:space-between"><span class="chip" onclick="go('category-sort')">${I.sort}${t('sort')}: ${t('sort_rel')}</span><span class="chip ${o.instock ? 'on' : ''}">${I.check}${t('instock_only')}</span></div>
+  ${head}
+  <div style="display:flex;gap:8px;align-items:center;justify-content:space-between">${sortChip}<span class="chip ${o.instock ? 'on' : ''}">${I.check}${t('instock_only')}</span></div>
   ${grid(list)}
-  <div style="text-align:center"><button class="btn ghost">${t('load_more')} · 18</button></div>`;
+  <div style="text-align:center"><button class="btn ghost">${t('load_more')}</button></div>`;
 }
 def('category', { group: 'Browse', label: 'Category · Panjabi', url: 'megh.lytro.app/c/panjabi', render: () => shell({ hdr: { back: 'home', title: catName('panjabi'), cat: 'panjabi' } }, categoryPage()) });
-def('category-sort', { base: 'category', group: 'Browse', label: '· sort (sheet)', url: 'megh.lytro.app/c/panjabi', render: () => shell({ hdr: { back: 'home', title: catName('panjabi'), cat: 'panjabi' } }, categoryPage(), sheet(t('sort'), `<div class="slist" style="margin:0 -16px">${[['sort_rel', true], ['sort_new'], ['sort_lo'], ['sort_hi']].map(([k, on]) => `<button onclick="go('category')"><span>${t(k)}</span>${on ? `<span class="c">${I.check}</span>` : ''}</button>`).join('')}</div>`)) });
+def('category-sort', { base: 'category', group: 'Browse', label: '· sort (sheet)', url: 'megh.lytro.app/c/panjabi', render: () => shell({ hdr: { back: 'home', title: catName('panjabi'), cat: 'panjabi' } }, categoryPage(), sheet(t('sort'), `<div class="slist" style="margin:0 -16px">${[['sort_feat', true], ['sort_new'], ['sort_lo'], ['sort_hi']].map(([k, on]) => `<button onclick="go('category')"><span>${t(k)}</span>${on ? `<span class="c">${I.check}</span>` : ''}</button>`).join('')}</div>`)) });
 
 /* ---------- search ---------- */
 function searchOverlay(o) {
@@ -660,6 +673,8 @@ function searchOverlay(o) {
     : `<div class="slist"><div style="padding:12px 16px 4px" class="eyebrow">${t('recent')}</div>${[['পাঞ্জাবি', 'panjabi'], ['শাড়ি', 'saree']].map(([b, e]) => `<button onclick="go('search-results')">${I.history}<span>${L(b, e)}</span></button>`).join('')}<div style="padding:12px 16px 4px" class="eyebrow">${t('suggestions')}</div>${CATS.slice(0, 5).map((c) => `<button onclick="go('category')">${I.chev}<span>${L(c.bn, c.en)}</span><span class="c">${c.n}</span></button>`).join('')}</div>`;
   return `<div class="sover"><div class="sbar"><div class="sbox">${I.search}<input value="${o.q || ''}" placeholder="${t('search_ph')}" autofocus>${o.q ? `<button>${I.x}</button>` : ''}</div><button class="btn quiet sm" onclick="go('home')">${L('বাতিল', 'Cancel')}</button></div><div class="spanel">${body}</div></div>`;
 }
+def('category-instock', { base: 'category', group: 'Browse', label: '· In stock only', url: 'megh.lytro.app/c/panjabi?stock=in', render: () => shell({ hdr: { back: 'home', title: catName('panjabi'), cat: 'panjabi' } }, categoryPage({ instock: true })) });
+def('new-arrivals', { group: 'Browse', label: 'New arrivals · every product, newest first', url: 'megh.lytro.app/new', render: () => shell({ hdr: { back: 'home', title: t('new_in') } }, categoryPage({ newIn: true })) });
 def('search', { group: 'Browse', label: 'Search · open', url: 'megh.lytro.app/search', render: () => shell({}, homePage(), searchOverlay()) });
 def('search-results', { group: 'Browse', label: '· results', url: 'megh.lytro.app/search?q=panjabi', render: () => shell({}, homePage(), searchOverlay({ results: true, q: L('পাঞ্জাবি', 'panjabi') })) });
 def('search-empty', { group: 'Browse', label: '· nothing found', url: 'megh.lytro.app/search?q=xyz', render: () => shell({}, homePage(), searchOverlay({ empty: true, q: 'xyz' })) });
@@ -709,21 +724,28 @@ def('product-delivery', { base: 'product', group: 'Product', label: '· set your
 def('product-share', { base: 'product', group: 'Product', label: '· share (sheet)', url: 'megh.lytro.app/p/cotton-panjabi', render: () => shell(pHdr(P[0]), productPage(P[0]), buybar(P[0]) + sheet(t('share'), `<div class="card2" style="flex-direction:row;align-items:center;gap:10px"><span style="flex:1;font-size:14px;word-break:break-all">megh.lytro.app/p/cotton-panjabi</span><button class="btn ghost sm">${I.copy}${t('copy_link')}</button></div><div style="display:flex;gap:8px"><button class="btn ghost" style="flex:1">${I.wa}${t('whatsapp')}</button><button class="btn ghost" style="flex:1">${I.fb}${t('facebook')}</button></div>`)) });
 
 /* ---------- cart ---------- */
-function cartLines() { return `<div>${CART.map((l) => `<div class="cl"><span class="th">${pName(l.p).slice(0, 1)}</span><div class="b"><div class="nm">${pName(l.p)}</div><div class="vr">${L(l.vbn, l.v)}${l.p.adv ? ` · ${t('pay_adv', { n: l.p.adv })}` : ''}</div><div class="row">${qty(l.qty)}<span class="price">${money(l.p.price * l.qty)}</span></div><span class="rm">${t('remove')}</span></div></div>`).join('')}</div>`; }
+const CHANGED = [{ ...CART[0], was: 1150 }, { ...CART[1], out: true }, CART[2], { p: P[7], v: 'Maroon', vbn: 'মেরুন', qty: 1, gone: true }];
+const cartNow = (o) => (o && o.changed ? CHANGED : CART);
+const counted = (o) => cartNow(o).filter((l) => !l.out && !l.gone);
+function cartLines(o) { return `<div>${cartNow(o).map((l) => l.out || l.gone
+  ? `<div class="cl off"><span class="th">${pName(l.p).slice(0, 1)}</span><div class="b"><div class="nm">${pName(l.p)}</div><div class="vr">${L(l.vbn, l.v)}</div><div class="note">${t(l.out ? 'line_out' : 'line_gone')}</div><span class="rm">${t('remove')}</span></div></div>`
+  : `<div class="cl"><span class="th">${pName(l.p).slice(0, 1)}</span><div class="b"><div class="nm">${pName(l.p)}</div><div class="vr">${L(l.vbn, l.v)}${l.p.adv ? ` · ${t('pay_adv', { n: l.p.adv })}` : ''}</div>${l.was ? `<div class="note">${t('line_was', { p: money(l.was) })}</div>` : ''}<div class="row">${qty(l.qty)}<span class="price">${money(l.p.price * l.qty)}</span></div><span class="rm">${t('remove')}</span></div></div>`).join('')}</div>`; }
 function cartSummary(o) {
-  o = o || {}; const d = o.area ? 70 : null; const sub = cartSub();
-  return `<div class="sum"><div class="r"><span class="k">${t('subtotal')} · ${t('cart_n', { n: cartItems() })}</span><span class="price">${money(sub)}</span></div><div class="r"><span class="k">${t('delivery')}${o.area ? ` · ${L(ZONE.inside.bn, ZONE.inside.en)} <span class="lnk" style="color:var(--accent-text);cursor:pointer" onclick="go('cart-area')">${t('change')}</span>` : ''}</span><span>${d !== null ? money(d) : `<span class="lnk" style="color:var(--accent-text);cursor:pointer;font-weight:600" onclick="go('cart-area')">${t('deliv_area')}</span>`}</span></div>${o.area ? '' : `<div class="r" style="font-size:12px;color:var(--subtle)"><span>${t('deliv_range')}</span></div>`}<div class="r total"><span>${t('total')}</span><span class="price">${d !== null ? money(sub + d) : `${money(sub + 70)} – ${money(sub + 130)}`}</span></div></div><div class="sub" style="font-size:12px">${t('cart_est_note')}</div>`;
+  o = o || {}; const d = o.area ? 70 : null; const sub = counted(o).reduce((a, l) => a + l.p.price * l.qty, 0); const items = counted(o).reduce((a, l) => a + l.qty, 0);
+  return `<div class="sum"><div class="r"><span class="k">${t('subtotal')} · ${t('cart_n', { n: items })}</span><span class="price">${money(sub)}</span></div><div class="r"><span class="k">${t('delivery')}${o.area ? ` · ${L(ZONE.inside.bn, ZONE.inside.en)} <span class="lnk" style="color:var(--accent-text);cursor:pointer" onclick="go('cart-area')">${t('change')}</span>` : ''}</span><span>${d !== null ? money(d) : `<span class="lnk" style="color:var(--accent-text);cursor:pointer;font-weight:600" onclick="go('cart-area')">${t('deliv_area')}</span>`}</span></div>${o.area ? '' : `<div class="r" style="font-size:12px;color:var(--subtle)"><span>${t('deliv_range')}</span></div>`}<div class="r total"><span>${t('total')}</span><span class="price">${d !== null ? money(sub + d) : `${money(sub + 70)} – ${money(sub + 130)}`}</span></div></div><div class="sub" style="font-size:12px">${t('cart_est_note')}</div>`;
 }
 function cartSheet(o) {
   o = o || {};
-  const body = CART.length && !o.empty ? `${cartLines()}${cartSummary(o)}${o.nodelivery ? `<div class="banner bad">${I.warn}<span><b>${t('no_delivery', { a: L('বান্দরবান', 'Bandarban') })}</b><br>${t('no_delivery_hint')}</span></div>` : ''}` : `<div style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;padding:32px 0">${I.bag.replace('class="i"', 'class="i" style="width:40px;height:40px;color:var(--n300)"')}<b style="font-size:17px">${t('cart_empty')}</b><p class="sub">${t('cart_empty_hint')}</p><button class="btn ghost" onclick="go('home')">${t('continue_')}</button></div>`;
-  const footHtml = CART.length && !o.empty ? `<button class="btn ghost" onclick="go('home')">${t('continue_')}</button><button class="btn primary" onclick="go('checkout')" ${o.nodelivery ? 'disabled' : ''}>${t('checkout')}</button>` : null;
-  return sheet(`${t('cart_title')}${!o.empty ? ` · ${t('cart_n', { n: cartItems() })}` : ''}`, body, footHtml, { drawer: true, close: 'product' });
+  const body = CART.length && !o.empty ? `${cartLines(o)}${cartSummary(o)}${o.nodelivery ? `<div class="banner bad">${I.warn}<span><b>${t('no_delivery', { a: L('বান্দরবান', 'Bandarban') })}</b><br>${t('no_delivery_hint')}</span></div>` : ''}` : `<div style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;padding:32px 0">${I.bag.replace('class="i"', 'class="i" style="width:40px;height:40px;color:var(--n300)"')}<b style="font-size:17px">${t('cart_empty')}</b><p class="sub">${t('cart_empty_hint')}</p><button class="btn ghost" onclick="go('home')">${t('continue_')}</button></div>`;
+  const footHtml = CART.length && !o.empty ? `<button class="btn ghost" onclick="go('home')">${t('continue_')}</button><button class="btn primary" onclick="go('checkout')" ${o.nodelivery || o.soon ? 'disabled' : ''}>${t('checkout')}</button>${o.soon ? `<span class="soonline">${t('ordering_soon')}</span>` : ''}` : null;
+  return sheet(`${t('cart_title')}${!o.empty ? ` · ${t('cart_n', { n: counted(o).reduce((a, l) => a + l.qty, 0) })}` : ''}`, body, footHtml, { drawer: true, close: 'product', footClass: o.soon ? 'soon' : '' });
 }
 def('cart', { base: 'product', group: 'Cart', label: 'Cart (drawer)', url: 'megh.lytro.app/cart', render: () => shell(pHdr(P[0]), productPage(P[0]), cartSheet()) });
 def('cart-area', { base: 'cart', group: 'Cart', label: '· set the area for the exact charge (sheet)', url: 'megh.lytro.app/cart', render: () => shell(pHdr(P[0]), productPage(P[0]), sheet(t('area_title'), `<div class="sub">${t('area_hint')}</div>${field(t('district'), select(LOC.districts.map(([k, b, e]) => [k, L(b, e)]), 'dhaka'))}${field(t('thana'), select(LOC.thanas.dhaka.map(([k, b, e]) => [k, L(b, e)]), 'mirpur'))}<div class="banner info">${I.truck}<span>${t('deliv_to', { a: L(ZONE.inside.bn, ZONE.inside.en), n: 70 })}</span></div>`, `<button class="btn primary" onclick="go('cart-exact')">${t('area_save')}</button>`, { close: 'cart' })) });
 def('cart-exact', { base: 'product', group: 'Cart', label: '· exact delivery charge', url: 'megh.lytro.app/cart', render: () => shell(pHdr(P[0]), productPage(P[0]), cartSheet({ area: true })) });
 def('cart-nodelivery', { base: 'product', group: 'Cart', label: '· no delivery to that area (DLV-06)', url: 'megh.lytro.app/cart', render: () => shell(pHdr(P[0]), productPage(P[0]), cartSheet({ area: true, nodelivery: true })) });
+def('cart-changed', { base: 'product', group: 'Cart', label: '· a price changed, one sold out, one no longer sold', url: 'megh.lytro.app/cart', render: () => shell(pHdr(P[0]), productPage(P[0]), cartSheet({ changed: true, soon: true })) });
+def('cart-soon', { base: 'product', group: 'Cart', label: '· until Phase 4: Checkout off, ordering opens soon', url: 'megh.lytro.app/cart', render: () => shell(pHdr(P[0]), productPage(P[0]), cartSheet({ soon: true })) });
 def('cart-empty', { base: 'product', group: 'Cart', label: '· empty', url: 'megh.lytro.app/cart', render: () => shell(pHdr(P[0]), productPage(P[0]), cartSheet({ empty: true })) });
 
 /* ---------- landing page /l/<slug> (LND) ---------- */
@@ -816,6 +838,7 @@ def('account-addresses', { group: 'Later phases (design only)', label: 'Account 
   <div style="display:flex;flex-direction:column;gap:10px">${[[L('বাসা', 'Home'), L('বাসা ১২/বি, রোড ৩, মিরপুর ১০, ঢাকা', 'House 12/B, Road 3, Mirpur 10, Dhaka'), true], [L('অফিস', 'Office'), L('লেভেল ৫, কাওরান বাজার, ঢাকা', 'Level 5, Kawran Bazar, Dhaka'), false]].map(([n, a, d]) => `<div class="card2" style="flex-direction:row;align-items:flex-start;gap:12px">${I.pin}<div style="flex:1"><b>${n}</b> ${d ? `<span class="st info plain">${t('ac_default')}</span>` : ''}<div class="sub">${a}</div></div><button class="btn quiet sm">${L('এডিট', 'Edit')}</button></div>`).join('')}<button class="btn ghost">${I.plus}${t('ac_add_addr')}</button></div>`) });
 
 /* combo product page (CMB-09, Phase 4) */
+def('home-later', { group: 'Later phases (design only)', label: 'Home · Bestsellers, bKash and Nagad, courier (Phases 4, 5)', url: 'megh.lytro.app', render: () => shell({}, homePage({ later: true })) });
 def('combo', { group: 'Later phases (design only)', label: 'Combo pack · what\'s inside (CMB-09, Phase 4)', url: 'megh.lytro.app/p/eid-combo', render: () => { const p = P[9]; return shell(pHdr(p), `<div class="pdp">${gallery(p)}<div class="buy">
     <div class="top"><div class="eyebrow">${catName('panjabi')} · ${later('phase4')}</div><h1 class="pt">${pName(p)}</h1><div class="pricerow"><span class="price">${money(p.price)}</span><span class="unit" style="text-decoration:line-through">${money(1670)}</span><span class="st ok plain">${t('save', { n: 170 })}</span>${stChip('in')}</div></div>
     <div class="opt"><div class="lb"><span>${t('inside')}</span></div><div class="combo"><div class="part"><span class="th"></span><div class="b">${pName(P[0])} × 1<div class="l2">${t('pick_each')}: ${t('size')} <b>M</b> · ${t('colour')} <b>${L('সাদা', 'White')}</b> <span class="lnk" style="color:var(--accent-text)">${t('change')}</span></div></div></div><div class="part"><span class="th"></span><div class="b">${pName(P[6])} × 1<div class="l2">${L('নেভি চেক', 'Navy check')}</div></div></div></div></div>
