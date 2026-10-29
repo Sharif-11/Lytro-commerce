@@ -7,7 +7,7 @@
 <meta name="description" content="Shopper storefront design prototype for Lytro: one shared layout per shop, phone-first, Bangla with an English toggle, the shop's name and logo on Lytro's defaults or on its own brand identity; browsing, product, cart, landing page, and the later checkout, tracking and account flows. Spec: docs/STOREFRONT-DESIGN.md">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600&family=Noto+Sans+Bengali:wght@400;500;600;700&family=Hind+Siliguri:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600&family=Noto+Sans+Bengali:wght@400;500;600;700&family=Hind+Siliguri:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Noto+Serif+Bengali:wght@400;700&family=Baloo+Da+2:wght@400;700&family=Poppins:wght@400;700&family=Anek+Bangla:wght@400;700&family=DM+Sans:wght@400;700&display=swap">
 <style>
 /* ---------- Lytro default identity (docs/brand/tokens.css), BRN-01 ---------- */
 :root{
@@ -22,13 +22,12 @@
   --r-control:8px;--r-card:12px;--r-sheet:18px;--r-pill:999px;--space:1;
   --shadow:0 1px 2px rgba(16,32,31,.06),0 4px 12px rgba(16,32,31,.06);--shadow-pop:0 12px 40px rgba(16,32,31,.22);
 }
-/* the shop's own identity switched on (BRN-02): maroon, cream, Hind Siliguri with a serif display, round corners */
-.frame[data-brand=own]{
-  --bg:#fcf8f3;--surface:#fff;--sunken:#f5ede3;--line:#e9dccd;--line-strong:#d6c3ad;--text:#2a1b17;--muted:#5a4740;--subtle:#7a6660;
-  --accent:#7a1f25;--accent-hover:#5e161b;--on-accent:#fff;--accent-soft:#f6e6e3;--accent-text:#7a1f25;
-  --font-ui:'Hind Siliguri','Inter',ui-sans-serif,system-ui,sans-serif;--font-display:'Fraunces','Hind Siliguri',serif;
-  --r-control:12px;--r-card:18px;--r-sheet:24px;
-}
+/* a shop's own identity (BRN-02, BRN-07): its colours and faces are set on the frame from its tokens (brandVars); its
+   corners and spacing are these presets. Soft is Lytro's own; status colours and the neutrals never change (BRN-04). */
+.frame[data-corners=square]{--r-control:2px;--r-card:4px;--r-sheet:8px;--r-pill:6px}
+.frame[data-corners=round]{--r-control:12px;--r-card:18px;--r-sheet:24px}
+.frame[data-spacing=compact]{--space:.75}
+.frame[data-spacing=airy]{--space:1.25}
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
 body{font-family:var(--font-ui);color:#10201f;background:#e6ebea;font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
@@ -72,7 +71,7 @@ svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.75;str
 .hdr{flex:none;background:var(--surface);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;padding:0 8px 0 16px;height:60px;position:relative;z-index:5}
 .hdr .shop{display:flex;align-items:center;gap:10px;min-width:0;flex:1;cursor:pointer}
 .hdr .logo{width:36px;height:36px;border-radius:10px;background:var(--accent);color:var(--on-accent);display:inline-flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:18px;flex:none}
-.frame[data-brand=own] .hdr .logo{border-radius:50%}
+.frame[data-corners=round] .hdr .logo{border-radius:50%}
 .hdr .name{font-family:var(--font-display);font-weight:700;font-size:17px;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hdr .ib{width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:10px;color:var(--text);position:relative}
 .hdr .ib .badge{position:absolute;top:5px;right:4px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--accent);color:var(--on-accent);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
@@ -86,9 +85,9 @@ svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.75;str
 .langpill{height:30px;padding:0 10px;border-radius:var(--r-pill);border:1px solid var(--line-strong);font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:4px;color:var(--muted);cursor:pointer}
 
 /* ---------- Page ---------- */
-.page{display:flex;flex-direction:column;gap:20px;padding:16px 16px 120px;min-height:100%}
+.page{display:flex;flex-direction:column;gap:calc(20px * var(--space));padding:16px 16px 120px;min-height:100%}
 .page.tight{padding-bottom:40px}
-.sec{display:flex;flex-direction:column;gap:12px}
+.sec{display:flex;flex-direction:column;gap:calc(12px * var(--space))}
 .sechead{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
 .sechead h2{font-family:var(--font-display);font-size:19px;font-weight:700;letter-spacing:-.01em}
 .sechead .lnk{font-size:14px;color:var(--accent-text);font-weight:600;white-space:nowrap;display:inline-flex;align-items:center;gap:2px;cursor:pointer}
@@ -109,7 +108,6 @@ h1.pt{font-family:var(--font-display);font-size:24px;font-weight:700;letter-spac
 .hero h1{font-family:var(--font-display);font-size:26px;font-weight:800;letter-spacing:-.02em;line-height:1.15;position:relative}
 .hero p{font-size:14px;opacity:.9;position:relative;max-width:420px}
 .hero .cta{align-self:flex-start;margin-top:6px;background:#fff;color:var(--accent);border-radius:var(--r-pill);height:40px;padding:0 16px;font-weight:700;display:inline-flex;align-items:center;gap:6px;position:relative}
-.frame[data-brand=own] .hero .cta{color:var(--accent)}
 .trust{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:0 16px}
 .trust::-webkit-scrollbar{display:none}
 .trust span{flex:none;display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);background:var(--sunken);border-radius:var(--r-pill);padding:7px 12px;white-space:nowrap}
@@ -120,7 +118,7 @@ h1.pt{font-family:var(--font-display);font-size:24px;font-weight:700;letter-spac
 .cat{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;font-weight:500;text-align:center;cursor:pointer}
 .cat .img{width:100%;aspect-ratio:1;border-radius:var(--r-card);background:var(--sunken);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:20px;color:var(--accent-text);position:relative;overflow:hidden}
 .cat .img::after{content:"";position:absolute;inset:0;background:linear-gradient(160deg,rgba(255,255,255,.5),transparent 60%)}
-.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px 12px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:calc(14px * var(--space)) calc(12px * var(--space))}
 .card{display:flex;flex-direction:column;gap:8px;cursor:pointer;min-width:0}
 .card .img{aspect-ratio:4/5;border-radius:var(--r-card);background:var(--sunken);position:relative;overflow:hidden;display:flex;align-items:flex-end;justify-content:flex-start}
 .card .img .ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:34px;color:var(--accent-text);opacity:.35}
@@ -136,7 +134,7 @@ h1.pt{font-family:var(--font-display);font-size:24px;font-weight:700;letter-spac
 .card .pr .was{font-size:12px;color:var(--subtle);text-decoration:line-through}
 .card .sw{display:flex;gap:4px}
 .card .sw i{width:12px;height:12px;border-radius:50%;border:1px solid rgba(0,0,0,.15)}
-.rail{display:flex;gap:12px;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:0 16px}
+.rail{display:flex;gap:calc(12px * var(--space));overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:0 16px}
 .rail::-webkit-scrollbar{display:none}
 .rail .card{flex:0 0 150px}
 
@@ -430,7 +428,7 @@ h1.pt{font-family:var(--font-display);font-size:24px;font-weight:700;letter-spac
   <label>Screen <select id="selScreen"></select></label>
   <label>Device <span class="seg" id="segDevice"><button data-v="phone" class="on">Phone 390</button><button data-v="tablet">Tablet 820</button><button data-v="desktop">Desktop 1280</button></span></label>
   <label>Language <span class="seg" id="segLang"><button data-v="bn" class="on">বাংলা</button><button data-v="en">EN</button></span></label>
-  <label>Brand <span class="seg" id="segBrand"><button data-v="default" class="on">Lytro default</button><button data-v="own">Shop's own (BRN-02)</button></span></label>
+  <label>Brand <span class="seg" id="segBrand"><button data-v="default" class="on">Lytro default</button><button data-v="maroon">Maroon, round, airy</button><button data-v="indigo">Indigo, square, compact</button></span></label>
   <span class="note">Spec: docs/STOREFRONT-DESIGN.md</span>
 </div>
 <div class="stage"><div class="frame phone" id="frame" data-lang="bn" data-brand="default">
@@ -508,6 +506,7 @@ const S = {
   area_title: ['আপনার এলাকা', 'Your area'], area_hint: ['জেলা ও থানা বাছলে ঠিক ডেলিভারি চার্জ দেখাবে।', 'Pick the district and thana to see the exact delivery charge.'], district: ['জেলা', 'District'], thana: ['থানা / উপজেলা', 'Thana / upazila'], area_save: ['এলাকা ঠিক করুন', 'Set area'],
   cart_title: ['কার্ট', 'Your cart'], cart_n: ['{n}টি আইটেম', '{n} items'], subtotal: ['পণ্যের দাম', 'Items'], delivery: ['ডেলিভারি', 'Delivery'], total: ['মোট', 'Total'], checkout: ['অর্ডার করুন', 'Checkout'], continue_: ['আরও কেনাকাটা', 'Keep shopping'], remove: ['সরান', 'Remove'],
   cart_empty: ['কার্ট খালি', 'Your cart is empty'], cart_empty_hint: ['পছন্দের জিনিস কার্টে রাখুন, স্টক ধরা হয় না — অর্ডার করলে তবেই।', 'Add what you like; nothing is held until you order.'], cart_est_note: ['ডেলিভারি চার্জ অর্ডারের সময় যেটা হবে, এখানেও সেটাই — একই হিসাব।', 'The delivery charge here is the one the order will carry, from the same calculation.'],
+  nosave_h: ['আপনি অফলাইনে', "You're offline"], nosave_p: ['এই পেজটা এখনো এই ফোনে রাখা নেই। ইন্টারনেট চালু করে আবার ট্রাই করুন।', "This page isn't saved on this phone yet. Connect to the internet and try again."], nosave_btn: ['আবার ট্রাই করুন', 'Try again'],
   hero_welcome: ['স্বাগতম', 'Welcome'], hero_cats: ['{list} এবং আরও অনেক কিছু', '{list} and more'], trust_deliv: ['ডেলিভারি {r}', 'Delivery {r}'], sort_feat: ['ফিচার্ড', 'Featured'],
   line_was: ['দাম বদলেছে, আগে ছিল {p}', 'Price changed, was {p}'], line_out: ['স্টক শেষ, মোট দামে ধরা হয়নি', 'Sold out, not in the total'], line_gone: ['আর বিক্রি হচ্ছে না, মোট দামে ধরা হয়নি', 'No longer sold, not in the total'], ordering_soon: ['অনলাইনে অর্ডার শিগগিরই চালু হবে।', 'Online ordering opens soon.'],
   no_delivery: ['{a}-এ আমরা ডেলিভারি দিই না', 'We do not deliver to {a}'], no_delivery_hint: ['অন্য ঠিকানা দিন, বা ০১৭১১-২২৩৩৪৪-এ কথা বলুন।', 'Try another address, or call 01711-223344.'], limited_hint: ['{p} শুধু {z}-এ যায়; এই ঠিকানায় অর্ডার হবে না।', '{p} delivers to {z} only; it cannot go to this address.'],
@@ -647,7 +646,7 @@ function homePage(o) {
   ${o.later ? `<section class="sec"><div class="sechead"><h2>${t('popular')}</h2></div>${rail([P[3], P[5], P[7], P[8], P[6]])}</section>` : ''}`;
 }
 def('home', { group: 'Browse', label: 'Home', url: 'megh.lytro.app', render: () => shell({}, homePage()) });
-def('home-pwa', { group: 'Browse', label: '· install prompt (PWA, SFT-14)', url: 'megh.lytro.app', render: () => shell({}, homePage(), pwaPrompt()) });
+def('home-pwa', { group: 'Browse', label: '· install card: offered after a first order (SFT-14, Phase 4)', url: 'megh.lytro.app', render: () => shell({}, homePage(), pwaPrompt()) });
 
 /* ---------- category ---------- */
 function categoryPage(o) {
@@ -774,6 +773,7 @@ def('landing-gone', { group: 'Landing page', label: '· no longer available (404
 
 /* ---------- offline and not found ---------- */
 def('offline', { group: 'Browse', label: 'Temporarily unavailable (SFT-12)', url: 'megh.lytro.app', render: () => `<div class="bare"><div class="box">${logo()}<h1>${t('off_h')}</h1><p>${t('off_p', { s: shopName() })}</p><div style="color:var(--subtle)">${I.pb}</div></div></div>` });
+def('offline-unsaved', { group: 'Browse', label: "You're offline · a page this phone never saved (CCH-10)", url: 'megh.lytro.app/c/sarees', render: () => `<div class="bare"><div class="box">${logo()}<h1>${t('nosave_h')}</h1><p>${t('nosave_p')}</p><button class="btn primary" onclick="go('category')">${t('nosave_btn')}</button><div style="color:var(--subtle)">${I.pb}</div></div></div>` });
 def('store-off', { group: 'Browse', label: 'Storefront switched off (SFT-16): not found', url: 'megh.lytro.app', render: () => `<div class="bare"><div class="box"><span class="logo" style="background:var(--n200);color:var(--n700)">?</span><h1>${t('nf_h')}</h1><p>${t('nf_p')}</p><div style="color:var(--subtle)">${I.pb}</div></div></div>` });
 </script>
 
@@ -852,9 +852,31 @@ def('chat-fab', { group: 'Later phases (design only)', label: 'Chat bubble on th
 
 /* ---------- render ---------- */
 function setLang(l) { ST.lang = l; document.querySelectorAll('#segLang button').forEach((b) => b.classList.toggle('on', b.dataset.v === l)); render(); }
+/* ---------- a shop's own identity from its tokens (BRN-02, BRN-07), by the dashboard's rules (Slice 11.12b): the page
+   takes the background; the main colour gives the accent, its hover, its soft tint and its words; the heading and body
+   faces; the corners and spacing presets. The two example shops are the dashboard prototype's Part 24. ---------- */
+const BRAND_FACES = { notoserif_fraunces: ['Fraunces', 'Noto Serif Bengali', 'serif'], hind_jakarta: ['Plus Jakarta Sans', 'Hind Siliguri', 'sans-serif'], baloo_poppins: ['Poppins', 'Baloo Da 2', 'sans-serif'], anek_dm: ['DM Sans', 'Anek Bangla', 'sans-serif'] };
+const BRANDS = {
+  maroon: { main: '#7a1f2b', accent: '#f2a516', bg: '#fbf7f0', head: 'notoserif_fraunces', body: 'hind_jakarta', corners: 'round', spacing: 'airy' },
+  indigo: { main: '#3b3fbf', accent: '#ff7a59', bg: '#f3f5fb', head: 'baloo_poppins', body: 'anek_dm', corners: 'square', spacing: 'compact' },
+};
+const hexCh = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+const mixC = (h, to, share) => '#' + hexCh(h).map((c) => Math.round(c + (to - c) * share).toString(16).padStart(2, '0')).join('');
+const lum = (h) => { const [r, g, b] = hexCh(h).map((c) => { c /= 255; return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+const ratio = (a, b) => { const [l, d] = [lum(a), lum(b)].sort((x, y) => y - x); return (l + 0.05) / (d + 0.05); };
+const onColor = (h) => (ratio('#ffffff', h) > ratio('#10201f', h) ? '#ffffff' : '#10201f');
+const nearest = (h, ok) => { if (ok(h)) return h; for (let step = 1; step <= 100; step += 1) { for (const to of [0, 255]) { const c = mixC(h, to, step / 100); if (ok(c)) return c; } } return null; };
+const face = (k) => { const [latin, bangla, kind] = BRAND_FACES[k]; return `'${latin}', '${bangla}', ${kind}`; };
+function brandVars(b) {
+  const soft = mixC(b.main, 255, 0.94);
+  const words = nearest(b.main, (c) => [b.bg, soft, '#ffffff'].every((under) => ratio(c, under) >= 4.5)) || onColor(b.bg);
+  return { '--bg': b.bg, '--accent': b.main, '--accent-hover': mixC(b.main, 0, 0.2), '--on-accent': onColor(b.main), '--accent-soft': soft, '--accent-text': words, '--font-ui': face(b.body), '--font-display': face(b.head) };
+}
 function render() {
   const f = document.getElementById('frame'); const scr = SCREENS[ST.screen] || SCREENS.home;
   f.className = 'frame ' + ST.device; f.dataset.lang = ST.lang; f.dataset.brand = ST.brand;
+  const brand = BRANDS[ST.brand]; f.removeAttribute('style'); delete f.dataset.corners; delete f.dataset.spacing;
+  if (brand) { for (const [k, v] of Object.entries(brandVars(brand))) f.style.setProperty(k, v); f.dataset.corners = brand.corners; f.dataset.spacing = brand.spacing; }
   document.getElementById('urlbar').textContent = scr.url || 'megh.lytro.app';
   document.getElementById('root').innerHTML = scr.render();
   document.getElementById('caption').innerHTML = `<b>${scr.group} · ${scr.label}</b> — ${scr.url || ''}`;
