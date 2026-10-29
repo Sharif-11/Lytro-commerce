@@ -6,8 +6,10 @@ import type {
   NewApiKey,
   SelectApiKey,
 } from '@lytronix/db';
-import type { ApiKeyType, PlanLimits } from '@lytronix/validators';
+import type { ApiKeyPurpose, ApiKeyType, PlanLimits } from '@lytronix/validators';
+import type { ImageView } from '../../../common/media-links';
 import type { LiveBrand } from '../../brand/types/brand';
+import type { Bilingual } from '../../delivery/types/delivery';
 
 // The stored rows, as aliases of the shared types (ENGINEERING-STANDARDS §4), never copies.
 export type ApiKeyRecord = SelectApiKey;
@@ -27,6 +29,8 @@ export interface ApiKeyView {
   createdAt: Date;
   lastUsedAt: Date | null;
   revokedAt: Date | null;
+  /** Slice 12: a key Lytro keeps for the shop's storefront, shown but never changed or revoked; null for the shop's. */
+  purpose: ApiKeyPurpose | null;
 }
 
 /** API-01: a key just made, with its value -- the one time it is shown. */
@@ -58,6 +62,12 @@ export interface PublicShopView {
   metaPixelId: string | null;
   /** BRN-07: the shop's own identity as tokens; null for Lytro's default. */
   brand: LiveBrand | null;
+  /** TEN-16: its logo, or null for its monogram. */
+  logo: ImageView | null;
+  /** TEN-30, SFT-21: the contact details it set; each null when unset, and then not shown. */
+  contact: { phone: string | null; email: string | null; address: string | null };
+  /** DLV-01, DLV-06: its delivery zones -- the charges before an area is chosen, and the names a limit shows. */
+  deliveryZones: { id: string; name: Bilingual; charge: string; noDelivery: boolean }[];
 }
 
 /** LND-15 to LND-17: the shop's ad tracking as the dashboard sees it: never the Conversions API token. */

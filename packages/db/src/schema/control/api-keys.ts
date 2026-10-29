@@ -8,13 +8,19 @@ import {
   integer,
   primaryKey,
   text,
+  uniqueIndex,
   timestamp,
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
 import type { PackAutoBuyState } from '@lytronix/validators';
-import { API_KEY_NAME_MAX_LENGTH, ApiKeyType, enumTuple } from '@lytronix/validators';
-import { control, createdAt } from '../shared';
+import {
+  API_KEY_NAME_MAX_LENGTH,
+  ApiKeyPurpose,
+  ApiKeyType,
+  enumTuple,
+} from '@lytronix/validators';
+import { bytea, control, createdAt } from '../shared';
 import { tenants } from './tenancy';
 
 export const apiKeyType = control.enum('api_key_type', enumTuple(Object.values(ApiKeyType)));
@@ -41,8 +47,24 @@ export const apiKeys = control.table(
     lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
     revokedAt: timestamp('revoked_at', { withTimezone: true }),
     revokedBy: uuid('revoked_by'),
+    // Slice 12: a key the platform keeps for the shop's own storefront (null for one the shop made), and the value
+    // sealed (SEC-10), since the storefront's server must present it and only the hash is kept otherwise.
+    purpose: text('purpose').$type<ApiKeyPurpose>(),
+    sealedValue: bytea('sealed_value'),
   },
   (t) => [
+    check(
+      'api_keys_purpose_check',
+      sql`(${t.purpose} IS NULL OR ${t.purpose} IN (${sql.raw(
+        Object.values(ApiKeyPurpose)
+          .map((value) => `'${value}'`)
+          .join(', '),
+      )})) AND (${t.purpose} IS NULL) = (${t.sealedValue} IS NULL)`,
+    ),
+    // One live storefront key per shop.
+    uniqueIndex('api_keys_storefront_idx')
+      .on(t.tenantId)
+      .where(sql`${t.purpose} = 'storefront' AND ${t.revokedAt} IS NULL`),
     index('api_keys_tenant_idx').on(t.tenantId, t.createdAt),
     // API-23: a preflight carries no key, so it is answered by whether any live key registers its origin.
     index('api_keys_websites_idx')

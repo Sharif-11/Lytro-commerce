@@ -87,6 +87,7 @@ export class PublicProductDetailDto extends createZodDto(
       .nullable(),
     paymentPolicy: z.nativeEnum(PaymentPolicy),
     advanceAmount: z.string().nullable(),
+    deliveryZoneIds: z.array(z.string()),
   }),
 ) {}
 

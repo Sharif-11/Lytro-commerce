@@ -303,5 +303,6 @@ function publicDetail(detail: ProductDetail): PublicProductDetail {
       : null,
     paymentPolicy: detail.effectivePaymentPolicy,
     advanceAmount: detail.effectiveAdvanceAmount,
+    deliveryZoneIds: detail.deliveryZoneIds,
   };
 }

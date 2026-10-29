@@ -10,6 +10,7 @@ import {
 import type { ImageView } from '../../../common/media-links';
 import { AuditService } from '../../audit/services/audit.service';
 import { ShopDeliveryRateService } from '../../balance/services/shop-delivery-rate.service';
+import { ShopStorefrontService } from '../../balance/services/shop-storefront.service';
 import { ShopPaymentPolicyService } from '../../catalogue/services/shop-payment-policy.service';
 import type { CatalogueActor } from '../../catalogue/types/catalogue';
 import { MediaService } from '../../media/services/media.service';
@@ -19,9 +20,9 @@ import { TenantService } from '../../tenancy/services/tenant.service';
 /** The shop's settings as shown, with its logo, or null for its monogram (TEN-16). */
 export type ShopSettingsView = ShopSettings & { logo: ImageView | null };
 
-/** TEN-30/RAT-14/PRD-08: a tenant's own support/contact details, its one per-tenant rate and its default payment
-    policy, set from dashboard settings any time after onboarding -- two different tables (`control.tenants`,
-    `tenant.shop_settings`) behind one combined "shop settings" shape. */
+/** TEN-30/RAT-14/PRD-08/SFT-16: a tenant's own support/contact details, its one per-tenant rate, its default payment
+    policy and its storefront switch, set from dashboard settings any time after onboarding -- two different tables
+    (`control.tenants`, `tenant.shop_settings`) behind one combined "shop settings" shape. */
 @Injectable()
 export class ShopSettingsService {
   constructor(
@@ -31,6 +32,7 @@ export class ShopSettingsService {
     @Inject(ShopDeliveryRateService) private readonly deliveryRate: ShopDeliveryRateService,
     @Inject(ShopPaymentPolicyService) private readonly paymentPolicy: ShopPaymentPolicyService,
     @Inject(MediaService) private readonly media: MediaService,
+    @Inject(ShopStorefrontService) private readonly storefront: ShopStorefrontService,
   ) {}
 
   async get(tenantId: string): Promise<ShopSettingsView> {
@@ -43,6 +45,7 @@ export class ShopSettingsService {
       ...contact,
       extraDeliveryChargePerKg,
       ...(await this.paymentPolicy.get(tenantId)),
+      storefrontEnabled: await this.storefront.isOn(tenantId),
       logo: await this.media.logoOf(tenantId),
     };
   }
@@ -90,6 +93,10 @@ export class ShopSettingsService {
         tenantId,
         input.extraDeliveryChargePerKg,
       );
+    }
+
+    if (input.storefrontEnabled !== undefined) {
+      summary.storefrontEnabled = await this.storefront.set(tenantId, input.storefrontEnabled);
     }
 
     const actorId = actingUserId ?? (await this.staff.ownerId(tenantId));

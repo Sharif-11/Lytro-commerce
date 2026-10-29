@@ -32,6 +32,9 @@ const envSchema = z.object({
   TRUSTED_EDGE_SECRET: z.string().min(32).optional(),
   // A second accepted secret, set only while the edge's secret is being rotated (no downtime).
   TRUSTED_EDGE_SECRET_NEXT: z.string().min(32).optional(),
+  // Slice 12: the secret the storefront's own server presents to read a shop's storefront key, which the edge never
+  // adds, so no request through the edge reads one. Unset in development, where the route is open.
+  STOREFRONT_SECRET: z.string().min(32).optional(),
   // The request header that carries the client's address, set by the edge (D14).
   CLIENT_IP_HEADER: z
     .string()

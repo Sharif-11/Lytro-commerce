@@ -7,6 +7,7 @@ import {
   type InsertApiKey,
   type SelectApiKey,
 } from '../../schema';
+import { ApiKeyPurpose } from '@lytronix/validators';
 import type { Executor } from '../../transactions';
 import type { TenantLookupRow } from '../tenancy/tenant.repository';
 
@@ -53,6 +54,35 @@ export class ApiKeyRepository {
     return rows[0] ?? null;
   }
 
+  /** SFT-11, Slice 12: the shop's live storefront key, with its sealed value; null before the first is made. */
+  async findLiveStorefront(db: Executor, tenantId: string): Promise<SelectApiKey | null> {
+    const rows = await db
+      .select()
+      .from(apiKeys)
+      .where(
+        and(
+          eq(apiKeys.tenantId, tenantId),
+          eq(apiKeys.purpose, ApiKeyPurpose.Storefront),
+          isNull(apiKeys.revokedAt),
+        ),
+      )
+      .limit(1);
+    return rows[0] ?? null;
+  }
+
+  /** SFT-11: the storefront key, or null when another request made the shop's first a moment before. */
+  async insertStorefront(db: Executor, row: NewApiKey): Promise<SelectApiKey | null> {
+    const [made] = await db
+      .insert(apiKeys)
+      .values(row)
+      .onConflictDoNothing({
+        target: apiKeys.tenantId,
+        where: sql`${apiKeys.purpose} = 'storefront' AND ${apiKeys.revokedAt} IS NULL`,
+      })
+      .returning();
+    return made ?? null;
+  }
+
   /** API-05: the key with this hash, whatever its state; the caller judges revocation and expiry. */
   async findByHash(db: Executor, keyHash: string): Promise<SelectApiKey | null> {
     const rows = await db.select().from(apiKeys).where(eq(apiKeys.keyHash, keyHash)).limit(1);
@@ -74,6 +104,8 @@ export class ApiKeyRepository {
         and(
           eq(apiKeys.tenantId, tenantId),
           isNull(apiKeys.revokedAt),
+          // Slice 12: a key the platform keeps for the storefront is not one of the shop's 20.
+          isNull(apiKeys.purpose),
           or(isNull(apiKeys.expiresAt), gt(apiKeys.expiresAt, now)),
         ),
       );

@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { check, numeric, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { boolean, check, numeric, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { PaymentPolicy } from '@lytronix/validators';
 import { tenant } from '../shared';
 import { paymentPolicy } from './catalogue';
@@ -24,6 +24,9 @@ export const shopSettings = tenant.table(
     // SUP-01: when a shop or product link was first copied or shared from the dashboard, which ticks the set-up
     // checklist's "share the shop link" on every device.
     linkSharedAt: timestamp('link_shared_at', { withTimezone: true }),
+    // SFT-16: the shared storefront is on; switched off, its pages answer not-found while landing pages and the API
+    // keep working.
+    storefrontEnabled: boolean('storefront_enabled').notNull().default(true),
   },
   (t) => [
     check(

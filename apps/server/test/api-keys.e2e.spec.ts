@@ -213,6 +213,13 @@ describeIfDatabase('public API keys in the dashboard (API-01, API-02, API-21)', 
       slug: owner.slug,
       metaPixelId: null,
       brand: null,
+      // Slice 12: the logo, contact details and zones the storefront shows.
+      logo: null,
+      contact: { phone: null, email: null, address: null },
+      deliveryZones: [
+        expect.objectContaining({ charge: '70.00', noDelivery: false }),
+        expect.objectContaining({ charge: '130.00', noDelivery: false }),
+      ],
     });
   });
 
@@ -234,6 +241,13 @@ describeIfDatabase('the public API host (API-03 to API-05, API-08, API-14, API-2
       slug: shop.slug,
       metaPixelId: null,
       brand: null,
+      // Slice 12: the logo, contact details and zones the storefront shows.
+      logo: null,
+      contact: { phone: null, email: null, address: null },
+      deliveryZones: [
+        expect.objectContaining({ charge: '70.00', noDelivery: false }),
+        expect.objectContaining({ charge: '130.00', noDelivery: false }),
+      ],
     });
     expect(answer.headers['access-control-allow-origin']).toBe(SITE);
     expect(answer.headers['vary']).toContain('Origin');

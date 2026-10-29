@@ -48,6 +48,14 @@ export class DrizzleApiKeyStore implements ApiKeyStore {
     return this.keys.listForTenant(this.database.handle.db, tenantId);
   }
 
+  findStorefrontKey(tenantId: string): Promise<ApiKeyRecord | null> {
+    return this.keys.findLiveStorefront(this.database.handle.db, tenantId);
+  }
+
+  insertStorefrontKey(row: NewApiKey): Promise<ApiKeyRecord | null> {
+    return this.keys.insertStorefront(this.database.handle.db, row);
+  }
+
   findForTenant(tx: Transaction, tenantId: string, id: string): Promise<ApiKeyRecord | null> {
     return this.keys.findForTenant(tx, tenantId, id);
   }

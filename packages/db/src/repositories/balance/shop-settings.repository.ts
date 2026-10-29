@@ -28,6 +28,15 @@ export class ShopSettingsRepository {
       });
   }
 
+  /** SFT-16: switches the shared storefront on or off. */
+  async setStorefrontEnabled(tx: Transaction, tenantId: string, enabled: boolean): Promise<void> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    await tx
+      .insert(shopSettings)
+      .values({ tenantId, storefrontEnabled: enabled })
+      .onConflictDoUpdate({ target: shopSettings.tenantId, set: { storefrontEnabled: enabled } });
+  }
+
   /** LIF-19: removes the shop's settings row (its delivery rate and default payment policy) at day 60. */
   async deleteForTenant(tx: Transaction, tenantId: string): Promise<void> {
     await this.transactions.setTenantContext(tx, tenantId);

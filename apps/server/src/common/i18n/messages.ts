@@ -1426,6 +1426,14 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'Order deleted.',
     bn: 'অর্ডার ডিলিট হয়েছে।',
   },
+  ApiKeyManagedByLytro: {
+    en: 'Lytro keeps this key for your storefront, so it cannot be changed or revoked.',
+    bn: 'এই কী Lytro আপনার স্টোরফ্রন্টের জন্য রাখে, তাই এটা বদলানো বা রিভোক করা যায় না।',
+  },
+  DeliveryEstimated: {
+    en: 'Delivery charge worked out.',
+    bn: 'ডেলিভারি চার্জ হিসাব হয়েছে।',
+  },
 };
 
 export function translate(key: MessageKey, lang: Language, params: MessageParams = {}): string {

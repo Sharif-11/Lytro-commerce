@@ -9,6 +9,8 @@ import { SECRET_BOX_KEYS } from './tokens';
 export enum SecretPurpose {
   ConversionsApiToken = 'meta_conversions_api_token',
   CatalogFeedToken = 'catalog_feed_token',
+  // SFT-11, Slice 12: the shop's storefront key, which the storefront's server presents.
+  StorefrontKey = 'storefront_key',
 }
 
 /** The key new values are sealed with, and the one before it while values are moved over (32 bytes each). */
