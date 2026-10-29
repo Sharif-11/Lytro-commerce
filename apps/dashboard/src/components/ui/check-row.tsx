@@ -37,9 +37,9 @@ export function CheckRow({
           checked={checked}
           disabled={disabled}
           onChange={onChange}
-          className="peer size-[22px] appearance-none rounded-[6px] border-2 border-neutral-300 bg-surface checked:border-primary checked:bg-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:opacity-60"
+          className="peer size-[22px] appearance-none rounded-control border-2 border-neutral-300 bg-surface checked:border-primary checked:bg-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:opacity-60"
         />
-        <span className="pointer-events-none absolute inset-0 hidden items-center justify-center text-white peer-checked:flex [&_svg]:stroke-[3]">
+        <span className="pointer-events-none absolute inset-0 hidden items-center justify-center text-on-primary peer-checked:flex [&_svg]:stroke-[3]">
           <Icon name="check" size={14} />
         </span>
       </span>

@@ -71,8 +71,8 @@ export function PaygPage({ openPlanId }: { openPlanId: string | null }): React.J
   return (
     <ShellPage>
       {notices.plan ? <PaymentBanner notice={notices.plan} about="plan" /> : null}
-      <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[1fr_340px] lg:items-start lg:gap-6">
-        <div className="flex min-w-0 flex-col gap-4">
+      <div className="flex flex-col gap-section lg:grid lg:grid-cols-[1fr_340px] lg:items-start lg:gap-columns">
+        <div className="flex min-w-0 flex-col gap-section">
           <CurrentCard>
             <div className="flex items-baseline justify-between gap-3">
               <span className="text-[14px] text-fg-muted">{t('yourPlan')}</span>
@@ -175,7 +175,7 @@ export function PaygPage({ openPlanId }: { openPlanId: string | null }): React.J
             </div>
           </div>
         </div>
-        <div className="flex min-w-0 flex-col gap-4">
+        <div className="flex min-w-0 flex-col gap-section">
           <AddonsCard />
           {viewer.isOwner ? (
             <Disclosure title={t('pyCloseTitle')}>

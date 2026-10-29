@@ -28,7 +28,7 @@ export function RowLead({
   return (
     <span
       className={[
-        'flex size-10 flex-none items-center justify-center overflow-hidden rounded-[8px] bg-neutral-100 font-semibold text-fg-muted',
+        'flex size-10 flex-none items-center justify-center overflow-hidden rounded-button bg-neutral-100 font-semibold text-fg-muted',
         className,
       ]
         .filter(Boolean)

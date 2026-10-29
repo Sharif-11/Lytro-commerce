@@ -1580,6 +1580,16 @@ their backend ships earlier.
   7. While on, the tab's icon is the square icon once set and the phone browser's bar takes the main colour.
   8. KNOWN-GAPS §97 is fixed here: a media item's uses count the brand identity's dark logo and square icon.
 
+  **Built:** `GET /media/:id`'s uses carry `brand`, and the product editor's clean-up keeps a picture the identity
+  shows (§97). The dashboard wears the identity on `/me` while it shows (`shell/brand-theme.ts`): the main colour's
+  scale with the rail at Lytro's depth, the accent's, the page behind white cards, the heading and body pairs with
+  figures in Inter, the presets as `data-corners` and `data-spacing` on the document (their sizes in `packages/ui`
+  `light.css`), the tab's icon and the browser bar's colour; switched off or on leaving the shop, Lytro's again. Its
+  corners, gaps and fixed colours moved onto roles first, Lytro's look unchanged (proven by every compare pair's
+  picture before and after). Words on a main-colour or accent fill take the text derived for it, and words in the main
+  colour its nearest shade that reads on the page and its pale tints, so a light identity keeps AA. The status
+  colours, the info pair and a warning's marigold are fixed (BRN-04).
+
 
 ### Slice 12: shared storefront and product landing pages
 - **Depends on:** Slices 0, 0b, 7 and 9 (and branding from Phase 1).

@@ -32,7 +32,7 @@ import {
   type SettingsFixture,
 } from './settings';
 import { categoryList, categoryWrite } from './categories';
-import { brandAnswer, brandWrite, drawnBrand, type BrandFixture } from './brand';
+import { brandAnswer, brandWrite, drawnBrand, liveBrand, type BrandFixture } from './brand';
 import {
   drawnProducts,
   MEDIA_UPLOAD_PREFIX,
@@ -125,6 +125,11 @@ export interface ShopState {
   settings?: SettingsFixture | null;
   /** The brand identity where it differs from the prototype's, switched on and allowed; the editor's writes change it. */
   brand?: BrandFixture | null;
+  /**
+   * Slice 11.12b: /me carries the brand identity as the server does while it shows, so the dashboard wears it. Off by
+   * default: every other screen keeps Lytro's look, though the drawn identity is on.
+   */
+  brandShows?: boolean;
   /** The shop's API keys where they differ from the prototype's three; the page's writes change them. */
   keys?: KeyFixture[] | null;
   /** Facebook and Meta where it differs from the prototype's connected shop; the page's writes change it. */
@@ -197,7 +202,7 @@ export function me(state: Required<ShopState>): unknown {
           : new Date(Date.now() + state.periodEndDays * DAY_MS).toISOString(),
       autoRenewEnabled: false,
       logo: state.settings?.logo ?? null,
-      brand: null,
+      brand: state.brandShows ? liveBrand((state.brand ??= drawnBrand())) : null,
       billingTerm: paid ? termOf(ONE_MONTH) : null,
       lapseStages: STEPS_AHEAD.includes(state.state)
         ? { grace: 3, readOnly: 4, locked: 8, archived: 45 }
@@ -296,6 +301,7 @@ export function shopState(given: ShopState = {}): Required<ShopState> {
     team: null,
     settings: null,
     brand: null,
+    brandShows: false,
     keys: null,
     meta: null,
     identities: null,

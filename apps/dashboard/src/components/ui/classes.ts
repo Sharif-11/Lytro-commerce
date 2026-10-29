@@ -4,7 +4,7 @@ export type ButtonTone = 'primary' | 'accent' | 'outline' | 'ghost' | 'danger';
 export type ButtonSize = 'md' | 'sm' | 'xs';
 
 const TONES: Record<ButtonTone, string> = {
-  primary: 'bg-primary text-white',
+  primary: 'bg-primary text-on-primary',
   // The one accent per screen: marigold with ink text (TENANT-DASHBOARD-DESIGN §5.2).
   accent: 'bg-accent text-on-accent',
   outline: 'border border-line-strong bg-surface text-fg-muted',
@@ -25,7 +25,7 @@ export function buttonClass(
   wide = false,
 ): string {
   return [
-    'inline-flex items-center justify-center gap-2 rounded-[8px] text-center leading-[1.2] font-semibold whitespace-normal',
+    'inline-flex items-center justify-center gap-2 rounded-button text-center leading-[1.2] font-semibold whitespace-normal',
     'disabled:cursor-default disabled:opacity-50',
     SIZES[size],
     TONES[tone],
@@ -46,6 +46,6 @@ export function chipClass(on: boolean, size: ChipSize = 'md'): string {
   return [
     'inline-flex flex-none items-center gap-1.5 rounded-full border px-3.5 text-[14px] font-medium whitespace-nowrap',
     CHIP_HEIGHTS[size],
-    on ? 'border-primary bg-primary text-white' : 'border-line bg-surface text-fg-muted',
+    on ? 'border-primary bg-primary text-on-primary' : 'border-line bg-surface text-fg-muted',
   ].join(' ');
 }

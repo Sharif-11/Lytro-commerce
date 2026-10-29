@@ -1,21 +1,5 @@
 import { useEffect } from 'react';
-
-/** Points the page's `<link rel>` of this kind at a URL, creating it when the page has none; returns the undo. */
-function pointLink(rel: string, href: string): () => void {
-  let link = document.head.querySelector<HTMLLinkElement>(`link[rel="${rel}"]`);
-  const created = !link;
-  if (!link) {
-    link = document.createElement('link');
-    link.rel = rel;
-    document.head.appendChild(link);
-  }
-  const before = link.getAttribute('href');
-  link.href = href;
-  return () => {
-    if (created) link.remove();
-    else if (before !== null) link.setAttribute('href', before);
-  };
-}
+import { pointLink } from './head-tags';
 
 /**
  * TEN-17 (KNOWN-GAPS §88): each shop's pages link that shop's own manifest and iPhone icon, so installing from

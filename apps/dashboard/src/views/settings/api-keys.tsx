@@ -64,7 +64,7 @@ export function ApiKeysView(): React.JSX.Element {
                 const revoked = key.revokedAt !== null;
                 const body = (
                   <>
-                    <span className="flex size-10 flex-none items-center justify-center rounded-[8px] bg-neutral-100 text-fg-muted">
+                    <span className="flex size-10 flex-none items-center justify-center rounded-button bg-neutral-100 text-fg-muted">
                       <Icon name="key" />
                     </span>
                     <span className="flex min-w-0 flex-1 flex-col gap-0.5">

@@ -17,6 +17,7 @@ import { AppBar } from './app-bar';
 import { DeskHeader } from './desk-header';
 import { allows, hasPlusActions, hubOf, sectionOf, type Viewer } from './hubs';
 import { PlusMenu } from './plus-menu';
+import { useBrandTheme } from './brand-theme';
 import { Rail } from './rail';
 import type { ScreenMeta } from './route-meta';
 import { ShellContext, type ShellState } from './shell-context';
@@ -46,6 +47,8 @@ export function AppShell({ slug, children }: AppShellProps): React.JSX.Element {
   const tenant = me.data?.tenant ?? null;
 
   useDocumentTitle(tenant ? `${tenant.shopName} · Lytro` : null);
+  // BRN-02: the shop's identity while it shows, on this shop's screens only.
+  useBrandTheme(tenant?.slug === slug ? tenant.brand : null);
 
   if (me.isLoading) {
     return <p className="p-6 text-center text-[15px] text-neutral-700">{t('common.loading')}</p>;
@@ -218,7 +221,7 @@ function ShellFrame({ slug, me, tenant, children }: ShellFrameProps): React.JSX.
 
   return (
     <ShellContext.Provider value={shell}>
-      <div className="flex h-dvh flex-col bg-neutral-50 font-sans text-[14px] leading-[1.45] text-fg">
+      <div className="flex h-dvh flex-col bg-page font-ui text-[14px] leading-[1.45] text-fg">
         <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
           <Rail />
           <SideColumn />

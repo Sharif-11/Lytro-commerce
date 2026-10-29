@@ -86,7 +86,11 @@ export function textColorOn(background: string): string {
   return contrastRatio(white, background) > contrastRatio(ink, background) ? white : ink;
 }
 
-function mixed(hex: string, toward: number, share: number): string {
+/**
+ * A colour mixed toward black (0) or white (255) by a share, channel by channel: the shades a check suggests and the
+ * tints a theme draws from one chosen colour (BRN-03, BRN-07).
+ */
+export function mixColor(hex: string, toward: 0 | 255, share: number): string {
   const [r, g, b] = channels(hex).map((channel) =>
     Math.round(channel + (toward - channel) * share),
   );
@@ -102,8 +106,8 @@ export function nearestShade(hex: string, passes: (shade: string) => boolean): s
   if (passes(color)) return color;
   for (let step = 1; step * SHADE_STEP <= 1; step += 1) {
     const share = step * SHADE_STEP;
-    for (const toward of [0, 255]) {
-      const shade = mixed(color, toward, share);
+    for (const toward of [0, 255] as const) {
+      const shade = mixColor(color, toward, share);
       if (passes(shade)) return shade;
     }
   }

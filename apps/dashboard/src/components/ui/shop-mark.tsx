@@ -24,7 +24,7 @@ export function ShopMark({
       <img
         src={logo.urls.thumbnail}
         alt=""
-        className={['flex-none rounded-[8px] bg-surface object-contain', box, className]
+        className={['flex-none rounded-button bg-surface object-contain', box, className]
           .filter(Boolean)
           .join(' ')}
       />
@@ -34,7 +34,7 @@ export function ShopMark({
     <span
       aria-hidden="true"
       className={[
-        'inline-flex flex-none items-center justify-center rounded-[8px] bg-brand-700 font-bold text-white',
+        'inline-flex flex-none items-center justify-center rounded-button bg-brand-700 font-bold text-on-primary',
         box,
         className,
       ]

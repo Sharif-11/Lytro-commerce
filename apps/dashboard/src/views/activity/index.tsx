@@ -140,7 +140,7 @@ function ActivityRow({
         aria-hidden="true"
         className={[
           'flex size-7 items-center justify-center rounded-full text-[12px] font-semibold',
-          failed ? 'bg-danger-soft text-danger' : 'bg-brand-100 text-brand-800',
+          failed ? 'bg-danger-soft text-danger' : 'bg-brand-100 text-primary-text',
         ].join(' ')}
       >
         {failed ? '!' : initialOf(actorOf(entry, t))}

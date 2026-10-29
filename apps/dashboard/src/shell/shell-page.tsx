@@ -63,7 +63,7 @@ export function ShellPage({
 export function LegacyPage({ children }: { children: ReactNode }): React.JSX.Element {
   return (
     <>
-      <div className="mx-auto flex w-full flex-col gap-4 px-4 pt-4 empty:hidden sm:gap-6 sm:px-6 sm:pt-6 lg:max-w-[1120px] lg:px-8 lg:pt-8">
+      <div className="mx-auto flex w-full flex-col gap-section px-4 pt-4 empty:hidden sm:gap-columns sm:px-6 sm:pt-6 lg:max-w-[1120px] lg:px-8 lg:pt-8">
         <ShellBanner />
         <SectionChips />
       </div>

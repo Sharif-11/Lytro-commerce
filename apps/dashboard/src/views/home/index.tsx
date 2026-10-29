@@ -63,14 +63,14 @@ export function Home(): React.JSX.Element {
           {errorText(home.error)}
         </Banner>
       ) : null}
-      <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[1fr_340px] lg:items-start lg:gap-6">
-        <div className="flex min-w-0 flex-col gap-4">
+      <div className="flex flex-col gap-section lg:grid lg:grid-cols-[1fr_340px] lg:items-start lg:gap-columns">
+        <div className="flex min-w-0 flex-col gap-section">
           {checklist && (!complete || opened) ? (
             <SetupChecklist checklist={checklist} shareTarget={LINK_CARD} />
           ) : null}
           <JobQueue home={data} />
         </div>
-        <div className="flex min-w-0 flex-col gap-4">
+        <div className="flex min-w-0 flex-col gap-section">
           {data ? <NowTiles home={data} /> : null}
           {complete && !opened ? (
             <SetupDone

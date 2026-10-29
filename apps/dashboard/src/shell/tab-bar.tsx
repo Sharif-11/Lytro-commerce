@@ -36,7 +36,7 @@ export function TabBar(): React.JSX.Element {
             <Icon name={hub.icon} size={24} />
             <span>{t(hub.label)}</span>
             {pill ? (
-              <span className="num absolute top-0.5 left-[calc(50%+6px)] flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-primary px-[5px] text-[11px] font-semibold text-white">
+              <span className="num absolute top-0.5 left-[calc(50%+6px)] flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-primary px-[5px] text-[11px] font-semibold text-on-primary">
                 {pill}
               </span>
             ) : null}

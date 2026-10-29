@@ -517,8 +517,8 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
       {create.isError && !(create.error instanceof ApiClientError) ? (
         <Banner tone="bad">{errorText(create.error)}</Banner>
       ) : null}
-      <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[1fr_340px] lg:items-start lg:gap-6">
-        <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-section lg:grid lg:grid-cols-[1fr_340px] lg:items-start lg:gap-columns">
+        <div className="flex flex-col gap-section">
           <BasicsCard
             form={form}
             problems={problems}
@@ -606,7 +606,7 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
             onRemove={product ? setRemoving : null}
           />
         </div>
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-section">
           {product ? <LinkCard product={product} readOnly={!mayManage} /> : null}
           {product && mayReadStock && kind.tracked ? (
             <StockCard

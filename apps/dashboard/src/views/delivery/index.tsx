@@ -218,8 +218,8 @@ function DeliveryBody({
   const result = resolved.data;
   return (
     <ShellPage>
-      <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[1fr_340px] lg:items-start lg:gap-6">
-        <div className="flex min-w-0 flex-col gap-4">
+      <div className="flex flex-col gap-section lg:grid lg:grid-cols-[1fr_340px] lg:items-start lg:gap-columns">
+        <div className="flex min-w-0 flex-col gap-section">
           <Card className="flex flex-col gap-3">
             <h3 className="mb-1 text-[17px] font-semibold">{t('homeArea')}</h3>
             {mayManage ? (

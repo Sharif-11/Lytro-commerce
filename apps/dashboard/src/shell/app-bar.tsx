@@ -5,7 +5,7 @@ import { ShopMark } from '@/components/ui/shop-mark';
 import { useShell } from './shell-context';
 
 const iconButton =
-  'relative inline-flex size-11 items-center justify-center rounded-[8px] text-fg-muted';
+  'relative inline-flex size-11 items-center justify-center rounded-button text-fg-muted';
 
 interface BarActionsProps {
   canSearch: boolean;

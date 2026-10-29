@@ -11,7 +11,7 @@ export function Card({ flush = false, className, ...rest }: CardProps): React.JS
     <div
       className={[
         'rounded-card border border-line bg-surface',
-        flush ? 'overflow-hidden' : 'p-4',
+        flush ? 'overflow-hidden' : 'p-card',
         className,
       ]
         .filter(Boolean)

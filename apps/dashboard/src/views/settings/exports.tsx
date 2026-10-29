@@ -60,7 +60,7 @@ export function ExportsView(): React.JSX.Element {
               {exports.data.map((each) => (
                 <div key={each.id} className={rowClass}>
                   <span
-                    className={`flex size-10 flex-none items-center justify-center rounded-[8px] ${TILES[each.status].tone}`}
+                    className={`flex size-10 flex-none items-center justify-center rounded-button ${TILES[each.status].tone}`}
                   >
                     <Icon name={TILES[each.status].icon} />
                   </span>

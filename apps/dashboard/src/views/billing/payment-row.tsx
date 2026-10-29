@@ -80,7 +80,7 @@ export function PaymentRow({
       ].join(' ')}
     >
       <span
-        className={`flex size-10 flex-none items-center justify-center rounded-[8px] ${state.lead}`}
+        className={`flex size-10 flex-none items-center justify-center rounded-button ${state.lead}`}
       >
         <Icon name={payment.kind === PlanPaymentKind.TopUp ? 'plus' : 'banknote'} />
       </span>

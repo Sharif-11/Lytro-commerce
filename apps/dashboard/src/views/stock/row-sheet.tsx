@@ -32,7 +32,7 @@ function ChoiceButton({
       onClick={onChoose}
       className="flex min-h-14 w-full items-center gap-3 px-4 py-3 text-left"
     >
-      <span className="flex size-10 flex-none items-center justify-center rounded-[8px] bg-neutral-100 text-neutral-700">
+      <span className="flex size-10 flex-none items-center justify-center rounded-button bg-neutral-100 text-neutral-700">
         <Icon name={icon} />
       </span>
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">

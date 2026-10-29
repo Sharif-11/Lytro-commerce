@@ -1,8 +1,10 @@
 import {
+  BRAND_FONTS,
   BrandCorners,
   BrandFont,
   BrandSpacing,
   brandContrast,
+  derivedBrandColors,
   type BrandColors,
 } from '@lytronix/validators';
 
@@ -71,6 +73,31 @@ function view(brand: BrandFixture): unknown {
     identity: brand.identity,
     contrast: brandContrast({ mainColor, accentColor, backgroundColor }),
     savedAt: brand.savedAt,
+  };
+}
+
+/**
+ * BRN-07: the identity as /me carries it while it shows (on and allowed) -- tokens, the text derived for each colour,
+ * the two pairs -- else null. Its version moves with whatever it shows, as the server's does.
+ */
+export function liveBrand(brand: BrandFixture): unknown {
+  if (!brand.useBrand || !brand.allowed) return null;
+  const { mainColor, accentColor, backgroundColor, headingFont, bodyFont, ...look } =
+    brand.identity;
+  const colours = { mainColor, accentColor, backgroundColor };
+  return {
+    version: JSON.stringify(brand.identity),
+    colors: {
+      main: mainColor,
+      accent: accentColor,
+      background: backgroundColor,
+      ...derivedBrandColors(colours),
+    },
+    fonts: { heading: BRAND_FONTS[headingFont], body: BRAND_FONTS[bodyFont] },
+    corners: look.corners,
+    spacing: look.spacing,
+    darkLogo: look.darkLogo,
+    icon: look.icon,
   };
 }
 

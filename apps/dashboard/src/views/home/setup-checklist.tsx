@@ -13,7 +13,7 @@ function Tick({ done }: { done: boolean }): React.JSX.Element {
   return (
     <span
       className={[
-        'inline-flex size-[22px] flex-none items-center justify-center rounded-[6px] border-2 text-white [&_svg]:stroke-3',
+        'inline-flex size-[22px] flex-none items-center justify-center rounded-control border-2 text-on-primary [&_svg]:stroke-3',
         done ? 'border-primary bg-primary' : 'border-neutral-300',
       ].join(' ')}
     >
@@ -158,7 +158,7 @@ export function SetupDone({ onOpen }: { onOpen: () => void }): React.JSX.Element
       onClick={onOpen}
       className="flex min-h-14 w-full items-center gap-3 rounded-card border border-line bg-surface px-4 py-3 text-left"
     >
-      <span className="flex size-10 flex-none items-center justify-center rounded-[8px] bg-success-soft text-success">
+      <span className="flex size-10 flex-none items-center justify-center rounded-button bg-success-soft text-success">
         <Icon name="check" />
       </span>
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">

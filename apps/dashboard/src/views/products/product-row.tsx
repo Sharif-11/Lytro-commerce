@@ -46,7 +46,7 @@ export function ProductRow({
       params={{ shop: slug, productId: product.id }}
       className={rowClass}
     >
-      <span className="flex size-12 flex-none items-center justify-center overflow-hidden rounded-[8px] bg-linear-135 from-neutral-100 to-neutral-200 text-neutral-400">
+      <span className="flex size-12 flex-none items-center justify-center overflow-hidden rounded-button bg-linear-135 from-neutral-100 to-neutral-200 text-neutral-400">
         {product.image ? (
           <img src={product.image.urls.thumbnail} alt="" className="size-full object-cover" />
         ) : (

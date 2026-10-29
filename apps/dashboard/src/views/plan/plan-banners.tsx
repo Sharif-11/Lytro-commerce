@@ -185,7 +185,7 @@ export function DowngradeChecklistCard({
             >
               <span
                 className={[
-                  'flex size-8 flex-none items-center justify-center rounded-[8px]',
+                  'flex size-8 flex-none items-center justify-center rounded-button',
                   item.fixed ? 'bg-success-soft text-success' : 'bg-warning-soft text-warning',
                 ].join(' ')}
               >

@@ -6,7 +6,7 @@ import type { ReactNode } from 'react';
  */
 export function PageFrame({ children }: { children: ReactNode }): React.JSX.Element {
   return (
-    <div className="mx-auto flex min-h-full w-full flex-col gap-4 px-4 pt-4 pb-6 sm:gap-6 sm:p-6 lg:max-w-[1120px] lg:p-8 [html[lang=bn]_&]:leading-[1.6]">
+    <div className="mx-auto flex min-h-full w-full flex-col gap-section px-4 pt-4 pb-6 sm:gap-columns sm:p-6 lg:max-w-[1120px] lg:p-8 [html[lang=bn]_&]:leading-[1.6]">
       {children}
     </div>
   );

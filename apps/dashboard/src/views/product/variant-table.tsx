@@ -68,7 +68,7 @@ function Cell({
     <td className="border-b border-line px-2.5 py-2">
       <span
         className={[
-          'flex h-9 items-center gap-1 rounded-[6px] border bg-surface px-2 focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-focus',
+          'flex h-9 items-center gap-1 rounded-control border bg-surface px-2 focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-focus',
           wide ? 'w-[110px]' : 'w-[92px]',
           invalid ? 'border-danger' : 'border-line-strong',
         ].join(' ')}
@@ -119,7 +119,7 @@ function SheetCell({
         aria-haspopup="dialog"
         onClick={onOpen}
         className={[
-          'flex h-9 items-center justify-end rounded-[6px] border bg-surface px-2 whitespace-nowrap',
+          'flex h-9 items-center justify-end rounded-control border bg-surface px-2 whitespace-nowrap',
           wide ? 'w-[150px]' : 'w-[92px]',
           invalid ? 'border-danger' : 'border-line-strong',
         ].join(' ')}
