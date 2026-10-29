@@ -1138,7 +1138,7 @@ CREATE TABLE tenant.product_slug_redirects (       -- LND-04: an old slug keeps 
 );
 -- A slug is set at creation and never follows a rename; a deliberate slug change inserts the old one
 -- here, and a new product may not take a slug still held here. Public lookup: products.slug first,
--- then this table (answering 301 to the product's current slug).
+-- then this table (answering with the current slug, which the storefront redirects to with a 308, LND-04).
 
 CREATE TABLE tenant.ad_tracking_settings (          -- LND-15 to LND-17, one row per tenant (built in 9b, 0069)
     tenant_id             uuid PRIMARY KEY,

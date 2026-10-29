@@ -1625,7 +1625,7 @@ their backend ships earlier.
   - **Landing pages:** the automatic single-product page at `/l/<slug>` (images and video, name,
     description, price, attributes, variant picker with `?v=` preselection, quantity selector, stock
     state, branding, no shop navigation); server-rendered Open Graph and Twitter Card tags; the branded
-    "no longer available" page (404) and the 301 from an old slug; served whenever the tenant is
+    "no longer available" page (404) and the permanent redirect (308) from an old slug; served whenever the tenant is
     reachable, including with the storefront off; Meta Pixel `PageView`/`ViewContent`, loaded after the
     page's content, with `content_ids` set to the feed's variant IDs; a "Delivers to" note when a zone or
     product limit applies (DLV-06, DLV-07); the "Size chart" link on the
@@ -1636,7 +1636,8 @@ their backend ships earlier.
 - **Done when:** the milestone (exit criterion 4) passes; two tenants show different catalogues and
   branding with the same layout from one deployment; lapsing a tenant replaces both its storefront and
   its landing pages within the LIF-03 window; with the storefront switched off, landing pages still load;
-  a shared landing link shows a rich preview in Facebook's sharing debugger; with the pixel endpoint
+  a shared landing link shows a rich preview in Facebook's sharing debugger, and so does an old (redirected) link,
+  so its crawler is seen following the 308; with the pixel endpoint
   blocked, the page works normally; a review finds no secret key or Conversions API token reachable from
   storefront code.
 - **Read agreed 2026-10-29** (7 points; STOREFRONT-DESIGN.md, prototype `lytro-storefront.html`; TENANT-DASHBOARD-DESIGN
@@ -1680,8 +1681,9 @@ their backend ships earlier.
   data or requirement behind them); the header's categories, search and cart, the home's sections and "You may also
   like" arrive with 12b's cards; until then `/` lists the newest products. Buy now shows, off, with the "ordering opens
   soon" line under it on a wide screen. The gallery keeps its thumbnail column for one photo too (a real run found the
-  main photo squeezed into it). Next.js answers an old link with 308, its permanent redirect, where LND-04 says 301;
-  and a page that turns out missing sends its 404 with the branded page drawn in the browser, not in the HTML.
+  main photo squeezed into it). LND-04 is amended 2026-10-29 to the 308 Next.js sends for a permanent redirect (the
+  user's call; a 301 from middleware would cost a second counted API call on every view). A page that turns out
+  missing sends its 404 with the branded page drawn in the browser, not in the HTML.
 
 ### Slice 13: custom domains (D3-13)
 - **Depends on:** Slice 12 (the storefront and landing pages a domain serves), Slice 0 (custom domains never
