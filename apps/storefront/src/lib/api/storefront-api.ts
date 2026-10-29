@@ -1,5 +1,8 @@
 import type {
   AttributeDataType,
+  BrandCorners,
+  BrandFont,
+  BrandSpacing,
   ItemCondition,
   PaymentPolicy,
   StockState,
@@ -45,6 +48,25 @@ export interface DeliveryZoneView {
   noDelivery: boolean;
 }
 
+/** BRN-07: a shop's own identity as tokens, while it shows; null for Lytro's default. */
+export interface PublicBrand {
+  version: string;
+  colors: {
+    main: string;
+    accent: string;
+    background: string;
+    onMain: string;
+    onAccent: string;
+    text: string;
+    mainText: string;
+  };
+  fonts: { heading: { id: BrandFont }; body: { id: BrandFont } };
+  corners: BrandCorners;
+  spacing: BrandSpacing;
+  darkLogo: ImageView | null;
+  icon: ImageView | null;
+}
+
 export interface PublicShop {
   name: string;
   slug: string;
@@ -52,6 +74,7 @@ export interface PublicShop {
   logo: ImageView | null;
   contact: { phone: string | null; email: string | null; address: string | null };
   deliveryZones: DeliveryZoneView[];
+  brand: PublicBrand | null;
 }
 
 export interface OptionValue {

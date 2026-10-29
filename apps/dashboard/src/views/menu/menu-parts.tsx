@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { monogramLetter } from '@lytronix/validators';
+import { dashboardAppName, monogramLetter } from '@lytronix/validators';
 import { Icon, type IconName } from '@/components/icon';
 import { Button } from '@/components/ui/button';
 
@@ -55,6 +55,7 @@ export function MenuRowInner({
 /**
  * TEN-17 (the prototype's `menu-install`, and Part 11's `menu-install-ios`): installing the shop's dashboard as its
  * own app -- the browser's Install where it offers one; on an iPhone, which offers none, how to add it from Share.
+ * The app is "<shop> Admin" with a gear on its icon (Part 27, Slice 12c), told apart from the shop's storefront app.
  */
 export function InstallCard({
   shopName,
@@ -70,11 +71,16 @@ export function InstallCard({
   const { t } = useTranslation('menu');
   return (
     <div className="flex items-center gap-3 rounded-[12px] border border-brand-200 bg-primary-soft px-3.5 py-3">
-      <span className="flex size-11 flex-none items-center justify-center rounded-[11px] bg-ink text-[18px] font-extrabold text-brand-300">
+      <span className="relative flex size-11 flex-none items-center justify-center rounded-[11px] bg-ink text-[18px] font-extrabold text-brand-300">
         {monogramLetter(shopName, slug)}
+        <span className="absolute -right-[5px] -bottom-[5px] flex size-5 items-center justify-center rounded-full bg-white text-ink shadow-[0_0_0_2px_var(--color-primary-soft)] [&>svg]:size-[13px]">
+          <Icon name="settings" />
+        </span>
       </span>
       <span className="min-w-0 flex-1 text-[14px]">
-        {onIphone ? t('inIosTitle', { shop: shopName }) : t('inTitle', { shop: shopName })}
+        {onIphone
+          ? t('inIosTitle', { shop: dashboardAppName(shopName) })
+          : t('inTitle', { shop: dashboardAppName(shopName) })}
         <span className="block text-[13px] text-fg-muted">
           {onIphone ? t('inIosSteps') : t('inSub')}
         </span>

@@ -25,6 +25,7 @@ export function ShopShell({
   return (
     <Shell
       language={language}
+      brand={page.info.brand}
       header={
         <Header
           shop={page.info}

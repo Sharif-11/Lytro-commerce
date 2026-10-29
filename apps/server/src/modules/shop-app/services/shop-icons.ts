@@ -5,14 +5,27 @@ import { MONOGRAM_COLORS } from '@lytronix/shared-types';
 import { SHOP_ICON_FONTS } from '../tokens';
 import { ShopIconFile } from '../types/shop-app';
 
-/** Each icon's size, and the share of it the logo or the letter may fill. */
-const ICONS: Record<ShopIconFile, { size: number; fill: number }> = {
-  [ShopIconFile.Icon192]: { size: 192, fill: 0.8 },
-  [ShopIconFile.Icon512]: { size: 512, fill: 0.8 },
+/** Each icon's size, the share of it the logo or the letter may fill, and whether a phone masks it to a shape. */
+const ICONS: Record<ShopIconFile, { size: number; fill: number; maskable: boolean }> = {
+  [ShopIconFile.Icon192]: { size: 192, fill: 0.8, maskable: false },
+  [ShopIconFile.Icon512]: { size: 512, fill: 0.8, maskable: false },
   // Android crops a maskable icon to a shape inside the middle 80% circle; a square inside it fits in 56%.
-  [ShopIconFile.Maskable512]: { size: 512, fill: 0.56 },
-  [ShopIconFile.Apple180]: { size: 180, fill: 0.8 },
+  [ShopIconFile.Maskable512]: { size: 512, fill: 0.56, maskable: true },
+  [ShopIconFile.Apple180]: { size: 180, fill: 0.8, maskable: false },
+  [ShopIconFile.Store192]: { size: 192, fill: 0.8, maskable: false },
+  [ShopIconFile.Store512]: { size: 512, fill: 0.8, maskable: false },
+  [ShopIconFile.StoreMaskable512]: { size: 512, fill: 0.56, maskable: true },
+  [ShopIconFile.StoreApple180]: { size: 180, fill: 0.8, maskable: false },
 };
+
+// Slice 12c (prototype Part 27): the dashboard app's gear, a white disc in the icon's corner -- a third of an icon,
+// its centre near the corner; a fifth of a maskable one, its centre where the whole disc stays inside the middle 80%
+// circle a phone keeps.
+const GEAR = { share: 0.34, centre: 0.79 };
+const MASKABLE_GEAR = { share: 0.2, centre: 0.71 };
+// The prototype's settings icon (lucide's), drawn in ink on the disc.
+const GEAR_PATH =
+  'M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z';
 
 // A monogram letter fills less of its tile than a logo, the way the Install card draws it.
 const LETTER_SHARE = 0.62;
@@ -42,8 +55,8 @@ export class ShopIcons {
 
   /** BRN-02: the brand identity's square icon -- edge to edge, or most of a maskable icon on its own colour. */
   async fromIcon(icon: Buffer, file: ShopIconFile): Promise<Buffer> {
-    const { size } = ICONS[file];
-    if (file === ShopIconFile.Maskable512) return this.centred(icon, size, MASKABLE_ICON_FILL);
+    const { size, maskable } = ICONS[file];
+    if (maskable) return this.centred(icon, size, MASKABLE_ICON_FILL);
     return sharp(icon).resize(size, size, { fit: 'cover' }).png().toBuffer();
   }
 
@@ -70,6 +83,28 @@ export class ShopIcons {
       create: { width: size, height: size, channels: 4, background: MONOGRAM_COLORS.tile },
     })
       .composite([{ input: glyph, gravity: 'center' }])
+      .png()
+      .toBuffer();
+  }
+
+  /** TEN-17, Slice 12c: an icon with the dashboard app's gear in its corner (inside the safe circle when maskable). */
+  async withGear(icon: Buffer, file: ShopIconFile): Promise<Buffer> {
+    const { size, maskable } = ICONS[file];
+    const { share, centre } = maskable ? MASKABLE_GEAR : GEAR;
+    const disc = Math.round(size * share);
+    const radius = disc / 2;
+    const glyph = disc * 0.62;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${String(disc)}" height="${String(disc)}">
+      <circle cx="${String(radius)}" cy="${String(radius)}" r="${String(radius - 1)}" fill="#ffffff"
+        stroke="${MONOGRAM_COLORS.tile}" stroke-opacity="0.12" stroke-width="2"/>
+      <g transform="translate(${String(radius - glyph / 2)},${String(radius - glyph / 2)}) scale(${String(glyph / 24)})"
+        fill="none" stroke="${MONOGRAM_COLORS.tile}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="${GEAR_PATH}"/><circle cx="12" cy="12" r="3"/>
+      </g>
+    </svg>`;
+    const at = Math.round(size * centre - radius);
+    return sharp(icon)
+      .composite([{ input: Buffer.from(svg), left: at, top: at }])
       .png()
       .toBuffer();
   }

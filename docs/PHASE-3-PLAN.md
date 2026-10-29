@@ -1720,6 +1720,35 @@ their backend ships earlier.
   nothing new when it opened again with the same lines, so a seller's change did not show; and a new sort or filter
   kept the old list's products.
 
+- **Read agreed 2026-10-30 (12c)** (4 points, all as recommended; STOREFRONT-DESIGN v1.2, prototype
+  `lytro-storefront.html` `offline-unsaved` and the two example shops; TENANT-DASHBOARD-DESIGN v3.17, Part 27):
+  1. **The install card waits for Phase 4**, on the order-placed page after a first order; until then the storefront
+     is installable from the browser's own Install or Add to Home Screen.
+  2. **Network first**: every page still asks the server, so it is counted and current; the saved copy shows only
+     offline. Kept: the app's own files by version, the last 20 pages and their photos; never the cart, search or
+     the storefront's own API. A page never saved shows "You're offline".
+  3. **The dashboard's app is the one marked**: "<shop> Admin" with a small gear in its icon's corner; the storefront's
+     app keeps the shop's plain name and icon (TEN-17 amended).
+  4. **App icons and the tab's icon now**, from the brand's square icon, else the logo, else the monogram, with the
+     brand's colours for the app; a link-preview image drawn from the brand waits.
+
+  **Built (12c):** the server: the dashboard's manifest named "<shop> Admin" (its label cut to leave room), a gear
+  drawn into its icons, and the storefront app's plain `store-*.png` icons beside them; `shortNameOf` and `fontStack`
+  moved to `@lytronix/validators` for both apps, with `brandFontsUrl` for a page's own faces. The storefront:
+  `/manifest.webmanifest` (the shop's plain name, scope `/`, its colours), `/icons/<file>` passing the server's icons
+  on from the storefront's own address, the tab's and the iPhone's icons and the bar's colour in every page's head,
+  `/sw.js` (network first, versioned by the build) registered on open storefronts, `/offline`; and a shop's identity on
+  the storefront and landing pages by the dashboard's rules (11.12b): the page's background, the main colour's family,
+  both faces (only the faces the storefront does not serve itself asked of Google), Square/Soft/Round corners and
+  Compact/Airy spacing as presets the prototype now draws, the neutrals and status colours unchanged.
+
+  Named, beyond the drawing (12c): the brand's second colour is not drawn on the storefront; iPhone splash screens are
+  not generated (Android's comes from the manifest's colours and icon); the dashboard's own Google Fonts address is
+  left as it was, tuned to the faces the dashboard serves itself. A shop's identity reaches the storefront within the
+  minute its details are kept (58 s in the real run). The real run found two things, both fixed: the offline page's
+  own script was not kept, so it failed when it was needed; and a search asked offline showed the browser's error
+  rather than "You're offline".
+
 ### Slice 13: custom domains (D3-13)
 - **Depends on:** Slice 12 (the storefront and landing pages a domain serves), Slice 0 (custom domains never
   serve the dashboard) and Phase 2's plan features and downgrade.

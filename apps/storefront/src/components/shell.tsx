@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react';
-import type { PublicCategory, PublicShop } from '@/lib/api/storefront-api';
+import type { PublicBrand, PublicCategory, PublicShop } from '@/lib/api/storefront-api';
+import { storefrontTheme } from '@/lib/brand/brand-theme';
 import { type Language, Words } from '@/lib/i18n/words';
 import { CartButton } from './cart/cart-button';
 import { Icon } from './icon';
@@ -27,10 +28,34 @@ export function Logo({ shop, style }: { shop: ShopFace; style?: CSSProperties })
   );
 }
 
-/** The root. Its language sets the prototype's Bangla line height (I18N-01). */
-export function Frame({ language, children }: { language: Language; children: ReactNode }) {
+/** The root. Its language sets the prototype's Bangla line height (I18N-01); a shop's own identity, while it shows,
+    sets its colours and faces here and chooses the corner and spacing presets (BRN-02, Slice 12c), its faces' stylesheet
+    hoisted into the head. */
+export function Frame({
+  language,
+  brand,
+  children,
+}: {
+  language: Language;
+  brand?: PublicBrand | null;
+  children: ReactNode;
+}) {
+  const theme = brand ? storefrontTheme(brand) : null;
   return (
-    <div className="frame" data-lang={language} lang={language}>
+    <div
+      className="frame"
+      data-lang={language}
+      lang={language}
+      data-corners={theme?.corners}
+      data-spacing={theme?.spacing}
+      style={theme?.variables}
+    >
+      {theme?.fontsUrl ? (
+        <>
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+          <link rel="stylesheet" href={theme.fontsUrl} precedence="default" />
+        </>
+      ) : null}
       {children}
     </div>
   );
@@ -39,19 +64,21 @@ export function Frame({ language, children }: { language: Language; children: Re
 /** The shell: the header, the scrolling page with its footer, and whatever sits over them (bar, sheet, toast). */
 export function Shell({
   language,
+  brand,
   header,
   footer,
   children,
   overlay,
 }: {
   language: Language;
+  brand?: PublicBrand | null;
   header: ReactNode;
   footer: ReactNode;
   children: ReactNode;
   overlay?: ReactNode;
 }) {
   return (
-    <Frame language={language}>
+    <Frame language={language} brand={brand}>
       <div className="shell">
         {header}
         <div className="scroll">
@@ -243,19 +270,21 @@ export function UnknownMark() {
 /** A page with nothing but a message: offline (SFT-12), no shop here, or a product that is gone (LND-03). */
 export function BarePage({
   language,
+  brand,
   mark,
   title,
   text,
   action,
 }: {
   language: Language;
+  brand?: PublicBrand | null;
   mark: ReactNode;
   title: string;
   text: string;
   action?: ReactNode;
 }) {
   return (
-    <Frame language={language}>
+    <Frame language={language} brand={brand}>
       <div className="bare">
         <div className="box">
           {mark}

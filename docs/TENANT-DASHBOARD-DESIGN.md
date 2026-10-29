@@ -1,6 +1,8 @@
 # Tenant dashboard: the full design
 
-Status: v3.16, 2026-10-29 (the Bangla in one word per thing, by the owner's style guide, throughout the prototype: শপ,
+Status: v3.17, 2026-10-30 (the dashboard's installed app marked so a seller tells it from the shop's storefront app,
+Slice 12c, prototype Part 27: named "<shop> Admin", a small gear in its icon's corner; v3.16 of 2026-10-29:
+the Bangla in one word per thing, by the owner's style guide, throughout the prototype: শপ,
 ক্যানসেল, এক্সপায়ার্ড, ডিলিট, সার্চ and the rest; KNOWN-GAPS §100; v3.15 of 2026-10-29: what the real-server walkthrough
 found, Slice 11.13b, prototype Part 26: a variant's SKU in
 its sheet only, no batch words for a shop that keeps no batches, no requirement id on any sheet; v3.14 of 2026-10-29:
@@ -943,6 +945,11 @@ which switches at once; Help with the WhatsApp hours; Sign out; "Powered by Lytr
 install, an **Install** card heads the page: "Install Megh Fashion on this phone · an icon on the home screen,
 opens full screen, with your logo" (TEN-17, `menu-install`); the installed app takes the shop's name and logo,
 scoped to `/<shop>/`, from a per-shop manifest (a Slice 11 addition, §10). Notices joins in Phase 7.
+
+*Slice 12c* (Part 27): the shop's storefront installs as its own app under the shop's plain name and icon (SFT-14), so
+the dashboard's app is the one marked: "Megh Fashion Admin", with a small gear drawn into its icon's corner (the
+maskable icon's inside its safe zone), and the install cards name it so: "Install Megh Fashion Admin on this phone ·
+your logo on the home screen with a small gear in its corner, so you tell it from your shop's app".
 
 *Slice 11.6* (Part 11): the shop card names a staff member's roles; the rows follow the person's permissions (a billing
 role sees Activity, not Team or Settings), and so do the Menu hub's section chips. On an iPhone, which offers no install

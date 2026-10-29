@@ -9,7 +9,9 @@ import {
   BrandPair,
   DEFAULT_BRAND,
   brandContrast,
+  brandFontsUrl,
   brandIconFits,
+  fontStack,
   contrastRatio,
   derivedBrandColors,
   featureOn,
@@ -174,5 +176,25 @@ describe('a plan feature (BRN-05)', () => {
         active: [{ key: 'storage' }],
       }),
     ).toBe(false);
+  });
+});
+
+describe('the brand faces a page asks Google for (BRN-02, Slice 12c)', () => {
+  it('lists each face once, sorted, at 400 and 700, a one-weight face alone, less the hosted ones', () => {
+    const hosted = new Set(['Inter', 'Noto Sans Bengali']);
+    expect(
+      brandFontsUrl(
+        [BrandFont.TiroBanglaLora, BrandFont.TiroBanglaLora, BrandFont.NotoSansBengaliInter],
+        hosted,
+      ),
+    ).toBe(
+      'https://fonts.googleapis.com/css2?family=Lora:wght@400;700&family=Tiro+Bangla&display=swap',
+    );
+    expect(brandFontsUrl([BrandFont.NotoSansBengaliInter], hosted)).toBeNull();
+  });
+
+  it('stacks a pair Latin first, ending on serif for the serif pairs', () => {
+    expect(fontStack(BrandFont.AnekBanglaDmSans)).toBe("'DM Sans', 'Anek Bangla', sans-serif");
+    expect(fontStack(BrandFont.TiroBanglaLora)).toBe("'Lora', 'Tiro Bangla', serif");
   });
 });
