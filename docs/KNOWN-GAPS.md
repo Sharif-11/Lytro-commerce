@@ -1898,6 +1898,24 @@ against it). Every order locks in one order -- products, levels and reservations
 the counter -- and edits, calls and cancellations never take the counter. Verified in `orders.e2e.spec.ts`: 50 orders
 from one phone made at once get `0001` to `0050`, with a test pool of 20 connections so all 50 can wait their turn.
 
+## 99. `INV-22`: a seller met inventory jargon and batch words a shop type does not use — found and fixed 2026-10-29
+
+Found by Slice 11.13b's walkthrough: clothing, cosmetics and grocery shops signing up and making a product, adding
+stock, counting it and buying more, against the real server, with every screen read for jargon and its fields checked
+against the shop type. All three journeys worked; what a seller met on the way did not always fit INV-22:
+- a product with variants showed an SKU column in its variant table, a field per variant, to every seller (drawn so in
+  11.7b and 11.7c);
+- a clothing shop, which keeps no batches, met batch words: the count's pick sheet said batch-kept products are counted
+  batch by batch, and the Stock page showed an Expiring figure reading "this shop has no batches";
+- the arrival sheet's note ended with a requirement id, "(PUR-04)", and the supplier sheet's archive help with "(PUR-01)".
+
+**Fixed** as agreed in the slice's second read (prototype Part 26, design v3.15): a variant's SKU is set in its sheet
+only, the table's column gone, and an SKU another variant has marks the variant's name and is said under the sheet's
+field; a shop that keeps no batches sees neither the note nor the figure (`mayKeepBatches`, one rule for both); both
+notes drop their ids. The walkthrough now runs in CI on every pull request, refusing SKU and any requirement id on
+screen. Left as they are, by the same read: the Add stock button's wording before a quantity is typed, "নোট (ঐচ্ছিক)"
+beside "(অপশনাল)" on the arrival sheet, and the library's English attribute names in a Bangla shop.
+
 ## Not a bug, just noting it so it isn't mistaken for one later
 
 The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data

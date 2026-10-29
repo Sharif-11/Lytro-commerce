@@ -106,7 +106,6 @@ test('an existing product shows its options, a describing value and what each va
     'Variant',
     'PriceFill all',
     'Can sell',
-    'SKU',
   ]);
   await expect(table.getByRole('row')).toHaveCount(8);
   await expect(table.getByRole('row').nth(1)).toContainText('S · Black');
@@ -412,12 +411,7 @@ test('the variants share one stock: each pack says what it holds, the stock open
     card(page).getByText('One stock in kg; selling a pack takes its amount off it.'),
   ).toBeVisible();
   const table = card(page).getByRole('table');
-  await expect(table.getByRole('columnheader')).toHaveText([
-    'Pack',
-    'Pack holds',
-    'PriceFill all',
-    'SKU',
-  ]);
+  await expect(table.getByRole('columnheader')).toHaveText(['Pack', 'Pack holds', 'PriceFill all']);
   await table.getByLabel('Pack of 5 kg').fill('5');
   await table.getByLabel('Pack of 10 kg').fill('10');
   await card(page).getByLabel('Opening stock, kg').fill('240');
@@ -471,18 +465,28 @@ test('past 100 variants the table gives way to what to do, and nothing is saved'
   expect(sent(log, 'PUT', '/products/p-1/variants')).toEqual([]);
 });
 
-test('an SKU another variant has is refused on its row, everything typed kept', async ({
+test('the table has no SKU; one another variant has marks the name and is said in its sheet, kept', async ({
   page,
 }) => {
   const products = { ...drawnProducts(), refuse: { sku: 'TS-M-BL' } };
   await open(page, 'p-1', { products });
   const table = card(page).getByRole('table');
-  await table.getByLabel('SKU of S · Black').fill('TS-M-BL');
+  // Design v3.15 (after the walkthrough): a variant's SKU is set in its sheet only.
+  await expect(table.getByRole('columnheader', { name: 'SKU' })).toHaveCount(0);
+  await table.getByRole('button', { name: 'Settings of S · Black' }).click();
+  await sheet(page, 'S · Black').getByLabel('SKU').fill('TS-M-BL');
+  await sheet(page, 'S · Black').getByRole('button', { name: 'Done' }).click();
   await save(page).click();
   await expect(card(page).getByText('Another variant has that SKU.')).toBeVisible();
-  await expect(table.getByLabel('SKU of S · Black')).toHaveAttribute('aria-invalid', 'true');
-  await expect(table.getByLabel('SKU of S · Black')).toHaveValue('TS-M-BL');
   await expect(save(page)).toHaveText('Fix 1 thing to save');
+  const name = table.getByRole('button', {
+    name: 'Settings of S · Black · Another variant has that SKU.',
+  });
+  await name.click();
+  const own = sheet(page, 'S · Black').getByLabel('SKU');
+  await expect(own).toHaveAttribute('aria-invalid', 'true');
+  await expect(own).toHaveValue('TS-M-BL');
+  await expect(sheet(page, 'S · Black')).toContainText('Another variant has that SKU.');
 });
 
 test('without stock to see there is no Can sell; without products to manage nothing changes', async ({
@@ -492,7 +496,6 @@ test('without stock to see there is no Can sell; without products to manage noth
   await expect(card(page).getByRole('table').getByRole('columnheader')).toHaveText([
     'Variant',
     'PriceFill all',
-    'SKU',
   ]);
   await open(page, 'p-1', { isOwner: false, permissions: ['products:read', 'inventory:read'] });
   await expect(main(page).getByRole('button', { name: 'Add attribute' })).toHaveCount(0);

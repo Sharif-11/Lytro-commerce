@@ -1,56 +1,17 @@
 import { randomUUID } from 'node:crypto';
-import pg from 'pg';
-import { MigrationRunner, QueueBootstrapper } from '@lytronix/db';
+import type pg from 'pg';
+import { TestDatabasePreparer, type PreparedDatabase } from '@lytronix/db';
 
 // Shared setup for server tests that need a migrated database. Each suite names its own database,
 // so suites running in parallel under Turbo never drop each other's data.
-export const APP_ROLE = 'lytronix_app';
-export const APP_PASSWORD = 'lytronix_app_local_only';
-
-export function withDatabase(
-  url: string,
-  database: string,
-  user?: string,
-  password?: string,
-): string {
-  const parsed = new URL(url);
-  parsed.pathname = `/${database}`;
-  if (user) parsed.username = user;
-  if (password) parsed.password = password;
-  return parsed.toString();
-}
 
 /**
- * Creates the application role if missing, recreates the database, and applies every migration.
- * Returns the admin URL for fixtures (bypasses row-level security) and the application URL (does not).
+ * Creates the application role if missing, recreates the database, and applies every migration (the db package's
+ * TestDatabasePreparer, which the dashboard's walkthrough uses too). Returns the admin URL for fixtures (bypasses
+ * row-level security) and the application URL (does not).
  */
-export async function prepareTestDatabase(
-  adminUrl: string,
-  database: string,
-): Promise<{ adminDbUrl: string; appDbUrl: string }> {
-  const maintenance = new pg.Client({ connectionString: adminUrl });
-  await maintenance.connect();
-  try {
-    await maintenance.query(`
-      DO $$ BEGIN
-        IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '${APP_ROLE}') THEN
-          CREATE ROLE ${APP_ROLE} LOGIN PASSWORD '${APP_PASSWORD}' NOSUPERUSER NOBYPASSRLS;
-        END IF;
-      END $$`);
-    await maintenance.query(`DROP DATABASE IF EXISTS ${database} WITH (FORCE)`);
-    await maintenance.query(`CREATE DATABASE ${database}`);
-  } finally {
-    await maintenance.end();
-  }
-
-  const adminDbUrl = withDatabase(adminUrl, database);
-  await new MigrationRunner().run(adminDbUrl);
-  // Mirrors production: pg-boss's schema is installed by the schema-owner credential, never the app role (D25).
-  await new QueueBootstrapper().run(adminDbUrl);
-  return {
-    adminDbUrl,
-    appDbUrl: withDatabase(adminUrl, database, APP_ROLE, APP_PASSWORD),
-  };
+export function prepareTestDatabase(adminUrl: string, database: string): Promise<PreparedDatabase> {
+  return new TestDatabasePreparer().prepare(adminUrl, database);
 }
 
 /**
