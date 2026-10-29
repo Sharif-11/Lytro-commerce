@@ -4,8 +4,8 @@ import { DAY_ONE, mockApi, SLUG, type ApiLog, type ShopState } from './support/m
 import { drawnExports, drawnSettings } from './support/settings';
 
 // TENANT-DASHBOARD-DESIGN §7.16, Slice 11.6: Settings -- its rows by permission and what comes later, Shop details with
-// the name, logo, shop type and contact details, Brand identity until its editor, and Data export. Each test runs on a
-// phone and on a desktop (playwright.config.ts).
+// the name, logo, shop type and contact details, and Data export (Brand identity's editor is brand.spec.ts). Each test
+// runs on a phone and on a desktop (playwright.config.ts).
 
 // A one-pixel PNG, as a file the browser would send.
 const PNG = Buffer.from(
@@ -149,16 +149,6 @@ test('an image the server cannot use says so, and the logo stays', async ({ page
   });
   await expect(main(page).getByText('The image could not be used. Try another one.')).toBeVisible();
   expect(log.calls.some((call) => call.path === '/shop-settings/logo')).toBe(false);
-});
-
-test('Brand identity says its editor is coming, and offers the add-on now', async ({ page }) => {
-  await open(page, '/settings/brand');
-  await expect(main(page).getByText('Your logo, colours and fonts')).toBeVisible();
-  await expect(main(page).getByRole('link', { name: 'See the add-on' })).toHaveAttribute(
-    'href',
-    `/${SLUG}/addons`,
-  );
-  await expectAccessible(page);
 });
 
 test('Data export lists each request in its state, and asks again', async ({ page }) => {

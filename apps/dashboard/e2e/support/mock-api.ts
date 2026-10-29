@@ -32,6 +32,7 @@ import {
   type SettingsFixture,
 } from './settings';
 import { categoryList, categoryWrite } from './categories';
+import { brandAnswer, brandWrite, drawnBrand, type BrandFixture } from './brand';
 import {
   drawnProducts,
   MEDIA_UPLOAD_PREFIX,
@@ -122,6 +123,8 @@ export interface ShopState {
   team?: TeamFixture | null;
   /** The shop's own settings where they differ from the prototype's; Shop details' writes change them. */
   settings?: SettingsFixture | null;
+  /** The brand identity where it differs from the prototype's, switched on and allowed; the editor's writes change it. */
+  brand?: BrandFixture | null;
   /** The shop's API keys where they differ from the prototype's three; the page's writes change them. */
   keys?: KeyFixture[] | null;
   /** Facebook and Meta where it differs from the prototype's connected shop; the page's writes change it. */
@@ -290,6 +293,7 @@ export function shopState(given: ShopState = {}): Required<ShopState> {
     activity: null,
     team: null,
     settings: null,
+    brand: null,
     keys: null,
     meta: null,
     identities: null,
@@ -442,6 +446,8 @@ export function shopAnswer(path: string, url: URL, state: Required<ShopState>): 
   if (team !== undefined) return team;
   const own = settingsAnswer(path, state.settings ?? drawnSettings(state.language));
   if (own !== undefined) return own;
+  const branded = brandAnswer(path, (state.brand ??= drawnBrand()));
+  if (branded !== undefined) return branded;
   if (path === '/api-keys') return state.keys ?? drawnKeys();
   const meta = metaAnswer(path, state.meta ?? drawnMeta());
   if (meta !== undefined) return meta;
@@ -820,6 +826,22 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
       });
     }
     if (written) return ok(written.data);
+    // Slice 11.12a: the brand editor's saves and its switch.
+    const branded = brandWrite(
+      method,
+      path,
+      request.postDataJSON() as Record<string, unknown> | null,
+      (state.brand ??= drawnBrand()),
+    );
+    if (branded && 'refused' in branded) {
+      const { status, code, message, details } = branded.refused;
+      return route.fulfill({
+        status,
+        contentType: 'application/json',
+        body: refusal(code, message, details as Record<string, unknown>),
+      });
+    }
+    if (branded) return ok(branded.data);
     const saved = settingsWrite(
       method,
       path,
