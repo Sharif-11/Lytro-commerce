@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AttributeDataType, OPTION_SET_NAME_MAX_LENGTH } from '@lytronix/validators';
+import {
+  AttributeDataType,
+  baseValueOf,
+  MEASURE_UNITS,
+  type MeasureUnit,
+  OPTION_SET_NAME_MAX_LENGTH,
+} from '@lytronix/validators';
 import { useAddOptions, useSaveOptionSet, useUpdateOption } from '@/api/attributes';
 import { Icon } from '@/components/icon';
 import { Button } from '@/components/ui/button';
@@ -9,7 +15,6 @@ import { Field } from '@/components/ui/field';
 import { Eyebrow } from '@/components/ui/page';
 import { Sheet } from '@/components/ui/sheet';
 import { useErrorText } from '@/hooks/use-error-text';
-import { baseValueOf, MEASURE_UNITS, type MeasureUnit } from '@/lib/measure';
 import { setsFor, type SplitAttribute } from '@/lib/variant-matrix';
 import type { Attribute, OptionSet } from '@/types/attribute';
 import type { OptionSwatch, UsedOption } from '@/types/product';

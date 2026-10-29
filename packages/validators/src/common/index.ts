@@ -7,3 +7,4 @@ export * from './brand';
 export * from './brand-contrast';
 export * from './phone';
 export * from './order-status';
+export * from './measure';

@@ -1,8 +1,9 @@
-import { UnitKind } from '@lytronix/validators';
+import { UnitKind } from '../db/enums';
 
 /**
  * UOM-02: a number-with-unit value is kept in its kind's base unit -- grams, millilitres, a count -- so values sort and
- * compare as numbers. The editor writes it in the larger unit from a thousand up ("5 kg", "500 g", "1.5 L").
+ * compare as numbers. The dashboard's editor and the storefront write it in the larger unit from a thousand up ("5 kg",
+ * "500 g", "1.5 L").
  */
 export type MeasureUnit = 'g' | 'kg' | 'ml' | 'l';
 

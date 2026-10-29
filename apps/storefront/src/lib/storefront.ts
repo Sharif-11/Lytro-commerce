@@ -1,0 +1,72 @@
+import { cookies, headers } from 'next/headers';
+import { cache } from 'react';
+import { ServerApi } from './api/server-api';
+import {
+  type PublicShop,
+  type ShopperRequest,
+  StorefrontApi,
+  type StorefrontShopContext,
+} from './api/storefront-api';
+import { StorefrontEnvironment } from './env';
+import { LANGUAGE_COOKIE, parseLanguage, Words } from './i18n/words';
+
+// Server-only: what every page reads first. The shopper's host names the shop (TEN-08); its state decides whether the
+// page shows the shop, the generic offline page (SFT-12, LIF-07) or not-found.
+
+const env = StorefrontEnvironment.shared();
+export const storefrontApi = new StorefrontApi(new ServerApi(env.serverUrl), env);
+
+/** The shopper's request as the server should see it: the host without a port, their address, their language. */
+export class ShopperRequests {
+  constructor(private readonly settings: StorefrontEnvironment) {}
+
+  async read(): Promise<ShopperRequest> {
+    const [incoming, jar] = await Promise.all([headers(), cookies()]);
+    return {
+      host: ShopperRequests.hostOf(incoming.get('host')),
+      ip: ShopperRequests.firstAddress(incoming.get(this.settings.clientIpHeader)),
+      language: parseLanguage(jar.get(LANGUAGE_COOKIE)?.value),
+    };
+  }
+
+  static hostOf(value: string | null): string {
+    return (value ?? '').trim().toLowerCase().replace(/:\d+$/, '');
+  }
+
+  /** The first address of a forwarded list: the shopper's own, as the edge set it. */
+  static firstAddress(value: string | null): string | null {
+    const first = value?.split(',')[0]?.trim();
+    return first && first.length > 0 ? first : null;
+  }
+}
+
+const shoppers = new ShopperRequests(env);
+
+export type ShopPage =
+  | {
+      state: 'open';
+      shop: StorefrontShopContext;
+      info: PublicShop;
+      shopper: ShopperRequest;
+      words: Words;
+    }
+  | { state: 'closed'; words: Words }
+  | { state: 'missing'; words: Words };
+
+/** The shop this request is for, read once per request however many parts of the page ask. */
+export const loadShopPage = cache(async (): Promise<ShopPage> => {
+  const shopper = await shoppers.read();
+  const words = new Words(shopper.language);
+  const context = await storefrontApi.context(shopper.host);
+  if (context.outcome === 'closed') return { state: 'closed', words };
+  if (context.outcome !== 'open' || !context.shop) return { state: 'missing', words };
+  const info = await storefrontApi.shop(context.shop, shopper);
+  return { state: 'open', shop: context.shop, info, shopper, words };
+});
+
+/** A product by its link, read once per request (the page and its preview tags share it). */
+export const loadProduct = cache(async (slug: string) => {
+  const page = await loadShopPage();
+  if (page.state !== 'open') return null;
+  return storefrontApi.product(page.shop, page.shopper, slug);
+});
