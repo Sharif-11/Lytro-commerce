@@ -140,7 +140,7 @@ describeIfDatabase('§2.6: what the framework and the body parser refuse is word
     expect(bangla.status).toBe(400);
     expect(bangla.envelope).toMatchObject({
       success: false,
-      message: 'পাঠানো তথ্য পড়া যায়নি। আবার চেষ্টা করুন।',
+      message: 'পাঠানো তথ্য পড়া যায়নি। আবার ট্রাই করুন।',
       errors: { code: 'validation_error', details: {} },
     });
     expect(bangla.text).not.toMatch(/JSON|position|token/i);

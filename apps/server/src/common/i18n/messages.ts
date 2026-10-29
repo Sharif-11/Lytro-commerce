@@ -17,19 +17,19 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   // §2.6: the framework's and the body parser's own rejections, worded for a person (malformed JSON, API-26).
   RequestNotReadable: {
     en: "We couldn't read the information sent. Please try again.",
-    bn: 'পাঠানো তথ্য পড়া যায়নি। আবার চেষ্টা করুন।',
+    bn: 'পাঠানো তথ্য পড়া যায়নি। আবার ট্রাই করুন।',
   },
   RequestTooLarge: {
     en: 'Too much information was sent at once. Please send less and try again.',
-    bn: 'একবারে অনেক বেশি তথ্য পাঠানো হয়েছে। কম করে আবার চেষ্টা করুন।',
+    bn: 'একবারে অনেক বেশি তথ্য পাঠানো হয়েছে। কম করে আবার ট্রাই করুন।',
   },
   TooManyRequests: {
     en: 'Too many requests. Please wait a moment and try again.',
-    bn: 'অনেক বেশি রিকোয়েস্ট এসেছে। একটু অপেক্ষা করে আবার চেষ্টা করুন।',
+    bn: 'অনেক বেশি রিকোয়েস্ট এসেছে। একটু অপেক্ষা করে আবার ট্রাই করুন।',
   },
   CreateShopToContinue: {
     en: 'Create your shop to continue.',
-    bn: 'চালিয়ে যেতে আপনার দোকান তৈরি করুন।',
+    bn: 'চালিয়ে যেতে আপনার শপ তৈরি করুন।',
   },
   SetPasswordToContinue: {
     en: 'Set a password to continue.',
@@ -37,7 +37,7 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   },
   ShopUnavailable: {
     en: 'This shop is not available right now.',
-    bn: 'এই দোকানটি এখন উপলব্ধ নয়।',
+    bn: 'এই শপটি এখন উপলব্ধ নয়।',
   },
   PermissionDenied: {
     en: 'You do not have permission for this.',
@@ -46,13 +46,13 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   PageNotFound: { en: 'Page not found.', bn: 'পেজটি খুঁজে পাওয়া যায়নি।' },
   SomethingWentWrong: {
     en: 'Something went wrong. Please try again.',
-    bn: 'কিছু একটা সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।',
+    bn: 'কিছু একটা সমস্যা হয়েছে। অনুগ্রহ করে আবার ট্রাই করুন।',
   },
   SettingValueInvalid: {
     en: 'This value is not valid for this setting.',
     bn: 'এই সেটিংয়ের জন্য মানটি সঠিক নয়।',
   },
-  PleaseTryAgain: { en: 'Please try again.', bn: 'অনুগ্রহ করে আবার চেষ্টা করুন।' },
+  PleaseTryAgain: { en: 'Please try again.', bn: 'অনুগ্রহ করে আবার ট্রাই করুন।' },
   IdempotencyKeyConflict: {
     en: 'This request key was already used with different data.',
     bn: 'এই রিকোয়েস্ট কী ইতিমধ্যে ভিন্ন ডেটার সাথে ব্যবহৃত হয়েছে।',
@@ -118,7 +118,7 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   },
   PaymentNotCancellable: {
     en: 'This payment cannot be cancelled: it was already sent for checking, or has been decided.',
-    bn: 'এই পেমেন্টটা বাতিল করা যাবে না: এটা চেক করতে পাঠানো হয়েছে, বা সিদ্ধান্ত হয়ে গেছে।',
+    bn: 'এই পেমেন্টটা ক্যানসেল করা যাবে না: এটা চেক করতে পাঠানো হয়েছে, বা সিদ্ধান্ত হয়ে গেছে।',
   },
   AmountOutOfRange: {
     en: (p) => `Enter an amount between ${String(p.min)} and ${String(p.max)} TK.`,
@@ -126,7 +126,7 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   },
   TopUpNotAvailable: {
     en: 'Top-up is not available in the shop’s current state.',
-    bn: 'দোকানের বর্তমান অবস্থায় টপ-আপ উপলব্ধ নয়।',
+    bn: 'শপের বর্তমান অবস্থায় টপ-আপ উপলব্ধ নয়।',
   },
   UpgradeNotAvailable: {
     en: 'Upgrade is only available while your plan is active.',
@@ -138,7 +138,7 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   },
   UpgradePending: {
     en: 'An upgrade payment for this shop is still open. A new one can start once it is decided.',
-    bn: 'এই দোকানের একটা আপগ্রেড পেমেন্ট এখনো খোলা আছে। সেটার সিদ্ধান্ত হলে নতুনটা শুরু করা যাবে।',
+    bn: 'এই শপের একটা আপগ্রেড পেমেন্ট এখনো খোলা আছে। সেটার সিদ্ধান্ত হলে নতুনটা শুরু করা যাবে।',
   },
   UpgradeNotWorthwhile: {
     en: 'The credit for your remaining days covers this plan and term. Please choose a longer term.',
@@ -150,11 +150,11 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   },
   PayAsYouGoNotAvailable: {
     en: "This shop can't switch to pay-as-you-go right now.",
-    bn: 'এই দোকান এখন পে-অ্যাজ-ইউ-গো-তে যেতে পারবে না।',
+    bn: 'এই শপ এখন পে-অ্যাজ-ইউ-গো-তে যেতে পারবে না।',
   },
   CloseNotAvailable: {
     en: 'Only a pay-as-you-go shop can be closed. A shop on a plan stops at its period end when you cancel.',
-    bn: 'শুধু পে-অ্যাজ-ইউ-গো দোকান বন্ধ করা যায়। প্ল্যানে থাকা দোকান ক্যানসেল করলে মেয়াদ শেষে বন্ধ হয়।',
+    bn: 'শুধু পে-অ্যাজ-ইউ-গো শপ বন্ধ করা যায়। প্ল্যানে থাকা শপ ক্যানসেল করলে মেয়াদ শেষে বন্ধ হয়।',
   },
   DowngradeMustBeLowerRank: {
     en: 'You can only downgrade to a lower plan.',
@@ -162,7 +162,7 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   },
   ScheduledChangeNotFound: {
     en: 'No scheduled change was found for this shop.',
-    bn: 'এই দোকানের জন্য কোনো নির্ধারিত পরিবর্তন পাওয়া যায়নি।',
+    bn: 'এই শপের জন্য কোনো নির্ধারিত পরিবর্তন পাওয়া যায়নি।',
   },
   AddonNotAvailable: {
     en: 'Add-ons can be bought while a paid plan is active.',
@@ -178,7 +178,7 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   },
   AddonAlreadyActive: {
     en: 'Your shop already has this add-on.',
-    bn: 'আপনার দোকানে এই অ্যাড-অন আগে থেকেই চালু আছে।',
+    bn: 'আপনার শপে এই অ্যাড-অন আগে থেকেই চালু আছে।',
   },
   AddonLimitUnlimited: {
     en: 'Your plan has no limit here, so this add-on is not needed.',
@@ -231,7 +231,7 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   },
   IdentityOwnsShop: {
     en: 'This identity owns your shop, so it cannot be removed.',
-    bn: 'এই আইডেন্টিটি আপনার দোকানের মালিক, তাই এটি রিমুভ করা যাবে না।',
+    bn: 'এই আইডেন্টিটি আপনার শপের মালিক, তাই এটি রিমুভ করা যাবে না।',
   },
   AccountCannotBeAdded: {
     en: 'This account cannot be added. Try another.',
@@ -247,11 +247,11 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   },
   TooManyCodesRequested: {
     en: 'Too many codes were requested for this destination. Try again later.',
-    bn: 'এই নম্বর বা ইমেইলের জন্য অনেকবার কোড চাওয়া হয়েছে। পরে আবার চেষ্টা করুন।',
+    bn: 'এই নম্বর বা ইমেইলের জন্য অনেকবার কোড চাওয়া হয়েছে। পরে আবার ট্রাই করুন।',
   },
   CodeSendFailed: {
     en: 'We could not send your code. Try again in a minute.',
-    bn: 'আপনার কোড পাঠানো যায়নি। এক মিনিট পর আবার চেষ্টা করুন।',
+    bn: 'আপনার কোড পাঠানো যায়নি। এক মিনিট পর আবার ট্রাই করুন।',
   },
   PhoneOrPasswordWrong: {
     en: 'That phone number and password do not match.',
@@ -263,7 +263,7 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   },
   ShopAlreadyExists: {
     en: 'This account already has a shop.',
-    bn: 'এই অ্যাকাউন্টের দোকান আগে থেকেই আছে।',
+    bn: 'এই অ্যাকাউন্টের শপ আগে থেকেই আছে।',
   },
   AddressTaken: {
     en: 'That shop URL is taken. Try another one.',
@@ -275,7 +275,7 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   },
   AddressRequired: {
     en: 'Choose a URL for your shop.',
-    bn: 'আপনার দোকানের জন্য একটি লিংক বেছে নিন।',
+    bn: 'আপনার শপের জন্য একটি লিংক বেছে নিন।',
   },
   TooManyFailedSignins: {
     en: 'Too many failed sign-ins. Wait before trying again.',
@@ -283,11 +283,11 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   },
   TooManySignups: {
     en: 'Too many sign-ups from this address. Try again later.',
-    bn: 'এই অ্যাড্রেস থেকে অনেকবার সাইন-আপ করা হয়েছে। পরে আবার চেষ্টা করুন।',
+    bn: 'এই অ্যাড্রেস থেকে অনেকবার সাইন-আপ করা হয়েছে। পরে আবার ট্রাই করুন।',
   },
   TooManyTrials: {
     en: 'Too many free trials. Try again later.',
-    bn: 'অনেকবার ফ্রি ট্রায়াল নেওয়া হয়েছে। পরে আবার চেষ্টা করুন।',
+    bn: 'অনেকবার ফ্রি ট্রায়াল নেওয়া হয়েছে। পরে আবার ট্রাই করুন।',
   },
 
   TwoFactorAlreadyEnrolled: {
@@ -322,7 +322,7 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   RoleNotFound: { en: 'Role not found.', bn: 'রোলটি খুঁজে পাওয়া যায়নি।' },
   StaffPhoneBelongsToOwner: {
     en: 'That phone number belongs to a shop owner.',
-    bn: 'এই ফোন নম্বরটি একজন দোকান ওনারের।',
+    bn: 'এই ফোন নম্বরটি একজন শপ ওনারের।',
   },
   StaffPhoneInUse: {
     en: 'That phone number is already in use.',
@@ -332,7 +332,7 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   OwnerCannotBeChanged: { en: 'The owner cannot be changed.', bn: 'ওনারকে পরিবর্তন করা যাবে না।' },
   RoleNotInShop: {
     en: 'One of the roles does not exist in this shop.',
-    bn: 'এই রোলগুলোর একটি এই দোকানে নেই।',
+    bn: 'এই রোলগুলোর একটি এই শপে নেই।',
   },
   SeatLimitReached: {
     en: (p) => {
@@ -377,7 +377,7 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   LinkShareRecorded: { en: 'Link share recorded.', bn: 'লিংক শেয়ার করা হয়েছে।' },
   AddressChecked: { en: 'Address checked.', bn: 'ঠিকানা দেখা হয়েছে।' },
   OauthProvidersListed: { en: 'Sign-in options retrieved.', bn: 'লগইন অপশনগুলো পাওয়া গেছে।' },
-  ShopCreated: { en: 'Shop created successfully.', bn: 'দোকান সফলভাবে তৈরি হয়েছে।' },
+  ShopCreated: { en: 'Shop created successfully.', bn: 'শপ সফলভাবে তৈরি হয়েছে।' },
 
   OperatorCredentialsAccepted: {
     en: 'Credentials accepted.',
@@ -445,8 +445,8 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   },
   SettingsListed: { en: 'Settings retrieved.', bn: 'সেটিংসগুলো পাওয়া গেছে।' },
   SettingUpdated: { en: 'Setting updated.', bn: 'সেটিং আপডেট হয়েছে।' },
-  ShopSettingsRetrieved: { en: 'Shop settings retrieved.', bn: 'দোকানের সেটিংস পাওয়া গেছে।' },
-  ShopSettingsUpdated: { en: 'Shop settings updated.', bn: 'দোকানের সেটিংস আপডেট হয়েছে।' },
+  ShopSettingsRetrieved: { en: 'Shop settings retrieved.', bn: 'শপের সেটিংস পাওয়া গেছে।' },
+  ShopSettingsUpdated: { en: 'Shop settings updated.', bn: 'শপের সেটিংস আপডেট হয়েছে।' },
   ExportRequested: { en: 'Export requested.', bn: 'এক্সপোর্ট রিকোয়েস্ট করা হয়েছে।' },
   ExportsListed: { en: 'Exports retrieved.', bn: 'এক্সপোর্টগুলো পাওয়া গেছে।' },
   ExportNotFound: { en: 'Export not found.', bn: 'এক্সপোর্ট পাওয়া যায়নি।' },
@@ -457,7 +457,7 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   },
   OwnerOnlyAction: {
     en: 'Only the shop owner can do this.',
-    bn: 'শুধু দোকানের ওনার এটি করতে পারবেন।',
+    bn: 'শুধু শপের ওনার এটি করতে পারবেন।',
   },
 
   QuoteCreated: { en: 'Quote created.', bn: 'কোট তৈরি হয়েছে।' },
@@ -468,10 +468,10 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   InvoiceRetrieved: { en: 'Invoice retrieved.', bn: 'ইনভয়েস পাওয়া গেছে।' },
   BillingPaymentsListed: { en: 'Payments retrieved.', bn: 'পেমেন্টগুলো পাওয়া গেছে।' },
   BillingPricesRetrieved: { en: 'Prices retrieved.', bn: 'দামগুলো পাওয়া গেছে।' },
-  PaymentCancelled: { en: 'Payment cancelled.', bn: 'পেমেন্ট বাতিল হয়েছে।' },
+  PaymentCancelled: { en: 'Payment cancelled.', bn: 'পেমেন্ট ক্যানসেল হয়েছে।' },
   PaymentQueueListed: { en: 'Payment queue retrieved.', bn: 'পেমেন্ট কিউ পাওয়া গেছে।' },
   PaymentApproved: { en: 'Payment approved.', bn: 'পেমেন্ট অনুমোদিত হয়েছে।' },
-  PaymentRejected: { en: 'Payment rejected.', bn: 'পেমেন্ট বাতিল হয়েছে।' },
+  PaymentRejected: { en: 'Payment rejected.', bn: 'পেমেন্ট রিজেক্ট হয়েছে।' },
   UpgradeQuoted: { en: 'Upgrade quote created.', bn: 'আপগ্রেড কোট তৈরি হয়েছে।' },
   UpgradeSubmitted: { en: 'Upgrade payment submitted.', bn: 'আপগ্রেড পেমেন্ট জমা দেওয়া হয়েছে।' },
   UpgradeConfirmed: { en: 'Upgrade confirmed.', bn: 'আপগ্রেড নিশ্চিত হয়েছে।' },
@@ -488,12 +488,12 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   PackAutoBuyUpdated: { en: 'Auto-buy updated.', bn: 'অটো-বাই আপডেট হয়েছে।' },
   ShopAddonsRetrieved: {
     en: "Your shop's add-ons retrieved.",
-    bn: 'আপনার দোকানের অ্যাড-অনগুলো পাওয়া গেছে।',
+    bn: 'আপনার শপের অ্যাড-অনগুলো পাওয়া গেছে।',
   },
   DowngradeScheduled: { en: 'Downgrade scheduled.', bn: 'ডাউনগ্রেড নির্ধারিত হয়েছে।' },
   PayAsYouGoChosen: { en: 'Pay-as-you-go chosen.', bn: 'পে-অ্যাজ-ইউ-গো বেছে নেওয়া হয়েছে।' },
-  ShopClosed: { en: 'Shop closed.', bn: 'দোকান বন্ধ করা হয়েছে।' },
-  DowngradeCancelled: { en: 'Downgrade cancelled.', bn: 'ডাউনগ্রেড বাতিল হয়েছে।' },
+  ShopClosed: { en: 'Shop closed.', bn: 'শপ বন্ধ করা হয়েছে।' },
+  DowngradeCancelled: { en: 'Downgrade cancelled.', bn: 'ডাউনগ্রেড ক্যানসেল হয়েছে।' },
   DowngradePreviewed: { en: 'Downgrade preview retrieved.', bn: 'ডাউনগ্রেড প্রিভিউ পাওয়া গেছে।' },
   DowngradeRetrieved: { en: 'Scheduled change retrieved.', bn: 'নির্ধারিত পরিবর্তন পাওয়া গেছে।' },
   DowngradeChecklistRetrieved: {
@@ -502,11 +502,11 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   },
   SubscriptionCancelled: {
     en: 'Subscription cancelled, effective at period end.',
-    bn: 'সাবস্ক্রিপশন বাতিল হয়েছে, মেয়াদ শেষে কার্যকর হবে।',
+    bn: 'সাবস্ক্রিপশন ক্যানসেল হয়েছে, মেয়াদ শেষে কার্যকর হবে।',
   },
   SubscriptionCancellationUndone: {
     en: 'Cancellation undone.',
-    bn: 'বাতিল প্রত্যাহার করা হয়েছে।',
+    bn: 'ক্যানসেল প্রত্যাহার করা হয়েছে।',
   },
   AutoRenewUpdated: {
     en: 'Auto-renew setting updated.',
@@ -514,11 +514,11 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   },
   CancellationRetrieved: {
     en: 'Cancellation status retrieved.',
-    bn: 'বাতিলের অবস্থা পাওয়া গেছে।',
+    bn: 'ক্যানসেলের অবস্থা পাওয়া গেছে।',
   },
   TenantsListed: { en: 'Tenants retrieved.', bn: 'টেন্যান্টগুলো পাওয়া গেছে।' },
-  TenantSuspended: { en: 'Shop suspended.', bn: 'দোকান সাসপেন্ড হয়েছে।' },
-  TenantRestored: { en: 'Shop restored.', bn: 'দোকান পুনরুদ্ধার হয়েছে।' },
+  TenantSuspended: { en: 'Shop suspended.', bn: 'শপ সাসপেন্ড হয়েছে।' },
+  TenantRestored: { en: 'Shop restored.', bn: 'শপ পুনরুদ্ধার হয়েছে।' },
 
   RolesListed: { en: 'Roles retrieved.', bn: 'রোলগুলো পাওয়া গেছে।' },
   RoleCreated: { en: 'Role created.', bn: 'রোল তৈরি হয়েছে।' },
@@ -629,7 +629,7 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   },
   SkuTaken: {
     en: 'Another variant in your shop already has this SKU.',
-    bn: 'আপনার দোকানের অন্য একটি ভ্যারিয়েন্টে এই SKU আগে থেকেই আছে।',
+    bn: 'আপনার শপের অন্য একটি ভ্যারিয়েন্টে এই SKU আগে থেকেই আছে।',
   },
   ProductSlugTaken: {
     en: 'Another product already uses this link. Choose another.',
@@ -637,7 +637,7 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   },
   BusinessTypeUnknown: {
     en: 'Choose one of the listed shop types.',
-    bn: 'লিস্টের দোকানের ধরনগুলো থেকে একটি বেছে নিন।',
+    bn: 'লিস্টের শপের ধরনগুলো থেকে একটি বেছে নিন।',
   },
   AttributeValueWrongKind: {
     en: "This value doesn't fit the attribute's type.",
@@ -649,7 +649,7 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   },
   PresetNotFound: {
     en: 'This shop type was not found.',
-    bn: 'দোকানের এই ধরনটি পাওয়া যায়নি।',
+    bn: 'শপের এই ধরনটি পাওয়া যায়নি।',
   },
   BatchOrSerialNotBoth: {
     en: 'Choose batch tracking or serial tracking, not both.',
@@ -691,7 +691,7 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: (p) =>
       `A shop has at most ${String(p.max)} delivery zones. Add the areas to a zone you already have.`,
     bn: (p) =>
-      `একটি দোকানে সর্বোচ্চ ${String(p.max)}টি ডেলিভারি জোন রাখা যায়। এলাকাগুলো আগের কোনো জোনে যোগ করুন।`,
+      `একটি শপে সর্বোচ্চ ${String(p.max)}টি ডেলিভারি জোন রাখা যায়। এলাকাগুলো আগের কোনো জোনে যোগ করুন।`,
   },
   HomeZoneAreasAreHomeArea: {
     en: 'This zone covers your home area. Change the home area instead.',
@@ -859,41 +859,41 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   },
   ApiKeyMissing: {
     en: 'Send your API key as "Authorization: Bearer <key>".',
-    bn: 'আপনার API কি "Authorization: Bearer <key>" হিসেবে পাঠান।',
+    bn: 'আপনার API কী "Authorization: Bearer <key>" হিসেবে পাঠান।',
   },
   ApiKeyInvalid: {
     en: 'This API key is not valid. Check it, or make a new one in the dashboard.',
-    bn: 'এই API কি সঠিক নয়। কি-টি দেখে নিন, অথবা ড্যাশবোর্ড থেকে নতুন একটি তৈরি করুন।',
+    bn: 'এই API কী সঠিক নয়। কী-টি দেখে নিন, অথবা ড্যাশবোর্ড থেকে নতুন একটি তৈরি করুন।',
   },
   ApiKeyWasRevoked: {
     en: 'This API key was revoked. Use another key, or make a new one in the dashboard.',
-    bn: 'এই API কি বাতিল করা হয়েছে। অন্য কি ব্যবহার করুন, অথবা ড্যাশবোর্ড থেকে নতুন একটি তৈরি করুন।',
+    bn: 'এই API কী ক্যানসেল করা হয়েছে। অন্য কী ব্যবহার করুন, অথবা ড্যাশবোর্ড থেকে নতুন একটি তৈরি করুন।',
   },
   ApiKeyExpired: {
     en: 'This API key has expired. Make a new one in the dashboard.',
-    bn: 'এই API কি-র মেয়াদ শেষ হয়ে গেছে। ড্যাশবোর্ড থেকে নতুন একটি তৈরি করুন।',
+    bn: 'এই API কী-র মেয়াদ শেষ হয়ে গেছে। ড্যাশবোর্ড থেকে নতুন একটি তৈরি করুন।',
   },
   WebsiteNotRegistered: {
     en: "This website is not one of this API key's website addresses. Add it to the key in the dashboard.",
-    bn: 'এই ওয়েবসাইট এই API কি-র ওয়েবসাইট তালিকায় নেই। ড্যাশবোর্ডে কি-টিতে এটি যোগ করুন।',
+    bn: 'এই ওয়েবসাইট এই API কী-র ওয়েবসাইট তালিকায় নেই। ড্যাশবোর্ডে কী-টিতে এটি যোগ করুন।',
   },
   RequestsUsedUp: {
     en: 'This shop has used all its API requests for this billing period. They start again with the next one.',
-    bn: 'এই দোকান এই বিলিং পিরিয়ডের সব API রিকোয়েস্ট ব্যবহার করে ফেলেছে। পরের পিরিয়ডে আবার শুরু হবে।',
+    bn: 'এই শপ এই বিলিং পিরিয়ডের সব API রিকোয়েস্ট ব্যবহার করে ফেলেছে। পরের পিরিয়ডে আবার শুরু হবে।',
   },
   ApiKeyNotFound: {
     en: 'That API key was not found.',
-    bn: 'API কি-টি পাওয়া যায়নি।',
+    bn: 'API কী-টি পাওয়া যায়নি।',
   },
   TooManyApiKeys: {
     en: (p) =>
       `A shop holds at most ${String(p.max)} API keys at once. Revoke one you no longer use first.`,
     bn: (p) =>
-      `একটি দোকানে একসাথে সর্বোচ্চ ${String(p.max)}টি API কি রাখা যায়। আগে অব্যবহৃত একটি বাতিল করুন।`,
+      `একটি শপে একসাথে সর্বোচ্চ ${String(p.max)}টি API কী রাখা যায়। আগে অব্যবহৃত একটি ক্যানসেল করুন।`,
   },
   ApiKeyExpiryInPast: {
     en: 'This date has already passed. Choose a later one, or leave it empty for a key that never expires.',
-    bn: 'এই তারিখ পার হয়ে গেছে। পরের একটি তারিখ বেছে নিন, অথবা মেয়াদহীন কি-র জন্য খালি রাখুন।',
+    bn: 'এই তারিখ পার হয়ে গেছে। পরের একটি তারিখ বেছে নিন, অথবা মেয়াদহীন কী-র জন্য খালি রাখুন।',
   },
   SupplierNotFound: {
     en: 'That supplier was not found.',
@@ -969,7 +969,7 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   },
   PresetsListed: {
     en: 'Shop types retrieved.',
-    bn: 'দোকানের ধরনগুলো পাওয়া গেছে।',
+    bn: 'শপের ধরনগুলো পাওয়া গেছে।',
   },
   ProductDefaultsRetrieved: {
     en: 'Product defaults retrieved.',
@@ -977,7 +977,7 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   },
   BusinessTypeSaved: {
     en: 'Shop type saved.',
-    bn: 'দোকানের ধরন সেভ হয়েছে।',
+    bn: 'শপের ধরন সেভ হয়েছে।',
   },
   AttributesListed: {
     en: 'Attributes retrieved.',
@@ -1053,7 +1053,7 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   },
   ProductDuplicated: {
     en: 'Product copied. The copy stays hidden until you turn it on.',
-    bn: 'প্রোডাক্ট কপি হয়েছে। চালু না করা পর্যন্ত কপিটি দোকানে দেখাবে না।',
+    bn: 'প্রোডাক্ট কপি হয়েছে। চালু না করা পর্যন্ত কপিটি শপে দেখাবে না।',
   },
   ProductRestored: {
     en: 'Product restored. It is back in the list.',
@@ -1089,7 +1089,7 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   },
   PresetUpdated: {
     en: 'Shop type updated.',
-    bn: 'দোকানের ধরন আপডেট হয়েছে।',
+    bn: 'শপের ধরন আপডেট হয়েছে।',
   },
   LocationsListed: {
     en: 'Districts and thanas retrieved.',
@@ -1197,19 +1197,19 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   },
   ApiKeysListed: {
     en: 'API keys retrieved.',
-    bn: 'API কি-গুলো পাওয়া গেছে।',
+    bn: 'API কী-গুলো পাওয়া গেছে।',
   },
   ApiKeyCreated: {
     en: 'API key made. Copy it now: it is shown only this once.',
-    bn: 'API কি তৈরি হয়েছে। এখনই কপি করে রাখুন: এটি শুধু এই একবারই দেখানো হবে।',
+    bn: 'API কী তৈরি হয়েছে। এখনই কপি করে রাখুন: এটি শুধু এই একবারই দেখানো হবে।',
   },
   ApiKeyUpdated: {
     en: 'API key saved.',
-    bn: 'API কি সেভ হয়েছে।',
+    bn: 'API কী সেভ হয়েছে।',
   },
   ApiKeyRevoked: {
     en: 'API key revoked. It stops working within a few seconds.',
-    bn: 'API কি বাতিল হয়েছে। কয়েক সেকেন্ডের মধ্যে এটি কাজ করা বন্ধ করবে।',
+    bn: 'API কী ক্যানসেল হয়েছে। কয়েক সেকেন্ডের মধ্যে এটি কাজ করা বন্ধ করবে।',
   },
   AdTrackingRetrieved: { en: 'Ad tracking retrieved.', bn: 'অ্যাড ট্র্যাকিং পাওয়া গেছে।' },
   AdTrackingSaved: { en: 'Ad tracking saved.', bn: 'অ্যাড ট্র্যাকিং সেভ হয়েছে।' },
@@ -1228,7 +1228,7 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   },
   ShopRetrieved: {
     en: 'Shop retrieved.',
-    bn: 'দোকানের তথ্য পাওয়া গেছে।',
+    bn: 'শপের তথ্য পাওয়া গেছে।',
   },
   CatalogueVersionRetrieved: {
     en: 'Catalogue version retrieved.',
@@ -1304,7 +1304,7 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   },
   StorageUnavailable: {
     en: 'Photo storage is not reachable right now. Please try again in a minute.',
-    bn: 'এই মুহূর্তে ছবির স্টোরেজে পৌঁছানো যাচ্ছে না। এক মিনিট পরে আবার চেষ্টা করুন।',
+    bn: 'এই মুহূর্তে ছবির স্টোরেজে পৌঁছানো যাচ্ছে না। এক মিনিট পরে আবার ট্রাই করুন।',
   },
   MediaNotAttachable: {
     en: 'Choose a photo that has finished uploading.',
@@ -1428,7 +1428,7 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   },
   ApiKeyManagedByLytro: {
     en: 'Lytro keeps this key for your storefront, so it cannot be changed or revoked.',
-    bn: 'এই কী Lytro আপনার স্টোরফ্রন্টের জন্য রাখে, তাই এটা বদলানো বা বাতিল করা যায় না।',
+    bn: 'এই কী Lytro আপনার স্টোরফ্রন্টের জন্য রাখে, তাই এটা বদলানো বা ক্যানসেল করা যায় না।',
   },
   DeliveryEstimated: {
     en: 'Delivery charge worked out.',

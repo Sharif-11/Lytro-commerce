@@ -129,7 +129,7 @@ test("a suspended owner's Balance: the balance and Top up only, and the way back
   await expect(page.getByRole('navigation')).toHaveCount(0);
   expect(log.calls.some((call) => call.path === '/balance/ledger')).toBe(false);
   await page.getByRole('link', { name: /ব্যাকে যান/ }).click();
-  await expect(page.getByRole('heading', { name: 'দোকান এখন খোলা যাচ্ছে না' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'শপ এখন খোলা যাচ্ছে না' })).toBeVisible();
 });
 
 test("lists the shop's payments by month, filters them, and opens one", async ({ page }) => {
@@ -139,7 +139,7 @@ test("lists the shop's payments by month, filters them, and opens one", async ({
   });
   await open(page, {}, '/billing');
   await expect(main(page).getByRole('link', { name: /ব্যালেন্স টপ-আপ.*চেক হচ্ছে/ })).toBeVisible();
-  await expect(main(page).getByText('আগের দোকান')).toBeVisible();
+  await expect(main(page).getByText('আগের শপ')).toBeVisible();
   await expect(
     main(page)
       .getByText(/From the balance|ব্যালেন্স থেকে/)
@@ -200,11 +200,11 @@ test('a request nothing was sent for: Finish paying by wallet, or Cancel it, cha
     transactionId: '9HA3RC11',
   });
 
-  await main(page).getByRole('button', { name: 'এই পেমেন্ট বাতিল করুন' }).click();
+  await main(page).getByRole('button', { name: 'এই পেমেন্ট ক্যানসেল করুন' }).click();
   await expect(
-    page.getByRole('status').filter({ hasText: 'পেমেন্ট বাতিল হয়েছে। কিছু কাটা হয়নি।' }),
+    page.getByRole('status').filter({ hasText: 'পেমেন্ট ক্যানসেল হয়েছে। কিছু কাটা হয়নি।' }),
   ).toBeVisible();
-  await expect(main(page).getByText('আপনি বাতিল করেছেন')).toBeVisible();
+  await expect(main(page).getByText('আপনি ক্যানসেল করেছেন')).toBeVisible();
   expect(
     log.calls.some((call) => call.path === `/billing/payments/${AWAITING_RENEWAL.id}/cancel`),
   ).toBe(true);
