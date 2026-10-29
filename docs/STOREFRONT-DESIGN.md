@@ -3,7 +3,8 @@
 Status: v1, 2026-10-21. The shared storefront every shop gets at its subdomain or custom domain
 (`apps/storefront`, SFT-01, TEN-08), and the product landing pages at `/l/<slug>` (LND-01). Designed from
 `SRS-detailed.md` §4 (TEN, BRN), §14.2 (SFT), §14.3 (CCH), §14.12 (LND), §14.13 (DLV), §14.15 (CMB), §15
-(ORD), §16 (CUS), §19.2 (PAY), §22 (CHT) and the Phase 3 plan's Slice 12, against the public catalogue the
+(ORD), §16 (CUS), §19.2 (PAY), §22 (CHT) and the Phase 3 plan's Slice 12 (the landing pages; the storefront and custom domains moved to
+Phase 6B on 2026-10-29, `PHASE-3-PLAN.md` D3-14), against the public catalogue the
 API serves today (Slice 9: shop, categories, product lists, product detail, catalogue version). The
 interactive sketch is `docs/brand/lytro-storefront.html`: every screen on phone, tablet and desktop, Bangla
 with the English toggle, on Lytro's default identity and on a shop's own brand identity, with the flows of

@@ -3,8 +3,10 @@
 Status: agreed 2026-10-27 — the decisions in §2 were settled in the Phase 4 read the same day. Builds on
 `IMPLEMENTATION-PLAN.md` Phase 4, with these changes agreed before this plan was written:
 
-- **Built after Phase 3.** The plan is written now; building starts once Phase 3's Slices 11 (dashboard), 12
-  (storefront and landing pages) and 13 (custom domains) are done (D4-1).
+- **Built after Phase 3.** The plan is written now; building starts once Phase 3's Slices 11 (dashboard) and 12
+  (landing pages) are done (D4-1). The storefront and custom domains moved to Phase 6B (`PHASE-3-PLAN.md` D3-14,
+  2026-10-29): this phase still builds every API they need, and the landing page's screens; the storefront's screens
+  are Phase 6B's.
 - **The order flow follows Bangladeshi sellers:** a new order is confirmed by a phone call before it ships, every
   call is logged, and a cancellation carries its reason (D4-3). `SRS-detailed.md` gains the `confirmed` status,
   ORD-51 and ORD-52.
@@ -25,11 +27,12 @@ deviation during a slice.
 ## 1. Goal and exit criteria
 
 **Goal.** A seller takes an order however it arrives -- entered by staff from a Facebook message or a phone call,
-placed by a shopper on the storefront or a product's landing page, or sent by the seller's own site through the API
+placed by a shopper on a product's landing page, or sent by the seller's own site through the API
 -- confirms it by phone, ships it with a tracking code and records what came back. Every order holds its stock from
 the moment it is created, is priced by one function wherever a price is shown, and counts toward the plan only when
-it is handled. Shoppers check out, track their orders and keep an account; the seller sees its customers and its
-sales. Payments (Phase 5) and couriers (Phase 6) then attach to orders that already work.
+it is handled. Shoppers order from a landing page and track their orders, and the API signs a seller's own site's
+shoppers in; the seller sees its customers and its sales. The storefront's checkout and account screens are Phase
+6B's (D3-14). Payments (Phase 5) and couriers (Phase 6) then attach to orders that already work.
 
 **Phase 4 is complete when all of these hold:**
 
@@ -40,9 +43,10 @@ sales. Payments (Phase 5) and couriers (Phase 6) then attach to orders that alre
    the plan once and, on pay-as-you-go, charged its fee once → delivered → one unit returned damaged, one sellable.
    At every step the order's two axes and visible status, the stock ledger, the levels, the customer's totals and the
    sales figures all agree.
-3. **The shopper path:** a cash-on-delivery order from the storefront and one from a landing page, each submitted
-   twice, create one order each at exactly the price the cart and the form showed; the tracking page shows no address
-   or phone; a signed-in shopper sees their own orders only.
+3. **The shopper path:** a cash-on-delivery order from a landing page and one through the public API, each
+   submitted twice, create one order each at exactly the price the form and the estimate showed; the tracking page
+   shows no address or phone; through the API, a signed-in shopper sees their own orders only. The storefront's own
+   path is Phase 6B's exit check.
 4. **Concurrency:** 50 orders created at once in one shop on one day get 50 distinct consecutive numbers; two orders
    racing for the last unit leave one refused and nothing oversold (INV-01, KNOWN-GAPS §75).
 5. **Limits:** order creation is never refused for a handling limit (QTA-07); handling is refused past a trial's 40th
@@ -58,11 +62,11 @@ sellers in Bangladesh").
 
 | # | Decision | Decided | Affects |
 |---|---|---|---|
-| D4-1 | **When.** Shopper checkout, tracking, accounts and the landing page's order form live in Slice 12's storefront app, which does not exist yet. | Build Phase 4 after Phase 3's Slices 11, 12 and 13; this plan is written now. | Planning |
+| D4-1 | **When.** Shopper checkout, tracking, accounts and the landing page's order form live in Slice 12's storefront app, which does not exist yet. | Build Phase 4 after Phase 3's Slices 11 and 12; this plan is written now. *Amended 2026-10-29 (`PHASE-3-PLAN.md` D3-14):* the storefront's checkout, tracking and shopper-account screens move to Phase 6B; their APIs and the landing page's screens stay here. | Planning |
 | D4-2 | **Advance payments before Phase 5.** A product's payment policy may need an advance (PRD-08), but the payment page and wallet checkout (LND-10, SFT-07, PAY-01) arrive in Phase 5. | Public orders (storefront, landing page, public key) take cash-on-delivery products only; a product whose policy needs an advance is refused with a plain message naming it. Staff may enter such an order and record the advance received (ORD-22). Nothing is live before launch, so no sale is lost. | Slices 4.2, 4.8 |
 | D4-3 | **The order flow.** Sellers in Bangladesh phone a cash-on-delivery customer before shipping and cancel fake or unreachable orders; the sketches draw "To confirm" and Confirm, but no status backed them. | New (`pending`, "to confirm") → a confirming call → Confirmed (`confirmed`, new) → Processing (courier booking, Phase 6) → Shipped → Delivered or partly delivered → Returned. Every call is logged with its outcome -- confirmed, no answer, call back later (with a time), cancelled -- and an optional note; the order shows the calls and the unanswered count; "call back later" holds the order until then. A cancellation needs a reason: customer cancelled, fake order, unreachable, out of stock, duplicate, other. The calls and reasons later feed Phase 7's fake-order check. §2.3.1, ORD-07, ORD-08 and ORD-41 amended; ORD-51 and ORD-52 added. | Slices 4.1, 4.3, 4.8 |
 | D4-4 | **Order numbers.** ORD-04's `ORD-YYYYMMDD-NNNN` is 17 characters, hard to read out on a call. | `YYMMDD-NNNN` (`261027-0041`): the order's day in Asia/Dhaka and a sequence per shop per day from 0001, five digits past 9,999; gap-proof, never reused. Lists show the full number. ORD-04 amended. | Slice 4.1 |
-| D4-5 | **Moved out of this phase.** `IMPLEMENTATION-PLAN.md` lists extraction from text in both Phase 4 and Phase 7, and the drawn order screens carry later phases' parts. | Extraction from text (ORD-30 to 34) → Phase 7, with the AI provider; the New order screen shows its paste box greyed until then. Courier booking, sync and courier areas (CRR, CUS-10 to 13) stay in Phase 6. Fraud checks (FRD) and order SMS (ORD-20's SMS half) stay in Phase 7; Phase 4's storefront and confirmation copy promises no SMS. Webhooks for orders and secret keys stay in Phase 8. Auto-archiving old orders (ORD-49) is deferred. | Scope |
+| D4-5 | **Moved out of this phase.** `IMPLEMENTATION-PLAN.md` lists extraction from text in both Phase 4 and Phase 7, and the drawn order screens carry later phases' parts. | Extraction from text (ORD-30 to 34) → Phase 7, with the AI provider; the New order screen shows its paste box greyed until then. Courier booking, sync and courier areas (CRR, CUS-10 to 13) stay in Phase 6. Fraud checks (FRD) and order SMS (ORD-20's SMS half) stay in Phase 7; Phase 4's landing page and confirmation copy promises no SMS. Webhooks for orders and secret keys stay in Phase 8. Auto-archiving old orders (ORD-49) is deferred. | Scope |
 | D4-6 | **Payments recorded by staff.** ORD-15 and ORD-22 (Phase 4) write `tenant.payments`, which the schema gives to Phase 5. | Build `tenant.payments` now for manual entry only -- wallet name, sender number, transaction ID unique platform-wide (`control.used_transaction_ids`), amount -- recorded as verified by a holder of `payments:manage`. Phase 5 adds payment sessions, verification levels and refunds (ORD-44, PAY-20) on the same table. It lives in the `orders` module for now; the existing `payments` module is the shop's own payments to Lytro. | Slice 4.3 |
 | D4-7 | **Moving an order without couriers.** Courier booking and courier reports arrive in Phase 6. | By hand, the whole order at once: Confirm (a confirming call), Mark shipped (a tracking link or code and the courier's name; asks serials; takes the stock out; sets `handled_at`), Delivered, Cancel (with its reason; releases the stock; refused once shipped), Hold, In review, and Return (each line's units sellable or damaged). Partly shipped and partly delivered states come with Phase 6's courier reports. | Slices 4.1, 4.3 |
 | D4-8 | **Idempotency (API-11).** Today a request that fails leaves its key "in progress" for 24 hours, so a retry after a timeout or an error is refused; keys are shared by every shop; the header is optional; the stored reply is written after the response, outside the business transaction. | Keys scoped to the shop and the caller; the header required on order creation (and Phase 5's payment sessions); the reply stored inside the order's own transaction; a request that fails releases its key so a retry runs again. The existing billing routes keep working on the reworked service. | Slice 4.1 |
@@ -92,7 +96,6 @@ count as complete.
 | STA | STA-01 – STA-04 |
 | TAX, MNU | TAX-01 – TAX-03, MNU-01 – MNU-04 |
 | LND | LND-07, 08, 09, 11, 12, 13, 15, 16 |
-| SFT | SFT-08, SFT-09, SFT-20 |
 | From Phase 3's partials | PRD-06, 07, 08, 13; ATR-07, 08, 09, 15; ATL-06; UOM-04; INV-14, 15, 17, 23, 24; MED-09; CCH-07; DAT-13; API-21; RTE-06; DLV-03, 04, 06, 07 |
 | PYG | PYG-02, 03, 04, 05, 14 (the order fee at handling, never at creation) |
 
@@ -104,7 +107,8 @@ count as complete.
 | ORD-08 | confirming call, manual shipped and delivered, cancel and return moves with history | moves from payment events and courier reports | Phases 5, 6 |
 | ORD-20 | the in-app notice through the console stand-in, never for staff-entered orders | push and SMS | Phase 7 |
 | ORD-42 | whole-order shipped and delivered | partly shipped and partly delivered from courier reports | Phase 6 |
-| SFT-06 | checkout through the public order endpoint with its key, cash on delivery | payment methods | Phase 5 |
+| SFT-06 | the public order endpoint with its key, cash on delivery | the storefront's checkout and its payment methods | Phase 6B |
+| SFT-08, SFT-09, SFT-20 | tracking, shopper sign-in and the delivery estimate through the public API; the landing page's tracking | the storefront's screens | Phase 6B |
 | LND-10 | cash-on-delivery products order directly | advance and full prepayment through the payment page | Phase 5 |
 | INV-16 | expiry exists (Phase 3); no Phase 4 order awaits an online payment | reservations set to expire with the payment session | Phase 5 |
 | ATR-13 | effective weight and delivery charge used by order pricing | used by courier booking | Phase 6 |
@@ -278,20 +282,21 @@ combos and statistics). If velocity suggests it, the rest can become Phase 4B wi
 
 ### Slice 4.8: the screens
 - **Sketch first** (`sketch-every-screen-before-building`): the status flow with the call log, Confirm, cancel
-  reasons, Mark shipped and returns; the storefront's checkout for cash on delivery, the confirmation without an SMS
+  reasons, Mark shipped and returns; the landing page's order form for cash on delivery, the confirmation without an SMS
   promise, tracking with its Confirmed step; the Phase 5–7 parts of today's drawings shown as later.
 - **Dashboard:** Orders, Order detail, New order, Customers, the Phase 4 parts of Stock (shortfall, returns, profit),
   search over orders and customers, Home's order rows and tiles, New order in the + menu, orders on Usage, printing
   (ORD-19).
-- **Storefront and landing pages** (in Slice 12's app): checkout, confirmation, tracking and the shopper account
-  (SFT-06, SFT-08, SFT-09, SFT-20); the landing page's order form (LND-07 – 12) and its Pixel events (LND-15).
+- **Landing pages** (in Slice 12's app): the order form (LND-07 – 12), its confirmation, tracking by ID (ORD-17) and
+  its Pixel events (LND-15). The storefront's checkout, tracking and shopper-account screens (SFT-06, SFT-08, SFT-09,
+  SFT-20) are Phase 6B's (D3-14).
 
 ---
 
 ## 7. Slice dependencies and order
 
 ```
-Phase 3 (Slices 11, 12, 13) done
+Phase 3 (Slices 11, 12) done
         │
         ▼
 4.0 plan ──► 4.1 order core ──► 4.2 public ordering ──► 4.3 fulfilment, limits, fees  ◄── checkpoint 4A
@@ -340,7 +345,7 @@ screens last as one pass, as Phase 3's Slice 11 was.
 | The status model grows complex with overrides, two axes and the confirmed mark | one lookup function with an exhaustive table test over every combination; the visible status is never stored |
 | Pricing drifts between the estimate, the form and the order | one function (D4-9); a test that the estimate and the created order agree for random carts |
 | Phase 5's payments or Phase 6's couriers need a different order shape | the schema leaves room (payment axis values, `processing`, courier columns); D4-6's table is Phase 5's own |
-| Slice 12's storefront is not ready when 4.8 starts | 4.1 – 4.7 need only the API; 4.8's storefront half waits for Slice 12 |
+| Slice 12's landing pages are not ready when 4.8 starts | 4.1 – 4.7 need only the API; 4.8's landing-page half waits for Slice 12 |
 | Shopper codes cost SMS | per-visitor window (RTE-06), counted on the essential allowance (CUS-04) with its warnings |
 | Meta's API is slow or down | the queue, retries and a circuit breaker; the order never waits on it |
 

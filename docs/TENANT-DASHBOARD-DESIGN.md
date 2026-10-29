@@ -103,7 +103,9 @@ Ten rules follow from this. They are checked against every screen in §7 and §8
 ## 2. Scope of the current state (Phase 0 to Phase 3 Slice 10a)
 
 What the prototype's navigation shows today, and what it holds back. Decided 2026-10-22 for Slice 11: the bell
-waits for Phase 7; storefront settings wait for Slice 12; shortfall, returns and profit wait for Phase 4.
+waits for Phase 7; storefront settings wait for Phase 6B (moved 2026-10-29, `PHASE-3-PLAN.md` D3-14); shortfall,
+returns and profit wait for Phase 4. Until Phase 6B the shop's address shows with a note that its online shop
+opens later, and Settings' Storefront row names Phase 6B.
 
 | Area | In the current state | Held for later (and where it sits in the prototype) |
 | --- | --- | --- |
@@ -868,7 +870,7 @@ Rows into pages: **Shop details** (name, logo uploaded as §7.23 does with the m
 identity** (§7.28); **API keys** (§7.26); **Facebook and Meta** (§7.27); **Data export** (LIF-16: request, the
 list with preparing, download and failed states, "lasts 24 hours", owner only). Under "Coming later", greyed with
 their phase: payment methods (Phase 5), couriers (Phase 6), listener phone (Phase 5), SMS (Phase 7),
-notifications (Phase 7), storefront (Slices 12 to 13).
+notifications (Phase 7), storefront (Phase 6B).
 
 *Slice 11.6* (Part 11): the shop's name is editable in Shop details (TEN-19: the dashboard, the tab title and new installs
 follow within a minute; the address never changes); Brand identity opens a short page until the brand editor (Slice
@@ -1186,7 +1188,7 @@ architecture is whole when each phase arrives. Their endpoints do not exist yet.
 - **The bell and notifications** (Phase 7, decided 2026-10-22): the bell in both bars with its unread count; the
   panel from the top right with Today and Earlier, an icon per kind, unread rows marked, a row's own action, Mark
   all read; nothing yet; all read; the full page with filters (NTF-01). The dashboard has no bell before then.
-- **Storefront settings** (Slice 12): the home page's banner slides as a carousel or one banner with two tiles,
+- **Storefront settings** (Phase 6B): the home page's banner slides as a carousel or one banner with two tiles,
   the slide editor with the focal point and both crops, the home page line (`storefront`, `sh-slide`).
 - **Shortfall, returns and profit** (Phase 4): units held for orders whose payment ran out (5a,
   `stock-shortfall`); taking shipped stock back, sellable or damaged (INV-17, `sh-return`); profit beside stock
@@ -1242,7 +1244,7 @@ brand identity.
 | Invoice PDF | billing | BIL-13 | later |
 | Pay-as-you-go estimate | billing | PYG-12 (needs order history) | later |
 | The notifications feed behind the bell | notifications | §8 (NTF-01) | Phase 7 |
-| Orders, customers, payments, couriers, SMS, notices; storefront settings | Phases 4 to 8; Slice 12 | §8 | later |
+| Orders, customers, payments, couriers, SMS, notices; storefront settings | Phases 4 to 8; Phase 6B | §8 | later |
 
 ---
 

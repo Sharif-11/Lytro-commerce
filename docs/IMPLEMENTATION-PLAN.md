@@ -76,15 +76,17 @@ code fix).
 
 ---
 
-## Phase 3 — Catalogue, storefront, caching, media
+## Phase 3 — Catalogue, landing pages, caching, media
 
-**Delivers:** the public storefront is live and fast, even with zero orders flowing through it yet, and every tenant has a full inventory system behind deliberately simple screens.
+**Delivers:** every product has a fast, cached public landing page, even with zero orders flowing through it yet, and every tenant has a full inventory system behind deliberately simple screens.
 
 **Detailed plan: `PHASE-3-PLAN.md`** (2026-10-17) — 12 slices, which requirements each completes or only partially completes, and the dependencies between them. Scope changes made there, summarised:
 - **Added:** `ATL-*`, `UOM-*` (normalized attributes, units of measure), `INV-*` (stock ledger, levels, batches/expiry, serials, reservations), `PUR-*` (suppliers, purchase orders, receiving), `PST-*` (shop-type presets) — all new §14.4–14.8 of `SRS-detailed.md`.
 - **Pulled forward from Phase 8:** a public-API-key subset (`API-01` public half, `API-03/04/05/08/10/23/24`), since the storefront reads the catalogue through public keys (D3-1).
 - **Rate limits without Redis yet:** `RTE-*` are built behind a limiter interface with in-process and PostgreSQL stores; Phase 9 swaps in Redis (D3-2).
 - **Moved to Phase 4:** `QTA-*` — every quota rule counts at order handling, which needs orders (D3-3).
+- **Moved to Phase 6B** (2026-10-29, D3-14): the storefront (`SFT-*`, `I18N-02`, `CCH-10`) and custom domains
+  (`TEN-09` to `TEN-14`, `PYG-07`, `DWN-10`); the landing pages stay, with a holding page at the shop's address.
 
 - `STO-*`, `BND-*`, `RTE-*` — the metered-limit enforcement machinery (now has real plan data from Phase 2 to read against).
 - `PRD-*`, `ATR-*`, `ATL-*`, `UOM-*` — products, variants, flexible attributes, units.
@@ -99,14 +101,14 @@ code fix).
 - `SUP-01` (pulled forward from Phase 8, 2026-10-17) — the setup checklist on the dashboard home, with the items whose features exist in this phase: shop created, delivery charges, first product, sharing the link, and an API key under "Later". Later phases add theirs.
 - `DLV-*`, `FED-*`, `PRD-17`, `PRD-18`, `ATR-16` — Facebook-seller essentials (added 2026-10-17): delivery zones (Inside/Outside the seller's home area ready by default, Dhaka city until changed, built from the location list's divisions, districts, cities and thanas), size charts, one-tap option sets, "Duplicate product" and the Meta catalog feed. Zone *settings* land here; the zone-based charge is computed by Phase 4's order pricing.
 - `MED-*` — R2 presigned uploads, the validation/resize/variant-generation job, the `control.used_transaction_ids`-style permanence pattern applied to media where relevant.
-- `SFT-*` — the shared storefront, served at subdomain root, including the footer/contact-us section (`SFT-21`, added 2026-10-16, reads `TEN-30`'s contact fields).
-- `TEN-09` to `TEN-14`, `PYG-07`, `DWN-10` (scheduled 2026-10-18, D3-13) — custom domains for Growth and Pro: DNS verification, automatic certificates and turning off on a downgrade. Phase 1 built only the table and the host lookup; Phase 3's Slice 13, after the storefront they serve.
+- `SFT-*` (moved to Phase 6B, D3-14) — the shared storefront, served at subdomain root, including the footer/contact-us section (`SFT-21`, added 2026-10-16, reads `TEN-30`'s contact fields).
+- `TEN-09` to `TEN-14`, `PYG-07`, `DWN-10` (scheduled 2026-10-18, D3-13) — custom domains for Growth and Pro: DNS verification, automatic certificates and turning off on a downgrade. Phase 1 built only the table and the host lookup; moved to Phase 6B with the storefront they serve (D3-14).
 - `CCH-*` — the layered cache (device → edge → process memory → Postgres), built in from the start since retrofitting caching into a storefront already in production is a much riskier change than building it in.
-- `I18N-01`/`I18N-02` extended to the storefront specifically (device-persisted toggle).
+- `I18N-01`/`I18N-02` extended to the public pages: the landing pages here, the storefront's device-persisted toggle in Phase 6B.
 
 **Why here, before orders:** `CCH-07` explicitly requires checkout/order paths to *never* be cached while catalogue reads *are* — you need the catalogue-caching discipline solid before adding the one thing (orders) that must bypass it, or the bypass rule gets built as an exception to something that doesn't exist yet instead of a deliberate boundary.
 
-**Milestone:** a tenant can add products with images, and an anonymous visitor can browse the storefront with no login, fully cached, in both languages.
+**Milestone:** a tenant can add products with images, and an anonymous visitor can open any product's landing page with no login, fully cached, in both languages. Browsing the whole storefront is Phase 6B's milestone.
 
 ---
 
@@ -114,11 +116,11 @@ code fix).
 
 **Delivers:** the core commerce loop — a shopper (or staff) can create an order, and it moves through the two-axis status model.
 
-**Detailed plan: `PHASE-4-PLAN.md`** (2026-10-27) — nine slices, built after Phase 3's Slices 11–13. Scope changes made there, summarised:
+**Detailed plan: `PHASE-4-PLAN.md`** (2026-10-27) — nine slices, built after Phase 3's Slices 11 and 12 (Slice 13 moved to Phase 6B). Scope changes made there, summarised:
 - **The order flow follows Bangladeshi sellers:** a confirming call before shipping, every call logged, a reason for every cancellation (`confirmed`, ORD-51, ORD-52); order numbers `YYMMDD-NNNN` (ORD-04 amended).
 - **Shoppers order cash on delivery only until Phase 5**; staff record an advance they received (ORD-22).
 - **Moved to Phase 7:** extraction from text (ORD-30–34), with the AI provider. Courier booking and areas stay in Phase 6; fraud checks and order SMS in Phase 7.
-- **Added from Phase 3's hand-over:** the storefront's checkout, tracking, shopper account and delivery estimate (`SFT-06`, `SFT-08`, `SFT-09`, `SFT-20`) and the per-shop order-creation limit (`RTE-08`).
+- **Added from Phase 3's hand-over:** the APIs behind the storefront's checkout, tracking, shopper account and delivery estimate (`SFT-06`, `SFT-08`, `SFT-09`, `SFT-20`), whose screens are Phase 6B's, and the per-shop order-creation limit (`RTE-08`).
 
 - `ORD-01` to `ORD-52` — order creation, the confirming call and its log, the `payment_status`/`fulfillment_status` two-axis model; extraction from text (ORD-30–34) moved to Phase 7. Order lines hold stock through Phase 3's reservation primitive (`INV-15`/`INV-16`) and returns call its restock-or-damaged service (`INV-17`); the order-line halves of `PRD-06/07/08/13`, `ATR-07/08/09/13/15`, `ATL-06` and `UOM-04` finish here (`PHASE-3-PLAN.md` §3.2).
 - `QTA-01` to `QTA-07` (moved here from Phase 3, D3-3) — counted at order handling; this phase's manual mark-shipped trigger first, Phase 6's courier booking second.
@@ -146,6 +148,7 @@ code fix).
 - `WAL-*` — wallet/bank accounts, the plugin registry pattern (`WAL-6`).
 - `PAY-01`, `PAY-05`, `PAY-06`, `PAY-23` (amended or added 2026-10-18) — manual payments on our hosted page at `pay.lytro.app/<session>`: the shop's name and logo, each wallet's official logo and colours in its own panel, steps for the account type, and no third-party code. A wallet whose gateway the seller has connected sends the shopper straight to that wallet's own checkout, never through our page.
 - `PAY-*` — hosted payment sessions, the `created → awaiting_payment → checking → verified` state machine.
+- `SFT-07`, the storefront's redirect to this page, moved to Phase 6B with the storefront (D3-14); a payment link a seller sends and the landing page's prepayment work here without it.
 - `LND-10` (second half) — a product landing page whose product requires a partial advance or full prepayment (`PRD-08`) sends the customer to the hosted payment page; the stock reservation's expiry (`INV-16`) is set from the real payment-session lifetime here.
 - `VER-*` — the three verification tiers (manual, listener, gateway), including the SIM-swap-aware cooldown added earlier (`SEC-14`'s sibling consideration) if you chose to build it.
 - `WAL-20`/`WAL-21`, `RAT-15`, `RAT-16` (added 2026-10-16, amended 2026-10-18) — verification fees charged to the balance on each automatically verified payment: [0.10]% by the listener, [1.00]% through a wallet's gateway checkout, manual verification free; the same rates on every plan, trial included; the gateway fee reserved before the shopper is sent to the checkout, and a listener match the balance can't cover falls back to free manual review.
@@ -173,6 +176,38 @@ code fix).
 6. `CUS-10` to `CUS-13`, `CRR-10` (amended and added 2026-10-18) — each courier's own area list under Lytro's thanas, refreshed from its API; the extra area picker on every order form for the default courier (required for staff, optional for shoppers); and the exact area before booking. Delivery charges keep coming from Lytro's thana. A courier that takes the address as text, as Steadfast appears to, needs no list.
 
 **Why three adapters in this order, not just Steadfast:** building a second and third adapter *during* initial development, not months later, is what actually proves the adapter boundary holds — if Pathao's handshake or RedX's payout-event quirk had forced a change to shared booking/order code, you'd want to know now, not after Steadfast-only code has calcified into assumptions.
+
+---
+
+## Phase 6B — Storefront and custom domains
+
+**Delivers:** the shopper's storefront, built once orders, payments and couriers work, so it opens complete: browsing,
+the cart, checkout by cash on delivery or online payment, tracking to the courier's status, and shopper accounts; and
+custom domains for Growth and Pro. Decided 2026-10-29 (`PHASE-3-PLAN.md` D3-14); Phases 7 to 10 keep their numbers.
+
+Moved here from:
+- **Phase 3's Slice 12, its storefront half:** the storefront design (`STOREFRONT-DESIGN.md`); category navigation,
+  search and pagination; the product page with its variant picker and stock state; the client-side cart; branding,
+  footer and contact; the "temporarily unavailable" page; the storefront switch; the installable storefront PWA and
+  its service-worker cache (`CCH-10`); Bangla by default with a per-device toggle (`I18N-02`); metering parity with an
+  API-only site. `SFT-01` to `05`, `10` to `19` and `21`, and the storefront halves of `BRN-01`, `02`, `04` and
+  `PRD-17`. It replaces the holding page Phase 3 puts at the shop's address.
+- **Phase 3's Slice 13, whole:** custom domains (`TEN-09` to `TEN-14`, `PYG-07`, `DWN-10`); `PHASE-3-PLAN.md` keeps its
+  slice plan as this phase's starting point.
+- **Phase 4's Slice 4.8, its storefront half:** checkout, tracking and the shopper-account screens (`SFT-06`,
+  `SFT-08`, `SFT-09`, `SFT-20`), over the APIs Phase 4 builds.
+- **Phase 5:** the storefront's redirect to the hosted payment page (`SFT-07`) and the payment methods at checkout.
+- **The dashboard:** storefront settings and the home page's banner slides (`TENANT-DASHBOARD-DESIGN.md` §8).
+- **The marketing site's step B:** the storefront and tracking showcase.
+
+**Why here:** the storefront is the shopper's view of orders, payments and couriers. Built before them it would be
+reopened by each; built after them it opens once, with checkout, payment and tracking already working behind it.
+Until then a seller sells through product landing pages and Meta's catalogue (Phase 3), takes orders by staff entry
+or through its own site's API (Phase 4), and its shop's address shows a holding page.
+
+**Milestone:** an anonymous visitor browses a shop's storefront with no login, fully cached, in both languages, checks
+out by cash on delivery or online payment, and tracks the order to its courier's status; a Growth shop's own domain
+serves the storefront over HTTPS with no step on the platform's side.
 
 ---
 

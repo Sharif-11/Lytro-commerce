@@ -1599,7 +1599,7 @@ when there are more of them.
 ## 82. `RTE-01`, `SFT-11`, `SFT-15`: a plan's per-minute key limit caps a whole storefront — decided 2026-10-21, partly built
 
 Found while working out what a very busy shop costs (Phase 3 Slice 10's read). RTE-01 counts every request against
-its key's per-minute limit, and a shop's storefront -- the platform's own (Slice 12) or the shop's own website --
+its key's per-minute limit, and a shop's storefront -- the platform's own (Phase 6B; its landing pages in Slice 12) or the shop's own website --
 sends every shopper's requests with the shop's one public key (SFT-11, SFT-15). So the plan's
 `requests_per_minute_public` caps the whole shop, not one visitor: 60 a minute on Trial, pay-as-you-go and Starter
 (one a second), 180 on Growth, 600 on Pro. At about four API calls a page, Starter serves about 15 page views a
@@ -1624,7 +1624,7 @@ undone with an operator override (PLN-11) at almost no cost, while a refused bus
   whether many real shoppers behind one carrier or office IP meet it.
 - A fast-spend alert, which refuses nothing: a shop spending more than [5]% of its monthly requests in an hour tells
   its owner and the operator.
-- The storefront's server (Slice 12) passes each shopper's IP in a way the API can trust; otherwise every shopper is
+- The storefront app's server (Slice 12's landing pages, then Phase 6B's storefront) passes each shopper's IP in a way the API can trust; otherwise every shopper is
   one visitor, and 120 a minute caps the whole storefront.
 
 Kept as they are: the per-visitor limit, the monthly quota and its warnings (RTE-03), and the per-minute order and
@@ -1634,7 +1634,8 @@ payment-session limits (RTE-08).
 every plan, snapshot and override (migration 0070); the rate headers describe the visitor's minute; the 120 is the
 platform setting `public_requests_per_visitor_per_minute`; and `control.api_usage` counts the refused requests and
 their visitors (RUNBOOKS §4). The fast-spend alert was built with Slice 10's usage warnings (RTE-12, RUNBOOKS §5).
-**Still to build:** the storefront server passing each shopper's IP, in Slice 12.
+**Still to build:** the storefront app's server passing each shopper's IP: in Slice 12 for the landing pages, and
+in Phase 6B for the storefront.
 
 ## 83. `PLN-05`, `PLN-06`, `PLN-11`: product and seat limits came from the live plan, not the shop's snapshot — found and fixed 2026-10-21
 

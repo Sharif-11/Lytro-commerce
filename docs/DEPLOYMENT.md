@@ -169,7 +169,8 @@ predates this document and isn't new. Caddy, as that edge, must:
 
 ## 7. Custom domains (`TEN-09`, `TEN-11`, `TEN-13`, `TEN-24`) — no manual mapping, ever
 
-Built in `PHASE-3-PLAN.md` Slice 13 (D3-13); until then only the host lookup below exists.
+Built in Phase 6B (`IMPLEMENTATION-PLAN.md`; planned as `PHASE-3-PLAN.md` Slice 13, D3-13, and moved there by
+D3-14); until then only the host lookup below exists.
 
 A Growth/Pro tenant can point their own domain (e.g. `fashionhouse.com`) at their shop instead of
 `fashion-house.lytro.app`. Nothing about this needs a human to edit Caddy's config per tenant — the mechanism

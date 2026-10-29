@@ -1,4 +1,4 @@
-# Phase 3 plan: catalogue, inventory, purchasing, media, storefront
+# Phase 3 plan: catalogue, inventory, purchasing, media, landing pages
 
 Status: agreed 2026-10-17 — every decision in §2 accepted as proposed. Builds on `IMPLEMENTATION-PLAN.md` Phase 3, with three changes
 agreed before this plan was written:
@@ -15,6 +15,9 @@ agreed before this plan was written:
   ad tracking. This phase builds the page; its ordering and payment land in Phases 4 and 5.
 - **Custom domains** (TEN-09 to TEN-14, added 2026-10-18 as Slice 13, D3-13): a Growth or Pro shop's own
   domain serves its storefront and landing pages, after Slice 12 builds them.
+- **The storefront moves out** (decided 2026-10-29, D3-14): the shopper's storefront and custom domains are built
+  in a dedicated Phase 6B, once orders, payments and couriers work (Phases 4 to 6). This phase keeps the product
+  landing pages (Slice 12, now landing pages only); Slice 13 moves to Phase 6B whole.
 
 Requirement IDs refer to `SRS-detailed.md` §13–§14 (new §14.4–§14.12 added 2026-10-17). Schema refers to
 `DATABASE-SCHEMA.md` §3.2, rewritten the same day.
@@ -28,8 +31,8 @@ that row, not a silent deviation during a slice.
 
 **Goal.** A tenant can build its catalogue — products, variants, attributes, images — keep honest stock
 through a full inventory system (stock in through purchasing, stock out through reservations, every change
-in a ledger) without needing to know inventory terminology, and an anonymous visitor can browse the
-tenant's storefront, or open any product's shareable landing page, fast and cached, in both languages.
+in a ledger) without needing to know inventory terminology, and an anonymous visitor can open any product's
+shareable landing page, fast and cached, in both languages. The browsable storefront is Phase 6B's (D3-14).
 No orders flow yet. Phase 4 plugs orders into the reservation and catalogue machinery this phase
 builds, and changes neither.
 
@@ -46,14 +49,16 @@ builds, and changes neither.
    purchase received short with rejects → reserve → consume (earliest expiry first) → release → expire an
    unpaid reservation → stock check finding a loss.
    At every step the ledger, the levels, the batches and the average cost all agree.
-4. The `IMPLEMENTATION-PLAN.md` milestone: a tenant adds products with images, and an anonymous visitor
-   browses the storefront with no login, fully cached, in Bangla and English. A price change is publicly
-   visible within 60 seconds with edge purging disabled (CCH-04). Every product's landing page loads with
-   a rich link preview, keeps working with the storefront switched off, and survives a product rename.
+4. The `IMPLEMENTATION-PLAN.md` milestone, as D3-14 narrows it: a tenant adds products with images, and an
+   anonymous visitor opens any product's landing page with no login, fully cached, in Bangla and English. A
+   price change is publicly visible within 60 seconds with edge purging disabled (CCH-04). Every landing page
+   loads with a rich link preview and survives a product rename; the shop's own address shows its holding page.
+   Browsing the whole storefront is Phase 6B's milestone.
 5. Media is metered per tenant: storage and bandwidth are counted, enforced at 100% with existing data
    untouched (LIM-03), and reconciled against R2 (MED-04).
 6. CI is green on `main`, and the pull-request flow has been used for every slice.
-7. A Growth shop's own domain, once its DNS record exists, is activated within 10 minutes and serves its
+7. *Moved to Phase 6B with custom domains (D3-14):* a Growth shop's own domain, once its DNS record exists, is
+   activated within 10 minutes and serves its
    storefront and landing pages over HTTPS, with no step on the platform's side; a downgrade to a plan
    without custom domains turns it off, keeping the subdomain working, and an upgrade turns it back on.
 
@@ -61,7 +66,7 @@ builds, and changes neither.
 
 ## 2. Decisions
 
-**D3-1 to D3-10 decided 2026-10-17, accepted as proposed; D3-11 and D3-12 decided 2026-10-18.**
+**D3-1 to D3-10 decided 2026-10-17, accepted as proposed; D3-11 to D3-13 decided 2026-10-18; D3-14 decided 2026-10-29.**
 
 | # | Decision | Decided | Affects |
 |---|---|---|---|
@@ -77,7 +82,8 @@ builds, and changes neither.
 | D3-10 | **Phase size.** At 12 slices, this is larger than Phase 2. | Keep it one phase, with an internal checkpoint after Slice 5 ("3A: catalogue and inventory complete, internally usable") before media and the storefront begin. If velocity suggests otherwise at the checkpoint, the remainder can become Phase 3B without reshuffling anything. | Planning |
 | D3-11 | **One dashboard address (decided 2026-10-18).** The dashboard was served on three kinds of host (D13 in `PHASE-1-PLAN.md`): the platform host, every shop's subdomain and custom domains. On a shop's host it shares an origin with storefront and landing pages that run third-party scripts (Meta Pixel, chat widget), so any of them could call the dashboard API as the signed-in seller. It also gave sellers two sign-ins and clashed with the shopper sign-in path. | The dashboard moves to `app.lytro.app/<shop>` for owners and staff alike (TEN-31). Shop subdomains and custom domains serve public pages only (TEN-08, TEN-09, SFT-02); `lytro.app` is marketing only; `admin.lytro.app` stays the operator console. Sessions become `__Host-` cookies with an `Origin` check on state-changing requests (TEN-29), and the dashboard host's top-level paths become reserved slugs (TEN-26). Built first, as Slice 0, because the storefront (Slice 12) takes over every path on a shop's host. | Slice 0; Slices 11, 12 |
 | D3-12 | **Separate operator app (decided 2026-10-18).** The operator console lives inside the tenant dashboard's build (`apps/admin`), and the app picks operator or seller screens from the hostname. Every seller's browser downloads operator code and the map of operator API calls, one deploy carries both, and the full console Phase 8 builds would grow inside the sellers' app. | A separate `apps/operator` served at `admin.lytro.app`; shared code moves to `packages/ui` (design tokens, basic components) and `packages/api-client`; `apps/admin` is renamed `apps/dashboard`. View-as-tenant (ADM-05, Phase 8) opens the real seller dashboard, read-only, after the seller approves a support request. Built as Slice 0b. | Slice 0b; Phase 8 |
-| D3-13 | **Custom domains (decided 2026-10-18).** TEN-09 to TEN-14 are Must, but Phase 1 built only the `tenant_domains` table and the host lookup, deferring the behaviour "to a later phase", and no phase picked it up; DWN-10 and PYG-07 depend on it. A custom domain serves only the storefront and landing pages (D3-11), which Slice 12 builds. | Build it in this phase as **Slice 13, after Slice 12**: the domain routes with the plan and one-shop-per-domain checks, the DNS check that activates a domain, the endpoint Caddy asks before issuing a certificate (`DEPLOYMENT.md` §7), and DWN-10's turning off and back on. The domain screen belongs to the redesigned dashboard. | Slice 13 |
+| D3-13 | **Custom domains (decided 2026-10-18).** TEN-09 to TEN-14 are Must, but Phase 1 built only the `tenant_domains` table and the host lookup, deferring the behaviour "to a later phase", and no phase picked it up; DWN-10 and PYG-07 depend on it. A custom domain serves only the storefront and landing pages (D3-11), which Slice 12 builds. | Build it in this phase as **Slice 13, after Slice 12**: the domain routes with the plan and one-shop-per-domain checks, the DNS check that activates a domain, the endpoint Caddy asks before issuing a certificate (`DEPLOYMENT.md` §7), and DWN-10's turning off and back on. The domain screen belongs to the redesigned dashboard. **Moved to Phase 6B with the storefront (D3-14, 2026-10-29).** | Slice 13, now Phase 6B |
+| D3-14 | **The storefront moves out (decided 2026-10-29).** The shopper's storefront -- browsing, cart, checkout, tracking and shopper accounts -- would be built here, then reopened as orders (Phase 4), payments (Phase 5) and couriers (Phase 6) each add their part. A seller's main ways to sell before then, a product's link and Meta's catalogue, need only the landing pages. | **Build the storefront as a dedicated Phase 6B, after couriers;** Phases 7 to 10 keep their numbers. It takes Slice 12's storefront half, all of Slice 13 (custom domains), the storefront screens of Phase 4's Slice 4.8 and the storefront's redirect to Phase 5's payment page (SFT-07); every API stays where it was planned. **Slice 12 keeps the product landing pages** -- the dashboard's share links, Meta's catalogue feed and ad links point at them -- plus a holding page at the shop's address with its name, logo and contact details and that its online shop opens soon. Until Phase 6B the dashboard shows the shop's address with a "coming soon" note. | Slices 12, 13; Phases 4, 5, 6B |
 
 ---
 
@@ -88,11 +94,11 @@ Rules used below:
 - **Partial** means this phase builds a working part, and a named later phase finishes the rest.
 - Notices delivered through the D3-5 stub count as complete, the same rule Phase 2 applied to `BAL-13`.
 
-### 3.1 Completed by this phase (193)
+### 3.1 Completed by this phase (165)
 
 | Family | Requirements | Count |
 |---|---|---|
-| PRD | PRD-01, 02, 03, 04, 05, 09, 10, 11, 12, 14, 15, 16, 17 (size charts), 18 (duplicate product) | 14 |
+| PRD | PRD-01, 02, 03, 04, 05, 09, 10, 11, 12, 14, 15, 16, 18 (duplicate product); 17 (size charts) is partial, §3.2 | 13 |
 | ATR | ATR-01, 02, 03, 04, 05, 06, 10, 11, 12, 14, 16 (quick option sets), 17 (variant grid fill-all), 18 (option swatches) | 13 |
 | ATL | ATL-01, 02, 03, 04, 05 | 5 |
 | UOM | UOM-01, 02, 03 | 3 |
@@ -104,24 +110,24 @@ Rules used below:
 | BND | BND-01 – 09 (04: auto-buy packs, with add-ons) | 9 |
 | RTE | RTE-01, 02, 03, 04, 05, 07, 10, 11 (11: request packs, with add-ons) | 8 |
 | LIM | LIM-01, 03 | 2 |
-| SFT | SFT-01, 02, 03, 04, 05, 11, 12, 14, 15, 16, 17, 18, 19, 21 | 14 |
-| CCH | CCH-01 – 06, CCH-08 – 12 | 11 |
-| I18N | I18N-02 (storefront half; dashboard half done in Phase 1) | 1 |
-| TEN | TEN-06, 08, 16, 17, 18, 26 and 29 (amended 2026-10-18), 31 (one dashboard address, added 2026-10-18); 09 – 14 (custom domains, scheduled 2026-10-18, D3-13) | 14 |
+| SFT | none: SFT-01, 02, 03, 04, 05, 11, 12, 14, 15, 16, 17, 18, 19, 21 moved to Phase 6B (D3-14) | 0 |
+| CCH | CCH-01 – 06, CCH-08, 09, 11, 12 (CCH-10, the storefront's service worker, moved to Phase 6B) | 10 |
+| I18N | none: I18N-02's storefront half moved to Phase 6B (D3-14); its dashboard half was done in Phase 1 | 0 |
+| TEN | TEN-06, 08, 16, 17, 18, 26 and 29 (amended 2026-10-18), 31 (one dashboard address, added 2026-10-18); 09 – 14 (custom domains, D3-13) moved to Phase 6B (D3-14) | 8 |
 | AUTH | AUTH-28 (amended 2026-10-18: claimed address, set-up step, terms line), AUTH-30 (new shops limited per account and connection, sign-in never) and AUTH-31 (staff sign-in page), both added 2026-10-18 | 3 |
 | ADM | ADM-01 (amended 2026-10-18: separate application) | 1 |
-| BRN | BRN-01 – 07 (brand identity, added 2026-10-18) | 7 |
+| BRN | BRN-03, 05, 06, 07 (brand identity, added 2026-10-18); BRN-01, 02, 04 are partial, §3.2 | 4 |
 | PLN | PLN-13, 14, 15 (add-ons, deferred by Phase 2's D2-4, scheduled 2026-10-18) | 3 |
 | UPG | UPG-14 (add-ons kept across plan changes) | 1 |
-| DWN | DWN-07, 09 (deferred here from Phase 2), 10 (custom domain off and on again, D3-13) | 3 |
-| PYG | PYG-16 (deferred here from Phase 2), 07 (no custom domain, D3-13) | 2 |
+| DWN | DWN-07, 09 (deferred here from Phase 2); 10 (custom domain off and on again) moved to Phase 6B | 2 |
+| PYG | PYG-16 (deferred here from Phase 2); 07 (no custom domain) moved to Phase 6B | 1 |
 | API | API-03, 04, 05, 08, 10, 14 (the `api.lytro.app` host, amended 2026-10-18), 23, 24 (public keys, D3-1) | 8 |
 | LND | LND-01, 02, 03, 04, 05, 06, 14, 17, 18 | 9 |
 | DLV | DLV-01, 02, 05 (delivery zones around the tenant's home area, added 2026-10-17) | 3 |
 | FED | FED-01 – 06 (Meta catalog feed, added 2026-10-17) | 6 |
-| | **Total** | **193** |
+| | **Total** | **165** |
 
-### 3.2 Partially completed by this phase (42)
+### 3.2 Partially completed by this phase (44)
 
 | Req | Done in this phase | Remaining | Finished in |
 |---|---|---|---|
@@ -141,11 +147,11 @@ Rules used below:
 | RTE-06 | per-IP total request limit | per-IP order-creation and shopper-OTP limits | Phase 4 |
 | LIM-02 | usage page shows storage, bandwidth, requests, seats, products, essential SMS | orders and payment sessions | Phases 4, 5 |
 | LIM-04 | counter accuracy for storage, bandwidth, requests | orders and sessions counters | Phases 4, 5 |
-| SFT-10 | out-of-stock variants never offered | disabled payment methods never offered | Phase 5 |
-| SFT-13 | shop name and logo on the storefront | chat widget | Phase 7 |
+| BRN-01, 02, 04 | the default identity and the shop's own on the landing pages and the dashboard; what never changes holds there | the storefront and its installed app (SFT-14) | Phase 6B |
+| PRD-17 | size charts in the editor and on categories, and the landing page's Size chart link | the storefront product page's link | Phase 6B |
 | CCH-07 | authenticated, session-bearing and cart requests bypass shared caches | order-time price and stock read from PostgreSQL | Phase 4 |
 | CCH-13 | test that cookies and unknown parameters don't fragment the cache | hit-ratio monitoring and alerting | Phase 9 |
-| I18N-01 | storefront defaults to Bangla with a full toggle | hosted payment page | Phase 5 |
+| I18N-01 | the landing pages default to Bangla with the English toggle | the storefront; the hosted payment page | Phases 5, 6B |
 | DWN-12 | the downgrade banner lists over-limit products and storage | per-period metrics added by later phases | Phases 4, 5 |
 | DWN-14 | the final warning covers products and storage | same as DWN-12 | Phases 4, 5 |
 | TRL-03 | trial limits for products, storage and bandwidth enforced | handled orders (Phase 4) and paired device (Phase 5) | Phases 4, 5 |
@@ -174,9 +180,11 @@ Rules used below:
 |---|---|---|
 | QTA-01 – 07 | counted at order handling, which needs orders (D3-3) | Phase 4 (manual trigger), Phase 6 (courier trigger) |
 | RTE-08, RTE-09 | order creations and payment sessions per minute or period | Phases 4, 5 |
-| SFT-06, 08, 09, 20 | checkout, tracking, shopper accounts, delivery estimate (by delivery zone) | Phase 4 |
+| SFT-06, 08, 09, 20 | checkout, tracking, shopper accounts, delivery estimate (by delivery zone) | Phase 4 (the APIs), Phase 6B (the storefront's screens) |
 | ORD-06a (amended 2026-10-17) | the zone charge once per order, with product overrides and weight extras; computed at order creation | Phase 4 |
-| SFT-07 | hosted payment redirect | Phase 5 |
+| SFT-07 | the storefront's redirect to the hosted payment page | Phase 6B (the page itself is Phase 5's) |
+| SFT-01 – 05, 10 – 19, 21; I18N-02; CCH-10 | the storefront, moved out (D3-14) | Phase 6B |
+| TEN-09 – 14, PYG-07, DWN-10 | custom domains, which serve the storefront (D3-14) | Phase 6B |
 | ATL-06, UOM-04, ATR-09 | snapshotting and validation on order lines | Phase 4 |
 | TAX-01 – 03, MNU-01 – 04 | adopted 2026-10-17, need order lines | with or after Phase 4 |
 | FPR-01 – 04 | adopted 2026-10-17; needs only ATL, so it can land any time after Slice 1 | after Phase 3 |
@@ -212,7 +220,7 @@ Read each row as: the requirements on the left can only be built or proven once 
 | RTE-01–07, 10 | API-01, 05, 08 (D3-1), D3-2 limiter | limits are counted per key, against a limiter store |
 | PRD-09, PRD-10, CCH-01–12 | ATR-07, INV-19, API-07 | the public catalogue reads available variants and the version |
 | CCH-09, CCH-11 | MED-08 | content-hashed thumbnails in the slim list payload |
-| SFT-03, 04, 05, 10, 11, 15 | PRD-09, CCH-*, BND-01, RTE-* | the storefront is a client of the public API |
+| SFT-03, 04, 05, 10, 11, 15 (Phase 6B) | PRD-09, CCH-*, BND-01, RTE-* | the storefront is a client of the public API |
 | SFT-14, TEN-17 | TEN-16 | the PWA icon and name come from the logo and shop name |
 | LIM-01–04 | STO-02, BND-02, RTE-03, PRD-04 | the usage page reads every counter |
 | LND-01, 03, 05, 13, 14 | PRD-09, CCH-01–04, MED-08 | the landing page is a client of the public catalogue and its images |
@@ -236,7 +244,7 @@ Read each row as: the requirements on the left can only be built or proven once 
 | PST-06 | PST-02, PST-05, PRD-03 | a category points at an existing shop type's defaults instead of copying them |
 | DLV-06, DLV-07 | DLV-01, DLV-02 | limits are expressed in zones |
 | INV-24 | INV-03, INV-15, UOM-03 | a pack amount is a multiplier on one ledger stock |
-| TEN-09 – 14, PYG-07, DWN-10 | SFT-01, SFT-02, LND-01, TEN-24, TEN-31, PLN-01, DWN-06 | a custom domain serves the storefront and landing pages; the host lookup, plan features and the downgrade's apply step already exist |
+| TEN-09 – 14, PYG-07, DWN-10 (Phase 6B) | SFT-01, SFT-02, LND-01, TEN-24, TEN-31, PLN-01, DWN-06 | a custom domain serves the storefront and landing pages; the host lookup, plan features and the downgrade's apply step already exist |
 
 ---
 
@@ -290,7 +298,8 @@ on 2026-10-18.
 - **The public catalogue** (`public-api`) is read-only, keyed on (host, catalogue version, normalised
   query), and sits behind the rate-limit check (RTE-04/CCH-05).
 - **The storefront** (`apps/storefront`, Next.js) is a pure client of the public API, using the tenant's
-  public key resolved by host. It never holds a secret key (SFT-11).
+  public key resolved by host. It never holds a secret key (SFT-11). This phase builds the app with the landing
+  pages and the shop's holding page; its storefront pages are Phase 6B's (D3-14).
 - **Product landing pages** (`/l/<slug>`) live in the same storefront app, as a separate minimal route
   with no shop navigation. They are server-rendered so link-preview tags reach Facebook's crawler, and
   served even when the storefront is switched off (LND-02). Their order form (Phase 4) calls the same
@@ -354,7 +363,7 @@ New platform settings: `reservation_expiry_minutes`, `expiry_warning_days`, and 
 ## 6. Slices
 
 Each slice is its own branch and PR, with a test-first verification of its requirements. Per the standing
-rule, **dashboard and storefront UI land as one consolidated pass at the end (Slices 11, 12)**, after
+rule, **the dashboard UI and the landing pages land as one consolidated pass at the end (Slices 11, 12)**, after
 every backend slice. Requirements verified as `E2E` are therefore finished in Slice 11 or 12, even when
 their backend ships earlier.
 
@@ -792,8 +801,8 @@ their backend ships earlier.
   - **Counting over edge caching:** Cloudflare stores no API answer (`Cache-Control: private`), so every request
     passes the public key's gate and is counted, as RTE-04 says (CCH-01, CCH-03 and CCH-13 amended). Cloudflare's
     plain cache is free, but a cached answer would skip the gate; counting is what makes the request limit a plan
-    feature, and the limit's size is where a plan is generous. Edge caching returns with the storefront's own pages
-    (Slice 12).
+    feature, and the limit's size is where a plan is generous. Edge caching returns with the storefront app's own pages:
+    the landing pages (Slice 12), then the storefront (Phase 6B).
   - **Routes** (on `api.lytro.app/v1`): `catalogue/version`, `catalogue/products` (category with its subcategories,
     search, sort, cursor, 24 a page, 60 at most), `catalogue/products/:slug` (an old slug answers with the current
     one), `catalogue/categories`; the pixel ID joins `shop` in 9b.
@@ -839,7 +848,7 @@ their backend ships earlier.
   secret per-shop URL, one row per variant grouped by product, landing-page links with `?v=`, served from
   the catalogue cache by version, regenerable).
 - **Requirements completed:** PRD-09, PRD-10; CCH-01–06, CCH-08, 09, 11, 12 (CCH-10 is the storefront's
-  service worker, Slice 12); LND-17; FED-01–05.
+  service worker, Phase 6B); LND-17; FED-01–05.
 - **Partial:** CCH-07, CCH-13, DAT-13, ATR-07 (catalogue half).
 - **Done when:** 200 simultaneous requests for one uncached list cause one database query; a price edit
   is visible within 60 s with purging disabled; a 50,000-product tenant's page and search meet the
@@ -1051,7 +1060,7 @@ their backend ships earlier.
   - **Scope:** the dashboard is rebuilt from scratch, Phase 0 to Phase 3, to the prototype
     `docs/brand/lytro-dashboard.html`.
   - **Held for later:** the bell and its notifications wait for Phase 7; storefront settings and its banner
-    slides for Slice 12; stock shortfall, returns and profit for Phase 4. Paying Lytro keeps the in-dashboard
+    slides for Phase 6B (D3-14); stock shortfall, returns and profit for Phase 4. Paying Lytro keeps the in-dashboard
     wallet step until Phase 5's hosted page.
   - **Desktop:** the side column shows from 1280 px.
   - **Backend first,** in two pull requests:
@@ -1113,7 +1122,7 @@ their backend ships earlier.
      public `GET /v1/shop`, with a version for caching (BRN-07).
   8. The square icon is square and at least 512 px. While the identity shows, the installed app's icons come from
      it (edge to edge; 80% of a maskable one) and the manifest takes its main and background colours. The
-     link-preview image and its replacement belong to the storefront (Slice 12).
+     link-preview image and its replacement belong to the landing pages (Slice 12).
   9. The manifest is cached for a minute, BRN-02's [1].
   10. The activity log records a save, switching on and switching off.
 - **11.3, the foundation and the shell, agreed 2026-10-23** (8 points; "follow the sketch pixel perfect if there is
@@ -1551,35 +1560,43 @@ their backend ships earlier.
   category, and this month's losses by reason, for `inventory:manage` only. The Stock page's figures open them.
 
 
-### Slice 12: shared storefront and product landing pages
+### Slice 12: product landing pages (the storefront moved to Phase 6B, D3-14)
 - **Depends on:** Slices 0, 0b, 7 and 9 (and branding from Phase 1).
-- **Decided first:** KNOWN-GAPS §82 -- no shop-wide per-minute limit for public keys, and the storefront's server
+- **Decided first:** KNOWN-GAPS §82 -- no shop-wide per-minute limit for public keys, and the storefront app's server
   passes each shopper's IP, so the per-visitor limit sees shoppers, not the server.
-- **Delivers:**
-  - **Storefront:** the new storefront design; category navigation, search, pagination; product page
-    with the variant picker and stock state; client-side cart without reservation; branding; footer and
-    contact; the offline "temporarily unavailable" page; switch-off; the installable storefront PWA,
-    distinct from the per-tenant admin PWA; the service-worker cache; Bangla default with a per-device
-    toggle; metering parity with an API-only site.
+- **Delivers** (in `apps/storefront`, the app the storefront later fills):
   - **Landing pages:** the automatic single-product page at `/l/<slug>` (images and video, name,
     description, price, attributes, variant picker with `?v=` preselection, quantity selector, stock
     state, branding, no shop navigation); server-rendered Open Graph and Twitter Card tags; the branded
     "no longer available" page (404) and the 301 from an old slug; served whenever the tenant is
     reachable, including with the storefront off; Meta Pixel `PageView`/`ViewContent`, loaded after the
     page's content, with `content_ids` set to the feed's variant IDs; a "Delivers to" note when a zone or
-    product limit applies (DLV-06, DLV-07); the "Size chart" link on the
-    product page and the landing page. The order form's fields are laid out but not submittable until Phase 4.
-- **Requirements completed:** SFT-01, 02, 03, 04, 05, 11, 12, 14, 15, 16, 17, 18, 19, 21; I18N-02; TEN-08 (public pages; Slice 0 removes the dashboard);
-  BRN-01, 02, 04 (storefront and landing pages themed by the shop's identity); CCH-10; LND-01, 02, 03, 05, 14, 18; PRD-17; ATR-18.
-- **Partial:** SFT-10, SFT-13, I18N-01, LND-13, LND-15.
-- **Done when:** the milestone (exit criterion 4) passes; two tenants show different catalogues and
-  branding with the same layout from one deployment; lapsing a tenant replaces both its storefront and
-  its landing pages within the LIF-03 window; with the storefront switched off, landing pages still load;
-  a shared landing link shows a rich preview in Facebook's sharing debugger; with the pixel endpoint
-  blocked, the page works normally; a review finds no secret key or Conversions API token reachable from
-  storefront code.
+    product limit applies (DLV-06, DLV-07); the "Size chart" link (the storefront's product page has its own in
+    Phase 6B). The order form's fields are laid out but not submittable until Phase 4.
+  - **The shop's address** (the subdomain root, and any storefront path until Phase 6B): a holding page with the
+    shop's name, logo and contact details (TEN-30) and a sentence that its online shop opens soon, in the shop's
+    identity and both languages; a lapsed or suspended shop shows the same unavailable page as its landing pages.
+    Sketched first, in `STOREFRONT-DESIGN.md`.
+- **Moved to Phase 6B (D3-14, 2026-10-29), the storefront:** the new storefront design; category navigation,
+  search, pagination; product page with the variant picker and stock state; client-side cart without
+  reservation; branding; footer and contact; the offline "temporarily unavailable" page; switch-off; the
+  installable storefront PWA, distinct from the per-tenant admin PWA; the service-worker cache; Bangla default
+  with a per-device toggle; metering parity with an API-only site.
+- **Requirements completed:** TEN-08 (public pages; Slice 0 removes the dashboard); LND-01, 02, 03, 05, 14, 18;
+  ATR-18 (the shopper-facing picker, on the landing page).
+- **Partial:** BRN-01, 02, 04 (the landing pages in the shop's identity; the storefront's in Phase 6B); PRD-17 (the
+  landing page's Size chart link; the product page's in Phase 6B); I18N-01, LND-13, LND-15.
+- **Moved with the storefront:** SFT-01, 02, 03, 04, 05, 11, 12, 14, 15, 16, 17, 18, 19, 21; I18N-02; CCH-10;
+  SFT-10 and SFT-13 (partial).
+- **Done when:** the milestone (exit criterion 4) passes; two tenants' landing pages show different products and
+  branding with the same layout from one deployment; lapsing a tenant replaces its landing pages and its holding page
+  within the LIF-03 window; a shared landing link shows a rich preview in Facebook's sharing debugger; with the pixel
+  endpoint blocked, the page works normally; a review finds no secret key or Conversions API token reachable from
+  the app's code.
 
-### Slice 13: custom domains (D3-13)
+### Slice 13: custom domains (D3-13), moved to Phase 6B (D3-14)
+- **Moved to Phase 6B** with the storefront it serves (D3-14, 2026-10-29); this slice plan stays as Phase 6B's
+  starting point.
 - **Depends on:** Slice 12 (the storefront and landing pages a domain serves), Slice 0 (custom domains never
   serve the dashboard) and Phase 2's plan features and downgrade.
 - **Delivers:**
@@ -1612,7 +1629,7 @@ their backend ships earlier.
   (bKash, Nagad, Steadfast, Pathao at launch); problems, why Lytro, how it works, pricing with the monthly/yearly toggle, zero risk, FAQ,
   contact and footer; every button pointing at `app.lytro.app` (together with Slice 0).
 - **Step B (when the features are live):** the inventory and statistics spotlight cards (after this phase's
-  inventory and Phase 4's statistics) and the storefront and tracking showcase (after Slice 12 and Phase 4),
+  inventory and Phase 4's statistics) and the storefront and tracking showcase (after Phase 6B),
   following the landing page's rule never to claim what is not live.
 - **Done when (step A):** every section renders at phone width with no horizontal scroll; the claim box reaches
   create-shop with the address pre-filled; pricing shows live plan data with both billing terms.
@@ -1641,7 +1658,7 @@ Slice 8 (parallel from day one) ───────┤
                          Slice 10 ◄── (1, 6, 7, 8)
                                        │
           all backend slices 1–10 ─────┴──► Slice 11 (dashboard UI)
-                       Slices 7, 9 ───────► Slice 12 (storefront + landing pages) ──► Slice 13 (custom domains)
+                       Slices 7, 9 ───────► Slice 12 (landing pages)        Slice 13 moved to Phase 6B (D3-14)
 ```
 
 | Slice | Depends on | Can run in parallel with |
@@ -1660,10 +1677,10 @@ Slice 8 (parallel from day one) ───────┤
 | 10 Limits & usage | 1, 6, 7, 8 | 3, 4, 5, 9 |
 | 10a Add-ons | 10 | 12 |
 | 11 Dashboard UI | 0, 0b, 1–10a | 12 |
-| 12 Storefront & landing pages | 0, 0b, 7, 9 | 11 |
-| 13 Custom domains | 0, 12 | 11 |
+| 12 Landing pages | 0, 0b, 7, 9 | 11 |
+| 13 Custom domains | moved to Phase 6B (D3-14) | — |
 
-**Suggested order for one developer:** 0 → 0b → 1 → 2 → 3 → 4 → 5 (checkpoint 3A) → 8 → 6 → 7 → 9 → 10 → 10a → 11 → 12 → 13.
+**Suggested order for one developer:** 0 → 0b → 1 → 2 → 3 → 4 → 5 (checkpoint 3A) → 8 → 6 → 7 → 9 → 10 → 10a → 11 → 12 (Slice 13 moved to Phase 6B, D3-14).
 Slice 8 goes first among the second half because Slice 9 needs it, and it is small.
 
 ---
