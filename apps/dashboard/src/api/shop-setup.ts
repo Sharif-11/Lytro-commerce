@@ -1,12 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { tenantSession } from '@/session/tenant-session';
-import type {
-  AddressCheck,
-  DeliverySettings,
-  HomeAreaInput,
-  Locations,
-  ShopTypePreset,
-} from '@/types/onboarding';
+import type { AddressCheck, ShopTypePreset } from '@/types/onboarding';
 
 /**
  * GET /shops/address-check (AUTH-11, TEN-26): whether an address is free, asked as the owner types (create-shop
@@ -35,15 +29,6 @@ export function usePresets() {
   });
 }
 
-/** GET /locations (CUS-08): the city areas and the zillas a home area is picked from. */
-export function useLocations() {
-  return useQuery({
-    queryKey: ['locations'],
-    queryFn: () => tenantSession.client.get<Locations>('/locations'),
-    staleTime: Infinity,
-  });
-}
-
 /** PUT /business-type (PST-01): what the shop mainly sells; new products take its defaults. */
 export function useSetBusinessType() {
   const queryClient = useQueryClient();
@@ -53,23 +38,6 @@ export function useSetBusinessType() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['business-type'] });
     },
-  });
-}
-
-/** PUT /delivery-zones/home-area (DLV-01): the two default zones follow it. */
-export function useSetHomeArea() {
-  return useMutation({
-    mutationFn: (input: HomeAreaInput) =>
-      tenantSession.client.put<DeliverySettings>('/delivery-zones/home-area', input),
-  });
-}
-
-/** GET /delivery-zones (DLV-05): the home area and the zones with their charges. */
-export function useDeliverySettings(options: { enabled?: boolean } = {}) {
-  return useQuery({
-    queryKey: ['delivery-settings'],
-    queryFn: () => tenantSession.client.get<DeliverySettings>('/delivery-zones'),
-    enabled: options.enabled ?? true,
   });
 }
 

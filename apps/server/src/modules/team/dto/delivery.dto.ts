@@ -51,6 +51,7 @@ export const deliverySettingsViewSchema = z.object({
   homeArea: z.object({ kind: z.enum(['city', 'zilla', 'thanas']), label: bilingual }),
   zones: z.array(zoneView),
   maxZones: z.number(),
+  extraDeliveryChargePerKg: z.string(),
 });
 export class DeliverySettingsViewDto extends createZodDto(deliverySettingsViewSchema) {}
 

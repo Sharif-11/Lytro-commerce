@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/icon';
 import { Sheet } from '@/components/ui/sheet';
-import type { Locations } from '@/types/onboarding';
+import type { Locations } from '@/types/delivery';
 import type { HomeArea } from './home-areas';
 
 interface AreaSearchSheetProps {

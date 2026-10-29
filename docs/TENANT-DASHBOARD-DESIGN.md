@@ -3,8 +3,11 @@
 Status: v3.12, 2026-10-29 (the brand editor as Slice 11.12a builds it, prototype Part 23: the buttons follow
 the switch, the contrast check as the server makes it with the nearest passing shade, a colour's sheet, the logos
 set, uploading and refused, a paid shop without the add-on, a plan that includes it, leaving unsaved, and a toast
-for each button; v3.10 of 2026-10-29: a screen that names one record, a purchase or a stock check, names it in the
-desktop header; v3.9 of 2026-10-29: Purchases and suppliers as Slice 11.10 builds them, prototype Part 21: Open on order, Coming
+for each button; v3.11 of 2026-10-29: Delivery as Slice 11.11 builds it, prototype Part 22: no delivery outside the
+home area, the two zones renamed or back to their automatic names, one area picker, an area held elsewhere named
+before Save, a thana moving from a broader zone said, Check an address with its reason; v3.10 of 2026-10-29: a
+screen that names one record, a purchase or a stock check, names it in the desktop header; v3.9 of 2026-10-29:
+Purchases and suppliers as Slice 11.10 builds them, prototype Part 21: Open on order, Coming
 in every unit, a supplier typed, Add item by product then variants, a placed purchase editable until its first delivery,
 It arrived with reasons, batches and IMEIs, Cancel or Close short by deliveries, the archived suppliers, a variant's
 purchases, the empty and look-only states; v3.8 of 2026-10-29: stock checks as Slice 11.9 builds them, prototype Part
@@ -690,6 +693,26 @@ preview; "changing the area renames the two zones, the charges stay". *Zone*: na
 chips with "add a district, city or thana", the conflict line when an area is already in another zone
 (DLV-02), the no-delivery switch, Delete (refused for the home and fallback zones and for a zone a product
 names). Built: `GET/POST/PATCH/DELETE /delivery-zones`, `PUT …/home-area`, `…/areas`, `GET /locations`.
+
+*Agreed in the 11.11 read, 2026-10-28 (Part 22):*
+- **The two fixed zones**: "No delivery outside <home area>" under the outside charge (DLV-06), and each renamed in a
+  small sheet with "Use the automatic name" to go back (`delivery-22`, `delivery-outside-off`, `sh-zone-rename`). A
+  zone that delivers nowhere shows the No delivery chip in place of its charge.
+- **One area picker**, searched in Bangla or English and grouped Cities, Districts, Thanas (a thana with its district);
+  a district opens its thanas; an area another zone holds says which and is not picked; a thana that a broader area of
+  another zone covers says where it is now (`sh-area-pick`, `sh-area-district`). It serves a zone's areas, the shop's
+  own thanas (built now, `sh-homearea-thanas`) and Check an address.
+- **One Save** for the page, as drawn: only what changed is sent (the home zone, the fallback zone, the extra charge
+  per kg), each refusal on its own field. The extra charge per kg comes with the zones (`GET /delivery-zones`), so
+  whoever may see the zones sees it.
+- **An area another zone holds** is named before Save, on the zone sheet, and removed there (`sh-zone-taken`); the
+  server's refusal stays the backstop. **A thana moving** from a broader zone says so in one line (`sh-zone-new`).
+- **Check an address**: one thana, its zone, its charge and why: by thana, by city, by district, or in no other zone;
+  a no-delivery zone shows the red chip (`delivery-check-nodelivery`).
+- No zones of its own (`delivery-empty`); twenty zones, where Add zone gives way to the limit's line (`delivery-full`);
+  someone who may only look sees plain values, no Add zone or Save, and Check still works (`delivery-staff`).
+- A delete asks first (`sh-zone-delete`); a zone products still name lists them, an active one to Open, an archived
+  one to Restore (`sh-zone-in-use`). The home area note: the two zones are renamed "unless you named them".
 
 ### 7.11 Balance (`/balance`)
 

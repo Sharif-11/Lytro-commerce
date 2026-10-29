@@ -31,6 +31,7 @@ import {
 } from './support/stock';
 import { drawnLibrary } from './support/variants';
 import { drawnPurchases, drawnSuppliers, otherStates } from './support/purchases';
+import { drawnDelivery, type DeliveryFixture } from './support/delivery';
 import { drawnPasswords, drawnTeam } from './support/team';
 import { DAY_ONE, mockApi, SLUG, type Language, type ShopState } from './support/mock-api';
 import { mockOnboarding, TWELVE_MONTHS, typeCode, type Journey } from './support/onboarding-api';
@@ -382,6 +383,7 @@ function productPairs(): Pair[] {
     ...stockCheckPairs(),
     ...expiringPairs(),
     ...purchasePairs(),
+    ...deliveryPairs(),
     ...categoryPairs(),
     ...attributePairs(),
   ];
@@ -1032,6 +1034,178 @@ function purchasePairs(): Pair[] {
         await sheet(page)
           .getByRole('button', { name: /^কেনাকাটা/ })
           .click();
+      },
+    }),
+  ];
+}
+
+/**
+ * Delivery (§7.10, Slice 11.11, the prototype's `delivery`, `sh-homearea`, `sh-zone` and Part 22): the page, no delivery
+ * outside, Check an address both ways, none of its own, the most there may be, look-only; a fixed zone renamed, the
+ * shop's own thanas, a new zone with a thana moving, an area another zone holds, the picker and a district opened, a
+ * delete asked and a zone still in use.
+ */
+function deliveryPairs(): Pair[] {
+  const one = (
+    name: string,
+    more: Partial<Pair> = {},
+    device: Device = 'phone',
+    language: Language = 'bn',
+  ): Pair => ({ name, screen: name, device, language, path: '/delivery', ...more });
+  const main = (page: Page) => page.getByRole('main');
+  const sheet = (page: Page) => page.getByRole('dialog').last();
+  const changed = (change: (fixture: DeliveryFixture) => void) => {
+    const fixture = drawnDelivery('bn');
+    change(fixture);
+    return { delivery: fixture };
+  };
+  const search = async (page: Page, typed: string) => {
+    await sheet(page).getByRole('searchbox').fill(typed);
+  };
+  const check =
+    (typed: string, row: string, field = /^জেলা ও থানা/) =>
+    async (page: Page) => {
+      await main(page).getByRole('button', { name: field }).click();
+      await search(page, typed);
+      await sheet(page).getByRole('button', { name: row }).click();
+    };
+  const addZone = async (page: Page) => {
+    await main(page).getByRole('button', { name: 'জোন যোগ' }).first().click();
+    await sheet(page).getByLabel('নাম').fill('ঢাকার আশপাশ');
+    await sheet(page).getByLabel('ডেলিভারি চার্জ').fill('100');
+    await sheet(page).getByRole('button', { name: 'জেলা, সিটি বা থানা যোগ' }).click();
+  };
+  const tick = async (page: Page, typed: string, row: RegExp) => {
+    await search(page, typed);
+    await sheet(page).getByRole('checkbox', { name: row }).check();
+  };
+  const ctg = async (page: Page) => {
+    await main(page)
+      .getByRole('button', { name: /^চট্টগ্রাম ও সিলেট/ })
+      .click();
+  };
+  return [
+    one('delivery'),
+    one('delivery-22', { then: check('পাঁচ', 'পাঁচলাইশ · চট্টগ্রাম') }),
+    one(
+      'delivery-22',
+      { then: check('panch', 'Panchlaish · Chattogram', /^District and thana/) },
+      'desktop',
+      'en',
+    ),
+    one('delivery-outside-off', {
+      then: async (page) => {
+        await main(page).getByRole('switch').click();
+      },
+    }),
+    one(
+      'delivery-check-nodelivery',
+      { then: check('ruma', 'Ruma · Bandarban', /^District and thana/) },
+      'desktop',
+      'en',
+    ),
+    one('delivery-empty', {
+      state: changed((fixture) => {
+        fixture.zones = fixture.zones.filter((zone) => zone.isHome || zone.isFallback);
+      }),
+    }),
+    one('delivery-full', {
+      state: changed((fixture) => {
+        fixture.maxZones = 4;
+      }),
+    }),
+    one('delivery-staff', { state: { isOwner: false, permissions: ['products:read'] } }),
+    one('sh-zone-rename', {
+      then: async (page) => {
+        await main(page)
+          .getByRole('button', { name: /নাম বদলান$/ })
+          .first()
+          .click();
+        await sheet(page).getByLabel('নাম').fill('ঢাকা মেট্রো');
+      },
+    }),
+    one('sh-homearea', {
+      then: async (page) => {
+        await main(page)
+          .getByRole('button', { name: /^আপনার এলাকা/ })
+          .click();
+      },
+    }),
+    one('sh-homearea-thanas', {
+      then: async (page) => {
+        await main(page)
+          .getByRole('button', { name: /^আপনার এলাকা/ })
+          .click();
+        await sheet(page).getByRole('radio', { name: 'নিজের থানাগুলো' }).click();
+        await sheet(page).getByRole('button', { name: 'থানা যোগ' }).click();
+        await tick(page, 'মির', /^মিরপুর · ঢাকা/);
+        await tick(page, 'পল্ল', /^পল্লবী · ঢাকা/);
+        await tick(page, 'কাফ', /^কাফরুল · ঢাকা/);
+        await sheet(page)
+          .getByRole('button', { name: /এলাকা যোগ করুন$/ })
+          .click();
+      },
+    }),
+    one('sh-zone', { then: ctg }),
+    one('sh-zone-new', {
+      then: async (page) => {
+        await addZone(page);
+        await tick(page, 'সাভ', /^সাভার · ঢাকা/);
+        await tick(page, 'বনা', /^বনানী · ঢাকা/);
+        await sheet(page)
+          .getByRole('button', { name: /এলাকা যোগ করুন$/ })
+          .click();
+      },
+    }),
+    one('sh-zone-taken', {
+      state: changed((fixture) => {
+        const zone = fixture.zones.find((each) => each.id === 'z-ctg');
+        if (zone) zone.zillaIds = [4];
+      }),
+      then: ctg,
+    }),
+    one('sh-area-pick', {
+      then: async (page) => {
+        await addZone(page);
+        // The drawing's matches for 'বান' are its English names' (Bandarban, Banani, Bandar, Banshkhali).
+        await tick(page, 'ban', /^বনানী · ঢাকা/);
+      },
+    }),
+    one('sh-area-district', {
+      then: async (page) => {
+        await addZone(page);
+        await search(page, 'গাজী');
+        await sheet(page)
+          .getByRole('button', { name: /থানাগুলো$/ })
+          .first()
+          .click();
+        await sheet(page)
+          .getByRole('checkbox', { name: /^গাজীপুর সদর/ })
+          .check();
+        await sheet(page)
+          .getByRole('checkbox', { name: /^শ্রীপুর/ })
+          .check();
+      },
+    }),
+    one('sh-zone-delete', {
+      then: async (page) => {
+        await ctg(page);
+        await sheet(page).getByRole('button', { name: 'জোন ডিলিট' }).click();
+      },
+    }),
+    one('sh-zone-in-use', {
+      state: changed((fixture) => {
+        fixture.holders = {
+          'z-ctg': [
+            { id: 'p-1', name: 'হিমায়িত মাছ', archived: false },
+            { id: 'p-8', name: 'শুঁটকি', archived: true },
+          ],
+        };
+      }),
+      then: async (page) => {
+        await ctg(page);
+        await sheet(page).getByRole('button', { name: 'জোন ডিলিট' }).click();
+        await sheet(page).getByRole('button', { name: 'জোন ডিলিট' }).click();
       },
     }),
   ];

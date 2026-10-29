@@ -99,33 +99,6 @@ export interface FiguresFixture {
   byReason: { reason: string; movements: number }[];
 }
 
-/** The shop's zones as Delivery draws them (the prototype's `SCREENS.delivery`): two of its own, one it skips. */
-export function zonesAnswer(): unknown {
-  const zone = (
-    id: string,
-    en: string,
-    bn: string,
-    charge: string,
-    more: { isHome?: boolean; isFallback?: boolean; noDelivery?: boolean } = {},
-  ) => ({
-    id,
-    label: { en, bn },
-    charge,
-    isHome: more.isHome ?? false,
-    isFallback: more.isFallback ?? false,
-    noDelivery: more.noDelivery ?? false,
-  });
-  return {
-    homeArea: { kind: 'city', label: { en: 'Dhaka city', bn: 'ঢাকা সিটি' } },
-    zones: [
-      zone('z-in', 'Inside Dhaka city', 'ঢাকা সিটির ভেতরে', '70.00', { isHome: true }),
-      zone('z-out', 'Outside Dhaka city', 'ঢাকা সিটির বাইরে', '130.00', { isFallback: true }),
-      zone('z-ctg', 'Chattogram and Sylhet', 'চট্টগ্রাম ও সিলেট', '100.00'),
-      zone('z-hill', 'Hill districts', 'পার্বত্য এলাকা', '0.00', { noDelivery: true }),
-    ],
-  };
-}
-
 /** The prototype's six (`PRODUCTS`) and Part 13's two archived (`ARCHIVED13`). */
 export function drawnProducts(): ProductsFixture {
   return {

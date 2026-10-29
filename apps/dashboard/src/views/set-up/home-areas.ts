@@ -1,4 +1,4 @@
-import type { HomeAreaInput, Locations } from '@/types/onboarding';
+import type { HomeAreaInput, Locations } from '@/types/delivery';
 
 /** A home area set-up can pick (DLV-01): one city area, or one zilla. A shop's own thanas are set in Delivery. */
 export type HomeArea = { kind: 'city'; code: string } | { kind: 'zilla'; id: number };

@@ -14,8 +14,10 @@ import {
   type HomeAreaInput,
   type UpdateDeliveryZoneInput,
 } from '@lytronix/validators';
+import type { ZoneLimitedProduct } from '@lytronix/db';
 import { ApiError, FieldsError, type InvalidField } from '../../../common/api-error';
 import { UniqueViolation } from '../../../common/errors/unique-violation';
+import { ShopDeliveryRateService } from '../../balance/services/shop-delivery-rate.service';
 import type { CatalogueTransactions } from '../../catalogue/ports/catalogue-stores';
 import { CatalogueActivity, type ResolvedActor } from '../../catalogue/services/catalogue-activity';
 import { CatalogueVersion } from '../../catalogue/services/catalogue-version';
@@ -85,6 +87,7 @@ export class DeliveryZoneService {
     @Inject(LocationService) private readonly locations: LocationService,
     @Inject(CatalogueActivity) private readonly activity: CatalogueActivity,
     @Inject(CatalogueVersion) private readonly version: CatalogueVersion,
+    @Inject(ShopDeliveryRateService) private readonly perKg: ShopDeliveryRateService,
   ) {}
 
   /** DLV-05: the home area and every zone, the two defaults made the first time a shop asks. */
@@ -344,7 +347,8 @@ export class DeliveryZoneService {
     });
   }
 
-  private refuseInUse(products: { id: string; name: string }[]): never {
+  /** Names each product holding the zone, and whether it is archived, so the seller knows to restore it first. */
+  private refuseInUse(products: ZoneLimitedProduct[]): never {
     throw new ApiError('conflict', 'DeliveryZoneInUse', { products });
   }
 
@@ -366,7 +370,10 @@ export class DeliveryZoneService {
     );
   }
 
-  /** DLV-05: everything the delivery settings show, with the home and fallback zones named after the home area. */
+  /**
+   * DLV-05: everything the delivery settings show, with the home and fallback zones named after the home area, and the
+   * shop's extra charge per kg (RAT-14) so whoever may see the zones sees it too.
+   */
   private async view(tx: Transaction, tenantId: string): Promise<DeliverySettingsView> {
     const [zones, areaRows] = [
       await this.zones.listZones(tx, tenantId),
@@ -400,6 +407,7 @@ export class DeliveryZoneService {
       homeArea: { kind, label: { en: phrase.en, bn: phrase.bn } },
       zones: views,
       maxZones: MAX_DELIVERY_ZONES,
+      extraDeliveryChargePerKg: await this.perKg.within(tx, tenantId),
     };
   }
 }

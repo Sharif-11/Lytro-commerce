@@ -17,6 +17,13 @@ export interface ZoneAreas {
   locationIds: number[];
 }
 
+/** DLV-07: a product whose delivery limit names a zone; an archived one (PRD-13) still holds it until restored. */
+export interface ZoneLimitedProduct {
+  id: string;
+  name: string;
+  archived: boolean;
+}
+
 /** DLV-01: what a zone may change after it exists. */
 export type DeliveryZonePatch = Partial<Pick<SelectDeliveryZone, 'name' | 'charge' | 'noDelivery'>>;
 
@@ -188,15 +195,19 @@ export class DeliveryZoneRepository {
     await tx.delete(deliveryZones).where(eq(deliveryZones.tenantId, tenantId));
   }
 
-  /** DLV-07: the products that name this zone in their delivery limit. */
+  /** DLV-07: the products that name this zone in their delivery limit, archived ones too. */
   async productsLimitedTo(
     tx: Transaction,
     tenantId: string,
     zoneId: string,
-  ): Promise<{ id: string; name: string }[]> {
+  ): Promise<ZoneLimitedProduct[]> {
     await this.transactions.setTenantContext(tx, tenantId);
     return tx
-      .select({ id: products.id, name: products.name })
+      .select({
+        id: products.id,
+        name: products.name,
+        archived: sql<boolean>`${products.deletedAt} IS NOT NULL`,
+      })
       .from(productDeliveryZones)
       .innerJoin(
         products,

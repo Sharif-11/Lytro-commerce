@@ -1171,7 +1171,7 @@ CREATE TABLE tenant.delivery_zones (                -- DLV-01; built in Slice 1c
 CREATE UNIQUE INDEX delivery_zones_one_fallback_idx ON tenant.delivery_zones (tenant_id) WHERE is_fallback;
 CREATE UNIQUE INDEX delivery_zones_one_home_idx ON tenant.delivery_zones (tenant_id) WHERE is_home;
 -- Decided in Slice 1c: an automatic name is not stored. The API builds "Inside/Outside <home area>" in English and
--- Bangla from the home zone's areas ("ঢাকা সিটির ভিতরে"), so it reads right in either language and follows a new
+-- Bangla from the home zone's areas ("ঢাকা সিটির ভেতরে"), so it reads right in either language and follows a new
 -- home area with nothing to rewrite; a name the tenant sets is kept as typed.
 
 CREATE TABLE tenant.delivery_zone_areas (           -- DLV-01, DLV-02: CUS-08 areas at three levels

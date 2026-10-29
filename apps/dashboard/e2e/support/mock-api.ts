@@ -42,9 +42,9 @@ import {
   productRemove,
   productWrite,
   storageAnswer,
-  zonesAnswer,
   type ProductsFixture,
 } from './products';
+import { deliveryAnswer, drawnDelivery, type DeliveryFixture } from './delivery';
 import { figuresAnswer, shopBatchesAnswer, stockPageAnswer, stockRead, stockWrite } from './stock';
 import { purchasingAnswer } from './purchases';
 import { checksAnswer } from './stock-checks';
@@ -131,6 +131,8 @@ export interface ShopState {
   meta?: MetaFixture | null;
   /** The shop's products and product limit where they differ from the prototype's (Slice 11.7a). */
   products?: ProductsFixture | null;
+  /** Slice 11.11: the shop's zones and its extra charge per kg where they differ from the prototype's. */
+  delivery?: DeliveryFixture | null;
   /** The person's ways to sign in where they differ from a phone (and an email with `money.hasEmail`). */
   identities?: IdentityFixture[] | null;
   /** GET /home's stock part; null when the person may not see stock. */
@@ -298,6 +300,7 @@ export function shopState(given: ShopState = {}): Required<ShopState> {
     meta: null,
     identities: null,
     products: null,
+    delivery: null,
     stock: { low: 1, out: 1 },
     home: {},
     ...given,
@@ -722,8 +725,23 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
           });
     }
     if (method === 'GET' && path === '/media/usage') return ok(storageAnswer(products));
-    // Slice 11.7c: the zones a product may be limited to.
-    if (method === 'GET' && path === '/delivery-zones') return ok(zonesAnswer());
+    // Slice 11.11: the locations, the zones (the product editor's limit reads them too), and their writes.
+    const delivered = deliveryAnswer(
+      method,
+      path,
+      url,
+      request.postDataJSON() as Record<string, unknown> | null,
+      (state.delivery ??= drawnDelivery(state.language)),
+    );
+    if (delivered && 'refused' in delivered) {
+      const { status, code, message, details } = delivered.refused;
+      return route.fulfill({
+        status,
+        contentType: 'application/json',
+        body: refusal(code, message, details),
+      });
+    }
+    if (delivered) return ok(delivered.data);
     // Slice 11.10: purchases and suppliers, and a variant's purchases; costs only for someone who may see them.
     const bought = purchasingAnswer(
       method,

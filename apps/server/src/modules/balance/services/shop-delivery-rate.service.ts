@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import type { Transaction } from '@lytronix/db';
 import type { ShopSettingsStore } from '../ports/shop-settings-store';
 import { SHOP_SETTINGS_STORE } from '../tokens';
 
@@ -11,8 +12,13 @@ import { SHOP_SETTINGS_STORE } from '../tokens';
 export class ShopDeliveryRateService {
   constructor(@Inject(SHOP_SETTINGS_STORE) private readonly store: ShopSettingsStore) {}
 
-  async get(tenantId: string): Promise<string> {
-    const row = await this.store.run(tenantId, (tx) => this.store.get(tx, tenantId));
+  get(tenantId: string): Promise<string> {
+    return this.store.run(tenantId, (tx) => this.within(tx, tenantId));
+  }
+
+  /** The rate read inside a transaction the caller already holds (the delivery settings, DLV-05). */
+  async within(tx: Transaction, tenantId: string): Promise<string> {
+    const row = await this.store.get(tx, tenantId);
     return row?.extraDeliveryChargePerKg ?? '0.00';
   }
 

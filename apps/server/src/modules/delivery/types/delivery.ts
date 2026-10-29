@@ -73,6 +73,8 @@ export interface DeliverySettingsView {
   homeArea: { kind: HomeAreaKind; label: Bilingual };
   zones: ZoneView[];
   maxZones: number;
+  /** RAT-14: the shop's extra charge per kg over each zone's charge, to the paisa; set through /shop-settings. */
+  extraDeliveryChargePerKg: string;
 }
 
 /** DLV-02: which zone a thana falls in, and by which of its areas. */

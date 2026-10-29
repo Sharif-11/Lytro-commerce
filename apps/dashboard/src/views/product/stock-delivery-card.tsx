@@ -1,7 +1,7 @@
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StockTracking, StockUnit } from '@lytronix/validators';
-import { useDeliverySettings } from '@/api/shop-setup';
+import { useDeliverySettings } from '@/api/delivery';
 import { Card } from '@/components/ui/card';
 import { Field, PickField, SelectField } from '@/components/ui/field';
 import { Switch } from '@/components/ui/switch';

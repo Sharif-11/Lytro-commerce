@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatTaka } from '@lytronix/ui';
-import { useDeliverySettings } from '@/api/shop-setup';
+import { useDeliverySettings } from '@/api/delivery';
 import { Button } from '@/components/ui/button';
 import { CheckRow } from '@/components/ui/check-row';
 import { Sheet } from '@/components/ui/sheet';

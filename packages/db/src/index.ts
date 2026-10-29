@@ -260,6 +260,7 @@ export {
   DeliveryZoneRepository,
   type DeliveryZonePatch,
   type ZoneAreas,
+  type ZoneLimitedProduct,
 } from './repositories/delivery/delivery-zone.repository';
 export {
   PlatformLibraryRepository,

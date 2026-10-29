@@ -19,28 +19,3 @@ export interface Bilingual {
   en: string;
   bn: string;
 }
-
-/** GET /locations (CUS-08): the 11 city areas and the 64 zillas; set-up offers the cities and the zillas. */
-export interface Locations {
-  cities: { code: string; nameEn: string; nameBn: string }[];
-  zillas: { id: number; nameEn: string; nameBn: string }[];
-}
-
-/** PUT /delivery-zones/home-area (DLV-01): one city, one zilla, or the shop's own thanas. */
-export interface HomeAreaInput {
-  areas: { cityCodes: string[]; zillaIds: number[]; locationIds: number[] };
-}
-
-/** The parts of GET /delivery-zones (DLV-05) the first build's Settings reads until Slice 11.6. */
-export interface DeliverySettings {
-  homeArea: { kind: 'city' | 'zilla' | 'thanas'; label: Bilingual };
-  zones: {
-    id: string;
-    label: Bilingual;
-    charge: string;
-    isHome: boolean;
-    isFallback: boolean;
-    /** DLV-06: a zone the shop does not deliver to. */
-    noDelivery: boolean;
-  }[];
-}
