@@ -121,4 +121,56 @@ describe('StorefrontApi', () => {
     expect(await api.estimate(shop, shopper, body)).toBeNull();
     await expect(api.estimate(shop, shopper, body)).rejects.toThrow(/status 503/);
   });
+
+  it('keeps the shop and its categories a minute per shop; a failed read is asked again (Slice 12b)', async () => {
+    const failed = { status: 503, data: null, code: null, details: {} };
+    const fake = server(
+      failed,
+      ok({ name: 'Megh' }),
+      ok({ categories: [] }),
+      ok({ name: 'Megh, renamed' }),
+    );
+    let now = 1_000;
+    const api = new StorefrontApi(fake, env, () => now);
+    await expect(api.shop(shop, shopper)).rejects.toThrow(/status 503/);
+    expect(await api.shop(shop, shopper)).toEqual({ name: 'Megh' });
+    expect(await api.categories(shop, shopper)).toEqual([]);
+    now += 59_000;
+    expect(await api.shop(shop, shopper)).toEqual({ name: 'Megh' });
+    expect(await api.categories(shop, shopper)).toEqual([]);
+    expect(fake.calls).toHaveLength(3);
+    now += 2_000;
+    expect(await api.shop(shop, shopper)).toEqual({ name: 'Megh, renamed' });
+    expect(fake.calls.map((call) => call.path)).toEqual([
+      '/v1/shop',
+      '/v1/shop',
+      '/v1/catalogue/categories',
+      '/v1/shop',
+    ]);
+  });
+
+  it("asks for a list's category, search, order, stock and cursor; an unknown category is null (Slice 12b)", async () => {
+    const page = { products: [], nextCursor: null };
+    const fake = server(ok(page), ok(page), {
+      status: 404,
+      data: null,
+      code: 'not_found',
+      details: {},
+    });
+    const api = new StorefrontApi(fake, env);
+    await api.products(shop, shopper, {
+      cursor: 'abc',
+      inStock: true,
+      sort: 'price_low',
+      search: 'lal panjabi',
+      category: 'panjabi',
+    });
+    await api.products(shop, shopper, { inStock: false });
+    expect(await api.products(shop, shopper, { category: 'hidden' })).toBeNull();
+    expect(fake.calls.map((call) => call.path)).toEqual([
+      '/v1/catalogue/products?category=panjabi&search=lal+panjabi&sort=price_low&inStock=true&cursor=abc',
+      '/v1/catalogue/products',
+      '/v1/catalogue/products?category=hidden',
+    ]);
+  });
 });

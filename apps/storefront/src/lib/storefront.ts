@@ -1,7 +1,9 @@
 import { cookies, headers } from 'next/headers';
 import { cache } from 'react';
+import { AREA_COOKIE, parseArea } from './area';
 import { ServerApi } from './api/server-api';
 import {
+  type PublicCategory,
   type PublicShop,
   type ShopperRequest,
   StorefrontApi,
@@ -52,6 +54,8 @@ export type ShopPage =
   | { state: 'closed'; words: Words }
   | { state: 'missing'; words: Words };
 
+export type OpenShopPage = Extract<ShopPage, { state: 'open' }>;
+
 /** The shop this request is for, read once per request however many parts of the page ask. */
 export const loadShopPage = cache(async (): Promise<ShopPage> => {
   const shopper = await shoppers.read();
@@ -69,3 +73,18 @@ export const loadProduct = cache(async (slug: string) => {
   if (page.state !== 'open') return null;
   return storefrontApi.product(page.shop, page.shopper, slug);
 });
+
+/** What every storefront page's frame shows besides the shop: its categories (kept a minute per shop, Slice 12b) and
+    the shopper's remembered area for the cart (SFT-20). */
+export interface PageFrame {
+  categories: PublicCategory[];
+  areaId: number | null;
+}
+
+export async function loadFrame(page: OpenShopPage): Promise<PageFrame> {
+  const [categories, jar] = await Promise.all([
+    storefrontApi.categories(page.shop, page.shopper),
+    cookies(),
+  ]);
+  return { categories, areaId: parseArea(jar.get(AREA_COOKIE)?.value) };
+}

@@ -11,19 +11,24 @@ import { plainNumber, type Words } from '@/lib/i18n/words';
 import { Icon } from '../icon';
 import { useDeliveryEstimate, useLocations } from './use-delivery';
 
-/** The prototype's sheet: from the bottom on a phone, a centred dialog on a wide screen. Escape or the scrim closes. */
+/** The prototype's sheet: from the bottom on a phone, a centred dialog on a wide screen; as a `drawer`, the cart's
+    full-height panel. Escape or the scrim closes. `footClass` is the footer's own variant (`soon`: a line under it). */
 export function Sheet({
   title,
   words,
   onClose,
   children,
   footer,
+  drawer,
+  footClass,
 }: {
   title: string;
   words: Words;
   onClose: () => void;
   children: ReactNode;
   footer?: ReactNode;
+  drawer?: boolean;
+  footClass?: string;
 }) {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -36,7 +41,7 @@ export function Sheet({
   }, [onClose]);
   return (
     <div
-      className="scrim"
+      className={drawer ? 'scrim drawer' : 'scrim'}
       role="presentation"
       onClick={(event) => {
         if (event.target === event.currentTarget) onClose();
@@ -51,7 +56,7 @@ export function Sheet({
           </button>
         </div>
         <div className="sb">{children}</div>
-        {footer ? <div className="sf">{footer}</div> : null}
+        {footer ? <div className={footClass ? `sf ${footClass}` : 'sf'}>{footer}</div> : null}
       </div>
     </div>
   );

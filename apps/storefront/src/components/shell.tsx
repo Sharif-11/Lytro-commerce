@@ -1,8 +1,10 @@
 import type { CSSProperties, ReactNode } from 'react';
-import type { PublicShop } from '@/lib/api/storefront-api';
+import type { PublicCategory, PublicShop } from '@/lib/api/storefront-api';
 import { type Language, Words } from '@/lib/i18n/words';
+import { CartButton } from './cart/cart-button';
 import { Icon } from './icon';
 import { LanguageSwitch } from './language-switch';
+import { SearchTools } from './search/search-panel';
 
 // The prototype's page frame (docs/brand/lytro-storefront.html: shell, hdr, foot and the bare pages), as components.
 // The root `.frame` is the container its layout rules measure, filling the window.
@@ -64,18 +66,36 @@ export function Shell({
   );
 }
 
+/** What a storefront page's header reaches: the categories (the first six as links on a wide screen, all of them as
+    search suggestions), the one it is in, and the cart with the shopper's area. */
+export interface HeaderNav {
+  categories: PublicCategory[];
+  current?: string;
+  shopPhone: string | null;
+  areaId: number | null;
+  startCartOpen?: boolean;
+}
+
+// STOREFRONT-DESIGN §1: a wide screen's header names the first six categories.
+const NAV_CATEGORIES = 6;
+
 /** The header. `minimal` is the landing page's: the shop and the language only, no way into the catalogue (LND-01).
-    `back` is a product page's: a way back, its title on a phone, the shop on a wide screen. */
+    `home` is the storefront's: the shop, the categories on a wide screen, search and the cart. `back` is an inner
+    page's: a way back and its title on a phone, the shop on a wide screen, then the same. */
 export function Header({
   shop,
   language,
   variant,
   title,
+  backHref,
+  nav,
 }: {
   shop: ShopFace;
   language: Language;
   variant: 'minimal' | 'back' | 'home';
   title?: string;
+  backHref?: string;
+  nav?: HeaderNav;
 }) {
   const words = new Words(language);
   const face = (
@@ -92,17 +112,45 @@ export function Header({
       </div>
     );
   }
+  const links = nav ? (
+    <nav className="nav">
+      {nav.categories.slice(0, NAV_CATEGORIES).map((category) => (
+        <a
+          key={category.id}
+          href={`/c/${category.slug}`}
+          className={category.slug === nav.current ? 'on' : undefined}
+        >
+          {category.name}
+        </a>
+      ))}
+    </nav>
+  ) : null;
+  const tools = (phoneSearch: boolean) =>
+    nav ? (
+      <>
+        <SearchTools language={language} categories={nav.categories} phoneButton={phoneSearch} />
+        <CartButton
+          language={language}
+          shopPhone={nav.shopPhone}
+          areaId={nav.areaId}
+          startOpen={nav.startCartOpen}
+        />
+      </>
+    ) : (
+      <LanguageSwitch language={language} as="pill" />
+    );
   if (variant === 'back') {
     return (
       <div className="hdr">
-        <a className="back" href="/" aria-label={words.t('back')}>
+        <a className="back" href={backHref ?? '/'} aria-label={words.t('back')}>
           <Icon name="back" />
         </a>
         <span className="ttl">{title}</span>
         <a className="shop donly" href="/">
           {face}
         </a>
-        <LanguageSwitch language={language} as="pill" />
+        {links}
+        {tools(false)}
       </div>
     );
   }
@@ -111,13 +159,15 @@ export function Header({
       <a className="shop" href="/">
         {face}
       </a>
-      <LanguageSwitch language={language} as="pill" />
+      {links}
+      {tools(true)}
     </div>
   );
 }
 
 /** SFT-21: the shop's name and logo, and whichever of its phone, email and address are set; none set, no contact
-    block. The landing page's links lead only out to the shop, and only while its storefront is on (SFT-16). */
+    block. The storefront's links lead to its categories and the language (tracking and the account join with
+    Phase 4); the landing page's lead only out to the shop, and only while its storefront is on (SFT-16). */
 export function Footer({
   shop,
   language,
@@ -165,6 +215,7 @@ export function Footer({
         </div>
         <div className="links">
           {landing && storefrontOn ? <a href="/">{words.t('browse_shop')}</a> : null}
+          {landing ? null : <a href="/#categories">{words.t('categories')}</a>}
           <LanguageSwitch language={language} as="link" />
         </div>
         <div className="pb">

@@ -35,6 +35,12 @@ export class Words {
     return text;
   }
 
+  /** A count in words, in its singular form for exactly one. */
+  count(key: 'products_n' | 'cart_n', n: number): string {
+    const one = key === 'products_n' ? 'products_one' : 'cart_one';
+    return this.t(n === 1 ? one : key, { n });
+  }
+
   /** One of two words the shop or the platform gave in both languages. */
   pick(bilingual: { bn: string; en: string }): string {
     return this.language === 'bn' ? bilingual.bn : bilingual.en;

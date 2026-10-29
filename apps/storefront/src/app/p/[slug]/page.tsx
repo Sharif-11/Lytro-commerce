@@ -1,15 +1,20 @@
 import type { Metadata } from 'next';
 import { notFound, permanentRedirect } from 'next/navigation';
 import { OfflinePage } from '@/components/pages';
+import { ProductCard } from '@/components/product-card';
 import { ProductView } from '@/components/product/product-view';
-import { Footer, Header, Shell } from '@/components/shell';
-import { categoryName, keptQuery, productOpening } from '@/lib/product/opening';
+import { ShopShell } from '@/components/shop-shell';
+import { categoryById, findCategory } from '@/lib/catalogue/browse';
+import { keptQuery, productOpening } from '@/lib/product/opening';
 import { productMetadata } from '@/lib/product/product-metadata';
-import { loadProduct, loadShopPage, storefrontApi } from '@/lib/storefront';
+import { loadFrame, loadProduct, loadShopPage, storefrontApi } from '@/lib/storefront';
 
 // SFT-04: a product's page in the shop's storefront, at /p/<slug>. Every request is rendered and counted (SFT-15);
 // nothing here is kept by a shared cache.
 export const dynamic = 'force-dynamic';
+
+// Slice 12b's read: "You may also like" shows up to eight from the product's main category.
+const ALSO_LIKE = 8;
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -36,21 +41,33 @@ export default async function ProductPage({ params, searchParams }: Props) {
   if (read.kind === 'moved') permanentRedirect(`/p/${read.slug}${keptQuery(v)}`);
 
   const { product } = read;
-  const [opening, categories] = await Promise.all([
-    productOpening(page, product, v),
-    storefrontApi.categories(page.shop, page.shopper),
-  ]);
-  const language = page.words.language;
+  const [opening, frame] = await Promise.all([productOpening(page, product, v), loadFrame(page)]);
+  // Its main category, when the shop shows it: the way back, the header link it lights, and "You may also like".
+  const primary = categoryById(frame.categories, product.primaryCategoryId);
+  const found = primary ? findCategory(frame.categories, primary.slug) : null;
+  const related = primary
+    ? await storefrontApi.products(page.shop, page.shopper, {
+        category: primary.slug,
+        limit: ALSO_LIKE + 1,
+      })
+    : null;
+  const also = (related?.products ?? [])
+    .filter((card) => card.id !== product.id)
+    .slice(0, ALSO_LIKE);
+  const { words } = page;
+  const now = Date.now();
   return (
-    <Shell
-      language={language}
-      header={<Header shop={page.info} language={language} variant="back" title={product.name} />}
-      footer={<Footer shop={page.info} language={language} landing={false} storefrontOn />}
+    <ShopShell
+      page={page}
+      frame={frame}
+      back={primary ? `/c/${primary.slug}` : '/'}
+      title={product.name}
+      current={found?.top.slug}
     >
       <ProductView
-        language={language}
+        language={words.language}
         product={product}
-        category={categoryName(categories, product.primaryCategoryId)}
+        category={primary?.name ?? null}
         zones={page.info.deliveryZones}
         shopPhone={page.info.contact.phone}
         linkedVariantId={opening.linkedVariantId}
@@ -58,6 +75,18 @@ export default async function ProductPage({ params, searchParams }: Props) {
         initialEstimate={opening.estimate}
         shareUrl={`${page.shop.origin}/p/${product.slug}`}
       />
-    </Shell>
+      {also.length > 0 ? (
+        <section className="sec">
+          <div className="sechead">
+            <h2>{words.t('also_like')}</h2>
+          </div>
+          <div className="rail">
+            {also.map((card) => (
+              <ProductCard key={card.id} product={card} words={words} now={now} />
+            ))}
+          </div>
+        </section>
+      ) : null}
+    </ShopShell>
   );
 }

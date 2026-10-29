@@ -51,7 +51,8 @@ export function LandingView(props: LandingViewProps) {
 
   const variant = choice.variantFor(selection);
   const soldOut = product.variants.every((each) => !each.available);
-  const items = variant ? [{ variantId: variant.id, quantity }] : null;
+  // Only what can be bought is priced: a sold-out choice keeps the last answer instead of reading as undeliverable.
+  const items = variant?.available ? [{ variantId: variant.id, quantity }] : null;
   const estimate = useDeliveryEstimate(props.initialEstimate, items, thanaId);
   const price = variant?.price ?? product.minPrice;
   const itemTotal = price === null ? 0 : Number(price) * quantity;

@@ -75,3 +75,57 @@ a.card {
   opacity: 1;
   object-fit: cover;
 }
+
+/* Slice 12b: links where the prototype draws a clickable span or button -- the header's categories, the chips, the
+   category tiles, a section's "See all", the hero's button, a cart line's name -- and the buttons it draws as spans. */
+@container (min-width: 1024px) {
+  .hdr .nav a {
+    height: 38px;
+    padding: 0 12px;
+    border-radius: var(--r-control);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--muted);
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+  }
+  .hdr .nav a.on,
+  .hdr .nav a:hover {
+    background: var(--sunken);
+    color: var(--text);
+  }
+}
+a.chip,
+a.cat,
+.sechead a.lnk,
+.hero a.cta,
+.cl a.nm {
+  text-decoration: none;
+}
+a.cat,
+.cl a.nm {
+  color: inherit;
+}
+.cl button.rm {
+  align-self: flex-start;
+  padding: 0;
+}
+
+/* A category's photo in its tile, and a card's swatch photo and its "+n" when it has more than it shows. */
+.cat .img img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.card .sw i {
+  background-position: center;
+  background-size: cover;
+}
+.card .sw .more {
+  font-size: 11px;
+  line-height: 12px;
+  color: var(--subtle);
+}

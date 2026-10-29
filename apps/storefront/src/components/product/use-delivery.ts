@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import type { DeliveryEstimate, EstimateItem, Locations } from '@/lib/api/storefront-api';
 
 // SFT-20, LND-08: the delivery charge for what the shopper has picked, worked out by the server's one pricing function
-// (never here). The page's first render brings the first answer; a change of item, quantity or area asks again.
+// (never here). The page's first render brings the first answer; a change of item, quantity or area asks again. With
+// no first answer (the cart, Slice 12b), it asks at once.
 export function useDeliveryEstimate(
   initial: DeliveryEstimate | null,
   items: EstimateItem[] | null,
@@ -12,7 +13,7 @@ export function useDeliveryEstimate(
 ): DeliveryEstimate | null {
   const [estimate, setEstimate] = useState(initial);
   const key = items === null ? null : JSON.stringify({ items, areaId });
-  const answered = useRef(key);
+  const answered = useRef(initial === null ? null : key);
   useEffect(() => {
     if (key === null || key === answered.current) return;
     const controller = new AbortController();

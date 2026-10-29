@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { DeliveryEstimate, DeliveryZoneView, PublicProduct } from '@/lib/api/storefront-api';
 import { areaCookieValue } from '@/lib/area';
-import { browserCart } from '@/lib/cart/cart-store';
+import { browserCart, CART_OPEN } from '@/lib/cart/cart-store';
 import { type Language, money, Words } from '@/lib/i18n/words';
 import { VariantChoice } from '@/lib/product/variant-choice';
 import { Icon } from '../icon';
@@ -57,7 +57,8 @@ export function ProductView(props: ProductViewProps) {
   const variant = choice.variantFor(selection);
   const soldOut = product.variants.every((each) => !each.available);
   const unavailable = !soldOut && (variant === null || !variant.available);
-  const items = variant ? [{ variantId: variant.id, quantity }] : null;
+  // Only what can be bought is priced: a sold-out choice keeps the last answer instead of reading as undeliverable.
+  const items = variant?.available ? [{ variantId: variant.id, quantity }] : null;
   const estimate = useDeliveryEstimate(props.initialEstimate, items, areaId);
 
   useEffect(() => {
@@ -245,6 +246,16 @@ export function ProductView(props: ProductViewProps) {
         <div className="toast" role="status">
           <Icon name="check" />
           <span>{words.t('added')}</span>
+          <button
+            type="button"
+            className="btn"
+            onClick={() => {
+              setToast(false);
+              window.dispatchEvent(new Event(CART_OPEN));
+            }}
+          >
+            {words.t('view_cart')}
+          </button>
         </div>
       ) : null}
       {sheet === 'size' && product.sizeChart ? (

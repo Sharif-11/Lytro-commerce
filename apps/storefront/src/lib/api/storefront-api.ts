@@ -11,7 +11,9 @@ import type { ServerAnswer, ServerApi } from './server-api';
 
 // What the storefront reads from the server, as the server answers it (API-CONTRACT §8.4, §8.5; Slice 12). The shop a
 // host serves comes from the internal context route; everything else is the public API, called with that shop's own
-// storefront key, from the shopper's address, so each page is counted and limited as the shop's (SFT-11, RTE-04).
+// storefront key, from the shopper's address, so each page is counted and limited as the shop's (SFT-11, RTE-04). The
+// shop's details and its category tree, which every page's frame shows, are kept a minute per shop (Slice 12b's read):
+// each page still makes its own counted read.
 
 export type Language = 'bn' | 'en';
 export interface Bilingual {
@@ -110,7 +112,7 @@ export interface PublicProduct {
   deliveryZoneIds: string[];
 }
 
-/** A product as a list shows it (PRD-09). */
+/** A product as a list shows it (PRD-09): with its card's swatches (ATR-18) and when it was added (Slice 12b). */
 export interface ProductCard {
   id: string;
   slug: string;
@@ -119,6 +121,23 @@ export interface ProductCard {
   maxPrice: string | null;
   stockState: StockState;
   image: ImageView | null;
+  createdAt: string;
+  swatches: OptionValue[];
+}
+
+export interface ProductPage {
+  products: ProductCard[];
+  nextCursor: string | null;
+}
+
+/** PRD-09, CCH-11, CCH-12: which products a list asks for. The order is the server's default when not given. */
+export interface ProductQuery {
+  category?: string;
+  search?: string;
+  sort?: string;
+  inStock?: boolean;
+  cursor?: string;
+  limit?: number;
 }
 
 export interface PublicCategory {
@@ -126,6 +145,8 @@ export interface PublicCategory {
   slug: string;
   name: string;
   image: ImageView | null;
+  /** Its active products, its subcategories' included (Slice 12b). */
+  productCount: number;
   children: PublicCategory[];
 }
 
@@ -144,7 +165,19 @@ export interface EstimateItem {
   variantId: string;
   quantity: number;
 }
+/** SFT-20, Slice 12b: one item as it stands now. */
+export interface EstimateLine {
+  variantId: string;
+  onSale: boolean;
+  price: string | null;
+  stockState: StockState | null;
+  available: boolean;
+  itemTotal: string | null;
+  advance: string | null;
+}
 export interface DeliveryEstimate {
+  lines: EstimateLine[];
+  subtotal: string;
   zone: DeliveryZoneView | null;
   deliveryCharge: string | null;
   range: { from: string; to: string } | null;
@@ -166,10 +199,14 @@ export type ProductRead =
   { kind: 'found'; product: PublicProduct } | { kind: 'moved'; slug: string } | { kind: 'missing' };
 
 const CONTEXT_TTL_MS = 30_000;
+// Slice 12b's read: the frame every page shows -- the shop's details and its categories -- is read at most once a
+// minute per shop, as an outside site's server could keep it; a logo or a category change shows within the minute.
+const SHELL_TTL_MS = 60_000;
 
 /** The server's answers the storefront's pages need, for the shop the shopper's host names. */
 export class StorefrontApi {
   private readonly contexts = new Map<string, { at: number; context: StorefrontContext }>();
+  private readonly shells = new Map<string, { at: number; read: Promise<unknown> }>();
 
   constructor(
     private readonly server: Pick<ServerApi, 'send'>,
@@ -196,49 +233,47 @@ export class StorefrontApi {
     return answer.data;
   }
 
-  async shop(shop: StorefrontShopContext, shopper: ShopperRequest): Promise<PublicShop> {
-    return StorefrontApi.required(
-      await this.call<PublicShop>(shop, shopper, 'GET', '/v1/shop'),
-      'the shop',
+  shop(shop: StorefrontShopContext, shopper: ShopperRequest): Promise<PublicShop> {
+    return this.kept(`${shop.slug} shop`, async () =>
+      StorefrontApi.required(
+        await this.call<PublicShop>(shop, shopper, 'GET', '/v1/shop'),
+        'the shop',
+      ),
     );
   }
 
-  async categories(
-    shop: StorefrontShopContext,
-    shopper: ShopperRequest,
-  ): Promise<PublicCategory[]> {
-    return StorefrontApi.required(
-      await this.call<{ categories: PublicCategory[] }>(
-        shop,
-        shopper,
-        'GET',
-        '/v1/catalogue/categories',
-      ),
-      'the categories',
-    ).categories;
+  categories(shop: StorefrontShopContext, shopper: ShopperRequest): Promise<PublicCategory[]> {
+    return this.kept(
+      `${shop.slug} categories`,
+      async () =>
+        StorefrontApi.required(
+          await this.call<{ categories: PublicCategory[] }>(
+            shop,
+            shopper,
+            'GET',
+            '/v1/catalogue/categories',
+          ),
+          'the categories',
+        ).categories,
+    );
   }
 
-  /** A page of the shop's products, newest first unless asked otherwise (PRD-09). */
+  /** A page of the shop's products (PRD-09): a category's, a search's, only what is in stock, from a cursor. Null for
+      a category the server no longer shows, as one hidden since the tree was read. */
   async products(
     shop: StorefrontShopContext,
     shopper: ShopperRequest,
-    query: { category?: string; sort?: string; limit?: number },
-  ): Promise<{ products: ProductCard[]; nextCursor: string | null }> {
-    const search = new URLSearchParams();
-    if (query.category) search.set('category', query.category);
-    if (query.sort) search.set('sort', query.sort);
-    if (query.limit) search.set('limit', String(query.limit));
-    const encoded = search.toString();
-    const suffix = encoded === '' ? '' : `?${encoded}`;
-    return StorefrontApi.required(
-      await this.call<{ products: ProductCard[]; nextCursor: string | null }>(
-        shop,
-        shopper,
-        'GET',
-        `/v1/catalogue/products${suffix}`,
-      ),
-      'the products',
+    query: ProductQuery,
+  ): Promise<ProductPage | null> {
+    const suffix = productQueryString(query);
+    const answer = await this.call<ProductPage>(
+      shop,
+      shopper,
+      'GET',
+      `/v1/catalogue/products${suffix === '' ? '' : `?${suffix}`}`,
     );
+    if (answer.status === 404) return null;
+    return StorefrontApi.required(answer, 'the products');
   }
 
   /** A product by its link. An old link answers with the product under its current one, so the page redirects. */
@@ -267,8 +302,8 @@ export class StorefrontApi {
     );
   }
 
-  /** What delivering these items would cost, to a thana or (before one is picked) across the shop's zones. Null when
-      the server refuses the items, as for a product taken down since the page was drawn. */
+  /** The items as they stand now, and what delivering the ones that can be ordered would cost, to a thana or (before
+      one is picked) across the shop's zones. Null when the server refuses the request itself. */
   async estimate(
     shop: StorefrontShopContext,
     shopper: ShopperRequest,
@@ -283,6 +318,18 @@ export class StorefrontApi {
     );
     if (answer.status === 422 || answer.status === 400) return null;
     return StorefrontApi.required(answer, 'the delivery estimate');
+  }
+
+  /** One shared read per key for SHELL_TTL_MS; a failed read is not kept, so the next page asks again. */
+  private kept<T>(key: string, read: () => Promise<T>): Promise<T> {
+    const held = this.shells.get(key);
+    if (held && this.now() - held.at < SHELL_TTL_MS) return held.read as Promise<T>;
+    const fresh = read();
+    this.shells.set(key, { at: this.now(), read: fresh });
+    fresh.catch(() => {
+      if (this.shells.get(key)?.read === fresh) this.shells.delete(key);
+    });
+    return fresh;
   }
 
   private call<T>(
@@ -330,4 +377,16 @@ export class StorefrontApi {
       `the server did not give ${what} (status ${String(answer.status)}${answer.code ? `, ${answer.code}` : ''})`,
     );
   }
+}
+
+/** A list request's query string, its parameters in one order, so equal requests read alike (CCH-03). */
+export function productQueryString(query: ProductQuery): string {
+  const search = new URLSearchParams();
+  if (query.category) search.set('category', query.category);
+  if (query.search) search.set('search', query.search);
+  if (query.sort) search.set('sort', query.sort);
+  if (query.inStock) search.set('inStock', 'true');
+  if (query.cursor) search.set('cursor', query.cursor);
+  if (query.limit) search.set('limit', String(query.limit));
+  return search.toString();
 }
