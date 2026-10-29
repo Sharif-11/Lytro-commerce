@@ -17,17 +17,27 @@ const TYPING_REST_MS = 250;
 /**
  * Add stock from the Stock page's header or the + menu (Part 20's `stock-add-pick`, design v3.7): which product arrived,
  * found by name, each with its variants and what it holds. Made-to-order products count no stock, so they are left out.
+ * A purchase's Add item asks the same (Part 21's `sh-po-add-item`) in its own words, with no note under the list.
  */
 export function ProductPickSheet({
   open,
+  title,
+  hint,
+  note,
   onPick,
   onClose,
 }: {
   open: boolean;
+  /** Add stock's words when left out. */
+  title?: string;
+  hint?: string;
+  /** Null for none. */
+  note?: string | null;
   onPick: (product: StockPageProduct) => void;
   onClose: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('shop');
+  const footnote = note === undefined ? t('addPickNote') : note;
   const [typed, setTyped] = useState('');
   const [search, setSearch] = useState('');
   const linesOf = useStockLines();
@@ -53,10 +63,10 @@ export function ProductPickSheet({
     .filter((product) => product.stockTracking === StockTracking.Tracked);
 
   return (
-    <Sheet open={open} title={t('addStockTitle')} onClose={onClose}>
+    <Sheet open={open} title={title ?? t('addStockTitle')} onClose={onClose}>
       {open ? (
         <>
-          <p className="text-[14px] text-fg-muted">{t('addPickHint')}</p>
+          <p className="text-[14px] text-fg-muted">{hint ?? t('addPickHint')}</p>
           {/* The prototype's `.toolrow`: the box keeps its 44 px in a column. */}
           <div className="flex items-center gap-2">
             <SearchField
@@ -115,7 +125,7 @@ export function ProductPickSheet({
               {t('plMore')}
             </Button>
           ) : null}
-          <p className="text-[14px] text-fg-muted">{t('addPickNote')}</p>
+          {footnote ? <p className="text-[14px] text-fg-muted">{footnote}</p> : null}
         </>
       ) : null}
     </Sheet>

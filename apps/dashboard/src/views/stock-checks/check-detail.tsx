@@ -66,7 +66,7 @@ export function CheckDetailView({ checkId }: { checkId: string }): React.JSX.Ele
   const { valueGained, valueLost } = saved.totals;
 
   return (
-    <ShellPage title={`#${String(saved.number)}`}>
+    <ShellPage title={`#${String(saved.number)}`} titleInHeader>
       <p className="-mt-3.5 text-[14px] text-fg-muted lg:mt-0">{words.about(saved)}</p>
       <StatRow label={t('linesL')} tight>
         <StatTile

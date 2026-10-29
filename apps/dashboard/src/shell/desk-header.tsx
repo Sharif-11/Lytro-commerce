@@ -24,18 +24,19 @@ interface DeskHeaderProps {
  */
 export function DeskHeader({ canSearch, canAdd }: DeskHeaderProps): React.JSX.Element {
   const { t, i18n } = useTranslation('shell');
-  const { slug, tenant, screen, personName, openPlus } = useShell();
+  const { slug, tenant, screen, personName, openPlus, recordTitle } = useShell();
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const initial = initialOf(personName);
   return (
     <header className="hidden h-16 flex-none items-center gap-3 border-b border-line bg-surface px-8 lg:flex">
       <h1 className="min-w-0 flex-1 overflow-hidden text-[20px] font-bold text-ellipsis whitespace-nowrap">
-        {screen?.deskTitle
-          ? t(screen.deskTitle)
-          : screen?.title
-            ? t(screen.title)
-            : tenant.shopName}
+        {recordTitle ??
+          (screen?.deskTitle
+            ? t(screen.deskTitle)
+            : screen?.title
+              ? t(screen.title)
+              : tenant.shopName)}
       </h1>
       {canSearch ? (
         <form

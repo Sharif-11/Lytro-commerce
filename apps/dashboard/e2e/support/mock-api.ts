@@ -45,6 +45,7 @@ import {
   type ProductsFixture,
 } from './products';
 import { figuresAnswer, shopBatchesAnswer, stockPageAnswer, stockRead, stockWrite } from './stock';
+import { purchasingAnswer } from './purchases';
 import { checksAnswer } from './stock-checks';
 import { variantRead } from './variants';
 import { PRESETS } from './presets';
@@ -717,6 +718,17 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
     if (method === 'GET' && path === '/media/usage') return ok(storageAnswer(products));
     // Slice 11.7c: the zones a product may be limited to.
     if (method === 'GET' && path === '/delivery-zones') return ok(zonesAnswer());
+    // Slice 11.10: purchases and suppliers, and a variant's purchases; costs only for someone who may see them.
+    const bought = purchasingAnswer(
+      method,
+      path,
+      url,
+      request.postDataJSON() as Record<string, unknown> | null,
+      products,
+      state.language,
+      state.isOwner || state.permissions.includes('inventory:manage'),
+    );
+    if (bought) return ok(bought.data);
     // Slice 11.7b: the attributes, option sets, a new product's defaults and a product's stock.
     const read = method === 'GET' ? variantRead(path, products, url) : undefined;
     if (read !== undefined) return ok(read);

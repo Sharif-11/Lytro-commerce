@@ -22,6 +22,7 @@ import { StockSheets, type StockSheet } from '../product/stock-card';
 import { CostSheet } from './cost-sheet';
 import { EditStockSheet } from './edit-stock-sheet';
 import { ProductPickSheet } from './product-pick-sheet';
+import { PurchaseHistorySheet } from './purchase-history-sheet';
 import { RowSheet } from './row-sheet';
 import { StockFigures } from './stock-figures';
 import { kindOf, stockedOf, useStockLines, wantsSeeing, type StockLine } from './stock-lines';
@@ -32,7 +33,7 @@ const TYPING_REST_MS = 250;
 
 /** The sheet over the page, on one product's row: its own, Edit stock, Average cost, or one of the Stock card's. */
 type Open =
-  | { kind: 'row' | 'edit' | 'cost'; product: StockPageProduct; variantId: string }
+  | { kind: 'row' | 'edit' | 'cost' | 'purchases'; product: StockPageProduct; variantId: string }
   | { kind: 'card'; product: StockPageProduct; sheet: StockSheet };
 
 /**
@@ -116,6 +117,7 @@ export function StockView({
   const rowOpen = open?.kind === 'row' ? lineOf(shown, open.variantId) : null;
   const editOpen = open?.kind === 'edit' ? lineOf(shown, open.variantId) : null;
   const costOpen = open?.kind === 'cost' ? lineOf(shown, open.variantId) : null;
+  const purchasesOpen = open?.kind === 'purchases' ? lineOf(shown, open.variantId) : null;
   const close = () => {
     setOpen(null);
   };
@@ -315,8 +317,8 @@ export function StockView({
         mayManage={mayManage}
         onChoose={(choice) => {
           if (!shown || !rowOpen) return;
-          if (choice === 'cost') {
-            setOpen({ kind: 'cost', product: shown, variantId: rowOpen.variantId });
+          if (choice === 'cost' || choice === 'purchases') {
+            setOpen({ kind: choice, product: shown, variantId: rowOpen.variantId });
           } else {
             setOpen({
               kind: 'card',
@@ -329,6 +331,11 @@ export function StockView({
       />
       <EditStockSheet product={editOpen ? shown : null} line={editOpen} onClose={close} />
       <CostSheet product={costOpen ? shown : null} line={costOpen} onClose={close} />
+      <PurchaseHistorySheet
+        product={purchasesOpen ? shown : null}
+        line={purchasesOpen}
+        onClose={close}
+      />
       {shown ? (
         <StockSheets
           sheet={open?.kind === 'card' ? open.sheet : null}

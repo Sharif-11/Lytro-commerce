@@ -21,7 +21,7 @@ export function optionalTextField(max: number) {
 }
 
 // PUR-01: a supplier's name, required. Unique among the shop's live suppliers, ignoring case (the server's check).
-const supplierNameField = z.string().trim().min(1).max(SUPPLIER_NAME_MAX_LENGTH);
+export const supplierNameField = z.string().trim().min(1).max(SUPPLIER_NAME_MAX_LENGTH);
 
 const supplierDetails = {
   phone: phoneField

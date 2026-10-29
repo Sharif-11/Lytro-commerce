@@ -6,6 +6,7 @@ import {
   MEASURED_STOCK_UNITS,
   OPEN_PURCHASE_STATUSES,
   PurchaseStatus,
+  SerialFormat,
   ServerFieldProblemCode,
   StockTracking,
   STOCK_HOLDER_KEY,
@@ -18,7 +19,8 @@ import { MissingReference } from '../../../common/errors/missing-reference';
 import { StockRefused } from '../../../common/errors/stock-refused';
 import { fromPaisa, quantityTimesCost } from '../../balance/services/money';
 import type { CatalogueTransactions } from '../../catalogue/ports/catalogue-stores';
-import { CatalogueActivity } from '../../catalogue/services/catalogue-activity';
+import { CatalogueActivity, type ResolvedActor } from '../../catalogue/services/catalogue-activity';
+import { ProductService } from '../../catalogue/services/product.service';
 import { optionIdsOfKey } from '../../catalogue/services/variant-matrix';
 import { CATALOGUE_TRANSACTIONS } from '../../catalogue/tokens';
 import type { CatalogueActor } from '../../catalogue/types/catalogue';
@@ -71,6 +73,9 @@ function itemView(row: PurchaseLineRow, canSeeCost: boolean): PurchaseItemView {
         : [],
     sharedStock: row.combinationKey === STOCK_HOLDER_KEY,
     stockUnit: row.stockUnit,
+    batchTracked: row.batchTracked ?? false,
+    serialTracked: row.serialTracked ?? false,
+    serialFormat: row.serialFormat ?? SerialFormat.Any,
     quantityOrdered: row.quantityOrdered,
     quantityReceived: row.quantityReceived,
     outstanding: quantityOf(outstanding),
@@ -101,6 +106,7 @@ export class PurchaseOrderService {
     @Inject(PURCHASE_RECEIPT_STORE) private readonly receipts: PurchaseReceiptStore,
     @Inject(SupplierService) private readonly suppliers: SupplierService,
     @Inject(CatalogueActivity) private readonly activity: CatalogueActivity,
+    @Inject(ProductService) private readonly catalogue: ProductService,
   ) {}
 
   list(
@@ -112,7 +118,7 @@ export class PurchaseOrderService {
       const { rows, total } = await this.orders.listOrders(
         tx,
         tenantId,
-        { status: query.status ?? null, supplierId: query.supplierId ?? null },
+        { statuses: query.status ?? null, supplierId: query.supplierId ?? null },
         { offset: (query.page - 1) * query.limit, limit: query.limit },
       );
       const units = await this.orders.unitsOf(
@@ -171,13 +177,11 @@ export class PurchaseOrderService {
   ): Promise<PurchaseOrderView> {
     const who = await this.activity.resolve(tenantId, actor);
     return this.transactions.run(async (tx) => {
-      if (input.supplierId) {
-        await this.suppliers.liveSupplier(tx, tenantId, input.supplierId, 'supplierId');
-      }
+      const supplierId = await this.supplierIdOf(tx, tenantId, input, who);
       const lines = await this.linesOf(tx, tenantId, input.items);
       const id = await this.written(() =>
         this.orders.insertOrder(tx, tenantId, {
-          supplierId: input.supplierId ?? null,
+          supplierId: supplierId ?? null,
           expectedOn: input.expectedOn ?? null,
           notes: input.notes ?? null,
         }),
@@ -212,20 +216,19 @@ export class PurchaseOrderService {
         throw new ApiError('conflict', 'PurchaseFinished', {});
       }
       const stored = await this.orders.listLines(tx, tenantId, id);
+      // A name typed is found or added inside this change, so a refused change leaves no supplier behind.
+      const supplierId = await this.supplierIdOf(tx, tenantId, input, who);
       if (
         (input.items !== undefined ||
-          (input.supplierId !== undefined && input.supplierId !== order.supplierId)) &&
+          (supplierId !== undefined && supplierId !== order.supplierId)) &&
         (await this.hasDeliveries(tx, tenantId, order, stored))
       ) {
         throw new ApiError('conflict', 'PurchaseHasDeliveries', {});
       }
       const patch: PurchaseOrderPatch = {};
       const changed: string[] = [];
-      if (input.supplierId !== undefined && input.supplierId !== order.supplierId) {
-        if (input.supplierId !== null) {
-          await this.suppliers.liveSupplier(tx, tenantId, input.supplierId, 'supplierId');
-        }
-        patch.supplierId = input.supplierId;
+      if (supplierId !== undefined && supplierId !== order.supplierId) {
+        patch.supplierId = supplierId;
         changed.push('supplierId');
       }
       if (input.expectedOn !== undefined && input.expectedOn !== order.expectedOn) {
@@ -527,6 +530,25 @@ export class PurchaseOrderService {
   }
 
   /** PUR-02, PUR-04: a purchase as the shop sees it, inside a transaction already open; its deliveries oldest first. */
+  /**
+   * The supplier a purchase names: one picked, which must be live; one typed, found (ignoring case) or added, as Add
+   * stock's arrivals are (PUR-01); undefined when it names none.
+   */
+  private async supplierIdOf(
+    tx: Transaction,
+    tenantId: string,
+    input: { supplierId?: string | null; supplierName?: string },
+    who: ResolvedActor,
+  ): Promise<string | null | undefined> {
+    if (input.supplierName !== undefined) {
+      return (await this.suppliers.namedSupplier(tx, tenantId, input.supplierName, who)).id;
+    }
+    if (input.supplierId) {
+      await this.suppliers.liveSupplier(tx, tenantId, input.supplierId, 'supplierId');
+    }
+    return input.supplierId;
+  }
+
   async view(
     tx: Transaction,
     tenantId: string,
@@ -537,6 +559,13 @@ export class PurchaseOrderService {
     if (!order) throw new ApiError('not_found', 'PurchaseNotFound', {});
     const lines = await this.orders.listLines(tx, tenantId, id);
     const items = lines.map((row) => itemView(row, canSeeCost));
+    // What names each item's variant: its live product's splits; a shared stock is named by its product alone.
+    const named = new Map<string, string[]>();
+    for (const row of lines) {
+      if (row.productName === null || row.combinationKey === STOCK_HOLDER_KEY) continue;
+      named.set(row.productId, [...(named.get(row.productId) ?? []), row.variantId]);
+    }
+    const splits = await this.catalogue.variantAttributesWithin(tx, tenantId, named);
     const delivered = await this.receipts.listForOrder(tx, tenantId, id);
     // A delivery's items in the order the purchase lists them.
     const positions = new Map(lines.map((row) => [row.id, row.position]));
@@ -554,6 +583,7 @@ export class PurchaseOrderService {
       orderedAt: order.orderedAt,
       closeReason: order.closeReason,
       items,
+      products: [...splits].map(([productId, own]) => ({ productId, splits: own })),
       receipts: delivered.receipts.map((receipt) => ({
         id: receipt.id,
         receivedAt: receipt.receivedAt,

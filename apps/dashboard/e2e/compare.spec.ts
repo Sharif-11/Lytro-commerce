@@ -28,6 +28,7 @@ import {
   stockShop,
 } from './support/stock';
 import { drawnLibrary } from './support/variants';
+import { drawnPurchases, drawnSuppliers, otherStates } from './support/purchases';
 import { drawnPasswords, drawnTeam } from './support/team';
 import { DAY_ONE, mockApi, SLUG, type Language, type ShopState } from './support/mock-api';
 import { mockOnboarding, TWELVE_MONTHS, typeCode, type Journey } from './support/onboarding-api';
@@ -378,6 +379,7 @@ function productPairs(): Pair[] {
     ...stockPagePairs(),
     ...stockCheckPairs(),
     ...expiringPairs(),
+    ...purchasePairs(),
     ...categoryPairs(),
     ...attributePairs(),
   ];
@@ -852,6 +854,12 @@ function stockCheckPairs(): Pair[] {
       },
     }),
     one('stock-check-detail', '/stock/checks/sc-12'),
+    // Design v3.10: its number in the desktop header.
+    one('stock-check-detail', '/stock/checks/sc-12', {
+      device: 'desktop',
+      language: 'en',
+      state: { products: stockShop('en') },
+    }),
   ];
 }
 
@@ -890,6 +898,140 @@ function expiringPairs(): Pair[] {
     }),
     one('stock-value', '/stock/value', { state: { products: stockShop('bn') } }),
     one('stock-value', '/stock/value', { state: { products: stockShop('en') } }, 'desktop', 'en'),
+  ];
+}
+
+/**
+ * Purchases and suppliers (§7.21, Slice 11.10, the prototype's purchasing screens and Part 21): Open, All, none yet and
+ * for staff; Order from supplier with its supplier typed, Add item and its variants; a draft, a placed purchase being
+ * changed, partly received, rejected in full, received, closed short and cancelled; It arrived, a delivery, the
+ * confirms; Suppliers, archived, none yet and their sheets; and a variant's purchases from its Stock row.
+ */
+function purchasePairs(): Pair[] {
+  const shop = (language: Language) => ({
+    ...stockShop(language),
+    purchasing: {
+      suppliers: drawnSuppliers(),
+      purchases: [...drawnPurchases(language), ...otherStates(language)],
+    },
+  });
+  const one = (
+    name: string,
+    path: string,
+    more: Partial<Pair> = {},
+    device: Device = 'phone',
+    language: Language = 'bn',
+  ): Pair => ({
+    name,
+    screen: name,
+    device,
+    language,
+    path,
+    state: { products: shop(language) },
+    ...more,
+  });
+  const staff = { isOwner: false, permissions: ['inventory:read', 'products:read'] };
+  const none = { ...stockShop('bn'), purchasing: { suppliers: [], purchases: [] } };
+  const main = (page: Page) => page.getByRole('main');
+  const sheet = (page: Page) => page.getByRole('dialog').last();
+  const ordering = async (page: Page) => {
+    await main(page).getByRole('button', { name: 'সাপ্লায়ারকে অর্ডার' }).first().click();
+  };
+  const adding = async (page: Page) => {
+    await ordering(page);
+    await sheet(page).getByRole('button', { name: 'আইটেম যোগ' }).click();
+  };
+  const press = (name: string | RegExp) => async (page: Page) => {
+    await main(page).getByRole('button', { name }).first().click();
+  };
+  // PO-0007 with the face cream and a Galaxy A15 added, as Part 21's `sh-receive-full` draws its three kinds of item.
+  const kept = () => {
+    const base = shop('bn');
+    const seven = base.purchasing.purchases.find((each) => each.id === 'po-7');
+    if (seven) {
+      seven.items = [
+        { id: 'po-7-i1', variantId: 'p-1-v2', ordered: 20, received: 0, unitCost: '280.00' },
+        { id: 'po-7-fc', variantId: 'p-fc-v1', ordered: 24, received: 0, unitCost: '310.00' },
+        { id: 'po-7-gx', variantId: 'p-ga-v1', ordered: 5, received: 0, unitCost: null },
+      ];
+    }
+    return {
+      ...base,
+      products: [
+        ...base.products,
+        ...creamShop().products.filter((each) => each.id === 'p-fc'),
+        ...galaxyShop('bn').products,
+      ],
+    };
+  };
+  return [
+    one('purchases-21', '/purchases'),
+    one('purchases-21', '/purchases', {}, 'desktop', 'en'),
+    one('purchases-all-21', '/purchases?seg=all'),
+    one('purchases-empty', '/purchases', { state: { products: none } }),
+    one('purchases-staff', '/purchases', { state: { products: shop('bn'), ...staff } }),
+    one('purchase-new', '/purchases', { then: ordering }),
+    one('sh-po-supplier', '/purchases', {
+      then: async (page) => {
+        await ordering(page);
+        await sheet(page).getByLabel('সাপ্লায়ার').fill('রহ');
+      },
+    }),
+    one('sh-po-add-item', '/purchases', { then: adding }),
+    one('sh-po-add-sizes', '/purchases', {
+      then: async (page) => {
+        await adding(page);
+        await sheet(page)
+          .getByRole('button', { name: /^কটন টি-শার্ট/ })
+          .click();
+        for (const size of ['M', 'L', 'XL']) {
+          await sheet(page)
+            .getByRole('checkbox', { name: new RegExp(`^${size} · কালো`) })
+            .check();
+        }
+      },
+    }),
+    one('purchase-draft', '/purchases/po-draft'),
+    one('sh-delete-draft', '/purchases/po-draft', { then: press('ড্রাফট মুছুন') }),
+    one('purchase-edit-placed', '/purchases/po-7'),
+    one('purchase-edit-placed', '/purchases/po-7', {}, 'desktop', 'en'),
+    one('sh-cancel-purchase', '/purchases/po-7', { then: press('অর্ডার বাতিল') }),
+    one('sh-receive-full', '/purchases/po-7', {
+      state: { products: kept() },
+      then: async (page) => {
+        await press('মাল এসেছে')(page);
+        const first = sheet(page).locator('div.rounded-card').first();
+        await first.getByLabel('নিয়েছেন').fill('18');
+        await first.getByLabel('ফেরত').fill('2');
+        const cream = sheet(page).locator('div.rounded-card').nth(1);
+        await cream.getByLabel('ব্যাচ কোড').fill('FC-1209');
+        await cream.getByLabel('মেয়াদ').fill('2027-06-30');
+      },
+    }),
+    one('purchase-partial', '/purchases/po-6'),
+    one('sh-delivery', '/purchases/po-6', { then: press(/^40 পিস নেওয়া/) }),
+    one('sh-close-short', '/purchases/po-6', { then: press('কম মালে বন্ধ করুন') }),
+    one('purchase-rejected-only', '/purchases/po-9'),
+    one('purchase-received', '/purchases/po-5'),
+    one('purchase-closed', '/purchases/po-4'),
+    one('purchase-cancelled', '/purchases/po-3'),
+    one('purchase-staff', '/purchases/po-6', { state: { products: shop('bn'), ...staff } }),
+    one('suppliers', '/purchases/suppliers'),
+    one('sh-supplier', '/purchases/suppliers', { then: press(/রহিম ট্রেডার্স/) }),
+    one('sh-supplier-new', '/purchases/suppliers', { then: press('নতুন সাপ্লায়ার') }),
+    one('suppliers-archived', '/purchases/suppliers?archived=1'),
+    one('suppliers-empty', '/purchases/suppliers', { state: { products: none } }),
+    one('stock-row-sheet-purchases', '/stock', {
+      then: press(/^L স্টক/),
+    }),
+    one('sh-purchase-history', '/stock', {
+      then: async (page) => {
+        await press(/^L স্টক/)(page);
+        await sheet(page)
+          .getByRole('button', { name: /^কেনাকাটা/ })
+          .click();
+      },
+    }),
   ];
 }
 

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PageFrame, PageTitle } from '@/components/ui/page';
 import { SectionChips } from './section-chips';
@@ -12,6 +12,11 @@ interface ShellPageProps {
   actions?: ReactNode;
   /** The hub's section chips; a screen below its section draws none unless its drawing has them (Team's Roles). */
   sectionChips?: boolean;
+  /**
+   * The title names one record (a purchase's number, a stock check's): from 1024 px, where the page's own title is
+   * hidden, the header carries it in place of the section's (design v3.10).
+   */
+  titleInHeader?: boolean;
   children: ReactNode;
 }
 
@@ -23,10 +28,20 @@ export function ShellPage({
   title,
   actions,
   sectionChips,
+  titleInHeader = false,
   children,
 }: ShellPageProps): React.JSX.Element {
   const { t } = useTranslation('shell');
-  const { screen, tenant } = useShell();
+  const { screen, tenant, setRecordTitle } = useShell();
+  const record = titleInHeader && typeof title === 'string' ? title : null;
+
+  useEffect(() => {
+    setRecordTitle(record);
+    return () => {
+      setRecordTitle(null);
+    };
+  }, [record, setRecordTitle]);
+
   return (
     <PageFrame>
       <ShellBanner />

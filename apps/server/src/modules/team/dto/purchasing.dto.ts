@@ -6,10 +6,12 @@ import {
   createSupplierSchema,
   PurchaseStatus,
   receivePurchaseSchema,
+  SerialFormat,
   StockUnit,
   updatePurchaseOrderSchema,
   updateSupplierSchema,
 } from '@lytronix/validators';
+import { variantAttributeViewSchema } from './catalogue-response.dto';
 import { unitQuantitySchema } from './inventory.dto';
 
 // DTO classes built from the shared schemas, so each request shape is written once (ENGINEERING §4).
@@ -67,12 +69,18 @@ const purchaseOrderViewSchema = z.object({
       optionIds: z.array(z.string()),
       sharedStock: z.boolean(),
       stockUnit: z.nativeEnum(StockUnit).nullable(),
+      batchTracked: z.boolean(),
+      serialTracked: z.boolean(),
+      serialFormat: z.nativeEnum(SerialFormat),
       quantityOrdered: z.string(),
       quantityReceived: z.string(),
       outstanding: z.string(),
       unitCost: z.string().nullable().optional(),
       total: z.string().nullable().optional(),
     }),
+  ),
+  products: z.array(
+    z.object({ productId: z.string(), splits: z.array(variantAttributeViewSchema) }),
   ),
   // PUR-04, PUR-08: its deliveries, oldest first, as saved.
   receipts: z.array(

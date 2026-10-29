@@ -9,7 +9,8 @@ import type {
   SelectSupplier,
   SupplierListRow,
 } from '@lytronix/db';
-import type { PurchaseStatus, StockUnit } from '@lytronix/validators';
+import type { PurchaseStatus, SerialFormat, StockUnit } from '@lytronix/validators';
+import type { VariantAttributeView } from '../../catalogue/types/catalogue';
 import type { UnitQuantity } from '../../inventory/types/inventory';
 
 // The stored rows, as aliases of the shared types (ENGINEERING-STANDARDS §4), never copies.
@@ -73,6 +74,10 @@ export interface PurchaseItemView {
   /** INV-24: the item buys the product's shared stock. */
   sharedStock: boolean;
   stockUnit: StockUnit | null;
+  /** INV-12, INV-14: how its product keeps stock, so It arrived asks for a batch or IMEIs where it does. */
+  batchTracked: boolean;
+  serialTracked: boolean;
+  serialFormat: SerialFormat;
   quantityOrdered: string;
   quantityReceived: string;
   outstanding: string;
@@ -115,6 +120,8 @@ export interface PurchaseOrderView {
   /** PUR-06: why it was closed short; null otherwise. */
   closeReason: string | null;
   items: PurchaseItemView[];
+  /** Each item's product's variant-defining attributes, so an item is named as its product's screen names it. */
+  products: { productId: string; splits: VariantAttributeView[] }[];
   /** PUR-04: its deliveries, oldest first. */
   receipts: PurchaseReceiptView[];
   /** What the items cost where the cost is known, to the paisa, and how many have none. */

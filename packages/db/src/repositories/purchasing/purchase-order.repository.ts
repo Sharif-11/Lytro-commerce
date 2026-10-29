@@ -8,6 +8,7 @@ import {
   purchaseOrders,
   suppliers,
   type InsertPurchaseOrderLine,
+  type SelectProduct,
   type SelectPurchaseOrder,
   type SelectPurchaseOrderLine,
 } from '../../schema';
@@ -43,6 +44,10 @@ export interface PurchaseLineRow extends SelectPurchaseOrderLine {
   productName: string | null;
   combinationKey: string | null;
   stockUnit: StockUnit | null;
+  /** INV-12, INV-14: how the product keeps its stock; null where the product has since been deleted for good. */
+  batchTracked: boolean | null;
+  serialTracked: boolean | null;
+  serialFormat: SelectProduct['serialFormat'] | null;
 }
 
 /** The details a purchase's update may change. */
@@ -196,6 +201,9 @@ export class PurchaseOrderRepository {
         productName: products.name,
         combinationKey: productVariants.combinationKey,
         stockUnit: products.stockUnit,
+        batchTracked: products.batchTracked,
+        serialTracked: products.serialTracked,
+        serialFormat: products.serialFormat,
       })
       .from(purchaseOrderLines)
       .leftJoin(
@@ -224,19 +232,22 @@ export class PurchaseOrderRepository {
       productName: row.productName,
       combinationKey: row.combinationKey,
       stockUnit: row.stockUnit,
+      batchTracked: row.batchTracked,
+      serialTracked: row.serialTracked,
+      serialFormat: row.serialFormat,
     }));
   }
 
-  /** The shop's purchases, newest first, optionally of one status or one supplier, each with its totals. */
+  /** The shop's purchases, newest first, optionally of some statuses or one supplier, each with its totals. */
   async listOrders(
     tx: Transaction,
     tenantId: string,
-    filter: { status: PurchaseStatus | null; supplierId: string | null },
+    filter: { statuses: PurchaseStatus[] | null; supplierId: string | null },
     page: { offset: number; limit: number },
   ): Promise<{ rows: PurchaseOrderSummaryRow[]; total: number }> {
     await this.transactions.setTenantContext(tx, tenantId);
     const conditions = [eq(purchaseOrders.tenantId, tenantId)];
-    if (filter.status !== null) conditions.push(eq(purchaseOrders.status, filter.status));
+    if (filter.statuses !== null) conditions.push(inArray(purchaseOrders.status, filter.statuses));
     if (filter.supplierId !== null)
       conditions.push(eq(purchaseOrders.supplierId, filter.supplierId));
     const where = and(...conditions);
