@@ -299,8 +299,8 @@ test("a pay-as-you-go shop's page: this month's fees, the balance, the rates and
   await expect(main(page).getByText('৳412.50')).toBeVisible();
   await expect(main(page).getByText('25টি প্রোডাক্ট · 1টি সিট · 250 MB · 10 GB')).toBeVisible();
   await expect(main(page).getByRole('button', { name: 'Starter নিন' })).toBeVisible();
-  await main(page).getByText('দোকান বন্ধ করা').click();
-  await main(page).getByRole('button', { name: 'দোকান বন্ধ করুন' }).click();
+  await main(page).getByText('শপ বন্ধ করা').click();
+  await main(page).getByRole('button', { name: 'শপ বন্ধ করুন' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'বন্ধ করুন' }).click();
   await expect.poll(() => log.calls.some((call) => call.path === '/billing/close')).toBe(true);
 });
@@ -314,7 +314,7 @@ test('a locked shop has only Renew, which renews, takes pay-as-you-go or exports
     '/products',
   );
   await expect(page).toHaveURL(`/${SLUG}/renew`);
-  await expect(page.getByRole('heading', { name: 'মেঘ ফ্যাশন · দোকান লকড' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'মেঘ ফ্যাশন · শপ লকড' })).toBeVisible();
   await expect(page.getByText(/^প্ল্যান 9 দিন আগে শেষ হয়েছে।/)).toBeVisible();
   await expect(page.getByRole('navigation')).toHaveCount(0);
 
@@ -359,7 +359,7 @@ test("an archived shop's Renew says until when its data is kept, and offers a re
     },
     '/renew',
   );
-  await expect(page.getByRole('heading', { name: 'মেঘ ফ্যাশন · দোকান আর্কাইভড' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'মেঘ ফ্যাশন · শপ আর্কাইভড' })).toBeVisible();
   await expect(
     page.getByText(/^প্ল্যান 20 দিন আগে শেষ হয়েছে। ডেটা \d+ \S+ \d{4} পর্যন্ত রাখা আছে/),
   ).toBeVisible();
@@ -373,7 +373,7 @@ test("an archived shop's Renew says until when its data is kept, and offers a re
 
 test('a suspended shop shows Unavailable, with support and the balance', async ({ page }) => {
   await open(page, { money: { suspended: true } }, '');
-  await expect(page.getByRole('heading', { name: 'দোকান এখন খোলা যাচ্ছে না' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'শপ এখন খোলা যাচ্ছে না' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'ব্যালেন্স দেখুন' })).toHaveAttribute(
     'href',
     `/${SLUG}/balance`,

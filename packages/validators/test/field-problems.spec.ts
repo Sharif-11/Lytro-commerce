@@ -57,7 +57,7 @@ describe('what is wrong with each field', () => {
     ]);
     expect(messagesOf(createShopSchema, value, 'bn')).toEqual([
       'আপনার নাম দিন।',
-      'দোকানের নাম অনেক বড়। সর্বোচ্চ 60 অক্ষর দিন।',
+      'শপের নাম অনেক বড়। সর্বোচ্চ 60 অক্ষর দিন।',
     ]);
   });
 

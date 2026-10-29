@@ -28,18 +28,18 @@ test('walks a new owner from the website to Home: code, shop, checkout, password
 
   // The address brought from the website stays; the name does not overwrite it.
   await expect(page).toHaveURL('/create-shop');
-  await page.getByLabel('দোকানের নাম').fill('Rumana Fashion');
-  await expect(page.getByLabel('দোকানের লিংক')).toHaveValue('megh');
+  await page.getByLabel('শপের নাম').fill('Rumana Fashion');
+  await expect(page.getByLabel('শপের লিংক')).toHaveValue('megh');
   await expect(page.getByText('লিংকটা ঠিক আছে')).toBeVisible();
   await page.getByLabel('আপনার নাম').fill('রুমানা আক্তার');
-  await page.getByRole('button', { name: 'দোকান তৈরি করুন' }).click();
+  await page.getByRole('button', { name: 'শপ তৈরি করুন' }).click();
 
   await expect(page).toHaveURL('/checkout');
   await expect(page.getByRole('button', { name: 'Starter' })).toHaveAttribute(
     'aria-pressed',
     'true',
   );
-  await expect(page.getByRole('button', { name: '12 মাস · 12% ছাড়' })).toHaveAttribute(
+  await expect(page.getByRole('button', { name: '12 মাস · 12% ডিসকাউন্ট' })).toHaveAttribute(
     'aria-pressed',
     'true',
   );
@@ -72,8 +72,8 @@ test('walks a new owner from the website to Home: code, shop, checkout, password
 
   await expect(page).toHaveURL('/set-up');
   await page.getByRole('button', { name: 'পোশাক' }).click();
-  await page.getByRole('button', { name: 'সিটি বা জেলা খুঁজুন' }).click();
-  const sheet = page.getByRole('dialog', { name: 'সিটি বা জেলা খুঁজুন' });
+  await page.getByRole('button', { name: 'সিটি বা জেলা সার্চ করুন' }).click();
+  const sheet = page.getByRole('dialog', { name: 'সিটি বা জেলা সার্চ করুন' });
   await sheet.getByRole('searchbox').fill('বগুড়া');
   await sheet.getByRole('button', { name: 'বগুড়া জেলা' }).click();
   await expect(page.getByRole('button', { name: 'বগুড়া জেলা' })).toHaveAttribute(
@@ -95,8 +95,8 @@ test('fills the link from the name as it is typed, from Latin letters only, unti
 }) => {
   await mockOnboarding(page, { signedIn: true });
   await page.goto('/create-shop');
-  const name = page.getByLabel('দোকানের নাম');
-  const link = page.getByLabel('দোকানের লিংক');
+  const name = page.getByLabel('শপের নাম');
+  const link = page.getByLabel('শপের লিংক');
   await name.fill('Megh Fashion');
   await expect(link).toHaveValue('megh-fashion');
   await expect(page.getByText('megh-fashion.lytro.app')).toBeVisible();
@@ -113,10 +113,10 @@ test('fills the link from the name as it is typed, from Latin letters only, unti
 test("says a taken link is taken, and offers the server's next free one", async ({ page }) => {
   await mockOnboarding(page, { signedIn: true, takenAddresses: ['megh'] });
   await page.goto('/create-shop');
-  await page.getByLabel('দোকানের লিংক').fill('megh');
+  await page.getByLabel('শপের লিংক').fill('megh');
   await expect(page.getByText('এই লিংকটা নেওয়া হয়ে গেছে।')).toBeVisible();
   await page.getByRole('button', { name: 'megh-2' }).click();
-  await expect(page.getByLabel('দোকানের লিংক')).toHaveValue('megh-2');
+  await expect(page.getByLabel('শপের লিংক')).toHaveValue('megh-2');
   await expect(page.getByText('লিংকটা ঠিক আছে')).toBeVisible();
 });
 
@@ -130,14 +130,14 @@ test("tells a returning owner the earlier shop's balance comes along, and keeps 
   });
   await page.goto('/create-shop');
   await expect(
-    page.getByText('আগের দোকানের ইনভয়েস আর বাকি ব্যালেন্স নতুন দোকানে চলে আসবে।'),
+    page.getByText('আগের শপের ইনভয়েস আর বাকি ব্যালেন্স নতুন শপে চলে আসবে।'),
   ).toBeVisible();
-  await page.getByLabel('দোকানের নাম').fill('Megh Fashion');
+  await page.getByLabel('শপের নাম').fill('Megh Fashion');
   await page.getByLabel('আপনার নাম').fill('রুমানা');
   await expect(page.getByText('লিংকটা ঠিক আছে')).toBeVisible();
-  await page.getByRole('button', { name: 'দোকান তৈরি করুন' }).click();
+  await page.getByRole('button', { name: 'শপ তৈরি করুন' }).click();
   await expect(page.getByRole('alert').filter({ hasText: 'কিছু তৈরি হয়নি' })).toBeVisible();
-  await expect(page.getByLabel('দোকানের নাম')).toHaveValue('Megh Fashion');
+  await expect(page.getByLabel('শপের নাম')).toHaveValue('Megh Fashion');
   await expect(page.getByLabel('আপনার নাম')).toHaveValue('রুমানা');
   expect(log.sent('POST', '/shops')).toEqual({
     ownerName: 'রুমানা',
@@ -156,7 +156,7 @@ test('turns the boxes red on a wrong code, and a password is one tap away with t
   await typeCode(page, '444444');
   await page.getByRole('button', { name: 'ভেরিফাই করুন' }).click();
   await expect(page.getByRole('alert')).toHaveText('ভুল কোড। আর 2 বার চেষ্টা করা যাবে।');
-  await expect(page.getByText('5 বার ভুল হয়েছে। 15 মিনিট পর আবার চেষ্টা করুন।')).toBeVisible();
+  await expect(page.getByText('5 বার ভুল হয়েছে। 15 মিনিট পর আবার ট্রাই করুন।')).toBeVisible();
   await page.getByRole('link', { name: 'পাসওয়ার্ড দিয়ে লগইন করুন' }).click();
   await expect(page.getByLabel('পাসওয়ার্ড')).toBeVisible();
   await expect(page.getByLabel('ফোন নম্বর')).toHaveValue('1711234567');
@@ -203,7 +203,7 @@ test('opens the one shop, or the picker with each shop and role when there are s
     ],
   });
   await page.goto('/shops');
-  await expect(page.getByRole('heading', { name: 'কোন দোকানে যাবেন?' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'কোন শপে যাবেন?' })).toBeVisible();
   await expect(page.getByRole('link', { name: /রহিম গ্যাজেটস/ })).toContainText(
     'rahim-gadgets.lytro.app · স্টাফ',
   );

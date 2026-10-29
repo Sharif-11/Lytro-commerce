@@ -25,7 +25,7 @@ function hubs(page: Page) {
 test('frames a screen with the shop, the five hubs and the low-stock count', async ({ page }) => {
   await open(page, '/orders');
   const nav = hubs(page);
-  await expect(nav.getByRole('link')).toHaveText(['হোম', 'অর্ডার', 'দোকান2', 'টাকা', 'মেনু']);
+  await expect(nav.getByRole('link')).toHaveText(['হোম', 'অর্ডার', 'শপ2', 'টাকা', 'মেনু']);
   await expect(nav.getByRole('link', { name: 'অর্ডার' })).toHaveAttribute('aria-current', 'page');
   await expect(page.getByText('এখনো কোনো অর্ডার নেই')).toBeVisible();
   if (isPhone()) {
@@ -40,7 +40,7 @@ test("goes to a hub's first section and shows its sections, with where you are",
   page,
 }) => {
   await open(page, '/orders');
-  await hubs(page).getByRole('link', { name: /দোকান/ }).click();
+  await hubs(page).getByRole('link', { name: /শপ/ }).click();
   await expect(page).toHaveURL(`/${SLUG}/products`);
   const sections = page
     .getByRole('navigation', { name: 'এই অংশের পাতা' })
@@ -92,7 +92,7 @@ test('shows a staff member only what their role reaches, and turns a deep link a
   await expect(page.getByRole('status').getByText('ওই পাতাটা আপনার রোলে নেই।')).toBeVisible();
   await expect(hubs(page).getByRole('link')).toHaveText(['হোম', 'টাকা', 'মেনু']);
   // No search without products to find, and no + without anything to start.
-  await expect(page.getByRole('link', { name: 'খুঁজুন' })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'সার্চ' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'নতুন' })).toHaveCount(0);
 });
 
@@ -155,7 +155,7 @@ test('opens the + menu with what can be started, and Top up opens the top-up she
 test('searches the products by name, and says when nothing matches (§4.4)', async ({ page }) => {
   if (isPhone()) {
     await open(page, '/orders');
-    await page.getByRole('link', { name: 'খুঁজুন' }).click();
+    await page.getByRole('link', { name: 'সার্চ' }).click();
     await page.getByRole('searchbox').fill('জ্যাকেট');
   } else {
     await open(page, '/orders');

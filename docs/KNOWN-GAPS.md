@@ -1337,7 +1337,8 @@ Found in the 2026-10-18 check of validation errors:
 - The framework's and the body parser's rejections are worded from the status (400, 404, 413, 415, 429), never from their own text.
 - `HttpSetup` (the `/api/v1` prefix and a 1 MB body limit) is shared by `main.ts` and the e2e bootstrap.
 - The payment queue's `kind` is validated.
-- The server's Bangla now says দোকান for "shop", as the dashboard and Lytronix do, not শপ.
+- The server's Bangla now says দোকান for "shop", as the dashboard and Lytronix do, not শপ. (Reversed 2026-10-29 by
+  §100: the owner's style guide says শপ.)
 
 **Not done:**
 - No 415 for an unsupported content type. The parser ignores such a body, so the request is answered as missing its fields, which is still plain.
@@ -1918,6 +1919,26 @@ field; a shop that keeps no batches sees neither the note nor the figure (`mayKe
 notes drop their ids. The walkthrough now runs in CI on every pull request, refusing SKU and any requirement id on
 screen. Left as they are, by the same read: the Add stock button's wording before a quantity is typed, "নোট (ঐচ্ছিক)"
 beside "(অপশনাল)" on the arrival sheet, and the library's English attribute names in a Bangla shop.
+
+## 100. The dashboard's and the server's Bangla said one thing two ways — found 2026-10-26, fixed 2026-10-29
+
+Found by setting the owner's Bangla style guide (2026-10-26: familiar English words for terms and labels, natural
+sentences for explanations, one spelling per term) beside what the dashboard and the server already said. One thing
+often had two words, sometimes on one screen:
+- "shop" was দোকান in about 50 dashboard lines and 33 server messages (§64 had chosen it), and শপ in 32 others,
+  among them the owner's own Money lines;
+- cancel was বাতিল in 24 lines and ক্যানসেল in 11; a key was "API কী" on screen and "API কি" in the server's messages;
+- "Try again" was both আবার চেষ্টা করুন and আবার ট্রাই করুন; search, delete, usage, verify, limit, discount, refund and
+  customer each had a second word beside the glossary's (খুঁজুন, মুছুন, ইউসেজ, যাচাই, সীমা, ছাড়, ফেরত, ক্রেতা), and
+  "Awaiting payment" said পেমেন্ট বাকি where the guide says পেন্ডিং;
+- the server answered a rejected payment with the cancelled payment's words.
+
+**Fixed** as agreed in its read (2026-10-29): the glossary's word in the dashboard, its prototype and the server's
+messages and field labels, each line checked against its English rather than replaced wholesale. Short labels say
+এক্সপায়ার্ড and এক্সপায়ার হচ্ছে for plans and batches alike, while sentences keep মেয়াদ and "at period end" stays মেয়াদ
+শেষে; revoking an API key is ক্যানসেল like any other cancel; a rejected payment is রিজেক্ট. Left as they are: চালু and
+বন্ধ for on and off, বাকি for "left", ফেরত for goods sent back, বেছে নিন for choose, the server's formal sentences (a
+later pass), and the shopper's payment page and storefront.
 
 ## Not a bug, just noting it so it isn't mistaken for one later
 
