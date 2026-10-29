@@ -16,7 +16,7 @@ import { drawnActivity } from './support/activity';
 import { BILLING_STAFF, offerInstall, onAnIphone } from './support/menu';
 import { drawnIdentities } from './support/account';
 import { emptyMeta } from './support/meta';
-import { drawnExports } from './support/settings';
+import { drawnExports, drawnSettings } from './support/settings';
 import { brandImage, drawnBrand, type BrandFixture } from './support/brand';
 import { BrandCorners, BrandFont, BrandSpacing } from '@lytronix/validators';
 import { sketchedAttributes } from './support/attributes';
@@ -2049,7 +2049,8 @@ function editorPairs(): Pair[] {
   ];
 }
 
-/** Settings (§7.16, Slice 11.6): its list, Shop details, Brand identity (Slice 11.12a), and Data export. */
+/** Settings (§7.16, Slice 11.6): its list, Shop details, Brand identity (Slice 11.12a), Storefront (Slice 12a, Part
+    25), and Data export. */
 function settingsPairs(): Pair[] {
   const one = (
     name: string,
@@ -2064,6 +2065,17 @@ function settingsPairs(): Pair[] {
     one('shopdetails', '/settings/shop'),
     one('shopdetails', '/settings/shop', {}, 'desktop', 'en'),
     ...brandPairs(),
+    one('sf25', '/settings/storefront'),
+    one('sf25', '/settings/storefront', {}, 'desktop', 'en'),
+    one('sh-sf25-off', '/settings/storefront', {
+      then: async (page) => {
+        await page.getByRole('switch', { name: 'স্টোরফ্রন্ট চালু' }).click();
+        await page.getByRole('dialog').waitFor();
+      },
+    }),
+    one('sf25-off', '/settings/storefront', {
+      state: { settings: { ...drawnSettings('bn'), storefrontEnabled: false } },
+    }),
     one('exports', '/settings/export', { state: { money: { exports: drawnExports() } } }),
     one(
       'exports',

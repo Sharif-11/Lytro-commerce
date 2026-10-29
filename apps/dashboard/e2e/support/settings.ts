@@ -16,6 +16,8 @@ export interface SettingsFixture {
   businessAddress: string | null;
   businessType: string | null;
   logo: ImageFixture | null;
+  /** SFT-16 (Slice 12a): the shared storefront on, as every shop starts, or switched off. */
+  storefrontEnabled: boolean;
   /** What the server makes of an uploaded image: ready, or refused with its reason. */
   upload: 'ready' | { refused: string };
 }
@@ -30,6 +32,7 @@ export function drawnSettings(language: Language): SettingsFixture {
     businessAddress: bn ? '24/বি, মিরপুর 10, ঢাকা 1216' : '24/B, Mirpur 10, Dhaka 1216',
     businessType: 'clothing',
     logo: null,
+    storefrontEnabled: true,
     upload: 'ready',
   };
 }
@@ -50,6 +53,7 @@ function view(settings: SettingsFixture): unknown {
     defaultPaymentPolicy: 'cod',
     defaultAdvanceAmount: null,
     logo: settings.logo,
+    storefrontEnabled: settings.storefrontEnabled,
   };
 }
 
@@ -95,6 +99,8 @@ export function settingsWrite(
     for (const key of ['contactPhone', 'contactEmail', 'businessAddress'] as const) {
       if (body && key in body) settings[key] = typeof body[key] === 'string' ? body[key] : null;
     }
+    if (typeof body?.storefrontEnabled === 'boolean')
+      settings.storefrontEnabled = body.storefrontEnabled;
     return { data: view(settings) };
   }
   if (method === 'PUT' && path === '/business-type') {

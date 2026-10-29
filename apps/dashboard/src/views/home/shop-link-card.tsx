@@ -19,7 +19,7 @@ export function ShopLinkCard({ id }: { id: string }): React.JSX.Element {
     <Card id={id} className="scroll-mt-4">
       <h3 className="mb-1 text-[17px] font-semibold">{t('shopLink')}</h3>
       <LinkShare
-        url={`https://${host}`}
+        url={appConfig.shopUrl(slug)}
         shown={host}
         onShared={() => {
           shared.mutate();

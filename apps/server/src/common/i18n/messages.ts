@@ -1428,7 +1428,7 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   },
   ApiKeyManagedByLytro: {
     en: 'Lytro keeps this key for your storefront, so it cannot be changed or revoked.',
-    bn: 'এই কী Lytro আপনার স্টোরফ্রন্টের জন্য রাখে, তাই এটা বদলানো বা রিভোক করা যায় না।',
+    bn: 'এই কী Lytro আপনার স্টোরফ্রন্টের জন্য রাখে, তাই এটা বদলানো বা বাতিল করা যায় না।',
   },
   DeliveryEstimated: {
     en: 'Delivery charge worked out.',
