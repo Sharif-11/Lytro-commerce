@@ -170,6 +170,31 @@ describeIfDatabase("the storefront's context (Slice 12, TEN-08, SFT-12, SFT-16)"
     ).toBe(402);
   });
 
+  it('replaces a key whose sealed value can no longer be opened, as after a lost data key', async () => {
+    const shop = await openShop(port, texts, 'sf');
+    const dead = await admin.query<{ id: string }>(
+      `INSERT INTO control.api_keys (tenant_id, type, purpose, name, prefix, key_hash, websites, sealed_value)
+       VALUES ($1, 'public', 'storefront', 'Lytro storefront', 'lytro_pk_dead', $2, $3, $4)
+       RETURNING id`,
+      [
+        shop.tenantId,
+        'f'.repeat(64),
+        [`http://${shop.slug}.localhost`],
+        // Bytes no data key opens.
+        Buffer.from([0, 1, 2, 3]),
+      ],
+    );
+    const opened = await open(shop);
+    expect(opened.key).toMatch(/^lytro_pk_[A-Za-z0-9]{32}$/);
+    const rows = await admin.query<{ id: string; revoked: boolean }>(
+      "SELECT id, revoked_at IS NOT NULL AS revoked FROM control.api_keys WHERE tenant_id = $1 AND purpose = 'storefront'",
+      [shop.tenantId],
+    );
+    expect(rows.rows.find((row) => row.id === dead.rows[0]?.id)?.revoked).toBe(true);
+    expect(rows.rows.filter((row) => !row.revoked)).toHaveLength(1);
+    expect((await asStorefront('GET', '/v1/shop', opened)).status).toBe(200);
+  });
+
   it('follows the storefront switch, and logs it with the shop settings', async () => {
     const shop = await openShop(port, texts, 'sf');
     expect((await open(shop)).storefrontEnabled).toBe(true);
