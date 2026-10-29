@@ -806,8 +806,9 @@ below:
   A reservation is made `active`, holds stock of a tracked product on the live variant that holds it (the stock holder
   for a size of a shared stock, recording the size, its pack amount and the packs ordered), never more than is free
   (on hand less reserved less expired), in whole units unless measured. It is resolved once, to `consumed` (shipped)
-  or `released`, and then never changes; it is deleted only by LIF-19's day-60 deletion. `order_id` and
-  `order_line_id` carry no foreign key until Phase 4's orders; a line holds each variant once at a time.
+  or `released`, and then never changes; it is deleted only by LIF-19's day-60 deletion and, since Phase 4 (0083),
+  once released, with its deleted order or with the item taken off one. `order_id` and `order_line_id` are foreign
+  keys to the order and its line (0083); a line holds each variant once at a time.
 - **Expiry may leave held units short; nothing else may.** `available` is `GREATEST(on_hand - reserved - unsellable,
   0)`, and the old check that it never falls below zero is replaced by `reserved <= on_hand`. The movement trigger
   refuses a movement taking stock that is free below zero, except two that take nothing free: expired stock leaving (a
@@ -958,8 +959,8 @@ CREATE TYPE tenant.reservation_status AS ENUM ('active', 'consumed', 'released')
 CREATE TABLE tenant.stock_reservations (            -- INV-15, INV-16 (built in Slice 5a)
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id       uuid NOT NULL,
-    order_id        uuid NOT NULL,                -- FK added in Phase 4 when tenant.orders exists
-    order_line_id   uuid NOT NULL,                -- likewise
+    order_id        uuid NOT NULL,                -- FK to tenant.orders, ON DELETE CASCADE (Phase 4, 0083)
+    order_line_id   uuid NOT NULL,                -- FK to tenant.order_lines, likewise
     product_id      uuid NOT NULL,                -- held by value, like movements
     variant_id      uuid NOT NULL,                -- the variant holding the stock (a shared stock's holder)
     sold_variant_id uuid NOT NULL,                -- the variant ordered
@@ -1316,96 +1317,189 @@ CREATE TABLE control.business_type_presets (        -- PST-01, PST-04
 
 ### 3.3 Orders
 
+**Built in Phase 4 Slice 4.1 (migration 0083, 2026-10-29),** to `PHASE-4-PLAN.md` §4: orders, their items, their
+history and calls, the daily counters that number them, and customers, every table behind `tenant_isolation`. Money is
+`numeric(12,2)` (DAT-05), quantities `numeric(14,3)` (UOM-03). The visible status is never stored: it is worked out
+from the two axes, the confirming call and a manual override by one lookup (`visibleOrderStatus`, ORD-41), which the
+list's filter is built from too. Decisions held by the database:
+- **Numbers.** `YYMMDD-NNNN`, the day in Asia/Dhaka and that day's sequence from a counter row per shop and day, locked
+  by the statement that takes it (ORD-04, D4-4); a rollback gives the number back, a deleted order's is never given
+  again. An order takes its number last in its own transaction, so the counter is held briefly (KNOWN-GAPS §98): the
+  column is empty only until then, and a deferred check (`orders_numbered`) refuses an order committed without one.
+  The tracking ID is unique across the platform (ORD-05). An order keeps its number once given, its tracking ID,
+  source and making time (`guard_order`).
+- **Deletion.** An order is deleted only before it ships (`unfulfilled`, `processing`) and while no payment on it is
+  verified (`unverified`, `pending_verification`, `payment_failed`), apart from LIF-19 (ORD-12, agreed 2026-10-29);
+  its items, history and calls go with it, and so do its stock holds once released (the service releases them first).
+- **History and calls are records.** Never updated; deleted only with their order or by LIF-19.
+- **Customers are erased, not deleted** (CUS-09, Slice 4.4), apart from LIF-19. Their figures are worked out again
+  from their orders whenever one changes (CUS-01, agreed 2026-10-29).
+- **Order types** (MNU-04, amended 2026-10-29): a delivery has its customer, thana and address; a takeaway its
+  customer and no address; a dine-in its table, name and phone optional. Only a delivery has a zone or a charge.
+
 ```sql
 CREATE TYPE tenant.payment_status AS ENUM
     ('unverified', 'pending_verification', 'partially_paid', 'paid', 'payment_failed', 'refunded');
 CREATE TYPE tenant.fulfillment_status AS ENUM
     ('unfulfilled', 'processing', 'partially_shipped', 'shipped', 'partially_delivered', 'delivered', 'returned');
+CREATE TYPE tenant.status_override AS ENUM ('hold', 'cancelled', 'in_review');
+CREATE TYPE tenant.fulfilment_type AS ENUM ('delivery', 'takeaway', 'dine_in');
+CREATE TYPE tenant.order_source AS ENUM ('dashboard', 'api', 'storefront', 'landing_page');
+CREATE TYPE tenant.call_outcome AS ENUM ('confirmed', 'no_answer', 'call_back_later', 'cancelled');
+CREATE TYPE tenant.cancel_reason AS ENUM
+    ('customer_cancelled', 'fake_order', 'unreachable', 'out_of_stock', 'duplicate', 'other');
+CREATE TYPE tenant.order_history_field AS ENUM
+    ('created', 'confirmed', 'status_override', 'payment_status', 'fulfillment_status', 'unit_price', 'delivery_charge');
 
-CREATE TABLE tenant.order_counters (               -- DAT-07: gap-free order numbers per tenant
-    tenant_id       uuid PRIMARY KEY,
-    next_number     bigint NOT NULL DEFAULT 1
+CREATE TABLE tenant.order_counters (               -- ORD-04 (D4-4): one row per shop and day
+    tenant_id       uuid NOT NULL,
+    day             date NOT NULL,                  -- Asia/Dhaka
+    last_number     integer NOT NULL DEFAULT 0,
+    PRIMARY KEY (tenant_id, day)
 );
+
+CREATE TABLE tenant.customers (                    -- CUS-01: one per phone, kept by its orders
+    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id       uuid NOT NULL,
+    phone           varchar(15),                    -- 01XXXXXXXXX; null once erased (CUS-09)
+    name            varchar(100),                   -- the latest order's
+    order_count     integer NOT NULL DEFAULT 0,     -- orders not cancelled
+    total_spent     numeric(12,2) NOT NULL DEFAULT 0, -- grand totals of delivered orders
+    last_order_at   timestamptz,
+    erased_at       timestamptz,
+    created_at      timestamptz NOT NULL DEFAULT now(),
+    updated_at      timestamptz NOT NULL DEFAULT now(),
+    UNIQUE (tenant_id, id)
+);
+CREATE UNIQUE INDEX ON tenant.customers (tenant_id, phone) WHERE phone IS NOT NULL;
+CREATE INDEX ON tenant.customers USING gin (name gin_trgm_ops);    -- DAT-13, CUS-02
+CREATE INDEX ON tenant.customers USING gin (phone gin_trgm_ops);
+CREATE INDEX ON tenant.customers (tenant_id, last_order_at DESC, id DESC);
 
 CREATE TABLE tenant.orders (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id       uuid NOT NULL,
-    order_number    text NOT NULL,                 -- ORD-YYYYMMDD-NNNN
-    tracking_id     text NOT NULL UNIQUE,           -- 8-char, unambiguous alphabet (ORD-05)
-    customer_id     uuid REFERENCES tenant.customers(id),
-    customer_name   text NOT NULL,
-    customer_phone  varchar(15) NOT NULL,
-    location_id     integer NOT NULL,               -- FK by value to control.locations (CUS-08), no cross-schema FK
-    address         text NOT NULL,
+    order_number    varchar(16),                    -- YYMMDD-NNNN (ORD-04); set last, never null once committed
+    tracking_id     varchar(8) NOT NULL UNIQUE,     -- no 0, O, 1, I; unique platform-wide (ORD-05)
+    source          tenant.order_source NOT NULL DEFAULT 'dashboard',
+    fulfilment_type tenant.fulfilment_type NOT NULL DEFAULT 'delivery',   -- MNU-04
+    customer_id     uuid,                           -- FK (tenant_id, customer_id) to customers
+    customer_name   varchar(100),
+    customer_phone  varchar(15),
+    location_id     integer,                        -- the thana (CUS-08), by value
+    delivery_address varchar(500),
+    table_ref       varchar(30),                    -- a dine-in's table
+    delivery_zone_id uuid,                          -- DLV-02: the zone, by value, as held when ordered
+    delivery_zone_name jsonb,                       -- { en, bn }
+    zone_charge     numeric(12,2),
+    extra_charge_per_kg numeric(12,2) NOT NULL DEFAULT 0,  -- RAT-14, as held
     payment_status  tenant.payment_status NOT NULL DEFAULT 'unverified',
     fulfillment_status tenant.fulfillment_status NOT NULL DEFAULT 'unfulfilled',
-    status_override text,                           -- hold | cancelled | in_review, null otherwise (ORD-41)
+    status_override tenant.status_override,         -- ORD-41
+    hold_until      timestamptz,                    -- ORD-51: a call back later's time
+    confirmed_at    timestamptz,                    -- ORD-51: a confirming call
+    confirmed_by    uuid,
+    cancel_reason   tenant.cancel_reason,           -- ORD-52
+    cancel_note     varchar(500),
+    cancelled_at    timestamptz,
     subtotal        numeric(12,2) NOT NULL,
-    delivery_charge numeric(10,2) NOT NULL,          -- sum of order_lines.delivery_charge (ORD-06)
-    discount        numeric(10,2) NOT NULL DEFAULT 0,
+    delivery_charge numeric(12,2) NOT NULL,         -- ORD-06a, or set by hand
+    delivery_charge_by_hand boolean NOT NULL DEFAULT false,
+    discount        numeric(12,2) NOT NULL DEFAULT 0,
     grand_total     numeric(12,2) NOT NULL,
-    due              numeric(12,2) NOT NULL,
-    area_courier_key text,                           -- CUS-13: the courier the stored area belongs to
-    courier_area_code text,                          -- CUS-12/13: from the form or chosen by staff; never sets the delivery zone
-    courier_key     text,                            -- set once booked
-    consignment_id  text,
+    advance_due     numeric(12,2) NOT NULL DEFAULT 0,   -- PRD-08
+    cod_amount      numeric(12,2) NOT NULL,             -- ORD-16: grand total less the advance
+    due             numeric(12,2) NOT NULL,
+    courier_name    varchar(80),                    -- D4-7, entered when marked shipped (Slice 4.3)
+    tracking_code   varchar(100),
+    tracking_link   varchar(500),
+    shipped_at      timestamptz,
+    delivered_at    timestamptz,
     -- QTA-01/05/07: the ONLY column the handling counters read; order creation never touches it.
     handled_at      timestamptz,
-    source          text NOT NULL DEFAULT 'dashboard', -- dashboard | api | storefront
-    notes           text,
+    notes           varchar(1000),
+    created_by      uuid,
     created_at      timestamptz NOT NULL DEFAULT now(),
-    UNIQUE (tenant_id, order_number)
+    updated_at      timestamptz NOT NULL DEFAULT now(),
+    UNIQUE (tenant_id, id),
+    UNIQUE (tenant_id, order_number),
+    -- plus checks: the fulfilment type's fields (MNU-04); no zone or charge but on a delivery; a cancel reason exactly
+    -- when cancelled; a hold time only on hold; money never negative and advance + COD = grand total.
 );
-CREATE INDEX ON tenant.orders (tenant_id, created_at DESC);
+CREATE INDEX ON tenant.orders (tenant_id, created_at DESC, id DESC);
 CREATE INDEX ON tenant.orders (tenant_id, handled_at) WHERE handled_at IS NOT NULL; -- QTA-01/05 counters
-CREATE INDEX ON tenant.orders (tenant_id, customer_phone);
+CREATE INDEX ON tenant.orders (tenant_id, customer_id);
+CREATE INDEX ON tenant.orders USING gin (customer_name gin_trgm_ops);   -- DAT-13, ORD-13
+CREATE INDEX ON tenant.orders USING gin (customer_phone gin_trgm_ops);
+CREATE INDEX ON tenant.orders USING gin (order_number gin_trgm_ops);
 
-CREATE TABLE tenant.order_lines (
+CREATE TABLE tenant.order_lines (                  -- ORD-46: a self-sufficient snapshot
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id       uuid NOT NULL,
-    order_id        uuid NOT NULL REFERENCES tenant.orders(id),
-    -- ORD-46: advisory only, never required to render the line; nullable so a hard-deleted
-    -- product/variant never breaks a past order.
+    order_id        uuid NOT NULL,                  -- FK, ON DELETE CASCADE
+    position        integer NOT NULL,
+    -- advisory only, never required to render the line (PRD-13):
     product_id      uuid,
     variant_id      uuid,
-    -- everything below is a snapshot, copied at order time, never read live:
-    product_name    text NOT NULL,
-    attribute_values jsonb NOT NULL DEFAULT '{}',
-    thumbnail_url   text,                            -- best-effort only (ORD-47)
-    unit_price      numeric(10,2) NOT NULL,
-    quantity        numeric(14,3) NOT NULL CHECK (quantity > 0),  -- UOM-04: decimals only for measured units
-    pack_amount     numeric(14,3),                -- INV-24: shared-stock units per unit sold; null otherwise
-    item_discount   numeric(10,2) NOT NULL DEFAULT 0,
-    weight_kg       numeric(10,3),
+    -- everything below is copied at order time, never read live:
+    product_name    varchar(200) NOT NULL,
+    sku             varchar(64),
+    attribute_values jsonb NOT NULL DEFAULT '[]',   -- ATR-09, ATL-06: [{ name, value, dataType, unitKind, variantDefining }]
+    captured_values jsonb NOT NULL DEFAULT '[]',    -- ATR-08: [{ attributeId, name, value }]
+    thumbnail_media_id uuid,                        -- MED-09's count; best effort (ORD-47)
+    thumbnail_url   text,
+    stock_unit      tenant.stock_unit NOT NULL,
+    list_price      numeric(12,2) NOT NULL,         -- the variant's price when ordered
+    unit_price      numeric(12,2) NOT NULL,         -- differs when set by hand (ORD-06)
+    quantity        numeric(14,3) NOT NULL CHECK (quantity > 0),
+    pack_amount     numeric(14,3) CHECK (pack_amount > 0),   -- INV-24
+    item_discount   numeric(12,2) NOT NULL DEFAULT 0,
+    item_total      numeric(12,2) NOT NULL,
+    weight_kg       numeric(10,3),                  -- ATR-13, effective per unit
+    own_delivery_charge numeric(12,2),              -- DLV-03; null: a zone line
     delivery_mode   tenant.delivery_mode NOT NULL,
-    delivery_charge numeric(10,2) NOT NULL            -- this line's own computed charge (ORD-06a)
+    delivery_charge numeric(12,2) NOT NULL,         -- what this line adds (ORD-06a)
+    payment_policy  tenant.payment_policy NOT NULL, -- PRD-08
+    policy_advance  numeric(12,2),
+    advance         numeric(12,2) NOT NULL DEFAULT 0,
+    UNIQUE (tenant_id, id),
+    -- UOM-04, INV-24: a fraction only of a measured unit, and only whole packs of a shared stock.
+    CHECK (quantity = trunc(quantity) OR (pack_amount IS NULL AND stock_unit IN ('kg', 'g', 'liter', 'ml')))
 );
-CREATE INDEX ON tenant.order_lines (tenant_id, order_id);
+CREATE INDEX ON tenant.order_lines (tenant_id, order_id, position);
+CREATE INDEX ON tenant.order_lines (tenant_id, product_id);          -- ATR-15
+CREATE INDEX ON tenant.order_lines (tenant_id, thumbnail_media_id) WHERE thumbnail_media_id IS NOT NULL;
 
-CREATE TABLE tenant.order_status_history (
+CREATE TABLE tenant.order_status_history (         -- ORD-08, ORD-14
     id              bigserial PRIMARY KEY,
     tenant_id       uuid NOT NULL,
-    order_id        uuid NOT NULL,
-    field           text NOT NULL,                   -- payment_status | fulfillment_status | status_override
+    order_id        uuid NOT NULL,                  -- FK, ON DELETE CASCADE
+    field           tenant.order_history_field NOT NULL,
     old_value       text,
-    new_value       text NOT NULL,
-    note            text,
+    new_value       text,
+    note            varchar(500),
     changed_by      uuid,
     changed_at      timestamptz NOT NULL DEFAULT now()
 );
+CREATE INDEX ON tenant.order_status_history (tenant_id, order_id, changed_at, id);
 -- SCL-05: first candidate for monthly partitioning once a tenant's history grows large.
 
-CREATE TABLE tenant.customers (
+CREATE TABLE tenant.order_calls (                  -- ORD-51
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id       uuid NOT NULL,
-    phone           varchar(15) NOT NULL,
-    name            text,
-    order_count     integer NOT NULL DEFAULT 0,
-    total_spent     numeric(12,2) NOT NULL DEFAULT 0,
-    last_order_at   timestamptz,
-    UNIQUE (tenant_id, phone)
+    order_id        uuid NOT NULL,                  -- FK, ON DELETE CASCADE
+    outcome         tenant.call_outcome NOT NULL,
+    call_back_at    timestamptz,                    -- exactly when the outcome is call_back_later
+    note            varchar(500),
+    called_by       uuid,
+    called_at       timestamptz NOT NULL DEFAULT now()
 );
+CREATE INDEX ON tenant.order_calls (tenant_id, order_id, called_at);
 ```
+
+The stock held for an order (`stock_reservations.order_id`, `order_line_id`) and the serials sold to one
+(`serial_numbers.sold_order_id`) are foreign keys to these tables since 0083. Courier columns (`area_courier_key`,
+`courier_area_code`, `courier_key`, `consignment_id`, CUS-12/13) arrive with Phase 6.
 
 ### 3.4 Payments, wallets, couriers, balance
 

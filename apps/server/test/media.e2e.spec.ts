@@ -535,6 +535,46 @@ describeIfDatabase('attaching images (PRD-11, PRD-17, ATR-18, TEN-16)', () => {
 });
 
 describeIfDatabase('deleting media (MED-09, STO-07, LIF-19)', () => {
+  it('counts the past orders whose items show a photo, and leaves them their details when it goes (ORD-47)', async () => {
+    const shop = await openShop(port, texts, 'media');
+    const image = await upload(shop, await photo());
+    const made = await shop.post('/products', {
+      name: 'Shawl',
+      basePrice: 900,
+      stockTracking: 'not_tracked',
+      imageIds: [image.id],
+    });
+    expect(made.status, JSON.stringify(made.body)).toBe(201);
+    const variantId = (made.body as { variants: { id: string }[] }).variants[0]?.id;
+    const locations = (await shop.get('/locations')).body as {
+      zillas: { thanas: { id: number }[] }[];
+    };
+    const locationId = locations.zillas[0]?.thanas[0]?.id;
+    for (const n of [1, 2]) {
+      const order = await postJson(
+        port,
+        '/orders',
+        {
+          customerName: 'Rahima',
+          phone: `0171100000${String(n)}`,
+          locationId,
+          deliveryAddress: 'Road 3',
+          items: [{ variantId, quantity: 1 }],
+        },
+        shop.headers({ 'idempotency-key': randomUUID() }),
+      );
+      expect(order.status, JSON.stringify(order.body)).toBe(201);
+    }
+    const detail = (await shop.get(`/media/${image.id}`)).body as { uses: { pastOrders: number } };
+    expect(detail.uses.pastOrders).toBe(2);
+    expect((await shop.delete(`/media/${image.id}`)).status).toBe(200);
+    const orders = (await shop.get('/orders')).body as { orders: { id: string }[] };
+    const kept = (await shop.get(`/orders/${orders.orders[0]?.id ?? ''}`)).body as {
+      items: { productName: string; thumbnail: { mediaId: string } | null }[];
+    };
+    expect(kept.items[0]).toMatchObject({ productName: 'Shawl', thumbnail: { mediaId: image.id } });
+  });
+
   it('removes an item from everywhere it shows at once, drops usage, and deletes its files in the job', async () => {
     const shop = await openShop(port, texts, 'media');
     const image = await upload(shop, await photo());

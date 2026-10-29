@@ -256,30 +256,37 @@ export class DeliveryZoneService {
   async resolve(tenantId: string, locationId: number): Promise<ResolvedZoneView> {
     const location = await this.locations.thana(locationId);
     if (!location) throw new ApiError('not_found', 'LocationNotFound', {});
-    return this.transactions.run(async (tx) => {
-      await this.zones.ensureDefaults(tx, tenantId, DEFAULTS);
-      const matches = await this.zones.findAreas(tx, tenantId, {
-        locationIds: [location.id],
-        cityCodes: location.cityCode !== null ? [location.cityCode] : [],
-        zillaIds: [location.zillaId],
-      });
-      const byThana = matches.find((row) => row.locationId === location.id);
-      const byCity = matches.find(
-        (row) => location.cityCode !== null && row.cityCode === location.cityCode,
-      );
-      const byZilla = matches.find((row) => row.zillaId === location.zillaId);
-      const match = byThana ?? byCity ?? byZilla;
-      const settings = await this.view(tx, tenantId);
-      const zone = match
-        ? settings.zones.find((row) => row.id === match.zoneId)
-        : settings.zones.find((row) => row.isFallback);
-      if (!zone) throw new ApiError('not_found', 'DeliveryZoneNotFound', {});
-      return {
-        location,
-        matchedBy: byThana ? 'thana' : byCity ? 'city' : byZilla ? 'zilla' : 'fallback',
-        zone,
-      };
+    return this.transactions.run((tx) => this.resolveWithin(tx, tenantId, location));
+  }
+
+  /** DLV-02, D4-9: the same for a known thana, inside a transaction the caller already holds (pricing an order). */
+  async resolveWithin(
+    tx: Transaction,
+    tenantId: string,
+    location: ResolvedZoneView['location'],
+  ): Promise<ResolvedZoneView> {
+    await this.zones.ensureDefaults(tx, tenantId, DEFAULTS);
+    const matches = await this.zones.findAreas(tx, tenantId, {
+      locationIds: [location.id],
+      cityCodes: location.cityCode !== null ? [location.cityCode] : [],
+      zillaIds: [location.zillaId],
     });
+    const byThana = matches.find((row) => row.locationId === location.id);
+    const byCity = matches.find(
+      (row) => location.cityCode !== null && row.cityCode === location.cityCode,
+    );
+    const byZilla = matches.find((row) => row.zillaId === location.zillaId);
+    const match = byThana ?? byCity ?? byZilla;
+    const settings = await this.view(tx, tenantId);
+    const zone = match
+      ? settings.zones.find((row) => row.id === match.zoneId)
+      : settings.zones.find((row) => row.isFallback);
+    if (!zone) throw new ApiError('not_found', 'DeliveryZoneNotFound', {});
+    return {
+      location,
+      matchedBy: byThana ? 'thana' : byCity ? 'city' : byZilla ? 'zilla' : 'fallback',
+      zone,
+    };
   }
 
   /**

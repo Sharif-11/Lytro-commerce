@@ -17,6 +17,7 @@ export * from './api/inventory/stock-check';
 export * from './api/purchasing/supplier';
 export * from './api/purchasing/purchase-order';
 export * from './api/purchasing/receipt';
+export * from './api/orders/order';
 export * from './api/api-keys/api-key';
 export * from './api/api-keys/ad-tracking';
 export * from './api/media/media';

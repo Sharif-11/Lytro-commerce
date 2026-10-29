@@ -301,6 +301,13 @@ export enum AuditAction {
   BrandSaved = 'brand_saved',
   BrandSwitchedOn = 'brand_switched_on',
   BrandSwitchedOff = 'brand_switched_off',
+  // Phase 4 Slice 4.1: an order made, its details or items changed, its status moved (confirmed, held, put in review,
+  // cancelled, cleared), deleted, and a call to its customer logged (AUD-01, ORD-51).
+  OrderCreated = 'order_created',
+  OrderUpdated = 'order_updated',
+  OrderStatusChanged = 'order_status_changed',
+  OrderDeleted = 'order_deleted',
+  OrderCallLogged = 'order_call_logged',
 }
 
 // FED-02: what a product is, for Meta's catalog: new unless the shop says otherwise.
@@ -975,6 +982,101 @@ export enum ProductFormField {
   LowStockThreshold = 'lowStockThreshold',
   DeliveryCharge = 'deliveryCharge',
   PaymentPolicy = 'paymentPolicy',
+}
+
+// ORD-40: what an order's payments have reached. Only the server moves it, from payment events (Slice 4.3, Phase 5); a
+// cash-on-delivery order with nothing paid yet stays `unverified`.
+export enum OrderPaymentStatus {
+  Unverified = 'unverified',
+  PendingVerification = 'pending_verification',
+  PartiallyPaid = 'partially_paid',
+  Paid = 'paid',
+  PaymentFailed = 'payment_failed',
+  Refunded = 'refunded',
+}
+
+// ORD-40, ORD-42: how far an order's goods have gone. Only the server moves it, from shipping, delivery and courier
+// events.
+export enum FulfillmentStatus {
+  Unfulfilled = 'unfulfilled',
+  Processing = 'processing',
+  PartiallyShipped = 'partially_shipped',
+  Shipped = 'shipped',
+  PartiallyDelivered = 'partially_delivered',
+  Delivered = 'delivered',
+  Returned = 'returned',
+}
+
+// SRS §2.3.1, ORD-41: the status an order shows, worked out from its two axes, its confirming call and a manual
+// override (`visibleOrderStatus`); never stored.
+export enum OrderStatus {
+  Unverified = 'unverified',
+  Pending = 'pending',
+  Confirmed = 'confirmed',
+  Processing = 'processing',
+  Shipped = 'shipped',
+  Delivered = 'delivered',
+  PartialDelivered = 'partial_delivered',
+  Completed = 'completed',
+  Cancelled = 'cancelled',
+  Hold = 'hold',
+  InReview = 'in_review',
+  Refunded = 'refunded',
+  Returned = 'returned',
+  Rejected = 'rejected',
+}
+
+// ORD-41: the statuses staff set by hand, which show instead of the worked-out one until cleared. A cancellation is
+// final (ORD-52).
+export enum StatusOverride {
+  Hold = 'hold',
+  Cancelled = 'cancelled',
+  InReview = 'in_review',
+}
+
+// MNU-04: how an order reaches its customer. Only a delivery has a courier, a zone and a delivery charge.
+export enum FulfilmentType {
+  Delivery = 'delivery',
+  Takeaway = 'takeaway',
+  DineIn = 'dine_in',
+}
+
+// ORD-01, ORD-02: where an order came from.
+export enum OrderSource {
+  Dashboard = 'dashboard',
+  Api = 'api',
+  Storefront = 'storefront',
+  LandingPage = 'landing_page',
+}
+
+// ORD-51: how a call to the customer ended.
+export enum CallOutcome {
+  Confirmed = 'confirmed',
+  NoAnswer = 'no_answer',
+  CallBackLater = 'call_back_later',
+  Cancelled = 'cancelled',
+}
+
+// ORD-52: why an order was cancelled; "other" needs a note. Kept for the fake-order checks (FRD).
+export enum CancelReason {
+  CustomerCancelled = 'customer_cancelled',
+  FakeOrder = 'fake_order',
+  Unreachable = 'unreachable',
+  OutOfStock = 'out_of_stock',
+  Duplicate = 'duplicate',
+  Other = 'other',
+}
+
+// ORD-08, ORD-14: what one entry of an order's history records: its making, a confirming call, a status set by hand or
+// by an event, and a price or delivery charge staff set by hand.
+export enum OrderHistoryField {
+  Created = 'created',
+  Confirmed = 'confirmed',
+  StatusOverride = 'status_override',
+  PaymentStatus = 'payment_status',
+  FulfillmentStatus = 'fulfillment_status',
+  UnitPrice = 'unit_price',
+  DeliveryCharge = 'delivery_charge',
 }
 
 export function enumTuple<T extends string>(values: readonly T[]): [T, ...T[]] {

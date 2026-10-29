@@ -1,4 +1,5 @@
 import type {
+  LineAttributeSnapshot,
   ProductStateCounts,
   SelectAttribute,
   SelectAttributeOption,
@@ -271,6 +272,41 @@ export interface ProductDetail {
   deliveryZoneIds: string[];
   createdAt: Date;
   updatedAt: Date;
+}
+
+/**
+ * ORD-46, D4-9: what an order needs of one live variant, read inside the order's own transaction: what it sells and
+ * delivers at, the names and values a line keeps, what may be asked when ordering it, and where it may go.
+ */
+export interface OrderableVariant {
+  productId: string;
+  productName: string;
+  variantId: string;
+  sku: string | null;
+  /** PRD-06: the product and the variant are on sale; staff may still order one that is not. */
+  active: boolean;
+  /** PRD-13: the product is archived, so nothing more is ordered of it. */
+  archived: boolean;
+  stockUnit: StockUnit;
+  stockTracking: StockTracking;
+  /** INV-24: how much of the shared stock one unit uses; null unless the product shares its stock. */
+  packAmount: string | null;
+  price: string;
+  weightKg: string | null;
+  /** DLV-03: its own delivery charge, or null to be charged the order's zone. */
+  deliveryCharge: string | null;
+  deliveryMode: DeliveryMode;
+  /** PRD-08: the policy that applies to it, with that policy's advance. */
+  paymentPolicy: PaymentPolicy;
+  advanceAmount: string | null;
+  /** ATR-09: its splitting values, then the product's describing ones, as the line keeps them. */
+  attributes: LineAttributeSnapshot[];
+  /** ATR-08: the attributes asked when ordering it. */
+  captured: { attributeId: string; name: string; dataType: AttributeDataType }[];
+  /** DLV-07: the zones it may be delivered to; empty is anywhere the shop delivers. */
+  deliveryZoneIds: string[];
+  /** ORD-46: its first photo, best effort. */
+  thumbnail: { mediaId: string; url: string } | null;
 }
 
 export interface ProductListItem {

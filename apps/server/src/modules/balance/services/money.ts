@@ -104,3 +104,20 @@ export function unitCostOfPack(packPrice: string, packAmount: string): string {
     ),
   );
 }
+
+/**
+ * RAT-14, ORD-06a: what a line's combined weight over 1 kg adds to its delivery -- the unit weight (three decimals)
+ * times the quantity (three), less 1 kg, at the rate per kg -- in paisa, rounded; nothing at or under 1 kg. 3 units of
+ * 0.6 kg at 20 TK a kg add 20 x 0.8 = 16 TK.
+ */
+export function weightExtraPaisa(
+  unitWeightKg: string,
+  quantity: string,
+  ratePerKg: string,
+): bigint {
+  const scale = 10n ** BigInt(QUANTITY_DECIMALS * 2);
+  const combined =
+    toScaled(unitWeightKg, QUANTITY_DECIMALS) * toScaled(quantity, QUANTITY_DECIMALS);
+  const over = combined - scale;
+  return over > 0n ? divideRounded(over * toPaisa(ratePerKg), scale) : 0n;
+}

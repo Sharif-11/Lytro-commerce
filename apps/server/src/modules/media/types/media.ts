@@ -43,10 +43,8 @@ export interface MediaView {
 
 /** MED-09: one item, with where it is attached, so deleting it can say what it leaves. */
 export interface MediaDetail extends MediaView {
-  uses: MediaUses & {
-    /** ORD-46: past orders whose line shows this photo; orders arrive in Phase 4. */
-    pastOrders: number;
-  };
+  /** Where it shows, and (ORD-46, MED-09) how many past orders' items show it. */
+  uses: MediaUses;
 }
 
 /** MED-03: an upload started -- the item, and where the browser sends its file. */

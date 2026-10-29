@@ -17,6 +17,7 @@ import { MediaModule } from '../media/media.module';
 import { BrandModule } from '../brand/brand.module';
 import { UsageWarningsModule } from '../usage-warnings/usage-warnings.module';
 import { PublicApiModule } from '../public-api/public-api.module';
+import { OrdersModule } from '../orders/orders.module';
 import { PurchasingModule } from '../purchasing/purchasing.module';
 import { MailModule } from '../shared/mail/mail.module';
 import { MessagingModule } from '../shared/messaging/messaging.module';
@@ -65,10 +66,11 @@ import {
     MessagingModule,
     MailModule,
     PlatformSettingsModule,
-    // LIF-19: the day-60 deletion removes the shop's purchases, stock, catalogue, media, delivery zones, API keys and
-    // usage warnings too.
+    // LIF-19: the day-60 deletion removes the shop's purchases, stock, orders and customers, catalogue, media, delivery
+    // zones, API keys and usage warnings too.
     PurchasingModule,
     InventoryModule,
+    OrdersModule,
     CatalogueModule,
     DeliveryModule,
     PublicApiModule,

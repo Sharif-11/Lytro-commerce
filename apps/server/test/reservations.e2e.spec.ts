@@ -28,6 +28,7 @@ import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase } from './support/database';
 import { ExpiryCapture, LowStockCapture } from './support/inventory-notices';
+import { seedOrderFor } from './support/orders';
 import { errorOf, openShop, type ShopClient } from './support/shop-client';
 import { SmsCapture } from './support/sms-capture';
 
@@ -126,22 +127,27 @@ function line(variantId: string, quantity: number): ReservationLine {
   return { orderLineId: randomUUID(), variantId, quantity: String(quantity) };
 }
 
-function reserve(
+async function reserve(
   shop: ShopClient,
   lines: ReservationLine[],
   options: { orderId?: string; awaitingPayment?: boolean; now?: Date } = {},
 ): Promise<ReservationRecord[]> {
+  const orderId = options.orderId ?? randomUUID();
+  await seedOrderFor(
+    admin,
+    shop.tenantId,
+    orderId,
+    lines.map((entry) => entry.orderLineId),
+  );
   return inTx((tx) =>
-    app.get(ReservationService).reserve(
-      tx,
-      shop.tenantId,
-      {
-        orderId: options.orderId ?? randomUUID(),
-        awaitingPayment: options.awaitingPayment ?? false,
-        lines,
-      },
-      options.now,
-    ),
+    app
+      .get(ReservationService)
+      .reserve(
+        tx,
+        shop.tenantId,
+        { orderId, awaitingPayment: options.awaitingPayment ?? false, lines },
+        options.now,
+      ),
   );
 }
 

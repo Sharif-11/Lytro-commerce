@@ -15,6 +15,7 @@ import {
 import { StockState } from '@lytronix/validators';
 import {
   catalogueState,
+  orderLines,
   productDeliveryZones,
   productAttributes,
   productAttributeValues,
@@ -227,6 +228,17 @@ export class ProductRepository {
       .where(and(eq(products.tenantId, tenantId), eq(products.id, id)))
       .returning();
     return rows[0] ?? null;
+  }
+
+  /** ATR-15: whether any order names the product; once one does, which attributes split it is fixed. */
+  async hasOrders(tx: Transaction, tenantId: string, productId: string): Promise<boolean> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const rows = await tx
+      .select({ id: orderLines.id })
+      .from(orderLines)
+      .where(and(eq(orderLines.tenantId, tenantId), eq(orderLines.productId, productId)))
+      .limit(1);
+    return rows.length > 0;
   }
 
   /** PRD-13: removes the product for good; its variants, attributes, filing and old slugs go with it. */

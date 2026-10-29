@@ -41,6 +41,8 @@ export const ATTRIBUTE_NAME_MAX_LENGTH = 80;
 export const OPTION_VALUE_MAX_LENGTH = 80;
 export const MAX_VARIANT_ATTRIBUTES = 3;
 export const MAX_VARIANTS_PER_PRODUCT = 100;
+// ATL-02: the attributes that may describe one product (or be asked about it when ordering, ATR-08).
+export const ATTRIBUTES_PER_PRODUCT_MAX = 50;
 // PRD-12: the dashboard's product list pages.
 export const PRODUCT_PAGE_SIZE = 20;
 export const LIST_PAGE_SIZE_MAX = 100;
@@ -113,3 +115,16 @@ export const MEDIA_PAGE_SIZE = 40;
 export const API_KEY_NAME_MAX_LENGTH = 80;
 export const API_KEY_WEBSITES_MAX = 10;
 export const API_KEYS_LIVE_MAX = 20;
+// ORD-01, ORD-13: an order's customer name, address and notes, the items one order may hold, a dine-in table's
+// reference (MNU-04), and a page of orders.
+export const CUSTOMER_NAME_MAX_LENGTH = 100;
+export const ORDER_ADDRESS_MAX_LENGTH = 500;
+export const ORDER_NOTES_MAX_LENGTH = 1000;
+export const ORDER_LINES_MAX = 100;
+export const TABLE_REF_MAX_LENGTH = 30;
+export const ORDER_PAGE_SIZE = 20;
+// ATR-08: what one captured-at-order value may say.
+export const CAPTURED_VALUE_MAX_LENGTH = 200;
+// ORD-51, ORD-52: a call's note, and a cancellation's.
+export const CALL_NOTE_MAX_LENGTH = 500;
+export const CANCEL_NOTE_MAX_LENGTH = 500;

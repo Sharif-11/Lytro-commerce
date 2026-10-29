@@ -22,6 +22,7 @@ import { CatalogueEraser } from '../../catalogue/services/catalogue-eraser';
 import { DeliveryZoneService } from '../../delivery/services/delivery-zone.service';
 import { InventoryEraser } from '../../inventory/services/inventory-eraser';
 import { PurchasingEraser } from '../../purchasing/services/purchasing-eraser';
+import { OrdersEraser } from '../../orders/services/orders-eraser';
 import { PublicApiEraser } from '../../public-api/services/public-api-eraser';
 import { UsageWarnings } from '../../usage-warnings/services/usage-warnings';
 import { MediaEraser } from '../../media/services/media-eraser';
@@ -85,6 +86,7 @@ export class LifecycleService {
     @Inject(DataExportService) private readonly dataExports: DataExportService,
     @Inject(PurchasingEraser) private readonly purchasing: PurchasingEraser,
     @Inject(InventoryEraser) private readonly inventory: InventoryEraser,
+    @Inject(OrdersEraser) private readonly orders: OrdersEraser,
     @Inject(CatalogueEraser) private readonly catalogue: CatalogueEraser,
     @Inject(PublicApiEraser) private readonly publicSide: PublicApiEraser,
     @Inject(UsageWarnings) private readonly usageWarnings: UsageWarnings,
@@ -330,13 +332,14 @@ export class LifecycleService {
   private async deleteIfDue(tenantId: string, now: Date): Promise<boolean> {
     await this.staff.deleteAllForTenant({ id: tenantId, planLimits: null });
     await this.dataExports.deleteAllForTenant(tenantId); // LIF-16/19: exports go with the rest of the data.
-    // Phase 3: purchases and suppliers, the stock ledger and levels, then products and everything under them,
-    // categories, attributes, option sets and the settings row, the brand identity, then its media (the rows now, every
-    // stored file under its prefix in the deletion job, MED-09), then the delivery zones those products' limits named,
-    // the shop's API keys and request counts, and the record of its usage warnings. Each step is safe to repeat if a
-    // tick stops between them.
+    // Phase 3: purchases and suppliers, the stock ledger and levels, then (Phase 4) the orders those held stock for and
+    // their customers, then products and everything under them, categories, attributes, option sets and the settings
+    // row, the brand identity, then its media (the rows now, every stored file under its prefix in the deletion job,
+    // MED-09), then the delivery zones those products' limits named, the shop's API keys and request counts, and the
+    // record of its usage warnings. Each step is safe to repeat if a tick stops between them.
     await this.purchasing.deleteAllForTenant(tenantId);
     await this.inventory.deleteAllForTenant(tenantId);
+    await this.orders.deleteAllForTenant(tenantId);
     await this.catalogue.deleteAllForTenant(tenantId);
     await this.brand.deleteAllForTenant(tenantId);
     await this.media.deleteAllForTenant(tenantId);

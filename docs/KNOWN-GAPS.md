@@ -177,9 +177,9 @@ Postgres (no object storage exists in this codebase yet, that's `MED-*`'s Phase 
 early for this alone was rejected). `GET /exports`/`GET /exports/:id/download` are owner-only throughout
 (`LIF-16`'s own wording names the owner, not a staff permission); the download route writes raw bytes
 directly via Express's response object (`@Res()`), the first route in this codebase to bypass the JSON
-envelope, since a zip isn't JSON. Orders/customers/products are not exported — no module exists yet to read
-them from; a third category is a data-fetcher addition to the existing worker once one exists, not an
-architecture change. Available in every non-offline state including `archived` (an explicit widening beyond
+envelope, since a zip isn't JSON. Phase 4 Slice 4.1 (2026-10-29) added orders (`orders.csv`, `order-items.csv`,
+`orders.json`) and customers (`customers.csv`, `customers.json`), proven in `orders.e2e.spec.ts`. Products are still
+not exported; that is a data-fetcher addition to the same worker, not an architecture change. Available in every non-offline state including `archived` (an explicit widening beyond
 `LIF-16`'s own literal `read_only`/`locked` wording — see that row), never while suspended. Proven by
 `apps/server/test/data-export.e2e.spec.ts` (4 tests: generation producing a real zip, 24-hour expiry,
 owner-only gating, cross-tenant isolation) plus the isolation registry entries CI checks.
@@ -1876,6 +1876,22 @@ cleared on delete): its storefront and dashboard fall back to the monogram, and 
 **Not fixed in 11.12a,** which was agreed without server changes; the editor itself deletes only pictures it uploaded
 and never saved. The fix is small: `usesOf` counts `brand_identities` too, `MediaUses` gains `brand`, and the
 dashboard's `inUse` reads it.
+
+## 98. `ORD-04`: 50 orders at once in one shop timed out — found and fixed 2026-10-29
+
+Found by Phase 4 Slice 4.1's concurrency test, building to `PHASE-4-PLAN.md` §3.6's lock order, which took the day's
+order number first. The counter row then stayed locked for the whole creation transaction -- pricing, the stock held,
+the history and the reply -- so a shop's orders on one day were made strictly one after another, and on a busy machine
+the last of 50 made at once waited past the 10-second statement timeout (a 500). An order now takes its number last
+in its own transaction, after its customer, items, stock and history: the counter is held only while the order is
+numbered and its reply stored, and a rollback still gives the number back. `order_number` may be empty only inside
+that transaction; a deferred check (migration 0083, `orders_numbered`) refuses an order committed without one, and a
+number once given never changes. The customer's row was locked the same way, from the start of the transaction, which
+queued orders from one phone just as badly: finding or adding a customer now takes no lock, and working out its figures
+locks it at the end (`FOR NO KEY UPDATE`, which an order's key share on it never blocks -- `FOR UPDATE` deadlocked
+against it). Every order locks in one order -- products, levels and reservations, then customers (in id order), then
+the counter -- and edits, calls and cancellations never take the counter. Verified in `orders.e2e.spec.ts`: 50 orders
+from one phone made at once get `0001` to `0050`, with a test pool of 20 connections so all 50 can wait their turn.
 
 ## Not a bug, just noting it so it isn't mistaken for one later
 

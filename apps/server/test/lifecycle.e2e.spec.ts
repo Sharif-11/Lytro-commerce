@@ -556,6 +556,42 @@ async function seedCatalogue(tenantId: string): Promise<void> {
      VALUES ($1, $2, $3, 5, 700, $4)`,
     [tenantId, receipt, item, received.rows[0]?.id],
   );
+  // Phase 4 Slice 4.1: a customer, the day's order counter, and one of their orders with an item, its history, a call
+  // and the stock it holds. Only the day-60 deletion removes a customer, an order's history or its calls.
+  const customer = await one(
+    "INSERT INTO tenant.customers (tenant_id, phone, name) VALUES ($1, '01711000000', 'Karim') RETURNING id",
+    [tenantId],
+  );
+  await admin.query(
+    "INSERT INTO tenant.order_counters (tenant_id, day, last_number) VALUES ($1, '2026-10-29', 1)",
+    [tenantId],
+  );
+  const order = await one(
+    `INSERT INTO tenant.orders (tenant_id, order_number, tracking_id, customer_id, customer_name, customer_phone,
+       fulfilment_type, subtotal, delivery_charge, grand_total, cod_amount, due)
+     VALUES ($1, '261029-0001', $2, $3, 'Karim', '01711000000', 'takeaway', 700, 0, 700, 700, 700) RETURNING id`,
+    [tenantId, randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase(), customer],
+  );
+  const orderLine = await one(
+    `INSERT INTO tenant.order_lines (tenant_id, order_id, position, product_id, variant_id, product_name, stock_unit,
+       list_price, unit_price, quantity, item_total, delivery_mode, delivery_charge, payment_policy)
+     VALUES ($1, $2, 0, $3, $4, 'Shirt', 'piece', 700, 700, 1, 700, 'default', 0, 'none') RETURNING id`,
+    [tenantId, order, product, variant],
+  );
+  await admin.query(
+    "INSERT INTO tenant.order_status_history (tenant_id, order_id, field, new_value) VALUES ($1, $2, 'created', 'pending')",
+    [tenantId, order],
+  );
+  await admin.query(
+    "INSERT INTO tenant.order_calls (tenant_id, order_id, outcome) VALUES ($1, $2, 'no_answer')",
+    [tenantId, order],
+  );
+  await admin.query(
+    `INSERT INTO tenant.stock_reservations
+       (tenant_id, order_id, order_line_id, product_id, variant_id, sold_variant_id, ordered, quantity)
+     VALUES ($1, $2, $3, $4, $5, $5, 1, 1)`,
+    [tenantId, order, orderLine, product, variant],
+  );
   await admin.query(
     `INSERT INTO tenant.size_charts (tenant_id, product_id, table_rows) VALUES ($1, $2, '[["40"]]')`,
     [tenantId, product],

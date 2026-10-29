@@ -153,6 +153,33 @@ export class ReservationService {
   }
 
   /**
+   * ORD-11: holds an edited order's items afresh, all or none: what the order holds is let go and its lines held again,
+   * so an edit asking for more than is free is refused and, with the caller's transaction, leaves the order as it was.
+   * Every product the old and the new lines name is locked first, in one pass, as every writer locks.
+   */
+  async replaceForOrder(
+    tx: Transaction,
+    tenantId: string,
+    request: ReservationRequest,
+    now = new Date(),
+  ): Promise<ReservationRecord[]> {
+    const active = (await this.reservations.listForOrder(tx, tenantId, request.orderId)).filter(
+      (row) => row.status === ReservationStatus.Active,
+    );
+    const ordered = await this.store.findVariants(
+      tx,
+      tenantId,
+      request.lines.map((line) => line.variantId),
+    );
+    await this.store.lockProducts(tx, tenantId, [
+      ...new Set([...active.map((row) => row.productId), ...ordered.map((row) => row.productId)]),
+    ]);
+    await this.lockLevels(tx, tenantId, active);
+    await this.letGo(tx, tenantId, active);
+    return this.reserve(tx, tenantId, request, now);
+  }
+
+  /**
    * INV-15, INV-14: ships these reservations, each whole, as one sale of the units it held (INV-12: earliest expiry
    * first, never an expired batch), at the cost of the moment (INV-11). A serial-numbered product names the serial of
    * every unit shipped, and those units are sold to the order. A reservation that expiry left without enough sellable
