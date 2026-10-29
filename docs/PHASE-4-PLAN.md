@@ -109,7 +109,7 @@ count as complete.
 | LND-10 | cash-on-delivery products order directly | advance and full prepayment through the payment page | Phase 5 |
 | INV-16 | expiry exists (Phase 3); no Phase 4 order awaits an online payment | reservations set to expire with the payment session | Phase 5 |
 | ATR-13 | effective weight and delivery charge used by order pricing | used by courier booking | Phase 6 |
-| RTE-08 | order creations per minute per shop and plan | payment sessions per minute | Phase 5 |
+| RTE-08 | order creations per minute per shop, one figure for every plan (amended 2026-10-30) | payment sessions per minute | Phase 5 |
 | API-07 | public keys create orders, read tracking, locations and the estimate, and sign shoppers in | payment sessions, courier locations, chat | Phases 5–7 |
 | API-11 | required on order creation; reworked keys (D4-8) | required on payment sessions | Phase 5 |
 | LIM-02, LIM-04 | orders on the usage page and their counters | payment sessions | Phase 5 |
@@ -203,7 +203,7 @@ All in the `tenant` schema with RLS forced, unless marked `control`; money `nume
 | `combo_parts`, `combo_part_variants`; `products.kind` | schema §3.2 | CMB-01, 02, 06 – 10 |
 | `tax_classes`, `products.tax_class_id`; `modifier_groups`, `modifier_options` | | TAX-01, MNU-01 |
 | `control.idempotency_keys` | scoped to shop and caller (D4-8) | API-11 |
-| plan limit keys | `orders_handled_daily` (QTA-05) and `order_creations_per_minute` (RTE-08) beside today's `orders_total` and `orders_handled_monthly`; the platform setting `order_limit_mode` (QTA-03) | QTA, RTE-08 |
+| plan limit keys | `orders_handled_daily` (QTA-05) beside today's `orders_total` and `orders_handled_monthly`; the platform settings `order_limit_mode` (QTA-03) and `public_orders_per_shop_per_minute` (RTE-08, one figure for every plan since 2026-10-30) | QTA, RTE-08 |
 | foreign keys | `stock_reservations.order_id` / `order_line_id` and `serial_numbers.sold_order_id` to orders and lines | INV-15 |
 
 ---
@@ -255,6 +255,15 @@ Every route lands in `API-CONTRACT.md` with its slice; the isolation registry ga
 - **Rework:** §3.5's rows for this slice.
 
 ### Slice 4.2: public ordering and tracking
+- **Read agreed 2026-10-30:** the shop-wide window on shoppers' orders (RTE-08) is one figure for every plan, [60] a
+  minute, a platform setting, its refusals counted -- a flood guard, never a cap on demand (QTA-07; RTE-08 and
+  2.1's row amended); tracking follows the storefront sketch's courier line, the courier and its link once shipped,
+  never the address or phone, a hold or review showing the status under it (ORD-17 amended); a shopper's comment is
+  its own field, `shopper_note`, never edited by staff (LND-07 amended). Also settled: delivery only, as the sketch
+  draws; `source` is the Lytro storefront key's to say (`storefront` or `landing_page`), any other key's order is
+  `api`; LND-10 reworded to the call flow (a cash-on-delivery order waits as pending, ORD-07). Backend only: the
+  storefront's checkout and the landing form stay disabled until Slice 4.8. ORD-02's secret keys wait for Phase 8;
+  SEC-11's log of a token's use is a server log line until a store for it lands with Phase 5's gateways.
 - **Delivers:** `POST /v1/orders` (ORD-02, ORD-21) with cash on delivery only (D4-2), available variants only
   (ATR-07), no inactive product (PRD-06), no-delivery and limited zones refused (DLV-06, DLV-07), prices read from
   PostgreSQL (CCH-07); the per-visitor and per-shop windows (RTE-06, RTE-08, D4-13); public locations and the delivery
