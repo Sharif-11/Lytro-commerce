@@ -232,6 +232,11 @@ h1.pt{font-family:var(--font-display);font-size:24px;font-weight:700;letter-spac
 .cl .vr{font-size:13px;color:var(--muted)}
 .cl .row{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:auto}
 .cl .rm{font-size:13px;color:var(--subtle);cursor:pointer}
+.cl .note{font-size:12px;font-weight:600;color:var(--warning)}
+.cl.off .th,.cl.off .nm,.cl.off .vr{opacity:.55}
+.cl.off .note{color:var(--n700)}
+.sheet .sf.soon{flex-wrap:wrap}
+.sheet .sf .soonline{flex-basis:100%;font-size:12px;color:var(--muted);text-align:center}
 .cl .qty{height:34px}
 .cl .qty button{width:34px}
 

@@ -82,9 +82,11 @@ describe('public list requests (CCH-03, CCH-11)', () => {
       category: null,
       search: 'cotton panjabi',
       sort: PublicProductSort.Relevance,
+      inStock: false,
       cursor: null,
       limit: 24,
     });
+    expect(listRequestOf({ inStock: true, limit: 24 }).inStock).toBe(true);
     expect(listRequestOf({ limit: 24, v: '3.1' }).sort).toBe(PublicProductSort.Featured);
     expect(listRequestOf({ sort: PublicProductSort.Relevance, limit: 24 }).sort).toBe(
       PublicProductSort.Featured,

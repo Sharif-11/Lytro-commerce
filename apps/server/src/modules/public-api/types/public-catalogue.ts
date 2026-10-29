@@ -12,7 +12,15 @@ export interface CatalogueVersionView {
   version: string;
 }
 
-/** CCH-11: a product as a public list shows it: no variant is read for it. */
+/** ATR-18: a value a shopper picks, such as a size or a colour, with its swatch when it has one. */
+export interface PublicOptionValue {
+  id: string;
+  value: string;
+  swatchColor: string | null;
+  swatchImage: ImageView | null;
+}
+
+/** CCH-11: a product as a public list shows it, from its own row and, for the swatches, one read for the whole page. */
 export interface PublicProductCard {
   id: string;
   slug: string;
@@ -22,6 +30,10 @@ export interface PublicProductCard {
   stockState: StockState;
   /** Its first photo. */
   image: ImageView | null;
+  /** When it was added (ISO); a storefront marks one added in the last PRODUCT_NEW_DAYS "New" (Slice 12b). */
+  createdAt: string;
+  /** ATR-18, Slice 12b: its first swatched choice's values on sale, such as its colours; empty for none. */
+  swatches: PublicOptionValue[];
 }
 
 export interface PublicProductPage {
@@ -36,12 +48,7 @@ export interface PublicProductOption {
   name: string;
   dataType: AttributeDataType;
   unitKind: string | null;
-  values: {
-    id: string;
-    value: string;
-    swatchColor: string | null;
-    swatchImage: ImageView | null;
-  }[];
+  values: PublicOptionValue[];
 }
 
 /** ATR-02: a fact about the product, such as its material, written out. */
@@ -101,6 +108,8 @@ export interface PublicCategory {
   slug: string;
   name: string;
   image: ImageView | null;
+  /** Slice 12b: its active products, its subcategories' included (hidden ones too), as its list shows them. */
+  productCount: number;
   children: PublicCategory[];
 }
 

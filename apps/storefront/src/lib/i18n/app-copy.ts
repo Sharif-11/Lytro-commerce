@@ -33,4 +33,9 @@ export const APP_COPY = {
   unit_kg: ['কেজি', 'kg'],
   unit_ml: ['মি.লি.', 'ml'],
   unit_l: ['লিটার', 'L'],
+  // Slice 12b: the search overlay's way out, which the prototype writes in place; Bangla by the user's glossary.
+  cancel: ['ক্যানসেল', 'Cancel'],
+  // The prototype's counts, for exactly one ("1 products" otherwise); Bangla has one form.
+  products_one: ['{n}টি প্রোডাক্ট', '{n} product'],
+  cart_one: ['{n}টি আইটেম', '{n} item'],
 } as const satisfies Record<string, readonly [string, string]>;

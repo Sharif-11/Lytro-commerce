@@ -22,6 +22,7 @@ import type {
   CatalogueAnswer,
   CatalogueVersionView,
   PublicCategory,
+  PublicOptionValue,
   PublicProductDetail,
   PublicProductPage,
 } from '../types/public-catalogue';
@@ -30,8 +31,9 @@ import { CatalogueCache } from './catalogue-cache';
 import { listRequestOf, cursorOf, positionOf, type ListRequest } from './catalogue-query';
 import { CatalogueVersionReader } from './catalogue-version-reader';
 
-// Bumped whenever an answer's shape changes, so no shopper's browser keeps an old one under an unchanged tag.
-const ANSWER_FORMAT = 1;
+// Bumped whenever an answer's shape changes, so no shopper's browser keeps an old one under an unchanged tag. 2: a list
+// row's swatches and creation time, a category's product count (Slice 12b).
+const ANSWER_FORMAT = 2;
 // CCH-04: the version endpoint itself is kept at most this long.
 const VERSION_MAX_AGE_SECONDS = 5;
 // FED-04: a feed is fetched on Meta's schedule; its answer is kept no longer than a product page.
@@ -122,7 +124,7 @@ export class PublicCatalogue {
     });
   }
 
-  /** PRD-03: the visible categories as a tree. */
+  /** PRD-03: the visible categories as a tree, each with its number of products (Slice 12b). */
   async categories(
     shop: ApiShop,
     lang: Language,
@@ -136,6 +138,12 @@ export class PublicCatalogue {
           shop.row.id,
           visible.map((row) => row.imageId),
         );
+        const counts = new Map(
+          (await this.store.countCategoryProducts(tx, shop.row.id)).map((row) => [
+            row.categoryId,
+            row.products,
+          ]),
+        );
         const children = new Map<string | null, PublicCategory[]>();
         for (const row of [...visible].reverse()) {
           const node: PublicCategory = {
@@ -143,6 +151,7 @@ export class PublicCatalogue {
             slug: row.slug,
             name: row.name,
             image: row.imageId === null ? null : (images.get(row.imageId) ?? null),
+            productCount: counts.get(row.id) ?? 0,
             children: children.get(row.id) ?? [],
           };
           children.set(row.parentId, [node, ...(children.get(row.parentId) ?? [])]);
@@ -196,16 +205,15 @@ export class PublicCatalogue {
         categoryIds,
         search: request.search,
         sort: request.sort,
+        inStock: request.inStock,
         after,
         limit: request.limit + 1,
       });
       const page = rows.slice(0, request.limit);
       const last = page.at(-1);
-      const images = await this.images.ofProducts(
-        tx,
-        tenantId,
-        page.map((row) => row.id),
-      );
+      const ids = page.map((row) => row.id);
+      const images = await this.images.ofProducts(tx, tenantId, ids);
+      const swatches = await this.swatchesOf(tx, tenantId, ids);
       return {
         products: page.map((row) => ({
           id: row.id,
@@ -215,11 +223,38 @@ export class PublicCatalogue {
           maxPrice: row.maxPrice,
           stockState: row.stockState,
           image: images.get(row.id)?.[0] ?? null,
+          createdAt: row.createdAt,
+          swatches: swatches.get(row.id) ?? [],
         })),
         nextCursor:
           rows.length > request.limit && last ? cursorOf(request.sort, last.position) : null,
       };
     });
+  }
+
+  /** ATR-18, Slice 12b: each product's card swatches, with their pictures' links. */
+  private async swatchesOf(
+    tx: Transaction,
+    tenantId: string,
+    productIds: string[],
+  ): Promise<Map<string, PublicOptionValue[]>> {
+    const rows = await this.store.listSwatches(tx, tenantId, productIds);
+    const pictures = await this.images.viewsOf(
+      tx,
+      tenantId,
+      rows.map((row) => row.swatchImageId),
+    );
+    const byProduct = new Map<string, PublicOptionValue[]>();
+    for (const row of rows) {
+      const swatch: PublicOptionValue = {
+        id: row.optionId,
+        value: row.value,
+        swatchColor: row.swatchColor,
+        swatchImage: row.swatchImageId === null ? null : (pictures.get(row.swatchImageId) ?? null),
+      };
+      byProduct.set(row.productId, [...(byProduct.get(row.productId) ?? []), swatch]);
+    }
+    return byProduct;
   }
 
   /** PRD-03, PRD-09: a visible category and every category under it; an unknown or hidden one is not found. */

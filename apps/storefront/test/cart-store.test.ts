@@ -50,4 +50,23 @@ describe('CartStore (SFT-05)', () => {
     expect(blocked.add(line('a'))).toBe(true);
     expect(blocked.lines()).toEqual([]);
   });
+
+  it("changes a line's quantity, removes it at none or on Remove, and says so each time (Slice 12b)", () => {
+    let changes = 0;
+    const cart = new CartStore(memory(), () => {
+      changes += 1;
+    });
+    cart.add(line('a', 2));
+    cart.add(line('b'));
+    cart.setQuantity('a', 5);
+    expect(cart.lines().map((held) => [held.variantId, held.quantity])).toEqual([
+      ['a', 5],
+      ['b', 1],
+    ]);
+    cart.setQuantity('a', 0);
+    cart.remove('b');
+    cart.setQuantity('missing', 3);
+    expect(cart.lines()).toEqual([]);
+    expect(changes).toBe(5);
+  });
 });

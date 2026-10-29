@@ -1685,6 +1685,41 @@ their backend ships earlier.
   user's call; a 301 from middleware would cost a second counted API call on every view). A page that turns out
   missing sends its 404 with the branded page drawn in the browser, not in the HTML.
 
+- **Read agreed 2026-10-29 (12b)** (7 points and one follow-up; STOREFRONT-DESIGN v1.1, prototype
+  `lytro-storefront.html` `home`, `category-instock`, `new-arrivals`, `cart-changed`, `cart-soon`, `home-later`):
+  1. **The cart is checked each time it opens**, in the delivery estimate it asks anyway: each line's price now, its
+     stock and whether it is still sold. A changed price shows with the old one; a line sold out or no longer sold
+     stays, out of the total. A removed variant is marked instead of refusing the whole estimate (SFT-05 amended).
+  2. **The frame's reads are kept a minute**: the storefront keeps each shop's details and category tree up to 60 s;
+     every page still makes its own counted read.
+  3. **Counts and "In stock only"**: each category's number of products, its subcategories' included, and
+     `inStock=true` on the list (SFT-03 amended); "Show more" without a count of what is left.
+  4. **Search on submit**, never as the shopper types; the overlay offers this device's recent searches and the
+     categories with their counts.
+  5. **Cards with swatches and "New"** (the user's pick over leaving both out): each list row brings its swatches and
+     when it was added (CCH-11 amended); "New" for [14] days (`PRODUCT_NEW_DAYS`), a sold-out or few-left tag in its
+     place.
+  6. **The hero from the shop's own data**: "Welcome", its name, its first three categories, the New arrivals button.
+  7. **"You may also like"**: up to eight from the product's main category, in the shop's order, itself left out.
+
+  **Built (12b):** the server: each category's `productCount` (a recursive count over every category under it, the
+  same products its list shows), the list's `inStock` and each row's `createdAt` and `swatches` (one read for the
+  page), and the estimate's `lines` and `subtotal`, pricing only what can be ordered; the answers' format moves to 2.
+  The storefront: the header's categories, search box and cart with its count; the home (§2); `/c/<slug>` with its
+  count, chips, sort sheet, "In stock only" and "Show more"; `/new`; search as an overlay and at `/search?q=`, with
+  recent searches kept on the device; the cart drawer, also at `/cart`, with its lines checked, the area sheet, the
+  exact charge or the range, "No delivery to …" with the shop's phone, and Checkout off with "Online ordering opens
+  soon"; cards with swatches and "New"; "You may also like"; the footer's categories link. The product and landing
+  pages price only a variant that can be bought, so a sold-out choice never reads as undeliverable.
+
+  Named, beyond the drawing (12b): a card shows five swatches, then "+n"; a category's tile shows its photo when it
+  has one; a cart line's name leads to its product; "Browse categories" on a search with no results leads to the
+  home's categories; the header's language pill gives way to the drawn search and cart, the language staying in the
+  footer; a count of exactly one reads "1 product" and "1 item"; the search overlay's Cancel is ক্যানসেল, by the
+  user's Bangla glossary, where the sketch writes বাতিল. A real run found two things, both fixed: the cart asked
+  nothing new when it opened again with the same lines, so a seller's change did not show; and a new sort or filter
+  kept the old list's products.
+
 ### Slice 13: custom domains (D3-13)
 - **Depends on:** Slice 12 (the storefront and landing pages a domain serves), Slice 0 (custom domains never
   serve the dashboard) and Phase 2's plan features and downgrade.

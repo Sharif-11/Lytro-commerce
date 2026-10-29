@@ -8,7 +8,7 @@ import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase, seedShop } from './support/database';
 import { sendExact, type HttpResult } from './support/http';
-import { errorOf, fieldsOf, openShop, type ShopClient } from './support/shop-client';
+import { errorOf, openShop, type ShopClient } from './support/shop-client';
 import { SmsCapture } from './support/sms-capture';
 
 // Phase 3 Slice 12a, agreed 2026-10-29: what the storefront's own server reads -- the shop a host serves and the key it
@@ -256,6 +256,11 @@ describeIfDatabase('what the storefront reads (TEN-16, TEN-30, DLV-01, DLV-07, C
     const range = await asStorefront('POST', '/v1/delivery-estimate', sf, { items });
     expect(range.status, JSON.stringify(range.body)).toBe(200);
     expect(range.body).toMatchObject({
+      lines: [
+        { variantId: shirt.variantId, onSale: true, price: '500.00', itemTotal: '1000.00' },
+        { variantId: lamp.variantId, onSale: true, price: '500.00', itemTotal: '1500.00' },
+      ],
+      subtotal: '2500.00',
       zone: null,
       deliveryCharge: null,
       range: { from: '430.00', to: '490.00' },
@@ -305,23 +310,82 @@ describeIfDatabase('what the storefront reads (TEN-16, TEN-30, DLV-01, DLV-07, C
     expect(noDelivery.body).toMatchObject({ zone: { noDelivery: true }, deliverable: false });
   });
 
-  it("refuses an item not on sale, or another shop's, naming it (PRD-06)", async () => {
+  it('answers each line as it stands; prices only what can be ordered (PRD-06, ATR-07, Slice 12b)', async () => {
     const shop = await openShop(port, texts, 'sf');
     const other = await openShop(port, texts, 'sf');
     const sf = await open(shop);
     const theirs = await product(other, { name: 'Theirs' });
     const hidden = await product(shop, { name: 'Hidden' });
     await shop.patch(`/products/${hidden.id}`, { active: false });
-    const refused = await asStorefront('POST', '/v1/delivery-estimate', sf, {
-      items: [
-        { variantId: theirs.variantId, quantity: 1 },
-        { variantId: hidden.variantId, quantity: 1 },
-      ],
+    const gone = await product(shop, { name: 'Gone' });
+    await shop.delete(`/products/${gone.id}`);
+    const empty = await product(shop, {
+      name: 'Empty',
+      variants: [{ optionIds: [], openingStock: 0 }],
     });
-    expect(refused.status).toBe(400);
-    expect(fieldsOf(refused)).toMatchObject({
-      'items.0.variantId': 'not_found',
-      'items.1.variantId': 'not_found',
+    const shirt = await product(shop, { name: 'Shirt', basePrice: 450 });
+    const item = (made: { variantId: string }, quantity = 1) => ({
+      variantId: made.variantId,
+      quantity,
+    });
+    const notSold = (made: { variantId: string }) => ({
+      variantId: made.variantId,
+      onSale: false,
+      price: null,
+      stockState: null,
+      available: false,
+      itemTotal: null,
+      advance: null,
+    });
+    const asked = { items: [item(theirs), item(hidden), item(gone), item(empty), item(shirt, 2)] };
+
+    const answer = await asStorefront('POST', '/v1/delivery-estimate', sf, asked);
+    expect(answer.status, JSON.stringify(answer.body)).toBe(200);
+    expect(answer.body).toMatchObject({
+      lines: [
+        notSold(theirs),
+        notSold(hidden),
+        notSold(gone),
+        {
+          variantId: empty.variantId,
+          onSale: true,
+          price: '500.00',
+          stockState: 'out',
+          available: false,
+          itemTotal: null,
+          advance: null,
+        },
+        {
+          variantId: shirt.variantId,
+          onSale: true,
+          price: '450.00',
+          // Five in stock at the default threshold of five: few left.
+          stockState: 'low',
+          available: true,
+          itemTotal: '900.00',
+          advance: '0.00',
+        },
+      ],
+      subtotal: '900.00',
+      range: { from: '70.00', to: '130.00' },
+      deliverable: true,
+    });
+
+    expect((await shop.patch(`/products/${shirt.id}`, { basePrice: 475 })).status).toBe(200);
+    const repriced = await asStorefront('POST', '/v1/delivery-estimate', sf, asked);
+    expect(repriced.body).toMatchObject({ subtotal: '950.00' });
+    expect((repriced.body as { lines: { price: string | null }[] }).lines[4]?.price).toBe('475.00');
+
+    const nothing = await asStorefront('POST', '/v1/delivery-estimate', sf, {
+      items: [item(hidden), item(empty)],
+      locationId: await thana(shop, 'Dhaka', 'Mirpur'),
+    });
+    expect(nothing.body).toMatchObject({
+      subtotal: '0.00',
+      zone: null,
+      deliveryCharge: null,
+      range: null,
+      deliverable: false,
     });
   });
 });

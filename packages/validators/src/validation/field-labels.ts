@@ -103,6 +103,7 @@ export const FIELD_LABELS: Readonly<Record<string, Translation | null>> = {
   imageId: { en: 'Image', bn: 'ছবি' },
   imageIds: { en: 'Photos', bn: 'ছবি' },
   includeRetired: { en: 'Show retired', bn: 'রিটায়ার্ডগুলোও দেখান' },
+  inStock: { en: 'In stock only', bn: 'শুধু স্টকে আছে' },
   itemDiscount: { en: 'Item discount', bn: 'আইটেম ডিসকাউন্ট' },
   itemId: { en: 'Item', bn: 'আইটেম' },
   items: { en: 'Items', bn: 'আইটেম' },

@@ -259,7 +259,8 @@ Every route lands in `API-CONTRACT.md` with its slice; the isolation registry ga
   (ATR-07), no inactive product (PRD-06), no-delivery and limited zones refused (DLV-06, DLV-07), prices read from
   PostgreSQL (CCH-07); the per-visitor and per-shop windows (RTE-06, RTE-08, D4-13); public locations and the delivery
   estimate (CUS-08, SFT-20, LND-08's backend), already built in Phase 3 Slice 12a (pulled forward 2026-10-29, for the
-  storefront's product and landing pages); tracking by ID (ORD-17); the new-order notice (ORD-20, D4-10); Meta's
+  storefront's product and landing pages), the estimate answering each item as it stands since Slice 12b (the cart's
+  check); tracking by ID (ORD-17); the new-order notice (ORD-20, D4-10); Meta's
   server-side `Purchase` (LND-16); writes made with a key audited (API-21).
 
 ### Slice 4.3: fulfilment, limits, fees and payments

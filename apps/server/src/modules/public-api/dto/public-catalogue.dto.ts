@@ -17,6 +17,13 @@ export class PublicCatalogueVersionedDto extends createZodDto(publicCatalogueVer
 
 export class CatalogueVersionViewDto extends createZodDto(z.object({ version: z.string() })) {}
 
+const optionValueSchema = z.object({
+  id: z.string(),
+  value: z.string(),
+  swatchColor: z.string().nullable(),
+  swatchImage: imageViewSchema.nullable(),
+});
+
 const productCardSchema = z.object({
   id: z.string(),
   slug: z.string(),
@@ -25,6 +32,8 @@ const productCardSchema = z.object({
   maxPrice: z.string().nullable(),
   stockState: z.nativeEnum(StockState),
   image: imageViewSchema.nullable(),
+  createdAt: z.string(),
+  swatches: z.array(optionValueSchema),
 });
 
 export class PublicProductPageDto extends createZodDto(
@@ -52,14 +61,7 @@ export class PublicProductDetailDto extends createZodDto(
         name: z.string(),
         dataType: z.nativeEnum(AttributeDataType),
         unitKind: z.string().nullable(),
-        values: z.array(
-          z.object({
-            id: z.string(),
-            value: z.string(),
-            swatchColor: z.string().nullable(),
-            swatchImage: imageViewSchema.nullable(),
-          }),
-        ),
+        values: z.array(optionValueSchema),
       }),
     ),
     attributes: z.array(
@@ -96,6 +98,7 @@ interface CategoryShape {
   slug: string;
   name: string;
   image: z.infer<typeof imageViewSchema> | null;
+  productCount: number;
   children: CategoryShape[];
 }
 
@@ -105,6 +108,7 @@ const categorySchema: z.ZodType<CategoryShape> = z.lazy(() =>
     slug: z.string(),
     name: z.string(),
     image: imageViewSchema.nullable(),
+    productCount: z.number().int(),
     children: z.array(categorySchema),
   }),
 );

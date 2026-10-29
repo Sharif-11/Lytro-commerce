@@ -1,6 +1,10 @@
 # Shopper storefront: design
 
-Status: v1, 2026-10-21. The shared storefront every shop gets at its subdomain or custom domain
+Status: v1.1, 2026-10-29 (Slice 12b's read: the home hero and trust strip from the shop's own data, Bestsellers and
+the wallet marks drawn for later phases; product counts, "In stock only" and the Featured order on a category; the New
+arrivals page; search on submit; swatches and a [14]-day "New" tag on cards; "You may also like" from the same
+category; the cart re-checked against the shop each time it opens, and Checkout off until Phase 4). v1 of 2026-10-21:
+the shared storefront every shop gets at its subdomain or custom domain
 (`apps/storefront`, SFT-01, TEN-08), and the product landing pages at `/l/<slug>` (LND-01). Designed from
 `SRS-detailed.md` §4 (TEN, BRN), §14.2 (SFT), §14.3 (CCH), §14.12 (LND), §14.13 (DLV), §14.15 (CMB), §15
 (ORD), §16 (CUS), §19.2 (PAY), §22 (CHT) and the Phase 3 plan's Slice 12, against the public catalogue the
@@ -71,18 +75,29 @@ navigation at all (LND-01).
 
 ## 2. Home (`/`)
 
-A greeting band in the accent colour built from the shop's data only (its name, a seasonal line it writes
-in settings later, the "New arrivals" button), the trust strip (cash on delivery, bKash and Nagad, the two
-delivery charges, courier nationwide), "Shop by category" as tiles with the category image or its initial,
-"New arrivals" as a grid of four, "Bestsellers" as a horizontal rail. The install prompt (`home-pwa`) is a
-card at the bottom with the shop's icon and name.
+A greeting band in the accent colour built from the shop's data only: "Welcome", the shop's name as the heading, a
+line naming its first three categories ("Panjabi, Sarees, Three-piece and more"; just the names when it has three or
+fewer, no line when it has none) and the "New arrivals" button. A seasonal line the shop writes in settings replaces
+the categories line later. The trust strip says only what is true now: cash on delivery, and the delivery charges as a
+range across the zones that deliver ("Delivery ৳70–৳130", one figure when they agree). "Shop by category" shows every
+top-level category as a tile with its image or its initial; "New arrivals" is a grid of four with "See all" to the New
+arrivals page. The install prompt (`home-pwa`) is a card at the bottom with the shop's icon and name. Bestsellers and
+the bKash, Nagad and courier marks join when their phases make them true (`home-later`).
 
 ## 3. Category and search
 
-**Category** (`/c/<slug>`): the name and product count, the category chips, a sort chip opening a sheet
-(relevance, newest, price low to high, high to low) and "In stock only", the grid, "Show more" on the keyset
-cursor (CCH-11). **Search** opens as an overlay: recent searches, then the categories with counts as a way
-in; results are the same grid under "Results for"; the empty state offers categories (CCH-12).
+**Category** (`/c/<slug>`): the name and its number of products (its subcategories' included, as its list
+includes them), the chips (its subcategories with "All" first, or, when it has none, its sibling categories with
+itself on), a sort chip opening a sheet (Featured, the shop's own order, then newest, price low to high, high to
+low) and "In stock only" (`category-instock`), the grid, and "Show more" on the keyset cursor (CCH-11), without a
+count of what is left. **New arrivals** (`/new`, `new-arrivals`): every product, newest first, with "In stock only".
+**Search** opens as an overlay: recent searches, kept on the device, then the categories with their counts as a way
+in. It searches when the shopper submits, never while they type, since each search is counted against the shop's
+requests; results are the same grid under "Results for" at `/search?q=`, so Back and a shared link work; the empty
+state offers categories (CCH-12).
+
+**Cards** show the first photo at 4:5, the name, the price or "from" the lowest, the colour swatches of the variants
+on sale, and one tag: sold out, few left, or "New" for a product added in the last [14] days.
 
 ## 4. Product (`/p/<slug>`)
 
@@ -95,7 +110,9 @@ after "Set your area", a sheet with district and thana from the canonical list, 
 ("Cash on delivery · Pay when it arrives", or "৳200 advance, the rest on delivery" when the product's policy
 needs one, PRD-08), and "Delivers to Dhaka city only" when a product is limited (DLV-07). Add to cart and
 Buy now. Description exactly as typed, details from the informational attributes (ATR-09), care and
-returns from the shop's text. Share: copy, WhatsApp, Facebook. "You may also like".
+returns from the shop's text. Share: copy, WhatsApp, Facebook. "You may also like": up to eight products from the
+same main category, in the shop's order, the product itself left out; none for a product with no category, and
+never on a landing page (LND-01).
 
 Variants drawn: a product with one variant and a video (`product-saree`), one with an advance
 (`product-advance`), one sold out (`product-out`), one limited to a zone (`product-limited`).
@@ -103,11 +120,15 @@ Variants drawn: a product with one variant and a video (`product-saree`), one wi
 ## 5. Cart
 
 A drawer: each line with its thumbnail, name, variant, the advance note when its product needs one, a
-quantity stepper, the line total and Remove. The summary shows items, delivery as "Set your area" with the
+quantity stepper, the line total and Remove. Each time the cart opens, its lines are checked against the shop in
+the one delivery estimate it asks anyway: a price that changed since the line was added shows the new total with
+"Price changed, was ৳1,150"; a line sold out, or no longer sold, stays visible, greyed, saying it is not in the
+total, with Remove (`cart-changed`). The summary shows items, delivery as "Set your area" with the
 range beneath until an area is set and the exact charge after, and the total as a range or a figure. The
 sentence under it says the charge is the one the order will carry (SFT-20). Nothing is reserved until
 checkout (SFT-05). "No delivery to Bandarban" blocks checkout with the shop's phone number (DLV-06). Empty
-state with "Keep shopping".
+state with "Keep shopping". Until Phase 4 opens ordering, Checkout shows switched off with "Online ordering opens
+soon." under it (`cart-soon`).
 
 ## 6. Landing page (`/l/<slug>`)
 
@@ -188,8 +209,8 @@ delivery". A gateway wallet comes back through pay.lytro.app to the same three s
 
 | Screen | Served today | Still needed |
 | --- | --- | --- |
-| Shell, home, category, search, product | `GET /v1/shop` (name, slug, pixel), `/v1/catalogue/categories`, `/v1/catalogue/products` (category, search, sort, cursor), `/v1/catalogue/products/:slug` (images, video, options, attributes, variants with stock state, size chart, payment policy, advance) | the shop's logo, contact phone, email and address (TEN-16, TEN-30) and its brand identity tokens (BRN-07) on the shop endpoint; the storefront on/off flag (SFT-16); a delivery estimate endpoint taking the cart's lines and a thana, with the canonical district and thana list (SFT-20, CUS-08); "delivers to" zones on the product (DLV-07) |
-| Cart | client-side only (SFT-05) | the same estimate endpoint |
+| Shell, home, category, search, product | `GET /v1/shop` (name, slug, pixel, logo, contact, delivery zones, brand identity), `/v1/catalogue/categories` (with each category's product count, Slice 12b), `/v1/catalogue/products` (category, search, sort, in stock only, cursor; each row's swatches and when it was added, Slice 12b), `/v1/catalogue/products/:slug` (images, video, options, attributes, variants with stock state, size chart, payment policy, advance, delivery zones); the storefront on/off flag (SFT-16); the delivery estimate and the canonical district and thana list (SFT-20, CUS-08; Slice 12a) | |
+| Cart | client-side (SFT-05); the delivery estimate, which also answers each line's current price, stock and whether it is still sold (Slice 12b) | |
 | Landing page | the product detail; OG tags from it (LND-05) | order creation (Phase 4) |
 | Offline and not found | the tenant state from the host (TEN-08, LIF-07) | |
 | Checkout, confirmation, tracking, account, combos | nothing | Phase 4's order creation, tracking and OTP endpoints; Phase 5's sessions; combos (CMB) |
@@ -199,7 +220,7 @@ delivery". A gateway wallet comes back through pay.lytro.app to the same three s
 ## 10. Mapping onto `apps/storefront`
 
 Next.js standalone, one deployment resolving the shop from the host (TEN-07a). Routes: `/` home, `/c/[slug]`
-category, `/search`, `/p/[slug]` product, `/cart` (the drawer, also a page), `/l/[slug]` landing, `/track/[id]`,
+category, `/new` new arrivals, `/search`, `/p/[slug]` product, `/cart` (the drawer, also a page), `/l/[slug]` landing, `/track/[id]`,
 `/sign-in`, `/account`, `/checkout`, `/order/[id]`. Server components for everything cacheable (home,
 category, product, landing, with the catalogue version in the request address, CCH-04), client components
 for the cart, the area sheet, the pickers and the forms (CCH-07). Shared pieces: `product-card`, `gallery`,
@@ -212,5 +233,5 @@ the shell and recently viewed catalogue responses (CCH-10). Copy lives in one di
 `docs/brand/lytro-storefront.html` is self-contained. Its toolbar picks the screen (Browse, Product, Cart,
 Landing page, Later phases), the device (phone 390, tablet 820, desktop 1280), the language and the brand
 (Lytro default, or the shop's own identity). Every button that leads somewhere in the design leads there in
-the sketch. It renders 50 screens with no horizontal overflow at any width and no missing strings in either
+the sketch. It renders 57 screens with no horizontal overflow at any width and no missing strings in either
 language.

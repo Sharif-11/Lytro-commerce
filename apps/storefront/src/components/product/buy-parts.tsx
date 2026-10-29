@@ -175,30 +175,37 @@ export function Quantity({
       <div className="lb">
         <span>{words.t('qty')}</span>
       </div>
-      <span className="qty">
-        <button
-          type="button"
-          aria-label="−"
-          disabled={value <= 1}
-          onClick={() => {
-            onChange(Math.max(1, value - 1));
-          }}
-        >
-          <Icon name="minus" />
-        </button>
-        <span aria-live="polite">{value}</span>
-        <button
-          type="button"
-          aria-label="+"
-          disabled={value >= QUANTITY_LIMIT}
-          onClick={() => {
-            onChange(Math.min(QUANTITY_LIMIT, value + 1));
-          }}
-        >
-          <Icon name="plus" />
-        </button>
-      </span>
+      <Stepper value={value} onChange={onChange} />
     </div>
+  );
+}
+
+/** The quantity stepper itself, as the product page and each cart line draw it. */
+export function Stepper({ value, onChange }: { value: number; onChange: (next: number) => void }) {
+  return (
+    <span className="qty">
+      <button
+        type="button"
+        aria-label="−"
+        disabled={value <= 1}
+        onClick={() => {
+          onChange(Math.max(1, value - 1));
+        }}
+      >
+        <Icon name="minus" />
+      </button>
+      <span aria-live="polite">{value}</span>
+      <button
+        type="button"
+        aria-label="+"
+        disabled={value >= QUANTITY_LIMIT}
+        onClick={() => {
+          onChange(Math.min(QUANTITY_LIMIT, value + 1));
+        }}
+      >
+        <Icon name="plus" />
+      </button>
+    </span>
   );
 }
 

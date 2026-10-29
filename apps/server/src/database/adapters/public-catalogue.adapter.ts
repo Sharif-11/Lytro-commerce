@@ -4,11 +4,13 @@ import {
   PublicCatalogueRepository,
   TransactionRunner,
   type CatalogueVersions,
+  type CategoryProductCount,
   type FeedAttributeRow,
   type FeedImageRow,
   type FeedVariantRow,
   type PublicProductFilter,
   type PublicProductRow,
+  type PublicSwatchRow,
   type Transaction,
 } from '@lytronix/db';
 import type { CategoryRecord } from '../../modules/catalogue/types/catalogue';
@@ -45,6 +47,18 @@ export class DrizzlePublicCatalogueStore implements PublicCatalogueStore {
 
   listCategories(tx: Transaction, tenantId: string): Promise<CategoryRecord[]> {
     return this.categories.listCategories(tx, tenantId);
+  }
+
+  countCategoryProducts(tx: Transaction, tenantId: string): Promise<CategoryProductCount[]> {
+    return this.catalogue.countCategoryProducts(tx, tenantId);
+  }
+
+  listSwatches(
+    tx: Transaction,
+    tenantId: string,
+    productIds: readonly string[],
+  ): Promise<PublicSwatchRow[]> {
+    return this.catalogue.listSwatches(tx, tenantId, productIds);
   }
 
   listFeedVariants(tx: Transaction, tenantId: string): Promise<FeedVariantRow[]> {

@@ -1874,6 +1874,7 @@ export class ProductService {
           sku: variant.sku,
           active: detail.active && !detail.archived && variant.active,
           archived: detail.archived,
+          stockState: variant.stockState,
           stockUnit: detail.stockUnit,
           stockTracking: detail.stockTracking,
           packAmount: detail.sharedStock ? variant.packAmount : null,
