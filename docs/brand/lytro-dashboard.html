@@ -4208,16 +4208,18 @@ SCREENS['themed-b-stock'] = { ...SCREENS.stock, theme24: 'indigo' };
 SCREENS['themed-b-zone-delete'] = { ...SCREENS['sh-zone-delete'], theme24: 'indigo' };
 /* ---------- Part 26: design doc v3.15 (2026-10-29), for Slice 11.13b (what the real-server walkthrough found, agreed
    in its second read). A variant's SKU lives in its own sheet only: every variant table drops its SKU column, and an
-   SKU another variant has marks the variant's name in the table and says why under the sheet's SKU field
-   (`sh-variant-sku-taken`). A shop that keeps no batches meets no batch words: the count's pick sheet leaves out its
-   batch note (`stock-check-pick-plain`), and the Expiring figure that would say the shop has no batches is not drawn
-   (`stock`, `stock-no-batches`). The arrival sheet's note loses its requirement id. ---------- */
+   SKU another variant has (S · Black typed M · Black's) marks the variant's name in the table and says why under the
+   sheet's SKU field (`sh-variant-sku-taken`). A shop that keeps no batches meets no batch words, and the drawn shop
+   keeps none: the count's pick sheets leave out their batch note (`stock-check-pick`, `stock-check-pick-plain`), and
+   the Expiring figure that would say the shop has no batches is not drawn (`stock`, `stock-no-batches`). The arrival
+   sheet's note and the supplier sheet's archive help lose their requirement ids. ---------- */
 Object.assign(S, {
   rcvHelp: ['নেওয়া ইউনিট স্টকে ঢোকে আর গড় খরচ ঠিক হয়; ফেরত ইউনিট বাকি থাকে।', 'Accepted units enter stock and the average cost updates; rejected units stay outstanding.'],
   sk26SkuTaken: ['আপনার দোকানের অন্য একটি ভ্যারিয়েন্টে এই SKU আগে থেকেই আছে।', 'Another variant in your shop already has this SKU.'],
+  supArchiveHelp: ['আর্কাইভ করলে নতুন অর্ডারে আসবে না; পুরোনো অর্ডারে নাম থাকবে। মোছা যায় না।', 'Archived, it is not offered for new purchases; past ones keep its name. Never deleted.'],
 });
-/* Draws the screen as before, then takes the SKU column out of every variant table and the Expiring figure that would
-   say the shop has no batches, and, on a screen of a shop with no batches, the pick sheet's batch note. */
+/* Draws the screen as before, then takes out the SKU column of every variant table, the Expiring figure that would say
+   the shop has no batches, and the pick sheet's batch note, the drawn shop keeping none. */
 const _render26 = render;
 render = function () {
   _render26();
@@ -4232,14 +4234,12 @@ render = function () {
   f.querySelectorAll('.stat').forEach((tile) => {
     if (tile.textContent.includes(L('এই দোকানে ব্যাচ নেই', 'No batches in this shop'))) tile.remove();
   });
+  f.querySelectorAll('p').forEach((p) => { if (p.textContent.trim() === t('sk20PickHint')) p.remove(); });
   const scr = SCREENS[ST.screen] || {};
-  if (scr.noBatches26) {
-    f.querySelectorAll('p').forEach((p) => { if (p.textContent.trim() === t('sk20PickHint')) p.remove(); });
-  }
   if (scr.skuTaken26) {
     const name = f.querySelectorAll('table.matrix tbody tr td:first-child');
     name.forEach((cell) => {
-      if (cell.textContent.trim().startsWith(`M · ${L('কালো', 'Black')}`)) {
+      if (cell.textContent.trim().startsWith(`S · ${L('কালো', 'Black')}`)) {
         cell.style.color = 'var(--danger)';
         cell.insertAdjacentHTML('beforeend', ` ${ic('alert', 14)}`);
       }
@@ -4247,11 +4247,13 @@ render = function () {
   }
 };
 SCREENS['stock-no-batches'] = { ...SCREENS.stock };
-SCREENS['stock-check-pick-plain'] = { ...SCREENS['stock-check-pick'], noBatches26: true };
+SCREENS['stock-check-pick-plain'] = { ...SCREENS['stock-check-pick'] };
 SCREENS['sh-variant-sku-taken'] = {
   ...SCREENS['sh-variant'],
   skuTaken26: true,
-  sheet: () => SCREENS['sh-variant'].sheet().replace(field('SKU', 'TS-M-BL'), field('SKU', 'TS-M-BL', { bad: true, err: t('sk26SkuTaken') })),
+  sheet: () => SCREENS['sh-variant'].sheet()
+    .replace(`<h2>M · ${L('কালো', 'Black')}</h2>`, `<h2>S · ${L('কালো', 'Black')}</h2>`)
+    .replace(field('SKU', 'TS-M-BL'), field('SKU', 'TS-M-BL', { bad: true, err: t('sk26SkuTaken') })),
 };
 (function init() { const h = location.hash.replace('#', ''); if (h && SCREENS[h]) { ST.screen = h; document.getElementById('selScreen').value = h; } render(); })();
 </script>

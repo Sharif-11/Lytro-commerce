@@ -1606,9 +1606,10 @@ their backend ships earlier.
 
   **Found by the walkthrough, agreed in a second read the same day** (prototype Part 26, design v3.15): a variant's
   SKU is set in its sheet only, the variant table's SKU column gone (SKU stays on the list); a shop that keeps no
-  batches sees neither the count's batch note nor an Expiring figure; the arrival sheet's note drops "(PUR-04)", and
-  the walkthrough refuses any requirement id on screen. Left as they are: the Add stock button's wording with no
-  quantity, "নোট (ঐচ্ছিক)" on the arrival sheet, and the library's English attribute names.
+  batches sees neither the count's batch note nor an Expiring figure; the arrival sheet's note drops "(PUR-04)" (and
+  the supplier sheet's archive help the same slip, "(PUR-01)"), and the walkthrough refuses any requirement id on
+  screen. Left as they are: the Add stock button's wording with no quantity, "নোট (ঐচ্ছিক)" on the arrival sheet, and
+  the library's English attribute names.
 
 
 ### Slice 12: shared storefront and product landing pages

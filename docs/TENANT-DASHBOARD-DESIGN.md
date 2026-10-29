@@ -1,7 +1,7 @@
 # Tenant dashboard: the full design
 
 Status: v3.15, 2026-10-29 (what the real-server walkthrough found, Slice 11.13b, prototype Part 26: a variant's SKU in
-its sheet only, no batch words for a shop that keeps no batches, no requirement id on the arrival sheet; v3.14 is the
+its sheet only, no batch words for a shop that keeps no batches, no requirement id on any sheet; v3.14 is the
 storefront page's, Slice 12a; v3.13 of 2026-10-29: the dashboard in a shop's identity as Slice 11.12b builds it,
 prototype Part 24: the
 rail at the depth of Lytro's own with the dark logo at its foot, only the page taking the background, figures kept in
@@ -675,8 +675,8 @@ line; a serial-numbered line counted short names the IMEI not found when every u
 *Amended in v3.15 (Part 26, after the real-server walkthrough, 11.13b):* a shop that keeps no batches meets no batch
 words. The pick sheet's note that a product kept in batches is counted batch by batch shows only when a product it
 lists keeps batches, or it has more to list (`stock-check-pick-plain`); the Stock page's Expiring figure is not drawn
-where it would say the shop has no batches (`stock`). The arrival sheet's note (`sh-receive`) no longer ends with a
-requirement id.
+where it would say the shop has no batches (`stock`). The arrival sheet's note (`sh-receive`) and the supplier sheet's
+archive help no longer end with a requirement id.
 
 *Said exactly for the build, v3.8 (Part 20):* the Stock page's **Check stock** opens this list, whose **New check**
 starts one, so every past check is reachable (agreed 2026-10-28). A new check starts with nothing picked
