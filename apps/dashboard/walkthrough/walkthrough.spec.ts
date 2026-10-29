@@ -133,17 +133,17 @@ async function signUp(page: Page, preset: Preset): Promise<void> {
   await typeCode(page, await codeFor(phone));
   await page.getByRole('button', { name: 'ভেরিফাই করুন' }).click();
   await expect(page).toHaveURL('/create-shop');
-  await page.getByLabel('দোকানের নাম').fill(preset.shop);
+  await page.getByLabel('শপের নাম').fill(preset.shop);
   await page.getByLabel('আপনার নাম').fill('রুমানা আক্তার');
-  await page.getByRole('button', { name: 'দোকান তৈরি করুন' }).click();
+  await page.getByRole('button', { name: 'শপ তৈরি করুন' }).click();
   await expect(page).toHaveURL(/\/set-password/);
   await page.getByLabel('নতুন পাসওয়ার্ড').fill('megh2026');
   await page.getByRole('button', { name: 'পাসওয়ার্ড সেভ করুন' }).click();
   await expect(page).toHaveURL('/set-up');
   await expectPlainWords(page);
   await page.getByRole('button', { name: preset.type, exact: true }).click();
-  await page.getByRole('button', { name: 'সিটি বা জেলা খুঁজুন' }).click();
-  const area = page.getByRole('dialog', { name: 'সিটি বা জেলা খুঁজুন' });
+  await page.getByRole('button', { name: 'সিটি বা জেলা সার্চ করুন' }).click();
+  const area = page.getByRole('dialog', { name: 'সিটি বা জেলা সার্চ করুন' });
   await area.getByRole('searchbox').fill('ঢাকা');
   await area
     .getByRole('button')
@@ -261,7 +261,7 @@ async function expectStockRose(page: Page, preset: Preset): Promise<void> {
     }),
   ).toBeVisible();
   // The Expiring figure only where the shop keeps batches (design v3.15).
-  await expect(main(page).getByRole('link', { name: /^মেয়াদ শেষ হচ্ছে/ })).toHaveCount(
+  await expect(main(page).getByRole('link', { name: /^এক্সপায়ার হচ্ছে/ })).toHaveCount(
     preset.batches ? 1 : 0,
   );
   await expectPlainWords(page);

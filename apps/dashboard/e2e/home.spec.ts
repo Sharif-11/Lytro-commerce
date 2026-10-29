@@ -33,26 +33,26 @@ test('shows a working shop: its jobs, its figures, the folded checklist and the 
   }
 
   // The first group is done, so the checklist is one row; tapping it opens the list for this visit.
-  const folded = main(page).getByRole('button', { name: /দোকান প্রস্তুত করুন · 5\/5 হয়েছে/ });
+  const folded = main(page).getByRole('button', { name: /শপ প্রস্তুত করুন · 5\/5 হয়েছে/ });
   await expect(folded).toContainText('পরে, দরকার হলে: কুরিয়ার কানেক্ট করুন');
   await folded.click();
-  await expect(main(page).getByRole('heading', { name: 'দোকান প্রস্তুত করুন' })).toBeVisible();
+  await expect(main(page).getByRole('heading', { name: 'শপ প্রস্তুত করুন' })).toBeVisible();
   await expect(main(page).getByText('ঢাকা সিটির ভেতরে ৳70 · বাইরে ৳130')).toBeVisible();
 
-  await expect(main(page).getByRole('heading', { name: 'আপনার দোকানের লিংক' })).toBeVisible();
+  await expect(main(page).getByRole('heading', { name: 'আপনার শপের লিংক' })).toBeVisible();
 });
 
 test('opens a new shop on its checklist, with nothing in the queue yet (SUP-01)', async ({
   page,
 }) => {
   await open(page, DAY_ONE);
-  await expect(main(page).getByRole('heading', { name: 'দোকান প্রস্তুত করুন' })).toBeVisible();
+  await expect(main(page).getByRole('heading', { name: 'শপ প্রস্তুত করুন' })).toBeVisible();
   await expect(main(page).getByText('2/5 হয়েছে')).toBeVisible();
   await expect(main(page).getByRole('link', { name: 'প্রথম প্রোডাক্ট যোগ করুন' })).toHaveAttribute(
     'href',
     `/${SLUG}/products/new`,
   );
-  await expect(main(page).getByRole('link', { name: 'দোকানের লিংক শেয়ার করুন' })).toHaveAttribute(
+  await expect(main(page).getByRole('link', { name: 'শপের লিংক শেয়ার করুন' })).toHaveAttribute(
     'href',
     '#shop-link',
   );
@@ -108,7 +108,7 @@ test('lists every kind of job in the design order', async ({ page }) => {
   });
   await expect(jobs(page)).toHaveText([
     '3টি প্রোডাক্টের স্টক কম বা শেষ3',
-    '4টি ব্যাচ 30 দিনে মেয়াদ শেষ4',
+    '4টি ব্যাচ 30 দিনে এক্সপায়ার হবে4',
     '৳500 টপ-আপ চেক হচ্ছে',
     'প্ল্যানের পেমেন্ট চেক হচ্ছে',
     'ব্যালেন্স ৳12.50, SMS বন্ধ হতে পারে',
@@ -134,8 +134,8 @@ test('shows a staff member only the parts their role reaches (STF-11)', async ({
   // No balance, no plan days, and no set-up checklist, which is the owner's.
   await expect(main(page).getByText('ব্যালেন্স', { exact: true })).toHaveCount(0);
   await expect(main(page).getByText('প্ল্যানের দিন বাকি')).toHaveCount(0);
-  await expect(main(page).getByText(/দোকান প্রস্তুত করুন/)).toHaveCount(0);
-  await expect(main(page).getByRole('heading', { name: 'আপনার দোকানের লিংক' })).toBeVisible();
+  await expect(main(page).getByText(/শপ প্রস্তুত করুন/)).toHaveCount(0);
+  await expect(main(page).getByRole('heading', { name: 'আপনার শপের লিংক' })).toBeVisible();
 });
 
 test('leaves out the days left on pay-as-you-go, which has no period', async ({ page }) => {
@@ -170,7 +170,7 @@ test('says when Home could not be read, and tries again', async ({ page }) => {
     });
   });
   await page.goto(`/${SLUG}`);
-  const retry = main(page).getByRole('button', { name: 'আবার চেষ্টা করুন' });
+  const retry = main(page).getByRole('button', { name: 'আবার ট্রাই করুন' });
   // React Query tries three more times before it gives up.
   await expect(retry).toBeVisible({ timeout: 15_000 });
   failing = false;

@@ -293,8 +293,8 @@ const MONEY: Pair[] = [
     path: '/plan',
     state: PAYG_SHOP,
     then: async (page) => {
-      await page.getByText('দোকান বন্ধ করা').click();
-      await click('দোকান বন্ধ করুন')(page);
+      await page.getByText('শপ বন্ধ করা').click();
+      await click('শপ বন্ধ করুন')(page);
     },
   },
   {
@@ -997,10 +997,10 @@ function purchasePairs(): Pair[] {
       },
     }),
     one('purchase-draft', '/purchases/po-draft'),
-    one('sh-delete-draft', '/purchases/po-draft', { then: press('ড্রাফট মুছুন') }),
+    one('sh-delete-draft', '/purchases/po-draft', { then: press('ড্রাফট ডিলিট করুন') }),
     one('purchase-edit-placed', '/purchases/po-7'),
     one('purchase-edit-placed', '/purchases/po-7', {}, 'desktop', 'en'),
-    one('sh-cancel-purchase', '/purchases/po-7', { then: press('অর্ডার বাতিল') }),
+    one('sh-cancel-purchase', '/purchases/po-7', { then: press('অর্ডার ক্যানসেল') }),
     one('sh-receive-full', '/purchases/po-7', {
       state: { products: kept() },
       then: async (page) => {
@@ -1483,7 +1483,7 @@ function openingPairs(): Pair[] {
       },
       then: async (page) => {
         await serials(page);
-        await sheet(page).getByText('দোকানে আগেই আছে').waitFor();
+        await sheet(page).getByText('শপে আগেই আছে').waitFor();
       },
     }),
     one('pf-sh-serials-type', {
@@ -1547,7 +1547,7 @@ function openingPairs(): Pair[] {
           '356789104567894',
           '356789104567928',
         ]);
-        await sheet(page).getByText('দোকানে আগেই আছে').waitFor();
+        await sheet(page).getByText('শপে আগেই আছে').waitFor();
       },
     }),
     one(
@@ -2350,7 +2350,7 @@ function keyPairs(): Pair[] {
       await page.getByRole('dialog').getByText('lytro_pk_').waitFor();
     }),
     one('sh-key-revoke', async (page) => {
-      await page.getByRole('button', { name: 'বাতিল' }).first().click();
+      await page.getByRole('button', { name: 'ক্যানসেল' }).first().click();
     }),
     one('sh-key-edit', async (page) => {
       await page.getByRole('button', { name: /^Website/ }).click();
@@ -2845,7 +2845,7 @@ const VERIFY = '/verify-code?phone=%2B8801711234567&expiresInSeconds=300';
 const OWNER = { signedIn: true, hasShop: true };
 
 async function nameTheShop(page: Page): Promise<void> {
-  await page.getByLabel('দোকানের নাম').fill('মেঘ ফ্যাশন');
+  await page.getByLabel('শপের নাম').fill('মেঘ ফ্যাশন');
   await page.getByLabel('আপনার নাম').fill('রুমানা আক্তার');
 }
 
