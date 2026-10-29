@@ -1638,7 +1638,9 @@ their backend ships earlier.
      calls would be (SFT-11 amended, CCH-01 with it).
 
   **Built (12a):** the server side (migration 0084): the storefront key (`api_keys.purpose`, `sealed_value`, one live
-  one a shop), refused a change or revoke (`ApiKeyManagedByLytro`); `shop_settings.storefront_enabled`, in Shop
+  one a shop), refused a change or revoke (`ApiKeyManagedByLytro`), and retired and made again when its sealed value
+  can no longer be opened (a real run found every storefront failing after a restart without `DATA_ENCRYPTION_KEY`);
+  `shop_settings.storefront_enabled`, in Shop
   settings and its activity record; `GET /api/v1/internal/storefront/context` behind `STOREFRONT_SECRET`, which
   production now requires; `/v1/shop` with the logo, contact details and delivery zones; a product's
   `deliveryZoneIds`; the public locations and estimate. The storefront app (`apps/storefront`): the prototype's
