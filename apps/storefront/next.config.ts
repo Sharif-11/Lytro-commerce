@@ -8,6 +8,9 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   // The monorepo root, so file tracing follows workspace packages and never a stray lockfile above the repo.
   outputFileTracingRoot: path.join(__dirname, '../../'),
+  // Every page's title and link-preview tags render in <head> before the body, for every visitor, not only the crawlers
+  // Next knows (LND-05); a product link that leads nowhere then renders its 404 page as HTML too (LND-03).
+  htmlLimitedBots: /.*/,
 };
 
 export default nextConfig;

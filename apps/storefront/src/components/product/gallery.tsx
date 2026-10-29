@@ -40,28 +40,28 @@ export function Gallery({ product, words }: { product: PublicProduct; words: Wor
 
   return (
     <div className="gal">
-      {slides.length > 1 ? (
-        <div className="thumbs">
-          {slides.map((slide, at) => (
-            <button
-              key={at}
-              type="button"
-              aria-label={label(slide, at)}
-              aria-pressed={at === index}
-              onClick={() => {
-                show(at);
+      {/* The thumbnail column is always there, as drawn: on a wide screen the gallery's grid keeps its first column
+          for it, even for one photo. */}
+      <div className="thumbs">
+        {slides.map((slide, at) => (
+          <button
+            key={at}
+            type="button"
+            aria-label={label(slide, at)}
+            aria-pressed={at === index}
+            onClick={() => {
+              show(at);
+            }}
+          >
+            <i
+              className={at === index ? 'on' : undefined}
+              style={{
+                backgroundImage: `url("${slide.kind === 'video' ? slide.poster : slide.thumbnail}")`,
               }}
-            >
-              <i
-                className={at === index ? 'on' : undefined}
-                style={{
-                  backgroundImage: `url("${slide.kind === 'video' ? slide.poster : slide.thumbnail}")`,
-                }}
-              />
-            </button>
-          ))}
-        </div>
-      ) : null}
+            />
+          </button>
+        ))}
+      </div>
       <div className="gallery">
         <div
           className="main"
