@@ -323,6 +323,12 @@ export enum ApiKeyType {
   Public = 'public',
 }
 
+// Phase 3 Slice 12, agreed 2026-10-29: a key the platform keeps for one of its own surfaces rather than one the shop
+// made. The shop's storefront and landing pages call the public API with it (SFT-11, SFT-15), as any website would.
+export enum ApiKeyPurpose {
+  Storefront = 'storefront',
+}
+
 // MED-03, STO-01, D3-4: an uploaded item -- an image or a video -- and how far it has got: its upload link given out,
 // its file being processed, ready to use, or refused (nothing of it stored or counted).
 export enum MediaKind {

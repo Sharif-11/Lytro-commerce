@@ -19,6 +19,7 @@ const KEY: ApiKey = {
   id: 'k-1',
   name: 'Website',
   type: 'public',
+  purpose: null,
   prefix: 'lytro_pk_7f2k',
   websites: ['https://meghfashion.com', 'https://www.meghfashion.com'],
   expiresAt: '2026-12-31T17:59:59.000Z',

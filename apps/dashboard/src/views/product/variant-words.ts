@@ -1,6 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { AttributeDataType, type UnitKind } from '@lytronix/validators';
-import { measureOf } from '@/lib/measure';
+import { AttributeDataType, measureOf, type UnitKind } from '@lytronix/validators';
 import type { SplitAttribute } from '@/lib/variant-matrix';
 
 type Splits = readonly Pick<SplitAttribute, 'dataType' | 'unitKind' | 'options'>[];

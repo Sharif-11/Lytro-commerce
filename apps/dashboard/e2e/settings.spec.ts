@@ -4,8 +4,8 @@ import { DAY_ONE, mockApi, SLUG, type ApiLog, type ShopState } from './support/m
 import { drawnExports, drawnSettings } from './support/settings';
 
 // TENANT-DASHBOARD-DESIGN §7.16, Slice 11.6: Settings -- its rows by permission and what comes later, Shop details with
-// the name, logo, shop type and contact details, and Data export (Brand identity's editor is brand.spec.ts). Each test
-// runs on a phone and on a desktop (playwright.config.ts).
+// the name, logo, shop type and contact details, and Data export (Brand identity's editor is brand.spec.ts); §7.29, Slice
+// 12a: Storefront, the shop's link and the switch. Each test runs on a phone and on a desktop (playwright.config.ts).
 
 // A one-pixel PNG, as a file the browser would send.
 const PNG = Buffer.from(
@@ -40,6 +40,7 @@ test('lists the shop’s settings, and what comes later with its phase', async (
     ['Shop details', '/settings/shop'],
     ['Delivery', '/delivery'],
     ['Brand identity', '/settings/brand'],
+    ['Storefront', '/settings/storefront'],
     ['Data export', '/settings/export'],
   ] as const) {
     await expect(main(page).getByRole('link', { name: new RegExp(`^${name}`) })).toHaveAttribute(
@@ -49,7 +50,7 @@ test('lists the shop’s settings, and what comes later with its phase', async (
   }
   await expect(main(page).getByText('Coming later')).toBeVisible();
   await expect(main(page).getByText('Arrives in Phase 6')).toBeVisible();
-  await expect(main(page).getByText('Arrives in Slices 12 to 13')).toBeVisible();
+  await expect(main(page).getByText('Arrives in Slices 12 to 13')).toHaveCount(0);
   await expectAccessible(page);
 });
 
@@ -189,4 +190,61 @@ test('Home’s logo item opens Shop details, where the logo is uploaded', async 
   await main(page).getByRole('link', { name: 'Upload your logo' }).click();
   await expect(page).toHaveURL(`/${SLUG}/settings/shop`);
   await expect(main(page).getByRole('button', { name: 'Upload' })).toBeVisible();
+});
+
+test('Storefront gives the shop’s link to copy and open, with the switch on', async ({
+  page,
+  context,
+}) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await open(page, '/settings/storefront');
+  await expect(main(page).getByText(`${SLUG}.lytro.app`, { exact: true })).toBeVisible();
+  await expect(main(page).getByRole('link', { name: 'Open' })).toHaveAttribute(
+    'href',
+    `https://${SLUG}.lytro.app`,
+  );
+  await expect(main(page).getByRole('switch', { name: 'Storefront on' })).toBeChecked();
+  await expect(main(page).getByText('Anyone with the link sees your shop.')).toBeVisible();
+  await expectAccessible(page);
+  await main(page).getByRole('button', { name: 'Copy' }).click();
+  await expect(page.getByRole('status')).toHaveText('Link copied');
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
+    `https://${SLUG}.lytro.app`,
+  );
+});
+
+test('turning the storefront off asks first and says what happens; Cancel keeps it on', async ({
+  page,
+}) => {
+  const log = await open(page, '/settings/storefront');
+  await main(page).getByRole('switch', { name: 'Storefront on' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Turn the storefront off?' });
+  await expect(dialog).toContainText(`Opening ${SLUG}.lytro.app shows "Nothing here" at once.`);
+  await expect(dialog).toContainText('Product landing pages keep working.');
+  await expectAccessible(page);
+  await dialog.getByRole('button', { name: 'Cancel' }).click();
+  await expect(main(page).getByRole('switch', { name: 'Storefront on' })).toBeChecked();
+  expect(log.calls.some((call) => call.method === 'PATCH')).toBe(false);
+
+  await main(page).getByRole('switch', { name: 'Storefront on' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Turn off' }).click();
+  await expect(page.getByRole('status')).toHaveText('The storefront is off');
+  expect(log.sent('PATCH', '/shop-settings')).toEqual({ storefrontEnabled: false });
+  await expect(main(page).getByRole('switch', { name: 'Storefront on' })).not.toBeChecked();
+  await expect(main(page).getByText('Off', { exact: true })).toBeVisible();
+  await expect(
+    main(page).getByText('Off: the link shows "Nothing here".', { exact: false }),
+  ).toBeVisible();
+});
+
+test('turning the storefront back on is at once', async ({ page }) => {
+  const log = await open(page, '/settings/storefront', {
+    settings: { ...drawnSettings('en'), storefrontEnabled: false },
+  });
+  await expect(main(page).getByText('Off', { exact: true })).toBeVisible();
+  await main(page).getByRole('switch', { name: 'Storefront on' }).click();
+  await expect(page.getByRole('status')).toHaveText('The storefront is on');
+  expect(log.sent('PATCH', '/shop-settings')).toEqual({ storefrontEnabled: true });
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(main(page).getByRole('switch', { name: 'Storefront on' })).toBeChecked();
 });

@@ -1,9 +1,11 @@
 # Tenant dashboard: the full design
 
 Status: v3.15, 2026-10-29 (what the real-server walkthrough found, Slice 11.13b, prototype Part 26: a variant's SKU in
-its sheet only, no batch words for a shop that keeps no batches, no requirement id on any sheet; v3.14 is the
-storefront page's, Slice 12a; v3.13 of 2026-10-29: the dashboard in a shop's identity as Slice 11.12b builds it,
-prototype Part 24: the
+its sheet only, no batch words for a shop that keeps no batches, no requirement id on any sheet; v3.14 of 2026-10-29:
+Settings > Storefront as Slice 12a builds it, prototype Part 25: the shop's link with Copy, Share and Open, the switch
+that answers "nothing here" while landing pages keep working, asked before turning off, and the key Lytro keeps for the
+storefront first in API keys, never changed or revoked; v3.13 of 2026-10-29: the dashboard in a shop's identity as
+Slice 11.12b builds it, prototype Part 24: the
 rail at the depth of Lytro's own with the dark logo at its foot, only the page taking the background, figures kept in
 Inter, the corner and spacing presets' sizes, the status colours unchanged; v3.12 of 2026-10-29: the brand editor as
 Slice 11.12a builds it, prototype Part 23: the buttons follow
@@ -910,6 +912,9 @@ list with preparing, download and failed states, "lasts 24 hours", owner only). 
 their phase: payment methods (Phase 5), couriers (Phase 6), listener phone (Phase 5), SMS (Phase 7),
 notifications (Phase 7), storefront (Slices 12 to 13).
 
+*Slice 12a* (Part 25): **Storefront** (§7.29) is a row, after Brand identity, no longer under "Coming later"; its line
+is "Your shop's link, and switching it on or off". It shows to those who may manage settings.
+
 *Slice 11.6* (Part 11): the shop's name is editable in Shop details (TEN-19: the dashboard, the tab title and new installs
 follow within a minute; the address never changes); Brand identity opens a short page until the brand editor (Slice
 11.12), with the add-on on sale; Data export shows to the owner alone; API keys' request count shows to those who may
@@ -1152,6 +1157,12 @@ never shown again. *Revoke*: it stops at once and a site using it breaks; put th
 fast-spend banner links here. **Content.** `GET`, `POST`, `PATCH /api-keys`, `POST /api-keys/:id/revoke`
 (`keys:manage`).
 
+*Slice 12a* (Part 25): the key Lytro keeps for the shop's storefront (`purpose: storefront`) is the first row: named
+"Lytro storefront" in the dashboard's words, a globe where the others have a key, the chip **Lytro's**, its start,
+the shop's own address as its website, last used; no Revoke, and tapping it opens nothing. A line under the list
+says it is not one of the 20 and cannot be changed or revoked, and that its requests count with the rest (SFT-15).
+The server refuses a change or revoke of it (`ApiKeyManagedByLytro`).
+
 ### 7.27 Facebook and Meta (`/settings/meta`)
 
 **Job.** Connect the Meta Pixel and the Conversions API once, and hand the catalogue to Commerce Manager (LND-15
@@ -1276,6 +1287,32 @@ shop's identity shows that identity's own colours and logos in its form, where `
 
 **Content.** The identity's storage, the contrast check, the font list and the switch are Slice 11's brand backend
 (§10); whether the shop may switch it on comes from `GET /addons/mine` (`brandIdentity`).
+
+### 7.29 Storefront (`/settings/storefront`)
+
+**Job.** Give the seller the shop's link to share, and let a shop with its own website switch the shared storefront
+off without losing anything (SFT-02, SFT-16).
+
+*As Slice 12a builds it* (Part 25, v3.14, 2026-10-29, agreed in its read; `sf25`, `sh-sf25-off`, `sf25-off`,
+`sf25-offed`, `sf25-oned`, `sf25-copied`, and `settings` and `api-keys` as above):
+
+- **The link.** "Your storefront": the shop's address (`megh.lytro.app`) in the key box, with **Copy** (toast "Link
+  copied"), **Share** (the phone's own share sheet; left out where the browser has none) and **Open** (a new tab). The
+  line under it: customers see all the products at this link, and each product also has its own landing page, for ads.
+- **The switch.** "Storefront on", on for every shop at first. On: anyone with the link sees the shop. Off: the link
+  shows "Nothing here" (the storefront's own not-found page, which names no shop) and every product's landing page
+  keeps working (LND-02), so ads still run. Under it: a shop with its own website can keep it off; products, orders and
+  customers all stay. When off, the link's card carries the chip **Off**.
+- **Turning off asks first** (`sh-sf25-off`): "Turn the storefront off?", that opening the address shows "Nothing
+  here" at once, that landing pages keep working, and that it can be turned on again any time; **Cancel** and **Turn
+  off** (the danger button, since the shop's public page goes). Turning it on is at once. Each ends with a toast.
+- **Who.** Those who may manage settings; the row is hidden from anyone else (STF-11). The switch is saved by itself,
+  with no Save button, and recorded in the activity log with the shop's other settings.
+- **Later.** The home page's banner slides drawn for Slice 12 (§8, `storefront`) join this page below the switch in
+  Slice 12b; a custom domain's line joins with Slice 13.
+
+**Content.** `GET`, `PATCH /shop-settings` (`storefrontEnabled`, `settings:manage`); the address is the shop's own
+host, from the session's shop.
 
 ---
 

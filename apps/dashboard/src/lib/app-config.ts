@@ -23,6 +23,11 @@ export class AppConfig {
     return `${slug}.${this.platformDomain}`;
   }
 
+  /** A shop's storefront, as a link to share or open (SFT-02). */
+  shopUrl(slug: string): string {
+    return `https://${this.shopHost(slug)}`;
+  }
+
   /** The owner's dashboard address for a shop, as shown in previews (TEN-31). */
   dashboardAddress(slug: string): string {
     return `app.${this.platformDomain}/${slug}`;

@@ -32,6 +32,10 @@ export interface ApiKeyStore {
     by: string | null,
     at: Date,
   ): Promise<ApiKeyRecord | null>;
+  /** SFT-11: the shop's live storefront key, with its sealed value. */
+  findStorefrontKey(tenantId: string): Promise<ApiKeyRecord | null>;
+  /** SFT-11: the storefront key, or null when another request made the shop's first a moment before. */
+  insertStorefrontKey(row: NewApiKey): Promise<ApiKeyRecord | null>;
   findByHash(keyHash: string): Promise<ApiKeyRecord | null>;
   touchLastUsed(id: string, at: Date): Promise<void>;
   isOriginRegistered(origin: string, now: Date): Promise<boolean>;

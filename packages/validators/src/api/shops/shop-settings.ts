@@ -21,6 +21,8 @@ export const shopSettingsSchema = z.object({
   // PRD-08: what a product with no payment policy of its own follows.
   defaultPaymentPolicy: z.nativeEnum(PaymentPolicy),
   defaultAdvanceAmount: z.string().nullable(),
+  // SFT-16: the shared storefront is on.
+  storefrontEnabled: z.boolean(),
 });
 export type ShopSettings = z.infer<typeof shopSettingsSchema>;
 
@@ -34,5 +36,7 @@ export const updateShopSettingsSchema = z.object({
   // against the stored policy, since either may change alone); no other policy takes one.
   defaultPaymentPolicy: z.nativeEnum(PaymentPolicy).optional(),
   defaultAdvanceAmount: nonNegativeMoneyField.nullable().optional(),
+  // SFT-16: switch the shared storefront on or off; landing pages and the API keep working either way.
+  storefrontEnabled: z.boolean().optional(),
 });
 export type UpdateShopSettingsInput = z.infer<typeof updateShopSettingsSchema>;

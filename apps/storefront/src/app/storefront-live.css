@@ -1,0 +1,77 @@
+/* What the prototype draws as a placeholder, filled with the shop's real content (Slice 12a). The prototype's rules
+   stay in storefront.css as drawn; these only let a real photo, video or link sit where its placeholder sat. */
+
+/* Links where the prototype draws a clickable span or button. */
+.hdr a.shop,
+.hdr a.back,
+.foot .contact a {
+  color: inherit;
+  text-decoration: none;
+}
+a.btn {
+  text-decoration: none;
+}
+
+/* TEN-16: the shop's logo photo in the monogram's tile. */
+.logo {
+  overflow: hidden;
+}
+.logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* The product's photos and video in the gallery's box, its thumbnails and its dots. */
+.gallery .main img,
+.gallery .main video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.gallery .main .vid,
+.gallery .dots {
+  z-index: 1;
+}
+.thumbs i,
+.swb i {
+  background-position: center;
+  background-size: cover;
+}
+.gallery .dots button,
+.thumbs button {
+  display: block;
+}
+
+/* Buy now waits for ordering (Phase 4); the line saying so shows where the button does, on a wide screen. */
+.buy .soon {
+  display: none;
+  font-size: 12px;
+}
+@container (min-width: 1024px) {
+  .buy .soon {
+    display: block;
+  }
+}
+
+/* A product card is a link to its page; its photo fills the card's frame. */
+a.card {
+  color: inherit;
+  text-decoration: none;
+}
+.card .img img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* The order summary's photo in the tile that holds the product's first letter. */
+.cl img.th.photo {
+  opacity: 1;
+  object-fit: cover;
+}

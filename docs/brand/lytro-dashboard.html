@@ -394,6 +394,7 @@ svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.75;str
       <optgroup label="Lifecycle"><option value="renew">Renew (locked)</option><option value="renew-archived">Renew (archived, with the deletion date)</option><option value="unavailable">Unavailable (suspended)</option></optgroup>
       <optgroup label="Delivery · Slice 11.11 (Part 22)"><option value="delivery-22">Delivery · No delivery outside, Rename on the two zones</option><option value="delivery-outside-off">· no delivery outside the home area</option><option value="delivery-check-nodelivery">· Check an address: a no-delivery zone, and why</option><option value="delivery-empty">· no zones of its own</option><option value="delivery-full">· twenty zones</option><option value="delivery-staff">· someone who may only look</option><option value="sh-zone-rename">· rename a fixed zone, or its automatic name (sheet)</option><option value="sh-homearea-thanas">· home area: my own thanas (sheet)</option><option value="sh-zone-new">Zone · new, a thana moving from a broader zone (sheet)</option><option value="sh-zone-taken">· an area another zone holds, named before Save (sheet)</option><option value="sh-area-pick">Area picker · grouped, one held elsewhere (sheet)</option><option value="sh-area-district">· a district opened: its thanas (sheet)</option><option value="sh-zone-delete">Zone · delete, asked first (dialog)</option><option value="sh-zone-in-use">· still in use: the products, Open or Restore (sheet)</option></optgroup>
       <optgroup label="Themed dashboard · Slice 11.12b (Part 24)"><option value="themed-home">Themed · Home: maroon on cream, serif headings, round, airy (BRN-02, BRN-07)</option><option value="themed-products">· Products</option><option value="themed-zone-sheet">· a sheet: a delivery zone, its fields and buttons</option><option value="themed-billing">· Billing: the status colours never change (BRN-04)</option><option value="themed-brand">· the brand editor, switched on</option><option value="themed-b-home">Themed · Home: indigo with coral, square, compact, no dark logo</option><option value="themed-b-stock">· Stock</option><option value="themed-b-zone-delete">· a delete asked first: the danger colour never changes (BRN-04)</option></optgroup>
+      <optgroup label="Storefront · Slice 12a (Part 25)"><option value="settings">Settings · Storefront is a row, no longer coming later</option><option value="sf25">Storefront · the link, and the switch on (SFT-16)</option><option value="sh-sf25-off">· turn off (dialog)</option><option value="sf25-off">· off: the link answers "nothing here", landing pages work</option><option value="sf25-offed">· turned off (toast)</option><option value="sf25-oned">· turned on (toast)</option><option value="sf25-copied">· link copied (toast)</option><option value="api-keys">API keys · the key Lytro keeps for the storefront, first</option></optgroup>
       <optgroup label="Walkthrough findings · Slice 11.13b (Part 26)"><option value="product">Product · the variant table: no SKU column; the SKU is in the variant sheet</option><option value="sh-variant-sku-taken">· an SKU another variant has: the name marked, the sheet says why</option><option value="stock-no-batches">Stock · a shop that keeps no batches: no Expiring figure</option><option value="stock-check-pick-plain">· its count pick sheet: no batch note</option><option value="sh-receive">Purchase · It arrived: the note without a requirement id</option></optgroup>
       <optgroup label="Later phases (design only)"><option value="orders">Orders</option><option value="order">Order detail</option><option value="order-book">Book courier (sheet)</option><option value="order-new">New order</option><option value="customers">Customers</option><option value="customer">Customer detail</option><option value="payments">Payments</option><option value="methods">Payment methods</option><option value="notices">Notices</option><option value="sms">SMS events</option><option value="search">Search · orders and customers (Phase 4)</option><option value="notifications">Notifications · panel from the bell (Phase 7)</option><option value="notifications-empty">· nothing yet (Phase 7)</option><option value="notifications-read">· all read (Phase 7)</option><option value="notifications-all">Notifications · full page (Phase 7)</option><option value="storefront">Storefront settings · slides as a carousel (Slice 12)</option><option value="storefront-tiles">· one banner and two tiles (Slice 12)</option><option value="storefront-empty">· no slides yet (Slice 12)</option><option value="sh-slide">· slide editor with the focal point (Slice 12)</option><option value="sh-slide-new">· new slide (Slice 12)</option><option value="sh-slide-preview">· both crops (Slice 12)</option><option value="sh-slide-delete">· remove slide (Slice 12)</option><option value="storefront-saved">· slide saved (Slice 12)</option><option value="stock-shortfall">Stock · units held for expired orders (Phase 4)</option><option value="sh-return">· take shipped stock back (Phase 4)</option></optgroup>
     </select>
@@ -4206,6 +4207,63 @@ SCREENS['themed-brand'] = { ...SCREENS.brand, theme24: 'maroon' };
 SCREENS['themed-b-home'] = { ...SCREENS.home, theme24: 'indigo' };
 SCREENS['themed-b-stock'] = { ...SCREENS.stock, theme24: 'indigo' };
 SCREENS['themed-b-zone-delete'] = { ...SCREENS['sh-zone-delete'], theme24: 'indigo' };
+/* ---------- Part 25: design doc v3.14 (2026-10-29), for Slice 12a (its read). Settings > Storefront as Slice 12a builds
+   it: the shop's link with Copy, Share and Open, and the switch (SFT-16). Off, the storefront's pages answer "nothing
+   here" at once while every product's landing page keeps working, so a shop with its own website keeps its ads; turning
+   it off asks first, turning it on is at once, and nothing in the shop changes either way. The home's banner slides
+   drawn before (`storefront`) join this page in Slice 12b. API keys lists the key Lytro keeps for the storefront first,
+   marked Lytro's: not one of the 20, never changed or revoked, its requests counted with the rest. ---------- */
+Object.assign(S, {
+  sf25Sub: ['দোকানের লিংক, আর চালু বা বন্ধ', 'Your shop\'s link, and switching it on or off'],
+  sf25Link: ['আপনার স্টোরফ্রন্ট', 'Your storefront'],
+  sf25LinkHint: ['কাস্টমার এই লিংকে আপনার সব প্রোডাক্ট দেখে। প্রতিটা প্রোডাক্টের নিজের ল্যান্ডিং পেজও আছে, বিজ্ঞাপনে দেওয়ার জন্য।', 'Customers see all your products at this link. Each product also has its own landing page, for ads.'],
+  sf25Open: ['খুলুন', 'Open'],
+  sf25Share: ['শেয়ার', 'Share'],
+  sf25Switch: ['স্টোরফ্রন্ট চালু', 'Storefront on'],
+  sf25SwitchOn: ['লিংকটা যে খুলবে সে-ই আপনার দোকান দেখবে।', 'Anyone with the link sees your shop.'],
+  sf25SwitchOff: ['বন্ধ: লিংকে "এখানে কিছু নেই" দেখায়। প্রোডাক্টের ল্যান্ডিং পেজ চালু থাকে।', 'Off: the link shows "Nothing here". Product landing pages keep working.'],
+  sf25OffNote: ['নিজের ওয়েবসাইট থাকলে বন্ধ রাখতে পারেন। প্রোডাক্ট, অর্ডার আর কাস্টমার সব থাকে।', 'Have your own website? You can keep it off. Your products, orders and customers all stay.'],
+  sf25OffT: ['স্টোরফ্রন্ট বন্ধ করবেন?', 'Turn the storefront off?'],
+  sf25OffCons: ['{a} খুললে সাথে সাথে "এখানে কিছু নেই" দেখাবে। প্রোডাক্টের ল্যান্ডিং পেজ চলবে। যেকোনো সময় আবার চালু করতে পারবেন।', 'Opening {a} shows "Nothing here" at once. Product landing pages keep working. You can turn it on again any time.'],
+  sf25TurnOff: ['বন্ধ করুন', 'Turn off'],
+  sf25Offed: ['স্টোরফ্রন্ট বন্ধ হয়েছে', 'The storefront is off'],
+  sf25Oned: ['স্টোরফ্রন্ট চালু হয়েছে', 'The storefront is on'],
+  sf25Copied: ['লিংক কপি হয়েছে', 'Link copied'],
+  sf25OffTag: ['বন্ধ', 'Off'],
+  ak25Name: ['Lytro স্টোরফ্রন্ট', 'Lytro storefront'],
+  ak25Tag: ['Lytro-র', 'Lytro\'s'],
+  ak25Note: ['প্রথম কী-টা Lytro আপনার স্টোরফ্রন্টের জন্য রাখে। এটা আপনার 20টার মধ্যে গোনা হয় না, বদলানো বা বাতিল করা যায় না; এর রিকোয়েস্ট বাকিগুলোর সাথে গোনা হয়।', 'The first key is the one Lytro keeps for your storefront. It is not one of your 20 and cannot be changed or revoked; its requests count with the rest.'],
+});
+const SF25_ADDRESS = 'megh.lytro.app';
+const SF25 = { hub: 'menu', sec: 'settings', title: 'sfTitle', back: true, base: 'settings', path: '/settings/storefront' };
+function sf25Page(o) {
+  o = o || {};
+  const on = !o.off;
+  return `${title('sfTitle')}<div style="display:flex;flex-direction:column;gap:16px;max-width:640px">
+  <div class="card" style="display:flex;flex-direction:column;gap:12px"><div class="sechead"><h3 style="margin:0">${t('sf25Link')}</h3>${on ? '' : `<span class="st neu">${t('sf25OffTag')}</span>`}</div>
+  <div class="keyval">${SF25_ADDRESS}</div>
+  <div class="actions" style="display:flex;gap:8px;flex-wrap:wrap">${btn('o sm', ic('copy') + ' ' + t('copy'), "onclick=\"go('sf25-copied')\"")}${btn('o sm', ic('share') + ' ' + t('sf25Share'))}${btn('o sm', ic('external') + ' ' + t('sf25Open'))}</div>
+  <p class="hint">${t('sf25LinkHint')}</p></div>
+  <div class="card" style="display:flex;flex-direction:column;gap:12px"><button class="row" style="padding:0;min-height:40px;text-align:left" onclick="go('${on ? 'sh-sf25-off' : 'sf25-oned'}')"><span class="switch ${on ? 'on' : ''}"></span><span class="body"><span class="l1" style="font-size:15px">${t('sf25Switch')}</span><span class="l2" style="white-space:normal">${t(on ? 'sf25SwitchOn' : 'sf25SwitchOff')}</span></span></button>
+  <p class="hint">${t('sf25OffNote')}</p></div></div>`;
+}
+SCREENS.sf25 = { ...SF25, render: () => sf25Page() };
+SCREENS['sh-sf25-off'] = { ...SF25, base: 'sf25', render: () => sf25Page(), sheet: () => dlg(t('sf25OffT'), t('sf25OffCons', { a: SF25_ADDRESS }), btn('o', L('ক্যানসেল', 'Cancel'), "onclick=\"go('sf25')\"") + btn('d', t('sf25TurnOff'), "onclick=\"go('sf25-offed')\""), 'sf25') };
+SCREENS['sf25-off'] = { ...SF25, render: () => sf25Page({ off: true }) };
+SCREENS['sf25-offed'] = { ...SF25, render: () => sf25Page({ off: true }), toast: () => `${ic('check')} ${t('sf25Offed')}` };
+SCREENS['sf25-oned'] = { ...SF25, render: () => sf25Page(), toast: () => `${ic('check')} ${t('sf25Oned')}` };
+SCREENS['sf25-copied'] = { ...SF25, render: () => sf25Page(), toast: () => `${ic('check')} ${t('sf25Copied')}` };
+/* Settings: Storefront is a row now, after Brand identity, and leaves "Coming later". */
+const _settings25 = SCREENS.settings.render;
+SCREENS.settings = { ...SCREENS.settings, render: () => _settings25()
+  .replace(`<div class="row later" style="min-height:52px"><span class="lead">${ic('globe')}</span><span class="body"><span class="l1">${t('sStore')}</span></span><span class="phase">${t('laterPhase', { p: L('স্লাইস 12–13', 'Slices 12 to 13') })}</span></div>`, '')
+  .replace(`${menuRow('key', 'sApi', t('sApiD'), 'api-keys')}`, `${menuRow('globe', 'sfTitle', t('sf25Sub'), 'sf25')}${menuRow('key', 'sApi', t('sApiD'), 'api-keys')}`) };
+/* API keys: the storefront's key first, Lytro's, with no Revoke; the line under the list says what it is. */
+const ak25Row = () => `<div class="row"><span class="lead">${ic('globe')}</span><span class="body"><span class="l1">${t('ak25Name')} <span class="st info plain">${t('ak25Tag')}</span></span><span class="l2"><span class="num">lytro_pk_3hdw…k2q8</span> · https://${SF25_ADDRESS} · ${t('akLastUsed', { d: L('2 মিনিট', '2 min') })}</span></span></div>`;
+const _apiKeys25 = SCREENS['api-keys'].render;
+SCREENS['api-keys'] = { ...SCREENS['api-keys'], render: () => _apiKeys25()
+  .replace('<div class="card flush list">', `<div class="card flush list">${ak25Row()}`)
+  .replace('<div class="card"><div class="kv" style="padding:0">', `<p class="hint">${t('ak25Note')}</p><div class="card"><div class="kv" style="padding:0">`) };
 /* ---------- Part 26: design doc v3.15 (2026-10-29), for Slice 11.13b (what the real-server walkthrough found, agreed
    in its second read). A variant's SKU lives in its own sheet only: every variant table drops its SKU column, and an
    SKU another variant has (S · Black typed M · Black's) marks the variant's name in the table and says why under the

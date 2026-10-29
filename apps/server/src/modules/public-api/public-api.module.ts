@@ -38,6 +38,14 @@ import { PublicCatalogue } from './services/public-catalogue';
 import { RequestLimits } from './services/request-limits';
 import { RequestQuota } from './services/request-quota';
 import { VisitorLimit } from './services/visitor-limit';
+import { BalanceModule } from '../balance/balance.module';
+import { DeliveryModule } from '../delivery/delivery.module';
+import { MediaModule } from '../media/media.module';
+import { OrdersModule } from '../orders/orders.module';
+import { PublicDeliveryController } from './controllers/public-delivery.controller';
+import { StorefrontContextController } from './controllers/storefront-context.controller';
+import { StorefrontContextService } from './services/storefront-context.service';
+import { StorefrontKeyService } from './services/storefront-key.service';
 import {
   AD_TRACKING_STORE,
   API_CLOCK,
@@ -57,17 +65,29 @@ import {
 // per-visitor limit); billing reaches it for the day-60 deletion.
 @Module({
   imports: [
+    BalanceModule,
+    DeliveryModule,
+    MediaModule,
+    OrdersModule,
     TenancyModule,
     CatalogueModule,
     PlatformSettingsModule,
     UsageWarningsModule,
     BrandModule,
   ],
-  controllers: [PublicShopController, PublicCatalogueController, PublicFeedController],
+  controllers: [
+    PublicShopController,
+    PublicCatalogueController,
+    PublicFeedController,
+    StorefrontContextController,
+    PublicDeliveryController,
+  ],
   providers: [
     { provide: API_KEY_STORE, useClass: DrizzleApiKeyStore },
     { provide: API_USAGE_STORE, useClass: DrizzleApiUsageStore },
     { provide: API_CLOCK, useValue: (): Date => new Date() },
+    StorefrontKeyService,
+    StorefrontContextService,
     { provide: PUBLIC_CATALOGUE_STORE, useClass: DrizzlePublicCatalogueStore },
     { provide: CATALOGUE_SEARCH, useClass: PostgresCatalogueSearch },
     { provide: CATALOGUE_CACHE_SETTINGS, useValue: CATALOGUE_CACHE_DEFAULTS },

@@ -27,7 +27,13 @@ function viewOf(row: ApiKeyRecord): ApiKeyView {
     createdAt: row.createdAt,
     lastUsedAt: row.lastUsedAt,
     revokedAt: row.revokedAt,
+    purpose: row.purpose,
   };
+}
+
+/** Slice 12: Lytro's storefront key is the platform's, so the shop sees it but never changes or revokes it. */
+function refuseManaged(row: ApiKeyRecord): void {
+  if (row.purpose !== null) throw new ApiError('conflict', 'ApiKeyManagedByLytro', {});
 }
 
 /**
@@ -112,6 +118,7 @@ export class ApiKeyService {
     const row = await this.store.run(async (tx) => {
       const current = await this.store.findForTenant(tx, tenantId, id);
       if (!current) throw new ApiError('not_found', 'ApiKeyNotFound', {});
+      refuseManaged(current);
       if (current.revokedAt !== null) throw new ApiError('conflict', 'ApiKeyWasRevoked', {});
       if (input.name === undefined && input.websites === undefined) return current;
       const updated = await this.store.update(tx, tenantId, id, {
@@ -140,6 +147,7 @@ export class ApiKeyService {
     const row = await this.store.run(async (tx) => {
       const current = await this.store.findForTenant(tx, tenantId, id);
       if (!current) throw new ApiError('not_found', 'ApiKeyNotFound', {});
+      refuseManaged(current);
       if (current.revokedAt !== null) return current;
       const revoked = await this.store.revoke(tx, tenantId, id, who.id, now);
       if (!revoked) throw new ApiError('not_found', 'ApiKeyNotFound', {});

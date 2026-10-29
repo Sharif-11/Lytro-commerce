@@ -32,6 +32,9 @@ const envSchema = z.object({
   TRUSTED_EDGE_SECRET: z.string().min(32).optional(),
   // A second accepted secret, set only while the edge's secret is being rotated (no downtime).
   TRUSTED_EDGE_SECRET_NEXT: z.string().min(32).optional(),
+  // Slice 12: the secret the storefront's own server presents to read a shop's storefront key, which the edge never
+  // adds, so no request through the edge reads one. Unset in development, where the route is open.
+  STOREFRONT_SECRET: z.string().min(32).optional(),
   // The request header that carries the client's address, set by the edge (D14).
   CLIENT_IP_HEADER: z
     .string()
@@ -117,6 +120,14 @@ const envWithEdgeRule = envSchema.superRefine((value, ctx) => {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ['TRUSTED_EDGE_SECRET'],
+      message: 'required in production; at least 32 characters',
+    });
+  }
+  // Slice 12a: unset, the route that hands out each shop's storefront key is open, which only development may allow.
+  if (value.NODE_ENV === 'production' && !value.STOREFRONT_SECRET) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['STOREFRONT_SECRET'],
       message: 'required in production; at least 32 characters',
     });
   }

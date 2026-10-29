@@ -6,6 +6,7 @@ import {
   FulfilmentType,
   PaymentPolicy,
   ServerFieldProblemCode,
+  type DeliveryEstimateInput,
 } from '@lytronix/validators';
 import { FieldsError, type InvalidField } from '../../../common/api-error';
 import {
@@ -234,4 +235,105 @@ export class OrderPricing {
   price(input: PricingInput): OrderPrice {
     return priceOrder(input);
   }
+
+  /**
+   * SFT-20, LND-08, CUS-08 (D4-9), pulled forward for the storefront: what delivering these items to a thana would cost,
+   * and whether they can go there (DLV-06, DLV-07); before a thana is chosen, the least and most any zone that
+   * delivers would charge. Only what is on sale is priced (PRD-06): anything else is refused, naming its item.
+   */
+  async estimate(tenantId: string, input: DeliveryEstimateInput): Promise<DeliveryEstimate> {
+    const location = input.locationId !== undefined ? await this.thanaOf(input.locationId) : null;
+    return this.orders.run(tenantId, async (tx) => {
+      const variants = await this.variantsWithin(
+        tx,
+        tenantId,
+        input.items.map((item) => item.variantId),
+      );
+      const lines: PricingLine[] = [];
+      const products: OrderableVariant[] = [];
+      const problems: InvalidField[] = [];
+      input.items.forEach((item, index) => {
+        const variant = variants.get(item.variantId);
+        if (!variant?.active) {
+          problems.push({
+            field: `items.${String(index)}.variantId`,
+            problem: ServerFieldProblemCode.NotFound,
+            messageKey: 'ProductNotFound',
+          });
+          return;
+        }
+        products.push(variant);
+        lines.push({
+          unitPrice: variant.price,
+          quantity: item.quantity.toFixed(3),
+          itemDiscount: '0.00',
+          weightKg: variant.weightKg,
+          ownDeliveryCharge: variant.deliveryCharge,
+          deliveryMode: variant.deliveryMode,
+          paymentPolicy: variant.paymentPolicy,
+          policyAdvance: variant.advanceAmount,
+        });
+      });
+      if (problems.length > 0) throw new FieldsError(problems);
+      const chargeAt = (zoneCharge: string, extraChargePerKg: string): string =>
+        priceOrder({
+          fulfilmentType: FulfilmentType.Delivery,
+          zoneCharge,
+          extraChargePerKg,
+          lines,
+          discount: '0.00',
+          deliveryChargeByHand: null,
+        }).deliveryCharge;
+      const limitedAway = (zoneId: string): string[] => [
+        ...new Set(
+          products
+            .filter(
+              (row) => row.deliveryZoneIds.length > 0 && !row.deliveryZoneIds.includes(zoneId),
+            )
+            .map((row) => row.productName),
+        ),
+      ];
+      if (location !== null) {
+        const { zone, extraChargePerKg } = await this.deliveryWithin(tx, tenantId, location);
+        const notDeliveredHere = limitedAway(zone.id);
+        return {
+          zone: { id: zone.id, name: zone.label, charge: zone.charge, noDelivery: zone.noDelivery },
+          deliveryCharge: chargeAt(zone.charge, extraChargePerKg),
+          range: null,
+          deliverable: !zone.noDelivery && notDeliveredHere.length === 0,
+          notDeliveredHere,
+        };
+      }
+      const extraChargePerKg = await this.rates.within(tx, tenantId);
+      const charges = (await this.zones.zonesWithin(tx, tenantId))
+        .filter((zone) => !zone.noDelivery && limitedAway(zone.id).length === 0)
+        .map((zone) => chargeAt(zone.charge, extraChargePerKg))
+        .sort((a, b) => Number(a) - Number(b));
+      const from = charges[0];
+      const to = charges.at(-1);
+      return {
+        zone: null,
+        deliveryCharge: null,
+        range: from !== undefined && to !== undefined ? { from, to } : null,
+        deliverable: charges.length > 0,
+        notDeliveredHere: [],
+      };
+    });
+  }
+}
+
+/** SFT-20: a cart's delivery, to a thana or, before one is chosen, as a range. */
+export interface DeliveryEstimate {
+  zone: {
+    id: string;
+    name: { en: string; bn: string };
+    charge: string;
+    noDelivery: boolean;
+  } | null;
+  deliveryCharge: string | null;
+  range: { from: string; to: string } | null;
+  /** DLV-06, DLV-07: whether the items can go there; a public order to a place they cannot is refused. */
+  deliverable: boolean;
+  /** DLV-07: the products limited to other zones. */
+  notDeliveredHere: string[];
 }

@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { AttributeDataType, AttributeRole, UnitKind } from '@lytronix/validators';
-import { baseValueOf, measureOf } from '../src/lib/measure';
+import {
+  AttributeDataType,
+  AttributeRole,
+  baseValueOf,
+  measureOf,
+  UnitKind,
+} from '@lytronix/validators';
 import {
   blankRow,
   combinations,

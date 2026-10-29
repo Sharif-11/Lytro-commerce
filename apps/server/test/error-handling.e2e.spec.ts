@@ -29,6 +29,8 @@ beforeAll(async () => {
   process.env['NODE_ENV'] = 'production';
   // SEC-10: production starts only with the key credentials are sealed with.
   process.env['DATA_ENCRYPTION_KEY'] = Buffer.alloc(32, 3).toString('base64');
+  // Slice 12a: and with the secret that guards each shop's storefront key.
+  process.env['STOREFRONT_SECRET'] = 'storefront-secret-0123456789abcdef0123';
 
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
   ({ app, port } = await listenOn(moduleRef));

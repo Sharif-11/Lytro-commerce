@@ -91,6 +91,8 @@ export interface PublicProductDetail {
   /** PRD-08: what an order for it must pay first; the order works it out again at the time (CCH-07). */
   paymentPolicy: PaymentPolicy;
   advanceAmount: string | null;
+  /** DLV-07: the zones it may be delivered to (the shop's zone list names them); empty is anywhere. */
+  deliveryZoneIds: string[];
 }
 
 /** PRD-03: a visible category, with its visible subcategories in the shop's order. */

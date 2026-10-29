@@ -14,6 +14,7 @@ type SettingsPath =
   | '/$shop/settings/shop'
   | '/$shop/delivery'
   | '/$shop/settings/brand'
+  | '/$shop/settings/storefront'
   | '/$shop/settings/api-keys'
   | '/$shop/settings/meta'
   | '/$shop/settings/export';
@@ -48,6 +49,13 @@ const ROWS: readonly {
     anyOf: [Permission.SettingsManage],
   },
   {
+    icon: 'globe',
+    title: 'sStore',
+    sub: 'sStoreD',
+    to: '/$shop/settings/storefront',
+    anyOf: [Permission.SettingsManage],
+  },
+  {
     icon: 'key',
     title: 'sApi',
     sub: 'sApiD',
@@ -71,13 +79,12 @@ const ROWS: readonly {
 ];
 
 // What the shop will set up later, greyed with the phase it arrives in (the prototype's "Coming later").
-const LATER: readonly { icon: IconName; title: string; phase: number | 'slices' }[] = [
+const LATER: readonly { icon: IconName; title: string; phase: number }[] = [
   { icon: 'banknote', title: 'sMethods', phase: 5 },
   { icon: 'box', title: 'sCourier', phase: 6 },
   { icon: 'smartphone', title: 'sListener', phase: 5 },
   { icon: 'sms', title: 'sSms', phase: 7 },
   { icon: 'bell', title: 'sNotif', phase: 7 },
-  { icon: 'globe', title: 'sStore', phase: 'slices' },
 ];
 
 /**
@@ -116,11 +123,7 @@ export function SettingsView(): React.JSX.Element {
                 className={`${menuRowClass} min-h-[52px] opacity-55`}
               >
                 <MenuRowInner icon={row.icon} title={t(row.title)} chevron={false} />
-                <PhasePill>
-                  {shell('laterPhase', {
-                    p: row.phase === 'slices' ? t('slices12to13') : home('phase', { n: row.phase }),
-                  })}
-                </PhasePill>
+                <PhasePill>{shell('laterPhase', { p: home('phase', { n: row.phase }) })}</PhasePill>
               </div>
             ))}
           </RowList>

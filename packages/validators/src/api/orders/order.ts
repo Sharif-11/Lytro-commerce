@@ -261,6 +261,17 @@ export const overrideOrderSchema = z.object({
 });
 export type OverrideOrderInput = z.infer<typeof overrideOrderSchema>;
 
+// POST /v1/delivery-estimate (SFT-20, LND-08): a cart's items, and the thana they would go to once it is chosen. Priced
+// by the same function an order is (ORD-06a); before a thana is known the answer is a range across the shop's zones.
+export const deliveryEstimateSchema = z.object({
+  locationId: z.number().int().positive().optional(),
+  items: z
+    .array(z.object({ variantId: catalogueIdSchema, quantity: positiveQuantityField }))
+    .min(1)
+    .max(ORDER_LINES_MAX),
+});
+export type DeliveryEstimateInput = z.infer<typeof deliveryEstimateSchema>;
+
 // GET orders (ORD-13, ORD-45, ORD-52): newest first, 20 a page; by the status shown, either axis, where it came from,
 // why it was cancelled, the days it was made (Asia/Dhaka), and a name, phone or order number.
 export const orderListQuerySchema = z.object({

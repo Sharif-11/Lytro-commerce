@@ -1,6 +1,13 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AttributeDataType, AttributeRole } from '@lytronix/validators';
+import {
+  AttributeDataType,
+  AttributeRole,
+  baseValueOf,
+  MEASURE_UNITS,
+  measureOf,
+  type MeasureUnit,
+} from '@lytronix/validators';
 import { useAddOptions } from '@/api/attributes';
 import { Icon } from '@/components/icon';
 import { Button } from '@/components/ui/button';
@@ -8,7 +15,6 @@ import { Chip } from '@/components/ui/chips';
 import { Field } from '@/components/ui/field';
 import { Sheet } from '@/components/ui/sheet';
 import { useErrorText } from '@/hooks/use-error-text';
-import { baseValueOf, MEASURE_UNITS, measureOf, type MeasureUnit } from '@/lib/measure';
 import type { Description } from '@/lib/variant-matrix';
 import type { Attribute } from '@/types/attribute';
 import { useVariantWords } from './variant-words';

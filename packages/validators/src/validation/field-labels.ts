@@ -190,6 +190,7 @@ export const FIELD_LABELS: Readonly<Record<string, Translation | null>> = {
   sharedOpeningUnitCost: { en: 'Opening shared unit cost', bn: 'শুরুর শেয়ার্ড প্রতি ইউনিটের দাম' },
   sharedStock: { en: 'Shared stock', bn: 'শেয়ার্ড স্টক' },
   shopName: { en: 'Shop name', bn: 'দোকানের নাম' },
+  storefrontEnabled: { en: 'Storefront', bn: 'স্টোরফ্রন্ট' },
   sizeChart: { en: 'Size chart', bn: 'সাইজ চার্ট' },
   sku: { en: 'SKU', bn: 'SKU' },
   slug: { en: 'Product link', bn: 'প্রোডাক্ট লিংক' },

@@ -1596,7 +1596,7 @@ is sealed again, and today that means each shop regenerating its feed link and r
 A job that re-seals every value with the current key should come with courier and gateway credentials (Phases 5-6),
 when there are more of them.
 
-## 82. `RTE-01`, `SFT-11`, `SFT-15`: a plan's per-minute key limit caps a whole storefront — decided 2026-10-21, partly built
+## 82. `RTE-01`, `SFT-11`, `SFT-15`: a plan's per-minute key limit caps a whole storefront — decided 2026-10-21, built 2026-10-29
 
 Found while working out what a very busy shop costs (Phase 3 Slice 10's read). RTE-01 counts every request against
 its key's per-minute limit, and a shop's storefront -- the platform's own (Slice 12) or the shop's own website --
@@ -1634,7 +1634,10 @@ payment-session limits (RTE-08).
 every plan, snapshot and override (migration 0070); the rate headers describe the visitor's minute; the 120 is the
 platform setting `public_requests_per_visitor_per_minute`; and `control.api_usage` counts the refused requests and
 their visitors (RUNBOOKS §4). The fast-spend alert was built with Slice 10's usage warnings (RTE-12, RUNBOOKS §5).
-**Still to build:** the storefront server passing each shopper's IP, in Slice 12.
+**Built 2026-10-29 (Slice 12a):** the storefront's server calls the API inside the deployment with the trusted-edge
+secret and passes the edge's client-address header on as it arrived. The API trusts that header only from a caller
+holding the secret (D14) and picks the shopper from it by its own rule, as for a request the edge sent it directly, so
+the per-visitor limit sees each shopper.
 
 ## 83. `PLN-05`, `PLN-06`, `PLN-11`: product and seat limits came from the live plan, not the shop's snapshot — found and fixed 2026-10-21
 

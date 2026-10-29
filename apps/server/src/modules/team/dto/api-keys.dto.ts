@@ -1,6 +1,11 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
-import { ApiKeyType, createApiKeySchema, updateApiKeySchema } from '@lytronix/validators';
+import {
+  ApiKeyPurpose,
+  ApiKeyType,
+  createApiKeySchema,
+  updateApiKeySchema,
+} from '@lytronix/validators';
 
 // DTO classes built from the shared schemas, so each request shape is written once (ENGINEERING §4).
 export class CreateApiKeyDto extends createZodDto(createApiKeySchema) {}
@@ -18,6 +23,8 @@ const apiKeyViewSchema = z.object({
   createdAt: z.date(),
   lastUsedAt: z.date().nullable(),
   revokedAt: z.date().nullable(),
+  // Slice 12: "storefront" for the key Lytro keeps for the shop's storefront; null for the shop's own.
+  purpose: z.nativeEnum(ApiKeyPurpose).nullable(),
 });
 export class ApiKeyViewDto extends createZodDto(apiKeyViewSchema) {}
 export class ApiKeyListDto extends createZodDto(z.array(apiKeyViewSchema)) {}

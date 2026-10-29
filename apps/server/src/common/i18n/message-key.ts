@@ -485,6 +485,9 @@ export const MESSAGE_KEYS = [
   'OrderCancelled',
   'OrderStatusSet',
   'OrderDeleted',
+  // Phase 3 Slice 12: the storefront key Lytro keeps for the shop's storefront.
+  'ApiKeyManagedByLytro',
+  'DeliveryEstimated',
 ] as const;
 
 export type MessageKey = (typeof MESSAGE_KEYS)[number];

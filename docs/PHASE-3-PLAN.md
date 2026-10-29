@@ -1625,7 +1625,7 @@ their backend ships earlier.
   - **Landing pages:** the automatic single-product page at `/l/<slug>` (images and video, name,
     description, price, attributes, variant picker with `?v=` preselection, quantity selector, stock
     state, branding, no shop navigation); server-rendered Open Graph and Twitter Card tags; the branded
-    "no longer available" page (404) and the 301 from an old slug; served whenever the tenant is
+    "no longer available" page (404) and the permanent redirect (308) from an old slug; served whenever the tenant is
     reachable, including with the storefront off; Meta Pixel `PageView`/`ViewContent`, loaded after the
     page's content, with `content_ids` set to the feed's variant IDs; a "Delivers to" note when a zone or
     product limit applies (DLV-06, DLV-07); the "Size chart" link on the
@@ -1636,9 +1636,54 @@ their backend ships earlier.
 - **Done when:** the milestone (exit criterion 4) passes; two tenants show different catalogues and
   branding with the same layout from one deployment; lapsing a tenant replaces both its storefront and
   its landing pages within the LIF-03 window; with the storefront switched off, landing pages still load;
-  a shared landing link shows a rich preview in Facebook's sharing debugger; with the pixel endpoint
+  a shared landing link shows a rich preview in Facebook's sharing debugger, and so does an old (redirected) link,
+  so its crawler is seen following the 308; with the pixel endpoint
   blocked, the page works normally; a review finds no secret key or Conversions API token reachable from
   storefront code.
+- **Read agreed 2026-10-29** (7 points; STOREFRONT-DESIGN.md, prototype `lytro-storefront.html`; TENANT-DASHBOARD-DESIGN
+  §7.29, prototype Part 25):
+  1. Three parts: **12a** the foundation, the product page and the landing page; **12b** home, category, search and
+     the cart; **12c** the installable storefront, its service worker, and the shop's identity on its pages (after
+     11.12b).
+  2. **A storefront key per shop**: a public key named "Lytro storefront", made the first time the storefront serves
+     the shop, its website the shop's own address, its value sealed so the storefront's server can use it; outside the
+     [20], never changed or revoked. The storefront's server reads which shop a host serves, with that key, from an
+     internal route behind a secret only it holds (`STOREFRONT_SECRET`).
+  3. **The delivery estimate is built now**, pulled forward from Phase 4 Slice 4.2: `GET /v1/locations` and
+     `POST /v1/delivery-estimate`, priced by the one function an order is priced by (SFT-20, LND-08's totals).
+  4. **Settings > Storefront** in the dashboard: the shop's link with copy and share, and the switch (SFT-16), sketched
+     first as prototype Part 25 (design v3.14).
+  5. **Ordering laid out, not sent**: the cart's checkout and the landing page's order form show as drawn, with their
+     button off and one line that ordering opens soon; the footer's tracking and account links wait for Phase 4.
+  6. **Only what is true now**: no bestsellers, no wallet marks; a closed shop's page names no shop (LIF-07).
+  7. **Count every page**: no shared edge cache for the storefront's pages, so each is counted as an outside site's
+     calls would be (SFT-11 amended, CCH-01 with it).
+
+  **Built (12a):** the server side (migration 0084): the storefront key (`api_keys.purpose`, `sealed_value`, one live
+  one a shop), refused a change or revoke (`ApiKeyManagedByLytro`), and retired and made again when its sealed value
+  can no longer be opened (a real run found every storefront failing after a restart without `DATA_ENCRYPTION_KEY`);
+  `shop_settings.storefront_enabled`, in Shop
+  settings and its activity record; `GET /api/v1/internal/storefront/context` behind `STOREFRONT_SECRET`, which
+  production now requires; `/v1/shop` with the logo, contact details and delivery zones; a product's
+  `deliveryZoneIds`; the public locations and estimate. The storefront app (`apps/storefront`): the prototype's
+  stylesheet, icons and words ported by script (regenerated, not edited; the app's own wordings beside them where the
+  prototype names an example shop); `/p/<slug>` and `/l/<slug>` with the gallery, the variant picker with each
+  variant's price and stock, the delivery line by area (the area kept per device, so the first paint is exact), cash on
+  delivery or the product's advance, "Delivers to" where zones leave some out, size chart, share, Add to cart into the
+  browser (SFT-05), and the landing page's order form with live totals and Confirm off; `?v=` preselects a variant;
+  the Meta Pixel's `PageView` and `ViewContent` after the page is idle; Open Graph and Twitter tags in the head; the
+  branded "no longer available" page (404) and the permanent redirect from an old link; the offline page; not-found
+  for a switched-off storefront's pages while landing pages keep working; the shopper's address passed on as the edge
+  set it (KNOWN-GAPS §82). The dashboard: Settings > Storefront and the storefront key first in API keys (Part 25).
+  The base-unit display rule moved from the dashboard into `@lytronix/validators` for both apps.
+
+  Named, beyond the drawing: the delivery days, the care-and-returns section and the wishlist heart are left out (no
+  data or requirement behind them); the header's categories, search and cart, the home's sections and "You may also
+  like" arrive with 12b's cards; until then `/` lists the newest products. Buy now shows, off, with the "ordering opens
+  soon" line under it on a wide screen. The gallery keeps its thumbnail column for one photo too (a real run found the
+  main photo squeezed into it). LND-04 is amended 2026-10-29 to the 308 Next.js sends for a permanent redirect (the
+  user's call; a 301 from middleware would cost a second counted API call on every view). A page that turns out
+  missing sends its 404 with the branded page drawn in the browser, not in the HTML.
 
 ### Slice 13: custom domains (D3-13)
 - **Depends on:** Slice 12 (the storefront and landing pages a domain serves), Slice 0 (custom domains never

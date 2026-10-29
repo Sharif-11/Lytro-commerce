@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Permission, UsageMetric } from '@lytronix/validators';
+import { ApiKeyPurpose, Permission, UsageMetric } from '@lytronix/validators';
 import { useApiKeys } from '@/api/api-keys';
 import { useUsage } from '@/api/usage';
 import { Icon } from '@/components/icon';
@@ -23,7 +23,8 @@ import { keyLine } from './api-key-words';
 /**
  * API keys (TENANT-DASHBOARD-DESIGN §7.26, the prototype's `api-keys` and its sheets): what a key is for, the keys
  * with their first characters, websites, last use and expiry, a revoked one kept and greyed; New key, a live key's
- * edit, and Revoke. The requests counted this cycle show to whoever may read the shop's usage (Slice 11.6).
+ * edit, and Revoke. The requests counted this cycle show to whoever may read the shop's usage (Slice 11.6). The key
+ * Lytro keeps for the storefront comes first, marked Lytro's, with nothing to change or revoke (Part 25, Slice 12a).
  */
 export function ApiKeysView(): React.JSX.Element {
   const { t } = useTranslation('menu');
@@ -37,6 +38,10 @@ export function ApiKeysView(): React.JSX.Element {
   const [editing, setEditing] = useState<ApiKey | null>(null);
   const [revoking, setRevoking] = useState<ApiKey | null>(null);
   const requests = usage.data?.metrics.find((each) => each.metric === UsageMetric.Requests);
+  const isLytros = (key: ApiKey) => key.purpose === ApiKeyPurpose.Storefront;
+  const listed = keys.data
+    ? [...keys.data].sort((a, b) => Number(isLytros(b)) - Number(isLytros(a)))
+    : undefined;
 
   return (
     <ShellPage
@@ -54,22 +59,29 @@ export function ApiKeysView(): React.JSX.Element {
     >
       <p className="text-[14px] text-fg-muted">{t('akLead')}</p>
       {keys.isError ? <Banner tone="bad">{errorText(keys.error)}</Banner> : null}
-      {keys.data ? (
+      {listed ? (
         <Card flush>
-          {keys.data.length === 0 ? (
+          {listed.length === 0 ? (
             <EmptyState icon="key">{t('akEmpty')}</EmptyState>
           ) : (
             <RowList>
-              {keys.data.map((key) => {
+              {listed.map((key) => {
                 const revoked = key.revokedAt !== null;
+                const lytros = isLytros(key);
                 const body = (
                   <>
                     <span className="flex size-10 flex-none items-center justify-center rounded-button bg-neutral-100 text-fg-muted">
-                      <Icon name="key" />
+                      <Icon name={lytros ? 'globe' : 'key'} />
                     </span>
                     <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                       <span className="min-w-0 overflow-hidden text-[16px] font-medium text-ellipsis whitespace-nowrap">
-                        {key.name}
+                        {lytros ? t('akStorefront') : key.name}
+                        {lytros ? (
+                          <>
+                            {' '}
+                            <StatusTag tone="info">{t('akLytros')}</StatusTag>
+                          </>
+                        ) : null}
                         {revoked ? (
                           <>
                             {' '}
@@ -83,6 +95,13 @@ export function ApiKeysView(): React.JSX.Element {
                     </span>
                   </>
                 );
+                if (lytros) {
+                  return (
+                    <div key={key.id} className={rowClass}>
+                      {body}
+                    </div>
+                  );
+                }
                 return revoked ? (
                   <div key={key.id} aria-disabled="true" className={`${rowClass} opacity-55`}>
                     {body}
@@ -114,6 +133,9 @@ export function ApiKeysView(): React.JSX.Element {
             </RowList>
           )}
         </Card>
+      ) : null}
+      {listed?.some(isLytros) ? (
+        <p className="text-[14px] text-fg-muted">{t('akStorefrontNote')}</p>
       ) : null}
       <Card>
         {requests ? (

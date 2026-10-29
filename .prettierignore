@@ -7,3 +7,7 @@ coverage
 pnpm-lock.yaml
 docs
 **/routeTree.gen.ts
+# Ported from the storefront prototype by script (docs/brand/lytro-storefront.html); regenerated, never hand-formatted.
+apps/storefront/src/app/storefront.css
+apps/storefront/src/lib/i18n/copy.ts
+apps/storefront/src/lib/ui/icons.ts

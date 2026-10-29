@@ -6,6 +6,7 @@ export interface KeyFixture {
   id: string;
   name: string;
   type: 'public';
+  purpose: 'storefront' | null;
   prefix: string;
   websites: string[];
   expiresAt: string | null;
@@ -19,13 +20,26 @@ export const CREATED_KEY = 'lytro_pk_7f2kq9z1m3xd21pvq8rt5zkcw1ne7bhs';
 
 const HOUR_MS = 60 * 60 * 1000;
 
-/** The prototype's `api-keys`: Website and Mobile app live, Old site revoked. */
+/** The prototype's `api-keys`: Lytro's storefront key first (Part 25), Website and Mobile app live, Old site revoked. */
 export function drawnKeys(): KeyFixture[] {
   return [
+    {
+      id: 'k-storefront',
+      name: 'Lytro storefront',
+      type: 'public',
+      purpose: 'storefront',
+      prefix: 'lytro_pk_3hdw',
+      websites: ['https://megh.lytro.app'],
+      expiresAt: null,
+      createdAt: '2026-10-29T04:00:00.000Z',
+      lastUsedAt: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
+      revokedAt: null,
+    },
     {
       id: 'k-website',
       name: 'Website',
       type: 'public',
+      purpose: null,
       prefix: 'lytro_pk_7f2k',
       websites: ['https://meghfashion.com'],
       expiresAt: null,
@@ -37,6 +51,7 @@ export function drawnKeys(): KeyFixture[] {
       id: 'k-app',
       name: 'Mobile app',
       type: 'public',
+      purpose: null,
       prefix: 'lytro_pk_a81m',
       websites: ['https://app.meghfashion.com'],
       expiresAt: '2026-12-31T17:59:59.000Z',
@@ -48,6 +63,7 @@ export function drawnKeys(): KeyFixture[] {
       id: 'k-old',
       name: 'Old site',
       type: 'public',
+      purpose: null,
       prefix: 'lytro_pk_09ds',
       websites: ['https://old.meghfashion.com'],
       expiresAt: null,
@@ -99,6 +115,7 @@ export function keysWrite(
       id: `k-${String(keys.length + 1)}`,
       name: typeof body?.name === 'string' ? body.name : '',
       type: 'public',
+      purpose: null,
       prefix: CREATED_KEY.slice(0, 13),
       websites: body?.websites as string[],
       expiresAt:

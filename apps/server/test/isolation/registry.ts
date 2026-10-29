@@ -232,6 +232,11 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'GET /public/catalogue/products': "lists and searches only the key's own shop's active products",
   'GET /public/catalogue/products/:slug': "another shop's product, by its link, is not found",
   'GET /public/catalogue/categories': "only the key's own shop's visible categories",
+  // Phase 3 Slice 12a, checked in test/storefront.e2e.spec.ts: the delivery estimate prices the key's own shop's items
+  // only; the thana list is the same platform-wide list for every shop.
+  'GET /public/locations': 'returns the same platform-wide thana list whichever key asks',
+  'POST /public/delivery-estimate':
+    "another shop's variant is not_found; zones are the key's own shop's",
   // Phase 3 Slice 9b, checked in test/ad-tracking-feed.e2e.spec.ts.
   'GET /ad-tracking': "shows only the session shop's own ad tracking",
   'PUT /ad-tracking': "sets only the session shop's own ad tracking",

@@ -289,6 +289,12 @@ export class DeliveryZoneService {
     };
   }
 
+  /** DLV-01, SFT-20: the shop's zones, inside a transaction the caller already holds (the delivery estimate). */
+  async zonesWithin(tx: Transaction, tenantId: string): Promise<ZoneView[]> {
+    await this.zones.ensureDefaults(tx, tenantId, DEFAULTS);
+    return (await this.view(tx, tenantId)).zones;
+  }
+
   /**
    * LIF-19: the day-60 deletion job's delivery step: every zone and its areas. Runs after the catalogue's, since a
    * product's delivery limit keeps its zone. A second run finds nothing to delete.

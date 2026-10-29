@@ -4,8 +4,9 @@ import { CREATED_KEY } from './support/api-keys';
 import { DAY_ONE, mockApi, SLUG, type ApiLog, type ShopState } from './support/mock-api';
 
 // TENANT-DASHBOARD-DESIGN §7.26, Slice 11.6: API keys -- the keys with their first characters, websites, last use and
-// expiry, a new key shown once, a live key's edit, revoking, and the requests this cycle for whoever may read usage.
-// Each test runs on a phone and on a desktop (playwright.config.ts).
+// expiry, a new key shown once, a live key's edit, revoking, and the requests this cycle for whoever may read usage;
+// Slice 12a: the key Lytro keeps for the storefront, first. Each test runs on a phone and on a desktop
+// (playwright.config.ts).
 
 async function open(page: Page, state: ShopState = {}): Promise<ApiLog> {
   const log = await mockApi(page, { language: 'en', ...state });
@@ -46,6 +47,26 @@ test('lists the keys, a revoked one kept, and the requests this cycle', async ({
   await expect(main(page).getByText('Revoked', { exact: true })).toBeVisible();
   await expect(main(page).getByRole('button', { name: 'Revoke' })).toHaveCount(2);
   await expect(main(page).getByText('48,210 / 200,000 requests this cycle')).toBeVisible();
+  await expectAccessible(page);
+});
+
+test('the key Lytro keeps for the storefront comes first, marked, with nothing to change or revoke', async ({
+  page,
+}) => {
+  await open(page);
+  await expect(main(page).getByText('Lytro storefront')).toBeVisible();
+  await expect(main(page).getByText("Lytro's", { exact: true })).toBeVisible();
+  await expect(
+    main(page).getByText('lytro_pk_3hdw… · https://megh.lytro.app', { exact: false }),
+  ).toBeVisible();
+  // No button names it: it opens nothing and has no Revoke; the two Revokes are the shop's own live keys.
+  await expect(main(page).getByRole('button', { name: /Lytro storefront/ })).toHaveCount(0);
+  await expect(main(page).getByRole('button', { name: 'Revoke' })).toHaveCount(2);
+  await expect(
+    main(page).getByText('The first key is the one Lytro keeps for your storefront.', {
+      exact: false,
+    }),
+  ).toBeVisible();
   await expectAccessible(page);
 });
 
