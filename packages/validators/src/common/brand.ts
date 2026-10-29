@@ -55,6 +55,18 @@ export const BRAND_FONTS: Readonly<Record<BrandFont, BrandFontPair>> = {
   },
 };
 
+// TEN-17, SFT-14: what a home screen shows under an app's icon has little room; a longer name is cut at a word.
+export const APP_SHORT_NAME_LENGTH = 12;
+
+/** TEN-17, SFT-14: a shop's name as a home screen label -- up to `length` characters, cut at a word where one fits. */
+export function shortNameOf(name: string, length = APP_SHORT_NAME_LENGTH): string {
+  const characters = Array.from(name.trim());
+  if (characters.length <= length) return name.trim();
+  const cut = characters.slice(0, length).join('');
+  const space = cut.lastIndexOf(' ');
+  return (space > 0 ? cut.slice(0, space) : cut).trim();
+}
+
 /** BRN-02: the three colours a shop chooses, each #rrggbb. */
 export interface BrandColors {
   mainColor: string;

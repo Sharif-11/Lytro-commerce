@@ -1,33 +1,30 @@
 import { createHash } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
 import { LYTRO_APP_COLORS } from '@lytronix/shared-types';
-import { monogramLetter, TenantState } from '@lytronix/validators';
+import {
+  APP_SHORT_NAME_LENGTH,
+  monogramLetter,
+  shortNameOf,
+  TenantState,
+} from '@lytronix/validators';
 import { BrandService } from '../../brand/services/brand.service';
 import type { LiveBrand } from '../../brand/types/brand';
 import { MediaService } from '../../media/services/media.service';
 import { TenantSummaries } from '../../tenancy/services/tenant-summaries.service';
 import type { TenantSummary } from '../../tenancy/types/tenant-summary';
-import { ShopIconFile, type ShopManifest } from '../types/shop-app';
+import { DASHBOARD_ICON_FILES, ShopIconFile, type ShopManifest } from '../types/shop-app';
 import { ShopIcons } from './shop-icons';
 
-// What a home screen shows under the icon has little room; a longer name is cut at a word.
-const SHORT_NAME_LENGTH = 12;
+// SFT-14, Slice 12c: the shop's storefront installs under its plain name, so its dashboard's app is the one marked.
+const ADMIN_SUFFIX = ' Admin';
 
 // Icons drawn and kept, the oldest let go first: a shop's few icons until its logo or name changes.
 const ICONS_KEPT = 300;
 
-/** TEN-17: a shop's name as a home screen label -- up to 12 characters, cut at a word where one fits. */
-export function shortNameOf(name: string): string {
-  const characters = Array.from(name.trim());
-  if (characters.length <= SHORT_NAME_LENGTH) return name.trim();
-  const cut = characters.slice(0, SHORT_NAME_LENGTH).join('');
-  const space = cut.lastIndexOf(' ');
-  return (space > 0 ? cut.slice(0, space) : cut).trim();
-}
-
 /**
- * TEN-17: each shop's dashboard installs as its own app -- named after the shop, with its logo or monogram as the icon,
- * scoped to the shop's own path, so two shops on one phone are two apps. With its brand identity showing (BRN-02), the
+ * TEN-17: each shop's dashboard installs as its own app -- named after the shop with "Admin", with its logo or monogram
+ * as the icon and a gear in its corner, scoped to the shop's own path, so two shops on one phone are two apps, and the
+ * shop's storefront app (SFT-14, its plain name and icon, the `store-` files here) is told apart from it. With its brand identity showing (BRN-02), the
  * icon is the brand's square icon and the app takes the brand's colours. The manifest is read without a session (a
  * browser fetches it so), for any shop not deleted: a lapsed or suspended shop's owner still opens its dashboard. The
  * icons' links carry a version made from the name, the logo and the brand, so any change gives new icons at once.
@@ -54,8 +51,8 @@ export class ShopAppService {
       `/api/v1/shops/${shop.slug}/icons/${file}?v=${version}`;
     return {
       id: path,
-      name: shop.shopName,
-      short_name: shortNameOf(shop.shopName),
+      name: `${shop.shopName}${ADMIN_SUFFIX}`,
+      short_name: `${shortNameOf(shop.shopName, APP_SHORT_NAME_LENGTH - ADMIN_SUFFIX.length)}${ADMIN_SUFFIX}`,
       start_url: path,
       scope: path,
       display: 'standalone',
@@ -84,8 +81,9 @@ export class ShopAppService {
     const key = `${shop.id}:${version}:${file}`;
     const kept = this.icons.get(key);
     if (kept) return kept;
-    // Not kept: the picture is read from storage, only now, and the icon drawn.
-    const drawn = await this.draw(shop, brand, file);
+    // Not kept: the picture is read from storage, only now, and the icon drawn; the dashboard's with its gear.
+    const plain = await this.draw(shop, brand, file);
+    const drawn = DASHBOARD_ICON_FILES.has(file) ? await this.drawing.withGear(plain, file) : plain;
     this.icons.set(key, drawn);
     if (this.icons.size > ICONS_KEPT) {
       const oldest = this.icons.keys().next().value;

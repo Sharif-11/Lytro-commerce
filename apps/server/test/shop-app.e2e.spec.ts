@@ -10,7 +10,7 @@ import { AppModule } from '../src/app/app.module';
 import { MediaProcessor } from '../src/modules/media/services/media-processor';
 import { MEDIA_STORAGE } from '../src/modules/media/tokens';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
-import { shortNameOf } from '../src/modules/shop-app/services/shop-app.service';
+import { shortNameOf } from '@lytronix/validators';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase } from './support/database';
 import { getBinary, getJson, type HttpResult } from './support/http';
@@ -187,8 +187,8 @@ describeIfDatabase("each shop's own installable app (TEN-17)", () => {
     const manifest = answer.body as Manifest;
     expect(manifest).toMatchObject({
       id: path,
-      name: `Shop ${first.slug}`,
-      short_name: 'Shop',
+      name: `Shop ${first.slug} Admin`,
+      short_name: 'Shop Admin',
       start_url: path,
       scope: path,
       display: 'standalone',
@@ -245,7 +245,7 @@ describeIfDatabase("each shop's own installable app (TEN-17)", () => {
       'আলো ঘর',
     ]);
     const renamed = await manifestOf(shop.slug);
-    expect(renamed).toMatchObject({ name: 'আলো ঘর', short_name: 'আলো ঘর' });
+    expect(renamed).toMatchObject({ name: 'আলো ঘর Admin', short_name: 'আলো ঘর Admin' });
     expect(versionOf(renamed)).not.toBe(before);
     const bangla = await iconOf(shop.slug, 'icon-512.png');
     expectNear(await pixelOf(bangla, 4, 4), INK, 2);
@@ -296,6 +296,53 @@ describeIfDatabase("each shop's own installable app (TEN-17)", () => {
     expectNear(await pixelOf(await iconOf(shop.slug, 'icon-192.png'), 2, 2), INK, 2);
   });
 
+  it("draws the storefront app's icons plain and the dashboard's with a gear in the corner (SFT-14, Slice 12c)", async () => {
+    const shop = await openShop(port, texts, 'app-gear');
+    const sized = {
+      'store-192.png': 192,
+      'store-512.png': 512,
+      'store-maskable-512.png': 512,
+      'store-apple-180.png': 180,
+    };
+    for (const [file, size] of Object.entries(sized)) {
+      expect(await sharp(await iconOf(shop.slug, file)).metadata()).toMatchObject({
+        format: 'png',
+        width: size,
+        height: size,
+      });
+    }
+    // The same monogram on both; only the dashboard's has the white disc near its corner.
+    const store = await iconOf(shop.slug, 'store-512.png');
+    const dashboard = await iconOf(shop.slug, 'icon-512.png');
+    expectNear(await pixelOf(store, 4, 4), INK, 2);
+    expectNear(await pixelOf(dashboard, 4, 4), INK, 2);
+    expectNear(await pixelOf(store, 404, 470), INK, 2);
+    expectNear(await pixelOf(dashboard, 404, 470), WHITE);
+    expect(await countOf(store, WHITE, 20)).toBe(0);
+    expect(await countOf(dashboard, WHITE, 20)).toBeGreaterThan(5000);
+
+    // A maskable icon's disc stays inside the middle 80% circle a phone keeps.
+    const masked = await iconOf(shop.slug, 'maskable-512.png');
+    expect(await countOf(await iconOf(shop.slug, 'store-maskable-512.png'), WHITE, 20)).toBe(0);
+    const { data, info } = await sharp(masked)
+      .removeAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    let inside = 0;
+    let outside = 0;
+    for (let y = 0; y < info.height; y += 1) {
+      for (let x = 0; x < info.width; x += 1) {
+        const at = (y * info.width + x) * 3;
+        const white = [0, 1, 2].every((channel) => (data[at + channel] ?? 0) > 235);
+        if (!white) continue;
+        if (Math.hypot(x - 256, y - 256) <= 0.4 * 512) inside += 1;
+        else outside += 1;
+      }
+    }
+    expect(inside).toBeGreaterThan(2000);
+    expect(outside).toBe(0);
+  });
+
   it('answers no app for a deleted shop, an unknown one, or an icon it does not draw', async () => {
     const shop = await openShop(port, texts, 'app-gone');
     expect((await iconAt(`/shops/${shop.slug}/icons/icon-64.png`)).status).toBe(404);
@@ -323,5 +370,7 @@ describeIfDatabase("each shop's own installable app (TEN-17)", () => {
     expect(shortNameOf('Rahim Fashion House')).toBe('Rahim');
     expect(shortNameOf('Supercalifragilistic')).toBe('Supercalifra');
     expect(shortNameOf('আলো ঘর ফ্যাশন হাউস')).toBe('আলো ঘর');
+    // Slice 12c: with room left for " Admin".
+    expect(shortNameOf('Megh Fashion', 6)).toBe('Megh');
   });
 });
