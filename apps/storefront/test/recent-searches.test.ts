@@ -18,6 +18,10 @@ describe('RecentSearches (Slice 12b)', () => {
       recent.remember(search);
     }
     expect(recent.list()).toEqual(['Saree', 'frock', 'lungi', 'hijab', 'panjabi']);
+
+    const few = new RecentSearches(memory());
+    for (const search of ['saree', 'panjabi', 'SAREE']) few.remember(search);
+    expect(few.list()).toEqual(['SAREE', 'panjabi']);
   });
 
   it('reads nothing from a broken or blocked store', () => {
