@@ -393,6 +393,7 @@ svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.75;str
       <optgroup label="Payment page (pay.lytro.app, embedded)"><option value="pay-checkout">Pay for the plan at checkout · ৳4,741</option><option value="pay-topup">Pay a top-up · ৳500</option><option value="pay-renew">Pay a renewal · ৳449</option><option value="pay-upgrade">Pay an upgrade · ৳400</option></optgroup>
       <optgroup label="Lifecycle"><option value="renew">Renew (locked)</option><option value="renew-archived">Renew (archived, with the deletion date)</option><option value="unavailable">Unavailable (suspended)</option></optgroup>
       <optgroup label="Delivery · Slice 11.11 (Part 22)"><option value="delivery-22">Delivery · No delivery outside, Rename on the two zones</option><option value="delivery-outside-off">· no delivery outside the home area</option><option value="delivery-check-nodelivery">· Check an address: a no-delivery zone, and why</option><option value="delivery-empty">· no zones of its own</option><option value="delivery-full">· twenty zones</option><option value="delivery-staff">· someone who may only look</option><option value="sh-zone-rename">· rename a fixed zone, or its automatic name (sheet)</option><option value="sh-homearea-thanas">· home area: my own thanas (sheet)</option><option value="sh-zone-new">Zone · new, a thana moving from a broader zone (sheet)</option><option value="sh-zone-taken">· an area another zone holds, named before Save (sheet)</option><option value="sh-area-pick">Area picker · grouped, one held elsewhere (sheet)</option><option value="sh-area-district">· a district opened: its thanas (sheet)</option><option value="sh-zone-delete">Zone · delete, asked first (dialog)</option><option value="sh-zone-in-use">· still in use: the products, Open or Restore (sheet)</option></optgroup>
+      <optgroup label="Themed dashboard · Slice 11.12b (Part 24)"><option value="themed-home">Themed · Home: maroon on cream, serif headings, round, airy (BRN-02, BRN-07)</option><option value="themed-products">· Products</option><option value="themed-zone-sheet">· a sheet: a delivery zone, its fields and buttons</option><option value="themed-billing">· Billing: the status colours never change (BRN-04)</option><option value="themed-brand">· the brand editor, switched on</option><option value="themed-b-home">Themed · Home: indigo with coral, square, compact, no dark logo</option><option value="themed-b-stock">· Stock</option><option value="themed-b-zone-delete">· a delete asked first: the danger colour never changes (BRN-04)</option></optgroup>
       <optgroup label="Later phases (design only)"><option value="orders">Orders</option><option value="order">Order detail</option><option value="order-book">Book courier (sheet)</option><option value="order-new">New order</option><option value="customers">Customers</option><option value="customer">Customer detail</option><option value="payments">Payments</option><option value="methods">Payment methods</option><option value="notices">Notices</option><option value="sms">SMS events</option><option value="search">Search · orders and customers (Phase 4)</option><option value="notifications">Notifications · panel from the bell (Phase 7)</option><option value="notifications-empty">· nothing yet (Phase 7)</option><option value="notifications-read">· all read (Phase 7)</option><option value="notifications-all">Notifications · full page (Phase 7)</option><option value="storefront">Storefront settings · slides as a carousel (Slice 12)</option><option value="storefront-tiles">· one banner and two tiles (Slice 12)</option><option value="storefront-empty">· no slides yet (Slice 12)</option><option value="sh-slide">· slide editor with the focal point (Slice 12)</option><option value="sh-slide-new">· new slide (Slice 12)</option><option value="sh-slide-preview">· both crops (Slice 12)</option><option value="sh-slide-delete">· remove slide (Slice 12)</option><option value="storefront-saved">· slide saved (Slice 12)</option><option value="stock-shortfall">Stock · units held for expired orders (Phase 4)</option><option value="sh-return">· take shipped stock back (Phase 4)</option></optgroup>
     </select>
   </label>
@@ -2052,7 +2053,7 @@ function ensureBrandFonts17() {
   const link = document.createElement('link');
   link.id = 'bf17-fonts';
   link.rel = 'stylesheet';
-  link.href = 'https://fonts.googleapis.com/css2?family=Anek+Bangla:wght@400;700&family=Baloo+Da+2:wght@400;700&family=DM+Sans:wght@400;700&family=Fraunces:wght@400;700&family=Galada&family=Inter:wght@700&family=Lora:wght@400;700&family=Noto+Serif+Bengali:wght@400;700&family=Playfair+Display:wght@400;700&family=Plus+Jakarta+Sans:wght@400;700&family=Poppins:wght@400;700&family=Tiro+Bangla&display=swap';
+  link.href = 'https://fonts.googleapis.com/css2?family=Anek+Bangla:wght@400;700&family=Baloo+Da+2:wght@400;700&family=DM+Sans:wght@400;700&family=Fraunces:wght@400;700&family=Galada&family=Hind+Siliguri:wght@400;700&family=Inter:wght@700&family=Lora:wght@400;700&family=Noto+Serif+Bengali:wght@400;700&family=Playfair+Display:wght@400;700&family=Plus+Jakarta+Sans:wght@400;700&family=Poppins:wght@400;700&family=Tiro+Bangla&display=swap';
   document.head.appendChild(link);
 }
 const bfSample17 = (kind, p) => { const x = kind === 'head' ? BF17_HEAD : BF17_BODY; return `<div class="bfsample ${kind === 'head' ? 'h' : 'b'}" style="font-family:${bfFamily17(p)}"><span class="bn">${x[0]}</span><span class="en">${x[1]}</span></div>`; };
@@ -4112,6 +4113,98 @@ SCREENS['brand-switched-off'] = { ...SCREENS['brand-off'], toast: toast23('b23Of
 /* Settings' Brand identity row opens the editor again, no longer the short page. */
 const _settings23 = SCREENS.settings.render;
 SCREENS.settings = { ...SCREENS.settings, render: () => _settings23().replace("go('brand-soon')", "go('brand')") };
+/* ---------- Part 24: design doc v3.13 (2026-10-29), for Slice 11.12b (its read). The dashboard in a shop's identity,
+   switched on (BRN-02, BRN-07), drawn on screens already drawn, in two identities. The main colour makes the primary
+   scale: buttons, the active tab, links, selected chips and focus in it, its tints for the soft fills, and the desktop
+   rail at the depth of Lytro's own rail, so white reads on it at 12:1 or more; the logo for dark backgrounds takes the
+   shop mark's place at the rail's foot once set. The accent makes the accent scale. Only the page behind the cards
+   takes the background: cards, sheets, fields and the phone's top bar stay white. Headings in the heading pair, other
+   text in the body pair, figures in Inter. Corners (fields / buttons and small tiles / cards / sheet tops and dialogs):
+   square 2, 3, 4, 8; soft 6, 8, 10, 16 (Lytro's); round 10, 12, 16, 24; pills stay pills. Spacing changes only the gaps
+   between sections, columns and tiles and a card's padding, by a quarter: compact 12 (columns 18, tiles 9),
+   comfortable 16 (24, 12), airy 20 (30, 15); rows, stat tiles' insides, buttons and fields keep their size. The status colours, the info colour and "Powered by Lytro" never
+   change (BRN-04). ---------- */
+const ID24 = {
+  // The server test's identity: maroon on cream, Noto Serif Bengali + Fraunces headings, round and airy.
+  maroon: { main: '#7a1f2b', accent: '#f2a516', bg: '#fbf7f0', head: 'notoserif_fraunces', body: 'hind_jakarta', corners: 'round', spacing: 'airy', darkLogo: true },
+  // A second, cool one: indigo with coral, Baloo Da 2 + Poppins headings, square and compact, no dark logo yet.
+  indigo: { main: '#3b3fbf', accent: '#ff7a59', bg: '#f3f5fb', head: 'baloo_poppins', body: 'anek_dm', corners: 'square', spacing: 'compact', darkLogo: false },
+};
+/* BRN-03's arithmetic, as `@lytronix/validators` brand-contrast does it: WCAG luminance, a mix toward black or white. */
+const ch24 = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+const lum24 = (hex) => { const [r, g, b] = ch24(hex).map((x) => x / 255).map((x) => (x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4)); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+const ratio24 = (a, b) => { const [x, y] = [lum24(a), lum24(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+const mix24 = (hex, toward, share) => `#${ch24(hex).map((x) => Math.round(x + (toward - x) * share).toString(16).padStart(2, '0')).join('')}`;
+const on24 = (hex) => (ratio24('#ffffff', hex) > ratio24(B23.ink, hex) ? '#ffffff' : B23.ink);
+const shade24 = (hex, passes) => { if (passes(hex)) return hex; for (let s = 1; s <= 100; s += 1) for (const to of [0, 255]) { const c = mix24(hex, to, s / 100); if (passes(c)) return c; } return hex; };
+/* The rail: the main colour taken down to the depth of Lytro's rail (teal-900), or as it is when already deeper. */
+const rail24 = (main) => shade24(main, (c) => lum24(c) <= lum24('#063b38'));
+/* The CSS variables the identity sets on the frame; the roles that read them are re-declared on .frame.themed. */
+function vars24(id) {
+  const rail = rail24(id.main);
+  return {
+    '--teal-50': mix24(id.main, 255, 0.94), '--teal-100': mix24(id.main, 255, 0.88), '--teal-200': mix24(id.main, 255, 0.75),
+    '--teal-500': mix24(id.main, 255, 0.3), '--teal-700': id.main, '--teal-800': mix24(id.main, 0, 0.2), '--teal-900': rail,
+    '--on-primary': on24(id.main), '--primary-text': shade24(id.main, (c) => [id.bg, mix24(id.main, 255, 0.94), mix24(id.main, 255, 0.88)].every((u) => ratio24(c, u) >= 4.5)),
+    '--rail': rail, '--rail-on': mix24(rail, 255, 0.1), '--rail-text': mix24(rail, 255, 0.82),
+    '--mar-100': mix24(id.accent, 255, 0.82), '--mar-300': mix24(id.accent, 255, 0.5), '--mar-500': id.accent,
+    '--mar-700': shade24(id.accent, (c) => ratio24(c, '#ffffff') >= 4.5), '--on-accent': on24(id.accent),
+    '--bg24': id.bg, '--bf-head': bfFamily17(bf17(id.head)), '--bf-body': bfFamily17(bf17(id.body)),
+  };
+}
+(function css24() {
+  const style = document.createElement('style');
+  style.textContent = `
+.frame.themed{--bg:var(--bg24);--primary:var(--teal-700);--primary-hover:var(--teal-800);--primary-soft:var(--teal-50);--accent:var(--mar-500);--accent-text:var(--mar-700);--chrome:var(--rail);--focus:var(--teal-500);font-family:var(--bf-body)}
+.frame.themed :is(h1,h2,h3){font-family:var(--bf-head);font-synthesis:none}
+.frame.themed .num{font-family:'Inter','Noto Sans Bengali',sans-serif}
+.frame.themed a,.frame.themed .lnk{color:var(--primary-text)}
+.frame.themed .rail button{color:var(--rail-text)}
+.frame.themed .rail button.on{background:var(--rail-on);color:#fff}
+.frame.themed .rail .foot .lg24{max-width:56px;color:#fff;font-family:var(--bf-head);font-weight:700;font-size:15px;letter-spacing:-.01em;line-height:1}
+.frame.themed{--r-control:6px;--r-button:8px;--r-card:10px;--r-sheet:16px}
+.frame.cr-square{--r-control:2px;--r-button:3px;--r-card:4px;--r-sheet:8px}
+.frame.cr-round{--r-control:10px;--r-button:12px;--r-card:16px;--r-sheet:24px}
+.frame.themed :is(.btn,.iconbtn,.search,.appbar .ib,.row .lead,.thumb,.mono){border-radius:var(--r-button)}
+.frame.themed :is(.checkbox,.matrix .in){border-radius:var(--r-control)}
+.frame.themed :is(.job .ic,.rail button){border-radius:var(--r-card)}
+.frame.themed{--sp-section:16px;--sp-columns:24px;--sp-tiles:12px;--sp-card:16px}
+.frame.sp-compact{--sp-section:12px;--sp-columns:18px;--sp-tiles:9px;--sp-card:12px}
+.frame.sp-airy{--sp-section:20px;--sp-columns:30px;--sp-tiles:15px;--sp-card:20px}
+.frame.themed .page{gap:var(--sp-section)}
+@container (min-width: 640px){.frame.themed .page{gap:var(--sp-columns)}}
+.frame.themed :is(.banner.info,.notice.info){color:#063b38}
+.frame.themed :is(.banner.warn,.notice.warn){color:var(--warning)}
+.frame.themed .bar i.warn{background:#f2a516}
+.frame.themed .two{gap:var(--sp-columns)}
+.frame.themed [style*="gap:16px"]{gap:var(--sp-section)!important}
+.frame.themed .stats{gap:var(--sp-tiles)}
+.frame.themed :is(.card:not(.flush):not(.row),.plancard){padding:var(--sp-card)}`;
+  document.head.appendChild(style);
+})();
+/* Draws the screen as before, then puts the identity on the frame: its variables, corners and spacing, the fonts
+   loaded, and the dark logo at the rail's foot. */
+const _render24 = render;
+render = function () {
+  const f = document.getElementById('frame');
+  f.removeAttribute('style');
+  _render24();
+  const id = ID24[(SCREENS[ST.screen] || {}).theme24];
+  if (!id) return;
+  ensureBrandFonts17();
+  f.classList.add('themed', `cr-${id.corners}`, `sp-${id.spacing}`);
+  Object.entries(vars24(id)).forEach(([k, v]) => f.style.setProperty(k, v));
+  const mark = f.querySelector('.rail .foot .mono');
+  if (mark && id.darkLogo) mark.outerHTML = '<span class="lg24">megh</span>';
+};
+SCREENS['themed-home'] = { ...SCREENS.home, theme24: 'maroon' };
+SCREENS['themed-products'] = { ...SCREENS.products, theme24: 'maroon' };
+SCREENS['themed-zone-sheet'] = { ...SCREENS['sh-zone-new'], theme24: 'maroon' };
+SCREENS['themed-billing'] = { ...SCREENS.billing, theme24: 'maroon' };
+SCREENS['themed-brand'] = { ...SCREENS.brand, theme24: 'maroon' };
+SCREENS['themed-b-home'] = { ...SCREENS.home, theme24: 'indigo' };
+SCREENS['themed-b-stock'] = { ...SCREENS.stock, theme24: 'indigo' };
+SCREENS['themed-b-zone-delete'] = { ...SCREENS['sh-zone-delete'], theme24: 'indigo' };
 (function init() { const h = location.hash.replace('#', ''); if (h && SCREENS[h]) { ST.screen = h; document.getElementById('selScreen').value = h; } render(); })();
 </script>
 </body>

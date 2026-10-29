@@ -127,12 +127,12 @@ export function BalanceView({ openTopUp }: { openTopUp: boolean }): React.JSX.El
         <Banner tone="info">{t('tuPending', { amount: formatTaka(checking.amount) })}</Banner>
       ) : null}
       {failure}
-      <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[1fr_340px] lg:items-start lg:gap-6">
-        <div className="flex min-w-0 flex-col gap-4">
+      <div className="flex flex-col gap-section lg:grid lg:grid-cols-[1fr_340px] lg:items-start lg:gap-columns">
+        <div className="flex min-w-0 flex-col gap-section">
           {card}
           <Statement payments={payments.data?.pages[0]?.payments ?? []} />
         </div>
-        <div className="flex min-w-0 flex-col gap-4">
+        <div className="flex min-w-0 flex-col gap-section">
           {rates.data ? <RatesCard ref={ratesCard} rates={rates.data} /> : null}
         </div>
       </div>

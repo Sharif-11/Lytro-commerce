@@ -8,9 +8,9 @@ import { UploadTile } from './upload-tile';
 
 /** A 72 px tile (the prototype's `.thumb.lg`). */
 const TILE =
-  'relative flex size-[72px] flex-none items-center justify-center overflow-hidden rounded-[8px] bg-linear-135 from-neutral-100 to-neutral-200 text-neutral-400';
+  'relative flex size-[72px] flex-none items-center justify-center overflow-hidden rounded-button bg-linear-135 from-neutral-100 to-neutral-200 text-neutral-400';
 const ADD =
-  'flex size-[72px] flex-none flex-col items-center justify-center gap-1 rounded-[8px] border border-dashed border-line-strong bg-surface text-[12px] text-primary';
+  'flex size-[72px] flex-none flex-col items-center justify-center gap-1 rounded-button border border-dashed border-line-strong bg-surface text-[12px] text-primary';
 
 /**
  * The photos and the video in Basics (the prototype's `pfPhotos` and `pf-media-states`): the photos in order, then the

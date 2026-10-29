@@ -315,8 +315,8 @@ function BrandPage({ editor }: { editor: BrandEditor }): React.JSX.Element {
     <ShellPage>
       {banner}
       {failure ? <Banner tone="bad">{errorText(failure)}</Banner> : null}
-      <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[1fr_340px] lg:items-start lg:gap-6">
-        <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-section lg:grid lg:grid-cols-[1fr_340px] lg:items-start lg:gap-columns">
+        <div className="flex flex-col gap-section">
           <SwitchCard
             state={state}
             addonEnds={addon ? formatDayMonth(addon.expiresAt) : null}
@@ -372,7 +372,7 @@ function BrandPage({ editor }: { editor: BrandEditor }): React.JSX.Element {
           />
           <p className="text-[14px]">{t('brNever')}</p>
         </div>
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-section">
           <PreviewCard tab={tab} onTab={setTab}>
             <BrandPreview tab={tab} form={form} shopName={tenant.shopName} slug={slug} />
           </PreviewCard>

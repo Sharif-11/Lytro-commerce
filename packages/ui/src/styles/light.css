@@ -17,6 +17,15 @@
   --radius-card: 10px;
   --radius-sheet: 16px;
 
+  /* Slice 11.12b (TENANT-DASHBOARD-DESIGN §7.28): the sizes a shop's identity scales, each named for what it shapes
+     or spaces -- buttons, icon buttons and small tiles between fields and cards; the gaps between sections, between
+     the desktop's columns (and a wide page's sections) and between stat tiles; a card's padding. */
+  --radius-button: 8px;
+  --spacing-section: 16px;
+  --spacing-columns: 24px;
+  --spacing-tiles: 12px;
+  --spacing-card: 16px;
+
   --color-sidebar: #063b38;
   --color-sidebar-alt: #0a4f4b;
   --color-sidebar-line: rgba(255, 255, 255, 0.1);
@@ -25,8 +34,11 @@
   --shadow-lift: 0 1px 2px rgba(16, 32, 31, 0.04), 0 16px 40px -16px rgba(16, 32, 31, 0.18);
 
   /* The roles the shared components use. */
+  --color-page: var(--color-neutral-50);
   --color-chrome: var(--color-brand-900);
   --color-on-chrome: #ffffff;
+  --color-rail-on: var(--color-brand-800);
+  --color-rail-text: #cfe3e0;
   --color-surface: #ffffff;
   --color-surface-alt: var(--color-neutral-100);
   --color-surface-hover: var(--color-brand-50);
@@ -54,8 +66,12 @@
   --color-on-accent: var(--color-ink);
   --color-accent-soft: var(--color-accent-100);
   --color-accent-text: var(--color-accent-700);
-  --color-info: var(--color-brand-700);
-  --color-info-soft: var(--color-brand-100);
+  /* BRN-04: the colours that carry a status's meaning stay Lytro's under a shop's identity, so the info pair, its
+     words and the marigold a warning fills with are fixed here, not drawn from the brand and accent scales. */
+  --color-info: #0e6b66;
+  --color-info-soft: #ddf5f2;
+  --color-info-text: #063b38;
+  --color-warning-fill: #f2a516;
   --color-danger-fill: var(--color-danger);
   --color-on-danger-fill: #ffffff;
   --color-danger-fill-hover: #a9262e;
@@ -65,7 +81,9 @@
   --color-backdrop: color-mix(in oklab, var(--color-ink) 40%, transparent);
   --shadow-dialog: var(--shadow-lift);
 
-  /* Type and size: 16 px controls so phones never zoom, 15 px copy, 14 px labels. */
+  /* Type and size: 16 px controls so phones never zoom, 15 px copy, 14 px labels. The screens' own face, which a
+     shop's identity replaces; figures keep --font-sans. */
+  --font-ui: var(--font-sans);
   --text-ui: 1rem;
   --text-ui--line-height: 1.5;
   --text-copy: 15px;
@@ -81,7 +99,49 @@
 }
 
 body {
-  background-color: var(--color-neutral-50);
+  background-color: var(--color-page);
   color: var(--color-ink);
   font-size: 16px;
+}
+
+/* BRN-02, BRN-07 (Slice 11.12b, TENANT-DASHBOARD-DESIGN §7.28): a shop's identity, while it shows. The shell sets these
+   attributes, and the colour and face variables (apps/dashboard shell/brand-theme.ts); Soft and Comfortable are the
+   sizes above, Lytro's own. Headings take the identity's heading pair; figures keep --font-sans. */
+:root[data-corners='square'] {
+  --radius-control: 2px;
+  --radius-button: 3px;
+  --radius-card: 4px;
+  --radius-sheet: 8px;
+}
+:root[data-corners='round'] {
+  --radius-control: 10px;
+  --radius-button: 12px;
+  --radius-card: 16px;
+  --radius-sheet: 24px;
+}
+:root[data-spacing='compact'] {
+  --spacing-section: 12px;
+  --spacing-columns: 18px;
+  --spacing-tiles: 9px;
+  --spacing-card: 12px;
+}
+:root[data-spacing='airy'] {
+  --spacing-section: 20px;
+  --spacing-columns: 30px;
+  --spacing-tiles: 15px;
+  --spacing-card: 20px;
+}
+:root[data-brand] {
+  font-synthesis: none;
+}
+:root[data-brand] :is(h1, h2, h3) {
+  font-family: var(--font-brand-heading);
+}
+:root[data-brand] .num {
+  font-family: var(--font-sans);
+}
+/* Words in the main colour take its nearest shade that reads at 4.5:1 on the background (BRN-03, the server's
+   mainText); the main colour itself need only reach 3:1 there. */
+:root[data-brand] .text-primary {
+  color: var(--color-primary-text);
 }

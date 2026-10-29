@@ -66,7 +66,7 @@ export function StatRow({
       role="group"
       aria-label={label}
       tabIndex={0}
-      className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-0.5 [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-[repeat(auto-fit,minmax(150px,1fr))] sm:px-0 [&::-webkit-scrollbar]:hidden"
+      className="-mx-4 flex gap-tiles overflow-x-auto px-4 pb-0.5 [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-[repeat(auto-fit,minmax(150px,1fr))] sm:px-0 [&::-webkit-scrollbar]:hidden"
     >
       {children}
     </div>

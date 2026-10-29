@@ -33,6 +33,7 @@ import { drawnLibrary } from './support/variants';
 import { drawnPurchases, drawnSuppliers, otherStates } from './support/purchases';
 import { drawnDelivery, type DeliveryFixture } from './support/delivery';
 import { drawnPasswords, drawnTeam } from './support/team';
+import { indigoBrand, maroonBrand } from './support/themed';
 import { DAY_ONE, mockApi, SLUG, type Language, type ShopState } from './support/mock-api';
 import { mockOnboarding, TWELVE_MONTHS, typeCode, type Journey } from './support/onboarding-api';
 import type { AddonsFixture, UsageFixture } from './support/usage';
@@ -2966,6 +2967,45 @@ const STEPS: Pair[] = [
   },
 ];
 
+/**
+ * Prototype Part 24 (Slice 11.12b): the dashboard in a shop's identity. Each `themed-*` screen is a screen already
+ * paired, drawn again with an identity on, so its pair is that one with the same identity on /me.
+ */
+function themedPairs(paired: Pair[]): Pair[] {
+  const themed = (
+    base: string,
+    name: string,
+    brand: () => BrandFixture,
+    device: Device = 'phone',
+    language: Language = 'bn',
+  ): Pair => {
+    const from = paired.find(
+      (each) => each.name === base && each.device === device && each.language === language,
+    );
+    if (!from) throw new Error(`No ${base} pair on a ${device} in ${language} to theme`);
+    return {
+      ...from,
+      name,
+      screen: name,
+      state: { ...from.state, brand: brand(), brandShows: true },
+    };
+  };
+  return [
+    themed('home', 'themed-home', maroonBrand),
+    themed('home', 'themed-home', maroonBrand, 'desktop', 'en'),
+    themed('products', 'themed-products', maroonBrand),
+    themed('sh-zone-new', 'themed-zone-sheet', maroonBrand),
+    themed('billing', 'themed-billing', maroonBrand),
+    themed('brand', 'themed-brand', maroonBrand),
+    themed('home', 'themed-b-home', indigoBrand),
+    themed('home', 'themed-b-home', indigoBrand, 'desktop', 'en'),
+    themed('stock', 'themed-b-stock', indigoBrand),
+    themed('sh-zone-delete', 'themed-b-zone-delete', indigoBrand),
+  ];
+}
+
+const THEMED = themedPairs([...PAIRS, ...MONEY]);
+
 /** Scrolls a heading to the top of its scrolling page, behind any open sheet. */
 async function scrollTo(within: Locator, heading: RegExp): Promise<void> {
   await within
@@ -2977,7 +3017,7 @@ async function scrollTo(within: Locator, heading: RegExp): Promise<void> {
 }
 
 test.describe('the built shell beside the prototype', () => {
-  for (const pair of [...PAIRS, ...MONEY, ...STEPS]) {
+  for (const pair of [...PAIRS, ...MONEY, ...STEPS, ...THEMED]) {
     test(`${pair.name} on a ${pair.device} in ${pair.language}`, async ({ browser }) => {
       // The pictures set their own sizes, so they are taken once, not in every project.
       test.skip(test.info().project.name !== 'desktop', 'taken once, in the desktop project');

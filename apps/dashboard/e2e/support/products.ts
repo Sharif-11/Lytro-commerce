@@ -54,10 +54,11 @@ export interface ProductFixture {
   history?: Record<string, MovementFixture[]>;
 }
 
-/** An uploaded item: its kind and its bytes. */
+/** An uploaded item: its kind and its bytes, and whether the brand identity shows it (KNOWN-GAPS §97). */
 export interface MediaFixture {
   kind: 'image' | 'video';
   bytes: number;
+  brand?: boolean;
 }
 
 /** The shop's products where they differ from the prototype's, its product limit (null for none), and its tree. */
@@ -468,6 +469,7 @@ export function mediaDetail(fixture: ProductsFixture, id: string): unknown {
       swatches: 0,
       sizeCharts: 0,
       logo: false,
+      brand: item.brand ?? false,
       pastOrders: 0,
     },
   };

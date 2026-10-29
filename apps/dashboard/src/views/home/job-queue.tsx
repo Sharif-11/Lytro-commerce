@@ -24,7 +24,7 @@ function JobRow({ job, slug }: { job: Job; slug: string }): React.JSX.Element {
   const inside = (
     <>
       <span
-        className={`flex size-10 flex-none items-center justify-center rounded-[10px] ${TONES[job.tone]}`}
+        className={`flex size-10 flex-none items-center justify-center rounded-card ${TONES[job.tone]}`}
       >
         <Icon name={job.icon} />
       </span>

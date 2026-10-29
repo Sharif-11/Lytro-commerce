@@ -74,7 +74,7 @@ export function AreaSearchSheet({
 
   return (
     <Sheet open={open} title={t('haSearch')} onClose={onClose}>
-      <label className="flex h-11 items-center gap-2 rounded-[8px] border border-line-strong bg-surface px-3 text-[16px] text-fg-subtle focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-focus">
+      <label className="flex h-11 items-center gap-2 rounded-button border border-line-strong bg-surface px-3 text-[16px] text-fg-subtle focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-focus">
         <Icon name="search" />
         <input
           type="search"

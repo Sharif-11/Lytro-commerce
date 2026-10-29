@@ -13,6 +13,7 @@ import {
   contrastRatio,
   derivedBrandColors,
   featureOn,
+  mixColor,
   nearestShade,
   saveBrandSchema,
   textColorOn,
@@ -97,6 +98,13 @@ describe('the contrast check (BRN-03)', () => {
   it('keeps a colour that passes, and finds no shade when nothing could pass', () => {
     expect(nearestShade('#0E6B66', () => true)).toBe('#0e6b66');
     expect(nearestShade('#0e6b66', () => false)).toBeNull();
+  });
+
+  it('mixes a colour toward black or white, channel by channel, for the shades and tints a theme draws', () => {
+    expect(mixColor('#7a1f2b', 255, 0.94)).toBe('#f7f2f2');
+    expect(mixColor('#7a1f2b', 0, 0.2)).toBe('#621922');
+    expect(mixColor('#7a1f2b', 0, 0)).toBe('#7a1f2b');
+    expect(mixColor('#7a1f2b', 255, 1)).toBe('#ffffff');
   });
 
   it('derives the text on each colour, and the main colour dark enough to be read as body text', () => {

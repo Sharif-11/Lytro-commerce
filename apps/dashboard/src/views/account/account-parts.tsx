@@ -23,7 +23,7 @@ export function LanguageCard(): React.JSX.Element {
     <Card flush>
       <RowList>
         <div className={rowClass}>
-          <span className="flex size-10 flex-none items-center justify-center rounded-[8px] bg-neutral-100 text-fg-muted">
+          <span className="flex size-10 flex-none items-center justify-center rounded-button bg-neutral-100 text-fg-muted">
             <Icon name="globe" />
           </span>
           <span className="min-w-0 flex-1 text-[16px] font-medium">{t('language')}</span>
@@ -51,7 +51,7 @@ export function LanguageCard(): React.JSX.Element {
             signOut.mutate();
           }}
         >
-          <span className="flex size-10 flex-none items-center justify-center rounded-[8px] bg-danger-soft text-danger">
+          <span className="flex size-10 flex-none items-center justify-center rounded-button bg-danger-soft text-danger">
             <Icon name="logout" />
           </span>
           <span className="min-w-0 flex-1 text-[16px] font-medium">{t('signOut')}</span>
@@ -106,7 +106,7 @@ export function MarkTile({
   };
   return (
     <span
-      className={`flex size-10 flex-none items-center justify-center rounded-[8px] ${tones[tone]}`}
+      className={`flex size-10 flex-none items-center justify-center rounded-button ${tones[tone]}`}
     >
       {children}
     </span>

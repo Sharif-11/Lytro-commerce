@@ -1,6 +1,9 @@
 # Tenant dashboard: the full design
 
-Status: v3.12, 2026-10-29 (the brand editor as Slice 11.12a builds it, prototype Part 23: the buttons follow
+Status: v3.13, 2026-10-29 (the dashboard in a shop's identity as Slice 11.12b builds it, prototype Part 24: the
+rail at the depth of Lytro's own with the dark logo at its foot, only the page taking the background, figures kept in
+Inter, the corner and spacing presets' sizes, the status colours unchanged; v3.12 of 2026-10-29: the brand editor as
+Slice 11.12a builds it, prototype Part 23: the buttons follow
 the switch, the contrast check as the server makes it with the nearest passing shade, a colour's sheet, the logos
 set, uploading and refused, a paid shop without the add-on, a plan that includes it, leaving unsaved, and a toast
 for each button; v3.11 of 2026-10-29: Delivery as Slice 11.11 builds it, prototype Part 22: no delivery outside the
@@ -1215,6 +1218,50 @@ earlier brand screens redrawn on the same page):
 
 **The dashboard themed.** With the identity on, the dashboard takes its colours, fonts, corners and spacing through
 the same tokens as the storefront (BRN-07); the status colours, "Powered by Lytro" and the layout never change.
+
+*As Slice 11.12b builds it* (Part 24, v3.13, 2026-10-29, agreed in its read; `themed-home`, `themed-products`,
+`themed-zone-sheet`, `themed-billing`, `themed-brand` in a maroon identity, round and airy, with a dark logo;
+`themed-b-home`, `themed-b-stock`, `themed-b-zone-delete` in an indigo one, square and compact, without):
+
+- **Where.** Every screen inside a shop, the brand editor included. The screens outside a shop (sign-in, create shop,
+  choose a shop, the onboarding frame with "Powered by Lytro") stay Lytro's. The bKash and Nagad panels keep the
+  wallets' own colours.
+- **The main colour** makes the primary scale. Buttons, the active tab, links, selected chips and the focus ring take it;
+  its tints make the soft fills; text in it is its nearest shade that reads at 4.5:1 on the background and on the two
+  palest tints words sit on, a selected item and an avatar (a little more than `mainText`, which reads on the
+  background alone); text, ticks and counts on it are ink or white, whichever reads better (`onMain`). As built, the
+  tints are 94, 88, 75, 55 and 30% of the way to white, and the hover a fifth of the way to black.
+- **The desktop rail** is the main colour taken down to the depth of Lytro's own rail, or left as it is when it is
+  already deeper, so white reads on it at about 12:1. The active hub is that shade lifted a tenth of the way to white;
+  the other hubs' words are 82% of the way. The logo for dark backgrounds takes the shop mark's place at the rail's
+  foot once set, up to 56 by 32 px; until then the mark stays.
+- **The accent** makes the accent scale: the counts on the rail, and the one accent a screen carries. Text in it is its
+  nearest shade that reads at 4.5:1 on white; text on it is ink or white (`onAccent`).
+- **The background** colours only the page behind the cards. Cards, sheets, dialogs, fields and the phone's top bar stay
+  white. It is always light: the status colours must read on it at 4.5:1.
+- **Fonts.** Headings in the heading pair, all other text in the body pair, each with the Latin face first and the
+  Bangla face second. Figures (money, counts) stay in Inter, whose digits are all one width.
+- **Corners**, for fields / buttons and small tiles / cards / sheet tops and dialogs: Square 2, 3, 4, 8 px; Soft 6,
+  8, 10, 16 px (Lytro's); Round 10, 12, 16, 24 px. Pills and circles stay as they are.
+- **Spacing** changes only the gaps and a card's padding, by a quarter. Gaps between sections and inside a column:
+  Compact 12, Comfortable 16, Airy 20 px. Between the desktop's two columns: 18, 24, 30. Between stat tiles: 9, 12, 15.
+  A card's padding: 12, 16, 20. Rows, the insides of stat tiles, buttons and fields keep their size.
+- **Never changes** (BRN-04): the status colours (success, warning, danger) and the info colour that "Being checked"
+  wears, danger buttons, "Powered by Lytro", and the layout.
+- **The browser** (not drawn): while the identity shows, the tab's icon is the square icon once set and the phone
+  browser's bar takes the main colour; switched off, both are Lytro's again.
+- **When it changes.** The tab that saves, applies or switches it changes at once. Other open dashboards change at their
+  next read of the account: on coming back to the tab or the app, or a reload.
+
+Named in the sketch, beyond the read:
+- the buttons-and-small-tiles step (8 px today) between fields and cards;
+- the stat tiles' gap scales while their insides do not;
+- the dark logo sits at the rail's foot, where the shop mark is, not at its top.
+
+Found while building it, and fixed in the sketch: the brand fonts' loader (Part 17) left out Hind Siliguri, so the
+prototype drew that pair's Bangla in a fallback face; the wide page's gap follows the columns' scale (it is 24 px from
+640 px, not 16); banners, notices and a warning bar keep their status colours. Named deviation: the brand editor in a
+shop's identity shows that identity's own colours and logos in its form, where `themed-brand` kept Part 23's sample.
 
 **Content.** The identity's storage, the contrast check, the font list and the switch are Slice 11's brand backend
 (§10); whether the shop may switch it on comes from `GET /addons/mine` (`brandIdentity`).

@@ -154,7 +154,7 @@ export function ProductsView({
               onClick={() => {
                 setFiltering(true);
               }}
-              className="flex size-11 flex-none items-center justify-center rounded-[8px] border border-line-strong bg-surface text-neutral-700 aria-pressed:border-primary aria-pressed:bg-primary-soft aria-pressed:text-primary"
+              className="flex size-11 flex-none items-center justify-center rounded-button border border-line-strong bg-surface text-neutral-700 aria-pressed:border-primary aria-pressed:bg-primary-soft aria-pressed:text-primary"
             >
               <Icon name="filter" />
             </button>

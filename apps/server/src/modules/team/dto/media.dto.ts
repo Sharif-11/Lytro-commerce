@@ -36,6 +36,7 @@ export const mediaDetailSchema = mediaViewSchema.extend({
     swatches: z.number(),
     sizeCharts: z.number(),
     logo: z.boolean(),
+    brand: z.boolean(),
     pastOrders: z.number(),
   }),
 });

@@ -222,8 +222,9 @@ export class MediaService {
   }
 
   /**
-   * MED-09, STO-07: deletes the item -- it leaves every product, category, swatch and logo it showed on, and an image
-   * size chart goes with its image -- so usage drops at once; its stored files go in the deletion job (MED-07).
+   * MED-09, STO-07: deletes the item -- it leaves every product, category, swatch, logo and brand image it showed on,
+   * and an image size chart goes with its image -- so usage drops at once; its stored files go in the deletion job
+   * (MED-07).
    */
   async delete(tenantId: string, id: string, actor: CatalogueActor): Promise<void> {
     const who = await this.activity.resolve(tenantId, actor);
@@ -244,7 +245,8 @@ export class MediaService {
         { type: 'media', id },
         { kind: row.kind, purpose: row.purpose, uses },
       );
-      // CCH-02: what the public pages show changed only when it showed somewhere.
+      // CCH-02: what the public pages show changed only when it showed somewhere. A brand image needs no bump: the
+      // identity's own version is drawn from what it shows (BRN-07), so it moves by itself.
       const shown =
         uses.products + uses.videos + uses.categories + uses.swatches + uses.sizeCharts > 0 ||
         uses.logo;

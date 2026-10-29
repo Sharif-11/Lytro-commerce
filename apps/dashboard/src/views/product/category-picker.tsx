@@ -170,7 +170,7 @@ export function CategoryPicker({
                 onClick={startMaking}
                 className="flex min-h-16 w-full items-center gap-3 px-4 py-3 text-left text-[16px] font-medium text-primary"
               >
-                <span className="flex size-10 flex-none items-center justify-center rounded-[8px] bg-primary-soft">
+                <span className="flex size-10 flex-none items-center justify-center rounded-button bg-primary-soft">
                   <Icon name="plus" />
                 </span>
                 {t('catNew')}

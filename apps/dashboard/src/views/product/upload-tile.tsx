@@ -40,7 +40,7 @@ export function UploadTile({
     return (
       <span
         role="alert"
-        className={`relative flex ${size} flex-col items-center justify-center gap-0.5 overflow-hidden rounded-[8px] border border-danger bg-danger-soft px-1 text-center text-[11px] leading-tight text-danger-text`}
+        className={`relative flex ${size} flex-col items-center justify-center gap-0.5 overflow-hidden rounded-button border border-danger bg-danger-soft px-1 text-center text-[11px] leading-tight text-danger-text`}
       >
         <Icon name="alert" />
         <span>{why}</span>
@@ -60,7 +60,7 @@ export function UploadTile({
   return (
     <span
       role="status"
-      className={`relative flex ${size} flex-col items-center justify-center gap-0.5 overflow-hidden rounded-[8px] bg-neutral-100 px-1 text-center text-[11px] leading-tight text-neutral-700`}
+      className={`relative flex ${size} flex-col items-center justify-center gap-0.5 overflow-hidden rounded-button bg-neutral-100 px-1 text-center text-[11px] leading-tight text-neutral-700`}
     >
       <Icon name={sending ? 'image' : 'refresh'} />
       <span>{sending ? t('upSending', { percent }) : t('upPreparing')}</span>

@@ -594,6 +594,7 @@ describeIfDatabase('deleting media (MED-09, STO-07, LIF-19)', () => {
       swatches: 0,
       sizeCharts: 1,
       logo: true,
+      brand: false,
       pastOrders: 0,
     });
 

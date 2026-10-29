@@ -114,7 +114,7 @@ export function NewCheckView(): React.JSX.Element {
           onClick={() => {
             setPicking(true);
           }}
-          className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-[8px] border border-line-strong bg-surface px-3 text-left text-[16px] text-fg-subtle"
+          className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-button border border-line-strong bg-surface px-3 text-left text-[16px] text-fg-subtle"
         >
           <Icon name="search" />
           {t('pickToCount')}

@@ -278,7 +278,7 @@ export function StockView({
                   }}
                   className="flex min-h-[52px] w-full items-center gap-3 rounded-card border border-line bg-surface px-4 py-3 text-left"
                 >
-                  <span className="flex size-10 flex-none items-center justify-center rounded-[8px] bg-info-soft text-info">
+                  <span className="flex size-10 flex-none items-center justify-center rounded-button bg-info-soft text-info">
                     <Icon name="clock" />
                   </span>
                   <span className="flex min-w-0 flex-1 flex-col gap-0.5">

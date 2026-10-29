@@ -45,7 +45,7 @@ export function DeskHeader({ canSearch, canAdd }: DeskHeaderProps): React.JSX.El
             event.preventDefault();
             void navigate({ to: '/$shop/search', params: { shop: slug }, search: { q: query } });
           }}
-          className="flex h-10 w-80 flex-none items-center gap-2 rounded-[8px] border border-line-strong bg-surface px-3 text-[14px] text-fg-subtle focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-focus"
+          className="flex h-10 w-80 flex-none items-center gap-2 rounded-button border border-line-strong bg-surface px-3 text-[14px] text-fg-subtle focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-focus"
         >
           <Icon name="search" />
           <input
@@ -65,7 +65,7 @@ export function DeskHeader({ canSearch, canAdd }: DeskHeaderProps): React.JSX.El
           type="button"
           aria-label={t('plusTitle')}
           onClick={openPlus}
-          className="relative inline-flex size-10 items-center justify-center rounded-[8px] border border-line text-fg-muted"
+          className="relative inline-flex size-10 items-center justify-center rounded-button border border-line text-fg-muted"
         >
           <Icon name="plus" />
         </button>
@@ -77,14 +77,14 @@ export function DeskHeader({ canSearch, canAdd }: DeskHeaderProps): React.JSX.El
         onClick={() => {
           void i18n.changeLanguage(i18n.language === 'bn' ? 'en' : 'bn');
         }}
-        className="h-10 rounded-[8px] border border-line px-2.5 text-[13px] font-semibold text-fg-muted"
+        className="h-10 rounded-button border border-line px-2.5 text-[13px] font-semibold text-fg-muted"
       >
         {t('langToggle')}
       </button>
       <span
         title={personName ?? undefined}
         aria-hidden="true"
-        className="inline-flex size-9 flex-none items-center justify-center rounded-full bg-brand-100 font-semibold text-brand-800"
+        className="inline-flex size-9 flex-none items-center justify-center rounded-full bg-brand-100 font-semibold text-primary-text"
       >
         {initial ?? <Icon name="user" size={18} />}
       </span>

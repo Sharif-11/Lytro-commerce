@@ -102,7 +102,7 @@ export function ExpiringView({ segment }: { segment: ExpiringSegment }): React.J
               return (
                 <div key={batch.id} className="flex min-h-16 items-center gap-3 px-4 py-3">
                   <span
-                    className={`flex size-10 flex-none items-center justify-center rounded-[8px] ${expired ? 'bg-danger-soft text-danger' : 'bg-warning-soft text-warning'}`}
+                    className={`flex size-10 flex-none items-center justify-center rounded-button ${expired ? 'bg-danger-soft text-danger' : 'bg-warning-soft text-warning'}`}
                   >
                     <Icon name="clock" />
                   </span>

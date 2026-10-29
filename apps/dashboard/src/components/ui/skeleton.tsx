@@ -14,7 +14,7 @@ export function SkeletonRows({ count = 3 }: { count?: number }): React.JSX.Eleme
     >
       {Array.from({ length: count }, (_, index) => (
         <div key={index} className="flex min-h-16 items-center gap-3 px-4 py-3">
-          <span className="size-10 flex-none animate-pulse rounded-[8px] bg-neutral-100" />
+          <span className="size-10 flex-none animate-pulse rounded-button bg-neutral-100" />
           <span className="flex flex-1 flex-col gap-2">
             <span className="h-3.5 w-2/5 animate-pulse rounded-full bg-neutral-100" />
             <span className="h-3 w-1/4 animate-pulse rounded-full bg-neutral-100" />

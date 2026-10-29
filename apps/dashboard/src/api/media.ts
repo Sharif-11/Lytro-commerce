@@ -17,10 +17,15 @@ export function useStorageUsage(options: { enabled?: boolean } = {}) {
   });
 }
 
-/** MED-09: whether anything shows the item still -- a product, a video, a category, a swatch, a size chart, the logo. */
+/**
+ * MED-09: whether anything shows the item still -- a product, a video, a category, a swatch, a size chart, the logo,
+ * the brand identity's images (KNOWN-GAPS §97).
+ */
 export function inUse(uses: MediaUses): boolean {
   return (
-    uses.logo || uses.products + uses.videos + uses.categories + uses.swatches + uses.sizeCharts > 0
+    uses.logo ||
+    uses.brand ||
+    uses.products + uses.videos + uses.categories + uses.swatches + uses.sizeCharts > 0
   );
 }
 

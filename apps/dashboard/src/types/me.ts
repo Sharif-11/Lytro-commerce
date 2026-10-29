@@ -1,4 +1,4 @@
-import type { BrandCorners, BrandSpacing, TenantState } from '@lytronix/validators';
+import type { BrandCorners, BrandFont, BrandSpacing, TenantState } from '@lytronix/validators';
 
 /**
  * Mirrors `MeResponse` in apps/server/src/modules/identity/controllers/me.controller.ts. No shared package
@@ -14,7 +14,7 @@ export interface ImageView {
 
 /** BRN-02: one curated typeface pair, as Google Fonts names its two families. */
 export interface BrandFontPair {
-  id: string;
+  id: BrandFont;
   bangla: string;
   latin: string;
   headingsOnly: boolean;

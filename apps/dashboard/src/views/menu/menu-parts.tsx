@@ -26,7 +26,7 @@ export function MenuRowInner({
     <>
       <span
         className={[
-          'flex size-9 flex-none items-center justify-center rounded-[8px]',
+          'flex size-9 flex-none items-center justify-center rounded-button',
           danger ? 'bg-danger-soft text-danger' : 'bg-info-soft text-info',
         ].join(' ')}
       >

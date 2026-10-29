@@ -1566,6 +1566,29 @@ their backend ships earlier.
   fonts as Part 17 draws them, from Google Fonts; uploads with their progress, nothing saved while one runs, and a
   picture never saved deleted when it is let go of; the trial, no-add-on, plan and lapse states, with the add-on's
   price from `GET /addons`. Found while building it: KNOWN-GAPS §97.
+- **11.12b read agreed 2026-10-29** (8 points; TENANT-DASHBOARD-DESIGN §7.28 "The dashboard themed", prototype Part 24):
+  1. The desktop rail is the main colour taken down to the depth of Lytro's own rail; the logo for dark backgrounds
+     takes the shop mark's place there once set.
+  2. Only the page behind the cards takes the background; cards, sheets, fields and the phone's top bar stay white.
+  3. Headings in the heading pair, other text in the body pair; figures stay in Inter.
+  4. Corners for fields / cards / sheet tops: Square 2, 4, 8 px; Soft 6, 10, 16 (Lytro's); Round 10, 16, 24. Buttons
+     and small tiles take the step between (3, 8, 12; named in the sketch); no pills.
+  5. Compact and Airy change only the gaps between cards and sections and a card's padding, by a quarter; rows,
+     buttons and fields keep 44 px and 16 px text.
+  6. The tab that saves changes at once; other open dashboards at their next read of the account (returning to the
+     tab or the app, or a reload), with no polling.
+  7. While on, the tab's icon is the square icon once set and the phone browser's bar takes the main colour.
+  8. KNOWN-GAPS §97 is fixed here: a media item's uses count the brand identity's dark logo and square icon.
+
+  **Built:** `GET /media/:id`'s uses carry `brand`, and the product editor's clean-up keeps a picture the identity
+  shows (§97). The dashboard wears the identity on `/me` while it shows (`shell/brand-theme.ts`): the main colour's
+  scale with the rail at Lytro's depth, the accent's, the page behind white cards, the heading and body pairs with
+  figures in Inter, the presets as `data-corners` and `data-spacing` on the document (their sizes in `packages/ui`
+  `light.css`), the tab's icon and the browser bar's colour; switched off or on leaving the shop, Lytro's again. Its
+  corners, gaps and fixed colours moved onto roles first, Lytro's look unchanged (proven by every compare pair's
+  picture before and after). Words on a main-colour or accent fill take the text derived for it, and words in the main
+  colour its nearest shade that reads on the page and its pale tints, so a light identity keeps AA. The status
+  colours, the info pair and a warning's marigold are fixed (BRN-04).
 
 
 ### Slice 12: shared storefront and product landing pages

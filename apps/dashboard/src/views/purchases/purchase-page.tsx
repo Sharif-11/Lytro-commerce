@@ -467,7 +467,7 @@ function DeliveryRow({
       className="flex min-h-16 w-full items-center gap-3 px-4 py-3 text-left"
     >
       <span
-        className={`flex size-10 flex-none items-center justify-center rounded-[8px] ${took ? 'bg-success-soft text-success' : 'bg-danger-soft text-danger'}`}
+        className={`flex size-10 flex-none items-center justify-center rounded-button ${took ? 'bg-success-soft text-success' : 'bg-danger-soft text-danger'}`}
       >
         <Icon name={took ? 'check' : 'x'} />
       </span>

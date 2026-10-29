@@ -64,7 +64,7 @@ export function CategoryMenu({
               >
                 <span
                   className={[
-                    'flex size-10 flex-none items-center justify-center rounded-[8px]',
+                    'flex size-10 flex-none items-center justify-center rounded-button',
                     action === 'delete'
                       ? 'bg-danger-soft text-danger-text'
                       : 'bg-neutral-100 text-fg-muted',

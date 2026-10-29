@@ -149,7 +149,7 @@ export function MediaSheet({
                 />
               ))}
               {video ? (
-                <span className="relative flex aspect-square items-center justify-center overflow-hidden rounded-[8px] bg-linear-135 from-neutral-100 to-neutral-200">
+                <span className="relative flex aspect-square items-center justify-center overflow-hidden rounded-button bg-linear-135 from-neutral-100 to-neutral-200">
                   <img src={video.thumbnail} alt="" className="size-full object-cover" />
                   <span className="absolute top-1.5 right-1.5 rounded-full bg-white/90 px-1.5 text-[11px] font-bold">
                     {t('video')}
@@ -166,7 +166,7 @@ export function MediaSheet({
                 <button
                   type="button"
                   onClick={() => photoInput.current?.click()}
-                  className="flex aspect-square flex-col items-center justify-center gap-1 rounded-[8px] border border-dashed border-line-strong bg-surface text-[12px] text-primary"
+                  className="flex aspect-square flex-col items-center justify-center gap-1 rounded-button border border-dashed border-line-strong bg-surface text-[12px] text-primary"
                 >
                   <Icon name="camera" />
                   {t('addPhoto')}
@@ -177,7 +177,7 @@ export function MediaSheet({
         </DndContext>
         {video ? (
           <div className="flex items-center gap-3 rounded-card border border-line p-3">
-            <span className="size-12 flex-none overflow-hidden rounded-[8px] bg-ink">
+            <span className="size-12 flex-none overflow-hidden rounded-button bg-ink">
               <img src={video.thumbnail} alt="" className="size-full object-cover" />
             </span>
             <span className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -270,7 +270,7 @@ function PhotoTile({
         transform: CSS.Transform.toString(sortable.transform),
         transition: sortable.transition,
       }}
-      className={`relative aspect-square touch-manipulation overflow-hidden rounded-[8px] bg-linear-135 from-neutral-100 to-neutral-200 ${sortable.isDragging ? 'z-10 shadow-lg' : ''}`}
+      className={`relative aspect-square touch-manipulation overflow-hidden rounded-button bg-linear-135 from-neutral-100 to-neutral-200 ${sortable.isDragging ? 'z-10 shadow-lg' : ''}`}
     >
       <button
         type="button"

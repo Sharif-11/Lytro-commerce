@@ -5,6 +5,7 @@ import { mockApi, SLUG } from './support/mock-api';
 import { mockOnboarding } from './support/onboarding-api';
 import { drawnPayments } from './support/payments';
 import { servePicturesFrom } from './support/products';
+import { maroonBrand } from './support/themed';
 
 // KNOWN-GAPS §65, Slice 11.13a: the dashboard under its own Content Security Policy, as the console's was checked. The
 // policy is read from deploy/Caddyfile's `(dashboard_csp)` block -- the one definition Caddy serves -- with the
@@ -155,6 +156,32 @@ test.describe('every screen under the policy', () => {
     const { shop } = everyPath();
     expect(shop.length).toBeGreaterThan(25);
     expect(await walk(page, shop, refused)).toEqual([]);
+  });
+
+  test('wears a shop’s identity under it: variables through the CSSOM, the faces’ stylesheet (Slice 11.12b)', async ({
+    page,
+    baseURL,
+  }) => {
+    const refused = await underPolicy(page, baseURL ?? '');
+    // The dark logo comes from the media address, as an uploaded picture does.
+    const brand = maroonBrand();
+    const logo = `${MEDIA}/brand/dark-logo.png`;
+    brand.identity.darkLogo = { id: 'm-dark-logo', urls: { main: logo, thumbnail: logo } };
+    await mockApi(page, { language: 'en', brand, brandShows: true });
+    await page.route('https://fonts.googleapis.com/**', (route) =>
+      route.fulfill({ contentType: 'text/css', body: '' }),
+    );
+    await page.goto(`/${SLUG}`);
+    await page.waitForLoadState('networkidle');
+    const worn = await page.evaluate(() => ({
+      primary: getComputedStyle(document.documentElement)
+        .getPropertyValue('--color-primary')
+        .trim(),
+      corners: document.documentElement.getAttribute('data-corners'),
+      fonts: document.querySelector('link[href^="https://fonts.googleapis.com/"]') !== null,
+    }));
+    expect(worn).toEqual({ primary: '#7a1f2b', corners: 'round', fonts: true });
+    expect(await refused()).toEqual([]);
   });
 
   test('refuses an injected script, a foreign fetch and a foreign image; allows the media, uploads and brand fonts', async ({

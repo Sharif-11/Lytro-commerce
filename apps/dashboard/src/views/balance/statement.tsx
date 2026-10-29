@@ -40,7 +40,7 @@ function Entry({
     <div className="flex min-h-14 items-center gap-3 px-4 py-3">
       <span
         className={[
-          'flex size-10 flex-none items-center justify-center rounded-[8px]',
+          'flex size-10 flex-none items-center justify-center rounded-button',
           credit ? 'bg-success-soft text-success' : 'bg-neutral-100 text-neutral-700',
         ].join(' ')}
       >

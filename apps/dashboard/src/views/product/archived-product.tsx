@@ -86,7 +86,7 @@ export function ArchivedProduct({ product }: { product: ProductDetail }): React.
           </Button>
         </div>
       ) : null}
-      <div className="lg:grid lg:grid-cols-[1fr_340px] lg:items-start lg:gap-6">
+      <div className="lg:grid lg:grid-cols-[1fr_340px] lg:items-start lg:gap-columns">
         <BasicsCard
           picking={false}
           onPicking={() => undefined}

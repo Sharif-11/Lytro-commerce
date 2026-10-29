@@ -99,7 +99,7 @@ export function Stepper({ steps, current }: { steps: number; current: number }):
     <div className="num mb-4 flex items-center gap-1.5 text-[12px] font-bold text-neutral-500">
       {Array.from({ length: steps }, (_, index) => (
         <span key={index} className="contents">
-          <span className={index <= current ? 'text-brand-800' : ''}>{index + 1}</span>
+          <span className={index <= current ? 'text-primary-text' : ''}>{index + 1}</span>
           {index < steps - 1 ? (
             <span
               className={`h-0.5 flex-1 rounded-full ${index < current ? 'bg-brand-700' : 'bg-neutral-200'}`}

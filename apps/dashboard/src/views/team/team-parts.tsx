@@ -67,7 +67,7 @@ export function SeatsCard({ seats }: { seats: SeatUsage }): React.JSX.Element {
       {seats.total === null ? null : (
         <div className="h-2 overflow-hidden rounded-full bg-neutral-100">
           <i
-            className={`block h-full rounded-full ${full ? 'bg-accent' : 'bg-primary'}`}
+            className={`block h-full rounded-full ${full ? 'bg-warning-fill' : 'bg-primary'}`}
             style={{
               width: `${String(Math.min(100, (seats.used / Math.max(1, seats.total)) * 100))}%`,
             }}
@@ -111,7 +111,7 @@ export function PersonRow({
     <>
       <span
         aria-hidden="true"
-        className={`flex size-9 flex-none items-center justify-center rounded-full font-semibold ${member.active ? 'bg-brand-100 text-brand-800' : 'bg-neutral-100 text-fg-muted'}`}
+        className={`flex size-9 flex-none items-center justify-center rounded-full font-semibold ${member.active ? 'bg-brand-100 text-primary-text' : 'bg-neutral-100 text-fg-muted'}`}
       >
         {initialOf(label)}
       </span>

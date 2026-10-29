@@ -43,7 +43,7 @@ export function Segments<T extends string>({
           className={[
             'flex-1 border-l border-line px-2 py-[11px] text-center text-[14px] first:border-l-0',
             choice.value === value
-              ? 'bg-primary font-semibold text-white'
+              ? 'bg-primary font-semibold text-on-primary'
               : 'font-medium text-fg-muted',
           ].join(' ')}
           onClick={() => {

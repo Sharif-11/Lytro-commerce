@@ -101,7 +101,7 @@ export function MetaView(): React.JSX.Element {
             <h3 className="mb-1 text-[17px] font-semibold">{t('adCapi')}</h3>
             {connected && !replacing ? (
               <div className="flex min-h-16 items-center gap-3">
-                <span className="flex size-10 flex-none items-center justify-center rounded-[8px] bg-success-soft text-success">
+                <span className="flex size-10 flex-none items-center justify-center rounded-button bg-success-soft text-success">
                   <Icon name="lock" />
                 </span>
                 <span className="min-w-0 flex-1 overflow-hidden text-[15px] font-medium text-ellipsis whitespace-nowrap">
