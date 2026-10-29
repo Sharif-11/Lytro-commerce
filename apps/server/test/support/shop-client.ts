@@ -60,7 +60,8 @@ export async function openShop(
   prefix = 'shop',
 ): Promise<ShopClient> {
   const phone = texts.freshPhone();
-  const slug = `${prefix}-${randomUUID().replace(/-/g, '').slice(0, 10)}`;
+  // The random part starts with a letter: all digits (about 1 in 110) would read as a "-2"-style suffix.
+  const slug = `${prefix}-s${randomUUID().replace(/-/g, '').slice(0, 9)}`;
   await postJson(port, '/auth/phone/code', { phone }, { host: 'localhost' });
   const entered = await postJson(
     port,
