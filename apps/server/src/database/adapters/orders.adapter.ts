@@ -75,6 +75,14 @@ export class DrizzleOrderStore implements OrderStore {
     return this.orders.findOrder(tx, tenantId, id, lock);
   }
 
+  findByTrackingId(
+    tx: Transaction,
+    tenantId: string,
+    trackingId: string,
+  ): Promise<OrderRecord | null> {
+    return this.orders.findByTrackingId(tx, tenantId, trackingId);
+  }
+
   updateOrder(
     tx: Transaction,
     tenantId: string,

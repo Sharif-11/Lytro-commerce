@@ -49,6 +49,8 @@ const DESCRIPTIONS: Record<PlatformSettingKey, string> = {
     'How far past its bandwidth or API request limit a shop is still served, as a percent of the limit (BND-03, RTE-03).',
   [PlatformSettingKey.FastSpendPercent]:
     "The share of a cycle's API requests that, spent in one hour, alerts the owner and the operator (RTE-12).",
+  [PlatformSettingKey.PublicOrdersPerShopPerMinute]:
+    'How many orders shoppers may place in one shop in a minute, every plan alike (RTE-08).',
 };
 
 // A positive-int check, the only shape any key needs today; slice 7 extends this map, not a switch, as more
@@ -75,6 +77,7 @@ const VALIDATORS: Record<PlatformSettingKey, (value: unknown) => boolean> = {
   [PlatformSettingKey.PublicRequestsPerVisitorPerMinute]: isPositiveInt,
   [PlatformSettingKey.UsageGracePercent]: isPositiveInt,
   [PlatformSettingKey.FastSpendPercent]: isPositiveInt,
+  [PlatformSettingKey.PublicOrdersPerShopPerMinute]: isPositiveInt,
 };
 
 function validate(key: PlatformSettingKey, value: unknown): void {

@@ -1434,6 +1434,32 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'Delivery charge worked out.',
     bn: 'ডেলিভারি চার্জ হিসাব হয়েছে।',
   },
+  TooManyOrders: {
+    en: 'Too many orders in a short time. Wait a minute and try again.',
+    bn: 'অল্প সময়ে অনেক অর্ডার এসেছে। এক মিনিট পর আবার ট্রাই করুন।',
+  },
+  ProductNotOnSale: {
+    en: (p) => `"${String(p.product)}" is not on sale right now.`,
+    bn: (p) => `"${String(p.product)}" এখন বিক্রি হচ্ছে না।`,
+  },
+  ProductNeedsAdvance: {
+    en: (p) =>
+      `"${String(p.product)}" needs an advance payment, which cannot be paid here yet. Contact the shop to order it.`,
+    bn: (p) =>
+      `"${String(p.product)}"-এর জন্য অ্যাডভান্স পেমেন্ট লাগে, যা এখানে এখনো দেওয়া যায় না। অর্ডার করতে শপের সাথে যোগাযোগ করুন।`,
+  },
+  ShopDoesNotDeliverHere: {
+    en: 'This shop does not deliver to this area.',
+    bn: 'এই শপ এই এরিয়াতে ডেলিভারি দেয় না।',
+  },
+  ProductNotDeliveredHere: {
+    en: (p) => `"${String(p.product)}" cannot be delivered to this area.`,
+    bn: (p) => `"${String(p.product)}" এই এরিয়াতে ডেলিভারি হয় না।`,
+  },
+  OrderTracked: {
+    en: 'Order found.',
+    bn: 'অর্ডার পাওয়া গেছে।',
+  },
 };
 
 export function translate(key: MessageKey, lang: Language, params: MessageParams = {}): string {

@@ -116,6 +116,22 @@ export class AdTrackingService {
     return pixel;
   }
 
+  /** LND-16: whether the shop sends its purchases server-side -- a Pixel ID and a Conversions API token both set. */
+  async sendsPurchases(tenantId: string): Promise<boolean> {
+    const view = await this.view(tenantId);
+    return view.metaPixelId !== null && view.conversionsApiConnected;
+  }
+
+  /** LND-16: the Pixel ID and the opened token a purchase is sent with, read as it is sent; null once either is gone. */
+  async purchaseCredentials(tenantId: string): Promise<{ pixelId: string; token: string } | null> {
+    const row = await this.store.run((tx) => this.store.find(tx, tenantId));
+    if (!row?.metaPixelId || !row.metaCapiTokenEnc) return null;
+    return {
+      pixelId: row.metaPixelId,
+      token: this.box.open(row.metaCapiTokenEnc, SecretPurpose.ConversionsApiToken, tenantId),
+    };
+  }
+
   /** LIF-19: the day-60 deletion. */
   async deleteAllForTenant(tenantId: string): Promise<void> {
     await this.store.run((tx) => this.store.delete(tx, tenantId));

@@ -5,10 +5,14 @@ import { AuditService } from '../../audit/services/audit.service';
 import { StaffService } from '../../staff/services/staff.service';
 import type { CatalogueActor } from '../types/catalogue';
 
-/** Who a catalogue change is recorded against, resolved before the change's own transaction opens. */
+/**
+ * Who a change is recorded against, resolved before the change's own transaction opens: a staff member, unless `type`
+ * says it was an API key acting for a shopper (API-21).
+ */
 export interface ResolvedActor {
   id: string | null;
   ip: string | null;
+  type?: ActorType;
 }
 
 /**
@@ -36,7 +40,7 @@ export class CatalogueActivity {
   ): Promise<void> {
     return this.audit.record(tx, {
       tenantId,
-      actorType: ActorType.User,
+      actorType: actor.type ?? ActorType.User,
       actorId: actor.id,
       action,
       ip: actor.ip,

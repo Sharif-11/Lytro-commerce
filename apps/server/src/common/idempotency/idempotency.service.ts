@@ -27,6 +27,11 @@ export function dashboardCaller(userId: string | null): string {
   return userId === null ? 'owner' : `user:${userId}`;
 }
 
+/** D4-8: who sent a public request -- the API key it carried, shared by every shopper of the shop. */
+export function apiKeyCaller(keyId: string): string {
+  return `key:${keyId}`;
+}
+
 /** API-11: the fingerprint of a request's body, so the same key with other data is told apart. */
 export function requestHashOf(body: unknown): string {
   return createHash('sha256')

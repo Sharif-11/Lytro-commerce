@@ -12,7 +12,8 @@ import { RequestQuota } from './request-quota';
 // RTE-06: a visitor's requests a minute to one shop when the operator has set no figure of their own.
 export const DEFAULT_REQUESTS_PER_VISITOR_PER_MINUTE = 120;
 
-function secondsOf(ms: number): number {
+/** Whole seconds until a window frees a place, at least one, as Retry-After and X-RateLimit-Reset say it. */
+export function secondsOf(ms: number): number {
   return Math.max(Math.ceil(ms / SECOND_MS), 1);
 }
 

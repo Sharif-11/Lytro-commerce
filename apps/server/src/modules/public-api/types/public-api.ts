@@ -42,6 +42,10 @@ export interface CreatedApiKeyView extends ApiKeyView {
 export interface AuthenticatedKey {
   id: string;
   tenantId: string;
+  /** API-21: what a write made with it is audited by. */
+  name: string;
+  /** The key Lytro keeps for the shop's storefront, or null for one the shop made. */
+  purpose: ApiKeyPurpose | null;
   websites: string[];
   expiresAt: Date | null;
   revokedAt: Date | null;

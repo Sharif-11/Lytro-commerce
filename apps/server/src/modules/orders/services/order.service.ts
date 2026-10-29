@@ -13,6 +13,7 @@ import {
   OrderPaymentStatus,
   OrderSource,
   OrderStatus,
+  PaymentPolicy,
   ServerFieldProblemCode,
   SHIPPED_FULFILLMENT,
   StatusOverride,
@@ -90,6 +91,42 @@ interface PlannedLine {
   pricing: PricingLine;
   kept: OrderLineRecord | null;
 }
+
+/** What makes one new order, whoever enters it: staff from the dashboard (ORD-01), or a shopper through a key (ORD-02). */
+export interface NewOrderSpec {
+  source: OrderSource;
+  type: FulfilmentType;
+  customerName: string | null;
+  phone: string | null;
+  location: ResolvedZoneView['location'] | null;
+  deliveryAddress: string | null;
+  tableRef: string | null;
+  items: CreateOrderInput['items'];
+  discount: string;
+  /** ORD-06: the delivery charge staff set by hand, or null to work it out. */
+  byHand: string | null;
+  confirmed: boolean;
+  notes: string | null;
+  /** LND-07: what the shopper wrote for the shop. */
+  shopperNote: string | null;
+  /** The staff member who entered it, or null for a shopper's order. */
+  by: string | null;
+  /** Whom the activity entry names (API-21: the key, for a shopper's order), and what else it records. */
+  actor: ResolvedActor;
+  audited: Record<string, unknown>;
+  /** ORD-02: refused what a shopper may not order, rather than warned. */
+  shopper: boolean;
+}
+
+/** A new order as made, for its caller to word, or the reply its idempotency key already holds. */
+export type OrderMade =
+  | { replayed: true; body: unknown }
+  | {
+      replayed: false;
+      order: OrderRecord;
+      lines: OrderLineRecord[];
+      warnings: OrderWarning[];
+    };
 
 /** Where an order goes: the thana, and the zone and rate per kg it was priced with. */
 interface Destination {
@@ -193,109 +230,150 @@ export class OrderService {
         ? await this.pricing.thanaOf(input.locationId)
         : null;
     const who = await this.activity.resolve(tenantId, actor);
+    const byHand = type === FulfilmentType.Delivery && input.deliveryCharge != null;
     return this.store.run(tenantId, async (tx) => {
-      const claimed = await this.idempotency.claimWithin(tx, claim);
-      if (claimed.replay) return { replayed: true, body: claimed.body };
-      const now = new Date();
-      // KNOWN-GAPS §75 and §98's lock order: products and levels, then the customer, then the day's counter.
-      const phone = input.phone ?? null;
-      const customerId =
-        phone !== null ? await this.customers.claimWithin(tx, tenantId, phone) : null;
-      const variants = await this.pricing.variantsWithin(
-        tx,
-        tenantId,
-        input.items.map((item) => item.variantId),
-      );
-      const destination = await this.destinationWithin(tx, tenantId, type, location);
-      const planned = this.plan(
-        input.items.map((item) => ({ item, kept: null })),
-        variants,
-      );
-      const byHand = type === FulfilmentType.Delivery && input.deliveryCharge != null;
-      const price = this.priceOf(type, destination, planned, money(input.discount ?? 0), {
-        byHand: byHand ? money(input.deliveryCharge ?? 0) : null,
-      });
-      const confirmed = input.status === OrderStatus.Confirmed;
-      const made = await this.insertOrder(tx, {
-        tenantId,
+      const made = await this.makeWithin(tx, tenantId, claim, {
         source: OrderSource.Dashboard,
-        fulfilmentType: type,
-        customerId,
+        type,
         customerName: input.customerName ?? null,
-        customerPhone: phone,
-        locationId: destination.location?.id ?? null,
+        phone: input.phone ?? null,
+        location,
         deliveryAddress: input.deliveryAddress ?? null,
         tableRef: input.tableRef ?? null,
-        ...this.zoneColumns(destination),
-        confirmedAt: confirmed ? now : null,
-        confirmedBy: confirmed ? who.id : null,
-        ...totalsOf(price),
-        deliveryChargeByHand: byHand,
+        items: input.items,
+        discount: money(input.discount ?? 0),
+        byHand: byHand ? money(input.deliveryCharge ?? 0) : null,
+        confirmed: input.status === OrderStatus.Confirmed,
         notes: input.notes ?? null,
-        createdBy: who.id,
-        createdAt: now,
-        updatedAt: now,
+        shopperNote: null,
+        by: who.id,
+        actor: who,
+        audited: {},
+        shopper: false,
       });
-      const lines = await this.store.insertLines(
-        tx,
-        tenantId,
-        made.id,
-        this.rowsOf(planned, price),
-      );
-      await this.reservations.reserve(
-        tx,
-        tenantId,
-        { orderId: made.id, awaitingPayment: false, lines: this.holdsOf(lines) },
-        now,
-      );
-      await this.store.insertHistory(tx, tenantId, [
-        {
-          orderId: made.id,
-          field: OrderHistoryField.Created,
-          oldValue: null,
-          newValue: confirmed ? OrderStatus.Confirmed : OrderStatus.Pending,
-          note: null,
-          changedBy: who.id,
-        },
-        ...this.byHandHistory(made.id, planned, who),
-        ...(byHand
-          ? [
-              this.deliveryHistory(
-                made.id,
-                this.workedOut(type, destination, planned, price),
-                price,
-                who,
-              ),
-            ]
-          : []),
-      ]);
-      await this.customers.recountWithin(tx, tenantId, [customerId]);
-      // ORD-04 (D4-4), KNOWN-GAPS §98: the number last, so the day's counter is held only while the order is finished
-      // and other orders of the shop wait on it briefly; a rollback still gives the number back.
-      const day = dhakaDate(now);
-      const order = await this.store.numberOrder(
-        tx,
-        tenantId,
-        made.id,
-        orderNumberOf(day, await this.store.nextNumber(tx, tenantId, day)),
-      );
-      await this.activity.record(
-        tx,
-        tenantId,
-        who,
-        AuditAction.OrderCreated,
-        { type: 'order', id: order.id },
-        { orderNumber: order.orderNumber, items: lines.length, grandTotal: order.grandTotal },
-      );
-      const view = await this.viewWithin(
-        tx,
-        tenantId,
-        order,
-        this.warningsOf(destination, planned, variants),
-      );
+      if (made.replayed) return made;
+      const view = await this.viewWithin(tx, tenantId, made.order, made.warnings);
       await this.idempotency.completeWithin(tx, claim, 201, view);
       return { replayed: false, order: view };
     });
+  }
+
+  /** Runs `work` in one of the shop's transactions, for a caller making an order with `makeWithin` (ORD-02). */
+  inTransaction<T>(tenantId: string, work: (tx: Transaction) => Promise<T>): Promise<T> {
+    return this.store.run(tenantId, work);
+  }
+
+  /**
+   * ORD-01, ORD-02, ORD-07, PRD-07, D4-8: one new order, whoever enters it, in the caller's transaction: its
+   * idempotency key, its customer, its items priced by `priceOrder` and snapshotted, the stock they hold, its history,
+   * the day's number and its activity entry. A shopper's order is refused what staff are only warned of (DLV-06,
+   * DLV-07) and what a shopper may not order (PRD-06, D4-2). The caller words the reply and stores it with the key.
+   */
+  async makeWithin(
+    tx: Transaction,
+    tenantId: string,
+    claim: IdempotencyClaim,
+    spec: NewOrderSpec,
+  ): Promise<OrderMade> {
+    const claimed = await this.idempotency.claimWithin(tx, claim);
+    if (claimed.replay) return { replayed: true, body: claimed.body };
+    const now = new Date();
+    // KNOWN-GAPS §75 and §98's lock order: products and levels, then the customer, then the day's counter.
+    const customerId =
+      spec.phone !== null ? await this.customers.claimWithin(tx, tenantId, spec.phone) : null;
+    const variants = await this.pricing.variantsWithin(
+      tx,
+      tenantId,
+      spec.items.map((item) => item.variantId),
+    );
+    const destination = await this.destinationWithin(tx, tenantId, spec.type, spec.location);
+    const planned = this.plan(
+      spec.items.map((item) => ({ item, kept: null })),
+      variants,
+    );
+    if (spec.shopper) this.refuseForShopper(destination, planned, variants);
+    const price = this.priceOf(spec.type, destination, planned, spec.discount, {
+      byHand: spec.byHand,
+    });
+    const made = await this.insertOrder(tx, {
+      tenantId,
+      source: spec.source,
+      fulfilmentType: spec.type,
+      customerId,
+      customerName: spec.customerName,
+      customerPhone: spec.phone,
+      locationId: destination.location?.id ?? null,
+      deliveryAddress: spec.deliveryAddress,
+      tableRef: spec.tableRef,
+      ...this.zoneColumns(destination),
+      confirmedAt: spec.confirmed ? now : null,
+      confirmedBy: spec.confirmed ? spec.by : null,
+      ...totalsOf(price),
+      deliveryChargeByHand: spec.byHand !== null,
+      notes: spec.notes,
+      shopperNote: spec.shopperNote,
+      createdBy: spec.by,
+      createdAt: now,
+      updatedAt: now,
+    });
+    const lines = await this.store.insertLines(tx, tenantId, made.id, this.rowsOf(planned, price));
+    await this.reservations.reserve(
+      tx,
+      tenantId,
+      { orderId: made.id, awaitingPayment: false, lines: this.holdsOf(lines) },
+      now,
+    );
+    const by = { id: spec.by, ip: spec.actor.ip };
+    await this.store.insertHistory(tx, tenantId, [
+      {
+        orderId: made.id,
+        field: OrderHistoryField.Created,
+        oldValue: null,
+        newValue: spec.confirmed ? OrderStatus.Confirmed : OrderStatus.Pending,
+        note: null,
+        changedBy: spec.by,
+      },
+      ...this.byHandHistory(made.id, planned, by),
+      ...(spec.byHand !== null
+        ? [
+            this.deliveryHistory(
+              made.id,
+              this.workedOut(spec.type, destination, planned, price),
+              price,
+              by,
+            ),
+          ]
+        : []),
+    ]);
+    await this.customers.recountWithin(tx, tenantId, [customerId]);
+    // ORD-04 (D4-4), KNOWN-GAPS §98: the number last, so the day's counter is held only while the order is finished
+    // and other orders of the shop wait on it briefly; a rollback still gives the number back.
+    const day = dhakaDate(now);
+    const order = await this.store.numberOrder(
+      tx,
+      tenantId,
+      made.id,
+      orderNumberOf(day, await this.store.nextNumber(tx, tenantId, day)),
+    );
+    await this.activity.record(
+      tx,
+      tenantId,
+      spec.actor,
+      AuditAction.OrderCreated,
+      { type: 'order', id: order.id },
+      {
+        orderNumber: order.orderNumber,
+        items: lines.length,
+        grandTotal: order.grandTotal,
+        ...spec.audited,
+      },
+    );
+    return {
+      replayed: false,
+      order,
+      lines,
+      warnings: this.warningsOf(destination, planned, variants),
+    };
   }
 
   /** D4-9: what an order would come to, priced as creation prices it, without making it or holding stock. */
@@ -1191,6 +1269,59 @@ export class OrderService {
     return warnings;
   }
 
+  /**
+   * ORD-02, PRD-06, ATR-07, D4-2, DLV-06, DLV-07: what a shopper may not order, refused before anything is held, each
+   * naming its product: one not on sale, one needing an advance (until Phase 5's payments), and an address the shop or
+   * a product does not deliver to -- what staff are only warned of. Stock is checked as it is held, so a sold-out item
+   * is refused there (ATR-07).
+   */
+  private refuseForShopper(
+    destination: Destination,
+    planned: PlannedLine[],
+    variants: Map<string, OrderableVariant>,
+  ): void {
+    for (const line of planned) {
+      const variant = variants.get(line.row.variantId ?? '');
+      if (!variant) continue;
+      const named = { productId: variant.productId, variantId: variant.variantId };
+      const product = { product: variant.productName };
+      if (!variant.active) {
+        throw new ApiError(
+          'conflict',
+          'ProductNotOnSale',
+          { reason: 'product_unavailable', ...named },
+          undefined,
+          product,
+        );
+      }
+      if (variant.paymentPolicy !== PaymentPolicy.None) {
+        throw new ApiError(
+          'conflict',
+          'ProductNeedsAdvance',
+          { reason: 'advance_needed', ...named },
+          undefined,
+          product,
+        );
+      }
+    }
+    const [warning] = this.warningsOf(destination, planned, variants);
+    if (warning?.code === 'zone_no_delivery') {
+      throw new ApiError('conflict', 'ShopDoesNotDeliverHere', {
+        reason: warning.code,
+        zone: warning.zone,
+      });
+    }
+    if (warning?.code === 'product_not_delivered_here') {
+      throw new ApiError(
+        'conflict',
+        'ProductNotDeliveredHere',
+        { reason: warning.code, zone: warning.zone },
+        undefined,
+        { product: warning.productName ?? '' },
+      );
+    }
+  }
+
   /** ORD-14: the order with its items, calls and history, and who made each, in the caller's transaction. */
   private async viewWithin(
     tx: Transaction,
@@ -1257,6 +1388,7 @@ export class OrderService {
       deliveredAt: order.deliveredAt,
       handledAt: order.handledAt,
       notes: order.notes,
+      shopperNote: order.shopperNote,
       createdBy: person(order.createdBy),
       createdAt: order.createdAt,
       updatedAt: order.updatedAt,

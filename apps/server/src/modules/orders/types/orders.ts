@@ -137,6 +137,8 @@ export interface OrderView {
   deliveredAt: Date | null;
   handledAt: Date | null;
   notes: string | null;
+  /** LND-07: what the shopper wrote for the shop as they ordered; staff read it, never change it. */
+  shopperNote: string | null;
   createdBy: OrderPerson | null;
   createdAt: Date;
   updatedAt: Date;
@@ -203,3 +205,60 @@ export interface OrderQuote {
 /** D4-8: an order made, or the reply stored for the same key earlier, replayed. */
 export type OrderCreated =
   { replayed: false; order: OrderView } | { replayed: true; body: unknown };
+
+/** ORD-17, LND-11: an item as the shopper sees it -- what it is and what it came to, never the shop's own figures. */
+export interface ShopperItemView {
+  variantId: string | null;
+  productName: string;
+  /** ATR-09: the values that make the variant (Size: L). */
+  attributes: LineAttributeSnapshot[];
+  quantity: string;
+  stockUnit: StockUnit;
+  unitPrice: string;
+  itemTotal: string;
+}
+
+/** The totals a shopper is shown, in TK. */
+export interface ShopperTotals {
+  subtotal: string;
+  deliveryCharge: string;
+  discount: string;
+  grandTotal: string;
+  /** PRD-08: what is paid on delivery. */
+  codAmount: string;
+}
+
+/**
+ * ORD-02, LND-11, SFT-06: a shopper's order as placed: its number and tracking ID for the confirmation, and the ID of
+ * Meta's `Purchase` event, which the browser sends with the same ID so Meta counts the purchase once (LND-16).
+ */
+export interface PlacedOrderView extends ShopperTotals {
+  orderNumber: string;
+  trackingId: string;
+  status: OrderStatus;
+  createdAt: Date;
+  items: ShopperItemView[];
+  purchaseEventId: string;
+}
+
+/** ORD-17 (agreed 2026-10-30): the steps a shopper is shown; calls, a hold and a review stay the shop's own. */
+export type TrackingStepName = 'placed' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled';
+
+export interface TrackingStep {
+  step: TrackingStepName;
+  at: Date;
+}
+
+/**
+ * ORD-17, SFT-08 (amended 2026-10-30, the storefront sketch's courier line): an order by its tracking ID: its status,
+ * timeline, items and totals, and once it ships its courier and tracking link -- never its customer's address or phone.
+ */
+export interface TrackedOrderView extends ShopperTotals {
+  orderNumber: string;
+  trackingId: string;
+  status: OrderStatus;
+  timeline: TrackingStep[];
+  items: ShopperItemView[];
+  due: string;
+  courier: { name: string | null; trackingCode: string | null; trackingLink: string | null } | null;
+}

@@ -43,6 +43,12 @@ export interface OrderStore {
     id: string,
     lock: boolean,
   ): Promise<OrderRecord | null>;
+  /** ORD-17: the shop's order with this tracking ID. */
+  findByTrackingId(
+    tx: Transaction,
+    tenantId: string,
+    trackingId: string,
+  ): Promise<OrderRecord | null>;
   updateOrder(
     tx: Transaction,
     tenantId: string,
