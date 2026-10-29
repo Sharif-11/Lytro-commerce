@@ -227,6 +227,15 @@ for `active`) with zero infrastructure work on this platform's side per tenant.
 `apps/server/assets/fonts` (TEN-17), found three folders above `dist/modules/shop-app`. The server's image carries
 `apps/server/assets` beside `dist`.
 
+**The storefront** (Phase 3 Slice 12a): its container needs `SERVER_URL` (the server inside the deployment),
+`PLATFORM_DOMAIN`, `TRUSTED_EDGE_SECRET` (the edge's, so the server trusts the shopper's address the storefront passes
+on), `CLIENT_IP_HEADER` (the header the edge puts the shopper's address in, as the server's) and `STOREFRONT_SECRET`.
+That last one is a second long random value (at least 32 characters) set on the server and the storefront only, never
+on Caddy: it is what lets the storefront's server read a shop's storefront key from
+`/api/v1/internal/storefront/context`, so no request through the edge can. The server refuses to start in production
+without it. The storefront calls the public API at the server's address with `Host: api.<PLATFORM_DOMAIN>`, so it
+needs no route through Caddy. `apps/storefront/.env.example` lists them.
+
 **The credential sealing key** (Phase 3 Slice 9b): set `DATA_ENCRYPTION_KEY` (32 random bytes, base64) on the server
 from a secrets manager, never from a committed file; the server refuses to start in production without it. Its
 rotation is RUNBOOKS §3.

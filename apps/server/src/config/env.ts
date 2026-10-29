@@ -123,6 +123,14 @@ const envWithEdgeRule = envSchema.superRefine((value, ctx) => {
       message: 'required in production; at least 32 characters',
     });
   }
+  // Slice 12a: unset, the route that hands out each shop's storefront key is open, which only development may allow.
+  if (value.NODE_ENV === 'production' && !value.STOREFRONT_SECRET) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['STOREFRONT_SECRET'],
+      message: 'required in production; at least 32 characters',
+    });
+  }
   if (value.GOOGLE_SIGN_IN_ENABLED && (!value.GOOGLE_CLIENT_ID || !value.GOOGLE_CLIENT_SECRET)) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,

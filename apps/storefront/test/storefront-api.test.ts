@@ -16,7 +16,12 @@ const shop: StorefrontShopContext = {
   key: 'lytro_pk_abc',
   origin: 'https://megh.lytro.app',
 };
-const shopper = { host: 'megh.lytro.app', ip: '103.10.20.30', language: 'bn' as const };
+// The edge's header as it reached the storefront: the server picks the shopper from it by its own hop rule.
+const shopper = {
+  host: 'megh.lytro.app',
+  clientAddress: '103.10.20.30, 172.70.1.2',
+  language: 'bn' as const,
+};
 
 /** Records every call and answers each from the list given, in order. */
 function server(...answers: ServerAnswer<unknown>[]) {
@@ -47,7 +52,7 @@ describe('StorefrontApi', () => {
       host: 'api.lytro.app',
       headers: {
         'x-lytronix-edge-secret': 'edge-secret',
-        'cf-connecting-ip': '103.10.20.30',
+        'cf-connecting-ip': '103.10.20.30, 172.70.1.2',
         authorization: 'Bearer lytro_pk_abc',
         origin: 'https://megh.lytro.app',
         'accept-language': 'bn',

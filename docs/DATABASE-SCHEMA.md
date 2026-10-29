@@ -276,7 +276,8 @@ CREATE TABLE tenant.shop_settings (
     default_payment_policy          tenant.payment_policy NOT NULL DEFAULT 'none',  -- PRD-08 shop default
     default_advance_amount          numeric(10,2) CHECK (default_advance_amount >= 0),
     logo_media_id                   uuid,            -- TEN-16: a ready image of the shop's; null shows its monogram
-    link_shared_at                  timestamptz      -- SUP-01 (0077): when a shop or product link was first shared
+    link_shared_at                  timestamptz,     -- SUP-01 (0077): when a shop or product link was first shared
+    storefront_enabled              boolean NOT NULL DEFAULT true    -- SFT-16 (0084): off, the storefront's pages answer not-found
 );
 -- PRD-08's two columns were built in Phase 3 Slice 1c (0053), with the products' own rule as a check: a partial
 -- advance needs its amount, and no other policy takes one. The logo (Slice 6a, 0065) is cleared when its image is
@@ -1619,6 +1620,12 @@ CREATE TABLE tenant.balance_ledger (
 - The plan limit `requests_monthly` is seeded on every plan from 2.1 and filled into each shop's snapshot from its
   plan. `requests_per_minute_public` was too, until migration 0070 removed it from every plan, snapshot and
   override (KNOWN-GAPS §82); a plan's earlier versions and past invoices keep it as the record of what was sold.
+- **The storefront's key** (Phase 3 Slice 12a, migration 0084): the shared storefront calls the public API like any
+  website, with a public key of the shop's own, so its pages are counted and limited as the shop's (SFT-11, SFT-15).
+  That key is made the first time the storefront serves the shop, named "Lytro storefront", its website the shop's
+  own address. Unlike a shop's keys, its value is kept, sealed with the data key (SEC-10), because the storefront's
+  server must present it on every page; it is never shown to anyone. One live one a shop (a partial unique index),
+  not counted in the [20], and never changed or revoked from the dashboard.
 
 ```sql
 CREATE TYPE control.api_key_type AS ENUM ('public');      -- 'secret' arrives in Phase 8
@@ -1636,10 +1643,16 @@ CREATE TABLE control.api_keys (                           -- API-01 to API-05, A
     created_at      timestamptz NOT NULL DEFAULT now(),
     last_used_at    timestamptz,                          -- written at most once a minute
     revoked_at      timestamptz,
-    revoked_by      uuid
+    revoked_by      uuid,
+    purpose         text,                                 -- 0084: 'storefront' for the key Lytro keeps for the storefront
+    sealed_value    bytea,                                -- 0084: that key's value, sealed (SEC-10), so the storefront can use it
+    CONSTRAINT api_keys_purpose_check CHECK ((purpose IS NULL OR purpose IN ('storefront'))
+        AND (purpose IS NULL) = (sealed_value IS NULL))
 );
 CREATE INDEX ON control.api_keys (tenant_id, created_at);
 CREATE INDEX ON control.api_keys USING gin (websites) WHERE revoked_at IS NULL;   -- API-23 preflight
+CREATE UNIQUE INDEX api_keys_storefront_idx ON control.api_keys (tenant_id)
+    WHERE purpose = 'storefront' AND revoked_at IS NULL;                         -- one live storefront key a shop
 
 CREATE TABLE control.api_usage (                          -- RTE-03 (built in Slice 8)
     tenant_id       uuid NOT NULL REFERENCES control.tenants(id),

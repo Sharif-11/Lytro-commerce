@@ -155,7 +155,9 @@ export interface DeliveryEstimate {
 /** One shopper's request: the host they asked for, their address and language, carried onto every call. */
 export interface ShopperRequest {
   host: string;
-  ip: string | null;
+  /** The edge's client-address header as it reached the storefront, whole: the server picks the shopper from it by
+      its own rule (CLIENT_IP_FORMAT, TRUSTED_PROXY_HOPS), as for a request the edge sent it directly. */
+  clientAddress: string | null;
   language: Language;
 }
 
@@ -318,7 +320,7 @@ export class StorefrontApi {
     const headers: Record<string, string> = {};
     if (!this.env.edgeSecret) return headers;
     headers['x-lytronix-edge-secret'] = this.env.edgeSecret;
-    if (shopper.ip) headers[this.env.clientIpHeader] = shopper.ip;
+    if (shopper.clientAddress) headers[this.env.clientIpHeader] = shopper.clientAddress;
     return headers;
   }
 

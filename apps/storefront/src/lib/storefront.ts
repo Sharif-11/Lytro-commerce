@@ -24,7 +24,7 @@ export class ShopperRequests {
     const [incoming, jar] = await Promise.all([headers(), cookies()]);
     return {
       host: ShopperRequests.hostOf(incoming.get('host')),
-      ip: ShopperRequests.firstAddress(incoming.get(this.settings.clientIpHeader)),
+      clientAddress: ShopperRequests.blankToNull(incoming.get(this.settings.clientIpHeader)),
       language: parseLanguage(jar.get(LANGUAGE_COOKIE)?.value),
     };
   }
@@ -33,10 +33,9 @@ export class ShopperRequests {
     return (value ?? '').trim().toLowerCase().replace(/:\d+$/, '');
   }
 
-  /** The first address of a forwarded list: the shopper's own, as the edge set it. */
-  static firstAddress(value: string | null): string | null {
-    const first = value?.split(',')[0]?.trim();
-    return first && first.length > 0 ? first : null;
+  static blankToNull(value: string | null): string | null {
+    const trimmed = value?.trim();
+    return trimmed && trimmed.length > 0 ? trimmed : null;
   }
 }
 

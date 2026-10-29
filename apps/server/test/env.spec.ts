@@ -35,9 +35,25 @@ describe('loadEnv platform settings', () => {
       ...BASE,
       NODE_ENV: 'production',
       TRUSTED_EDGE_SECRET: SECRET,
+      STOREFRONT_SECRET: SECRET,
       DATA_ENCRYPTION_KEY: DATA_KEY,
     });
     expect(env.TRUSTED_EDGE_SECRET).toBe(SECRET);
+  });
+
+  it("refuses production without the storefront's secret, which guards every shop's storefront key (Slice 12a)", () => {
+    expect(() =>
+      new EnvironmentParser().parse({
+        ...BASE,
+        NODE_ENV: 'production',
+        TRUSTED_EDGE_SECRET: SECRET,
+        DATA_ENCRYPTION_KEY: DATA_KEY,
+      }),
+    ).toThrow(/STOREFRONT_SECRET/);
+    expect(() =>
+      new EnvironmentParser().parse({ ...BASE, STOREFRONT_SECRET: 'too-short' }),
+    ).toThrow(/STOREFRONT_SECRET/);
+    expect(new EnvironmentParser().parse(BASE).STOREFRONT_SECRET).toBeUndefined();
   });
 
   it('refuses to start without the one-time code secret (AUTH-05)', () => {

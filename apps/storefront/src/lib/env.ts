@@ -12,7 +12,7 @@ export class StorefrontEnvironment {
   readonly edgeSecret: string | undefined;
   /** Slice 12: the secret only the storefront's server holds, to read which shop a host serves. */
   readonly storefrontSecret: string | undefined;
-  /** D14: the header the edge sets with the shopper's address, read from each request and passed on. */
+  /** D14: the header the edge sets with the shopper's address, read from each request and passed on as it came. */
   readonly clientIpHeader: string;
 
   constructor(env: Readonly<Record<string, string | undefined>> = process.env) {
