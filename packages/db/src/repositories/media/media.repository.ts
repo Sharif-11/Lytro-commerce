@@ -1,7 +1,20 @@
-import { and, asc, count, countDistinct, desc, eq, inArray, isNull, lt, sql } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  count,
+  countDistinct,
+  desc,
+  eq,
+  inArray,
+  isNull,
+  lt,
+  or,
+  sql,
+} from 'drizzle-orm';
 import { MediaStatus, type MediaKind, type MediaPurpose } from '@lytronix/validators';
 import {
   attributeOptions,
+  brandIdentities,
   categories,
   media,
   mediaObjects,
@@ -58,6 +71,8 @@ export interface MediaUses {
   logo: boolean;
   /** ORD-46, ORD-47: past orders whose items show it; they keep their other details when it goes. */
   pastOrders: number;
+  /** BRN-02: the brand identity shows it, as its logo for dark backgrounds or its square icon (KNOWN-GAPS §97). */
+  brand: boolean;
 }
 
 /** STO-01, STO-09: what an item takes from the shop's storage, every file of it, and a video's length. */
@@ -268,7 +283,7 @@ export class MediaRepository {
     await this.transactions.setTenantContext(tx, tenantId);
     const counted = async (query: Promise<{ n: number }[]>): Promise<number> =>
       (await query)[0]?.n ?? 0;
-    const [photos, videos, cats, swatches, charts, logos, pastOrders] = await Promise.all([
+    const [photos, videos, cats, swatches, charts, logos, pastOrders, brands] = await Promise.all([
       counted(
         tx
           .select({ n: count() })
@@ -313,6 +328,17 @@ export class MediaRepository {
           .from(orderLines)
           .where(and(eq(orderLines.tenantId, tenantId), eq(orderLines.thumbnailMediaId, id))),
       ),
+      counted(
+        tx
+          .select({ n: count() })
+          .from(brandIdentities)
+          .where(
+            and(
+              eq(brandIdentities.tenantId, tenantId),
+              or(eq(brandIdentities.darkLogoMediaId, id), eq(brandIdentities.iconMediaId, id)),
+            ),
+          ),
+      ),
     ]);
     return {
       products: photos,
@@ -322,6 +348,7 @@ export class MediaRepository {
       sizeCharts: charts,
       logo: logos > 0,
       pastOrders,
+      brand: brands > 0,
     };
   }
 

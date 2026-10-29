@@ -1864,7 +1864,7 @@ their name, using up their trial (AUTH-09).
 **Fixed:** those routes refuse a staff sign-in with `forbidden` (`OwnAccountNeedsOwnSignIn`); a staff member's
 password stays on `POST /auth/staff/password`. The person's own sign-in is unchanged, also on an employer's page.
 
-## 97. `MED-09`, `BRN-02`: a media item's uses leave out the brand identity's images — found 2026-10-29, open
+## 97. `MED-09`, `BRN-02`: a media item's uses leave out the brand identity's images — found 2026-10-29, fixed 2026-10-29
 
 Found while building Slice 11.12a. MED-09's uses of a media item (`MediaRepository.usesOf`) count product photos,
 videos, categories, swatches, size charts and the shop logo, but not the brand identity's logo for dark backgrounds or
@@ -1876,6 +1876,11 @@ cleared on delete): its storefront and dashboard fall back to the monogram, and 
 **Not fixed in 11.12a,** which was agreed without server changes; the editor itself deletes only pictures it uploaded
 and never saved. The fix is small: `usesOf` counts `brand_identities` too, `MediaUses` gains `brand`, and the
 dashboard's `inUse` reads it.
+
+**Fixed** in Slice 11.12b (agreed in its read, 2026-10-29): `GET /media/:id`'s `uses` carries `brand`, true while the
+identity shows the item as its dark logo or square icon, whether or not it is switched on. The dashboard's clean-up keeps
+such an item. Deleting one on purpose still clears it from the identity, as before. The catalogue version is not bumped
+for it, since the identity's own version moves with what it shows (BRN-07).
 
 ## 98. `ORD-04`: 50 orders at once in one shop timed out — found and fixed 2026-10-29
 

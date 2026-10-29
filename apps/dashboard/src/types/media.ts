@@ -38,6 +38,8 @@ export interface MediaUses {
   swatches: number;
   sizeCharts: number;
   logo: boolean;
+  /** The brand identity's logo for dark backgrounds or its square icon (KNOWN-GAPS §97). */
+  brand: boolean;
   pastOrders: number;
 }
 

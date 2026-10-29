@@ -134,6 +134,21 @@ test('removing a photo deletes it once nothing else shows it, and keeps one a co
   await expect.poll(() => deleted(log)).toEqual(['m-3']);
 });
 
+test('removing a photo keeps one the brand identity shows (KNOWN-GAPS §97)', async ({ page }) => {
+  const products = drawnProducts();
+  products.media = { 'm-2': { kind: 'image', bytes: 820_000, brand: true } };
+  const log = await open(page, 'p-1', { products });
+  await main(page).getByRole('button', { name: 'Photo 1' }).click();
+  // Photo 2, then the photo that takes its place: the clean-up asks about m-2 before m-3, one at a time.
+  await sheet(page).getByRole('button', { name: 'Remove photo 2', exact: true }).click();
+  await sheet(page).getByRole('button', { name: 'Remove photo 2', exact: true }).click();
+  await sheet(page).getByRole('button', { name: 'Done' }).click();
+  await save(page).click();
+  await expect(toast(page)).toBeVisible();
+  expect(sentBodies(log, 'PUT', '/products/p-1/images')).toEqual([{ mediaIds: ['m-1'] }]);
+  await expect.poll(() => deleted(log)).toEqual(['m-3']);
+});
+
 test('adds a video, shown with its length and size, and Remove takes it off', async ({ page }) => {
   const log = await open(page, 'p-1');
   await stripInput(page, 'video').setInputFiles(file('clip.mp4', 'video/mp4', 3 * MB));

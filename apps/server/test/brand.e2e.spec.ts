@@ -325,6 +325,26 @@ describeIfDatabase("a shop's own brand identity (BRN-01 to BRN-07)", () => {
     });
   });
 
+  it("names the identity among an image's uses, so nothing takes one it shows for unused (KNOWN-GAPS §97)", async () => {
+    const shop = await openShop(port, texts, 'brand-uses');
+    const icon = await upload(shop, await picture(600, 600));
+    const darkLogo = await upload(shop, await picture(400, 120, 255, 255, 255));
+    const loose = await upload(shop, await picture(400, 120));
+    const saved = await shop.put('/brand', { ...MAROON, iconId: icon, darkLogoId: darkLogo });
+    expect(saved.status, JSON.stringify(saved.body)).toBe(200);
+
+    const usesOf = async (id: string) =>
+      ((await shop.get(`/media/${id}`)).body as { uses: Record<string, unknown> }).uses;
+    expect(await usesOf(icon)).toMatchObject({ brand: true, logo: false });
+    expect(await usesOf(darkLogo)).toMatchObject({ brand: true, logo: false });
+    expect(await usesOf(loose)).toMatchObject({ brand: false, logo: false });
+
+    // Let go of by the identity, it shows nowhere.
+    expect((await shop.put('/brand', { ...MAROON, darkLogoId: darkLogo })).status).toBe(200);
+    expect(await usesOf(icon)).toMatchObject({ brand: false });
+    expect(await usesOf(darkLogo)).toMatchObject({ brand: true });
+  });
+
   it('never sets body text in a typeface for headings only, and only settings managers edit it', async () => {
     const shop = await openShop(port, texts, 'brand-rules');
     const display = await shop.put('/brand', { ...MAROON, bodyFont: 'galada_playfair_display' });
