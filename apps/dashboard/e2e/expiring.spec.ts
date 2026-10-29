@@ -78,7 +78,8 @@ test('nothing expiring, or nothing expired, says so', async ({ page }) => {
 });
 
 test("the Stock page's figures open Stock value and Expiring", async ({ page }) => {
-  await open(page, '/stock', { products: stockShop() });
+  // A shop that keeps batches: one that keeps none has no Expiring figure (Part 26).
+  await open(page, '/stock');
   const figures = main(page).getByRole('group', { name: 'Stock figures' });
   await figures.getByRole('link', { name: /^Stock value/ }).click();
   await expect(page).toHaveURL(`/${SLUG}/stock/value`);
