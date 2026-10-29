@@ -1549,6 +1549,23 @@ their backend ships earlier.
   `stockUnit`, `avgCost` for managers and the products' splits), an expired one written off with its loss at average
   cost; Expired alone on its own segment. Stock value and losses: the stock on hand at average cost in its units, by
   category, and this month's losses by reason, for `inventory:manage` only. The Stock page's figures open them.
+- **11.12 split, and 11.12a's read agreed 2026-10-29** (TENANT-DASHBOARD-DESIGN §7.28, prototype Parts 17 and 23). The
+  brand editor (11.12a) goes now, beside 11.10 and 11.11: it needs only the brand backend (11.2). The themed dashboard
+  (11.12b) waits for 11.10 and 11.11, since it changes the corners and spacing of every screen.
+  1. The preview is drawn from the tokens: a storefront, a landing page and the dashboard in the page's colours, fonts,
+     corners and spacing, not the real components.
+  2. The dark logo and the square icon upload as the shop logo does. The icon is checked before it is sent (square, at
+     least 512 px: `brandIconFits` in `@lytronix/validators`, which the server checks with too).
+  3. Changes stay on the page until Save or Apply, as the server keeps no draft; leaving with any unsaved asks first.
+  4. The only way in is Settings, Brand identity. The add-on row's Set up and the trial banner's line are not built.
+
+  **Built:** the editor at `/settings/brand`, replacing the short page. The buttons follow the switch: one Save while
+  on; Apply and Save without switching on while off; turning the switch on is Apply and turning it off is at once. The
+  contrast check runs in the browser with the server's own function; a failing pair shows what it needs and Use for
+  the nearest passing shade (`BRAND_PAIR_COLOR`, in validators, names the colour that answers). A colour's sheet; the
+  fonts as Part 17 draws them, from Google Fonts; uploads with their progress, nothing saved while one runs, and a
+  picture never saved deleted when it is let go of; the trial, no-add-on, plan and lapse states, with the add-on's
+  price from `GET /addons`. Found while building it: KNOWN-GAPS §97.
 
 
 ### Slice 12: shared storefront and product landing pages

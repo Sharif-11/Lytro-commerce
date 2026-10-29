@@ -20,6 +20,18 @@ export const CONTRAST_LARGE = 3;
 // How far a suggested shade is moved toward black or white at each step.
 const SHADE_STEP = 0.01;
 
+/**
+ * BRN-03: the colour that answers for each pair -- the one a failing pair's suggestion changes, and the one whose field
+ * a refusal names. The main colour answers for its pair with the background too; the background for the status colours.
+ */
+export const BRAND_PAIR_COLOR: Readonly<Record<BrandPair, keyof BrandColors>> = {
+  [BrandPair.TextOnMain]: 'mainColor',
+  [BrandPair.MainOnBackground]: 'mainColor',
+  [BrandPair.TextOnAccent]: 'accentColor',
+  [BrandPair.TextOnBackground]: 'backgroundColor',
+  [BrandPair.StatusOnBackground]: 'backgroundColor',
+};
+
 /** BRN-03: one checked pair, its ratio (rounded down, so a failing pair never shows the ratio it needs). */
 export interface BrandContrastPair {
   pair: BrandPair;
