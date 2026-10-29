@@ -72,7 +72,7 @@ export default async function SearchPage({ searchParams }: Props) {
     );
   }
   return (
-    <Frame language={words.language}>
+    <Frame language={words.language} brand={page.info.brand}>
       <div className="shell">
         <SearchPanel
           key={q ?? ''}

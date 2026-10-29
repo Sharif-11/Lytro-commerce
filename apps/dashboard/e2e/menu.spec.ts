@@ -103,20 +103,20 @@ test.describe('installing the app (TEN-17)', () => {
 
   test('the browser’s offer shows the card, and Install opens its dialog', async ({ page }) => {
     await open(page);
-    await expect(main(page).getByText('মেঘ ফ্যাশন ফোনে ইনস্টল করুন')).toHaveCount(0);
+    await expect(main(page).getByText('মেঘ ফ্যাশন Admin ফোনে ইনস্টল করুন')).toHaveCount(0);
     await offerInstall(page);
-    await expect(main(page).getByText('মেঘ ফ্যাশন ফোনে ইনস্টল করুন')).toBeVisible();
+    await expect(main(page).getByText('মেঘ ফ্যাশন Admin ফোনে ইনস্টল করুন')).toBeVisible();
     await expectAccessible(page);
     await main(page).getByRole('button', { name: 'ইনস্টল' }).click();
     await expect(page.locator('body')).toHaveAttribute('data-prompted', 'yes');
     // The offer is spent: the card goes.
-    await expect(main(page).getByText('মেঘ ফ্যাশন ফোনে ইনস্টল করুন')).toHaveCount(0);
+    await expect(main(page).getByText('মেঘ ফ্যাশন Admin ফোনে ইনস্টল করুন')).toHaveCount(0);
   });
 
   test('on an iPhone, which offers no install, the card says how', async ({ page }) => {
     await onAnIphone(page);
     await open(page);
-    await expect(main(page).getByText('মেঘ ফ্যাশন আইফোনের হোম স্ক্রিনে রাখুন')).toBeVisible();
+    await expect(main(page).getByText('মেঘ ফ্যাশন Admin আইফোনের হোম স্ক্রিনে রাখুন')).toBeVisible();
     await expect(main(page).getByText(/Share-এ ট্যাপ করে Add to Home Screen/)).toBeVisible();
     await expect(main(page).getByRole('button', { name: 'ইনস্টল' })).toHaveCount(0);
   });

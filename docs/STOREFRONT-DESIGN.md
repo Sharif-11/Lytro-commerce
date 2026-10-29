@@ -1,6 +1,10 @@
 # Shopper storefront: design
 
-Status: v1.1, 2026-10-29 (Slice 12b's read: the home hero and trust strip from the shop's own data, Bestsellers and
+Status: v1.2, 2026-10-30 (Slice 12c's read: the storefront installs as the shop's own app under its plain name and
+icon, the dashboard's app marked "Admin" instead; the install card waits for a first order (Phase 4); network first,
+with the app and the last pages viewed kept for when the phone is offline, and "You're offline" for a page it never
+saved; a shop's identity drawn from its tokens by the dashboard's rules, with the dashboard's two example shops; the
+app's icons and the tab's icon from the brand's square icon). v1.1 of 2026-10-29 (Slice 12b's read: the home hero and trust strip from the shop's own data, Bestsellers and
 the wallet marks drawn for later phases; product counts, "In stock only" and the Featured order on a category; the New
 arrivals page; search on submit; swatches and a [14]-day "New" tag on cards; "You may also like" from the same
 category; the cart re-checked against the shop each time it opens, and Checkout off until Phase 4). v1 of 2026-10-21:
@@ -43,13 +47,20 @@ and how to pay (cash on delivery, or the advance the product needs). Everything 
    কার্ট, ডেলিভারি চার্জ, ক্যাশ অন ডেলিভারি, স্টকে আছে.
 7. **Offline is a page, not an error.** A lapsed or suspended shop shows "Back soon" with its own name
    (SFT-12); a switched-off storefront is not-found (SFT-16); a gone product is a branded 404 (LND-03).
-8. **Installable, and worth installing.** The storefront is a PWA named after the shop, offered after a
-   first order rather than on arrival (SFT-14, CCH-10).
+8. **Installable, and worth installing.** The storefront is a PWA under the shop's plain name and icon (its
+   dashboard's app is the one marked "Admin", TEN-17), offered after a first order rather than on arrival (SFT-14,
+   CCH-10): until Phase 4 brings orders, only the browser's own Install or Add to Home Screen offers it.
 
 **Look.** Lytro's default identity: white, ink text, teal-700 for the one accent, Inter and Noto Sans
-Bengali for text, Plus Jakarta Sans for prices and headings, 8 and 12 px corners. The sketch's "Shop's
-own" toggle shows the same layout under an example identity: maroon accent on cream, Hind Siliguri with
-Fraunces for headings, round corners. Status colours never change (BRN-04). Product photos are the design:
+Bengali for text, Plus Jakarta Sans for prices and headings, 8 and 12 px corners. A shop's own identity changes
+only what the dashboard's does (Slice 11.12b): the page takes its background; its main colour gives the accent, the
+accent's hover (a fifth darker), its soft tint (6% of it on white) and its words (the nearest shade of it that reads
+at 4.5:1 on the page, the tint and white); headings take its heading pair and everything else its body pair; corners
+are Square 2/4/8, Soft 8/12/18 (Lytro's) or Round 12/18/24 (controls, cards, sheet tops; Square's pills 6), a round
+identity's logo a circle; Compact and Airy put a quarter less or more space between sections and between cards. Cards,
+sheets and fields stay white, and the neutrals stay Lytro's. Its second colour is not drawn on the storefront. The
+sketch's toolbar shows the dashboard prototype's two example shops: maroon on cream with serif headings, round and
+airy; indigo with coral, square and compact. Status colours never change (BRN-04). Product photos are the design:
 cards at 4:5, the product page gallery edge to edge on phones, no decoration that competes with them.
 
 ---
@@ -149,6 +160,12 @@ navigation on the page itself (LND-01), only that one way out at the bottom.
 "Back soon" with the shop's monogram and name (SFT-12, LIF-07); "Nothing here" when the storefront is off
 or the host is unknown (SFT-16); the landing 404 above. All three carry "Powered by Lytro" only.
 
+**The phone offline** (CCH-10, Slice 12c): every page asks the network first, so it is counted and current; when the
+network is down, a page this phone has viewed opens as it was last seen, and one it never saved shows "You're
+offline" in the shop's colours with "Try again" (`offline-unsaved`). The app itself is kept by version, with the last
+twenty or so pages and their photos; the cart lives on the phone, and its check, the delivery estimate and search
+need the network.
+
 ## 8. Later phases, drawn in full
 
 Phase 4, orders: **checkout** as one page in three numbered blocks, contact (with "Sign in with OTP" for
@@ -215,7 +232,7 @@ delivery". A gateway wallet comes back through pay.lytro.app to the same three s
 | Offline and not found | the tenant state from the host (TEN-08, LIF-07) | |
 | Checkout, confirmation, tracking, account, combos | nothing | Phase 4's order creation, tracking and OTP endpoints; Phase 5's sessions; combos (CMB) |
 | Chat | nothing | Phase 7 |
-| PWA | | a per-tenant manifest and icon from the shop's name and logo (SFT-14) |
+| PWA | the storefront's own manifest, its icons drawn by the server from the brand's icon, the logo or the monogram (Slice 12c) | |
 
 ## 10. Mapping onto `apps/storefront`
 
@@ -223,7 +240,8 @@ Next.js standalone, one deployment resolving the shop from the host (TEN-07a). R
 category, `/new` new arrivals, `/search`, `/p/[slug]` product, `/cart` (the drawer, also a page), `/l/[slug]` landing, `/track/[id]`,
 `/sign-in`, `/account`, `/checkout`, `/order/[id]`. Server components for everything cacheable (home,
 category, product, landing, with the catalogue version in the request address, CCH-04), client components
-for the cart, the area sheet, the pickers and the forms (CCH-07). Shared pieces: `product-card`, `gallery`,
+for the cart, the area sheet, the pickers and the forms (CCH-07). Slice 12c adds `/manifest.webmanifest`,
+`/icons/<file>`, `/sw.js` (versioned by the build) and `/offline`. Shared pieces: `product-card`, `gallery`,
 `variant-picker`, `delivery-line`, `area-sheet`, `cart-drawer`, `sheet`, `shop-header`, `shop-footer`, the
 `brand-tokens` style that maps the shop's identity to the CSS variables in §Look. The service worker caches
 the shell and recently viewed catalogue responses (CCH-10). Copy lives in one dictionary with Bangla first.
@@ -232,6 +250,6 @@ the shell and recently viewed catalogue responses (CCH-10). Copy lives in one di
 
 `docs/brand/lytro-storefront.html` is self-contained. Its toolbar picks the screen (Browse, Product, Cart,
 Landing page, Later phases), the device (phone 390, tablet 820, desktop 1280), the language and the brand
-(Lytro default, or the shop's own identity). Every button that leads somewhere in the design leads there in
-the sketch. It renders 57 screens with no horizontal overflow at any width and no missing strings in either
+(Lytro default, or one of two example shops' identities, drawn from their tokens as the app does). Every button that leads somewhere in the design leads there in
+the sketch. It renders 58 screens with no horizontal overflow at any width and no missing strings in either
 language.

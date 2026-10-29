@@ -12,6 +12,7 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@lytronix/shared-types": "workspace:*",
     "@lytronix/validators": "workspace:*",
     "next": "^15",
     "react": "^19",
