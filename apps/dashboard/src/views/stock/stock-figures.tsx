@@ -22,7 +22,8 @@ function ToValue({ slug, children }: { slug: string; children: ReactNode }): Rea
 /**
  * The Stock page's figures (the prototype's `stock` stats; INV-13, INV-18, D3-9), for someone who may manage stock:
  * the stock's value now at average cost, this month's cost of goods sold, this month's losses by reason and how many
- * times, and the batches expiring within 30 days. The first three open Stock value and losses, the last Expiring.
+ * times, and, in a shop that may keep batches, those expiring within 30 days. The first three open Stock value and
+ * losses, the last Expiring.
  */
 export function StockFigures({
   keepsBatches,
@@ -40,14 +41,10 @@ export function StockFigures({
     .filter((each) => each.movements > 0)
     .map((each) => `${t(`loss_${each.reason}`)} ${String(each.movements)}`)
     .join(' · ');
+  // A shop that keeps no batches has nothing to expire, and meets no figure saying so (design v3.15).
+  const noBatches = expiring.data === 0 && !keepsBatches;
   const expiringNote =
-    expiring.data === undefined
-      ? null
-      : expiring.data > 0
-        ? t('expWithin')
-        : keepsBatches
-          ? t('expNoneSoon')
-          : t('expNoBatches');
+    expiring.data === undefined ? null : expiring.data > 0 ? t('expWithin') : t('expNoneSoon');
   return (
     <StatRow label={t('figuresL')}>
       <ToValue slug={slug}>
@@ -76,14 +73,16 @@ export function StockFigures({
           noteTone={reasons ? 'bad' : 'plain'}
         />
       </ToValue>
-      <Link to="/$shop/stock/expiring" params={{ shop: slug }} className={TILE_LINK}>
-        <StatTile
-          className="h-full"
-          label={t('expiring')}
-          value={expiring.data ?? '—'}
-          note={expiringNote}
-        />
-      </Link>
+      {noBatches ? null : (
+        <Link to="/$shop/stock/expiring" params={{ shop: slug }} className={TILE_LINK}>
+          <StatTile
+            className="h-full"
+            label={t('expiring')}
+            value={expiring.data ?? '—'}
+            note={expiringNote}
+          />
+        </Link>
+      )}
     </StatRow>
   );
 }

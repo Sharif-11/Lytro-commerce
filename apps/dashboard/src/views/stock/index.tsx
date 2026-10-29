@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { Permission } from '@lytronix/validators';
-import { STOCK_SEGMENTS, useStockPage, type StockSegment } from '@/api/stock';
+import { mayKeepBatches, STOCK_SEGMENTS, useStockPage, type StockSegment } from '@/api/stock';
 import { Icon } from '@/components/icon';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
@@ -106,7 +106,7 @@ export function StockView({
   // Design v3.7: a search shows what it finds in full, folding nothing.
   const wanting = searching ? lined : lined.filter((each) => wantsSeeing(each.product, each.lines));
   const fine = searching ? [] : lined.filter((each) => !wantsSeeing(each.product, each.lines));
-  const keepsBatches = list.hasNextPage || products.some((product) => product.batchTracked);
+  const keepsBatches = mayKeepBatches(list);
 
   // The sheets read the product as the page now has it, so a change shows in them at once.
   const current = (product: StockPageProduct): StockPageProduct =>

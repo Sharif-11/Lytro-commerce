@@ -14,8 +14,10 @@
     "src",
     "test",
     "e2e",
+    "walkthrough",
     "vite.config.ts",
     "pwa-assets.config.ts",
-    "playwright.config.ts"
+    "playwright.config.ts",
+    "playwright.walkthrough.config.ts"
   ]
 }

@@ -57,6 +57,18 @@ export function useStockPage(search: string, segment: StockSegment) {
   });
 }
 
+/**
+ * INV-22: whether the shop may keep stock in batches, as far as a read of the Stock list shows -- a product it lists
+ * keeps them, or the list has more to read. Where not, a shop meets no batch words: no Expiring figure, no note that
+ * batches are counted one by one (design v3.15, after the walkthrough).
+ */
+export function mayKeepBatches(
+  list: Pick<ReturnType<typeof useStockPage>, 'data' | 'hasNextPage'>,
+): boolean {
+  const products = (list.data?.pages ?? []).flatMap((page) => page.products);
+  return list.hasNextPage || products.some((product) => product.batchTracked);
+}
+
 /** The most the server gives in one page, so a category's products come in as few reads as can be. */
 const WHOLE_PAGE = 100;
 

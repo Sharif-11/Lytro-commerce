@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StockTracking } from '@lytronix/validators';
 import { useCategories } from '@/api/catalogue';
-import { useBatchesOf, useCategoryStock, useStockPage } from '@/api/stock';
+import { mayKeepBatches, useBatchesOf, useCategoryStock, useStockPage } from '@/api/stock';
 import { Button } from '@/components/ui/button';
 import { CheckRow } from '@/components/ui/check-row';
 import { SearchField } from '@/components/ui/search-field';
@@ -171,7 +171,9 @@ export function CheckPickSheet({
                 ))}
             </ChoiceList>
           )}
-          <p className="text-[14px] text-fg-muted">{t('pickCountHint')}</p>
+          {mayKeepBatches(list) ? (
+            <p className="text-[14px] text-fg-muted">{t('pickCountHint')}</p>
+          ) : null}
         </>
       ) : null}
     </Sheet>

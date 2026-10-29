@@ -57,7 +57,8 @@ test('the figures, the products wanting seeing to first, the rest folded into "S
   await expect(figures).toContainText('Stock value৳84,350At average cost, now');
   await expect(figures).toContainText('Cost of goods sold৳21,680This month');
   await expect(figures).toContainText('Losses৳1,890Damaged 2 · lost 1');
-  await expect(figures).toContainText('Expiring0No batches in this shop');
+  // A shop that keeps no batches meets no Expiring figure (design v3.15, after the walkthrough).
+  await expect(figures).not.toContainText('Expiring');
   // Out first, then low or with a variant low; each with its average cost.
   await expect(products(page)).toHaveText(['Kids frock', 'Denim jacket', 'Cotton T-shirt']);
   await expect(main(page)).toContainText('Avg cost ৳1,240');
@@ -127,6 +128,8 @@ test("a row's own sheet: what it holds, its last change and its cost, no batches
 
 test("a batch-kept row's sheet says its batches and the earliest expiry", async ({ page }) => {
   await open(page, { products: only(creamShop(), 'p-fc') }, '/stock?q=cream');
+  // A shop keeping batches has its Expiring figure.
+  await expect(main(page).getByRole('group', { name: 'Stock figures' })).toContainText('Expiring');
   await row(page, '—').click();
   const cream = sheet(page, 'Face cream 50 ml');
   await expect(cream.getByRole('button', { name: /^Batches/ })).toContainText(

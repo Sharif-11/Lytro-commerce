@@ -395,6 +395,7 @@ svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.75;str
       <optgroup label="Delivery · Slice 11.11 (Part 22)"><option value="delivery-22">Delivery · No delivery outside, Rename on the two zones</option><option value="delivery-outside-off">· no delivery outside the home area</option><option value="delivery-check-nodelivery">· Check an address: a no-delivery zone, and why</option><option value="delivery-empty">· no zones of its own</option><option value="delivery-full">· twenty zones</option><option value="delivery-staff">· someone who may only look</option><option value="sh-zone-rename">· rename a fixed zone, or its automatic name (sheet)</option><option value="sh-homearea-thanas">· home area: my own thanas (sheet)</option><option value="sh-zone-new">Zone · new, a thana moving from a broader zone (sheet)</option><option value="sh-zone-taken">· an area another zone holds, named before Save (sheet)</option><option value="sh-area-pick">Area picker · grouped, one held elsewhere (sheet)</option><option value="sh-area-district">· a district opened: its thanas (sheet)</option><option value="sh-zone-delete">Zone · delete, asked first (dialog)</option><option value="sh-zone-in-use">· still in use: the products, Open or Restore (sheet)</option></optgroup>
       <optgroup label="Themed dashboard · Slice 11.12b (Part 24)"><option value="themed-home">Themed · Home: maroon on cream, serif headings, round, airy (BRN-02, BRN-07)</option><option value="themed-products">· Products</option><option value="themed-zone-sheet">· a sheet: a delivery zone, its fields and buttons</option><option value="themed-billing">· Billing: the status colours never change (BRN-04)</option><option value="themed-brand">· the brand editor, switched on</option><option value="themed-b-home">Themed · Home: indigo with coral, square, compact, no dark logo</option><option value="themed-b-stock">· Stock</option><option value="themed-b-zone-delete">· a delete asked first: the danger colour never changes (BRN-04)</option></optgroup>
       <optgroup label="Storefront · Slice 12a (Part 25)"><option value="settings">Settings · Storefront is a row, no longer coming later</option><option value="sf25">Storefront · the link, and the switch on (SFT-16)</option><option value="sh-sf25-off">· turn off (dialog)</option><option value="sf25-off">· off: the link answers "nothing here", landing pages work</option><option value="sf25-offed">· turned off (toast)</option><option value="sf25-oned">· turned on (toast)</option><option value="sf25-copied">· link copied (toast)</option><option value="api-keys">API keys · the key Lytro keeps for the storefront, first</option></optgroup>
+      <optgroup label="Walkthrough findings · Slice 11.13b (Part 26)"><option value="product">Product · the variant table: no SKU column; the SKU is in the variant sheet</option><option value="sh-variant-sku-taken">· an SKU another variant has: the name marked, the sheet says why</option><option value="stock-no-batches">Stock · a shop that keeps no batches: no Expiring figure</option><option value="stock-check-pick-plain">· its count pick sheet: no batch note</option><option value="sh-receive">Purchase · It arrived: the note without a requirement id</option></optgroup>
       <optgroup label="Later phases (design only)"><option value="orders">Orders</option><option value="order">Order detail</option><option value="order-book">Book courier (sheet)</option><option value="order-new">New order</option><option value="customers">Customers</option><option value="customer">Customer detail</option><option value="payments">Payments</option><option value="methods">Payment methods</option><option value="notices">Notices</option><option value="sms">SMS events</option><option value="search">Search · orders and customers (Phase 4)</option><option value="notifications">Notifications · panel from the bell (Phase 7)</option><option value="notifications-empty">· nothing yet (Phase 7)</option><option value="notifications-read">· all read (Phase 7)</option><option value="notifications-all">Notifications · full page (Phase 7)</option><option value="storefront">Storefront settings · slides as a carousel (Slice 12)</option><option value="storefront-tiles">· one banner and two tiles (Slice 12)</option><option value="storefront-empty">· no slides yet (Slice 12)</option><option value="sh-slide">· slide editor with the focal point (Slice 12)</option><option value="sh-slide-new">· new slide (Slice 12)</option><option value="sh-slide-preview">· both crops (Slice 12)</option><option value="sh-slide-delete">· remove slide (Slice 12)</option><option value="storefront-saved">· slide saved (Slice 12)</option><option value="stock-shortfall">Stock · units held for expired orders (Phase 4)</option><option value="sh-return">· take shipped stock back (Phase 4)</option></optgroup>
     </select>
   </label>
@@ -4263,6 +4264,55 @@ const _apiKeys25 = SCREENS['api-keys'].render;
 SCREENS['api-keys'] = { ...SCREENS['api-keys'], render: () => _apiKeys25()
   .replace('<div class="card flush list">', `<div class="card flush list">${ak25Row()}`)
   .replace('<div class="card"><div class="kv" style="padding:0">', `<p class="hint">${t('ak25Note')}</p><div class="card"><div class="kv" style="padding:0">`) };
+/* ---------- Part 26: design doc v3.15 (2026-10-29), for Slice 11.13b (what the real-server walkthrough found, agreed
+   in its second read). A variant's SKU lives in its own sheet only: every variant table drops its SKU column, and an
+   SKU another variant has (S · Black typed M · Black's) marks the variant's name in the table and says why under the
+   sheet's SKU field (`sh-variant-sku-taken`). A shop that keeps no batches meets no batch words, and the drawn shop
+   keeps none: the count's pick sheets leave out their batch note (`stock-check-pick`, `stock-check-pick-plain`), and
+   the Expiring figure that would say the shop has no batches is not drawn (`stock`, `stock-no-batches`). The arrival
+   sheet's note and the supplier sheet's archive help lose their requirement ids. ---------- */
+Object.assign(S, {
+  rcvHelp: ['নেওয়া ইউনিট স্টকে ঢোকে আর গড় খরচ ঠিক হয়; ফেরত ইউনিট বাকি থাকে।', 'Accepted units enter stock and the average cost updates; rejected units stay outstanding.'],
+  sk26SkuTaken: ['আপনার দোকানের অন্য একটি ভ্যারিয়েন্টে এই SKU আগে থেকেই আছে।', 'Another variant in your shop already has this SKU.'],
+  supArchiveHelp: ['আর্কাইভ করলে নতুন অর্ডারে আসবে না; পুরোনো অর্ডারে নাম থাকবে। মোছা যায় না।', 'Archived, it is not offered for new purchases; past ones keep its name. Never deleted.'],
+});
+/* Draws the screen as before, then takes out the SKU column of every variant table, the Expiring figure that would say
+   the shop has no batches, and the pick sheet's batch note, the drawn shop keeping none. */
+const _render26 = render;
+render = function () {
+  _render26();
+  const f = document.getElementById('frame');
+  f.querySelectorAll('table.matrix').forEach((table) => {
+    const at = [...table.querySelectorAll('thead th')].findIndex((th) => th.textContent.trim() === 'SKU');
+    if (at < 0) return;
+    table.querySelectorAll('tr').forEach((tr) => {
+      if (tr.children.length > at) tr.children[at].remove();
+    });
+  });
+  f.querySelectorAll('.stat').forEach((tile) => {
+    if (tile.textContent.includes(L('এই দোকানে ব্যাচ নেই', 'No batches in this shop'))) tile.remove();
+  });
+  f.querySelectorAll('p').forEach((p) => { if (p.textContent.trim() === t('sk20PickHint')) p.remove(); });
+  const scr = SCREENS[ST.screen] || {};
+  if (scr.skuTaken26) {
+    const name = f.querySelectorAll('table.matrix tbody tr td:first-child');
+    name.forEach((cell) => {
+      if (cell.textContent.trim().startsWith(`S · ${L('কালো', 'Black')}`)) {
+        cell.style.color = 'var(--danger)';
+        cell.insertAdjacentHTML('beforeend', ` ${ic('alert', 14)}`);
+      }
+    });
+  }
+};
+SCREENS['stock-no-batches'] = { ...SCREENS.stock };
+SCREENS['stock-check-pick-plain'] = { ...SCREENS['stock-check-pick'] };
+SCREENS['sh-variant-sku-taken'] = {
+  ...SCREENS['sh-variant'],
+  skuTaken26: true,
+  sheet: () => SCREENS['sh-variant'].sheet()
+    .replace(`<h2>M · ${L('কালো', 'Black')}</h2>`, `<h2>S · ${L('কালো', 'Black')}</h2>`)
+    .replace(field('SKU', 'TS-M-BL'), field('SKU', 'TS-M-BL', { bad: true, err: t('sk26SkuTaken') })),
+};
 (function init() { const h = location.hash.replace('#', ''); if (h && SCREENS[h]) { ST.screen = h; document.getElementById('selScreen').value = h; } render(); })();
 </script>
 </body>

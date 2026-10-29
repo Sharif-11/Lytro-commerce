@@ -38,6 +38,7 @@ import { OpeningSerialsSheet } from './opening-serials-sheet';
 import { OptionsSheet } from './options-sheet';
 import { ValueSheet } from './value-sheet';
 import { VariantSheet } from './variant-sheet';
+import { sheetProblems } from './variant-problems';
 import { VariantTable } from './variant-table';
 import { useVariantWords } from './variant-words';
 
@@ -546,8 +547,6 @@ export function VariantsCard({
             canSell,
             held: !isNew && kind.tracked && kind.serial && onHeldSerials ? held : null,
             pack: shared ? kind.unit : null,
-            // A product with serials shows them here, opening or held; its SKU is in the variant sheet.
-            sku: kind.tracked && !kind.serial,
           }}
           basePrice={form.price}
           isNew={isNew}
@@ -680,6 +679,7 @@ export function VariantsCard({
             : words.variant(form.variants[variantAt]?.optionIds ?? [], form.splits)
         }
         settings={form.settings}
+        problems={variantAt === null ? {} : sheetProblems(problems, variantAt)}
         readOnly={readOnly}
         onChange={(patch) => {
           onChange({

@@ -1589,6 +1589,27 @@ their backend ships earlier.
   picture before and after). Words on a main-colour or accent fill take the text derived for it, and words in the main
   colour its nearest shade that reads on the page and its pale tints, so a light identity keeps AA. The status
   colours, the info pair and a warning's marigold are fixed (BRN-04).
+- **11.13b read agreed 2026-10-29** (7 points; the slice's "done when"):
+  1. The walkthrough runs on every pull request, in CI, after the browser tests: a fresh database, the built server
+     and dashboard.
+  2. Each preset (clothing, cosmetics, grocery) runs once, on a phone, in Bangla.
+  3. No inventory jargon is checked with a word list read on every screen and sheet: English SKU, UOM, ledger, FIFO,
+     COGS, valuation, reorder point, backorder, warehouse, lot number; formal Bangla মজুদ, খতিয়ান, গুদাম, মূল্যায়ন. The
+     vernacular স্টক, ইনভেন্টরি and ব্যাচ is allowed.
+  4. The fields are checked both ways, per preset (INV-22): clothing never shows an expiry, batch or IMEI field;
+     cosmetics and grocery show the optional batch code and expiry when stock is added and when a purchase arrives;
+     grocery counts in kg, with decimals.
+  5. Each run starts from sign-up: the shop, its type, one product with its variants, stock added, a count with one item
+     short, an order from a supplier marked arrived, and the stock risen.
+  6. The phone code is read from what the server's SMS stub prints in development; no test-only code in the server.
+  7. No photos: CI has no media storage.
+
+  **Found by the walkthrough, agreed in a second read the same day** (prototype Part 26, design v3.15): a variant's
+  SKU is set in its sheet only, the variant table's SKU column gone (SKU stays on the list); a shop that keeps no
+  batches sees neither the count's batch note nor an Expiring figure; the arrival sheet's note drops "(PUR-04)" (and
+  the supplier sheet's archive help the same slip, "(PUR-01)"), and the walkthrough refuses any requirement id on
+  screen. Left as they are: the Add stock button's wording with no quantity, "নোট (ঐচ্ছিক)" on the arrival sheet, and
+  the library's English attribute names.
 
 
 ### Slice 12: shared storefront and product landing pages

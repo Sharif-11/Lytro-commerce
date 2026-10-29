@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SerialFormat, type StockUnit } from '@lytronix/validators';
+import { Icon } from '@/components/icon';
 import { StatusTag } from '@/components/ui/status-tag';
 import {
   keyOf,
@@ -11,6 +12,7 @@ import {
 } from '@/lib/variant-matrix';
 import { keptOf } from '@/lib/opening';
 import { useBatchText } from './stock-words';
+import { sheetProblems } from './variant-problems';
 import { useVariantWords } from './variant-words';
 
 /** The table's columns besides the variant and its price, as the product is (Part 14, the prototype's `pfMatrix`). */
@@ -19,7 +21,7 @@ export interface TableColumns {
   opening: boolean;
   /** INV-12: that stock is a batch, entered in its sheet with how much (Part 15's "Opening batch"). */
   batch: boolean;
-  /** INV-14: a new serial-numbered product's opening serials, in their format, where others show the SKU. */
+  /** INV-14: a new serial-numbered product's opening serials, in their format. */
   serials: SerialFormat | null;
   /** INV-14: a saved one's serials held of what each holds ("7 / 7"), by variant id; null when not shown. */
   held: ReadonlyMap<string, string> | null;
@@ -27,7 +29,6 @@ export interface TableColumns {
   canSell: ReadonlyMap<string, string> | null;
   /** INV-24: the unit each variant's pack of the shared stock is in; null when the variants hold their own. */
   pack: StockUnit | null;
-  sku: boolean;
 }
 
 function Head({ sticky, children }: { sticky?: boolean; children: ReactNode }): React.JSX.Element {
@@ -133,8 +134,9 @@ function SheetCell({
 /**
  * The variant table (TENANT-DASHBOARD-DESIGN §7.4, Part 14; ATR-11, ATR-17): a row per variant with its price (empty
  * follows the product's, shown greyed), and as the product is: its pack of a shared stock, a new product's opening
- * stock, a saved one's "Can sell" (a variant this edit adds starts at 0, marked New), its SKU. Fill all heads Price and
- * Opening stock. The first 6 show, then "Show all"; the limits line ends it.
+ * stock, a saved one's "Can sell" (a variant this edit adds starts at 0, marked New). Fill all heads Price and Opening
+ * stock. The first 6 show, then "Show all"; the limits line ends it. A variant's SKU is set in its sheet, opened from its
+ * name, which is marked when the server refuses a field the sheet holds (design v3.15).
  */
 export function VariantTable({
   rows,
@@ -185,8 +187,7 @@ export function VariantTable({
     (columns.opening ? 1 : 0) +
     (columns.canSell ? 1 : 0) +
     (columns.serials ? 1 : 0) +
-    (columns.held ? 1 : 0) +
-    (columns.sku ? 1 : 0);
+    (columns.held ? 1 : 0);
   const fill = (column: FillColumn) =>
     readOnly || rows.length < 2 ? null : (
       <button
@@ -221,7 +222,6 @@ export function VariantTable({
             {columns.canSell ? <Head>{t('canSell')}</Head> : null}
             {columns.serials ? <Head>{t('openingSerials')}</Head> : null}
             {columns.held ? <Head>{t('heldSerialsTitle')}</Head> : null}
-            {columns.sku ? <Head>{t('skuCol')}</Head> : null}
           </tr>
         </thead>
         <tbody>
@@ -235,18 +235,25 @@ export function VariantTable({
                   key.startsWith(`variants.${String(index)}.${field}.`),
               );
             const kept = keptOf(row.openingSerials).length;
+            const refused = Object.values(sheetProblems(problems, index));
             return (
               <tr key={keyOf(row.optionIds)}>
                 <td className="sticky left-0 z-[1] border-b border-line bg-surface px-2.5 py-2 whitespace-nowrap">
                   <button
                     type="button"
-                    aria-label={t('openVariant', { variant: name })}
-                    className="text-left underline decoration-line-strong underline-offset-2"
+                    aria-label={[t('openVariant', { variant: name }), ...refused].join(' · ')}
+                    className={[
+                      'inline-flex items-center gap-1 text-left underline underline-offset-2',
+                      refused.length > 0
+                        ? 'text-danger-text decoration-danger-text'
+                        : 'decoration-line-strong',
+                    ].join(' ')}
                     onClick={() => {
                       onOpen(index);
                     }}
                   >
                     {name}
+                    {refused.length > 0 ? <Icon name="alert" size={14} /> : null}
                   </button>
                 </td>
                 {columns.pack ? (
@@ -335,19 +342,6 @@ export function VariantTable({
                   />
                 ) : columns.held ? (
                   <td className="border-b border-line px-2.5 py-2" />
-                ) : null}
-                {columns.sku ? (
-                  <Cell
-                    value={row.sku}
-                    label={t('cellSku', { variant: name })}
-                    wide
-                    invalid={bad('sku')}
-                    readOnly={readOnly}
-                    numeric={false}
-                    onChange={(sku) => {
-                      onRow(index, { sku });
-                    }}
-                  />
                 ) : null}
               </tr>
             );
