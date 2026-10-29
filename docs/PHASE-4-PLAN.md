@@ -4,7 +4,8 @@ Status: agreed 2026-10-27 — the decisions in §2 were settled in the Phase 4 r
 `IMPLEMENTATION-PLAN.md` Phase 4, with these changes agreed before this plan was written:
 
 - **Built after Phase 3.** The plan is written now; building starts once Phase 3's Slices 11 (dashboard), 12
-  (storefront and landing pages) and 13 (custom domains) are done (D4-1).
+  (storefront and landing pages) and 13 (custom domains) are done (D4-1). Amended 2026-10-29: the backend slices
+  start now, beside Phase 3's remaining slices; the screens (Slice 4.8) still wait for Slice 12's storefront app.
 - **The order flow follows Bangladeshi sellers:** a new order is confirmed by a phone call before it ships, every
   call is logged, and a cancellation carries its reason (D4-3). `SRS-detailed.md` gains the `confirmed` status,
   ORD-51 and ORD-52.
@@ -58,7 +59,7 @@ sellers in Bangladesh").
 
 | # | Decision | Decided | Affects |
 |---|---|---|---|
-| D4-1 | **When.** Shopper checkout, tracking, accounts and the landing page's order form live in Slice 12's storefront app, which does not exist yet. | Build Phase 4 after Phase 3's Slices 11, 12 and 13; this plan is written now. | Planning |
+| D4-1 | **When.** Shopper checkout, tracking, accounts and the landing page's order form live in Slice 12's storefront app, which does not exist yet. | Build Phase 4 after Phase 3's Slices 11, 12 and 13; this plan is written now. **Amended 2026-10-29** (the owner's "start phase 4 now"): the backend slices (4.1 – 4.7) start now, beside Phase 3's remaining slices, since they need only the API; Slice 4.8's screens still wait for Slices 11 and 12. | Planning |
 | D4-2 | **Advance payments before Phase 5.** A product's payment policy may need an advance (PRD-08), but the payment page and wallet checkout (LND-10, SFT-07, PAY-01) arrive in Phase 5. | Public orders (storefront, landing page, public key) take cash-on-delivery products only; a product whose policy needs an advance is refused with a plain message naming it. Staff may enter such an order and record the advance received (ORD-22). Nothing is live before launch, so no sale is lost. | Slices 4.2, 4.8 |
 | D4-3 | **The order flow.** Sellers in Bangladesh phone a cash-on-delivery customer before shipping and cancel fake or unreachable orders; the sketches draw "To confirm" and Confirm, but no status backed them. | New (`pending`, "to confirm") → a confirming call → Confirmed (`confirmed`, new) → Processing (courier booking, Phase 6) → Shipped → Delivered or partly delivered → Returned. Every call is logged with its outcome -- confirmed, no answer, call back later (with a time), cancelled -- and an optional note; the order shows the calls and the unanswered count; "call back later" holds the order until then. A cancellation needs a reason: customer cancelled, fake order, unreachable, out of stock, duplicate, other. The calls and reasons later feed Phase 7's fake-order check. §2.3.1, ORD-07, ORD-08 and ORD-41 amended; ORD-51 and ORD-52 added. | Slices 4.1, 4.3, 4.8 |
 | D4-4 | **Order numbers.** ORD-04's `ORD-YYYYMMDD-NNNN` is 17 characters, hard to read out on a call. | `YYMMDD-NNNN` (`261027-0041`): the order's day in Asia/Dhaka and a sequence per shop per day from 0001, five digits past 9,999; gap-proof, never reused. Lists show the full number. ORD-04 amended. | Slice 4.1 |
@@ -169,7 +170,9 @@ Read each row as: the requirements on the left can only be built or proven once 
   and dashboard routes in the team module as before.
 - **Order creation is one transaction:** number, customer upsert (CUS-01), lines priced by `OrderPricing`, stock
   reserved (`ReservationService.reserve`), the idempotency reply stored (D4-8), the audit entry -- all or nothing.
-  Locks follow KNOWN-GAPS §75's order: the counter row, then products, levels, reservations, batches, serials.
+  Locks follow KNOWN-GAPS §75's order: products, levels, reservations, batches, serials. Amended 2026-10-29 (Slice
+  4.1, KNOWN-GAPS §98): then the customer, locked only to work out its figures, and the day's counter row last, so
+  the number is taken only as the order is finished and 50 orders at once never queue past the statement timeout.
 - **Handling is one transaction:** consume the reservations, set `handled_at` once, count the order (QTA), charge the
   pay-as-you-go fee (`PayAsYouGoBillingService.chargeOrderFee`, PYG-02) -- so a refusal at a limit or a short
   balance leaves the order unchanged (PYG-04).
@@ -232,7 +235,16 @@ Every route lands in `API-CONTRACT.md` with its slice; the isolation registry ga
   added; `IMPLEMENTATION-PLAN.md` Phase 4 brought in line. Docs only.
 
 ### Slice 4.1: order core and staff orders
-- **Depends on:** Phase 3 complete.
+- **Depends on:** Phase 3's backend (amended with D4-1, 2026-10-29).
+- **Read agreed 2026-10-29:** one PR for the whole slice; an order is deleted only before it ships and with no
+  verified payment (ORD-12 amended); a customer counts its orders not cancelled or deleted and its spending on
+  delivered orders, and takes the latest order's name (CUS-01 amended); a delivery needs the customer's name,
+  phone, thana and address, a takeaway the name and phone, a dine-in only its table (MNU-04, ORD-01 amended).
+  Also settled: items change until the order ships, holding their stock afresh in one transaction (refused
+  whole if short); staff start an order `pending` or `confirmed`; a price or delivery charge set by hand is kept in
+  the order's history; the zone is resolved when the order is made and kept with its name and charge; each item
+  keeps its photo's media id and link (MED-09's count). A cancellation is final. The New order screen's totals
+  come from `POST /orders/quote`, priced by the same `priceOrder`.
 - **Delivers:** the schema of §4 for orders, lines, counters, history, calls and customers; numbering (D4-4) and
   tracking IDs (ORD-05); `OrderPricing` (D4-9) with delivery, takeaway and dine-in (MNU-04); staff creation (ORD-01)
   holding stock (PRD-07) and snapshotting each line (ORD-46, ATR-08, ATR-09, ATL-06, UOM-04, INV-24); the staff

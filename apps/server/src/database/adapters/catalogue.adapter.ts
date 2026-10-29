@@ -346,6 +346,10 @@ export class DrizzleProductStore implements ProductStore {
     return this.products.lockCatalogue(tx, tenantId);
   }
 
+  hasOrders(tx: Transaction, tenantId: string, productId: string): Promise<boolean> {
+    return this.products.hasOrders(tx, tenantId, productId);
+  }
+
   listDeliveryZoneIds(tx: Transaction, tenantId: string, productId: string): Promise<string[]> {
     return this.products.listDeliveryZoneIds(tx, tenantId, productId);
   }

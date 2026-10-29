@@ -47,10 +47,18 @@ export class StaffService {
 
   /** The names of several staff rows at once, keyed by id (no N+1 per audit entry). */
   namesOf(tenant: StaffTenant, userIds: string[]): Promise<Map<string, string | null>> {
-    return this.store.run(tenant.id, async (tx) => {
-      const rows = await this.store.findByIds(tx, tenant.id, userIds);
-      return new Map(rows.map((row) => [row.id, row.name]));
-    });
+    return this.store.run(tenant.id, (tx) => this.namesWithin(tx, tenant.id, userIds));
+  }
+
+  /** The same, inside a transaction the caller already holds (an order's calls and history, ORD-14). */
+  async namesWithin(
+    tx: Transaction,
+    tenantId: string,
+    userIds: string[],
+  ): Promise<Map<string, string | null>> {
+    if (userIds.length === 0) return new Map();
+    const rows = await this.store.findByIds(tx, tenantId, [...new Set(userIds)]);
+    return new Map(rows.map((row) => [row.id, row.name]));
   }
 
   /**

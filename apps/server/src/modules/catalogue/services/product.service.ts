@@ -62,6 +62,7 @@ import type {
   CatalogueActor,
   CatalogueShop,
   OptionRecord,
+  OrderableVariant,
   ProductAttributeValueRecord,
   ProductAttributeView,
   ProductDefaults,
@@ -78,6 +79,7 @@ import type {
 } from '../types/catalogue';
 import { CatalogueActivity, type ResolvedActor } from './catalogue-activity';
 import { CatalogueImages, refuseUnattachable } from './catalogue-images';
+import { effectiveMode, effectiveVariant } from './effective-variant';
 import { settlePaymentPolicy } from './payment-policy';
 import { PresetService } from './preset.service';
 import { ShopPaymentPolicyService } from './shop-payment-policy.service';
@@ -108,11 +110,6 @@ interface ResolvedDescription {
 
 function money(value: number | null | undefined): string | null | undefined {
   return value === undefined ? undefined : value === null ? null : String(value);
-}
-
-/** PRD-16, ATR-13: with no weight in play the mode is Default, whatever is stored. */
-function effectiveMode(weight: string | null, mode: DeliveryMode): DeliveryMode {
-  return weight === null ? DeliveryMode.Default : mode;
 }
 
 // PRD-18: what a copy's name ends with.
@@ -733,6 +730,13 @@ export class ProductService {
       );
       const matrix = await this.resolveMatrix(tx, shop.id, input.variantAttributes, input.variants);
       const wanted = new Set(matrix.attributes.map((entry) => entry.attribute.id));
+      // ATR-15: once ordered, an attribute neither starts nor stops splitting the product.
+      const moving = current.some(
+        (row) => (row.role === AttributeRole.VariantDefining) !== wanted.has(row.attributeId),
+      );
+      if (moving && (await this.products.hasOrders(tx, shop.id, productId))) {
+        throw new ApiError('conflict', 'VariantSplitFixed', {});
+      }
 
       const existing = await this.products.listVariants(tx, shop.id, productId, true);
       const keep = new Set(matrix.planned.map((plan) => plan.key));
@@ -1847,6 +1851,88 @@ export class ProductService {
     );
   }
 
+  /**
+   * ORD-46, D4-9: what an order needs of these products' live variants, inside the order's own transaction, read from
+   * the same detail the product editor shows, so an order and the editor never disagree on a price or a charge.
+   */
+  async orderableWithin(
+    tx: Transaction,
+    tenantId: string,
+    productIds: readonly string[],
+  ): Promise<OrderableVariant[]> {
+    const found: OrderableVariant[] = [];
+    for (const productId of new Set(productIds)) {
+      const detail = await this.detail(tx, tenantId, productId);
+      const described = detail.attributes.filter((row) => row.role === AttributeRole.Informational);
+      const photo = detail.images[0];
+      for (const variant of detail.variants) {
+        const effective = effectiveVariant(detail, variant);
+        found.push({
+          productId,
+          productName: detail.name,
+          variantId: variant.id,
+          sku: variant.sku,
+          active: detail.active && !detail.archived && variant.active,
+          archived: detail.archived,
+          stockUnit: detail.stockUnit,
+          stockTracking: detail.stockTracking,
+          packAmount: detail.sharedStock ? variant.packAmount : null,
+          price: effective.price,
+          weightKg: effective.weightKg,
+          deliveryCharge: effective.deliveryCharge,
+          deliveryMode: effective.deliveryMode,
+          paymentPolicy: detail.effectivePaymentPolicy,
+          advanceAmount: detail.effectiveAdvanceAmount,
+          attributes: [
+            ...detail.variantAttributes.flatMap((attribute) => {
+              const option = attribute.options.find((row) => variant.optionIds.includes(row.id));
+              return option
+                ? [
+                    {
+                      name: attribute.name,
+                      value: option.value,
+                      dataType: attribute.dataType,
+                      unitKind: attribute.unitKind,
+                      variantDefining: true,
+                    },
+                  ]
+                : [];
+            }),
+            ...described.flatMap((row) => {
+              const value =
+                row.optionValues.length > 0
+                  ? row.optionValues.join(', ')
+                  : (row.textValue ??
+                    row.numberValue ??
+                    (row.boolValue === null ? null : String(row.boolValue)));
+              return value === null
+                ? []
+                : [
+                    {
+                      name: row.name,
+                      value,
+                      dataType: row.dataType,
+                      unitKind: row.unitKind,
+                      variantDefining: false,
+                    },
+                  ];
+            }),
+          ],
+          captured: detail.attributes
+            .filter((row) => row.role === AttributeRole.CapturedAtOrder)
+            .map((row) => ({
+              attributeId: row.attributeId,
+              name: row.name,
+              dataType: row.dataType,
+            })),
+          deliveryZoneIds: detail.deliveryZoneIds,
+          thumbnail: photo ? { mediaId: photo.id, url: photo.urls.thumbnail } : null,
+        });
+      }
+    }
+    return found;
+  }
+
   /** Everything the product edit screen shows (ATR-11, ATR-17), in one read. */
   private async detail(
     tx: Transaction,
@@ -1930,8 +2016,7 @@ export class ProductService {
 
     const attributeOrder = new Map(splitting.map((row, index) => [row.attributeId, index]));
     const variantViews: VariantView[] = variants.map((variant) => {
-      const weight = variant.weightKg ?? product.weightKg;
-      const mode = variant.deliveryMode ?? product.deliveryMode;
+      const effective = effectiveVariant(product, variant);
       return {
         id: variant.id,
         optionIds: variantValues
@@ -1944,11 +2029,11 @@ export class ProductService {
         sku: variant.sku,
         barcode: variant.barcode,
         price: variant.price,
-        effectivePrice: variant.price ?? product.basePrice,
+        effectivePrice: effective.price,
         weightKg: variant.weightKg,
         deliveryCharge: variant.deliveryCharge,
         deliveryMode: variant.deliveryMode,
-        effectiveDeliveryMode: effectiveMode(weight, mode),
+        effectiveDeliveryMode: effective.deliveryMode,
         packAmount: variant.packAmount,
         active: variant.active,
         stockState: variant.stockState,

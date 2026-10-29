@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import {
+  ATTRIBUTES_PER_PRODUCT_MAX,
   LIST_PAGE_SIZE_MAX,
   MAX_VARIANT_ATTRIBUTES,
   MAX_VARIANTS_PER_PRODUCT,
@@ -37,7 +38,6 @@ import {
 } from './catalogue-common';
 
 const CATEGORIES_PER_PRODUCT_MAX = 20;
-const ATTRIBUTES_PER_PRODUCT_MAX = 50;
 
 // PRD-01: description is plain text kept exactly as typed (line breaks, emoji, Bangla), so it is not trimmed.
 const descriptionField = z.string().max(PRODUCT_DESCRIPTION_MAX_LENGTH);

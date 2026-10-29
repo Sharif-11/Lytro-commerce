@@ -1,13 +1,19 @@
-import { createHash } from 'node:crypto';
 import { CallHandler, ExecutionContext, Inject, Injectable, NestInterceptor } from '@nestjs/common';
-import { of, tap, type Observable } from 'rxjs';
+import { catchError, concatMap, of, type Observable } from 'rxjs';
 import { headerValue } from '../http';
-import { IdempotencyService } from './idempotency.service';
+import {
+  dashboardCaller,
+  IdempotencyService,
+  requestHashOf,
+  type IdempotencyClaim,
+} from './idempotency.service';
 
 interface IdempotencyRequest {
   headers: Record<string, string | string[] | undefined>;
   path: string;
   body?: unknown;
+  tenant?: { id: string } | null;
+  session?: { userId: string | null };
 }
 
 interface IdempotencyResponse {
@@ -17,10 +23,10 @@ interface IdempotencyResponse {
 }
 
 /**
- * API-11: applied per-route (not globally) via `@UseInterceptors(IdempotencyInterceptor)` on exactly the
- * writes that create something with a cost -- purchase, top-up, and later upgrade/downgrade-confirm reuse it
- * unchanged. No `Idempotency-Key` header means no idempotency behavior at all; the header is accepted, not
- * required, on these routes (only ORD-02/PAY-01, which don't exist yet, make it mandatory).
+ * API-11, D4-8: applied per-route (not globally) via `@UseInterceptors(IdempotencyInterceptor)` on the dashboard writes
+ * that cost money -- purchase, top-up, upgrade and add-on confirms. The header is accepted, not required, here; order
+ * creation requires it and stores its reply inside the order's own transaction instead. A key belongs to the shop and
+ * the person sending it; a request that fails gives its key back, so a retry runs again.
  */
 @Injectable()
 export class IdempotencyInterceptor implements NestInterceptor {
@@ -29,12 +35,16 @@ export class IdempotencyInterceptor implements NestInterceptor {
   async intercept(context: ExecutionContext, next: CallHandler): Promise<Observable<unknown>> {
     const request = context.switchToHttp().getRequest<IdempotencyRequest>();
     const key = headerValue(request.headers['idempotency-key']);
-    if (!key) return next.handle();
+    const tenantId = request.tenant?.id;
+    if (!key || !tenantId) return next.handle();
 
-    const requestHash = createHash('sha256')
-      .update(JSON.stringify(request.body ?? {}))
-      .digest('hex');
-    const result = await this.idempotency.begin(key, request.path, requestHash);
+    const claim: IdempotencyClaim = {
+      scope: { tenantId, caller: dashboardCaller(request.session?.userId ?? null) },
+      key,
+      path: request.path,
+      requestHash: requestHashOf(request.body),
+    };
+    const result = await this.idempotency.begin(claim);
     const response = context.switchToHttp().getResponse<IdempotencyResponse>();
 
     if (result.replay) {
@@ -44,8 +54,13 @@ export class IdempotencyInterceptor implements NestInterceptor {
     }
 
     return next.handle().pipe(
-      tap((body: unknown) => {
-        void this.idempotency.complete(key, response.statusCode, body);
+      concatMap(async (body: unknown) => {
+        await this.idempotency.complete(claim, response.statusCode, body);
+        return body;
+      }),
+      catchError(async (error: unknown) => {
+        await this.idempotency.release(claim);
+        throw error;
       }),
     );
   }

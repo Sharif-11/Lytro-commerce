@@ -13,7 +13,10 @@ import { PlanPaymentsService } from '../src/modules/payments/services/plan-payme
 import { InvoicesService } from '../src/modules/payments/services/invoices.service';
 import { BalanceService } from '../src/modules/balance/services/balance.service';
 import { TopUpService } from '../src/modules/balance/services/top-up.service';
-import { IdempotencyService } from '../src/common/idempotency/idempotency.service';
+import {
+  IdempotencyService,
+  type IdempotencyClaim,
+} from '../src/common/idempotency/idempotency.service';
 import { addMonths } from '../src/common/time';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase, seedShop } from './support/database';
@@ -742,27 +745,57 @@ describeIfDatabase('tenant isolation (SEC-02)', () => {
   });
 });
 
-describeIfDatabase('Idempotency-Key (API-11)', () => {
-  it('replays the original response for the same key and body, refuses a different one', async () => {
-    const key = `idem-${randomUUID()}`;
-    const first = await idempotency.begin(key, '/billing/purchase', 'hash-a');
-    expect(first.replay).toBe(false);
-    await idempotency.complete(key, 201, { ok: true });
+describeIfDatabase('Idempotency-Key (API-11, D4-8)', () => {
+  const claimOf = (
+    key: string,
+    requestHash: string,
+    scope = { tenantId: randomUUID(), caller: 'owner' },
+  ): IdempotencyClaim => ({ scope, key, path: '/billing/purchase', requestHash });
 
-    const replay = await idempotency.begin(key, '/billing/purchase', 'hash-a');
+  it('replays the original response for the same key and body, refuses a different one', async () => {
+    const claim = claimOf(`idem-${randomUUID()}`, 'hash-a');
+    const first = await idempotency.begin(claim);
+    expect(first.replay).toBe(false);
+    await idempotency.complete(claim, 201, { ok: true });
+
+    const replay = await idempotency.begin(claim);
     expect(replay).toEqual({ replay: true, status: 201, body: { ok: true } });
 
-    await expect(idempotency.begin(key, '/billing/purchase', 'hash-b')).rejects.toMatchObject({
+    await expect(idempotency.begin({ ...claim, requestHash: 'hash-b' })).rejects.toMatchObject({
       code: 'idempotency_conflict',
     });
   });
 
   it('refuses a concurrent duplicate while the original request is still in flight', async () => {
-    const key = `idem-${randomUUID()}`;
-    const first = await idempotency.begin(key, '/billing/purchase', 'hash-a');
+    const claim = claimOf(`idem-${randomUUID()}`, 'hash-a');
+    const first = await idempotency.begin(claim);
     expect(first.replay).toBe(false);
-    await expect(idempotency.begin(key, '/billing/purchase', 'hash-a')).rejects.toMatchObject({
-      code: 'conflict',
-    });
+    await expect(idempotency.begin(claim)).rejects.toMatchObject({ code: 'conflict' });
+  });
+
+  it('gives a failed request its key back, so a retry runs again', async () => {
+    const claim = claimOf(`idem-${randomUUID()}`, 'hash-a');
+    expect((await idempotency.begin(claim)).replay).toBe(false);
+    await idempotency.release(claim);
+    expect((await idempotency.begin(claim)).replay).toBe(false);
+  });
+
+  it('keeps one shop or caller apart from another using the same key', async () => {
+    const key = `idem-${randomUUID()}`;
+    const tenantId = randomUUID();
+    const owner = claimOf(key, 'hash-a', { tenantId, caller: 'owner' });
+    expect((await idempotency.begin(owner)).replay).toBe(false);
+    await idempotency.complete(owner, 201, { ok: true });
+    const staff = claimOf(key, 'hash-a', { tenantId, caller: `user:${randomUUID()}` });
+    expect((await idempotency.begin(staff)).replay).toBe(false);
+    const elsewhere = claimOf(key, 'hash-a', { tenantId: randomUUID(), caller: 'owner' });
+    expect((await idempotency.begin(elsewhere)).replay).toBe(false);
+  });
+
+  it('lets a key whose day has run out start afresh', async () => {
+    const claim = claimOf(`idem-${randomUUID()}`, 'hash-a');
+    await idempotency.begin(claim, new Date(Date.now() - 25 * 60 * 60 * 1000));
+    await idempotency.complete(claim, 201, { ok: true });
+    expect((await idempotency.begin({ ...claim, requestHash: 'hash-b' })).replay).toBe(false);
   });
 });

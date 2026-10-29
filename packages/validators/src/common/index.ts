@@ -5,3 +5,5 @@ export * from './serials';
 export * from './dashboard-paths';
 export * from './brand';
 export * from './brand-contrast';
+export * from './phone';
+export * from './order-status';

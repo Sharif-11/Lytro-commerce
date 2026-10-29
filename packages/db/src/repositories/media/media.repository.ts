@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, inArray, isNull, lt, sql } from 'drizzle-orm';
+import { and, asc, count, countDistinct, desc, eq, inArray, isNull, lt, sql } from 'drizzle-orm';
 import { MediaStatus, type MediaKind, type MediaPurpose } from '@lytronix/validators';
 import {
   attributeOptions,
@@ -6,6 +6,7 @@ import {
   media,
   mediaObjects,
   mediaReconciliations,
+  orderLines,
   productImages,
   products,
   shopSettings,
@@ -55,6 +56,8 @@ export interface MediaUses {
   swatches: number;
   sizeCharts: number;
   logo: boolean;
+  /** ORD-46, ORD-47: past orders whose items show it; they keep their other details when it goes. */
+  pastOrders: number;
 }
 
 /** STO-01, STO-09: what an item takes from the shop's storage, every file of it, and a video's length. */
@@ -265,7 +268,7 @@ export class MediaRepository {
     await this.transactions.setTenantContext(tx, tenantId);
     const counted = async (query: Promise<{ n: number }[]>): Promise<number> =>
       (await query)[0]?.n ?? 0;
-    const [photos, videos, cats, swatches, charts, logos] = await Promise.all([
+    const [photos, videos, cats, swatches, charts, logos, pastOrders] = await Promise.all([
       counted(
         tx
           .select({ n: count() })
@@ -304,6 +307,12 @@ export class MediaRepository {
           .from(shopSettings)
           .where(and(eq(shopSettings.tenantId, tenantId), eq(shopSettings.logoMediaId, id))),
       ),
+      counted(
+        tx
+          .select({ n: countDistinct(orderLines.orderId) })
+          .from(orderLines)
+          .where(and(eq(orderLines.tenantId, tenantId), eq(orderLines.thumbnailMediaId, id))),
+      ),
     ]);
     return {
       products: photos,
@@ -312,6 +321,7 @@ export class MediaRepository {
       swatches,
       sizeCharts: charts,
       logo: logos > 0,
+      pastOrders,
     };
   }
 

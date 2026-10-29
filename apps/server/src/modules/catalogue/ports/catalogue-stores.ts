@@ -257,6 +257,8 @@ export interface ProductStore {
     patch: ProductChange & { slug?: string },
   ): Promise<ProductRecord | null>;
   deleteProduct(tx: Transaction, tenantId: string, id: string): Promise<void>;
+  /** ATR-15: whether any order names the product. */
+  hasOrders(tx: Transaction, tenantId: string, productId: string): Promise<boolean>;
   listProducts(
     tx: Transaction,
     tenantId: string,

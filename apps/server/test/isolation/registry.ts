@@ -244,4 +244,15 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'GET /brand': "reads only the session shop's own brand identity",
   'PUT /brand': "saves only the session shop's identity; another shop's image is not_found",
   'PUT /brand/switch': "switches only the session shop's own identity",
+  // Phase 4 Slice 4.1, checked in test/orders.e2e.spec.ts: a shop's orders are its own.
+  'GET /orders': "lists and searches only the session shop's own orders",
+  'POST /orders':
+    "another shop's variant is not_found and nothing is saved; a key is the session shop's own",
+  'POST /orders/quote': "another shop's variant is not_found",
+  'GET /orders/:id': "another shop's order answers 404",
+  'PATCH /orders/:id': "another shop's order answers 404",
+  'POST /orders/:id/calls': "another shop's order answers 404",
+  'POST /orders/:id/cancel': "another shop's order answers 404 and keeps its stock held",
+  'POST /orders/:id/override': "another shop's order answers 404",
+  'DELETE /orders/:id': "another shop's order answers 404 and is kept",
 };

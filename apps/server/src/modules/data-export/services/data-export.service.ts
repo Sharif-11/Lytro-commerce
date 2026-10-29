@@ -1,10 +1,20 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ZipArchive } from 'archiver';
 import { PassThrough } from 'node:stream';
-import { ActorType, AuditAction, AuditResult, QueueName } from '@lytronix/validators';
+import {
+  ActorType,
+  AuditAction,
+  AuditResult,
+  QueueName,
+  visibleOrderStatus,
+} from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import { toCsv } from '../../../common/csv';
 import { AuditService } from '../../audit/services/audit.service';
+import { CustomerService } from '../../customers/services/customer.service';
+import type { CustomerRecord } from '../../customers/types/customers';
+import { OrderService } from '../../orders/services/order.service';
+import type { OrderLineRecord, OrderRecord } from '../../orders/types/orders';
 import type { ActivityRecord } from '../../audit/types/activity';
 import { InvoicesService } from '../../payments/services/invoices.service';
 import type { InvoiceRecord } from '../../payments/types/invoice';
@@ -24,9 +34,14 @@ export interface DownloadedFile {
   fileSizeBytes: number;
 }
 
-/** LIF-16/17: the owner's own export of payments and the activity log -- orders/customers/products are not
- * built yet (no module to read them from), so this is scoped to the two categories that actually exist
- * today; a third category is a data-fetcher addition here, not an architecture change. */
+/** One order of the export, with its items. */
+interface ExportedOrder {
+  order: OrderRecord;
+  items: OrderLineRecord[];
+}
+
+/** LIF-16/17: the owner's own export of payments, the activity log, and (Phase 4) orders and customers -- products are
+ * not exported yet (KNOWN-GAPS §13); another category is a data-fetcher addition here, not an architecture change. */
 @Injectable()
 export class DataExportService {
   constructor(
@@ -36,6 +51,8 @@ export class DataExportService {
     @Inject(StaffService) private readonly staff: StaffService,
     @Inject(InvoicesService) private readonly invoices: InvoicesService,
     @Inject(MailService) private readonly mail: MailService,
+    @Inject(OrderService) private readonly orders: OrderService,
+    @Inject(CustomerService) private readonly customers: CustomerService,
   ) {}
 
   async request(tenantId: string, ip?: string | null): Promise<DataExportRecord> {
@@ -105,7 +122,9 @@ export class DataExportService {
     try {
       const invoices = await this.invoices.listForTenant(tenantId);
       const activity = await this.loadAllActivity(tenantId);
-      const zip = await this.buildZip(invoices, activity);
+      const orders = await this.orders.exportAll(tenantId);
+      const customers = await this.customers.listAll(tenantId);
+      const zip = await this.buildZip(invoices, activity, orders, customers);
 
       const readyAt = new Date();
       const expiresAt = new Date(readyAt.getTime() + EXPIRY_MS);
@@ -143,7 +162,12 @@ export class DataExportService {
     return all;
   }
 
-  private buildZip(invoices: InvoiceRecord[], activity: ActivityRecord[]): Promise<Buffer> {
+  private buildZip(
+    invoices: InvoiceRecord[],
+    activity: ActivityRecord[],
+    orders: ExportedOrder[],
+    customers: CustomerRecord[],
+  ): Promise<Buffer> {
     return new Promise((resolve, reject) => {
       const archive = new ZipArchive();
       const chunks: Buffer[] = [];
@@ -218,6 +242,105 @@ export class DataExportService {
         { name: 'activity-log.csv' },
       );
       archive.append(JSON.stringify(activityRows, null, 2), { name: 'activity-log.json' });
+
+      // ORD-46: each order as it was taken, its items from their own snapshots.
+      const orderRows = orders.map(({ order }) => ({
+        orderNumber: order.orderNumber,
+        createdAt: order.createdAt.toISOString(),
+        status: visibleOrderStatus({
+          paymentStatus: order.paymentStatus,
+          fulfillmentStatus: order.fulfillmentStatus,
+          confirmed: order.confirmedAt !== null,
+          override: order.statusOverride,
+        }),
+        paymentStatus: order.paymentStatus,
+        fulfillmentStatus: order.fulfillmentStatus,
+        source: order.source,
+        fulfilmentType: order.fulfilmentType,
+        customerName: order.customerName ?? '',
+        customerPhone: order.customerPhone ?? '',
+        deliveryAddress: order.deliveryAddress ?? '',
+        tableRef: order.tableRef ?? '',
+        subtotal: order.subtotal,
+        deliveryCharge: order.deliveryCharge,
+        discount: order.discount,
+        grandTotal: order.grandTotal,
+        advanceDue: order.advanceDue,
+        codAmount: order.codAmount,
+        cancelReason: order.cancelReason ?? '',
+        notes: order.notes ?? '',
+      }));
+      archive.append(
+        toCsv(orderRows, [
+          'orderNumber',
+          'createdAt',
+          'status',
+          'paymentStatus',
+          'fulfillmentStatus',
+          'source',
+          'fulfilmentType',
+          'customerName',
+          'customerPhone',
+          'deliveryAddress',
+          'tableRef',
+          'subtotal',
+          'deliveryCharge',
+          'discount',
+          'grandTotal',
+          'advanceDue',
+          'codAmount',
+          'cancelReason',
+          'notes',
+        ]),
+        { name: 'orders.csv' },
+      );
+      const itemRows = orders.flatMap(({ order, items }) =>
+        items.map((item) => ({
+          orderNumber: order.orderNumber,
+          productName: item.productName,
+          attributes: item.attributeValues
+            .map((value) => `${value.name}: ${value.value}`)
+            .join('; '),
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          itemDiscount: item.itemDiscount,
+          itemTotal: item.itemTotal,
+        })),
+      );
+      archive.append(
+        toCsv(itemRows, [
+          'orderNumber',
+          'productName',
+          'attributes',
+          'quantity',
+          'unitPrice',
+          'itemDiscount',
+          'itemTotal',
+        ]),
+        { name: 'order-items.csv' },
+      );
+      archive.append(
+        JSON.stringify(
+          orders.map(({ order, items }) => ({ ...order, items })),
+          null,
+          2,
+        ),
+        { name: 'orders.json' },
+      );
+
+      // CUS-01: each customer, with the figures its orders give it.
+      const customerRows = customers.map((customer) => ({
+        name: customer.name ?? '',
+        phone: customer.phone ?? '',
+        orderCount: customer.orderCount,
+        totalSpent: customer.totalSpent,
+        lastOrderAt: customer.lastOrderAt?.toISOString() ?? '',
+      }));
+      archive.append(
+        toCsv(customerRows, ['name', 'phone', 'orderCount', 'totalSpent', 'lastOrderAt']),
+        { name: 'customers.csv' },
+      );
+      archive.append(JSON.stringify(customerRows, null, 2), { name: 'customers.json' });
 
       void archive.finalize();
     });

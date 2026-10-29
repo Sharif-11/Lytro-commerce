@@ -28,6 +28,7 @@ import {
 } from '@lytronix/validators';
 import { createdAt, tenant } from '../shared';
 import { productVariants } from './catalogue';
+import { orderLines, orders } from './orders';
 
 // DATABASE-SCHEMA §3.2 (inventory, INV). Quantities are numeric(14,3); a trigger refuses a fraction for a product whose
 // stock unit is not measured (UOM-03). Both tables sit behind the tenant_isolation policy.
@@ -197,6 +198,12 @@ export const serialNumbers = tenant.table(
       columns: [t.tenantId, t.variantId],
       foreignColumns: [productVariants.tenantId, productVariants.id],
     }).onDelete('cascade'),
+    // INV-14: the order a unit was sold to (Phase 4).
+    foreignKey({
+      name: 'serial_numbers_order_fk',
+      columns: [t.tenantId, t.soldOrderId],
+      foreignColumns: [orders.tenantId, orders.id],
+    }),
     uniqueIndex('serial_numbers_held_idx')
       .on(t.tenantId, t.serial)
       .where(sql`${t.status} IN ('in_stock', 'reserved')`),
@@ -267,8 +274,9 @@ export const stockCheckLines = tenant.table(
 // order is made until it ships (consumed, with its sale movements naming it) or is let go (released, with no movement).
 // `variant_id` holds the stock -- the variant itself, or its product's shared stock -- and `quantity` is in that stock's
 // unit; `sold_variant_id` is the variant ordered, `ordered` how many of it, and `pack_amount` what one of them uses of a
-// shared stock. A trigger keeps the level's reserved quantity from the active rows. The variants and the order are held
-// by value: orders arrive in Phase 4, and a resolved row is history.
+// shared stock. A trigger keeps the level's reserved quantity from the active rows. The variants are held by value, and
+// a resolved row is history; the order and its line are keys (Phase 4), and a released row goes with a deleted order or
+// an item taken off one (ORD-11, ORD-12).
 export const stockReservations = tenant.table(
   'stock_reservations',
   {
@@ -301,6 +309,16 @@ export const stockReservations = tenant.table(
       .on(t.tenantId, t.expiresAt)
       .where(sql`${t.status} = 'active' AND ${t.expiresAt} IS NOT NULL`),
     index('stock_reservations_order_idx').on(t.tenantId, t.orderId),
+    foreignKey({
+      name: 'stock_reservations_order_fk',
+      columns: [t.tenantId, t.orderId],
+      foreignColumns: [orders.tenantId, orders.id],
+    }).onDelete('cascade'),
+    foreignKey({
+      name: 'stock_reservations_line_fk',
+      columns: [t.tenantId, t.orderLineId],
+      foreignColumns: [orderLines.tenantId, orderLines.id],
+    }).onDelete('cascade'),
     check('stock_reservations_quantity_check', sql`${t.quantity} > 0`),
     check('stock_reservations_ordered_check', sql`${t.ordered} > 0`),
     check('stock_reservations_pack_check', sql`${t.packAmount} > 0`),

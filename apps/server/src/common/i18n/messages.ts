@@ -1346,6 +1346,86 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: (p) => `Choose a square image at least ${String(p.min)} px wide for the icon.`,
     bn: (p) => `আইকনের জন্য অন্তত ${String(p.min)} px-এর একটা চৌকো ছবি দিন।`,
   },
+  OrderNotFound: {
+    en: 'That order was not found.',
+    bn: 'অর্ডারটি পাওয়া যায়নি।',
+  },
+  OrderIsCancelled: {
+    en: 'This order is cancelled, so it can no longer be changed.',
+    bn: 'এই অর্ডারটি ক্যানসেল করা হয়েছে, তাই আর বদলানো যাবে না।',
+  },
+  OrderHasShipped: {
+    en: 'This order has shipped, so its details and items can no longer be changed.',
+    bn: 'এই অর্ডারটি শিপ হয়ে গেছে, তাই এর তথ্য বা আইটেম আর বদলানো যাবে না।',
+  },
+  OrderShippedReturnInstead: {
+    en: 'This order has shipped, so it cannot be cancelled. Record a return instead.',
+    bn: 'এই অর্ডারটি শিপ হয়ে গেছে, তাই ক্যানসেল করা যাবে না। এর বদলে রিটার্ন নিন।',
+  },
+  OrderCannotBeDeleted: {
+    en: 'This order has shipped or been paid, so it cannot be deleted. Cancel it or record a return instead.',
+    bn: 'এই অর্ডারটি শিপ বা পেমেন্ট হয়ে গেছে, তাই ডিলিট করা যাবে না। এর বদলে ক্যানসেল করুন বা রিটার্ন নিন।',
+  },
+  OrderItemNotFound: {
+    en: 'That item is not on this order.',
+    bn: 'এই আইটেমটি এই অর্ডারে নেই।',
+  },
+  OrderItemChanged: {
+    en: 'An item already on the order keeps its product and option. Remove it and add the new one instead.',
+    bn: 'অর্ডারে থাকা আইটেমের প্রোডাক্ট বা অপশন বদলানো যায় না। এটি সরিয়ে নতুনটি যোগ করুন।',
+  },
+  NotAskedWhenOrdering: {
+    en: 'This product does not ask for this when ordering.',
+    bn: 'অর্ডারের সময় এই প্রোডাক্টে এটা জানতে চাওয়া হয় না।',
+  },
+  CallBackInPast: {
+    en: 'Choose a time later than now.',
+    bn: 'এখনকার পরের একটা সময় বেছে নিন।',
+  },
+  IdempotencyKeyRequired: {
+    en: 'Send an Idempotency-Key header with this request, so sending it again never makes it twice.',
+    bn: 'এই রিকোয়েস্টের সাথে একটি Idempotency-Key হেডার পাঠান, যাতে আবার পাঠালেও দুবার তৈরি না হয়।',
+  },
+  VariantSplitFixed: {
+    en: 'This product has orders, so the attributes that make its options can no longer change. Create a new product instead.',
+    bn: 'এই প্রোডাক্টে অর্ডার আছে, তাই এর অপশন তৈরির অ্যাট্রিবিউট আর বদলানো যাবে না। এর বদলে নতুন প্রোডাক্ট তৈরি করুন।',
+  },
+  OrderCreated: {
+    en: 'Order created.',
+    bn: 'অর্ডার তৈরি হয়েছে।',
+  },
+  OrderPriced: {
+    en: 'Order priced.',
+    bn: 'অর্ডারের দাম হিসাব হয়েছে।',
+  },
+  OrdersRetrieved: {
+    en: 'Orders retrieved.',
+    bn: 'অর্ডারগুলো পাওয়া গেছে।',
+  },
+  OrderRetrieved: {
+    en: 'Order retrieved.',
+    bn: 'অর্ডার পাওয়া গেছে।',
+  },
+  OrderUpdated: {
+    en: 'Order updated.',
+    bn: 'অর্ডার আপডেট হয়েছে।',
+  },
+  OrderCallSaved: {
+    en: 'Call saved.',
+    bn: 'কল সেভ হয়েছে।',
+  },
+  OrderCancelled: {
+    en: 'Order cancelled.',
+    bn: 'অর্ডার ক্যানসেল হয়েছে।',
+  },
+  OrderStatusSet: {
+    en: 'Order status updated.',
+    bn: 'অর্ডারের স্ট্যাটাস আপডেট হয়েছে।',
+  },
+  OrderDeleted: {
+    en: 'Order deleted.',
+    bn: 'অর্ডার ডিলিট হয়েছে।',
+  },
 };
 
 export function translate(key: MessageKey, lang: Language, params: MessageParams = {}): string {

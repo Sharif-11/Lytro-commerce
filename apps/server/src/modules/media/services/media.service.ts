@@ -170,8 +170,7 @@ export class MediaService {
         this.store.listObjects(tx, tenantId, [id]),
         this.store.usesOf(tx, tenantId, id),
       ]);
-      // ORD-46: past orders whose lines show it arrive with orders (Phase 4); until then there are none.
-      return { ...this.view(tenantId, row, objects), uses: { ...uses, pastOrders: 0 } };
+      return { ...this.view(tenantId, row, objects), uses };
     });
   }
 

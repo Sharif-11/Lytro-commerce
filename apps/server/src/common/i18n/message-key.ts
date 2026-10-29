@@ -462,6 +462,29 @@ export const MESSAGE_KEYS = [
   'BrandNeedsAddon',
   'BrandContrastLow',
   'BrandIconNotSquare',
+  // Phase 4 Slice 4.1: orders entered by staff, their calls, status and deletion (ORD-01 to ORD-14, ORD-51,
+  // ORD-52), the idempotency key orders require (D4-8), and a product's splitting attributes once it has orders
+  // (ATR-15).
+  'OrderNotFound',
+  'OrderIsCancelled',
+  'OrderHasShipped',
+  'OrderShippedReturnInstead',
+  'OrderCannotBeDeleted',
+  'OrderItemNotFound',
+  'OrderItemChanged',
+  'NotAskedWhenOrdering',
+  'CallBackInPast',
+  'IdempotencyKeyRequired',
+  'VariantSplitFixed',
+  'OrderCreated',
+  'OrderPriced',
+  'OrdersRetrieved',
+  'OrderRetrieved',
+  'OrderUpdated',
+  'OrderCallSaved',
+  'OrderCancelled',
+  'OrderStatusSet',
+  'OrderDeleted',
 ] as const;
 
 export type MessageKey = (typeof MESSAGE_KEYS)[number];

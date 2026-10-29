@@ -156,7 +156,10 @@ export {
   type TenantPaymentFilter,
   type TenantPaymentRow,
 } from './repositories/billing/plan-payments.repository';
-export { IdempotencyKeysRepository } from './repositories/platform/idempotency-keys.repository';
+export {
+  IdempotencyKeysRepository,
+  type IdempotencyScope,
+} from './repositories/platform/idempotency-keys.repository';
 export {
   ScheduledPlanChangesRepository,
   type NewScheduledPlanChange,
@@ -235,6 +238,18 @@ export {
   type StockCheckRow,
   type StockCheckSummaryRow,
 } from './repositories/inventory/stock-check.repository';
+export {
+  OrderRepository,
+  type NewOrderCall,
+  type NewOrderHistory,
+  type NewOrderLine,
+  type OrderLinePatch,
+  type OrderListFilter,
+  type OrderPatch,
+  type OrderRow,
+  type OrderSummaryRow,
+} from './repositories/orders/order.repository';
+export { CustomerRepository } from './repositories/orders/customer.repository';
 export {
   SupplierRepository,
   type SupplierListRow,
