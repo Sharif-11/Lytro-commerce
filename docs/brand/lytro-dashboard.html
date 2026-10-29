@@ -2053,7 +2053,7 @@ function ensureBrandFonts17() {
   const link = document.createElement('link');
   link.id = 'bf17-fonts';
   link.rel = 'stylesheet';
-  link.href = 'https://fonts.googleapis.com/css2?family=Anek+Bangla:wght@400;700&family=Baloo+Da+2:wght@400;700&family=DM+Sans:wght@400;700&family=Fraunces:wght@400;700&family=Galada&family=Inter:wght@700&family=Lora:wght@400;700&family=Noto+Serif+Bengali:wght@400;700&family=Playfair+Display:wght@400;700&family=Plus+Jakarta+Sans:wght@400;700&family=Poppins:wght@400;700&family=Tiro+Bangla&display=swap';
+  link.href = 'https://fonts.googleapis.com/css2?family=Anek+Bangla:wght@400;700&family=Baloo+Da+2:wght@400;700&family=DM+Sans:wght@400;700&family=Fraunces:wght@400;700&family=Galada&family=Hind+Siliguri:wght@400;700&family=Inter:wght@700&family=Lora:wght@400;700&family=Noto+Serif+Bengali:wght@400;700&family=Playfair+Display:wght@400;700&family=Plus+Jakarta+Sans:wght@400;700&family=Poppins:wght@400;700&family=Tiro+Bangla&display=swap';
   document.head.appendChild(link);
 }
 const bfSample17 = (kind, p) => { const x = kind === 'head' ? BF17_HEAD : BF17_BODY; return `<div class="bfsample ${kind === 'head' ? 'h' : 'b'}" style="font-family:${bfFamily17(p)}"><span class="bn">${x[0]}</span><span class="en">${x[1]}</span></div>`; };
@@ -4145,7 +4145,7 @@ function vars24(id) {
   return {
     '--teal-50': mix24(id.main, 255, 0.94), '--teal-100': mix24(id.main, 255, 0.88), '--teal-200': mix24(id.main, 255, 0.75),
     '--teal-500': mix24(id.main, 255, 0.3), '--teal-700': id.main, '--teal-800': mix24(id.main, 0, 0.2), '--teal-900': rail,
-    '--on-primary': on24(id.main), '--primary-text': shade24(id.main, (c) => ratio24(c, id.bg) >= 4.5),
+    '--on-primary': on24(id.main), '--primary-text': shade24(id.main, (c) => [id.bg, mix24(id.main, 255, 0.94), mix24(id.main, 255, 0.88)].every((u) => ratio24(c, u) >= 4.5)),
     '--rail': rail, '--rail-on': mix24(rail, 255, 0.1), '--rail-text': mix24(rail, 255, 0.82),
     '--mar-100': mix24(id.accent, 255, 0.82), '--mar-300': mix24(id.accent, 255, 0.5), '--mar-500': id.accent,
     '--mar-700': shade24(id.accent, (c) => ratio24(c, '#ffffff') >= 4.5), '--on-accent': on24(id.accent),
@@ -4172,6 +4172,10 @@ function vars24(id) {
 .frame.sp-compact{--sp-section:12px;--sp-columns:18px;--sp-tiles:9px;--sp-card:12px}
 .frame.sp-airy{--sp-section:20px;--sp-columns:30px;--sp-tiles:15px;--sp-card:20px}
 .frame.themed .page{gap:var(--sp-section)}
+@container (min-width: 640px){.frame.themed .page{gap:var(--sp-columns)}}
+.frame.themed :is(.banner.info,.notice.info){color:#063b38}
+.frame.themed :is(.banner.warn,.notice.warn){color:var(--warning)}
+.frame.themed .bar i.warn{background:#f2a516}
 .frame.themed .two{gap:var(--sp-columns)}
 .frame.themed [style*="gap:16px"]{gap:var(--sp-section)!important}
 .frame.themed .stats{gap:var(--sp-tiles)}

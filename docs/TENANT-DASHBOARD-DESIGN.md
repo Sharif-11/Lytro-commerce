@@ -1227,14 +1227,16 @@ the same tokens as the storefront (BRN-07); the status colours, "Powered by Lytr
   choose a shop, the onboarding frame with "Powered by Lytro") stay Lytro's. The bKash and Nagad panels keep the
   wallets' own colours.
 - **The main colour** makes the primary scale. Buttons, the active tab, links, selected chips and the focus ring take it;
-  its tints make the soft fills; text in it is its nearest shade that reads at 4.5:1 on the background (`mainText`);
-  text on it is ink or white, whichever reads better (`onMain`).
+  its tints make the soft fills; text in it is its nearest shade that reads at 4.5:1 on the background and on the two
+  palest tints words sit on, a selected item and an avatar (a little more than `mainText`, which reads on the
+  background alone); text, ticks and counts on it are ink or white, whichever reads better (`onMain`). As built, the
+  tints are 94, 88, 75, 55 and 30% of the way to white, and the hover a fifth of the way to black.
 - **The desktop rail** is the main colour taken down to the depth of Lytro's own rail, or left as it is when it is
-  already deeper, so white reads on it at about 12:1. The active hub is that shade lifted a little; the other hubs'
-  words are a pale tint of it. The logo for dark backgrounds takes the shop mark's place at the rail's foot once set,
-  up to 56 px wide; until then the mark stays.
+  already deeper, so white reads on it at about 12:1. The active hub is that shade lifted a tenth of the way to white;
+  the other hubs' words are 82% of the way. The logo for dark backgrounds takes the shop mark's place at the rail's
+  foot once set, up to 56 by 32 px; until then the mark stays.
 - **The accent** makes the accent scale: the counts on the rail, and the one accent a screen carries. Text in it is its
-  nearest shade that reads at 4.5:1 on white.
+  nearest shade that reads at 4.5:1 on white; text on it is ink or white (`onAccent`).
 - **The background** colours only the page behind the cards. Cards, sheets, dialogs, fields and the phone's top bar stay
   white. It is always light: the status colours must read on it at 4.5:1.
 - **Fonts.** Headings in the heading pair, all other text in the body pair, each with the Latin face first and the
@@ -1255,6 +1257,11 @@ Named in the sketch, beyond the read:
 - the buttons-and-small-tiles step (8 px today) between fields and cards;
 - the stat tiles' gap scales while their insides do not;
 - the dark logo sits at the rail's foot, where the shop mark is, not at its top.
+
+Found while building it, and fixed in the sketch: the brand fonts' loader (Part 17) left out Hind Siliguri, so the
+prototype drew that pair's Bangla in a fallback face; the wide page's gap follows the columns' scale (it is 24 px from
+640 px, not 16); banners, notices and a warning bar keep their status colours. Named deviation: the brand editor in a
+shop's identity shows that identity's own colours and logos in its form, where `themed-brand` kept Part 23's sample.
 
 **Content.** The identity's storage, the contrast check, the font list and the switch are Slice 11's brand backend
 (§10); whether the shop may switch it on comes from `GET /addons/mine` (`brandIdentity`).
