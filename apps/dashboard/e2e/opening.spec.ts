@@ -174,7 +174,6 @@ test('a lipstick by size: each size its own opening batch, from its cell', async
     'Variant',
     'PriceFill all',
     'Opening batch',
-    'SKU',
   ]);
   const cell = table.getByRole('button', { name: 'Opening batch of S' });
   await expect(cell).toHaveText('add batch');

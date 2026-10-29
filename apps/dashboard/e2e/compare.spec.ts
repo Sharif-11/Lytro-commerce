@@ -1715,6 +1715,17 @@ function stockPairs(): Pair[] {
       then: openChart,
     }),
     one('sh-variant', '/products/p-1', { then: tap('M · Black-এর সেটিংস') }),
+    // Design v3.15 (after the walkthrough): M · Black's SKU typed in S · Black's sheet, refused on Save.
+    one('sh-variant-sku-taken', '/products/p-1', {
+      state: { products: { ...drawnProducts(), refuse: { sku: 'TS-M-BL' } } },
+      then: async (page) => {
+        await tap('S · Black-এর সেটিংস')(page);
+        await sheet(page).getByLabel('SKU').fill('TS-M-BL');
+        await sheet(page).getByRole('button', { name: 'ঠিক আছে' }).click();
+        await main(page).getByRole('button', { name: 'সেভ করুন' }).click();
+        await tap(/^S · Black-এর সেটিংস · /)(page);
+      },
+    }),
     one('sh-made-to-order', '/products/p-1', {
       then: async (page) => {
         await main(page).getByRole('radio', { name: 'অর্ডার পেলে বানানো (স্টক লাগে না)' }).click();

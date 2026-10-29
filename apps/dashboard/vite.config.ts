@@ -55,7 +55,8 @@ export default defineConfig({
   test: {
     // jsdom, not Node: the session holder reads sessionStorage and window.location.
     environment: 'jsdom',
-    // e2e/ is Playwright's (playwright.config.ts), run against the built app, not by Vitest.
-    exclude: [...configDefaults.exclude, 'e2e/**'],
+    // e2e/ and walkthrough/ are Playwright's (playwright.config.ts, playwright.walkthrough.config.ts), run against the
+    // built app, not by Vitest.
+    exclude: [...configDefaults.exclude, 'e2e/**', 'walkthrough/**'],
   },
 });

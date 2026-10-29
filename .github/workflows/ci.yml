@@ -62,12 +62,19 @@ jobs:
 
       # The dashboard's screens in a real browser against a mocked API, on a phone and a desktop
       # (TENANT-DASHBOARD-DESIGN §11), and each one beside the prototype's drawing of it, kept as pictures for the
-      # pull request. The walkthrough against a real server joins in Slice 11.13.
+      # pull request. The walkthrough against a real server follows.
       - name: Dashboard browser tests
         working-directory: apps/dashboard
         run: |
           pnpm exec playwright install --with-deps chromium
           pnpm exec playwright test
+
+      # Slice 11.13b (PHASE-3-PLAN Slice 11's "done when"): a clothing, a cosmetics and a grocery seller sign up, make a
+      # product, add stock, count it and buy more, on a phone in Bangla, against the built server and a fresh database
+      # (walkthrough/global-setup.ts), never meeting inventory jargon or a field the shop type does not use.
+      - name: Dashboard walkthrough against the real server
+        working-directory: apps/dashboard
+        run: pnpm exec playwright test -c playwright.walkthrough.config.ts
 
       - name: Keep the dashboard's pictures and report
         if: always()

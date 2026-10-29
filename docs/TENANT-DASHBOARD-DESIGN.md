@@ -1,6 +1,9 @@
 # Tenant dashboard: the full design
 
-Status: v3.13, 2026-10-29 (the dashboard in a shop's identity as Slice 11.12b builds it, prototype Part 24: the
+Status: v3.15, 2026-10-29 (what the real-server walkthrough found, Slice 11.13b, prototype Part 26: a variant's SKU in
+its sheet only, no batch words for a shop that keeps no batches, no requirement id on any sheet; v3.14 is the
+storefront page's, Slice 12a; v3.13 of 2026-10-29: the dashboard in a shop's identity as Slice 11.12b builds it,
+prototype Part 24: the
 rail at the depth of Lytro's own with the dark logo at its foot, only the page taking the background, figures kept in
 Inter, the corner and spacing presets' sizes, the status colours unchanged; v3.12 of 2026-10-29: the brand editor as
 Slice 11.12a builds it, prototype Part 23: the buttons follow
@@ -435,8 +438,8 @@ the limit, Add product and Duplicate show the banner at once instead of the edit
 - **Serials.** Scan, Paste a list and Type, as drawn; Type takes one at a time with Add, and a USB or Bluetooth barcode
   scanner types there too (`pf-sh-serials-type`). With no camera, Scan says so and points to the other two
   (`pf-sh-serials-nocamera`); a camera the browser blocks says how to allow it, with Try again
-  (`pf-sh-serials-blocked`). A product with serials shows Opening serials in its table where others show SKU; its SKU is
-  in the variant sheet.
+  (`pf-sh-serials-blocked`). A product with serials shows Opening serials in its table; its SKU is in the variant sheet,
+  as every product's now is (v3.15).
 - **Opening serials, line by line** (Part 16, agreed in the step-2 read, 2026-10-29). Paste a list takes one per line, or
   separated by commas, semicolons or tabs; spaces inside an IMEI are dropped (`pf-sh-serials-paste`). Each line is
   checked as it is added: an IMEI is 15 digits ("not 15 digits") with its check digit ("not a valid IMEI"); any other
@@ -448,7 +451,9 @@ the limit, Add product and Duplicate show the banner at once instead of the edit
   more need the opening stock raised first (`pf-sh-serials-full`).
 - **The variant sheet.** A variant's name in the table opens what it sets for itself: SKU, barcode, weight and delivery
   charge (empty follows the product, its value as the hint), Adjust by weight, and On sale (`sh-variant`; ATR-05,
-  ATR-13).
+  ATR-13). Amended in v3.15 (Part 26, after the real-server walkthrough, 11.13b): the table has no SKU column, so a
+  variant's SKU is set here only; an SKU another variant has marks the variant's name in the table and is said under
+  this sheet's SKU field (`sh-variant-sku-taken`).
 - **One variant.** A product with no options keeps its SKU and barcode under More settings, shown only while it has none
   (`pf-books_stationery`).
 - **Opening cost.** The opening batch sheet's unit cost is saved as the variant's cost entered by hand (INV-10), with
@@ -666,6 +671,12 @@ check picks products or a category (`stock-check-pick`); a product kept in batch
 line; a serial-numbered line counted short names the IMEI not found when every unit short had one
 (`stock-check-batches`, `sh-check-missing`). The lines name their variant ("Denim jacket · M"). No check yet says so
 (`stock-checks-empty`).
+
+*Amended in v3.15 (Part 26, after the real-server walkthrough, 11.13b):* a shop that keeps no batches meets no batch
+words. The pick sheet's note that a product kept in batches is counted batch by batch shows only when a product it
+lists keeps batches, or it has more to list (`stock-check-pick-plain`); the Stock page's Expiring figure is not drawn
+where it would say the shop has no batches (`stock`). The arrival sheet's note (`sh-receive`) and the supplier sheet's
+archive help no longer end with a requirement id.
 
 *Said exactly for the build, v3.8 (Part 20):* the Stock page's **Check stock** opens this list, whose **New check**
 starts one, so every past check is reachable (agreed 2026-10-28). A new check starts with nothing picked

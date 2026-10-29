@@ -7,17 +7,19 @@ import { Switch } from '@/components/ui/switch';
 import type { ProductSettings } from '@/lib/product-settings';
 import type { VariantRow } from '@/lib/variant-matrix';
 import { AdjustRow } from './stock-delivery-card';
+import type { SheetField } from './variant-problems';
 
 /**
  * The variant sheet (Part 15's `sh-variant`, agreed in the 11.7b read; ATR-05, ATR-13): what one variant sets for
  * itself -- its SKU and barcode, its weight and delivery charge (empty follows the product, shown as the hint), whether
  * its charge grows with its weight, and whether it is on sale. Opened from its name in the table; what is typed applies
- * as it is typed, and Save keeps it.
+ * as it is typed, and Save keeps it. Its SKU is set here only (design v3.15); a field the server refuses says why under it.
  */
 export function VariantSheet({
   row,
   name,
   settings,
+  problems,
   readOnly,
   onChange,
   onClose,
@@ -27,6 +29,8 @@ export function VariantSheet({
   name: string;
   /** The product's own settings, which an empty field follows. */
   settings: ProductSettings;
+  /** What the server refused of this variant's own fields, by field. */
+  problems: Partial<Record<SheetField, string>>;
   readOnly: boolean;
   onChange: (patch: Partial<VariantRow>) => void;
   onClose: () => void;
@@ -51,6 +55,7 @@ export function VariantSheet({
             <Field
               label={t('skuCol')}
               value={row.sku}
+              error={problems.sku}
               maxLength={SKU_MAX_LENGTH}
               readOnly={readOnly}
               onChange={(event) => {
@@ -60,6 +65,7 @@ export function VariantSheet({
             <Field
               label={t('barcode')}
               value={row.barcode}
+              error={problems.barcode}
               // As drawn: a Bangladeshi EAN-13 shows what goes here.
               placeholder="8941100500123"
               maxLength={SKU_MAX_LENGTH}
@@ -75,6 +81,7 @@ export function VariantSheet({
               inputMode="decimal"
               className="num"
               value={row.weightKg}
+              error={problems.weightKg}
               placeholder={
                 settings.weightKg.trim() === ''
                   ? '0.00'
@@ -91,6 +98,7 @@ export function VariantSheet({
               inputMode="decimal"
               className="num"
               value={row.deliveryCharge}
+              error={problems.deliveryCharge}
               placeholder={
                 settings.deliveryCharge.trim() === ''
                   ? t('followsZone')

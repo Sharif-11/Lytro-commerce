@@ -4,6 +4,7 @@ export { DatabaseConnector, type Database, type DatabaseHandle, type PoolSetting
 export { MigrationRunner } from './migrate';
 export { ActivityLogPurger } from './purge-activity-log';
 export { QueueBootstrapper } from './bootstrap-queue';
+export { TestDatabasePreparer, type PreparedDatabase } from './prepare-database';
 export { OperatorCreator } from './create-operator';
 export { OperatorTwoFactorReset } from './reset-operator-2fa';
 export { TransactionRunner, type Executor, type Transaction } from './transactions';
