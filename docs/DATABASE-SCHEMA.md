@@ -1336,6 +1336,40 @@ CREATE INDEX ON tenant.order_line_components (tenant_id, variant_id);
 -- components (built in Slice 4.5, 0091).
 ```
 
+#### Modifiers (MNU) — Phase 4
+
+```sql
+-- Built in Phase 4 Slice 4.6b (MNU-01, agreed 2026-10-30, 0093): a product's modifier groups, shared by its variants,
+-- replaced whole when the product is saved; never on a combo (the server refuses). RLS like every tenant table.
+CREATE TABLE tenant.modifier_groups (
+    id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id        uuid NOT NULL,
+    product_id       uuid NOT NULL,
+    name             varchar(60) NOT NULL,           -- "Spice level"
+    min_select       smallint NOT NULL,
+    max_select       smallint NOT NULL,
+    position         smallint NOT NULL,              -- the product's order, from 0
+    UNIQUE (tenant_id, id),
+    CHECK (min_select >= 0 AND max_select >= 1 AND min_select <= max_select),
+    FOREIGN KEY (tenant_id, product_id) REFERENCES tenant.products(tenant_id, id) ON DELETE CASCADE
+);
+CREATE INDEX ON tenant.modifier_groups (tenant_id, product_id, position);
+
+CREATE TABLE tenant.modifier_options (
+    id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id        uuid NOT NULL,
+    group_id         uuid NOT NULL,
+    name             varchar(60) NOT NULL,           -- "Extra cheese"
+    price_change     numeric(10,2) NOT NULL DEFAULT 0,  -- either sign; a line's unit price never below 0 (MNU-02)
+    is_default       boolean NOT NULL DEFAULT false, -- taken when a line names nothing for its group (MNU-03)
+    position         smallint NOT NULL,
+    FOREIGN KEY (tenant_id, group_id) REFERENCES tenant.modifier_groups(tenant_id, id) ON DELETE CASCADE
+);
+CREATE INDEX ON tenant.modifier_options (tenant_id, group_id, position);
+-- Up to 10 groups a product and 20 options a group (validators). An order line copies its choices into
+-- order_lines.modifiers, so a group changed or removed later leaves its orders as they were.
+```
+
 #### Shop-type presets (PST) — `control` schema, platform-wide
 
 ```sql
@@ -1544,11 +1578,12 @@ CREATE TABLE tenant.order_lines (                  -- ORD-46: a self-sufficient 
     sku             varchar(64),
     attribute_values jsonb NOT NULL DEFAULT '[]',   -- ATR-09, ATL-06: [{ name, value, dataType, unitKind, variantDefining }]
     captured_values jsonb NOT NULL DEFAULT '[]',    -- ATR-08: [{ attributeId, name, value }]
+    modifiers       jsonb NOT NULL DEFAULT '[]',    -- MNU-02 (4.6b): [{ groupId, groupName, optionId, optionName, priceChange }]
     thumbnail_media_id uuid,                        -- MED-09's count; best effort (ORD-47)
     thumbnail_url   text,
     stock_unit      tenant.stock_unit NOT NULL,
     list_price      numeric(12,2) NOT NULL,         -- the variant's price when ordered
-    unit_price      numeric(12,2) NOT NULL,         -- differs when set by hand (ORD-06)
+    unit_price      numeric(12,2) NOT NULL,         -- with its modifiers' price changes (MNU-02), or set by hand (ORD-06)
     quantity        numeric(14,3) NOT NULL CHECK (quantity > 0),
     returned_quantity numeric(14,3) NOT NULL DEFAULT 0, -- ORD-10, INV-17 (Slice 4.3): came back, sellable or damaged; <= quantity
     pack_amount     numeric(14,3) CHECK (pack_amount > 0),   -- INV-24
