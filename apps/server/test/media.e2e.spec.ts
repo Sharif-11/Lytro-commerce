@@ -203,6 +203,11 @@ describeIfDatabase('uploading and processing an image (MED-03, STO-04)', () => {
     expect(ready.bytes).toBe(main.length + thumbnail.length);
     expect(ready.bytes).toBeLessThan(file.length);
     expect((await usage(shop)).usedBytes).toBe(before.usedBytes + ready.bytes);
+    // STO-02: the Usage page shows it at once, from the same count.
+    const page = (await shop.get('/usage')).body as { metrics: { metric: string; used: number }[] };
+    expect(page.metrics.find((figure) => figure.metric === 'storage')?.used).toBe(
+      before.usedBytes + ready.bytes,
+    );
     expect(storage.uploads.has(`${shop.tenantId}/${ready.id}`)).toBe(false);
   });
 
