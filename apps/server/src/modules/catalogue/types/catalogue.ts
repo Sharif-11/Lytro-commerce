@@ -23,6 +23,7 @@ import type {
   ProductFormField,
   SerialFormat,
   StockState,
+  ProductKind,
   StockTracking,
   StockUnit,
   TenantState,
@@ -270,8 +271,27 @@ export interface ProductDetail {
   video: ProductVideoView | null;
   /** DLV-07: the zones it may be delivered to; empty means wherever the shop delivers. */
   deliveryZoneIds: string[];
+  /** CMB-01: an ordinary product or a combo pack, chosen when it was made. */
+  kind: ProductKind;
+  /** CMB-01: a combo's parts in order; empty for an ordinary product. */
+  parts: ComboPartView[];
   createdAt: Date;
   updatedAt: Date;
+}
+
+/** CMB-01: one part of a combo -- its quantity in one combo and the variants it may be (one: a fixed part). */
+export interface ComboPartView {
+  position: number;
+  quantity: string;
+  variants: {
+    variantId: string;
+    productId: string;
+    productName: string;
+    /** Its options ("M / Red"); empty for a product's one variant. */
+    label: string;
+    /** Not retired and its product not deleted. */
+    available: boolean;
+  }[];
 }
 
 /**
@@ -291,6 +311,8 @@ export interface OrderableVariant {
   stockState: StockState;
   stockUnit: StockUnit;
   stockTracking: StockTracking;
+  /** CMB-03: a combo's line reserves, ships and returns its components, not itself. */
+  kind: ProductKind;
   /** INV-24: how much of the shared stock one unit uses; null unless the product shares its stock. */
   packAmount: string | null;
   price: string;

@@ -80,6 +80,7 @@ export class ProductsController {
       await this.catalogue.shopOf(request),
       this.catalogue.idOf(id, 'ProductNotFound'),
       this.catalogue.actorOf(request),
+      this.stock,
     );
   }
 
@@ -96,6 +97,7 @@ export class ProductsController {
       await this.catalogue.shopOf(request),
       this.catalogue.idOf(id, 'ProductNotFound'),
       this.catalogue.actorOf(request),
+      this.stock,
     );
   }
 
@@ -283,6 +285,7 @@ export class ProductsController {
       this.catalogue.idOf(id, 'ProductNotFound'),
       query.hard ?? false,
       this.catalogue.actorOf(request),
+      this.stock,
     );
     return { ok: true };
   }

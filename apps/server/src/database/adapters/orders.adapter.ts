@@ -1,6 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
+  ComboRepository,
   OrderRepository,
+  type ComboPartStockRow,
+  type InsertOrderLineComponent,
+  type SelectOrderLineComponent,
   StockRepository,
   TransactionRunner,
   UsedTransactionIdsRepository,
@@ -42,7 +46,32 @@ export class DrizzleOrderStore implements OrderStore {
     @Inject(OrderRepository) private readonly orders: OrderRepository,
     @Inject(StockRepository) private readonly stock: StockRepository,
     @Inject(UsedTransactionIdsRepository) private readonly usedIds: UsedTransactionIdsRepository,
+    @Inject(ComboRepository) private readonly combos: ComboRepository,
   ) {}
+
+  insertComponents(
+    tx: Transaction,
+    tenantId: string,
+    rows: Omit<InsertOrderLineComponent, 'tenantId'>[],
+  ): Promise<void> {
+    return this.combos.insertComponents(tx, tenantId, rows);
+  }
+
+  listComponents(
+    tx: Transaction,
+    tenantId: string,
+    orderLineIds: string[],
+  ): Promise<SelectOrderLineComponent[]> {
+    return this.combos.listComponents(tx, tenantId, orderLineIds);
+  }
+
+  listComboPartStock(
+    tx: Transaction,
+    tenantId: string,
+    comboIds: string[],
+  ): Promise<ComboPartStockRow[]> {
+    return this.combos.listPartStock(tx, tenantId, comboIds);
+  }
 
   run<T>(_tenantId: string, work: (tx: Transaction) => Promise<T>): Promise<T> {
     return this.transactions.run(this.database.handle.db, work);

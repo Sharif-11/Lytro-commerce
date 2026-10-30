@@ -1,6 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Transaction } from '@lytronix/db';
-import { SerialStatus, StockReason, StockTracking, StockState } from '@lytronix/validators';
+import {
+  ProductKind,
+  SerialStatus,
+  StockReason,
+  StockTracking,
+  StockState,
+} from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import { StockRefused } from '../../../common/errors/stock-refused';
 import { UniqueViolation } from '../../../common/errors/unique-violation';
@@ -8,6 +14,7 @@ import { dhakaDate } from '../../../common/time';
 import type { ResolvedActor } from '../../catalogue/services/catalogue-activity';
 import { CatalogueVersion } from '../../catalogue/services/catalogue-version';
 import type { SerialStore } from '../ports/serial-store';
+import { comboFigures, comboState } from './combo-figures';
 import type { StockBatchStore } from '../ports/stock-batch-store';
 import type { LowStockNotifier, StockStore } from '../ports/stock-store';
 import { LOW_STOCK_NOTIFIER, SERIAL_STORE, STOCK_BATCH_STORE, STOCK_STORE } from '../tokens';
@@ -234,9 +241,15 @@ export class InventoryLedger {
     );
     const crossed: string[] = [];
     const recovered: string[] = [];
+    const combos = new Set<string>();
     for (const productId of productIds) {
       const product = products.get(productId)?.product;
       if (!product) continue;
+      // CMB-02: a combo's state is what its parts can make, worked out with the others below.
+      if (product.kind === ProductKind.Combo) {
+        combos.add(productId);
+        continue;
+      }
       const live = stock.filter((row) => row.productId === productId && !row.retired);
       const { states, watched } = this.statesOf(live, product);
       const changed = live.flatMap((row) => {
@@ -276,6 +289,44 @@ export class InventoryLedger {
     }
     await this.store.setLowNotified(tx, tenantId, crossed, true);
     await this.store.setLowNotified(tx, tenantId, recovered, false);
+    // CMB-02: every combo using one of these products follows in the same transaction (a combo has no combo inside).
+    const parts = productIds.filter((id) => !combos.has(id));
+    for (const id of await this.store.combosUsingProducts(tx, tenantId, parts)) combos.add(id);
+    await this.refreshCombos(tx, tenantId, [...combos]);
+  }
+
+  /**
+   * CMB-02, CMB-08: each combo's state from what its parts can make now -- out while a part cannot be had -- moving
+   * the catalogue version when it changes. A combo sends no low-stock notice; its parts do (agreed 2026-10-30).
+   */
+  private async refreshCombos(
+    tx: Transaction,
+    tenantId: string,
+    comboIds: string[],
+  ): Promise<void> {
+    if (comboIds.length === 0) return;
+    const figures = comboFigures(await this.store.listComboPartStock(tx, tenantId, comboIds));
+    const own = await this.store.listVariantStock(tx, tenantId, comboIds);
+    const combos = new Map(
+      (
+        await this.store.findVariants(
+          tx,
+          tenantId,
+          own.map((row) => row.variantId),
+        )
+      ).map((row) => [row.productId, row.product]),
+    );
+    for (const comboId of comboIds) {
+      const combo = combos.get(comboId);
+      if (!combo) continue;
+      const state = comboState(figures.get(comboId), combo.lowStockThreshold);
+      await this.version.setStockStates(tx, tenantId, comboId, {
+        product: state === combo.stockState ? null : state,
+        variants: own
+          .filter((row) => row.productId === comboId && !row.retired && row.stockState !== state)
+          .map((row) => ({ variantId: row.variantId, state })),
+      });
+    }
   }
 
   /**

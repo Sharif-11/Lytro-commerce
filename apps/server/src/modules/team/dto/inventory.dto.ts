@@ -44,6 +44,19 @@ export const productStockViewSchema = z.object({
   stockUnit: z.nativeEnum(StockUnit),
   lowStockThreshold: z.string(),
   state: z.nativeEnum(StockState),
+  // CMB-02, CMB-08: a combo's "can make" (null: no part counted) and the parts that keep it from being made.
+  combo: z
+    .object({
+      canMake: z.number().nullable(),
+      issues: z.array(
+        z.object({
+          position: z.number(),
+          productName: z.string(),
+          reason: z.enum(['part_unavailable', 'no_choice_left']),
+        }),
+      ),
+    })
+    .nullable(),
   // INV-24: the stock the variants share, held by the product's stock holder; null when each holds its own.
   shared: z
     .object({
@@ -111,6 +124,10 @@ export const stockHistoryPageSchema = z.object({
       reason: z.nativeEnum(StockReason),
       unitCost: z.string().nullable().optional(),
       reference: z.object({ type: z.string(), id: z.string() }).nullable(),
+      // CMB-05: a sale's or return's order, and the combo it went in.
+      order: z
+        .object({ id: z.string(), number: z.string().nullable(), combo: z.string().nullable() })
+        .nullable(),
       batch: movedBatchSchema.nullable(),
       serials: z.array(z.string()),
       note: z.string().nullable(),

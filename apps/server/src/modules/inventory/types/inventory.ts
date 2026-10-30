@@ -1,3 +1,4 @@
+import type { ComboIssue } from '../services/combo-figures';
 import type {
   NewReservation,
   NewSerial,
@@ -284,6 +285,14 @@ export interface ProductStockView {
   /** INV-24: the stock the variants share; null for a product whose variants hold their own. */
   shared: SharedStockView | null;
   variants: VariantStockView[];
+  /** CMB-02, CMB-08: a combo's "can make" and what keeps it from being made; null for an ordinary product. */
+  combo: ComboStockView | null;
+}
+
+/** CMB-02, CMB-08: how many of a combo its parts make now (null: no part counted), and why none can be. */
+export interface ComboStockView {
+  canMake: number | null;
+  issues: ComboIssue[];
 }
 
 /**
@@ -318,6 +327,8 @@ export interface StockMovementView {
   /** INV-11, D3-9: present only for a caller who may see cost; null is unknown. */
   unitCost?: string | null;
   reference: { type: string; id: string } | null;
+  /** CMB-05: a sale's or return's order, and the combo it went in ("sold in Skincare combo, order 261030-0012"). */
+  order: MovedOrderView | null;
   /** INV-12: the batch it moved, on a batch-tracked product. */
   batch: MovedBatchView | null;
   /** INV-14: the serials of the units it brought in or took out. */
@@ -325,6 +336,13 @@ export interface StockMovementView {
   note: string | null;
   actor: StockActorView | null;
   createdAt: Date;
+}
+
+/** CMB-05: the order a movement was for; `combo` names the combo when the item went in one. */
+export interface MovedOrderView {
+  id: string;
+  number: string | null;
+  combo: string | null;
 }
 
 /** INV-12: a batch named on a movement or a counted line. */

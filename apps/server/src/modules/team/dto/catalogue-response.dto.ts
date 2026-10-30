@@ -10,6 +10,7 @@ import {
   SerialFormat,
   StockState,
   StockTracking,
+  ProductKind,
   StockUnit,
 } from '@lytronix/validators';
 import {
@@ -237,6 +238,23 @@ export const productDetailSchema = z.object({
   images: z.array(productImageViewSchema),
   video: productVideoViewSchema.nullable(),
   deliveryZoneIds: z.array(z.string()),
+  // CMB-01: an ordinary product or a combo, and a combo's parts in order (empty for an ordinary product).
+  kind: z.nativeEnum(ProductKind),
+  parts: z.array(
+    z.object({
+      position: z.number(),
+      quantity: z.string(),
+      variants: z.array(
+        z.object({
+          variantId: z.string(),
+          productId: z.string(),
+          productName: z.string(),
+          label: z.string(),
+          available: z.boolean(),
+        }),
+      ),
+    }),
+  ),
   createdAt: z.date(),
   updatedAt: z.date(),
 });

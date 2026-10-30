@@ -14,6 +14,7 @@ import { HandlingQuota } from './services/handling-quota';
 import { OrderFulfilment } from './services/order-fulfilment';
 import { OrderPayments } from './services/order-payments';
 import { OrderPricing } from './services/order-pricing';
+import { OrderCombos } from './services/order-combos';
 import { OrderTracking } from './services/order-tracking';
 import { OrderService } from './services/order.service';
 import { OrdersEraser } from './services/orders-eraser';
@@ -43,6 +44,7 @@ import { ORDER_NOTIFIER, ORDER_STORE } from './tokens';
     OrderFulfilment,
     OrderPayments,
     OrderPricing,
+    OrderCombos,
     OrderService,
     OrderTracking,
     OrdersEraser,

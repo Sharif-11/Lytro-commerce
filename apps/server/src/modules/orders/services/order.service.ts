@@ -1,5 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { InsertOrder, NewOrderHistory, OrderPatch, Transaction } from '@lytronix/db';
+import type {
+  InsertOrder,
+  NewOrderHistory,
+  OrderPatch,
+  SelectOrderLineComponent,
+  Transaction,
+} from '@lytronix/db';
 import {
   AttributeDataType,
   AuditAction,
@@ -39,6 +45,7 @@ import { CustomerService } from '../../customers/services/customer.service';
 import { LocationService } from '../../delivery/services/location.service';
 import type { ResolvedZoneView } from '../../delivery/types/delivery';
 import { ReservationService } from '../../inventory/services/reservation.service';
+import { OrderCombos } from './order-combos';
 import { milli } from '../../inventory/services/stock-state';
 import { StaffService } from '../../staff/services/staff.service';
 import type { OrderStore } from '../ports/order-store';
@@ -159,8 +166,18 @@ function totalsOf(
   };
 }
 
-function itemView(line: OrderLineRecord): OrderItemView {
+function itemView(line: OrderLineRecord, components: SelectOrderLineComponent[]): OrderItemView {
   return {
+    components: components
+      .filter((component) => component.orderLineId === line.id)
+      .map((component) => ({
+        partPosition: component.partPosition,
+        productId: component.productId,
+        variantId: component.variantId,
+        productName: component.productName,
+        attributes: component.attributeValues,
+        quantity: component.quantity,
+      })),
     id: line.id,
     productId: line.productId,
     variantId: line.variantId,
@@ -217,6 +234,7 @@ export class OrderService {
     @Inject(StaffService) private readonly staff: StaffService,
     @Inject(IdempotencyService) private readonly idempotency: IdempotencyService,
     @Inject(PaymentRecorder) private readonly payments: PaymentRecorder,
+    @Inject(OrderCombos) private readonly combos: OrderCombos,
   ) {}
 
   /**
@@ -303,10 +321,10 @@ export class OrderService {
       spec.items.map((item) => item.variantId),
     );
     const destination = await this.destinationWithin(tx, tenantId, spec.type, spec.location);
-    const planned = this.plan(
-      spec.items.map((item) => ({ item, kept: null })),
-      variants,
-    );
+    const entries = spec.items.map((item) => ({ item, kept: null }));
+    const planned = this.plan(entries, variants);
+    // CMB-03: each combo item's components, checked before anything is written.
+    const components = await this.combos.plan(tx, tenantId, entries, variants);
     if (spec.shopper) this.refuseForShopper(destination, planned, variants);
     const price = this.priceOf(spec.type, destination, planned, spec.discount, {
       byHand: spec.byHand,
@@ -333,11 +351,15 @@ export class OrderService {
       updatedAt: now,
     });
     const lines = await this.store.insertLines(tx, tenantId, made.id, this.rowsOf(planned, price));
-    await this.reservations.reserve(
-      tx,
-      tenantId,
-      { orderId: made.id, awaitingPayment: false, lines: this.holdsOf(lines) },
-      now,
+    await this.combos.write(tx, tenantId, lines, components);
+    const holds = await this.combos.holdsOf(tx, tenantId, lines);
+    await this.combos.naming(holds, lines, () =>
+      this.reservations.reserve(
+        tx,
+        tenantId,
+        { orderId: made.id, awaitingPayment: false, lines: holds },
+        now,
+      ),
     );
     const by = { id: spec.by, ip: spec.actor.ip };
     await this.store.insertHistory(tx, tenantId, [
@@ -610,6 +632,8 @@ export class OrderService {
         entries.map((entry) => entry.item.variantId),
       );
       const planned = this.plan(entries, variants);
+      // CMB-03: a new combo item's components; a kept one keeps what it was ordered with (agreed 2026-10-30).
+      const components = await this.combos.plan(tx, tenantId, entries, variants);
       const byHand = delivering && merged.deliveryCharge !== null;
       const price = this.priceOf(
         type,
@@ -660,14 +684,18 @@ export class OrderService {
             fresh.push(row);
           }
         }
-        await this.store.insertLines(tx, tenantId, order.id, fresh);
+        const inserted = await this.store.insertLines(tx, tenantId, order.id, fresh);
+        await this.combos.write(tx, tenantId, inserted, components);
         const lines = await this.store.listLines(tx, tenantId, [order.id]);
         const held = lines.filter((line) => keptIds.has(line.id) || !byId.has(line.id));
-        await this.reservations.replaceForOrder(
-          tx,
-          tenantId,
-          { orderId: order.id, awaitingPayment: false, lines: this.holdsOf(held) },
-          now,
+        const holds = await this.combos.holdsOf(tx, tenantId, held);
+        await this.combos.naming(holds, held, () =>
+          this.reservations.replaceForOrder(
+            tx,
+            tenantId,
+            { orderId: order.id, awaitingPayment: false, lines: holds },
+            now,
+          ),
         );
         // A released hold goes with the item it was for (migration 0083).
         await this.store.deleteLines(
@@ -1215,17 +1243,6 @@ export class OrderService {
     });
   }
 
-  /** PRD-07, INV-15: what the order's items hold; a made-to-order item holds nothing (the reservations decide). */
-  private holdsOf(
-    lines: OrderLineRecord[],
-  ): { orderLineId: string; variantId: string; quantity: string }[] {
-    return lines.flatMap((line) =>
-      line.variantId !== null
-        ? [{ orderLineId: line.id, variantId: line.variantId, quantity: line.quantity }]
-        : [],
-    );
-  }
-
   /** ORD-06: each price staff set by hand, new or changed, kept in the order's history. */
   private byHandHistory(
     orderId: string,
@@ -1363,6 +1380,11 @@ export class OrderService {
       await this.store.listHistory(tx, tenantId, order.id),
       await this.store.listPayments(tx, tenantId, order.id),
     ];
+    const components = await this.store.listComponents(
+      tx,
+      tenantId,
+      lines.map((line) => line.id),
+    );
     const names = await this.staff.namesWithin(tx, tenantId, [
       ...calls.flatMap((call) => (call.calledBy !== null ? [call.calledBy] : [])),
       ...history.flatMap((row) => (row.changedBy !== null ? [row.changedBy] : [])),
@@ -1425,7 +1447,7 @@ export class OrderService {
       createdBy: person(order.createdBy),
       createdAt: order.createdAt,
       updatedAt: order.updatedAt,
-      items: lines.map(itemView),
+      items: lines.map((line) => itemView(line, components)),
       calls: calls.map((call) => ({
         id: call.id,
         outcome: call.outcome,

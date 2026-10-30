@@ -30,6 +30,8 @@ import { PresetService } from './services/preset.service';
 import { ProductService } from './services/product.service';
 import { ShopPaymentPolicyService } from './services/shop-payment-policy.service';
 import { SizeChartService } from './services/size-chart.service';
+import { ComboParts } from './services/combo-parts';
+import { DrizzleComboStore } from '../../database/adapters/combo.adapter';
 import {
   ATTRIBUTE_STORE,
   CATALOGUE_DATA_STORE,
@@ -42,6 +44,7 @@ import {
   PRODUCT_STORE,
   SHOP_POLICY_STORE,
   SIZE_CHART_STORE,
+  COMBO_STORE,
 } from './tokens';
 
 // D3-7: the catalogue module -- categories, products, variants, attributes, size charts, option sets, the shop-type
@@ -57,6 +60,7 @@ import {
     { provide: PRODUCT_STORE, useClass: DrizzleProductStore },
     { provide: PRESET_STORE, useClass: DrizzlePresetStore },
     { provide: SIZE_CHART_STORE, useClass: DrizzleSizeChartStore },
+    { provide: COMBO_STORE, useClass: DrizzleComboStore },
     { provide: OPTION_SET_STORE, useClass: DrizzleOptionSetStore },
     { provide: PLATFORM_LIBRARY_STORE, useClass: DrizzlePlatformLibraryStore },
     { provide: SHOP_POLICY_STORE, useClass: DrizzleShopPolicyStore },
@@ -73,6 +77,7 @@ import {
     CategoryService,
     ProductService,
     SizeChartService,
+    ComboParts,
     OptionSetService,
     PlatformLibraryService,
   ],
@@ -92,6 +97,7 @@ import {
     CategoryService,
     ProductService,
     SizeChartService,
+    ComboParts,
     OptionSetService,
     PlatformLibraryService,
   ],

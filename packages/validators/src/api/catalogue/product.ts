@@ -1,6 +1,9 @@
 import { z } from 'zod';
 import {
   ATTRIBUTES_PER_PRODUCT_MAX,
+  COMBO_PART_QUANTITY_MAX,
+  COMBO_PART_VARIANTS_MAX,
+  COMBO_PARTS_MAX,
   LIST_PAGE_SIZE_MAX,
   MAX_VARIANT_ATTRIBUTES,
   MAX_VARIANTS_PER_PRODUCT,
@@ -17,6 +20,7 @@ import {
   ItemCondition,
   MEASURED_STOCK_UNITS,
   PaymentPolicy,
+  ProductKind,
   SerialFormat,
   StockState,
   StockTracking,
@@ -346,6 +350,60 @@ function checkFields(value: Partial<z.infer<z.ZodObject<typeof productFields>>>,
   }
 }
 
+// CMB-01, CMB-10: a combo's parts, in order: each a quantity in one combo (whole for a product counted in units, the
+// server's check, UOM-03) and the variants of ordinary products it may be; one variant makes a fixed part, several a
+// choice the shopper makes for each unit.
+const comboPartSchema = z.object({
+  quantity: positiveQuantityField.refine((value) => value <= COMBO_PART_QUANTITY_MAX, {
+    message: `At most ${String(COMBO_PART_QUANTITY_MAX)} in one combo.`,
+    params: { problem: FieldProblemCode.TooLarge, max: COMBO_PART_QUANTITY_MAX },
+  }),
+  variantIds: z.array(catalogueIdSchema).min(1).max(COMBO_PART_VARIANTS_MAX),
+});
+export const comboPartsField = z.array(comboPartSchema).min(1).max(COMBO_PARTS_MAX);
+export type ComboPartInput = z.infer<typeof comboPartSchema>;
+
+/** CMB-01: a combo is made of its parts alone -- no variants of its own to choose, no stock and no tracking of it. */
+function checkCombo(
+  value: {
+    kind?: ProductKind;
+    parts?: unknown;
+    variantAttributes?: unknown[];
+    variants?: unknown[];
+    sharedStock?: boolean;
+    batchTracked?: boolean;
+    serialTracked?: boolean;
+  },
+  ctx: Ctx,
+): void {
+  if (value.kind !== ProductKind.Combo) {
+    if (value.parts !== undefined) {
+      refuse(ctx, ['parts'], FieldProblemCode.NotAllowed, 'Only a combo has parts.');
+    }
+    return;
+  }
+  if (value.parts === undefined) {
+    refuse(ctx, ['parts'], FieldProblemCode.Required, 'A combo needs its parts.');
+  }
+  const own: [keyof typeof value, boolean][] = [
+    ['variantAttributes', (value.variantAttributes ?? []).length > 0],
+    ['variants', (value.variants ?? []).length > 0],
+    ['sharedStock', value.sharedStock === true],
+    ['batchTracked', value.batchTracked === true],
+    ['serialTracked', value.serialTracked === true],
+  ];
+  for (const [field, set] of own) {
+    if (set) {
+      refuse(
+        ctx,
+        [field],
+        FieldProblemCode.NotAllowed,
+        'A combo has one variant of its own and holds no stock; its parts do.',
+      );
+    }
+  }
+}
+
 // POST products (PRD-01, ATR-03, ATR-11): the product, its attributes and its variants in one request, saved in
 // one transaction. With no variant-defining attributes it gets one default variant (ATR-04); with some and no
 // `variants`, one variant for every combination of the chosen options. With `sharedStock` (INV-24) its variants draw on
@@ -369,9 +427,13 @@ export const createProductSchema = z
     // with it too (Slice 11.7c keeps a new product one request).
     deliveryZoneIds: productDeliveryZonesSchema.shape.zoneIds.optional(),
     sizeChart: sizeChartSchema.optional(),
+    // CMB-01: a combo pack, made of `parts`; chosen now and never changed.
+    kind: z.nativeEnum(ProductKind).optional(),
+    parts: comboPartsField.optional(),
   })
   .superRefine((value, ctx) => {
     checkFields(value, ctx);
+    checkCombo(value, ctx);
     checkMatrix(value, ctx);
     checkRoles(value, ctx);
     checkSharing({ ...value, sharedStock: value.sharedStock ?? false }, ctx);
@@ -404,6 +466,9 @@ export const updateProductSchema = z
     basePrice: productFields.basePrice.optional(),
     // INV-24: switched where the variants are saved, since each one needs its pack amount with it.
     sharedStock: z.unknown().optional(),
+    // CMB-01: a combo's parts, the whole list as it should now be; open orders keep what they reserved (agreed
+    // 2026-10-30). Only a combo has parts, the server's check.
+    parts: comboPartsField.optional(),
   })
   .superRefine((value, ctx) => {
     checkFields(value, ctx);

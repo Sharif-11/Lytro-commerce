@@ -1,4 +1,5 @@
 import type {
+  ComboPartStockRow,
   ProductListFilter,
   ProductListRow,
   ProductStateCounts,
@@ -47,6 +48,14 @@ export interface StockStore {
     tenantId: string,
     productIds: string[],
   ): Promise<VariantStockRow[]>;
+  /** CMB-02: the live combos whose parts use any variant of these products. */
+  combosUsingProducts(tx: Transaction, tenantId: string, productIds: string[]): Promise<string[]>;
+  /** CMB-02: every allowed variant of these combos' parts, with its stock. */
+  listComboPartStock(
+    tx: Transaction,
+    tenantId: string,
+    comboIds: string[],
+  ): Promise<ComboPartStockRow[]>;
   /** The stock lock order: products in id order, then levels in variant order, then batches and serials. */
   lockProducts(tx: Transaction, tenantId: string, productIds: string[]): Promise<void>;
   /** A variant's on-hand stock, locked after its product. */

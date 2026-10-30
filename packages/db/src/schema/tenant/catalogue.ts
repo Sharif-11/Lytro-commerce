@@ -25,6 +25,7 @@ import {
   ItemCondition,
   PaymentPolicy,
   PRODUCT_NAME_MAX_LENGTH,
+  ProductKind,
   SerialFormat,
   StockState,
   StockTracking,
@@ -50,6 +51,7 @@ export const deliveryMode = tenant.enum('delivery_mode', enumTuple(Object.values
 export const serialFormat = tenant.enum('serial_format', enumTuple(Object.values(SerialFormat)));
 export const paymentPolicy = tenant.enum('payment_policy', enumTuple(Object.values(PaymentPolicy)));
 export const itemCondition = tenant.enum('item_condition', enumTuple(Object.values(ItemCondition)));
+export const productKind = tenant.enum('product_kind', enumTuple(Object.values(ProductKind)));
 
 // CCH-02, INV-19: bumped in the same transaction as any write that changes what the public catalogue shows.
 export const catalogueState = tenant.table('catalogue_state', {
@@ -107,6 +109,8 @@ export const products = tenant.table(
     serialFormat: serialFormat('serial_format').notNull().default(SerialFormat.Any),
     // INV-24: the variants draw on one stock, held by the product's stock-holder variant, each using its pack amount.
     sharedStock: boolean('shared_stock').notNull().default(false),
+    // CMB-01: a combo pack holds no stock of its own; its parts do. Chosen at creation, never changed.
+    kind: productKind('kind').notNull().default(ProductKind.Standard),
     lowStockThreshold: numeric('low_stock_threshold', { precision: 14, scale: 3 })
       .notNull()
       .default('5'),
@@ -165,6 +169,12 @@ export const products = tenant.table(
     check(
       'products_shared_stock_check',
       sql`NOT (${t.sharedStock} AND (${t.stockTracking} = 'not_tracked' OR ${t.serialTracked}))`,
+    ),
+    // CMB-01: a combo counts no stock of its own -- no batches, serials or shared stock; its parts are counted.
+    check(
+      'products_combo_check',
+      sql`${t.kind} <> 'combo' OR (${t.stockTracking} = 'not_tracked' AND NOT ${t.batchTracked}
+        AND NOT ${t.serialTracked} AND NOT ${t.sharedStock})`,
     ),
     check(
       'products_advance_check',
@@ -278,6 +288,59 @@ export const productVariants = tenant.table(
   ],
 );
 
+// CMB-01, CMB-10: a combo's parts, in order, each a quantity in one combo.
+export const comboParts = tenant.table(
+  'combo_parts',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    tenantId: uuid('tenant_id').notNull(),
+    comboProductId: uuid('combo_product_id').notNull(),
+    position: smallint('position').notNull(),
+    quantity: numeric('quantity', { precision: 14, scale: 3 }).notNull(),
+  },
+  (t) => [
+    unique('combo_parts_tenant_id_key').on(t.tenantId, t.id),
+    unique('combo_parts_position_key').on(t.comboProductId, t.position),
+    foreignKey({
+      name: 'combo_parts_product_fk',
+      columns: [t.tenantId, t.comboProductId],
+      foreignColumns: [products.tenantId, products.id],
+    }).onDelete('cascade'),
+    check('combo_parts_position_check', sql`${t.position} BETWEEN 1 AND 10`),
+    check('combo_parts_quantity_check', sql`${t.quantity} > 0 AND ${t.quantity} <= 20`),
+  ],
+);
+
+// CMB-01, CMB-08: the variants a part may be -- exactly one makes a fixed part -- each in its place, the order the shop
+// listed them and the order shoppers choose from. A variant in use cannot be hard-deleted (no cascade): the delete is
+// refused naming the combos (PRD-13). A trigger keeps out combos and stock holders, and more than 100 a part (CMB-10).
+export const comboPartVariants = tenant.table(
+  'combo_part_variants',
+  {
+    tenantId: uuid('tenant_id').notNull(),
+    partId: uuid('part_id').notNull(),
+    variantId: uuid('variant_id').notNull(),
+    position: smallint('position').notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.partId, t.variantId] }),
+    unique('combo_part_variants_position_key').on(t.partId, t.position),
+    check('combo_part_variants_position_check', sql`${t.position} BETWEEN 1 AND 100`),
+    foreignKey({
+      name: 'combo_part_variants_part_fk',
+      columns: [t.tenantId, t.partId],
+      foreignColumns: [comboParts.tenantId, comboParts.id],
+    }).onDelete('cascade'),
+    foreignKey({
+      name: 'combo_part_variants_variant_fk',
+      columns: [t.tenantId, t.variantId],
+      foreignColumns: [productVariants.tenantId, productVariants.id],
+    }),
+    // CMB-02: the combos to look at again when a variant's stock changes.
+    index('combo_part_variants_variant_idx').on(t.tenantId, t.variantId),
+  ],
+);
+
 // LND-04: an old slug keeps resolving to its product after a deliberate change, and no other product may take it.
 export const productSlugRedirects = tenant.table(
   'product_slug_redirects',
@@ -337,4 +400,5 @@ export type SelectProduct = typeof products.$inferSelect;
 export type InsertProduct = typeof products.$inferInsert;
 export type SelectProductVariant = typeof productVariants.$inferSelect;
 export type InsertProductVariant = typeof productVariants.$inferInsert;
+export type SelectComboPart = typeof comboParts.$inferSelect;
 export type SelectSizeChart = typeof sizeCharts.$inferSelect;

@@ -90,6 +90,29 @@ export class PublicProductDetailDto extends createZodDto(
     paymentPolicy: z.nativeEnum(PaymentPolicy),
     advanceAmount: z.string().nullable(),
     deliveryZoneIds: z.array(z.string()),
+    // CMB-06, CMB-09: a combo's saving and "What's inside"; null for an ordinary product.
+    combo: z
+      .object({
+        saving: z.string().nullable(),
+        parts: z.array(
+          z.object({
+            position: z.number(),
+            quantity: z.string(),
+            productName: z.string(),
+            image: imageViewSchema.nullable(),
+            choice: z.boolean(),
+            variants: z.array(
+              z.object({
+                variantId: z.string(),
+                productName: z.string(),
+                label: z.string(),
+                available: z.boolean(),
+              }),
+            ),
+          }),
+        ),
+      })
+      .nullable(),
   }),
 ) {}
 
