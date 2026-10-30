@@ -1543,6 +1543,40 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'Return recorded.',
     bn: 'রিটার্ন রেকর্ড করা হয়েছে।',
   },
+  OrderNothingDue: {
+    en: 'Nothing is due on this order.',
+    bn: 'এই অর্ডারে কোনো ডিউ নেই।',
+  },
+  PaymentMoreThanDue: {
+    en: (p) => `Only ৳${String(p.due)} is due on this order.`,
+    bn: (p) => `এই অর্ডারে ডিউ মাত্র ৳${String(p.due)}।`,
+  },
+  OrderTotalBelowPaid: {
+    en: (p) =>
+      `৳${String(p.paid)} is already paid on this order, so its total can't go below that. Void a payment first.`,
+    bn: (p) =>
+      `এই অর্ডারে ইতিমধ্যে ৳${String(p.paid)} পেমেন্ট হয়েছে, তাই টোটাল এর নিচে নামানো যায় না। আগে একটি পেমেন্ট ভয়েড করুন।`,
+  },
+  OrderPaymentNotFound: {
+    en: 'Payment not found.',
+    bn: 'পেমেন্টটি পাওয়া যায়নি।',
+  },
+  PaymentAlreadyVoided: {
+    en: 'This payment is already void.',
+    bn: 'এই পেমেন্ট আগেই ভয়েড করা হয়েছে।',
+  },
+  CashOnDeliveryKept: {
+    en: "Cash on delivery is collected when the order is delivered, so it can't be voided.",
+    bn: 'অর্ডার ডেলিভারড হলে ক্যাশ অন ডেলিভারি কালেক্ট হয়, তাই এটি ভয়েড করা যায় না।',
+  },
+  OrderPaymentRecorded: {
+    en: 'Payment recorded.',
+    bn: 'পেমেন্ট রেকর্ড করা হয়েছে।',
+  },
+  OrderPaymentVoided: {
+    en: 'Payment voided.',
+    bn: 'পেমেন্ট ভয়েড করা হয়েছে।',
+  },
 };
 
 export function translate(key: MessageKey, lang: Language, params: MessageParams = {}): string {

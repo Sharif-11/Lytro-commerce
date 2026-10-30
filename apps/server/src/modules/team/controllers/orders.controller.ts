@@ -27,6 +27,7 @@ import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
 import { DashboardGuard, type DashboardRequest } from '../../identity/guards/dashboard.guard';
 import { SessionGuard } from '../../identity/guards/session.guard';
 import { OrderFulfilment } from '../../orders/services/order-fulfilment';
+import { OrderPayments } from '../../orders/services/order-payments';
 import { OrderService } from '../../orders/services/order.service';
 import type { HandlingShop } from '../../orders/services/handling-quota';
 import type { OrderPage, OrderQuote, OrderView } from '../../orders/types/orders';
@@ -36,12 +37,14 @@ import {
   HandOverOrderDto,
   LogCallDto,
   OrderPageDto,
+  OrderPaymentDto,
   OrderQuoteDto,
   OrderViewDto,
   OverrideOrderDto,
   ReturnOrderDto,
   ShipOrderDto,
   UpdateOrderDto,
+  VoidPaymentDto,
 } from '../dto/orders.dto';
 import { PermissionGuard } from '../guards/permission.guard';
 import { CatalogueRequest } from '../services/catalogue-request';
@@ -50,8 +53,9 @@ import { CatalogueRequest } from '../services/catalogue-request';
 const CREATE_PATH = '/orders';
 
 // ORD-01 to ORD-14, ORD-41, ORD-45, ORD-51, ORD-52 (Phase 4 Slice 4.1): the shop's orders as staff enter and handle
-// them; shipping, handing over, delivering and returning them by hand (Slice 4.3). Reading them needs orders:read;
-// making, changing, calling about, cancelling, holding and moving them, orders:manage; deleting one, orders:delete.
+// them; shipping, handing over, delivering and returning them by hand (Slice 4.3); the payments staff record on them
+// (Slice 4.3b). Reading them needs orders:read; making, changing, calling about, cancelling, holding and moving them,
+// orders:manage; deleting one, orders:delete; recording or voiding a payment, payments:manage -- with a new order too.
 @ApiTags('Orders')
 @Controller('orders')
 @Dashboard({})
@@ -60,6 +64,7 @@ export class OrdersController {
   constructor(
     @Inject(OrderService) private readonly orders: OrderService,
     @Inject(OrderFulfilment) private readonly fulfilment: OrderFulfilment,
+    @Inject(OrderPayments) private readonly payments: OrderPayments,
     @Inject(CatalogueRequest) private readonly request: CatalogueRequest,
   ) {}
 
@@ -81,7 +86,8 @@ export class OrdersController {
   @RequirePermission(Permission.OrdersManage)
   @ResponseMessage('OrderCreated')
   @ApiOperation({
-    summary: 'Enter an order; it holds its stock, and runs once per Idempotency-Key (ORD-01, D4-8)',
+    summary:
+      'Enter an order; it holds its stock, and runs once per Idempotency-Key (ORD-01, D4-8); a payment received with it needs payments:manage too (ORD-22)',
   })
   @ApiHeader({ name: 'Idempotency-Key', required: true })
   @ApiBody({ type: CreateOrderDto })
@@ -93,6 +99,15 @@ export class OrdersController {
   ): Promise<unknown> {
     const key = headerValue(request.headers['idempotency-key']);
     if (!key) throw new ApiError('validation_error', 'IdempotencyKeyRequired', {});
+    // ORD-22, agreed 2026-10-30: recording the payment that comes with it is payments:manage's, as on its own route.
+    if (
+      body.payment !== undefined &&
+      !(await this.request.holds(request, Permission.PaymentsManage))
+    ) {
+      throw new ApiError('forbidden', 'PermissionDenied', {
+        permission: Permission.PaymentsManage,
+      });
+    }
     const tenantId = this.request.tenantIdOf(request);
     const created = await this.orders.create(tenantId, body, this.request.actorOf(request), {
       scope: { tenantId, caller: dashboardCaller(request.session?.userId ?? null) },
@@ -280,6 +295,53 @@ export class OrdersController {
     return this.fulfilment.returnItems(
       this.request.tenantIdOf(request),
       this.request.idOf(id, 'OrderNotFound'),
+      body,
+      this.request.actorOf(request),
+    );
+  }
+
+  @Post(':id/payments')
+  @RequirePermission(Permission.PaymentsManage)
+  @ResponseMessage('OrderPaymentRecorded')
+  @ApiOperation({
+    summary:
+      'Record money received for an order -- cash, a wallet with its sender and transaction ID, or a bank transfer with its reference -- verified at once; never more than is due (ORD-15, ORD-43)',
+  })
+  @ApiBody({ type: OrderPaymentDto })
+  @ZodResponse({ type: OrderViewDto })
+  recordPayment(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(OrderPaymentDto.schema)) body: OrderPaymentDto,
+    @Req() request: DashboardRequest,
+  ): Promise<OrderView> {
+    return this.payments.record(
+      this.request.tenantIdOf(request),
+      this.request.idOf(id, 'OrderNotFound'),
+      body,
+      this.request.actorOf(request),
+    );
+  }
+
+  @Post(':id/payments/:paymentId/void')
+  @HttpCode(200)
+  @RequirePermission(Permission.PaymentsManage)
+  @ResponseMessage('OrderPaymentVoided')
+  @ApiOperation({
+    summary:
+      'Void a payment recorded by mistake, with the reason; it stays in the history and what is due goes back up (agreed 2026-10-30)',
+  })
+  @ApiBody({ type: VoidPaymentDto })
+  @ZodResponse({ type: OrderViewDto })
+  voidPayment(
+    @Param('id') id: string,
+    @Param('paymentId') paymentId: string,
+    @Body(new ZodValidationPipe(VoidPaymentDto.schema)) body: VoidPaymentDto,
+    @Req() request: DashboardRequest,
+  ): Promise<OrderView> {
+    return this.payments.void(
+      this.request.tenantIdOf(request),
+      this.request.idOf(id, 'OrderNotFound'),
+      this.request.idOf(paymentId, 'OrderPaymentNotFound'),
       body,
       this.request.actorOf(request),
     );

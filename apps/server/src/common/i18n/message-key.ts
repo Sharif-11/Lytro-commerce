@@ -522,6 +522,15 @@ export const MESSAGE_KEYS = [
   'OrderHandedOver',
   'OrderDelivered',
   'OrderReturnRecorded',
+  // Phase 4 Slice 4.3b: payments staff record on an order, and voiding one recorded by mistake (ORD-15, ORD-22, ORD-43).
+  'OrderNothingDue',
+  'PaymentMoreThanDue',
+  'OrderTotalBelowPaid',
+  'OrderPaymentNotFound',
+  'PaymentAlreadyVoided',
+  'CashOnDeliveryKept',
+  'OrderPaymentRecorded',
+  'OrderPaymentVoided',
 ] as const;
 
 export type MessageKey = (typeof MESSAGE_KEYS)[number];

@@ -34,13 +34,45 @@ export interface OrderStore {
   lockHandling(tx: Transaction, tenantId: string): Promise<void>;
   /** QTA-01, QTA-04, QTA-05: the shop's orders handled at or after `since`, or ever when it is null. */
   countHandled(tx: Transaction, tenantId: string, since: Date | null): Promise<number>;
-  /** ORD-15, ORD-22: money recorded for an order, verified as it is recorded. */
+  /**
+   * ORD-15, ORD-22: money recorded for an order, verified as it is recorded. A transaction ID on another live payment of
+   * the shop is a `UniqueViolation('transactionId')`.
+   */
   insertPayment(
     tx: Transaction,
     tenantId: string,
     values: NewOrderPayment,
   ): Promise<OrderPaymentRecord>;
   listPayments(tx: Transaction, tenantId: string, orderId: string): Promise<OrderPaymentRecord[]>;
+  /** Slice 4.3b: one of the order's payments, held until the transaction ends. */
+  lockPayment(
+    tx: Transaction,
+    tenantId: string,
+    orderId: string,
+    paymentId: string,
+  ): Promise<OrderPaymentRecord | null>;
+  /** Agreed 2026-10-30: a payment recorded by mistake, voided with its reason. */
+  voidPayment(
+    tx: Transaction,
+    tenantId: string,
+    paymentId: string,
+    values: { voidedBy: string | null; voidReason: string },
+  ): Promise<OrderPaymentRecord>;
+  /** ORD-15: how the shop's order payments carry a transaction ID -- on a live one, only on voided ones, or none. */
+  transactionUse(
+    tx: Transaction,
+    tenantId: string,
+    transactionId: string,
+  ): Promise<'live' | 'voided' | 'none'>;
+  /**
+   * ORD-15: registers a transaction ID platform-wide for the shop unless it is already registered; `claimed` when this
+   * call registered it, else the shop that holds it.
+   */
+  claimTransactionId(
+    tx: Transaction,
+    tenantId: string,
+    transactionId: string,
+  ): Promise<{ claimed: boolean; tenantId: string }>;
   /** ORD-05: the order, not yet numbered, or null when its tracking ID is taken. */
   insertOrder(tx: Transaction, values: InsertOrder): Promise<UnnumberedOrder | null>;
   /** ORD-04: gives the new order its number, once. */

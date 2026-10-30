@@ -59,6 +59,7 @@ import type {
 } from '../types/orders';
 import { newTrackingId, orderNumberOf } from './order-numbers';
 import { OrderPricing, type OrderPrice, type PricingLine } from './order-pricing';
+import { PaymentRecorder, paymentEntryOf } from './payment-recorder';
 
 // ORD-05: how many tracking IDs are drawn before giving up; a clash is one in a trillion.
 const TRACKING_DRAWS = 5;
@@ -153,7 +154,7 @@ function totalsOf(
     grandTotal: price.grandTotal,
     advanceDue: price.advanceDue,
     codAmount: price.codAmount,
-    // ORD-06: verified payments come off what is due (Slice 4.3); none are recorded yet.
+    // ORD-06: what is due before any payment; the payments recorded on it come off it (PaymentRecorder).
     due: price.grandTotal,
   };
 }
@@ -215,9 +216,13 @@ export class OrderService {
     @Inject(CatalogueActivity) private readonly activity: CatalogueActivity,
     @Inject(StaffService) private readonly staff: StaffService,
     @Inject(IdempotencyService) private readonly idempotency: IdempotencyService,
+    @Inject(PaymentRecorder) private readonly payments: PaymentRecorder,
   ) {}
 
-  /** ORD-01, ORD-07, PRD-07, D4-8: an order entered by staff, holding its stock, once per idempotency key. */
+  /**
+   * ORD-01, ORD-07, ORD-22, PRD-07, D4-8: an order entered by staff, holding its stock, once per idempotency key; a
+   * payment received as it was entered is saved with it, verified (agreed 2026-10-30).
+   */
   async create(
     tenantId: string,
     input: CreateOrderInput,
@@ -252,7 +257,18 @@ export class OrderService {
         shopper: false,
       });
       if (made.replayed) return made;
-      const view = await this.viewWithin(tx, tenantId, made.order, made.warnings);
+      const order =
+        input.payment !== undefined
+          ? await this.payments.recordWithin(
+              tx,
+              tenantId,
+              made.order,
+              paymentEntryOf(input.payment),
+              who,
+              'payment.',
+            )
+          : made.order;
+      const view = await this.viewWithin(tx, tenantId, order, made.warnings);
       await this.idempotency.completeWithin(tx, claim, 201, view);
       return { replayed: false, order: view };
     });
@@ -498,7 +514,8 @@ export class OrderService {
    * ORD-11: changes the customer's details, the items, the prices and the notes until the order ships. Changed items
    * hold their stock afresh in the same transaction, so an edit asking for more than is free is refused and the order
    * stays as it was; an item already on the order keeps the price, weight and delivery it was ordered at unless set
-   * again. A changed thana takes its zone as it stands now.
+   * again. A changed thana takes its zone as it stands now. What is due and the payment status are worked out again from
+   * the payments recorded on it, and a total below what is already paid is refused (ORD-43).
    */
   async update(
     tenantId: string,
@@ -601,6 +618,7 @@ export class OrderService {
       );
 
       const now = new Date();
+      const standing = await this.payments.standingWithin(tx, tenantId, order, price);
       const customerId =
         merged.phone !== null ? await this.customers.claimWithin(tx, tenantId, merged.phone) : null;
       const patch: OrderPatch = {
@@ -613,6 +631,7 @@ export class OrderService {
         tableRef: type === FulfilmentType.DineIn ? merged.tableRef : null,
         ...(moved || !delivering ? this.zoneColumns(destination) : {}),
         ...totalsOf(price),
+        ...standing,
         deliveryChargeByHand: byHand,
         ...(input.notes !== undefined ? { notes: input.notes } : {}),
       };
@@ -669,7 +688,10 @@ export class OrderService {
 
       const deliveryChanged =
         byHand && (!order.deliveryChargeByHand || order.deliveryCharge !== price.deliveryCharge);
+      const paymentMoved: NewOrderHistory[] = [];
+      this.payments.noteStanding(order, standing, null, who, paymentMoved);
       await this.store.insertHistory(tx, tenantId, [
+        ...paymentMoved,
         ...this.byHandHistory(order.id, planned, who),
         ...(deliveryChanged
           ? [
@@ -1342,7 +1364,9 @@ export class OrderService {
     const names = await this.staff.namesWithin(tx, tenantId, [
       ...calls.flatMap((call) => (call.calledBy !== null ? [call.calledBy] : [])),
       ...history.flatMap((row) => (row.changedBy !== null ? [row.changedBy] : [])),
-      ...payments.flatMap((row) => (row.verifiedBy !== null ? [row.verifiedBy] : [])),
+      ...payments.flatMap((row) =>
+        [row.verifiedBy, row.voidedBy].filter((id): id is string => id !== null),
+      ),
       ...(order.confirmedBy !== null ? [order.confirmedBy] : []),
       ...(order.createdBy !== null ? [order.createdBy] : []),
     ]);
@@ -1424,6 +1448,10 @@ export class OrderService {
         transactionId: row.transactionId,
         verifiedBy: person(row.verifiedBy),
         verifiedAt: row.verifiedAt,
+        voided:
+          row.voidedAt !== null && row.voidReason !== null
+            ? { by: person(row.voidedBy), at: row.voidedAt, reason: row.voidReason }
+            : null,
       })),
       warnings,
       limitPrompt,

@@ -3,6 +3,7 @@ import {
   OrderRepository,
   StockRepository,
   TransactionRunner,
+  UsedTransactionIdsRepository,
   type InsertOrder,
   type NewOrderCall,
   type NewOrderHistory,
@@ -14,6 +15,7 @@ import {
   type Transaction,
 } from '@lytronix/db';
 import { OrderKept } from '../../common/errors/order-kept';
+import { UniqueViolation } from '../../common/errors/unique-violation';
 import type { OrderStore } from '../../modules/orders/ports/order-store';
 import type {
   NewOrderLine,
@@ -29,6 +31,8 @@ import { DatabaseService } from '../database.service';
 
 // ORD-12: what the order guard refuses (migration 0083).
 const ORDER_KEPT_CHECK = 'orders_kept';
+// ORD-15: one live payment per transaction ID within a shop (migration 0088).
+const LIVE_TRANSACTION_KEY = 'payments_live_transaction_key';
 
 @Injectable()
 export class DrizzleOrderStore implements OrderStore {
@@ -37,6 +41,7 @@ export class DrizzleOrderStore implements OrderStore {
     @Inject(TransactionRunner) private readonly transactions: TransactionRunner,
     @Inject(OrderRepository) private readonly orders: OrderRepository,
     @Inject(StockRepository) private readonly stock: StockRepository,
+    @Inject(UsedTransactionIdsRepository) private readonly usedIds: UsedTransactionIdsRepository,
   ) {}
 
   run<T>(_tenantId: string, work: (tx: Transaction) => Promise<T>): Promise<T> {
@@ -63,16 +68,57 @@ export class DrizzleOrderStore implements OrderStore {
     return this.orders.countHandled(tx, tenantId, since);
   }
 
-  insertPayment(
+  async insertPayment(
     tx: Transaction,
     tenantId: string,
     values: NewOrderPayment,
   ): Promise<OrderPaymentRecord> {
-    return this.orders.insertPayment(tx, tenantId, values);
+    try {
+      return await this.orders.insertPayment(tx, tenantId, values);
+    } catch (error) {
+      if (this.transactions.isUniqueViolation(error, LIVE_TRANSACTION_KEY)) {
+        throw new UniqueViolation('transactionId');
+      }
+      throw error;
+    }
   }
 
   listPayments(tx: Transaction, tenantId: string, orderId: string): Promise<OrderPaymentRecord[]> {
     return this.orders.listPayments(tx, tenantId, orderId);
+  }
+
+  lockPayment(
+    tx: Transaction,
+    tenantId: string,
+    orderId: string,
+    paymentId: string,
+  ): Promise<OrderPaymentRecord | null> {
+    return this.orders.lockPayment(tx, tenantId, orderId, paymentId);
+  }
+
+  voidPayment(
+    tx: Transaction,
+    tenantId: string,
+    paymentId: string,
+    values: { voidedBy: string | null; voidReason: string },
+  ): Promise<OrderPaymentRecord> {
+    return this.orders.voidPayment(tx, tenantId, paymentId, values);
+  }
+
+  transactionUse(
+    tx: Transaction,
+    tenantId: string,
+    transactionId: string,
+  ): Promise<'live' | 'voided' | 'none'> {
+    return this.orders.transactionUse(tx, tenantId, transactionId);
+  }
+
+  claimTransactionId(
+    tx: Transaction,
+    tenantId: string,
+    transactionId: string,
+  ): Promise<{ claimed: boolean; tenantId: string }> {
+    return this.usedIds.claim(tx, transactionId, tenantId);
   }
 
   insertOrder(tx: Transaction, values: InsertOrder): Promise<UnnumberedOrder | null> {

@@ -617,6 +617,13 @@
       "when": 1793350251602,
       "tag": "0087_custom_domains",
       "breakpoints": true
+    },
+    {
+      "idx": 88,
+      "version": "7",
+      "when": 1793354334848,
+      "tag": "0088_order_payments",
+      "breakpoints": true
     }
   ]
 }

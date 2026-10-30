@@ -282,6 +282,16 @@ Every route lands in `API-CONTRACT.md` with its slice; the isolation registry ga
   order returned once every unit is back; a held or in-review order is not sent; no extra-orders add-on seeded (the
   operator can add one with `limit_key` `orders_handled_monthly`); the usage page's orders figures are counted now and
   drawn with Slice 4.8's screens; the activity log records each move as the order's status changing.
+- **4.3b read agreed 2026-10-30:** a payment received as a staff order is entered is saved with it under the same
+  idempotency key and needs `payments:manage` as well as `orders:manage` (ORD-22 amended); a payment above what is due
+  is refused; a payment recorded by mistake is voided with a reason by `payments:manage`, stays on the order marked
+  void and stops counting, and its transaction ID may be recorded again on that shop's orders, never another shop's
+  (ORD-15 amended). Also settled: the record route `POST /orders/:id/payments`; a wallet needs the sender's mobile and
+  the transaction ID, a bank transfer its reference, cash neither; any method, whatever the shop lists; refused on a
+  cancelled order; partially paid and paid as ORD-43, a met advance counting as paid. Following from those: an edit
+  may not bring the total below what is paid (ORD-43 amended); the cash on delivery a delivery collected is not
+  voided; an ID the shop used to pay Lytro is refused like another shop's; each payment recorded or voided is in the
+  activity log (AUD-01's "payment verified").
 - **Delivers:** Mark shipped with a tracking code, serials and earliest-expiry stock (ORD-09, INV-14, INV-15,
   INV-23), Delivered, and returns line by line (ORD-10, INV-17); the two axes and the computed status (ORD-40 – 43,
   ORD-45); staff-recorded payments (ORD-15, ORD-16, ORD-22, D4-6); the handling quota with its limit keys, mode,
