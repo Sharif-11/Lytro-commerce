@@ -1601,6 +1601,66 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: "The customer's details are deleted.",
     bn: 'কাস্টমারের তথ্য ডিলিট করা হয়েছে।',
   },
+  ShopperAlreadyRegistered: {
+    en: 'This phone already has an account here. Sign in with your password.',
+    bn: 'এই ফোন নম্বরে এখানে আগেই অ্যাকাউন্ট আছে। পাসওয়ার্ড দিয়ে লগইন করুন।',
+  },
+  ShopCannotSendCode: {
+    en: "This shop can't send a sign-up code right now. Please try again later.",
+    bn: 'এই শপ এখন সাইন আপ কোড পাঠাতে পারছে না। পরে আবার ট্রাই করুন।',
+  },
+  ShopperAccountNotFound: {
+    en: 'This customer has no account with the shop.',
+    bn: 'এই কাস্টমারের শপে কোনো অ্যাকাউন্ট নেই।',
+  },
+  ShopperAddressNotFound: {
+    en: 'Address not found.',
+    bn: 'অ্যাড্রেস পাওয়া যায়নি।',
+  },
+  TooManyAddresses: {
+    en: (p) => `You can save up to ${String(p.max)} addresses. Delete one to add another.`,
+    bn: (p) => `সর্বোচ্চ ${String(p.max)}টি অ্যাড্রেস সেভ করা যায়। নতুন যোগ করতে একটি ডিলিট করুন।`,
+  },
+  ShopperCodeSent: {
+    en: 'Code sent.',
+    bn: 'কোড পাঠানো হয়েছে।',
+  },
+  ShopperSignedUp: {
+    en: 'Your account is ready.',
+    bn: 'আপনার অ্যাকাউন্ট তৈরি হয়েছে।',
+  },
+  ShopperSignedIn: {
+    en: 'Signed in.',
+    bn: 'লগইন হয়েছে।',
+  },
+  ShopperSignedOut: {
+    en: 'Signed out.',
+    bn: 'লগআউট হয়েছে।',
+  },
+  ShopperRetrieved: {
+    en: 'Account retrieved.',
+    bn: 'অ্যাকাউন্টের তথ্য পাওয়া গেছে।',
+  },
+  ShopperUpdated: {
+    en: 'Account updated.',
+    bn: 'অ্যাকাউন্ট আপডেট হয়েছে।',
+  },
+  ShopperAddressesRetrieved: {
+    en: 'Addresses retrieved.',
+    bn: 'অ্যাড্রেসগুলো পাওয়া গেছে।',
+  },
+  ShopperAddressSaved: {
+    en: 'Address saved.',
+    bn: 'অ্যাড্রেস সেভ হয়েছে।',
+  },
+  ShopperAddressRemoved: {
+    en: 'Address deleted.',
+    bn: 'অ্যাড্রেস ডিলিট হয়েছে।',
+  },
+  ShopperPasswordSet: {
+    en: "The customer's new password is set. Their sign-ins have ended.",
+    bn: 'কাস্টমারের নতুন পাসওয়ার্ড সেট হয়েছে। তাদের সব লগইন শেষ হয়েছে।',
+  },
 };
 
 export function translate(key: MessageKey, lang: Language, params: MessageParams = {}): string {

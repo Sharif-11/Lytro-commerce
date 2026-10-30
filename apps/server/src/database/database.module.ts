@@ -66,6 +66,7 @@ import {
   PurchaseReceiptRepository,
   OrderRepository,
   CustomerRepository,
+  ShopperRepository,
   MediaRepository,
   MediaBandwidthRepository,
   BrandIdentityRepository,
@@ -206,6 +207,11 @@ import { DatabaseService } from './database.service';
       provide: CustomerRepository,
       inject: [TransactionRunner],
       useFactory: (transactions: TransactionRunner) => new CustomerRepository(transactions),
+    },
+    {
+      provide: ShopperRepository,
+      inject: [TransactionRunner],
+      useFactory: (transactions: TransactionRunner) => new ShopperRepository(transactions),
     },
     {
       provide: MediaRepository,
@@ -350,6 +356,7 @@ import { DatabaseService } from './database.service';
     PurchaseReceiptRepository,
     OrderRepository,
     CustomerRepository,
+    ShopperRepository,
     MediaRepository,
     MediaBandwidthRepository,
     BrandIdentityRepository,

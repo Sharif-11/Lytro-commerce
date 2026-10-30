@@ -88,6 +88,13 @@ export interface OrderStore {
     id: string,
     lock: boolean,
   ): Promise<OrderRecord | null>;
+  /** ORD-18 (Slice 4.4b): a page of the shop's orders carrying this phone, newest first. */
+  listForPhone(
+    tx: Transaction,
+    tenantId: string,
+    phone: string,
+    page: { offset: number; limit: number },
+  ): Promise<{ rows: OrderRecord[]; total: number }>;
   /** ORD-17: the shop's order with this tracking ID. */
   findByTrackingId(
     tx: Transaction,

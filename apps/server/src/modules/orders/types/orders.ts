@@ -163,6 +163,24 @@ export interface OrderView {
   limitPrompt: { metric: 'orders_monthly'; limit: number } | null;
 }
 
+/** ORD-18 (Slice 4.4b): one of a signed-in shopper's orders -- its numbers, status and total, never a name or address. */
+export interface ShopperOrderItem {
+  orderNumber: string;
+  trackingId: string;
+  status: OrderStatus;
+  grandTotal: string;
+  createdAt: Date;
+}
+
+/** ORD-18: a page of a shopper's orders, with how many there are. */
+export interface ShopperOrderPage {
+  orders: ShopperOrderItem[];
+  page: number;
+  limit: number;
+  total: number;
+  pages: number;
+}
+
 /** ORD-15, ORD-22: money that came in for an order, and who recorded it. */
 export interface OrderPaymentView {
   id: string;

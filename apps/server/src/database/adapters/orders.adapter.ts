@@ -121,6 +121,15 @@ export class DrizzleOrderStore implements OrderStore {
     return this.usedIds.claim(tx, transactionId, tenantId);
   }
 
+  listForPhone(
+    tx: Transaction,
+    tenantId: string,
+    phone: string,
+    page: { offset: number; limit: number },
+  ): Promise<{ rows: OrderRecord[]; total: number }> {
+    return this.orders.listForPhone(tx, tenantId, phone, page);
+  }
+
   insertOrder(tx: Transaction, values: InsertOrder): Promise<UnnumberedOrder | null> {
     return this.orders.insertOrder(tx, values);
   }

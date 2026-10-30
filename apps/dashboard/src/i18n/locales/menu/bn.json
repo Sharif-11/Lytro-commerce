@@ -94,6 +94,7 @@
     "shop_closed": "{{actor}} শপ বন্ধ করেছেন",
     "shop_logo_saved": "{{actor}} শপের লোগো বদলেছেন",
     "shop_settings_updated": "{{actor}} শপ সেটিংস বদলেছেন",
+    "shopper_password_set": "{{actor}} একজন কাস্টমারের অ্যাকাউন্টে নতুন পাসওয়ার্ড সেট করেছেন",
     "sign_in": "{{actor}} লগইন করেছেন",
     "sign_in_failed": "লগইন ফেইলড",
     "sign_out": "{{actor}} লগআউট করেছেন",

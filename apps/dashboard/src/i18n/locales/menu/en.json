@@ -94,6 +94,7 @@
     "shop_closed": "{{actor}} closed the shop",
     "shop_logo_saved": "{{actor}} changed the shop logo",
     "shop_settings_updated": "{{actor}} changed the shop settings",
+    "shopper_password_set": "{{actor}} set a new password for a customer's account",
     "sign_in": "{{actor}} signed in",
     "sign_in_failed": "Sign-in failed",
     "sign_out": "{{actor}} signed out",

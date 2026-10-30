@@ -276,6 +276,21 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'GET /customers': "lists and searches only the session shop's own customers",
   'GET /customers/:id': "another shop's customer answers 404",
   'DELETE /customers/:id': "another shop's customer answers 404 and keeps its details",
+  'POST /customers/:id/password': "another shop's customer answers 404 and their password stays",
+  // Phase 4 Slice 4.4b, checked in test/shopper-accounts.e2e.spec.ts: a shopper belongs to the key's own shop.
+  'POST /public/shopper/code':
+    "a phone with an account in another shop still gets a code here; the cost is this shop's",
+  'POST /public/shopper/signup': "another shop's code makes no account here",
+  'POST /public/shopper/signin': "another shop's account does not sign in here",
+  'POST /public/shopper/signout': "another shop's token is refused",
+  'GET /public/shopper/me': "another shop's token is refused",
+  'PATCH /public/shopper/me': "another shop's token is refused",
+  'POST /public/shopper/password': "another shop's token is refused",
+  'GET /public/shopper/addresses': "another shop's token is refused",
+  'POST /public/shopper/addresses': "another shop's token is refused",
+  'PATCH /public/shopper/addresses/:id': "another shopper's address answers 404",
+  'DELETE /public/shopper/addresses/:id': "another shopper's address answers 404 and stays",
+  'GET /public/shopper/orders': "lists only the key's own shop's orders with the shopper's phone",
   // Phase 4 Slice 4.3b, checked in test/order-payments.e2e.spec.ts.
   'POST /orders/:id/payments':
     "another shop's order answers 404; a transaction ID another shop recorded is refused",

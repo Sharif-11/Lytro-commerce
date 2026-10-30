@@ -45,6 +45,10 @@ export class DrizzleCustomerStore implements CustomerStore {
     return this.customers.lastAddress(tx, tenantId, customerId);
   }
 
+  accountOf(tx: Transaction, tenantId: string, phone: string): Promise<{ createdAt: Date } | null> {
+    return this.customers.accountOf(tx, tenantId, phone);
+  }
+
   lockForErasure(tx: Transaction, tenantId: string, id: string): Promise<CustomerRecord | null> {
     return this.customers.lockForErasure(tx, tenantId, id);
   }

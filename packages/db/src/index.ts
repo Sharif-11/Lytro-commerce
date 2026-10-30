@@ -259,6 +259,11 @@ export {
 } from './repositories/orders/order.repository';
 export { CustomerRepository } from './repositories/orders/customer.repository';
 export {
+  ShopperRepository,
+  type NewShopperAddress,
+  type ShopperPatch,
+} from './repositories/orders/shopper.repository';
+export {
   SupplierRepository,
   type SupplierListRow,
   type SupplierPatch,

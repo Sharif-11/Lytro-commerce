@@ -44,6 +44,12 @@ export class MessagingService {
     return { id, toPhone: phone, body };
   }
 
+  /** CUS-04 (Slice 4.4b): a shopper's sign-up code, its text the caller's; like every code, never stored. */
+  async queueShopperCode(tx: Transaction, phone: string, body: string): Promise<QueuedMessage> {
+    const id = await this.store.insert(tx, { toPhone: phone, kind: SmsKind.Otp, body: null });
+    return { id, toPhone: phone, body };
+  }
+
   async queueShopReady(tx: Transaction, phone: string, liveUrl: string): Promise<QueuedMessage> {
     const body = `Your shop is ready: ${liveUrl}`;
     const id = await this.store.insert(tx, { toPhone: phone, kind: SmsKind.ShopReady, body });

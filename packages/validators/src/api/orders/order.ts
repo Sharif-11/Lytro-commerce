@@ -45,12 +45,12 @@ function refuse(ctx: Ctx, path: (string | number)[], problem: FieldProblemCode, 
   ctx.addIssue({ code: 'custom', path, message, params: { problem } });
 }
 
-function textField(max: number) {
+export function textField(max: number) {
   return z.string().trim().min(1).max(max);
 }
 
 // ORD-01: a Bangladeshi mobile number, kept in its local form (01XXXXXXXXX).
-const orderPhoneField = z
+export const orderPhoneField = z
   .string()
   .max(30)
   .transform((value, ctx) => {

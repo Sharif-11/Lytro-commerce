@@ -1,7 +1,24 @@
-import { Controller, Delete, Get, Inject, Param, Query, Req, UseGuards } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Inject,
+  Param,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
-import { customerListQuerySchema, Permission, type CustomerListQuery } from '@lytronix/validators';
+import {
+  customerListQuerySchema,
+  Permission,
+  type CustomerListQuery,
+  type ShopperPasswordByStaffInput,
+} from '@lytronix/validators';
 import { OkDto } from '../../../common/dto/ok.dto';
 import { Dashboard } from '../../../common/decorators/dashboard';
 import { RequirePermission } from '../../../common/decorators/require-permission';
@@ -11,13 +28,15 @@ import { CustomerService } from '../../customers/services/customer.service';
 import type { CustomerPage, CustomerView } from '../../customers/types/customers';
 import { DashboardGuard, type DashboardRequest } from '../../identity/guards/dashboard.guard';
 import { SessionGuard } from '../../identity/guards/session.guard';
-import { CustomerPageDto, CustomerViewDto } from '../dto/customers.dto';
+import { ShopperAccounts } from '../../shoppers/services/shopper-accounts';
+import { CustomerPageDto, CustomerViewDto, ShopperPasswordByStaffDto } from '../dto/customers.dto';
 import { PermissionGuard } from '../guards/permission.guard';
 import { CatalogueRequest } from '../services/catalogue-request';
 
 // CUS-01, CUS-02, CUS-09 (Phase 4 Slice 4.4a): the shop's customers as staff look them up -- the list, searched by
-// name or phone, and one customer, whose orders are GET /orders?customerId= -- and deleting one at a privacy request.
-// Reading them needs customers:read; deleting one, customers:manage.
+// name or phone, and one customer, whose orders are GET /orders?customerId= -- and deleting one at a privacy request;
+// setting a forgotten password for their shopper account (CUS-14, Slice 4.4b). Reading them needs customers:read;
+// deleting one or setting a password, customers:manage.
 @ApiTags('Customers')
 @Controller('customers')
 @Dashboard({})
@@ -25,6 +44,7 @@ import { CatalogueRequest } from '../services/catalogue-request';
 export class CustomersController {
   constructor(
     @Inject(CustomerService) private readonly customers: CustomerService,
+    @Inject(ShopperAccounts) private readonly accounts: ShopperAccounts,
     @Inject(CatalogueRequest) private readonly request: CatalogueRequest,
   ) {}
 
@@ -55,6 +75,31 @@ export class CustomersController {
       this.request.tenantIdOf(request),
       this.request.idOf(id, 'CustomerNotFound'),
     );
+  }
+
+  @Post(':id/password')
+  @HttpCode(200)
+  @RequirePermission(Permission.CustomersManage)
+  @ResponseMessage('ShopperPasswordSet')
+  @ApiOperation({
+    summary:
+      "Set a new password for the customer's shopper account, told to them by the shop; their sign-ins end (CUS-14)",
+  })
+  @ApiBody({ type: ShopperPasswordByStaffDto })
+  @ZodResponse({ type: OkDto })
+  async setPassword(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(ShopperPasswordByStaffDto.schema))
+    body: ShopperPasswordByStaffInput,
+    @Req() request: DashboardRequest,
+  ): Promise<{ ok: true }> {
+    await this.accounts.setPasswordByStaff(
+      this.request.tenantIdOf(request),
+      this.request.idOf(id, 'CustomerNotFound'),
+      body.password,
+      this.request.actorOf(request),
+    );
+    return { ok: true };
   }
 
   @Delete(':id')

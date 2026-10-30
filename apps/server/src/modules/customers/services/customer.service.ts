@@ -69,6 +69,8 @@ export class CustomerService {
       return {
         ...listItemOf(customer),
         lastAddress: await this.store.lastAddress(tx, tenantId, customer.id),
+        account:
+          customer.phone !== null ? await this.store.accountOf(tx, tenantId, customer.phone) : null,
       };
     });
   }
