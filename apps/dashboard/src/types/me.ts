@@ -53,6 +53,8 @@ export interface MeTenant {
   logo: ImageView | null;
   /** BRN-07: the shop's own identity; null for Lytro's default. */
   brand: LiveBrand | null;
+  /** Slice 13: the shop's own domain while it serves, its main address then; null for its Lytro address. */
+  ownDomain: string | null;
   /** TRM-12: the term a paid plan runs on; null on a trial or pay-as-you-go. */
   billingTerm: MeBillingTerm | null;
   /** LIF-26: the days of each stage a lapse would take the plan through; null on a trial, pay-as-you-go and once locked. */

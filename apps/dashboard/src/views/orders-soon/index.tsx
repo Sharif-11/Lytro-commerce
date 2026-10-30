@@ -3,7 +3,7 @@ import { useMarkLinkShared } from '@/api/home';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
-import { appConfig } from '@/lib/app-config';
+import { useShopAddress } from '@/hooks/use-shop-address';
 import { useShell } from '@/shell/shell-context';
 import { ShellPage } from '@/shell/shell-page';
 
@@ -13,9 +13,9 @@ import { ShellPage } from '@/shell/shell-page';
  */
 export function OrdersSoon(): React.JSX.Element {
   const { t } = useTranslation('shell');
-  const { slug, showToast } = useShell();
+  const { showToast } = useShell();
   const shared = useMarkLinkShared();
-  const url = `https://${appConfig.shopHost(slug)}`;
+  const { url } = useShopAddress();
 
   const share = async (): Promise<void> => {
     try {
