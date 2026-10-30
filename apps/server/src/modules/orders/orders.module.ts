@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { IdempotencyModule } from '../../common/idempotency/idempotency.module';
 import { DrizzleOrderStore } from '../../database/adapters/orders.adapter';
+import { DrizzleSalesStore } from '../../database/adapters/sales.adapter';
 import { BalanceModule } from '../balance/balance.module';
 import { CatalogueModule } from '../catalogue/catalogue.module';
 import { CustomersModule } from '../customers/customers.module';
@@ -19,7 +20,8 @@ import { OrderTracking } from './services/order-tracking';
 import { OrderService } from './services/order.service';
 import { OrdersEraser } from './services/orders-eraser';
 import { PaymentRecorder } from './services/payment-recorder';
-import { ORDER_NOTIFIER, ORDER_STORE } from './tokens';
+import { SalesFigures } from './services/sales-figures';
+import { ORDER_NOTIFIER, ORDER_STORE, SALES_STORE } from './tokens';
 
 // D4-12: the orders module -- orders, their items, numbering, pricing (D4-9), the call log, status and tracking
 // (ORD-17), the notice of a shopper's order (ORD-20, D4-10), moving an order by hand with its handling limits
@@ -40,6 +42,7 @@ import { ORDER_NOTIFIER, ORDER_STORE } from './tokens';
   providers: [
     { provide: ORDER_STORE, useClass: DrizzleOrderStore },
     { provide: ORDER_NOTIFIER, useClass: ConsoleOrderNotifier },
+    { provide: SALES_STORE, useClass: DrizzleSalesStore },
     HandlingQuota,
     OrderFulfilment,
     OrderPayments,
@@ -49,6 +52,7 @@ import { ORDER_NOTIFIER, ORDER_STORE } from './tokens';
     OrderTracking,
     OrdersEraser,
     PaymentRecorder,
+    SalesFigures,
   ],
   exports: [
     HandlingQuota,
@@ -59,6 +63,7 @@ import { ORDER_NOTIFIER, ORDER_STORE } from './tokens';
     OrderTracking,
     OrdersEraser,
     ORDER_NOTIFIER,
+    SalesFigures,
   ],
 })
 export class OrdersModule {}

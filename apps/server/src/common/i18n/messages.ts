@@ -1335,6 +1335,18 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'Inventory report retrieved.',
     bn: 'ইনভেন্টরি রিপোর্ট পাওয়া গেছে।',
   },
+  SalesRetrieved: {
+    en: 'Sales retrieved.',
+    bn: 'সেলস পাওয়া গেছে।',
+  },
+  BestSellersRetrieved: {
+    en: 'Best sellers retrieved.',
+    bn: 'বেস্ট সেলার পাওয়া গেছে।',
+  },
+  PeriodTooLong: {
+    en: (p) => `Choose a period of at most ${String(p.days)} days.`,
+    bn: (p) => `সর্বোচ্চ ${String(p.days)} দিনের সময় বেছে নিন।`,
+  },
 
   // --- Media (Phase 3 Slice 6) ---
   MediaNotFound: {

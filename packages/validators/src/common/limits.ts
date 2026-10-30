@@ -47,6 +47,10 @@ export const COMBO_PART_QUANTITY_MAX = 20;
 export const COMBO_PART_VARIANTS_MAX = 100;
 // ATL-02: the attributes that may describe one product (or be asked about it when ordering, ATR-08).
 export const ATTRIBUTES_PER_PRODUCT_MAX = 50;
+// STA-01 to STA-03 (Slice 4.7): the longest period sales figures cover, and how many best sellers one read ranks.
+export const SALES_PERIOD_DAYS_MAX = 1830;
+export const BEST_SELLERS_DEFAULT = 10;
+export const BEST_SELLERS_MAX = 50;
 // PRD-12: the dashboard's product list pages.
 export const PRODUCT_PAGE_SIZE = 20;
 export const LIST_PAGE_SIZE_MAX = 100;
