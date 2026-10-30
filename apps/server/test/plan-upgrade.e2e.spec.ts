@@ -6,6 +6,7 @@ import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AuditAction, LedgerEntryType, PlanPaymentStatus } from '@lytronix/validators';
 import { AppModule } from '../src/app/app.module';
+import { addMonths } from '../src/common/time';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { PurchaseService } from '../src/modules/billing/services/purchase.service';
 import { UpgradeService } from '../src/modules/billing/services/upgrade.service';
@@ -269,8 +270,8 @@ describeIfDatabase('confirming an upgrade (UPG-09, UPG-12, UPG-15 to UPG-17)', (
     const tenant = await tenantRow(tenantId);
     expect(tenant?.plan_id).toBe(growthId);
     expect(new Date(tenant?.period_start ?? 0).getTime()).toBeGreaterThanOrEqual(beforeConfirm);
-    const expectedEnd = new Date(tenant?.period_start ?? 0);
-    expectedEnd.setUTCMonth(expectedEnd.getUTCMonth() + 1);
+    // TRM-09: one month on the Dhaka calendar, clamped to a shorter month's last day -- as the server counts it.
+    const expectedEnd = addMonths(new Date(tenant?.period_start ?? 0), 1);
     expect(new Date(tenant?.period_end ?? 0).getTime()).toBe(expectedEnd.getTime());
 
     const log = await admin.query<{ summary: { oldPlanId: string; newPlanId: string } }>(
