@@ -1460,6 +1460,64 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'Order found.',
     bn: 'অর্ডার পাওয়া গেছে।',
   },
+  OrderNotShipped: {
+    en: 'This order has not shipped yet.',
+    bn: 'এই অর্ডার এখনো শিপ হয়নি।',
+  },
+  OrderAlreadySent: {
+    en: 'This order has already left the shop.',
+    bn: 'এই অর্ডার আগেই শপ থেকে চলে গেছে।',
+  },
+  OrderOnHoldNotSent: {
+    en: 'This order is on hold or in review. Clear that first, then send it.',
+    bn: 'এই অর্ডার হোল্ডে বা রিভিউতে আছে। আগে সেটা সরান, তারপর পাঠান।',
+  },
+  HandOverInstead: {
+    en: 'A takeaway or dine-in order is handed over, not shipped.',
+    bn: 'টেকঅ্যাওয়ে বা ডাইন-ইন অর্ডার শিপ হয় না, হ্যান্ড ওভার করা হয়।',
+  },
+  ShipInstead: {
+    en: 'A delivery order is shipped with a courier, not handed over.',
+    bn: 'ডেলিভারি অর্ডার হ্যান্ড ওভার হয় না, কুরিয়ারে শিপ করা হয়।',
+  },
+  MoreReturnedThanShipped: {
+    en: (p) => `More "${String(p.product)}" would come back than was shipped.`,
+    bn: (p) => `যত "${String(p.product)}" শিপ হয়েছিল, তার চেয়ে বেশি ফেরত দেখানো হচ্ছে।`,
+  },
+  OrdersHandlingReached: {
+    en: (p) =>
+      `Your plan handles ${String(p.limit)} orders this period, and that is used up. Upgrade, or wait for the next period.`,
+    bn: (p) =>
+      `আপনার প্ল্যানে এই মেয়াদে ${String(p.limit)}টা অর্ডার হ্যান্ডেল করা যায়, সেটা শেষ। আপগ্রেড করুন, অথবা পরের মেয়াদের অপেক্ষা করুন।`,
+  },
+  OrdersDailyHandlingReached: {
+    en: (p) =>
+      `Your plan handles ${String(p.limit)} orders a day, and today's are used up. More can be sent tomorrow.`,
+    bn: (p) =>
+      `আপনার প্ল্যানে দিনে ${String(p.limit)}টা অর্ডার হ্যান্ডেল করা যায়, আজকেরগুলো শেষ। কাল আবার পাঠানো যাবে।`,
+  },
+  OrdersTotalHandlingReached: {
+    en: (p) =>
+      `The trial handles ${String(p.limit)} orders, and they are used up. Choose a plan to send more.`,
+    bn: (p) =>
+      `ট্রায়ালে ${String(p.limit)}টা অর্ডার হ্যান্ডেল করা যায়, সেগুলো শেষ। আরও পাঠাতে একটা প্ল্যান নিন।`,
+  },
+  OrderShipped: {
+    en: 'Order marked shipped.',
+    bn: 'অর্ডার শিপড মার্ক করা হয়েছে।',
+  },
+  OrderHandedOver: {
+    en: 'Order handed over.',
+    bn: 'অর্ডার হ্যান্ড ওভার করা হয়েছে।',
+  },
+  OrderDelivered: {
+    en: 'Order marked delivered.',
+    bn: 'অর্ডার ডেলিভারড মার্ক করা হয়েছে।',
+  },
+  OrderReturnRecorded: {
+    en: 'Return recorded.',
+    bn: 'রিটার্ন রেকর্ড করা হয়েছে।',
+  },
 };
 
 export function translate(key: MessageKey, lang: Language, params: MessageParams = {}): string {

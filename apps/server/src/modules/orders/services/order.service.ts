@@ -1322,21 +1322,27 @@ export class OrderService {
     }
   }
 
-  /** ORD-14: the order with its items, calls and history, and who made each, in the caller's transaction. */
-  private async viewWithin(
+  /**
+   * ORD-14: the order with its items, calls, history and payments, and who made each, in the caller's transaction;
+   * with what it was just told (warnings, QTA-03's prompt) when it was just made or moved.
+   */
+  async viewWithin(
     tx: Transaction,
     tenantId: string,
     order: OrderRecord,
     warnings: OrderWarning[],
+    limitPrompt: OrderView['limitPrompt'] = null,
   ): Promise<OrderView> {
-    const [lines, calls, history] = [
+    const [lines, calls, history, payments] = [
       await this.store.listLines(tx, tenantId, [order.id]),
       await this.store.listCalls(tx, tenantId, order.id),
       await this.store.listHistory(tx, tenantId, order.id),
+      await this.store.listPayments(tx, tenantId, order.id),
     ];
     const names = await this.staff.namesWithin(tx, tenantId, [
       ...calls.flatMap((call) => (call.calledBy !== null ? [call.calledBy] : [])),
       ...history.flatMap((row) => (row.changedBy !== null ? [row.changedBy] : [])),
+      ...payments.flatMap((row) => (row.verifiedBy !== null ? [row.verifiedBy] : [])),
       ...(order.confirmedBy !== null ? [order.confirmedBy] : []),
       ...(order.createdBy !== null ? [order.createdBy] : []),
     ]);
@@ -1410,7 +1416,17 @@ export class OrderService {
         by: person(row.changedBy),
         at: row.changedAt,
       })),
+      payments: payments.map((row) => ({
+        id: row.id,
+        method: row.method,
+        amount: row.amount,
+        senderNumber: row.senderNumber,
+        transactionId: row.transactionId,
+        verifiedBy: person(row.verifiedBy),
+        verifiedAt: row.verifiedAt,
+      })),
       warnings,
+      limitPrompt,
     };
   }
 }

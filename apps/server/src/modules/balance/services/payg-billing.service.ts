@@ -26,7 +26,10 @@ export class PayAsYouGoBillingService {
     @Inject(RateService) private readonly rates: RateService,
   ) {}
 
-  /** PYG-02: the greater of a minimum flat amount and a percentage of the order's grand total. */
+  /**
+   * PYG-02: the greater of a minimum flat amount and a percentage of the order's grand total. PYG-14: the entry names its
+   * order, the total it was worked out on, and the rates applied.
+   */
   async chargeOrderFee(
     tx: Transaction,
     tenantId: string,
@@ -48,7 +51,7 @@ export class PayAsYouGoBillingService {
       tenantId,
       type: LedgerEntryType.OrderFee,
       amount: fromPaisa(feePaisa),
-      reference: { orderId },
+      reference: { orderId, orderTotal, minimum: min.value, percent: pct.value },
     });
   }
 

@@ -188,6 +188,7 @@
     "products": "Products",
     "orders_total": "Orders (total)",
     "orders_handled_monthly": "Orders handled a month",
+    "orders_handled_daily": "Orders handled a day",
     "staff": "Staff seats (owner included)",
     "paired_devices": "Paired devices",
     "storage_mb": "Storage (MB)",

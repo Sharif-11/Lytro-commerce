@@ -273,6 +273,15 @@ Every route lands in `API-CONTRACT.md` with its slice; the isolation registry ga
   server-side `Purchase` (LND-16); writes made with a key audited (API-21).
 
 ### Slice 4.3: fulfilment, limits, fees and payments
+- **Read agreed 2026-10-30:** marking an order Delivered collects what is due as a cash-on-delivery payment, so it is
+  paid with nothing due, until Phase 6 matches courier settlements (ORD-43 amended); a takeaway or dine-in order is
+  handed over in one step, which handles, charges, delivers and collects it (QTA-01, PYG-02 amended); shipping an order
+  no call confirmed confirms it (ORD-51 amended); a cash payment needs no transaction ID (Slice 4.3b). Also settled:
+  two parts -- **4.3a** shipping, handing over, delivering and returning, with the handling limits and the pay-as-you-go
+  fee, and `tenant.payments` for the collected cash; **4.3b** payments recorded by staff -- returns item by item, the
+  order returned once every unit is back; a held or in-review order is not sent; no extra-orders add-on seeded (the
+  operator can add one with `limit_key` `orders_handled_monthly`); the usage page's orders figures are counted now and
+  drawn with Slice 4.8's screens; the activity log records each move as the order's status changing.
 - **Delivers:** Mark shipped with a tracking code, serials and earliest-expiry stock (ORD-09, INV-14, INV-15,
   INV-23), Delivered, and returns line by line (ORD-10, INV-17); the two axes and the computed status (ORD-40 – 43,
   ORD-45); staff-recorded payments (ORD-15, ORD-16, ORD-22, D4-6); the handling quota with its limit keys, mode,

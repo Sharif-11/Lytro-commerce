@@ -569,6 +569,10 @@ export enum UsageMetric {
   Requests = 'requests',
   EssentialSmsMonthly = 'essential_sms_monthly',
   EssentialSmsTotal = 'essential_sms_total',
+  // QTA-01, QTA-04, QTA-05 (Phase 4 Slice 4.3): orders handled in the billing period, in a trial's whole life, and today.
+  OrdersMonthly = 'orders_monthly',
+  OrdersTotal = 'orders_total',
+  OrdersDaily = 'orders_daily',
 }
 
 // LIF-26: every platform-wide editable value that isn't a per-use rate (those are RateKey above). Add a key
@@ -611,6 +615,14 @@ export enum PlatformSettingKey {
   // RTE-08 (amended 2026-10-30, editable): how many orders shoppers may place in one shop in any minute, every plan
   // alike -- a flood guard, never a cap on demand (QTA-07). One visitor is held apart by RTE-06's 10.
   PublicOrdersPerShopPerMinute = 'public_orders_per_shop_per_minute',
+  // QTA-03 (editable): what handling an order past the period's limit does -- refused, or done with a prompt to upgrade.
+  OrderLimitMode = 'order_limit_mode',
+}
+
+// QTA-03: the period's handling limit refuses the handling action, or lets it through and prompts an upgrade.
+export enum OrderLimitMode {
+  Block = 'block',
+  AllowWithPrompt = 'allow_with_prompt',
 }
 
 // D2-1: what a control.plan_payments row is for -- a purchase, a renewal, an upgrade, a balance top-up, or an add-on
@@ -1089,6 +1101,20 @@ export enum OrderHistoryField {
   FulfillmentStatus = 'fulfillment_status',
   UnitPrice = 'unit_price',
   DeliveryCharge = 'delivery_charge',
+  // ORD-10, INV-17 (Slice 4.3): units that came back, sellable or damaged.
+  Return = 'return',
+}
+
+// ORD-15, ORD-22, D4-6 (Slice 4.3): how money for an order came in. Cash on delivery is what the courier collected when
+// the order was delivered (agreed 2026-10-30); cash is paid at the counter; the rest carry a transaction ID.
+export enum PaymentMethod {
+  CashOnDelivery = 'cash_on_delivery',
+  Cash = 'cash',
+  Bkash = 'bkash',
+  Nagad = 'nagad',
+  Rocket = 'rocket',
+  Upay = 'upay',
+  Bank = 'bank',
 }
 
 export function enumTuple<T extends string>(values: readonly T[]): [T, ...T[]] {

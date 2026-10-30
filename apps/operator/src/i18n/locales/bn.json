@@ -188,6 +188,7 @@
     "products": "প্রোডাক্ট",
     "orders_total": "অর্ডার (মোট)",
     "orders_handled_monthly": "মাসে অর্ডার হ্যান্ডলিং",
+    "orders_handled_daily": "দিনে অর্ডার হ্যান্ডলিং",
     "staff": "স্টাফ সিট (মালিকসহ)",
     "paired_devices": "পেয়ার করা ডিভাইস",
     "storage_mb": "স্টোরেজ (MB)",

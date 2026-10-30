@@ -2,6 +2,7 @@ import type {
   InsertOrder,
   NewOrderCall,
   NewOrderHistory,
+  NewOrderPayment,
   OrderLinePatch,
   OrderListFilter,
   OrderPatch,
@@ -13,6 +14,7 @@ import type {
   OrderCallRecord,
   OrderHistoryRecord,
   OrderLineRecord,
+  OrderPaymentRecord,
   OrderRecord,
   OrderSummaryRow,
   UnnumberedOrder,
@@ -28,6 +30,17 @@ export interface OrderStore {
   findVariants(tx: Transaction, tenantId: string, variantIds: string[]): Promise<StockVariantRow[]>;
   /** ORD-04: the day's next number, gap-free; the day's counter stays locked until the transaction ends. */
   nextNumber(tx: Transaction, tenantId: string, day: string): Promise<number>;
+  /** QTA-01, QTA-05: the shop's handling, counted one order at a time until the transaction ends. */
+  lockHandling(tx: Transaction, tenantId: string): Promise<void>;
+  /** QTA-01, QTA-04, QTA-05: the shop's orders handled at or after `since`, or ever when it is null. */
+  countHandled(tx: Transaction, tenantId: string, since: Date | null): Promise<number>;
+  /** ORD-15, ORD-22: money recorded for an order, verified as it is recorded. */
+  insertPayment(
+    tx: Transaction,
+    tenantId: string,
+    values: NewOrderPayment,
+  ): Promise<OrderPaymentRecord>;
+  listPayments(tx: Transaction, tenantId: string, orderId: string): Promise<OrderPaymentRecord[]>;
   /** ORD-05: the order, not yet numbered, or null when its tracking ID is taken. */
   insertOrder(tx: Transaction, values: InsertOrder): Promise<UnnumberedOrder | null>;
   /** ORD-04: gives the new order its number, once. */

@@ -23,6 +23,9 @@ const NAMES: Readonly<Record<UsageMetric, string>> = {
   [UsageMetric.Requests]: 'API requests',
   [UsageMetric.EssentialSmsMonthly]: 'free SMS this month',
   [UsageMetric.EssentialSmsTotal]: 'free SMS',
+  [UsageMetric.OrdersMonthly]: 'orders handled this period',
+  [UsageMetric.OrdersTotal]: 'orders handled',
+  [UsageMetric.OrdersDaily]: 'orders handled today',
 };
 
 // What stops for shoppers when a metric that serves them is used up (BND-03, RTE-03).

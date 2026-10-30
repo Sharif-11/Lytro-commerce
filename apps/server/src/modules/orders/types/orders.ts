@@ -8,6 +8,7 @@ import type {
   SelectOrderCall,
   SelectOrderHistory,
   SelectOrderLine,
+  SelectOrderPayment,
 } from '@lytronix/db';
 import type {
   CallOutcome,
@@ -19,6 +20,7 @@ import type {
   OrderPaymentStatus,
   OrderSource,
   OrderStatus,
+  PaymentMethod,
   PaymentPolicy,
   StatusOverride,
   StockUnit,
@@ -32,6 +34,7 @@ export type UnnumberedOrder = SelectOrder;
 export type OrderLineRecord = SelectOrderLine;
 export type OrderHistoryRecord = SelectOrderHistory;
 export type OrderCallRecord = SelectOrderCall;
+export type OrderPaymentRecord = SelectOrderPayment;
 export type { LineAttributeSnapshot, LineCapturedSnapshot, NewOrderLine, OrderSummaryRow };
 
 /** A staff member named on an order (who made a call, who confirmed it), or null where the row has gone. */
@@ -147,8 +150,26 @@ export interface OrderView {
   /** ORD-51: how many calls went unanswered. */
   unansweredCalls: number;
   history: OrderHistoryView[];
+  /** ORD-15, ORD-22 (Slice 4.3): money recorded for it, oldest first. */
+  payments: OrderPaymentView[];
   /** DLV-06, DLV-07: said when the order is entered or changed; empty when it is only read. */
   warnings: OrderWarning[];
+  /**
+   * QTA-03 (Slice 4.3): said when the order was just shipped or handed over past the period's handling limit, which
+   * the operator's mode let through, so the owner is prompted to upgrade; null otherwise.
+   */
+  limitPrompt: { metric: 'orders_monthly'; limit: number } | null;
+}
+
+/** ORD-15, ORD-22: money that came in for an order, and who recorded it. */
+export interface OrderPaymentView {
+  id: string;
+  method: PaymentMethod;
+  amount: string;
+  senderNumber: string | null;
+  transactionId: string | null;
+  verifiedBy: OrderPerson | null;
+  verifiedAt: Date;
 }
 
 /** ORD-13: one order as the list shows it. */

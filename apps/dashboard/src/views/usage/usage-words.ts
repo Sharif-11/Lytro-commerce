@@ -26,7 +26,23 @@ export const METRIC_KEY: Readonly<Record<UsageMetric, string>> = {
   [UsageMetric.Requests]: 'uRequests',
   [UsageMetric.EssentialSmsMonthly]: 'uSms',
   [UsageMetric.EssentialSmsTotal]: 'uSms',
+  [UsageMetric.OrdersMonthly]: 'uOrders',
+  [UsageMetric.OrdersTotal]: 'uOrders',
+  [UsageMetric.OrdersDaily]: 'uOrdersDay',
 };
+
+// Phase 4 Slice 4.3: the server counts orders handled; this page draws them with the order screens (Slice 4.8). Until
+// then it shows the metrics its sketch draws.
+const DRAWN_LATER: ReadonlySet<UsageMetric> = new Set([
+  UsageMetric.OrdersMonthly,
+  UsageMetric.OrdersTotal,
+  UsageMetric.OrdersDaily,
+]);
+
+/** The usage as this page draws it today: without the figures still to be drawn. */
+export function drawnUsage(usage: ShopUsage): ShopUsage {
+  return { ...usage, metrics: usage.metrics.filter((figure) => !DRAWN_LATER.has(figure.metric)) };
+}
 
 // The add-on that raises each limit a seller can run out of, by the limit key the catalogue names (PLN-13).
 const LIMIT_KEY: Partial<Record<UsageMetric, string>> = {

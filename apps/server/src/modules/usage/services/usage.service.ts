@@ -17,6 +17,7 @@ import { RequestQuota } from '../../public-api/services/request-quota';
 import { EssentialSmsUsageService } from '../../sms-usage/services/essential-sms-usage.service';
 import { StaffService } from '../../staff/services/staff.service';
 import { TenantService } from '../../tenancy/services/tenant.service';
+import { HandlingQuota } from '../../orders/services/handling-quota';
 import type { TenantSummary } from '../../tenancy/types/tenant-summary';
 import { UsageSettings } from '../../usage-warnings/services/usage-settings';
 import type { ShopUsage, UsageFigure, UsagePack } from '../types/usage';
@@ -49,7 +50,7 @@ function packOffer(offers: readonly AddonOffer[], limitKey: string): UsagePack['
 /**
  * LIM-01, LIM-02, PLN-19: every metric the platform counts today, against the shop's own limits -- its snapshot with
  * its overrides, the same ones every check reads -- with how near each is, and what would give the shop room. Orders
- * and payment sessions join with Phases 4 and 5.
+ * handled joined with Phase 4 Slice 4.3; payment sessions join with Phase 5.
  */
 @Injectable()
 export class UsageService {
@@ -64,6 +65,7 @@ export class UsageService {
     @Inject(UsageSuggestions) private readonly suggestions: UsageSuggestions,
     @Inject(AddonPurchaseService) private readonly addons: AddonPurchaseService,
     @Inject(TenantService) private readonly tenants: TenantService,
+    @Inject(HandlingQuota) private readonly handling: HandlingQuota,
   ) {}
 
   async usage(tenant: TenantSummary, now: Date): Promise<ShopUsage> {
@@ -80,6 +82,7 @@ export class UsageService {
       sms,
       fastSpend,
       grace,
+      handled,
     ] = await Promise.all([
       this.products.liveCount(tenant.id),
       this.staff.seatsUsed(tenant.id),
@@ -91,6 +94,7 @@ export class UsageService {
       this.sms.currentUsage(tenant.id, now),
       this.requests.fastSpendAlertedAt(tenant.id, cycleStart),
       this.settings.gracePercent(),
+      this.handling.counts(tenant, now),
     ]);
     const [offers, billing] = await Promise.all([
       this.addons.offers(tenant.id),
@@ -149,6 +153,15 @@ export class UsageService {
         autoBuyFailed: requestPacks.autoBuyState === PackAutoBuyState.Failed,
       },
     ];
+    // QTA-01, QTA-04, QTA-05: orders handled -- a trial's in its whole life, a plan's this period -- and today's.
+    if (limits?.orders_total !== undefined) {
+      metrics.push(figure(UsageMetric.OrdersTotal, handled.total, 'count', false));
+    } else {
+      metrics.push(figure(UsageMetric.OrdersMonthly, handled.period, 'count', true));
+    }
+    if (limits?.orders_handled_daily !== undefined) {
+      metrics.push(figure(UsageMetric.OrdersDaily, handled.today, 'count', false));
+    }
     // TRL-03, AUTH-21: a trial's free SMS is a total, a paid plan's a monthly allowance -- whichever the limits set.
     const total = limits?.essential_sms_total !== undefined;
     if (total) metrics.push(figure(UsageMetric.EssentialSmsTotal, sms.total, 'count', false));

@@ -15,7 +15,11 @@ import {
   OrderSource,
   OrderStatus,
   overrideOrderSchema,
+  handOverOrderSchema,
+  PaymentMethod,
   PaymentPolicy,
+  returnOrderSchema,
+  shipOrderSchema,
   StatusOverride,
   StockUnit,
   updateOrderSchema,
@@ -27,6 +31,9 @@ export class UpdateOrderDto extends createZodDto(updateOrderSchema) {}
 export class LogCallDto extends createZodDto(logCallSchema) {}
 export class CancelOrderDto extends createZodDto(cancelOrderSchema) {}
 export class OverrideOrderDto extends createZodDto(overrideOrderSchema) {}
+export class ShipOrderDto extends createZodDto(shipOrderSchema) {}
+export class HandOverOrderDto extends createZodDto(handOverOrderSchema) {}
+export class ReturnOrderDto extends createZodDto(returnOrderSchema) {}
 
 // --- Responses. Dates coerce, since a created order's reply is replayed from the idempotency store's JSON (D4-8). ---
 
@@ -147,7 +154,19 @@ const orderViewSchema = z.object({
       at: z.coerce.date(),
     }),
   ),
+  payments: z.array(
+    z.object({
+      id: z.string(),
+      method: z.nativeEnum(PaymentMethod),
+      amount: z.string(),
+      senderNumber: z.string().nullable(),
+      transactionId: z.string().nullable(),
+      verifiedBy: personSchema,
+      verifiedAt: z.coerce.date(),
+    }),
+  ),
   warnings: z.array(warningSchema),
+  limitPrompt: z.object({ metric: z.literal('orders_monthly'), limit: z.number() }).nullable(),
 });
 export class OrderViewDto extends createZodDto(orderViewSchema) {}
 

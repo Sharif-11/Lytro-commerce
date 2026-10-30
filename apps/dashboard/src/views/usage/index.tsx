@@ -16,7 +16,14 @@ import { ShellPage } from '@/shell/shell-page';
 import type { ShopUsage } from '@/types/usage';
 import { AutoBuyCard } from './auto-buy-card';
 import { BannerLinkTo, DayChart, MetricRow } from './usage-parts';
-import { bannerOf, cycleDays, lastDayOf, raiseItems, type Channels } from './usage-words';
+import {
+  bannerOf,
+  cycleDays,
+  drawnUsage,
+  lastDayOf,
+  raiseItems,
+  type Channels,
+} from './usage-words';
 
 /**
  * Usage (TENANT-DASHBOARD-DESIGN §7.24, the prototype's `usage` with Part 10's states): the cycle's dates, the one
@@ -34,7 +41,7 @@ export function UsageView(): React.JSX.Element {
   const identities = useIdentities({ enabled: viewer.isOwner });
   const rates = useCurrentRates({ enabled: allows(viewer, [Permission.BalanceRead]) });
 
-  const data = usage.data;
+  const data = usage.data ? drawnUsage(usage.data) : undefined;
   const offered = offers.data ?? [];
   const kinds = identities.data?.identities.map((identity) => identity.kind) ?? [];
   const channels: Channels | null = viewer.isOwner

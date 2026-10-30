@@ -11,6 +11,9 @@ const METRIC_LIMITS: Readonly<Record<UsageMetric, { key: UsageLimitKey; unit: nu
   [UsageMetric.Requests]: { key: 'requests_monthly', unit: 1 },
   [UsageMetric.EssentialSmsMonthly]: { key: 'essential_sms_monthly', unit: 1 },
   [UsageMetric.EssentialSmsTotal]: { key: 'essential_sms_total', unit: 1 },
+  [UsageMetric.OrdersMonthly]: { key: 'orders_handled_monthly', unit: 1 },
+  [UsageMetric.OrdersTotal]: { key: 'orders_total', unit: 1 },
+  [UsageMetric.OrdersDaily]: { key: 'orders_handled_daily', unit: 1 },
 };
 
 /** LIM-02: the limit a metric is judged against, and how many of the metric's units one of the limit's is. */

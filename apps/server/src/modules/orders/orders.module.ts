@@ -6,8 +6,12 @@ import { CatalogueModule } from '../catalogue/catalogue.module';
 import { CustomersModule } from '../customers/customers.module';
 import { DeliveryModule } from '../delivery/delivery.module';
 import { InventoryModule } from '../inventory/inventory.module';
+import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
 import { StaffModule } from '../staff/staff.module';
+import { UsageWarningsModule } from '../usage-warnings/usage-warnings.module';
 import { ConsoleOrderNotifier } from './services/console-order-notifier';
+import { HandlingQuota } from './services/handling-quota';
+import { OrderFulfilment } from './services/order-fulfilment';
 import { OrderPricing } from './services/order-pricing';
 import { OrderTracking } from './services/order-tracking';
 import { OrderService } from './services/order.service';
@@ -15,8 +19,9 @@ import { OrdersEraser } from './services/orders-eraser';
 import { ORDER_NOTIFIER, ORDER_STORE } from './tokens';
 
 // D4-12: the orders module -- orders, their items, numbering, pricing (D4-9), the call log, status and tracking
-// (ORD-17), and the notice of a shopper's order (ORD-20, D4-10). It depends on catalogue, inventory, delivery, balance
-// (the shop's rate per kg) and customers; none of them depends back on it.
+// (ORD-17), the notice of a shopper's order (ORD-20, D4-10), and moving an order by hand with its handling limits
+// (Slice 4.3). It depends on catalogue, inventory, delivery, balance (the shop's rate per kg, the pay-as-you-go fee),
+// customers and the usage warnings; none of them depends back on it.
 @Module({
   imports: [
     BalanceModule,
@@ -25,16 +30,28 @@ import { ORDER_NOTIFIER, ORDER_STORE } from './tokens';
     DeliveryModule,
     IdempotencyModule,
     InventoryModule,
+    PlatformSettingsModule,
     StaffModule,
+    UsageWarningsModule,
   ],
   providers: [
     { provide: ORDER_STORE, useClass: DrizzleOrderStore },
     { provide: ORDER_NOTIFIER, useClass: ConsoleOrderNotifier },
+    HandlingQuota,
+    OrderFulfilment,
     OrderPricing,
     OrderService,
     OrderTracking,
     OrdersEraser,
   ],
-  exports: [OrderService, OrderPricing, OrderTracking, OrdersEraser, ORDER_NOTIFIER],
+  exports: [
+    HandlingQuota,
+    OrderFulfilment,
+    OrderService,
+    OrderPricing,
+    OrderTracking,
+    OrdersEraser,
+    ORDER_NOTIFIER,
+  ],
 })
 export class OrdersModule {}
