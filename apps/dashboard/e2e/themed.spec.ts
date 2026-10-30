@@ -188,6 +188,13 @@ test('takes the corner and spacing presets: round and airy, square and compact',
   await expectAccessible(page);
 });
 
+test('keeps "Powered by Lytro" with the identity on, as on every plan (TEN-18)', async ({
+  page,
+}) => {
+  await open(page, '/menu', { brand: maroonBrand(), brandShows: true });
+  await expect(main(page).getByText('Powered by Lytro')).toBeVisible();
+});
+
 test('never changes the status colours: tags, banners, a full seat bar (BRN-04)', async ({
   page,
 }) => {

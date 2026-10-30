@@ -117,6 +117,21 @@ describeIfDatabase("the storefront's context (Slice 12, TEN-08, SFT-12, SFT-16)"
     expect((await context(`${shop.slug}.localhost`)).status).toBe(200);
   });
 
+  it("counts the storefront's calls toward the shop's monthly requests, as any website's (SFT-15, RTE-03)", async () => {
+    const shop = await openShop(port, texts, 'sf-count');
+    const before = (await shop.get('/usage')).body as {
+      metrics: { metric: string; used: number }[];
+    };
+    const used = (body: typeof before) =>
+      body.metrics.find((figure) => figure.metric === 'requests')?.used ?? -1;
+    const storefront = await open(shop);
+    for (let call = 0; call < 3; call += 1) {
+      expect((await asStorefront('GET', '/v1/shop', storefront)).status).toBe(200);
+    }
+    const after = (await shop.get('/usage')).body as typeof before;
+    expect(used(after)).toBe(used(before) + 3);
+  });
+
   it('names an open shop with one storefront key, and none for an unknown or a closed one', async () => {
     const shop = await openShop(port, texts, 'sf');
     const [one, two] = await Promise.all([open(shop), open(shop)]);

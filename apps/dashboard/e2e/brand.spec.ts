@@ -181,6 +181,18 @@ test('a colour from the sheet’s list shows in the preview at once, saved only 
 
   await main(page).getByRole('button', { name: 'Dashboard' }).click();
   await expect(preview.getByText('7 orders today')).toBeVisible();
+
+  // BRN-06: the main colour too, on the landing page's preview, and still nothing saved.
+  await main(page).getByRole('button', { name: 'Landing' }).click();
+  await main(page).getByRole('button', { name: /^Main/ }).click();
+  const main_ = page.getByRole('dialog', { name: 'Main colour' });
+  await main_.getByRole('button', { name: '#1d4ed8' }).click();
+  await main_.getByRole('button', { name: 'Done' }).click();
+  await expect(main(page).locator('[style*="--bm"]').first()).toHaveAttribute(
+    'style',
+    /--bm: #1d4ed8/,
+  );
+  expect(log.calls.some((call) => call.method === 'PUT')).toBe(false);
 });
 
 test('headings take any of the seven pairs; body text leaves out the one for headings only', async ({

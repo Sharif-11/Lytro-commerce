@@ -314,7 +314,7 @@ describeIfDatabase('typing a new stock number (INV-06, INV-09, INV-21)', () => {
     });
   });
 
-  it('refuses a reason that contradicts the change, and a fraction of a piece', async () => {
+  it('refuses a reason that contradicts the change or is not one of the list, and a fraction of a piece (INV-04)', async () => {
     const shop = await openShop(port, texts, 'edit-bad');
     const { product, variantId } = await simple(shop, 'Plate', 10);
     expect(
@@ -331,6 +331,10 @@ describeIfDatabase('typing a new stock number (INV-06, INV-09, INV-21)', () => {
     expect(errorOf(await setStock(shop, product.id, variantId, { onHand: -1 })).code).toBe(
       'validation_error',
     );
+    // INV-04: only the listed reasons; any other is refused and nothing moves.
+    const unknown = await setStock(shop, product.id, variantId, { onHand: 8, reason: 'gift' });
+    expect(unknown.status).toBe(400);
+    expect(Object.keys(fieldsOf(unknown))).toEqual(['reason']);
     expect(variant(await stockOf(shop, product.id), variantId).onHand).toBe('10.000');
   });
 });

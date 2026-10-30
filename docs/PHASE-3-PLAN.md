@@ -88,7 +88,7 @@ Rules used below:
 - **Partial** means this phase builds a working part, and a named later phase finishes the rest.
 - Notices delivered through the D3-5 stub count as complete, the same rule Phase 2 applied to `BAL-13`.
 
-### 3.1 Completed by this phase (193)
+### 3.1 Completed by this phase (192)
 
 | Family | Requirements | Count |
 |---|---|---|
@@ -102,7 +102,7 @@ Rules used below:
 | MED | MED-01 – 08, MED-10 – 13 | 12 |
 | STO | STO-02 – 07, STO-09 (video compression, added 2026-10-17) | 7 |
 | BND | BND-01 – 09 (04: auto-buy packs, with add-ons) | 9 |
-| RTE | RTE-01, 02, 03, 04, 05, 07, 10, 11 (11: request packs, with add-ons) | 8 |
+| RTE | RTE-02, 03, 04, 05, 07, 10, 11 (11: request packs, with add-ons) | 7 |
 | LIM | LIM-01, 03 | 2 |
 | SFT | SFT-01, 02, 03, 04, 05, 11, 12, 14, 15, 16, 17, 18, 19, 21 | 14 |
 | CCH | CCH-01 – 06, CCH-08 – 12 | 11 |
@@ -119,9 +119,9 @@ Rules used below:
 | LND | LND-01, 02, 03, 04, 05, 06, 14, 17, 18 | 9 |
 | DLV | DLV-01, 02, 05 (delivery zones around the tenant's home area, added 2026-10-17) | 3 |
 | FED | FED-01 – 06 (Meta catalog feed, added 2026-10-17) | 6 |
-| | **Total** | **193** |
+| | **Total** | **192** |
 
-### 3.2 Partially completed by this phase (42)
+### 3.2 Partially completed by this phase (43)
 
 | Req | Done in this phase | Remaining | Finished in |
 |---|---|---|---|
@@ -138,6 +138,7 @@ Rules used below:
 | INV-17 | restock-or-damaged return service | the order return flow calls it | Phase 4 |
 | MED-09 | delete removes object, row and usage; tenant prefix wiped at LIF-19 | the "N past orders will lose this photo" warning | Phase 4 |
 | STO-01 | usage counts product, category and logo media; KYC excluded by design | chat media (Phase 7) and payment-proof images (Phase 5) counted | Phases 5, 7 |
+| RTE-01 | a public key has no per-minute limit of its own (moved here from §3.1 at the close-out, §11) | a secret key's per-minute limit, which needs secret keys | Phase 8 |
 | RTE-06 | per-IP total request limit | per-IP order-creation and shopper-OTP limits | Phase 4 |
 | LIM-02 | usage page shows storage, bandwidth, requests, seats, products, essential SMS | orders and payment sessions | Phases 4, 5 |
 | LIM-04 | counter accuracy for storage, bandwidth, requests | orders and sessions counters | Phases 4, 5 |
@@ -1913,3 +1914,47 @@ Same as Phase 2:
 - the isolation registry updated for any new shop-owned route
 - `KNOWN-GAPS.md` updated if anything listed here turns out not to hold
 - this plan's slice entry marked shipped with its PR number
+
+## 11. Close-out check (2026-10-30)
+
+Checked after Slice 13 merged (#249), against §1's seven criteria. Every slice is built. The checks only a live
+deployment can make are listed under criterion 1; the gaps found are in `KNOWN-GAPS.md` §101 to §105.
+
+1. **Every completed requirement has a test or a recorded manual check: not yet.** Of §3.1's 192, 171 are named by a
+   test; the rest were read against the tests one by one:
+   - **Tested without naming the ID:** PRD-14 (half-up rounding to the paisa), PUR-06, API-04; from §3.2's Phase 3
+     halves, SFT-10, API-07, LND-13.
+   - **Tests added by this check:** INV-04 (an unknown reason is refused), DLV-03 (no charge of its own by default, a
+     variant's own kept), STO-02 (the Usage page shows an upload at once), SFT-15 (the storefront key's calls count as
+     any website's), LND-05 (the link-preview tags), FED-06 (the feed link's Copy), BRN-06 (the main colour on the
+     landing preview, nothing saved), TEN-18 (the mark with the brand identity on), AUTH-29 (continuing without paying).
+   - **Built, but only partly proven:** the storefront has no rendered-page test, so SFT-01 to 03, SFT-13's header,
+     SFT-21's footer, LND-01, LND-02, LND-14 and TEN-18's storefront mark rest on the API's tests and unit tests
+     (§105); CCH-09 (a replaced image's old address still serving), BND-09 (a large JSON answer never counted as media),
+     DLV-05 (a city as the home area, in the dashboard) and LND-18 (the page working with the pixel blocked) have no test.
+   - **Not built, though counted here:** MED-12, the operator's view of media costs (§101); LEG-01's recording of the
+     accepted terms and privacy versions (§102); SFT-17's plan sheet (§103). RTE-01's secret-key half needs secret keys
+     (Phase 8), so RTE-01 moved to §3.2.
+   - **Manual checks recorded:** MED-06 -- the risk register accepts media loss with no backup (SRS.md §17), and
+     LEG-02's terms list includes it; the terms text itself is Phase 9. MED-07 -- the scopes hold (the Worker's
+     read-only token, writes refused at R2, Slice 7a; KNOWN-GAPS §78 accepted); the live key inventory and its 90-day
+     rotation start at deployment. SFT-18 -- the storefront is a new design (STOREFRONT-DESIGN.md, its prototype), not a
+     port of the single-tenant pages. SFT-19 -- nothing in the dashboard, the website or the plans offers a shop its
+     own Play Store listing. SFT-11 -- named by its test.
+   - **Live only:** MED-05 (first-byte times from three Bangladeshi providers), MED-12's invoice match, TEN-13 (each
+     domain's certificate), CCH-04 end to end, LIM-04's load reconciliation, LND-05 in Facebook's sharing debugger.
+2. **The inventory invariant under concurrency: holds.** One unit, two reservations at once: one hold, one conflict
+   (INV-01); ten orders for five units: five holds, never below zero (INV-05); the ledger checked after each.
+3. **The inventory golden path: holds.** `reservations.e2e.spec.ts` walks every step §1 names, for one shop, and checks
+   the ledger, levels and batches agree seven times along the way, with the average cost at each receipt and loss.
+4. **The milestone: holds on the API side.** A price change shows at once under a new catalogue version (the shared
+   caches' lifetimes are 30 and 60 seconds); landing pages keep working with the storefront off and follow a renamed
+   product (308); their preview tags are tested. The 60 seconds through the storefront with purging off is a live check.
+   The 50,000-product run (three runs, 2026-10-30): pages 43 to 48 ms at the 95th percentile against 500; searches 249,
+   277 and 329 ms against 300, up from Slice 9's 226 (§104).
+5. **Media metered per shop: holds.** Storage and bandwidth counted and enforced at 100% with every file kept (LIM-03),
+   and the nightly comparison with R2 alerting above 0.5% (MED-04).
+6. **CI green on main, every slice by pull request: holds** (#249 green on its branch; main's run for it was still going
+   at this check).
+7. **Custom domains: built and tested,** with a DNS the test writes and a real run on a copy of the database
+   (Slice 13); a real domain's records, certificate and HTTPS wait for a deployment.

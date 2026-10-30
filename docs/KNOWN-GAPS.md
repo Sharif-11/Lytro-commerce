@@ -1940,6 +1940,49 @@ messages and field labels, each line checked against its English rather than rep
 বন্ধ for on and off, বাকি for "left", ফেরত for goods sent back, বেছে নিন for choose, the server's formal sentences (a
 later pass), and the shopper's payment page and storefront.
 
+## Not a bug, just noting it so it isn't mistaken for one later
+
+The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data
+from an earlier session, not a code encoding bug. Shows up in the live-verified pricing page's output too
+(`/ ? ???`); re-seed or fix that one row directly rather than chasing a non-existent bug.
+
+## 101. `MED-12`: the operator cannot see media costs per shop — found 2026-10-30, open
+
+Found by Phase 3's close-out check (PHASE-3-PLAN §11). §3.1 counts MED-10 to 13 as completed, but nothing shows the
+operator a month's R2 operations, Worker requests or the top consuming shops, and there is no alert at 80% of the budget;
+RUNBOOKS.md only says to set Cloudflare's own billing alert. The figures exist (Analytics Engine per shop, the
+`media_bandwidth` rows), so it is an operator read and a page. Open: build it now, or move MED-12 to a later phase.
+
+## 102. `LEG-01`: the accepted terms and privacy versions are not recorded — found 2026-10-30, open
+
+Found by Phase 3's close-out check. The entry screen shows the terms line (Slice 0), but `control.subscribers` has no
+`terms_version` or `privacy_version` column, though DATABASE-SCHEMA.md §2.1 lists both, and sign-up records neither nor
+the time. Accounts made until it is built record nothing; they would need a default version when it is. Open: where the
+current versions come from (a server setting or a platform setting) and building the recording.
+
+## 103. `SFT-17`: the plan cards do not say the storefront is included — found 2026-10-30, open
+
+Found by Phase 3's close-out check. The storefront is on every plan (no plan check guards it), but the website's
+pricing names it only on the pay-as-you-go card; Starter, Growth and Pro list their limits and feature flags, so the
+acceptance ("the plan sheet lists it as included on Starter, Growth and Pro alike") does not hold. Open: a common
+line on every plan card, which changes the landing page's drawn pricing.
+
+## 104. `CCH-12`: catalogue search has little room under its 300 ms target — found 2026-10-30, open
+
+Found by Phase 3's close-out check, rerunning the 50,000-product test (`CATALOGUE_SLOW_TESTS=1`), which CI never runs.
+Three runs: 329, 277 and 249 ms at the 95th percentile, one over the target; Slice 9 measured 226 ms before Slice 12b
+added the cards' swatches and the added date to the list. Pages stay at 43 to 48 ms. Open: find what the search's
+query now spends its time on and tune it, or accept the margin until production data says otherwise (CCH-12 allows
+tuning before another engine).
+
+## 105. The storefront's pages have no browser test — found 2026-10-30, open
+
+Found by Phase 3's close-out check. The storefront is proven through the API's tests and its own unit tests, and by
+each slice's real run, but no test opens a rendered page: two shops served by one app (SFT-01), the shop's root
+(SFT-02), the New badge and In-stock chip (SFT-03), the header and footer (SFT-13, SFT-21), a landing page's minimal
+frame (LND-01, LND-02), Bangla first (LND-14) and the "Powered by Lytro" mark (TEN-18). Open: a Playwright suite for
+the storefront against its mocked API, as the dashboard's runs.
+
 ## 106. `API-11`, `CUS-09`: stored order replies keep a customer's details after their 24 hours — found 2026-10-30, open
 
 Found while building Slice 4.4a's privacy delete. An idempotency key's stored reply (`control.idempotency_keys`,
@@ -1951,9 +1994,3 @@ the stored replies are untouched.
 
 **Fix when picked up:** a daily job deleting keys past `expires_at` (the 24 hours are API-11's whole promise), and
 LIF-19's deletion removing the shop's keys. Not done in 4.4a: it is a retention change of its own, outside the slice.
-
-## Not a bug, just noting it so it isn't mistaken for one later
-
-The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data
-from an earlier session, not a code encoding bug. Shows up in the live-verified pricing page's output too
-(`/ ? ???`); re-seed or fix that one row directly rather than chasing a non-existent bug.
