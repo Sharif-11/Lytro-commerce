@@ -1,6 +1,9 @@
 # Tenant dashboard: the full design
 
-Status: v3.18, 2026-10-30 (a shop's own domain, Slice 13, prototype Part 28: Settings > Storefront's "Your own
+Status: v3.19, 2026-10-31 (the orders as Phase 4 built them, Slice 4.8a, prototype Part 29: the list with the
+day's work first, the order with one next step and the call log, shipping and delivering by hand, returns with a combo
+whole, the counter, payments recorded and voided, thermal labels 2x3 and 3x3 inches, New order on one page; the
+later-phase pieces greyed; v3.18 of 2026-10-30: a shop's own domain, Slice 13, prototype Part 28: Settings > Storefront's "Your own
 domain" line and the Domain page -- the records in plain words, waiting, active, couldn't verify, the record gone, off
 after a downgrade, the plan offer, removing asked first; v3.17 of 2026-10-30: the dashboard's installed app marked so a seller tells it from the shop's storefront app,
 Slice 12c, prototype Part 27: named "<shop> Admin", a small gear in its icon's corner; v3.16 of 2026-10-29:
@@ -1367,18 +1370,92 @@ includes one), `POST /domain` (`{ hostname }`), `POST /domain/check`, `DELETE /d
 
 ---
 
+### 7.31 Orders (`/orders`, `/orders/:id`, `/orders/new`)
+
+*Slice 4.8a* (Part 29), from 4.8a's read (2026-10-31): the order screens drawn on 2026-10-20 (§8), changed to Phase 4
+as built (Slices 4.1 to 4.7). Orders joins the current navigation: the Orders tab opens the list and counts the orders
+to confirm. Pieces of later phases -- courier booking (Phase 6), the fraud check from courier history (Phase 7),
+reading an order from a pasted message (Phase 7), checking bKash and Nagad payments automatically (Phase 5) -- are
+drawn greyed with "Later" so the design stays whole; **the built screens hide them** until their phase.
+
+- **The list** (`orders`): the day's work first. Tabs To confirm · Confirmed · On hold · Shipped · All, each with its
+  count; Delivered, Returned and Cancelled sit under **More** (`o29-more`), Cancelled with its reason filter (ORD-52).
+  Search by name, phone or order number and a date filter (ORD-13). Rows under Today, Yesterday and Earlier: the full
+  number (`#261031-0047`, ORD-04), the customer, where it goes (thana, district) or a **Takeaway** / **Table 4** chip,
+  how many items, and the line's note in warning tone -- "No answer ×2" (ORD-51), a hold's "Call at 4:00 pm", a
+  cancelled order's reason; the total and the status chip on the right (New, Confirmed, On hold, Shipped, Delivered,
+  Returned, Cancelled; ORD-41). Desktop shows the list beside the open order. No orders yet: share the shop link or
+  enter one by hand (`o29-empty`).
+- **Selecting to print** (`o29-select`): the printer button in the search row turns the rows into checkboxes; the bar
+  says **Print 3 labels**. Printing is the only bulk action (agreed): every status change is one order at a time, as
+  each needs its own details.
+- **The order** (`order`): its number, when and where it came from (Storefront, Landing page, Dashboard, API), the
+  status chip and the **more** button; a line for the state (a new order: "Call the customer to confirm"; on hold: due
+  a call at 4:00 pm; cancelled: the reason and its note). Then the customer -- name, phone, **Call**, the address, the
+  customer's own note from checkout (read-only), their order count linking to their page; the **Calls**; the items as
+  ordered (ORD-46) -- options, a combo's items inside it, add-ons with their price, quantity and price, units back;
+  pricing with the tax inside the total, one line per class (TAX-03), and cash on delivery or what is due; payments;
+  shipping; the timeline, newest first.
+- **One next step** in the bar (agreed): **Call to confirm** for a new order, **Call again** on hold, **Mark shipped**
+  once confirmed, **Hand over** for a counter order, **Delivered** once shipped, **Return items** once delivered. The
+  rest is in the more menu (`o29-menu`): Put on hold, Edit the order (until it ships), Print label, Cancel the order,
+  Delete the order (a mistake, before it ships or is paid; `orders:delete`). Someone who may only look sees no bar and
+  only Print.
+- **The call** (`o29-call`): **Call** dials the customer; back in the app a sheet asks "How did the call go?" --
+  Confirmed (the order is confirmed), No answer (it stays as it is; `o29-noanswer`), Call later (a time: in 1 hour,
+  today 4:00 pm, this evening, tomorrow 10 am, or one picked; the order is on hold till then; `o29-call-later`,
+  `o29-hold`) or Cancel (the reason) -- with an optional note (ORD-51). The **Calls** card lists each call with its
+  outcome, note, who and when, and counts the unanswered ones.
+- **Cancelling** (`o29-cancel`): the reasons (customer cancelled, fake order, couldn't reach the customer, out of
+  stock, duplicate, other -- other needs a note), that cancelling lets go of the stock it holds, **Keep it** or
+  **Cancel the order**; the cancelled order shows its reason (`o29-cancelled`). A shipped order is returned, never
+  cancelled.
+- **Shipping by hand** (`o29-ship`): the courier (typed, the shop's recent ones as chips), the tracking code or a
+  tracking link -- one is needed, and the customer sees it on their tracking page -- and that shipping takes the stock
+  out and counts as one of the month's orders (QTA-01). A serial-numbered item asks for the serial (IMEI) of each unit
+  sent, picked from those in stock (`o29-ship-serial`, INV-14); a combo's serial-numbered item is asked for the same
+  way. Shipping a confirmed order confirms it; shipping one past the month's limit says so with **See plans**
+  (`o29-limit`, QTA-03); a refused one (the trial's total, the day's limit, a pay-as-you-go balance short of the fee)
+  shows the refusal and leaves the order as it was.
+- **Delivered** (`o29-deliver`): "Mark it delivered? The courier collected ৳3,470 cash on delivery; it is recorded
+  as a payment." The order is then delivered and paid (`o29-delivered`).
+- **Returns** (`o29-return`): each item with **Sellable** and **Damaged** steppers -- sellable units go back into
+  stock, damaged ones are written off -- and a note. A combo comes back whole (agreed in 4.5): one stepper for the
+  combos that came back, and a tick for any item inside that came back damaged. An item's units back show on it
+  (`o29-returned`); once every unit is back the order is Returned.
+- **At the counter** (`o29-takeaway`): a takeaway or dine-in order has no calls, address or shipping; its step is
+  **Hand over** -- "Handing it to Karim? Take ৳3,400 in cash. The order becomes delivered and paid." (`o29-handover`,
+  `o29-handed`).
+- **Payments** (`o29-pay`, `o29-paid`, `o29-void`): **Record payment** -- how it came (cash, bKash, Nagad, Rocket,
+  Upay, bank), the amount (no more than is due), the sending number and the TrxID for a wallet, a reference for a bank
+  -- each listed with who recorded it and when; **Void** asks why, and a voided payment stays struck through and stops
+  counting (ORD-15, ORD-22). Needs `payments:manage`.
+- **Printing** (`o29-print`, `o29-label-23`; agreed 2026-10-31, ORD-19 amended): thermal labels, **2 × 3** or **3 ×
+  3 inches**, the size kept for next time. A label carries the shop and its phone, the customer's name, phone and
+  address, the order number, courier and tracking code, a barcode of the order number, the cash to collect and the
+  weight; the 3 × 3 label adds the items. The payment log is not printed: the order's payments are on screen.
+- **New order** (`order-new`), one page in sections (agreed): the customer -- the phone first, a known phone offering
+  its name and last address (`o29-new-known`, CUS-01) -- then **how it reaches them**: Delivery (district and thana,
+  its zone and charge, the address), Takeaway or Table (`o29-new-counter`, MNU-04); the items -- **Add an item**
+  searches products and shows each variant's stock, an out-of-stock one greyed (`o29-add-item`); a combo asks a size
+  for each unit of a choice part and its add-ons (`o29-combo-pick`); each line's quantity and **Change price** (kept in
+  the history, ORD-06) -- then the order's discount, the delivery charge by hand, **the customer already paid
+  something** (`o29-new-paid`: how, the amount, the TrxID; ORD-22), **Already confirmed on the phone** (it starts
+  Confirmed) and a staff note. The totals sit pinned below on a phone and in a side column on desktop, with the tax
+  inside the total and cash on delivery; **Create order**. Not enough stock refuses the whole order naming the item,
+  and nothing is saved (`o29-new-short`); an address no delivery zone reaches is said, and the order still saves with
+  its charge by hand (`o29-new-zone`, DLV-06). Created, it opens (`o29-created`).
+- **Edit order** (`o29-edit`): the same page with **Save changes**; an item already on the order keeps the price it
+  was ordered at unless changed (ORD-11), until the order ships.
+
 ## 8. Screens designed for later phases
 
 Kept in the prototype under "Later phases (design only)", exactly as designed on 2026-10-20, so the
 architecture is whole when each phase arrives. Their endpoints do not exist yet.
 
-- **Orders** (`/orders`, Phase 4): status segments with counts, search and dates, rows with number, name,
-  area and items, the total above the status chip, the fraud dot (FRD-01); desktop list-plus-detail.
-- **Order detail**: customer with Call and the fraud chip, items as snapshots (ORD-46), pricing with advance
-  and cash on delivery, payment, courier with the area warning (CUS-12), timeline, and the state's one
-  action: Confirm, Book courier (sheet: courier, area, COD, weight, note), Mark shipped, Sync.
-- **New order**: paste the message (ORD-30) with the per-read cost, the customer with the known-phone
-  fill (CUS-01) and the zone line (DLV-05), items with the variant chooser, payment, the sticky Create.
+- **Orders, the order and New order** moved to §7.31 (Part 29, 2026-10-31) as Phase 4 built them. What stays here
+  is **Book courier** (`order-book`, Phase 6: courier, area, COD, weight, note) and, on the order, the fraud chip
+  (Phase 7) and reading a pasted message (Phase 7), drawn greyed in §7.31.
 - **Customers**: search by name or last digits, rows with orders and spend, the detail with the fraud level,
   addresses, orders and the privacy delete (CUS-02, 06, 09).
 - **Payments** (Phase 5), the shop's incoming payments (its own payments to Lytro are Billing, §7.13): To verify
@@ -1447,6 +1524,9 @@ brand identity.
 | Pay-as-you-go estimate | billing | PYG-12 (needs order history) | later |
 | The notifications feed behind the bell | notifications | §8 (NTF-01) | Phase 7 |
 | Orders, customers, payments, couriers, SMS, notices; storefront settings | Phases 4 to 8; Slice 12 | §8 | later |
+| `location { thana, zilla }` and `unansweredCalls` on each `GET /orders` row | orders | the list's "Mirpur, Dhaka" and "No answer ×2" (§7.31) | Slice 4.8a |
+| the customer's order count on `GET /orders/:id` | orders | the order's "4 orders" link to the customer (§7.31) | Slice 4.8a |
+| the shop's courier names used before | orders | the ship sheet's chips (§7.31) | Slice 4.8a |
 
 ---
 
