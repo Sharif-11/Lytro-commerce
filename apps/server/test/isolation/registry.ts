@@ -272,5 +272,10 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'POST /orders/:id/hand-over': "another shop's order answers 404",
   'POST /orders/:id/deliver': "another shop's order answers 404",
   'POST /orders/:id/returns': "another shop's order answers 404",
+  // Phase 4 Slice 4.3b, checked in test/order-payments.e2e.spec.ts.
+  'POST /orders/:id/payments':
+    "another shop's order answers 404; a transaction ID another shop recorded is refused",
+  'POST /orders/:id/payments/:paymentId/void':
+    "another shop's order or payment answers 404 and the payment stays live",
   'DELETE /orders/:id': "another shop's order answers 404 and is kept",
 };

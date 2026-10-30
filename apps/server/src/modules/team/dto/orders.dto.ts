@@ -10,6 +10,7 @@ import {
   FulfillmentStatus,
   FulfilmentType,
   logCallSchema,
+  orderPaymentSchema,
   OrderHistoryField,
   OrderPaymentStatus,
   OrderSource,
@@ -23,6 +24,7 @@ import {
   StatusOverride,
   StockUnit,
   updateOrderSchema,
+  voidPaymentSchema,
 } from '@lytronix/validators';
 
 // DTO classes built from the shared schemas, so each request shape is written once (ENGINEERING §4).
@@ -34,6 +36,8 @@ export class OverrideOrderDto extends createZodDto(overrideOrderSchema) {}
 export class ShipOrderDto extends createZodDto(shipOrderSchema) {}
 export class HandOverOrderDto extends createZodDto(handOverOrderSchema) {}
 export class ReturnOrderDto extends createZodDto(returnOrderSchema) {}
+export class OrderPaymentDto extends createZodDto(orderPaymentSchema) {}
+export class VoidPaymentDto extends createZodDto(voidPaymentSchema) {}
 
 // --- Responses. Dates coerce, since a created order's reply is replayed from the idempotency store's JSON (D4-8). ---
 
@@ -163,6 +167,7 @@ const orderViewSchema = z.object({
       transactionId: z.string().nullable(),
       verifiedBy: personSchema,
       verifiedAt: z.coerce.date(),
+      voided: z.object({ by: personSchema, at: z.coerce.date(), reason: z.string() }).nullable(),
     }),
   ),
   warnings: z.array(warningSchema),

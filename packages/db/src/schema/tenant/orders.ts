@@ -13,6 +13,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
@@ -368,8 +369,8 @@ export const orderCalls = tenant.table(
 // ORD-15, ORD-22, D4-6 (Slice 4.3): money that came in for an order, verified as it is recorded -- by staff, or the cash on
 // delivery collected when the order was delivered or handed over (agreed 2026-10-30). Cash on delivery and cash at the
 // counter carry no transaction ID; a wallet or bank payment carries one, unique across the platform (Slice 4.3b,
-// control.used_transaction_ids). Never changed; it goes with its order. Phase 5 adds payment sessions, their
-// verification levels and refunds on this table (DATABASE-SCHEMA §3.4).
+// control.used_transaction_ids). It changes only by being voided, once (migration 0088's grant and guard); it goes with
+// its order. Phase 5 adds payment sessions, their verification levels and refunds on this table (DATABASE-SCHEMA §3.4).
 export const orderPayments = tenant.table(
   'payments',
   {
@@ -382,6 +383,11 @@ export const orderPayments = tenant.table(
     transactionId: text('transaction_id'),
     verifiedBy: uuid('verified_by'),
     verifiedAt: timestamp('verified_at', { withTimezone: true }).notNull().defaultNow(),
+    // Slice 4.3b (agreed 2026-10-30): a payment recorded by mistake is voided with its reason, never deleted or changed;
+    // it no longer counts toward what the order has been paid.
+    voidedAt: timestamp('voided_at', { withTimezone: true }),
+    voidedBy: uuid('voided_by'),
+    voidReason: varchar('void_reason', { length: CALL_NOTE_MAX_LENGTH }),
   },
   (t) => [
     foreignKey({
@@ -394,7 +400,12 @@ export const orderPayments = tenant.table(
       'payments_reference_check',
       sql`(${t.method} IN ('cash_on_delivery', 'cash')) = (${t.transactionId} IS NULL)`,
     ),
+    check('payments_void_check', sql`(${t.voidedAt} IS NULL) = (${t.voidReason} IS NULL)`),
     index('payments_order_idx').on(t.tenantId, t.orderId, t.verifiedAt),
+    // ORD-15: within a shop, one live payment per transaction ID; across shops, control.used_transaction_ids.
+    uniqueIndex('payments_live_transaction_key')
+      .on(t.tenantId, t.transactionId)
+      .where(sql`${t.transactionId} IS NOT NULL AND ${t.voidedAt} IS NULL`),
   ],
 );
 

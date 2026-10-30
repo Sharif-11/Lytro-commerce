@@ -16,6 +16,7 @@ import {
   TABLE_REF_MAX_LENGTH,
   TRACKING_CODE_MAX_LENGTH,
   TRACKING_LINK_MAX_LENGTH,
+  TRANSACTION_ID_MAX_LENGTH,
 } from '../../common/limits';
 import { bdMobileNumber } from '../../common/phone';
 import {
@@ -26,6 +27,7 @@ import {
   OrderPaymentStatus,
   OrderSource,
   OrderStatus,
+  PaymentMethod,
   StatusOverride,
 } from '../../db/enums';
 import { FieldProblemCode } from '../../validation/field-problem';
@@ -59,6 +61,54 @@ const orderPhoneField = z
     }
     return local;
   });
+
+// ORD-15, ORD-22, D4-6 (Slice 4.3b, agreed 2026-10-30): money staff received for an order. A wallet payment names the
+// number it came from and its transaction ID; a bank payment its reference as the transaction ID; cash at the counter
+// neither. Cash on delivery is never typed: it is collected when the order is delivered or handed over.
+const WALLETS: readonly PaymentMethod[] = [
+  PaymentMethod.Bkash,
+  PaymentMethod.Nagad,
+  PaymentMethod.Rocket,
+  PaymentMethod.Upay,
+];
+export const orderPaymentSchema = z
+  .object({
+    method: z.enum([
+      PaymentMethod.Cash,
+      PaymentMethod.Bkash,
+      PaymentMethod.Nagad,
+      PaymentMethod.Rocket,
+      PaymentMethod.Upay,
+      PaymentMethod.Bank,
+    ]),
+    amount: priceField.refine((value) => value > 0, {
+      message: 'More than zero.',
+      params: { problem: FieldProblemCode.TooSmall },
+    }),
+    senderNumber: orderPhoneField.optional(),
+    transactionId: textField(TRANSACTION_ID_MAX_LENGTH).optional(),
+  })
+  .strict()
+  .superRefine((value, ctx) => {
+    const wallet = WALLETS.includes(value.method);
+    if (wallet && value.senderNumber === undefined) {
+      refuse(ctx, ['senderNumber'], FieldProblemCode.Required, 'The number it came from.');
+    }
+    if (value.method === PaymentMethod.Cash && value.senderNumber !== undefined) {
+      refuse(ctx, ['senderNumber'], FieldProblemCode.NotAllowed, 'Not for cash.');
+    }
+    if (value.method === PaymentMethod.Cash && value.transactionId !== undefined) {
+      refuse(ctx, ['transactionId'], FieldProblemCode.NotAllowed, 'Not for cash.');
+    }
+    if (value.method !== PaymentMethod.Cash && value.transactionId === undefined) {
+      refuse(ctx, ['transactionId'], FieldProblemCode.Required, 'The transaction ID.');
+    }
+  });
+export type OrderPaymentInput = z.infer<typeof orderPaymentSchema>;
+
+// POST orders/:id/payments/:paymentId/void (agreed 2026-10-30): a payment recorded by mistake, voided with its reason.
+export const voidPaymentSchema = z.object({ reason: textField(CALL_NOTE_MAX_LENGTH) }).strict();
+export type VoidPaymentInput = z.infer<typeof voidPaymentSchema>;
 
 // ATR-08: what the customer asked for on an attribute captured at order time ("Name on the cake: Rafi").
 const capturedInputSchema = z.object({
@@ -179,11 +229,13 @@ export function fulfilmentProblems(
 }
 
 // POST orders (ORD-01, ORD-07): an order entered by staff. It starts pending, waiting for the confirming call, or
-// confirmed when the customer confirmed as it was entered.
+// confirmed when the customer confirmed as it was entered. ORD-22 (agreed 2026-10-30): a payment received as it was
+// entered is saved with it, verified.
 export const createOrderSchema = z
   .object({
     ...orderDetails,
     status: z.enum([OrderStatus.Pending, OrderStatus.Confirmed]).optional(),
+    payment: orderPaymentSchema.optional(),
     items: orderItemsField,
   })
   .superRefine((value, ctx) => {

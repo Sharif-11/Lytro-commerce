@@ -131,6 +131,8 @@ export const SHOPPER_NOTE_MAX_LENGTH = 500;
 export const COURIER_NAME_MAX_LENGTH = 80;
 export const TRACKING_CODE_MAX_LENGTH = 100;
 export const TRACKING_LINK_MAX_LENGTH = 500;
+// ORD-15: a wallet's transaction ID, or a bank transfer's reference, as staff type it.
+export const TRANSACTION_ID_MAX_LENGTH = 64;
 // ATR-08: what one captured-at-order value may say.
 export const CAPTURED_VALUE_MAX_LENGTH = 200;
 // ORD-51, ORD-52: a call's note, and a cancellation's.

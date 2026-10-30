@@ -351,6 +351,29 @@ export class UsedTransactionIdsRepository {
     return row;
   }
 
+  /**
+   * ORD-15: registers the ID for this shop unless it is already registered, in the same transaction as the payment.
+   * `claimed` when this call registered it; otherwise the shop that holds it -- this one, or another that used it first.
+   */
+  async claim(
+    tx: Executor,
+    transactionId: string,
+    tenantId: string,
+  ): Promise<{ claimed: boolean; tenantId: string }> {
+    const [row] = await tx
+      .insert(usedTransactionIds)
+      .values({ transactionId, tenantId })
+      .onConflictDoNothing()
+      .returning({ tenantId: usedTransactionIds.tenantId });
+    if (row) return { claimed: true, tenantId: row.tenantId };
+    const [held] = await tx
+      .select({ tenantId: usedTransactionIds.tenantId })
+      .from(usedTransactionIds)
+      .where(eq(usedTransactionIds.transactionId, transactionId));
+    if (!held) throw new Error('a transaction ID that conflicted is registered');
+    return { claimed: false, tenantId: held.tenantId };
+  }
+
   async exists(tx: Executor, transactionId: string): Promise<boolean> {
     const rows = await tx
       .select({ transactionId: usedTransactionIds.transactionId })
