@@ -1983,7 +1983,7 @@ each slice's real run, but no test opens a rendered page: two shops served by on
 frame (LND-01, LND-02), Bangla first (LND-14) and the "Powered by Lytro" mark (TEN-18). Open: a Playwright suite for
 the storefront against its mocked API, as the dashboard's runs.
 
-## 106. `API-11`, `CUS-09`: stored order replies keep a customer's details after their 24 hours — found 2026-10-30, open
+## 106. `API-11`, `CUS-09`: stored order replies keep a customer's details after their 24 hours — found 2026-10-30, fixed 2026-10-30
 
 Found while building Slice 4.4a's privacy delete. An idempotency key's stored reply (`control.idempotency_keys`,
 D4-8) is deleted only when the same key arrives again after its 24 hours (`IdempotencyKeysRepository.deleteExpired`);
@@ -1992,5 +1992,7 @@ address -- so those stay in the control schema indefinitely, and a shop's deleti
 4.4a's erasure now blanks those fields in the replies of the erased customer's orders, so CUS-09 holds; the rest of
 the stored replies are untouched.
 
-**Fix when picked up:** a daily job deleting keys past `expires_at` (the 24 hours are API-11's whole promise), and
-LIF-19's deletion removing the shop's keys. Not done in 4.4a: it is a retention change of its own, outside the slice.
+**Fixed** (2026-10-30, the user's pick after Slice 4.4): a daily job (`idempotency_purge_tick`, 03:30 Asia/Dhaka)
+deletes every key past `expires_at` with its reply -- the 24 hours are API-11's whole promise, so nothing a retry
+needs goes -- and LIF-19's day-60 deletion removes the shop's keys with the rest of its data. No index was added:
+purged daily, the table holds about a day of keys.

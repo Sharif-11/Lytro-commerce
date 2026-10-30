@@ -22,6 +22,7 @@ import { CatalogueEraser } from '../../catalogue/services/catalogue-eraser';
 import { DeliveryZoneService } from '../../delivery/services/delivery-zone.service';
 import { InventoryEraser } from '../../inventory/services/inventory-eraser';
 import { PurchasingEraser } from '../../purchasing/services/purchasing-eraser';
+import { IdempotencyService } from '../../../common/idempotency/idempotency.service';
 import { OrdersEraser } from '../../orders/services/orders-eraser';
 import { ShoppersEraser } from '../../shoppers/services/shoppers-eraser';
 import { PublicApiEraser } from '../../public-api/services/public-api-eraser';
@@ -90,6 +91,7 @@ export class LifecycleService {
     @Inject(InventoryEraser) private readonly inventory: InventoryEraser,
     @Inject(OrdersEraser) private readonly orders: OrdersEraser,
     @Inject(ShoppersEraser) private readonly shoppers: ShoppersEraser,
+    @Inject(IdempotencyService) private readonly idempotency: IdempotencyService,
     @Inject(CatalogueEraser) private readonly catalogue: CatalogueEraser,
     @Inject(PublicApiEraser) private readonly publicSide: PublicApiEraser,
     @Inject(UsageWarnings) private readonly usageWarnings: UsageWarnings,
@@ -337,7 +339,8 @@ export class LifecycleService {
     await this.staff.deleteAllForTenant({ id: tenantId, planLimits: null });
     await this.dataExports.deleteAllForTenant(tenantId); // LIF-16/19: exports go with the rest of the data.
     // Phase 3: purchases and suppliers, the stock ledger and levels, then (Phase 4) the orders those held stock for and
-    // their customers, and the shoppers' accounts (Slice 4.4b), then products and everything under them, categories, attributes, option sets and the settings
+    // their customers, and the shoppers' accounts (Slice 4.4b), and the replies stored for its idempotency keys (KNOWN-GAPS
+    // §106), then products and everything under them, categories, attributes, option sets and the settings
     // row, the brand identity, then its media (the rows now, every stored file under its prefix in the deletion job,
     // MED-09), then the delivery zones those products' limits named, the shop's API keys and request counts, the
     // record of its usage warnings, and its own domain (Slice 13), freed for anyone to add. Each step is safe to repeat
@@ -346,6 +349,7 @@ export class LifecycleService {
     await this.inventory.deleteAllForTenant(tenantId);
     await this.orders.deleteAllForTenant(tenantId);
     await this.shoppers.deleteAllForTenant(tenantId);
+    await this.idempotency.deleteAllForTenant(tenantId);
     await this.catalogue.deleteAllForTenant(tenantId);
     await this.brand.deleteAllForTenant(tenantId);
     await this.media.deleteAllForTenant(tenantId);
