@@ -17,6 +17,8 @@ import { MediaProcessWorker } from './services/media-process-worker';
 import { MediaBandwidthTickWorker } from './services/media-bandwidth-tick-worker';
 import { MediaReconcileTickWorker } from './services/media-reconcile-tick-worker';
 import { UsageModule } from '../../usage/usage.module';
+import { DomainsModule } from '../../domains/domains.module';
+import { DomainCheckTickWorker } from './services/domain-check-tick-worker';
 import { PublicApiModule } from '../../public-api/public-api.module';
 import { MetaPurchaseWorker } from './services/meta-purchase-worker';
 import { PackAutoBuyWorker } from './services/pack-auto-buy-worker';
@@ -37,6 +39,7 @@ import { UsageNoticeWorker } from './services/usage-notice-worker';
     MediaModule,
     PublicApiModule,
     UsageModule,
+    DomainsModule,
   ],
   providers: [
     SmsRetryWorker,
@@ -52,6 +55,7 @@ import { UsageNoticeWorker } from './services/usage-notice-worker';
     UsageNoticeWorker,
     PackAutoBuyWorker,
     MetaPurchaseWorker,
+    DomainCheckTickWorker,
   ],
 })
 export class QueueWorkersModule {}

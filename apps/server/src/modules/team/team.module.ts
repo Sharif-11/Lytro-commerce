@@ -8,6 +8,7 @@ import { OperatorModule } from '../operator/operator.module';
 import { BalanceModule } from '../balance/balance.module';
 import { BillingModule } from '../billing/billing.module';
 import { BrandModule } from '../brand/brand.module';
+import { DomainsModule } from '../domains/domains.module';
 import { PaymentsModule } from '../payments/payments.module';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
 import { ClientIp } from '../../common/client-ip';
@@ -37,6 +38,7 @@ import { BillingController } from './controllers/billing.controller';
 import { OperatorPaymentQueueController } from './controllers/operator-payment-queue.controller';
 import { ShopSettingsController } from './controllers/shop-settings.controller';
 import { BrandController } from './controllers/brand.controller';
+import { ShopDomainController } from './controllers/shop-domain.controller';
 import { AdTrackingController } from './controllers/ad-tracking.controller';
 import { ApiKeysController } from './controllers/api-keys.controller';
 import { CatalogFeedController } from './controllers/catalog-feed.controller';
@@ -112,6 +114,7 @@ import { CatalogueRequest } from './services/catalogue-request';
     MediaModule,
     UsageModule,
     BrandModule,
+    DomainsModule,
   ],
   controllers: [
     StaffController,
@@ -136,6 +139,7 @@ import { CatalogueRequest } from './services/catalogue-request';
     OperatorPaymentQueueController,
     ShopSettingsController,
     BrandController,
+    ShopDomainController,
     ApiKeysController,
     AdTrackingController,
     CatalogFeedController,

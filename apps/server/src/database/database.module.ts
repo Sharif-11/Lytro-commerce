@@ -9,6 +9,7 @@ import {
   SmsRepository,
   MailRepository,
   TenantRepository,
+  TenantDomainRepository,
   TransactionRunner,
   ActivityLogRepository,
   JobOutboxRepository,
@@ -93,6 +94,7 @@ import { DatabaseService } from './database.service';
     { provide: SmsRepository, useFactory: () => new SmsRepository() },
     { provide: MailRepository, useFactory: () => new MailRepository() },
     { provide: TenantRepository, useFactory: () => new TenantRepository() },
+    { provide: TenantDomainRepository, useFactory: () => new TenantDomainRepository() },
     {
       provide: JobOutboxRepository,
       useFactory: () => new JobOutboxRepository(),
@@ -295,6 +297,7 @@ import { DatabaseService } from './database.service';
     SmsRepository,
     MailRepository,
     TenantRepository,
+    TenantDomainRepository,
     UserRepository,
     OperatorAccountRepository,
     OperatorBackupCodeRepository,

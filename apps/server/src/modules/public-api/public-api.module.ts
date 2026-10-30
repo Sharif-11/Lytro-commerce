@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ClientIp } from '../../common/client-ip';
-import { apiOrigin, shopOrigin } from '../../common/shop-address';
+import { apiOrigin, mainOrigin } from '../../common/shop-address';
 import type { Env } from '../../config/env';
 import { ENV } from '../../config/tokens';
 import {
@@ -16,6 +16,7 @@ import {
   DrizzleApiUsageStore,
 } from '../../database/adapters/public-api.adapter';
 import { BrandModule } from '../brand/brand.module';
+import { DomainsModule } from '../domains/domains.module';
 import { CatalogueModule } from '../catalogue/catalogue.module';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
 import { TenancyModule } from '../tenancy/tenancy.module';
@@ -85,6 +86,8 @@ import {
     PlatformSettingsModule,
     UsageWarningsModule,
     BrandModule,
+    // Slice 13: the storefront's context and the catalog feed name the shop's own domain while it serves.
+    DomainsModule,
   ],
   controllers: [
     PublicShopController,
@@ -110,7 +113,7 @@ import {
       inject: [ENV],
       useFactory: (env: Env): CatalogFeedSettings => ({
         feedUrl: (token) => `${apiOrigin(env)}/v1/feeds/meta/${token}.csv`,
-        shopOrigin: (slug) => shopOrigin(env, slug),
+        shopOrigin: (slug, ownDomain) => mainOrigin(env, slug, ownDomain),
       }),
     },
     AdTrackingService,

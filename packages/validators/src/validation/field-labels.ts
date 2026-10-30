@@ -103,6 +103,7 @@ export const FIELD_LABELS: Readonly<Record<string, Translation | null>> = {
   headingFont: { en: 'Heading font', bn: 'হেডিংয়ের ফন্ট' },
   iconId: { en: 'Square icon', bn: 'চৌকো আইকন' },
   imageId: { en: 'Image', bn: 'ছবি' },
+  hostname: { en: 'Your domain', bn: 'আপনার ডোমেইন' },
   imageIds: { en: 'Photos', bn: 'ছবি' },
   includeRetired: { en: 'Show retired', bn: 'রিটায়ার্ডগুলোও দেখান' },
   inStock: { en: 'In stock only', bn: 'শুধু স্টকে আছে' },

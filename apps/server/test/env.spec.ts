@@ -37,8 +37,30 @@ describe('loadEnv platform settings', () => {
       TRUSTED_EDGE_SECRET: SECRET,
       STOREFRONT_SECRET: SECRET,
       DATA_ENCRYPTION_KEY: DATA_KEY,
+      PLATFORM_ADDRESSES: '203.0.113.10',
     });
     expect(env.TRUSTED_EDGE_SECRET).toBe(SECRET);
+  });
+
+  it('refuses production without the address a root domain points at, and anything not an IPv4 (Slice 13)', () => {
+    const production = {
+      ...BASE,
+      NODE_ENV: 'production',
+      TRUSTED_EDGE_SECRET: SECRET,
+      STOREFRONT_SECRET: SECRET,
+      DATA_ENCRYPTION_KEY: DATA_KEY,
+    };
+    expect(() => new EnvironmentParser().parse(production)).toThrow(/PLATFORM_ADDRESSES/);
+    expect(() =>
+      new EnvironmentParser().parse({ ...production, PLATFORM_ADDRESSES: 'lytro.app' }),
+    ).toThrow(/PLATFORM_ADDRESSES/);
+    expect(
+      new EnvironmentParser().parse({
+        ...production,
+        PLATFORM_ADDRESSES: ' 203.0.113.10, 198.51.100.7 ,',
+      }).PLATFORM_ADDRESSES,
+    ).toEqual(['203.0.113.10', '198.51.100.7']);
+    expect(new EnvironmentParser().parse(BASE).PLATFORM_ADDRESSES).toEqual([]);
   });
 
   it("refuses production without the storefront's secret, which guards every shop's storefront key (Slice 12a)", () => {

@@ -15,6 +15,7 @@ import {
   integer,
   jsonb,
   numeric,
+  smallint,
   text,
   timestamp,
   uniqueIndex,
@@ -152,7 +153,10 @@ export const reservedSlugs = control.table('reserved_slugs', {
   createdAt: createdAt(),
 });
 
-// DATABASE-SCHEMA §2.2: custom domains. A domain belongs to one tenant platform-wide (TEN-12).
+// DATABASE-SCHEMA §2.2: custom domains. An active domain belongs to one tenant platform-wide (TEN-12), kept while its
+// shop's plan does not include it (DWN-10: it serves only while the plan does); a waiting one does not hold the name,
+// since only the shop its records name can verify it. One domain a shop (TEN-09), its twin (megh.com and
+// www.megh.com) served beside it when its record points here (Slice 13).
 export const tenantDomains = control.table(
   'tenant_domains',
   {
@@ -160,13 +164,29 @@ export const tenantDomains = control.table(
     tenantId: uuid('tenant_id')
       .notNull()
       .references(() => tenants.id),
-    hostname: text('hostname').notNull().unique(),
+    hostname: text('hostname').notNull(),
     status: text('status').$type<DomainStatus>().notNull().default(DomainStatus.Pending),
     verifiedAt: timestamp('verified_at', { withTimezone: true }),
     createdAt: createdAt(),
+    // Slice 13: the twin, and whether its record points here; when the wait began (72 hours to verify); when it was
+    // last checked; the checks running that missed an active domain's record, and when that sent it back to waiting;
+    // when it was removed.
+    twin: text('twin').notNull(),
+    twinActive: boolean('twin_active').notNull().default(false),
+    pendingSince: timestamp('pending_since', { withTimezone: true }).notNull().defaultNow(),
+    checkedAt: timestamp('checked_at', { withTimezone: true }),
+    missedChecks: smallint('missed_checks').notNull().default(0),
+    lostAt: timestamp('lost_at', { withTimezone: true }),
+    removedAt: timestamp('removed_at', { withTimezone: true }),
   },
   (t) => [
     index('tenant_domains_tenant_idx').on(t.tenantId),
+    uniqueIndex('tenant_domains_active_hostname')
+      .on(t.hostname)
+      .where(sql`${t.status} = 'active'`),
+    uniqueIndex('tenant_domains_one_per_shop')
+      .on(t.tenantId)
+      .where(sql`${t.status} <> 'removed'`),
     check(
       'tenant_domains_status_check',
       sql`${t.status} in (${sql.raw(

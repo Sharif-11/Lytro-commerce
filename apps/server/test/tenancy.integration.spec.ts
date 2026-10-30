@@ -11,6 +11,7 @@ import { request as httpRequest } from 'node:http';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
+  AddonPurchaseRepository,
   DatabaseConnector,
   SlugRepository,
   TenantRepository,
@@ -95,11 +96,19 @@ beforeAll(async () => {
   await admin.connect();
   shopId = await seedShop(admin, 'Fashion House', 'fashion-house');
   archivedId = await seedShop(admin, 'Old Shop', 'old-shop', 'archived');
+  // Slice 13: one domain a shop, served only while the shop's plan includes one (DWN-10).
+  const waitingId = await seedShop(admin, 'Waiting Shop', 'waiting-shop');
+  const downgradedId = await seedShop(admin, 'Downgraded Shop', 'downgraded-shop');
   await admin.query(
-    `INSERT INTO control.tenant_domains (tenant_id, hostname, status) VALUES
-       ($1, 'www.fashionhouse.test', 'active'),
-       ($1, 'pending.fashionhouse.test', 'pending')`,
-    [shopId],
+    `UPDATE control.tenants SET feature_snapshot = '{"custom_domain": true}' WHERE id = ANY($1)`,
+    [[shopId, waitingId]],
+  );
+  await admin.query(
+    `INSERT INTO control.tenant_domains (tenant_id, hostname, twin, twin_active, status) VALUES
+       ($1, 'www.fashionhouse.test', 'fashionhouse.test', true, 'active'),
+       ($2, 'pending.fashionhouse.test', 'www.pending.fashionhouse.test', false, 'pending'),
+       ($3, 'downgraded.test', 'www.downgraded.test', true, 'active')`,
+    [shopId, waitingId, downgradedId],
   );
 
   handle = new DatabaseConnector().connect(appDbUrl);
@@ -110,6 +119,7 @@ beforeAll(async () => {
     providers: [
       { provide: DatabaseService, useValue: database },
       { provide: TenantRepository, useValue: new TenantRepository() },
+      { provide: AddonPurchaseRepository, useValue: new AddonPurchaseRepository() },
       { provide: SlugRepository, useValue: new SlugRepository() },
       { provide: TENANT_DIRECTORY, useClass: DrizzleTenantDirectory },
       { provide: SLUG_AVAILABILITY, useClass: DrizzleSlugAvailability },
@@ -147,6 +157,16 @@ describeIfDatabase('tenant resolution against the database (TEN-7a, TEN-24)', ()
   it('serves a shop by its active custom domain', async () => {
     const response = await send(port, '/probe', { ...edge, host: 'www.fashionhouse.test' });
     expect(JSON.parse(response.body)).toEqual({ tenantId: shopId });
+  });
+
+  it("serves a shop by its active domain's twin while the twin's record points here (Slice 13)", async () => {
+    const response = await send(port, '/probe', { ...edge, host: 'fashionhouse.test' });
+    expect(JSON.parse(response.body)).toEqual({ tenantId: shopId });
+  });
+
+  it("refuses an active domain as not found while its shop's plan does not include one (DWN-10)", async () => {
+    expect((await send(port, '/probe', { ...edge, host: 'downgraded.test' })).status).toBe(404);
+    expect((await send(port, '/probe', { ...edge, host: 'www.downgraded.test' })).status).toBe(404);
   });
 
   it('refuses a pending custom domain as not found, so unverified domains never route', async () => {

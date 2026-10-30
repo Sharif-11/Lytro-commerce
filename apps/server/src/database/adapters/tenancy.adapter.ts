@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
+  AddonPurchaseRepository,
   PAYG_PLAN_NAME,
   SlugRepository,
   TenantRepository,
@@ -16,7 +17,12 @@ import {
   type RevocationCandidateRow,
   type Transaction,
 } from '@lytronix/db';
-import type { PlanLimits, TenantState } from '@lytronix/validators';
+import {
+  CUSTOM_DOMAIN_FEATURE,
+  featureOn,
+  type PlanLimits,
+  type TenantState,
+} from '@lytronix/validators';
 import { UniqueViolation } from '../../common/errors/unique-violation';
 import type { CachedTenant } from '../../modules/tenancy/types/cached-tenant';
 import type { TenantDirectory } from '../../modules/tenancy/ports/tenant-directory';
@@ -36,14 +42,23 @@ export class DrizzleTenantDirectory implements TenantDirectory {
   constructor(
     @Inject(DatabaseService) private readonly database: Pick<DatabaseService, 'handle'>,
     @Inject(TenantRepository) private readonly tenants: TenantRepository,
+    @Inject(AddonPurchaseRepository) private readonly addonPurchases: AddonPurchaseRepository,
   ) {}
 
   findBySlug(slug: string): Promise<CachedTenant | null> {
     return this.tenants.findBySlug(this.database.handle.db, slug);
   }
 
-  findByActiveDomain(hostname: string): Promise<CachedTenant | null> {
-    return this.tenants.findByActiveDomain(this.database.handle.db, hostname);
+  /** TEN-24, DWN-10: an active domain answers for its shop only while the shop's plan (or an add-on) includes one. */
+  async findByActiveDomain(hostname: string): Promise<CachedTenant | null> {
+    const db = this.database.handle.db;
+    const tenant = await this.tenants.findByActiveDomain(db, hostname);
+    if (!tenant) return null;
+    const info = await this.tenants.findBillingInfo(db, tenant.id);
+    const active = await this.addonPurchases.listActive(db, tenant.id);
+    return featureOn(CUSTOM_DOMAIN_FEATURE, { features: info?.featureSnapshot ?? null, active })
+      ? tenant
+      : null;
   }
 }
 

@@ -488,6 +488,17 @@ export const MESSAGE_KEYS = [
   // Phase 3 Slice 12: the storefront key Lytro keeps for the shop's storefront.
   'ApiKeyManagedByLytro',
   'DeliveryEstimated',
+  // Phase 3 Slice 13: the shop's own domain (TEN-09 to TEN-14).
+  'DomainRetrieved',
+  'DomainAdded',
+  'DomainChecked',
+  'DomainRemoved',
+  'DomainNeedsPlan',
+  'DomainFormat',
+  'DomainIsLytro',
+  'DomainTaken',
+  'DomainAlreadySet',
+  'DomainNotSet',
   // Phase 4 Slice 4.2: a shopper's order and its tracking (ORD-02, ORD-17, PRD-06, ATR-07, DLV-06, DLV-07, D4-2,
   // RTE-06, RTE-08).
   'TooManyOrders',
