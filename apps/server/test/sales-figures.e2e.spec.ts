@@ -122,16 +122,18 @@ async function place(shop: ShopClient, body: Record<string, unknown>): Promise<O
 }
 
 /**
- * The order as placed on that Asia/Dhaka day, at noon. The orders guard keeps an order's making time (ORD-04), so this
- * one update runs with triggers off, in the admin session's own transaction only.
+ * The order as placed on that Asia/Dhaka day, at noon unless a time is given (`2026-10-03T00:30`). The orders guard
+ * keeps an order's making time (ORD-04), so this one update runs with triggers off, in the admin session's own
+ * transaction only.
  */
 async function placedOn(order: Order, day: string): Promise<void> {
+  const at = day.includes('T') ? day : `${day}T12:00`;
   await admin.query('BEGIN');
   try {
     await admin.query('SET LOCAL session_replication_role = replica');
     await admin.query('UPDATE tenant.orders SET created_at = $2 WHERE id = $1', [
       order.id,
-      `${day}T12:00:00+06:00`,
+      `${at}:00+06:00`,
     ]);
     await admin.query('COMMIT');
   } catch (error) {
@@ -177,7 +179,8 @@ describeIfDatabase('sales by week, month, quarter or year (STA-01, STA-04)', () 
       const shop = await openShop(port, texts, 'sal');
       const lamp = await product(shop, 'Lamp', 300, 30, 100);
       const mug = await product(shop, 'Mug', 200, 30, 50);
-      await sold(shop, '2026-10-03', [{ variantId: lamp.variantId, quantity: 2 }]);
+      // Half past midnight on Saturday in Dhaka, still Friday in UTC: it counts in Saturday's week.
+      await sold(shop, '2026-10-03T00:30', [{ variantId: lamp.variantId, quantity: 2 }]);
       await sold(shop, '2026-10-09', [{ variantId: mug.variantId, quantity: 1 }]);
       await sold(shop, '2026-10-10', [{ variantId: lamp.variantId, quantity: 1 }]);
       // A delivery, its charge set by hand, shipped and delivered.
