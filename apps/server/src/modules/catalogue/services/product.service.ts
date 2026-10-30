@@ -10,6 +10,7 @@ import {
   MAX_VARIANTS_PER_PRODUCT,
   MEASURED_STOCK_UNITS,
   PRODUCT_NAME_MAX_LENGTH,
+  ProductKind,
   normalizeSerial,
   SerialFormat,
   ServerFieldProblemCode,
@@ -79,6 +80,7 @@ import type {
 } from '../types/catalogue';
 import { CatalogueActivity, type ResolvedActor } from './catalogue-activity';
 import { CatalogueImages, refuseUnattachable } from './catalogue-images';
+import { ComboParts, type ComboPartValues } from './combo-parts';
 import { effectiveMode, effectiveVariant } from './effective-variant';
 import { settlePaymentPolicy } from './payment-policy';
 import { PresetService } from './preset.service';
@@ -177,6 +179,7 @@ export class ProductService {
     @Inject(CatalogueImages) private readonly images: CatalogueImages,
     @Inject(UsageWarnings) private readonly warnings: UsageWarnings,
     @Inject(SizeChartService) private readonly sizeCharts: SizeChartService,
+    @Inject(ComboParts) private readonly combos: ComboParts,
   ) {}
 
   /** LIM-02, PRD-04: the products the shop's limit counts. */
@@ -281,6 +284,11 @@ export class ProductService {
       );
 
       const fields = this.newProductFields(input, defaults);
+      // CMB-01: a combo's parts, checked before anything is written; it counts no stock of its own.
+      const combo = input.kind === ProductKind.Combo;
+      const parts: ComboPartValues[] = combo
+        ? await this.combos.check(tx, shop.id, input.parts ?? [])
+        : [];
       this.checkOpeningStock(input, fields);
       this.checkSerialUnits(fields);
       const shared = fields.sharedStock === true;
@@ -294,6 +302,7 @@ export class ProductService {
         slug,
         ...fields,
         primaryCategoryId,
+        ...(combo ? { kind: ProductKind.Combo } : {}),
       });
       await this.products.replaceCategoryLinks(tx, shop.id, product.id, categoryIds);
       await this.attachMedia(tx, shop.id, product.id, input);
@@ -319,6 +328,11 @@ export class ProductService {
       await this.writeDescriptions(tx, shop.id, product.id, described, matrix.attributes.length);
       await this.writeVariants(tx, shop.id, product.id, matrix.planned, [], input.variants, shared);
       await this.products.refreshPriceRange(tx, shop.id, product.id);
+      if (combo) {
+        await this.combos.write(tx, shop.id, product.id, parts);
+        // CMB-02: what its parts can make sets its state now.
+        await stock?.refreshStockState(tx, shop.id, product.id);
+      }
       const holderId = shared ? await this.ensureStockHolder(tx, shop.id, product.id) : null;
       const opening = await this.openingLines(
         tx,
@@ -353,6 +367,7 @@ export class ProductService {
         price: product.basePrice,
         variants: matrix.planned.length,
         ...(shared ? { sharedStock: true } : {}),
+        ...(combo ? { comboParts: parts.length } : {}),
         ...(opening.length > 0 ? { openingStock: opening.length } : {}),
       });
       await this.products.bumpVersion(tx, shop.id);
@@ -370,6 +385,7 @@ export class ProductService {
     shop: CatalogueShop,
     productId: string,
     actor: CatalogueActor,
+    stock?: ProductStockHooks,
   ): Promise<ProductDetail> {
     const who = await this.activity.resolve(shop.id, actor);
     return this.transactions.run(async (tx) => {
@@ -405,7 +421,10 @@ export class ProductService {
         active: false,
         itemCondition: source.itemCondition,
         stockState:
-          source.stockTracking === StockTracking.NotTracked ? StockState.In : StockState.Out,
+          source.stockTracking === StockTracking.NotTracked && source.kind !== ProductKind.Combo
+            ? StockState.In
+            : StockState.Out,
+        kind: source.kind,
       });
 
       const links = await this.products.listCategoryLinks(tx, shop.id, [productId]);
@@ -484,6 +503,11 @@ export class ProductService {
         await this.products.listDeliveryZoneIds(tx, shop.id, productId),
       );
       await this.products.refreshPriceRange(tx, shop.id, copy.id);
+      // CMB-10: a duplicated combo has the same parts.
+      if (source.kind === ProductKind.Combo) {
+        await this.combos.copy(tx, shop.id, productId, copy.id);
+        await stock?.refreshStockState(tx, shop.id, copy.id);
+      }
 
       if (shop.state === TenantState.PayAsYouGo) {
         await this.payAsYouGo.chargeProductCreationFee(tx, shop.id, copy.id);
@@ -606,7 +630,22 @@ export class ProductService {
     const who = await this.activity.resolve(shop.id, actor);
     return this.transactions.run(async (tx) => {
       const current = await this.findLive(tx, shop.id, productId);
+      this.refuseComboStock(current, input);
       const change = this.changedFields(current, input);
+      // CMB-01: a combo's parts, replaced whole; open orders keep what they reserved (agreed 2026-10-30).
+      if (input.parts !== undefined) {
+        if (current.kind !== ProductKind.Combo) {
+          throw new FieldsError([
+            {
+              field: 'parts',
+              problem: FieldProblemCode.NotAllowed,
+              messageKey: 'ComboOnlyHasParts',
+            },
+          ]);
+        }
+        const parts = await this.combos.check(tx, shop.id, input.parts);
+        await this.combos.write(tx, shop.id, productId, parts);
+      }
 
       if (input.categoryIds !== undefined || input.primaryCategoryId !== undefined) {
         const linked = (await this.products.listCategoryLinks(tx, shop.id, [productId])).map(
@@ -687,7 +726,13 @@ export class ProductService {
       }
       if (!updated) throw new ApiError('not_found', 'ProductNotFound', {});
       if (change.sharedStock === false) await this.retireStockHolder(tx, shop.id, productId);
-      if (change.stockTracking !== undefined || change.lowStockThreshold !== undefined) {
+      if (
+        change.stockTracking !== undefined ||
+        change.lowStockThreshold !== undefined ||
+        change.active !== undefined ||
+        input.parts !== undefined
+      ) {
+        // CMB-02, CMB-08: a part going off sale, or a combo's parts or threshold changing, moves the combos too.
         await stock?.refreshStockState(tx, shop.id, productId);
       }
       const priceChanged = updated.basePrice !== current.basePrice;
@@ -717,6 +762,7 @@ export class ProductService {
     const who = await this.activity.resolve(shop.id, actor);
     return this.transactions.run(async (tx) => {
       const product = await this.findLive(tx, shop.id, productId);
+      this.refuseComboVariants(product);
       // INV-24: left out, sharing stays as it is; switching it needs a counted product without serials, holding nothing.
       const shared = input.sharedStock ?? product.sharedStock;
       const switching = shared !== product.sharedStock;
@@ -869,15 +915,19 @@ export class ProductService {
     productId: string,
     hard: boolean,
     actor: CatalogueActor,
+    stock?: ProductStockHooks,
   ): Promise<void> {
     const who = await this.activity.resolve(shop.id, actor);
     await this.transactions.run(async (tx) => {
       const product = await this.products.findProduct(tx, shop.id, productId, true);
       if (!product) throw new ApiError('not_found', 'ProductNotFound', {});
       if (hard) {
+        await this.refuseInCombos(tx, shop.id, productId);
         await this.products.deleteProduct(tx, shop.id, productId).catch(refuseHeld);
       } else if (product.deletedAt === null) {
         await this.products.updateProduct(tx, shop.id, productId, { deletedAt: new Date() });
+        // CMB-08: a combo using it is out of stock now, saying why.
+        await stock?.refreshStockState(tx, shop.id, productId);
       }
       await this.record(tx, shop.id, who, AuditAction.ProductDeleted, productId, {
         name: product.name,
@@ -895,6 +945,7 @@ export class ProductService {
     shop: CatalogueShop,
     productId: string,
     actor: CatalogueActor,
+    stock?: ProductStockHooks,
   ): Promise<ProductDetail> {
     const who = await this.activity.resolve(shop.id, actor);
     return this.transactions.run(async (tx) => {
@@ -904,6 +955,8 @@ export class ProductService {
       if (product.deletedAt !== null) {
         await this.refuseOverLimit(tx, shop);
         await this.products.updateProduct(tx, shop.id, productId, { deletedAt: null });
+        // CMB-02: a combo using it may be made again.
+        await stock?.refreshStockState(tx, shop.id, productId);
         await this.record(tx, shop.id, who, AuditAction.ProductRestored, productId, {
           name: product.name,
         });
@@ -938,6 +991,59 @@ export class ProductService {
       } catch (error) {
         refuseUnattachable(error, 'videoId');
       }
+    }
+  }
+
+  /** CMB-01: a combo counts no stock of its own -- no counting, batches or serials. */
+  private refuseComboStock(product: ProductRecord, input: UpdateProductInput): void {
+    if (product.kind !== ProductKind.Combo) return;
+    const fields: InvalidField[] = [];
+    if (input.stockTracking === StockTracking.Tracked) {
+      fields.push({
+        field: 'stockTracking',
+        problem: FieldProblemCode.NotAllowed,
+        messageKey: 'ComboHoldsNoStock',
+      });
+    }
+    for (const field of ['batchTracked', 'serialTracked'] as const) {
+      if (input[field] === true) {
+        fields.push({
+          field,
+          problem: FieldProblemCode.NotAllowed,
+          messageKey: 'ComboHoldsNoStock',
+        });
+      }
+    }
+    if (fields.length > 0) throw new FieldsError(fields);
+  }
+
+  /** CMB-01: a combo has its one variant; the choices are its parts'. */
+  private refuseComboVariants(product: ProductRecord): void {
+    if (product.kind === ProductKind.Combo) {
+      throw new ApiError('validation_error', 'ComboHasOneVariant', {});
+    }
+  }
+
+  /** CMB-08, PRD-13: a product whose variants are a combo's parts is not deleted for good; the combos are named. */
+  private async refuseInCombos(
+    tx: Transaction,
+    tenantId: string,
+    productId: string,
+  ): Promise<void> {
+    const variants = await this.products.listVariants(tx, tenantId, productId, true);
+    const combos = await this.combos.usedBy(
+      tx,
+      tenantId,
+      variants.map((variant) => variant.id),
+    );
+    if (combos.length > 0) {
+      throw new ApiError(
+        'conflict',
+        'ProductInCombos',
+        { combos: combos.map((combo) => ({ id: combo.id, name: combo.name })) },
+        undefined,
+        { combos: combos.map((combo) => combo.name).join(', ') },
+      );
     }
   }
 
@@ -1319,9 +1425,14 @@ export class ProductService {
     input: CreateProductInput,
     defaults: ProductDefaults,
   ): ProductChange & Pick<ProductRecord, 'name' | 'basePrice'> {
+    // CMB-01: a combo counts no stock of its own; its parts are counted.
     const stockTracking =
-      input.stockTracking ??
-      (input.batchTracked || input.serialTracked ? StockTracking.Tracked : defaults.stockTracking);
+      input.kind === ProductKind.Combo
+        ? StockTracking.NotTracked
+        : (input.stockTracking ??
+          (input.batchTracked || input.serialTracked
+            ? StockTracking.Tracked
+            : defaults.stockTracking));
     const untracked = stockTracking === StockTracking.NotTracked;
     const serialTracked = untracked
       ? false
@@ -1353,8 +1464,9 @@ export class ProductService {
       advanceAmount: money(input.advanceAmount) ?? null,
       active: input.active ?? true,
       itemCondition: input.condition ?? ItemCondition.New,
-      // Slice 2's stock ledger keeps this exact; until then a counted product holds nothing yet.
-      stockState: untracked ? StockState.In : StockState.Out,
+      // Slice 2's stock ledger keeps this exact; until then a counted product holds nothing yet. A combo's comes from
+      // its parts (CMB-02), set once they are written.
+      stockState: untracked && input.kind !== ProductKind.Combo ? StockState.In : StockState.Out,
     };
   }
 
@@ -2076,6 +2188,11 @@ export class ProductService {
       sizeChart: await this.sizeChartOf(tx, tenantId, product),
       ...(await this.images.ofProduct(tx, tenantId, productId, product.videoId)),
       deliveryZoneIds: await this.products.listDeliveryZoneIds(tx, tenantId, productId),
+      kind: product.kind,
+      parts:
+        product.kind === ProductKind.Combo
+          ? await this.combos.viewsOf(tx, tenantId, productId)
+          : [],
       createdAt: product.createdAt,
       updatedAt: product.updatedAt,
     };

@@ -4,6 +4,7 @@ import {
   AuditAction,
   FieldProblemCode,
   MEASURED_STOCK_UNITS,
+  ProductKind,
   StockEditReason,
   StockReason,
   StockTracking,
@@ -21,6 +22,7 @@ import type {
 } from '../../catalogue/ports/catalogue-stores';
 import { CatalogueActivity, type ResolvedActor } from '../../catalogue/services/catalogue-activity';
 import { ProductService } from '../../catalogue/services/product.service';
+import { comboFigures, type ComboFigures } from './combo-figures';
 import { inProductOrder } from '../../catalogue/services/variant-attributes';
 import { optionIdsOfKey } from '../../catalogue/services/variant-matrix';
 import { CATALOGUE_TRANSACTIONS } from '../../catalogue/tokens';
@@ -71,6 +73,7 @@ type StockedProduct = { id: string } & Pick<
   | 'stockState'
   | 'sharedStock'
   | 'serialTracked'
+  | 'kind'
 >;
 
 /**
@@ -662,15 +665,30 @@ export class StockService implements ProductStockHooks {
       tenantId,
       rows.map((row) => row.variantId),
     );
-    return products.map((product) =>
-      this.viewOf(
-        product,
-        rows.filter((row) => row.productId === product.id),
-        product.serialTracked ? held : null,
-        incoming,
-        canSeeCost,
-      ),
-    );
+    // CMB-02, CMB-08: a combo's "can make" and its issues, read once for all the combos here.
+    const comboIds = products
+      .filter((product) => product.kind === ProductKind.Combo)
+      .map((product) => product.id);
+    const figures =
+      comboIds.length > 0
+        ? comboFigures(await this.store.listComboPartStock(tx, tenantId, comboIds))
+        : new Map<string, ComboFigures>();
+    return products.map((product) => {
+      const combo = product.kind === ProductKind.Combo ? figures.get(product.id) : undefined;
+      return {
+        ...this.viewOf(
+          product,
+          rows.filter((row) => row.productId === product.id),
+          product.serialTracked ? held : null,
+          incoming,
+          canSeeCost,
+        ),
+        combo:
+          product.kind === ProductKind.Combo
+            ? { canMake: combo?.canMake ?? 0, issues: combo?.issues ?? [] }
+            : null,
+      };
+    });
   }
 
   private viewOf(
@@ -679,7 +697,7 @@ export class StockService implements ProductStockHooks {
     held: ReadonlyMap<string, number> | null,
     incoming: ReadonlyMap<string, string>,
     canSeeCost: boolean,
-  ): ProductStockView {
+  ): Omit<ProductStockView, 'combo'> {
     const productId = product.id;
     const pool = product.sharedStock
       ? rows.find((row) => row.isStockHolder && !row.retired)

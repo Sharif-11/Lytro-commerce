@@ -4,6 +4,7 @@ import {
   attributes,
   catalogueState,
   categories,
+  comboParts,
   optionSets,
   products,
 } from '../../schema';
@@ -21,6 +22,8 @@ export class CatalogueDataRepository {
    */
   async deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void> {
     await this.transactions.setTenantContext(tx, tenantId);
+    // CMB-01: combos' parts first, since a part's variant is never deleted while a combo names it.
+    await tx.delete(comboParts).where(eq(comboParts.tenantId, tenantId));
     await tx.delete(products).where(eq(products.tenantId, tenantId));
     await tx.delete(categories).where(eq(categories.tenantId, tenantId));
     await tx.delete(attributeOptions).where(eq(attributeOptions.tenantId, tenantId));

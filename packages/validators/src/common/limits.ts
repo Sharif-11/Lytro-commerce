@@ -41,6 +41,10 @@ export const ATTRIBUTE_NAME_MAX_LENGTH = 80;
 export const OPTION_VALUE_MAX_LENGTH = 80;
 export const MAX_VARIANT_ATTRIBUTES = 3;
 export const MAX_VARIANTS_PER_PRODUCT = 100;
+// CMB-10: a combo's parts, each part's quantity in one combo, and the variants a part may be chosen from.
+export const COMBO_PARTS_MAX = 10;
+export const COMBO_PART_QUANTITY_MAX = 20;
+export const COMBO_PART_VARIANTS_MAX = 100;
 // ATL-02: the attributes that may describe one product (or be asked about it when ordering, ATR-08).
 export const ATTRIBUTES_PER_PRODUCT_MAX = 50;
 // PRD-12: the dashboard's product list pages.

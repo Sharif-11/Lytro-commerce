@@ -1,3 +1,4 @@
+import type { ComboIssue } from '../services/combo-figures';
 import type {
   NewReservation,
   NewSerial,
@@ -284,6 +285,14 @@ export interface ProductStockView {
   /** INV-24: the stock the variants share; null for a product whose variants hold their own. */
   shared: SharedStockView | null;
   variants: VariantStockView[];
+  /** CMB-02, CMB-08: a combo's "can make" and what keeps it from being made; null for an ordinary product. */
+  combo: ComboStockView | null;
+}
+
+/** CMB-02, CMB-08: how many of a combo its parts make now (null: no part counted), and why none can be. */
+export interface ComboStockView {
+  canMake: number | null;
+  issues: ComboIssue[];
 }
 
 /**

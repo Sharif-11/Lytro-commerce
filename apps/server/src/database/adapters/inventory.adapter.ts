@@ -2,6 +2,8 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { ReservationStatus, SerialStatus } from '@lytronix/validators';
 import {
   CategoryRepository,
+  ComboRepository,
+  type ComboPartStockRow,
   ProductRepository,
   PurchaseOrderRepository,
   ReservationRepository,
@@ -70,7 +72,20 @@ export class DrizzleStockStore implements StockStore {
     @Inject(PurchaseOrderRepository) private readonly purchases: PurchaseOrderRepository,
     @Inject(CategoryRepository) private readonly categories: CategoryRepository,
     @Inject(ProductRepository) private readonly products: ProductRepository,
+    @Inject(ComboRepository) private readonly combos: ComboRepository,
   ) {}
+
+  combosUsingProducts(tx: Transaction, tenantId: string, productIds: string[]): Promise<string[]> {
+    return this.combos.combosUsingProducts(tx, tenantId, productIds);
+  }
+
+  listComboPartStock(
+    tx: Transaction,
+    tenantId: string,
+    comboIds: string[],
+  ): Promise<ComboPartStockRow[]> {
+    return this.combos.listPartStock(tx, tenantId, comboIds);
+  }
 
   listProducts(
     tx: Transaction,

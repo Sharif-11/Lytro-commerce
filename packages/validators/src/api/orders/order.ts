@@ -9,6 +9,8 @@ import {
   CUSTOMER_NAME_MAX_LENGTH,
   LIST_PAGE_SIZE_MAX,
   ORDER_ADDRESS_MAX_LENGTH,
+  COMBO_PART_QUANTITY_MAX,
+  COMBO_PARTS_MAX,
   ORDER_LINES_MAX,
   ORDER_NOTES_MAX_LENGTH,
   ORDER_PAGE_SIZE,
@@ -116,6 +118,17 @@ const capturedInputSchema = z.object({
   value: textField(CAPTURED_VALUE_MAX_LENGTH),
 });
 
+// CMB-03: for a combo, each choice part's variant for each unit, in order -- the combo's quantity times the part's
+// quantity of them; a fixed part needs none. Which part (its position) and that each is allowed and on sale are the
+// server's check.
+const comboChoiceSchema = z.object({
+  part: z.number().int().min(1).max(COMBO_PARTS_MAX),
+  variantIds: z
+    .array(catalogueIdSchema)
+    .min(1)
+    .max(COMBO_PART_QUANTITY_MAX * 100),
+});
+
 // ORD-01, ORD-06: one variant ordered. The price is the variant's own unless staff set one by hand; any amount a client
 // sends as a total is never read.
 const orderItemSchema = z.object({
@@ -125,6 +138,7 @@ const orderItemSchema = z.object({
   unitPrice: priceField.optional(),
   itemDiscount: priceField.optional(),
   captured: z.array(capturedInputSchema).max(ATTRIBUTES_PER_PRODUCT_MAX).optional(),
+  choices: z.array(comboChoiceSchema).max(COMBO_PARTS_MAX).optional(),
 });
 
 /** An attribute is answered once per item. */
@@ -270,7 +284,11 @@ export const publicOrderSchema = z
     shopperNote: textField(SHOPPER_NOTE_MAX_LENGTH).optional(),
     source: z.enum([OrderSource.Storefront, OrderSource.LandingPage]).optional(),
     items: z
-      .array(orderItemSchema.pick({ variantId: true, quantity: true, captured: true }).strict())
+      .array(
+        orderItemSchema
+          .pick({ variantId: true, quantity: true, captured: true, choices: true })
+          .strict(),
+      )
       .min(1)
       .max(ORDER_LINES_MAX)
       .superRefine(capturedOnce),
@@ -358,17 +376,27 @@ const trackingLinkField = z
     },
   );
 
-// INV-14, INV-23: the serials leaving with one item, one per unit, as written on the units.
-const itemSerialsSchema = z.object({ lineId: catalogueIdSchema, serials: serialsField });
+// INV-14, INV-23: the serials leaving with one item, one per unit, as written on the units. On a combo's line, the
+// serial-tracked component they belong to (CMB-05).
+const itemSerialsSchema = z.object({
+  lineId: catalogueIdSchema,
+  variantId: catalogueIdSchema.optional(),
+  serials: serialsField,
+});
 
-/** Each item's serials are given once. */
-function serialsOnce(items: { lineId: string }[] | undefined, ctx: Ctx, path: string): void {
+/** Each item's serials (a combo's, each component's) are given once. */
+function serialsOnce(
+  items: { lineId: string; variantId?: string }[] | undefined,
+  ctx: Ctx,
+  path: string,
+): void {
   const seen = new Set<string>();
   (items ?? []).forEach((item, index) => {
-    if (seen.has(item.lineId)) {
+    const key = `${item.lineId} ${item.variantId ?? ''}`;
+    if (seen.has(key)) {
       refuse(ctx, [path, index, 'lineId'], FieldProblemCode.NotAllowed, 'Listed twice.');
     }
-    seen.add(item.lineId);
+    seen.add(key);
   });
 }
 
@@ -398,18 +426,33 @@ export const handOverOrderSchema = z
   });
 export type HandOverOrderInput = z.infer<typeof handOverOrderSchema>;
 
+const returnedSerialsField = z
+  .object({
+    sellable: z.array(z.string().min(1)).max(1000),
+    damaged: z.array(z.string().min(1)).max(1000),
+  })
+  .optional();
+
+// CMB-05 (agreed 2026-10-30: whole combos only): a combo's component that came back damaged, in its own units, and its
+// serials when it has them; every other unit of the returned combos is sellable again.
+const returnedComponentSchema = z.object({
+  variantId: catalogueIdSchema,
+  damaged: quantityField,
+  serials: returnedSerialsField,
+});
+
 // POST orders/:id/returns (ORD-10, INV-17): units of shipped items that came back, each sellable again or damaged, and
-// for a serial-tracked item which serials.
+// for a serial-tracked item which serials. A combo comes back whole: `sellable` counts the combos and `damaged` stays
+// 0, each damaged component named in `components` (CMB-05).
 const returnedItemSchema = z
   .object({
     lineId: catalogueIdSchema,
     sellable: quantityField,
     damaged: quantityField,
-    serials: z
-      .object({
-        sellable: z.array(z.string().min(1)).max(1000),
-        damaged: z.array(z.string().min(1)).max(1000),
-      })
+    serials: returnedSerialsField,
+    components: z
+      .array(returnedComponentSchema)
+      .max(COMBO_PARTS_MAX * 100)
       .optional(),
   })
   .superRefine((value, ctx) => {

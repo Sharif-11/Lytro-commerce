@@ -862,6 +862,13 @@ export enum StockTracking {
   NotTracked = 'not_tracked',
 }
 
+// CMB-01 (Phase 4 Slice 4.5): an ordinary product, or a combo pack made of other products' variants. Chosen when the
+// product is made and never changed (agreed 2026-10-30); a combo holds no stock of its own.
+export enum ProductKind {
+  Standard = 'standard',
+  Combo = 'combo',
+}
+
 // CCH-08: what the public catalogue says about a product's stock.
 export enum StockState {
   In = 'in',

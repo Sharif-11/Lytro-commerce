@@ -52,6 +52,7 @@ export interface StockVariantRow {
     | 'serialTracked'
     | 'serialFormat'
     | 'deletedAt'
+    | 'kind'
   >;
 }
 
@@ -194,6 +195,7 @@ export class StockRepository {
         serialTracked: products.serialTracked,
         serialFormat: products.serialFormat,
         productDeletedAt: products.deletedAt,
+        kind: products.kind,
       })
       .from(productVariants)
       .innerJoin(
@@ -223,6 +225,7 @@ export class StockRepository {
         serialTracked: row.serialTracked,
         serialFormat: row.serialFormat,
         deletedAt: row.productDeletedAt,
+        kind: row.kind,
       },
     }));
   }

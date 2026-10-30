@@ -44,6 +44,19 @@ export const productStockViewSchema = z.object({
   stockUnit: z.nativeEnum(StockUnit),
   lowStockThreshold: z.string(),
   state: z.nativeEnum(StockState),
+  // CMB-02, CMB-08: a combo's "can make" (null: no part counted) and the parts that keep it from being made.
+  combo: z
+    .object({
+      canMake: z.number().nullable(),
+      issues: z.array(
+        z.object({
+          position: z.number(),
+          productName: z.string(),
+          reason: z.enum(['part_unavailable', 'no_choice_left']),
+        }),
+      ),
+    })
+    .nullable(),
   // INV-24: the stock the variants share, held by the product's stock holder; null when each holds its own.
   shared: z
     .object({

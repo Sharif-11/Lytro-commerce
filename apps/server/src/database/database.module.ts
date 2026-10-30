@@ -57,6 +57,7 @@ import {
   DeliveryZoneRepository,
   CatalogueDataRepository,
   StockRepository,
+  ComboRepository,
   StockCheckRepository,
   StockBatchRepository,
   SerialRepository,
@@ -162,6 +163,11 @@ import { DatabaseService } from './database.service';
       provide: StockRepository,
       inject: [TransactionRunner],
       useFactory: (transactions: TransactionRunner) => new StockRepository(transactions),
+    },
+    {
+      provide: ComboRepository,
+      inject: [TransactionRunner],
+      useFactory: (transactions: TransactionRunner) => new ComboRepository(transactions),
     },
     {
       provide: StockCheckRepository,
@@ -347,6 +353,7 @@ import { DatabaseService } from './database.service';
     DeliveryZoneRepository,
     CatalogueDataRepository,
     StockRepository,
+    ComboRepository,
     StockCheckRepository,
     StockBatchRepository,
     SerialRepository,

@@ -821,6 +821,59 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'Some units of this product are held for orders. Ship or cancel those orders first.',
     bn: 'এই প্রোডাক্টের কিছু ইউনিট অর্ডারের জন্য হোল্ড করা আছে। আগে সেই অর্ডারগুলো শিপ বা ক্যানসেল করুন।',
   },
+  ComboPartNotFound: {
+    en: 'Choose a variant of one of your products that is on sale.',
+    bn: 'আপনার কোনো প্রোডাক্টের চালু একটা ভ্যারিয়েন্ট বেছে নিন।',
+  },
+  ComboInsideCombo: {
+    en: 'A combo cannot be an item of another combo.',
+    bn: 'একটা কম্বো আরেকটা কম্বোর আইটেম হতে পারে না।',
+  },
+  ComboPartTwice: {
+    en: 'This variant is already in this item.',
+    bn: 'এই ভ্যারিয়েন্ট এই আইটেমে আগেই আছে।',
+  },
+  ComboPartWhole: {
+    en: 'Use a whole number: each unit is one piece, or one choice.',
+    bn: 'পূর্ণ সংখ্যা দিন: প্রতি ইউনিট একটা পিস, বা একটা পছন্দ।',
+  },
+  ComboOnlyHasParts: { en: 'Only a combo has items.', bn: 'শুধু কম্বোর আইটেম থাকে।' },
+  ComboHoldsNoStock: {
+    en: 'A combo holds no stock of its own; its items do.',
+    bn: 'কম্বোর নিজের কোনো স্টক নেই; এর আইটেমগুলোর স্টক থাকে।',
+  },
+  ComboHasOneVariant: {
+    en: 'A combo has one variant; its choices are in its items.',
+    bn: 'কম্বোর একটাই ভ্যারিয়েন্ট; পছন্দগুলো এর আইটেমে থাকে।',
+  },
+  ProductInCombos: {
+    en: (p) => `This product is an item of ${String(p.combos)}. Remove it from them first.`,
+    bn: (p) => `এই প্রোডাক্টটা ${String(p.combos)}-এর আইটেম। আগে সেখান থেকে সরান।`,
+  },
+  ComboChoiceNeeded: {
+    en: (p) => `Choose a variant for each unit of "${String(p.combo)}".`,
+    bn: (p) => `"${String(p.combo)}"-এর প্রতিটা ইউনিটের জন্য একটা ভ্যারিয়েন্ট বেছে নিন।`,
+  },
+  ComboChoiceNotOffered: {
+    en: 'This variant is not one of the choices, or is not on sale.',
+    bn: 'এই ভ্যারিয়েন্ট পছন্দের মধ্যে নেই, বা এখন বিক্রি হচ্ছে না।',
+  },
+  ComboCannotBeMade: {
+    en: (p) => `"${String(p.combo)}" cannot be made now.`,
+    bn: (p) => `"${String(p.combo)}" এখন বানানো যাচ্ছে না।`,
+  },
+  NotEnoughStockForCombo: {
+    en: (p) => `Not enough stock to make "${String(p.combo)}".`,
+    bn: (p) => `"${String(p.combo)}" বানানোর মতো স্টক নেই।`,
+  },
+  ComboComponentNotOnLine: {
+    en: 'This item is not in the combo on this line.',
+    bn: 'এই আইটেম এই লাইনের কম্বোতে নেই।',
+  },
+  ComboReturnsWhole: {
+    en: 'A combo comes back whole: count the combos, and name any damaged item.',
+    bn: 'কম্বো পুরোটাই ফেরত আসে: কয়টা কম্বো তা লিখুন, আর কোনো আইটেম নষ্ট হলে তা জানান।',
+  },
   ReservationNotFound: {
     en: 'That stock hold was not found.',
     bn: 'স্টক হোল্ডটি পাওয়া যায়নি।',
