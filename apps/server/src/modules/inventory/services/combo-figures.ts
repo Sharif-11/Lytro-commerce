@@ -62,6 +62,7 @@ export function comboFigures(rows: ComboPartStockRow[]): Map<string, ComboFigure
           reason: variants.length === 1 ? 'part_unavailable' : 'no_choice_left',
         });
       }
+      // A part with nothing on sale sums to nothing, so it makes no combo.
       const units = live.map(unitsOf);
       if (!units.includes(null)) {
         const total = (units as number[]).reduce((sum, each) => sum + each, 0);
@@ -76,7 +77,6 @@ export function comboFigures(rows: ComboPartStockRow[]): Map<string, ComboFigure
           ? null
           : weight + (Math.max(...(weights as number[])) * per) / 1000;
     }
-    if (issues.length > 0) canMake = 0;
     figures.set(comboId, {
       canMake,
       issues,
