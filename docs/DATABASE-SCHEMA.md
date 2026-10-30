@@ -1539,8 +1539,9 @@ CREATE UNIQUE INDEX ON tenant.payment_sessions (transaction_id) WHERE transactio
 
 -- Built in Phase 4 Slice 4.3a (ORD-15, ORD-22, ORD-43, D4-6): money recorded verified for an order -- the cash on
 -- delivery collected when it is delivered or handed over (agreed 2026-10-30), and (Slice 4.3b) payments staff record.
--- Never changed; it goes with its order. Phase 5 adds session_id, verification_level and status for payment sessions,
--- and refunds (ORD-44, PAY-20).
+-- It changes only by being voided, once (Slice 4.3b: the app may update only the three void columns, and a trigger
+-- refuses changing a voided row); it goes with its order. Phase 5 adds session_id, verification_level and status for
+-- payment sessions, and refunds (ORD-44, PAY-20).
 CREATE TYPE tenant.payment_method AS ENUM ('cash_on_delivery', 'cash', 'bkash', 'nagad', 'rocket', 'upay', 'bank');
 CREATE TABLE tenant.payments (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -1551,8 +1552,14 @@ CREATE TABLE tenant.payments (
     sender_number   varchar(15),
     transaction_id  text,                              -- null exactly for cash on delivery and cash; platform-unique (4.3b)
     verified_by     uuid,
-    verified_at     timestamptz NOT NULL DEFAULT now()
+    verified_at     timestamptz NOT NULL DEFAULT now(),
+    voided_at       timestamptz,                       -- Slice 4.3b: recorded by mistake; no longer counts toward paid
+    voided_by       uuid,
+    void_reason     varchar(500),                      -- set exactly when voided_at is (payments_void_check)
 );
+-- ORD-15 (Slice 4.3b): within a shop, one live payment per transaction ID; across shops, control.used_transaction_ids.
+CREATE UNIQUE INDEX payments_live_transaction_key ON tenant.payments (tenant_id, transaction_id)
+    WHERE transaction_id IS NOT NULL AND voided_at IS NULL;
 
 -- Decided 2026-10-02: a plain unique index on tenant.payments/payment_sessions.transaction_id
 -- only enforces platform-wide uniqueness while those rows exist. Once a tenant is hard-deleted
