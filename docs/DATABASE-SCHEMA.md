@@ -572,6 +572,21 @@ CREATE TYPE tenant.stock_state     AS ENUM ('in', 'low', 'out');                
 CREATE TYPE tenant.payment_policy  AS ENUM ('none', 'delivery_charge_only', 'partial_advance', 'full_prepayment');  -- PRD-08
 CREATE TYPE tenant.product_kind    AS ENUM ('standard', 'combo');                                     -- CMB-01 (Phase 4)
 
+-- Built in Phase 4 Slice 4.6a (TAX-01, agreed 2026-10-30): a shop's tax classes. Prices include the tax, so a rate only
+-- says how much of a price is tax. A product names one (tax_class_id, kept by its key), and shop_settings names the one
+-- each new product starts with (default_tax_class_id). RLS like every tenant table.
+CREATE TABLE tenant.tax_classes (
+    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id       uuid NOT NULL,
+    name            varchar(60) NOT NULL,           -- one per shop ignoring case (a unique index on lower(name))
+    rate            numeric(5,2) NOT NULL CHECK (rate >= 0 AND rate <= 100),
+    created_at      timestamptz NOT NULL DEFAULT now(),
+    updated_at      timestamptz NOT NULL DEFAULT now(),
+    UNIQUE (tenant_id, id)
+);
+-- Order lines (Slice 4.6a, TAX-02): tax_class_name and tax_rate as ordered (both or neither), and tax_amount, the tax the
+-- line's total includes.
+
 CREATE TABLE tenant.products (
     id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id           uuid NOT NULL,

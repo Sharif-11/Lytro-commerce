@@ -338,6 +338,14 @@ combos and statistics). If velocity suggests it, the rest can become Phase 4B wi
   part, the saving, delivery and weight, the zone rule, never a silent change, and the limits.
 
 ### Slice 4.6: tax and modifiers
+- **Read agreed 2026-10-30:** prices include the tax (Bangladeshi MRP style), so an order shows "includes ৳X VAT" per
+  class and no total changes; items are taxed after their discounts, the delivery charge never (TAX-01 to TAX-03
+  amended); a shop names one default class each new product starts with; a combo line takes the combo's own class;
+  modifier groups belong to each product, never a combo, and both staff and shoppers choose them. Coded on top of Slice
+  4.5 (the overlap in order creation), in two parts: **4.6a** tax classes and their lines, **4.6b** modifiers. Settled
+  building 4.6a: up to 20 classes, one name each ignoring case, a rate of 0 to 100 with two decimals; each line's tax
+  rounded to the paisa, the class lines summing them; the product form reads the classes with `products:read`,
+  changing them needs `settings:manage`.
 - **Delivers:** tax classes and their lines on an order (TAX-01 – 03); modifier groups, their choices on a line and
   their limits (MNU-01 – 03).
 
