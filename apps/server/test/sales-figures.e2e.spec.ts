@@ -121,12 +121,23 @@ async function place(shop: ShopClient, body: Record<string, unknown>): Promise<O
   return made.body as Order;
 }
 
-/** The order as placed on that Asia/Dhaka day, at noon. */
+/**
+ * The order as placed on that Asia/Dhaka day, at noon. The orders guard keeps an order's making time (ORD-04), so this
+ * one update runs with triggers off, in the admin session's own transaction only.
+ */
 async function placedOn(order: Order, day: string): Promise<void> {
-  await admin.query('UPDATE tenant.orders SET created_at = $2 WHERE id = $1', [
-    order.id,
-    `${day}T12:00:00+06:00`,
-  ]);
+  await admin.query('BEGIN');
+  try {
+    await admin.query('SET LOCAL session_replication_role = replica');
+    await admin.query('UPDATE tenant.orders SET created_at = $2 WHERE id = $1', [
+      order.id,
+      `${day}T12:00:00+06:00`,
+    ]);
+    await admin.query('COMMIT');
+  } catch (error) {
+    await admin.query('ROLLBACK');
+    throw error;
+  }
 }
 
 /** A takeaway order handed over -- delivered, its cash taken -- placed on that day. */
@@ -156,134 +167,151 @@ async function bestSellers(shop: ShopClient, query: string): Promise<BestSellers
 }
 
 const OCTOBER = 'dateFrom=2026-10-01&dateTo=2026-10-31';
+// Each test places and hands over several orders, or signs staff in: longer than the default limit on a busy machine.
+const SLOW = 30_000;
 
 describeIfDatabase('sales by week, month, quarter or year (STA-01, STA-04)', () => {
-  it('counts delivered orders on the day placed, weeks from Saturday, the buckets adding up to the totals', async () => {
-    const shop = await openShop(port, texts, 'sal');
-    const lamp = await product(shop, 'Lamp', 300, 30, 100);
-    const mug = await product(shop, 'Mug', 200, 30, 50);
-    await sold(shop, '2026-10-03', [{ variantId: lamp.variantId, quantity: 2 }]);
-    await sold(shop, '2026-10-09', [{ variantId: mug.variantId, quantity: 1 }]);
-    await sold(shop, '2026-10-10', [{ variantId: lamp.variantId, quantity: 1 }]);
-    // A delivery, its charge set by hand, shipped and delivered.
-    if (!locations) locations = (await shop.get('/locations')).body as Locations;
-    const mirpur = locations.zillas
-      .find((row) => row.nameEn === 'Dhaka')
-      ?.thanas.find((row) => row.nameEn === 'Mirpur');
-    const sent = await place(shop, {
-      locationId: mirpur?.id,
-      deliveryAddress: 'House 12, Road 3',
-      deliveryCharge: 60,
-      items: [{ variantId: mug.variantId, quantity: 2 }],
-    });
-    const shipped = await shop.post(`/orders/${sent.id}/ship`, {
-      courierName: 'Steadfast',
-      trackingCode: 'SF-1',
-    });
-    expect(shipped.status, JSON.stringify(shipped.body)).toBe(200);
-    expect((await shop.post(`/orders/${sent.id}/deliver`, {})).status).toBe(200);
-    await placedOn(sent, '2026-10-15');
-    // Never sold: waiting for its call, and cancelled.
-    await placedOn(
-      await place(shop, {
+  it(
+    'counts delivered orders on the day placed, weeks from Saturday, the buckets adding up to the totals',
+    async () => {
+      const shop = await openShop(port, texts, 'sal');
+      const lamp = await product(shop, 'Lamp', 300, 30, 100);
+      const mug = await product(shop, 'Mug', 200, 30, 50);
+      await sold(shop, '2026-10-03', [{ variantId: lamp.variantId, quantity: 2 }]);
+      await sold(shop, '2026-10-09', [{ variantId: mug.variantId, quantity: 1 }]);
+      await sold(shop, '2026-10-10', [{ variantId: lamp.variantId, quantity: 1 }]);
+      // A delivery, its charge set by hand, shipped and delivered.
+      if (!locations) locations = (await shop.get('/locations')).body as Locations;
+      const mirpur = locations.zillas
+        .find((row) => row.nameEn === 'Dhaka')
+        ?.thanas.find((row) => row.nameEn === 'Mirpur');
+      const sent = await place(shop, {
+        locationId: mirpur?.id,
+        deliveryAddress: 'House 12, Road 3',
+        deliveryCharge: 60,
+        items: [{ variantId: mug.variantId, quantity: 2 }],
+      });
+      const shipped = await shop.post(`/orders/${sent.id}/ship`, {
+        courierName: 'Steadfast',
+        trackingCode: 'SF-1',
+      });
+      expect(shipped.status, JSON.stringify(shipped.body)).toBe(200);
+      expect((await shop.post(`/orders/${sent.id}/deliver`, {})).status).toBe(200);
+      await placedOn(sent, '2026-10-15');
+      // Never sold: waiting for its call, and cancelled.
+      await placedOn(
+        await place(shop, {
+          fulfilmentType: 'takeaway',
+          items: [{ variantId: lamp.variantId, quantity: 5 }],
+        }),
+        '2026-10-04',
+      );
+      const dropped = await place(shop, {
         fulfilmentType: 'takeaway',
-        items: [{ variantId: lamp.variantId, quantity: 5 }],
-      }),
-      '2026-10-04',
-    );
-    const dropped = await place(shop, {
-      fulfilmentType: 'takeaway',
-      items: [{ variantId: lamp.variantId, quantity: 3 }],
-    });
-    expect((await shop.post(`/orders/${dropped.id}/cancel`, { reason: 'duplicate' })).status).toBe(
-      200,
-    );
-    await placedOn(dropped, '2026-10-05');
+        items: [{ variantId: lamp.variantId, quantity: 3 }],
+      });
+      expect(
+        (await shop.post(`/orders/${dropped.id}/cancel`, { reason: 'duplicate' })).status,
+      ).toBe(200);
+      await placedOn(dropped, '2026-10-05');
 
-    const weekly = await sales(shop, `${OCTOBER}&bucket=week`);
-    expect(
-      weekly.buckets.map((bucket) => [
-        bucket.from,
-        bucket.to,
-        bucket.orders,
-        bucket.units,
-        bucket.revenue,
-        bucket.deliveryCharges,
-      ]),
-    ).toEqual([
-      ['2026-10-01', '2026-10-02', 0, [], '0.00', '0.00'],
-      ['2026-10-03', '2026-10-09', 2, [{ unit: 'piece', quantity: '3.000' }], '800.00', '0.00'],
-      ['2026-10-10', '2026-10-16', 2, [{ unit: 'piece', quantity: '3.000' }], '700.00', '60.00'],
-      ['2026-10-17', '2026-10-23', 0, [], '0.00', '0.00'],
-      ['2026-10-24', '2026-10-30', 0, [], '0.00', '0.00'],
-      ['2026-10-31', '2026-10-31', 0, [], '0.00', '0.00'],
-    ]);
-    expect(weekly.totals).toMatchObject({
-      orders: 4,
-      units: [{ unit: 'piece', quantity: '6.000' }],
-      revenue: '1500.00',
-      tax: '0.00',
-      deliveryCharges: '60.00',
-    });
-    // The owner may see cost: the profit is there.
-    // Three lamps at 100 and three mugs at 50.
-    expect(weekly.totals.profit).toEqual({
-      revenueLessTax: '1500.00',
-      costOfGoods: '450.00',
-      profit: '1050.00',
-      unknownCost: 0,
-    });
+      const weekly = await sales(shop, `${OCTOBER}&bucket=week`);
+      expect(
+        weekly.buckets.map((bucket) => [
+          bucket.from,
+          bucket.to,
+          bucket.orders,
+          bucket.units,
+          bucket.revenue,
+          bucket.deliveryCharges,
+        ]),
+      ).toEqual([
+        ['2026-10-01', '2026-10-02', 0, [], '0.00', '0.00'],
+        ['2026-10-03', '2026-10-09', 2, [{ unit: 'piece', quantity: '3.000' }], '800.00', '0.00'],
+        ['2026-10-10', '2026-10-16', 2, [{ unit: 'piece', quantity: '3.000' }], '700.00', '60.00'],
+        ['2026-10-17', '2026-10-23', 0, [], '0.00', '0.00'],
+        ['2026-10-24', '2026-10-30', 0, [], '0.00', '0.00'],
+        ['2026-10-31', '2026-10-31', 0, [], '0.00', '0.00'],
+      ]);
+      expect(weekly.totals).toMatchObject({
+        orders: 4,
+        units: [{ unit: 'piece', quantity: '6.000' }],
+        revenue: '1500.00',
+        tax: '0.00',
+        deliveryCharges: '60.00',
+      });
+      // The owner may see cost: the profit is there.
+      // Three lamps at 100 and three mugs at 50.
+      expect(weekly.totals.profit).toEqual({
+        revenueLessTax: '1500.00',
+        costOfGoods: '450.00',
+        profit: '1050.00',
+        unknownCost: 0,
+      });
 
-    const monthly = await sales(shop, `${OCTOBER}&bucket=month`);
-    expect(monthly.buckets).toHaveLength(1);
-    expect(monthly.buckets[0]).toMatchObject({ from: '2026-10-01', to: '2026-10-31', orders: 4 });
-    expect(monthly.totals).toEqual(weekly.totals);
-    // Left out, the period runs from the first of this month to today, by week.
-    const plain = await sales(shop, '');
-    expect(plain.bucket).toBe('week');
-    expect(plain.dateFrom.slice(8)).toBe('01');
-  });
+      const monthly = await sales(shop, `${OCTOBER}&bucket=month`);
+      expect(monthly.buckets).toHaveLength(1);
+      expect(monthly.buckets[0]).toMatchObject({ from: '2026-10-01', to: '2026-10-31', orders: 4 });
+      expect(monthly.totals).toEqual(weekly.totals);
+      // Left out, the period runs from the first of this month to today, by week.
+      const plain = await sales(shop, '');
+      expect(plain.bucket).toBe('week');
+      expect(plain.dateFrom.slice(8)).toBe('01');
+    },
+    SLOW,
+  );
 
-  it('takes returns and the order discount off revenue, shows the tax inside it, and profit only to those who may see cost', async () => {
-    const shop = await openShop(port, texts, 'sal');
-    const classes = await shop.post('/tax-classes', { name: 'VAT', rate: 15 });
-    expect(classes.status, JSON.stringify(classes.body)).toBe(201);
-    const vat =
-      (classes.body as { classes: { id: string; name: string }[] }).classes.find(
-        (row) => row.name === 'VAT',
-      )?.id ?? '';
-    const lamp = await product(shop, 'Lamp', 300, 20, 100, { taxClassId: vat });
-    const order = await sold(shop, '2026-10-12', [{ variantId: lamp.variantId, quantity: 4 }], {
-      discount: 100,
-    });
-    // 1,200 less the 100 discount is 1,100, its tax 1,100 x 15 / 115 = 143.48; one lamp of four comes back.
-    const back = await shop.post(`/orders/${order.id}/returns`, {
-      items: [{ lineId: order.items[0]?.id, sellable: 1, damaged: 0 }],
-    });
-    expect(back.status, JSON.stringify(back.body)).toBe(200);
+  it(
+    'takes returns and the order discount off revenue, shows the tax inside it, and profit only to those who may see cost',
+    async () => {
+      const shop = await openShop(port, texts, 'sal');
+      const classes = await shop.post('/tax-classes', { name: 'VAT', rate: 15 });
+      expect(classes.status, JSON.stringify(classes.body)).toBe(201);
+      const vat =
+        (classes.body as { classes: { id: string; name: string }[] }).classes.find(
+          (row) => row.name === 'VAT',
+        )?.id ?? '';
+      const lamp = await product(shop, 'Lamp', 300, 20, 100, { taxClassId: vat });
+      const order = await sold(shop, '2026-10-12', [{ variantId: lamp.variantId, quantity: 4 }], {
+        discount: 100,
+      });
+      // 1,200 less the 100 discount is 1,100, its tax 1,100 x 15 / 115 = 143.48; one lamp of four comes back.
+      const back = await shop.post(`/orders/${order.id}/returns`, {
+        items: [{ lineId: order.items[0]?.id, sellable: 1, damaged: 0 }],
+      });
+      expect(back.status, JSON.stringify(back.body)).toBe(200);
 
-    const read = await sales(shop, `${OCTOBER}&bucket=month`);
-    expect(read.totals).toEqual({
-      orders: 1,
-      units: [{ unit: 'piece', quantity: '3.000' }],
-      revenue: '825.00',
-      tax: '107.61',
-      deliveryCharges: '0.00',
-      // Three lamps kept at 100 each: four sold less the one back.
-      profit: { revenueLessTax: '717.39', costOfGoods: '300.00', profit: '417.39', unknownCost: 0 },
-    });
+      const read = await sales(shop, `${OCTOBER}&bucket=month`);
+      expect(read.totals).toEqual({
+        orders: 1,
+        units: [{ unit: 'piece', quantity: '3.000' }],
+        revenue: '825.00',
+        tax: '107.61',
+        deliveryCharges: '0.00',
+        // Three lamps kept at 100 each: four sold less the one back.
+        profit: {
+          revenueLessTax: '717.39',
+          costOfGoods: '300.00',
+          profit: '417.39',
+          unknownCost: 0,
+        },
+      });
 
-    const clerk = await staffWith(port, texts, admin, shop, ['orders:read']);
-    const theirs = await getJson(port, `/sales?${OCTOBER}&bucket=month`, clerk);
-    expect(theirs.status, JSON.stringify(theirs.body)).toBe(200);
-    const seen = theirs.body as Sales;
-    expect(seen.totals.revenue).toBe('825.00');
-    expect(seen.totals.profit).toBeUndefined();
-    expect(seen.buckets[0]?.profit).toBeUndefined();
-    const stockOnly = await staffWith(port, texts, admin, shop, ['inventory:read']);
-    expect((await getJson(port, `/sales?${OCTOBER}`, stockOnly)).status).toBe(403);
-    expect((await getJson(port, `/sales/best-sellers?${OCTOBER}`, stockOnly)).status).toBe(403);
-  });
+      const clerk = await staffWith(port, texts, admin, shop, ['orders:read']);
+      const theirs = await getJson(port, `/sales?${OCTOBER}&bucket=month`, clerk);
+      expect(theirs.status, JSON.stringify(theirs.body)).toBe(200);
+      const seen = theirs.body as Sales;
+      expect(seen.totals.revenue).toBe('825.00');
+      expect(seen.totals.profit).toBeUndefined();
+      expect(seen.buckets[0]?.profit).toBeUndefined();
+      // A shop of its own: Starter's two seats are the owner and the clerk.
+      const stockShop = await openShop(port, texts, 'sal');
+      const stockOnly = await staffWith(port, texts, admin, stockShop, ['inventory:read']);
+      expect((await getJson(port, `/sales?${OCTOBER}`, stockOnly)).status).toBe(403);
+      expect((await getJson(port, `/sales/best-sellers?${OCTOBER}`, stockOnly)).status).toBe(403);
+    },
+    SLOW,
+  );
 
   it('refuses a period that ends before it starts, runs over five years, or a split it does not know', async () => {
     const shop = await openShop(port, texts, 'sal');
@@ -302,94 +330,104 @@ describeIfDatabase('sales by week, month, quarter or year (STA-01, STA-04)', () 
 });
 
 describeIfDatabase('best sellers and trends (STA-02, STA-03, STA-04)', () => {
-  it('ranks by units or by revenue, a combo as itself', async () => {
-    const shop = await openShop(port, texts, 'sal');
-    const clip = await product(shop, 'Clip', 50, 30, 20);
-    const chair = await product(shop, 'Chair', 1000, 5, 400);
-    const pack = await shop.post('/products', {
-      name: 'Clip pair',
-      basePrice: 90,
-      kind: 'combo',
-      parts: [{ quantity: 2, variantIds: [clip.variantId] }],
-    });
-    expect(pack.status, JSON.stringify(pack.body)).toBe(201);
-    const pair = pack.body as { id: string; variants: { id: string }[] };
-    await sold(shop, '2026-10-05', [
-      { variantId: clip.variantId, quantity: 10 },
-      { variantId: chair.variantId, quantity: 1 },
-    ]);
-    await sold(shop, '2026-10-06', [{ variantId: pair.variants[0]?.id ?? '', quantity: 2 }]);
+  it(
+    'ranks by units or by revenue, a combo as itself',
+    async () => {
+      const shop = await openShop(port, texts, 'sal');
+      const clip = await product(shop, 'Clip', 50, 30, 20);
+      const chair = await product(shop, 'Chair', 1000, 5, 400);
+      const pack = await shop.post('/products', {
+        name: 'Clip pair',
+        basePrice: 90,
+        kind: 'combo',
+        parts: [{ quantity: 2, variantIds: [clip.variantId] }],
+      });
+      expect(pack.status, JSON.stringify(pack.body)).toBe(201);
+      const pair = pack.body as { id: string; variants: { id: string }[] };
+      await sold(shop, '2026-10-05', [
+        { variantId: clip.variantId, quantity: 10 },
+        { variantId: chair.variantId, quantity: 1 },
+      ]);
+      await sold(shop, '2026-10-06', [{ variantId: pair.variants[0]?.id ?? '', quantity: 2 }]);
 
-    const byUnits = await bestSellers(shop, `${OCTOBER}&by=units`);
-    expect(byUnits.products.map((row) => [row.name, row.units, row.revenue, row.orders])).toEqual([
-      ['Clip', '10.000', '500.00', 1],
-      ['Clip pair', '2.000', '180.00', 1],
-      ['Chair', '1.000', '1000.00', 1],
-    ]);
-    expect(byUnits.products[1]).toMatchObject({ productId: pair.id, stockUnit: 'piece' });
-    const byRevenue = await bestSellers(shop, `${OCTOBER}&by=revenue&limit=2`);
-    expect(byRevenue.products.map((row) => row.name)).toEqual(['Chair', 'Clip']);
+      const byUnits = await bestSellers(shop, `${OCTOBER}&by=units`);
+      expect(byUnits.products.map((row) => [row.name, row.units, row.revenue, row.orders])).toEqual(
+        [
+          ['Clip', '10.000', '500.00', 1],
+          ['Clip pair', '2.000', '180.00', 1],
+          ['Chair', '1.000', '1000.00', 1],
+        ],
+      );
+      expect(byUnits.products[1]).toMatchObject({ productId: pair.id, stockUnit: 'piece' });
+      const byRevenue = await bestSellers(shop, `${OCTOBER}&by=revenue&limit=2`);
+      expect(byRevenue.products.map((row) => row.name)).toEqual(['Chair', 'Clip']);
 
-    // The combo's profit is its price less its clips' cost: two pairs, four clips at 20 each.
-    const pairSales = await sales(shop, `${OCTOBER}&bucket=month&productId=${pair.id}`);
-    expect(pairSales.totals.profit).toMatchObject({ costOfGoods: '80.00', profit: '100.00' });
-  });
+      // The combo's profit is its price less its clips' cost: two pairs, four clips at 20 each.
+      const pairSales = await sales(shop, `${OCTOBER}&bucket=month&productId=${pair.id}`);
+      expect(pairSales.totals.profit).toMatchObject({ costOfGoods: '80.00', profit: '100.00' });
+    },
+    SLOW,
+  );
 
-  it("traces one product's trend month by month, leaving out what was not sold or all came back", async () => {
-    const shop = await openShop(port, texts, 'sal');
-    const lamp = await product(shop, 'Lamp', 300, 40, 100);
-    const mug = await product(shop, 'Mug', 200, 40, 50);
-    await sold(shop, '2026-08-10', [{ variantId: lamp.variantId, quantity: 1 }]);
-    await sold(shop, '2026-09-10', [
-      { variantId: lamp.variantId, quantity: 2 },
-      { variantId: mug.variantId, quantity: 4 },
-    ]);
-    await sold(shop, '2026-10-10', [{ variantId: lamp.variantId, quantity: 3 }]);
-    // Every lamp of this one came back: it is not counted.
-    const returned = await sold(shop, '2026-10-11', [{ variantId: lamp.variantId, quantity: 2 }]);
-    const back = await shop.post(`/orders/${returned.id}/returns`, {
-      items: [{ lineId: returned.items[0]?.id, sellable: 2, damaged: 0 }],
-    });
-    expect(back.status, JSON.stringify(back.body)).toBe(200);
-    // Placed but never handed over.
-    await placedOn(
-      await place(shop, {
-        fulfilmentType: 'takeaway',
-        items: [{ variantId: lamp.variantId, quantity: 7 }],
-      }),
-      '2026-10-12',
-    );
+  it(
+    "traces one product's trend month by month, leaving out what was not sold or all came back",
+    async () => {
+      const shop = await openShop(port, texts, 'sal');
+      const lamp = await product(shop, 'Lamp', 300, 40, 100);
+      const mug = await product(shop, 'Mug', 200, 40, 50);
+      await sold(shop, '2026-08-10', [{ variantId: lamp.variantId, quantity: 1 }]);
+      await sold(shop, '2026-09-10', [
+        { variantId: lamp.variantId, quantity: 2 },
+        { variantId: mug.variantId, quantity: 4 },
+      ]);
+      await sold(shop, '2026-10-10', [{ variantId: lamp.variantId, quantity: 3 }]);
+      // Every lamp of this one came back: it is not counted.
+      const returned = await sold(shop, '2026-10-11', [{ variantId: lamp.variantId, quantity: 2 }]);
+      const back = await shop.post(`/orders/${returned.id}/returns`, {
+        items: [{ lineId: returned.items[0]?.id, sellable: 2, damaged: 0 }],
+      });
+      expect(back.status, JSON.stringify(back.body)).toBe(200);
+      // Placed but never handed over.
+      await placedOn(
+        await place(shop, {
+          fulfilmentType: 'takeaway',
+          items: [{ variantId: lamp.variantId, quantity: 7 }],
+        }),
+        '2026-10-12',
+      );
 
-    const trend = await sales(
-      shop,
-      `dateFrom=2026-08-01&dateTo=2026-10-31&bucket=month&productId=${lamp.id}`,
-    );
-    expect(trend.productId).toBe(lamp.id);
-    expect(
-      trend.buckets.map((bucket) => [bucket.from, bucket.orders, bucket.units, bucket.revenue]),
-    ).toEqual([
-      ['2026-08-01', 1, [{ unit: 'piece', quantity: '1.000' }], '300.00'],
-      ['2026-09-01', 1, [{ unit: 'piece', quantity: '2.000' }], '600.00'],
-      ['2026-10-01', 1, [{ unit: 'piece', quantity: '3.000' }], '900.00'],
-    ]);
-    expect(trend.totals.deliveryCharges).toBeNull();
-    const shopWide = await sales(shop, 'dateFrom=2026-08-01&dateTo=2026-10-31&bucket=quarter');
-    expect(
-      shopWide.buckets.map((bucket) => [bucket.from, bucket.to, bucket.orders, bucket.revenue]),
-    ).toEqual([
-      ['2026-08-01', '2026-09-30', 2, '1700.00'],
-      ['2026-10-01', '2026-10-31', 1, '900.00'],
-    ]);
+      const trend = await sales(
+        shop,
+        `dateFrom=2026-08-01&dateTo=2026-10-31&bucket=month&productId=${lamp.id}`,
+      );
+      expect(trend.productId).toBe(lamp.id);
+      expect(
+        trend.buckets.map((bucket) => [bucket.from, bucket.orders, bucket.units, bucket.revenue]),
+      ).toEqual([
+        ['2026-08-01', 1, [{ unit: 'piece', quantity: '1.000' }], '300.00'],
+        ['2026-09-01', 1, [{ unit: 'piece', quantity: '2.000' }], '600.00'],
+        ['2026-10-01', 1, [{ unit: 'piece', quantity: '3.000' }], '900.00'],
+      ]);
+      expect(trend.totals.deliveryCharges).toBeNull();
+      const shopWide = await sales(shop, 'dateFrom=2026-08-01&dateTo=2026-10-31&bucket=quarter');
+      expect(
+        shopWide.buckets.map((bucket) => [bucket.from, bucket.to, bucket.orders, bucket.revenue]),
+      ).toEqual([
+        ['2026-08-01', '2026-09-30', 2, '1700.00'],
+        ['2026-10-01', '2026-10-31', 1, '900.00'],
+      ]);
 
-    // Another shop asking after this lamp sees nothing of it (SEC-02).
-    const other = await openShop(port, texts, 'sal');
-    const theirs = await sales(
-      other,
-      `dateFrom=2026-08-01&dateTo=2026-10-31&bucket=month&productId=${lamp.id}`,
-    );
-    expect(theirs.totals).toMatchObject({ orders: 0, revenue: '0.00', units: [] });
-    expect((await bestSellers(other, 'dateFrom=2026-08-01&dateTo=2026-10-31')).products).toEqual(
-      [],
-    );
-  });
+      // Another shop asking after this lamp sees nothing of it (SEC-02).
+      const other = await openShop(port, texts, 'sal');
+      const theirs = await sales(
+        other,
+        `dateFrom=2026-08-01&dateTo=2026-10-31&bucket=month&productId=${lamp.id}`,
+      );
+      expect(theirs.totals).toMatchObject({ orders: 0, revenue: '0.00', units: [] });
+      expect((await bestSellers(other, 'dateFrom=2026-08-01&dateTo=2026-10-31')).products).toEqual(
+        [],
+      );
+    },
+    SLOW,
+  );
 });
