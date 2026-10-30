@@ -133,6 +133,14 @@ export const TRACKING_CODE_MAX_LENGTH = 100;
 export const TRACKING_LINK_MAX_LENGTH = 500;
 // CUS-02: a page of customers.
 export const CUSTOMER_PAGE_SIZE = 20;
+// CUS-03 to CUS-06, ORD-18 (Slice 4.4b): a shopper's sign-in lasts this many days; up to 10 saved addresses, each with
+// a short label ("Home"); sign-up codes one shop may send in an hour, each paid from its balance (SMS-11, CUS-04); and
+// a page of a shopper's orders.
+export const SHOPPER_SESSION_DAYS = 30;
+export const SHOPPER_ADDRESSES_MAX = 10;
+export const ADDRESS_LABEL_MAX_LENGTH = 30;
+export const SHOPPER_CODES_PER_SHOP_PER_HOUR = 30;
+export const SHOPPER_ORDER_PAGE_SIZE = 20;
 // ORD-15: a wallet's transaction ID, or a bank transfer's reference, as staff type it.
 export const TRANSACTION_ID_MAX_LENGTH = 64;
 // ATR-08: what one captured-at-order value may say.

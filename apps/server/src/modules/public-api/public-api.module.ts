@@ -19,6 +19,7 @@ import { BrandModule } from '../brand/brand.module';
 import { DomainsModule } from '../domains/domains.module';
 import { CatalogueModule } from '../catalogue/catalogue.module';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
+import { ShoppersModule } from '../shoppers/shoppers.module';
 import { TenancyModule } from '../tenancy/tenancy.module';
 import { UsageWarningsModule } from '../usage-warnings/usage-warnings.module';
 import { PublicCatalogueController } from './controllers/public-catalogue.controller';
@@ -47,12 +48,14 @@ import { IdempotencyModule } from '../../common/idempotency/idempotency.module';
 import { QueueModule } from '../shared/queue/queue.module';
 import { PublicDeliveryController } from './controllers/public-delivery.controller';
 import { PublicOrdersController } from './controllers/public-orders.controller';
+import { PublicShopperController } from './controllers/public-shopper.controller';
 import { StorefrontContextController } from './controllers/storefront-context.controller';
 import { GraphMetaConversions } from './services/graph-meta-conversions';
 import { MetaPurchaseSender } from './services/meta-purchase-sender';
 import { OrderLimits } from './services/order-limits';
 import { PublicOrderService } from './services/public-order.service';
 import { StorefrontContextService } from './services/storefront-context.service';
+import { ShopperGate } from './services/shopper-gate';
 import { StorefrontKeyService } from './services/storefront-key.service';
 import {
   AD_TRACKING_STORE,
@@ -88,6 +91,8 @@ import {
     BrandModule,
     // Slice 13: the storefront's context and the catalog feed name the shop's own domain while it serves.
     DomainsModule,
+    // Slice 4.4b: shoppers' accounts, sign-in and saved addresses.
+    ShoppersModule,
   ],
   controllers: [
     PublicShopController,
@@ -96,6 +101,7 @@ import {
     StorefrontContextController,
     PublicDeliveryController,
     PublicOrdersController,
+    PublicShopperController,
   ],
   providers: [
     { provide: API_KEY_STORE, useClass: DrizzleApiKeyStore },
@@ -103,6 +109,7 @@ import {
     { provide: API_CLOCK, useValue: (): Date => new Date() },
     StorefrontKeyService,
     StorefrontContextService,
+    ShopperGate,
     { provide: PUBLIC_CATALOGUE_STORE, useClass: DrizzlePublicCatalogueStore },
     { provide: CATALOGUE_SEARCH, useClass: PostgresCatalogueSearch },
     { provide: CATALOGUE_CACHE_SETTINGS, useValue: CATALOGUE_CACHE_DEFAULTS },

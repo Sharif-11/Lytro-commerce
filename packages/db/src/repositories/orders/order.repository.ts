@@ -384,6 +384,26 @@ export class OrderRepository {
     };
   }
 
+  /** ORD-18 (Slice 4.4b): a page of the shop's orders carrying this phone, newest first, from any source. */
+  async listForPhone(
+    tx: Transaction,
+    tenantId: string,
+    phone: string,
+    page: { offset: number; limit: number },
+  ): Promise<{ rows: OrderRow[]; total: number }> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const where = and(eq(orders.tenantId, tenantId), eq(orders.customerPhone, phone));
+    const rows = await tx
+      .select()
+      .from(orders)
+      .where(where)
+      .orderBy(desc(orders.createdAt), desc(orders.id))
+      .offset(page.offset)
+      .limit(page.limit);
+    const counted = await tx.select({ total: count() }).from(orders).where(where);
+    return { rows: rows.map(numbered), total: counted[0]?.total ?? 0 };
+  }
+
   /** LIF-16: the shop's orders, oldest first, a batch at a time after the order `afterId` names (null: the first). */
   async listForExport(
     tx: Transaction,

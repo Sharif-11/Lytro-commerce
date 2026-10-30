@@ -22,6 +22,8 @@ export interface CustomerStore {
     tenantId: string,
     customerId: string,
   ): Promise<{ locationId: number; deliveryAddress: string } | null>;
+  /** CUS-14 (Slice 4.4b): the shopper's account of this phone, and since when. */
+  accountOf(tx: Transaction, tenantId: string, phone: string): Promise<{ createdAt: Date } | null>;
   /** CUS-09: the customer, not erased, locked against every order naming it until the transaction ends. */
   lockForErasure(tx: Transaction, tenantId: string, id: string): Promise<CustomerRecord | null>;
   /** CUS-09: the numbers of the customer's orders not yet delivered, returned or cancelled. */

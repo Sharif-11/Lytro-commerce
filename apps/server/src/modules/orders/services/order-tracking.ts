@@ -13,6 +13,7 @@ import type {
   OrderRecord,
   PlacedOrderView,
   ShopperItemView,
+  ShopperOrderPage,
   ShopperTotals,
   TrackedOrderView,
   TrackingStep,
@@ -119,6 +120,36 @@ export class OrderTracking {
       const order = await this.store.findByTrackingId(tx, tenantId, trackingId);
       if (!order) throw new ApiError('not_found', 'OrderNotFound', {});
       return trackedViewOf(order, await this.store.listLines(tx, tenantId, [order.id]));
+    });
+  }
+
+  /**
+   * ORD-18, agreed 2026-10-30: the shop's orders with a signed-in shopper's phone, from any source -- staff-entered
+   * ones too, the phone being proved by the shopper's sign-up code -- each with what opens its tracking.
+   */
+  ordersOfPhone(
+    tenantId: string,
+    phone: string,
+    page: { page: number; limit: number },
+  ): Promise<ShopperOrderPage> {
+    return this.store.run(tenantId, async (tx) => {
+      const { rows, total } = await this.store.listForPhone(tx, tenantId, phone, {
+        offset: (page.page - 1) * page.limit,
+        limit: page.limit,
+      });
+      return {
+        orders: rows.map((order) => ({
+          orderNumber: order.orderNumber,
+          trackingId: order.trackingId,
+          status: shopperStatusOf(order),
+          grandTotal: order.grandTotal,
+          createdAt: order.createdAt,
+        })),
+        page: page.page,
+        limit: page.limit,
+        total,
+        pages: Math.ceil(total / page.limit),
+      };
     });
   }
 

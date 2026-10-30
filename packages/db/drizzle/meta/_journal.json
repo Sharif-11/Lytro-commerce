@@ -631,6 +631,13 @@
       "when": 1793358539951,
       "tag": "0089_customer_erasure",
       "breakpoints": true
+    },
+    {
+      "idx": 90,
+      "version": "7",
+      "when": 1793363543059,
+      "tag": "0090_shopper_accounts",
+      "breakpoints": true
     }
   ]
 }

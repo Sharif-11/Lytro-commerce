@@ -537,6 +537,23 @@ export const MESSAGE_KEYS = [
   'CustomerNotFound',
   'CustomerHasOpenOrders',
   'CustomerErased',
+  // Phase 4 Slice 4.4b: shopper accounts -- the paid sign-up code, sign-in, profile, saved addresses, and staff setting
+  // a forgotten password (CUS-03 to CUS-06, CUS-14).
+  'ShopperAlreadyRegistered',
+  'ShopCannotSendCode',
+  'ShopperAccountNotFound',
+  'ShopperAddressNotFound',
+  'TooManyAddresses',
+  'ShopperCodeSent',
+  'ShopperSignedUp',
+  'ShopperSignedIn',
+  'ShopperSignedOut',
+  'ShopperRetrieved',
+  'ShopperUpdated',
+  'ShopperAddressesRetrieved',
+  'ShopperAddressSaved',
+  'ShopperAddressRemoved',
+  'ShopperPasswordSet',
 ] as const;
 
 export type MessageKey = (typeof MESSAGE_KEYS)[number];

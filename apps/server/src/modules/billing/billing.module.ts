@@ -19,6 +19,7 @@ import { DomainsModule } from '../domains/domains.module';
 import { UsageWarningsModule } from '../usage-warnings/usage-warnings.module';
 import { PublicApiModule } from '../public-api/public-api.module';
 import { OrdersModule } from '../orders/orders.module';
+import { ShoppersModule } from '../shoppers/shoppers.module';
 import { PurchasingModule } from '../purchasing/purchasing.module';
 import { MailModule } from '../shared/mail/mail.module';
 import { MessagingModule } from '../shared/messaging/messaging.module';
@@ -72,6 +73,7 @@ import {
     PurchasingModule,
     InventoryModule,
     OrdersModule,
+    ShoppersModule,
     CatalogueModule,
     DeliveryModule,
     PublicApiModule,

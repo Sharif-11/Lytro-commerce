@@ -18,6 +18,8 @@ export interface CustomerListItem {
 /** CUS-01, CUS-02: one customer, with where its latest delivery went (the known-phone fill on New order). */
 export interface CustomerView extends CustomerListItem {
   lastAddress: { locationId: number; deliveryAddress: string } | null;
+  /** CUS-14 (Slice 4.4b): their shopper account with the shop, so staff can set a forgotten password; null with none. */
+  account: { createdAt: Date } | null;
 }
 
 /** CUS-02: one page of customers, with how many match in all. */

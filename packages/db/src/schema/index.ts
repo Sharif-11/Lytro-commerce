@@ -35,6 +35,7 @@ export * from './tenant/delivery';
 export * from './tenant/inventory';
 export * from './tenant/purchasing';
 export * from './tenant/customers';
+export * from './tenant/shoppers';
 export * from './tenant/orders';
 export * from './tenant/media';
 export * from './tenant/brand';

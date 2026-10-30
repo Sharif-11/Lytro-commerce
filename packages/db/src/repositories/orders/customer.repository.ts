@@ -15,7 +15,14 @@ import {
   type SQL,
 } from 'drizzle-orm';
 import { FulfillmentStatus, FulfilmentType, StatusOverride } from '@lytronix/validators';
-import { customers, idempotencyKeys, orders, type SelectCustomer } from '../../schema';
+import {
+  customers,
+  idempotencyKeys,
+  orders,
+  shopperCodes,
+  shoppers,
+  type SelectCustomer,
+} from '../../schema';
 import type { Transaction, TransactionRunner } from '../../transactions';
 import { escapeLike } from '../like';
 
@@ -125,6 +132,20 @@ export class CustomerRepository {
     return { rows, total: counted[0]?.total ?? 0 };
   }
 
+  /** CUS-14 (Slice 4.4b): the shopper's account of the customer's phone, and since when, or null with none. */
+  async accountOf(
+    tx: Transaction,
+    tenantId: string,
+    phone: string,
+  ): Promise<{ createdAt: Date } | null> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const [row] = await tx
+      .select({ createdAt: shoppers.createdAt })
+      .from(shoppers)
+      .where(and(eq(shoppers.tenantId, tenantId), eq(shoppers.phone, phone)));
+    return row ?? null;
+  }
+
   /** CUS-01: where the customer's latest delivery order went -- its thana and address -- or null with none. */
   async lastAddress(
     tx: Transaction,
@@ -190,12 +211,26 @@ export class CustomerRepository {
   }
 
   /**
-   * CUS-09: erases the customer at a privacy request -- its name and phone, and on each of its orders the name, phone,
-   * address and shopper's note, the totals, items and thana kept -- and the same details in the replies stored for its
-   * orders' idempotency keys (D4-8). How many orders it held.
+   * CUS-09: erases the customer at a privacy request -- its name and phone, its shopper's account (Slice 4.4b), and on
+   * each of its orders the name, phone, address and shopper's note, the totals, items and thana kept -- and the same
+   * details in the replies stored for its orders' idempotency keys (D4-8). How many orders it held.
    */
   async erase(tx: Transaction, tenantId: string, id: string, now: Date): Promise<number> {
     await this.transactions.setTenantContext(tx, tenantId);
+    const [customer] = await tx
+      .select({ phone: customers.phone })
+      .from(customers)
+      .where(and(eq(customers.tenantId, tenantId), eq(customers.id, id)));
+    // Slice 4.4b: the shopper's account of this phone goes too -- its sign-ins and saved addresses with it -- and the
+    // sign-up codes sent to the phone.
+    if (customer?.phone) {
+      await tx
+        .delete(shoppers)
+        .where(and(eq(shoppers.tenantId, tenantId), eq(shoppers.phone, customer.phone)));
+      await tx
+        .delete(shopperCodes)
+        .where(and(eq(shopperCodes.tenantId, tenantId), eq(shopperCodes.phone, customer.phone)));
+    }
     const erased = await tx
       .update(orders)
       .set({

@@ -58,6 +58,7 @@ import { OrdersModule } from '../orders/orders.module';
 import { OrdersController } from './controllers/orders.controller';
 import { CustomersController } from './controllers/customers.controller';
 import { CustomersModule } from '../customers/customers.module';
+import { ShoppersModule } from '../shoppers/shoppers.module';
 import { MediaModule } from '../media/media.module';
 import { MediaController } from './controllers/media.controller';
 import { UsageController } from './controllers/usage.controller';
@@ -113,6 +114,7 @@ import { CatalogueRequest } from './services/catalogue-request';
     PurchasingModule,
     OrdersModule,
     CustomersModule,
+    ShoppersModule,
     PublicApiModule,
     MediaModule,
     UsageModule,

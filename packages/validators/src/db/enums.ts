@@ -320,6 +320,8 @@ export enum AuditAction {
   OrderPaymentVoided = 'order_payment_voided',
   // Phase 4 Slice 4.4a: a customer deleted at a privacy request (CUS-09); the entry names no personal detail.
   CustomerErased = 'customer_erased',
+  // Phase 4 Slice 4.4b: staff set a new password for a customer's shopper account (CUS-14); no password is recorded.
+  ShopperPasswordSet = 'shopper_password_set',
 }
 
 // FED-02: what a product is, for Meta's catalog: new unless the shop says otherwise.

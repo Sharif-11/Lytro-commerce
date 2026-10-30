@@ -53,6 +53,16 @@ export class RequestLimits implements OnModuleInit, OnModuleDestroy {
     return this.windows.take(`order-shop:${tenantId}`, limit, now.getTime());
   }
 
+  /** RTE-06, CUS-04: one visitor's sign-up code requests in one shop. */
+  codesPerVisitor(tenantId: string, ip: string, limit: number, now: Date): WindowVerdict {
+    return this.windows.take(`code-ip:${tenantId}:${ip}`, limit, now.getTime());
+  }
+
+  /** CUS-03: one visitor's sign-up and sign-in attempts in one shop. */
+  signinsPerVisitor(tenantId: string, ip: string, limit: number, now: Date): WindowVerdict {
+    return this.windows.take(`signin-ip:${tenantId}:${ip}`, limit, now.getTime());
+  }
+
   /** ORD-17: one visitor's tracking reads in one shop. */
   trackingPerVisitor(tenantId: string, ip: string, limit: number, now: Date): WindowVerdict {
     return this.windows.take(`track-ip:${tenantId}:${ip}`, limit, now.getTime());
