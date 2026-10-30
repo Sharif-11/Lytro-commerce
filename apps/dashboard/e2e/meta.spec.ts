@@ -33,7 +33,9 @@ async function expectAccessible(page: Page): Promise<void> {
 
 test('a connected shop shows its pixel, the token hidden, and the feed with its steps', async ({
   page,
+  context,
 }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   await open(page);
   await expect(main(page).getByText('Connected', { exact: true })).toBeVisible();
   await expect(main(page).getByLabel('Meta Pixel ID')).toHaveValue('1234567890123456');
@@ -44,6 +46,12 @@ test('a connected shop shows its pixel, the token hidden, and the feed with its 
     'megh.lytro.app/feeds/meta/a9f27c41d0b8e5f3k1.csv',
   );
   await expect(main(page).getByText('link made 14 Oct 2026')).toBeVisible();
+  // FED-06: the feed link copies whole, to paste into Commerce Manager.
+  await main(page).getByRole('button', { name: 'Copy' }).click();
+  await expect(main(page).getByRole('button', { name: 'Copied' })).toBeVisible();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
+    'https://megh.lytro.app/feeds/meta/a9f27c41d0b8e5f3k1.csv',
+  );
   await expect(main(page).getByRole('listitem')).toHaveCount(4);
   // Requirement ids stay out of what the seller reads.
   await expect(main(page).getByText(/LND-|FED-/)).toHaveCount(0);

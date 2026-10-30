@@ -90,6 +90,29 @@ test('walks a new owner from the website to Home: code, shop, checkout, password
   });
 });
 
+test('continues without paying from the checkout, on the trial, to the password step (AUTH-29)', async ({
+  page,
+}) => {
+  const log = await mockOnboarding(page);
+  await page.goto(`/sign-in?shop=megh&planId=${STARTER}&termId=${TWELVE_MONTHS}`);
+  await page.getByLabel('ফোন নম্বর').fill('1711234567');
+  await page.getByRole('button', { name: 'এগিয়ে যান' }).click();
+  await typeCode(page, '123456');
+  await page.getByRole('button', { name: 'ভেরিফাই করুন' }).click();
+  await expect(page).toHaveURL('/create-shop');
+  await page.getByLabel('শপের নাম').fill('Rumana Fashion');
+  await page.getByLabel('আপনার নাম').fill('রুমানা আক্তার');
+  await page.getByRole('button', { name: 'শপ তৈরি করুন' }).click();
+  await expect(page).toHaveURL('/checkout');
+
+  await page.getByRole('button', { name: 'এখন না দিয়েই এগিয়ে যান' }).click();
+  await expect(page).toHaveURL('/set-password?required=false');
+  // Nothing was bought: no quote, no purchase.
+  expect(log.calls.some((call) => call.method === 'POST' && call.path.startsWith('/billing'))).toBe(
+    false,
+  );
+});
+
 test('fills the link from the name as it is typed, from Latin letters only, until the owner edits it (AUTH-11)', async ({
   page,
 }) => {

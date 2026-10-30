@@ -50,6 +50,7 @@ interface Variant {
   price: string | null;
   effectivePrice: string;
   sku: string | null;
+  deliveryCharge: string | null;
   effectiveDeliveryMode: string;
 }
 
@@ -139,7 +140,7 @@ async function version(tenantId: string): Promise<number> {
 }
 
 describeIfDatabase('creating a product (PRD-01, PRD-02, ATR-03, ATR-04)', () => {
-  it('saves with only a name and a price, and gets one default variant', async () => {
+  it('saves with only a name and a price, and gets one default variant, with no delivery charge of its own (DLV-03)', async () => {
     const shop = await openShop(port, texts, 'plain');
     const cell = await create(shop, { name: '18650 Cell', basePrice: 120 });
     expect(cell).toMatchObject({
@@ -147,9 +148,15 @@ describeIfDatabase('creating a product (PRD-01, PRD-02, ATR-03, ATR-04)', () => 
       basePrice: '120.00',
       categoryIds: [],
       variantAttributes: [],
+      // DLV-03: no delivery charge of its own unless given; the zone's applies.
+      deliveryCharge: null,
     });
     expect(cell.variants).toHaveLength(1);
-    expect(cell.variants[0]).toMatchObject({ optionIds: [], effectivePrice: '120.00' });
+    expect(cell.variants[0]).toMatchObject({
+      optionIds: [],
+      effectivePrice: '120.00',
+      deliveryCharge: null,
+    });
   });
 
   it('refuses a missing name and a negative price with field errors', async () => {
@@ -226,7 +233,7 @@ describeIfDatabase('variants (ATR-04 to ATR-06, ATR-11, ATR-13, ATR-14, ATL-02 t
     expect(list.products[0]?.variantCount).toBe(6);
   });
 
-  it("keeps each variant's own price and weight, and the product's price range follows (ATR-05, ATR-13)", async () => {
+  it("keeps each variant's own price, weight and delivery charge, and the product's price range follows (ATR-05, ATR-13, DLV-03)", async () => {
     const shop = await openShop(port, texts, 'prices');
     const storage = await platformId(shop, 'Storage');
     const [small, big] = await optionIds(shop, storage, ['128 GB', '256 GB']);
@@ -236,12 +243,16 @@ describeIfDatabase('variants (ATR-04 to ATR-06, ATR-11, ATR-13, ATR-14, ATL-02 t
       variantAttributes: [{ attributeId: storage, optionIds: [small, big] }],
       variants: [
         { optionIds: [small] },
-        { optionIds: [big], price: 28000, sku: 'PH-256', weightKg: 0.4 },
+        { optionIds: [big], price: 28000, sku: 'PH-256', weightKg: 0.4, deliveryCharge: 60 },
       ],
     });
     expect(phone).toMatchObject({ minPrice: '25000.00', maxPrice: '28000.00' });
     const bigOne = phone.variants.find((variant) => variant.optionIds[0] === big);
+    const smallOne = phone.variants.find((variant) => variant.optionIds[0] === small);
     expect(bigOne).toMatchObject({ price: '28000.00', effectivePrice: '28000.00', sku: 'PH-256' });
+    // DLV-03: a variant's own delivery charge is kept; the other has none of its own.
+    expect(bigOne?.deliveryCharge).toBe('60.00');
+    expect(smallOne?.deliveryCharge).toBeNull();
     expect(bigOne?.effectiveDeliveryMode).toBe('default');
   });
 
