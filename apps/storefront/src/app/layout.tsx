@@ -4,14 +4,15 @@ import { cookies } from 'next/headers';
 import { ServiceWorker } from '@/components/service-worker';
 import { iconPath, themeColor } from '@/lib/app/app-manifest';
 import { LANGUAGE_COOKIE, parseLanguage } from '@/lib/i18n/words';
-import { loadShopPage } from '@/lib/storefront';
+import { leadToMainAddress, loadShopPage } from '@/lib/storefront';
 import './fonts.css';
 import './storefront.css';
 import './storefront-live.css';
 
 // SFT-01: one app for every shop; the host names the shop, so each page reads it and sets its own title and tags. For
 // an open shop, the frame adds the tab's icon and the iPhone's (BRN-02, Slice 12c) and, while its storefront is on, the
-// app manifest (SFT-14); a closed shop's page names no shop (LIF-07), so it has neither.
+// app manifest (SFT-14); a closed shop's page names no shop (LIF-07), so it has neither. A shop whose own domain serves
+// is answered there only (Slice 13).
 export async function generateMetadata(): Promise<Metadata> {
   const base: Metadata = { title: 'Lytro', robots: { index: true, follow: true } };
   const page = await loadShopPage();
@@ -36,6 +37,7 @@ export async function generateViewport(): Promise<Viewport> {
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const language = parseLanguage((await cookies()).get(LANGUAGE_COOKIE)?.value);
   const page = await loadShopPage();
+  await leadToMainAddress(page);
   return (
     <html lang={language}>
       <body>

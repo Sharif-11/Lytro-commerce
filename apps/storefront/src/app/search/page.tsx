@@ -22,7 +22,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   if (page.state !== 'open' || !page.shop.storefrontEnabled) return {};
   const q = searchOf(await searchParams);
   return {
-    metadataBase: new URL(page.shop.origin),
+    metadataBase: new URL(page.shop.publicOrigin),
     title:
       q === null ? page.info.name : `${page.words.t('results_for', { q })} · ${page.info.name}`,
     robots: { index: false, follow: true },

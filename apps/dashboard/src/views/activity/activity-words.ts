@@ -61,7 +61,7 @@ export function sentenceOf(entry: ActivityEntry, t: T): string {
 /** The line under it: what the entry was about, from its summary -- a name, or a stock change from one figure to another. */
 export function detailOf(entry: ActivityEntry): string | null {
   const summary = summaryOf(entry);
-  const name = summary['name'];
+  const name = summary['name'] ?? summary['hostname'];
   if (typeof name === 'string' && name.trim() !== '') return name;
   const from = summary['from'];
   const to = summary['to'];

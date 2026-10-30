@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 export async function generateMetadata(): Promise<Metadata> {
   const page = await loadShopPage();
   if (page.state !== 'open' || !page.shop.storefrontEnabled) return {};
-  return { metadataBase: new URL(page.shop.origin), title: page.info.name };
+  return { metadataBase: new URL(page.shop.publicOrigin), title: page.info.name };
 }
 
 export default async function HomePage() {

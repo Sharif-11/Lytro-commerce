@@ -169,19 +169,24 @@ predates this document and isn't new. Caddy, as that edge, must:
 
 ## 7. Custom domains (`TEN-09`, `TEN-11`, `TEN-13`, `TEN-24`) — no manual mapping, ever
 
-Built in `PHASE-3-PLAN.md` Slice 13 (D3-13); until then only the host lookup below exists.
+Built in `PHASE-3-PLAN.md` Slice 13 (D3-13): the records below, the checks, the ask endpoint and the Caddyfile's
+on-demand TLS. The server's `PLATFORM_ADDRESSES` (comma-separated IPv4, required in production) is the VPS's public
+address: what a root domain's A record must be, and what the Domain page tells the seller to enter.
 
 A Growth/Pro tenant can point their own domain (e.g. `fashionhouse.com`) at their shop instead of
 `fashion-house.lytro.app`. Nothing about this needs a human to edit Caddy's config per tenant — the mechanism
 is fully automatic on the platform side, split across three pieces that are each already required by the SRS:
 
-- **Tenant's own action (manual, unavoidable):** they add one DNS record at their own registrar, pointing
-  their domain at this platform (CNAME or A record to the VPS/Cloudflare IP). True of every platform offering
+- **Tenant's own action (manual, unavoidable):** they add DNS records at their own registrar, pointing their domain
+  at this platform and naming their shop: for a name like `www.megh.com`, one CNAME to `megh.lytro.app`; for a root
+  domain like `megh.com`, the A record to `PLATFORM_ADDRESSES` and a TXT record `_lytro` = `lytro=megh`. The twin
+  (the other of `megh.com` and `www.megh.com`) is optional: its CNAME or A record makes it lead to the domain too. True of every platform offering
   custom domains (Shopify, Wix, etc.) — there is no way around the tenant proving they control that domain by
   pointing its DNS somewhere.
-- **Verification (`TEN-11`, already specified):** the backend checks periodically (within 10 minutes) whether
-  that DNS record now exists, and flips the domain's status from `pending` to `active` on its own. No operator
-  review step.
+- **Verification (`TEN-11`):** the backend checks every 10 minutes (the `domain_check_tick` job) whether the
+  records exist, and flips the domain from `pending` to `active` on its own; 72 hours without them it is `failed`
+  until the seller presses Check now. An active domain is checked daily; two checks running without its record send
+  it back to `pending`, the subdomain serving again. A failed DNS lookup changes nothing. No operator review step.
 - **Resolution (`TEN-24`, already built):** `HostClassifier`'s `'custom'` branch looks up *any* incoming
   hostname against the `tenant_domains` table — a database query, not a static file Caddy needs editing. A
   newly `active` domain works immediately, with no Caddy config change and no redeploy.
@@ -189,9 +194,10 @@ is fully automatic on the platform side, split across three pieces that are each
   TLS** feature is the mechanism for this. Instead of a fixed list of hostnames to provision certificates for,
   Caddy requests one automatically the first time it sees a request for a hostname it doesn't yet have a
   certificate for — gated by an "ask" callback Caddy makes first, to confirm that hostname is legitimate
-  before spending a Let's Encrypt rate-limit slot on it. That callback is a small new endpoint on the backend
-  (`GET /internal/domains/:host/active` or similar) answering yes/no from the same `tenant_domains` lookup
-  `TEN-24` already needs — not a new system, one more read of data that already exists. Once issued, Caddy
+  before spending a Let's Encrypt rate-limit slot on it. That callback is `GET /api/v1/internal/domains/ask?domain=`
+  on the backend, answering 200 or 404 from the same lookup `TEN-24` uses (an active domain, or its twin while the
+  twin's record points here, of a shop whose plan includes one) -- not a new system, one more read of data that
+  already exists. The Caddyfile's catch-all `https://` block serves any such name from the storefront. Once issued, Caddy
   renews that certificate on its own, same as the wildcard cert.
 
 Net effect: adding a custom domain is a tenant-dashboard action (enter the domain, see DNS instructions, wait

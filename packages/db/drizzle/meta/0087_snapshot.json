@@ -1,5 +1,5 @@
 {
-  "id": "e5d561ea-dc72-4d52-b178-bcdf39c19678",
+  "id": "0784ecf5-a134-41b1-9acd-79b09d5b43c1",
   "prevId": "9139ddb5-54ee-4c85-9157-691c03645f68",
   "version": "7",
   "dialect": "postgresql",
@@ -837,6 +837,51 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        },
+        "twin": {
+          "name": "twin",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "twin_active": {
+          "name": "twin_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "pending_since": {
+          "name": "pending_since",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "checked_at": {
+          "name": "checked_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "missed_checks": {
+          "name": "missed_checks",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "lost_at": {
+          "name": "lost_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "removed_at": {
+          "name": "removed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {
@@ -851,6 +896,38 @@
             }
           ],
           "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "tenant_domains_active_hostname": {
+          "name": "tenant_domains_active_hostname",
+          "columns": [
+            {
+              "expression": "hostname",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"control\".\"tenant_domains\".\"status\" = 'active'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "tenant_domains_one_per_shop": {
+          "name": "tenant_domains_one_per_shop",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"control\".\"tenant_domains\".\"status\" <> 'removed'",
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -869,13 +946,7 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "tenant_domains_hostname_unique": {
-          "name": "tenant_domains_hostname_unique",
-          "nullsNotDistinct": false,
-          "columns": ["hostname"]
-        }
-      },
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {
         "tenant_domains_status_check": {
@@ -8809,24 +8880,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
-        },
-        "voided_at": {
-          "name": "voided_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "voided_by": {
-          "name": "voided_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "void_reason": {
-          "name": "void_reason",
-          "type": "varchar(500)",
-          "primaryKey": false,
-          "notNull": false
         }
       },
       "indexes": {
@@ -8856,28 +8909,6 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
-        },
-        "payments_live_transaction_key": {
-          "name": "payments_live_transaction_key",
-          "columns": [
-            {
-              "expression": "tenant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "transaction_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"tenant\".\"payments\".\"transaction_id\" IS NOT NULL AND \"tenant\".\"payments\".\"voided_at\" IS NULL",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
         }
       },
       "foreignKeys": {
@@ -8903,10 +8934,6 @@
         "payments_reference_check": {
           "name": "payments_reference_check",
           "value": "(\"tenant\".\"payments\".\"method\" IN ('cash_on_delivery', 'cash')) = (\"tenant\".\"payments\".\"transaction_id\" IS NULL)"
-        },
-        "payments_void_check": {
-          "name": "payments_void_check",
-          "value": "(\"tenant\".\"payments\".\"voided_at\" IS NULL) = (\"tenant\".\"payments\".\"void_reason\" IS NULL)"
         }
       },
       "isRLSEnabled": false

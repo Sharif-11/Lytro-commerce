@@ -2,8 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { useMarkLinkShared } from '@/api/home';
 import { LinkShare } from '@/components/link-share';
 import { Card } from '@/components/ui/card';
-import { appConfig } from '@/lib/app-config';
-import { useShell } from '@/shell/shell-context';
+import { useShopAddress } from '@/hooks/use-shop-address';
 
 /**
  * The shop's link (TENANT-DASHBOARD-DESIGN §7.1, the prototype's link card): the address with Copy, and sharing it on
@@ -12,14 +11,13 @@ import { useShell } from '@/shell/shell-context';
  */
 export function ShopLinkCard({ id }: { id: string }): React.JSX.Element {
   const { t } = useTranslation('home');
-  const { slug } = useShell();
   const shared = useMarkLinkShared();
-  const host = appConfig.shopHost(slug);
+  const { host, url } = useShopAddress();
   return (
     <Card id={id} className="scroll-mt-4">
       <h3 className="mb-1 text-[17px] font-semibold">{t('shopLink')}</h3>
       <LinkShare
-        url={appConfig.shopUrl(slug)}
+        url={url}
         shown={host}
         onShared={() => {
           shared.mutate();

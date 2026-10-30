@@ -14,8 +14,8 @@ import type { CatalogFeedView } from '../types/public-api';
 export interface CatalogFeedSettings {
   /** FED-01: the address Meta fetches the feed at, for this token. */
   feedUrl: (token: string) => string;
-  /** FED-02, LND-01: the shop's own address, `<slug>.<PLATFORM_DOMAIN>`. */
-  shopOrigin: (slug: string) => string;
+  /** FED-02, LND-01: the shop's main address: its own domain while that serves, else `<slug>.<PLATFORM_DOMAIN>`. */
+  shopOrigin: (slug: string, ownDomain: string | null) => string;
 }
 
 // FED-01: a token of 256 random bits (at least 128 are required), written in base64url.

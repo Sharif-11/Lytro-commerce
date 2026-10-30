@@ -44,9 +44,12 @@ function csvOf(store: ReturnType<typeof storeWith>): Promise<string> {
   const feed = new CatalogFeedCsv(
     store as PublicCatalogueStore,
     new MediaLinks({ MEDIA_PUBLIC_BASE_URL: 'https://media.lytro.app' }),
-    { feedUrl: (token) => token, shopOrigin: (slug) => `https://${slug}.lytro.app` },
+    {
+      feedUrl: (token) => token,
+      shopOrigin: (slug, ownDomain) => `https://${ownDomain ?? `${slug}.lytro.app`}`,
+    },
   );
-  return feed.build(SHOP, 'my-shop');
+  return feed.build(SHOP, 'my-shop', null);
 }
 
 describe('a catalog feed row (FED-02, FED-03)', () => {

@@ -33,6 +33,7 @@ import {
 } from './settings';
 import { categoryList, categoryWrite } from './categories';
 import { brandAnswer, brandWrite, drawnBrand, liveBrand, type BrandFixture } from './brand';
+import { domainAnswer, domainWrite, noDomain, ownDomainOf, type DomainFixture } from './domain';
 import {
   drawnProducts,
   MEDIA_UPLOAD_PREFIX,
@@ -130,6 +131,8 @@ export interface ShopState {
    * default: every other screen keeps Lytro's look, though the drawn identity is on.
    */
   brandShows?: boolean;
+  /** Slice 13: the shop's own domain where it differs from none on a plan that includes one; the page's writes change it. */
+  domain?: DomainFixture | null;
   /** The shop's API keys where they differ from the prototype's three; the page's writes change them. */
   keys?: KeyFixture[] | null;
   /** Facebook and Meta where it differs from the prototype's connected shop; the page's writes change it. */
@@ -203,6 +206,7 @@ export function me(state: Required<ShopState>): unknown {
       autoRenewEnabled: false,
       logo: state.settings?.logo ?? null,
       brand: state.brandShows ? liveBrand((state.brand ??= drawnBrand())) : null,
+      ownDomain: ownDomainOf((state.domain ??= noDomain())),
       billingTerm: paid ? termOf(ONE_MONTH) : null,
       lapseStages: STEPS_AHEAD.includes(state.state)
         ? { grace: 3, readOnly: 4, locked: 8, archived: 45 }
@@ -302,6 +306,7 @@ export function shopState(given: ShopState = {}): Required<ShopState> {
     settings: null,
     brand: null,
     brandShows: false,
+    domain: null,
     keys: null,
     meta: null,
     identities: null,
@@ -457,6 +462,8 @@ export function shopAnswer(path: string, url: URL, state: Required<ShopState>): 
   if (own !== undefined) return own;
   const branded = brandAnswer(path, (state.brand ??= drawnBrand()));
   if (branded !== undefined) return branded;
+  const domain = domainAnswer(path, (state.domain ??= noDomain()));
+  if (domain !== undefined) return domain;
   if (path === '/api-keys') return state.keys ?? drawnKeys();
   const meta = metaAnswer(path, state.meta ?? drawnMeta());
   if (meta !== undefined) return meta;
@@ -866,6 +873,23 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
       });
     }
     if (branded) return ok(branded.data);
+    // Slice 13: the own domain's add, check and remove.
+    const domain = domainWrite(
+      method,
+      path,
+      request.postDataJSON() as Record<string, unknown> | null,
+      (state.domain ??= noDomain()),
+      state.language,
+    );
+    if (domain && 'refused' in domain) {
+      const { status, code, message, details } = domain.refused;
+      return route.fulfill({
+        status,
+        contentType: 'application/json',
+        body: refusal(code, message, details as Record<string, unknown>),
+      });
+    }
+    if (domain) return ok(domain.data);
     const saved = settingsWrite(
       method,
       path,

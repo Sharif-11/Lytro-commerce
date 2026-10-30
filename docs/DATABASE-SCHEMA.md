@@ -194,12 +194,26 @@ CREATE INDEX ON control.tenants (cell_id);
 CREATE TABLE control.tenant_domains (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id       uuid NOT NULL REFERENCES control.tenants(id),
-    hostname        text NOT NULL UNIQUE,        -- TEN-12: a domain belongs to one tenant platform-wide
+    hostname        text NOT NULL,
     status          text NOT NULL DEFAULT 'pending', -- pending | active | failed | removed
     verified_at     timestamptz,
-    created_at      timestamptz NOT NULL DEFAULT now()
+    created_at      timestamptz NOT NULL DEFAULT now(),
+    -- Slice 13 (0087_custom_domains.sql): the twin (megh.com and www.megh.com) and whether its record points here;
+    -- when the 72-hour wait began; the last check; checks running that missed an active domain's record, and when
+    -- that sent it back to waiting; when it was removed.
+    twin            text NOT NULL,
+    twin_active     boolean NOT NULL DEFAULT false,
+    pending_since   timestamptz NOT NULL DEFAULT now(),
+    checked_at      timestamptz,
+    missed_checks   smallint NOT NULL DEFAULT 0,
+    lost_at         timestamptz,
+    removed_at      timestamptz
 );
 CREATE INDEX ON control.tenant_domains (tenant_id);
+-- TEN-12: an active domain belongs to one tenant platform-wide (kept while its plan does not include it, DWN-10); a
+-- waiting one holds no name, since only the shop its records name can verify it. TEN-09: one domain a shop.
+CREATE UNIQUE INDEX tenant_domains_active_hostname ON control.tenant_domains (hostname) WHERE status = 'active';
+CREATE UNIQUE INDEX tenant_domains_one_per_shop ON control.tenant_domains (tenant_id) WHERE status <> 'removed';
 -- TEN-24/25/27: this table plus tenants.slug is the entire data the host resolver reads,
 -- cached in process memory for ~60s per TEN-27.
 ```

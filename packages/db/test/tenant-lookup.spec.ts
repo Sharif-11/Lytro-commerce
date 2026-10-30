@@ -29,10 +29,18 @@ afterAll(async () => {
   await admin.end();
 });
 
-async function addDomain(hostname: string, status: string): Promise<void> {
+// Slice 13: a shop has one domain while not removed, each with its twin (megh.com and www.megh.com), which answers
+// only while its record points here.
+async function addDomain(
+  hostname: string,
+  status: string,
+  owner: TenantFixture = tenant,
+  twinActive = false,
+): Promise<void> {
   await admin.query(
-    'INSERT INTO control.tenant_domains (tenant_id, hostname, status) VALUES ($1, $2, $3)',
-    [tenant.tenantId, hostname, status],
+    `INSERT INTO control.tenant_domains (tenant_id, hostname, twin, twin_active, status)
+     VALUES ($1, $2, $3, $4, $5)`,
+    [owner.tenantId, hostname, `www.${hostname}`, twinActive, status],
   );
 }
 
@@ -53,17 +61,31 @@ describe('findTenantByActiveDomain (TEN-12)', () => {
   const pending = `pending-${randomUUID().slice(0, 8)}.example.test`;
   const failed = `failed-${randomUUID().slice(0, 8)}.example.test`;
   const removed = `removed-${randomUUID().slice(0, 8)}.example.test`;
+  const quiet = `quiet-${randomUUID().slice(0, 8)}.example.test`;
+  let quietShop: TenantFixture;
 
   beforeAll(async () => {
-    await addDomain(active, 'active');
-    await addDomain(pending, 'pending');
-    await addDomain(failed, 'failed');
     await addDomain(removed, 'removed');
+    await addDomain(active, 'active', tenant, true);
+    await addDomain(pending, 'pending', await createTenant(admin, 'Lookup pending'));
+    await addDomain(failed, 'failed', await createTenant(admin, 'Lookup failed'));
+    quietShop = await createTenant(admin, 'Lookup quiet');
+    await addDomain(quiet, 'active', quietShop);
   });
 
   it('returns the owning shop for a verified, active domain', async () => {
     const found = await new TenantRepository().findByActiveDomain(handle.db, active);
     expect(found?.id).toBe(tenant.tenantId);
+    expect((await new TenantRepository().findByActiveDomain(handle.db, quiet))?.id).toBe(
+      quietShop.tenantId,
+    );
+  });
+
+  it("returns the owning shop for an active domain's twin only while the twin's record points here", async () => {
+    const found = await new TenantRepository().findByActiveDomain(handle.db, `www.${active}`);
+    expect(found?.id).toBe(tenant.tenantId);
+    expect(await new TenantRepository().findByActiveDomain(handle.db, `www.${quiet}`)).toBeNull();
+    expect(await new TenantRepository().findByActiveDomain(handle.db, `www.${pending}`)).toBeNull();
   });
 
   it('returns null for pending, failed and removed domains', async () => {

@@ -369,7 +369,7 @@ export const orderCalls = tenant.table(
 // ORD-15, ORD-22, D4-6 (Slice 4.3): money that came in for an order, verified as it is recorded -- by staff, or the cash on
 // delivery collected when the order was delivered or handed over (agreed 2026-10-30). Cash on delivery and cash at the
 // counter carry no transaction ID; a wallet or bank payment carries one, unique across the platform (Slice 4.3b,
-// control.used_transaction_ids). It changes only by being voided, once (migration 0087's grant and guard); it goes with
+// control.used_transaction_ids). It changes only by being voided, once (migration 0088's grant and guard); it goes with
 // its order. Phase 5 adds payment sessions, their verification levels and refunds on this table (DATABASE-SCHEMA §3.4).
 export const orderPayments = tenant.table(
   'payments',

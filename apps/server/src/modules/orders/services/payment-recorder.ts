@@ -114,7 +114,7 @@ export class PaymentRecorder {
     try {
       patch = await this.addWithin(tx, tenantId, order, entry, who, history);
     } catch (error) {
-      // Another payment of the shop took the ID at the same moment (migration 0087's live-ID index).
+      // Another payment of the shop took the ID at the same moment (migration 0088's live-ID index).
       if (error instanceof UniqueViolation && error.target === 'transactionId') {
         throw this.taken(field);
       }

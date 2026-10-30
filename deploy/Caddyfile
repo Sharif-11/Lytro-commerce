@@ -16,6 +16,13 @@
 	#   acme_dns cloudflare {$CLOUDFLARE_API_TOKEN}
 	# and rebuild this Caddy image with that plugin (xcaddy build --with github.com/caddy-dns/cloudflare).
 	email {$ACME_EMAIL}
+
+	# TEN-13 (Slice 13): a shop's own domain gets its certificate the first time it is asked for (On-Demand TLS), and
+	# only once the backend says a shop serves that name now -- its active domain or that domain's twin. Caddy adds
+	# `?domain=<name>`; any answer but 2xx refuses, so no certificate is spent on a name nobody verified.
+	on_demand_tls {
+		ask http://{$SERVER_UPSTREAM:server:3000}/api/v1/internal/domains/ask
+	}
 }
 
 # --- Shared pieces (DEPLOYMENT.md §5, §6) ---
@@ -122,24 +129,16 @@ api.lytro.app {
 	reverse_proxy {$STOREFRONT_UPSTREAM:storefront:3001}
 }
 
-# --- Custom domains (TEN-09, TEN-11, TEN-13, TEN-24) — deliberately not enabled yet ---
+# --- Custom domains (TEN-09, TEN-11, TEN-13, TEN-24, Slice 13) ---
 #
-# DEPLOYMENT.md §7 describes this as fully automatic once live: a tenant's own domain (e.g. fashionhouse.com)
-# resolves via HostClassifier's 'custom' branch (a database lookup, not a Caddy config change), with Caddy's
-# On-Demand TLS issuing that domain's certificate the first time it's requested — gated by an "ask" callback
-# to the backend before spending a Let's Encrypt rate-limit slot on it.
-#
-# Not wired in above because that backend callback doesn't exist yet (§7: "a small new endpoint... GET
-# /internal/domains/:host/active or similar" — not yet built, same gap this file can't close on its own).
-# Enabling on_demand_tls globally before that endpoint exists would let Caddy attempt — and rate-limit itself
-# against Let's Encrypt trying — certs for arbitrary hostnames with no real check behind them. Once that
-# endpoint ships, add:
-#
-# {
-# 	on_demand_tls {
-# 		ask http://{$SERVER_UPSTREAM:server:3000}/internal/domains/{host}/active
-# 	}
-# }
-#
-# and a catch-all site block (any hostname not matched above) that serves storefront the same way *.lytro.app
-# above does, so a verified custom domain resolves exactly like a shop's own subdomain.
+# Any other host is a shop's own domain (DEPLOYMENT.md §7): served by the storefront exactly as a shop's subdomain is,
+# the storefront resolving the shop from Host through the backend's verified domains (HostClassifier's 'custom'
+# branch, a database lookup, never a config change here). Its certificate comes on demand, gated by the ask above. A
+# domain that is not active answers the storefront's own not-found (TEN-25); the storefront leads a domain's twin and
+# the shop's subdomain to the active domain with a 308 (Slice 13's read, points 2 and 3).
+https:// {
+	tls {
+		on_demand
+	}
+	reverse_proxy {$STOREFRONT_UPSTREAM:storefront:3001}
+}

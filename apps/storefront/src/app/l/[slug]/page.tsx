@@ -25,7 +25,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (page.state !== 'open') return {};
   const read = await loadProduct(slug);
   if (read?.kind !== 'found') return { title: page.info.name };
-  return productMetadata(read.product, page.info, page.shop.origin, `/l/${read.product.slug}`);
+  return productMetadata(
+    read.product,
+    page.info,
+    page.shop.publicOrigin,
+    `/l/${read.product.slug}`,
+  );
 }
 
 export default async function LandingPage({ params, searchParams }: Props) {

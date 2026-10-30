@@ -1434,6 +1434,31 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'Delivery charge worked out.',
     bn: 'ডেলিভারি চার্জ হিসাব হয়েছে।',
   },
+  DomainRetrieved: { en: 'Domain loaded.', bn: 'ডোমেইন লোড হয়েছে।' },
+  DomainAdded: {
+    en: 'Domain added. Add its records where you bought it.',
+    bn: 'ডোমেইন যোগ হয়েছে। ডোমেইন যেখান থেকে কিনেছেন, সেখানে রেকর্ডগুলো যোগ করুন।',
+  },
+  DomainChecked: { en: 'Domain checked.', bn: 'ডোমেইন চেক করা হয়েছে।' },
+  DomainRemoved: { en: 'Domain removed.', bn: 'ডোমেইন সরানো হয়েছে।' },
+  DomainNeedsPlan: {
+    en: 'Growth and Pro plans include your own domain.',
+    bn: 'Growth আর Pro প্ল্যানে নিজের ডোমেইন থাকে।',
+  },
+  DomainFormat: { en: 'Enter a domain like megh.com.', bn: 'megh.com-এর মতো একটা ডোমেইন লিখুন।' },
+  DomainIsLytro: {
+    en: 'This is a Lytro address. Enter a domain you bought.',
+    bn: 'এটা Lytro-র ঠিকানা। আপনার কেনা ডোমেইন লিখুন।',
+  },
+  DomainTaken: {
+    en: 'This domain is active on another shop.',
+    bn: 'এই ডোমেইন আরেকটা শপে চালু আছে।',
+  },
+  DomainAlreadySet: {
+    en: 'Your shop already has a domain. Remove it to add another.',
+    bn: 'আপনার শপে আগে থেকেই একটা ডোমেইন আছে। আরেকটা যোগ করতে আগেরটা সরিয়ে দিন।',
+  },
+  DomainNotSet: { en: 'Your shop has no domain yet.', bn: 'আপনার শপে এখনো কোনো ডোমেইন নেই।' },
   TooManyOrders: {
     en: 'Too many orders in a short time. Wait a minute and try again.',
     bn: 'অল্প সময়ে অনেক অর্ডার এসেছে। এক মিনিট পর আবার ট্রাই করুন।',

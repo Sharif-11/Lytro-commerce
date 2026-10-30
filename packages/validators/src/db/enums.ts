@@ -308,6 +308,12 @@ export enum AuditAction {
   OrderStatusChanged = 'order_status_changed',
   OrderDeleted = 'order_deleted',
   OrderCallLogged = 'order_call_logged',
+  // Phase 3 Slice 13: the shop's own domain added, verified, its record found missing (the shop back on its subdomain),
+  // and removed (TEN-09 to TEN-14).
+  DomainAdded = 'domain_added',
+  DomainActivated = 'domain_activated',
+  DomainLost = 'domain_lost',
+  DomainRemoved = 'domain_removed',
   // Phase 4 Slice 4.3b: a payment staff recorded on an order, verified as it was recorded, and one voided (AUD-01's
   // "payment verified or rejected", ORD-15).
   OrderPaymentRecorded = 'order_payment_recorded',
@@ -449,6 +455,8 @@ export enum QueueName {
   // LND-16: a shopper's order told to Meta's Conversions API, queued in the order's own transaction, retried apart
   // from it.
   MetaPurchase = 'meta_purchase',
+  // TEN-11 (Slice 13): every 10 minutes, each waiting domain's records looked for, and each active one's once a day.
+  DomainCheckTick = 'domain_check_tick',
 }
 
 // Who performed the action (AUD-02). `system` is the platform itself (a scheduled job); `platform_support` is an
@@ -727,6 +735,9 @@ export const BUYABLE_ADDON_KINDS: readonly AddonKind[] = [AddonKind.Limit, Addon
 
 // BRN-05: the feature add-on that switches a shop's own brand identity on.
 export const BRAND_IDENTITY_ADDON = 'brand_identity';
+// TEN-09, TEN-10 (Slice 13): the plan feature (or add-on key) that lets a shop serve its own domain; Growth and Pro
+// carry it in their features.
+export const CUSTOM_DOMAIN_FEATURE = 'custom_domain';
 
 // BRN-02 (agreed for Slice 11.2): the curated typefaces a brand identity's headings and its body text are set in, each
 // a Bangla face with the Latin face that suits it, all from Google Fonts. Galada with Playfair Display is for headings

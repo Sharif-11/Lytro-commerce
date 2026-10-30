@@ -1,6 +1,8 @@
 # Tenant dashboard: the full design
 
-Status: v3.17, 2026-10-30 (the dashboard's installed app marked so a seller tells it from the shop's storefront app,
+Status: v3.18, 2026-10-30 (a shop's own domain, Slice 13, prototype Part 28: Settings > Storefront's "Your own
+domain" line and the Domain page -- the records in plain words, waiting, active, couldn't verify, the record gone, off
+after a downgrade, the plan offer, removing asked first; v3.17 of 2026-10-30: the dashboard's installed app marked so a seller tells it from the shop's storefront app,
 Slice 12c, prototype Part 27: named "<shop> Admin", a small gear in its icon's corner; v3.16 of 2026-10-29:
 the Bangla in one word per thing, by the owner's style guide, throughout the prototype: শপ,
 ক্যানসেল, এক্সপায়ার্ড, ডিলিট, সার্চ and the rest; KNOWN-GAPS §100; v3.15 of 2026-10-29: what the real-server walkthrough
@@ -1317,11 +1319,51 @@ off without losing anything (SFT-02, SFT-16).
   off** (the danger button, since the shop's public page goes). Turning it on is at once. Each ends with a toast.
 - **Who.** Those who may manage settings; the row is hidden from anyone else (STF-11). The switch is saved by itself,
   with no Save button, and recorded in the activity log with the shop's other settings.
-- **Later.** The home page's banner slides drawn for Slice 12 (§8, `storefront`) join this page below the switch in
-  Slice 12b; a custom domain's line joins with Slice 13.
+- **Later.** The home page's banner slides drawn for Slice 12 (§8, `storefront`) join this page below the switch.
+- **Your own domain** (Slice 13, Part 28): a line under the switch, "Your own domain" with "Not set up · like
+  megh.com", "megh.com · waiting for your records" or "megh.com · active", opening §7.30. Once the domain is active the
+  link card shows it, since it is the shop's main address (`sf28-active`); removing it says so in a toast
+  (`sf28-removed`).
 
 **Content.** `GET`, `PATCH /shop-settings` (`storefrontEnabled`, `settings:manage`); the address is the shop's own
-host, from the session's shop.
+host, from the session's shop; the domain line from `GET /domain` (§7.30).
+
+### 7.30 Your own domain (`/settings/storefront/domain`)
+
+*Slice 13* (Part 28), from Slice 13's read: a Growth or Pro shop's own domain (TEN-09), which becomes its main
+address once active.
+
+- **Not on the plan** (`dom28-offer`): "Your own domain, like megh.com" -- Growth and Pro include it, megh.lytro.app
+  always keeps working -- with **See plans** (TEN-10, PYG-07). Nothing else is shown.
+- **Adding** (`dom28`): one line on what it is ("A domain you bought, like megh.com, can be your shop's address; once
+  it is active, megh.lytro.app leads there too"), the field "Your domain" (help: without https://, like megh.com or
+  www.megh.com) and **Add**. What is typed is cleaned (lower case, no `https://`, no path); anything that is not a
+  domain is refused under the field (`dom28-format`), as is an address Lytro serves itself, and a domain active on
+  another shop says so (`dom28-taken`, TEN-12).
+- **Waiting** (`dom28-pending`, `dom28-pending-www`): the domain with "Waiting for your records" (warning tone), that
+  it is checked every 10 minutes and most sellers take minutes to hours; then "Add these records where you bought the
+  domain", each record a card -- its type, its name and its value, with **Copy value**: for a root domain like
+  megh.com, an `A` record `@` to Lytro's address and a `TXT` record `_lytro` with `lytro=megh` (naming the shop); for
+  a name like www.megh.com one `CNAME` `www` to `megh.lytro.app`. Under them, "For www.megh.com too" (or megh.com):
+  the twin's record, optional, "with this, opening www.megh.com also leads to megh.com". **Check now** asks at once;
+  not found, a toast says the checks go on (`dom28-checked`). **Remove**.
+- **Active** (`dom28-active`): "Active" (success tone): "megh.com is now your shop's main address; megh.lytro.app and
+  www.megh.com lead here too". **Remove**.
+- **Couldn't verify** (`dom28-failed`): after 3 days without the records, "Couldn't verify" (danger tone), "check them
+  where you bought the domain, then check now", the records again, **Check now** (which starts the 3 days over) and
+  **Remove**.
+- **The record gone** (`dom28-lost`): an active domain missing its record on two daily checks running is waiting
+  again, with the warning "your record was missing on two checks in a row, so your shop is on megh.lytro.app until
+  it is back", and the records.
+- **Off** (`dom28-inactive`): a plan without it turns it off and keeps it (DWN-10): "Off" (neutral), "your plan
+  doesn't include your own domain; it's kept: upgrading turns it back on", **See plans**, **Remove**.
+- **Removing asks first** (`sh-dom28-remove`): "Remove megh.com?" -- the shop stops answering on it at once,
+  megh.lytro.app keeps working, it can be added again -- **Cancel** and **Remove** (the danger button). Back on
+  Settings > Storefront, a toast (TEN-14).
+- **Who.** Those who may manage settings, as §7.29; each change is recorded in the activity log.
+
+**Content.** `GET /domain` (the shop's domain with its status, records and twin, or none; and whether its plan
+includes one), `POST /domain` (`{ hostname }`), `POST /domain/check`, `DELETE /domain`, all `settings:manage`.
 
 ---
 

@@ -31,7 +31,7 @@ import { DatabaseService } from '../database.service';
 
 // ORD-12: what the order guard refuses (migration 0083).
 const ORDER_KEPT_CHECK = 'orders_kept';
-// ORD-15: one live payment per transaction ID within a shop (migration 0087).
+// ORD-15: one live payment per transaction ID within a shop (migration 0088).
 const LIVE_TRANSACTION_KEY = 'payments_live_transaction_key';
 
 @Injectable()

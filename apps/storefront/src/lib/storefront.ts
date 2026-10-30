@@ -1,4 +1,5 @@
 import { cookies, headers } from 'next/headers';
+import { permanentRedirect } from 'next/navigation';
 import { cache } from 'react';
 import { AREA_COOKIE, parseArea } from './area';
 import { ServerApi } from './api/server-api';
@@ -11,6 +12,7 @@ import {
 } from './api/storefront-api';
 import { StorefrontEnvironment } from './env';
 import { LANGUAGE_COOKIE, parseLanguage, Words } from './i18n/words';
+import { mainAddressTarget, STOREFRONT_PATH_HEADER, STOREFRONT_QUERY_HEADER } from './request-path';
 
 // Server-only: what every page reads first. The shopper's host names the shop (TEN-08); its state decides whether the
 // page shows the shop, the generic offline page (SFT-12, LIF-07) or not-found.
@@ -66,6 +68,22 @@ export const loadShopPage = cache(async (): Promise<ShopPage> => {
   const info = await storefrontApi.shop(context.shop, shopper);
   return { state: 'open', shop: context.shop, info, shopper, words };
 });
+
+/**
+ * Slice 13 (its read, point 3): a shop whose own domain serves answers there only. Its Lytro address and the domain's
+ * twin lead to the same page on the domain, permanently (308), landing pages included.
+ */
+export async function leadToMainAddress(page: ShopPage): Promise<void> {
+  if (page.state !== 'open') return;
+  const incoming = await headers();
+  const target = mainAddressTarget(
+    page.shopper.host,
+    page.shop,
+    incoming.get(STOREFRONT_PATH_HEADER) ?? '/',
+    incoming.get(STOREFRONT_QUERY_HEADER) ?? '',
+  );
+  if (target !== null) permanentRedirect(target);
+}
 
 /** A product by its link, read once per request (the page and its preview tags share it). */
 export const loadProduct = cache(async (slug: string) => {

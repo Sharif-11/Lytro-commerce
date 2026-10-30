@@ -29,7 +29,12 @@ export interface StorefrontShopContext {
   slug: string;
   storefrontEnabled: boolean;
   key: string;
+  /** The website the storefront key is registered for: the shop's Lytro address, which every API call names. */
   origin: string;
+  /** Slice 13: the shop's own domain while it serves, its main address then; null on its Lytro address. */
+  mainHost: string | null;
+  /** Where the shop's links and previews point: its own domain while that serves, else its Lytro address. */
+  publicOrigin: string;
 }
 export interface StorefrontContext {
   outcome: 'open' | 'closed' | 'not_found';
@@ -221,7 +226,9 @@ export interface ShopperRequest {
 export type ProductRead =
   { kind: 'found'; product: PublicProduct } | { kind: 'moved'; slug: string } | { kind: 'missing' };
 
-const CONTEXT_TTL_MS = 30_000;
+// TEN-27: which shop a host serves is kept 5 seconds at most, so a removed domain, a suspended or archived shop, and a
+// domain gone back to its subdomain all show within the 5 seconds the server's own lookup is held to.
+const CONTEXT_TTL_MS = 5_000;
 // Slice 12b's read: the frame every page shows -- the shop's details and its categories -- is read at most once a
 // minute per shop, as an outside site's server could keep it; a logo or a category change shows within the minute.
 const SHELL_TTL_MS = 60_000;

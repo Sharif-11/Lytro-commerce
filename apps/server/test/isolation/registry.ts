@@ -252,6 +252,11 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'GET /brand': "reads only the session shop's own brand identity",
   'PUT /brand': "saves only the session shop's identity; another shop's image is not_found",
   'PUT /brand/switch': "switches only the session shop's own identity",
+  // Phase 3 Slice 13, checked in test/custom-domains.e2e.spec.ts: a shop's own domain is its own.
+  'GET /domain': "reads only the session shop's own domain",
+  'POST /domain': 'adds a domain to the session shop only; one active on another shop is taken',
+  'POST /domain/check': "checks only the session shop's own domain",
+  'DELETE /domain': "removes only the session shop's own domain; another shop's is untouched",
   // Phase 4 Slice 4.1, checked in test/orders.e2e.spec.ts: a shop's orders are its own.
   'GET /orders': "lists and searches only the session shop's own orders",
   'POST /orders':
