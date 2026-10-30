@@ -65,7 +65,7 @@ import type {
   UnnumberedOrder,
 } from '../types/orders';
 import { newTrackingId, orderNumberOf } from './order-numbers';
-import { OrderPricing, type OrderPrice, type PricingLine } from './order-pricing';
+import { OrderPricing, taxesOf, type OrderPrice, type PricingLine } from './order-pricing';
 import { PaymentRecorder, paymentEntryOf } from './payment-recorder';
 
 // ORD-05: how many tracking IDs are drawn before giving up; a clash is one in a trillion.
@@ -95,7 +95,7 @@ interface ItemEntry {
 
 /** One item ready to price and store: its snapshot, and what pricing reads of it. */
 interface PlannedLine {
-  row: Omit<NewOrderLine, 'position' | 'itemTotal' | 'deliveryCharge' | 'advance'>;
+  row: Omit<NewOrderLine, 'position' | 'itemTotal' | 'deliveryCharge' | 'advance' | 'taxAmount'>;
   pricing: PricingLine;
   kept: OrderLineRecord | null;
 }
@@ -202,6 +202,9 @@ function itemView(line: OrderLineRecord, components: SelectOrderLineComponent[])
     deliveryCharge: line.deliveryCharge,
     paymentPolicy: line.paymentPolicy,
     advance: line.advance,
+    taxClassName: line.taxClassName,
+    taxRate: line.taxRate,
+    taxAmount: line.taxAmount,
   };
 }
 
@@ -462,6 +465,14 @@ export class OrderService {
         grandTotal: price.grandTotal,
         advanceDue: price.advanceDue,
         codAmount: price.codAmount,
+        // TAX-03: what the total includes, a line per class.
+        taxes: taxesOf(
+          planned.map((line, index) => ({
+            taxClassName: line.row.taxClassName ?? null,
+            taxRate: line.row.taxRate ?? null,
+            taxAmount: price.lines[index]?.tax ?? '0.00',
+          })),
+        ),
         warnings: this.warningsOf(destination, planned, variants),
       };
     });
@@ -678,6 +689,7 @@ export class OrderService {
               itemTotal: row.itemTotal,
               deliveryCharge: row.deliveryCharge,
               advance: row.advance,
+              taxAmount: row.taxAmount,
               capturedValues: row.capturedValues,
             });
           } else {
@@ -711,6 +723,7 @@ export class OrderService {
               itemTotal: row.itemTotal,
               deliveryCharge: row.deliveryCharge,
               advance: row.advance,
+              taxAmount: row.taxAmount,
             });
           }
         }
@@ -1157,6 +1170,9 @@ export class OrderService {
             deliveryMode: kept.deliveryMode,
             paymentPolicy: kept.paymentPolicy,
             policyAdvance: kept.policyAdvance,
+            // TAX-02: a line already on the order keeps the class and rate it was ordered under.
+            taxClassName: kept.taxClassName,
+            taxRate: kept.taxRate,
           }
         : variant && {
             productId: variant.productId,
@@ -1173,6 +1189,8 @@ export class OrderService {
             deliveryMode: variant.deliveryMode,
             paymentPolicy: variant.paymentPolicy,
             policyAdvance: variant.advanceAmount,
+            taxClassName: variant.taxClass?.name ?? null,
+            taxRate: variant.taxClass?.rate ?? null,
           };
       if (!snapshot) return;
       planned.push({
@@ -1193,6 +1211,7 @@ export class OrderService {
           deliveryMode: snapshot.deliveryMode,
           paymentPolicy: snapshot.paymentPolicy,
           policyAdvance: snapshot.policyAdvance,
+          taxRate: snapshot.taxRate,
         },
         kept,
       });
@@ -1239,6 +1258,7 @@ export class OrderService {
         itemTotal: priced.itemTotal,
         deliveryCharge: priced.deliveryCharge,
         advance: priced.advance,
+        taxAmount: priced.tax,
       };
     });
   }
@@ -1436,6 +1456,7 @@ export class OrderService {
       advanceDue: order.advanceDue,
       codAmount: order.codAmount,
       due: order.due,
+      taxes: taxesOf(lines),
       courierName: order.courierName,
       trackingCode: order.trackingCode,
       trackingLink: order.trackingLink,

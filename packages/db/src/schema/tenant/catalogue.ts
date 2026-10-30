@@ -30,6 +30,7 @@ import {
   StockState,
   StockTracking,
   StockUnit,
+  TAX_CLASS_NAME_MAX_LENGTH,
 } from '@lytronix/validators';
 import { createdAt, tenant } from '../shared';
 
@@ -91,6 +92,28 @@ export const categories = tenant.table(
   ],
 );
 
+// TAX-01 (Slice 4.6a, agreed 2026-10-30): a shop's named tax classes, each with its rate. Prices include the tax
+// (Bangladeshi MRP style), so a class only says how much of a price is tax; a product with none is untaxed.
+export const taxClasses = tenant.table(
+  'tax_classes',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    tenantId: uuid('tenant_id').notNull(),
+    name: varchar('name', { length: TAX_CLASS_NAME_MAX_LENGTH }).notNull(),
+    // A percent with two decimals, 0 to 100 (0 for zero-rated goods, TAX-01's books).
+    rate: numeric('rate', { precision: 5, scale: 2 }).notNull(),
+    createdAt: createdAt(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique('tax_classes_tenant_id_key').on(t.tenantId, t.id),
+    uniqueIndex('tax_classes_name_key').on(t.tenantId, sql`lower(${t.name})`),
+    check('tax_classes_rate_check', sql`${t.rate} >= 0 AND ${t.rate} <= 100`),
+  ],
+);
+
+export type SelectTaxClass = typeof taxClasses.$inferSelect;
+
 export const products = tenant.table(
   'products',
   {
@@ -128,6 +151,8 @@ export const products = tenant.table(
     active: boolean('active').notNull().default(true),
     // FED-02: what Meta's catalog says it is.
     itemCondition: itemCondition('item_condition').notNull().default(ItemCondition.New),
+    // TAX-01 (Slice 4.6a): its tax class, or null for untaxed; a class in use is never deleted.
+    taxClassId: uuid('tax_class_id'),
     sortOrder: integer('sort_order').notNull().default(0),
     // CCH-11: kept in step with the variants in the same transaction, for list pages.
     minPrice: numeric('min_price', { precision: 10, scale: 2 }),
@@ -150,6 +175,11 @@ export const products = tenant.table(
       name: 'products_primary_category_fk',
       columns: [t.tenantId, t.primaryCategoryId],
       foreignColumns: [categories.tenantId, categories.id],
+    }),
+    foreignKey({
+      name: 'products_tax_class_fk',
+      columns: [t.tenantId, t.taxClassId],
+      foreignColumns: [taxClasses.tenantId, taxClasses.id],
     }),
     check('products_base_price_check', sql`${t.basePrice} >= 0`),
     check('products_low_stock_check', sql`${t.lowStockThreshold} >= 0`),

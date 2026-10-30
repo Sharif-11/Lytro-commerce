@@ -8,6 +8,7 @@ import {
 import { ApiError } from '../../../common/api-error';
 import type { OrderStore } from '../ports/order-store';
 import { ORDER_STORE } from '../tokens';
+import { taxesOf } from './order-pricing';
 import type {
   OrderLineRecord,
   OrderRecord,
@@ -39,13 +40,14 @@ function itemsOf(lines: OrderLineRecord[]): ShopperItemView[] {
     }));
 }
 
-function totalsOf(order: OrderRecord): ShopperTotals {
+function totalsOf(order: OrderRecord, lines: readonly OrderLineRecord[]): ShopperTotals {
   return {
     subtotal: order.subtotal,
     deliveryCharge: order.deliveryCharge,
     discount: order.discount,
     grandTotal: order.grandTotal,
     codAmount: order.codAmount,
+    taxes: taxesOf(lines),
   };
 }
 
@@ -82,7 +84,7 @@ export function placedViewOf(order: OrderRecord, lines: OrderLineRecord[]): Plac
     status: shopperStatusOf(order),
     createdAt: order.createdAt,
     items: itemsOf(lines),
-    ...totalsOf(order),
+    ...totalsOf(order, lines),
     purchaseEventId: purchaseEventIdOf(order.trackingId),
   };
 }
@@ -96,7 +98,7 @@ export function trackedViewOf(order: OrderRecord, lines: OrderLineRecord[]): Tra
     status: shopperStatusOf(order),
     timeline: timelineOf(order),
     items: itemsOf(lines),
-    ...totalsOf(order),
+    ...totalsOf(order, lines),
     due: order.due,
     courier:
       shipped && (order.courierName ?? order.trackingCode ?? order.trackingLink) !== null

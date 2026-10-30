@@ -1714,6 +1714,38 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: "The customer's new password is set. Their sign-ins have ended.",
     bn: 'কাস্টমারের নতুন পাসওয়ার্ড সেট হয়েছে। তাদের সব লগইন শেষ হয়েছে।',
   },
+  TooManyTaxClasses: {
+    en: (p) => `A shop can name up to ${String(p.max)} tax classes.`,
+    bn: (p) => `একটি শপ সর্বোচ্চ ${String(p.max)}টি ট্যাক্স ক্লাস রাখতে পারে।`,
+  },
+  TaxClassNotFound: {
+    en: 'Tax class not found.',
+    bn: 'ট্যাক্স ক্লাস পাওয়া যায়নি।',
+  },
+  TaxClassInUse: {
+    en: (p) =>
+      Number(p.count) === 1
+        ? 'A product uses this tax class. Give it another class first.'
+        : `${String(p.count)} products use this tax class. Give them another class first.`,
+    bn: (p) =>
+      `${String(p.count)}টি প্রোডাক্ট এই ট্যাক্স ক্লাস ব্যবহার করছে। আগে সেগুলোতে অন্য ক্লাস দিন।`,
+  },
+  TaxClassNameTaken: {
+    en: 'The shop already has a tax class of this name.',
+    bn: 'এই নামে শপে আগেই একটি ট্যাক্স ক্লাস আছে।',
+  },
+  TaxClassesRetrieved: {
+    en: 'Tax classes retrieved.',
+    bn: 'ট্যাক্স ক্লাসগুলো পাওয়া গেছে।',
+  },
+  TaxClassSaved: {
+    en: 'Tax settings saved.',
+    bn: 'ট্যাক্স সেটিংস সেভ হয়েছে।',
+  },
+  TaxClassDeleted: {
+    en: 'Tax class deleted.',
+    bn: 'ট্যাক্স ক্লাস ডিলিট হয়েছে।',
+  },
 };
 
 export function translate(key: MessageKey, lang: Language, params: MessageParams = {}): string {

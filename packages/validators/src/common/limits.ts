@@ -135,6 +135,9 @@ export const SHOPPER_NOTE_MAX_LENGTH = 500;
 export const COURIER_NAME_MAX_LENGTH = 80;
 export const TRACKING_CODE_MAX_LENGTH = 100;
 export const TRACKING_LINK_MAX_LENGTH = 500;
+// TAX-01 (Slice 4.6a): a tax class's name, and how many one shop may name.
+export const TAX_CLASS_NAME_MAX_LENGTH = 60;
+export const TAX_CLASSES_MAX = 20;
 // CUS-02: a page of customers.
 export const CUSTOMER_PAGE_SIZE = 20;
 // CUS-03 to CUS-06, ORD-18 (Slice 4.4b): a shopper's sign-in lasts this many days; up to 10 saved addresses, each with

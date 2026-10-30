@@ -108,6 +108,8 @@
     "subscription_cancelled": "{{actor}} মেয়াদ শেষে সাবস্ক্রিপশন ক্যানসেল করেছেন",
     "supplier_created": "{{actor}} সাপ্লায়ার যোগ করেছেন",
     "supplier_updated": "{{actor}} সাপ্লায়ার এডিট করেছেন",
+    "tax_class_deleted": "{{actor}} একটি ট্যাক্স ক্লাস ডিলিট করেছেন",
+    "tax_class_saved": "{{actor}} ট্যাক্স সেটিংস বদলেছেন",
     "tenant_deleted": "শপের ডেটা ডিলিট হয়েছে",
     "tenant_restored": "Lytro সাপোর্ট শপ আবার চালু করেছে",
     "tenant_suspended": "Lytro সাপোর্ট শপ সাসপেন্ড করেছে",

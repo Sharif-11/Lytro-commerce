@@ -775,9 +775,9 @@ Added 2026-10-17 (from `PRODUCT-MODEL-PROPOSAL.md` §4). Tax a tenant charges it
 
 | ID | Requirement | Pass criteria | Pri | Ver |
 | --- | --- | --- | --- | --- |
-| TAX-01 | A tenant may define named tax classes with a rate and assign one per product; the default is no tax. | A bookshop marks books zero-rated and stationery at 15%; a seller who never opens tax settings charges none. | S | API |
-| TAX-02 | Order lines shall snapshot the tax class name and rate applied at order time. | Changing a rate next year does not change last year's orders. | M | API |
-| TAX-03 | Order totals shall show one tax line per distinct tax class in the cart. | A cart with zero-rated and 15% items shows two tax lines. | S | API |
+| TAX-01 | Amended 2026-10-30 (prices include tax; a default class): a tenant may define named tax classes with a rate and assign one per product; the default is no tax. Prices include the tax, so a class says how much of a price is tax and never changes a total. The tenant may name one class as its default, which each new product starts with and can change or clear; products already made keep theirs. A combo pack takes its own product's class, never its parts'. A class a product uses is not deleted. | A bookshop marks books zero-rated and stationery at 15%; a seller who never opens tax settings charges none; with a 15% default, a new product starts at 15% and an older one keeps no class. | S | API |
+| TAX-02 | Amended 2026-10-30: order lines shall snapshot the tax class name and rate applied at order time, and the tax the line's total includes: worked out on the line after its own discount and its share of the order's discount (by item totals), as total x rate / (100 + rate) to the paisa; the delivery charge carries no tax. A line already on an order keeps its class and rate when the order is edited. | Changing a rate next year does not change last year's orders; a 115 TK item at 15% includes 15 TK of tax. | M | API |
+| TAX-03 | Amended 2026-10-30: order totals shall show one tax line per distinct tax class and rate in the cart, as what the grand total includes, to staff and shoppers alike. | A cart with zero-rated and 15% items shows two tax lines, and the grand total is the same as untaxed. | S | API |
 
 ### 14.10 Menus and modifier groups (MNU) — scheduled for Phase 4 (Slices 4.1 and 4.6)
 

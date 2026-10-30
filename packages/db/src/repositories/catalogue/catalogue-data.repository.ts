@@ -7,6 +7,8 @@ import {
   comboParts,
   optionSets,
   products,
+  shopSettings,
+  taxClasses,
 } from '../../schema';
 import type { Transaction, TransactionRunner } from '../../transactions';
 
@@ -25,6 +27,12 @@ export class CatalogueDataRepository {
     // CMB-01: combos' parts first, since a part's variant is never deleted while a combo names it.
     await tx.delete(comboParts).where(eq(comboParts.tenantId, tenantId));
     await tx.delete(products).where(eq(products.tenantId, tenantId));
+    // TAX-01 (Slice 4.6a): the tax classes, once no product names them and the shop's default no longer does.
+    await tx
+      .update(shopSettings)
+      .set({ defaultTaxClassId: null })
+      .where(eq(shopSettings.tenantId, tenantId));
+    await tx.delete(taxClasses).where(eq(taxClasses.tenantId, tenantId));
     await tx.delete(categories).where(eq(categories.tenantId, tenantId));
     await tx.delete(attributeOptions).where(eq(attributeOptions.tenantId, tenantId));
     await tx.delete(attributes).where(eq(attributes.tenantId, tenantId));

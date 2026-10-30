@@ -21,6 +21,7 @@ import type { PublicApiRequest } from '../guards/public-key.guard';
 import { OrderLimits } from '../services/order-limits';
 import { PublicOrderService } from '../services/public-order.service';
 import { API_CLOCK } from '../tokens';
+import { taxLineSchema } from '../../team/dto/orders.dto';
 import { PublicApi } from './public-shop.controller';
 
 // ORD-02: the route a shopper's order is made at, as its idempotency key is scoped to it (D4-8).
@@ -51,6 +52,7 @@ const totals = {
   discount: z.string(),
   grandTotal: z.string(),
   codAmount: z.string(),
+  taxes: z.array(taxLineSchema),
 };
 class PublicOrderBodyDto extends createZodDto(publicOrderSchema) {}
 class PlacedOrderDto extends createZodDto(

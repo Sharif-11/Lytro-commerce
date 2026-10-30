@@ -41,6 +41,7 @@ import {
   TRACKING_CODE_MAX_LENGTH,
   TRACKING_LINK_MAX_LENGTH,
   type AttributeDataType,
+  TAX_CLASS_NAME_MAX_LENGTH,
 } from '@lytronix/validators';
 import { createdAt, tenant } from '../shared';
 import { deliveryMode, paymentPolicy, stockUnit } from './catalogue';
@@ -292,6 +293,11 @@ export const orderLines = tenant.table(
     // The partial advance the policy asked, as it stood, so an edited quantity works the line's advance out again.
     policyAdvance: money('policy_advance'),
     advance: money('advance').notNull().default('0'),
+    // TAX-02, TAX-03 (Slice 4.6a): the tax class and rate it was ordered under, as they stood, and the tax its total
+    // includes -- prices include tax, so this is the share of the line that is tax, never added on top.
+    taxClassName: varchar('tax_class_name', { length: TAX_CLASS_NAME_MAX_LENGTH }),
+    taxRate: numeric('tax_rate', { precision: 5, scale: 2 }),
+    taxAmount: money('tax_amount').notNull().default('0'),
   },
   (t) => [
     unique('order_lines_tenant_id_key').on(t.tenantId, t.id),
@@ -301,6 +307,10 @@ export const orderLines = tenant.table(
       foreignColumns: [orders.tenantId, orders.id],
     }).onDelete('cascade'),
     check('order_lines_quantity_check', sql`${t.quantity} > 0`),
+    check(
+      'order_lines_tax_check',
+      sql`(${t.taxClassName} IS NULL) = (${t.taxRate} IS NULL) AND ${t.taxAmount} >= 0`,
+    ),
     check(
       'order_lines_returned_check',
       sql`${t.returnedQuantity} >= 0 AND ${t.returnedQuantity} <= ${t.quantity}`,

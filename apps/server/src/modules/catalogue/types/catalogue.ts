@@ -275,6 +275,8 @@ export interface ProductDetail {
   kind: ProductKind;
   /** CMB-01: a combo's parts in order; empty for an ordinary product. */
   parts: ComboPartView[];
+  /** TAX-01 (Slice 4.6a): its tax class -- prices include the tax -- or null for untaxed. */
+  taxClass: { id: string; name: string; rate: string } | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -313,6 +315,8 @@ export interface OrderableVariant {
   stockTracking: StockTracking;
   /** CMB-03: a combo's line reserves, ships and returns its components, not itself. */
   kind: ProductKind;
+  /** TAX-02 (Slice 4.6a): the class and rate a line copies, or null for untaxed; a combo's is its own. */
+  taxClass: { name: string; rate: string } | null;
   /** INV-24: how much of the shared stock one unit uses; null unless the product shares its stock. */
   packAmount: string | null;
   price: string;

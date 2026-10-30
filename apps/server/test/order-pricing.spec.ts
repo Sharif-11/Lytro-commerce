@@ -17,6 +17,7 @@ function line(overrides: Partial<PricingLine> = {}): PricingLine {
     deliveryMode: DeliveryMode.Default,
     paymentPolicy: PaymentPolicy.None,
     policyAdvance: null,
+    taxRate: null,
     ...overrides,
   };
 }

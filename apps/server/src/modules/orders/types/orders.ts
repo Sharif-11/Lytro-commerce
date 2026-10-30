@@ -77,6 +77,10 @@ export interface OrderItemView {
   deliveryCharge: string;
   paymentPolicy: PaymentPolicy;
   advance: string;
+  /** TAX-02 (Slice 4.6a): the class and rate it was ordered under, or null for untaxed, and the tax its total includes. */
+  taxClassName: string | null;
+  taxRate: string | null;
+  taxAmount: string;
   /** CMB-04: a combo line's components as ordered, each its units in one combo; empty for any other line. */
   components: OrderComponentView[];
 }
@@ -147,6 +151,8 @@ export interface OrderView {
   advanceDue: string;
   codAmount: string;
   due: string;
+  /** TAX-03 (Slice 4.6a): what the grand total includes, a line per class and rate. */
+  taxes: OrderTaxLine[];
   courierName: string | null;
   trackingCode: string | null;
   trackingLink: string | null;
@@ -256,6 +262,8 @@ export interface OrderQuote {
   grandTotal: string;
   advanceDue: string;
   codAmount: string;
+  /** TAX-03: what the grand total includes, a line per class and rate. */
+  taxes: OrderTaxLine[];
   warnings: OrderWarning[];
 }
 
@@ -283,6 +291,15 @@ export interface ShopperTotals {
   grandTotal: string;
   /** PRD-08: what is paid on delivery. */
   codAmount: string;
+  /** TAX-03 (Slice 4.6a): what the grand total includes, a line per class and rate. */
+  taxes: OrderTaxLine[];
+}
+
+/** TAX-03: one class's tax an order's total includes ("includes ৳X VAT (15%)"). */
+export interface OrderTaxLine {
+  name: string;
+  rate: string;
+  amount: string;
 }
 
 /**

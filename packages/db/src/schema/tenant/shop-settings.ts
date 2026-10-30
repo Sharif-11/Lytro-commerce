@@ -1,8 +1,8 @@
 import { sql } from 'drizzle-orm';
-import { boolean, check, numeric, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { boolean, check, foreignKey, numeric, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { PaymentPolicy } from '@lytronix/validators';
 import { tenant } from '../shared';
-import { paymentPolicy } from './catalogue';
+import { paymentPolicy, taxClasses } from './catalogue';
 
 // DATABASE-SCHEMA §12.1. RAT-14: unlike every rate in control.rates, this one is per-tenant, not platform-wide.
 // One row per tenant that has ever set it; a tenant with no row uses the default of 0.
@@ -27,8 +27,15 @@ export const shopSettings = tenant.table(
     // SFT-16: the shared storefront is on; switched off, its pages answer not-found while landing pages and the API
     // keep working.
     storefrontEnabled: boolean('storefront_enabled').notNull().default(true),
+    // Slice 4.6a (agreed 2026-10-30): the tax class each new product starts with; null for none.
+    defaultTaxClassId: uuid('default_tax_class_id'),
   },
   (t) => [
+    foreignKey({
+      name: 'shop_settings_default_tax_class_fk',
+      columns: [t.tenantId, t.defaultTaxClassId],
+      foreignColumns: [taxClasses.tenantId, taxClasses.id],
+    }),
     check(
       'shop_settings_advance_check',
       sql`CASE WHEN ${t.defaultPaymentPolicy} = 'partial_advance' THEN ${t.defaultAdvanceAmount} IS NOT NULL AND ${t.defaultAdvanceAmount} >= 0 ELSE ${t.defaultAdvanceAmount} IS NULL END`,

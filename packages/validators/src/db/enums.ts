@@ -322,6 +322,9 @@ export enum AuditAction {
   CustomerErased = 'customer_erased',
   // Phase 4 Slice 4.4b: staff set a new password for a customer's shopper account (CUS-14); no password is recorded.
   ShopperPasswordSet = 'shopper_password_set',
+  // Phase 4 Slice 4.6a: a tax class named, renamed or re-rated, or made the default; and one deleted (TAX-01).
+  TaxClassSaved = 'tax_class_saved',
+  TaxClassDeleted = 'tax_class_deleted',
 }
 
 // FED-02: what a product is, for Meta's catalog: new unless the shop says otherwise.

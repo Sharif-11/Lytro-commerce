@@ -675,6 +675,20 @@ describeIfDatabase('LIF-19: day-60 business-data deletion', () => {
     const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
     await seedOwner(tenantId, `018${(nextRank += 1).toString().slice(0, 8)}`);
     await seedCatalogue(tenantId);
+    // TAX-01 (Slice 4.6a): a tax class a product and the shop's default name, gone with the products.
+    const taxClass = await admin.query<{ id: string }>(
+      "INSERT INTO tenant.tax_classes (tenant_id, name, rate) VALUES ($1, 'VAT', 15) RETURNING id",
+      [tenantId],
+    );
+    await admin.query('UPDATE tenant.products SET tax_class_id = $2 WHERE tenant_id = $1', [
+      tenantId,
+      taxClass.rows[0]?.id,
+    ]);
+    await admin.query(
+      `INSERT INTO tenant.shop_settings (tenant_id, default_tax_class_id) VALUES ($1, $2)
+       ON CONFLICT (tenant_id) DO UPDATE SET default_tax_class_id = EXCLUDED.default_tax_class_id`,
+      [tenantId, taxClass.rows[0]?.id],
+    );
     // KNOWN-GAPS §106: a stored reply, still within its 24 hours, goes with the shop's data.
     await admin.query(
       `INSERT INTO control.idempotency_keys (tenant_id, caller, key, path, request_hash, response_status, response_body,

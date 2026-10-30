@@ -277,6 +277,12 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'GET /customers/:id': "another shop's customer answers 404",
   'DELETE /customers/:id': "another shop's customer answers 404 and keeps its details",
   'POST /customers/:id/password': "another shop's customer answers 404 and their password stays",
+  // Phase 4 Slice 4.6a, checked in test/tax-classes.e2e.spec.ts: a shop's tax classes are its own.
+  'GET /tax-classes': "lists only the session shop's own classes and default",
+  'POST /tax-classes': 'a name another shop uses is still free here',
+  'PUT /tax-classes/default': "another shop's class answers not_found",
+  'PATCH /tax-classes/:id': "another shop's class answers 404 and keeps its rate",
+  'DELETE /tax-classes/:id': "another shop's class answers 404 and stays",
   // Phase 4 Slice 4.4b, checked in test/shopper-accounts.e2e.spec.ts: a shopper belongs to the key's own shop.
   'POST /public/shopper/code':
     "a phone with an account in another shop still gets a code here; the cost is this shop's",
