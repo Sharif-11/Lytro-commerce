@@ -19,6 +19,8 @@ import {
   TRACKING_CODE_MAX_LENGTH,
   TRACKING_LINK_MAX_LENGTH,
   TRANSACTION_ID_MAX_LENGTH,
+  MODIFIER_GROUPS_MAX,
+  MODIFIER_OPTIONS_MAX,
 } from '../../common/limits';
 import { bdMobileNumber } from '../../common/phone';
 import {
@@ -131,6 +133,12 @@ const comboChoiceSchema = z.object({
 
 // ORD-01, ORD-06: one variant ordered. The price is the variant's own unless staff set one by hand; any amount a client
 // sends as a total is never read.
+// MNU-02 (Slice 4.6b): the options chosen in one of the product's modifier groups; a group left out takes its defaults.
+const modifierChoiceSchema = z.object({
+  groupId: catalogueIdSchema,
+  optionIds: z.array(catalogueIdSchema).max(MODIFIER_OPTIONS_MAX),
+});
+
 const orderItemSchema = z.object({
   variantId: catalogueIdSchema,
   // UOM-04: a fraction only for a measured unit, and whole packs of a shared stock -- the server's check.
@@ -139,6 +147,7 @@ const orderItemSchema = z.object({
   itemDiscount: priceField.optional(),
   captured: z.array(capturedInputSchema).max(ATTRIBUTES_PER_PRODUCT_MAX).optional(),
   choices: z.array(comboChoiceSchema).max(COMBO_PARTS_MAX).optional(),
+  modifiers: z.array(modifierChoiceSchema).max(MODIFIER_GROUPS_MAX).optional(),
 });
 
 /** An attribute is answered once per item. */
@@ -286,7 +295,7 @@ export const publicOrderSchema = z
     items: z
       .array(
         orderItemSchema
-          .pick({ variantId: true, quantity: true, captured: true, choices: true })
+          .pick({ variantId: true, quantity: true, captured: true, choices: true, modifiers: true })
           .strict(),
       )
       .min(1)

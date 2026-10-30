@@ -39,8 +39,13 @@ import {
   type IdempotencyClaim,
 } from '../../../common/idempotency/idempotency.service';
 import { DAY_MS, dhakaDate, dhakaDayStart } from '../../../common/time';
+import { fromPaisa, toPaisa } from '../../balance/services/money';
 import { CatalogueActivity, type ResolvedActor } from '../../catalogue/services/catalogue-activity';
-import type { CatalogueActor, OrderableVariant } from '../../catalogue/types/catalogue';
+import type {
+  CatalogueActor,
+  ModifierGroupView,
+  OrderableVariant,
+} from '../../catalogue/types/catalogue';
 import { CustomerService } from '../../customers/services/customer.service';
 import { LocationService } from '../../delivery/services/location.service';
 import type { ResolvedZoneView } from '../../delivery/types/delivery';
@@ -52,6 +57,7 @@ import type { OrderStore } from '../ports/order-store';
 import { ORDER_STORE } from '../tokens';
 import type {
   LineCapturedSnapshot,
+  LineModifierSnapshot,
   NewOrderLine,
   OrderCreated,
   OrderItemView,
@@ -95,6 +101,10 @@ interface ItemEntry {
 
 /** One item ready to price and store: its snapshot, and what pricing reads of it. */
 interface PlannedLine {
+  /** ORD-06: its unit price was set by hand, so the history records it. */
+  byHand: boolean;
+  /** MNU-02: the unit price the server works out -- the variant's, with the choices priced in. */
+  workedPrice: string;
   row: Omit<NewOrderLine, 'position' | 'itemTotal' | 'deliveryCharge' | 'advance' | 'taxAmount'>;
   pricing: PricingLine;
   kept: OrderLineRecord | null;
@@ -205,6 +215,7 @@ function itemView(line: OrderLineRecord, components: SelectOrderLineComponent[])
     taxClassName: line.taxClassName,
     taxRate: line.taxRate,
     taxAmount: line.taxAmount,
+    modifiers: line.modifiers,
   };
 }
 
@@ -448,6 +459,7 @@ export class OrderService {
           listPrice: line.row.listPrice,
           unitPrice: line.row.unitPrice,
           quantity: line.row.quantity,
+          modifiers: line.row.modifiers ?? [],
           itemTotal: price.lines[index]?.itemTotal ?? '0.00',
           deliveryCharge: price.lines[index]?.deliveryCharge ?? '0.00',
           advance: price.lines[index]?.advance ?? '0.00',
@@ -1148,10 +1160,26 @@ export class OrderService {
           return [{ attributeId: attribute.attributeId, name: attribute.name, value: entry.value }];
         });
       }
-      const unitPrice =
-        item.unitPrice !== undefined
-          ? money(item.unitPrice)
-          : (kept?.unitPrice ?? variant?.price ?? '0.00');
+      // MNU-01, MNU-02 (Slice 4.6b, agreed 2026-10-30): the choices -- those named, each group not named taking its
+      // defaults -- checked against each group's least and most and priced in at the options' prices now. A line kept
+      // and given no choices keeps its own and its price; a price staff set by hand is final, the choices still kept.
+      const choosing = item.modifiers !== undefined || !kept;
+      const modifiers: LineModifierSnapshot[] = choosing
+        ? this.chooseModifiers(variant?.modifierGroups ?? [], item.modifiers ?? [], at, problems)
+        : kept.modifiers;
+      const base = kept ? kept.listPrice : (variant?.price ?? '0.00');
+      const workedPrice = choosing
+        ? fromPaisa(modifiers.reduce((sum, row) => sum + toPaisa(row.priceChange), toPaisa(base)))
+        : kept.unitPrice;
+      const byHand = item.unitPrice !== undefined;
+      if (!byHand && toPaisa(workedPrice) < 0n) {
+        problems.push({
+          field: at('modifiers'),
+          problem: ServerFieldProblemCode.OutOfRange,
+          messageKey: 'PriceBelowZero',
+        });
+      }
+      const unitPrice = item.unitPrice !== undefined ? money(item.unitPrice) : workedPrice;
       const itemDiscount =
         item.itemDiscount !== undefined ? money(item.itemDiscount) : (kept?.itemDiscount ?? '0.00');
       const snapshot = kept
@@ -1194,9 +1222,12 @@ export class OrderService {
           };
       if (!snapshot) return;
       planned.push({
+        byHand,
+        workedPrice,
         row: {
           ...snapshot,
           capturedValues: captured,
+          modifiers,
           unitPrice,
           quantity,
           packAmount,
@@ -1237,6 +1268,73 @@ export class OrderService {
     });
   }
 
+  /**
+   * MNU-02, MNU-03 (Slice 4.6b): the options chosen for a line -- each group named takes the options given, each group
+   * not named its defaults -- each group held to its least and most; a group or option not of the product is refused,
+   * naming it. The snapshot keeps each option's group, name and price change as they stand now.
+   */
+  private chooseModifiers(
+    groups: readonly ModifierGroupView[],
+    chosen: readonly { groupId: string; optionIds: string[] }[],
+    at: (field: string) => string,
+    problems: InvalidField[],
+  ): LineModifierSnapshot[] {
+    const byId = new Map(groups.map((group) => [group.id, group]));
+    const picked = new Map<string, string[]>();
+    chosen.forEach((choice, position) => {
+      const group = byId.get(choice.groupId);
+      if (!group) {
+        problems.push({
+          field: at(`modifiers.${String(position)}.groupId`),
+          problem: ServerFieldProblemCode.NotFound,
+          messageKey: 'ModifierGroupNotFound',
+        });
+        return;
+      }
+      if (picked.has(group.id)) {
+        problems.push({
+          field: at(`modifiers.${String(position)}.groupId`),
+          problem: FieldProblemCode.NotAllowed,
+        });
+        return;
+      }
+      const known = new Set(group.options.map((option) => option.id));
+      const unknown = choice.optionIds.findIndex((id) => !known.has(id));
+      if (unknown >= 0) {
+        problems.push({
+          field: at(`modifiers.${String(position)}.optionIds.${String(unknown)}`),
+          problem: ServerFieldProblemCode.NotFound,
+          messageKey: 'ModifierOptionNotFound',
+        });
+        return;
+      }
+      picked.set(group.id, [...new Set(choice.optionIds)]);
+    });
+    return groups.flatMap((group) => {
+      const ids =
+        picked.get(group.id) ??
+        group.options.filter((option) => option.isDefault).map((option) => option.id);
+      if (ids.length < group.minSelect || ids.length > group.maxSelect) {
+        problems.push({
+          field: at('modifiers'),
+          problem: ServerFieldProblemCode.OutOfRange,
+          messageKey: 'ModifierChoiceCount',
+          params: { group: group.name, min: group.minSelect, max: group.maxSelect },
+        });
+        return [];
+      }
+      return group.options
+        .filter((option) => ids.includes(option.id))
+        .map((option) => ({
+          groupId: group.id,
+          groupName: group.name,
+          optionId: option.id,
+          optionName: option.name,
+          priceChange: option.priceChange,
+        }));
+    });
+  }
+
   /** ORD-06: the delivery charge the order would have had, had staff not set one by hand. */
   private workedOut(
     type: FulfilmentType,
@@ -1270,8 +1368,10 @@ export class OrderService {
     who: ResolvedActor,
   ): NewOrderHistory[] {
     return planned.flatMap((line) => {
-      const { unitPrice, listPrice, productName } = line.row;
-      const previous = line.kept ? line.kept.unitPrice : listPrice;
+      const { unitPrice, productName } = line.row;
+      // A price moved only by its modifier choices (Slice 4.6b) is worked out, not set by hand.
+      if (!line.byHand) return [];
+      const previous = line.kept ? line.kept.unitPrice : line.workedPrice;
       if (unitPrice === previous) return [];
       return [
         {

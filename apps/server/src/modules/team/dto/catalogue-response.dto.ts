@@ -240,6 +240,22 @@ export const productDetailSchema = z.object({
   deliveryZoneIds: z.array(z.string()),
   // CMB-01: an ordinary product or a combo, and a combo's parts in order (empty for an ordinary product).
   taxClass: z.object({ id: z.string(), name: z.string(), rate: z.string() }).nullable(),
+  modifierGroups: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      minSelect: z.number(),
+      maxSelect: z.number(),
+      options: z.array(
+        z.object({
+          id: z.string(),
+          name: z.string(),
+          priceChange: z.string(),
+          isDefault: z.boolean(),
+        }),
+      ),
+    }),
+  ),
   kind: z.nativeEnum(ProductKind),
   parts: z.array(
     z.object({

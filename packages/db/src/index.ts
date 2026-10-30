@@ -267,6 +267,11 @@ export {
 export { CustomerRepository } from './repositories/orders/customer.repository';
 export { TaxClassRepository } from './repositories/catalogue/tax-class.repository';
 export {
+  ModifierRepository,
+  type ModifierGroupRow,
+  type NewModifierGroup,
+} from './repositories/catalogue/modifier.repository';
+export {
   ShopperRepository,
   type NewShopperAddress,
   type ShopperPatch,

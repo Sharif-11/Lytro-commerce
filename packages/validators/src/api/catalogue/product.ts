@@ -13,6 +13,9 @@ import {
   PRODUCT_SLUG_MAX_LENGTH,
   PRODUCT_SLUG_PATTERN,
   SKU_MAX_LENGTH,
+  MODIFIER_GROUPS_MAX,
+  MODIFIER_NAME_MAX_LENGTH,
+  MODIFIER_OPTIONS_MAX,
 } from '../../common/limits';
 import {
   AttributeRole,
@@ -39,6 +42,7 @@ import {
   quantityField,
   queryFlag,
   weightKgField,
+  priceChangeField,
 } from './catalogue-common';
 
 const CATEGORIES_PER_PRODUCT_MAX = 20;
@@ -46,6 +50,38 @@ const CATEGORIES_PER_PRODUCT_MAX = 20;
 // PRD-01: description is plain text kept exactly as typed (line breaks, emoji, Bangla), so it is not trimmed.
 const descriptionField = z.string().max(PRODUCT_DESCRIPTION_MAX_LENGTH);
 const skuField = z.string().trim().min(1).max(SKU_MAX_LENGTH);
+
+// MNU-01 (Slice 4.6b): a modifier group -- "Spice level", choose exactly 1; "Extras", 0 to 3 -- and its options, each a
+// price change and whether it is chosen when nothing is said (MNU-02's defaults). The whole list is sent each time.
+const modifierOptionInput = z.object({
+  name: z.string().trim().min(1).max(MODIFIER_NAME_MAX_LENGTH),
+  priceChange: priceChangeField,
+  isDefault: z.boolean().optional(),
+});
+const modifierGroupInput = z
+  .object({
+    name: z.string().trim().min(1).max(MODIFIER_NAME_MAX_LENGTH),
+    minSelect: z.number().int().min(0).max(MODIFIER_OPTIONS_MAX),
+    maxSelect: z.number().int().min(1).max(MODIFIER_OPTIONS_MAX),
+    options: z.array(modifierOptionInput).min(1).max(MODIFIER_OPTIONS_MAX),
+  })
+  .superRefine((group, ctx) => {
+    if (group.minSelect > group.maxSelect) {
+      refuse(
+        ctx,
+        ['minSelect'],
+        FieldProblemCode.TooLarge,
+        'More than the most that may be chosen.',
+      );
+    }
+    if (group.maxSelect > group.options.length) {
+      refuse(ctx, ['maxSelect'], FieldProblemCode.TooLarge, 'More than the options there are.');
+    }
+    if (group.options.filter((option) => option.isDefault === true).length > group.maxSelect) {
+      refuse(ctx, ['options'], FieldProblemCode.TooMany, 'More defaults than may be chosen.');
+    }
+  });
+export const modifierGroupsField = z.array(modifierGroupInput).max(MODIFIER_GROUPS_MAX);
 
 // The product's own fields (PRD-01, PRD-08, PRD-16, UOM-01, INV-02/08/12/14). Every one but name and price is
 // optional (ATR-03); a missing unit or tracking setting takes the shop type's default (PST-02).
@@ -70,6 +106,8 @@ const productFields = {
   condition: z.nativeEnum(ItemCondition).optional(),
   // TAX-01 (Slice 4.6a): its tax class, or null for untaxed; left out of a new product, the shop's default class.
   taxClassId: catalogueIdSchema.nullable().optional(),
+  // MNU-01 (Slice 4.6b): its modifier groups, the whole list; never on a combo (agreed 2026-10-30).
+  modifierGroups: modifierGroupsField.optional(),
   categoryIds: z.array(catalogueIdSchema).max(CATEGORIES_PER_PRODUCT_MAX).optional(),
   primaryCategoryId: catalogueIdSchema.nullable().optional(),
 };
@@ -375,9 +413,13 @@ function checkCombo(
     sharedStock?: boolean;
     batchTracked?: boolean;
     serialTracked?: boolean;
+    modifierGroups?: unknown[];
   },
   ctx: Ctx,
 ): void {
+  if (value.kind === ProductKind.Combo && (value.modifierGroups ?? []).length > 0) {
+    refuse(ctx, ['modifierGroups'], FieldProblemCode.NotAllowed, 'A combo takes no modifiers.');
+  }
   if (value.kind !== ProductKind.Combo) {
     if (value.parts !== undefined) {
       refuse(ctx, ['parts'], FieldProblemCode.NotAllowed, 'Only a combo has parts.');

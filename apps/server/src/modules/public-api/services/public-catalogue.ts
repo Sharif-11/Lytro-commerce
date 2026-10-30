@@ -396,5 +396,6 @@ function publicDetail(detail: ProductDetail): Omit<PublicProductDetail, 'combo'>
     paymentPolicy: detail.effectivePaymentPolicy,
     advanceAmount: detail.effectiveAdvanceAmount,
     deliveryZoneIds: detail.deliveryZoneIds,
+    modifierGroups: detail.modifierGroups,
   };
 }

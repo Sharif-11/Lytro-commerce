@@ -1746,6 +1746,32 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'Tax class deleted.',
     bn: 'ট্যাক্স ক্লাস ডিলিট হয়েছে।',
   },
+  ComboTakesNoModifiers: {
+    en: 'A combo takes no modifiers.',
+    bn: 'কম্বোতে মডিফায়ার যোগ করা যায় না।',
+  },
+  ModifierGroupNotFound: {
+    en: "This product doesn't have that modifier group.",
+    bn: 'এই প্রোডাক্টে এই মডিফায়ার গ্রুপ নেই।',
+  },
+  ModifierOptionNotFound: {
+    en: "That choice isn't one of this group's.",
+    bn: 'এই চয়েসটি এই গ্রুপের নয়।',
+  },
+  ModifierChoiceCount: {
+    en: (p) =>
+      Number(p.min) === Number(p.max)
+        ? `Choose ${String(p.min)} for "${String(p.group)}".`
+        : `Choose ${String(p.min)} to ${String(p.max)} for "${String(p.group)}".`,
+    bn: (p) =>
+      Number(p.min) === Number(p.max)
+        ? `"${String(p.group)}"-এ ${String(p.min)}টি বেছে নিন।`
+        : `"${String(p.group)}"-এ ${String(p.min)} থেকে ${String(p.max)}টি বেছে নিন।`,
+  },
+  PriceBelowZero: {
+    en: 'With these choices, the price would fall below zero.',
+    bn: 'এই চয়েসগুলোতে দাম শূন্যের নিচে নেমে যায়।',
+  },
 };
 
 export function translate(key: MessageKey, lang: Language, params: MessageParams = {}): string {

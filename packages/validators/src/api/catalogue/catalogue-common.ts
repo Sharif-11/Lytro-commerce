@@ -23,6 +23,17 @@ export const priceField = z.coerce
     params: { problem: FieldProblemCode.TooManyDecimals },
   });
 
+// MNU-01 (Slice 4.6b, agreed 2026-10-30): a modifier option's price change in taka, two decimals, up or down ("No onion
+// -10"); what it does to a line is checked when it is ordered (never below zero).
+export const priceChangeField = z.coerce
+  .number()
+  .min(-PRICE_MAX)
+  .max(PRICE_MAX)
+  .refine(twoDecimals.check, {
+    message: twoDecimals.message,
+    params: { problem: FieldProblemCode.TooManyDecimals },
+  });
+
 // PRD-16: a weight in kilograms, more than zero, three decimals (a 250 g item is 0.25).
 export const weightKgField = z.coerce
   .number()

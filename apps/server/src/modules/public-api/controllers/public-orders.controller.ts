@@ -45,6 +45,9 @@ const itemSchema = z.object({
   stockUnit: z.nativeEnum(StockUnit),
   unitPrice: z.string(),
   itemTotal: z.string(),
+  modifiers: z.array(
+    z.object({ groupName: z.string(), optionName: z.string(), priceChange: z.string() }),
+  ),
 });
 const totals = {
   subtotal: z.string(),
