@@ -395,6 +395,7 @@ svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.75;str
       <optgroup label="Delivery · Slice 11.11 (Part 22)"><option value="delivery-22">Delivery · No delivery outside, Rename on the two zones</option><option value="delivery-outside-off">· no delivery outside the home area</option><option value="delivery-check-nodelivery">· Check an address: a no-delivery zone, and why</option><option value="delivery-empty">· no zones of its own</option><option value="delivery-full">· twenty zones</option><option value="delivery-staff">· someone who may only look</option><option value="sh-zone-rename">· rename a fixed zone, or its automatic name (sheet)</option><option value="sh-homearea-thanas">· home area: my own thanas (sheet)</option><option value="sh-zone-new">Zone · new, a thana moving from a broader zone (sheet)</option><option value="sh-zone-taken">· an area another zone holds, named before Save (sheet)</option><option value="sh-area-pick">Area picker · grouped, one held elsewhere (sheet)</option><option value="sh-area-district">· a district opened: its thanas (sheet)</option><option value="sh-zone-delete">Zone · delete, asked first (dialog)</option><option value="sh-zone-in-use">· still in use: the products, Open or Restore (sheet)</option></optgroup>
       <optgroup label="Themed dashboard · Slice 11.12b (Part 24)"><option value="themed-home">Themed · Home: maroon on cream, serif headings, round, airy (BRN-02, BRN-07)</option><option value="themed-products">· Products</option><option value="themed-zone-sheet">· a sheet: a delivery zone, its fields and buttons</option><option value="themed-billing">· Billing: the status colours never change (BRN-04)</option><option value="themed-brand">· the brand editor, switched on</option><option value="themed-b-home">Themed · Home: indigo with coral, square, compact, no dark logo</option><option value="themed-b-stock">· Stock</option><option value="themed-b-zone-delete">· a delete asked first: the danger colour never changes (BRN-04)</option></optgroup>
       <optgroup label="Storefront · Slice 12a (Part 25)"><option value="settings">Settings · Storefront is a row, no longer coming later</option><option value="sf25">Storefront · the link, and the switch on (SFT-16)</option><option value="sh-sf25-off">· turn off (dialog)</option><option value="sf25-off">· off: the link answers "nothing here", landing pages work</option><option value="sf25-offed">· turned off (toast)</option><option value="sf25-oned">· turned on (toast)</option><option value="sf25-copied">· link copied (toast)</option><option value="api-keys">API keys · the key Lytro keeps for the storefront, first</option></optgroup>
+      <optgroup label="Your own domain · Slice 13 (Part 28)"><option value="sf25">Storefront · the domain line, not set up</option><option value="sf28-active">· megh.com active: the link and the line</option><option value="dom28-offer">Domain · not on the plan: the offer</option><option value="dom28">· add one</option><option value="dom28-format">· not a domain</option><option value="dom28-taken">· active on another shop</option><option value="dom28-pending">· megh.com waiting: A and TXT, www optional</option><option value="dom28-pending-www">· www.megh.com waiting: one CNAME</option><option value="dom28-checked">· checked now, not found yet (toast)</option><option value="dom28-active">· active</option><option value="dom28-failed">· couldn't verify in 3 days</option><option value="dom28-lost">· its record gone: the shop back on its subdomain</option><option value="dom28-inactive">· off after a downgrade, kept</option><option value="sh-dom28-remove">· remove (dialog)</option><option value="sf28-removed">· removed (toast)</option></optgroup>
       <optgroup label="Installed apps · Slice 12c (Part 27)"><option value="menu-install">Menu · install the dashboard: "Megh Fashion Admin", a gear on its icon</option><option value="menu-install-ios">· on an iPhone</option></optgroup>
       <optgroup label="Walkthrough findings · Slice 11.13b (Part 26)"><option value="product">Product · the variant table: no SKU column; the SKU is in the variant sheet</option><option value="sh-variant-sku-taken">· an SKU another variant has: the name marked, the sheet says why</option><option value="stock-no-batches">Stock · a shop that keeps no batches: no Expiring figure</option><option value="stock-check-pick-plain">· its count pick sheet: no batch note</option><option value="sh-receive">Purchase · It arrived: the note without a requirement id</option></optgroup>
       <optgroup label="Later phases (design only)"><option value="orders">Orders</option><option value="order">Order detail</option><option value="order-book">Book courier (sheet)</option><option value="order-new">New order</option><option value="customers">Customers</option><option value="customer">Customer detail</option><option value="payments">Payments</option><option value="methods">Payment methods</option><option value="notices">Notices</option><option value="sms">SMS events</option><option value="search">Search · orders and customers (Phase 4)</option><option value="notifications">Notifications · panel from the bell (Phase 7)</option><option value="notifications-empty">· nothing yet (Phase 7)</option><option value="notifications-read">· all read (Phase 7)</option><option value="notifications-all">Notifications · full page (Phase 7)</option><option value="storefront">Storefront settings · slides as a carousel (Slice 12)</option><option value="storefront-tiles">· one banner and two tiles (Slice 12)</option><option value="storefront-empty">· no slides yet (Slice 12)</option><option value="sh-slide">· slide editor with the focal point (Slice 12)</option><option value="sh-slide-new">· new slide (Slice 12)</option><option value="sh-slide-preview">· both crops (Slice 12)</option><option value="sh-slide-delete">· remove slide (Slice 12)</option><option value="storefront-saved">· slide saved (Slice 12)</option><option value="stock-shortfall">Stock · units held for expired orders (Phase 4)</option><option value="sh-return">· take shipped stock back (Phase 4)</option></optgroup>
@@ -4329,6 +4330,115 @@ const in27Name = () => `${L(...SHOP.name)} Admin`;
 const ap27 = () => `<span class="ap ap27">${L('ম', 'M')}<span class="bd">${ic('settings')}</span></span>`;
 SCREENS['menu-install'] = { ...SCREENS['menu-install'], render: () => SCREENS.menu.render().replace(`${title('hubMenu')}`, `${title('hubMenu')}<div class="install">${ap27()}<span class="b">${t('inTitle', { s: in27Name() })}<span class="l2">${t('in27Sub')}</span></span>${btn('p sm', t('inBtn'))}</div>`) };
 SCREENS['menu-install-ios'] = { ...SCREENS['menu-install-ios'], render: () => SCREENS.menu.render().replace(`${title('hubMenu')}`, `${title('hubMenu')}<div class="install">${ap27()}<span class="b">${t('inIosTitle', { s: in27Name() })}<span class="l2">${t('inIosSteps')}</span></span></div>`) };
+/* ---------- Part 28: design doc v3.18 (2026-10-30), for Slice 13 (its read). A Growth or Pro shop's own domain, from
+   Settings > Storefront's new line. The shop adds the address it bought; the page shows the records to add where it
+   was bought, in plain words: for a name like www.megh.com one CNAME to megh.lytro.app (it names the shop); for a root
+   domain like megh.com the A record to Lytro's address and a TXT record naming the shop. Its twin (megh.com and
+   www.megh.com) is optional and leads to the address added. Checked every 10 minutes for 3 days, then "couldn't
+   verify" with Check now; once active it is the shop's main address, megh.lytro.app leading there, and it is checked
+   once a day: two misses running and the shop is back on megh.lytro.app until the record returns. A plan without it
+   turns it off and keeps it; removing it asks first. A shop whose plan lacks it sees the offer (TEN-10). ---------- */
+Object.assign(S, {
+  dm28Title: ['নিজের ডোমেইন', 'Your own domain'],
+  dm28RowNone: ['এখনো নেই · যেমন megh.com', 'Not set up · like megh.com'],
+  dm28RowWait: ['{d} · রেকর্ডের অপেক্ষায়', '{d} · waiting for your records'],
+  dm28RowActive: ['{d} · চালু', '{d} · active'],
+  dm28Intro: ['যে ডোমেইন আপনি কিনেছেন, যেমন megh.com, সেটা আপনার শপের ঠিকানা হতে পারে। চালু হলে {a} খুললেও সেখানে নিয়ে যাবে।', "A domain you bought, like megh.com, can be your shop's address. Once it is active, {a} leads there too."],
+  dm28Field: ['আপনার ডোমেইন', 'Your domain'],
+  dm28FieldHelp: ['https:// ছাড়া, যেমন megh.com বা www.megh.com', 'Without https://, like megh.com or www.megh.com'],
+  dm28Add: ['যোগ করুন', 'Add'],
+  dm28ErrFormat: ['megh.com-এর মতো একটা ডোমেইন লিখুন', 'Enter a domain like megh.com'],
+  dm28ErrTaken: ['এই ডোমেইন আরেকটা শপে চালু আছে', 'This domain is active on another shop'],
+  dm28Waiting: ['রেকর্ডের অপেক্ষায়', 'Waiting for your records'],
+  dm28WaitHint: ['প্রতি 10 মিনিটে চেক করি। বেশিরভাগ ডোমেইন বিক্রেতার কয়েক মিনিট থেকে কয়েক ঘণ্টা লাগে।', 'We check every 10 minutes. Most domain sellers take a few minutes to a few hours.'],
+  dm28AddThese: ['ডোমেইন যেখান থেকে কিনেছেন, সেখানে এই রেকর্ডগুলো যোগ করুন', 'Add these records where you bought the domain'],
+  dm28Type: ['টাইপ', 'Type'],
+  dm28Name: ['নাম', 'Name'],
+  dm28Value: ['ভ্যালু', 'Value'],
+  dm28Copy: ['ভ্যালু কপি', 'Copy value'],
+  dm28TwinT: ['{d}-ও চালাতে চাইলে', 'For {d} too'],
+  dm28TwinHint: ['এটা দিলে {d} খুললেও {m}-এ নিয়ে যাবে।', 'With this, opening {d} also leads to {m}.'],
+  dm28CheckNow: ['এখনই চেক করুন', 'Check now'],
+  dm28Remove: ['সরিয়ে দিন', 'Remove'],
+  dm28Active: ['চালু', 'Active'],
+  dm28ActiveHint: ['{d} এখন আপনার শপের মূল ঠিকানা। {a} আর {t} খুললেও এখানে আসে।', "{d} is now your shop's main address. {a} and {t} lead here too."],
+  dm28Failed: ['ভেরিফাই করা যায়নি', "Couldn't verify"],
+  dm28FailedHint: ['3 দিনে আপনার রেকর্ড পাইনি। ডোমেইন বিক্রেতার কাছে রেকর্ডগুলো মিলিয়ে দেখে আবার চেক করুন।', "We didn't find your records in 3 days. Check them where you bought the domain, then check now."],
+  dm28Lost: ['আপনার রেকর্ড পরপর দুবার পাওয়া যায়নি, তাই রেকর্ড ফিরে না আসা পর্যন্ত শপ {a}-এ চলছে।', 'Your record was missing on two checks in a row, so your shop is on {a} until it is back.'],
+  dm28Off: ['বন্ধ', 'Off'],
+  dm28OffHint: ['আপনার এখনকার প্ল্যানে নিজের ডোমেইন নেই। ডোমেইনটা রাখা আছে: প্ল্যান আপগ্রেড করলে আবার চালু হবে।', "Your plan doesn't include your own domain. It's kept: upgrading turns it back on."],
+  dm28OfferT: ['নিজের ডোমেইন, যেমন megh.com', 'Your own domain, like megh.com'],
+  dm28OfferP: ['Growth আর Pro প্ল্যানে নিজের ডোমেইন থাকে। {a} সবসময় চালু থাকে।', 'Growth and Pro plans include your own domain. {a} always keeps working.'],
+  dm28RemoveT: ['{d} সরিয়ে দেবেন?', 'Remove {d}?'],
+  dm28RemoveCons: ['{d}-এ শপ সাথে সাথে বন্ধ হবে; {a} চালু থাকবে। পরে আবার যোগ করতে পারবেন।', 'Your shop stops answering on {d} at once; {a} keeps working. You can add it again later.'],
+  dm28Removed: ['{d} সরানো হয়েছে', '{d} removed'],
+  dm28Checked: ['এখনো পাওয়া যায়নি; প্রতি 10 মিনিটে চেক চলবে', "Not found yet; we'll keep checking every 10 minutes"],
+});
+const DM28 = { root: 'megh.com', www: 'www.megh.com', ip: '203.0.113.10' };
+const DM28_PAGE = { hub: 'menu', sec: 'settings', title: 'dm28Title', back: true, base: 'sf25', path: '/settings/storefront/domain' };
+const dm28Record = (type, name, value) => `<div class="card" style="padding:12px 14px;display:flex;flex-direction:column;gap:2px">
+  <div class="sechead"><b>${type}</b>${btn('o sm', ic('copy') + ' ' + t('dm28Copy'))}</div>
+  <div class="kv"><span class="k">${t('dm28Name')}</span><span class="v num">${name}</span></div>
+  <div class="kv"><span class="k">${t('dm28Value')}</span><span class="v num">${value}</span></div></div>`;
+// The records for the address added and, apart, for its twin.
+function dm28Records(host) {
+  const root = !host.startsWith('www.');
+  const main = root
+    ? dm28Record('A', '@', DM28.ip) + dm28Record('TXT', '_lytro', 'lytro=megh')
+    : dm28Record('CNAME', 'www', SF25_ADDRESS);
+  const twin = root ? DM28.www : DM28.root;
+  const twinRecord = root ? dm28Record('CNAME', 'www', SF25_ADDRESS) : dm28Record('A', '@', DM28.ip);
+  return `<h3 style="margin:4px 0 0">${t('dm28AddThese')}</h3>${main}
+  <h3 style="margin:8px 0 0">${t('dm28TwinT', { d: twin })}</h3><p class="hint" style="margin:0">${t('dm28TwinHint', { d: twin, m: host })}</p>${twinRecord}`;
+}
+function dm28Page(o) {
+  o = o || {};
+  const host = o.host || DM28.root;
+  const head = (tag, cls) => `<div class="card" style="display:flex;flex-direction:column;gap:10px"><div class="sechead"><h3 style="margin:0">${host}</h3><span class="st ${cls}">${tag}</span></div>`;
+  let body;
+  if (o.offer) {
+    body = `<div class="card" style="display:flex;flex-direction:column;gap:10px"><h3 style="margin:0">${t('dm28OfferT')}</h3><p class="hint" style="margin:0">${t('dm28OfferP', { a: SF25_ADDRESS })}</p><div>${btn('p sm', t('seePlans'), "onclick=\"go('plan')\"")}</div></div>`;
+  } else if (o.empty) {
+    body = `<p class="hint" style="margin:0">${t('dm28Intro', { a: SF25_ADDRESS })}</p><div class="card" style="display:flex;flex-direction:column;gap:12px">
+      ${field(t('dm28Field'), o.typed || '', { ph: 'megh.com', help: o.err ? '' : t('dm28FieldHelp'), bad: !!o.err, err: o.err ? t(o.err) : '' })}
+      <div>${btn('p', t('dm28Add'), "onclick=\"go('dom28-pending')\"")}</div></div>`;
+  } else if (o.active) {
+    body = `${head(t('dm28Active'), 'ok')}<p class="hint" style="margin:0">${t('dm28ActiveHint', { d: host, a: SF25_ADDRESS, t: DM28.www })}</p></div>
+      <div>${btn('o', t('dm28Remove'), "onclick=\"go('sh-dom28-remove')\"")}</div>`;
+  } else if (o.off) {
+    body = `${head(t('dm28Off'), 'neu')}<p class="hint" style="margin:0">${t('dm28OffHint')}</p><div>${btn('p sm', t('seePlans'), "onclick=\"go('plan')\"")}</div></div>
+      <div>${btn('o', t('dm28Remove'), "onclick=\"go('sh-dom28-remove')\"")}</div>`;
+  } else {
+    const failed = !!o.failed;
+    body = `${head(failed ? t('dm28Failed') : t('dm28Waiting'), failed ? 'bad' : 'warn')}<p class="hint" style="margin:0">${failed ? t('dm28FailedHint') : t('dm28WaitHint')}</p>
+      ${o.lost ? banner('warn', t('dm28Lost', { a: SF25_ADDRESS })) : ''}</div>
+      ${dm28Records(host)}
+      <div style="display:flex;gap:8px;flex-wrap:wrap">${btn('p', t('dm28CheckNow'), "onclick=\"go('dom28-checked')\"")}${btn('o', t('dm28Remove'), "onclick=\"go('sh-dom28-remove')\"")}</div>`;
+  }
+  return `${title('dm28Title')}<div style="display:flex;flex-direction:column;gap:14px;max-width:640px">${body}</div>`;
+}
+SCREENS['dom28-offer'] = { ...DM28_PAGE, render: () => dm28Page({ offer: true }) };
+SCREENS.dom28 = { ...DM28_PAGE, render: () => dm28Page({ empty: true }) };
+SCREENS['dom28-format'] = { ...DM28_PAGE, render: () => dm28Page({ empty: true, typed: 'https://megh', err: 'dm28ErrFormat' }) };
+SCREENS['dom28-taken'] = { ...DM28_PAGE, render: () => dm28Page({ empty: true, typed: 'rahim.com', err: 'dm28ErrTaken' }) };
+SCREENS['dom28-pending'] = { ...DM28_PAGE, render: () => dm28Page() };
+SCREENS['dom28-pending-www'] = { ...DM28_PAGE, render: () => dm28Page({ host: DM28.www }) };
+SCREENS['dom28-checked'] = { ...DM28_PAGE, render: () => dm28Page(), toast: () => `${ic('info')} ${t('dm28Checked')}` };
+SCREENS['dom28-active'] = { ...DM28_PAGE, render: () => dm28Page({ active: true }) };
+SCREENS['dom28-failed'] = { ...DM28_PAGE, render: () => dm28Page({ failed: true }) };
+SCREENS['dom28-lost'] = { ...DM28_PAGE, render: () => dm28Page({ lost: true }) };
+SCREENS['dom28-inactive'] = { ...DM28_PAGE, render: () => dm28Page({ off: true }) };
+SCREENS['sh-dom28-remove'] = { ...DM28_PAGE, base: 'dom28-active', render: () => dm28Page({ active: true }), sheet: () => dlg(t('dm28RemoveT', { d: DM28.root }), t('dm28RemoveCons', { d: DM28.root, a: SF25_ADDRESS }), btn('o', L('ক্যানসেল', 'Cancel'), "onclick=\"go('dom28-active')\"") + btn('d', t('dm28Remove'), "onclick=\"go('sf28-removed')\""), 'dom28-active') };
+/* Settings > Storefront: the domain line under the switch; once active, the link card shows the domain. */
+const sf25Plain = sf25Page;
+sf25Page = function sf28Page(o) {
+  o = o || {};
+  const line = menuRow('external', 'dm28Title', o.domain === 'active' ? t('dm28RowActive', { d: DM28.root }) : o.domain === 'wait' ? t('dm28RowWait', { d: DM28.root }) : t('dm28RowNone'), o.domain === 'active' ? 'dom28-active' : o.domain === 'wait' ? 'dom28-pending' : 'dom28');
+  const page = sf25Plain(o).replace(/<\/div>$/, `<div class="card flush list">${line}</div></div>`);
+  return o.domain === 'active' ? page.replace(`<div class="keyval">${SF25_ADDRESS}</div>`, `<div class="keyval">${DM28.root}</div>`) : page;
+};
+SCREENS['sf28-active'] = { ...SF25, render: () => sf25Page({ domain: 'active' }) };
+SCREENS['sf28-removed'] = { ...SF25, render: () => sf25Page(), toast: () => `${ic('check')} ${t('dm28Removed', { d: DM28.root })}` };
 (function init() { const h = location.hash.replace('#', ''); if (h && SCREENS[h]) { ST.screen = h; document.getElementById('selScreen').value = h; } render(); })();
 </script>
 </body>
