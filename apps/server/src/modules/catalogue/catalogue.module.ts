@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { DrizzleTaxClassStore } from '../../database/adapters/tax-classes.adapter';
 import {
   DrizzleAttributeStore,
   DrizzleCatalogueDataStore,
@@ -18,6 +19,7 @@ import { BalanceModule } from '../balance/balance.module';
 import { StaffModule } from '../staff/staff.module';
 import { TenancyModule } from '../tenancy/tenancy.module';
 import { UsageWarningsModule } from '../usage-warnings/usage-warnings.module';
+import { TaxClasses } from './services/tax-classes';
 import { AttributeService } from './services/attribute.service';
 import { CatalogueActivity } from './services/catalogue-activity';
 import { CatalogueEraser } from './services/catalogue-eraser';
@@ -43,6 +45,7 @@ import {
   PRESET_STORE,
   PRODUCT_STORE,
   SHOP_POLICY_STORE,
+  TAX_CLASS_STORE,
   SIZE_CHART_STORE,
   COMBO_STORE,
 } from './tokens';
@@ -64,6 +67,8 @@ import {
     { provide: OPTION_SET_STORE, useClass: DrizzleOptionSetStore },
     { provide: PLATFORM_LIBRARY_STORE, useClass: DrizzlePlatformLibraryStore },
     { provide: SHOP_POLICY_STORE, useClass: DrizzleShopPolicyStore },
+    { provide: TAX_CLASS_STORE, useClass: DrizzleTaxClassStore },
+    TaxClasses,
     { provide: CATALOGUE_DATA_STORE, useClass: DrizzleCatalogueDataStore },
     { provide: CATALOGUE_IMAGE_STORE, useClass: DrizzleCatalogueImageStore },
     MediaLinks,
@@ -92,6 +97,8 @@ import {
     CatalogueImages,
     // For the day-60 deletion (LIF-19).
     CatalogueEraser,
+    // TAX-01 (Slice 4.6a): the tax settings routes.
+    TaxClasses,
     PresetService,
     AttributeService,
     CategoryService,

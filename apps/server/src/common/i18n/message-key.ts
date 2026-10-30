@@ -569,6 +569,14 @@ export const MESSAGE_KEYS = [
   'ShopperAddressSaved',
   'ShopperAddressRemoved',
   'ShopperPasswordSet',
+  // Phase 4 Slice 4.6a: the shop's tax classes (TAX-01 to TAX-03).
+  'TooManyTaxClasses',
+  'TaxClassNotFound',
+  'TaxClassInUse',
+  'TaxClassNameTaken',
+  'TaxClassesRetrieved',
+  'TaxClassSaved',
+  'TaxClassDeleted',
 ] as const;
 
 export type MessageKey = (typeof MESSAGE_KEYS)[number];

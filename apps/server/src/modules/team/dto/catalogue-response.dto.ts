@@ -239,6 +239,7 @@ export const productDetailSchema = z.object({
   video: productVideoViewSchema.nullable(),
   deliveryZoneIds: z.array(z.string()),
   // CMB-01: an ordinary product or a combo, and a combo's parts in order (empty for an ordinary product).
+  taxClass: z.object({ id: z.string(), name: z.string(), rate: z.string() }).nullable(),
   kind: z.nativeEnum(ProductKind),
   parts: z.array(
     z.object({

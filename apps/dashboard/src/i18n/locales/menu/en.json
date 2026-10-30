@@ -108,6 +108,8 @@
     "subscription_cancelled": "{{actor}} cancelled the subscription at the period’s end",
     "supplier_created": "{{actor}} added a supplier",
     "supplier_updated": "{{actor}} edited a supplier",
+    "tax_class_deleted": "{{actor}} deleted a tax class",
+    "tax_class_saved": "{{actor}} changed the tax settings",
     "tenant_deleted": "The shop’s data was deleted",
     "tenant_restored": "Lytro support restored the shop",
     "tenant_suspended": "Lytro support suspended the shop",

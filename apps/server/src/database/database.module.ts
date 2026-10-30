@@ -68,6 +68,7 @@ import {
   OrderRepository,
   CustomerRepository,
   ShopperRepository,
+  TaxClassRepository,
   MediaRepository,
   MediaBandwidthRepository,
   BrandIdentityRepository,
@@ -213,6 +214,11 @@ import { DatabaseService } from './database.service';
       provide: CustomerRepository,
       inject: [TransactionRunner],
       useFactory: (transactions: TransactionRunner) => new CustomerRepository(transactions),
+    },
+    {
+      provide: TaxClassRepository,
+      inject: [TransactionRunner],
+      useFactory: (transactions: TransactionRunner) => new TaxClassRepository(transactions),
     },
     {
       provide: ShopperRepository,
@@ -364,6 +370,7 @@ import { DatabaseService } from './database.service';
     OrderRepository,
     CustomerRepository,
     ShopperRepository,
+    TaxClassRepository,
     MediaRepository,
     MediaBandwidthRepository,
     BrandIdentityRepository,

@@ -79,6 +79,7 @@ import type {
   VariantValueRecord,
   VariantView,
 } from '../types/catalogue';
+import { TaxClasses } from './tax-classes';
 import { CatalogueActivity, type ResolvedActor } from './catalogue-activity';
 import { CatalogueImages, refuseUnattachable } from './catalogue-images';
 import { ComboParts, type ComboPartValues } from './combo-parts';
@@ -181,6 +182,7 @@ export class ProductService {
     @Inject(UsageWarnings) private readonly warnings: UsageWarnings,
     @Inject(SizeChartService) private readonly sizeCharts: SizeChartService,
     @Inject(ComboParts) private readonly combos: ComboParts,
+    @Inject(TaxClasses) private readonly taxes: TaxClasses,
   ) {}
 
   /** LIM-02, PRD-04: the products the shop's limit counts. */
@@ -296,6 +298,8 @@ export class ProductService {
       this.checkPacks(input.variants, shared, fields.stockUnit);
       await this.refuseTakenSerials(tx, shop.id, input, fields, stock);
 
+      // TAX-01 (agreed 2026-10-30): the class given, or the shop's default one.
+      const taxClassId = await this.taxes.resolveWithin(tx, shop.id, input.taxClassId, true);
       const base = slugOf(input.name, 'product');
       const slug = nextFreeSlug(base, await this.products.slugsLike(tx, shop.id, base));
       const product = await this.products.insertProduct(tx, {
@@ -303,6 +307,7 @@ export class ProductService {
         slug,
         ...fields,
         primaryCategoryId,
+        taxClassId: taxClassId ?? null,
         ...(combo ? { kind: ProductKind.Combo } : {}),
       });
       await this.products.replaceCategoryLinks(tx, shop.id, product.id, categoryIds);
@@ -416,6 +421,7 @@ export class ProductService {
         paymentPolicy: source.paymentPolicy,
         advanceAmount: source.advanceAmount,
         primaryCategoryId: source.primaryCategoryId,
+        taxClassId: source.taxClassId,
         // PRD-11, PRD-18: the copy shows the same video, one item in the library.
         videoId: source.videoId,
         sortOrder: source.sortOrder,
@@ -633,6 +639,9 @@ export class ProductService {
       const current = await this.findLive(tx, shop.id, productId);
       this.refuseComboStock(current, input);
       const change = this.changedFields(current, input);
+      // TAX-01 (Slice 4.6a): a new class, or null for untaxed; orders already made keep theirs (TAX-02).
+      const taxClassId = await this.taxes.resolveWithin(tx, shop.id, input.taxClassId, false);
+      if (taxClassId !== undefined) change.taxClassId = taxClassId;
       // CMB-01: a combo's parts, replaced whole; open orders keep what they reserved (agreed 2026-10-30).
       if (input.parts !== undefined) {
         if (current.kind !== ProductKind.Combo) {
@@ -1995,6 +2004,9 @@ export class ProductService {
           stockUnit: detail.stockUnit,
           stockTracking: detail.stockTracking,
           kind: detail.kind,
+          taxClass: detail.taxClass
+            ? { name: detail.taxClass.name, rate: detail.taxClass.rate }
+            : null,
           packAmount: detail.sharedStock ? variant.packAmount : null,
           price: effective.price,
           weightKg: effective.weightKg,
@@ -2199,6 +2211,7 @@ export class ProductService {
         product.kind === ProductKind.Combo
           ? await this.combos.viewsOf(tx, tenantId, productId)
           : [],
+      taxClass: await this.taxes.ofWithin(tx, tenantId, product.taxClassId),
       createdAt: product.createdAt,
       updatedAt: product.updatedAt,
     };

@@ -151,6 +151,7 @@ describeIfDatabase('route inventory against the application (SEC-02)', () => {
       'DELETE /public/shopper/addresses/:id',
       'DELETE /purchase-orders/:id',
       'DELETE /roles/:id',
+      'DELETE /tax-classes/:id',
       'GET /activity',
       'GET /ad-tracking',
       'GET /addons',
@@ -223,6 +224,7 @@ describeIfDatabase('route inventory against the application (SEC-02)', () => {
       'GET /stock-checks/:id',
       'GET /suppliers',
       'GET /suppliers/:id',
+      'GET /tax-classes',
       'GET /usage',
       'PATCH /addons/auto-buy',
       'PATCH /addons/mine/:id',
@@ -241,6 +243,7 @@ describeIfDatabase('route inventory against the application (SEC-02)', () => {
       'PATCH /shop-settings',
       'PATCH /staff/:id',
       'PATCH /suppliers/:id',
+      'PATCH /tax-classes/:id',
       'POST /addons/packs',
       'POST /addons/purchase',
       'POST /addons/quote',
@@ -315,6 +318,7 @@ describeIfDatabase('route inventory against the application (SEC-02)', () => {
       'POST /staff/:id/password',
       'POST /stock-checks',
       'POST /suppliers',
+      'POST /tax-classes',
       'PUT /ad-tracking',
       'PUT /brand',
       'PUT /brand/switch',
@@ -333,6 +337,7 @@ describeIfDatabase('route inventory against the application (SEC-02)', () => {
       'PUT /products/:id/variants/:variantId/stock',
       'PUT /products/:id/video',
       'PUT /shop-settings/logo',
+      'PUT /tax-classes/default',
     ]);
     expect(compareWithRegistry(routes, ISOLATION_REGISTRY)).toEqual({ uncovered: [], stale: [] });
   });

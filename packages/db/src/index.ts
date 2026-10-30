@@ -265,6 +265,7 @@ export {
   type OrderSummaryRow,
 } from './repositories/orders/order.repository';
 export { CustomerRepository } from './repositories/orders/customer.repository';
+export { TaxClassRepository } from './repositories/catalogue/tax-class.repository';
 export {
   ShopperRepository,
   type NewShopperAddress,

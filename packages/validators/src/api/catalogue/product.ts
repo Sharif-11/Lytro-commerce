@@ -68,6 +68,8 @@ const productFields = {
   active: z.boolean().optional(),
   // FED-02: new unless the shop says otherwise.
   condition: z.nativeEnum(ItemCondition).optional(),
+  // TAX-01 (Slice 4.6a): its tax class, or null for untaxed; left out of a new product, the shop's default class.
+  taxClassId: catalogueIdSchema.nullable().optional(),
   categoryIds: z.array(catalogueIdSchema).max(CATEGORIES_PER_PRODUCT_MAX).optional(),
   primaryCategoryId: catalogueIdSchema.nullable().optional(),
 };

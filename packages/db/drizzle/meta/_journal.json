@@ -645,6 +645,13 @@
       "when": 1793369794622,
       "tag": "0091_combo_packs",
       "breakpoints": true
+    },
+    {
+      "idx": 92,
+      "version": "7",
+      "when": 1793375609258,
+      "tag": "0092_tax_classes",
+      "breakpoints": true
     }
   ]
 }

@@ -92,6 +92,7 @@ export type OrderLinePatch = Partial<
     | 'quantity'
     | 'itemDiscount'
     | 'itemTotal'
+    | 'taxAmount'
     | 'deliveryCharge'
     | 'advance'
     | 'capturedValues'

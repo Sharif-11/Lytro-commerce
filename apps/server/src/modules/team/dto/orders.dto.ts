@@ -47,6 +47,9 @@ const zoneSchema = z
   .object({ id: z.string(), name: bilingualSchema, charge: z.string() })
   .nullable();
 
+// TAX-03: one class's tax an order's total includes.
+export const taxLineSchema = z.object({ name: z.string(), rate: z.string(), amount: z.string() });
+
 const warningSchema = z.object({
   code: z.enum(['zone_no_delivery', 'product_not_delivered_here']),
   zone: bilingualSchema,
@@ -83,6 +86,9 @@ const orderItemSchema = z.object({
   deliveryCharge: z.string(),
   paymentPolicy: z.nativeEnum(PaymentPolicy),
   advance: z.string(),
+  taxClassName: z.string().nullable(),
+  taxRate: z.string().nullable(),
+  taxAmount: z.string(),
   // CMB-04: a combo line's components as ordered; empty for any other line.
   components: z.array(
     z.object({
@@ -145,6 +151,7 @@ const orderViewSchema = z.object({
   advanceDue: z.string(),
   codAmount: z.string(),
   due: z.string(),
+  taxes: z.array(taxLineSchema),
   courierName: z.string().nullable(),
   trackingCode: z.string().nullable(),
   trackingLink: z.string().nullable(),
@@ -244,6 +251,7 @@ const orderQuoteSchema = z.object({
   grandTotal: z.string(),
   advanceDue: z.string(),
   codAmount: z.string(),
+  taxes: z.array(taxLineSchema),
   warnings: z.array(warningSchema),
 });
 export class OrderQuoteDto extends createZodDto(orderQuoteSchema) {}

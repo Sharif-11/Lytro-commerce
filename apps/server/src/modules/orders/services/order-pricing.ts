@@ -40,6 +40,8 @@ export interface PricingLine {
   paymentPolicy: PaymentPolicy;
   /** PRD-08: a partial advance's amount. */
   policyAdvance: string | null;
+  /** TAX-02: the line's tax rate (a percent), or null for untaxed. */
+  taxRate: string | null;
 }
 
 export interface PricingInput {
@@ -60,6 +62,8 @@ export interface PricedLine {
   deliveryCharge: string;
   /** PRD-08: the advance this line asks before delivery. */
   advance: string;
+  /** TAX-02, TAX-03 (agreed 2026-10-30): the tax its total includes, after its share of the order's discount. */
+  tax: string;
 }
 
 export interface OrderPrice {
@@ -82,6 +86,23 @@ function min(a: bigint, b: bigint): bigint {
   return a < b ? a : b;
 }
 
+/** TAX-03: an order's tax lines, one per class and rate its lines were taxed at, from what the lines include. */
+export function taxesOf(
+  lines: readonly { taxClassName: string | null; taxRate: string | null; taxAmount: string }[],
+): { name: string; rate: string; amount: string }[] {
+  const byClass = new Map<string, { name: string; rate: string; amount: bigint }>();
+  for (const line of lines) {
+    if (line.taxClassName === null || line.taxRate === null) continue;
+    const key = `${line.taxClassName}\u0000${line.taxRate}`;
+    const held = byClass.get(key) ?? { name: line.taxClassName, rate: line.taxRate, amount: 0n };
+    held.amount += toPaisa(line.taxAmount);
+    byClass.set(key, held);
+  }
+  return [...byClass.values()]
+    .sort((a, b) => a.name.localeCompare(b.name) || Number(toPaisa(a.rate) - toPaisa(b.rate)))
+    .map((row) => ({ name: row.name, rate: row.rate, amount: fromPaisa(row.amount) }));
+}
+
 /**
  * D4-9, ORD-06, ORD-06a, ORD-16, PRD-08, MNU-04: the one pricing rule, used wherever an order is priced. Each item is its
  * price times its quantity less its own discount; the subtotal adds them. Only a delivery has a delivery charge: a line
@@ -91,7 +112,10 @@ function min(a: bigint, b: bigint): bigint {
  * hand instead. The grand total is the subtotal less the order's discount plus the delivery charge. The advance asks
  * each partial-advance line's amount (never more than the line), each prepaid line in full, and the delivery charge
  * once when any line is prepaid or asks its delivery charge first; cash on delivery is the rest. A discount larger than
- * what it comes off is refused, naming its field.
+ * what it comes off is refused, naming its field. TAX-02, TAX-03 (Slice 4.6a, agreed 2026-10-30): prices include the
+ * tax, so each taxed line's tax is the part of its total, after its own discount and its share of the order's (by item
+ * totals), that its rate makes -- base x rate / (100 + rate), rounded to the paisa; the delivery charge carries none,
+ * and no total changes.
  */
 export function priceOrder(input: PricingInput): OrderPrice {
   const delivering = input.fulfilmentType === FulfilmentType.Delivery;
@@ -140,6 +164,14 @@ export function priceOrder(input: PricingInput): OrderPrice {
     });
   }
   if (problems.length > 0) throw new FieldsError(problems);
+  const taxes = input.lines.map((line, index) => {
+    const rate = line.taxRate === null ? 0n : toPaisa(line.taxRate);
+    const itemTotal = lines[index]?.itemTotal ?? 0n;
+    if (rate === 0n || itemTotal === 0n) return 0n;
+    const share = subtotal > 0n ? (orderDiscount * itemTotal) / subtotal : 0n;
+    const base = max(itemTotal - share, 0n);
+    return (base * rate + (10000n + rate) / 2n) / (10000n + rate);
+  });
   const anyZoneLine = input.lines.some((line) => line.ownDeliveryCharge === null);
   // PRD-08: a prepaid line, or one asking its delivery charge first, asks the order's delivery charge once.
   const deliveryFirst = input.lines.some(
@@ -159,10 +191,11 @@ export function priceOrder(input: PricingInput): OrderPrice {
     lines.reduce((sum, line) => sum + line.advance, 0n) + (deliveryFirst ? deliveryCharge : 0n);
   const advanceDue = min(advance, grandTotal);
   return {
-    lines: lines.map((line) => ({
+    lines: lines.map((line, index) => ({
       itemTotal: fromPaisa(line.itemTotal),
       deliveryCharge: fromPaisa(line.delivery),
       advance: fromPaisa(line.advance),
+      tax: fromPaisa(taxes[index] ?? 0n),
     })),
     subtotal: fromPaisa(subtotal),
     zoneCharged: zoneCharged === null ? null : fromPaisa(zoneCharged),
@@ -286,6 +319,8 @@ export class OrderPricing {
         if (available) {
           products.push(variant);
           lines.push({
+            // SFT-20: the estimate is of the delivery charge; tax is inside the prices, so none is worked out here.
+            taxRate: null,
             unitPrice: variant.price,
             quantity: item.quantity.toFixed(3),
             itemDiscount: '0.00',
