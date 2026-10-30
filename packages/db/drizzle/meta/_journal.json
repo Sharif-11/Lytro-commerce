@@ -624,6 +624,13 @@
       "when": 1793354334848,
       "tag": "0088_order_payments",
       "breakpoints": true
+    },
+    {
+      "idx": 89,
+      "version": "7",
+      "when": 1793358539951,
+      "tag": "0089_customer_erasure",
+      "breakpoints": true
     }
   ]
 }

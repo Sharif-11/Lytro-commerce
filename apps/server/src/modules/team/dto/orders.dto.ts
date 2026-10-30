@@ -99,6 +99,7 @@ const orderViewSchema = z.object({
   confirmedBy: personSchema,
   fulfilmentType: z.nativeEnum(FulfilmentType),
   customerId: z.string().nullable(),
+  customerErased: z.boolean(),
   customerName: z.string().nullable(),
   customerPhone: z.string().nullable(),
   location: z
@@ -187,6 +188,7 @@ const orderPageSchema = z.object({
       fulfilmentType: z.nativeEnum(FulfilmentType),
       customerName: z.string().nullable(),
       customerPhone: z.string().nullable(),
+      customerErased: z.boolean(),
       tableRef: z.string().nullable(),
       items: z.number(),
       grandTotal: z.string(),

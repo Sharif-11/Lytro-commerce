@@ -72,7 +72,7 @@ sellers in Bangladesh").
 | D4-11 | **Scope inside the phase.** | Delivery, takeaway or dine-in (MNU-04) is stored on every order from the first slice; tax classes and modifiers (TAX-01 to 03, MNU-01 to 03) are a late slice; combo packs their own slice; statistics last; the privacy delete (CUS-09) is in. | Slices 4.1, 4.5–4.7 |
 | D4-12 | **Module boundaries** (`ENGINEERING-STANDARDS.md` §1). | Two new modules: **`orders`** (orders, lines, numbering, pricing, the call log, status, tracking, returns, staff-recorded payments) and **`customers`** (customers, addresses, shoppers and their sign-in). `orders` depends on `catalogue`, `inventory`, `delivery` and `customers`; `customers` depends on nothing new. The plan fee, quotas and usage stay in `balance` and `usage`, called through their existing services in the order's transaction. Combo parts belong to `catalogue`; a combo's order-line components to `orders`. | All |
 | D4-13 | **Order limits per minute** (RTE-06, RTE-08). `RED-11` asks for exact counters in PostgreSQL for order creation and shopper codes; D3-2 built in-process windows, exact while there is one server. | Per-visitor and per-shop order-creation windows, and the per-visitor shopper-code window, on the D3-2 limiter now; Phase 9 moves them to PostgreSQL counters with the Redis swap. | Slices 4.2, 4.4 |
-| D4-14 | **Shopper accounts** (CUS-03 to 06). Owners' sign-in codes live in `control.verification_challenges`, whose indexes are still open (KNOWN-GAPS §95). | Shoppers belong to one shop: `tenant.shoppers`, their sessions and saved addresses, and their own one-time codes, separate from the owners' challenges. A shopper's code is an essential SMS (CUS-04) counted on the shop's allowance. | Slice 4.4 |
+| D4-14 | **Shopper accounts** (CUS-03 to 06). Owners' sign-in codes live in `control.verification_challenges`, whose indexes are still open (KNOWN-GAPS §95). | Shoppers belong to one shop: `tenant.shoppers`, their sessions and saved addresses, and their own one-time codes, separate from the owners' challenges. Amended 2026-10-30 (Slice 4.4's read): the code is sent once, to make the account, and charged to the shop's balance (CUS-04); a shopper signs in with phone and password. | Slice 4.4 |
 
 ---
 
@@ -302,6 +302,16 @@ Every route lands in `API-CONTRACT.md` with its slice; the isolation registry ga
 combos and statistics). If velocity suggests it, the rest can become Phase 4B without re-planning.
 
 ### Slice 4.4: customers and shopper accounts
+- **Read agreed 2026-10-30:** a shopper makes an account with a code sent once to the phone, then a name and a
+  password, and signs in with phone and password from then on (CUS-03 amended); the code is charged to the shop's
+  balance at the SMS rate, never the free allowance, and not sent when the balance can't cover it (CUS-04, SMS-06
+  amended); a forgotten password is set again by staff with `customers:manage` (CUS-14 added); a signed-in shopper
+  sees every order with their phone, from any source, each opening its tracking (ORD-18, CUS-05 amended); accounts
+  are made on the sign-up page only, a guest order making none (CUS-07 amended; an account at checkout is for later);
+  a privacy delete is refused while an order is on its way (CUS-09 amended). Also settled: two parts -- **4.4a** the
+  customers list, search and page, the order history by customer, and the privacy delete; **4.4b** shopper accounts,
+  sign-up and sign-in, profile, saved addresses and their orders, and the staff password reset -- the privacy delete
+  also clearing the stored replies of the customer's orders, which hold their details (API-11).
 - **Delivers:** customers' list, search and detail (CUS-01, CUS-02); shopper codes, sessions, profile and saved
   addresses (CUS-03 – 06, D4-14), the per-visitor code window (RTE-06); track by phone (ORD-18); the optional account
   on guest checkout (CUS-07); the privacy delete (CUS-09).

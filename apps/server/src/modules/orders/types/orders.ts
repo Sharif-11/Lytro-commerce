@@ -115,6 +115,8 @@ export interface OrderView {
   confirmedBy: OrderPerson | null;
   fulfilmentType: FulfilmentType;
   customerId: string | null;
+  /** CUS-09: its customer was deleted at a privacy request, so the name, phone and address are gone. */
+  customerErased: boolean;
   customerName: string | null;
   customerPhone: string | null;
   location: (ThanaView & { zillaId: number }) | null;
@@ -185,6 +187,8 @@ export interface OrderListItem {
   fulfilmentType: FulfilmentType;
   customerName: string | null;
   customerPhone: string | null;
+  /** CUS-09: its customer was deleted at a privacy request. */
+  customerErased: boolean;
   tableRef: string | null;
   items: number;
   grandTotal: string;

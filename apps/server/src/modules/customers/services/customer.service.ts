@@ -1,21 +1,105 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Transaction } from '@lytronix/db';
+import { AuditAction, bdMobileNumber, type CustomerListQuery } from '@lytronix/validators';
+import { ApiError } from '../../../common/api-error';
+import { CatalogueActivity } from '../../catalogue/services/catalogue-activity';
+import type { CatalogueActor } from '../../catalogue/types/catalogue';
 import type { CustomerStore } from '../ports/customer-store';
 import { CUSTOMER_STORE } from '../tokens';
-import type { CustomerRecord } from '../types/customers';
+import type {
+  CustomerListItem,
+  CustomerPage,
+  CustomerRecord,
+  CustomerView,
+} from '../types/customers';
 
 /** LIF-16: how many customers the export reads at a time. */
 const EXPORT_BATCH = 500;
+
+function listItemOf(customer: CustomerRecord): CustomerListItem {
+  return {
+    id: customer.id,
+    name: customer.name,
+    phone: customer.phone,
+    orderCount: customer.orderCount,
+    totalSpent: customer.totalSpent,
+    lastOrderAt: customer.lastOrderAt,
+    firstOrderAt: customer.createdAt,
+  };
+}
 
 /**
  * CUS-01, agreed 2026-10-29: a shop's customers, one per phone number, kept by the orders that name them. An order made,
  * changed, cancelled or deleted works its customer's figures out again inside the order's own transaction: how many
  * orders it has not cancelled, what its delivered orders came to, when it last ordered, and the latest order's name.
- * The customers list, search and privacy erasure arrive with Slice 4.4 (CUS-02, CUS-09).
+ * Staff list and search them and open one (CUS-02, Slice 4.4a); at a privacy request one is erased (CUS-09).
  */
 @Injectable()
 export class CustomerService {
-  constructor(@Inject(CUSTOMER_STORE) private readonly store: CustomerStore) {}
+  constructor(
+    @Inject(CUSTOMER_STORE) private readonly store: CustomerStore,
+    @Inject(CatalogueActivity) private readonly activity: CatalogueActivity,
+  ) {}
+
+  /** CUS-02: the shop's customers, who last ordered first, searched by any part of the name or phone. */
+  list(tenantId: string, query: CustomerListQuery): Promise<CustomerPage> {
+    const search = query.q !== undefined ? (bdMobileNumber(query.q) ?? query.q) : null;
+    return this.store.run(tenantId, async (tx) => {
+      const { rows, total } = await this.store.list(tx, tenantId, search, {
+        offset: (query.page - 1) * query.limit,
+        limit: query.limit,
+      });
+      return {
+        customers: rows.map(listItemOf),
+        page: query.page,
+        limit: query.limit,
+        total,
+        pages: Math.ceil(total / query.limit),
+      };
+    });
+  }
+
+  /** CUS-01, CUS-02: one customer, and where its latest delivery went; an erased one is gone. */
+  get(tenantId: string, id: string): Promise<CustomerView> {
+    return this.store.run(tenantId, async (tx) => {
+      const customer = await this.store.find(tx, tenantId, id);
+      if (!customer || customer.erasedAt !== null) {
+        throw new ApiError('not_found', 'CustomerNotFound', {});
+      }
+      return {
+        ...listItemOf(customer),
+        lastAddress: await this.store.lastAddress(tx, tenantId, customer.id),
+      };
+    });
+  }
+
+  /**
+   * CUS-09, agreed 2026-10-30: deletes a customer at a privacy request -- its name and phone, and its orders' names,
+   * phones, addresses and shopper's notes, their totals kept -- refused while any of its orders is not yet delivered,
+   * returned or cancelled, so no parcel loses its address on the way. The activity entry names no personal detail.
+   */
+  async erase(tenantId: string, id: string, actor: CatalogueActor): Promise<void> {
+    const who = await this.activity.resolve(tenantId, actor);
+    await this.store.run(tenantId, async (tx) => {
+      const customer = await this.store.lockForErasure(tx, tenantId, id);
+      if (!customer) throw new ApiError('not_found', 'CustomerNotFound', {});
+      const open = await this.store.openOrderNumbers(tx, tenantId, customer.id);
+      if (open.length > 0) {
+        throw new ApiError('conflict', 'CustomerHasOpenOrders', { orders: open }, undefined, {
+          count: open.length,
+        });
+      }
+      const orders = await this.store.erase(tx, tenantId, customer.id, new Date());
+      await this.activity.record(
+        tx,
+        tenantId,
+        who,
+        AuditAction.CustomerErased,
+        { type: 'customer', id: customer.id },
+        { orders },
+      );
+    });
+  }
 
   /** The customer this phone names, made if the shop has none; not locked until its figures are worked out. */
   claimWithin(tx: Transaction, tenantId: string, phone: string): Promise<string> {

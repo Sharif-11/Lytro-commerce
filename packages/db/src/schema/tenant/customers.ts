@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import {
+  check,
   index,
   integer,
   numeric,
@@ -40,6 +41,10 @@ export const customers = tenant.table(
     index('customers_name_trgm_idx').using('gin', t.name.op('gin_trgm_ops')),
     index('customers_phone_trgm_idx').using('gin', t.phone.op('gin_trgm_ops')),
     index('customers_tenant_last_order_idx').on(t.tenantId, t.lastOrderAt.desc(), t.id.desc()),
+    check(
+      'customers_erased_check',
+      sql`${t.erasedAt} IS NULL OR (${t.phone} IS NULL AND ${t.name} IS NULL)`,
+    ),
   ],
 );
 

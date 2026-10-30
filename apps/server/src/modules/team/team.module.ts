@@ -56,6 +56,8 @@ import { InventoryModule } from '../inventory/inventory.module';
 import { PurchasingModule } from '../purchasing/purchasing.module';
 import { OrdersModule } from '../orders/orders.module';
 import { OrdersController } from './controllers/orders.controller';
+import { CustomersController } from './controllers/customers.controller';
+import { CustomersModule } from '../customers/customers.module';
 import { MediaModule } from '../media/media.module';
 import { MediaController } from './controllers/media.controller';
 import { UsageController } from './controllers/usage.controller';
@@ -110,6 +112,7 @@ import { CatalogueRequest } from './services/catalogue-request';
     InventoryModule,
     PurchasingModule,
     OrdersModule,
+    CustomersModule,
     PublicApiModule,
     MediaModule,
     UsageModule,
@@ -163,6 +166,7 @@ import { CatalogueRequest } from './services/catalogue-request';
     PurchaseOrdersController,
     ProductPurchasesController,
     OrdersController,
+    CustomersController,
     MediaController,
     UsageController,
     HomeController,

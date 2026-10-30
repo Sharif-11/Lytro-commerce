@@ -480,6 +480,7 @@ export class OrderService {
           from,
           before,
           search,
+          customerId: query.customerId ?? null,
         },
         { offset: (query.page - 1) * query.limit, limit: query.limit },
       );
@@ -494,6 +495,7 @@ export class OrderService {
           fulfilmentType: row.fulfilmentType,
           customerName: row.customerName,
           customerPhone: row.customerPhone,
+          customerErased: row.customerErasedAt !== null,
           tableRef: row.tableRef,
           items: row.items,
           grandTotal: row.grandTotal,
@@ -1388,6 +1390,7 @@ export class OrderService {
       confirmedBy: person(order.confirmedBy),
       fulfilmentType: order.fulfilmentType,
       customerId: order.customerId,
+      customerErased: order.customerErasedAt !== null,
       customerName: order.customerName,
       customerPhone: order.customerPhone,
       location,
