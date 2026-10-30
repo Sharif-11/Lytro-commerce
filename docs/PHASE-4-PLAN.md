@@ -346,6 +346,14 @@ combos and statistics). If velocity suggests it, the rest can become Phase 4B wi
   building 4.6a: up to 20 classes, one name each ignoring case, a rate of 0 to 100 with two decimals; each line's tax
   rounded to the paisa, the class lines summing them; the product form reads the classes with `products:read`,
   changing them needs `settings:manage`.
+- **4.6b read agreed 2026-10-30:** a group a line names nothing for takes its defaults; a price change may be negative,
+  but never takes a unit price below zero; a price set by hand is final, its choices still kept; an edited line given
+  its choices again takes the options' prices of that day (MNU-01 to MNU-03 amended). Settled building 4.6b: up to 10
+  groups a product and 20 options a group, names up to 60; a group's most is at least 1 and no more than its options,
+  its defaults no more than its most; modifiers change neither stock nor weight; every variant shares its product's
+  groups; the tax is worked on the unit price with the choices in it; the public product shows the groups; the line
+  keeps a copy of each choice (group, option, price change), so groups changed or removed later leave orders as they
+  were; a copy of a product copies its groups.
 - **Delivers:** tax classes and their lines on an order (TAX-01 – 03); modifier groups, their choices on a line and
   their limits (MNU-01 – 03).
 

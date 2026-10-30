@@ -37,6 +37,11 @@ function itemsOf(lines: OrderLineRecord[]): ShopperItemView[] {
       stockUnit: line.stockUnit,
       unitPrice: line.unitPrice,
       itemTotal: line.itemTotal,
+      modifiers: line.modifiers.map((row) => ({
+        groupName: row.groupName,
+        optionName: row.optionName,
+        priceChange: row.priceChange,
+      })),
     }));
 }
 

@@ -1,3 +1,4 @@
+import type { ModifierGroupView } from '../../catalogue/types/catalogue';
 import type {
   AttributeDataType,
   ItemCondition,
@@ -102,6 +103,8 @@ export interface PublicProductDetail {
   deliveryZoneIds: string[];
   /** CMB-06, CMB-09: a combo's "What's inside" and its saving; null for an ordinary product. */
   combo: PublicCombo | null;
+  /** MNU-01 (Slice 4.6b): what a shopper chooses as they order it; empty for none. */
+  modifierGroups: ModifierGroupView[];
 }
 
 /** CMB-06, CMB-09: what a combo holds, and what it saves against its parts bought apart. */

@@ -1,5 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { ProductStateCounts, SizeChartContent, Transaction } from '@lytronix/db';
+import type {
+  ModifierGroupRow,
+  NewModifierGroup,
+  ProductStateCounts,
+  SizeChartContent,
+  Transaction,
+} from '@lytronix/db';
 import {
   AttributeDataType,
   AttributeRole,
@@ -78,6 +84,7 @@ import type {
   VariantRecord,
   VariantValueRecord,
   VariantView,
+  ModifierGroupView,
 } from '../types/catalogue';
 import { TaxClasses } from './tax-classes';
 import { CatalogueActivity, type ResolvedActor } from './catalogue-activity';
@@ -163,6 +170,38 @@ function refuseHeld(error: unknown): never {
     throw new ApiError('conflict', 'UnitsHeldForOrders', {});
   }
   throw error;
+}
+
+/** MNU-01: the groups as a product's request gives them, in order, as they are saved. */
+function modifierGroupsOf(
+  groups: NonNullable<CreateProductInput['modifierGroups']>,
+): NewModifierGroup[] {
+  return groups.map((group) => ({
+    name: group.name,
+    minSelect: group.minSelect,
+    maxSelect: group.maxSelect,
+    options: group.options.map((option) => ({
+      name: option.name,
+      priceChange: option.priceChange.toFixed(2),
+      isDefault: option.isDefault === true,
+    })),
+  }));
+}
+
+/** MNU-01: a saved group as the product and an order read it. */
+function modifierGroupView(group: ModifierGroupRow): ModifierGroupView {
+  return {
+    id: group.id,
+    name: group.name,
+    minSelect: group.minSelect,
+    maxSelect: group.maxSelect,
+    options: group.options.map((option) => ({
+      id: option.id,
+      name: option.name,
+      priceChange: option.priceChange,
+      isDefault: option.isDefault,
+    })),
+  };
 }
 
 @Injectable()
@@ -311,6 +350,14 @@ export class ProductService {
         ...(combo ? { kind: ProductKind.Combo } : {}),
       });
       await this.products.replaceCategoryLinks(tx, shop.id, product.id, categoryIds);
+      if (input.modifierGroups && input.modifierGroups.length > 0) {
+        await this.products.replaceModifierGroups(
+          tx,
+          shop.id,
+          product.id,
+          modifierGroupsOf(input.modifierGroups),
+        );
+      }
       await this.attachMedia(tx, shop.id, product.id, input);
       if (input.deliveryZoneIds && input.deliveryZoneIds.length > 0) {
         await this.limitDeliveryZones(
@@ -433,6 +480,25 @@ export class ProductService {
             : StockState.Out,
         kind: source.kind,
       });
+      // MNU-01 (Slice 4.6b): the copy has the same modifier groups.
+      const groups = await this.products.listModifierGroups(tx, shop.id, [source.id]);
+      if (groups.length > 0) {
+        await this.products.replaceModifierGroups(
+          tx,
+          shop.id,
+          copy.id,
+          groups.map((group) => ({
+            name: group.name,
+            minSelect: group.minSelect,
+            maxSelect: group.maxSelect,
+            options: group.options.map((option) => ({
+              name: option.name,
+              priceChange: option.priceChange,
+              isDefault: option.isDefault,
+            })),
+          })),
+        );
+      }
 
       const links = await this.products.listCategoryLinks(tx, shop.id, [productId]);
       await this.products.replaceCategoryLinks(
@@ -642,6 +708,24 @@ export class ProductService {
       // TAX-01 (Slice 4.6a): a new class, or null for untaxed; orders already made keep theirs (TAX-02).
       const taxClassId = await this.taxes.resolveWithin(tx, shop.id, input.taxClassId, false);
       if (taxClassId !== undefined) change.taxClassId = taxClassId;
+      // MNU-01 (Slice 4.6b): the groups, replaced whole; never on a combo (agreed 2026-10-30). Orders keep their copy.
+      if (input.modifierGroups !== undefined) {
+        if (current.kind === ProductKind.Combo && input.modifierGroups.length > 0) {
+          throw new FieldsError([
+            {
+              field: 'modifierGroups',
+              problem: FieldProblemCode.NotAllowed,
+              messageKey: 'ComboTakesNoModifiers',
+            },
+          ]);
+        }
+        await this.products.replaceModifierGroups(
+          tx,
+          shop.id,
+          productId,
+          modifierGroupsOf(input.modifierGroups),
+        );
+      }
       // CMB-01: a combo's parts, replaced whole; open orders keep what they reserved (agreed 2026-10-30).
       if (input.parts !== undefined) {
         if (current.kind !== ProductKind.Combo) {
@@ -2007,6 +2091,7 @@ export class ProductService {
           taxClass: detail.taxClass
             ? { name: detail.taxClass.name, rate: detail.taxClass.rate }
             : null,
+          modifierGroups: detail.modifierGroups,
           packAmount: detail.sharedStock ? variant.packAmount : null,
           price: effective.price,
           weightKg: effective.weightKg,
@@ -2212,6 +2297,9 @@ export class ProductService {
           ? await this.combos.viewsOf(tx, tenantId, productId)
           : [],
       taxClass: await this.taxes.ofWithin(tx, tenantId, product.taxClassId),
+      modifierGroups: (await this.products.listModifierGroups(tx, tenantId, [productId])).map(
+        modifierGroupView,
+      ),
       createdAt: product.createdAt,
       updatedAt: product.updatedAt,
     };

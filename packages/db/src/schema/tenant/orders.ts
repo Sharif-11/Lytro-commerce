@@ -239,6 +239,15 @@ export interface LineAttributeSnapshot {
   variantDefining: boolean;
 }
 
+/** MNU-02 (Slice 4.6b): one modifier option chosen on a line, as it stood: its group, its name and its price change. */
+export interface LineModifierSnapshot {
+  groupId: string;
+  groupName: string;
+  optionId: string;
+  optionName: string;
+  priceChange: string;
+}
+
 /** ATR-08: what the customer asked for on an attribute captured at order time. */
 export interface LineCapturedSnapshot {
   attributeId: string;
@@ -266,6 +275,8 @@ export const orderLines = tenant.table(
       .notNull()
       .default([]),
     capturedValues: jsonb('captured_values').$type<LineCapturedSnapshot[]>().notNull().default([]),
+    // MNU-02 (Slice 4.6b): the modifier options chosen, already reflected in the unit price.
+    modifiers: jsonb('modifiers').$type<LineModifierSnapshot[]>().notNull().default([]),
     // MED-09, ORD-47: the photo shown at order time, so deleting it can say how many past orders lose it.
     thumbnailMediaId: uuid('thumbnail_media_id'),
     thumbnailUrl: text('thumbnail_url'),

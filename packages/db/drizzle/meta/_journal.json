@@ -652,6 +652,13 @@
       "when": 1793375609258,
       "tag": "0092_tax_classes",
       "breakpoints": true
+    },
+    {
+      "idx": 93,
+      "version": "7",
+      "when": 1793380946180,
+      "tag": "0093_modifiers",
+      "breakpoints": true
     }
   ]
 }

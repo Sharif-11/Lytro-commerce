@@ -580,6 +580,12 @@ export const MESSAGE_KEYS = [
   'TaxClassesRetrieved',
   'TaxClassSaved',
   'TaxClassDeleted',
+  // Phase 4 Slice 4.6b: modifier groups on a product, and the choices on an order line (MNU-01 to MNU-03).
+  'ComboTakesNoModifiers',
+  'ModifierGroupNotFound',
+  'ModifierOptionNotFound',
+  'ModifierChoiceCount',
+  'PriceBelowZero',
 ] as const;
 
 export type MessageKey = (typeof MESSAGE_KEYS)[number];
