@@ -51,7 +51,7 @@ export function SiteNav({ language }: { language: Language }) {
     { href: '/about', label: copy.of(text.about) },
     { href: '/contact', label: copy.of(text.contact) },
   ];
-  const login = { href: urls.signIn(), label: copy.of(text.login) };
+  const login = { href: urls.logIn(), label: copy.of(text.login) };
   const cta = { href: urls.signIn(), label: copy.of(text.cta) };
 
   const bar = (
