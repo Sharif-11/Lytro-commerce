@@ -15,6 +15,8 @@ const shop: StorefrontShopContext = {
   storefrontEnabled: true,
   key: 'lytro_pk_abc',
   origin: 'https://megh.lytro.app',
+  mainHost: null,
+  publicOrigin: 'https://megh.lytro.app',
 };
 // The edge's header as it reached the storefront: the server picks the shopper from it by its own hop rule.
 const shopper = {
@@ -71,7 +73,7 @@ describe('StorefrontApi', () => {
     });
   });
 
-  it("asks which shop a host serves with the storefront's secret, and keeps the answer half a minute", async () => {
+  it("asks which shop a host serves with the storefront's secret, and keeps the answer 5 seconds (TEN-27)", async () => {
     const context = { outcome: 'open', shop };
     const fake = server(ok(context), ok(context));
     let now = 1_000;
@@ -86,10 +88,10 @@ describe('StorefrontApi', () => {
         'x-lytro-storefront': 'storefront-secret',
       },
     });
-    now += 29_000;
+    now += 4_000;
     await api.context('megh.lytro.app');
     expect(fake.calls).toHaveLength(1);
-    now += 2_000;
+    now += 1_500;
     await api.context('megh.lytro.app');
     expect(fake.calls).toHaveLength(2);
   });
