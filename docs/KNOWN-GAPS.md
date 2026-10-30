@@ -1940,6 +1940,18 @@ messages and field labels, each line checked against its English rather than rep
 বন্ধ for on and off, বাকি for "left", ফেরত for goods sent back, বেছে নিন for choose, the server's formal sentences (a
 later pass), and the shopper's payment page and storefront.
 
+## 106. `API-11`, `CUS-09`: stored order replies keep a customer's details after their 24 hours — found 2026-10-30, open
+
+Found while building Slice 4.4a's privacy delete. An idempotency key's stored reply (`control.idempotency_keys`,
+D4-8) is deleted only when the same key arrives again after its 24 hours (`IdempotencyKeysRepository.deleteExpired`);
+nothing else ever removes it. A staff order's reply is the whole order view -- the customer's name, phone and
+address -- so those stay in the control schema indefinitely, and a shop's deletion (LIF-19) leaves them too. Slice
+4.4a's erasure now blanks those fields in the replies of the erased customer's orders, so CUS-09 holds; the rest of
+the stored replies are untouched.
+
+**Fix when picked up:** a daily job deleting keys past `expires_at` (the 24 hours are API-11's whole promise), and
+LIF-19's deletion removing the shop's keys. Not done in 4.4a: it is a retention change of its own, outside the slice.
+
 ## Not a bug, just noting it so it isn't mistaken for one later
 
 The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (mojibake) — bad seed/test data

@@ -1381,7 +1381,7 @@ CREATE TABLE tenant.customers (                    -- CUS-01: one per phone, kep
     order_count     integer NOT NULL DEFAULT 0,     -- orders not cancelled
     total_spent     numeric(12,2) NOT NULL DEFAULT 0, -- grand totals of delivered orders
     last_order_at   timestamptz,
-    erased_at       timestamptz,
+    erased_at       timestamptz,                    -- CUS-09 (Slice 4.4a): name and phone null from then on, for good
     created_at      timestamptz NOT NULL DEFAULT now(),
     updated_at      timestamptz NOT NULL DEFAULT now(),
     UNIQUE (tenant_id, id)
@@ -1435,12 +1435,16 @@ CREATE TABLE tenant.orders (
     notes           varchar(1000),
     -- LND-07 (Slice 4.2): what the shopper wrote for the shop as they ordered; set once, never edited by staff.
     shopper_note    varchar(500),
+    -- CUS-09 (Slice 4.4a): its customer was deleted at a privacy request; name, phone, address and shopper's note are
+    -- null from then on, the totals, items and thana kept; a trigger keeps the erasure (migration 0089).
+    customer_erased_at timestamptz,
     created_by      uuid,                               -- ORD-01: the staff member; null for a shopper's order
     created_at      timestamptz NOT NULL DEFAULT now(),
     updated_at      timestamptz NOT NULL DEFAULT now(),
     UNIQUE (tenant_id, id),
     UNIQUE (tenant_id, order_number),
-    -- plus checks: the fulfilment type's fields (MNU-04); no zone or charge but on a delivery; a cancel reason exactly
+    -- plus checks: the fulfilment type's fields (MNU-04; the customer's details only until erased); erased details
+    -- blank; no zone or charge but on a delivery; a cancel reason exactly
     -- when cancelled; a hold time only on hold; money never negative and advance + COD = grand total.
 );
 CREATE INDEX ON tenant.orders (tenant_id, created_at DESC, id DESC);
