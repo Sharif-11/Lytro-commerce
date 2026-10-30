@@ -135,6 +135,10 @@ export const SHOPPER_NOTE_MAX_LENGTH = 500;
 export const COURIER_NAME_MAX_LENGTH = 80;
 export const TRACKING_CODE_MAX_LENGTH = 100;
 export const TRACKING_LINK_MAX_LENGTH = 500;
+// MNU-01 (Slice 4.6b): a product's modifier groups, the options in one, and the names of both.
+export const MODIFIER_GROUPS_MAX = 10;
+export const MODIFIER_OPTIONS_MAX = 20;
+export const MODIFIER_NAME_MAX_LENGTH = 60;
 // TAX-01 (Slice 4.6a): a tax class's name, and how many one shop may name.
 export const TAX_CLASS_NAME_MAX_LENGTH = 60;
 export const TAX_CLASSES_MAX = 20;

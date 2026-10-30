@@ -90,6 +90,23 @@ export class PublicProductDetailDto extends createZodDto(
     paymentPolicy: z.nativeEnum(PaymentPolicy),
     advanceAmount: z.string().nullable(),
     deliveryZoneIds: z.array(z.string()),
+    // MNU-01 (Slice 4.6b): the modifier groups a shopper chooses from.
+    modifierGroups: z.array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        minSelect: z.number(),
+        maxSelect: z.number(),
+        options: z.array(
+          z.object({
+            id: z.string(),
+            name: z.string(),
+            priceChange: z.string(),
+            isDefault: z.boolean(),
+          }),
+        ),
+      }),
+    ),
     // CMB-06, CMB-09: a combo's saving and "What's inside"; null for an ordinary product.
     combo: z
       .object({

@@ -31,6 +31,7 @@ import {
   StockTracking,
   StockUnit,
   TAX_CLASS_NAME_MAX_LENGTH,
+  MODIFIER_NAME_MAX_LENGTH,
 } from '@lytronix/validators';
 import { createdAt, tenant } from '../shared';
 
@@ -239,6 +240,60 @@ export const products = tenant.table(
 );
 
 // PRD-15: every category a product is filed under. Which one is primary is products.primary_category_id.
+// MNU-01 (Slice 4.6b, agreed 2026-10-30): a product's modifier groups -- "Spice level", choose exactly 1 -- in order,
+// never on a combo. The whole list is replaced when the product is saved; orders keep their own copy of the choices.
+export const modifierGroups = tenant.table(
+  'modifier_groups',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    tenantId: uuid('tenant_id').notNull(),
+    productId: uuid('product_id').notNull(),
+    name: varchar('name', { length: MODIFIER_NAME_MAX_LENGTH }).notNull(),
+    minSelect: smallint('min_select').notNull(),
+    maxSelect: smallint('max_select').notNull(),
+    position: smallint('position').notNull(),
+  },
+  (t) => [
+    unique('modifier_groups_tenant_id_key').on(t.tenantId, t.id),
+    foreignKey({
+      name: 'modifier_groups_product_fk',
+      columns: [t.tenantId, t.productId],
+      foreignColumns: [products.tenantId, products.id],
+    }).onDelete('cascade'),
+    index('modifier_groups_product_idx').on(t.tenantId, t.productId, t.position),
+    check(
+      'modifier_groups_select_check',
+      sql`${t.minSelect} >= 0 AND ${t.maxSelect} >= 1 AND ${t.minSelect} <= ${t.maxSelect}`,
+    ),
+  ],
+);
+
+// MNU-01: one option of a group, the price change it makes (down too, "No onion -10") and whether it is chosen when the
+// order says nothing of its group (MNU-02's default).
+export const modifierOptions = tenant.table(
+  'modifier_options',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    tenantId: uuid('tenant_id').notNull(),
+    groupId: uuid('group_id').notNull(),
+    name: varchar('name', { length: MODIFIER_NAME_MAX_LENGTH }).notNull(),
+    priceChange: numeric('price_change', { precision: 10, scale: 2 }).notNull().default('0'),
+    isDefault: boolean('is_default').notNull().default(false),
+    position: smallint('position').notNull(),
+  },
+  (t) => [
+    foreignKey({
+      name: 'modifier_options_group_fk',
+      columns: [t.tenantId, t.groupId],
+      foreignColumns: [modifierGroups.tenantId, modifierGroups.id],
+    }).onDelete('cascade'),
+    index('modifier_options_group_idx').on(t.tenantId, t.groupId, t.position),
+  ],
+);
+
+export type SelectModifierGroup = typeof modifierGroups.$inferSelect;
+export type SelectModifierOption = typeof modifierOptions.$inferSelect;
+
 export const productCategories = tenant.table(
   'product_categories',
   {
