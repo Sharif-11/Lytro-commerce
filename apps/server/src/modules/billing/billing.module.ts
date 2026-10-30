@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { IdempotencyModule } from '../../common/idempotency/idempotency.module';
 import { DrizzleAddonsStore } from '../../database/adapters/addons.adapter';
 import {
   DrizzleBillingTermsStore,
@@ -74,6 +75,7 @@ import {
     InventoryModule,
     OrdersModule,
     ShoppersModule,
+    IdempotencyModule,
     CatalogueModule,
     DeliveryModule,
     PublicApiModule,

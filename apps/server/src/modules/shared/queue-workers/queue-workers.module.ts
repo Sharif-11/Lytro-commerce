@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { IdempotencyModule } from '../../../common/idempotency/idempotency.module';
 import { BillingModule } from '../../billing/billing.module';
 import { DataExportModule } from '../../data-export/data-export.module';
 import { InventoryModule } from '../../inventory/inventory.module';
@@ -19,6 +20,7 @@ import { MediaReconcileTickWorker } from './services/media-reconcile-tick-worker
 import { UsageModule } from '../../usage/usage.module';
 import { DomainsModule } from '../../domains/domains.module';
 import { DomainCheckTickWorker } from './services/domain-check-tick-worker';
+import { IdempotencyPurgeTickWorker } from './services/idempotency-purge-tick-worker';
 import { PublicApiModule } from '../../public-api/public-api.module';
 import { MetaPurchaseWorker } from './services/meta-purchase-worker';
 import { PackAutoBuyWorker } from './services/pack-auto-buy-worker';
@@ -40,6 +42,7 @@ import { UsageNoticeWorker } from './services/usage-notice-worker';
     PublicApiModule,
     UsageModule,
     DomainsModule,
+    IdempotencyModule,
   ],
   providers: [
     SmsRetryWorker,
@@ -56,6 +59,7 @@ import { UsageNoticeWorker } from './services/usage-notice-worker';
     PackAutoBuyWorker,
     MetaPurchaseWorker,
     DomainCheckTickWorker,
+    IdempotencyPurgeTickWorker,
   ],
 })
 export class QueueWorkersModule {}

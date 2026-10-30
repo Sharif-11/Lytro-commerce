@@ -60,6 +60,16 @@ export class IdempotencyService {
     return this.claimOn(this.database.handle.db, claim, now);
   }
 
+  /** API-11, KNOWN-GAPS §106: the daily purge of every key past its 24 hours; how many went. */
+  purgeExpired(now: Date): Promise<number> {
+    return this.repo.deleteAllExpired(this.database.handle.db, now);
+  }
+
+  /** LIF-19: the day-60 deletion job's step for the shop's keys and their stored replies. */
+  async deleteAllForTenant(tenantId: string): Promise<void> {
+    await this.repo.deleteAllForTenant(this.database.handle.db, tenantId);
+  }
+
   async complete(claim: IdempotencyClaim, status: number, body: unknown): Promise<void> {
     await this.repo.complete(this.database.handle.db, claim.scope, claim.key, status, body);
   }

@@ -675,6 +675,13 @@ describeIfDatabase('LIF-19: day-60 business-data deletion', () => {
     const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
     await seedOwner(tenantId, `018${(nextRank += 1).toString().slice(0, 8)}`);
     await seedCatalogue(tenantId);
+    // KNOWN-GAPS §106: a stored reply, still within its 24 hours, goes with the shop's data.
+    await admin.query(
+      `INSERT INTO control.idempotency_keys (tenant_id, caller, key, path, request_hash, response_status, response_body,
+         expires_at) VALUES ($1, 'user:owner', 'k1', '/orders', 'h', 201, '{"customerPhone":"01711000000"}',
+         now() + interval '1 day')`,
+      [tenantId],
+    );
     const platformBefore = await admin.query<{ total: number }>(
       'SELECT count(*)::int AS total FROM tenant.attributes WHERE tenant_id IS NULL',
     );
@@ -688,6 +695,10 @@ describeIfDatabase('LIF-19: day-60 business-data deletion', () => {
     // activity log, which the application role cannot delete from (AUD-03; KNOWN-GAPS §68).
     const left = await tablesHolding(tenantId);
     expect(left.filter((table) => !['balance_ledger', 'activity_log'].includes(table))).toEqual([]);
+    const keys = await admin.query('SELECT 1 FROM control.idempotency_keys WHERE tenant_id = $1', [
+      tenantId,
+    ]);
+    expect(keys.rowCount).toBe(0);
     // The platform's own library is untouched.
     const platformAfter = await admin.query<{ total: number }>(
       'SELECT count(*)::int AS total FROM tenant.attributes WHERE tenant_id IS NULL',
