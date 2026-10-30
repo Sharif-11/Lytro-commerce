@@ -311,18 +311,21 @@ export const comboParts = tenant.table(
   ],
 );
 
-// CMB-01, CMB-08: the variants a part may be -- exactly one makes a fixed part. A variant in use cannot be hard-deleted
-// (no cascade): the delete is refused naming the combos (PRD-13). A trigger keeps out combos and stock holders, and
-// more than 100 a part (CMB-10).
+// CMB-01, CMB-08: the variants a part may be -- exactly one makes a fixed part -- each in its place, the order the shop
+// listed them and the order shoppers choose from. A variant in use cannot be hard-deleted (no cascade): the delete is
+// refused naming the combos (PRD-13). A trigger keeps out combos and stock holders, and more than 100 a part (CMB-10).
 export const comboPartVariants = tenant.table(
   'combo_part_variants',
   {
     tenantId: uuid('tenant_id').notNull(),
     partId: uuid('part_id').notNull(),
     variantId: uuid('variant_id').notNull(),
+    position: smallint('position').notNull(),
   },
   (t) => [
     primaryKey({ columns: [t.partId, t.variantId] }),
+    unique('combo_part_variants_position_key').on(t.partId, t.position),
+    check('combo_part_variants_position_check', sql`${t.position} BETWEEN 1 AND 100`),
     foreignKey({
       name: 'combo_part_variants_part_fk',
       columns: [t.tenantId, t.partId],

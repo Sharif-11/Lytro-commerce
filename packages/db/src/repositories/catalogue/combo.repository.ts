@@ -76,7 +76,7 @@ export interface ComboUseRow {
 export class ComboRepository {
   constructor(private readonly transactions: TransactionRunner) {}
 
-  /** CMB-01: the combo's parts, the whole list replaced, in the order given (positions 1 up). */
+  /** CMB-01: the combo's parts, the whole list replaced, each part and its variants in the order given. */
   async replaceParts(
     tx: Transaction,
     tenantId: string,
@@ -93,13 +93,18 @@ export class ComboRepository {
         .values({ tenantId, comboProductId, position: index + 1, quantity: part.quantity })
         .returning({ id: comboParts.id });
       if (!row) throw new Error('the part was not added');
-      await tx
-        .insert(comboPartVariants)
-        .values(part.variantIds.map((variantId) => ({ tenantId, partId: row.id, variantId })));
+      await tx.insert(comboPartVariants).values(
+        part.variantIds.map((variantId, at) => ({
+          tenantId,
+          partId: row.id,
+          variantId,
+          position: at + 1,
+        })),
+      );
     }
   }
 
-  /** The parts of these combos, in order, each with its variants. */
+  /** The parts of these combos, in order, each with its variants in the order the shop listed them. */
   async listParts(
     tx: Transaction,
     tenantId: string,
@@ -136,8 +141,7 @@ export class ComboRepository {
       .orderBy(
         asc(comboParts.comboProductId),
         asc(comboParts.position),
-        asc(productVariants.createdAt),
-        asc(productVariants.id),
+        asc(comboPartVariants.position),
       );
     const parts = new Map<string, ComboPartRow>();
     for (const row of rows) {
@@ -232,8 +236,7 @@ export class ComboRepository {
       .orderBy(
         asc(comboParts.comboProductId),
         asc(comboParts.position),
-        asc(productVariants.createdAt),
-        asc(productVariants.id),
+        asc(comboPartVariants.position),
       );
     return rows.map((row) => ({
       comboProductId: row.comboProductId,
@@ -414,7 +417,7 @@ export class ComboRepository {
     await tx.insert(orderLineComponents).values(rows.map((row) => ({ ...row, tenantId })));
   }
 
-  /** The components of these lines, by line and part. */
+  /** The components of these lines, by line, each in its place. */
   async listComponents(
     tx: Transaction,
     tenantId: string,
@@ -431,11 +434,7 @@ export class ComboRepository {
           inArray(orderLineComponents.orderLineId, orderLineIds),
         ),
       )
-      .orderBy(
-        asc(orderLineComponents.orderLineId),
-        asc(orderLineComponents.partPosition),
-        asc(orderLineComponents.productName),
-      );
+      .orderBy(asc(orderLineComponents.orderLineId), asc(orderLineComponents.position));
   }
 
   /** ORD-11: an edited order's lines are written again, their components with them. */

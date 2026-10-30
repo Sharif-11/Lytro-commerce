@@ -326,14 +326,16 @@ export const orderLines = tenant.table(
 );
 
 // CMB-03, CMB-04: a combo line's components as ordered -- each variant of each part, its name and options copied at
-// order time, and its units in one combo (a choice part picked M-Red, M-Red, L-Black: M-Red 2 and L-Black 1). The
-// variant is a convenience link like the line's own; the line's reservations and stock movements are per variant.
+// order time, and its units in one combo (a choice part picked M-Red, M-Red, L-Black: M-Red 2 and L-Black 1), each in
+// its place on the line: the parts in order, a choice's variants as first picked. The variant is a convenience link
+// like the line's own; the line's reservations and stock movements are per variant.
 export const orderLineComponents = tenant.table(
   'order_line_components',
   {
     id: uuid('id').primaryKey().defaultRandom(),
     tenantId: uuid('tenant_id').notNull(),
     orderLineId: uuid('order_line_id').notNull(),
+    position: integer('position').notNull(),
     partPosition: integer('part_position').notNull(),
     productId: uuid('product_id'),
     variantId: uuid('variant_id'),
@@ -350,6 +352,8 @@ export const orderLineComponents = tenant.table(
       columns: [t.tenantId, t.orderLineId],
       foreignColumns: [orderLines.tenantId, orderLines.id],
     }).onDelete('cascade'),
+    unique('order_line_components_position_key').on(t.orderLineId, t.position),
+    check('order_line_components_position_check', sql`${t.position} > 0`),
     check('order_line_components_quantity_check', sql`${t.quantity} > 0`),
     index('order_line_components_line_idx').on(t.tenantId, t.orderLineId),
     index('order_line_components_variant_idx').on(t.tenantId, t.variantId),

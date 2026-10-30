@@ -4179,6 +4179,12 @@
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
+        },
+        "position": {
+          "name": "position",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
         }
       },
       "indexes": {
@@ -4232,9 +4238,20 @@
           "columns": ["part_id", "variant_id"]
         }
       },
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "combo_part_variants_position_key": {
+          "name": "combo_part_variants_position_key",
+          "nullsNotDistinct": false,
+          "columns": ["part_id", "position"]
+        }
+      },
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "combo_part_variants_position_check": {
+          "name": "combo_part_variants_position_check",
+          "value": "\"tenant\".\"combo_part_variants\".\"position\" BETWEEN 1 AND 100"
+        }
+      },
       "isRLSEnabled": false
     },
     "tenant.combo_parts": {
@@ -9164,6 +9181,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "position": {
+          "name": "position",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
         "part_position": {
           "name": "part_position",
           "type": "integer",
@@ -9259,9 +9282,19 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "order_line_components_position_key": {
+          "name": "order_line_components_position_key",
+          "nullsNotDistinct": false,
+          "columns": ["order_line_id", "position"]
+        }
+      },
       "policies": {},
       "checkConstraints": {
+        "order_line_components_position_check": {
+          "name": "order_line_components_position_check",
+          "value": "\"tenant\".\"order_line_components\".\"position\" > 0"
+        },
         "order_line_components_quantity_check": {
           "name": "order_line_components_quantity_check",
           "value": "\"tenant\".\"order_line_components\".\"quantity\" > 0"

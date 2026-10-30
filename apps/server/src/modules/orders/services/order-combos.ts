@@ -181,7 +181,10 @@ export class OrderCombos {
     );
   }
 
-  /** CMB-04: the planned components stored with the lines just written, matched by their place on the order. */
+  /**
+   * CMB-04: the planned components stored with the lines just written, matched by their place on the order; each keeps
+   * its own place on the line -- the parts in order, a choice's variants as first picked.
+   */
   async write(
     tx: Transaction,
     tenantId: string,
@@ -191,7 +194,11 @@ export class OrderCombos {
     const rows = [...planned].flatMap(([position, components]) => {
       const line = lines.find((each) => each.position === position);
       if (!line) throw new Error('every planned combo line is written');
-      return components.map((component) => ({ orderLineId: line.id, ...component }));
+      return components.map((component, at) => ({
+        orderLineId: line.id,
+        position: at + 1,
+        ...component,
+      }));
     });
     await this.store.insertComponents(tx, tenantId, rows);
   }

@@ -3,7 +3,10 @@ CREATE TABLE IF NOT EXISTS "tenant"."combo_part_variants" (
 	"tenant_id" uuid NOT NULL,
 	"part_id" uuid NOT NULL,
 	"variant_id" uuid NOT NULL,
-	CONSTRAINT "combo_part_variants_part_id_variant_id_pk" PRIMARY KEY("part_id","variant_id")
+	"position" smallint NOT NULL,
+	CONSTRAINT "combo_part_variants_part_id_variant_id_pk" PRIMARY KEY("part_id","variant_id"),
+	CONSTRAINT "combo_part_variants_position_key" UNIQUE("part_id","position"),
+	CONSTRAINT "combo_part_variants_position_check" CHECK ("tenant"."combo_part_variants"."position" BETWEEN 1 AND 100)
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "tenant"."combo_parts" (
@@ -22,12 +25,15 @@ CREATE TABLE IF NOT EXISTS "tenant"."order_line_components" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"tenant_id" uuid NOT NULL,
 	"order_line_id" uuid NOT NULL,
+	"position" integer NOT NULL,
 	"part_position" integer NOT NULL,
 	"product_id" uuid,
 	"variant_id" uuid,
 	"product_name" varchar(200) NOT NULL,
 	"attribute_values" jsonb DEFAULT '[]'::jsonb NOT NULL,
 	"quantity" numeric(14, 3) NOT NULL,
+	CONSTRAINT "order_line_components_position_key" UNIQUE("order_line_id","position"),
+	CONSTRAINT "order_line_components_position_check" CHECK ("tenant"."order_line_components"."position" > 0),
 	CONSTRAINT "order_line_components_quantity_check" CHECK ("tenant"."order_line_components"."quantity" > 0)
 );
 --> statement-breakpoint
