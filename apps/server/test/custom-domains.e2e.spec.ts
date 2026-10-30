@@ -416,6 +416,13 @@ describeIfDatabase("a shop's own domain (TEN-09 to TEN-14, DWN-10)", () => {
 
     // Free again, to this shop or any other.
     const other = await growthShop('dom-readd');
+    // SEC-02: another shop sees, checks and removes only its own -- none here, so nothing of this shop's.
+    await add(shop, 'megh-isolated.test');
+    expect(await viewOf(other)).toEqual({ allowed: true, domain: null });
+    expect((await other.post('/domain/check', {})).status).toBe(404);
+    expect((await other.delete('/domain')).status).toBe(404);
+    expect((await viewOf(shop)).domain?.hostname).toBe('megh-isolated.test');
+    expect((await shop.delete('/domain')).status).toBe(200);
     expect((await add(other, 'megh-remove.test')).domain?.state).toBe('pending');
   });
 

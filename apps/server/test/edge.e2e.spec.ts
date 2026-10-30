@@ -39,6 +39,8 @@ beforeAll(async () => {
   process.env['DATA_ENCRYPTION_KEY'] = Buffer.alloc(32, 3).toString('base64');
   // Slice 12a: and with the secret that guards each shop's storefront key.
   process.env['STOREFRONT_SECRET'] = 'storefront-secret-0123456789abcdef0123';
+  // Slice 13: and with the address a shop's root domain points at.
+  process.env['PLATFORM_ADDRESSES'] = '203.0.113.10';
 
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(SMS_PROVIDER)
