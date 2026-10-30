@@ -51,6 +51,8 @@ export interface ComboPartStockRow {
   /** ATR-05, ATR-13: the variant's price and weight, its own or its product's. */
   price: string;
   weightKg: string | null;
+  /** CMB-09: the product's first photo, for "What's inside". */
+  coverMediaId: string | null;
 }
 
 /** A variant a part would be made of, with what decides whether it may be (CMB-01, UOM-03). */
@@ -181,6 +183,9 @@ export class ComboRepository {
         poolAvailable: pool.available,
         price: sql<string>`coalesce(${productVariants.price}, ${products.basePrice})`,
         weightKg: sql<string | null>`coalesce(${productVariants.weightKg}, ${products.weightKg})`,
+        coverMediaId: sql<string | null>`(SELECT pi.media_id FROM tenant.product_images pi
+          WHERE pi.tenant_id = ${products.tenantId} AND pi.product_id = ${products.id}
+          ORDER BY pi.sort_order LIMIT 1)`,
       })
       .from(comboParts)
       .innerJoin(
@@ -248,6 +253,7 @@ export class ComboRepository {
       poolAvailable: row.sharedStock ? (row.poolAvailable ?? '0.000') : null,
       price: row.price,
       weightKg: row.weightKg,
+      coverMediaId: row.coverMediaId,
     }));
   }
 

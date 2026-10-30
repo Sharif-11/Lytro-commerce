@@ -100,6 +100,28 @@ export interface PublicProductDetail {
   advanceAmount: string | null;
   /** DLV-07: the zones it may be delivered to (the shop's zone list names them); empty is anywhere. */
   deliveryZoneIds: string[];
+  /** CMB-06, CMB-09: a combo's "What's inside" and its saving; null for an ordinary product. */
+  combo: PublicCombo | null;
+}
+
+/** CMB-06, CMB-09: what a combo holds, and what it saves against its parts bought apart. */
+export interface PublicCombo {
+  /** "You save ৳X": the parts' prices less the combo's, null unless positive. */
+  saving: string | null;
+  parts: PublicComboPart[];
+}
+
+/**
+ * CMB-09: one part -- its quantity in one combo, its product's name and photo, and its variants on sale: one for a
+ * fixed part; for a choice, those the shopper picks from, one per unit, each marked whether it can be had now.
+ */
+export interface PublicComboPart {
+  position: number;
+  quantity: string;
+  productName: string;
+  image: ImageView | null;
+  choice: boolean;
+  variants: { variantId: string; productName: string; label: string; available: boolean }[];
 }
 
 /** PRD-03: a visible category, with its visible subcategories in the shop's order. */

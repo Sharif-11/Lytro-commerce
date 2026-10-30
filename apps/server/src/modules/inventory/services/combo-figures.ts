@@ -28,8 +28,8 @@ function isLive(row: ComboPartStockRow): boolean {
   return row.productActive && !row.productDeleted && row.variantActive && !row.variantRetired;
 }
 
-/** CMB-02: the variant's whole units free to sell; null when its stock is not counted, so it never limits. */
-function unitsOf(row: ComboPartStockRow): number | null {
+/** CMB-02, CMB-09: the variant's whole units free to sell; null when its stock is not counted, so it never limits. */
+export function unitsOf(row: ComboPartStockRow): number | null {
   if (!isLive(row)) return 0;
   if (row.stockTracking !== StockTracking.Tracked) return null;
   if (row.sharedStock) return packsOf(row.poolAvailable ?? '0', row.packAmount ?? '0');

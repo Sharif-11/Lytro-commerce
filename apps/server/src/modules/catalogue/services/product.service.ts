@@ -17,6 +17,7 @@ import {
   ItemCondition,
   StockState,
   StockTracking,
+  StockUnit,
   TenantState,
   VARIANT_DATA_TYPES,
   STOCK_HOLDER_KEY,
@@ -1445,7 +1446,11 @@ export class ProductService {
       name: input.name,
       description: input.description ?? null,
       basePrice: String(input.basePrice),
-      stockUnit: input.stockUnit ?? defaults.stockUnit,
+      // CMB-03: combos are ordered whole, so a combo is counted in pieces.
+      stockUnit:
+        input.kind === ProductKind.Combo
+          ? StockUnit.Piece
+          : (input.stockUnit ?? defaults.stockUnit),
       stockTracking,
       batchTracked,
       serialTracked,
@@ -1989,6 +1994,7 @@ export class ProductService {
           stockState: variant.stockState,
           stockUnit: detail.stockUnit,
           stockTracking: detail.stockTracking,
+          kind: detail.kind,
           packAmount: detail.sharedStock ? variant.packAmount : null,
           price: effective.price,
           weightKg: effective.weightKg,

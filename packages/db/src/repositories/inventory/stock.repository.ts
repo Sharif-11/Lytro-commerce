@@ -14,11 +14,14 @@ import {
 } from 'drizzle-orm';
 import { StockReason, type StockState, type StockUnit } from '@lytronix/validators';
 import {
+  orderLines,
+  orders,
   productVariants,
   products,
   stockBatches,
   stockLevels,
   stockMovements,
+  stockReservations,
   users,
   type InsertStockMovement,
   type SelectProduct,
@@ -136,6 +139,11 @@ export interface StockHistoryRow extends SelectStockMovement {
   actorName: string | null;
   batchCode: string | null;
   expiresOn: string | null;
+  /** CMB-05: the order a sale or return was for, while it is kept. */
+  orderId: string | null;
+  orderNumber: string | null;
+  /** CMB-05: the combo it went in, when the line was one. */
+  comboName: string | null;
 }
 
 // INV-01, INV-03, INV-09, INV-10: a shop's stock levels and its movement ledger. Every method sets the shop's tenant
@@ -409,7 +417,10 @@ export class StockRepository {
       .where(and(eq(stockLevels.tenantId, tenantId), inArray(stockLevels.variantId, variantIds)));
   }
 
-  /** INV-09: a variant's movements, newest first, with the staff member who made each. */
+  /**
+   * INV-09: a variant's movements, newest first, with the staff member who made each. A sale or return names its order
+   * through its reservation, and the combo it went in (CMB-05).
+   */
   async listHistory(
     tx: Transaction,
     tenantId: string,
@@ -424,6 +435,11 @@ export class StockRepository {
         actorName: users.name,
         batchCode: stockBatches.batchCode,
         expiresOn: stockBatches.expiresOn,
+        orderId: orders.id,
+        orderNumber: orders.orderNumber,
+        comboName: sql<string | null>`CASE WHEN EXISTS (SELECT 1 FROM tenant.order_line_components c
+          WHERE c.tenant_id = ${orderLines.tenantId} AND c.order_line_id = ${orderLines.id})
+          THEN ${orderLines.productName} END`,
       })
       .from(stockMovements)
       .leftJoin(
@@ -437,6 +453,28 @@ export class StockRepository {
           eq(stockBatches.id, stockMovements.batchId),
         ),
       )
+      .leftJoin(
+        stockReservations,
+        and(
+          eq(stockMovements.referenceType, 'reservation'),
+          eq(stockReservations.tenantId, stockMovements.tenantId),
+          eq(stockReservations.id, stockMovements.referenceId),
+        ),
+      )
+      .leftJoin(
+        orders,
+        and(
+          eq(orders.tenantId, stockReservations.tenantId),
+          eq(orders.id, stockReservations.orderId),
+        ),
+      )
+      .leftJoin(
+        orderLines,
+        and(
+          eq(orderLines.tenantId, stockReservations.tenantId),
+          eq(orderLines.id, stockReservations.orderLineId),
+        ),
+      )
       .where(own)
       .orderBy(desc(stockMovements.id))
       .offset(page.offset)
@@ -448,6 +486,9 @@ export class StockRepository {
         actorName: row.actorName,
         batchCode: row.batchCode,
         expiresOn: row.expiresOn,
+        orderId: row.orderId,
+        orderNumber: row.orderNumber,
+        comboName: row.comboName,
       })),
       total: totals[0]?.total ?? 0,
     };

@@ -311,6 +311,8 @@ export interface OrderableVariant {
   stockState: StockState;
   stockUnit: StockUnit;
   stockTracking: StockTracking;
+  /** CMB-03: a combo's line reserves, ships and returns its components, not itself. */
+  kind: ProductKind;
   /** INV-24: how much of the shared stock one unit uses; null unless the product shares its stock. */
   packAmount: string | null;
   price: string;

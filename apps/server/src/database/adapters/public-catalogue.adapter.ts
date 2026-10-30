@@ -1,7 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
   CategoryRepository,
+  ComboRepository,
   PublicCatalogueRepository,
+  type ComboPartStockRow,
   TransactionRunner,
   type CatalogueVersions,
   type CategoryProductCount,
@@ -27,6 +29,7 @@ export class DrizzlePublicCatalogueStore implements PublicCatalogueStore {
     @Inject(TransactionRunner) private readonly transactions: TransactionRunner,
     @Inject(PublicCatalogueRepository) private readonly catalogue: PublicCatalogueRepository,
     @Inject(CategoryRepository) private readonly categories: CategoryRepository,
+    @Inject(ComboRepository) private readonly combos: ComboRepository,
   ) {}
 
   run<T>(work: (tx: Transaction) => Promise<T>): Promise<T> {
@@ -47,6 +50,14 @@ export class DrizzlePublicCatalogueStore implements PublicCatalogueStore {
 
   listCategories(tx: Transaction, tenantId: string): Promise<CategoryRecord[]> {
     return this.categories.listCategories(tx, tenantId);
+  }
+
+  listComboPartStock(
+    tx: Transaction,
+    tenantId: string,
+    comboIds: string[],
+  ): Promise<ComboPartStockRow[]> {
+    return this.combos.listPartStock(tx, tenantId, comboIds);
   }
 
   countCategoryProducts(tx: Transaction, tenantId: string): Promise<CategoryProductCount[]> {

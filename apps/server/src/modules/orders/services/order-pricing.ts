@@ -5,6 +5,7 @@ import {
   FieldProblemCode,
   FulfilmentType,
   PaymentPolicy,
+  ProductKind,
   ServerFieldProblemCode,
   StockState,
   type DeliveryEstimateInput,
@@ -19,6 +20,7 @@ import {
 import { ShopDeliveryRateService } from '../../balance/services/shop-delivery-rate.service';
 import { ProductService } from '../../catalogue/services/product.service';
 import type { OrderableVariant } from '../../catalogue/types/catalogue';
+import { comboFigures } from '../../inventory/services/combo-figures';
 import { DeliveryZoneService } from '../../delivery/services/delivery-zone.service';
 import { LocationService } from '../../delivery/services/location.service';
 import type { ResolvedZoneView } from '../../delivery/types/delivery';
@@ -216,11 +218,24 @@ export class OrderPricing {
       sellable.map((row) => row.productId),
     );
     const wanted = new Set(sellable.map((row) => row.variantId));
-    return new Map(
-      read
-        .filter((variant) => wanted.has(variant.variantId) && !variant.archived)
-        .map((variant) => [variant.variantId, variant]),
+    const found = read.filter((variant) => wanted.has(variant.variantId) && !variant.archived);
+    // CMB-07: a combo with no weight of its own weighs what its parts do, each choice at its heaviest.
+    const unweighed = found.filter(
+      (variant) => variant.kind === ProductKind.Combo && variant.weightKg === null,
     );
+    if (unweighed.length > 0) {
+      const figures = comboFigures(
+        await this.orders.listComboPartStock(
+          tx,
+          tenantId,
+          unweighed.map((variant) => variant.productId),
+        ),
+      );
+      for (const variant of unweighed) {
+        variant.weightKg = figures.get(variant.productId)?.weightKg ?? null;
+      }
+    }
+    return new Map(found.map((variant) => [variant.variantId, variant]));
   }
 
   /** DLV-02: the zone the thana falls in, and the shop's rate per kg, as they stand now. */

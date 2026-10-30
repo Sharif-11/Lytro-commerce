@@ -412,6 +412,10 @@ export class StockService implements ProductStockHooks {
             row.referenceType !== null && row.referenceId !== null
               ? { type: row.referenceType, id: row.referenceId }
               : null,
+          order:
+            row.orderId !== null
+              ? { id: row.orderId, number: row.orderNumber, combo: row.comboName }
+              : null,
           batch:
             row.batchId !== null
               ? { id: row.batchId, batchCode: row.batchCode, expiresOn: row.expiresOn }

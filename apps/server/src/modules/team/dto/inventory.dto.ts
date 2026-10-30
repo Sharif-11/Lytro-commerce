@@ -124,6 +124,10 @@ export const stockHistoryPageSchema = z.object({
       reason: z.nativeEnum(StockReason),
       unitCost: z.string().nullable().optional(),
       reference: z.object({ type: z.string(), id: z.string() }).nullable(),
+      // CMB-05: a sale's or return's order, and the combo it went in.
+      order: z
+        .object({ id: z.string(), number: z.string().nullable(), combo: z.string().nullable() })
+        .nullable(),
       batch: movedBatchSchema.nullable(),
       serials: z.array(z.string()),
       note: z.string().nullable(),

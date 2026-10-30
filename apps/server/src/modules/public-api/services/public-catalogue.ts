@@ -5,6 +5,7 @@ import {
   AttributeRole,
   FieldProblemCode,
   PlatformSettingKey,
+  ProductKind,
   StockState,
   type Language,
   type PublicProductListQuery,
@@ -23,6 +24,8 @@ import type {
   CatalogueVersionView,
   PublicCategory,
   PublicOptionValue,
+  PublicCombo,
+  PublicComboPart,
   PublicProductDetail,
   PublicProductPage,
 } from '../types/public-catalogue';
@@ -31,6 +34,7 @@ import { CatalogueCache } from './catalogue-cache';
 import { listRequestOf, cursorOf, positionOf, type ListRequest } from './catalogue-query';
 import { CatalogueVersionReader } from './catalogue-version-reader';
 import { DomainService } from '../../domains/services/domain.service';
+import { comboFigures, comboSaving, unitsOf } from '../../inventory/services/combo-figures';
 
 // Bumped whenever an answer's shape changes, so no shopper's browser keeps an old one under an unchanged tag. 2: a list
 // row's swatches and creation time, a category's product count (Slice 12b).
@@ -122,7 +126,54 @@ export class PublicCatalogue {
     return this.answer(shop, lang, ['product', link], maxAge, null, async () => {
       const found = await this.store.run((tx) => this.store.findBySlug(tx, shop.row.id, link));
       if (!found) throw new ApiError('not_found', 'ProductNotFound', {});
-      return publicDetail(await this.products.get(shop.row.id, found.productId));
+      const detail = await this.products.get(shop.row.id, found.productId);
+      const combo =
+        detail.kind === ProductKind.Combo ? await this.comboOf(shop.row.id, detail) : null;
+      return { ...publicDetail(detail), combo };
+    });
+  }
+
+  /**
+   * CMB-06, CMB-09: a combo's "What's inside" -- each part with its product's photo and its variants on sale, each
+   * marked whether it can be had now -- and the saving against its parts' prices.
+   */
+  private comboOf(tenantId: string, detail: ProductDetail): Promise<PublicCombo> {
+    return this.store.run(async (tx) => {
+      const rows = await this.store.listComboPartStock(tx, tenantId, [detail.id]);
+      const stock = new Map(rows.map((row) => [`${String(row.position)} ${row.variantId}`, row]));
+      const photos = await this.images.viewsOf(
+        tx,
+        tenantId,
+        rows.map((row) => row.coverMediaId),
+      );
+      const parts = detail.parts.map((part): PublicComboPart => {
+        const offered = part.variants.flatMap((variant) => {
+          const row = stock.get(`${String(part.position)} ${variant.variantId}`);
+          if (!row || !row.productActive || !row.variantActive || !variant.available) return [];
+          const units = unitsOf(row);
+          return [
+            {
+              variantId: variant.variantId,
+              productName: variant.productName,
+              label: variant.label,
+              available: units === null || units > 0,
+            },
+          ];
+        });
+        const first = rows.find((row) => row.position === part.position);
+        return {
+          position: part.position,
+          quantity: part.quantity,
+          productName: part.variants[0]?.productName ?? '',
+          image: photos.get(first?.coverMediaId ?? '') ?? null,
+          choice: part.variants.length > 1,
+          variants: offered,
+        };
+      });
+      return {
+        saving: comboSaving(comboFigures(rows).get(detail.id), detail.basePrice),
+        parts,
+      };
     });
   }
 
@@ -297,7 +348,7 @@ function visibleCategories(rows: readonly CategoryRecord[]): CategoryRecord[] {
  * PRD-09, ATR-07: the dashboard's product page with only what the public may see. Variants not on sale are left out;
  * one sold out stays, marked unavailable. A choice offers only the values its variants on sale use.
  */
-function publicDetail(detail: ProductDetail): PublicProductDetail {
+function publicDetail(detail: ProductDetail): Omit<PublicProductDetail, 'combo'> {
   const onSale = detail.variants.filter((variant) => variant.active);
   const used = new Set(onSale.flatMap((variant) => variant.optionIds));
   return {

@@ -1,5 +1,8 @@
 import type {
+  ComboPartStockRow,
   InsertOrder,
+  InsertOrderLineComponent,
+  SelectOrderLineComponent,
   NewOrderCall,
   NewOrderHistory,
   NewOrderPayment,
@@ -117,6 +120,23 @@ export interface OrderStore {
   updateLine(tx: Transaction, tenantId: string, id: string, patch: OrderLinePatch): Promise<void>;
   deleteLines(tx: Transaction, tenantId: string, ids: string[]): Promise<void>;
   listLines(tx: Transaction, tenantId: string, orderIds: string[]): Promise<OrderLineRecord[]>;
+  /** CMB-03, CMB-04: a combo line's components as ordered, written with the line. */
+  insertComponents(
+    tx: Transaction,
+    tenantId: string,
+    rows: Omit<InsertOrderLineComponent, 'tenantId'>[],
+  ): Promise<void>;
+  listComponents(
+    tx: Transaction,
+    tenantId: string,
+    orderLineIds: string[],
+  ): Promise<SelectOrderLineComponent[]>;
+  /** CMB-02, CMB-03, CMB-07: every allowed variant of these combos' parts, with its stock and weight. */
+  listComboPartStock(
+    tx: Transaction,
+    tenantId: string,
+    comboIds: string[],
+  ): Promise<ComboPartStockRow[]>;
   insertHistory(tx: Transaction, tenantId: string, rows: NewOrderHistory[]): Promise<void>;
   listHistory(tx: Transaction, tenantId: string, orderId: string): Promise<OrderHistoryRecord[]>;
   insertCall(tx: Transaction, tenantId: string, values: NewOrderCall): Promise<OrderCallRecord>;

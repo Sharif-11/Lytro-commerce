@@ -83,6 +83,25 @@ const orderItemSchema = z.object({
   deliveryCharge: z.string(),
   paymentPolicy: z.nativeEnum(PaymentPolicy),
   advance: z.string(),
+  // CMB-04: a combo line's components as ordered; empty for any other line.
+  components: z.array(
+    z.object({
+      partPosition: z.number(),
+      productId: z.string().nullable(),
+      variantId: z.string().nullable(),
+      productName: z.string(),
+      attributes: z.array(
+        z.object({
+          name: z.string(),
+          value: z.string(),
+          dataType: z.nativeEnum(AttributeDataType),
+          unitKind: z.string().nullable(),
+          variantDefining: z.boolean(),
+        }),
+      ),
+      quantity: z.string(),
+    }),
+  ),
 });
 
 const orderViewSchema = z.object({

@@ -1,7 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { NewOrderHistory, OrderPatch, Transaction } from '@lytronix/db';
+import type {
+  NewOrderHistory,
+  OrderPatch,
+  SelectOrderLineComponent,
+  Transaction,
+} from '@lytronix/db';
 import {
   AuditAction,
+  FieldProblemCode,
   FulfillmentStatus,
   FulfilmentType,
   OrderHistoryField,
@@ -23,9 +29,10 @@ import { CustomerService } from '../../customers/services/customer.service';
 import { milli } from '../../inventory/services/stock-state';
 import { ReservationService } from '../../inventory/services/reservation.service';
 import { StockReturnService } from '../../inventory/services/stock-return.service';
+import type { ReservationRecord } from '../../inventory/types/inventory';
 import type { OrderStore } from '../ports/order-store';
 import { ORDER_STORE } from '../tokens';
-import type { OrderRecord, OrderView } from '../types/orders';
+import type { OrderLineRecord, OrderRecord, OrderView } from '../types/orders';
 import { HandlingQuota, type HandlingPassed, type HandlingShop } from './handling-quota';
 import { OrderService } from './order.service';
 import { PaymentRecorder } from './payment-recorder';
@@ -37,7 +44,7 @@ function quantityText(units: number): string {
 /** How a whole order leaves the shop by hand (D4-7): with a courier, or handed to its customer at the counter. */
 interface Departure {
   type: 'ship' | 'hand_over';
-  serials: { lineId: string; serials: string[] }[];
+  serials: { lineId: string; variantId?: string; serials: string[] }[];
   courier: Pick<OrderRecord, 'courierName' | 'trackingCode' | 'trackingLink'> | null;
 }
 
@@ -147,11 +154,13 @@ export class OrderFulfilment {
       const lines = new Map(
         (await this.store.listLines(tx, tenantId, [order.id])).map((line) => [line.id, line]),
       );
-      const consumed = new Map(
-        (await this.reservations.listForOrder(tx, tenantId, order.id))
-          .filter((held) => held.status === ReservationStatus.Consumed)
-          .map((held) => [held.orderLineId, held.id]),
-      );
+      const consumed = new Map<string, ReservationRecord[]>();
+      for (const held of await this.reservations.listForOrder(tx, tenantId, order.id)) {
+        if (held.status !== ReservationStatus.Consumed) continue;
+        consumed.set(held.orderLineId, [...(consumed.get(held.orderLineId) ?? []), held]);
+      }
+      // CMB-05: a combo line's components, as ordered.
+      const components = await this.store.listComponents(tx, tenantId, [...lines.keys()]);
       const notes: string[] = [];
       for (const [index, item] of input.items.entries()) {
         const line = lines.get(item.lineId);
@@ -161,6 +170,33 @@ export class OrderFulfilment {
               field: `items.${String(index)}.lineId`,
               problem: ServerFieldProblemCode.NotFound,
               messageKey: 'OrderItemNotFound',
+            },
+          ]);
+        }
+        const own = components.filter((component) => component.orderLineId === line.id);
+        if (own.length > 0) {
+          notes.push(
+            await this.returnCombo(
+              tx,
+              tenantId,
+              line,
+              own,
+              consumed.get(line.id) ?? [],
+              item,
+              index,
+              who,
+            ),
+          );
+          const returned = milli(line.returnedQuantity) + milli(String(item.sellable));
+          lines.set(line.id, { ...line, returnedQuantity: quantityText(returned) });
+          continue;
+        }
+        if (item.components !== undefined) {
+          throw new FieldsError([
+            {
+              field: `items.${String(index)}.components`,
+              problem: FieldProblemCode.NotAllowed,
+              messageKey: 'ComboComponentNotOnLine',
             },
           ]);
         }
@@ -175,7 +211,7 @@ export class OrderFulfilment {
             { product: line.productName },
           );
         }
-        const reservationId = consumed.get(line.id);
+        const reservationId = consumed.get(line.id)?.[0]?.id;
         if (reservationId !== undefined) {
           await this.returns.receive(
             tx,
@@ -335,6 +371,97 @@ export class OrderFulfilment {
     return passed;
   }
 
+  /**
+   * CMB-05 (agreed 2026-10-30: whole combos only): `sellable` counts the combos that came back; every component returns
+   * its units of them, sellable unless named damaged, with its serials. The line counts its combos back.
+   */
+  private async returnCombo(
+    tx: Transaction,
+    tenantId: string,
+    line: OrderLineRecord,
+    components: SelectOrderLineComponent[],
+    consumed: ReservationRecord[],
+    item: ReturnOrderInput['items'][number],
+    index: number,
+    who: ResolvedActor,
+  ): Promise<string> {
+    const at = (field: string) => `items.${String(index)}.${field}`;
+    const combos = milli(String(item.sellable));
+    if (milli(String(item.damaged)) > 0 || combos % 1000 !== 0 || combos === 0) {
+      throw new FieldsError([
+        {
+          field: at('sellable'),
+          problem: FieldProblemCode.NotAllowed,
+          messageKey: 'ComboReturnsWhole',
+        },
+      ]);
+    }
+    const returned = milli(line.returnedQuantity) + combos;
+    if (returned > milli(line.quantity)) {
+      throw new ApiError('conflict', 'MoreReturnedThanShipped', { lineId: line.id }, undefined, {
+        product: line.productName,
+      });
+    }
+    const perCombo = new Map<string, number>();
+    for (const component of components) {
+      if (component.variantId === null) continue;
+      perCombo.set(
+        component.variantId,
+        (perCombo.get(component.variantId) ?? 0) + milli(component.quantity),
+      );
+    }
+    const named = item.components ?? [];
+    named.forEach((entry, position) => {
+      if (!perCombo.has(entry.variantId)) {
+        throw new FieldsError([
+          {
+            field: at(`components.${String(position)}.variantId`),
+            problem: ServerFieldProblemCode.NotFound,
+            messageKey: 'ComboComponentNotOnLine',
+          },
+        ]);
+      }
+    });
+    const damagedNotes: string[] = [];
+    for (const reservation of consumed) {
+      const per = perCombo.get(reservation.soldVariantId);
+      if (per === undefined) continue;
+      const units = (per * combos) / 1000;
+      const entry = named.find((each) => each.variantId === reservation.soldVariantId);
+      const damaged = milli(String(entry?.damaged ?? 0));
+      if (damaged > units) {
+        throw new ApiError(
+          'conflict',
+          'MoreReturnedThanShipped',
+          { lineId: line.id, variantId: reservation.soldVariantId },
+          undefined,
+          { product: line.productName },
+        );
+      }
+      await this.returns.receive(
+        tx,
+        tenantId,
+        {
+          reservationId: reservation.id,
+          sellable: quantityText(units - damaged),
+          damaged: quantityText(damaged),
+          serials: entry?.serials ?? null,
+        },
+        who,
+      );
+      if (damaged > 0) {
+        const name = components.find(
+          (each) => each.variantId === reservation.soldVariantId,
+        )?.productName;
+        damagedNotes.push(`${name ?? ''} ${quantityText(damaged)} damaged`);
+      }
+    }
+    await this.store.updateLine(tx, tenantId, line.id, {
+      returnedQuantity: quantityText(returned),
+    });
+    return [`${line.productName}: ${quantityText(combos)} back`, ...damagedNotes].join(', ');
+  }
+
   /** INV-14, INV-15: the stock the order holds taken out, each serial-numbered item with the serials named for it. */
   private async takeStockWithin(
     tx: Transaction,
@@ -343,8 +470,8 @@ export class OrderFulfilment {
     serials: Departure['serials'],
     who: ResolvedActor,
   ): Promise<void> {
-    const lines = new Set(
-      (await this.store.listLines(tx, tenantId, [order.id])).map((line) => line.id),
+    const lines = new Map(
+      (await this.store.listLines(tx, tenantId, [order.id])).map((line) => [line.id, line]),
     );
     const problems = serials.flatMap((item, index) =>
       lines.has(item.lineId)
@@ -358,17 +485,42 @@ export class OrderFulfilment {
           ],
     );
     if (problems.length > 0) throw new FieldsError(problems);
-    const named = new Map(serials.map((item) => [item.lineId, item.serials]));
+    // CMB-05: a combo line's serials are named per component (its variant); any other item's by its line alone.
+    const named = new Map(
+      serials.map((item) => [`${item.lineId} ${item.variantId ?? ''}`, item.serials]),
+    );
     const held = (await this.reservations.listForOrder(tx, tenantId, order.id)).filter(
       (reservation) => reservation.status === ReservationStatus.Active,
     );
+    const stray = serials.flatMap((item, index) =>
+      item.variantId === undefined ||
+      held.some(
+        (reservation) =>
+          reservation.orderLineId === item.lineId && reservation.soldVariantId === item.variantId,
+      )
+        ? []
+        : [
+            {
+              field: `serials.${String(index)}.variantId`,
+              problem: ServerFieldProblemCode.NotFound,
+              messageKey: 'ComboComponentNotOnLine' as const,
+            },
+          ],
+    );
+    if (stray.length > 0) throw new FieldsError(stray);
     await this.reservations.consume(
       tx,
       tenantId,
-      held.map((reservation) => ({
-        reservationId: reservation.id,
-        serials: named.get(reservation.orderLineId) ?? null,
-      })),
+      held.map((reservation) => {
+        const own = lines.get(reservation.orderLineId)?.variantId === reservation.soldVariantId;
+        return {
+          reservationId: reservation.id,
+          serials:
+            named.get(`${reservation.orderLineId} ${reservation.soldVariantId}`) ??
+            (own ? named.get(`${reservation.orderLineId} `) : undefined) ??
+            null,
+        };
+      }),
       who,
     );
   }

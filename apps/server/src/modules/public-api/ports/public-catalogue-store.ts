@@ -1,5 +1,6 @@
 import type {
   CatalogueVersions,
+  ComboPartStockRow,
   CategoryProductCount,
   FeedAttributeRow,
   FeedImageRow,
@@ -23,6 +24,12 @@ export interface PublicCatalogueStore {
     slug: string,
   ): Promise<{ productId: string; slug: string } | null>;
   listCategories(tx: Transaction, tenantId: string): Promise<CategoryRecord[]>;
+  /** CMB-09: every allowed variant of these combos' parts, with its stock and its product's first photo. */
+  listComboPartStock(
+    tx: Transaction,
+    tenantId: string,
+    comboIds: string[],
+  ): Promise<ComboPartStockRow[]>;
   /** PRD-03, Slice 12b: each category's number of active products, its subcategories' included. */
   countCategoryProducts(tx: Transaction, tenantId: string): Promise<CategoryProductCount[]>;
   /** ATR-18, Slice 12b: the swatches of these products' list cards. */

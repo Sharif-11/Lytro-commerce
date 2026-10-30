@@ -77,6 +77,18 @@ export interface OrderItemView {
   deliveryCharge: string;
   paymentPolicy: PaymentPolicy;
   advance: string;
+  /** CMB-04: a combo line's components as ordered, each its units in one combo; empty for any other line. */
+  components: OrderComponentView[];
+}
+
+/** CMB-04: one component of a combo line, kept as it was ordered whatever later becomes of the product. */
+export interface OrderComponentView {
+  partPosition: number;
+  productId: string | null;
+  variantId: string | null;
+  productName: string;
+  attributes: LineAttributeSnapshot[];
+  quantity: string;
 }
 
 /** ORD-51: one call to the customer. */
