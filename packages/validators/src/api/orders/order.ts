@@ -5,6 +5,7 @@ import {
   CALL_NOTE_MAX_LENGTH,
   CANCEL_NOTE_MAX_LENGTH,
   CAPTURED_VALUE_MAX_LENGTH,
+  COURIER_NAME_MAX_LENGTH,
   CUSTOMER_NAME_MAX_LENGTH,
   LIST_PAGE_SIZE_MAX,
   ORDER_ADDRESS_MAX_LENGTH,
@@ -13,6 +14,8 @@ import {
   ORDER_PAGE_SIZE,
   SHOPPER_NOTE_MAX_LENGTH,
   TABLE_REF_MAX_LENGTH,
+  TRACKING_CODE_MAX_LENGTH,
+  TRACKING_LINK_MAX_LENGTH,
 } from '../../common/limits';
 import { bdMobileNumber } from '../../common/phone';
 import {
@@ -30,7 +33,9 @@ import {
   catalogueIdSchema,
   positiveQuantityField,
   priceField,
+  quantityField,
 } from '../catalogue/catalogue-common';
+import { serialsField } from '../inventory/stock';
 
 type Ctx = z.RefinementCtx;
 
@@ -281,6 +286,94 @@ export const overrideOrderSchema = z.object({
   note: textField(CALL_NOTE_MAX_LENGTH).optional(),
 });
 export type OverrideOrderInput = z.infer<typeof overrideOrderSchema>;
+
+// ORD-09: a courier's tracking page, http or https.
+const trackingLinkField = z
+  .string()
+  .trim()
+  .max(TRACKING_LINK_MAX_LENGTH)
+  .refine(
+    (value) => {
+      try {
+        return ['http:', 'https:'].includes(new URL(value).protocol);
+      } catch {
+        return false;
+      }
+    },
+    {
+      message: 'Enter the tracking page address.',
+      params: { problem: FieldProblemCode.InvalidUrl },
+    },
+  );
+
+// INV-14, INV-23: the serials leaving with one item, one per unit, as written on the units.
+const itemSerialsSchema = z.object({ lineId: catalogueIdSchema, serials: serialsField });
+
+/** Each item's serials are given once. */
+function serialsOnce(items: { lineId: string }[] | undefined, ctx: Ctx, path: string): void {
+  const seen = new Set<string>();
+  (items ?? []).forEach((item, index) => {
+    if (seen.has(item.lineId)) {
+      refuse(ctx, [path, index, 'lineId'], FieldProblemCode.NotAllowed, 'Listed twice.');
+    }
+    seen.add(item.lineId);
+  });
+}
+
+// POST orders/:id/ship (ORD-09, D4-7, INV-14): a delivery order sent with a courier, the whole order at once -- the
+// courier's name and its tracking code or link, and the serials of any serial-tracked item.
+export const shipOrderSchema = z
+  .object({
+    courierName: textField(COURIER_NAME_MAX_LENGTH),
+    trackingCode: textField(TRACKING_CODE_MAX_LENGTH).optional(),
+    trackingLink: trackingLinkField.optional(),
+    serials: z.array(itemSerialsSchema).max(ORDER_LINES_MAX).optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.trackingCode === undefined && value.trackingLink === undefined) {
+      refuse(ctx, ['trackingCode'], FieldProblemCode.Required, 'A tracking code or link.');
+    }
+    serialsOnce(value.serials, ctx, 'serials');
+  });
+export type ShipOrderInput = z.infer<typeof shipOrderSchema>;
+
+// POST orders/:id/hand-over (agreed 2026-10-30): a takeaway or dine-in order given to its customer -- shipped and
+// delivered in one step -- with the serials of any serial-tracked item.
+export const handOverOrderSchema = z
+  .object({ serials: z.array(itemSerialsSchema).max(ORDER_LINES_MAX).optional() })
+  .superRefine((value, ctx) => {
+    serialsOnce(value.serials, ctx, 'serials');
+  });
+export type HandOverOrderInput = z.infer<typeof handOverOrderSchema>;
+
+// POST orders/:id/returns (ORD-10, INV-17): units of shipped items that came back, each sellable again or damaged, and
+// for a serial-tracked item which serials.
+const returnedItemSchema = z
+  .object({
+    lineId: catalogueIdSchema,
+    sellable: quantityField,
+    damaged: quantityField,
+    serials: z
+      .object({
+        sellable: z.array(z.string().min(1)).max(1000),
+        damaged: z.array(z.string().min(1)).max(1000),
+      })
+      .optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.sellable + value.damaged <= 0) {
+      refuse(ctx, ['sellable'], FieldProblemCode.Required, 'At least one unit.');
+    }
+  });
+export const returnOrderSchema = z
+  .object({
+    items: z.array(returnedItemSchema).min(1).max(ORDER_LINES_MAX),
+    note: textField(CALL_NOTE_MAX_LENGTH).optional(),
+  })
+  .superRefine((value, ctx) => {
+    serialsOnce(value.items, ctx, 'items');
+  });
+export type ReturnOrderInput = z.infer<typeof returnOrderSchema>;
 
 // POST /v1/delivery-estimate (SFT-20, LND-08): a cart's items, and the thana they would go to once it is chosen. Priced
 // by the same function an order is (ORD-06a); before a thana is known the answer is a range across the shop's zones.

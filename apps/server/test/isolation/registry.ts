@@ -262,5 +262,10 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'POST /orders/:id/calls': "another shop's order answers 404",
   'POST /orders/:id/cancel': "another shop's order answers 404 and keeps its stock held",
   'POST /orders/:id/override': "another shop's order answers 404",
+  // Phase 4 Slice 4.3, checked in test/order-fulfilment.e2e.spec.ts.
+  'POST /orders/:id/ship': "another shop's order answers 404 and keeps its stock held",
+  'POST /orders/:id/hand-over': "another shop's order answers 404",
+  'POST /orders/:id/deliver': "another shop's order answers 404",
+  'POST /orders/:id/returns': "another shop's order answers 404",
   'DELETE /orders/:id': "another shop's order answers 404 and is kept",
 };

@@ -10,8 +10,11 @@ const unlimitedInt = () => z.number().int().nonnegative().nullable().optional();
 
 export const planLimitsSchema = z.object({
   products: unlimitedInt(),
+  // QTA-01, QTA-04, QTA-05 (2.1): orders handled -- in a trial's whole life, per billing period, and per Asia/Dhaka day.
+  // Creating an order is never limited by these (QTA-07).
   orders_total: unlimitedInt(),
   orders_handled_monthly: unlimitedInt(),
+  orders_handled_daily: unlimitedInt(),
   // Seats, counting the owner: Trial 1 (owner only), Starter 2 (owner plus one staff member). STF-02.
   staff: unlimitedInt(),
   paired_devices: unlimitedInt(),
@@ -41,6 +44,7 @@ export const LIMIT_WHEN_UNSET: Readonly<Record<UsageLimitKey, number | null>> = 
   products: null,
   orders_total: null,
   orders_handled_monthly: null,
+  orders_handled_daily: null,
   // Seats count the owner, so a shop always has the owner's one (STF-02).
   staff: 1,
   // The trial's one listener device (TRL-03).

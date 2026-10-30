@@ -6,6 +6,7 @@ import {
   type InsertOrder,
   type NewOrderCall,
   type NewOrderHistory,
+  type NewOrderPayment,
   type OrderLinePatch,
   type OrderListFilter,
   type OrderPatch,
@@ -19,6 +20,7 @@ import type {
   OrderCallRecord,
   OrderHistoryRecord,
   OrderLineRecord,
+  OrderPaymentRecord,
   OrderRecord,
   OrderSummaryRow,
   UnnumberedOrder,
@@ -51,6 +53,26 @@ export class DrizzleOrderStore implements OrderStore {
 
   nextNumber(tx: Transaction, tenantId: string, day: string): Promise<number> {
     return this.orders.nextNumber(tx, tenantId, day);
+  }
+
+  lockHandling(tx: Transaction, tenantId: string): Promise<void> {
+    return this.orders.lockHandling(tx, tenantId);
+  }
+
+  countHandled(tx: Transaction, tenantId: string, since: Date | null): Promise<number> {
+    return this.orders.countHandled(tx, tenantId, since);
+  }
+
+  insertPayment(
+    tx: Transaction,
+    tenantId: string,
+    values: NewOrderPayment,
+  ): Promise<OrderPaymentRecord> {
+    return this.orders.insertPayment(tx, tenantId, values);
+  }
+
+  listPayments(tx: Transaction, tenantId: string, orderId: string): Promise<OrderPaymentRecord[]> {
+    return this.orders.listPayments(tx, tenantId, orderId);
   }
 
   insertOrder(tx: Transaction, values: InsertOrder): Promise<UnnumberedOrder | null> {

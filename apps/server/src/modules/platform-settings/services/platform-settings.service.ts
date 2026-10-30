@@ -5,6 +5,7 @@ import {
   PlatformAuditAction,
   PlatformSettingKey,
   FieldProblemCode,
+  OrderLimitMode,
 } from '@lytronix/validators';
 import { FieldsError } from '../../../common/api-error';
 import { PlatformAuditService } from '../../audit/services/platform-audit.service';
@@ -51,12 +52,16 @@ const DESCRIPTIONS: Record<PlatformSettingKey, string> = {
     "The share of a cycle's API requests that, spent in one hour, alerts the owner and the operator (RTE-12).",
   [PlatformSettingKey.PublicOrdersPerShopPerMinute]:
     'How many orders shoppers may place in one shop in a minute, every plan alike (RTE-08).',
+  [PlatformSettingKey.OrderLimitMode]:
+    "Past the period's order-handling limit: block, or allow with a prompt to upgrade (QTA-03).",
 };
 
 // A positive-int check, the only shape any key needs today; slice 7 extends this map, not a switch, as more
 // keys with different value shapes arrive (avoids an exhaustive switch with only one real case for now).
 const isPositiveInt = (value: unknown): boolean =>
   typeof value === 'number' && Number.isInteger(value) && value > 0;
+const isOrderLimitMode = (value: unknown): boolean =>
+  Object.values<unknown>(OrderLimitMode).includes(value);
 
 const VALIDATORS: Record<PlatformSettingKey, (value: unknown) => boolean> = {
   [PlatformSettingKey.TrialDays]: isPositiveInt,
@@ -78,6 +83,7 @@ const VALIDATORS: Record<PlatformSettingKey, (value: unknown) => boolean> = {
   [PlatformSettingKey.UsageGracePercent]: isPositiveInt,
   [PlatformSettingKey.FastSpendPercent]: isPositiveInt,
   [PlatformSettingKey.PublicOrdersPerShopPerMinute]: isPositiveInt,
+  [PlatformSettingKey.OrderLimitMode]: isOrderLimitMode,
 };
 
 function validate(key: PlatformSettingKey, value: unknown): void {

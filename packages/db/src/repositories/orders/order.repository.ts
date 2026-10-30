@@ -26,14 +26,17 @@ import {
   orderCalls,
   orderCounters,
   orderLines,
+  orderPayments,
   orders,
   orderStatusHistory,
   type InsertOrder,
   type InsertOrderLine,
+  type InsertOrderPayment,
   type SelectOrder,
   type SelectOrderCall,
   type SelectOrderHistory,
   type SelectOrderLine,
+  type SelectOrderPayment,
 } from '../../schema';
 import type { Transaction, TransactionRunner } from '../../transactions';
 import { escapeLike } from '../like';
@@ -90,10 +93,12 @@ export type OrderLinePatch = Partial<
     | 'deliveryCharge'
     | 'advance'
     | 'capturedValues'
+    | 'returnedQuantity'
   >
 >;
 
 export type NewOrderLine = Omit<InsertOrderLine, 'tenantId' | 'orderId'>;
+export type NewOrderPayment = Omit<InsertOrderPayment, 'id' | 'tenantId' | 'verifiedAt'>;
 export type NewOrderHistory = Omit<
   typeof orderStatusHistory.$inferInsert,
   'id' | 'tenantId' | 'changedAt'
@@ -397,6 +402,60 @@ export class OrderRepository {
       .orderBy(asc(orders.createdAt), asc(orders.id))
       .limit(limit)
       .then((rows) => rows.map(numbered));
+  }
+
+  /**
+   * QTA-01, QTA-05: the shop's handling is counted one order at a time, so two orders handled at once cannot both pass
+   * the last place under a limit. Held until the transaction ends.
+   */
+  async lockHandling(tx: Transaction, tenantId: string): Promise<void> {
+    await tx.execute(
+      sql`SELECT pg_advisory_xact_lock(hashtextextended(${`order_handling:${tenantId}`}, 0))`,
+    );
+  }
+
+  /** QTA-01, QTA-04, QTA-05: the shop's orders handled at or after `since`, or ever when it is null. */
+  async countHandled(tx: Transaction, tenantId: string, since: Date | null): Promise<number> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const [row] = await tx
+      .select({ handled: count() })
+      .from(orders)
+      .where(
+        and(
+          eq(orders.tenantId, tenantId),
+          since === null ? isNotNull(orders.handledAt) : gte(orders.handledAt, since),
+        ),
+      );
+    return row?.handled ?? 0;
+  }
+
+  /** ORD-15, ORD-22: money recorded for an order. */
+  async insertPayment(
+    tx: Transaction,
+    tenantId: string,
+    values: NewOrderPayment,
+  ): Promise<SelectOrderPayment> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const [row] = await tx
+      .insert(orderPayments)
+      .values({ ...values, tenantId })
+      .returning();
+    if (!row) throw new Error('insert returned no payment');
+    return row;
+  }
+
+  /** ORD-14: an order's payments, oldest first. */
+  async listPayments(
+    tx: Transaction,
+    tenantId: string,
+    orderId: string,
+  ): Promise<SelectOrderPayment[]> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    return tx
+      .select()
+      .from(orderPayments)
+      .where(and(eq(orderPayments.tenantId, tenantId), eq(orderPayments.orderId, orderId)))
+      .orderBy(asc(orderPayments.verifiedAt), asc(orderPayments.id));
   }
 
   /**

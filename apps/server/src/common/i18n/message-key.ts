@@ -496,6 +496,21 @@ export const MESSAGE_KEYS = [
   'ShopDoesNotDeliverHere',
   'ProductNotDeliveredHere',
   'OrderTracked',
+  // Phase 4 Slice 4.3: moving an order by hand -- shipped, handed over, delivered, returned -- and its handling limits
+  // (ORD-09, ORD-10, D4-7, QTA-01 to QTA-06).
+  'OrderNotShipped',
+  'OrderAlreadySent',
+  'OrderOnHoldNotSent',
+  'HandOverInstead',
+  'ShipInstead',
+  'MoreReturnedThanShipped',
+  'OrdersHandlingReached',
+  'OrdersDailyHandlingReached',
+  'OrdersTotalHandlingReached',
+  'OrderShipped',
+  'OrderHandedOver',
+  'OrderDelivered',
+  'OrderReturnRecorded',
 ] as const;
 
 export type MessageKey = (typeof MESSAGE_KEYS)[number];

@@ -346,6 +346,8 @@
   "uPaceOut": "At this pace the allowance runs out on {{date}}; the cycle ends {{end}}.",
   "uPerCycle": "resets each cycle",
   "upgradeDue": "Upgrade · {{amount}} due",
+  "uOrders": "Orders handled this period",
+  "uOrdersDay": "Orders handled today",
   "uProducts": "Products",
   "upTitle": "Upgrade to {{plan}}",
   "uRaiseAddon": "the {{name}} add-on",

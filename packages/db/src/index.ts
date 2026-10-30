@@ -246,6 +246,7 @@ export {
   type NewOrderCall,
   type NewOrderHistory,
   type NewOrderLine,
+  type NewOrderPayment,
   type OrderLinePatch,
   type OrderListFilter,
   type OrderPatch,

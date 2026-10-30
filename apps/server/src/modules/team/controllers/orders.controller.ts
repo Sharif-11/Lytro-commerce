@@ -26,16 +26,21 @@ import { dashboardCaller, requestHashOf } from '../../../common/idempotency/idem
 import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
 import { DashboardGuard, type DashboardRequest } from '../../identity/guards/dashboard.guard';
 import { SessionGuard } from '../../identity/guards/session.guard';
+import { OrderFulfilment } from '../../orders/services/order-fulfilment';
 import { OrderService } from '../../orders/services/order.service';
+import type { HandlingShop } from '../../orders/services/handling-quota';
 import type { OrderPage, OrderQuote, OrderView } from '../../orders/types/orders';
 import {
   CancelOrderDto,
   CreateOrderDto,
+  HandOverOrderDto,
   LogCallDto,
   OrderPageDto,
   OrderQuoteDto,
   OrderViewDto,
   OverrideOrderDto,
+  ReturnOrderDto,
+  ShipOrderDto,
   UpdateOrderDto,
 } from '../dto/orders.dto';
 import { PermissionGuard } from '../guards/permission.guard';
@@ -45,8 +50,8 @@ import { CatalogueRequest } from '../services/catalogue-request';
 const CREATE_PATH = '/orders';
 
 // ORD-01 to ORD-14, ORD-41, ORD-45, ORD-51, ORD-52 (Phase 4 Slice 4.1): the shop's orders as staff enter and handle
-// them. Reading them needs orders:read; making, changing, calling about, cancelling and holding them, orders:manage;
-// deleting one, orders:delete.
+// them; shipping, handing over, delivering and returning them by hand (Slice 4.3). Reading them needs orders:read;
+// making, changing, calling about, cancelling, holding and moving them, orders:manage; deleting one, orders:delete.
 @ApiTags('Orders')
 @Controller('orders')
 @Dashboard({})
@@ -54,6 +59,7 @@ const CREATE_PATH = '/orders';
 export class OrdersController {
   constructor(
     @Inject(OrderService) private readonly orders: OrderService,
+    @Inject(OrderFulfilment) private readonly fulfilment: OrderFulfilment,
     @Inject(CatalogueRequest) private readonly request: CatalogueRequest,
   ) {}
 
@@ -193,6 +199,92 @@ export class OrdersController {
     );
   }
 
+  @Post(':id/ship')
+  @HttpCode(200)
+  @RequirePermission(Permission.OrdersManage)
+  @ResponseMessage('OrderShipped')
+  @ApiOperation({
+    summary:
+      'Mark a delivery order shipped with its courier and a tracking code or link; it is handled (counted, charged on pay-as-you-go) and its stock leaves (ORD-09, QTA-01, PYG-02)',
+  })
+  @ApiBody({ type: ShipOrderDto })
+  @ZodResponse({ type: OrderViewDto })
+  ship(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(ShipOrderDto.schema)) body: ShipOrderDto,
+    @Req() request: DashboardRequest,
+  ): Promise<OrderView> {
+    return this.fulfilment.ship(
+      this.shopOf(request),
+      this.request.idOf(id, 'OrderNotFound'),
+      body,
+      this.request.actorOf(request),
+    );
+  }
+
+  @Post(':id/hand-over')
+  @HttpCode(200)
+  @RequirePermission(Permission.OrdersManage)
+  @ResponseMessage('OrderHandedOver')
+  @ApiOperation({
+    summary:
+      'Hand a takeaway or dine-in order to its customer: shipped and delivered in one step, its cash collected (agreed 2026-10-30)',
+  })
+  @ApiBody({ type: HandOverOrderDto })
+  @ZodResponse({ type: OrderViewDto })
+  handOver(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(HandOverOrderDto.schema)) body: HandOverOrderDto,
+    @Req() request: DashboardRequest,
+  ): Promise<OrderView> {
+    return this.fulfilment.handOver(
+      this.shopOf(request),
+      this.request.idOf(id, 'OrderNotFound'),
+      body,
+      this.request.actorOf(request),
+    );
+  }
+
+  @Post(':id/deliver')
+  @HttpCode(200)
+  @RequirePermission(Permission.OrdersManage)
+  @ResponseMessage('OrderDelivered')
+  @ApiOperation({
+    summary:
+      'Mark a shipped order delivered; its cash on delivery is collected (ORD-42, agreed 2026-10-30)',
+  })
+  @ZodResponse({ type: OrderViewDto })
+  deliver(@Param('id') id: string, @Req() request: DashboardRequest): Promise<OrderView> {
+    return this.fulfilment.deliver(
+      this.request.tenantIdOf(request),
+      this.request.idOf(id, 'OrderNotFound'),
+      this.request.actorOf(request),
+    );
+  }
+
+  @Post(':id/returns')
+  @HttpCode(200)
+  @RequirePermission(Permission.OrdersManage)
+  @ResponseMessage('OrderReturnRecorded')
+  @ApiOperation({
+    summary:
+      'Units of a shipped order that came back, each item sellable again or damaged; returned once every unit is back (ORD-10, INV-17)',
+  })
+  @ApiBody({ type: ReturnOrderDto })
+  @ZodResponse({ type: OrderViewDto })
+  returns(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(ReturnOrderDto.schema)) body: ReturnOrderDto,
+    @Req() request: DashboardRequest,
+  ): Promise<OrderView> {
+    return this.fulfilment.returnItems(
+      this.request.tenantIdOf(request),
+      this.request.idOf(id, 'OrderNotFound'),
+      body,
+      this.request.actorOf(request),
+    );
+  }
+
   @Post(':id/override')
   @HttpCode(200)
   @RequirePermission(Permission.OrdersManage)
@@ -227,5 +319,12 @@ export class OrdersController {
       this.request.actorOf(request),
     );
     return { ok: true };
+  }
+
+  /** QTA-01, UPG-10: the shop with its own limits and what its usage cycle counts from, as its summary carries them. */
+  private shopOf(request: DashboardRequest): HandlingShop {
+    const tenant = request.tenant;
+    if (!tenant) throw new ApiError('forbidden', 'CreateShopToContinue', { next: 'create-shop' });
+    return tenant;
   }
 }

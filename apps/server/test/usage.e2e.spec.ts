@@ -170,6 +170,17 @@ describeIfDatabase('the usage page (LIM-02)', () => {
         level: null,
         runsOutAt: null,
       },
+      // QTA-04, TRL-03 (Slice 4.3): a trial's orders handled, in its whole life.
+      orders_total: {
+        used: 0,
+        limit: 40,
+        packLeft: null,
+        stopAt: null,
+        unit: 'count',
+        perCycle: false,
+        level: null,
+        runsOutAt: null,
+      },
     });
     // The cycle is a month long and running now.
     const start = new Date(body.cycleStart).getTime();

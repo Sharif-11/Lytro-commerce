@@ -21,6 +21,7 @@ import {
   CallOutcome,
   CANCEL_NOTE_MAX_LENGTH,
   CancelReason,
+  COURIER_NAME_MAX_LENGTH,
   CUSTOMER_NAME_MAX_LENGTH,
   enumTuple,
   FulfillmentStatus,
@@ -30,11 +31,14 @@ import {
   OrderHistoryField,
   OrderPaymentStatus,
   OrderSource,
+  PaymentMethod,
   PRODUCT_NAME_MAX_LENGTH,
   SHOPPER_NOTE_MAX_LENGTH,
   SKU_MAX_LENGTH,
   StatusOverride,
   TABLE_REF_MAX_LENGTH,
+  TRACKING_CODE_MAX_LENGTH,
+  TRACKING_LINK_MAX_LENGTH,
   type AttributeDataType,
 } from '@lytronix/validators';
 import { createdAt, tenant } from '../shared';
@@ -61,6 +65,7 @@ export const fulfilmentType = tenant.enum(
   enumTuple(Object.values(FulfilmentType)),
 );
 export const orderSource = tenant.enum('order_source', enumTuple(Object.values(OrderSource)));
+export const paymentMethod = tenant.enum('payment_method', enumTuple(Object.values(PaymentMethod)));
 export const callOutcome = tenant.enum('call_outcome', enumTuple(Object.values(CallOutcome)));
 export const cancelReason = tenant.enum('cancel_reason', enumTuple(Object.values(CancelReason)));
 export const orderHistoryField = tenant.enum(
@@ -143,9 +148,9 @@ export const orders = tenant.table(
     // ORD-06: what is still owed once verified payments are taken off (Slice 4.3).
     due: money('due').notNull(),
     // D4-7, ORD-09: the courier and its tracking, entered by hand when marked shipped (Slice 4.3).
-    courierName: varchar('courier_name', { length: 80 }),
-    trackingCode: varchar('tracking_code', { length: 100 }),
-    trackingLink: varchar('tracking_link', { length: 500 }),
+    courierName: varchar('courier_name', { length: COURIER_NAME_MAX_LENGTH }),
+    trackingCode: varchar('tracking_code', { length: TRACKING_CODE_MAX_LENGTH }),
+    trackingLink: varchar('tracking_link', { length: TRACKING_LINK_MAX_LENGTH }),
     shippedAt: timestamp('shipped_at', { withTimezone: true }),
     deliveredAt: timestamp('delivered_at', { withTimezone: true }),
     // QTA-01, QTA-05, QTA-07: the only column the handling counters read; creating an order never sets it.
@@ -256,6 +261,10 @@ export const orderLines = tenant.table(
     listPrice: money('list_price').notNull(),
     unitPrice: money('unit_price').notNull(),
     quantity: numeric('quantity', { precision: 14, scale: 3 }).notNull(),
+    // ORD-10, INV-17 (Slice 4.3): how much of it came back after shipping, sellable or damaged.
+    returnedQuantity: numeric('returned_quantity', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0'),
     // INV-24: how much of a shared stock one unit used, so a return restores the same; null otherwise.
     packAmount: numeric('pack_amount', { precision: 14, scale: 3 }),
     itemDiscount: money('item_discount').notNull().default('0'),
@@ -280,6 +289,10 @@ export const orderLines = tenant.table(
       foreignColumns: [orders.tenantId, orders.id],
     }).onDelete('cascade'),
     check('order_lines_quantity_check', sql`${t.quantity} > 0`),
+    check(
+      'order_lines_returned_check',
+      sql`${t.returnedQuantity} >= 0 AND ${t.returnedQuantity} <= ${t.quantity}`,
+    ),
     check('order_lines_pack_check', sql`${t.packAmount} > 0`),
     // UOM-04, INV-24: a fraction only of a measured unit, and only whole packs of a shared stock.
     check(
@@ -352,9 +365,44 @@ export const orderCalls = tenant.table(
   ],
 );
 
+// ORD-15, ORD-22, D4-6 (Slice 4.3): money that came in for an order, verified as it is recorded -- by staff, or the cash on
+// delivery collected when the order was delivered or handed over (agreed 2026-10-30). Cash on delivery and cash at the
+// counter carry no transaction ID; a wallet or bank payment carries one, unique across the platform (Slice 4.3b,
+// control.used_transaction_ids). Never changed; it goes with its order. Phase 5 adds payment sessions, their
+// verification levels and refunds on this table (DATABASE-SCHEMA §3.4).
+export const orderPayments = tenant.table(
+  'payments',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    tenantId: uuid('tenant_id').notNull(),
+    orderId: uuid('order_id').notNull(),
+    method: paymentMethod('method').notNull(),
+    amount: money('amount').notNull(),
+    senderNumber: varchar('sender_number', { length: 15 }),
+    transactionId: text('transaction_id'),
+    verifiedBy: uuid('verified_by'),
+    verifiedAt: timestamp('verified_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    foreignKey({
+      name: 'payments_order_fk',
+      columns: [t.tenantId, t.orderId],
+      foreignColumns: [orders.tenantId, orders.id],
+    }).onDelete('cascade'),
+    check('payments_amount_check', sql`${t.amount} > 0`),
+    check(
+      'payments_reference_check',
+      sql`(${t.method} IN ('cash_on_delivery', 'cash')) = (${t.transactionId} IS NULL)`,
+    ),
+    index('payments_order_idx').on(t.tenantId, t.orderId, t.verifiedAt),
+  ],
+);
+
 export type SelectOrder = typeof orders.$inferSelect;
 export type InsertOrder = typeof orders.$inferInsert;
 export type SelectOrderLine = typeof orderLines.$inferSelect;
 export type InsertOrderLine = typeof orderLines.$inferInsert;
 export type SelectOrderHistory = typeof orderStatusHistory.$inferSelect;
 export type SelectOrderCall = typeof orderCalls.$inferSelect;
+export type SelectOrderPayment = typeof orderPayments.$inferSelect;
+export type InsertOrderPayment = typeof orderPayments.$inferInsert;
