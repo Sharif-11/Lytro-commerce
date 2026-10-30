@@ -323,6 +323,17 @@ combos and statistics). If velocity suggests it, the rest can become Phase 4B wi
   on guest checkout (CUS-07); the privacy delete (CUS-09).
 
 ### Slice 4.5: combo packs
+- **Read agreed 2026-10-30:** one pull request; a combo's parts may be changed while open orders hold it, each open
+  order keeping the components it was ordered with (CMB-04 amended); a combo comes back whole, each component
+  sellable or damaged (CMB-05 amended); low-stock notices come from the components only (CMB-02 amended); a
+  product's kind is chosen at creation and never changes (CMB-01 amended); every sale and return in stock history
+  shows its order, and one through a combo names the combo -- the server read now, the history sheet drawn in 4.8
+  (CMB-05 amended). Backend only; the screens are Slice 4.8's. Settled building: the choices describe one combo, a
+  line of N combos is N alike and combos picked differently go on separate lines (CMB-03 amended), so returns stay
+  whole; a combo is made to order with one variant, no stock level of its own and a piece unit; its state is worked
+  out again in the ledger whenever a part's stock or status moves; a part's variants and a line's components each
+  keep their place (the order the shop listed them, the order they were picked); a combo's weight is its own, else
+  its parts' (CMB-07); a combo line is one order line at the combo's own price, its components carrying no money.
 - **Delivers:** CMB-01 – CMB-10: the combo kind and its parts, "can make N", ordering, shipping and returning each
   part, the saving, delivery and weight, the zone rule, never a silent change, and the limits.
 

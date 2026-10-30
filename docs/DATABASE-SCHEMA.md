@@ -612,8 +612,12 @@ CREATE TABLE tenant.products (
     CHECK (NOT (stock_tracking = 'not_tracked' AND (batch_tracked OR serial_tracked))),
     CHECK (NOT (batch_tracked AND serial_tracked)),
     CHECK (NOT (shared_stock AND serial_tracked)),            -- INV-24
+    -- CMB-01 (built in Slice 4.5, 0091): a combo is made to order, with no batches, serials or shared stock.
+    CONSTRAINT products_combo_check CHECK (kind <> 'combo' OR (stock_tracking = 'not_tracked'
+        AND NOT batch_tracked AND NOT serial_tracked AND NOT shared_stock)),
     FOREIGN KEY (tenant_id, primary_category_id) REFERENCES tenant.categories(tenant_id, id)
 );
+-- CMB-01 (Slice 4.5): a trigger (products_kind_fixed) refuses any change of kind after creation.
 CREATE INDEX ON tenant.products (tenant_id, primary_category_id, sort_order) WHERE deleted_at IS NULL;
 -- CCH-11 (built in Slice 9a): one index per public order over the products shown.
 CREATE INDEX products_public_featured_idx ON tenant.products (tenant_id, (-sort_order), created_at, id)
@@ -1282,30 +1286,39 @@ CREATE TABLE tenant.combo_part_variants (           -- CMB-01: allowed variants;
     tenant_id        uuid NOT NULL,
     part_id          uuid NOT NULL,
     variant_id       uuid NOT NULL,
+    position         smallint NOT NULL CHECK (position BETWEEN 1 AND 100),  -- the order the shop listed them
     PRIMARY KEY (part_id, variant_id),
+    UNIQUE (part_id, position),
     FOREIGN KEY (tenant_id, part_id) REFERENCES tenant.combo_parts(tenant_id, id) ON DELETE CASCADE,
     FOREIGN KEY (tenant_id, variant_id) REFERENCES tenant.product_variants(tenant_id, id)  -- no cascade: CMB-08
 );
 CREATE INDEX ON tenant.combo_part_variants (tenant_id, variant_id);  -- CMB-02: combos to recompute on a stock change
--- A trigger refuses an allowed variant whose product is itself a combo (CMB-01, no nesting) and more than
--- 100 allowed variants per part (CMB-10). A combo has one product_variants row (combination_key '') and no
+-- A trigger refuses an allowed variant whose product is itself a combo (CMB-01, no nesting) or a shared stock's
+-- hidden holder, a part of a product that is not a combo, and more than 100 allowed variants per part (CMB-10). A combo has one product_variants row (combination_key '') and no
 -- stock_levels row; its products.stock_state is recomputed from its parts inside InventoryLedger.apply().
 
 CREATE TABLE tenant.order_line_components (         -- CMB-03, CMB-04: a combo line's component variants
     id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id        uuid NOT NULL,
-    order_line_id    uuid NOT NULL REFERENCES tenant.order_lines(id),
-    part_position    smallint NOT NULL,
+    order_line_id    uuid NOT NULL,
+    position         integer NOT NULL CHECK (position > 0),  -- the parts in order, a choice's as first picked
+    part_position    integer NOT NULL,
+    product_id       uuid,                          -- advisory only, like order_lines.product_id (ORD-46)
     variant_id       uuid,                          -- advisory only, like order_lines.variant_id (ORD-46)
     -- snapshot, copied at order time:
-    product_name     text NOT NULL,
-    attribute_values jsonb NOT NULL DEFAULT '{}',
-    quantity         numeric(14,3) NOT NULL CHECK (quantity > 0)   -- units of this variant in one combo
+    product_name     varchar(200) NOT NULL,
+    attribute_values jsonb NOT NULL DEFAULT '[]',   -- as order_lines.attribute_values
+    quantity         numeric(14,3) NOT NULL CHECK (quantity > 0),  -- units of this variant in one combo
+    UNIQUE (order_line_id, position),
+    FOREIGN KEY (tenant_id, order_line_id) REFERENCES tenant.order_lines(tenant_id, id) ON DELETE CASCADE
 );
 CREATE INDEX ON tenant.order_line_components (tenant_id, order_line_id);
--- A choice part picked as M-Red, M-Red, L-Black gives two rows: M-Red 2 and L-Black 1. Reservations and
--- stock movements for a combo line are ordinary per-variant rows referencing the order (CMB-03, CMB-05);
--- the stock-history label finds the combo through this table by order and variant.
+CREATE INDEX ON tenant.order_line_components (tenant_id, variant_id);
+-- A choice part picked as M-Red, M-Red, L-Black gives two rows: M-Red 2 and L-Black 1. A line of N combos is N
+-- alike (combos picked differently are separate lines), so a combo comes back whole. Reservations and stock
+-- movements for a combo line are ordinary per-variant rows on the combo's line (CMB-03, CMB-05); a movement's
+-- stock-history label reaches its order and line through its reservation, naming the combo when the line has
+-- components (built in Slice 4.5, 0091).
 ```
 
 #### Shop-type presets (PST) — `control` schema, platform-wide
