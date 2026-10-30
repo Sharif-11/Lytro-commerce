@@ -170,6 +170,8 @@ export interface OrderPaymentView {
   transactionId: string | null;
   verifiedBy: OrderPerson | null;
   verifiedAt: Date;
+  /** Agreed 2026-10-30: recorded by mistake and voided -- who, when and why; it no longer counts toward what is paid. */
+  voided: { by: OrderPerson | null; at: Date; reason: string } | null;
 }
 
 /** ORD-13: one order as the list shows it. */

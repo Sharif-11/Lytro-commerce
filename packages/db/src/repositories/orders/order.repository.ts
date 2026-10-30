@@ -98,7 +98,10 @@ export type OrderLinePatch = Partial<
 >;
 
 export type NewOrderLine = Omit<InsertOrderLine, 'tenantId' | 'orderId'>;
-export type NewOrderPayment = Omit<InsertOrderPayment, 'id' | 'tenantId' | 'verifiedAt'>;
+export type NewOrderPayment = Omit<
+  InsertOrderPayment,
+  'id' | 'tenantId' | 'verifiedAt' | 'voidedAt' | 'voidedBy' | 'voidReason'
+>;
 export type NewOrderHistory = Omit<
   typeof orderStatusHistory.$inferInsert,
   'id' | 'tenantId' | 'changedAt'
@@ -441,6 +444,65 @@ export class OrderRepository {
       .values({ ...values, tenantId })
       .returning();
     if (!row) throw new Error('insert returned no payment');
+    return row;
+  }
+
+  /** Slice 4.3b: one of an order's payments, held until the transaction ends. */
+  async lockPayment(
+    tx: Transaction,
+    tenantId: string,
+    orderId: string,
+    paymentId: string,
+  ): Promise<SelectOrderPayment | null> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const [row] = await tx
+      .select()
+      .from(orderPayments)
+      .where(
+        and(
+          eq(orderPayments.tenantId, tenantId),
+          eq(orderPayments.orderId, orderId),
+          eq(orderPayments.id, paymentId),
+        ),
+      )
+      .for('update');
+    return row ?? null;
+  }
+
+  /**
+   * ORD-15, agreed 2026-10-30: how the shop's order payments carry this transaction ID -- on a live payment, only on
+   * voided ones, or on none.
+   */
+  async transactionUse(
+    tx: Transaction,
+    tenantId: string,
+    transactionId: string,
+  ): Promise<'live' | 'voided' | 'none'> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const rows = await tx
+      .select({ voidedAt: orderPayments.voidedAt })
+      .from(orderPayments)
+      .where(
+        and(eq(orderPayments.tenantId, tenantId), eq(orderPayments.transactionId, transactionId)),
+      );
+    if (rows.length === 0) return 'none';
+    return rows.some((row) => row.voidedAt === null) ? 'live' : 'voided';
+  }
+
+  /** Agreed 2026-10-30: a payment recorded by mistake, voided with its reason. */
+  async voidPayment(
+    tx: Transaction,
+    tenantId: string,
+    paymentId: string,
+    values: { voidedBy: string | null; voidReason: string },
+  ): Promise<SelectOrderPayment> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const [row] = await tx
+      .update(orderPayments)
+      .set({ ...values, voidedAt: new Date() })
+      .where(and(eq(orderPayments.tenantId, tenantId), eq(orderPayments.id, paymentId)))
+      .returning();
+    if (!row) throw new Error('update returned no payment');
     return row;
   }
 

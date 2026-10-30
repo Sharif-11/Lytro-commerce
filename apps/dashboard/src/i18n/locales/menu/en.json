@@ -44,6 +44,8 @@
     "order_call_logged": "{{actor}} logged a call to a customer",
     "order_created": "{{actor}} entered an order",
     "order_deleted": "{{actor}} deleted an order",
+    "order_payment_recorded": "{{actor}} recorded a payment on an order",
+    "order_payment_voided": "{{actor}} voided a payment on an order",
     "order_status_changed": "{{actor}} changed an order’s status",
     "order_updated": "{{actor}} edited an order",
     "pack_auto_buy_failed": "Auto-buy couldn’t buy a pack: the balance was too short",

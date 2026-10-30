@@ -155,6 +155,7 @@ export const FIELD_LABELS: Readonly<Record<string, Translation | null>> = {
   paired_devices: { en: 'Paired devices', bn: 'পেয়ার্ড ডিভাইস' },
   parentId: { en: 'Parent category', bn: 'প্যারেন্ট ক্যাটাগরি' },
   password: { en: 'Password', bn: 'পাসওয়ার্ড' },
+  payment: { en: 'Payment', bn: 'পেমেন্ট' },
   paymentId: { en: 'Payment', bn: 'পেমেন্ট' },
   paymentPolicy: { en: 'Payment policy', bn: 'পেমেন্ট পলিসি' },
   paymentStatus: { en: 'Payment status', bn: 'পেমেন্ট স্ট্যাটাস' },

@@ -308,6 +308,10 @@ export enum AuditAction {
   OrderStatusChanged = 'order_status_changed',
   OrderDeleted = 'order_deleted',
   OrderCallLogged = 'order_call_logged',
+  // Phase 4 Slice 4.3b: a payment staff recorded on an order, verified as it was recorded, and one voided (AUD-01's
+  // "payment verified or rejected", ORD-15).
+  OrderPaymentRecorded = 'order_payment_recorded',
+  OrderPaymentVoided = 'order_payment_voided',
 }
 
 // FED-02: what a product is, for Meta's catalog: new unless the shop says otherwise.

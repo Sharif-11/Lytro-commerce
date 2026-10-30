@@ -5,7 +5,6 @@ import {
   FulfillmentStatus,
   FulfilmentType,
   OrderHistoryField,
-  OrderPaymentStatus,
   OrderStatus,
   PaymentMethod,
   ReservationStatus,
@@ -29,6 +28,7 @@ import { ORDER_STORE } from '../tokens';
 import type { OrderRecord, OrderView } from '../types/orders';
 import { HandlingQuota, type HandlingPassed, type HandlingShop } from './handling-quota';
 import { OrderService } from './order.service';
+import { PaymentRecorder } from './payment-recorder';
 
 function quantityText(units: number): string {
   return (units / 1000).toFixed(3);
@@ -62,6 +62,7 @@ export class OrderFulfilment {
     @Inject(StockReturnService) private readonly returns: StockReturnService,
     @Inject(CustomerService) private readonly customers: CustomerService,
     @Inject(CatalogueActivity) private readonly activity: CatalogueActivity,
+    @Inject(PaymentRecorder) private readonly payments: PaymentRecorder,
   ) {}
 
   /** ORD-09, D4-7: a delivery order sent with a courier, the whole order at once. */
@@ -384,25 +385,19 @@ export class OrderFulfilment {
     history: NewOrderHistory[],
   ): Promise<OrderPatch> {
     if (Number(order.due) <= 0) return {};
-    await this.store.insertPayment(tx, tenantId, {
-      orderId: order.id,
-      method: PaymentMethod.CashOnDelivery,
-      amount: order.due,
-      senderNumber: null,
-      transactionId: null,
-      verifiedBy: who.id,
-    });
-    if (order.paymentStatus !== OrderPaymentStatus.Paid) {
-      history.push({
-        orderId: order.id,
-        field: OrderHistoryField.PaymentStatus,
-        oldValue: order.paymentStatus,
-        newValue: OrderPaymentStatus.Paid,
-        note: `${order.due} TK cash on delivery`,
-        changedBy: who.id,
-      });
-    }
-    return { due: '0.00', paymentStatus: OrderPaymentStatus.Paid };
+    return this.payments.addWithin(
+      tx,
+      tenantId,
+      order,
+      {
+        method: PaymentMethod.CashOnDelivery,
+        amount: order.due,
+        senderNumber: null,
+        transactionId: null,
+      },
+      who,
+      history,
+    );
   }
 
   private fulfilmentHistory(
