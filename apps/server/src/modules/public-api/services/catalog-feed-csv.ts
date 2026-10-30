@@ -64,7 +64,7 @@ export class CatalogFeedCsv {
     @Inject(CATALOG_FEED_SETTINGS) private readonly settings: CatalogFeedSettings,
   ) {}
 
-  build(tenantId: string, shopSlug: string): Promise<string> {
+  build(tenantId: string, shopSlug: string, ownDomain: string | null): Promise<string> {
     return this.store.run(async (tx) => {
       const variants = await this.store.listFeedVariants(tx, tenantId);
       const images = new Map<string, string[]>();
@@ -73,7 +73,7 @@ export class CatalogFeedCsv {
         images.set(row.productId, [...(images.get(row.productId) ?? []), url]);
       }
       const values = attributeValues(await this.store.listFeedAttributes(tx, tenantId, WANTED));
-      const origin = this.settings.shopOrigin(shopSlug);
+      const origin = this.settings.shopOrigin(shopSlug, ownDomain);
       const valueOf = (column: Column, productId: string, variantId: string): string =>
         (values.get(variantId)?.get(column) ?? values.get(productId)?.get(column) ?? []).join('/');
       return toCsv(

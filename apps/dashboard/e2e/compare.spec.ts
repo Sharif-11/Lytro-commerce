@@ -32,6 +32,7 @@ import {
 import { drawnLibrary } from './support/variants';
 import { drawnPurchases, drawnSuppliers, otherStates } from './support/purchases';
 import { drawnDelivery, type DeliveryFixture } from './support/delivery';
+import { drawnDomain, type DomainFixture } from './support/domain';
 import { drawnPasswords, drawnTeam } from './support/team';
 import { indigoBrand, maroonBrand } from './support/themed';
 import { DAY_ONE, mockApi, SLUG, type Language, type ShopState } from './support/mock-api';
@@ -2060,8 +2061,77 @@ function editorPairs(): Pair[] {
   ];
 }
 
+/** Your own domain (§7.30, Slice 13, Part 28): each state of the page, its refusals and toasts, removing it, and
+    Storefront once it is active. */
+function domainPairs(): Pair[] {
+  const PAGE = '/settings/storefront/domain';
+  const with_ = (domain: DomainFixture): ShopState => ({ domain });
+  const one = (
+    name: string,
+    domain: DomainFixture | null,
+    more: Partial<Pair> = {},
+    device: Device = 'phone',
+    language: Language = 'bn',
+  ): Pair => ({
+    name,
+    screen: name,
+    device,
+    language,
+    path: PAGE,
+    ...(domain ? { state: with_(domain) } : {}),
+    ...more,
+  });
+  const typing = (typed: string) => async (page: Page) => {
+    await page.getByRole('textbox').fill(typed);
+    await page.getByRole('button', { name: 'যোগ করুন' }).click();
+    await page.getByRole('textbox').and(page.locator('[aria-invalid="true"]')).waitFor();
+  };
+  const waiting = { allowed: true, domain: drawnDomain('pending') };
+  const active = { allowed: true, domain: drawnDomain('active') };
+  return [
+    one('sf28-active', active, { path: '/settings/storefront' }),
+    one('sf28-active', active, { path: '/settings/storefront' }, 'desktop', 'en'),
+    one('dom28-offer', { allowed: false, domain: null }),
+    one('dom28', null),
+    one('dom28', null, {}, 'desktop', 'en'),
+    one('dom28-format', null, { then: typing('https://megh') }),
+    one('dom28-taken', null, { then: typing('rahim.com') }),
+    one('dom28-pending', waiting),
+    one('dom28-pending', waiting, {}, 'desktop', 'en'),
+    one('dom28-pending-www', {
+      allowed: true,
+      domain: drawnDomain('pending', { hostname: 'www.megh.com' }),
+    }),
+    one('dom28-checked', waiting, {
+      then: async (page) => {
+        await page.getByRole('button', { name: 'এখনই চেক করুন' }).click();
+        await page.getByRole('status').waitFor();
+      },
+    }),
+    one('dom28-active', active),
+    one('dom28-active', active, {}, 'desktop', 'en'),
+    one('dom28-failed', { allowed: true, domain: drawnDomain('failed') }),
+    one('dom28-lost', { allowed: true, domain: drawnDomain('pending', { lost: true }) }),
+    one('dom28-inactive', { allowed: false, domain: drawnDomain('off', { twinActive: true }) }),
+    one('sh-dom28-remove', active, {
+      then: async (page) => {
+        await page.getByRole('button', { name: 'সরিয়ে দিন' }).click();
+        await page.getByRole('dialog').waitFor();
+      },
+    }),
+    one('sf28-removed', active, {
+      then: async (page) => {
+        await page.getByRole('button', { name: 'সরিয়ে দিন' }).click();
+        await page.getByRole('dialog').getByRole('button', { name: 'সরিয়ে দিন' }).click();
+        await page.waitForURL(/\/settings\/storefront$/);
+        await page.getByRole('status').waitFor();
+      },
+    }),
+  ];
+}
+
 /** Settings (§7.16, Slice 11.6): its list, Shop details, Brand identity (Slice 11.12a), Storefront (Slice 12a, Part
-    25), and Data export. */
+    25) with its own domain (Slice 13, Part 28), and Data export. */
 function settingsPairs(): Pair[] {
   const one = (
     name: string,
@@ -2087,6 +2157,7 @@ function settingsPairs(): Pair[] {
     one('sf25-off', '/settings/storefront', {
       state: { settings: { ...drawnSettings('bn'), storefrontEnabled: false } },
     }),
+    ...domainPairs(),
     one('exports', '/settings/export', { state: { money: { exports: drawnExports() } } }),
     one(
       'exports',

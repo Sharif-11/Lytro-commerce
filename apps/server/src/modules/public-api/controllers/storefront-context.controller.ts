@@ -19,6 +19,8 @@ const storefrontContextSchema = z.object({
       storefrontEnabled: z.boolean(),
       key: z.string(),
       origin: z.string(),
+      mainHost: z.string().nullable(),
+      publicOrigin: z.string(),
     })
     .nullable(),
 });

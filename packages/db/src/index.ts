@@ -24,6 +24,10 @@ export {
   type ContactDetailsRow,
   type RevocationCandidateRow,
 } from './repositories/tenancy/tenant.repository';
+export {
+  TenantDomainRepository,
+  type DomainToCheckRow,
+} from './repositories/tenancy/tenant-domain.repository';
 export { SlugRepository } from './repositories/tenancy/slug.repository';
 export {
   ChallengeRepository,

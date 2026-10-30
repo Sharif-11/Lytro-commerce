@@ -1773,6 +1773,39 @@ their backend ships earlier.
   live domain gets `conflict`; removing it answers not-found within the cache window while the subdomain
   works; downgrading to Starter turns it off at the effective date and upgrading turns it back on; Caddy's
   ask endpoint says no for an unknown or pending hostname.
+- **Read agreed 2026-10-30** (5 points, all as recommended; TENANT-DASHBOARD-DESIGN v3.18 §7.30, prototype Part 28):
+  1. **Records that name the shop**: a www name gets one CNAME to the shop's own `<slug>.lytro.app`; a root domain the
+     A record to the platform's address plus a TXT record `_lytro` = `lytro=<slug>`. Either is accepted on any name.
+  2. **Root and www**: the address added and its twin are both served while the twin's record points here; the twin
+     leads to the address added with a permanent redirect; certificates for both.
+  3. **The own domain becomes the main address** once active: `<slug>.lytro.app` (landing pages too) leads there with
+     a 308; share links, link previews, the installed app and the dashboard's shop link use it. Removed, downgraded or
+     its record gone, the subdomain serves again at once.
+  4. **The Domain page now** (Part 28): a "Your own domain" line on Settings > Storefront opening the page -- the field,
+     the records in plain words, waiting, active, couldn't verify with Check now, Remove; trial, Starter and
+     pay-as-you-go see the upgrade offer (TEN-10, PYG-07).
+  5. **Timing**: checked every 10 minutes for 72 hours, then "couldn't verify" (Check now starts the 72 hours over); an
+     active domain rechecked daily; two checks running without its record send it back to waiting, the subdomain
+     serving and the page saying why.
+
+  **Built:** migration 0087 (the twin and the check columns on `tenant_domains`; a name is unique while active, one
+  domain a shop while not removed; existing rows' twins filled in). The server: `GET`, `POST /domain`, `POST
+  /domain/check`, `DELETE /domain` (`settings:manage`); the `domain_check_tick` job every 10 minutes; DNS through the
+  system resolver, a failed lookup never counting as a missing record; `GET /internal/domains/ask` for Caddy; the
+  host lookup serving an active domain and its active twin only while the shop's plan (or an add-on) includes one, so
+  DWN-10 holds the moment the plan changes, with no step in the downgrade; `/me`'s `ownDomain`; the storefront's
+  context naming `mainHost` and `publicOrigin`; the catalog feed's links on the main address; the day-60 deletion
+  freeing the name; `PLATFORM_ADDRESSES`; four activity entries. The storefront: every other host of the shop 308s to
+  the main address with its path and query; links and previews use it, while its API calls keep the subdomain the key
+  is registered for. The dashboard: the Storefront line and the Domain page to Part 28, and the shop's links (home's
+  link card, Storefront's, a product's link, Orders' share) on the main address. `deploy/Caddyfile`: `on_demand_tls`
+  asking the backend, and the catch-all `https://` block.
+
+  Named, beyond the drawing (13): "off" is the plan check on every read, not a stored `inactive` status, so a
+  downgrade or an upgrade takes effect within the host cache's minute without a step in billing; the Storefront line
+  also says "couldn't verify" and "off", which the drawing does not show; an active domain whose twin has no record
+  says only the subdomain leads there; the "not found yet" toast carries the info mark, as drawn. TEN-10's acceptance
+  is amended to 402, the status every plan-feature refusal has.
 
 ### Parallel track: marketing site redesign (`apps/website`)
 - **Depends on:** nothing in this phase for step A. `LANDING-PAGE-DESIGN.md` and `BRAND-IDENTITY.md` are its

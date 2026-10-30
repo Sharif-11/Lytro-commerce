@@ -33,6 +33,8 @@ export const meResponseSchema = z.object({
       logo: imageViewSchema.nullable(),
       // BRN-07: the identity the dashboard applies; null for Lytro's default.
       brand: liveBrandSchema.nullable(),
+      // Slice 13: the shop's own domain while it serves (its main address); null for its Lytro address.
+      ownDomain: z.string().nullable(),
       // TRM-12: the term a paid plan runs on; null on a trial or pay-as-you-go.
       billingTerm: z
         .object({ id: z.string(), labelEn: z.string(), labelBn: z.string(), months: z.number() })

@@ -15,6 +15,7 @@ import { DeliveryModule } from '../delivery/delivery.module';
 import { InventoryModule } from '../inventory/inventory.module';
 import { MediaModule } from '../media/media.module';
 import { BrandModule } from '../brand/brand.module';
+import { DomainsModule } from '../domains/domains.module';
 import { UsageWarningsModule } from '../usage-warnings/usage-warnings.module';
 import { PublicApiModule } from '../public-api/public-api.module';
 import { OrdersModule } from '../orders/orders.module';
@@ -67,7 +68,7 @@ import {
     MailModule,
     PlatformSettingsModule,
     // LIF-19: the day-60 deletion removes the shop's purchases, stock, orders and customers, catalogue, media, delivery
-    // zones, API keys and usage warnings too.
+    // zones, API keys and usage warnings too, and its own domain.
     PurchasingModule,
     InventoryModule,
     OrdersModule,
@@ -77,6 +78,7 @@ import {
     MediaModule,
     UsageWarningsModule,
     BrandModule,
+    DomainsModule,
   ],
   providers: [
     { provide: PLANS_STORE, useClass: DrizzlePlansStore },

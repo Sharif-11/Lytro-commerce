@@ -10,6 +10,7 @@ export * from './api/auth/auth-password';
 export * from './api/auth/auth-identities';
 export * from './api/shops/shops-create';
 export * from './api/shops/shop-settings';
+export * from './api/shops/shop-domain';
 export * from './api/catalogue';
 export * from './api/delivery/delivery-zone';
 export * from './api/inventory/stock';

@@ -21,7 +21,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (page.state !== 'open' || !page.shop.storefrontEnabled) return {};
   const found = findCategory((await loadFrame(page)).categories, slug.toLowerCase());
   return {
-    metadataBase: new URL(page.shop.origin),
+    metadataBase: new URL(page.shop.publicOrigin),
     title: found ? `${found.category.name} · ${page.info.name}` : page.info.name,
   };
 }

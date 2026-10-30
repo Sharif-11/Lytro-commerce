@@ -26,8 +26,10 @@ export type ShopPath =
   | '/$shop/menu'
   | '/$shop/search'
   | `/$shop/${SectionId}`
-  // Below a section, where a screen's Back leads (a stock check returns to the list of checks).
-  | '/$shop/stock/checks';
+  // Below a section, where a screen's Back leads (a stock check returns to the list of checks, the own domain to
+  // Storefront).
+  | '/$shop/stock/checks'
+  | '/$shop/settings/storefront';
 
 export interface Section {
   id: SectionId;

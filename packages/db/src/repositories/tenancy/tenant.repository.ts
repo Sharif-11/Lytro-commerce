@@ -213,7 +213,11 @@ export class TenantRepository {
     return rows[0] ?? null;
   }
 
-  /** The shop that owns a verified, active custom domain. Pending, failed and removed domains never match (TEN-12). */
+  /**
+   * The shop that owns a verified, active custom domain, by its name or by its twin while the twin's record points here
+   * (Slice 13). Waiting, failed and removed domains never match (TEN-12); whether the shop's plan lets an active one
+   * serve is the caller's to decide (DWN-10).
+   */
   async findByActiveDomain(db: Database, hostname: string): Promise<TenantLookupRow | null> {
     const rows = await db
       .select({
@@ -225,7 +229,13 @@ export class TenantRepository {
       .from(tenantDomains)
       .innerJoin(tenants, eq(tenants.id, tenantDomains.tenantId))
       .where(
-        and(eq(tenantDomains.hostname, hostname), eq(tenantDomains.status, DomainStatus.Active)),
+        and(
+          eq(tenantDomains.status, DomainStatus.Active),
+          or(
+            eq(tenantDomains.hostname, hostname),
+            and(eq(tenantDomains.twin, hostname), eq(tenantDomains.twinActive, true)),
+          ),
+        ),
       )
       .limit(1);
     return rows[0] ?? null;

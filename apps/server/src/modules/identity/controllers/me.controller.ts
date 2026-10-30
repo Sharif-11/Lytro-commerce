@@ -13,6 +13,7 @@ import { LifecycleService, type StageLengths } from '../../billing/services/life
 import type { BillingTermRecord } from '../../billing/types/billing-term';
 import { BrandService } from '../../brand/services/brand.service';
 import type { LiveBrand } from '../../brand/types/brand';
+import { DomainService } from '../../domains/services/domain.service';
 import type { ImageView } from '../../../common/media-links';
 import { MediaService } from '../../media/services/media.service';
 import { StaffService } from '../../staff/services/staff.service';
@@ -58,6 +59,8 @@ export interface MeResponse {
         logo: ImageView | null;
         /** BRN-07: the shop's own identity, which the dashboard applies; null for Lytro's default. */
         brand: LiveBrand | null;
+        /** Slice 13: the shop's own domain while it serves, its main address then; null for its Lytro address. */
+        ownDomain: string | null;
       } & ShopStanding)
     | null;
   shops: ShopListing[];
@@ -96,6 +99,7 @@ export class MeController {
     @Inject(StaffService) private readonly staff: StaffService,
     @Inject(ShopMemberships) private readonly memberships: ShopMemberships,
     @Inject(BrandService) private readonly brand: BrandService,
+    @Inject(DomainService) private readonly domains: DomainService,
     @Inject(MediaService) private readonly media: MediaService,
     @Inject(TenantService) private readonly tenants: TenantService,
     @Inject(BillingTermsService) private readonly terms: BillingTermsService,
@@ -147,6 +151,7 @@ export class MeController {
               autoRenewEnabled: tenant.autoRenewEnabled,
               logo,
               brand,
+              ownDomain: await this.domains.servingHost(tenant.id),
               ...(await this.standingOf(tenant)),
             },
       shops,

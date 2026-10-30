@@ -27,7 +27,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (page.state !== 'open' || !page.shop.storefrontEnabled) return {};
   const read = await loadProduct(slug);
   if (read?.kind !== 'found') return { title: page.info.name };
-  return productMetadata(read.product, page.info, page.shop.origin, `/p/${read.product.slug}`);
+  return productMetadata(
+    read.product,
+    page.info,
+    page.shop.publicOrigin,
+    `/p/${read.product.slug}`,
+  );
 }
 
 export default async function ProductPage({ params, searchParams }: Props) {
@@ -73,7 +78,7 @@ export default async function ProductPage({ params, searchParams }: Props) {
         linkedVariantId={opening.linkedVariantId}
         areaId={opening.areaId}
         initialEstimate={opening.estimate}
-        shareUrl={`${page.shop.origin}/p/${product.slug}`}
+        shareUrl={`${page.shop.publicOrigin}/p/${product.slug}`}
       />
       {also.length > 0 ? (
         <section className="sec">

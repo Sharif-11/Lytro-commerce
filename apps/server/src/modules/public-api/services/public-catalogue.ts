@@ -30,6 +30,7 @@ import { CatalogFeedCsv } from './catalog-feed-csv';
 import { CatalogueCache } from './catalogue-cache';
 import { listRequestOf, cursorOf, positionOf, type ListRequest } from './catalogue-query';
 import { CatalogueVersionReader } from './catalogue-version-reader';
+import { DomainService } from '../../domains/services/domain.service';
 
 // Bumped whenever an answer's shape changes, so no shopper's browser keeps an old one under an unchanged tag. 2: a list
 // row's swatches and creation time, a category's product count (Slice 12b).
@@ -71,6 +72,7 @@ export class PublicCatalogue {
     @Inject(ProductService) private readonly products: ProductService,
     @Inject(CatalogueImages) private readonly images: CatalogueImages,
     @Inject(CatalogFeedCsv) private readonly feedCsv: CatalogFeedCsv,
+    @Inject(DomainService) private readonly domains: DomainService,
   ) {}
 
   /** CCH-04: the one small answer a caller reads first, to put the version in the addresses after it. */
@@ -161,10 +163,14 @@ export class PublicCatalogue {
     );
   }
 
-  /** FED-04: the shop's Meta catalog feed, from the same cache as every other answer, by the same versions. */
-  feed(shop: ApiShop): Promise<CatalogueAnswer<string>> {
-    return this.answer(shop, 'en', ['feed'], FEED_MAX_AGE_SECONDS, null, () =>
-      this.feedCsv.build(shop.row.id, shop.row.slug),
+  /**
+   * FED-04: the shop's Meta catalog feed, from the same cache as every other answer, by the same versions -- and by the
+   * shop's main address, so its links follow the shop's own domain at once (Slice 13).
+   */
+  async feed(shop: ApiShop): Promise<CatalogueAnswer<string>> {
+    const ownDomain = await this.domains.servingHost(shop.row.id);
+    return this.answer(shop, 'en', ['feed', ownDomain], FEED_MAX_AGE_SECONDS, null, () =>
+      this.feedCsv.build(shop.row.id, shop.row.slug, ownDomain),
     );
   }
 

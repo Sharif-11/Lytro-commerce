@@ -9,7 +9,7 @@ import { Card } from '@/components/ui/card';
 import { Field, SelectField } from '@/components/ui/field';
 import { Sheet } from '@/components/ui/sheet';
 import { useErrorText } from '@/hooks/use-error-text';
-import { appConfig } from '@/lib/app-config';
+import { useShopAddress } from '@/hooks/use-shop-address';
 import { useShell } from '@/shell/shell-context';
 import type { ProductDetail } from '@/types/product';
 
@@ -43,8 +43,7 @@ export function LinkCard({
   readOnly: boolean;
 }): React.JSX.Element {
   const { t } = useTranslation('shop');
-  const { slug } = useShell();
-  const host = appConfig.shopHost(slug);
+  const { host } = useShopAddress();
   const [open, setOpen] = useState(false);
   const several = product.variants.filter((variant) => variant.active).length > 1;
   const shown = linkOf(host, product, null);

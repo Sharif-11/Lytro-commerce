@@ -12,7 +12,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const page = await loadShopPage();
   if (page.state !== 'open' || !page.shop.storefrontEnabled) return {};
   return {
-    metadataBase: new URL(page.shop.origin),
+    metadataBase: new URL(page.shop.publicOrigin),
     title: `${page.words.t('cart_title')} · ${page.info.name}`,
     robots: { index: false, follow: true },
   };

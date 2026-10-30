@@ -42,6 +42,7 @@ function tenant(state: TenantState, daysLeft: number): MeTenant {
     autoRenewEnabled: false,
     logo: null,
     brand: null,
+    ownDomain: null,
     billingTerm: null,
     lapseStages: null,
     deletesAt: null,

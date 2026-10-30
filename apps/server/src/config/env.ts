@@ -35,6 +35,18 @@ const envSchema = z.object({
   // Slice 12: the secret the storefront's own server presents to read a shop's storefront key, which the edge never
   // adds, so no request through the edge reads one. Unset in development, where the route is open.
   STOREFRONT_SECRET: z.string().min(32).optional(),
+  // Slice 13 (TEN-11): the platform's public IPv4 addresses, comma-separated -- what a root domain's A record must point
+  // at to be verified, and what its page tells the seller to enter. Required in production.
+  PLATFORM_ADDRESSES: z
+    .string()
+    .optional()
+    .transform((value) =>
+      (value ?? '')
+        .split(',')
+        .map((address) => address.trim())
+        .filter((address) => address !== ''),
+    )
+    .pipe(z.array(z.string().ip({ version: 'v4' }))),
   // The request header that carries the client's address, set by the edge (D14).
   CLIENT_IP_HEADER: z
     .string()
@@ -121,6 +133,14 @@ const envWithEdgeRule = envSchema.superRefine((value, ctx) => {
       code: z.ZodIssueCode.custom,
       path: ['TRUSTED_EDGE_SECRET'],
       message: 'required in production; at least 32 characters',
+    });
+  }
+  // Slice 13: without the platform's address no root domain can be verified, nor told what to point at.
+  if (value.NODE_ENV === 'production' && value.PLATFORM_ADDRESSES.length === 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['PLATFORM_ADDRESSES'],
+      message: 'required in production: the IPv4 addresses a root domain points at',
     });
   }
   // Slice 12a: unset, the route that hands out each shop's storefront key is open, which only development may allow.
