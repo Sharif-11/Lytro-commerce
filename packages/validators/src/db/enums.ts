@@ -461,6 +461,8 @@ export enum QueueName {
   MetaPurchase = 'meta_purchase',
   // TEN-11 (Slice 13): every 10 minutes, each waiting domain's records looked for, and each active one's once a day.
   DomainCheckTick = 'domain_check_tick',
+  // API-11, KNOWN-GAPS §106: once a day, every idempotency key past its 24 hours goes, with the reply stored for it.
+  IdempotencyPurgeTick = 'idempotency_purge_tick',
 }
 
 // Who performed the action (AUD-02). `system` is the platform itself (a scheduled job); `platform_support` is an

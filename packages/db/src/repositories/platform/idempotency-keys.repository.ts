@@ -65,6 +65,24 @@ export class IdempotencyKeysRepository {
     await tx.delete(idempotencyKeys).where(byKey(scope, key));
   }
 
+  /**
+   * API-11, KNOWN-GAPS §106: every key past its 24 hours, whoever holds it, with the reply stored for it -- the daily
+   * purge, so a staff order's reply (the customer's name, phone and address) is never kept beyond its window. How many
+   * went.
+   */
+  async deleteAllExpired(tx: Executor, now: Date): Promise<number> {
+    const gone = await tx
+      .delete(idempotencyKeys)
+      .where(lt(idempotencyKeys.expiresAt, now))
+      .returning({ key: idempotencyKeys.key });
+    return gone.length;
+  }
+
+  /** LIF-19: every key of the shop and its stored reply, gone with the rest of its data. */
+  async deleteAllForTenant(tx: Executor, tenantId: string): Promise<void> {
+    await tx.delete(idempotencyKeys).where(eq(idempotencyKeys.tenantId, tenantId));
+  }
+
   /** The key, once its 24 hours have run out, so the same value starts afresh. */
   async deleteExpired(
     tx: Executor,
