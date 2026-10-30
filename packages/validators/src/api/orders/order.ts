@@ -11,6 +11,7 @@ import {
   ORDER_LINES_MAX,
   ORDER_NOTES_MAX_LENGTH,
   ORDER_PAGE_SIZE,
+  SHOPPER_NOTE_MAX_LENGTH,
   TABLE_REF_MAX_LENGTH,
 } from '../../common/limits';
 import { bdMobileNumber } from '../../common/phone';
@@ -199,6 +200,26 @@ export const createOrderSchema = z
     }
   });
 export type CreateOrderInput = z.infer<typeof createOrderSchema>;
+
+// POST /v1/orders (ORD-02, SFT-06, LND-07, D4-2): a shopper's order, delivered and paid in cash on delivery. Only what
+// a shopper chooses: a price, discount, delivery charge or status is refused by name. `source` is the Lytro
+// storefront's alone to say; any other key's order is the API's.
+export const publicOrderSchema = z
+  .object({
+    customerName: textField(CUSTOMER_NAME_MAX_LENGTH),
+    phone: orderPhoneField,
+    locationId: z.number().int().positive(),
+    deliveryAddress: textField(ORDER_ADDRESS_MAX_LENGTH),
+    shopperNote: textField(SHOPPER_NOTE_MAX_LENGTH).optional(),
+    source: z.enum([OrderSource.Storefront, OrderSource.LandingPage]).optional(),
+    items: z
+      .array(orderItemSchema.pick({ variantId: true, quantity: true, captured: true }).strict())
+      .min(1)
+      .max(ORDER_LINES_MAX)
+      .superRefine(capturedOnce),
+  })
+  .strict();
+export type PublicOrderInput = z.infer<typeof publicOrderSchema>;
 
 // PATCH orders/:id (ORD-11): any of the details, and `items`, the whole list as it should now be. Until the order ships.
 export const updateOrderSchema = z

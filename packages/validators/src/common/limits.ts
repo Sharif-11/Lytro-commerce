@@ -125,6 +125,8 @@ export const ORDER_NOTES_MAX_LENGTH = 1000;
 export const ORDER_LINES_MAX = 100;
 export const TABLE_REF_MAX_LENGTH = 30;
 export const ORDER_PAGE_SIZE = 20;
+// LND-07: what a shopper may add for the shop as they order, kept apart from staff notes.
+export const SHOPPER_NOTE_MAX_LENGTH = 500;
 // ATR-08: what one captured-at-order value may say.
 export const CAPTURED_VALUE_MAX_LENGTH = 200;
 // ORD-51, ORD-52: a call's note, and a cancellation's.

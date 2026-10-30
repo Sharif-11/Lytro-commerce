@@ -172,6 +172,20 @@ export class OrderRepository {
     return row ? numbered(row) : null;
   }
 
+  /** ORD-17: the shop's order with this tracking ID, if it has one. */
+  async findByTrackingId(
+    tx: Transaction,
+    tenantId: string,
+    trackingId: string,
+  ): Promise<OrderRow | null> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const [row] = await tx
+      .select()
+      .from(orders)
+      .where(and(eq(orders.tenantId, tenantId), eq(orders.trackingId, trackingId)));
+    return row ? numbered(row) : null;
+  }
+
   /** ORD-04: gives a new order its number, once; the database keeps it from then on. */
   async numberOrder(
     tx: Transaction,

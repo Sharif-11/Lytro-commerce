@@ -269,6 +269,7 @@ export class DataExportService {
         codAmount: order.codAmount,
         cancelReason: order.cancelReason ?? '',
         notes: order.notes ?? '',
+        shopperNote: order.shopperNote ?? '',
       }));
       archive.append(
         toCsv(orderRows, [
@@ -291,6 +292,7 @@ export class DataExportService {
           'codAmount',
           'cancelReason',
           'notes',
+          'shopperNote',
         ]),
         { name: 'orders.csv' },
       );

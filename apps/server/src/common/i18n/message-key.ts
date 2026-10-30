@@ -488,6 +488,14 @@ export const MESSAGE_KEYS = [
   // Phase 3 Slice 12: the storefront key Lytro keeps for the shop's storefront.
   'ApiKeyManagedByLytro',
   'DeliveryEstimated',
+  // Phase 4 Slice 4.2: a shopper's order and its tracking (ORD-02, ORD-17, PRD-06, ATR-07, DLV-06, DLV-07, D4-2,
+  // RTE-06, RTE-08).
+  'TooManyOrders',
+  'ProductNotOnSale',
+  'ProductNeedsAdvance',
+  'ShopDoesNotDeliverHere',
+  'ProductNotDeliveredHere',
+  'OrderTracked',
 ] as const;
 
 export type MessageKey = (typeof MESSAGE_KEYS)[number];

@@ -121,6 +121,7 @@ const orderViewSchema = z.object({
   deliveredAt: z.coerce.date().nullable(),
   handledAt: z.coerce.date().nullable(),
   notes: z.string().nullable(),
+  shopperNote: z.string().nullable(),
   createdBy: personSchema,
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),

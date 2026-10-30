@@ -42,4 +42,19 @@ export class RequestLimits implements OnModuleInit, OnModuleDestroy {
   perVisitor(tenantId: string, ip: string, limit: number, now: Date): WindowVerdict {
     return this.windows.take(`ip:${tenantId}:${ip}`, limit, now.getTime());
   }
+
+  /** RTE-06, LND-12: one visitor's orders in one shop. */
+  ordersPerVisitor(tenantId: string, ip: string, limit: number, now: Date): WindowVerdict {
+    return this.windows.take(`order-ip:${tenantId}:${ip}`, limit, now.getTime());
+  }
+
+  /** RTE-08 (amended 2026-10-30): every shopper's orders in one shop together, a flood guard. */
+  ordersPerShop(tenantId: string, limit: number, now: Date): WindowVerdict {
+    return this.windows.take(`order-shop:${tenantId}`, limit, now.getTime());
+  }
+
+  /** ORD-17: one visitor's tracking reads in one shop. */
+  trackingPerVisitor(tenantId: string, ip: string, limit: number, now: Date): WindowVerdict {
+    return this.windows.take(`track-ip:${tenantId}:${ip}`, limit, now.getTime());
+  }
 }

@@ -45,6 +45,8 @@ export class ApiKeyAuthenticator {
       ? {
           id: row.id,
           tenantId: row.tenantId,
+          name: row.name,
+          purpose: row.purpose,
           websites: row.websites,
           expiresAt: row.expiresAt,
           revokedAt: row.revokedAt,

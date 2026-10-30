@@ -37,6 +37,8 @@ export interface ApiUsageCounts {
   /** RTE-06: the requests the per-visitor limit refused, and the visitors they came from not counted before. */
   refusedRequests: number;
   refusedVisitors: number;
+  /** RTE-08: the orders the shop's per-minute window refused. */
+  refusedOrders: number;
 }
 
 // RTE-03, D3-2: each shop's requests per billing cycle. The servers count in memory and add their counts here every
@@ -71,6 +73,7 @@ export class ApiUsageRepository {
           requests: sql`${apiUsage.requests} + ${counts.requests}`,
           refusedRequests: sql`${apiUsage.refusedRequests} + ${counts.refusedRequests}`,
           refusedVisitors: sql`${apiUsage.refusedVisitors} + ${counts.refusedVisitors}`,
+          refusedOrders: sql`${apiUsage.refusedOrders} + ${counts.refusedOrders}`,
           updatedAt: new Date(),
         },
       })

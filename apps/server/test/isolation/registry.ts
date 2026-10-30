@@ -237,6 +237,9 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'GET /public/locations': 'returns the same platform-wide thana list whichever key asks',
   'POST /public/delivery-estimate':
     "another shop's variant is not_found; zones are the key's own shop's",
+  // Phase 4 Slice 4.2, checked in test/public-orders.e2e.spec.ts.
+  'POST /public/orders': "another shop's variant is not_found; the order is the key's own shop's",
+  'GET /public/track/:trackingId': "another shop's order, by its tracking ID, is not_found",
   // Phase 3 Slice 9b, checked in test/ad-tracking-feed.e2e.spec.ts.
   'GET /ad-tracking': "shows only the session shop's own ad tracking",
   'PUT /ad-tracking': "sets only the session shop's own ad tracking",

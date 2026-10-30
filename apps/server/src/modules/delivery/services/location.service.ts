@@ -82,6 +82,13 @@ export class LocationService {
     return (await this.index()).thanas.get(id) ?? null;
   }
 
+  /** LND-16: the English name of the zilla a thana is in. */
+  async zillaNameOf(thanaId: number): Promise<string | null> {
+    const index = await this.index();
+    const thana = index.thanas.get(thanaId);
+    return thana ? (index.zillas.get(thana.zillaId)?.nameEn ?? null) : null;
+  }
+
   /** The areas' names, for a zone's view; an id the list no longer has is left out. */
   async describe(areas: ZoneAreas): Promise<{
     zillas: { id: number; nameEn: string; nameBn: string }[];

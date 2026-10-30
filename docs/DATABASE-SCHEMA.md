@@ -1419,7 +1419,9 @@ CREATE TABLE tenant.orders (
     -- QTA-01/05/07: the ONLY column the handling counters read; order creation never touches it.
     handled_at      timestamptz,
     notes           varchar(1000),
-    created_by      uuid,
+    -- LND-07 (Slice 4.2): what the shopper wrote for the shop as they ordered; set once, never edited by staff.
+    shopper_note    varchar(500),
+    created_by      uuid,                               -- ORD-01: the staff member; null for a shopper's order
     created_at      timestamptz NOT NULL DEFAULT now(),
     updated_at      timestamptz NOT NULL DEFAULT now(),
     UNIQUE (tenant_id, id),
@@ -1662,6 +1664,7 @@ CREATE TABLE control.api_usage (                          -- RTE-03 (built in Sl
     updated_at      timestamptz NOT NULL DEFAULT now(),
     refused_requests bigint NOT NULL DEFAULT 0,           -- RTE-06: refused by the per-visitor limit
     refused_visitors integer NOT NULL DEFAULT 0,          -- RTE-06: the visitors those came from, each once a cycle
+    refused_orders  integer NOT NULL DEFAULT 0,           -- RTE-08 (Slice 4.2): refused by the shop's order window
     fast_spend_alerted_at timestamptz,                    -- RTE-12: the cycle's last fast-spend alert, at most daily
     -- RTE-11, PLN-15 (migration 0076): what packs mean to this cycle -- as media_bandwidth's
     pack_used       bigint NOT NULL DEFAULT 0,            -- taken from the shop's packs: past its own limit and pack_free

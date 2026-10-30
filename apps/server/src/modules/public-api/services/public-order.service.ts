@@ -1,0 +1,125 @@
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import {
+  ActorType,
+  ApiKeyPurpose,
+  FieldProblemCode,
+  FulfilmentType,
+  OrderSource,
+  QueueName,
+  type PublicOrderInput,
+} from '@lytronix/validators';
+import { FieldsError } from '../../../common/api-error';
+import {
+  IdempotencyService,
+  type IdempotencyClaim,
+} from '../../../common/idempotency/idempotency.service';
+import type { OrderNotifier } from '../../orders/ports/order-notifier';
+import { OrderPricing } from '../../orders/services/order-pricing';
+import { placedViewOf } from '../../orders/services/order-tracking';
+import { OrderService } from '../../orders/services/order.service';
+import { ORDER_NOTIFIER } from '../../orders/tokens';
+import type { OrderRecord, PlacedOrderView } from '../../orders/types/orders';
+import type { JobQueue } from '../../shared/queue/ports/job-queue';
+import { JOB_QUEUE } from '../../shared/queue/tokens';
+import type { AuthenticatedKey } from '../types/public-api';
+import { AdTrackingService } from './ad-tracking.service';
+import type { MetaPurchasePayload } from './meta-purchase-sender';
+
+/** ORD-02: an order placed, or the reply its idempotency key already holds. */
+export type OrderPlaced =
+  { replayed: false; order: PlacedOrderView } | { replayed: true; body: unknown };
+
+/**
+ * ORD-02, ORD-20, ORD-21, LND-16, API-21 (Phase 4 Slice 4.2): a shopper's order through a public key -- the Lytro
+ * storefront's, or a key the shop made for its own site. It is made exactly as a staff order is, refused what a
+ * shopper may not order, and starts pending, waiting for the shop's call (ORD-07); its activity entry names the key.
+ * Meta's server-side `Purchase` is queued in the order's own transaction, and the shop's staff are told once it has
+ * committed -- never on a replay.
+ */
+@Injectable()
+export class PublicOrderService {
+  private readonly logger = new Logger('PublicOrders');
+
+  constructor(
+    @Inject(OrderService) private readonly orders: OrderService,
+    @Inject(OrderPricing) private readonly pricing: OrderPricing,
+    @Inject(IdempotencyService) private readonly idempotency: IdempotencyService,
+    @Inject(AdTrackingService) private readonly adTracking: AdTrackingService,
+    @Inject(JOB_QUEUE) private readonly jobs: JobQueue,
+    @Inject(ORDER_NOTIFIER) private readonly notifier: OrderNotifier,
+  ) {}
+
+  async place(
+    tenantId: string,
+    input: PublicOrderInput,
+    key: AuthenticatedKey,
+    ip: string | null,
+    claim: IdempotencyClaim,
+  ): Promise<OrderPlaced> {
+    const source = this.sourceOf(input, key);
+    const location = await this.pricing.thanaOf(input.locationId);
+    const toMeta = await this.adTracking.sendsPurchases(tenantId);
+    const placed = await this.orders.inTransaction(tenantId, async (tx) => {
+      const made = await this.orders.makeWithin(tx, tenantId, claim, {
+        source,
+        type: FulfilmentType.Delivery,
+        customerName: input.customerName,
+        phone: input.phone,
+        location,
+        deliveryAddress: input.deliveryAddress,
+        tableRef: null,
+        items: input.items,
+        discount: '0.00',
+        byHand: null,
+        confirmed: false,
+        notes: null,
+        shopperNote: input.shopperNote ?? null,
+        by: null,
+        actor: { id: key.id, ip, type: ActorType.ApiKey },
+        audited: { keyName: key.name, source },
+        shopper: true,
+      });
+      if (made.replayed) return made;
+      const view = placedViewOf(made.order, made.lines);
+      if (toMeta) {
+        const payload: MetaPurchasePayload = { tenantId, orderId: made.order.id };
+        await this.jobs.enqueue(tx, QueueName.MetaPurchase, payload, {
+          singletonKey: made.order.id,
+        });
+      }
+      await this.idempotency.completeWithin(tx, claim, 201, view);
+      return { replayed: false as const, view, order: made.order };
+    });
+    if (placed.replayed) return placed;
+    await this.tell(tenantId, placed.order);
+    return { replayed: false, order: placed.view };
+  }
+
+  /**
+   * LND-09: where the order came from. The Lytro storefront says whether its storefront or a landing page took it; any
+   * other key's order is the API's, and such a key may not say otherwise.
+   */
+  private sourceOf(input: PublicOrderInput, key: AuthenticatedKey): OrderSource {
+    if (key.purpose === ApiKeyPurpose.Storefront) return input.source ?? OrderSource.Storefront;
+    if (input.source !== undefined) {
+      throw new FieldsError([{ field: 'source', problem: FieldProblemCode.NotAllowed }]);
+    }
+    return OrderSource.Api;
+  }
+
+  /** ORD-20: tells the shop's staff, after the order has committed; a notice that fails never undoes the order. */
+  private async tell(tenantId: string, order: OrderRecord): Promise<void> {
+    try {
+      await this.notifier.orderPlaced({
+        tenantId,
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        source: order.source,
+        customerName: order.customerName,
+        grandTotal: order.grandTotal,
+      });
+    } catch (error) {
+      this.logger.error(`could not tell ${tenantId} of order ${order.orderNumber}`, error as Error);
+    }
+  }
+}

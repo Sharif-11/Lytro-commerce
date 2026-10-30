@@ -442,6 +442,9 @@ export enum QueueName {
   UsageNotice = 'usage_notice',
   // BND-04, RTE-11: a pack to buy from the balance, queued by the minute's count that reached the cycle's allowance.
   PackAutoBuy = 'pack_auto_buy',
+  // LND-16: a shopper's order told to Meta's Conversions API, queued in the order's own transaction, retried apart
+  // from it.
+  MetaPurchase = 'meta_purchase',
 }
 
 // Who performed the action (AUD-02). `system` is the platform itself (a scheduled job); `platform_support` is an
@@ -605,6 +608,9 @@ export enum PlatformSettingKey {
   // RTE-12 (editable, KNOWN-GAPS §82): the share of a cycle's API requests that, spent in one hour, tells the owner and
   // the operator. Nothing is refused.
   FastSpendPercent = 'fast_spend_percent',
+  // RTE-08 (amended 2026-10-30, editable): how many orders shoppers may place in one shop in any minute, every plan
+  // alike -- a flood guard, never a cap on demand (QTA-07). One visitor is held apart by RTE-06's 10.
+  PublicOrdersPerShopPerMinute = 'public_orders_per_shop_per_minute',
 }
 
 // D2-1: what a control.plan_payments row is for -- a purchase, a renewal, an upgrade, a balance top-up, or an add-on

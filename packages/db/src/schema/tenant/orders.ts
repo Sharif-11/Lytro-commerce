@@ -31,6 +31,7 @@ import {
   OrderPaymentStatus,
   OrderSource,
   PRODUCT_NAME_MAX_LENGTH,
+  SHOPPER_NOTE_MAX_LENGTH,
   SKU_MAX_LENGTH,
   StatusOverride,
   TABLE_REF_MAX_LENGTH,
@@ -150,6 +151,9 @@ export const orders = tenant.table(
     // QTA-01, QTA-05, QTA-07: the only column the handling counters read; creating an order never sets it.
     handledAt: timestamp('handled_at', { withTimezone: true }),
     notes: varchar('notes', { length: ORDER_NOTES_MAX_LENGTH }),
+    // LND-07 (agreed 2026-10-30): what the shopper wrote for the shop as they ordered; set once, never edited by staff.
+    shopperNote: varchar('shopper_note', { length: SHOPPER_NOTE_MAX_LENGTH }),
+    // ORD-01: the staff member who entered it; null for an order a shopper placed (ORD-02).
     createdBy: uuid('created_by'),
     createdAt: createdAt(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

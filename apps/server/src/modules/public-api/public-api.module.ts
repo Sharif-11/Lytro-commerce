@@ -42,8 +42,15 @@ import { BalanceModule } from '../balance/balance.module';
 import { DeliveryModule } from '../delivery/delivery.module';
 import { MediaModule } from '../media/media.module';
 import { OrdersModule } from '../orders/orders.module';
+import { IdempotencyModule } from '../../common/idempotency/idempotency.module';
+import { QueueModule } from '../shared/queue/queue.module';
 import { PublicDeliveryController } from './controllers/public-delivery.controller';
+import { PublicOrdersController } from './controllers/public-orders.controller';
 import { StorefrontContextController } from './controllers/storefront-context.controller';
+import { GraphMetaConversions } from './services/graph-meta-conversions';
+import { MetaPurchaseSender } from './services/meta-purchase-sender';
+import { OrderLimits } from './services/order-limits';
+import { PublicOrderService } from './services/public-order.service';
 import { StorefrontContextService } from './services/storefront-context.service';
 import { StorefrontKeyService } from './services/storefront-key.service';
 import {
@@ -55,20 +62,24 @@ import {
   CATALOG_FEED_STORE,
   CATALOGUE_CACHE_SETTINGS,
   CATALOGUE_SEARCH,
+  META_CONVERSIONS,
   PUBLIC_CATALOGUE_STORE,
 } from './tokens';
 
 // D3-1, D3-2, D3-7: the public API -- a shop's public keys, the gate every public API route sits behind (key,
 // website, shop open, per-visitor and per-cycle limits), the API host itself, and the public catalogue with its memory
-// cache, ad tracking and the Meta catalog feed (Slice 9). Depends on tenancy (hosts), catalogue (the activity log a
-// key's changes are written to, and the products it shows) and platform settings (the cache lifetimes and the
-// per-visitor limit); billing reaches it for the day-60 deletion.
+// cache, ad tracking and the Meta catalog feed (Slice 9); a shopper's orders and their tracking, with Meta's
+// server-side purchase (Phase 4 Slice 4.2). Depends on tenancy (hosts), catalogue (the activity log a key's changes are
+// written to, and the products it shows), orders (making and tracking them), the queue (Meta's purchases) and platform
+// settings (the cache lifetimes and the per-minute limits); billing reaches it for the day-60 deletion.
 @Module({
   imports: [
     BalanceModule,
     DeliveryModule,
+    IdempotencyModule,
     MediaModule,
     OrdersModule,
+    QueueModule,
     TenancyModule,
     CatalogueModule,
     PlatformSettingsModule,
@@ -81,6 +92,7 @@ import {
     PublicFeedController,
     StorefrontContextController,
     PublicDeliveryController,
+    PublicOrdersController,
   ],
   providers: [
     { provide: API_KEY_STORE, useClass: DrizzleApiKeyStore },
@@ -115,6 +127,10 @@ import {
     RequestLimits,
     RequestQuota,
     VisitorLimit,
+    OrderLimits,
+    PublicOrderService,
+    { provide: META_CONVERSIONS, useClass: GraphMetaConversions },
+    MetaPurchaseSender,
     PublicKeyGuard,
     PublicApiHost,
   ],
@@ -123,6 +139,8 @@ import {
     // For the dashboard's ad tracking and feed screens (team).
     AdTrackingService,
     CatalogFeedService,
+    // For the queue's worker that tells Meta of a shopper's purchase (LND-16).
+    MetaPurchaseSender,
     PublicApiEraser,
     PublicApiHost,
     RequestQuota,
