@@ -1391,6 +1391,55 @@ CREATE INDEX ON tenant.customers USING gin (name gin_trgm_ops);    -- DAT-13, CU
 CREATE INDEX ON tenant.customers USING gin (phone gin_trgm_ops);
 CREATE INDEX ON tenant.customers (tenant_id, last_order_at DESC, id DESC);
 
+-- Built in Phase 4 Slice 4.4b (CUS-03 to CUS-06, D4-14): a shop's shoppers, each one phone in one shop, made with a code
+-- sent once to the phone (paid from the shop's balance) and signed in with a password after. RLS like every tenant
+-- table; the app role reads and writes all four. The privacy delete (CUS-09) and LIF-19 remove them.
+CREATE TABLE tenant.shoppers (
+    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id       uuid NOT NULL,
+    phone           varchar(15) NOT NULL,           -- 01XXXXXXXXX, proved by the sign-up code
+    name            varchar(100) NOT NULL,
+    password_hash   text NOT NULL,                  -- bcrypt (D2)
+    failed_signins  integer NOT NULL DEFAULT 0,     -- AUTH-14's rule: five within fifteen minutes lock it
+    failing_since   timestamptz,
+    created_at      timestamptz NOT NULL DEFAULT now(),
+    updated_at      timestamptz NOT NULL DEFAULT now(),
+    UNIQUE (tenant_id, id),
+    UNIQUE (tenant_id, phone)
+);
+CREATE TABLE tenant.shopper_sessions (               -- a sign-in, as the token's hash; 30 days
+    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id       uuid NOT NULL,
+    shopper_id      uuid NOT NULL,                  -- (tenant_id, shopper_id) -> tenant.shoppers, ON DELETE CASCADE
+    token_hash      text NOT NULL UNIQUE,
+    expires_at      timestamptz NOT NULL,
+    created_at      timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE tenant.shopper_codes (                  -- CUS-04: a sign-up code's keyed hash (AUTH-05)
+    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id       uuid NOT NULL,
+    phone           varchar(15) NOT NULL,
+    code_hash       text NOT NULL,
+    wrong_attempts  integer NOT NULL DEFAULT 0,     -- five, then a new code is needed
+    expires_at      timestamptz NOT NULL,           -- five minutes
+    used_at         timestamptz,
+    created_at      timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX ON tenant.shopper_codes (tenant_id, phone, created_at);  -- a phone's minute and hour (SMS-11)
+CREATE INDEX ON tenant.shopper_codes (tenant_id, created_at);         -- the shop's 30 an hour
+CREATE TABLE tenant.shopper_addresses (              -- CUS-06: up to 10, one the default
+    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id       uuid NOT NULL,
+    shopper_id      uuid NOT NULL,                  -- (tenant_id, shopper_id) -> tenant.shoppers, ON DELETE CASCADE
+    label           varchar(30) NOT NULL,           -- "Home"
+    location_id     integer NOT NULL,               -- CUS-08: the thana, by value (control.locations)
+    delivery_address varchar(500) NOT NULL,
+    is_default      boolean NOT NULL DEFAULT false,
+    created_at      timestamptz NOT NULL DEFAULT now(),
+    updated_at      timestamptz NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX ON tenant.shopper_addresses (tenant_id, shopper_id) WHERE is_default;
+
 CREATE TABLE tenant.orders (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id       uuid NOT NULL,
