@@ -18,7 +18,7 @@ Scope: from the landing page to the first order being shipped. The full orders, 
 | `pay.lytro.app` | hosted payment page (Phase 5) | | the checkout's manual payment step |
 | `admin.lytro.app` | operator console (`apps/operator`) | | not part of onboarding |
 
-The claim box posts to `app.lytro.app/sign-in?shop=<slug>`. A plan picked on the pricing page adds `&plan=<id>&term=<id>`. Both survive every identity path, Google and Facebook included (AUTH-28, AUTH-29).
+The claim box posts to `app.lytro.app/sign-in?shop=<slug>`. A plan picked on the pricing page adds `&plan=<id>&term=<id>`. Both survive every identity path, Google and Facebook included (AUTH-28, AUTH-29). The site's "Log in" link opens the same page on the password form (`?mode=password`, decided 2026-10-30), because a code to an existing shop uses the shop's free SMS (AUTH-21); "Use a code instead" stays on it for a seller with no password.
 
 ---
 
