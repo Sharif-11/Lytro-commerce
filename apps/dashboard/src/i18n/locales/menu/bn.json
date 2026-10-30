@@ -27,6 +27,7 @@
     "category_deleted": "{{actor}} ক্যাটাগরি ডিলিট করেছেন",
     "category_updated": "{{actor}} ক্যাটাগরি এডিট করেছেন",
     "data_export_downloaded": "{{actor}} ডেটা এক্সপোর্ট ডাউনলোড করেছেন",
+    "customer_erased": "{{actor}} একজন কাস্টমারের তথ্য ডিলিট করেছেন",
     "data_export_requested": "{{actor}} ডেটা এক্সপোর্ট চেয়েছেন",
     "deletion_warning_sent": "ডেটা ডিলিটের সতর্কতা পাঠানো হয়েছে",
     "delivery_home_area_changed": "{{actor}} শপের এলাকা বদলেছেন",

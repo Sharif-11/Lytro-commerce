@@ -59,6 +59,7 @@ export const FIELD_LABELS: Readonly<Record<string, Translation | null>> = {
   courierName: { en: 'Courier', bn: 'কুরিয়ার' },
   currentPassword: { en: 'Current password', bn: 'কারেন্ট পাসওয়ার্ড' },
   cursor: { en: 'Page', bn: 'পেজ' },
+  customerId: { en: 'Customer', bn: 'কাস্টমার' },
   customerName: { en: 'Customer name', bn: 'কাস্টমারের নাম' },
   damaged: { en: 'Damaged', bn: 'নষ্ট' },
   darkLogoId: { en: 'Logo on dark', bn: 'গাঢ় ব্যাকগ্রাউন্ডের লোগো' },

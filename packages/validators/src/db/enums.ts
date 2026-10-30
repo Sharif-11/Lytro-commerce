@@ -318,6 +318,8 @@ export enum AuditAction {
   // "payment verified or rejected", ORD-15).
   OrderPaymentRecorded = 'order_payment_recorded',
   OrderPaymentVoided = 'order_payment_voided',
+  // Phase 4 Slice 4.4a: a customer deleted at a privacy request (CUS-09); the entry names no personal detail.
+  CustomerErased = 'customer_erased',
 }
 
 // FED-02: what a product is, for Meta's catalog: new unless the shop says otherwise.

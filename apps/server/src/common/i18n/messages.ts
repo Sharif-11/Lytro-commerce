@@ -1577,6 +1577,30 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'Payment voided.',
     bn: 'পেমেন্ট ভয়েড করা হয়েছে।',
   },
+  CustomersRetrieved: {
+    en: 'Customers retrieved.',
+    bn: 'কাস্টমারদের তালিকা পাওয়া গেছে।',
+  },
+  CustomerRetrieved: {
+    en: 'Customer retrieved.',
+    bn: 'কাস্টমারের তথ্য পাওয়া গেছে।',
+  },
+  CustomerNotFound: {
+    en: 'Customer not found.',
+    bn: 'কাস্টমার পাওয়া যায়নি।',
+  },
+  CustomerHasOpenOrders: {
+    en: (p) =>
+      Number(p.count) === 1
+        ? "This customer has an order on its way. Once it's delivered, returned or cancelled, their details can be deleted."
+        : `This customer has ${String(p.count)} orders on their way. Once they're delivered, returned or cancelled, their details can be deleted.`,
+    bn: (p) =>
+      `এই কাস্টমারের ${String(p.count)}টি অর্ডার এখনো চলছে। সেগুলো ডেলিভারড, রিটার্ন বা ক্যানসেল হলে তথ্য ডিলিট করা যাবে।`,
+  },
+  CustomerErased: {
+    en: "The customer's details are deleted.",
+    bn: 'কাস্টমারের তথ্য ডিলিট করা হয়েছে।',
+  },
 };
 
 export function translate(key: MessageKey, lang: Language, params: MessageParams = {}): string {

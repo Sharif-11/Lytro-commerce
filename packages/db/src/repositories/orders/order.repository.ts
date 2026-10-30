@@ -54,6 +54,8 @@ export interface OrderListFilter {
   before: Date | null;
   /** Part of the customer's name or phone, or of the order number. */
   search: string | null;
+  /** CUS-02: one customer's orders. */
+  customerId: string | null;
 }
 
 /**
@@ -347,6 +349,7 @@ export class OrderRepository {
       conditions.push(eq(orders.fulfillmentStatus, filter.fulfillmentStatus));
     if (filter.source !== null) conditions.push(eq(orders.source, filter.source));
     if (filter.cancelReason !== null) conditions.push(eq(orders.cancelReason, filter.cancelReason));
+    if (filter.customerId !== null) conditions.push(eq(orders.customerId, filter.customerId));
     if (filter.from !== null) conditions.push(gte(orders.createdAt, filter.from));
     if (filter.before !== null) conditions.push(lt(orders.createdAt, filter.before));
     if (filter.search !== null) {

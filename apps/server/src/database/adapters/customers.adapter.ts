@@ -28,6 +28,35 @@ export class DrizzleCustomerStore implements CustomerStore {
     return this.customers.find(tx, tenantId, id);
   }
 
+  list(
+    tx: Transaction,
+    tenantId: string,
+    search: string | null,
+    page: { offset: number; limit: number },
+  ): Promise<{ rows: CustomerRecord[]; total: number }> {
+    return this.customers.list(tx, tenantId, search, page);
+  }
+
+  lastAddress(
+    tx: Transaction,
+    tenantId: string,
+    customerId: string,
+  ): Promise<{ locationId: number; deliveryAddress: string } | null> {
+    return this.customers.lastAddress(tx, tenantId, customerId);
+  }
+
+  lockForErasure(tx: Transaction, tenantId: string, id: string): Promise<CustomerRecord | null> {
+    return this.customers.lockForErasure(tx, tenantId, id);
+  }
+
+  openOrderNumbers(tx: Transaction, tenantId: string, customerId: string): Promise<string[]> {
+    return this.customers.openOrderNumbers(tx, tenantId, customerId);
+  }
+
+  erase(tx: Transaction, tenantId: string, id: string, now: Date): Promise<number> {
+    return this.customers.erase(tx, tenantId, id, now);
+  }
+
   listForExport(
     tx: Transaction,
     tenantId: string,

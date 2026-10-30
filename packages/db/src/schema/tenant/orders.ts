@@ -159,6 +159,9 @@ export const orders = tenant.table(
     notes: varchar('notes', { length: ORDER_NOTES_MAX_LENGTH }),
     // LND-07 (agreed 2026-10-30): what the shopper wrote for the shop as they ordered; set once, never edited by staff.
     shopperNote: varchar('shopper_note', { length: SHOPPER_NOTE_MAX_LENGTH }),
+    // CUS-09 (Slice 4.4a): when its customer was deleted at a privacy request. The name, phone, address and shopper's
+    // note are gone from then on; the totals, items and thana stay.
+    customerErasedAt: timestamp('customer_erased_at', { withTimezone: true }),
     // ORD-01: the staff member who entered it; null for an order a shopper placed (ORD-02).
     createdBy: uuid('created_by'),
     createdAt: createdAt(),
@@ -174,16 +177,24 @@ export const orders = tenant.table(
       foreignColumns: [customers.tenantId, customers.id],
     }),
     // MNU-04: a delivery has its customer, thana and address; a takeaway its customer and no address; a dine-in its
-    // table. Only a delivery has a zone or a delivery charge.
+    // table. Only a delivery has a zone or a delivery charge. CUS-09: once its customer is erased, the name, phone and
+    // address are gone.
     check(
       'orders_fulfilment_check',
       sql`CASE ${t.fulfilmentType}
-        WHEN 'delivery' THEN ${t.customerName} IS NOT NULL AND ${t.customerPhone} IS NOT NULL
-          AND ${t.locationId} IS NOT NULL AND ${t.deliveryAddress} IS NOT NULL AND ${t.tableRef} IS NULL
-        WHEN 'takeaway' THEN ${t.customerName} IS NOT NULL AND ${t.customerPhone} IS NOT NULL
+        WHEN 'delivery' THEN (${t.customerErasedAt} IS NOT NULL OR (${t.customerName} IS NOT NULL
+          AND ${t.customerPhone} IS NOT NULL AND ${t.deliveryAddress} IS NOT NULL))
+          AND ${t.locationId} IS NOT NULL AND ${t.tableRef} IS NULL
+        WHEN 'takeaway' THEN (${t.customerErasedAt} IS NOT NULL OR (${t.customerName} IS NOT NULL
+          AND ${t.customerPhone} IS NOT NULL))
           AND ${t.locationId} IS NULL AND ${t.deliveryAddress} IS NULL AND ${t.tableRef} IS NULL
         ELSE ${t.tableRef} IS NOT NULL AND ${t.locationId} IS NULL AND ${t.deliveryAddress} IS NULL
       END`,
+    ),
+    check(
+      'orders_erased_check',
+      sql`${t.customerErasedAt} IS NULL OR (${t.customerName} IS NULL AND ${t.customerPhone} IS NULL
+        AND ${t.deliveryAddress} IS NULL AND ${t.shopperNote} IS NULL)`,
     ),
     check(
       'orders_delivery_charge_check',

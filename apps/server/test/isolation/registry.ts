@@ -272,6 +272,10 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'POST /orders/:id/hand-over': "another shop's order answers 404",
   'POST /orders/:id/deliver': "another shop's order answers 404",
   'POST /orders/:id/returns': "another shop's order answers 404",
+  // Phase 4 Slice 4.4a, checked in test/customers.e2e.spec.ts.
+  'GET /customers': "lists and searches only the session shop's own customers",
+  'GET /customers/:id': "another shop's customer answers 404",
+  'DELETE /customers/:id': "another shop's customer answers 404 and keeps its details",
   // Phase 4 Slice 4.3b, checked in test/order-payments.e2e.spec.ts.
   'POST /orders/:id/payments':
     "another shop's order answers 404; a transaction ID another shop recorded is refused",

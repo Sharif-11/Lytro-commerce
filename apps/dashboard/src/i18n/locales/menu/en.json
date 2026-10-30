@@ -27,6 +27,7 @@
     "category_deleted": "{{actor}} deleted a category",
     "category_updated": "{{actor}} edited a category",
     "data_export_downloaded": "{{actor}} downloaded a data export",
+    "customer_erased": "{{actor}} deleted a customer's details",
     "data_export_requested": "{{actor}} asked for a data export",
     "deletion_warning_sent": "A deletion warning was sent",
     "delivery_home_area_changed": "{{actor}} changed the shop’s home area",

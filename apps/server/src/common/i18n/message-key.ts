@@ -531,6 +531,12 @@ export const MESSAGE_KEYS = [
   'CashOnDeliveryKept',
   'OrderPaymentRecorded',
   'OrderPaymentVoided',
+  // Phase 4 Slice 4.4a: the shop's customers, and deleting one at a privacy request (CUS-02, CUS-09).
+  'CustomersRetrieved',
+  'CustomerRetrieved',
+  'CustomerNotFound',
+  'CustomerHasOpenOrders',
+  'CustomerErased',
 ] as const;
 
 export type MessageKey = (typeof MESSAGE_KEYS)[number];
