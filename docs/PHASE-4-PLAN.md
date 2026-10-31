@@ -385,7 +385,14 @@ combos and statistics). If velocity suggests it, the rest can become Phase 4B wi
   placed today, those to ship and this month's sales (the Sales page's figure), its queue the orders to confirm, calls
   due and orders to ship; one search finds orders, customers and products, grouped; a shopper's new password is
   generated for staff to copy and send; the privacy delete is a dialog naming what goes and what stays. Sketched as
-  Part 30 and §7.32 (v3.20).
+  Part 30 and §7.32 (v3.20). **Part c's read** (2026-10-31): New product asks Product or Combo pack
+  first; a combo's parts are a product with its variants ticked (one fixed, several the customer's choice); add-on
+  rules are plain presets with Custom for the numbers; the tax class sits under More settings with the shop's default;
+  orders short of stock show on Home and on Stock with Add stock and See the orders. Sketched as Part 31 and §7.33
+  (v3.21). **Parts d and e's read** (2026-10-31): Sales is the Orders hub's third tab, with profit
+  on it and beside stock value; the storefront has an account icon in its header for sign-in, and checkout is one
+  page, guest, cash on delivery. Part d sketched as Part 32 and §7.34 (v3.22). Part e sketched in the storefront prototype's group "Phase 4 · ordering" and
+  STOREFRONT-DESIGN's §7a (v1.3).
 - **Sketch first** (`sketch-every-screen-before-building`): the status flow with the call log, Confirm, cancel
   reasons, Mark shipped and returns; the storefront's checkout for cash on delivery, the confirmation without an SMS
   promise, tracking with its Confirmed step; the Phase 5–7 parts of today's drawings shown as later.

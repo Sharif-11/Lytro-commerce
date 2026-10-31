@@ -1,6 +1,10 @@
 # Shopper storefront: design
 
-Status: v1.2, 2026-10-30 (Slice 12c's read: the storefront installs as the shop's own app under its plain name and
+Status: v1.3, 2026-10-31 (ordering as Phase 4 built it, Slice 4.8e, the prototype's group "Phase 4 · ordering":
+an account icon in the header, sign-in with phone and password and a code once at sign-up, my orders by phone, saved
+addresses, a one-page guest checkout with cash on delivery and the tax inside the total, the confirmation with no SMS
+promised, tracking with Confirmed and the courier line, a size for each unit of a combo, add-ons, the landing page's
+form taking the order; v1.2 of 2026-10-30: Slice 12c's read: the storefront installs as the shop's own app under its plain name and
 icon, the dashboard's app marked "Admin" instead; the install card waits for a first order (Phase 4); network first,
 with the app and the last pages viewed kept for when the phone is offline, and "You're offline" for a page it never
 saved; a shop's identity drawn from its tokens by the dashboard's rules, with the dashboard's two example shops; the
@@ -166,18 +170,57 @@ offline" in the shop's colours with "Try again" (`offline-unsaved`). The app its
 twenty or so pages and their photos; the cart lives on the phone, and its check, the delivery estimate and search
 need the network.
 
+## 7a. Ordering, as Phase 4 built it (Slice 4.8e)
+
+From 4.8e's read (2026-10-31), drawn in the prototype's group **Phase 4 · ordering (Slice 4.8e)**. The Phase 4 parts
+of §8's drawings are changed here to what Slices 4.1 to 4.7 built; the payment path (§8a) stays Phase 5's.
+
+- **The header** (agreed): a person icon beside the cart. Signed out it opens **Sign in**; signed in, **My account**
+  (`e48-header`).
+- **Sign in** (`account-signin`, CUS-03): phone and password -- "Sign in with your phone number and password" -- with
+  **Forgot your password?** and **No account? Sign up**. A wrong password says the two don't match without saying
+  which (`e48-signin-wrong`); five wrong tries lock it for 15 minutes (`e48-signin-locked`, AUTH-14). Forgetting it
+  asks the shop, who sets a new one (`e48-forgot`, CUS-14): **Call the shop** or WhatsApp.
+- **Sign up** (`e48-signup`): the phone and **Send the code** -- "We send a code once, to check this phone is yours.
+  After that you sign in with phone and password." -- then the code (`account-otp`), then the name and a password, 8
+  to 20 characters (`e48-signup-details`). An account is made here only, never at checkout (CUS-07).
+- **My account** (`account-orders`): hello and the phone, with Sign out; tabs My orders · Saved addresses · Profile.
+  My orders is every order with this phone, wherever it was placed, each its number, date, status and total, opening
+  its tracking (ORD-18). **Saved addresses** (`account-addresses`): each its label, thana and address, the default
+  marked, Edit, and **Add an address** up to 10 (`e48-address-new`: label, district, thana, address, make it the
+  default; CUS-06). **Profile** (`e48-profile`): the name, the phone which can't change (it is the account), and
+  Change password.
+- **Checkout** (`checkout`, agreed: one page, guest): **Contact** -- name and phone, "The shop calls this number to
+  confirm", and **Sign in to fill this in**; **Delivery address** -- district and thana with the zone and its charge
+  under it, the address, and a note for the shop (up to 500 characters); **Payment** -- cash on delivery, with paying
+  first by bKash or Nagad greyed as Phase 5. The summary lists each item with its options, a combo's choices and its
+  add-ons; then the items, the delivery charge, the grand total and **Includes VAT 5%** (TAX-03); **Place order ·
+  cash on delivery**. Signed in, the saved addresses sit above the fields as chips (`e48-checkout-signedin`). Refused:
+  field errors (`checkout-errors`); no delivery to the thana (`checkout-nodelivery`, DLV-06); a product that needs an
+  advance waits for online payment, with Remove it or Call the shop (`e48-checkout-advance`, D4-2); an item sold out
+  as the order was placed, nothing placed (`e48-checkout-short`).
+- **Order placed** (`confirm-cod`): the order number and "The shop will call 01711 223344 to confirm it" -- no SMS is
+  promised (SMS comes in Phase 7); the tracking ID with Copy and **Track the order**; what happens next -- placed, the
+  shop calls to confirm, once it ships the courier and tracking code show on the tracking page, pay the total on
+  delivery; and **Make an account to see all your orders in one place**.
+- **Tracking** (`tracking`, ORD-17): the ID search; the order with its status, the steps Placed, Confirmed, Shipped,
+  Delivered with their times, "Waiting for the shop to call" while new (`e48-tracking-new`), and once shipped the
+  courier line with the tracking code and **Courier's page**; cancelled by the shop, "Call the shop to ask why"
+  (`e48-tracking-cancelled`); the items and totals beside.
+- **A combo** (`combo`, CMB-09): the price with what it saves, **What's inside** -- for a choice part a size for each
+  unit, a sold-out size struck through; a fixed part "Comes with" -- then the quantity and Add to cart. A combo takes
+  no add-ons.
+- **Add-ons** (`e48-addons`, MNU-01): on a product, each group with its rule ("Optional · at most 1") and its options
+  with their price; the total in the bar follows.
+- **The cart** (`e48-cart`): a combo's choices and an item's add-ons on its line, and Includes VAT under the total.
+- **The landing page** (`landing`, LND-07 to LND-12): the form takes the order now, cash on delivery, and the thank-you
+  is the same confirmation (`e48-landing-placed`). The Meta Pixel fires ViewContent when it opens, InitiateCheckout at
+  the first field and Purchase once placed, with the event id the server's Conversions API sends too (LND-15, LND-16).
+
 ## 8. Later phases, drawn in full
 
-Phase 4, orders: **checkout** as one page in three numbered blocks, contact (with "Sign in with OTP" for
-returning shoppers), delivery address (district, thana, courier area, address, "Save this address"),
-payment (cash on delivery, bKash, Nagad, bank transfer as the shop enables them, SFT-10), the summary with
-the exact delivery charge and, when a line needs an advance, "Advance now" and "Pay on delivery" split and
-the button "Place order and pay ৳200" (PRD-08); field errors; the no-delivery and product-limit refusals
-(DLV-06, DLV-07). **Order placed** with the order number, the tracking link, what happens next, and the
-install prompt. **Tracking** by ID with the timeline from the public tracking endpoint and the courier
-line, and "All your orders by phone" for a signed-in shopper (ORD-17, ORD-18, SFT-08). **Account**: OTP
-sign-in in two steps, my orders, saved addresses with a default (CUS-03 to CUS-06, SFT-09). **Combo pack**:
-the price with "Save ৳170", "What's inside" with a choice part the shopper picks per unit (CMB-06, CMB-09).
+Phase 4, orders: drawn again in §7a as Phase 4 built it -- checkout, the confirmation, tracking, the account and the
+combo. What stays here for later is the payment block's wallets and bank (Phase 5, §8a).
 
 Phase 5, payments: the whole path from the method chooser to the return, in §8a.
 
