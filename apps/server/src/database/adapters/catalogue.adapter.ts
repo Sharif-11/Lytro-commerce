@@ -21,6 +21,9 @@ import {
   type SizeChartContent,
   type SizeChartOwner,
   type Transaction,
+  ModifierRepository,
+  type ModifierGroupRow,
+  type NewModifierGroup,
 } from '@lytronix/db';
 import type { MediaKind, StockState } from '@lytronix/validators';
 import { MediaNotAttachable } from '../../common/errors/media-refused';
@@ -340,10 +343,28 @@ export class DrizzleProductStore implements ProductStore {
     @Inject(TransactionRunner) private readonly transactions: TransactionRunner,
     @Inject(ProductRepository) private readonly products: ProductRepository,
     @Inject(VariantRepository) private readonly variants: VariantRepository,
+    @Inject(ModifierRepository) private readonly modifiers: ModifierRepository,
   ) {}
 
   lockCatalogue(tx: Transaction, tenantId: string): Promise<void> {
     return this.products.lockCatalogue(tx, tenantId);
+  }
+
+  replaceModifierGroups(
+    tx: Transaction,
+    tenantId: string,
+    productId: string,
+    groups: readonly NewModifierGroup[],
+  ): Promise<void> {
+    return this.modifiers.replaceGroups(tx, tenantId, productId, groups);
+  }
+
+  listModifierGroups(
+    tx: Transaction,
+    tenantId: string,
+    productIds: readonly string[],
+  ): Promise<ModifierGroupRow[]> {
+    return this.modifiers.listForProducts(tx, tenantId, productIds);
   }
 
   hasOrders(tx: Transaction, tenantId: string, productId: string): Promise<boolean> {

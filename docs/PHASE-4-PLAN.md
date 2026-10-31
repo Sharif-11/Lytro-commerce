@@ -346,10 +346,29 @@ combos and statistics). If velocity suggests it, the rest can become Phase 4B wi
   building 4.6a: up to 20 classes, one name each ignoring case, a rate of 0 to 100 with two decimals; each line's tax
   rounded to the paisa, the class lines summing them; the product form reads the classes with `products:read`,
   changing them needs `settings:manage`.
+- **4.6b read agreed 2026-10-30:** a group a line names nothing for takes its defaults; a price change may be negative,
+  but never takes a unit price below zero; a price set by hand is final, its choices still kept; an edited line given
+  its choices again takes the options' prices of that day (MNU-01 to MNU-03 amended). Settled building 4.6b: up to 10
+  groups a product and 20 options a group, names up to 60; a group's most is at least 1 and no more than its options,
+  its defaults no more than its most; modifiers change neither stock nor weight; every variant shares its product's
+  groups; the tax is worked on the unit price with the choices in it; the public product shows the groups; the line
+  keeps a copy of each choice (group, option, price change), so groups changed or removed later leave orders as they
+  were; a copy of a product copies its groups.
 - **Delivers:** tax classes and their lines on an order (TAX-01 – 03); modifier groups, their choices on a line and
   their limits (MNU-01 – 03).
 
 ### Slice 4.7: sales figures
+- **Read agreed 2026-10-30:** an order counts once delivered (the user's pick over paid-or-part-paid; STA-01 amended),
+  on the Asia/Dhaka day it was placed; revenue is the items after discounts, tax included, with the delivery charges
+  and the tax inside it shown on their own; returned units come off units and revenue; a combo counts as itself in the
+  best sellers (STA-02 amended); profit is the items' revenue less its tax, less the cost of the goods kept, with
+  delivery charges left out (INV-18 amended); weeks start on Saturday; `orders:read` sees the figures, and profit needs
+  `inventory:manage` (D3-9). Backend only; the screens are Slice 4.8's. Settled building: one pull request, no
+  migration; an order every unit of which came back is not counted (STA-04 amended); a line's revenue takes off the
+  same share of the order's discount its tax was worked out on (TAX-02), so revenue and tax agree; the shop's revenue
+  is the sum of its lines', so the best sellers add up to it; units are totalled per stock unit, never across units;
+  a period is at most 1,830 days, the first and last bucket cut to it; best sellers default to 10, at most 50; a
+  product deleted for good ranks under its items' name.
 - **Delivers:** orders and revenue by week, month, quarter and year; best sellers by units and by revenue; trends;
   test and refunded orders excluded (STA-01 – 04); profit beside stock value from each shipment's cost (INV-18).
 

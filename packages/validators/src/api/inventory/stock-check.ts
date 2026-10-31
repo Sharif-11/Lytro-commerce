@@ -5,7 +5,7 @@ import {
   STOCK_CHECK_PAGE_SIZE,
   STOCK_NOTE_MAX_LENGTH,
 } from '../../common/limits';
-import { calendarDayField } from '../../common/dates';
+import { calendarDayField, checkPeriod } from '../../common/dates';
 import { FieldProblemCode } from '../../validation/field-problem';
 import { catalogueIdSchema, quantityField } from '../catalogue/catalogue-common';
 import { serialsField } from './stock';
@@ -64,14 +64,5 @@ export const inventoryFiguresQuerySchema = z
     dateFrom: calendarDayField.optional(),
     dateTo: calendarDayField.optional(),
   })
-  .superRefine((value, ctx) => {
-    if (value.dateFrom && value.dateTo && value.dateFrom > value.dateTo) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['dateTo'],
-        message: 'Choose a day on or after the start date.',
-        params: { problem: FieldProblemCode.NotAllowed },
-      });
-    }
-  });
+  .superRefine(checkPeriod);
 export type InventoryFiguresQuery = z.infer<typeof inventoryFiguresQuerySchema>;

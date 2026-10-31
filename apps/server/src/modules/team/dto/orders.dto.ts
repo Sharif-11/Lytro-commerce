@@ -47,6 +47,15 @@ const zoneSchema = z
   .object({ id: z.string(), name: bilingualSchema, charge: z.string() })
   .nullable();
 
+// MNU-02: one modifier option chosen on a line, as it stood.
+export const modifierSnapshotSchema = z.object({
+  groupId: z.string(),
+  groupName: z.string(),
+  optionId: z.string(),
+  optionName: z.string(),
+  priceChange: z.string(),
+});
+
 // TAX-03: one class's tax an order's total includes.
 export const taxLineSchema = z.object({ name: z.string(), rate: z.string(), amount: z.string() });
 
@@ -89,6 +98,7 @@ const orderItemSchema = z.object({
   taxClassName: z.string().nullable(),
   taxRate: z.string().nullable(),
   taxAmount: z.string(),
+  modifiers: z.array(modifierSnapshotSchema),
   // CMB-04: a combo line's components as ordered; empty for any other line.
   components: z.array(
     z.object({
@@ -239,6 +249,7 @@ const orderQuoteSchema = z.object({
       listPrice: z.string(),
       unitPrice: z.string(),
       quantity: z.string(),
+      modifiers: z.array(modifierSnapshotSchema),
       itemTotal: z.string(),
       deliveryCharge: z.string(),
       advance: z.string(),

@@ -8,6 +8,8 @@ import type {
   SizeChartContent,
   SizeChartOwner,
   Transaction,
+  ModifierGroupRow,
+  NewModifierGroup,
 } from '@lytronix/db';
 import type { MediaKind, StockState } from '@lytronix/validators';
 import type {
@@ -364,6 +366,18 @@ export interface ProductStore {
   clearPackAmounts(tx: Transaction, tenantId: string, productId: string): Promise<void>;
   /** DLV-07: the zones the product may be delivered to. */
   listDeliveryZoneIds(tx: Transaction, tenantId: string, productId: string): Promise<string[]>;
+  /** MNU-01 (Slice 4.6b): the product's modifier groups, replaced whole. */
+  replaceModifierGroups(
+    tx: Transaction,
+    tenantId: string,
+    productId: string,
+    groups: readonly NewModifierGroup[],
+  ): Promise<void>;
+  listModifierGroups(
+    tx: Transaction,
+    tenantId: string,
+    productIds: readonly string[],
+  ): Promise<ModifierGroupRow[]>;
   /** A zone the shop does not have comes back as MissingReference('zone'). */
   replaceDeliveryZones(
     tx: Transaction,

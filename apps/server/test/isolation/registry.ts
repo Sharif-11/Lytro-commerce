@@ -283,6 +283,10 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'PUT /tax-classes/default': "another shop's class answers not_found",
   'PATCH /tax-classes/:id': "another shop's class answers 404 and keeps its rate",
   'DELETE /tax-classes/:id': "another shop's class answers 404 and stays",
+  // Phase 4 Slice 4.7, checked in test/sales-figures.e2e.spec.ts: a shop's sales are its own orders'.
+  'GET /sales':
+    "counts only the session shop's own orders; another shop's product sells nothing here",
+  'GET /sales/best-sellers': "ranks only the session shop's own products",
   // Phase 4 Slice 4.4b, checked in test/shopper-accounts.e2e.spec.ts: a shopper belongs to the key's own shop.
   'POST /public/shopper/code':
     "a phone with an account in another shop still gets a code here; the cost is this shop's",

@@ -277,8 +277,19 @@ export interface ProductDetail {
   parts: ComboPartView[];
   /** TAX-01 (Slice 4.6a): its tax class -- prices include the tax -- or null for untaxed. */
   taxClass: { id: string; name: string; rate: string } | null;
+  /** MNU-01 (Slice 4.6b): its modifier groups in order; empty for none, and always for a combo. */
+  modifierGroups: ModifierGroupView[];
   createdAt: Date;
   updatedAt: Date;
+}
+
+/** MNU-01: one modifier group of a product, and its options, each with its price change and whether it is a default. */
+export interface ModifierGroupView {
+  id: string;
+  name: string;
+  minSelect: number;
+  maxSelect: number;
+  options: { id: string; name: string; priceChange: string; isDefault: boolean }[];
 }
 
 /** CMB-01: one part of a combo -- its quantity in one combo and the variants it may be (one: a fixed part). */
@@ -317,6 +328,8 @@ export interface OrderableVariant {
   kind: ProductKind;
   /** TAX-02 (Slice 4.6a): the class and rate a line copies, or null for untaxed; a combo's is its own. */
   taxClass: { name: string; rate: string } | null;
+  /** MNU-01, MNU-02 (Slice 4.6b): the modifier groups a line chooses from. */
+  modifierGroups: ModifierGroupView[];
   /** INV-24: how much of the shared stock one unit uses; null unless the product shares its stock. */
   packAmount: string | null;
   price: string;

@@ -1,6 +1,7 @@
 import type {
   LineAttributeSnapshot,
   LineCapturedSnapshot,
+  LineModifierSnapshot,
   NewOrderLine,
   OrderRow,
   OrderSummaryRow,
@@ -35,7 +36,13 @@ export type OrderLineRecord = SelectOrderLine;
 export type OrderHistoryRecord = SelectOrderHistory;
 export type OrderCallRecord = SelectOrderCall;
 export type OrderPaymentRecord = SelectOrderPayment;
-export type { LineAttributeSnapshot, LineCapturedSnapshot, NewOrderLine, OrderSummaryRow };
+export type {
+  LineAttributeSnapshot,
+  LineCapturedSnapshot,
+  LineModifierSnapshot,
+  NewOrderLine,
+  OrderSummaryRow,
+};
 
 /** A staff member named on an order (who made a call, who confirmed it), or null where the row has gone. */
 export interface OrderPerson {
@@ -77,6 +84,8 @@ export interface OrderItemView {
   deliveryCharge: string;
   paymentPolicy: PaymentPolicy;
   advance: string;
+  /** MNU-02 (Slice 4.6b): the modifier options chosen, as they stood, already in its unit price. */
+  modifiers: LineModifierSnapshot[];
   /** TAX-02 (Slice 4.6a): the class and rate it was ordered under, or null for untaxed, and the tax its total includes. */
   taxClassName: string | null;
   taxRate: string | null;
@@ -251,6 +260,8 @@ export interface OrderQuote {
     listPrice: string;
     unitPrice: string;
     quantity: string;
+    /** MNU-02 (Slice 4.6b): the options chosen, priced in. */
+    modifiers: LineModifierSnapshot[];
     itemTotal: string;
     deliveryCharge: string;
     advance: string;
@@ -281,6 +292,8 @@ export interface ShopperItemView {
   stockUnit: StockUnit;
   unitPrice: string;
   itemTotal: string;
+  /** MNU-02 (Slice 4.6b): the options chosen ("Spice level: Hot +0"), already in the unit price. */
+  modifiers: { groupName: string; optionName: string; priceChange: string }[];
 }
 
 /** The totals a shopper is shown, in TK. */

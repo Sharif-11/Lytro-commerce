@@ -1,8 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Transaction } from '@lytronix/db';
-import { FieldProblemCode, StockReason, type InventoryFiguresQuery } from '@lytronix/validators';
-import { FieldsError } from '../../../common/api-error';
-import { DAY_MS, dhakaDate, dhakaDayStart } from '../../../common/time';
+import { StockReason, type InventoryFiguresQuery } from '@lytronix/validators';
+import { dayPeriodOf } from '../../../common/day-period';
 import { fromPaisa, toPaisa } from '../../balance/services/money';
 import type { CatalogueTransactions } from '../../catalogue/ports/catalogue-stores';
 import { CATALOGUE_TRANSACTIONS } from '../../catalogue/tokens';
@@ -127,22 +126,7 @@ export class InventoryFiguresService {
     query: InventoryFiguresQuery,
     now = new Date(),
   ): Promise<InventoryFigures> {
-    const dateTo = query.dateTo ?? dhakaDate(now);
-    // Left out, the period starts on the first of the month it ends in.
-    const dateFrom = query.dateFrom ?? `${dateTo.slice(0, 7)}-01`;
-    if (dateFrom > dateTo) {
-      throw new FieldsError([
-        {
-          field: 'dateFrom',
-          problem: FieldProblemCode.NotAllowed,
-          messageKey: 'PeriodEndsBeforeItStarts',
-        },
-      ]);
-    }
-    const period = {
-      from: dhakaDayStart(dateFrom),
-      to: new Date(dhakaDayStart(dateTo).getTime() + DAY_MS),
-    };
+    const { dateFrom, dateTo, ...period } = dayPeriodOf(query, now);
     return this.transactions.run(async (tx) => {
       const held = await this.stock.stockValue(tx, tenantId);
       const outgoing = await this.stock.outgoingByReason(tx, tenantId, period);

@@ -47,6 +47,10 @@ export const COMBO_PART_QUANTITY_MAX = 20;
 export const COMBO_PART_VARIANTS_MAX = 100;
 // ATL-02: the attributes that may describe one product (or be asked about it when ordering, ATR-08).
 export const ATTRIBUTES_PER_PRODUCT_MAX = 50;
+// STA-01 to STA-03 (Slice 4.7): the longest period sales figures cover, and how many best sellers one read ranks.
+export const SALES_PERIOD_DAYS_MAX = 1830;
+export const BEST_SELLERS_DEFAULT = 10;
+export const BEST_SELLERS_MAX = 50;
 // PRD-12: the dashboard's product list pages.
 export const PRODUCT_PAGE_SIZE = 20;
 export const LIST_PAGE_SIZE_MAX = 100;
@@ -135,6 +139,10 @@ export const SHOPPER_NOTE_MAX_LENGTH = 500;
 export const COURIER_NAME_MAX_LENGTH = 80;
 export const TRACKING_CODE_MAX_LENGTH = 100;
 export const TRACKING_LINK_MAX_LENGTH = 500;
+// MNU-01 (Slice 4.6b): a product's modifier groups, the options in one, and the names of both.
+export const MODIFIER_GROUPS_MAX = 10;
+export const MODIFIER_OPTIONS_MAX = 20;
+export const MODIFIER_NAME_MAX_LENGTH = 60;
 // TAX-01 (Slice 4.6a): a tax class's name, and how many one shop may name.
 export const TAX_CLASS_NAME_MAX_LENGTH = 60;
 export const TAX_CLASSES_MAX = 20;
