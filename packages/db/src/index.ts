@@ -290,6 +290,10 @@ export {
   type PaymentSubmission,
 } from './repositories/payments/payment-session.repository';
 export {
+  PaymentPageReportRepository,
+  type PaymentPageReportRow,
+} from './repositories/payments/payment-page-report.repository';
+export {
   ShopperRepository,
   type NewShopperAddress,
   type ShopperPatch,

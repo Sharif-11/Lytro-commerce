@@ -160,6 +160,9 @@ CREATE TABLE control.tenants (
     created_at            timestamptz NOT NULL DEFAULT now(),
     suspended_at           timestamptz,
     suspended_reason       text,
+    -- TVR-03 (Slice 5.2b, migration 0096): the shop's payment page alone suspended by Lytro, and why.
+    payment_page_suspended_at     timestamptz,
+    payment_page_suspended_reason text,
     -- D2-11 (added 2026-10-13): cached, updated whenever an order-fee, product-fee or top-up
     -- ledger entry is written (the same denormalized pattern as balance_amount above). Read by
     -- the pay-as-you-go inactivity job (PYG-21) instead of scanning tenant.balance_ledger on
@@ -1723,6 +1726,26 @@ CREATE TABLE control.payment_session_refs (
     created_at      timestamptz NOT NULL DEFAULT now()
 );
 
+-- TVR-02, ADM-12 (Slice 5.2b, migration 0096): shoppers' "Report this page" reports, in control as the operator reads
+-- every shop's; counted per IP for the hourly limit; deleted with the shop's sessions at day 60 (LIF-19).
+CREATE TYPE control.payment_page_report_reason AS ENUM ('asked_for_pin', 'wrong_shop', 'wrong_amount', 'other');
+CREATE TYPE control.payment_page_report_status AS ENUM ('open', 'dismissed', 'actioned');
+CREATE TABLE control.payment_page_reports (
+    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id       uuid NOT NULL REFERENCES control.tenants(id),
+    ref             varchar(32) NOT NULL,                 -- the reported page's session reference
+    reason          control.payment_page_report_reason NOT NULL,
+    note            varchar(500),                         -- needed with 'other'
+    ip              inet,
+    status          control.payment_page_report_status NOT NULL DEFAULT 'open',
+    handled_by      uuid,                                 -- the operator who dismissed it or suspended the page
+    handled_at      timestamptz,
+    created_at      timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX ON control.payment_page_reports (status, created_at);
+CREATE INDEX ON control.payment_page_reports (tenant_id, status);
+CREATE INDEX ON control.payment_page_reports (ip, created_at);   -- the hourly limit per visitor
+
 -- Built in Phase 4 Slice 4.3a (ORD-15, ORD-22, ORD-43, D4-6): money recorded verified for an order -- the cash on
 -- delivery collected when it is delivered or handed over (agreed 2026-10-30), and (Slice 4.3b) payments staff record.
 -- It changes only by being voided, once (Slice 4.3b: the app may update only the three void columns, and a trigger
@@ -1860,6 +1883,7 @@ CREATE TABLE control.api_usage (                          -- RTE-03 (built in Sl
     refused_requests bigint NOT NULL DEFAULT 0,           -- RTE-06: refused by the per-visitor limit
     refused_visitors integer NOT NULL DEFAULT 0,          -- RTE-06: the visitors those came from, each once a cycle
     refused_orders  integer NOT NULL DEFAULT 0,           -- RTE-08 (Slice 4.2): refused by the shop's order window
+    refused_sessions integer NOT NULL DEFAULT 0,          -- RTE-08 (Slice 5.2b): refused by the shop's session window
     fast_spend_alerted_at timestamptz,                    -- RTE-12: the cycle's last fast-spend alert, at most daily
     -- RTE-11, PLN-15 (migration 0076): what packs mean to this cycle -- as media_bandwidth's
     pack_used       bigint NOT NULL DEFAULT 0,            -- taken from the shop's packs: past its own limit and pack_free

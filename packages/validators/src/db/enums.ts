@@ -331,6 +331,11 @@ export enum AuditAction {
   TaxClassDeleted = 'tax_class_deleted',
   // Phase 5 Slice 5.1: a payment method's accounts saved, or the method switched on or off (WAL-01 to WAL-07).
   PaymentMethodSaved = 'payment_method_saved',
+  // Phase 5 Slice 5.2b: staff made a payment link for an order (PAY-24); Lytro suspended the shop's payment page, or
+  // restored it (TVR-03, AUD-08).
+  PaymentLinkMade = 'payment_link_made',
+  PaymentPageSuspended = 'payment_page_suspended',
+  PaymentPageRestored = 'payment_page_restored',
 }
 
 // FED-02: what a product is, for Meta's catalog: new unless the shop says otherwise.
@@ -556,6 +561,10 @@ export enum PlatformAuditAction {
   PlatformOptionSetDeleted = 'platform_option_set_deleted',
   // RTE-12: a shop spent a fast share of its cycle's API requests in one hour; the operators were told.
   UsageFastSpendAlerted = 'usage_fast_spend_alerted',
+  // TVR-03, ADM-12 (Phase 5 Slice 5.2b): a shop's payment page suspended or restored; a page report dismissed.
+  PaymentPageSuspended = 'payment_page_suspended',
+  PaymentPageRestored = 'payment_page_restored',
+  PaymentPageReportDismissed = 'payment_page_report_dismissed',
 }
 
 // BAL-02: what a balance-ledger entry is for. One list, shared by every module that ever charges or credits a
@@ -645,6 +654,8 @@ export enum PlatformSettingKey {
   // RTE-08 (amended 2026-10-30, editable): how many orders shoppers may place in one shop in any minute, every plan
   // alike -- a flood guard, never a cap on demand (QTA-07). One visitor is held apart by RTE-06's 10.
   PublicOrdersPerShopPerMinute = 'public_orders_per_shop_per_minute',
+  // RTE-08 (amended 2026-10-31, Phase 5 Slice 5.2b): payment sessions a minute in one shop, every plan alike.
+  PaymentSessionsPerShopPerMinute = 'payment_sessions_per_shop_per_minute',
   // QTA-03 (editable): what handling an order past the period's limit does -- refused, or done with a prompt to upgrade.
   OrderLimitMode = 'order_limit_mode',
 }
@@ -1192,6 +1203,21 @@ export enum PaymentSessionState {
 export enum PaymentSessionSource {
   Checkout = 'checkout',
   StaffLink = 'staff_link',
+}
+
+// TVR-02 (Phase 5 Slice 5.2b, agreed 2026-10-31): why a shopper reported a payment page.
+export enum PaymentPageReportReason {
+  AskedForPin = 'asked_for_pin',
+  WrongShop = 'wrong_shop',
+  WrongAmount = 'wrong_amount',
+  Other = 'other',
+}
+
+// ADM-12: where a page report stands -- waiting for the operator, dismissed, or acted on by suspending the page.
+export enum PaymentPageReportStatus {
+  Open = 'open',
+  Dismissed = 'dismissed',
+  Actioned = 'actioned',
 }
 
 // VER-01 to VER-12: how a payment is verified -- by staff, by a paired listener phone reading the receipt SMS, or by

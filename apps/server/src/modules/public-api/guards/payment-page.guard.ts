@@ -18,8 +18,9 @@ interface PageRequest extends PublicApiRequest {
 /**
  * PAY-03, PAY-23, TEN-29, RTE-06 (Phase 5 Slice 5.2): the gate of the payment page's routes. The page sends no key; the
  * session's reference in the address stands for it and names the shop, never the host. An unknown reference, or a shop
- * closed or suspended, is not found, alike. Then the visitor's requests in the last minute. The page is Lytro's own,
- * so its requests are not counted against the shop's API requests.
+ * closed or suspended, is not found, alike; a shop whose payment page Lytro suspended shows it unavailable (TVR-03,
+ * Slice 5.2b), within the shop lookup's few seconds. Then the visitor's requests in the last minute. The page is Lytro's
+ * own, so its requests are not counted against the shop's API requests.
  */
 @Injectable()
 export class PaymentPageGuard implements CanActivate {
@@ -38,6 +39,9 @@ export class PaymentPageGuard implements CanActivate {
     const shop = tenantId === null ? null : await this.authenticator.shopOf(tenantId);
     if (!shop || CLOSED_STATES.has(shop.row.state) || shop.row.suspendedAt !== null) {
       throw new ApiError('not_found', 'PaymentNotFound', {});
+    }
+    if (shop.row.paymentPageSuspendedAt !== null) {
+      throw new ApiError('tenant_offline', 'PaymentPageUnavailable', {});
     }
     await this.visitors.admit(shop, request, response, this.clock());
     request.apiShop = shop;

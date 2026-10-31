@@ -52,6 +52,8 @@ const DESCRIPTIONS: Record<PlatformSettingKey, string> = {
     "The share of a cycle's API requests that, spent in one hour, alerts the owner and the operator (RTE-12).",
   [PlatformSettingKey.PublicOrdersPerShopPerMinute]:
     'How many orders shoppers may place in one shop in a minute, every plan alike (RTE-08).',
+  [PlatformSettingKey.PaymentSessionsPerShopPerMinute]:
+    'How many payments shoppers may open in one shop in a minute, every plan alike (RTE-08).',
   [PlatformSettingKey.OrderLimitMode]:
     "Past the period's order-handling limit: block, or allow with a prompt to upgrade (QTA-03).",
 };
@@ -83,6 +85,7 @@ const VALIDATORS: Record<PlatformSettingKey, (value: unknown) => boolean> = {
   [PlatformSettingKey.UsageGracePercent]: isPositiveInt,
   [PlatformSettingKey.FastSpendPercent]: isPositiveInt,
   [PlatformSettingKey.PublicOrdersPerShopPerMinute]: isPositiveInt,
+  [PlatformSettingKey.PaymentSessionsPerShopPerMinute]: isPositiveInt,
   [PlatformSettingKey.OrderLimitMode]: isOrderLimitMode,
 };
 

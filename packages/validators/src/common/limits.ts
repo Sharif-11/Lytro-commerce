@@ -153,6 +153,11 @@ export const PAYMENT_ACCOUNTS_PER_METHOD_MAX = 10;
 export const PAYMENT_RETURN_URL_MAX_LENGTH = 500;
 export const PAGE_TRANSACTION_ID_MIN_LENGTH = 6;
 export const PAGE_TRANSACTION_ID_MAX_LENGTH = 20;
+// PAY-24 (Slice 5.2b, agreed 2026-10-31): how long a payment link staff send stays open.
+export const PAYMENT_LINK_HOURS = 24;
+// TVR-02: a report's note, and the reports one visitor may send in an hour.
+export const PAGE_REPORT_NOTE_MAX_LENGTH = 500;
+export const PAGE_REPORTS_PER_VISITOR_PER_HOUR = 5;
 export const PAYMENT_ACCOUNT_NAME_MAX_LENGTH = 100;
 export const PAYMENT_ACCOUNT_NOTE_MAX_LENGTH = 500;
 export const BANK_FIELD_MAX_LENGTH = 100;

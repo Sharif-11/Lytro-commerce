@@ -25,6 +25,8 @@ export interface ApiShopRow extends TenantLookupRow {
   createdAt: Date;
   /** PLN-15, RTE-11: buy a request pack at 100% of the cycle's allowance. */
   autoBuyRequests: boolean;
+  /** TVR-03 (Slice 5.2b): the shop's payment page suspended by Lytro, or null. */
+  paymentPageSuspendedAt: Date | null;
 }
 
 // API-01 to API-05, API-08, API-23: a shop's API keys, in the control schema (the API finds a key before it knows
@@ -187,6 +189,7 @@ export class ApiKeyRepository {
         periodStart: tenants.periodStart,
         createdAt: tenants.createdAt,
         autoBuyRequests: tenants.autoBuyRequests,
+        paymentPageSuspendedAt: tenants.paymentPageSuspendedAt,
       })
       .from(tenants)
       .where(eq(tenants.id, tenantId))

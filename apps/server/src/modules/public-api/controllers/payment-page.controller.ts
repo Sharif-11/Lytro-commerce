@@ -5,12 +5,16 @@ import { z } from 'zod';
 import {
   PaymentMethod,
   PaymentMethodKind,
+  paymentPageReportSchema,
   PaymentSessionState,
   paymentSubmissionSchema,
   WalletAccountType,
+  type PaymentPageReportInput,
   type PaymentSubmissionInput,
 } from '@lytronix/validators';
+import { ClientIp } from '../../../common/client-ip';
 import { PublicApiRoute } from '../../../common/decorators/public-api';
+import { OkDto } from '../../../common/dto/ok.dto';
 import { ResponseMessage } from '../../../common/decorators/response-message';
 import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
 import { MediaService } from '../../media/services/media.service';
@@ -26,6 +30,7 @@ type PaymentPageView = PaymentPageSession & {
 };
 
 class PaymentSubmissionDto extends createZodDto(paymentSubmissionSchema) {}
+class PaymentPageReportDto extends createZodDto(paymentPageReportSchema) {}
 class PaymentPageDto extends createZodDto(
   z.object({
     shop: z.object({
@@ -72,9 +77,9 @@ class PaymentPageDto extends createZodDto(
   }),
 ) {}
 
-// PAY-03 to PAY-08, PAY-16, PAY-17 (Phase 5 Slice 5.2, read agreed 2026-10-31): the payment page's own routes, on the
-// API host at /v1/pay/<reference>, for the page at pay.<domain> to read and to send what the shopper typed. No key:
-// the session's unguessable reference is the page's own (payment-page.guard.ts).
+// PAY-03 to PAY-08, PAY-16, PAY-17, TVR-02 (Phase 5 Slice 5.2, read agreed 2026-10-31): the payment page's own routes,
+// on the API host at /v1/pay/<reference>, for the page at pay.<domain> to read, to send what the shopper typed, and to
+// report the page to Lytro. No key: the session's unguessable reference is the page's own (payment-page.guard.ts).
 @ApiTags('Public API')
 @Controller('public/pay')
 @PublicApiRoute()
@@ -83,6 +88,7 @@ export class PaymentPageController {
   constructor(
     @Inject(PaymentSessions) private readonly sessions: PaymentSessions,
     @Inject(MediaService) private readonly media: MediaService,
+    @Inject(ClientIp) private readonly clientIp: ClientIp,
     @Inject(API_CLOCK) private readonly clock: () => Date,
   ) {}
 
@@ -120,6 +126,31 @@ export class PaymentPageController {
     if (!shop) throw new Error('the payment page guard names the shop');
     const session = await this.sessions.submit(shop.row.id, ref, body, this.clock());
     return { ...session, shop: await this.shopOf(shop.row.id, shop.row.shopName) };
+  }
+
+  @Post(':ref/report')
+  @ResponseMessage('PaymentPageReported')
+  @ApiOperation({
+    summary:
+      'Report this page to Lytro: asked for a PIN or code, not the shop ordered from, the wrong amount, or something else with a note; 5 an hour from one visitor (TVR-02)',
+  })
+  @ApiBody({ type: PaymentPageReportDto })
+  @ZodResponse({ type: OkDto })
+  async report(
+    @Param('ref') ref: string,
+    @Body(new ZodValidationPipe(PaymentPageReportDto.schema)) body: PaymentPageReportInput,
+    @Req() request: PublicApiRequest,
+  ): Promise<{ ok: true }> {
+    const shop = request.apiShop;
+    if (!shop) throw new Error('the payment page guard names the shop');
+    await this.sessions.report(
+      shop.row.id,
+      ref,
+      body,
+      this.clientIp.resolve(request),
+      this.clock(),
+    );
+    return { ok: true };
   }
 
   /** PAY-05, TEN-16: the shop's name and logo, nothing else of its brand (BRN-04). */

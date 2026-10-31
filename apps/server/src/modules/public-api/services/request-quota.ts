@@ -58,8 +58,9 @@ interface Pending {
   /** RTE-06: requests the per-visitor limit refused, and the visitors among them not refused before this cycle. */
   refused: number;
   refusedVisitors: number;
-  /** RTE-08: orders the shop's per-minute window refused. */
+  /** RTE-08: orders and payment sessions the shop's per-minute windows refused. */
   refusedOrders: number;
+  refusedSessions: number;
   /** The cycle's limit when last counted, for the warnings at the next flush. */
   limit: number | null;
   /** PLN-15: whether the shop had auto-buy of request packs on when last counted. */
@@ -271,6 +272,18 @@ export class RequestQuota implements OnModuleInit, OnModuleDestroy, BeforeApplic
     });
   }
 
+  /** RTE-08 (amended 2026-10-31): counts a payment session the shop's per-minute window refused. */
+  refusedSession(shop: ApiShop, now: Date): void {
+    const cycleStart = usageCycleStart(shop.row, now);
+    const key = cycleKey(shop.row.id, cycleStart);
+    const pending = this.pendingOf(key, shop.row.id, cycleStart);
+    this.pending.set(key, {
+      ...pending,
+      refusedSessions: pending.refusedSessions + 1,
+      limit: monthlyLimit(shop.limits),
+    });
+  }
+
   /**
    * Adds this server's counts to the stored totals, and queues the notices now due in the same transaction, so a flush
    * that fails tells no one (SCL-08). A count stays in the unflushed figure until it is stored, so a request arriving
@@ -289,6 +302,7 @@ export class RequestQuota implements OnModuleInit, OnModuleDestroy, BeforeApplic
         refusedRequests: entry.refused,
         refusedVisitors: entry.refusedVisitors,
         refusedOrders: entry.refusedOrders,
+        refusedSessions: entry.refusedSessions,
       };
       const limit = entry.limit;
       try {
@@ -384,12 +398,14 @@ export class RequestQuota implements OnModuleInit, OnModuleDestroy, BeforeApplic
         refused: pending.refused - flushed.refusedRequests,
         refusedVisitors: pending.refusedVisitors - flushed.refusedVisitors,
         refusedOrders: pending.refusedOrders - flushed.refusedOrders,
+        refusedSessions: pending.refusedSessions - flushed.refusedSessions,
       };
       if (
         left.count > 0 ||
         left.refused > 0 ||
         left.refusedVisitors > 0 ||
-        left.refusedOrders > 0
+        left.refusedOrders > 0 ||
+        left.refusedSessions > 0
       ) {
         this.pending.set(key, left);
       } else {
@@ -408,6 +424,7 @@ export class RequestQuota implements OnModuleInit, OnModuleDestroy, BeforeApplic
         refused: 0,
         refusedVisitors: 0,
         refusedOrders: 0,
+        refusedSessions: 0,
         limit: null,
         autoBuy: false,
       }

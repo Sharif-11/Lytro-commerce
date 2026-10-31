@@ -11,6 +11,7 @@ import {
   FulfilmentType,
   logCallSchema,
   orderPaymentSchema,
+  paymentLinkSchema,
   OrderHistoryField,
   OrderPaymentStatus,
   OrderSource,
@@ -38,6 +39,7 @@ export class HandOverOrderDto extends createZodDto(handOverOrderSchema) {}
 export class ReturnOrderDto extends createZodDto(returnOrderSchema) {}
 export class OrderPaymentDto extends createZodDto(orderPaymentSchema) {}
 export class VoidPaymentDto extends createZodDto(voidPaymentSchema) {}
+export class PaymentLinkDto extends createZodDto(paymentLinkSchema) {}
 
 // --- Responses. Dates coerce, since a created order's reply is replayed from the idempotency store's JSON (D4-8). ---
 
@@ -58,6 +60,14 @@ export const modifierSnapshotSchema = z.object({
 
 // TAX-03: one class's tax an order's total includes.
 export const taxLineSchema = z.object({ name: z.string(), rate: z.string(), amount: z.string() });
+// PAY-01, PAY-24 (Phase 5 Slice 5.2): an order's payment page -- its address, the amount and when it runs out -- as
+// checkout, tracking and a staff link return it.
+export const openedPaymentSchema = z.object({
+  paymentUrl: z.string(),
+  amount: z.string(),
+  expiresAt: z.coerce.date(),
+});
+export class OpenedPaymentDto extends createZodDto(openedPaymentSchema) {}
 
 const warningSchema = z.object({
   code: z.enum(['zone_no_delivery', 'product_not_delivered_here']),

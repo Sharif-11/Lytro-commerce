@@ -9,6 +9,7 @@ import { BalanceModule } from '../balance/balance.module';
 import { BillingModule } from '../billing/billing.module';
 import { BrandModule } from '../brand/brand.module';
 import { PaymentMethodsModule } from '../payment-methods/payment-methods.module';
+import { PaymentSessionsModule } from '../payment-sessions/payment-sessions.module';
 import { DomainsModule } from '../domains/domains.module';
 import { PaymentsModule } from '../payments/payments.module';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
@@ -37,6 +38,7 @@ import { OperatorSettingsController } from './controllers/operator-settings.cont
 import { AddonsController } from './controllers/addons.controller';
 import { BillingController } from './controllers/billing.controller';
 import { OperatorPaymentQueueController } from './controllers/operator-payment-queue.controller';
+import { OperatorPaymentPagesController } from './controllers/operator-payment-pages.controller';
 import { ShopSettingsController } from './controllers/shop-settings.controller';
 import { BrandController } from './controllers/brand.controller';
 import { ShopDomainController } from './controllers/shop-domain.controller';
@@ -124,6 +126,7 @@ import { CatalogueRequest } from './services/catalogue-request';
     UsageModule,
     BrandModule,
     PaymentMethodsModule,
+    PaymentSessionsModule,
     DomainsModule,
   ],
   controllers: [
@@ -135,6 +138,7 @@ import { CatalogueRequest } from './services/catalogue-request';
     OperatorRatesController,
     OperatorBalanceController,
     OperatorTenantLifecycleController,
+    OperatorPaymentPagesController,
     PlansController,
     OperatorPlansController,
     OperatorAddonsController,

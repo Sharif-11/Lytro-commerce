@@ -14,14 +14,18 @@ export const ORDERS_PER_VISITOR_PER_MINUTE = 10;
 // RTE-08 (amended 2026-10-30): shoppers' orders a minute to one shop, every plan alike, when the operator has set no
 // figure of their own.
 export const DEFAULT_ORDERS_PER_SHOP_PER_MINUTE = 60;
+// RTE-08 (amended 2026-10-31, Slice 5.2b): shoppers' payment sessions a minute to one shop, every plan alike, when the
+// operator has set no figure of their own.
+export const DEFAULT_SESSIONS_PER_SHOP_PER_MINUTE = 60;
 // ORD-17: a visitor's tracking reads a minute in one shop.
 export const TRACKING_READS_PER_VISITOR_PER_MINUTE = 60;
 
 /**
- * RTE-06, RTE-08, ORD-17 (D4-13): the per-minute windows on a shopper's orders and tracking reads, on top of the
- * request limit every public call meets. A visitor is held to 10 orders a minute; the shop's shoppers together to the
- * operator's figure, a flood guard that never caps a plan's demand (QTA-07), and its refusals are counted so the
- * operator can see a real shop meet it. In memory, exact while there is one server (D3-2); Phase 9 moves them.
+ * RTE-06, RTE-08, ORD-17 (D4-13): the per-minute windows on a shopper's orders, payment sessions and tracking reads,
+ * on top of the request limit every public call meets. A visitor is held to 10 orders a minute; the shop's shoppers
+ * together to the operator's figures for orders and for payment sessions, flood guards that never cap a plan's demand
+ * (QTA-07), and their refusals are counted so the operator can see a real shop meet them. Staff orders and payment
+ * links are never held. In memory, exact while there is one server (D3-2); Phase 9 moves them.
  */
 @Injectable()
 export class OrderLimits {
@@ -48,6 +52,21 @@ export class OrderLimits {
     if (!shared.allowed) {
       this.quota.refusedOrder(shop, now);
       throw new ApiError('rate_limited', 'TooManyOrders', {}, secondsOf(shared.resetMs));
+    }
+  }
+
+  /**
+   * RTE-08 (Slice 5.2b): lets a checkout open its payment session, or refuses the order with 429 -- checked just before
+   * the session opens, so a cash-on-delivery order never meets it.
+   */
+  async admitSession(shop: ApiShop, now: Date): Promise<void> {
+    const setting = await this.settings.current(PlatformSettingKey.PaymentSessionsPerShopPerMinute);
+    const limit =
+      typeof setting?.value === 'number' ? setting.value : DEFAULT_SESSIONS_PER_SHOP_PER_MINUTE;
+    const verdict = this.limits.sessionsPerShop(shop.row.id, limit, now);
+    if (!verdict.allowed) {
+      this.quota.refusedSession(shop, now);
+      throw new ApiError('rate_limited', 'TooManyOrders', {}, secondsOf(verdict.resetMs));
     }
   }
 
