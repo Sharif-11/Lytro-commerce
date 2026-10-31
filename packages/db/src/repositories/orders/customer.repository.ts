@@ -19,6 +19,7 @@ import {
   customers,
   idempotencyKeys,
   orders,
+  paymentSessions,
   shopperCodes,
   shoppers,
   type SelectCustomer,
@@ -260,6 +261,11 @@ export class CustomerRepository {
       .returning({ id: orders.id });
     const ids = erased.map((row) => row.id);
     if (ids.length > 0) {
+      // Slice 5.3: the numbers its shopper paid from, on its orders' payment sessions.
+      await tx
+        .update(paymentSessions)
+        .set({ senderNumber: null, updatedAt: now })
+        .where(and(eq(paymentSessions.tenantId, tenantId), inArray(paymentSessions.orderId, ids)));
       await tx
         .update(idempotencyKeys)
         .set({

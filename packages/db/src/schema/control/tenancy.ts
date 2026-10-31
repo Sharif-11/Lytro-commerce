@@ -73,6 +73,9 @@ export const tenants = control.table(
     // unavailable -- while the rest of the shop works.
     paymentPageSuspendedAt: timestamp('payment_page_suspended_at', { withTimezone: true }),
     paymentPageSuspendedReason: text('payment_page_suspended_reason'),
+    // TVR-04 (Phase 5 Slice 5.3, agreed 2026-10-31): the operator's switch for the new-shop payment cap -- on, off, or
+    // null for its kind's default (on for a pay-as-you-go shop, off for one on a plan).
+    newShopCap: boolean('new_shop_cap'),
     // D2-11: cached, updated whenever an order-fee, product-fee or top-up ledger entry is written. Read by the
     // pay-as-you-go inactivity job (PYG-21). Null for a tenant that was never pay-as-you-go.
     lastActivityAt: timestamp('last_activity_at', { withTimezone: true }),

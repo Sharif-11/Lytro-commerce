@@ -13,10 +13,12 @@ import {
 } from 'drizzle-orm/pg-core';
 import {
   enumTuple,
-  PAGE_TRANSACTION_ID_MAX_LENGTH,
+  PAYMENT_NOTE_MAX_LENGTH,
   PAYMENT_RETURN_URL_MAX_LENGTH,
+  PaymentRejectReason,
   PaymentSessionSource,
   PaymentSessionState,
+  TRANSACTION_ID_MAX_LENGTH,
 } from '@lytronix/validators';
 import { createdAt, tenant } from '../shared';
 import { orders, paymentMethod } from './orders';
@@ -28,6 +30,10 @@ export const paymentSessionState = tenant.enum(
 export const paymentSessionSource = tenant.enum(
   'payment_session_source',
   enumTuple(Object.values(PaymentSessionSource)),
+);
+export const paymentRejectReason = tenant.enum(
+  'payment_reject_reason',
+  enumTuple(Object.values(PaymentRejectReason)),
 );
 
 /** PAY-05: the account a shopper says they paid into, as it stood when they typed the transaction ID. */
@@ -60,10 +66,15 @@ export const paymentSessions = tenant.table(
     state: paymentSessionState('state').notNull().default(PaymentSessionState.AwaitingPayment),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
     // PAY-07: what the shopper typed, the transaction ID in capitals.
-    transactionId: varchar('transaction_id', { length: PAGE_TRANSACTION_ID_MAX_LENGTH }),
+    transactionId: varchar('transaction_id', { length: TRANSACTION_ID_MAX_LENGTH }),
     senderNumber: varchar('sender_number', { length: 11 }),
     paidTo: jsonb('paid_to').$type<PaidToSnapshot>(),
     submittedAt: timestamp('submitted_at', { withTimezone: true }),
+    // VER-01, PAY-14 (Slice 5.3): who verified or rejected it, and when; a rejection's reason, shown to the shopper.
+    decidedBy: uuid('decided_by'),
+    decidedAt: timestamp('decided_at', { withTimezone: true }),
+    rejectReason: paymentRejectReason('reject_reason'),
+    rejectNote: varchar('reject_note', { length: PAYMENT_NOTE_MAX_LENGTH }),
     createdAt: createdAt(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

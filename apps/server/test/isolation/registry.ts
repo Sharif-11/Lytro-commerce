@@ -323,4 +323,11 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'POST /orders/:id/payment-link': "another shop's order answers 404 and gets no link",
   'POST /public/pay/:ref/report':
     "an unknown reference answers 404; a report names the reference's own shop",
+  // Phase 5 Slice 5.3, checked in test/payment-verify.e2e.spec.ts.
+  'GET /payments': "lists only the session shop's payments",
+  'GET /payments/export': "exports only the session shop's payments",
+  'POST /payments/:id/verify': "another shop's payment answers 404 and stays waiting",
+  'POST /payments/:id/reject': "another shop's payment answers 404 and its order stays",
+  'POST /orders/:id/payments/:paymentId/refund':
+    "another shop's order or payment answers 404 and the payment still counts",
 };

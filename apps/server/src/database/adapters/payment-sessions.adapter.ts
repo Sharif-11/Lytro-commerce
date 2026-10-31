@@ -6,6 +6,7 @@ import {
   TransactionRunner,
   UsedTransactionIdsRepository,
   type NewPaymentSession,
+  type PaymentDecision,
   type PaymentPageReportRow,
   type PaymentSubmission,
   type SelectPaymentPageReport,
@@ -16,6 +17,7 @@ import type {
   PaymentPageReportReason,
   PaymentPageReportStatus,
   PaymentSessionState,
+  TenantState,
 } from '@lytronix/validators';
 import type { PaymentSessionStore } from '../../modules/payment-sessions/ports/payment-session-store';
 import { DatabaseService } from '../database.service';
@@ -70,6 +72,34 @@ export class DrizzlePaymentSessionStore implements PaymentSessionStore {
     orderId: string,
   ): Promise<SelectPaymentSession | null> {
     return this.sessions.openForOrder(tx, tenantId, orderId);
+  }
+
+  findById(
+    tx: Transaction,
+    tenantId: string,
+    id: string,
+    lock: boolean,
+  ): Promise<SelectPaymentSession | null> {
+    return this.sessions.findById(tx, tenantId, id, lock);
+  }
+
+  decide(tx: Transaction, tenantId: string, id: string, decision: PaymentDecision): Promise<void> {
+    return this.sessions.decide(tx, tenantId, id, decision);
+  }
+
+  capTotal(tx: Transaction, tenantId: string, since: Date): Promise<string> {
+    return this.sessions.capTotal(tx, tenantId, since);
+  }
+
+  newShopOf(
+    tx: Transaction,
+    tenantId: string,
+  ): Promise<{ state: TenantState; createdAt: Date; newShopCap: boolean | null } | null> {
+    return this.tenants.newShopOf(tx, tenantId);
+  }
+
+  setNewShopCap(tx: Transaction, tenantId: string, capped: boolean | null): Promise<void> {
+    return this.tenants.setNewShopCap(tx, tenantId, capped);
   }
 
   openForTracking(

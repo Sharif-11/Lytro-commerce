@@ -615,6 +615,16 @@ export const MESSAGE_KEYS = [
   'PaymentPageAlreadySuspended',
   'PaymentPageNotSuspended',
   'ShopNotFound',
+  // Phase 5 Slice 5.3: verifying by hand (VER-01, PAY-14, PAY-19), refunds (PAY-20), the advance gate (D5-9) and the
+  // new-shop cap (TVR-04).
+  'PaymentsListed',
+  'PaymentVerified',
+  'PaymentNotToVerify',
+  'OrderPaymentRefunded',
+  'PaymentAlreadyRefunded',
+  'AdvanceNotPaidYet',
+  'NewShopCapReached',
+  'NewShopCapSet',
 ] as const;
 
 export type MessageKey = (typeof MESSAGE_KEYS)[number];

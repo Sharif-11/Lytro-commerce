@@ -409,6 +409,30 @@ export class TenantRepository {
       .where(eq(tenants.id, tenantId));
   }
 
+  /**
+   * TVR-04 (Slice 5.3): what decides whether the new-shop cap holds the shop -- its state, when it was made, and the
+   * operator's switch; null for no such shop.
+   */
+  async newShopOf(
+    tx: Executor,
+    tenantId: string,
+  ): Promise<{ state: TenantState; createdAt: Date; newShopCap: boolean | null } | null> {
+    const [row] = await tx
+      .select({
+        state: tenants.state,
+        createdAt: tenants.createdAt,
+        newShopCap: tenants.newShopCap,
+      })
+      .from(tenants)
+      .where(eq(tenants.id, tenantId));
+    return row ?? null;
+  }
+
+  /** TVR-04: the operator's switch for the shop's new-shop cap -- on, off, or (null) as its kind says. */
+  async setNewShopCap(tx: Executor, tenantId: string, capped: boolean | null): Promise<void> {
+    await tx.update(tenants).set({ newShopCap: capped }).where(eq(tenants.id, tenantId));
+  }
+
   /** TVR-03: the shop's payment page as it stands now -- suspended since when, or null; null for no such shop. */
   async paymentPageOf(
     tx: Executor,

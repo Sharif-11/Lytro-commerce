@@ -11,6 +11,7 @@ import {
   FulfillmentStatus,
   FulfilmentType,
   OrderHistoryField,
+  OrderPaymentStatus,
   OrderStatus,
   PaymentMethod,
   ReservationStatus,
@@ -347,6 +348,10 @@ export class OrderFulfilment {
     }
     if (order.fulfillmentStatus !== FulfillmentStatus.Unfulfilled) {
       throw new ApiError('conflict', 'OrderAlreadySent', {});
+    }
+    // D5-9 (agreed 2026-10-31): an order waiting on its advance leaves only once its payment is in.
+    if (order.paymentStatus === OrderPaymentStatus.PendingVerification) {
+      throw new ApiError('conflict', 'AdvanceNotPaidYet', {});
     }
     const delivery = order.fulfilmentType === FulfilmentType.Delivery;
     if (type === 'ship' && !delivery) throw new ApiError('conflict', 'HandOverInstead', {});

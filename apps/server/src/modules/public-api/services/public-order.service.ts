@@ -116,7 +116,8 @@ export class PublicOrderService {
         );
       }
       const view: PlacedOrderView = { ...placedViewOf(made.order, made.lines), payment };
-      if (toMeta) {
+      // Agreed 2026-10-31 (Slice 5.3): an order paid in advance tells Meta of the purchase once its payment is verified.
+      if (toMeta && payment === null) {
         const payload: MetaPurchasePayload = { tenantId, orderId: made.order.id };
         await this.jobs.enqueue(tx, QueueName.MetaPurchase, payload, {
           singletonKey: made.order.id,

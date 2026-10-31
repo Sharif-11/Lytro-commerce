@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { transactionIdField } from '../../common/transaction-id';
 import { PLAN_PAYMENT_METHODS } from '../../db/enums';
 import { requireWalletFields } from './purchase';
 
@@ -19,7 +20,7 @@ export const confirmUpgradeSchema = z
   .object({
     paymentId: z.string().uuid(),
     method: z.enum(PLAN_PAYMENT_METHODS),
-    transactionId: z.string().trim().min(1).optional(),
+    transactionId: transactionIdField.optional(),
     senderNumber: z.string().trim().min(1).optional(),
     amountPaid: z.coerce.number().positive().optional(),
   })

@@ -115,7 +115,15 @@ export type OrderLinePatch = Partial<
 export type NewOrderLine = Omit<InsertOrderLine, 'tenantId' | 'orderId'>;
 export type NewOrderPayment = Omit<
   InsertOrderPayment,
-  'id' | 'tenantId' | 'verifiedAt' | 'voidedAt' | 'voidedBy' | 'voidReason'
+  | 'id'
+  | 'tenantId'
+  | 'verifiedAt'
+  | 'voidedAt'
+  | 'voidedBy'
+  | 'voidReason'
+  | 'refundedAt'
+  | 'refundedBy'
+  | 'refundNote'
 >;
 export type NewOrderHistory = Omit<
   typeof orderStatusHistory.$inferInsert,
@@ -582,6 +590,23 @@ export class OrderRepository {
     const [row] = await tx
       .update(orderPayments)
       .set({ ...values, voidedAt: new Date() })
+      .where(and(eq(orderPayments.tenantId, tenantId), eq(orderPayments.id, paymentId)))
+      .returning();
+    if (!row) throw new Error('update returned no payment');
+    return row;
+  }
+
+  /** PAY-20, ORD-44 (Slice 5.3): a payment marked refunded with a note; the database keeps it so, once. */
+  async refundPayment(
+    tx: Transaction,
+    tenantId: string,
+    paymentId: string,
+    values: { refundedBy: string | null; refundNote: string },
+  ): Promise<SelectOrderPayment> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const [row] = await tx
+      .update(orderPayments)
+      .set({ ...values, refundedAt: new Date() })
       .where(and(eq(orderPayments.tenantId, tenantId), eq(orderPayments.id, paymentId)))
       .returning();
     if (!row) throw new Error('update returned no payment');

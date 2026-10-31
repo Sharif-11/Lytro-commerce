@@ -1,10 +1,12 @@
-import { and, asc, desc, eq, inArray, lte } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, lte, sql } from 'drizzle-orm';
 import {
   PaymentSessionState,
   type PaymentMethod,
+  type PaymentRejectReason,
   type PaymentSessionSource,
 } from '@lytronix/validators';
 import {
+  orderPayments,
   orders,
   paymentSessionRefs,
   paymentSessions,
@@ -23,6 +25,15 @@ export interface NewPaymentSession {
   returnUrl: string | null;
   cancelUrl: string | null;
   expiresAt: Date;
+}
+
+/** VER-01, PAY-14 (Slice 5.3): a session verified or rejected -- by whom, when, and a rejection's reason. */
+export interface PaymentDecision {
+  state: PaymentSessionState.Verified | PaymentSessionState.Failed;
+  decidedBy: string | null;
+  decidedAt: Date;
+  rejectReason: PaymentRejectReason | null;
+  rejectNote: string | null;
 }
 
 /** PAY-07: what the shopper typed, and the account they say they paid into. */
@@ -85,6 +96,61 @@ export class PaymentSessionRepository {
       .where(and(eq(paymentSessions.tenantId, tenantId), eq(paymentSessions.ref, ref)));
     const [row] = lock ? await query.for('update') : await query;
     return row ?? null;
+  }
+
+  /** VER-01 (Slice 5.3): a session by its id, held for a decision when `lock`. */
+  async findById(
+    tx: Transaction,
+    tenantId: string,
+    id: string,
+    lock = false,
+  ): Promise<SelectPaymentSession | null> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const query = tx
+      .select()
+      .from(paymentSessions)
+      .where(and(eq(paymentSessions.tenantId, tenantId), eq(paymentSessions.id, id)));
+    const [row] = lock ? await query.for('update') : await query;
+    return row ?? null;
+  }
+
+  /** VER-01, PAY-14: the session verified or rejected. */
+  async decide(
+    tx: Transaction,
+    tenantId: string,
+    id: string,
+    decision: PaymentDecision,
+  ): Promise<void> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    await tx
+      .update(paymentSessions)
+      .set({ ...decision, updatedAt: new Date() })
+      .where(and(eq(paymentSessions.tenantId, tenantId), eq(paymentSessions.id, id)));
+  }
+
+  /**
+   * TVR-04 (Slice 5.3): what the shop's online payments come to towards its day's cap -- those verified since `since`
+   * and still counted, and every session still open, whose money may yet come.
+   */
+  async capTotal(tx: Transaction, tenantId: string, since: Date): Promise<string> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const [verified] = await tx
+      .select({ total: sql<string>`coalesce(sum(${orderPayments.amount}), 0)::text` })
+      .from(orderPayments)
+      .where(
+        and(
+          eq(orderPayments.tenantId, tenantId),
+          isNotNull(orderPayments.sessionId),
+          isNull(orderPayments.voidedAt),
+          isNull(orderPayments.refundedAt),
+          gte(orderPayments.verifiedAt, since),
+        ),
+      );
+    const [open] = await tx
+      .select({ total: sql<string>`coalesce(sum(${paymentSessions.amount}), 0)::text` })
+      .from(paymentSessions)
+      .where(and(eq(paymentSessions.tenantId, tenantId), inArray(paymentSessions.state, OPEN)));
+    return (Number(verified?.total ?? 0) + Number(open?.total ?? 0)).toFixed(2);
   }
 
   /** PAY-05: the order number the page shows for a session. */

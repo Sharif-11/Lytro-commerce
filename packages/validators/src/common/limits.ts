@@ -149,10 +149,11 @@ export const TAX_CLASSES_MAX = 20;
 
 // WAL-01, WAL-02, WAL-14 (Phase 5 Slice 5.1): a shop's payment accounts, at most 10 for each method.
 export const PAYMENT_ACCOUNTS_PER_METHOD_MAX = 10;
-// PAY-01, PAY-07 (Slice 5.2): the addresses a session returns to, and the transaction ID a shopper types.
+// PAY-01 (Slice 5.2): the addresses a session returns to.
 export const PAYMENT_RETURN_URL_MAX_LENGTH = 500;
-export const PAGE_TRANSACTION_ID_MIN_LENGTH = 6;
-export const PAGE_TRANSACTION_ID_MAX_LENGTH = 20;
+// PAY-07, VER-02 (Slice 5.3, one shape for every ID): a wallet payment's transaction ID, wherever it is typed.
+export const TRANSACTION_ID_MIN_LENGTH = 6;
+export const TRANSACTION_ID_MAX_LENGTH = 20;
 // PAY-24 (Slice 5.2b, agreed 2026-10-31): how long a payment link staff send stays open.
 export const PAYMENT_LINK_HOURS = 24;
 // TVR-02: a report's note, and the reports one visitor may send in an hour.
@@ -172,8 +173,16 @@ export const SHOPPER_ADDRESSES_MAX = 10;
 export const ADDRESS_LABEL_MAX_LENGTH = 30;
 export const SHOPPER_CODES_PER_SHOP_PER_HOUR = 30;
 export const SHOPPER_ORDER_PAGE_SIZE = 20;
-// ORD-15: a wallet's transaction ID, or a bank transfer's reference, as staff type it.
-export const TRANSACTION_ID_MAX_LENGTH = 64;
+// ORD-15: a bank transfer's reference, as staff type it.
+export const BANK_REFERENCE_MAX_LENGTH = 64;
+// PAY-14, PAY-20 (Slice 5.3): a note on a rejected or refunded payment.
+export const PAYMENT_NOTE_MAX_LENGTH = 500;
+// PAY-19: a page of the shop's payments.
+export const PAYMENT_PAGE_SIZE = 20;
+// TVR-04 (Slice 5.3, agreed 2026-10-31): a new shop's verified online payments a day, and for how many days it is new,
+// when the operator has set no figures of their own.
+export const NEW_SHOP_PAYMENT_CAP_AMOUNT = 20_000;
+export const NEW_SHOP_PAYMENT_CAP_DAYS = 30;
 // ATR-08: what one captured-at-order value may say.
 export const CAPTURED_VALUE_MAX_LENGTH = 200;
 // ORD-51, ORD-52: a call's note, and a cancellation's.

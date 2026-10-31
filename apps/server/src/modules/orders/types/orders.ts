@@ -26,6 +26,7 @@ import type {
   StatusOverride,
   StockUnit,
   PaymentSessionState,
+  VerificationLevel,
 } from '@lytronix/validators';
 import type { Bilingual, ThanaView } from '../../delivery/types/delivery';
 
@@ -222,6 +223,11 @@ export interface OrderPaymentView {
   verifiedAt: Date;
   /** Agreed 2026-10-30: recorded by mistake and voided -- who, when and why; it no longer counts toward what is paid. */
   voided: { by: OrderPerson | null; at: Date; reason: string } | null;
+  /** PAY-20 (Slice 5.3): marked refunded -- who, when and the note; it no longer counts either. */
+  refunded: { by: OrderPerson | null; at: Date; note: string } | null;
+  /** VER-12 (Slice 5.3): how it was verified, and the payment session it came from, if any. */
+  verificationLevel: VerificationLevel;
+  sessionId: string | null;
 }
 
 /** ORD-13: one order as the list shows it. */

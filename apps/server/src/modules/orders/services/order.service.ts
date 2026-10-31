@@ -876,6 +876,13 @@ export class OrderService {
         override = null;
         Object.assign(patch, { statusOverride: null, holdUntil: null });
       }
+      // D5-9 (agreed 2026-10-31): an order waiting on its advance is confirmed only once its payment is in.
+      if (
+        input.outcome === CallOutcome.Confirmed &&
+        order.paymentStatus === OrderPaymentStatus.PendingVerification
+      ) {
+        throw new ApiError('conflict', 'AdvanceNotPaidYet', {});
+      }
       if (input.outcome === CallOutcome.Confirmed && order.confirmedAt === null) {
         Object.assign(patch, { confirmedAt: now, confirmedBy: who.id });
         history.push({
@@ -1613,7 +1620,7 @@ export class OrderService {
       ...calls.flatMap((call) => (call.calledBy !== null ? [call.calledBy] : [])),
       ...history.flatMap((row) => (row.changedBy !== null ? [row.changedBy] : [])),
       ...payments.flatMap((row) =>
-        [row.verifiedBy, row.voidedBy].filter((id): id is string => id !== null),
+        [row.verifiedBy, row.voidedBy, row.refundedBy].filter((id): id is string => id !== null),
       ),
       ...(order.confirmedBy !== null ? [order.confirmedBy] : []),
       ...(order.createdBy !== null ? [order.createdBy] : []),
@@ -1706,6 +1713,12 @@ export class OrderService {
           row.voidedAt !== null && row.voidReason !== null
             ? { by: person(row.voidedBy), at: row.voidedAt, reason: row.voidReason }
             : null,
+        refunded:
+          row.refundedAt !== null && row.refundNote !== null
+            ? { by: person(row.refundedBy), at: row.refundedAt, note: row.refundNote }
+            : null,
+        verificationLevel: row.verificationLevel,
+        sessionId: row.sessionId,
       })),
       warnings,
       limitPrompt,
