@@ -1,6 +1,9 @@
 # Tenant dashboard: the full design
 
-Status: v3.21, 2026-10-31 (the catalogue additions Phase 4 built, Slice 4.8c, prototype Part 31: Product or Combo
+Status: v3.22, 2026-10-31 (Sales, the Orders hub's third tab, Slice 4.8d, prototype Part 32: orders and revenue
+by week, month, quarter or year with the tax and delivery charges apart, profit for those who may see cost, best
+sellers by units or revenue, a product's trend, profit beside stock value; v3.21 of 2026-10-31: the catalogue
+additions Phase 4 built, Slice 4.8c, prototype Part 31: Product or Combo
 pack first, a combo's parts by ticked variants with its saving and can-make, add-on groups with plain rules, the tax
 class under More settings and Settings > Tax, orders short of stock on Home and Stock, stock history naming orders and
 combos; v3.20 of 2026-10-31: customers, search, Home and Usage as Phase 4 built them, Slice 4.8b, prototype Part 30:
@@ -1527,6 +1530,28 @@ bar's search finds everything.
 - **Stock history** names each sale's and return's order, and the combo a sale went in -- "Sold in Eid combo · order
   #261031-0047" (`sh-k31-history`, CMB-05).
 
+### 7.34 Sales (`/sales`)
+
+*Slice 4.8d* (Part 32), from 4.8d's read (2026-10-31): the Orders hub's third tab, Orders · Customers · Sales.
+
+- **The period and the split** (`sales32`): a period button -- this month by default; last month, the last 3 months,
+  this year, or dates picked, at most 5 years (`sh-sales32-period`) -- and Week · Month · Quarter · Year, a week from
+  Saturday (STA-01). The first and last bucket are cut to the period, so they add up to the totals.
+- **The figures**: orders; revenue, with the tax inside it beneath (TAX-03); delivery charges, apart from revenue.
+  What counts is said under the page: delivered orders, each on the day it was placed, returns and discounts taken
+  off, cancelled, failed and refunded orders never (STA-04).
+- **Revenue by week, month, quarter or year**: a bar for each, the last one marked, then each with its orders and
+  revenue, newest first (`sales32-month` for a year by month).
+- **Profit** (agreed; INV-18, D3-9): revenue less tax, less the cost of goods sold, and the profit, with how many sales
+  had no cost recorded and that delivery charges are not in it until courier costs are recorded (Phase 6). Someone who
+  may not see cost reads "Profit shows only to staff who may see costs" instead (`sales32-staff`).
+- **Best sellers** (STA-02): By units or By revenue (`sales32-revenue`), the top five with their rank, units, orders and
+  revenue, a combo as itself, and See all. A product opens its trend, month by month, units and revenue
+  (`sales32-product`, STA-03).
+- **Nothing delivered yet** (`sales32-empty`): sales appear after the first delivery.
+- **Beside stock value** (`stock-value32`, agreed): the Stock value page opens with this month's profit, its two
+  parts, and See sales; its lead line says profit comes from delivered orders.
+
 ## 8. Screens designed for later phases
 
 Kept in the prototype under "Later phases (design only)", exactly as designed on 2026-10-20, so the
@@ -1548,7 +1573,7 @@ architecture is whole when each phase arrives. Their endpoints do not exist yet.
 - **Storefront settings** (Slice 12): the home page's banner slides as a carousel or one banner with two tiles,
   the slide editor with the focal point and both crops, the home page line (`storefront`, `sh-slide`).
 - **Shortfall** moved to §7.33 and **returns** to the order (§7.31), so the old `sh-return` sheet is gone; **profit**
-  beside stock value is Part d's (Slice 4.8d). **Search** moved to §7.32.
+  beside stock value moved to §7.34. **Search** moved to §7.32.
 
 ---
 
