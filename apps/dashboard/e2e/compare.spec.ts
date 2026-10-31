@@ -96,6 +96,153 @@ async function drawWalletCheckout(page: Page): Promise<void> {
   });
 }
 
+/** Opens the order's more menu, as a seller does, then one of its rows if named. */
+function orderMenu(row?: string): (page: Page) => Promise<void> {
+  return async (page) => {
+    await page.getByRole('button', { name: /^অর্ডার #|^Order #/ }).click();
+    if (row) await page.getByRole('dialog').getByRole('button', { name: row }).click();
+  };
+}
+
+/**
+ * Orders (§7.31, Slice 4.8a, Part 29): the list with its tabs and More, the dates, none yet; the order in each state the
+ * day's orders draw it, its call, Call later, cancel, more menu, delete and the two dialogs, each opened as a seller
+ * opens them. The mocked day is Part 29's, so the open order is Nusrat Jahan's.
+ */
+const ORDERS: Pair[] = [
+  { name: 'orders', screen: 'orders', device: 'phone', language: 'bn', path: '/orders' },
+  { name: 'orders', screen: 'orders', device: 'tablet', language: 'bn', path: '/orders' },
+  { name: 'orders', screen: 'orders', device: 'desktop', language: 'en', path: '/orders' },
+  {
+    name: 'orders-confirmed',
+    screen: 'o29-confirmed',
+    device: 'desktop',
+    language: 'en',
+    path: '/orders?tab=confirmed',
+  },
+  {
+    name: 'orders-more',
+    screen: 'o29-more',
+    device: 'phone',
+    language: 'bn',
+    path: '/orders',
+    then: async (page) => {
+      await page.getByRole('button', { name: /আরও/ }).click();
+    },
+  },
+  {
+    name: 'orders-dates',
+    screen: 'o29-dates',
+    device: 'phone',
+    language: 'bn',
+    path: '/orders',
+    then: async (page) => {
+      await page.getByRole('button', { name: 'তারিখ' }).click();
+    },
+  },
+  {
+    name: 'orders-empty',
+    screen: 'o29-empty',
+    device: 'phone',
+    language: 'bn',
+    path: '/orders',
+    state: { orders: { orders: [] } },
+  },
+  { name: 'order', screen: 'order', device: 'phone', language: 'bn', path: '/orders/o-47' },
+  { name: 'order', screen: 'order', device: 'desktop', language: 'en', path: '/orders/o-47' },
+  {
+    name: 'order-call',
+    screen: 'o29-call',
+    device: 'phone',
+    language: 'bn',
+    path: '/orders/o-47',
+    then: async (page) => {
+      await page.getByRole('main').getByRole('link', { name: 'কল', exact: true }).click();
+    },
+  },
+  {
+    name: 'order-call-later',
+    screen: 'o29-call-later',
+    device: 'phone',
+    language: 'bn',
+    path: '/orders/o-47',
+    then: orderMenu('হোল্ডে রাখুন'),
+  },
+  { name: 'order-hold', screen: 'o29-hold', device: 'phone', language: 'bn', path: '/orders/o-43' },
+  {
+    name: 'order-cancel',
+    screen: 'o29-cancel',
+    device: 'phone',
+    language: 'bn',
+    path: '/orders/o-47',
+    then: orderMenu('অর্ডার ক্যানসেল'),
+  },
+  {
+    name: 'order-cancelled',
+    screen: 'o29-cancelled',
+    device: 'phone',
+    language: 'bn',
+    path: '/orders/o-31',
+  },
+  {
+    name: 'order-menu',
+    screen: 'o29-menu',
+    device: 'phone',
+    language: 'bn',
+    path: '/orders/o-47',
+    then: orderMenu(),
+  },
+  {
+    name: 'order-delete',
+    screen: 'o29-delete',
+    device: 'phone',
+    language: 'bn',
+    path: '/orders/o-47',
+    then: orderMenu('অর্ডার ডিলিট'),
+  },
+  {
+    name: 'order-shipped',
+    screen: 'o29-shipped',
+    device: 'phone',
+    language: 'bn',
+    path: '/orders/o-39',
+  },
+  {
+    name: 'order-deliver',
+    screen: 'o29-deliver',
+    device: 'phone',
+    language: 'bn',
+    path: '/orders/o-39',
+    then: async (page) => {
+      await page.getByRole('button', { name: 'ডেলিভারড', exact: true }).click();
+    },
+  },
+  {
+    name: 'order-delivered',
+    screen: 'o29-delivered',
+    device: 'phone',
+    language: 'bn',
+    path: '/orders/o-38',
+  },
+  {
+    name: 'order-takeaway',
+    screen: 'o29-takeaway',
+    device: 'phone',
+    language: 'bn',
+    path: '/orders/o-45',
+  },
+  {
+    name: 'order-handover',
+    screen: 'o29-handover',
+    device: 'phone',
+    language: 'bn',
+    path: '/orders/o-45',
+    then: async (page) => {
+      await page.getByRole('button', { name: 'হ্যান্ড ওভার' }).click();
+    },
+  },
+];
+
 const PAIRS: Pair[] = [
   { name: 'home', screen: 'home', device: 'phone', language: 'bn', path: '' },
   { name: 'home', screen: 'home', device: 'tablet', language: 'bn', path: '' },
@@ -116,9 +263,7 @@ const PAIRS: Pair[] = [
     path: '',
     shop: NEW_SHOP,
   },
-  { name: 'orders', screen: 'orders-soon', device: 'phone', language: 'bn', path: '/orders' },
-  { name: 'orders', screen: 'orders-soon', device: 'tablet', language: 'bn', path: '/orders' },
-  { name: 'orders', screen: 'orders-soon', device: 'desktop', language: 'en', path: '/orders' },
+  ...ORDERS,
   {
     name: 'search',
     screen: 'search-products',

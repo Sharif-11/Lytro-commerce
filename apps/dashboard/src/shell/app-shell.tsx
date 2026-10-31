@@ -144,7 +144,7 @@ function BareShell({
     staffPhone: me.phone,
     roles: me.roles,
     screen: undefined,
-    counts: { stock: null, billing: null },
+    counts: { stock: null, billing: null, orders: null },
     showToast: toast.show,
     openPlus: () => undefined,
     recordTitle: null,
@@ -208,7 +208,11 @@ function ShellFrame({ slug, me, tenant, children }: ShellFrameProps): React.JSX.
     staffPhone: me.phone,
     roles: me.roles,
     screen,
-    counts: { stock, billing: home.data?.paymentNeedingYou ? 1 : null },
+    counts: {
+      stock,
+      billing: home.data?.paymentNeedingYou ? 1 : null,
+      orders: home.data?.orders?.toConfirm || null,
+    },
     showToast,
     openPlus: () => {
       setPlusOpen(true);

@@ -393,6 +393,16 @@ combos and statistics). If velocity suggests it, the rest can become Phase 4B wi
   on it and beside stock value; the storefront has an account icon in its header for sign-in, and checkout is one
   page, guest, cash on delivery. Part d sketched as Part 32 and §7.34 (v3.22). Part e sketched in the storefront prototype's group "Phase 4 · ordering" and
   STOREFRONT-DESIGN's §7a (v1.3).
+- **Building 4.8** (from 2026-10-31): the server reads the sketches need first (one pull request: each order's area and
+  unanswered calls, the recent couriers, the customer's order count, `hasAccount`, Home's orders and stock short, what
+  limits a combo), then each part's screens, built to its drawings. Part a ships in three: **a1** the list (its tabs,
+  More with the cancel reasons, the search and the dates), the order (customer, calls, items, money, payments,
+  shipping, timeline and one next step), the call and how it went, Call later and releasing a hold, cancel, delete,
+  delivered and hand over, the Orders tab's count, and the order permissions in the role editor; **a2** shipping with
+  the courier and serials, returns, recording and voiding payments, labels and selecting orders to print; **a3** New
+  order and Edit order. Two pieces Part 29 had not drawn were drawn first, at the owner's choice: the dates
+  (`o29-dates`) and Delete's question (`o29-delete`); the role editor's three order permissions were added to its
+  drawing.
 - **Sketch first** (`sketch-every-screen-before-building`): the status flow with the call log, Confirm, cancel
   reasons, Mark shipped and returns; the storefront's checkout for cash on delivery, the confirmation without an SMS
   promise, tracking with its Confirmed step; the Phase 5–7 parts of today's drawings shown as later.

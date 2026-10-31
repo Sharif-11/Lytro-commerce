@@ -28,6 +28,7 @@ const QUIET: HomeView = {
   staffWithoutPassword: 0,
   fastSpendAlertedAt: null,
   checklist: null,
+  orders: null,
 };
 
 function tenant(state: TenantState, daysLeft: number): MeTenant {
