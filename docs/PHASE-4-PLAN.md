@@ -373,6 +373,15 @@ combos and statistics). If velocity suggests it, the rest can become Phase 4B wi
   test and refunded orders excluded (STA-01 – 04); profit beside stock value from each shipment's cost (INV-18).
 
 ### Slice 4.8: the screens
+- **Read agreed 2026-10-31:** five parts, each with its own read, then a sketch to approve, then the build -- a) orders,
+  b) customers, search, Home's order rows and tiles and orders on Usage, c) the catalogue additions (combos, tax
+  classes, modifier groups, stock history's labels, shortfall), d) sales figures, e) the storefront and landing page;
+  orders first; the order screens drawn on 2026-10-20 are changed in place. **Part a's read** (2026-10-31): the list's
+  tabs put the day's work first (To confirm, Confirmed, On hold, Shipped, All; the rest under More); Call dials, then
+  asks how it went; later-phase pieces are greyed in the sketch and hidden in the build; New order is one page; the
+  order shows one next step, the rest in its menu; labels print on a thermal printer, 2 × 3 or 3 × 3 inches, the
+  payment log not printed (ORD-19 amended); selecting orders prints their labels, the only bulk action. Sketched as
+  prototype Part 29 and the design doc's §7.31 (v3.19).
 - **Sketch first** (`sketch-every-screen-before-building`): the status flow with the call log, Confirm, cancel
   reasons, Mark shipped and returns; the storefront's checkout for cash on delivery, the confirmation without an SMS
   promise, tracking with its Confirmed step; the Phase 5–7 parts of today's drawings shown as later.
