@@ -21,7 +21,7 @@ export function Rail(): React.JSX.Element {
     >
       {visibleHubs(viewer).map(({ hub, to }) => {
         const on = screen?.hub === hub.id;
-        const pill = hub.id === 'shop' ? counts.stock : null;
+        const pill = hub.id === 'shop' ? counts.stock : hub.id === 'orders' ? counts.orders : null;
         return (
           <Link
             key={hub.id}

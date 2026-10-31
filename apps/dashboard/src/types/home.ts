@@ -12,6 +12,15 @@ export interface BeingChecked {
 export interface HomeView {
   products: { total: number; active: number } | null;
   stock: { low: number; out: number; expiringBatches: number } | null;
+  /** Slice 4.8b: the orders' jobs and figures, for someone who may read orders. */
+  orders: {
+    toConfirm: number;
+    callsDue: number;
+    toShip: number;
+    today: number;
+    yesterday: number;
+    monthSales: string;
+  } | null;
   balance: { amount: string; low: boolean; freeSms: { used: number; limit: number | null } } | null;
   topUpsBeingChecked: BeingChecked | null;
   paymentsBeingChecked: BeingChecked | null;

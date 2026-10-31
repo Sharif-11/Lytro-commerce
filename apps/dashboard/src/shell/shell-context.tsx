@@ -18,9 +18,9 @@ export interface ShellState {
   staffPhone: string | null;
   /** The screen the shell frames now, from its route. */
   screen: ScreenMeta | undefined;
-  /** The counts the navigation carries (GET /home): the Shop tab's pill and its section's count, and Billing's while a
-      payment needs the person (BIL-19). */
-  counts: { stock: number | null; billing: number | null };
+  /** The counts the navigation carries (GET /home): the Shop tab's pill and its section's count, Billing's while a
+      payment needs the person (BIL-19), and the Orders tab's orders to confirm (Slice 4.8a). */
+  counts: { stock: number | null; billing: number | null; orders: number | null };
   showToast: (message: string) => void;
   openPlus: () => void;
   /** The one record a screen below its section names (a purchase's number), shown in the desktop header (v3.10). */
