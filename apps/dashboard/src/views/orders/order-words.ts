@@ -48,6 +48,8 @@ const REASON: Record<CancelReason, string> = {
   [CancelReason.OutOfStock]: 'rOutOfStock',
   [CancelReason.Duplicate]: 'rDuplicate',
   [CancelReason.Other]: 'rOther',
+  // Phase 5 (Slice 5.2a): cancelled by the server when an advance went unpaid; never one staff pick.
+  [CancelReason.AdvanceNotPaid]: 'rAdvanceNotPaid',
 };
 
 const SOURCE: Record<OrderSource, string> = {

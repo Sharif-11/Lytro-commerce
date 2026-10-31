@@ -144,6 +144,7 @@
   "rOutOfStock": "স্টক নেই",
   "rDuplicate": "ডুপ্লিকেট অর্ডার",
   "rOther": "অন্য কারণ",
+  "rAdvanceNotPaid": "অ্যাডভান্স দেওয়া হয়নি",
   "otherNeedsNote": "\"অন্য কারণ\"-এ নোট লাগবে",
   "keep": "রেখে দিন",
   "cancelIt": "অর্ডার ক্যানসেল করুন",

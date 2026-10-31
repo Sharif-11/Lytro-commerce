@@ -144,6 +144,7 @@
   "rOutOfStock": "Out of stock",
   "rDuplicate": "Duplicate order",
   "rOther": "Other",
+  "rAdvanceNotPaid": "Advance not paid",
   "otherNeedsNote": "\"Other\" needs a note",
   "keep": "Keep it",
   "cancelIt": "Cancel the order",

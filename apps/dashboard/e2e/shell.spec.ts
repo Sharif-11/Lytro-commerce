@@ -158,7 +158,8 @@ test('searches the products by name, and says when nothing matches (§4.4)', asy
   if (isPhone()) {
     await open(page, '/orders');
     await page.getByRole('link', { name: 'সার্চ' }).click();
-    await page.getByRole('searchbox').fill('জ্যাকেট');
+    // The search page's own box: the Orders list has a search of its own (Slice 4.8a).
+    await page.getByRole('searchbox', { name: 'সার্চ', exact: true }).fill('জ্যাকেট');
   } else {
     await open(page, '/orders');
     const field = page.getByRole('search').getByRole('searchbox');
