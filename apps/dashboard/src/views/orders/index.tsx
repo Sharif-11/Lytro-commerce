@@ -16,7 +16,7 @@ import { useShell } from '@/shell/shell-context';
 import { ShellPage } from '@/shell/shell-page';
 import { DatesSheet, OrderRows, OrderTabs } from './order-list';
 import { OrderDetail } from './order-page';
-import { searchOf } from './order-search';
+import { filterOf, searchOf, type OrdersSearch } from './order-search';
 
 const TYPING_REST_MS = 250;
 
@@ -46,11 +46,13 @@ export function OrdersScreen({
   const none = everything.data === 0;
   const filtered = Boolean(filter.q?.trim() || filter.from || filter.to || filter.reason);
 
+  // From the address as it is when the change lands, not as this render saw it: the search's pause must not undo the
+  // dates chosen meanwhile.
   function show(next: Partial<OrderFilter>): void {
     void navigate({
       to: orderId ? '/$shop/orders/$orderId' : '/$shop/orders',
       params: orderId ? { shop: slug, orderId } : { shop: slug },
-      search: searchOf({ ...filter, ...next }),
+      search: (previous) => searchOf({ ...filterOf(previous as OrdersSearch), ...next }),
       replace: true,
     });
   }

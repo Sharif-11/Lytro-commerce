@@ -36,6 +36,9 @@ async function expectAccessible(page: Page): Promise<void> {
   ).toEqual([]);
 }
 
+/** Longer than the search's pause before it writes the address (250 ms). */
+const SEARCH_SETTLED_MS = 600;
+
 /** The order's more menu, then one of its rows. */
 async function fromMenu(page: Page, item: string): Promise<void> {
   await main(page)
@@ -111,6 +114,9 @@ test('the search finds by name, phone or number, and the dates narrow to the day
   await expect(row(page, '261030-0039')).toHaveCount(0);
   await expect(row(page, '261031-0047')).toBeVisible();
   expect(log.calls.some((call) => call.query.includes(`dateFrom=${today}`))).toBe(true);
+  // The search's pause, still running when the dates were chosen, ends without undoing them.
+  await page.waitForTimeout(SEARCH_SETTLED_MS);
+  await expect(page).toHaveURL(`/${SLUG}/orders?tab=all&from=${today}`);
 });
 
 test("the order: who and where, the customer's note, the items with a combo inside, the money with the tax in it", async ({
