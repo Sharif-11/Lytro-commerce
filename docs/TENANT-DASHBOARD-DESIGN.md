@@ -1,6 +1,12 @@
 # Tenant dashboard: the full design
 
-Status: v3.20, 2026-10-31 (customers, search, Home and Usage as Phase 4 built them, Slice 4.8b, prototype Part 30:
+Status: v3.22, 2026-10-31 (Sales, the Orders hub's third tab, Slice 4.8d, prototype Part 32: orders and revenue
+by week, month, quarter or year with the tax and delivery charges apart, profit for those who may see cost, best
+sellers by units or revenue, a product's trend, profit beside stock value; v3.21 of 2026-10-31: the catalogue
+additions Phase 4 built, Slice 4.8c, prototype Part 31: Product or Combo
+pack first, a combo's parts by ticked variants with its saving and can-make, add-on groups with plain rules, the tax
+class under More settings and Settings > Tax, orders short of stock on Home and Stock, stock history naming orders and
+combos; v3.20 of 2026-10-31: customers, search, Home and Usage as Phase 4 built them, Slice 4.8b, prototype Part 30:
 Home's order jobs and Today tiles, New order first in the + menu, the customer's page with their storefront account, a
 new password generated to copy and the privacy delete, one search over orders, customers and products, the orders
 handled on Usage; v3.19 of 2026-10-31: the orders as Phase 4 built them, Slice 4.8a, prototype Part 29: the list with the
@@ -1485,6 +1491,67 @@ bar's search finds everything.
   (`u30-trial`, QTA-01, QTA-04, TRL-03); from 80% the row suggests the plan that raises it, with the banner
   (`u30-near`).
 
+### 7.33 Combos, add-ons, tax and stock for orders (`/products/new`, `/settings/tax`, `/stock`)
+
+*Slice 4.8c* (Part 31), from 4.8c's read (2026-10-31).
+
+- **Product or Combo pack** (`k31-new`, agreed): New product opens with the choice -- "A combo sells several products
+  together at one price. Once made, this can't be changed." (CMB-01). Product is the form as it was.
+- **A combo** (`k31-combo`): its basics (photos, name, price, category, description); **What's inside** -- each part
+  its product, "Always this one" or "Customer picks: S, M, L", how many in each combo and its price; then what the
+  parts cost **bought apart**, what the **customer saves** (CMB-06) and how many it **can make now**, limited by which
+  part (CMB-02); stock and delivery say a combo holds no stock of its own and takes no add-ons, its weight comes from
+  its items unless typed (CMB-07); its tax class under More settings (`k31-combo-more`). Saved, it opens with its link
+  (`k31-combo-saved`); a part that can't be had makes it out of stock with the reason and the fix (`k31-combo-out`,
+  CMB-08).
+- **Adding a part** (`sh-k31-part`, agreed): pick a product -- a combo is greyed, "A combo can't go inside another"
+  -- then tick its variants that may go in, each with how many are left, and how many in each combo
+  (`sh-k31-part-variants`): one ticked is always that one (`sh-k31-part-fixed`), several let the customer pick one for
+  each unit; the sheet says which it became.
+- **A product in a combo** can't be deleted for good: the dialog names the combo, with **Open the combo**
+  (`sh-k31-in-combo`, PRD-13).
+- **Add-ons** (`k31-addons`, MNU-01): a section of the product editor after options and variants -- "Extras chosen
+  when ordering, like gift wrap. Their price adds to the line." -- each group with its rule and options. A group's
+  sheet (`sh-k31-group`, agreed): its name; how many the customer picks as plain rules -- Optional, any number;
+  Optional, at most 1; Required, exactly 1; or **Custom**, which shows at least and at most (`sh-k31-group-custom`);
+  its options, each a name, what it adds to the price (a minus takes off) and **Picked by default**; orders already
+  made keep what was chosen (MNU-02). A new group starts empty (`sh-k31-group-new`).
+- **Tax class** (`k31-more`, agreed): under More settings, beside the size chart and condition, prefilled with the
+  shop's default -- "The tax is inside the price; totals never change." (TAX-01).
+- **Settings > Tax** (`tax31`, from the Settings row `k31-settings`): what a class does in one line, the classes with
+  their rates and the default marked, and **New products start with** the default. Add a class (`sh-tax31-new`: name,
+  rate 0 to 100, make it the default); a class's sheet changes its name or rate -- new orders take the new rate, past
+  ones keep theirs (`sh-tax31-edit`); a class products use can't be deleted (`sh-tax31-inuse`). No classes: prices
+  carry no tax (`tax31-empty`).
+- **Short for orders** (agreed): when orders hold more than is on the shelf (after a stock check or a write-off), Home's
+  to-do says how many products are short (`p31-home-short`), and Stock shows them first, each "3 held for orders · 2
+  on hand · 1 short" in red with **Add stock** and **See the orders** (`k31-stock`, INV-15).
+- **Combos on Stock**: each combo with how many it can make and what limits it, or why it can't be made.
+- **Stock history** names each sale's and return's order, and the combo a sale went in -- "Sold in Eid combo · order
+  #261031-0047" (`sh-k31-history`, CMB-05).
+
+### 7.34 Sales (`/sales`)
+
+*Slice 4.8d* (Part 32), from 4.8d's read (2026-10-31): the Orders hub's third tab, Orders · Customers · Sales.
+
+- **The period and the split** (`sales32`): a period button -- this month by default; last month, the last 3 months,
+  this year, or dates picked, at most 5 years (`sh-sales32-period`) -- and Week · Month · Quarter · Year, a week from
+  Saturday (STA-01). The first and last bucket are cut to the period, so they add up to the totals.
+- **The figures**: orders; revenue, with the tax inside it beneath (TAX-03); delivery charges, apart from revenue.
+  What counts is said under the page: delivered orders, each on the day it was placed, returns and discounts taken
+  off, cancelled, failed and refunded orders never (STA-04).
+- **Revenue by week, month, quarter or year**: a bar for each, the last one marked, then each with its orders and
+  revenue, newest first (`sales32-month` for a year by month).
+- **Profit** (agreed; INV-18, D3-9): revenue less tax, less the cost of goods sold, and the profit, with how many sales
+  had no cost recorded and that delivery charges are not in it until courier costs are recorded (Phase 6). Someone who
+  may not see cost reads "Profit shows only to staff who may see costs" instead (`sales32-staff`).
+- **Best sellers** (STA-02): By units or By revenue (`sales32-revenue`), the top five with their rank, units, orders and
+  revenue, a combo as itself, and See all. A product opens its trend, month by month, units and revenue
+  (`sales32-product`, STA-03).
+- **Nothing delivered yet** (`sales32-empty`): sales appear after the first delivery.
+- **Beside stock value** (`stock-value32`, agreed): the Stock value page opens with this month's profit, its two
+  parts, and See sales; its lead line says profit comes from delivered orders.
+
 ## 8. Screens designed for later phases
 
 Kept in the prototype under "Later phases (design only)", exactly as designed on 2026-10-20, so the
@@ -1505,9 +1572,8 @@ architecture is whole when each phase arrives. Their endpoints do not exist yet.
   all read; nothing yet; all read; the full page with filters (NTF-01). The dashboard has no bell before then.
 - **Storefront settings** (Slice 12): the home page's banner slides as a carousel or one banner with two tiles,
   the slide editor with the focal point and both crops, the home page line (`storefront`, `sh-slide`).
-- **Shortfall, returns and profit** (Phase 4): units held for orders whose payment ran out (5a,
-  `stock-shortfall`); taking shipped stock back, sellable or damaged (INV-17, `sh-return`); profit beside stock
-  value. **Search** moved to §7.32.
+- **Shortfall** moved to §7.33 and **returns** to the order (§7.31), so the old `sh-return` sheet is gone; **profit**
+  beside stock value moved to §7.34. **Search** moved to §7.32.
 
 ---
 
@@ -1560,11 +1626,13 @@ brand identity.
 | Pay-as-you-go estimate | billing | PYG-12 (needs order history) | later |
 | The notifications feed behind the bell | notifications | §8 (NTF-01) | Phase 7 |
 | Orders, customers, payments, couriers, SMS, notices; storefront settings | Phases 4 to 8; Slice 12 | §8 | later |
-| `location { thana, zilla }` and `unansweredCalls` on each `GET /orders` row | orders | the list's "Mirpur, Dhaka" and "No answer ×2" (§7.31) | Slice 4.8a |
-| the customer's order count on `GET /orders/:id` | orders | the order's "4 orders" link to the customer (§7.31) | Slice 4.8a |
-| the shop's courier names used before | orders | the ship sheet's chips (§7.31) | Slice 4.8a |
-| `orders { toConfirm, callsDue, toShip, today, yesterday, monthSales }` on `GET /home` (`orders:read`) | orders | Home's order jobs and Today tiles (§7.32) | Slice 4.8b |
-| `hasAccount` on each `GET /customers` row | customers | the list's "Has an account" (§7.32) | Slice 4.8b |
+| `area { thana, zilla }` and `unansweredCalls` on each `GET /orders` row | orders | the list's "Mirpur, Dhaka" and "No answer ×2" (§7.31) | built (4.8 reads) |
+| the customer's order count on `GET /orders/:id` | orders | the order's "4 orders" link to the customer (§7.31) | built (4.8 reads) |
+| the shop's courier names used before | orders | the ship sheet's chips (§7.31) | built (4.8 reads) |
+| `orders { toConfirm, callsDue, toShip, today, yesterday, monthSales }` on `GET /home` (`orders:read`) | orders | Home's order jobs and Today tiles (§7.32) | built (4.8 reads) |
+| `hasAccount` on each `GET /customers` row | customers | the list's "Has an account" (§7.32) | built (4.8 reads) |
+| `stock.short` (products whose orders hold more than is on hand) on `GET /home` | inventory | Home's "short for orders" job (§7.33) | built (4.8 reads) |
+| the shop's combos with `canMake` and what limits it (`limitedBy`), on `GET /inventory/stock`'s rows | inventory | Stock's combos card (§7.33) | built (4.8 reads) |
 
 ---
 

@@ -262,6 +262,7 @@ export {
   type OrderListFilter,
   type OrderPatch,
   type OrderRow,
+  type OrderHomeCounts,
   type OrderSummaryRow,
 } from './repositories/orders/order.repository';
 export { CustomerRepository } from './repositories/orders/customer.repository';

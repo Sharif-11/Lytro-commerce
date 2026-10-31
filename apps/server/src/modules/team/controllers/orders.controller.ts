@@ -40,6 +40,7 @@ import {
   OrderPaymentDto,
   OrderQuoteDto,
   OrderViewDto,
+  RecentCouriersDto,
   OverrideOrderDto,
   ReturnOrderDto,
   ShipOrderDto,
@@ -134,6 +135,17 @@ export class OrdersController {
     @Req() request: DashboardRequest,
   ): Promise<OrderQuote> {
     return this.orders.quote(this.request.tenantIdOf(request), body);
+  }
+
+  @Get('couriers')
+  @RequirePermission(Permission.OrdersRead)
+  @ResponseMessage('CouriersRetrieved')
+  @ApiOperation({
+    summary: 'The couriers the shop has shipped with, the most recent first (ORD-09)',
+  })
+  @ZodResponse({ type: RecentCouriersDto })
+  async couriers(@Req() request: DashboardRequest): Promise<{ couriers: string[] }> {
+    return { couriers: await this.orders.recentCouriers(this.request.tenantIdOf(request)) };
   }
 
   @Get(':id')

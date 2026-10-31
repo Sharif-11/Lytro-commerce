@@ -609,6 +609,14 @@ describeIfDatabase(
       expect(
         ((await shop.owner.get(`/customers/${customerId}`)).body as { account: unknown }).account,
       ).toBeNull();
+      // Slice 4.8b: the customer list says whether the phone has an account.
+      const listed = async () =>
+        (
+          (await shop.owner.get(`/customers?q=${phone}`)).body as {
+            customers: { id: string; hasAccount: boolean }[];
+          }
+        ).customers.find((row) => row.id === customerId)?.hasAccount;
+      expect(await listed()).toBe(false);
       expect(
         (await shop.owner.post(`/customers/${customerId}/password`, { password: 'staff-set-9' }))
           .status,
@@ -621,6 +629,7 @@ describeIfDatabase(
           }
         ).account,
       ).not.toBeNull();
+      expect(await listed()).toBe(true);
       const reader = await staffWith(port, texts, admin, shop.owner, ['customers:read']);
       expect(
         (

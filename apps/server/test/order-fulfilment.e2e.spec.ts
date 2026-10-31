@@ -494,3 +494,119 @@ describeIfDatabase('the pay-as-you-go order fee (PYG-02 to PYG-05, PYG-14)', () 
     expect(await orderFees(shop.tenantId)).toEqual([]);
   });
 });
+
+describeIfDatabase('what the screens read (Slice 4.8): areas, calls, couriers, Home', () => {
+  const ok = (status: number) => {
+    expect([200, 201]).toContain(status);
+  };
+
+  it("lists each order's area and unanswered calls, and the order its customer's order count", async () => {
+    const shop = await openShop(port, texts, 'ful');
+    const lamp = await product(shop, 'Lamp', 300, 10);
+    const phone = freshMobile();
+    const first = await place(shop, lamp.variantId, 1, { phone });
+    const second = await place(shop, lamp.variantId, 1, { phone });
+    ok((await shop.post(`/orders/${first.id}/calls`, { outcome: 'confirmed' })).status);
+    ok((await shop.post(`/orders/${second.id}/calls`, { outcome: 'no_answer' })).status);
+    ok((await shop.post(`/orders/${second.id}/calls`, { outcome: 'no_answer' })).status);
+    const counter = await takeaway(shop, lamp.variantId, 1);
+    const list = (await shop.get('/orders')).body as {
+      orders: { id: string; area: unknown; unansweredCalls: number }[];
+    };
+    const row = (id: string) => list.orders.find((each) => each.id === id);
+    expect(row(second.id)).toMatchObject({
+      area: { thana: { nameEn: 'Mirpur' }, zilla: { nameEn: 'Dhaka' } },
+      unansweredCalls: 2,
+    });
+    expect(row(first.id)?.unansweredCalls).toBe(0);
+    expect(row(counter.id)?.area).toBeNull();
+    const detail = (await shop.get(`/orders/${first.id}`)).body as {
+      customerOrders: number | null;
+    };
+    expect(detail.customerOrders).toBe(2);
+  });
+
+  it('lists the couriers the shop has shipped with, the most recent first, and none of another shop', async () => {
+    const shop = await openShop(port, texts, 'ful');
+    const lamp = await product(shop, 'Lamp', 300, 10);
+    const couriers = async (of: ShopClient) =>
+      ((await of.get('/orders/couriers')).body as { couriers: string[] }).couriers;
+    expect(await couriers(shop)).toEqual([]);
+    // Pathao shipped more, but Steadfast was used last: recency, not the count, comes first.
+    await shipped(shop, await place(shop, lamp.variantId, 1), {
+      courierName: 'Pathao',
+      trackingCode: 'P-1',
+    });
+    await shipped(shop, await place(shop, lamp.variantId, 1), {
+      courierName: 'Pathao',
+      trackingCode: 'P-2',
+    });
+    await shipped(shop, await place(shop, lamp.variantId, 1), {
+      courierName: 'Steadfast',
+      trackingCode: 'S-1',
+    });
+    expect(await couriers(shop)).toEqual(['Steadfast', 'Pathao']);
+    expect(await couriers(await openShop(port, texts, 'ful'))).toEqual([]);
+  });
+
+  it("counts Home's orders -- to confirm, calls due, to ship, today, yesterday -- with the month's sales", async () => {
+    const shop = await openShop(port, texts, 'ful');
+    const lamp = await product(shop, 'Lamp', 300, 10);
+    await place(shop, lamp.variantId, 1);
+    const held = await place(shop, lamp.variantId, 1);
+    ok(
+      (
+        await shop.post(`/orders/${held.id}/calls`, {
+          outcome: 'call_back_later',
+          callBackAt: new Date(Date.now() + 3_600_000).toISOString(),
+        })
+      ).status,
+    );
+    // Its time comes: the call is due.
+    await admin.query(
+      `UPDATE tenant.orders SET hold_until = now() - interval '1 minute' WHERE id = $1`,
+      [held.id],
+    );
+    const later = await place(shop, lamp.variantId, 1);
+    ok(
+      (
+        await shop.post(`/orders/${later.id}/calls`, {
+          outcome: 'call_back_later',
+          callBackAt: new Date(Date.now() + 3_600_000).toISOString(),
+        })
+      ).status,
+    );
+    const confirmed = await place(shop, lamp.variantId, 1);
+    ok((await shop.post(`/orders/${confirmed.id}/calls`, { outcome: 'confirmed' })).status);
+    // A confirmed takeaway is handed over, never shipped.
+    const counter = await takeaway(shop, lamp.variantId, 1);
+    ok((await shop.post(`/orders/${counter.id}/calls`, { outcome: 'confirmed' })).status);
+    const sold = await takeaway(shop, lamp.variantId, 2);
+    expect((await shop.post(`/orders/${sold.id}/hand-over`, {})).status).toBe(200);
+    // One placed a day ago counts as yesterday's, not today's. The orders guard keeps created_at, so it steps aside.
+    const before = await place(shop, lamp.variantId, 1);
+    await admin.query('BEGIN');
+    try {
+      await admin.query('SET LOCAL session_replication_role = replica');
+      await admin.query(
+        `UPDATE tenant.orders SET created_at = created_at - interval '1 day' WHERE id = $1`,
+        [before.id],
+      );
+      await admin.query('COMMIT');
+    } catch (error) {
+      await admin.query('ROLLBACK');
+      throw error;
+    }
+    const home = (await shop.get('/home')).body as { orders: unknown; stock: { short: number } };
+    expect(home.orders).toEqual({
+      toConfirm: 2,
+      callsDue: 1,
+      toShip: 1,
+      today: 6,
+      yesterday: 1,
+      monthSales: '600.00',
+    });
+    // Nothing is short here; test/reservations.e2e.spec.ts counts one that is.
+    expect(home.stock.short).toBe(0);
+  });
+});

@@ -8,7 +8,20 @@ const beingCheckedSchema = z.object({ count: z.number(), amount: z.string() });
 // TENANT-DASHBOARD-DESIGN §7.1: each part is null when the caller may not see it (STF-11).
 export const homeViewSchema = z.object({
   products: z.object({ total: z.number(), active: z.number() }).nullable(),
-  stock: z.object({ low: z.number(), out: z.number(), expiringBatches: z.number() }).nullable(),
+  stock: z
+    .object({ low: z.number(), out: z.number(), expiringBatches: z.number(), short: z.number() })
+    .nullable(),
+  // Slice 4.8b: Home's order figures.
+  orders: z
+    .object({
+      toConfirm: z.number(),
+      callsDue: z.number(),
+      toShip: z.number(),
+      today: z.number(),
+      yesterday: z.number(),
+      monthSales: z.string(),
+    })
+    .nullable(),
   balance: z
     .object({
       amount: z.string(),

@@ -1328,6 +1328,194 @@ const homeWith = (heroHtml) => `${heroHtml}${trust()}
 def('home-carousel', { group: 'Browse', label: 'Home · the shop\'s slides as a carousel', url: 'megh.lytro.app', render: () => shell({}, homeWith(carousel())) });
 def('home-tiles', { group: 'Browse', label: 'Home · one banner and two tiles', url: 'megh.lytro.app', render: () => shell({}, homeWith(tiles())) });
 
+/* ---------- Phase 4, Slice 4.8e (its read, 2026-10-31): ordering as Phase 4 built it. An account icon in the header
+   opens Sign in -- phone and password; a code is sent once, at sign-up -- or, signed in, My account: every order with
+   the shopper's phone, saved addresses, the profile. Checkout is one page, guest, cash on delivery: contact, district
+   and thana with the delivery charge, address, a note to the shop, the items with a combo's choices and add-ons, the
+   totals with the tax inside them. No SMS is promised (Phase 7): the shop calls to confirm, and the tracking page
+   shows Placed, Confirmed, Shipped with the courier line, Delivered. A product that needs an advance waits for online
+   payment (Phase 5). The landing page's form takes the order. ---------- */
+Object.assign(S, {
+  co_phone_help: ['শপ এই নম্বরে কল করে অর্ডার কনফার্ম করবে', 'The shop calls this number to confirm'],
+  co_signin_lnk: ['সাইন ইন করে তথ্য বসান', 'Sign in to fill this in'],
+  cf_p: ['অর্ডার নম্বর {o}। শপ {ph}-এ কল করে কনফার্ম করবে।', 'Order {o}. The shop will call {ph} to confirm it.'],
+  cf_n2: ['পাঠানোর পর কুরিয়ার আর ট্র্যাকিং কোড ট্র্যাকিং পেজে দেখাবে', 'Once it ships, the courier and tracking code show on your tracking page'],
+  ac_hint: ['ফোন নম্বর আর পাসওয়ার্ড দিয়ে সাইন ইন করুন।', 'Sign in with your phone number and password.'],
+  e48Note: ['শপের জন্য নোট (অপশনাল)', 'A note for the shop (optional)'],
+  e48NotePh: ['যেমন: দুপুর ২টার পর কল দিবেন', 'Like: call after 2 pm'],
+  e48Place: ['অর্ডার করুন · ক্যাশ অন ডেলিভারি', 'Place order · cash on delivery'],
+  e48TaxIn: ['এর মধ্যে VAT ৫%', 'Includes VAT 5%'],
+  e48OnlineLater: ['bKash, Nagad দিয়ে আগে পেমেন্ট', 'Paying first with bKash or Nagad'],
+  e48Choices: ['বাছাই: {x}', 'Chosen: {x}'],
+  e48AddOn: ['+ {a}', '+ {a}'],
+  e48SavedAddr: ['সেভ করা ঠিকানা', 'Saved addresses'],
+  e48AdvT: ['লন থ্রি-পিসে ৳২০০ অ্যাডভান্স লাগে', 'The Lawn three-piece needs a ৳200 advance'],
+  e48AdvP: ['অনলাইন পেমেন্ট এখনো চালু হয়নি। এটা সরিয়ে বাকিটা অর্ডার করুন, বা শপকে কল করে অর্ডার দিন।', "Online payment isn't open yet. Remove it and order the rest, or call the shop to order it."],
+  e48Remove: ['সরিয়ে দিন', 'Remove it'],
+  e48CallShop: ['শপকে কল করুন', 'Call the shop'],
+  e48ShortT: ['ডেনিম জ্যাকেট এইমাত্র শেষ হয়ে গেছে', 'The Denim jacket just sold out'],
+  e48ShortP: ['অর্ডার হয়নি। এটা সরিয়ে আবার অর্ডার করুন।', "The order wasn't placed. Remove it and place the order again."],
+  e48OrderNo: ['অর্ডার #{n}', 'Order #{n}'],
+  e48TrackId: ['ট্র্যাকিং আইডি', 'Tracking ID'],
+  e48MakeAcct: ['অ্যাকাউন্ট খুললে সব অর্ডার এক জায়গায় দেখবেন', 'Make an account to see all your orders in one place'],
+  e48SignUp: ['সাইন আপ', 'Sign up'],
+  e48WaitCall: ['শপের কলের অপেক্ষায়', 'Waiting for the shop to call'],
+  e48Cancelled: ['ক্যানসেলড', 'Cancelled'],
+  e48CancelledP: ['শপ অর্ডারটা ক্যানসেল করেছে। জানতে শপকে কল করুন।', 'The shop cancelled this order. Call the shop to ask why.'],
+  e48OpenLink: ['কুরিয়ারের পেজ', "Courier's page"],
+  e48Password: ['পাসওয়ার্ড', 'Password'],
+  e48NoAcct: ['অ্যাকাউন্ট নেই? সাইন আপ', 'No account? Sign up'],
+  e48Forgot: ['পাসওয়ার্ড ভুলে গেছেন?', 'Forgot your password?'],
+  e48WrongPw: ['ফোন বা পাসওয়ার্ড মেলেনি', "That phone and password don't match"],
+  e48Locked: ['অনেকবার ভুল হয়েছে। ১৫ মিনিট পর আবার চেষ্টা করুন।', 'Too many tries. Try again in 15 minutes.'],
+  e48ForgotT: ['পাসওয়ার্ড ভুলে গেছেন', 'Forgot your password'],
+  e48ForgotP: ['শপকে বলুন; তারা নতুন পাসওয়ার্ড দিয়ে আপনাকে পাঠিয়ে দেবে।', "Ask the shop; they'll set a new one and send it to you."],
+  e48SignupT: ['অ্যাকাউন্ট খুলুন', 'Make an account'],
+  e48SignupP: ['এই ফোন যে আপনার, তা দেখতে একবারই কোড পাঠাব। এরপর ফোন আর পাসওয়ার্ড দিয়ে সাইন ইন।', "We send a code once, to check this phone is yours. After that you sign in with phone and password."],
+  e48SendCode: ['কোড পাঠান', 'Send the code'],
+  e48HaveAcct: ['আগেই অ্যাকাউন্ট আছে? সাইন ইন', 'Have an account? Sign in'],
+  e48CodeSent: ['{ph}-এ কোড পাঠানো হয়েছে · ৫ মিনিট', 'Code sent to {ph} · 5 minutes'],
+  e48Details: ['শেষ ধাপ', 'Last step'],
+  e48PasswordHelp: ['৮ থেকে ২০ অক্ষর', '8 to 20 characters'],
+  e48Create: ['অ্যাকাউন্ট খুলুন', 'Make the account'],
+  e48MyOrdersH: ['এই ফোনের সব অর্ডার, যেখান থেকেই দিন', 'Every order with this phone, wherever you placed it'],
+  e48Profile: ['প্রোফাইল', 'Profile'],
+  e48ChangePw: ['পাসওয়ার্ড বদলান', 'Change password'],
+  e48PhoneFixed: ['ফোন নম্বর বদলানো যায় না; এটাই আপনার অ্যাকাউন্ট', "The phone can't change; it is your account"],
+  e48AddAddr: ['ঠিকানা যোগ করুন', 'Add an address'],
+  e48AddrMax: ['সর্বোচ্চ ১০টি', 'Up to 10'],
+  e48Label: ['নাম', 'Label'],
+  e48LabelPh: ['যেমন: বাসা, অফিস', 'Like: Home, Office'],
+  e48MakeDefault: ['ডিফল্ট করুন', 'Make it the default'],
+  e48PickEach: ['প্রতিটি পাঞ্জাবির সাইজ', 'A size for each panjabi'],
+  e48Comes: ['সাথে আছে', 'Comes with'],
+  e48Addons: ['অ্যাড-অন', 'Add-ons'],
+  e48GiftWrap: ['গিফট র‍্যাপ', 'Gift wrap'],
+  e48Optional1: ['ঐচ্ছিক · সর্বোচ্চ ১টি', 'Optional · at most 1'],
+  e48LandingThanks: ['ধন্যবাদ! অর্ডার হয়েছে', 'Thank you! Your order is placed'],
+});
+
+/* The account icon in the header (agreed): Sign in, or My account once signed in. */
+let E48_IN = false;
+const _hdr48 = hdr;
+hdr = function (o) {
+  const out = _hdr48(o);
+  if (o && o.minimal) return out;
+  return out.replace(`<button class="ib" onclick="go('cart')">`, `<button class="ib" title="${t('account')}" onclick="go('${E48_IN ? 'account-orders' : 'account-signin'}')">${I.user}</button><button class="ib" onclick="go('cart')">`);
+};
+const inShell = (o, inner, extra) => { E48_IN = true; const html = shell(o, inner, extra); E48_IN = false; return html; };
+const G48 = 'Phase 4 · ordering (Slice 4.8e)';
+
+/* The cart of the sketch: a Phase 4 order -- an add-on, a combo with its choices, two of one item. */
+const E48_LINES = () => [
+  { n: pName(P[0]), v: L('M · সাদা', 'M · White'), q: 1, p: 1250, addon: [t('e48GiftWrap'), 50] },
+  { n: L('ঈদ কম্বো', 'Eid combo'), v: '', q: 1, p: 1500, choices: L('পাঞ্জাবি L, চেক লুঙ্গি', 'Panjabi L, Check lungi') },
+  { n: L('শিফন হিজাব', 'Chiffon hijab'), v: L('কালো', 'Black'), q: 2, p: 350 },
+];
+const e48Sub = () => E48_LINES().reduce((a, l) => a + (l.p + (l.addon ? l.addon[1] : 0)) * l.q, 0);
+const e48Line = (l) => `<div class="cl"><span class="th">${l.n.slice(0, 1)}</span><div class="b"><div class="nm">${l.n}</div><div class="vr">${l.v ? l.v + ' × ' + l.q : '× ' + l.q}</div>${l.choices ? `<div class="vr">${t('e48Choices', { x: l.choices })}</div>` : ''}${l.addon ? `<div class="vr">${t('e48AddOn', { a: l.addon[0] })} ${money(l.addon[1])}</div>` : ''}<div class="row"><span></span><span class="price">${money((l.p + (l.addon ? l.addon[1] : 0)) * l.q)}</span></div></div></div>`;
+const e48Sum = (o) => { o = o || {}; const sub = e48Sub(); const d = o.counter ? 0 : 70; return `<div class="sum"><div class="r"><span class="k">${t('subtotal')}</span><span>${money(sub)}</span></div><div class="r"><span class="k">${t('delivery')} · ${L(ZONE.inside.bn, ZONE.inside.en)}</span><span>${money(d)}</span></div><div class="r total"><span>${t('grand_total')}</span><span class="price">${money(sub + d)}</span></div><div class="r"><span class="k">${t('e48TaxIn')}</span><span>${money(166.67)}</span></div></div>`; };
+
+/* Checkout: one page, guest, cash on delivery (agreed). */
+function e48Checkout(o) {
+  o = o || {};
+  const filled = !o.errors;
+  const saved = o.signedIn ? `<div class="chips" style="margin:0"><span class="chip on">${I.pin}${L('বাসা', 'Home')}</span><span class="chip">${L('অফিস', 'Office')}</span></div>` : '';
+  const contact = `<div class="card2"><div class="sechead"><h2>${t('co_contact')}</h2>${o.signedIn ? '' : `<span class="lnk" onclick="go('account-signin')">${t('co_signin_lnk')}</span>`}</div>${field(t('name'), input(filled ? L('রুমানা আক্তার', 'Rumana Akter') : '', L('যেমন: রুমানা আক্তার', 'e.g. Rumana Akter')))}${field(t('phone_'), input(o.errors ? '0171' : '01711 223344', '01XXXXXXXXX', 'inputmode=tel', o.errors), o.errors ? null : t('co_phone_help'), o.errors ? t('err_phone') : null)}</div>`;
+  const where = o.nodelivery ? 'bandarban' : 'dhaka';
+  const address = `<div class="card2"><div class="sechead"><h2>${t('co_address')}</h2></div>${saved}<div class="grid2">${field(t('district'), select([['', '—'], ...LOC.districts.map(([k, b, e]) => [k, L(b, e)])], where))}${field(t('thana'), select([['', '—'], ...((o.nodelivery ? LOC.thanas.bandarban : LOC.thanas.dhaka)).map(([k, b, e]) => [k, L(b, e)])], o.errors ? '' : (o.nodelivery ? 'ruma' : 'mirpur'), o.errors), o.errors || o.nodelivery ? null : `${L(ZONE.inside.bn, ZONE.inside.en)} · ${money(70)}`, o.errors ? t('err_thana') : null)}</div>${o.nodelivery ? `<div class="banner bad">${I.warn}<span><b>${t('no_delivery', { a: L('বান্দরবান', 'Bandarban') })}</b><br>${t('no_delivery_hint')}</span></div>` : ''}${field(t('address'), input(filled ? L('বাসা ১২/বি, রোড ৩, মিরপুর ১০', 'House 12/B, Road 3, Mirpur 10') : '', ''))}${field(t('e48Note'), input('', t('e48NotePh')))}</div>`;
+  const pay = `<div class="card2"><div class="sechead"><h2>${t('co_payment')}</h2></div><div class="line" style="margin:0">${I.cash}<span><b>${t('pay_cod')}</b> · ${t('pay_cod_hint')}</span></div><div style="opacity:.55;font-size:13px;display:flex;gap:8px;align-items:center">${later('phase5')}<span>${t('e48OnlineLater')}</span></div></div>`;
+  const banners = o.adv
+    ? `<div class="banner warn">${I.warn}<span><b>${t('e48AdvT')}</b><br>${t('e48AdvP')}</span></div><div style="display:flex;gap:8px">${`<button class="btn ghost sm" onclick="go('checkout')">${t('e48Remove')}</button><button class="btn ghost sm">${I.phone} ${t('e48CallShop')}</button>`}</div>`
+    : o.short ? `<div class="banner bad">${I.warn}<span><b>${t('e48ShortT')}</b><br>${t('e48ShortP')}</span></div>`
+      : o.errors ? `<div class="banner bad">${I.warn}<span>${t('err_fix', { n: 2 })}</span></div>` : '';
+  const side = `<div class="side"><div class="card2"><h3>${t('co_summary')}</h3>${E48_LINES().map(e48Line).join('')}${o.short ? `<div class="cl off"><span class="th">D</span><div class="b"><div class="nm">${L('ডেনিম জ্যাকেট', 'Denim jacket')}</div><div class="vr">M × 1</div><div class="note">${t('line_out')}</div><span class="rm">${t('remove')}</span></div></div>` : ''}${o.adv ? `<div class="cl off"><span class="th">L</span><div class="b"><div class="nm">${L('লন থ্রি-পিস', 'Lawn three-piece')}</div><div class="vr">L × 1</div><div class="note">${t('pay_adv', { n: 200 })}</div><span class="rm">${t('remove')}</span></div></div>` : ''}${e48Sum()}<button class="btn primary lg block" ${o.adv || o.nodelivery || o.short ? 'disabled' : ''} onclick="go('confirm-cod')">${t('e48Place')}</button></div></div>`;
+  return `<div><h1 class="pt">${t('co_title')}</h1></div>${banners}<div class="two"><div style="display:flex;flex-direction:column;gap:16px">${contact}${address}${pay}</div>${side}</div>`;
+}
+const coHdr48 = () => ({ hdr: { back: 'cart', title: t('co_title') }, tight: true });
+def('checkout', { group: G48, label: 'Checkout · one page, cash on delivery', url: 'megh.lytro.app/checkout', render: () => shell(coHdr48(), e48Checkout()) });
+def('e48-checkout-signedin', { group: G48, label: '· signed in: a saved address picked', url: 'megh.lytro.app/checkout', render: () => inShell(coHdr48(), e48Checkout({ signedIn: true })) });
+def('checkout-errors', { group: G48, label: '· field errors', url: 'megh.lytro.app/checkout', render: () => shell(coHdr48(), e48Checkout({ errors: true })) });
+def('checkout-nodelivery', { group: G48, label: '· no delivery to Bandarban (DLV-06)', url: 'megh.lytro.app/checkout', render: () => shell(coHdr48(), e48Checkout({ nodelivery: true })) });
+def('e48-checkout-advance', { group: G48, label: '· a product needing an advance waits for Phase 5', url: 'megh.lytro.app/checkout', render: () => shell(coHdr48(), e48Checkout({ adv: true })) });
+def('e48-checkout-short', { group: G48, label: '· an item sold out as it was placed', url: 'megh.lytro.app/checkout', render: () => shell(coHdr48(), e48Checkout({ short: true })) });
+
+/* Placed: the shop calls to confirm -- no SMS promised. */
+const e48Placed = (o) => { o = o || {}; const total = e48Sub() + 70; return `<div class="bare" style="position:static;padding:32px 16px;min-height:100%"><div class="box"><span class="logo" style="background:var(--success-soft);color:var(--success)">${I.check}</span><h1>${o.landing ? t('e48LandingThanks') : t('cf_h')}</h1><p>${t('cf_p', { o: '#261031-0047', ph: '01711 223344' })}</p>
+  <div class="card2" style="width:100%;text-align:left;flex-direction:row;justify-content:space-between;align-items:center"><span><span class="sub">${t('e48TrackId')}</span><br><b style="font-family:ui-monospace,Menlo,monospace;letter-spacing:.08em">K7F2M9QX</b></span><button class="btn ghost sm">${I.copy}</button></div>
+  <button class="btn primary lg block" onclick="go('e48-tracking-new')">${t('cf_track')}</button>
+  <div class="card2" style="width:100%;text-align:left"><h3>${t('cf_next')}</h3><div class="tl"><div class="s done"><div class="t">${t('tr_placed')}</div></div><div class="s todo"><div class="t">${t('cf_n1')}</div></div><div class="s todo"><div class="t">${t('cf_n2')}</div></div><div class="s todo"><div class="t">${t('cf_n3', { t: total.toLocaleString('en-US') })}</div></div></div></div>
+  ${o.landing ? '' : `<button class="btn ghost block" onclick="go('e48-signup')">${I.user} ${t('e48MakeAcct')}</button>`}</div></div>`; };
+def('confirm-cod', { group: G48, label: 'Order placed · the shop calls to confirm (no SMS)', url: 'megh.lytro.app/order/K7F2M9QX', render: () => shell({ hdr: { minimal: true }, tight: true, nofoot: true }, e48Placed()) });
+
+/* Tracking: Placed, Confirmed, Shipped with the courier line, Delivered (ORD-17). */
+function e48Track(o) {
+  o = o || {};
+  const stage = o.stage || 'shipped';
+  const order = ['placed', 'confirmed', 'shipped', 'delivered'];
+  const at = { placed: '31 Oct, 11:42', confirmed: '31 Oct, 12:10', shipped: '31 Oct, 18:12', delivered: '' };
+  const steps = o.cancelled
+    ? `<div class="s done"><div class="t">${t('tr_placed')}</div><div class="d">${at.placed}</div></div><div class="s now"><div class="t" style="color:var(--danger)">${t('e48Cancelled')}</div><div class="d">31 Oct, 12:05</div></div>`
+    : order.map((k, i) => { const idx = order.indexOf(stage); const c = i < idx ? 'done' : i === idx ? (stage === 'placed' ? 'now' : 'done') : 'todo'; return `<div class="s ${c}"><div class="t">${t('tr_' + k)}</div>${c !== 'todo' ? `<div class="d">${k === 'placed' && stage === 'placed' ? t('e48WaitCall') : at[k]}</div>` : ''}</div>`; }).join('');
+  const chip = o.cancelled ? `<span class="st out">${t('e48Cancelled')}</span>` : `<span class="st ok plain">${t('tr_' + stage)}</span>`;
+  const courier = stage === 'shipped' && !o.cancelled ? `<div class="line">${I.truck}<span>${t('tr_courier', { c: 'Steadfast', code: 'SF-2610-4471' })} · <span class="lnk" style="color:var(--accent-text)">${t('e48OpenLink')}</span></span></div>` : '';
+  return `<div><h1 class="pt">${t('tr_title')}</h1></div>
+  <div class="sbox">${I.search}<input value="K7F2M9QX" placeholder="${t('tr_id')}" style="font-family:ui-monospace,Menlo,monospace;letter-spacing:.08em"><button class="btn sm dark">${t('tr_find')}</button></div>
+  ${o.cancelled ? `<div class="banner bad">${I.warn}<span>${t('e48CancelledP')}</span></div>` : ''}
+  <div class="two"><div class="card2"><div class="sechead"><h3>#261031-0047</h3>${chip}</div><div class="tl">${steps}</div>${courier}</div>
+  <div class="side card2"><h3>${t('tr_items')}</h3>${E48_LINES().map(e48Line).join('')}${e48Sum()}<button class="btn ghost block" onclick="go('account-signin')">${I.user}${t('tr_phone')}</button></div></div>`;
+}
+const trHdr = () => ({ hdr: { back: 'home', title: t('tr_title') } });
+def('tracking', { group: G48, label: 'Tracking · shipped, the courier line', url: 'megh.lytro.app/track/K7F2M9QX', render: () => shell(trHdr(), e48Track()) });
+def('e48-tracking-new', { group: G48, label: '· just placed: waiting for the call', url: 'megh.lytro.app/track/K7F2M9QX', render: () => shell(trHdr(), e48Track({ stage: 'placed' })) });
+def('e48-tracking-confirmed', { group: G48, label: '· confirmed', url: 'megh.lytro.app/track/K7F2M9QX', render: () => shell(trHdr(), e48Track({ stage: 'confirmed' })) });
+def('e48-tracking-cancelled', { group: G48, label: '· cancelled by the shop', url: 'megh.lytro.app/track/K7F2M9QX', render: () => shell(trHdr(), e48Track({ cancelled: true })) });
+
+/* Sign in with phone and password; a code once at sign-up (CUS-03, agreed in 4.4). */
+const acWrap = (inner) => `<div style="max-width:440px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:16px">${inner}</div>`;
+const e48Signin = (o) => { o = o || {}; return acWrap(`<div><h1 class="pt">${t('ac_signin')}</h1><div class="sub">${t('ac_hint')}</div></div>${o.locked ? `<div class="banner bad">${I.lock}<span>${t('e48Locked')}</span></div>` : o.wrong ? `<div class="banner bad">${I.warn}<span>${t('e48WrongPw')}</span></div>` : ''}<div class="card2">${field(t('phone_'), input('01711 223344', '01XXXXXXXXX', 'inputmode=tel'))}${field(t('e48Password'), input(o.wrong || o.locked ? '••••••' : '', '', 'type=password', o.wrong))}<button class="btn primary lg block" ${o.locked ? 'disabled' : ''} onclick="go('account-orders')">${t('ac_signin')}</button><span class="lnk" style="text-align:center;color:var(--accent-text);cursor:pointer" onclick="go('e48-forgot')">${t('e48Forgot')}</span></div><button class="btn ghost block" onclick="go('e48-signup')">${t('e48NoAcct')}</button>`); };
+const siHdr = () => ({ hdr: { back: 'home', title: t('ac_signin') }, tight: true });
+def('account-signin', { group: G48, label: 'Sign in · phone and password', url: 'megh.lytro.app/sign-in', render: () => shell(siHdr(), e48Signin()) });
+def('e48-signin-wrong', { group: G48, label: '· a wrong password', url: 'megh.lytro.app/sign-in', render: () => shell(siHdr(), e48Signin({ wrong: true })) });
+def('e48-signin-locked', { group: G48, label: '· five wrong tries: locked for 15 minutes', url: 'megh.lytro.app/sign-in', render: () => shell(siHdr(), e48Signin({ locked: true })) });
+def('e48-forgot', { base: 'account-signin', group: G48, label: '· forgot the password: ask the shop (sheet)', url: 'megh.lytro.app/sign-in', render: () => shell(siHdr(), e48Signin(), sheet(t('e48ForgotT'), `<p class="sub">${t('e48ForgotP')}</p>`, `<button class="btn ghost">${I.phone} ${t('e48CallShop')}</button><button class="btn primary">${I.wa} WhatsApp</button>`)) });
+const suHdr = () => ({ hdr: { back: 'account-signin', title: t('e48SignUp') }, tight: true });
+def('e48-signup', { group: G48, label: 'Sign up · the phone, a code sent once', url: 'megh.lytro.app/sign-up', render: () => shell(suHdr(), acWrap(`<div><h1 class="pt">${t('e48SignupT')}</h1><div class="sub">${t('e48SignupP')}</div></div><div class="card2">${field(t('phone_'), input('01711 223344', '01XXXXXXXXX', 'inputmode=tel'))}<button class="btn primary lg block" onclick="go('account-otp')">${t('e48SendCode')}</button></div><button class="btn ghost block" onclick="go('account-signin')">${t('e48HaveAcct')}</button>`)) });
+def('account-otp', { group: G48, label: '· the code', url: 'megh.lytro.app/sign-up', render: () => shell(suHdr(), acWrap(`<div><h1 class="pt">${t('ac_code')}</h1><div class="sub">${t('e48CodeSent', { ph: '01711 223344' })}</div></div><div class="card2">${field(t('ac_code'), `<div class="otp" role="group" aria-label="${t('ac_code')}"><span>4</span><span>8</span><span>1</span><span class="on"></span><span></span><span></span></div>`, t('ac_otp_help'))}<button class="btn primary lg block" onclick="go('e48-signup-details')">${L('পরের ধাপ', 'Next')}</button></div>`)) });
+def('e48-signup-details', { group: G48, label: '· the name and a password', url: 'megh.lytro.app/sign-up', render: () => shell(suHdr(), acWrap(`<div><h1 class="pt">${t('e48Details')}</h1><div class="sub">01711 223344</div></div><div class="card2">${field(t('name'), input(L('রুমানা আক্তার', 'Rumana Akter'), ''))}${field(t('e48Password'), input('', '', 'type=password'), t('e48PasswordHelp'))}<button class="btn primary lg block" onclick="go('account-orders')">${t('e48Create')}</button></div>`)) });
+
+/* My account: every order with this phone, saved addresses, the profile (CUS-05, CUS-06, ORD-18). */
+const acTabs = (on) => `<div class="chips">${[['ac_orders', 'account-orders'], ['ac_addresses', 'account-addresses'], ['e48Profile', 'e48-profile']].map(([k, g]) => `<span class="chip ${k === on ? 'on' : ''}" onclick="go('${g}')">${t(k)}</span>`).join('')}</div>`;
+const acHead = () => `<div><h1 class="pt">${t('ac_hello', { n: L('রুমানা', 'Rumana') })}</h1><div class="sub">01711 223344 · <a href="#" onclick="go('home');return false">${t('ac_signout')}</a></div></div>`;
+const acHdr = () => ({ hdr: { back: 'home', title: t('account') } });
+def('account-orders', { group: G48, label: 'My account · my orders', url: 'megh.lytro.app/account', render: () => inShell(acHdr(), `${acHead()}${acTabs('ac_orders')}<p class="sub" style="margin:0">${t('e48MyOrdersH')}</p>
+  <div class="card2" style="padding:0">${[['261031-0047', '31 Oct 2026', 'tr_shipped', e48Sub() + 70, 'low'], ['261012-0008', '12 Oct 2026', 'tr_delivered', 1320, 'in'], ['260914-0003', '14 Sep 2026', 'tr_delivered', 450, 'in']].map(([no, d, s, tot, c]) => `<div class="cl" style="padding:14px 16px;cursor:pointer" onclick="go('tracking')"><div class="b"><div class="nm" style="font-family:ui-monospace,Menlo,monospace;font-size:14px">#${no}</div><div class="vr">${d}</div></div><div style="text-align:right;display:flex;flex-direction:column;gap:4px;align-items:flex-end">${stChip(c).replace(c === 'low' ? t('low') : t('in_stock'), t(s))}<span class="price">${money(tot)}</span></div></div>`).join('')}</div>`) });
+const addrCards = () => `<div style="display:flex;flex-direction:column;gap:10px">${[[L('বাসা', 'Home'), L('বাসা ১২/বি, রোড ৩, মিরপুর ১০ · মিরপুর, ঢাকা', 'House 12/B, Road 3, Mirpur 10 · Mirpur, Dhaka'), true], [L('অফিস', 'Office'), L('লেভেল ৫, কাওরান বাজার · তেজগাঁও, ঢাকা', 'Level 5, Kawran Bazar · Tejgaon, Dhaka'), false]].map(([n, a, d]) => `<div class="card2" style="flex-direction:row;align-items:flex-start;gap:12px">${I.pin}<div style="flex:1"><b>${n}</b> ${d ? `<span class="st info plain">${t('ac_default')}</span>` : ''}<div class="sub">${a}</div></div><button class="btn quiet sm">${L('এডিট', 'Edit')}</button></div>`).join('')}<button class="btn ghost block" onclick="go('e48-address-new')">${I.plus} ${t('e48AddAddr')} · ${t('e48AddrMax')}</button></div>`;
+def('account-addresses', { group: G48, label: '· saved addresses', url: 'megh.lytro.app/account/addresses', render: () => inShell(acHdr(), `${acHead()}${acTabs('ac_addresses')}${addrCards()}`) });
+def('e48-address-new', { base: 'account-addresses', group: G48, label: '· add an address (sheet)', url: 'megh.lytro.app/account/addresses', render: () => inShell(acHdr(), `${acHead()}${acTabs('ac_addresses')}${addrCards()}`, sheet(t('e48AddAddr'), `${field(t('e48Label'), input('', t('e48LabelPh')))}<div class="grid2">${field(t('district'), select([['', '—'], ...LOC.districts.map(([k, b, e]) => [k, L(b, e)])], 'dhaka'))}${field(t('thana'), select([['', '—'], ...LOC.thanas.dhaka.map(([k, b, e]) => [k, L(b, e)])], ''))}</div>${field(t('address'), input('', ''))}<label class="radio"><span class="dot"></span><span class="b"><span class="l1">${t('e48MakeDefault')}</span></span></label>`, `<button class="btn primary">${L('সেভ করুন', 'Save')}</button>`)) });
+def('e48-profile', { group: G48, label: '· profile', url: 'megh.lytro.app/account/profile', render: () => inShell(acHdr(), `${acHead()}${acTabs('e48Profile')}<div class="card2">${field(t('name'), input(L('রুমানা আক্তার', 'Rumana Akter'), ''))}${field(t('phone_'), input('01711 223344', '', 'disabled'), t('e48PhoneFixed'))}<button class="btn primary">${L('সেভ করুন', 'Save')}</button></div><div class="card2"><h3>${t('e48ChangePw')}</h3>${field(L('এখনকার পাসওয়ার্ড', 'Current password'), input('', '', 'type=password'))}${field(L('নতুন পাসওয়ার্ড', 'New password'), input('', '', 'type=password'), t('e48PasswordHelp'))}<button class="btn ghost">${t('e48ChangePw')}</button></div>`) });
+
+/* The combo: a size for each panjabi, what comes with it, the saving (CMB-09). No add-ons on a combo. */
+def('combo', { group: G48, label: "Combo pack · what's inside, a size for each unit", url: 'megh.lytro.app/p/eid-combo', render: () => { const p = P[9]; return shell(pHdr(p), `<div class="pdp">${gallery(p)}<div class="buy">
+    <div class="top"><div class="eyebrow">${catName('panjabi')}</div><h1 class="pt">${pName(p)}</h1><div class="pricerow"><span class="price">${money(p.price)}</span><span class="unit" style="text-decoration:line-through">${money(1670)}</span><span class="st ok plain">${t('save', { n: 170 })}</span>${stChip('in')}</div></div>
+    <div class="opt"><div class="lb"><span>${t('inside')}</span></div><div class="combo">
+      <div class="part"><span class="th"></span><div class="b">${pName(P[0])} × 1<div class="l2">${t('e48PickEach')}</div><div class="vals" style="margin-top:6px">${['S', 'M', 'L', 'XL'].map((s) => `<span class="vb ${s === 'L' ? 'on' : ''}">${s}</span>`).join('')}<span class="vb" style="opacity:.4;text-decoration:line-through">XXL</span></div></div></div>
+      <div class="part"><span class="th"></span><div class="b">${pName(P[6])} × 1<div class="l2">${t('e48Comes')}</div></div></div></div></div>
+    <div class="opt"><div class="lb"><span>${t('qty')}</span></div>${qty(1)}</div>
+    <div class="line">${I.truck}<span><b>${t('deliv_est')}</b>: ${t('deliv_range')}</span></div>
+    <div class="dbtns">${btn2({})}</div></div></div>`, buybar(p)); } });
+
+/* A product's add-ons (MNU-01, MNU-02): their price adds to the line. */
+def('e48-addons', { group: G48, label: 'Product · an add-on: gift wrap', url: 'megh.lytro.app/p/cotton-panjabi', render: () => { const p = P[0]; return shell(pHdr(p), productPage(p).replace('<div class="dbtns">', `<div class="opt"><div class="lb"><span>${t('e48Addons')} · ${t('e48GiftWrap')}</span><span class="sub" style="font-size:12px">${t('e48Optional1')}</span></div><label class="radio on" style="padding:10px 12px;border:1px solid var(--line);border-radius:10px"><span class="dot"></span><span class="b"><span class="l1">${t('e48GiftWrap')}</span></span><span class="price" style="font-size:14px">+${money(50)}</span></label></div><div class="dbtns">`), buybar(p, { price: 1300 })); } });
+
+/* The cart, with a combo's choices, an add-on and the tax inside the total (TAX-03). */
+def('e48-cart', { base: 'product', group: G48, label: 'Cart · a combo, an add-on, the tax line', url: 'megh.lytro.app/cart', render: () => shell(pHdr(P[0]), productPage(P[0]), sheet(`${t('cart_title')} · ${t('cart_n', { n: 4 })}`, `<div class="lines">${E48_LINES().map(e48Line).join('')}</div>${e48Sum()}`, `<button class="btn ghost" onclick="go('home')">${t('continue_')}</button><button class="btn primary" onclick="go('checkout')">${t('checkout')}</button>`, { drawer: true, close: 'product' })) });
+
+/* The landing page's form takes the order now (LND-07 to LND-12). */
+def('landing', { group: G48, label: 'Landing page · the form takes the order', url: 'megh.lytro.app/l/cotton-panjabi', render: () => shell({ hdr: { minimal: true }, landing: true }, landingPage({ name: L('রুমানা আক্তার', 'Rumana Akter'), phone: '01711 223344', district: 'dhaka', thana: 'mirpur' }).replace(/<button class="btn primary lg block"[^>]*>/, `<button class="btn primary lg block" onclick="go('e48-landing-placed')">`), landingBar(P[0])) });
+def('e48-landing-placed', { group: G48, label: '· placed from the landing page', url: 'megh.lytro.app/l/cotton-panjabi', render: () => shell({ hdr: { minimal: true }, tight: true, nofoot: true }, e48Placed({ landing: true })) });
+def('e48-header', { group: G48, label: 'Header · the account icon (signed out)', url: 'megh.lytro.app', render: () => shell({}, homePage()) });
+
 /* ---------- toolbar ---------- */
 (function init() {
   const sel = document.getElementById('selScreen'); const groups = {};

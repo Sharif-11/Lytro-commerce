@@ -13,6 +13,7 @@ import {
   type NewOrderHistory,
   type NewOrderPayment,
   type OrderLinePatch,
+  type OrderHomeCounts,
   type OrderListFilter,
   type OrderPatch,
   type StockVariantRow,
@@ -251,6 +252,18 @@ export class DrizzleOrderStore implements OrderStore {
     page: { offset: number; limit: number },
   ): Promise<{ rows: OrderSummaryRow[]; total: number }> {
     return this.orders.listOrders(tx, tenantId, filter, page);
+  }
+
+  recentCouriers(tx: Transaction, tenantId: string, limit: number): Promise<string[]> {
+    return this.orders.recentCouriers(tx, tenantId, limit);
+  }
+
+  homeCounts(
+    tx: Transaction,
+    tenantId: string,
+    at: { now: Date; todayStart: Date; yesterdayStart: Date },
+  ): Promise<OrderHomeCounts> {
+    return this.orders.homeCounts(tx, tenantId, at);
   }
 
   listForExport(

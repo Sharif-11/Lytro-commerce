@@ -134,6 +134,7 @@ const orderViewSchema = z.object({
   confirmedBy: personSchema,
   fulfilmentType: z.nativeEnum(FulfilmentType),
   customerId: z.string().nullable(),
+  customerOrders: z.number().nullable(),
   customerErased: z.boolean(),
   customerName: z.string().nullable(),
   customerPhone: z.string().nullable(),
@@ -212,6 +213,9 @@ const orderViewSchema = z.object({
 });
 export class OrderViewDto extends createZodDto(orderViewSchema) {}
 
+// ORD-09 (Slice 4.8a): the couriers the shop has shipped with, the most recent first.
+export class RecentCouriersDto extends createZodDto(z.object({ couriers: z.array(z.string()) })) {}
+
 const orderPageSchema = z.object({
   orders: z.array(
     z.object({
@@ -232,6 +236,14 @@ const orderPageSchema = z.object({
       cancelReason: z.nativeEnum(CancelReason).nullable(),
       holdUntil: z.coerce.date().nullable(),
       createdAt: z.coerce.date(),
+      // Slice 4.8a: where it goes, and the calls that went unanswered.
+      area: z
+        .object({
+          thana: z.object({ id: z.number(), nameEn: z.string(), nameBn: z.string() }),
+          zilla: z.object({ id: z.number(), nameEn: z.string(), nameBn: z.string() }),
+        })
+        .nullable(),
+      unansweredCalls: z.number(),
     }),
   ),
   page: z.number(),

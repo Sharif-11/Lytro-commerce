@@ -82,6 +82,21 @@ export class LocationService {
     return (await this.index()).thanas.get(id) ?? null;
   }
 
+  /** Slice 4.8a: a thana and the zilla it is in, both named in each language -- an order row's "Mirpur, Dhaka". */
+  async areaOf(thanaId: number): Promise<{
+    thana: { id: number; nameEn: string; nameBn: string };
+    zilla: { id: number; nameEn: string; nameBn: string };
+  } | null> {
+    const index = await this.index();
+    const thana = index.thanas.get(thanaId);
+    const zilla = thana ? index.zillas.get(thana.zillaId) : undefined;
+    if (!thana || !zilla) return null;
+    return {
+      thana: { id: thana.id, nameEn: thana.nameEn, nameBn: thana.nameBn },
+      zilla: { id: zilla.id, nameEn: zilla.nameEn, nameBn: zilla.nameBn },
+    };
+  }
+
   /** LND-16: the English name of the zilla a thana is in. */
   async zillaNameOf(thanaId: number): Promise<string | null> {
     const index = await this.index();

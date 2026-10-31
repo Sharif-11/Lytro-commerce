@@ -1,6 +1,6 @@
 import type { ComboPartStockRow } from '@lytronix/db';
 import { StockState, StockTracking } from '@lytronix/validators';
-import { milli, packsOf, variantState } from './stock-state';
+import { milli, packsOf, quantityOf, variantState } from './stock-state';
 
 // CMB-02, CMB-06 to CMB-08 (Phase 4 Slice 4.5): what a combo's parts make of it -- how many can be made, what keeps it
 // out of stock, the saving it shows and its weight. Pure, so the ledger's state and the dashboard's figures agree.
@@ -17,6 +17,8 @@ export interface ComboFigures {
   /** How many whole combos the parts make now; null when no part is counted (made to order). */
   canMake: number | null;
   issues: ComboIssue[];
+  /** CMB-02 (Slice 4.8c): the part that sets "can make" and the units of it on sale; null while nothing limits it. */
+  limitedBy: { position: number; productName: string; available: string } | null;
   /** CMB-06: what the parts cost bought apart, each choice part at its lowest-priced variant. */
   partsValue: string;
   /** CMB-07: the parts' weight, each choice part at its heaviest variant; null when any part has none. */
@@ -47,6 +49,7 @@ export function comboFigures(rows: ComboPartStockRow[]): Map<string, ComboFigure
   const figures = new Map<string, ComboFigures>();
   for (const [comboId, parts] of byCombo) {
     let canMake: number | null = null;
+    let limitedBy: ComboFigures['limitedBy'] = null;
     const issues: ComboIssue[] = [];
     let value = 0;
     let weight: number | null = 0;
@@ -67,6 +70,13 @@ export function comboFigures(rows: ComboPartStockRow[]): Map<string, ComboFigure
       if (!units.includes(null)) {
         const total = (units as number[]).reduce((sum, each) => sum + each, 0);
         const made = Math.floor((total * 1000) / per);
+        if (canMake === null || made < canMake) {
+          limitedBy = {
+            position,
+            productName: first.productName,
+            available: quantityOf(total * 1000),
+          };
+        }
         canMake = canMake === null ? made : Math.min(canMake, made);
       }
       const priced = live.length > 0 ? live : variants;
@@ -80,6 +90,7 @@ export function comboFigures(rows: ComboPartStockRow[]): Map<string, ComboFigure
     figures.set(comboId, {
       canMake,
       issues,
+      limitedBy: issues.length > 0 ? null : limitedBy,
       partsValue: (Math.round(value) / 1000).toFixed(2),
       weightKg: weight === null ? null : (Math.round(weight) / 1000).toFixed(3),
     });

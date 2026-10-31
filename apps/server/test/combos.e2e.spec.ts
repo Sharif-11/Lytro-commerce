@@ -237,12 +237,20 @@ describeIfDatabase('a combo made of its parts (CMB-01, CMB-02, CMB-08, CMB-10)',
       [2, '1.000', [shirt.m, shirt.l]],
     ]);
     // Two Toners a combo out of four on the shelf make two, whatever the shirts allow: low against 5.
-    expect((await stockOf(shop, pack.id)).combo).toEqual({ canMake: 2, issues: [] });
+    expect((await stockOf(shop, pack.id)).combo).toEqual({
+      canMake: 2,
+      issues: [],
+      limitedBy: { position: 1, productName: 'Toner', available: '4.000' },
+    });
     expect(await stored(pack.id)).toEqual(['low', 'low']);
     expect((await stockOf(shop, toner.id)).combo).toBeNull();
     // Three Toners held for an order leave one: no combo can be made, and the catalogue shows it out.
     await placed(shop, [{ variantId: toner.variantId, quantity: 3 }]);
-    expect((await stockOf(shop, pack.id)).combo).toEqual({ canMake: 0, issues: [] });
+    expect((await stockOf(shop, pack.id)).combo).toEqual({
+      canMake: 0,
+      issues: [],
+      limitedBy: { position: 1, productName: 'Toner', available: '1.000' },
+    });
     expect(await stored(pack.id)).toEqual(['out', 'out']);
   });
 
@@ -300,12 +308,16 @@ describeIfDatabase('a combo made of its parts (CMB-01, CMB-02, CMB-08, CMB-10)',
   it('goes out when a part goes off sale, keeps that part from being deleted for good, and duplicates with its parts', async () => {
     const shop = await openShop(port, texts, 'cmb');
     const toner = await product(shop, 'Toner', 400, 4);
-    const serum = await product(shop, 'Serum', 600, 6);
+    const serum = await product(shop, 'Serum', 600, 3);
     const pack = await combo(shop, 'Skincare combo', 900, [
       { quantity: 1, variantIds: [toner.variantId] },
       { quantity: 1, variantIds: [serum.variantId] },
     ]);
-    expect((await stockOf(shop, pack.id)).combo).toEqual({ canMake: 4, issues: [] });
+    expect((await stockOf(shop, pack.id)).combo).toEqual({
+      canMake: 3,
+      issues: [],
+      limitedBy: { position: 2, productName: 'Serum', available: '3.000' },
+    });
 
     expect((await shop.delete(`/products/${serum.id}`)).status).toBe(200);
     expect(await stockOf(shop, pack.id)).toMatchObject({
@@ -313,6 +325,7 @@ describeIfDatabase('a combo made of its parts (CMB-01, CMB-02, CMB-08, CMB-10)',
       combo: {
         canMake: 0,
         issues: [{ position: 2, productName: 'Serum', reason: 'part_unavailable' }],
+        limitedBy: null,
       },
     });
     expect(await stored(pack.id)).toEqual(['out', 'out']);
@@ -323,7 +336,11 @@ describeIfDatabase('a combo made of its parts (CMB-01, CMB-02, CMB-08, CMB-10)',
     });
 
     expect((await shop.post(`/products/${serum.id}/restore`, {})).status).toBe(201);
-    expect((await stockOf(shop, pack.id)).combo).toEqual({ canMake: 4, issues: [] });
+    expect((await stockOf(shop, pack.id)).combo).toEqual({
+      canMake: 3,
+      issues: [],
+      limitedBy: { position: 2, productName: 'Serum', available: '3.000' },
+    });
     expect(await stored(pack.id)).toEqual(['low', 'low']);
 
     const copy = await shop.post(`/products/${pack.id}/duplicate`, {});
