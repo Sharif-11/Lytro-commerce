@@ -1,6 +1,9 @@
 # Tenant dashboard: the full design
 
-Status: v3.19, 2026-10-31 (the orders as Phase 4 built them, Slice 4.8a, prototype Part 29: the list with the
+Status: v3.20, 2026-10-31 (customers, search, Home and Usage as Phase 4 built them, Slice 4.8b, prototype Part 30:
+Home's order jobs and Today tiles, New order first in the + menu, the customer's page with their storefront account, a
+new password generated to copy and the privacy delete, one search over orders, customers and products, the orders
+handled on Usage; v3.19 of 2026-10-31: the orders as Phase 4 built them, Slice 4.8a, prototype Part 29: the list with the
 day's work first, the order with one next step and the call log, shipping and delivering by hand, returns with a combo
 whole, the counter, payments recorded and voided, thermal labels 2x3 and 3x3 inches, New order on one page; the
 later-phase pieces greyed; v3.18 of 2026-10-30: a shop's own domain, Slice 13, prototype Part 28: Settings > Storefront's "Your own
@@ -1448,6 +1451,40 @@ drawn greyed with "Later" so the design stays whole; **the built screens hide th
 - **Edit order** (`o29-edit`): the same page with **Save changes**; an item already on the order keeps the price it
   was ordered at unless changed (ORD-11), until the order ships.
 
+### 7.32 Customers, search, and the orders on Home and Usage (`/customers`, `/search`)
+
+*Slice 4.8b* (Part 30), from 4.8b's read (2026-10-31). Customers and search join the current navigation; the top
+bar's search finds everything.
+
+- **Home** (`p30-home`): **To do today** gains the orders to confirm (opening the list), the calls due now (on hold
+  past their time) and the confirmed orders to ship, above the stock and payment jobs. A **Today** row of tiles sits
+  above Right now: orders placed today with yesterday's beside it, the orders to ship, and **this month's sales** --
+  the Sales page's own figure (delivered orders by the day they were placed, STA-01), so the two never disagree.
+  Nothing to do shows the all-clear with the tiles still there (`p30-home-clear`). The **+** menu starts with **New
+  order** (`p30-plus`).
+- **Customers** (`customers`): who ordered last first; each row the name, phone, orders, spend and last order, and
+  **Has an account** for a storefront account (CUS-02). Search by name or any digits of the phone, the last four
+  included (`c30-customers-search`). None yet: they appear with the first order (`c30-customers-empty`). Desktop shows
+  the list beside the open customer.
+- **The customer** (`customer`): name and phone with **Call** and **Copy**; their orders, what they spent on delivered
+  orders and their first order; the last address (New order's known-phone fill uses it); the **storefront account**
+  -- since when, signing in with phone and password -- or "No account; orders as a guest" (`c30-guest`); their orders,
+  newest first; and, folded at the bottom, **Delete at a privacy request**.
+- **A new password** (`c30-password`, CUS-14, agreed): **Set new password** fills in a generated one (the shop may type
+  its own, 8 to 20 characters; **Make another**), **Save and copy** puts it on the clipboard to send by WhatsApp or
+  SMS, and every sign-in of the shopper's ends (`c30-password-set`). Needs `customers:manage`.
+- **The privacy delete** (`c30-delete`, CUS-09, agreed): a dialog naming what goes -- name, phone, addresses, saved
+  addresses and the storefront account, for good -- and what stays: the orders, with items and totals, without their
+  details; **Cancel** or **Delete** (`c30-deleted`). While an order of theirs is open it is refused, naming the orders
+  (`c30-delete-open`). Their orders then show "Details deleted at the customer's request" with the thana, items and
+  totals (`c30-order-erased`).
+- **Search** (`search`, agreed): one search in the top bar finds orders (by number, phone or name), customers and
+  products, grouped in that order, each group with **See all** and its count; a full order number shows that order
+  (`s30-number`); nothing found suggests what to type (`s30-none`). Each list keeps its own search too.
+- **Usage** (`usage`): the orders handled this period and today, each against its limit, or a trial's orders in all
+  (`u30-trial`, QTA-01, QTA-04, TRL-03); from 80% the row suggests the plan that raises it, with the banner
+  (`u30-near`).
+
 ## 8. Screens designed for later phases
 
 Kept in the prototype under "Later phases (design only)", exactly as designed on 2026-10-20, so the
@@ -1456,8 +1493,7 @@ architecture is whole when each phase arrives. Their endpoints do not exist yet.
 - **Orders, the order and New order** moved to §7.31 (Part 29, 2026-10-31) as Phase 4 built them. What stays here
   is **Book courier** (`order-book`, Phase 6: courier, area, COD, weight, note) and, on the order, the fraud chip
   (Phase 7) and reading a pasted message (Phase 7), drawn greyed in §7.31.
-- **Customers**: search by name or last digits, rows with orders and spend, the detail with the fraud level,
-  addresses, orders and the privacy delete (CUS-02, 06, 09).
+- **Customers** moved to §7.32 (Part 30, 2026-10-31); the customer's fraud level stays here (Phase 7).
 - **Payments** (Phase 5), the shop's incoming payments (its own payments to Lytro are Billing, §7.13): To verify
   first (PAY-14) with the mismatch line, Approve and Reject, proof image;
   listener health (VER-07); the verified list. **Payment methods**: one card per type with accounts, the one
@@ -1471,7 +1507,7 @@ architecture is whole when each phase arrives. Their endpoints do not exist yet.
   the slide editor with the focal point and both crops, the home page line (`storefront`, `sh-slide`).
 - **Shortfall, returns and profit** (Phase 4): units held for orders whose payment ran out (5a,
   `stock-shortfall`); taking shipped stock back, sellable or damaged (INV-17, `sh-return`); profit beside stock
-  value. **Search** for orders and customers (Phase 4, §4.4).
+  value. **Search** moved to §7.32.
 
 ---
 
@@ -1527,6 +1563,8 @@ brand identity.
 | `location { thana, zilla }` and `unansweredCalls` on each `GET /orders` row | orders | the list's "Mirpur, Dhaka" and "No answer ×2" (§7.31) | Slice 4.8a |
 | the customer's order count on `GET /orders/:id` | orders | the order's "4 orders" link to the customer (§7.31) | Slice 4.8a |
 | the shop's courier names used before | orders | the ship sheet's chips (§7.31) | Slice 4.8a |
+| `orders { toConfirm, callsDue, toShip, today, yesterday, monthSales }` on `GET /home` (`orders:read`) | orders | Home's order jobs and Today tiles (§7.32) | Slice 4.8b |
+| `hasAccount` on each `GET /customers` row | customers | the list's "Has an account" (§7.32) | Slice 4.8b |
 
 ---
 

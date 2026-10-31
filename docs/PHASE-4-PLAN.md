@@ -362,7 +362,11 @@ combos and statistics). If velocity suggests it, the rest can become Phase 4B wi
   asks how it went; later-phase pieces are greyed in the sketch and hidden in the build; New order is one page; the
   order shows one next step, the rest in its menu; labels print on a thermal printer, 2 × 3 or 3 × 3 inches, the
   payment log not printed (ORD-19 amended); selecting orders prints their labels, the only bulk action. Sketched as
-  prototype Part 29 and the design doc's §7.31 (v3.19).
+  prototype Part 29 and the design doc's §7.31 (v3.19). **Part b's read** (2026-10-31): Home's Today tiles are the orders
+  placed today, those to ship and this month's sales (the Sales page's figure), its queue the orders to confirm, calls
+  due and orders to ship; one search finds orders, customers and products, grouped; a shopper's new password is
+  generated for staff to copy and send; the privacy delete is a dialog naming what goes and what stays. Sketched as
+  Part 30 and §7.32 (v3.20).
 - **Sketch first** (`sketch-every-screen-before-building`): the status flow with the call log, Confirm, cancel
   reasons, Mark shipped and returns; the storefront's checkout for cash on delivery, the confirmation without an SMS
   promise, tracking with its Confirmed step; the Phase 5–7 parts of today's drawings shown as later.
