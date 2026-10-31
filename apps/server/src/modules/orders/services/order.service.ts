@@ -8,6 +8,7 @@ import type {
   Transaction,
 } from '@lytronix/db';
 import {
+  ActorType,
   AttributeDataType,
   AuditAction,
   bdMobileNumber,
@@ -20,13 +21,12 @@ import {
   OrderPaymentStatus,
   OrderSource,
   OrderStatus,
-  PaymentPolicy,
   ServerFieldProblemCode,
   SHIPPED_FULFILLMENT,
   StatusOverride,
   visibleOrderStatus,
   type CancelOrderInput,
-  type CancelReason,
+  CancelReason,
   type CreateOrderInput,
   type LogCallInput,
   type OrderListQuery,
@@ -137,7 +137,18 @@ export interface NewOrderSpec {
   audited: Record<string, unknown>;
   /** ORD-02: refused what a shopper may not order, rather than warned. */
   shopper: boolean;
+  /** PAY-01 (Phase 5 Slice 5.2): whether a shopper can pay an advance online; null for staff. */
+  onlinePayment: OnlinePayment | null;
 }
+
+/**
+ * Slice 5.2: a shopper's way to pay an advance -- ready (the shop takes online payments and the shopper said where to
+ * return), not sent (the shopper said nothing), or unavailable (the shop has no payment method shoppers can use).
+ */
+export type OnlinePayment = 'ready' | 'not_sent' | 'unavailable';
+
+// The server acting on its own: the minute pass cancelling an order whose advance never came (D5-4).
+const SYSTEM: ResolvedActor = { id: null, ip: null, type: ActorType.System };
 
 /** A new order as made, for its caller to word, or the reply its idempotency key already holds. */
 export type OrderMade =
@@ -290,6 +301,7 @@ export class OrderService {
         actor: who,
         audited: {},
         shopper: false,
+        onlinePayment: null,
       });
       if (made.replayed) return made;
       const order =
@@ -346,6 +358,10 @@ export class OrderService {
     const price = this.priceOf(spec.type, destination, planned, spec.discount, {
       byHand: spec.byHand,
     });
+    // PAY-01, LND-10, D5-9 (Phase 5 Slice 5.2): a shopper's order needing an advance waits on its payment, Unverified,
+    // until the payment is verified -- refused when the shopper has no way to pay it.
+    const awaitsPayment = spec.shopper && toPaisa(price.advanceDue) > 0n;
+    if (awaitsPayment) this.refuseUnpayable(spec.onlinePayment);
     const made = await this.insertOrder(tx, {
       tenantId,
       source: spec.source,
@@ -360,6 +376,7 @@ export class OrderService {
       confirmedAt: spec.confirmed ? now : null,
       confirmedBy: spec.confirmed ? spec.by : null,
       ...totalsOf(price),
+      ...(awaitsPayment ? { paymentStatus: OrderPaymentStatus.PendingVerification } : {}),
       deliveryChargeByHand: spec.byHand !== null,
       notes: spec.notes,
       shopperNote: spec.shopperNote,
@@ -384,7 +401,11 @@ export class OrderService {
         orderId: made.id,
         field: OrderHistoryField.Created,
         oldValue: null,
-        newValue: spec.confirmed ? OrderStatus.Confirmed : OrderStatus.Pending,
+        newValue: awaitsPayment
+          ? OrderStatus.Unverified
+          : spec.confirmed
+            ? OrderStatus.Confirmed
+            : OrderStatus.Pending,
         note: null,
         changedBy: spec.by,
       },
@@ -1070,6 +1091,45 @@ export class OrderService {
     if (this.shipped(order)) throw new ApiError('conflict', 'OrderHasShipped', {});
   }
 
+  /**
+   * D5-4 (Phase 5, agreed 2026-10-31): cancels, as the server, an order whose advance was not paid -- its payment window
+   * ran out with no transaction ID typed, or its payment was rejected -- with the reason "advance not paid", its stock
+   * let go and its payment failed, in the caller's transaction. An order already cancelled, shipped or no longer
+   * waiting on its payment is left as it is; false then.
+   */
+  async cancelUnpaidWithin(
+    tx: Transaction,
+    tenantId: string,
+    orderId: string,
+    now: Date,
+  ): Promise<boolean> {
+    const order = await this.find(tx, tenantId, orderId, true);
+    if (
+      order.statusOverride === StatusOverride.Cancelled ||
+      this.shipped(order) ||
+      order.paymentStatus !== OrderPaymentStatus.PendingVerification
+    ) {
+      return false;
+    }
+    await this.cancelWithin(tx, tenantId, order, CancelReason.AdvanceNotPaid, null, SYSTEM, now);
+    await this.store.updateOrder(tx, tenantId, order.id, {
+      paymentStatus: OrderPaymentStatus.PaymentFailed,
+    });
+    await this.activity.record(
+      tx,
+      tenantId,
+      SYSTEM,
+      AuditAction.OrderStatusChanged,
+      { type: 'order', id: order.id },
+      {
+        orderNumber: order.orderNumber,
+        to: StatusOverride.Cancelled,
+        reason: CancelReason.AdvanceNotPaid,
+      },
+    );
+    return true;
+  }
+
   /** ORD-10, ORD-52: lets the order's stock go and marks it cancelled with its reason, in the caller's transaction. */
   private async cancelWithin(
     tx: Transaction,
@@ -1436,6 +1496,20 @@ export class OrderService {
     };
   }
 
+  /**
+   * PAY-01, WAL-08, WAL-17 (Slice 5.2): a shopper's order needing an advance, refused when it can't be paid -- the shop
+   * has no payment method shoppers can use (none on with an active account, or its owner's phone not verified,
+   * TVR-01), or the shopper said nothing of how to pay.
+   */
+  private refuseUnpayable(onlinePayment: OnlinePayment | null): void {
+    if (onlinePayment === 'unavailable') {
+      throw new ApiError('conflict', 'NoPaymentMethod', { reason: 'no_payment_method' });
+    }
+    if (onlinePayment !== 'ready') {
+      throw new FieldsError([{ field: 'payment', problem: FieldProblemCode.Required }]);
+    }
+  }
+
   /** DLV-06, DLV-07: where the shop does not deliver, or a product may not go; staff are told and may go ahead. */
   private warningsOf(
     destination: Destination,
@@ -1465,10 +1539,10 @@ export class OrderService {
   }
 
   /**
-   * ORD-02, PRD-06, ATR-07, D4-2, DLV-06, DLV-07: what a shopper may not order, refused before anything is held, each
-   * naming its product: one not on sale, one needing an advance (until Phase 5's payments), and an address the shop or
-   * a product does not deliver to -- what staff are only warned of. Stock is checked as it is held, so a sold-out item
-   * is refused there (ATR-07).
+   * ORD-02, PRD-06, ATR-07, DLV-06, DLV-07: what a shopper may not order, refused before anything is held, each naming
+   * its product: one not on sale, and an address the shop or a product does not deliver to -- what staff are only
+   * warned of. Stock is checked as it is held, so a sold-out item is refused there (ATR-07). One needing an advance is
+   * paid online since Phase 5 (Slice 5.2), refused only when it can't be (`refuseUnpayable`).
    */
   private refuseForShopper(
     destination: Destination,
@@ -1485,15 +1559,6 @@ export class OrderService {
           'conflict',
           'ProductNotOnSale',
           { reason: 'product_unavailable', ...named },
-          undefined,
-          product,
-        );
-      }
-      if (variant.paymentPolicy !== PaymentPolicy.None) {
-        throw new ApiError(
-          'conflict',
-          'ProductNeedsAdvance',
-          { reason: 'advance_needed', ...named },
           undefined,
           product,
         );

@@ -522,7 +522,6 @@ export const MESSAGE_KEYS = [
   // RTE-06, RTE-08).
   'TooManyOrders',
   'ProductNotOnSale',
-  'ProductNeedsAdvance',
   'ShopDoesNotDeliverHere',
   'ProductNotDeliveredHere',
   'OrderTracked',
@@ -592,6 +591,14 @@ export const MESSAGE_KEYS = [
   'PaymentMethodSaved',
   'PaymentMethodNotFound',
   'PaymentAccountNotFound',
+  // Phase 5 Slice 5.2: an order paid online, and its payment page (PAY-01 to PAY-08, D5-4, D5-5).
+  'NoPaymentMethod',
+  'PaymentMethodNotOffered',
+  'ReturnAddressNotAllowed',
+  'PaymentNotFound',
+  'PaymentSessionClosed',
+  'PaymentPageRetrieved',
+  'PaymentSubmitted',
 ] as const;
 
 export type MessageKey = (typeof MESSAGE_KEYS)[number];

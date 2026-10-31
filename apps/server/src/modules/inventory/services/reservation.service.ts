@@ -80,7 +80,7 @@ export class ReservationService {
       ),
     );
     const expiresAt = request.awaitingPayment
-      ? new Date(now.getTime() + (await this.expiryMinutes()) * 60_000)
+      ? new Date(now.getTime() + (await this.holdMinutes()) * 60_000)
       : null;
     const planned: { row: NewReservation; productName: string }[] = [];
     for (const line of request.lines) {
@@ -268,8 +268,11 @@ export class ReservationService {
     return this.letGo(tx, tenantId, due);
   }
 
-  /** INV-16, D3-6: the operator's setting, else the default. */
-  private async expiryMinutes(): Promise<number> {
+  /**
+   * INV-16, D3-6: the operator's setting, else the default -- also a payment session's lifetime (PAY-03), so a session
+   * and the stock it pays for run out together.
+   */
+  async holdMinutes(): Promise<number> {
     const setting = await this.settings.current(PlatformSettingKey.ReservationExpiryMinutes);
     return typeof setting?.value === 'number' ? setting.value : DEFAULT_RESERVATION_MINUTES;
   }

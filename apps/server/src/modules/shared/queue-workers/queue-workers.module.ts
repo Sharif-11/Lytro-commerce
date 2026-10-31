@@ -12,6 +12,8 @@ import { SmsRetryWorker } from './services/sms-retry-worker';
 import { DataExportWorker } from './services/data-export-worker';
 import { InventoryExpiryTickWorker } from './services/inventory-expiry-tick-worker';
 import { ReservationExpiryTickWorker } from './services/reservation-expiry-tick-worker';
+import { PaymentSessionExpiryTickWorker } from './services/payment-session-expiry-tick-worker';
+import { PaymentSessionsModule } from '../../payment-sessions/payment-sessions.module';
 import { MediaDeleteWorker } from './services/media-delete-worker';
 import { MediaProcessVideoWorker } from './services/media-process-video-worker';
 import { MediaProcessWorker } from './services/media-process-worker';
@@ -32,6 +34,7 @@ import { UsageNoticeWorker } from './services/usage-notice-worker';
 // since BillingModule doesn't re-export it, even though it imports it for its own internal use.
 @Module({
   imports: [
+    PaymentSessionsModule,
     QueueModule,
     MessagingModule,
     BillingModule,
@@ -50,6 +53,7 @@ import { UsageNoticeWorker } from './services/usage-notice-worker';
     DataExportWorker,
     InventoryExpiryTickWorker,
     ReservationExpiryTickWorker,
+    PaymentSessionExpiryTickWorker,
     MediaProcessWorker,
     MediaProcessVideoWorker,
     MediaDeleteWorker,

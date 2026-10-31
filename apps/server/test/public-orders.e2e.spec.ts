@@ -363,7 +363,7 @@ describeIfDatabase('a shopper places an order (ORD-02, ORD-07, CCH-07, PRD-07)',
 describeIfDatabase(
   'what a shopper may not order is refused, naming it (PRD-06, ATR-07, D4-2, DLV-06, DLV-07)',
   () => {
-    it('refuses a product not on sale, one needing an advance, a bare product id and one sold out; nothing is made', async () => {
+    it("refuses a product not on sale, one needing an advance the shop can't take, a bare product id and one sold out; nothing is made", async () => {
       const shop = await openShop(port, texts, 'po');
       const own = await ownKey(shop);
       const who = await shopper(shop);
@@ -387,9 +387,9 @@ describeIfDatabase(
         ...who,
         items: [{ variantId: phone.variantId, quantity: 1 }],
       });
+      // Phase 5 Slice 5.2: an advance is paid online; this shop takes no payments yet (WAL-08).
       expect(advance.status).toBe(409);
-      expect(errorOf(advance)).toMatchObject({ details: { reason: 'advance_needed' } });
-      expect(errorOf(advance).message).toContain('Phone');
+      expect(errorOf(advance)).toMatchObject({ details: { reason: 'no_payment_method' } });
       const lamp = await product(shop, 'Lamp', 300, 1);
       const bare = await order(own, { ...who, items: [{ variantId: lamp.id, quantity: 1 }] });
       expect(bare.status).toBe(400);

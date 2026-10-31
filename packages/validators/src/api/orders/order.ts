@@ -42,6 +42,7 @@ import {
   quantityField,
 } from '../catalogue/catalogue-common';
 import { serialsField } from '../inventory/stock';
+import { checkoutPaymentSchema } from '../payment-methods/payment-sessions';
 
 type Ctx = z.RefinementCtx;
 
@@ -292,6 +293,8 @@ export const publicOrderSchema = z
     deliveryAddress: textField(ORDER_ADDRESS_MAX_LENGTH),
     shopperNote: textField(SHOPPER_NOTE_MAX_LENGTH).optional(),
     source: z.enum([OrderSource.Storefront, OrderSource.LandingPage]).optional(),
+    // PAY-01, LND-10 (Phase 5 Slice 5.2): how an order needing an advance is paid; refused unless it needs one.
+    payment: checkoutPaymentSchema.optional(),
     items: z
       .array(
         orderItemSchema

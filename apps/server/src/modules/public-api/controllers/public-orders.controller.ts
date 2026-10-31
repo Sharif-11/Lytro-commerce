@@ -5,6 +5,7 @@ import { z } from 'zod';
 import {
   AttributeDataType,
   OrderStatus,
+  PaymentSessionState,
   publicOrderSchema,
   StockUnit,
   type PublicOrderInput,
@@ -19,6 +20,7 @@ import { OrderTracking } from '../../orders/services/order-tracking';
 import type { TrackedOrderView } from '../../orders/types/orders';
 import type { PublicApiRequest } from '../guards/public-key.guard';
 import { OrderLimits } from '../services/order-limits';
+import { PaymentSessions } from '../../payment-sessions/services/payment-sessions';
 import { PublicOrderService } from '../services/public-order.service';
 import { API_CLOCK } from '../tokens';
 import { taxLineSchema } from '../../team/dto/orders.dto';
@@ -57,6 +59,12 @@ const totals = {
   codAmount: z.string(),
   taxes: z.array(taxLineSchema),
 };
+// PAY-01 (Slice 5.2): an order's open payment.
+const paymentLinkSchema = z.object({
+  paymentUrl: z.string(),
+  amount: z.string(),
+  expiresAt: z.coerce.date(),
+});
 class PublicOrderBodyDto extends createZodDto(publicOrderSchema) {}
 class PlacedOrderDto extends createZodDto(
   z.object({
@@ -67,6 +75,7 @@ class PlacedOrderDto extends createZodDto(
     items: z.array(itemSchema),
     ...totals,
     purchaseEventId: z.string(),
+    payment: paymentLinkSchema.nullable(),
   }),
 ) {}
 class TrackedOrderDto extends createZodDto(
@@ -90,6 +99,7 @@ class TrackedOrderDto extends createZodDto(
         trackingLink: z.string().nullable(),
       })
       .nullable(),
+    payment: paymentLinkSchema.extend({ state: z.nativeEnum(PaymentSessionState) }).nullable(),
   }),
 ) {}
 
@@ -105,13 +115,14 @@ export class PublicOrdersController {
     @Inject(OrderLimits) private readonly limits: OrderLimits,
     @Inject(ClientIp) private readonly clientIp: ClientIp,
     @Inject(API_CLOCK) private readonly clock: () => Date,
+    @Inject(PaymentSessions) private readonly sessions: PaymentSessions,
   ) {}
 
   @Post('orders')
   @ResponseMessage('OrderCreated')
   @ApiOperation({
     summary:
-      "A shopper's cash-on-delivery order; it holds its stock, starts pending, and runs once per Idempotency-Key (ORD-02, ORD-21)",
+      "A shopper's order; it holds its stock and runs once per Idempotency-Key. Cash on delivery starts pending; an order needing an advance starts unverified with its payment page (ORD-02, ORD-21, PAY-01)",
   })
   @ApiHeader({ name: 'Idempotency-Key', required: true })
   @ApiBody({ type: PublicOrderBodyDto })
@@ -146,15 +157,18 @@ export class PublicOrdersController {
       "An order by its tracking ID: status, timeline, items, totals and, once shipped, its courier -- never the customer's address or phone (ORD-17)",
   })
   @ZodResponse({ type: TrackedOrderDto })
-  track(
+  async track(
     @Param('trackingId') trackingId: string,
     @Req() request: PublicApiRequest,
   ): Promise<TrackedOrderView> {
     const shop = request.apiShop;
     if (!shop) throw new Error('the public key guard names the shop');
-    this.limits.admitTracking(shop, request, this.clock());
+    const now = this.clock();
+    this.limits.admitTracking(shop, request, now);
     const id = trackingId.toUpperCase();
     if (!TRACKING_ID.test(id)) throw new ApiError('not_found', 'OrderNotFound', {});
-    return this.tracking.track(shop.row.id, id);
+    const tracked = await this.tracking.track(shop.row.id, id);
+    // Slice 5.2: an unverified order's open payment, so the shopper can go back to it.
+    return { ...tracked, payment: await this.sessions.ofTracked(shop.row.id, id, now) };
   }
 }

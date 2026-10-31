@@ -666,6 +666,13 @@
       "when": 1793434835400,
       "tag": "0094_payment_methods",
       "breakpoints": true
+    },
+    {
+      "idx": 95,
+      "version": "7",
+      "when": 1793444240201,
+      "tag": "0095_payment_sessions",
+      "breakpoints": true
     }
   ]
 }
