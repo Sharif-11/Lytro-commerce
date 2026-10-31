@@ -9,3 +9,18 @@ export const calendarDayField = z
     message: 'Not a real date.',
     params: { problem: FieldProblemCode.InvalidDate },
   });
+
+/** INV-18, STA-01: a period's ends, the last on or after the first; either may be left out for its default. */
+export function checkPeriod(
+  value: { dateFrom?: string | undefined; dateTo?: string | undefined },
+  ctx: z.RefinementCtx,
+): void {
+  if (value.dateFrom && value.dateTo && value.dateFrom > value.dateTo) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['dateTo'],
+      message: 'Choose a day on or after the start date.',
+      params: { problem: FieldProblemCode.NotAllowed },
+    });
+  }
+}

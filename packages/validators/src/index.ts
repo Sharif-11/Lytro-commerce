@@ -19,6 +19,7 @@ export * from './api/purchasing/supplier';
 export * from './api/purchasing/purchase-order';
 export * from './api/purchasing/receipt';
 export * from './api/orders/order';
+export * from './api/orders/sales';
 export * from './api/customers/customer';
 export * from './api/customers/shopper';
 export * from './api/api-keys/api-key';

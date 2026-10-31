@@ -57,6 +57,7 @@ import { PurchasingModule } from '../purchasing/purchasing.module';
 import { OrdersModule } from '../orders/orders.module';
 import { OrdersController } from './controllers/orders.controller';
 import { CustomersController } from './controllers/customers.controller';
+import { SalesController } from './controllers/sales.controller';
 import { TaxClassesController } from './controllers/tax-classes.controller';
 import { CustomersModule } from '../customers/customers.module';
 import { ShoppersModule } from '../shoppers/shoppers.module';
@@ -171,6 +172,7 @@ import { CatalogueRequest } from './services/catalogue-request';
     OrdersController,
     CustomersController,
     TaxClassesController,
+    SalesController,
     MediaController,
     UsageController,
     HomeController,

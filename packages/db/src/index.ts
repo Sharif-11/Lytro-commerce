@@ -265,6 +265,14 @@ export {
   type OrderSummaryRow,
 } from './repositories/orders/order.repository';
 export { CustomerRepository } from './repositories/orders/customer.repository';
+export {
+  SalesRepository,
+  type BestSellerRow,
+  type SalesDayCost,
+  type SalesDayLines,
+  type SalesDayOrders,
+  type SalesPeriod,
+} from './repositories/orders/sales.repository';
 export { TaxClassRepository } from './repositories/catalogue/tax-class.repository';
 export {
   ModifierRepository,

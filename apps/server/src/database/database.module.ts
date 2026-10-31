@@ -67,6 +67,7 @@ import {
   PurchaseReceiptRepository,
   OrderRepository,
   CustomerRepository,
+  SalesRepository,
   ShopperRepository,
   TaxClassRepository,
   ModifierRepository,
@@ -210,6 +211,11 @@ import { DatabaseService } from './database.service';
       provide: OrderRepository,
       inject: [TransactionRunner],
       useFactory: (transactions: TransactionRunner) => new OrderRepository(transactions),
+    },
+    {
+      provide: SalesRepository,
+      inject: [TransactionRunner],
+      useFactory: (transactions: TransactionRunner) => new SalesRepository(transactions),
     },
     {
       provide: CustomerRepository,
@@ -375,6 +381,7 @@ import { DatabaseService } from './database.service';
     PurchaseReceiptRepository,
     OrderRepository,
     CustomerRepository,
+    SalesRepository,
     ShopperRepository,
     TaxClassRepository,
     ModifierRepository,

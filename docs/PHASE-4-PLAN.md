@@ -358,6 +358,17 @@ combos and statistics). If velocity suggests it, the rest can become Phase 4B wi
   their limits (MNU-01 – 03).
 
 ### Slice 4.7: sales figures
+- **Read agreed 2026-10-30:** an order counts once delivered (the user's pick over paid-or-part-paid; STA-01 amended),
+  on the Asia/Dhaka day it was placed; revenue is the items after discounts, tax included, with the delivery charges
+  and the tax inside it shown on their own; returned units come off units and revenue; a combo counts as itself in the
+  best sellers (STA-02 amended); profit is the items' revenue less its tax, less the cost of the goods kept, with
+  delivery charges left out (INV-18 amended); weeks start on Saturday; `orders:read` sees the figures, and profit needs
+  `inventory:manage` (D3-9). Backend only; the screens are Slice 4.8's. Settled building: one pull request, no
+  migration; an order every unit of which came back is not counted (STA-04 amended); a line's revenue takes off the
+  same share of the order's discount its tax was worked out on (TAX-02), so revenue and tax agree; the shop's revenue
+  is the sum of its lines', so the best sellers add up to it; units are totalled per stock unit, never across units;
+  a period is at most 1,830 days, the first and last bucket cut to it; best sellers default to 10, at most 50; a
+  product deleted for good ranks under its items' name.
 - **Delivers:** orders and revenue by week, month, quarter and year; best sellers by units and by revenue; trends;
   test and refunded orders excluded (STA-01 – 04); profit beside stock value from each shipment's cost (INV-18).
 

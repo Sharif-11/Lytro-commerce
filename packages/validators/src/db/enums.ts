@@ -1148,6 +1148,20 @@ export enum PaymentMethod {
   Bank = 'bank',
 }
 
+// STA-01, STA-03 (Slice 4.7): how a period's sales figures are split. A week runs Saturday to Friday (agreed 2026-10-30).
+export enum SalesBucket {
+  Week = 'week',
+  Month = 'month',
+  Quarter = 'quarter',
+  Year = 'year',
+}
+
+// STA-02 (Slice 4.7): what best sellers are ranked by.
+export enum SalesRanking {
+  Units = 'units',
+  Revenue = 'revenue',
+}
+
 export function enumTuple<T extends string>(values: readonly T[]): [T, ...T[]] {
   const [first, ...rest] = values;
   if (first === undefined) throw new Error('an enum must have at least one value');
