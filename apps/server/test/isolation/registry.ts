@@ -267,6 +267,9 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'GET /orders/couriers': "lists only the session shop's own couriers",
   // Slice 4.8a, checked in test/order-fulfilment.e2e.spec.ts: another shop's order answers 404.
   'GET /orders/:id/serials': "another shop's order answers 404",
+  // Slice 4.8a, checked in test/orders.e2e.spec.ts: only the session shop's products; another shop's answers 404.
+  'GET /orders/picker': "lists only the session shop's own products",
+  'GET /orders/picker/:productId': "another shop's product answers 404",
   'PATCH /orders/:id': "another shop's order answers 404",
   'POST /orders/:id/calls': "another shop's order answers 404",
   'POST /orders/:id/cancel': "another shop's order answers 404 and keeps its stock held",

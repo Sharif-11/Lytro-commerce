@@ -52,7 +52,8 @@ export function AreaPickSheet({
   open: boolean;
   mode: PickMode;
   title: string;
-  settings: DeliverySettings;
+  /** The zones, to say which holds an area; one thana picked alone (New order's address) needs none. */
+  settings?: DeliverySettings;
   locations: Locations;
   /** The zone the areas are for; another zone's areas are what is taken. Null for a new zone or Check an address. */
   zoneId: string | null;
@@ -93,9 +94,11 @@ export function AreaPickSheet({
 
   /** One area's row: ticked, free, already the owner's, or another zone's and not to be picked. */
   const pickRow = (ref: AreaRef, label: string, extra?: ReactNode) => {
-    const taken = single ? null : holderOf(settings, ref, zoneId);
+    const taken = single || !settings ? null : holderOf(settings, ref, zoneId);
     const cover =
-      single || taken || ref.kind !== 'thana' ? null : coverOf(settings, locations, ref.id, zoneId);
+      single || taken || !settings || ref.kind !== 'thana'
+        ? null
+        : coverOf(settings, locations, ref.id, zoneId);
     const sub = taken
       ? t('areaInZone', { zone: words.zone(taken) })
       : cover

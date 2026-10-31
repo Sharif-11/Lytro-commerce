@@ -70,7 +70,7 @@ function OrderBody({ order }: { order: Order }): React.JSX.Element {
   const can = choicesOf(order, may);
   const counter = atCounter(order);
   const shown = words.status(order.status);
-  const menu = can.hold || can.release || can.cancel || can.delete || can.print;
+  const menu = can.hold || can.release || can.edit || can.cancel || can.delete || can.print;
   // QTA-03: the month's limit a ship just passed, said until the page is left.
   const [limit, setLimit] = useState<number | null>(null);
 

@@ -35,7 +35,14 @@ import { drawnDelivery, type DeliveryFixture } from './support/delivery';
 import { drawnDomain, type DomainFixture } from './support/domain';
 import { drawnPasswords, drawnTeam } from './support/team';
 import { indigoBrand, maroonBrand } from './support/themed';
-import { DAY_ONE, mockApi, SLUG, type Language, type ShopState } from './support/mock-api';
+import {
+  DAY_ONE,
+  envelope,
+  mockApi,
+  SLUG,
+  type Language,
+  type ShopState,
+} from './support/mock-api';
 import { mockOnboarding, TWELVE_MONTHS, typeCode, type Journey } from './support/onboarding-api';
 import type { AddonsFixture, UsageFixture } from './support/usage';
 import { meghOrders, type OrdersFixture } from './support/orders';
@@ -371,6 +378,310 @@ const ORDERS: Pair[] = [
   },
 ];
 
+/** A phone the shop has never had: Part 29's plain `order-new` draws no known-customer banner. */
+async function unknownPhones(page: Page): Promise<void> {
+  await page.route('**/api/v1/customers?**', (route) =>
+    route.fulfill({
+      contentType: 'application/json',
+      body: envelope({ customers: [], page: 1, limit: 20, total: 0, pages: 1 }),
+    }),
+  );
+}
+
+/** Part 29's New order filled as drawn: Nusrat to Mirpur, two T-shirts and the Eid combo with gift wrap. */
+function newOrder(
+  language: Language,
+  options: { known?: boolean; items?: boolean; after?: (page: Page) => Promise<void> } = {},
+): (page: Page) => Promise<void> {
+  const say = (words: [string, string]) => (language === 'bn' ? words[0] : words[1]);
+  return async (page) => {
+    const main = page.getByRole('main');
+    const sheet = (name: string | RegExp) => page.getByRole('dialog', { name });
+    if (!options.known) await unknownPhones(page);
+    await main.getByLabel(say(['ফোন নম্বর', 'Phone number'])).fill('1711 234 567');
+    if (options.known) {
+      await main.getByRole('button', { name: say(['ঠিকানা বসান', 'Use the address']) }).click();
+    } else {
+      await main
+        .getByLabel(say(['নাম', 'Name']), { exact: true })
+        .fill(say(['নুসরাত জাহান', 'Nusrat Jahan']));
+      const district = say(['জেলা ও থানা', 'District and thana']);
+      await main.getByRole('button', { name: new RegExp(district) }).click();
+      await sheet(district)
+        .getByRole('searchbox')
+        .fill(say(['মিরপুর', 'Mirpur']));
+      await sheet(district)
+        .getByRole('button', { name: say(['মিরপুর · ঢাকা', 'Mirpur · Dhaka']) })
+        .click();
+      await main
+        .getByLabel(say(['ঠিকানা', 'Address']), { exact: true })
+        .fill(say(['বাসা 5, রোড 10, মিরপুর 11', 'House 5, Road 10, Mirpur 11']));
+    }
+    if (options.items !== false) {
+      const add = say(['আইটেম যোগ করুন', 'Add an item']);
+      const tee = say(['কটন টি-শার্ট', 'Cotton T-shirt']);
+      const combo = say(['ঈদ কম্বো', 'Eid combo']);
+      await main.getByRole('button', { name: add }).click();
+      await sheet(add)
+        .getByRole('button', { name: new RegExp(`^${tee}`) })
+        .click();
+      await sheet(tee)
+        .getByRole('button', { name: new RegExp(`^L · ${say(['কালো', 'Black'])}`) })
+        .click();
+      await main.getByRole('button', { name: `${tee} +` }).click();
+      await main.getByRole('button', { name: add }).click();
+      await sheet(add)
+        .getByRole('button', { name: new RegExp(`^${combo}`) })
+        .click();
+      await sheet(new RegExp(`^${combo}`))
+        .getByRole('button', { name: 'M', exact: true })
+        .click();
+      await sheet(new RegExp(`^${combo}`))
+        .getByRole('button', {
+          name: new RegExp(`^${say(['অর্ডারে যোগ করুন', 'Add to the order'])}`),
+        })
+        .click();
+    }
+    await page.waitForTimeout(500);
+    if (options.after) await options.after(page);
+    // Filling scrolled the form; the drawing is of its top.
+    await page.evaluate(() => {
+      for (const each of document.querySelectorAll('*')) each.scrollTop = 0;
+    });
+  };
+}
+
+/** Add an item opened over the filled form, then what `then` taps in it. */
+const adding =
+  (then?: (dialog: Locator) => Promise<void>) =>
+  async (page: Page): Promise<void> => {
+    await page.getByRole('main').getByRole('button', { name: 'আইটেম যোগ করুন' }).click();
+    if (then) await then(page.getByRole('dialog'));
+  };
+
+/** New order's sheets and states (Slice 4.8a part 3), each beside Part 29's drawing of it. */
+const NEW_ORDER: Pair[] = [
+  {
+    name: 'order-new',
+    screen: 'order-new',
+    device: 'phone',
+    language: 'bn',
+    path: '/orders/new',
+    then: newOrder('bn'),
+  },
+  {
+    name: 'order-new',
+    screen: 'order-new',
+    device: 'desktop',
+    language: 'en',
+    path: '/orders/new',
+    then: newOrder('en'),
+  },
+  {
+    name: 'order-new-items',
+    screen: 'order-new',
+    device: 'phone',
+    language: 'bn',
+    path: '/orders/new',
+    then: newOrder('bn'),
+    scroll: /^আইটেম$/,
+  },
+  {
+    name: 'order-new-known',
+    screen: 'o29-new-known',
+    device: 'phone',
+    language: 'bn',
+    path: '/orders/new',
+    then: newOrder('bn', { known: true }),
+  },
+  {
+    name: 'order-add-item',
+    screen: 'o29-add-item',
+    device: 'phone',
+    language: 'bn',
+    path: '/orders/new',
+    then: newOrder('bn', { after: adding() }),
+  },
+  {
+    name: 'order-add-variant',
+    screen: 'o29-add-variant',
+    device: 'phone',
+    language: 'bn',
+    path: '/orders/new',
+    then: newOrder('bn', {
+      after: adding(async (dialog) => {
+        await dialog.getByRole('button', { name: /^কটন টি-শার্ট/ }).click();
+      }),
+    }),
+  },
+  {
+    name: 'order-combo-pick',
+    screen: 'o29-combo-pick',
+    device: 'phone',
+    language: 'bn',
+    path: '/orders/new',
+    then: newOrder('bn', {
+      after: adding(async (dialog) => {
+        await dialog.getByRole('button', { name: /^ঈদ কম্বো/ }).click();
+        await dialog.getByRole('button', { name: 'M', exact: true }).click();
+      }),
+    }),
+  },
+  {
+    name: 'order-add-ons',
+    screen: 'o29-add-ons',
+    device: 'phone',
+    language: 'bn',
+    path: '/orders/new',
+    then: newOrder('bn', {
+      after: adding(async (dialog) => {
+        await dialog.getByRole('searchbox').fill('বার্গার');
+        await dialog.getByRole('button', { name: /^বিফ বার্গার/ }).click();
+      }),
+    }),
+  },
+  {
+    name: 'order-line-price',
+    screen: 'o29-line-price',
+    device: 'phone',
+    language: 'bn',
+    path: '/orders/new',
+    then: newOrder('bn', {
+      after: async (page) => {
+        await page.getByRole('main').getByRole('button', { name: 'দাম বদলান' }).first().click();
+        await page.getByRole('dialog').getByLabel('প্রতিটার দাম').fill('420');
+      },
+    }),
+  },
+  {
+    name: 'order-new-counter',
+    screen: 'o29-new-counter',
+    device: 'phone',
+    language: 'bn',
+    path: '/orders/new',
+    then: newOrder('bn', {
+      after: async (page) => {
+        await page.getByRole('main').getByRole('radio', { name: 'টেকঅ্যাওয়ে' }).click();
+      },
+    }),
+  },
+  {
+    name: 'order-new-table',
+    screen: 'o29-new-table',
+    device: 'phone',
+    language: 'bn',
+    path: '/orders/new',
+    then: newOrder('bn', {
+      after: async (page) => {
+        await page.getByRole('main').getByRole('radio', { name: 'টেবিল' }).click();
+        await page.getByRole('main').getByLabel('টেবিল নম্বর').fill('4');
+      },
+    }),
+  },
+  {
+    name: 'order-new-byhand',
+    screen: 'o29-new-byhand',
+    device: 'phone',
+    language: 'bn',
+    path: '/orders/new',
+    then: newOrder('bn', {
+      after: async (page) => {
+        const main = page.getByRole('main');
+        await main.getByRole('switch', { name: 'ডেলিভারি চার্জ হাতে দিন' }).click();
+        await main.getByLabel('ডেলিভারি চার্জ', { exact: true }).fill('100');
+      },
+    }),
+    scroll: /^আইটেম$/,
+  },
+  {
+    name: 'order-new-paid',
+    screen: 'o29-new-paid',
+    device: 'desktop',
+    language: 'en',
+    path: '/orders/new',
+    then: newOrder('en', {
+      after: async (page) => {
+        const main = page.getByRole('main');
+        await main.getByRole('switch', { name: 'The customer already paid something' }).click();
+        await main.getByRole('button', { name: 'bKash' }).click();
+        await main.getByLabel('Amount').fill('500');
+        await main.getByLabel('TrxID').fill('9F2KQ7M1');
+        await main.getByLabel('Sent from').fill('1819 876 543');
+      },
+    }),
+    scroll: /^Items$/,
+  },
+  {
+    name: 'order-new-short',
+    screen: 'o29-new-short',
+    device: 'desktop',
+    language: 'en',
+    path: '/orders/new',
+    then: newOrder('en', {
+      items: false,
+      after: async (page) => {
+        const main = page.getByRole('main');
+        const sheet = (name: string) => page.getByRole('dialog', { name });
+        await main.getByRole('button', { name: 'Add an item' }).click();
+        await sheet('Add an item')
+          .getByRole('button', { name: /^Cotton T-shirt/ })
+          .click();
+        await sheet('Cotton T-shirt')
+          .getByRole('button', { name: /^L · Black/ })
+          .click();
+        await main.getByRole('button', { name: 'Cotton T-shirt +' }).click();
+        await main.getByRole('button', { name: 'Add an item' }).click();
+        await sheet('Add an item')
+          .getByRole('button', { name: /^Denim jacket/ })
+          .click();
+        await sheet('Denim jacket').getByRole('button', { name: /^M/ }).click();
+        await main.getByRole('button', { name: 'Denim jacket +' }).click();
+        await page.waitForTimeout(500);
+        await main.getByRole('button', { name: 'Create order' }).click();
+      },
+    }),
+  },
+  {
+    name: 'order-new-zone',
+    screen: 'o29-new-zone',
+    device: 'desktop',
+    language: 'en',
+    path: '/orders/new',
+    then: newOrder('en', {
+      after: async (page) => {
+        await page
+          .getByRole('main')
+          .getByRole('button', { name: /District and thana/ })
+          .click();
+        const area = page.getByRole('dialog', { name: 'District and thana' });
+        await area.getByRole('searchbox').fill('Ruma');
+        await area.getByRole('button', { name: 'Ruma · Bandarban' }).click();
+        await page.waitForTimeout(500);
+      },
+    }),
+  },
+  {
+    name: 'order-created',
+    screen: 'o29-created',
+    device: 'phone',
+    language: 'bn',
+    path: '/orders/new',
+    then: newOrder('bn', {
+      after: async (page) => {
+        await page.getByRole('main').getByRole('button', { name: 'অর্ডার তৈরি করুন' }).click();
+        await page.getByText('অর্ডার #261031-0048 তৈরি হয়েছে').waitFor();
+      },
+    }),
+  },
+  {
+    name: 'order-edit',
+    screen: 'o29-edit',
+    device: 'desktop',
+    language: 'en',
+    path: '/orders/o-47/edit',
+  },
+];
+
 const PAIRS: Pair[] = [
   { name: 'home', screen: 'home', device: 'phone', language: 'bn', path: '' },
   { name: 'home', screen: 'home', device: 'tablet', language: 'bn', path: '' },
@@ -392,6 +703,7 @@ const PAIRS: Pair[] = [
     shop: NEW_SHOP,
   },
   ...ORDERS,
+  ...NEW_ORDER,
   {
     name: 'search',
     screen: 'search-products',

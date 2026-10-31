@@ -361,6 +361,8 @@ export interface ProductListItem {
   stockState: StockState;
   primaryCategoryId: string | null;
   variantCount: number;
+  /** CMB-01 (Slice 4.8a): an ordinary product or a combo, for New order's picker. */
+  kind: ProductKind;
   /** PRD-11: its first photo, for the list, or null. */
   image: ImageView | null;
   createdAt: Date;
