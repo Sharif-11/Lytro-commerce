@@ -269,8 +269,25 @@ Every route lands in `API-CONTRACT.md` with its slice; the isolation registry ga
   (PAY-03, D5-5, INV-16), the return address allow-list (PAY-04); the page's content and state reads (PAY-05's data,
   PAY-17, PAY-22) and the transaction ID typed (PAY-07, PAY-16); the redirect's status (PAY-08); the window's end
   cancelling an unpaid order (D5-4); session IDs of 128 bits (PAY-23).
+- **5.2b read agreed 2026-10-31** (all four as recommended): a payment link stays open **24 hours** -- staff send
+  it, the order and its stock are unaffected, and staff make another if it lapses; it asks for **the advance still
+  owed, else what is due**, and staff may switch it to the whole amount due; making one needs **`orders:manage`**;
+  "Report this page" takes **a short list and a note** -- asked for my PIN or code, not the shop I ordered from, the
+  amount is wrong, or something else with a note -- [5] an hour from one visitor (PAY-24 and TVR-02 amended).
+  Settled building: the flood guard is checked just before a checkout opens its session, so a cash-on-delivery order
+  never meets it; past it the order is refused with `429`, counted in the shop's usage (`refused_sessions`); its
+  figure is a platform setting (`payment_sessions_per_shop_per_minute`, 60). Staff orders and links are not held by
+  it, as order creation's guard holds only shoppers'. A link closes the order's session still awaiting money -- a
+  checkout's too, staff taking the order over, so its window's end no longer cancels it -- and a payment being
+  checked refuses one. A link has no return address: the page is where the shopper ends. A link needs no
+  Idempotency-Key; made twice, the second replaces the first. Reports are counted per visitor in the database,
+  across shops, so the limit holds with more than one server. The operator's queue lists reports with their shop and
+  the page to open; suspending a page acts on the shop's open reports. A suspended page answers `403 tenant_offline`
+  ("unavailable -- don't send money for it"), checkout offers no method (`no_payment_method`) and links are refused;
+  the public API sees a suspension within its few-second shop lookup (TVR-03's minute). The reports go with the
+  day-60 deletion (LIF-19).
 - **Delivers (5.2b):** payment links (PAY-24); the flood guard (PAY-13, RTE-08); "Report this page" and the
-  operator's suspension (TVR-02, TVR-03).
+  operator's suspension (TVR-02, TVR-03, ADM-12's queue, its screens with the operator console).
 
 ### Slice 5.3: verifying by hand
 - **Delivers:** verification by hand and review (VER-01, PAY-14, VER-12) settling the order once (PAY-15, ORD-08);
