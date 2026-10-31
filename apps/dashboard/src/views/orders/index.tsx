@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { Permission } from '@lytronix/validators';
@@ -63,22 +63,28 @@ export function OrdersScreen({
 
   // From the address as it is when the change lands, not as this render saw it: the search's pause must not undo the
   // dates chosen meanwhile.
+  // The search's pause: a write of the search box still to come.
+  const pending = useRef<number | null>(null);
   function show(next: Partial<OrderFilter>): void {
+    // Each change carries the search box as it is and drops the pause's write still to come, so that write can never
+    // land after the change from an address read before it (the dates lost to a cleared search, Slice 4.8a).
+    if (pending.current !== null) window.clearTimeout(pending.current);
+    pending.current = null;
     void navigate({
       to: orderId ? '/$shop/orders/$orderId' : '/$shop/orders',
       params: orderId ? { shop: slug, orderId } : { shop: slug },
-      search: (previous) => searchOf({ ...filterOf(previous as OrdersSearch), ...next }),
+      search: (previous) => searchOf({ ...filterOf(previous as OrdersSearch), q: typed, ...next }),
       replace: true,
     });
   }
 
   useEffect(() => {
     if (typed === (filter.q ?? '')) return;
-    const timer = window.setTimeout(() => {
+    pending.current = window.setTimeout(() => {
       show({ q: typed });
     }, TYPING_REST_MS);
     return () => {
-      window.clearTimeout(timer);
+      if (pending.current !== null) window.clearTimeout(pending.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [typed]);
