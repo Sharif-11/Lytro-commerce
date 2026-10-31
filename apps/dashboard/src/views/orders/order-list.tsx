@@ -11,6 +11,7 @@ import {
   type OrderTab,
 } from '@/api/orders';
 import { Button } from '@/components/ui/button';
+import { CheckBox } from '@/components/ui/check-row';
 import { Chip, ChipRow } from '@/components/ui/chips';
 import { Field } from '@/components/ui/field';
 import { RowChevron, RowList } from '@/components/ui/list-row';
@@ -188,14 +189,22 @@ function ReasonChip({
 }
 
 /** The rows under Today, Yesterday and Earlier, the open one marked on a desktop. */
+/** Orders being picked to print their labels (Part 29's `o29-select`): which, and a pick. */
+export interface Picking {
+  picked: ReadonlySet<string>;
+  onToggle: (id: string) => void;
+}
+
 export function OrderRows({
   orders,
   selected,
   search,
+  picking = null,
 }: {
   orders: OrderSummary[];
   selected: string | null;
   search: Record<string, string | undefined>;
+  picking?: Picking | null;
 }): React.JSX.Element {
   const { t } = useTranslation('orders');
   return (
@@ -212,6 +221,7 @@ export function OrderRows({
                 order={order}
                 selected={order.id === selected}
                 search={search}
+                picking={picking}
               />
             ))}
           </RowList>
@@ -230,10 +240,12 @@ function OrderRow({
   order,
   selected,
   search,
+  picking,
 }: {
   order: OrderSummary;
   selected: boolean;
   search: Record<string, string | undefined>;
+  picking: Picking | null;
 }): React.JSX.Element {
   const { t } = useTranslation('orders');
   const { slug } = useShell();
@@ -248,14 +260,8 @@ function OrderRow({
     ) : order.status === OrderStatus.Cancelled && order.cancelReason ? (
       words.reason(order.cancelReason)
     ) : null;
-  return (
-    <Link
-      to="/$shop/orders/$orderId"
-      params={{ shop: slug, orderId: order.id }}
-      search={search}
-      aria-current={selected ? 'page' : undefined}
-      className={`flex min-h-16 w-full items-center gap-3 px-4 py-3 text-left text-[inherit] no-underline ${selected ? 'bg-primary-soft' : ''}`}
-    >
+  const content = (
+    <>
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="truncate text-[16px] font-medium">
           <span className="num mr-1.5 font-semibold text-fg-muted">#{order.orderNumber}</span>
@@ -277,6 +283,29 @@ function OrderRow({
         <span className="num text-[16px] font-semibold">{formatTaka(order.grandTotal)}</span>
         <StatusTag tone={shown.tone}>{shown.word}</StatusTag>
       </span>
+    </>
+  );
+  // Picking to print: the row ticks itself rather than opening the order.
+  return picking ? (
+    <label className="flex min-h-16 w-full cursor-pointer items-center gap-3 px-4 py-3">
+      <CheckBox
+        checked={picking.picked.has(order.id)}
+        label={`#${order.orderNumber}`}
+        onChange={() => {
+          picking.onToggle(order.id);
+        }}
+      />
+      {content}
+    </label>
+  ) : (
+    <Link
+      to="/$shop/orders/$orderId"
+      params={{ shop: slug, orderId: order.id }}
+      search={search}
+      aria-current={selected ? 'page' : undefined}
+      className={`flex min-h-16 w-full items-center gap-3 px-4 py-3 text-left text-[inherit] no-underline ${selected ? 'bg-primary-soft' : ''}`}
+    >
+      {content}
     </Link>
   );
 }

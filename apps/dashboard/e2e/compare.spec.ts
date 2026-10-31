@@ -38,6 +38,7 @@ import { indigoBrand, maroonBrand } from './support/themed';
 import { DAY_ONE, mockApi, SLUG, type Language, type ShopState } from './support/mock-api';
 import { mockOnboarding, TWELVE_MONTHS, typeCode, type Journey } from './support/onboarding-api';
 import type { AddonsFixture, UsageFixture } from './support/usage';
+import { meghOrders, type OrdersFixture } from './support/orders';
 
 // TENANT-DASHBOARD-DESIGN §11: each built screen beside the prototype's drawing of it, at the prototype's own frame
 // sizes, saved to test-results/compare for the pull request and CI's artifacts. No pixel baseline is committed: a
@@ -94,6 +95,37 @@ async function drawWalletCheckout(page: Page): Promise<void> {
       .find((each) => each.startsWith("SCREENS['ob-checkout'] =") && each.includes('coTrx'));
     if (line) (0, eval)(line);
   });
+}
+
+/** Part 29's day with one order's items made serial-numbered smart watches (INV-14), held or sent. */
+function serialDay(id: string, status: 'pending' | 'confirmed' | 'delivered'): OrdersFixture {
+  const day = meghOrders();
+  const imeis = ['356938035643809', '356938035643817', '356938035643825'];
+  const one = day.orders.find((each) => each.id === id);
+  if (one) {
+    one.status = status;
+    one.items = [
+      {
+        name: ['স্মার্ট ওয়াচ', 'Smart watch'],
+        quantity: 2,
+        unitPrice: 1890,
+        serials:
+          status === 'delivered'
+            ? { inStock: [], sent: imeis.slice(0, 2) }
+            : { inStock: imeis, sent: [] },
+      },
+    ];
+  }
+  return day;
+}
+
+/** Part 29's day with the delivered order holding the drawn T-shirts and Eid combo. */
+function comboDay(): OrdersFixture {
+  const day = meghOrders();
+  const delivered = day.orders.find((each) => each.id === 'o-38');
+  const drawn = day.orders.find((each) => each.id === 'o-47');
+  if (delivered && drawn) delivered.items = drawn.items;
+  return day;
 }
 
 /** Opens the order's more menu, as a seller does, then one of its rows if named. */
@@ -223,6 +255,102 @@ const ORDERS: Pair[] = [
     device: 'phone',
     language: 'bn',
     path: '/orders/o-38',
+  },
+  {
+    name: 'order-ship',
+    screen: 'o29-ship',
+    device: 'phone',
+    language: 'bn',
+    path: '/orders/o-44',
+    then: async (page) => {
+      await page.getByRole('button', { name: 'শিপড মার্ক করুন' }).click();
+    },
+  },
+  {
+    name: 'order-ship-serial',
+    screen: 'o29-ship-serial',
+    device: 'phone',
+    language: 'bn',
+    path: '/orders/o-44',
+    state: { orders: serialDay('o-44', 'confirmed') },
+    then: async (page) => {
+      await page.getByRole('button', { name: 'শিপড মার্ক করুন' }).click();
+    },
+  },
+  {
+    name: 'order-return',
+    screen: 'o29-return',
+    device: 'phone',
+    language: 'bn',
+    path: '/orders/o-38',
+    state: { orders: comboDay() },
+    then: async (page) => {
+      await page.getByRole('button', { name: 'আইটেম রিটার্ন' }).click();
+    },
+  },
+  {
+    name: 'order-return-serial',
+    screen: 'o29-return-serial',
+    device: 'phone',
+    language: 'bn',
+    path: '/orders/o-38',
+    state: { orders: serialDay('o-38', 'delivered') },
+    then: async (page) => {
+      await page.getByRole('button', { name: 'আইটেম রিটার্ন' }).click();
+    },
+  },
+  {
+    name: 'order-pay',
+    screen: 'o29-pay',
+    device: 'phone',
+    language: 'bn',
+    path: '/orders/o-44',
+    then: async (page) => {
+      await page.getByRole('button', { name: 'পেমেন্ট রেকর্ড করুন' }).click();
+    },
+  },
+  {
+    name: 'order-print',
+    screen: 'o29-print',
+    device: 'phone',
+    language: 'bn',
+    path: '/orders/o-47',
+    then: orderMenu('লেবেল প্রিন্ট'),
+  },
+  {
+    name: 'order-label-23',
+    screen: 'o29-label-23',
+    device: 'phone',
+    language: 'bn',
+    path: '/orders/o-47',
+    then: async (page) => {
+      await orderMenu('লেবেল প্রিন্ট')(page);
+      await page.getByRole('dialog').getByRole('radio', { name: '2 × 3 ইঞ্চি' }).click();
+    },
+  },
+  {
+    name: 'orders-select',
+    screen: 'o29-select',
+    device: 'phone',
+    language: 'bn',
+    path: '/orders?tab=all',
+    then: async (page) => {
+      await page.getByRole('button', { name: 'সিলেক্ট' }).click();
+      for (const number of ['#261031-0047', '#261031-0044', '#261030-0039']) {
+        await page.getByRole('checkbox', { name: number }).check();
+      }
+    },
+  },
+  {
+    name: 'order-handover-serial',
+    screen: 'o29-handover-serial',
+    device: 'phone',
+    language: 'bn',
+    path: '/orders/o-45',
+    state: { orders: serialDay('o-45', 'pending') },
+    then: async (page) => {
+      await page.getByRole('button', { name: 'হ্যান্ড ওভার' }).click();
+    },
   },
   {
     name: 'order-takeaway',

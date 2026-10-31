@@ -1,6 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Transaction } from '@lytronix/db';
-import { ReservationStatus, SerialStatus, StockReason, StockTracking } from '@lytronix/validators';
+import {
+  ReservationStatus,
+  SerialStatus,
+  StockReason,
+  StockTracking,
+  type SerialFormat,
+} from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import type { ResolvedActor } from '../../catalogue/services/catalogue-activity';
 import type { ReservationStore } from '../ports/reservation-store';
@@ -11,6 +17,7 @@ import { RESERVATION_STORE, SERIAL_STORE, STOCK_BATCH_STORE, STOCK_STORE } from 
 import type {
   MovementRecord,
   ReferencedMovementRow,
+  ReservationRecord,
   StockChange,
   StockReturn,
 } from '../types/inventory';
@@ -40,6 +47,16 @@ function byExpiry(a: ReferencedMovementRow, b: ReferencedMovementRow): number {
  * serial-numbered unit comes back by its serial, one sold on that shipment: the sold record is kept as history and the
  * unit returns as a new one. A size of a shared stock brings back the pack amount it was ordered at.
  */
+/** How many held serials an order is offered to send a unit with (INV-14). */
+const SERIALS_OFFERED = 200;
+
+/** INV-14: a reservation's serial-numbered variant -- its format, the serials held to send, the ones sent. */
+export interface ReservationSerials {
+  serialFormat: SerialFormat;
+  inStock: string[];
+  sent: string[];
+}
+
 @Injectable()
 export class StockReturnService {
   constructor(
@@ -224,6 +241,66 @@ export class StockReturnService {
       isDefault: false,
     });
     return made.id;
+  }
+
+  /**
+   * INV-14 (Slice 4.8a): each serial-numbered reservation's serials, for the order's ship and return sheets -- while
+   * it waits, the serials its variant holds (in stock or held), up to 200; once it has gone, the ones its sale took
+   * that are not back yet. A reservation of any other variant is left out.
+   */
+  async serialsFor(
+    tx: Transaction,
+    tenantId: string,
+    held: ReservationRecord[],
+  ): Promise<Map<string, ReservationSerials>> {
+    const variants = new Map(
+      (
+        await this.store.findVariants(tx, tenantId, [
+          ...new Set(held.map((each) => each.variantId)),
+        ])
+      ).map((each) => [each.variantId, each]),
+    );
+    const found = new Map<string, ReservationSerials>();
+    for (const reservation of held) {
+      const on = variants.get(reservation.variantId);
+      if (!on?.product.serialTracked) continue;
+      const serialFormat = on.product.serialFormat;
+      if (reservation.status === ReservationStatus.Active) {
+        const { rows } = await this.serials.listSerials(tx, tenantId, reservation.variantId, null, {
+          offset: 0,
+          limit: SERIALS_OFFERED,
+        });
+        found.set(reservation.id, {
+          serialFormat,
+          inStock: rows.map((row) => row.serial),
+          sent: [],
+        });
+      } else if (reservation.status === ReservationStatus.Consumed) {
+        const reference = { type: 'reservation', id: reservation.id };
+        const sales = (await this.store.listReferencing(tx, tenantId, reference)).filter(
+          (row) => row.reason === StockReason.Sale,
+        );
+        const saleIds = new Set(sales.map((row) => row.id));
+        const sold = await this.serials.listForMovements(
+          tx,
+          tenantId,
+          sales.map((row) => row.id),
+        );
+        found.set(reservation.id, {
+          serialFormat,
+          inStock: [],
+          sent: sold
+            .filter(
+              (row) =>
+                row.status === SerialStatus.Sold &&
+                row.leftMovementId !== null &&
+                saleIds.has(row.leftMovementId),
+            )
+            .map((row) => row.serial),
+        });
+      }
+    }
+    return found;
   }
 
   /**

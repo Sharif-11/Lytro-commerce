@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { mockApi, SLUG, type ApiLog, type ShopState } from './support/mock-api';
+import { meghOrders, type OrderFixture } from './support/orders';
 
 // TENANT-DASHBOARD-DESIGN §7.31, Slice 4.8a (the prototype's `orders`, `order` and Part 29; ORD-09 to ORD-52): the list
 // with the day's work first, More with the cancel reasons, the search and the dates; the order with its customer,
@@ -218,9 +219,16 @@ test('cancelling asks the reason, Other with a note, and says it lets the stock 
     { reason: 'other', note: 'Ordered twice by mistake' },
   ]);
   await expect(main(page)).toContainText('Cancelled · Other · Ordered twice by mistake');
-  // A cancelled order is final: no next step and nothing in the menu.
-  await expect(main(page).getByRole('button', { name: /^Order #/ })).toHaveCount(0);
+  // A cancelled order is final: no next step, and only its label in the menu.
   await expect(main(page).getByRole('link', { name: /Call/ })).toHaveCount(0);
+  await main(page)
+    .getByRole('button', { name: /^Order #/ })
+    .click();
+  await expect(
+    sheet(page, /^Order #/)
+      .getByRole('button')
+      .filter({ hasText: /\S/ }),
+  ).toHaveText(['Print label']);
 });
 
 test('a mistake is deleted after the question, and the list no longer has it', async ({ page }) => {
@@ -265,11 +273,308 @@ test('a takeaway is handed over at the counter: no calls or shipping, its cash t
   await expect(main(page)).toContainText('Handed over');
 });
 
-test('someone who may only look sees the orders without a next step or the menu', async ({
+test('someone who may only look sees no next step, and only Print label in the menu', async ({
   page,
 }) => {
   await open(page, '/orders/o-47', { isOwner: false, permissions: ['orders:read'] });
   await expect(main(page)).toContainText('#261031-0047');
   await expect(main(page).getByRole('link', { name: 'Call to confirm' })).toHaveCount(0);
-  await expect(main(page).getByRole('button', { name: /^Order #/ })).toHaveCount(0);
+  await main(page)
+    .getByRole('button', { name: /^Order #/ })
+    .click();
+  const menu = sheet(page, /^Order #/);
+  await expect(menu.getByRole('button').filter({ hasText: /\S/ })).toHaveText(['Print label']);
+  // Selecting orders to print is for someone who may manage them.
+  await page.goto(`/${SLUG}/orders`);
+  await expect(main(page).getByRole('button', { name: 'Select' })).toHaveCount(0);
+});
+
+/** Part 29's day with one order changed for a test. */
+function day(change: (orders: OrderFixture[]) => void): ShopState {
+  const fixture = meghOrders();
+  change(fixture.orders);
+  return { orders: fixture };
+}
+
+function order(orders: OrderFixture[], id: string): OrderFixture {
+  const found = orders.find((each) => each.id === id);
+  if (!found) throw new Error(id);
+  return found;
+}
+
+const IMEIS = ['356938035643809', '356938035643817', '356938035643825'] as const;
+
+test('Mark shipped: a recent courier in one tap, a tracking code, and the stock out', async ({
+  page,
+}) => {
+  const log = await open(page, '/orders/o-44');
+  await main(page).getByRole('button', { name: 'Mark shipped' }).click();
+  const ship = sheet(page, 'Mark shipped');
+  await expect(ship).toContainText(
+    "Shipping takes the stock out, and it counts as one of this month's orders.",
+  );
+  await expect(ship.getByRole('button', { name: 'Mark shipped' })).toBeDisabled();
+  // The shop's couriers, the most recent first (ORD-09).
+  await expect(ship.getByRole('button', { name: /^(Steadfast|Pathao)$/ })).toHaveText([
+    'Steadfast',
+    'Pathao',
+  ]);
+  await ship.getByRole('button', { name: 'Steadfast', exact: true }).click();
+  await expect(ship.getByLabel('Courier')).toHaveValue('Steadfast');
+  await expectAccessible(page);
+  await ship.getByLabel('Tracking code').fill('SF-2610-4471');
+  await ship.getByRole('button', { name: 'Mark shipped' }).click();
+  await expect(page.getByText('Shipped · Steadfast · SF-2610-4471')).toBeVisible();
+  expect(sent(log, 'POST', '/orders/o-44/ship')).toEqual([
+    { courierName: 'Steadfast', trackingCode: 'SF-2610-4471' },
+  ]);
+  await expect(main(page).getByRole('button', { name: 'Delivered', exact: true })).toBeVisible();
+  await expect(main(page)).toContainText('SF-2610-4471');
+});
+
+test("Mark shipped asks the IMEI of each unit, and says when the month's limit is passed", async ({
+  page,
+}) => {
+  const log = await open(
+    page,
+    '/orders/o-44',
+    day((orders) => {
+      const confirmed = order(orders, 'o-44');
+      confirmed.items = [
+        {
+          name: ['স্মার্ট ওয়াচ', 'Smart watch'],
+          quantity: 2,
+          unitPrice: 1890,
+          serials: { inStock: [...IMEIS], sent: [] },
+        },
+      ];
+      confirmed.limitOnShip = 300;
+    }),
+  );
+  await main(page).getByRole('button', { name: 'Mark shipped' }).click();
+  const ship = sheet(page, 'Mark shipped');
+  await ship.getByLabel('Courier').fill('Pathao');
+  await ship.getByLabel('Or a tracking link').fill('https://merchant.pathao.com/t/PTH-88213');
+  await expect(ship).toContainText('The IMEI you send');
+  await expect(ship).toContainText('Smart watch · 2 units · One for each unit');
+  await ship.getByRole('button', { name: IMEIS[0] }).click();
+  await expect(ship).toContainText('1 of 2 picked');
+  await expect(ship.getByRole('button', { name: 'Mark shipped' })).toBeDisabled();
+  await ship.getByRole('button', { name: IMEIS[2] }).click();
+  // Two units, two serials: a third cannot be picked.
+  await expect(ship.getByRole('button', { name: IMEIS[1] })).toBeDisabled();
+  await ship.getByRole('button', { name: 'Mark shipped' }).click();
+  expect(sent(log, 'POST', '/orders/o-44/ship')).toEqual([
+    {
+      courierName: 'Pathao',
+      trackingLink: 'https://merchant.pathao.com/t/PTH-88213',
+      serials: [{ lineId: 'o-44-line-0', serials: [IMEIS[0], IMEIS[2]] }],
+    },
+  ]);
+  await expect(main(page)).toContainText("You've passed this month's 300 orders.");
+  await expect(main(page).getByRole('link', { name: 'See plans' })).toBeVisible();
+});
+
+test('Return items: units back sellable or damaged, the order Returned once all are back', async ({
+  page,
+}) => {
+  const log = await open(page, '/orders/o-38');
+  await main(page).getByRole('button', { name: 'Return items' }).click();
+  const back = sheet(page, 'Return items');
+  await expect(back).toContainText(
+    'Sellable items go back into stock; damaged ones are written off.',
+  );
+  await expect(back.getByRole('button', { name: 'Take them back' })).toBeDisabled();
+  await back.getByRole('button', { name: 'Denim jacket Damaged +' }).click();
+  // One unit was sent: a sellable one too would be more than came.
+  await expect(back.getByRole('button', { name: 'Denim jacket Sellable +' })).toBeDisabled();
+  await back.getByLabel('Note (optional)').fill('Torn seam');
+  await expectAccessible(page);
+  await back.getByRole('button', { name: 'Take them back' }).click();
+  await expect(page.getByText('1 item taken back')).toBeVisible();
+  expect(sent(log, 'POST', '/orders/o-38/returns')).toEqual([
+    { items: [{ lineId: 'o-38-line-0', sellable: 0, damaged: 1 }], note: 'Torn seam' },
+  ]);
+  await expect(main(page)).toContainText('1 returned');
+  await expect(main(page).getByRole('button', { name: 'Return items' })).toHaveCount(0);
+});
+
+test('a combo comes back whole, any item in it ticked damaged; an IMEI by its serial', async ({
+  page,
+}) => {
+  const log = await open(
+    page,
+    '/orders/o-38',
+    day((orders) => {
+      order(orders, 'o-38').items = [
+        {
+          name: ['ঈদ কম্বো', 'Eid combo'],
+          quantity: 1,
+          unitPrice: 2500,
+          inside: [
+            ['কটন পাঞ্জাবি · M', 'Cotton panjabi · M'],
+            ['চেক লুঙ্গি', 'Check lungi'],
+          ],
+        },
+        {
+          name: ['স্মার্ট ওয়াচ', 'Smart watch'],
+          quantity: 2,
+          unitPrice: 1890,
+          serials: { inStock: [], sent: [IMEIS[0], IMEIS[1]] },
+        },
+      ];
+    }),
+  );
+  await main(page).getByRole('button', { name: 'Return items' }).click();
+  const back = sheet(page, 'Return items');
+  await expect(back).toContainText('A combo comes back whole.');
+  // An item inside is ticked only once a combo is coming back.
+  await expect(back.getByRole('checkbox', { name: 'Check lungi' })).toBeDisabled();
+  await back.getByRole('button', { name: 'Combos that came back +' }).click();
+  await back.getByRole('checkbox', { name: 'Check lungi' }).check();
+  await expect(back).toContainText('2 sent');
+  await back.getByRole('checkbox', { name: IMEIS[0] }).check();
+  await back.getByRole('checkbox', { name: IMEIS[1] }).check();
+  await back.getByRole('button', { name: 'Damaged' }).last().click();
+  await expect(back).toContainText('1 sellable · 1 damaged');
+  await back.getByRole('button', { name: 'Take them back' }).click();
+  expect(sent(log, 'POST', '/orders/o-38/returns')).toEqual([
+    {
+      items: [
+        {
+          lineId: 'o-38-line-0',
+          sellable: 1,
+          damaged: 0,
+          components: [{ variantId: 'cv-0-2', damaged: 1 }],
+        },
+        {
+          lineId: 'o-38-line-1',
+          sellable: 1,
+          damaged: 1,
+          serials: { sellable: [IMEIS[0]], damaged: [IMEIS[1]] },
+        },
+      ],
+    },
+  ]);
+  await expect(page.getByText('3 items taken back')).toBeVisible();
+});
+
+test('Record payment by bKash, no more than is due; a mistaken one is voided and stays struck through', async ({
+  page,
+}) => {
+  const log = await open(page, '/orders/o-44');
+  await main(page).getByRole('button', { name: 'Record payment' }).click();
+  const pay = sheet(page, 'Record a payment');
+  await pay.getByRole('button', { name: 'bKash' }).click();
+  await expect(pay).toContainText('৳3,780 is due. More than that is refused.');
+  await pay.getByLabel('Amount').fill('5000');
+  await pay.getByLabel('Sent from').fill('1819 876 543');
+  await pay.getByLabel('TrxID').fill('9F2KQ7M1');
+  await expect(pay.getByRole('button', { name: 'Save' })).toBeDisabled();
+  await pay.getByLabel('Amount').fill('500');
+  await expectAccessible(page);
+  await pay.getByRole('button', { name: 'Save' }).click();
+  await expect(page.getByText('৳500 bKash recorded')).toBeVisible();
+  expect(sent(log, 'POST', '/orders/o-44/payments')).toEqual([
+    {
+      method: 'bkash',
+      amount: '500.00',
+      senderNumber: '+8801819876543',
+      transactionId: '9F2KQ7M1',
+    },
+  ]);
+  await expect(main(page)).toContainText('৳500 · TrxID 9F2KQ7M1');
+
+  await main(page).getByRole('button', { name: 'Void' }).click();
+  const voiding = sheet(page, 'Void this payment?');
+  await expect(voiding.getByRole('button', { name: 'Void' })).toBeDisabled();
+  await voiding.getByLabel('Why you void it').fill('The wrong TrxID was typed');
+  await voiding.getByRole('button', { name: 'Void' }).click();
+  expect(sent(log, 'POST', '/orders/o-44/payments/o-44-pay-0/void')).toEqual([
+    { reason: 'The wrong TrxID was typed' },
+  ]);
+  await expect(main(page)).toContainText('Voided: The wrong TrxID was typed');
+  await expect(main(page).getByRole('button', { name: 'Void' })).toHaveCount(0);
+});
+
+test('Print label: 3 × 3 with the items, 2 × 3 without, the size kept for next time', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    (window as unknown as { printed: number }).printed = 0;
+    window.print = () => {
+      (window as unknown as { printed: number }).printed += 1;
+    };
+  });
+  await open(page, '/orders/o-47');
+  await fromMenu(page, 'Print label');
+  const print = sheet(page, 'Print label');
+  await expect(print.getByRole('radio', { name: '3 × 3 in' })).toHaveAttribute(
+    'aria-checked',
+    'true',
+  );
+  await expect(print).toContainText('#261031-0047');
+  await expect(print).toContainText('COD ৳3,470');
+  await expect(print).toContainText('2 items: Cotton T-shirt ×2, Eid combo ×1');
+  await expect(print.getByRole('img', { name: '261031-0047' })).toBeVisible();
+  await print.getByRole('radio', { name: '2 × 3 in' }).click();
+  await expect(print).not.toContainText('2 items:');
+  await print.getByRole('button', { name: 'Print', exact: true }).click();
+  expect(await page.evaluate(() => (window as unknown as { printed: number }).printed)).toBe(1);
+  await print.getByRole('button', { name: 'Close' }).click();
+  await fromMenu(page, 'Print label');
+  await expect(sheet(page, 'Print label').getByRole('radio', { name: '2 × 3 in' })).toHaveAttribute(
+    'aria-checked',
+    'true',
+  );
+});
+
+test("orders picked in the list print their labels together, the list's only bulk action", async ({
+  page,
+}) => {
+  await open(page, '/orders?tab=all');
+  await main(page).getByRole('button', { name: 'Select' }).click();
+  await expect(main(page)).toContainText('0 selected');
+  await main(page).getByRole('checkbox', { name: '#261031-0047' }).check();
+  await main(page).getByRole('checkbox', { name: '#261031-0044' }).check();
+  await expect(main(page)).toContainText('2 selected');
+  await expectAccessible(page);
+  await main(page).getByRole('button', { name: 'Print 2 labels' }).click();
+  const print = sheet(page, 'Print label');
+  await expect(print.getByRole('img', { name: /^2610/ })).toHaveCount(2);
+  await expect(print.getByRole('button', { name: 'Print 2 labels' })).toBeEnabled();
+  await print.getByRole('button', { name: 'Close' }).click();
+  await main(page).getByRole('button', { name: 'Cancel' }).click();
+  await expect(row(page, '261031-0047')).toBeVisible();
+});
+
+test('a counter order with an IMEI is handed over with the serial of each unit', async ({
+  page,
+}) => {
+  const log = await open(
+    page,
+    '/orders/o-45',
+    day((orders) => {
+      order(orders, 'o-45').items = [
+        {
+          name: ['স্মার্ট ওয়াচ', 'Smart watch'],
+          quantity: 1,
+          unitPrice: 650,
+          serials: { inStock: [...IMEIS], sent: [] },
+        },
+      ];
+    }),
+  );
+  await main(page).getByRole('button', { name: 'Hand over' }).click();
+  const hand = sheet(page, 'Hand over');
+  await expect(hand).toContainText(
+    'Take ৳650 in cash, and pick the IMEI of each unit you hand over.',
+  );
+  await expect(hand.getByRole('button', { name: 'Hand over' })).toBeDisabled();
+  await hand.getByRole('button', { name: IMEIS[1] }).click();
+  await hand.getByRole('button', { name: 'Hand over' }).click();
+  expect(sent(log, 'POST', '/orders/o-45/hand-over')).toEqual([
+    { serials: [{ lineId: 'o-45-line-0', serials: [IMEIS[1]] }] },
+  ]);
+  await expect(page.getByText('Delivered · ৳650 Cash')).toBeVisible();
 });

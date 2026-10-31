@@ -243,6 +243,14 @@ const ICONS = {
       <path d="M18.4 6.6a9 9 0 1 1-12.77.04" />
     </>
   ),
+  // Part 29's printer: thermal labels (Slice 4.8a).
+  printer: (
+    <>
+      <path d="M6 9V3h12v6" />
+      <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+      <path d="M6 14h12v7H6z" />
+    </>
+  ),
   refresh: (
     <>
       <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />

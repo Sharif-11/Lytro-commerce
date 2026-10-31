@@ -7,10 +7,10 @@ import { formatTaka, formatTakaExact } from '@lytronix/ui';
 import { ADDONS_QUERY_KEY, usePurchaseAddon, useQuoteAddon } from '@/api/addons';
 import { useBalance } from '@/api/balance';
 import { usePlatformWallets } from '@/api/billing';
-import { Icon } from '@/components/icon';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Kv, RadioMark } from '@/components/ui/kv';
+import { Quantity } from '@/components/ui/quantity';
 import { Sheet } from '@/components/ui/sheet';
 import { Switch } from '@/components/ui/switch';
 import { WalletMarks } from '@/components/wallet-marks';
@@ -23,50 +23,6 @@ import type { AddonOffer, AddonQuote } from '@/types/addons';
 import type { UsageFigure } from '@/types/usage';
 import { changedAmount } from '@/views/plan/words';
 import { boughtToast, limitChange, limitMove, nameOf } from './addon-words';
-
-/** The sketch's `.qty`: one less, how many, one more, within what one request buys. */
-function Quantity({
-  value,
-  most,
-  label,
-  onChange,
-}: {
-  value: number;
-  most: number;
-  label: string;
-  onChange: (value: number) => void;
-}): React.JSX.Element {
-  const step = 'flex size-10 items-center justify-center bg-white text-primary disabled:opacity-40';
-  return (
-    <span className="inline-flex flex-none items-center overflow-hidden rounded-[8px] border border-line-strong">
-      <button
-        type="button"
-        className={step}
-        aria-label={`${label} −`}
-        disabled={value <= 1}
-        onClick={() => {
-          onChange(value - 1);
-        }}
-      >
-        <Icon name="minus" />
-      </button>
-      <span className="num w-10 text-center text-[16px] font-semibold" aria-live="polite">
-        {value}
-      </span>
-      <button
-        type="button"
-        className={step}
-        aria-label={`${label} +`}
-        disabled={value >= most}
-        onClick={() => {
-          onChange(value + 1);
-        }}
-      >
-        <Icon name="plus" />
-      </button>
-    </span>
-  );
-}
 
 interface BuySheetProps {
   /** The add-on, as GET /addons prices it now. */

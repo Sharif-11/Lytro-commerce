@@ -2,6 +2,7 @@ import {
   keepPreviousData,
   useInfiniteQuery,
   useMutation,
+  useQueries,
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
@@ -9,10 +10,11 @@ import {
   OrderStatus,
   type CallOutcome,
   type CancelReason,
+  type PaymentMethod,
   type StatusOverride,
 } from '@lytronix/validators';
 import { tenantSession } from '@/session/tenant-session';
-import type { Order, OrderPage } from '@/types/orders';
+import type { Order, OrderPage, OrderSerialItem } from '@/types/orders';
 import { PRODUCTS_QUERY_KEY } from './catalogue';
 import { HOME_QUERY_KEY } from './home';
 
@@ -99,6 +101,17 @@ export function useOrder(id: string | null) {
   });
 }
 
+/** Several orders in full, for their labels (the list's selected orders, ORD-19 amended): each as GET /orders/:id. */
+export function useOrdersById(ids: readonly string[], options: { enabled?: boolean } = {}) {
+  return useQueries({
+    queries: ids.map((id) => ({
+      queryKey: [...ORDERS_QUERY_KEY, id],
+      queryFn: () => tenantSession.client.get<Order>(`/orders/${id}`),
+      enabled: options.enabled ?? true,
+    })),
+  });
+}
+
 /** After a change: the order as it now is, the lists and counts, Home, and the stock when it moved. */
 function useOrderChanged(stock: boolean): (order?: Order) => void {
   const queryClient = useQueryClient();
@@ -170,12 +183,108 @@ export function useDeliver(id: string) {
   });
 }
 
+/** The serials a serial-numbered line, or a combo's component (by its variant), is sent with (INV-14). */
+export interface SentSerials {
+  lineId: string;
+  variantId?: string;
+  serials: string[];
+}
+
 /** POST /orders/:id/hand-over: a takeaway or dine-in order given over, delivered and paid in one step. */
 export function useHandOver(id: string) {
   const changed = useOrderChanged(true);
   return useMutation({
-    mutationFn: (body: { serials?: { lineId: string; serials: string[] }[] } = {}) =>
+    mutationFn: (body: { serials?: SentSerials[] } = {}) =>
       tenantSession.client.post<Order>(`/orders/${id}/hand-over`, body),
+    onSuccess: changed,
+  });
+}
+
+/** GET /orders/couriers (ORD-09): the couriers the shop has shipped with, the most recent first, for the chips. */
+export function useCouriers(options: { enabled?: boolean } = {}) {
+  return useQuery({
+    queryKey: [...ORDERS_QUERY_KEY, 'couriers'],
+    queryFn: () => tenantSession.client.get<{ couriers: string[] }>('/orders/couriers'),
+    select: (found) => found.couriers,
+    enabled: options.enabled ?? true,
+  });
+}
+
+/** GET /orders/:id/serials (INV-14): the order's serial-numbered units, to send or that were sent. */
+export function useOrderSerials(id: string, options: { enabled?: boolean } = {}) {
+  return useQuery({
+    queryKey: [...ORDERS_QUERY_KEY, id, 'serials'],
+    queryFn: () => tenantSession.client.get<{ items: OrderSerialItem[] }>(`/orders/${id}/serials`),
+    select: (found) => found.items,
+    enabled: options.enabled ?? true,
+  });
+}
+
+/** What Mark shipped sends (ORD-09): the courier, a tracking code or link, and each serial-numbered unit's serial. */
+export interface ShipBody {
+  courierName: string;
+  trackingCode?: string;
+  trackingLink?: string;
+  serials?: SentSerials[];
+}
+
+/** POST /orders/:id/ship (ORD-09, QTA-01): sent with a courier; its stock leaves, and it is handled. */
+export function useShip(id: string) {
+  const changed = useOrderChanged(true);
+  return useMutation({
+    mutationFn: (body: ShipBody) => tenantSession.client.post<Order>(`/orders/${id}/ship`, body),
+    onSuccess: changed,
+  });
+}
+
+/** One item coming back (ORD-10, INV-17): its units sellable and damaged; a combo whole, its damaged parts named. */
+export interface ReturnedItem {
+  lineId: string;
+  sellable: number;
+  damaged: number;
+  serials?: { sellable: string[]; damaged: string[] };
+  /** A combo's damaged component, in its own units, with its serials when it has them (CMB-05). */
+  components?: {
+    variantId: string;
+    damaged: number;
+    serials?: { sellable: string[]; damaged: string[] };
+  }[];
+}
+
+/** POST /orders/:id/returns (ORD-10): units back, sellable into stock and damaged written off. */
+export function useReturnItems(id: string) {
+  const changed = useOrderChanged(true);
+  return useMutation({
+    mutationFn: (body: { items: ReturnedItem[]; note?: string }) =>
+      tenantSession.client.post<Order>(`/orders/${id}/returns`, body),
+    onSuccess: changed,
+  });
+}
+
+/** What Record a payment sends (ORD-15, ORD-22): how it came, the amount, and the wallet's or bank's details. */
+export interface PaymentBody {
+  method: PaymentMethod;
+  amount: string;
+  senderNumber?: string;
+  transactionId?: string;
+}
+
+/** POST /orders/:id/payments (ORD-15): money received for the order, verified at once. */
+export function useRecordPayment(id: string) {
+  const changed = useOrderChanged(false);
+  return useMutation({
+    mutationFn: (body: PaymentBody) =>
+      tenantSession.client.post<Order>(`/orders/${id}/payments`, body),
+    onSuccess: changed,
+  });
+}
+
+/** POST /orders/:id/payments/:paymentId/void: a payment recorded by mistake, kept struck through. */
+export function useVoidPayment(id: string) {
+  const changed = useOrderChanged(false);
+  return useMutation({
+    mutationFn: ({ paymentId, reason }: { paymentId: string; reason: string }) =>
+      tenantSession.client.post<Order>(`/orders/${id}/payments/${paymentId}/void`, { reason }),
     onSuccess: changed,
   });
 }

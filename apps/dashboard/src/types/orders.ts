@@ -9,6 +9,7 @@ import type {
   OrderSource,
   OrderStatus,
   PaymentMethod,
+  SerialFormat,
   StatusOverride,
   StockUnit,
 } from '@lytronix/validators';
@@ -115,6 +116,21 @@ export interface OrderItem {
   taxRate: string | null;
   taxAmount: string;
   components: OrderComponent[];
+  /** ORD-10: the units back; a combo line counts its combos. */
+  returnedQuantity: string;
+}
+
+/** INV-14: one serial-numbered part of an order (GET /orders/:id/serials), a line or a combo's component. */
+export interface OrderSerialItem {
+  lineId: string;
+  variantId: string;
+  productName: string;
+  quantity: string;
+  serialFormat: SerialFormat;
+  /** While the order waits: the serials it can be sent with. */
+  inStock: string[];
+  /** Once it has gone: the serials it was sent with, not back yet. */
+  sent: string[];
 }
 
 /** Mirrors `OrderCallView` (ORD-51). */

@@ -315,12 +315,44 @@ describeIfDatabase(
       const order = await place(shop, phone.variantId, 1);
       expect((await ship(shop, order)).status).toBe(409);
       const [line] = order.items;
+      // Slice 4.8a: the ship sheet's choice, the serials the phone holds.
+      type Serials = {
+        items: { lineId: string; variantId: string; inStock: string[]; sent: string[] }[];
+      };
+      const serials = async (of = shop) =>
+        (await of.get(`/orders/${order.id}/serials`)) as { status: number; body: Serials };
+      const waiting = (await serials()).body.items;
+      expect(waiting).toHaveLength(1);
+      expect(waiting[0]).toMatchObject({
+        lineId: line?.id,
+        variantId: phone.variantId,
+        productName: 'Phone',
+        quantity: '1.000',
+        serialFormat: 'any',
+        sent: [],
+      });
+      expect([...(waiting[0]?.inStock ?? [])].sort()).toEqual(['SN-A', 'SN-B']);
+      expect((await serials(await openShop(port, texts, 'ful'))).status).toBe(404);
       await shipped(shop, order, { serials: [{ lineId: line?.id, serials: ['SN-B'] }] });
       const sold = await admin.query<{ serial: string; sold_order_id: string }>(
         `SELECT serial, sold_order_id FROM tenant.serial_numbers WHERE tenant_id = $1 AND status = 'sold'`,
         [shop.tenantId],
       );
       expect(sold.rows).toEqual([{ serial: 'SN-B', sold_order_id: order.id }]);
+      // Gone: the return sheet's choice, the serial it was sent with -- until it comes back.
+      expect((await serials()).body.items[0]).toMatchObject({ inStock: [], sent: ['SN-B'] });
+      const back = await shop.post(`/orders/${order.id}/returns`, {
+        items: [
+          {
+            lineId: line?.id,
+            sellable: 1,
+            damaged: 0,
+            serials: { sellable: ['SN-B'], damaged: [] },
+          },
+        ],
+      });
+      expect(back.status, JSON.stringify(back.body)).toBe(200);
+      expect((await serials()).body.items[0]).toMatchObject({ inStock: [], sent: [] });
     });
   },
 );
@@ -337,6 +369,11 @@ describeIfDatabase('returns, item by item (ORD-10, INV-17)', () => {
     });
     expect(first.status, JSON.stringify(first.body)).toBe(200);
     expect(first.body).toMatchObject({ fulfillmentStatus: 'delivered', status: 'delivered' });
+    // Slice 4.8a: the item says how many came back; a lamp is no serial-numbered unit.
+    expect(
+      (first.body as { items: { returnedQuantity: string }[] }).items[0]?.returnedQuantity,
+    ).toBe('1.000');
+    expect((await shop.get(`/orders/${order.id}/serials`)).body).toEqual({ items: [] });
     expect(await onHand(shop, lamp.id)).toEqual({ onHand: '4.000', reserved: '0.000' });
     const tooMany = await shop.post(`/orders/${order.id}/returns`, {
       items: [{ lineId: line?.id, sellable: 1, damaged: 1 }],

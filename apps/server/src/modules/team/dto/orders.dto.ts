@@ -26,6 +26,7 @@ import {
   StockUnit,
   updateOrderSchema,
   voidPaymentSchema,
+  SerialFormat,
 } from '@lytronix/validators';
 
 // DTO classes built from the shared schemas, so each request shape is written once (ENGINEERING §4).
@@ -109,6 +110,8 @@ const orderItemSchema = z.object({
   taxRate: z.string().nullable(),
   taxAmount: z.string(),
   modifiers: z.array(modifierSnapshotSchema),
+  // ORD-10 (Slice 4.8a): the units back; a combo line counts its combos.
+  returnedQuantity: z.string(),
   // CMB-04: a combo line's components as ordered; empty for any other line.
   components: z.array(
     z.object({
@@ -225,6 +228,23 @@ export class OrderViewDto extends createZodDto(orderViewSchema) {}
 
 // ORD-09 (Slice 4.8a): the couriers the shop has shipped with, the most recent first.
 export class RecentCouriersDto extends createZodDto(z.object({ couriers: z.array(z.string()) })) {}
+
+// INV-14 (Slice 4.8a): an order's serial-numbered units, for its ship, hand-over and return sheets.
+export class OrderSerialsDto extends createZodDto(
+  z.object({
+    items: z.array(
+      z.object({
+        lineId: z.string(),
+        variantId: z.string(),
+        productName: z.string(),
+        quantity: z.string(),
+        serialFormat: z.nativeEnum(SerialFormat),
+        inStock: z.array(z.string()),
+        sent: z.array(z.string()),
+      }),
+    ),
+  }),
+) {}
 
 const orderPageSchema = z.object({
   orders: z.array(
