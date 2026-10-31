@@ -144,6 +144,10 @@ export enum Permission {
   WebhooksManage = 'webhooks:manage',
 }
 
+// WAL-07, STF-07 (amended 2026-10-31, Phase 5 Slice 5.1): permissions only the owner holds, never put in a staff role --
+// changing the accounts shoppers pay into would let a staff member swap in their own number.
+export const OWNER_ONLY_PERMISSIONS: readonly Permission[] = [Permission.WalletsManage];
+
 // The actions the activity log records (AUD-01). Add a name here before any code writes it; the action codes are
 // never translated. Each slice that adds an audited action extends this list, never a second one.
 export enum AuditAction {
@@ -325,6 +329,8 @@ export enum AuditAction {
   // Phase 4 Slice 4.6a: a tax class named, renamed or re-rated, or made the default; and one deleted (TAX-01).
   TaxClassSaved = 'tax_class_saved',
   TaxClassDeleted = 'tax_class_deleted',
+  // Phase 5 Slice 5.1: a payment method's accounts saved, or the method switched on or off (WAL-01 to WAL-07).
+  PaymentMethodSaved = 'payment_method_saved',
 }
 
 // FED-02: what a product is, for Meta's catalog: new unless the shop says otherwise.
@@ -1146,6 +1152,29 @@ export enum PaymentMethod {
   Rocket = 'rocket',
   Upay = 'upay',
   Bank = 'bank',
+}
+
+// WAL-18 (Phase 5 Slice 5.1): a payment method type's kind -- a mobile wallet's number, or a bank account's details
+// (WAL-14).
+export enum PaymentMethodKind {
+  Wallet = 'wallet',
+  Bank = 'bank',
+}
+
+// WAL-01: what kind of account a wallet number is, which decides how a shopper pays it (PAY-05): Send Money to a
+// personal number, Cash Out to an agent's, Payment to a merchant's.
+export enum WalletAccountType {
+  Personal = 'personal',
+  Agent = 'agent',
+  Merchant = 'merchant',
+}
+
+// VER-01 to VER-12: how a payment is verified -- by staff, by a paired listener phone reading the receipt SMS, or by
+// the wallet's own gateway.
+export enum VerificationLevel {
+  Manual = 'manual',
+  Listener = 'listener',
+  Gateway = 'gateway',
 }
 
 // STA-01, STA-03 (Slice 4.7): how a period's sales figures are split. A week runs Saturday to Friday (agreed 2026-10-30).

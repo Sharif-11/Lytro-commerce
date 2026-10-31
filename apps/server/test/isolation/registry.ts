@@ -307,4 +307,9 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'POST /orders/:id/payments/:paymentId/void':
     "another shop's order or payment answers 404 and the payment stays live",
   'DELETE /orders/:id': "another shop's order answers 404 and is kept",
+  // Phase 5 Slice 5.1, checked in test/payment-methods.e2e.spec.ts: a shop's payment accounts are its own.
+  'GET /payment-methods': "lists only the session shop's own accounts",
+  'PUT /payment-methods/:method':
+    "another shop's account answers not_found and stays; the same number is still free here",
+  'GET /public/payment-methods': "shows only the key's own shop's active accounts",
 };

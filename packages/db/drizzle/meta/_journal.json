@@ -659,6 +659,13 @@
       "when": 1793380946180,
       "tag": "0093_modifiers",
       "breakpoints": true
+    },
+    {
+      "idx": 94,
+      "version": "7",
+      "when": 1793434835400,
+      "tag": "0094_payment_methods",
+      "breakpoints": true
     }
   ]
 }

@@ -16,6 +16,7 @@ import {
   DrizzleApiUsageStore,
 } from '../../database/adapters/public-api.adapter';
 import { BrandModule } from '../brand/brand.module';
+import { PaymentMethodsModule } from '../payment-methods/payment-methods.module';
 import { DomainsModule } from '../domains/domains.module';
 import { CatalogueModule } from '../catalogue/catalogue.module';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
@@ -49,6 +50,7 @@ import { QueueModule } from '../shared/queue/queue.module';
 import { PublicDeliveryController } from './controllers/public-delivery.controller';
 import { PublicOrdersController } from './controllers/public-orders.controller';
 import { PublicShopperController } from './controllers/public-shopper.controller';
+import { PublicPaymentMethodsController } from './controllers/public-payment-methods.controller';
 import { StorefrontContextController } from './controllers/storefront-context.controller';
 import { GraphMetaConversions } from './services/graph-meta-conversions';
 import { MetaPurchaseSender } from './services/meta-purchase-sender';
@@ -89,6 +91,7 @@ import {
     PlatformSettingsModule,
     UsageWarningsModule,
     BrandModule,
+    PaymentMethodsModule,
     // Slice 13: the storefront's context and the catalog feed name the shop's own domain while it serves.
     DomainsModule,
     // Slice 4.4b: shoppers' accounts, sign-in and saved addresses.
@@ -102,6 +105,7 @@ import {
     PublicDeliveryController,
     PublicOrdersController,
     PublicShopperController,
+    PublicPaymentMethodsController,
   ],
   providers: [
     { provide: API_KEY_STORE, useClass: DrizzleApiKeyStore },

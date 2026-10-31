@@ -5,6 +5,7 @@ import {
   AuditAction,
   AuditResult,
   limitOf,
+  OWNER_ONLY_PERMISSIONS,
   type PlanLimits,
   ServerFieldProblemCode,
   UsageMetric,
@@ -142,7 +143,11 @@ export class StaffService {
     return this.store.run(tenant.id, async (tx) => {
       const member = await this.store.findStaff(tx, tenant.id, userId);
       if (!member || !member.active) return null;
-      return this.roles.permissionsOf(tx, tenant.id, userId);
+      // WAL-07, STF-07 (amended 2026-10-31): a role never holds the owner's own permissions, whatever it stores.
+      const held = await this.roles.permissionsOf(tx, tenant.id, userId);
+      return held.filter(
+        (permission) => !(OWNER_ONLY_PERMISSIONS as readonly string[]).includes(permission),
+      );
     });
   }
 

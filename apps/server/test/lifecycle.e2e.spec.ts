@@ -696,6 +696,16 @@ describeIfDatabase('LIF-19: day-60 business-data deletion', () => {
          now() + interval '1 day')`,
       [tenantId],
     );
+    // WAL-01, WAL-05 (Phase 5 Slice 5.1): a payment account and a method switched off go with the rest.
+    await admin.query(
+      `INSERT INTO tenant.wallet_accounts (tenant_id, method, account_name, number, account_type, position)
+       VALUES ($1, 'bkash', 'Owner', '01711000000', 'personal', 0)`,
+      [tenantId],
+    );
+    await admin.query(
+      "INSERT INTO tenant.payment_methods_off (tenant_id, method) VALUES ($1, 'nagad')",
+      [tenantId],
+    );
     const platformBefore = await admin.query<{ total: number }>(
       'SELECT count(*)::int AS total FROM tenant.attributes WHERE tenant_id IS NULL',
     );

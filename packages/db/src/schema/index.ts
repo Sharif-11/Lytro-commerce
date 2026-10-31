@@ -37,6 +37,7 @@ export * from './tenant/purchasing';
 export * from './tenant/customers';
 export * from './tenant/shoppers';
 export * from './tenant/orders';
+export * from './tenant/payment-methods';
 export * from './tenant/media';
 export * from './tenant/brand';
 export * from './control/api-keys';

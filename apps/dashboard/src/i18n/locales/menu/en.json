@@ -60,6 +60,7 @@
     "pay_as_you_go_applied": "The shop moved to pay-as-you-go",
     "pay_as_you_go_cancelled": "{{actor}} cancelled the switch to pay-as-you-go",
     "pay_as_you_go_scheduled": "{{actor}} scheduled the switch to pay-as-you-go",
+    "payment_method_saved": "{{actor}} changed a payment method",
     "plan_assigned": "The shop was put on a plan",
     "plan_limit_override_removed": "Lytro support removed a limit it had set",
     "plan_limit_override_set": "Lytro support set a limit for the shop",

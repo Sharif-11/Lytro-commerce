@@ -8,6 +8,7 @@ import { OperatorModule } from '../operator/operator.module';
 import { BalanceModule } from '../balance/balance.module';
 import { BillingModule } from '../billing/billing.module';
 import { BrandModule } from '../brand/brand.module';
+import { PaymentMethodsModule } from '../payment-methods/payment-methods.module';
 import { DomainsModule } from '../domains/domains.module';
 import { PaymentsModule } from '../payments/payments.module';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
@@ -59,6 +60,7 @@ import { OrdersController } from './controllers/orders.controller';
 import { CustomersController } from './controllers/customers.controller';
 import { SalesController } from './controllers/sales.controller';
 import { TaxClassesController } from './controllers/tax-classes.controller';
+import { PaymentMethodsController } from './controllers/payment-methods.controller';
 import { CustomersModule } from '../customers/customers.module';
 import { ShoppersModule } from '../shoppers/shoppers.module';
 import { MediaModule } from '../media/media.module';
@@ -121,6 +123,7 @@ import { CatalogueRequest } from './services/catalogue-request';
     MediaModule,
     UsageModule,
     BrandModule,
+    PaymentMethodsModule,
     DomainsModule,
   ],
   controllers: [
@@ -172,6 +175,7 @@ import { CatalogueRequest } from './services/catalogue-request';
     OrdersController,
     CustomersController,
     TaxClassesController,
+    PaymentMethodsController,
     SalesController,
     MediaController,
     UsageController,

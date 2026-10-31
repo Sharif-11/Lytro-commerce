@@ -280,6 +280,10 @@ export {
   type NewModifierGroup,
 } from './repositories/catalogue/modifier.repository';
 export {
+  PaymentMethodRepository,
+  type NewPaymentAccount,
+} from './repositories/payments/payment-method.repository';
+export {
   ShopperRepository,
   type NewShopperAddress,
   type ShopperPatch,
