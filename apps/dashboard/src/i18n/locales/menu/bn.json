@@ -60,6 +60,7 @@
     "pay_as_you_go_applied": "শপ পে-অ্যাজ-ইউ-গো-তে গেছে",
     "pay_as_you_go_cancelled": "{{actor}} পে-অ্যাজ-ইউ-গো-তে যাওয়া ক্যানসেল করেছেন",
     "pay_as_you_go_scheduled": "{{actor}} পে-অ্যাজ-ইউ-গো-তে যাওয়া ঠিক করেছেন",
+    "payment_method_saved": "{{actor}} পেমেন্ট মেথড বদলেছেন",
     "plan_assigned": "শপের প্ল্যান সেট করা হয়েছে",
     "plan_limit_override_removed": "Lytro সাপোর্ট একটা লিমিট আগের মতো করেছে",
     "plan_limit_override_set": "Lytro সাপোর্ট একটা লিমিট বদলেছে",

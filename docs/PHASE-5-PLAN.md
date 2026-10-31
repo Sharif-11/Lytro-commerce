@@ -3,7 +3,8 @@
 Status: agreed 2026-10-31 — the decisions in §2 were settled in the Phase 5 read the same day. Builds on
 `IMPLEMENTATION-PLAN.md` Phase 5, with these changes agreed before this plan was written:
 
-- **Built after Phase 4's screens.** The plan is written now; building starts once Slice 4.8 is built (D5-1).
+- **Built after Phase 4's screens.** The plan is written now; building starts once Slice 4.8 is built (D5-1). Amended
+  2026-10-31: the backend slices start now, beside Slice 4.8; the screens (Slice 5.8) still wait.
 - **Three verification levels, one after another:** verification by hand first, usable on its own, then the SMS
   listener, then bKash's gateway (D5-2). Checkpoint 5A comes after verification by hand.
 - **Lytro's own payments** (plans, add-ons, top-ups) move onto the payment page with the listener (D5-3).
@@ -65,7 +66,7 @@ free. Lytro's own payments from sellers use the same page and the same listener.
 
 | # | Decision | Decided | Affects |
 |---|---|---|---|
-| D5-1 | **When.** Phase 4's screens (Slice 4.8) are being built. | The plan is written now; building starts once Slice 4.8 is built (the owner's pick over starting beside it). | Planning |
+| D5-1 | **When.** Phase 4's screens (Slice 4.8) are being built. | The plan is written now; building starts once Slice 4.8 is built (the owner's pick over starting beside it). **Amended 2026-10-31** (the owner's "can we start phase 5 now?"): the backend slices (5.1 – 5.7) start now, beside Slice 4.8, as Phase 4's did beside Slice 11; Slice 5.8's screens still wait. | Planning |
 | D5-2 | **The order of the verification levels.** VER-01 (by hand), the listener (VER-02 – 07, LSN) and the gateway (VER-08 – 11) each stand alone (WAL-19). | By hand first (Slices 5.1 – 5.3), usable on its own, then checkpoint 5A; then the listener (5.4, 5.5); then bKash's gateway (5.7). Most sellers take money on personal bKash numbers, which only the listener can verify on its own. | Slices 5.1 – 5.7 |
 | D5-3 | **Lytro's own payments** (plans, add-ons, top-ups). Sellers send money to Lytro's wallet and type the transaction ID in the dashboard, and the operator approves each one (D2-1); PAY-21 puts them on the same engine as shoppers'. | They move onto the payment page with the listener (Slice 5.6), Lytro's own listener phone verifying them; until then today's wallet step and the operator's queue stay. `control.plan_payments` stays their record, each linked to its session. A gateway for Lytro's own payments (ADM-10) may come later (the owner's "we may have automated checkout in future"). | Slice 5.6 |
 | D5-4 | **An advance nobody paid.** PAY-03's session lasts 30 minutes and INV-16's stock hold with it; ORD-08 sends an order with a rejected payment to `rejected`. | Cancelled automatically (the owner's pick over leaving it to staff): when the window ends with no transaction ID typed, the order is cancelled with a new reason, "advance not paid" (ORD-52), its session expired and its stock released, in one transaction. A payment staff reject cancels the order the same way. Money that turns up later -- a receipt or a transaction ID for a cancelled order -- goes to staff review and never reopens the order on its own. §2.3.1, ORD-08, ORD-52, PAY-14 and INV-16 amended. | Slice 5.3 |
@@ -73,7 +74,7 @@ free. Lytro's own payments from sellers use the same page and the same listener.
 | D5-6 | **Wallets for manual payment.** WAL-01 lists bKash, Nagad and Rocket; the payment page design, ORD-15 and the payment methods already built include Upay. | bKash, Nagad, Rocket and Upay (wallet kind) and bank transfer (bank kind). WAL-01 amended. The listener reads bKash's receipts first, and the others once real samples arrive (LSN-06). | Slices 5.1, 5.4 |
 | D5-7 | **Gateways.** | bKash's tokenized checkout only; Nagad's later (OD-07). Lytro applies for bKash's sandbox early enough for Slice 5.7. | Slice 5.7 |
 | D5-8 | **Moved out of this phase.** PAY-09 – 12 (signed webhooks, their retries, the secret-key read and cancel) are must-haves, but webhooks and secret keys are Phase 8 (D4-5). | They go to Phase 8, with the shop API. Phase 5 serves Lytro's own storefront, landing pages and staff, which read a session's state from the server. | Scope |
-| D5-9 | **A prepaid order's flow** (agreed in Phase 4's read, D4-3). | Unverified until its payment is verified, then New (`pending`) and the usual confirming call (ORD-51). An order waiting on its advance is not confirmed or shipped. | Slice 5.3 |
+| D5-9 | **A prepaid order's flow** (agreed in Phase 4's read, D4-3). | Unverified until its payment is verified, then New (`pending`) and the usual confirming call (ORD-51). An order waiting on its advance is not confirmed or shipped (agreed 2026-10-31 in Slice 5.1's read); staff who received the money another way record it (ORD-22), which verifies it. | Slice 5.3 |
 
 ### 2.1 Points left to each slice's read
 
@@ -81,7 +82,7 @@ Each is settled in its slice's read, before code, and recorded there.
 
 | Slice | To settle |
 |---|---|
-| 5.1 | The Upay and bank field shapes; who may see and change payment methods (`wallets:read`, `wallets:manage`); how an owner who signed up without a phone verifies one, since the page needs a verified owner phone (TVR-01). |
+| 5.1 | Settled in its read, 2026-10-31 (below). |
 | 5.2 | Where sessions, wallet accounts and verification live (a new module, or `orders`, which records shop payments today, D4-6); the session ID's form (PAY-23's 128 random bits); the session limits per plan (RTE-08, RTE-09, KNOWN-GAPS §19, the pay-as-you-go figure); PAY-02's cap; whether staff may send a shopper a payment link for an order taken by message. |
 | 5.3 | When Meta's `Purchase` is sent for a prepaid order (on placing or on payment); refunds recorded (PAY-20, ORD-44) and proof images (PAY-18), in or deferred; the new-tenant volume limit's default (TVR-04 says off, §2.1 on for pay-as-you-go). |
 | 5.4 | The listener's should-haves (LSN-04, 05, 14, 17); devices and uploads for a pay-as-you-go shop (LSN-07 and LSN-08 name only trial, active and grace); a listener match whose fee the balance cannot cover (WAL-21: free review). |
@@ -228,7 +229,19 @@ Every route lands in `API-CONTRACT.md` with its slice; the isolation registry ga
   `IMPLEMENTATION-PLAN.md` Phase 5 brought in line. Docs only.
 
 ### Slice 5.1: payment methods and accounts
-- **Depends on:** Slice 4.8 (D5-1).
+- **Depends on:** this plan (D5-1 amended).
+- **Read agreed 2026-10-31:** only the owner changes the accounts shoppers pay into -- `wallets:manage` is never held by a
+  staff role, so no staff member can put their own number there; staff with `wallets:read` see them (WAL-07, STF-07
+  amended); every owner verifies a phone at sign-up, whatever they signed up with, its code paid by Lytro (the owner's
+  pick over asking on the payment methods page; TVR-01, AUTH-28 amended), built with the screens in Slice 5.8, server
+  and screen together; until then a shop whose owner has no verified phone shows shoppers no payment method. Also
+  settled, for Slice 5.3: an order waiting on its advance is not confirmed or shipped (D5-9). Settled building: the
+  accounts use the order payments' method keys (`bkash`, `nagad`, `rocket`, `upay`, `bank`), so a payment and its
+  account agree; a wallet keeps a number and an account type, a bank the WAL-14 details; a method's accounts are saved
+  as one list, an account named by its id kept in place (so a payment that names it still finds it) and two may swap
+  numbers; a method is switched off by a row of its own; Rocket's numbers may carry a twelfth digit; the activity log
+  names the active account's number; staff refused a change are told it is the owner's alone; shoppers' list is never
+  cached.
 - **Delivers:** the method types as a registry (WAL-18); wallet and bank accounts, one active per type, nothing
   activated on its own, a type switched off (WAL-01 – 07, WAL-14 – 17); the owner's verified phone as the page's
   gate (TVR-01); the accounts in the data export and the day-60 deletion (LIF-16, LIF-19).
@@ -283,6 +296,8 @@ criterion 2 by hand, and 3). If velocity suggests it, the rest can become Phase 
   from `brand/lytro-payment-page.html`; checkout's payment step and its return on the storefront and landing page;
   the dashboard's Payment methods, Payments (to verify, list, CSV), listener pairing and devices; Lytro's own
   payments opening the page; the operator's page reports, suspension, devices and fee rates.
+- **The sign-up phone** (Slice 5.1's read): the step after a Google, Facebook or email sign-up that verifies a phone,
+  sketched with the rest, then server and screen together (AUTH-28 amended).
 - **Builds** them, pixel perfect to the approved sketch.
 
 ---

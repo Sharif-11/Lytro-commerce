@@ -29,6 +29,7 @@ import { PublicApiEraser } from '../../public-api/services/public-api-eraser';
 import { UsageWarnings } from '../../usage-warnings/services/usage-warnings';
 import { MediaEraser } from '../../media/services/media-eraser';
 import { BrandEraser } from '../../brand/services/brand-eraser';
+import { PaymentMethodsEraser } from '../../payment-methods/services/payment-methods-eraser';
 import { DomainEraser } from '../../domains/services/domain-eraser';
 import { DataExportService } from '../../data-export/services/data-export.service';
 import { MailService } from '../../shared/mail/services/mail.service';
@@ -97,6 +98,7 @@ export class LifecycleService {
     @Inject(UsageWarnings) private readonly usageWarnings: UsageWarnings,
     @Inject(MediaEraser) private readonly media: MediaEraser,
     @Inject(BrandEraser) private readonly brand: BrandEraser,
+    @Inject(PaymentMethodsEraser) private readonly paymentMethods: PaymentMethodsEraser,
     @Inject(DomainEraser) private readonly domain: DomainEraser,
     @Inject(DeliveryZoneService) private readonly deliveryZones: DeliveryZoneService,
     @Inject(PurchaseService) private readonly purchase: PurchaseService,
@@ -343,8 +345,8 @@ export class LifecycleService {
     // §106), then products and everything under them, categories, attributes, option sets and the settings
     // row, the brand identity, then its media (the rows now, every stored file under its prefix in the deletion job,
     // MED-09), then the delivery zones those products' limits named, the shop's API keys and request counts, the
-    // record of its usage warnings, and its own domain (Slice 13), freed for anyone to add. Each step is safe to repeat
-    // if a tick stops between them.
+    // record of its usage warnings, its payment accounts (Phase 5 Slice 5.1), and its own domain (Slice 13), freed for
+    // anyone to add. Each step is safe to repeat if a tick stops between them.
     await this.purchasing.deleteAllForTenant(tenantId);
     await this.inventory.deleteAllForTenant(tenantId);
     await this.orders.deleteAllForTenant(tenantId);
@@ -356,6 +358,7 @@ export class LifecycleService {
     await this.deliveryZones.deleteAllForTenant(tenantId);
     await this.publicSide.deleteAllForTenant(tenantId);
     await this.usageWarnings.deleteAllForTenant(tenantId);
+    await this.paymentMethods.deleteAllForTenant(tenantId);
     await this.domain.removeAllForTenant(tenantId, now);
     await this.tenants.runStandalone(async (tx) => {
       await this.tenants.markDeleted(tx, tenantId, now);

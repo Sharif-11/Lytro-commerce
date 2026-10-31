@@ -1788,6 +1788,22 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'With these choices, the price would fall below zero.',
     bn: 'এই চয়েসগুলোতে দাম শূন্যের নিচে নেমে যায়।',
   },
+  PaymentMethodsRetrieved: {
+    en: 'Payment methods retrieved.',
+    bn: 'পেমেন্ট মেথডের তথ্য পাওয়া গেছে।',
+  },
+  PaymentMethodSaved: {
+    en: 'Payment method saved.',
+    bn: 'পেমেন্ট মেথড সেভ হয়েছে।',
+  },
+  PaymentMethodNotFound: {
+    en: "There's no such payment method.",
+    bn: 'এমন কোনো পেমেন্ট মেথড নেই।',
+  },
+  PaymentAccountNotFound: {
+    en: "That account isn't one of this method's.",
+    bn: 'এই অ্যাকাউন্টটি এই মেথডের নয়।',
+  },
 };
 
 export function translate(key: MessageKey, lang: Language, params: MessageParams = {}): string {

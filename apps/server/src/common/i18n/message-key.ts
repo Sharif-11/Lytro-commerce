@@ -587,6 +587,11 @@ export const MESSAGE_KEYS = [
   'ModifierOptionNotFound',
   'ModifierChoiceCount',
   'PriceBelowZero',
+  // Phase 5 Slice 5.1: the shop's payment methods and accounts (WAL-01 to WAL-17).
+  'PaymentMethodsRetrieved',
+  'PaymentMethodSaved',
+  'PaymentMethodNotFound',
+  'PaymentAccountNotFound',
 ] as const;
 
 export type MessageKey = (typeof MESSAGE_KEYS)[number];

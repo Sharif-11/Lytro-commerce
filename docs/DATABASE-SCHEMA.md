@@ -1638,20 +1638,48 @@ The stock held for an order (`stock_reservations.order_id`, `order_line_id`) and
 ### 3.4 Payments, wallets, couriers, balance
 
 ```sql
+-- Built in Phase 5 Slice 5.1 (WAL-01 to WAL-17, agreed 2026-10-31, 0094): the accounts a shop takes money into, keyed
+-- by the order payments' methods (bkash, nagad, rocket, upay, bank). Only the owner changes them (WAL-07). A method's
+-- accounts are saved as one list, an account kept by its id. RLS like every tenant table.
+CREATE TYPE tenant.wallet_account_type AS ENUM ('personal', 'agent', 'merchant');   -- WAL-01, PAY-05's steps
+
 CREATE TABLE tenant.wallet_accounts (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id       uuid NOT NULL,
-    provider        text NOT NULL,                   -- bkash | nagad | rocket | bank_transfer
+    method          tenant.payment_method NOT NULL CHECK (method NOT IN ('cash', 'cash_on_delivery')),
     account_name    varchar(100) NOT NULL,
-    number          varchar(20),                      -- wallet kind
-    bank_details    jsonb,                             -- bank kind (WAL-14)
-    active          boolean NOT NULL DEFAULT false,    -- exactly one active per provider (WAL-03), enforced in app logic
-    gateway_credentials_encrypted bytea,
-    gateway_active  boolean NOT NULL DEFAULT false,
-    note            varchar(500)
+    number          varchar(12),                      -- a wallet's, local form; Rocket's may be 12 digits
+    account_type    tenant.wallet_account_type,       -- a wallet's
+    note            varchar(500),
+    bank_name       varchar(100),                     -- a bank's (WAL-14), with the next five
+    account_number  varchar(100),
+    branch          varchar(100),
+    routing_number  varchar(100),
+    swift_code      varchar(100),
+    instructions    varchar(500),
+    active          boolean NOT NULL DEFAULT false,   -- the one shoppers see (WAL-03, WAL-06)
+    position        smallint NOT NULL,                -- the shop's order, from 0
+    created_at      timestamptz NOT NULL DEFAULT now(),
+    updated_at      timestamptz NOT NULL DEFAULT now(),
+    UNIQUE (tenant_id, id),
+    -- a bank has its name and account number and no wallet fields; a wallet its number and type and no bank fields
+    CHECK (CASE WHEN method = 'bank' THEN bank_name IS NOT NULL AND account_number IS NOT NULL AND number IS NULL
+                  AND account_type IS NULL
+                ELSE number IS NOT NULL AND account_type IS NOT NULL AND bank_name IS NULL AND account_number IS NULL
+                  AND branch IS NULL AND routing_number IS NULL AND swift_code IS NULL AND instructions IS NULL END)
 );
-CREATE UNIQUE INDEX ON tenant.wallet_accounts (tenant_id, provider, number)
-    WHERE number IS NOT NULL;
+CREATE UNIQUE INDEX ON tenant.wallet_accounts (tenant_id, method) WHERE active;                    -- WAL-03
+CREATE UNIQUE INDEX ON tenant.wallet_accounts (tenant_id, method, number) WHERE number IS NOT NULL;  -- WAL-02
+CREATE UNIQUE INDEX ON tenant.wallet_accounts (tenant_id, method, lower(account_number))
+    WHERE account_number IS NOT NULL;
+-- Gateway credentials and the account selected for automated payments (WAL-09, WAL-10) arrive with Slice 5.7.
+
+CREATE TABLE tenant.payment_methods_off (          -- WAL-05: a row means the shop switched that method off
+    tenant_id       uuid NOT NULL,
+    method          tenant.payment_method NOT NULL,
+    created_at      timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (tenant_id, method)
+);
 
 CREATE TABLE tenant.payment_sessions (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
