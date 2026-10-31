@@ -9,8 +9,8 @@ import { CATALOGUE_CACHE_SETTINGS } from '../src/modules/public-api/tokens';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase } from './support/database';
-import { postJson, sendExact, type HttpResult } from './support/http';
-import { errorOf, fieldsOf, openShop, type ShopClient } from './support/shop-client';
+import { getJson, postJson, sendExact, type HttpResult } from './support/http';
+import { errorOf, fieldsOf, openShop, staffWith, type ShopClient } from './support/shop-client';
 import { SmsCapture } from './support/sms-capture';
 
 // Phase 4 Slice 4.5, agreed 2026-10-30: combo packs -- a combo made of other products' variants, a part fixed or a
@@ -680,5 +680,100 @@ describeIfDatabase('a combo on the storefront (CMB-06, CMB-09)', () => {
     expect((await level(toner.variantId)).reserved).toBe('2.000');
     expect((await level(shirt.l)).reserved).toBe('1.000');
     expect((await level(shirt.m)).reserved).toBe('0.000');
+  });
+});
+
+describeIfDatabase("New order's Add an item (Slice 4.8a, agreed 2026-10-31)", () => {
+  type PickerPage = {
+    products: {
+      id: string;
+      name: string;
+      kind: string;
+      available: string | null;
+      variantCount: number;
+    }[];
+    total: number;
+  };
+  type PickerProduct = {
+    kind: string;
+    variants: { variantId: string; label: string; price: string; available: string | null }[];
+    parts: {
+      position: number;
+      variants: { label: string; productName: string; onSale: boolean; available: string | null }[];
+    }[];
+  };
+
+  it('lists the products with the units each has on sale, and a product with each variant and part', async () => {
+    const shop = await openShop(port, texts, 'cmb');
+    const polo = await sized(shop, 'Polo', 650, 5);
+    const toner = await product(shop, 'Toner', 400, 4);
+    const cake = await product(shop, 'Cake', 900, 0, { stockTracking: 'not_tracked' });
+    const pack = await combo(shop, 'Skincare combo', 900, [
+      { quantity: 1, variantIds: [toner.variantId] },
+      { quantity: 1, variantIds: [polo.m, polo.l] },
+    ]);
+    // Two Polos in M held for an order: three left in M, five in L.
+    await placed(shop, [{ variantId: polo.m, quantity: 2 }]);
+
+    const found = (await shop.get('/orders/picker?search=Polo')).body as PickerPage;
+    expect(found.products).toEqual([
+      expect.objectContaining({
+        id: polo.id,
+        name: 'Polo',
+        kind: 'standard',
+        variantCount: 2,
+        available: '8.000',
+      }),
+    ]);
+    const all = (await shop.get('/orders/picker')).body as PickerPage;
+    const byId = new Map(all.products.map((row) => [row.id, row]));
+    expect(byId.get(cake.id)?.available).toBeNull();
+    // A combo's units on sale are what its parts make (CMB-02): four toners, eight polos.
+    expect(byId.get(pack.id)).toMatchObject({ kind: 'combo', available: '4' });
+
+    const shirt = (await shop.get(`/orders/picker/${polo.id}`)).body as PickerProduct;
+    // Made together, M and L share a creation time: compared by label, whatever their order.
+    const byLabel = <T extends { label: string }>(rows: T[]) =>
+      [...rows].sort((a, b) => a.label.localeCompare(b.label));
+    expect(byLabel(shirt.variants)).toEqual([
+      { variantId: polo.l, label: 'L', price: '650.00', available: '5.000' },
+      { variantId: polo.m, label: 'M', price: '650.00', available: '3.000' },
+    ]);
+    const box = (await shop.get(`/orders/picker/${pack.id}`)).body as PickerProduct;
+    expect(box.kind).toBe('combo');
+    expect(byLabel(box.parts[1]?.variants ?? [])).toEqual([
+      expect.objectContaining({
+        productName: 'Polo',
+        label: 'L',
+        onSale: true,
+        available: '5.000',
+      }),
+      expect.objectContaining({
+        productName: 'Polo',
+        label: 'M',
+        onSale: true,
+        available: '3.000',
+      }),
+    ]);
+    expect((await shop.get(`/orders/picker/${cake.id}`)).body).toMatchObject({
+      variants: [expect.objectContaining({ available: null })],
+    });
+  });
+
+  it('serves whoever may enter orders without stock or catalogue rights, and never another shop', async () => {
+    const shop = await openShop(port, texts, 'cmb');
+    const toner = await product(shop, 'Toner', 400, 4);
+    const taker = await staffWith(port, texts, admin, shop, ['orders:manage']);
+    expect((await getJson(port, '/products', taker)).status).toBe(403);
+    expect(((await getJson(port, '/orders/picker', taker)).body as PickerPage).total).toBe(1);
+    expect((await getJson(port, `/orders/picker/${toner.id}`, taker)).status).toBe(200);
+    // Starter has two seats, so the one who may only read orders is another shop's.
+    const reader = await staffWith(port, texts, admin, await openShop(port, texts, 'cmb'), [
+      'orders:read',
+    ]);
+    expect((await getJson(port, '/orders/picker', reader)).status).toBe(403);
+    const other = await openShop(port, texts, 'cmb');
+    expect(((await other.get('/orders/picker')).body as PickerPage).total).toBe(0);
+    expect((await other.get(`/orders/picker/${toner.id}`)).status).toBe(404);
   });
 });

@@ -28,11 +28,14 @@ import { DashboardGuard, type DashboardRequest } from '../../identity/guards/das
 import { SessionGuard } from '../../identity/guards/session.guard';
 import { OrderFulfilment } from '../../orders/services/order-fulfilment';
 import { OrderPayments } from '../../orders/services/order-payments';
+import { OrderPicker } from '../../orders/services/order-picker';
 import { OrderService } from '../../orders/services/order.service';
 import type { HandlingShop } from '../../orders/services/handling-quota';
 import type {
   OrderPage,
   OrderPaymentLink,
+  OrderPickerPage,
+  OrderPickerProduct,
   OrderQuote,
   OrderSerialItem,
   OrderView,
@@ -48,6 +51,9 @@ import {
   OrderPaymentDto,
   OrderQuoteDto,
   OrderViewDto,
+  OrderPickerPageDto,
+  OrderPickerProductDto,
+  OrderPickerQueryDto,
   OrderSerialsDto,
   RecentCouriersDto,
   OverrideOrderDto,
@@ -80,6 +86,7 @@ export class OrdersController {
     @Inject(OrderPayments) private readonly payments: OrderPayments,
     @Inject(PaymentSessions) private readonly sessions: PaymentSessions,
     @Inject(CatalogueRequest) private readonly request: CatalogueRequest,
+    @Inject(OrderPicker) private readonly picking: OrderPicker,
   ) {}
 
   @Get()
@@ -159,6 +166,39 @@ export class OrdersController {
   @ZodResponse({ type: RecentCouriersDto })
   async couriers(@Req() request: DashboardRequest): Promise<{ couriers: string[] }> {
     return { couriers: await this.orders.recentCouriers(this.request.tenantIdOf(request)) };
+  }
+
+  @Get('picker')
+  @RequirePermission(Permission.OrdersManage)
+  @ResponseMessage('ProductsListed')
+  @ApiOperation({
+    summary:
+      "New order's Add an item: the shop's products found by name, with the units each has on sale (Slice 4.8a)",
+  })
+  @ZodResponse({ type: OrderPickerPageDto })
+  async picker(
+    @Query(new ZodValidationPipe(OrderPickerQueryDto.schema)) query: OrderPickerQueryDto,
+    @Req() request: DashboardRequest,
+  ): Promise<OrderPickerPage> {
+    return this.picking.list(await this.request.shopOf(request), query.search, query.page);
+  }
+
+  @Get('picker/:productId')
+  @RequirePermission(Permission.OrdersManage)
+  @ResponseMessage('ProductRetrieved')
+  @ApiOperation({
+    summary:
+      "New order's Add an item, one product: its variants and their units, a combo's parts, its add-on groups (Slice 4.8a)",
+  })
+  @ZodResponse({ type: OrderPickerProductDto })
+  pickerProduct(
+    @Param('productId') productId: string,
+    @Req() request: DashboardRequest,
+  ): Promise<OrderPickerProduct> {
+    return this.picking.product(
+      this.request.tenantIdOf(request),
+      this.request.idOf(productId, 'ProductNotFound'),
+    );
   }
 
   @Get(':id')
