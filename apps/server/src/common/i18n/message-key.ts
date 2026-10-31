@@ -599,6 +599,22 @@ export const MESSAGE_KEYS = [
   'PaymentSessionClosed',
   'PaymentPageRetrieved',
   'PaymentSubmitted',
+  // Phase 5 Slice 5.2b: payment links (PAY-24), Report this page (TVR-02), the operator's queue and the page's
+  // suspension (TVR-03, ADM-12).
+  'PaymentLinkMade',
+  'PaymentBeingChecked',
+  'ShopPaymentPageSuspended',
+  'PaymentPageUnavailable',
+  'PaymentPageReported',
+  'TooManyReports',
+  'PaymentPageReportsListed',
+  'PaymentPageReportDismissed',
+  'PaymentPageReportNotFound',
+  'PaymentPageSuspended',
+  'PaymentPageRestored',
+  'PaymentPageAlreadySuspended',
+  'PaymentPageNotSuspended',
+  'ShopNotFound',
 ] as const;
 
 export type MessageKey = (typeof MESSAGE_KEYS)[number];

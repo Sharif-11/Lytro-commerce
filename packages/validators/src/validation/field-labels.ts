@@ -111,6 +111,7 @@ export const FIELD_LABELS: Readonly<Record<string, Translation | null>> = {
   forSale: { en: 'For sale', bn: 'ফর সেল' },
   fulfillmentStatus: { en: 'Delivery status', bn: 'ডেলিভারি স্ট্যাটাস' },
   fulfilmentType: { en: 'Order type', bn: 'অর্ডারের ধরন' },
+  full: { en: 'Whole amount due', bn: 'পুরো ডিউ' },
   groupId: { en: 'Modifier group', bn: 'মডিফায়ার গ্রুপ' },
   hard: { en: 'Delete for good', bn: 'পার্মানেন্টলি ডিলিট' },
   headingFont: { en: 'Heading font', bn: 'হেডিংয়ের ফন্ট' },

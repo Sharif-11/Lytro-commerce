@@ -1078,6 +1078,11 @@ export class OrderService {
     return order;
   }
 
+  /** PAY-24 (Slice 5.2b): the order, locked in the caller's transaction, for a payment link made for it. */
+  lockWithin(tx: Transaction, tenantId: string, orderId: string): Promise<OrderRecord> {
+    return this.find(tx, tenantId, orderId, true);
+  }
+
   /** ORD-52: goods that left the shop come back by a return, never by a cancellation or an edit. */
   private shipped(order: OrderRecord): boolean {
     return SHIPPED_FULFILLMENT.includes(order.fulfillmentStatus);

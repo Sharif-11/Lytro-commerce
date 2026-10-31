@@ -1,11 +1,12 @@
 import { z } from 'zod';
 import {
+  PAGE_REPORT_NOTE_MAX_LENGTH,
   PAGE_TRANSACTION_ID_MAX_LENGTH,
   PAGE_TRANSACTION_ID_MIN_LENGTH,
   PAYMENT_RETURN_URL_MAX_LENGTH,
 } from '../../common/limits';
 import { bdMobileNumber } from '../../common/phone';
-import { PaymentMethod } from '../../db/enums';
+import { PaymentMethod, PaymentPageReportReason, PaymentPageReportStatus } from '../../db/enums';
 import { FieldProblemCode } from '../../validation/field-problem';
 
 // PAY-04: an address the page sends the shopper back to; its website must be one of the key's (checked on the server).
@@ -57,3 +58,36 @@ export const paymentSubmissionSchema = z
   })
   .strict();
 export type PaymentSubmissionInput = z.infer<typeof paymentSubmissionSchema>;
+
+/**
+ * PAY-24 (Phase 5 Slice 5.2b, agreed 2026-10-31): a payment link staff make for an order -- for the advance still owed,
+ * else what is due; `full` asks for the whole amount due instead.
+ */
+export const paymentLinkSchema = z.object({ full: z.boolean().optional() }).strict();
+export type PaymentLinkInput = z.infer<typeof paymentLinkSchema>;
+
+/** TVR-02 (agreed 2026-10-31): why a shopper reports the payment page, and a note, needed for "something else". */
+export const paymentPageReportSchema = z
+  .object({
+    reason: z.nativeEnum(PaymentPageReportReason),
+    note: z.string().trim().max(PAGE_REPORT_NOTE_MAX_LENGTH).optional(),
+  })
+  .strict()
+  .superRefine((value, ctx) => {
+    if (value.reason === PaymentPageReportReason.Other && !value.note) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['note'],
+        message: 'Say what was wrong.',
+        params: { problem: FieldProblemCode.Required },
+      });
+    }
+  });
+export type PaymentPageReportInput = z.infer<typeof paymentPageReportSchema>;
+
+// ADM-12: the operator's list of page reports, open ones by default.
+export const paymentPageReportListSchema = z.object({
+  status: z.nativeEnum(PaymentPageReportStatus).optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional(),
+});
+export type PaymentPageReportListInput = z.infer<typeof paymentPageReportListSchema>;

@@ -23,7 +23,7 @@ import { OrderLimits } from '../services/order-limits';
 import { PaymentSessions } from '../../payment-sessions/services/payment-sessions';
 import { PublicOrderService } from '../services/public-order.service';
 import { API_CLOCK } from '../tokens';
-import { taxLineSchema } from '../../team/dto/orders.dto';
+import { openedPaymentSchema, taxLineSchema } from '../../team/dto/orders.dto';
 import { PublicApi } from './public-shop.controller';
 
 // ORD-02: the route a shopper's order is made at, as its idempotency key is scoped to it (D4-8).
@@ -59,12 +59,6 @@ const totals = {
   codAmount: z.string(),
   taxes: z.array(taxLineSchema),
 };
-// PAY-01 (Slice 5.2): an order's open payment.
-const paymentLinkSchema = z.object({
-  paymentUrl: z.string(),
-  amount: z.string(),
-  expiresAt: z.coerce.date(),
-});
 class PublicOrderBodyDto extends createZodDto(publicOrderSchema) {}
 class PlacedOrderDto extends createZodDto(
   z.object({
@@ -75,7 +69,7 @@ class PlacedOrderDto extends createZodDto(
     items: z.array(itemSchema),
     ...totals,
     purchaseEventId: z.string(),
-    payment: paymentLinkSchema.nullable(),
+    payment: openedPaymentSchema.nullable(),
   }),
 ) {}
 class TrackedOrderDto extends createZodDto(
@@ -99,7 +93,7 @@ class TrackedOrderDto extends createZodDto(
         trackingLink: z.string().nullable(),
       })
       .nullable(),
-    payment: paymentLinkSchema.extend({ state: z.nativeEnum(PaymentSessionState) }).nullable(),
+    payment: openedPaymentSchema.extend({ state: z.nativeEnum(PaymentSessionState) }).nullable(),
   }),
 ) {}
 
@@ -139,7 +133,7 @@ export class PublicOrdersController {
     if (!idempotencyKey) throw new ApiError('validation_error', 'IdempotencyKeyRequired', {});
     await this.limits.admitOrder(shop, request, this.clock());
     const tenantId = shop.row.id;
-    const placed = await this.orders.place(tenantId, body, key, this.clientIp.resolve(request), {
+    const placed = await this.orders.place(shop, body, key, this.clientIp.resolve(request), {
       scope: { tenantId, caller: apiKeyCaller(key.id) },
       key: idempotencyKey,
       path: PLACE_PATH,

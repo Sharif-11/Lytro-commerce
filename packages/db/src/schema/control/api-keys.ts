@@ -91,6 +91,8 @@ export const apiUsage = control.table(
     // RTE-08 (amended 2026-10-30): the orders the shop's per-minute window refused this cycle, so the operator can see
     // whether a real shop's busy minute meets it.
     refusedOrders: integer('refused_orders').notNull().default(0),
+    // RTE-08 (amended 2026-10-31, Phase 5 Slice 5.2b): the payment sessions the shop's per-minute window refused.
+    refusedSessions: integer('refused_sessions').notNull().default(0),
     // RTE-12: when the operators were last told of a fast hour's spending, so they are told at most once a day.
     fastSpendAlertedAt: timestamp('fast_spend_alerted_at', { withTimezone: true }),
     // RTE-11, PLN-15: what the cycle took from the shop's request packs, and the grace use written off when a pack was

@@ -1826,6 +1826,62 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: "Thanks! We're checking your payment.",
     bn: 'ধন্যবাদ! আপনার পেমেন্ট চেক করা হচ্ছে।',
   },
+  PaymentLinkMade: {
+    en: 'Payment link made.',
+    bn: 'পেমেন্ট লিংক তৈরি হয়েছে।',
+  },
+  PaymentBeingChecked: {
+    en: 'A payment on this order is being checked. Settle it before making a new link.',
+    bn: 'এই অর্ডারের একটি পেমেন্ট চেক করা হচ্ছে। নতুন লিংক তৈরির আগে সেটি শেষ করুন।',
+  },
+  ShopPaymentPageSuspended: {
+    en: "Lytro has suspended this shop's payment page. Contact Lytro support.",
+    bn: 'Lytro এই শপের পেমেন্ট পেজ সাসপেন্ড করেছে। Lytro সাপোর্টের সাথে যোগাযোগ করুন।',
+  },
+  PaymentPageUnavailable: {
+    en: "This payment page is unavailable. Don't send money for it; contact the shop.",
+    bn: 'এই পেমেন্ট পেজটি এখন বন্ধ। এর জন্য টাকা পাঠাবেন না; শপের সাথে যোগাযোগ করুন।',
+  },
+  PaymentPageReported: {
+    en: 'Thanks for telling us. Lytro will look into it.',
+    bn: 'জানানোর জন্য ধন্যবাদ। Lytro বিষয়টি দেখবে।',
+  },
+  TooManyReports: {
+    en: 'Too many reports from here. Try again later.',
+    bn: 'এখান থেকে অনেক রিপোর্ট এসেছে। পরে আবার ট্রাই করুন।',
+  },
+  PaymentPageReportsListed: {
+    en: 'Reports listed.',
+    bn: 'রিপোর্টগুলো দেখানো হলো।',
+  },
+  PaymentPageReportDismissed: {
+    en: 'Report dismissed.',
+    bn: 'রিপোর্টটি ডিসমিস করা হয়েছে।',
+  },
+  PaymentPageReportNotFound: {
+    en: 'No open report was found.',
+    bn: 'কোনো খোলা রিপোর্ট পাওয়া যায়নি।',
+  },
+  PaymentPageSuspended: {
+    en: 'Payment page suspended.',
+    bn: 'পেমেন্ট পেজ সাসপেন্ড করা হয়েছে।',
+  },
+  PaymentPageRestored: {
+    en: 'Payment page restored.',
+    bn: 'পেমেন্ট পেজ আবার চালু করা হয়েছে।',
+  },
+  PaymentPageAlreadySuspended: {
+    en: "This shop's payment page is already suspended.",
+    bn: 'এই শপের পেমেন্ট পেজ আগেই সাসপেন্ড করা আছে।',
+  },
+  PaymentPageNotSuspended: {
+    en: "This shop's payment page isn't suspended.",
+    bn: 'এই শপের পেমেন্ট পেজ সাসপেন্ড করা নেই।',
+  },
+  ShopNotFound: {
+    en: 'Shop not found.',
+    bn: 'শপ পাওয়া যায়নি।',
+  },
 };
 
 export function translate(key: MessageKey, lang: Language, params: MessageParams = {}): string {

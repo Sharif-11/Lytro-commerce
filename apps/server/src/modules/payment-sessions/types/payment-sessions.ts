@@ -1,4 +1,9 @@
-import type { PaymentMethod, PaymentSessionState } from '@lytronix/validators';
+import type {
+  PaymentMethod,
+  PaymentPageReportReason,
+  PaymentPageReportStatus,
+  PaymentSessionState,
+} from '@lytronix/validators';
 import type { OrderPaymentLink } from '../../orders/types/orders';
 import type { ShopperPaymentMethod } from '../../payment-methods/types/payment-methods';
 
@@ -28,3 +33,16 @@ export interface PaymentPageSession {
 
 /** ORD-17 (Slice 5.2): an unverified order's open payment, for its tracking page to send the shopper back to. */
 export type TrackedPayment = OrderPaymentLink & { state: PaymentSessionState };
+
+/** TVR-02, ADM-12 (Slice 5.2b): a shopper's report as the operator's queue shows it, with the page to open. */
+export interface PaymentPageReportView {
+  id: string;
+  shop: { id: string; name: string; slug: string; paymentPageSuspended: boolean };
+  paymentUrl: string;
+  reason: PaymentPageReportReason;
+  note: string | null;
+  ip: string | null;
+  status: PaymentPageReportStatus;
+  createdAt: Date;
+  handledAt: Date | null;
+}

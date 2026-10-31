@@ -19,14 +19,15 @@ import { OrderPricing } from '../../orders/services/order-pricing';
 import { placedViewOf } from '../../orders/services/order-tracking';
 import { OrderService } from '../../orders/services/order.service';
 import { ORDER_NOTIFIER } from '../../orders/tokens';
-import type { OrderRecord, PlacedOrderView } from '../../orders/types/orders';
+import type { OrderPaymentLink, OrderRecord, PlacedOrderView } from '../../orders/types/orders';
 import { PaymentMethods } from '../../payment-methods/services/payment-methods';
 import { PaymentSessions } from '../../payment-sessions/services/payment-sessions';
 import type { JobQueue } from '../../shared/queue/ports/job-queue';
 import { JOB_QUEUE } from '../../shared/queue/tokens';
-import type { AuthenticatedKey } from '../types/public-api';
+import type { ApiShop, AuthenticatedKey } from '../types/public-api';
 import { AdTrackingService } from './ad-tracking.service';
 import type { MetaPurchasePayload } from './meta-purchase-sender';
+import { OrderLimits } from './order-limits';
 
 /** ORD-02: an order placed, or the reply its idempotency key already holds. */
 export type OrderPlaced =
@@ -53,22 +54,28 @@ export class PublicOrderService {
     @Inject(ORDER_NOTIFIER) private readonly notifier: OrderNotifier,
     @Inject(PaymentMethods) private readonly methods: PaymentMethods,
     @Inject(PaymentSessions) private readonly sessions: PaymentSessions,
+    @Inject(OrderLimits) private readonly limits: OrderLimits,
   ) {}
 
   async place(
-    tenantId: string,
+    shop: ApiShop,
     input: PublicOrderInput,
     key: AuthenticatedKey,
     ip: string | null,
     claim: IdempotencyClaim,
   ): Promise<OrderPlaced> {
+    const tenantId = shop.row.id;
     const source = this.sourceOf(input, key);
     const location = await this.pricing.thanaOf(input.locationId);
     const toMeta = await this.adTracking.sendsPurchases(tenantId);
     const now = new Date();
     const placed = await this.orders.inTransaction(tenantId, async (tx) => {
-      // PAY-01, WAL-08 (Phase 5 Slice 5.2): how an advance could be paid -- the methods the shop offers shoppers now.
-      const offered = await this.methods.forShoppersWithin(tx, tenantId);
+      // PAY-01, WAL-08 (Phase 5 Slice 5.2): how an advance could be paid -- the methods the shop offers shoppers now;
+      // none while Lytro has its payment page suspended (TVR-03).
+      const offered =
+        shop.row.paymentPageSuspendedAt === null
+          ? await this.methods.forShoppersWithin(tx, tenantId)
+          : [];
       const made = await this.orders.makeWithin(tx, tenantId, claim, {
         source,
         type: FulfilmentType.Delivery,
@@ -91,15 +98,23 @@ export class PublicOrderService {
           offered.length === 0 ? 'unavailable' : input.payment === undefined ? 'not_sent' : 'ready',
       });
       if (made.replayed) return made;
-      // LND-10, SFT-07: an order waiting on its advance opens its payment with it, in the same transaction.
-      const payment =
-        made.order.paymentStatus === OrderPaymentStatus.PendingVerification && input.payment
-          ? await this.sessions.openForCheckoutWithin(tx, tenantId, made.order, input.payment, {
-              websites: key.websites,
-              offered,
-              now,
-            })
-          : null;
+      // LND-10, SFT-07: an order waiting on its advance opens its payment with it, in the same transaction -- unless the
+      // shop's payment sessions are flooding (RTE-08), when the order is refused with them.
+      let payment: OrderPaymentLink | null = null;
+      if (made.order.paymentStatus === OrderPaymentStatus.PendingVerification && input.payment) {
+        await this.limits.admitSession(shop, now);
+        payment = await this.sessions.openForCheckoutWithin(
+          tx,
+          tenantId,
+          made.order,
+          input.payment,
+          {
+            websites: key.websites,
+            offered,
+            now,
+          },
+        );
+      }
       const view: PlacedOrderView = { ...placedViewOf(made.order, made.lines), payment };
       if (toMeta) {
         const payload: MetaPurchasePayload = { tenantId, orderId: made.order.id };

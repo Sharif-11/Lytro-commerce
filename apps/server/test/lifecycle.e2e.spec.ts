@@ -597,6 +597,11 @@ async function seedCatalogue(tenantId: string): Promise<void> {
      VALUES ($1, $2, $3, 'checkout', 300, now())`,
     [tenantId, ref, order],
   );
+  // Slice 5.2b: a shopper's report of the shop's payment page, gone with its sessions.
+  await admin.query(
+    "INSERT INTO control.payment_page_reports (tenant_id, ref, reason) VALUES ($1, $2, 'wrong_amount')",
+    [tenantId, ref],
+  );
   await admin.query(
     `INSERT INTO tenant.stock_reservations
        (tenant_id, order_id, order_line_id, product_id, variant_id, sold_variant_id, ordered, quantity)
@@ -739,6 +744,11 @@ describeIfDatabase('LIF-19: day-60 business-data deletion', () => {
       [tenantId],
     );
     expect(refs.rowCount).toBe(0);
+    const reports = await admin.query(
+      'SELECT 1 FROM control.payment_page_reports WHERE tenant_id = $1',
+      [tenantId],
+    );
+    expect(reports.rowCount).toBe(0);
     // The platform's own library is untouched.
     const platformAfter = await admin.query<{ total: number }>(
       'SELECT count(*)::int AS total FROM tenant.attributes WHERE tenant_id IS NULL',

@@ -30,18 +30,21 @@ import { OrderFulfilment } from '../../orders/services/order-fulfilment';
 import { OrderPayments } from '../../orders/services/order-payments';
 import { OrderService } from '../../orders/services/order.service';
 import type { HandlingShop } from '../../orders/services/handling-quota';
-import type { OrderPage, OrderQuote, OrderView } from '../../orders/types/orders';
+import type { OrderPage, OrderPaymentLink, OrderQuote, OrderView } from '../../orders/types/orders';
+import { PaymentSessions } from '../../payment-sessions/services/payment-sessions';
 import {
   CancelOrderDto,
   CreateOrderDto,
   HandOverOrderDto,
   LogCallDto,
+  OpenedPaymentDto,
   OrderPageDto,
   OrderPaymentDto,
   OrderQuoteDto,
   OrderViewDto,
   RecentCouriersDto,
   OverrideOrderDto,
+  PaymentLinkDto,
   ReturnOrderDto,
   ShipOrderDto,
   UpdateOrderDto,
@@ -55,8 +58,9 @@ const CREATE_PATH = '/orders';
 
 // ORD-01 to ORD-14, ORD-41, ORD-45, ORD-51, ORD-52 (Phase 4 Slice 4.1): the shop's orders as staff enter and handle
 // them; shipping, handing over, delivering and returning them by hand (Slice 4.3); the payments staff record on them
-// (Slice 4.3b). Reading them needs orders:read; making, changing, calling about, cancelling, holding and moving them,
-// orders:manage; deleting one, orders:delete; recording or voiding a payment, payments:manage -- with a new order too.
+// (Slice 4.3b); the payment links staff send (Phase 5 Slice 5.2b). Reading them needs orders:read; making, changing,
+// calling about, cancelling, holding and moving them, and making a payment link, orders:manage; deleting one,
+// orders:delete; recording or voiding a payment, payments:manage -- with a new order too.
 @ApiTags('Orders')
 @Controller('orders')
 @Dashboard({})
@@ -66,6 +70,7 @@ export class OrdersController {
     @Inject(OrderService) private readonly orders: OrderService,
     @Inject(OrderFulfilment) private readonly fulfilment: OrderFulfilment,
     @Inject(OrderPayments) private readonly payments: OrderPayments,
+    @Inject(PaymentSessions) private readonly sessions: PaymentSessions,
     @Inject(CatalogueRequest) private readonly request: CatalogueRequest,
   ) {}
 
@@ -331,6 +336,29 @@ export class OrdersController {
       this.request.idOf(id, 'OrderNotFound'),
       body,
       this.request.actorOf(request),
+    );
+  }
+
+  @Post(':id/payment-link')
+  @RequirePermission(Permission.OrdersManage)
+  @ResponseMessage('PaymentLinkMade')
+  @ApiOperation({
+    summary:
+      "Make a payment link to send the customer: the payment page, open 24 hours, for the advance still owed, else what is due, or the whole due with `full`; the order's earlier link closes (PAY-24)",
+  })
+  @ApiBody({ type: PaymentLinkDto })
+  @ZodResponse({ type: OpenedPaymentDto })
+  makePaymentLink(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(PaymentLinkDto.schema)) body: PaymentLinkDto,
+    @Req() request: DashboardRequest,
+  ): Promise<OrderPaymentLink> {
+    return this.sessions.makeLink(
+      this.request.tenantIdOf(request),
+      this.request.idOf(id, 'OrderNotFound'),
+      body,
+      this.request.actorOf(request),
+      new Date(),
     );
   }
 

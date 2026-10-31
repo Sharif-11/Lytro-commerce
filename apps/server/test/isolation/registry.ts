@@ -319,4 +319,8 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
     "an unknown reference answers 404; the page shows only its own shop's methods",
   'POST /public/pay/:ref/transaction':
     "an unknown reference answers 404; an ID another shop's payment holds is refused",
+  // Phase 5 Slice 5.2b, checked in test/payment-links.e2e.spec.ts.
+  'POST /orders/:id/payment-link': "another shop's order answers 404 and gets no link",
+  'POST /public/pay/:ref/report':
+    "an unknown reference answers 404; a report names the reference's own shop",
 };

@@ -394,6 +394,33 @@ export class TenantRepository {
       .where(eq(tenants.id, tenantId));
   }
 
+  /** TVR-03 (Slice 5.2b): suspends the shop's payment page alone, with Lytro's reason, or (null) lifts it. */
+  async setPaymentPageSuspension(
+    tx: Executor,
+    tenantId: string,
+    suspension: { reason: string; at: Date } | null,
+  ): Promise<void> {
+    await tx
+      .update(tenants)
+      .set({
+        paymentPageSuspendedAt: suspension?.at ?? null,
+        paymentPageSuspendedReason: suspension?.reason ?? null,
+      })
+      .where(eq(tenants.id, tenantId));
+  }
+
+  /** TVR-03: the shop's payment page as it stands now -- suspended since when, or null; null for no such shop. */
+  async paymentPageOf(
+    tx: Executor,
+    tenantId: string,
+  ): Promise<{ suspendedAt: Date | null } | null> {
+    const [row] = await tx
+      .select({ suspendedAt: tenants.paymentPageSuspendedAt })
+      .from(tenants)
+      .where(eq(tenants.id, tenantId));
+    return row ?? null;
+  }
+
   /** LIF-15/24: lifts a suspension -- restore and operator restore both call this. */
   async clearSuspension(tx: Executor, tenantId: string): Promise<void> {
     await tx

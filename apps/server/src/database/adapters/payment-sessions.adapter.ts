@@ -1,15 +1,22 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
+  PaymentPageReportRepository,
   PaymentSessionRepository,
   TenantRepository,
   TransactionRunner,
   UsedTransactionIdsRepository,
   type NewPaymentSession,
+  type PaymentPageReportRow,
   type PaymentSubmission,
+  type SelectPaymentPageReport,
   type SelectPaymentSession,
   type Transaction,
 } from '@lytronix/db';
-import type { PaymentSessionState } from '@lytronix/validators';
+import type {
+  PaymentPageReportReason,
+  PaymentPageReportStatus,
+  PaymentSessionState,
+} from '@lytronix/validators';
 import type { PaymentSessionStore } from '../../modules/payment-sessions/ports/payment-session-store';
 import { DatabaseService } from '../database.service';
 
@@ -21,6 +28,7 @@ export class DrizzlePaymentSessionStore implements PaymentSessionStore {
     @Inject(PaymentSessionRepository) private readonly sessions: PaymentSessionRepository,
     @Inject(UsedTransactionIdsRepository) private readonly used: UsedTransactionIdsRepository,
     @Inject(TenantRepository) private readonly tenants: TenantRepository,
+    @Inject(PaymentPageReportRepository) private readonly reports: PaymentPageReportRepository,
   ) {}
 
   run<T>(work: (tx: Transaction) => Promise<T>): Promise<T> {
@@ -54,6 +62,14 @@ export class DrizzlePaymentSessionStore implements PaymentSessionStore {
 
   orderNumberOf(tx: Transaction, tenantId: string, orderId: string): Promise<string> {
     return this.sessions.orderNumberOf(tx, tenantId, orderId);
+  }
+
+  openForOrder(
+    tx: Transaction,
+    tenantId: string,
+    orderId: string,
+  ): Promise<SelectPaymentSession | null> {
+    return this.sessions.openForOrder(tx, tenantId, orderId);
   }
 
   openForTracking(
@@ -90,7 +106,54 @@ export class DrizzlePaymentSessionStore implements PaymentSessionStore {
     return this.used.exists(tx, transactionId);
   }
 
-  deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void> {
-    return this.sessions.deleteAllForTenant(tx, tenantId);
+  paymentPageOf(tx: Transaction, tenantId: string): Promise<{ suspendedAt: Date | null } | null> {
+    return this.tenants.paymentPageOf(tx, tenantId);
+  }
+
+  setPaymentPageSuspension(
+    tx: Transaction,
+    tenantId: string,
+    suspension: { reason: string; at: Date } | null,
+  ): Promise<void> {
+    return this.tenants.setPaymentPageSuspension(tx, tenantId, suspension);
+  }
+
+  insertReport(
+    tx: Transaction,
+    values: {
+      tenantId: string;
+      ref: string;
+      reason: PaymentPageReportReason;
+      note: string | null;
+      ip: string | null;
+    },
+  ): Promise<void> {
+    return this.reports.insert(tx, values);
+  }
+
+  reportsFromIpSince(tx: Transaction, ip: string, since: Date): Promise<number> {
+    return this.reports.countFromIpSince(tx, ip, since);
+  }
+
+  listReports(status: PaymentPageReportStatus, limit: number): Promise<PaymentPageReportRow[]> {
+    return this.reports.list(this.database.handle.db, status, limit);
+  }
+
+  dismissReport(
+    tx: Transaction,
+    id: string,
+    operatorId: string,
+    at: Date,
+  ): Promise<SelectPaymentPageReport | null> {
+    return this.reports.dismiss(tx, id, operatorId, at);
+  }
+
+  actionReports(tx: Transaction, tenantId: string, operatorId: string, at: Date): Promise<number> {
+    return this.reports.actionOpen(tx, tenantId, operatorId, at);
+  }
+
+  async deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void> {
+    await this.sessions.deleteAllForTenant(tx, tenantId);
+    await this.reports.deleteForTenant(tx, tenantId);
   }
 }
