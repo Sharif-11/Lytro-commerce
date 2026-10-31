@@ -143,11 +143,18 @@ code fix).
 
 **Delivers:** real money moves through the system — the highest-risk phase, deserves isolated, extra-careful testing before touching production data.
 
+**Detailed plan: `PHASE-5-PLAN.md`** (2026-10-31) — nine slices, built after Phase 4's Slice 4.8. Scope changes made there, summarised:
+- **Verification by hand first**, usable on its own, then the SMS listener, then bKash's gateway; checkpoint 5A after the first (D5-2).
+- **Lytro's own payments** (plans, add-ons, top-ups) move onto the payment page with the listener (D5-3).
+- **An advance not paid in time cancels its order** ("advance not paid"); a transaction ID typed in time waits for staff (ORD-08, ORD-52, PAY-03, PAY-14 and INV-16 amended).
+- **Upay** joins bKash, Nagad and Rocket (WAL-01 amended); the gateway is bKash's only, Nagad's later.
+- **Moved to Phase 8:** payment webhooks and secret-key session reads (PAY-09–12), with the shop API.
+
 - `WAL-*` — wallet/bank accounts, the plugin registry pattern (`WAL-6`).
 - `PAY-01`, `PAY-05`, `PAY-06`, `PAY-23` (amended or added 2026-10-18) — manual payments on our hosted page at `pay.lytro.app/<session>`: the shop's name and logo, each wallet's official logo and colours in its own panel, steps for the account type, and no third-party code. A wallet whose gateway the seller has connected sends the shopper straight to that wallet's own checkout, never through our page.
 - `PAY-*` — hosted payment sessions, the `created → awaiting_payment → checking → verified` state machine.
 - `LND-10` (second half) — a product landing page whose product requires a partial advance or full prepayment (`PRD-08`) sends the customer to the hosted payment page; the stock reservation's expiry (`INV-16`) is set from the real payment-session lifetime here.
-- `VER-*` — the three verification tiers (manual, listener, gateway), including the SIM-swap-aware cooldown added earlier (`SEC-14`'s sibling consideration) if you chose to build it.
+- `VER-*` — the three verification tiers (manual, listener, gateway). (A SIM-swap-aware cooldown once named here has no requirement and is not planned.)
 - `WAL-20`/`WAL-21`, `RAT-15`, `RAT-16` (added 2026-10-16, amended 2026-10-18) — verification fees charged to the balance on each automatically verified payment: [0.10]% by the listener, [1.00]% through a wallet's gateway checkout, manual verification free; the same rates on every plan, trial included; the gateway fee reserved before the shopper is sent to the checkout, and a listener match the balance can't cover falls back to free manual review.
   Build the gateway fee alongside `WAL-19`'s gateway plugins themselves, not after: the fee is part of what
   "level 3" means, not a bolt-on.
