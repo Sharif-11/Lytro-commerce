@@ -164,6 +164,8 @@ export interface OrderPayment {
   verifiedBy: OrderPerson | null;
   verifiedAt: string;
   voided: { by: OrderPerson | null; at: string; reason: string } | null;
+  /** PAY-20 (Slice 5.3): marked refunded -- who, when and the note; it no longer counts. */
+  refunded: { by: OrderPerson | null; at: string; note: string } | null;
 }
 
 /** Mirrors `OrderView` (GET /orders/:id, ORD-14). */

@@ -65,6 +65,8 @@ export interface OrderFixture {
     at: string;
     /** Voided by mistake, with why (agreed 2026-10-30). */
     voided?: string | null;
+    /** Marked refunded, with its note (Slice 5.3). */
+    refunded?: string | null;
   }[];
   /** The order's discount (ORD-06) and its staff note. */
   discount?: number;
@@ -325,7 +327,10 @@ const taxedOf = (order: OrderFixture) =>
     .reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
 const paidOf = (order: OrderFixture) =>
   (order.collected ?? 0) +
-  (order.payments ?? []).reduce((sum, each) => sum + (each.voided ? 0 : each.amount), 0);
+  (order.payments ?? []).reduce(
+    (sum, each) => sum + (each.voided || each.refunded ? 0 : each.amount),
+    0,
+  );
 const money = (amount: number) => amount.toFixed(2);
 const counter = (order: OrderFixture) => order.fulfilment !== 'delivery';
 
@@ -455,6 +460,7 @@ function detail(order: OrderFixture, language: Language) {
       verifiedBy: by,
       verifiedAt: each.at,
       voided: each.voided ? { by, at: each.at, reason: each.voided } : null,
+      refunded: each.refunded ? { by, at: each.at, note: each.refunded } : null,
     })),
     ...(order.collected
       ? [
@@ -467,6 +473,7 @@ function detail(order: OrderFixture, language: Language) {
             verifiedBy: by,
             verifiedAt: dhaka(17, 10),
             voided: null,
+            refunded: null,
           },
         ]
       : []),

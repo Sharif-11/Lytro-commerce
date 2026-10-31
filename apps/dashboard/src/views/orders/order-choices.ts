@@ -35,10 +35,14 @@ export function choicesOf(order: Order, may: (permission: Permission) => boolean
   };
 }
 
-/** A payment staff may void (agreed 2026-10-30): live, and not the cash on delivery a delivery collected. */
+/**
+ * A payment staff may void (agreed 2026-10-30): live, not refunded (Slice 5.3), and not the cash on delivery a delivery
+ * collected.
+ */
 export const voidable = (payment: OrderPayment, may: (permission: Permission) => boolean) =>
   may(Permission.PaymentsManage) &&
   payment.voided === null &&
+  payment.refunded === null &&
   payment.method !== PaymentMethod.CashOnDelivery;
 
 export type OrderChoices = ReturnType<typeof choicesOf>;

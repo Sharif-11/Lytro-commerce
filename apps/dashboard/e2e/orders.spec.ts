@@ -498,6 +498,27 @@ test('Record payment by bKash, no more than is due; a mistaken one is voided and
   await expect(main(page).getByRole('button', { name: 'Void' })).toHaveCount(0);
 });
 
+test('a payment marked refunded can no longer be voided (Slice 5.3)', async ({ page }) => {
+  await open(
+    page,
+    '/orders/o-44',
+    day((orders) => {
+      order(orders, 'o-44').payments = [
+        {
+          method: 'bkash',
+          amount: 500,
+          sender: '+8801819876543',
+          trxId: '9F2KQ7M1',
+          at: '2026-10-31T04:00:00.000Z',
+          refunded: 'Sent back by bKash',
+        },
+      ];
+    }),
+  );
+  await expect(main(page)).toContainText('৳500 · TrxID 9F2KQ7M1');
+  await expect(main(page).getByRole('button', { name: 'Void' })).toHaveCount(0);
+});
+
 test('Print label: 3 × 3 with the items, 2 × 3 without, the size kept for next time', async ({
   page,
 }) => {
