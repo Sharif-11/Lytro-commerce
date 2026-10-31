@@ -1,6 +1,7 @@
 # Tenant dashboard: the full design
 
-Status: v3.23, 2026-10-31 (the Orders list's dates and Delete's question drawn as 4.8a was built, Part 29;
+Status: v3.24, 2026-10-31 (returning and handing over serial-numbered units by their serials, drawn as 4.8a's second
+part was built, Part 29; v3.23 of 2026-10-31: the Orders list's dates and Delete's question drawn as 4.8a was built, Part 29;
 v3.22 of 2026-10-31: Sales, the Orders hub's third tab, Slice 4.8d, prototype Part 32: orders and revenue
 by week, month, quarter or year with the tax and delivery charges apart, profit for those who may see cost, best
 sellers by units or revenue, a product's trend, profit beside stock value; v3.21 of 2026-10-31: the catalogue
@@ -1434,10 +1435,12 @@ drawn greyed with "Later" so the design stays whole; **the built screens hide th
 - **Returns** (`o29-return`): each item with **Sellable** and **Damaged** steppers -- sellable units go back into
   stock, damaged ones are written off -- and a note. A combo comes back whole (agreed in 4.5): one stepper for the
   combos that came back, and a tick for any item inside that came back damaged. An item's units back show on it
-  (`o29-returned`); once every unit is back the order is Returned.
+  (`o29-returned`); once every unit is back the order is Returned. A serial-numbered item comes back by its serials:
+  each unit sent is listed, ticked when it came back and marked if damaged (`o29-return-serial`, drawn 2026-10-31).
 - **At the counter** (`o29-takeaway`): a takeaway or dine-in order has no calls, address or shipping; its step is
   **Hand over** -- "Handing it to Karim? Take ৳3,400 in cash. The order becomes delivered and paid." (`o29-handover`,
-  `o29-handed`).
+  `o29-handed`); with serial-numbered items it is a sheet asking the IMEI of each unit handed over
+  (`o29-handover-serial`, drawn 2026-10-31).
 - **Payments** (`o29-pay`, `o29-paid`, `o29-void`): **Record payment** -- how it came (cash, bKash, Nagad, Rocket,
   Upay, bank), the amount (no more than is due), the sending number and the TrxID for a wallet, a reference for a bank
   -- each listed with who recorded it and when; **Void** asks why, and a voided payment stays struck through and stops

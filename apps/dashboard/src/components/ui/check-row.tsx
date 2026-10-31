@@ -31,22 +31,43 @@ export function CheckRow({
         disabled ? 'cursor-default' : 'cursor-pointer',
       ].join(' ')}
     >
-      <span className="relative flex size-[22px] flex-none">
-        <input
-          type="checkbox"
-          checked={checked}
-          disabled={disabled}
-          onChange={onChange}
-          className="peer size-[22px] appearance-none rounded-control border-2 border-neutral-300 bg-surface checked:border-primary checked:bg-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:opacity-60"
-        />
-        <span className="pointer-events-none absolute inset-0 hidden items-center justify-center text-on-primary peer-checked:flex [&_svg]:stroke-[3]">
-          <Icon name="check" size={14} />
-        </span>
-      </span>
+      <CheckBox checked={checked} disabled={disabled} onChange={onChange} />
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="text-[15px] font-medium">{title}</span>
         {sub ? <span className="text-[14px] text-fg-muted">{sub}</span> : null}
       </span>
     </label>
+  );
+}
+
+/**
+ * The drawn tick on its own (the prototype's `.checkbox`), for a row that is more than a title (an order picked to
+ * print, Slice 4.8a): a native checkbox under it, named by `label` when the row says nothing else.
+ */
+export function CheckBox({
+  checked,
+  onChange,
+  disabled = false,
+  label,
+}: {
+  checked: boolean;
+  onChange: () => void;
+  disabled?: boolean;
+  label?: string;
+}): React.JSX.Element {
+  return (
+    <span className="relative flex size-[22px] flex-none">
+      <input
+        type="checkbox"
+        checked={checked}
+        disabled={disabled}
+        aria-label={label}
+        onChange={onChange}
+        className="peer size-[22px] appearance-none rounded-control border-2 border-neutral-300 bg-surface checked:border-primary checked:bg-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:opacity-60"
+      />
+      <span className="pointer-events-none absolute inset-0 hidden items-center justify-center text-on-primary peer-checked:flex [&_svg]:stroke-[3]">
+        <Icon name="check" size={14} />
+      </span>
+    </span>
   );
 }

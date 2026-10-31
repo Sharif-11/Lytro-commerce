@@ -23,6 +23,7 @@ import type {
   OrderStatus,
   PaymentMethod,
   PaymentPolicy,
+  SerialFormat,
   StatusOverride,
   StockUnit,
   PaymentSessionState,
@@ -93,6 +94,23 @@ export interface OrderItemView {
   taxAmount: string;
   /** CMB-04: a combo line's components as ordered, each its units in one combo; empty for any other line. */
   components: OrderComponentView[];
+  /** ORD-10 (Slice 4.8a): the units that came back, sellable or damaged; a combo line counts its combos. */
+  returnedQuantity: string;
+}
+
+/** INV-14 (Slice 4.8a): one serial-numbered part of an order -- a line, or a combo line's component. */
+export interface OrderSerialItem {
+  lineId: string;
+  /** The variant whose units these are: a combo line's component, or the line's own. */
+  variantId: string;
+  productName: string;
+  /** Its units on the order. */
+  quantity: string;
+  serialFormat: SerialFormat;
+  /** While the order waits to go: the serials held in stock it can be sent with. */
+  inStock: string[];
+  /** Once it has gone: the serials it was sent with, not back yet. */
+  sent: string[];
 }
 
 /** CMB-04: one component of a combo line, kept as it was ordered whatever later becomes of the product. */

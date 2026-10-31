@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { formatTaka } from '@lytronix/ui';
 import {
@@ -35,7 +36,7 @@ import { allows } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
 import type { Order, OrderCall, OrderHistory, OrderItem, OrderPayment } from '@/types/orders';
 import { OrderSheets, type OrderSheet } from './order-actions';
-import { choicesOf } from './order-choices';
+import { choicesOf, voidable } from './order-choices';
 import { atCounter, useOrderWords } from './order-words';
 
 /** A call's chip and dot: confirmed in green, no answer in amber, call later in blue, cancelled in red. */
@@ -62,14 +63,16 @@ export function OrderDetail({ orderId }: { orderId: string }): React.JSX.Element
 
 function OrderBody({ order }: { order: Order }): React.JSX.Element {
   const { t } = useTranslation('orders');
-  const { viewer } = useShell();
+  const { viewer, slug } = useShell();
   const words = useOrderWords();
   const [open, setOpen] = useState<OrderSheet | null>(null);
   const may = (permission: Permission) => allows(viewer, [permission]);
   const can = choicesOf(order, may);
   const counter = atCounter(order);
   const shown = words.status(order.status);
-  const menu = can.hold || can.release || can.cancel || can.delete;
+  const menu = can.hold || can.release || can.cancel || can.delete || can.print;
+  // QTA-03: the month's limit a ship just passed, said until the page is left.
+  const [limit, setLimit] = useState<number | null>(null);
 
   const next = can.handOver ? (
     <Button
@@ -99,6 +102,15 @@ function OrderBody({ order }: { order: Order }): React.JSX.Element {
       <Icon name="phone" />
       {t('callAgain')}
     </CallLink>
+  ) : can.ship ? (
+    <Button
+      onClick={() => {
+        setOpen({ kind: 'ship' });
+      }}
+    >
+      <Icon name="truck" />
+      {t('markShipped')}
+    </Button>
   ) : can.deliver ? (
     <Button
       onClick={() => {
@@ -106,6 +118,16 @@ function OrderBody({ order }: { order: Order }): React.JSX.Element {
       }}
     >
       {t('deliveredBtn')}
+    </Button>
+  ) : can.returnItems ? (
+    <Button
+      tone="outline"
+      onClick={() => {
+        setOpen({ kind: 'return' });
+      }}
+    >
+      <Icon name="undo" />
+      {t('returnItems')}
     </Button>
   ) : null;
 
@@ -140,6 +162,18 @@ function OrderBody({ order }: { order: Order }): React.JSX.Element {
         </div>
       </div>
       <StateBanner order={order} />
+      {limit !== null ? (
+        <Banner
+          tone="warn"
+          action={
+            <Link to="/$shop/plan" params={{ shop: slug }}>
+              {t('seePlans')}
+            </Link>
+          }
+        >
+          {t('limitPrompt', { limit })}
+        </Banner>
+      ) : null}
       <CustomerCard
         order={order}
         canCall={can.call}
@@ -150,7 +184,16 @@ function OrderBody({ order }: { order: Order }): React.JSX.Element {
       {counter ? null : <CallsCard calls={order.calls} />}
       <ItemsCard items={order.items} />
       <PricingCard order={order} />
-      <PaymentsCard order={order} />
+      <PaymentsCard
+        order={order}
+        canRecord={can.recordPayment}
+        onRecord={() => {
+          setOpen({ kind: 'pay' });
+        }}
+        onVoid={(payment) => {
+          setOpen({ kind: 'void', payment });
+        }}
+      />
       {counter ? null : <ShippingCard order={order} />}
       <TimelineCard order={order} />
       {next ? <ActionBar>{next}</ActionBar> : null}
@@ -159,6 +202,10 @@ function OrderBody({ order }: { order: Order }): React.JSX.Element {
         open={open}
         can={can}
         onOpen={setOpen}
+        onShipped={(shipped) => {
+          setLimit(shipped.limitPrompt?.limit ?? null);
+          setOpen(null);
+        }}
         onClose={() => {
           setOpen(null);
         }}
@@ -411,6 +458,11 @@ function ItemsCard({ items }: { items: OrderItem[] }): React.JSX.Element {
                 <span className="num text-[14px] text-fg-muted">
                   {Number(item.quantity)} × {formatTaka(item.unitPrice)}
                 </span>
+                {Number(item.returnedQuantity) > 0 ? (
+                  <span className="text-[14px] text-fg-muted">
+                    {t('backN', { count: Number(item.returnedQuantity) })}
+                  </span>
+                ) : null}
               </span>
               <span className="num flex-none text-[16px] font-semibold">
                 {formatTaka(item.itemTotal)}
@@ -468,24 +520,67 @@ function PricingCard({ order }: { order: Order }): React.JSX.Element {
   );
 }
 
-/** The payments received (ORD-15), each with who recorded it; a voided one struck through (ORD-22). */
-function PaymentsCard({ order }: { order: Order }): React.JSX.Element {
+/**
+ * The payments received (ORD-15), each with who recorded it; a voided one struck through (ORD-22). Record payment while
+ * something is due, and Void on a payment recorded by mistake, for someone who may manage payments.
+ */
+function PaymentsCard({
+  order,
+  canRecord,
+  onRecord,
+  onVoid,
+}: {
+  order: Order;
+  canRecord: boolean;
+  onRecord: () => void;
+  onVoid: (payment: OrderPayment) => void;
+}): React.JSX.Element {
   const { t } = useTranslation('orders');
+  const { viewer } = useShell();
+  const may = (permission: Permission) => allows(viewer, [permission]);
   return (
     <Card>
-      <SectionHead>{t('payment')}</SectionHead>
+      <SectionHead
+        link={
+          canRecord ? (
+            <button type="button" onClick={onRecord}>
+              {t('recordPay')}
+            </button>
+          ) : undefined
+        }
+      >
+        {t('payment')}
+      </SectionHead>
       {order.payments.length === 0 ? (
         <p className="mt-1.5 text-[14px] text-fg-muted">
           {atCounter(order) ? t('noPaymentsCounter') : t('noPayments')}
         </p>
       ) : (
-        order.payments.map((payment) => <PaymentRow key={payment.id} payment={payment} />)
+        order.payments.map((payment) => (
+          <PaymentRow
+            key={payment.id}
+            payment={payment}
+            onVoid={
+              voidable(payment, may)
+                ? () => {
+                    onVoid(payment);
+                  }
+                : null
+            }
+          />
+        ))
       )}
     </Card>
   );
 }
 
-function PaymentRow({ payment }: { payment: OrderPayment }): React.JSX.Element {
+function PaymentRow({
+  payment,
+  onVoid,
+}: {
+  payment: OrderPayment;
+  onVoid: (() => void) | null;
+}): React.JSX.Element {
   const { t } = useTranslation('orders');
   const words = useOrderWords();
   const when = useWhen();
@@ -529,6 +624,11 @@ function PaymentRow({ payment }: { payment: OrderPayment }): React.JSX.Element {
           </span>
         ) : null}
       </span>
+      {onVoid ? (
+        <Button tone="ghost" size="xs" onClick={onVoid}>
+          {t('voidIt')}
+        </Button>
+      ) : null}
     </div>
   );
 }
