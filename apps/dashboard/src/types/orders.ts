@@ -9,6 +9,7 @@ import type {
   OrderSource,
   OrderStatus,
   PaymentMethod,
+  ProductKind,
   SerialFormat,
   StatusOverride,
   StockUnit,
@@ -220,4 +221,90 @@ export interface Order {
   payments: OrderPayment[];
   /** QTA-03: in the reply of the ship or hand-over that passed the period's limit. */
   limitPrompt: { metric: 'orders_monthly'; limit: number } | null;
+  /** DLV-06, DLV-07: what staff were warned of as it was made or changed. */
+  warnings: OrderWarning[];
+}
+
+/** New order's Add an item (GET /orders/picker): a product found, with the units it has on sale (null: made to order). */
+export interface OrderPickerItem {
+  id: string;
+  name: string;
+  kind: ProductKind;
+  minPrice: string;
+  maxPrice: string;
+  active: boolean;
+  image: string | null;
+  variantCount: number;
+  available: string | null;
+}
+
+export interface OrderPickerPage {
+  products: OrderPickerItem[];
+  page: number;
+  pages: number;
+  total: number;
+}
+
+/** MNU-01: one of a product's add-on groups, as GET /orders/picker/:productId gives it. */
+export interface PickerModifierGroup {
+  id: string;
+  name: string;
+  minSelect: number;
+  maxSelect: number;
+  options: { id: string; name: string; priceChange: string; isDefault: boolean }[];
+}
+
+/** GET /orders/picker/:productId: its variants and their units, a combo's parts, its add-on groups. */
+export interface OrderPickerProduct {
+  id: string;
+  name: string;
+  kind: ProductKind;
+  active: boolean;
+  variants: { variantId: string; label: string; price: string; available: string | null }[];
+  parts: {
+    position: number;
+    quantity: string;
+    variants: {
+      variantId: string;
+      productName: string;
+      label: string;
+      onSale: boolean;
+      available: string | null;
+    }[];
+  }[];
+  modifierGroups: PickerModifierGroup[];
+}
+
+/** DLV-06, DLV-07: where the shop does not deliver, or a product may not go; the order still saves. */
+export interface OrderWarning {
+  code: 'zone_no_delivery' | 'product_not_delivered_here';
+  zone: Bilingual;
+  productName: string | null;
+}
+
+/** POST /orders/quote (D4-9): the order priced as it is typed, nothing held. */
+export interface OrderQuote {
+  items: { variantId: string; unitPrice: string; quantity: string; itemTotal: string }[];
+  deliveryZone: { id: string; name: Bilingual; charge: string } | null;
+  subtotal: string;
+  deliveryCharge: string;
+  discount: string;
+  grandTotal: string;
+  advanceDue: string;
+  codAmount: string;
+  taxes: { name: string; rate: string; amount: string }[];
+  warnings: OrderWarning[];
+}
+
+/** CUS-01, CUS-02 (GET /customers, GET /customers/:id): a customer as New order's known phone reads them. */
+export interface KnownCustomer {
+  id: string;
+  name: string | null;
+  phone: string | null;
+  orderCount: number;
+}
+
+/** GET /customers/:id: with where its latest delivery went. */
+export interface KnownCustomerView extends KnownCustomer {
+  lastAddress: { locationId: number; deliveryAddress: string } | null;
 }

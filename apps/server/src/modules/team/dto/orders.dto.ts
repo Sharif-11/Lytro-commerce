@@ -21,6 +21,7 @@ import {
   handOverOrderSchema,
   PaymentMethod,
   PaymentPolicy,
+  quoteOrderSchema,
   returnOrderSchema,
   shipOrderSchema,
   StatusOverride,
@@ -34,6 +35,7 @@ import {
 
 // DTO classes built from the shared schemas, so each request shape is written once (ENGINEERING §4).
 export class CreateOrderDto extends createZodDto(createOrderSchema) {}
+export class QuoteOrderDto extends createZodDto(quoteOrderSchema) {}
 export class UpdateOrderDto extends createZodDto(updateOrderSchema) {}
 export class LogCallDto extends createZodDto(logCallSchema) {}
 export class CancelOrderDto extends createZodDto(cancelOrderSchema) {}

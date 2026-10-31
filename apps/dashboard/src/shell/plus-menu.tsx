@@ -2,7 +2,6 @@ import { useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { Permission } from '@lytronix/validators';
 import { Icon, type IconName } from '@/components/icon';
-import { PhasePill } from '@/components/ui/page';
 import { Sheet } from '@/components/ui/sheet';
 import { allows } from './hubs';
 import { useShell } from './shell-context';
@@ -35,8 +34,8 @@ function Tile({
 
 /**
  * TENANT-DASHBOARD-DESIGN §4.5, the prototype's `plus` sheet: the things a seller starts most, as tiles -- two to a
- * row on a phone, three from 640 px. Add product (Slice 11.7a), Add stock (Slice 11.9: the Stock page, picking its product
- * first) and Top up, and New order shows what Phase 4 brings. Tiles a person cannot use are hidden (STF-11).
+ * row on a phone, three from 640 px. New order (Slice 4.8a), Add product (Slice 11.7a), Add stock (Slice 11.9: the Stock
+ * page, picking its product first) and Top up. Tiles a person cannot use are hidden (STF-11).
  */
 export function PlusMenu({
   open,
@@ -49,6 +48,15 @@ export function PlusMenu({
   const { slug, viewer } = useShell();
   const navigate = useNavigate();
   const actions: PlusAction[] = [];
+  if (allows(viewer, [Permission.OrdersManage])) {
+    actions.push({
+      icon: 'orders',
+      label: t('pOrder'),
+      run: () => {
+        void navigate({ to: '/$shop/orders/new', params: { shop: slug } });
+      },
+    });
+  }
   if (allows(viewer, [Permission.ProductsManage])) {
     actions.push({
       icon: 'tag',
@@ -92,10 +100,6 @@ export function PlusMenu({
             <Tile icon={action.icon}>{action.label}</Tile>
           </button>
         ))}
-        <div aria-disabled="true" className={`${tileClass} opacity-55`}>
-          <Tile icon="orders">{t('pOrder')}</Tile>
-          <PhasePill>{t('laterPhase', { p: t('phase4') })}</PhasePill>
-        </div>
       </div>
     </Sheet>
   );

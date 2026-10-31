@@ -10,11 +10,22 @@ import {
   OrderStatus,
   type CallOutcome,
   type CancelReason,
+  type CreateOrderInput,
   type PaymentMethod,
   type StatusOverride,
+  type UpdateOrderInput,
 } from '@lytronix/validators';
 import { tenantSession } from '@/session/tenant-session';
-import type { Order, OrderPage, OrderSerialItem } from '@/types/orders';
+import type {
+  KnownCustomer,
+  KnownCustomerView,
+  Order,
+  OrderPage,
+  OrderPickerPage,
+  OrderPickerProduct,
+  OrderQuote,
+  OrderSerialItem,
+} from '@/types/orders';
 import { PRODUCTS_QUERY_KEY } from './catalogue';
 import { HOME_QUERY_KEY } from './home';
 
@@ -286,5 +297,93 @@ export function useVoidPayment(id: string) {
     mutationFn: ({ paymentId, reason }: { paymentId: string; reason: string }) =>
       tenantSession.client.post<Order>(`/orders/${id}/payments/${paymentId}/void`, { reason }),
     onSuccess: changed,
+  });
+}
+
+/** GET /orders/picker (Slice 4.8a): New order's Add an item, products found by name with their units on sale. */
+export function useOrderPicker(search: string, options: { enabled?: boolean } = {}) {
+  return useInfiniteQuery({
+    queryKey: [...ORDERS_QUERY_KEY, 'picker', search],
+    queryFn: ({ pageParam }) =>
+      tenantSession.client.get<OrderPickerPage>(
+        `/orders/picker?${new URLSearchParams({
+          ...(search ? { search } : {}),
+          page: String(pageParam),
+        }).toString()}`,
+      ),
+    initialPageParam: 1,
+    getNextPageParam: (last) => (last.page < last.pages ? last.page + 1 : undefined),
+    placeholderData: keepPreviousData,
+    enabled: options.enabled ?? true,
+  });
+}
+
+/** GET /orders/picker/:productId: one product's variants and their units, a combo's parts, its add-on groups. */
+export function useOrderPickerProduct(productId: string | null) {
+  return useQuery({
+    queryKey: [...ORDERS_QUERY_KEY, 'picker', 'product', productId],
+    queryFn: () =>
+      tenantSession.client.get<OrderPickerProduct>(`/orders/picker/${productId ?? ''}`),
+    enabled: productId !== null,
+  });
+}
+
+/** What New order sends, without the key: the details, the items, a payment received with it (ORD-01, ORD-22). */
+export type OrderBody = CreateOrderInput;
+
+/** POST /orders/quote (D4-9): the totals as the order is typed, nothing held; null until it has an item. */
+export function useOrderQuote(body: OrderBody | null) {
+  return useQuery({
+    queryKey: [...ORDERS_QUERY_KEY, 'quote', body],
+    queryFn: () => tenantSession.client.post<OrderQuote>('/orders/quote', body),
+    enabled: body !== null,
+    placeholderData: keepPreviousData,
+    retry: false,
+  });
+}
+
+/** POST /orders (ORD-01): the order made, its stock held, once per key however often it is sent (D4-8). */
+export function useCreateOrder() {
+  const changed = useOrderChanged(true);
+  return useMutation({
+    mutationFn: ({ body, key }: { body: OrderBody; key: string }) =>
+      tenantSession.client.request<Order>('/orders', {
+        method: 'POST',
+        body: JSON.stringify(body),
+        headers: { 'Idempotency-Key': key },
+      }),
+    onSuccess: changed,
+  });
+}
+
+/** PATCH /orders/:id (ORD-11): its customer, items, prices or notes changed until it ships. */
+export function useUpdateOrder(id: string) {
+  const changed = useOrderChanged(true);
+  return useMutation({
+    mutationFn: (body: UpdateOrderInput) =>
+      tenantSession.client.patch<Order>(`/orders/${id}`, body),
+    onSuccess: changed,
+  });
+}
+
+/**
+ * CUS-01 (GET /customers?q=, then GET /customers/:id): the customer a whole phone number belongs to, with where their
+ * latest delivery went, for New order's known phone; needs customers:read.
+ */
+export function useKnownCustomer(phone: string | null) {
+  const found = useQuery({
+    queryKey: ['customers', 'phone', phone],
+    queryFn: () =>
+      tenantSession.client.get<{ customers: KnownCustomer[] }>(
+        `/customers?${new URLSearchParams({ q: phone ?? '' }).toString()}`,
+      ),
+    select: (page) => page.customers.find((customer) => customer.phone === phone) ?? null,
+    enabled: phone !== null,
+  });
+  const id = found.data?.id ?? null;
+  return useQuery({
+    queryKey: ['customers', id],
+    queryFn: () => tenantSession.client.get<KnownCustomerView>(`/customers/${id ?? ''}`),
+    enabled: id !== null,
   });
 }

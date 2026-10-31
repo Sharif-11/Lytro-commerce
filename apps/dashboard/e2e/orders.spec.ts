@@ -284,9 +284,10 @@ test('someone who may only look sees no next step, and only Print label in the m
     .click();
   const menu = sheet(page, /^Order #/);
   await expect(menu.getByRole('button').filter({ hasText: /\S/ })).toHaveText(['Print label']);
-  // Selecting orders to print is for someone who may manage them.
+  // Selecting orders to print, and entering one, are for someone who may manage them.
   await page.goto(`/${SLUG}/orders`);
   await expect(main(page).getByRole('button', { name: 'Select' })).toHaveCount(0);
+  await expect(main(page).getByRole('link', { name: 'New order' })).toHaveCount(0);
 });
 
 /** Part 29's day with one order changed for a test. */

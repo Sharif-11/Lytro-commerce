@@ -58,6 +58,7 @@ import {
   RecentCouriersDto,
   OverrideOrderDto,
   PaymentLinkDto,
+  QuoteOrderDto,
   RefundPaymentDto,
   ReturnOrderDto,
   ShipOrderDto,
@@ -146,12 +147,13 @@ export class OrdersController {
   @RequirePermission(Permission.OrdersManage)
   @ResponseMessage('OrderPriced')
   @ApiOperation({
-    summary: 'Price an order as it would be made, without making it or holding stock (D4-9)',
+    summary:
+      "Price an order as it would be made, without making it or holding stock; the customer's details aren't needed yet (D4-9)",
   })
-  @ApiBody({ type: CreateOrderDto })
+  @ApiBody({ type: QuoteOrderDto })
   @ZodResponse({ type: OrderQuoteDto })
   quote(
-    @Body(new ZodValidationPipe(CreateOrderDto.schema)) body: CreateOrderDto,
+    @Body(new ZodValidationPipe(QuoteOrderDto.schema)) body: QuoteOrderDto,
     @Req() request: DashboardRequest,
   ): Promise<OrderQuote> {
     return this.orders.quote(this.request.tenantIdOf(request), body);

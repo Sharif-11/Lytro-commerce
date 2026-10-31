@@ -20,6 +20,8 @@ export function choicesOf(order: Order, may: (permission: Permission) => boolean
     hold: manage && open && !counter && order.status !== OrderStatus.Hold,
     release: manage && order.status === OrderStatus.Hold,
     cancel: manage && open,
+    // ORD-11: its customer, items, prices or notes, until it ships.
+    edit: manage && open,
     delete: may(Permission.OrdersDelete) && open && !livePaid,
     handOver: manage && open && counter,
     ship: manage && open && !counter && order.status === OrderStatus.Confirmed,
