@@ -451,6 +451,9 @@ export enum QueueName {
   InventoryExpiryTick = 'inventory_expiry_tick',
   // INV-16: every minute, releases the stock held for orders whose online payment never came.
   ReservationExpiryTick = 'reservation_expiry_tick',
+  // PAY-03, D5-4 (Phase 5 Slice 5.2): every minute, a session nobody paid in time expires and its checkout order is
+  // cancelled, its stock let go.
+  PaymentSessionExpiryTick = 'payment_session_expiry_tick',
   // MED-03: an uploaded file to validate and turn into what is stored; MED-07, MED-09: stored files to delete, with the
   // deletion job's own key.
   MediaProcess = 'media_process',
@@ -1125,6 +1128,9 @@ export enum CancelReason {
   Unreachable = 'unreachable',
   OutOfStock = 'out_of_stock',
   Duplicate = 'duplicate',
+  // D5-4 (Phase 5, agreed 2026-10-31): the order's advance was not paid in time, or its payment was rejected; the server
+  // gives it, and staff may choose it too.
+  AdvanceNotPaid = 'advance_not_paid',
   Other = 'other',
 }
 
@@ -1167,6 +1173,25 @@ export enum WalletAccountType {
   Personal = 'personal',
   Agent = 'agent',
   Merchant = 'merchant',
+}
+
+// §2.4, PAY-03, PAY-07 (Phase 5 Slice 5.2): a payment session's state. A session is made awaiting payment; a
+// transaction ID typed moves it to checking (D5-5), where it waits for staff, the listener or the gateway.
+export enum PaymentSessionState {
+  AwaitingPayment = 'awaiting_payment',
+  Checking = 'checking',
+  Verified = 'verified',
+  NeedsReview = 'needs_review',
+  Failed = 'failed',
+  Expired = 'expired',
+  Cancelled = 'cancelled',
+}
+
+// Slice 5.2 (agreed 2026-10-31): who opened a session -- a shopper at checkout, whose unpaid order the window's end
+// cancels (D5-4), or staff sending a payment link, which only expires.
+export enum PaymentSessionSource {
+  Checkout = 'checkout',
+  StaffLink = 'staff_link',
 }
 
 // VER-01 to VER-12: how a payment is verified -- by staff, by a paired listener phone reading the receipt SMS, or by

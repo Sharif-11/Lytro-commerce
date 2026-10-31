@@ -149,6 +149,10 @@ export const TAX_CLASSES_MAX = 20;
 
 // WAL-01, WAL-02, WAL-14 (Phase 5 Slice 5.1): a shop's payment accounts, at most 10 for each method.
 export const PAYMENT_ACCOUNTS_PER_METHOD_MAX = 10;
+// PAY-01, PAY-07 (Slice 5.2): the addresses a session returns to, and the transaction ID a shopper types.
+export const PAYMENT_RETURN_URL_MAX_LENGTH = 500;
+export const PAGE_TRANSACTION_ID_MIN_LENGTH = 6;
+export const PAGE_TRANSACTION_ID_MAX_LENGTH = 20;
 export const PAYMENT_ACCOUNT_NAME_MAX_LENGTH = 100;
 export const PAYMENT_ACCOUNT_NOTE_MAX_LENGTH = 500;
 export const BANK_FIELD_MAX_LENGTH = 100;

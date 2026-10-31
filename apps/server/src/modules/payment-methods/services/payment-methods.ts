@@ -59,6 +59,7 @@ function accountOf(row: PaymentAccountInput, active: boolean): NewPaymentAccount
 function shopperView(method: AccountMethod, row: SelectWalletAccount): ShopperPaymentMethod {
   const { kind } = PAYMENT_METHOD_TYPES[method];
   return {
+    accountId: row.id,
     method,
     kind,
     accountName: row.accountName,
@@ -144,16 +145,19 @@ export class PaymentMethods {
 
   /** WAL-06, TVR-01: each method that is on with its active account, for checkout and the payment page. */
   forShoppers(tenantId: string): Promise<ShopperPaymentMethod[]> {
-    return this.store.run(tenantId, async (tx) => {
-      if (!(await this.store.ownerPhoneVerified(tx, tenantId))) return [];
-      const off = new Set<string>(await this.store.listOff(tx, tenantId));
-      const rows = await this.store.list(tx, tenantId);
-      return ACCOUNT_METHODS.flatMap((method) => {
-        const active = off.has(method)
-          ? undefined
-          : rows.find((row) => row.method === method && row.active);
-        return active ? [shopperView(method, active)] : [];
-      });
+    return this.store.run(tenantId, (tx) => this.forShoppersWithin(tx, tenantId));
+  }
+
+  /** The same, in the caller's transaction (Slice 5.2: an order's payment and the page's). */
+  async forShoppersWithin(tx: Transaction, tenantId: string): Promise<ShopperPaymentMethod[]> {
+    if (!(await this.store.ownerPhoneVerified(tx, tenantId))) return [];
+    const off = new Set<string>(await this.store.listOff(tx, tenantId));
+    const rows = await this.store.list(tx, tenantId);
+    return ACCOUNT_METHODS.flatMap((method) => {
+      const active = off.has(method)
+        ? undefined
+        : rows.find((row) => row.method === method && row.active);
+      return active ? [shopperView(method, active)] : [];
     });
   }
 

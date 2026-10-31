@@ -25,6 +25,7 @@ import type {
   PaymentPolicy,
   StatusOverride,
   StockUnit,
+  PaymentSessionState,
 } from '@lytronix/validators';
 import type { Bilingual, ThanaView } from '../../delivery/types/delivery';
 
@@ -342,6 +343,13 @@ export interface OrderTaxLine {
  * ORD-02, LND-11, SFT-06: a shopper's order as placed: its number and tracking ID for the confirmation, and the ID of
  * Meta's `Purchase` event, which the browser sends with the same ID so Meta counts the purchase once (LND-16).
  */
+/** PAY-01 (Phase 5 Slice 5.2): an order's open payment -- the page's address, the amount and when it runs out. */
+export interface OrderPaymentLink {
+  paymentUrl: string;
+  amount: string;
+  expiresAt: Date;
+}
+
 export interface PlacedOrderView extends ShopperTotals {
   orderNumber: string;
   trackingId: string;
@@ -349,6 +357,8 @@ export interface PlacedOrderView extends ShopperTotals {
   createdAt: Date;
   items: ShopperItemView[];
   purchaseEventId: string;
+  /** LND-10, SFT-07 (Slice 5.2): where the shopper pays an advance; null for cash on delivery. */
+  payment: OrderPaymentLink | null;
 }
 
 /** ORD-17 (agreed 2026-10-30): the steps a shopper is shown; calls, a hold and a review stay the shop's own. */
@@ -371,4 +381,6 @@ export interface TrackedOrderView extends ShopperTotals {
   items: ShopperItemView[];
   due: string;
   courier: { name: string | null; trackingCode: string | null; trackingLink: string | null } | null;
+  /** Slice 5.2: an unverified order's open payment, to go back to; null for none. */
+  payment: (OrderPaymentLink & { state: PaymentSessionState }) | null;
 }

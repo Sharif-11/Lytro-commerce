@@ -4,6 +4,7 @@ import {
   ApiKeyPurpose,
   FieldProblemCode,
   FulfilmentType,
+  OrderPaymentStatus,
   OrderSource,
   QueueName,
   type PublicOrderInput,
@@ -19,6 +20,8 @@ import { placedViewOf } from '../../orders/services/order-tracking';
 import { OrderService } from '../../orders/services/order.service';
 import { ORDER_NOTIFIER } from '../../orders/tokens';
 import type { OrderRecord, PlacedOrderView } from '../../orders/types/orders';
+import { PaymentMethods } from '../../payment-methods/services/payment-methods';
+import { PaymentSessions } from '../../payment-sessions/services/payment-sessions';
 import type { JobQueue } from '../../shared/queue/ports/job-queue';
 import { JOB_QUEUE } from '../../shared/queue/tokens';
 import type { AuthenticatedKey } from '../types/public-api';
@@ -33,6 +36,7 @@ export type OrderPlaced =
  * ORD-02, ORD-20, ORD-21, LND-16, API-21 (Phase 4 Slice 4.2): a shopper's order through a public key -- the Lytro
  * storefront's, or a key the shop made for its own site. It is made exactly as a staff order is, refused what a
  * shopper may not order, and starts pending, waiting for the shop's call (ORD-07); its activity entry names the key.
+ * Since Phase 5 (Slice 5.2) an order needing an advance starts unverified, its payment session opened with it.
  * Meta's server-side `Purchase` is queued in the order's own transaction, and the shop's staff are told once it has
  * committed -- never on a replay.
  */
@@ -47,6 +51,8 @@ export class PublicOrderService {
     @Inject(AdTrackingService) private readonly adTracking: AdTrackingService,
     @Inject(JOB_QUEUE) private readonly jobs: JobQueue,
     @Inject(ORDER_NOTIFIER) private readonly notifier: OrderNotifier,
+    @Inject(PaymentMethods) private readonly methods: PaymentMethods,
+    @Inject(PaymentSessions) private readonly sessions: PaymentSessions,
   ) {}
 
   async place(
@@ -59,7 +65,10 @@ export class PublicOrderService {
     const source = this.sourceOf(input, key);
     const location = await this.pricing.thanaOf(input.locationId);
     const toMeta = await this.adTracking.sendsPurchases(tenantId);
+    const now = new Date();
     const placed = await this.orders.inTransaction(tenantId, async (tx) => {
+      // PAY-01, WAL-08 (Phase 5 Slice 5.2): how an advance could be paid -- the methods the shop offers shoppers now.
+      const offered = await this.methods.forShoppersWithin(tx, tenantId);
       const made = await this.orders.makeWithin(tx, tenantId, claim, {
         source,
         type: FulfilmentType.Delivery,
@@ -78,9 +87,20 @@ export class PublicOrderService {
         actor: { id: key.id, ip, type: ActorType.ApiKey },
         audited: { keyName: key.name, source },
         shopper: true,
+        onlinePayment:
+          offered.length === 0 ? 'unavailable' : input.payment === undefined ? 'not_sent' : 'ready',
       });
       if (made.replayed) return made;
-      const view = placedViewOf(made.order, made.lines);
+      // LND-10, SFT-07: an order waiting on its advance opens its payment with it, in the same transaction.
+      const payment =
+        made.order.paymentStatus === OrderPaymentStatus.PendingVerification && input.payment
+          ? await this.sessions.openForCheckoutWithin(tx, tenantId, made.order, input.payment, {
+              websites: key.websites,
+              offered,
+              now,
+            })
+          : null;
+      const view: PlacedOrderView = { ...placedViewOf(made.order, made.lines), payment };
       if (toMeta) {
         const payload: MetaPurchasePayload = { tenantId, orderId: made.order.id };
         await this.jobs.enqueue(tx, QueueName.MetaPurchase, payload, {

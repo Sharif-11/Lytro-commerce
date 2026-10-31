@@ -285,6 +285,11 @@ export {
   type NewPaymentAccount,
 } from './repositories/payments/payment-method.repository';
 export {
+  PaymentSessionRepository,
+  type NewPaymentSession,
+  type PaymentSubmission,
+} from './repositories/payments/payment-session.repository';
+export {
   ShopperRepository,
   type NewShopperAddress,
   type ShopperPatch,

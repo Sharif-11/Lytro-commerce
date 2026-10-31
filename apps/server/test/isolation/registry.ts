@@ -314,4 +314,9 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'PUT /payment-methods/:method':
     "another shop's account answers not_found and stays; the same number is still free here",
   'GET /public/payment-methods': "shows only the key's own shop's active accounts",
+  // Phase 5 Slice 5.2, checked in test/payment-sessions.e2e.spec.ts: a session's reference reaches its own shop only.
+  'GET /public/pay/:ref':
+    "an unknown reference answers 404; the page shows only its own shop's methods",
+  'POST /public/pay/:ref/transaction':
+    "an unknown reference answers 404; an ID another shop's payment holds is refused",
 };

@@ -30,6 +30,7 @@ import { UsageWarnings } from '../../usage-warnings/services/usage-warnings';
 import { MediaEraser } from '../../media/services/media-eraser';
 import { BrandEraser } from '../../brand/services/brand-eraser';
 import { PaymentMethodsEraser } from '../../payment-methods/services/payment-methods-eraser';
+import { PaymentSessionsEraser } from '../../payment-sessions/services/payment-sessions-eraser';
 import { DomainEraser } from '../../domains/services/domain-eraser';
 import { DataExportService } from '../../data-export/services/data-export.service';
 import { MailService } from '../../shared/mail/services/mail.service';
@@ -99,6 +100,7 @@ export class LifecycleService {
     @Inject(MediaEraser) private readonly media: MediaEraser,
     @Inject(BrandEraser) private readonly brand: BrandEraser,
     @Inject(PaymentMethodsEraser) private readonly paymentMethods: PaymentMethodsEraser,
+    @Inject(PaymentSessionsEraser) private readonly paymentSessions: PaymentSessionsEraser,
     @Inject(DomainEraser) private readonly domain: DomainEraser,
     @Inject(DeliveryZoneService) private readonly deliveryZones: DeliveryZoneService,
     @Inject(PurchaseService) private readonly purchase: PurchaseService,
@@ -349,6 +351,8 @@ export class LifecycleService {
     // anyone to add. Each step is safe to repeat if a tick stops between them.
     await this.purchasing.deleteAllForTenant(tenantId);
     await this.inventory.deleteAllForTenant(tenantId);
+    // Phase 5 Slice 5.2: the payment sessions, which name the orders, and the references that found them.
+    await this.paymentSessions.deleteAllForTenant(tenantId);
     await this.orders.deleteAllForTenant(tenantId);
     await this.shoppers.deleteAllForTenant(tenantId);
     await this.idempotency.deleteAllForTenant(tenantId);

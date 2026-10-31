@@ -17,6 +17,9 @@ import {
 } from '../../database/adapters/public-api.adapter';
 import { BrandModule } from '../brand/brand.module';
 import { PaymentMethodsModule } from '../payment-methods/payment-methods.module';
+import { PaymentSessionsModule } from '../payment-sessions/payment-sessions.module';
+import { PaymentPageController } from './controllers/payment-page.controller';
+import { PaymentPageGuard } from './guards/payment-page.guard';
 import { DomainsModule } from '../domains/domains.module';
 import { CatalogueModule } from '../catalogue/catalogue.module';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
@@ -92,6 +95,7 @@ import {
     UsageWarningsModule,
     BrandModule,
     PaymentMethodsModule,
+    PaymentSessionsModule,
     // Slice 13: the storefront's context and the catalog feed name the shop's own domain while it serves.
     DomainsModule,
     // Slice 4.4b: shoppers' accounts, sign-in and saved addresses.
@@ -106,12 +110,14 @@ import {
     PublicOrdersController,
     PublicShopperController,
     PublicPaymentMethodsController,
+    PaymentPageController,
   ],
   providers: [
     { provide: API_KEY_STORE, useClass: DrizzleApiKeyStore },
     { provide: API_USAGE_STORE, useClass: DrizzleApiUsageStore },
     { provide: API_CLOCK, useValue: (): Date => new Date() },
     StorefrontKeyService,
+    PaymentPageGuard,
     StorefrontContextService,
     ShopperGate,
     { provide: PUBLIC_CATALOGUE_STORE, useClass: DrizzlePublicCatalogueStore },

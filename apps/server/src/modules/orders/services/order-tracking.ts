@@ -91,6 +91,7 @@ export function placedViewOf(order: OrderRecord, lines: OrderLineRecord[]): Plac
     items: itemsOf(lines),
     ...totalsOf(order, lines),
     purchaseEventId: purchaseEventIdOf(order.trackingId),
+    payment: null,
   };
 }
 
@@ -113,6 +114,7 @@ export function trackedViewOf(order: OrderRecord, lines: OrderLineRecord[]): Tra
             trackingLink: order.trackingLink,
           }
         : null,
+    payment: null,
   };
 }
 
