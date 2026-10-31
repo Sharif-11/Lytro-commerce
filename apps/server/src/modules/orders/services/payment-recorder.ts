@@ -16,12 +16,16 @@ import type { OrderStore } from '../ports/order-store';
 import { ORDER_STORE } from '../tokens';
 import type { OrderPaymentRecord, OrderRecord } from '../types/orders';
 
-/** A payment as it is recorded: by staff (ORD-15, ORD-22), or the cash on delivery collected (ORD-43). */
+/**
+ * A payment as it is recorded: by staff (ORD-15, ORD-22), the cash on delivery collected (ORD-43), or (Slice 5.3) one a
+ * shopper typed on the payment page, verified by hand from its session (VER-01).
+ */
 export interface PaymentEntry {
   method: PaymentMethod;
   amount: string;
   senderNumber: string | null;
   transactionId: string | null;
+  sessionId?: string;
 }
 
 /** What an order's payments make of it (ORD-06, ORD-43). */
@@ -37,12 +41,14 @@ function takaText(value: string): string {
   return value.endsWith('.00') ? value.slice(0, -3) : value;
 }
 
-/** ORD-06, agreed 2026-10-30: what an order's payments add up to, in paisa -- a voided payment no longer counts. */
+/** ORD-06, ORD-44: a payment that counts toward what the order is paid -- neither voided nor (Slice 5.3) refunded. */
+function counts(payment: OrderPaymentRecord): boolean {
+  return payment.voidedAt === null && payment.refundedAt === null;
+}
+
+/** ORD-06, agreed 2026-10-30: what an order's payments add up to, in paisa -- a voided or refunded one no longer counts. */
 function paidOf(payments: readonly OrderPaymentRecord[]): number {
-  return payments.reduce(
-    (sum, row) => (row.voidedAt === null ? sum + paisaOf(row.amount) : sum),
-    0,
-  );
+  return payments.reduce((sum, row) => (counts(row) ? sum + paisaOf(row.amount) : sum), 0);
 }
 
 /** A payment as staff typed it. */
@@ -86,6 +92,7 @@ export class PaymentRecorder {
     entry: PaymentEntry,
     who: ResolvedActor,
     field = '',
+    action: AuditAction = AuditAction.OrderPaymentRecorded,
   ): Promise<OrderRecord> {
     if (order.statusOverride === StatusOverride.Cancelled) {
       throw new ApiError('conflict', 'OrderIsCancelled', {});
@@ -126,7 +133,7 @@ export class PaymentRecorder {
       tx,
       tenantId,
       who,
-      AuditAction.OrderPaymentRecorded,
+      action,
       { type: 'order', id: order.id },
       {
         orderNumber: order.orderNumber,
@@ -170,7 +177,8 @@ export class PaymentRecorder {
     order: OrderRecord,
     totals: Pick<OrderRecord, 'grandTotal' | 'advanceDue'>,
   ): Promise<PaymentStanding> {
-    const paid = paidOf(await this.store.listPayments(tx, tenantId, order.id));
+    const payments = await this.store.listPayments(tx, tenantId, order.id);
+    const paid = paidOf(payments);
     const total = paisaOf(totals.grandTotal);
     if (paid > total) {
       throw new ApiError(
@@ -184,6 +192,10 @@ export class PaymentRecorder {
       );
     }
     const due = ((total - paid) / 100).toFixed(2);
+    // ORD-44 (Slice 5.3): every payment that came in given back is refunded.
+    if (paid === 0 && payments.some((row) => row.voidedAt === null && row.refundedAt !== null)) {
+      return { due, paymentStatus: OrderPaymentStatus.Refunded };
+    }
     if (paid === 0) {
       // D5-9 (Slice 5.2): an order waiting on its advance online keeps waiting until money comes, whatever is edited.
       const waiting = order.paymentStatus === OrderPaymentStatus.PendingVerification;

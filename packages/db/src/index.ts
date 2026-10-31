@@ -287,8 +287,14 @@ export {
 export {
   PaymentSessionRepository,
   type NewPaymentSession,
+  type PaymentDecision,
   type PaymentSubmission,
 } from './repositories/payments/payment-session.repository';
+export {
+  PaymentListRepository,
+  type PaymentListFilter,
+  type PaymentListRow,
+} from './repositories/payments/payment-list.repository';
 export {
   PaymentPageReportRepository,
   type PaymentPageReportRow,

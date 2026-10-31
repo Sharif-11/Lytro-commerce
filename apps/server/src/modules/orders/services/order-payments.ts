@@ -4,6 +4,7 @@ import {
   AuditAction,
   PaymentMethod,
   type OrderPaymentInput,
+  type RefundPaymentInput,
   type VoidPaymentInput,
 } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
@@ -19,7 +20,9 @@ import { PaymentRecorder, paymentEntryOf, paymentWords } from './payment-recorde
  * ORD-15, ORD-43 (Phase 4 Slice 4.3b, read agreed 2026-10-30): payments staff record on an order, and voiding one
  * recorded by mistake. A voided payment stays in the order's payments, marked void with who voided it, when and why;
  * it no longer counts, so what is due goes back up. The cash on delivery collected when an order was delivered or handed
- * over is never voided: it is what Delivered means (agreed 2026-10-30).
+ * over is never voided: it is what Delivered means (agreed 2026-10-30). Since Phase 5 (Slice 5.3) a payment may be marked
+ * refunded, a record only (PAY-20): it stops counting as a void does, and the order shows refunded once every payment
+ * is (ORD-44).
  */
 @Injectable()
 export class OrderPayments {
@@ -65,6 +68,10 @@ export class OrderPayments {
       const payment = await this.store.lockPayment(tx, tenantId, order.id, paymentId);
       if (!payment) throw new ApiError('not_found', 'OrderPaymentNotFound', {});
       if (payment.voidedAt !== null) throw new ApiError('conflict', 'PaymentAlreadyVoided', {});
+      // Slice 5.3: a refunded payment stays as it is (migration 0097's guard).
+      if (payment.refundedAt !== null) {
+        throw new ApiError('conflict', 'PaymentAlreadyRefunded', {});
+      }
       if (payment.method === PaymentMethod.CashOnDelivery) {
         throw new ApiError('conflict', 'CashOnDeliveryKept', {});
       }
@@ -95,6 +102,56 @@ export class OrderPayments {
           method: payment.method,
           amount: payment.amount,
           reason: input.reason,
+        },
+      );
+      return this.orders.viewWithin(tx, tenantId, updated, []);
+    });
+  }
+
+  /** PAY-20, ORD-44 (Slice 5.3, agreed 2026-10-31): money given back, marked with a note; it moves no money. */
+  async refund(
+    tenantId: string,
+    orderId: string,
+    paymentId: string,
+    input: RefundPaymentInput,
+    actor: CatalogueActor,
+  ): Promise<OrderView> {
+    const who = await this.activity.resolve(tenantId, actor);
+    return this.store.run(tenantId, async (tx) => {
+      const order = await this.find(tx, tenantId, orderId);
+      const payment = await this.store.lockPayment(tx, tenantId, order.id, paymentId);
+      if (!payment) throw new ApiError('not_found', 'OrderPaymentNotFound', {});
+      if (payment.voidedAt !== null) throw new ApiError('conflict', 'PaymentAlreadyVoided', {});
+      if (payment.refundedAt !== null) {
+        throw new ApiError('conflict', 'PaymentAlreadyRefunded', {});
+      }
+      await this.store.refundPayment(tx, tenantId, payment.id, {
+        refundedBy: who.id,
+        refundNote: input.note,
+      });
+      const standing = await this.recorder.standingWithin(tx, tenantId, order, order);
+      const history: NewOrderHistory[] = [];
+      this.recorder.noteStanding(
+        order,
+        standing,
+        `${paymentWords(payment)} refunded: ${input.note}`,
+        who,
+        history,
+      );
+      const updated = await this.store.updateOrder(tx, tenantId, order.id, standing);
+      await this.store.insertHistory(tx, tenantId, history);
+      await this.activity.record(
+        tx,
+        tenantId,
+        who,
+        AuditAction.OrderPaymentRefunded,
+        { type: 'order', id: order.id },
+        {
+          orderNumber: order.orderNumber,
+          paymentId: payment.id,
+          method: payment.method,
+          amount: payment.amount,
+          note: input.note,
         },
       );
       return this.orders.viewWithin(tx, tenantId, updated, []);

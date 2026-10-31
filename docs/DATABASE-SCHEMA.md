@@ -163,6 +163,9 @@ CREATE TABLE control.tenants (
     -- TVR-03 (Slice 5.2b, migration 0096): the shop's payment page alone suspended by Lytro, and why.
     payment_page_suspended_at     timestamptz,
     payment_page_suspended_reason text,
+    -- TVR-04 (Slice 5.3, migration 0097): the operator's switch for the new-shop payment cap; null keeps its kind's
+    -- default (on for pay-as-you-go, off on a plan).
+    new_shop_cap           boolean,
     -- D2-11 (added 2026-10-13): cached, updated whenever an order-fee, product-fee or top-up
     -- ledger entry is written (the same denormalized pattern as balance_amount above). Read by
     -- the pay-as-you-go inactivity job (PYG-21) instead of scanning tenant.balance_ledger on
@@ -1709,6 +1712,12 @@ CREATE TABLE tenant.payment_sessions (
     sender_number   varchar(11),
     paid_to         jsonb,                            -- { accountId, accountName, number, bankName, accountNumber } as it stood
     submitted_at    timestamptz,
+    -- VER-01, PAY-14 (Slice 5.3, migration 0097): who verified or rejected it and when; a rejection's reason
+    -- (no_payment_found, transaction_id_used, other) and note, shown to the shopper.
+    decided_by      uuid,
+    decided_at      timestamptz,
+    reject_reason   tenant.payment_reject_reason,
+    reject_note     varchar(500),
     created_at      timestamptz NOT NULL DEFAULT now(),
     updated_at      timestamptz NOT NULL DEFAULT now(),
     UNIQUE (tenant_id, id),
@@ -1765,10 +1774,20 @@ CREATE TABLE tenant.payments (
     voided_at       timestamptz,                       -- Slice 4.3b: recorded by mistake; no longer counts toward paid
     voided_by       uuid,
     void_reason     varchar(500),                      -- set exactly when voided_at is (payments_void_check)
+    -- VER-01, VER-12, PAY-20 (Slice 5.3, migration 0097): the session it was verified from, how it was verified, and
+    -- a refund -- a record only; refunded, it no longer counts toward paid, and stays refunded (payments_guard).
+    session_id      uuid,                              -- one payment per session (payments_session_key)
+    verification_level tenant.verification_level NOT NULL DEFAULT 'manual',  -- manual, listener, gateway
+    refunded_at     timestamptz,
+    refunded_by     uuid,
+    refund_note     varchar(500)                       -- set exactly when refunded_at is (payments_refund_check)
 );
 -- ORD-15 (Slice 4.3b): within a shop, one live payment per transaction ID; across shops, control.used_transaction_ids.
 CREATE UNIQUE INDEX payments_live_transaction_key ON tenant.payments (tenant_id, transaction_id)
     WHERE transaction_id IS NOT NULL AND voided_at IS NULL;
+CREATE UNIQUE INDEX payments_session_key ON tenant.payments (tenant_id, session_id) WHERE session_id IS NOT NULL;
+-- The application role may update only the void and (Slice 5.3) refund columns; a voided payment stays void and a
+-- refunded one refunded (tenant.guard_payment).
 
 -- Decided 2026-10-02: a plain unique index on tenant.payments/payment_sessions.transaction_id
 -- only enforces platform-wide uniqueness while those rows exist. Once a tenant is hard-deleted
@@ -1781,6 +1800,8 @@ CREATE TABLE control.used_transaction_ids (
     first_used_at   timestamptz NOT NULL DEFAULT now(),
     tenant_id       uuid NOT NULL             -- the tenant that first used it, kept for audit even after that tenant is deleted; not a foreign key for that reason
 );
+-- VER-02 (Slice 5.3, migration 0097): every ID is kept in capitals, so the registry matches IDs ignoring case; a wallet
+-- ID is 6 to 20 letters and digits wherever it is typed. Claimed when a payment is recorded or verified.
 
 CREATE TABLE tenant.courier_connections (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),

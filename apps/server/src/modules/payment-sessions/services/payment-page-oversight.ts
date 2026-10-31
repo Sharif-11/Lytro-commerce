@@ -98,6 +98,45 @@ export class PaymentPageOversight {
     });
   }
 
+  /**
+   * TVR-04 (Slice 5.3, agreed 2026-10-31): the shop's new-shop cap switched on or off, or (null) back to its kind's
+   * default; in both logs.
+   */
+  setNewShopCap(
+    tenantId: string,
+    capped: boolean | null,
+    operatorId: string,
+    ip: string | null,
+  ): Promise<void> {
+    return this.store.run(async (tx) => {
+      if (!(await this.store.newShopOf(tx, tenantId))) {
+        throw new ApiError('not_found', 'ShopNotFound', {});
+      }
+      await this.store.setNewShopCap(tx, tenantId, capped);
+      await this.audit.record(tx, {
+        tenantId,
+        actorType: ActorType.PlatformSupport,
+        actorId: null,
+        action: AuditAction.NewShopCapSet,
+        ip,
+        targetType: 'tenant',
+        targetId: tenantId,
+        result: AuditResult.Success,
+        summary: { capped },
+      });
+      await this.platformAudit.recordWithin(tx, {
+        actorType: PlatformActorType.Operator,
+        actorId: operatorId,
+        action: PlatformAuditAction.NewShopCapSet,
+        targetType: 'tenant',
+        targetId: tenantId,
+        result: AuditResult.Success,
+        ip,
+        summary: { capped },
+      });
+    });
+  }
+
   /** AUD-08, ADM-08: the shop's log names Lytro support, never the operator; the platform's log keeps who it was. */
   private async recordBoth(
     tx: Transaction,

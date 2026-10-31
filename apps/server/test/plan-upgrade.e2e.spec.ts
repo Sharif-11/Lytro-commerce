@@ -206,7 +206,7 @@ describeIfDatabase('upgrade proration math, literally (UPG-02 to UPG-05)', () =>
     expect(closed.rows[0]).toEqual({ status: 'cancelled', cancel_reason: 'replaced' });
 
     await upgrade.submitWalletPayment(sent.id, tenantId, {
-      transactionId: `TXN-${randomUUID()}`,
+      transactionId: `TXN${randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
       senderNumber: '01710000000',
       amountPaid: sent.amount,
     });
@@ -288,7 +288,7 @@ describeIfDatabase('confirming an upgrade (UPG-09, UPG-12, UPG-15 to UPG-17)', (
 
     const quote = await upgrade.quote(tenantId, growthId, growthTermId);
     await upgrade.submitWalletPayment(quote.id, tenantId, {
-      transactionId: `TXN-${randomUUID()}`,
+      transactionId: `TXN${randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
       senderNumber: '01710000000',
       amountPaid: '400.00',
     });

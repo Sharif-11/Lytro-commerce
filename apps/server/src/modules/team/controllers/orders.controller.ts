@@ -52,6 +52,7 @@ import {
   RecentCouriersDto,
   OverrideOrderDto,
   PaymentLinkDto,
+  RefundPaymentDto,
   ReturnOrderDto,
   ShipOrderDto,
   UpdateOrderDto,
@@ -65,9 +66,9 @@ const CREATE_PATH = '/orders';
 
 // ORD-01 to ORD-14, ORD-41, ORD-45, ORD-51, ORD-52 (Phase 4 Slice 4.1): the shop's orders as staff enter and handle
 // them; shipping, handing over, delivering and returning them by hand (Slice 4.3); the payments staff record on them
-// (Slice 4.3b); the payment links staff send (Phase 5 Slice 5.2b). Reading them needs orders:read; making, changing,
+// (Slice 4.3b); the payment links staff send (Phase 5 Slice 5.2b), and refunds (Slice 5.3). Reading them needs orders:read; making, changing,
 // calling about, cancelling, holding and moving them, and making a payment link, orders:manage; deleting one,
-// orders:delete; recording or voiding a payment, payments:manage -- with a new order too.
+// orders:delete; recording, voiding or refunding a payment, payments:manage -- with a new order too.
 @ApiTags('Orders')
 @Controller('orders')
 @Dashboard({})
@@ -406,6 +407,31 @@ export class OrdersController {
     @Req() request: DashboardRequest,
   ): Promise<OrderView> {
     return this.payments.void(
+      this.request.tenantIdOf(request),
+      this.request.idOf(id, 'OrderNotFound'),
+      this.request.idOf(paymentId, 'OrderPaymentNotFound'),
+      body,
+      this.request.actorOf(request),
+    );
+  }
+
+  @Post(':id/payments/:paymentId/refund')
+  @HttpCode(200)
+  @RequirePermission(Permission.PaymentsManage)
+  @ResponseMessage('OrderPaymentRefunded')
+  @ApiOperation({
+    summary:
+      'Mark a payment refunded, with a note -- a record only, no money moves; it stops counting and what is due goes back up (PAY-20, ORD-44)',
+  })
+  @ApiBody({ type: RefundPaymentDto })
+  @ZodResponse({ type: OrderViewDto })
+  refundPayment(
+    @Param('id') id: string,
+    @Param('paymentId') paymentId: string,
+    @Body(new ZodValidationPipe(RefundPaymentDto.schema)) body: RefundPaymentDto,
+    @Req() request: DashboardRequest,
+  ): Promise<OrderView> {
+    return this.payments.refund(
       this.request.tenantIdOf(request),
       this.request.idOf(id, 'OrderNotFound'),
       this.request.idOf(paymentId, 'OrderPaymentNotFound'),

@@ -52,6 +52,10 @@ const DESCRIPTIONS: Record<PlatformSettingKey, string> = {
     "The share of a cycle's API requests that, spent in one hour, alerts the owner and the operator (RTE-12).",
   [PlatformSettingKey.PublicOrdersPerShopPerMinute]:
     'How many orders shoppers may place in one shop in a minute, every plan alike (RTE-08).',
+  [PlatformSettingKey.NewShopPaymentCapAmount]:
+    "The most a new shop's online payments may come to in a day, in TK, where the new-shop cap holds (TVR-04).",
+  [PlatformSettingKey.NewShopPaymentCapDays]:
+    'How many days a shop counts as new for the new-shop payment cap (TVR-04).',
   [PlatformSettingKey.PaymentSessionsPerShopPerMinute]:
     'How many payments shoppers may open in one shop in a minute, every plan alike (RTE-08).',
   [PlatformSettingKey.OrderLimitMode]:
@@ -86,6 +90,8 @@ const VALIDATORS: Record<PlatformSettingKey, (value: unknown) => boolean> = {
   [PlatformSettingKey.FastSpendPercent]: isPositiveInt,
   [PlatformSettingKey.PublicOrdersPerShopPerMinute]: isPositiveInt,
   [PlatformSettingKey.PaymentSessionsPerShopPerMinute]: isPositiveInt,
+  [PlatformSettingKey.NewShopPaymentCapAmount]: isPositiveInt,
+  [PlatformSettingKey.NewShopPaymentCapDays]: isPositiveInt,
   [PlatformSettingKey.OrderLimitMode]: isOrderLimitMode,
 };
 

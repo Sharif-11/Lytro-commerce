@@ -336,6 +336,12 @@ export enum AuditAction {
   PaymentLinkMade = 'payment_link_made',
   PaymentPageSuspended = 'payment_page_suspended',
   PaymentPageRestored = 'payment_page_restored',
+  // Phase 5 Slice 5.3: a payment verified or rejected by hand (VER-01, PAY-14, AUD-01); one marked refunded (PAY-20);
+  // Lytro set the shop's new-shop cap (TVR-04).
+  PaymentVerified = 'payment_verified',
+  PaymentRejected = 'payment_rejected',
+  OrderPaymentRefunded = 'order_payment_refunded',
+  NewShopCapSet = 'new_shop_cap_set',
 }
 
 // FED-02: what a product is, for Meta's catalog: new unless the shop says otherwise.
@@ -565,6 +571,8 @@ export enum PlatformAuditAction {
   PaymentPageSuspended = 'payment_page_suspended',
   PaymentPageRestored = 'payment_page_restored',
   PaymentPageReportDismissed = 'payment_page_report_dismissed',
+  // TVR-04 (Phase 5 Slice 5.3): a shop's new-shop cap switched on or off, or back to its kind's default.
+  NewShopCapSet = 'new_shop_cap_set',
 }
 
 // BAL-02: what a balance-ledger entry is for. One list, shared by every module that ever charges or credits a
@@ -656,6 +664,10 @@ export enum PlatformSettingKey {
   PublicOrdersPerShopPerMinute = 'public_orders_per_shop_per_minute',
   // RTE-08 (amended 2026-10-31, Phase 5 Slice 5.2b): payment sessions a minute in one shop, every plan alike.
   PaymentSessionsPerShopPerMinute = 'payment_sessions_per_shop_per_minute',
+  // TVR-04 (Phase 5 Slice 5.3, agreed 2026-10-31): a new shop's verified online payments a day, in TK, and how many
+  // days a shop counts as new.
+  NewShopPaymentCapAmount = 'new_shop_payment_cap_amount',
+  NewShopPaymentCapDays = 'new_shop_payment_cap_days',
   // QTA-03 (editable): what handling an order past the period's limit does -- refused, or done with a prompt to upgrade.
   OrderLimitMode = 'order_limit_mode',
 }
@@ -1203,6 +1215,23 @@ export enum PaymentSessionState {
 export enum PaymentSessionSource {
   Checkout = 'checkout',
   StaffLink = 'staff_link',
+}
+
+// PAY-14 (Phase 5 Slice 5.3, agreed 2026-10-31): why staff rejected a payment, as the shopper is told on the page.
+export enum PaymentRejectReason {
+  NoPaymentFound = 'no_payment_found',
+  TransactionIdUsed = 'transaction_id_used',
+  Other = 'other',
+}
+
+// PAY-19 (Phase 5 Slice 5.3, agreed 2026-10-31): where a payment in the shop's one list stands -- a transaction ID a
+// shopper typed waits to be verified or was rejected; money in is verified, and may later be voided or refunded.
+export enum PaymentListStatus {
+  ToVerify = 'to_verify',
+  Verified = 'verified',
+  Rejected = 'rejected',
+  Voided = 'voided',
+  Refunded = 'refunded',
 }
 
 // TVR-02 (Phase 5 Slice 5.2b, agreed 2026-10-31): why a shopper reported a payment page.

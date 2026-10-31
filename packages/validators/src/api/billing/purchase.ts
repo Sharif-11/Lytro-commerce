@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { transactionIdField } from '../../common/transaction-id';
 import { PLAN_PAYMENT_METHODS, type PlanPaymentMethod } from '../../db/enums';
 import { FieldProblemCode } from '../../validation/field-problem';
 
@@ -43,7 +44,7 @@ export const confirmPurchaseSchema = z
   .object({
     paymentId: z.string().uuid(),
     method: z.enum(PLAN_PAYMENT_METHODS),
-    transactionId: z.string().trim().min(1).optional(),
+    transactionId: transactionIdField.optional(),
     senderNumber: z.string().trim().min(1).optional(),
     amountPaid: z.coerce.number().positive().optional(),
   })

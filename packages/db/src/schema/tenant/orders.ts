@@ -33,6 +33,7 @@ import {
   OrderPaymentStatus,
   OrderSource,
   PaymentMethod,
+  PAYMENT_NOTE_MAX_LENGTH,
   PRODUCT_NAME_MAX_LENGTH,
   SHOPPER_NOTE_MAX_LENGTH,
   SKU_MAX_LENGTH,
@@ -42,6 +43,7 @@ import {
   TRACKING_LINK_MAX_LENGTH,
   type AttributeDataType,
   TAX_CLASS_NAME_MAX_LENGTH,
+  VerificationLevel,
 } from '@lytronix/validators';
 import { createdAt, tenant } from '../shared';
 import { deliveryMode, paymentPolicy, stockUnit } from './catalogue';
@@ -433,11 +435,19 @@ export const orderCalls = tenant.table(
   ],
 );
 
+// VER-12 (Phase 5 Slice 5.3): how a payment was verified -- by hand (staff, or a payment they recorded), by the listener,
+// or by a gateway.
+export const verificationLevel = tenant.enum(
+  'verification_level',
+  enumTuple(Object.values(VerificationLevel)),
+);
+
 // ORD-15, ORD-22, D4-6 (Slice 4.3): money that came in for an order, verified as it is recorded -- by staff, or the cash on
 // delivery collected when the order was delivered or handed over (agreed 2026-10-30). Cash on delivery and cash at the
 // counter carry no transaction ID; a wallet or bank payment carries one, unique across the platform (Slice 4.3b,
 // control.used_transaction_ids). It changes only by being voided, once (migration 0088's grant and guard); it goes with
-// its order. Phase 5 adds payment sessions, their verification levels and refunds on this table (DATABASE-SCHEMA §3.4).
+// its order. Phase 5 (Slice 5.3) adds the session a payment came from, how it was verified, and refunds -- a record of
+// money given back, which like a void stops it counting.
 export const orderPayments = tenant.table(
   'payments',
   {
@@ -455,6 +465,15 @@ export const orderPayments = tenant.table(
     voidedAt: timestamp('voided_at', { withTimezone: true }),
     voidedBy: uuid('voided_by'),
     voidReason: varchar('void_reason', { length: CALL_NOTE_MAX_LENGTH }),
+    // VER-01, VER-12, PAY-15 (Slice 5.3): the payment session it was verified from, if any, and how it was verified.
+    sessionId: uuid('session_id'),
+    verificationLevel: verificationLevel('verification_level')
+      .notNull()
+      .default(VerificationLevel.Manual),
+    // PAY-20, ORD-44 (Slice 5.3, agreed 2026-10-31): marked refunded with a note, once; it moves no money.
+    refundedAt: timestamp('refunded_at', { withTimezone: true }),
+    refundedBy: uuid('refunded_by'),
+    refundNote: varchar('refund_note', { length: PAYMENT_NOTE_MAX_LENGTH }),
   },
   (t) => [
     foreignKey({
@@ -468,6 +487,11 @@ export const orderPayments = tenant.table(
       sql`(${t.method} IN ('cash_on_delivery', 'cash')) = (${t.transactionId} IS NULL)`,
     ),
     check('payments_void_check', sql`(${t.voidedAt} IS NULL) = (${t.voidReason} IS NULL)`),
+    check('payments_refund_check', sql`(${t.refundedAt} IS NULL) = (${t.refundNote} IS NULL)`),
+    // PAY-15: a session settles its order once.
+    uniqueIndex('payments_session_key')
+      .on(t.tenantId, t.sessionId)
+      .where(sql`${t.sessionId} IS NOT NULL`),
     index('payments_order_idx').on(t.tenantId, t.orderId, t.verifiedAt),
     // ORD-15: within a shop, one live payment per transaction ID; across shops, control.used_transaction_ids.
     uniqueIndex('payments_live_transaction_key')

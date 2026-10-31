@@ -84,7 +84,7 @@ Each is settled in its slice's read, before code, and recorded there.
 |---|---|
 | 5.1 | Settled in its read, 2026-10-31 (below). |
 | 5.2 | Settled in its read, 2026-10-31 (below). |
-| 5.3 | When Meta's `Purchase` is sent for a prepaid order (on placing or on payment); refunds recorded (PAY-20, ORD-44) and proof images (PAY-18), in or deferred; the new-tenant volume limit's default (TVR-04 says off, §2.1 on for pay-as-you-go). |
+| 5.3 | Settled in its read, 2026-10-31 (below). |
 | 5.4 | The listener's should-haves (LSN-04, 05, 14, 17); devices and uploads for a pay-as-you-go shop (LSN-07 and LSN-08 name only trial, active and grace); a listener match whose fee the balance cannot cover (WAL-21: free review). |
 | 5.5 | The app's technology (React Native, as decided for the admin mobile app in OD-52, or native Kotlin); how it is installed (Google Play limits apps that read SMS, so a signed APK may be the way); the device-integrity check (LSN-25, off by default). |
 | 5.6 | Pairing Lytro's own listener phone; whether today's wallet step stays as a fallback; the amount a seller says they sent (not stored today, §3.5). |
@@ -290,6 +290,28 @@ Every route lands in `API-CONTRACT.md` with its slice; the isolation registry ga
   operator's suspension (TVR-02, TVR-03, ADM-12's queue, its screens with the operator console).
 
 ### Slice 5.3: verifying by hand
+- **Read agreed 2026-10-31** (the first six as recommended): Meta's `Purchase` for an order paid in advance is sent
+  **when its payment is verified** (a cash-on-delivery order's still on placing); staff **verify the amount that
+  arrived**, never more than is due, the rest staying due; **refunds now** as a record (PAY-20, ORD-44), **proof images
+  with the page** in Slice 5.8 (PAY-18); the **new-shop cap on for new pay-as-you-go shops** (20,000 TK a day for their
+  first 30 days), off on a plan, switched per shop by the operator; **one payments list** of every typed ID and every
+  payment, "to verify" one of its statuses; a rejection's reason from **a short list and a note**; and **one PR** (the
+  owner's pick over two). PAY-07, PAY-14, PAY-19, TVR-04, LND-16, LIM-02, DWN-15 and UPG-10 amended. Settled building:
+  verifying records the order's payment through the same recorder staff payments use -- the amount checked against
+  what is due, the ID claimed in the platform registry (a clash answered "already used", for staff to reject), the
+  payment marked with its session and level (`manual`), the order's status worked out again -- and the session marked
+  verified, in one transaction; it lives in its own module (`payment-review`) since a verified checkout queues Meta's
+  event, which the public API owns. Rejecting a checkout's payment cancels its order (`advance_not_paid`, D5-4); a staff
+  link's leaves the order, as an unpaid link does. Staff with `payments:verify` are told of each typed ID through a
+  stand-in notifier until Phase 7 (VER-01); a notice that fails changes nothing. A wallet ID has one shape everywhere,
+  6 to 20 letters and digits kept in capitals (the page, staff payments, plan, add-on and top-up payments); a bank
+  reference stays looser; migration 0097 puts the registry's IDs in capitals, keeping an ID's first use where two
+  differed only by case. A refund stops a payment counting as a void does; a refunded payment is never voided or
+  refunded again (the database's guard); the order shows `refunded` once every live payment is. The new-shop cap counts
+  the day's verified online payments and the sessions still open, checked as a checkout or a link opens a session; a
+  cash-on-delivery order never meets it. A customer's privacy delete clears the number they paid from on their orders'
+  sessions (CUS-09). The payments list's CSV holds up to 10,000 rows. Sessions' mentions in the plan limits (LIM-02,
+  DWN-15, UPG-10) go, as RTE-09 was withdrawn.
 - **Delivers:** verification by hand and review (VER-01, PAY-14, VER-12) settling the order once (PAY-15, ORD-08);
   rejection cancelling it (D5-4); the payments list and CSV (PAY-19); the new-tenant volume limit (TVR-04); sessions
   on the usage page and in the downgrade checklist (LIM-02, LIM-04, TRL-03, PLN-19, DWN-12, DWN-14, DWN-15, UPG-10);

@@ -62,6 +62,13 @@ export interface OrderStore {
     paymentId: string,
     values: { voidedBy: string | null; voidReason: string },
   ): Promise<OrderPaymentRecord>;
+  /** PAY-20, ORD-44 (Slice 5.3): a payment marked refunded with a note. */
+  refundPayment(
+    tx: Transaction,
+    tenantId: string,
+    paymentId: string,
+    values: { refundedBy: string | null; refundNote: string },
+  ): Promise<OrderPaymentRecord>;
   /** ORD-15: how the shop's order payments carry a transaction ID -- on a live one, only on voided ones, or none. */
   transactionUse(
     tx: Transaction,

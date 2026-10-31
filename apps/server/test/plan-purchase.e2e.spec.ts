@@ -301,7 +301,7 @@ describeIfDatabase('BIL-12, BIL-05: what an invoice states, and the plan-active 
     const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
     const { planId, termId } = await seedPlanAndTerm(1, '449.00');
     const quote = await purchase.quote(tenantId, planId, termId);
-    const transactionId = `TXN-${randomUUID()}`;
+    const transactionId = `TXN${randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`;
     await purchase.submitWalletPayment(quote.id, tenantId, {
       transactionId,
       senderNumber: '01710000000',
@@ -373,7 +373,7 @@ describeIfDatabase('AUD-08, ADM-04: a rejected payment in the shop activity log'
     const { planId, termId } = await seedPlanAndTerm(1, '449.00');
     const quote = await purchase.quote(tenantId, planId, termId);
     await purchase.submitWalletPayment(quote.id, tenantId, {
-      transactionId: `TXN-${randomUUID()}`,
+      transactionId: `TXN${randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
       senderNumber: '01710000000',
       amountPaid: '449.00',
     });
@@ -458,7 +458,7 @@ describeIfDatabase(
       const quote = await purchase.quote(tenantId, planId, termId);
 
       const submitted = await purchase.submitWalletPayment(quote.id, tenantId, {
-        transactionId: `TXN-${randomUUID()}`,
+        transactionId: `TXN${randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
         senderNumber: '01710000000',
         amountPaid: '448.00',
       });
@@ -472,7 +472,7 @@ describeIfDatabase(
       const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
       const { planId, termId } = await seedPlanAndTerm(1, '449.00');
       const quote = await purchase.quote(tenantId, planId, termId);
-      const transactionId = `TXN-${randomUUID()}`;
+      const transactionId = `TXN${randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`;
 
       await purchase.submitWalletPayment(quote.id, tenantId, {
         transactionId,
@@ -492,7 +492,7 @@ describeIfDatabase(
       const tenantA = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
       const tenantB = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
       const { planId, termId } = await seedPlanAndTerm(1, '100.00');
-      const transactionId = `TXN-${randomUUID()}`;
+      const transactionId = `TXN${randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`;
 
       const quoteA = await purchase.quote(tenantA, planId, termId);
       await purchase.submitWalletPayment(quoteA.id, tenantA, {
@@ -580,7 +580,7 @@ describeIfDatabase('BIL-15: 24-hour pending-purchase expiry', () => {
     // request closes an older one nothing was submitted for, BIL-19.)
     const submittedQuote = await purchase.quote(tenantId, planId, termId);
     await purchase.submitWalletPayment(submittedQuote.id, tenantId, {
-      transactionId: `TXN-${randomUUID()}`,
+      transactionId: `TXN${randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
       senderNumber: '01710000000',
       amountPaid: '449.00',
     });
@@ -605,7 +605,7 @@ describeIfDatabase('BIL-15: 24-hour pending-purchase expiry', () => {
     await planPayments.expireStalePending(new Date());
     expect((await paymentRow(quote.id))?.status).toBe(PlanPaymentStatus.Expired);
 
-    const transactionId = `TXN-${randomUUID()}`;
+    const transactionId = `TXN${randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`;
     const wallet = { transactionId, senderNumber: '01710000000', amountPaid: '449.00' };
     await expect(purchase.submitWalletPayment(quote.id, tenantId, wallet)).rejects.toMatchObject({
       code: 'conflict',
@@ -654,7 +654,7 @@ describeIfDatabase('balance top-up (BAL-03 to BAL-06)', () => {
     const before = await balance.current(tenantId);
 
     const quote = await topUp.quote(tenantId, '500.00');
-    const transactionId = `TXN-${randomUUID()}`;
+    const transactionId = `TXN${randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`;
     await topUp.submit(quote.id, tenantId, {
       transactionId,
       senderNumber: '01710000000',
@@ -671,7 +671,7 @@ describeIfDatabase('balance top-up (BAL-03 to BAL-06)', () => {
     const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'active');
     const quote = await topUp.quote(tenantId, '500.00');
     await topUp.submit(quote.id, tenantId, {
-      transactionId: `TXN-${randomUUID()}`,
+      transactionId: `TXN${randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
       senderNumber: '01710000000',
       amountPaid: '500.00',
     });
@@ -716,7 +716,7 @@ describeIfDatabase('tenant isolation (SEC-02)', () => {
     const topUpQuote = await topUp.quote(owner, '500.00');
     await expect(
       topUp.submit(topUpQuote.id, intruder, {
-        transactionId: `TXN-${randomUUID()}`,
+        transactionId: `TXN${randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
         senderNumber: '01710000000',
         amountPaid: '500.00',
       }),

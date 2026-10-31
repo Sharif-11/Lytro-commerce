@@ -1,22 +1,26 @@
 import { randomBytes } from 'node:crypto';
-import { Inject, Injectable } from '@nestjs/common';
-import type { SelectPaymentSession, Transaction } from '@lytronix/db';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import type { PaymentDecision, SelectPaymentSession, Transaction } from '@lytronix/db';
 import {
   AuditAction,
   FieldProblemCode,
+  NEW_SHOP_PAYMENT_CAP_AMOUNT,
+  NEW_SHOP_PAYMENT_CAP_DAYS,
   PAGE_REPORTS_PER_VISITOR_PER_HOUR,
   PAYMENT_LINK_HOURS,
+  PlatformSettingKey,
   PaymentSessionSource,
   PaymentSessionState,
   ServerFieldProblemCode,
   StatusOverride,
+  TenantState,
   type CheckoutPaymentInput,
   type PaymentLinkInput,
   type PaymentPageReportInput,
   type PaymentSubmissionInput,
 } from '@lytronix/validators';
 import { ApiError, FieldsError } from '../../../common/api-error';
-import { HOUR_MS, MINUTE_MS } from '../../../common/time';
+import { DAY_MS, HOUR_MS, MINUTE_MS, startOfDayDhaka } from '../../../common/time';
 import { fromPaisa, toPaisa } from '../../balance/services/money';
 import { CatalogueActivity } from '../../catalogue/services/catalogue-activity';
 import type { CatalogueActor } from '../../catalogue/types/catalogue';
@@ -25,8 +29,10 @@ import { OrderService } from '../../orders/services/order.service';
 import type { OrderRecord } from '../../orders/types/orders';
 import { PaymentMethods } from '../../payment-methods/services/payment-methods';
 import type { ShopperPaymentMethod } from '../../payment-methods/types/payment-methods';
+import { PlatformSettingsService } from '../../platform-settings/services/platform-settings.service';
+import type { PaymentNotifier } from '../ports/payment-notifier';
 import type { PaymentSessionStore } from '../ports/payment-session-store';
-import { PAYMENT_PAGE_ORIGIN, PAYMENT_SESSION_STORE } from '../tokens';
+import { PAYMENT_NOTIFIER, PAYMENT_PAGE_ORIGIN, PAYMENT_SESSION_STORE } from '../tokens';
 import type { OpenedPayment, PaymentPageSession, TrackedPayment } from '../types/payment-sessions';
 
 // PAY-23: 128 random bits, written in 22 URL-safe characters.
@@ -38,6 +44,12 @@ function stateAt(session: SelectPaymentSession, now: Date): PaymentSessionState 
     ? PaymentSessionState.Expired
     : session.state;
 }
+
+// VER-01, PAY-14 (Slice 5.3): a session staff may verify or reject -- a transaction ID typed and not yet decided.
+const DECIDABLE: readonly PaymentSessionState[] = [
+  PaymentSessionState.Checking,
+  PaymentSessionState.NeedsReview,
+];
 
 /**
  * PAY-24 (agreed 2026-10-31): what a payment link asks for, in paisa -- the advance still owed, else what is due; or the
@@ -58,16 +70,21 @@ function linkAmountOf(
  * Phase 8). A session is open for the hold's lifetime (one setting, INV-16); its reference, 128 random bits, is the
  * page's address. A transaction ID typed in time moves it to checking, where it waits for verification (Slice 5.3) and
  * no longer runs out (D5-5); one nobody paid in time expires and, at checkout, cancels its order (D5-4). Staff may send
- * a link for an order instead (PAY-24), and a shopper may report a page to Lytro (TVR-02).
+ * a link for an order instead (PAY-24), and a shopper may report a page to Lytro (TVR-02). Since Slice 5.3 staff are
+ * told of a transaction ID to verify (VER-01), and a new shop's online payments a day are capped (TVR-04).
  */
 @Injectable()
 export class PaymentSessions {
+  private readonly logger = new Logger('PaymentSessions');
+
   constructor(
     @Inject(PAYMENT_SESSION_STORE) private readonly store: PaymentSessionStore,
     @Inject(PaymentMethods) private readonly methods: PaymentMethods,
     @Inject(ReservationService) private readonly reservations: ReservationService,
     @Inject(OrderService) private readonly orders: OrderService,
     @Inject(CatalogueActivity) private readonly activity: CatalogueActivity,
+    @Inject(PlatformSettingsService) private readonly settings: PlatformSettingsService,
+    @Inject(PAYMENT_NOTIFIER) private readonly notifier: PaymentNotifier,
     @Inject(PAYMENT_PAGE_ORIGIN) private readonly origin: string,
   ) {}
 
@@ -95,6 +112,7 @@ export class PaymentSessions {
     if (input.cancelUrl !== undefined) {
       this.refuseAddress(input.cancelUrl, context.websites, 'payment.cancelUrl');
     }
+    await this.refuseOverCap(tx, tenantId, order.advanceDue, context.now);
     const minutes = await this.reservations.holdMinutes();
     const session = await this.store.insert(tx, tenantId, {
       ref: randomBytes(REF_BYTES).toString('base64url'),
@@ -144,6 +162,7 @@ export class PaymentSessions {
         }
         await this.store.setState(tx, tenantId, open.id, PaymentSessionState.Cancelled);
       }
+      await this.refuseOverCap(tx, tenantId, fromPaisa(amount), now);
       const session = await this.store.insert(tx, tenantId, {
         ref: randomBytes(REF_BYTES).toString('base64url'),
         orderId: order.id,
@@ -166,6 +185,35 @@ export class PaymentSessions {
     });
   }
 
+  /** VER-01, PAY-14 (Slice 5.3): one transaction, for a decision on a session and what it settles. */
+  inTransaction<T>(work: (tx: Transaction) => Promise<T>): Promise<T> {
+    return this.store.run(work);
+  }
+
+  /** VER-01, PAY-14: a session staff may decide -- a transaction ID typed and waiting -- held until the decision. */
+  async lockToDecideWithin(
+    tx: Transaction,
+    tenantId: string,
+    id: string,
+  ): Promise<SelectPaymentSession & { method: NonNullable<SelectPaymentSession['method']> }> {
+    const session = await this.store.findById(tx, tenantId, id, true);
+    if (!session) throw new ApiError('not_found', 'OrderPaymentNotFound', {});
+    if (!DECIDABLE.includes(session.state) || session.method === null) {
+      throw new ApiError('conflict', 'PaymentNotToVerify', { state: session.state });
+    }
+    return { ...session, method: session.method };
+  }
+
+  /** VER-01, PAY-14: the session verified or rejected, by whom and when. */
+  decideWithin(
+    tx: Transaction,
+    tenantId: string,
+    id: string,
+    decision: PaymentDecision,
+  ): Promise<void> {
+    return this.store.decide(tx, tenantId, id, decision);
+  }
+
   /** TEN-29: the shop a page's address belongs to; null for none. */
   tenantOfRef(ref: string): Promise<string | null> {
     return this.store.tenantOfRef(ref);
@@ -185,13 +233,13 @@ export class PaymentSessions {
    * into as it stands. Only while the session awaits payment and has time left; an ID a payment already holds is
    * refused. The session moves to checking and no longer runs out.
    */
-  submit(
+  async submit(
     tenantId: string,
     ref: string,
     input: PaymentSubmissionInput,
     now: Date,
   ): Promise<PaymentPageSession> {
-    return this.store.run(async (tx) => {
+    const page = await this.store.run(async (tx) => {
       const session = await this.store.findByRef(tx, tenantId, ref, true);
       if (!session) throw new ApiError('not_found', 'PaymentNotFound', {});
       const state = stateAt(session, now);
@@ -236,6 +284,22 @@ export class PaymentSessions {
       });
       return this.pageWithin(tx, tenantId, submitted, now, offered);
     });
+    // VER-01 (Slice 5.3): staff with payments:verify are told once the ID is kept; a notice that fails changes nothing.
+    if (page.method !== null) {
+      await this.notifier
+        .paymentToVerify({
+          tenantId,
+          sessionId: page.sessionId,
+          orderNumber: page.orderNumber,
+          method: page.method,
+          amount: page.amount,
+          transactionId: input.transactionId,
+        })
+        .catch((error: unknown) => {
+          this.logger.error(`could not tell staff of a payment to verify: ${String(error)}`);
+        });
+    }
+    return page;
   }
 
   /**
@@ -308,6 +372,7 @@ export class PaymentSessions {
     offered?: ShopperPaymentMethod[],
   ): Promise<PaymentPageSession> {
     return {
+      sessionId: session.id,
       orderNumber: await this.store.orderNumberOf(tx, tenantId, session.orderId),
       amount: session.amount,
       state: stateAt(session, now),
@@ -316,6 +381,10 @@ export class PaymentSessions {
       methods: offered ?? (await this.methods.forShoppersWithin(tx, tenantId)),
       returnUrl: session.returnUrl,
       cancelUrl: session.cancelUrl,
+      rejected:
+        session.state === PaymentSessionState.Failed && session.rejectReason !== null
+          ? { reason: session.rejectReason, note: session.rejectNote }
+          : null,
       submitted:
         session.transactionId !== null && session.submittedAt !== null && session.method !== null
           ? {
@@ -326,6 +395,39 @@ export class PaymentSessions {
             }
           : null,
     };
+  }
+
+  /**
+   * TVR-04 (Slice 5.3, agreed 2026-10-31): a new shop's online payments a day are capped -- a pay-as-you-go shop's
+   * unless the operator switched it off, any other's only when switched on -- for its first [30] days. A session that
+   * would take the day's verified payments and open sessions past [20,000] TK is refused.
+   */
+  private async refuseOverCap(
+    tx: Transaction,
+    tenantId: string,
+    amount: string,
+    now: Date,
+  ): Promise<void> {
+    const shop = await this.store.newShopOf(tx, tenantId);
+    if (!shop || !(shop.newShopCap ?? shop.state === TenantState.PayAsYouGo)) return;
+    const days = await this.figure(
+      PlatformSettingKey.NewShopPaymentCapDays,
+      NEW_SHOP_PAYMENT_CAP_DAYS,
+    );
+    if (now.getTime() - shop.createdAt.getTime() >= days * DAY_MS) return;
+    const cap = await this.figure(
+      PlatformSettingKey.NewShopPaymentCapAmount,
+      NEW_SHOP_PAYMENT_CAP_AMOUNT,
+    );
+    const taken = toPaisa(await this.store.capTotal(tx, tenantId, startOfDayDhaka(now)));
+    if (taken + toPaisa(amount) > BigInt(cap) * 100n) {
+      throw new ApiError('conflict', 'NewShopCapReached', { reason: 'new_shop_cap' });
+    }
+  }
+
+  private async figure(key: PlatformSettingKey, fallback: number): Promise<number> {
+    const setting = await this.settings.current(key);
+    return typeof setting?.value === 'number' ? setting.value : fallback;
   }
 
   /** PAY-04: an address the page returns to must be on one of the key's websites. */

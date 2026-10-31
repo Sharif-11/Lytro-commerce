@@ -1886,6 +1886,38 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'Shop not found.',
     bn: 'শপ পাওয়া যায়নি।',
   },
+  PaymentsListed: {
+    en: 'Payments listed.',
+    bn: 'পেমেন্টগুলো দেখানো হলো।',
+  },
+  PaymentVerified: {
+    en: 'Payment verified.',
+    bn: 'পেমেন্ট ভেরিফাই করা হয়েছে।',
+  },
+  PaymentNotToVerify: {
+    en: "This payment isn't waiting to be verified.",
+    bn: 'এই পেমেন্টটি ভেরিফাইয়ের অপেক্ষায় নেই।',
+  },
+  OrderPaymentRefunded: {
+    en: 'Payment marked refunded.',
+    bn: 'পেমেন্টটি রিফান্ড হিসেবে মার্ক করা হয়েছে।',
+  },
+  PaymentAlreadyRefunded: {
+    en: 'This payment is already marked refunded.',
+    bn: 'এই পেমেন্ট আগেই রিফান্ড হিসেবে মার্ক করা আছে।',
+  },
+  AdvanceNotPaidYet: {
+    en: 'This order is waiting for its advance. Verify or record the payment first.',
+    bn: 'এই অর্ডারটি অ্যাডভান্সের অপেক্ষায় আছে। আগে পেমেন্টটি ভেরিফাই বা রেকর্ড করুন।',
+  },
+  NewShopCapReached: {
+    en: "This shop can't take more online payments today. Please contact the shop.",
+    bn: 'এই শপ আজ আর অনলাইনে পেমেন্ট নিতে পারছে না। শপের সাথে যোগাযোগ করুন।',
+  },
+  NewShopCapSet: {
+    en: 'New-shop payment cap saved.',
+    bn: 'নতুন শপের পেমেন্ট লিমিট সেভ হয়েছে।',
+  },
 };
 
 export function translate(key: MessageKey, lang: Language, params: MessageParams = {}): string {

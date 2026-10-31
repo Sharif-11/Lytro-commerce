@@ -1,6 +1,7 @@
 import type {
   PaymentMethod,
   PaymentPageReportReason,
+  PaymentRejectReason,
   PaymentPageReportStatus,
   PaymentSessionState,
 } from '@lytronix/validators';
@@ -12,6 +13,8 @@ export type OpenedPayment = OrderPaymentLink;
 
 /** PAY-05, PAY-17: what the payment page shows of a session, beside the shop's name and logo. */
 export interface PaymentPageSession {
+  /** Kept on the server: the page's routes leave it out. */
+  sessionId: string;
   orderNumber: string;
   amount: string;
   state: PaymentSessionState;
@@ -22,6 +25,8 @@ export interface PaymentPageSession {
   methods: ShopperPaymentMethod[];
   returnUrl: string | null;
   cancelUrl: string | null;
+  /** PAY-14 (Slice 5.3): why staff rejected the payment, when they did -- the page words the reason. */
+  rejected: { reason: PaymentRejectReason; note: string | null } | null;
   /** PAY-07: what the shopper typed, once they have. */
   submitted: {
     method: PaymentMethod;

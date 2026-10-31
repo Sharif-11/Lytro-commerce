@@ -12,6 +12,7 @@ import {
   logCallSchema,
   orderPaymentSchema,
   paymentLinkSchema,
+  refundPaymentSchema,
   OrderHistoryField,
   OrderPaymentStatus,
   OrderSource,
@@ -25,6 +26,7 @@ import {
   StatusOverride,
   StockUnit,
   updateOrderSchema,
+  VerificationLevel,
   voidPaymentSchema,
   SerialFormat,
 } from '@lytronix/validators';
@@ -41,6 +43,7 @@ export class ReturnOrderDto extends createZodDto(returnOrderSchema) {}
 export class OrderPaymentDto extends createZodDto(orderPaymentSchema) {}
 export class VoidPaymentDto extends createZodDto(voidPaymentSchema) {}
 export class PaymentLinkDto extends createZodDto(paymentLinkSchema) {}
+export class RefundPaymentDto extends createZodDto(refundPaymentSchema) {}
 
 // --- Responses. Dates coerce, since a created order's reply is replayed from the idempotency store's JSON (D4-8). ---
 
@@ -219,6 +222,9 @@ const orderViewSchema = z.object({
       verifiedBy: personSchema,
       verifiedAt: z.coerce.date(),
       voided: z.object({ by: personSchema, at: z.coerce.date(), reason: z.string() }).nullable(),
+      refunded: z.object({ by: personSchema, at: z.coerce.date(), note: z.string() }).nullable(),
+      verificationLevel: z.nativeEnum(VerificationLevel),
+      sessionId: z.string().nullable(),
     }),
   ),
   warnings: z.array(warningSchema),

@@ -484,7 +484,7 @@ describeIfDatabase('voiding a payment recorded by mistake (agreed 2026-10-30)', 
     expect(still.payments[0]?.voided).toBeNull();
   });
 
-  it('keeps a payment as recorded in the database: only voided, and only once', async () => {
+  it('keeps a payment as recorded in the database: only voided or refunded, and only once', async () => {
     const shop = await openShop(port, texts, 'void');
     const order = await paid(shop, await place(shop, await product(shop, 'Lamp', 300)), bkash(100));
     const paymentId = order.payments[0]?.id ?? '';
@@ -497,7 +497,11 @@ describeIfDatabase('voiding a payment recorded by mistake (agreed 2026-10-30)', 
     const grants = await admin.query<{ column_name: string }>(
       "SELECT column_name FROM information_schema.column_privileges WHERE table_schema = 'tenant' AND table_name = 'payments' AND grantee = 'lytronix_app' AND privilege_type = 'UPDATE' ORDER BY column_name",
     );
+    // Slice 5.3: a payment may also be marked refunded (PAY-20), once, as payment-verify.e2e checks.
     expect(grants.rows.map((row) => row.column_name)).toEqual([
+      'refund_note',
+      'refunded_at',
+      'refunded_by',
       'void_reason',
       'voided_at',
       'voided_by',

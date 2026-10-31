@@ -18,11 +18,13 @@ import {
   TABLE_REF_MAX_LENGTH,
   TRACKING_CODE_MAX_LENGTH,
   TRACKING_LINK_MAX_LENGTH,
-  TRANSACTION_ID_MAX_LENGTH,
+  BANK_REFERENCE_MAX_LENGTH,
+  PAYMENT_NOTE_MAX_LENGTH,
   MODIFIER_GROUPS_MAX,
   MODIFIER_OPTIONS_MAX,
 } from '../../common/limits';
 import { bdMobileNumber } from '../../common/phone';
+import { transactionIdField } from '../../common/transaction-id';
 import {
   CallOutcome,
   CancelReason,
@@ -91,11 +93,21 @@ export const orderPaymentSchema = z
       params: { problem: FieldProblemCode.TooSmall },
     }),
     senderNumber: orderPhoneField.optional(),
-    transactionId: textField(TRANSACTION_ID_MAX_LENGTH).optional(),
+    transactionId: textField(BANK_REFERENCE_MAX_LENGTH)
+      .transform((value) => value.toUpperCase())
+      .optional(),
   })
   .strict()
   .superRefine((value, ctx) => {
     const wallet = WALLETS.includes(value.method);
+    // PAY-07, VER-02 (Slice 5.3): a wallet's ID has one shape everywhere; a bank transfer's reference is looser.
+    if (
+      wallet &&
+      value.transactionId !== undefined &&
+      !transactionIdField.safeParse(value.transactionId).success
+    ) {
+      refuse(ctx, ['transactionId'], FieldProblemCode.InvalidFormat, '6 to 20 letters and digits.');
+    }
     if (wallet && value.senderNumber === undefined) {
       refuse(ctx, ['senderNumber'], FieldProblemCode.Required, 'The number it came from.');
     }
@@ -114,6 +126,10 @@ export type OrderPaymentInput = z.infer<typeof orderPaymentSchema>;
 // POST orders/:id/payments/:paymentId/void (agreed 2026-10-30): a payment recorded by mistake, voided with its reason.
 export const voidPaymentSchema = z.object({ reason: textField(CALL_NOTE_MAX_LENGTH) }).strict();
 export type VoidPaymentInput = z.infer<typeof voidPaymentSchema>;
+
+// PAY-20, ORD-44 (Slice 5.3, agreed 2026-10-31): a payment marked refunded with a note -- a record only, no money moves.
+export const refundPaymentSchema = z.object({ note: textField(PAYMENT_NOTE_MAX_LENGTH) }).strict();
+export type RefundPaymentInput = z.infer<typeof refundPaymentSchema>;
 
 // ATR-08: what the customer asked for on an attribute captured at order time ("Name on the cake: Rafi").
 const capturedInputSchema = z.object({

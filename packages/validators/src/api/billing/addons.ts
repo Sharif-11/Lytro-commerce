@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { transactionIdField } from '../../common/transaction-id';
 import { ADDON_QUANTITY_MAX, AddonKind, PLAN_PAYMENT_METHODS } from '../../db/enums';
 import { planLimitsSchema } from '../../db/plans/plan-limits';
 import { requireWalletFields } from './purchase';
@@ -67,7 +68,7 @@ export const confirmAddonSchema = z
   .object({
     paymentId: z.string().uuid(),
     method: z.enum(PLAN_PAYMENT_METHODS).default('balance'),
-    transactionId: z.string().trim().min(1).optional(),
+    transactionId: transactionIdField.optional(),
     senderNumber: z.string().trim().min(1).optional(),
     amountPaid: z.coerce.number().positive().optional(),
   })

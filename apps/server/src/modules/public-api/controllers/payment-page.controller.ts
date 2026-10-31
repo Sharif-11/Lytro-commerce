@@ -6,6 +6,7 @@ import {
   PaymentMethod,
   PaymentMethodKind,
   paymentPageReportSchema,
+  PaymentRejectReason,
   PaymentSessionState,
   paymentSubmissionSchema,
   WalletAccountType,
@@ -66,6 +67,9 @@ class PaymentPageDto extends createZodDto(
     ),
     returnUrl: z.string().nullable(),
     cancelUrl: z.string().nullable(),
+    rejected: z
+      .object({ reason: z.nativeEnum(PaymentRejectReason), note: z.string().nullable() })
+      .nullable(),
     submitted: z
       .object({
         method: z.nativeEnum(PaymentMethod),

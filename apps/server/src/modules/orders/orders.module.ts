@@ -62,6 +62,7 @@ import { ORDER_NOTIFIER, ORDER_STORE, SALES_STORE } from './tokens';
     OrderPricing,
     OrderTracking,
     OrdersEraser,
+    PaymentRecorder,
     ORDER_NOTIFIER,
     SalesFigures,
   ],

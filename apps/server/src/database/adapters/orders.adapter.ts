@@ -135,6 +135,15 @@ export class DrizzleOrderStore implements OrderStore {
     return this.orders.voidPayment(tx, tenantId, paymentId, values);
   }
 
+  refundPayment(
+    tx: Transaction,
+    tenantId: string,
+    paymentId: string,
+    values: { refundedBy: string | null; refundNote: string },
+  ): Promise<OrderPaymentRecord> {
+    return this.orders.refundPayment(tx, tenantId, paymentId, values);
+  }
+
   transactionUse(
     tx: Transaction,
     tenantId: string,
