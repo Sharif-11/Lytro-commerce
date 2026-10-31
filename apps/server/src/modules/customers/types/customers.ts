@@ -13,6 +13,8 @@ export interface CustomerListItem {
   lastOrderAt: Date | null;
   /** When the customer first ordered: the customer is made by its first order. */
   firstOrderAt: Date;
+  /** CUS-02 (Slice 4.8b): the phone has a shopper's account on the storefront. */
+  hasAccount: boolean;
 }
 
 /** CUS-01, CUS-02: one customer, with where its latest delivery went (the known-phone fill on New order). */

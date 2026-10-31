@@ -16,7 +16,7 @@ import type {
 /** LIF-16: how many customers the export reads at a time. */
 const EXPORT_BATCH = 500;
 
-function listItemOf(customer: CustomerRecord): CustomerListItem {
+function listItemOf(customer: CustomerRecord, hasAccount: boolean): CustomerListItem {
   return {
     id: customer.id,
     name: customer.name,
@@ -25,6 +25,7 @@ function listItemOf(customer: CustomerRecord): CustomerListItem {
     totalSpent: customer.totalSpent,
     lastOrderAt: customer.lastOrderAt,
     firstOrderAt: customer.createdAt,
+    hasAccount,
   };
 }
 
@@ -49,8 +50,15 @@ export class CustomerService {
         offset: (query.page - 1) * query.limit,
         limit: query.limit,
       });
+      const accounts = await this.store.phonesWithAccount(
+        tx,
+        tenantId,
+        rows.flatMap((row) => (row.phone !== null ? [row.phone] : [])),
+      );
       return {
-        customers: rows.map(listItemOf),
+        customers: rows.map((row) =>
+          listItemOf(row, row.phone !== null && accounts.has(row.phone)),
+        ),
         page: query.page,
         limit: query.limit,
         total,
@@ -66,11 +74,12 @@ export class CustomerService {
       if (!customer || customer.erasedAt !== null) {
         throw new ApiError('not_found', 'CustomerNotFound', {});
       }
+      const account =
+        customer.phone !== null ? await this.store.accountOf(tx, tenantId, customer.phone) : null;
       return {
-        ...listItemOf(customer),
+        ...listItemOf(customer, account !== null),
         lastAddress: await this.store.lastAddress(tx, tenantId, customer.id),
-        account:
-          customer.phone !== null ? await this.store.accountOf(tx, tenantId, customer.phone) : null,
+        account,
       };
     });
   }
@@ -120,6 +129,12 @@ export class CustomerService {
     // In id order, so two orders changing customers at once wait for each other instead of deadlocking.
     const ids = [...new Set(customerIds)].flatMap((id) => (id !== null ? [id] : [])).sort();
     for (const id of ids) await this.store.recount(tx, tenantId, id);
+  }
+
+  /** CUS-01 (Slice 4.8a): how many orders the customer has, inside the caller's transaction; null once erased. */
+  async orderCountWithin(tx: Transaction, tenantId: string, id: string): Promise<number | null> {
+    const customer = await this.store.find(tx, tenantId, id);
+    return customer && customer.erasedAt === null ? customer.orderCount : null;
   }
 
   /** LIF-16: every customer of the shop, for its data export. */

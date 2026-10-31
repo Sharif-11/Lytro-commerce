@@ -659,6 +659,8 @@ describeIfDatabase('expiry under a hold (INV-13, INV-15)', () => {
       reservedExpired: '3.000',
       available: '0.000',
     });
+    // Home counts the product as short (Slice 4.8c).
+    expect(((await shop.get('/home')).body as { stock: { short: number } }).stock.short).toBe(1);
     expect(expiry.shortFor(variantId)).toHaveLength(1);
     expect(expiry.shortFor(variantId)[0]).toMatchObject({
       tenantId: shop.tenantId,
@@ -703,6 +705,8 @@ describeIfDatabase('expiry under a hold (INV-13, INV-15)', () => {
       reservedExpired: '0.000',
       available: '1.000',
     });
+    // Still marked as told until the next pass, but no longer short: Home counts nothing.
+    expect(((await shop.get('/home')).body as { stock: { short: number } }).stock.short).toBe(0);
     await daily.runDaily();
     const flag = await admin.query<{ short_notified: boolean }>(
       'SELECT short_notified FROM tenant.stock_levels WHERE tenant_id = $1 AND variant_id = $2',

@@ -6,6 +6,7 @@ import type {
   NewOrderCall,
   NewOrderHistory,
   NewOrderPayment,
+  OrderHomeCounts,
   OrderLinePatch,
   OrderListFilter,
   OrderPatch,
@@ -147,6 +148,14 @@ export interface OrderStore {
     filter: OrderListFilter,
     page: { offset: number; limit: number },
   ): Promise<{ rows: OrderSummaryRow[]; total: number }>;
+  /** ORD-09 (Slice 4.8a): the couriers the shop has shipped with, the most recently used first. */
+  recentCouriers(tx: Transaction, tenantId: string, limit: number): Promise<string[]>;
+  /** Slice 4.8b: Home's order figures. */
+  homeCounts(
+    tx: Transaction,
+    tenantId: string,
+    at: { now: Date; todayStart: Date; yesterdayStart: Date },
+  ): Promise<OrderHomeCounts>;
   listForExport(
     tx: Transaction,
     tenantId: string,

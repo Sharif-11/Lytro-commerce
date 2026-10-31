@@ -1,3 +1,4 @@
+import type { OrderHomeView } from '../../orders/types/orders';
 import type { PaymentNeedingAttention } from '../../payments/types/plan-payment';
 
 /** BAL-03, BIL-04: payments the shop submitted that the operator is still checking. */
@@ -28,7 +29,9 @@ export interface HomeView {
   /** PRD-12: products not archived, and the active ones -- products:read. */
   products: { total: number; active: number } | null;
   /** INV-08, INV-13: active products low or out of stock, and batches expiring soon -- inventory:read. */
-  stock: { low: number; out: number; expiringBatches: number } | null;
+  stock: { low: number; out: number; expiringBatches: number; short: number } | null;
+  /** Slice 4.8b: the orders to confirm, calls due, deliveries to ship, today's and yesterday's, the month's sales. */
+  orders: OrderHomeView | null;
   /** BAL-01, BAL-13, AUTH-21: the balance, whether it is low, and this cycle's free SMS -- balance:read. */
   balance: { amount: string; low: boolean; freeSms: { used: number; limit: number | null } } | null;
   /** BAL-03: top-ups being checked -- balance:read. */

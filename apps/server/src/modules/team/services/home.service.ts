@@ -5,6 +5,7 @@ import {
   limitOf,
   Permission,
   PlanPaymentKind,
+  SalesBucket,
 } from '@lytronix/validators';
 import { usageCycleStart } from '../../../common/time';
 import { BalanceService } from '../../balance/services/balance.service';
@@ -13,6 +14,10 @@ import { ShopLinkSharing } from '../../balance/services/shop-link-sharing';
 import { ProductService } from '../../catalogue/services/product.service';
 import { DeliveryZoneService } from '../../delivery/services/delivery-zone.service';
 import { BatchService } from '../../inventory/services/batch.service';
+import { StockService } from '../../inventory/services/stock.service';
+import { OrderService } from '../../orders/services/order.service';
+import { SalesFigures } from '../../orders/services/sales-figures';
+import type { OrderHomeView } from '../../orders/types/orders';
 import { MediaService } from '../../media/services/media.service';
 import { PlanPaymentsService } from '../../payments/services/plan-payments.service';
 import { ApiKeyService } from '../../public-api/services/api-key.service';
@@ -53,6 +58,9 @@ export class HomeService {
     @Inject(MediaService) private readonly media: MediaService,
     @Inject(ShopLinkSharing) private readonly links: ShopLinkSharing,
     @Inject(ApiKeyService) private readonly keys: ApiKeyService,
+    @Inject(OrderService) private readonly orders: OrderService,
+    @Inject(SalesFigures) private readonly sales: SalesFigures,
+    @Inject(StockService) private readonly stockLevels: StockService,
   ) {}
 
   async view(tenant: TenantSummary, userId: string | null, now = new Date()): Promise<HomeView> {
@@ -67,28 +75,41 @@ export class HomeService {
       ...(may(Permission.PaymentsRead) ? PLAN_KINDS : []),
     ];
 
-    const [states, expiring, balance, freeSms, topUps, plans, needingYou, staff, fastSpend] =
-      await Promise.all([
-        counts ? this.products.stateCounts(tenant.id) : null,
-        may(Permission.InventoryRead)
-          ? this.batches.shopBatches(
-              tenant.id,
-              { state: BatchState.Expiring, page: 1, limit: 1 },
-              false,
-            )
-          : null,
-        may(Permission.BalanceRead) ? this.balance.current(tenant.id) : null,
-        may(Permission.BalanceRead) ? this.sms.currentUsage(tenant.id, now) : null,
-        may(Permission.BalanceRead) ? this.payments.beingChecked(tenant.id, TOP_UP_KINDS) : null,
-        may(Permission.PaymentsRead) ? this.payments.beingChecked(tenant.id, PLAN_KINDS) : null,
-        attentionKinds.length > 0
-          ? this.payments.needingAttention(tenant.id, attentionKinds, now)
-          : null,
-        may(Permission.StaffRead) ? this.staff.countWithoutPassword(tenant.id) : null,
-        may(Permission.KeysManage)
-          ? this.requests.fastSpendAlertedAt(tenant.id, usageCycleStart(tenant, now))
-          : null,
-      ]);
+    const [
+      states,
+      expiring,
+      balance,
+      freeSms,
+      topUps,
+      plans,
+      needingYou,
+      staff,
+      fastSpend,
+      short,
+      orders,
+    ] = await Promise.all([
+      counts ? this.products.stateCounts(tenant.id) : null,
+      may(Permission.InventoryRead)
+        ? this.batches.shopBatches(
+            tenant.id,
+            { state: BatchState.Expiring, page: 1, limit: 1 },
+            false,
+          )
+        : null,
+      may(Permission.BalanceRead) ? this.balance.current(tenant.id) : null,
+      may(Permission.BalanceRead) ? this.sms.currentUsage(tenant.id, now) : null,
+      may(Permission.BalanceRead) ? this.payments.beingChecked(tenant.id, TOP_UP_KINDS) : null,
+      may(Permission.PaymentsRead) ? this.payments.beingChecked(tenant.id, PLAN_KINDS) : null,
+      attentionKinds.length > 0
+        ? this.payments.needingAttention(tenant.id, attentionKinds, now)
+        : null,
+      may(Permission.StaffRead) ? this.staff.countWithoutPassword(tenant.id) : null,
+      may(Permission.KeysManage)
+        ? this.requests.fastSpendAlertedAt(tenant.id, usageCycleStart(tenant, now))
+        : null,
+      may(Permission.InventoryRead) ? this.stockLevels.shortProducts(tenant.id) : null,
+      may(Permission.OrdersRead) ? this.orderFigures(tenant.id, now) : null,
+    ]);
 
     return {
       products:
@@ -97,8 +118,9 @@ export class HomeService {
           : null,
       stock:
         states && expiring
-          ? { low: states.low, out: states.out, expiringBatches: expiring.total }
+          ? { low: states.low, out: states.out, expiringBatches: expiring.total, short: short ?? 0 }
           : null,
+      orders,
       balance:
         balance && freeSms
           ? {
@@ -118,6 +140,15 @@ export class HomeService {
       checklist:
         userId === null ? await this.checklist(tenant.id, (states?.total ?? 0) > 0, now) : null,
     };
+  }
+
+  /** Slice 4.8b: Home's order figures, the month's sales the Sales page's own figure (STA-01). */
+  private async orderFigures(tenantId: string, now: Date): Promise<OrderHomeView> {
+    const [counts, month] = await Promise.all([
+      this.orders.homeCounts(tenantId, now),
+      this.sales.sales(tenantId, { bucket: SalesBucket.Month }, false, now),
+    ]);
+    return { ...counts, monthSales: month.totals.revenue };
   }
 
   /** SUP-01: a link of the shop's was copied or shared -- recorded once, for every device. */

@@ -1626,13 +1626,13 @@ brand identity.
 | Pay-as-you-go estimate | billing | PYG-12 (needs order history) | later |
 | The notifications feed behind the bell | notifications | §8 (NTF-01) | Phase 7 |
 | Orders, customers, payments, couriers, SMS, notices; storefront settings | Phases 4 to 8; Slice 12 | §8 | later |
-| `location { thana, zilla }` and `unansweredCalls` on each `GET /orders` row | orders | the list's "Mirpur, Dhaka" and "No answer ×2" (§7.31) | Slice 4.8a |
-| the customer's order count on `GET /orders/:id` | orders | the order's "4 orders" link to the customer (§7.31) | Slice 4.8a |
-| the shop's courier names used before | orders | the ship sheet's chips (§7.31) | Slice 4.8a |
-| `orders { toConfirm, callsDue, toShip, today, yesterday, monthSales }` on `GET /home` (`orders:read`) | orders | Home's order jobs and Today tiles (§7.32) | Slice 4.8b |
-| `hasAccount` on each `GET /customers` row | customers | the list's "Has an account" (§7.32) | Slice 4.8b |
-| `stock.short` (products whose orders hold more than is on hand) on `GET /home` | inventory | Home's "short for orders" job (§7.33) | Slice 4.8c |
-| the shop's combos with `canMake` and what limits it, on `GET /inventory/stock` or its own read | inventory | Stock's combos card (§7.33) | Slice 4.8c |
+| `area { thana, zilla }` and `unansweredCalls` on each `GET /orders` row | orders | the list's "Mirpur, Dhaka" and "No answer ×2" (§7.31) | built (4.8 reads) |
+| the customer's order count on `GET /orders/:id` | orders | the order's "4 orders" link to the customer (§7.31) | built (4.8 reads) |
+| the shop's courier names used before | orders | the ship sheet's chips (§7.31) | built (4.8 reads) |
+| `orders { toConfirm, callsDue, toShip, today, yesterday, monthSales }` on `GET /home` (`orders:read`) | orders | Home's order jobs and Today tiles (§7.32) | built (4.8 reads) |
+| `hasAccount` on each `GET /customers` row | customers | the list's "Has an account" (§7.32) | built (4.8 reads) |
+| `stock.short` (products whose orders hold more than is on hand) on `GET /home` | inventory | Home's "short for orders" job (§7.33) | built (4.8 reads) |
+| the shop's combos with `canMake` and what limits it (`limitedBy`), on `GET /inventory/stock`'s rows | inventory | Stock's combos card (§7.33) | built (4.8 reads) |
 
 ---
 

@@ -15,12 +15,14 @@ import {
   type SQL,
 } from 'drizzle-orm';
 import {
+  CallOutcome,
+  FulfilmentType,
   ORDER_STATUS_RULES,
+  OrderStatus,
   type CancelReason,
   type FulfillmentStatus,
   type OrderPaymentStatus,
   type OrderSource,
-  type OrderStatus,
 } from '@lytronix/validators';
 import {
   orderCalls,
@@ -64,9 +66,19 @@ export interface OrderListFilter {
  */
 export type OrderRow = Omit<SelectOrder, 'orderNumber'> & { orderNumber: string };
 
-/** An order as its list shows it, with how many items it holds. */
+/** An order as its list shows it, with how many items it holds and how many calls went unanswered (ORD-51). */
 export interface OrderSummaryRow extends OrderRow {
   items: number;
+  unansweredCalls: number;
+}
+
+/** Home's order figures (Slice 4.8b): what waits, and what was placed today and yesterday. */
+export interface OrderHomeCounts {
+  toConfirm: number;
+  callsDue: number;
+  toShip: number;
+  today: number;
+  yesterday: number;
 }
 
 function numbered(row: SelectOrder): OrderRow {
@@ -371,7 +383,12 @@ export class OrderRepository {
       .groupBy(orderLines.orderId)
       .as('items');
     const rows = await tx
-      .select({ order: orders, items: sql<number>`coalesce(${items.items}, 0)` })
+      .select({
+        order: orders,
+        items: sql<number>`coalesce(${items.items}, 0)`,
+        unansweredCalls: sql<number>`(SELECT count(*)::int FROM ${orderCalls} c
+          WHERE c.tenant_id = ${orders.tenantId} AND c.order_id = ${orders.id} AND c.outcome = ${CallOutcome.NoAnswer})`,
+      })
       .from(orders)
       .leftJoin(items, eq(items.orderId, orders.id))
       .where(where)
@@ -380,9 +397,50 @@ export class OrderRepository {
       .limit(page.limit);
     const counted = await tx.select({ total: count() }).from(orders).where(where);
     return {
-      rows: rows.map((row) => ({ ...numbered(row.order), items: row.items })),
+      rows: rows.map((row) => ({
+        ...numbered(row.order),
+        items: row.items,
+        unansweredCalls: row.unansweredCalls,
+      })),
       total: counted[0]?.total ?? 0,
     };
+  }
+
+  /** ORD-09 (Slice 4.8a): the couriers the shop has shipped with, the most recently used first. */
+  async recentCouriers(tx: Transaction, tenantId: string, limit: number): Promise<string[]> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const rows = await tx
+      .select({ name: orders.courierName })
+      .from(orders)
+      .where(and(eq(orders.tenantId, tenantId), isNotNull(orders.courierName)))
+      .groupBy(orders.courierName)
+      .orderBy(sql`max(${orders.shippedAt}) DESC NULLS LAST`)
+      .limit(limit);
+    return rows.flatMap((row) => (row.name === null ? [] : [row.name]));
+  }
+
+  /**
+   * Slice 4.8b: Home's figures -- the orders to confirm, those on hold whose call is due, the confirmed deliveries to
+   * ship, and how many were placed today and yesterday.
+   */
+  async homeCounts(
+    tx: Transaction,
+    tenantId: string,
+    at: { now: Date; todayStart: Date; yesterdayStart: Date },
+  ): Promise<OrderHomeCounts> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const status = visibleStatusSql();
+    const [row] = await tx
+      .select({
+        toConfirm: sql<number>`count(*) FILTER (WHERE ${status} = ${OrderStatus.Pending})::int`,
+        callsDue: sql<number>`count(*) FILTER (WHERE ${status} = ${OrderStatus.Hold} AND ${orders.holdUntil} <= ${at.now})::int`,
+        toShip: sql<number>`count(*) FILTER (WHERE ${status} = ${OrderStatus.Confirmed} AND ${orders.fulfilmentType} = ${FulfilmentType.Delivery})::int`,
+        today: sql<number>`count(*) FILTER (WHERE ${orders.createdAt} >= ${at.todayStart})::int`,
+        yesterday: sql<number>`count(*) FILTER (WHERE ${orders.createdAt} >= ${at.yesterdayStart} AND ${orders.createdAt} < ${at.todayStart})::int`,
+      })
+      .from(orders)
+      .where(eq(orders.tenantId, tenantId));
+    return row ?? { toConfirm: 0, callsDue: 0, toShip: 0, today: 0, yesterday: 0 };
   }
 
   /** ORD-18 (Slice 4.4b): a page of the shop's orders carrying this phone, newest first, from any source. */

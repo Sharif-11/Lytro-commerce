@@ -1463,6 +1463,10 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'Order priced.',
     bn: 'অর্ডারের দাম হিসাব হয়েছে।',
   },
+  CouriersRetrieved: {
+    en: 'Couriers retrieved.',
+    bn: 'কুরিয়ার পাওয়া গেছে।',
+  },
   OrdersRetrieved: {
     en: 'Orders retrieved.',
     bn: 'অর্ডারগুলো পাওয়া গেছে।',

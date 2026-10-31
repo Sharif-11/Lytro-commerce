@@ -146,6 +146,21 @@ export class CustomerRepository {
     return row ?? null;
   }
 
+  /** CUS-02 (Slice 4.8b): which of these phones have a shopper's account. */
+  async phonesWithAccount(
+    tx: Transaction,
+    tenantId: string,
+    phones: string[],
+  ): Promise<Set<string>> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    if (phones.length === 0) return new Set();
+    const rows = await tx
+      .select({ phone: shoppers.phone })
+      .from(shoppers)
+      .where(and(eq(shoppers.tenantId, tenantId), inArray(shoppers.phone, phones)));
+    return new Set(rows.map((row) => row.phone));
+  }
+
   /** CUS-01: where the customer's latest delivery order went -- its thana and address -- or null with none. */
   async lastAddress(
     tx: Transaction,
