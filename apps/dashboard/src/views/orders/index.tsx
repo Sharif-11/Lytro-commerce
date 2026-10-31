@@ -61,10 +61,11 @@ export function OrdersScreen({
   const none = everything.data === 0;
   const filtered = Boolean(filter.q?.trim() || filter.from || filter.to || filter.reason);
 
-  // From the address as it is when the change lands, not as this render saw it: the search's pause must not undo the
-  // dates chosen meanwhile.
   // The search's pause: a write of the search box still to come.
   const pending = useRef<number | null>(null);
+
+  // From the address as it is when the change lands, not as this render saw it: the search's pause must not undo the
+  // dates chosen meanwhile.
   function show(next: Partial<OrderFilter>): void {
     // Each change carries the search box as it is and drops the pause's write still to come, so that write can never
     // land after the change from an address read before it (the dates lost to a cleared search, Slice 4.8a).
