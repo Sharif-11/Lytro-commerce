@@ -83,7 +83,7 @@ Each is settled in its slice's read, before code, and recorded there.
 | Slice | To settle |
 |---|---|
 | 5.1 | Settled in its read, 2026-10-31 (below). |
-| 5.2 | Where sessions, wallet accounts and verification live (a new module, or `orders`, which records shop payments today, D4-6); the session ID's form (PAY-23's 128 random bits); the session limits per plan (RTE-08, RTE-09, KNOWN-GAPS §19, the pay-as-you-go figure); PAY-02's cap; whether staff may send a shopper a payment link for an order taken by message. |
+| 5.2 | Settled in its read, 2026-10-31 (below). |
 | 5.3 | When Meta's `Purchase` is sent for a prepaid order (on placing or on payment); refunds recorded (PAY-20, ORD-44) and proof images (PAY-18), in or deferred; the new-tenant volume limit's default (TVR-04 says off, §2.1 on for pay-as-you-go). |
 | 5.4 | The listener's should-haves (LSN-04, 05, 14, 17); devices and uploads for a pay-as-you-go shop (LSN-07 and LSN-08 name only trial, active and grace); a listener match whose fee the balance cannot cover (WAL-21: free review). |
 | 5.5 | The app's technology (React Native, as decided for the admin mobile app in OD-52, or native Kotlin); how it is installed (Google Play limits apps that read SMS, so a signed APK may be the way); the device-integrity check (LSN-25, off by default). |
@@ -151,13 +151,13 @@ Read each row as: the requirements on the left can only be built or proven once 
 
 | What | Today | After | Slice |
 |---|---|---|---|
-| The order's payment standing (`PaymentRecorder.standingWithin`) | worked out from recorded payments only, so an edit would reset an order waiting on its payment | also knows an open session (`pending_verification`), and a payment that failed | 5.3 |
-| Shoppers' orders needing an advance | refused (`advance_needed`, D4-2) | placed `unverified`, with a session for the advance and a stock hold that expires (`awaitingPayment`) | 5.3 |
-| The stock-hold expiry tick | releases stock only | expires the session and cancels the order too, in one transaction (D5-4) | 5.3 |
+| The order's payment standing (`PaymentRecorder.standingWithin`) | worked out from recorded payments only, so an edit would reset an order waiting on its payment | an order waiting on its advance keeps waiting until money comes (`pending_verification`) | 5.2 |
+| Shoppers' orders needing an advance | refused (`advance_needed`, D4-2) | placed `unverified`, with a session for the advance; the session's own minute pass, not the stock hold's, lets the stock go | 5.2 |
+| The stock-hold expiry tick | releases stock only | the session's minute pass expires the session, cancels the order and lets its stock go in one transaction (D5-4); a checkout's hold has no expiry of its own | 5.2 |
 | Delivery's cash collection | collects the whole `due` as cash on delivery | collects the cash-on-delivery remainder only; an order waiting on its advance is not shipped (D5-9) | 5.3 |
 | `tenant.payments` (0088) | the app may change only the void columns | the session, verification level and verifier, and refunds if kept | 5.2, 5.3 |
 | `payments:manage` | covers both paying Lytro and recording a shopper's payment | verifying and rejecting under `payments:verify`, which exists unused | 5.3 |
-| The transaction ID registry | exact text; lengths differ (orders 64, billing none); a race gives an untranslated error; a plan payment checks it only at approval | one shape for every ID (PAY-07's 6 to 20 letters and digits, matched ignoring case, VER-02), checked when submitted, a clash answered plainly | 5.2 |
+| The transaction ID registry | exact text; lengths differ (orders 64, billing none); a race gives an untranslated error; a plan payment checks it only at approval | one shape for every ID (PAY-07's 6 to 20 letters and digits, matched ignoring case, VER-02), claimed when a payment is verified, a clash answered plainly; Slice 5.2 already keeps the page's IDs in capitals and refuses one the registry holds | 5.3 |
 | `PlanPaymentsService.approve` | the verifier is an operator | a system verifier too (the listener) | 5.6 |
 | A seller's top-up flagged for review | the amount they say they sent is not stored, and approving credits the quoted amount | the amount sent stored and shown to the operator | 5.6 |
 | `DATABASE-SCHEMA.md` §3.4, §8 | `payment_sessions` thin and keyed by one column; no Upay; no fee ledger type; `platform_wallets` and `idempotency_keys` missing | §4 of this plan, slice by slice | 5.1 – 5.7 |
@@ -246,21 +246,37 @@ Every route lands in `API-CONTRACT.md` with its slice; the isolation registry ga
   activated on its own, a type switched off (WAL-01 – 07, WAL-14 – 17); the owner's verified phone as the page's
   gate (TVR-01); the accounts in the data export and the day-60 deletion (LIF-16, LIF-19).
 
-### Slice 5.2: payment sessions
-- **Delivers:** `payment_sessions` and their states; creation from a public key with an `Idempotency-Key` (PAY-01,
-  API-07, API-11), its amount fixed by the server (PAY-02), single use and its window (PAY-03, D5-5), the return
-  address allow-list (PAY-04), the limits (PAY-13, RTE-08, RTE-09); the page's content and state reads (PAY-05's
-  data, PAY-17, PAY-22) and the transaction ID typed (PAY-07, PAY-16); the redirect's status (PAY-08); no method,
-  no session (WAL-08, WAL-17); the page's policy and session IDs (PAY-23); "Report this page" and the operator's
-  suspension (TVR-02, TVR-03).
-- **Rework:** §3.5's registry row.
+### Slice 5.2: paying -- the order, its session and the page
+- **Read agreed 2026-10-31** (all four as recommended): sessions are limited only by a per-minute flood guard per
+  shop, one figure for every plan, like order creation's -- no per-period cap, so a shopper's payment is never refused
+  for the shop's plan (RTE-08 amended, RTE-09 withdrawn, KNOWN-GAPS §19 decided); Phase 5's sessions always belong to a
+  Lytro order, the amount set by the server, while a session for any amount with no order (PAY-01's other form,
+  PAY-02's cap) waits for webhooks and secret keys in Phase 8; staff may make a payment link for an order to send by
+  message, which only expires, never cancelling a staff order (PAY-24 added); and the slices are re-cut as paying
+  (5.2) then verifying (5.3), since a session needs an order waiting on its payment. Settled building: two parts --
+  **5.2a** an order paid at checkout, its session and the page; **5.2b** payment links, the flood guard, and "Report
+  this page" with the operator's suspension. In 5.2a: a session is opened in the order's own transaction, with the
+  Idempotency-Key's reply, so a replay gives the same page; its reference is 128 random bits in 22 characters,
+  found by the page through `control.payment_session_refs`, never the host (TEN-29); its lifetime is the stock hold's
+  setting, and the session's minute pass alone lets a checkout's stock go, with the order's cancellation; the
+  return addresses must be on the key's websites (PAY-04); a cash-on-delivery order ignores a payment it doesn't
+  need; the page reads the shop's name and logo and the methods on now, never another of the shop's brand settings;
+  the page's requests are not counted against the shop's API requests, only the visitor's per-minute window; the
+  transaction ID is kept in capitals and one the registry holds is refused, the registry itself claimed at
+  verification (Slice 5.3); tracking shows an unverified order's open payment, to go back to.
+- **Delivers (5.2a):** a shopper's order needing an advance placed `unverified` with its session (PAY-01, LND-10,
+  SFT-06, SFT-07, SFT-10, ORD-07, WAL-08, WAL-17), its amount set by the server (PAY-02), single use and its window
+  (PAY-03, D5-5, INV-16), the return address allow-list (PAY-04); the page's content and state reads (PAY-05's data,
+  PAY-17, PAY-22) and the transaction ID typed (PAY-07, PAY-16); the redirect's status (PAY-08); the window's end
+  cancelling an unpaid order (D5-4); session IDs of 128 bits (PAY-23).
+- **Delivers (5.2b):** payment links (PAY-24); the flood guard (PAY-13, RTE-08); "Report this page" and the
+  operator's suspension (TVR-02, TVR-03).
 
-### Slice 5.3: orders paid online, verified by hand
-- **Delivers:** a shopper's order needing an advance placed `unverified` with its session (LND-10, SFT-06, SFT-07,
-  SFT-10, ORD-07); verification by hand and review (VER-01, PAY-14, VER-12) settling the order once (PAY-15, ORD-08);
-  the window's end and rejection cancelling it (D5-4) while a typed ID waits (D5-5, INV-16); the payments list and
-  CSV (PAY-19); the new-tenant volume limit (TVR-04); sessions on the usage page and in the downgrade checklist
-  (LIM-02, LIM-04, TRL-03, PLN-19, DWN-12, DWN-14, DWN-15, UPG-10); the audit entries (AUD-01).
+### Slice 5.3: verifying by hand
+- **Delivers:** verification by hand and review (VER-01, PAY-14, VER-12) settling the order once (PAY-15, ORD-08);
+  rejection cancelling it (D5-4); the payments list and CSV (PAY-19); the new-tenant volume limit (TVR-04); sessions
+  on the usage page and in the downgrade checklist (LIM-02, LIM-04, TRL-03, PLN-19, DWN-12, DWN-14, DWN-15, UPG-10);
+  the audit entries (AUD-01).
 - **Rework:** §3.5's rows for this slice.
 
 **Checkpoint "5A" after this slice:** shoppers pay an advance and staff verify it by hand, end to end (exit
