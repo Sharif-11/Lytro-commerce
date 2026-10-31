@@ -1424,7 +1424,8 @@ CREATE TYPE tenant.fulfilment_type AS ENUM ('delivery', 'takeaway', 'dine_in');
 CREATE TYPE tenant.order_source AS ENUM ('dashboard', 'api', 'storefront', 'landing_page');
 CREATE TYPE tenant.call_outcome AS ENUM ('confirmed', 'no_answer', 'call_back_later', 'cancelled');
 CREATE TYPE tenant.cancel_reason AS ENUM
-    ('customer_cancelled', 'fake_order', 'unreachable', 'out_of_stock', 'duplicate', 'other');
+    ('customer_cancelled', 'fake_order', 'unreachable', 'out_of_stock', 'duplicate', 'advance_not_paid', 'other');
+    -- advance_not_paid: Phase 5 Slice 5.2 (D5-4, 0095), given by the server when an advance is not paid in time
 CREATE TYPE tenant.order_history_field AS ENUM
     ('created', 'confirmed', 'status_override', 'payment_status', 'fulfillment_status', 'unit_price', 'delivery_charge');
 
@@ -1681,19 +1682,46 @@ CREATE TABLE tenant.payment_methods_off (          -- WAL-05: a row means the sh
     PRIMARY KEY (tenant_id, method)
 );
 
+-- Built in Phase 5 Slice 5.2 (PAY-01 to PAY-08, agreed 2026-10-31, 0095): one attempt to pay an order on the payment
+-- page, always for a Lytro order, its amount set by the server. Made awaiting payment for the stock hold's lifetime
+-- (PAY-03); a transaction ID typed in time moves it to checking, where it waits for verification and no longer runs out
+-- (D5-5); one nobody paid expires, a checkout's order cancelled with it ("advance not paid", D5-4). RLS like every
+-- tenant table. (No `created` state: a session is made awaiting payment.)
+CREATE TYPE tenant.payment_session_state AS ENUM ('awaiting_payment', 'checking', 'verified', 'needs_review', 'failed',
+    'expired', 'cancelled');
+CREATE TYPE tenant.payment_session_source AS ENUM ('checkout', 'staff_link');
 CREATE TABLE tenant.payment_sessions (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id       uuid NOT NULL,
-    order_id        uuid REFERENCES tenant.orders(id),
-    amount          numeric(12,2) NOT NULL,
-    status          text NOT NULL DEFAULT 'created',  -- created|awaiting_payment|checking|verified|needs_review|failed|expired|cancelled
-    return_url      text NOT NULL,
-    sender_number   text,
-    transaction_id  text,
+    ref             varchar(32) NOT NULL UNIQUE,      -- the page's address: 128 random bits, 22 characters (PAY-23)
+    order_id        uuid NOT NULL,                    -- FK (tenant_id, order_id), ON DELETE CASCADE
+    source          tenant.payment_session_source NOT NULL,
+    amount          numeric(12,2) NOT NULL CHECK (amount > 0),   -- the advance at checkout
+    method          tenant.payment_method,            -- chosen at checkout, then the one paid by
+    return_url      varchar(500),                     -- on the key's websites (PAY-04)
+    cancel_url      varchar(500),
+    state           tenant.payment_session_state NOT NULL DEFAULT 'awaiting_payment',
     expires_at      timestamptz NOT NULL,
+    transaction_id  varchar(20),                      -- PAY-07: what the shopper typed, in capitals
+    sender_number   varchar(11),
+    paid_to         jsonb,                            -- { accountId, accountName, number, bankName, accountNumber } as it stood
+    submitted_at    timestamptz,
+    created_at      timestamptz NOT NULL DEFAULT now(),
+    updated_at      timestamptz NOT NULL DEFAULT now(),
+    UNIQUE (tenant_id, id),
+    CHECK ((transaction_id IS NULL) = (submitted_at IS NULL) AND (state <> 'checking' OR transaction_id IS NOT NULL))
+);
+-- One open session an order; the minute pass reads those awaiting payment by when they run out.
+CREATE UNIQUE INDEX ON tenant.payment_sessions (tenant_id, order_id)
+    WHERE state IN ('awaiting_payment', 'checking', 'needs_review');
+CREATE INDEX ON tenant.payment_sessions (tenant_id, expires_at) WHERE state = 'awaiting_payment';
+
+-- TEN-29 (Slice 5.2): the shop a page's reference belongs to, found before the shop is known, as a catalog feed's.
+CREATE TABLE control.payment_session_refs (
+    ref             varchar(32) PRIMARY KEY,
+    tenant_id       uuid NOT NULL REFERENCES control.tenants(id),
     created_at      timestamptz NOT NULL DEFAULT now()
 );
-CREATE UNIQUE INDEX ON tenant.payment_sessions (transaction_id) WHERE transaction_id IS NOT NULL; -- PAY-16, platform-wide really (see control.used_transaction_ids below)
 
 -- Built in Phase 4 Slice 4.3a (ORD-15, ORD-22, ORD-43, D4-6): money recorded verified for an order -- the cash on
 -- delivery collected when it is delivered or handed over (agreed 2026-10-30), and (Slice 4.3b) payments staff record.

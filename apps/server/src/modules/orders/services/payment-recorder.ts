@@ -184,7 +184,16 @@ export class PaymentRecorder {
       );
     }
     const due = ((total - paid) / 100).toFixed(2);
-    if (paid === 0) return { due, paymentStatus: OrderPaymentStatus.Unverified };
+    if (paid === 0) {
+      // D5-9 (Slice 5.2): an order waiting on its advance online keeps waiting until money comes, whatever is edited.
+      const waiting = order.paymentStatus === OrderPaymentStatus.PendingVerification;
+      return {
+        due,
+        paymentStatus: waiting
+          ? OrderPaymentStatus.PendingVerification
+          : OrderPaymentStatus.Unverified,
+      };
+    }
     const advance = paisaOf(totals.advanceDue);
     if (paid >= total || (advance > 0 && paid >= advance)) {
       return { due, paymentStatus: OrderPaymentStatus.Paid };

@@ -213,7 +213,11 @@ monthly essential-SMS allowance per plan, spend caps). Only transactional OTP/pa
 Order-triggered events need the still-missing orders module; the essential-allowance counter isn't wired up
 even independent of that.
 
-## 19. `SRS.md` has an internal self-contradiction on payment-session monthly limits (PAY-3 vs. §6's table)
+## 19. `SRS.md` has an internal self-contradiction on payment-session monthly limits (PAY-3 vs. §6's table) — decided 2026-10-31
+
+**Decided 2026-10-31** (Phase 5 Slice 5.2's read): payment sessions have no per-period limit at all, so neither figure
+stands -- one per-minute flood guard per shop for every plan, a platform setting, as order creation's (RTE-08 amended,
+RTE-09 withdrawn, `SRS-detailed.md` §2.1's rows amended).
 
 Not code drift (no session-limit enforcement exists yet to check either way) — PAY-3 says "2× the plan's
 order limit," §6's own table says a flat number "independent of the order-handling limit." Needs

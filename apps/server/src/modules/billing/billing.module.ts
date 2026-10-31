@@ -17,6 +17,7 @@ import { InventoryModule } from '../inventory/inventory.module';
 import { MediaModule } from '../media/media.module';
 import { BrandModule } from '../brand/brand.module';
 import { PaymentMethodsModule } from '../payment-methods/payment-methods.module';
+import { PaymentSessionsModule } from '../payment-sessions/payment-sessions.module';
 import { DomainsModule } from '../domains/domains.module';
 import { UsageWarningsModule } from '../usage-warnings/usage-warnings.module';
 import { PublicApiModule } from '../public-api/public-api.module';
@@ -84,6 +85,7 @@ import {
     UsageWarningsModule,
     BrandModule,
     PaymentMethodsModule,
+    PaymentSessionsModule,
     DomainsModule,
   ],
   providers: [

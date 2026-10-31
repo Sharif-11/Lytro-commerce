@@ -1536,12 +1536,6 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: (p) => `"${String(p.product)}" is not on sale right now.`,
     bn: (p) => `"${String(p.product)}" এখন বিক্রি হচ্ছে না।`,
   },
-  ProductNeedsAdvance: {
-    en: (p) =>
-      `"${String(p.product)}" needs an advance payment, which cannot be paid here yet. Contact the shop to order it.`,
-    bn: (p) =>
-      `"${String(p.product)}"-এর জন্য অ্যাডভান্স পেমেন্ট লাগে, যা এখানে এখনো দেওয়া যায় না। অর্ডার করতে শপের সাথে যোগাযোগ করুন।`,
-  },
   ShopDoesNotDeliverHere: {
     en: 'This shop does not deliver to this area.',
     bn: 'এই শপ এই এরিয়াতে ডেলিভারি দেয় না।',
@@ -1803,6 +1797,34 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   PaymentAccountNotFound: {
     en: "That account isn't one of this method's.",
     bn: 'এই অ্যাকাউন্টটি এই মেথডের নয়।',
+  },
+  NoPaymentMethod: {
+    en: "This shop can't take an advance online right now. Please contact the shop.",
+    bn: 'এই শপ এখন অনলাইনে অ্যাডভান্স নিতে পারছে না। শপের সাথে যোগাযোগ করুন।',
+  },
+  PaymentMethodNotOffered: {
+    en: "The shop doesn't take payments by this method.",
+    bn: 'এই মেথডে শপ পেমেন্ট নেয় না।',
+  },
+  ReturnAddressNotAllowed: {
+    en: "This address isn't on the key's websites.",
+    bn: 'এই ঠিকানাটি কী-এর ওয়েবসাইটের তালিকায় নেই।',
+  },
+  PaymentNotFound: {
+    en: 'This payment page was not found.',
+    bn: 'এই পেমেন্ট পেজটি পাওয়া যায়নি।',
+  },
+  PaymentSessionClosed: {
+    en: 'This payment page takes no more payments.',
+    bn: 'এই পেমেন্ট পেজে আর পেমেন্ট নেওয়া হচ্ছে না।',
+  },
+  PaymentPageRetrieved: {
+    en: 'Payment retrieved.',
+    bn: 'পেমেন্টের তথ্য পাওয়া গেছে।',
+  },
+  PaymentSubmitted: {
+    en: "Thanks! We're checking your payment.",
+    bn: 'ধন্যবাদ! আপনার পেমেন্ট চেক করা হচ্ছে।',
   },
 };
 

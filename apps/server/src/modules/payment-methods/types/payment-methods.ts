@@ -38,6 +38,8 @@ export interface PaymentMethodsView {
 
 /** WAL-06: what a shopper sees of a method that is on -- its active account only. */
 export interface ShopperPaymentMethod {
+  /** Kept with a payment as the account paid into (PAY-05); never shown, as the replies' schemas leave it out. */
+  accountId: string;
   method: AccountMethod;
   kind: PaymentMethodKind;
   accountName: string;
