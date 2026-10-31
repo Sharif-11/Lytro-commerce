@@ -47,6 +47,7 @@ import {
 } from './products';
 import { deliveryAnswer, drawnDelivery, type DeliveryFixture } from './delivery';
 import { figuresAnswer, shopBatchesAnswer, stockPageAnswer, stockRead, stockWrite } from './stock';
+import { homeOrders, meghOrders, ordersAnswer, type OrdersFixture } from './orders';
 import { purchasingAnswer } from './purchases';
 import { checksAnswer } from './stock-checks';
 import { variantRead } from './variants';
@@ -145,6 +146,8 @@ export interface ShopState {
   identities?: IdentityFixture[] | null;
   /** GET /home's stock part; null when the person may not see stock. */
   stock?: { low: number; out: number } | null;
+  /** Slice 4.8a: the shop's orders; the day Part 29 draws unless a test gives its own. */
+  orders?: OrdersFixture | null;
   /** GET /home's other parts where they differ from the working shop's. */
   home?: Record<string, unknown>;
   money?: MoneyState;
@@ -246,6 +249,11 @@ function home(state: Required<ShopState>): unknown {
     fastSpendAlertedAt: null,
     // The checklist is the owner's alone (SUP-01).
     checklist: state.isOwner ? READY : null,
+    // Slice 4.8b: the orders' jobs, for someone who may read orders.
+    orders:
+      state.isOwner || state.permissions.includes('orders:read')
+        ? homeOrders((state.orders ??= meghOrders()))
+        : null,
     ...state.home,
   };
 }
@@ -312,6 +320,7 @@ export function shopState(given: ShopState = {}): Required<ShopState> {
     identities: null,
     products: null,
     delivery: null,
+    orders: null,
     stock: { low: 1, out: 1 },
     home: {},
     ...given,
@@ -943,6 +952,24 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
     }
     if (accounted) return ok(accounted.data);
     if (method === 'POST' && path.startsWith('/billing/')) return ok({ ok: true });
+    // Slice 4.8a: the orders, read and changed.
+    const ordered = ordersAnswer(
+      method,
+      path,
+      url,
+      request.postDataJSON() as Record<string, unknown> | null,
+      (state.orders ??= meghOrders()),
+      state.language,
+    );
+    if (ordered && 'refused' in ordered) {
+      const { status, code, message } = ordered.refused;
+      return route.fulfill({
+        status,
+        contentType: 'application/json',
+        body: refusal(code, message),
+      });
+    }
+    if (ordered) return ok(ordered.data);
     return ok(shopAnswer(path, url, state));
   });
   return log;

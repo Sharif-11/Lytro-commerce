@@ -6,7 +6,8 @@ import { useShell } from './shell-context';
 
 /**
  * TENANT-DASHBOARD-DESIGN §4.1, the prototype's `.tabbar`: the five hubs under 1024 px, 64 px plus the phone's safe
- * area, the icon over an 11 px label, primary when active. Shop carries the low-stock count as a pill.
+ * area, the icon over an 11 px label, primary when active. Shop carries the low-stock count as a pill, Orders the
+ * orders to confirm (Slice 4.8a).
  */
 export function TabBar(): React.JSX.Element {
   const { t } = useTranslation('shell');
@@ -20,7 +21,7 @@ export function TabBar(): React.JSX.Element {
     >
       {hubs.map(({ hub, to }) => {
         const on = screen?.hub === hub.id;
-        const pill = hub.id === 'shop' ? counts.stock : null;
+        const pill = hub.id === 'shop' ? counts.stock : hub.id === 'orders' ? counts.orders : null;
         return (
           <Link
             key={hub.id}

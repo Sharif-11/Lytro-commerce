@@ -69,8 +69,8 @@ const ONE_SEAT: SuggestedAddon = {
 const SEAT: Suggestion = { kind: 'addons', items: [ONE_SEAT], monthly: 49 };
 
 describe('the role editor', () => {
-  it('offers the thirteen permissions of the sections that exist, paying saying it spends the balance', () => {
-    expect(PERMISSION_ROWS).toHaveLength(13);
+  it('offers the sixteen permissions of the sections that exist, paying saying it spends the balance', () => {
+    expect(PERMISSION_ROWS).toHaveLength(16);
     expect(PERMISSION_ROWS.filter((row) => row.note).map((row) => row.permission)).toEqual([
       Permission.PaymentsManage,
     ]);
@@ -98,7 +98,10 @@ describe("a role's line", () => {
 
   it('keeps the editor’s order and ignores what the editor does not offer', () => {
     expect(roleLine(['settings:manage', 'orders:read', 'keys:manage'], t)).toBe(
-      'pmKeys · pmSettings',
+      'pmOrdersRead · pmKeys · pmSettings',
+    );
+    expect(roleLine(['orders:manage', 'orders:read', 'orders:delete', 'wallets:manage'], t)).toBe(
+      'pmOrdersManage · pmOrdersDelete',
     );
     expect(roleLine([], t)).toBe('');
   });

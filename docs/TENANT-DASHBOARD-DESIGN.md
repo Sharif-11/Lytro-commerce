@@ -1,6 +1,7 @@
 # Tenant dashboard: the full design
 
-Status: v3.22, 2026-10-31 (Sales, the Orders hub's third tab, Slice 4.8d, prototype Part 32: orders and revenue
+Status: v3.23, 2026-10-31 (the Orders list's dates and Delete's question drawn as 4.8a was built, Part 29;
+v3.22 of 2026-10-31: Sales, the Orders hub's third tab, Slice 4.8d, prototype Part 32: orders and revenue
 by week, month, quarter or year with the tax and delivery charges apart, profit for those who may see cost, best
 sellers by units or revenue, a product's trend, profit beside stock value; v3.21 of 2026-10-31: the catalogue
 additions Phase 4 built, Slice 4.8c, prototype Part 31: Product or Combo
@@ -1389,7 +1390,8 @@ drawn greyed with "Later" so the design stays whole; **the built screens hide th
 
 - **The list** (`orders`): the day's work first. Tabs To confirm · Confirmed · On hold · Shipped · All, each with its
   count; Delivered, Returned and Cancelled sit under **More** (`o29-more`), Cancelled with its reason filter (ORD-52).
-  Search by name, phone or order number and a date filter (ORD-13). Rows under Today, Yesterday and Earlier: the full
+  Search by name, phone or order number and the dates placed, From and To, Clear or Show orders (ORD-13, `o29-dates`,
+  drawn 2026-10-31 as 4.8a was built). Rows under Today, Yesterday and Earlier: the full
   number (`#261031-0047`, ORD-04), the customer, where it goes (thana, district) or a **Takeaway** / **Table 4** chip,
   how many items, and the line's note in warning tone -- "No answer ×2" (ORD-51), a hold's "Call at 4:00 pm", a
   cancelled order's reason; the total and the status chip on the right (New, Confirmed, On hold, Shipped, Delivered,
@@ -1408,7 +1410,8 @@ drawn greyed with "Later" so the design stays whole; **the built screens hide th
 - **One next step** in the bar (agreed): **Call to confirm** for a new order, **Call again** on hold, **Mark shipped**
   once confirmed, **Hand over** for a counter order, **Delivered** once shipped, **Return items** once delivered. The
   rest is in the more menu (`o29-menu`): Put on hold, Edit the order (until it ships), Print label, Cancel the order,
-  Delete the order (a mistake, before it ships or is paid; `orders:delete`). Someone who may only look sees no bar and
+  Delete the order (a mistake, before it ships or is paid; `orders:delete`), which asks first -- it goes for good,
+  its stock let go and its number never used again (`o29-delete`, `o29-deleted`, drawn 2026-10-31). Someone who may only look sees no bar and
   only Print.
 - **The call** (`o29-call`): **Call** dials the customer; back in the app a sheet asks "How did the call go?" --
   Confirmed (the order is confirmed), No answer (it stays as it is; `o29-noanswer`), Call later (a time: in 1 hour,
@@ -1456,6 +1459,9 @@ drawn greyed with "Later" so the design stays whole; **the built screens hide th
   its charge by hand (`o29-new-zone`, DLV-06). Created, it opens (`o29-created`).
 - **Edit order** (`o29-edit`): the same page with **Save changes**; an item already on the order keeps the price it
   was ordered at unless changed (ORD-11), until the order ships.
+- **Who may** (drawn 2026-10-31 as 4.8a was built): the role editor (Part 11's `PERMS11`) offers the orders first --
+  See orders (`orders:read`), Confirm, ship and cancel orders (`orders:manage`), Delete orders made by mistake
+  (`orders:delete`); a role that may change orders says only that on its line.
 
 ### 7.32 Customers, search, and the orders on Home and Usage (`/customers`, `/search`)
 

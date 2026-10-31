@@ -62,7 +62,7 @@ function section(id: SectionId, anyOf: readonly Permission[]): Section {
 
 // TENANT-DASHBOARD-DESIGN §3: the five hubs and the sections of the current state, as the prototype draws them
 // (docs/brand/lytro-dashboard.html, HUBS_CURRENT). Each section needs the permission its own read needs on the
-// server; Orders shows its Phase 4 placeholder to whoever may later read orders. Add-ons is reached from Usage,
+// server; Orders shows its list to whoever may read orders (Slice 4.8a). Add-ons is reached from Usage,
 // Plan and the brand editor, not from the hub's own list.
 export const HUBS: readonly Hub[] = [
   { id: 'home', icon: 'home', label: 'hubHome', root: '/$shop', anyOf: [], sections: [] },

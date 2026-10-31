@@ -22,12 +22,14 @@ function hubs(page: Page) {
     .filter({ visible: true });
 }
 
-test('frames a screen with the shop, the five hubs and the low-stock count', async ({ page }) => {
+test('frames a screen with the shop, the five hubs, the orders to confirm and the low-stock count', async ({
+  page,
+}) => {
   await open(page, '/orders');
   const nav = hubs(page);
-  await expect(nav.getByRole('link')).toHaveText(['হোম', 'অর্ডার', 'শপ2', 'টাকা', 'মেনু']);
-  await expect(nav.getByRole('link', { name: 'অর্ডার' })).toHaveAttribute('aria-current', 'page');
-  await expect(page.getByText('এখনো কোনো অর্ডার নেই')).toBeVisible();
+  await expect(nav.getByRole('link')).toHaveText(['হোম', 'অর্ডার3', 'শপ2', 'টাকা', 'মেনু']);
+  await expect(nav.getByRole('link', { name: /^অর্ডার/ })).toHaveAttribute('aria-current', 'page');
+  await expect(page.getByRole('link', { name: /^#261031-0047/ })).toBeVisible();
   if (isPhone()) {
     await expect(page.getByText('মেঘ ফ্যাশন')).toBeVisible();
   } else {
@@ -128,7 +130,7 @@ test("says where the shop stands: its trial, the trial's last days, grace and re
 
 test('says when the browser is offline (§9)', async ({ page, context }) => {
   await open(page, '/orders');
-  await expect(page.getByText('এখনো কোনো অর্ডার নেই')).toBeVisible();
+  await expect(page.getByRole('link', { name: /^#261031-0047/ })).toBeVisible();
   await context.setOffline(true);
   await expect(page.getByText(/^ইন্টারনেট নেই।/)).toBeVisible();
   await context.setOffline(false);
@@ -156,7 +158,8 @@ test('searches the products by name, and says when nothing matches (§4.4)', asy
   if (isPhone()) {
     await open(page, '/orders');
     await page.getByRole('link', { name: 'সার্চ' }).click();
-    await page.getByRole('searchbox').fill('জ্যাকেট');
+    // The search page's own box: the Orders list has a search of its own (Slice 4.8a).
+    await page.getByRole('searchbox', { name: 'সার্চ', exact: true }).fill('জ্যাকেট');
   } else {
     await open(page, '/orders');
     const field = page.getByRole('search').getByRole('searchbox');
@@ -194,7 +197,7 @@ test('switches to English from the header, and keeps the choice (I18N-01, I18N-0
   await page.getByRole('button', { name: 'Switch to English' }).click();
   await expect(hubs(page).getByRole('link')).toHaveText([
     'Home',
-    'Orders',
+    'Orders3',
     'Shop2',
     'Money',
     'Menu',

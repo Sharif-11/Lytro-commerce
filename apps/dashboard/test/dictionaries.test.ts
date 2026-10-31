@@ -11,6 +11,8 @@ import moneyBn from '../src/i18n/locales/money/bn.json';
 import moneyEn from '../src/i18n/locales/money/en.json';
 import onboardingBn from '../src/i18n/locales/onboarding/bn.json';
 import onboardingEn from '../src/i18n/locales/onboarding/en.json';
+import ordersBn from '../src/i18n/locales/orders/bn.json';
+import ordersEn from '../src/i18n/locales/orders/en.json';
 import shellBn from '../src/i18n/locales/shell/bn.json';
 import shellEn from '../src/i18n/locales/shell/en.json';
 import shopBn from '../src/i18n/locales/shop/bn.json';
@@ -42,6 +44,7 @@ describe('dictionaries', () => {
       [shopBn, shopEn],
       [moneyBn, moneyEn],
       [onboardingBn, onboardingEn],
+      [ordersBn, ordersEn],
       [walletBn, walletEn],
     ]) {
       expect(keysOf(english).sort()).toEqual(keysOf(bangla).sort());
