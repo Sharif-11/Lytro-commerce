@@ -1,9 +1,17 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
+import { Permission } from '@lytronix/validators';
 import { useMarkLinkShared } from '@/api/home';
-import { useOrderCount, useOrders, type OrderFilter, type OrderTab } from '@/api/orders';
+import {
+  useOrderCount,
+  useOrders,
+  useOrdersById,
+  type OrderFilter,
+  type OrderTab,
+} from '@/api/orders';
 import { Icon } from '@/components/icon';
+import { ActionBar } from '@/components/ui/action-bar';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -12,8 +20,10 @@ import { SearchField } from '@/components/ui/search-field';
 import { SkeletonRows } from '@/components/ui/skeleton';
 import { useErrorText } from '@/hooks/use-error-text';
 import { useShopAddress } from '@/hooks/use-shop-address';
+import { allows } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
 import { ShellPage } from '@/shell/shell-page';
+import { PrintSheet } from './labels';
 import { DatesSheet, OrderRows, OrderTabs } from './order-list';
 import { OrderDetail } from './order-page';
 import { filterOf, searchOf, type OrdersSearch } from './order-search';
@@ -36,9 +46,13 @@ export function OrdersScreen({
   const { t } = useTranslation('orders');
   const errorText = useErrorText();
   const navigate = useNavigate();
-  const { slug } = useShell();
+  const { slug, viewer } = useShell();
   const [typed, setTyped] = useState(filter.q ?? '');
   const [dating, setDating] = useState(false);
+  // Part 29's `o29-select`: orders picked to print their labels, the only bulk action (agreed in the 4.8a read).
+  const [picked, setPicked] = useState<Set<string> | null>(null);
+  const [printing, setPrinting] = useState(false);
+  const mayManage = allows(viewer, [Permission.OrdersManage]);
   const list = useOrders(filter);
   const everything = useOrderCount('all');
   const orders = (list.data?.pages ?? []).flatMap((page) => page.orders);
@@ -74,25 +88,52 @@ export function OrdersScreen({
     </Card>
   ) : (
     <>
-      <div className="flex items-center gap-2">
-        <SearchField
-          value={typed}
-          onChange={setTyped}
-          placeholder={t('searchPh')}
-          label={t('searchPh')}
-        />
-        <button
-          type="button"
-          aria-label={t('dates')}
-          aria-pressed={Boolean(filter.from || filter.to)}
-          onClick={() => {
-            setDating(true);
-          }}
-          className="flex size-11 flex-none items-center justify-center rounded-button border border-line-strong bg-surface text-neutral-700 aria-pressed:border-primary aria-pressed:bg-primary-soft aria-pressed:text-primary"
-        >
-          <Icon name="calendar" />
-        </button>
-      </div>
+      {picked ? (
+        <div className="flex min-h-11 items-center gap-2">
+          <span className="flex-1 font-semibold">{t('selectedN', { count: picked.size })}</span>
+          <Button
+            tone="ghost"
+            size="sm"
+            onClick={() => {
+              setPicked(null);
+            }}
+          >
+            {t('cancel')}
+          </Button>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2">
+          <SearchField
+            value={typed}
+            onChange={setTyped}
+            placeholder={t('searchPh')}
+            label={t('searchPh')}
+          />
+          <button
+            type="button"
+            aria-label={t('dates')}
+            aria-pressed={Boolean(filter.from || filter.to)}
+            onClick={() => {
+              setDating(true);
+            }}
+            className="flex size-11 flex-none items-center justify-center rounded-button border border-line-strong bg-surface text-neutral-700 aria-pressed:border-primary aria-pressed:bg-primary-soft aria-pressed:text-primary"
+          >
+            <Icon name="calendar" />
+          </button>
+          {mayManage ? (
+            <button
+              type="button"
+              aria-label={t('select')}
+              onClick={() => {
+                setPicked(new Set());
+              }}
+              className="flex size-11 flex-none items-center justify-center rounded-button border border-line-strong bg-surface text-neutral-700"
+            >
+              <Icon name="printer" />
+            </button>
+          ) : null}
+        </div>
+      )}
       <OrderTabs
         filter={filter}
         onTab={(tab: OrderTab, reason) => {
@@ -108,7 +149,24 @@ export function OrdersScreen({
             {filtered ? t('noneMatch') : t('noneHere')}
           </p>
         ) : (
-          <OrderRows orders={orders} selected={shown} search={searchOf(filter)} />
+          <OrderRows
+            orders={orders}
+            selected={picked ? null : shown}
+            search={searchOf(filter)}
+            picking={
+              picked
+                ? {
+                    picked,
+                    onToggle: (id) => {
+                      const next = new Set(picked);
+                      if (next.has(id)) next.delete(id);
+                      else next.add(id);
+                      setPicked(next);
+                    },
+                  }
+                : null
+            }
+          />
         )}
       </Card>
       {list.hasNextPage ? (
@@ -122,6 +180,27 @@ export function OrdersScreen({
         >
           {t('showMore')}
         </Button>
+      ) : null}
+      {picked ? (
+        <ActionBar>
+          <Button
+            disabled={picked.size === 0}
+            onClick={() => {
+              setPrinting(true);
+            }}
+          >
+            <Icon name="printer" />
+            {t('printN', { count: picked.size })}
+          </Button>
+        </ActionBar>
+      ) : null}
+      {printing && picked ? (
+        <PrintPicked
+          ids={[...picked]}
+          onClose={() => {
+            setPrinting(false);
+          }}
+        />
       ) : null}
       <DatesSheet
         key={`${filter.from ?? ''}-${filter.to ?? ''}`}
@@ -153,6 +232,15 @@ export function OrdersScreen({
         </div>
       </div>
     </ShellPage>
+  );
+}
+
+/** The picked orders' labels, each order read in full first (Part 29's `o29-select` to `o29-print`). */
+function PrintPicked({ ids, onClose }: { ids: string[]; onClose: () => void }): React.JSX.Element {
+  const found = useOrdersById(ids);
+  const orders = found.flatMap((each) => (each.data ? [each.data] : []));
+  return (
+    <PrintSheet orders={orders} loading={found.some((each) => each.isPending)} onClose={onClose} />
   );
 }
 

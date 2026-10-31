@@ -30,7 +30,13 @@ import { OrderFulfilment } from '../../orders/services/order-fulfilment';
 import { OrderPayments } from '../../orders/services/order-payments';
 import { OrderService } from '../../orders/services/order.service';
 import type { HandlingShop } from '../../orders/services/handling-quota';
-import type { OrderPage, OrderPaymentLink, OrderQuote, OrderView } from '../../orders/types/orders';
+import type {
+  OrderPage,
+  OrderPaymentLink,
+  OrderQuote,
+  OrderSerialItem,
+  OrderView,
+} from '../../orders/types/orders';
 import { PaymentSessions } from '../../payment-sessions/services/payment-sessions';
 import {
   CancelOrderDto,
@@ -42,6 +48,7 @@ import {
   OrderPaymentDto,
   OrderQuoteDto,
   OrderViewDto,
+  OrderSerialsDto,
   RecentCouriersDto,
   OverrideOrderDto,
   PaymentLinkDto,
@@ -230,6 +237,26 @@ export class OrdersController {
       body,
       this.request.actorOf(request),
     );
+  }
+
+  @Get(':id/serials')
+  @RequirePermission(Permission.OrdersManage)
+  @ResponseMessage('OrderSerialsRetrieved')
+  @ApiOperation({
+    summary:
+      "An order's serial-numbered units: the serials each can be sent with, and those it was sent with (INV-14)",
+  })
+  @ZodResponse({ type: OrderSerialsDto })
+  async serials(
+    @Param('id') id: string,
+    @Req() request: DashboardRequest,
+  ): Promise<{ items: OrderSerialItem[] }> {
+    return {
+      items: await this.fulfilment.serials(
+        this.request.tenantIdOf(request),
+        this.request.idOf(id, 'OrderNotFound'),
+      ),
+    };
   }
 
   @Post(':id/ship')

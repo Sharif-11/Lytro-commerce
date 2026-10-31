@@ -4,3 +4,21 @@
 @import '@lytronix/ui/light.css';
 /* Lytro's own fonts, served with the app (src/fonts). */
 @import './styles/fonts.css';
+
+/* Thermal labels (Slice 4.8a, ORD-19 amended): only the labels print, one a page, the page their size (set as they
+   print, through the CSSOM). On screen they are not there. */
+.label-print {
+  display: none;
+}
+@media print {
+  body > :not(.label-print),
+  dialog {
+    display: none !important;
+  }
+  .label-print {
+    display: block;
+  }
+  .label-print > * {
+    break-after: page;
+  }
+}

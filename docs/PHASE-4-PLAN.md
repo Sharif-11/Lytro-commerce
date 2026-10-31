@@ -403,6 +403,11 @@ combos and statistics). If velocity suggests it, the rest can become Phase 4B wi
   order and Edit order. Two pieces Part 29 had not drawn were drawn first, at the owner's choice: the dates
   (`o29-dates`) and Delete's question (`o29-delete`); the role editor's three order permissions were added to its
   drawing.
+  a1 merged as #268. **a2** adds two server reads -- each item's units back (`returnedQuantity`) and
+  `GET /orders/:id/serials`, the serials an order's units can be sent with and those it was sent with (INV-14), for
+  `orders:manage` -- and draws two more states first: returning serial-numbered units by their serials
+  (`o29-return-serial`) and handing over a counter order with them (`o29-handover-serial`). Labels carry a Code 128
+  barcode of the order number, encoded in the dashboard (`src/lib/code128.ts`), no dependency added.
 - **Sketch first** (`sketch-every-screen-before-building`): the status flow with the call log, Confirm, cancel
   reasons, Mark shipped and returns; the storefront's checkout for cash on delivery, the confirmation without an SMS
   promise, tracking with its Confirmed step; the Phase 5–7 parts of today's drawings shown as later.

@@ -23,6 +23,12 @@ export interface OrderItemFixture {
   /** A combo's items inside it, as ordered. */
   inside?: Words[];
   addOn?: { name: Words; price: number } | null;
+  /** Units back (ORD-10). */
+  returned?: number;
+  /** One unit's weight in kg, for the label. */
+  weightKg?: number;
+  /** A serial-numbered item's serials (INV-14): held to send, and sent. */
+  serials?: { inStock: string[]; sent: string[] };
 }
 
 export interface OrderFixture {
@@ -50,7 +56,19 @@ export interface OrderFixture {
   /** The cash collected when it was delivered or handed over. */
   collected?: number;
   /** Paid before it went: an advance (ORD-22). */
-  payments?: { method: string; amount: number; sender?: string; trxId?: string; at: string }[];
+  payments?: {
+    method: string;
+    amount: number;
+    sender?: string;
+    trxId?: string;
+    at: string;
+    /** Voided by mistake, with why (agreed 2026-10-30). */
+    voided?: string | null;
+  }[];
+  /** The month's limit the next ship passes (QTA-03), said in its reply. */
+  limitOnShip?: number | null;
+  /** Said once, in the reply of the ship that passed it. */
+  limitShown?: boolean;
 }
 
 export interface OrdersFixture {
@@ -300,7 +318,8 @@ const taxedOf = (order: OrderFixture) =>
     .filter((item) => !item.inside)
     .reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
 const paidOf = (order: OrderFixture) =>
-  (order.collected ?? 0) + (order.payments ?? []).reduce((sum, each) => sum + each.amount, 0);
+  (order.collected ?? 0) +
+  (order.payments ?? []).reduce((sum, each) => sum + (each.voided ? 0 : each.amount), 0);
 const money = (amount: number) => amount.toFixed(2);
 const counter = (order: OrderFixture) => order.fulfilment !== 'delivery';
 
@@ -429,7 +448,7 @@ function detail(order: OrderFixture, language: Language) {
       transactionId: each.trxId ?? null,
       verifiedBy: by,
       verifiedAt: each.at,
-      voided: null,
+      voided: each.voided ? { by, at: each.at, reason: each.voided } : null,
     })),
     ...(order.collected
       ? [
@@ -516,7 +535,8 @@ function detail(order: OrderFixture, language: Language) {
       packAmount: null,
       itemDiscount: '0.00',
       itemTotal: money(item.quantity * item.unitPrice),
-      weightKg: null,
+      returnedQuantity: `${String(item.returned ?? 0)}.000`,
+      weightKg: item.weightKg === undefined ? null : item.weightKg.toFixed(3),
       ownDeliveryCharge: null,
       deliveryMode: 'zone',
       deliveryCharge: '0.00',
@@ -539,7 +559,8 @@ function detail(order: OrderFixture, language: Language) {
       components: (item.inside ?? []).map((part, position) => ({
         partPosition: position + 1,
         productId: null,
-        variantId: null,
+        // Each item inside by its own variant, as a damaged one is named on a return (CMB-05).
+        variantId: `cv-${String(index)}-${String(position + 1)}`,
         productName: say(part, language) ?? '',
         attributes: [],
         quantity: '1.000',
@@ -556,7 +577,10 @@ function detail(order: OrderFixture, language: Language) {
     history,
     payments,
     warnings: [],
-    limitPrompt: null,
+    limitPrompt:
+      order.limitShown && order.limitOnShip
+        ? { metric: 'orders_monthly', limit: order.limitOnShip }
+        : null,
   };
 }
 
@@ -628,6 +652,22 @@ export function ordersAnswer(
       },
     };
   }
+  if (method === 'GET' && path === '/orders/couriers') {
+    const shipped = fixture.orders
+      .flatMap((order) => (order.courier ? [order.courier] : []))
+      .sort((a, b) => b.at.localeCompare(a.at));
+    return { data: { couriers: [...new Set(shipped.map((each) => each.name))] } };
+  }
+  const voiding = /^\/orders\/([^/]+)\/payments\/([^/]+)\/void$/.exec(path);
+  if (method === 'POST' && voiding) {
+    const order = fixture.orders.find((each) => each.id === voiding[1]);
+    const index = Number((voiding[2] ?? '').split('-pay-')[1]);
+    const payment = order?.payments?.[index];
+    if (!order || !payment)
+      return { refused: { status: 404, code: 'not_found', message: 'Not found' } };
+    payment.voided = String(body?.reason);
+    return { data: detail(order, language) };
+  }
   const one = /^\/orders\/([^/]+)(?:\/([a-z-]+))?$/.exec(path);
   if (!one || one[1] === 'couriers' || one[1] === 'quote') return undefined;
   const order = fixture.orders.find((each) => each.id === one[1]);
@@ -636,7 +676,34 @@ export function ordersAnswer(
   }
   const action = one[2] ?? null;
   const now = new Date().toISOString();
-  if (method === 'GET' && action === null) return { data: detail(order, language) };
+  if (method === 'GET' && action === null) {
+    const view = detail(order, language);
+    order.limitShown = false;
+    return { data: view };
+  }
+  if (method === 'GET' && action === 'serials') {
+    const gone =
+      order.status !== 'pending' && order.status !== 'confirmed' && order.status !== 'hold';
+    return {
+      data: {
+        items: order.items.flatMap((item, index) =>
+          item.serials
+            ? [
+                {
+                  lineId: `${order.id}-line-${String(index)}`,
+                  variantId: `v-${String(index)}`,
+                  productName: say(item.name, language) ?? '',
+                  quantity: `${String(item.quantity)}.000`,
+                  serialFormat: 'imei',
+                  inStock: gone ? [] : item.serials.inStock,
+                  sent: gone ? item.serials.sent : [],
+                },
+              ]
+            : [],
+        ),
+      },
+    };
+  }
   if (method === 'DELETE' && action === null) {
     fixture.orders = fixture.orders.filter((each) => each.id !== order.id);
     return { data: { ok: true } };
@@ -682,9 +749,92 @@ export function ordersAnswer(
     order.status = 'delivered';
     return { data: detail(order, language) };
   }
+  // Each serial-numbered item's picks, sent with it (INV-14); refused when one is short.
+  const sendSerials = (): boolean => {
+    const named = (body?.serials ?? []) as { lineId: string; serials: string[] }[];
+    for (const [index, item] of order.items.entries()) {
+      if (!item.serials) continue;
+      const picks = named.find((each) => each.lineId === `${order.id}-line-${String(index)}`);
+      if ((picks?.serials.length ?? 0) !== item.quantity) return false;
+    }
+    for (const [index, item] of order.items.entries()) {
+      if (!item.serials) continue;
+      const picks =
+        named.find((each) => each.lineId === `${order.id}-line-${String(index)}`)?.serials ?? [];
+      item.serials = {
+        inStock: item.serials.inStock.filter((each) => !picks.includes(each)),
+        sent: [...item.serials.sent, ...picks],
+      };
+    }
+    return true;
+  };
+  const shortOfSerials = {
+    refused: { status: 409, code: 'conflict', message: 'Each unit needs its serial.' },
+  };
   if (action === 'hand-over') {
+    if (!sendSerials()) return shortOfSerials;
     order.collected = totalOf(order) - paidOf(order);
     order.status = 'delivered';
+    return { data: detail(order, language) };
+  }
+  if (action === 'ship') {
+    if (!sendSerials()) return shortOfSerials;
+    order.courier = {
+      name: String(body?.courierName),
+      code:
+        typeof body?.trackingCode === 'string'
+          ? body.trackingCode
+          : typeof body?.trackingLink === 'string'
+            ? body.trackingLink
+            : '',
+      at: now,
+    };
+    order.status = 'shipped';
+    order.limitShown = Boolean(order.limitOnShip);
+    const view = detail(order, language);
+    order.limitShown = false;
+    return { data: view };
+  }
+  if (action === 'returns') {
+    const items = (body?.items ?? []) as {
+      lineId: string;
+      sellable: number;
+      damaged: number;
+      serials?: { sellable: string[]; damaged: string[] };
+    }[];
+    for (const back of items) {
+      const index = Number(back.lineId.split('-line-')[1]);
+      const item = order.items[index];
+      if (!item) continue;
+      item.returned = (item.returned ?? 0) + back.sellable + back.damaged;
+      if (item.serials && back.serials) {
+        const gone = [...back.serials.sellable, ...back.serials.damaged];
+        item.serials = {
+          ...item.serials,
+          sent: item.serials.sent.filter((each) => !gone.includes(each)),
+        };
+      }
+    }
+    if (order.items.every((item) => (item.returned ?? 0) >= item.quantity)) {
+      order.status = 'returned';
+    }
+    return { data: detail(order, language) };
+  }
+  if (action === 'payments') {
+    const amount = Number(body?.amount);
+    if (amount > totalOf(order) - paidOf(order)) {
+      return { refused: { status: 409, code: 'conflict', message: 'More than is due.' } };
+    }
+    order.payments = [
+      ...(order.payments ?? []),
+      {
+        method: String(body?.method),
+        amount,
+        ...(typeof body?.senderNumber === 'string' ? { sender: body.senderNumber } : {}),
+        ...(typeof body?.transactionId === 'string' ? { trxId: body.transactionId } : {}),
+        at: now,
+      },
+    ];
     return { data: detail(order, language) };
   }
   return undefined;

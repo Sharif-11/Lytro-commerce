@@ -9,6 +9,7 @@ import {
   useDeliver,
   useHandOver,
   useLogCall,
+  useOrderSerials,
   useSetOverride,
 } from '@/api/orders';
 import { Icon, type IconName } from '@/components/icon';
@@ -24,8 +25,12 @@ import { useErrorText } from '@/hooks/use-error-text';
 import { dayKey } from '@/lib/dates';
 import { bangladeshiPhone } from '@/lib/phone';
 import { useShell } from '@/shell/shell-context';
-import type { Order } from '@/types/orders';
+import type { Order, OrderPayment } from '@/types/orders';
+import { PrintSheet } from './labels';
 import { CANCEL_REASONS, useOrderWords } from './order-words';
+import { RecordPaymentSheet, VoidSheet } from './payment-sheets';
+import { ReturnSheet } from './return-sheet';
+import { HandOverSerialSheet, ShipSheet } from './ship-sheet';
 import type { OrderChoices } from './order-choices';
 
 /** The sheet or dialog over the order. A call's note goes with it to Call later or Cancel, and back. */
@@ -36,7 +41,12 @@ export type OrderSheet =
   | { kind: 'menu' }
   | { kind: 'delete' }
   | { kind: 'deliver' }
-  | { kind: 'handover' };
+  | { kind: 'handover' }
+  | { kind: 'ship' }
+  | { kind: 'return' }
+  | { kind: 'pay' }
+  | { kind: 'void'; payment: OrderPayment }
+  | { kind: 'print' };
 
 /** The sheet the order page has open, made afresh each time it opens: a new call is not the last one. */
 export function OrderSheets({
@@ -44,12 +54,15 @@ export function OrderSheets({
   open,
   can,
   onOpen,
+  onShipped,
   onClose,
 }: {
   order: Order;
   open: OrderSheet | null;
   can: OrderChoices;
   onOpen: (sheet: OrderSheet) => void;
+  /** Shipped: its reply, which may name the month's limit passed (QTA-03). */
+  onShipped: (shipped: Order) => void;
   onClose: () => void;
 }): React.JSX.Element | null {
   switch (open?.kind) {
@@ -66,7 +79,17 @@ export function OrderSheets({
     case 'deliver':
       return <DeliverDialog order={order} onClose={onClose} />;
     case 'handover':
-      return <HandOverDialog order={order} onClose={onClose} />;
+      return <HandOver order={order} onClose={onClose} />;
+    case 'ship':
+      return <ShipSheet order={order} onShipped={onShipped} onClose={onClose} />;
+    case 'return':
+      return <ReturnSheet order={order} onClose={onClose} />;
+    case 'pay':
+      return <RecordPaymentSheet order={order} onClose={onClose} />;
+    case 'void':
+      return <VoidSheet order={order} payment={open.payment} onClose={onClose} />;
+    case 'print':
+      return <PrintSheet orders={[order]} onClose={onClose} />;
     default:
       return null;
   }
@@ -473,6 +496,15 @@ function MenuSheet({
             }}
           />
         ) : null}
+        {can.print ? (
+          <MenuRow
+            icon="printer"
+            title={t('mPrint')}
+            onClick={() => {
+              onOpen({ kind: 'print' });
+            }}
+          />
+        ) : null}
         {can.cancel ? (
           <MenuRow
             icon="x"
@@ -638,6 +670,24 @@ function DeliverDialog({
 }
 
 /** Handing it over? (Part 29's `o29-handover`): a counter order's cash taken, delivered and paid in one step. */
+/** Hand over (Part 29's `o29-handover`): a dialog, or a sheet asking the IMEIs when an item needs them (INV-14). */
+function HandOver({
+  order,
+  onClose,
+}: {
+  order: Order;
+  onClose: () => void;
+}): React.JSX.Element | null {
+  const serials = useOrderSerials(order.id);
+  if (serials.isPending) return null;
+  const items = serials.data ?? [];
+  return items.length > 0 ? (
+    <HandOverSerialSheet order={order} items={items} onClose={onClose} />
+  ) : (
+    <HandOverDialog order={order} onClose={onClose} />
+  );
+}
+
 function HandOverDialog({
   order,
   onClose,

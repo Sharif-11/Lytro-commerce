@@ -230,6 +230,7 @@ function itemView(line: OrderLineRecord, components: SelectOrderLineComponent[])
     taxRate: line.taxRate,
     taxAmount: line.taxAmount,
     modifiers: line.modifiers,
+    returnedQuantity: line.returnedQuantity,
   };
 }
 

@@ -498,6 +498,7 @@ export const MESSAGE_KEYS = [
   'OrderPriced',
   'OrdersRetrieved',
   'CouriersRetrieved',
+  'OrderSerialsRetrieved',
   'OrderRetrieved',
   'OrderUpdated',
   'OrderCallSaved',

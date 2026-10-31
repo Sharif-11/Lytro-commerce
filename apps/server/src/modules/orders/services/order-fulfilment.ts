@@ -33,7 +33,7 @@ import { StockReturnService } from '../../inventory/services/stock-return.servic
 import type { ReservationRecord } from '../../inventory/types/inventory';
 import type { OrderStore } from '../ports/order-store';
 import { ORDER_STORE } from '../tokens';
-import type { OrderLineRecord, OrderRecord, OrderView } from '../types/orders';
+import type { OrderLineRecord, OrderRecord, OrderSerialItem, OrderView } from '../types/orders';
 import { HandlingQuota, type HandlingPassed, type HandlingShop } from './handling-quota';
 import { OrderService } from './order.service';
 import { PaymentRecorder } from './payment-recorder';
@@ -588,6 +588,43 @@ export class OrderFulfilment {
       { type: 'order', id: order.id },
       { orderNumber: order.orderNumber, to, courier: order.courierName },
     );
+  }
+
+  /**
+   * INV-14 (Slice 4.8a): the order's serial-numbered units, line by line and a combo's by component -- the serials
+   * each can be sent with while it waits, and those it was sent with once it has gone -- for the ship, hand-over and
+   * return sheets.
+   */
+  serials(tenantId: string, orderId: string): Promise<OrderSerialItem[]> {
+    return this.store.run(tenantId, async (tx) => {
+      const order = await this.store.findOrder(tx, tenantId, orderId, false);
+      if (!order) throw new ApiError('not_found', 'OrderNotFound', {});
+      const lines = new Map(
+        (await this.store.listLines(tx, tenantId, [order.id])).map((line) => [line.id, line]),
+      );
+      const components = await this.store.listComponents(tx, tenantId, [...lines.keys()]);
+      const held = await this.reservations.listForOrder(tx, tenantId, order.id);
+      const serials = await this.returns.serialsFor(tx, tenantId, held);
+      return held.flatMap((reservation) => {
+        const found = serials.get(reservation.id);
+        const line = lines.get(reservation.orderLineId);
+        if (!found || !line) return [];
+        const part = components.find(
+          (each) => each.orderLineId === line.id && each.variantId === reservation.variantId,
+        );
+        return [
+          {
+            lineId: line.id,
+            variantId: reservation.variantId,
+            productName: part?.productName ?? line.productName,
+            quantity: reservation.quantity,
+            serialFormat: found.serialFormat,
+            inStock: found.inStock,
+            sent: found.sent,
+          },
+        ];
+      });
+    });
   }
 
   private async find(tx: Transaction, tenantId: string, orderId: string): Promise<OrderRecord> {
