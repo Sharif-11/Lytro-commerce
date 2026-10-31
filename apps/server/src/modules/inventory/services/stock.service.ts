@@ -124,6 +124,14 @@ export class StockService implements ProductStockHooks {
    * sheets differ by it), and its variant-defining attributes, its variants' option ids in their order; All, Low and
    * Out counted as the Products list counts them.
    */
+  /** INV-15 (Slice 4.8c): how many products hold more for orders than is on hand, for Home's job. */
+  shortProducts(tenantId: string): Promise<number> {
+    return this.transactions.run(async (tx) => {
+      const rows = await this.store.listShortfalls(tx, tenantId);
+      return new Set(rows.filter((row) => Number(row.short) > 0).map((row) => row.productId)).size;
+    });
+  }
+
   page(tenantId: string, query: StockPageQuery, canSeeCost: boolean): Promise<StockPageView> {
     return this.transactions.run(async (tx) => {
       const { rows, total, counts } = await this.store.listProducts(tx, tenantId, {
@@ -689,7 +697,11 @@ export class StockService implements ProductStockHooks {
         ),
         combo:
           product.kind === ProductKind.Combo
-            ? { canMake: combo?.canMake ?? 0, issues: combo?.issues ?? [] }
+            ? {
+                canMake: combo?.canMake ?? 0,
+                issues: combo?.issues ?? [],
+                limitedBy: combo?.limitedBy ?? null,
+              }
             : null,
       };
     });

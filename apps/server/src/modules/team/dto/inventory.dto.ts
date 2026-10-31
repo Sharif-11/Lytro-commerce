@@ -48,6 +48,9 @@ export const productStockViewSchema = z.object({
   combo: z
     .object({
       canMake: z.number().nullable(),
+      limitedBy: z
+        .object({ position: z.number(), productName: z.string(), available: z.string() })
+        .nullable(),
       issues: z.array(
         z.object({
           position: z.number(),

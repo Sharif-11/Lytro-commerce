@@ -49,6 +49,10 @@ export class DrizzleCustomerStore implements CustomerStore {
     return this.customers.accountOf(tx, tenantId, phone);
   }
 
+  phonesWithAccount(tx: Transaction, tenantId: string, phones: string[]): Promise<Set<string>> {
+    return this.customers.phonesWithAccount(tx, tenantId, phones);
+  }
+
   lockForErasure(tx: Transaction, tenantId: string, id: string): Promise<CustomerRecord | null> {
     return this.customers.lockForErasure(tx, tenantId, id);
   }

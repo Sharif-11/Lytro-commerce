@@ -140,6 +140,8 @@ export interface OrderView {
   confirmedBy: OrderPerson | null;
   fulfilmentType: FulfilmentType;
   customerId: string | null;
+  /** CUS-01 (Slice 4.8a): how many orders the customer has, for the link to them; null with no customer. */
+  customerOrders: number | null;
   /** CUS-09: its customer was deleted at a privacy request, so the name, phone and address are gone. */
   customerErased: boolean;
   customerName: string | null;
@@ -241,6 +243,27 @@ export interface OrderListItem {
   cancelReason: CancelReason | null;
   holdUntil: Date | null;
   createdAt: Date;
+  /** Slice 4.8a: where it goes, the thana and its zilla named; null for one at the counter. */
+  area: OrderArea | null;
+  /** ORD-51 (Slice 4.8a): how many calls went unanswered, as the order shows it. */
+  unansweredCalls: number;
+}
+
+/** A thana and the zilla it is in, both named in each language. */
+export interface OrderArea {
+  thana: { id: number; nameEn: string; nameBn: string };
+  zilla: { id: number; nameEn: string; nameBn: string };
+}
+
+/** Slice 4.8b: Home's order figures -- orders:read. */
+export interface OrderHomeView {
+  toConfirm: number;
+  callsDue: number;
+  toShip: number;
+  today: number;
+  yesterday: number;
+  /** This month's sales, the Sales page's own revenue (STA-01). */
+  monthSales: string;
 }
 
 /** API-17: one page of orders, with how many match in all. */

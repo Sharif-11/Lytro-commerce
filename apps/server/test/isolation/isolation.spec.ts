@@ -194,6 +194,7 @@ describeIfDatabase('route inventory against the application (SEC-02)', () => {
       'GET /option-sets',
       'GET /orders',
       'GET /orders/:id',
+      'GET /orders/couriers',
       'GET /platform-wallets',
       'GET /presets',
       'GET /product-defaults',

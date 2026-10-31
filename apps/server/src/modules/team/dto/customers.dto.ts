@@ -15,6 +15,7 @@ const customerItemSchema = z.object({
   totalSpent: z.string(),
   lastOrderAt: z.coerce.date().nullable(),
   firstOrderAt: z.coerce.date(),
+  hasAccount: z.boolean(),
 });
 
 const customerPageSchema = z.object({

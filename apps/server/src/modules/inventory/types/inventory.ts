@@ -293,6 +293,8 @@ export interface ProductStockView {
 export interface ComboStockView {
   canMake: number | null;
   issues: ComboIssue[];
+  /** CMB-02 (Slice 4.8c): what limits it -- "Limited by Check lungi · 6 left"; null while nothing does. */
+  limitedBy: { position: number; productName: string; available: string } | null;
 }
 
 /**

@@ -263,6 +263,8 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
     "another shop's variant is not_found and nothing is saved; a key is the session shop's own",
   'POST /orders/quote': "another shop's variant is not_found",
   'GET /orders/:id': "another shop's order answers 404",
+  // Slice 4.8a, checked in test/orders.e2e.spec.ts: only the session shop's own couriers.
+  'GET /orders/couriers': "lists only the session shop's own couriers",
   'PATCH /orders/:id': "another shop's order answers 404",
   'POST /orders/:id/calls': "another shop's order answers 404",
   'POST /orders/:id/cancel': "another shop's order answers 404 and keeps its stock held",

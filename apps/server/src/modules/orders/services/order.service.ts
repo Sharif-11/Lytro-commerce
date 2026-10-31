@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import type {
   InsertOrder,
   NewOrderHistory,
+  OrderHomeCounts,
   OrderPatch,
   SelectOrderLineComponent,
   Transaction,
@@ -38,7 +39,7 @@ import {
   IdempotencyService,
   type IdempotencyClaim,
 } from '../../../common/idempotency/idempotency.service';
-import { DAY_MS, dhakaDate, dhakaDayStart } from '../../../common/time';
+import { DAY_MS, dhakaDate, dhakaDayStart, startOfDayDhaka } from '../../../common/time';
 import { fromPaisa, toPaisa } from '../../balance/services/money';
 import { CatalogueActivity, type ResolvedActor } from '../../catalogue/services/catalogue-activity';
 import type {
@@ -78,6 +79,8 @@ import { PaymentRecorder, paymentEntryOf } from './payment-recorder';
 const TRACKING_DRAWS = 5;
 // LIF-16: how many orders the export reads at a time.
 const EXPORT_BATCH = 500;
+// ORD-09 (Slice 4.8a): how many of the shop's couriers the ship sheet offers as chips.
+const RECENT_COURIERS = 8;
 // ORD-12: an order with any of these has had money verified on it, so it is cancelled or returned instead.
 const PAID: readonly OrderPaymentStatus[] = [
   OrderPaymentStatus.PartiallyPaid,
@@ -498,6 +501,28 @@ export class OrderService {
   }
 
   /** ORD-13, ORD-45, ORD-52: a page of the shop's orders, newest first. */
+  /** ORD-09 (Slice 4.8a): the couriers the shop has shipped with, the most recent first, for the ship sheet. */
+  recentCouriers(tenantId: string): Promise<string[]> {
+    return this.store.run(tenantId, (tx) =>
+      this.store.recentCouriers(tx, tenantId, RECENT_COURIERS),
+    );
+  }
+
+  /**
+   * Slice 4.8b: Home's order figures -- to confirm, calls due, deliveries to ship, and the orders placed today and
+   * yesterday on the Asia/Dhaka calendar.
+   */
+  homeCounts(tenantId: string, now: Date): Promise<OrderHomeCounts> {
+    const todayStart = startOfDayDhaka(now);
+    return this.store.run(tenantId, (tx) =>
+      this.store.homeCounts(tx, tenantId, {
+        now,
+        todayStart,
+        yesterdayStart: new Date(todayStart.getTime() - DAY_MS),
+      }),
+    );
+  }
+
   async list(tenantId: string, query: OrderListQuery): Promise<OrderPage> {
     const from = query.dateFrom !== undefined ? dhakaDayStart(query.dateFrom) : null;
     const before =
@@ -529,6 +554,13 @@ export class OrderService {
         },
         { offset: (query.page - 1) * query.limit, limit: query.limit },
       );
+      const areas = new Map(
+        await Promise.all(
+          [
+            ...new Set(rows.flatMap((row) => (row.locationId !== null ? [row.locationId] : []))),
+          ].map(async (id) => [id, await this.locations.areaOf(id)] as const),
+        ),
+      );
       return {
         orders: rows.map((row) => ({
           id: row.id,
@@ -548,6 +580,8 @@ export class OrderService {
           cancelReason: row.cancelReason,
           holdUntil: row.holdUntil,
           createdAt: row.createdAt,
+          area: row.locationId !== null ? (areas.get(row.locationId) ?? null) : null,
+          unansweredCalls: row.unansweredCalls,
         })),
         page: query.page,
         limit: query.limit,
@@ -1532,6 +1566,10 @@ export class OrderService {
       confirmedBy: person(order.confirmedBy),
       fulfilmentType: order.fulfilmentType,
       customerId: order.customerId,
+      customerOrders:
+        order.customerId !== null
+          ? await this.customers.orderCountWithin(tx, tenantId, order.customerId)
+          : null,
       customerErased: order.customerErasedAt !== null,
       customerName: order.customerName,
       customerPhone: order.customerPhone,
