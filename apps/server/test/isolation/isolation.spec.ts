@@ -196,6 +196,8 @@ describeIfDatabase('route inventory against the application (SEC-02)', () => {
       'GET /orders/:id',
       'GET /orders/:id/serials',
       'GET /orders/couriers',
+      'GET /orders/picker',
+      'GET /orders/picker/:productId',
       'GET /payment-methods',
       'GET /payments',
       'GET /payments/export',

@@ -31,7 +31,11 @@ export function Quantity({
       >
         <Icon name="minus" />
       </button>
-      <span className="num w-10 text-center text-[16px] font-semibold" aria-live="polite">
+      {/* The sketch's `.qty span`: 44 px at least, bold, a hairline either side. */}
+      <span
+        className="num h-10 min-w-11 border-x border-line text-center text-[16px] leading-10 font-bold"
+        aria-live="polite"
+      >
         {value}
       </span>
       <button

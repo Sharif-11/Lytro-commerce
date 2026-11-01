@@ -1,8 +1,9 @@
 import type { Language } from './mock-api';
+import { editedOrder, madeOrder, pickerAnswer } from './new-order';
 
 // Orders against a mocked API (Slice 4.8a; ORD-01 to ORD-52): the day's orders at Megh Fashion as Part 29 draws them,
 // each in its state, and the writes the order page sends -- a call logged, a hold set or released, a cancel, a delete,
-// delivered and handed over -- so the reads after them show what changed.
+// delivered and handed over -- so the reads after them show what changed; New order and Edit order's in new-order.ts.
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -64,7 +65,12 @@ export interface OrderFixture {
     at: string;
     /** Voided by mistake, with why (agreed 2026-10-30). */
     voided?: string | null;
+    /** Marked refunded, with its note (Slice 5.3). */
+    refunded?: string | null;
   }[];
+  /** The order's discount (ORD-06) and its staff note. */
+  discount?: number;
+  notes?: string | null;
   /** The month's limit the next ship passes (QTA-03), said in its reply. */
   limitOnShip?: number | null;
   /** Said once, in the reply of the ship that passed it. */
@@ -92,7 +98,8 @@ const area = (thana: Words, zilla: Words, thanaId: number, zillaId: number) => (
   thanaId,
   zillaId,
 });
-const MIRPUR = area(['মিরপুর', 'Mirpur'], ['ঢাকা', 'Dhaka'], 101, 1);
+// Mirpur by its id in the mocked locations (support/delivery.ts).
+const MIRPUR = area(['মিরপুর', 'Mirpur'], ['ঢাকা', 'Dhaka'], 102, 1);
 
 /** The order Part 29 draws open: a T-shirt pair and an Eid combo with gift wrap, to Mirpur. */
 const NUSRAT_ITEMS: OrderItemFixture[] = [
@@ -312,14 +319,18 @@ const RUMANA = (language: Language) => ({
 
 const subtotalOf = (order: OrderFixture) =>
   order.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
-const totalOf = (order: OrderFixture) => subtotalOf(order) + order.deliveryCharge;
+const totalOf = (order: OrderFixture) =>
+  subtotalOf(order) + order.deliveryCharge - (order.discount ?? 0);
 const taxedOf = (order: OrderFixture) =>
   order.items
     .filter((item) => !item.inside)
     .reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
 const paidOf = (order: OrderFixture) =>
   (order.collected ?? 0) +
-  (order.payments ?? []).reduce((sum, each) => sum + (each.voided ? 0 : each.amount), 0);
+  (order.payments ?? []).reduce(
+    (sum, each) => sum + (each.voided || each.refunded ? 0 : each.amount),
+    0,
+  );
 const money = (amount: number) => amount.toFixed(2);
 const counter = (order: OrderFixture) => order.fulfilment !== 'delivery';
 
@@ -449,6 +460,7 @@ function detail(order: OrderFixture, language: Language) {
       verifiedBy: by,
       verifiedAt: each.at,
       voided: each.voided ? { by, at: each.at, reason: each.voided } : null,
+      refunded: each.refunded ? { by, at: each.at, note: each.refunded } : null,
     })),
     ...(order.collected
       ? [
@@ -461,6 +473,7 @@ function detail(order: OrderFixture, language: Language) {
             verifiedBy: by,
             verifiedAt: dhaka(17, 10),
             voided: null,
+            refunded: null,
           },
         ]
       : []),
@@ -498,7 +511,7 @@ function detail(order: OrderFixture, language: Language) {
     subtotal: money(subtotalOf(order)),
     deliveryCharge: money(order.deliveryCharge),
     deliveryChargeByHand: false,
-    discount: '0.00',
+    discount: money(order.discount ?? 0),
     advanceDue: '0.00',
     due: money(Math.max(0, total - paid)),
     // Clothing at 5% VAT, inside the price (TAX-03); a combo is not taxed (Part 29's ৳42.86 on the T-shirts' ৳900).
@@ -515,7 +528,7 @@ function detail(order: OrderFixture, language: Language) {
     shippedAt: order.courier?.at ?? null,
     deliveredAt: order.status === 'delivered' ? dhaka(17, 10) : null,
     handledAt: order.courier?.at ?? null,
-    notes: null,
+    notes: order.notes ?? null,
     shopperNote: say(order.shopperNote, language),
     createdBy: order.source === 'dashboard' ? by : null,
     updatedAt: order.createdAt,
@@ -626,7 +639,25 @@ export function ordersAnswer(
   body: Record<string, unknown> | null,
   fixture: OrdersFixture,
   language: Language,
-): { data: unknown } | { refused: { status: number; code: string; message: string } } | undefined {
+):
+  | { data: unknown }
+  | {
+      refused: {
+        status: number;
+        code: string;
+        message: string;
+        details?: Record<string, unknown>;
+      };
+    }
+  | undefined {
+  const picked = pickerAnswer(method, path, url, body, language);
+  if (picked) return picked;
+  if (method === 'POST' && path === '/orders') {
+    const made = madeOrder(body ?? {}, fixture.orders);
+    if (!('made' in made)) return made;
+    fixture.orders = [made.made, ...fixture.orders];
+    return { data: detail(made.made, language) };
+  }
   if (method === 'GET' && path === '/orders') {
     const status = url.searchParams.get('status');
     const q = url.searchParams.get('q');
@@ -703,6 +734,10 @@ export function ordersAnswer(
         ),
       },
     };
+  }
+  if (method === 'PATCH' && action === null) {
+    editedOrder(order, body ?? {});
+    return { data: detail(order, language) };
   }
   if (method === 'DELETE' && action === null) {
     fixture.orders = fixture.orders.filter((each) => each.id !== order.id);

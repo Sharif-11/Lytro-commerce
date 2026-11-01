@@ -270,6 +270,7 @@ export class ProductService {
         stockState: product.stockState,
         primaryCategoryId: product.primaryCategoryId,
         variantCount,
+        kind: product.kind,
         image: photos.get(product.id)?.[0] ?? null,
         createdAt: product.createdAt,
       }));

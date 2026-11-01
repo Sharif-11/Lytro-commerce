@@ -14,6 +14,7 @@ import { ConsoleOrderNotifier } from './services/console-order-notifier';
 import { HandlingQuota } from './services/handling-quota';
 import { OrderFulfilment } from './services/order-fulfilment';
 import { OrderPayments } from './services/order-payments';
+import { OrderPicker } from './services/order-picker';
 import { OrderPricing } from './services/order-pricing';
 import { OrderCombos } from './services/order-combos';
 import { OrderTracking } from './services/order-tracking';
@@ -46,6 +47,7 @@ import { ORDER_NOTIFIER, ORDER_STORE, SALES_STORE } from './tokens';
     HandlingQuota,
     OrderFulfilment,
     OrderPayments,
+    OrderPicker,
     OrderPricing,
     OrderCombos,
     OrderService,
@@ -55,6 +57,8 @@ import { ORDER_NOTIFIER, ORDER_STORE, SALES_STORE } from './tokens';
     SalesFigures,
   ],
   exports: [
+    // Slice 4.8a: New order's Add an item, for the orders routes.
+    OrderPicker,
     HandlingQuota,
     OrderFulfilment,
     OrderPayments,

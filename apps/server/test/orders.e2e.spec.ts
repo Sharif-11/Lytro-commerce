@@ -486,6 +486,25 @@ describeIfDatabase('delivery and advance (ORD-06a, RAT-14, PRD-08, ORD-16, DLV-0
     expect(quoted.body).toMatchObject({ subtotal: '1400.00', grandTotal: '1470.00', warnings: [] });
     expect(await reserved(fish.variantId)).toBe('1.000');
   });
+
+  it("prices a quote before the customer's details are in, and still refuses an order without them (Slice 4.8a)", async () => {
+    const shop = await openShop(port, texts, 'ord');
+    const shirt = await product(shop, 'Shirt', 500, 10);
+    const items = [{ variantId: shirt.variantId, quantity: 2 }];
+    const bare = await shop.post('/orders/quote', { items });
+    expect(bare.status, JSON.stringify(bare.body)).toBe(200);
+    expect(bare.body).toMatchObject({ subtotal: '1000.00', deliveryZone: null });
+    const { locationId } = await delivery(shop);
+    const placed = await shop.post('/orders/quote', { locationId, items });
+    expect(placed.status).toBe(200);
+    expect(placed.body).toMatchObject({ subtotal: '1000.00', grandTotal: '1070.00' });
+    expect(fieldsOf(await send(shop, { locationId, items }))).toMatchObject({
+      customerName: 'required',
+      phone: 'required',
+      deliveryAddress: 'required',
+    });
+    expect(await reserved(shirt.variantId)).toBe('0.000');
+  });
 });
 
 describeIfDatabase('the line as it was (ORD-46, ATR-08, ATR-09, PRD-13)', () => {

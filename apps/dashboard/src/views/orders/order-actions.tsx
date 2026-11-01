@@ -459,7 +459,7 @@ function CancelSheet({
   );
 }
 
-/** The more menu (Part 29's `o29-menu`): hold or release it, cancel it, delete a mistake. */
+/** The more menu (Part 29's `o29-menu`): hold or release it, edit it, print its label, cancel it, delete a mistake. */
 function MenuSheet({
   order,
   can,
@@ -473,6 +473,8 @@ function MenuSheet({
 }): React.JSX.Element {
   const { t } = useTranslation('orders');
   const errorText = useErrorText();
+  const navigate = useNavigate();
+  const { slug } = useShell();
   const release = useSetOverride(order.id);
   return (
     <Sheet open title={t('menuTitle', { number: order.orderNumber })} onClose={onClose}>
@@ -493,6 +495,19 @@ function MenuSheet({
             title={t('mRelease')}
             onClick={() => {
               release.mutate(null, { onSuccess: onClose });
+            }}
+          />
+        ) : null}
+        {can.edit ? (
+          <MenuRow
+            icon="pencil"
+            title={t('mEdit')}
+            sub={t('mEditSub')}
+            onClick={() => {
+              void navigate({
+                to: '/$shop/orders/$orderId/edit',
+                params: { shop: slug, orderId: order.id },
+              });
             }}
           />
         ) : null}

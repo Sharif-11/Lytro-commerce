@@ -284,9 +284,10 @@ test('someone who may only look sees no next step, and only Print label in the m
     .click();
   const menu = sheet(page, /^Order #/);
   await expect(menu.getByRole('button').filter({ hasText: /\S/ })).toHaveText(['Print label']);
-  // Selecting orders to print is for someone who may manage them.
+  // Selecting orders to print, and entering one, are for someone who may manage them.
   await page.goto(`/${SLUG}/orders`);
   await expect(main(page).getByRole('button', { name: 'Select' })).toHaveCount(0);
+  await expect(main(page).getByRole('link', { name: 'New order' })).toHaveCount(0);
 });
 
 /** Part 29's day with one order changed for a test. */
@@ -494,6 +495,27 @@ test('Record payment by bKash, no more than is due; a mistaken one is voided and
     { reason: 'The wrong TrxID was typed' },
   ]);
   await expect(main(page)).toContainText('Voided: The wrong TrxID was typed');
+  await expect(main(page).getByRole('button', { name: 'Void' })).toHaveCount(0);
+});
+
+test('a payment marked refunded can no longer be voided (Slice 5.3)', async ({ page }) => {
+  await open(
+    page,
+    '/orders/o-44',
+    day((orders) => {
+      order(orders, 'o-44').payments = [
+        {
+          method: 'bkash',
+          amount: 500,
+          sender: '+8801819876543',
+          trxId: '9F2KQ7M1',
+          at: '2026-10-31T04:00:00.000Z',
+          refunded: 'Sent back by bKash',
+        },
+      ];
+    }),
+  );
+  await expect(main(page)).toContainText('৳500 · TrxID 9F2KQ7M1');
   await expect(main(page).getByRole('button', { name: 'Void' })).toHaveCount(0);
 });
 

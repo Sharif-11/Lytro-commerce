@@ -408,6 +408,13 @@ combos and statistics). If velocity suggests it, the rest can become Phase 4B wi
   `orders:manage` -- and draws two more states first: returning serial-numbered units by their serials
   (`o29-return-serial`) and handing over a counter order with them (`o29-handover-serial`). Labels carry a Code 128
   barcode of the order number, encoded in the dashboard (`src/lib/code128.ts`), no dependency added.
+  a2 merged as #271. **a3** (read agreed 2026-10-31: the product, then a tap on a variant with its units; an ordinary
+  product's add-ons asked after its variant; the exact units for every order-taker) adds `GET /orders/picker` and
+  `GET /orders/picker/:productId` for `orders:manage`, lets `POST /orders/quote` price an order before the customer's
+  details are in (create still checks them), and draws five pieces first: the variant step (`o29-add-variant`), an
+  ordinary product's add-ons (`o29-add-ons`), a table order (`o29-new-table`), the delivery charge by hand
+  (`o29-new-byhand`) and a line's Change price (`o29-line-price`). New order is in the + menu, the list's header and
+  the empty list; Edit order in the order's menu until it ships.
 - **Sketch first** (`sketch-every-screen-before-building`): the status flow with the call log, Confirm, cancel
   reasons, Mark shipped and returns; the storefront's checkout for cash on delivery, the confirmation without an SMS
   promise, tracking with its Confirmed step; the Phase 5–7 parts of today's drawings shown as later.

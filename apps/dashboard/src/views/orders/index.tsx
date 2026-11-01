@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from '@tanstack/react-router';
+import { useEffect, useRef, useState } from 'react';
+import { Link, useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { Permission } from '@lytronix/validators';
 import { useMarkLinkShared } from '@/api/home';
@@ -15,6 +15,7 @@ import { ActionBar } from '@/components/ui/action-bar';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { buttonClass } from '@/components/ui/classes';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SearchField } from '@/components/ui/search-field';
 import { SkeletonRows } from '@/components/ui/skeleton';
@@ -60,31 +61,38 @@ export function OrdersScreen({
   const none = everything.data === 0;
   const filtered = Boolean(filter.q?.trim() || filter.from || filter.to || filter.reason);
 
+  // The search's pause: a write of the search box still to come.
+  const pending = useRef<number | null>(null);
+
   // From the address as it is when the change lands, not as this render saw it: the search's pause must not undo the
   // dates chosen meanwhile.
   function show(next: Partial<OrderFilter>): void {
+    // Each change carries the search box as it is and drops the pause's write still to come, so that write can never
+    // land after the change from an address read before it (the dates lost to a cleared search, Slice 4.8a).
+    if (pending.current !== null) window.clearTimeout(pending.current);
+    pending.current = null;
     void navigate({
       to: orderId ? '/$shop/orders/$orderId' : '/$shop/orders',
       params: orderId ? { shop: slug, orderId } : { shop: slug },
-      search: (previous) => searchOf({ ...filterOf(previous as OrdersSearch), ...next }),
+      search: (previous) => searchOf({ ...filterOf(previous as OrdersSearch), q: typed, ...next }),
       replace: true,
     });
   }
 
   useEffect(() => {
     if (typed === (filter.q ?? '')) return;
-    const timer = window.setTimeout(() => {
+    pending.current = window.setTimeout(() => {
       show({ q: typed });
     }, TYPING_REST_MS);
     return () => {
-      window.clearTimeout(timer);
+      if (pending.current !== null) window.clearTimeout(pending.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [typed]);
 
   const listColumn = none ? (
     <Card>
-      <NoOrders />
+      <NoOrders mayEnter={mayManage} />
     </Card>
   ) : (
     <>
@@ -218,7 +226,21 @@ export function OrdersScreen({
   );
 
   return (
-    <ShellPage title={orderId ? null : undefined}>
+    <ShellPage
+      title={orderId ? null : undefined}
+      actions={
+        mayManage ? (
+          <Link
+            to="/$shop/orders/new"
+            params={{ shop: slug }}
+            className={buttonClass('primary', 'sm')}
+          >
+            <Icon name="plus" />
+            {t('newOrder')}
+          </Link>
+        ) : undefined
+      }
+    >
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-6">
         <div
           className={`flex min-w-0 flex-col gap-4 lg:w-[400px] lg:flex-none ${orderId ? 'max-lg:hidden' : ''}`}
@@ -244,10 +266,10 @@ function PrintPicked({ ids, onClose }: { ids: string[]; onClose: () => void }): 
   );
 }
 
-/** No orders yet (Part 29's `o29-empty`): share the shop's link. */
-function NoOrders(): React.JSX.Element {
+/** No orders yet (Part 29's `o29-empty`): share the shop's link, or enter one taken on the phone. */
+function NoOrders({ mayEnter }: { mayEnter: boolean }): React.JSX.Element {
   const { t } = useTranslation('orders');
-  const { showToast } = useShell();
+  const { slug, showToast } = useShell();
   const shared = useMarkLinkShared();
   const { url } = useShopAddress();
 
@@ -269,14 +291,26 @@ function NoOrders(): React.JSX.Element {
     <EmptyState
       icon="orders"
       action={
-        <Button
-          size="sm"
-          onClick={() => {
-            void share();
-          }}
-        >
-          {t('shareLink')}
-        </Button>
+        // The prototype's `.actions`, centred: the two ways in side by side.
+        <div className="flex flex-wrap justify-center gap-2">
+          <Button
+            size="sm"
+            onClick={() => {
+              void share();
+            }}
+          >
+            {t('shareLink')}
+          </Button>
+          {mayEnter ? (
+            <Link
+              to="/$shop/orders/new"
+              params={{ shop: slug }}
+              className={buttonClass('outline', 'sm')}
+            >
+              {t('enterOrder')}
+            </Link>
+          ) : null}
+        </div>
       }
     >
       {t('empty')}

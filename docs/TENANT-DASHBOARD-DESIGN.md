@@ -1,6 +1,7 @@
 # Tenant dashboard: the full design
 
-Status: v3.24, 2026-10-31 (returning and handing over serial-numbered units by their serials, drawn as 4.8a's second
+Status: v3.25, 2026-10-31 (New order's variant step, an ordinary product's add-ons, a table order and the delivery charge
+by hand, drawn as 4.8a's third part was built, Part 29; v3.24 of 2026-10-31: returning and handing over serial-numbered units by their serials, drawn as 4.8a's second
 part was built, Part 29; v3.23 of 2026-10-31: the Orders list's dates and Delete's question drawn as 4.8a was built, Part 29;
 v3.22 of 2026-10-31: Sales, the Orders hub's third tab, Slice 4.8d, prototype Part 32: orders and revenue
 by week, month, quarter or year with the tax and delivery charges apart, profit for those who may see cost, best
@@ -1451,10 +1452,13 @@ drawn greyed with "Later" so the design stays whole; **the built screens hide th
   weight; the 3 × 3 label adds the items. The payment log is not printed: the order's payments are on screen.
 - **New order** (`order-new`), one page in sections (agreed): the customer -- the phone first, a known phone offering
   its name and last address (`o29-new-known`, CUS-01) -- then **how it reaches them**: Delivery (district and thana,
-  its zone and charge, the address), Takeaway or Table (`o29-new-counter`, MNU-04); the items -- **Add an item**
-  searches products and shows each variant's stock, an out-of-stock one greyed (`o29-add-item`); a combo asks a size
-  for each unit of a choice part and its add-ons (`o29-combo-pick`); each line's quantity and **Change price** (kept in
-  the history, ORD-06) -- then the order's discount, the delivery charge by hand, **the customer already paid
+  its zone and charge, the address), Takeaway or Table -- the table number (`o29-new-counter`, `o29-new-table`, MNU-04); the items -- **Add an item**
+  searches products and shows each variant's stock, an out-of-stock one greyed (`o29-add-item`); a product with
+  variants is tapped, then one of its variants with its price and stock, one line a tap (`o29-add-variant`); a combo
+  asks a size for each unit of a choice part and its add-ons (`o29-combo-pick`); an ordinary product's add-on groups
+  come after its variant, a required group marked (`o29-add-ons`); every order-taker sees the stock, through the
+  orders' own read (agreed in the a3 read, 2026-10-31); each line's quantity (one less than one takes the line off) and **Change price** -- the
+  price for each, the one it had shown under it (`o29-line-price`), kept in the history, ORD-06 -- then the order's discount, the delivery charge by hand (a switch, then the amount, `o29-new-byhand`), **the customer already paid
   something** (`o29-new-paid`: how, the amount, the TrxID; ORD-22), **Already confirmed on the phone** (it starts
   Confirmed) and a staff note. The totals sit pinned below on a phone and in a side column on desktop, with the tax
   inside the total and cash on delivery; **Create order**. Not enough stock refuses the whole order naming the item,

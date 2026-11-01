@@ -20,6 +20,8 @@ export function choicesOf(order: Order, may: (permission: Permission) => boolean
     hold: manage && open && !counter && order.status !== OrderStatus.Hold,
     release: manage && order.status === OrderStatus.Hold,
     cancel: manage && open,
+    // ORD-11: its customer, items, prices or notes, until it ships.
+    edit: manage && open,
     delete: may(Permission.OrdersDelete) && open && !livePaid,
     handOver: manage && open && counter,
     ship: manage && open && !counter && order.status === OrderStatus.Confirmed,
@@ -33,10 +35,14 @@ export function choicesOf(order: Order, may: (permission: Permission) => boolean
   };
 }
 
-/** A payment staff may void (agreed 2026-10-30): live, and not the cash on delivery a delivery collected. */
+/**
+ * A payment staff may void (agreed 2026-10-30): live, not refunded (Slice 5.3), and not the cash on delivery a delivery
+ * collected.
+ */
 export const voidable = (payment: OrderPayment, may: (permission: Permission) => boolean) =>
   may(Permission.PaymentsManage) &&
   payment.voided === null &&
+  payment.refunded === null &&
   payment.method !== PaymentMethod.CashOnDelivery;
 
 export type OrderChoices = ReturnType<typeof choicesOf>;

@@ -962,11 +962,11 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
       state.language,
     );
     if (ordered && 'refused' in ordered) {
-      const { status, code, message } = ordered.refused;
+      const { status, code, message, details } = ordered.refused;
       return route.fulfill({
         status,
         contentType: 'application/json',
-        body: refusal(code, message),
+        body: refusal(code, message, details),
       });
     }
     if (ordered) return ok(ordered.data);

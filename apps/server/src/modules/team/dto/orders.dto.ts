@@ -21,6 +21,7 @@ import {
   handOverOrderSchema,
   PaymentMethod,
   PaymentPolicy,
+  quoteOrderSchema,
   returnOrderSchema,
   shipOrderSchema,
   StatusOverride,
@@ -28,11 +29,13 @@ import {
   updateOrderSchema,
   VerificationLevel,
   voidPaymentSchema,
+  ProductKind,
   SerialFormat,
 } from '@lytronix/validators';
 
 // DTO classes built from the shared schemas, so each request shape is written once (ENGINEERING §4).
 export class CreateOrderDto extends createZodDto(createOrderSchema) {}
+export class QuoteOrderDto extends createZodDto(quoteOrderSchema) {}
 export class UpdateOrderDto extends createZodDto(updateOrderSchema) {}
 export class LogCallDto extends createZodDto(logCallSchema) {}
 export class CancelOrderDto extends createZodDto(cancelOrderSchema) {}
@@ -234,6 +237,83 @@ export class OrderViewDto extends createZodDto(orderViewSchema) {}
 
 // ORD-09 (Slice 4.8a): the couriers the shop has shipped with, the most recent first.
 export class RecentCouriersDto extends createZodDto(z.object({ couriers: z.array(z.string()) })) {}
+
+// Slice 4.8a: New order's Add an item -- products found, with the units each has on sale.
+export const orderPickerQuerySchema = z.object({
+  search: z.string().trim().min(1).max(200).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+});
+export class OrderPickerQueryDto extends createZodDto(orderPickerQuerySchema) {}
+
+export class OrderPickerPageDto extends createZodDto(
+  z.object({
+    products: z.array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        kind: z.nativeEnum(ProductKind),
+        minPrice: z.string(),
+        maxPrice: z.string(),
+        active: z.boolean(),
+        image: z.string().nullable(),
+        variantCount: z.number(),
+        available: z.string().nullable(),
+      }),
+    ),
+    page: z.number(),
+    pages: z.number(),
+    total: z.number(),
+  }),
+) {}
+
+// Slice 4.8a: one product to add -- its variants and their units, a combo's parts, its add-on groups.
+export class OrderPickerProductDto extends createZodDto(
+  z.object({
+    id: z.string(),
+    name: z.string(),
+    kind: z.nativeEnum(ProductKind),
+    active: z.boolean(),
+    variants: z.array(
+      z.object({
+        variantId: z.string(),
+        label: z.string(),
+        price: z.string(),
+        available: z.string().nullable(),
+      }),
+    ),
+    parts: z.array(
+      z.object({
+        position: z.number(),
+        quantity: z.string(),
+        variants: z.array(
+          z.object({
+            variantId: z.string(),
+            productName: z.string(),
+            label: z.string(),
+            onSale: z.boolean(),
+            available: z.string().nullable(),
+          }),
+        ),
+      }),
+    ),
+    modifierGroups: z.array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        minSelect: z.number(),
+        maxSelect: z.number(),
+        options: z.array(
+          z.object({
+            id: z.string(),
+            name: z.string(),
+            priceChange: z.string(),
+            isDefault: z.boolean(),
+          }),
+        ),
+      }),
+    ),
+  }),
+) {}
 
 // INV-14 (Slice 4.8a): an order's serial-numbered units, for its ship, hand-over and return sheets.
 export class OrderSerialsDto extends createZodDto(

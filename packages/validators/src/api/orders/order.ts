@@ -298,6 +298,10 @@ export const createOrderSchema = z
   });
 export type CreateOrderInput = z.infer<typeof createOrderSchema>;
 
+// POST orders/quote (D4-9, Slice 4.8a): an order priced as it is typed. Who it is for and how it reaches them are
+// checked when it is made, so New order's totals show before the customer's details are in.
+export const quoteOrderSchema = createOrderSchema.innerType();
+
 // POST /v1/orders (ORD-02, SFT-06, LND-07, D4-2): a shopper's order, delivered and paid in cash on delivery. Only what
 // a shopper chooses: a price, discount, delivery charge or status is refused by name. `source` is the Lytro
 // storefront's alone to say; any other key's order is the API's.

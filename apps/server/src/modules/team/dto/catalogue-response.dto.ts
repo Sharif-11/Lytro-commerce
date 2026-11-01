@@ -127,6 +127,8 @@ export const productPageSchema = z.object({
       stockState: z.nativeEnum(StockState),
       primaryCategoryId: z.string().nullable(),
       variantCount: z.number(),
+      // CMB-01 (Slice 4.8a): an ordinary product or a combo.
+      kind: z.nativeEnum(ProductKind),
       image: imageViewSchema.nullable(),
       createdAt: z.date(),
     }),

@@ -23,12 +23,14 @@ import type {
   OrderStatus,
   PaymentMethod,
   PaymentPolicy,
+  ProductKind,
   SerialFormat,
   StatusOverride,
   StockUnit,
   PaymentSessionState,
   VerificationLevel,
 } from '@lytronix/validators';
+import type { ModifierGroupView } from '../../catalogue/types/catalogue';
 import type { Bilingual, ThanaView } from '../../delivery/types/delivery';
 
 // The stored rows, as aliases of the shared types (ENGINEERING-STANDARDS §4), never copies.
@@ -97,6 +99,48 @@ export interface OrderItemView {
   components: OrderComponentView[];
   /** ORD-10 (Slice 4.8a): the units that came back, sellable or damaged; a combo line counts its combos. */
   returnedQuantity: string;
+}
+
+/** New order's Add an item (Slice 4.8a): a product found, with the units it has on sale (null: made to order). */
+export interface OrderPickerItem {
+  id: string;
+  name: string;
+  kind: ProductKind;
+  minPrice: string;
+  maxPrice: string;
+  active: boolean;
+  image: string | null;
+  variantCount: number;
+  available: string | null;
+}
+
+export interface OrderPickerPage {
+  products: OrderPickerItem[];
+  page: number;
+  pages: number;
+  total: number;
+}
+
+/** New order's Add an item, one product: its variants and their units, a combo's parts, its add-on groups. */
+export interface OrderPickerProduct {
+  id: string;
+  name: string;
+  kind: ProductKind;
+  active: boolean;
+  variants: { variantId: string; label: string; price: string; available: string | null }[];
+  parts: {
+    position: number;
+    quantity: string;
+    variants: {
+      variantId: string;
+      productName: string;
+      label: string;
+      /** Not retired and its product not deleted. */
+      onSale: boolean;
+      available: string | null;
+    }[];
+  }[];
+  modifierGroups: ModifierGroupView[];
 }
 
 /** INV-14 (Slice 4.8a): one serial-numbered part of an order -- a line, or a combo line's component. */
