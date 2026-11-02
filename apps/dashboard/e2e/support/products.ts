@@ -1,4 +1,6 @@
 import { CATEGORIES, type CategoryFixture, type CategoryStateFixture } from './categories';
+import { comboQuote, partViews, retiredField } from './combos';
+import type { PickerProduct } from './new-order';
 import { drawnTax, type TaxFixture } from './tax';
 import type { Language } from './mock-api';
 import type { BatchFixture, MovementFixture } from './stock';
@@ -53,8 +55,9 @@ export interface ProductFixture {
   batches?: BatchFixture[];
   sharedOnHand?: number;
   history?: Record<string, MovementFixture[]>;
-  /** CMB-01 (Slice 4.8c): an ordinary product unless it says so, with its parts' figures. */
+  /** CMB-01 (Slice 4.8c): an ordinary product unless it says so, with its parts and their figures. */
   kind?: 'standard' | 'combo';
+  parts?: { quantity: string; variantIds: string[] }[];
   combo?: {
     canMake: number | null;
     limitedBy: { position: number; productName: string; available: string } | null;
@@ -89,6 +92,9 @@ export interface MediaFixture {
 /** The shop's products where they differ from the prototype's, its product limit (null for none), and its tree. */
 export interface ProductsFixture {
   products: ProductFixture[];
+  /** Slice 4.8c: what the combo editor's Add an item finds, and the combos a product is inside, by its id (PRD-13). */
+  picker?: PickerProduct[];
+  inCombos?: Record<string, { id: string; name: string }[]>;
   /** Slice 4.8c: the shop's tax classes; Part 31's three unless a test gives its own. */
   tax?: TaxFixture;
   limit: number | null;
@@ -265,6 +271,7 @@ function summary(product: ProductFixture, language: Language): unknown {
   const first = product.imageIds?.[0];
   return {
     id: product.id,
+    kind: product.kind ?? 'standard',
     name: nameIn(product, language),
     slug: slugOf(product),
     basePrice: product.basePrice,
@@ -345,7 +352,7 @@ export function productDetail(
     product.categoryIds ?? (product.primaryCategoryId ? [product.primaryCategoryId] : []);
   return {
     ...(summary(product, language) as object),
-    kind: product.kind ?? 'standard',
+    parts: partViews(product.parts ?? [], fixture.picker ?? [], language),
     taxClass:
       (fixture.tax ?? drawnTax()).classes.find((each) => each.id === product.taxClassId) ?? null,
     modifierGroups: (product.modifierGroups ?? []).map((group, at) => ({
@@ -451,6 +458,13 @@ const LIMIT_REACHED = (fixture: ProductsFixture): ProductRefusal => ({
   details: { products: fixture.limit },
 });
 
+/** CMB-01: a combo's parts as sent, as they are kept. */
+const sentParts = (parts: unknown) =>
+  (parts as { quantity: number; variantIds: string[] }[]).map((part) => ({
+    quantity: part.quantity.toFixed(3),
+    variantIds: part.variantIds,
+  }));
+
 const fieldRefusal = (field: string, message: string): ProductRefusal => ({
   status: 400,
   code: 'validation_failed',
@@ -525,6 +539,9 @@ export function productWrite(
   fixture: ProductsFixture,
   language: Language,
 ): { data: unknown } | { refused: ProductRefusal } | undefined {
+  if (method === 'POST' && path === '/products/combo-quote') {
+    return { data: comboQuote(body, fixture.picker ?? [], language) };
+  }
   const named = (value: unknown): [string, string] => [String(value), String(value)];
   const variants = variantWrite(method, path, body, fixture, (product) =>
     productDetail(product, language, fixture),
@@ -584,6 +601,13 @@ export function productWrite(
     }
     const categoryIds = (body?.categoryIds as string[] | undefined) ?? [];
     const product: ProductFixture = {
+      ...(body?.kind === 'combo'
+        ? {
+            kind: 'combo' as const,
+            stockTracking: 'not_tracked' as const,
+            parts: sentParts(body.parts),
+          }
+        : {}),
       taxClassId:
         body && 'taxClassId' in body
           ? (body.taxClassId as string | null)
@@ -631,6 +655,12 @@ export function productWrite(
     if (body && 'taxClassId' in body) product.taxClassId = body.taxClassId as string | null;
     if (Array.isArray(body?.modifierGroups)) {
       product.modifierGroups = body.modifierGroups as ProductFixture['modifierGroups'];
+    }
+    if (Array.isArray(body?.parts)) {
+      const parts = sentParts(body.parts);
+      const gone = retiredField(parts, fixture.picker ?? []);
+      if (gone) return { refused: fieldRefusal(gone, 'Choose a variant that is on sale.') };
+      product.parts = parts;
     }
     if (body) saveSettings(product, body);
     return answer();

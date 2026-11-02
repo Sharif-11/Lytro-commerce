@@ -11,6 +11,7 @@ import type {
   UnitKind,
   ProductKind,
 } from '@lytronix/validators';
+import type { ComboIssue } from './attribute';
 import type { ImageView } from './me';
 
 /** PRD-11, STO-01: a product's photo in its editor, with the bytes it stores (every file of it). */
@@ -92,10 +93,35 @@ export interface SizeChartView {
  * Mirrors `ProductDetail` in apps/server/src/modules/catalogue/types/catalogue.ts, the fields the editor reads through
  * Slice 11.7c (TENANT-DASHBOARD-DESIGN §7.4).
  */
+export interface ComboPartView {
+  position: number;
+  quantity: string;
+  variants: {
+    variantId: string;
+    productId: string;
+    productName: string;
+    label: string;
+    available: boolean;
+    stockUnit: StockUnit;
+  }[];
+}
+
+/** POST /products/combo-quote (Slice 4.8c): what a combo's parts come to as the editor has them, saved or not. */
+export interface ComboQuote {
+  partsValue: string;
+  saving: string | null;
+  canMake: number | null;
+  limitedBy: { position: number; productName: string; available: string } | null;
+  issues: ComboIssue[];
+  weightKg: string | null;
+  parts: { position: number; price: string; image: ImageView | null }[];
+}
+
 export interface ProductDetail {
   id: string;
-  /** CMB-01: an ordinary product or a combo. */
+  /** CMB-01: an ordinary product or a combo, and a combo's parts in order. */
   kind: ProductKind;
+  parts: ComboPartView[];
   /** TAX-01: what's inside its price; null for no tax. */
   taxClass: { id: string; name: string; rate: string } | null;
   /** MNU-01: what's chosen when ordering it. */

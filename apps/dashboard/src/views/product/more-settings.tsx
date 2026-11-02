@@ -22,6 +22,7 @@ import { ChartField, SwitchLine } from './type-cards';
  * (PRD-13).
  */
 export function MoreSettings({
+  combo = false,
   active,
   tax,
   upFront,
@@ -37,6 +38,8 @@ export function MoreSettings({
   onDuplicate,
   onRemove,
 }: {
+  /** CMB-01: a combo has no chart, condition, serials or batches (`k31-combo-more`). */
+  combo?: boolean;
   active: boolean;
   /** TAX-01: the shop's classes and this product's; null where the shop has none. */
   tax: {
@@ -93,10 +96,10 @@ export function MoreSettings({
             }}
           />
         ) : null}
-        {upFront.includes(ProductFormField.SizeChart) ? null : (
+        {combo || upFront.includes(ProductFormField.SizeChart) ? null : (
           <ChartField text={chartText} onOpen={onChart} />
         )}
-        {upFront.includes(ProductFormField.ItemCondition) ? null : (
+        {combo || upFront.includes(ProductFormField.ItemCondition) ? null : (
           <SelectField
             label={t('condition')}
             value={settings.condition}
@@ -114,7 +117,7 @@ export function MoreSettings({
             }}
           />
         )}
-        {upFront.includes(ProductFormField.SerialTracked) || !counted ? null : (
+        {combo || upFront.includes(ProductFormField.SerialTracked) || !counted ? null : (
           <SwitchLine
             on={settings.serialTracked}
             name={t('serialSwitch')}
@@ -128,7 +131,7 @@ export function MoreSettings({
             }}
           />
         )}
-        {upFront.includes(ProductFormField.BatchTracked) || !counted ? null : (
+        {combo || upFront.includes(ProductFormField.BatchTracked) || !counted ? null : (
           <SwitchLine
             on={settings.batchTracked}
             name={t('batchSwitch')}
@@ -187,7 +190,7 @@ export function MoreSettings({
                 onRemove('hard');
               }}
             >
-              <span className="text-danger-text">{t('deleteForever')}</span>
+              <span className="text-danger">{t('deleteForever')}</span>
             </Button>
           </div>
         )}
