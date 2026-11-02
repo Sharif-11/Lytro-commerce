@@ -16,6 +16,8 @@ export const ERROR_CODES = [
   'internal_error',
   // API-11: a replayed Idempotency-Key whose body doesn't match the original request.
   'idempotency_conflict',
+  // LSN-18 (Phase 5 Slice 5.4a): the listener app is older than the platform's minimum and must be updated.
+  'app_update_required',
 ] as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[number];

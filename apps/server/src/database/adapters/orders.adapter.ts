@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import {
   ComboRepository,
   OrderRepository,
+  PaymentSessionRepository,
   type ComboPartStockRow,
   type InsertOrderLineComponent,
   type SelectOrderLineComponent,
@@ -48,6 +49,7 @@ export class DrizzleOrderStore implements OrderStore {
     @Inject(StockRepository) private readonly stock: StockRepository,
     @Inject(UsedTransactionIdsRepository) private readonly usedIds: UsedTransactionIdsRepository,
     @Inject(ComboRepository) private readonly combos: ComboRepository,
+    @Inject(PaymentSessionRepository) private readonly sessions: PaymentSessionRepository,
   ) {}
 
   insertComponents(
@@ -133,6 +135,10 @@ export class DrizzleOrderStore implements OrderStore {
     values: { voidedBy: string | null; voidReason: string },
   ): Promise<OrderPaymentRecord> {
     return this.orders.voidPayment(tx, tenantId, paymentId, values);
+  }
+
+  async closeAwaitingPayment(tx: Transaction, tenantId: string, orderId: string): Promise<void> {
+    await this.sessions.cancelAwaitingForOrder(tx, tenantId, orderId);
   }
 
   refundPayment(

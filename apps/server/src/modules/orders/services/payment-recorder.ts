@@ -128,6 +128,11 @@ export class PaymentRecorder {
       throw error;
     }
     const updated = await this.store.updateOrder(tx, tenantId, order.id, patch);
+    // Agreed 2026-11-01 (Slice 5.4 read): paid in full another way, the order's page awaiting money closes, so the
+    // shopper cannot pay twice; one where the shopper typed an ID is left for staff.
+    if (updated.paymentStatus === OrderPaymentStatus.Paid) {
+      await this.store.closeAwaitingPayment(tx, tenantId, order.id);
+    }
     await this.store.insertHistory(tx, tenantId, history);
     await this.activity.record(
       tx,

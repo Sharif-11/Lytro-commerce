@@ -626,6 +626,23 @@ export const MESSAGE_KEYS = [
   'AdvanceNotPaidYet',
   'NewShopCapReached',
   'NewShopCapSet',
+  // Phase 5 Slice 5.4a: listener phones -- pairing, the app's calls, the shop's list, Lytro's blocks (LSN-01 to LSN-24).
+  'ListenerCodeMade',
+  'ListenerPaired',
+  'ListenerConnected',
+  'ListenerDevicesListed',
+  'ListenerDeviceRenamed',
+  'ListenerDeviceRevoked',
+  'ListenerDeviceNotFound',
+  'ListenerDeviceAlreadyRevoked',
+  'ListenerCodeInvalid',
+  'ListenerTooManyTries',
+  'ListenerDeviceLimit',
+  'ListenerShopInactive',
+  'ListenerAppUpdateRequired',
+  'ListenerTokenInvalid',
+  'ListenerInstallationBlocked',
+  'ListenerInstallationBlockedDone',
 ] as const;
 
 export type MessageKey = (typeof MESSAGE_KEYS)[number];

@@ -179,6 +179,27 @@ export const BANK_REFERENCE_MAX_LENGTH = 64;
 export const PAYMENT_NOTE_MAX_LENGTH = 500;
 // PAY-19: a page of the shop's payments.
 export const PAYMENT_PAGE_SIZE = 20;
+// LSN-01, LSN-09 to LSN-13 (Phase 5 Slice 5.4a): a pairing code -- [8] characters, open [10] minutes, void after [10]
+// tries -- and a pairing caller's [5] failed attempts in [15] minutes; a device token's [32] random bytes; how often a
+// phone reports ([15] minutes) and may ([4] an hour); [3] installation flags revoke it; a device's name and its app's
+// installation ID; revoked devices and used or lapsed codes kept [30] and [1] days before the purge (LSN-05).
+export const LISTENER_CODE_LENGTH = 8;
+export const LISTENER_CODE_MINUTES = 10;
+export const LISTENER_CODE_TRIES_MAX = 10;
+export const LISTENER_PAIR_FAILS_PER_IP = 5;
+export const LISTENER_PAIR_FAIL_WINDOW_MINUTES = 15;
+export const LISTENER_TOKEN_BYTES = 32;
+export const LISTENER_HEARTBEAT_MINUTES = 15;
+export const LISTENER_HEARTBEATS_PER_HOUR = 4;
+export const LISTENER_FLAGS_MAX = 3;
+export const LISTENER_DEVICE_NAME_MAX_LENGTH = 60;
+export const LISTENER_INSTALLATION_ID_MAX_LENGTH = 100;
+export const LISTENER_REVOKED_KEPT_DAYS = 30;
+export const LISTENER_CODES_KEPT_DAYS = 1;
+// LSN-03, VER-07, LSN-18: a phone counts online when seen within [30] minutes, and the oldest app version that may
+// call, when the operator has set no figures of their own.
+export const LISTENER_OFFLINE_MINUTES = 30;
+export const LISTENER_MIN_APP_VERSION = '1.0.0';
 // TVR-04 (Slice 5.3, agreed 2026-10-31): a new shop's verified online payments a day, and for how many days it is new,
 // when the operator has set no figures of their own.
 export const NEW_SHOP_PAYMENT_CAP_AMOUNT = 20_000;
