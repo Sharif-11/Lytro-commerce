@@ -91,12 +91,15 @@ function PickSheet({
   const items = (found.data?.pages ?? []).flatMap((page) => page.products);
   return (
     <Sheet open title={t('comboPickProduct')} onClose={onClose}>
-      <SearchField
-        value={typed}
-        onChange={onType}
-        placeholder={words('searchProduct')}
-        label={words('searchProduct')}
-      />
+      {/* In its own row, as New order's: the sheet's column would squeeze it below a touch target. */}
+      <div className="flex items-center gap-2">
+        <SearchField
+          value={typed}
+          onChange={onType}
+          placeholder={words('searchProduct')}
+          label={words('searchProduct')}
+        />
+      </div>
       {found.isError ? <Banner tone="bad">{errorText(found.error)}</Banner> : null}
       {found.isPending ? (
         <SkeletonRows count={4} />
