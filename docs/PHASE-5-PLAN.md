@@ -344,12 +344,33 @@ criterion 2 by hand, and 3). If velocity suggests it, the rest can become Phase 
   shop. The purge runs daily: codes a day after they are spent or run out, phones 30 days after revocation. A page
   closes when a payment leaves the order paid; a part leaves it open, and one where the shopper typed an ID waits for
   staff.
+- **Slice 5.4b's read agreed 2026-11-02:** **no amount cap**, the owner's call over a recommended 10,000 TK cap, told that a
+  forged sender name could release a large order; a match verifies by itself at any amount. **A receipt from more than
+  5 minutes before the page opened goes to staff** (VER-04 amended), so money paid for something else cannot be reused.
+  **No listener fee during a trial** (WAL-20 amended), since a new shop's balance is 0.00 and it would never see the listener
+  work. **Unclaimed receipts are a list staff with `payments:verify` read and search, with no notices,** and recording a
+  payment with that ID uses the receipt. **A shopper may correct a typed ID up to 3 times until someone decides** (PAY-07
+  amended; the page's button stays on its later waiting states). **Of an unreadable message from the wallet's own sender
+  Lytro keeps a masked shape and a daily count** (VER-06 amended). **One PR**, the owner's pick over two parts. It also takes
+  the four additions in `LISTENER-APP-DESIGN.md` §7. Stated as following the requirements: one sender list for every shop
+  (LSN-16 amended); with a phone online staff hear after 5 minutes, with none at once (VER-07 amended); other wallets never
+  wait on a phone. Settled building it: a receipt and a typed ID take turns on an advisory lock on the shop's ID, and
+  matching runs inside the typing's transaction, so a receipt already in verifies at once and neither can miss the other. A
+  phone sending its own receipt again adds nothing and is told how it stands; another phone's copy is a `duplicate`. Only
+  money reaching the account is a receipt, so a shop's own payments never verify anything. Short-balance, old-receipt and
+  closed-order reviews show the shopper only "the shop will check" (`review.reason: other`), never the shop's balance. A
+  message that could not be taken comes back with a null status, for the app to send again; its text is never logged. Staff
+  rejecting a payment, or voiding one, leaves its receipt unclaimed again. The payment page's routes moved to their own
+  module, at the same addresses, because typing an ID now reaches the verifying, which reaches the public API for Meta. A
+  customer's privacy delete clears their number and text from receipts too (CUS-09 amended).
 - **Delivers (5.4a):** pairing codes, devices and tokens (LSN-01, 02, 09 – 12, 19 – 22), heartbeats and online
   status (LSN-03), the tenant-state gate (LSN-07) and device limits (LSN-08), the minimum app version (LSN-18), the
   purge (LSN-05), devices removed at day 60 (LSN-23).
 - **Delivers (5.4b):** uploads and their limits (LSN-13 – 16), bKash's receipt parser (LSN-06), matching (VER-02 – 06),
   the page's offline notice (VER-07), the listener fee and its short-balance path (WAL-20, WAL-21, RAT-16), the test
-  mode (LSN-04), the volume flag (LSN-14) and redaction (LSN-17).
+  mode (LSN-04), the volume flag (LSN-14) and redaction (LSN-17); correcting a typed ID (PAY-07), staff's list of receipts,
+  the masked shapes for Lytro (VER-06), and for the app the shop's numbers and senders on its answers, its recent receipts
+  and counts, and a phone unpairing itself.
 
 ### Slice 5.5: the listener app
 - **Delivers:** the Android app: pairing by QR or code, reading receipt SMS from allowed senders in the background,
