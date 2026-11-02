@@ -573,6 +573,7 @@ export class OrderService {
           before,
           search,
           customerId: query.customerId ?? null,
+          holdingVariantId: query.variantId ?? null,
         },
         { offset: (query.page - 1) * query.limit, limit: query.limit },
       );

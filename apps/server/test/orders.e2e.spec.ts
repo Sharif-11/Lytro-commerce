@@ -832,6 +832,33 @@ describeIfDatabase('deleting an order (ORD-12)', () => {
 });
 
 describeIfDatabase('the order list (ORD-13, ORD-45, DAT-13)', () => {
+  it('finds the orders holding a variant, until they let it go, and only in this shop (Slice 4.8c)', async () => {
+    const shop = await openShop(port, texts, 'ord');
+    const shirt = await product(shop, 'Shirt', 500, 10);
+    const shoes = await product(shop, 'Shoes', 300, 5);
+    const holding = await place(shop, {
+      ...(await delivery(shop)),
+      items: [{ variantId: shirt.variantId, quantity: 1 }],
+    });
+    await place(shop, {
+      ...(await delivery(shop)),
+      items: [{ variantId: shoes.variantId, quantity: 1 }],
+    });
+    const idsOf = (body: unknown) => (body as { orders: { id: string }[] }).orders.map((o) => o.id);
+    const found = await shop.get(`/orders?variantId=${shirt.variantId}`);
+    expect(found.status, JSON.stringify(found.body)).toBe(200);
+    expect(idsOf(found.body)).toEqual([holding.id]);
+
+    const stranger = await openShop(port, texts, 'ord');
+    expect(idsOf((await stranger.get(`/orders?variantId=${shirt.variantId}`)).body)).toEqual([]);
+
+    const cancelled = await shop.post(`/orders/${holding.id}/cancel`, {
+      reason: 'customer_cancelled',
+    });
+    expect(cancelled.status, JSON.stringify(cancelled.body)).toBe(200);
+    expect(idsOf((await shop.get(`/orders?variantId=${shirt.variantId}`)).body)).toEqual([]);
+  });
+
   it('filters by status and either axis, searches by name, phone and number, and pages at 20', async () => {
     const shop = await openShop(port, texts, 'ord');
     const cake = await product(shop, 'Cake', 900, null);

@@ -9,6 +9,7 @@ import type {
   StockTracking,
   StockUnit,
   UnitKind,
+  ProductKind,
 } from '@lytronix/validators';
 import type { ImageView } from './me';
 
@@ -93,6 +94,18 @@ export interface SizeChartView {
  */
 export interface ProductDetail {
   id: string;
+  /** CMB-01: an ordinary product or a combo. */
+  kind: ProductKind;
+  /** TAX-01: what's inside its price; null for no tax. */
+  taxClass: { id: string; name: string; rate: string } | null;
+  /** MNU-01: what's chosen when ordering it. */
+  modifierGroups: {
+    id: string;
+    name: string;
+    minSelect: number;
+    maxSelect: number;
+    options: { id: string; name: string; priceChange: string; isDefault: boolean }[];
+  }[];
   name: string;
   slug: string;
   /** LND-04: earlier slugs that still lead here. */

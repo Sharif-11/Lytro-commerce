@@ -72,6 +72,8 @@ export interface OrderFixture {
     /** Marked refunded, with its note (Slice 5.3). */
     refunded?: string | null;
   }[];
+  /** INV-15: the variants whose stock it holds. */
+  holds?: string[];
   /** Its customer was deleted at a privacy request (CUS-09). */
   erased?: boolean;
   /** The order's discount (ORD-06) and its staff note. */
@@ -675,6 +677,7 @@ export function ordersAnswer(
     const status = url.searchParams.get('status');
     const q = url.searchParams.get('q');
     const reason = url.searchParams.get('cancelReason');
+    const variant = url.searchParams.get('variantId');
     const from = url.searchParams.get('dateFrom');
     const to = url.searchParams.get('dateTo');
     const limit = Number(url.searchParams.get('limit') ?? '20');
@@ -683,6 +686,7 @@ export function ordersAnswer(
     const found = fixture.orders
       .filter((order) => shown(order, status) && matches(order, q))
       .filter((order) => reason === null || order.cancelReason === reason)
+      .filter((order) => variant === null || (order.holds ?? []).includes(variant))
       .filter((order) => from === null || dayOf(order.createdAt) >= from)
       .filter((order) => to === null || dayOf(order.createdAt) <= to)
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));

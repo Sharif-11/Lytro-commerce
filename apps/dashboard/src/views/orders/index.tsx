@@ -15,6 +15,7 @@ import { ActionBar } from '@/components/ui/action-bar';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Chip } from '@/components/ui/chips';
 import { buttonClass } from '@/components/ui/classes';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SearchField } from '@/components/ui/search-field';
@@ -59,7 +60,9 @@ export function OrdersScreen({
   const orders = (list.data?.pages ?? []).flatMap((page) => page.orders);
   const shown = orderId ?? orders[0]?.id ?? null;
   const none = everything.data === 0;
-  const filtered = Boolean(filter.q?.trim() || filter.from || filter.to || filter.reason);
+  const filtered = Boolean(
+    filter.q?.trim() || filter.from || filter.to || filter.reason || filter.holding,
+  );
 
   // The search's pause: a write of the search box still to come.
   const pending = useRef<number | null>(null);
@@ -142,6 +145,20 @@ export function OrdersScreen({
           ) : null}
         </div>
       )}
+      {filter.holding ? (
+        <div className="mb-2.5 flex flex-wrap gap-2">
+          <Chip
+            on
+            aria-label={`${t('holdingChip', { name: filter.holdingName ?? '' })}. ${t('holdingClear')}`}
+            onClick={() => {
+              show({ holding: undefined, holdingName: undefined });
+            }}
+          >
+            {t('holdingChip', { name: filter.holdingName ?? '' })}
+            <Icon name="x" />
+          </Chip>
+        </div>
+      ) : null}
       <OrderTabs
         filter={filter}
         onTab={(tab: OrderTab, reason) => {

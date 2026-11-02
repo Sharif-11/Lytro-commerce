@@ -55,7 +55,7 @@ export const productStockViewSchema = z.object({
         z.object({
           position: z.number(),
           productName: z.string(),
-          reason: z.enum(['part_unavailable', 'no_choice_left']),
+          reason: z.enum(['part_archived', 'part_off_sale', 'part_retired', 'no_choice_left']),
         }),
       ),
     })

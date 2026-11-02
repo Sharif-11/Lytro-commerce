@@ -75,5 +75,6 @@
   "srchNoneH": "Try an order number, the last 4 digits of a phone, or a product name.",
   "srchType": "Type an order number, a phone, a name or a product.",
   "secOrders": "Orders",
-  "secCustomers": "Customers"
+  "secCustomers": "Customers",
+  "sTax": "Tax"
 }

@@ -360,6 +360,7 @@ export function stockAnswer(product: ProductFixture): unknown {
     stockUnit: product.stockUnit ?? 'piece',
     lowStockThreshold: threshold,
     state: product.stockState,
+    combo: product.combo ?? null,
     shared: product.sharedStock
       ? {
           variantId: `${product.id}-shared`,

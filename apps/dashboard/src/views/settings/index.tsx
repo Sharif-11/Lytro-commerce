@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { Permission } from '@lytronix/validators';
+import { useTaxClasses } from '@/api/tax-classes';
 import type { IconName } from '@/components/icon';
 import { Card } from '@/components/ui/card';
 import { RowList } from '@/components/ui/list-row';
@@ -15,6 +16,7 @@ type SettingsPath =
   | '/$shop/delivery'
   | '/$shop/settings/brand'
   | '/$shop/settings/storefront'
+  | '/$shop/settings/tax'
   | '/$shop/settings/api-keys'
   | '/$shop/settings/meta'
   | '/$shop/settings/export';
@@ -53,6 +55,13 @@ const ROWS: readonly {
     title: 'sStore',
     sub: 'sStoreD',
     to: '/$shop/settings/storefront',
+    anyOf: [Permission.SettingsManage],
+  },
+  {
+    icon: 'percent',
+    title: 'sTax',
+    sub: 'sTaxNone',
+    to: '/$shop/settings/tax',
     anyOf: [Permission.SettingsManage],
   },
   {
@@ -99,6 +108,15 @@ export function SettingsView(): React.JSX.Element {
   const rows = ROWS.filter((row) =>
     row.anyOf === 'owner' ? viewer.isOwner : allows(viewer, row.anyOf),
   );
+  const taxes = useTaxClasses({ enabled: allows(viewer, [Permission.SettingsManage]) });
+  const classes = taxes.data?.classes ?? [];
+  const fallback = classes.find((each) => each.id === taxes.data?.defaultId);
+  const taxSub =
+    classes.length === 0
+      ? t('sTaxNone')
+      : fallback
+        ? t('sTaxDefault', { name: fallback.name, count: classes.length })
+        : t('sTaxCount', { count: classes.length });
   return (
     <ShellPage>
       {rows.length > 0 ? (
@@ -106,7 +124,11 @@ export function SettingsView(): React.JSX.Element {
           <RowList>
             {rows.map((row) => (
               <Link key={row.to} to={row.to} params={{ shop: slug }} className={menuRowClass}>
-                <MenuRowInner icon={row.icon} title={shell(row.title)} sub={t(row.sub)} />
+                <MenuRowInner
+                  icon={row.icon}
+                  title={shell(row.title)}
+                  sub={row.title === 'sTax' ? taxSub : t(row.sub)}
+                />
               </Link>
             ))}
           </RowList>

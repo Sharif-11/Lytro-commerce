@@ -319,12 +319,26 @@ describeIfDatabase('a combo made of its parts (CMB-01, CMB-02, CMB-08, CMB-10)',
       limitedBy: { position: 2, productName: 'Serum', available: '3.000' },
     });
 
+    // CMB-08 (Slice 4.8c): it says exactly what happened to the part.
+    expect((await shop.patch(`/products/${serum.id}`, { active: false })).status).toBe(200);
+    expect((await stockOf(shop, pack.id)).combo?.issues).toEqual([
+      { position: 2, productName: 'Serum', reason: 'part_off_sale' },
+    ]);
+    expect((await shop.patch(`/products/${serum.id}`, { active: true })).status).toBe(200);
+
+    // Stock lists the combos apart from what holds stock of its own (Slice 4.8c).
+    const combos = await shop.get('/inventory/stock?kind=combo');
+    expect(combos.status).toBe(200);
+    expect(combos.body).toMatchObject({ total: 1, counts: { all: 1 } });
+    const ordinary = await shop.get('/inventory/stock?kind=standard');
+    expect(ordinary.body).toMatchObject({ total: 2, counts: { all: 2 } });
+
     expect((await shop.delete(`/products/${serum.id}`)).status).toBe(200);
     expect(await stockOf(shop, pack.id)).toMatchObject({
       state: 'out',
       combo: {
         canMake: 0,
-        issues: [{ position: 2, productName: 'Serum', reason: 'part_unavailable' }],
+        issues: [{ position: 2, productName: 'Serum', reason: 'part_archived' }],
         limitedBy: null,
       },
     });
