@@ -55,5 +55,7 @@
   "vsYesterday": "{{n}} yesterday",
   "stToShip": "To ship",
   "stMonthSales": "This month's sales",
-  "stMonthSalesD": "Delivered orders"
+  "stMonthSalesD": "Delivered orders",
+  "jobShort_one": "{{count}} product short for orders",
+  "jobShort_other": "{{count}} products short for orders"
 }

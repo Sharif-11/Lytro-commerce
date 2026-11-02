@@ -335,5 +335,7 @@
   "erasedH": "No name, phone or address; the thana, items and totals remain.",
   "askedHelp": "Optional. It stays on the order with this item.",
   "askedNumber": "Numbers only",
-  "changeDetails": "Change details"
+  "changeDetails": "Change details",
+  "holdingChip": "Holding {{name}}",
+  "holdingClear": "Show every order"
 }

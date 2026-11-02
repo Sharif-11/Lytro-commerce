@@ -118,6 +118,8 @@ export interface ShortfallRow {
   reserved: string;
   short: string;
   shortNotified: boolean;
+  /** Its product is archived, so Stock doesn't list it; the daily notice still clears it. */
+  archived: boolean;
 }
 
 /** A movement naming a record (a reservation, a receipt), with its batch as it is now (INV-12). */
@@ -377,6 +379,7 @@ export class StockRepository {
         reserved: stockLevels.reserved,
         short: short.mapWith(String),
         shortNotified: stockLevels.shortNotified,
+        archived: sql<boolean>`${products.deletedAt} IS NOT NULL`,
       })
       .from(stockLevels)
       .innerJoin(

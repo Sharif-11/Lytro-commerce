@@ -20,6 +20,8 @@ export interface StockLine {
   name: string;
   canSell: string;
   waiting: string;
+  /** INV-15: what orders hold beyond what's sellable on hand. */
+  short: string;
   coming: string;
   onHand: string;
   state: StockState;
@@ -42,6 +44,7 @@ export function useStockLines(): (product: StockPageProduct) => StockLine[] {
           name: t('sharedStockName'),
           canSell: shared.available,
           waiting: shared.reserved,
+          short: shared.reservedExpired ?? '0',
           coming: shared.incoming,
           onHand: shared.onHand,
           state: shared.state,
@@ -58,6 +61,7 @@ export function useStockLines(): (product: StockPageProduct) => StockLine[] {
         name: each.optionIds.length > 0 ? words.variant(each.optionIds, splits) : '—',
         canSell: each.available,
         waiting: each.reserved ?? '0',
+        short: each.reservedExpired ?? '0',
         coming: each.incoming ?? '0',
         onHand: each.onHand ?? '0',
         state: each.state,

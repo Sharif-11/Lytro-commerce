@@ -422,7 +422,10 @@ combos and statistics). If velocity suggests it, the rest can become Phase 4B wi
   when ordering (ATR-08), optional, its answer on the line and the order, drawn first (v3.27); the storefront's asking
   waits for Part e. **Part c ships in two** (its build read, 2026-11-02): tax classes, add-ons and Stock first, then the
   combo editor; whoever may edit products sees the exact counts; See the orders lists only the orders holding that
-  variant.
+  variant. The first builds Part 31's Settings > Tax and the class under More settings; a product's add-on groups, saved
+  with its Save; Stock's short-for-orders and Combos cards, combos leaving Stock's list and its counts; Home's job;
+  history naming the order and combo; with no migration, the server adding `variantId` to the orders list, `kind` and
+  `short` to the stock page, and why each combo part stops it.
 - **Sketch first** (`sketch-every-screen-before-building`): the status flow with the call log, Confirm, cancel
   reasons, Mark shipped and returns; the storefront's checkout for cash on delivery, the confirmation without an SMS
   promise, tracking with its Confirmed step; the Phase 5–7 parts of today's drawings shown as later.

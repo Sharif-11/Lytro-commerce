@@ -37,13 +37,24 @@ interface JobContext {
 }
 
 /**
- * TENANT-DASHBOARD-DESIGN §7.1's queue, in its order: the orders to confirm, the calls due and the orders to ship
+ * TENANT-DASHBOARD-DESIGN §7.1's queue, in its order: products short for orders (§7.33), the orders to confirm, the calls due and the orders to ship
  * (§7.32), a payment to Lytro rejected or lapsed (§7.13), stock low or out, batches expiring, a top-up or a plan payment
  * being checked, a low balance, the trial or the plan ending within a week, staff without a password. Each row shows
  * only when there is something to do and the person may see it (GET /home's parts are null otherwise; STF-11).
  */
 export function jobsOf(home: HomeView, { t, viewer, tenant, now }: JobContext): Job[] {
   const jobs: Job[] = [];
+  const short = home.stock?.short ?? 0;
+  if (short > 0) {
+    jobs.push({
+      key: 'short',
+      tone: 'red',
+      icon: 'alert',
+      text: t('jobShort', { count: short }),
+      count: short,
+      to: '/$shop/stock',
+    });
+  }
   const orders = home.orders;
   if (orders && orders.toConfirm > 0) {
     jobs.push({

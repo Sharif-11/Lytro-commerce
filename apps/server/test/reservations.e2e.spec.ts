@@ -661,6 +661,10 @@ describeIfDatabase('expiry under a hold (INV-13, INV-15)', () => {
     });
     // Home counts the product as short (Slice 4.8c).
     expect(((await shop.get('/home')).body as { stock: { short: number } }).stock.short).toBe(1);
+    // Stock lists only what is short (Slice 4.8c).
+    const shortOnes = await shop.get('/inventory/stock?short=true');
+    expect(shortOnes.status).toBe(200);
+    expect(shortOnes.body).toMatchObject({ total: 1, products: [{ productId: product.id }] });
     expect(expiry.shortFor(variantId)).toHaveLength(1);
     expect(expiry.shortFor(variantId)[0]).toMatchObject({
       tenantId: shop.tenantId,

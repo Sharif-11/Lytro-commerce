@@ -127,9 +127,18 @@ export class StockService implements ProductStockHooks {
   /** INV-15 (Slice 4.8c): how many products hold more for orders than is on hand, for Home's job. */
   shortProducts(tenantId: string): Promise<number> {
     return this.transactions.run(async (tx) => {
-      const rows = await this.store.listShortfalls(tx, tenantId);
-      return new Set(rows.filter((row) => Number(row.short) > 0).map((row) => row.productId)).size;
+      return (await this.shortIdsWithin(tx, tenantId)).length;
     });
+  }
+
+  /** INV-15: the products short for orders, as Stock lists them and Home counts them: never an archived one. */
+  private async shortIdsWithin(tx: Transaction, tenantId: string): Promise<string[]> {
+    const rows = await this.store.listShortfalls(tx, tenantId);
+    return [
+      ...new Set(
+        rows.filter((row) => Number(row.short) > 0 && !row.archived).map((row) => row.productId),
+      ),
+    ];
   }
 
   page(tenantId: string, query: StockPageQuery, canSeeCost: boolean): Promise<StockPageView> {
@@ -138,6 +147,8 @@ export class StockService implements ProductStockHooks {
         search: query.search,
         categoryId: query.categoryId,
         ...(query.stock ? { active: true, stockState: query.stock } : {}),
+        ...(query.kind ? { kind: query.kind } : {}),
+        ...(query.short ? { ids: await this.shortIdsWithin(tx, tenantId) } : {}),
         attentionFirst: true,
         offset: (query.page - 1) * query.limit,
         limit: query.limit,

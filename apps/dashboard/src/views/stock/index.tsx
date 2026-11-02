@@ -2,7 +2,14 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { Permission } from '@lytronix/validators';
-import { mayKeepBatches, STOCK_SEGMENTS, useStockPage, type StockSegment } from '@/api/stock';
+import {
+  mayKeepBatches,
+  STOCK_SEGMENTS,
+  useStockCombos,
+  useStockPage,
+  useStockShort,
+  type StockSegment,
+} from '@/api/stock';
 import { Icon } from '@/components/icon';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
@@ -24,6 +31,7 @@ import { EditStockSheet } from './edit-stock-sheet';
 import { ProductPickSheet } from './product-pick-sheet';
 import { PurchaseHistorySheet } from './purchase-history-sheet';
 import { RowSheet } from './row-sheet';
+import { CombosCard, ShortCard } from './stock-cards';
 import { StockFigures } from './stock-figures';
 import { kindOf, stockedOf, useStockLines, wantsSeeing, type StockLine } from './stock-lines';
 import { StockProduct, type LineAction } from './stock-product';
@@ -65,6 +73,10 @@ export function StockView({
   const [open, setOpen] = useState<Open | null>(null);
   const [picking, setPicking] = useState(false);
   const list = useStockPage(search, segment);
+  // Slice 4.8c: what needs seeing to before the list; a search or a segment shows what it asked for alone.
+  const plain = search.trim() === '' && segment === 'all';
+  const short = useStockShort({ enabled: plain });
+  const combos = useStockCombos({ enabled: plain });
   const linesOf = useStockLines();
 
   function show(next: { q?: string; seg?: StockSegment }): void {
@@ -173,6 +185,15 @@ export function StockView({
         ) : null
       }
     >
+      {plain ? (
+        <ShortCard
+          products={short.data ?? []}
+          onAdd={(product, line) => {
+            act(product, line, 'add');
+          }}
+        />
+      ) : null}
+      {plain ? <CombosCard products={combos.data ?? []} /> : null}
       {mayManage && !newShop ? <StockFigures keepsBatches={keepsBatches} /> : null}
       {list.isError ? <Banner tone="bad">{errorText(list.error)}</Banner> : null}
       {newShop ? (

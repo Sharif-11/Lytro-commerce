@@ -46,6 +46,7 @@ import {
   type ProductsFixture,
 } from './products';
 import { deliveryAnswer, drawnDelivery, type DeliveryFixture } from './delivery';
+import { taxAnswer } from './tax';
 import { figuresAnswer, shopBatchesAnswer, stockPageAnswer, stockRead, stockWrite } from './stock';
 import { customerIdOf, customersAnswer, drawnCustomers, type CustomersFixture } from './customers';
 import { homeOrders, meghOrders, ordersAnswer, type OrdersFixture } from './orders';
@@ -753,6 +754,22 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
           });
     }
     if (method === 'GET' && path === '/media/usage') return ok(storageAnswer(products));
+    // Slice 4.8c: the tax classes.
+    const taxed = taxAnswer(
+      method,
+      path,
+      request.postDataJSON() as Record<string, unknown> | null,
+      products,
+    );
+    if (taxed && 'refused' in taxed) {
+      const { status, code, message, details } = taxed.refused;
+      return route.fulfill({
+        status,
+        contentType: 'application/json',
+        body: refusal(code, message, details),
+      });
+    }
+    if (taxed) return ok(taxed.data);
     // Slice 11.11: the locations, the zones (the product editor's limit reads them too), and their writes.
     const delivered = deliveryAnswer(
       method,

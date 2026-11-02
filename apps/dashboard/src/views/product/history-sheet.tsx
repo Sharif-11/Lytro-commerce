@@ -41,6 +41,16 @@ export function HistorySheet({
   const holder = holders.find((each) => each.variantId === variantId);
   const day = useMovementDay();
   const when = (movement: StockMovement): string => day(movement.createdAt);
+  // CMB-05 (the prototype's `sh-k31-history`): a sale or a return says its order, and the combo it went in.
+  const orderText = (movement: StockMovement): string | null => {
+    const order = movement.order;
+    if (!order) return null;
+    if (movement.reason === StockReason.ReturnReceived) return t('histBack', { n: order.number });
+    if (movement.reason !== StockReason.Sale) return null;
+    return order.combo
+      ? t('histSoldCombo', { combo: order.combo, n: order.number })
+      : t('histSold', { n: order.number });
+  };
 
   return (
     <Sheet open={open} title={t('historyTitle')} onClose={onClose}>
@@ -63,8 +73,16 @@ export function HistorySheet({
               {movements.map((movement) => (
                 <TimelineRow
                   key={movement.id}
-                  dot={movement.reason === StockReason.Expired ? 'bad' : 'on'}
-                  text={t(`mv_${movement.reason}`, { n: signed(movement.delta) })}
+                  dot={
+                    movement.reason === StockReason.Expired
+                      ? 'bad'
+                      : orderText(movement) && Number(movement.delta) < 0
+                        ? 'plain'
+                        : 'on'
+                  }
+                  text={
+                    orderText(movement) ?? t(`mv_${movement.reason}`, { n: signed(movement.delta) })
+                  }
                   sub={[
                     movement.actor?.name ?? null,
                     t('onHandAfter', { n: String(Number(movement.onHandAfter)) }),
@@ -72,7 +90,17 @@ export function HistorySheet({
                   ]
                     .filter(Boolean)
                     .join(' · ')}
-                  when={when(movement)}
+                  when={
+                    orderText(movement) ? (
+                      <>
+                        <b className="num">{signed(movement.delta)}</b>
+                        <br />
+                        {when(movement)}
+                      </>
+                    ) : (
+                      when(movement)
+                    )
+                  }
                 />
               ))}
             </div>

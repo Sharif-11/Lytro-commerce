@@ -28,11 +28,13 @@ import {
   phoneShop,
   SAMPLE_IMEIS,
   stockShop,
+  withShortAndCombos,
 } from './support/stock';
 import { drawnLibrary } from './support/variants';
 import { drawnPurchases, drawnSuppliers, otherStates } from './support/purchases';
 import { drawnDelivery, type DeliveryFixture } from './support/delivery';
 import { drawnDomain, type DomainFixture } from './support/domain';
+import { drawnTax } from './support/tax';
 import { drawnPasswords, drawnTeam } from './support/team';
 import { indigoBrand, maroonBrand } from './support/themed';
 import {
@@ -891,6 +893,286 @@ const CUSTOMERS: Pair[] = [
   },
 ];
 
+/** Part 31's three classes as the Bangla sketch names them (`tax31`). */
+function withBanglaTax(products = drawnProducts()) {
+  const tax = drawnTax();
+  return {
+    ...products,
+    tax: {
+      ...tax,
+      classes: tax.classes.map((each) =>
+        each.id === 'tx-0' ? { ...each, name: 'শূন্য রেট' } : each,
+      ),
+    },
+  };
+}
+
+/** Part 31's two rows short for orders (`k31-stock`), and its two combos. */
+function withTwoShort() {
+  const products = withShortAndCombos(drawnProducts());
+  const second = products.products[1];
+  if (second) {
+    second.short = { variantId: 'p-2-short', name: ['4–5', '4–5'], held: 2, onHand: 0, short: 2 };
+  }
+  return products;
+}
+
+/** Part 31's two add-on groups on the drawn product (`k31-addons`). */
+function withAddOns(language: 'bn' | 'en' = 'bn') {
+  const bn = language === 'bn';
+  const products = drawnProducts();
+  const first = products.products[0];
+  if (first) {
+    first.modifierGroups = [
+      {
+        name: bn ? 'গিফট র‍্যাপ' : 'Gift wrap',
+        minSelect: 0,
+        maxSelect: 1,
+        options: [{ name: bn ? 'গিফট র‍্যাপ' : 'Gift wrap', priceChange: 50, isDefault: false }],
+      },
+      {
+        name: bn ? 'অল্টারেশন' : 'Alteration',
+        minSelect: 0,
+        maxSelect: 2,
+        options: [
+          { name: bn ? 'হাতা ছোট' : 'Shorter sleeves', priceChange: 80, isDefault: false },
+          { name: bn ? 'ফিটিং' : 'Fitting', priceChange: 100, isDefault: false },
+        ],
+      },
+    ];
+  }
+  return products;
+}
+
+/** A class some product uses, for Delete's refusal (`sh-tax31-inuse`). */
+function withClassInUse() {
+  const products = drawnProducts();
+  const first = products.products[0];
+  if (first) first.taxClassId = 'tx-15';
+  return products;
+}
+
+/** Part 31's history (`sh-k31-history`), on the drawn product's M · Black. */
+function withOrderHistory() {
+  const products = drawnProducts();
+  const first = products.products[0];
+  const at = (daysAgo: number) => new Date(Date.now() - daysAgo * 86_400_000).toISOString();
+  const rumana = { userId: 'u-1', name: 'রুমানা' };
+  const row = (
+    id: number,
+    delta: string,
+    onHandAfter: string,
+    reason: string,
+    daysAgo: number,
+    order: { id: string; number: string; combo: string | null } | null,
+  ) => ({
+    id,
+    delta,
+    onHandAfter,
+    reason,
+    note: null,
+    actor: rumana,
+    createdAt: at(daysAgo),
+    order,
+  });
+  if (first) {
+    first.history = {
+      'p-1-v3': [
+        row(4, '-1', '11', 'sale', 0, { id: 'o-47', number: '261031-0047', combo: 'ঈদ কম্বো' }),
+        row(3, '-2', '12', 'sale', 1, { id: 'o-39', number: '261030-0039', combo: null }),
+        row(2, '1', '14', 'return_received', 2, { id: 'o-30', number: '261029-0030', combo: null }),
+        row(1, '12', '13', 'purchase_receipt', 6, null),
+      ],
+    };
+  }
+  return products;
+}
+
+const dialogOf = (page: Page) => page.getByRole('dialog');
+const openClass = (name: RegExp) => async (page: Page) => {
+  await page.getByRole('main').getByRole('button', { name }).click();
+};
+
+/** Tax, add-ons, Stock's cards, Home's job and See the orders (Slice 4.8c), beside Part 31's drawing of each. */
+const TAX_ADDONS_STOCK: Pair[] = [
+  {
+    name: 'tax',
+    screen: 'tax31',
+    device: 'phone',
+    language: 'bn',
+    path: '/settings/tax',
+    state: { products: withBanglaTax() },
+  },
+  { name: 'tax', screen: 'tax31', device: 'desktop', language: 'en', path: '/settings/tax' },
+  {
+    name: 'tax-empty',
+    screen: 'tax31-empty',
+    device: 'phone',
+    language: 'bn',
+    path: '/settings/tax',
+    state: { products: { ...drawnProducts(), tax: { classes: [], defaultId: null } } },
+  },
+  {
+    name: 'tax-new',
+    screen: 'sh-tax31-new',
+    device: 'phone',
+    language: 'bn',
+    path: '/settings/tax',
+    state: { products: withBanglaTax() },
+    then: async (page) => {
+      await page.getByRole('main').getByRole('button', { name: 'ক্লাস যোগ করুন' }).click();
+    },
+  },
+  {
+    name: 'tax-edit',
+    screen: 'sh-tax31-edit',
+    device: 'phone',
+    language: 'bn',
+    path: '/settings/tax',
+    state: { products: withBanglaTax() },
+    then: openClass(/^VAT 15%/),
+  },
+  {
+    name: 'tax-in-use',
+    screen: 'sh-tax31-inuse',
+    device: 'phone',
+    language: 'bn',
+    path: '/settings/tax',
+    state: { products: withBanglaTax(withClassInUse()) },
+    then: async (page) => {
+      await openClass(/^VAT 15%/)(page);
+      await dialogOf(page).getByRole('button', { name: 'ডিলিট' }).click();
+    },
+  },
+  {
+    name: 'tax-saved',
+    screen: 'tax31-saved',
+    device: 'phone',
+    language: 'bn',
+    path: '/settings/tax',
+    state: { products: withBanglaTax() },
+    then: async (page) => {
+      await openClass(/^VAT 15%/)(page);
+      await dialogOf(page).getByLabel('রেট').fill('16');
+      await dialogOf(page).getByRole('button', { name: 'সেভ করুন' }).click();
+    },
+  },
+  {
+    name: 'settings-tax',
+    screen: 'k31-settings',
+    device: 'phone',
+    language: 'bn',
+    path: '/settings',
+  },
+  {
+    name: 'product-addons',
+    screen: 'k31-addons',
+    device: 'phone',
+    language: 'bn',
+    path: '/products/p-1',
+    state: { products: withAddOns() },
+    scroll: /^অ্যাড-অন$/,
+  },
+  {
+    name: 'product-addons',
+    screen: 'k31-addons',
+    device: 'desktop',
+    language: 'en',
+    path: '/products/p-1',
+    state: { products: withAddOns('en') },
+    scroll: /^Add-ons$/,
+  },
+  {
+    name: 'addon-group',
+    screen: 'sh-k31-group',
+    device: 'phone',
+    language: 'bn',
+    path: '/products/p-1',
+    state: { products: withAddOns() },
+    then: openClass(/^অল্টারেশন/),
+  },
+  {
+    name: 'addon-group-custom',
+    screen: 'sh-k31-group-custom',
+    device: 'phone',
+    language: 'bn',
+    path: '/products/p-1',
+    state: { products: withAddOns() },
+    then: async (page) => {
+      await openClass(/^অল্টারেশন/)(page);
+      await dialogOf(page).getByRole('radio', { name: 'নিজে ঠিক করুন' }).click();
+      await dialogOf(page).getByLabel('কমপক্ষে').fill('1');
+      await dialogOf(page).getByLabel('সর্বোচ্চ').fill('2');
+    },
+  },
+  {
+    name: 'addon-group-new',
+    screen: 'sh-k31-group-new',
+    device: 'phone',
+    language: 'bn',
+    path: '/products/p-1',
+    then: openClass(/^অ্যাড-অন গ্রুপ যোগ/),
+  },
+  {
+    name: 'stock-short',
+    screen: 'k31-stock',
+    device: 'phone',
+    language: 'bn',
+    path: '/stock',
+    state: { products: withTwoShort() },
+  },
+  {
+    name: 'stock-short',
+    screen: 'k31-stock',
+    device: 'desktop',
+    language: 'en',
+    path: '/stock',
+    state: { products: withTwoShort() },
+  },
+  {
+    name: 'orders-holding',
+    screen: 'o29-holding',
+    device: 'desktop',
+    language: 'en',
+    path: `/orders?tab=all&holding=p-1-short&holdingName=${encodeURIComponent('Denim jacket · M')}`,
+    state: {
+      orders: (() => {
+        const fixture = meghOrders();
+        for (const order of fixture.orders) order.holds = ['p-1-short'];
+        return fixture;
+      })(),
+    },
+  },
+  {
+    name: 'stock-history-orders',
+    screen: 'sh-k31-history',
+    device: 'phone',
+    language: 'bn',
+    path: '/products/p-1',
+    state: { products: withOrderHistory() },
+    then: async (page) => {
+      await page.getByRole('main').getByRole('button', { name: 'স্টক হিস্ট্রি' }).click();
+      await dialogOf(page)
+        .getByRole('button', { name: /^প্রোডাক্ট · ভ্যারিয়েন্ট/ })
+        .click();
+      await page.getByRole('radio', { name: /^M · Black/ }).click();
+    },
+  },
+  {
+    name: 'home-short',
+    screen: 'p31-home-short',
+    device: 'phone',
+    language: 'bn',
+    path: '',
+    state: {
+      home: {
+        orders: P30_ORDERS,
+        stock: { low: 1, out: 1, expiringBatches: 0, short: 2 },
+      },
+    },
+  },
+];
+
 const PAIRS: Pair[] = [
   { name: 'home', screen: 'home', device: 'phone', language: 'bn', path: '' },
   { name: 'home', screen: 'home', device: 'tablet', language: 'bn', path: '' },
@@ -914,6 +1196,7 @@ const PAIRS: Pair[] = [
   ...ORDERS,
   ...NEW_ORDER,
   ...CUSTOMERS,
+  ...TAX_ADDONS_STOCK,
   {
     name: 'plus',
     screen: 'plus',

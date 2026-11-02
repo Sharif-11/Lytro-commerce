@@ -5,10 +5,12 @@ import { ApiClientError } from '@lytronix/api-client';
 import {
   MediaKind,
   Permission,
+  ProductKind,
   SerialFormat,
   StockTracking,
   type ProductFormField,
 } from '@lytronix/validators';
+import { useTaxClasses } from '@/api/tax-classes';
 import { useAttributes, useProductDefaults, useProductStock } from '@/api/attributes';
 import { useCategories, useProductRoom } from '@/api/catalogue';
 import { usePresets } from '@/api/shop-setup';
@@ -60,6 +62,7 @@ import { MediaSheet } from './media-sheet';
 import { PhotoStrip } from './photo-strip';
 import { useProductMedia } from './product-media';
 import { StorageFullBanner } from './storage-full-banner';
+import { AddOnsCard } from './addons-card';
 import { MoreSettings } from './more-settings';
 import { useTrackingChoice } from './made-to-order';
 import { RemoveDialog } from './remove-dialog';
@@ -137,6 +140,7 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
     null,
   );
   const room = useProductRoom();
+  const taxes = useTaxClasses();
   const presets = usePresets();
   const categories = useCategories();
   const attributes = useAttributes();
@@ -574,6 +578,16 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
                 : null
             }
           />
+          {/* MNU-01: a combo takes no add-ons. */}
+          {product?.kind === ProductKind.Combo ? null : (
+            <AddOnsCard
+              groups={form.addOns}
+              readOnly={!mayManage}
+              onChange={(addOns) => {
+                update({ addOns });
+              }}
+            />
+          )}
           <StockDeliveryCard
             form={form}
             product={product}
@@ -586,6 +600,19 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
           />
           <MoreSettings
             active={form.active}
+            tax={
+              taxes.data && taxes.data.classes.length > 0
+                ? {
+                    classes: taxes.data.classes,
+                    defaultId: taxes.data.defaultId,
+                    // A new product starts with the shop's default, as the server will give it.
+                    value: form.taxClassId === undefined ? taxes.data.defaultId : form.taxClassId,
+                    onChange: (taxClassId) => {
+                      update({ taxClassId });
+                    },
+                  }
+                : null
+            }
             upFront={defaults.data?.upFrontFields ?? []}
             settings={form.settings}
             single={form.splits.length === 0 ? form.single : null}

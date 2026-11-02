@@ -11,7 +11,8 @@ export interface BeingChecked {
 
 export interface HomeView {
   products: { total: number; active: number } | null;
-  stock: { low: number; out: number; expiringBatches: number } | null;
+  /** `short`: products holding more for orders than is on hand (INV-15). */
+  stock: { low: number; out: number; expiringBatches: number; short?: number } | null;
   /** Slice 4.8b: the orders' jobs and figures, for someone who may read orders. */
   orders: {
     toConfirm: number;

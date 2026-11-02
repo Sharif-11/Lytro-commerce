@@ -6,7 +6,12 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
-import { BatchState, type SerialStatus, type StockEditReason } from '@lytronix/validators';
+import {
+  BatchState,
+  ProductKind,
+  type SerialStatus,
+  type StockEditReason,
+} from '@lytronix/validators';
 import { tenantSession } from '@/session/tenant-session';
 import type { ProductStock } from '@/types/attribute';
 import type {
@@ -48,6 +53,8 @@ export function useStockPage(search: string, segment: StockSegment) {
         `/inventory/stock?${new URLSearchParams({
           ...(found ? { search: found } : {}),
           ...(segment === 'all' ? {} : { stock: segment }),
+          // A combo holds no stock of its own: it has its own card (Slice 4.8c).
+          kind: ProductKind.Standard,
           page: String(pageParam),
         }).toString()}`,
       ),
@@ -72,6 +79,32 @@ export function mayKeepBatches(
 /** The most the server gives in one page, so a category's products come in as few reads as can be. */
 const WHOLE_PAGE = 100;
 
+/** GET /inventory/stock?short=true (INV-15, Slice 4.8c): the products holding more for orders than is on hand. */
+export function useStockShort(options: { enabled: boolean }) {
+  return useQuery({
+    queryKey: [...PRODUCTS_QUERY_KEY, 'stock-page', 'short'],
+    queryFn: () =>
+      tenantSession.client.get<StockPage>(
+        `/inventory/stock?${new URLSearchParams({ short: 'true', limit: String(WHOLE_PAGE) }).toString()}`,
+      ),
+    select: (page) => page.products,
+    enabled: options.enabled,
+  });
+}
+
+/** GET /inventory/stock?kind=combo (CMB-02, Slice 4.8c): the combos, with what they can make. */
+export function useStockCombos(options: { enabled: boolean }) {
+  return useQuery({
+    queryKey: [...PRODUCTS_QUERY_KEY, 'stock-page', 'combos'],
+    queryFn: () =>
+      tenantSession.client.get<StockPage>(
+        `/inventory/stock?${new URLSearchParams({ kind: ProductKind.Combo, limit: String(WHOLE_PAGE) }).toString()}`,
+      ),
+    select: (page) => page.products,
+    enabled: options.enabled,
+  });
+}
+
 /**
  * GET /inventory/stock?categoryId= (design v3.8): every product filed in a category, for a stock check counting it
  * whole; null asks for none.
@@ -85,6 +118,7 @@ export function useCategoryStock(categoryId: string | null) {
         const read = await tenantSession.client.get<StockPage>(
           `/inventory/stock?${new URLSearchParams({
             categoryId: categoryId ?? '',
+            kind: ProductKind.Standard,
             page: String(page),
             limit: String(WHOLE_PAGE),
           }).toString()}`,
