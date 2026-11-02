@@ -27,6 +27,18 @@ export class SlidingWindow {
     return { allowed: true, remaining: limit - times.length, resetMs: this.resetOf(times, now) };
   }
 
+  /**
+   * What `take` would answer, without counting anything -- for a limit on failures, checked before the attempt and
+   * counted only when it fails (LSN-10).
+   */
+  peek(bucket: string, limit: number, now: number): WindowVerdict {
+    const times = this.live(bucket, now);
+    const resetMs = this.resetOf(times, now);
+    return times.length >= limit
+      ? { allowed: false, remaining: 0, resetMs }
+      : { allowed: true, remaining: limit - times.length, resetMs };
+  }
+
   /** Drops the buckets with nothing left in the window, so memory follows live traffic. */
   sweep(now: number): void {
     for (const bucket of [...this.buckets.keys()]) {

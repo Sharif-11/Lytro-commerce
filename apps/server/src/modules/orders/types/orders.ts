@@ -22,6 +22,7 @@ import type {
   OrderSource,
   OrderStatus,
   PaymentMethod,
+  AttributeDataType,
   PaymentPolicy,
   ProductKind,
   SerialFormat,
@@ -141,6 +142,8 @@ export interface OrderPickerProduct {
     }[];
   }[];
   modifierGroups: ModifierGroupView[];
+  /** ATR-08 (agreed 2026-11-02): what the seller marked asked when ordering it. */
+  asked: { attributeId: string; name: string; dataType: AttributeDataType }[];
 }
 
 /** INV-14 (Slice 4.8a): one serial-numbered part of an order -- a line, or a combo line's component. */

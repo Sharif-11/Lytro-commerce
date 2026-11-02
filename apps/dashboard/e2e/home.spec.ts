@@ -23,7 +23,7 @@ function jobs(page: Page) {
 test('shows a working shop: its jobs, its figures, the folded checklist and the link', async ({
   page,
 }) => {
-  await open(page);
+  await open(page, { home: { orders: null } });
   await expect(jobs(page)).toHaveText(['2টি প্রোডাক্টের স্টক কম বা শেষ2', '৳500 টপ-আপ চেক হচ্ছে']);
   await expect(jobs(page).first()).toHaveAttribute('href', `/${SLUG}/stock`);
   await expect(jobs(page).nth(1)).toHaveAttribute('href', `/${SLUG}/balance`);
@@ -95,11 +95,62 @@ test('records the link as shared when it is copied, and shares it to Facebook an
   await expect(card.getByRole('link', { name: 'WhatsApp' })).toHaveAttribute('target', '_blank');
 });
 
+test('leads with the order jobs, each opening its tab, and Today has its tiles (§7.32)', async ({
+  page,
+}) => {
+  await open(page, {
+    home: {
+      orders: {
+        toConfirm: 3,
+        callsDue: 1,
+        toShip: 1,
+        today: 7,
+        yesterday: 5,
+        monthSales: '148200.00',
+      },
+    },
+  });
+  await expect(jobs(page).nth(0)).toHaveText('3টি অর্ডার কনফার্ম করার অপেক্ষায়3');
+  await expect(jobs(page).nth(0)).toHaveAttribute('href', `/${SLUG}/orders`);
+  await expect(jobs(page).nth(1)).toHaveText('1টি কলের সময় হয়েছে1');
+  await expect(jobs(page).nth(1)).toHaveAttribute('href', `/${SLUG}/orders?tab=hold`);
+  await expect(jobs(page).nth(2)).toHaveText('1টি কনফার্মড অর্ডার শিপ করতে হবে1');
+  await expect(jobs(page).nth(2)).toHaveAttribute('href', `/${SLUG}/orders?tab=confirmed`);
+  for (const text of ['আজকের অর্ডার', 'গতকাল 5', 'শিপ করতে', 'এই মাসের বিক্রি', '৳148,200']) {
+    await expect(main(page).getByText(text, { exact: true })).toBeVisible();
+  }
+});
+
+test('the tiles stay with nothing to do, and a shop with no orders yet has none', async ({
+  page,
+}) => {
+  await open(page, {
+    stock: { low: 0, out: 0 },
+    home: {
+      topUpsBeingChecked: { count: 0, amount: '0.00' },
+      orders: {
+        toConfirm: 0,
+        callsDue: 0,
+        toShip: 0,
+        today: 4,
+        yesterday: 5,
+        monthSales: '900.00',
+      },
+    },
+  });
+  await expect(main(page).getByText('সব কাজ শেষ। নতুন অর্ডার এলে এখানে দেখাবে।')).toBeVisible();
+  await expect(main(page).getByText('আজকের অর্ডার', { exact: true })).toBeVisible();
+
+  await open(page, DAY_ONE);
+  await expect(main(page).getByText('আজকের অর্ডার', { exact: true })).toHaveCount(0);
+});
+
 test('lists every kind of job in the design order', async ({ page }) => {
   await open(page, {
     state: 'trial',
     periodEndDays: 3,
     home: {
+      orders: null,
       stock: { low: 2, out: 1, expiringBatches: 4 },
       paymentsBeingChecked: { count: 1, amount: '2990.00' },
       balance: { amount: '12.50', low: true, freeSms: { used: 10, limit: 10 } },
@@ -156,7 +207,7 @@ test('warns above everything when a key spends fast (RTE-12)', async ({ page }) 
 });
 
 test('says when Home could not be read, and tries again', async ({ page }) => {
-  await mockApi(page);
+  await mockApi(page, { home: { orders: null } });
   let failing = true;
   await page.route('**/api/v1/home', async (route) => {
     if (!failing) {

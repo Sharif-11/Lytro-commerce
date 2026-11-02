@@ -47,6 +47,7 @@ import {
 } from './products';
 import { deliveryAnswer, drawnDelivery, type DeliveryFixture } from './delivery';
 import { figuresAnswer, shopBatchesAnswer, stockPageAnswer, stockRead, stockWrite } from './stock';
+import { customerIdOf, customersAnswer, drawnCustomers, type CustomersFixture } from './customers';
 import { homeOrders, meghOrders, ordersAnswer, type OrdersFixture } from './orders';
 import { purchasingAnswer } from './purchases';
 import { checksAnswer } from './stock-checks';
@@ -148,6 +149,8 @@ export interface ShopState {
   stock?: { low: number; out: number } | null;
   /** Slice 4.8a: the shop's orders; the day Part 29 draws unless a test gives its own. */
   orders?: OrdersFixture | null;
+  /** Slice 4.8b: the shop's customers; the six Part 30 draws unless a test gives its own. */
+  customers?: CustomersFixture | null;
   /** GET /home's other parts where they differ from the working shop's. */
   home?: Record<string, unknown>;
   money?: MoneyState;
@@ -268,6 +271,8 @@ export const DAY_ONE: ShopState = {
     balance: { amount: '0.00', low: false, freeSms: { used: 0, limit: 10 } },
     topUpsBeingChecked: { count: 0, amount: '0.00' },
     checklist: { ...READY, firstProduct: false, logo: false, linkShared: false },
+    // Nothing ordered yet, so no order jobs and no Today tiles (Slice 4.8b).
+    orders: { toConfirm: 0, callsDue: 0, toShip: 0, today: 0, yesterday: 0, monthSales: '0.00' },
   },
 };
 
@@ -321,6 +326,7 @@ export function shopState(given: ShopState = {}): Required<ShopState> {
     products: null,
     delivery: null,
     orders: null,
+    customers: null,
     stock: { low: 1, out: 1 },
     home: {},
     ...given,
@@ -952,14 +958,35 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
     }
     if (accounted) return ok(accounted.data);
     if (method === 'POST' && path.startsWith('/billing/')) return ok({ ok: true });
+    // Slice 4.8b: the customers, read and changed.
+    const customers = (state.customers ??= drawnCustomers());
+    const customered = customersAnswer(
+      method,
+      path,
+      url,
+      request.postDataJSON() as Record<string, unknown> | null,
+      customers,
+      (state.orders ??= meghOrders()),
+      state.language,
+    );
+    if (customered && 'refused' in customered) {
+      const { status, code, message, details } = customered.refused;
+      return route.fulfill({
+        status,
+        contentType: 'application/json',
+        body: refusal(code, message, details),
+      });
+    }
+    if (customered) return ok(customered.data);
     // Slice 4.8a: the orders, read and changed.
     const ordered = ordersAnswer(
       method,
       path,
       url,
       request.postDataJSON() as Record<string, unknown> | null,
-      (state.orders ??= meghOrders()),
+      state.orders,
       state.language,
+      (orderId) => customerIdOf(orderId, customers),
     );
     if (ordered && 'refused' in ordered) {
       const { status, code, message, details } = ordered.refused;

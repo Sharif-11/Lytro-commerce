@@ -815,3 +815,33 @@ describeIfDatabase("Meta's Purchase and a customer's privacy delete", () => {
     expect(rows).toEqual([{ sender_number: null }]);
   });
 });
+
+describeIfDatabase('a payment page closed by money recorded by hand (agreed 2026-11-01)', () => {
+  it("closes the order's page awaiting money once staff record its advance in full; a part, or a typed ID, leaves it", async () => {
+    const setup = await payingShop();
+    const phoned = await enter(setup.shop, setup.variantId, setup.locationId);
+    const made = (
+      await postJson(port, `/orders/${phoned.id}/payment-link`, {}, setup.shop.headers())
+    ).body as Link;
+    const part = await setup.shop.post(`/orders/${phoned.id}/payments`, {
+      method: 'cash',
+      amount: 100,
+    });
+    expect(part.status, JSON.stringify(part.body)).toBe(201);
+    expect((await page(refOf(made))).body).toMatchObject({ state: 'awaiting_payment' });
+    const rest = await setup.shop.post(`/orders/${phoned.id}/payments`, {
+      method: 'cash',
+      amount: 200,
+    });
+    expect((rest.body as OrderBody).paymentStatus).toBe('paid');
+    expect((await page(refOf(made))).body).toMatchObject({ state: 'cancelled' });
+    // A transaction ID the shopper typed waits for staff, whatever is recorded meanwhile.
+    const typed = await typedOrder(setup, 'KEEP123456');
+    const cash = await setup.shop.post(`/orders/${typed.orderId}/payments`, {
+      method: 'cash',
+      amount: 300,
+    });
+    expect((cash.body as OrderBody).paymentStatus).toBe('paid');
+    expect((await page(typed.ref)).body).toMatchObject({ state: 'checking' });
+  });
+});

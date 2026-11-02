@@ -14,7 +14,10 @@ export type Metric =
   | 'bandwidth'
   | 'requests'
   | 'essential_sms_monthly'
-  | 'essential_sms_total';
+  | 'essential_sms_total'
+  | 'orders_monthly'
+  | 'orders_daily'
+  | 'orders_total';
 
 /** The usage page's state where a test needs it to differ from the drawn shop's. */
 export interface UsageFixture {
@@ -38,6 +41,9 @@ const DRAWN_USED: Record<Metric, number> = {
   requests: 48_210,
   essential_sms_monthly: 6,
   essential_sms_total: 0,
+  orders_monthly: 212,
+  orders_daily: 9,
+  orders_total: 18,
 };
 const DRAWN_LIMITS: Record<Metric, number> = {
   products: 100,
@@ -47,6 +53,9 @@ const DRAWN_LIMITS: Record<Metric, number> = {
   requests: 200_000,
   essential_sms_monthly: 10,
   essential_sms_total: 8,
+  orders_monthly: 300,
+  orders_daily: 50,
+  orders_total: 25,
 };
 const BYTES: ReadonlySet<Metric> = new Set(['storage', 'bandwidth']);
 const SERVING: ReadonlySet<Metric> = new Set(['bandwidth', 'requests']);
@@ -117,8 +126,25 @@ export function usageAnswer(fixture: UsageFixture & AddonsFixture = {}): unknown
   const cycleStart = new Date(`${firstDay}T00:00:00+06:00`).toISOString();
   const cycleEnd = new Date(Date.parse(cycleStart) + 31 * DAY_MS).toISOString();
   const metrics: Metric[] = fixture.trial
-    ? ['products', 'seats', 'storage', 'bandwidth', 'requests', 'essential_sms_total']
-    : ['products', 'seats', 'storage', 'bandwidth', 'requests', 'essential_sms_monthly'];
+    ? [
+        'products',
+        'seats',
+        'storage',
+        'bandwidth',
+        'requests',
+        'orders_total',
+        'essential_sms_total',
+      ]
+    : [
+        'products',
+        'seats',
+        'storage',
+        'bandwidth',
+        'requests',
+        'orders_monthly',
+        'orders_daily',
+        'essential_sms_monthly',
+      ];
   const figures = metrics.map((metric) => {
     const scale = BYTES.has(metric) ? GB : 1;
     const used = (fixture.used?.[metric] ?? DRAWN_USED[metric]) * scale;
@@ -136,7 +162,7 @@ export function usageAnswer(fixture: UsageFixture & AddonsFixture = {}): unknown
       packLeft: serving ? 0 : null,
       stopAt: serving && limit !== null ? limit * 1.1 : null,
       unit: BYTES.has(metric) ? 'bytes' : 'count',
-      perCycle: serving || metric === 'essential_sms_monthly',
+      perCycle: serving || metric === 'essential_sms_monthly' || metric === 'orders_monthly',
       level: levelOf(used, limit, serving),
       runsOutAt: days === undefined ? null : new Date(Date.now() + days * DAY_MS).toISOString(),
     };

@@ -43,6 +43,11 @@
     "downgrade_final_warning_sent": "লিমিটের বেশি থাকার শেষ সতর্কতা পাঠানো হয়েছে",
     "downgrade_scheduled": "{{actor}} ডাউনগ্রেড ঠিক করেছেন",
     "lifecycle_state_changed": "শপের স্ট্যাটাস বদলেছে",
+    "listener_device_flagged": "অন্য ইনস্টলেশন থেকে কল আসায় একটা লিসেনার ফোন ফ্ল্যাগ হয়েছে",
+    "listener_device_paired": "{{actor}} একটা লিসেনার ফোন পেয়ার করেছেন",
+    "listener_device_renamed": "{{actor}} একটা লিসেনার ফোনের নাম বদলেছেন",
+    "listener_device_revoked": "{{actor}} একটা লিসেনার ফোন ক্যানসেল করেছেন",
+    "listener_limit_refused": "প্ল্যানের সব লিসেনার ফোন চালু থাকায় নতুন ফোন পেয়ার হয়নি",
     "media_deleted": "{{actor}} একটা ছবি ডিলিট করেছেন",
     "new_shop_cap_set": "Lytro সাপোর্ট নতুন শপের পেমেন্ট লিমিট বদলেছে",
     "option_set_created": "{{actor}} অপশন সেট যোগ করেছেন",
@@ -526,5 +531,7 @@
   "dmRemoveCons": "{{domain}}-এ শপ সাথে সাথে বন্ধ হবে; {{address}} চালু থাকবে। পরে আবার যোগ করতে পারবেন।",
   "dmRemoved": "{{domain}} সরানো হয়েছে",
   "dmChecked": "এখনো পাওয়া যায়নি; প্রতি 10 মিনিটে চেক চলবে",
-  "dmActiveNow": "{{domain}} চালু হয়েছে"
+  "dmActiveNow": "{{domain}} চালু হয়েছে",
+  "pmCustomersRead": "কাস্টমার দেখা",
+  "pmCustomersManage": "কাস্টমারের পাসওয়ার্ড দেওয়া ও তথ্য ডিলিট করা"
 }

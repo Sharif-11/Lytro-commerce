@@ -1918,6 +1918,70 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'New-shop payment cap saved.',
     bn: 'নতুন শপের পেমেন্ট লিমিট সেভ হয়েছে।',
   },
+  ListenerCodeMade: {
+    en: 'Pairing code made. Enter it in the listener app within 10 minutes.',
+    bn: 'পেয়ারিং কোড তৈরি হয়েছে। ১০ মিনিটের মধ্যে লিসেনার অ্যাপে কোডটি দিন।',
+  },
+  ListenerPaired: {
+    en: 'Phone paired.',
+    bn: 'ফোন পেয়ার হয়েছে।',
+  },
+  ListenerConnected: {
+    en: 'Connected.',
+    bn: 'কানেক্টেড।',
+  },
+  ListenerDevicesListed: {
+    en: 'Listener phones listed.',
+    bn: 'লিসেনার ফোনগুলো দেখানো হলো।',
+  },
+  ListenerDeviceRenamed: {
+    en: 'Phone renamed.',
+    bn: 'ফোনের নাম বদলানো হয়েছে।',
+  },
+  ListenerDeviceRevoked: {
+    en: 'Phone revoked. It stops forwarding payment messages.',
+    bn: 'ফোনটি ক্যানসেল করা হয়েছে। এটি আর পেমেন্ট SMS পাঠাবে না।',
+  },
+  ListenerDeviceNotFound: {
+    en: 'Listener phone not found.',
+    bn: 'লিসেনার ফোনটি পাওয়া যায়নি।',
+  },
+  ListenerDeviceAlreadyRevoked: {
+    en: 'This phone is already revoked.',
+    bn: 'এই ফোন আগেই ক্যানসেল করা হয়েছে।',
+  },
+  ListenerCodeInvalid: {
+    en: "This code isn't valid. Make a new one in the dashboard.",
+    bn: 'এই কোডটি সঠিক নয়। ড্যাশবোর্ড থেকে নতুন কোড তৈরি করুন।',
+  },
+  ListenerTooManyTries: {
+    en: 'Too many wrong codes. Try again in a few minutes.',
+    bn: 'অনেকবার ভুল কোড দেওয়া হয়েছে। কয়েক মিনিট পর আবার ট্রাই করুন।',
+  },
+  ListenerDeviceLimit: {
+    en: "Your plan's listener phones are all paired. Revoke one, or upgrade, to pair another.",
+    bn: 'আপনার প্ল্যানের সব লিসেনার ফোন পেয়ার করা আছে। আরেকটি পেয়ার করতে একটি ক্যানসেল করুন বা আপগ্রেড করুন।',
+  },
+  ListenerShopInactive: {
+    en: "This shop's subscription isn't active, so the listener is off.",
+    bn: 'এই শপের সাবস্ক্রিপশন চালু নেই, তাই লিসেনার বন্ধ আছে।',
+  },
+  ListenerAppUpdateRequired: {
+    en: 'Update the listener app to keep forwarding payments.',
+    bn: 'পেমেন্ট পাঠানো চালু রাখতে লিসেনার অ্যাপ আপডেট করুন।',
+  },
+  ListenerTokenInvalid: {
+    en: 'This phone is not paired. Pair it again with a new code.',
+    bn: 'এই ফোনটি পেয়ার করা নেই। নতুন কোড দিয়ে আবার পেয়ার করুন।',
+  },
+  ListenerInstallationBlocked: {
+    en: 'This app installation is blocked. Contact Lytro support.',
+    bn: 'এই অ্যাপ ইনস্টলেশন ব্লক করা আছে। Lytro সাপোর্টের সাথে যোগাযোগ করুন।',
+  },
+  ListenerInstallationBlockedDone: {
+    en: 'Installation blocked.',
+    bn: 'ইনস্টলেশন ব্লক করা হয়েছে।',
+  },
 };
 
 export function translate(key: MessageKey, lang: Language, params: MessageParams = {}): string {

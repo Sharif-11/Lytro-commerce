@@ -43,5 +43,17 @@
   "stProducts": "প্রোডাক্ট",
   "todayJobs": "আজকের কাজ",
   "trialDaysLeft": "ট্রায়ালের দিন বাকি",
-  "wSeeKeys": "কী দেখুন"
+  "wSeeKeys": "কী দেখুন",
+  "jobConfirm_one": "{{count}}টি অর্ডার কনফার্ম করার অপেক্ষায়",
+  "jobConfirm_other": "{{count}}টি অর্ডার কনফার্ম করার অপেক্ষায়",
+  "jobCalls_one": "{{count}}টি কলের সময় হয়েছে",
+  "jobCalls_other": "{{count}}টি কলের সময় হয়েছে",
+  "jobShip_one": "{{count}}টি কনফার্মড অর্ডার শিপ করতে হবে",
+  "jobShip_other": "{{count}}টি কনফার্মড অর্ডার শিপ করতে হবে",
+  "todayTitle": "আজ",
+  "stOrdersToday": "আজকের অর্ডার",
+  "vsYesterday": "গতকাল {{n}}",
+  "stToShip": "শিপ করতে",
+  "stMonthSales": "এই মাসের বিক্রি",
+  "stMonthSalesD": "ডেলিভারড অর্ডার"
 }

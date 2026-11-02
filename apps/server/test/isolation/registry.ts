@@ -335,4 +335,11 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'POST /payments/:id/reject': "another shop's payment answers 404 and its order stays",
   'POST /orders/:id/payments/:paymentId/refund':
     "another shop's order or payment answers 404 and the payment still counts",
+  // Phase 5 Slice 5.4a, checked in test/listener-devices.e2e.spec.ts: a shop's listener phones are its own.
+  'POST /listener/pairing-codes': 'a code pairs a phone with the session shop only',
+  'GET /listener/devices': "lists only the session shop's phones",
+  'PATCH /listener/devices/:id': "another shop's phone answers 404 and keeps its name",
+  'POST /listener/devices/:id/revoke': "another shop's phone answers 404 and keeps working",
+  'POST /public/listener/pair': "a code pairs a phone with the code's own shop only",
+  'POST /public/listener/heartbeat': "a phone's token reaches its own shop only",
 };

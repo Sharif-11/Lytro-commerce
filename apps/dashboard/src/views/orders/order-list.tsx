@@ -236,16 +236,19 @@ export function OrderRows({
  * items, and what needs doing -- the unanswered calls, a hold's time, a cancelled order's reason; the total over its
  * status.
  */
-function OrderRow({
+export function OrderRow({
   order,
   selected,
   search,
   picking,
+  wide = false,
 }: {
   order: OrderSummary;
   selected: boolean;
   search: Record<string, string | undefined>;
   picking: Picking | null;
+  /** On a page of its own, not the list beside an open order (a customer's orders, the search): today's time too. */
+  wide?: boolean;
 }): React.JSX.Element {
   const { t } = useTranslation('orders');
   const { slug } = useShell();
@@ -279,9 +282,16 @@ function OrderRow({
           {note ? <> · {note}</> : null}
         </span>
       </span>
-      <span className="flex flex-none flex-col items-end gap-1 text-right">
+      <span
+        className={`flex flex-none flex-col items-end gap-1 text-right sm:flex-row sm:items-center sm:gap-4 ${wide ? '' : 'lg:flex-col lg:items-end lg:gap-1'}`}
+      >
         <span className="num text-[16px] font-semibold">{formatTaka(order.grandTotal)}</span>
         <StatusTag tone={shown.tone}>{shown.word}</StatusTag>
+        {wide && dayLabel(order.createdAt).kind === 'today' ? (
+          <span className="hidden min-w-[60px] text-right text-[13px] text-fg-subtle lg:inline">
+            {words.time(order.createdAt)}
+          </span>
+        ) : null}
       </span>
     </>
   );

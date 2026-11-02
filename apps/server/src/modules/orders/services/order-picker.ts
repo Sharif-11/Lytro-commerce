@@ -1,5 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { listProductsSchema, ProductKind, StockTracking } from '@lytronix/validators';
+import {
+  AttributeRole,
+  listProductsSchema,
+  ProductKind,
+  StockTracking,
+} from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import { ProductService } from '../../catalogue/services/product.service';
 import type { CatalogueShop, ProductDetail } from '../../catalogue/types/catalogue';
@@ -65,7 +70,7 @@ export class OrderPicker {
     return { products, page: found.page, pages: found.pages, total: found.total };
   }
 
-  /** One product to add: its variants on sale with their units, a combo's parts likewise, its add-on groups. */
+  /** One product to add: its variants on sale with their units, a combo's parts likewise, its add-ons, what it asks. */
   async product(tenantId: string, productId: string): Promise<OrderPickerProduct> {
     const product = await this.products.get(tenantId, productId);
     if (product.archived) throw new ApiError('not_found', 'ProductNotFound', {});
@@ -120,6 +125,13 @@ export class OrderPicker {
               })),
       parts,
       modifierGroups: product.modifierGroups,
+      asked: product.attributes
+        .filter((row) => row.role === AttributeRole.CapturedAtOrder)
+        .map((row) => ({
+          attributeId: row.attributeId,
+          name: row.name,
+          dataType: row.dataType,
+        })),
     };
   }
 }

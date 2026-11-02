@@ -256,6 +256,13 @@ export interface PickerModifierGroup {
   options: { id: string; name: string; priceChange: string; isDefault: boolean }[];
 }
 
+/** ATR-08: one thing asked when ordering a product: text, or a number. */
+export interface PickerAsked {
+  attributeId: string;
+  name: string;
+  dataType: AttributeDataType;
+}
+
 /** GET /orders/picker/:productId: its variants and their units, a combo's parts, its add-on groups. */
 export interface OrderPickerProduct {
   id: string;
@@ -275,6 +282,8 @@ export interface OrderPickerProduct {
     }[];
   }[];
   modifierGroups: PickerModifierGroup[];
+  /** ATR-08: what the seller marked asked when ordering it. */
+  asked: PickerAsked[];
 }
 
 /** DLV-06, DLV-07: where the shop does not deliver, or a product may not go; the order still saves. */
@@ -296,17 +305,4 @@ export interface OrderQuote {
   codAmount: string;
   taxes: { name: string; rate: string; amount: string }[];
   warnings: OrderWarning[];
-}
-
-/** CUS-01, CUS-02 (GET /customers, GET /customers/:id): a customer as New order's known phone reads them. */
-export interface KnownCustomer {
-  id: string;
-  name: string | null;
-  phone: string | null;
-  orderCount: number;
-}
-
-/** GET /customers/:id: with where its latest delivery went. */
-export interface KnownCustomerView extends KnownCustomer {
-  lastAddress: { locationId: number; deliveryAddress: string } | null;
 }

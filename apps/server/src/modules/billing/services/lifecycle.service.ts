@@ -31,6 +31,7 @@ import { MediaEraser } from '../../media/services/media-eraser';
 import { BrandEraser } from '../../brand/services/brand-eraser';
 import { PaymentMethodsEraser } from '../../payment-methods/services/payment-methods-eraser';
 import { PaymentSessionsEraser } from '../../payment-sessions/services/payment-sessions-eraser';
+import { ListenerDevices } from '../../listener/services/listener-devices';
 import { DomainEraser } from '../../domains/services/domain-eraser';
 import { DataExportService } from '../../data-export/services/data-export.service';
 import { MailService } from '../../shared/mail/services/mail.service';
@@ -101,6 +102,7 @@ export class LifecycleService {
     @Inject(BrandEraser) private readonly brand: BrandEraser,
     @Inject(PaymentMethodsEraser) private readonly paymentMethods: PaymentMethodsEraser,
     @Inject(PaymentSessionsEraser) private readonly paymentSessions: PaymentSessionsEraser,
+    @Inject(ListenerDevices) private readonly listener: ListenerDevices,
     @Inject(DomainEraser) private readonly domain: DomainEraser,
     @Inject(DeliveryZoneService) private readonly deliveryZones: DeliveryZoneService,
     @Inject(PurchaseService) private readonly purchase: PurchaseService,
@@ -353,6 +355,7 @@ export class LifecycleService {
     await this.inventory.deleteAllForTenant(tenantId);
     // Phase 5 Slice 5.2: the payment sessions, which name the orders, and the references that found them.
     await this.paymentSessions.deleteAllForTenant(tenantId);
+    await this.listener.deleteAllForTenant(tenantId); // LSN-23: the shop's listener codes and phones.
     await this.orders.deleteAllForTenant(tenantId);
     await this.shoppers.deleteAllForTenant(tenantId);
     await this.idempotency.deleteAllForTenant(tenantId);

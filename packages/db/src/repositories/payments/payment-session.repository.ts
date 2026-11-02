@@ -98,6 +98,30 @@ export class PaymentSessionRepository {
     return row ?? null;
   }
 
+  /**
+   * Agreed 2026-11-01 (Slice 5.4 read): the order's session still awaiting money cancelled -- the order was paid in full
+   * another way, so its page takes no more. A session where the shopper typed an ID is left for staff. How many it closed.
+   */
+  async cancelAwaitingForOrder(
+    tx: Transaction,
+    tenantId: string,
+    orderId: string,
+  ): Promise<number> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const rows = await tx
+      .update(paymentSessions)
+      .set({ state: PaymentSessionState.Cancelled, updatedAt: new Date() })
+      .where(
+        and(
+          eq(paymentSessions.tenantId, tenantId),
+          eq(paymentSessions.orderId, orderId),
+          eq(paymentSessions.state, PaymentSessionState.AwaitingPayment),
+        ),
+      )
+      .returning({ id: paymentSessions.id });
+    return rows.length;
+  }
+
   /** VER-01 (Slice 5.3): a session by its id, held for a decision when `lock`. */
   async findById(
     tx: Transaction,

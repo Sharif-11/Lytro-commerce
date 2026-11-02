@@ -69,8 +69,8 @@ const ONE_SEAT: SuggestedAddon = {
 const SEAT: Suggestion = { kind: 'addons', items: [ONE_SEAT], monthly: 49 };
 
 describe('the role editor', () => {
-  it('offers the sixteen permissions of the sections that exist, paying saying it spends the balance', () => {
-    expect(PERMISSION_ROWS).toHaveLength(16);
+  it('offers the eighteen permissions of the sections that exist, paying saying it spends the balance', () => {
+    expect(PERMISSION_ROWS).toHaveLength(18);
     expect(PERMISSION_ROWS.filter((row) => row.note).map((row) => row.permission)).toEqual([
       Permission.PaymentsManage,
     ]);

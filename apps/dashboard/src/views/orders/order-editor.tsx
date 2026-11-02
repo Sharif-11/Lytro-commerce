@@ -5,10 +5,11 @@ import { ApiClientError } from '@lytronix/api-client';
 import { formatTaka } from '@lytronix/ui';
 import { FulfilmentType, PaymentMethod, Permission } from '@lytronix/validators';
 import { useLocations } from '@/api/delivery';
+import { useCustomerByPhone } from '@/api/customers';
 import {
   useCreateOrder,
-  useKnownCustomer,
   useOrder,
+  useOrderPickerProduct,
   useOrderQuote,
   useUpdateOrder,
   type OrderBody,
@@ -33,10 +34,10 @@ import { allows } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
 import { ShellPage } from '@/shell/shell-page';
 import type { Locations } from '@/types/delivery';
-import type { Order, OrderQuote } from '@/types/orders';
+import type { Order, OrderQuote, PickerAsked } from '@/types/orders';
 import { AreaPickSheet } from '../delivery/area-pick-sheet';
 import { Segments } from '../product/value-sheet';
-import { AddItemSheets, PriceSheet } from './item-sheets';
+import { AddItemSheets, DetailsSheet, PriceSheet } from './item-sheets';
 import {
   amountOf,
   createOf,
@@ -149,7 +150,8 @@ function OrderEditor({ order }: { order: Order | null }): React.JSX.Element {
   const mayPay = allows(viewer, [Permission.PaymentsManage]);
   const mayLookUp = allows(viewer, [Permission.CustomersRead]);
   const lineWords: LineWords = (item) => ({
-    label: words.variant(item),
+    // Its answers show on their own lines, with Change details.
+    label: words.variant({ ...item, captured: [] }),
     choiceText: item.components.length > 0 ? words.inside(item) : null,
     modifierText:
       item.modifiers.length > 0
@@ -167,6 +169,9 @@ function OrderEditor({ order }: { order: Order | null }): React.JSX.Element {
   );
   const [adding, setAdding] = useState(false);
   const [pricing, setPricing] = useState<DraftLine | null>(null);
+  const [detailing, setDetailing] = useState<{ line: DraftLine; asked: PickerAsked[] } | null>(
+    null,
+  );
   const [placing, setPlacing] = useState(false);
   const [problem, setProblem] = useState<unknown>(null);
   // D4-8: one key for this order however often Create is pressed; a new one once the server has refused it.
@@ -186,7 +191,7 @@ function OrderEditor({ order }: { order: Order | null }): React.JSX.Element {
   const priced = draft.lines.length > 0 ? quote.data : undefined;
 
   // CUS-01: a whole number a customer already has fills their name and offers their last address.
-  const known = useKnownCustomer(order === null && mayLookUp ? phoneOf(draft.phone) : null);
+  const known = useCustomerByPhone(order === null && mayLookUp ? phoneOf(draft.phone) : null);
   const customer = phoneOf(draft.phone) === null ? undefined : known.data;
   useEffect(() => {
     if (customer?.name && draft.name.trim() === '') set({ name: customer.name });
@@ -409,6 +414,9 @@ function OrderEditor({ order }: { order: Order | null }): React.JSX.Element {
                   onPrice={() => {
                     setPricing(line);
                   }}
+                  onDetails={(asked) => {
+                    setDetailing({ line, asked });
+                  }}
                 />
               ))}
             </RowList>
@@ -532,6 +540,19 @@ function OrderEditor({ order }: { order: Order | null }): React.JSX.Element {
           }}
         />
       ) : null}
+      {detailing ? (
+        <DetailsSheet
+          line={detailing.line}
+          asked={detailing.asked}
+          onSave={(captured) => {
+            change(detailing.line, { captured, capturedEdited: true });
+            setDetailing(null);
+          }}
+          onClose={() => {
+            setDetailing(null);
+          }}
+        />
+      ) : null}
       {locations.data ? (
         <AreaPickSheet
           open={placing}
@@ -559,13 +580,18 @@ function LineRow({
   short,
   onQuantity,
   onPrice,
+  onDetails,
 }: {
   line: DraftLine;
   short: boolean;
   onQuantity: (quantity: number) => void;
   onPrice: () => void;
+  onDetails: (asked: PickerAsked[]) => void;
 }): React.JSX.Element {
   const { t } = useTranslation('orders');
+  // ATR-08: a new line knows what its product asks; a saved one reads it, for an answer left blank when it was made.
+  const product = useOrderPickerProduct(line.asked === null ? line.productId : null);
+  const asked = line.asked ?? product.data?.asked ?? [];
   const each = line.byHand ?? line.price;
   return (
     <div
@@ -602,6 +628,11 @@ function LineRow({
             {t('addOns', { items: line.modifierText })}
           </span>
         ) : null}
+        {line.captured.map((each) => (
+          <span key={each.attributeId} className="text-[14px] text-fg-muted">
+            {each.name}: {each.value}
+          </span>
+        ))}
         <span className="mt-1.5 flex items-center gap-2.5">
           <Quantity
             value={line.quantity}
@@ -613,6 +644,17 @@ function LineRow({
           <button type="button" className="text-[13px]" onClick={onPrice}>
             {t('priceByHand')}
           </button>
+          {asked.length > 0 ? (
+            <button
+              type="button"
+              className="text-[13px]"
+              onClick={() => {
+                onDetails(asked);
+              }}
+            >
+              {t('changeDetails')}
+            </button>
+          ) : null}
         </span>
       </span>
       <span className="num flex-none text-[16px] font-semibold">

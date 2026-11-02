@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { mockApi, SLUG, type ApiLog, type ShopState } from './support/mock-api';
+import { meghOrders } from './support/orders';
 
 // TENANT-DASHBOARD-DESIGN §7.31, Slice 4.8a's third part (Part 29's `order-new` to `o29-edit`; ORD-01, ORD-06, ORD-07,
 // ORD-11, ORD-22, MNU-04, CMB-03, MNU-02): New order with a known phone, Add an item -- a variant with its stock, a
@@ -306,4 +307,98 @@ test('Edit order from the menu: as the order is, a quantity changed, and only wh
 test('someone who may only read orders has no New order', async ({ page }) => {
   await open(page, '/orders', { isOwner: false, permissions: ['orders:read'] });
   await expect(main(page).getByRole('link', { name: 'New order' })).toHaveCount(0);
+});
+
+test('what the seller marked asked when ordering comes last, optional; the answer is on the line and the order', async ({
+  page,
+}) => {
+  const log = await open(page, '/orders/new');
+  await main(page).getByLabel('Phone number').fill('1819 876 543');
+  await main(page).getByLabel('Name', { exact: true }).fill('Rafi Ahmed');
+  await main(page).getByRole('radio', { name: 'Takeaway' }).click();
+  await main(page).getByRole('button', { name: 'Add an item' }).click();
+  await sheet(page, 'Add an item').getByRole('searchbox').fill('cake');
+  await sheet(page, 'Add an item')
+    .getByRole('button', { name: /^Chocolate cake/ })
+    .click();
+  const asking = sheet(page, 'Chocolate cake · ৳850');
+  await expect(asking).toContainText('Optional. It stays on the order with this item.');
+  await asking.getByLabel('Message on the cake').fill('Happy birthday Rafi');
+  await expectAccessible(page);
+  await asking.getByRole('button', { name: 'Add to the order · ৳850' }).click();
+  await expect(main(page)).toContainText('Message on the cake: Happy birthday Rafi');
+
+  // Changed before it is made.
+  await main(page).getByRole('button', { name: 'Change details' }).click();
+  const details = sheet(page, 'Change details');
+  await expect(details.getByLabel('Message on the cake')).toHaveValue('Happy birthday Rafi');
+  await details.getByLabel('Message on the cake').fill('Happy birthday Mina');
+  await details.getByRole('button', { name: 'Save' }).click();
+  await expect(main(page)).toContainText('Message on the cake: Happy birthday Mina');
+
+  await main(page).getByRole('button', { name: 'Create order' }).click();
+  await expect(page).toHaveURL(`/${SLUG}/orders/o-new-48`);
+  expect(sent(log, 'POST', '/orders')[0]).toMatchObject({
+    items: [
+      {
+        variantId: 'v-cake',
+        captured: [{ attributeId: 'a-message', value: 'Happy birthday Mina' }],
+      },
+    ],
+  });
+  // A quote isn't told the answers: they change no price.
+  expect(JSON.stringify(sent(log, 'POST', '/orders/quote'))).not.toContain('captured');
+  await expect(main(page)).toContainText('Message on the cake: Happy birthday Mina');
+});
+
+test('an answer may be left blank; a number asked takes only a number', async ({ page }) => {
+  await open(page, '/orders/new');
+  await main(page).getByRole('button', { name: 'Add an item' }).click();
+  await sheet(page, 'Add an item').getByRole('searchbox').fill('candle');
+  await sheet(page, 'Add an item')
+    .getByRole('button', { name: /^Candle set/ })
+    .click();
+  const asking = sheet(page, /^Candle set/);
+  const add = asking.getByRole('button', { name: /^Add to the order/ });
+  await expect(add).toBeEnabled();
+  await asking.getByLabel('How many candles').fill('lots');
+  await expect(asking).toContainText('Numbers only');
+  await expect(add).toBeDisabled();
+  await asking.getByLabel('How many candles').fill('');
+  await add.click();
+  await expect(main(page)).toContainText('Candle set');
+  await expect(main(page)).not.toContainText('How many candles:');
+  // Left blank, it can still be answered.
+  await expect(main(page).getByRole('button', { name: 'Change details' })).toBeVisible();
+});
+
+test('Edit order changes an answer, or gives one left blank, and sends only that line’s', async ({
+  page,
+}) => {
+  const fixture = meghOrders();
+  const first = fixture.orders.find((each) => each.id === 'o-47')?.items[0];
+  if (!first) throw new Error('o-47');
+  first.productId = 'p-cake';
+  first.name = ['চকলেট কেক', 'Chocolate cake'];
+  first.variant = null;
+  const log = await open(page, '/orders/o-47/edit', { orders: fixture });
+  await main(page).getByRole('button', { name: 'Change details' }).click();
+  await sheet(page, 'Change details').getByLabel('Message on the cake').fill('Happy birthday Rafi');
+  await sheet(page, 'Change details').getByRole('button', { name: 'Save' }).click();
+  await main(page).getByRole('button', { name: 'Save changes' }).click();
+  await expect(page).toHaveURL(`/${SLUG}/orders/o-47`);
+  expect(sent(log, 'PATCH', '/orders/o-47')).toEqual([
+    {
+      items: [
+        {
+          lineId: 'o-47-line-0',
+          variantId: 'v-0',
+          quantity: 2,
+          captured: [{ attributeId: 'a-message', value: 'Happy birthday Rafi' }],
+        },
+        { lineId: 'o-47-line-1', variantId: 'v-1', quantity: 1 },
+      ],
+    },
+  ]);
+  await expect(main(page)).toContainText('Message on the cake: Happy birthday Rafi');
 });

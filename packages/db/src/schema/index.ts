@@ -41,6 +41,7 @@ export * from './tenant/payment-methods';
 export * from './tenant/payment-sessions';
 export * from './control/payment-session-refs';
 export * from './control/payment-page-reports';
+export * from './control/listener';
 export * from './tenant/media';
 export * from './tenant/brand';
 export * from './control/api-keys';

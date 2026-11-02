@@ -4,8 +4,8 @@ import type { OrderFixture, OrderItemFixture } from './orders';
 
 // New order and Edit order against a mocked API (Slice 4.8a, part 3): what Add an item finds, as Part 29 draws it --
 // the T-shirt in four variants, the denim jacket with one left, the Eid combo with its sizes and gift wrap, the kids
-// frock sold out and, found by name, the burger with its add-ons -- the quote of what is typed, the order made from
-// it, and the known phone that fills a name and an address.
+// frock sold out and, found by name, the burger with its add-ons -- the quote of what is typed, and the order made
+// from it. The known phone is customers.ts's.
 
 type Words = [string, string];
 
@@ -35,6 +35,8 @@ interface PickerProduct {
   groups?: PickerGroup[];
   /** Clothing, at 5% VAT inside the price (TAX-03). */
   taxed?: boolean;
+  /** ATR-08: what is asked when ordering it. */
+  asked?: { id: string; name: Words; dataType: 'text' | 'number_with_unit' }[];
   /** Listed only when searched for, so the drawn list of four stays as drawn. */
   searchedOnly?: boolean;
 }
@@ -112,6 +114,24 @@ export const PICKER: PickerProduct[] = [
     ],
   },
   {
+    id: 'p-cake',
+    name: ['চকলেট কেক', 'Chocolate cake'],
+    kind: 'ordinary',
+    searchedOnly: true,
+    variants: [{ id: 'v-cake', label: ['', ''], price: 850, available: null }],
+    asked: [{ id: 'a-message', name: ['কেকের ওপর লেখা', 'Message on the cake'], dataType: 'text' }],
+  },
+  {
+    id: 'p-candles',
+    name: ['মোমবাতির সেট', 'Candle set'],
+    kind: 'ordinary',
+    searchedOnly: true,
+    variants: [{ id: 'v-candles', label: ['', ''], price: 120, available: null }],
+    asked: [
+      { id: 'a-count', name: ['কতটি মোমবাতি', 'How many candles'], dataType: 'number_with_unit' },
+    ],
+  },
+  {
     id: 'p-burger',
     name: ['বিফ বার্গার', 'Beef burger'],
     kind: 'ordinary',
@@ -142,15 +162,6 @@ export const PICKER: PickerProduct[] = [
     ],
   },
 ];
-
-/** The phone Part 29's `o29-new-known` draws: Nusrat, four orders, the last to Mirpur. */
-export const KNOWN_PHONE = '01711234567';
-const KNOWN = {
-  id: 'c-nusrat',
-  name: ['নুসরাত জাহান', 'Nusrat Jahan'] as Words,
-  orderCount: 4,
-  lastAddress: { locationId: 102, deliveryAddress: 'House 5, Road 10, Mirpur 11' },
-};
 
 const say = (words: Words, language: Language): string => (language === 'bn' ? words[0] : words[1]);
 const money = (amount: number) => amount.toFixed(2);
@@ -199,6 +210,17 @@ interface SentItem {
   lineId?: string;
   choices?: { part: number; variantIds: string[] }[];
   modifiers?: { groupId: string; optionIds: string[] }[];
+  captured?: { attributeId: string; value: string }[];
+}
+
+/** ATR-08: the answers sent, each with the name of what was asked. */
+function capturedOf(item: SentItem): OrderItemFixture['captured'] {
+  const asked = PICKER.flatMap((product) => product.asked ?? []);
+  return (item.captured ?? []).map((each) => ({
+    attributeId: each.attributeId,
+    name: asked.find((one) => one.id === each.attributeId)?.name ?? ['', ''],
+    value: each.value,
+  }));
 }
 
 /** An item priced: its price for each with the add-ons chosen, or as set by hand. */
@@ -304,6 +326,11 @@ function pickerProduct(product: PickerProduct, language: Language) {
         available: units(variant.available),
       })),
     })),
+    asked: (product.asked ?? []).map((each) => ({
+      attributeId: each.id,
+      name: say(each.name, language),
+      dataType: each.dataType,
+    })),
     modifierGroups: (product.groups ?? []).map((group) => ({
       id: group.id,
       name: say(group.name, language),
@@ -330,7 +357,7 @@ type Answer =
       };
     };
 
-/** Add an item's reads, the quote and the known phone; undefined for any other request. */
+/** Add an item's reads and the quote; undefined for any other request. */
 export function pickerAnswer(
   method: string,
   path: string,
@@ -362,41 +389,6 @@ export function pickerAnswer(
       : { refused: { status: 404, code: 'not_found', message: 'Not found' } };
   }
   if (method === 'POST' && path === '/orders/quote') return { data: quoteOf(body ?? {}) };
-  if (method === 'GET' && path === '/customers') {
-    const q = url.searchParams.get('q') ?? '';
-    const customers =
-      q === KNOWN_PHONE
-        ? [
-            {
-              id: KNOWN.id,
-              name: say(KNOWN.name, language),
-              phone: KNOWN_PHONE,
-              orderCount: KNOWN.orderCount,
-              totalSpent: '9800.00',
-              lastOrderAt: null,
-              firstOrderAt: '2026-08-02T10:00:00.000Z',
-              hasAccount: false,
-            },
-          ]
-        : [];
-    return { data: { customers, page: 1, limit: 20, total: customers.length, pages: 1 } };
-  }
-  if (method === 'GET' && path === `/customers/${KNOWN.id}`) {
-    return {
-      data: {
-        id: KNOWN.id,
-        name: say(KNOWN.name, language),
-        phone: KNOWN_PHONE,
-        orderCount: KNOWN.orderCount,
-        totalSpent: '9800.00',
-        lastOrderAt: null,
-        firstOrderAt: '2026-08-02T10:00:00.000Z',
-        hasAccount: false,
-        lastAddress: KNOWN.lastAddress,
-        account: null,
-      },
-    };
-  }
   return undefined;
 }
 
@@ -420,6 +412,8 @@ function itemOf(item: SentItem): OrderItemFixture | null {
     quantity: item.quantity,
     unitPrice: line.each,
     ...(product.kind === 'combo' ? { inside } : {}),
+    productId: product.id,
+    captured: capturedOf(item),
     addOn: addOn ? { name: addOn.name, price: addOn.price } : null,
   };
 }
@@ -542,7 +536,14 @@ export function editedOrder(order: OrderFixture, body: Record<string, unknown>):
     if (item.lineId === undefined) return itemOf(item) ?? [];
     const kept = order.items[Number(item.lineId.split('-line-')[1])];
     return kept
-      ? [{ ...kept, quantity: item.quantity, unitPrice: item.unitPrice ?? kept.unitPrice }]
+      ? [
+          {
+            ...kept,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice ?? kept.unitPrice,
+            ...(item.captured ? { captured: capturedOf(item) } : {}),
+          },
+        ]
       : [];
   });
 }

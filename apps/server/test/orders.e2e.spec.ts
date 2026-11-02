@@ -508,6 +508,48 @@ describeIfDatabase('delivery and advance (ORD-06a, RAT-14, PRD-08, ORD-16, DLV-0
 });
 
 describeIfDatabase('the line as it was (ORD-46, ATR-08, ATR-09, PRD-13)', () => {
+  it('tells New order what to ask, and an edit changes the answer and keeps the price (agreed 2026-11-02)', async () => {
+    const shop = await openShop(port, texts, 'ord');
+    const text = await shop.post('/attributes', { name: 'Message', dataType: 'text' });
+    expect(text.status, JSON.stringify(text.body)).toBe(201);
+    const asked = (text.body as { id: string }).id;
+    const made = await shop.post('/products', {
+      name: 'Cake',
+      basePrice: 1500,
+      stockTracking: 'not_tracked',
+      attributes: [{ attributeId: asked, role: 'captured_at_order' }],
+    });
+    expect(made.status, JSON.stringify(made.body)).toBe(201);
+    const cake = made.body as Product;
+    const variantId = cake.variants[0]?.id ?? '';
+    const picked = await shop.get(`/orders/picker/${cake.id}`);
+    expect(picked.status).toBe(200);
+    expect(picked.body).toMatchObject({
+      asked: [{ attributeId: asked, name: 'Message', dataType: 'text' }],
+    });
+
+    // Optional: an order without an answer is taken.
+    const order = await place(shop, {
+      ...(await delivery(shop)),
+      items: [{ variantId, quantity: 1 }],
+    });
+    const lineId = order.items[0]?.id ?? '';
+    expect(order.items[0]?.captured).toEqual([]);
+    expect(
+      (await shop.patch(`/products/${cake.id}`, { basePrice: 1800 })).status,
+      'the price moved on',
+    ).toBe(200);
+    const edited = await shop.patch(`/orders/${order.id}`, {
+      items: [
+        { lineId, variantId, quantity: 1, captured: [{ attributeId: asked, value: 'Rafi' }] },
+      ],
+    });
+    expect(edited.status, JSON.stringify(edited.body)).toBe(200);
+    const line = (edited.body as Order).items[0];
+    expect(line?.captured).toEqual([{ attributeId: asked, name: 'Message', value: 'Rafi' }]);
+    expect(line?.unitPrice).toBe('1500.00');
+  });
+
   it('keeps the name, values, captured text and price after the product is renamed and deleted', async () => {
     const shop = await openShop(port, texts, 'ord');
     const attributes = (await shop.get('/attributes')).body as {
