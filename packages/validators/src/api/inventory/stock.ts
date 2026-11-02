@@ -15,6 +15,7 @@ import {
 } from '../../common/limits';
 import {
   BatchState,
+  ProductKind,
   SerialFormat,
   SerialStatus,
   StockEditReason,
@@ -128,6 +129,10 @@ export const stockPageQuerySchema = z.object({
   // Design v3.8: a stock check counting a whole category reads its products here.
   categoryId: categoryFilterField.optional(),
   stock: z.enum([StockState.Low, StockState.Out]).optional(),
+  // Slice 4.8c: the combos apart from what holds stock of its own, whose counts follow.
+  kind: z.nativeEnum(ProductKind).optional(),
+  // INV-15 (Slice 4.8c): only the products holding more for orders than is on hand.
+  short: z.literal('true').optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(LIST_PAGE_SIZE_MAX).default(PRODUCT_PAGE_SIZE),
 });

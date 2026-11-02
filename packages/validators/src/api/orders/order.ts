@@ -526,6 +526,8 @@ export const orderListQuerySchema = z.object({
   q: z.string().trim().min(1).max(CUSTOMER_NAME_MAX_LENGTH).optional(),
   // CUS-02 (Slice 4.4a): one customer's orders, their history on the customer's page.
   customerId: z.string().uuid().optional(),
+  // INV-15 (Slice 4.8c, agreed 2026-11-02): the orders holding stock of this variant, for Stock's See the orders.
+  variantId: z.string().uuid().optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(LIST_PAGE_SIZE_MAX).default(ORDER_PAGE_SIZE),
 });

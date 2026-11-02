@@ -4,6 +4,7 @@ import {
   count,
   desc,
   eq,
+  exists,
   gt,
   gte,
   ilike,
@@ -19,6 +20,7 @@ import {
   FulfilmentType,
   ORDER_STATUS_RULES,
   OrderStatus,
+  ReservationStatus,
   type CancelReason,
   type FulfillmentStatus,
   type OrderPaymentStatus,
@@ -31,6 +33,7 @@ import {
   orderPayments,
   orders,
   orderStatusHistory,
+  stockReservations,
   type InsertOrder,
   type InsertOrderLine,
   type InsertOrderPayment,
@@ -58,6 +61,8 @@ export interface OrderListFilter {
   search: string | null;
   /** CUS-02: one customer's orders. */
   customerId: string | null;
+  /** INV-15: the orders with an active hold on this variant's stock. */
+  holdingVariantId: string | null;
 }
 
 /**
@@ -371,6 +376,23 @@ export class OrderRepository {
     if (filter.source !== null) conditions.push(eq(orders.source, filter.source));
     if (filter.cancelReason !== null) conditions.push(eq(orders.cancelReason, filter.cancelReason));
     if (filter.customerId !== null) conditions.push(eq(orders.customerId, filter.customerId));
+    if (filter.holdingVariantId !== null) {
+      conditions.push(
+        exists(
+          tx
+            .select({ one: sql`1` })
+            .from(stockReservations)
+            .where(
+              and(
+                eq(stockReservations.tenantId, orders.tenantId),
+                eq(stockReservations.orderId, orders.id),
+                eq(stockReservations.variantId, filter.holdingVariantId),
+                eq(stockReservations.status, ReservationStatus.Active),
+              ),
+            ),
+        ),
+      );
+    }
     if (filter.from !== null) conditions.push(gte(orders.createdAt, filter.from));
     if (filter.before !== null) conditions.push(lt(orders.createdAt, filter.before));
     if (filter.search !== null) {
