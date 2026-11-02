@@ -48,8 +48,8 @@ Pairing comes first, so the phone knows its shop before asking for anything. Eac
 | 2.7 | Test | The bKash number and "send a small amount from another phone"; a spinner until the SMS arrives, then the receipt and "all good" | Later is prominent: the next real payment shows the same thing |
 
 **2.3 is there because it is the likeliest mistake.** Android cannot reliably tell an app the SIM's number, so the app
-asks. "No" returns to Welcome, which says which phone it belongs on; the code is already spent, so the owner revokes this
-phone on the dashboard (or unpairs in the menu) and pairs the right one.
+asks. "No" unpairs this phone at once (the same call as the menu's Unpair, §7), so a one-phone plan's place is free for the
+right phone, and returns to Welcome, which says which phone the app belongs on. The right phone needs a new code.
 
 **2.4 Three promises, each true:**
 
@@ -185,8 +185,11 @@ The sketch assumes four things the server does not do yet. They go into Slice 5.
 | --- | --- | --- |
 | The shop's numbers and senders | §2.3, Home's "no bKash number", the filter | `accounts: [{ method, number }]` and `senders: ["bKash"]` on the pair and heartbeat answers |
 | Recent receipts and counts | §3.1, §3.2 | `GET /v1/listener/messages?limit=20`: each with its current state and order number, and today's counts |
-| Unpairing itself | §4 | `POST /v1/listener/unpair`, revoking with a new reason `device`, freeing the plan's place |
+| Unpairing itself | §2.3, §4 | `POST /v1/listener/unpair`, revoking with a new reason `device`, freeing the plan's place |
 | Test mode from the phone | §4 | `POST /v1/listener/test-mode` with `testModeUntil` on the answers |
+
+The QR needs no server change: it holds the code as a link, `lytro-listener://pair?code=K7MP4X2H`, which the dashboard draws
+in Slice 5.8, so a phone's own camera can open the app too.
 
 **Before release:** real bKash receipts for the parser (agreed in 5.4's read, the owner to forward a few); the makers'
 menu paths checked on real phones; the download page, in `SITE-PAGES-DESIGN.md`'s style; the signing key's backup.
