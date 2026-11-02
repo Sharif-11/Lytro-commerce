@@ -1940,7 +1940,7 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   },
   ListenerDeviceRevoked: {
     en: 'Phone revoked. It stops forwarding payment messages.',
-    bn: 'ফোনটি রিভোক করা হয়েছে। এটি আর পেমেন্ট মেসেজ পাঠাবে না।',
+    bn: 'ফোনটি ক্যানসেল করা হয়েছে। এটি আর পেমেন্ট SMS পাঠাবে না।',
   },
   ListenerDeviceNotFound: {
     en: 'Listener phone not found.',
@@ -1948,7 +1948,7 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   },
   ListenerDeviceAlreadyRevoked: {
     en: 'This phone is already revoked.',
-    bn: 'এই ফোন আগেই রিভোক করা হয়েছে।',
+    bn: 'এই ফোন আগেই ক্যানসেল করা হয়েছে।',
   },
   ListenerCodeInvalid: {
     en: "This code isn't valid. Make a new one in the dashboard.",
@@ -1960,7 +1960,7 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   },
   ListenerDeviceLimit: {
     en: "Your plan's listener phones are all paired. Revoke one, or upgrade, to pair another.",
-    bn: 'আপনার প্ল্যানের সব লিসেনার ফোন পেয়ার করা আছে। আরেকটি পেয়ার করতে একটি রিভোক করুন বা আপগ্রেড করুন।',
+    bn: 'আপনার প্ল্যানের সব লিসেনার ফোন পেয়ার করা আছে। আরেকটি পেয়ার করতে একটি ক্যানসেল করুন বা আপগ্রেড করুন।',
   },
   ListenerShopInactive: {
     en: "This shop's subscription isn't active, so the listener is off.",
