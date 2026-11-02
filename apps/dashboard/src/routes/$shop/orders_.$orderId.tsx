@@ -5,7 +5,9 @@ import { filterOf, ordersSearch } from '@/views/orders/order-search';
 // TENANT-DASHBOARD-DESIGN §7.31: one order, on its own on a phone and beside the list from 1024 px.
 export const Route = createFileRoute('/$shop/orders_/$orderId')({
   validateSearch: ordersSearch,
-  staticData: { screen: { hub: 'orders', title: 'hubOrders', back: '/$shop/orders' } },
+  staticData: {
+    screen: { hub: 'orders', section: 'orders', title: 'hubOrders', back: '/$shop/orders' },
+  },
   component: OrderRoute,
 });
 

@@ -12,7 +12,8 @@ const ENDING_SOON_DAYS = 7;
     ending plan marigold, people teal (decided 2026-10-23 for the rows the sketch does not draw). */
 export type JobTone = 'red' | 'marigold' | 'teal';
 
-export type JobPath = '/$shop/stock' | '/$shop/balance' | '/$shop/plan' | '/$shop/team';
+export type JobPath =
+  '/$shop/orders' | '/$shop/stock' | '/$shop/balance' | '/$shop/plan' | '/$shop/team';
 
 export interface Job {
   key: string;
@@ -24,6 +25,8 @@ export interface Job {
   to: JobPath;
   /** A payment's own row opens that payment in Billing instead (BIL-19). */
   paymentId?: string;
+  /** The Orders tab an order job opens; To confirm when left out (Slice 4.8b). */
+  ordersTab?: 'hold' | 'confirmed';
 }
 
 interface JobContext {
@@ -34,13 +37,47 @@ interface JobContext {
 }
 
 /**
- * TENANT-DASHBOARD-DESIGN §7.1's queue, in its order: a payment to Lytro rejected or lapsed (§7.13), stock low or out, batches expiring, a top-up or a plan payment
+ * TENANT-DASHBOARD-DESIGN §7.1's queue, in its order: the orders to confirm, the calls due and the orders to ship
+ * (§7.32), a payment to Lytro rejected or lapsed (§7.13), stock low or out, batches expiring, a top-up or a plan payment
  * being checked, a low balance, the trial or the plan ending within a week, staff without a password. Each row shows
  * only when there is something to do and the person may see it (GET /home's parts are null otherwise; STF-11).
  */
 export function jobsOf(home: HomeView, { t, viewer, tenant, now }: JobContext): Job[] {
   const jobs: Job[] = [];
-  // BIL-19 (the sketch's `home-rejected`): a payment to Lytro that was rejected or lapsed heads the queue.
+  const orders = home.orders;
+  if (orders && orders.toConfirm > 0) {
+    jobs.push({
+      key: 'toConfirm',
+      tone: 'teal',
+      icon: 'check',
+      text: t('jobConfirm', { count: orders.toConfirm }),
+      count: orders.toConfirm,
+      to: '/$shop/orders',
+    });
+  }
+  if (orders && orders.callsDue > 0) {
+    jobs.push({
+      key: 'callsDue',
+      tone: 'marigold',
+      icon: 'clock',
+      text: t('jobCalls', { count: orders.callsDue }),
+      count: orders.callsDue,
+      to: '/$shop/orders',
+      ordersTab: 'hold',
+    });
+  }
+  if (orders && orders.toShip > 0) {
+    jobs.push({
+      key: 'toShip',
+      tone: 'teal',
+      icon: 'truck',
+      text: t('jobShip', { count: orders.toShip }),
+      count: orders.toShip,
+      to: '/$shop/orders',
+      ordersTab: 'confirmed',
+    });
+  }
+  // BIL-19 (the sketch's `home-rejected`): a payment to Lytro that was rejected or lapsed comes next.
   const stuck = home.paymentNeedingYou;
   if (stuck) {
     const amount = formatTaka(stuck.amount);

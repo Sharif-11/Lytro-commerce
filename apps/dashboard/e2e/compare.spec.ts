@@ -682,6 +682,167 @@ const NEW_ORDER: Pair[] = [
   },
 ];
 
+/** Part 30's Home figures (`p30-home`, `p30-home-clear`). */
+const P30_ORDERS = {
+  toConfirm: 3,
+  callsDue: 1,
+  toShip: 1,
+  today: 7,
+  yesterday: 5,
+  monthSales: '148200.00',
+};
+
+/** The customer's privacy delete opened: the fold, then its button. */
+const askToDelete = async (page: Page): Promise<void> => {
+  const main = page.getByRole('main');
+  await main.getByText('প্রাইভেসি রিকোয়েস্টে ডিলিট').click();
+  await main.getByRole('button', { name: 'ডিলিট', exact: true }).click();
+};
+
+/** Customers, search, Home and Usage (Slice 4.8b), each beside Part 30's drawing of it. */
+const CUSTOMERS: Pair[] = [
+  {
+    name: 'p30-home',
+    screen: 'p30-home',
+    device: 'phone',
+    language: 'bn',
+    path: '',
+    state: { home: { orders: P30_ORDERS } },
+  },
+  {
+    name: 'p30-home',
+    screen: 'p30-home',
+    device: 'desktop',
+    language: 'en',
+    path: '',
+    state: { home: { orders: P30_ORDERS } },
+  },
+  {
+    name: 'p30-home-clear',
+    screen: 'p30-home-clear',
+    device: 'desktop',
+    language: 'en',
+    path: '',
+    state: {
+      stock: { low: 0, out: 0 },
+      home: {
+        topUpsBeingChecked: { count: 0, amount: '0.00' },
+        orders: { ...P30_ORDERS, toConfirm: 0, callsDue: 0, toShip: 0, today: 4 },
+      },
+    },
+  },
+  { name: 'customers', screen: 'customers', device: 'phone', language: 'bn', path: '/customers' },
+  { name: 'customers', screen: 'customers', device: 'desktop', language: 'en', path: '/customers' },
+  {
+    name: 'customers-search',
+    screen: 'c30-customers-search',
+    device: 'desktop',
+    language: 'en',
+    path: '/customers?q=0171',
+  },
+  {
+    name: 'customers-empty',
+    screen: 'c30-customers-empty',
+    device: 'phone',
+    language: 'bn',
+    path: '/customers',
+    state: { customers: { customers: [], passwords: {} } },
+  },
+  {
+    name: 'customer',
+    screen: 'customer',
+    device: 'phone',
+    language: 'bn',
+    path: '/customers/c-nusrat',
+  },
+  {
+    name: 'customer-below',
+    screen: 'customer',
+    device: 'phone',
+    language: 'bn',
+    path: '/customers/c-nusrat',
+    scroll: /^স্টোরফ্রন্ট অ্যাকাউন্ট$/,
+  },
+  {
+    name: 'customer-guest',
+    screen: 'c30-guest',
+    device: 'phone',
+    language: 'bn',
+    path: '/customers/c-sumaiya',
+  },
+  {
+    name: 'customer-password',
+    screen: 'c30-password',
+    device: 'phone',
+    language: 'bn',
+    path: '/customers/c-nusrat',
+    then: async (page) => {
+      await page.getByRole('main').getByRole('button', { name: 'নতুন পাসওয়ার্ড দিন' }).click();
+      await page.getByRole('dialog').getByLabel('পাসওয়ার্ড').fill('megh-7392-tara');
+    },
+  },
+  {
+    name: 'customer-delete',
+    screen: 'c30-delete',
+    device: 'phone',
+    language: 'bn',
+    path: '/customers/c-nusrat',
+    then: askToDelete,
+  },
+  {
+    name: 'customer-delete-open',
+    screen: 'c30-delete-open',
+    device: 'phone',
+    language: 'bn',
+    path: '/customers/c-rakib',
+    then: async (page) => {
+      await askToDelete(page);
+      await page.getByRole('dialog').getByRole('button', { name: 'ডিলিট', exact: true }).click();
+    },
+  },
+  {
+    name: 'customer-deleted',
+    screen: 'c30-deleted',
+    device: 'phone',
+    language: 'bn',
+    path: '/customers/c-nusrat',
+    then: async (page) => {
+      await askToDelete(page);
+      await page.getByRole('dialog').getByRole('button', { name: 'ডিলিট', exact: true }).click();
+    },
+  },
+  {
+    name: 'order-erased',
+    screen: 'c30-order-erased',
+    device: 'phone',
+    language: 'bn',
+    path: '/orders/o-39',
+    state: {
+      orders: (() => {
+        const fixture = meghOrders();
+        for (const order of fixture.orders) if (order.id === 'o-39') order.erased = true;
+        return fixture;
+      })(),
+    },
+  },
+  { name: 'search', screen: 'search', device: 'phone', language: 'bn', path: '/search?q=0171' },
+  { name: 'search', screen: 'search', device: 'desktop', language: 'en', path: '/search?q=0171' },
+  {
+    name: 'search-number',
+    screen: 's30-number',
+    device: 'phone',
+    language: 'bn',
+    path: '/search?q=261031-0047',
+  },
+  {
+    name: 'search-none',
+    screen: 's30-none',
+    device: 'phone',
+    language: 'bn',
+    path: `/search?q=${encodeURIComponent('saree 9')}`,
+  },
+];
+
 const PAIRS: Pair[] = [
   { name: 'home', screen: 'home', device: 'phone', language: 'bn', path: '' },
   { name: 'home', screen: 'home', device: 'tablet', language: 'bn', path: '' },
@@ -704,13 +865,7 @@ const PAIRS: Pair[] = [
   },
   ...ORDERS,
   ...NEW_ORDER,
-  {
-    name: 'search',
-    screen: 'search-products',
-    device: 'phone',
-    language: 'bn',
-    path: `/search?q=${encodeURIComponent('জ্যাকেট')}`,
-  },
+  ...CUSTOMERS,
   {
     name: 'plus',
     screen: 'plus',

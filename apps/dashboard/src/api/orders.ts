@@ -17,8 +17,6 @@ import {
 } from '@lytronix/validators';
 import { tenantSession } from '@/session/tenant-session';
 import type {
-  KnownCustomer,
-  KnownCustomerView,
   Order,
   OrderPage,
   OrderPickerPage,
@@ -34,6 +32,9 @@ import { HOME_QUERY_KEY } from './home';
 // it holds or lets go of stock, the products.
 
 export const ORDERS_QUERY_KEY = ['orders'] as const;
+
+/** The customers' reads, here because every order changes their figures (CUS-01). */
+export const CUSTOMERS_QUERY_KEY = ['customers'] as const;
 
 /** The list's tabs, the day's work first (agreed in the 4.8a read); the rest sit under More. */
 export const ORDER_TABS = ['pending', 'confirmed', 'hold', 'shipped', 'all'] as const;
@@ -103,6 +104,33 @@ export function useOrderCount(
   });
 }
 
+/** One customer's orders, newest first (CUS-02), a page at a time. */
+export function useCustomerOrders(customerId: string, options: { enabled?: boolean } = {}) {
+  return useInfiniteQuery({
+    queryKey: [...ORDERS_QUERY_KEY, 'list', 'customer', customerId],
+    queryFn: ({ pageParam }) =>
+      tenantSession.client.get<OrderPage>(
+        `/orders?${new URLSearchParams({ customerId, page: String(pageParam) }).toString()}`,
+      ),
+    initialPageParam: 1,
+    getNextPageParam: (last) => (last.page < last.pages ? last.page + 1 : undefined),
+    enabled: options.enabled ?? true,
+  });
+}
+
+/** One search's orders (§7.32): the first few by number, phone or name, and how many in all. */
+export function useOrderSearch(q: string, limit: number, options: { enabled?: boolean } = {}) {
+  return useQuery({
+    queryKey: [...ORDERS_QUERY_KEY, 'list', 'search', q, limit],
+    queryFn: () =>
+      tenantSession.client.get<OrderPage>(
+        `/orders?${new URLSearchParams({ q, limit: String(limit) }).toString()}`,
+      ),
+    enabled: (options.enabled ?? true) && q.length > 0,
+    placeholderData: keepPreviousData,
+  });
+}
+
 /** GET /orders/:id (ORD-14): one order with its items, calls, payments and history. */
 export function useOrder(id: string | null) {
   return useQuery({
@@ -133,6 +161,7 @@ function useOrderChanged(stock: boolean): (order?: Order) => void {
       predicate: (each) => each.queryKey[1] === 'list' || each.queryKey[1] === 'count',
     });
     void queryClient.invalidateQueries({ queryKey: HOME_QUERY_KEY });
+    void queryClient.invalidateQueries({ queryKey: CUSTOMERS_QUERY_KEY });
     if (stock) void queryClient.invalidateQueries({ queryKey: PRODUCTS_QUERY_KEY });
   };
 }
@@ -363,27 +392,5 @@ export function useUpdateOrder(id: string) {
     mutationFn: (body: UpdateOrderInput) =>
       tenantSession.client.patch<Order>(`/orders/${id}`, body),
     onSuccess: changed,
-  });
-}
-
-/**
- * CUS-01 (GET /customers?q=, then GET /customers/:id): the customer a whole phone number belongs to, with where their
- * latest delivery went, for New order's known phone; needs customers:read.
- */
-export function useKnownCustomer(phone: string | null) {
-  const found = useQuery({
-    queryKey: ['customers', 'phone', phone],
-    queryFn: () =>
-      tenantSession.client.get<{ customers: KnownCustomer[] }>(
-        `/customers?${new URLSearchParams({ q: phone ?? '' }).toString()}`,
-      ),
-    select: (page) => page.customers.find((customer) => customer.phone === phone) ?? null,
-    enabled: phone !== null,
-  });
-  const id = found.data?.id ?? null;
-  return useQuery({
-    queryKey: ['customers', id],
-    queryFn: () => tenantSession.client.get<KnownCustomerView>(`/customers/${id ?? ''}`),
-    enabled: id !== null,
   });
 }

@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link, useLocation, useMatches, useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
-import { Permission, TenantState } from '@lytronix/validators';
+import { TenantState } from '@lytronix/validators';
 import { ApiClientError, errorMessage } from '@lytronix/api-client';
 import { ErrorBanner } from '@lytronix/ui';
 import { useHome } from '@/api/home';
@@ -15,7 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { MeResponse, MeTenant } from '@/types/me';
 import { AppBar } from './app-bar';
 import { DeskHeader } from './desk-header';
-import { allows, hasPlusActions, hubOf, sectionOf, type Viewer } from './hubs';
+import { allows, hasPlusActions, hubOf, SEARCH_NEEDS, sectionOf, type Viewer } from './hubs';
 import { PlusMenu } from './plus-menu';
 import { useBrandTheme } from './brand-theme';
 import { Rail } from './rail';
@@ -220,7 +220,7 @@ function ShellFrame({ slug, me, tenant, children }: ShellFrameProps): React.JSX.
     recordTitle,
     setRecordTitle,
   };
-  const canSearch = allows(viewer, [Permission.ProductsRead]);
+  const canSearch = allows(viewer, SEARCH_NEEDS);
   const canAdd = hasPlusActions(viewer);
 
   return (

@@ -31,7 +31,7 @@ test('frames a screen with the shop, the five hubs, the orders to confirm and th
   await expect(nav.getByRole('link', { name: /^অর্ডার/ })).toHaveAttribute('aria-current', 'page');
   await expect(page.getByRole('link', { name: /^#261031-0047/ })).toBeVisible();
   if (isPhone()) {
-    await expect(page.getByText('মেঘ ফ্যাশন')).toBeVisible();
+    await expect(page.getByText('মেঘ ফ্যাশন').filter({ visible: true })).toBeVisible();
   } else {
     await expect(page.getByRole('banner').getByRole('heading', { name: 'অর্ডার' })).toBeVisible();
     await expect(page.getByRole('banner').getByText('রু')).toBeVisible();
@@ -157,7 +157,7 @@ test('opens the + menu with what can be started, and Top up opens the top-up she
   await expect(page.getByRole('dialog')).toBeVisible();
 });
 
-test('searches the products by name, and says when nothing matches (§4.4)', async ({ page }) => {
+test('searches from the top bar, and says when nothing matches (§7.32)', async ({ page }) => {
   if (isPhone()) {
     await open(page, '/orders');
     await page.getByRole('link', { name: 'সার্চ' }).click();
@@ -175,7 +175,7 @@ test('searches the products by name, and says when nothing matches (§4.4)', asy
   await expect(page.getByRole('link', { name: /ডেনিম জ্যাকেট/ })).toContainText('৳1,890');
   await expect(page.getByRole('link', { name: /ডেনিম জ্যাকেট/ })).toContainText('স্টক কম');
   await page.getByRole('main').getByRole('searchbox').fill('ঘড়ি');
-  await expect(page.getByText('"ঘড়ি" মেলে এমন কোনো প্রোডাক্ট নেই।')).toBeVisible();
+  await expect(page.getByText('"ঘড়ি"-এর সাথে কিছু মেলেনি')).toBeVisible();
 });
 
 test("links each shop's own manifest and iPhone icon, so it installs as its own app (TEN-17)", async ({

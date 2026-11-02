@@ -4,8 +4,8 @@ import type { OrderFixture, OrderItemFixture } from './orders';
 
 // New order and Edit order against a mocked API (Slice 4.8a, part 3): what Add an item finds, as Part 29 draws it --
 // the T-shirt in four variants, the denim jacket with one left, the Eid combo with its sizes and gift wrap, the kids
-// frock sold out and, found by name, the burger with its add-ons -- the quote of what is typed, the order made from
-// it, and the known phone that fills a name and an address.
+// frock sold out and, found by name, the burger with its add-ons -- the quote of what is typed, and the order made
+// from it. The known phone is customers.ts's.
 
 type Words = [string, string];
 
@@ -142,15 +142,6 @@ export const PICKER: PickerProduct[] = [
     ],
   },
 ];
-
-/** The phone Part 29's `o29-new-known` draws: Nusrat, four orders, the last to Mirpur. */
-export const KNOWN_PHONE = '01711234567';
-const KNOWN = {
-  id: 'c-nusrat',
-  name: ['নুসরাত জাহান', 'Nusrat Jahan'] as Words,
-  orderCount: 4,
-  lastAddress: { locationId: 102, deliveryAddress: 'House 5, Road 10, Mirpur 11' },
-};
 
 const say = (words: Words, language: Language): string => (language === 'bn' ? words[0] : words[1]);
 const money = (amount: number) => amount.toFixed(2);
@@ -330,7 +321,7 @@ type Answer =
       };
     };
 
-/** Add an item's reads, the quote and the known phone; undefined for any other request. */
+/** Add an item's reads and the quote; undefined for any other request. */
 export function pickerAnswer(
   method: string,
   path: string,
@@ -362,41 +353,6 @@ export function pickerAnswer(
       : { refused: { status: 404, code: 'not_found', message: 'Not found' } };
   }
   if (method === 'POST' && path === '/orders/quote') return { data: quoteOf(body ?? {}) };
-  if (method === 'GET' && path === '/customers') {
-    const q = url.searchParams.get('q') ?? '';
-    const customers =
-      q === KNOWN_PHONE
-        ? [
-            {
-              id: KNOWN.id,
-              name: say(KNOWN.name, language),
-              phone: KNOWN_PHONE,
-              orderCount: KNOWN.orderCount,
-              totalSpent: '9800.00',
-              lastOrderAt: null,
-              firstOrderAt: '2026-08-02T10:00:00.000Z',
-              hasAccount: false,
-            },
-          ]
-        : [];
-    return { data: { customers, page: 1, limit: 20, total: customers.length, pages: 1 } };
-  }
-  if (method === 'GET' && path === `/customers/${KNOWN.id}`) {
-    return {
-      data: {
-        id: KNOWN.id,
-        name: say(KNOWN.name, language),
-        phone: KNOWN_PHONE,
-        orderCount: KNOWN.orderCount,
-        totalSpent: '9800.00',
-        lastOrderAt: null,
-        firstOrderAt: '2026-08-02T10:00:00.000Z',
-        hasAccount: false,
-        lastAddress: KNOWN.lastAddress,
-        account: null,
-      },
-    };
-  }
   return undefined;
 }
 

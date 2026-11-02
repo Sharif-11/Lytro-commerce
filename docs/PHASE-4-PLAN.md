@@ -414,7 +414,10 @@ combos and statistics). If velocity suggests it, the rest can become Phase 4B wi
   details are in (create still checks them), and draws five pieces first: the variant step (`o29-add-variant`), an
   ordinary product's add-ons (`o29-add-ons`), a table order (`o29-new-table`), the delivery charge by hand
   (`o29-new-byhand`) and a line's Change price (`o29-line-price`). New order is in the + menu, the list's header and
-  the empty list; Edit order in the order's menu until it ships.
+  the empty list; Edit order in the order's menu until it ships. a3 merged as #273. **Part b** builds Part 30 on the
+  server reads already merged, with no migration: Customers beside Orders in the hub, the customer with a new password
+  and the privacy delete, the one search for whoever may read orders, customers or products, Home's order jobs and
+  Today tiles, and the orders on Usage; the role editor's two customers permissions are drawn first (v3.26).
 - **Sketch first** (`sketch-every-screen-before-building`): the status flow with the call log, Confirm, cancel
   reasons, Mark shipped and returns; the storefront's checkout for cash on delivery, the confirmation without an SMS
   promise, tracking with its Confirmed step; the Phase 5–7 parts of today's drawings shown as later.

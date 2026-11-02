@@ -178,3 +178,33 @@ test('reads in Bangla', async ({ page }) => {
   await expect(banner(page)).toHaveText('প্রোডাক্ট 80%: আর 20টার জায়গা আছে। একটা ইমেইলও গেছে।');
   await expectAccessible(page);
 });
+
+test('the orders handled head the card: this period and today, each against its limit (§7.32)', async ({
+  page,
+}) => {
+  await open(page);
+  const rows = main(page).locator('.num', { hasText: ' / ' });
+  await expect(rows.nth(0)).toContainText('212 / 300');
+  await expect(rows.nth(0)).toContainText('resets each cycle');
+  await expect(rows.nth(1)).toContainText('9 / 50');
+  await expect(rows.nth(1)).toContainText('resets each day');
+});
+
+test('a trial counts its orders in all, and near the limit the plan that raises it is offered (§7.32)', async ({
+  page,
+}) => {
+  await open(page, { trial: true });
+  await expect(main(page)).toContainText('Orders handled in your trial');
+  await expect(main(page)).toContainText('18 / 25');
+
+  await open(page, { used: { orders_monthly: 288 } });
+  await expect(banner(page)).toContainText('Orders handled this period at 95%: room for 12 more.');
+  await expect(banner(page).getByRole('link')).toHaveAttribute('href', /\/plan\?plan=/);
+});
+
+test('at its limit the orders say what stops, in plain words (QTA-01)', async ({ page }) => {
+  await open(page, { used: { orders_monthly: 300 } });
+  await expect(banner(page)).toContainText(
+    'Your plan handles 300 orders this period, and that is used up.',
+  );
+});

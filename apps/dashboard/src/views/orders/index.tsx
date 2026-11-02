@@ -241,7 +241,7 @@ export function OrdersScreen({
         ) : undefined
       }
     >
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-6">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
         <div
           className={`flex min-w-0 flex-col gap-4 lg:w-[400px] lg:flex-none ${orderId ? 'max-lg:hidden' : ''}`}
         >

@@ -34,7 +34,6 @@
   "searchPh": "Order no., phone, customer, product",
   "search": "Search",
   "srchProducts": "Products",
-  "srchHint": "Orders and customers join the search in Phase 4.",
   "plusTitle": "New",
   "pProduct": "Add product",
   "pStock": "Add stock",
@@ -58,8 +57,6 @@
   "loading": "Loading",
   "mainNav": "Main navigation",
   "sectionNav": "This hub’s pages",
-  "srchNone": "No product matches “{{q}}”.",
-  "srchStart": "Type a product’s name.",
   "bOffline": "You are offline. What was loaded still shows; the rest comes back with the connection.",
   "noAccess": "That page is not part of your role.",
   "arrivingT": "{{s}} is being rebuilt",
@@ -69,5 +66,14 @@
   "facebook": "Facebook",
   "whatsapp": "WhatsApp",
   "sStore": "Storefront",
-  "sDomain": "Your own domain"
+  "sDomain": "Your own domain",
+  "searchPagePh": "Order no., phone, name or product",
+  "srchOrders": "Orders",
+  "srchCustomers": "Customers",
+  "srchSeeAll": "See all ({{count}})",
+  "srchNoneT": "Nothing matches \"{{q}}\"",
+  "srchNoneH": "Try an order number, the last 4 digits of a phone, or a product name.",
+  "srchType": "Type an order number, a phone, a name or a product.",
+  "secOrders": "Orders",
+  "secCustomers": "Customers"
 }

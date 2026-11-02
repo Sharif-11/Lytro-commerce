@@ -378,5 +378,10 @@
   "wStopped": "Images stopped: {{used}} of {{limit}}. The notice went at 100%, serving ran to {{percent}}%, now the storefront shows placeholders. The extra is never charged.",
   "yesterday": "Yesterday",
   "youAreHere": "You are here",
-  "yourPlan": "Your plan"
+  "yourPlan": "Your plan",
+  "uOrdersTrial": "Orders handled in your trial",
+  "uPerDay": "resets each day",
+  "uFullOrders": "Your plan handles {{limit}} orders this period, and that is used up. Upgrade, or wait for the next period.",
+  "uFullOrdersDay": "Your plan handles {{limit}} orders a day, and today's are used up. More can be sent tomorrow.",
+  "uFullOrdersTrial": "The trial handles {{limit}} orders, and they are used up. Choose a plan to send more."
 }
