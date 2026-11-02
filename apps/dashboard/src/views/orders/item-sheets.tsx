@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatTaka } from '@lytronix/ui';
-import { ProductKind } from '@lytronix/validators';
+import { AttributeDataType, CAPTURED_VALUE_MAX_LENGTH, ProductKind } from '@lytronix/validators';
 import { useOrderPicker, useOrderPickerProduct } from '@/api/orders';
 import { Icon } from '@/components/icon';
 import { Banner } from '@/components/ui/banner';
@@ -16,7 +16,12 @@ import { SkeletonRows } from '@/components/ui/skeleton';
 import { StatusTag } from '@/components/ui/status-tag';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { useErrorText } from '@/hooks/use-error-text';
-import type { OrderPickerItem, OrderPickerProduct, PickerModifierGroup } from '@/types/orders';
+import type {
+  OrderPickerItem,
+  OrderPickerProduct,
+  PickerAsked,
+  PickerModifierGroup,
+} from '@/types/orders';
 import { amountOf, type DraftLine } from './order-draft';
 
 const TYPING_REST_MS = 250;
@@ -225,15 +230,69 @@ function SearchSheet({
   );
 }
 
+/** What was typed for each thing asked, by its attribute. */
+type Answers = Record<string, string>;
+
+const isNumberAsked = (each: PickerAsked) => each.dataType === AttributeDataType.NumberWithUnit;
+
+/** A number asked holds a number once anything is typed; left blank is fine, each answer being optional. */
+const answerFits = (each: PickerAsked, answers: Answers): boolean => {
+  const typed = (answers[each.attributeId] ?? '').trim();
+  return !isNumberAsked(each) || typed === '' || Number.isFinite(Number(typed));
+};
+
+/** The answers given, the blank ones left out. */
+const capturedOf = (asked: readonly PickerAsked[], answers: Answers): DraftLine['captured'] =>
+  asked.flatMap((each) => {
+    const value = (answers[each.attributeId] ?? '').trim();
+    return value ? [{ attributeId: each.attributeId, name: each.name, value }] : [];
+  });
+
+/** What the seller marked asked when ordering (Part 29's `o29-add-asked`, ATR-08): text or a number, each optional. */
+function AskedFields({
+  asked,
+  answers,
+  onChange,
+}: {
+  asked: readonly PickerAsked[];
+  answers: Answers;
+  onChange: (answers: Answers) => void;
+}): React.JSX.Element {
+  const { t } = useTranslation('orders');
+  return (
+    <>
+      {asked.map((each) => (
+        <Field
+          key={each.attributeId}
+          label={each.name}
+          value={answers[each.attributeId] ?? ''}
+          inputMode={isNumberAsked(each) ? 'decimal' : undefined}
+          maxLength={CAPTURED_VALUE_MAX_LENGTH}
+          help={t('askedHelp')}
+          error={answerFits(each, answers) ? undefined : t('askedNumber')}
+          onChange={(event) => {
+            onChange({ ...answers, [each.attributeId]: event.target.value });
+          }}
+        />
+      ))}
+    </>
+  );
+}
+
 /** A line made from the product, its variant, and what was chosen for it. */
 function lineOf(
   product: OrderPickerProduct,
   variant: OrderPickerProduct['variants'][number],
   extra: Pick<DraftLine, 'choices' | 'choiceText' | 'modifiers' | 'modifierText'> & {
     plus: number;
+    captured?: DraftLine['captured'];
   },
 ): DraftLine {
   return {
+    productId: product.id,
+    asked: product.asked,
+    captured: extra.captured ?? [],
+    capturedEdited: false,
     key: crypto.randomUUID(),
     lineId: null,
     variantId: variant.variantId,
@@ -274,7 +333,9 @@ function ProductSheet({
   const product = found.data;
   const asks =
     product !== undefined &&
-    (product.kind === ProductKind.Combo || product.modifierGroups.length > 0);
+    (product.kind === ProductKind.Combo ||
+      product.modifierGroups.length > 0 ||
+      product.asked.length > 0);
   const only = product?.variants.length === 1 ? product.variants[0] : undefined;
   const chosen = product?.variants.find(
     (each) => each.variantId === (variantId ?? only?.variantId),
@@ -386,6 +447,7 @@ function ChoicesSheet({
   const [picked, setPicked] = useState<Record<string, string[]>>(() =>
     defaultsOf(product.modifierGroups),
   );
+  const [answers, setAnswers] = useState<Answers>({});
   const options = product.modifierGroups.flatMap((group) => group.options);
   const plus = product.modifierGroups.reduce(
     (sum, group) =>
@@ -450,6 +512,7 @@ function ChoicesSheet({
                 .join(', ')
             : null,
         plus,
+        captured: capturedOf(product.asked, answers),
       }),
     );
   };
@@ -482,7 +545,13 @@ function ChoicesSheet({
       onBack={onBack}
       onClose={onClose}
       footer={
-        <Button wide disabled={!unitsDone || !groupsDone} onClick={add}>
+        <Button
+          wide
+          disabled={
+            !unitsDone || !groupsDone || !product.asked.every((each) => answerFits(each, answers))
+          }
+          onClick={add}
+        >
           {`${t('addToOrder')} · ${formatTaka(Number(variant.price) + plus)}`}
         </Button>
       }
@@ -586,6 +655,48 @@ function ChoicesSheet({
               );
             })),
       ])}
+      <AskedFields asked={product.asked} answers={answers} onChange={setAnswers} />
+    </Sheet>
+  );
+}
+
+/** A line's Change details (Part 29's `o29-line-details`, ATR-08): what is asked, as it was answered. */
+export function DetailsSheet({
+  line,
+  asked,
+  onSave,
+  onClose,
+}: {
+  line: DraftLine;
+  asked: readonly PickerAsked[];
+  onSave: (captured: DraftLine['captured']) => void;
+  onClose: () => void;
+}): React.JSX.Element {
+  const { t } = useTranslation('orders');
+  const [answers, setAnswers] = useState<Answers>(() =>
+    Object.fromEntries(line.captured.map((each) => [each.attributeId, each.value])),
+  );
+  return (
+    <Sheet
+      open
+      title={t('changeDetails')}
+      onClose={onClose}
+      footer={
+        <Button
+          wide
+          disabled={!asked.every((each) => answerFits(each, answers))}
+          onClick={() => {
+            onSave(capturedOf(asked, answers));
+          }}
+        >
+          {t('save')}
+        </Button>
+      }
+    >
+      <p className="-mt-1 mb-3 text-[14px]">
+        {[line.productName, line.label].filter(Boolean).join(' · ')}
+      </p>
+      <AskedFields asked={asked} answers={answers} onChange={setAnswers} />
     </Sheet>
   );
 }

@@ -86,7 +86,7 @@ Each is settled in its slice's read, before code, and recorded there.
 | 5.2 | Settled in its read, 2026-10-31 (below). |
 | 5.3 | Settled in its read, 2026-10-31 (below). |
 | 5.4 | Settled in its read, 2026-11-01 (below). |
-| 5.5 | The app's technology (React Native, as decided for the admin mobile app in OD-52, or native Kotlin); how it is installed (Google Play limits apps that read SMS, so a signed APK may be the way); the device-integrity check (LSN-25, off by default). |
+| 5.5 | The technology, installing and screens settled in its sketch's read, 2026-11-02 (below); the device-integrity check (LSN-25, off by default) stays undrawn. |
 | 5.6 | Pairing Lytro's own listener phone; whether today's wallet step stays as a fallback; the amount a seller says they sent (not stored today, §3.5). |
 | 5.7 | Holding the gateway fee (WAL-21) as a held amount or a charge reversed on failure; where a credential's use is logged (SEC-11); bKash's sandbox access. |
 | 5.8 | Where the payment page lives (its own small app, or a host of the storefront app with its own policy, PAY-23); redirect, as SFT-07 says, rather than the frame the drawings show; the drawn page's extras (contact buttons, support chat, its fonts, an SMS promise) against PAY-05; "switch to cash on delivery" after a failed payment, which PRD-08 refuses. |
@@ -373,6 +373,13 @@ criterion 2 by hand, and 3). If velocity suggests it, the rest can become Phase 
   and counts, and a phone unpairing itself.
 
 ### Slice 5.5: the listener app
+- **Sketch's read agreed 2026-11-02** (Kotlin the owner's call, the rest as recommended):
+  **Kotlin**, native Android, since the app's real work is Android's own, with OD-52's React Native staying for the admin
+  app; the home screen shows **the status, today's counts and recent receipts**; installed as **a signed APK from Lytro**,
+  Google Play perhaps later; **Bangla with an English switch**; and the sketch draws **the app only**, the dashboard's
+  phones page staying in Slice 5.8. Design in `LISTENER-APP-DESIGN.md`, prototype in `docs/brand/lytro-listener.html`. Its §7
+  lists four additions for Slice 5.4b: the shop's numbers and senders on the app's answers, recent receipts and counts,
+  a phone unpairing itself, and test mode started from the phone (LSN-04 amended).
 - **Delivers:** the Android app: pairing by QR or code, reading receipt SMS from allowed senders in the background,
   uploading with an offline queue, heartbeats, its version check and its status screens (LSN-24), sketched first.
 

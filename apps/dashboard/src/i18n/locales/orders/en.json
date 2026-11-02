@@ -332,5 +332,8 @@
   "ok": "OK",
   "customerDeleted": "The customer's details were deleted",
   "erasedT": "Details deleted at the customer's request",
-  "erasedH": "No name, phone or address; the thana, items and totals remain."
+  "erasedH": "No name, phone or address; the thana, items and totals remain.",
+  "askedHelp": "Optional. It stays on the order with this item.",
+  "askedNumber": "Numbers only",
+  "changeDetails": "Change details"
 }

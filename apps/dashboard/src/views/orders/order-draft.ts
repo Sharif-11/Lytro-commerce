@@ -6,10 +6,12 @@ import {
 } from '@lytronix/validators';
 import type { OrderBody } from '@/api/orders';
 import { bangladeshiPhone } from '@/lib/phone';
-import type { Order, OrderItem } from '@/types/orders';
+import type { Order, OrderItem, PickerAsked } from '@/types/orders';
 
 /** One line of New order or Edit order, as it shows and as it is sent (ORD-01, ORD-06, ORD-11). */
 export interface DraftLine {
+  /** The product, to read what it asks (ATR-08); null once it was deleted. */
+  productId: string | null;
   /** Its own key on the page: the line's id once saved, a fresh one while new. */
   key: string;
   /** ORD-11: a line the order already has, keeping the price it was ordered at unless set again. */
@@ -36,6 +38,12 @@ export interface DraftLine {
   modifiers: { groupId: string; optionIds: string[] }[] | null;
   /** The add-ons, as the line says them ("Gift wrap +৳50"). */
   modifierText: string | null;
+  /** ATR-08: what is asked when ordering it; null on a saved line until its product is read. */
+  asked: PickerAsked[] | null;
+  /** ATR-08: the answers given. */
+  captured: OrderItem['captured'];
+  /** A saved line's answers were changed, so they are sent; left alone, the line keeps its own (ORD-11). */
+  capturedEdited: boolean;
 }
 
 /** The whole form: who it is for, how it reaches them, the items, then the money and the note. */
@@ -96,6 +104,10 @@ export function phoneOf(typed: string): string | null {
 /** Text typed, trimmed, or left out when blank. */
 const textOf = (typed: string): string | undefined => typed.trim() || undefined;
 
+/** ATR-08: the answers as sent. */
+const answersOf = (line: DraftLine) =>
+  line.captured.map((each) => ({ attributeId: each.attributeId, value: each.value }));
+
 /** A line as sent: a saved one by its id with the price it was ordered at, unless set again; a new one in full. */
 function itemOf(line: DraftLine, quoting: boolean) {
   const byHand = line.byHand === null ? null : amountOf(line.byHand);
@@ -110,6 +122,7 @@ function itemOf(line: DraftLine, quoting: boolean) {
         : quoting
           ? { unitPrice: Number(line.price) }
           : {}),
+      ...(!quoting && line.capturedEdited ? { captured: answersOf(line) } : {}),
     };
   }
   return {
@@ -126,6 +139,8 @@ function itemOf(line: DraftLine, quoting: boolean) {
         }
       : {}),
     ...(line.modifiers ? { modifiers: line.modifiers } : {}),
+    // The answers change no price, so a quote isn't told them.
+    ...(!quoting && line.captured.length > 0 ? { captured: answersOf(line) } : {}),
   };
 }
 
@@ -208,6 +223,7 @@ export function draftOf(order: Order, words: LineWords = UNSAID): OrderDraft {
     charge: byHand ? String(Number(order.deliveryCharge)) : '',
     note: order.notes ?? '',
     lines: order.items.map((item) => ({
+      productId: item.productId,
       key: item.id,
       lineId: item.id,
       variantId: item.variantId ?? '',
@@ -221,6 +237,9 @@ export function draftOf(order: Order, words: LineWords = UNSAID): OrderDraft {
       available: null,
       choices: null,
       modifiers: null,
+      asked: null,
+      captured: item.captured,
+      capturedEdited: false,
     })),
   };
 }
