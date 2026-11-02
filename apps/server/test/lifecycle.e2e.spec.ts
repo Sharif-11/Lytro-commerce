@@ -597,6 +597,17 @@ async function seedCatalogue(tenantId: string): Promise<void> {
      VALUES ($1, $2, $3, 'checkout', 300, now())`,
     [tenantId, ref, order],
   );
+  // Slice 5.4a: a listener phone and a pairing code, gone with the rest (LSN-23).
+  await admin.query(
+    `INSERT INTO control.listener_devices (tenant_id, name, app_version, installation_id, token_hash)
+     VALUES ($1, 'Counter phone', '1.0.0', 'install-deleted1', $2)`,
+    [tenantId, 'f'.repeat(64)],
+  );
+  await admin.query(
+    `INSERT INTO control.listener_pairing_codes (tenant_id, code_hash, expires_at)
+     VALUES ($1, $2, now() + interval '10 minutes')`,
+    [tenantId, 'e'.repeat(64)],
+  );
   // Slice 5.2b: a shopper's report of the shop's payment page, gone with its sessions.
   await admin.query(
     "INSERT INTO control.payment_page_reports (tenant_id, ref, reason) VALUES ($1, $2, 'wrong_amount')",
@@ -749,6 +760,12 @@ describeIfDatabase('LIF-19: day-60 business-data deletion', () => {
       [tenantId],
     );
     expect(reports.rowCount).toBe(0);
+    for (const table of ['listener_devices', 'listener_pairing_codes']) {
+      const left = await admin.query(`SELECT 1 FROM control.${table} WHERE tenant_id = $1`, [
+        tenantId,
+      ]);
+      expect(left.rowCount, table).toBe(0);
+    }
     // The platform's own library is untouched.
     const platformAfter = await admin.query<{ total: number }>(
       'SELECT count(*)::int AS total FROM tenant.attributes WHERE tenant_id IS NULL',

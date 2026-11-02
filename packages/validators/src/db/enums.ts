@@ -342,6 +342,13 @@ export enum AuditAction {
   PaymentRejected = 'payment_rejected',
   OrderPaymentRefunded = 'order_payment_refunded',
   NewShopCapSet = 'new_shop_cap_set',
+  // Phase 5 Slice 5.4a (LSN-22): a listener phone paired, renamed or revoked (by the owner, Lytro, or itself after
+  // repeated installation flags); one flagged; a pairing the plan's device limit refused.
+  ListenerDevicePaired = 'listener_device_paired',
+  ListenerDeviceRenamed = 'listener_device_renamed',
+  ListenerDeviceRevoked = 'listener_device_revoked',
+  ListenerDeviceFlagged = 'listener_device_flagged',
+  ListenerLimitRefused = 'listener_limit_refused',
 }
 
 // FED-02: what a product is, for Meta's catalog: new unless the shop says otherwise.
@@ -465,6 +472,8 @@ export enum QueueName {
   // PAY-03, D5-4 (Phase 5 Slice 5.2): every minute, a session nobody paid in time expires and its checkout order is
   // cancelled, its stock let go.
   PaymentSessionExpiryTick = 'payment_session_expiry_tick',
+  // LSN-05 (Phase 5 Slice 5.4a): daily, listener pairing codes spent or run out and phones long revoked are removed.
+  ListenerPurgeTick = 'listener_purge_tick',
   // MED-03: an uploaded file to validate and turn into what is stored; MED-07, MED-09: stored files to delete, with the
   // deletion job's own key.
   MediaProcess = 'media_process',
@@ -573,6 +582,13 @@ export enum PlatformAuditAction {
   PaymentPageReportDismissed = 'payment_page_report_dismissed',
   // TVR-04 (Phase 5 Slice 5.3): a shop's new-shop cap switched on or off, or back to its kind's default.
   NewShopCapSet = 'new_shop_cap_set',
+  // LSN-21, LSN-22 (Phase 5 Slice 5.4a): a listener phone paired, revoked or flagged, a pairing refused by the plan's
+  // limit, and an app installation blocked across the platform.
+  ListenerDevicePaired = 'listener_device_paired',
+  ListenerDeviceRevoked = 'listener_device_revoked',
+  ListenerDeviceFlagged = 'listener_device_flagged',
+  ListenerLimitRefused = 'listener_limit_refused',
+  ListenerInstallationBlocked = 'listener_installation_blocked',
 }
 
 // BAL-02: what a balance-ledger entry is for. One list, shared by every module that ever charges or credits a
@@ -668,6 +684,10 @@ export enum PlatformSettingKey {
   // days a shop counts as new.
   NewShopPaymentCapAmount = 'new_shop_payment_cap_amount',
   NewShopPaymentCapDays = 'new_shop_payment_cap_days',
+  // LSN-03, VER-07, LSN-18 (Phase 5 Slice 5.4a): the minutes after which a listener phone counts offline, and the
+  // oldest listener app version that may call.
+  ListenerOfflineMinutes = 'listener_offline_minutes',
+  ListenerMinAppVersion = 'listener_min_app_version',
   // QTA-03 (editable): what handling an order past the period's limit does -- refused, or done with a prompt to upgrade.
   OrderLimitMode = 'order_limit_mode',
 }
@@ -1215,6 +1235,21 @@ export enum PaymentSessionState {
 export enum PaymentSessionSource {
   Checkout = 'checkout',
   StaffLink = 'staff_link',
+}
+
+// LSN-02, LSN-12, LSN-19, LSN-21 (Phase 5 Slice 5.4a): why a listener phone stopped working -- its shop revoked it,
+// Lytro did, it was flagged too often for another installation's calls, or Lytro blocked its installation.
+export enum ListenerRevokeReason {
+  Owner = 'owner',
+  Operator = 'operator',
+  Flags = 'flags',
+  InstallationBlocked = 'installation_blocked',
+}
+
+// LSN-02, LSN-20: a listener phone as its shop's list shows it -- paired and working, or revoked.
+export enum ListenerDeviceStatus {
+  Active = 'active',
+  Revoked = 'revoked',
 }
 
 // PAY-14 (Phase 5 Slice 5.3, agreed 2026-10-31): why staff rejected a payment, as the shopper is told on the page.

@@ -53,8 +53,10 @@ export function errorMessage(error: unknown, t: TFunction): string {
     case 'plan_feature_unavailable':
     case 'quota_exceeded':
       return t('errors.planLimited');
+    // LSN-18: app_update_required reaches only the listener app; a dashboard never meets it.
     case 'service_unavailable':
     case 'internal_error':
+    case 'app_update_required':
       return t('common.somethingWentWrong');
   }
 }

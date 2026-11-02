@@ -6,6 +6,7 @@ import {
   PlatformSettingKey,
   FieldProblemCode,
   OrderLimitMode,
+  appVersionField,
 } from '@lytronix/validators';
 import { FieldsError } from '../../../common/api-error';
 import { PlatformAuditService } from '../../audit/services/platform-audit.service';
@@ -52,6 +53,10 @@ const DESCRIPTIONS: Record<PlatformSettingKey, string> = {
     "The share of a cycle's API requests that, spent in one hour, alerts the owner and the operator (RTE-12).",
   [PlatformSettingKey.PublicOrdersPerShopPerMinute]:
     'How many orders shoppers may place in one shop in a minute, every plan alike (RTE-08).',
+  [PlatformSettingKey.ListenerOfflineMinutes]:
+    'How many minutes after its last report a listener phone counts offline (LSN-03, VER-07).',
+  [PlatformSettingKey.ListenerMinAppVersion]:
+    'The oldest listener app version that may call, as 1.2.3; older apps must update (LSN-18).',
   [PlatformSettingKey.NewShopPaymentCapAmount]:
     "The most a new shop's online payments may come to in a day, in TK, where the new-shop cap holds (TVR-04).",
   [PlatformSettingKey.NewShopPaymentCapDays]:
@@ -66,6 +71,7 @@ const DESCRIPTIONS: Record<PlatformSettingKey, string> = {
 // keys with different value shapes arrive (avoids an exhaustive switch with only one real case for now).
 const isPositiveInt = (value: unknown): boolean =>
   typeof value === 'number' && Number.isInteger(value) && value > 0;
+const isAppVersion = (value: unknown): boolean => appVersionField.safeParse(value).success;
 const isOrderLimitMode = (value: unknown): boolean =>
   Object.values<unknown>(OrderLimitMode).includes(value);
 
@@ -91,6 +97,8 @@ const VALIDATORS: Record<PlatformSettingKey, (value: unknown) => boolean> = {
   [PlatformSettingKey.PublicOrdersPerShopPerMinute]: isPositiveInt,
   [PlatformSettingKey.PaymentSessionsPerShopPerMinute]: isPositiveInt,
   [PlatformSettingKey.NewShopPaymentCapAmount]: isPositiveInt,
+  [PlatformSettingKey.ListenerOfflineMinutes]: isPositiveInt,
+  [PlatformSettingKey.ListenerMinAppVersion]: isAppVersion,
   [PlatformSettingKey.NewShopPaymentCapDays]: isPositiveInt,
   [PlatformSettingKey.OrderLimitMode]: isOrderLimitMode,
 };

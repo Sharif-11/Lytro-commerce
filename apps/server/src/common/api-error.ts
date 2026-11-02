@@ -33,6 +33,7 @@ export const HTTP_STATUS: Record<ErrorCode, number> = {
   service_unavailable: 503,
   internal_error: 500,
   idempotency_conflict: 422,
+  app_update_required: 426,
 };
 
 /** The limit a field broke, when it has one. */
