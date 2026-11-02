@@ -283,7 +283,8 @@ describeIfDatabase('payment links staff send (PAY-24)', () => {
     expect(log.rows.map((row) => row.summary)).toEqual([
       { orderNumber: placed.orderNumber, amount: '300.00', replaced: false },
       { orderNumber: placed.orderNumber, amount: placed.due, replaced: true },
-      { orderNumber: placed.orderNumber, amount: left, replaced: true },
+      // Recording the advance already closed the open link (agreed 2026-11-01), so this one replaced nothing.
+      { orderNumber: placed.orderNumber, amount: left, replaced: false },
     ]);
   });
 

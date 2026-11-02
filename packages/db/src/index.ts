@@ -291,6 +291,11 @@ export {
   type PaymentSubmission,
 } from './repositories/payments/payment-session.repository';
 export {
+  ListenerRepository,
+  type ListenerShopRow,
+  type NewListenerDevice,
+} from './repositories/listener/listener.repository';
+export {
   PaymentListRepository,
   type PaymentListFilter,
   type PaymentListRow,

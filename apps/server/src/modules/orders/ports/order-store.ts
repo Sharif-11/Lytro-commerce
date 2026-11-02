@@ -62,6 +62,8 @@ export interface OrderStore {
     paymentId: string,
     values: { voidedBy: string | null; voidReason: string },
   ): Promise<OrderPaymentRecord>;
+  /** Agreed 2026-11-01: the order's payment page still awaiting money closed, the order being paid in full. */
+  closeAwaitingPayment(tx: Transaction, tenantId: string, orderId: string): Promise<void>;
   /** PAY-20, ORD-44 (Slice 5.3): a payment marked refunded with a note. */
   refundPayment(
     tx: Transaction,

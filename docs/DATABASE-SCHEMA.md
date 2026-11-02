@@ -2383,28 +2383,52 @@ CREATE TABLE control.fraud_hashes (
 ## 8. SMS listener app
 
 ```sql
-CREATE TABLE tenant.listener_pairing_codes (
+-- Built in Phase 5 Slice 5.4a (migration 0098): codes and phones live in control, as API keys do, because the app is
+-- found by its code or token before its shop is known; every query names the shop. Purged daily (LSN-05): codes a day
+-- after they are spent, voided or run out, phones 30 days after revocation; all of a shop's go at day 60 (LSN-23).
+CREATE TABLE control.listener_pairing_codes (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id       uuid NOT NULL,
-    code_hash       text NOT NULL,
-    expires_at      timestamptz NOT NULL,
-    used_at         timestamptz
+    tenant_id       uuid NOT NULL REFERENCES control.tenants(id),
+    code_hash       char(64) NOT NULL UNIQUE,            -- LSN-09: SHA-256 of the 8-letter code, never the code
+    created_by      uuid,
+    created_at      timestamptz NOT NULL DEFAULT now(),
+    expires_at      timestamptz NOT NULL,                -- LSN-01: 10 minutes
+    used_at         timestamptz,                         -- paired with
+    voided_at       timestamptz,                         -- LSN-10: refused 10 times
+    tries           integer NOT NULL DEFAULT 0
+);
+CREATE INDEX ON control.listener_pairing_codes (tenant_id, created_at);
+
+CREATE TYPE control.listener_revoke_reason AS ENUM ('owner', 'operator', 'flags', 'installation_blocked');
+CREATE TABLE control.listener_devices (
+    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id       uuid NOT NULL REFERENCES control.tenants(id),
+    name            varchar(60) NOT NULL,
+    model           varchar(100),
+    app_version     varchar(20) NOT NULL,
+    installation_id varchar(100) NOT NULL,               -- LSN-11: the token works from this installation only
+    token_hash      char(64) NOT NULL UNIQUE,            -- LSN-11: SHA-256 of 32 random bytes, never the token
+    paired_by       uuid,
+    paired_at       timestamptz NOT NULL DEFAULT now(),
+    last_seen_at    timestamptz,                         -- LSN-03: online within 30 minutes
+    flags           integer NOT NULL DEFAULT 0,          -- LSN-12: calls from another installation; 3 revoke
+    revoked_at      timestamptz,
+    revoked_by      uuid,
+    revoke_reason   control.listener_revoke_reason
+);
+CREATE INDEX ON control.listener_devices (tenant_id, paired_at);
+CREATE INDEX ON control.listener_devices (installation_id);
+CREATE INDEX ON control.listener_devices (revoked_at) WHERE revoked_at IS NOT NULL;
+
+-- LSN-21: an installation Lytro blocked across the platform.
+CREATE TABLE control.listener_blocked_installations (
+    installation_id varchar(100) PRIMARY KEY,
+    reason          text NOT NULL,
+    blocked_by      uuid,
+    blocked_at      timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE TABLE tenant.listener_devices (
-    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id       uuid NOT NULL,
-    name            text,
-    model           text,
-    app_version     text,
-    token_hash      text NOT NULL UNIQUE,               -- LSN-11: hash only, 32+ random bytes
-    installation_id text NOT NULL,
-    status          text NOT NULL DEFAULT 'active',       -- active | revoked
-    flag_count      integer NOT NULL DEFAULT 0,           -- LSN-12
-    last_seen_at    timestamptz,
-    created_at      timestamptz NOT NULL DEFAULT now()
-);
-CREATE INDEX ON tenant.listener_devices (tenant_id, status);
+-- Planned for Slice 5.4b (receipts).
 
 CREATE TABLE tenant.listener_messages (
     id              bigserial PRIMARY KEY,

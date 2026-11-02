@@ -85,7 +85,7 @@ Each is settled in its slice's read, before code, and recorded there.
 | 5.1 | Settled in its read, 2026-10-31 (below). |
 | 5.2 | Settled in its read, 2026-10-31 (below). |
 | 5.3 | Settled in its read, 2026-10-31 (below). |
-| 5.4 | The listener's should-haves (LSN-04, 05, 14, 17); devices and uploads for a pay-as-you-go shop (LSN-07 and LSN-08 name only trial, active and grace); a listener match whose fee the balance cannot cover (WAL-21: free review). |
+| 5.4 | Settled in its read, 2026-11-01 (below). |
 | 5.5 | The app's technology (React Native, as decided for the admin mobile app in OD-52, or native Kotlin); how it is installed (Google Play limits apps that read SMS, so a signed APK may be the way); the device-integrity check (LSN-25, off by default). |
 | 5.6 | Pairing Lytro's own listener phone; whether today's wallet step stays as a fallback; the amount a seller says they sent (not stored today, §3.5). |
 | 5.7 | Holding the gateway fee (WAL-21) as a held amount or a charge reversed on failure; where a credential's use is logged (SEC-11); bKash's sandbox access. |
@@ -322,11 +322,34 @@ Every route lands in `API-CONTRACT.md` with its slice; the isolation registry ga
 criterion 2 by hand, and 3). If velocity suggests it, the rest can become Phase 5B without re-planning.
 
 ### Slice 5.4: the listener, on the server
-- **Delivers:** pairing codes, devices and tokens (LSN-01, 02, 09 – 12, 19 – 22), heartbeats and online status
-  (LSN-03, VER-07), uploads and their limits (LSN-13 – 16, LSN-18), the tenant-state gate (LSN-07) and device limits
-  (LSN-08); bKash's receipt parser (LSN-06); matching (VER-02 – 06); the listener fee and its short-balance path
-  (WAL-20, WAL-21, RAT-16); the test mode (LSN-04), redaction and purge jobs (LSN-05, LSN-17); devices removed at
-  day 60 (LSN-23).
+- **Read agreed 2026-11-01** (all six as recommended): **all four should-haves now** -- test mode (LSN-04), the purge
+  (LSN-05), the volume flag (LSN-14) and redaction after 90 days (LSN-17); a **pay-as-you-go shop may listen, with 1
+  phone** (LSN-07 and LSN-08 amended); a match whose fee the balance cannot cover goes to **free review by hand**, as
+  WAL-21 says, with a low-balance notice; **bKash's parser is built now** from the known receipts (money received,
+  cash out at an agent, a merchant payment), checked against real receipts before the app ships (5.5), an unknown
+  format ignored and so verified by hand; **two parts**, 5.4a the phones and 5.4b the receipts; and, from 5.3, **an
+  order's page awaiting money closes** once staff record its advance in full, so the shopper cannot pay twice.
+  Settled building 5.4a: codes and phones live in control, as API keys do, since the app is found by its code or token
+  before its shop is known; a code is 8 letters from an alphabet without look-alikes, kept only as its SHA-256 hash,
+  open 10 minutes, made only while the shop may listen and has a phone left; a token is 32 random bytes, kept as its
+  hash, shown once. Every app call names its installation (`x-installation-id`) and version (`x-app-version`) and is
+  checked live -- the token, the phone's revocation (401 with the reason, which the app shows), its installation (a
+  call from another flags the phone; the third flag revokes it and tells its owner and Lytro), the shop's state
+  (`tenant_offline`) and the minimum version (`app_update_required`, a new 426 code, LSN-18) -- so a revocation or a
+  state change shows on the next call (LSN-07, LSN-19). A wrong code names no code, so LSN-10's ten tries per code
+  count the refusals of a code that was found (a blocked installation, a shop that may not listen, the plan full); a
+  caller's five failures count every refusal. The device limit is the shop's composed limit (its plan, overrides and
+  add-ons); Growth's 2 and Pro's 5 are set in migration 0098. Pairings, revocations, flags and limit refusals are in the
+  shop's activity log and the platform's audit log (LSN-22); a block of an installation revokes its phones in every
+  shop. The purge runs daily: codes a day after they are spent or run out, phones 30 days after revocation. A page
+  closes when a payment leaves the order paid; a part leaves it open, and one where the shopper typed an ID waits for
+  staff.
+- **Delivers (5.4a):** pairing codes, devices and tokens (LSN-01, 02, 09 – 12, 19 – 22), heartbeats and online
+  status (LSN-03), the tenant-state gate (LSN-07) and device limits (LSN-08), the minimum app version (LSN-18), the
+  purge (LSN-05), devices removed at day 60 (LSN-23).
+- **Delivers (5.4b):** uploads and their limits (LSN-13 – 16), bKash's receipt parser (LSN-06), matching (VER-02 – 06),
+  the page's offline notice (VER-07), the listener fee and its short-balance path (WAL-20, WAL-21, RAT-16), the test
+  mode (LSN-04), the volume flag (LSN-14) and redaction (LSN-17).
 
 ### Slice 5.5: the listener app
 - **Delivers:** the Android app: pairing by QR or code, reading receipt SMS from allowed senders in the background,
