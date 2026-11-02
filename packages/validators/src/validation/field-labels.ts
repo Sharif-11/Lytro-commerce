@@ -235,6 +235,7 @@ export const FIELD_LABELS: Readonly<Record<string, Translation | null>> = {
   sharedStock: { en: 'Shared stock', bn: 'শেয়ার্ড স্টক' },
   shopName: { en: 'Shop name', bn: 'শপের নাম' },
   shopperNote: { en: 'Note for the shop', bn: 'শপের জন্য নোট' },
+  short: { en: 'Short for orders', bn: 'অর্ডারের জন্য কম' },
   storefrontEnabled: { en: 'Storefront', bn: 'স্টোরফ্রন্ট' },
   sizeChart: { en: 'Size chart', bn: 'সাইজ চার্ট' },
   sku: { en: 'SKU', bn: 'SKU' },

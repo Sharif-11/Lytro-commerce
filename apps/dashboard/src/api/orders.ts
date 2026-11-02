@@ -63,6 +63,9 @@ export interface OrderFilter {
   to?: string;
   /** Cancelled only (ORD-52). */
   reason?: CancelReason;
+  /** INV-15 (Slice 4.8c): only the orders holding this variant's stock, and its name for the chip. */
+  holding?: string;
+  holdingName?: string;
 }
 
 function query(filter: OrderFilter, extra: Record<string, string>): string {
@@ -73,6 +76,7 @@ function query(filter: OrderFilter, extra: Record<string, string>): string {
     ...(filter.from ? { dateFrom: filter.from } : {}),
     ...(filter.to ? { dateTo: filter.to } : {}),
     ...(filter.reason && filter.tab === 'cancelled' ? { cancelReason: filter.reason } : {}),
+    ...(filter.holding ? { variantId: filter.holding } : {}),
     ...extra,
   }).toString();
 }

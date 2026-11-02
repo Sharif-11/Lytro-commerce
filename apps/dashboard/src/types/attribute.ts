@@ -69,6 +69,8 @@ export interface VariantStock {
   onHand: string | null;
   /** Held for orders not shipped yet ("Waiting to ship"); null like onHand. */
   reserved: string | null;
+  /** INV-15: what orders hold beyond what's sellable on hand: how short it is. */
+  reservedExpired?: string | null;
   available: string;
   /** INV-14: on a serial-numbered product, how many units held have no serial yet; null otherwise. */
   missingSerials: number | null;
@@ -85,6 +87,8 @@ export interface SharedStock {
   variantId: string;
   onHand: string;
   reserved: string;
+  /** INV-15: what orders hold beyond what's sellable on hand: how short it is. */
+  reservedExpired?: string;
   available: string;
   incoming: string;
   state: StockState;
@@ -92,7 +96,24 @@ export interface SharedStock {
 }
 
 /** GET /products/:id/stock, as the editor, its Stock card and the Stock page read it (INV-01, Slices 11.7c and 11.9). */
+/** CMB-08: why a combo can't be made, naming the part. */
+export interface ComboIssue {
+  position: number;
+  productName: string;
+  reason: 'part_archived' | 'part_off_sale' | 'part_retired' | 'no_choice_left';
+}
+
+/** CMB-02, CMB-08: what a combo's parts make of it. */
+export interface ComboStock {
+  /** How many it can make; null when no part is counted. */
+  canMake: number | null;
+  limitedBy: { position: number; productName: string; available: string } | null;
+  issues: ComboIssue[];
+}
+
 export interface ProductStock {
+  /** Its parts' figures, for a combo; null otherwise. */
+  combo?: ComboStock | null;
   productId: string;
   stockUnit: StockUnit;
   /** INV-02: a product made to order counts no stock. */

@@ -20,6 +20,8 @@ export interface StockMovement {
   note: string | null;
   actor: { userId: string; name: string | null } | null;
   createdAt: string;
+  /** CMB-05: a sale's or return's order, and the combo it went in. */
+  order?: { id: string; number: string; combo: string | null } | null;
 }
 
 /** GET /products/:id/variants/:variantId/stock-history: a page, newest first. */

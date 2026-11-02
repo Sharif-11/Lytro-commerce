@@ -57,6 +57,10 @@ export interface ProductListFilter {
   active?: boolean;
   /** INV-08: the ones in this stock state, a product's being its best variant's (CCH-08). */
   stockState?: SelectProduct['stockState'];
+  /** CMB-01 (Slice 4.8c): one kind only; its counts follow, so a chip says what its list shows. */
+  kind?: SelectProduct['kind'];
+  /** INV-15 (Slice 4.8c): only these products; none at all when empty. */
+  ids?: readonly string[];
   /**
    * The Stock page (Slice 11.9): products out of stock first, then those low or with a variant on sale low or out,
    * then the rest, each in the usual order.
@@ -276,7 +280,11 @@ export class ProductRepository {
       );
     if (filter.categoryId === 'uncategorized') conditions.push(notExists(filed));
     else if (filter.categoryId) conditions.push(exists(filed));
+    if (filter.kind) conditions.push(eq(products.kind, filter.kind));
     const counted = and(...conditions);
+    if (filter.ids) {
+      conditions.push(filter.ids.length > 0 ? inArray(products.id, [...filter.ids]) : sql`false`);
+    }
     conditions.push(filter.archived ? isNotNull(products.deletedAt) : isNull(products.deletedAt));
     if (filter.active !== undefined) conditions.push(eq(products.active, filter.active));
     if (filter.stockState) conditions.push(eq(products.stockState, filter.stockState));

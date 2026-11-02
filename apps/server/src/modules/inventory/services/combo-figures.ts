@@ -9,8 +9,8 @@ import { milli, packsOf, quantityOf, variantState } from './stock-state';
 export interface ComboIssue {
   position: number;
   productName: string;
-  /** A fixed part's variant is archived, retired or deleted; a choice part has no variant left on sale. */
-  reason: 'part_unavailable' | 'no_choice_left';
+  /** A fixed part's product is archived or off sale, or its variant is retired; a choice part has none left on sale. */
+  reason: 'part_archived' | 'part_off_sale' | 'part_retired' | 'no_choice_left';
 }
 
 export interface ComboFigures {
@@ -28,6 +28,13 @@ export interface ComboFigures {
 /** A variant still offered: its product live and on sale, the variant itself on sale and not retired. */
 function isLive(row: ComboPartStockRow): boolean {
   return row.productActive && !row.productDeleted && row.variantActive && !row.variantRetired;
+}
+
+/** Why a fixed part's one variant is not live: what the seller has to undo. */
+function fixedPartReason(row: ComboPartStockRow): ComboIssue['reason'] {
+  if (row.productDeleted) return 'part_archived';
+  if (row.variantRetired) return 'part_retired';
+  return 'part_off_sale';
 }
 
 /** CMB-02, CMB-09: the variant's whole units free to sell; null when its stock is not counted, so it never limits. */
@@ -62,7 +69,7 @@ export function comboFigures(rows: ComboPartStockRow[]): Map<string, ComboFigure
         issues.push({
           position,
           productName: first.productName,
-          reason: variants.length === 1 ? 'part_unavailable' : 'no_choice_left',
+          reason: variants.length === 1 ? fixedPartReason(first) : 'no_choice_left',
         });
       }
       // A part with nothing on sale sums to nothing, so it makes no combo.
