@@ -1,4 +1,5 @@
 import { CATEGORIES, type CategoryFixture, type CategoryStateFixture } from './categories';
+import { drawnTax, type TaxFixture } from './tax';
 import type { Language } from './mock-api';
 import type { BatchFixture, MovementFixture } from './stock';
 import type { PurchasingFixture } from './purchases';
@@ -52,6 +53,30 @@ export interface ProductFixture {
   batches?: BatchFixture[];
   sharedOnHand?: number;
   history?: Record<string, MovementFixture[]>;
+  /** CMB-01 (Slice 4.8c): an ordinary product unless it says so, with its parts' figures. */
+  kind?: 'standard' | 'combo';
+  combo?: {
+    canMake: number | null;
+    limitedBy: { position: number; productName: string; available: string } | null;
+    issues: { position: number; productName: string; reason: string }[];
+  };
+  /** INV-15 (Slice 4.8c): a stock line short for orders, as Stock lists it. */
+  short?: {
+    variantId: string;
+    name: [string, string];
+    held: number;
+    onHand: number;
+    short: number;
+  };
+  /** TAX-01, MNU-01 (Slice 4.8c). */
+  taxClassId?: string | null;
+  modifierGroups?: {
+    id?: string;
+    name: string;
+    minSelect: number;
+    maxSelect: number;
+    options: { id?: string; name: string; priceChange: string | number; isDefault?: boolean }[];
+  }[];
 }
 
 /** An uploaded item: its kind and its bytes, and whether the brand identity shows it (KNOWN-GAPS §97). */
@@ -64,6 +89,8 @@ export interface MediaFixture {
 /** The shop's products where they differ from the prototype's, its product limit (null for none), and its tree. */
 export interface ProductsFixture {
   products: ProductFixture[];
+  /** Slice 4.8c: the shop's tax classes; Part 31's three unless a test gives its own. */
+  tax?: TaxFixture;
   limit: number | null;
   categories?: CategoryFixture[];
   /** Slice 11.8: what each category holds beyond its place and name, by id. */
@@ -318,6 +345,21 @@ export function productDetail(
     product.categoryIds ?? (product.primaryCategoryId ? [product.primaryCategoryId] : []);
   return {
     ...(summary(product, language) as object),
+    kind: product.kind ?? 'standard',
+    taxClass:
+      (fixture.tax ?? drawnTax()).classes.find((each) => each.id === product.taxClassId) ?? null,
+    modifierGroups: (product.modifierGroups ?? []).map((group, at) => ({
+      id: group.id ?? `g-${String(at)}`,
+      name: group.name,
+      minSelect: group.minSelect,
+      maxSelect: group.maxSelect,
+      options: group.options.map((option, place) => ({
+        id: option.id ?? `o-${String(at)}-${String(place)}`,
+        name: option.name,
+        priceChange: Number(option.priceChange).toFixed(2),
+        isDefault: option.isDefault ?? false,
+      })),
+    })),
     oldSlugs: [],
     description: product.description ?? null,
     archived: product.archived ?? false,
@@ -542,6 +584,11 @@ export function productWrite(
     }
     const categoryIds = (body?.categoryIds as string[] | undefined) ?? [];
     const product: ProductFixture = {
+      taxClassId:
+        body && 'taxClassId' in body
+          ? (body.taxClassId as string | null)
+          : (fixture.tax ?? drawnTax()).defaultId,
+      modifierGroups: (body?.modifierGroups as ProductFixture['modifierGroups']) ?? [],
       id: `p-new-${String((made += 1))}`,
       name: named(body?.name),
       basePrice: Number(body?.basePrice).toFixed(2),
@@ -581,6 +628,10 @@ export function productWrite(
       product.primaryCategoryId = body.primaryCategoryId as string | null;
     }
     if (typeof body?.active === 'boolean') product.active = body.active;
+    if (body && 'taxClassId' in body) product.taxClassId = body.taxClassId as string | null;
+    if (Array.isArray(body?.modifierGroups)) {
+      product.modifierGroups = body.modifierGroups as ProductFixture['modifierGroups'];
+    }
     if (body) saveSettings(product, body);
     return answer();
   }

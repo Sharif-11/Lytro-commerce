@@ -34,6 +34,8 @@ export interface MovementFixture {
   delta: string;
   onHandAfter: string;
   reason: string;
+  /** CMB-05: a sale's or return's order, and the combo it went in. */
+  order?: { id: string; number: string; combo: string | null } | null;
   note: string | null;
   actor: { userId: string; name: string } | null;
   createdAt: string;
@@ -155,6 +157,81 @@ function rankOf(product: ProductFixture): number {
   return product.stockState === 'low' || variants.some((each) => each.state !== 'in') ? 1 : 2;
 }
 
+interface StockRead {
+  variants: { variantId: string; optionIds: string[] }[];
+}
+
+/** INV-15: a short line's figures, as the server reads them. */
+function withShort(read: StockRead, product: ProductFixture): StockRead {
+  const short = product.short;
+  if (!short) return read;
+  return {
+    ...read,
+    variants: [
+      {
+        variantId: short.variantId,
+        optionIds: [],
+        sku: null,
+        retired: false,
+        onHand: String(short.onHand),
+        reserved: String(short.held),
+        unsellable: '0',
+        reservedExpired: String(short.short),
+        available: '0',
+        missingSerials: null,
+        incoming: '0',
+        packAmount: null,
+        state: 'out',
+        avgCost: null,
+      } as StockRead['variants'][number],
+    ],
+  };
+}
+
+/** Part 31's `k31-stock`: the first product short for orders, and two combos, one limited and one that can't be made. */
+export function withShortAndCombos(fixture: ProductsFixture): ProductsFixture {
+  const first = fixture.products[0];
+  if (first) {
+    first.short = {
+      variantId: 'p-1-short',
+      name: ['M', 'M'],
+      held: 3,
+      onHand: 2,
+      short: 1,
+    };
+  }
+  const combo = (
+    id: string,
+    name: [string, string],
+    stockState: ProductFixture['stockState'],
+    figures: NonNullable<ProductFixture['combo']>,
+  ): ProductFixture => ({
+    id,
+    name,
+    basePrice: '2450.00',
+    active: true,
+    stockState,
+    primaryCategoryId: null,
+    variantCount: 1,
+    kind: 'combo',
+    stockTracking: 'not_tracked',
+    combo: figures,
+  });
+  fixture.products.push(
+    combo('p-eid', ['ঈদ কম্বো', 'Eid combo'], 'low', {
+      canMake: 6,
+      limitedBy: { position: 2, productName: 'Check lungi', available: '6.000' },
+      issues: [],
+    }),
+    combo('p-winter', ['শীতের কম্বো', 'Winter combo'], 'out', {
+      canMake: 0,
+      limitedBy: null,
+      issues: [{ position: 1, productName: 'Shawl', reason: 'part_archived' }],
+    }),
+  );
+  return fixture;
+}
+
 /** GET /inventory/stock (Slice 11.9): the products found by name, out and low first, with All, Low and Out counted. */
 export function stockPageAnswer(fixture: ProductsFixture, url: URL, language: Language): unknown {
   const search = (url.searchParams.get('search') ?? '').toLowerCase();
@@ -166,7 +243,13 @@ export function stockPageAnswer(fixture: ProductsFixture, url: URL, language: La
       ? product.primaryCategoryId === null
       : (product.categoryIds ?? [product.primaryCategoryId]).includes(categoryId));
   const at = Number(url.searchParams.get('page') ?? 1);
-  const live = fixture.products.filter((product) => !product.archived);
+  const kind = url.searchParams.get('kind');
+  const live = fixture.products.filter(
+    (product) =>
+      !product.archived &&
+      (kind === null || (product.kind ?? 'standard') === kind) &&
+      (url.searchParams.get('short') === null || product.short !== undefined),
+  );
   const found = live.filter(
     (product) =>
       filedIn(product) &&
@@ -182,7 +265,7 @@ export function stockPageAnswer(fixture: ProductsFixture, url: URL, language: La
     found.filter((product) => product.active && product.stockState === state).length;
   return {
     products: slice.map((product) => ({
-      ...(stockAnswer(product) as object),
+      ...withShort(stockAnswer(product) as StockRead, product),
       name: nameIn(product, language),
       active: product.active,
       batchTracked: product.settings?.batchTracked === true,

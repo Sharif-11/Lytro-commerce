@@ -55,5 +55,7 @@
   "vsYesterday": "গতকাল {{n}}",
   "stToShip": "শিপ করতে",
   "stMonthSales": "এই মাসের বিক্রি",
-  "stMonthSalesD": "ডেলিভারড অর্ডার"
+  "stMonthSalesD": "ডেলিভারড অর্ডার",
+  "jobShort_one": "{{count}}টি প্রোডাক্ট অর্ডারের জন্য কম পড়েছে",
+  "jobShort_other": "{{count}}টি প্রোডাক্ট অর্ডারের জন্য কম পড়েছে"
 }

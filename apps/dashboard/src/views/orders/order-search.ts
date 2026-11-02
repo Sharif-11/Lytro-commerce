@@ -11,6 +11,8 @@ export const ordersSearch = z.object({
   from: z.string().regex(DAY).optional().catch(undefined),
   to: z.string().regex(DAY).optional().catch(undefined),
   reason: z.nativeEnum(CancelReason).optional().catch(undefined),
+  holding: z.string().min(1).optional().catch(undefined),
+  holdingName: z.string().optional().catch(undefined),
 });
 
 export type OrdersSearch = z.infer<typeof ordersSearch>;
@@ -23,6 +25,8 @@ export function searchOf(filter: OrderFilter): Record<string, string | undefined
     from: filter.from,
     to: filter.to,
     reason: filter.tab === 'cancelled' ? filter.reason : undefined,
+    holding: filter.holding,
+    holdingName: filter.holding ? filter.holdingName : undefined,
   };
 }
 
@@ -34,5 +38,7 @@ export function filterOf(search: OrdersSearch): OrderFilter {
     from: search.from,
     to: search.to,
     reason: search.reason,
+    holding: search.holding,
+    holdingName: search.holdingName,
   };
 }

@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import type { TaxClass } from '@/types/tax';
 import {
   ItemCondition,
   ProductFormField,
@@ -22,6 +23,7 @@ import { ChartField, SwitchLine } from './type-cards';
  */
 export function MoreSettings({
   active,
+  tax,
   upFront,
   settings,
   single,
@@ -36,6 +38,13 @@ export function MoreSettings({
   onRemove,
 }: {
   active: boolean;
+  /** TAX-01: the shop's classes and this product's; null where the shop has none. */
+  tax: {
+    classes: readonly TaxClass[];
+    defaultId: string | null;
+    value: string | null;
+    onChange: (taxClassId: string | null) => void;
+  } | null;
   /** PST-05: the fields the shop type shows up front, which are not repeated here. */
   upFront: readonly ProductFormField[];
   settings: ProductSettings;
@@ -65,6 +74,25 @@ export function MoreSettings({
         </span>
       </summary>
       <div className="mt-3 flex flex-col gap-3">
+        {tax ? (
+          <SelectField
+            label={t('taxClass')}
+            value={tax.value ?? ''}
+            disabled={readOnly}
+            help={t('taxClassHelp')}
+            options={[
+              ...tax.classes.map((each) => ({
+                value: each.id,
+                label:
+                  each.id === tax.defaultId ? t('taxClassDefault', { name: each.name }) : each.name,
+              })),
+              { value: '', label: t('taxClassNone') },
+            ]}
+            onChange={(event) => {
+              tax.onChange(event.target.value || null);
+            }}
+          />
+        ) : null}
         {upFront.includes(ProductFormField.SizeChart) ? null : (
           <ChartField text={chartText} onOpen={onChart} />
         )}

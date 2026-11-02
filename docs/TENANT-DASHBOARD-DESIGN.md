@@ -1,6 +1,7 @@
 # Tenant dashboard: the full design
 
-Status: v3.27, 2026-11-02 (what's asked when ordering, in New order and Edit order, agreed and drawn, §7.31; v3.26 of
+Status: v3.28, 2026-11-02 (See the orders narrowed to those holding it, an add-on option's Remove, §7.33; v3.27 of
+2026-11-02: what's asked when ordering, in New order and Edit order, agreed and drawn, §7.31; v3.26 of
 2026-11-02: the role editor's customers permissions, drawn as 4.8b was built, §7.32; v3.25 of 2026-10-31:
 New order's variant step, an ordinary product's add-ons, a table order and the delivery charge
 by hand, drawn as 4.8a's third part was built, Part 29; v3.24 of 2026-10-31: returning and handing over serial-numbered units by their serials, drawn as 4.8a's second
@@ -1533,7 +1534,7 @@ bar's search finds everything.
   when ordering, like gift wrap. Their price adds to the line." -- each group with its rule and options. A group's
   sheet (`sh-k31-group`, agreed): its name; how many the customer picks as plain rules -- Optional, any number;
   Optional, at most 1; Required, exactly 1; or **Custom**, which shows at least and at most (`sh-k31-group-custom`);
-  its options, each a name, what it adds to the price (a minus takes off) and **Picked by default**; orders already
+  its options, each a name, what it adds to the price (a minus takes off), **Picked by default** and **Remove**; orders already
   made keep what was chosen (MNU-02). A new group starts empty (`sh-k31-group-new`).
 - **Tax class** (`k31-more`, agreed): under More settings, beside the size chart and condition, prefilled with the
   shop's default -- "The tax is inside the price; totals never change." (TAX-01).
@@ -1544,8 +1545,11 @@ bar's search finds everything.
   carry no tax (`tax31-empty`).
 - **Short for orders** (agreed): when orders hold more than is on the shelf (after a stock check or a write-off), Home's
   to-do says how many products are short (`p31-home-short`), and Stock shows them first, each "3 held for orders · 2
-  on hand · 1 short" in red with **Add stock** and **See the orders** (`k31-stock`, INV-15).
-- **Combos on Stock**: each combo with how many it can make and what limits it, or why it can't be made.
+  on hand · 1 short" in red with **Add stock** and **See the orders**, which opens the Orders list narrowed to the orders
+  holding it, with a chip to clear (`k31-stock`, `o29-holding`, INV-15; agreed in the build read, 2026-11-02).
+- **Combos on Stock**: each combo with how many it can make and what limits it, or why it can't be made: the part is
+  archived, off sale, its variant retired, or no choice of it is left. Combos hold no stock of their own, so they leave
+  Stock's list and its counts for this card.
 - **Stock history** names each sale's and return's order, and the combo a sale went in -- "Sold in Eid combo · order
   #261031-0047" (`sh-k31-history`, CMB-05).
 

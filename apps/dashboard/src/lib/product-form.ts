@@ -1,5 +1,6 @@
 import { StockTracking } from '@lytronix/validators';
 import type { ProductDetail } from '@/types/product';
+import { groupsBody, groupsOf, type AddOnGroup } from './add-ons';
 import {
   batchBody,
   NO_BATCH,
@@ -58,6 +59,10 @@ export interface ProductForm {
   splits: SplitAttribute[];
   variants: VariantRow[];
   descriptions: Description[];
+  /** TAX-01: its tax class, null for none; left out on a new product, it takes the shop's default. */
+  taxClassId: string | null | undefined;
+  /** MNU-01: what's chosen when ordering it. */
+  addOns: AddOnGroup[];
   sharedStock: boolean;
   /** INV-24: a new product's shared stock already on the shelf, in its unit, as typed. */
   sharedOpeningStock: string;
@@ -77,6 +82,8 @@ export interface ProductForm {
 
 /** A new product: nothing typed, on sale once saved, one default variant, the shop's defaults until they load. */
 export const NEW_PRODUCT: ProductForm = {
+  taxClassId: undefined,
+  addOns: [],
   name: '',
   price: '',
   description: '',
@@ -112,6 +119,8 @@ export function priceText(price: string): string {
 export function formOf(product: ProductDetail): ProductForm {
   const only = product.variantAttributes.length === 0 ? product.variants[0] : undefined;
   return {
+    taxClassId: product.taxClass?.id ?? null,
+    addOns: groupsOf(product),
     name: product.name,
     price: priceText(product.basePrice),
     description: product.description ?? '',
@@ -227,6 +236,8 @@ export function createBody(form: ProductForm) {
       ? variantPartOf(form, opening)
       : {}),
     ...(form.descriptions.length > 0 ? { attributes: descriptionsBody(form.descriptions) } : {}),
+    ...(form.taxClassId === undefined ? {} : { taxClassId: form.taxClassId }),
+    ...(form.addOns.length > 0 ? { modifierGroups: groupsBody(form.addOns) } : {}),
     ...(shared ? { sharedStock: true } : {}),
     ...(shared && opening && shelf !== '' ? { sharedOpeningStock: Number(shelf) } : {}),
     ...(sharedBatch ? { sharedOpeningBatch: sharedBatch } : {}),
@@ -236,6 +247,12 @@ export function createBody(form: ProductForm) {
   };
 }
 
+/** TAX-01, MNU-01: saved with the product's own fields; add-ons as the whole list. */
+interface TaxAndAddOns {
+  taxClassId?: string | null;
+  modifierGroups?: ReturnType<typeof groupsBody>;
+}
+
 /**
  * One part of an edit, saved by its own request: the product's own fields and settings, its options and variants, its
  * descriptions, where it delivers, its size chart (null takes its own off), its photos, or its video.
@@ -243,7 +260,9 @@ export function createBody(form: ProductForm) {
 export type EditPart =
   | {
       part: 'fields';
-      body: Partial<ReturnType<typeof fieldsOf>> & ReturnType<typeof changedSettings>;
+      body: Partial<ReturnType<typeof fieldsOf>> &
+        ReturnType<typeof changedSettings> &
+        TaxAndAddOns;
     }
   | { part: 'variants'; body: ReturnType<typeof variantPartOf> & { sharedStock?: boolean } }
   | { part: 'attributes'; body: { attributes: ReturnType<typeof descriptionsBody> } }
@@ -301,10 +320,8 @@ const descriptionsText = (form: ProductForm): string =>
 export function changedParts(saved: ProductForm, form: ProductForm): EditPart[] {
   const before = fieldsOf(saved);
   const after = fieldsOf(form);
-  const fields: Partial<typeof after> & ReturnType<typeof changedSettings> = changedSettings(
-    saved.settings,
-    form.settings,
-  );
+  const fields: Partial<typeof after> & ReturnType<typeof changedSettings> & TaxAndAddOns =
+    changedSettings(saved.settings, form.settings);
   if (after.name !== before.name) fields.name = after.name;
   if (form.price.trim() !== saved.price.trim()) fields.basePrice = after.basePrice;
   if (after.description !== before.description) fields.description = after.description;
@@ -316,6 +333,12 @@ export function changedParts(saved: ProductForm, form: ProductForm): EditPart[] 
     fields.primaryCategoryId = after.primaryCategoryId;
   }
   if (after.active !== before.active) fields.active = after.active;
+  if (form.taxClassId !== undefined && form.taxClassId !== saved.taxClassId) {
+    fields.taxClassId = form.taxClassId;
+  }
+  if (JSON.stringify(groupsBody(form.addOns)) !== JSON.stringify(groupsBody(saved.addOns))) {
+    fields.modifierGroups = groupsBody(form.addOns);
+  }
   const parts: EditPart[] = [];
   if (Object.keys(fields).length > 0) parts.push({ part: 'fields', body: fields });
   // Variants before descriptions: an attribute moving from one to the other leaves the first before joining the second.
