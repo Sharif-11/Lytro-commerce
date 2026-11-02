@@ -312,6 +312,13 @@ export class OrderPickerProductDto extends createZodDto(
         ),
       }),
     ),
+    asked: z.array(
+      z.object({
+        attributeId: z.string(),
+        name: z.string(),
+        dataType: z.nativeEnum(AttributeDataType),
+      }),
+    ),
   }),
 ) {}
 

@@ -554,6 +554,54 @@ const NEW_ORDER: Pair[] = [
     }),
   },
   {
+    name: 'order-add-asked',
+    screen: 'o29-add-asked',
+    device: 'phone',
+    language: 'bn',
+    path: '/orders/new',
+    then: newOrder('bn', {
+      after: adding(async (dialog) => {
+        await dialog.getByRole('searchbox').fill('কেক');
+        await dialog.getByRole('button', { name: /^চকলেট কেক/ }).click();
+        await dialog.getByLabel('কেকের ওপর লেখা').fill('শুভ জন্মদিন রাফি');
+      }),
+    }),
+  },
+  {
+    name: 'order-line-details',
+    screen: 'o29-line-details',
+    device: 'phone',
+    language: 'bn',
+    path: '/orders/new',
+    then: newOrder('bn', {
+      after: async (page) => {
+        await adding(async (dialog) => {
+          await dialog.getByRole('searchbox').fill('কেক');
+          await dialog.getByRole('button', { name: /^চকলেট কেক/ }).click();
+          await dialog.getByLabel('কেকের ওপর লেখা').fill('শুভ জন্মদিন রাফি');
+          await dialog.getByRole('button', { name: /^অর্ডারে যোগ করুন/ }).click();
+        })(page);
+        await page.getByRole('main').getByRole('button', { name: 'তথ্য বদলান' }).click();
+      },
+    }),
+  },
+  {
+    name: 'order-new-asked',
+    screen: 'o29-new-asked',
+    device: 'phone',
+    language: 'bn',
+    path: '/orders/new',
+    scroll: /^আইটেম$/,
+    then: newOrder('bn', {
+      after: adding(async (dialog) => {
+        await dialog.getByRole('searchbox').fill('কেক');
+        await dialog.getByRole('button', { name: /^চকলেট কেক/ }).click();
+        await dialog.getByLabel('কেকের ওপর লেখা').fill('শুভ জন্মদিন রাফি');
+        await dialog.getByRole('button', { name: /^অর্ডারে যোগ করুন/ }).click();
+      }),
+    }),
+  },
+  {
     name: 'order-new-counter',
     screen: 'o29-new-counter',
     device: 'phone',

@@ -1,6 +1,7 @@
 # Tenant dashboard: the full design
 
-Status: v3.26, 2026-11-02 (the role editor's customers permissions, drawn as 4.8b was built, §7.32; v3.25 of 2026-10-31:
+Status: v3.27, 2026-11-02 (what's asked when ordering, in New order and Edit order, agreed and drawn, §7.31; v3.26 of
+2026-11-02: the role editor's customers permissions, drawn as 4.8b was built, §7.32; v3.25 of 2026-10-31:
 New order's variant step, an ordinary product's add-ons, a table order and the delivery charge
 by hand, drawn as 4.8a's third part was built, Part 29; v3.24 of 2026-10-31: returning and handing over serial-numbered units by their serials, drawn as 4.8a's second
 part was built, Part 29; v3.23 of 2026-10-31: the Orders list's dates and Delete's question drawn as 4.8a was built, Part 29;
@@ -1457,7 +1458,9 @@ drawn greyed with "Later" so the design stays whole; **the built screens hide th
   searches products and shows each variant's stock, an out-of-stock one greyed (`o29-add-item`); a product with
   variants is tapped, then one of its variants with its price and stock, one line a tap (`o29-add-variant`); a combo
   asks a size for each unit of a choice part and its add-ons (`o29-combo-pick`); an ordinary product's add-on groups
-  come after its variant, a required group marked (`o29-add-ons`); every order-taker sees the stock, through the
+  come after its variant, a required group marked (`o29-add-ons`); what the seller
+  marked asked when ordering -- a message on the cake, ATR-08 -- comes last, optional (`o29-add-asked`), its answer on
+  the line with **Change details** (`o29-new-asked`, `o29-line-details`) and on the order (`o29-asked-order`); every order-taker sees the stock, through the
   orders' own read (agreed in the a3 read, 2026-10-31); each line's quantity (one less than one takes the line off) and **Change price** -- the
   price for each, the one it had shown under it (`o29-line-price`), kept in the history, ORD-06 -- then the order's discount, the delivery charge by hand (a switch, then the amount, `o29-new-byhand`), **the customer already paid
   something** (`o29-new-paid`: how, the amount, the TrxID; ORD-22), **Already confirmed on the phone** (it starts
