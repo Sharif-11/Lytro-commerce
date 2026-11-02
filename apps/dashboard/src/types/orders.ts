@@ -297,16 +297,3 @@ export interface OrderQuote {
   taxes: { name: string; rate: string; amount: string }[];
   warnings: OrderWarning[];
 }
-
-/** CUS-01, CUS-02 (GET /customers, GET /customers/:id): a customer as New order's known phone reads them. */
-export interface KnownCustomer {
-  id: string;
-  name: string | null;
-  phone: string | null;
-  orderCount: number;
-}
-
-/** GET /customers/:id: with where its latest delivery went. */
-export interface KnownCustomerView extends KnownCustomer {
-  lastAddress: { locationId: number; deliveryAddress: string } | null;
-}

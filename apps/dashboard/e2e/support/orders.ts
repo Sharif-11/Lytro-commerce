@@ -68,6 +68,8 @@ export interface OrderFixture {
     /** Marked refunded, with its note (Slice 5.3). */
     refunded?: string | null;
   }[];
+  /** Its customer was deleted at a privacy request (CUS-09). */
+  erased?: boolean;
   /** The order's discount (ORD-06) and its staff note. */
   discount?: number;
   notes?: string | null;
@@ -79,6 +81,8 @@ export interface OrderFixture {
 
 export interface OrdersFixture {
   orders: OrderFixture[];
+  /** This month's sales on Home; Part 30's figure when left out. */
+  monthSales?: string;
 }
 
 /** A time today on Dhaka's clock (UTC+6), `days` before today. */
@@ -347,7 +351,7 @@ function attributes(words: Words | null | undefined, language: Language) {
     : [];
 }
 
-function summary(order: OrderFixture, language: Language) {
+export function orderSummary(order: OrderFixture, language: Language) {
   return {
     id: order.id,
     orderNumber: order.number,
@@ -356,9 +360,9 @@ function summary(order: OrderFixture, language: Language) {
     fulfillmentStatus: fulfilmentOf(order),
     source: order.source,
     fulfilmentType: order.fulfilment,
-    customerName: say(order.name, language),
-    customerPhone: order.phone,
-    customerErased: false,
+    customerName: order.erased ? null : say(order.name, language),
+    customerPhone: order.erased ? null : order.phone,
+    customerErased: order.erased ?? false,
     tableRef: order.table ?? null,
     // How many lines, as the server counts them.
     items: order.items.length,
@@ -392,7 +396,7 @@ function fulfilmentOf(order: OrderFixture): string {
   return 'unfulfilled';
 }
 
-function detail(order: OrderFixture, language: Language) {
+function detail(order: OrderFixture, language: Language, customerId: string | null) {
   const total = totalOf(order);
   const paid = paidOf(order);
   const by = RUMANA(language);
@@ -479,13 +483,13 @@ function detail(order: OrderFixture, language: Language) {
       : []),
   ];
   return {
-    ...summary(order, language),
+    ...orderSummary(order, language),
     trackingId: `trk-${order.id}`,
     override: order.status === 'hold' ? 'hold' : order.status === 'cancelled' ? 'cancelled' : null,
     confirmedAt: order.calls.find((call) => call.outcome === 'confirmed')?.at ?? null,
     confirmedBy: null,
-    customerId: `c-${order.id}`,
-    customerOrders: order.customerOrders ?? null,
+    customerId: order.erased ? null : (customerId ?? `c-${order.id}`),
+    customerOrders: order.erased ? null : (order.customerOrders ?? null),
     location: order.area
       ? {
           id: order.area.thanaId,
@@ -494,7 +498,7 @@ function detail(order: OrderFixture, language: Language) {
           zillaId: order.area.zillaId,
         }
       : null,
-    deliveryAddress: say(order.address, language),
+    deliveryAddress: order.erased ? null : say(order.address, language),
     deliveryZone: counter(order)
       ? null
       : {
@@ -612,7 +616,7 @@ export function homeOrders(fixture: OrdersFixture): Record<string, unknown> {
     toShip: count((order) => order.status === 'confirmed' && order.fulfilment === 'delivery'),
     today: count((order) => dayOf(order.createdAt) === today),
     yesterday: count((order) => dayOf(order.createdAt) === yesterday),
-    monthSales: '0.00',
+    monthSales: fixture.monthSales ?? '148200.00',
   };
 }
 
@@ -626,7 +630,7 @@ function matches(order: OrderFixture, q: string | null): boolean {
   const needle = q.toLowerCase();
   return (
     order.number.includes(needle) ||
-    order.phone.endsWith(needle) ||
+    order.phone.includes(needle) ||
     order.name.some((each) => each.toLowerCase().includes(needle))
   );
 }
@@ -639,6 +643,7 @@ export function ordersAnswer(
   body: Record<string, unknown> | null,
   fixture: OrdersFixture,
   language: Language,
+  customerOf: (orderId: string) => string | null = () => null,
 ):
   | { data: unknown }
   | {
@@ -656,7 +661,7 @@ export function ordersAnswer(
     const made = madeOrder(body ?? {}, fixture.orders);
     if (!('made' in made)) return made;
     fixture.orders = [made.made, ...fixture.orders];
-    return { data: detail(made.made, language) };
+    return { data: detail(made.made, language, null) };
   }
   if (method === 'GET' && path === '/orders') {
     const status = url.searchParams.get('status');
@@ -675,7 +680,7 @@ export function ordersAnswer(
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     return {
       data: {
-        orders: found.slice(0, limit).map((order) => summary(order, language)),
+        orders: found.slice(0, limit).map((order) => orderSummary(order, language)),
         page: 1,
         limit,
         total: found.length,
@@ -697,7 +702,7 @@ export function ordersAnswer(
     if (!order || !payment)
       return { refused: { status: 404, code: 'not_found', message: 'Not found' } };
     payment.voided = String(body?.reason);
-    return { data: detail(order, language) };
+    return { data: detail(order, language, customerOf(order.id)) };
   }
   const one = /^\/orders\/([^/]+)(?:\/([a-z-]+))?$/.exec(path);
   if (!one || one[1] === 'couriers' || one[1] === 'quote') return undefined;
@@ -708,7 +713,7 @@ export function ordersAnswer(
   const action = one[2] ?? null;
   const now = new Date().toISOString();
   if (method === 'GET' && action === null) {
-    const view = detail(order, language);
+    const view = detail(order, language, customerOf(order.id));
     order.limitShown = false;
     return { data: view };
   }
@@ -737,7 +742,7 @@ export function ordersAnswer(
   }
   if (method === 'PATCH' && action === null) {
     editedOrder(order, body ?? {});
-    return { data: detail(order, language) };
+    return { data: detail(order, language, customerOf(order.id)) };
   }
   if (method === 'DELETE' && action === null) {
     fixture.orders = fixture.orders.filter((each) => each.id !== order.id);
@@ -764,25 +769,25 @@ export function ordersAnswer(
       order.cancelReason = String(body?.reason);
       order.cancelNote = note;
     }
-    return { data: detail(order, language) };
+    return { data: detail(order, language, customerOf(order.id)) };
   }
   if (action === 'cancel') {
     order.status = 'cancelled';
     order.cancelReason = String(body?.reason);
     order.cancelNote = typeof body?.note === 'string' ? body.note : null;
-    return { data: detail(order, language) };
+    return { data: detail(order, language, customerOf(order.id)) };
   }
   if (action === 'override') {
     order.holdUntil = null;
     order.status = order.calls.some((call) => call.outcome === 'confirmed')
       ? 'confirmed'
       : 'pending';
-    return { data: detail(order, language) };
+    return { data: detail(order, language, customerOf(order.id)) };
   }
   if (action === 'deliver') {
     order.collected = totalOf(order) - paidOf(order);
     order.status = 'delivered';
-    return { data: detail(order, language) };
+    return { data: detail(order, language, customerOf(order.id)) };
   }
   // Each serial-numbered item's picks, sent with it (INV-14); refused when one is short.
   const sendSerials = (): boolean => {
@@ -810,7 +815,7 @@ export function ordersAnswer(
     if (!sendSerials()) return shortOfSerials;
     order.collected = totalOf(order) - paidOf(order);
     order.status = 'delivered';
-    return { data: detail(order, language) };
+    return { data: detail(order, language, customerOf(order.id)) };
   }
   if (action === 'ship') {
     if (!sendSerials()) return shortOfSerials;
@@ -826,7 +831,7 @@ export function ordersAnswer(
     };
     order.status = 'shipped';
     order.limitShown = Boolean(order.limitOnShip);
-    const view = detail(order, language);
+    const view = detail(order, language, customerOf(order.id));
     order.limitShown = false;
     return { data: view };
   }
@@ -853,7 +858,7 @@ export function ordersAnswer(
     if (order.items.every((item) => (item.returned ?? 0) >= item.quantity)) {
       order.status = 'returned';
     }
-    return { data: detail(order, language) };
+    return { data: detail(order, language, customerOf(order.id)) };
   }
   if (action === 'payments') {
     const amount = Number(body?.amount);
@@ -870,7 +875,7 @@ export function ordersAnswer(
         at: now,
       },
     ];
-    return { data: detail(order, language) };
+    return { data: detail(order, language, customerOf(order.id)) };
   }
   return undefined;
 }

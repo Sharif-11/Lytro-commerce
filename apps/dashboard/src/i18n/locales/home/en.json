@@ -43,5 +43,17 @@
   "stProducts": "Products",
   "todayJobs": "To do today",
   "trialDaysLeft": "Trial days left",
-  "wSeeKeys": "See keys"
+  "wSeeKeys": "See keys",
+  "jobConfirm_one": "{{count}} order waiting to confirm",
+  "jobConfirm_other": "{{count}} orders waiting to confirm",
+  "jobCalls_one": "{{count}} call due now",
+  "jobCalls_other": "{{count}} calls due now",
+  "jobShip_one": "{{count}} confirmed order to ship",
+  "jobShip_other": "{{count}} confirmed orders to ship",
+  "todayTitle": "Today",
+  "stOrdersToday": "Orders today",
+  "vsYesterday": "{{n}} yesterday",
+  "stToShip": "To ship",
+  "stMonthSales": "This month's sales",
+  "stMonthSalesD": "Delivered orders"
 }

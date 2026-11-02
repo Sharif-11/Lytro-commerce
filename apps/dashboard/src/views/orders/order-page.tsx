@@ -297,10 +297,11 @@ function CustomerCard({
   onCall: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('orders');
+  const { slug, viewer } = useShell();
   const words = useOrderWords();
   const locations = useLocations();
   const counter = atCounter(order);
-  const name = order.customerErased ? t('erased') : (order.customerName ?? '');
+  const name = order.customerName ?? '';
   const zilla =
     order.location === null
       ? null
@@ -313,13 +314,39 @@ function CustomerCard({
   ]
     .filter(Boolean)
     .join(' · ');
+  // The prototype's `c30-order-erased` (CUS-09): the thana, items and totals remain, without their details.
+  if (order.customerErased) {
+    return (
+      <Card>
+        <SectionHead>{t('customer')}</SectionHead>
+        <div className="flex items-center gap-3 pt-3">
+          <span className="inline-flex size-9 flex-none items-center justify-center rounded-full bg-brand-100 text-primary-text">
+            <Icon name="user" />
+          </span>
+          <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <span className="text-[16px] font-medium">{t('erasedT')}</span>
+            <span className="text-[14px] text-fg-muted">{t('erasedH')}</span>
+          </span>
+        </div>
+        {where ? <p className="mt-2 text-[14px]">{where}</p> : null}
+      </Card>
+    );
+  }
   return (
     <Card>
       <SectionHead
         link={
-          order.customerOrders !== null ? (
+          order.customerOrders === null ? undefined : order.customerId !== null &&
+            allows(viewer, [Permission.CustomersRead]) ? (
+            <Link
+              to="/$shop/customers/$customerId"
+              params={{ shop: slug, customerId: order.customerId }}
+            >
+              {t('ordersN', { count: order.customerOrders })}
+            </Link>
+          ) : (
             <span className="text-fg-muted">{t('ordersN', { count: order.customerOrders })}</span>
-          ) : undefined
+          )
         }
       >
         {t('customer')}

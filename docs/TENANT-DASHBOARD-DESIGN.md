@@ -1,6 +1,7 @@
 # Tenant dashboard: the full design
 
-Status: v3.25, 2026-10-31 (New order's variant step, an ordinary product's add-ons, a table order and the delivery charge
+Status: v3.26, 2026-11-02 (the role editor's customers permissions, drawn as 4.8b was built, §7.32; v3.25 of 2026-10-31:
+New order's variant step, an ordinary product's add-ons, a table order and the delivery charge
 by hand, drawn as 4.8a's third part was built, Part 29; v3.24 of 2026-10-31: returning and handing over serial-numbered units by their serials, drawn as 4.8a's second
 part was built, Part 29; v3.23 of 2026-10-31: the Orders list's dates and Delete's question drawn as 4.8a was built, Part 29;
 v3.22 of 2026-10-31: Sales, the Orders hub's third tab, Slice 4.8d, prototype Part 32: orders and revenue
@@ -1503,6 +1504,8 @@ bar's search finds everything.
 - **Usage** (`usage`): the orders handled this period and today, each against its limit, or a trial's orders in all
   (`u30-trial`, QTA-01, QTA-04, TRL-03); from 80% the row suggests the plan that raises it, with the banner
   (`u30-near`).
+- **The role editor** gains the customers' two permissions, drawn as this part was built (v3.26): **See customers** and
+  **Set customers' passwords and delete their details**, below the orders' three.
 
 ### 7.33 Combos, add-ons, tax and stock for orders (`/products/new`, `/settings/tax`, `/stock`)
 

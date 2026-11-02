@@ -27,21 +27,33 @@ export const METRIC_KEY: Readonly<Record<UsageMetric, string>> = {
   [UsageMetric.EssentialSmsMonthly]: 'uSms',
   [UsageMetric.EssentialSmsTotal]: 'uSms',
   [UsageMetric.OrdersMonthly]: 'uOrders',
-  [UsageMetric.OrdersTotal]: 'uOrders',
+  [UsageMetric.OrdersTotal]: 'uOrdersTrial',
   [UsageMetric.OrdersDaily]: 'uOrdersDay',
 };
 
-// Phase 4 Slice 4.3: the server counts orders handled; this page draws them with the order screens (Slice 4.8). Until
-// then it shows the metrics its sketch draws.
-const DRAWN_LATER: ReadonlySet<UsageMetric> = new Set([
+// QTA-01, QTA-04, TRL-03 (Slice 4.8b, the prototype's `usage`): the orders handled head the card.
+const ORDER_METRICS: ReadonlySet<UsageMetric> = new Set([
   UsageMetric.OrdersMonthly,
   UsageMetric.OrdersTotal,
   UsageMetric.OrdersDaily,
 ]);
 
-/** The usage as this page draws it today: without the figures still to be drawn. */
+/** The usage as this page draws it: the orders handled first, then the rest as the server lists them. */
 export function drawnUsage(usage: ShopUsage): ShopUsage {
-  return { ...usage, metrics: usage.metrics.filter((figure) => !DRAWN_LATER.has(figure.metric)) };
+  const isOrders = (figure: UsageFigure) => ORDER_METRICS.has(figure.metric);
+  return {
+    ...usage,
+    metrics: [
+      ...usage.metrics.filter(isOrders),
+      ...usage.metrics.filter((figure) => !isOrders(figure)),
+    ],
+  };
+}
+
+/** The words after a figure's numbers: when it starts again, or that it is a total. */
+export function resetsKey(figure: UsageFigure): string {
+  if (figure.perCycle) return 'uPerCycle';
+  return figure.metric === UsageMetric.OrdersDaily ? 'uPerDay' : 'uTotal';
 }
 
 // The add-on that raises each limit a seller can run out of, by the limit key the catalogue names (PLN-13).
@@ -120,6 +132,7 @@ export interface Channels {
 export type BannerLink =
   | { kind: 'pack'; metric: PackMetric; label: string }
   | { kind: 'addon'; key: string; label: string }
+  | { kind: 'plan'; planId: string; label: string }
   | { kind: 'topUp'; label: string };
 
 export interface UsageBanner {
@@ -255,6 +268,18 @@ function bannerFor(
   const used = amountOf(figure, figure.used);
   const of = amountOf(figure, limit);
   const told = toldLine(context, false);
+  // Orders handled are raised by a plan (the prototype's `u30-near`): the one the server suggests.
+  const planned = [usage.suggestions?.first, usage.suggestions?.alternative].find(
+    (suggestion) => suggestion?.kind === 'plan',
+  );
+  const planLink: BannerLink | null =
+    ORDER_METRICS.has(metric) && planned?.kind === 'plan'
+      ? {
+          kind: 'plan',
+          planId: planned.planId,
+          label: context.t('uRaisePlan', { plan: planned.name }),
+        }
+      : null;
   if (figure.level === 80 || figure.level === 95) {
     const room = Math.max(limit - figure.used, 0);
     const words =
@@ -269,7 +294,11 @@ function bannerFor(
             percent: figure.level,
             count: room.toLocaleString('en-US'),
           });
-    return { tone: figure.level === 80 ? 'warn' : 'bad', text: joined(words, told), link: null };
+    return {
+      tone: figure.level === 80 ? 'warn' : 'bad',
+      text: joined(words, told),
+      link: planLink,
+    };
   }
   if (figure.level !== 100 && figure.level !== 'stopped') return null;
   if (metric === UsageMetric.EssentialSmsTotal) {
@@ -280,6 +309,15 @@ function bannerFor(
       ? t('uFullSms', { used, limit: of, amount: context.smsRate })
       : t('uFullSmsNoRate', { used, limit: of });
     return { tone: 'warn', text: joined(text, told), link: null };
+  }
+  if (ORDER_METRICS.has(metric)) {
+    const key =
+      metric === UsageMetric.OrdersDaily
+        ? 'uFullOrdersDay'
+        : metric === UsageMetric.OrdersTotal
+          ? 'uFullOrdersTrial'
+          : 'uFullOrders';
+    return { tone: 'bad', text: joined(t(key, { limit: of }), told), link: planLink };
   }
   const key = { products: 'uFullProducts', seats: 'uFullSeats', storage: 'uFullStorage' }[
     metric as 'products' | 'seats' | 'storage'

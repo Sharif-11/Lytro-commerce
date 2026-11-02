@@ -5,9 +5,9 @@ import { ApiClientError } from '@lytronix/api-client';
 import { formatTaka } from '@lytronix/ui';
 import { FulfilmentType, PaymentMethod, Permission } from '@lytronix/validators';
 import { useLocations } from '@/api/delivery';
+import { useCustomerByPhone } from '@/api/customers';
 import {
   useCreateOrder,
-  useKnownCustomer,
   useOrder,
   useOrderQuote,
   useUpdateOrder,
@@ -186,7 +186,7 @@ function OrderEditor({ order }: { order: Order | null }): React.JSX.Element {
   const priced = draft.lines.length > 0 ? quote.data : undefined;
 
   // CUS-01: a whole number a customer already has fills their name and offers their last address.
-  const known = useKnownCustomer(order === null && mayLookUp ? phoneOf(draft.phone) : null);
+  const known = useCustomerByPhone(order === null && mayLookUp ? phoneOf(draft.phone) : null);
   const customer = phoneOf(draft.phone) === null ? undefined : known.data;
   useEffect(() => {
     if (customer?.name && draft.name.trim() === '') set({ name: customer.name });
