@@ -1,8 +1,15 @@
-import { createFileRoute, redirect } from '@tanstack/react-router';
+import { createFileRoute } from '@tanstack/react-router';
+import { z } from 'zod';
+import { CustomersScreen } from '@/views/customers';
 
-// Customers joins the Orders hub with Phase 4 (TENANT-DASHBOARD-DESIGN §3); an old link lands on Orders.
+// TENANT-DASHBOARD-DESIGN §7.32: the Orders hub's customers. The search sits in the address, so Back from a customer
+// returns to the same list.
 export const Route = createFileRoute('/$shop/customers')({
-  beforeLoad: ({ params }) => {
-    throw redirect({ to: '/$shop/orders', params: { shop: params.shop } });
-  },
+  validateSearch: z.object({ q: z.string().optional().catch(undefined) }),
+  staticData: { screen: { hub: 'orders', section: 'customers', title: 'secCustomers' } },
+  component: CustomersRoute,
 });
+
+function CustomersRoute(): React.JSX.Element {
+  return <CustomersScreen q={Route.useSearch().q ?? ''} customerId={null} />;
+}

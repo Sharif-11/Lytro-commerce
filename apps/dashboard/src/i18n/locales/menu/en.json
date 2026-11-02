@@ -531,5 +531,7 @@
   "dmRemoveCons": "Your shop stops answering on {{domain}} at once; {{address}} keeps working. You can add it again later.",
   "dmRemoved": "{{domain}} removed",
   "dmChecked": "Not found yet; we'll keep checking every 10 minutes",
-  "dmActiveNow": "{{domain}} is active"
+  "dmActiveNow": "{{domain}} is active",
+  "pmCustomersRead": "See customers",
+  "pmCustomersManage": "Set customers' passwords and delete their details"
 }

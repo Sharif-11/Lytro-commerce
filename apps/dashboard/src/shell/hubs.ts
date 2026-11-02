@@ -4,6 +4,8 @@ import type { IconName } from '@/components/icon';
 export type HubId = 'home' | 'orders' | 'shop' | 'money' | 'menu';
 
 export type SectionId =
+  | 'orders'
+  | 'customers'
   | 'products'
   | 'categories'
   | 'attributes'
@@ -22,7 +24,6 @@ export type SectionId =
 /** A path under `/$shop`, as the router knows it. */
 export type ShopPath =
   | '/$shop'
-  | '/$shop/orders'
   | '/$shop/menu'
   | '/$shop/search'
   | `/$shop/${SectionId}`
@@ -62,7 +63,7 @@ function section(id: SectionId, anyOf: readonly Permission[]): Section {
 
 // TENANT-DASHBOARD-DESIGN §3: the five hubs and the sections of the current state, as the prototype draws them
 // (docs/brand/lytro-dashboard.html, HUBS_CURRENT). Each section needs the permission its own read needs on the
-// server; Orders shows its list to whoever may read orders (Slice 4.8a). Add-ons is reached from Usage,
+// server; Orders shows its list to whoever may read orders (Slice 4.8a), Customers theirs (Slice 4.8b). Add-ons is reached from Usage,
 // Plan and the brand editor, not from the hub's own list.
 export const HUBS: readonly Hub[] = [
   { id: 'home', icon: 'home', label: 'hubHome', root: '/$shop', anyOf: [], sections: [] },
@@ -71,8 +72,11 @@ export const HUBS: readonly Hub[] = [
     icon: 'orders',
     label: 'hubOrders',
     root: '/$shop/orders',
-    anyOf: [Permission.OrdersRead],
-    sections: [],
+    anyOf: [],
+    sections: [
+      section('orders', [Permission.OrdersRead]),
+      section('customers', [Permission.CustomersRead]),
+    ],
   },
   {
     id: 'shop',
@@ -158,7 +162,14 @@ export function sectionOf(id: SectionId): Section {
   throw new Error(`no section ${id}`);
 }
 
+/** The one search finds orders, customers and products: whoever may read any of them may search (§7.32). */
+export const SEARCH_NEEDS: readonly Permission[] = [
+  Permission.OrdersRead,
+  Permission.CustomersRead,
+  Permission.ProductsRead,
+];
+
 /** Whether the + menu holds anything this person can start now (§4.5); the + is hidden when it would not. */
 export function hasPlusActions(viewer: Viewer): boolean {
-  return allows(viewer, [Permission.BalanceManage]);
+  return allows(viewer, [Permission.BalanceManage, Permission.OrdersManage]);
 }

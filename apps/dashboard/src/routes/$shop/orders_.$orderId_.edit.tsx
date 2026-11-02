@@ -7,6 +7,7 @@ export const Route = createFileRoute('/$shop/orders_/$orderId_/edit')({
   staticData: {
     screen: {
       hub: 'orders',
+      section: 'orders',
       title: 'editOrder',
       back: '/$shop/orders',
       needs: [Permission.OrdersManage],

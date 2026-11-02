@@ -531,5 +531,7 @@
   "dmRemoveCons": "{{domain}}-এ শপ সাথে সাথে বন্ধ হবে; {{address}} চালু থাকবে। পরে আবার যোগ করতে পারবেন।",
   "dmRemoved": "{{domain}} সরানো হয়েছে",
   "dmChecked": "এখনো পাওয়া যায়নি; প্রতি 10 মিনিটে চেক চলবে",
-  "dmActiveNow": "{{domain}} চালু হয়েছে"
+  "dmActiveNow": "{{domain}} চালু হয়েছে",
+  "pmCustomersRead": "কাস্টমার দেখা",
+  "pmCustomersManage": "কাস্টমারের পাসওয়ার্ড দেওয়া ও তথ্য ডিলিট করা"
 }

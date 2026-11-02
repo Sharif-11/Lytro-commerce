@@ -12,6 +12,7 @@ import {
   barTone,
   METRIC_KEY,
   percentOf,
+  resetsKey,
   type BannerLink,
   type DayBar,
   type RaiseItem,
@@ -24,6 +25,18 @@ const LINK = 'font-semibold text-primary underline';
 export function BannerLinkTo({ link }: { link: BannerLink }): React.JSX.Element {
   const { slug } = useShell();
   const className = 'text-primary';
+  if (link.kind === 'plan') {
+    return (
+      <Link
+        to="/$shop/plan"
+        params={{ shop: slug }}
+        search={{ plan: link.planId }}
+        className={className}
+      >
+        {link.label}
+      </Link>
+    );
+  }
   if (link.kind === 'topUp') {
     return (
       <Link to="/$shop/balance" params={{ shop: slug }} search={{ topup: 1 }} className={className}>
@@ -100,7 +113,7 @@ export function MetricRow({
         <span className="num text-[13px] text-fg-muted">
           {amountOf(figure, figure.used)} /{' '}
           {figure.limit === null ? t('uUnlimited') : amountOf(figure, figure.limit)} ·{' '}
-          {figure.perCycle ? t('uPerCycle') : t('uTotal')}
+          {t(resetsKey(figure))}
         </span>
       </div>
       <div className="h-2 overflow-hidden rounded-[4px] bg-neutral-100">

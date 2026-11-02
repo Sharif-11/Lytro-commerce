@@ -6,7 +6,7 @@ import { filterOf, ordersSearch } from '@/views/orders/order-search';
 // order returns to the same list.
 export const Route = createFileRoute('/$shop/orders')({
   validateSearch: ordersSearch,
-  staticData: { screen: { hub: 'orders', title: 'hubOrders' } },
+  staticData: { screen: { hub: 'orders', section: 'orders', title: 'hubOrders' } },
   component: OrdersRoute,
 });
 

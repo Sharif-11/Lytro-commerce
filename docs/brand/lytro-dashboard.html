@@ -3173,6 +3173,8 @@ Object.assign(S, {
   pmOrdersRead: ['অর্ডার দেখা', 'See orders'],
   pmOrdersManage: ['অর্ডার কনফার্ম, শিপ ও ক্যানসেল করা', 'Confirm, ship and cancel orders'],
   pmOrdersDelete: ['ভুল অর্ডার ডিলিট করা', 'Delete orders made by mistake'],
+  pmCustomersRead: ['কাস্টমার দেখা', 'See customers'],
+  pmCustomersManage: ['কাস্টমারের পাসওয়ার্ড দেওয়া ও তথ্য ডিলিট করা', "Set customers' passwords and delete their details"],
   pmKeys: ['API কী তৈরি ও ক্যানসেল করা', 'Make and revoke API keys'],
   pmStaffRead: ['টিম দেখা', 'See the team'],
   pmStaffManage: ['স্টাফ যোগ ও রোল বদলানো', 'Add staff and change roles'],
@@ -3214,7 +3216,7 @@ for (const s of Object.values(SCREENS)) {
 
 /* STF-07: the role editor lists the permissions of the sections that exist today, in words; the role list says what
    each role may do, not its permission codes. Paying for plans and add-ons spends the balance. */
-const PERMS11 = [['pmOrdersRead', 'orders:read'], ['pmOrdersManage', 'orders:manage'], ['pmOrdersDelete', 'orders:delete'], ['pmProductsRead', 'products:read'], ['pmProductsManage', 'products:manage'], ['pmStockRead', 'inventory:read'], ['pmStockManage', 'inventory:manage'], ['pmKeys', 'keys:manage'], ['pmStaffRead', 'staff:read'], ['pmStaffManage', 'staff:manage'], ['pmBalanceRead', 'balance:read'], ['pmBalanceManage', 'balance:manage'], ['pmPaymentsRead', 'payments:read'], ['pmPaymentsManage', 'payments:manage', 'spends'], ['pmAudit', 'audit:read'], ['pmSettings', 'settings:manage']];
+const PERMS11 = [['pmOrdersRead', 'orders:read'], ['pmOrdersManage', 'orders:manage'], ['pmOrdersDelete', 'orders:delete'], ['pmCustomersRead', 'customers:read'], ['pmCustomersManage', 'customers:manage'], ['pmProductsRead', 'products:read'], ['pmProductsManage', 'products:manage'], ['pmStockRead', 'inventory:read'], ['pmStockManage', 'inventory:manage'], ['pmKeys', 'keys:manage'], ['pmStaffRead', 'staff:read'], ['pmStaffManage', 'staff:manage'], ['pmBalanceRead', 'balance:read'], ['pmBalanceManage', 'balance:manage'], ['pmPaymentsRead', 'payments:read'], ['pmPaymentsManage', 'payments:manage', 'spends'], ['pmAudit', 'audit:read'], ['pmSettings', 'settings:manage']];
 const ROLES11 = [['roleStock', 'roleStockD', 1, ['products:read', 'products:manage', 'inventory:read', 'inventory:manage'], true], ['roleBilling', 'roleBillingD', 1, ['balance:read', 'balance:manage', 'payments:read', 'payments:manage', 'audit:read']]];
 const rolesPage11 = () => `${title('secTeam', isRO() ? '' : btn('p sm', ic('plus') + ' ' + t('createRole')))}${secChips('menu', 'team')}${chips([{ l: t('people'), c: 3, go: 'team' }, { l: t('rolesL'), on: true, c: 2 }])}
   <div class="two"><div class="card flush list">${ROLES11.map(([k, d, n, , sel]) => `<button class="row ${sel ? 'sel' : ''}" style="align-items:flex-start"><span class="body"><span class="l1">${t(k)}</span><span class="l2" style="white-space:normal">${t('holders', { n })} · ${t(d)}</span></span>${ic('right')}</button>`).join('')}</div>

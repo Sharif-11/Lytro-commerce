@@ -45,6 +45,15 @@ function JobRow({ job, slug }: { job: Job; slug: string }): React.JSX.Element {
     >
       {inside}
     </Link>
+  ) : job.to === '/$shop/orders' ? (
+    <Link
+      to={job.to}
+      params={{ shop: slug }}
+      search={job.ordersTab ? { tab: job.ordersTab } : {}}
+      className={JOB_ROW}
+    >
+      {inside}
+    </Link>
   ) : (
     <Link to={job.to} params={{ shop: slug }} className={JOB_ROW}>
       {inside}

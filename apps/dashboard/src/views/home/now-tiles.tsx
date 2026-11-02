@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Permission, TenantState } from '@lytronix/validators';
-import { daysUntil } from '@lytronix/ui';
+import { daysUntil, formatTaka } from '@lytronix/ui';
 import { SectionHead } from '@/components/ui/page';
 import { StatRow, StatTile } from '@/components/ui/stat-tile';
 import { Taka } from '@/components/ui/taka';
@@ -8,6 +8,41 @@ import { formatDayMonth } from '@/lib/dates';
 import { allows } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
 import type { HomeView } from '@/types/home';
+
+/**
+ * "Today" (TENANT-DASHBOARD-DESIGN §7.32, the prototype's `p30-home`): orders placed today with yesterday's beside it,
+ * the orders to ship, and this month's sales -- the Sales page's own figure (delivered orders by the day they were
+ * placed, STA-01). For whoever may read orders, once there is anything to say: a new shop has its checklist instead.
+ */
+export function TodayTiles({ home }: { home: HomeView }): React.JSX.Element | null {
+  const { t } = useTranslation('home');
+  const orders = home.orders;
+  if (!orders) return null;
+  const nothing =
+    orders.today + orders.yesterday + orders.toShip === 0 && Number(orders.monthSales) === 0;
+  if (nothing) return null;
+  return (
+    <div>
+      <SectionHead>{t('todayTitle')}</SectionHead>
+      <div className="mt-2">
+        <StatRow label={t('todayTitle')}>
+          <StatTile
+            label={t('stOrdersToday')}
+            value={orders.today}
+            note={t('vsYesterday', { n: orders.yesterday })}
+            noteTone="good"
+          />
+          <StatTile label={t('stToShip')} value={orders.toShip} />
+          <StatTile
+            label={t('stMonthSales')}
+            value={formatTaka(orders.monthSales)}
+            note={t('stMonthSalesD')}
+          />
+        </StatRow>
+      </div>
+    </div>
+  );
+}
 
 /**
  * "Right now" (TENANT-DASHBOARD-DESIGN §7.1): products with the active count, low stock with the out count, the balance

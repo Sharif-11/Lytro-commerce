@@ -18,6 +18,8 @@ export const PERMISSION_ROWS: readonly { permission: Permission; label: string; 
     { permission: Permission.OrdersRead, label: 'pmOrdersRead' },
     { permission: Permission.OrdersManage, label: 'pmOrdersManage' },
     { permission: Permission.OrdersDelete, label: 'pmOrdersDelete' },
+    { permission: Permission.CustomersRead, label: 'pmCustomersRead' },
+    { permission: Permission.CustomersManage, label: 'pmCustomersManage' },
     { permission: Permission.ProductsRead, label: 'pmProductsRead' },
     { permission: Permission.ProductsManage, label: 'pmProductsManage' },
     { permission: Permission.InventoryRead, label: 'pmStockRead' },
@@ -36,6 +38,7 @@ export const PERMISSION_ROWS: readonly { permission: Permission; label: string; 
 // A "see" permission and the "change" one that goes with it: a role holding both says only the second.
 const CHANGES: Partial<Record<Permission, Permission>> = {
   [Permission.OrdersRead]: Permission.OrdersManage,
+  [Permission.CustomersRead]: Permission.CustomersManage,
   [Permission.ProductsRead]: Permission.ProductsManage,
   [Permission.InventoryRead]: Permission.InventoryManage,
   [Permission.StaffRead]: Permission.StaffManage,
