@@ -28,6 +28,10 @@ export interface OrderItemFixture {
   returned?: number;
   /** One unit's weight in kg, for the label. */
   weightKg?: number;
+  /** Its product, where a test reads what it asks; `p-` and its place otherwise. */
+  productId?: string;
+  /** ATR-08: the answers given when ordering it. */
+  captured?: { attributeId: string; name: Words; value: string }[];
   /** A serial-numbered item's serials (INV-14): held to send, and sent. */
   serials?: { inStock: string[]; sent: string[] };
 }
@@ -538,12 +542,16 @@ function detail(order: OrderFixture, language: Language, customerId: string | nu
     updatedAt: order.createdAt,
     items: order.items.map((item, index) => ({
       id: `${order.id}-line-${String(index)}`,
-      productId: `p-${String(index)}`,
+      productId: item.productId ?? `p-${String(index)}`,
       variantId: `v-${String(index)}`,
       productName: say(item.name, language) ?? '',
       sku: null,
       attributes: attributes(item.variant, language),
-      captured: [],
+      captured: (item.captured ?? []).map((each) => ({
+        attributeId: each.attributeId,
+        name: say(each.name, language) ?? '',
+        value: each.value,
+      })),
       thumbnail: null,
       stockUnit: 'piece',
       listPrice: money(item.unitPrice),

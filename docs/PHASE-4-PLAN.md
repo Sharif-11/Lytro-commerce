@@ -418,6 +418,11 @@ combos and statistics). If velocity suggests it, the rest can become Phase 4B wi
   server reads already merged, with no migration: Customers beside Orders in the hub, the customer with a new password
   and the privacy delete, the one search for whoever may read orders, customers or products, Home's order jobs and
   Today tiles, and the orders on Usage; the role editor's two customers permissions are drawn first (v3.26).
+  Part b merged as #275. **Before Part c** (agreed 2026-11-02): New order and Edit order ask what a seller marked asked
+  when ordering (ATR-08), optional, its answer on the line and the order, drawn first (v3.27); the storefront's asking
+  waits for Part e. **Part c ships in two** (its build read, 2026-11-02): tax classes, add-ons and Stock first, then the
+  combo editor; whoever may edit products sees the exact counts; See the orders lists only the orders holding that
+  variant.
 - **Sketch first** (`sketch-every-screen-before-building`): the status flow with the call log, Confirm, cancel
   reasons, Mark shipped and returns; the storefront's checkout for cash on delivery, the confirmation without an SMS
   promise, tracking with its Confirmed step; the Phase 5–7 parts of today's drawings shown as later.

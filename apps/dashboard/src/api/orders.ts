@@ -354,6 +354,8 @@ export function useOrderPickerProduct(productId: string | null) {
     queryFn: () =>
       tenantSession.client.get<OrderPickerProduct>(`/orders/picker/${productId ?? ''}`),
     enabled: productId !== null,
+    // An archived product answers 404 for good; a saved line of one just has nothing to ask.
+    retry: false,
   });
 }
 

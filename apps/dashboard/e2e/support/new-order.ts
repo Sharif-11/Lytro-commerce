@@ -35,6 +35,8 @@ interface PickerProduct {
   groups?: PickerGroup[];
   /** Clothing, at 5% VAT inside the price (TAX-03). */
   taxed?: boolean;
+  /** ATR-08: what is asked when ordering it. */
+  asked?: { id: string; name: Words; dataType: 'text' | 'number_with_unit' }[];
   /** Listed only when searched for, so the drawn list of four stays as drawn. */
   searchedOnly?: boolean;
 }
@@ -109,6 +111,24 @@ export const PICKER: PickerProduct[] = [
       { id: 'v-frock-2', label: sized('2–3'), price: 650, available: 0 },
       { id: 'v-frock-4', label: sized('4–5'), price: 650, available: 0 },
       { id: 'v-frock-6', label: sized('6–7'), price: 650, available: 0 },
+    ],
+  },
+  {
+    id: 'p-cake',
+    name: ['চকলেট কেক', 'Chocolate cake'],
+    kind: 'ordinary',
+    searchedOnly: true,
+    variants: [{ id: 'v-cake', label: ['', ''], price: 850, available: null }],
+    asked: [{ id: 'a-message', name: ['কেকের ওপর লেখা', 'Message on the cake'], dataType: 'text' }],
+  },
+  {
+    id: 'p-candles',
+    name: ['মোমবাতির সেট', 'Candle set'],
+    kind: 'ordinary',
+    searchedOnly: true,
+    variants: [{ id: 'v-candles', label: ['', ''], price: 120, available: null }],
+    asked: [
+      { id: 'a-count', name: ['কতটি মোমবাতি', 'How many candles'], dataType: 'number_with_unit' },
     ],
   },
   {
@@ -190,6 +210,17 @@ interface SentItem {
   lineId?: string;
   choices?: { part: number; variantIds: string[] }[];
   modifiers?: { groupId: string; optionIds: string[] }[];
+  captured?: { attributeId: string; value: string }[];
+}
+
+/** ATR-08: the answers sent, each with the name of what was asked. */
+function capturedOf(item: SentItem): OrderItemFixture['captured'] {
+  const asked = PICKER.flatMap((product) => product.asked ?? []);
+  return (item.captured ?? []).map((each) => ({
+    attributeId: each.attributeId,
+    name: asked.find((one) => one.id === each.attributeId)?.name ?? ['', ''],
+    value: each.value,
+  }));
 }
 
 /** An item priced: its price for each with the add-ons chosen, or as set by hand. */
@@ -295,6 +326,11 @@ function pickerProduct(product: PickerProduct, language: Language) {
         available: units(variant.available),
       })),
     })),
+    asked: (product.asked ?? []).map((each) => ({
+      attributeId: each.id,
+      name: say(each.name, language),
+      dataType: each.dataType,
+    })),
     modifierGroups: (product.groups ?? []).map((group) => ({
       id: group.id,
       name: say(group.name, language),
@@ -376,6 +412,8 @@ function itemOf(item: SentItem): OrderItemFixture | null {
     quantity: item.quantity,
     unitPrice: line.each,
     ...(product.kind === 'combo' ? { inside } : {}),
+    productId: product.id,
+    captured: capturedOf(item),
     addOn: addOn ? { name: addOn.name, price: addOn.price } : null,
   };
 }
@@ -498,7 +536,14 @@ export function editedOrder(order: OrderFixture, body: Record<string, unknown>):
     if (item.lineId === undefined) return itemOf(item) ?? [];
     const kept = order.items[Number(item.lineId.split('-line-')[1])];
     return kept
-      ? [{ ...kept, quantity: item.quantity, unitPrice: item.unitPrice ?? kept.unitPrice }]
+      ? [
+          {
+            ...kept,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice ?? kept.unitPrice,
+            ...(item.captured ? { captured: capturedOf(item) } : {}),
+          },
+        ]
       : [];
   });
 }
