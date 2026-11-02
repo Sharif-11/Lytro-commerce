@@ -403,6 +403,13 @@ const comboPartSchema = z.object({
 export const comboPartsField = z.array(comboPartSchema).min(1).max(COMBO_PARTS_MAX);
 export type ComboPartInput = z.infer<typeof comboPartSchema>;
 
+// POST products/combo-quote (Slice 4.8c): a combo's parts as the editor has them, saved or not, and its price if typed.
+export const comboQuoteSchema = z.object({
+  parts: comboPartsField,
+  basePrice: priceField.optional(),
+});
+export type ComboQuoteInput = z.infer<typeof comboQuoteSchema>;
+
 /** CMB-01: a combo is made of its parts alone -- no variants of its own to choose, no stock and no tracking of it. */
 function checkCombo(
   value: {

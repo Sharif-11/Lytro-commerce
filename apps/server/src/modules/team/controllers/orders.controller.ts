@@ -171,7 +171,7 @@ export class OrdersController {
   }
 
   @Get('picker')
-  @RequirePermission(Permission.OrdersManage)
+  @RequirePermission([Permission.OrdersManage, Permission.ProductsManage])
   @ResponseMessage('ProductsListed')
   @ApiOperation({
     summary:
@@ -186,7 +186,7 @@ export class OrdersController {
   }
 
   @Get('picker/:productId')
-  @RequirePermission(Permission.OrdersManage)
+  @RequirePermission([Permission.OrdersManage, Permission.ProductsManage])
   @ResponseMessage('ProductRetrieved')
   @ApiOperation({
     summary:

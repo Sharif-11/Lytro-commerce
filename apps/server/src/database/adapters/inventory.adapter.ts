@@ -4,6 +4,7 @@ import {
   CategoryRepository,
   ComboRepository,
   type ComboPartStockRow,
+  type PartVariantStockRow,
   ProductRepository,
   PurchaseOrderRepository,
   ReservationRepository,
@@ -85,6 +86,14 @@ export class DrizzleStockStore implements StockStore {
     comboIds: string[],
   ): Promise<ComboPartStockRow[]> {
     return this.combos.listPartStock(tx, tenantId, comboIds);
+  }
+
+  listPartVariantStock(
+    tx: Transaction,
+    tenantId: string,
+    variantIds: string[],
+  ): Promise<PartVariantStockRow[]> {
+    return this.combos.listPartVariantStock(tx, tenantId, variantIds);
   }
 
   listProducts(

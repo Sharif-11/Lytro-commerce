@@ -270,6 +270,7 @@ export const productDetailSchema = z.object({
           productName: z.string(),
           label: z.string(),
           available: z.boolean(),
+          stockUnit: z.nativeEnum(StockUnit),
         }),
       ),
     }),
@@ -278,3 +279,26 @@ export const productDetailSchema = z.object({
   updatedAt: z.date(),
 });
 export class ProductDetailDto extends createZodDto(productDetailSchema) {}
+
+// Slice 4.8c: what a combo's parts come to as the editor has them.
+export class ComboQuoteViewDto extends createZodDto(
+  z.object({
+    partsValue: z.string(),
+    saving: z.string().nullable(),
+    canMake: z.number().nullable(),
+    limitedBy: z
+      .object({ position: z.number(), productName: z.string(), available: z.string() })
+      .nullable(),
+    issues: z.array(
+      z.object({ position: z.number(), productName: z.string(), reason: z.string() }),
+    ),
+    weightKg: z.string().nullable(),
+    parts: z.array(
+      z.object({
+        position: z.number(),
+        price: z.string(),
+        image: productImageViewSchema.nullable(),
+      }),
+    ),
+  }),
+) {}

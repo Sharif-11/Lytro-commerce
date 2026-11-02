@@ -736,6 +736,7 @@ describeIfDatabase("New order's Add an item (Slice 4.8a, agreed 2026-10-31)", ()
         name: 'Polo',
         kind: 'standard',
         variantCount: 2,
+        optionNames: [['M', 'L']],
         available: '8.000',
       }),
     ]);
@@ -750,8 +751,8 @@ describeIfDatabase("New order's Add an item (Slice 4.8a, agreed 2026-10-31)", ()
     const byLabel = <T extends { label: string }>(rows: T[]) =>
       [...rows].sort((a, b) => a.label.localeCompare(b.label));
     expect(byLabel(shirt.variants)).toEqual([
-      { variantId: polo.l, label: 'L', price: '650.00', available: '5.000' },
-      { variantId: polo.m, label: 'M', price: '650.00', available: '3.000' },
+      { variantId: polo.l, label: 'L', price: '650.00', onSale: true, available: '5.000' },
+      { variantId: polo.m, label: 'M', price: '650.00', onSale: true, available: '3.000' },
     ]);
     const box = (await shop.get(`/orders/picker/${pack.id}`)).body as PickerProduct;
     expect(box.kind).toBe('combo');
@@ -790,4 +791,181 @@ describeIfDatabase("New order's Add an item (Slice 4.8a, agreed 2026-10-31)", ()
     expect(((await other.get('/orders/picker')).body as PickerPage).total).toBe(0);
     expect((await other.get(`/orders/picker/${toner.id}`)).status).toBe(404);
   });
+
+  it('serves whoever may edit products too (the combo editor), with each variant on sale or not and its unit', async () => {
+    const shop = await openShop(port, texts, 'cmb');
+    const polo = await sized(shop, 'Polo', 650, 5);
+    const rice = await product(shop, 'Rice', 80, 25, { stockUnit: 'kg' });
+    const editor = await staffWith(port, texts, admin, shop, ['products:read', 'products:manage']);
+    expect((await getJson(port, '/orders', editor)).status).toBe(403);
+    const page = (await getJson(port, '/orders/picker', editor)).body as PickerPage;
+    expect(page.total).toBe(2);
+    expect((await getJson(port, `/orders/picker/${rice.id}`, editor)).body).toMatchObject({
+      stockUnit: 'kg',
+      variants: [{ label: '', onSale: true, available: '25.000' }],
+    });
+    const off = await shop.patch(`/products/${polo.id}`, { active: false });
+    expect(off.status, JSON.stringify(off.body)).toBe(200);
+    const shirt = (await getJson(port, `/orders/picker/${polo.id}`, editor)).body as PickerProduct;
+    expect(shirt.variants.map((variant) => (variant as { onSale?: boolean }).onSale)).toEqual([
+      false,
+      false,
+    ]);
+  });
 });
+
+describeIfDatabase('a combo as the editor sends it (Slice 4.8c)', () => {
+  it('makes one from the fields the form sends, changes its parts and delivery, and reads back each part with its unit', async () => {
+    const shop = await openShop(port, texts, 'cmb');
+    const polo = await sized(shop, 'Polo', 650, 5);
+    const rice = await product(shop, 'Rice', 80, 25, { stockUnit: 'kg' });
+    const made = await shop.post('/products', {
+      name: 'Eid combo',
+      basePrice: 700,
+      description: null,
+      categoryIds: [],
+      primaryCategoryId: null,
+      active: true,
+      kind: 'combo',
+      parts: [
+        { quantity: 1, variantIds: [polo.m, polo.l] },
+        { quantity: 0.5, variantIds: [rice.variantId] },
+      ],
+      weightKg: null,
+      deliveryCharge: null,
+      paymentPolicy: null,
+      advanceAmount: null,
+    });
+    expect(made.status, JSON.stringify(made.body)).toBe(201);
+    const { id } = made.body as { id: string };
+    const read = (await shop.get(`/products/${id}`)).body as {
+      kind: string;
+      stockTracking: string;
+      parts: { quantity: string; variants: { label: string; stockUnit: string }[] }[];
+    };
+    expect(read).toMatchObject({ kind: 'combo', stockTracking: 'not_tracked' });
+    expect(read.parts.map((part) => part.quantity)).toEqual(['1.000', '0.500']);
+    expect(read.parts[1]?.variants).toEqual([
+      expect.objectContaining({ label: '', stockUnit: 'kg' }),
+    ]);
+
+    const changed = await shop.patch(`/products/${id}`, {
+      parts: [{ quantity: 2, variantIds: [polo.m] }],
+      weightKg: 1.1,
+    });
+    expect(changed.status, JSON.stringify(changed.body)).toBe(200);
+    expect((changed.body as { parts: unknown[] }).parts).toHaveLength(1);
+  });
+});
+
+describeIfDatabase(
+  'what a combo comes to as the editor has it (Slice 4.8c, agreed 2026-11-02)',
+  () => {
+    type Quote = {
+      partsValue: string;
+      saving: string | null;
+      canMake: number | null;
+      limitedBy: { position: number; productName: string; available: string } | null;
+      issues: { position: number; productName: string; reason: string }[];
+      weightKg: string | null;
+      parts: { position: number; price: string; image: unknown }[];
+    };
+
+    it('adds up parts not saved anywhere: each price, bought apart, the saving, can make, what limits it, the weight', async () => {
+      const shop = await openShop(port, texts, 'cmb');
+      const polo = await sized(shop, 'Polo', 650, 5);
+      const lungi = await product(shop, 'Lungi', 500, 6, { weightKg: 0.4 });
+      const before = (await shop.get('/products')).body as { total: number };
+      const quote = await shop.post('/products/combo-quote', {
+        basePrice: 1000,
+        parts: [
+          { quantity: 1, variantIds: [polo.m, polo.l] },
+          { quantity: 2, variantIds: [lungi.variantId] },
+        ],
+      });
+      expect(quote.status, JSON.stringify(quote.body)).toBe(200);
+      expect(quote.body).toEqual({
+        partsValue: '1650.00',
+        saving: '650.00',
+        // Ten Polos across its sizes, six Lungis at two a combo.
+        canMake: 3,
+        limitedBy: { position: 2, productName: 'Lungi', available: '6.000' },
+        issues: [],
+        // The Polo has no weight, so the items give none.
+        weightKg: null,
+        parts: [
+          { position: 1, price: '650.00', image: null },
+          { position: 2, price: '1000.00', image: null },
+        ],
+      });
+      // Nothing was made.
+      expect(((await shop.get('/products')).body as { total: number }).total).toBe(before.total);
+    });
+
+    it("agrees with a saved combo's stock figures, and gives no saving without a price or above it", async () => {
+      const shop = await openShop(port, texts, 'cmb');
+      const toner = await product(shop, 'Toner', 400, 4);
+      const lotion = await product(shop, 'Lotion', 300, 9);
+      const parts = [
+        { quantity: 1, variantIds: [toner.variantId] },
+        { quantity: 1, variantIds: [lotion.variantId] },
+      ];
+      const pack = await combo(shop, 'Skincare', 600, parts);
+      const stock = await stockOf(shop, pack.id);
+      const drafted = (await shop.post('/products/combo-quote', { basePrice: 600, parts }))
+        .body as Quote;
+      expect(drafted).toMatchObject({
+        canMake: stock.combo?.canMake,
+        issues: stock.combo?.issues,
+        saving: '100.00',
+      });
+      expect((await shop.post('/products/combo-quote', { parts })).body).toMatchObject({
+        saving: null,
+      });
+      expect(
+        (await shop.post('/products/combo-quote', { basePrice: 900, parts })).body,
+      ).toMatchObject({ saving: null });
+    });
+
+    it('says why a part stops it, and takes part of a measured unit', async () => {
+      const shop = await openShop(port, texts, 'cmb');
+      const toner = await product(shop, 'Toner', 400, 4);
+      const rice = await product(shop, 'Rice', 80, 25, { stockUnit: 'kg' });
+      const parts = [
+        { quantity: 1, variantIds: [toner.variantId] },
+        { quantity: 0.5, variantIds: [rice.variantId] },
+      ];
+      expect((await shop.post('/products/combo-quote', { parts })).body).toMatchObject({
+        partsValue: '440.00',
+        canMake: 4,
+        issues: [],
+        parts: [{ price: '400.00' }, { price: '40.00' }],
+      });
+      await shop.patch(`/products/${toner.id}`, { active: false });
+      expect((await shop.post('/products/combo-quote', { parts })).body).toMatchObject({
+        canMake: 0,
+        limitedBy: null,
+        issues: [{ position: 1, productName: 'Toner', reason: 'part_off_sale' }],
+      });
+    });
+
+    it('is for whoever may edit products, reads no other shop, and refuses no parts', async () => {
+      const shop = await openShop(port, texts, 'cmb');
+      const toner = await product(shop, 'Toner', 400, 4);
+      const parts = [{ quantity: 1, variantIds: [toner.variantId] }];
+      const taker = await staffWith(port, texts, admin, shop, ['orders:manage']);
+      expect((await postJson(port, '/products/combo-quote', { parts }, taker)).status).toBe(403);
+      expect((await shop.post('/products/combo-quote', { parts: [] })).status).toBe(400);
+      const other = await openShop(port, texts, 'cmb');
+      expect((await other.post('/products/combo-quote', { parts })).body).toEqual({
+        partsValue: '0.00',
+        saving: null,
+        canMake: null,
+        limitedBy: null,
+        issues: [],
+        weightKg: null,
+        parts: [],
+      });
+    });
+  },
+);

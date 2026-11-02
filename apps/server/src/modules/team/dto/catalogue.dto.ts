@@ -7,6 +7,7 @@ import {
   createOptionSchema,
   createOptionSetSchema,
   createPlatformOptionSetSchema,
+  comboQuoteSchema,
   createProductSchema,
   createShopOptionSchema,
   productDeliveryZonesSchema,
@@ -37,6 +38,7 @@ export class UpdateShopOptionDto extends createZodDto(updateShopOptionSchema) {}
 export class CreateCategoryDto extends createZodDto(createCategorySchema) {}
 export class UpdateCategoryDto extends createZodDto(updateCategorySchema) {}
 export class CategoryAttributesDto extends createZodDto(categoryAttributesSchema) {}
+export class ComboQuoteDto extends createZodDto(comboQuoteSchema) {}
 export class CreateProductDto extends createZodDto(createProductSchema) {}
 export class UpdateProductDto extends createZodDto(updateProductSchema) {}
 export class SaveVariantsDto extends createZodDto(saveVariantsSchema) {}
