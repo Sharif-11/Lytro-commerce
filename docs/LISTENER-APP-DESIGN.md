@@ -53,7 +53,8 @@ right phone, and returns to Welcome, which says which phone the app belongs on. 
 
 **2.4 Three promises, each true:**
 
-1. Only bKash's payment SMS are sent. *The app filters by sender on the phone, from a list the server gives it.*
+1. Only bKash's payment SMS are sent. *The app filters on the phone: a sender on the list the server gives it, and a
+   message that looks like a transaction. bKash's sign-in codes and offers come from the same sender and stay on the phone.*
 2. No other SMS leaves this phone. *Filtered before any upload (LSN-16). Test mode is the one exception, and says so: an
    unknown sender's message that looks like a receipt is sent, for the 10 minutes it is on.*
 3. This app never sends SMS itself. *It asks for no send permission; Android's dialog says "send and view" because that
@@ -163,7 +164,9 @@ Proposed for 5.5's build, to be settled there:
 - **Catching SMS.** A manifest receiver for incoming SMS, kept alive by the foreground service; on boot and on each report,
   it also reads the inbox for receipts it missed while killed. The server keeps each receipt once (VER-03), so reading one
   twice is harmless.
-- **Filtering.** Only senders on the server's list leave the phone. New wallets need no app update, only a server change.
+- **Filtering.** A message leaves the phone only if its sender is on the server's list and it looks like a transaction: a
+  transaction ID, or an amount with a balance, the same test the server uses. bKash's sign-in codes come from the same sender,
+  so the sender alone is not enough, and they must never reach Lytro. New wallets need no app update, only a server change.
   In test mode, an unknown sender's message is sent only if it looks like a receipt (an amount and a TrxID).
 - **Uploading.** Saved first to a private queue, then sent, retried with backoff. Removed once the server has it, so raw
   SMS never lingers. No SMS text in logs.
