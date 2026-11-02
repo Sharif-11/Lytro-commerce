@@ -1,5 +1,6 @@
 import type {
   PaymentMethod,
+  PaymentPageReviewReason,
   PaymentPageReportReason,
   PaymentRejectReason,
   PaymentPageReportStatus,
@@ -27,6 +28,12 @@ export interface PaymentPageSession {
   cancelUrl: string | null;
   /** PAY-14 (Slice 5.3): why staff rejected the payment, when they did -- the page words the reason. */
   rejected: { reason: PaymentRejectReason; note: string | null } | null;
+  /** PAY-14 (Slice 5.4b): why a payment waits for staff, as far as a shopper is to know. */
+  review: { reason: PaymentPageReviewReason } | null;
+  /** VER-07 (Slice 5.4b): a phone of the shop's reported lately and can read this payment's wallet. */
+  listenerOnline: boolean;
+  /** PAY-07 (agreed 2026-11-02): how many more times the shopper may correct the ID; 0 once someone decided. */
+  idChangesLeft: number;
   /** PAY-07: what the shopper typed, once they have. */
   submitted: {
     method: PaymentMethod;

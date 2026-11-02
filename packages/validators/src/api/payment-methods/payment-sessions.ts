@@ -62,6 +62,10 @@ export const paymentSubmissionSchema = z
   .strict();
 export type PaymentSubmissionInput = z.infer<typeof paymentSubmissionSchema>;
 
+/** PAY-07 (Slice 5.4b, agreed 2026-11-02): the shopper corrects the transaction ID they typed, and the number if they say. */
+export const paymentIdChangeSchema = paymentSubmissionSchema.omit({ method: true });
+export type PaymentIdChangeInput = z.infer<typeof paymentIdChangeSchema>;
+
 /**
  * PAY-24 (Phase 5 Slice 5.2b, agreed 2026-10-31): a payment link staff make for an order -- for the advance still owed,
  * else what is due; `full` asks for the whole amount due instead.

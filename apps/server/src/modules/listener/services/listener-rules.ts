@@ -8,6 +8,8 @@ import {
   limitOf,
   LISTENER_MIN_APP_VERSION,
   LISTENER_OFFLINE_MINUTES,
+  LISTENER_SENDERS,
+  LISTENER_WALLETS,
   ListenerDeviceStatus,
   PlatformSettingKey,
   TenantState,
@@ -16,12 +18,13 @@ import {
   type PlatformAuditAction,
 } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
-import { MINUTE_MS } from '../../../common/time';
+import { dhakaDate, MINUTE_MS } from '../../../common/time';
 import { PlatformAuditService } from '../../audit/services/platform-audit.service';
 import { CatalogueActivity, type ResolvedActor } from '../../catalogue/services/catalogue-activity';
+import { PaymentMethods } from '../../payment-methods/services/payment-methods';
 import { PlatformSettingsService } from '../../platform-settings/services/platform-settings.service';
 import { UsageWarnings } from '../../usage-warnings/services/usage-warnings';
-import type { ListenerDeviceView } from '../types/listener';
+import type { ListenerAppFacts, ListenerDeviceView } from '../types/listener';
 
 // LSN-07 (amended 2026-11-01, pay-as-you-go agreed): the states a shop may use the listener in.
 const LISTENING_STATES: ReadonlySet<TenantState> = new Set([
@@ -48,6 +51,7 @@ export class ListenerRules {
     @Inject(UsageWarnings) private readonly usage: UsageWarnings,
     @Inject(CatalogueActivity) private readonly activity: CatalogueActivity,
     @Inject(PlatformAuditService) private readonly platformAudit: PlatformAuditService,
+    @Inject(PaymentMethods) private readonly methods: PaymentMethods,
   ) {}
 
   /** LSN-07: whether the shop may use the listener now -- trial, active, in grace or pay-as-you-go, and not suspended. */
@@ -81,6 +85,39 @@ export class ListenerRules {
     return typeof setting?.value === 'number' ? setting.value : LISTENER_OFFLINE_MINUTES;
   }
 
+  /** LSN-16 (amended 2026-11-02): the senders whose SMS count as a wallet's, one list for every shop. */
+  async senders(): Promise<readonly string[]> {
+    const setting = await this.settings.current(PlatformSettingKey.ListenerSenders);
+    return Array.isArray(setting?.value) ? (setting.value as string[]) : LISTENER_SENDERS;
+  }
+
+  /** LSN-04 (Slice 5.4b): when this phone's test mode ends, while it is on. */
+  testModeOf(device: SelectListenerDevice, now: Date): Date | null {
+    return device.testModeUntil !== null && device.testModeUntil > now
+      ? device.testModeUntil
+      : null;
+  }
+
+  /**
+   * Slice 5.5's sketch (Slice 5.4b): what the app needs on every answer -- the numbers whose receipts it can read, the
+   * senders to let through, and whether test mode is on.
+   */
+  async appFactsOf(device: SelectListenerDevice, now: Date): Promise<ListenerAppFacts> {
+    const [offered, senders] = await Promise.all([
+      this.methods.forShoppers(device.tenantId),
+      this.senders(),
+    ]);
+    return {
+      accounts: offered.flatMap((row) =>
+        LISTENER_WALLETS.includes(row.method) && row.number !== null
+          ? [{ method: row.method, number: row.number }]
+          : [],
+      ),
+      senders: [...senders],
+      testModeUntil: this.testModeOf(device, now),
+    };
+  }
+
   viewOf(device: SelectListenerDevice, now: Date, offlineMinutes: number): ListenerDeviceView {
     return {
       id: device.id,
@@ -98,6 +135,7 @@ export class ListenerRules {
       revokedAt: device.revokedAt,
       revokeReason: device.revokeReason,
       flags: device.flags,
+      uploadsToday: device.uploadsDay === dhakaDate(now) ? device.uploadsToday : 0,
     };
   }
 

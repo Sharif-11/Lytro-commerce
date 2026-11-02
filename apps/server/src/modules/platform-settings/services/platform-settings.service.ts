@@ -7,6 +7,7 @@ import {
   FieldProblemCode,
   OrderLimitMode,
   appVersionField,
+  LISTENER_SENDER_MAX_LENGTH,
 } from '@lytronix/validators';
 import { FieldsError } from '../../../common/api-error';
 import { PlatformAuditService } from '../../audit/services/platform-audit.service';
@@ -57,6 +58,8 @@ const DESCRIPTIONS: Record<PlatformSettingKey, string> = {
     'How many minutes after its last report a listener phone counts offline (LSN-03, VER-07).',
   [PlatformSettingKey.ListenerMinAppVersion]:
     'The oldest listener app version that may call, as 1.2.3; older apps must update (LSN-18).',
+  [PlatformSettingKey.ListenerSenders]:
+    'The senders whose SMS count as a wallet\'s, for every shop, as a list like ["bKash"] (LSN-16).',
   [PlatformSettingKey.NewShopPaymentCapAmount]:
     "The most a new shop's online payments may come to in a day, in TK, where the new-shop cap holds (TVR-04).",
   [PlatformSettingKey.NewShopPaymentCapDays]:
@@ -72,6 +75,16 @@ const DESCRIPTIONS: Record<PlatformSettingKey, string> = {
 const isPositiveInt = (value: unknown): boolean =>
   typeof value === 'number' && Number.isInteger(value) && value > 0;
 const isAppVersion = (value: unknown): boolean => appVersionField.safeParse(value).success;
+// LSN-16: a list of senders, each as an SMS names it.
+const isSenderList = (value: unknown): boolean =>
+  Array.isArray(value) &&
+  value.length > 0 &&
+  value.every(
+    (sender) =>
+      typeof sender === 'string' &&
+      sender.trim().length > 0 &&
+      sender.length <= LISTENER_SENDER_MAX_LENGTH,
+  );
 const isOrderLimitMode = (value: unknown): boolean =>
   Object.values<unknown>(OrderLimitMode).includes(value);
 
@@ -99,6 +112,7 @@ const VALIDATORS: Record<PlatformSettingKey, (value: unknown) => boolean> = {
   [PlatformSettingKey.NewShopPaymentCapAmount]: isPositiveInt,
   [PlatformSettingKey.ListenerOfflineMinutes]: isPositiveInt,
   [PlatformSettingKey.ListenerMinAppVersion]: isAppVersion,
+  [PlatformSettingKey.ListenerSenders]: isSenderList,
   [PlatformSettingKey.NewShopPaymentCapDays]: isPositiveInt,
   [PlatformSettingKey.OrderLimitMode]: isOrderLimitMode,
 };

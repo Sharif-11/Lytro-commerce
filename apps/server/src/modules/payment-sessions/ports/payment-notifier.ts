@@ -10,10 +10,29 @@ export interface PaymentToVerifyNotice {
   transactionId: string;
 }
 
+/** PAY-15 (Slice 5.4b): a payment the listener verified by itself, as staff are told of it. */
+export interface PaymentVerifiedNotice {
+  tenantId: string;
+  sessionId: string;
+  orderNumber: string;
+  amount: string;
+  transactionId: string;
+}
+
+/** D5-4 (Slice 5.4b): money that turned up for an order already closed, for staff to sort out. */
+export interface MoneyForClosedOrderNotice {
+  tenantId: string;
+  orderNumber: string;
+  amount: string;
+  transactionId: string;
+}
+
 /**
  * VER-01 (Phase 5 Slice 5.3): tells the shop's staff with payments:verify of a payment waiting for them. Phase 7 delivers
  * it in-app and by push (NTF-01, NTF-03).
  */
 export interface PaymentNotifier {
   paymentToVerify(notice: PaymentToVerifyNotice): Promise<void>;
+  paymentVerified(notice: PaymentVerifiedNotice): Promise<void>;
+  moneyForClosedOrder(notice: MoneyForClosedOrderNotice): Promise<void>;
 }

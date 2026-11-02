@@ -20,6 +20,7 @@ export const STATEMENT_CHIPS: readonly { key: string; types: readonly LedgerEntr
     types: [
       LedgerEntryType.OrderFee,
       LedgerEntryType.ProductFee,
+      LedgerEntryType.VerificationFee,
       LedgerEntryType.Extraction,
       LedgerEntryType.FraudCheck,
     ],

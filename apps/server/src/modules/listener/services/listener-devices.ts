@@ -156,7 +156,7 @@ export class ListenerDevices {
     );
   }
 
-  /** LSN-23: the shop's codes and phones, at day 60. Safe to run again. */
+  /** LSN-23: the shop's codes, phones and (Slice 5.4b) what they forwarded, at day 60. Safe to run again. */
   deleteAllForTenant(tenantId: string): Promise<void> {
     return this.store.run((tx) => this.store.deleteForTenant(tx, tenantId));
   }

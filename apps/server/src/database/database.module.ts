@@ -76,6 +76,7 @@ import {
   PaymentPageReportRepository,
   PaymentListRepository,
   ListenerRepository,
+  ListenerMessageRepository,
   MediaRepository,
   MediaBandwidthRepository,
   BrandIdentityRepository,
@@ -245,6 +246,11 @@ import { DatabaseService } from './database.service';
     { provide: PaymentPageReportRepository, useFactory: () => new PaymentPageReportRepository() },
     { provide: ListenerRepository, useFactory: () => new ListenerRepository() },
     {
+      provide: ListenerMessageRepository,
+      inject: [TransactionRunner],
+      useFactory: (transactions: TransactionRunner) => new ListenerMessageRepository(transactions),
+    },
+    {
       provide: PaymentListRepository,
       inject: [TransactionRunner],
       useFactory: (transactions: TransactionRunner) => new PaymentListRepository(transactions),
@@ -412,6 +418,7 @@ import { DatabaseService } from './database.service';
     PaymentPageReportRepository,
     PaymentListRepository,
     ListenerRepository,
+    ListenerMessageRepository,
     MediaRepository,
     MediaBandwidthRepository,
     BrandIdentityRepository,

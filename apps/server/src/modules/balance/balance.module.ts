@@ -12,6 +12,7 @@ import { MailModule } from '../shared/mail/mail.module';
 import { StaffModule } from '../staff/staff.module';
 import { TenancyModule } from '../tenancy/tenancy.module';
 import { BalanceService } from './services/balance.service';
+import { VerificationFees } from './services/verification-fees';
 import { MailLowBalanceNotifier } from './services/mail-low-balance-notifier';
 import { PayAsYouGoBillingService } from './services/payg-billing.service';
 import { PlatformWalletsService } from './services/platform-wallets.service';
@@ -54,6 +55,7 @@ import {
     ShopStorefrontService,
     ShopLinkSharing,
     PayAsYouGoBillingService,
+    VerificationFees,
     TopUpService,
     PlatformWalletsService,
   ],
@@ -64,6 +66,7 @@ import {
     ShopStorefrontService,
     ShopLinkSharing,
     PayAsYouGoBillingService,
+    VerificationFees,
     TopUpService,
     PlatformWalletsService,
   ],

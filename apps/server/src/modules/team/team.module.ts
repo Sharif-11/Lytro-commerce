@@ -11,6 +11,7 @@ import { BrandModule } from '../brand/brand.module';
 import { PaymentMethodsModule } from '../payment-methods/payment-methods.module';
 import { PaymentReviewModule } from '../payment-review/payment-review.module';
 import { ListenerModule } from '../listener/listener.module';
+import { ListenerReceiptsModule } from '../listener-receipts/listener-receipts.module';
 import { PaymentSessionsModule } from '../payment-sessions/payment-sessions.module';
 import { DomainsModule } from '../domains/domains.module';
 import { PaymentsModule } from '../payments/payments.module';
@@ -134,6 +135,7 @@ import { CatalogueRequest } from './services/catalogue-request';
     PaymentSessionsModule,
     PaymentReviewModule,
     ListenerModule,
+    ListenerReceiptsModule,
     DomainsModule,
   ],
   controllers: [

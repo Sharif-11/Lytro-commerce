@@ -3,7 +3,12 @@ import {
   LISTENER_CODE_LENGTH,
   LISTENER_DEVICE_NAME_MAX_LENGTH,
   LISTENER_INSTALLATION_ID_MAX_LENGTH,
+  LISTENER_RECEIPT_PAGE_SIZE,
+  LISTENER_RECENT_DEFAULT,
+  LISTENER_RECENT_MAX,
+  LISTENER_SENDER_MAX_LENGTH,
 } from '../../common/limits';
+import { ListenerMessageStatus } from '../../db/enums';
 
 // LSN-09 (Phase 5 Slice 5.4a): a pairing code's letters -- no 0/O, 1/I/L, so it reads aloud and types without mistakes.
 export const LISTENER_CODE_ALPHABET = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
@@ -56,6 +61,56 @@ export type ListenerPairInput = z.infer<typeof listenerPairSchema>;
 /** LSN-20: a phone renamed by its shop. */
 export const renameListenerDeviceSchema = z.object({ name: deviceNameField }).strict();
 export type RenameListenerDeviceInput = z.infer<typeof renameListenerDeviceSchema>;
+
+/**
+ * LSN-13, LSN-15 (Phase 5 Slice 5.4b): the messages a phone forwards. The batch's size and a message's length are not
+ * checked here, since going over them answers 413, not a validation error (LSN-13).
+ */
+export const listenerUploadSchema = z
+  .object({
+    messages: z
+      .array(
+        z
+          .object({
+            sender: z.string().trim().min(1).max(LISTENER_SENDER_MAX_LENGTH),
+            text: z.string().min(1),
+            receivedAt: z.coerce.date(),
+          })
+          .strict(),
+      )
+      .min(1),
+  })
+  .strict();
+export type ListenerUploadInput = z.infer<typeof listenerUploadSchema>;
+
+/** The receipts the app shows on its home screen. */
+export const listenerRecentQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(LISTENER_RECENT_MAX).default(LISTENER_RECENT_DEFAULT),
+});
+export type ListenerRecentQuery = z.infer<typeof listenerRecentQuerySchema>;
+
+/**
+ * Agreed 2026-11-02 (Slice 5.4b read): the receipts staff can list and search -- by where they stand, and by the start of a
+ * transaction ID, a sender number or an amount.
+ */
+export const listenerReceiptsQuerySchema = z.object({
+  status: z.nativeEnum(ListenerMessageStatus).optional(),
+  q: z.string().trim().min(1).max(40).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(LISTENER_RECENT_MAX)
+    .default(LISTENER_RECEIPT_PAGE_SIZE),
+});
+export type ListenerReceiptsQuery = z.infer<typeof listenerReceiptsQuerySchema>;
+
+/** VER-06 (amended 2026-11-02): the masked shapes of the unreadable messages Lytro reads, by how many days back. */
+export const listenerUnreadQuerySchema = z.object({
+  days: z.coerce.number().int().min(1).max(90).default(7),
+});
+export type ListenerUnreadQuery = z.infer<typeof listenerUnreadQuerySchema>;
 
 /** LSN-21: an app installation Lytro blocks across the platform, with why. */
 export const blockInstallationSchema = z

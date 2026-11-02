@@ -3,6 +3,7 @@ import { ClientIp } from '../../common/client-ip';
 import { DrizzleListenerStore } from '../../database/adapters/listener.adapter';
 import { AuditModule } from '../audit/audit.module';
 import { CatalogueModule } from '../catalogue/catalogue.module';
+import { PaymentMethodsModule } from '../payment-methods/payment-methods.module';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
 import { TenancyModule } from '../tenancy/tenancy.module';
 import { UsageWarningsModule } from '../usage-warnings/usage-warnings.module';
@@ -19,12 +20,13 @@ import { LISTENER_CLOCK, LISTENER_NOTIFIER, LISTENER_STORE } from './tokens';
 // LSN-01 to LSN-23 (Phase 5 Slice 5.4a): the listener phones a shop pairs to forward its payment SMS -- their codes,
 // devices and tokens, the app's own routes, and Lytro's view and blocks. It reads the shop's limits (usage warnings),
 // the platform's settings, and writes the activity and platform logs; the team's routes, the purge and the day-60
-// deletion read it. Slice 5.4b adds the receipts. TenancyModule is imported only for ClientIp's EdgeSecret, as the
-// operator module does.
+// deletion read it. The receipts sit above it, in ListenerReceiptsModule (Slice 5.4b). TenancyModule is imported only
+// for ClientIp's EdgeSecret, as the operator module does.
 @Module({
   imports: [
     AuditModule,
     CatalogueModule,
+    PaymentMethodsModule,
     PlatformSettingsModule,
     TenancyModule,
     UsageWarningsModule,
@@ -42,6 +44,16 @@ import { LISTENER_CLOCK, LISTENER_NOTIFIER, LISTENER_STORE } from './tokens';
     ListenerApp,
     ListenerDeviceGuard,
   ],
-  exports: [ListenerPairing, ListenerDevices, LISTENER_NOTIFIER],
+  exports: [
+    ListenerApp,
+    ListenerDeviceGuard,
+    ListenerDevices,
+    ListenerLimits,
+    ListenerPairing,
+    ListenerRules,
+    LISTENER_CLOCK,
+    LISTENER_NOTIFIER,
+    LISTENER_STORE,
+  ],
 })
 export class ListenerModule {}

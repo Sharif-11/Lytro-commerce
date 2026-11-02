@@ -342,4 +342,12 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'POST /listener/devices/:id/revoke': "another shop's phone answers 404 and keeps working",
   'POST /public/listener/pair': "a code pairs a phone with the code's own shop only",
   'POST /public/listener/heartbeat': "a phone's token reaches its own shop only",
+  // Phase 5 Slice 5.4b, checked in test/listener-receipts.e2e.spec.ts.
+  'GET /listener/receipts': "lists only the session shop's receipts",
+  'POST /public/listener/messages': "a phone's receipts meet only its own shop's payments (VER-05)",
+  'GET /public/listener/messages': "shows a phone only its own shop's receipts",
+  'POST /public/listener/test-mode': "a phone's token reaches its own shop only",
+  'POST /public/listener/unpair': "a phone's token revokes that phone only",
+  'PATCH /public/pay/:ref/transaction':
+    "the reference names the session and its shop; never another shop's",
 };

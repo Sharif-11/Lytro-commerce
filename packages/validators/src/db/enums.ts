@@ -339,6 +339,10 @@ export enum AuditAction {
   // Phase 5 Slice 5.3: a payment verified or rejected by hand (VER-01, PAY-14, AUD-01); one marked refunded (PAY-20);
   // Lytro set the shop's new-shop cap (TVR-04).
   PaymentVerified = 'payment_verified',
+  // PAY-07 (Phase 5 Slice 5.4b, agreed 2026-11-02): a shopper corrected the transaction ID they typed.
+  PaymentIdChanged = 'payment_id_changed',
+  // LSN-04: test mode switched on from the paired phone.
+  ListenerTestModeStarted = 'listener_test_mode_started',
   PaymentRejected = 'payment_rejected',
   OrderPaymentRefunded = 'order_payment_refunded',
   NewShopCapSet = 'new_shop_cap_set',
@@ -349,6 +353,7 @@ export enum AuditAction {
   ListenerDeviceRevoked = 'listener_device_revoked',
   ListenerDeviceFlagged = 'listener_device_flagged',
   ListenerLimitRefused = 'listener_limit_refused',
+  ListenerVolumeFlagged = 'listener_volume_flagged',
 }
 
 // FED-02: what a product is, for Meta's catalog: new unless the shop says otherwise.
@@ -588,6 +593,7 @@ export enum PlatformAuditAction {
   ListenerDeviceRevoked = 'listener_device_revoked',
   ListenerDeviceFlagged = 'listener_device_flagged',
   ListenerLimitRefused = 'listener_limit_refused',
+  ListenerVolumeFlagged = 'listener_volume_flagged',
   ListenerInstallationBlocked = 'listener_installation_blocked',
 }
 
@@ -604,6 +610,8 @@ export enum LedgerEntryType {
   PlanPayment = 'plan_payment',
   Adjustment = 'adjustment',
   Reversal = 'reversal',
+  // WAL-20, RAT-16 (Phase 5 Slice 5.4b): what Lytro charges for a payment it verified by itself.
+  VerificationFee = 'verification_fee',
   // LIF-21, BAL-18: a deleted shop's remaining balance moved into the owner's new shop, one entry on each side.
   CarryOver = 'carry_over',
   // PLN-13, PLN-14: an add-on bought from the balance.
@@ -620,6 +628,8 @@ export enum RateKey {
   PaygOrderFeePct = 'payg_order_fee_pct',
   PaygProductFee = 'payg_product_fee',
   SmsUnitSizeChars = 'sms_unit_size_chars',
+  // RAT-16 (Phase 5 Slice 5.4b): the listener's verification fee, a percent of the payment.
+  ListenerVerificationPct = 'listener_verification_pct',
 }
 
 // LIM-02: what the usage page shows, each against the shop's limit. Essential SMS is per cycle on a paid plan and in
@@ -688,6 +698,8 @@ export enum PlatformSettingKey {
   // oldest listener app version that may call.
   ListenerOfflineMinutes = 'listener_offline_minutes',
   ListenerMinAppVersion = 'listener_min_app_version',
+  // LSN-16 (Phase 5 Slice 5.4b, agreed 2026-11-02): the senders whose SMS count as a wallet's, one list for every shop.
+  ListenerSenders = 'listener_senders',
   // QTA-03 (editable): what handling an order past the period's limit does -- refused, or done with a prompt to upgrade.
   OrderLimitMode = 'order_limit_mode',
 }
@@ -1237,6 +1249,50 @@ export enum PaymentSessionSource {
   StaffLink = 'staff_link',
 }
 
+// LSN-06 (Phase 5 Slice 5.4b): the wallets whose receipts Lytro can read. A phone is no use to any other wallet's payment.
+export const LISTENER_WALLETS: readonly PaymentMethod[] = [PaymentMethod.Bkash];
+
+// VER-02 to VER-06, LSN-15, LSN-16 (Phase 5 Slice 5.4b): where a receipt a phone forwarded stands. `matched`: it became a
+// payment. `unmatched`: nobody has claimed it yet (VER-04). `needs_review`: it claims a payment but staff must decide.
+// `duplicate`: another phone already forwarded it (VER-03). `ignored`: it verifies nothing.
+export enum ListenerMessageStatus {
+  Matched = 'matched',
+  Unmatched = 'unmatched',
+  NeedsReview = 'needs_review',
+  Duplicate = 'duplicate',
+  Ignored = 'ignored',
+}
+
+// VER-06, LSN-04, LSN-15, LSN-16 (Phase 5 Slice 5.4b): why a message verifies nothing.
+export enum ListenerIgnoredReason {
+  UnknownSender = 'unknown_sender',
+  UnknownFormat = 'unknown_format',
+  NotReceipt = 'not_receipt',
+  NotMoneyIn = 'not_money_in',
+  TooOld = 'too_old',
+  TooNew = 'too_new',
+  TestMode = 'test_mode',
+}
+
+// VER-02, VER-04, WAL-21, D5-4 (Phase 5 Slice 5.4b, read agreed 2026-11-02): why a receipt that claims a payment waits for
+// staff instead of verifying it.
+export enum PaymentReviewReason {
+  Amount = 'amount',
+  Sender = 'sender',
+  Wallet = 'wallet',
+  OldReceipt = 'old_receipt',
+  LowBalance = 'low_balance',
+  OrderClosed = 'order_closed',
+  TransactionIdUsed = 'transaction_id_used',
+}
+
+// PAY-14: what the payment page may tell a shopper of a review -- never the shop's balance or anything else of its own.
+export enum PaymentPageReviewReason {
+  Amount = 'amount',
+  Sender = 'sender',
+  Other = 'other',
+}
+
 // LSN-02, LSN-12, LSN-19, LSN-21 (Phase 5 Slice 5.4a): why a listener phone stopped working -- its shop revoked it,
 // Lytro did, it was flagged too often for another installation's calls, or Lytro blocked its installation.
 export enum ListenerRevokeReason {
@@ -1244,6 +1300,8 @@ export enum ListenerRevokeReason {
   Operator = 'operator',
   Flags = 'flags',
   InstallationBlocked = 'installation_blocked',
+  // Phase 5 Slice 5.4b: the phone unpaired itself, from its own menu or because the SIM is not in it.
+  Device = 'device',
 }
 
 // LSN-02, LSN-20: a listener phone as its shop's list shows it -- paired and working, or revoked.

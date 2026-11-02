@@ -112,6 +112,8 @@ export class PaymentsList {
       decidedAt: row.decidedAt,
       rejectReason: row.rejectReason,
       note: row.note,
+      reviewReason: row.reviewReason,
+      receipt: row.receipt,
     };
   }
 }

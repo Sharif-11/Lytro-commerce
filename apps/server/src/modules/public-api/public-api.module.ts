@@ -18,8 +18,6 @@ import {
 import { BrandModule } from '../brand/brand.module';
 import { PaymentMethodsModule } from '../payment-methods/payment-methods.module';
 import { PaymentSessionsModule } from '../payment-sessions/payment-sessions.module';
-import { PaymentPageController } from './controllers/payment-page.controller';
-import { PaymentPageGuard } from './guards/payment-page.guard';
 import { DomainsModule } from '../domains/domains.module';
 import { CatalogueModule } from '../catalogue/catalogue.module';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
@@ -110,14 +108,12 @@ import {
     PublicOrdersController,
     PublicShopperController,
     PublicPaymentMethodsController,
-    PaymentPageController,
   ],
   providers: [
     { provide: API_KEY_STORE, useClass: DrizzleApiKeyStore },
     { provide: API_USAGE_STORE, useClass: DrizzleApiUsageStore },
     { provide: API_CLOCK, useValue: (): Date => new Date() },
     StorefrontKeyService,
-    PaymentPageGuard,
     StorefrontContextService,
     ShopperGate,
     { provide: PUBLIC_CATALOGUE_STORE, useClass: DrizzlePublicCatalogueStore },
@@ -155,6 +151,10 @@ import {
     PublicApiHost,
   ],
   exports: [
+    // For the payment page's own gate.
+    API_CLOCK,
+    ApiKeyAuthenticator,
+    VisitorLimit,
     ApiKeyService,
     // For the dashboard's ad tracking and feed screens (team).
     AdTrackingService,

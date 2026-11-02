@@ -3,10 +3,10 @@ import { ApiError } from '../../../common/api-error';
 import type { HttpResponse } from '../../../common/http';
 import { PaymentSessions } from '../../payment-sessions/services/payment-sessions';
 import { CLOSED_STATES } from '../../tenancy/services/tenant-resolver.service';
-import { ApiKeyAuthenticator } from '../services/api-key-authenticator';
-import { VisitorLimit } from '../services/visitor-limit';
-import { API_CLOCK } from '../tokens';
-import type { PublicApiRequest } from './public-key.guard';
+import type { PublicApiRequest } from '../../public-api/guards/public-key.guard';
+import { ApiKeyAuthenticator } from '../../public-api/services/api-key-authenticator';
+import { VisitorLimit } from '../../public-api/services/visitor-limit';
+import { API_CLOCK } from '../../public-api/tokens';
 
 // PAY-23: a reference is 22 URL-safe characters; anything else is not one.
 const REF = /^[A-Za-z0-9_-]{22}$/;

@@ -1,4 +1,8 @@
-import type { ListenerDeviceStatus, ListenerRevokeReason } from '@lytronix/validators';
+import type {
+  ListenerDeviceStatus,
+  ListenerRevokeReason,
+  PaymentMethod,
+} from '@lytronix/validators';
 
 /** LSN-02, LSN-20: a listener phone as its shop and the operator see it. */
 export interface ListenerDeviceView {
@@ -14,6 +18,8 @@ export interface ListenerDeviceView {
   revokedAt: Date | null;
   revokeReason: ListenerRevokeReason | null;
   flags: number;
+  /** LSN-20 (Slice 5.4b): the messages it sent today, Asia/Dhaka. */
+  uploadsToday: number;
 }
 
 /** LSN-08, LSN-20: the shop's phones, with how many work and how many its plan allows (null: no limit). */
@@ -29,8 +35,18 @@ export interface ListenerCode {
   expiresAt: Date;
 }
 
+/** Slice 5.5's sketch: what the app needs on every answer. */
+export interface ListenerAppFacts {
+  /** The shop's active numbers whose receipts Lytro can read: "is this number's SIM in this phone?". */
+  accounts: { method: PaymentMethod; number: string }[];
+  /** LSN-16: whose SMS the app lets through. */
+  senders: string[];
+  /** LSN-04: when test mode ends, while it is on. */
+  testModeUntil: Date | null;
+}
+
 /** LSN-01, LSN-11: what the app keeps once paired -- its token, shown this once -- and how often to report. */
-export interface ListenerPaired {
+export interface ListenerPaired extends ListenerAppFacts {
   deviceId: string;
   token: string;
   shopName: string;
@@ -38,7 +54,7 @@ export interface ListenerPaired {
 }
 
 /** LSN-03, LSN-24: the app's report answered -- connected, and how often to report again. */
-export interface ListenerConnected {
+export interface ListenerConnected extends ListenerAppFacts {
   status: 'connected';
   heartbeatMinutes: number;
   serverTime: Date;

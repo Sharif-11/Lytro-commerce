@@ -2,6 +2,7 @@ import type {
   PaymentListStatus,
   PaymentMethod,
   PaymentRejectReason,
+  PaymentReviewReason,
   PaymentSessionSource,
   VerificationLevel,
 } from '@lytronix/validators';
@@ -26,6 +27,10 @@ export interface PaymentListItem {
   decidedAt: Date | null;
   rejectReason: PaymentRejectReason | null;
   note: string | null;
+  /** Slice 5.4b: why a receipt sent it to staff. */
+  reviewReason: PaymentReviewReason | null;
+  /** Slice 5.4b: what the receipt that claims it says arrived. */
+  receipt: { amount: string; senderNumber: string | null; receivedAt: Date } | null;
 }
 
 /** PAY-19: a page of the list, and how many payments and how much money the filter holds. */

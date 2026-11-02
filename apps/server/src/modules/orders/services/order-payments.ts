@@ -79,6 +79,7 @@ export class OrderPayments {
         voidedBy: who.id,
         voidReason: input.reason,
       });
+      await this.store.releaseReceiptOfPayment(tx, tenantId, payment.id);
       const standing = await this.recorder.standingWithin(tx, tenantId, order, order);
       const history: NewOrderHistory[] = [];
       this.recorder.noteStanding(
