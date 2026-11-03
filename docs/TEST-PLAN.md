@@ -484,14 +484,14 @@ Covers: `MED-01` to `MED-04`, `MED-06` to `MED-11`.
 
 ## S06 — Couriers and fraud (CRR, FRD)
 
-**S06-01 Connect a courier, credential validation, and the webhook handshake.**
-Steps: 1) Connect Steadfast with wrong credentials. 2) Connect with correct credentials. 3) Separately, connect Pathao and observe the registration handshake complete automatically.
-Expected: wrong credentials show the courier's own error, not saved; correct credentials save and the webhook is already verified with no manual step for either courier.
+**S06-01 Connect a courier, credential validation, and pasting its address.**
+Steps: 1) Connect Steadfast with wrong credentials. 2) Connect with correct credentials and book before pasting anything. 3) Paste the address and token into the courier's panel. 4) Separately, add the address in Pathao's panel and observe its one-time check succeed.
+Expected: wrong credentials show the courier's own error, not saved; correct credentials save, booking works at once, and the connection says "no messages yet" until the first arrives; Pathao's check needs nothing beyond the paste.
 Covers: `CRR-02`, `CRR-27`.
 
 **S06-02 Booking, idempotency, and failure handling.**
-Steps: 1) Book a parcel — order moves `pending` → `processing`, consignment/tracking/charge stored. 2) Fire two simultaneous booking requests for the same order. 3) Force a booking failure.
-Expected: one consignment from the double request; a failed booking leaves the order unchanged and shows the courier's message; no balance charge for the booking itself.
+Steps: 1) Book a parcel — order moves `pending` or `confirmed` → `processing`, its stock leaves, consignment/tracking/charge stored. 2) Fire two simultaneous booking requests for the same order. 3) Force a booking failure.
+Expected: one consignment from the double request; a failed booking leaves the order unchanged and shows the courier's message; no balance charge of its own, and only pay-as-you-go's order fee (CRR-22).
 Covers: `CRR-06` to `CRR-09`, `CRR-22`.
 
 **S06-03 Webhook authenticity — three real schemes.**
@@ -544,10 +544,10 @@ Steps: 1) Run the shared contract suite (book, track, webhook parse, status map,
 Expected: the suite must pass before the adapter reaches a real tenant; a disconnected courier's old webhook token returns 401 afterward, while that tenant's already-shipped orders keep their tracking history intact.
 Covers: `CRR-20`, `CRR-21`.
 
-**S06-13 The courier's exact area, from the order form to booking.**
-Steps: 1) With Pathao as the default courier, place one storefront order choosing Mirpur and "Mirpur 10", and one skipping the area; compare their delivery charges. 2) As staff, try to save an order without an area, and send an API order whose area is in another thana. 3) Book the first order with Pathao, then the second. 4) With RedX, book one order in a thana where RedX has one area and one where it has several. 5) Switch the default courier to RedX, then open the first order and a new checkout. 6) Open checkout in a shop whose default courier takes the address as text.
-Expected: checkout offers only Pathao's areas inside Mirpur, the shopper may skip it, and both orders have the same delivery charge; staff can't save without an area and the out-of-thana area is refused; the first order books to Mirpur 10 exactly; the second opens the area choice and sends no booking; RedX's only area is used automatically and staff choose where it has several; no booking is ever sent with a guessed area and no order is blocked; after the switch the first order keeps its Pathao area and checkout offers RedX's areas; the address-text courier's shop shows no area field.
-Covers: `CUS-10`, `CUS-12`, `CUS-13`, `CRR-10`.
+**S06-13 The courier's exact area, at booking.**
+Steps: 1) Place a storefront order and a staff order for Mirpur, and confirm neither form asks for a courier's area. 2) Book one with RedX in a thana where it has one area, and one where it has several. 3) Book the same kind of order with Steadfast and with Pathao.
+Expected: order forms never ask for a courier's area; the first books to RedX's only area; the second opens the area choice and sends no booking until staff choose; Steadfast and Pathao book from the address text with no area asked; the delivery charge is the same before and after every booking.
+Covers: `CUS-10`, `CUS-12`, `CRR-10`.
 
 **S06-14 Fraud-check feature itself: running a check, signal-only behavior, shared hashing.**
 Steps: 1) Run a check above the tenant's configured COD threshold — observe it's advisory, never auto-blocking an order on its own. 2) Contribute delivered/cancelled/returned outcomes from several tenants on the same customer phone; check the shared signal appears only once at least 5 tenants have contributed. 3) Exceed the check rate limit.
