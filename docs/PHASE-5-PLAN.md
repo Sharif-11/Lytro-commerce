@@ -7,7 +7,8 @@ Status: agreed 2026-10-31 — the decisions in §2 were settled in the Phase 5 r
   2026-10-31: the backend slices start now, beside Slice 4.8; the screens (Slice 5.8) still wait.
 - **Three verification levels, one after another:** verification by hand first, usable on its own, then the SMS
   listener, then bKash's gateway (D5-2). Checkpoint 5A comes after verification by hand.
-- **Lytro's own payments** (plans, add-ons, top-ups) move onto the payment page with the listener (D5-3).
+- **Lytro's own payments** (plans, add-ons, top-ups) are verified by Lytro's own listener phone, in the dashboard's own wallet
+  step (D5-3, amended 2026-11-03).
 - **An advance nobody paid cancels its order:** when the 30-minute payment window ends with no transaction ID, or a
   payment is rejected, the order is cancelled with the reason "advance not paid"; a transaction ID typed in time waits
   for staff (D5-4, D5-5).
@@ -31,7 +32,7 @@ Upay or bank transfer to the shop's own account, on Lytro's payment page or bKas
 verified exactly once -- by staff, by the shop's listener phone reading the receipt SMS, or by bKash's API -- before
 the order goes on to its confirming call. Money never moves through Lytro: it goes from the shopper to the shop.
 Lytro charges the shop's balance a small fee for each payment it verifies automatically, and verification by hand is
-free. Lytro's own payments from sellers use the same page and the same listener.
+free. Lytro's own payments from sellers use the same listener, from the dashboard's own wallet step.
 
 **Phase 5 is complete when all of these hold:**
 
@@ -52,8 +53,8 @@ free. Lytro's own payments from sellers use the same page and the same listener.
    recording a payment by hand while a session verifies never takes more than is due.
 5. **The balance never blocks a shopper** (WAL-21): too little balance hides bKash's checkout and sends a listener
    match to free review, with a low-balance notice.
-6. **Lytro's own payments:** a plan bought on the payment page, verified by Lytro's own listener phone, activates
-   once, with no fee and no session limit (PAY-21).
+6. **Lytro's own payments:** a plan bought in the dashboard's wallet step, verified by Lytro's own listener phone,
+   activates once, with no fee and no session limit (PAY-21).
 7. **The milestone** (`IMPLEMENTATION-PLAN.md`): the scripted order-and-payment check of OBS-08 passes against a
    staging shop with bKash's sandbox, for one wallet by the listener and one by the gateway.
 8. CI is green on `main`, and the pull-request flow has been used for every slice.
@@ -68,7 +69,7 @@ free. Lytro's own payments from sellers use the same page and the same listener.
 |---|---|---|---|
 | D5-1 | **When.** Phase 4's screens (Slice 4.8) are being built. | The plan is written now; building starts once Slice 4.8 is built (the owner's pick over starting beside it). **Amended 2026-10-31** (the owner's "can we start phase 5 now?"): the backend slices (5.1 – 5.7) start now, beside Slice 4.8, as Phase 4's did beside Slice 11; Slice 5.8's screens still wait. | Planning |
 | D5-2 | **The order of the verification levels.** VER-01 (by hand), the listener (VER-02 – 07, LSN) and the gateway (VER-08 – 11) each stand alone (WAL-19). | By hand first (Slices 5.1 – 5.3), usable on its own, then checkpoint 5A; then the listener (5.4, 5.5); then bKash's gateway (5.7). Most sellers take money on personal bKash numbers, which only the listener can verify on its own. | Slices 5.1 – 5.7 |
-| D5-3 | **Lytro's own payments** (plans, add-ons, top-ups). Sellers send money to Lytro's wallet and type the transaction ID in the dashboard, and the operator approves each one (D2-1); PAY-21 puts them on the same engine as shoppers'. | They move onto the payment page with the listener (Slice 5.6), Lytro's own listener phone verifying them; until then today's wallet step and the operator's queue stay. `control.plan_payments` stays their record, each linked to its session. A gateway for Lytro's own payments (ADM-10) may come later (the owner's "we may have automated checkout in future"). | Slice 5.6 |
+| D5-3 | **Lytro's own payments** (plans, add-ons, top-ups). Sellers send money to Lytro's wallet and type the transaction ID in the dashboard, and the operator approves each one (D2-1); PAY-21 puts them on the same engine as shoppers'. | They move onto the payment page with the listener (Slice 5.6), Lytro's own listener phone verifying them; until then today's wallet step and the operator's queue stay. `control.plan_payments` stays their record, each linked to its session. A gateway for Lytro's own payments (ADM-10) may come later (the owner's "we may have automated checkout in future"). **Amended 2026-11-03** (Slice 5.6's read, the owner's pick): sellers stay in the dashboard's wallet step, already built to the approved design, since what they lacked was automatic checking; Lytro's own phone verifies what they type there, and the operator's queue takes the rest. They do not move to the payment page, and a later gateway can open from that step. | Slice 5.6 |
 | D5-4 | **An advance nobody paid.** PAY-03's session lasts 30 minutes and INV-16's stock hold with it; ORD-08 sends an order with a rejected payment to `rejected`. | Cancelled automatically (the owner's pick over leaving it to staff): when the window ends with no transaction ID typed, the order is cancelled with a new reason, "advance not paid" (ORD-52), its session expired and its stock released, in one transaction. A payment staff reject cancels the order the same way. Money that turns up later -- a receipt or a transaction ID for a cancelled order -- goes to staff review and never reopens the order on its own. §2.3.1, ORD-08, ORD-52, PAY-14 and INV-16 amended. | Slice 5.3 |
 | D5-5 | **A transaction ID typed but not yet checked.** By hand, staff may take hours to check one. | Typing the transaction ID inside the window stops the clock: the session waits in `checking`, and the order and its stock hold wait until the payment is verified or rejected. Only an order nobody paid for within the window is cancelled on its own. PAY-03 and INV-16 amended. | Slice 5.3 |
 | D5-6 | **Wallets for manual payment.** WAL-01 lists bKash, Nagad and Rocket; the payment page design, ORD-15 and the payment methods already built include Upay. | bKash, Nagad, Rocket and Upay (wallet kind) and bank transfer (bank kind). WAL-01 amended. The listener reads bKash's receipts first, and the others once real samples arrive (LSN-06). | Slices 5.1, 5.4 |
@@ -87,7 +88,7 @@ Each is settled in its slice's read, before code, and recorded there.
 | 5.3 | Settled in its read, 2026-10-31 (below). |
 | 5.4 | Settled in its read, 2026-11-01 (below). |
 | 5.5 | The technology, installing and screens settled in its sketch's read, 2026-11-02 (below); the device-integrity check (LSN-25, off by default) stays undrawn. |
-| 5.6 | Pairing Lytro's own listener phone; whether today's wallet step stays as a fallback; the amount a seller says they sent (not stored today, §3.5). |
+| 5.6 | Settled in its read, 2026-11-03 (below). |
 | 5.7 | Holding the gateway fee (WAL-21) as a held amount or a charge reversed on failure; where a credential's use is logged (SEC-11); bKash's sandbox access. |
 | 5.8 | Where the payment page lives (its own small app, or a host of the storefront app with its own policy, PAY-23); redirect, as SFT-07 says, rather than the frame the drawings show; the drawn page's extras (contact buttons, support chat, its fonts, an SMS promise) against PAY-05; "switch to cash on delivery" after a failed payment, which PRD-08 refuses. |
 
@@ -110,7 +111,7 @@ this phase builds a working part and a named later phase finishes it. Notices de
 | TVR | TVR-01 – TVR-04 |
 | RAT | RAT-15, RAT-16 |
 | From Phase 4's partials | ORD-07, ORD-08 (payment events), SFT-06 (payment methods), SFT-07, SFT-10, LND-10, INV-16, RTE-08 (payment sessions), API-07 (payment sessions), API-11 (required on sessions), LIM-02, LIM-04, TRL-03, PLN-19, DWN-12, DWN-14, DWN-15, UPG-10 (sessions and devices), AUD-01 (verified by the listener or the gateway), LIF-16, LIF-19 (payments, wallet accounts, devices, credentials); ORD-44 with PAY-20 |
-| Lytro's own payments | PAY-21 and the payment page's part of AUTH-29, BIL-03, BAL-03 and PLN-14 |
+| Lytro's own payments | PAY-21 and the wallet step's part of AUTH-29, BIL-03, BAL-03 and PLN-14 (D5-3, amended 2026-11-03) |
 
 ### 3.2 Partially completed by this phase
 
@@ -159,9 +160,8 @@ Read each row as: the requirements on the left can only be built or proven once 
 | `payments:manage` | covers both paying Lytro and recording a shopper's payment | verifying and rejecting under `payments:verify`, which exists unused | 5.3 |
 | The transaction ID registry | exact text; lengths differ (orders 64, billing none); a race gives an untranslated error; a plan payment checks it only at approval | one shape for every ID (PAY-07's 6 to 20 letters and digits, matched ignoring case, VER-02), claimed when a payment is verified, a clash answered plainly; Slice 5.2 already keeps the page's IDs in capitals and refuses one the registry holds | 5.3 |
 | `PlanPaymentsService.approve` | the verifier is an operator | a system verifier too (the listener) | 5.6 |
-| A seller's top-up flagged for review | the amount they say they sent is not stored, and approving credits the quoted amount | the amount sent stored and shown to the operator | 5.6 |
+| A seller's top-up flagged for review | the amount they say they sent is not stored, and approving credits the quoted amount | the amount sent stored and shown to the operator, and what arrived credited (agreed 2026-11-03) | 5.6 |
 | `DATABASE-SCHEMA.md` §3.4, §8 | `payment_sessions` thin and keyed by one column; no Upay; no fee ledger type; `platform_wallets` and `idempotency_keys` missing | §4 of this plan, slice by slice | 5.1 – 5.7 |
-| `API-CONTRACT.md` §8 | "plan payments do not create a payment_sessions row" | PAY-21 (D5-3) | 5.6 |
 | The payment page, storefront and dashboard drawings | an SMS promise, support chat, a frame, "switch to cash on delivery" | redrawn first, in Slice 5.8 | 5.8 |
 | `IMPLEMENTATION-PLAN.md` Phase 5 | a SIM-swap cooldown with no requirement; webhooks inside | this plan | 5.0 |
 
@@ -201,7 +201,7 @@ All in the `tenant` schema with RLS forced, unless marked `control`; money `nume
 | `listener_pairing_codes`, `listener_devices`, `listener_messages` | codes and device tokens as hashes, devices bound to an installation, receipts once per shop and transaction ID, redacted after 90 days | LSN-01 – 23, VER-02 – 07 |
 | `payment_page_reports`, the page's suspension | reports per session; a payment page suspended apart from the whole shop | TVR-02, TVR-03 |
 | ledger and rates | a verification-fee ledger type; the rate keys for the listener and the gateway | WAL-20, RAT-15, RAT-16 |
-| `control.plan_payments` | the session linked, the amount the seller sent | PAY-21 (D5-3) |
+| `control.plan_payments`, `control.lytro_listener_messages` | the amount the seller sent, what arrived, and why it waits; what Lytro's own phones forwarded (Slice 5.6, amended 2026-11-03) | PAY-21 (D5-3) |
 | platform settings | the session lifetime (also the stock hold's), the listener's offline minutes, session limits | PAY-03, VER-07, RTE-08 |
 
 ---
@@ -384,9 +384,26 @@ criterion 2 by hand, and 3). If velocity suggests it, the rest can become Phase 
   uploading with an offline queue, heartbeats, its version check and its status screens (LSN-24), sketched first.
 
 ### Slice 5.6: Lytro's own payments on the page
-- **Delivers:** plans, add-ons and top-ups paid through a session to Lytro's wallets with no fee and no session limit
-  (PAY-21, AUTH-29, BIL-03, BAL-03, PLN-14), verified by Lytro's own listener phone or the operator's queue;
-  activation unchanged (BIL-05).
+- **Read agreed 2026-11-03** (the first, third and fourth as recommended): **sellers keep the dashboard's wallet step**, and
+  Lytro's own phone verifies what they type there (D5-3 amended; PAY-21, BIL-03, BAL-03, PLN-14 and AUTH-29 amended); **no
+  amount cap**, the owner's pick over a recommended 10,000 TK, told that a forged sender name would cost Lytro itself, in
+  real balance or an active plan; **what arrived is what counts** -- the amount sent is stored and shown to the operator,
+  a top-up credits what arrived, and a plan or add-on at the wrong amount stays in the queue, where the operator approves
+  it or puts the money on the balance (BIL-06 amended); and **one PR**. Stated, no objection: no fee or session limit
+  (PAY-21); late money goes to the queue (BIL-15); Nagad stays by hand until samples arrive. Settled building: Lytro's
+  phone has no shop behind it -- its device and code rows have no tenant, and its receipts live in their own table,
+  `control.lytro_listener_messages`, since a hidden "Lytro" shop would meet every sweep, list and deletion. To the app it
+  looks like any shop: the same routes, `shopName` "Lytro", `accounts` Lytro's bKash numbers. The operator makes its code
+  (`POST /operator/lytro-listener/pairing-codes`). Receipts follow the shops' rules -- the amount within 0.01 TK, the sender
+  the seller gave, after the quote less 5 minutes -- and a match runs the queue's own step, with no verifier (the
+  `system` actor in the platform log). A receipt beats what a seller typed: a mistyped amount still verifies when the
+  money is right, and with no receipt the operator's approval credits the quote unless they say otherwise, so typing a
+  large figure credits nothing. A plan's money put on the balance turns its row into the top-up it now is, using its ID for
+  good and cancelling the add-ons it carried. A decision settles the receipt: approved it is used, turned down it is
+  unclaimed again.
+- **Delivers:** plans, add-ons and top-ups typed in the dashboard's wallet step, verified by Lytro's own listener phone or
+  the operator's queue, with no fee and no session limit (PAY-21, AUTH-29, BIL-03, BAL-03, PLN-14); activation unchanged
+  (BIL-05).
 - **Rework:** §3.5's rows for this slice.
 
 ### Slice 5.7: bKash's gateway
@@ -400,8 +417,7 @@ criterion 2 by hand, and 3). If velocity suggests it, the rest can become Phase 
 ### Slice 5.8: the screens
 - **Sketch first** (`sketch-every-screen-before-building`): the payment page redrawn to PAY-05 and §2.1's 5.8 row
   from `brand/lytro-payment-page.html`; checkout's payment step and its return on the storefront and landing page;
-  the dashboard's Payment methods, Payments (to verify, list, CSV), listener pairing and devices; Lytro's own
-  payments opening the page; the operator's page reports, suspension, devices and fee rates.
+  the dashboard's Payment methods, Payments (to verify, list, CSV), listener pairing and devices; the operator's page reports, suspension, devices and fee rates.
 - **The sign-up phone** (Slice 5.1's read): the step after a Google, Facebook or email sign-up that verifies a phone,
   sketched with the rest, then server and screen together (AUTH-28 amended).
 - **Builds** them, pixel perfect to the approved sketch.
