@@ -11,6 +11,8 @@ export enum SecretPurpose {
   CatalogFeedToken = 'catalog_feed_token',
   // SFT-11, Slice 12: the shop's storefront key, which the storefront's server presents.
   StorefrontKey = 'storefront_key',
+  // WAL-09 (Slice 5.7): a wallet account's gateway credentials.
+  GatewayCredentials = 'gateway_credentials',
 }
 
 /** The key new values are sealed with, and the one before it while values are moved over (32 bytes each). */

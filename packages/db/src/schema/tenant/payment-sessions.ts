@@ -1,11 +1,13 @@
 import { sql } from 'drizzle-orm';
 import {
+  boolean,
   check,
   foreignKey,
   index,
   integer,
   jsonb,
   numeric,
+  text,
   timestamp,
   unique,
   uniqueIndex,
@@ -14,6 +16,8 @@ import {
 } from 'drizzle-orm/pg-core';
 import {
   enumTuple,
+  GATEWAY_PAYMENT_ID_MAX_LENGTH,
+  GatewayResult,
   PAYMENT_NOTE_MAX_LENGTH,
   PAYMENT_RETURN_URL_MAX_LENGTH,
   PaymentRejectReason,
@@ -33,6 +37,7 @@ export const paymentSessionSource = tenant.enum(
   'payment_session_source',
   enumTuple(Object.values(PaymentSessionSource)),
 );
+export const gatewayResult = tenant.enum('gateway_result', enumTuple(Object.values(GatewayResult)));
 export const paymentRejectReason = tenant.enum(
   'payment_reject_reason',
   enumTuple(Object.values(PaymentRejectReason)),
@@ -82,6 +87,15 @@ export const paymentSessions = tenant.table(
     reviewReason: paymentReviewReason('review_reason'),
     idChanges: integer('id_changes').notNull().default(0),
     staffToldAt: timestamp('staff_told_at', { withTimezone: true }),
+    // Phase 5 Slice 5.7: the wallet's own checkout -- the account it runs on, whatever is selected later (WAL-11); the gateway's
+    // reference and address; how the last try ended (VER-09); the fee held while it is open (WAL-21, agreed 2026-11-03); and
+    // whether it is on the gateway's test environment (VER-11).
+    gatewayAccountId: uuid('gateway_account_id'),
+    gatewayPaymentId: varchar('gateway_payment_id', { length: GATEWAY_PAYMENT_ID_MAX_LENGTH }),
+    gatewayUrl: text('gateway_url'),
+    gatewayResult: gatewayResult('gateway_result'),
+    feeHeld: numeric('fee_held', { precision: 12, scale: 2 }).notNull().default('0'),
+    test: boolean('test').notNull().default(false),
     createdAt: createdAt(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -100,6 +114,14 @@ export const paymentSessions = tenant.table(
     index('payment_sessions_transaction_idx')
       .on(t.tenantId, t.transactionId)
       .where(sql`${t.transactionId} IS NOT NULL`),
+    // VER-09: the minute pass -- checkouts at a wallet that ran out with no return.
+    index('payment_sessions_gateway_idx')
+      .on(t.tenantId, t.expiresAt)
+      .where(sql`${t.state} = 'awaiting_payment' AND ${t.gatewayPaymentId} IS NOT NULL`),
+    // WAL-21: what the shop's balance is holding for open checkouts.
+    index('payment_sessions_fee_held_idx')
+      .on(t.tenantId)
+      .where(sql`${t.state} = 'awaiting_payment' AND ${t.feeHeld} > 0`),
     // VER-07: the minute pass -- payments waiting on a phone that staff have not been told of.
     index('payment_sessions_untold_idx')
       .on(t.tenantId, t.submittedAt)

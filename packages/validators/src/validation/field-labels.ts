@@ -61,6 +61,12 @@ export const FIELD_LABELS: Readonly<Record<string, Translation | null>> = {
   cityCodes: { en: 'Cities', bn: 'সিটি' },
   code: { en: 'Code', bn: 'কোড' },
   installationId: { en: 'Installation ID', bn: 'ইনস্টলেশন আইডি' },
+  // Slice 5.7: a wallet's gateway credentials, and how a shop takes its money.
+  appKey: { en: 'App key', bn: 'অ্যাপ কী' },
+  appSecret: { en: 'App secret', bn: 'অ্যাপ সিক্রেট' },
+  username: { en: 'Username', bn: 'ইউজারনেম' },
+  sandbox: { en: 'Test environment', bn: 'টেস্ট এনভায়রনমেন্ট' },
+  way: { en: 'How you take it', bn: 'টাকা নেওয়ার উপায়' },
   // Slice 5.4b: what a listener phone forwards, and the days of unreadable messages Lytro reads.
   messages: { en: 'Messages', bn: 'মেসেজ' },
   sender: { en: 'Sender', bn: 'সেন্ডার' },

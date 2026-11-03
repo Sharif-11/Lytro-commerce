@@ -5,6 +5,8 @@ import {
   ActorType,
   AuditAction,
   FieldProblemCode,
+  PaymentWay,
+  type GatewayResult,
   LISTENER_OFFLINE_MINUTES,
   LISTENER_WALLETS,
   NEW_SHOP_PAYMENT_CAP_AMOUNT,
@@ -330,6 +332,113 @@ export class PaymentSessions {
     return changed;
   }
 
+  /** PAY-06 (Slice 5.7): a session that may still be paid, by its address, held; closed or out of time is refused. */
+  async lockOpenByRefWithin(
+    tx: Transaction,
+    tenantId: string,
+    ref: string,
+    now: Date,
+  ): Promise<SelectPaymentSession> {
+    const session = await this.store.findByRef(tx, tenantId, ref, true);
+    if (!session) throw new ApiError('not_found', 'PaymentNotFound', {});
+    const state = stateAt(session, now);
+    if (state !== PaymentSessionState.AwaitingPayment) {
+      throw new ApiError('conflict', 'PaymentSessionClosed', { state });
+    }
+    return session;
+  }
+
+  async findByRefWithin(
+    tx: Transaction,
+    tenantId: string,
+    ref: string,
+  ): Promise<SelectPaymentSession> {
+    const session = await this.store.findByRef(tx, tenantId, ref);
+    if (!session) throw new ApiError('not_found', 'PaymentNotFound', {});
+    return session;
+  }
+
+  async lockByIdWithin(
+    tx: Transaction,
+    tenantId: string,
+    id: string,
+  ): Promise<SelectPaymentSession> {
+    const session = await this.store.findById(tx, tenantId, id, true);
+    if (!session) throw new ApiError('not_found', 'PaymentNotFound', {});
+    return session;
+  }
+
+  /** WAL-20 (Slice 5.7): the shop's state, for a trial's free fee. */
+  async shopStateWithin(tx: Transaction, tenantId: string): Promise<TenantState | null> {
+    return (await this.store.newShopOf(tx, tenantId))?.state ?? null;
+  }
+
+  beginGatewayWithin(
+    tx: Transaction,
+    tenantId: string,
+    id: string,
+    values: { method: PaymentMethod; accountId: string; feeHeld: string; test: boolean },
+  ): Promise<void> {
+    return this.store.beginGateway(tx, tenantId, id, values);
+  }
+
+  gatewayStartedWithin(
+    tx: Transaction,
+    tenantId: string,
+    id: string,
+    checkout: { paymentId: string; redirectUrl: string },
+  ): Promise<void> {
+    return this.store.gatewayStarted(tx, tenantId, id, checkout);
+  }
+
+  endGatewayWithin(
+    tx: Transaction,
+    tenantId: string,
+    id: string,
+    result: GatewayResult,
+  ): Promise<void> {
+    return this.store.endGateway(tx, tenantId, id, result);
+  }
+
+  /** VER-09 (Slice 5.7): the wallet says it is paid; the session carries its ID and the account paid into, as one typed would. */
+  async gatewayPaidWithin(
+    tx: Transaction,
+    tenantId: string,
+    session: SelectPaymentSession,
+    paid: { transactionId: string; senderNumber: string | null; at: Date },
+  ): Promise<SelectPaymentSession> {
+    const offered = await this.methods.forShoppersWithin(tx, tenantId);
+    const account = offered.find((row) => row.accountId === session.gatewayAccountId);
+    return this.store.gatewayPaid(tx, tenantId, session.id, {
+      ...paid,
+      paidTo: account
+        ? {
+            accountId: account.accountId,
+            accountName: account.accountName,
+            number: account.number,
+            bankName: null,
+            accountNumber: null,
+          }
+        : null,
+    });
+  }
+
+  gatewayDueWithin(tx: Transaction, tenantId: string, now: Date): Promise<SelectPaymentSession[]> {
+    return this.store.gatewayDue(tx, tenantId, now);
+  }
+
+  /** Slice 5.7 (agreed 2026-11-03): whether a receipt may only help staff here, because the shop checks this wallet by hand. */
+  async byHandWithin(
+    tx: Transaction,
+    tenantId: string,
+    method: PaymentMethod | null,
+  ): Promise<boolean> {
+    return (
+      method !== null &&
+      (await this.methods.wayOfWithin(tx, tenantId, method)) === PaymentWay.Manual
+    );
+  }
+
   /** VER-02, VER-04 (Slice 5.4b): the session a receipt with this ID settles, held; null when nobody typed it. */
   lockTypedWithin(
     tx: Transaction,
@@ -502,6 +611,8 @@ export class PaymentSessions {
       idChangesLeft: DECIDABLE.includes(session.state)
         ? Math.max(PAYMENT_ID_CHANGES_MAX - session.idChanges, 0)
         : 0,
+      gatewayResult: session.gatewayResult,
+      test: session.test,
       submitted:
         session.transactionId !== null && session.submittedAt !== null && session.method !== null
           ? {
@@ -522,6 +633,8 @@ export class PaymentSessions {
     now: Date,
   ): Promise<boolean> {
     if (method !== null && !LISTENER_WALLETS.includes(method)) return false;
+    // Slice 5.7 (agreed 2026-11-03): a shop checking this wallet by hand has staff decide, whatever a phone reads.
+    if (await this.byHandWithin(tx, tenantId, method)) return false;
     const minutes = await this.figure(
       PlatformSettingKey.ListenerOfflineMinutes,
       LISTENER_OFFLINE_MINUTES,

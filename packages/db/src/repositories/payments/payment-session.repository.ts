@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, lte, sql } from 'drizzle-orm';
 import {
   PaymentSessionState,
+  type GatewayResult,
   type PaymentMethod,
   type PaymentRejectReason,
   type PaymentReviewReason,
@@ -168,6 +169,7 @@ export class PaymentSessionRepository {
           isNotNull(orderPayments.sessionId),
           isNull(orderPayments.voidedAt),
           isNull(orderPayments.refundedAt),
+          eq(orderPayments.test, false),
           gte(orderPayments.verifiedAt, since),
         ),
       );
@@ -368,10 +370,142 @@ export class PaymentSessionRepository {
           eq(paymentSessions.tenantId, tenantId),
           eq(paymentSessions.state, PaymentSessionState.AwaitingPayment),
           lte(paymentSessions.expiresAt, now),
+          // VER-09 (Slice 5.7): a checkout at a wallet is asked after first, by its own minute pass.
+          isNull(paymentSessions.gatewayPaymentId),
         ),
       )
       .orderBy(asc(paymentSessions.expiresAt))
       .for('update', { skipLocked: true });
+  }
+
+  /** PAY-06, WAL-11, WAL-21 (Slice 5.7): a try at the wallet's own checkout begins, on this account, its fee held. */
+  async beginGateway(
+    tx: Transaction,
+    tenantId: string,
+    id: string,
+    values: { method: PaymentMethod; accountId: string; feeHeld: string; test: boolean },
+  ): Promise<void> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    await tx
+      .update(paymentSessions)
+      .set({
+        method: values.method,
+        gatewayAccountId: values.accountId,
+        feeHeld: values.feeHeld,
+        test: values.test,
+        gatewayResult: null,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(paymentSessions.tenantId, tenantId), eq(paymentSessions.id, id)));
+  }
+
+  /** PAY-06 (Slice 5.7): the wallet took the payment on: its reference, and where the shopper goes. */
+  async gatewayStarted(
+    tx: Transaction,
+    tenantId: string,
+    id: string,
+    checkout: { paymentId: string; redirectUrl: string },
+  ): Promise<void> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    await tx
+      .update(paymentSessions)
+      .set({
+        gatewayPaymentId: checkout.paymentId,
+        gatewayUrl: checkout.redirectUrl,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(paymentSessions.tenantId, tenantId), eq(paymentSessions.id, id)));
+  }
+
+  /** VER-09, PAY-08, WAL-21 (Slice 5.7): this try is over: the hold ends, and the shopper may try again or pay by hand. */
+  async endGateway(
+    tx: Transaction,
+    tenantId: string,
+    id: string,
+    result: GatewayResult,
+  ): Promise<void> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    await tx
+      .update(paymentSessions)
+      .set({
+        gatewayPaymentId: null,
+        gatewayUrl: null,
+        gatewayAccountId: null,
+        feeHeld: '0',
+        test: false,
+        gatewayResult: result,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(paymentSessions.tenantId, tenantId),
+          eq(paymentSessions.id, id),
+          eq(paymentSessions.state, PaymentSessionState.AwaitingPayment),
+        ),
+      );
+  }
+
+  /** VER-09 (Slice 5.7): the wallet says it is paid: the session carries its ID, as one typed would, and the fee is no longer held. */
+  async gatewayPaid(
+    tx: Transaction,
+    tenantId: string,
+    id: string,
+    values: {
+      transactionId: string;
+      senderNumber: string | null;
+      paidTo: PaidToSnapshot | null;
+      at: Date;
+    },
+  ): Promise<SelectPaymentSession> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const [row] = await tx
+      .update(paymentSessions)
+      .set({
+        transactionId: values.transactionId,
+        senderNumber: values.senderNumber,
+        paidTo: values.paidTo,
+        submittedAt: values.at,
+        state: PaymentSessionState.Checking,
+        feeHeld: '0',
+        staffToldAt: values.at,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(paymentSessions.tenantId, tenantId), eq(paymentSessions.id, id)))
+      .returning();
+    if (!row) throw new Error('update returned no payment session');
+    return row;
+  }
+
+  /** VER-09 (Slice 5.7): checkouts at a wallet past their window, for the minute pass to ask after. */
+  async gatewayDue(tx: Transaction, tenantId: string, now: Date): Promise<SelectPaymentSession[]> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    return tx
+      .select()
+      .from(paymentSessions)
+      .where(
+        and(
+          eq(paymentSessions.tenantId, tenantId),
+          eq(paymentSessions.state, PaymentSessionState.AwaitingPayment),
+          isNotNull(paymentSessions.gatewayPaymentId),
+          lte(paymentSessions.expiresAt, now),
+        ),
+      )
+      .orderBy(asc(paymentSessions.expiresAt));
+  }
+
+  /** WAL-21 (Slice 5.7): what the shop's balance holds for open checkouts; it ends by itself as each closes. */
+  async feesHeld(tx: Transaction, tenantId: string): Promise<string> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const [row] = await tx
+      .select({ total: sql<string>`coalesce(sum(${paymentSessions.feeHeld}), 0)::text` })
+      .from(paymentSessions)
+      .where(
+        and(
+          eq(paymentSessions.tenantId, tenantId),
+          eq(paymentSessions.state, PaymentSessionState.AwaitingPayment),
+        ),
+      );
+    return Number(row?.total ?? 0).toFixed(2);
   }
 
   async setState(

@@ -2005,3 +2005,17 @@ the stored replies are untouched.
 deletes every key past `expires_at` with its reply -- the 24 hours are API-11's whole promise, so nothing a retry
 needs goes -- and LIF-19's day-60 deletion removes the shop's keys with the rest of its data. No index was added:
 purged daily, the table holds about a day of keys.
+
+## 107. `WAL-09`, `D5-7`: bKash's production address and token limit across servers — found 2026-11-03, open
+
+Slice 5.7 was built from bKash's documents and a fake, with one test against the real sandbox that runs only by hand
+(`apps/server/test/bkash-sandbox.live.spec.ts`). Three things remain before a shop takes real money through it:
+
+- **The production address.** `BKASH_PRODUCTION_URL` defaults to `https://tokenized.pay.bka.sh/v2`, from a snippet of bKash's
+  documents and not from bKash. Confirm it with bKash when the merchant account comes; it is an environment setting, so no code changes.
+- **A real completed payment.** Taking one needs a sandbox wallet and its PIN on bKash's page, by hand. The live test covers the
+  token, starting a payment and asking after it, and not a real execute.
+- **Several servers.** bKash's limit of two token calls an hour is counted from the use log, which survives a restart, and
+  one server's shoppers share one call. Two servers asking at the same moment could still make a third call and get the app
+  blocked for an hour, while the shopper pays on the page. It costs nothing while there is one server; when there are more, the call needs
+  a lock per account.

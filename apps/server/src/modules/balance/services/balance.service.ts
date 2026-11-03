@@ -107,7 +107,9 @@ export class BalanceService {
   ): Promise<{ amount: string; frozen: boolean }> {
     const balance = await this.tenants.lockBalanceForUpdate(tx, tenantId);
     if (!balance) throw new Error('tenant not found');
-    return { amount: balance.amount, frozen: balance.frozen };
+    const held = toPaisa(await this.ledger.feesHeld(tx, tenantId));
+    // WAL-21 (Slice 5.7): what open checkouts hold can't be spent again.
+    return { amount: fromPaisa(toPaisa(balance.amount) - held), frozen: balance.frozen };
   }
 
   chargeStandalone(input: ChargeInput): Promise<LedgerEntry> {
@@ -226,7 +228,11 @@ export class BalanceService {
       // A read takes no lock, so a balance page never waits behind a charge, nor holds one up.
       const row = await this.tenants.findBalance(tx, tenantId);
       if (!row) throw new Error('tenant not found');
-      return { amount: row.amount, frozen: row.frozen };
+      return {
+        amount: row.amount,
+        frozen: row.frozen,
+        held: await this.ledger.feesHeld(tx, tenantId),
+      };
     });
   }
 
@@ -304,7 +310,10 @@ export class BalanceService {
     const beforePaisa = toPaisa(balance.amount);
     const deltaPaisa = toPaisa(input.signedAmount);
     const afterPaisa = beforePaisa + deltaPaisa;
-    if (input.overdraftFloor !== undefined && afterPaisa < toPaisa(input.overdraftFloor)) {
+    // WAL-21 (Slice 5.7): what open checkouts hold can't be spent on anything else.
+    const held =
+      input.overdraftFloor === undefined ? 0n : toPaisa(await this.ledger.feesHeld(tx, tenantId));
+    if (input.overdraftFloor !== undefined && afterPaisa - held < toPaisa(input.overdraftFloor)) {
       throw new ApiError('quota_exceeded', 'InsufficientBalance', { balance: balance.amount });
     }
     const entry = await this.ledger.insert(tx, {

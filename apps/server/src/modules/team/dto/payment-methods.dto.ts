@@ -1,9 +1,12 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
 import {
+  gatewayCredentialsSchema,
   PaymentMethod,
   PaymentMethodKind,
   paymentMethodSchemaFor,
+  PaymentWay,
+  paymentWaySchema,
   VerificationLevel,
   WalletAccountType,
 } from '@lytronix/validators';
@@ -26,7 +29,18 @@ export const paymentAccountViewSchema = z.object({
   swiftCode: z.string().nullable(),
   instructions: z.string().nullable(),
   active: z.boolean(),
+  hasCredentials: z.boolean(),
+  credentialsUnreadable: z.boolean(),
+  sandbox: z.boolean(),
+  automated: z.boolean(),
 });
+
+// WAL-09, WAL-13, PAY-06 (Slice 5.7): credentials go in, only ever a body, and never come back.
+export class GatewayCredentialsDto extends createZodDto(gatewayCredentialsSchema) {}
+export class PaymentWayDto extends createZodDto(paymentWaySchema) {}
+export class GatewayTestDto extends createZodDto(
+  z.object({ ok: z.boolean(), code: z.string().nullable() }),
+) {}
 
 export class PaymentMethodsViewDto extends createZodDto(
   z.object({
@@ -36,6 +50,8 @@ export class PaymentMethodsViewDto extends createZodDto(
         kind: z.nativeEnum(PaymentMethodKind),
         enabled: z.boolean(),
         levels: z.array(z.nativeEnum(VerificationLevel)),
+        way: z.nativeEnum(PaymentWay),
+        ways: z.array(z.nativeEnum(PaymentWay)),
         accounts: z.array(paymentAccountViewSchema),
       }),
     ),

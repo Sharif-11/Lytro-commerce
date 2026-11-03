@@ -28,6 +28,50 @@ export class VerificationFees {
     @Inject(LOW_BALANCE_NOTIFIER) private readonly notifier: LowBalanceNotifier,
   ) {}
 
+  /**
+   * WAL-21, RAT-15 (Slice 5.7, agreed 2026-11-03): what to hold before a shopper goes to a wallet's own checkout, the balance
+   * minus what other checkouts hold; null when it can't, so the shopper pays on the page and the shop hears, at most once a day.
+   */
+  async holdGateway(
+    tx: Transaction,
+    tenantId: string,
+    amount: string,
+    now: Date,
+  ): Promise<string | null> {
+    const rate = await this.rates.current(RateKey.GatewayVerificationPct);
+    if (!rate) throw new Error('the gateway fee rate is not seeded');
+    const fee = percentOf(toPaisa(amount), rate.value);
+    if (fee === 0n) return '0.00';
+    const held = await this.balance.heldWithin(tx, tenantId);
+    if (held.frozen || toPaisa(held.amount) < fee) {
+      await this.tellShort(tx, tenantId, held.amount, now);
+      return null;
+    }
+    return fromPaisa(fee);
+  }
+
+  /**
+   * WAL-20, BAL-12 (Slice 5.7): the fee held for a checkout, charged now the payment is verified: the rate when it was held, so a
+   * rate raised since never asks for more than was set aside. A balance frozen or run down meanwhile charges nothing, for
+   * the shopper has paid and must not be refused.
+   */
+  async chargeHeldGateway(
+    tx: Transaction,
+    tenantId: string,
+    fee: string,
+    payment: { sessionId: string; orderId: string; amount: string },
+  ): Promise<void> {
+    if (toPaisa(fee) === 0n) return;
+    const held = await this.balance.heldWithin(tx, tenantId);
+    if (held.frozen || toPaisa(held.amount) < toPaisa(fee)) return;
+    await this.balance.charge(tx, {
+      tenantId,
+      type: LedgerEntryType.VerificationFee,
+      amount: fee,
+      reference: { method: 'gateway', ...payment },
+    });
+  }
+
   async chargeListener(
     tx: Transaction,
     tenantId: string,
@@ -40,10 +84,7 @@ export class VerificationFees {
     if (fee === 0n) return 'nothing';
     const held = await this.balance.heldWithin(tx, tenantId);
     if (held.frozen || toPaisa(held.amount) < fee) {
-      this.shortNotices.sweep(now.getTime());
-      if (this.shortNotices.take(tenantId, 1, now.getTime()).allowed) {
-        await this.notifier.notifyFeeShort(tx, tenantId, held.amount);
-      }
+      await this.tellShort(tx, tenantId, held.amount, now);
       return 'short';
     }
     await this.balance.charge(tx, {
@@ -53,5 +94,18 @@ export class VerificationFees {
       reference: { method: 'listener', ...payment, percent: rate.value },
     });
     return 'charged';
+  }
+
+  /** WAL-21: at most once a day, since BAL-13's notice only fires on a crossing. */
+  private async tellShort(
+    tx: Transaction,
+    tenantId: string,
+    balance: string,
+    now: Date,
+  ): Promise<void> {
+    this.shortNotices.sweep(now.getTime());
+    if (this.shortNotices.take(tenantId, 1, now.getTime()).allowed) {
+      await this.notifier.notifyFeeShort(tx, tenantId, balance);
+    }
   }
 }

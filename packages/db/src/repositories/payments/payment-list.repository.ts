@@ -33,6 +33,8 @@ export interface PaymentListRow {
   rejectReason: PaymentRejectReason | null;
   /** A rejection's, void's or refund's note. */
   note: string | null;
+  /** VER-11 (Slice 5.7): from a gateway's test environment; left out of the totals. */
+  test: boolean;
   /** Slice 5.4b: why a receipt sent it to staff. */
   reviewReason: PaymentReviewReason | null;
   /** Slice 5.4b: what the receipt that claims it says arrived, for staff to verify. */
@@ -67,6 +69,7 @@ interface RawRow extends Record<string, unknown> {
   decided_at: Date | string | null;
   reject_reason: PaymentRejectReason | null;
   note: string | null;
+  test: boolean;
   review_reason: PaymentReviewReason | null;
   receipt_amount: string | null;
   receipt_sender: string | null;
@@ -98,7 +101,7 @@ export class PaymentListRepository {
     );
     const [totals] = (
       await tx.execute<{ total: number; amount: string }>(
-        sql`SELECT count(*)::int AS total, coalesce(sum(p.amount::numeric), 0)::numeric(14, 2)::text AS amount
+        sql`SELECT count(*)::int AS total, coalesce(sum(p.amount::numeric) FILTER (WHERE NOT p.test), 0)::numeric(14, 2)::text AS amount
             FROM (${all}) AS p WHERE ${where}`,
       )
     ).rows;
@@ -121,6 +124,7 @@ export class PaymentListRepository {
         decidedAt: row.decided_at === null ? null : dateOf(row.decided_at),
         rejectReason: row.reject_reason,
         note: row.note,
+        test: row.test,
         reviewReason: row.review_reason,
         receipt:
           row.receipt_amount !== null && row.receipt_at !== null
@@ -144,7 +148,7 @@ export class PaymentListRepository {
                AS status,
              s.order_id, o.order_number, s.method, s.amount::text AS amount, s.sender_number, s.transaction_id,
              s.submitted_at AS at, s.source, s.id AS session_id, NULL::tenant.verification_level AS verification_level,
-             s.decided_by, s.decided_at, s.reject_reason, s.reject_note AS note, s.review_reason,
+             s.decided_by, s.decided_at, s.reject_reason, s.reject_note AS note, s.test, s.review_reason,
              m.amount::text AS receipt_amount, m.sender_number AS receipt_sender, m.received_at AS receipt_at
         FROM tenant.payment_sessions s
         JOIN tenant.orders o ON o.tenant_id = s.tenant_id AND o.id = s.order_id
@@ -161,7 +165,7 @@ export class PaymentListRepository {
              p.verified_at AS at, s.source, p.session_id, p.verification_level,
              coalesce(p.voided_by, p.refunded_by, p.verified_by) AS decided_by,
              coalesce(p.voided_at, p.refunded_at, p.verified_at) AS decided_at,
-             NULL::tenant.payment_reject_reason AS reject_reason, coalesce(p.void_reason, p.refund_note) AS note,
+             NULL::tenant.payment_reject_reason AS reject_reason, coalesce(p.void_reason, p.refund_note) AS note, p.test,
              NULL::tenant.payment_review_reason AS review_reason, NULL::text AS receipt_amount,
              NULL::varchar AS receipt_sender, NULL::timestamptz AS receipt_at
         FROM tenant.payments p

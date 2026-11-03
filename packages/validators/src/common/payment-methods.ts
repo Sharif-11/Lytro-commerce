@@ -1,4 +1,4 @@
-import { PaymentMethod, PaymentMethodKind, VerificationLevel } from '../db/enums';
+import { PaymentMethod, PaymentMethodKind, PaymentWay, VerificationLevel } from '../db/enums';
 
 /**
  * WAL-18: a payment method type -- its kind, which decides the account's fields (a wallet's number and account type,
@@ -20,7 +20,10 @@ const WALLET = { kind: PaymentMethodKind.Wallet, numberLengths: [11] } as const;
  * of an existing kind is one row here.
  */
 export const PAYMENT_METHOD_TYPES = {
-  [PaymentMethod.Bkash]: { ...WALLET, levels: [VerificationLevel.Manual] },
+  [PaymentMethod.Bkash]: {
+    ...WALLET,
+    levels: [VerificationLevel.Manual, VerificationLevel.Listener, VerificationLevel.Gateway],
+  },
   [PaymentMethod.Nagad]: { ...WALLET, levels: [VerificationLevel.Manual] },
   [PaymentMethod.Rocket]: {
     ...WALLET,
@@ -34,6 +37,26 @@ export const PAYMENT_METHOD_TYPES = {
     levels: [VerificationLevel.Manual],
   },
 } as const satisfies Partial<Record<PaymentMethod, PaymentMethodType>>;
+
+const WAY_NEEDS: Readonly<Record<PaymentWay, VerificationLevel>> = {
+  [PaymentWay.Automated]: VerificationLevel.Gateway,
+  [PaymentWay.Listener]: VerificationLevel.Listener,
+  [PaymentWay.Manual]: VerificationLevel.Manual,
+};
+
+/** PAY-06 (amended 2026-11-03): the ways an owner may choose for this method: those its verification levels support. */
+export function waysOf(method: AccountMethod): PaymentWay[] {
+  const levels: readonly VerificationLevel[] = PAYMENT_METHOD_TYPES[method].levels;
+  return Object.values(PaymentWay).filter((way) => levels.includes(WAY_NEEDS[way]));
+}
+
+/**
+ * PAY-06 (agreed 2026-11-03): a method's way until its owner chooses: the listener where it can be read, which is how every shop
+ * already works, so automated checkout is only ever a deliberate choice.
+ */
+export function startingWayOf(method: AccountMethod): PaymentWay {
+  return waysOf(method).includes(PaymentWay.Listener) ? PaymentWay.Listener : PaymentWay.Manual;
+}
 
 /** A method a shop keeps accounts for (never cash or cash on delivery). */
 export type AccountMethod = Extract<PaymentMethod, keyof typeof PAYMENT_METHOD_TYPES>;

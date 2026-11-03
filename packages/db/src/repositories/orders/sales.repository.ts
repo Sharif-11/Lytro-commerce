@@ -61,6 +61,7 @@ const RESERVATION_REFERENCE = 'reservation';
 function counted(tenantId: string, period: SalesPeriod): SQL {
   return sql`o.tenant_id = ${tenantId} AND o.created_at >= ${period.from} AND o.created_at < ${period.to}
     AND o.delivered_at IS NOT NULL
+    AND NOT EXISTS (SELECT 1 FROM tenant.payments t WHERE t.tenant_id = o.tenant_id AND t.order_id = o.id AND t.test)
     AND o.status_override IS DISTINCT FROM ${StatusOverride.Cancelled}
     AND o.payment_status NOT IN (${OrderPaymentStatus.PaymentFailed}, ${OrderPaymentStatus.Refunded})
     AND EXISTS (SELECT 1 FROM tenant.order_lines k

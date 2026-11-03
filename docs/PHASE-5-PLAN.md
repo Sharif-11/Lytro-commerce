@@ -73,7 +73,7 @@ free. Lytro's own payments from sellers use the same listener, from the dashboar
 | D5-4 | **An advance nobody paid.** PAY-03's session lasts 30 minutes and INV-16's stock hold with it; ORD-08 sends an order with a rejected payment to `rejected`. | Cancelled automatically (the owner's pick over leaving it to staff): when the window ends with no transaction ID typed, the order is cancelled with a new reason, "advance not paid" (ORD-52), its session expired and its stock released, in one transaction. A payment staff reject cancels the order the same way. Money that turns up later -- a receipt or a transaction ID for a cancelled order -- goes to staff review and never reopens the order on its own. §2.3.1, ORD-08, ORD-52, PAY-14 and INV-16 amended. | Slice 5.3 |
 | D5-5 | **A transaction ID typed but not yet checked.** By hand, staff may take hours to check one. | Typing the transaction ID inside the window stops the clock: the session waits in `checking`, and the order and its stock hold wait until the payment is verified or rejected. Only an order nobody paid for within the window is cancelled on its own. PAY-03 and INV-16 amended. | Slice 5.3 |
 | D5-6 | **Wallets for manual payment.** WAL-01 lists bKash, Nagad and Rocket; the payment page design, ORD-15 and the payment methods already built include Upay. | bKash, Nagad, Rocket and Upay (wallet kind) and bank transfer (bank kind). WAL-01 amended. The listener reads bKash's receipts first, and the others once real samples arrive (LSN-06). | Slices 5.1, 5.4 |
-| D5-7 | **Gateways.** | bKash's tokenized checkout only; Nagad's later (OD-07). Lytro applies for bKash's sandbox early enough for Slice 5.7. | Slice 5.7 |
+| D5-7 | **Gateways.** | bKash's tokenized checkout only; Nagad's later (OD-07). Lytro applies for bKash's sandbox early enough for Slice 5.7. Amended 2026-11-03: the owner chooses for each wallet how its money is taken -- automated checkout, the listener or by hand (PAY-06). | Slice 5.7 |
 | D5-8 | **Moved out of this phase.** PAY-09 – 12 (signed webhooks, their retries, the secret-key read and cancel) are must-haves, but webhooks and secret keys are Phase 8 (D4-5). | They go to Phase 8, with the shop API. Phase 5 serves Lytro's own storefront, landing pages and staff, which read a session's state from the server. | Scope |
 | D5-9 | **A prepaid order's flow** (agreed in Phase 4's read, D4-3). | Unverified until its payment is verified, then New (`pending`) and the usual confirming call (ORD-51). An order waiting on its advance is not confirmed or shipped (agreed 2026-10-31 in Slice 5.1's read); staff who received the money another way record it (ORD-22), which verifies it. | Slice 5.3 |
 
@@ -89,7 +89,7 @@ Each is settled in its slice's read, before code, and recorded there.
 | 5.4 | Settled in its read, 2026-11-01 (below). |
 | 5.5 | The technology, installing and screens settled in its sketch's read, 2026-11-02 (below); the device-integrity check (LSN-25, off by default) stays undrawn. |
 | 5.6 | Settled in its read, 2026-11-03 (below). |
-| 5.7 | Holding the gateway fee (WAL-21) as a held amount or a charge reversed on failure; where a credential's use is logged (SEC-11); bKash's sandbox access. |
+| 5.7 | Settled in its read, 2026-11-03 (below). |
 | 5.8 | Where the payment page lives (its own small app, or a host of the storefront app with its own policy, PAY-23); redirect, as SFT-07 says, rather than the frame the drawings show; the drawn page's extras (contact buttons, support chat, its fonts, an SMS promise) against PAY-05; "switch to cash on delivery" after a failed payment, which PRD-08 refuses. |
 
 ---
@@ -119,7 +119,7 @@ this phase builds a working part and a named later phase finishes it. Notices de
 |---|---|---|---|
 | VER-01, VER-07, VER-10, PAY-15 | the staff notices through stand-in ports | push and SMS ("payment verified", "payment needs verification") | Phase 7 |
 | LSN-06 | bKash's receipts | Nagad, Rocket and Upay as real samples arrive | when samples arrive |
-| SEC-11 | a gateway credential's use logged where Slice 5.7's read decides | the full security pass | Phase 9 |
+| SEC-11 | a gateway credential's use logged per shop in `tenant.gateway_credential_uses`, for the operator (Slice 5.7) | the full security pass | Phase 9 |
 | RTE-08, RTE-09 | session windows on the in-process limiter (D4-13) | exact counters in PostgreSQL (RED-11) | Phase 9 |
 | OBS-08 | the scripted order-and-payment check, run on staging for this phase's milestone | monitored probes | Phase 9 |
 
@@ -431,6 +431,43 @@ criterion 2 by hand, and 3). If velocity suggests it, the rest can become Phase 
 - **Rework:** §3.5's rows for this slice.
 
 ### Slice 5.7: bKash's gateway
+- **Read agreed 2026-11-03:** **the owner chooses how each wallet's money is taken** -- automated checkout, listener
+  verification or by hand, the user's own answer over the two options offered (PAY-06 amended). It is **per wallet**, and
+  only bKash has all three today; the others stay by hand until samples arrive, and a bank always is. Every wallet **starts on the
+  listener** where it can be read, existing shops included, so nothing changes until an owner chooses. **By hand means staff
+  decide, even with a phone paired**: a receipt never verifies and pays no fee, and waits beside the payment for staff. **The fee
+  is held, not charged and reversed**: an open checkout holds it, the balance spendable is the balance less what is held, and a
+  hold ends by itself as its session closes, so none can stick (WAL-21). **Free on a trial too**, as the listener (WAL-20
+  amended). **One PR.** Stated, no objection: credentials are the owner's alone; automated needs credentials that open; if the
+  gateway can't start or the fee can't be held the shopper pays on the page, never blocked; after a cancel or failure the shopper
+  retries or pays by hand while the window lasts; refunds stay a record; CI uses a fake bKash, and the real sandbox runs only by hand
+  from a local file outside every repo; SEC-11's log is per shop, in its own table, for the operator.
+- **Settled building:**
+  - The checkout always starts from the page: an order's reply gives the page's address, and the page calls
+    `POST /v1/pay/:ref/checkout` and follows the answer. A storefront checkout that already knows the wallet gets the same
+    address, and Slice 5.8's page goes straight on. The page's routes sit above the verifying, so `PublicOrderService` can't reach
+    the gateway without a cycle.
+  - A cancelled or failed try leaves the session open with `gatewayResult` beside it until its window ends (VER-09 amended), which is what lets
+    PAY-08's retry and paying by hand both work.
+  - Money only moves at execute, so execute is never asked for an order cancelled, or owing less than the page asks, while the
+    shopper was at bKash; they are never charged for it, and money that moved anyway goes to staff with no fee.
+  - bKash blocks an app for an hour past two token calls, so the count comes from the use log, which a restart doesn't
+    forget, shoppers arriving together share one call, and a test of a connection spends nothing while a token is held. A third call
+    isn't made: the old token serves if there is one, otherwise the shopper pays on the page (KNOWN-GAPS §107 on several servers).
+  - The fee charged is the amount held, not the rate at verification, so a raised rate never asks for more than was set aside.
+    A balance frozen or run down meanwhile charges nothing, for the shopper has paid. A fee that rounds to nothing holds nothing.
+  - A test account also stays out of the fee, the payment totals, sales and the new-shop cap.
+  - A checkout that ran out with no return is asked after by a minute pass (`gateway_reconcile_tick`), before the sessions'
+    own pass closes it, and a payment the shopper authorised is executed. With bKash unreachable it keeps asking for an hour past
+    the window, then lets go.
+  - The real sandbox, 2026-11-03: the v2 addresses and the token, starting a payment and asking after it all work; the bare token and
+    "Bearer" are both taken, so the code stays on the bare one; the checkout's address comes back as `bkashURL`, not the documents'
+    `bKashURL`; a refusal is an HTTP 400 with its code. A completed answer is still unseen (KNOWN-GAPS §107), so its transaction is read
+    under both spellings, and one called completed that can't be read is never let go as unpaid. Past execute, whatever it says short of
+    completed, bKash's own record is asked. A checkout with no answer for an hour past its window lets go, and the owner hears, as money may
+    have moved.
+  - The owner hears of a gateway failure through `PaymentNotifier.gatewayNeedsAttention`, a stand-in until the notification phase,
+    as the other payment notices are. The test connection answers bKash's code, never its words (WAL-13 amended, SEC-16).
 - **Depends on:** bKash's sandbox access (D5-7).
 - **Delivers:** gateway credentials, sealed, with the sandbox flag and the test connection (WAL-09, WAL-12, WAL-13);
   the account selected for automated payments, a payment finishing on its own account (WAL-10, WAL-11); the plugin

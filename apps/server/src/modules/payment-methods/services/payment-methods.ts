@@ -3,13 +3,19 @@ import type { NewPaymentAccount, SelectWalletAccount, Transaction } from '@lytro
 import {
   ACCOUNT_METHODS,
   AuditAction,
+  isAccountMethod,
   PAYMENT_METHOD_TYPES,
+  PaymentWay,
   ServerFieldProblemCode,
+  startingWayOf,
+  waysOf,
   type AccountMethod,
   type PaymentAccountInput,
+  type PaymentMethod,
   type PaymentMethodInput,
 } from '@lytronix/validators';
-import { FieldsError } from '../../../common/api-error';
+import { ApiError, FieldsError } from '../../../common/api-error';
+import { SecretBox, SecretPurpose, SecretUnreadable } from '../../shared/secrets/secret-box';
 import { CatalogueActivity } from '../../catalogue/services/catalogue-activity';
 import type { CatalogueActor } from '../../catalogue/types/catalogue';
 import type { PaymentMethodStore } from '../ports/payment-method-store';
@@ -20,7 +26,15 @@ import type {
   ShopperPaymentMethod,
 } from '../types/payment-methods';
 
-function accountView(row: SelectWalletAccount): PaymentAccountView {
+/** WAL-09: an account's opened gateway credentials, for one outbound call (SEC-09). */
+export interface OpenedGatewayAccount {
+  accountId: string;
+  method: PaymentMethod;
+  sandbox: boolean;
+  credentials: Readonly<Record<string, string>>;
+}
+
+function accountView(row: SelectWalletAccount, unreadable: boolean): PaymentAccountView {
   return {
     id: row.id,
     accountName: row.accountName,
@@ -34,6 +48,11 @@ function accountView(row: SelectWalletAccount): PaymentAccountView {
     swiftCode: row.swiftCode,
     instructions: row.instructions,
     active: row.active,
+    // WAL-09: never the credentials themselves.
+    hasCredentials: row.gatewayCredentials !== null && !unreadable,
+    credentialsUnreadable: unreadable,
+    sandbox: row.gatewaySandbox,
+    automated: row.automated,
   };
 }
 
@@ -56,12 +75,17 @@ function accountOf(row: PaymentAccountInput, active: boolean): NewPaymentAccount
   };
 }
 
-function shopperView(method: AccountMethod, row: SelectWalletAccount): ShopperPaymentMethod {
+function shopperView(
+  method: AccountMethod,
+  row: SelectWalletAccount,
+  way: PaymentWay,
+): ShopperPaymentMethod {
   const { kind } = PAYMENT_METHOD_TYPES[method];
   return {
     accountId: row.id,
     method,
     kind,
+    way,
     accountName: row.accountName,
     number: row.number,
     accountType: row.accountType,
@@ -93,6 +117,7 @@ export class PaymentMethods {
   constructor(
     @Inject(PAYMENT_METHOD_STORE) private readonly store: PaymentMethodStore,
     @Inject(CatalogueActivity) private readonly activity: CatalogueActivity,
+    @Inject(SecretBox) private readonly box: SecretBox,
   ) {}
 
   list(tenantId: string): Promise<PaymentMethodsView> {
@@ -153,24 +178,192 @@ export class PaymentMethods {
     if (!(await this.store.ownerPhoneVerified(tx, tenantId))) return [];
     const off = new Set<string>(await this.store.listOff(tx, tenantId));
     const rows = await this.store.list(tx, tenantId);
+    const chosen = await this.store.listWays(tx, tenantId);
     return ACCOUNT_METHODS.flatMap((method) => {
-      const active = off.has(method)
-        ? undefined
-        : rows.find((row) => row.method === method && row.active);
-      return active ? [shopperView(method, active)] : [];
+      if (off.has(method)) return [];
+      const way = chosen.find((row) => row.method === method)?.way ?? startingWayOf(method);
+      // WAL-19: an account may take level 1 and level 3 apart; a shop on automated checkout may have none active by hand.
+      const shown =
+        rows.find((row) => row.method === method && row.active) ??
+        (way === PaymentWay.Automated
+          ? rows.find((row) => row.method === method && row.automated)
+          : undefined);
+      return shown ? [shopperView(method, shown, way)] : [];
     });
+  }
+
+  /** PAY-06 (amended 2026-11-03): how the shop takes this method's money. */
+  async wayOfWithin(tx: Transaction, tenantId: string, method: PaymentMethod): Promise<PaymentWay> {
+    if (!isAccountMethod(method)) return PaymentWay.Manual;
+    const chosen = await this.store.listWays(tx, tenantId);
+    return chosen.find((row) => row.method === method)?.way ?? startingWayOf(method);
+  }
+
+  /**
+   * PAY-06 (Slice 5.7 read, agreed 2026-11-03): the owner chooses how a method's money is taken, among the ways it supports.
+   * Automated needs an account selected with credentials that open (WAL-10, WAL-12).
+   */
+  async chooseWay(
+    tenantId: string,
+    method: AccountMethod,
+    way: PaymentWay,
+    actor: CatalogueActor,
+  ): Promise<PaymentMethodsView> {
+    const who = await this.activity.resolve(tenantId, actor);
+    return this.store.run(tenantId, async (tx) => {
+      if (!waysOf(method).includes(way)) {
+        throw new ApiError('conflict', 'PaymentWayNotAvailable', {});
+      }
+      await this.store.lockMethod(tx, tenantId, method);
+      if (
+        way === PaymentWay.Automated &&
+        !(await this.automatedAccountWithin(tx, tenantId, method))
+      ) {
+        throw new ApiError('conflict', 'GatewayCredentialsNeeded', {});
+      }
+      await this.store.setWay(tx, tenantId, method, way);
+      await this.activity.record(
+        tx,
+        tenantId,
+        who,
+        AuditAction.PaymentWayChosen,
+        { type: 'payment_method', id: null },
+        { method, way },
+      );
+      return this.viewWithin(tx, tenantId);
+    });
+  }
+
+  /** WAL-10: the account selected for the method's automated payments, its credentials opened; null when there's none usable. */
+  async automatedAccountWithin(
+    tx: Transaction,
+    tenantId: string,
+    method: PaymentMethod,
+  ): Promise<OpenedGatewayAccount | null> {
+    const rows = await this.store.list(tx, tenantId);
+    const row = rows.find((account) => account.method === method && account.automated);
+    return row ? this.openedOf(row) : null;
+  }
+
+  /** WAL-11: an account's credentials by its id, whatever is selected now; null when they don't open (WAL-12). */
+  accountCredentials(tenantId: string, accountId: string): Promise<OpenedGatewayAccount | null> {
+    return this.store.run(tenantId, async (tx) => {
+      const row = await this.store.findAccount(tx, tenantId, accountId);
+      return row ? this.openedOf(row) : null;
+    });
+  }
+
+  /** WAL-09, SEC-01: credentials sealed to this shop and this purpose, so a copied value opens nowhere else. */
+  async sealGatewayCredentials(
+    tenantId: string,
+    accountId: string,
+    credentials: Readonly<Record<string, string>>,
+    sandbox: boolean,
+    actor: CatalogueActor,
+  ): Promise<SelectWalletAccount> {
+    const who = await this.activity.resolve(tenantId, actor);
+    return this.store.run(tenantId, async (tx) => {
+      const row = await this.store.setGateway(tx, tenantId, accountId, {
+        credentials: this.box.seal(
+          JSON.stringify(credentials),
+          SecretPurpose.GatewayCredentials,
+          tenantId,
+        ),
+        sandbox,
+      });
+      if (!row) throw new ApiError('not_found', 'PaymentAccountNotFound', {});
+      await this.activity.record(
+        tx,
+        tenantId,
+        who,
+        AuditAction.GatewayCredentialsSaved,
+        { type: 'payment_method', id: accountId },
+        { method: row.method, sandbox },
+      );
+      return row;
+    });
+  }
+
+  async removeGatewayCredentials(
+    tenantId: string,
+    accountId: string,
+    actor: CatalogueActor,
+  ): Promise<SelectWalletAccount> {
+    const who = await this.activity.resolve(tenantId, actor);
+    return this.store.run(tenantId, async (tx) => {
+      const row = await this.store.setGateway(tx, tenantId, accountId, null);
+      if (!row) throw new ApiError('not_found', 'PaymentAccountNotFound', {});
+      await this.activity.record(
+        tx,
+        tenantId,
+        who,
+        AuditAction.GatewayCredentialsRemoved,
+        { type: 'payment_method', id: accountId },
+        { method: row.method },
+      );
+      return row;
+    });
+  }
+
+  /** WAL-10: this account takes the method's automated payments; it must hold credentials that open. */
+  async selectAutomated(
+    tenantId: string,
+    accountId: string,
+    actor: CatalogueActor,
+  ): Promise<PaymentMethodsView> {
+    const who = await this.activity.resolve(tenantId, actor);
+    return this.store.run(tenantId, async (tx) => {
+      const row = await this.store.findAccount(tx, tenantId, accountId);
+      if (!row) throw new ApiError('not_found', 'PaymentAccountNotFound', {});
+      if (!this.openedOf(row)) throw new ApiError('conflict', 'GatewayCredentialsNeeded', {});
+      await this.store.selectAutomated(tx, tenantId, row.method, row.id);
+      await this.activity.record(
+        tx,
+        tenantId,
+        who,
+        AuditAction.GatewayAccountSelected,
+        { type: 'payment_method', id: row.id },
+        { method: row.method },
+      );
+      return this.viewWithin(tx, tenantId);
+    });
+  }
+
+  /** WAL-12: credentials that don't open (the key changed) count as none, for the owner to enter again. */
+  private openedOf(row: SelectWalletAccount): OpenedGatewayAccount | null {
+    if (row.gatewayCredentials === null) return null;
+    try {
+      return {
+        accountId: row.id,
+        method: row.method,
+        sandbox: row.gatewaySandbox,
+        credentials: JSON.parse(
+          this.box.open(row.gatewayCredentials, SecretPurpose.GatewayCredentials, row.tenantId),
+        ) as Record<string, string>,
+      };
+    } catch (error) {
+      if (error instanceof SecretUnreadable) return null;
+      throw error;
+    }
   }
 
   private async viewWithin(tx: Transaction, tenantId: string): Promise<PaymentMethodsView> {
     const off = new Set<string>(await this.store.listOff(tx, tenantId));
     const rows = await this.store.list(tx, tenantId);
+    const chosen = await this.store.listWays(tx, tenantId);
     return {
       methods: ACCOUNT_METHODS.map((method) => ({
         method,
         kind: PAYMENT_METHOD_TYPES[method].kind,
         enabled: !off.has(method),
         levels: [...PAYMENT_METHOD_TYPES[method].levels],
-        accounts: rows.filter((row) => row.method === method).map(accountView),
+        way: chosen.find((row) => row.method === method)?.way ?? startingWayOf(method),
+        ways: waysOf(method),
+        accounts: rows
+          .filter((row) => row.method === method)
+          .map((row) =>
+            accountView(row, row.gatewayCredentials !== null && this.openedOf(row) === null),
+          ),
       })),
       ownerPhoneVerified: await this.store.ownerPhoneVerified(tx, tenantId),
     };

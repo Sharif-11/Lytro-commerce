@@ -10,6 +10,7 @@ import { BillingModule } from '../billing/billing.module';
 import { BrandModule } from '../brand/brand.module';
 import { PaymentMethodsModule } from '../payment-methods/payment-methods.module';
 import { PaymentReviewModule } from '../payment-review/payment-review.module';
+import { GatewayModule } from '../gateway/gateway.module';
 import { ListenerModule } from '../listener/listener.module';
 import { ListenerReceiptsModule } from '../listener-receipts/listener-receipts.module';
 import { LytroReceiptsModule } from '../lytro-receipts/lytro-receipts.module';
@@ -135,6 +136,7 @@ import { CatalogueRequest } from './services/catalogue-request';
     PaymentMethodsModule,
     PaymentSessionsModule,
     PaymentReviewModule,
+    GatewayModule,
     ListenerModule,
     ListenerReceiptsModule,
     LytroReceiptsModule,

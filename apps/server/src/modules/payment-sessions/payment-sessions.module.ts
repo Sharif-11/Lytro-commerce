@@ -44,6 +44,7 @@ import { PAYMENT_NOTIFIER, PAYMENT_PAGE_ORIGIN, PAYMENT_SESSION_STORE } from './
     PaymentSessionsEraser,
     PaymentPageOversight,
     PAYMENT_NOTIFIER,
+    PAYMENT_PAGE_ORIGIN,
   ],
 })
 export class PaymentSessionsModule {}

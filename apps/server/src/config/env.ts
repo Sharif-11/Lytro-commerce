@@ -18,6 +18,9 @@ const envSchema = z.object({
   DATABASE_URL: z
     .string()
     .min(1, 'DATABASE_URL is required; copy apps/server/.env.example to .env'),
+  // WAL-09 (Phase 5 Slice 5.7): bKash's Tokenized Checkout, host and version. Its production address is to be confirmed with bKash.
+  BKASH_SANDBOX_URL: z.string().url().default('https://tokenized.sandbox.bka.sh/v2'),
+  BKASH_PRODUCTION_URL: z.string().url().default('https://tokenized.pay.bka.sh/v2'),
   // Base domain the platform serves shops under: <slug>.<PLATFORM_DOMAIN> (decision R1, R2).
   PLATFORM_DOMAIN: z
     .string()

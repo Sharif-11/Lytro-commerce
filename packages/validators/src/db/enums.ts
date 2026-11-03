@@ -343,6 +343,11 @@ export enum AuditAction {
   PaymentIdChanged = 'payment_id_changed',
   // LSN-04: test mode switched on from the paired phone.
   ListenerTestModeStarted = 'listener_test_mode_started',
+  // WAL-09, WAL-10, PAY-06 (Phase 5 Slice 5.7): the owner's gateway credentials, automated account and way of taking a wallet's money.
+  GatewayCredentialsSaved = 'gateway_credentials_saved',
+  GatewayCredentialsRemoved = 'gateway_credentials_removed',
+  GatewayAccountSelected = 'gateway_account_selected',
+  PaymentWayChosen = 'payment_way_chosen',
   PaymentRejected = 'payment_rejected',
   OrderPaymentRefunded = 'order_payment_refunded',
   NewShopCapSet = 'new_shop_cap_set',
@@ -479,6 +484,8 @@ export enum QueueName {
   PaymentSessionExpiryTick = 'payment_session_expiry_tick',
   // LSN-05 (Phase 5 Slice 5.4a): daily, listener pairing codes spent or run out and phones long revoked are removed.
   ListenerPurgeTick = 'listener_purge_tick',
+  // VER-09 (Slice 5.7): a checkout that ran out with no return from the wallet is asked after before it closes.
+  GatewayReconcileTick = 'gateway_reconcile_tick',
   // MED-03: an uploaded file to validate and turn into what is stored; MED-07, MED-09: stored files to delete, with the
   // deletion job's own key.
   MediaProcess = 'media_process',
@@ -632,6 +639,8 @@ export enum RateKey {
   SmsUnitSizeChars = 'sms_unit_size_chars',
   // RAT-16 (Phase 5 Slice 5.4b): the listener's verification fee, a percent of the payment.
   ListenerVerificationPct = 'listener_verification_pct',
+  // RAT-15 (Phase 5 Slice 5.7): the gateway's verification fee, a percent of the payment.
+  GatewayVerificationPct = 'gateway_verification_pct',
 }
 
 // LIM-02: what the usage page shows, each against the shop's limit. Essential SMS is per cycle on a paid plan and in
@@ -1288,6 +1297,29 @@ export enum PaymentReviewReason {
   TransactionIdUsed = 'transaction_id_used',
   // BIL-15 (Slice 5.6): the seller's request had closed when the money arrived.
   RequestClosed = 'request_closed',
+  // Slice 5.7 (agreed 2026-11-03): the shop checks this wallet's payments by hand, so a receipt only helps staff.
+  ByHand = 'by_hand',
+}
+
+// PAY-06 (amended 2026-11-03, Slice 5.7 read): how a shop takes a wallet's payments, its owner's choice for each wallet.
+export enum PaymentWay {
+  Automated = 'automated',
+  Listener = 'listener',
+  Manual = 'manual',
+}
+
+// VER-09, PAY-08 (Slice 5.7): how the last try at a wallet's own checkout ended, for the page to offer another.
+export enum GatewayResult {
+  Cancelled = 'cancelled',
+  Failed = 'failed',
+}
+
+// SEC-11 (Slice 5.7): what a stored gateway credential was used for.
+export enum CredentialUseAction {
+  Token = 'token',
+  Create = 'create',
+  Execute = 'execute',
+  Query = 'query',
 }
 
 // PAY-14: what the payment page may tell a shopper of a review -- never the shop's balance or anything else of its own.
