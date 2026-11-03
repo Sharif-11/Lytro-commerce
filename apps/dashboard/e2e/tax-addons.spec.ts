@@ -227,6 +227,27 @@ test('a group’s rules: Custom shows the numbers and checks them; one to pick k
   await expect(main(page).getByRole('button', { name: /^Spice/ })).toHaveCount(0);
 });
 
+test('a saved tax class and add-on group are saved: a second Save sends nothing, leaving asks nothing', async ({
+  page,
+}) => {
+  const log = await open(page, '/products/p-1');
+  await openMore(page);
+  await main(page).getByLabel('Tax class').selectOption('tx-15');
+  await main(page).getByRole('button', { name: 'Add a group' }).click();
+  const adding = sheet(page, 'Add a group');
+  await adding.getByLabel('Group name').fill('Gift wrap');
+  await adding.getByLabel('Name', { exact: true }).fill('Gift wrap');
+  await adding.getByRole('button', { name: 'Save' }).click();
+  await main(page).getByRole('button', { name: 'Save' }).click();
+  await expect.poll(() => sent(log, 'PATCH', '/products/p-1').length).toBe(1);
+  await main(page).getByRole('button', { name: 'Save' }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  expect(sent(log, 'PATCH', '/products/p-1')).toHaveLength(1);
+  await page.getByRole('link', { name: 'Home' }).first().click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page).toHaveURL(new RegExp(`/${SLUG}$`));
+});
+
 test('someone who may only look sees the add-ons and changes nothing', async ({ page }) => {
   const products = drawnProducts();
   const first = products.products[0];

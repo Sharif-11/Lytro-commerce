@@ -304,6 +304,8 @@ export interface ComboPartView {
     label: string;
     /** Not retired and its product not deleted. */
     available: boolean;
+    /** UOM-03 (Slice 4.8c): a measured unit takes part of one; others count whole. */
+    stockUnit: StockUnit;
   }[];
 }
 

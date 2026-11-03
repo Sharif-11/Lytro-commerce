@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
-import { StockState } from '@lytronix/validators';
+import { ProductKind, StockState } from '@lytronix/validators';
 import { Icon } from '@/components/icon';
 import { RowText, RowTrail, rowClass } from '@/components/ui/list-row';
 import { StatusTag, type StatusTone } from '@/components/ui/status-tag';
@@ -25,7 +25,7 @@ export function StockTag({ state }: { state: StockState }): React.JSX.Element {
 /**
  * One product as every list shows it (the prototype's `prodRow`): its first photo or the drawn tile, the name with
  * Inactive when it is, "n variants · category", the price over its stock chip; an archived one's chip says Archived
- * (Part 13). It opens the product.
+ * (Part 13). A combo has its tag in place of its variants (`k31-products`). It opens the product.
  */
 export function ProductRow({
   product,
@@ -40,6 +40,7 @@ export function ProductRow({
   const { t } = useTranslation('shop');
   const { slug } = useShell();
   const [tone, label] = archived ? (['neutral', 'plArchived'] as const) : STOCK[product.stockState];
+  const combo = product.kind === ProductKind.Combo;
   return (
     <Link
       to="/$shop/products/$productId"
@@ -50,20 +51,24 @@ export function ProductRow({
         {product.image ? (
           <img src={product.image.urls.thumbnail} alt="" className="size-full object-cover" />
         ) : (
-          <Icon name="image" />
+          <Icon name={combo ? 'layers' : 'image'} />
         )}
       </span>
       <RowText
         title={
           <>
-            {product.name}{' '}
+            {product.name} {combo ? <StatusTag tone="neutral">{t('comboTag')}</StatusTag> : null}{' '}
             {product.active || archived ? null : (
               <StatusTag tone="neutral">{t('inactive')}</StatusTag>
             )}
           </>
         }
         sub={[
-          product.variantCount === 1 ? t('variant1') : t('variantsN', { n: product.variantCount }),
+          combo
+            ? null
+            : product.variantCount === 1
+              ? t('variant1')
+              : t('variantsN', { n: product.variantCount }),
           category,
         ]
           .filter(Boolean)

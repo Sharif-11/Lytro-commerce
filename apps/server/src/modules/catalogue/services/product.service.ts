@@ -1089,6 +1089,11 @@ export class ProductService {
     }
   }
 
+  /** Slice 4.8c: each product's option names, one list per attribute, as a picker's row says them. */
+  optionNames(tenantId: string, productIds: string[]): Promise<Map<string, string[][]>> {
+    return this.transactions.run((tx) => this.combos.optionNames(tx, tenantId, productIds));
+  }
+
   /** CMB-01: a combo counts no stock of its own -- no counting, batches or serials. */
   private refuseComboStock(product: ProductRecord, input: UpdateProductInput): void {
     if (product.kind !== ProductKind.Combo) return;

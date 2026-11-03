@@ -23,6 +23,8 @@ export interface ComboFigures {
   partsValue: string;
   /** CMB-07: the parts' weight, each choice part at its heaviest variant; null when any part has none. */
   weightKg: string | null;
+  /** CMB-06, CMB-09 (Slice 4.8c): what each part adds to `partsValue`, and its product's photo. */
+  parts: { position: number; value: string; coverMediaId: string | null }[];
 }
 
 /** A variant still offered: its product live and on sale, the variant itself on sale and not retired. */
@@ -60,6 +62,7 @@ export function comboFigures(rows: ComboPartStockRow[]): Map<string, ComboFigure
     const issues: ComboIssue[] = [];
     let value = 0;
     let weight: number | null = 0;
+    const ofParts: ComboFigures['parts'] = [];
     for (const [position, variants] of [...parts].sort(([a], [b]) => a - b)) {
       const first = variants[0];
       if (!first) continue;
@@ -87,7 +90,13 @@ export function comboFigures(rows: ComboPartStockRow[]): Map<string, ComboFigure
         canMake = canMake === null ? made : Math.min(canMake, made);
       }
       const priced = live.length > 0 ? live : variants;
-      value += (Math.min(...priced.map((row) => milli(row.price))) * per) / 1000;
+      const partValue = (Math.min(...priced.map((row) => milli(row.price))) * per) / 1000;
+      value += partValue;
+      ofParts.push({
+        position,
+        value: (Math.round(partValue) / 1000).toFixed(2),
+        coverMediaId: first.coverMediaId,
+      });
       const weights = priced.map((row) => (row.weightKg === null ? null : milli(row.weightKg)));
       weight =
         weight === null || weights.includes(null)
@@ -100,6 +109,7 @@ export function comboFigures(rows: ComboPartStockRow[]): Map<string, ComboFigure
       limitedBy: issues.length > 0 ? null : limitedBy,
       partsValue: (Math.round(value) / 1000).toFixed(2),
       weightKg: weight === null ? null : (Math.round(weight) / 1000).toFixed(3),
+      parts: ofParts,
     });
   }
   return figures;

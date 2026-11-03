@@ -1,9 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiClientError } from '@lytronix/api-client';
 import type { SerialFormat } from '@lytronix/validators';
 import { tenantSession } from '@/session/tenant-session';
-import type { ProductDetail } from '@/types/product';
-import type { EditPart } from '@/lib/product-form';
+import type { ComboQuote, ProductDetail } from '@/types/product';
+import type { comboQuoteBody, EditPart } from '@/lib/product-form';
 import { PRODUCTS_QUERY_KEY } from './catalogue';
 
 const productKey = (id: string) => [...PRODUCTS_QUERY_KEY, 'detail', id] as const;
@@ -17,6 +17,17 @@ export function useProduct(id: string | null) {
     // A product that is not there will not be there on asking again.
     retry: (count, error) =>
       !(error instanceof ApiClientError && error.code === 'not_found') && count < 3,
+  });
+}
+
+/** POST /products/combo-quote (Slice 4.8c): what a combo's parts come to as the editor has them, saved or not. */
+export function useComboQuote(body: ReturnType<typeof comboQuoteBody> | null) {
+  return useQuery({
+    queryKey: [...PRODUCTS_QUERY_KEY, 'combo-quote', body],
+    queryFn: () => tenantSession.client.post<ComboQuote>('/products/combo-quote', body),
+    enabled: body !== null,
+    placeholderData: keepPreviousData,
+    retry: false,
   });
 }
 

@@ -129,10 +129,20 @@ export class ComboParts {
             productName: row.productName,
             label: labels.get(variantId) ?? '',
             available: !row.retired && !row.productDeleted,
+            stockUnit: row.stockUnit,
           },
         ];
       }),
     }));
+  }
+
+  /** Slice 4.8c: each product's option names, one list per attribute, as a picker's row says them. */
+  optionNames(
+    tx: Transaction,
+    tenantId: string,
+    productIds: string[],
+  ): Promise<Map<string, string[][]>> {
+    return this.store.listOptionNames(tx, tenantId, productIds);
   }
 
   /** CMB-08, PRD-13: the combos any of these variants is a part of. */

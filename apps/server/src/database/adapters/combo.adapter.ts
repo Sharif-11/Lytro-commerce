@@ -42,6 +42,14 @@ export class DrizzleComboStore implements ComboStore {
     return this.combos.variantLabels(tx, tenantId, variantIds);
   }
 
+  listOptionNames(
+    tx: Transaction,
+    tenantId: string,
+    productIds: string[],
+  ): Promise<Map<string, string[][]>> {
+    return this.combos.listOptionNames(tx, tenantId, productIds);
+  }
+
   combosUsingVariants(
     tx: Transaction,
     tenantId: string,

@@ -837,6 +837,16 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
       return ok({ ok: true });
     }
     if (method === 'DELETE' && one) {
+      // CMB-08, PRD-13: a product inside a combo isn't deleted for good; the combos are named.
+      const inside =
+        url.searchParams.get('hard') === 'true' ? products.inCombos?.[one[1] ?? ''] : null;
+      if (inside) {
+        return route.fulfill({
+          status: 409,
+          contentType: 'application/json',
+          body: refusal('conflict', 'It is an item of a combo.', { combos: inside }),
+        });
+      }
       productRemove(products, one[1] ?? '', url.searchParams.get('hard') === 'true');
       return ok({ ok: true });
     }
@@ -1004,6 +1014,7 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
       state.orders,
       state.language,
       (orderId) => customerIdOf(orderId, customers),
+      products.picker,
     );
     if (ordered && 'refused' in ordered) {
       const { status, code, message, details } = ordered.refused;

@@ -13,8 +13,8 @@ import type { ProductDetail } from '@/types/product';
 import { ChoiceList, ChoiceRow } from './choice-list';
 import { OpeningBatchSheet } from './opening-batch-sheet';
 import { OpeningSerialsSheet } from './opening-serials-sheet';
-import { PolicySheet } from './policy-sheet';
-import { isMeasured, useBatchText, usePolicyWords } from './stock-words';
+import { PolicyField } from './policy-field';
+import { isMeasured, useBatchText } from './stock-words';
 import { ZonesSheet } from './zones-sheet';
 
 const UNITS = Object.values(StockUnit);
@@ -74,10 +74,8 @@ export function StockDeliveryCard({
 }): React.JSX.Element {
   const { t, i18n } = useTranslation('shop');
   const titleId = useId();
-  const policies = usePolicyWords();
   const delivery = useDeliverySettings();
   const [zonesOpen, setZonesOpen] = useState(false);
-  const [policyOpen, setPolicyOpen] = useState(false);
   const [openingSheet, setOpeningSheet] = useState<'batch' | 'serials' | null>(null);
   const batchText = useBatchText();
   const settings = form.settings;
@@ -95,14 +93,6 @@ export function StockDeliveryCard({
       : zoneNames.length > 0
         ? zoneNames.join(', ')
         : t('zonesN', { count: form.deliveryZoneIds.length });
-  const policy =
-    settings.paymentPolicy === null
-      ? `${t('policyShop')} · ${
-          shopDefault
-            ? policies.short(shopDefault.defaultPaymentPolicy, shopDefault.defaultAdvanceAmount)
-            : ''
-        }`
-      : policies.short(settings.paymentPolicy, settings.advanceAmount);
   return (
     <Card role="region" aria-labelledby={titleId} className="flex flex-col gap-3">
       <h3 id={titleId} className="text-[17px] font-semibold">
@@ -246,14 +236,12 @@ export function StockDeliveryCard({
           setZonesOpen(true);
         }}
       />
-      <PickField
-        label={t('payPolicy')}
-        value={policy}
+      <PolicyField
+        settings={settings}
+        shopDefault={shopDefault}
+        readOnly={readOnly}
         error={errors.policy}
-        disabled={readOnly}
-        onPick={() => {
-          setPolicyOpen(true);
-        }}
+        onSettings={onSettings}
       />
       <OpeningBatchSheet
         open={openingSheet === 'batch'}
@@ -293,19 +281,6 @@ export function StockDeliveryCard({
         }}
         onClose={() => {
           setZonesOpen(false);
-        }}
-      />
-      <PolicySheet
-        open={policyOpen}
-        policy={settings.paymentPolicy}
-        advance={settings.advanceAmount}
-        shopDefault={shopDefault}
-        onDone={(paymentPolicy, advanceAmount) => {
-          setPolicyOpen(false);
-          onSettings({ paymentPolicy, advanceAmount });
-        }}
-        onClose={() => {
-          setPolicyOpen(false);
         }}
       />
     </Card>

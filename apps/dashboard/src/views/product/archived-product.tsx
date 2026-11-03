@@ -17,6 +17,8 @@ import type { ProductDetail } from '@/types/product';
 import { ProductLimitBanner } from '@/views/products/product-limit-banner';
 import { unusedMedia } from '@/api/media';
 import { BasicsCard } from './basics-card';
+import { InCombosDialog } from './in-combos-dialog';
+import { combosIn } from './in-combos';
 import { PhotoStrip } from './photo-strip';
 import { itemsOf } from './product-media';
 import { RemoveDialog } from './remove-dialog';
@@ -37,6 +39,7 @@ export function ArchivedProduct({ product }: { product: ProductDetail }): React.
   const remove = useRemoveProduct(product.id);
   const [full, setFull] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const inCombos = combosIn(remove.error);
 
   const toList = (): void => {
     void navigate({ to: '/$shop/products', params: { shop: slug } });
@@ -112,7 +115,7 @@ export function ArchivedProduct({ product }: { product: ProductDetail }): React.
         />
       </div>
       <RemoveDialog
-        open={deleting ? 'hard' : null}
+        open={deleting && inCombos.length === 0 ? 'hard' : null}
         only="hard"
         busy={remove.isPending}
         error={remove.isError ? errorText(remove.error) : null}
@@ -133,6 +136,16 @@ export function ArchivedProduct({ product }: { product: ProductDetail }): React.
           });
         }}
       />
+      {inCombos.length > 0 ? (
+        <InCombosDialog
+          name={product.name}
+          combos={inCombos}
+          onClose={() => {
+            remove.reset();
+            setDeleting(false);
+          }}
+        />
+      ) : null}
     </ShellPage>
   );
 }

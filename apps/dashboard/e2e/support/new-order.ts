@@ -9,7 +9,11 @@ import type { OrderFixture, OrderItemFixture } from './orders';
 
 type Words = [string, string];
 
-interface PickerVariant {
+export interface PickerVariant {
+  /** Slice 4.8c: off sale, and why a combo can't use it (CMB-08). */
+  offSale?: boolean;
+  gone?: 'part_archived' | 'part_off_sale' | 'part_retired';
+  weightKg?: number;
   id: string;
   label: Words;
   price: number;
@@ -25,7 +29,9 @@ interface PickerGroup {
   options: { id: string; name: Words; price: number; isDefault: boolean }[];
 }
 
-interface PickerProduct {
+export interface PickerProduct {
+  /** UOM-03 (Slice 4.8c): a measured unit may go in a combo by part of one. */
+  stockUnit?: string;
   id: string;
   name: Words;
   kind: 'ordinary' | 'combo';
@@ -285,6 +291,21 @@ function quoteOf(body: Record<string, unknown>) {
   };
 }
 
+/** Its option names, one list per attribute: the variants' labels read position by position. */
+function optionNamesOf(product: PickerProduct, language: Language): string[][] {
+  const lists: string[][] = [];
+  for (const variant of product.variants) {
+    const label = say(variant.label, language);
+    if (label === '') continue;
+    label.split(' · ').forEach((value, at) => {
+      const list = lists[at] ?? [];
+      if (!list.includes(value)) list.push(value);
+      lists[at] = list;
+    });
+  }
+  return lists;
+}
+
 function pickerItem(product: PickerProduct, language: Language) {
   const prices = product.variants.map((variant) => variant.price);
   const sold = product.variants.map((variant) => variant.available);
@@ -297,6 +318,7 @@ function pickerItem(product: PickerProduct, language: Language) {
     active: true,
     image: null,
     variantCount: product.variants.length,
+    optionNames: optionNamesOf(product, language),
     available: sold.includes(null)
       ? null
       : units(sold.reduce<number>((sum, each) => sum + (each ?? 0), 0)),
@@ -309,12 +331,16 @@ function pickerProduct(product: PickerProduct, language: Language) {
     name: say(product.name, language),
     kind: product.kind,
     active: true,
-    variants: product.variants.map((variant) => ({
-      variantId: variant.id,
-      label: say(variant.label, language),
-      price: money(variant.price),
-      available: units(variant.available),
-    })),
+    stockUnit: product.stockUnit ?? 'piece',
+    variants: product.variants
+      .filter((variant) => variant.gone !== 'part_retired')
+      .map((variant) => ({
+        variantId: variant.id,
+        label: say(variant.label, language),
+        price: money(variant.price),
+        onSale: !variant.offSale && !variant.gone,
+        available: units(variant.available),
+      })),
     parts: (product.parts ?? []).map((part) => ({
       position: part.position,
       quantity: '1.000',
@@ -364,10 +390,11 @@ export function pickerAnswer(
   url: URL,
   body: Record<string, unknown> | null,
   language: Language,
+  picker: readonly PickerProduct[] = PICKER,
 ): Answer | undefined {
   if (method === 'GET' && path === '/orders/picker') {
     const search = (url.searchParams.get('search') ?? '').toLowerCase();
-    const found = PICKER.filter((product) =>
+    const found = picker.filter((product) =>
       search === ''
         ? !product.searchedOnly
         : product.name.some((name) => name.toLowerCase().includes(search)),
@@ -383,7 +410,7 @@ export function pickerAnswer(
   }
   const one = /^\/orders\/picker\/([^/]+)$/.exec(path);
   if (method === 'GET' && one) {
-    const product = PICKER.find((each) => each.id === one[1]);
+    const product = picker.find((each) => each.id === one[1]);
     return product
       ? { data: pickerProduct(product, language) }
       : { refused: { status: 404, code: 'not_found', message: 'Not found' } };

@@ -127,6 +127,8 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
     "another shop's product answers 404; the copy is the session shop's own",
   // Phase 3 Slice 11.7a, checked in test/catalogue-products.e2e.spec.ts.
   'POST /products/:id/restore': "another shop's product answers 404 and stays archived",
+  // Slice 4.8c, covered in combos.e2e: another shop's parts come to nothing, and nothing is written.
+  'POST /products/combo-quote': "another shop's variants read as if they were not there",
   'PUT /products/:id/size-chart': "another shop's product answers 404",
   'DELETE /products/:id/size-chart': "another shop's product answers 404",
   'GET /option-sets': "lists the platform's option sets and only the session shop's own",

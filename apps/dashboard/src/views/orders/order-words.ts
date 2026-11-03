@@ -10,6 +10,12 @@ import type { StatusTone } from '@/components/ui/status-tag';
 import { formatTime } from '@/lib/dates';
 import type { OrderArea, OrderItem, OrderSummary } from '@/types/orders';
 
+/** A product's options as a picker's row says them: "M · L · XL · Black, White" (Slice 4.8c). */
+export function optionsText(names: readonly (readonly string[])[]): string {
+  const [first, ...others] = names;
+  return [...(first ?? []), ...others.map((each) => each.join(', '))].join(' · ');
+}
+
 /** Each visible status's chip (ORD-41, the prototype's `STATUS` with Part 29's New, Confirmed and On hold). */
 const STATUS: Record<OrderStatus, [StatusTone, string]> = {
   [OrderStatus.Pending]: ['warn', 'stPending'],

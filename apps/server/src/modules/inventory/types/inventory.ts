@@ -1,3 +1,4 @@
+import type { ImageView } from '../../../common/media-links';
 import type { ComboIssue } from '../services/combo-figures';
 import type {
   NewReservation,
@@ -287,6 +288,22 @@ export interface ProductStockView {
   variants: VariantStockView[];
   /** CMB-02, CMB-08: a combo's "can make" and what keeps it from being made; null for an ordinary product. */
   combo: ComboStockView | null;
+}
+
+/**
+ * CMB-02, CMB-06 to CMB-08 (Slice 4.8c, agreed 2026-11-02): what a combo's parts come to as the editor has them, saved
+ * or not, for whoever may edit products: each part's price and photo, what they cost bought apart and what the customer
+ * saves, how many it can make and what limits it, why it can't be made, and the weight its items give it.
+ */
+export interface ComboQuoteView {
+  partsValue: string;
+  /** Shown only when positive (CMB-06); null too while no price is given. */
+  saving: string | null;
+  canMake: number | null;
+  limitedBy: ComboStockView['limitedBy'];
+  issues: ComboIssue[];
+  weightKg: string | null;
+  parts: { position: number; price: string; image: ImageView | null }[];
 }
 
 /** CMB-02, CMB-08: how many of a combo its parts make now (null: no part counted), and why none can be. */

@@ -16,6 +16,7 @@ import { useCategories, useProductRoom } from '@/api/catalogue';
 import { usePresets } from '@/api/shop-setup';
 import { unusedMedia } from '@/api/media';
 import {
+  useComboQuote,
   useCreateProduct,
   useDuplicateProduct,
   useProduct,
@@ -29,9 +30,11 @@ import { Card } from '@/components/ui/card';
 import { Dialog } from '@/components/ui/dialog';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SkeletonRows } from '@/components/ui/skeleton';
+import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { useErrorText } from '@/hooks/use-error-text';
 import {
   changedParts,
+  comboQuoteBody,
   createBody,
   formOf,
   isDirty,
@@ -55,6 +58,10 @@ import { ShellPage } from '@/shell/shell-page';
 import type { ProductDetail } from '@/types/product';
 import { ProductLimitBanner } from '@/views/products/product-limit-banner';
 import { StockTag } from '@/views/products/product-row';
+import { StatusTag } from '@/components/ui/status-tag';
+import { ComboDeliveryCard, ComboOutBanners, ComboPartsCard, KindCard } from './combo-card';
+import { InCombosDialog } from './in-combos-dialog';
+import { combosIn } from './in-combos';
 import { ArchivedProduct } from './archived-product';
 import { BasicsCard } from './basics-card';
 import { LinkCard } from './link-card';
@@ -110,6 +117,9 @@ export function ProductEditor({ productId }: { productId: string | null }): Reac
   return <ProductPage key={product.data?.id ?? 'new'} product={product.data ?? null} />;
 }
 
+/** How long the price rests before the combo's figures follow it. */
+const PRICE_REST_MS = 300;
+
 /** The ways an edit can stop short: the shop at its limit, or a part the server refused (Part 13). */
 type Stop =
   | { kind: 'limit'; refused: boolean }
@@ -159,6 +169,15 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
     format: form.settings.serialFormat,
     unit: form.settings.stockUnit,
   };
+  // CMB-01 (Slice 4.8c): a combo's form. Whoever may edit products sees what its parts come to as they stand here, and
+  // the exact counts (agreed 2026-11-02); whoever may read stock, what the saved combo can make.
+  const isCombo = form.kind === ProductKind.Combo;
+  const typedPrice = useDebouncedValue(form.price, PRICE_REST_MS);
+  const quoted = useComboQuote(
+    isCombo && mayManage && form.parts.length > 0 ? comboQuoteBody(form.parts, typedPrice) : null,
+  );
+  const quote = isCombo && form.parts.length > 0 ? quoted.data : undefined;
+  const canMake = quote ?? (isCombo ? (stock.data?.combo ?? undefined) : undefined);
   const create = useCreateProduct();
   const save = useSaveProduct(product?.id ?? '');
   const duplicate = useDuplicateProduct(product?.id ?? '');
@@ -361,8 +380,21 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
         ? 'variants'
         : undefined,
     rows: Object.keys(matrixProblems).length > 0 ? 'rows' : undefined,
+    // CMB-01: Save tried with nothing inside, or a part the server refused.
+    parts:
+      (tried && own.parts) || Object.keys(serverProblems).some((key) => key.startsWith('parts'))
+        ? 'parts'
+        : undefined,
   };
   const count = Object.values(problems).filter(Boolean).length;
+  // A part the server refused, by its place: a variant that has gone says what to do; anything else, the server's words.
+  const refusedParts = new Map<number, string>();
+  for (const [key, message] of Object.entries(serverProblems)) {
+    const found = /^parts\.(\d+)\.(\w+)/.exec(key);
+    if (found) {
+      refusedParts.set(Number(found[1]), found[2] === 'variantIds' ? t('comboPartGone') : message);
+    }
+  }
 
   function update(patch: Partial<ProductForm>): void {
     setForm((current) => ({ ...current, ...patch }));
@@ -377,19 +409,25 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
   }
 
   const savedWords = (done: ProductDetail): string =>
-    done.active ? t('savedLive', { name: done.name }) : t('saved');
+    done.kind === ProductKind.Combo
+      ? t('comboSaved', { name: done.name })
+      : done.active
+        ? t('savedLive', { name: done.name })
+        : t('saved');
 
   function submit(): void {
     setTried(true);
     setStop(null);
-    if (own.name || own.price || overLimit(form.splits) || measuredSerials) return;
+    if (own.name || own.price || own.parts || overLimit(form.splits) || measuredSerials) return;
     if (form.splits.some((each) => each.options.length === 0)) return;
     if (product === null) {
       create.mutate(createBody(form), {
         onSuccess: (made) => {
           forget([...made.images.map((image) => image.id), made.video?.id ?? null], []);
           showToast(savedWords(made));
-          leaveTo('/$shop/products');
+          // A new combo opens with its link (`k31-combo-saved`); a new product goes back to the list.
+          if (isCombo) leaveTo('/$shop/products/$productId', made.id);
+          else leaveTo('/$shop/products');
         },
         onError: (error) => {
           if (error instanceof ApiClientError && error.code === 'plan_limit_reached') {
@@ -476,13 +514,35 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
   }
 
   const busy = create.isPending || save.isPending;
-  const title = product ? product.name : t('newProduct');
+  const title = product ? (
+    isCombo ? (
+      <>
+        {product.name} <StatusTag tone="neutral">{t('comboTag')}</StatusTag>
+      </>
+    ) : (
+      product.name
+    )
+  ) : isCombo ? (
+    t('newCombo')
+  ) : (
+    t('newProduct')
+  );
+  const inCombos = combosIn(remove.error);
   return (
     <ShellPage
       title={title}
       actions={product ? <StockTag state={product.stockState} /> : undefined}
     >
-      {defaults.data ? (
+      {product === null ? (
+        <KindCard
+          value={form.kind}
+          onChange={(kind) => {
+            update({ kind });
+          }}
+        />
+      ) : null}
+      {isCombo ? <ComboOutBanners issues={canMake?.issues ?? []} /> : null}
+      {defaults.data && !isCombo ? (
         <DefaultsLine
           type={presetOf(defaults.data.presetKey)}
           onChange={
@@ -494,7 +554,7 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
           }
         />
       ) : null}
-      {typeChange ? (
+      {typeChange && !isCombo ? (
         <TypeBanner
           text={typeChange.text}
           onUndo={() => {
@@ -546,7 +606,30 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
               />
             }
           />
-          {defaults.data ? (
+          {isCombo ? (
+            <>
+              <ComboPartsCard
+                parts={form.parts}
+                quote={quote}
+                canMake={canMake}
+                readOnly={!mayManage}
+                needsPart={tried && own.parts !== undefined}
+                refused={refusedParts}
+                onChange={(parts) => {
+                  update({ parts });
+                }}
+              />
+              <ComboDeliveryCard
+                settings={form.settings}
+                weightKg={quote?.weightKg ?? null}
+                shopDefault={defaults.data?.shopPaymentPolicy ?? null}
+                readOnly={!mayManage}
+                errors={problems}
+                onSettings={updateSettings}
+              />
+            </>
+          ) : null}
+          {defaults.data && !isCombo ? (
             <UpfrontCard
               title={presetOf(defaults.data.presetKey)}
               fields={defaults.data.upFrontFields}
@@ -560,45 +643,48 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
               }}
             />
           ) : null}
-          <VariantsCard
-            form={form}
-            saved={saved}
-            product={product}
-            kind={kind}
-            suggestedIds={defaults.data?.suggestedAttributeIds ?? []}
-            stock={stock.data}
-            readOnly={!mayManage}
-            problems={matrixProblems}
-            onChange={update}
-            onHeldSerials={
-              mayReadStock
-                ? (variantId) => {
-                    setStockSheet({ kind: 'serials', variantId });
-                  }
-                : null
-            }
-          />
-          {/* MNU-01: a combo takes no add-ons. */}
-          {product?.kind === ProductKind.Combo ? null : (
-            <AddOnsCard
-              groups={form.addOns}
-              readOnly={!mayManage}
-              onChange={(addOns) => {
-                update({ addOns });
-              }}
-            />
+          {/* CMB-01, MNU-01: a combo has its parts, no options of its own and no add-ons. */}
+          {isCombo ? null : (
+            <>
+              <VariantsCard
+                form={form}
+                saved={saved}
+                product={product}
+                kind={kind}
+                suggestedIds={defaults.data?.suggestedAttributeIds ?? []}
+                stock={stock.data}
+                readOnly={!mayManage}
+                problems={matrixProblems}
+                onChange={update}
+                onHeldSerials={
+                  mayReadStock
+                    ? (variantId) => {
+                        setStockSheet({ kind: 'serials', variantId });
+                      }
+                    : null
+                }
+              />
+              <AddOnsCard
+                groups={form.addOns}
+                readOnly={!mayManage}
+                onChange={(addOns) => {
+                  update({ addOns });
+                }}
+              />
+              <StockDeliveryCard
+                form={form}
+                product={product}
+                shopDefault={defaults.data?.shopPaymentPolicy ?? null}
+                readOnly={!mayManage}
+                errors={problems}
+                onTracking={tracking.choose}
+                onSettings={updateSettings}
+                onChange={update}
+              />
+            </>
           )}
-          <StockDeliveryCard
-            form={form}
-            product={product}
-            shopDefault={defaults.data?.shopPaymentPolicy ?? null}
-            readOnly={!mayManage}
-            errors={problems}
-            onTracking={tracking.choose}
-            onSettings={updateSettings}
-            onChange={update}
-          />
           <MoreSettings
+            combo={isCombo}
             active={form.active}
             tax={
               taxes.data && taxes.data.classes.length > 0
@@ -615,7 +701,7 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
             }
             upFront={defaults.data?.upFrontFields ?? []}
             settings={form.settings}
-            single={form.splits.length === 0 ? form.single : null}
+            single={form.splits.length === 0 && !isCombo ? form.single : null}
             chartText={chartText}
             readOnly={!mayManage}
             busy={duplicate.isPending}
@@ -635,7 +721,7 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
         </div>
         <div className="flex flex-col gap-section">
           {product ? <LinkCard product={product} readOnly={!mayManage} /> : null}
-          {product && mayReadStock && kind.tracked ? (
+          {product && mayReadStock && kind.tracked && !isCombo ? (
             <StockCard
               product={product}
               stock={stock.data}
@@ -644,7 +730,9 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
               onOpen={setStockSheet}
             />
           ) : null}
-          {defaults.data ? <WhyCard defaults={defaults.data} suggested={suggestedNames} /> : null}
+          {defaults.data && !isCombo ? (
+            <WhyCard defaults={defaults.data} suggested={suggestedNames} />
+          ) : null}
         </div>
       </div>
       {mayManage ? (
@@ -656,7 +744,7 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
       ) : null}
       {product ? (
         <RemoveDialog
-          open={removing}
+          open={inCombos.length > 0 ? null : removing}
           busy={remove.isPending}
           onClose={() => {
             setRemoving(null);
@@ -672,6 +760,16 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
             });
           }}
           error={remove.isError ? errorText(remove.error) : null}
+        />
+      ) : null}
+      {product && inCombos.length > 0 ? (
+        <InCombosDialog
+          name={product.name}
+          combos={inCombos}
+          onClose={() => {
+            remove.reset();
+            setRemoving(null);
+          }}
         />
       ) : null}
       {product ? (

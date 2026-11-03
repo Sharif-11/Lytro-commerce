@@ -321,6 +321,7 @@ describeIfDatabase('route inventory against the application (SEC-02)', () => {
       'POST /products/:id/restore',
       'POST /products/:id/variants/:variantId/serials',
       'POST /products/:id/variants/:variantId/stock-additions',
+      'POST /products/combo-quote',
       'POST /public/delivery-estimate',
       'POST /public/listener/heartbeat',
       'POST /public/listener/messages',

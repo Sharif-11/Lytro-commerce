@@ -9,6 +9,7 @@ import {
   StockReason,
   StockTracking,
   type AddStockInput,
+  type ComboQuoteInput,
   type SetStockInput,
   type StockHistoryQuery,
   type StockPageQuery,
@@ -22,7 +23,8 @@ import type {
 } from '../../catalogue/ports/catalogue-stores';
 import { CatalogueActivity, type ResolvedActor } from '../../catalogue/services/catalogue-activity';
 import { ProductService } from '../../catalogue/services/product.service';
-import { comboFigures, type ComboFigures } from './combo-figures';
+import { CatalogueImages } from '../../catalogue/services/catalogue-images';
+import { comboFigures, comboSaving, type ComboFigures } from './combo-figures';
 import { inProductOrder } from '../../catalogue/services/variant-attributes';
 import { optionIdsOfKey } from '../../catalogue/services/variant-matrix';
 import { CATALOGUE_TRANSACTIONS } from '../../catalogue/tokens';
@@ -34,6 +36,7 @@ import { SERIAL_STORE, STOCK_STORE } from '../tokens';
 import type {
   BatchDescription,
   ProductStockView,
+  ComboQuoteView,
   SharedStockView,
   StockHistoryPage,
   StockPageView,
@@ -101,6 +104,9 @@ function reasonFor(edit: StockEditReason, rising: boolean): StockReason | null {
  * product sharing its stock holds it on its stock holder, which these routes take like any variant; a variant drawing
  * on it holds none of its own, so its stock and cost are set on the shared stock.
  */
+/** A draft's parts are grouped as one combo's are; it has no id yet. */
+const DRAFT_COMBO = 'draft';
+
 @Injectable()
 export class StockService implements ProductStockHooks {
   constructor(
@@ -111,7 +117,58 @@ export class StockService implements ProductStockHooks {
     @Inject(SerialEntryService) private readonly serialEntry: SerialEntryService,
     @Inject(CatalogueActivity) private readonly activity: CatalogueActivity,
     @Inject(ProductService) private readonly catalogue: ProductService,
+    @Inject(CatalogueImages) private readonly images: CatalogueImages,
   ) {}
+
+  /**
+   * Slice 4.8c (agreed 2026-11-02): a combo's figures from its parts as the editor has them, saved or not, by the same
+   * sums the ledger uses. Nothing is written. A variant that isn't the shop's reads as if it weren't there.
+   */
+  comboQuote(tenantId: string, input: ComboQuoteInput): Promise<ComboQuoteView> {
+    return this.transactions.run(async (tx) => {
+      const stock = new Map(
+        (
+          await this.store.listPartVariantStock(tx, tenantId, [
+            ...new Set(input.parts.flatMap((part) => part.variantIds)),
+          ])
+        ).map((row) => [row.variantId, row]),
+      );
+      const rows = input.parts.flatMap((part, index) =>
+        part.variantIds.flatMap((variantId) => {
+          const row = stock.get(variantId);
+          if (!row) return [];
+          return [
+            {
+              ...row,
+              comboProductId: DRAFT_COMBO,
+              position: index + 1,
+              quantity: part.quantity.toFixed(3),
+            },
+          ];
+        }),
+      );
+      const figures = comboFigures(rows).get(DRAFT_COMBO);
+      const photos = await this.images.viewsOf(
+        tx,
+        tenantId,
+        (figures?.parts ?? []).map((part) => part.coverMediaId),
+      );
+      return {
+        partsValue: figures?.partsValue ?? '0.00',
+        saving:
+          input.basePrice === undefined ? null : comboSaving(figures, input.basePrice.toFixed(2)),
+        canMake: figures?.canMake ?? null,
+        limitedBy: figures?.limitedBy ?? null,
+        issues: figures?.issues ?? [],
+        weightKg: figures?.weightKg ?? null,
+        parts: (figures?.parts ?? []).map((part) => ({
+          position: part.position,
+          price: part.value,
+          image: photos.get(part.coverMediaId ?? '') ?? null,
+        })),
+      };
+    });
+  }
 
   /** INV-01, CCH-08: every live variant's stock, and each retired variant still holding some (ATR-11). */
   view(tenantId: string, productId: string, canSeeCost: boolean): Promise<ProductStockView> {

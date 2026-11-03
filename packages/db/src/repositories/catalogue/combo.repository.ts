@@ -55,6 +55,12 @@ export interface ComboPartStockRow {
   coverMediaId: string | null;
 }
 
+/** One variant as a part would use it, before it is in any part (a draft combo's, Slice 4.8c). */
+export type PartVariantStockRow = Omit<
+  ComboPartStockRow,
+  'comboProductId' | 'position' | 'quantity'
+>;
+
 /** A variant a part would be made of, with what decides whether it may be (CMB-01, UOM-03). */
 export interface PartVariantRow {
   variantId: string;
@@ -164,15 +170,45 @@ export class ComboRepository {
     tenantId: string,
     comboProductIds: string[],
   ): Promise<ComboPartStockRow[]> {
+    const parts = await this.listParts(tx, tenantId, comboProductIds);
+    const stock = new Map(
+      (
+        await this.listPartVariantStock(tx, tenantId, [
+          ...new Set(parts.flatMap((part) => part.variantIds)),
+        ])
+      ).map((row) => [row.variantId, row]),
+    );
+    return parts.flatMap((part) =>
+      part.variantIds.flatMap((variantId) => {
+        const row = stock.get(variantId);
+        if (!row) return [];
+        return [
+          {
+            ...row,
+            comboProductId: part.comboProductId,
+            position: part.position,
+            quantity: part.quantity,
+          },
+        ];
+      }),
+    );
+  }
+
+  /**
+   * CMB-02, CMB-06, CMB-07: these variants as a part would use them, whatever combo they are in or none yet (the combo
+   * editor reads a draft by them, Slice 4.8c): whether each is live, its stock, price, weight and its product's photo.
+   */
+  async listPartVariantStock(
+    tx: Transaction,
+    tenantId: string,
+    variantIds: string[],
+  ): Promise<PartVariantStockRow[]> {
     await this.transactions.setTenantContext(tx, tenantId);
-    if (comboProductIds.length === 0) return [];
+    if (variantIds.length === 0) return [];
     const holder = alias(productVariants, 'holder');
     const pool = alias(stockLevels, 'pool');
     const rows = await tx
       .select({
-        comboProductId: comboParts.comboProductId,
-        position: comboParts.position,
-        quantity: comboParts.quantity,
         variantId: productVariants.id,
         productId: products.id,
         productName: products.name,
@@ -191,21 +227,7 @@ export class ComboRepository {
           WHERE pi.tenant_id = ${products.tenantId} AND pi.product_id = ${products.id}
           ORDER BY pi.sort_order LIMIT 1)`,
       })
-      .from(comboParts)
-      .innerJoin(
-        comboPartVariants,
-        and(
-          eq(comboPartVariants.tenantId, comboParts.tenantId),
-          eq(comboPartVariants.partId, comboParts.id),
-        ),
-      )
-      .innerJoin(
-        productVariants,
-        and(
-          eq(productVariants.tenantId, comboPartVariants.tenantId),
-          eq(productVariants.id, comboPartVariants.variantId),
-        ),
-      )
+      .from(productVariants)
       .innerJoin(
         products,
         and(
@@ -230,18 +252,8 @@ export class ComboRepository {
         ),
       )
       .leftJoin(pool, and(eq(pool.tenantId, holder.tenantId), eq(pool.variantId, holder.id)))
-      .where(
-        and(eq(comboParts.tenantId, tenantId), inArray(comboParts.comboProductId, comboProductIds)),
-      )
-      .orderBy(
-        asc(comboParts.comboProductId),
-        asc(comboParts.position),
-        asc(comboPartVariants.position),
-      );
+      .where(and(eq(productVariants.tenantId, tenantId), inArray(productVariants.id, variantIds)));
     return rows.map((row) => ({
-      comboProductId: row.comboProductId,
-      position: row.position,
-      quantity: row.quantity,
       variantId: row.variantId,
       productId: row.productId,
       productName: row.productName,
@@ -333,6 +345,70 @@ export class ComboRepository {
       labels.set(row.variantId, before === '' ? row.value : `${before} / ${row.value}`);
     }
     return labels;
+  }
+
+  /**
+   * Slice 4.8c: each product's option names, one list per attribute that splits it, in its attribute order, as a
+   * picker's row says them ("M · L · XL · Black, White"). Only what its live variants use; none for one with no options.
+   */
+  async listOptionNames(
+    tx: Transaction,
+    tenantId: string,
+    productIds: string[],
+  ): Promise<Map<string, string[][]>> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    if (productIds.length === 0) return new Map();
+    const rows = await tx
+      .select({
+        productId: variantAttributeValues.productId,
+        attributeId: variantAttributeValues.attributeId,
+        value: attributeOptions.value,
+      })
+      .from(variantAttributeValues)
+      .innerJoin(attributeOptions, eq(attributeOptions.id, variantAttributeValues.optionId))
+      .innerJoin(
+        productVariants,
+        and(
+          eq(productVariants.tenantId, variantAttributeValues.tenantId),
+          eq(productVariants.id, variantAttributeValues.variantId),
+          isNull(productVariants.deletedAt),
+        ),
+      )
+      .innerJoin(
+        productAttributes,
+        and(
+          eq(productAttributes.tenantId, variantAttributeValues.tenantId),
+          eq(productAttributes.productId, variantAttributeValues.productId),
+          eq(productAttributes.attributeId, variantAttributeValues.attributeId),
+        ),
+      )
+      .where(
+        and(
+          eq(variantAttributeValues.tenantId, tenantId),
+          inArray(variantAttributeValues.productId, productIds),
+        ),
+      )
+      .orderBy(
+        asc(variantAttributeValues.productId),
+        asc(productAttributes.sortOrder),
+        asc(attributeOptions.sortOrder),
+        asc(attributeOptions.value),
+      );
+    const byProduct = new Map<string, Map<string, Set<string>>>();
+    for (const row of rows) {
+      const attributes = byProduct.get(row.productId) ?? new Map<string, Set<string>>();
+      attributes.set(
+        row.attributeId,
+        (attributes.get(row.attributeId) ?? new Set()).add(row.value),
+      );
+      byProduct.set(row.productId, attributes);
+    }
+    return new Map(
+      [...byProduct].map(([productId, attributes]) => [
+        productId,
+        [...attributes.values()].map((values) => [...values]),
+      ]),
+    );
   }
 
   /** CMB-02: the live combos whose parts use any variant of these products. */

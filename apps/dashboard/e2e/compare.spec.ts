@@ -35,6 +35,7 @@ import { drawnPurchases, drawnSuppliers, otherStates } from './support/purchases
 import { drawnDelivery, type DeliveryFixture } from './support/delivery';
 import { drawnDomain, type DomainFixture } from './support/domain';
 import { drawnTax } from './support/tax';
+import { withEidCombo } from './support/combos';
 import { drawnPasswords, drawnTeam } from './support/team';
 import { indigoBrand, maroonBrand } from './support/themed';
 import {
@@ -1173,6 +1174,344 @@ const TAX_ADDONS_STOCK: Pair[] = [
   },
 ];
 
+/** Delete for good, chosen under More settings and confirmed, in Bangla. */
+const deleteForGood = async (page: Page): Promise<void> => {
+  await page.getByRole('main').getByText('আরও সেটিংস').click();
+  await page.getByRole('main').getByRole('button', { name: 'একেবারে ডিলিট' }).click();
+  await dialogOf(page).getByRole('button', { name: 'একেবারে ডিলিট' }).click();
+};
+
+/** The drawn shop with Part 31's picker and Eid combo. */
+const comboShop = () => withEidCombo(drawnProducts());
+
+/** The Eid combo with one part's variants made unavailable, for why it is out (`k31-combo-out` and its reasons). */
+function comboOut(
+  productId: string,
+  gone: 'part_archived' | 'part_off_sale' | 'part_retired',
+): ProductsFixture {
+  const products = comboShop();
+  const of = products.picker?.find((each) => each.id === productId);
+  for (const variant of of?.variants ?? []) variant.gone = gone;
+  const combo = products.products.find((each) => each.id === 'p-eid');
+  if (combo) combo.stockState = 'out';
+  return products;
+}
+
+/** Part 31's `sh-k31-part-offsale`: the panjabi's L and XL off sale. */
+function comboOffSale(): ProductsFixture {
+  const products = comboShop();
+  const of = products.picker?.find((each) => each.id === 'p-panjabi');
+  for (const variant of of?.variants ?? []) {
+    if (variant.id === 'v-pan-l') variant.offSale = true;
+    if (variant.id === 'v-pan-xl') {
+      variant.offSale = true;
+      variant.available = null;
+    }
+  }
+  return products;
+}
+
+/** A new combo, named and priced as Part 31 draws it. */
+const startCombo = async (page: Page, kind: string, name: string, price: string): Promise<void> => {
+  const main = page.getByRole('main');
+  await main.getByRole('radio', { name: kind }).click();
+  await main.getByLabel(name, { exact: true }).first().fill('ঈদ কম্বো');
+  await main.getByLabel(price, { exact: true }).first().fill('2450');
+};
+
+/** Part 31's two parts, by the sheets, in Bangla. */
+const addDrawnParts = async (page: Page): Promise<void> => {
+  const main = page.getByRole('main');
+  await main.getByRole('button', { name: 'আইটেম যোগ করুন' }).click();
+  await dialogOf(page)
+    .getByRole('button', { name: /^কটন পাঞ্জাবি/ })
+    .click();
+  for (const size of ['S', 'M', 'L']) {
+    await dialogOf(page)
+      .getByRole('checkbox', { name: new RegExp(`^${size}\\b`) })
+      .click();
+  }
+  await dialogOf(page).getByRole('button', { name: 'কম্বোতে যোগ করুন' }).click();
+  await main.getByRole('button', { name: 'আইটেম যোগ করুন' }).click();
+  await dialogOf(page)
+    .getByRole('button', { name: /^চেক লুঙ্গি/ })
+    .click();
+  await dialogOf(page).getByRole('button', { name: 'কম্বোতে যোগ করুন' }).click();
+};
+
+/** The combo editor (Slice 4.8c's second part), beside Part 31's drawing of each. */
+const COMBO_EDITOR: Pair[] = [
+  {
+    name: 'k31-new',
+    screen: 'k31-new',
+    device: 'phone',
+    language: 'bn',
+    path: '/products/new',
+    state: { products: comboShop() },
+  },
+  {
+    name: 'combo-new',
+    screen: 'k31-combo',
+    device: 'phone',
+    language: 'bn',
+    path: '/products/new',
+    state: { products: comboShop() },
+    then: async (page) => {
+      await startCombo(page, 'কম্বো প্যাক', 'নাম', 'দাম');
+    },
+  },
+  {
+    name: 'combo-new',
+    screen: 'k31-combo',
+    device: 'desktop',
+    language: 'en',
+    path: '/products/new',
+    state: { products: comboShop() },
+    then: async (page) => {
+      await page.getByRole('main').getByRole('radio', { name: 'Combo pack' }).click();
+      await page.getByRole('main').getByLabel('Name', { exact: true }).fill('Eid combo');
+      await page.getByRole('main').getByLabel('Price', { exact: true }).fill('2450');
+    },
+  },
+  {
+    name: 'combo-inside',
+    screen: 'k31-combo',
+    device: 'phone',
+    language: 'bn',
+    path: '/products/new',
+    state: { products: comboShop() },
+    scroll: /^ভেতরে কী আছে$/,
+    then: async (page) => {
+      await startCombo(page, 'কম্বো প্যাক', 'নাম', 'দাম');
+      await addDrawnParts(page);
+    },
+  },
+  {
+    name: 'combo-delivery',
+    screen: 'k31-combo',
+    device: 'phone',
+    language: 'bn',
+    path: '/products/p-eid',
+    state: { products: comboShop() },
+    scroll: /^স্টক ও ডেলিভারি$/,
+  },
+  {
+    name: 'combo-empty',
+    screen: 'k31-combo-empty',
+    device: 'phone',
+    language: 'bn',
+    path: '/products/new',
+    state: { products: comboShop() },
+    scroll: /^ভেতরে কী আছে$/,
+    then: async (page) => {
+      await startCombo(page, 'কম্বো প্যাক', 'নাম', 'দাম');
+    },
+  },
+  {
+    name: 'combo-noparts',
+    screen: 'k31-combo-noparts',
+    device: 'phone',
+    language: 'bn',
+    path: '/products/new',
+    state: { products: comboShop() },
+    then: async (page) => {
+      await startCombo(page, 'কম্বো প্যাক', 'নাম', 'দাম');
+      await page.getByRole('main').getByRole('button', { name: 'সেভ করুন' }).click();
+    },
+  },
+  {
+    name: 'combo-saved',
+    screen: 'k31-combo-saved',
+    device: 'phone',
+    language: 'bn',
+    path: '/products/p-eid',
+    state: { products: comboShop() },
+  },
+  {
+    name: 'combo-saved',
+    screen: 'k31-combo-saved',
+    device: 'desktop',
+    language: 'en',
+    path: '/products/p-eid',
+    state: { products: comboShop() },
+  },
+  {
+    name: 'combo-more',
+    screen: 'k31-combo-more',
+    device: 'desktop',
+    language: 'en',
+    path: '/products/p-eid',
+    state: { products: comboShop() },
+    scroll: /^Stock and delivery$/,
+    then: async (page) => {
+      await page.getByRole('main').getByText('More settings').click();
+    },
+  },
+  {
+    name: 'combo-out',
+    screen: 'k31-combo-out',
+    device: 'phone',
+    language: 'bn',
+    path: '/products/p-eid',
+    state: { products: comboOut('p-panjabi', 'part_off_sale') },
+  },
+  {
+    name: 'combo-archived',
+    screen: 'k31-combo-archived',
+    device: 'phone',
+    language: 'bn',
+    path: '/products/p-eid',
+    state: { products: comboOut('p-lungi', 'part_archived') },
+  },
+  {
+    name: 'combo-offsale',
+    screen: 'k31-combo-offsale',
+    device: 'phone',
+    language: 'bn',
+    path: '/products/p-eid',
+    state: { products: comboOut('p-lungi', 'part_off_sale') },
+  },
+  {
+    name: 'combo-retired',
+    screen: 'k31-combo-retired',
+    device: 'phone',
+    language: 'bn',
+    path: '/products/p-eid',
+    state: { products: comboOut('p-lungi', 'part_retired') },
+  },
+  {
+    name: 'combo-part-pick',
+    screen: 'sh-k31-part',
+    device: 'phone',
+    language: 'bn',
+    path: '/products/new',
+    state: { products: comboShop() },
+    then: async (page) => {
+      await startCombo(page, 'কম্বো প্যাক', 'নাম', 'দাম');
+      await page.getByRole('main').getByRole('button', { name: 'আইটেম যোগ করুন' }).click();
+    },
+  },
+  {
+    name: 'combo-part-ticks',
+    screen: 'sh-k31-part-variants',
+    device: 'phone',
+    language: 'bn',
+    path: '/products/new',
+    state: { products: comboShop() },
+    then: async (page) => {
+      await startCombo(page, 'কম্বো প্যাক', 'নাম', 'দাম');
+      await page.getByRole('main').getByRole('button', { name: 'আইটেম যোগ করুন' }).click();
+      await dialogOf(page)
+        .getByRole('button', { name: /^কটন পাঞ্জাবি/ })
+        .click();
+      for (const size of ['S', 'M', 'L']) {
+        await dialogOf(page)
+          .getByRole('checkbox', { name: new RegExp(`^${size}\\b`) })
+          .click();
+      }
+    },
+  },
+  {
+    name: 'combo-part-fixed',
+    screen: 'sh-k31-part-fixed',
+    device: 'phone',
+    language: 'bn',
+    path: '/products/new',
+    state: { products: comboShop() },
+    then: async (page) => {
+      await startCombo(page, 'কম্বো প্যাক', 'নাম', 'দাম');
+      await page.getByRole('main').getByRole('button', { name: 'আইটেম যোগ করুন' }).click();
+      await dialogOf(page)
+        .getByRole('button', { name: /^চেক লুঙ্গি/ })
+        .click();
+    },
+  },
+  {
+    name: 'combo-part-edit',
+    screen: 'sh-k31-part-edit',
+    device: 'phone',
+    language: 'bn',
+    path: '/products/p-eid',
+    state: { products: comboShop() },
+    then: async (page) => {
+      await page.getByRole('main').getByRole('button', { name: 'কটন পাঞ্জাবি বদলান' }).click();
+    },
+  },
+  {
+    name: 'combo-part-measured',
+    screen: 'sh-k31-part-measured',
+    device: 'phone',
+    language: 'bn',
+    path: '/products/p-eid',
+    state: { products: comboShop() },
+    then: async (page) => {
+      await page.getByRole('main').getByRole('button', { name: 'আইটেম যোগ করুন' }).click();
+      await dialogOf(page).getByRole('searchbox').fill('মিনিকেট');
+      await dialogOf(page)
+        .getByRole('button', { name: /^মিনিকেট চাল/ })
+        .click();
+      await dialogOf(page).getByRole('textbox').fill('0.5');
+    },
+  },
+  {
+    name: 'combo-part-offsale',
+    screen: 'sh-k31-part-offsale',
+    device: 'phone',
+    language: 'bn',
+    path: '/products/p-eid',
+    state: { products: comboOffSale() },
+    then: async (page) => {
+      await page.getByRole('main').getByRole('button', { name: 'আইটেম যোগ করুন' }).click();
+      await dialogOf(page)
+        .getByRole('button', { name: /^কটন পাঞ্জাবি/ })
+        .click();
+      for (const size of ['S', 'M']) {
+        await dialogOf(page)
+          .getByRole('checkbox', { name: new RegExp(`^${size}\\b`) })
+          .click();
+      }
+    },
+  },
+  {
+    name: 'combo-in-one',
+    screen: 'sh-k31-in-combo',
+    device: 'phone',
+    language: 'bn',
+    path: '/products/p-1',
+    state: {
+      products: { ...drawnProducts(), inCombos: { 'p-1': [{ id: 'p-eid', name: 'ঈদ কম্বো' }] } },
+    },
+    then: deleteForGood,
+  },
+  {
+    name: 'combo-in-many',
+    screen: 'sh-k31-in-combos',
+    device: 'phone',
+    language: 'bn',
+    path: '/products/p-1',
+    state: {
+      products: {
+        ...drawnProducts(),
+        inCombos: {
+          'p-1': [
+            { id: 'p-eid', name: 'ঈদ কম্বো' },
+            { id: 'p-winter', name: 'শীতের কম্বো' },
+          ],
+        },
+      },
+    },
+    then: deleteForGood,
+  },
+  {
+    name: 'products-combo',
+    screen: 'k31-products',
+    device: 'phone',
+    language: 'bn',
+    path: '/products',
+    state: { products: comboShop() },
+  },
+];
+
 const PAIRS: Pair[] = [
   { name: 'home', screen: 'home', device: 'phone', language: 'bn', path: '' },
   { name: 'home', screen: 'home', device: 'tablet', language: 'bn', path: '' },
@@ -1197,6 +1536,7 @@ const PAIRS: Pair[] = [
   ...NEW_ORDER,
   ...CUSTOMERS,
   ...TAX_ADDONS_STOCK,
+  ...COMBO_EDITOR,
   {
     name: 'plus',
     screen: 'plus',
