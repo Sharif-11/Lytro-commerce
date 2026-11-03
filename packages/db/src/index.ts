@@ -296,6 +296,10 @@ export {
   type NewListenerDevice,
 } from './repositories/listener/listener.repository';
 export {
+  LytroMessageRepository,
+  type NewLytroMessage,
+} from './repositories/listener/lytro-message.repository';
+export {
   ListenerMessageRepository,
   type ListenerMessageCounts,
   type ListenerMessageFilter,

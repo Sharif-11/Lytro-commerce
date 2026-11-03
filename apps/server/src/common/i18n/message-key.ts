@@ -639,6 +639,9 @@ export const MESSAGE_KEYS = [
   'ListenerUnpaired',
   'PaymentIdChanged',
   'PaymentIdChangesUsedUp',
+  // Phase 5 Slice 5.6: the operator's queue, for money at the wrong amount.
+  'PaymentCreditedInstead',
+  'PaymentAmountNeeded',
   'ListenerDevicesListed',
   'ListenerDeviceRenamed',
   'ListenerDeviceRevoked',

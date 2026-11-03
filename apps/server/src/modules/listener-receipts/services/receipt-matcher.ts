@@ -79,7 +79,7 @@ export class ReceiptMatcher {
    * stands; another phone's copy is a duplicate. What the receipt settled is told once it has committed.
    */
   async receive(
-    device: SelectListenerDevice,
+    device: SelectListenerDevice & { tenantId: string },
     receipt: IncomingReceipt,
     now: Date,
   ): Promise<SelectListenerMessage> {

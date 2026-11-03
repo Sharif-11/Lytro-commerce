@@ -28,7 +28,12 @@ export class DrizzleListenerStore implements ListenerStore {
 
   insertCode(
     tx: Transaction,
-    values: { tenantId: string; codeHash: string; createdBy: string | null; expiresAt: Date },
+    values: {
+      tenantId: string | null;
+      codeHash: string;
+      createdBy: string | null;
+      expiresAt: Date;
+    },
   ): Promise<SelectListenerPairingCode> {
     return this.listener.insertCode(tx, values);
   }
@@ -55,6 +60,10 @@ export class DrizzleListenerStore implements ListenerStore {
 
   findByTokenHash(tx: Transaction, tokenHash: string): Promise<SelectListenerDevice | null> {
     return this.listener.findByTokenHash(tx, tokenHash);
+  }
+
+  listForLytro(tx: Transaction): Promise<SelectListenerDevice[]> {
+    return this.listener.listForLytro(tx);
   }
 
   listForTenant(tx: Transaction, tenantId: string): Promise<SelectListenerDevice[]> {

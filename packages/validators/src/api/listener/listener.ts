@@ -112,6 +112,16 @@ export const listenerUnreadQuerySchema = z.object({
 });
 export type ListenerUnreadQuery = z.infer<typeof listenerUnreadQuerySchema>;
 
+/**
+ * BIL-06, BAL-03 (Slice 5.6, agreed 2026-11-03): the money the operator says arrived, when it is not what a receipt says or
+ * what was quoted.
+ */
+export const queuedPaymentAmountSchema = z
+  .object({ amount: z.number().positive().max(99_999_999.99).optional() })
+  .strict()
+  .optional();
+export type QueuedPaymentAmountInput = z.infer<typeof queuedPaymentAmountSchema>;
+
 /** LSN-21: an app installation Lytro blocks across the platform, with why. */
 export const blockInstallationSchema = z
   .object({ installationId: installationIdField, reason: z.string().trim().min(1).max(500) })

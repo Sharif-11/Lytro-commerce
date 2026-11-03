@@ -1954,6 +1954,14 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'This phone is unpaired.',
     bn: 'এই ফোনের পেয়ারিং বন্ধ হয়েছে।',
   },
+  PaymentCreditedInstead: {
+    en: 'The money was added to the balance.',
+    bn: 'টাকাটা ব্যালেন্সে যোগ করা হয়েছে।',
+  },
+  PaymentAmountNeeded: {
+    en: 'Say how much arrived.',
+    bn: 'কত টাকা এসেছে তা লিখুন।',
+  },
   PaymentIdChanged: {
     en: 'Transaction ID corrected.',
     bn: 'ট্রান্সেকশন আইডি ঠিক করা হয়েছে।',

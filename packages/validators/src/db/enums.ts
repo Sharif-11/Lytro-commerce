@@ -236,6 +236,8 @@ export enum AuditAction {
   PlanLimitOverrideSet = 'plan_limit_override_set',
   PlanLimitOverrideRemoved = 'plan_limit_override_removed',
   PlanPaymentRejected = 'plan_payment_rejected',
+  // BIL-06 (Slice 5.6, agreed 2026-11-03): money for a plan or add-on at the wrong amount, put on the balance instead.
+  PlanPaymentCredited = 'plan_payment_credited',
   // TEN-30: the owner (or a holder of settings:manage) updating contact phone/email/business address.
   ShopSettingsUpdated = 'shop_settings_updated',
   // LIF-16/17: the owner's own data export -- one entry when requested, one when actually downloaded.
@@ -567,6 +569,8 @@ export enum PlatformAuditAction {
   // hosted-page/gateway verification. Approving activates the plan or credits the balance (BIL-05/BAL-03).
   PlanPaymentVerified = 'plan_payment_verified',
   PlanPaymentRejected = 'plan_payment_rejected',
+  // BIL-06 (Slice 5.6, agreed 2026-11-03): money for a plan or add-on at the wrong amount, put on the balance instead.
+  PlanPaymentCredited = 'plan_payment_credited',
   // LIF-24: mirrors AuditAction.TenantSuspended/TenantRestored above (D2-5).
   TenantSuspended = 'tenant_suspended',
   TenantRestored = 'tenant_restored',
@@ -1284,6 +1288,8 @@ export enum PaymentReviewReason {
   LowBalance = 'low_balance',
   OrderClosed = 'order_closed',
   TransactionIdUsed = 'transaction_id_used',
+  // BIL-15 (Slice 5.6): the seller's request had closed when the money arrived.
+  RequestClosed = 'request_closed',
 }
 
 // PAY-14: what the payment page may tell a shopper of a review -- never the shop's balance or anything else of its own.

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ClientIp } from '../../common/client-ip';
 import { DrizzleListenerStore } from '../../database/adapters/listener.adapter';
 import { AuditModule } from '../audit/audit.module';
+import { BalanceModule } from '../balance/balance.module';
 import { CatalogueModule } from '../catalogue/catalogue.module';
 import { PaymentMethodsModule } from '../payment-methods/payment-methods.module';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
@@ -25,6 +26,7 @@ import { LISTENER_CLOCK, LISTENER_NOTIFIER, LISTENER_STORE } from './tokens';
 @Module({
   imports: [
     AuditModule,
+    BalanceModule,
     CatalogueModule,
     PaymentMethodsModule,
     PlatformSettingsModule,

@@ -12,7 +12,11 @@ import {
 } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
-import { catalogueIdSchema, type ListenerUnreadQuery } from '@lytronix/validators';
+import {
+  catalogueIdSchema,
+  type ListenerReceiptsQuery,
+  type ListenerUnreadQuery,
+} from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import { ClientIp } from '../../../common/client-ip';
 import { ResponseMessage } from '../../../common/decorators/response-message';
@@ -21,7 +25,10 @@ import { OkDto } from '../../../common/dto/ok.dto';
 import type { MessageKey } from '../../../common/i18n/message-key';
 import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
 import { ListenerDevices } from '../../listener/services/listener-devices';
-import type { ListenerDeviceList } from '../../listener/types/listener';
+import { ListenerPairing } from '../../listener/services/listener-pairing';
+import { LytroReceipts } from '../../lytro-receipts/services/lytro-receipts';
+import type { LytroReceiptPage } from '../../lytro-receipts/types/lytro-receipts';
+import type { ListenerCode, ListenerDeviceList } from '../../listener/types/listener';
 import { ListenerReceipts } from '../../listener-receipts/services/listener-receipts';
 import type { ListenerUnreadItem } from '../../listener-receipts/types/listener-receipts';
 import {
@@ -31,7 +38,10 @@ import {
 import {
   BlockInstallationDto,
   InstallationBlockedDto,
+  ListenerCodeDto,
   ListenerDeviceListDto,
+  ListenerReceiptsQueryDto,
+  LytroReceiptPageDto,
   ListenerUnreadDto,
   ListenerUnreadQueryDto,
 } from '../dto/listener.dto';
@@ -46,6 +56,8 @@ export class OperatorListenerController {
   constructor(
     @Inject(ListenerDevices) private readonly devices: ListenerDevices,
     @Inject(ListenerReceipts) private readonly receipts: ListenerReceipts,
+    @Inject(ListenerPairing) private readonly pairing: ListenerPairing,
+    @Inject(LytroReceipts) private readonly lytro: LytroReceipts,
     @Inject(ClientIp) private readonly clientIp: ClientIp,
   ) {}
 
@@ -57,6 +69,39 @@ export class OperatorListenerController {
   @ZodResponse({ type: ListenerDeviceListDto })
   list(@Param('id') id: string): Promise<ListenerDeviceList> {
     return this.devices.listForOperator(this.idOf(id, 'ShopNotFound'));
+  }
+
+  @Post('lytro-listener/pairing-codes')
+  @ResponseMessage('ListenerCodeMade')
+  @ApiOperation({
+    summary: "A code to pair Lytro's own listener phone, which verifies sellers' payments (PAY-21)",
+  })
+  @ZodResponse({ type: ListenerCodeDto })
+  lytroCode(@Req() request: OperatorSessionRequest): Promise<ListenerCode> {
+    const session = request.operatorSession;
+    if (!session) throw new ApiError('unauthenticated', 'SignInToContinue', {});
+    return this.pairing.createLytroCode(session.operatorId);
+  }
+
+  @Get('lytro-listener/devices')
+  @ResponseMessage('ListenerDevicesListed')
+  @ApiOperation({ summary: "Lytro's own listener phones (PAY-21)" })
+  @ZodResponse({ type: ListenerDeviceListDto })
+  lytroDevices(): Promise<ListenerDeviceList> {
+    return this.devices.listForLytro();
+  }
+
+  @Get('lytro-listener/receipts')
+  @ResponseMessage('ListenerReceiptsListed')
+  @ApiOperation({
+    summary:
+      "What Lytro's own phones forwarded -- unclaimed, with the operator or used -- newest first, by status, searched by the start of a transaction ID, sender number or amount (PAY-21)",
+  })
+  @ZodResponse({ type: LytroReceiptPageDto })
+  lytroReceipts(
+    @Query(new ZodValidationPipe(ListenerReceiptsQueryDto.schema)) query: ListenerReceiptsQuery,
+  ): Promise<LytroReceiptPage> {
+    return this.lytro.list(query);
   }
 
   @Get('listener-unread')

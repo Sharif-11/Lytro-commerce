@@ -3,6 +3,7 @@ import { ClientIp } from '../../common/client-ip';
 import { DrizzleReceiptStore } from '../../database/adapters/listener-receipts.adapter';
 import { BalanceModule } from '../balance/balance.module';
 import { ListenerModule } from '../listener/listener.module';
+import { LytroReceiptsModule } from '../lytro-receipts/lytro-receipts.module';
 import { OrdersModule } from '../orders/orders.module';
 import { PaymentReviewModule } from '../payment-review/payment-review.module';
 import { PaymentSessionsModule } from '../payment-sessions/payment-sessions.module';
@@ -21,6 +22,7 @@ import { RECEIPT_STORE } from './tokens';
   imports: [
     BalanceModule,
     ListenerModule,
+    LytroReceiptsModule,
     OrdersModule,
     PaymentReviewModule,
     PaymentSessionsModule,

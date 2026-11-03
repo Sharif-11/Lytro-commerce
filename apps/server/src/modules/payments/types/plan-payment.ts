@@ -1,6 +1,7 @@
 import type {
   BillingPaymentState,
   PaymentCancelReason,
+  PaymentReviewReason,
   PlanPaymentKind,
   PlanPaymentMethod,
   PlanPaymentStatus,
@@ -26,6 +27,10 @@ export interface PlanPaymentRecord {
   note: string | null;
   /** BIL-19: on a cancelled request, who closed it -- the shop, or its newer request of the same kind. */
   cancelReason: PaymentCancelReason | null;
+  /** BIL-06 (Slice 5.6): what the seller says they sent; what a receipt or the operator says arrived; why it waits. */
+  amountSent: string | null;
+  amountArrived: string | null;
+  reviewReason: PaymentReviewReason | null;
   createdAt: Date;
 }
 

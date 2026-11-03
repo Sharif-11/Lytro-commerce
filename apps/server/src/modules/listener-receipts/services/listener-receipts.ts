@@ -24,6 +24,7 @@ import { DAY_MS, dhakaDate, HOUR_MS, MINUTE_MS, startOfDayDhaka } from '../../..
 import type { ListenerNotifier } from '../../listener/ports/listener-notifier';
 import { ListenerLimits } from '../../listener/services/listener-limits';
 import { ListenerRules } from '../../listener/services/listener-rules';
+import { LytroReceipts } from '../../lytro-receipts/services/lytro-receipts';
 import { LISTENER_CLOCK, LISTENER_NOTIFIER } from '../../listener/tokens';
 import type { ReceiptStore } from '../ports/receipt-store';
 import { RECEIPT_STORE } from '../tokens';
@@ -39,6 +40,9 @@ import { maskedShapeOf, parseMessage, type ParsedMessage } from './receipt-parse
 import { ReceiptMatcher } from './receipt-matcher';
 
 type UploadedMessage = ListenerUploadInput['messages'][number];
+
+// LSN-13 (Slice 5.6): Lytro's own phones count together, as a shop's do.
+const LYTRO_BUCKET = 'lytro';
 
 /**
  * LSN-04, LSN-13 to LSN-17, LSN-20, VER-06 (Phase 5 Slice 5.4b, read agreed 2026-11-02): what a phone forwards. Each
@@ -56,6 +60,7 @@ export class ListenerReceipts {
   constructor(
     @Inject(RECEIPT_STORE) private readonly store: ReceiptStore,
     @Inject(ReceiptMatcher) private readonly matcher: ReceiptMatcher,
+    @Inject(LytroReceipts) private readonly lytro: LytroReceipts,
     @Inject(ListenerRules) private readonly rules: ListenerRules,
     @Inject(ListenerLimits) private readonly limits: ListenerLimits,
     @Inject(LISTENER_NOTIFIER) private readonly notifier: ListenerNotifier,
@@ -77,7 +82,7 @@ export class ListenerReceipts {
       throw new PayloadTooLargeException();
     }
     const now = this.clock();
-    this.limits.admitUpload(device.id, device.tenantId, now);
+    this.limits.admitUpload(device.id, device.tenantId ?? LYTRO_BUCKET, now);
     const senders = await this.rules.senders();
     const results: ListenerUploadResult[] = [];
     for (const message of input.messages) {
@@ -98,10 +103,12 @@ export class ListenerReceipts {
   /** The app's home screen: this phone's newest receipts, and how today's stand. */
   async recent(device: SelectListenerDevice, query: ListenerRecentQuery): Promise<ListenerRecent> {
     const now = this.clock();
+    const tenantId = device.tenantId;
+    if (tenantId === null) return this.lytro.recent(device.id, query, now);
     return this.store.run(async (tx) => {
       const [rows, today] = [
-        await this.store.recent(tx, device.tenantId, device.id, query.limit),
-        await this.store.counts(tx, device.tenantId, device.id, startOfDayDhaka(now)),
+        await this.store.recent(tx, tenantId, device.id, query.limit),
+        await this.store.counts(tx, tenantId, device.id, startOfDayDhaka(now)),
       ];
       return { receipts: rows.map((row) => this.recentOf(row)), today };
     });
@@ -159,7 +166,9 @@ export class ListenerReceipts {
       }
     }
     await this.store.run((tx) => this.store.purgeUnread(tx, dhakaDate(before)));
-    return { redacted, removed };
+    // Slice 5.6: what Lytro's own phones forwarded too.
+    const lytro = await this.lytro.redactOld(now);
+    return { redacted: redacted + lytro.redacted, removed: removed + lytro.removed };
   }
 
   private recentOf(row: ListenerMessageRow): ListenerRecentItem {
@@ -224,19 +233,20 @@ export class ListenerReceipts {
     if (received < now.getTime() - LISTENER_RECEIVED_OLDEST_DAYS * DAY_MS) {
       return this.ignore(device, message, ListenerIgnoredReason.TooOld, parsed);
     }
-    const row = await this.matcher.receive(
-      device,
-      {
-        sender: message.sender,
-        text: message.text,
-        receivedAt: message.receivedAt,
-        method: parsed.method,
-        transactionId: parsed.transactionId,
-        amount: parsed.amount,
-        senderNumber: parsed.senderNumber,
-      },
-      now,
-    );
+    const receipt = {
+      sender: message.sender,
+      text: message.text,
+      receivedAt: message.receivedAt,
+      method: parsed.method,
+      transactionId: parsed.transactionId,
+      amount: parsed.amount,
+      senderNumber: parsed.senderNumber,
+    };
+    const tenantId = device.tenantId;
+    const row =
+      tenantId === null
+        ? await this.lytro.take({ ...receipt, deviceId: device.id }, now)
+        : await this.matcher.receive({ ...device, tenantId }, receipt, now);
     return {
       status: row.status,
       transactionId: row.transactionId,
@@ -252,20 +262,29 @@ export class ListenerReceipts {
     reason: ListenerIgnoredReason,
     parsed: Extract<ParsedMessage, { kind: 'receipt' }> | null,
   ): Promise<ListenerUploadResult> {
-    await this.store.run((tx) =>
-      this.store.insert(tx, device.tenantId, {
-        deviceId: device.id,
-        sender: message.sender,
-        method: parsed?.method ?? null,
-        transactionId: parsed?.transactionId ?? null,
-        amount: parsed?.amount ?? null,
-        senderNumber: parsed?.senderNumber ?? null,
-        rawText: null,
-        status: ListenerMessageStatus.Ignored,
-        ignoredReason: reason,
-        receivedAt: message.receivedAt,
-      }),
-    );
+    const tenantId = device.tenantId;
+    if (tenantId === null) {
+      await this.lytro.ignore(
+        { deviceId: device.id, sender: message.sender, receivedAt: message.receivedAt },
+        reason,
+        parsed,
+      );
+    } else {
+      await this.store.run((tx) =>
+        this.store.insert(tx, tenantId, {
+          deviceId: device.id,
+          sender: message.sender,
+          method: parsed?.method ?? null,
+          transactionId: parsed?.transactionId ?? null,
+          amount: parsed?.amount ?? null,
+          senderNumber: parsed?.senderNumber ?? null,
+          rawText: null,
+          status: ListenerMessageStatus.Ignored,
+          ignoredReason: reason,
+          receivedAt: message.receivedAt,
+        }),
+      );
+    }
     return {
       status: ListenerMessageStatus.Ignored,
       transactionId: parsed?.transactionId ?? null,

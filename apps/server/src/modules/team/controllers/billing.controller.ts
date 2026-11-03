@@ -20,6 +20,7 @@ import {
   type BillingPaymentListQuery,
   type BillingPricesQuery,
 } from '@lytronix/validators';
+import { LytroReceipts } from '../../lytro-receipts/services/lytro-receipts';
 import { ApiError } from '../../../common/api-error';
 import { ClientIp } from '../../../common/client-ip';
 import { Dashboard } from '../../../common/decorators/dashboard';
@@ -94,6 +95,7 @@ type ListedPayment = TenantPaymentRecord & { addons: PaymentAddon[]; earlierShop
 @UseGuards(SessionGuard, DashboardGuard, PermissionGuard)
 export class BillingController {
   constructor(
+    @Inject(LytroReceipts) private readonly lytroReceipts: LytroReceipts,
     @Inject(PurchaseService) private readonly purchase: PurchaseService,
     @Inject(UpgradeService) private readonly upgrade: UpgradeService,
     @Inject(DowngradeService) private readonly downgrade: DowngradeService,
@@ -131,7 +133,7 @@ export class BillingController {
     summary: 'Confirm a plan purchase or renewal (from balance, or submit a wallet payment)',
   })
   @ZodResponse({ type: PlanPaymentDto })
-  confirm(
+  async confirm(
     @Body(new ZodValidationPipe(ConfirmPurchaseDto.schema)) body: ConfirmPurchaseDto,
     @Req() request: DashboardRequest,
   ): Promise<PlanPaymentRecord> {
@@ -144,11 +146,13 @@ export class BillingController {
     if (!body.transactionId || !body.senderNumber || body.amountPaid === undefined) {
       throw new ApiError('validation_error', 'TransactionIdRequired', {});
     }
-    return this.purchase.submitWalletPayment(body.paymentId, tenantId, {
-      transactionId: body.transactionId,
-      senderNumber: body.senderNumber,
-      amountPaid: body.amountPaid.toFixed(2),
-    });
+    return this.lytroReceipts.afterSubmit(
+      await this.purchase.submitWalletPayment(body.paymentId, tenantId, {
+        transactionId: body.transactionId,
+        senderNumber: body.senderNumber,
+        amountPaid: body.amountPaid.toFixed(2),
+      }),
+    );
   }
 
   @Post('upgrade/quote')
@@ -175,7 +179,7 @@ export class BillingController {
   @ResponseMessage('UpgradeConfirmed')
   @ApiOperation({ summary: 'Confirm an upgrade (from balance, or submit a wallet payment)' })
   @ZodResponse({ type: PlanPaymentDto })
-  confirmUpgrade(
+  async confirmUpgrade(
     @Body(new ZodValidationPipe(ConfirmUpgradeDto.schema)) body: ConfirmUpgradeDto,
     @Req() request: DashboardRequest,
   ): Promise<PlanPaymentRecord> {
@@ -188,11 +192,13 @@ export class BillingController {
     if (!body.transactionId || !body.senderNumber || body.amountPaid === undefined) {
       throw new ApiError('validation_error', 'TransactionIdRequired', {});
     }
-    return this.upgrade.submitWalletPayment(body.paymentId, tenantId, {
-      transactionId: body.transactionId,
-      senderNumber: body.senderNumber,
-      amountPaid: body.amountPaid.toFixed(2),
-    });
+    return this.lytroReceipts.afterSubmit(
+      await this.upgrade.submitWalletPayment(body.paymentId, tenantId, {
+        transactionId: body.transactionId,
+        senderNumber: body.senderNumber,
+        amountPaid: body.amountPaid.toFixed(2),
+      }),
+    );
   }
 
   @Post('downgrade/preview')
