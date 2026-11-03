@@ -22,6 +22,19 @@ function read(file: string): Record<string, string> {
   return values;
 }
 
+/** What bKash answered, by its fields' names and its status fields' values: never a token, an ID or an address. */
+function shapeOf(url: string, status: number, reply: Record<string, unknown>): string {
+  const standing = ['statusCode', 'externalCode', 'transactionStatus', 'verificationStatus']
+    .map((field) => {
+      const value = reply[field];
+      return typeof value === 'string' ? `${field}=${value}` : null;
+    })
+    .filter((part) => part !== null)
+    .join(' ');
+  const path = new URL(url).pathname.replace('/v2/tokenized-checkout', '');
+  return `bkash answer ${path}: http ${String(status)}, fields ${Object.keys(reply).sort().join(' ')}, standing ${standing}`;
+}
+
 describeIfCredentials('the real bKash sandbox', () => {
   it('takes a token, starts a payment and answers where it stands, with no money moved', async () => {
     const values = read(ENV_FILE ?? '');
@@ -31,14 +44,16 @@ describeIfCredentials('the real bKash sandbox', () => {
       username: values['BKASH_USERNAME'] ?? '',
       password: values['BKASH_PASSWORD'] ?? '',
     };
+    // A blank value would spend one of bKash's two token calls an hour on nothing.
+    expect(Object.values(credentials).every((value) => value !== '')).toBe(true);
     let idToken = '';
     const watching: typeof fetch = async (input, init) => {
       const response = await fetch(input, init);
       const url = input instanceof Request ? input.url : String(input);
-      if (url.endsWith('/grant-token')) {
-        const reply = (await response.clone().json()) as { id_token?: string };
-        idToken = reply.id_token ?? '';
-      }
+      const reply = (await response.clone().json()) as Record<string, unknown>;
+      const token = reply['id_token'];
+      if (url.endsWith('/grant-token') && typeof token === 'string') idToken = token;
+      console.info(shapeOf(url, response.status, reply));
       return response;
     };
     const uses: CredentialUse[] = [];

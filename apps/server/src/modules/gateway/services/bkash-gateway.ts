@@ -94,7 +94,7 @@ export class BkashGateway implements WalletGateway {
       merchantInvoiceNumber: payment.invoice,
     });
     const paymentId = textOf(reply, 'paymentId');
-    const redirectUrl = textOf(reply, 'bKashURL');
+    const redirectUrl = textOf(reply, 'bkashURL');
     if (paymentId === null || redirectUrl === null) {
       throw new GatewayError('bKash did not start the payment', textOf(reply, 'externalCode'));
     }
@@ -132,19 +132,24 @@ export class BkashGateway implements WalletGateway {
       : standing;
   }
 
-  /** VER-08: only a completed transaction with its ID and amount is money taken. */
+  /**
+   * VER-08: only a completed transaction with its ID and amount is money taken. One called completed that can't be read isn't
+   * unpaid, so it is never let go as if it were; its ID is read under both spellings, as bKash's documents and answers have differed.
+   */
   private standingOf(reply: Reply): GatewayStanding {
-    const transactionId = textOf(reply, 'trxId');
+    if (textOf(reply, 'transactionStatus') !== 'Completed') return { status: 'open' };
+    const transactionId = textOf(reply, 'trxId') ?? textOf(reply, 'trxID');
     const amount = textOf(reply, 'amount');
-    if (textOf(reply, 'transactionStatus') === 'Completed' && transactionId && amount) {
-      return {
-        status: 'completed',
-        transactionId: transactionId.toUpperCase(),
-        amount,
-        payerNumber: bdMobileNumber(textOf(reply, 'payerAccount') ?? ''),
-      };
+    if (transactionId === null || amount === null) {
+      this.logger.error('bKash called a payment completed without saying its transaction');
+      return { status: 'unknown' };
     }
-    return { status: 'open' };
+    return {
+      status: 'completed',
+      transactionId: transactionId.toUpperCase(),
+      amount,
+      payerNumber: bdMobileNumber(textOf(reply, 'payerAccount') ?? ''),
+    };
   }
 
   private async payment(

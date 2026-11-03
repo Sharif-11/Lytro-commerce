@@ -25,6 +25,12 @@ interface Behaviour {
   unreachable?: boolean;
   /** Execute answers nothing in time, though the money moved. */
   executeTimesOut?: boolean;
+  /** Execute is refused, though the money moved. */
+  executeRefused?: boolean;
+  /** Asking after a payment answers nothing in time. */
+  queryTimesOut?: boolean;
+  /** How a completed answer names its transaction, when not as the documents say. */
+  trxField?: 'trxID' | 'none';
   /** What arrives at execute, when it isn't what was asked. */
   paidAmount?: string;
   /** The transaction ID bKash gives, when a test needs it to be a certain one. */
@@ -39,10 +45,19 @@ const QUERY_PATH = '/tokenized-checkout/query/payment';
 const GRANT_PATH = '/tokenized-checkout/auth/grant-token';
 const REFRESH_PATH = '/tokenized-checkout/auth/refresh-token';
 
-function answer(body: unknown): Promise<Response> {
+/** As the real sandbox: a refusal comes with its code and an HTTP 400. */
+function answer(body: Record<string, unknown>): Promise<Response> {
   return Promise.resolve(
-    new Response(JSON.stringify(body), { headers: { 'content-type': 'application/json' } }),
+    new Response(JSON.stringify(body), {
+      status: 'externalCode' in body ? 400 : 200,
+      headers: { 'content-type': 'application/json' },
+    }),
   );
+}
+
+function transactionField(payment: FakePayment, behaviour: Behaviour): Record<string, string> {
+  if (behaviour.trxField === 'none') return {};
+  return { [behaviour.trxField ?? 'trxId']: payment.trxId };
 }
 
 /**
@@ -167,7 +182,7 @@ export class FakeBkash {
     });
     return answer({
       paymentId,
-      bKashURL: `https://payment.bkash.test/checkout?paymentId=${paymentId}`,
+      bkashURL: `https://payment.bkash.test/checkout?paymentId=${paymentId}`,
       transactionStatus: 'Initiated',
       amount: call.body['amount'],
       currency: 'BDT',
@@ -187,9 +202,12 @@ export class FakeBkash {
     if (behaviour.executeTimesOut) {
       return Promise.reject(new DOMException('The operation timed out', 'TimeoutError'));
     }
+    if (behaviour.executeRefused) {
+      return answer({ externalCode: '9999', errorMessageEn: 'System error' });
+    }
     return answer({
       paymentId: payment.paymentId,
-      trxId: payment.trxId,
+      ...transactionField(payment, behaviour),
       transactionStatus: 'Completed',
       amount: behaviour.paidAmount ?? payment.amount,
       currency: 'BDT',
@@ -201,13 +219,18 @@ export class FakeBkash {
   private query(call: BkashCall, behaviour: Behaviour): Promise<Response> {
     const payment = this.paymentOf(call);
     if (!payment) return answer({ externalCode: '2002', errorMessageEn: 'Invalid payment ID' });
+    if (behaviour.queryTimesOut) {
+      return Promise.reject(new DOMException('The operation timed out', 'TimeoutError'));
+    }
     const completed = payment.state === 'completed';
     return answer({
       paymentId: payment.paymentId,
       transactionStatus: completed ? 'Completed' : 'Initiated',
       verificationStatus: payment.state === 'initiated' ? 'Incomplete' : 'Complete',
       amount: behaviour.paidAmount ?? payment.amount,
-      ...(completed ? { trxId: payment.trxId, payerAccount: '01811000002' } : {}),
+      ...(completed
+        ? { ...transactionField(payment, behaviour), payerAccount: '01811000002' }
+        : {}),
     });
   }
 

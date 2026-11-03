@@ -171,11 +171,12 @@ export class GatewayCheckouts {
     const { gateway, account } = opened;
     try {
       const takes = await this.takesNow(tenantId, session);
-      let standing: GatewayStanding =
-        query.status === 'success' && takes
-          ? await gateway.execute(account, session.gatewayPaymentId)
-          : await gateway.verify(account, session.gatewayPaymentId);
-      if (standing.status === 'unknown') {
+      const executing = query.status === 'success' && takes;
+      let standing: GatewayStanding = executing
+        ? await gateway.execute(account, session.gatewayPaymentId)
+        : await gateway.verify(account, session.gatewayPaymentId);
+      // Whatever execute said short of completed, the gateway's own record says where the money is.
+      if (executing && standing.status !== 'completed') {
         standing = await gateway.verify(account, session.gatewayPaymentId);
       }
       if (standing.status === 'authorised' && !takes) standing = { status: 'open' };
@@ -194,8 +195,8 @@ export class GatewayCheckouts {
 
   /**
    * VER-09: one shop's minute pass, before its checkouts are let lapse: each past its window with no return is asked after. A payment
-   * completed there settles, one the shopper authorised is executed, and the rest let go of their hold and close. If the gateway stays
-   * unreachable for an hour past the window, it is let go too. How many it settled.
+   * completed there settles, one the shopper authorised is executed, and the rest let go of their hold and close. If the gateway gives
+   * no answer for an hour past the window, it is let go too, and the owner told. How many it settled.
    */
   async reconcile(tenantId: string, now: Date): Promise<number> {
     const due = await this.sessions.inTransaction((tx) =>
@@ -218,12 +219,15 @@ export class GatewayCheckouts {
         }
         if (standing.status === 'completed') settled += 1;
         await this.apply(tenantId, session, standing, GatewayResult.Failed, now);
+        if (standing.status !== 'unknown') continue;
       } catch (error) {
         const name = error instanceof Error ? error.name : 'Error';
         this.logger.error(`could not ask after a checkout for tenant ${tenantId}: ${name}`);
-        if (now.getTime() - session.expiresAt.getTime() > HOUR_MS) {
-          await this.endTry(tenantId, session.id, GatewayResult.Failed);
-        }
+      }
+      // VER-10: no answer to be had. An hour on, the hold goes, and the owner hears, as money may have moved.
+      if (now.getTime() - session.expiresAt.getTime() > HOUR_MS) {
+        await this.endTry(tenantId, session.id, GatewayResult.Failed);
+        await this.tellAttention(tenantId, opened.gateway.method, null);
       }
     }
     return settled;

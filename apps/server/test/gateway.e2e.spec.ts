@@ -27,6 +27,8 @@ import { PaymentSessionExpiry } from '../src/modules/payment-sessions/services/p
 import { PAYMENT_NOTIFIER } from '../src/modules/payment-sessions/tokens';
 import { PlatformSettingsService } from '../src/modules/platform-settings/services/platform-settings.service';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
+import { GatewayReconcileTickWorker } from '../src/modules/shared/queue-workers/services/gateway-reconcile-tick-worker';
+import { PaymentSessionExpiryTickWorker } from '../src/modules/shared/queue-workers/services/payment-session-expiry-tick-worker';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase, seedBalance } from './support/database';
 import { BKASH_SECRET_WORDS, FakeBkash, RIGHT_SECRET } from './support/fake-bkash';
@@ -53,6 +55,7 @@ const HOUR = 60 * MINUTE;
 const SANDBOX_HOST = 'https://tokenized.sandbox.bka.sh/v2';
 // Each test places orders and walks them through several steps: longer than the default limit on a busy machine.
 const SLOW = 30_000;
+vi.setConfig({ testTimeout: SLOW });
 
 let app: INestApplication;
 let port: number;
@@ -93,6 +96,10 @@ beforeAll(async () => {
     .useValue(lowBalance)
     .overrideProvider(GATEWAY_FETCH)
     .useValue(bkash.fetch)
+    .overrideProvider(GatewayReconcileTickWorker)
+    .useValue({})
+    .overrideProvider(PaymentSessionExpiryTickWorker)
+    .useValue({})
     .overrideProvider(GATEWAY_CLOCK)
     .useValue(() => new Date(Date.now() + clockShift))
     .overrideProvider(PAYMENT_NOTIFIER)
@@ -705,6 +712,39 @@ describeIfDatabase('how a shop takes a wallet (PAY-06, agreed 2026-11-03)', () =
     expect(bkash.grantsOf(appKey)).toHaveLength(3);
   });
 
+  it("keeps each account's token calls apart", async () => {
+    const setup = await paidShop();
+    const twoAccounts = await setup.shop.put('/payment-methods/bkash', {
+      enabled: true,
+      accounts: [
+        {
+          id: setup.accountId,
+          accountName: 'Rahim Store',
+          number: '01711000001',
+          accountType: 'personal',
+          active: true,
+        },
+        { accountName: 'Second', number: '01711000009', accountType: 'merchant', active: false },
+      ],
+    });
+    expect(twoAccounts.status, JSON.stringify(twoAccounts.body)).toBe(200);
+    const second =
+      (await bkashOf(setup.shop)).accounts.find((row) => row.number === '01711000009')?.id ?? '';
+    const test = (id: string): Promise<HttpResult> =>
+      setup.shop.post(`/payment-methods/accounts/${id}/gateway/test`, {});
+    await saveCredentials(
+      setup.shop,
+      setup.accountId,
+      credentials(`key-${randomUUID()}`, { appSecret: 'the-wrong-secret' }),
+    );
+    expect((await test(setup.accountId)).body).toEqual({ ok: false, code: '2001' });
+    expect((await test(setup.accountId)).body).toEqual({ ok: false, code: '2001' });
+    expect((await test(setup.accountId)).body).toEqual({ ok: false, code: 'token_limit' });
+
+    await saveCredentials(setup.shop, second, credentials(`key-${randomUUID()}`));
+    expect((await test(second)).body).toEqual({ ok: true, code: null });
+  });
+
   it(
     'refreshes a token from the 50th minute, and shoppers arriving together share one call',
     async () => {
@@ -917,6 +957,46 @@ describeIfDatabase(
       await returned(ref, { paymentID: paymentId, status: 'success' });
       expect(bkash.queriesOf(setup.appKey)).toHaveLength(1);
       expect((await sessionOf(ref)).state).toBe('verified');
+    });
+
+    it("believes bKash's record over a refused execute (VER-09)", async () => {
+      const setup = await automate(await paidShop());
+      bkash.behave(setup.appKey, { executeRefused: true });
+      const ref = await placed(setup);
+      const { paymentId } = await started(ref);
+      bkash.authorise(paymentId);
+      await returned(ref, { paymentID: paymentId, status: 'success' });
+      expect(bkash.queriesOf(setup.appKey)).toHaveLength(1);
+      expect((await sessionOf(ref)).state).toBe('verified');
+      expect(await feesOf(setup.shop.tenantId)).toHaveLength(1);
+    });
+
+    it('reads a transaction under either spelling, and never lets go of one it cannot read (VER-08)', async () => {
+      const spelled = await automate(await paidShop());
+      bkash.behave(spelled.appKey, { trxField: 'trxID', trxId: 'SPELLED077' });
+      const ref = await placed(spelled);
+      const paid = await started(ref);
+      bkash.authorise(paid.paymentId);
+      await returned(ref, { paymentID: paid.paymentId, status: 'success' });
+      expect(await sessionOf(ref)).toMatchObject({
+        state: 'verified',
+        transaction_id: 'SPELLED077',
+      });
+
+      // bKash says the money moved and not which transaction: not paid, and not given up on either.
+      const unread = await automate(await paidShop());
+      bkash.behave(unread.appKey, { trxField: 'none' });
+      const unreadRef = await placed(unread);
+      const taken = await started(unreadRef);
+      bkash.authorise(taken.paymentId);
+      await returned(unreadRef, { paymentID: taken.paymentId, status: 'success' });
+      expect(await sessionOf(unreadRef)).toMatchObject({
+        state: 'awaiting_payment',
+        gateway_payment_id: taken.paymentId,
+        gateway_result: null,
+        fee_held: '3.00',
+      });
+      expect(await feesOf(unread.shop.tenantId)).toEqual([]);
     });
 
     it('finishes on the account that started it, whatever is selected since (WAL-11, WAL-19)', async () => {
@@ -1260,6 +1340,13 @@ describeIfDatabase('the fee held for a checkout (WAL-20, WAL-21, RAT-15)', () =>
     await returned(ref, { paymentID: paymentId, status: 'success' });
     expect((await sessionOf(ref)).state).toBe('verified');
     expect(await feesOf(setup.shop.tenantId)).toEqual([]);
+
+    // With nothing to hold, a frozen balance stops nobody.
+    const frozen = await automate(await paidShop('1.00', 0.4));
+    await admin.query('UPDATE control.tenants SET balance_frozen = true WHERE id = $1', [
+      frozen.shop.tenantId,
+    ]);
+    expect((await started(await placed(frozen))).redirectUrl).toMatch(/^https:/);
   });
 });
 
@@ -1454,6 +1541,32 @@ describeIfDatabase('a checkout with no return (VER-09)', () => {
       gateway_payment_id: null,
       fee_held: '0.00',
     });
+    expect(attention.filter((row) => row.tenantId === setup.shop.tenantId)).toHaveLength(1);
+  });
+
+  it('gives up on one that never answers, an hour past the window, and tells the owner', async () => {
+    const setup = await automate(await paidShop());
+    const ref = await placed(setup);
+    const { paymentId } = await started(ref);
+    await pastWindow(ref);
+    bkash.behave(setup.appKey, { queryTimesOut: true });
+    await reconcile();
+    expect(await sessionOf(ref)).toMatchObject({
+      gateway_payment_id: paymentId,
+      gateway_result: null,
+      fee_held: '3.00',
+    });
+    expect(attention.filter((row) => row.tenantId === setup.shop.tenantId)).toEqual([]);
+    clockShift = HOUR + 2 * MINUTE;
+    await reconcile();
+    expect(await sessionOf(ref)).toMatchObject({
+      gateway_payment_id: null,
+      gateway_result: 'failed',
+      fee_held: '0.00',
+    });
+    expect(attention.filter((row) => row.tenantId === setup.shop.tenantId)).toEqual([
+      { tenantId: setup.shop.tenantId, method: 'bkash' },
+    ]);
   });
 });
 

@@ -2498,6 +2498,34 @@ CREATE INDEX ON control.lytro_listener_messages (received_at) WHERE raw_text IS 
 -- Slice 5.4b adds to control.listener_devices: test_mode_until, uploads_day, uploads_today, volume_flagged_at; and to
 -- tenant.payment_sessions: review_reason, id_changes, staff_told_at, with an index on (tenant_id, transaction_id) and one on
 -- (tenant_id, submitted_at) WHERE state = 'checking' AND staff_told_at IS NULL.
+
+-- Slice 5.7 (migration 0101): how a shop takes a wallet's money (PAY-06); no row means its starting way. Row-level security as every tenant table.
+CREATE TABLE tenant.payment_method_ways (
+    tenant_id   uuid NOT NULL,
+    method      tenant.payment_method NOT NULL,
+    way         text NOT NULL CHECK (way IN ('automated', 'listener', 'manual')),
+    PRIMARY KEY (tenant_id, method)
+);
+
+-- SEC-11: every outbound call made with a shop's stored credentials, without them; goes with the shop at day 60. The token calls
+-- in the last hour, counted from here, keep bKash's limit of two across a restart.
+CREATE TABLE tenant.gateway_credential_uses (
+    id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id   uuid NOT NULL,
+    method      text NOT NULL,
+    action      text NOT NULL,                       -- token, create, execute, query
+    account_id  uuid NOT NULL,
+    session_id  uuid,                                -- null for a test of the connection
+    succeeded   boolean NOT NULL,
+    at          timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX ON tenant.gateway_credential_uses (tenant_id, at);
+
+-- Slice 5.7 adds to tenant.wallet_accounts: gateway_credentials (sealed, WAL-09), gateway_sandbox, automated, with a unique index on
+-- (tenant_id, method) WHERE automated (WAL-10) and a check that an automated account holds credentials. To tenant.payment_sessions:
+-- gateway_account_id (WAL-11), gateway_payment_id, gateway_url, gateway_result (VER-09), fee_held (WAL-21), test (VER-11), with an
+-- index on (tenant_id, expires_at) for the checkouts to ask after, and one on (tenant_id) for what is held. To tenant.payments: test.
+-- control.rates gains gateway_verification_pct, starting at 1.00 (RAT-15).
 ```
 
 ## 9. Tenant-configured outbound webhooks
