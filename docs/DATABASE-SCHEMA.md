@@ -2467,6 +2467,34 @@ CREATE TABLE control.listener_unread_shapes (
     PRIMARY KEY (day, shape_hash)
 );
 
+-- PAY-21 (Slice 5.6): what Lytro's own phones forwarded -- sellers' money for plans, add-ons and top-ups. As
+-- tenant.listener_messages, in control, with plan_payment_id in place of session_id and payment_id. Its phone's row in
+-- control.listener_devices, and its code's in control.listener_pairing_codes, have no tenant_id. control.plan_payments gains
+-- amount_sent, amount_arrived and review_reason.
+CREATE TABLE control.lytro_listener_messages (
+    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    device_id       uuid NOT NULL,
+    sender          varchar(30) NOT NULL,
+    method          text,
+    transaction_id  varchar(20),
+    amount          numeric(12,2),
+    sender_number   varchar(11),
+    raw_text        text,                                -- receipts only; redacted at 90 days (LSN-17)
+    status          text NOT NULL,                       -- matched | unmatched | needs_review | duplicate | ignored
+    ignored_reason  text,
+    review_reason   text,
+    plan_payment_id uuid,
+    received_at     timestamptz NOT NULL,
+    created_at      timestamptz NOT NULL DEFAULT now(),
+    updated_at      timestamptz NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX ON control.lytro_listener_messages (transaction_id)
+    WHERE status IN ('matched', 'unmatched', 'needs_review');
+CREATE UNIQUE INDEX ON control.lytro_listener_messages (device_id, transaction_id) WHERE status <> 'ignored';
+CREATE INDEX ON control.lytro_listener_messages (device_id, received_at);
+CREATE INDEX ON control.lytro_listener_messages (status, received_at);
+CREATE INDEX ON control.lytro_listener_messages (received_at) WHERE raw_text IS NOT NULL;
+
 -- Slice 5.4b adds to control.listener_devices: test_mode_until, uploads_day, uploads_today, volume_flagged_at; and to
 -- tenant.payment_sessions: review_reason, id_changes, staff_told_at, with an index on (tenant_id, transaction_id) and one on
 -- (tenant_id, submitted_at) WHERE state = 'checking' AND staff_told_at IS NULL.

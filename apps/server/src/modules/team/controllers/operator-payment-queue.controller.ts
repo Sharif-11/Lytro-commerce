@@ -1,7 +1,11 @@
 import { Body, Controller, Get, Inject, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
-import { PlanPaymentKind } from '@lytronix/validators';
+import {
+  PlanPaymentKind,
+  queuedPaymentAmountSchema,
+  type QueuedPaymentAmountInput,
+} from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import { ClientIp } from '../../../common/client-ip';
 import { SkipTenant } from '../../../common/decorators/skip-tenant';
@@ -48,11 +52,39 @@ export class OperatorPaymentQueueController {
   @ZodResponse({ type: PlanPaymentDto })
   approve(
     @Param('id') id: string,
+    @Body(new ZodValidationPipe(queuedPaymentAmountSchema)) body: QueuedPaymentAmountInput,
     @Req() request: OperatorSessionRequest,
   ): Promise<PlanPaymentRecord> {
     const session = request.operatorSession;
     if (!session) throw new ApiError('unauthenticated', 'SignInToContinue', {});
-    return this.queue.approve(id, session.operatorId, this.clientIp.resolve(request));
+    return this.queue.approve(
+      id,
+      session.operatorId,
+      this.clientIp.resolve(request),
+      body?.amount?.toFixed(2),
+    );
+  }
+
+  @Post(':id/credit')
+  @ResponseMessage('PaymentCreditedInstead')
+  @ApiOperation({
+    summary:
+      "Put a plan's or add-on's money on the seller's balance instead of activating it: what the operator says arrived, else what a receipt says (BIL-06)",
+  })
+  @ZodResponse({ type: PlanPaymentDto })
+  credit(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(queuedPaymentAmountSchema)) body: QueuedPaymentAmountInput,
+    @Req() request: OperatorSessionRequest,
+  ): Promise<PlanPaymentRecord> {
+    const session = request.operatorSession;
+    if (!session) throw new ApiError('unauthenticated', 'SignInToContinue', {});
+    return this.queue.creditInstead(
+      id,
+      session.operatorId,
+      this.clientIp.resolve(request),
+      body?.amount?.toFixed(2),
+    );
   }
 
   @Post(':id/reject')

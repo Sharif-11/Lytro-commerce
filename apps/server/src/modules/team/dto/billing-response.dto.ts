@@ -4,6 +4,7 @@ import {
   BillingPaymentState,
   InvoiceLineKind,
   PaymentCancelReason,
+  PaymentReviewReason,
   PLAN_PAYMENT_METHODS,
   planLimitsSchema,
 } from '@lytronix/validators';
@@ -131,6 +132,11 @@ export const paymentAddonSchema = z.object({
 });
 export const queuedPaymentSchema = planPaymentSchema.extend({
   addons: z.array(paymentAddonSchema),
+  // BIL-06 (Slice 5.6, agreed 2026-11-03): what the seller says they sent, what arrived, and why it waits. For the operator
+  // only: the shop's own routes never read these.
+  amountSent: z.string().nullable(),
+  amountArrived: z.string().nullable(),
+  reviewReason: z.nativeEnum(PaymentReviewReason).nullable(),
 });
 export class QueuedPaymentListDto extends createZodDto(queuedPaymentSchema.array()) {}
 

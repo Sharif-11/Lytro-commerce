@@ -69,9 +69,13 @@ export class ListenerApp {
       await this.flag(device, call.ip);
       throw new ApiError('unauthenticated', 'ListenerTokenInvalid', {});
     }
-    await this.store.run(async (tx) => {
-      this.rules.refuseInactive(await this.store.shopOf(tx, device.tenantId));
-    });
+    // PAY-21 (Slice 5.6): Lytro's own phone has no shop to be inactive.
+    const tenantId = device.tenantId;
+    if (tenantId !== null) {
+      await this.store.run(async (tx) => {
+        this.rules.refuseInactive(await this.store.shopOf(tx, tenantId));
+      });
+    }
     return { device, appVersion: await this.rules.refuseOldApp(call.appVersion) };
   }
 
@@ -97,14 +101,16 @@ export class ListenerApp {
     const until = new Date(now.getTime() + LISTENER_TEST_MODE_MINUTES * MINUTE_MS);
     await this.store.run(async (tx) => {
       await this.store.startTestMode(tx, device.id, until);
-      await this.activity.record(
-        tx,
-        device.tenantId,
-        { id: null, ip, type: ActorType.System },
-        AuditAction.ListenerTestModeStarted,
-        { type: 'listener_device', id: device.id },
-        { name: device.name, until },
-      );
+      if (device.tenantId !== null) {
+        await this.activity.record(
+          tx,
+          device.tenantId,
+          { id: null, ip, type: ActorType.System },
+          AuditAction.ListenerTestModeStarted,
+          { type: 'listener_device', id: device.id },
+          { name: device.name, until },
+        );
+      }
     });
     return until;
   }

@@ -8,6 +8,8 @@ import {
   PlatformActorType,
   PlatformAuditAction,
 } from '@lytronix/validators';
+import type { Transaction } from '@lytronix/db';
+import { ApiError } from '../../../common/api-error';
 import { AuditService } from '../../audit/services/audit.service';
 import { PlatformAuditService } from '../../audit/services/platform-audit.service';
 import { BalanceService } from '../../balance/services/balance.service';
@@ -50,56 +52,138 @@ export class PaymentQueueService {
     return pending.map((payment) => ({ ...payment, addons: addons.get(payment.id) ?? [] }));
   }
 
-  async approve(
+  /**
+   * ADM-06, BIL-06: the operator approves a payment, saying what arrived when it is not what a receipt says or what was
+   * quoted. What the seller typed is never credited on its own say-so (agreed 2026-11-03).
+   */
+  approve(
     paymentId: string,
     operatorId: string,
     ip?: string | null,
+    amountArrived?: string,
   ): Promise<PlanPaymentRecord> {
     const now = this.clock();
-    return this.tenants.runStandalone(async (tx) => {
-      const payment = await this.payments.approve(tx, paymentId, operatorId, now);
+    return this.tenants.runStandalone((tx) =>
+      this.verifyWithin(tx, paymentId, operatorId, now, ip ?? null, amountArrived),
+    );
+  }
 
-      if (payment.kind === PlanPaymentKind.TopUp) {
-        await this.balance.credit(tx, {
-          tenantId: payment.tenantId,
-          type: LedgerEntryType.TopUp,
-          amount: payment.amount,
-          reference: { planPaymentId: payment.id },
-        });
-        await this.audit.record(tx, {
-          tenantId: payment.tenantId,
-          actorType: ActorType.User,
-          actorId: null,
-          action: AuditAction.BalanceToppedUp,
-          ip: ip ?? null,
-          targetType: 'plan_payment',
-          targetId: payment.id,
-          result: AuditResult.Success,
-          summary: { amount: payment.amount },
-        });
-      } else if (payment.kind === PlanPaymentKind.Upgrade) {
-        await this.upgrade.activate(tx, payment, now, ip);
-      } else if (
-        payment.kind === PlanPaymentKind.Purchase ||
-        payment.kind === PlanPaymentKind.Renewal
-      ) {
-        await this.purchase.activate(tx, payment, now, ip);
-      } else {
-        // PLN-14: the last kind, an add-on's own payment.
-        await this.addons.activate(tx, payment, now, ip);
-      }
+  /**
+   * BIL-05, PAY-21 (Slice 5.6): a payment verified in the caller's transaction, by the operator or (null) by Lytro's own
+   * phone: the plan activated or the balance credited -- a top-up with what arrived, once anyone says, else what was
+   * quoted (BAL-03, agreed 2026-11-03). No fee: it is Lytro's own money (WAL-20).
+   */
+  async verifyWithin(
+    tx: Transaction,
+    paymentId: string,
+    operatorId: string | null,
+    now: Date,
+    ip: string | null,
+    amountArrived?: string,
+  ): Promise<PlanPaymentRecord> {
+    const payment = await this.payments.approve(tx, paymentId, operatorId, now, amountArrived);
 
-      await this.platformAudit.recordWithin(tx, {
-        actorType: PlatformActorType.Operator,
-        actorId: operatorId,
-        action: PlatformAuditAction.PlanPaymentVerified,
+    if (payment.kind === PlanPaymentKind.TopUp) {
+      const credited = payment.amountArrived ?? payment.amount;
+      await this.balance.credit(tx, {
+        tenantId: payment.tenantId,
+        type: LedgerEntryType.TopUp,
+        amount: credited,
+        reference: { planPaymentId: payment.id },
+      });
+      await this.audit.record(tx, {
+        tenantId: payment.tenantId,
+        actorType: ActorType.User,
+        actorId: null,
+        action: AuditAction.BalanceToppedUp,
+        ip,
         targetType: 'plan_payment',
         targetId: payment.id,
         result: AuditResult.Success,
-        ip: ip ?? null,
-        summary: { kind: payment.kind, amount: payment.amount, tenantId: payment.tenantId },
+        summary: { amount: credited },
       });
+    } else if (payment.kind === PlanPaymentKind.Upgrade) {
+      await this.upgrade.activate(tx, payment, now, ip);
+    } else if (
+      payment.kind === PlanPaymentKind.Purchase ||
+      payment.kind === PlanPaymentKind.Renewal
+    ) {
+      await this.purchase.activate(tx, payment, now, ip);
+    } else {
+      // PLN-14: the last kind, an add-on's own payment.
+      await this.addons.activate(tx, payment, now, ip);
+    }
 
+    await this.platformAudit.recordWithin(tx, {
+      actorType: operatorId === null ? PlatformActorType.System : PlatformActorType.Operator,
+      actorId: operatorId,
+      action: PlatformAuditAction.PlanPaymentVerified,
+      targetType: 'plan_payment',
+      targetId: payment.id,
+      result: AuditResult.Success,
+      ip,
+      summary: { kind: payment.kind, amount: payment.amount, tenantId: payment.tenantId },
+    });
+
+    return payment;
+  }
+
+  /**
+   * BIL-06 (Slice 5.6, agreed 2026-11-03): money for a plan, upgrade or add-on at the wrong amount, put on the seller's balance
+   * instead of activating it: what the operator says arrived, else what a receipt says. The add-ons it carried are cancelled.
+   */
+  creditInstead(
+    paymentId: string,
+    operatorId: string,
+    ip: string | null,
+    amount?: string,
+  ): Promise<PlanPaymentRecord> {
+    const now = this.clock();
+    return this.tenants.runStandalone(async (tx) => {
+      const held = await this.payments.findForUpdate(tx, paymentId);
+      if (!held) throw new ApiError('not_found', 'PlanPaymentNotFound', {});
+      const arrived = amount ?? held.amountArrived;
+      if (arrived === null) throw new ApiError('validation_error', 'PaymentAmountNeeded', {});
+      const payment = await this.payments.creditInsteadWithin(
+        tx,
+        paymentId,
+        operatorId,
+        arrived,
+        now,
+      );
+      await this.renewals.cancelFor(tx, payment.id);
+      await this.balance.credit(tx, {
+        tenantId: payment.tenantId,
+        type: LedgerEntryType.TopUp,
+        amount: arrived,
+        reference: { planPaymentId: payment.id },
+      });
+      await this.audit.record(tx, {
+        tenantId: payment.tenantId,
+        actorType: ActorType.PlatformSupport,
+        actorId: null,
+        action: AuditAction.BalanceToppedUp,
+        ip,
+        targetType: 'plan_payment',
+        targetId: payment.id,
+        result: AuditResult.Success,
+        summary: { amount: arrived, was: held.kind },
+      });
+      await this.platformAudit.recordWithin(tx, {
+        actorType: PlatformActorType.Operator,
+        actorId: operatorId,
+        action: PlatformAuditAction.PlanPaymentCredited,
+        targetType: 'plan_payment',
+        targetId: payment.id,
+        result: AuditResult.Success,
+        ip,
+        summary: {
+          was: held.kind,
+          quoted: held.amount,
+          amount: arrived,
+          tenantId: payment.tenantId,
+        },
+      });
       return payment;
     });
   }

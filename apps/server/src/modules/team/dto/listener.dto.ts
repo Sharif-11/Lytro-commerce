@@ -69,6 +69,31 @@ export class ReceiptPageDto extends createZodDto(
     pages: z.number(),
   }),
 ) {}
+// PAY-21 (Slice 5.6): what Lytro's own phones forwarded, as the operator reads it.
+export const lytroReceiptSchema = z.object({
+  id: z.string(),
+  method: z.nativeEnum(PaymentMethod).nullable(),
+  amount: z.string().nullable(),
+  transactionId: z.string().nullable(),
+  status: z.nativeEnum(ListenerMessageStatus),
+  reviewReason: z.nativeEnum(PaymentReviewReason).nullable(),
+  ignoredReason: z.nativeEnum(ListenerIgnoredReason).nullable(),
+  orderNumber: z.string().nullable(),
+  receivedAt: z.coerce.date(),
+  senderNumber: z.string().nullable(),
+  deviceId: z.string(),
+  planPaymentId: z.string().nullable(),
+  text: z.string().nullable(),
+});
+export class LytroReceiptPageDto extends createZodDto(
+  z.object({
+    receipts: z.array(lytroReceiptSchema),
+    page: z.number(),
+    limit: z.number(),
+    total: z.number(),
+    pages: z.number(),
+  }),
+) {}
 export class ListenerUnreadDto extends createZodDto(
   z.object({
     shapes: z.array(z.object({ day: z.string(), shape: z.string(), count: z.number() })),

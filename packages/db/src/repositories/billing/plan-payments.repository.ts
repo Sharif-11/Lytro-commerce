@@ -27,6 +27,7 @@ import {
   BillingPaymentState,
   PlanPaymentStatus,
   type PaymentCancelReason,
+  type PaymentReviewReason,
   type PlanPaymentKind,
 } from '@lytronix/validators';
 import type { Executor } from '../../transactions';
@@ -214,9 +215,49 @@ export class PlanPaymentsRepository {
       submittedAt?: Date | null;
       note?: string | null;
       cancelReason?: PaymentCancelReason | null;
+      amountSent?: string | null;
+      amountArrived?: string | null;
+      reviewReason?: PaymentReviewReason | null;
     },
   ): Promise<void> {
     await tx.update(planPayments).set(values).where(eq(planPayments.id, id));
+  }
+
+  /**
+   * VER-02 (Slice 5.6): the payment a receipt with this transaction ID settles, held -- one still open before one closed, the
+   * newest of each. Null when no seller typed it.
+   */
+  async lockTyped(tx: Executor, transactionId: string): Promise<SelectPlanPayment | null> {
+    const [row] = await tx
+      .select()
+      .from(planPayments)
+      .where(eq(planPayments.transactionId, transactionId))
+      .orderBy(
+        sql`CASE WHEN ${planPayments.status} IN ('pending', 'needs_review') THEN 0 ELSE 1 END`,
+        desc(planPayments.submittedAt),
+      )
+      .limit(1)
+      .for('update');
+    return row ?? null;
+  }
+
+  /** BIL-06 (Slice 5.6, agreed 2026-11-03): money for a plan or add-on put on the balance: the row becomes the top-up it now is. */
+  async creditInstead(
+    tx: Executor,
+    id: string,
+    values: { kind: PlanPaymentKind; amount: string; verifiedBy: string; verifiedAt: Date },
+  ): Promise<void> {
+    await tx
+      .update(planPayments)
+      .set({
+        ...values,
+        planId: null,
+        billingTermId: null,
+        creditAmount: '0',
+        amountArrived: values.amount,
+        status: PlanPaymentStatus.Verified,
+      })
+      .where(eq(planPayments.id, id));
   }
 
   /**

@@ -4,9 +4,11 @@ import {
   date,
   index,
   integer,
+  numeric,
   primaryKey,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
@@ -14,8 +16,14 @@ import {
   enumTuple,
   LISTENER_DEVICE_NAME_MAX_LENGTH,
   LISTENER_INSTALLATION_ID_MAX_LENGTH,
+  LISTENER_SENDER_MAX_LENGTH,
   LISTENER_SHAPE_MAX_LENGTH,
   ListenerRevokeReason,
+  TRANSACTION_ID_MAX_LENGTH,
+  type ListenerIgnoredReason,
+  type ListenerMessageStatus,
+  type PaymentMethod,
+  type PaymentReviewReason,
 } from '@lytronix/validators';
 import { control, createdAt } from '../shared';
 import { tenants } from './tenancy';
@@ -33,9 +41,8 @@ export const listenerPairingCodes = control.table(
   'listener_pairing_codes',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    tenantId: uuid('tenant_id')
-      .notNull()
-      .references(() => tenants.id),
+    // Slice 5.6: null for Lytro's own phone, which has no shop behind it.
+    tenantId: uuid('tenant_id').references(() => tenants.id),
     codeHash: char('code_hash', { length: 64 }).notNull().unique(),
     createdBy: uuid('created_by'),
     createdAt: createdAt(),
@@ -57,9 +64,8 @@ export const listenerDevices = control.table(
   'listener_devices',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    tenantId: uuid('tenant_id')
-      .notNull()
-      .references(() => tenants.id),
+    // Slice 5.6: null for Lytro's own phone, which verifies what sellers pay Lytro (PAY-21).
+    tenantId: uuid('tenant_id').references(() => tenants.id),
     name: varchar('name', { length: LISTENER_DEVICE_NAME_MAX_LENGTH }).notNull(),
     model: varchar('model', { length: 100 }),
     appVersion: varchar('app_version', { length: 20 }).notNull(),
@@ -115,6 +121,46 @@ export const listenerUnreadShapes = control.table(
   (t) => [primaryKey({ name: 'listener_unread_shapes_pkey', columns: [t.day, t.shapeHash] })],
 );
 
+// PAY-21, D5-3 (Phase 5 Slice 5.6, read agreed 2026-11-03): what Lytro's own listener phones forwarded -- sellers' money for
+// plans, add-ons and top-ups. It works as tenant.listener_messages does for a shop: a receipt keeps its text until it is
+// redacted at [90] days, a message that verifies nothing never keeps any, one row holds each transaction ID. In control, as
+// control.plan_payments is, since no shop owns it.
+export const lytroListenerMessages = control.table(
+  'lytro_listener_messages',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    deviceId: uuid('device_id').notNull(),
+    sender: varchar('sender', { length: LISTENER_SENDER_MAX_LENGTH }).notNull(),
+    method: text('method').$type<PaymentMethod>(),
+    transactionId: varchar('transaction_id', { length: TRANSACTION_ID_MAX_LENGTH }),
+    amount: numeric('amount', { precision: 12, scale: 2 }),
+    senderNumber: varchar('sender_number', { length: 11 }),
+    rawText: text('raw_text'),
+    status: text('status').$type<ListenerMessageStatus>().notNull(),
+    ignoredReason: text('ignored_reason').$type<ListenerIgnoredReason>(),
+    reviewReason: text('review_reason').$type<PaymentReviewReason>(),
+    // The seller's payment it claims or settled.
+    planPaymentId: uuid('plan_payment_id'),
+    receivedAt: timestamp('received_at', { withTimezone: true }).notNull(),
+    createdAt: createdAt(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('lytro_listener_messages_holder_key')
+      .on(t.transactionId)
+      .where(sql`${t.status} IN ('matched', 'unmatched', 'needs_review')`),
+    uniqueIndex('lytro_listener_messages_phone_key')
+      .on(t.deviceId, t.transactionId)
+      .where(sql`${t.status} <> 'ignored'`),
+    index('lytro_listener_messages_device_idx').on(t.deviceId, t.receivedAt),
+    index('lytro_listener_messages_status_idx').on(t.status, t.receivedAt),
+    index('lytro_listener_messages_text_idx')
+      .on(t.receivedAt)
+      .where(sql`${t.rawText} IS NOT NULL`),
+  ],
+);
+
+export type SelectLytroListenerMessage = typeof lytroListenerMessages.$inferSelect;
 export type SelectListenerUnreadShape = typeof listenerUnreadShapes.$inferSelect;
 export type SelectListenerPairingCode = typeof listenerPairingCodes.$inferSelect;
 export type SelectListenerDevice = typeof listenerDevices.$inferSelect;
