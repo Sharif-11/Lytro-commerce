@@ -29,6 +29,15 @@ private fun limit(name: String): Long {
 
 class ContractTest {
     @Test
+    fun `no word formats a number itself, which would show Bengali digits in Bangla`() {
+        // The glossary's rule is Western digits in both languages, and `%d` follows the language.
+        for (folder in listOf("values", "values-en")) {
+            val words = File("src/main/res/$folder/strings.xml").readText()
+            assertTrue("$folder formats a number", !Regex("""%(\d\$)?[dfi]""").containsMatchIn(words))
+        }
+    }
+
+    @Test
     fun `the upload limits are the server's`() {
         assertEquals(limit("LISTENER_BATCH_MAX"), BATCH_MAX.toLong())
         assertEquals(limit("LISTENER_MESSAGE_MAX_LENGTH"), MESSAGE_MAX_LENGTH.toLong())

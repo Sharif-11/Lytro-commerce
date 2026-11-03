@@ -335,7 +335,7 @@ describeIfDatabase("Lytro's own phone (PAY-21)", () => {
       headersOf(phone),
     );
     expect(beat.status, JSON.stringify(beat.body)).toBe(200);
-    expect(beat.body).toMatchObject({ status: 'connected' });
+    expect(beat.body).toMatchObject({ status: 'connected', shopName: 'Lytro' });
     const listed = await app.get(ListenerDevices).listForLytro();
     expect(listed.devices.map((device) => device.id)).toContain(phone.deviceId);
     expect(listed.limit).toBeNull();

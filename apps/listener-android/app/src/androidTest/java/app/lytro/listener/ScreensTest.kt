@@ -7,6 +7,7 @@ import android.os.Build
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -47,6 +48,7 @@ class ScreensTest {
     @Before
     fun start() {
         resetApp()
+        setBatteryExempt(true)
         lytro.start()
     }
 
@@ -91,6 +93,7 @@ class ScreensTest {
         tap(word(R.string.yes_here))
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) tap(word(R.string.turn_on))
+        tap(word(R.string.bat_btn))
 
         shows(word(R.string.t_wait))
         waitUntil("the phone reported, so it counts online") { "POST heartbeat" in lytro.paths }
@@ -137,7 +140,7 @@ class ScreensTest {
         typeCode()
         tap(word(R.string.pair))
 
-        val words = graph.settings.localized(appContext).resources.getQuantityString(R.plurals.e_tries, 12, 12)
+        val words = graph.settings.localized(appContext).resources.getQuantityString(R.plurals.e_tries, 12, "12")
         shows(words)
         compose.onNodeWithText(word(R.string.pair)).assertIsNotEnabled()
     }
@@ -307,31 +310,275 @@ class ScreensTest {
         lytro = restartLytro()
     }
 
-    @Test
-    fun aRevokedPhoneStopsClearsItsTokenAndSavedReceiptsAndGoesBackToTheStart() {
+    private fun revokedBecause(reason: String) {
         pairApp()
         open()
         shows(word(R.string.st_on))
-
-        lytro.everyDeviceCall = { refusal(401, "unauthenticated", details = """{"reason":"owner"}""") }
+        lytro.everyDeviceCall = { refusal(401, "unauthenticated", details = """{"reason":"$reason"}""") }
         scenario?.recreate()
-
-        shows(word(R.string.wel_t))
-        assertNull(graph.secrets.token)
-        assertEquals(PhoneStatus.Revoked("owner"), graph.phone.facts.value.status)
-        assertEquals(0, graph.queue.size.value)
     }
 
     @Test
-    fun anInactiveShopHoldsAndSaysSo() {
+    fun aRevokedPhoneSaysWhyClearsItsTokenAndSavedReceiptsAndPairsAgain() {
+        revokedBecause("owner")
+
+        shows(word(R.string.st_rev))
+        shows(word(R.string.rev_owner))
+        assertNull(graph.secrets.token)
+        assertEquals(PhoneStatus.Revoked("owner"), graph.phone.facts.value.status)
+        assertEquals(0, graph.queue.size.value)
+        assertTrue("its last notification", notificationSays(word(R.string.n_rev)))
+
+        tap(word(R.string.re_pair))
+        shows(word(R.string.scan_t))
+        assertEquals(PhoneStatus.Connected, graph.phone.facts.value.status)
+    }
+
+    @Test
+    fun aPhoneRevokedByLytroOrAfterFlagsSaysSo() {
+        revokedBecause("operator")
+        shows(word(R.string.rev_op))
+    }
+
+    @Test
+    fun aPhoneRevokedAfterFlagsSaysAnotherDeviceTried() {
+        revokedBecause("flags")
+        shows(word(R.string.rev_flags))
+    }
+
+    @Test
+    fun aPhoneTheServerNoLongerKnowsShowsTheServersWords() {
+        pairApp()
+        lytro.everyDeviceCall = { refusal(401, "unauthenticated", "Pair it again with a new code.") }
+
+        open()
+
+        shows("Pair it again with a new code.")
+        shows(word(R.string.re_pair))
+    }
+
+    @Test
+    fun aBlockedPhoneSaysSoAndOffersNoPairingAgain() {
+        revokedBecause("installation_blocked")
+
+        shows(word(R.string.st_block))
+        shows(word(R.string.block_p))
+        compose.onNodeWithText(word(R.string.re_pair)).assertDoesNotExist()
+    }
+
+    @Test
+    fun aRevokedPhoneStaysToldAfterTheAppIsReopened() {
+        revokedBecause("owner")
+        shows(word(R.string.rev_owner))
+
+        scenario?.close()
+        open()
+
+        shows(word(R.string.rev_owner))
+    }
+
+    @Test
+    fun anInactiveShopHoldsSaysHowManyAndComesBackByItself() {
+        val trx = newTrxId()
         lytro.everyDeviceCall = { refusal(403, "tenant_offline") }
         pairApp()
+        EmulatorConsole.sendSms("bKash", receiptText(trx))
+        waitUntil("it was saved") { graph.queue.size.value == 1 }
 
         open()
 
         shows(word(R.string.st_inact))
+        shows(word(R.string.inact_p))
+        shows(graph.settings.localized(appContext).resources.getQuantityString(R.plurals.held, 1, "1"))
+        assertEquals("device-token", graph.secrets.token)
+        assertTrue("told of it", notificationSays(word(R.string.n_inact)))
+
+        lytro.everyDeviceCall = null
+        tap(word(R.string.check_now))
+
+        shows(word(R.string.st_on))
+        waitUntil("the held receipt went as soon as the shop was back") { lytro.sawUpload(trx) }
+        waitUntil("nothing is left saved") { graph.queue.size.value == 0 }
+    }
+
+    @Test
+    fun anOldAppSaysBothVersionsAndHoldsItsReceipts() {
+        lytro.everyDeviceCall = { refusal(426, "app_update_required", details = """{"minimum":"1.2.0"}""") }
+        pairApp()
+
+        open()
+
+        shows(word(R.string.st_upd))
+        shows(word(R.string.upd_v, BuildConfig.VERSION_NAME, "1.2.0"))
+        shows(word(R.string.download))
         assertEquals("device-token", graph.secrets.token)
     }
+
+    @Test
+    fun aShopInactiveAtPairingSaysSoAndKeepsTheCodeToTryAgain() {
+        lytro.pairAnswer = { refusal(403, "tenant_offline") }
+        open()
+
+        typeCode()
+        tap(word(R.string.pair))
+
+        shows(word(R.string.st_inact))
+        tap(word(R.string.check_now))
+        shows(word(R.string.type_t))
+        shows("K")
+    }
+
+    @Test
+    fun aBlockedInstallationAtPairingSaysSo() {
+        lytro.pairAnswer = { refusal(403, "forbidden") }
+        open()
+
+        typeCode()
+        tap(word(R.string.pair))
+
+        shows(word(R.string.st_block))
+    }
+
+    @Test
+    fun anOldAppAtPairingSaysWhatItNeeds() {
+        lytro.pairAnswer = { refusal(426, "app_update_required", details = """{"minimum":"1.2.0"}""") }
+        open()
+
+        typeCode()
+        tap(word(R.string.pair))
+
+        shows(word(R.string.upd_v, BuildConfig.VERSION_NAME, "1.2.0"))
+    }
+
+    private fun openMenu() {
+        compose.waitUntil(30_000) { compose.onAllNodesWithTag("menu").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("menu").performClick()
+        shows(word(R.string.this_phone))
+    }
+
+    @Test
+    fun theMenuSaysWhatTheAppKnowsAndNoMoreThanItKnows() {
+        lytro.deviceName = "Front desk"
+        pairApp()
+        open()
+
+        openMenu()
+
+        waitUntil("the phone heard its name") { graph.phone.facts.value.deviceName == "Front desk" }
+        shows("Front desk")
+        shows("Megh Fashion")
+        shows("01711-000001")
+        shows(BuildConfig.VERSION_NAME)
+        // The server knows only the oldest version it takes, so nothing here claims to be up to date.
+        compose.onNodeWithText(word(R.string.help)).assertDoesNotExist()
+    }
+
+    @Test
+    fun theMenuSwitchesLanguageAndGoesBack() {
+        pairApp()
+        open()
+        openMenu()
+
+        tap("EN")
+        shows("This phone")
+
+        compose.waitUntil(30_000) { compose.onAllNodesWithTag("back").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("back").performClick()
+        shows("Working")
+    }
+
+    @Test
+    fun unpairingAsksFirstThenFreesThePlaceAndStartsOverWithNoRevokedScreen() {
+        pairApp()
+        open()
+        openMenu()
+
+        tap(word(R.string.unpair))
+        shows(word(R.string.un_p))
+        tap(word(R.string.cancel))
+        assertFalse("kept means kept", "POST unpair" in lytro.paths)
+
+        tap(word(R.string.unpair))
+        tap(word(R.string.un_btn))
+
+        shows(word(R.string.wel_t))
+        assertTrue("POST unpair" in lytro.paths)
+        assertNull(graph.secrets.token)
+        assertFalse("nothing to tell of", notificationSays(word(R.string.n_rev)))
+    }
+
+    @Test
+    fun unpairingWithNoInternetSaysSoAndStaysPaired() {
+        pairApp()
+        open()
+        openMenu()
+        lytro.stop()
+
+        tap(word(R.string.unpair))
+        tap(word(R.string.un_btn))
+
+        shows(word(R.string.e_net))
+        assertEquals("device-token", graph.secrets.token)
+    }
+
+    @Test
+    fun testModeStartsFromTheMenuAndHomeCountsItDown() {
+        pairApp()
+        open()
+        openMenu()
+
+        tap(word(R.string.test_mode))
+
+        shows(word(R.string.st_test_s))
+        assertTrue("POST test-mode" in lytro.paths)
+    }
+
+    @Test
+    fun aTestReceiptShowsWhoItCameFromAndThatItVerifiesNothing() {
+        lytro.receipts = """[{"id":"1","sender":"16247","method":"bkash","amount":"500.00","transactionId":"2TK9H4MB7W","status":"ignored","ignoredReason":"test_mode","receivedAt":"2026-11-03T08:45:00.000Z"}]"""
+        pairApp()
+
+        open()
+
+        shows("16247")
+        shows(word(R.string.r_test))
+    }
+
+    @Test
+    fun theBatteryStepCanBeLeftForLaterAndHomeKeepsWarning() {
+        setBatteryExempt(false)
+        graph.secrets.token = "device-token"
+        graph.phone.update { it.copy(shopName = "Megh Fashion", senders = listOf("bKash")) }
+        graph.settings.stage = SetupStage.Battery
+        open()
+
+        tap(word(R.string.later))
+
+        shows(word(R.string.st_bat))
+        shows(word(R.string.bat_note))
+        assertEquals(SetupStage.Done, graph.settings.stage)
+    }
+
+    @Test
+    fun homesBatteryWarningLeadsToTheStepAndClearsOnceExempt() {
+        setBatteryExempt(false)
+        pairApp()
+        open()
+        shows(word(R.string.st_bat))
+
+        tap(word(R.string.fix))
+        shows(word(R.string.bat_t))
+
+        setBatteryExempt(true)
+        tap(word(R.string.bat_btn))
+
+        shows(word(R.string.st_on))
+    }
+
+    private fun notificationSays(words: String): Boolean =
+        appContext.getSystemService(android.app.NotificationManager::class.java).activeNotifications.any {
+            it.notification.extras.getCharSequence(android.app.Notification.EXTRA_TEXT)?.toString() == words
+        }
 
     @Test
     fun englishIsOneTapAway() {

@@ -61,6 +61,21 @@ class MessageFilterTest {
     }
 
     @Test
+    fun `test mode opens the door only to what looks like a receipt`() {
+        assertTrue(mayLeavePhone("16247", RECEIPTS[0], SENDERS, testMode = true))
+        assertFalse(mayLeavePhone("16247", RECEIPTS[0], SENDERS, testMode = false))
+        // An amount with a balance is enough from the wallet's own sender, but not from a stranger.
+        assertFalse(mayLeavePhone("16247", "Tk 200.00 was added. Your balance is Tk 300.00.", SENDERS, testMode = true))
+        assertFalse(mayLeavePhone("16247", "Your TrxID ABCDEFGHIJ was taken.", SENDERS, testMode = true))
+        for (text in PRIVATE) assertFalse(text, mayLeavePhone("16247", text, SENDERS, testMode = true))
+    }
+
+    @Test
+    fun `test mode changes nothing for the wallet's own sign-in codes`() {
+        for (text in PRIVATE) assertFalse(text, mayLeavePhone("bKash", text, SENDERS, testMode = true))
+    }
+
+    @Test
     fun `nothing leaves when the server's list is empty`() {
         assertFalse(mayLeavePhone("bKash", RECEIPTS[0], emptyList()))
     }

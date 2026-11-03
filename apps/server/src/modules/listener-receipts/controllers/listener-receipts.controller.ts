@@ -51,6 +51,7 @@ class ListenerRecentDto extends createZodDto(
     receipts: z.array(
       z.object({
         id: z.string(),
+        sender: z.string(),
         method: z.nativeEnum(PaymentMethod).nullable(),
         amount: z.string().nullable(),
         transactionId: z.string().nullable(),

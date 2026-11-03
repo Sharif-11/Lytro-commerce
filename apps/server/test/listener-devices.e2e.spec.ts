@@ -199,7 +199,7 @@ describeIfDatabase('pairing a listener phone (LSN-01, LSN-03, LSN-09, LSN-11, LS
     const first = await pair(code.toLowerCase(), 'install-aaaa1111', { name: 'Counter phone' });
     expect(first.status, JSON.stringify(first.body)).toBe(201);
     const device = first.body as Paired;
-    expect(device).toMatchObject({ heartbeatMinutes: 15 });
+    expect(device).toMatchObject({ heartbeatMinutes: 15, deviceName: 'Counter phone' });
     expect(device.token.length).toBeGreaterThanOrEqual(43);
     const row = await admin.query<{ token_hash: string; name: string; tenant_id: string }>(
       'SELECT token_hash, name, tenant_id FROM control.listener_devices WHERE id = $1',
@@ -218,7 +218,12 @@ describeIfDatabase('pairing a listener phone (LSN-01, LSN-03, LSN-09, LSN-11, LS
 
     const beat = await heartbeat({ token: device.token, installationId: 'install-aaaa1111' });
     expect(beat.status, JSON.stringify(beat.body)).toBe(200);
-    expect(beat.body).toMatchObject({ status: 'connected', heartbeatMinutes: 15 });
+    expect(beat.body).toMatchObject({
+      status: 'connected',
+      heartbeatMinutes: 15,
+      deviceName: 'Counter phone',
+      shopName: device.shopName,
+    });
     expect(await devicesOf(shop)).toMatchObject({
       active: 1,
       limit: 1,
@@ -383,6 +388,8 @@ describeIfDatabase("the shop's and Lytro's view of phones (LSN-19 to LSN-21, SEC
     expect(await logged(shop.tenantId, 'listener_device_renamed')).toEqual([
       { from: 'Pixel 7', to: 'Front desk' },
     ]);
+    // Agreed 2026-11-03 (Slice 5.5b's read): a rename reaches the app's menu at its next report.
+    expect((await heartbeat(phone)).body).toMatchObject({ deviceName: 'Front desk' });
     const other = await openShop(port, texts, 'lis');
     expect(
       (await other.patch(`/listener/devices/${phone.deviceId}`, { name: 'Mine' })).status,

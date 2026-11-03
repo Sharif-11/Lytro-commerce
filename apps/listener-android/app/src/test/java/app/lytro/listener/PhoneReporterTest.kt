@@ -34,7 +34,7 @@ class PhoneReporterTest {
     private var clock = NOW
 
     private fun connected(serverTime: Long = NOW) = okEnvelope(
-        """{"status":"connected","heartbeatMinutes":15,"serverTime":"${isoOf(serverTime)}",
+        """{"status":"connected","heartbeatMinutes":15,"serverTime":"${isoOf(serverTime)}","deviceName":"Front desk","shopName":"Megh Fashion",
         "accounts":[{"method":"bkash","number":"01711000001"}],"senders":["bKash","Nagad"],"testModeUntil":null}""",
     )
 
@@ -51,7 +51,7 @@ class PhoneReporterTest {
                 askedSince = since
                 inbox
             },
-            intake = SmsIntake(secrets, facts, queue),
+            intake = SmsIntake(secrets, facts, queue) { clock },
             uploader = ReceiptUploader(api, queue, facts, guard) { clock },
             clock = { clock },
         )
@@ -77,6 +77,8 @@ class PhoneReporterTest {
         assertEquals(listOf("bKash", "Nagad"), heard.senders)
         assertEquals(NOW, heard.lastReportAt)
         assertEquals(5_000L, heard.clockOffsetMs)
+        assertEquals("Front desk", heard.deviceName)
+        assertEquals("Megh Fashion", heard.shopName)
     }
 
     @Test

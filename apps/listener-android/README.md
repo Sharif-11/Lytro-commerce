@@ -63,6 +63,26 @@ adb shell pm install-commit <session>
 An emulator takes a lot of memory, and on Windows that can grow the page file on C:, so stop it when you are done
 (`adb emu kill`).
 
+## Releasing
+
+The signing key lasts the app's whole life: lose it and every shop has to reinstall. It stays on the owner's computer, never in this
+repo and never on GitHub. CI and PRs build with a throwaway debug key, or unsigned.
+
+Once, before the first release to a real shop, make the key in a folder outside this repo and follow what it prints about backups:
+
+```
+scripts/new-release-key.sh ~/lytro-signing
+```
+
+Then, for each release, raise `versionCode` and `versionName` in `app/build.gradle.kts` and run the one command:
+
+```
+LYTRO_LISTENER_KEY=~/lytro-signing/lytro-listener-release.properties ./gradlew :app:listenerRelease
+```
+
+It refuses without a key. It leaves `app/build/release/lytro-listener-<version>.apk` and its `.sha256`. To force old phones to update
+after publishing, raise the platform setting `listener_min_app_version`.
+
 ## What must never change without a look
 
 - **What leaves the phone.** `sms/MessageFilter.kt` is the only door: a sender on the server's list and a message that looks

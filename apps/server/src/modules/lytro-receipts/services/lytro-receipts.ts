@@ -239,6 +239,7 @@ export class LytroReceipts {
   private recentOf(row: SelectLytroListenerMessage): LytroRecentItem {
     return {
       id: row.id,
+      sender: row.sender,
       method: row.method,
       amount: row.amount,
       transactionId: row.transactionId,

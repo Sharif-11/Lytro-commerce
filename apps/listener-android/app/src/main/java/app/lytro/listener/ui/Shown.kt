@@ -10,15 +10,53 @@ import java.util.Locale
 import java.util.TimeZone
 
 /** The band on Home (LISTENER-APP-DESIGN 3.1): the first of these that holds. */
-enum class HomeBand { Inactive, UpdateRequired, SmsOff, NoInternet, NoAccount, Working }
+enum class HomeBand { Inactive, UpdateRequired, SmsOff, NoInternet, TestMode, BatteryRisk, NoAccount, Working }
 
-fun homeBandOf(status: PhoneStatus, smsAllowed: Boolean, online: Boolean, hasAccount: Boolean): HomeBand = when {
+fun homeBandOf(
+    status: PhoneStatus,
+    smsAllowed: Boolean,
+    online: Boolean,
+    hasAccount: Boolean,
+    testMode: Boolean = false,
+    batteryRisk: Boolean = false,
+): HomeBand = when {
     status is PhoneStatus.Inactive -> HomeBand.Inactive
     status is PhoneStatus.UpdateRequired -> HomeBand.UpdateRequired
     !smsAllowed -> HomeBand.SmsOff
     !online -> HomeBand.NoInternet
+    testMode -> HomeBand.TestMode
+    batteryRisk -> HomeBand.BatteryRisk
     !hasAccount -> HomeBand.NoAccount
     else -> HomeBand.Working
+}
+
+/** LISTENER-APP-DESIGN 2.6: the makers with a step of their own. Oppo, Vivo and Samsung's are drawn but unverified on real phones. */
+enum class PhoneMaker(val label: String) { Xiaomi("Xiaomi"), Oppo("Oppo"), Vivo("Vivo"), Samsung("Samsung") }
+
+/** From `Build.MANUFACTURER` and `Build.BRAND`, which name these in several ways. Any other phone has only Android's own dialog. */
+fun phoneMakerOf(manufacturer: String, brand: String): PhoneMaker? {
+    val names = listOf(manufacturer.lowercase(), brand.lowercase())
+    return when {
+        names.any { it in setOf("xiaomi", "redmi", "poco") } -> PhoneMaker.Xiaomi
+        names.any { it in setOf("oppo", "realme") } -> PhoneMaker.Oppo
+        names.any { it in setOf("vivo", "iqoo") } -> PhoneMaker.Vivo
+        names.any { it == "samsung" } -> PhoneMaker.Samsung
+        else -> null
+    }
+}
+
+/**
+ * Agreed 2026-11-03: no app can read a maker's Autostart switch. So a phone with a maker's step stays at risk until the owner has
+ * opened that setting from our button, as well as Android's own exemption being on: it can't prove the switch was flipped, but
+ * nobody skips the step by accident.
+ */
+fun batteryAtRisk(exempt: Boolean, maker: PhoneMaker?, makerStepOpened: Boolean): Boolean =
+    !exempt || (maker != null && !makerStepOpened)
+
+/** Test mode's time left, `8:42`, counting up to the next whole second so it never reads 0:00 while it is still on. */
+fun countdownShown(leftMs: Long): String {
+    val seconds = (leftMs + 999) / 1000
+    return "%d:%02d".format(Locale.US, seconds / 60, seconds % 60)
 }
 
 /** `.r.good`, `.r.wait` and `.r.plain`. */

@@ -69,6 +69,19 @@ class SmsOnPhoneTest {
     }
 
     @Test
+    fun testModeLetsAnUnknownSendersReceiptThroughAndNothingElse() {
+        pairApp()
+        graph.phone.update { it.copy(testModeUntil = app.lytro.listener.engine.isoOf(System.currentTimeMillis() + 300_000)) }
+        val trx = newTrxId()
+
+        EmulatorConsole.sendSms("16247", "Hello from a friend, your code is 482910.")
+        EmulatorConsole.sendSms("16247", receiptText(trx))
+
+        waitUntil("the test receipt reached the server") { lytro.sawUpload(trx) }
+        assertFalse("a stranger's other message left the phone", lytro.sawUpload("482910"))
+    }
+
+    @Test
     fun aPhoneThatIsNotPairedSendsNothing() {
         val trx = newTrxId()
 
