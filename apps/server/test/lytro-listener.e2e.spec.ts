@@ -643,6 +643,12 @@ describeIfDatabase(
       const id = trx();
       await typePlan(shop, quote.id, id);
       await queue.reject(quote.id, OPERATOR_ID, 'No payment arrived');
+      // Turned down, its money can't go on the balance either.
+      await expect(
+        queue.creditInstead(quote.id, OPERATOR_ID, null, '449.00'),
+      ).rejects.toMatchObject({
+        code: 'conflict',
+      });
       // A rejected payment lets go of its ID, so this receipt finds the closed request.
       expect(await forward(phone, receiptText(id, '449.00'))).toMatchObject({
         status: 'needs_review',
