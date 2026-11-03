@@ -4,7 +4,7 @@ import { request as httpRequest } from 'node:http';
 import { type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import pg from 'pg';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LedgerEntryType, PaymentMethod, PlatformSettingKey, RateKey } from '@lytronix/validators';
 import { AppModule } from '../src/app/app.module';
 import { ClientIp } from '../src/common/client-ip';
@@ -15,12 +15,14 @@ import { BalanceService } from '../src/modules/balance/services/balance.service'
 import { RateService } from '../src/modules/balance/services/rate.service';
 import { LOW_BALANCE_NOTIFIER } from '../src/modules/balance/tokens';
 import { CredentialUses } from '../src/modules/gateway/services/credential-uses';
+import { GatewayCheckouts } from '../src/modules/gateway/services/gateway-checkout';
 import { GatewayReconcile } from '../src/modules/gateway/services/gateway-reconcile';
 import { GATEWAY_CLOCK, GATEWAY_FETCH } from '../src/modules/gateway/tokens';
 import type {
   GatewayAttentionNotice,
   PaymentToVerifyNotice,
 } from '../src/modules/payment-sessions/ports/payment-notifier';
+import { PaymentMethodsEraser } from '../src/modules/payment-methods/services/payment-methods-eraser';
 import { PaymentSessionExpiry } from '../src/modules/payment-sessions/services/payment-session-expiry';
 import { PAYMENT_NOTIFIER } from '../src/modules/payment-sessions/tokens';
 import { PlatformSettingsService } from '../src/modules/platform-settings/services/platform-settings.service';
@@ -818,7 +820,9 @@ describeIfDatabase(
         returned(ref, { paymentID: paymentId, status: 'success' }),
         returned(ref, { paymentID: paymentId, status: 'success' }),
       ]);
+      const executes = bkash.executesOf(setup.appKey).length;
       await returned(ref, { paymentID: paymentId, status: 'success' });
+      expect(bkash.executesOf(setup.appKey)).toHaveLength(executes);
       const session = await sessionOf(ref);
       expect(session.state).toBe('verified');
       expect(await paymentsOfOrder(session.order_id)).toHaveLength(1);
@@ -1008,6 +1012,46 @@ describeIfDatabase(
     );
   },
 );
+
+describeIfDatabase('who goes to the wallet at all (PAY-06, WAL-10, WAL-19)', () => {
+  it('sends nobody from a wallet the shop takes another way, or with no account selected', async () => {
+    const setup = await automate(await paidShop());
+    await setup.shop.put('/payment-methods/bkash/way', { way: 'listener' });
+    const listening = await placed(setup);
+    expect(await started(listening)).toEqual({ redirectUrl: null, paymentId: '' });
+    expect((await pageBody(listening)).methods[0]).toMatchObject({ way: 'listener' });
+
+    await setup.shop.put('/payment-methods/bkash/way', { way: 'manual' });
+    expect(await started(await placed(setup))).toEqual({ redirectUrl: null, paymentId: '' });
+
+    // Still set to automated, but its credentials removed since.
+    await setup.shop.put('/payment-methods/bkash/way', { way: 'automated' });
+    await setup.shop.delete(`/payment-methods/accounts/${setup.accountId}/gateway`);
+    expect(await started(await placed(setup))).toEqual({ redirectUrl: null, paymentId: '' });
+    expect(bkash.callsOf(setup.appKey)).toHaveLength(0);
+    expect(await balanceOf(setup.shop)).toMatchObject({ held: '0.00' });
+  });
+
+  it('refuses a method the shop does not offer, and a closed page', async () => {
+    const setup = await automate(await paidShop());
+    const ref = await placed(setup);
+    const notOffered = await checkout(ref, 'nagad');
+    expect(notOffered.status).toBe(409);
+    expect(errorOf(notOffered).message).toBe(said('PaymentMethodNotOffered'));
+    expect((await checkout(ref, 'magic')).status).toBe(400);
+
+    await pastWindow(ref);
+    const closed = await checkout(ref);
+    expect(closed.status).toBe(409);
+    expect(errorOf(closed).message).toBe(said('PaymentSessionClosed'));
+
+    // An unknown reference is not found, on both routes.
+    const unknown = randomBytes(16).toString('base64url');
+    expect((await checkout(unknown)).status).toBe(404);
+    expect((await returned(unknown, { paymentID: 'TRx', status: 'success' })).status).toBe(404);
+    expect(bkash.callsOf(setup.appKey)).toHaveLength(0);
+  });
+});
 
 describeIfDatabase('an order that can no longer take the money (VER-09)', () => {
   it('sends nobody to bKash for an order cancelled, or one owing less than the page asks', async () => {
@@ -1337,6 +1381,10 @@ describeIfDatabase('a checkout with no return (VER-09)', () => {
     const setup = await automate(await paidShop());
     const ref = await placed(setup);
     await started(ref);
+    // Inside its window it is left alone: the shopper may still be at bKash.
+    await reconcile();
+    expect(bkash.queriesOf(setup.appKey)).toHaveLength(0);
+    expect(await sessionOf(ref)).toMatchObject({ gateway_result: null, fee_held: '3.00' });
     await pastWindow(ref);
     await reconcile();
     expect(await sessionOf(ref)).toMatchObject({
@@ -1348,6 +1396,31 @@ describeIfDatabase('a checkout with no return (VER-09)', () => {
     await app.get(PaymentSessionExpiry).runTick(new Date());
     expect((await sessionOf(ref)).state).toBe('expired');
     expect(await balanceOf(setup.shop)).toMatchObject({ amount: '100.00', held: '0.00' });
+  });
+
+  it("carries on past one shop's failure", async () => {
+    const failing = await automate(await paidShop());
+    const failingRef = await placed(failing);
+    await started(failingRef);
+    await pastWindow(failingRef);
+    const fine = await automate(await paidShop());
+    const fineRef = await placed(fine);
+    bkash.complete((await started(fineRef)).paymentId);
+    await pastWindow(fineRef);
+
+    const checkouts = app.get(GatewayCheckouts);
+    const original = checkouts.reconcile.bind(checkouts);
+    const spy = vi.spyOn(checkouts, 'reconcile').mockImplementation((tenantId, now) => {
+      if (tenantId === failing.shop.tenantId) return Promise.reject(new Error('this shop failed'));
+      return original(tenantId, now);
+    });
+    try {
+      await reconcile();
+    } finally {
+      spy.mockRestore();
+    }
+    expect((await sessionOf(fineRef)).state).toBe('verified');
+    expect((await sessionOf(failingRef)).gateway_payment_id).not.toBeNull();
   });
 
   it('does not act on a return past the window', async () => {
@@ -1541,6 +1614,23 @@ describeIfDatabase("the log of a credential's uses (SEC-11)", () => {
     const route = `/operator/tenants/${setup.shop.tenantId}/gateway-credential-uses`;
     expect((await getJson(port, route, {})).status).toBe(401);
     expect((await getJson(port, route, setup.shop.headers())).status).toBe(401);
+  });
+
+  it("goes with the shop at day 60, with the shop's chosen ways (LIF-19)", async () => {
+    const setup = await automate(await paidShop());
+    await started(await placed(setup));
+    const count = async (table: string): Promise<number> => {
+      const { rows } = await admin.query<{ total: number }>(
+        `SELECT count(*)::int AS total FROM tenant.${table} WHERE tenant_id = $1`,
+        [setup.shop.tenantId],
+      );
+      return rows[0]?.total ?? 0;
+    };
+    expect(await count('gateway_credential_uses')).toBeGreaterThan(0);
+    expect(await count('payment_method_ways')).toBe(1);
+    await app.get(PaymentMethodsEraser).deleteAllForTenant(setup.shop.tenantId);
+    expect(await count('gateway_credential_uses')).toBe(0);
+    expect(await count('payment_method_ways')).toBe(0);
   });
 
   it('marks a refused call as failed', async () => {
