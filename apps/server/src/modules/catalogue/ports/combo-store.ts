@@ -19,6 +19,11 @@ export interface ComboStore {
     tenantId: string,
     variantIds: string[],
   ): Promise<Map<string, string>>;
+  listOptionNames(
+    tx: Transaction,
+    tenantId: string,
+    productIds: string[],
+  ): Promise<Map<string, string[][]>>;
   combosUsingVariants(
     tx: Transaction,
     tenantId: string,

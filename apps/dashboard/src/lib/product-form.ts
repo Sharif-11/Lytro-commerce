@@ -1,4 +1,4 @@
-import { StockTracking } from '@lytronix/validators';
+import { ProductKind, StockTracking, StockUnit } from '@lytronix/validators';
 import type { ProductDetail } from '@/types/product';
 import { groupsBody, groupsOf, type AddOnGroup } from './add-ons';
 import {
@@ -39,6 +39,15 @@ export interface SingleVariant {
   barcode: string;
 }
 
+/** CMB-01: one part of a combo as the editor holds it: its product, how many as typed, the variants it may be. */
+export interface ComboPart {
+  productId: string;
+  productName: string;
+  stockUnit: StockUnit;
+  quantity: string;
+  variants: { variantId: string; label: string }[];
+}
+
 /**
  * What the product editor holds while it is typed (TENANT-DASHBOARD-DESIGN §7.4): Basics -- the photos in order and
  * the one video, the name, the price as typed, the categories with the primary one, the description -- whether it is on
@@ -48,6 +57,9 @@ export interface SingleVariant {
  * 11.7c).
  */
 export interface ProductForm {
+  /** CMB-01: an ordinary product or a combo, chosen when it is made; a combo's parts (§7.33). */
+  kind: ProductKind;
+  parts: ComboPart[];
   name: string;
   price: string;
   description: string;
@@ -82,6 +94,8 @@ export interface ProductForm {
 
 /** A new product: nothing typed, on sale once saved, one default variant, the shop's defaults until they load. */
 export const NEW_PRODUCT: ProductForm = {
+  kind: ProductKind.Standard,
+  parts: [],
   taxClassId: undefined,
   addOns: [],
   name: '',
@@ -119,6 +133,14 @@ export function priceText(price: string): string {
 export function formOf(product: ProductDetail): ProductForm {
   const only = product.variantAttributes.length === 0 ? product.variants[0] : undefined;
   return {
+    kind: product.kind,
+    parts: product.parts.map((part) => ({
+      productId: part.variants[0]?.productId ?? '',
+      productName: part.variants[0]?.productName ?? '',
+      stockUnit: part.variants[0]?.stockUnit ?? StockUnit.Piece,
+      quantity: String(Number(part.quantity)),
+      variants: part.variants.map((each) => ({ variantId: each.variantId, label: each.label })),
+    })),
     taxClassId: product.taxClass?.id ?? null,
     addOns: groupsOf(product),
     name: product.name,
@@ -148,8 +170,11 @@ export function formOf(product: ProductDetail): ProductForm {
 /** What the editor finds wrong before asking the server (PRD-01: a name and a price are all a product needs). */
 export type FormProblem = 'required' | 'notAPrice';
 
-export function problemsOf(form: ProductForm): Partial<Record<'name' | 'price', FormProblem>> {
-  const problems: Partial<Record<'name' | 'price', FormProblem>> = {};
+export function problemsOf(
+  form: ProductForm,
+): Partial<Record<'name' | 'price' | 'parts', FormProblem>> {
+  const problems: Partial<Record<'name' | 'price' | 'parts', FormProblem>> = {};
+  if (form.kind === ProductKind.Combo && form.parts.length === 0) problems.parts = 'required';
   if (form.name.trim() === '') problems.name = 'required';
   if (form.price.trim() === '') problems.price = 'required';
   else if (!PRICE.test(form.price.trim())) problems.price = 'notAPrice';
@@ -214,11 +239,45 @@ const singleSaysSomething = (form: ProductForm, opening: boolean): boolean =>
   form.single.barcode.trim() !== '' ||
   (opening && form.openingStock.trim() !== '');
 
+/** CMB-01: a combo's parts as the server takes them. */
+const partsBody = (parts: readonly ComboPart[]) =>
+  parts.map((part) => ({
+    quantity: Number(part.quantity),
+    variantIds: part.variants.map((each) => each.variantId),
+  }));
+
+/** POST /products/combo-quote: the parts as they stand, with the price once it is one. */
+export function comboQuoteBody(parts: readonly ComboPart[], price: string) {
+  const typed = price.trim();
+  return { parts: partsBody(parts), ...(PRICE.test(typed) ? { basePrice: Number(typed) } : {}) };
+}
+
+/**
+ * CMB-01, CMB-07: a new combo is its own fields, its parts, its delivery and payment; no variants, no stock and no
+ * add-ons of its own, whatever the shop's type would give a product.
+ */
+function comboBody(form: ProductForm) {
+  const settings = settingsBody(form.settings);
+  return {
+    ...fieldsOf(form),
+    kind: ProductKind.Combo,
+    parts: partsBody(form.parts),
+    weightKg: settings.weightKg,
+    deliveryCharge: settings.deliveryCharge,
+    paymentPolicy: settings.paymentPolicy,
+    advanceAmount: settings.advanceAmount,
+    ...(form.imageIds.length > 0 ? { imageIds: form.imageIds } : {}),
+    ...(form.videoId ? { videoId: form.videoId } : {}),
+    ...(form.taxClassId === undefined ? {} : { taxClassId: form.taxClassId }),
+  };
+}
+
 /**
  * POST /products: a new product with its photos and video, its options and variants, its descriptions, its settings,
  * where it delivers and its size chart, in one request (agreed for Slice 11.7a, point 7; kept by 11.7b and 11.7c).
  */
 export function createBody(form: ProductForm) {
+  if (form.kind === ProductKind.Combo) return comboBody(form);
   const opening = form.settings.stockTracking === StockTracking.Tracked;
   const shelf = form.sharedOpeningStock.trim();
   const shared = form.sharedStock && form.splits.length > 0;
@@ -251,6 +310,8 @@ export function createBody(form: ProductForm) {
 interface TaxAndAddOns {
   taxClassId?: string | null;
   modifierGroups?: ReturnType<typeof groupsBody>;
+  /** CMB-01: a combo's parts, the whole list. */
+  parts?: ReturnType<typeof partsBody>;
 }
 
 /**
@@ -339,6 +400,9 @@ export function changedParts(saved: ProductForm, form: ProductForm): EditPart[] 
   if (JSON.stringify(groupsBody(form.addOns)) !== JSON.stringify(groupsBody(saved.addOns))) {
     fields.modifierGroups = groupsBody(form.addOns);
   }
+  if (JSON.stringify(partsBody(form.parts)) !== JSON.stringify(partsBody(saved.parts))) {
+    fields.parts = partsBody(form.parts);
+  }
   const parts: EditPart[] = [];
   if (Object.keys(fields).length > 0) parts.push({ part: 'fields', body: fields });
   // Variants before descriptions: an attribute moving from one to the other leaves the first before joining the second.
@@ -421,6 +485,9 @@ export function withSaved(
     next.primaryCategoryId = form.primaryCategoryId;
     next.active = form.active;
     next.settings = form.settings;
+    next.taxClassId = form.taxClassId;
+    next.addOns = form.addOns;
+    next.parts = form.parts;
   }
   if (parts.includes('variants')) {
     next.splits = form.splits;

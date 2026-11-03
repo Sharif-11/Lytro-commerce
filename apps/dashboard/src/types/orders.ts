@@ -237,6 +237,8 @@ export interface OrderPickerItem {
   active: boolean;
   image: string | null;
   variantCount: number;
+  /** Slice 4.8c: its option names, one list per attribute; empty for one with no options. */
+  optionNames: string[][];
   available: string | null;
 }
 
@@ -269,7 +271,15 @@ export interface OrderPickerProduct {
   name: string;
   kind: ProductKind;
   active: boolean;
-  variants: { variantId: string; label: string; price: string; available: string | null }[];
+  /** UOM-03 (Slice 4.8c): a measured unit may go in a combo by part of one. */
+  stockUnit: StockUnit;
+  variants: {
+    variantId: string;
+    label: string;
+    price: string;
+    onSale: boolean;
+    available: string | null;
+  }[];
   parts: {
     position: number;
     quantity: string;

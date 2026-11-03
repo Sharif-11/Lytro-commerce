@@ -496,6 +496,7 @@ export const MESSAGE_KEYS = [
   'VariantSplitFixed',
   'OrderCreated',
   'OrderPriced',
+  'ComboPriced',
   'OrdersRetrieved',
   'CouriersRetrieved',
   'OrderSerialsRetrieved',

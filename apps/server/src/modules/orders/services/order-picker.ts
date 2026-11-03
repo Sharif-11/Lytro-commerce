@@ -36,7 +36,8 @@ function labelOf(product: ProductDetail, optionIds: readonly string[]): string {
 /**
  * New order's Add an item (Slice 4.8a, agreed 2026-10-31): the shop's products and, for one, its variants with the
  * units each has on sale, a combo's parts and an ordinary product's add-on groups -- for whoever may enter orders,
- * without the stock or catalogue permissions those screens need. No cost is ever in it.
+ * without the stock or catalogue permissions those screens need. No cost is ever in it. The combo editor's Add an item
+ * reads the same, for whoever may edit products (Slice 4.8c, agreed 2026-11-02).
  */
 @Injectable()
 export class OrderPicker {
@@ -52,6 +53,10 @@ export class OrderPicker {
     page: number,
   ): Promise<OrderPickerPage> {
     const found = await this.products.list(shop, listProductsSchema.parse({ search, page }));
+    const names = await this.products.optionNames(
+      shop.id,
+      found.products.map((product) => product.id),
+    );
     const products = [];
     for (const product of found.products) {
       const stock = await this.stock.view(shop.id, product.id, false);
@@ -64,6 +69,7 @@ export class OrderPicker {
         active: product.active,
         image: product.image?.urls.thumbnail ?? null,
         variantCount: product.variantCount,
+        optionNames: names.get(product.id) ?? [],
         available: onSale(stock),
       });
     }
@@ -107,12 +113,14 @@ export class OrderPicker {
       name: product.name,
       kind: product.kind,
       active: product.active,
+      stockUnit: stock.stockUnit,
       variants:
         product.kind === ProductKind.Combo
           ? product.variants.map((variant) => ({
               variantId: variant.id,
               label: '',
               price: variant.effectivePrice,
+              onSale: product.active,
               available: onSale(stock),
             }))
           : product.variants
@@ -121,6 +129,7 @@ export class OrderPicker {
                 variantId: variant.id,
                 label: labelOf(product, variant.optionIds),
                 price: variant.effectivePrice,
+                onSale: product.active && variant.active,
                 available: tracked ? (own.get(variant.id)?.available ?? '0.000') : null,
               })),
       parts,

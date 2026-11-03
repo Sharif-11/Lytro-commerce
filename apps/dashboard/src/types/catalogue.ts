@@ -1,9 +1,11 @@
-import type { StockState } from '@lytronix/validators';
+import type { ProductKind, StockState } from '@lytronix/validators';
 import type { ImageView } from './me';
 
 /** Mirrors `productPageSchema` in apps/server/src/modules/team/dto/catalogue-response.dto.ts (PRD-12). */
 export interface ProductSummary {
   id: string;
+  /** CMB-01: a combo's row says so in place of its variants. */
+  kind: ProductKind;
   name: string;
   slug: string;
   basePrice: string;

@@ -425,7 +425,10 @@ combos and statistics). If velocity suggests it, the rest can become Phase 4B wi
   variant. The first builds Part 31's Settings > Tax and the class under More settings; a product's add-on groups, saved
   with its Save; Stock's short-for-orders and Combos cards, combos leaving Stock's list and its counts; Home's job;
   history naming the order and combo; with no migration, the server adding `variantId` to the orders list, `kind` and
-  `short` to the stock page, and why each combo part stops it.
+  `short` to the stock page, and why each combo part stops it. Merged as #278. The second builds the combo editor to
+  Part 31: Product or Combo pack, its parts by ticked variants, what they come to as they stand (a new
+  `POST /products/combo-quote`, nothing written), New order's picker shared for whoever may edit products, the dialog for
+  a product inside combos, and the Combo tag on Products; what the sketch lacked is drawn first (v3.29), no migration.
 - **Sketch first** (`sketch-every-screen-before-building`): the status flow with the call log, Confirm, cancel
   reasons, Mark shipped and returns; the storefront's checkout for cash on delivery, the confirmation without an SMS
   promise, tracking with its Confirmed step; the Phase 5–7 parts of today's drawings shown as later.

@@ -1,6 +1,9 @@
 # Tenant dashboard: the full design
 
-Status: v3.28, 2026-11-02 (See the orders narrowed to those holding it, an add-on option's Remove, §7.33; v3.27 of
+Status: v3.29, 2026-11-03 (a new combo with nothing inside, why one is out for each reason, changing or removing a
+part, a part sold by weight, a variant off sale, a product in several combos and a combo on Products, drawn as 4.8c's
+second part was built, §7.33; v3.28 of 2026-11-02: See the orders narrowed to those holding it, an add-on option's
+Remove, §7.33; v3.27 of
 2026-11-02: what's asked when ordering, in New order and Edit order, agreed and drawn, §7.31; v3.26 of
 2026-11-02: the role editor's customers permissions, drawn as 4.8b was built, §7.32; v3.25 of 2026-10-31:
 New order's variant step, an ordinary product's add-ons, a table order and the delivery charge
@@ -1523,13 +1526,22 @@ bar's search finds everything.
   part (CMB-02); stock and delivery say a combo holds no stock of its own and takes no add-ons, its weight comes from
   its items unless typed (CMB-07); its tax class under More settings (`k31-combo-more`). Saved, it opens with its link
   (`k31-combo-saved`); a part that can't be had makes it out of stock with the reason and the fix (`k31-combo-out`,
-  CMB-08).
+  CMB-08): no choice left, or a part archived, off sale or its variant gone (`k31-combo-archived`, `k31-combo-offsale`,
+  `k31-combo-retired`). A part's price is what it adds to Bought apart: its lowest price on sale, times how many. The
+  figures follow the form as it is typed, saved or not, for whoever may edit products (agreed 2026-11-02). Nothing inside
+  yet says so, and Save asks for one (`k31-combo-empty`, `k31-combo-noparts`). Parts are saved whole, so a part whose
+  variant has gone is named when anything inside changes (`k31-combo-refused`). Duplicate, Archive and Delete for good
+  are under More settings, as on a product. In **Products** a combo carries its tag in place of its variants
+  (`k31-products`).
 - **Adding a part** (`sh-k31-part`, agreed): pick a product -- a combo is greyed, "A combo can't go inside another"
   -- then tick its variants that may go in, each with how many are left, and how many in each combo
   (`sh-k31-part-variants`): one ticked is always that one (`sh-k31-part-fixed`), several let the customer pick one for
-  each unit; the sheet says which it became.
+  each unit; the sheet says which it became. A variant off sale says so and can still be ticked (`sh-k31-part-offsale`).
+  A product sold by weight or length takes part of a unit while one is ticked (`sh-k31-part-measured`,
+  `k31-combo-measured`, UOM-03). A part opens the same sheet to change it, with Remove from the combo
+  (`sh-k31-part-edit`).
 - **A product in a combo** can't be deleted for good: the dialog names the combo, with **Open the combo**
-  (`sh-k31-in-combo`, PRD-13).
+  (`sh-k31-in-combo`, PRD-13); in several, it names them all, with a button to open each (`sh-k31-in-combos`).
 - **Add-ons** (`k31-addons`, MNU-01): a section of the product editor after options and variants -- "Extras chosen
   when ordering, like gift wrap. Their price adds to the line." -- each group with its rule and options. A group's
   sheet (`sh-k31-group`, agreed): its name; how many the customer picks as plain rules -- Optional, any number;
@@ -1656,6 +1668,8 @@ brand identity.
 | `hasAccount` on each `GET /customers` row | customers | the list's "Has an account" (§7.32) | built (4.8 reads) |
 | `stock.short` (products whose orders hold more than is on hand) on `GET /home` | inventory | Home's "short for orders" job (§7.33) | built (4.8 reads) |
 | the shop's combos with `canMake` and what limits it (`limitedBy`), on `GET /inventory/stock`'s rows | inventory | Stock's combos card (§7.33) | built (4.8 reads) |
+| `POST /products/combo-quote`: what a combo's parts come to, saved or not (bought apart, saving, can make, limited by, issues, weight, each part's price and photo) | catalogue | the combo editor (§7.33) | built (4.8c) |
+| New order's picker for whoever may edit products too, with `optionNames` on its rows, `stockUnit`, and `onSale` on its variants | catalogue | the combo editor's Add an item (§7.33) | built (4.8c) |
 
 ---
 

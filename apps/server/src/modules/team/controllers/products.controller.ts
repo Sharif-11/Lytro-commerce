@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   Inject,
   Param,
   Patch,
@@ -30,10 +31,12 @@ import { ProductService } from '../../catalogue/services/product.service';
 import { StockService } from '../../inventory/services/stock.service';
 import { SizeChartService, type SizeChartRows } from '../../catalogue/services/size-chart.service';
 import type { ProductDetail, ProductPage } from '../../catalogue/types/catalogue';
+import type { ComboQuoteView } from '../../inventory/types/inventory';
 import { DashboardGuard, type DashboardRequest } from '../../identity/guards/dashboard.guard';
 import { SessionGuard } from '../../identity/guards/session.guard';
 import {
   ChangeProductSlugDto,
+  ComboQuoteDto,
   CreateProductDto,
   ProductDeliveryZonesDto,
   ProductImagesDto,
@@ -43,7 +46,12 @@ import {
   SizeChartDto,
   UpdateProductDto,
 } from '../dto/catalogue.dto';
-import { ProductDetailDto, ProductPageDto, SizeChartRowsDto } from '../dto/catalogue-response.dto';
+import {
+  ComboQuoteViewDto,
+  ProductDetailDto,
+  ProductPageDto,
+  SizeChartRowsDto,
+} from '../dto/catalogue-response.dto';
 import { PermissionGuard } from '../guards/permission.guard';
 import { CatalogueRequest } from '../services/catalogue-request';
 
@@ -216,6 +224,23 @@ export class ProductsController {
     @Req() request: DashboardRequest,
   ): Promise<ProductPage> {
     return this.products.list(await this.catalogue.shopOf(request), query);
+  }
+
+  @Post('combo-quote')
+  @HttpCode(200)
+  @RequirePermission(Permission.ProductsManage)
+  @ResponseMessage('ComboPriced')
+  @ApiOperation({
+    summary:
+      "What a combo's parts come to as the editor has them, saved or not: each part's price, bought apart, the saving, can make, what limits it, why it can't be made, its weight (CMB-02, CMB-06 to CMB-08)",
+  })
+  @ApiBody({ type: ComboQuoteDto })
+  @ZodResponse({ type: ComboQuoteViewDto })
+  comboQuote(
+    @Body(new ZodValidationPipe(ComboQuoteDto.schema)) body: ComboQuoteDto,
+    @Req() request: DashboardRequest,
+  ): Promise<ComboQuoteView> {
+    return this.stock.comboQuote(this.catalogue.tenantIdOf(request), body);
   }
 
   @Post()

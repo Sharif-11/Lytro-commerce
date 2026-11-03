@@ -1,5 +1,5 @@
 import type { Language } from './mock-api';
-import { editedOrder, madeOrder, pickerAnswer } from './new-order';
+import { editedOrder, madeOrder, pickerAnswer, type PickerProduct } from './new-order';
 
 // Orders against a mocked API (Slice 4.8a; ORD-01 to ORD-52): the day's orders at Megh Fashion as Part 29 draws them,
 // each in its state, and the writes the order page sends -- a call logged, a hold set or released, a cancel, a delete,
@@ -654,6 +654,7 @@ export function ordersAnswer(
   fixture: OrdersFixture,
   language: Language,
   customerOf: (orderId: string) => string | null = () => null,
+  picker?: readonly PickerProduct[],
 ):
   | { data: unknown }
   | {
@@ -665,7 +666,7 @@ export function ordersAnswer(
       };
     }
   | undefined {
-  const picked = pickerAnswer(method, path, url, body, language);
+  const picked = pickerAnswer(method, path, url, body, language, picker);
   if (picked) return picked;
   if (method === 'POST' && path === '/orders') {
     const made = madeOrder(body ?? {}, fixture.orders);

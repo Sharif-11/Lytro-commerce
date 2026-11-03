@@ -23,11 +23,12 @@ import type {
   PickerModifierGroup,
 } from '@/types/orders';
 import { amountOf, type DraftLine } from './order-draft';
+import { optionsText } from './order-words';
 
 const TYPING_REST_MS = 250;
 
 /** A row's 48 px picture (the prototype's `.thumb`). */
-function Thumb({ image }: { image: string | null }): React.JSX.Element {
+export function Thumb({ image }: { image: string | null }): React.JSX.Element {
   return (
     <span className="flex size-12 flex-none items-center justify-center overflow-hidden rounded-button bg-gradient-to-br from-neutral-100 to-neutral-200 text-neutral-400">
       {image ? (
@@ -203,7 +204,7 @@ function SearchSheet({
                   item.name
                 )
               }
-              sub={item.variantCount > 1 ? t('variantsN', { count: item.variantCount }) : undefined}
+              sub={optionsText(item.optionNames) || undefined}
               // Its lowest price, as drawn; each variant's own is on the next step.
               price={formatTaka(item.minPrice)}
               available={item.available}

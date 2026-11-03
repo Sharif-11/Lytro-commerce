@@ -257,6 +257,7 @@ export class OrderPickerPageDto extends createZodDto(
         active: z.boolean(),
         image: z.string().nullable(),
         variantCount: z.number(),
+        optionNames: z.array(z.array(z.string())),
         available: z.string().nullable(),
       }),
     ),
@@ -273,11 +274,13 @@ export class OrderPickerProductDto extends createZodDto(
     name: z.string(),
     kind: z.nativeEnum(ProductKind),
     active: z.boolean(),
+    stockUnit: z.nativeEnum(StockUnit),
     variants: z.array(
       z.object({
         variantId: z.string(),
         label: z.string(),
         price: z.string(),
+        onSale: z.boolean(),
         available: z.string().nullable(),
       }),
     ),

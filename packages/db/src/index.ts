@@ -205,6 +205,7 @@ export {
   ComboRepository,
   type ComboPartRow,
   type ComboPartStockRow,
+  type PartVariantStockRow,
   type ComboUseRow,
   type PartVariantRow,
 } from './repositories/catalogue/combo.repository';
