@@ -14,6 +14,7 @@ import { translate } from '../src/common/i18n/messages';
 import { BalanceService } from '../src/modules/balance/services/balance.service';
 import { RateService } from '../src/modules/balance/services/rate.service';
 import { LOW_BALANCE_NOTIFIER } from '../src/modules/balance/tokens';
+import { BkashGateway } from '../src/modules/gateway/services/bkash-gateway';
 import { CredentialUses } from '../src/modules/gateway/services/credential-uses';
 import { GatewayCheckouts } from '../src/modules/gateway/services/gateway-checkout';
 import { GatewayReconcile } from '../src/modules/gateway/services/gateway-reconcile';
@@ -997,6 +998,27 @@ describeIfDatabase(
         fee_held: '3.00',
       });
       expect(await feesOf(unread.shop.tenantId)).toEqual([]);
+
+      // The gateway says it doesn't know, never that it wasn't paid, which the later steps would act on.
+      const asked = await placed(unread);
+      const direct = await started(asked);
+      bkash.authorise(direct.paymentId);
+      const answer = await app.get(BkashGateway).execute(
+        {
+          tenantId: unread.shop.tenantId,
+          accountId: unread.accountId,
+          sandbox: false,
+          credentials: {
+            appKey: unread.appKey,
+            appSecret: RIGHT_SECRET,
+            username: 'sandbox-user',
+            password: 'sandbox-pass-word',
+          },
+          sessionId: null,
+        },
+        direct.paymentId,
+      );
+      expect(answer).toEqual({ status: 'unknown' });
     });
 
     it('finishes on the account that started it, whatever is selected since (WAL-11, WAL-19)', async () => {
