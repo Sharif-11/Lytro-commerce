@@ -15,7 +15,10 @@ import androidx.compose.ui.test.performTextInput
 import androidx.test.core.app.ActivityScenario
 import androidx.test.rule.GrantPermissionRule
 import app.lytro.listener.data.PhoneStatus
+import app.lytro.listener.data.SavedMessage
 import app.lytro.listener.data.SetupStage
+import java.util.concurrent.CountDownLatch
+import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -344,6 +347,59 @@ class ScreensTest {
     fun aPhoneRevokedAfterFlagsSaysAnotherDeviceTried() {
         revokedBecause("flags")
         shows(word(R.string.rev_flags))
+    }
+
+    @Test
+    fun anAnswerAlreadyOnItsWayCannotUndoARevoke() {
+        val goodAnswers = CountDownLatch(1)
+        lytro.holdGoodAnswers = goodAnswers
+        pairApp()
+        open()
+        shows(word(R.string.st_on))
+        waitUntil("the report and Home's list on their way") {
+            "POST heartbeat" in lytro.paths && "GET messages" in lytro.paths
+        }
+
+        lytro.everyDeviceCall = { refusal(401, "unauthenticated", details = """{"reason":"owner"}""") }
+        scenario?.recreate()
+        shows(word(R.string.st_rev))
+        goodAnswers.countDown()
+        Thread.sleep(1_500)
+
+        shows(word(R.string.st_rev))
+        shows(word(R.string.rev_owner))
+        assertEquals(PhoneStatus.Revoked("owner"), graph.phone.facts.value.status)
+        assertTrue(graph.phone.facts.value.senders.isEmpty())
+    }
+
+    @Test
+    fun aRevokeTheBackgroundReportMetStillEndsThePairing() {
+        pairApp()
+        runBlocking { graph.queue.add(SavedMessage("fp1", "bKash", receiptText(newTrxId()), System.currentTimeMillis())) }
+        lytro.everyDeviceCall = { refusal(401, "unauthenticated", details = """{"reason":"owner"}""") }
+
+        graph.background.reportSoon()
+
+        waitUntil("the phone says why") { graph.phone.facts.value.status == PhoneStatus.Revoked("owner") }
+        assertNull(graph.secrets.token)
+        assertEquals(0, graph.queue.size.value)
+        waitUntil("its last notification") { notificationSays(word(R.string.n_rev)) }
+        open()
+        shows(word(R.string.st_rev))
+    }
+
+    @Test
+    fun aRevokeStillReachesItsScreenWhenTheTokenWentBeforeTheReason() {
+        pairApp()
+        open()
+        shows(word(R.string.st_on))
+
+        graph.secrets.token = null
+        graph.phone.update { it.copy(lastReportAt = 1) }
+        shows(word(R.string.start))
+
+        graph.phone.update { it.copy(status = PhoneStatus.Revoked("owner")) }
+        shows(word(R.string.st_rev))
     }
 
     @Test
