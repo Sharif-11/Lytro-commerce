@@ -44,6 +44,8 @@ class PhoneReporter(
             when (val answer = api.heartbeat()) {
                 is ApiResult.Ok -> phone.update {
                     it.copy(
+                        deviceName = answer.value.deviceName.ifEmpty { it.deviceName },
+                        shopName = answer.value.shopName.ifEmpty { it.shopName },
                         accounts = answer.value.accounts,
                         senders = answer.value.senders,
                         testModeUntil = answer.value.testModeUntil,

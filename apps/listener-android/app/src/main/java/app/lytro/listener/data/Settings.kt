@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 /** Where setup has got to, so a phone restarted halfway carries on from there (LISTENER-APP-DESIGN 2). */
-enum class SetupStage { Pair, ConfirmSim, Sms, Notifications, Test, Done }
+enum class SetupStage { Pair, ConfirmSim, Sms, Notifications, Battery, Test, Done }
 
 const val LANGUAGE_BANGLA = "bn"
 const val LANGUAGE_ENGLISH = "en"
@@ -35,6 +35,20 @@ class Settings(context: Context) {
         get() = prefs.getBoolean("sms_problem_told", false)
         set(value) {
             prefs.edit().putBoolean("sms_problem_told", value).apply()
+        }
+
+    /** Which of the phone's problems the owner was last told of, so each is told once (LISTENER-APP-DESIGN 5). */
+    var statusToldOf: String?
+        get() = prefs.getString("status_told_of", null)
+        set(value) {
+            prefs.edit().putString("status_told_of", value).apply()
+        }
+
+    /** Agreed 2026-11-03: the owner opened the maker's setting from our button; no app can read the switch itself. */
+    var makerStepOpened: Boolean
+        get() = prefs.getBoolean("maker_step_opened", false)
+        set(value) {
+            prefs.edit().putBoolean("maker_step_opened", value).apply()
         }
 
     /** A context whose string resources answer in the chosen language. */

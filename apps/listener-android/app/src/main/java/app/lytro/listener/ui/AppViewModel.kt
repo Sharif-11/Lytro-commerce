@@ -9,8 +9,11 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import app.lytro.listener.data.PhoneFacts
 import app.lytro.listener.data.PhoneStatus
+import app.lytro.listener.data.REASON_UNPAIRED_ITSELF
 import app.lytro.listener.data.SavedMessage
 import app.lytro.listener.data.SetupStage
+import app.lytro.listener.engine.Settled
+import app.lytro.listener.engine.minimumVersionIn
 import app.lytro.listener.graph
 import app.lytro.listener.net.ApiResult
 import app.lytro.listener.net.PairRequest
@@ -32,9 +35,17 @@ enum class Screen {
     PermSmsNo,
     PermSmsBlocked,
     PermNotif,
+    Battery,
     TestWait,
     TestGot,
     Home,
+    Menu,
+
+    /** A phone that lost its place: revoked or blocked (LISTENER-APP-DESIGN 3.3). */
+    Stopped,
+
+    /** Pairing refused for a reason with a stopped screen of its own: inactive, blocked or too old (2). */
+    PairStopped,
 }
 
 /** Why pairing was refused (2, "When pairing is refused"). */
@@ -44,8 +55,8 @@ sealed interface PairProblem {
     data object DeviceLimit : PairProblem
     data object NoInternet : PairProblem
 
-    /** Subscription inactive, blocked, update required: their own screens come with Slice 5.5b. */
-    data class Stopped(val words: String) : PairProblem
+    /** Anything else the server refused: its own words. */
+    data class Other(val words: String) : PairProblem
 }
 
 private const val RECENT_LIMIT = 20
@@ -64,6 +75,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         private set
     var unpairFailed by mutableStateOf(false)
         private set
+    var pairStopped by mutableStateOf<PhoneStatus?>(null)
+        private set
+    var askingUnpair by mutableStateOf(false)
+        private set
+
+    /** The menu's last call could not reach the server. */
+    var menuFailed by mutableStateOf(false)
+        private set
     var testReceipt by mutableStateOf<SavedMessage?>(null)
         private set
     var recent by mutableStateOf<Recent?>(null)
@@ -76,6 +95,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         private set
 
     val facts get() = graph.phone.facts
+    val queueSize: Int get() = saved.size
     val network get() = graph.network.online
     val language get() = graph.settings.language
 
@@ -83,7 +103,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         // LSN-19: however the phone lost its place, in the background or on a screen, it goes back to pairing.
         viewModelScope.launch {
             graph.phone.facts.collect {
-                if (graph.secrets.token == null && screen !in PAIRING_SCREENS) goToStart()
+                if (graph.secrets.token == null && screen !in PAIRING_SCREENS) goToStart(it.status)
             }
         }
     }
@@ -170,9 +190,29 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 PairProblem.TooManyTries(graph.clock() + (answer.retryAfterSeconds ?: 60L) * 1000)
             }
             "plan_limit_reached" -> PairProblem.DeviceLimit
-            else -> PairProblem.Stopped(answer.message)
+            "tenant_offline" -> return stoppedAtPairing(PhoneStatus.Inactive)
+            "forbidden" -> return stoppedAtPairing(PhoneStatus.Blocked)
+            "app_update_required" -> return stoppedAtPairing(PhoneStatus.UpdateRequired(minimumVersionIn(answer)))
+            else -> PairProblem.Other(answer.message)
         }
         screen = Screen.PairType
+    }
+
+    private fun stoppedAtPairing(status: PhoneStatus) {
+        pairStopped = status
+        screen = Screen.PairStopped
+    }
+
+    /** Check again, from a shop that was inactive at pairing: the code is still in the boxes. */
+    fun backToPairing() {
+        pairStopped = null
+        screen = Screen.PairType
+    }
+
+    /** LSN-19: a revoked phone pairs again with a new code. */
+    fun pairAgain() {
+        screen = Screen.PairScan
+        graph.phone.update { it.copy(status = PhoneStatus.Connected) }
     }
 
     /** 2.3: the likeliest mistake. "Yes" carries on; "No" frees the plan's place at once and starts over. */
@@ -181,13 +221,61 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         screen = if (smsAllowed(context)) afterSmsAllowed() else Screen.PermSms
     }
 
-    fun simIsElsewhere() {
+    fun simIsElsewhere() = unpairThisPhone()
+
+    /** 2.3 and the menu: frees the plan's place, and nothing more leaves this phone. */
+    fun unpairThisPhone() {
         unpairFailed = false
+        menuFailed = false
+        askingUnpair = false
         viewModelScope.launch {
-            when (val answer = graph.api.unpair()) {
-                is ApiResult.Ok -> graph.guard.forget(PhoneStatus.Revoked("device"))
-                is ApiResult.Refused -> if (answer.code == "unauthenticated") graph.guard.settle(answer) else unpairFailed = true
-                ApiResult.NoConnection -> unpairFailed = true
+            val failed = when (val answer = graph.api.unpair()) {
+                is ApiResult.Ok -> {
+                    graph.guard.forget(PhoneStatus.Revoked(REASON_UNPAIRED_ITSELF))
+                    false
+                }
+                is ApiResult.Refused -> if (answer.code == "unauthenticated") {
+                    graph.guard.settle(answer)
+                    false
+                } else {
+                    true
+                }
+                ApiResult.NoConnection -> true
+            }
+            unpairFailed = failed
+            menuFailed = failed
+        }
+    }
+
+    fun openMenu() {
+        menuFailed = false
+        screen = Screen.Menu
+    }
+
+    fun closeMenu() {
+        askingUnpair = false
+        screen = Screen.Home
+    }
+
+    fun askUnpair() {
+        askingUnpair = true
+    }
+
+    fun keepPaired() {
+        askingUnpair = false
+    }
+
+    /** LSN-04: from the menu, since a phone reports only every [15] minutes. Home's band counts it down. */
+    fun startTestMode() {
+        menuFailed = false
+        viewModelScope.launch {
+            when (val answer = graph.api.startTestMode()) {
+                is ApiResult.Ok -> {
+                    graph.phone.update { it.copy(testModeUntil = answer.value.testModeUntil) }
+                    screen = Screen.Home
+                }
+                is ApiResult.Refused -> if (graph.guard.settle(answer) == Settled.Passing) menuFailed = true
+                ApiResult.NoConnection -> menuFailed = true
             }
         }
     }
@@ -210,15 +298,50 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         graph.background.start()
         graph.background.reportSoon()
         if (graph.settings.stage == SetupStage.Done) return Screen.Home
-        val askNotifications = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
-        graph.settings.stage = if (askNotifications) SetupStage.Notifications else SetupStage.Test
-        return if (askNotifications) Screen.PermNotif else startTest()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            graph.settings.stage = SetupStage.Notifications
+            return Screen.PermNotif
+        }
+        return toBattery()
     }
 
     fun notificationsAnswered() {
+        screen = toBattery()
+    }
+
+    private fun toBattery(): Screen {
+        graph.settings.stage = SetupStage.Battery
+        return Screen.Battery
+    }
+
+    /** 2.6: Android's dialog answered, either way: Home keeps warning if it was refused. */
+    fun batteryAnswered() {
+        if (graph.settings.stage == SetupStage.Done) {
+            screen = Screen.Home
+            return
+        }
         graph.settings.stage = SetupStage.Test
         screen = startTest()
     }
+
+    /** 2.6: Later goes straight to Home, which says the phone is at risk. */
+    fun batteryLater() = finishSetup()
+
+    fun makerStepOpened() {
+        graph.settings.makerStepOpened = true
+    }
+
+    /** Fix it on Home's warning: the same screen as setup, returning to Home. */
+    fun fixBattery() {
+        screen = Screen.Battery
+    }
+
+    /** Agreed 2026-11-03: what can be known of the battery saver; a maker's Autostart switch can't be read by any app. */
+    fun batteryRisk(): Boolean = batteryAtRisk(
+        exempt = batteryExempt(context),
+        maker = phoneMakerOf(Build.MANUFACTURER.orEmpty(), Build.BRAND.orEmpty()),
+        makerStepOpened = graph.settings.makerStepOpened,
+    )
 
     private fun startTest(): Screen {
         val started = graph.clock()
@@ -248,6 +371,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         graph.scope.launch { graph.reporter.report() }
     }
 
+    /** Check again, on a stopped Home: the next answer says whether the plan came back. */
+    fun checkAgain() {
+        viewModelScope.launch { refresh() }
+    }
+
     /** 3.1: on opening and every 30 seconds while open. */
     suspend fun refresh() {
         now = graph.clock()
@@ -258,6 +386,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 recent = answer.value
                 reachable = true
                 graph.phone.update { it.copy(status = PhoneStatus.Connected) }
+                // Back from no internet or an inactive plan: what was held goes now, since a shopper's page may be waiting on it.
+                if (graph.queue.size.value > 0) {
+                    graph.uploader.drain()
+                    (graph.api.recent(RECENT_LIMIT) as? ApiResult.Ok)?.let { recent = it.value }
+                }
             }
             is ApiResult.Refused -> {
                 reachable = true
@@ -269,27 +402,35 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun firstScreen(): Screen {
-        if (graph.secrets.token == null) return Screen.Welcome
+        if (graph.secrets.token == null) return startScreenFor(graph.phone.facts.value.status)
         return when (graph.settings.stage) {
             SetupStage.Pair, SetupStage.ConfirmSim -> Screen.Paired
             SetupStage.Sms -> Screen.PermSms
             SetupStage.Notifications -> Screen.PermNotif
+            SetupStage.Battery -> Screen.Battery
             SetupStage.Test -> startTest()
             SetupStage.Done -> Screen.Home
         }
     }
 
-    private fun goToStart() {
+    /** A phone that unpaired itself has nothing to explain; one that was revoked or blocked does (LSN-19). */
+    private fun startScreenFor(status: PhoneStatus): Screen = when {
+        status is PhoneStatus.Blocked -> Screen.Stopped
+        status is PhoneStatus.Revoked && status.reason != REASON_UNPAIRED_ITSELF -> Screen.Stopped
+        else -> Screen.Welcome
+    }
+
+    private fun goToStart(status: PhoneStatus) {
         code = ""
         pairProblem = null
         recent = null
         saved = emptyList()
         graph.settings.stage = SetupStage.Pair
-        screen = Screen.Welcome
+        screen = startScreenFor(status)
     }
 
     private companion object {
-        val PAIRING_SCREENS = setOf(Screen.Welcome, Screen.PairScan, Screen.PairType)
+        val PAIRING_SCREENS = setOf(Screen.Welcome, Screen.PairScan, Screen.PairType, Screen.PairStopped, Screen.Stopped)
         val REFUSED_SCREENS = setOf(Screen.PermSms, Screen.PermSmsNo, Screen.PermSmsBlocked)
     }
 }

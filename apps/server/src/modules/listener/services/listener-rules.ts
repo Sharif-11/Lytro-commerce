@@ -28,6 +28,9 @@ import { PlatformSettingsService } from '../../platform-settings/services/platfo
 import { UsageWarnings } from '../../usage-warnings/services/usage-warnings';
 import type { ListenerAppFacts, ListenerDeviceView } from '../types/listener';
 
+// PAY-21 (Slice 5.6): what the app calls the owner of Lytro's own phone.
+const LYTRO_NAME = 'Lytro';
+
 // LSN-07 (amended 2026-11-01, pay-as-you-go agreed): the states a shop may use the listener in.
 const LISTENING_STATES: ReadonlySet<TenantState> = new Set([
   TenantState.Trial,
@@ -61,6 +64,11 @@ export class ListenerRules {
     @Inject(PaymentMethods) private readonly methods: PaymentMethods,
     @Inject(PlatformWalletsService) private readonly lytroWallets: PlatformWalletsService,
   ) {}
+
+  /** PAY-21 (Slice 5.6): the name the app shows for a phone's shop; Lytro's own phone has none. */
+  shopNameOf(tenantId: string | null, shop: ListenerShopRow | null): string {
+    return tenantId === null ? LYTRO_NAME : (shop?.shopName ?? '');
+  }
 
   /** LSN-07: whether the shop may use the listener now -- trial, active, in grace or pay-as-you-go, and not suspended. */
   isListening(shop: ListenerShopRow | null): shop is ListenerShopRow {

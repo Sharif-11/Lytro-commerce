@@ -42,6 +42,10 @@ class ListenerApi(
     suspend fun upload(messages: List<UploadMessage>): ApiResult<Uploaded> =
         post("messages", uploadBodyOf(messages), Uploaded.serializer())
 
+    /** LSN-04: from the paired phone, which would hear the dashboard up to [15] minutes late. */
+    suspend fun startTestMode(): ApiResult<TestModeStarted> =
+        post("test-mode", "{}", TestModeStarted.serializer())
+
     suspend fun recent(limit: Int): ApiResult<Recent> =
         send(request("messages?limit=$limit", signed = true).get().build(), Recent.serializer())
 

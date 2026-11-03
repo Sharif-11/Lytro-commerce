@@ -1,3 +1,6 @@
+import java.security.MessageDigest
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -11,6 +14,16 @@ val debugApiHost = providers.gradleProperty("listener.apiHost").getOrElse("")
 // Shrinks a debug build as a release is, so what R8 might break can be tried against a local server.
 val debugShrunk = providers.gradleProperty("listener.shrinkDebug").isPresent
 
+// Agreed 2026-11-03: the release key and its passwords stay on the owner's computer, in the file LYTRO_LISTENER_KEY names, made by
+// scripts/new-release-key.sh. Without it a release builds unsigned, as CI's does, and :app:listenerRelease refuses.
+val releaseKey: Properties? = providers.environmentVariable("LYTRO_LISTENER_KEY").orNull
+    ?.let { File(it) }
+    ?.takeIf { it.exists() }
+    ?.let { file -> Properties().apply { file.inputStream().use { load(it) } } }
+
+// Where the app sends a shop for an update and the first install (LISTENER-APP-DESIGN 6); the page itself is Slice 5.8's.
+val downloadUrl = "https://lytro.app/listener"
+
 android {
     namespace = "app.lytro.listener"
     compileSdk = 37
@@ -22,6 +35,18 @@ android {
         versionCode = 1
         versionName = "1.0.0"
         testInstrumentationRunner = "app.lytro.listener.TestRunner"
+        buildConfigField("String", "DOWNLOAD_URL", "\"$downloadUrl\"")
+    }
+
+    signingConfigs {
+        if (releaseKey != null) {
+            create("release") {
+                storeFile = File(releaseKey.getProperty("storeFile"))
+                storePassword = releaseKey.getProperty("storePassword")
+                keyAlias = releaseKey.getProperty("keyAlias")
+                keyPassword = releaseKey.getProperty("keyPassword")
+            }
+        }
     }
 
     buildTypes {
@@ -33,6 +58,7 @@ android {
             if (debugShrunk) proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             buildConfigField("String", "API_BASE_URL", "\"$debugApiBase\"")
             buildConfigField("String", "API_HOST_HEADER", "\"$debugApiHost\"")
+            buildConfigField("String", "SUPPORT_WHATSAPP", "\"${providers.gradleProperty("listener.supportWhatsapp").getOrElse("")}\"")
         }
         release {
             isMinifyEnabled = true
@@ -40,6 +66,8 @@ android {
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             buildConfigField("String", "API_BASE_URL", "\"https://api.lytro.app/v1/listener/\"")
             buildConfigField("String", "API_HOST_HEADER", "\"\"")
+            buildConfigField("String", "SUPPORT_WHATSAPP", "\"${releaseKey?.getProperty("supportWhatsapp").orEmpty().filter { it.isDigit() }}\"")
+            if (releaseKey != null) signingConfig = signingConfigs.getByName("release")
         }
     }
 
@@ -89,4 +117,34 @@ dependencies {
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.okhttp.mockwebserver)
     debugImplementation(libs.compose.ui.test.manifest)
+}
+
+val checkReleaseKey = tasks.register("checkReleaseKey") {
+    doLast {
+        check(releaseKey != null) {
+            "No release key. Set LYTRO_LISTENER_KEY to its properties file, or make one with scripts/new-release-key.sh."
+        }
+        if (releaseKey?.getProperty("supportWhatsapp").isNullOrBlank()) {
+            logger.warn("No supportWhatsapp in the key's properties: the app's Help and Contact support will hide.")
+        }
+    }
+}
+
+tasks.matching { it.name == "preReleaseBuild" }.configureEach { mustRunAfter(checkReleaseKey) }
+
+// The one command per release (agreed 2026-11-03): a signed APK, named for its version, and its checksum for the download page.
+tasks.register("listenerRelease") {
+    group = "release"
+    description = "Builds the signed APK for a release, with the key on this computer."
+    dependsOn(checkReleaseKey, "assembleRelease")
+    doLast {
+        val version = android.defaultConfig.versionName
+        val out = layout.buildDirectory.dir("release").get().asFile.apply { mkdirs() }
+        val apk = out.resolve("lytro-listener-$version.apk")
+        layout.buildDirectory.file("outputs/apk/release/app-release.apk").get().asFile.copyTo(apk, overwrite = true)
+        val sha256 = MessageDigest.getInstance("SHA-256").digest(apk.readBytes()).joinToString("") { "%02x".format(it) }
+        out.resolve("${apk.name}.sha256").writeText("$sha256  ${apk.name}\n")
+        println("Release $version: $apk")
+        println("SHA-256: $sha256")
+    }
 }

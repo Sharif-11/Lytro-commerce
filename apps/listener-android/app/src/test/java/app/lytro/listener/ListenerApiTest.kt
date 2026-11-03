@@ -60,6 +60,18 @@ class ListenerApiTest {
     }
 
     @Test
+    fun `test mode starts from the phone, with its token, and says when it ends`() = runTest {
+        server.enqueue(okEnvelope("""{"testModeUntil":"2026-11-03T08:10:00.000Z"}"""))
+
+        val started = apiFor(server).startTestMode() as ApiResult.Ok
+
+        assertEquals("2026-11-03T08:10:00.000Z", started.value.testModeUntil)
+        val request = server.takeRequest()
+        assertEquals("/v1/listener/test-mode", request.url.encodedPath)
+        assertEquals("Bearer the-token", request.headers["Authorization"])
+    }
+
+    @Test
     fun `a new field and a word this app has not met pass through`() = runTest {
         server.enqueue(
             okEnvelope(

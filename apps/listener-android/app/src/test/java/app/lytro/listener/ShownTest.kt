@@ -4,11 +4,15 @@ import app.lytro.listener.data.PhoneStatus
 import app.lytro.listener.ui.Ago
 import app.lytro.listener.ui.HomeBand
 import app.lytro.listener.ui.LineKind
+import app.lytro.listener.ui.PhoneMaker
 import app.lytro.listener.ui.ReceiptLine
 import app.lytro.listener.ui.SmsRefusal
 import app.lytro.listener.ui.agoOf
 import app.lytro.listener.ui.amountShown
+import app.lytro.listener.ui.batteryAtRisk
+import app.lytro.listener.ui.countdownShown
 import app.lytro.listener.ui.homeBandOf
+import app.lytro.listener.ui.phoneMakerOf
 import app.lytro.listener.ui.phoneNumberShown
 import app.lytro.listener.ui.readQr
 import app.lytro.listener.ui.receiptLineOf
@@ -28,7 +32,9 @@ class ShownTest {
         sms: Boolean = true,
         online: Boolean = true,
         account: Boolean = true,
-    ) = homeBandOf(status, sms, online, account)
+        test: Boolean = false,
+        battery: Boolean = false,
+    ) = homeBandOf(status, sms, online, account, test, battery)
 
     @Test
     fun `the band shows what most needs fixing`() {
@@ -38,6 +44,40 @@ class ShownTest {
         assertEquals(HomeBand.SmsOff, band(sms = false, online = false))
         assertEquals(HomeBand.UpdateRequired, band(PhoneStatus.UpdateRequired("1.2.0"), sms = false))
         assertEquals(HomeBand.Inactive, band(PhoneStatus.Inactive, sms = false, online = false))
+        assertEquals(HomeBand.BatteryRisk, band(battery = true, account = false))
+        assertEquals(HomeBand.TestMode, band(test = true, battery = true))
+        assertEquals(HomeBand.NoInternet, band(online = false, test = true))
+    }
+
+    @Test
+    fun `each maker is told by its own names, and any other phone has no extra step`() {
+        assertEquals(PhoneMaker.Xiaomi, phoneMakerOf("Xiaomi", "Redmi"))
+        assertEquals(PhoneMaker.Xiaomi, phoneMakerOf("Xiaomi", "POCO"))
+        // Some phones name only the sub-brand.
+        assertEquals(PhoneMaker.Xiaomi, phoneMakerOf("Redmi", "Redmi"))
+        assertEquals(PhoneMaker.Xiaomi, phoneMakerOf("POCO", "POCO"))
+        assertEquals(PhoneMaker.Vivo, phoneMakerOf("iQOO", "iQOO"))
+        assertEquals(PhoneMaker.Oppo, phoneMakerOf("realme", "realme"))
+        assertEquals(PhoneMaker.Oppo, phoneMakerOf("OPPO", "OPPO"))
+        assertEquals(PhoneMaker.Vivo, phoneMakerOf("vivo", "iQOO"))
+        assertEquals(PhoneMaker.Samsung, phoneMakerOf("samsung", "samsung"))
+        assertNull(phoneMakerOf("Google", "google"))
+    }
+
+    @Test
+    fun `the battery warning clears only with Android's exemption and the maker's setting opened`() {
+        assertEquals(true, batteryAtRisk(exempt = false, maker = null, makerStepOpened = false))
+        assertEquals(false, batteryAtRisk(exempt = true, maker = null, makerStepOpened = false))
+        assertEquals(true, batteryAtRisk(exempt = true, maker = PhoneMaker.Xiaomi, makerStepOpened = false))
+        assertEquals(true, batteryAtRisk(exempt = false, maker = PhoneMaker.Xiaomi, makerStepOpened = true))
+        assertEquals(false, batteryAtRisk(exempt = true, maker = PhoneMaker.Xiaomi, makerStepOpened = true))
+    }
+
+    @Test
+    fun `test mode counts down as drawn, and never reads nothing left while it is on`() {
+        assertEquals("8:42", countdownShown(522_000))
+        assertEquals("10:00", countdownShown(600_000))
+        assertEquals("0:01", countdownShown(1))
     }
 
     @Test
@@ -46,7 +86,8 @@ class ShownTest {
         assertEquals(ReceiptLine.NotMatched, receiptLineOf("unmatched", null, null))
         assertEquals(ReceiptLine.AmountOff, receiptLineOf("needs_review", "amount", null))
         assertEquals(ReceiptLine.ShortBalance, receiptLineOf("needs_review", "low_balance", null))
-        for (reason in listOf("sender", "wallet", "old_receipt", "order_closed", "transaction_id_used")) {
+        // `by_hand` is Slice 5.7's, and a reason this app has not met reads the same way.
+        for (reason in listOf("sender", "wallet", "old_receipt", "order_closed", "transaction_id_used", "by_hand", "a_new_reason")) {
             assertEquals(reason, ReceiptLine.Review, receiptLineOf("needs_review", reason, null))
         }
         assertEquals(ReceiptLine.AlreadySent, receiptLineOf("duplicate", null, null))

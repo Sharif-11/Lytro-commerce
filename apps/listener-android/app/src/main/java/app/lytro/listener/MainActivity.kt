@@ -15,7 +15,9 @@ import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.lytro.listener.data.LANGUAGE_BANGLA
 import app.lytro.listener.ui.AppViewModel
+import app.lytro.listener.ui.BatteryScreen
 import app.lytro.listener.ui.HomeScreen
+import app.lytro.listener.ui.MenuScreen
 import app.lytro.listener.ui.PairScanScreen
 import app.lytro.listener.ui.PairTypeScreen
 import app.lytro.listener.ui.PairedScreen
@@ -25,6 +27,7 @@ import app.lytro.listener.ui.PermSmsNoScreen
 import app.lytro.listener.ui.PermSmsScreen
 import app.lytro.listener.ui.PhoneFrame
 import app.lytro.listener.ui.Screen
+import app.lytro.listener.ui.StoppedScreen
 import app.lytro.listener.ui.TestGotScreen
 import app.lytro.listener.ui.TestWaitScreen
 import app.lytro.listener.ui.WelcomeScreen
@@ -65,9 +68,13 @@ class MainActivity : ComponentActivity() {
                         Screen.PermSmsNo -> PermSmsNoScreen(model)
                         Screen.PermSmsBlocked -> PermSmsBlockedScreen(model)
                         Screen.PermNotif -> PermNotifScreen(model)
+                        Screen.Battery -> BatteryScreen(model)
                         Screen.TestWait -> TestWaitScreen(model, facts.accounts)
                         Screen.TestGot -> TestGotScreen(model)
                         Screen.Home -> HomeScreen(model)
+                        Screen.Menu -> MenuScreen(model, language)
+                        Screen.Stopped -> StoppedScreen(facts.status, 0, model::backToPairing, model::pairAgain)
+                        Screen.PairStopped -> model.pairStopped?.let { StoppedScreen(it, 0, model::backToPairing, model::pairAgain) }
                     }
                 }
             }

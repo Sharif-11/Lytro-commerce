@@ -49,13 +49,20 @@ export interface ListenerAppFacts {
 export interface ListenerPaired extends ListenerAppFacts {
   deviceId: string;
   token: string;
+  /** LSN-20: what the shop calls this phone. */
+  deviceName: string;
   shopName: string;
   heartbeatMinutes: number;
 }
 
-/** LSN-03, LSN-24: the app's report answered -- connected, and how often to report again. */
+/**
+ * LSN-03, LSN-24: the app's report answered -- connected, and how often to report again. Agreed 2026-11-03 (Slice 5.5b's read):
+ * the phone's and shop's names too, so a rename on the dashboard reaches the app's menu at its next report.
+ */
 export interface ListenerConnected extends ListenerAppFacts {
   status: 'connected';
   heartbeatMinutes: number;
   serverTime: Date;
+  deviceName: string;
+  shopName: string;
 }

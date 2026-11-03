@@ -9,6 +9,10 @@ import kotlinx.serialization.json.JsonPrimitive
 
 private const val REASON_BLOCKED = "installation_blocked"
 
+/** LSN-18: the oldest version the server still takes, which its refusal names. */
+fun minimumVersionIn(refused: ApiResult.Refused): String =
+    (refused.details?.get("minimum") as? JsonPrimitive)?.content.orEmpty()
+
 /** What a refusal means for the background work. */
 enum class Settled {
     /** The phone's place is gone: nothing runs any more. */
@@ -34,14 +38,17 @@ class PhoneGuard(
     suspend fun settle(refused: ApiResult.Refused): Settled = when (refused.code) {
         "unauthenticated" -> {
             val reason = (refused.details?.get("reason") as? JsonPrimitive)?.takeIf { it.isString }?.content
-            stop(if (reason == REASON_BLOCKED) PhoneStatus.Blocked else PhoneStatus.Revoked(reason))
+            stop(
+                when {
+                    reason == REASON_BLOCKED -> PhoneStatus.Blocked
+                    reason == null -> PhoneStatus.Revoked(null, refused.message)
+                    else -> PhoneStatus.Revoked(reason)
+                },
+            )
         }
         "forbidden" -> stop(PhoneStatus.Blocked)
         "tenant_offline" -> hold(PhoneStatus.Inactive)
-        "app_update_required" -> {
-            val minimum = (refused.details?.get("minimum") as? JsonPrimitive)?.content.orEmpty()
-            hold(PhoneStatus.UpdateRequired(minimum))
-        }
+        "app_update_required" -> hold(PhoneStatus.UpdateRequired(minimumVersionIn(refused)))
         else -> Settled.Passing
     }
 

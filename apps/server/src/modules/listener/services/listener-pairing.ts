@@ -37,8 +37,6 @@ function codeOf(): string {
 type Outcome<T> = { refused: ApiError } | { done: T };
 
 /** LSN-01: a code pairs only while it is not spent, voided or run out. */
-// PAY-21 (Slice 5.6): what the app calls the owner of Lytro's own phone.
-const LYTRO_NAME = 'Lytro';
 
 function isOpen(code: SelectListenerPairingCode, now: Date): boolean {
   return code.usedAt === null && code.voidedAt === null && code.expiresAt > now;
@@ -154,7 +152,8 @@ export class ListenerPairing {
         done: {
           deviceId: device.id,
           token,
-          shopName: tenantId === null ? LYTRO_NAME : (shop?.shopName ?? ''),
+          deviceName: device.name,
+          shopName: this.rules.shopNameOf(tenantId, shop),
           heartbeatMinutes: LISTENER_HEARTBEAT_MINUTES,
           ...(await this.rules.appFactsOf(device, now)),
         },

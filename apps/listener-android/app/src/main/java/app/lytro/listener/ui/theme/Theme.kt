@@ -38,6 +38,7 @@ val Muted = Neutral200
 val Subtle = Neutral300
 val White = Color.White
 val ErrorText = Color(0xFFFFB4B8)
+val DangerLine = Color(0xFF7C3036)
 val BadBox = Color(0xFFFFD9DB)
 val BadBoxText = Color(0xFF7C1F25)
 val CameraFrom = Color(0xFF1C2A29)

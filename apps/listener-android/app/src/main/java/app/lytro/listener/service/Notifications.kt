@@ -14,11 +14,13 @@ import app.lytro.listener.MainActivity
 import app.lytro.listener.R
 import app.lytro.listener.data.PhoneFactsStore
 import app.lytro.listener.data.PhoneStatus
+import app.lytro.listener.data.REASON_UNPAIRED_ITSELF
 import app.lytro.listener.data.ReceiptQueue
 import app.lytro.listener.data.Settings
 
 const val STATUS_NOTIFICATION_ID = 1
 private const val PROBLEM_NOTIFICATION_ID = 2
+private const val STATUS_PROBLEM_NOTIFICATION_ID = 3
 private const val CHANNEL_STATUS = "status"
 private const val CHANNEL_PROBLEM = "problem"
 
@@ -67,6 +69,29 @@ class Notifications(
         manager.notify(STATUS_NOTIFICATION_ID, statusNotification())
     }
 
+    /**
+     * LISTENER-APP-DESIGN 5: subscription inactive, update required, and a revoked or blocked phone's last word, each once, and
+     * again only if it comes back after being fixed. A phone that unpaired itself needs no telling.
+     */
+    fun statusChanged(status: PhoneStatus) {
+        val words = settings.localized(context)
+        val problem = when {
+            status is PhoneStatus.Inactive -> "inactive" to words.getString(R.string.n_inact)
+            status is PhoneStatus.UpdateRequired -> "update" to words.getString(R.string.n_upd)
+            status is PhoneStatus.Blocked -> "blocked" to words.getString(R.string.st_block)
+            status is PhoneStatus.Revoked && status.reason != REASON_UNPAIRED_ITSELF -> "revoked" to words.getString(R.string.n_rev)
+            else -> null
+        }
+        if (problem == null) {
+            settings.statusToldOf = null
+            manager.cancel(STATUS_PROBLEM_NOTIFICATION_ID)
+            return
+        }
+        if (settings.statusToldOf == problem.first) return
+        settings.statusToldOf = problem.first
+        manager.notify(STATUS_PROBLEM_NOTIFICATION_ID, problemNotification(problem.second))
+    }
+
     /** Agreed in the sketch: once per problem, not repeated, until it is fixed and comes back. */
     fun checkSmsPermission() {
         val off = context.checkSelfPermission(Manifest.permission.RECEIVE_SMS) != PackageManager.PERMISSION_GRANTED
@@ -77,19 +102,19 @@ class Notifications(
         }
         if (settings.smsProblemTold) return
         settings.smsProblemTold = true
-        manager.notify(
-            PROBLEM_NOTIFICATION_ID,
-            NotificationCompat.Builder(context, CHANNEL_PROBLEM)
-                .setSmallIcon(R.drawable.ic_notification)
-                .setContentTitle(context.getString(R.string.app_name))
-                .setContentText(settings.localized(context).getString(R.string.n_perm))
-                .setContentIntent(openApp())
-                .setAutoCancel(true)
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setDefaults(NotificationCompat.DEFAULT_SOUND)
-                .build(),
-        )
+        manager.notify(PROBLEM_NOTIFICATION_ID, problemNotification(settings.localized(context).getString(R.string.n_perm)))
     }
+
+    private fun problemNotification(words: String): Notification =
+        NotificationCompat.Builder(context, CHANNEL_PROBLEM)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle(context.getString(R.string.app_name))
+            .setContentText(words)
+            .setContentIntent(openApp())
+            .setAutoCancel(true)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setDefaults(NotificationCompat.DEFAULT_SOUND)
+            .build()
 
     private fun statusWords(): String {
         val words = settings.localized(context).resources
@@ -97,7 +122,7 @@ class Notifications(
         return when {
             phone.facts.value.status is PhoneStatus.Inactive -> words.getString(R.string.n_inact)
             phone.facts.value.status is PhoneStatus.UpdateRequired -> words.getString(R.string.n_upd)
-            !network.online.value && saved > 0 -> words.getQuantityString(R.plurals.n_net, saved, saved)
+            !network.online.value && saved > 0 -> words.getQuantityString(R.plurals.n_net, saved, "$saved")
             !network.online.value -> words.getString(R.string.n_net_none)
             else -> words.getString(R.string.n_on)
         }

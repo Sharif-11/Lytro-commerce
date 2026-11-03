@@ -158,6 +158,16 @@ class ReceiptUploaderTest {
     }
 
     @Test
+    fun `a phone the server no longer knows keeps the server's own words`() = runTest {
+        queue.add(saved(1))
+        server.enqueue(refusal(401, "unauthenticated", message = "Pair it again with a new code."))
+
+        uploader().drain()
+
+        assertEquals(PhoneStatus.Revoked(null, "Pair it again with a new code."), facts.facts.value.status)
+    }
+
+    @Test
     fun `a blocked installation is told apart from a revoked phone`() = runTest {
         queue.add(saved(1))
         server.enqueue(refusal(401, "unauthenticated", """{"reason":"installation_blocked"}"""))

@@ -5,6 +5,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
+/** The server's `ListenerRevokeReason.Device`: this phone unpaired itself, so nothing needs saying about it. */
+const val REASON_UNPAIRED_ITSELF = "device"
+
 /** LSN-24: where the phone stands, by the server's last answer. */
 @Serializable
 sealed interface PhoneStatus {
@@ -22,10 +25,13 @@ sealed interface PhoneStatus {
     @SerialName("update")
     data class UpdateRequired(val minimum: String) : PhoneStatus
 
-    /** The phone's place is gone: the token is cleared and nothing runs (LSN-19). `reason` is the server's, if any. */
+    /**
+     * The phone's place is gone: the token is cleared and nothing runs (LSN-19). `reason` is the server's, if any; with none,
+     * as when the server no longer knows the phone, `words` are the server's own.
+     */
     @Serializable
     @SerialName("revoked")
-    data class Revoked(val reason: String?) : PhoneStatus
+    data class Revoked(val reason: String?, val words: String? = null) : PhoneStatus
 
     @Serializable
     @SerialName("blocked")
@@ -35,6 +41,8 @@ sealed interface PhoneStatus {
 /** What the server last said of this phone and its shop, kept for the screens and for the filter. */
 @Serializable
 data class PhoneFacts(
+    /** LSN-20: what the shop calls this phone; a rename on the dashboard reaches it at the next report. */
+    val deviceName: String = "",
     val shopName: String = "",
     val accounts: List<Account> = emptyList(),
     val senders: List<String> = emptyList(),

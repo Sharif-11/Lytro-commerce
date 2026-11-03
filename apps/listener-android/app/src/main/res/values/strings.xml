@@ -15,8 +15,8 @@ never needed to draw: how long ago in hours or days, "just now", and no internet
     <string name="st_off_s">একটা কোড দিয়ে ফোনটি শপের সাথে যুক্ত করুন</string>
     <string name="st_net">ইন্টারনেট নেই</string>
     <plurals name="st_net_s">
-        <item quantity="one">%1$dটি রিসিট ফোনে জমা আছে। নেট এলেই নিজে থেকে যাবে।</item>
-        <item quantity="other">%1$dটি রিসিট ফোনে জমা আছে। নেট এলেই নিজে থেকে যাবে।</item>
+        <item quantity="one">%1$sটি রিসিট ফোনে জমা আছে। নেট এলেই নিজে থেকে যাবে।</item>
+        <item quantity="other">%1$sটি রিসিট ফোনে জমা আছে। নেট এলেই নিজে থেকে যাবে।</item>
     </plurals>
     <string name="st_net_s_none">রিসিট এলে ফোনে জমা থাকবে। নেট এলেই নিজে থেকে যাবে।</string>
     <string name="st_perm">SMS পড়ার অনুমতি বন্ধ</string>
@@ -30,16 +30,16 @@ never needed to draw: how long ago in hours or days, "just now", and no internet
 
     <string name="just_now">এইমাত্র</string>
     <plurals name="minutes_ago">
-        <item quantity="one">%1$d মিনিট আগে</item>
-        <item quantity="other">%1$d মিনিট আগে</item>
+        <item quantity="one">%1$s মিনিট আগে</item>
+        <item quantity="other">%1$s মিনিট আগে</item>
     </plurals>
     <plurals name="hours_ago">
-        <item quantity="one">%1$d ঘণ্টা আগে</item>
-        <item quantity="other">%1$d ঘণ্টা আগে</item>
+        <item quantity="one">%1$s ঘণ্টা আগে</item>
+        <item quantity="other">%1$s ঘণ্টা আগে</item>
     </plurals>
     <plurals name="days_ago">
-        <item quantity="one">%1$d দিন আগে</item>
-        <item quantity="other">%1$d দিন আগে</item>
+        <item quantity="one">%1$s দিন আগে</item>
+        <item quantity="other">%1$s দিন আগে</item>
     </plurals>
 
     <string name="today_v">ভেরিফাই</string>
@@ -77,8 +77,8 @@ never needed to draw: how long ago in hours or days, "just now", and no internet
     <string name="pair">পেয়ার করুন</string>
     <string name="use_scan">QR স্ক্যান করুন</string>
     <plurals name="e_tries">
-        <item quantity="one">অনেকবার ভুল কোড দেওয়া হয়েছে। %1$d মিনিট পর আবার ট্রাই করুন।</item>
-        <item quantity="other">অনেকবার ভুল কোড দেওয়া হয়েছে। %1$d মিনিট পর আবার ট্রাই করুন।</item>
+        <item quantity="one">অনেকবার ভুল কোড দেওয়া হয়েছে। %1$s মিনিট পর আবার ট্রাই করুন।</item>
+        <item quantity="other">অনেকবার ভুল কোড দেওয়া হয়েছে। %1$s মিনিট পর আবার ট্রাই করুন।</item>
     </plurals>
     <string name="e_net">ইন্টারনেট নেই। নেট চালু করে আবার ট্রাই করুন।</string>
     <string name="lim_t">এই প্ল্যানের সব ফোন পেয়ার করা আছে</string>
@@ -128,11 +128,65 @@ never needed to draw: how long ago in hours or days, "just now", and no internet
 
     <string name="n_on">Lytro Listener চালু আছে। পেমেন্ট SMS মিলছে।</string>
     <plurals name="n_net">
-        <item quantity="one">ইন্টারনেট নেই। %1$dটি রিসিট ফোনে জমা আছে।</item>
-        <item quantity="other">ইন্টারনেট নেই। %1$dটি রিসিট ফোনে জমা আছে।</item>
+        <item quantity="one">ইন্টারনেট নেই। %1$sটি রিসিট ফোনে জমা আছে।</item>
+        <item quantity="other">ইন্টারনেট নেই। %1$sটি রিসিট ফোনে জমা আছে।</item>
     </plurals>
     <string name="n_net_none">ইন্টারনেট নেই।</string>
     <string name="n_perm">SMS পড়ার অনুমতি বন্ধ। ঠিক করতে ট্যাপ করুন।</string>
     <string name="n_inact">সাবস্ক্রিপশন ইনঅ্যাক্টিভ। লিসেনার বন্ধ আছে।</string>
     <string name="n_upd">আপডেট দরকার। ট্যাপ করে ডাউনলোড করুন।</string>
+    <string name="st_test">টেস্ট মোড · %1$s বাকি</string>
+    <string name="st_test_s">অচেনা সেন্ডারের রিসিটও এখানে দেখাবে, তবে তাতে কিছু ভেরিফাই হবে না</string>
+    <string name="st_bat">চালু আছে, তবে ঝুঁকি আছে</string>
+    <string name="st_bat_s">ব্যাটারি সেভার অ্যাপটি বন্ধ করে দিতে পারে</string>
+    <string name="bat_note">ফোন অ্যাপটি বন্ধ করলে পেমেন্ট আর নিজে থেকে ভেরিফাই হবে না।</string>
+    <string name="s3">ধাপ 3/3</string>
+    <string name="bat_t">ব্যাটারি সেভার থেকে বাদ দিন</string>
+    <string name="bat_p">না হলে ফোন অ্যাপটি বন্ধ করে দিতে পারে, তখন পেমেন্ট নিজে থেকে ভেরিফাই হবে না।</string>
+    <string name="bat_btn">বাদ দিন</string>
+    <string name="bat_m">আপনার ফোনে আরও একটা ধাপ: %1$s</string>
+    <string name="bat_c">ফোনভেদে মেনুর নাম আলাদা হতে পারে।</string>
+    <string name="later">পরে করব</string>
+    <string name="mak_xiaomi_where">সেটিংস → অ্যাপ → Lytro Listener</string>
+    <string name="mak_xiaomi_what">Autostart চালু করুন, Battery saver-এ “No restrictions” বাছুন</string>
+    <string name="mak_oppo_where">সেটিংস → অ্যাপ ম্যানেজমেন্ট → Lytro Listener</string>
+    <string name="mak_oppo_what">Battery usage-এ “Allow background activity” ও “Auto launch” চালু করুন</string>
+    <string name="mak_vivo_where">সেটিংস → ব্যাটারি → Background power consumption</string>
+    <string name="mak_vivo_what">Lytro Listener-কে “Allow” করুন; i Manager-এ Autostart চালু করুন</string>
+    <string name="mak_samsung_where">সেটিংস → অ্যাপ → Lytro Listener → ব্যাটারি</string>
+    <string name="mak_samsung_what">“Unrestricted” বাছুন</string>
+
+    <plurals name="held">
+        <item quantity="one">%1$sটি রিসিট ফোনে জমা আছে। 7 দিন পর্যন্ত রাখা হবে।</item>
+        <item quantity="other">%1$sটি রিসিট ফোনে জমা আছে। 7 দিন পর্যন্ত রাখা হবে।</item>
+    </plurals>
+    <string name="check_now">আবার চেক করুন</string>
+    <string name="st_rev">ফোনটি ক্যানসেল করা হয়েছে</string>
+    <string name="rev_owner">শপের মালিক ড্যাশবোর্ড থেকে এই ফোনটি ক্যানসেল করেছেন। এই ফোন থেকে আর পেমেন্ট SMS যাবে না।</string>
+    <string name="rev_flags">অন্য একটি ডিভাইস থেকে এই ফোনের টোকেন ব্যবহারের চেষ্টা হয়েছে, তাই নিরাপত্তার জন্য ফোনটি ক্যানসেল করা হয়েছে।</string>
+    <string name="rev_op">Lytro এই ফোনটি ক্যানসেল করেছে। এই ফোন থেকে আর পেমেন্ট SMS যাবে না।</string>
+    <string name="re_pair">আবার পেয়ার করুন</string>
+    <string name="st_block">এই ইনস্টলেশন ব্লক করা আছে</string>
+    <string name="block_p">Lytro এই অ্যাপ ইনস্টলেশন ব্লক করেছে। এটি আর কোনো শপের সাথে পেয়ার হবে না।</string>
+    <string name="support">Lytro সাপোর্টে যোগাযোগ করুন</string>
+    <string name="upd_v">আপনার ভার্সন %1$s · দরকার %2$s</string>
+    <string name="download">আপডেট ডাউনলোড করুন</string>
+
+    <string name="menu">মেনু</string>
+    <string name="lang">ভাষা</string>
+    <string name="this_phone">এই ফোন</string>
+    <string name="this_phone_v">%1$s · নাম বদলাতে ড্যাশবোর্ডে যান</string>
+    <string name="shop">শপ</string>
+    <string name="last_rep">শেষ রিপোর্ট</string>
+    <string name="ver">অ্যাপের ভার্সন</string>
+    <string name="test_mode">টেস্ট মোড</string>
+    <string name="test_mode_v">10 মিনিট: রিসিট আসছে না মনে হলে চালু করুন</string>
+    <string name="help">সাহায্য</string>
+    <string name="help_v">সেটআপ গাইড ও সাপোর্ট</string>
+    <string name="unpair">এই ফোন আনপেয়ার করুন</string>
+    <string name="un_t">এই ফোন আনপেয়ার করবেন?</string>
+    <string name="un_p">এই ফোন থেকে আর পেমেন্ট SMS যাবে না। অন্য ফোন পেয়ার না করা পর্যন্ত পেমেন্ট স্টাফকে হাতে ভেরিফাই করতে হবে।</string>
+    <string name="cancel">থাক</string>
+    <string name="un_btn">আনপেয়ার</string>
+    <string name="n_rev">ফোনটি ক্যানসেল করা হয়েছে। পেমেন্ট আর নিজে থেকে ভেরিফাই হবে না।</string>
 </resources>

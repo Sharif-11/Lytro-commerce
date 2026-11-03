@@ -1,9 +1,9 @@
 # Lytro Listener: the Android app
 
-Status: v1.1, 2026-11-03. The design of Lytro Listener, the app a shop runs on the phone that holds its bKash SIM. It
+Status: v1.2, 2026-11-03. The design of Lytro Listener, the app a shop runs on the phone that holds its bKash SIM. It
 forwards payment receipt SMS to Lytro, so an order's advance verifies by itself. It is built in Phase 5 Slice 5.5
-(`PHASE-5-PLAN.md`) in `apps/listener-android`: setup, catching and sending SMS, and Home so far (5.5a); §3.3's stopped
-screens, the battery step, the menu and updates come with 5.5b. The interactive prototype is
+(`PHASE-5-PLAN.md`) in `apps/listener-android`, every screen here included. It has not yet run on a real phone: the Xiaomi test,
+real bKash receipts and the download page (Slice 5.8) stand between it and a shop. The interactive prototype is
 `docs/brand/lytro-listener.html` (320, 360 and 412 px; Bangla with the EN toggle; every screen and state).
 
 Requirements covered: `SRS-detailed.md` LSN-01 to LSN-24, VER-06, VER-07, TEN-16 (the icon), I18N. Brand:
@@ -27,6 +27,19 @@ Requirements covered: `SRS-detailed.md` LSN-01 to LSN-24, VER-06, VER-07, TEN-16
 | Several or no bKash numbers | Several are all listed under the one question. None: it says so, and setup carries on; Home keeps saying it (2.3). |
 | A pairing link | Pairs straight away, the owner's pick: one tap fewer, knowing a link sent by someone else could pair the phone with their shop, which the next screen names. A phone already paired ignores links (§7). |
 | How far the look-back reaches | 7 days, and never behind this phone's pairing: Home does not start full of old money, and a phone re-paired to another shop cannot send the last shop's receipts (§6). |
+
+**Decisions (5.5b's read, agreed 2026-11-03).**
+
+| Point | Decided |
+| --- | --- |
+| Names in the menu | Each report also carries the phone's and the shop's names, so a rename on the dashboard reaches the menu within 15 minutes. A small server addition. |
+| A test receipt's sender | The server's list of this phone's receipts names the sender, and a test receipt shows it, since which sender was read is much of what test mode is for. |
+| "Up to date" | Not claimed. The server knows only the oldest version it accepts, so the menu shows just the version. An update is offered when the minimum rises. |
+| The signing key | Made at the first real release, not before. `scripts/new-release-key.sh` makes it, outside the repo, and `:app:listenerRelease` refuses to build without it. |
+| The battery warning | Clears once Android's exemption is on and the owner has opened the maker's setting from our button. No app can read a maker's Autostart switch, so this can't prove it was flipped, but nobody skips the step by accident. |
+| Oppo, Vivo and Samsung | Their drawn steps show, with a line saying menu names can differ by phone. **Unverified on real phones,** since the one real phone to hand is a Xiaomi. |
+| Support and Help | Open the same WhatsApp as the dashboard, a number set when a release is built; without one the rows hide. The setup guide joins Help with Slice 5.8's page. |
+| Merging | On green CI, the owner's pick over testing on the Xiaomi first, so what that test finds becomes a follow-up. |
 
 ---
 
@@ -75,8 +88,10 @@ it, with one button, Continue; Home keeps saying it until a number is active.
    is how it names the whole SMS group, which is why the screen warns of it first.*
 
 **2.6 The extra step, by maker.** Budget phones kill background apps harder than Android's own setting allows for. The
-app reads the phone's maker and shows that maker's step only. The menu paths vary by Android version, so they are to be
-checked on real phones before release (§7).
+app reads the phone's maker and shows that maker's step only, with a line saying menu names can differ by phone. Open Settings
+goes to App info on every maker: it is where Xiaomi's step is, and it is the one page that always exists, whereas Xiaomi's own
+Autostart screen has moved between versions. The menu paths are to be checked on real phones before release (§7), and only Xiaomi's
+can be for now. Later goes straight to Home, which warns until Android's exemption is on and that setting has been opened.
 
 | Maker | Where | What |
 | --- | --- | --- |
@@ -170,7 +185,8 @@ Held receipts stay on the phone for up to 7 days, since the server ignores older
 ## 4. The menu
 
 Language; this phone's name (renamed on the dashboard, LSN-20); the shop and its bKash number; last report; app version;
-test mode; help; **Unpair this phone**, with a confirmation that says payments go back to being verified by hand.
+test mode; help; **Unpair this phone**, with a confirmation that says payments go back to being verified by hand. A phone that
+unpaired itself goes straight to Welcome, with no "revoked" screen and no notification.
 
 **Test mode (LSN-04) starts here, on the phone.** A phone reports every 15 minutes, so it would not hear a switch on the
 dashboard for up to that long. It verifies nothing, so holding the paired phone is enough to start it.
@@ -229,6 +245,9 @@ phone already paired ignores it, so no link can move a working phone to another 
 
 **The download page (Slice 5.8) must warn of Android's block** (§2's end): on Android 15 and later, step 1 of setup stops at
 "App was denied access to SMS" until the owner follows the app's help screen. It is expected, and the guide should say so.
+
+**Google Play, if it ever comes:** this app asks for Android's battery exemption directly and reads SMS, both of which Play
+restricts, so applying would mean changing how it does both.
 
 **Before release:** real bKash receipts for the parser (agreed in 5.4's read, the owner to forward a few); the makers'
 menu paths checked on real phones; the download page, in `SITE-PAGES-DESIGN.md`'s style; the signing key's backup.
