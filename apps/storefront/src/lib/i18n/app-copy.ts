@@ -4,8 +4,6 @@
 export const APP_COPY = {
   // The prototype draws two fixed zones; a shop has its own, so the range is built from them (SFT-20).
   deliv_range: ['{from} – {to}', '{from} – {to}'],
-  // Slice 12 (agreed 2026-10-29): the order form is laid out but not sent until Phase 4, said in one line.
-  landing_soon: ['অনলাইনে অর্ডার শিগগিরই চালু হবে।', 'Online ordering opens soon.'],
   // LIF-07: a closed shop is named to nobody, so its page cannot say whose it is.
   off_p: [
     'দোকানটি এই মুহূর্তে বন্ধ আছে। কিছুক্ষণ পরে আবার চেষ্টা করুন।',
@@ -38,4 +36,21 @@ export const APP_COPY = {
   // The prototype's counts, for exactly one ("1 products" otherwise); Bangla has one form.
   products_one: ['{n}টি প্রোডাক্ট', '{n} product'],
   cart_one: ['{n}টি আইটেম', '{n} item'],
+  // Slice 4.8e: where the prototype names its example -- a product, a tax, a size -- each with the shop's real one.
+  tax_in: ['এর মধ্যে {name} {rate}%', 'Includes {name} {rate}%'],
+  adv_t_n: ['{p}-এ ৳{n} অ্যাডভান্স লাগে', '{p} needs a ৳{n} advance'],
+  adv_t: ['{p}-এ আগে পেমেন্ট লাগে', '{p} needs paying first'],
+  short_t: ['{p} এইমাত্র শেষ হয়ে গেছে', '{p} just sold out'],
+  short_any: ['একটি আইটেম এইমাত্র শেষ হয়ে গেছে', 'An item just sold out'],
+  out_t: ['{p} স্টকে নেই', '{p} is sold out'],
+  gone_t: ['{p} আর বিক্রি হচ্ছে না', '{p} is no longer sold'],
+  refit_t: ['{p}-এর অপশন বদলে গেছে', "{p}'s options changed"],
+  combo_pick: ['প্রতিটির জন্য একটি বেছে নিন', 'Pick one for each'],
+  rule_optional: ['ঐচ্ছিক · সর্বোচ্চ {n}টি', 'Optional · at most {n}'],
+  rule_pick: ['{n}টি বাছুন', 'Pick {n}'],
+  rule_range: ['{a} থেকে {b}টি বাছুন', 'Pick {a} to {b}'],
+  // The prototype writes these in place, with its example customer.
+  name_ph: ['যেমন: রুমানা আক্তার', 'e.g. Rumana Akter'],
+  // Not drawn: the order's own discount, which staff may set, so its total still adds up.
+  discount: ['ছাড়', 'Discount'],
 } as const satisfies Record<string, readonly [string, string]>;

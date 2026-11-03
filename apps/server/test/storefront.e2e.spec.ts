@@ -351,6 +351,8 @@ describeIfDatabase('what the storefront reads (TEN-16, TEN-30, DLV-01, DLV-07, C
       available: false,
       itemTotal: null,
       advance: null,
+      paymentPolicy: null,
+      choicesFit: true,
     });
     const asked = { items: [item(theirs), item(hidden), item(gone), item(empty), item(shirt, 2)] };
 
@@ -379,11 +381,14 @@ describeIfDatabase('what the storefront reads (TEN-16, TEN-30, DLV-01, DLV-07, C
           available: true,
           itemTotal: '900.00',
           advance: '0.00',
+          paymentPolicy: 'none',
+          choicesFit: true,
         },
       ],
       subtotal: '900.00',
       range: { from: '70.00', to: '130.00' },
       deliverable: true,
+      taxes: [],
     });
 
     expect((await shop.patch(`/products/${shirt.id}`, { basePrice: 475 })).status).toBe(200);
@@ -401,6 +406,20 @@ describeIfDatabase('what the storefront reads (TEN-16, TEN-30, DLV-01, DLV-07, C
       deliveryCharge: null,
       range: null,
       deliverable: false,
+      taxes: [],
+    });
+  });
+
+  it('says how each line is paid for, a delivery charge first included, which its advance does not show (Slice 4.8e)', async () => {
+    const shop = await openShop(port, texts, 'sf');
+    const sf = await open(shop);
+    const first = await product(shop, { name: 'Glass', paymentPolicy: 'delivery_charge_only' });
+    const answer = await asStorefront('POST', '/v1/delivery-estimate', sf, {
+      items: [{ variantId: first.variantId, quantity: 1 }],
+    });
+    expect(answer.status, JSON.stringify(answer.body)).toBe(200);
+    expect(answer.body).toMatchObject({
+      lines: [{ advance: '0.00', paymentPolicy: 'delivery_charge_only' }],
     });
   });
 });

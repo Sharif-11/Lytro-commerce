@@ -96,6 +96,38 @@ describe('StorefrontApi', () => {
     expect(fake.calls).toHaveLength(2);
   });
 
+  it('sends an order with its key, as the shop, and gives back the answer as it came (SFT-06)', async () => {
+    const refused: ServerAnswer<unknown> = {
+      status: 409,
+      data: null,
+      code: 'conflict',
+      details: { reason: 'zone_no_delivery' },
+    };
+    const fake = server(refused);
+    const body = { customerName: 'Rahima' };
+    const answer = await new StorefrontApi(fake, env).placeOrder(shop, shopper, body, 'key-1');
+    expect(answer).toEqual(refused);
+    expect(fake.calls[0]).toMatchObject({
+      method: 'POST',
+      path: '/v1/orders',
+      host: 'api.lytro.app',
+      body,
+      headers: { 'idempotency-key': 'key-1', authorization: 'Bearer lytro_pk_abc' },
+    });
+  });
+
+  it('reads tracking as found, missing or too many looks (ORD-17)', async () => {
+    const order = { trackingId: 'K7F2M9QX' };
+    const none = { status: 404, data: null, code: 'not_found', details: {} };
+    const busy = { status: 429, data: null, code: 'rate_limited', details: {} };
+    const fake = server(ok(order), none, busy);
+    const api = new StorefrontApi(fake, env);
+    expect(await api.track(shop, shopper, 'K7F2M9QX')).toEqual({ kind: 'found', order });
+    expect(await api.track(shop, shopper, 'NOPE')).toEqual({ kind: 'missing' });
+    expect(await api.track(shop, shopper, 'K7F2M9QX')).toEqual({ kind: 'busy' });
+    expect(fake.calls[0]?.path).toBe('/v1/track/K7F2M9QX');
+  });
+
   it('turns an old link into a redirect and an unknown one into missing (LND-03, LND-04)', async () => {
     const fake = server(ok({ slug: 'cotton-panjabi' }), ok({ slug: 'cotton-panjabi' }), {
       status: 404,

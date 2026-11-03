@@ -40,13 +40,9 @@ import {
   type IdempotencyClaim,
 } from '../../../common/idempotency/idempotency.service';
 import { DAY_MS, dhakaDate, dhakaDayStart, startOfDayDhaka } from '../../../common/time';
-import { fromPaisa, toPaisa } from '../../balance/services/money';
+import { toPaisa } from '../../balance/services/money';
 import { CatalogueActivity, type ResolvedActor } from '../../catalogue/services/catalogue-activity';
-import type {
-  CatalogueActor,
-  ModifierGroupView,
-  OrderableVariant,
-} from '../../catalogue/types/catalogue';
+import type { CatalogueActor, OrderableVariant } from '../../catalogue/types/catalogue';
 import { CustomerService } from '../../customers/services/customer.service';
 import { LocationService } from '../../delivery/services/location.service';
 import type { ResolvedZoneView } from '../../delivery/types/delivery';
@@ -72,7 +68,14 @@ import type {
   UnnumberedOrder,
 } from '../types/orders';
 import { newTrackingId, orderNumberOf } from './order-numbers';
-import { OrderPricing, taxesOf, type OrderPrice, type PricingLine } from './order-pricing';
+import {
+  chooseModifiers,
+  OrderPricing,
+  priceWithModifiers,
+  taxesOf,
+  type OrderPrice,
+  type PricingLine,
+} from './order-pricing';
 import { PaymentRecorder, paymentEntryOf } from './payment-recorder';
 
 // ORD-05: how many tracking IDs are drawn before giving up; a clash is one in a trillion.
@@ -1273,12 +1276,10 @@ export class OrderService {
       // and given no choices keeps its own and its price; a price staff set by hand is final, the choices still kept.
       const choosing = item.modifiers !== undefined || !kept;
       const modifiers: LineModifierSnapshot[] = choosing
-        ? this.chooseModifiers(variant?.modifierGroups ?? [], item.modifiers ?? [], at, problems)
+        ? chooseModifiers(variant?.modifierGroups ?? [], item.modifiers ?? [], at, problems)
         : kept.modifiers;
       const base = kept ? kept.listPrice : (variant?.price ?? '0.00');
-      const workedPrice = choosing
-        ? fromPaisa(modifiers.reduce((sum, row) => sum + toPaisa(row.priceChange), toPaisa(base)))
-        : kept.unitPrice;
+      const workedPrice = choosing ? priceWithModifiers(base, modifiers) : kept.unitPrice;
       const byHand = item.unitPrice !== undefined;
       if (!byHand && toPaisa(workedPrice) < 0n) {
         problems.push({
@@ -1373,73 +1374,6 @@ export class OrderService {
       lines: planned.map((line) => line.pricing),
       discount,
       deliveryChargeByHand: delivery.byHand,
-    });
-  }
-
-  /**
-   * MNU-02, MNU-03 (Slice 4.6b): the options chosen for a line -- each group named takes the options given, each group
-   * not named its defaults -- each group held to its least and most; a group or option not of the product is refused,
-   * naming it. The snapshot keeps each option's group, name and price change as they stand now.
-   */
-  private chooseModifiers(
-    groups: readonly ModifierGroupView[],
-    chosen: readonly { groupId: string; optionIds: string[] }[],
-    at: (field: string) => string,
-    problems: InvalidField[],
-  ): LineModifierSnapshot[] {
-    const byId = new Map(groups.map((group) => [group.id, group]));
-    const picked = new Map<string, string[]>();
-    chosen.forEach((choice, position) => {
-      const group = byId.get(choice.groupId);
-      if (!group) {
-        problems.push({
-          field: at(`modifiers.${String(position)}.groupId`),
-          problem: ServerFieldProblemCode.NotFound,
-          messageKey: 'ModifierGroupNotFound',
-        });
-        return;
-      }
-      if (picked.has(group.id)) {
-        problems.push({
-          field: at(`modifiers.${String(position)}.groupId`),
-          problem: FieldProblemCode.NotAllowed,
-        });
-        return;
-      }
-      const known = new Set(group.options.map((option) => option.id));
-      const unknown = choice.optionIds.findIndex((id) => !known.has(id));
-      if (unknown >= 0) {
-        problems.push({
-          field: at(`modifiers.${String(position)}.optionIds.${String(unknown)}`),
-          problem: ServerFieldProblemCode.NotFound,
-          messageKey: 'ModifierOptionNotFound',
-        });
-        return;
-      }
-      picked.set(group.id, [...new Set(choice.optionIds)]);
-    });
-    return groups.flatMap((group) => {
-      const ids =
-        picked.get(group.id) ??
-        group.options.filter((option) => option.isDefault).map((option) => option.id);
-      if (ids.length < group.minSelect || ids.length > group.maxSelect) {
-        problems.push({
-          field: at('modifiers'),
-          problem: ServerFieldProblemCode.OutOfRange,
-          messageKey: 'ModifierChoiceCount',
-          params: { group: group.name, min: group.minSelect, max: group.maxSelect },
-        });
-        return [];
-      }
-      return group.options
-        .filter((option) => ids.includes(option.id))
-        .map((option) => ({
-          groupId: group.id,
-          groupName: group.name,
-          optionId: option.id,
-          optionName: option.name,
-          priceChange: option.priceChange,
-        }));
     });
   }
 

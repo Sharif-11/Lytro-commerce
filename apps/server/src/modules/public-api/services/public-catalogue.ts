@@ -37,8 +37,8 @@ import { DomainService } from '../../domains/services/domain.service';
 import { comboFigures, comboSaving, unitsOf } from '../../inventory/services/combo-figures';
 
 // Bumped whenever an answer's shape changes, so no shopper's browser keeps an old one under an unchanged tag. 2: a list
-// row's swatches and creation time, a category's product count (Slice 12b).
-const ANSWER_FORMAT = 2;
+// row's swatches and creation time, a category's product count (Slice 12b). 3: what a product asks (Slice 4.8e).
+const ANSWER_FORMAT = 3;
 // CCH-04: the version endpoint itself is kept at most this long.
 const VERSION_MAX_AGE_SECONDS = 5;
 // FED-04: a feed is fetched on Meta's schedule; its answer is kept no longer than a product page.
@@ -397,5 +397,12 @@ function publicDetail(detail: ProductDetail): Omit<PublicProductDetail, 'combo'>
     advanceAmount: detail.effectiveAdvanceAmount,
     deliveryZoneIds: detail.deliveryZoneIds,
     modifierGroups: detail.modifierGroups,
+    asked: detail.attributes
+      .filter((attribute) => attribute.role === AttributeRole.CapturedAtOrder)
+      .map((attribute) => ({
+        attributeId: attribute.attributeId,
+        name: attribute.name,
+        dataType: attribute.dataType,
+      })),
   };
 }

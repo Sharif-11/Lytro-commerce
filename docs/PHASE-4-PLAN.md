@@ -433,7 +433,9 @@ combos and statistics). If velocity suggests it, the rest can become Phase 4B wi
   for whoever may see costs and beside stock value, best sellers and a product's 12 months; what the sketch lacked is
   drawn first (v3.30), with `kind` added to the best sellers' read and no migration. **Part e ships in two** (agreed
   2026-11-03): ordering first, with the landing page's form, its Pixel events and a storefront browser suite that closes
-  KNOWN-GAPS §105; then the shopper's account. Shoppers are asked what a seller marked asked when ordering, on the
+  KNOWN-GAPS §105 (built 2026-11-03, STOREFRONT-DESIGN v1.4 §7b, no migration: the public product lists what it asks;
+  the estimate takes add-ons and says the tax; tracking names a combo's parts and the shopper's answers; LND-07 and
+  LND-15 amended); then the shopper's account. Shoppers are asked what a seller marked asked when ordering, on the
   product page, optional.
 - **Sketch first** (`sketch-every-screen-before-building`): the status flow with the call log, Confirm, cancel
   reasons, Mark shipped and returns; the storefront's checkout for cash on delivery, the confirmation without an SMS

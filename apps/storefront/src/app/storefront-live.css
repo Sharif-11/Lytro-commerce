@@ -1,6 +1,13 @@
 /* What the prototype draws as a placeholder, filled with the shop's real content (Slice 12a). The prototype's rules
    stay in storefront.css as drawn; these only let a real photo, video or link sit where its placeholder sat. */
 
+/* The type the prototype's body sets, which its page frame stands in for here. */
+.frame {
+  font-size: 14px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
 /* Links where the prototype draws a clickable span or button. */
 .hdr a.shop,
 .hdr a.back,
@@ -44,17 +51,6 @@ a.btn {
 .gallery .dots button,
 .thumbs button {
   display: block;
-}
-
-/* Buy now waits for ordering (Phase 4); the line saying so shows where the button does, on a wide screen. */
-.buy .soon {
-  display: none;
-  font-size: 12px;
-}
-@container (min-width: 1024px) {
-  .buy .soon {
-    display: block;
-  }
 }
 
 /* A product card is a link to its page; its photo fills the card's frame. */
@@ -110,6 +106,43 @@ a.cat,
 .cl button.rm {
   align-self: flex-start;
   padding: 0;
+}
+
+/* Slice 4.8e: a combo part's photo in its tile, an add-on as the button the prototype draws as a label, an empty summary
+   row, and the page an order was just placed on, whose footer the confirmation replaces. */
+.combo .part .th {
+  overflow: hidden;
+}
+.combo .part .th img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+button.radio {
+  width: 100%;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  align-items: center;
+}
+.addons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+button.vb.gone {
+  opacity: 0.4;
+  text-decoration: line-through;
+}
+.page:has(.placed) .foot,
+.shell:has(.placed) .buybar {
+  display: none;
+}
+
+/* Tracking's search box sits in the page's column, where its growing would stretch it down a short page. */
+.page > .sbox {
+  flex: none;
 }
 
 /* A category's photo in its tile, and a card's swatch photo and its "+n" when it has more than it shows. */

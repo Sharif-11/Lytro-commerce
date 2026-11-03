@@ -9,7 +9,8 @@
     "start": "next start -p 3001",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint .",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --passWithNoTests",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@lytronix/shared-types": "workspace:*",
@@ -19,6 +20,7 @@
     "react-dom": "^19"
   },
   "devDependencies": {
+    "@playwright/test": "1.64.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "vitest": "^2.1.2"
