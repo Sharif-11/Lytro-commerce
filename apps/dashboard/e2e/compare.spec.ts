@@ -1512,6 +1512,174 @@ const COMBO_EDITOR: Pair[] = [
   },
 ];
 
+/** Part 32's day, the last of October, for the app's own dates to read as drawn. */
+const lastOfOctober = async (page: Page): Promise<void> => {
+  await page.clock.setFixedTime(new Date('2026-10-31T12:00:00+06:00'));
+};
+
+/** Sales (Slice 4.8d), beside Part 32's drawing of each. */
+const SALES: Pair[] = [
+  {
+    name: 'sales',
+    screen: 'sales32',
+    device: 'phone',
+    language: 'bn',
+    path: '/sales',
+    before: lastOfOctober,
+  },
+  {
+    name: 'sales',
+    screen: 'sales32',
+    device: 'desktop',
+    language: 'en',
+    path: '/sales',
+    before: lastOfOctober,
+  },
+  {
+    name: 'sales-profit',
+    screen: 'sales32',
+    device: 'phone',
+    language: 'bn',
+    path: '/sales',
+    before: lastOfOctober,
+    scroll: /^লাভ$/,
+  },
+  {
+    name: 'sales-month',
+    screen: 'sales32-month',
+    device: 'desktop',
+    language: 'en',
+    path: '/sales?period=thisYear',
+    before: lastOfOctober,
+  },
+  {
+    name: 'sales-quarter',
+    screen: 'sales32-quarter',
+    device: 'phone',
+    language: 'bn',
+    path: '/sales?period=thisYear&bucket=quarter',
+    before: lastOfOctober,
+  },
+  {
+    name: 'sales-year',
+    screen: 'sales32-year',
+    device: 'phone',
+    language: 'bn',
+    path: '/sales?period=custom&from=2025-01-01&to=2026-10-31&bucket=year',
+    before: lastOfOctober,
+  },
+  {
+    name: 'sales-many',
+    screen: 'sales32-many',
+    device: 'phone',
+    language: 'bn',
+    path: '/sales?period=custom&from=2023-11-01&to=2026-10-31&bucket=month',
+    before: lastOfOctober,
+    state: { sales: { many: true } },
+  },
+  {
+    name: 'sales-revenue',
+    screen: 'sales32-revenue',
+    device: 'desktop',
+    language: 'en',
+    path: '/sales?by=revenue',
+    before: lastOfOctober,
+  },
+  {
+    name: 'sales-product',
+    screen: 'sales32-product',
+    device: 'phone',
+    language: 'bn',
+    path: `/sales/p-1?name=${encodeURIComponent('কটন টি-শার্ট')}`,
+    before: lastOfOctober,
+  },
+  {
+    name: 'sales-product',
+    screen: 'sales32-product',
+    device: 'desktop',
+    language: 'en',
+    path: '/sales/p-1?name=Cotton%20T-shirt',
+    before: lastOfOctober,
+  },
+  {
+    name: 'sales-product-none',
+    screen: 'sales32-product-none',
+    device: 'phone',
+    language: 'bn',
+    path: `/sales/p-1?name=${encodeURIComponent('কটন টি-শার্ট')}`,
+    before: lastOfOctober,
+    state: { sales: { trendNone: true } },
+  },
+  {
+    name: 'sales-staff',
+    screen: 'sales32-staff',
+    device: 'desktop',
+    language: 'en',
+    path: '/sales',
+    before: lastOfOctober,
+    state: { isOwner: false, permissions: ['orders:read'] },
+    scroll: /^Revenue by week$/,
+  },
+  {
+    name: 'sales-empty',
+    screen: 'sales32-empty',
+    device: 'phone',
+    language: 'bn',
+    path: '/sales',
+    before: lastOfOctober,
+    state: { sales: { empty: 'never' } },
+  },
+  {
+    name: 'sales-none',
+    screen: 'sales32-none',
+    device: 'phone',
+    language: 'bn',
+    path: '/sales',
+    before: lastOfOctober,
+    state: { sales: { empty: 'period' } },
+  },
+  {
+    name: 'sales-period',
+    screen: 'sh-sales32-period',
+    device: 'phone',
+    language: 'bn',
+    path: '/sales',
+    before: lastOfOctober,
+    then: async (page) => {
+      await page
+        .getByRole('main')
+        .getByRole('button', { name: /এই মাস/ })
+        .click();
+    },
+  },
+  {
+    name: 'sales-long',
+    screen: 'sh-sales32-long',
+    device: 'phone',
+    language: 'bn',
+    path: '/sales',
+    before: lastOfOctober,
+    then: async (page) => {
+      await page
+        .getByRole('main')
+        .getByRole('button', { name: /এই মাস/ })
+        .click();
+      await dialogOf(page).getByLabel('শুরুর তারিখ').fill('2020-01-01');
+    },
+  },
+  {
+    name: 'sales-all',
+    screen: 'sh-sales32-all',
+    device: 'phone',
+    language: 'bn',
+    path: '/sales',
+    before: lastOfOctober,
+    then: async (page) => {
+      await page.getByRole('main').getByRole('button', { name: 'সব দেখুন' }).click();
+    },
+  },
+];
+
 const PAIRS: Pair[] = [
   { name: 'home', screen: 'home', device: 'phone', language: 'bn', path: '' },
   { name: 'home', screen: 'home', device: 'tablet', language: 'bn', path: '' },
@@ -1537,6 +1705,7 @@ const PAIRS: Pair[] = [
   ...CUSTOMERS,
   ...TAX_ADDONS_STOCK,
   ...COMBO_EDITOR,
+  ...SALES,
   {
     name: 'plus',
     screen: 'plus',

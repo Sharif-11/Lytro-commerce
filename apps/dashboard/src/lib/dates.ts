@@ -138,6 +138,14 @@ export function formatMonth(iso: string, language: string): string {
   }).format(new Date(iso));
 }
 
+/** A month's short name: "Oct", "অক্টো" (Dhaka's calendar). English is en-US's: en-GB writes September "Sept". */
+export function shortMonth(iso: string, language: string): string {
+  return new Intl.DateTimeFormat(language === 'bn' ? 'bn-BD' : 'en-US', {
+    month: 'short',
+    timeZone: DHAKA,
+  }).format(new Date(iso));
+}
+
 /** A month with its year, for a list grouped by month: "October 2026", "অক্টোবর 2026" (Western digits). */
 export function formatMonthYear(iso: string, language: string): string {
   const year = new Intl.DateTimeFormat('en-GB', { year: 'numeric', timeZone: DHAKA }).format(

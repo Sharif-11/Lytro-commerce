@@ -746,7 +746,7 @@
   "svAtAvg": "at average cost",
   "svByCat": "By category",
   "svGate": "Only for those who may see costs (inventory:manage).",
-  "svLead": "What is on hand at average cost; losses are damaged, expired, missing at a count and write-offs. Profit arrives with orders (Phase 4).",
+  "svLead": "What is on hand at average cost; losses are damaged, expired, missing at a count and write-offs. Profit comes from delivered orders.",
   "svLosses": "Losses this month",
   "svNow": "At average cost, now",
   "svTotal": "Stock on hand",
