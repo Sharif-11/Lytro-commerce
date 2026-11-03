@@ -1,6 +1,7 @@
 package app.lytro.listener
 
 import android.content.Context
+import android.os.ParcelFileDescriptor
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.platform.app.InstrumentationRegistry
 import app.lytro.listener.data.PhoneFacts
@@ -92,10 +93,10 @@ class FakeLytro {
 /** Android's own battery exemption, on or off, as an owner sets it. */
 fun setBatteryExempt(exempt: Boolean) {
     val sign = if (exempt) "+" else "-"
-    InstrumentationRegistry.getInstrumentation().uiAutomation
+    val output = InstrumentationRegistry.getInstrumentation().uiAutomation
         .executeShellCommand("dumpsys deviceidle whitelist $sign${appContext.packageName}")
-        .close()
-    Thread.sleep(500)
+    // Read to the end: on Android 7, closing this first breaks the pipe Android is writing to, and that crashes its system process.
+    ParcelFileDescriptor.AutoCloseInputStream(output).use { it.readBytes() }
 }
 
 /** As if just installed: nothing paired, nothing saved. */
