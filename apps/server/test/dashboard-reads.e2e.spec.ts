@@ -237,6 +237,7 @@ describeIfDatabase(
       expect((await shop.get('/balance')).body).toEqual({
         amount: '0.00',
         frozen: false,
+        held: '0.00',
         topUpMin: 100,
         topUpMax: 50000,
         feesThisMonth: '0.00',

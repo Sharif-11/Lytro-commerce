@@ -223,6 +223,12 @@ export const LISTENER_UNREAD_ALERT_PER_DAY = 20;
 export const LISTENER_RECENT_DEFAULT = 20;
 export const LISTENER_RECENT_MAX = 50;
 export const LISTENER_RECEIPT_PAGE_SIZE = 20;
+// Slice 5.7: bKash allows [2] token calls an hour and blocks an app for an hour past that; a call counts as lost after [30] seconds.
+export const GATEWAY_TOKEN_CALLS_PER_HOUR = 2;
+export const GATEWAY_CALL_TIMEOUT_SECONDS = 30;
+// A gateway credential's field, and a gateway's own payment reference.
+export const GATEWAY_FIELD_MAX_LENGTH = 255;
+export const GATEWAY_PAYMENT_ID_MAX_LENGTH = 100;
 // PAY-07 (amended 2026-11-02): how many times a shopper may correct a typed transaction ID.
 export const PAYMENT_ID_CHANGES_MAX = 3;
 // VER-07: minutes a payment waits on a phone before staff are told.

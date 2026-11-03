@@ -87,6 +87,7 @@ export class PaymentReview {
         transactionId: session.transactionId,
         sessionId: session.id,
         verificationLevel: level,
+        test: session.test,
       },
       who,
       '',

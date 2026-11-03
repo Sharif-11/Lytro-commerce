@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ClientIp } from '../../common/client-ip';
+import { GatewayModule } from '../gateway/gateway.module';
 import { ListenerReceiptsModule } from '../listener-receipts/listener-receipts.module';
 import { MediaModule } from '../media/media.module';
 import { PaymentSessionsModule } from '../payment-sessions/payment-sessions.module';
@@ -13,6 +14,7 @@ import { PaymentPageGuard } from './guards/payment-page.guard';
 // the public API. It reads that API's visitor limit; TenancyModule is imported only for ClientIp's EdgeSecret.
 @Module({
   imports: [
+    GatewayModule,
     ListenerReceiptsModule,
     MediaModule,
     PaymentSessionsModule,

@@ -4,6 +4,7 @@ import {
   check,
   primaryKey,
   smallint,
+  text,
   timestamp,
   unique,
   uniqueIndex,
@@ -17,8 +18,9 @@ import {
   PAYMENT_ACCOUNT_NAME_MAX_LENGTH,
   PAYMENT_ACCOUNT_NOTE_MAX_LENGTH,
   WalletAccountType,
+  type PaymentWay,
 } from '@lytronix/validators';
-import { createdAt, tenant } from '../shared';
+import { bytea, createdAt, tenant } from '../shared';
 import { paymentMethod } from './orders';
 
 export const walletAccountType = tenant.enum(
@@ -48,6 +50,11 @@ export const walletAccounts = tenant.table(
     swiftCode: varchar('swift_code', { length: BANK_FIELD_MAX_LENGTH }),
     instructions: varchar('instructions', { length: BANK_INSTRUCTIONS_MAX_LENGTH }),
     active: boolean('active').notNull().default(false),
+    // WAL-09, WAL-10, WAL-19 (Slice 5.7): the gateway's credentials, sealed and never returned; whether they are for its test
+    // environment; and whether this is the account automated payments go to, independent of `active`.
+    gatewayCredentials: bytea('gateway_credentials'),
+    gatewaySandbox: boolean('gateway_sandbox').notNull().default(false),
+    automated: boolean('automated').notNull().default(false),
     // The order the shop listed them, from 0.
     position: smallint('position').notNull(),
     createdAt: createdAt(),
@@ -58,6 +65,13 @@ export const walletAccounts = tenant.table(
     uniqueIndex('wallet_accounts_active_key')
       .on(t.tenantId, t.method)
       .where(sql`${t.active}`),
+    uniqueIndex('wallet_accounts_automated_key')
+      .on(t.tenantId, t.method)
+      .where(sql`${t.automated}`),
+    check(
+      'wallet_accounts_automated_check',
+      sql`NOT ${t.automated} OR ${t.gatewayCredentials} IS NOT NULL`,
+    ),
     uniqueIndex('wallet_accounts_number_key')
       .on(t.tenantId, t.method, t.number)
       .where(sql`${t.number} IS NOT NULL`),
@@ -74,6 +88,20 @@ export const walletAccounts = tenant.table(
           AND ${t.accountNumber} IS NULL AND ${t.branch} IS NULL AND ${t.routingNumber} IS NULL
           AND ${t.swiftCode} IS NULL AND ${t.instructions} IS NULL END`,
     ),
+  ],
+);
+
+// PAY-06 (amended 2026-11-03, Slice 5.7 read): how the owner takes a method's money. No row means its starting way (`startingWayOf`).
+export const paymentMethodWays = tenant.table(
+  'payment_method_ways',
+  {
+    tenantId: uuid('tenant_id').notNull(),
+    method: paymentMethod('method').notNull(),
+    way: text('way').$type<PaymentWay>().notNull(),
+  },
+  (t) => [
+    primaryKey({ name: 'payment_method_ways_pkey', columns: [t.tenantId, t.method] }),
+    check('payment_method_ways_way_check', sql`${t.way} IN ('automated', 'listener', 'manual')`),
   ],
 );
 

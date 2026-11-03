@@ -297,6 +297,10 @@ export {
   type NewListenerDevice,
 } from './repositories/listener/listener.repository';
 export {
+  GatewayCredentialUseRepository,
+  type NewGatewayCredentialUse,
+} from './repositories/payments/gateway-credential-use.repository';
+export {
   LytroMessageRepository,
   type NewLytroMessage,
 } from './repositories/listener/lytro-message.repository';

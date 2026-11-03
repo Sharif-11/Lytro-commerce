@@ -169,6 +169,13 @@ export class ReceiptMatcher {
       );
       return this.heldForStaff(tx, tenantId, receipt, session.id, PaymentReviewReason.OrderClosed);
     }
+    // Slice 5.7 (agreed 2026-11-03): the shop checks this wallet by hand: the receipt waits beside the payment for staff, free.
+    if (
+      session.method === receipt.method &&
+      (await this.sessions.byHandWithin(tx, tenantId, session.method))
+    ) {
+      return this.heldForStaff(tx, tenantId, receipt, session.id, PaymentReviewReason.ByHand);
+    }
     const order = await this.orders.lockWithin(tx, tenantId, session.orderId);
     const reason =
       this.reasonAgainst(session, order, receipt) ??

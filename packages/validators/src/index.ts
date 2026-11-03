@@ -21,6 +21,7 @@ export * from './api/purchasing/receipt';
 export * from './api/orders/order';
 export * from './api/orders/sales';
 export * from './api/payment-methods/payment-methods';
+export * from './api/payment-methods/gateway';
 export * from './api/payment-methods/payment-sessions';
 export * from './api/listener/listener';
 export * from './api/customers/customer';

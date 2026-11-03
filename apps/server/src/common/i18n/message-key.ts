@@ -593,6 +593,16 @@ export const MESSAGE_KEYS = [
   'PaymentMethodSaved',
   'PaymentMethodNotFound',
   'PaymentAccountNotFound',
+  // Phase 5 Slice 5.7: how a shop takes a wallet's money, and a wallet's own checkout (PAY-06, WAL-09 to WAL-13, VER-08 to VER-11).
+  'PaymentWayChosen',
+  'PaymentWayNotAvailable',
+  'GatewayCredentialsSaved',
+  'GatewayCredentialsRemoved',
+  'GatewayCredentialsNeeded',
+  'GatewayTested',
+  'GatewayAccountSelected',
+  'GatewayCheckoutStarted',
+  'CredentialUsesListed',
   // Phase 5 Slice 5.2: an order paid online, and its payment page (PAY-01 to PAY-08, D5-4, D5-5).
   'NoPaymentMethod',
   'PaymentMethodNotOffered',

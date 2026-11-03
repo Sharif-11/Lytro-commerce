@@ -318,6 +318,16 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'DELETE /orders/:id': "another shop's order answers 404 and is kept",
   // Phase 5 Slice 5.1, checked in test/payment-methods.e2e.spec.ts: a shop's payment accounts are its own.
   'GET /payment-methods': "lists only the session shop's own accounts",
+  // Phase 5 Slice 5.7, checked in test/gateway.e2e.spec.ts.
+  'PUT /payment-methods/:method/way': "changes only the session shop's own way",
+  'PUT /payment-methods/accounts/:id/gateway': "another shop's account answers not_found",
+  'DELETE /payment-methods/accounts/:id/gateway': "another shop's account answers not_found",
+  'POST /payment-methods/accounts/:id/gateway/test': "another shop's account answers not_found",
+  'POST /payment-methods/accounts/:id/automated': "another shop's account answers not_found",
+  'POST /public/pay/:ref/checkout':
+    "the reference names the shop; another shop's method isn't offered",
+  'GET /public/pay/:ref/gateway-return':
+    "the reference names the shop; another's paymentID changes nothing",
   'PUT /payment-methods/:method':
     "another shop's account answers not_found and stays; the same number is still free here",
   'GET /public/payment-methods': "shows only the key's own shop's active accounts",

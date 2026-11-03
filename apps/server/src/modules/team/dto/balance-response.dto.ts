@@ -6,6 +6,8 @@ import { LedgerEntryType, RateKey, TenantState } from '@lytronix/validators';
 export const balanceViewSchema = z.object({
   amount: z.string(),
   frozen: z.boolean(),
+  // WAL-21 (Slice 5.7): held for open checkouts at a wallet.
+  held: z.string(),
   topUpMin: z.number(),
   topUpMax: z.number(),
   // PYG-02, PYG-16: the pay-as-you-go fees charged since the 1st of this month in Asia/Dhaka.

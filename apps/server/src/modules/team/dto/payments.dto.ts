@@ -34,6 +34,7 @@ export const paymentListItemSchema = z.object({
   decidedAt: z.coerce.date().nullable(),
   rejectReason: z.nativeEnum(PaymentRejectReason).nullable(),
   note: z.string().nullable(),
+  test: z.boolean(),
   reviewReason: z.nativeEnum(PaymentReviewReason).nullable(),
   receipt: z
     .object({

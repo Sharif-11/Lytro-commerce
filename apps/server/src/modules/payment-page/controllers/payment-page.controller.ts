@@ -1,8 +1,23 @@
-import { Body, Controller, Get, Inject, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Inject,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { createZodDto, ZodResponse } from 'nestjs-zod';
 import { z } from 'zod';
 import {
+  gatewayCheckoutSchema,
+  GatewayResult,
   paymentIdChangeSchema,
   PaymentMethod,
   PaymentMethodKind,
@@ -12,6 +27,8 @@ import {
   PaymentSessionState,
   paymentSubmissionSchema,
   WalletAccountType,
+  PaymentWay,
+  type GatewayCheckoutInput,
   type PaymentIdChangeInput,
   type PaymentPageReportInput,
   type PaymentSubmissionInput,
@@ -21,6 +38,8 @@ import { PublicApiRoute } from '../../../common/decorators/public-api';
 import { OkDto } from '../../../common/dto/ok.dto';
 import { ResponseMessage } from '../../../common/decorators/response-message';
 import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
+import { GatewayCheckouts, type StartedCheckout } from '../../gateway/services/gateway-checkout';
+import { PAYMENT_PAGE_ORIGIN } from '../../payment-sessions/tokens';
 import { PaymentSubmissions } from '../../listener-receipts/services/payment-submissions';
 import { MediaService } from '../../media/services/media.service';
 import { PaymentSessions } from '../../payment-sessions/services/payment-sessions';
@@ -29,6 +48,11 @@ import type { PublicApiRequest } from '../../public-api/guards/public-key.guard'
 import { API_CLOCK } from '../../public-api/tokens';
 import { PaymentPageGuard } from '../guards/payment-page.guard';
 
+/** VER-08: the one route here that answers with an address rather than the envelope. */
+interface RedirectingResponse {
+  redirect(status: number, url: string): void;
+}
+
 /** PAY-05: the page as it is shown -- the shop's name and logo beside the session. */
 type PaymentPageView = PaymentPageSession & {
   shop: { name: string; logo: { id: string; urls: { main: string; thumbnail: string } } | null };
@@ -36,6 +60,10 @@ type PaymentPageView = PaymentPageSession & {
 
 class PaymentSubmissionDto extends createZodDto(paymentSubmissionSchema) {}
 class PaymentIdChangeDto extends createZodDto(paymentIdChangeSchema) {}
+class GatewayCheckoutDto extends createZodDto(gatewayCheckoutSchema) {}
+class GatewayCheckoutStartedDto extends createZodDto(
+  z.object({ redirectUrl: z.string().nullable() }),
+) {}
 class PaymentPageReportDto extends createZodDto(paymentPageReportSchema) {}
 class PaymentPageDto extends createZodDto(
   z.object({
@@ -54,6 +82,7 @@ class PaymentPageDto extends createZodDto(
       z.object({
         method: z.nativeEnum(PaymentMethod),
         kind: z.nativeEnum(PaymentMethodKind),
+        way: z.nativeEnum(PaymentWay),
         accountName: z.string(),
         number: z.string().nullable(),
         accountType: z.nativeEnum(WalletAccountType).nullable(),
@@ -78,6 +107,8 @@ class PaymentPageDto extends createZodDto(
     review: z.object({ reason: z.nativeEnum(PaymentPageReviewReason) }).nullable(),
     listenerOnline: z.boolean(),
     idChangesLeft: z.number(),
+    gatewayResult: z.nativeEnum(GatewayResult).nullable(),
+    test: z.boolean(),
     submitted: z
       .object({
         method: z.nativeEnum(PaymentMethod),
@@ -103,6 +134,8 @@ export class PaymentPageController {
     @Inject(MediaService) private readonly media: MediaService,
     @Inject(ClientIp) private readonly clientIp: ClientIp,
     @Inject(API_CLOCK) private readonly clock: () => Date,
+    @Inject(GatewayCheckouts) private readonly checkouts: GatewayCheckouts,
+    @Inject(PAYMENT_PAGE_ORIGIN) private readonly pageOrigin: string,
   ) {}
 
   @Get(':ref')
@@ -164,6 +197,43 @@ export class PaymentPageController {
       this.clock(),
     );
     return { ...session, shop: await this.shopOf(shop.row.id, shop.row.shopName) };
+  }
+
+  @Post(':ref/checkout')
+  @HttpCode(200)
+  @ResponseMessage('GatewayCheckoutStarted')
+  @ApiOperation({
+    summary:
+      "The shopper picks a wallet whose shop takes its money through the wallet's own checkout: where to send them, or null to pay on the page instead (PAY-06, agreed 2026-11-03)",
+  })
+  @ApiBody({ type: GatewayCheckoutDto })
+  @ZodResponse({ type: GatewayCheckoutStartedDto })
+  checkout(
+    @Param('ref') ref: string,
+    @Body(new ZodValidationPipe(GatewayCheckoutDto.schema)) body: GatewayCheckoutInput,
+    @Req() request: PublicApiRequest,
+  ): Promise<StartedCheckout> {
+    const shop = request.apiShop;
+    if (!shop) throw new Error('the payment page guard names the shop');
+    return this.checkouts.start(shop.row.id, ref, body.method);
+  }
+
+  @Get(':ref/gateway-return')
+  @ApiOperation({
+    summary:
+      "Where the wallet returns the shopper. It proves nothing: the payment is settled only by the gateway's own answer, then the shopper goes back to the page (VER-08, VER-09)",
+  })
+  async gatewayReturn(
+    @Param('ref') ref: string,
+    @Query('paymentID') paymentId: string | undefined,
+    @Query('status') status: string | undefined,
+    @Req() request: PublicApiRequest,
+    @Res() response: RedirectingResponse,
+  ): Promise<void> {
+    const shop = request.apiShop;
+    if (!shop) throw new Error('the payment page guard names the shop');
+    await this.checkouts.returned(shop.row.id, ref, { paymentId, status });
+    response.redirect(302, `${this.pageOrigin}/${ref}`);
   }
 
   @Post(':ref/report')

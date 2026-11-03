@@ -1,4 +1,5 @@
 import type {
+  GatewayResult,
   PaymentMethod,
   PaymentPageReviewReason,
   PaymentPageReportReason,
@@ -34,6 +35,10 @@ export interface PaymentPageSession {
   listenerOnline: boolean;
   /** PAY-07 (agreed 2026-11-02): how many more times the shopper may correct the ID; 0 once someone decided. */
   idChangesLeft: number;
+  /** PAY-08, VER-09 (Slice 5.7): how the last try at the wallet's own checkout ended, for the page to offer another. */
+  gatewayResult: GatewayResult | null;
+  /** VER-11 (Slice 5.7): on a gateway's test environment. */
+  test: boolean;
   /** PAY-07: what the shopper typed, once they have. */
   submitted: {
     method: PaymentMethod;

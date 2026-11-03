@@ -474,6 +474,8 @@ export const orderPayments = tenant.table(
     refundedAt: timestamp('refunded_at', { withTimezone: true }),
     refundedBy: uuid('refunded_by'),
     refundNote: varchar('refund_note', { length: PAYMENT_NOTE_MAX_LENGTH }),
+    // VER-11 (Slice 5.7): from a gateway's test environment, left out of revenue and balance reports.
+    test: boolean('test').notNull().default(false),
   },
   (t) => [
     foreignKey({

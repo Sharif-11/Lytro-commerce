@@ -1798,6 +1798,42 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'Payment method saved.',
     bn: 'পেমেন্ট মেথড সেভ হয়েছে।',
   },
+  PaymentWayChosen: {
+    en: 'How you take this payment method is saved.',
+    bn: 'এই পেমেন্ট মেথডে কীভাবে টাকা নেবেন, তা সেভ হয়েছে।',
+  },
+  PaymentWayNotAvailable: {
+    en: 'This payment method can’t be taken that way.',
+    bn: 'এই পেমেন্ট মেথডে এভাবে টাকা নেওয়া যায় না।',
+  },
+  GatewayCredentialsSaved: {
+    en: 'Gateway credentials saved.',
+    bn: 'গেটওয়ের ক্রেডেনশিয়াল সেভ হয়েছে।',
+  },
+  GatewayCredentialsRemoved: {
+    en: 'Gateway credentials removed.',
+    bn: 'গেটওয়ের ক্রেডেনশিয়াল মুছে ফেলা হয়েছে।',
+  },
+  GatewayCredentialsNeeded: {
+    en: 'Save this account’s gateway credentials first.',
+    bn: 'আগে এই অ্যাকাউন্টের গেটওয়ে ক্রেডেনশিয়াল সেভ করুন।',
+  },
+  GatewayTested: {
+    en: 'Connection checked.',
+    bn: 'কানেকশন চেক করা হয়েছে।',
+  },
+  GatewayAccountSelected: {
+    en: 'This account now takes automated payments.',
+    bn: 'অটোমেটেড পেমেন্ট এখন এই অ্যাকাউন্টে আসবে।',
+  },
+  GatewayCheckoutStarted: {
+    en: 'Checkout started.',
+    bn: 'চেকআউট শুরু হয়েছে।',
+  },
+  CredentialUsesListed: {
+    en: 'Credential uses retrieved.',
+    bn: 'ক্রেডেনশিয়াল ব্যবহারের তালিকা পাওয়া গেছে।',
+  },
   PaymentMethodNotFound: {
     en: "There's no such payment method.",
     bn: 'এমন কোনো পেমেন্ট মেথড নেই।',

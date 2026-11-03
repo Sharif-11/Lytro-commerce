@@ -112,6 +112,7 @@ export class PaymentsList {
       decidedAt: row.decidedAt,
       rejectReason: row.rejectReason,
       note: row.note,
+      test: row.test,
       reviewReason: row.reviewReason,
       receipt: row.receipt,
     };

@@ -56,7 +56,9 @@ Top to bottom, centred:
    four across from 640 px and two across below it, each holding one wallet's official mark centred:
    bKash, Nagad, Rocket, Upay. Only the manual methods the shop has enabled with an active account appear
    (WAL-05, WAL-06). A wallet whose gateway the shop selected never appears here; such a shopper went
-   straight to the wallet's checkout (PAY-06).
+   straight to the wallet's checkout (PAY-06). Amended 2026-11-03 (Slice 5.7 read), to be redrawn in Slice 5.8: every
+   wallet the shop takes appears, and picking one on automated sends the shopper on to its own checkout. If there is nowhere to
+   send them, the fee being short or the gateway down, they carry on here as with any wallet.
 5. **Pay bar** (16 px below, 16 px inset): sky-100 with sky-900 bold 20 px text, "Pay 250 BDT".
 
 ### 1.3 Screen 2: a wallet (`bkash`, `nagad`, `rocket`, `upay`)
@@ -154,7 +156,9 @@ shop's own wallet number; `verified` and `paid` return to "Payment received, ord
 `checking` and `review` to "Checking your payment", `cancelled` and `expired` to "Payment not completed"
 with retry or a switch to cash on delivery. A wallet whose gateway the shop has selected never reaches
 this page: the storefront shows an interstitial and hands the shopper to the wallet's own checkout
-(PAY-06), which returns through `pay.lytro.app` to the same three states.
+(PAY-06), which returns through `pay.lytro.app` to the same three states. Amended 2026-11-03 (Slice 5.7 read), to be redrawn
+in Slice 5.8: the page is what hands them on, and a cancelled or failed try returns here, open, with `gatewayResult` to say
+so beside a retry and paying by hand. A test account's page says it is one (`test`).
 
 ## 3. Widths checked
 
@@ -191,6 +195,7 @@ report sheet, the states); the rest are listed here so the build adds them in th
 | A signed upload for the proof image, private media | PAY-18 |
 | `POST /pay/:id/report` with a reason, limited per IP | TVR-02 |
 | A retry that reopens the wallet screen after `failed` in the same session | PAY-08 |
+| `POST /v1/pay/:ref/checkout`, answering where to send the shopper or null to carry on here; each wallet's `way` and the session's `gatewayResult` and `test` on the page's read (built, Slice 5.7) | PAY-06, VER-09, VER-11 |
 | Upay as a wallet type (the SRS names bKash, Nagad and Rocket; WAL-18 adds a type without page changes) | §1.2 |
 | The platform's own wallet accounts on a plan or top-up session: not built, amended 2026-11-03 (sellers stay in the dashboard's wallet step, D5-3) | PAY-21 |
 

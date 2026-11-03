@@ -1,7 +1,14 @@
 import { and, asc, eq, inArray, isNotNull, notInArray, sql } from 'drizzle-orm';
-import { IdentityKind, type PaymentMethod, type WalletAccountType } from '@lytronix/validators';
 import {
+  IdentityKind,
+  type PaymentMethod,
+  type PaymentWay,
+  type WalletAccountType,
+} from '@lytronix/validators';
+import {
+  gatewayCredentialUses,
   paymentMethodsOff,
+  paymentMethodWays,
   subscriberIdentities,
   tenants,
   walletAccounts,
@@ -128,6 +135,92 @@ export class PaymentMethodRepository {
     }
   }
 
+  /** PAY-06 (Slice 5.7): the ways the owner chose; a method missing here is on its starting way. */
+  async listWays(
+    tx: Transaction,
+    tenantId: string,
+  ): Promise<{ method: PaymentMethod; way: PaymentWay }[]> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    return tx
+      .select({ method: paymentMethodWays.method, way: paymentMethodWays.way })
+      .from(paymentMethodWays)
+      .where(eq(paymentMethodWays.tenantId, tenantId));
+  }
+
+  async setWay(
+    tx: Transaction,
+    tenantId: string,
+    method: PaymentMethod,
+    way: PaymentWay,
+  ): Promise<void> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    await tx
+      .insert(paymentMethodWays)
+      .values({ tenantId, method, way })
+      .onConflictDoUpdate({
+        target: [paymentMethodWays.tenantId, paymentMethodWays.method],
+        set: { way },
+      });
+  }
+
+  /** WAL-09: an account's sealed credentials and environment; null removes them, and it stops being automated. */
+  async setGateway(
+    tx: Transaction,
+    tenantId: string,
+    id: string,
+    values: { credentials: Buffer; sandbox: boolean } | null,
+  ): Promise<SelectWalletAccount | null> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const [row] = await tx
+      .update(walletAccounts)
+      .set(
+        values
+          ? {
+              gatewayCredentials: values.credentials,
+              gatewaySandbox: values.sandbox,
+              updatedAt: new Date(),
+            }
+          : {
+              gatewayCredentials: null,
+              gatewaySandbox: false,
+              automated: false,
+              updatedAt: new Date(),
+            },
+      )
+      .where(and(eq(walletAccounts.tenantId, tenantId), eq(walletAccounts.id, id)))
+      .returning();
+    return row ?? null;
+  }
+
+  /** WAL-10: this account takes the method's automated payments; any other stops. */
+  async selectAutomated(
+    tx: Transaction,
+    tenantId: string,
+    method: PaymentMethod,
+    id: string,
+  ): Promise<void> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const ofMethod = and(eq(walletAccounts.tenantId, tenantId), eq(walletAccounts.method, method));
+    await tx.update(walletAccounts).set({ automated: false }).where(ofMethod);
+    await tx
+      .update(walletAccounts)
+      .set({ automated: true, updatedAt: new Date() })
+      .where(and(ofMethod, eq(walletAccounts.id, id)));
+  }
+
+  async findAccount(
+    tx: Transaction,
+    tenantId: string,
+    id: string,
+  ): Promise<SelectWalletAccount | null> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const [row] = await tx
+      .select()
+      .from(walletAccounts)
+      .where(and(eq(walletAccounts.tenantId, tenantId), eq(walletAccounts.id, id)));
+    return row ?? null;
+  }
+
   /** TVR-01: whether the shop's owner has a verified phone, which the payment page needs. */
   async ownerPhoneVerified(tx: Transaction, tenantId: string): Promise<boolean> {
     const rows = await tx
@@ -150,5 +243,8 @@ export class PaymentMethodRepository {
     await this.transactions.setTenantContext(tx, tenantId);
     await tx.delete(walletAccounts).where(eq(walletAccounts.tenantId, tenantId));
     await tx.delete(paymentMethodsOff).where(eq(paymentMethodsOff.tenantId, tenantId));
+    await tx.delete(paymentMethodWays).where(eq(paymentMethodWays.tenantId, tenantId));
+    // SEC-11 (Slice 5.7): the log of its credentials' uses goes with the shop.
+    await tx.delete(gatewayCredentialUses).where(eq(gatewayCredentialUses.tenantId, tenantId));
   }
 }

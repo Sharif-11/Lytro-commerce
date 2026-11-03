@@ -62,6 +62,10 @@ export const paymentSubmissionSchema = z
   .strict();
 export type PaymentSubmissionInput = z.infer<typeof paymentSubmissionSchema>;
 
+/** PAY-06 (Slice 5.7): a shopper starts paying by a wallet whose shop takes its money through the wallet's own checkout. */
+export const gatewayCheckoutSchema = z.object({ method: z.nativeEnum(PaymentMethod) }).strict();
+export type GatewayCheckoutInput = z.infer<typeof gatewayCheckoutSchema>;
+
 /** PAY-07 (Slice 5.4b, agreed 2026-11-02): the shopper corrects the transaction ID they typed, and the number if they say. */
 export const paymentIdChangeSchema = paymentSubmissionSchema.omit({ method: true });
 export type PaymentIdChangeInput = z.infer<typeof paymentIdChangeSchema>;

@@ -23,6 +23,8 @@ export interface BalanceLedgerStore {
   /** Runs the work in a transaction with the tenant context set. For a caller with no transaction open yet. */
   run<T>(tenantId: string, work: (tx: Transaction) => Promise<T>): Promise<T>;
   insert(tx: Transaction, entry: NewLedgerEntry): Promise<LedgerEntry>;
+  /** WAL-21 (Slice 5.7): what open checkouts at a wallet hold of the balance. */
+  feesHeld(tx: Transaction, tenantId: string): Promise<string>;
   list(
     tx: Transaction,
     tenantId: string,
