@@ -624,6 +624,12 @@ describeIfDatabase(
       await typeTopUp(shop, quote.id, id);
       await forward(phone, receiptText(id, '450.00'));
       await queue.reject(quote.id, OPERATOR_ID, 'Wrong amount');
+      // Turned down, it is closed: its money can't go on the balance either.
+      await expect(
+        queue.creditInstead(quote.id, OPERATOR_ID, null, '450.00'),
+      ).rejects.toMatchObject({
+        code: 'conflict',
+      });
       expect(await messageOf(id)).toMatchObject([
         { status: 'unmatched', review_reason: null, plan_payment_id: null },
       ]);
