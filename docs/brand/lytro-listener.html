@@ -280,6 +280,7 @@ const D = {
   batP: ['না হলে ফোন অ্যাপটি বন্ধ করে দিতে পারে, তখন পেমেন্ট নিজে থেকে ভেরিফাই হবে না।', 'Otherwise the phone may stop the app, and payments won’t verify by themselves.'],
   batBtn: ['বাদ দিন', 'Exempt it'],
   batM: ['আপনার ফোনে আরও একটা ধাপ:', 'One more step on your phone:'],
+  batC: ['ফোনভেদে মেনুর নাম আলাদা হতে পারে।', 'Menu names can differ by phone.'],
   later: ['পরে করব', 'Later'],
 
   tT: ['একটা টেস্ট করে দেখি', 'Let’s test it'],
@@ -299,6 +300,7 @@ const D = {
   checkNow: ['আবার চেক করুন', 'Check again'],
   revOwner: ['শপের মালিক ড্যাশবোর্ড থেকে এই ফোনটি ক্যানসেল করেছেন। এই ফোন থেকে আর পেমেন্ট SMS যাবে না।', 'The shop’s owner revoked this phone on the dashboard. It no longer sends payment SMS.'],
   revFlags: ['অন্য একটি ডিভাইস থেকে এই ফোনের টোকেন ব্যবহারের চেষ্টা হয়েছে, তাই নিরাপত্তার জন্য ফোনটি ক্যানসেল করা হয়েছে।', 'Another device tried to use this phone’s token, so it was revoked to be safe.'],
+  revOp: ['Lytro এই ফোনটি ক্যানসেল করেছে। এই ফোন থেকে আর পেমেন্ট SMS যাবে না।', 'Lytro revoked this phone. It no longer sends payment SMS.'],
   rePair: ['আবার পেয়ার করুন', 'Pair again'],
   blockP: ['Lytro এই অ্যাপ ইনস্টলেশন ব্লক করেছে। এটি আর কোনো শপের সাথে পেয়ার হবে না।', 'Lytro blocked this app installation. It won’t pair with any shop.'],
   support: ['Lytro সাপোর্টে যোগাযোগ করুন', 'Contact Lytro support'],
@@ -309,7 +311,7 @@ const D = {
   menu: ['মেনু', 'Menu'], lang: ['ভাষা', 'Language'],
   thisPhone: ['এই ফোন', 'This phone'], thisPhoneV: ['কাউন্টারের ফোন · নাম বদলাতে ড্যাশবোর্ডে যান', 'Counter phone · rename it on the dashboard'],
   shop: ['শপ', 'Shop'], lastRep: ['শেষ রিপোর্ট', 'Last report'], lastRepV: ['2 মিনিট আগে', '2 minutes ago'],
-  ver: ['অ্যাপের ভার্সন', 'App version'], upToDate: ['1.0.0 · সর্বশেষ ভার্সন', '1.0.0 · up to date'],
+  ver: ['অ্যাপের ভার্সন', 'App version'], upToDate: ['1.0.0', '1.0.0'],
   testMode: ['টেস্ট মোড', 'Test mode'], testModeV: ['10 মিনিট: রিসিট আসছে না মনে হলে চালু করুন', '10 minutes: use it if receipts aren’t showing'],
   help: ['সাহায্য', 'Help'], helpV: ['সেটআপ গাইড ও সাপোর্ট', 'Setup guide and support'],
   unpair: ['এই ফোন আনপেয়ার করুন', 'Unpair this phone'],
@@ -322,6 +324,7 @@ const D = {
   nPerm: ['SMS পড়ার অনুমতি বন্ধ। ঠিক করতে ট্যাপ করুন।', 'SMS permission is off. Tap to fix.'],
   nInact: ['সাবস্ক্রিপশন ইনঅ্যাক্টিভ। লিসেনার বন্ধ আছে।', 'Subscription inactive. The listener is off.'],
   nUpd: ['আপডেট দরকার। ট্যাপ করে ডাউনলোড করুন।', 'Update required. Tap to download.'],
+  nRev: ['ফোনটি ক্যানসেল করা হয়েছে। পেমেন্ট আর নিজে থেকে ভেরিফাই হবে না।', 'This phone was revoked. Payments no longer verify by themselves.'],
   nOngoing: ['সবসময় থাকে, সরানো যায় না', 'Always there, can’t be swiped away'],
   nAlert: ['সমস্যা হলে শব্দসহ আসে', 'Arrives with a sound when something’s wrong'],
 
@@ -438,7 +441,7 @@ const S = {
   'perm-notif': () => frame(`<div class="bd">${stepper(2, t('s2'))}<div class="big">${ic('bell')}</div><h2>${t('notT')}</h2><p class="p">${t('notP')}</p><div class="foot"><button class="btn" data-go="battery">${t('turnOn')}</button></div></div>`),
   battery: () => {
     const m = MAKER[ST.maker]; const i = ST.lang === 'bn' ? 0 : 1;
-    return frame(`<div class="bd">${stepper(3, t('s3'))}<div class="big warn">${ic('battery')}</div><h2>${t('batT')}</h2><p class="p">${t('batP')}</p>${m ? `<div class="card"><div class="lbl">${t('batM')} ${m[0]}</div><p class="sm" style="margin-top:6px"><b class="lat" style="color:#fff;font-weight:600">${m[1][i]}</b></p><p class="sm" style="margin-top:4px">${m[2][i]}</p><button class="btn sec" style="margin-top:10px;min-height:44px">${t('openSet')}</button></div>` : ''}<div class="foot"><button class="btn" data-go="test-wait">${t('batBtn')}</button><button class="lnk" data-go="home-battery">${t('later')}</button></div></div>`);
+    return frame(`<div class="bd">${stepper(3, t('s3'))}<div class="big warn">${ic('battery')}</div><h2>${t('batT')}</h2><p class="p">${t('batP')}</p>${m ? `<div class="card"><div class="lbl">${t('batM')} ${m[0]}</div><p class="sm" style="margin-top:6px"><b class="lat" style="color:#fff;font-weight:600">${m[1][i]}</b></p><p class="sm" style="margin-top:4px">${m[2][i]}</p><p class="sm" style="margin-top:4px">${t('batC')}</p><button class="btn sec" style="margin-top:10px;min-height:44px">${t('openSet')}</button></div>` : ''}<div class="foot"><button class="btn" data-go="test-wait">${t('batBtn')}</button><button class="lnk" data-go="home-battery">${t('later')}</button></div></div>`);
   },
   'test-wait': () => frame(`<div class="bd"><h2>${t('tT')}</h2><p class="p">${t('tP')}</p>${acct()}<div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:22px 0"><span class="ring"></span><span class="p">${t('tWait')}</span></div><div class="foot"><button class="lnk" data-go="home-empty">${t('tSkip')}</button></div></div>`, { notif: true }),
   'test-got': () => frame(`<div class="bd"><div class="big good">${ic('check')}</div><h2>${t('tGotT')}</h2><div class="card">${receipt('2:44 PM', '10', '6FV2K8LQ4T', 'rReached', 'good', 'check')}</div><p class="p">${t('tGotP')}</p><div class="foot"><button class="btn" data-go="home-on">${t('finish')}</button></div></div>`, { notif: true }),
@@ -453,6 +456,7 @@ const S = {
 
   inactive: () => frame(`${band('dan', t('stInact'))}<div class="bd"><p class="p">${t('inactP')}</p><div class="note">${ic('clock')}<span>${t('held')}</span></div><div class="foot"><button class="btn sec">${ic('refresh')}${t('checkNow')}</button></div></div>`, { menu: true }),
   'revoked-owner': () => frame(`${band('dan', t('stRev'))}<div class="bd"><p class="p">${t('revOwner')}</p><div class="foot"><button class="btn" data-go="pair-scan">${t('rePair')}</button></div></div>`),
+  'revoked-op': () => frame(`${band('dan', t('stRev'))}<div class="bd"><p class="p">${t('revOp')}</p><div class="foot"><button class="btn" data-go="pair-scan">${t('rePair')}</button></div></div>`),
   'revoked-flags': () => frame(`${band('dan', t('stRev'))}<div class="bd"><p class="p">${t('revFlags')}</p><div class="foot"><button class="btn" data-go="pair-scan">${t('rePair')}</button></div></div>`),
   blocked: () => frame(`${band('dan', t('stBlock'))}<div class="bd"><p class="p">${t('blockP')}</p><div class="foot"><button class="btn sec">${t('support')}</button></div></div>`),
   update: () => frame(`${band('warn', t('stUpd'), t('updV'))}<div class="bd"><p class="p">${t('updP')}</p><div class="note">${ic('clock')}<span>${t('held')}</span></div><div class="foot"><button class="btn warn">${ic('download')}${t('download')}</button></div></div>`),
@@ -475,6 +479,7 @@ const S = {
     <div class="ntf"><span class="nic d">${MARK}</span><div><b>Lytro Listener</b><span>${t('nPerm')}</span></div></div>
     <div class="ntf"><span class="nic d">${MARK}</span><div><b>Lytro Listener</b><span>${t('nInact')}</span></div></div>
     <div class="ntf"><span class="nic w">${MARK}</span><div><b>Lytro Listener</b><span>${t('nUpd')}</span></div></div>
+    <div class="ntf"><span class="nic d">${MARK}</span><div><b>Lytro Listener</b><span>${t('nRev')}</span></div></div>
     </div><div class="nv"><i></i></div></div>`,
 };
 
@@ -484,7 +489,7 @@ const GROUPS = [
   ['When pairing is refused', [['pair-wrong', 'Wrong or lapsed code'], ['pair-tries', 'Too many tries'], ['pair-net', 'No internet'], ['pair-limit', 'Device limit reached (LSN-24)'], ['pair-nocam', 'Camera refused'], ['perm-sms-no', 'SMS permission refused'], ['perm-sms-blocked', 'SMS blocked by Android (15 and later, browser install)']]],
   ['Home', [['home-on', 'Working, with receipts'], ['home-empty', 'Working, nothing yet'], ['home-offline', 'No internet, receipts saved'], ['home-test', 'Test mode (LSN-04)']]],
   ['Home with a problem', [['home-perm', 'SMS permission lost'], ['home-battery', 'Battery saver risk'], ['home-acct', 'No active bKash account']]],
-  ['Stopped (LSN-24)', [['inactive', 'Subscription inactive'], ['revoked-owner', 'Revoked by the owner'], ['revoked-flags', 'Revoked after flags'], ['blocked', 'Installation blocked'], ['update', 'Update required']]],
+  ['Stopped (LSN-24)', [['inactive', 'Subscription inactive'], ['revoked-owner', 'Revoked by the owner'], ['revoked-op', 'Revoked by Lytro'], ['revoked-flags', 'Revoked after flags'], ['blocked', 'Installation blocked'], ['update', 'Update required']]],
   ['Menu', [['menu', 'Menu'], ['unpair', 'Unpair: confirm']]],
   ['Android itself', [['android', 'Notifications']]],
 ];

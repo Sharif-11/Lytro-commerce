@@ -2,6 +2,7 @@ package app.lytro.listener.ui
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -79,6 +80,7 @@ import app.lytro.listener.ui.theme.Marigold300
 import app.lytro.listener.ui.theme.Raised
 import app.lytro.listener.ui.theme.Surface
 import app.lytro.listener.ui.theme.Teal400
+import app.lytro.listener.ui.theme.White
 import kotlinx.coroutines.delay
 
 /** 2.1. */
@@ -204,7 +206,7 @@ fun ColumnScope.PairTypeScreen(model: AppViewModel) {
     Body(
         foot = {
             when (problem) {
-                is PairProblem.WrongCode, PairProblem.NoInternet, is PairProblem.Stopped ->
+                is PairProblem.WrongCode, PairProblem.NoInternet, is PairProblem.Other ->
                     Btn(stringResource(R.string.retry), if (problem == PairProblem.NoInternet) model::pair else model::clearProblem, enabled = !model.pairing)
                 is PairProblem.TooManyTries -> Btn(stringResource(R.string.pair), model::pair, enabled = false)
                 else -> {
@@ -221,10 +223,10 @@ fun ColumnScope.PairTypeScreen(model: AppViewModel) {
         CodeBoxes(model.code, bad = problem is PairProblem.WrongCode, locked = problem is PairProblem.TooManyTries, model::typed)
         when (problem) {
             is PairProblem.WrongCode -> ErrorLine(LytroIcons.Alert, problem.words)
-            is PairProblem.Stopped -> ErrorLine(LytroIcons.Alert, problem.words)
+            is PairProblem.Other -> ErrorLine(LytroIcons.Alert, problem.words)
             is PairProblem.TooManyTries -> {
                 val minutes = (((problem.until - clock).coerceAtLeast(0) + 59_999) / 60_000).toInt()
-                ErrorLine(LytroIcons.Clock, pluralStringResource(R.plurals.e_tries, minutes, minutes))
+                ErrorLine(LytroIcons.Clock, pluralStringResource(R.plurals.e_tries, minutes, "$minutes"))
             }
             PairProblem.NoInternet -> ErrorLine(LytroIcons.WifiOff, stringResource(R.string.e_net))
             else -> Unit
@@ -403,6 +405,57 @@ fun ColumnScope.PermNotifScreen(model: AppViewModel) {
         BigIcon(LytroIcons.Bell)
         Heading(stringResource(R.string.not_t))
         Para(stringResource(R.string.not_p))
+    }
+}
+
+/** 2.6: step 3, Android's own exemption, and on the makers that need it the extra step. */
+@Composable
+fun ColumnScope.BatteryScreen(model: AppViewModel) {
+    val context = LocalContext.current
+    val ask = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        model.batteryAnswered()
+    }
+    BatteryBody(
+        maker = remember { phoneMakerOf(Build.MANUFACTURER.orEmpty(), Build.BRAND.orEmpty()) },
+        onExempt = {
+            if (batteryExempt(context)) model.batteryAnswered() else ask.launch(batteryExemptionIntent(context))
+        },
+        onLater = model::batteryLater,
+        onOpenMakerSetting = {
+            model.makerStepOpened()
+            openAppInfo(context)
+        },
+    )
+}
+
+@Composable
+fun ColumnScope.BatteryBody(maker: PhoneMaker?, onExempt: () -> Unit, onLater: () -> Unit, onOpenMakerSetting: () -> Unit) {
+    AppBar()
+    Body(
+        foot = {
+            Btn(stringResource(R.string.bat_btn), onExempt)
+            LinkBtn(stringResource(R.string.later), onLater)
+        },
+    ) {
+        Stepper(3, stringResource(R.string.s3))
+        BigIcon(LytroIcons.Battery, BigKind.Warn)
+        Heading(stringResource(R.string.bat_t))
+        Para(stringResource(R.string.bat_p))
+        if (maker != null) {
+            val (where, what) = when (maker) {
+                PhoneMaker.Xiaomi -> R.string.mak_xiaomi_where to R.string.mak_xiaomi_what
+                PhoneMaker.Oppo -> R.string.mak_oppo_where to R.string.mak_oppo_what
+                PhoneMaker.Vivo -> R.string.mak_vivo_where to R.string.mak_vivo_what
+                PhoneMaker.Samsung -> R.string.mak_samsung_where to R.string.mak_samsung_what
+            }
+            Card {
+                Label(stringResource(R.string.bat_m, maker.label))
+                Txt(stringResource(where), Modifier.padding(top = 6.dp), size = 13.5f, line = 1.5f, weight = FontWeight.W600, color = White)
+                Small(stringResource(what), Modifier.padding(top = 4.dp))
+                Small(stringResource(R.string.bat_c), Modifier.padding(top = 4.dp))
+                Btn(stringResource(R.string.open_set), onOpenMakerSetting, Modifier.padding(top = 10.dp), BtnKind.Secondary, minHeight = 44.dp)
+            }
+        }
     }
 }
 

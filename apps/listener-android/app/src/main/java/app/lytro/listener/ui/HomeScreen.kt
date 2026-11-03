@@ -15,6 +15,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -34,6 +37,7 @@ import app.lytro.listener.data.SavedMessage
 import app.lytro.listener.engine.millisOfIso
 import app.lytro.listener.net.RecentReceipt
 import app.lytro.listener.sms.shownMessageOf
+import app.lytro.listener.sms.testModeLeftMs
 import app.lytro.listener.ui.theme.Inter
 import app.lytro.listener.ui.theme.Line
 import app.lytro.listener.ui.theme.Muted
@@ -59,15 +63,37 @@ fun ColumnScope.HomeScreen(model: AppViewModel) {
             }
         }
     }
+    // LSN-04: its band counts down, by the second, and goes by itself when the time is up.
+    var ticking by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(facts.testModeUntil) {
+        while (testModeLeftMs(facts, ticking) > 0) {
+            delay(1_000)
+            ticking = System.currentTimeMillis()
+        }
+    }
+    val testLeft = testModeLeftMs(facts, ticking)
     val band = homeBandOf(
         status = facts.status,
         smsAllowed = smsAllowed(context),
         online = networkOnline && model.reachable,
         hasAccount = facts.accounts.isNotEmpty(),
+        testMode = testLeft > 0,
+        // Read again whenever Home refreshes, which it does on coming back from Android's settings.
+        batteryRisk = model.now > 0 && model.batteryRisk(),
     )
     val saved = model.saved
     val receipts = model.recent?.receipts.orEmpty()
-    AppBar()
+    if (band == HomeBand.Inactive || band == HomeBand.UpdateRequired) {
+        StoppedScreen(
+            status = facts.status,
+            held = model.queueSize,
+            onCheckAgain = model::checkAgain,
+            onPairAgain = model::pairAgain,
+            onMenu = if (band == HomeBand.Inactive) model::openMenu else null,
+        )
+        return
+    }
+    AppBar(model::openMenu)
     when (band) {
         HomeBand.Working -> {
             val report = if (facts.lastReportAt > 0) stringResource(R.string.st_on_s_report, agoWords(agoOf(facts.lastReportAt, model.now))) else stringResource(R.string.st_on_s)
@@ -76,12 +102,13 @@ fun ColumnScope.HomeScreen(model: AppViewModel) {
         HomeBand.NoInternet -> StatusBand(
             BandKind.Warn,
             stringResource(R.string.st_net),
-            if (saved.isEmpty()) stringResource(R.string.st_net_s_none) else pluralStringResource(R.plurals.st_net_s, saved.size, saved.size),
+            if (saved.isEmpty()) stringResource(R.string.st_net_s_none) else pluralStringResource(R.plurals.st_net_s, saved.size, "${saved.size}"),
         )
         HomeBand.SmsOff -> StatusBand(BandKind.Dan, stringResource(R.string.st_perm), stringResource(R.string.st_perm_s))
         HomeBand.NoAccount -> StatusBand(BandKind.Warn, stringResource(R.string.st_acct), stringResource(R.string.st_acct_s))
-        HomeBand.Inactive -> StatusBand(BandKind.Dan, stringResource(R.string.st_inact))
-        HomeBand.UpdateRequired -> StatusBand(BandKind.Warn, stringResource(R.string.st_upd))
+        HomeBand.TestMode -> StatusBand(BandKind.Test, stringResource(R.string.st_test, countdownShown(testLeft)), stringResource(R.string.st_test_s))
+        HomeBand.BatteryRisk -> StatusBand(BandKind.Warn, stringResource(R.string.st_bat), stringResource(R.string.st_bat_s))
+        HomeBand.Inactive, HomeBand.UpdateRequired -> Unit
     }
     Body {
         when (band) {
@@ -102,8 +129,14 @@ fun ColumnScope.HomeScreen(model: AppViewModel) {
                 Para(stringResource(R.string.acct_note))
                 Receipts(model, saved, receipts)
             }
-            HomeBand.Inactive -> Para(stringResource(R.string.inact_p))
-            HomeBand.UpdateRequired -> Para(stringResource(R.string.upd_p))
+            HomeBand.TestMode -> Receipts(model, saved, receipts)
+            HomeBand.BatteryRisk -> {
+                Btn(stringResource(R.string.fix), model::fixBattery, kind = BtnKind.Warn)
+                Para(stringResource(R.string.bat_note))
+                model.recent?.today?.let { Today(it.verified, it.waiting, it.toCheck) }
+                Receipts(model, saved, receipts)
+            }
+            HomeBand.Inactive, HomeBand.UpdateRequired -> Unit
         }
         if (band == HomeBand.Working) {
             Small(stringResource(R.string.only_b), Modifier.fillMaxWidth(), TextAlign.Center)
@@ -112,11 +145,11 @@ fun ColumnScope.HomeScreen(model: AppViewModel) {
 }
 
 @Composable
-private fun agoWords(ago: Ago): String = when (ago) {
+fun agoWords(ago: Ago): String = when (ago) {
     Ago.JustNow -> stringResource(R.string.just_now)
-    is Ago.Minutes -> pluralStringResource(R.plurals.minutes_ago, ago.count, ago.count)
-    is Ago.Hours -> pluralStringResource(R.plurals.hours_ago, ago.count, ago.count)
-    is Ago.Days -> pluralStringResource(R.plurals.days_ago, ago.count, ago.count)
+    is Ago.Minutes -> pluralStringResource(R.plurals.minutes_ago, ago.count, "${ago.count}")
+    is Ago.Hours -> pluralStringResource(R.plurals.hours_ago, ago.count, "${ago.count}")
+    is Ago.Days -> pluralStringResource(R.plurals.days_ago, ago.count, "${ago.count}")
 }
 
 @Composable
@@ -186,7 +219,8 @@ fun savedRow(message: SavedMessage, now: Long, line: String, kind: LineKind, ico
 private fun recentRow(receipt: RecentReceipt, now: Long): ReceiptRow {
     val line = receiptLineOf(receipt.status, receipt.reviewReason, receipt.ignoredReason)
     return ReceiptRow(
-        wallet = walletName(receipt.method),
+        // A test receipt came from a sender off the list, which is what the owner is checking.
+        wallet = if (line == ReceiptLine.Test) receipt.sender ?: walletName(receipt.method) else walletName(receipt.method),
         amount = receipt.amount?.let(::amountShown),
         time = millisOfIso(receipt.receivedAt)?.let { timeShown(it, now) }.orEmpty(),
         transactionId = receipt.transactionId,

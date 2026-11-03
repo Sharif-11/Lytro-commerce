@@ -174,6 +174,7 @@ export class ListenerReceipts {
   private recentOf(row: ListenerMessageRow): ListenerRecentItem {
     return {
       id: row.id,
+      sender: row.sender,
       method: row.method,
       amount: row.amount,
       transactionId: row.transactionId,

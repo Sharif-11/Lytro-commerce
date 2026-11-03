@@ -83,11 +83,16 @@ export class ListenerApp {
   async heartbeat(device: SelectListenerDevice, appVersion: string): Promise<ListenerConnected> {
     const now = this.clock();
     this.limits.admitHeartbeat(device.id, now);
-    await this.store.run((tx) => this.store.touch(tx, device.id, now, appVersion));
+    const shop = await this.store.run(async (tx) => {
+      await this.store.touch(tx, device.id, now, appVersion);
+      return device.tenantId === null ? null : this.store.shopOf(tx, device.tenantId);
+    });
     return {
       status: 'connected',
       heartbeatMinutes: LISTENER_HEARTBEAT_MINUTES,
       serverTime: now,
+      deviceName: device.name,
+      shopName: this.rules.shopNameOf(device.tenantId, shop),
       ...(await this.rules.appFactsOf(device, now)),
     };
   }

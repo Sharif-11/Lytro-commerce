@@ -394,9 +394,18 @@ criterion 2 by hand, and 3). If velocity suggests it, the rest can become Phase 
   and the test; the receiver, the inbox's look-back and the filter; the private queue and its uploads; heartbeats; Home's
   working, nothing yet, no internet, SMS off and no bKash number states. A revoked phone stops, clears its token and saved
   messages, and goes back to pairing; an inactive shop or an old app holds its receipts.
-- **Delivers (5.5b):** the stopped screens (LSN-24), the battery step by maker, test mode (LSN-04), the menu and unpairing from
-  it, updates and the release signing. Two gaps to settle in its read: the menu's phone name, which no answer carries, and the
-  sender on a test receipt, which `GET /v1/listener/messages` lacks.
+- **5.5b's read agreed 2026-11-03** (as recommended unless said): each report also carries **the phone's and the shop's names**
+  and the receipt list **the sender**, two small server additions; the menu shows **just the version**, since the server knows only
+  the oldest it accepts; the **signing key is made at the first real release**, with a key-making command and one release command
+  that refuses without a key; the **battery warning clears once Android's exemption is on and the maker's setting has been opened**
+  from our button, since no app can read Autostart; **Oppo, Vivo and Samsung show their drawn steps with a caution**, unverified;
+  **support and Help open the same WhatsApp as the dashboard**, hidden without a number; **one PR, merged on green CI** (the owner's
+  pick over testing on the Xiaomi first), so what that test finds becomes a follow-up.
+- **Delivers (5.5b):** the stopped screens (LSN-24), at pairing too; the battery step by maker and Home's warning; test mode
+  (LSN-04); the menu and unpairing from it; updates and problem notifications; the release command. On the server, the names on the
+  report and pair answers and the sender on `GET /v1/listener/messages`.
+- **Still between it and a shop:** the Xiaomi test with real bKash money, real receipts for the parser, the makers' paths on real
+  phones, the download page and setup guide (5.8), the signing key and its backup, the support number.
 
 ### Slice 5.6: Lytro's own payments on the page
 - **Read agreed 2026-11-03** (the first, third and fourth as recommended): **sellers keep the dashboard's wallet step**, and

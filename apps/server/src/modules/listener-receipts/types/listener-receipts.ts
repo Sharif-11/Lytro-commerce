@@ -22,6 +22,8 @@ export interface ListenerUploaded {
 /** One receipt on the app's home screen. */
 export interface ListenerRecentItem {
   id: string;
+  /** Agreed 2026-11-03 (Slice 5.5b's read): whose SMS it was, which is all a test receipt can say of its wallet. */
+  sender: string;
   method: PaymentMethod | null;
   amount: string | null;
   transactionId: string | null;

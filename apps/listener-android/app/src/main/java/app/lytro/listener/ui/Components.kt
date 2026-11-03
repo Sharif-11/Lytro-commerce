@@ -38,6 +38,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
@@ -54,6 +55,7 @@ import app.lytro.listener.R
 import app.lytro.listener.net.Account
 import app.lytro.listener.ui.theme.Background
 import app.lytro.listener.ui.theme.Danger
+import app.lytro.listener.ui.theme.DangerLine
 import app.lytro.listener.ui.theme.DangerSoft
 import app.lytro.listener.ui.theme.ErrorText
 import app.lytro.listener.ui.theme.Ink
@@ -63,6 +65,7 @@ import app.lytro.listener.ui.theme.LineStrong
 import app.lytro.listener.ui.theme.LocalBodyFont
 import app.lytro.listener.ui.theme.Marigold100
 import app.lytro.listener.ui.theme.Marigold300
+import app.lytro.listener.ui.theme.Marigold500
 import app.lytro.listener.ui.theme.Muted
 import app.lytro.listener.ui.theme.Neutral200
 import app.lytro.listener.ui.theme.Neutral300
@@ -91,9 +94,24 @@ fun PhoneFrame(content: @Composable ColumnScope.() -> Unit) {
     }
 }
 
-/** `.ab`: the icon and the name. */
+/** `.ab.bk`: back, and where this is. */
 @Composable
-fun AppBar() {
+fun BackBar(title: String, onBack: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().height(52.dp).background(Background).padding(start = 4.dp, end = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Box(Modifier.size(44.dp).clickable(onClick = onBack).testTag("back"), contentAlignment = Alignment.Center) {
+            LytroIcon(LytroIcons.Back, Text)
+        }
+        BasicText(title, style = cssText(16f, 1.2f, FontWeight.W600, Text, LocalBodyFont.current))
+    }
+}
+
+/** `.ab`: the icon and the name, and the menu on the screens that have one. */
+@Composable
+fun AppBar(onMenu: (() -> Unit)? = null) {
     Row(
         Modifier.fillMaxWidth().height(52.dp).background(Background).padding(start = 14.dp, end = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -102,8 +120,14 @@ fun AppBar() {
         Image(painterResource(R.drawable.ic_listener_tile), null, Modifier.size(28.dp))
         BasicText(
             stringResource(R.string.app_name),
+            Modifier.weight(1f),
             style = cssText(16f, 1.2f, FontWeight.W600, Text, Inter),
         )
+        if (onMenu != null) {
+            Box(Modifier.size(44.dp).clickable(onClick = onMenu).testTag("menu"), contentAlignment = Alignment.Center) {
+                LytroIcon(LytroIcons.More, Text)
+            }
+        }
     }
 }
 
@@ -134,6 +158,7 @@ enum class BandKind(val background: Color, val border: Color, val dot: Color, va
     Ok(PrimarySoft, Line, Teal400, Teal400, Muted),
     Warn(WarnSoft, Line, Marigold300, Marigold300, Muted),
     Dan(Danger, Danger, White, White, White),
+    Test(Marigold300, Marigold300, Ink, Ink, Ink),
 }
 
 /** `.st`: the one status, always at the top (BRAND-IDENTITY 8.5). */
@@ -193,6 +218,8 @@ fun Label(text: String) = Txt(text, size = 13.5f, line = 1.55f, weight = FontWei
 enum class BtnKind(val background: Color, val text: Color, val border: Color?, val weight: FontWeight) {
     Primary(Teal400, Ink, null, FontWeight.W700),
     Secondary(Color.Transparent, Teal300, LineStrong, FontWeight.W600),
+    Warn(Marigold500, Ink, null, FontWeight.W700),
+    Dan(Color.Transparent, ErrorText, DangerLine, FontWeight.W600),
 }
 
 /** `.btn`. */
@@ -204,11 +231,12 @@ fun Btn(
     kind: BtnKind = BtnKind.Primary,
     enabled: Boolean = true,
     icon: ImageVector? = null,
+    minHeight: Dp = 48.dp,
 ) {
     val shape = RoundedCornerShape(10.dp)
     val background = if (enabled) kind.background else Raised
     val color = if (enabled) kind.text else Neutral300
-    var box = modifier.fillMaxWidth().heightIn(min = 48.dp).clip(shape).background(background)
+    var box = modifier.fillMaxWidth().heightIn(min = minHeight).clip(shape).background(background)
     if (kind.border != null) box = box.border(1.dp, kind.border, shape)
     Row(
         box.clickable(enabled = enabled, onClick = onClick).padding(horizontal = 14.dp, vertical = 8.dp),
@@ -233,12 +261,17 @@ fun LinkBtn(text: String, onClick: () -> Unit) {
 
 /** `.card`. */
 @Composable
-fun Card(modifier: Modifier = Modifier, gap: Dp = 0.dp, content: @Composable ColumnScope.() -> Unit) {
+fun Card(
+    modifier: Modifier = Modifier,
+    gap: Dp = 0.dp,
+    verticalPadding: Dp = 13.dp,
+    content: @Composable ColumnScope.() -> Unit,
+) {
     val shape = RoundedCornerShape(12.dp)
     // A CSS border adds to the padding; here it would be drawn over it.
     Column(
         modifier.fillMaxWidth().clip(shape).background(Surface).border(1.dp, Line, shape)
-            .padding(horizontal = 15.dp, vertical = 13.dp),
+            .padding(horizontal = 15.dp, vertical = verticalPadding),
         verticalArrangement = Arrangement.spacedBy(gap),
         content = content,
     )

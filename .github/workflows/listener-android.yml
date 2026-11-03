@@ -76,7 +76,7 @@ jobs:
           sudo udevadm trigger --name-match=kvm
 
       # Real SMS through the emulator's radio, and every screen, with no person (agreed 2026-11-03). Its console token is the
-      # file the emulator writes on starting.
+      # file the emulator writes on starting. A crashed run's report says only that it crashed, so its log goes to this job's.
       - name: Tests on an emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -85,7 +85,7 @@ jobs:
           arch: x86_64
           working-directory: apps/listener-android
           disable-animations: true
-          script: ./gradlew :app:connectedDebugAndroidTest --console=plain "-Pandroid.testInstrumentationRunnerArguments.consoleToken=$(cat ~/.emulator_console_auth_token)"
+          script: ./gradlew :app:connectedDebugAndroidTest --console=plain "-Pandroid.testInstrumentationRunnerArguments.consoleToken=$(cat ~/.emulator_console_auth_token)" || { adb logcat -d -b crash | tail -60; exit 1; }
 
       - name: Keep the emulator's report
         if: always()
