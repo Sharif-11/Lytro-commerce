@@ -1,7 +1,6 @@
 package app.lytro.listener.engine
 
 import app.lytro.listener.data.PhoneFactsStore
-import app.lytro.listener.data.PhoneStatus
 import app.lytro.listener.data.ReceiptQueue
 import app.lytro.listener.data.SavedMessage
 import app.lytro.listener.net.ApiResult
@@ -100,9 +99,7 @@ class ReceiptUploader(
         val taken = batch.zip(results).filter { (_, result) -> result.status != null }
         queue.markSent(taken.map { (message, _) -> message })
         if (taken.isNotEmpty()) {
-            phone.update {
-                it.copy(lastReportAt = clock(), testModeUntil = testModeUntil, status = PhoneStatus.Connected)
-            }
+            guard.connected { it.copy(lastReportAt = clock(), testModeUntil = testModeUntil) }
         }
         for ((message, result) in taken) {
             if (result.status != STATUS_IGNORED) reachedServer.tryEmit(message)
