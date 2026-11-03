@@ -212,6 +212,8 @@ export const LISTENER_TEXT_KEPT_DAYS = 90;
 // LSN-16: the senders whose SMS count as a wallet's, when the operator has set no list of their own.
 export const LISTENER_SENDERS: readonly string[] = ['bKash'];
 export const LISTENER_SENDER_MAX_LENGTH = 30;
+// VER-02: how far a receipt's amount may be from the one asked, in paisa (0.01 TK).
+export const LISTENER_AMOUNT_SLACK_PAISA = 1n;
 // VER-04 (amended 2026-11-02): a receipt from more than [5] minutes before its payment page opened goes to staff.
 export const LISTENER_OLD_RECEIPT_MINUTES = 5;
 // VER-06 (amended 2026-11-02): an unreadable message's masked shape, and the day's count that tells Lytro.

@@ -12,7 +12,12 @@ export interface ListenerStore {
   run<T>(work: (tx: Transaction) => Promise<T>): Promise<T>;
   insertCode(
     tx: Transaction,
-    values: { tenantId: string; codeHash: string; createdBy: string | null; expiresAt: Date },
+    values: {
+      tenantId: string | null;
+      codeHash: string;
+      createdBy: string | null;
+      expiresAt: Date;
+    },
   ): Promise<SelectListenerPairingCode>;
   lockCode(tx: Transaction, codeHash: string): Promise<SelectListenerPairingCode | null>;
   spendCode(tx: Transaction, id: string, at: Date): Promise<void>;
@@ -21,6 +26,8 @@ export interface ListenerStore {
   insertDevice(tx: Transaction, values: NewListenerDevice): Promise<SelectListenerDevice>;
   findByTokenHash(tx: Transaction, tokenHash: string): Promise<SelectListenerDevice | null>;
   listForTenant(tx: Transaction, tenantId: string): Promise<SelectListenerDevice[]>;
+  /** PAY-21 (Slice 5.6): Lytro's own phones. */
+  listForLytro(tx: Transaction): Promise<SelectListenerDevice[]>;
   findDevice(
     tx: Transaction,
     tenantId: string | null,

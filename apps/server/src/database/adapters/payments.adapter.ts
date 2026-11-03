@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import {
   InvoiceCountersRepository,
   InvoicesRepository,
+  LytroMessageRepository,
   PlanPaymentsRepository,
   TransactionRunner,
   UsedTransactionIdsRepository,
@@ -79,6 +80,7 @@ export class DrizzlePlanPaymentsStore implements PlanPaymentsStore {
     @Inject(DatabaseService) private readonly database: Pick<DatabaseService, 'handle'>,
     @Inject(TransactionRunner) private readonly transactions: TransactionRunner,
     @Inject(PlanPaymentsRepository) private readonly payments: PlanPaymentsRepository,
+    @Inject(LytroMessageRepository) private readonly receipts: LytroMessageRepository,
     @Inject(UsedTransactionIdsRepository) private readonly usedIds: UsedTransactionIdsRepository,
   ) {}
 
@@ -134,6 +136,26 @@ export class DrizzlePlanPaymentsStore implements PlanPaymentsStore {
 
   needingAttention(tx: Transaction, tenantId: string, kinds: PlanPaymentKind[], since: Date) {
     return this.payments.needingAttention(tx, tenantId, kinds, since);
+  }
+
+  markReceiptUsed(tx: Transaction, transactionId: string, paymentId: string) {
+    return this.receipts.markUsed(tx, transactionId, paymentId);
+  }
+
+  releaseReceipt(tx: Transaction, paymentId: string) {
+    return this.receipts.releaseOfPayment(tx, paymentId);
+  }
+
+  lockTyped(tx: Transaction, transactionId: string) {
+    return this.payments.lockTyped(tx, transactionId);
+  }
+
+  creditInstead(
+    tx: Transaction,
+    id: string,
+    values: { kind: PlanPaymentKind; amount: string; verifiedBy: string; verifiedAt: Date },
+  ) {
+    return this.payments.creditInstead(tx, id, values);
   }
 
   async setStatus(tx: Transaction, id: string, values: PlanPaymentStatusValues) {

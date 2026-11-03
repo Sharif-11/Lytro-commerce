@@ -37,6 +37,9 @@ function codeOf(): string {
 type Outcome<T> = { refused: ApiError } | { done: T };
 
 /** LSN-01: a code pairs only while it is not spent, voided or run out. */
+// PAY-21 (Slice 5.6): what the app calls the owner of Lytro's own phone.
+const LYTRO_NAME = 'Lytro';
+
 function isOpen(code: SelectListenerPairingCode, now: Date): boolean {
   return code.usedAt === null && code.voidedAt === null && code.expiresAt > now;
 }
@@ -83,6 +86,21 @@ export class ListenerPairing {
     return outcome.done;
   }
 
+  /** PAY-21 (Slice 5.6): a code for Lytro's own phone, made by the operator; no shop, no plan's limit. */
+  async createLytroCode(operatorId: string): Promise<ListenerCode> {
+    const now = this.clock();
+    const code = codeOf();
+    const row = await this.store.run((tx) =>
+      this.store.insertCode(tx, {
+        tenantId: null,
+        codeHash: listenerHashOf(code),
+        createdBy: operatorId,
+        expiresAt: new Date(now.getTime() + LISTENER_CODE_MINUTES * MINUTE_MS),
+      }),
+    );
+    return { code, expiresAt: row.expiresAt };
+  }
+
   /** LSN-01, LSN-11: the app pairing with a code; its token, shown this once. */
   async pair(
     input: ListenerPairInput,
@@ -102,15 +120,19 @@ export class ListenerPairing {
         code.createdBy === null
           ? { id: null, ip, type: ActorType.System }
           : { id: code.createdBy, ip, type: ActorType.User };
-      const shop = await this.store.shopOf(tx, code.tenantId);
-      const refused = await this.refusalOf(tx, code.tenantId, shop, input.installationId, actor);
+      const tenantId = code.tenantId;
+      const shop = tenantId === null ? null : await this.store.shopOf(tx, tenantId);
+      const refused =
+        tenantId === null
+          ? await this.lytroRefusalOf(tx, input.installationId)
+          : await this.refusalOf(tx, tenantId, shop, input.installationId, actor);
       if (refused) {
         await this.store.addTry(tx, code.id, LISTENER_CODE_TRIES_MAX, now);
         return { refused };
       }
       const token = randomBytes(LISTENER_TOKEN_BYTES).toString('base64url');
       const device = await this.store.insertDevice(tx, {
-        tenantId: code.tenantId,
+        tenantId,
         name: input.name ?? input.model ?? 'Listener phone',
         model: input.model ?? null,
         appVersion: version,
@@ -120,7 +142,7 @@ export class ListenerPairing {
       });
       await this.store.spendCode(tx, code.id, now);
       await this.rules.recordBoth(tx, {
-        tenantId: code.tenantId,
+        tenantId,
         actor,
         platformActor: { type: PlatformActorType.System, id: null },
         action: AuditAction.ListenerDevicePaired,
@@ -132,7 +154,7 @@ export class ListenerPairing {
         done: {
           deviceId: device.id,
           token,
-          shopName: shop?.shopName ?? '',
+          shopName: tenantId === null ? LYTRO_NAME : (shop?.shopName ?? ''),
           heartbeatMinutes: LISTENER_HEARTBEAT_MINUTES,
           ...(await this.rules.appFactsOf(device, now)),
         },
@@ -143,6 +165,13 @@ export class ListenerPairing {
       throw outcome.refused;
     }
     return outcome.done;
+  }
+
+  /** LSN-21 (Slice 5.6): Lytro's own phone meets only the block on its installation. */
+  private async lytroRefusalOf(tx: Transaction, installationId: string): Promise<ApiError | null> {
+    return (await this.store.isBlocked(tx, installationId))
+      ? new ApiError('forbidden', 'ListenerInstallationBlocked', {})
+      : null;
   }
 
   /** LSN-07, LSN-08, LSN-21: why a found code may not pair now, or null when it may. */

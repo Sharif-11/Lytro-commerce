@@ -1,6 +1,7 @@
 /** LSN-12: a phone revoked after too many calls from another app installation, as its owner and Lytro are told. */
 export interface ListenerAutoRevokedNotice {
-  tenantId: string;
+  /** Null for Lytro's own phone (Slice 5.6). */
+  tenantId: string | null;
   deviceId: string;
   name: string;
   flags: number;
@@ -8,7 +9,8 @@ export interface ListenerAutoRevokedNotice {
 
 /** LSN-14 (Slice 5.4b): a phone sending too much, as its owner and Lytro are told. */
 export interface ListenerVolumeNotice {
-  tenantId: string;
+  /** Null for Lytro's own phone (Slice 5.6). */
+  tenantId: string | null;
   deviceId: string;
   name: string;
 }

@@ -426,7 +426,7 @@ async function logged(tenantId: string, action: string): Promise<Record<string, 
   return rows.map((row) => row.summary);
 }
 
-function noticesFor<T extends { tenantId: string }>(notices: T[], shop: ShopClient): T[] {
+function noticesFor<T extends { tenantId: string | null }>(notices: T[], shop: ShopClient): T[] {
   return notices.filter((notice) => notice.tenantId === shop.tenantId);
 }
 

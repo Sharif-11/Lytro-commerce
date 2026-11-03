@@ -2,7 +2,7 @@
 
 Status: v2, 2026-10-20, amended 2026-11-02 (Slice 5.4b: correcting a typed ID, and what a review tells a shopper). The design of `pay.lytro.app/<session>`, the page a shopper lands on to pay a
 shop by bKash, Nagad, Rocket or Upay when the payment is verified manually or by the SMS listener. The
-same page takes the platform's own payments (a plan or a top-up, PAY-21). It is built in Phase 5
+platform's own payments stay in the dashboard's wallet step (amended 2026-11-03, D5-3). It is built in Phase 5
 (`IMPLEMENTATION-PLAN.md`, `DEPLOYMENT.md` §7); nothing of it exists in code yet, and this document is the
 spec for that work. The interactive prototype is `docs/brand/lytro-payment-page.html` (320 px, 390 px and
 the 1280 px desktop; Bangla with the EN toggle; every wallet and every session state).
@@ -192,7 +192,7 @@ report sheet, the states); the rest are listed here so the build adds them in th
 | `POST /pay/:id/report` with a reason, limited per IP | TVR-02 |
 | A retry that reopens the wallet screen after `failed` in the same session | PAY-08 |
 | Upay as a wallet type (the SRS names bKash, Nagad and Rocket; WAL-18 adds a type without page changes) | §1.2 |
-| The platform's own wallet accounts on a plan or top-up session | PAY-21 |
+| The platform's own wallet accounts on a plan or top-up session: not built, amended 2026-11-03 (sellers stay in the dashboard's wallet step, D5-3) | PAY-21 |
 
 ---
 

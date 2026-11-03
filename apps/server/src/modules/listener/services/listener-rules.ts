@@ -14,12 +14,14 @@ import {
   PlatformSettingKey,
   TenantState,
   type AuditAction,
+  type PaymentMethod,
   type PlatformActorType,
   type PlatformAuditAction,
 } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import { dhakaDate, MINUTE_MS } from '../../../common/time';
 import { PlatformAuditService } from '../../audit/services/platform-audit.service';
+import { PlatformWalletsService } from '../../balance/services/platform-wallets.service';
 import { CatalogueActivity, type ResolvedActor } from '../../catalogue/services/catalogue-activity';
 import { PaymentMethods } from '../../payment-methods/services/payment-methods';
 import { PlatformSettingsService } from '../../platform-settings/services/platform-settings.service';
@@ -33,6 +35,11 @@ const LISTENING_STATES: ReadonlySet<TenantState> = new Set([
   TenantState.Grace,
   TenantState.PayAsYouGo,
 ]);
+
+// PAY-21 (Slice 5.6): Lytro's own wallets name their provider in free text; these are the ones its phone can read.
+const WALLET_OF_PROVIDER = new Map<string, PaymentMethod>(
+  LISTENER_WALLETS.map((method) => [method, method]),
+);
 
 /** LSN-09, LSN-11: a code or token as it is kept -- its SHA-256 hash; both are long and random, so no slow hash. */
 export function listenerHashOf(value: string): string {
@@ -52,6 +59,7 @@ export class ListenerRules {
     @Inject(CatalogueActivity) private readonly activity: CatalogueActivity,
     @Inject(PlatformAuditService) private readonly platformAudit: PlatformAuditService,
     @Inject(PaymentMethods) private readonly methods: PaymentMethods,
+    @Inject(PlatformWalletsService) private readonly lytroWallets: PlatformWalletsService,
   ) {}
 
   /** LSN-07: whether the shop may use the listener now -- trial, active, in grace or pay-as-you-go, and not suspended. */
@@ -103,16 +111,12 @@ export class ListenerRules {
    * senders to let through, and whether test mode is on.
    */
   async appFactsOf(device: SelectListenerDevice, now: Date): Promise<ListenerAppFacts> {
-    const [offered, senders] = await Promise.all([
-      this.methods.forShoppers(device.tenantId),
+    const [accounts, senders] = await Promise.all([
+      device.tenantId === null ? this.lytroAccounts() : this.shopAccounts(device.tenantId),
       this.senders(),
     ]);
     return {
-      accounts: offered.flatMap((row) =>
-        LISTENER_WALLETS.includes(row.method) && row.number !== null
-          ? [{ method: row.method, number: row.number }]
-          : [],
-      ),
+      accounts,
       senders: [...senders],
       testModeUntil: this.testModeOf(device, now),
     };
@@ -143,7 +147,8 @@ export class ListenerRules {
   async recordBoth(
     tx: Transaction,
     event: {
-      tenantId: string;
+      /** Null for Lytro's own phone, which is in the platform's log alone (Slice 5.6). */
+      tenantId: string | null;
       actor: ResolvedActor;
       platformActor: { type: PlatformActorType; id: string | null };
       action: AuditAction;
@@ -153,14 +158,16 @@ export class ListenerRules {
     },
   ): Promise<void> {
     const target = { type: 'listener_device', id: event.deviceId };
-    await this.activity.record(
-      tx,
-      event.tenantId,
-      event.actor,
-      event.action,
-      target,
-      event.summary,
-    );
+    if (event.tenantId !== null) {
+      await this.activity.record(
+        tx,
+        event.tenantId,
+        event.actor,
+        event.action,
+        target,
+        event.summary,
+      );
+    }
     await this.platformAudit.recordWithin(tx, {
       actorType: event.platformActor.type,
       actorId: event.platformActor.id,
@@ -170,6 +177,24 @@ export class ListenerRules {
       result: AuditResult.Success,
       ip: event.actor.ip,
       summary: { tenantId: event.tenantId, ...event.summary },
+    });
+  }
+
+  private async shopAccounts(tenantId: string): Promise<ListenerAppFacts['accounts']> {
+    const offered = await this.methods.forShoppers(tenantId);
+    return offered.flatMap((row) =>
+      LISTENER_WALLETS.includes(row.method) && row.number !== null
+        ? [{ method: row.method, number: row.number }]
+        : [],
+    );
+  }
+
+  /** PAY-21 (Slice 5.6): Lytro's own wallets whose receipts its phone can read; their provider is free text. */
+  private async lytroAccounts(): Promise<ListenerAppFacts['accounts']> {
+    const wallets = await this.lytroWallets.list(true);
+    return wallets.flatMap((wallet) => {
+      const method = WALLET_OF_PROVIDER.get(wallet.provider.toLowerCase());
+      return method === undefined ? [] : [{ method, number: wallet.number }];
     });
   }
 

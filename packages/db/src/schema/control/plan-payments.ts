@@ -1,6 +1,11 @@
 import { sql } from 'drizzle-orm';
 import { index, numeric, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
-import { PaymentCancelReason, PlanPaymentKind, PlanPaymentStatus } from '@lytronix/validators';
+import {
+  PaymentCancelReason,
+  PlanPaymentKind,
+  PlanPaymentStatus,
+  type PaymentReviewReason,
+} from '@lytronix/validators';
 import { control, createdAt } from '../shared';
 import { billingTerms } from './billing-terms';
 import { plans } from './plans';
@@ -35,6 +40,11 @@ export const planPayments = control.table(
     note: text('note'),
     // BIL-19: on a `cancelled` row, who closed it -- the shop, or its newer request of the same kind.
     cancelReason: text('cancel_reason').$type<PaymentCancelReason>(),
+    // BIL-06 (Slice 5.6, agreed 2026-11-03): what the seller says they sent; what a receipt or the operator says arrived; and
+    // why a receipt sent it to the operator.
+    amountSent: numeric('amount_sent', { precision: 10, scale: 2 }),
+    amountArrived: numeric('amount_arrived', { precision: 10, scale: 2 }),
+    reviewReason: text('review_reason').$type<PaymentReviewReason>(),
     createdAt: createdAt(),
   },
   (t) => [
