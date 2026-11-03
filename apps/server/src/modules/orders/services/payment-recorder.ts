@@ -29,6 +29,8 @@ export interface PaymentEntry {
   sessionId?: string;
   /** VER-12 (Slice 5.4b): how it was verified, when not by hand. */
   verificationLevel?: VerificationLevel;
+  /** VER-11 (Slice 5.7): from a gateway's test environment. */
+  test?: boolean;
 }
 
 /** What an order's payments make of it (ORD-06, ORD-43). */

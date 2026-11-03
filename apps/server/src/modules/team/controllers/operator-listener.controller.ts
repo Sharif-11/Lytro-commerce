@@ -24,6 +24,8 @@ import { SkipTenant } from '../../../common/decorators/skip-tenant';
 import { OkDto } from '../../../common/dto/ok.dto';
 import type { MessageKey } from '../../../common/i18n/message-key';
 import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
+import { CredentialUses } from '../../gateway/services/credential-uses';
+import type { CredentialUsePage } from '../../gateway/types/gateway';
 import { ListenerDevices } from '../../listener/services/listener-devices';
 import { ListenerPairing } from '../../listener/services/listener-pairing';
 import { LytroReceipts } from '../../lytro-receipts/services/lytro-receipts';
@@ -37,6 +39,7 @@ import {
 } from '../../operator/guards/operator-session.guard';
 import {
   BlockInstallationDto,
+  CredentialUsePageDto,
   InstallationBlockedDto,
   ListenerCodeDto,
   ListenerDeviceListDto,
@@ -58,6 +61,7 @@ export class OperatorListenerController {
     @Inject(ListenerReceipts) private readonly receipts: ListenerReceipts,
     @Inject(ListenerPairing) private readonly pairing: ListenerPairing,
     @Inject(LytroReceipts) private readonly lytro: LytroReceipts,
+    @Inject(CredentialUses) private readonly credentialLog: CredentialUses,
     @Inject(ClientIp) private readonly clientIp: ClientIp,
   ) {}
 
@@ -102,6 +106,20 @@ export class OperatorListenerController {
     @Query(new ZodValidationPipe(ListenerReceiptsQueryDto.schema)) query: ListenerReceiptsQuery,
   ): Promise<LytroReceiptPage> {
     return this.lytro.list(query);
+  }
+
+  @Get('tenants/:id/gateway-credential-uses')
+  @ResponseMessage('CredentialUsesListed')
+  @ApiOperation({
+    summary:
+      "A shop's log of its stored gateway credentials' uses, newest first, without any credential, for a dispute or an anomaly (SEC-11)",
+  })
+  @ZodResponse({ type: CredentialUsePageDto })
+  credentialUses(
+    @Param('id') id: string,
+    @Query(new ZodValidationPipe(ListenerReceiptsQueryDto.schema)) query: ListenerReceiptsQuery,
+  ): Promise<CredentialUsePage> {
+    return this.credentialLog.list(this.idOf(id, 'ShopNotFound'), query.page, query.limit);
   }
 
   @Get('listener-unread')

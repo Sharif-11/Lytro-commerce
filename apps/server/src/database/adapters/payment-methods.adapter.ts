@@ -6,7 +6,7 @@ import {
   type SelectWalletAccount,
   type Transaction,
 } from '@lytronix/db';
-import type { PaymentMethod } from '@lytronix/validators';
+import type { PaymentMethod, PaymentWay } from '@lytronix/validators';
 import type { PaymentMethodStore } from '../../modules/payment-methods/ports/payment-method-store';
 import { DatabaseService } from '../database.service';
 
@@ -49,6 +49,39 @@ export class DrizzlePaymentMethodStore implements PaymentMethodStore {
 
   setOff(tx: Transaction, tenantId: string, method: PaymentMethod, off: boolean): Promise<void> {
     return this.methods.setOff(tx, tenantId, method, off);
+  }
+
+  listWays(
+    tx: Transaction,
+    tenantId: string,
+  ): Promise<{ method: PaymentMethod; way: PaymentWay }[]> {
+    return this.methods.listWays(tx, tenantId);
+  }
+
+  setWay(tx: Transaction, tenantId: string, method: PaymentMethod, way: PaymentWay): Promise<void> {
+    return this.methods.setWay(tx, tenantId, method, way);
+  }
+
+  setGateway(
+    tx: Transaction,
+    tenantId: string,
+    id: string,
+    values: { credentials: Buffer; sandbox: boolean } | null,
+  ): Promise<SelectWalletAccount | null> {
+    return this.methods.setGateway(tx, tenantId, id, values);
+  }
+
+  selectAutomated(
+    tx: Transaction,
+    tenantId: string,
+    method: PaymentMethod,
+    id: string,
+  ): Promise<void> {
+    return this.methods.selectAutomated(tx, tenantId, method, id);
+  }
+
+  findAccount(tx: Transaction, tenantId: string, id: string): Promise<SelectWalletAccount | null> {
+    return this.methods.findAccount(tx, tenantId, id);
   }
 
   ownerPhoneVerified(tx: Transaction, tenantId: string): Promise<boolean> {

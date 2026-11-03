@@ -27,6 +27,12 @@ export interface MoneyForClosedOrderNotice {
   transactionId: string;
 }
 
+/** VER-10 (Slice 5.7): a shop's gateway failed; its owner needs to look at it. */
+export interface GatewayAttentionNotice {
+  tenantId: string;
+  method: PaymentMethod;
+}
+
 /**
  * VER-01 (Phase 5 Slice 5.3): tells the shop's staff with payments:verify of a payment waiting for them. Phase 7 delivers
  * it in-app and by push (NTF-01, NTF-03).
@@ -35,4 +41,5 @@ export interface PaymentNotifier {
   paymentToVerify(notice: PaymentToVerifyNotice): Promise<void>;
   paymentVerified(notice: PaymentVerifiedNotice): Promise<void>;
   moneyForClosedOrder(notice: MoneyForClosedOrderNotice): Promise<void>;
+  gatewayNeedsAttention(notice: GatewayAttentionNotice): Promise<void>;
 }

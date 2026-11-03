@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
 import {
   blockInstallationSchema,
+  CredentialUseAction,
   ListenerDeviceStatus,
   ListenerIgnoredReason,
   ListenerMessageStatus,
@@ -88,6 +89,25 @@ export const lytroReceiptSchema = z.object({
 export class LytroReceiptPageDto extends createZodDto(
   z.object({
     receipts: z.array(lytroReceiptSchema),
+    page: z.number(),
+    limit: z.number(),
+    total: z.number(),
+    pages: z.number(),
+  }),
+) {}
+// SEC-11 (Slice 5.7): a shop's log of its stored gateway credentials' uses.
+export class CredentialUsePageDto extends createZodDto(
+  z.object({
+    uses: z.array(
+      z.object({
+        method: z.nativeEnum(PaymentMethod),
+        action: z.nativeEnum(CredentialUseAction),
+        accountId: z.string(),
+        sessionId: z.string().nullable(),
+        succeeded: z.boolean(),
+        at: z.coerce.date(),
+      }),
+    ),
     page: z.number(),
     limit: z.number(),
     total: z.number(),

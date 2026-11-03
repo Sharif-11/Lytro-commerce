@@ -109,7 +109,7 @@ describeIfDatabase("a shop's payment accounts (WAL-01 to WAL-05, WAL-14 to WAL-1
     const shop = await openShop(port, texts, 'pay');
     const view = (await shop.get('/payment-methods')).body as Methods;
     expect(view.methods.map((row) => [row.method, row.kind, row.enabled, row.levels])).toEqual([
-      ['bkash', 'wallet', true, ['manual']],
+      ['bkash', 'wallet', true, ['manual', 'listener', 'gateway']],
       ['nagad', 'wallet', true, ['manual']],
       ['rocket', 'wallet', true, ['manual']],
       ['upay', 'wallet', true, ['manual']],

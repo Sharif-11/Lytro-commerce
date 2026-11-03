@@ -38,6 +38,7 @@ export * from './tenant/customers';
 export * from './tenant/shoppers';
 export * from './tenant/orders';
 export * from './tenant/payment-methods';
+export * from './tenant/gateway-credential-uses';
 export * from './tenant/listener-messages';
 export * from './tenant/payment-sessions';
 export * from './control/payment-session-refs';

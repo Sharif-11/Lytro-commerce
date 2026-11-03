@@ -27,6 +27,8 @@ export interface PaymentListItem {
   decidedAt: Date | null;
   rejectReason: PaymentRejectReason | null;
   note: string | null;
+  /** VER-11 (Slice 5.7): from a gateway's test environment; left out of the totals. */
+  test: boolean;
   /** Slice 5.4b: why a receipt sent it to staff. */
   reviewReason: PaymentReviewReason | null;
   /** Slice 5.4b: what the receipt that claims it says arrived. */

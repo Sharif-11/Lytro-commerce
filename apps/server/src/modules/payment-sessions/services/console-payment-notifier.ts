@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type {
+  GatewayAttentionNotice,
   MoneyForClosedOrderNotice,
   PaymentNotifier,
   PaymentToVerifyNotice,
@@ -25,6 +26,11 @@ export class ConsolePaymentNotifier implements PaymentNotifier {
     this.logger.log(
       `tenant ${notice.tenantId}: ${notice.amount} TK for order ${notice.orderNumber} verified by the listener`,
     );
+    return Promise.resolve();
+  }
+
+  gatewayNeedsAttention(notice: GatewayAttentionNotice): Promise<void> {
+    this.logger.warn(`tenant ${notice.tenantId}: the ${notice.method} gateway needs attention`);
     return Promise.resolve();
   }
 

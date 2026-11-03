@@ -8,6 +8,7 @@ import {
   TransactionRunner,
   UsedTransactionIdsRepository,
   type NewPaymentSession,
+  type PaidToSnapshot,
   type PaymentDecision,
   type PaymentPageReportRow,
   type PaymentSubmission,
@@ -16,6 +17,8 @@ import {
   type Transaction,
 } from '@lytronix/db';
 import type {
+  GatewayResult,
+  PaymentMethod,
   PaymentPageReportReason,
   PaymentPageReportStatus,
   PaymentReviewReason,
@@ -86,6 +89,46 @@ export class DrizzlePaymentSessionStore implements PaymentSessionStore {
 
   releaseReceipt(tx: Transaction, tenantId: string, sessionId: string): Promise<void> {
     return this.receipts.releaseOfSession(tx, tenantId, sessionId);
+  }
+
+  beginGateway(
+    tx: Transaction,
+    tenantId: string,
+    id: string,
+    values: { method: PaymentMethod; accountId: string; feeHeld: string; test: boolean },
+  ): Promise<void> {
+    return this.sessions.beginGateway(tx, tenantId, id, values);
+  }
+
+  gatewayStarted(
+    tx: Transaction,
+    tenantId: string,
+    id: string,
+    checkout: { paymentId: string; redirectUrl: string },
+  ): Promise<void> {
+    return this.sessions.gatewayStarted(tx, tenantId, id, checkout);
+  }
+
+  endGateway(tx: Transaction, tenantId: string, id: string, result: GatewayResult): Promise<void> {
+    return this.sessions.endGateway(tx, tenantId, id, result);
+  }
+
+  gatewayPaid(
+    tx: Transaction,
+    tenantId: string,
+    id: string,
+    values: {
+      transactionId: string;
+      senderNumber: string | null;
+      paidTo: PaidToSnapshot | null;
+      at: Date;
+    },
+  ): Promise<SelectPaymentSession> {
+    return this.sessions.gatewayPaid(tx, tenantId, id, values);
+  }
+
+  gatewayDue(tx: Transaction, tenantId: string, now: Date): Promise<SelectPaymentSession[]> {
+    return this.sessions.gatewayDue(tx, tenantId, now);
   }
 
   listShopIds(): Promise<string[]> {

@@ -1,6 +1,7 @@
 import type {
   AccountMethod,
   PaymentMethodKind,
+  PaymentWay,
   VerificationLevel,
   WalletAccountType,
 } from '@lytronix/validators';
@@ -19,6 +20,11 @@ export interface PaymentAccountView {
   swiftCode: string | null;
   instructions: string | null;
   active: boolean;
+  /** WAL-09, WAL-10, WAL-12 (Slice 5.7): never the credentials themselves. */
+  hasCredentials: boolean;
+  credentialsUnreadable: boolean;
+  sandbox: boolean;
+  automated: boolean;
 }
 
 /** WAL-05, WAL-18: one method, whether it is on, how it can be verified, and its accounts in the shop's order. */
@@ -27,6 +33,9 @@ export interface PaymentMethodView {
   kind: PaymentMethodKind;
   enabled: boolean;
   levels: VerificationLevel[];
+  /** PAY-06 (amended 2026-11-03): how the owner takes this method's money, and the ways it supports. */
+  way: PaymentWay;
+  ways: PaymentWay[];
   accounts: PaymentAccountView[];
 }
 
@@ -42,6 +51,8 @@ export interface ShopperPaymentMethod {
   accountId: string;
   method: AccountMethod;
   kind: PaymentMethodKind;
+  /** PAY-06: whether picking it goes to the wallet's own checkout. */
+  way: PaymentWay;
   accountName: string;
   number: string | null;
   accountType: WalletAccountType | null;

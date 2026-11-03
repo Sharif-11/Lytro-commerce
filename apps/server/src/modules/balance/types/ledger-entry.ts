@@ -31,4 +31,6 @@ export interface BalanceView extends BalanceSnapshot {
 export interface BalanceSnapshot {
   amount: string;
   frozen: boolean;
+  /** WAL-21 (Slice 5.7): held for open checkouts at a wallet, which ends by itself as each closes. */
+  held: string;
 }

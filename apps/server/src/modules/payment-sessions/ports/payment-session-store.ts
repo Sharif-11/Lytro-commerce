@@ -1,6 +1,7 @@
 import type {
   NewPaymentSession,
   PaymentDecision,
+  PaidToSnapshot,
   PaymentPageReportRow,
   PaymentSubmission,
   SelectPaymentPageReport,
@@ -8,6 +9,8 @@ import type {
   Transaction,
 } from '@lytronix/db';
 import type {
+  GatewayResult,
+  PaymentMethod,
   PaymentPageReportReason,
   PaymentPageReportStatus,
   PaymentReviewReason,
@@ -91,6 +94,32 @@ export interface PaymentSessionStore {
   /** PAY-14, PAY-07 (Slice 5.4b): a receipt that claimed this session is unclaimed again. */
   releaseReceipt(tx: Transaction, tenantId: string, sessionId: string): Promise<void>;
   lockExpired(tx: Transaction, tenantId: string, now: Date): Promise<SelectPaymentSession[]>;
+  /** PAY-06, VER-09, WAL-21 (Slice 5.7): a try at the wallet's own checkout, and how it ends. */
+  beginGateway(
+    tx: Transaction,
+    tenantId: string,
+    id: string,
+    values: { method: PaymentMethod; accountId: string; feeHeld: string; test: boolean },
+  ): Promise<void>;
+  gatewayStarted(
+    tx: Transaction,
+    tenantId: string,
+    id: string,
+    checkout: { paymentId: string; redirectUrl: string },
+  ): Promise<void>;
+  endGateway(tx: Transaction, tenantId: string, id: string, result: GatewayResult): Promise<void>;
+  gatewayPaid(
+    tx: Transaction,
+    tenantId: string,
+    id: string,
+    values: {
+      transactionId: string;
+      senderNumber: string | null;
+      paidTo: PaidToSnapshot | null;
+      at: Date;
+    },
+  ): Promise<SelectPaymentSession>;
+  gatewayDue(tx: Transaction, tenantId: string, now: Date): Promise<SelectPaymentSession[]>;
   setState(
     tx: Transaction,
     tenantId: string,
