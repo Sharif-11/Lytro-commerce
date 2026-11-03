@@ -1,6 +1,6 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
-import { SalesBucket, SalesRanking, StockUnit } from '@lytronix/validators';
+import { ProductKind, SalesBucket, SalesRanking, StockUnit } from '@lytronix/validators';
 
 const salesFigureSchema = z.object({
   orders: z.number(),
@@ -37,6 +37,7 @@ export const bestSellersViewSchema = z.object({
     z.object({
       productId: z.string().nullable(),
       name: z.string(),
+      kind: z.nativeEnum(ProductKind),
       stockUnit: z.nativeEnum(StockUnit),
       units: z.string(),
       revenue: z.string(),

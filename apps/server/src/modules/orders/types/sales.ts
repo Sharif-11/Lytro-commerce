@@ -1,4 +1,4 @@
-import type { SalesBucket, SalesRanking, StockUnit } from '@lytronix/validators';
+import type { ProductKind, SalesBucket, SalesRanking, StockUnit } from '@lytronix/validators';
 import type { UnitQuantity } from '../../inventory/types/inventory';
 
 /**
@@ -46,6 +46,8 @@ export interface SalesView {
 export interface BestSellerView {
   productId: string | null;
   name: string;
+  /** CMB-01 (Slice 4.8d): a combo is tagged. */
+  kind: ProductKind;
   stockUnit: StockUnit;
   units: string;
   revenue: string;

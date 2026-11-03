@@ -361,7 +361,12 @@ describeIfDatabase('best sellers and trends (STA-02, STA-03, STA-04)', () => {
           ['Chair', '1.000', '1000.00', 1],
         ],
       );
-      expect(byUnits.products[1]).toMatchObject({ productId: pair.id, stockUnit: 'piece' });
+      expect(byUnits.products[1]).toMatchObject({
+        productId: pair.id,
+        kind: 'combo',
+        stockUnit: 'piece',
+      });
+      expect(byUnits.products[0]).toMatchObject({ kind: 'standard' });
       const byRevenue = await bestSellers(shop, `${OCTOBER}&by=revenue&limit=2`);
       expect(byRevenue.products.map((row) => row.name)).toEqual(['Chair', 'Clip']);
 
