@@ -12,6 +12,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { LytroReceipts } from '../../lytro-receipts/services/lytro-receipts';
 import { IdempotencyInterceptor } from '../../../common/idempotency/idempotency.interceptor';
 import { ZodResponse } from 'nestjs-zod';
 import { LedgerEntryType, limitOf, Permission, PlanPaymentKind } from '@lytronix/validators';
@@ -73,6 +74,7 @@ const LEDGER_TYPES_QUERY = {
 @UseGuards(SessionGuard, DashboardGuard, PermissionGuard)
 export class BalanceController {
   constructor(
+    @Inject(LytroReceipts) private readonly lytroReceipts: LytroReceipts,
     @Inject(BalanceService) private readonly balance: BalanceService,
     @Inject(RateService) private readonly rates: RateService,
     @Inject(TopUpService) private readonly topUp: TopUpService,
@@ -212,15 +214,17 @@ export class BalanceController {
   @ApiOperation({ summary: 'Submit a wallet payment for a top-up' })
   @ApiBody({ type: ConfirmTopUpDto })
   @ZodResponse({ type: PlanPaymentDto })
-  confirmTopUp(
+  async confirmTopUp(
     @Body(new ZodValidationPipe(ConfirmTopUpDto.schema)) body: ConfirmTopUpDto,
     @Req() request: DashboardRequest,
   ): Promise<PlanPaymentRecord> {
-    return this.topUp.submit(body.paymentId, this.tenantIdOf(request), {
-      transactionId: body.transactionId,
-      senderNumber: body.senderNumber,
-      amountPaid: body.amountPaid.toFixed(2),
-    });
+    return this.lytroReceipts.afterSubmit(
+      await this.topUp.submit(body.paymentId, this.tenantIdOf(request), {
+        transactionId: body.transactionId,
+        senderNumber: body.senderNumber,
+        amountPaid: body.amountPaid.toFixed(2),
+      }),
+    );
   }
 
   // BIL-19 (decided 2026-10-23): the shop closes a top-up request it has sent nothing for.

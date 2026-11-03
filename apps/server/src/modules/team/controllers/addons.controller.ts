@@ -13,6 +13,7 @@ import {
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
 import { Permission } from '@lytronix/validators';
+import { LytroReceipts } from '../../lytro-receipts/services/lytro-receipts';
 import { ApiError } from '../../../common/api-error';
 import { ClientIp } from '../../../common/client-ip';
 import { Dashboard } from '../../../common/decorators/dashboard';
@@ -55,6 +56,7 @@ import {
 @UseGuards(SessionGuard, DashboardGuard, PermissionGuard)
 export class AddonsController {
   constructor(
+    @Inject(LytroReceipts) private readonly lytroReceipts: LytroReceipts,
     @Inject(AddonPurchaseService) private readonly addons: AddonPurchaseService,
     @Inject(AddonPackService) private readonly packs: AddonPackService,
     @Inject(ClientIp) private readonly clientIp: ClientIp,
@@ -113,11 +115,13 @@ export class AddonsController {
     if (!body.transactionId || !body.senderNumber || body.amountPaid === undefined) {
       throw new ApiError('validation_error', 'TransactionIdRequired', {});
     }
-    const payment = await this.addons.submitWalletPayment(body.paymentId, tenantId, {
-      transactionId: body.transactionId,
-      senderNumber: body.senderNumber,
-      amountPaid: body.amountPaid.toFixed(2),
-    });
+    const payment = await this.lytroReceipts.afterSubmit(
+      await this.addons.submitWalletPayment(body.paymentId, tenantId, {
+        transactionId: body.transactionId,
+        senderNumber: body.senderNumber,
+        amountPaid: body.amountPaid.toFixed(2),
+      }),
+    );
     return { payment, invoice: null };
   }
 

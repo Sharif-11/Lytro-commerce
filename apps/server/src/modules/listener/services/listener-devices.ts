@@ -53,6 +53,18 @@ export class ListenerDevices {
     };
   }
 
+  /** PAY-21 (Slice 5.6): Lytro's own phones, for the operator. */
+  async listForLytro(): Promise<ListenerDeviceList> {
+    const offline = await this.rules.offlineMinutes();
+    const now = this.clock();
+    const devices = await this.store.run((tx) => this.store.listForLytro(tx));
+    return {
+      devices: devices.map((device) => this.rules.viewOf(device, now, offline)),
+      active: devices.filter((device) => device.revokedAt === null).length,
+      limit: null,
+    };
+  }
+
   /** LSN-20: the operator's view of one shop's phones. */
   async listForOperator(tenantId: string): Promise<ListenerDeviceList> {
     const shop = await this.store.run((tx) => this.store.shopOf(tx, tenantId));

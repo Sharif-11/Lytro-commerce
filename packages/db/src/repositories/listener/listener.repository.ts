@@ -14,7 +14,8 @@ import type { Executor } from '../../transactions';
 
 /** LSN-01, LSN-11: a device as it is paired -- its token's hash, bound to the shop and the app installation. */
 export interface NewListenerDevice {
-  tenantId: string;
+  /** Slice 5.6: null for Lytro's own phone. */
+  tenantId: string | null;
   name: string;
   model: string | null;
   appVersion: string;
@@ -128,7 +129,12 @@ export class ListenerRepository {
 
   async insertCode(
     db: Executor,
-    values: { tenantId: string; codeHash: string; createdBy: string | null; expiresAt: Date },
+    values: {
+      tenantId: string | null;
+      codeHash: string;
+      createdBy: string | null;
+      expiresAt: Date;
+    },
   ): Promise<SelectListenerPairingCode> {
     const [row] = await db.insert(listenerPairingCodes).values(values).returning();
     if (!row) throw new Error('insert returned no pairing code');
@@ -190,6 +196,15 @@ export class ListenerRepository {
   }
 
   /** LSN-20: the shop's phones, the oldest paired first. */
+  /** PAY-21 (Slice 5.6): Lytro's own phones, newest first. */
+  async listForLytro(db: Executor): Promise<SelectListenerDevice[]> {
+    return db
+      .select()
+      .from(listenerDevices)
+      .where(isNull(listenerDevices.tenantId))
+      .orderBy(desc(listenerDevices.pairedAt));
+  }
+
   async listForTenant(db: Executor, tenantId: string): Promise<SelectListenerDevice[]> {
     return db
       .select()

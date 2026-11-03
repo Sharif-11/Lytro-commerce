@@ -4,6 +4,7 @@ import {
   billingPaymentStateOf,
   PAYMENT_ATTENTION_DAYS,
   PaymentCancelReason,
+  type PaymentReviewReason,
   PlanPaymentKind,
   PlanPaymentStatus,
   ServerFieldProblemCode,
@@ -234,6 +235,7 @@ export class PlanPaymentsService {
           transactionId: input.transactionId,
           senderNumber: input.senderNumber,
           matchesQuoted: input.amountPaid === payment.amount,
+          amountSent: input.amountPaid,
         },
         now,
       );
@@ -251,7 +253,12 @@ export class PlanPaymentsService {
   async recordSubmission(
     tx: Transaction,
     id: string,
-    values: { transactionId: string; senderNumber: string; matchesQuoted: boolean },
+    values: {
+      transactionId: string;
+      senderNumber: string;
+      matchesQuoted: boolean;
+      amountSent?: string;
+    },
     now = new Date(),
   ): Promise<void> {
     const payment = await this.store.findByIdForUpdate(tx, id);
@@ -266,6 +273,7 @@ export class PlanPaymentsService {
         transactionId: values.transactionId,
         senderNumber: values.senderNumber,
         submittedAt: now,
+        amountSent: values.amountSent ?? null,
       });
     } catch (error) {
       if (error instanceof UniqueViolation && error.target === 'transactionId') {
@@ -292,8 +300,9 @@ export class PlanPaymentsService {
   async approve(
     tx: Transaction,
     id: string,
-    operatorId: string,
+    operatorId: string | null,
     now: Date,
+    amountArrived?: string,
   ): Promise<PlanPaymentRecord> {
     const payment = await this.store.findByIdForUpdate(tx, id);
     if (!payment) throw new ApiError('not_found', 'PlanPaymentNotFound', {});
@@ -305,16 +314,84 @@ export class PlanPaymentsService {
       throw new ApiError('conflict', 'TransactionIdAlreadyUsed', {});
     }
     await this.store.registerTransactionId(tx, payment.transactionId, payment.tenantId);
+    await this.store.markReceiptUsed(tx, payment.transactionId, id);
+    const arrived = amountArrived ?? payment.amountArrived;
     await this.store.setStatus(tx, id, {
       status: PlanPaymentStatus.Verified,
       verifiedBy: operatorId,
       verifiedAt: now,
+      amountArrived: arrived,
     });
     return {
       ...payment,
       status: PlanPaymentStatus.Verified,
       verifiedBy: operatorId,
       verifiedAt: now,
+      amountArrived: arrived,
+    };
+  }
+
+  /** VER-02 (Slice 5.6): the payment a receipt with this ID settles, held; null when no seller typed it. */
+  lockTypedWithin(tx: Transaction, transactionId: string): Promise<PlanPaymentRecord | null> {
+    return this.store.lockTyped(tx, transactionId);
+  }
+
+  /** PAY-16: whether a payment platform-wide already holds this transaction ID. */
+  transactionIdUsedWithin(tx: Transaction, transactionId: string): Promise<boolean> {
+    return this.store.transactionIdUsed(tx, transactionId);
+  }
+
+  /** BIL-06, VER-02 (Slice 5.6): the payment goes to the operator's queue, with why and what arrived. */
+  toReviewWithin(
+    tx: Transaction,
+    id: string,
+    review: { reason: PaymentReviewReason; amountArrived: string | null },
+  ): Promise<void> {
+    return this.store.setStatus(tx, id, {
+      status: PlanPaymentStatus.NeedsReview,
+      reviewReason: review.reason,
+      amountArrived: review.amountArrived,
+    });
+  }
+
+  /**
+   * BIL-06 (Slice 5.6, agreed 2026-11-03): money for a plan or add-on at the wrong amount, put on the balance instead: its ID is
+   * used for good, and the row becomes the top-up its money now is. The caller credits the balance in the same transaction.
+   */
+  async creditInsteadWithin(
+    tx: Transaction,
+    id: string,
+    operatorId: string,
+    amount: string,
+    now: Date,
+  ): Promise<PlanPaymentRecord> {
+    const payment = await this.store.findByIdForUpdate(tx, id);
+    if (!payment) throw new ApiError('not_found', 'PlanPaymentNotFound', {});
+    if (!PENDING_LIKE.includes(payment.status) || payment.kind === PlanPaymentKind.TopUp) {
+      throw new ApiError('conflict', 'PlanPaymentNotPending', {});
+    }
+    if (!payment.transactionId) throw new ApiError('validation_error', 'TransactionIdRequired', {});
+    if (await this.store.transactionIdUsed(tx, payment.transactionId)) {
+      throw new ApiError('conflict', 'TransactionIdAlreadyUsed', {});
+    }
+    await this.store.registerTransactionId(tx, payment.transactionId, payment.tenantId);
+    await this.store.markReceiptUsed(tx, payment.transactionId, id);
+    await this.store.creditInstead(tx, id, {
+      kind: PlanPaymentKind.TopUp,
+      amount,
+      verifiedBy: operatorId,
+      verifiedAt: now,
+    });
+    return {
+      ...payment,
+      kind: PlanPaymentKind.TopUp,
+      amount,
+      planId: null,
+      billingTermId: null,
+      status: PlanPaymentStatus.Verified,
+      verifiedBy: operatorId,
+      verifiedAt: now,
+      amountArrived: amount,
     };
   }
 
@@ -331,6 +408,7 @@ export class PlanPaymentsService {
     if (!PENDING_LIKE.includes(payment.status)) {
       throw new ApiError('conflict', 'PlanPaymentNotPending', {});
     }
+    await this.store.releaseReceipt(tx, id);
     await this.store.setStatus(tx, id, {
       status: PlanPaymentStatus.Rejected,
       verifiedBy: operatorId,

@@ -16,14 +16,14 @@ export class ConsoleListenerNotifier implements ListenerNotifier {
 
   deviceAutoRevoked(notice: ListenerAutoRevokedNotice): Promise<void> {
     this.logger.warn(
-      `tenant ${notice.tenantId}: listener phone ${notice.name} revoked after ${String(notice.flags)} flags`,
+      `tenant ${notice.tenantId ?? 'Lytro'}: listener phone ${notice.name} revoked after ${String(notice.flags)} flags`,
     );
     return Promise.resolve();
   }
 
   volumeFlagged(notice: ListenerVolumeNotice): Promise<void> {
     this.logger.warn(
-      `tenant ${notice.tenantId}: listener phone ${notice.name} is sending too much`,
+      `tenant ${notice.tenantId ?? 'Lytro'}: listener phone ${notice.name} is sending too much`,
     );
     return Promise.resolve();
   }
