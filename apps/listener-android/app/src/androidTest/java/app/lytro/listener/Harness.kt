@@ -13,6 +13,8 @@ import java.io.PrintWriter
 import java.net.Socket
 import java.util.UUID
 import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.runBlocking
 import mockwebserver3.Dispatcher
 import mockwebserver3.MockResponse
@@ -54,6 +56,9 @@ class FakeLytro {
     }
     var everyDeviceCall: (() -> MockResponse)? = null
 
+    /** Until let go, a good answer to the report and to Home's list stays on its way back. */
+    var holdGoodAnswers: CountDownLatch? = null
+
     private val server = MockWebServer().apply {
         dispatcher = object : Dispatcher() {
             override fun dispatch(request: RecordedRequest): MockResponse {
@@ -61,7 +66,9 @@ class FakeLytro {
                 paths += "${request.method} $path"
                 if (path == "pair") return pairAnswer()
                 everyDeviceCall?.let { return it() }
-                return when ("${request.method} $path") {
+                val call = "${request.method} $path"
+                if (call == "POST heartbeat" || call == "GET messages") holdGoodAnswers?.await(45, TimeUnit.SECONDS)
+                return when (call) {
                     "POST heartbeat" -> envelope(
                         """{"status":"connected","heartbeatMinutes":15,"serverTime":"${isoOf(System.currentTimeMillis())}","deviceName":"$deviceName","shopName":"Megh Fashion",
                         "accounts":$accounts,"senders":["bKash"],"testModeUntil":null}""",
