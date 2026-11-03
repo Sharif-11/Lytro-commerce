@@ -2428,21 +2428,48 @@ CREATE TABLE control.listener_blocked_installations (
     blocked_at      timestamptz NOT NULL DEFAULT now()
 );
 
--- Planned for Slice 5.4b (receipts).
-
+-- Built in Slice 5.4b (receipts). One row holds a transaction ID for the shop; another phone's copy is a duplicate. The phone
+-- may be purged before its messages (LSN-05), so no foreign key across schemas. RLS like every tenant table.
 CREATE TABLE tenant.listener_messages (
-    id              bigserial PRIMARY KEY,
+    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id       uuid NOT NULL,
-    device_id       uuid NOT NULL REFERENCES tenant.listener_devices(id),
-    raw_text        text,                                -- redacted to null after 90 days (LSN-17)
-    transaction_id  text,
-    amount          numeric(10,2),
-    sender_number   text,
-    status          text NOT NULL,                        -- matched | unmatched | ignored | duplicate
-    matched_payment_id uuid,
-    received_at     timestamptz NOT NULL
+    device_id       uuid NOT NULL,
+    sender          varchar(30) NOT NULL,
+    method          tenant.payment_method,
+    transaction_id  varchar(20),
+    amount          numeric(12,2),
+    sender_number   varchar(11),
+    raw_text        text,                                -- receipts only; redacted at 90 days (LSN-17)
+    status          tenant.listener_message_status NOT NULL,   -- matched | unmatched | needs_review | duplicate | ignored
+    ignored_reason  tenant.listener_ignored_reason,
+    review_reason   tenant.payment_review_reason,
+    session_id      uuid,
+    payment_id      uuid,
+    received_at     timestamptz NOT NULL,
+    created_at      timestamptz NOT NULL DEFAULT now(),
+    updated_at      timestamptz NOT NULL DEFAULT now()
 );
-CREATE INDEX ON tenant.listener_messages (tenant_id, transaction_id);
+CREATE UNIQUE INDEX ON tenant.listener_messages (tenant_id, transaction_id)
+    WHERE status IN ('matched', 'unmatched', 'needs_review');
+CREATE UNIQUE INDEX ON tenant.listener_messages (tenant_id, device_id, transaction_id) WHERE status <> 'ignored';
+CREATE INDEX ON tenant.listener_messages (tenant_id, device_id, received_at);
+CREATE INDEX ON tenant.listener_messages (tenant_id, status, received_at);
+CREATE INDEX ON tenant.listener_messages (tenant_id, session_id) WHERE session_id IS NOT NULL;
+CREATE INDEX ON tenant.listener_messages (tenant_id, payment_id) WHERE payment_id IS NOT NULL;
+CREATE INDEX ON tenant.listener_messages (tenant_id, received_at) WHERE raw_text IS NOT NULL;
+
+-- VER-06 (amended 2026-11-02): the wording of what a wallet's sender sent that could not be read, naming no shop.
+CREATE TABLE control.listener_unread_shapes (
+    day         date NOT NULL,
+    shape_hash  char(64) NOT NULL,
+    shape       varchar(300) NOT NULL,
+    count       integer NOT NULL DEFAULT 0,
+    PRIMARY KEY (day, shape_hash)
+);
+
+-- Slice 5.4b adds to control.listener_devices: test_mode_until, uploads_day, uploads_today, volume_flagged_at; and to
+-- tenant.payment_sessions: review_reason, id_changes, staff_told_at, with an index on (tenant_id, transaction_id) and one on
+-- (tenant_id, submitted_at) WHERE state = 'checking' AND staff_told_at IS NULL.
 ```
 
 ## 9. Tenant-configured outbound webhooks

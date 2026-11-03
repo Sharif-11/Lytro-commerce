@@ -4,14 +4,16 @@ import {
   PaymentSessionSource,
   PaymentSessionState,
   QueueName,
+  VerificationLevel,
   type RejectShopperPaymentInput,
   type VerifyShopperPaymentInput,
 } from '@lytronix/validators';
-import { CatalogueActivity } from '../../catalogue/services/catalogue-activity';
+import type { SelectPaymentSession, Transaction } from '@lytronix/db';
+import { CatalogueActivity, type ResolvedActor } from '../../catalogue/services/catalogue-activity';
 import type { CatalogueActor } from '../../catalogue/types/catalogue';
 import { OrderService } from '../../orders/services/order.service';
 import { PaymentRecorder } from '../../orders/services/payment-recorder';
-import type { OrderView } from '../../orders/types/orders';
+import type { OrderRecord, OrderView } from '../../orders/types/orders';
 import { PaymentSessions } from '../../payment-sessions/services/payment-sessions';
 import { AdTrackingService } from '../../public-api/services/ad-tracking.service';
 import type { MetaPurchasePayload } from '../../public-api/services/meta-purchase-sender';
@@ -24,7 +26,8 @@ import { JOB_QUEUE } from '../../shared/queue/tokens';
  * never more than is due) as the order's payment, claims the ID platform-wide, moves the order on from Unverified and
  * -- for a checkout's order -- tells Meta of the purchase now (agreed 2026-10-31). Rejecting records why, which the page
  * shows the shopper, and cancels a checkout's order with "advance not paid", letting its stock go; a staff link's order
- * stays as it is, as an unpaid link leaves it. Each is one transaction and in the activity log.
+ * stays as it is, as an unpaid link leaves it. Each is one transaction and in the activity log. Since Slice 5.4b the
+ * listener settles a payment through the same step, and a rejection leaves its receipt unclaimed again.
  */
 @Injectable()
 export class PaymentReview {
@@ -44,38 +47,66 @@ export class PaymentReview {
     actor: CatalogueActor,
   ): Promise<OrderView> {
     const who = await this.activity.resolve(tenantId, actor);
-    const toMeta = await this.adTracking.sendsPurchases(tenantId);
     return this.sessions.inTransaction(async (tx) => {
       const session = await this.sessions.lockToDecideWithin(tx, tenantId, sessionId);
       const order = await this.orders.lockWithin(tx, tenantId, session.orderId);
-      const updated = await this.recorder.recordWithin(
+      const updated = await this.settleWithin(
         tx,
         tenantId,
+        session,
         order,
-        {
-          method: session.method,
-          amount: input.amount !== undefined ? input.amount.toFixed(2) : session.amount,
-          senderNumber: session.senderNumber,
-          transactionId: session.transactionId,
-          sessionId: session.id,
-        },
+        input.amount !== undefined ? input.amount.toFixed(2) : session.amount,
         who,
-        '',
-        AuditAction.PaymentVerified,
+        VerificationLevel.Manual,
       );
-      await this.sessions.decideWithin(tx, tenantId, session.id, {
-        state: PaymentSessionState.Verified,
-        decidedBy: who.id,
-        decidedAt: new Date(),
-        rejectReason: null,
-        rejectNote: null,
-      });
-      if (toMeta && session.source === PaymentSessionSource.Checkout) {
-        const payload: MetaPurchasePayload = { tenantId, orderId: order.id };
-        await this.jobs.enqueue(tx, QueueName.MetaPurchase, payload, { singletonKey: order.id });
-      }
       return this.orders.viewWithin(tx, tenantId, updated, []);
     });
+  }
+
+  /**
+   * VER-12, PAY-15: a session settled in the caller's transaction, whoever settled it -- the amount recorded as the order's
+   * payment, the session verified, and Meta told of a checkout's purchase. The order as it now stands.
+   */
+  async settleWithin(
+    tx: Transaction,
+    tenantId: string,
+    session: SelectPaymentSession & { method: NonNullable<SelectPaymentSession['method']> },
+    order: OrderRecord,
+    amount: string,
+    who: ResolvedActor,
+    level: VerificationLevel,
+  ): Promise<OrderRecord> {
+    const updated = await this.recorder.recordWithin(
+      tx,
+      tenantId,
+      order,
+      {
+        method: session.method,
+        amount,
+        senderNumber: session.senderNumber,
+        transactionId: session.transactionId,
+        sessionId: session.id,
+        verificationLevel: level,
+      },
+      who,
+      '',
+      AuditAction.PaymentVerified,
+    );
+    await this.sessions.decideWithin(tx, tenantId, session.id, {
+      state: PaymentSessionState.Verified,
+      decidedBy: who.id,
+      decidedAt: new Date(),
+      rejectReason: null,
+      rejectNote: null,
+    });
+    if (
+      session.source === PaymentSessionSource.Checkout &&
+      (await this.adTracking.sendsPurchases(tenantId))
+    ) {
+      const payload: MetaPurchasePayload = { tenantId, orderId: order.id };
+      await this.jobs.enqueue(tx, QueueName.MetaPurchase, payload, { singletonKey: order.id });
+    }
+    return updated;
   }
 
   async reject(
@@ -95,6 +126,7 @@ export class PaymentReview {
         rejectReason: input.reason,
         rejectNote: input.note ? input.note : null,
       });
+      await this.sessions.releaseReceiptWithin(tx, tenantId, session.id);
       if (session.source === PaymentSessionSource.Checkout) {
         await this.orders.cancelUnpaidWithin(tx, tenantId, session.orderId, now);
       }

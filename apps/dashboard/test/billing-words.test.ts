@@ -177,6 +177,7 @@ describe('the statement (TENANT-DASHBOARD-DESIGN §7.11)', () => {
     expect(STATEMENT_CHIPS.find((chip) => chip.key === 'fees')?.types).toEqual([
       LedgerEntryType.OrderFee,
       LedgerEntryType.ProductFee,
+      LedgerEntryType.VerificationFee,
       LedgerEntryType.Extraction,
       LedgerEntryType.FraudCheck,
     ]);

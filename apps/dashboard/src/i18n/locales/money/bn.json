@@ -291,6 +291,7 @@
     "extraction": "মেসেজ থেকে অর্ডার পড়া",
     "fraud_check": "ফেক অর্ডার চেক",
     "order_fee": "অর্ডার ফি",
+    "verification_fee": "পেমেন্ট ভেরিফিকেশন ফি",
     "plan_payment": "প্ল্যান পেমেন্ট",
     "product_fee": "প্রোডাক্ট ফি",
     "reversal": "চার্জ রিভার্সাল",

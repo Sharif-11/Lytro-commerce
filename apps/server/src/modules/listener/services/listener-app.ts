@@ -5,11 +5,14 @@ import {
   AuditAction,
   LISTENER_FLAGS_MAX,
   LISTENER_HEARTBEAT_MINUTES,
+  LISTENER_TEST_MODE_MINUTES,
   ListenerRevokeReason,
   PlatformActorType,
   PlatformAuditAction,
 } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
+import { MINUTE_MS } from '../../../common/time';
+import { CatalogueActivity } from '../../catalogue/services/catalogue-activity';
 import type { ListenerNotifier } from '../ports/listener-notifier';
 import type { ListenerStore } from '../ports/listener-store';
 import { LISTENER_CLOCK, LISTENER_NOTIFIER, LISTENER_STORE } from '../tokens';
@@ -43,6 +46,7 @@ export class ListenerApp {
     @Inject(ListenerDevices) private readonly devices: ListenerDevices,
     @Inject(ListenerLimits) private readonly limits: ListenerLimits,
     @Inject(LISTENER_NOTIFIER) private readonly notifier: ListenerNotifier,
+    @Inject(CatalogueActivity) private readonly activity: CatalogueActivity,
     @Inject(LISTENER_CLOCK) private readonly clock: () => Date,
   ) {}
 
@@ -76,7 +80,45 @@ export class ListenerApp {
     const now = this.clock();
     this.limits.admitHeartbeat(device.id, now);
     await this.store.run((tx) => this.store.touch(tx, device.id, now, appVersion));
-    return { status: 'connected', heartbeatMinutes: LISTENER_HEARTBEAT_MINUTES, serverTime: now };
+    return {
+      status: 'connected',
+      heartbeatMinutes: LISTENER_HEARTBEAT_MINUTES,
+      serverTime: now,
+      ...(await this.rules.appFactsOf(device, now)),
+    };
+  }
+
+  /**
+   * LSN-04 (amended 2026-11-02, the app's sketch): test mode on for [10] minutes, from the paired phone, which would hear
+   * the dashboard up to [15] minutes late. It verifies nothing, so holding the phone is enough. When it ends.
+   */
+  async startTestMode(device: SelectListenerDevice, ip: string | null): Promise<Date> {
+    const now = this.clock();
+    const until = new Date(now.getTime() + LISTENER_TEST_MODE_MINUTES * MINUTE_MS);
+    await this.store.run(async (tx) => {
+      await this.store.startTestMode(tx, device.id, until);
+      await this.activity.record(
+        tx,
+        device.tenantId,
+        { id: null, ip, type: ActorType.System },
+        AuditAction.ListenerTestModeStarted,
+        { type: 'listener_device', id: device.id },
+        { name: device.name, until },
+      );
+    });
+    return until;
+  }
+
+  /** Slice 5.5's sketch: the phone unpairs itself, from its menu or because the SIM is not in it; its place is free. */
+  async unpair(device: SelectListenerDevice, ip: string | null): Promise<void> {
+    await this.store.run(async (tx) => {
+      const locked = await this.store.findDevice(tx, null, device.id, true);
+      if (!locked || locked.revokedAt !== null) return;
+      await this.devices.revokeWithin(tx, locked, ListenerRevokeReason.Device, {
+        actor: { id: null, ip, type: ActorType.System },
+        platformActor: { type: PlatformActorType.System, id: null },
+      });
+    });
   }
 
   /** LSN-12: a call from another installation flags the phone; the [3]rd flag revokes it and tells its owner and Lytro. */

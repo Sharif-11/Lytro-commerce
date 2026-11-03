@@ -58,10 +58,12 @@ test('shows the balance, its statement with each row named, and the chips that r
   await expect(main(page).getByText('মেসেজ থেকে অর্ডার পড়া')).toBeVisible();
   await expect(main(page).getByText('ব্যালেন্স টপ-আপ · TrxID 9F2KQ7')).toHaveCount(0);
   const last = new URL(requests.at(-1) ?? '');
-  expect(last.searchParams.get('type')).toBe('order_fee,product_fee,extraction,fraud_check');
+  expect(last.searchParams.get('type')).toBe(
+    'order_fee,product_fee,verification_fee,extraction,fraud_check',
+  );
   await expect(main(page).getByRole('link', { name: 'CSV' })).toHaveAttribute(
     'href',
-    '/api/v1/balance/ledger/export?type=order_fee%2Cproduct_fee%2Cextraction%2Cfraud_check',
+    '/api/v1/balance/ledger/export?type=order_fee%2Cproduct_fee%2Cverification_fee%2Cextraction%2Cfraud_check',
   );
 });
 

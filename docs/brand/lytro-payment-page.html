@@ -97,6 +97,7 @@ svg.i{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2;stroke
 .ilist .copy{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:8px;background:var(--g900);color:#fff;font-size:14px;font-weight:500;margin-left:8px;vertical-align:middle;box-shadow:var(--sh-sm)}
 .ilist .copy svg.i{width:16px;height:16px}
 .ilist li span{flex:1;min-width:0}
+.fixid{display:block;width:100%;margin-top:12px;padding:8px 0;border:0;background:none;font:inherit;font-size:13px;font-weight:600;color:var(--blue);text-decoration:underline;cursor:pointer}
 .legal{margin-top:4px;font-size:12px;color:var(--g500);text-align:center;line-height:1.6}
 .legal a{color:var(--g600);text-decoration:underline}
 .fixedbar{position:absolute;left:0;right:0;bottom:0;margin:0 auto;width:100%;padding:28px 16px max(14px, env(safe-area-inset-bottom));z-index:10;background:linear-gradient(to top,var(--sky-50) 60%,rgba(240,249,255,0))}
@@ -172,7 +173,7 @@ body.embedded{background:var(--sky-50)}
     <select id="selScreen">
       <optgroup label="Choose"><option value="pick">Method picker</option></optgroup>
       <optgroup label="Wallet panels"><option value="bkash">bKash · Send Money</option><option value="bkash-agent">bKash · agent (Cash Out)</option><option value="bkash-merchant">bKash · merchant (Payment)</option><option value="nagad">Nagad · Send Money</option><option value="rocket">Rocket · Send Money</option><option value="upay">Upay · Send Money</option><option value="dup">bKash · duplicate TrxID error</option><option value="copied">bKash · number copied (toast)</option></optgroup>
-      <optgroup label="After verify"><option value="checking">Checking, listener online (12 s)</option><option value="checking-late">Checking, past 30 s</option><option value="manual">Manual check (listener offline)</option><option value="verified">Verified</option><option value="review">Needs review</option><option value="rejected">Rejected with a reason</option><option value="expired">Expired</option><option value="paid">Already paid</option><option value="cancelled">Cancelled</option><option value="suspended">Page suspended</option></optgroup>
+      <optgroup label="After verify"><option value="checking">Checking, listener online (12 s)</option><option value="checking-late">Checking, past 30 s</option><option value="manual">Manual check (listener offline)</option><option value="verified">Verified</option><option value="review">Needs review, the amount differs</option><option value="review-other">Needs review, any other reason</option><option value="rejected">Rejected with a reason</option><option value="expired">Expired</option><option value="paid">Already paid</option><option value="cancelled">Cancelled</option><option value="suspended">Page suspended</option></optgroup>
       <optgroup label="Other"><option value="platform">Platform payment (Lytro, plan)</option><option value="report">Report this page (sheet)</option></optgroup>
     </select>
   </label>
@@ -213,7 +214,7 @@ const S = {
   paidT:['এই পেমেন্ট আগেই হয়েছে','This payment was already made'],cancelledT:['এই পেমেন্ট ক্যানসেল করা হয়েছে','This payment was cancelled'],cancelledP:['দোকান পেমেন্টটি বাতিল করেছে। নতুন করে অর্ডার করতে দোকানে ফিরুন।','The shop cancelled this payment. Go back to the shop to order again.'],
   suspendedT:['এই পেমেন্ট পেজ এখন বন্ধ আছে','This payment page is closed right now'],
   amount:['টাকা','Amount'],method:['মেথড','Method'],trx:['ট্রান্সজেকশন আইডি','Transaction ID'],time:['সময়','Time'],
-  backShop:['BACK TO SHOP','BACK TO SHOP'],retry:['TRY AGAIN','TRY AGAIN'],wrongTrx:['CHANGE TRANSACTION ID','CHANGE TRANSACTION ID'],
+  backShop:['BACK TO SHOP','BACK TO SHOP'],retry:['TRY AGAIN','TRY AGAIN'],wrongTrx:['CHANGE TRANSACTION ID','CHANGE TRANSACTION ID'],wrongTrxLink:['TrxID ভুল দিয়েছেন? বদলান','Wrong TrxID? Change it'],reviewOtherT:['দোকান চেক করে জানাবে','The shop will check and let you know'],
   reportTitle:['এই পেজ রিপোর্ট করুন','Report this page'],r1:['এটা আমার দোকান নয়','This is not the shop I ordered from'],r2:['টাকার পরিমাণ ভুল','The amount is wrong'],r3:['আমার PIN চেয়েছে','It asked for my PIN'],r4:['অন্য কিছু','Something else'],rNote:['কী হয়েছে, এক লাইনে (ঐচ্ছিক)','What happened, in a line (optional)'],sendReport:['রিপোর্ট পাঠান','Send report'],
 };
 let LANG = 'bn';
@@ -237,7 +238,7 @@ const go = (s) => { ST.screen = s; const sel = document.getElementById('selScree
 const payReturn = (status) => { if (window.parent && window.parent !== window) window.parent.postMessage({ type: 'pay-return', status }, '*'); else go('pick'); };
 /* the demo verify: checking, then verified after the listener's usual few seconds */
 const payVerify = () => { go('checking'); clearTimeout(ST.t); ST.t = setTimeout(() => { if (ST.screen === 'checking') go('verified'); }, 2500); };
-const ACT = { checking: "go(ST.wallet || 'bkash')", rejected: "go(ST.wallet || 'bkash')", verified: "payReturn('verified')", 'checking-late': "payReturn('checking')", manual: "payReturn('checking')", review: "payReturn('review')", expired: "payReturn('expired')", paid: "payReturn('paid')", cancelled: "payReturn('cancelled')" };
+const ACT = { checking: "go(ST.wallet || 'bkash')", rejected: "go(ST.wallet || 'bkash')", verified: "payReturn('verified')", 'checking-late': "payReturn('checking')", manual: "payReturn('checking')", review: "payReturn('review')", 'review-other': "payReturn('review')", expired: "payReturn('expired')", paid: "payReturn('paid')", cancelled: "payReturn('cancelled')" };
 
 /* ---------- pieces ---------- */
 const topbar = (back) => `<div class="topbar"><button aria-label="back" ${back ? `onclick="go('${back}')"` : ''}>${ic('back', 28, 2.5)}</button><button aria-label="close" onclick="payReturn('cancelled')">${ic('x', 28, 2.5)}</button></div>`;
@@ -282,6 +283,7 @@ function panel(k, ty, o = {}) {
   ${legal()}`;
 }
 const det = (rows) => `<div class="det">${rows.map(([k, v]) => `<div class="kv"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('')}</div>`;
+const fixId = () => `<button class="fixid" onclick="go(ST.wallet || 'bkash')">${t('wrongTrxLink')}</button>`;
 const scard = (icon, title, p, extra) => `<div class="scard">${icon}<h2>${title}</h2>${p ? `<p>${p}</p>` : ''}${extra || ''}</div>${legal()}`;
 const ring = (s) => `<div class="ring"><svg viewBox="0 0 72 72"><circle class="bg" cx="36" cy="36" r="32"/><circle class="fg" cx="36" cy="36" r="32"/></svg><span class="t">${s}s</span></div>`;
 const bigIcon = (n, bg, col) => `<span class="ic" style="background:${bg};color:${col}">${ic(n, 40, 2)}</span>`;
@@ -302,10 +304,11 @@ const SC = {
   report: () => [panel('bkash', 'personal'), t('verify'), W.bkash.col],
   platform: () => [panel('bkash', 'personal', { no: '01700000000', amount: 449 }), t('verify'), W.bkash.col],
   checking: () => [scard(ring(12), t('checkingT'), t('checkingP'), det(trxRows())), t('wrongTrx'), 'var(--g500)'],
-  'checking-late': () => [scard(bigIcon('clock', 'var(--sky-100)', 'var(--sky-900)'), t('lateT'), t('lateP'), det(trxRows())), t('backShop'), 'var(--blue)'],
-  manual: () => [scard(bigIcon('user', 'var(--sky-100)', 'var(--sky-900)'), t('manualT'), t('manualP'), det(trxRows())), t('backShop'), 'var(--blue)'],
+  'checking-late': () => [scard(bigIcon('clock', 'var(--sky-100)', 'var(--sky-900)'), t('lateT'), t('lateP'), det(trxRows()) + fixId()), t('backShop'), 'var(--blue)'],
+  manual: () => [scard(bigIcon('user', 'var(--sky-100)', 'var(--sky-900)'), t('manualT'), t('manualP'), det(trxRows()) + fixId()), t('backShop'), 'var(--blue)'],
   verified: () => [scard(tick(), t('verifiedT'), t('verifiedP', { s: 5 }), det([...trxRows(), [t('time'), L('আজ সকাল 11:48', 'Today 11:48 am')]])), t('backShop'), '#15803d'],
-  review: () => [scard(bigIcon('search', 'var(--y50)', '#a16207'), t('reviewT'), t('reviewP', { a: 240, b: 250 }), det(trxRows())), t('backShop'), 'var(--blue)'],
+  review: () => [scard(bigIcon('search', 'var(--y50)', '#a16207'), t('reviewT'), t('reviewP', { a: 240, b: 250 }), det(trxRows()) + fixId()), t('backShop'), 'var(--blue)'],
+  'review-other': () => [scard(bigIcon('search', 'var(--sky-100)', 'var(--sky-900)'), t('reviewOtherT'), '', det(trxRows()) + fixId()), t('backShop'), 'var(--blue)'],
   rejected: () => [scard(bigIcon('x', '#fee2e2', '#b91c1c'), t('rejectedT'), t('rejectedReason', { r: L('এই TrxID-র টাকা আমাদের নম্বরে আসেনি', 'No money arrived on our number for this TrxID') }), det(trxRows())), t('retry'), W.bkash.col],
   expired: () => [scard(bigIcon('clock', 'var(--g100)', 'var(--g600)'), t('expiredT'), t('expiredP')), t('backShop'), 'var(--blue)'],
   paid: () => [scard(bigIcon('check', '#dcfce7', '#15803d'), t('paidT'), '', det([[t('amount'), '250 ৳'], [t('method'), 'bKash'], [t('time'), L('আজ সকাল 11:48', 'Today 11:48 am')]])), t('backShop'), 'var(--blue)'],
@@ -321,7 +324,7 @@ function render() {
   if (['bkash', 'nagad', 'rocket', 'upay'].includes(ST.screen)) ST.wallet = ST.screen;
   const [content, label, col] = SC[ST.screen]();
   const act = ACT[ST.screen] || 'payVerify()';
-  const isPanel = !['pick', 'checking', 'checking-late', 'manual', 'verified', 'review', 'rejected', 'expired', 'paid', 'cancelled', 'suspended'].includes(ST.screen);
+  const isPanel = !['pick', 'checking', 'checking-late', 'manual', 'verified', 'review', 'review-other', 'rejected', 'expired', 'paid', 'cancelled', 'suspended'].includes(ST.screen);
   const fixed = label ? `<div class="fixedbar"><button class="vbtn" style="background:${col}" onclick="${act}">${label}</button></div>` : '';
   const sheet = ST.screen === 'report' ? `<div class="scrim" onclick="go('bkash')"><div class="sheet" onclick="event.stopPropagation()"><div class="sh"><h2>${t('reportTitle')}</h2><button onclick="go('bkash')">${ic('x', 22)}</button></div><div class="sb">${[['r1', false], ['r2', false], ['r3', true], ['r4', false]].map(([k, on]) => `<div class="opt"><span class="radio ${on ? 'on' : ''}"></span>${t(k)}</div>`).join('')}<div class="inp">${t('rNote')}</div></div><div class="sf"><button class="btn">${t('sendReport')}</button></div></div></div>` : '';
   const toast = ST.screen === 'copied' ? `<div class="toast">${ic('check', 18)}${t('copiedNo', { n: SHOP.no })}</div>` : '';

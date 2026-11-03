@@ -100,6 +100,16 @@ export class BalanceService {
     });
   }
 
+  /** WAL-21 (Slice 5.4b): the balance as it stands, held until the transaction ends, for a charge that may not fit. */
+  async heldWithin(
+    tx: Transaction,
+    tenantId: string,
+  ): Promise<{ amount: string; frozen: boolean }> {
+    const balance = await this.tenants.lockBalanceForUpdate(tx, tenantId);
+    if (!balance) throw new Error('tenant not found');
+    return { amount: balance.amount, frozen: balance.frozen };
+  }
+
   chargeStandalone(input: ChargeInput): Promise<LedgerEntry> {
     return this.runStandalone(input.tenantId, (tx) => this.charge(tx, input));
   }

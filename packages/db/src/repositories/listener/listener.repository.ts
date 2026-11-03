@@ -1,12 +1,14 @@
-import { and, asc, count, eq, isNotNull, isNull, lt, or, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, gte, isNotNull, isNull, lt, or, sql } from 'drizzle-orm';
 import type { ListenerRevokeReason, TenantState } from '@lytronix/validators';
 import {
   listenerBlockedInstallations,
   listenerDevices,
   listenerPairingCodes,
+  listenerUnreadShapes,
   tenants,
   type SelectListenerDevice,
   type SelectListenerPairingCode,
+  type SelectListenerUnreadShape,
 } from '../../schema';
 import type { Executor } from '../../transactions';
 
@@ -31,6 +33,99 @@ export interface ListenerShopRow {
 // LSN-01 to LSN-23 (Phase 5 Slice 5.4a): the listener's pairing codes, paired phones and Lytro's blocked app
 // installations, in control -- the app is found by its code or token before its shop is known, as API keys are.
 export class ListenerRepository {
+  /** VER-07 (Slice 5.4b): whether any of the shop's phones reported since `since`. */
+  async anySeenSince(db: Executor, tenantId: string, since: Date): Promise<boolean> {
+    const [row] = await db
+      .select({ id: listenerDevices.id })
+      .from(listenerDevices)
+      .where(
+        and(
+          eq(listenerDevices.tenantId, tenantId),
+          isNull(listenerDevices.revokedAt),
+          gte(listenerDevices.lastSeenAt, since),
+        ),
+      )
+      .limit(1);
+    return row !== undefined;
+  }
+
+  /** LSN-03, LSN-20 (Slice 5.4b): messages taken from a phone -- it is seen now, on this version, and they count today. */
+  async noteUploads(
+    db: Executor,
+    id: string,
+    values: { at: Date; appVersion: string; day: string; count: number },
+  ): Promise<void> {
+    await db
+      .update(listenerDevices)
+      .set({
+        lastSeenAt: values.at,
+        appVersion: values.appVersion,
+        uploadsToday: sql`CASE WHEN ${listenerDevices.uploadsDay} = ${values.day}
+          THEN ${listenerDevices.uploadsToday} + ${values.count} ELSE ${values.count} END`,
+        uploadsDay: values.day,
+      })
+      .where(eq(listenerDevices.id, id));
+  }
+
+  /** LSN-04 (Slice 5.4b): test mode on until `until`. */
+  async startTestMode(db: Executor, id: string, until: Date): Promise<void> {
+    await db
+      .update(listenerDevices)
+      .set({ testModeUntil: until })
+      .where(eq(listenerDevices.id, id));
+  }
+
+  /** LSN-14 (Slice 5.4b): the phone flagged for its volume now, unless it was since `since`; whether this flagged it. */
+  async flagVolume(db: Executor, id: string, at: Date, since: Date): Promise<boolean> {
+    const rows = await db
+      .update(listenerDevices)
+      .set({ volumeFlaggedAt: at })
+      .where(
+        and(
+          eq(listenerDevices.id, id),
+          or(isNull(listenerDevices.volumeFlaggedAt), lt(listenerDevices.volumeFlaggedAt, since)),
+        ),
+      )
+      .returning({ id: listenerDevices.id });
+    return rows.length > 0;
+  }
+
+  /** VER-06 (amended 2026-11-02): one more unreadable message of this shape today; the day's count of all of them. */
+  async addUnread(
+    db: Executor,
+    values: { day: string; shapeHash: string; shape: string },
+  ): Promise<number> {
+    await db
+      .insert(listenerUnreadShapes)
+      .values({ ...values, count: 1 })
+      .onConflictDoUpdate({
+        target: [listenerUnreadShapes.day, listenerUnreadShapes.shapeHash],
+        set: { count: sql`${listenerUnreadShapes.count} + 1` },
+      });
+    const [row] = await db
+      .select({ total: sql<number>`coalesce(sum(${listenerUnreadShapes.count}), 0)::int` })
+      .from(listenerUnreadShapes)
+      .where(eq(listenerUnreadShapes.day, values.day));
+    return row?.total ?? 0;
+  }
+
+  /** VER-06: the shapes since `day`, the newest day and the commonest first. */
+  async listUnread(db: Executor, day: string): Promise<SelectListenerUnreadShape[]> {
+    return db
+      .select()
+      .from(listenerUnreadShapes)
+      .where(gte(listenerUnreadShapes.day, day))
+      .orderBy(desc(listenerUnreadShapes.day), desc(listenerUnreadShapes.count));
+  }
+
+  async purgeUnread(db: Executor, day: string): Promise<number> {
+    const rows = await db
+      .delete(listenerUnreadShapes)
+      .where(lt(listenerUnreadShapes.day, day))
+      .returning({ day: listenerUnreadShapes.day });
+    return rows.length;
+  }
+
   async insertCode(
     db: Executor,
     values: { tenantId: string; codeHash: string; createdBy: string | null; expiresAt: Date },

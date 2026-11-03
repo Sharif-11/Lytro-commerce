@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
   ComboRepository,
+  ListenerMessageRepository,
   OrderRepository,
   PaymentSessionRepository,
   type ComboPartStockRow,
@@ -50,6 +51,7 @@ export class DrizzleOrderStore implements OrderStore {
     @Inject(UsedTransactionIdsRepository) private readonly usedIds: UsedTransactionIdsRepository,
     @Inject(ComboRepository) private readonly combos: ComboRepository,
     @Inject(PaymentSessionRepository) private readonly sessions: PaymentSessionRepository,
+    @Inject(ListenerMessageRepository) private readonly receipts: ListenerMessageRepository,
   ) {}
 
   insertComponents(
@@ -135,6 +137,20 @@ export class DrizzleOrderStore implements OrderStore {
     values: { voidedBy: string | null; voidReason: string },
   ): Promise<OrderPaymentRecord> {
     return this.orders.voidPayment(tx, tenantId, paymentId, values);
+  }
+
+  markReceiptUsed(
+    tx: Transaction,
+    tenantId: string,
+    transactionId: string,
+    paymentId: string,
+    sessionId: string | null,
+  ): Promise<void> {
+    return this.receipts.markUsed(tx, tenantId, transactionId, paymentId, sessionId);
+  }
+
+  releaseReceiptOfPayment(tx: Transaction, tenantId: string, paymentId: string): Promise<void> {
+    return this.receipts.releaseOfPayment(tx, tenantId, paymentId);
   }
 
   async closeAwaitingPayment(tx: Transaction, tenantId: string, orderId: string): Promise<void> {

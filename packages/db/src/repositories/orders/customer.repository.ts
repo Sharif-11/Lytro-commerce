@@ -18,6 +18,8 @@ import { FulfillmentStatus, FulfilmentType, StatusOverride } from '@lytronix/val
 import {
   customers,
   idempotencyKeys,
+  listenerMessages,
+  orderPayments,
   orders,
   paymentSessions,
   shopperCodes,
@@ -246,6 +248,16 @@ export class CustomerRepository {
       await tx
         .delete(shopperCodes)
         .where(and(eq(shopperCodes.tenantId, tenantId), eq(shopperCodes.phone, customer.phone)));
+      // Slice 5.4b: the receipts that name this number, even where nobody claimed them.
+      await tx
+        .update(listenerMessages)
+        .set({ senderNumber: null, rawText: null, updatedAt: now })
+        .where(
+          and(
+            eq(listenerMessages.tenantId, tenantId),
+            eq(listenerMessages.senderNumber, customer.phone),
+          ),
+        );
     }
     const erased = await tx
       .update(orders)
@@ -266,6 +278,38 @@ export class CustomerRepository {
         .update(paymentSessions)
         .set({ senderNumber: null, updatedAt: now })
         .where(and(eq(paymentSessions.tenantId, tenantId), inArray(paymentSessions.orderId, ids)));
+      // Slice 5.4b: a receipt on its orders keeps its ID and amount, and loses the number and the text that names it.
+      await tx
+        .update(listenerMessages)
+        .set({ senderNumber: null, rawText: null, updatedAt: now })
+        .where(
+          and(
+            eq(listenerMessages.tenantId, tenantId),
+            or(
+              inArray(
+                listenerMessages.sessionId,
+                tx
+                  .select({ id: paymentSessions.id })
+                  .from(paymentSessions)
+                  .where(
+                    and(
+                      eq(paymentSessions.tenantId, tenantId),
+                      inArray(paymentSessions.orderId, ids),
+                    ),
+                  ),
+              ),
+              inArray(
+                listenerMessages.paymentId,
+                tx
+                  .select({ id: orderPayments.id })
+                  .from(orderPayments)
+                  .where(
+                    and(eq(orderPayments.tenantId, tenantId), inArray(orderPayments.orderId, ids)),
+                  ),
+              ),
+            ),
+          ),
+        );
       await tx
         .update(idempotencyKeys)
         .set({

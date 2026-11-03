@@ -11,6 +11,7 @@ import { AuditModule } from '../modules/audit/audit.module';
 import { QueueModule } from '../modules/shared/queue/queue.module';
 import { SecretsModule } from '../modules/shared/secrets/secrets.module';
 import { QueueWorkersModule } from '../modules/shared/queue-workers/queue-workers.module';
+import { PaymentPageModule } from '../modules/payment-page/payment-page.module';
 import { TeamModule } from '../modules/team/team.module';
 import { ShopAppModule } from '../modules/shop-app/shop-app.module';
 import { IdentityModule } from '../modules/identity/identity.module';
@@ -36,6 +37,7 @@ const shutdownImports: DynamicModule[] =
     IdentityModule,
     OperatorModule,
     TeamModule,
+    PaymentPageModule,
     ShopAppModule,
     AuditModule,
     QueueModule,

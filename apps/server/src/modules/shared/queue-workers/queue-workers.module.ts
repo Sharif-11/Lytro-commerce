@@ -15,6 +15,7 @@ import { ReservationExpiryTickWorker } from './services/reservation-expiry-tick-
 import { PaymentSessionExpiryTickWorker } from './services/payment-session-expiry-tick-worker';
 import { ListenerPurgeTickWorker } from './services/listener-purge-tick-worker';
 import { ListenerModule } from '../../listener/listener.module';
+import { ListenerReceiptsModule } from '../../listener-receipts/listener-receipts.module';
 import { PaymentSessionsModule } from '../../payment-sessions/payment-sessions.module';
 import { MediaDeleteWorker } from './services/media-delete-worker';
 import { MediaProcessVideoWorker } from './services/media-process-video-worker';
@@ -38,6 +39,7 @@ import { UsageNoticeWorker } from './services/usage-notice-worker';
   imports: [
     PaymentSessionsModule,
     ListenerModule,
+    ListenerReceiptsModule,
     QueueModule,
     MessagingModule,
     BillingModule,

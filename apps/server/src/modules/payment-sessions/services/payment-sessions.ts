@@ -2,12 +2,19 @@ import { randomBytes } from 'node:crypto';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { PaymentDecision, SelectPaymentSession, Transaction } from '@lytronix/db';
 import {
+  ActorType,
   AuditAction,
   FieldProblemCode,
+  LISTENER_OFFLINE_MINUTES,
+  LISTENER_WALLETS,
   NEW_SHOP_PAYMENT_CAP_AMOUNT,
   NEW_SHOP_PAYMENT_CAP_DAYS,
   PAGE_REPORTS_PER_VISITOR_PER_HOUR,
+  PAYMENT_ID_CHANGES_MAX,
   PAYMENT_LINK_HOURS,
+  PAYMENT_STAFF_TOLD_MINUTES,
+  PaymentPageReviewReason,
+  PaymentReviewReason,
   PlatformSettingKey,
   PaymentSessionSource,
   PaymentSessionState,
@@ -15,7 +22,9 @@ import {
   StatusOverride,
   TenantState,
   type CheckoutPaymentInput,
+  type PaymentIdChangeInput,
   type PaymentLinkInput,
+  type PaymentMethod,
   type PaymentPageReportInput,
   type PaymentSubmissionInput,
 } from '@lytronix/validators';
@@ -30,7 +39,7 @@ import type { OrderRecord } from '../../orders/types/orders';
 import { PaymentMethods } from '../../payment-methods/services/payment-methods';
 import type { ShopperPaymentMethod } from '../../payment-methods/types/payment-methods';
 import { PlatformSettingsService } from '../../platform-settings/services/platform-settings.service';
-import type { PaymentNotifier } from '../ports/payment-notifier';
+import type { PaymentNotifier, PaymentToVerifyNotice } from '../ports/payment-notifier';
 import type { PaymentSessionStore } from '../ports/payment-session-store';
 import { PAYMENT_NOTIFIER, PAYMENT_PAGE_ORIGIN, PAYMENT_SESSION_STORE } from '../tokens';
 import type { OpenedPayment, PaymentPageSession, TrackedPayment } from '../types/payment-sessions';
@@ -50,6 +59,13 @@ const DECIDABLE: readonly PaymentSessionState[] = [
   PaymentSessionState.Checking,
   PaymentSessionState.NeedsReview,
 ];
+
+/** PAY-14 (Slice 5.4b): a review as a shopper may hear of it -- nothing of the shop's own, such as its balance. */
+function pageReviewOf(reason: PaymentReviewReason | null): PaymentPageReviewReason {
+  if (reason === PaymentReviewReason.Amount) return PaymentPageReviewReason.Amount;
+  if (reason === PaymentReviewReason.Sender) return PaymentPageReviewReason.Sender;
+  return PaymentPageReviewReason.Other;
+}
 
 /**
  * PAY-24 (agreed 2026-10-31): what a payment link asks for, in paisa -- the advance still owed, else what is due; or the
@@ -71,7 +87,8 @@ function linkAmountOf(
  * page's address. A transaction ID typed in time moves it to checking, where it waits for verification (Slice 5.3) and
  * no longer runs out (D5-5); one nobody paid in time expires and, at checkout, cancels its order (D5-4). Staff may send
  * a link for an order instead (PAY-24), and a shopper may report a page to Lytro (TVR-02). Since Slice 5.3 staff are
- * told of a transaction ID to verify (VER-01), and a new shop's online payments a day are capped (TVR-04).
+ * told of a transaction ID to verify (VER-01), and a new shop's online payments a day are capped (TVR-04). Since Slice
+ * 5.4b a shopper may correct a typed ID, and staff wait [5] minutes to hear of a payment a phone may yet verify (VER-07).
  */
 @Injectable()
 export class PaymentSessions {
@@ -230,76 +247,168 @@ export class PaymentSessions {
 
   /**
    * PAY-07, PAY-16, D5-5: the transaction ID the shopper typed, for a method the shop offers, and the account they paid
-   * into as it stands. Only while the session awaits payment and has time left; an ID a payment already holds is
-   * refused. The session moves to checking and no longer runs out.
+   * into as it stands, in the caller's transaction. Only while the session awaits payment and has time left; an ID a
+   * payment already holds is refused. The session moves to checking and no longer runs out.
    */
-  async submit(
+  async submitWithin(
+    tx: Transaction,
     tenantId: string,
     ref: string,
     input: PaymentSubmissionInput,
     now: Date,
-  ): Promise<PaymentPageSession> {
-    const page = await this.store.run(async (tx) => {
-      const session = await this.store.findByRef(tx, tenantId, ref, true);
-      if (!session) throw new ApiError('not_found', 'PaymentNotFound', {});
-      const state = stateAt(session, now);
-      if (state !== PaymentSessionState.AwaitingPayment) {
-        throw new ApiError('conflict', 'PaymentSessionClosed', { state });
-      }
-      const offered = await this.methods.forShoppersWithin(tx, tenantId);
-      const account = offered.find((row) => row.method === input.method);
-      if (!account) {
-        throw new FieldsError([
-          {
-            field: 'method',
-            problem: FieldProblemCode.NotAllowed,
-            messageKey: 'PaymentMethodNotOffered',
-          },
-        ]);
-      }
-      if (await this.store.transactionIdUsed(tx, input.transactionId)) {
-        throw new FieldsError(
-          [
-            {
-              field: 'transactionId',
-              problem: ServerFieldProblemCode.AlreadyUsed,
-              messageKey: 'TransactionIdAlreadyUsed',
-            },
-          ],
-          'conflict',
-        );
-      }
-      const submitted = await this.store.submit(tx, tenantId, session.id, {
-        method: input.method,
-        transactionId: input.transactionId,
-        senderNumber: input.senderNumber ?? null,
-        paidTo: {
-          accountId: account.accountId,
-          accountName: account.accountName,
-          number: account.number,
-          bankName: account.bank?.bankName ?? null,
-          accountNumber: account.bank?.accountNumber ?? null,
-        },
-        submittedAt: now,
-      });
-      return this.pageWithin(tx, tenantId, submitted, now, offered);
-    });
-    // VER-01 (Slice 5.3): staff with payments:verify are told once the ID is kept; a notice that fails changes nothing.
-    if (page.method !== null) {
-      await this.notifier
-        .paymentToVerify({
-          tenantId,
-          sessionId: page.sessionId,
-          orderNumber: page.orderNumber,
-          method: page.method,
-          amount: page.amount,
-          transactionId: input.transactionId,
-        })
-        .catch((error: unknown) => {
-          this.logger.error(`could not tell staff of a payment to verify: ${String(error)}`);
-        });
+  ): Promise<SelectPaymentSession> {
+    const session = await this.store.findByRef(tx, tenantId, ref, true);
+    if (!session) throw new ApiError('not_found', 'PaymentNotFound', {});
+    const state = stateAt(session, now);
+    if (state !== PaymentSessionState.AwaitingPayment) {
+      throw new ApiError('conflict', 'PaymentSessionClosed', { state });
     }
-    return page;
+    const offered = await this.methods.forShoppersWithin(tx, tenantId);
+    const account = offered.find((row) => row.method === input.method);
+    if (!account) {
+      throw new FieldsError([
+        {
+          field: 'method',
+          problem: FieldProblemCode.NotAllowed,
+          messageKey: 'PaymentMethodNotOffered',
+        },
+      ]);
+    }
+    await this.refuseUsedId(tx, input.transactionId);
+    return this.store.submit(tx, tenantId, session.id, {
+      method: input.method,
+      transactionId: input.transactionId,
+      senderNumber: input.senderNumber ?? null,
+      paidTo: {
+        accountId: account.accountId,
+        accountName: account.accountName,
+        number: account.number,
+        bankName: account.bank?.bankName ?? null,
+        accountNumber: account.bank?.accountNumber ?? null,
+      },
+      submittedAt: now,
+    });
+  }
+
+  /**
+   * PAY-07 (Slice 5.4b, agreed 2026-11-02): the shopper corrects the ID they typed, up to [3] times, until someone decides.
+   * A receipt the old ID claimed is unclaimed again, and the payment waits again; each change is in the activity log.
+   */
+  async changeTypedWithin(
+    tx: Transaction,
+    tenantId: string,
+    ref: string,
+    input: PaymentIdChangeInput,
+    ip: string | null,
+  ): Promise<SelectPaymentSession> {
+    const session = await this.store.findByRef(tx, tenantId, ref, true);
+    if (!session) throw new ApiError('not_found', 'PaymentNotFound', {});
+    if (!DECIDABLE.includes(session.state)) {
+      throw new ApiError('conflict', 'PaymentSessionClosed', { state: session.state });
+    }
+    if (session.idChanges >= PAYMENT_ID_CHANGES_MAX) {
+      throw new ApiError('conflict', 'PaymentIdChangesUsedUp', {});
+    }
+    await this.refuseUsedId(tx, input.transactionId);
+    await this.store.releaseReceipt(tx, tenantId, session.id);
+    const changed = await this.store.changeTyped(tx, tenantId, session.id, {
+      transactionId: input.transactionId,
+      senderNumber: input.senderNumber ?? session.senderNumber,
+    });
+    await this.activity.record(
+      tx,
+      tenantId,
+      { id: null, ip, type: ActorType.System },
+      AuditAction.PaymentIdChanged,
+      { type: 'order', id: session.orderId },
+      {
+        orderNumber: await this.store.orderNumberOf(tx, tenantId, session.orderId),
+        from: session.transactionId,
+        to: input.transactionId,
+      },
+    );
+    return changed;
+  }
+
+  /** VER-02, VER-04 (Slice 5.4b): the session a receipt with this ID settles, held; null when nobody typed it. */
+  lockTypedWithin(
+    tx: Transaction,
+    tenantId: string,
+    transactionId: string,
+  ): Promise<SelectPaymentSession | null> {
+    return this.store.lockTyped(tx, tenantId, transactionId);
+  }
+
+  /** VER-02, WAL-21 (Slice 5.4b): the payment sent to staff, and why. */
+  toReviewWithin(
+    tx: Transaction,
+    tenantId: string,
+    id: string,
+    reason: PaymentReviewReason,
+  ): Promise<SelectPaymentSession> {
+    return this.store.toReview(tx, tenantId, id, reason);
+  }
+
+  /** Slice 5.4b: the session as it now stands, in the caller's transaction. */
+  async findWithin(tx: Transaction, tenantId: string, id: string): Promise<SelectPaymentSession> {
+    const session = await this.store.findById(tx, tenantId, id, false);
+    if (!session) throw new ApiError('not_found', 'PaymentNotFound', {});
+    return session;
+  }
+
+  orderNumberWithin(tx: Transaction, tenantId: string, orderId: string): Promise<string> {
+    return this.store.orderNumberOf(tx, tenantId, orderId);
+  }
+
+  /** PAY-16: whether a payment platform-wide already holds this transaction ID. */
+  transactionIdUsedWithin(tx: Transaction, transactionId: string): Promise<boolean> {
+    return this.store.transactionIdUsed(tx, transactionId);
+  }
+
+  /** PAY-14 (Slice 5.4b): a receipt that claimed this session is unclaimed again. */
+  releaseReceiptWithin(tx: Transaction, tenantId: string, sessionId: string): Promise<void> {
+    return this.store.releaseReceipt(tx, tenantId, sessionId);
+  }
+
+  /**
+   * VER-01, VER-07 (Slice 5.4b): the notice due for this session now, marked so staff hear once; null for none. A payment
+   * with staff is told at once, and so is one waiting with no phone online to read it. One a phone may yet verify waits
+   * for the minute pass, which tells staff if it is still unresolved [5] minutes on.
+   */
+  async noticeWithin(
+    tx: Transaction,
+    tenantId: string,
+    session: SelectPaymentSession,
+    now: Date,
+  ): Promise<PaymentToVerifyNotice | null> {
+    if (!DECIDABLE.includes(session.state) || session.staffToldAt !== null) return null;
+    if (
+      session.state === PaymentSessionState.Checking &&
+      (await this.listening(tx, tenantId, session.method, now))
+    ) {
+      return null;
+    }
+    return this.markToldWithin(tx, tenantId, session, now);
+  }
+
+  /** VER-07 (Slice 5.4b): one shop's minute pass -- staff told of each payment still waiting [5] minutes on. */
+  async tellStaffDue(tenantId: string, now: Date): Promise<number> {
+    const before = new Date(now.getTime() - PAYMENT_STAFF_TOLD_MINUTES * MINUTE_MS);
+    const notices = await this.store.run(async (tx) => {
+      const due = await this.store.lockUntold(tx, tenantId, before);
+      const told: PaymentToVerifyNotice[] = [];
+      for (const session of due) {
+        const notice = await this.markToldWithin(tx, tenantId, session, now);
+        if (notice) told.push(notice);
+      }
+      return told;
+    });
+    for (const notice of notices) {
+      await this.notifier.paymentToVerify(notice).catch((error: unknown) => {
+        this.logger.error(`could not tell staff of a payment to verify: ${String(error)}`);
+      });
+    }
+    return notices.length;
   }
 
   /**
@@ -364,7 +473,7 @@ export class PaymentSessions {
     });
   }
 
-  private async pageWithin(
+  async pageWithin(
     tx: Transaction,
     tenantId: string,
     session: SelectPaymentSession,
@@ -385,6 +494,14 @@ export class PaymentSessions {
         session.state === PaymentSessionState.Failed && session.rejectReason !== null
           ? { reason: session.rejectReason, note: session.rejectNote }
           : null,
+      review:
+        session.state === PaymentSessionState.NeedsReview
+          ? { reason: pageReviewOf(session.reviewReason) }
+          : null,
+      listenerOnline: await this.listening(tx, tenantId, session.method, now),
+      idChangesLeft: DECIDABLE.includes(session.state)
+        ? Math.max(PAYMENT_ID_CHANGES_MAX - session.idChanges, 0)
+        : 0,
       submitted:
         session.transactionId !== null && session.submittedAt !== null && session.method !== null
           ? {
@@ -395,6 +512,55 @@ export class PaymentSessions {
             }
           : null,
     };
+  }
+
+  /** VER-07, LSN-06: whether a phone of the shop's reported lately and can read this wallet's receipts. */
+  private async listening(
+    tx: Transaction,
+    tenantId: string,
+    method: PaymentMethod | null,
+    now: Date,
+  ): Promise<boolean> {
+    if (method !== null && !LISTENER_WALLETS.includes(method)) return false;
+    const minutes = await this.figure(
+      PlatformSettingKey.ListenerOfflineMinutes,
+      LISTENER_OFFLINE_MINUTES,
+    );
+    return this.store.phoneSeenSince(tx, tenantId, new Date(now.getTime() - minutes * MINUTE_MS));
+  }
+
+  /** VER-01: staff hear of this payment; the notice, marked in the caller's transaction, to send once it commits. */
+  private async markToldWithin(
+    tx: Transaction,
+    tenantId: string,
+    session: SelectPaymentSession,
+    now: Date,
+  ): Promise<PaymentToVerifyNotice | null> {
+    if (session.method === null || session.transactionId === null) return null;
+    await this.store.markTold(tx, tenantId, session.id, now);
+    return {
+      tenantId,
+      sessionId: session.id,
+      orderNumber: await this.store.orderNumberOf(tx, tenantId, session.orderId),
+      method: session.method,
+      amount: session.amount,
+      transactionId: session.transactionId,
+    };
+  }
+
+  /** PAY-07, PAY-16: an ID a payment already holds, anywhere on the platform, is refused. */
+  private async refuseUsedId(tx: Transaction, transactionId: string): Promise<void> {
+    if (!(await this.store.transactionIdUsed(tx, transactionId))) return;
+    throw new FieldsError(
+      [
+        {
+          field: 'transactionId',
+          problem: ServerFieldProblemCode.AlreadyUsed,
+          messageKey: 'TransactionIdAlreadyUsed',
+        },
+      ],
+      'conflict',
+    );
   }
 
   /**

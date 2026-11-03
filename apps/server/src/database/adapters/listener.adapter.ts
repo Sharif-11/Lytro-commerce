@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
+  ListenerMessageRepository,
   ListenerRepository,
   TransactionRunner,
   type ListenerShopRow,
@@ -18,6 +19,7 @@ export class DrizzleListenerStore implements ListenerStore {
     @Inject(DatabaseService) private readonly database: Pick<DatabaseService, 'handle'>,
     @Inject(TransactionRunner) private readonly transactions: TransactionRunner,
     @Inject(ListenerRepository) private readonly listener: ListenerRepository,
+    @Inject(ListenerMessageRepository) private readonly messages: ListenerMessageRepository,
   ) {}
 
   run<T>(work: (tx: Transaction) => Promise<T>): Promise<T> {
@@ -84,6 +86,10 @@ export class DrizzleListenerStore implements ListenerStore {
     return this.listener.touch(tx, id, at, appVersion);
   }
 
+  startTestMode(tx: Transaction, id: string, until: Date): Promise<void> {
+    return this.listener.startTestMode(tx, id, until);
+  }
+
   flag(tx: Transaction, id: string): Promise<number> {
     return this.listener.flag(tx, id);
   }
@@ -118,7 +124,8 @@ export class DrizzleListenerStore implements ListenerStore {
     return this.listener.purge(tx, codesBefore, devicesBefore);
   }
 
-  deleteForTenant(tx: Transaction, tenantId: string): Promise<void> {
-    return this.listener.deleteForTenant(tx, tenantId);
+  async deleteForTenant(tx: Transaction, tenantId: string): Promise<void> {
+    await this.messages.deleteForTenant(tx, tenantId);
+    await this.listener.deleteForTenant(tx, tenantId);
   }
 }

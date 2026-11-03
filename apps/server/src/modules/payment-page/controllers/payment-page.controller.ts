@@ -1,15 +1,18 @@
-import { Body, Controller, Get, Inject, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Inject, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { createZodDto, ZodResponse } from 'nestjs-zod';
 import { z } from 'zod';
 import {
+  paymentIdChangeSchema,
   PaymentMethod,
   PaymentMethodKind,
   paymentPageReportSchema,
+  PaymentPageReviewReason,
   PaymentRejectReason,
   PaymentSessionState,
   paymentSubmissionSchema,
   WalletAccountType,
+  type PaymentIdChangeInput,
   type PaymentPageReportInput,
   type PaymentSubmissionInput,
 } from '@lytronix/validators';
@@ -18,12 +21,13 @@ import { PublicApiRoute } from '../../../common/decorators/public-api';
 import { OkDto } from '../../../common/dto/ok.dto';
 import { ResponseMessage } from '../../../common/decorators/response-message';
 import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
+import { PaymentSubmissions } from '../../listener-receipts/services/payment-submissions';
 import { MediaService } from '../../media/services/media.service';
 import { PaymentSessions } from '../../payment-sessions/services/payment-sessions';
 import type { PaymentPageSession } from '../../payment-sessions/types/payment-sessions';
+import type { PublicApiRequest } from '../../public-api/guards/public-key.guard';
+import { API_CLOCK } from '../../public-api/tokens';
 import { PaymentPageGuard } from '../guards/payment-page.guard';
-import type { PublicApiRequest } from '../guards/public-key.guard';
-import { API_CLOCK } from '../tokens';
 
 /** PAY-05: the page as it is shown -- the shop's name and logo beside the session. */
 type PaymentPageView = PaymentPageSession & {
@@ -31,6 +35,7 @@ type PaymentPageView = PaymentPageSession & {
 };
 
 class PaymentSubmissionDto extends createZodDto(paymentSubmissionSchema) {}
+class PaymentIdChangeDto extends createZodDto(paymentIdChangeSchema) {}
 class PaymentPageReportDto extends createZodDto(paymentPageReportSchema) {}
 class PaymentPageDto extends createZodDto(
   z.object({
@@ -70,6 +75,9 @@ class PaymentPageDto extends createZodDto(
     rejected: z
       .object({ reason: z.nativeEnum(PaymentRejectReason), note: z.string().nullable() })
       .nullable(),
+    review: z.object({ reason: z.nativeEnum(PaymentPageReviewReason) }).nullable(),
+    listenerOnline: z.boolean(),
+    idChangesLeft: z.number(),
     submitted: z
       .object({
         method: z.nativeEnum(PaymentMethod),
@@ -91,6 +99,7 @@ class PaymentPageDto extends createZodDto(
 export class PaymentPageController {
   constructor(
     @Inject(PaymentSessions) private readonly sessions: PaymentSessions,
+    @Inject(PaymentSubmissions) private readonly submissions: PaymentSubmissions,
     @Inject(MediaService) private readonly media: MediaService,
     @Inject(ClientIp) private readonly clientIp: ClientIp,
     @Inject(API_CLOCK) private readonly clock: () => Date,
@@ -128,7 +137,32 @@ export class PaymentPageController {
   ): Promise<PaymentPageView> {
     const shop = request.apiShop;
     if (!shop) throw new Error('the payment page guard names the shop');
-    const session = await this.sessions.submit(shop.row.id, ref, body, this.clock());
+    const session = await this.submissions.submit(shop.row.id, ref, body, this.clock());
+    return { ...session, shop: await this.shopOf(shop.row.id, shop.row.shopName) };
+  }
+
+  @Patch(':ref/transaction')
+  @ResponseMessage('PaymentIdChanged')
+  @ApiOperation({
+    summary:
+      'The shopper corrects the transaction ID they typed, up to 3 times, until someone decides (PAY-07, agreed 2026-11-02)',
+  })
+  @ApiBody({ type: PaymentIdChangeDto })
+  @ZodResponse({ type: PaymentPageDto })
+  async change(
+    @Param('ref') ref: string,
+    @Body(new ZodValidationPipe(PaymentIdChangeDto.schema)) body: PaymentIdChangeInput,
+    @Req() request: PublicApiRequest,
+  ): Promise<PaymentPageView> {
+    const shop = request.apiShop;
+    if (!shop) throw new Error('the payment page guard names the shop');
+    const session = await this.submissions.change(
+      shop.row.id,
+      ref,
+      body,
+      this.clientIp.resolve(request),
+      this.clock(),
+    );
     return { ...session, shop: await this.shopOf(shop.row.id, shop.row.shopName) };
   }
 

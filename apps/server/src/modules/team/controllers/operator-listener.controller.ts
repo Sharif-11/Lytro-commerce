@@ -6,12 +6,13 @@ import {
   Inject,
   Param,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
-import { catalogueIdSchema } from '@lytronix/validators';
+import { catalogueIdSchema, type ListenerUnreadQuery } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import { ClientIp } from '../../../common/client-ip';
 import { ResponseMessage } from '../../../common/decorators/response-message';
@@ -21,6 +22,8 @@ import type { MessageKey } from '../../../common/i18n/message-key';
 import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
 import { ListenerDevices } from '../../listener/services/listener-devices';
 import type { ListenerDeviceList } from '../../listener/types/listener';
+import { ListenerReceipts } from '../../listener-receipts/services/listener-receipts';
+import type { ListenerUnreadItem } from '../../listener-receipts/types/listener-receipts';
 import {
   OperatorSessionGuard,
   type OperatorSessionRequest,
@@ -29,6 +32,8 @@ import {
   BlockInstallationDto,
   InstallationBlockedDto,
   ListenerDeviceListDto,
+  ListenerUnreadDto,
+  ListenerUnreadQueryDto,
 } from '../dto/listener.dto';
 
 // LSN-20, LSN-21 (Phase 5 Slice 5.4a): Lytro's view of a shop's listener phones against its plan's limit, revoking any
@@ -40,6 +45,7 @@ import {
 export class OperatorListenerController {
   constructor(
     @Inject(ListenerDevices) private readonly devices: ListenerDevices,
+    @Inject(ListenerReceipts) private readonly receipts: ListenerReceipts,
     @Inject(ClientIp) private readonly clientIp: ClientIp,
   ) {}
 
@@ -51,6 +57,19 @@ export class OperatorListenerController {
   @ZodResponse({ type: ListenerDeviceListDto })
   list(@Param('id') id: string): Promise<ListenerDeviceList> {
     return this.devices.listForOperator(this.idOf(id, 'ShopNotFound'));
+  }
+
+  @Get('listener-unread')
+  @ResponseMessage('ListenerUnreadListed')
+  @ApiOperation({
+    summary:
+      'The wording of wallet messages the parser could not read, numbers and notes removed, with how many arrived each day (VER-06)',
+  })
+  @ZodResponse({ type: ListenerUnreadDto })
+  async unread(
+    @Query(new ZodValidationPipe(ListenerUnreadQueryDto.schema)) query: ListenerUnreadQuery,
+  ): Promise<{ shapes: ListenerUnreadItem[] }> {
+    return { shapes: await this.receipts.unread(query.days) };
   }
 
   @Post('listener-devices/:id/revoke')

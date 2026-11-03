@@ -34,6 +34,8 @@ export interface ListenerStore {
     values: { revokedBy: string | null; reason: ListenerRevokeReason; at: Date },
   ): Promise<SelectListenerDevice>;
   touch(tx: Transaction, id: string, at: Date, appVersion: string): Promise<void>;
+  /** LSN-04 (Slice 5.4b): test mode on until `until`. */
+  startTestMode(tx: Transaction, id: string, until: Date): Promise<void>;
   flag(tx: Transaction, id: string): Promise<number>;
   isBlocked(tx: Transaction, installationId: string): Promise<boolean>;
   block(
