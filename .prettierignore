@@ -7,6 +7,8 @@ coverage
 pnpm-lock.yaml
 docs
 **/routeTree.gen.ts
+# The Android app (Slice 5.5): Gradle's own build output and generated reports.
+apps/listener-android
 # Ported from the storefront prototype by script (docs/brand/lytro-storefront.html); regenerated, never hand-formatted.
 apps/storefront/src/app/storefront.css
 apps/storefront/src/lib/i18n/copy.ts

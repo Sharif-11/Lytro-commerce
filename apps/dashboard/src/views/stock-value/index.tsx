@@ -1,13 +1,21 @@
 import type { ReactNode } from 'react';
+import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { formatTaka } from '@lytronix/ui';
+import { Permission, SalesBucket } from '@lytronix/validators';
+import { useSales } from '@/api/sales';
 import { useInventoryFigures } from '@/api/stock';
 import { Banner } from '@/components/ui/banner';
 import { Card } from '@/components/ui/card';
+import { buttonClass } from '@/components/ui/classes';
 import { Kv } from '@/components/ui/kv';
 import { Eyebrow } from '@/components/ui/page';
 import { SkeletonRows } from '@/components/ui/skeleton';
 import { useErrorText } from '@/hooks/use-error-text';
+import { todayInputValue } from '@/lib/dates';
+import { periodOf } from '@/lib/sales-period';
+import { allows } from '@/shell/hubs';
+import { useShell } from '@/shell/shell-context';
 import { ShellPage } from '@/shell/shell-page';
 import { useCountedText } from '../product/stock-holders';
 
@@ -30,9 +38,40 @@ function FigureList({
 }
 
 /**
+ * This month's profit beside stock value (TENANT-DASHBOARD-DESIGN §7.34, `stock-value32`, agreed): its two parts and a
+ * way to Sales. It comes from the orders, so someone who may see costs but not orders doesn't get it.
+ */
+function ProfitNow(): React.JSX.Element | null {
+  const { t } = useTranslation('orders');
+  const { slug, viewer } = useShell();
+  const mayRead = allows(viewer, [Permission.OrdersRead]);
+  const sales = useSales(
+    { ...periodOf('thisMonth', todayInputValue()), bucket: SalesBucket.Month },
+    { enabled: mayRead },
+  );
+  const profit = sales.data?.totals.profit;
+  if (!mayRead || !profit) return null;
+  return (
+    <Card>
+      <Eyebrow>{t('saProfitBeside')}</Eyebrow>
+      <div className="num mt-1 text-[28px] font-extrabold">{formatTaka(profit.profit)}</div>
+      <p className="text-[14px] text-fg-muted">
+        {t('saLessTax')} {formatTaka(profit.revenueLessTax)} · {t('saCost')}{' '}
+        {formatTaka(profit.costOfGoods)}
+      </p>
+      <div className="mt-2.5">
+        <Link to="/$shop/sales" params={{ shop: slug }} className={buttonClass('outline', 'sm')}>
+          {t('saSeeSales')}
+        </Link>
+      </div>
+    </Card>
+  );
+}
+
+/**
  * Stock value and losses (TENANT-DASHBOARD-DESIGN §7.22, the prototype's `stock-value`; INV-18, D3-9), for someone who
- * may see costs: what is on hand at average cost now and in which units, the same by category, and this month's losses
- * by reason with the units each took. Profit waits for orders (Phase 4).
+ * may see costs: this month's profit, what is on hand at average cost now and in which units, the same by category, and
+ * this month's losses by reason with the units each took.
  */
 export function StockValueView(): React.JSX.Element {
   const { t } = useTranslation('shop');
@@ -56,6 +95,7 @@ export function StockValueView(): React.JSX.Element {
       ) : (
         <div className="grid items-start gap-4 lg:grid-cols-[1fr_340px] lg:gap-6">
           <div className="flex flex-col gap-4">
+            <ProfitNow />
             <Card>
               <Eyebrow>{t('svTotal')}</Eyebrow>
               <div className="num mt-1 text-[28px] font-extrabold">

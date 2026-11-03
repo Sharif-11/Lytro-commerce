@@ -1,6 +1,7 @@
 import { sql, type SQL } from 'drizzle-orm';
 import {
   OrderPaymentStatus,
+  type ProductKind,
   SalesRanking,
   StatusOverride,
   StockReason,
@@ -41,6 +42,8 @@ export interface SalesDayCost {
 export interface BestSellerRow {
   productId: string | null;
   name: string;
+  /** CMB-01 (Slice 4.8d): a combo is tagged; a product since deleted reads as an ordinary one. */
+  kind: ProductKind;
   stockUnit: StockUnit;
   units: string;
   revenue: string;
@@ -197,6 +200,7 @@ export class SalesRepository {
     const result = await tx.execute<{
       product_id: string | null;
       name: string;
+      kind: ProductKind;
       stock_unit: StockUnit;
       units: string;
       revenue: string;
@@ -204,6 +208,7 @@ export class SalesRepository {
     }>(sql`
       SELECT l.product_id,
         coalesce(p.name, (array_agg(l.product_name ORDER BY o.created_at DESC))[1]) AS name,
+        coalesce(p.kind, 'standard') AS kind,
         l.stock_unit,
         -- Left numeric, so the ranking compares amounts, not text; node-pg reads a numeric as a string.
         sum(l.quantity - l.returned_quantity)::numeric(14, 3) AS units,
@@ -213,12 +218,13 @@ export class SalesRepository {
       JOIN tenant.order_lines l ON l.tenant_id = o.tenant_id AND l.order_id = o.id
       LEFT JOIN tenant.products p ON p.tenant_id = l.tenant_id AND p.id = l.product_id
       WHERE ${counted(tenantId, period)} AND l.returned_quantity < l.quantity
-      GROUP BY l.product_id, p.name, CASE WHEN l.product_id IS NULL THEN l.product_name END, l.stock_unit
+      GROUP BY l.product_id, p.name, p.kind, CASE WHEN l.product_id IS NULL THEN l.product_name END, l.stock_unit
       ORDER BY ${ranked}, name, l.product_id
       LIMIT ${limit}`);
     return result.rows.map((row) => ({
       productId: row.product_id,
       name: row.name,
+      kind: row.kind,
       stockUnit: row.stock_unit,
       units: row.units,
       revenue: row.revenue,
