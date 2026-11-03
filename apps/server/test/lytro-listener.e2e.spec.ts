@@ -745,6 +745,8 @@ describeIfDatabase("what else Lytro's phone keeps (VER-06, LSN-04, LSN-17)", () 
       { status: 'ignored', ignored_reason: 'test_mode', raw_text: null, amount: '500.00' },
     ]);
     expect(await balanceOf(shop)).toBe(0);
+    // Another of Lytro's phones has its own list.
+    await forward(await lytroPhone(), receiptText(trx(), '5.00'));
     const recent = await sendExact(
       port,
       'GET',
@@ -768,6 +770,8 @@ describeIfDatabase("what else Lytro's phone keeps (VER-06, LSN-04, LSN-17)", () 
     const phone = await lytroPhone();
     const id = trx();
     await forward(phone, receiptText(id, '777.00', '01911000123'));
+    // Another of Lytro's phones counts for itself.
+    await forward(await lytroPhone(), receiptText(trx(), '5.00'));
     const read = await sendExact(port, 'GET', '/v1/listener/messages', undefined, headersOf(phone));
     expect(read.body).toMatchObject({ today: { verified: 0, waiting: 1, toCheck: 0 } });
     const lytro = app.get(LytroReceipts);
