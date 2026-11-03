@@ -1934,6 +1934,38 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'Connected.',
     bn: 'কানেক্টেড।',
   },
+  ListenerMessagesTaken: {
+    en: 'Messages received.',
+    bn: 'মেসেজ পাওয়া গেছে।',
+  },
+  ListenerMessagesRead: {
+    en: 'Recent receipts.',
+    bn: 'সাম্প্রতিক রিসিট।',
+  },
+  ListenerReceiptsListed: {
+    en: 'Receipts listed.',
+    bn: 'রিসিটের তালিকা।',
+  },
+  ListenerUnreadListed: {
+    en: 'Unreadable messages listed.',
+    bn: 'যেসব মেসেজ পড়া যায়নি তার তালিকা।',
+  },
+  ListenerTestModeStarted: {
+    en: 'Test mode is on.',
+    bn: 'টেস্ট মোড চালু হয়েছে।',
+  },
+  ListenerUnpaired: {
+    en: 'This phone is unpaired.',
+    bn: 'এই ফোনের পেয়ারিং বন্ধ হয়েছে।',
+  },
+  PaymentIdChanged: {
+    en: 'Transaction ID corrected.',
+    bn: 'ট্রান্সেকশন আইডি ঠিক করা হয়েছে।',
+  },
+  PaymentIdChangesUsedUp: {
+    en: 'This transaction ID cannot be changed again. The shop will check your payment.',
+    bn: 'এই ট্রান্সেকশন আইডি আর বদলানো যাবে না। দোকান আপনার পেমেন্ট চেক করবে।',
+  },
   ListenerDevicesListed: {
     en: 'Listener phones listed.',
     bn: 'লিসেনার ফোনগুলো দেখানো হলো।',

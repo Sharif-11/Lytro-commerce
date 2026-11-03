@@ -5,6 +5,7 @@ import {
   PaymentListStatus,
   PaymentMethod,
   PaymentRejectReason,
+  PaymentReviewReason,
   PaymentSessionSource,
   rejectShopperPaymentSchema,
   VerificationLevel,
@@ -33,6 +34,14 @@ export const paymentListItemSchema = z.object({
   decidedAt: z.coerce.date().nullable(),
   rejectReason: z.nativeEnum(PaymentRejectReason).nullable(),
   note: z.string().nullable(),
+  reviewReason: z.nativeEnum(PaymentReviewReason).nullable(),
+  receipt: z
+    .object({
+      amount: z.string(),
+      senderNumber: z.string().nullable(),
+      receivedAt: z.coerce.date(),
+    })
+    .nullable(),
 });
 export class PaymentPageDto extends createZodDto(
   z.object({

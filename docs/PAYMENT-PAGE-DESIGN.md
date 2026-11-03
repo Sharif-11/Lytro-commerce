@@ -1,6 +1,6 @@
 # Hosted payment page: manual payments by Send Money
 
-Status: v2, 2026-10-20. The design of `pay.lytro.app/<session>`, the page a shopper lands on to pay a
+Status: v2, 2026-10-20, amended 2026-11-02 (Slice 5.4b: correcting a typed ID, and what a review tells a shopper). The design of `pay.lytro.app/<session>`, the page a shopper lands on to pay a
 shop by bKash, Nagad, Rocket or Upay when the payment is verified manually or by the SMS listener. The
 same page takes the platform's own payments (a plan or a top-up, PAY-21). It is built in Phase 5
 (`IMPLEMENTATION-PLAN.md`, `DEPLOYMENT.md` §7); nothing of it exists in code yet, and this document is the
@@ -118,15 +118,16 @@ Bengali are not used on this page.
 
 Tapping Verify sends the transaction ID (PAY-07) and the coloured card is replaced by a white status card
 in the same frame (16 px corners, centred icon, title, one line, a grey detail box); the fixed button
-changes with the state. The page polls the session every 3 seconds (PAY-17).
+changes with the state. The page polls the session every 3 seconds (PAY-17). The shopper may correct a typed ID up to 3 times until someone decides
+(PAY-07, agreed 2026-11-02): the button or link shows while `idChangesLeft` is above 0, then goes.
 
 | State | Card | Fixed button |
 | --- | --- | --- |
 | `checking`, listener online (VER-02) | 30-second ring at the elapsed seconds, "SMS মেলানো হচ্ছে…", "সাধারণত ১০ সেকেন্ড লাগে। এই পেজে থাকুন।", amount · method · ID | CHANGE TRANSACTION ID |
-| `checking`, past 30 s (PAY-17) | clock, "আমরা শিগগিরই কনফার্ম করব", "এই পেজ বন্ধ করলেও হবে। কনফার্ম হলে SMS পাবেন, আর দোকান জানবে।" | BACK TO SHOP (keeps polling until expiry) |
-| `checking`, no listener in 30 min (VER-07) | person, "দোকান চেক করে কনফার্ম করবে", "সাধারণত কিছুক্ষণের মধ্যে।" | BACK TO SHOP |
+| `checking`, past 30 s (PAY-17) | clock, "আমরা শিগগিরই কনফার্ম করব", "এই পেজ বন্ধ করলেও হবে। কনফার্ম হলে SMS পাবেন, আর দোকান জানবে।", and under it the link "TrxID ভুল দিয়েছেন? বদলান" | BACK TO SHOP (keeps polling until expiry) |
+| `checking`, no listener in 30 min (VER-07) | person, "দোকান চেক করে কনফার্ম করবে", "সাধারণত কিছুক্ষণের মধ্যে।", and under it the link "TrxID ভুল দিয়েছেন? বদলান" | BACK TO SHOP |
 | `verified` | green tick drawn once, "পেমেন্ট হয়েছে", "৫ সেকেন্ডে দোকানে ফিরছেন।", amount · method · ID · time | BACK TO SHOP, then the redirect with session ID and status (PAY-08) |
-| `needs_review` (PAY-14) | magnifier, "টাকা মিলছে না", the server's reason (amount or sender differs), "দোকান দেখে জানাবে" | BACK TO SHOP |
+| `needs_review` (PAY-14) | magnifier, "টাকা মিলছে না", the server's reason where it is the amount or the sender; for any other reason (`other`) the title is "দোকান চেক করে জানাবে" and no reason shows, since the rest are the shop's own (its balance, an old receipt). "দোকান দেখে জানাবে", and under it the same link | BACK TO SHOP |
 | `failed`, rejected with a reason (PAY-14) | cross, "পেমেন্ট কনফার্ম হয়নি", the staff's reason verbatim | TRY AGAIN (reopens the wallet screen in the same session, PAY-08) |
 | `expired` (PAY-03) | clock, "সময় শেষ হয়ে গেছে", what to do either way | BACK TO SHOP (cancel address) |
 | already `verified` on reopen (PAY-03) | tick, "এই পেমেন্ট আগেই হয়েছে", amount · method · time | BACK TO SHOP |

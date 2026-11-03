@@ -10,6 +10,7 @@ import type {
 import type {
   PaymentPageReportReason,
   PaymentPageReportStatus,
+  PaymentReviewReason,
   PaymentSessionState,
   TenantState,
 } from '@lytronix/validators';
@@ -64,6 +65,31 @@ export interface PaymentSessionStore {
     id: string,
     values: PaymentSubmission,
   ): Promise<SelectPaymentSession>;
+  /** PAY-07 (Slice 5.4b): the ID corrected; the session waits again. */
+  changeTyped(
+    tx: Transaction,
+    tenantId: string,
+    id: string,
+    values: { transactionId: string; senderNumber: string | null },
+  ): Promise<SelectPaymentSession>;
+  /** VER-02, VER-04 (Slice 5.4b): the session a receipt with this ID settles, held. */
+  lockTyped(
+    tx: Transaction,
+    tenantId: string,
+    transactionId: string,
+  ): Promise<SelectPaymentSession | null>;
+  toReview(
+    tx: Transaction,
+    tenantId: string,
+    id: string,
+    reason: PaymentReviewReason,
+  ): Promise<SelectPaymentSession>;
+  markTold(tx: Transaction, tenantId: string, id: string, at: Date): Promise<void>;
+  lockUntold(tx: Transaction, tenantId: string, before: Date): Promise<SelectPaymentSession[]>;
+  /** VER-07 (Slice 5.4b): whether any of the shop's phones reported since `since`. */
+  phoneSeenSince(tx: Transaction, tenantId: string, since: Date): Promise<boolean>;
+  /** PAY-14, PAY-07 (Slice 5.4b): a receipt that claimed this session is unclaimed again. */
+  releaseReceipt(tx: Transaction, tenantId: string, sessionId: string): Promise<void>;
   lockExpired(tx: Transaction, tenantId: string, now: Date): Promise<SelectPaymentSession[]>;
   setState(
     tx: Transaction,

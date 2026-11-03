@@ -3,6 +3,7 @@ import {
   check,
   foreignKey,
   index,
+  integer,
   jsonb,
   numeric,
   timestamp,
@@ -21,6 +22,7 @@ import {
   TRANSACTION_ID_MAX_LENGTH,
 } from '@lytronix/validators';
 import { createdAt, tenant } from '../shared';
+import { paymentReviewReason } from './listener-messages';
 import { orders, paymentMethod } from './orders';
 
 export const paymentSessionState = tenant.enum(
@@ -75,6 +77,11 @@ export const paymentSessions = tenant.table(
     decidedAt: timestamp('decided_at', { withTimezone: true }),
     rejectReason: paymentRejectReason('reject_reason'),
     rejectNote: varchar('reject_note', { length: PAYMENT_NOTE_MAX_LENGTH }),
+    // Phase 5 Slice 5.4b: why a receipt sent it to staff (VER-02, WAL-21); how many times the shopper corrected the ID
+    // (PAY-07, agreed 2026-11-02); and when staff were told of it, so they hear once (VER-01, VER-07).
+    reviewReason: paymentReviewReason('review_reason'),
+    idChanges: integer('id_changes').notNull().default(0),
+    staffToldAt: timestamp('staff_told_at', { withTimezone: true }),
     createdAt: createdAt(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -89,6 +96,14 @@ export const paymentSessions = tenant.table(
     index('payment_sessions_expiry_idx')
       .on(t.tenantId, t.expiresAt)
       .where(sql`${t.state} = 'awaiting_payment'`),
+    // VER-02, VER-04: a receipt finds the payments that typed its transaction ID.
+    index('payment_sessions_transaction_idx')
+      .on(t.tenantId, t.transactionId)
+      .where(sql`${t.transactionId} IS NOT NULL`),
+    // VER-07: the minute pass -- payments waiting on a phone that staff have not been told of.
+    index('payment_sessions_untold_idx')
+      .on(t.tenantId, t.submittedAt)
+      .where(sql`${t.state} = 'checking' AND ${t.staffToldAt} IS NULL`),
     foreignKey({
       name: 'payment_sessions_order_fk',
       columns: [t.tenantId, t.orderId],

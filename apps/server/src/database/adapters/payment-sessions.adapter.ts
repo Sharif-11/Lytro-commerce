@@ -1,5 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
+  ListenerMessageRepository,
+  ListenerRepository,
   PaymentPageReportRepository,
   PaymentSessionRepository,
   TenantRepository,
@@ -16,6 +18,7 @@ import {
 import type {
   PaymentPageReportReason,
   PaymentPageReportStatus,
+  PaymentReviewReason,
   PaymentSessionState,
   TenantState,
 } from '@lytronix/validators';
@@ -31,6 +34,8 @@ export class DrizzlePaymentSessionStore implements PaymentSessionStore {
     @Inject(UsedTransactionIdsRepository) private readonly used: UsedTransactionIdsRepository,
     @Inject(TenantRepository) private readonly tenants: TenantRepository,
     @Inject(PaymentPageReportRepository) private readonly reports: PaymentPageReportRepository,
+    @Inject(ListenerRepository) private readonly listener: ListenerRepository,
+    @Inject(ListenerMessageRepository) private readonly receipts: ListenerMessageRepository,
   ) {}
 
   run<T>(work: (tx: Transaction) => Promise<T>): Promise<T> {
@@ -39,6 +44,48 @@ export class DrizzlePaymentSessionStore implements PaymentSessionStore {
 
   tenantOfRef(ref: string): Promise<string | null> {
     return this.sessions.tenantOfRef(this.database.handle.db, ref);
+  }
+
+  changeTyped(
+    tx: Transaction,
+    tenantId: string,
+    id: string,
+    values: { transactionId: string; senderNumber: string | null },
+  ): Promise<SelectPaymentSession> {
+    return this.sessions.changeTyped(tx, tenantId, id, values);
+  }
+
+  lockTyped(
+    tx: Transaction,
+    tenantId: string,
+    transactionId: string,
+  ): Promise<SelectPaymentSession | null> {
+    return this.sessions.lockTyped(tx, tenantId, transactionId);
+  }
+
+  toReview(
+    tx: Transaction,
+    tenantId: string,
+    id: string,
+    reason: PaymentReviewReason,
+  ): Promise<SelectPaymentSession> {
+    return this.sessions.toReview(tx, tenantId, id, reason);
+  }
+
+  markTold(tx: Transaction, tenantId: string, id: string, at: Date): Promise<void> {
+    return this.sessions.markTold(tx, tenantId, id, at);
+  }
+
+  lockUntold(tx: Transaction, tenantId: string, before: Date): Promise<SelectPaymentSession[]> {
+    return this.sessions.lockUntold(tx, tenantId, before);
+  }
+
+  phoneSeenSince(tx: Transaction, tenantId: string, since: Date): Promise<boolean> {
+    return this.listener.anySeenSince(tx, tenantId, since);
+  }
+
+  releaseReceipt(tx: Transaction, tenantId: string, sessionId: string): Promise<void> {
+    return this.receipts.releaseOfSession(tx, tenantId, sessionId);
   }
 
   listShopIds(): Promise<string[]> {

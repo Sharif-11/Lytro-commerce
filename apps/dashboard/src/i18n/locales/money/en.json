@@ -291,6 +291,7 @@
     "extraction": "Order read from a message",
     "fraud_check": "Fake order check",
     "order_fee": "Order fee",
+    "verification_fee": "Payment verification fee",
     "plan_payment": "Plan",
     "product_fee": "Product fee",
     "reversal": "Reversal",

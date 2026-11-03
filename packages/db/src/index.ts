@@ -297,6 +297,14 @@ export {
   type NewListenerDevice,
 } from './repositories/listener/listener.repository';
 export {
+  ListenerMessageRepository,
+  type ListenerMessageCounts,
+  type ListenerMessageFilter,
+  type ListenerMessageOutcome,
+  type ListenerMessageRow,
+  type NewListenerMessage,
+} from './repositories/listener/listener-message.repository';
+export {
   PaymentListRepository,
   type PaymentListFilter,
   type PaymentListRow,

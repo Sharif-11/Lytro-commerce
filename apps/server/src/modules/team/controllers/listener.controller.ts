@@ -7,12 +7,13 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
-import { Permission } from '@lytronix/validators';
+import { Permission, type ListenerReceiptsQuery } from '@lytronix/validators';
 import { Dashboard } from '../../../common/decorators/dashboard';
 import { RequirePermission } from '../../../common/decorators/require-permission';
 import { ResponseMessage } from '../../../common/decorators/response-message';
@@ -21,6 +22,8 @@ import { DashboardGuard, type DashboardRequest } from '../../identity/guards/das
 import { SessionGuard } from '../../identity/guards/session.guard';
 import { ListenerDevices } from '../../listener/services/listener-devices';
 import { ListenerPairing } from '../../listener/services/listener-pairing';
+import { ListenerReceipts } from '../../listener-receipts/services/listener-receipts';
+import type { ReceiptPage } from '../../listener-receipts/types/listener-receipts';
 import type {
   ListenerCode,
   ListenerDeviceList,
@@ -30,6 +33,8 @@ import {
   ListenerCodeDto,
   ListenerDeviceDto,
   ListenerDeviceListDto,
+  ListenerReceiptsQueryDto,
+  ReceiptPageDto,
   RenameListenerDeviceDto,
 } from '../dto/listener.dto';
 import { PermissionGuard } from '../guards/permission.guard';
@@ -46,6 +51,7 @@ export class ListenerController {
   constructor(
     @Inject(ListenerPairing) private readonly pairing: ListenerPairing,
     @Inject(ListenerDevices) private readonly devices: ListenerDevices,
+    @Inject(ListenerReceipts) private readonly receipts: ListenerReceipts,
     @Inject(CatalogueRequest) private readonly request: CatalogueRequest,
   ) {}
 
@@ -71,6 +77,21 @@ export class ListenerController {
   @ZodResponse({ type: ListenerDeviceListDto })
   list(@Req() request: DashboardRequest): Promise<ListenerDeviceList> {
     return this.devices.list(this.request.tenantIdOf(request));
+  }
+
+  @Get('receipts')
+  @RequirePermission(Permission.PaymentsVerify)
+  @ResponseMessage('ListenerReceiptsListed')
+  @ApiOperation({
+    summary:
+      'The receipts phones forwarded -- unclaimed, with staff or used -- newest first, by status, searched by the start of a transaction ID, sender number or amount (agreed 2026-11-02)',
+  })
+  @ZodResponse({ type: ReceiptPageDto })
+  receiptsList(
+    @Query(new ZodValidationPipe(ListenerReceiptsQueryDto.schema)) query: ListenerReceiptsQuery,
+    @Req() request: DashboardRequest,
+  ): Promise<ReceiptPage> {
+    return this.receipts.list(this.request.tenantIdOf(request), query);
   }
 
   @Patch('devices/:id')

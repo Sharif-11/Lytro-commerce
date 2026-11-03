@@ -37,4 +37,15 @@ export class MailLowBalanceNotifier implements LowBalanceNotifier {
           ];
     await this.mail.queueLifecycleNotice(tx, owner.email, subject, body);
   }
+
+  async notifyFeeShort(tx: Transaction, tenantId: string, balance: string): Promise<void> {
+    const owner = await this.staff.ownerContactIn(tx, tenantId);
+    if (!owner?.email) return;
+    await this.mail.queueLifecycleNotice(
+      tx,
+      owner.email,
+      'A payment needs checking by hand',
+      `Your balance of ${balance} TK could not pay the small fee for a payment the listener matched, so it is waiting for you to check it by hand, for free. Top up from the dashboard so payments verify by themselves.`,
+    );
+  }
 }

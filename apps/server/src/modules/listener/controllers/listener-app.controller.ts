@@ -2,9 +2,10 @@ import { Body, Controller, HttpCode, Inject, Post, Req, UseGuards } from '@nestj
 import { ApiBody, ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { createZodDto, ZodResponse } from 'nestjs-zod';
 import { z } from 'zod';
-import { listenerPairSchema, type ListenerPairInput } from '@lytronix/validators';
+import { listenerPairSchema, PaymentMethod, type ListenerPairInput } from '@lytronix/validators';
 import { ClientIp } from '../../../common/client-ip';
 import { PublicApiRoute } from '../../../common/decorators/public-api';
+import { OkDto } from '../../../common/dto/ok.dto';
 import { ResponseMessage } from '../../../common/decorators/response-message';
 import { headerValue, type HttpRequest } from '../../../common/http';
 import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
@@ -14,12 +15,18 @@ import { ListenerPairing } from '../services/listener-pairing';
 import type { ListenerConnected, ListenerPaired } from '../types/listener';
 
 class ListenerPairDto extends createZodDto(listenerPairSchema) {}
+const appFacts = {
+  accounts: z.array(z.object({ method: z.nativeEnum(PaymentMethod), number: z.string() })),
+  senders: z.array(z.string()),
+  testModeUntil: z.coerce.date().nullable(),
+};
 class ListenerPairedDto extends createZodDto(
   z.object({
     deviceId: z.string(),
     token: z.string(),
     shopName: z.string(),
     heartbeatMinutes: z.number(),
+    ...appFacts,
   }),
 ) {}
 class ListenerConnectedDto extends createZodDto(
@@ -27,8 +34,10 @@ class ListenerConnectedDto extends createZodDto(
     status: z.literal('connected'),
     heartbeatMinutes: z.number(),
     serverTime: z.coerce.date(),
+    ...appFacts,
   }),
 ) {}
+class ListenerTestModeDto extends createZodDto(z.object({ testModeUntil: z.coerce.date() })) {}
 
 const APP_VERSION_HEADER = {
   name: 'x-app-version',
@@ -86,5 +95,41 @@ export class ListenerAppController {
     const version = request.listenerAppVersion;
     if (!device || version === undefined) throw new Error('the listener guard names the device');
     return this.app.heartbeat(device, version);
+  }
+
+  @Post('test-mode')
+  @HttpCode(200)
+  @UseGuards(ListenerDeviceGuard)
+  @ResponseMessage('ListenerTestModeStarted')
+  @ApiOperation({
+    summary:
+      'Test mode on for 10 minutes, from the paired phone: a message that looks like a receipt from an unknown sender is read and shown, and verifies nothing (LSN-04)',
+  })
+  @ApiHeader({ name: 'x-installation-id', required: true })
+  @ApiHeader(APP_VERSION_HEADER)
+  @ZodResponse({ type: ListenerTestModeDto })
+  async testMode(@Req() request: ListenerRequest): Promise<{ testModeUntil: Date }> {
+    const device = request.listenerDevice;
+    if (!device) throw new Error('the listener guard names the device');
+    return {
+      testModeUntil: await this.app.startTestMode(device, this.clientIp.resolve(request)),
+    };
+  }
+
+  @Post('unpair')
+  @HttpCode(200)
+  @UseGuards(ListenerDeviceGuard)
+  @ResponseMessage('ListenerUnpaired')
+  @ApiOperation({
+    summary: "The phone unpairs itself, freeing its place on the shop's plan (the app's menu)",
+  })
+  @ApiHeader({ name: 'x-installation-id', required: true })
+  @ApiHeader(APP_VERSION_HEADER)
+  @ZodResponse({ type: OkDto })
+  async unpair(@Req() request: ListenerRequest): Promise<{ ok: true }> {
+    const device = request.listenerDevice;
+    if (!device) throw new Error('the listener guard names the device');
+    await this.app.unpair(device, this.clientIp.resolve(request));
+    return { ok: true };
   }
 }

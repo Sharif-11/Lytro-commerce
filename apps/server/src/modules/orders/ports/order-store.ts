@@ -62,6 +62,16 @@ export interface OrderStore {
     paymentId: string,
     values: { voidedBy: string | null; voidReason: string },
   ): Promise<OrderPaymentRecord>;
+  /** Agreed 2026-11-02 (Slice 5.4b read): a receipt holding this transaction ID is used by this payment. */
+  markReceiptUsed(
+    tx: Transaction,
+    tenantId: string,
+    transactionId: string,
+    paymentId: string,
+    sessionId: string | null,
+  ): Promise<void>;
+  /** Slice 5.4b: a voided payment's receipt is unclaimed again. */
+  releaseReceiptOfPayment(tx: Transaction, tenantId: string, paymentId: string): Promise<void>;
   /** Agreed 2026-11-01: the order's payment page still awaiting money closed, the order being paid in full. */
   closeAwaitingPayment(tx: Transaction, tenantId: string, orderId: string): Promise<void>;
   /** PAY-20, ORD-44 (Slice 5.3): a payment marked refunded with a note. */

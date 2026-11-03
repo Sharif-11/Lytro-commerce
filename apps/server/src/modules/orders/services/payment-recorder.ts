@@ -8,6 +8,7 @@ import {
   StatusOverride,
   type OrderPaymentInput,
   type PaymentMethod,
+  type VerificationLevel,
 } from '@lytronix/validators';
 import { ApiError, FieldsError } from '../../../common/api-error';
 import { UniqueViolation } from '../../../common/errors/unique-violation';
@@ -26,6 +27,8 @@ export interface PaymentEntry {
   senderNumber: string | null;
   transactionId: string | null;
   sessionId?: string;
+  /** VER-12 (Slice 5.4b): how it was verified, when not by hand. */
+  verificationLevel?: VerificationLevel;
 }
 
 /** What an order's payments make of it (ORD-06, ORD-43). */
@@ -162,11 +165,21 @@ export class PaymentRecorder {
     who: ResolvedActor,
     history: NewOrderHistory[],
   ): Promise<OrderPatch> {
-    await this.store.insertPayment(tx, tenantId, {
+    const payment = await this.store.insertPayment(tx, tenantId, {
       orderId: order.id,
       ...entry,
       verifiedBy: who.id,
     });
+    // Agreed 2026-11-02 (Slice 5.4b read): however a payment came to carry an ID, a receipt holding it is used.
+    if (entry.transactionId !== null) {
+      await this.store.markReceiptUsed(
+        tx,
+        tenantId,
+        entry.transactionId,
+        payment.id,
+        entry.sessionId ?? null,
+      );
+    }
     const standing = await this.standingWithin(tx, tenantId, order, order);
     this.noteStanding(order, standing, paymentWords(entry), who, history);
     return standing;

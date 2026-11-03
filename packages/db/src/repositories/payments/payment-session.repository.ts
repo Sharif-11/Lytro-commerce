@@ -3,6 +3,7 @@ import {
   PaymentSessionState,
   type PaymentMethod,
   type PaymentRejectReason,
+  type PaymentReviewReason,
   type PaymentSessionSource,
 } from '@lytronix/validators';
 import {
@@ -252,6 +253,108 @@ export class PaymentSessionRepository {
       .returning();
     if (!row) throw new Error('update returned no payment session');
     return row;
+  }
+
+  /**
+   * PAY-07 (Slice 5.4b, agreed 2026-11-02): the transaction ID corrected -- it counts one of the shopper's changes, and the
+   * payment goes back to waiting.
+   */
+  async changeTyped(
+    tx: Transaction,
+    tenantId: string,
+    id: string,
+    values: { transactionId: string; senderNumber: string | null },
+  ): Promise<SelectPaymentSession> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const [row] = await tx
+      .update(paymentSessions)
+      .set({
+        ...values,
+        state: PaymentSessionState.Checking,
+        reviewReason: null,
+        idChanges: sql`${paymentSessions.idChanges} + 1`,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(paymentSessions.tenantId, tenantId), eq(paymentSessions.id, id)))
+      .returning();
+    if (!row) throw new Error('update returned no payment session');
+    return row;
+  }
+
+  /**
+   * VER-02, VER-04 (Slice 5.4b): the session a receipt with this transaction ID settles, held -- one still waiting on it
+   * before one with staff, before one already closed; the newest of each. Null when nobody typed it.
+   */
+  async lockTyped(
+    tx: Transaction,
+    tenantId: string,
+    transactionId: string,
+  ): Promise<SelectPaymentSession | null> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const [row] = await tx
+      .select()
+      .from(paymentSessions)
+      .where(
+        and(
+          eq(paymentSessions.tenantId, tenantId),
+          eq(paymentSessions.transactionId, transactionId),
+        ),
+      )
+      .orderBy(
+        sql`CASE ${paymentSessions.state} WHEN 'checking' THEN 0 WHEN 'needs_review' THEN 1 ELSE 2 END`,
+        desc(paymentSessions.submittedAt),
+      )
+      .limit(1)
+      .for('update');
+    return row ?? null;
+  }
+
+  /** VER-02, WAL-21 (Slice 5.4b): the payment sent to staff, and why. */
+  async toReview(
+    tx: Transaction,
+    tenantId: string,
+    id: string,
+    reason: PaymentReviewReason,
+  ): Promise<SelectPaymentSession> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const [row] = await tx
+      .update(paymentSessions)
+      .set({ state: PaymentSessionState.NeedsReview, reviewReason: reason, updatedAt: new Date() })
+      .where(and(eq(paymentSessions.tenantId, tenantId), eq(paymentSessions.id, id)))
+      .returning();
+    if (!row) throw new Error('update returned no payment session');
+    return row;
+  }
+
+  /** VER-01, VER-07 (Slice 5.4b): staff have been told of this payment. */
+  async markTold(tx: Transaction, tenantId: string, id: string, at: Date): Promise<void> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    await tx
+      .update(paymentSessions)
+      .set({ staffToldAt: at, updatedAt: new Date() })
+      .where(and(eq(paymentSessions.tenantId, tenantId), eq(paymentSessions.id, id)));
+  }
+
+  /** VER-07 (Slice 5.4b): payments typed before `before`, still waiting, that staff have not been told of; held. */
+  async lockUntold(
+    tx: Transaction,
+    tenantId: string,
+    before: Date,
+  ): Promise<SelectPaymentSession[]> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    return tx
+      .select()
+      .from(paymentSessions)
+      .where(
+        and(
+          eq(paymentSessions.tenantId, tenantId),
+          eq(paymentSessions.state, PaymentSessionState.Checking),
+          isNull(paymentSessions.staffToldAt),
+          lte(paymentSessions.submittedAt, before),
+        ),
+      )
+      .orderBy(asc(paymentSessions.submittedAt))
+      .for('update', { skipLocked: true });
   }
 
   /** PAY-03: sessions still awaiting payment whose time ran out, held; one another pass holds is skipped. */

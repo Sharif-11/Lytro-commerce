@@ -20,6 +20,13 @@ export class LowBalanceCapture {
     return Promise.resolve();
   }
 
+  readonly feeShort: { tenantId: string; balance: string }[] = [];
+
+  notifyFeeShort(_tx: Transaction, tenantId: string, balance: string): Promise<void> {
+    this.feeShort.push({ tenantId, balance });
+    return Promise.resolve();
+  }
+
   forTenant(tenantId: string): CrossedNotice[] {
     return this.notified.filter((n) => n.tenantId === tenantId);
   }

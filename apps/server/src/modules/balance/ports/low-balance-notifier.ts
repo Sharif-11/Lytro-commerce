@@ -11,4 +11,6 @@ export interface LowBalanceNotifier {
     thresholdPaisa: bigint,
     balanceAfter: string,
   ): Promise<void>;
+  /** WAL-21 (Slice 5.4b, agreed 2026-11-02): a matched payment went to staff, the balance being too short for its fee. */
+  notifyFeeShort(tx: Transaction, tenantId: string, balance: string): Promise<void>;
 }

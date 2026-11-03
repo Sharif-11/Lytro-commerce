@@ -61,6 +61,12 @@ export const FIELD_LABELS: Readonly<Record<string, Translation | null>> = {
   cityCodes: { en: 'Cities', bn: 'সিটি' },
   code: { en: 'Code', bn: 'কোড' },
   installationId: { en: 'Installation ID', bn: 'ইনস্টলেশন আইডি' },
+  // Slice 5.4b: what a listener phone forwards, and the days of unreadable messages Lytro reads.
+  messages: { en: 'Messages', bn: 'মেসেজ' },
+  sender: { en: 'Sender', bn: 'সেন্ডার' },
+  text: { en: 'Text', bn: 'টেক্সট' },
+  receivedAt: { en: 'Received at', bn: 'পাওয়ার সময়' },
+  days: { en: 'Days', bn: 'দিন' },
   components: { en: 'Combo items', bn: 'কম্বোর আইটেম' },
   condition: { en: 'Condition', bn: 'কন্ডিশন' },
   contactEmail: { en: 'Contact email', bn: 'কন্টাক্ট ইমেইল' },

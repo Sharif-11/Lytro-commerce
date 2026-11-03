@@ -196,6 +196,35 @@ export const LISTENER_DEVICE_NAME_MAX_LENGTH = 60;
 export const LISTENER_INSTALLATION_ID_MAX_LENGTH = 100;
 export const LISTENER_REVOKED_KEPT_DAYS = 30;
 export const LISTENER_CODES_KEPT_DAYS = 1;
+// LSN-13 to LSN-17, LSN-04 (Phase 5 Slice 5.4b): a phone's uploads a minute and a shop's; a batch's messages, a request's
+// bytes and a message's characters; [500] messages an hour flag a phone; how far a received time may stray; test mode's
+// [10] minutes; receipt text kept [90] days.
+export const LISTENER_UPLOADS_PER_DEVICE_PER_MINUTE = 30;
+export const LISTENER_UPLOADS_PER_SHOP_PER_MINUTE = 120;
+export const LISTENER_BATCH_MAX = 50;
+export const LISTENER_REQUEST_MAX_BYTES = 64 * 1024;
+export const LISTENER_MESSAGE_MAX_LENGTH = 1000;
+export const LISTENER_VOLUME_PER_HOUR = 500;
+export const LISTENER_RECEIVED_AHEAD_MINUTES = 5;
+export const LISTENER_RECEIVED_OLDEST_DAYS = 7;
+export const LISTENER_TEST_MODE_MINUTES = 10;
+export const LISTENER_TEXT_KEPT_DAYS = 90;
+// LSN-16: the senders whose SMS count as a wallet's, when the operator has set no list of their own.
+export const LISTENER_SENDERS: readonly string[] = ['bKash'];
+export const LISTENER_SENDER_MAX_LENGTH = 30;
+// VER-04 (amended 2026-11-02): a receipt from more than [5] minutes before its payment page opened goes to staff.
+export const LISTENER_OLD_RECEIPT_MINUTES = 5;
+// VER-06 (amended 2026-11-02): an unreadable message's masked shape, and the day's count that tells Lytro.
+export const LISTENER_SHAPE_MAX_LENGTH = 300;
+export const LISTENER_UNREAD_ALERT_PER_DAY = 20;
+// The receipts the app shows, and a page of the staff's list.
+export const LISTENER_RECENT_DEFAULT = 20;
+export const LISTENER_RECENT_MAX = 50;
+export const LISTENER_RECEIPT_PAGE_SIZE = 20;
+// PAY-07 (amended 2026-11-02): how many times a shopper may correct a typed transaction ID.
+export const PAYMENT_ID_CHANGES_MAX = 3;
+// VER-07: minutes a payment waits on a phone before staff are told.
+export const PAYMENT_STAFF_TOLD_MINUTES = 5;
 // LSN-03, VER-07, LSN-18: a phone counts online when seen within [30] minutes, and the oldest app version that may
 // call, when the operator has set no figures of their own.
 export const LISTENER_OFFLINE_MINUTES = 30;

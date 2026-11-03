@@ -134,6 +134,7 @@ export class ListenerPairing {
           token,
           shopName: shop?.shopName ?? '',
           heartbeatMinutes: LISTENER_HEARTBEAT_MINUTES,
+          ...(await this.rules.appFactsOf(device, now)),
         },
       };
     });

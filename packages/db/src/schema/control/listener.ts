@@ -1,9 +1,20 @@
 import { sql } from 'drizzle-orm';
-import { char, index, integer, text, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
+import {
+  char,
+  date,
+  index,
+  integer,
+  primaryKey,
+  text,
+  timestamp,
+  uuid,
+  varchar,
+} from 'drizzle-orm/pg-core';
 import {
   enumTuple,
   LISTENER_DEVICE_NAME_MAX_LENGTH,
   LISTENER_INSTALLATION_ID_MAX_LENGTH,
+  LISTENER_SHAPE_MAX_LENGTH,
   ListenerRevokeReason,
 } from '@lytronix/validators';
 import { control, createdAt } from '../shared';
@@ -63,6 +74,12 @@ export const listenerDevices = control.table(
     revokedAt: timestamp('revoked_at', { withTimezone: true }),
     revokedBy: uuid('revoked_by'),
     revokeReason: listenerRevokeReason('revoke_reason'),
+    // Phase 5 Slice 5.4b: test mode's end (LSN-04); the messages it sent on its last day, Asia/Dhaka (LSN-20); and when
+    // it last passed the hourly volume, so its owner and Lytro hear once (LSN-14).
+    testModeUntil: timestamp('test_mode_until', { withTimezone: true }),
+    uploadsDay: date('uploads_day'),
+    uploadsToday: integer('uploads_today').notNull().default(0),
+    volumeFlaggedAt: timestamp('volume_flagged_at', { withTimezone: true }),
   },
   (t) => [
     index('listener_devices_tenant_idx').on(t.tenantId, t.pairedAt),
@@ -84,5 +101,20 @@ export const listenerBlockedInstallations = control.table('listener_blocked_inst
   blockedAt: timestamp('blocked_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+// VER-06 (amended 2026-11-02, Slice 5.4b read): the shape of what a wallet's own sender sent that the parser could not
+// read -- every number and reference note removed -- with how many arrived each day, across every shop, so Lytro can
+// mend the parser when a wallet changes its wording. It names no shop. Removed at [90] days.
+export const listenerUnreadShapes = control.table(
+  'listener_unread_shapes',
+  {
+    day: date('day').notNull(),
+    shapeHash: char('shape_hash', { length: 64 }).notNull(),
+    shape: varchar('shape', { length: LISTENER_SHAPE_MAX_LENGTH }).notNull(),
+    count: integer('count').notNull().default(0),
+  },
+  (t) => [primaryKey({ name: 'listener_unread_shapes_pkey', columns: [t.day, t.shapeHash] })],
+);
+
+export type SelectListenerUnreadShape = typeof listenerUnreadShapes.$inferSelect;
 export type SelectListenerPairingCode = typeof listenerPairingCodes.$inferSelect;
 export type SelectListenerDevice = typeof listenerDevices.$inferSelect;
