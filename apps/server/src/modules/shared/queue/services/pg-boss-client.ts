@@ -21,6 +21,11 @@ export class PgBossClient implements OnModuleInit, OnModuleDestroy {
       max: 5,
       application_name: 'lytronix-queue',
     });
+    // An 'error' event nobody listens for ends the process, so one slow or lost connection would take the whole
+    // server down. pg-boss tries again by itself, so all this has to do is say what happened.
+    this.boss.on('error', (error: Error & { queue?: string }) => {
+      console.error(`[job-queue] ${error.queue ? `${error.queue}: ` : ''}${error.message}`);
+    });
   }
 
   async onModuleInit(): Promise<void> {
